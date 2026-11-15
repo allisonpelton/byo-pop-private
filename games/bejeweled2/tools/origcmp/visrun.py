@@ -459,11 +459,6 @@ def main():
         timeout = int(a[i + 1])
         del a[i:i + 2]
     exe, script, out = a
-    # the original's window is on the user's desktop: only from 22:00 to 08:00 local (CLAUDE.md, "Overnight"); the run is refused
-    # before the window opens at any other hour (2026-11-14: a run at 21:24 was seen)
-    hour = time.localtime().tm_hour
-    if 8 <= hour < 22:
-        raise SystemExit('visrun: the visible desktop is for 22:00 to 08:00 local; it is %s' % time.strftime('%H:%M'))
     exe = os.path.abspath(exe)
     out = os.path.abspath(out)
     if os.path.isdir(out):

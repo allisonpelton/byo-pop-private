@@ -8,7 +8,7 @@
 # Run a port under rundesk (build/native/rundesk.exe python perf.py ...); start the original's run directly, since origrun
 # puts the game under rundesk itself (docs/ORIGRUN.md). The sampler reads the game process only: its working set, private
 # bytes and processor time every 100 ms, the peaks Windows keeps (PeakWorkingSetSize, PeakPagefileUsage = peak private
-# bytes), and how many game processes run on the machine (any session's: a process under a \build\ folder or C:\byo-og
+# bytes), and how many game processes run on the machine (any session's: a process under a \build\ folder or E:\byo-og
 # that is not a tool). The original's "launch" is its process's creation time; its first input is the title's play
 # link, read from the game's memory as origrun's --watch reads it (the app object at 0x5160b0, mLoadingThreadCompleted at +0x52e,
 # the title screen at +0xe4c with its "link shown" byte at +0x70). The port's is the first "ready":true of its state command.
@@ -19,7 +19,7 @@ psapi = ctypes.WinDLL('psapi', use_last_error=True)
 ROOT = os.getcwd()
 EXE = os.path.join(ROOT, 'build', 'native', 'alchemy.exe')
 ORIGRUN = os.path.join(ROOT, 'build', 'origrun-bin', 'origrun.exe')
-OG_GAME = 'C:/byo-og/alch/game/AlchemyGame.exe'
+OG_GAME = 'E:/byo-og/alch/game/AlchemyGame.exe'
 TOOLS = {'rundesk.exe', 'python.exe', 'bash.exe', 'cmake.exe', 'ninja.exe', 'node.exe', 'sh.exe', 'conhost.exe', 'pythonw.exe'}
 
 
@@ -84,7 +84,7 @@ def game_processes():
         sz = W.DWORD(1024)
         if k32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(sz)):
             low = buf.value.lower().replace('/', '\\')
-            if '\\build\\' in low or low.startswith('c:\\byo-og'):
+            if '\\build\\' in low or low.startswith('e:\\byo-og'):
                 n += 1
         k32.CloseHandle(h)
     return n
@@ -164,7 +164,7 @@ def main():
     else:
         for f in ('hiscores.dat', 'savegame.dat'):
             try:
-                os.remove('C:/byo-og/alch/game/' + f)
+                os.remove('E:/byo-og/alch/game/' + f)
             except OSError:
                 pass
         script = os.path.join(out, 'orig.txt')

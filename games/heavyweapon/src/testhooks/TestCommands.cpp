@@ -202,8 +202,9 @@ bool LeaveScreens(HeavyWeaponApp* theApp)
 	if (aMenu != NULL)
 	{
 		theApp->mWidgetManager->RemoveWidget(aMenu);
-		theApp->SafeDeleteWidget(aMenu);
-		theApp->mMainMenu = NULL;
+		// deleted at once (a test command runs between the widgets' updates): its destructor clears mMainMenu, and run
+		// later it cleared the next menu's (goto menu), whose continue dialog then gave its buttons no listener
+		delete aMenu;
 	}
 	HighScoresScreen* aScores = FindWidget<HighScoresScreen>(theApp);
 	if (aScores != NULL)
@@ -216,6 +217,29 @@ bool LeaveScreens(HeavyWeaponApp* theApp)
 	{
 		theApp->mWidgetManager->RemoveWidget(aCredits);
 		theApp->SafeDeleteWidget(aCredits);
+	}
+	// the armory and the map go too, at once (the armory's destructor clears mArmory, which a later armory would have
+	// set): left up, they stayed over the next screen and the bot kept answering their buttons
+	Armory* anArmory = FindWidget<Armory>(theApp);
+	if (anArmory != NULL)
+	{
+		theApp->mWidgetManager->RemoveWidget(anArmory);
+		delete anArmory;
+	}
+	MapScreen* aMap = FindWidget<MapScreen>(theApp);
+	if (aMap != NULL)
+	{
+		theApp->mWidgetManager->RemoveWidget(aMap);
+		delete aMap;
+		theApp->mMapScreen = NULL;
+	}
+	// a cutscene goes too (the final one, after the last level's results, waits for a click): left up, the bot kept
+	// clicking it under the next screen
+	CutsceneScreen* aCutscene = FindWidget<CutsceneScreen>(theApp);
+	if (aCutscene != NULL)
+	{
+		theApp->mWidgetManager->RemoveWidget(aCutscene);
+		theApp->SafeDeleteWidget(aCutscene);
 	}
 	// the help screen goes as its OK takes it away
 	HelpScreen* aHelp = FindWidget<HelpScreen>(theApp);
@@ -649,6 +673,8 @@ bool HeavyWeaponApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			ReplyError(theCommand, "still loading: send it again");
 			return true;
 		}
+		if (anArgs != "options" && anArgs != "armory")
+			EndGame();					// the screens that leave a game end it, as the menus do (autosplit)
 		if (anArgs == "menu")
 		{
 			ShowMainMenu();
@@ -671,10 +697,12 @@ bool HeavyWeaponApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		else if (anArgs == "campaign")
 		{
+			BeginGame(false, false);	// as the main menu's campaign does
 			NewGame(false);
 		}
 		else if (anArgs == "survival")
 		{
+			BeginGame(true, false);		// as the main menu's survival does
 			NewGame(true);
 		}
 		else if (anArgs == "armory")
@@ -729,6 +757,8 @@ bool HeavyWeaponApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		mMapScreen = NULL;
 		mLevel = aLevel - 1;
+		if (mGameSerial == 0 || mGameIsSurvival)
+			BeginGame(false, true);		// a campaign game for the autosplit block, as a continued one (no GO)
 		LoadWaves(false);
 		StartLevel();
 		ReplyOK(theCommand);

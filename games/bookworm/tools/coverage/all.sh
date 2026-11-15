@@ -1,7 +1,7 @@
 #!/bin/bash
 # all.sh: every coverage run of the first round, one after another (one game process at a time, and the port's bot between);
-# the summary lines go to build/coverage/bookworm/summary.txt. OG_STAGE=C:/byo-og/bwp must be staged (setup.sh).
-export OG_STAGE="${OG_STAGE:-C:/byo-og/bwp}"
+# the summary lines go to build/coverage/bookworm/summary.txt. OG_STAGE=E:/byo-og/bwp must be staged (setup.sh).
+export OG_STAGE="${OG_STAGE:-E:/byo-og/bwp}"
 cd "$(dirname "$0")/../../../.." || exit 1
 R=games/bookworm/tools/coverage/run.sh; S=build/coverage/bookworm/summary.txt; mkdir -p build/coverage/bookworm
 {

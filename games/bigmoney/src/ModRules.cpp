@@ -1,3 +1,4 @@
+// port(mods): gameplay settings from mods, and the set seed (ModRules.h). Not in the original.
 #include "ModRules.h"
 #include "Board.h"
 

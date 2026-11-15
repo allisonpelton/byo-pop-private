@@ -53,6 +53,7 @@ StoryScreen::StoryScreen(PixelusApp* theApp, bool theFromMenu, int theFrom, int 
 	Load(LowerCase(std::string(gTemples[theFrom].mName) + gTemples[theTo].mName));
 }
 
+// port: the destructor (StoryScreen::~StoryScreen)
 StoryScreen::~StoryScreen()
 {
 	delete mContinueButton;
@@ -66,6 +67,7 @@ StoryScreen::~StoryScreen()
 
 // 0x42db50: the script. A line ending in a colon starts a speech, the lines after it are what is said; the first
 // empty line ends it. When there are two speeches only, they are moved down to the middle of the sky
+// 0x42d810
 void StoryScreen::Load(const std::string& theName)
 {
 	Buffer aBuffer;
@@ -128,12 +130,14 @@ void StoryScreen::Load(const std::string& theName)
 			mSpeeches[i].mY += 0x46;
 }
 
+// port: a helper of the port (StoryScreen::AddedToManager)
 void StoryScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mContinueButton);
 }
 
+// port: a helper of the port (StoryScreen::RemovedFromManager)
 void StoryScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
@@ -149,6 +153,7 @@ void StoryScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 }
 
 // 0x41ce50
+// 0x42c9a0
 void StoryScreen::Update()
 {
 	Widget::Update();
@@ -162,6 +167,8 @@ void StoryScreen::Update()
 	MarkDirty();
 }
 
+// 0x42ccf0
+// 0x42cbe0
 void StoryScreen::DrawSpeech(Graphics* g, const Speech& theSpeech, int theOrdinal)
 {
 	double anAge = mTime - theSpeech.mStart;
@@ -222,6 +229,7 @@ void StoryScreen::DrawSpeech(Graphics* g, const Speech& theSpeech, int theOrdina
 }
 
 // 0x41d290
+// 0x42d120
 void StoryScreen::Draw(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_STORYBACKDROP], 0, 0);

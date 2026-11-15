@@ -17,7 +17,10 @@
 //           at length; without one a tune is named after its file
 //   inside  tunes kept inside a game's file: [{file: "<path>", magic: "<first bytes>"}] its resources (a Windows module's)
 //           that start with those bytes, the magic naming their format, or [{file: "<path>", zip: ["<entry>", ...]}] those
-//           entries of a zip archive; each is then a file as above
+//           entries of a zip archive, or [{file: "<path>", tiptop: ["<entry>", ...]}] those of TipTop's archive; each is then a
+//           file as above
+//   bank    for a game whose music is MIDI: the General MIDI bank its port plays it with, served beside the pages (a .mid file
+//           is one tune, rendered by the game's own sequencer into TinySoundFont: web/music/midi_web.c)
 //   where   {"<file name>#<n>", "<file name>" (an Ogg or WAV file) or "<playlist name>": "<place>"}: where in the game its code plays
 //           the tune, in the style of a game music rip ("Main Menu", "Danger 2": Title Case, one place, at most 20 characters,
 //           tunes of one place numbered as the game reaches them), from the game's code (its session's answer) or, for an Ogg
@@ -30,7 +33,7 @@
 //           place's tooltip
 //   composer  who wrote the music, by the game's own credits (its credits screen, text or exe; a company where they name no
 //           person); none for a game whose credits name nobody for it, shown as Unknown. composers {"<id>": "<name>"} where
-//           the credits split the music by tune (none does)
+//           the credits split the music by tune (Heavy Weapon's love theme)
 //   level   the level the game plays its modules at, where it is not the renderer's own (platform/MusicLevels.h):
 //           {bassAmplify: n} the BASS amplify it sets (0 to 100), {fmod3XM: true} FMOD 3's XM pre-amp. The renderer is the
 //           game's own (libopenmpt for MO3 and OXM, libxmp-lite for the rest: web/music/openmpt_web.c)
@@ -407,6 +410,19 @@ var ByopopSoundtracks = {
       "nm_youwin": "The board is won"
     },
   },
+  // TipTop's one tune is a MIDI file in its archive, played as the port plays it: TipTop's sequencer into TinySoundFont with
+  // the port's bank (games/tiptop/src/Music.cpp and MusicSynth.cpp). It starts at the main menu's first showing, after the
+  // delay the game's config sets (MusicStarterProc), and is never stopped; the game holds it while paused (MusicPauseProc)
+  // and while its window is inactive
+  tiptop: { composer: "PCB Productions",
+    inside: [{ file: "TipTop.dat", tiptop: ["sounds/bkgd.mid"] }],
+    bank: "soundfonts/tiptop.sf2",
+    where: { bkgd: "In-Game" },
+    order: ["bkgd"],
+    when: {
+      "bkgd": "From the main menu's first showing, after the config's delay; loops through every screen and game; held while the game is paused or its window inactive"
+    },
+  },
   // the Ogg games
   bookwormadv2: {
     composer: "Staffan Melin",
@@ -469,6 +485,30 @@ var ByopopSoundtracks = {
     },
     unused: ["ingame_2_intro"]
   },
+  // Heavy Weapon: one module, atomictank.mo3, which the game starts at an order of it for each screen (games/heavyweapon/src:
+  // its song ids are named by those orders), and one Ogg, lovetheme.ogg; 200 updates a second, fades 0.002 an update in
+  // (2.5 seconds) and 0.004 out. Its subsongs are its tunes: 0 from order 0, 2 from 0x2a, 4 from 0x3b, 6 from 0x49, 8 from
+  // 0x4f; 1 starts at order 41, which the game never starts (its orders 82 to 84 are reached from nowhere else), and 3, 5, 7
+  // and 9 are a stop pattern (0.2 seconds). The original's BASS calls a song of the module still playing once it has played
+  // (HeavyWeaponApp.cpp, IsPlaying), so only the first main menu fades its tune in and the armory never changes the music.
+  // The credits give the music to Yannis Brown of Groovy Audio and the love theme to MegaLazer (data/credits.xml)
+  heavyweapon: {
+    composer: "Yannis Brown",
+    composers: { lovetheme: "MegaLazer" },
+    files: ["music/*.mo3", "music/lovetheme.ogg"],
+    where: { "atomictank#8": "Intro", lovetheme: "Title Screen", "atomictank#4": "Main Menu", "atomictank#0": "In-Game",
+      "atomictank#2": "Boss Fight", "atomictank#6": "Level Complete" },
+    order: ["atomictank#8", "lovetheme", "atomictank#4", "atomictank#0", "atomictank#2", "atomictank#6", "atomictank#1"],
+    when: {
+      "atomictank#8": "Order 0x4f; at launch, once, under the PopCap and title pictures, fading out over 250 updates (1.25 seconds) as they end; faded in over 500 updates for the cutscene after level 9 and for the game over (no tank left), looping, on through the high scores and menus after it",
+      "lovetheme": "The intro's pictures end: once, as the game loads and the title waits for Play",
+      "atomictank#4": "Order 0x3b; the first main menu after launch, faded in over 500 updates (2.5 seconds), and the high scores and armory from it; also the game-over dialog's Continue, on into the armory; loops",
+      "atomictank#0": "Order 0; a level starts, Campaign or Survival: faded in over 500 updates (2.5 seconds) as the music before fades out over 250; in Campaign it fades out over 250 as the boss warning comes; loops",
+      "atomictank#2": "Order 0x2a; at once after the boss warning's fifth flash (127 updates each); fades out over 250 updates (1.25 seconds) as the beaten boss's last blast goes; loops",
+      "atomictank#6": "Order 0x49; at once as the results come up, 500 updates (2.5 seconds) after the boss's last blast; loops, on through the armory and the final cutscene"
+    },
+    unused: ["atomictank#1"]
+  },
   // Bonnie's Bookstore plays its one module as tracks, each a range of orders (its track table, games/bonnies/game/Music.cpp:
   // the first for the menu, the rest in a game), and a logo tune
   bonnies: {
@@ -519,6 +559,20 @@ var ByopopSoundtracks = {
       "tubetricks in-game one v02": "A game's start (fade 0.666); after a pause, and after the buy-rockets screen between levels",
       "tubetricks level up loop one v01": "A level ends; until the buy-rockets screen closes",
       "tubetricks game over loop one v01": "The night runs out, the top line fills, or strategy mode runs out of moves"
+    },
+  },
+  // Hammer Heads' four tracks, one a screen (Application::StartMusic, games/hammerheads/src/Application.cpp: a track fades in
+  // over the others, and one already playing goes on where it was). Its credits name its developers and nobody for the music
+  hammerheads: {
+    files: ["sounds/Music - *.ogg"],
+    where: { "Music - Loading and Menu": "Main Menu", "Music - In-Game": "In-Game", "Music - Bonus Game": "Bonus Round",
+      "Music - High Score": "Trophy Room" },
+    order: ["Music - Loading and Menu", "Music - In-Game", "Music - Bonus Game", "Music - High Score"],
+    when: {
+      "Music - Loading and Menu": "Fades in slowly over the loading screen and plays on through the main menu, and again whenever the main menu opens",
+      "Music - In-Game": "A game opens (new, continued or from a restart point), and again after each wave's result, a bonus round or the trophy room; fades out at each wave's result, the game over and the win",
+      "Music - Bonus Game": "A bonus round opens",
+      "Music - High Score": "The trophy room opens, from the main menu or from a game when trophies are won; also the high score table from the main menu"
     },
   }
 };

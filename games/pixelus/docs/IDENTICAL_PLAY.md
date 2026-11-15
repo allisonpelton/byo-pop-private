@@ -236,7 +236,7 @@ blur.
 ## Notes for the repository
 
 `tools/identical/setup.sh` copies `re/pixelus/bin/PixelusGame.exe` (the game made by `tools/extract_game_exe.py` from the
-wrapped exe) into `C:/byo-og/pix` and writes `tools/origrun/patches/pixelus.txt` (git-ignored; the two seed patches).
+wrapped exe) into `E:/byo-og/pix` and writes `tools/origrun/patches/pixelus.txt` (git-ignored; the two seed patches).
 No script added here takes a wrapper apart, so nothing new belongs in `.publishignore`.
 
 ## The Tile Master (0x42bd40, update 0x42c460, draw 0x42b6a0)
@@ -276,3 +276,36 @@ the focus line is `timer` hidden and after): 11 passed, 0 failed, 1 information 
 were not repeated for this change; the Tile Master only moves a sprite, and the state log and the frozen baseline are
 unchanged.
 
+The frozen baseline was refreshed again on 2026-11-15 (the old exe is kept as `pixelus.before-bubble-mode.exe`): the temple screen now takes the original's mode (0x432420), so the god's first bubble in a returned-to temple draws the application's generator once more (0x42c4a0, mode 2), and the state logs differ from update 3291 only in their `apprand` counter; the game's own state is identical.
+
+The frozen baseline was refreshed again on 2026-11-15 (the old exe is kept as `pixelus.before-particles.exe`): the island map now runs the Nuclide layer's particle effects (the Rumble, PauseBloom and PauseBloomUp bursts at a temple that has just opened, 0x4176a0), which draw the application's generator (0x431090, 0x4310c0) every update while they fly. The state log writes a line whenever `apprand` moves, so the new logs hold 74 more lines from update 2235; with the `apprand` counters removed and the lines that are then empty dropped, the two logs of both baseline games are the same. The island's gull flock draws the C library's generator (clock-seeded, as in the original) and does not touch the state.
+
+## The island, the dialogs and the lessons (2026-11-15)
+Changes since the last report, each with its address in the source: the lesson timers and the eight lesson steps of the first
+puzzles (0x402700-0x407510), the speech-bubble widget (0x40e530-0x40ede0), a click that fails gives its sound and the cyclops's
+shrug, undo of the last thrown tile (0x403930), the hint dialog's exact placement (0x40f160), the dialog insets and fonts, no
+fade-in of the board (the original draws its grid at full alpha from the first frame), the flash buttons (0x41bf40-0x41c0a0),
+the temple screen's scrolling through the original's scroll bar (0x41c7d0 and its family) and the select-user list's, the
+first-visit and return bubble tips, the plaque and title layout, the island's gull flock (0x430ab0, 0x430cf0, 0x4306f0: boids
+that the pointer pushes or pulls; its numbers come from the clock-seeded C generator, so no two runs fly alike) and the
+particle effects (0x43d000-0x43f800: the Rumble, PauseBloom and PauseBloomUp bursts at a temple that has just opened, drawn
+from the application's generator). The main menu's user link has the original's black shadow, and the sound buttons take
+a click only on their picture's opaque pixels (as the original's alpha hit test).
+Open and skipped (GAME_NOTES.md, section 11): the editor's thumbnail reorder, the grid's pulse colour with no reader, the
+sound ducking of a pause. The chains of a mystery puzzle blow apart with the particle effects of 0x419700 (the links and the lock; seen at the temple of Jupiter with every puzzle solved). The puzzle-completed screen has no particle effect in the original's code (its three effect creations are the island's, 0x4176a0), so the confetti and sparkles that PuzzleCompleted.h mentions are not the original's: that line of the header is wrong and is corrected.
+
+The puzzle-completed screen has the original's characters (Medusa, the fauns, the centaur, the cyclops, the mermaid: 0x41b3c0, 0x419a00,
+0x419e60), which blink and move once the picture is in, and reading a hint ends the repeats of the board's glows (0x403050). This
+corrects the entry above that said the screen has no effects. The frozen baseline is unchanged. Not compared against the original's shots yet.
+
+## Real input with the final port (2026-11-15)
+Native (`tools/realplay/drive.py`, under rundesk, every click and key an SDL event): launch, the loading link, the new-user dialog, the story,
+the island, the temples and the boards, windowed: 12 boards played and 12 solved (the tutorial's nine and three of the next temple), no errors,
+626 s. Then with `--full --focus --expert`: Alt+Enter into full screen after the first board and back, the focus lost and regained in the
+middle of a board, the expert box ticked: 10 boards solved, no errors, 483 s. Web (`tools/web/play.js` in the Browser pane, `?silent=1`,
+DOM events): the same two runs, 12 solved windowed and 10 solved with `fsat=1&focusat=1&expert=1`, focus lost and regained at each, 0 errors
+(the pane cannot make an element full screen, so Alt+Enter reports `fullscreenElement none`; the native run covers full screen). The page
+check (`tools/web/pagecheck.js`): 11 passed, 0 failed, 1 information line. The web driver needs `hold=1`, which wipes the test profile:
+on a profile that already holds a finished tutorial it stops on the island ("no temple opens"), because it expects a first run.
+Not done: a whole game of 210 puzzles by real input (a board takes about 50 s that way, about three hours for the game); the bot's whole game
+by state is in `tools/check.sh pixelus` instead.

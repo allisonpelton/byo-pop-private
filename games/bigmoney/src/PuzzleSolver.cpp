@@ -1,3 +1,4 @@
+// port(mods): the Puzzle solver (PuzzleSolver.h). Not in the original.
 #include "PuzzleSolver.h"
 
 #include <algorithm>
@@ -181,24 +182,24 @@ int PuzzleModel::FloodSize(int theCol, int theRow, uint8_t* theMarks) const
 void PuzzleModel::Compact(int* theFall)
 {
 	// Gravity, per column
-	for (int c = 0; c < COLS; c++)
+	for (int aColumn = 0; aColumn < COLS; aColumn++)
 	{
 		int aDest = ROWS - 1;
 		for (int aSrc = ROWS - 1; aSrc >= 0; aSrc--)
 		{
-			int8_t v = mCell[aSrc][c];
+			int8_t v = mCell[aSrc][aColumn];
 			if (v == EMPTY)
 				continue;
 			if (aSrc != aDest)
 			{
-				mCell[aDest][c] = v;
+				mCell[aDest][aColumn] = v;
 				if ((v == BAG) && (aDest == ROWS - 1))
-					theFall[c] = aDest - aSrc;
+					theFall[aColumn] = aDest - aSrc;
 			}
 			aDest--;
 		}
 		for (int r = aDest; r >= 0; r--)
-			mCell[r][c] = EMPTY;
+			mCell[r][aColumn] = EMPTY;
 	}
 
 	// Empty bottom cells close up, left to right, as the grid changes
@@ -295,11 +296,11 @@ bool PuzzleModel::Rate(int* theScore) const
 {
 	int aCount[COLORS] = {};
 	int aCoins = 0;
-	for (int r = 0; r < ROWS; r++)
+	for (int aRow = 0; aRow < ROWS; aRow++)
 	{
-		for (int c = 0; c < COLS; c++)
+		for (int aCol = 0; aCol < COLS; aCol++)
 		{
-			int8_t v = mCell[r][c];
+			int8_t v = mCell[aRow][aCol];
 			if ((v >= 0) && (v < COLORS))
 			{
 				aCount[v]++;
@@ -312,21 +313,21 @@ bool PuzzleModel::Rate(int* theScore) const
 	// one in Puzzle); one on the bottom row did not fall there and stays.
 	int aUnder[COLS];
 	int aBags = 0;
-	for (int c = 0; c < COLS; c++)
+	for (int aCol = 0; aCol < COLS; aCol++)
 	{
-		int r = 0;
-		while ((r < ROWS) && (mCell[r][c] == EMPTY))
-			r++;
-		if ((r >= ROWS - 1) || (mCell[r][c] != BAG))
+		int aRow = 0;
+		while ((aRow < ROWS) && (mCell[aRow][aCol] == EMPTY))
+			aRow++;
+		if ((aRow >= ROWS - 1) || (mCell[aRow][aCol] != BAG))
 			continue;
 		bool canLeave = true;
-		for (int b = r + 1; (b < ROWS) && (canLeave); b++)
+		for (int b = aRow + 1; (b < ROWS) && (canLeave); b++)
 		{
-			int8_t v = mCell[b][c];
+			int8_t v = mCell[b][aCol];
 			canLeave = (v >= 0) && (v < COLORS) && (aCount[v] >= 2);
 		}
 		if (canLeave)
-			aUnder[aBags++] = ROWS - 1 - r;
+			aUnder[aBags++] = ROWS - 1 - aRow;
 	}
 
 	int aWanted = mNeeded - mReleased;
@@ -492,25 +493,25 @@ void PuzzleSolver::StepBeam()
 		const PuzzleModel aBoard = mFrontier[mExpand];
 		bool aDone[PuzzleModel::ROWS * PuzzleModel::COLS] = {};
 		std::vector<int> aGroup;
-		for (int r = 0; r < PuzzleModel::ROWS; r++)
+		for (int aRow = 0; aRow < PuzzleModel::ROWS; aRow++)
 		{
-			for (int c = 0; c < PuzzleModel::COLS; c++)
+			for (int aCol = 0; aCol < PuzzleModel::COLS; aCol++)
 			{
-				if (aDone[r * PuzzleModel::COLS + c])
+				if (aDone[aRow * PuzzleModel::COLS + aCol])
 					continue;
-				aBoard.GetGroup(c, r, &aGroup);
+				aBoard.GetGroup(aCol, aRow, &aGroup);
 				for (int aCell : aGroup)
 					aDone[aCell] = true;
 				if (aGroup.size() < 2)
 					continue;
-				aBoard.ClickOutcomes(c, r, &mOutcomes);
+				aBoard.ClickOutcomes(aCol, aRow, &mOutcomes);
 				for (size_t i = 0; i < mOutcomes.size(); i++)
 				{
 					const PuzzleModel& aChild = mOutcomes[i];
 					mPositions++;
 					if (!Remember(aChild.Hash()))
 						continue;
-					Candidate aCandidate = { (int) mExpand, { (int8_t) c, (int8_t) r, (int8_t) i }, 0 };
+					Candidate aCandidate = { (int) mExpand, { (int8_t) aCol, (int8_t) aRow, (int8_t) i }, 0 };
 					if (aChild.IsWon())
 					{
 						// The clicks back to the root
@@ -590,26 +591,26 @@ void PuzzleSolver::Expand(const PuzzleModel& theBoard, uint64_t theHash, Move th
 
 	bool aDone[PuzzleModel::ROWS * PuzzleModel::COLS] = {};
 	std::vector<int> aGroup;
-	for (int r = 0; r < PuzzleModel::ROWS; r++)
+	for (int aRow = 0; aRow < PuzzleModel::ROWS; aRow++)
 	{
-		for (int c = 0; c < PuzzleModel::COLS; c++)
+		for (int aCol = 0; aCol < PuzzleModel::COLS; aCol++)
 		{
-			if (aDone[r * PuzzleModel::COLS + c])
+			if (aDone[aRow * PuzzleModel::COLS + aCol])
 				continue;
-			theBoard.GetGroup(c, r, &aGroup);
+			theBoard.GetGroup(aCol, aRow, &aGroup);
 			for (int aCell : aGroup)
 				aDone[aCell] = true;
 			if (aGroup.size() < 2)
 				continue;
 
-			theBoard.ClickOutcomes(c, r, &mOutcomes);
+			theBoard.ClickOutcomes(aCol, aRow, &mOutcomes);
 			for (size_t i = 0; i < mOutcomes.size(); i++)
 			{
 				Child aChild;
 				aChild.mBoard = mOutcomes[i];
 				aChild.mHash = aChild.mBoard.Hash();
-				aChild.mMove.mCol = (int8_t) c;
-				aChild.mMove.mRow = (int8_t) r;
+				aChild.mMove.mCol = (int8_t) aCol;
+				aChild.mMove.mRow = (int8_t) aRow;
 				aChild.mMove.mOutcome = (int8_t) i;
 				mPositions++;
 				if (IsSeen(aChild.mHash))

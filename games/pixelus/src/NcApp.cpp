@@ -9,6 +9,7 @@
 
 using namespace Sexy;
 
+// port: the constructor (NcApp::NcApp)
 NcApp::NcApp()
 {
 	mImageNames = NULL;
@@ -22,6 +23,7 @@ NcApp::NcApp()
 	mQuitRequested = false;
 }
 
+// port: the destructor (NcApp::~NcApp)
 NcApp::~NcApp()
 {
 	if (mImages != NULL)

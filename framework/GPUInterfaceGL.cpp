@@ -2,6 +2,7 @@
 // through GL, with every convention that differs converted here (the list at the top of GPUInterface.h).
 #include "GPUInterface.h"
 #include "MemoryImage.h"
+#include "TextScanner.h"
 #include "platform/GLContext.h"
 #include "platform/GLFuncs.h"
 
@@ -13,7 +14,6 @@
 #include <cstring>
 #include <map>
 #include <set>
-#include <sstream>
 
 using namespace Sexy;
 
@@ -88,9 +88,9 @@ std::string JoinInts(const std::vector<long long>& theValues)
 std::vector<long long> SplitInts(const std::string& theText)
 {
 	std::vector<long long> aValues;
-	std::stringstream aStream(theText);
+	TextScanner aStream(theText);
 	std::string aPart;
-	while (std::getline(aStream, aPart, ','))
+	while (aStream.GetLine(aPart, ','))
 		aValues.push_back(std::strtoll(aPart.c_str(), nullptr, 10));
 	return aValues;
 }

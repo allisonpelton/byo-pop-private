@@ -1,0 +1,11 @@
+{
+  "id": "livesplit",
+  "name": "LiveSplit",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Auto splitter support (Windows): fills the autosplit block a LiveSplit script reads. Changes nothing in play or on screen, so games keep the usual high scores.",
+  "affectsScores": false,
+  "features": {
+    "livesplit": true
+  }
+}

@@ -214,7 +214,7 @@ void Hearts::Draw(Graphics* g)
 
 	DrawHeartRow(g, aCapacity, aShown, aX, 5, mTickCount, IMAGE_INGAMEUI_HEARTS, 2);
 	g->SetColorizeImages(false);
-	g->DrawImage(IMAGE_INGAMEUI_HEALTH, GetHeartsX() + aRowWidth - IMAGE_INGAMEUI_HEALTH->mWidth - 0x26, 0x2a);
+	g->DrawImage(IMAGE_INGAMEUI_HEALTH, GetHeartsX() + aBoxWidth - IMAGE_INGAMEUI_HEALTH->mWidth - 0x26, 0x2a);
 }
 
 // 0x44a270

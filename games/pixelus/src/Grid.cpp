@@ -34,6 +34,9 @@ void Grid::Clear()
 	for (size_t i = 0; i < mObjects.size(); i++)
 		delete mObjects[i];
 	mObjects.clear();
+	mPointerOn = false;
+	mPointerAlpha = 0;
+	mPointerCol = mPointerRow = 0;
 	for (int r = 0; r < MAX_SIZE; r++)
 		for (int c = 0; c < MAX_SIZE; c++)
 		{
@@ -43,6 +46,11 @@ void Grid::Clear()
 			aCell.mBouncy = false;
 			aCell.mStart = false;
 			aCell.mObject = NULL;
+			aCell.mGlowState = 0;
+			aCell.mGlowValue = 0;
+			aCell.mGlowWanted = false;
+			aCell.mGlowRepeat = false;
+			aCell.mGlowPause = 0;
 		}
 	mSupply = 0;
 	mCursor = 0;
@@ -82,6 +90,7 @@ void Grid::EdgeCell(int theSide, int theCursor, int* theCol, int* theRow) const
 }
 
 // the last cell of the line a tile flies along
+// port: a helper of the port (Grid::AtFarEdge)
 bool Grid::AtFarEdge(int theCol, int theRow, int theSide) const
 {
 	switch (theSide)
@@ -105,12 +114,14 @@ void Grid::Step(int* theCol, int* theRow, int theSide, int theCount) const
 	}
 }
 
+// port: a helper of the port (Grid::InGrid)
 bool Grid::InGrid(int theRow, int theCol) const
 {
 	return theRow >= 0 && theRow < mRows && theCol >= 0 && theCol < mCols;
 }
 
 // 0x424390
+// 0x42eee0: the tile constructor
 GridObject* Grid::NewObject(int theRow, int theCol)
 {
 	GridObject* anObject = new GridObject();
@@ -256,6 +267,141 @@ void Grid::Complete()
 	}
 }
 
+// 0x422610: the cell glows, after the delay, again and again
+void Grid::StartGlow(int theRow, int theCol, int theDelay)
+{
+	Cell& aCell = mCells[theRow][theCol];
+	aCell.mGlowState = 1;
+	aCell.mGlowValue = -theDelay;
+	aCell.mGlowWanted = true;
+	aCell.mGlowRepeat = true;
+	aCell.mGlowPause = 0x19;
+}
+
+// 0x424fc0 (its first lines): the cell flashes red once
+void Grid::StartClickGlow(int theRow, int theCol)
+{
+	Cell& aCell = mCells[theRow][theCol];
+	aCell.mGlowValue = 0;
+	aCell.mGlowWanted = false;
+	aCell.mGlowRepeat = false;
+	aCell.mGlowState = 1;
+}
+
+// 0x422120: a tile or block lies somewhere in the rectangle
+bool Grid::AnyObjectIn(int theFirstRow, int theLastRow, int theFirstCol, int theLastCol) const
+{
+	for (int aRow = theFirstRow; aRow <= theLastRow; aRow++)
+		for (int aCol = theFirstCol; aCol <= theLastCol; aCol++)
+			if (aRow >= 0 && aRow < MAX_SIZE && aCol >= 0 && aCol < MAX_SIZE && mCells[aRow][aCol].mObject != NULL)
+				return true;
+	return false;
+}
+
+// 0x422180: false only when a tile or block lies on every one of the four lines out of the cell
+bool Grid::HasOpenSide(int theRow, int theCol) const
+{
+	return !(AnyObjectIn(0, theRow - 1, theCol, theCol) && AnyObjectIn(theRow + 1, mRows, theCol, theCol) &&
+		AnyObjectIn(theRow, theRow, 0, theCol - 1) && AnyObjectIn(theRow, theRow, theCol + 1, mCols));
+}
+
+// 0x4221f0
+bool Grid::FindStray(int* theRow, int* theCol) const
+{
+	for (int aRow = 0; aRow < mRows; aRow++)
+		for (int aCol = 0; aCol < mCols; aCol++)
+		{
+			const Cell& aCell = mCells[aRow][aCol];
+			if (!aCell.mWanted && !aCell.mFixed && aCell.mObject != NULL && HasOpenSide(aRow, aCol))
+			{
+				*theRow = aRow;
+				*theCol = aCol;
+				return true;
+			}
+		}
+	return false;
+}
+
+// 0x422280: the lessons always start it at 0, 0
+bool Grid::FindStrayFrom(int* theRow, int* theCol, int theSkipRow, int theSkipCol) const
+{
+	int aFirstCol = *theCol;
+	for (int aRow = *theRow; aRow < mRows; aRow++)
+		for (int aCol = aFirstCol; aCol < mCols; aCol++)
+		{
+			const Cell& aCell = mCells[aRow][aCol];
+			if ((aRow != theSkipRow || aCol != theSkipCol) && !aCell.mWanted && !aCell.mFixed && aCell.mObject != NULL &&
+				HasOpenSide(aRow, aCol))
+			{
+				*theRow = aRow;
+				*theCol = aCol;
+				return true;
+			}
+		}
+	return false;
+}
+
+// 0x424fc0: what stopped a click on the cell (the Board has made the cell its hover cell). A fixed block, and a start
+// tile that is in place, flash red; the others are told apart by whether any line from the edge to the cell is free of
+// objects
+int Grid::ClickReason(int theRow, int theCol)
+{
+	Cell& aCell = mCells[theRow][theCol];
+	if (aCell.mFixed)
+	{
+		StartClickGlow(theRow, theCol);
+		return 1;
+	}
+	if (aCell.mStart && aCell.mObject != NULL)
+	{
+		StartClickGlow(theRow, theCol);
+		return 4;
+	}
+	int aFreeLines = 0;
+	for (int aSide = 0; aSide < 4; aSide++)
+	{
+		int aCursor = (aSide == SIDE_UP || aSide == SIDE_DOWN) ? theCol : theRow;
+		int aCol, aRow;
+		EdgeCell(aSide, aCursor, &aCol, &aRow);
+		bool aBlocked = false;
+		while (aCol != theCol || aRow != theRow)
+		{
+			if (aRow > -1 && aRow < mRows && aCol > -1 && aCol < mCols && mCells[aRow][aCol].mObject != NULL)
+				aBlocked = true;
+			switch (aSide)
+			{
+			case SIDE_UP: aRow--; break;
+			case SIDE_RIGHT: aCol++; break;
+			case SIDE_DOWN: aRow++; break;
+			case SIDE_LEFT: aCol--; break;
+			}
+		}
+		if (!aBlocked)
+			aFreeLines++;
+	}
+	return aFreeLines != 0 ? 2 : 3;
+}
+
+// 0x421ae0: every glow ends after the one it is in
+void Grid::StopGlowRepeats()
+{
+	for (int r = 0; r < mRows; r++)
+		for (int c = 0; c < mCols; c++)
+			mCells[r][c].mGlowRepeat = false;
+}
+
+// 0x422520: the cursor picture comes in on the cell (and starts again when it moves to another one)
+void Grid::ShowPointer(int theRow, int theCol)
+{
+	if (!mPointerOn || mPointerCol != theCol || mPointerRow != theRow)
+	{
+		mPointerOn = true;
+		mPointerAlpha = 0;
+		mPointerCol = theCol;
+		mPointerRow = theRow;
+	}
+}
+
 // 0x424b30, the part after the tiles' update: once the puzzle is done and no tile is in flight the delay runs down,
 // then the picture is swept in, 3 cells an update; the shimmer goes on its own way
 void Grid::UpdateFinish()
@@ -281,6 +427,37 @@ void Grid::UpdateFinish()
 				mGlow = -1.5;
 		}
 	}
+	if (mPointerOn && mPointerAlpha < 0xff)
+		mPointerAlpha += 5;
+	for (int r = 0; r < mRows; r++)
+		for (int c = 0; c < mCols; c++)
+		{
+			Cell& aCell = mCells[r][c];
+			if (aCell.mGlowState == 1)
+			{
+				aCell.mGlowValue += 7;
+				if (aCell.mGlowValue > 0xfe)
+				{
+					aCell.mGlowValue = 0xff;
+					aCell.mGlowState = 2;
+				}
+			}
+			else if (aCell.mGlowState == 2)
+			{
+				aCell.mGlowValue -= 7;
+				if (aCell.mGlowValue < 1)
+				{
+					aCell.mGlowValue = 0;
+					if (!aCell.mGlowRepeat)
+						aCell.mGlowState = 0;
+					else if (--aCell.mGlowPause < 1)
+					{
+						aCell.mGlowPause = 0x19;
+						aCell.mGlowState = 1;
+					}
+				}
+			}
+		}
 	if (mWaveOn)
 	{
 		mWave += 0.6;
@@ -437,6 +614,7 @@ std::string Grid::MoveToString(const Move& theMove)
 }
 
 // the hint plays the moves of a solution back one by one
+// port: a helper of the port (Grid::ReplayMove)
 bool Grid::ReplayMove(const Move& theMove)
 {
 	SetCursor(theMove.mSide, theMove.mCursor);
@@ -489,6 +667,7 @@ int Grid::FindThrowSide(int theRow, int theCol, int thePreferredSide, int* theCu
 	return aSide;
 }
 
+// port: a helper of the port (Grid::FindPullSide)
 int Grid::FindPullSide(int theRow, int theCol, int thePreferredSide, int* theCursor) const
 {
 	if (!InGrid(theRow, theCol))
@@ -541,6 +720,7 @@ bool Grid::LoadFromFile(const std::string& thePath, std::string* theError)
 	return LoadFromText(aBuf.str(), theError);
 }
 
+// port: a helper of the port (Grid::LoadFromText)
 bool Grid::LoadFromText(const std::string& theText, std::string* theError)
 {
 	Clear();
@@ -554,10 +734,10 @@ bool Grid::LoadFromText(const std::string& theText, std::string* theError)
 	bool aInValue = false;
 	for (size_t i = 0; i < theText.size(); i++)
 	{
-		char c = theText[i];
-		if (c == '\r' || c == '\n')
+		char aChar = theText[i];
+		if (aChar == '\r' || aChar == '\n')
 			continue;
-		if (c == '#')
+		if (aChar == '#')
 		{
 			if (aInValue)
 			{
@@ -578,19 +758,19 @@ bool Grid::LoadFromText(const std::string& theText, std::string* theError)
 			continue;
 		}
 		if (aInTag)
-			aTag += c;
+			aTag += aChar;
 		else if (aInValue)
 		{
 			if (aTag == "uuid")
-				aUuid += c;
+				aUuid += aChar;
 			else if (aTag == "name")
-				aName += c;
+				aName += aChar;
 			else if (aTag == "title")
-				aTitle += c;
+				aTitle += aChar;
 			else if (aTag == "difficulty")
-				aDifficulty += c;
+				aDifficulty += aChar;
 			else if (aTag == "data")
-				aData += c;
+				aData += aChar;
 		}
 		else
 		{
@@ -611,20 +791,20 @@ bool Grid::LoadFromText(const std::string& theText, std::string* theError)
 		return false;
 	}
 
-	for (int r = 0; r < mRows; r++)
-		for (int c = 0; c < mCols; c++)
+	for (int aRow = 0; aRow < mRows; aRow++)
+		for (int aCol = 0; aCol < mCols; aCol++)
 		{
-			Cell& aCell = mCells[r][c];
-			switch (aData[r * mCols + c])
+			Cell& aCell = mCells[aRow][aCol];
+			switch (aData[aRow * mCols + aCol])
 			{
 			case '+':
 				aCell.mWanted = true;
-				aCell.mObject = NewObject(r, c);
+				aCell.mObject = NewObject(aRow, aCol);
 				aCell.mFixed = false;
 				break;
 			case '-':
 				aCell.mWanted = false;
-				aCell.mObject = NewObject(r, c);
+				aCell.mObject = NewObject(aRow, aCol);
 				aCell.mFixed = false;
 				mSupply--;
 				break;
@@ -637,7 +817,7 @@ bool Grid::LoadFromText(const std::string& theText, std::string* theError)
 				aCell.mFixed = false;
 				break;
 			case 'B':
-				aCell.mObject = NewObject(r, c);
+				aCell.mObject = NewObject(aRow, aCol);
 				aCell.mObject->mFixed = true;
 				aCell.mFixed = true;
 				aCell.mBouncy = true;
@@ -650,7 +830,7 @@ bool Grid::LoadFromText(const std::string& theText, std::string* theError)
 				mHasStart = true;
 				break;
 			case 'X':
-				aCell.mObject = NewObject(r, c);
+				aCell.mObject = NewObject(aRow, aCol);
 				aCell.mObject->mFixed = true;
 				aCell.mFixed = true;
 				break;

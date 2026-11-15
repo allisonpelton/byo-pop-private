@@ -3036,6 +3036,9 @@ std::string testCommand(const std::string& theCommand, const std::string& theArg
 				continue;
 			if (gBonnies == nullptr || gBonnies->inModal())
 				return "ERROR " + aLine + ": a dialog is open";
+			// the logo screen loads the fonts and pictures: a menu made before that has none to draw or to type with
+			if (i != 1 && !appResourcesLoaded())
+				return "ERROR " + aLine + ": the resources are not loaded yet (the logos are showing)";
 			gBonnies->setState(i, 1, 0);
 			return "OK " + aLine;
 		}

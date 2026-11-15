@@ -3,7 +3,7 @@
 # process at a time, each pair on a performance core of its own (tools/pincore.py), each run waiting for a free game slot first.
 # From the worktree root. The scenario is <out dir>/scenario.txt (a copy of games/bookworm/tools/profile/scenario.txt); the results
 # are <out dir>/p<n>-port.json and p<n>-orig.json, summarised by `python games/bookworm/tools/profile/cycles.py summary <out dir>`.
-# The original needs its stage (OG_STAGE, default C:/byo-og/bwperf: `OG_STAGE=... games/bookworm/tools/identical/setup.sh`) and
+# The original needs its stage (OG_STAGE, default E:/byo-og/bwperf: `OG_STAGE=... games/bookworm/tools/identical/setup.sh`) and
 # build/origrun-bin/origrun.exe built after the trunk's last merge.
 OUT=$1; N=${2:-5}
 PY="C:\Python312\python.exe"

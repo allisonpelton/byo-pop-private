@@ -54,6 +54,7 @@ OptionsDialog::OptionsDialog(PixelusApp* theApp, bool theInGame) :
 	}
 }
 
+// port: the destructor (OptionsDialog::~OptionsDialog)
 OptionsDialog::~OptionsDialog()
 {
 	delete mMusicSlider;
@@ -81,6 +82,7 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 		theWidgetManager->AddWidget(mMenuButton);
 }
 
+// port: a helper of the port (OptionsDialog::RemovedFromManager)
 void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	GameDialog::RemovedFromManager(theWidgetManager);
@@ -126,6 +128,7 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 }
 
 // 0x4e7c80
+// 0x4190a0
 int OptionsDialog::GetPreferredHeight(int theWidth)
 {
 	// 0x1ac in the original (its rows end at the footer, 0x44 above the bottom), less the update row and the 3D box
@@ -163,6 +166,7 @@ void OptionsDialog::ButtonDepress(int theId)
 	GameDialog::ButtonDepress(theId);
 }
 
+// port: a helper of the port (OptionsDialog::SliderVal)
 void OptionsDialog::SliderVal(int theId, double theVal)
 {
 	if (theId == ID_MUSIC)
@@ -171,6 +175,7 @@ void OptionsDialog::SliderVal(int theId, double theVal)
 		mApp->SetSfxVolume(theVal);
 }
 
+// port: a helper of the port (OptionsDialog::CheckboxChecked)
 void OptionsDialog::CheckboxChecked(int theId, bool theChecked)
 {
 	switch (theId)

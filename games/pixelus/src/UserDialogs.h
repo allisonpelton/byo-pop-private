@@ -5,8 +5,8 @@
 // SelectUserDialog, vftable 0x50ee50). Both are GameDialogs with a widget or two in their content area; the
 // answers go to the app, which reads the dialogs' state (PixelusApp::NewUserOK, SelectUserOK, ...).
 //
-// port: the select dialog's list uses the framework's ListWidget with its standard scroll bar; the original has its
-// own scroll bar drawn with the four slider pictures (only seen with more than five players).
+// The select dialog's list is the framework's ListWidget with the game's scroll bar (Scrollbar.h) beside it, which shows
+// only with more than six players.
 
 #include "GameDialog.h"
 #include "EditListener.h"
@@ -20,6 +20,7 @@ namespace Sexy
 class EditWidget;
 class Checkbox;
 class ListWidget;
+class PixelusScrollbar;
 class DialogButton;
 
 // 0x401af0: the name of a new player, with the expert-mode box; the same dialog (id 0x15) renames a player
@@ -66,6 +67,7 @@ public:
 	};
 
 	ListWidget*		mList;			// +0x120
+	PixelusScrollbar* mScrollbar;	// +0x124
 	DialogButton*	mRenameButton;	// +0x128
 	DialogButton*	mDeleteButton;	// +0x12c
 

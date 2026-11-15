@@ -110,7 +110,8 @@ cell, a blank an empty cell), `fixed` (the cells of locked tiles, column*9+row) 
 the same way).
 
 `goto title|menu|help|credits|highscores` asks for the screen as the game does (`setState`, which switches at the
-next update). The options are a dialog, not a screen, and a mode starts only through the menu's player and
+next update). It answers ERROR while the logos are still showing: the logo screen loads the fonts and pictures, so a menu
+made before that crashed the game when its name box was used (found by a driver that sent `goto menu` at start). The options are a dialog, not a screen, and a mode starts only through the menu's player and
 difficulty dialogs, so `goto options`, `goto classic` and `goto action` answer ERROR. `level <n>` (1 to 50, in play)
 sets the level before it and ends that one as won, so the game goes on to level n as after any won level, through its
 story page. `win` ends the level as won (`Game::levelWon`, submit's own ending, moved into a function of its own for

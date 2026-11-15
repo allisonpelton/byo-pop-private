@@ -242,6 +242,9 @@ var ByopopAutosplit = (function () {
       // (a run over several games, template.games: the skills its games have had, and whether the run's game has reached
       // its end and the run waits for the next game's GO)
       var skillsUsed = [], between = false;
+      // (a death on the run's board that goes on: the game-over flag stays up after it, and the board going away later is
+      // still a quit, as Heavy Weapon's QUIT on its game-over box or Venice's main menu after a sunk Flood building)
+      var wentOn = false;
       var current = {}, old = {};
       V2_FIELDS.forEach(function (k) { current[k] = 0; });
       // a game over on the run's board that ends it, in its last segment ("lost"; "lost N": only while the game's progress is
@@ -314,9 +317,9 @@ var ByopopAutosplit = (function () {
         onStart: function () {
           splits = parseSplits((opts && opts.segments) || []); runSerial = current.boardSerial; pending = null;
           levelsAtStart = modeLevels();
-          skillsUsed = [current.skill]; between = false;
+          skillsUsed = [current.skill]; between = false; wentOn = false;
         },
-        onReset: function () { runSerial = 0; pending = null; between = false; },
+        onReset: function () { runSerial = 0; pending = null; between = false; wentOn = false; },
         board: function () { return current.boardSerial; },
         poll: function (t, snap) {
           if (attachT === null) attachT = t;
@@ -345,9 +348,11 @@ var ByopopAutosplit = (function () {
                 for (var d = 0; d < rules.deaths.length; d++)
                   if (current["death" + d] !== old["death" + d]) {
                     // (a death that goesOn is no end of the run: Venice's sunk Flood building is played again on the board)
-                    cause = rules.deaths[d].goesOn ? null : rules.deaths[d].setting || "resets"; break;
+                    cause = rules.deaths[d].goesOn ? null : rules.deaths[d].setting || "resets";
+                    if (rules.deaths[d].goesOn) wentOn = true;
+                    break;
                   }
-              } else if (old.boardSerial === runSerial && current.boardSerial !== runSerial && !(old.flags & FLAG_GAME_OVER)) {
+              } else if (old.boardSerial === runSerial && current.boardSerial !== runSerial && (!(old.flags & FLAG_GAME_OVER) || wentOn)) {
                 cause = current.boardSerial === 0 ? "resetQuit" : "resetReplaced";
               } else if (template && template.limit && current.boardSerial === runSerial &&
                          current[template.limit.field] > template.limit.max && !(old[template.limit.field] > template.limit.max)) {
@@ -636,6 +641,41 @@ var ByopopAutosplit = (function () {
                { category: "Switcharoo", segments: levels(16), end: "levels 16", mode: 1, across: true, ownLevels: { modes: [1, 3], sum: true } }])
   };
 
+  // Heavy Weapon Deluxe (speedrun.com: Heavy Weapon; the port's block, layout 2, from Heavy Weapon's session, 2026-11-15):
+  // Mission Mode (PC) from the click on Campaign in a new game (its GO, in that update; a campaign continued from the menu
+  // starts nothing) through each level's results screen (a level clear each) to the final level's results, its win, in the
+  // same update as that level's clear. Out of tanks in the campaign brings up the game-over box: its TRY AGAIN plays the
+  // level again on the same board and the run goes on; QUIT (to the high scores) or the menu ends the board, a quit.
+  // Survival has no PC category.
+  var HW_RULES = {
+    name: "Heavy Weapon Deluxe", id: "HWDX",
+    modes: { Campaign: 0, Survival: 1 }, skills: {},
+    deaths: [{ setting: null, goesOn: true, what: "out of tanks (the campaign: TRY AGAIN plays the level again, the run goes on)" },
+             { setting: null, what: "out of tanks (Survival, no category)" },
+             { setting: null, what: "unused" },
+             { setting: null, what: "unused" }],
+    templates: [{ category: "Mission Mode (PC)", segments: levels(19), end: "won", mode: 0 }]
+  };
+
+  // Hammer Heads Deluxe (speedrun.com: Hammer Heads Deluxe; the port's block, layout 2, from Hammer Heads' session, 2026-11-15):
+  // Classic% and Tough Cookie% from the Go! that starts a new game's first level (Classic's level card, Tough Cookie's "Ready?"
+  // box) through each of the 25 levels' ends (a level clear each) to the Go! on the "Ready?" box after the trophy room that
+  // awards King Globus's trophy (its progress 1), as the board's rules end them: the last level's own clear and the win come
+  // after it. Out of health is a game over, whose try again is a new game on a new board. A saved game continued, or one
+  // from a restart point, starts nothing. A player who already has King Globus's trophy gets no such room, and splits the
+  // end by hand. Marathon% is timed by the game's own clock, which the block has not, and All Trophies% runs over many games
+  // and modes: neither has a template.
+  var HH_RULES = {
+    name: "Hammer Heads Deluxe", id: "HHDX",
+    modes: { Classic: 0, "Tough Cookie": 1, Marathon: 2 }, skills: {},
+    deaths: [{ setting: "resetHealth", what: "out of health (Classic, Tough Cookie)" },
+             { setting: null, what: "out of health (Marathon, no category)" },
+             { setting: null, what: "unused" },
+             { setting: null, what: "unused" }],
+    templates: [{ category: "Classic%", segments: levels(25), end: "progress 1", mode: 0 },
+                { category: "Tough Cookie%", segments: levels(25), end: "progress 1", mode: 1 }]
+  };
+
   // A row of GAMES from a row of the rules table
   function ruled(rules) {
     return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
@@ -658,7 +698,9 @@ var ByopopAutosplit = (function () {
     dynomite: ruled(DY_RULES),
     venice: ruled(VN_RULES),
     bejeweledtwist: ruled(TW_RULES),
-    bejeweled2: ruled(B2_RULES)
+    bejeweled2: ruled(B2_RULES),
+    heavyweapon: ruled(HW_RULES),
+    hammerheads: ruled(HH_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not

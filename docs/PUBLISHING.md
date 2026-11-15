@@ -102,11 +102,75 @@ looks for Ninja or a compiler.
 `--out` writes the tree a snapshot would hold into a new folder and makes no commit, which is how to try a manifest
 or new wraps before they are committed (`--source` takes any commit, such as one made with `git commit-tree` from a
 temporary index). `--release-zip` builds the snapshot as the build check does and writes
-`build/byo-pop-<game>-<date>.zip`, the date being the snapshot's. It holds one folder: the exe, the DLLs of the build
-folder that the exe loads (read from its import table: only SDL2, since the derived top-level `CMakeLists.txt` links
-libc++ and libunwind into the exe; Windows' own are not copied),
-`README.txt` (the README up to its `## Building` heading, with Windows line ends) and the empty `assets/<game>/`
-folder for the player's own game files. No game file goes in, and nothing is uploaded.
+`build/byo-pop-<game>-<date>.zip`, the date being the snapshot's. It holds one folder: the exe, `README.txt` (the
+README up to its `## Building` heading, with Windows line ends) and the empty `assets/<game>/` folder for the player's
+own game files. No game file goes in, and nothing is uploaded.
+
+### What a release holds, and the small SDL
+
+The user's wish (2026-11-15): "For all the releases, I want to build everything except assets into the exe, and I want
+to minimize the uncompressed size of that exe without affecting performance". So a release is one exe, with no DLL
+beside it: its imports are Windows' own (`--release-zip` stops when one is not). The derived top-level `CMakeLists.txt`
+(the `toplevel` transform) sees to it for every game, and a manifest line sees to what differs per game:
+
+- **SDL is linked in.** `third_party/sdl-small/build.py <SDL2-2.32.10 source> <install folder>` builds SDL 2.32.10 from
+  its own release source, unmodified, as a static library at -O3 with its functions and data in sections, without unwind
+  tables and with its dynamic API off, keeping only what the ports call: the Windows video driver and the dummy one,
+  the Direct3D 11, Direct3D 9 and OpenGL renderers, WASAPI, DirectSound and the dummy audio driver (the test
+  runs set `SDL_AUDIODRIVER=dummy`), events, threads, timers, files, the clipboard and OpenURL. Left out: joysticks,
+  haptics, sensors, HIDAPI, XInput, power, Vulkan, OpenGL ES, the offscreen and disk audio drivers, the Direct3D 12
+  renderer, the test library, and SDL's software drawing code (below). The ports never call `SDL_Init`, only `SDL_InitSubSystem` for video and audio, so a
+  subsystem left out cannot make it fail. On this machine it is installed in
+  `E:/retools/SDL2-2.32.10-small-i686` (the derived build and `--release-zip` look there unless `SDL2_DIR` says
+  otherwise), and the derived top-level file links `SDL2::SDL2-static`. The recipe is in every derived repository
+  (`include third_party/sdl-small`), and its README's "Building from source" says how to run it first.
+- **No software drawing code in SDL.** The user's wish (2026-11-15, "Make the SDL cuts"), after the link map of the
+  release exe showed some 520 KB of it. SDL has a switch for each piece in `src/SDL_internal.h` (`SDL_LEAN_AND_MEAN`
+  turns them all off), so `build.py` gives them as `-D` options and no file of SDL's source is changed (no patch, and
+  nothing that SDL's zlib licence would call altered source). Cut: the software renderer (`SDL_VIDEO_RENDER_SW`, with its
+  line, point, rectangle, triangle and rotation code), the generated blitter table (`SDL_HAVE_BLIT_AUTO`, `SDL_blit_auto`,
+  102 KB), the hand-written blitters (`SDL_HAVE_BLIT_0`, `_1`, `_A`, `_N`, `_N_RGB565`), run-length encoding of colour-keyed
+  surfaces (`SDL_HAVE_RLE`) and YUV (`SDL_HAVE_YUV`: `SDL_yuv` and `yuv2rgb`, about 100 KB). Why nothing a player's run
+  reaches is lost: the framework draws through the renderer (`DDInterface`: `SDL_CreateTexture`, `SDL_UpdateTexture`,
+  `SDL_RenderCopy`, `SDL_RenderReadPixels`, every texture and read in ARGB8888 or XRGB8888, which Direct3D 11 takes as they are, so SDL copies bytes and converts none);
+  the 2D software screen (`SurfaceDisplay`, `SDL_GetWindowSurface`) is a test run's (`SOFTWARE_SCREEN=on`) and uses the
+  Windows GDI framebuffer, which SDL fills with no blit of its own; no port loads YUV, uses `SDL_BlitSurface` or colour
+  keys. Where SDL does blit between surfaces (`SDL_ConvertSurface`, the window icon), `SDL_Blit_Slow` converts any two
+  formats, just more slowly, and the fill, copy and BMP code stays. What a player loses: SDL's software renderer. A machine
+  where Direct3D 11, Direct3D 9 and OpenGL all fail cannot run the game: `DDInterface::Init` makes the "Failed to
+  initialize the display" box say "No graphics renderer could be started. Updating the graphics driver may help.", with
+  SDL's reason, and the program ends with status 1 (the trunk, which links the official SDL2.dll, tries the software
+  renderer next, as before). `SDL_RENDER_DRIVER=software` in a release's environment names no driver, so SDL goes on to its
+  other drivers as it does for any name it lacks. Checked on 2026-11-15: 90 shots of three scripted tours (3D, 2D, and the test-only window surface) are pixel-identical (tolerance 0) with the trunk exe's, the same with `SDL_RENDER_DRIVER=opengl`, and the scripted game's state log is the trunk's. Nothing cut runs in play: with a counter in each of SDL's blit, convert and fill functions, a whole scripted game (Arcade, Classic and Strategy, about 8,600 updates) called none of them in 3D or in 2D; only `SDL_UpdateTexture` and `SDL_RenderPresent` ran, neither through a conversion. Processor time, 14 turn-about pairs a mode of `games/rocketmania/tools/profile` on a busy machine with every marker caught: the median of the pairs' ratios was 1.01 in 3D and 0.98 in 2D for the game's thread (1.02 and 0.97 for every thread), with single pairs from 0.64 to 3.3, so nothing shows beyond the noise; an effect of a few percent from where the code lies in 3D is not ruled out on this machine. The exe went from 2,422,784 to 1,905,152 bytes (517 KB). What is still in:
+  the audio converter and `SDL_LoadWAV` (the framework's sound loading), and a few KB of `SDL_gesture`, `SDL_shape` and
+  `SDL_bmp` that no switch reaches, which a patch to SDL's source could take out and which are not worth altering it for.
+- **Relocations stay (the user, 2026-11-15, "Keep it").** A release keeps its relocation table and dynamic base, so
+  Windows loads it at a random address each run (ASLR), which makes a memory bug in it harder to turn against the
+  player's machine. Dropping `.reloc` (some 57 KB before the SDL cut) is not offered again.
+- **No exceptions.** The derived build compiles with `-fno-exceptions -fno-unwind-tables -fno-asynchronous-unwind-tables`
+  and links `--gc-sections` over `-ffunction-sections -fdata-sections`, `-static-libstdc++ -static-libgcc`, and `-s` in
+  a Release build. Nothing in a derived repository catches an exception (`framework/XMLWriter.cpp`'s one handler guards
+  an `fprintf` that cannot throw), and the only throws are `ResourceManager`'s `Get...Throw` functions, which end the
+  program (`std::terminate`) as the uncaught throw did. Both files compile either way (`__cpp_exceptions`), so the trunk
+  keeps its exceptions: AstroPop, Bejeweled 2, Bejeweled Twist, BookWorm Adventures 1 and 2 and Hammer Heads catch
+  `ResourceManagerException` in their `Res.cpp`, so a derived repository of one of them needs that decided first.
+  `platform/DerivedRuntime.cpp`, empty in the trunk, becomes real code in a derived repository and goes into the exe
+  itself (the `framework` transform): a `__cxa_demangle` that demangles nothing, which keeps libc++abi's demangler (some
+  140 KB with its tables) out. What is left of the exception machinery (libunwind, the personality routine, about 30 KB
+  of `.eh_frame`) is pulled in by libc++'s own prebuilt `string`, `mutex`, `thread` and `system_error`, which are built
+  with exceptions; none of the game's, the framework's or SDL's code adds a table of its own.
+- **No iostream.** The framework reads script lines, registry text and point arguments with `framework/TextScanner.h`,
+  which parses exactly as `std::istringstream` did (`tools/textscannertest.cpp` compares the two on 600,000 strings),
+  so libc++'s locale and iostream code (about 250 KB) is not linked into any game's exe.
+- **The save-import table of the game only.** The `saveimport` transform takes the game's name as its argument and
+  leaves that game's entry in `platform/saveimport.json`.
+- **Only the image formats the game's files hold.** The `stb` transform takes a list (`png,gif` for Rocket Mania) and
+  defines `STBI_ONLY_<format>` for each in `third_party/stb/stb_impl.c`. `platform/ImageLoader.cpp` hands JPEG files
+  to libjpeg first and GIF files to its own decoder, and stb_image decodes the rest and what they refuse. Read the
+  list from the game's files in the staged `assets/<game>/`, the Steam and disc copies and `re/_installers/`: all
+  of Rocket Mania's images are GIF, JPEG (baseline or progressive, 8 bits, 1 or 3 components, which libjpeg takes) and
+  PNG, with no TGA or BMP. A format a player's copy can hold stays in the list.
+- **-O3 stays.** The code is compiled and optimised as the trunk's; the size comes from what is not linked.
 
 A derived repository stays open, not archived: GitHub's documentation ("Archiving repositories") says an archived
 repository takes no push and no release until its owner unarchives it, and the user chose to keep it open (2026-11-15).

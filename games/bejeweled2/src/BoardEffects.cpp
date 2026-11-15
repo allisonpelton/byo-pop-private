@@ -184,8 +184,8 @@ void Board::ExplodeAtHelper(int theCol, int theRow)
 					if (aKeep)
 					{
 						// the chain: the next flame or bomb gem explodes after 10 updates
-						int aBonus = mApp->GetInteger("ExplosionChainBonus", 10) * mChainCount;
-						aBonus += mApp->GetInteger("ExplosionChainBonusAdd", 40);
+						int aBonus = mApp->GetInteger("ExplosionChainBonusAdd", 10) * mChainCount;
+						aBonus += mApp->GetInteger("ExplosionChainBonus", 40);
 						aBonus = FTol((double)aBonus * mLevelValue);
 						DoPoints(aBonus, FTol(42.0 + aPiece->mX), FTol(aPiece->mY + 42.0 - 8.0), gPointColors[aType]);
 						mChainCount++;

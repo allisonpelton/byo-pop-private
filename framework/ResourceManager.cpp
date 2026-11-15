@@ -10,8 +10,21 @@
 
 //#define SEXY_PERF_ENABLED
 #include "PerfTimer.h"
+#include <exception>
 
 using namespace Sexy;
+
+// A missing resource that the caller asked for with a Get...Throw: a ResourceManagerException, which the games that catch it
+// (games/*/src/Res.cpp) get as before. Where the build has no exceptions (a release exe, docs/PUBLISHING.md) nothing could catch
+// it, so it ends the program the way an uncaught one does: std::terminate.
+[[noreturn]] static void ThrowResourceError(const std::string& theText)
+{
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
+	throw ResourceManagerException(theText);
+#else
+	std::terminate();
+#endif
+}
 
 // port: texture format hints from D3DInterface.h, stored in MemoryImage::mD3DFlags
 enum D3DImageFlags 
@@ -1177,7 +1190,7 @@ SharedImageRef ResourceManager::GetImageThrow(const std::string &theId)
 
 
 	Fail(StrFormat("Image resource not found: %s",theId.c_str()));
-	throw ResourceManagerException(GetErrorText());
+	ThrowResourceError(GetErrorText());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1197,7 +1210,7 @@ int	ResourceManager::GetSoundThrow(const std::string &theId)
 
 
 	Fail(StrFormat("Sound resource not found: %s",theId.c_str()));
-	throw ResourceManagerException(GetErrorText());		
+	ThrowResourceError(GetErrorText());		
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1216,7 +1229,7 @@ Font* ResourceManager::GetFontThrow(const std::string &theId)
 	}
 
 	Fail(StrFormat("Font resource not found: %s",theId.c_str()));
-	throw ResourceManagerException(GetErrorText());
+	ThrowResourceError(GetErrorText());
 }
 
 ///////////////////////////////////////////////////////////////////////////////

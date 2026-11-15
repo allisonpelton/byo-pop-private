@@ -17,6 +17,8 @@
 namespace Sexy
 {
 
+class LinearStretch;
+
 class GdiStretch
 {
 public:
@@ -29,7 +31,7 @@ public:
 	void Detach();
 
 	// Waits for the desktop compositor's next composition (DwmFlush, dwmapi.dll looked up at the first call), as a vsync present
-	// waits for the vertical blank (SurfaceDisplay's SURFACE_PACE=dwm). False when DWM cannot be waited for.
+	// waits for the vertical blank (SurfaceDisplay's pace on Windows). False when DWM cannot be waited for.
 	static bool WaitForComposition();
 
 	// Paints a frame: thePixels, thePitch bytes a row, theWidth x theHeight 32-bit pixels 0x??RRGGBB (the top byte is not read), stretched
@@ -38,6 +40,22 @@ public:
 	// around it black. False when the window's device context cannot be had.
 	bool Present(const uint32_t* thePixels, int thePitch, int theWidth, int theHeight, const SDL_Rect& theDest, const SDL_Rect* theRects,
 		int theCount, int theWindowWidth, int theWindowHeight);
+
+	// Paints a frame by the renderer's smooth stretch computed on the processor (theStretch, set up for theDest's size; LinearStretch.h):
+	// the parts of theDest in theRects (window pixels; theCount 0: all of theDest, and the bars around it black). Each part is drawn a band
+	// of rows at a time into a bitmap of under 1 MB, which is copied into the window: no image of the window's size is kept. False when
+	// the window's device context cannot be had.
+	bool PresentLinear(const LinearStretch& theStretch, const uint32_t* thePixels, int thePitch, const SDL_Rect& theDest,
+		const SDL_Rect* theRects, int theCount, int theWindowWidth, int theWindowHeight);
+
+	// Test: the window read back through its device context (theWindowWidth x theWindowHeight pixels, 0x00RRGGBB). The window must be
+	// whole on the screen with nothing over it (a window of rundesk's desktop is). False when it cannot be read.
+	bool ReadWindow(std::vector<uint32_t>& theBits, int theWindowWidth, int theWindowHeight);
+
+	// Test: the shadow bitmap (painted the same way as the window by PresentLinear) against theWanted, the whole window as it should be
+	// (theWindowWidth x theWindowHeight). False at the first pixel that differs, with where and the two colours.
+	bool CheckShadowAgainst(const std::vector<uint32_t>& theWanted, int theWindowWidth, int theWindowHeight, int* theX, int* theY,
+		uint32_t* theShown, uint32_t* theWantedColour);
 
 	// Test: the window as GDI reads it back after the present just made (its own pixels, not the bitmap's) against the window painted again
 	// whole and read back (the window must be whole on the screen, nothing over it: a window of rundesk's desktop is). False at the first

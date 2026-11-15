@@ -14,6 +14,7 @@ using namespace Sexy;
 static const char* gLoadingImageNames[3] = { "loadinggraphic", "loadingbar", "loadingbarempty" };
 
 // 0x4e77e0 (settings from 0x418960)
+// 0x418800
 LoadingScreen::LoadingScreen(NcApp* theApp)
 {
 	mApp = theApp;

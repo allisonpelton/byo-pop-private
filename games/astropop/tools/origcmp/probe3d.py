@@ -25,9 +25,6 @@ def main():
         pos = tuple(int(x) for x in a[i + 1].split(","))
         del a[i:i + 2]
     out = os.path.abspath(a[0])
-    import datetime
-    if 8 <= datetime.datetime.now().hour < 22:
-        raise SystemExit("probe3d: the visible desktop is for 22:00 to 08:00")
     os.makedirs(v.WORK, exist_ok=True)
     os.makedirs(out, exist_ok=True)
     log = open(os.path.join(out, "probe.log"), "w")

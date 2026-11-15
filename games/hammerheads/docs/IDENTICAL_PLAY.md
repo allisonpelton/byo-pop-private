@@ -7,7 +7,7 @@ phase two (it looks and sounds the same) is under way: the sound and the music a
 
 ### What is compared and how
 
-The original (`HammerHeadsGame.exe`, the user's copy staged under `C:\byo-og\hh2\game`) runs under origrun on its virtual clock
+The original (`HammerHeadsGame.exe`, the user's copy staged under `E:\byo-og\hh2\game`) runs under origrun on its virtual clock
 with scripted mouse and key input, with its random seed pinned (`tools/origrun/patches.txt` stands a fixed value in for
 `GetTickCount`, which both of the exe's generators are seeded from). origrun counts the application's update counter
 (Application +0x44c) and holds the game after each update; at every hold it reads, with `peek`, 318 values of the game's
@@ -186,3 +186,42 @@ each) are identical in state, sound and music too.
 The sounds of a game lost with a saved game waiting, the high score entry and Tough Cookie's and Marathon's saved games are not
 reached yet. The looks (every screen and dialog against the original's, natively and on the page) are phase two's next part: the
 shots need a visible desktop, which the rules allow from 22:00.
+
+## Phase two: the looks (begun)
+
+### What is compared and how
+
+`tools/idplay/looks.py <scenario> <first> <last> <step>` plays a scenario's inputs and takes a shot every `step` updates, in the
+original (inside Windows Sandbox, the only place origrun captures; the registry preset `ScreenMode` 0 makes it windowed, as the
+host runs have it) and in the port (`-renderscale=1 -fast -drawevery`, `screenshot` at the same update), then runs `tools/shotdiff`.
+The sandbox loads more slowly than the host, so the original's inputs count from update `mark` (about 6000) and the port's from the
+same; the port's inputs go in one update after the original's, as in phase one, and its shots at the original's own update. A shot
+is pixel-identical where no input, particle effect or popup is in motion. Shots taken: `classic1` every 250 updates from 1000
+to 9000, and `classic_nd10`, `_nd22`, `_sp25`, `tough1` and `marathon1` every 500 from 1500 to their ends (the shop and
+challenge, the trophy pages, Tough Cookie's notice, the game-won page, the game over box, Marathon's tutorial boxes).
+
+### Differences found and fixed
+
+| difference | cause | what the port does now | commit |
+| --- | --- | --- | --- |
+| A black strip under each hole of a level | the cubby's cover (the backdrop under the hole, 0x433080) was made from the cubby's own back image: the board-file path in `GameScreen` passed `GetCubbyBackImage()` where the original's container passes the level's backdrop | `GetBackdrop()` | see the log: "looks pass" |
+| The "Health" label of the hearts bar 40 pixels too far left | the original puts it at the hearts' x plus the box width (`rowWidth + 0x28`) minus the label's width minus 0x26 (0x449c40); the port used the row width | the box width | same |
+| The coin hint ("Pick up", level 1 and Marathon) 66 pixels too low | `GnomeCoin::Update` (0x438e20) makes the hint's floater at (400, 150); the port made it at (400, 216) | 150 | "looks pass" |
+
+### Judged, not changed
+
+- **"More Games" on the main menu** is in the original and not in the port: the outbound buttons are removed on purpose (CLAUDE.md,
+  "Registration and outbound buttons are removed"), and the Options and Quit buttons close the gap.
+- **The how-to-play page** cannot be compared in the sandbox: the original plays `howtoplay.swf` in a Flash control that does not
+  draw there (the shot shows only the page's title on green). The port plays the movie through `engines/swf`; it needs a run on
+  the visible desktop (`tools/visrun.py`) or a judgement from the movie itself.
+- **Particle effects and rotated sprites** (the smash debris, the stars, a rising creature's glow): a shot series every five updates
+  from a hit shows the pieces at the same places in the same updates and differing only along their edges, the same
+  one-pixel rims as below.
+- **Edge pixels:** a creature's or platform's rim differs by one pixel row in a few updates and every colour by one level; both
+  are the framework's GPU blending against the original's software blit, below the tolerance except at a rim.
+
+### Open
+
+- Not yet shot: the options box, the high score table, the hard modes' remaining boxes, the saved games' resume pages, the web
+  build against the native one, the real-input runs, and the how-to-play page.

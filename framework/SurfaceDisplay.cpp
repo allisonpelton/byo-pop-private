@@ -2,8 +2,13 @@
 
 #include "SurfaceDisplay.h"
 #include "DDImage.h"
+#include "Flags.h"
+#include "Graphics.h"
+#include "MemoryImage.h"
 #include "SexyAppBase.h"
 #include "SurfaceDisplayGdi.h"
+#include "Widget.h"
+#include "WidgetManager.h"
 
 #include <SDL.h>
 
@@ -98,16 +103,23 @@ SurfaceDisplay::SurfaceDisplay(SexyAppBase* theApp) :
 	mStretchWholeScales = false;
 	mStretching = false;
 	mStretchUnavailable = false;
+	mWidgetsInBuffer = false;
+	mFrameDrawnAtBegin = false;
+	mOverlayImage = NULL;
+	mOverlayShown = false;
+	mLinearAllowed = kLinearStretchByDefault;
+	mStretchLinear = false;
 	mGdi = NULL;
 	mStretchPresents = 0;
 	mVerifySurface = false;
 	mVerifyWindow = false;
 #ifdef _WIN32
 	mGdiPresent = true;
+	mDwmPace = true;
 #else
 	mGdiPresent = false;
-#endif
 	mDwmPace = false;
+#endif
 	mFrameTexture = NULL;
 	mFrameTextureWhole = false;
 	mMaxPending = kDefaultMaxPendingRects;
@@ -117,8 +129,10 @@ SurfaceDisplay::SurfaceDisplay(SexyAppBase* theApp) :
 		const char* anEnv = SDL_getenv("SURFACE_DISPLAY");
 		mSurfaceDisabled = (anEnv != NULL) && (anEnv[0] == '0');
 		anEnv = SDL_getenv("SURFACE_STRETCH");
-		if ((anEnv != NULL) && ((anEnv[0] == '0') || (anEnv[0] == '1') || (anEnv[0] == '2')))
+		if ((anEnv != NULL) && (anEnv[0] >= '0') && (anEnv[0] <= '3'))
 			mStretchHook = anEnv[0] - '0';
+		if (mStretchHook >= 0)
+			mLinearAllowed = (mStretchHook == 3);
 		anEnv = SDL_getenv("SURFACE_VERIFY");
 		mVerifySurface = (anEnv != NULL) && ((anEnv[0] == '1') || (anEnv[0] == '2'));
 		mVerifyWindow = (anEnv != NULL) && (anEnv[0] == '2');
@@ -130,9 +144,11 @@ SurfaceDisplay::SurfaceDisplay(SexyAppBase* theApp) :
 		anEnv = SDL_getenv("SURFACE_PRESENT");
 		if ((anEnv != NULL) && (strcmp(anEnv, "copy") == 0))
 			mGdiPresent = false;
-		// each present waiting for DWM's next composition instead of the framework's pace (no default: the user's choice)
+		// SURFACE_PACE=ms: the framework's millisecond pace in place of the wait for DWM's next composition, as before
+		// 2026-11-15 (the wait has been the default since, the user's choice), to measure against
 		anEnv = SDL_getenv("SURFACE_PACE");
-		mDwmPace = (anEnv != NULL) && (strcmp(anEnv, "dwm") == 0);
+		if ((anEnv != NULL) && (strcmp(anEnv, "ms") == 0))
+			mDwmPace = false;
 #endif
 	}
 }
@@ -141,6 +157,8 @@ SurfaceDisplay::~SurfaceDisplay()
 {
 	// the frame texture must go before the renderer does (DDInterface's destructor can only call its own Cleanup)
 	Cleanup();
+	delete mOverlayImage;
+	mOverlayImage = NULL;
 #ifdef _WIN32
 	delete mGdi;
 	mGdi = NULL;
@@ -150,7 +168,7 @@ SurfaceDisplay::~SurfaceDisplay()
 void SurfaceDisplay::AllowStretch(bool theAllowed, bool theWholeScalesOnly)
 {
 	// a test run's environment decides (so that one exe can be tried each way), whatever the app says
-	mStretchAllowed = (mStretchHook >= 0) ? (mStretchHook >= 1) : theAllowed;
+	mStretchAllowed = (mStretchHook >= 0) ? ((mStretchHook == 1) || (mStretchHook == 2)) : theAllowed;
 	mStretchWholeScales = (mStretchHook >= 0) ? (mStretchHook == 2) : theWholeScalesOnly;
 }
 
@@ -259,7 +277,7 @@ void SurfaceDisplay::EnteredNoRendererMode()
 bool SurfaceDisplay::WantsStretch()
 {
 #ifdef _WIN32
-	if ((!mStretchAllowed) || (mWindow == NULL) || (mSurfaceDisabled) || (mStretchUnavailable) || (mWindowHadRenderer))
+	if (((!mStretchAllowed) && (!mLinearAllowed)) || (mWindow == NULL) || (mSurfaceDisabled) || (mStretchUnavailable) || (mWindowHadRenderer))
 		return false;
 	// a drawn cursor image is the renderer's to draw
 	if (mCursorImage != NULL)
@@ -287,9 +305,12 @@ bool SurfaceDisplay::EnterStretchMode()
 		return false;
 	}
 	mStretching = true;
+	// the app's nearest-neighbour stretch when it allows that, else the renderer's smooth one
+	mStretchLinear = !mStretchAllowed;
 	int aWidth = 0, aHeight = 0;
 	SDL_GetWindowSizeInPixels(mWindow, &aWidth, &aHeight);
-	SDL_Log("SurfaceDisplay: the window's GDI stretch (the screen of %dx%d into the window of %dx%d)", mWidth, mHeight, aWidth, aHeight);
+	SDL_Log("SurfaceDisplay: the window's GDI stretch (the screen of %dx%d into the window of %dx%d, %s)", mWidth, mHeight, aWidth, aHeight,
+		mStretchLinear ? "smooth, drawn on the processor" : "nearest neighbour");
 	// the render scale is the renderer's (the screen read back at the scale the window needs), set by UpdateDisplaySize
 	EnteredNoRendererMode();
 	return true;
@@ -544,16 +565,85 @@ void SurfaceDisplay::BeginFrame()
 		return;
 	// the screen texture is not cleared: Present copies the whole frame over it
 	SetClip(NULL);
+	// the framework's own widget open over the game (the mod menu): the frame goes in now, under the widgets, and not over
+	// them at the present
+	mFrameDrawnAtBegin = (!mWidgetsInBuffer) && (OpenOverlay() != NULL) && (DrawFrameToScreenTexture());
+}
+
+Widget* SurfaceDisplay::OpenOverlay() const
+{
+	return (mApp != NULL) ? mApp->OverlayWidget() : NULL;
+}
+
+// Surface and stretch mode: the frame with the framework's own widget drawn over it in software, all of it pending, or NULL
+// when none is open (the first frame after one closes is shown whole)
+const uint32_t* SurfaceDisplay::ComposeOverlay()
+{
+	Widget* anOverlay = OpenOverlay();
+	if ((anOverlay == NULL) || (mPixels == NULL))
+	{
+		if (mOverlayShown)
+		{
+			mOverlayShown = false;
+			mPendingAll = true;
+		}
+		delete mOverlayImage;
+		mOverlayImage = NULL;
+		return NULL;
+	}
+	if ((mOverlayImage == NULL) || (mOverlayImage->mWidth != mWidth) || (mOverlayImage->mHeight != mHeight))
+	{
+		delete mOverlayImage;
+		mOverlayImage = new MemoryImage(mApp);
+		mOverlayImage->Create(mWidth, mHeight);
+	}
+	ulong* aBits = mOverlayImage->GetBits();
+	if (aBits == NULL)
+		return NULL;
+	for (int y = 0; y < mHeight; y++)
+	{
+		const uint32_t* aRow = (const uint32_t*) ((const uint8_t*) mPixels + (size_t) y * mPitch);
+		ulong* anOut = aBits + (size_t) y * mWidth;
+		for (int x = 0; x < mWidth; x++)
+			anOut[x] = (ulong) (aRow[x] | 0xFF000000);
+	}
+	// opaque, as the screen is, so that the blitters take their paths for a destination without alpha
+	mOverlayImage->mHasAlpha = false;
+	mOverlayImage->mHasTrans = false;
+	mOverlayImage->BitsChanged();
+	{
+		// as WidgetManager::DrawScreen draws it, the modal flags of a widget at or above the base modal one
+		Graphics g(mOverlayImage);
+		g.Translate(anOverlay->mX, anOverlay->mY);
+		ModalFlags aFlags;
+		mApp->mWidgetManager->InitModalFlags(&aFlags);
+		aFlags.mIsOver = true;
+		anOverlay->DrawAll(&aFlags, &g);
+	}
+	mOverlayShown = true;
+	mPendingAll = true;
+	return (const uint32_t*) mOverlayImage->GetBits();
 }
 
 void SurfaceDisplay::Present()
 {
 	if (mSurfaceMode)
 	{
+		// the framework's own widget open over the game: the frame with it drawn over is shown in the frame's place
+		const uint32_t* aFrame = mPixels;
+		const int aPitch = mPitch;
+		const uint32_t* aComposed = mWidgetsInBuffer ? NULL : ComposeOverlay();
+		if (aComposed != NULL)
+		{
+			mPixels = aComposed;
+			mPitch = mWidth * 4;
+		}
 		if (mStretching)
 			PresentToStretch();
 		else
 			PresentToSurface();
+		mPixels = aFrame;
+		mPitch = aPitch;
 	}
 	else
 		PresentToRenderer();
@@ -743,10 +833,38 @@ void SurfaceDisplay::LogNoRendererPresent(const char* theWay, Uint64 theStart)
 	LogPresent(aHeader, theStart);
 }
 
-// Stretch mode: GDI stretches the whole buffer into the presentation rect, painting only the clip region of the rects that changed (see
-// SurfaceDisplayGdi.h for why the whole and not the rect alone). A rect of the buffer covers, in the window, its edges scaled and rounded
-// outwards, and a pixel more each side so that nothing a changed pixel could touch is left out; what the clip region adds that did not
-// change is stretched to the colour it already has.
+// rects that overlap made one (their union), until none do; the count left
+int SurfaceDisplay::MergeOverlapping(SDL_Rect* theRects, int theCount)
+{
+	bool aMerged = true;
+	while (aMerged)
+	{
+		aMerged = false;
+		for (int a = 0; (a < theCount) && (!aMerged); a++)
+		{
+			for (int b = a + 1; b < theCount; b++)
+			{
+				SDL_Rect aCommon;
+				if (SDL_IntersectRect(&theRects[a], &theRects[b], &aCommon))
+				{
+					SDL_UnionRect(&theRects[a], &theRects[b], &theRects[a]);
+					theRects[b] = theRects[theCount - 1];
+					theCount--;
+					aMerged = true;
+					break;
+				}
+			}
+		}
+	}
+	return theCount;
+}
+
+// Stretch mode. The nearest-neighbour flavour: GDI stretches the whole buffer into the presentation rect, painting only the clip region of
+// the rects that changed (see SurfaceDisplayGdi.h for why the whole and not the rect alone). A rect of the buffer covers, in the window, its
+// edges scaled and rounded outwards, and a pixel more each side so that nothing a changed pixel could touch is left out; what the clip
+// region adds that did not change is stretched to the colour it already has. The smooth flavour (LinearStretch): a rect of the buffer
+// covers exactly the window's columns and rows whose two taps touch it, the seams it blends into included, and rects that then overlap
+// are made one, so that no window pixel is painted twice.
 void SurfaceDisplay::PresentToStretch()
 {
 #ifdef _WIN32
@@ -764,14 +882,36 @@ void SurfaceDisplay::PresentToStretch()
 		return;
 	}
 
+	const SDL_Rect aDest = { mPresentationRect.mX, mPresentationRect.mY, mPresentationRect.mWidth, mPresentationRect.mHeight };
+	if ((mStretchLinear) && (!mLinear.IsSetFor(mWidth, mHeight, mRenderScale, aDest.w, aDest.h)))
+	{
+		// the tables for the new size, and all of the window painted
+		mLinear.Setup(mWidth, mHeight, mRenderScale, aDest.w, aDest.h);
+		mPendingAll = true;
+	}
 	bool aWhole = false;
-	const int aCount = PendingRects(&aWhole);
+	int aCount = PendingRects(&aWhole);
 	if (aCount == 0)
 		return;
 	SDL_Rect* aRects = &mSdlRects[0];
 	const Uint64 aLogStart = PresentLogOn() ? SDL_GetPerformanceCounter() : 0;
-	const SDL_Rect aDest = { mPresentationRect.mX, mPresentationRect.mY, mPresentationRect.mWidth, mPresentationRect.mHeight };
-	if (!aWhole)
+	if ((!aWhole) && (mStretchLinear))
+	{
+		// the window's pixels that read a changed pixel of the buffer: those whose two columns (rows) of the screen texture
+		// fall in it (LinearStretch's tables), which covers the seams the change blends into
+		for (int i = 0; i < aCount; i++)
+		{
+			int x0 = 0, x1 = 0, y0 = 0, y1 = 0;
+			mLinear.OutputColumns(aRects[i].x, aRects[i].x + aRects[i].w, &x0, &x1);
+			mLinear.OutputRows(aRects[i].y, aRects[i].y + aRects[i].h, &y0, &y1);
+			aRects[i].x = aDest.x + x0;
+			aRects[i].y = aDest.y + y0;
+			aRects[i].w = x1 - x0;
+			aRects[i].h = y1 - y0;
+		}
+		aCount = MergeOverlapping(aRects, aCount);
+	}
+	else if (!aWhole)
 	{
 		const double aFactorX = (double) aDest.w / mWidth;
 		const double aFactorY = (double) aDest.h / mHeight;
@@ -787,7 +927,10 @@ void SurfaceDisplay::PresentToStretch()
 			aRects[i].h = aBottom - aTop;
 		}
 	}
-	if (!mGdi->Present(mPixels, mPitch, mWidth, mHeight, aDest, aWhole ? NULL : aRects, aWhole ? 0 : aCount, aWindowWidth, aWindowHeight))
+	const bool aPainted = mStretchLinear ?
+		mGdi->PresentLinear(mLinear, mPixels, mPitch, aDest, aWhole ? NULL : aRects, aWhole ? 0 : aCount, aWindowWidth, aWindowHeight) :
+		mGdi->Present(mPixels, mPitch, mWidth, mHeight, aDest, aWhole ? NULL : aRects, aWhole ? 0 : aCount, aWindowWidth, aWindowHeight);
+	if (!aPainted)
 	{
 		// no device context just now: all of it again at the next frame
 		mPendingAll = true;
@@ -801,7 +944,7 @@ void SurfaceDisplay::PresentToStretch()
 	mFrameCount++;
 	mStretchPresents++;
 	if (aLogStart != 0)
-		LogNoRendererPresent(mDwmPace ? "stretch-dwm" : "stretch", aLogStart);
+		LogNoRendererPresent(mStretchLinear ? (mDwmPace ? "smooth-dwm" : "smooth") : (mDwmPace ? "stretch-dwm" : "stretch"), aLogStart);
 	WaitForComposition();
 #endif
 }
@@ -813,6 +956,40 @@ void SurfaceDisplay::VerifyStretch(const SDL_Rect& theDest, int theWindowWidth, 
 #ifdef _WIN32
 	int aX = 0, aY = 0;
 	uint32_t aShown = 0, aWanted = 0;
+	if (InLinearStretch())
+	{
+		// the whole window as it should be: the bars black, the presentation rect stretched whole
+		std::vector<uint32_t> aWhole((size_t) theWindowWidth * theWindowHeight, 0);
+		mLinear.Draw(mPixels, mPitch, 0, 0, theDest.w, theDest.h, &aWhole[(size_t) theDest.y * theWindowWidth + theDest.x], theWindowWidth);
+		const char* aWhat = NULL;
+		if (!mGdi->CheckShadowAgainst(aWhole, theWindowWidth, theWindowHeight, &aX, &aY, &aShown, &aWanted))
+			aWhat = "the painted copy of the window";
+		std::vector<uint32_t> aRead;
+		if ((aWhat == NULL) && (mVerifyWindow) && (mGdi->ReadWindow(aRead, theWindowWidth, theWindowHeight)))
+		{
+			for (size_t i = 0; (i < aRead.size()) && (aWhat == NULL); i++)
+			{
+				if (aRead[i] != aWhole[i])
+				{
+					aX = (int) (i % theWindowWidth);
+					aY = (int) (i / theWindowWidth);
+					aShown = aRead[i];
+					aWanted = aWhole[i];
+					aWhat = "the window";
+				}
+			}
+		}
+		if (aWhat != NULL)
+		{
+			SDL_Log("SurfaceDisplay: %s is not the smooth stretch of the screen at (%d, %d): %06x, not %06x", aWhat, aX, aY, aShown, aWanted);
+			fprintf(stderr, "SurfaceDisplay: %s is not the smooth stretch of the screen at (%d, %d): %06x, not %06x\n", aWhat, aX, aY, aShown,
+				aWanted);
+			fflush(stderr);
+			abort();
+		}
+		mVerifiedFrames++;
+		return;
+	}
 	if (!mGdi->CheckShadow(mPixels, mPitch, mWidth, mHeight, theDest, theWindowWidth, theWindowHeight, &aX, &aY, &aShown, &aWanted))
 	{
 		SDL_Log("SurfaceDisplay: the stretched window is not the stretched screen at (%d, %d): %06x, not %06x", aX, aY, aShown, aWanted);
@@ -907,13 +1084,42 @@ void SurfaceDisplay::PresentToRenderer()
 {
 	if (mRenderer == NULL)
 		return;
-	DrawFrameToScreenTexture();
+	if (!mFrameDrawnAtBegin)
+		DrawFrameToScreenTexture();
+	mFrameDrawnAtBegin = false;
 	DDInterface::Present();
 	mRendererPresents++;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Reading the screen back: both modes give the buffer's pixels
+
+bool SurfaceDisplay::ReadWindow(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight)
+{
+	if (!mSurfaceMode)
+	{
+		// the renderer's present is made of the screen texture, which the frame goes into only at a present (or, under the
+		// framework's own widget, at BeginFrame: the texture then holds both, and the game does not move meanwhile)
+		const bool anOverlayOver = (!mWidgetsInBuffer) && (OpenOverlay() != NULL);
+		if ((mPixels != NULL) && (!anOverlayOver) && (!DrawFrameToScreenTexture()))
+			return false;
+		return DDInterface::ReadWindow(theBits, theWidth, theHeight);
+	}
+#ifdef _WIN32
+	// without a renderer the window is read back as GDI shows it, once what the buffer has had drawn since the last present
+	// is in it (as the renderer's readback, which is made of the buffer as it is)
+	if ((mPendingAll) || (!mPending.empty()))
+		Present();
+	SDL_GetWindowSizeInPixels(mWindow, &theWidth, &theHeight);
+	// the presenting GdiStretch is attached to the window in stretch mode and at 2x to 4x; otherwise one for the reading
+	if ((mGdi != NULL) && ((mStretching) || ((mGdiPresent) && (mSurfaceScale > 1))))
+		return mGdi->ReadWindow(theBits, theWidth, theHeight);
+	GdiStretch aReader;
+	return (aReader.Attach(mWindow, false)) && (aReader.ReadWindow(theBits, theWidth, theHeight));
+#else
+	return false;
+#endif
+}
 
 bool SurfaceDisplay::ReadScreen(ulong* theBits)
 {

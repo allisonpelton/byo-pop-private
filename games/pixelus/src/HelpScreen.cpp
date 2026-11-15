@@ -21,6 +21,7 @@ using namespace Sexy;
 // 0x40e1a0: the left board (0x40ddd0) is a 12 by 12 grid with places for two tiles in a row (and a third out of the way),
 // a block at the end of the row, the Tile Master at the left of it, and no wave of light; the right board (0x40df90) is the
 // puzzle of levels/helpscreen.txt with its best solution played by the grid
+// 0x40da40
 HelpScreen::HelpScreen(PixelusApp* theApp) :
 	mApp(theApp)
 {
@@ -59,13 +60,14 @@ HelpScreen::HelpScreen(PixelusApp* theApp) :
 
 	mDontShowBox = new Checkbox(mApp->mImages[IMAGE_CHECKBOX_UNCHECKED], mApp->mImages[IMAGE_CHECKBOX_CHECKED], 0, this);
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
-	mDontShowBox->SetChecked(aUser == NULL || !aUser->mFlag2D, false);
+	mDontShowBox->SetChecked(aUser == NULL || !aUser->mShowHelp, false);
 
 	mOKButton = new SoundButton(mApp, mApp->mImages[IMAGE_DIALOGBUTTONCOMPONENTS], ID_OK, this);
 	mOKButton->mLabel = GT(0x50b558);
 	StyleButton(mApp, mOKButton, 3);
 }
 
+// port: the destructor (HelpScreen::~HelpScreen)
 HelpScreen::~HelpScreen()
 {
 	delete mLeft;
@@ -89,7 +91,7 @@ void HelpScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mDontShowBox);
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
 	if (aUser != NULL)
-		aUser->mFlag2D = !mDontShowBox->mChecked;
+		aUser->mShowHelp = !mDontShowBox->mChecked;
 }
 
 // 0x40db80
@@ -223,6 +225,7 @@ void HelpScreen::Update()
 	MarkDirty();
 }
 
+// port: a helper of the port (HelpScreen::DrawDark)
 void HelpScreen::DrawDark(Graphics* g, int theX, int theWidth, double theDark)
 {
 	if (theDark <= 0.0)
@@ -234,6 +237,7 @@ void HelpScreen::DrawDark(Graphics* g, int theX, int theWidth, double theDark)
 }
 
 // 0x40e360: the picture behind the windows, the boards in them, the dark layers, the frame, and the box's text
+// 0x40daa0
 void HelpScreen::Draw(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_HELPBACK], LEFT_X, WINDOW_Y);

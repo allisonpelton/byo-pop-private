@@ -11,6 +11,7 @@
 #include "Checkbox.h"
 #include "ListWidget.h"
 #include "ScrollbarWidget.h"
+#include "Scrollbar.h"
 #include "WidgetManager.h"
 #include "Insets.h"
 #include <ctype.h>
@@ -58,6 +59,7 @@ NewUserDialog::NewUserDialog(PixelusApp* theApp, bool theRename) :
 #endif
 }
 
+// port: the destructor (NewUserDialog::~NewUserDialog)
 NewUserDialog::~NewUserDialog()
 {
 	delete mEdit;
@@ -132,6 +134,7 @@ bool NewUserDialog::AllowChar(int theId, SexyChar theChar)
 }
 
 // 0x401df0: a warning when expert mode is switched on
+// 0x401e11: the expert warning
 void NewUserDialog::CheckboxChecked(int theId, bool theChecked)
 {
 	if (theChecked)
@@ -181,6 +184,12 @@ SelectUserDialog::SelectUserDialog(PixelusApp* theApp) :
 	mList->mDrawOutline = false;
 	mList->mJustify = ListWidget::JUSTIFY_CENTER;
 
+	// 0x41d956: the scroll bar of the list, shown when the lines do not fit
+	mScrollbar = new PixelusScrollbar(0, theApp->mImages[IMAGE_SLIDERBDROP], theApp->mImages[IMAGE_SLIDER],
+		theApp->mImages[IMAGE_SLIDERUP], theApp->mImages[IMAGE_SLIDERDOWN], mList, NULL);
+	mScrollbar->mInvisIfNoScroll = true;
+	mList->mScrollbar = mScrollbar;
+
 	mRenameButton = new DialogButton(theApp->mImages[IMAGE_DIALOGBUTTONCOMPONENTS], ID_RENAME, this);
 	mRenameButton->mLabel = GT(0x50ef38);
 	mDeleteButton = new DialogButton(theApp->mImages[IMAGE_DIALOGBUTTONCOMPONENTS], ID_DELETE, this);
@@ -193,9 +202,11 @@ SelectUserDialog::SelectUserDialog(PixelusApp* theApp) :
 	FillList(aCurrent != NULL ? aCurrent->mName : "");
 }
 
+// port: the destructor (SelectUserDialog::~SelectUserDialog)
 SelectUserDialog::~SelectUserDialog()
 {
 	delete mList;
+	delete mScrollbar;
 	delete mRenameButton;
 	delete mDeleteButton;
 }
@@ -216,8 +227,6 @@ void SelectUserDialog::FillList(const std::string& theSelect)
 			mList->AddLine(aName, false);
 	}
 	mList->SetSelect(aSelect);
-	if (mList->mScrollbar != NULL)
-		mList->mScrollbar->SetVisible((int) mList->mLines.size() > VISIBLE_LINES);
 	MarkDirty();
 }
 
@@ -226,6 +235,7 @@ void SelectUserDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	GameDialog::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mList);
+	theWidgetManager->AddWidget(mScrollbar);
 	theWidgetManager->AddWidget(mRenameButton);
 	theWidgetManager->AddWidget(mDeleteButton);
 }
@@ -235,6 +245,7 @@ void SelectUserDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	GameDialog::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mList);
+	theWidgetManager->RemoveWidget(mScrollbar);
 	theWidgetManager->RemoveWidget(mRenameButton);
 	theWidgetManager->RemoveWidget(mDeleteButton);
 }
@@ -246,7 +257,12 @@ void SelectUserDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	int aLeft = GetContentLeft();
 	int aTop = GetContentTop();
 	int aWidth = GetContentWidth();
-	mList->Resize(aLeft + 10, aTop, aWidth - 0x14, LINE_HEIGHT * VISIBLE_LINES + 8);
+	// the bar takes 16 pixels from the list's width while it shows (as it did before the list's page size was known)
+	int aBarWidth = mScrollbar->mVisible ? 0x10 : 0;
+	int aListWidth = aWidth - 0x14 - aBarWidth;
+	int aListHeight = mList->mItemHeight * VISIBLE_LINES + 8;
+	mList->Resize(aLeft + 10, aTop, aListWidth, aListHeight);
+	mScrollbar->ResizeScrollbar(aLeft + 10 + aListWidth, aTop, aBarWidth, aListHeight);
 	if (mYesButton != NULL)
 		mRenameButton->Resize(mYesButton->mX, mYesButton->mY - mYesButton->mHeight, mYesButton->mWidth, mYesButton->mHeight);
 	if (mNoButton != NULL)

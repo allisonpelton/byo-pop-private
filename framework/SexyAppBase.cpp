@@ -42,13 +42,13 @@
 #include "../platform/Audio.h"
 #include "../platform/MemReport.h"
 #include "../platform/CycleSplit.h"
+#include "TextScanner.h"
 
 #include <SDL.h>
 #include <stb_image_write.h>
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
-#include <sstream>
 #include <sys/stat.h>
 
 #ifdef __EMSCRIPTEN__
@@ -1140,10 +1140,10 @@ void SexyAppBase::LoadRegistry()
 	if (!Platform::VFS::Get().ReadAll(RegistryPath(), aData))
 		return;
 
-	std::istringstream aStream(std::string(aData.begin(), aData.end()));
+	TextScanner aStream(std::string(aData.begin(), aData.end()));
 	std::string aKey;
 	std::string aLine;
-	while (std::getline(aStream, aLine))
+	while (aStream.GetLine(aLine))
 	{
 		if ((!aLine.empty()) && (aLine[aLine.length() - 1] == '\r'))
 			aLine.resize(aLine.length() - 1);
@@ -2239,6 +2239,10 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 
 				if ((mActive) && (!mIsWindowed))
 					mWidgetManager->MarkAllDirty();
+				// port: a display without a renderer shows all of the window again at the next present (SurfaceDisplay;
+				// the GPU path presents whole anyway)
+				if ((mActive) && (mDDInterface != NULL))
+					mDDInterface->ScreenInvalidated();
 
 				if ((mIsOpeningURL) && (!mActive))
 					URLOpenSucceeded(mOpeningURL);
@@ -3781,7 +3785,7 @@ bool SexyAppBase::LoadScriptFile(const std::string& theFileName, const char* the
 		if (aText.find_first_not_of(" \t\r\n") == std::string::npos)
 			continue;
 
-		std::istringstream aStream(aText);
+		TextScanner aStream(aText);
 		ScriptCommand aCommand;
 		aCommand.mLine = aLineNum;
 		if ((!(aStream >> aCommand.mUpdateCount)) || (!(aStream >> aCommand.mCommand)))
@@ -3791,7 +3795,7 @@ bool SexyAppBase::LoadScriptFile(const std::string& theFileName, const char* the
 			continue;
 		}
 		std::string aRest;
-		std::getline(aStream, aRest);
+		aStream.GetLine(aRest);
 		aCommand.mArgs = TrimScriptArgs(aRest);
 		theCommands->push_back(aCommand);
 	}
@@ -3825,7 +3829,7 @@ int SexyAppBase::RunScriptCommand(const ScriptCommand& theCommand, std::string* 
 {
 	const ScriptCommand& aCommand = theCommand;
 	const std::string& aName = aCommand.mCommand;
-	std::istringstream anArgs(aCommand.mArgs);
+	TextScanner anArgs(aCommand.mArgs);
 	int x = 0;
 	int y = 0;
 
@@ -3908,6 +3912,8 @@ int SexyAppBase::RunScriptCommand(const ScriptCommand& theCommand, std::string* 
 		SaveScreenshotMidUpdate(aCommand.mArgs);
 	else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))
 		SaveScreenshotMidUpdate(aCommand.mArgs, true);
+	else if ((aName == "screenshotwindow") && (!aCommand.mArgs.empty()))
+		SaveWindowShot(aCommand.mArgs);
 	else if ((aName == "focus") && ((aCommand.mArgs == "lose") || (aCommand.mArgs == "regain")))
 	{
 		// as the window's focus event does (WM_ACTIVATEAPP), like origrun's "focus lose" and "focus regain"
@@ -4041,7 +4047,7 @@ static const size_t kMaxLiveCommands = 1024;
 bool SexyAppBase::QueueLiveCommand(const std::string& theLine, int theLineNum)
 {
 	std::string aText = StripScriptComment(theLine);
-	std::istringstream aStream(aText);
+	TextScanner aStream(aText);
 	ScriptCommand aCommand;
 	aCommand.mUpdateCount = 0;
 	aCommand.mLine = theLineNum;
@@ -4053,7 +4059,7 @@ bool SexyAppBase::QueueLiveCommand(const std::string& theLine, int theLineNum)
 		return false;
 	}
 	std::string aRest;
-	std::getline(aStream, aRest);
+	aStream.GetLine(aRest);
 	aCommand.mArgs = TrimScriptArgs(aRest);
 	mLiveCommands.push_back(aCommand);
 	return true;
@@ -4215,17 +4221,16 @@ EMSCRIPTEN_KEEPALIVE int byopop_test_command(const char* theLine)
 // they reach the game the way a hand's events do, through SDL_PollEvent and HandleEvent
 
 // "<x> <y>" in window pixels, or "game <x> <y>" in the game's, mapped to the window as it shows the game now
-static bool ReadRealPoint(SexyAppBase* theApp, std::istringstream& theArgs, int* theX, int* theY)
+static bool ReadRealPoint(SexyAppBase* theApp, TextScanner& theArgs, int* theX, int* theY)
 {
-	std::streampos aStart = theArgs.tellg();
+	size_t aStart = theArgs.Tell();
 	std::string aWord;
 	bool isGame = false;
 	if ((theArgs >> aWord) && (aWord == "game"))
 		isGame = true;
 	else
 	{
-		theArgs.clear();
-		theArgs.seekg(aStart);
+		theArgs.SeekTo(aStart);
 	}
 
 	int x = 0;
@@ -4240,7 +4245,7 @@ static bool ReadRealPoint(SexyAppBase* theApp, std::istringstream& theArgs, int*
 }
 
 // [button]: left (also when there is none), right, middle, x1 or x2; 0 for another word
-static int ReadRealButton(std::istringstream& theArgs)
+static int ReadRealButton(TextScanner& theArgs)
 {
 	std::string aWord;
 	if (!(theArgs >> aWord))
@@ -4500,7 +4505,7 @@ int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::strin
 {
 	const ScriptCommand& aCommand = theCommand;
 	const std::string& aName = aCommand.mCommand;
-	std::istringstream anArgs(aCommand.mArgs);
+	TextScanner anArgs(aCommand.mArgs);
 	int x = 0;
 	int y = 0;
 
@@ -4690,6 +4695,8 @@ int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::strin
 		SaveScreenshotMidUpdate(aCommand.mArgs);
 	else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))
 		SaveScreenshotMidUpdate(aCommand.mArgs, true);
+	else if ((aName == "screenshotwindow") && (!aCommand.mArgs.empty()))
+		SaveWindowShot(aCommand.mArgs);
 	else if (aName == "quit")
 		Shutdown();
 	else if ((aName == "3d") && ((aCommand.mArgs == "on") || (aCommand.mArgs == "off")))
@@ -5036,6 +5043,34 @@ bool SexyAppBase::SaveScreenshot(const std::string& theFileName, bool fullResolu
 	}
 	SDL_Log("screenshot: %s (update %d)", theFileName.c_str(), mUpdateCount);
 	return true;
+}
+
+Widget* SexyAppBase::OverlayWidget() const
+{
+	return ((mModMenu != NULL) && (mModMenu->mVisible)) ? mModMenu : NULL;
+}
+
+// Test: the window as the last present showed it, at the window's size (DDInterface::ReadWindow), not drawn again
+bool SexyAppBase::SaveWindowShot(const std::string& theFileName)
+{
+	std::vector<uint32_t> aBits;
+	int aWidth = 0, aHeight = 0;
+	if (!mDDInterface->ReadWindow(aBits, aWidth, aHeight))
+	{
+		SDL_Log("screenshotwindow: cannot read the window");
+		return false;
+	}
+	std::vector<uchar> aRGBA((size_t) aWidth * aHeight * 4);
+	for (size_t i = 0; i < aBits.size(); i++)
+	{
+		aRGBA[i*4 + 0] = (uchar) (aBits[i] >> 16);
+		aRGBA[i*4 + 1] = (uchar) (aBits[i] >> 8);
+		aRGBA[i*4 + 2] = (uchar) aBits[i];
+		aRGBA[i*4 + 3] = 255;
+	}
+	const bool aWritten = stbi_write_png(theFileName.c_str(), aWidth, aHeight, 4, &aRGBA[0], aWidth * 4) != 0;
+	SDL_Log("screenshotwindow: %s at %dx%d (update %d)%s", theFileName.c_str(), aWidth, aHeight, mUpdateCount, aWritten ? "" : ", not written");
+	return aWritten;
 }
 
 //////////////////////////////////////////////////////////////////////////

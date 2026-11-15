@@ -402,8 +402,8 @@ check(blockReplay("dynomite", "Fossil Challenge - Panic", dyFossil.slice(0, 16))
 function vnLog(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "venice", name + ".block.log"), "utf8").split(/\r?\n/); }
 check(blockReplay("venice", "Journey", vnLog("journey")) === "start; split; reset resetJourney",
       "Venice Journey: from the click away from the map, building 1 splits, the tries running out resets");
-check(blockReplay("venice", "Flood", vnLog("flood")) === "start; split" && blockReplay("venice", "Journey", vnLog("flood")) === "",
-      "Venice Flood: building 1 splits, a sunk building is played again and the run goes on; Journey's category ignores it");
+check(blockReplay("venice", "Flood", vnLog("flood")) === "start; split; reset resetQuit" && blockReplay("venice", "Journey", vnLog("flood")) === "",
+      "Venice Flood: building 1 splits, a sunk building is played again and the run goes on, the main menu after it resets; Journey's category ignores it");
 check(blockReplay("venice", "Trick Shots", vnLog("trickshot")) === "start; reset resetQuit", "Venice Trick Shots: from the click on the mode, the menu resets");
 check(blockReplay("venice", "Journey", vnLog("continue")) === "" && blockReplay("venice", "Journey", vnLog("congratulations")) === "" &&
       blockReplay("venice", "Journey", vnLog("survival")) === "", "Venice: a continued game and Survival start nothing");
@@ -413,6 +413,47 @@ var vnWin = vnLog("congratulations").map(function (l) {
   return / board=1 /.test(l) ? l.replace(/flags=(1?)06 /, "flags=$104 ").replace("go=0/0", "go=1/1") : l;
 });
 check(blockReplay("venice", "Journey", vnWin) === "start; " + splits(71), "Venice Journey: the map's CONGRATULATIONS! ends the run in any building");
+// Heavy Weapon: its block logs (tools/autosplit/heavyweapon/, the port's -livesplitlog runs from Heavy Weapon's session,
+// 2026-11-15; a line at each change)
+function hwLog(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "heavyweapon", name + ".block.log"), "utf8").split(/\r?\n/); }
+var HW_MISSION = "Mission Mode (PC)";
+check(blockReplay("heavyweapon", HW_MISSION, hwLog("newgame")) === "start; split", "Heavy Weapon: from the click on Campaign, level 1's results split");
+check(blockReplay("heavyweapon", HW_MISSION, hwLog("gameover-continue")) === "start; split",
+      "Heavy Weapon: TRY AGAIN after a game over keeps the run, the level played again splits at its results");
+check(blockReplay("heavyweapon", HW_MISSION, hwLog("gameover-scores")) === "start; reset resetQuit", "Heavy Weapon: QUIT after a game over resets");
+check(blockReplay("heavyweapon", HW_MISSION, hwLog("quit")) === "start; reset resetQuit", "Heavy Weapon: the menu in the middle of a level resets");
+check(blockReplay("heavyweapon", HW_MISSION, hwLog("continued")) === "" && blockReplay("heavyweapon", HW_MISSION, hwLog("final")) === "" &&
+      blockReplay("heavyweapon", HW_MISSION, hwLog("survival")) === "", "Heavy Weapon: a continued campaign and Survival start nothing");
+// (the final level's log, from `level 19`, as a new game's: its GO at the board's first write, no RESUMED)
+var hwWin = hwLog("final").map(function (l) {
+  return / board=1 /.test(l) ? l.replace(/flags=(1?)06 /, "flags=$104 ").replace("go=0/0", "go=1/1") : l;
+});
+check(blockReplay("heavyweapon", HW_MISSION, hwWin) === "start; " + splits(19), "Heavy Weapon: the final level's results end the run in any segment");
+// Hammer Heads: its block logs (tools/autosplit/hammerheads/, the port's -livesplitlog runs from Hammer Heads' session,
+// 2026-11-15; a line at each change)
+function hhLog(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "hammerheads", name + ".block.log"), "utf8").split(/\r?\n/); }
+check(blockReplay("hammerheads", "Classic%", hhLog("newgame")) === "start; split; reset resetQuit" &&
+      blockReplay("hammerheads", "Tough Cookie%", hhLog("newgame")) === "",
+      "Hammer Heads Classic%: from the level card's Go!, level 1's end splits, the main menu resets; Tough Cookie% ignores it");
+check(blockReplay("hammerheads", "Tough Cookie%", hhLog("tough")) === "start; split; reset resetQuit" &&
+      blockReplay("hammerheads", "Classic%", hhLog("tough")) === "", "Hammer Heads Tough Cookie%: from the Ready? box's Go!; Classic% ignores it");
+check(blockReplay("hammerheads", "Classic%", hhLog("gameover")) === "start; reset resetHealth",
+      "Hammer Heads: out of health resets, and the try again's new game is a new board");
+check(blockReplay("hammerheads", "Classic%", hhLog("quit")) === "start; reset resetQuit", "Hammer Heads: the in-game menu's way to the main menu resets");
+check(blockReplay("hammerheads", "Classic%", hhLog("continued")) === "" && blockReplay("hammerheads", "Classic%", hhLog("marathon")) === "" &&
+      blockReplay("hammerheads", "Tough Cookie%", hhLog("marathon")) === "", "Hammer Heads: a continued game and Marathon start nothing");
+// (the king's log, from `level 25` on a new board, as the 25th level of a run: 24 level clears before it, the first just after its GO)
+var hhKing = [];
+hhLog("king").forEach(function (l) {
+  var m = / go=1\/1 /.test(l) ? l.replace(/ lc=(\d+)\/(\d+) /, function (x, a, b) { return " lc=" + (+a + 24) + "/" + b + " "; })
+                                   .replace(/ blc=(\d+) /, function (x, a) { return " blc=" + (+a + 24) + " "; }) : l;
+  if (/ go=1\/1 /.test(l) && !hhKing.some(function (x) { return / go=1\/1 /.test(x); })) {
+    hhKing.push(l);
+    for (var k = 1; k <= 24; k++) hhKing.push(l.replace(/ lc=0\/0 /, " lc=" + k + "/1 ").replace(/ blc=0 /, " blc=" + k + " "));
+  } else hhKing.push(m);
+});
+check(blockReplay("hammerheads", "Classic%", hhKing) === "start; " + splits(25),
+      "Hammer Heads Classic%: the Go! after King Globus's trophy room ends the run, before the level's own end and the win");
 
 // Bejeweled Twist: block lines made from its port's event logs (the Twist session's classic, zen and challenge games,
 // 2026-11-14): a board's GO, its level clears, game overs and challenge wins, and the game's own words (the modes open, the

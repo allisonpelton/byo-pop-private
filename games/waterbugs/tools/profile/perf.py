@@ -10,8 +10,8 @@ From the worktree root (the port's and the original's runs are real time, the po
 Both games run in a window (fullscreen="0" in their cp.cfg: the original's full screen is DirectDraw's own mode, which the
 private desktop cannot open without dgVoodoo2, and the numbers should be those of the game and not of a wrapper). The port
 runs natively with the live command channel (as the real-input driver does), the original under tools/origrun on its real
-clock from a copy in C:/byo-og/wbperf (build it once with `build/origrun-bin/origrun.exe --game waterbugs --run wbperf
---stage-root C:/byo-og --copy-only`; this script puts "fullscreen=0" in the copy's cp.cfg and takes dgVoodoo2 out of it).
+clock from a copy in E:/byo-og/wbperf (build it once with `build/origrun-bin/origrun.exe --game waterbugs --run wbperf
+--stage-root E:/byo-og --copy-only`; this script puts "fullscreen=0" in the copy's cp.cfg and takes dgVoodoo2 out of it).
 
 load: the time from the creation of the process to the main menu: the first screen that takes input, after the two logos
 (the port answers `state` with the screen "menu"; the original's current level, gLevels.current at 0x473138, has kind 1 after
@@ -145,7 +145,7 @@ def game_processes(mine):
 
 
 def mine_prefixes():
-    return [os.getcwd() + '\\', 'C:\\byo-og\\wbperf']
+    return [os.getcwd() + '\\', 'E:\\byo-og\\wbperf']
 
 
 def find_process(name, folder):
@@ -273,13 +273,13 @@ SCRIPT = ('at 2600 click %d %d 5\nat 3600 click %d %d 5\nat 5000 click %d %d 5\n
 
 
 def stage_copy(root):
-    """The copy under C:/byo-og/wbperf, windowed and on Windows' own DirectDraw."""
+    """The copy under E:/byo-og/wbperf, windowed and on Windows' own DirectDraw."""
     origrun = os.path.join(root, 'build', 'origrun-bin', 'origrun.exe')
-    shutil.rmtree('C:/byo-og/wbperf', ignore_errors=True)
+    shutil.rmtree('E:/byo-og/wbperf', ignore_errors=True)
     shutil.rmtree(os.path.join(root, 'build', 'origrun', 'wbperf'), ignore_errors=True)
-    subprocess.run([origrun, '--game', 'waterbugs', '--run', 'wbperf', '--stage-root', 'C:/byo-og', '--copy-only'],
+    subprocess.run([origrun, '--game', 'waterbugs', '--run', 'wbperf', '--stage-root', 'E:/byo-og', '--copy-only'],
                    capture_output=True)
-    game = 'C:/byo-og/wbperf/game'
+    game = 'E:/byo-og/wbperf/game'
     with open(game + '/cp.cfg', 'w', newline='\n') as f:
         f.write(CFG)
     for name in ('DDraw.dll', 'D3DImm.dll', 'dgVoodoo.conf'):
@@ -302,7 +302,7 @@ def orig_run(out, runs, minute):
         others0 = game_processes(mine_prefixes())
         s0 = system_times()
         log = open(os.path.join(d, 'origrun.log'), 'wb')
-        p = subprocess.Popen([origrun, '--game', 'waterbugs', '--run', 'wbperf', '--stage-root', 'C:/byo-og', '--script', sc,
+        p = subprocess.Popen([origrun, '--game', 'waterbugs', '--run', 'wbperf', '--stage-root', 'E:/byo-og', '--script', sc,
                               '--counter', '0x460a1c', '--update-ms', '1', '--cursor', 'scripted', '--clock', 'real',
                               '--timeout', '300'], stdout=log, stderr=subprocess.STDOUT)
         h = None

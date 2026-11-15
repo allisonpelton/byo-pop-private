@@ -1521,6 +1521,133 @@ var ByopopSoundboards = {
       ["sounds/mama2.ogg", "Mama 2 (unused)", "Never played: the game loads the first mama file twice instead, so this one is never loaded"]
     ] },
   ] },
+  // Heavy Weapon's 92 sounds are its sound table (games/heavyweapon/src: Res.h, Res.cpp gSoundInfo), every file of sounds/;
+  // its game runs 200 updates a second, and a sound plays again only once its last play is 10 updates old (20 for the two
+  // explosions, 5 for the beep: HeavyWeaponApp::PlaySample). The five gun sounds go with the gun's power, two at once between
+  // steps. laser is never played. The voice lines' words are by ear (whisper.cpp) where its reading fits the code, the file
+  // names' otherwise
+  heavyweapon: {
+    // presets from the port's sound log of the bot's campaign and of level 1 played to its results by test commands (5 ms an
+    // update; tools/soundpreset.py --loopstops), the player's own shots left out
+    presets: [
+      { name: "Boss Warning", when: "The boss warning: five flashes 127 updates apart, the voice in the first, and the boss's name typed out", steps: [["sounds/alert", 0, {"v": -774}], ["sounds/v_danger", 315, {"v": -199}], ["sounds/statbeep", 320, {"v": -597}], ["sounds/statbeep", 350, {"v": -597}], ["sounds/statbeep", 380, {"v": -597}], ["sounds/statbeep", 410, {"v": -597}], ["sounds/statbeep", 440, {"v": -597}], ["sounds/statbeep", 470, {"v": -597}], ["sounds/statbeep", 500, {"v": -597}], ["sounds/statbeep", 530, {"v": -597}], ["sounds/statbeep", 560, {"v": -597}], ["sounds/statbeep", 590, {"v": -597}], ["sounds/statbeep", 620, {"v": -597}], ["sounds/alert", 635, {"v": -774}], ["sounds/statbeep", 650, {"v": -597}], ["sounds/statbeep", 680, {"v": -597}], ["sounds/statbeep", 710, {"v": -597}], ["sounds/alert", 1270, {"v": -774}], ["sounds/alert", 1905, {"v": -774}], ["sounds/alert", 2540, {"v": -774}]]},
+      { name: "Boss Destroyed", when: "A beaten boss's explosions, then its last blast clears the field", steps: [["sounds/bigexplode", 0, {"p": -495}], ["sounds/bigexplode", 155, {"p": -480}], ["sounds/bigexplode", 290, {"p": 243}], ["sounds/bigexplode", 475, {"p": -417}], ["sounds/bigexplode", 635, {"p": -144}], ["sounds/bigexplode", 820, {"p": -333}], ["sounds/bigexplode", 920, {"p": -195}], ["sounds/bigexplode", 1075, {"p": 42}], ["sounds/bigexplode", 1270, {"p": -21}], ["sounds/bigexplode", 1370, {"p": -210}], ["sounds/bigexplode", 1470, {"p": 180}], ["sounds/bigexplode", 1640, {"p": -213}], ["sounds/bossblast", 1710]]},
+      { name: "Level Complete", when: "The results after a level: the voice, a tick for each line, the bonuses counting up and two reinforcement tanks", steps: [["sounds/v_levelcomplete", 0, {"v": -199}], ["sounds/stats", 495, {"v": -597}], ["sounds/stats", 745, {"v": -597}], ["sounds/stats", 995, {"v": -597}], ["sounds/stats", 1245, {"v": -597}], ["sounds/statbeep", 1250, {"v": -597}], ["sounds/statbeep", 1275, {"v": -597}], ["sounds/statbeep", 1300, {"v": -597}], ["sounds/statbeep", 1325, {"v": -597}], ["sounds/statbeep", 1350, {"v": -597}], ["sounds/statbeep", 1375, {"v": -597}], ["sounds/statbeep", 1400, {"v": -597}], ["sounds/statbeep", 1425, {"v": -597}], ["sounds/statbeep", 1450, {"v": -597}], ["sounds/statbeep", 1475, {"v": -597}], ["sounds/stats", 1495, {"v": -597}], ["sounds/statbeep", 1500, {"v": -597}], ["sounds/statbeep", 1525, {"v": -597}], ["sounds/statbeep", 1550, {"v": -597}], ["sounds/statbeep", 1575, {"v": -597}], ["sounds/statbeep", 1600, {"v": -597}], ["sounds/statbeep", 1625, {"v": -597}], ["sounds/statbeep", 1650, {"v": -597}], ["sounds/statbeep", 1675, {"v": -597}], ["sounds/statbeep", 1700, {"v": -597}], ["sounds/statbeep", 1725, {"v": -597}], ["sounds/stats", 1745, {"v": -597}], ["sounds/statbeep", 1750, {"v": -597}], ["sounds/statbeep", 1775, {"v": -597}], ["sounds/statbeep", 1800, {"v": -597}], ["sounds/statbeep", 1825, {"v": -597}], ["sounds/statbeep", 1850, {"v": -597}], ["sounds/statbeep", 1875, {"v": -597}], ["sounds/statbeep", 1900, {"v": -597}], ["sounds/statbeep", 1925, {"v": -597}], ["sounds/statbeep", 1950, {"v": -597}], ["sounds/statbeep", 1975, {"v": -597}], ["sounds/stats", 1995, {"v": -597}], ["sounds/reinforcements", 1995, {"v": -597}], ["sounds/statbeep", 2000, {"v": -597}], ["sounds/statbeep", 2025, {"v": -597}], ["sounds/statbeep", 2050, {"v": -597}], ["sounds/statbeep", 2075, {"v": -597}], ["sounds/statbeep", 2100, {"v": -597}], ["sounds/statbeep", 2125, {"v": -597}], ["sounds/statbeep", 2150, {"v": -597}], ["sounds/statbeep", 2175, {"v": -597}], ["sounds/statbeep", 2200, {"v": -597}], ["sounds/statbeep", 2225, {"v": -597}], ["sounds/reinforcements", 2245, {"v": -597}], ["sounds/statbeep", 2250, {"v": -597}], ["sounds/statbeep", 2275, {"v": -597}], ["sounds/statbeep", 2300, {"v": -597}], ["sounds/statbeep", 2325, {"v": -597}], ["sounds/statbeep", 2350, {"v": -597}], ["sounds/statbeep", 2375, {"v": -597}], ["sounds/statbeep", 2400, {"v": -597}], ["sounds/statbeep", 2425, {"v": -597}], ["sounds/statbeep", 2450, {"v": -597}], ["sounds/statbeep", 2475, {"v": -597}], ["sounds/statbeep", 2500, {"v": -597}], ["sounds/statbeep", 2525, {"v": -597}], ["sounds/statbeep", 2550, {"v": -597}], ["sounds/statbeep", 2575, {"v": -597}], ["sounds/statbeep", 2600, {"v": -597}], ["sounds/statbeep", 2625, {"v": -597}], ["sounds/statbeep", 2650, {"v": -597}], ["sounds/statbeep", 2675, {"v": -597}], ["sounds/statbeep", 2700, {"v": -597}], ["sounds/statbeep", 2725, {"v": -597}], ["sounds/statbeep", 2750, {"v": -597}]]},
+      { name: "Tank Lost", when: "A tank blows up and the next comes in", steps: [["sounds/smallexplode", 0, {"v": -446, "p": -57}], ["sounds/bigexplode", 0, {"p": -178}], ["sounds/tankexplode", 0, {"v": -95, "p": -178}], ["sounds/bigexplode", 300, {"p": 584}], ["sounds/v_getready", 505, {"v": -199}]]},
+      { name: "Game Over", when: "The last tank blows up", steps: [["sounds/smallexplode", 0, {"v": -446, "p": 38}], ["sounds/tankexplode", 0, {"v": -95, "p": -88}], ["sounds/smallexplode", 420, {"v": -446, "p": 118}], ["sounds/v_gameover", 505, {"v": -199}]]}
+    ],
+    groups: [
+    { name: "Menus", sounds: [
+      ["sounds/mapover.ogg", "Hover", "The pointer comes onto or leaves a main menu button, or an armory weapon tile or one of its buttons (unless the tile already glows full); panned by where it is"],
+      ["sounds/buttondown.ogg", "Button down", "A button is pressed; also a checkbox ticked (help, options, play tips)"],
+      ["sounds/buttonup.ogg", "Button up", "A pressed button is let go over it; also a checkbox unticked"],
+      ["sounds/denied.ogg", "Denied", "An armory plus or minus that can do nothing; a nuke asked for with none left, while the tank is down or a nuke still flashes, during the boss warning, or while the boss cannot be hurt"],
+      ["sounds/shorting.ogg", "Light buzz", "The main menu's or the armory's light flickers (a flicker starts one update in 200); loops until it ends"],
+      ["sounds/swoosh.ogg", "Map zoom", "The map's invasion starts: the region zooms in from its place"]
+    ] },
+    { name: "The tank's weapons", sounds: [
+      ["sounds/tankfire.ogg", "Gun 1", "The tank's gun fires, at the lowest gun power; as the power rises the next sound takes over, and between two both play, each the quieter the further the power is from it"],
+      ["sounds/tankfire1.ogg", "Gun 2", "The tank's gun fires, at the second step of gun power"],
+      ["sounds/tankfire2.ogg", "Gun 3", "The tank's gun fires, at the third step of gun power"],
+      ["sounds/tankfire3.ogg", "Gun 4", "The tank's gun fires, at the fourth step of gun power"],
+      ["sounds/tankfire4.ogg", "Gun 5", "The tank's gun fires, at full gun power"],
+      ["sounds/tanklaser.ogg", "Lasers", "The tank's lasers fire, at most every 100 updates (half a second) while the gun fires"],
+      ["sounds/smallmissile.ogg", "Rockets", "The tank's rocket pods fire a volley (at most every 40 updates), and each homing missile it launches"],
+      ["sounds/flak.ogg", "Flak", "The tank's flak fires a burst (at most every 50 updates)"],
+      ["sounds/staticshot.ogg", "Static shot", "The tank's static weapon fires a bolt"],
+      ["sounds/statichit.ogg", "Static hit", "A static bolt reaches its target"],
+      ["sounds/orbhit.ogg", "Orb hit", "An orb circling the tank destroys a projectile it touches, or stops an enemy bullet. Also in Zuma's Revenge, as sounds/orbhit.ogg."],
+      ["sounds/megalaser_start.ogg", "Mega laser on", "The left button goes down while the mega laser has charge"],
+      ["sounds/megalaser.ogg", "Mega laser", "The mega laser fires; loops while it does"],
+      ["sounds/megalaser_stop.ogg", "Mega laser off", "The left button comes up while the mega laser has charge left"],
+      ["sounds/megalaser_out.ogg", "Mega laser low", "The mega laser's charge runs low: at 400, 300, 200, 100 and 0 left of its 3000"],
+      ["sounds/nukeblast.ogg", "Nuke", "A nuke goes off (the right button, with one left): the screen flashes and shakes"]
+    ] },
+    { name: "Power-ups", sounds: [
+      ["sounds/pupcopter.ogg", "Supply copter", "A supply helicopter crosses with a power-up to drop; its rotor loops while it is on the field"],
+      ["sounds/gunpowerup.ogg", "Gun power-up", "The tank catches a gun power, fire rate or spread power-up; also as the loading finishes on the title screen"],
+      ["sounds/shieldup.ogg", "Shield up", "The tank catches a shield power-up"],
+      ["sounds/speedup.ogg", "Speed up", "The tank catches a speed power-up"],
+      ["sounds/powerup.ogg", "Power-up", "The tank catches a nuke"],
+      ["sounds/upgrade.ogg", "Weapon upgrade", "The tank catches a weapon crate and the weapon goes up a level (below its highest)"],
+      ["sounds/star.ogg", "Part caught", "The tank catches a falling mega laser part, which flies to the top of the screen"],
+      ["sounds/megaup1.ogg", "Part 1", "The first mega laser part caught reaches the top: 1000 points"],
+      ["sounds/megaup2.ogg", "Part 2", "The second part reaches the top: 2000 points"],
+      ["sounds/megaup3.ogg", "Part 3", "The third part reaches the top: 3000 points"],
+      ["sounds/megaup4.ogg", "Part 4", "The fourth part reaches the top: the mega laser is charged (3000)"],
+      ["sounds/starsmash.ogg", "Part lost", "A mega laser part falls to the ground and explodes, leaving a crater"],
+      ["sounds/friendly1.ogg", "Copter hit 1", "The tank's fire takes the supply copter below three quarters of its health"],
+      ["sounds/friendly2.ogg", "Copter hit 2", "The tank's fire takes the supply copter below half its health"],
+      ["sounds/friendly3.ogg", "Copter hit 3", "The tank's fire takes the supply copter below a quarter of its health"],
+      ["sounds/friendlydie.ogg", "Copter down", "The tank shoots the supply copter down: points lost, or in Survival 30 seconds of time"]
+    ] },
+    { name: "Hits", sounds: [
+      ["sounds/bullethit.ogg", "Bullet hit", "One of the tank's bullets hits an enemy or a destructible projectile that lives on, or a flak burst a living enemy"],
+      ["sounds/smallexplode.ogg", "Small explosion", "An explosion up to 140 (its width and height together); also a rocket or missile hit on an enemy that lives on"],
+      ["sounds/bigexplode.ogg", "Big explosion", "An explosion over 140 (its width and height together)"],
+      ["sounds/tankexplode.ogg", "Tank destroyed", "The player's tank blows up"],
+      ["sounds/shielddown.ogg", "Shield down", "The tank's last shield level goes: a bullet, a projectile or a cruise missile hits it"],
+      ["sounds/sparking.ogg", "Shield sparks", "With the shield's last level going, and when a satellite's beam burns the shield away"],
+      ["sounds/deflect.ogg", "Deflected", "A deflector's shield turns one of the tank's bullets back at it"]
+    ] },
+    { name: "Enemies", sounds: [
+      ["sounds/enemyfire.ogg", "Enemy gun", "An enemy fires a bullet from its gun"],
+      ["sounds/enemytankgun.ogg", "Enemy shell", "An enemy tank fires a shell; also the battleship's turrets"],
+      ["sounds/bombfall.ogg", "Bomb falls", "A bomb is dropped: a dumb bomb, a fat boy, a frag bomb, an iron bomb or a guided bomb"],
+      ["sounds/missile.ogg", "Missile", "A missile is launched: a head missile, a hellfire or an RPG. Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/missile.ogg."],
+      ["sounds/airraid.ogg", "Air raid", "A big missile lifts off from the ground in the background and climbs out of sight"],
+      ["sounds/meteor.ogg", "Meteor", "A meteor comes onto the screen"],
+      ["sounds/jetdive.ogg", "Strafer", "A strafer comes in from a side"],
+      ["sounds/laserpowerup.ogg", "Satellite charge", "A satellite in reach starts its beam (at random)"],
+      ["sounds/satlaser.ogg", "Satellite beam", "A satellite's beam starts to burn, 100 updates (half a second) later: it destroys a tank beneath it, or its shield"],
+      ["sounds/sat1.ogg", "Satellite chatter 1", "A satellite chatters: one of seven at random, one update in 100 and at least 100 updates apart"],
+      ["sounds/sat2.ogg", "Satellite chatter 2", "A satellite chatters (one of seven at random)"],
+      ["sounds/sat3.ogg", "Satellite chatter 3", "A satellite chatters (one of seven at random)"],
+      ["sounds/sat4.ogg", "Satellite chatter 4", "A satellite chatters (one of seven at random)"],
+      ["sounds/sat5.ogg", "Satellite chatter 5", "A satellite chatters (one of seven at random)"],
+      ["sounds/sat6.ogg", "Satellite chatter 6", "A satellite chatters (one of seven at random)"],
+      ["sounds/sat7.ogg", "Satellite chatter 7", "A satellite chatters (one of seven at random)"],
+      ["sounds/shortkey.ogg", "Short key", "A satellite's keys click between its chatters, short or long at random (one update in four)"],
+      ["sounds/longkey.ogg", "Long key", "A satellite's keys click between its chatters, short or long at random (one update in four)"]
+    ] },
+    { name: "Bosses", sounds: [
+      ["sounds/alert.ogg", "Alert", "The boss warning flashes: at each of its five flashes, 127 updates apart"],
+      ["sounds/statbeep.ogg", "Beep", "Each letter the boss warning types, every other update (at most every 5); also the results' bonuses counting up"],
+      ["sounds/bosscopter.ogg", "Copter boss", "The helicopter boss's rotor, louder as it comes down into view; loops"],
+      ["sounds/tractorbeam.ogg", "Tractor beam", "The rainer boss's dish turns up and its beam hums; loops until the dish goes down and its meteors fall"],
+      ["sounds/airmine.ogg", "Air mine", "The rainer boss drops an air mine"],
+      ["sounds/diesel.ogg", "Wrecker engine", "The wrecker boss's engine, louder as it drives in; loops"],
+      ["sounds/airbrake.ogg", "Air brake", "The wrecker boss brakes to a stop"],
+      ["sounds/chain.ogg", "Chain", "The wrecker boss's chain pays out (or reels in once the last tank is lost); loops while it moves"],
+      ["sounds/bigthud.ogg", "Big thud", "The ape boss lands from a jump, or the wrecker's ball slams down"],
+      ["sounds/robotsmash.ogg", "Robot stamp", "The robot boss's foot comes down on the ground"],
+      ["sounds/robotlaser.ogg", "Robot laser", "The robot boss fires a bolt at the tank. Also in Banana Bugs, as sounds/thunder.ogg."],
+      ["sounds/earthquake.ogg", "Earthquake", "The sand stirs where the worm boss is about to come up"],
+      ["sounds/energyfire.ogg", "Energy shot", "The eye boss fires an energy shot"],
+      ["sounds/boltcharge.ogg", "Bolt charge", "The eye boss picks a hand to charge a bolt"],
+      ["sounds/thunder.ogg", "Thunder", "The eye boss's bolt strikes"],
+      ["sounds/bosslaser.ogg", "Final laser", "The final boss starts charging its two lasers"],
+      ["sounds/bosslaserblast.ogg", "Laser blast", "The final boss's lasers fire, dropping bomb fragments"],
+      ["sounds/bossblast.ogg", "Boss destroyed", "A beaten boss's last blast: after its twentieth explosion everything on the field is cleared with a flash"]
+    ] },
+    { name: "Results", sounds: [
+      ["sounds/stats.ogg", "Results line", "The results' lines appear after a level, a tick every 50 updates from 100 to 350 (to 400 with a destruction bonus)"],
+      ["sounds/reinforcements.ogg", "Reinforcements", "A reinforcement tank appears on the results, at update 400 and again at 450 for a second"]
+    ] },
+    { name: "Voice", sounds: [
+      ["sounds/v_atomictank.ogg", "\"Heavy Weapon!\"", "The title screen goes as the main menu comes up: the voice calls the game's name"],
+      ["sounds/v_prepare.ogg", "\"Prepare for battle!\"", "A level starts, as its music fades in"],
+      ["sounds/v_danger.ogg", "\"Danger\"", "The boss warning's first flash is half done"],
+      ["sounds/v_getready.ogg", "\"Get ready!\"", "A new tank comes after one is lost, with its banner"],
+      ["sounds/v_gameover.ogg", "\"Game over!\"", "The last tank is lost, with its banner"],
+      ["sounds/v_levelcomplete.ogg", "\"Victory!\"", "The results come up after a level"],
+      ["sounds/v_megalaser.ogg", "\"Mega laser!\"", "The fourth mega laser part reaches the top: the mega laser is charged"],
+      ["sounds/v_waffle.ogg", "\"Waffle\"", "Typing the game's secret word during a level; it does nothing else"]
+    ] },
+    { name: "Unused", sounds: [
+      ["sounds/laser.ogg", "Laser (unused)", "Never played: loaded, but no code asks for it"]
+    ] },
+  ] },
   mahjongchina: {
     // presets from the sound logs of the Mahjong session's driven runs (5 ms an update; mahjong-soundlogs/INDEX.md)
     presets: [
@@ -1663,7 +1790,9 @@ var ByopopSoundboards = {
   ] },
   ningpo: {
     presets: [
-      { name: "You Win", when: "The last pair is taken", steps: [["ningpo.pyz|zip:nm_youwin.ogg", 0]]}
+      { name: "You Win", when: "The last pair is taken", steps: [["ningpo.pyz|zip:nm_youwin.ogg", 0]]},
+      { name: "Game Over", when: "A pair leaves tiles but no move, and the no-moves box's End Game is chosen",
+        steps: [["ningpo.pyz|zip:nm_gameover.ogg", 0]]}
     ],
     groups: [
     { name: "Menus", sounds: [
@@ -2225,6 +2354,151 @@ var ByopopSoundboards = {
     ] },
     { name: "Unused", sounds: [
       ["res/sounds/level_up.wav", "Level up chime (unused)", "Never played: not in the game's sound list (its LEVEL_UP is res/music/intense-levelend.wav), so nothing loads it"]
+    ] }
+  ] },
+  hammerheads: {
+    // Updates are 10 ms each (100 a second), and most of the game's timers count down 0.01 an update, so 1.0 is a second. The
+    // sounds are in games/hammerheads/src/Res.h and resources.xml; they are played by PlaySample, by sound instances (the
+    // aviator's engine, the bomb fuse, the mole's pen, the gift wheel's ticks) and by the level summary's applause table.
+    // presets from the site session's sound logs of the port's bot (botclick, -fast, 10 ms updates; 2026-11-15), its own swings
+    // left out, and with them the first level's don't-miss hint (Game Over) and the gnomes still about during a wipe (Game Won)
+    presets: [
+      { name: "Wave Cleared", when: "A level's first wave ends with every swing in it a hit: the sting as the music fades out, then Perfect! as the result's stars burst", steps: [["sounds/Sting - End Of Wave", 0], ["sounds/voices/Bonus - Perfect", 3920]]},
+      { name: "Level Up", when: "A level's last wave ends with fewer than 95 percent of its swings hits, so no voice: the sting, the summary's applause and its three lines, then the level up and the wipe to the next level", steps: [["sounds/Sting - End Of Wave", 0], ["sounds/Crowd Applause 02", 7000], ["sounds/Hint Popup 01", 8100], ["sounds/Hint Popup 01", 8600], ["sounds/Hint Popup 01", 9100], ["sounds/Sting - Level Up", 13030], ["sounds/UI - Zoom Transition", 13030]]},
+      { name: "Game Over", when: "The last of the health goes to a miss: the miss and the lost heart, the game over sting as the music stops, and five seconds later the game over box sliding in", steps: [["sounds/UI - Heart Lost", 0], ["sounds/Hammer - Miss", 0], ["sounds/Sting - Game Over", 0], ["sounds/UI - Moving Dialog Woosh", 5020]]},
+      { name: "Bonus Round", when: "A bonus round once its box is closed: Ready? and Go!, the sixteen coin piles rising one by one with two of them hit, then Well done! as the result box slides in, and its coins counted", steps: [["sounds/voices/Bonus - Ready", 0], ["sounds/voices/Bonus - Go", 2090], ["sounds/Misc - Platform Appear 3", 2170], ["sounds/Misc - Platform Appear 3", 2770], ["sounds/Misc - Platform Appear 3", 3370], ["sounds/Misc - Platform Appear 3", 3970], ["sounds/Misc - Platform Appear 3", 4570], ["sounds/Misc - Platform Appear 3", 5170], ["sounds/Misc - Platform Appear 3", 5770], ["sounds/Misc - Platform Appear 3", 6370], ["sounds/Coin - Three Picked", 6590], ["sounds/Misc - Platform Appear 3", 6970], ["sounds/Misc - Platform Appear 3", 7570], ["sounds/Misc - Platform Appear 3", 8170], ["sounds/Misc - Platform Appear 3", 8770], ["sounds/Misc - Platform Appear 3", 9370], ["sounds/Misc - Platform Appear 3", 9970], ["sounds/Misc - Platform Appear 3", 10570], ["sounds/Coin - Three Picked", 10790], ["sounds/Misc - Platform Appear 3", 11170], ["sounds/UI - Moving Dialog Woosh", 13800], ["sounds/voices/Bonus - Well Done", 13800], ["sounds/Coin - Three Picked", 14050]]},
+      { name: "Game Won", when: "The last level of Classic is finished: the level up and the wipe, then the game won sting a second after the page opens", steps: [["sounds/Sting - Level Up", 0], ["sounds/UI - Zoom Transition", 0], ["sounds/Sting - Game Won", 1670]]},
+      { name: "The Gnome King", when: "The Gnome King rises in the last level: his sting and platform, his drone as he starts to open, then the other seven platforms popping up as he flashes", steps: [["sounds/Sting - Gnome King", 0], ["sounds/Misc - Platform Appear 6", 0], ["sounds/Gnome King - Droning", 3020], ["sounds/Misc - Platform Appear 6", 4300], ["sounds/Misc - Platform Appear 6", 4300], ["sounds/Misc - Platform Appear 6", 4300], ["sounds/Misc - Platform Appear 6", 4300], ["sounds/Misc - Platform Appear 6", 4300], ["sounds/Misc - Platform Appear 6", 4300], ["sounds/Misc - Platform Appear 6", 4300], ["sounds/Gnome King - Flashing", 4300]]}
+    ],
+    groups: [
+    { name: "Menus and dialogs", sounds: [
+      ["sounds/UI - Click To Play.ogg", "Click to play", "The loading screen finishes loading and its play button starts to work"],
+      ["sounds/UI - Button Mouse Over.wav", "Button hover", "The pointer comes onto a button of the main menu, how-to-play box, level intro, high score table, game screen or game won screen; on a dialog's buttons only once the dialog has stopped sliding in"],
+      ["sounds/UI - Button Click.ogg", "Button click", "A button is pressed: a dialog's own buttons, the user button on the main menu, the options and game over boxes, the high score table, the resurrect screen's pictures; the loading screen's play button and the trophy room's page buttons when they are let go"],
+      ["sounds/UI - Check.ogg", "Check box", "A check box is ticked or cleared in the options box or the how-to-play box"],
+      ["sounds/UI - Moving Dialog Woosh.ogg", "Dialog slides in", "A dialog box is made and starts to fall into place from above the screen"],
+      ["sounds/UI - Zoom Transition.ogg", "Zoom wipe", "A zoom wipe between screens is made: to the main menu, into a game, to the next level or to the game won screen"]
+    ] },
+    { name: "Hammer", sounds: [
+      ["sounds/Hammer - Woosh.wav", "Hammer swings", "A click lands on a target and the hammer swings down; one per swing"],
+      ["sounds/Hammer - Woosh Fast.wav", "Hammer swings (on fire)", "The same swing while the hammer is on fire, in place of the ordinary one"],
+      ["sounds/Hammer - Miss.ogg", "Hammer misses", "A click hits nothing and the miss mark is shown: not in the shop, and not in a level while the strawberry power is on"],
+      ["sounds/Hammer - Boing.ogg", "Hammer bounces", "A hit does nothing to a gnome that is not shielded, and the hammer bounces off"],
+      ["sounds/Hammer - Hat.ogg", "Hit hat", "Every hit on the rabbit; the hit that takes the flag mole down, with its picked-flag sound"],
+      ["sounds/Hammer - Metal1.ogg", "Hit metal", "The bouncing jester or the aviator is struck, with its cry"],
+      ["sounds/Hammer - Plastic.ogg", "Hit plastic", "Every hit on the inflating head gnome"],
+      ["sounds/Hammer - Rock.ogg", "Hit rock", "Every hit on the Gnome King; the hit on the shop sign or on a challenge sign that opens its screen"],
+      ["sounds/Hammer - Wood.ogg", "Hit wood", "A hit on the stabbing gnome, the switcher gnome or the bucket gnome (not the hit that kills it), each with its cry; on the woman gnome, with her cry, when the hit leaves her one hit point and she turns angry"],
+      ["sounds/Hammer - Wood2.ogg", "Hit wood 2", "Every hit on the strong gnome or on Napoleon, with the cry (the strong gnome's cry only when it survives)"],
+      ["sounds/Hammer - Plop 2.ogg", "Hit sticker", "The hammer strikes a sticker"]
+    ] },
+    { name: "Platforms and breaking", sounds: [
+      ["sounds/Misc - Platform Appear 1.ogg", "Platform appears 1", "A platform starts to rise with its creature; the level's rise speed picks the nearest of ten sounds, and this is the one for the slowest speed"],
+      ["sounds/Misc - Platform Appear 2.ogg", "Platform appears 2", "A platform starts to rise, at the second of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 3.ogg", "Platform appears 3", "A platform starts to rise, at the third of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 4.ogg", "Platform appears 4", "A platform starts to rise, at the fourth of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 5.ogg", "Platform appears 5", "A platform starts to rise, at the fifth of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 6.ogg", "Platform appears 6", "A platform starts to rise, at the sixth of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 7.ogg", "Platform appears 7", "A platform starts to rise, at the seventh of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 8.ogg", "Platform appears 8", "A platform starts to rise, at the eighth of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 9.ogg", "Platform appears 9", "A platform starts to rise, at the ninth of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 10.ogg", "Platform appears 10", "A platform starts to rise, at the fastest of the ten rise speeds"],
+      ["sounds/Misc - Gnome Breaking 1.ogg", "Gnome breaks 1", "A gnome is hit down and breaks into pieces: one of the five at random, but always this one for a bomb gnome; a frozen gnome shatters instead"],
+      ["sounds/Misc - Gnome Breaking 2.ogg", "Gnome breaks 2", "A gnome breaks into pieces; one of the five at random (not for a bomb gnome)"],
+      ["sounds/Misc - Gnome Breaking 3.ogg", "Gnome breaks 3", "A gnome breaks into pieces; one of the five at random (not for a bomb gnome)"],
+      ["sounds/Misc - Gnome Breaking 4.ogg", "Gnome breaks 4", "A gnome breaks into pieces; one of the five at random (not for a bomb gnome)"],
+      ["sounds/Misc - Gnome Breaking 5.ogg", "Gnome breaks 5", "A gnome breaks into pieces; one of the five at random (not for a bomb gnome)"],
+      ["sounds/Misc - Ice Shatter 1.ogg", "Ice shatter 1", "A frozen gnome, bomb gnome or not, is hit and shatters; one of the three at random"],
+      ["sounds/Misc - Ice Shatter 2.ogg", "Ice shatter 2", "A frozen gnome is hit and shatters; one of the three at random"],
+      ["sounds/Misc - Ice Shatter 3.ogg", "Ice shatter 3", "A frozen gnome is hit and shatters; one of the three at random"]
+    ] },
+    { name: "Special gnomes", sounds: [
+      ["sounds/Bomb Face - Fuse.ogg", "Bomb fuse", "A bomb gnome plays it as soon as it is up and not frozen, then every 100 updates (1 second); the switcher gnome plays it when its bomb costume goes on, then every second while it is not frozen, and cuts it off when the costume comes off"],
+      ["sounds/Bomb Face - Explosion.ogg", "Explosion", "An explosion cloud is made, when a bomb gnome or the switcher's bomb costume goes off; twice at once when the Gnome King is beaten"],
+      ["sounds/Bouncing Jester - Bounce.ogg", "Jester bounce", "The bouncing jester lands on the floor on its way down, while it is on the screen"],
+      ["sounds/Inflating Head - Inflate.ogg", "Head inflates", "The inflating head is hit and does not pop, so it swells to the next size; in the idle show, each time it starts to swell from nothing"],
+      ["sounds/Inflating Head - Deflate.ogg", "Head deflates", "The inflating head, at rest for 0.5 seconds after swelling, shrinks a stage back; in the idle show, 1 second after reaching full size"],
+      ["sounds/Inflating Head - Pop.ogg", "Head pops", "A hit brings the inflating head to its last stage and it bursts"],
+      ["sounds/Bucket Gnome - Putting On.ogg", "Bucket goes on", "The bucket gnome puts its bucket on after about 0.8 seconds bare; the switcher gnome puts its bomb or coin costume on"],
+      ["sounds/Bucket Gnome - Removing.ogg", "Bucket comes off", "The bucket gnome lifts its bucket off after about 2.2 seconds under it; the switcher gnome takes its costume off"],
+      ["sounds/Shop Mole - Writing.ogg", "Mole writes", "The shop mole writes its thanks after something is bought"],
+      ["sounds/Misc - Neon Buzz.wav", "Neon sign buzz", "The shop sign buzzes once every 200 updates (2 seconds), at its 30th; the challenge sign buzzes at the 40th update of each cycle of its picture cels"],
+      ["sounds/Flag Mole - Waving.ogg", "Flag waves", "The flag mole waves its flag, and again every 128 updates (about 1.3 seconds) while it waves and is not frozen"],
+      ["sounds/Flag Mole - Picked and Moving.ogg", "Flag picked", "The flag mole is hit and its five-times sign flies to the bonus tray"],
+      ["sounds/Iron Gnome - Strike 0.ogg", "Iron strike 1", "The iron gnome's first hit (its health is then 5)"],
+      ["sounds/Iron Gnome - Strike 1.ogg", "Iron strike 2", "The iron gnome's second hit (its health is then 4)"],
+      ["sounds/Iron Gnome - Strike 2.ogg", "Iron strike 3", "The iron gnome's third hit (its health is then 3)"],
+      ["sounds/Iron Gnome - Strike 3.ogg", "Iron strike 4", "The iron gnome's fourth hit (its health is then 2)"],
+      ["sounds/Iron Gnome - Strike 4.ogg", "Iron strike 5", "The iron gnome's fifth hit (its health is then 1)"],
+      ["sounds/Iron Gnome - Strike 5.ogg", "Iron strike 6", "The iron gnome's last hit, as its health reaches 0"],
+      ["sounds/Cupido - Magic.ogg", "Cupid magic", "Cupid is hit and turns gnomes into hearts, with its cry"],
+      ["sounds/Treasure Chest - Opening.ogg", "Chest opens", "A treasure chest opens, when it is hit, or by itself once its timer runs out; it throws coins"],
+      ["sounds/Aviator - Engine L2R.ogg", "Plane engine, left to right", "An aviator gnome is made flying from the left (the side is a coin flip); it is cut off when the plane is hit"],
+      ["sounds/Aviator - Engine R2L.ogg", "Plane engine, right to left", "An aviator gnome is made flying from the right; it is cut off when the plane is hit"],
+      ["sounds/Aviator - Hit.ogg", "Plane hit", "The aviator is struck, with the metal hit and its cry; the plane then falls"],
+      ["sounds/Gnome King - Droning.ogg", "King drones", "The Gnome King's wait ends and he starts to open"],
+      ["sounds/Gnome King - Flashing.ogg", "King flashes", "The Gnome King has opened fully, his crystal glows and the other platforms pop"],
+      ["sounds/Misc - Camera Flash.ogg", "Camera flash", "The save gnome is hit and its photo is taken"]
+    ] },
+    { name: "Pickups and powers", sounds: [
+      ["sounds/Coin - Single Appear.ogg", "Coin appears", "A single coin jumps up (not in a challenge, where coins sit still)"],
+      ["sounds/Coin - Single Picked.ogg", "Coin picked", "A single coin is hit; also each coin a chest, the jester or the aviator gives, and the rabbit's coin when it is beaten"],
+      ["sounds/Coin - Three Appear.ogg", "Big coin appears", "A three-coin pile jumps up (not in a challenge)"],
+      ["sounds/Coin - Three Picked.ogg", "Big coin picked", "A three-coin pile is hit; also the strong gnome taking coins, the switcher's coin costume bursting, and the challenge results counting coins, one every 25 updates (0.25 seconds)"],
+      ["sounds/Heart - Appear.ogg", "Heart appears", "A heart gnome appears; silent when Cupid makes several at once"],
+      ["sounds/Heart - Picked.ogg", "Heart picked", "A heart is hit and flies to the health row"],
+      ["sounds/Lucky Clover - Picked and Activated.ogg", "Power picked up", "The clover power starts, the power bottle is hit, or the strawberry power starts"],
+      ["sounds/Various - Squish Strawberry.ogg", "Strawberry squish", "The strawberry power starts; also each click that hits nothing in a level while it lasts"],
+      ["sounds/Various - Icecream Gloop.ogg", "Ice cream gloop", "The ice cream power starts and everything freezes for 5 seconds, with the freeze sound"],
+      ["sounds/Misc - Ice Freeze.ogg", "Ice freeze", "The ice cream power starts, together with the gloop"],
+      ["sounds/Various - Duck Quack.ogg", "Duck quack", "The duck bonus is hit"]
+    ] },
+    { name: "Bonuses and counters", sounds: [
+      ["sounds/UI - Speed Bonus 1.ogg", "Speed bonus 1", "The lowest speed bonus is made (250 points)"],
+      ["sounds/UI - Speed Bonus 2.ogg", "Speed bonus 2", "The second speed bonus, Super (500 points)"],
+      ["sounds/UI - Speed Bonus 3.ogg", "Speed bonus 3", "The third speed bonus, Hyper (750 points)"],
+      ["sounds/UI - Speed Bonus 4.ogg", "Speed bonus 4", "The fourth speed bonus, Ultra (1000 points)"],
+      ["sounds/UI - Speed Bonus 5.ogg", "Speed bonus 5", "The top speed bonus, Giga (2000 points)"],
+      ["sounds/UI - Time Bonus.ogg", "Time bonus", "Marathon mode: each time a minute of play ends and its time bonus is shown"],
+      ["sounds/UI - Heart Lost.ogg", "Heart lost", "A miss, or a gnome that escapes, costs health, unless the matching cheat is on"],
+      ["sounds/Hint Popup 01.ogg", "Hint pops up", "A hint appears in the first level; each of the last three lines of a level summary as it is shown (at 8.1, 8.6 and 9.1 seconds in); the gift wheel's ticks as its picture changes, falling in pitch and then one much higher for the prize"]
+    ] },
+    { name: "Level end and game over", sounds: [
+      ["sounds/Sting - Gnome King.ogg", "Gnome King arrives", "The Gnome King is released into a level"],
+      ["sounds/Sting - End Of Wave.ogg", "End of wave", "A wave's result appears; the music fades out as it does"],
+      ["sounds/Sting - Level Up.ogg", "Level up", "A level is finished in Classic or Tough Cookie mode, before the wipe to the next level or the game won screen"],
+      ["sounds/Crowd Applause 01.ogg", "Applause 1", "The level summary opens its totals, 7 seconds in, for levels 4, 8, 12 and so on (the level number mod 4 is 0)"],
+      ["sounds/Crowd Applause 02.ogg", "Applause 2", "The level summary opens its totals, 7 seconds in, for levels 1, 5, 9 and so on"],
+      ["sounds/Crowd Applause 03.ogg", "Applause 3", "The level summary opens its totals, 7 seconds in, for levels 2, 6, 10 and so on"],
+      ["sounds/Crowd Applause 04.ogg", "Applause 4", "The level summary opens its totals, 7 seconds in, for levels 3, 7, 11 and so on"],
+      ["sounds/Sting - Game Over.ogg", "Game over", "The game over text appears"],
+      ["sounds/Sting - Game Won.ogg", "Game won", "The game won screen has been open for 100 updates (1 second)"],
+      ["sounds/Sting - Medal Awarded.ogg", "Trophy awarded", "A trophy won is shown on its own page in the trophy room, and again for each further one won at the same time"]
+    ] },
+    { name: "Voices", sounds: [
+      ["sounds/voices/Bonus - Ready.ogg", "\"Ready?\"", "The ready box opens at the start of a game or when a level begins, or comes back when the how-to-play box closes; in a bonus round, about 2.3 seconds into its countdown"],
+      ["sounds/voices/Bonus - Go.ogg", "\"Go!\"", "The ready box is closed and play starts; in a bonus round, about 4.4 seconds into its countdown"],
+      ["sounds/voices/Bonus - Perfect.ogg", "\"Perfect!\"", "A bonus round's result box when every coin was hit without a miss; also a wave's result when every swing of the wave was a hit"],
+      ["sounds/voices/Bonus - Well Done.ogg", "\"Well done!\"", "A bonus round's result box when it was not perfect; also a wave's result when 95 percent or more of its swings were hits"],
+      ["sounds/voices/Bouncing - Ai.ogg", "\"Ai!\"", "The bouncing jester or the aviator is hit"],
+      ["sounds/voices/Bouncing - Yoohoo.ogg", "\"Yoohoo!\"", "The jester or the aviator first comes well into the screen; also the peeking gnome that calls out on the main menu"],
+      ["sounds/voices/Bucket - Au.ogg", "\"Au!\" (bucket gnome)", "The bucket gnome is hit and survives"],
+      ["sounds/voices/Cheat - Cheater.ogg", "\"Cheater!\"", "A cheat is turned on"],
+      ["sounds/voices/Cheat - Honest.ogg", "\"Honest!\"", "A cheat is turned off"],
+      ["sounds/voices/Cupid - Au.ogg", "\"Au!\" (Cupid)", "Cupid is hit, with its magic"],
+      ["sounds/voices/Cupid - Love.ogg", "\"Love\"", "Cupid's platform comes up"],
+      ["sounds/voices/Napoleon - Ugh.ogg", "\"Ugh\"", "Napoleon is hit"],
+      ["sounds/voices/Stabbing - Au.ogg", "\"Au!\" (stabbing gnome)", "The stabbing gnome is hit while its fork is out"],
+      ["sounds/voices/Stabbing - Hehe.ogg", "\"Hehe\"", "The stabbing gnome has finished its turns and starts to stab"],
+      ["sounds/voices/Stabbing - Nya.ogg", "\"Nya\"", "The stabbing gnome appears, and each time it goes back to idle after a stab or a hurt"],
+      ["sounds/voices/Strong - Au.ogg", "\"Au!\" (strong gnome)", "The strong gnome is hit and survives"],
+      ["sounds/voices/Strong - Hehehehe.ogg", "\"Hehehehe\"", "The strong gnome ends its flex after taking coins from the counter"],
+      ["sounds/voices/Switcher - Ai.ogg", "\"Ai!\" (switcher gnome)", "The switcher gnome is hit"],
+      ["sounds/voices/Woman - Helaba.ogg", "\"Helaba\"", "The woman gnome is hit and turns angry"]
+    ] },
+    { name: "Unused", sounds: [
+      ["sounds/Misc - Gnome Breaking Big.ogg", "Big gnome break (unused)", "Never played: it is in the resource list and loaded, but no call or table reaches it"],
+      ["sounds/UI - Target Over Gnome.ogg", "Target over gnome (unused)", "Never played: it is in the resource list and loaded, but no call or table reaches it"]
     ] }
   ] }
 };

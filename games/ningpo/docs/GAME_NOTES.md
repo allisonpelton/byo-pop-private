@@ -265,3 +265,9 @@ names are the staged copy's, so the site's import needs no second name). Compare
 The port on the Collection's files (`-gamedir` the extracted folder, the suite's scripted game, `-fast -seed=7`, under
 rundesk): the first best time (`HS:0x0`) and the four screenshots (over, name, best, title) are byte for byte those of
 the same run on the staged copy. No change to the port was needed, and the frozen baseline is unchanged.
+
+
+## Lite mod (2026-11-15)
+
+None: nothing in the game's logic both cuts measurable processor time and can change play. `docs/LITE_MOD.md` says what
+was looked at (the tile scan, the shuffle, the hint and move count) and why each was left. Lite candidates: none.

@@ -543,6 +543,8 @@ coordinator's notes folder.
 dirty only when it has a changed rect (`MahjongHost::Present`), so the framework never draws an unchanged frame here and 1761 of 1761
 presents of a play were needed. No gain, not kept.
 
+**Where full screen stands (2026-11-15).** The coordinator's word, from the user: keep today's look on full screen, so the renderer's linear-filter picture stays the default and the nearest stretch stays an option (off). Until the framework session's CPU presenter (the same look made on the processor in strips, which also draws the mod menu under `SurfaceDisplay`) lands, full screen is still over the original's processor time here (4.77 against 3.78 for Japan, 4.79 against 3.60 for China). It is the one configuration of the two ports above the target; no third presenter is built in this game's folder.
+
 ### The game under a modal dialog and the mod menu (2026-11-14)
 
 `MahjongApp::ModalOpen` and `ModalClose` (both `override`) pause the engine's manager (`Manager::Pause`, 0x42c110 in this game, 0x4221d0 in

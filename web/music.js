@@ -2,7 +2,9 @@
 // the games the player added, from the game's own files in this browser (each game's database, as the import wrote them). Nothing is
 // shipped with the site and nothing is sent anywhere. The tunes of a game are the subsongs of its module files (web/soundtracks.js),
 // decoded by libopenmpt built on its own for the web (openmpt.js, web/music/openmpt_web.c, loaded the first time the tab opens) and
-// played through an AudioWorklet. A media player's controls are on the page (the user, 2026-11-08): previous, play or pause, stop and
+// played through an AudioWorklet. A MIDI file (TipTop's) is one tune, played by its game's own sequencer into TinySoundFont with
+// the port's General MIDI bank (web/music/midi_web.c, in the same decoder; the bank fetched beside the pages when one plays).
+// A media player's controls are on the page (the user, 2026-11-08): previous, play or pause, stop and
 // next, a seek bar between the time played and the tune's length, repeat and the volume; the Media Session API gives them to the
 // media keys and the system's media controls. Two views can be shown: a spectrum (a Web Audio AnalyserNode) and, for a module's
 // tune, a tracker's view of its patterns, the rows the listener hears (the decoder says where it is only while the view is on the
@@ -218,6 +220,28 @@ var ByopopMusic = (function () {
     return m;
   }
   function isOgg(rel) { return /\.ogg$/i.test(rel); }
+  // a MIDI file: one tune, rendered by the decoder's MIDI player (web/music/midi_web.c) with the game's bank (web/soundtracks.js)
+  function isMidi(rel) { return /\.midi?$/i.test(rel); }
+  // A MIDI file's length in seconds, as its game's sequencer plays it once through
+  function midiSeconds(M, bytes) {
+    var p = M._malloc(bytes.length);
+    M.HEAPU8.set(bytes, p);
+    var s = M._bm_midi_seconds(p, bytes.length);
+    M._free(p);
+    return s;
+  }
+  // A SoundFont bank beside the pages, by its path, fetched once for the page's life
+  var banks = {};
+  function bankOf(path) {
+    if (!banks[path]) {
+      banks[path] = fetch(path).then(function (r) {
+        if (!r.ok) throw new Error("bank " + path);
+        return r.arrayBuffer();
+      }).then(function (b) { return new Uint8Array(b); });
+      banks[path].catch(function () { delete banks[path]; });
+    }
+    return banks[path];
+  }
   // a recorded tune (Ogg Vorbis, or a WAV file: Word Harmony's), decoded whole by the browser rather than rendered
   function isStream(rel) { return /\.(ogg|wav)$/i.test(rel); }
   // A WAV file's length in seconds, from its data chunk's size and its format's bytes a second
@@ -376,7 +400,7 @@ var ByopopMusic = (function () {
     if (bar >= 0) {
       // a file inside a file: a zip entry's own name, or a resource's module and id ("resource 335")
       var pick = rel.slice(bar + 1);
-      return pick.indexOf("zip:") === 0 ? baseName(pick.slice(4)) : baseName(rel.slice(0, bar)) + " " + pick.split(":").pop();
+      return /^(zip|tiptop):/.test(pick) ? baseName(pick.replace(/^[a-z]+:/, "")) : baseName(rel.slice(0, bar)) + " " + pick.split(":").pop();
     }
     return rel.split("/").pop().replace(/\.[^.]+$/, "");
   }
@@ -466,6 +490,7 @@ var ByopopMusic = (function () {
           var rel = findRel(rels, n.file);
           if (!rel) return;
           if (n.zip) { n.zip.forEach(function (name) { steps.push(fileStep(rel + "|zip:" + name)); }); return; }
+          if (n.tiptop) { n.tiptop.forEach(function (name) { steps.push(fileStep(rel + "|tiptop:" + name)); }); return; }
           steps.push(function () {
             return read(rel).then(function (bytes) {
               if (!bytes) return;
@@ -546,6 +571,7 @@ var ByopopMusic = (function () {
               if (!bytes) return;
               var id = baseName(rel);
               if (isStream(rel)) { add(rel, [{ kind: "stream", keys: [prefix + rel], id: id, seconds: isOgg(rel) ? oggSeconds(bytes) : wavSeconds(bytes) }]); return; }
+              if (isMidi(rel)) { add(rel, [{ kind: "midi", keys: [prefix + rel], id: id, seconds: midiSeconds(M, bytes), bank: entry.bank }]); return; }
               var m = loadModule(M, bytes), list = [];
               if (!m) return;
               // the pattern each order plays (a marker below 0), which a game's song is known by (Music's "Following a game")
@@ -1320,6 +1346,22 @@ var ByopopMusic = (function () {
         free: function () {}
       };
     }
+    // A MIDI tune (web/music/midi_web.c): its game's sequencer into the synth, from the song's start; with repeat on it plays on
+    // from the start as the game does, the notes still sounding at the end carried over
+    function midiSource(h) {
+      return {
+        repeat: function (on) { M._bm_midi_loop(h, on ? 1 : 0); },
+        next: function (frames) {
+          var out = M._malloc(frames * 8), got = M._bm_midi_render(h, frames, out);
+          var c = got > 0 ? M.HEAPF32.slice(out >> 2, (out >> 2) + got * 2) : null;
+          M._free(out);
+          return c;
+        },
+        position: function () { return M._bm_midi_position(h); },
+        seek: function (s) { M._bm_midi_seek(h, s); },
+        free: function () { M._bm_midi_free(h); }
+      };
+    }
     // A game's music level as a gain: {bassAmplify: n} the BASS amplify the game sets, {fmod3XM: true} FMOD 3's XM pre-amp
     function levelGain(M, level) {
       if (!level) return 1;
@@ -1370,6 +1412,19 @@ var ByopopMusic = (function () {
     }
     // The source of a tune, from its files (a joined tune's pieces decoded once each, then put one after the other)
     function sourceOf(t, files) {
+      if (t.kind === "midi") {
+        if (!files[0] || !t.bank) return Promise.reject(new Error("midi"));
+        return bankOf(t.bank).then(function (bank) {
+          var f = M._malloc(files[0].length), b = M._malloc(bank.length);
+          M.HEAPU8.set(files[0], f);
+          M.HEAPU8.set(bank, b);
+          var h = M._bm_midi_load(f, files[0].length, b, bank.length, ctx.sampleRate);
+          M._free(f);
+          M._free(b);
+          if (!h) throw new Error("midi");
+          return midiSource(h);
+        });
+      }
       if (t.kind === "module") {
         var m = files[0] ? loadModule(M, files[0]) : 0;
         if (!m) throw new Error("module");

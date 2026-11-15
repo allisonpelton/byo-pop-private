@@ -147,7 +147,6 @@ public:
 	// +0x080 ButtonListener vfptr
 	WinBMApp*		mApp;                   // +0x084 ctor arg
 	MTRand			mRand;                  // +0x088 port: an MTRand* (new(0x9c4)) in the original; the board's own RNG
-	unsigned long	mCreateTick;            // +0x08c GetTickCount() in the ctor; never read
 	unsigned long	mTimerTick;             // +0x090 start of the current timed stretch (ctor, unpause, next level)
 	int				mStatsSeconds;          // +0x094 game seconds snapshot for the stats panel (ShowContinueButton)
 	int				mPlaySeconds;           // +0x098 game seconds banked at pause and at level end
@@ -263,7 +262,6 @@ public:
 	int				mBombColor;             // +0x768 colour being detonated
 	int				mBombIdle;              // +0x76c state 7 linger counter
 	bool			mHoverBag;              // +0x770 the mouse is over a money bag
-	int				mRepaintTimer;          // +0x774 counts down, repaints at 0; only ever set to 0 (dead)
 	// +0x778 std::list (8-byte nodes; head +0x77c, size +0x780): never used, omitted
 	int				mNumColors;             // +0x784 coin colours this level (not saved)
 	int				mMovesLeft;             // +0x788 Strategy: clicks until the next push
@@ -271,11 +269,9 @@ public:
 	int				mMoveDigit;             // +0x790 3 - mMovesLeft (0..2)
 	double			mMoveDigitFade;         // +0x798 1.0 -> 0 (-0.01 per tick)
 	int				mClipExtra;             // +0x7a0 0 (Draw only)
-	int				mUnused7a4;             // +0x7a4 ctor 0
 	SoundInstance*	mExplodeSound;          // +0x7a8 GetSoundInstance(SOUND_EXPLODE)
 	bool			mGlintActive;           // +0x7ac random glint: written by Update only, Draw never reads it (dead)
 	int				mGlintFrame;            // +0x7b0 (dead, as mGlintActive)
-	int				mGlintTick;             // +0x7b4 (dead, as mGlintActive)
 	int				mSweepTone;             // +0x7b8 Puzzle sweep tone index
 	// The three Draw caches are NULL from the ctor, made by Draw, and deleted only by ShowContinueButton,
 	// LoadGame and ~Board
@@ -395,7 +391,6 @@ public:
 	int				mPickpocketsPerBag;     // more for each bag left over (Action, Strategy) or dropped extra (Puzzle)
 	int				mPickpocketsMax;        // the most in hand
 	bool			mPickpocketArmed;       // P (or a click on the counter): the next click on a small group uses one
-	int				mPickpocketsUsed;       // in this board's game (the log)
 
 public:
 	Board(WinBMApp* theApp);                                        // 0x40e760

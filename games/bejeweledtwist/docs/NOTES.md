@@ -1143,6 +1143,15 @@ whose buffers origrun's stand-in logs only by their calls.
 
 ## Oddities
 
+- **`-fast` moves Blitz's 3D background.** The port's seeded 3D Blitz autoplay (`-3d -seed=1234 -autoplay=blitz`, the
+  players folder of `build/bjt/v3d/users`) shot at update 3161 with `-fast -drawevery` and again in real time gives the
+  same board and score, but the visualizer behind it stands at another point of its animation (a mean of 13 levels a
+  channel; at 2659 the two are within 0.2). The real-time shot matches the original's (4.1). Everything the
+  VizManager and its visualizers step is counted in updates (`VizManager::Update`, its speed from the board and the
+  hyperspace), so the cause is elsewhere and was not found within the hour. To see it, shoot those two runs at 3161.
+  Until it is found, 3D comparisons against the original take the port's shots in real time (IDENTICAL_PLAY.md, "3D
+  against the original, Classic's level-ups and Blitz").
+
 - **The credits' sparks start their turn from the heap.** The Effect constructor (0x6f4a05) does not set +0x9c,
   +0xa0 or +0xa4, which type 10's update and draw read (the turning rate's blend), and the credits (0x6e903c) do not
   set them either (AddShards does). In the original they hold what the heap block held, often a dead effect's values;
@@ -1659,6 +1668,10 @@ which a player with a Direct3D 9 driver would not run; the port's includes ANGLE
 
 **Not measured again:** the menu at rest, and memory (the peaks in the README row are "The performance pass"'s medians,
 392 MB for the port and 186 MB for the original in the same game).
+
+**Measured again on 2026-11-15**, after the framework's memory and drawing changes, with memory read too: the port
+under its original in both modes (2D medians 38.8 against 41.5 G cycles a minute, 3D 43.2 against 47.2). The figures
+and how they were taken are in LITE_MOD.md, "Memory and processor time on the merged trunk".
 
 ## The autosplit block (2026-11-14)
 
