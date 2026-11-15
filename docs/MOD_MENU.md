@@ -109,7 +109,7 @@ names do not exist.
 | `type` | | yes | `bool`, `int`, `float`, `choice`, `text`, `color`, or `section` (a heading without a value) |
 | `label` | all | yes | UTF-8, at most 40 characters (longer is cut, with a warning) |
 | `default` | all but section | yes | Valid for the type, inside `min`..`max` and on a step |
-| `help` | all | no | At most 200 characters, shown at the bottom of the menu while the row has the focus |
+| `help` | all | no | At most 1000 characters (longer is cut, with a warning). Shown at the bottom of the menu while the row has the focus; a help longer than the footer's two lines is shown in full under its row instead, always |
 | `min`, `max`, `step` | int, float | float: yes; int: no (−1,000,000..1,000,000, step 1) | Inclusive. Ints are whole numbers within 32 bits. A float allows at most 100,000 steps. |
 | `unit` | int, float | no | A short suffix such as `%` or `x`, at most 8 characters |
 | `decimals` | float | no | Digits shown, 0..9 (default: as many as `step` has) |

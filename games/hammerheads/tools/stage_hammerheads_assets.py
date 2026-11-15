@@ -11,6 +11,9 @@ import os
 import shutil
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import resgen  # noqa: E402  (strip_dropped: the resources the port leaves out, resdrop.txt)
+
 DEFAULT_INSTALLS = [
     r"A:\SteamLibrary\steamapps\common\Hammer Heads Deluxe",
     r"C:\Program Files (x86)\Steam\steamapps\common\Hammer Heads Deluxe",
@@ -60,6 +63,23 @@ def main():
                 name = f[:f.rfind(".")] + f[f.rfind("."):].lower() if "." in f else f
                 shutil.copy2(os.path.join(root, f), os.path.join(out, rel, name))
                 count += 1
+
+    # The resources the port does not have (tools/resdrop.txt: the registration's upsell pictures, the "More Games" picture) are
+    # taken out of the staged resources.xml and their files are not kept, so that the game never loads them.
+    xml_path = os.path.join(out, "properties", "resources.xml")
+    if os.path.isfile(xml_path):
+        with open(xml_path, encoding="utf-8-sig", newline="") as xml_file:
+            text = xml_file.read()
+        text, dropped_paths = resgen.strip_dropped(text)
+        with open(xml_path, "w", encoding="utf-8", newline="") as xml_file:
+            xml_file.write(text)
+        for dropped_path in dropped_paths:
+            folder, base = os.path.split(os.path.join(out, dropped_path))
+            for f in (os.listdir(folder) if os.path.isdir(folder) else []):
+                stem = f[:f.rfind(".")] if "." in f else f
+                if stem.lower() in (base.lower(), base.lower() + "_"):
+                    os.remove(os.path.join(folder, f))
+                    print(f"left out: {os.path.relpath(os.path.join(folder, f), out)}")
 
     missing = [r for r in REQUIRED if not os.path.isfile(os.path.join(out, r))]
     if missing:

@@ -1,0 +1,1282 @@
+"""visrun: one PopCap original on the user's visible desktop (for its 3D mode, which no sandbox or rundesk gives it), driven by
+a step file, with shots of the game's own window. docs/VISRUN.md has the rules and the file formats.
+
+    python -I tools/visrun.py CONFIG.toml STEPS.txt --out DIR [--3d on|off] [--seed N] [--user-window-until HH:MM]
+    python -I tools/visrun.py CONFIG.toml STEPS.txt --dry-run        (parses both and prints the plan; starts nothing)
+    python -I tools/visrun.py CONFIG.toml --restore                  (puts back what an interrupted run left)
+    python -I tools/visrun.py --selftest                             (checks the time, expression and window helpers)
+
+Only between 22:00 and 08:00 local time, or until the HH:MM that the user opened the desktop to, given on the command line
+of that run (never a default). The game is staged by tools/origrun (--copy-only), its stand-in is placed, the game runs with
+no activation, silent, at below-normal priority, and only its own window is touched: input is posted to it, never through
+the user's cursor or keyboard. The window, the game's registry key and its save folders are put back at the end.
+"""
+import argparse
+import ctypes
+import ctypes.wintypes as wt
+import datetime
+import json
+import mmap
+import os
+import re
+import shutil
+import struct
+import subprocess
+import sys
+import threading
+import time
+import tomllib
+import uuid
+
+ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+ORIGRUN_BIN = os.path.join(ROOT, 'build', 'origrun-bin')
+WORK = os.path.join(ROOT, 'build', 'visrun')
+WRAPPER_FILES = ('ddraw.dll', 'd3dimm.dll', 'dgvoodoo.conf', 'origrun-wrapper.txt', 'dsound.dll')
+NIGHT_START, NIGHT_END = 22, 8
+
+
+# ---------------------------------------------------------------- time guard
+def parse_hhmm(text):
+    m = re.fullmatch(r'([01]?\d|2[0-3]):([0-5]\d)', text)
+    if not m:
+        raise SystemExit('visrun: %r is not a time as HH:MM' % text)
+    return int(m.group(1)), int(m.group(2))
+
+
+def night(now):
+    return now.hour >= NIGHT_START or now.hour < NIGHT_END
+
+
+def next_at(now, h, m):
+    t = now.replace(hour=h, minute=m, second=0, microsecond=0)
+    return t if t > now else t + datetime.timedelta(days=1)
+
+
+def run_deadline(now, user_until=None):
+    """The moment a run must be over, or None when this is no time to run: the next 08:00 at night, and, with the user's window
+    (--user-window-until), the next HH:MM (at most 14 hours ahead), whichever is later."""
+    ends = []
+    if night(now):
+        ends.append(next_at(now, NIGHT_END, 0))
+    if user_until:
+        t = next_at(now, *user_until)
+        if t - now > datetime.timedelta(hours=14):
+            raise SystemExit('visrun: --user-window-until %02d:%02d is more than 14 hours away' % user_until)
+        ends.append(t)
+    return max(ends) if ends else None
+
+
+# ---------------------------------------------------------------- expressions and conditions (origrun's memory grammar)
+def parse_expr(s):
+    """"0xA", "[0xA]+0xB", "[[0xA]+0xB]+0xC": a sum of numbers and [dereferenced sums]. Returns a tree."""
+    pos = [0]
+
+    def total():
+        terms = [term()]
+        while pos[0] < len(s) and s[pos[0]] == '+':
+            pos[0] += 1
+            terms.append(term())
+        return ('sum', terms)
+
+    def term():
+        if pos[0] < len(s) and s[pos[0]] == '[':
+            pos[0] += 1
+            inner = total()
+            if pos[0] >= len(s) or s[pos[0]] != ']':
+                raise ValueError('missing ] in %r' % s)
+            pos[0] += 1
+            return ('deref', inner)
+        m = re.compile(r'0x[0-9a-fA-F]+|\d+').match(s, pos[0])
+        if not m:
+            raise ValueError('bad expression %r at %d' % (s, pos[0]))
+        pos[0] = m.end()
+        return ('num', int(m.group(0), 0))
+    t = total()
+    if pos[0] != len(s):
+        raise ValueError('bad expression %r at %d' % (s, pos[0]))
+    return t
+
+
+def eval_expr(t, rd):
+    """The address the tree names, reading 4 bytes through rd(addr, size) at each [..]; None where unreadable."""
+    if t[0] == 'num':
+        return t[1]
+    if t[0] == 'sum':
+        vals = [eval_expr(x, rd) for x in t[1]]
+        return None if None in vals else sum(vals) & 0xffffffff
+    inner = eval_expr(t[1], rd)
+    return rd(inner, 4) if inner else None
+
+
+class Cond:
+    """"<expr>[:1|:4] <op> <value>[,<value>...]", op one of == != < <= > >= in; the value read signed."""
+    PAT = re.compile(r'^\s*(\S+?)(?::([14]))?\s+(==|!=|<=|>=|<|>|in)\s+(\S+)\s*$')
+
+    def __init__(self, text):
+        m = self.PAT.match(text)
+        if not m:
+            raise ValueError('bad condition %r (want "<expr>[:size] <op> <value>")' % text)
+        self.text, self.tree, self.size, self.op = text, parse_expr(m.group(1)), int(m.group(2) or 4), m.group(3)
+        self.values = [int(v, 0) for v in m.group(4).split(',')]
+
+    def read(self, rd):
+        a = eval_expr(self.tree, rd)
+        v = rd(a, self.size) if a else None
+        if v is not None and self.size == 4 and v >= 1 << 31:
+            v -= 1 << 32
+        return v
+
+    def holds(self, rd):
+        v = self.read(rd)
+        if v is None:
+            return False
+        w = self.values
+        return {'==': v == w[0], '!=': v != w[0], '<': v < w[0], '<=': v <= w[0], '>': v > w[0], '>=': v >= w[0],
+                'in': v in w}[self.op]
+
+
+# ---------------------------------------------------------------- config and steps
+MOUSE_CMDS = ('move', 'click', 'rclick', 'dclick', 'down', 'up', 'rdown', 'rup')
+CLICK_CMDS = ('click', 'rclick', 'dclick', 'down', 'up', 'rdown', 'rup')   # a press or release: refused inside a forbidden region
+INPUT_CMDS = MOUSE_CMDS + ('key', 'text', 'focus')
+ACTION_CMDS = INPUT_CMDS + ('shot', 'burst', 'peek')
+
+
+def load_config(path):
+    with open(path, 'rb') as f:
+        c = tomllib.load(f)
+    for key in ('name', 'counter'):
+        if key not in c:
+            raise SystemExit('visrun: %s has no "%s"' % (path, key))
+    if not (c.get('game') or c.get('source_exe')):
+        raise SystemExit('visrun: %s needs "game" (a games.tsv name) or "source_exe"' % path)
+    c.setdefault('clock', 'real')
+    c.setdefault('client', [640, 480])
+    c.setdefault('update_ms', 10)
+    c.setdefault('cursor', 'scripted')
+    c.setdefault('cues', {})
+    c.setdefault('forbid', [])
+    c.setdefault('drawn', [])
+    c.setdefault('save_dirs', [])
+    c.setdefault('reg_values', {})
+    c.setdefault('watch', [])
+    if c['clock'] not in ('real', 'virtual'):
+        raise SystemExit('visrun: clock must be "real" or "virtual"')
+    parse_expr(c['counter'])
+    for cue in list(c['cues'].values()) + list(c['drawn']):
+        Cond(cue)
+    for f in c['forbid']:
+        if len(f.get('rect', [])) != 4 or 'name' not in f:
+            raise SystemExit('visrun: a forbid entry needs name and rect = [x, y, w, h]')
+    return c
+
+
+class Step:
+    def __init__(self, line, no, cmd, args, at=None, rel=False, t=None):
+        self.line, self.no, self.cmd, self.args, self.at, self.rel, self.t = line, no, cmd, args, at, rel, t
+
+    def __repr__(self):
+        when = '' if self.at is None else ('at %s%d ' % ('+' if self.rel else '', self.at))
+        when = when or ('t %g ' % self.t if self.t is not None else '')
+        return '%s%s %s' % (when, self.cmd, ' '.join(self.args))
+
+
+def parse_steps(path, cfg):
+    """Returns (steps, forbidden) where forbidden is the config's regions and the file's, as (name, x, y, w, h)."""
+    forbidden = [(f['name'], *f['rect']) for f in cfg['forbid']]
+    steps = []
+    for no, raw in enumerate(open(path, encoding='utf-8'), 1):
+        w = raw.split('#', 1)[0].split()
+        if not w:
+            continue
+
+        def bad(why):
+            raise SystemExit('visrun: %s line %d: %s: %s' % (path, no, why, raw.strip()))
+        head = w[0]
+        at, rel, t = None, False, None
+        if head == 'at':
+            if len(w) < 3:
+                bad('at needs a number and a command')
+            rel = w[1].startswith('+')
+            at, w = int(w[1].lstrip('+')), w[2:]
+        elif head == 't':
+            if len(w) < 3:
+                bad('t needs seconds and a command')
+            t, w = float(w[1]), w[2:]
+        cmd, args = w[0], w[1:]
+        if cmd == 'forbid':
+            if len(args) != 5:
+                bad('forbid <name> <x> <y> <w> <h>')
+            forbidden.append((args[0], *map(int, args[1:])))
+            continue
+        if cmd == 'waitshot':   # origrun's wait for the window: visrun always waits for it
+            continue
+        known = ACTION_CMDS + ('quit', 'wait', 'waitfor', 'waitcue', 'gate', 'mark')
+        if cmd not in known:
+            bad('unknown command %r (origrun\'s hw*, record and count have no visrun form)' % cmd)
+        if (at is not None or t is not None) and cmd not in ACTION_CMDS:
+            bad('%s cannot have a time' % cmd)
+        try:
+            if cmd in ('waitcue', 'gate') and args[0] not in cfg['cues']:
+                bad('%r is not a cue of the config' % args[0])
+            if cmd == 'waitfor':
+                Cond(' '.join(args[:3]))
+            if cmd in MOUSE_CMDS and (cmd != 'up' or args) and len(args) < 2 and not (cmd in ('up', 'rup') and not args):
+                bad('%s needs x y' % cmd)
+            if cmd == 'shot' and len(args) != 1:
+                bad('shot <name>')
+            if cmd == 'burst' and not (len(args) == 4 and args[2] == 'update'):
+                bad('burst <name> <count> update <k>')
+            if cmd == 'key':
+                int(args[0], 0)
+        except (IndexError, ValueError) as e:
+            bad('bad arguments (%s)' % e)
+        steps.append(Step(raw.strip(), no, cmd, args, at, rel, t))
+    return steps, forbidden
+
+
+def forbidden_hit(forbidden, cmd, args):
+    """The region a press, release or click of the step falls in, or None."""
+    if cmd not in CLICK_CMDS or len(args) < 2:
+        return None
+    x, y = int(args[0]), int(args[1])
+    for name, rx, ry, rw, rh in forbidden:
+        if rx <= x < rx + rw and ry <= y < ry + rh:
+            return name
+    return None
+
+
+def check_forbidden(steps, forbidden):
+    for s in steps:
+        hit = forbidden_hit(forbidden, s.cmd, s.args)
+        if hit:
+            raise SystemExit('visrun: line %d clicks in the forbidden region %r (a link, Buy or More Games button): %s' % (s.no, hit, s.line))
+
+
+def plan(cfg, steps, forbidden, deadline):
+    out = ['game %s, clock %s, counter %s, client %dx%d' % (cfg['name'], cfg['clock'], cfg['counter'], *cfg['client'])]
+    out.append('run must end by %s' % (deadline.strftime('%Y-%m-%d %H:%M') if deadline else 'now: NOT ALLOWED (outside 22:00-08:00 and no --user-window-until)'))
+    for f in forbidden:
+        out.append('forbidden region %s: x %d y %d w %d h %d' % f)
+    for s in steps:
+        out.append('%4d  %r' % (s.no, s))
+    out.append('%d steps, %d shots' % (len(steps), sum(1 for s in steps if s.cmd in ('shot', 'burst'))))
+    return '\n'.join(out)
+
+
+# ---------------------------------------------------------------- Win32
+k32 = ctypes.WinDLL('kernel32', use_last_error=True)
+u32 = ctypes.WinDLL('user32', use_last_error=True)
+g32 = ctypes.WinDLL('gdi32', use_last_error=True)
+ntdll = ctypes.WinDLL('ntdll')
+k32.OpenProcess.restype = wt.HANDLE
+k32.OpenFileMappingW.restype = wt.HANDLE
+k32.OpenFileMappingW.argtypes = [wt.DWORD, wt.BOOL, wt.LPCWSTR]
+k32.MapViewOfFile.restype = ctypes.c_void_p
+k32.MapViewOfFile.argtypes = [wt.HANDLE, wt.DWORD, wt.DWORD, wt.DWORD, ctypes.c_size_t]
+k32.OpenEventW.restype = wt.HANDLE
+k32.OpenEventW.argtypes = [wt.DWORD, wt.BOOL, wt.LPCWSTR]
+k32.SetEvent.argtypes = [wt.HANDLE]
+k32.WaitForSingleObject.argtypes = [wt.HANDLE, wt.DWORD]
+k32.CreateJobObjectW.restype = wt.HANDLE
+k32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wt.LPCWSTR]
+k32.SetInformationJobObject.argtypes = [wt.HANDLE, ctypes.c_int, ctypes.c_void_p, wt.DWORD]
+k32.AssignProcessToJobObject.argtypes = [wt.HANDLE, wt.HANDLE]
+u32.GetDC.restype = wt.HDC
+g32.CreateCompatibleDC.restype = wt.HDC
+g32.CreateCompatibleBitmap.restype = wt.HBITMAP
+g32.SelectObject.restype = wt.HGDIOBJ
+g32.CreateCompatibleDC.argtypes = [wt.HDC]
+g32.CreateCompatibleBitmap.argtypes = [wt.HDC, ctypes.c_int, ctypes.c_int]
+g32.SelectObject.argtypes = [wt.HDC, wt.HGDIOBJ]
+g32.GetDIBits.argtypes = [wt.HDC, wt.HBITMAP, ctypes.c_uint, ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint]
+g32.DeleteObject.argtypes = [wt.HGDIOBJ]
+g32.DeleteDC.argtypes = [wt.HDC]
+u32.ReleaseDC.argtypes = [wt.HWND, wt.HDC]
+u32.PostMessageW.argtypes = [wt.HWND, ctypes.c_uint, wt.WPARAM, wt.LPARAM]
+u32.PrintWindow.argtypes = [wt.HWND, wt.HDC, ctypes.c_uint]
+u32.GetWindow.restype = wt.HWND
+u32.GetWindow.argtypes = [wt.HWND, ctypes.c_uint]
+u32.SetWindowPos.argtypes = [wt.HWND, wt.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_uint]
+u32.GetForegroundWindow.restype = wt.HWND
+
+WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_LBUTTONDBLCLK, WM_RBUTTONDOWN, WM_RBUTTONUP = 0x200, 0x201, 0x202, 0x203, 0x204, 0x205
+
+
+def window_title(hw):
+    buf = ctypes.create_unicode_buffer(256)
+    u32.GetWindowTextW(hw, buf, 256)
+    return buf.value
+
+
+def pick_window(candidates, client, title=''):
+    """Of (hwnd, client_w, client_h, title) of one process's visible windows, the largest that is at least the expected client size
+    (and holds the title text, if one is configured). Pure, so it is checked without a game."""
+    ok = [c for c in candidates if c[1] >= client[0] and c[2] >= client[1] and title.lower() in c[3].lower()]
+    return max(ok, key=lambda c: c[1] * c[2])[0] if ok else None
+
+
+def client_rect(hw):
+    r = wt.RECT()
+    u32.GetClientRect(hw, ctypes.byref(r))
+    pt = wt.POINT(0, 0)
+    u32.ClientToScreen(hw, ctypes.byref(pt))
+    return pt.x, pt.y, r.right, r.bottom
+
+
+def rects_overlap(a, b):
+    """Two rectangles (left, top, right, bottom), both with area, share some area."""
+    return a[0] < b[2] and a[2] > b[0] and a[1] < b[3] and a[3] > b[1] and a[2] > a[0] and a[3] > a[1] and b[2] > b[0] and b[3] > b[1]
+
+
+def overlapped(hw):
+    """The class of a visible window above the game's in the z-order that covers part of its client area, or None."""
+    x, y, w, h = client_rect(hw)
+    o = u32.GetWindow(hw, 3)   # GW_HWNDPREV
+    while o:
+        if u32.IsWindowVisible(o) and not u32.IsIconic(o):
+            r = wt.RECT()
+            u32.GetWindowRect(o, ctypes.byref(r))
+            if rects_overlap((r.left, r.top, r.right, r.bottom), (x, y, x + w, y + h)):
+                buf = ctypes.create_unicode_buffer(256)
+                u32.GetClassNameW(o, buf, 256)
+                return buf.value
+        o = u32.GetWindow(o, 3)
+    return None
+
+
+def other_game_windows(own_pid):
+    """Visible windows of other games on the desktop (an original's class is MainWindow, a port's SDL_app)."""
+    found = []
+
+    @ctypes.WINFUNCTYPE(wt.BOOL, wt.HWND, wt.LPARAM)
+    def cb(hw, lp):
+        if u32.IsWindowVisible(hw):
+            pid = wt.DWORD()
+            u32.GetWindowThreadProcessId(hw, ctypes.byref(pid))
+            buf = ctypes.create_unicode_buffer(64)
+            u32.GetClassNameW(hw, buf, 64)
+            if buf.value in ('MainWindow', 'SDL_app') and pid.value != own_pid:
+                found.append(hw)
+        return True
+    u32.EnumWindows(cb, 0)
+    return found
+
+
+def short_sleep(seconds):
+    """A wait of about half a millisecond that costs no processor time: a high-resolution waitable timer."""
+    if not short_sleep.timer:
+        short_sleep.timer = [k32.CreateWaitableTimerExW(None, None, 0x2, 0x1F0003)]
+    k32.SetWaitableTimer.argtypes = [wt.HANDLE, ctypes.POINTER(ctypes.c_int64), wt.LONG, ctypes.c_void_p, ctypes.c_void_p, wt.BOOL]
+    if not short_sleep.timer[0] or not k32.SetWaitableTimer(short_sleep.timer[0], ctypes.byref(ctypes.c_int64(-int(seconds * 1e7))), 0, None, None, False):
+        time.sleep(seconds)
+        return
+    k32.WaitForSingleObject(short_sleep.timer[0], 100)
+
+
+short_sleep.timer = None
+
+
+class Game:
+    def __init__(self, exe, env, cfg):
+        si = subprocess.STARTUPINFO()
+        si.dwFlags = 1            # STARTF_USESHOWWINDOW: the window's first show takes SW_SHOWNOACTIVATE, so it never takes the focus
+        si.wShowWindow = 4
+        self.cfg = cfg
+        self.p = subprocess.Popen([exe], cwd=os.path.dirname(exe), env=env, startupinfo=si, creationflags=0x4000)  # BELOW_NORMAL
+        self.h = k32.OpenProcess(0x0010 | 0x0400 | 0x0800 | 0x0001 | 0x0100, False, self.p.pid)   # VM_READ, QUERY_INFO, SUSPEND_RESUME, TERMINATE
+        self.hwnd = None
+        self.held = False
+        # a job that ends the game with this driver, if the driver itself dies (the registry then waits for --restore)
+        self.job = k32.CreateJobObjectW(None, None)
+        info = (ctypes.c_byte * 144)()   # JOBOBJECT_EXTENDED_LIMIT_INFORMATION (64-bit): LimitFlags at offset 16
+        struct.pack_into('<I', info, 16, 0x2000)   # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        k32.SetInformationJobObject(self.job, 9, ctypes.byref(info), 144)
+        k32.AssignProcessToJobObject(self.job, self.h)
+
+    def rd(self, addr, size=4):
+        v = ctypes.c_uint32()
+        n = ctypes.c_size_t()
+        if not addr or not k32.ReadProcessMemory(self.h, ctypes.c_void_p(addr), ctypes.byref(v), size, ctypes.byref(n)):
+            return None
+        return v.value & (0xff if size == 1 else 0xffffffff)
+
+    def counter(self):
+        a = eval_expr(self.cfg['_counter'], self.rd)
+        v = self.rd(a) if a else None
+        return v
+
+    def drawn(self):
+        return all(c.holds(self.rd) for c in self.cfg['_drawn'])
+
+    def hold(self):
+        if not self.held:
+            ntdll.NtSuspendProcess(self.h)
+            self.held = True
+
+    def release(self):
+        if self.held:
+            ntdll.NtResumeProcess(self.h)
+            self.held = False
+
+    def alive(self):
+        return self.p.poll() is None
+
+    def window(self):
+        if self.hwnd and u32.IsWindow(self.hwnd):
+            return self.hwnd
+        cands = []
+
+        @ctypes.WINFUNCTYPE(wt.BOOL, wt.HWND, wt.LPARAM)
+        def cb(hw, lp):
+            pid = wt.DWORD()
+            u32.GetWindowThreadProcessId(hw, ctypes.byref(pid))
+            if pid.value == self.p.pid and u32.IsWindowVisible(hw):
+                r = wt.RECT()
+                u32.GetClientRect(hw, ctypes.byref(r))
+                cands.append((hw, r.right, r.bottom, window_title(hw)))
+            return True
+        u32.EnumWindows(cb, 0)
+        self.hwnd = pick_window(cands, self.cfg['client'], self.cfg.get('title', ''))
+        if self.hwnd:
+            pos = self.cfg.get('pos')
+            # topmost, never activated: nothing of the user's comes over it while it is captured
+            u32.SetWindowPos(self.hwnd, wt.HWND(-1), pos[0] if pos else 0, pos[1] if pos else 0, 0, 0, 0x0001 | 0x0010 | (0 if pos else 0x0002))
+        return self.hwnd
+
+
+# ---------------------------------------------------------------- origrun's shared blocks
+class CurShared(ctypes.Structure):
+    """tools/origrun/cursor.h (CUR_MAGIC 'CURS', CUR_VERSION 2)."""
+    _fields_ = [('magic', ctypes.c_uint32), ('version', ctypes.c_uint32), ('size', ctypes.c_uint32), ('set', ctypes.c_int32),
+                ('pos', ctypes.c_int64), ('posts', ctypes.c_int32), ('installed', ctypes.c_int32), ('reads', ctypes.c_int32),
+                ('realReads', ctypes.c_int32), ('keysSet', ctypes.c_int32), ('keyPosts', ctypes.c_int32),
+                ('keysInstalled', ctypes.c_int32), ('keyReads', ctypes.c_int32), ('keyRealReads', ctypes.c_int32),
+                ('keys', ctypes.c_uint8 * 256)]
+
+
+class Cursor:
+    """The point the stand-in's GetCursorPos answers with, in place of the user's cursor."""
+
+    def __init__(self, run_id):
+        self.mm = mmap.mmap(-1, ctypes.sizeof(CurShared), tagname='Local\\origrun-cursor-' + run_id)
+        self.blk = CurShared.from_buffer(self.mm)
+        self.blk.magic, self.blk.version, self.blk.size = 0x52535543, 2, ctypes.sizeof(CurShared)
+
+    def point(self, x, y):
+        self.blk.pos = (y << 32) | (x & 0xffffffff)
+        self.blk.set = 1
+        self.blk.posts += 1
+
+    def stats(self):
+        return 'installed %d, reads %d, real reads %d' % (self.blk.installed, self.blk.reads, self.blk.realReads)
+
+
+# tools/origrun/vclock.h, the 32-bit stand-in's offsets (probed by the Bejeweled 2 session)
+VC_MAGIC, VC_SIZE, VC_RING = 0x4b4c4356, 262352, 16384
+VC_OFF = dict(magic=0, connected=24, v=32, counter=40, counterOk=44, bar=48, holdKind=52, holdUpdate=56, barrierOff=72,
+              barrierOffWhy=76, barrierOffCounter=80, held=84, heldSeq=88, heldCounter=92, heldV=104, ringHead=192,
+              ringTail=196, ring=204)
+BAR_FREE, BAR_ARMED, BAR_HELD = 0, 1, 2
+HOLD_NEXT, HOLD_UPDATE = 0, 1
+
+
+class Clock:
+    """The stand-in's virtual clock block of one game process: arm a barrier, wait for the hold, let go."""
+
+    def __init__(self, cid, g, timeout=30):
+        self.g = g
+        name = 'Local\\origrun-vclock-%s-%d' % (cid, g.p.pid)
+        t0 = time.time()
+        while True:
+            h = k32.OpenFileMappingW(0xF001F, False, name)
+            if h:
+                break
+            if not g.alive() or time.time() - t0 > timeout:
+                raise SystemExit('visrun: the game made no virtual clock (%s)' % name)
+            time.sleep(0.005)
+        self.base = k32.MapViewOfFile(h, 0xF001F, 0, 0, VC_SIZE)
+        while self.get('magic', ctypes.c_uint32) != VC_MAGIC:   # the stand-in writes it last
+            if time.time() - t0 > timeout:
+                raise SystemExit('visrun: the clock block never got its magic')
+            time.sleep(0.002)
+        self.held_ev = k32.OpenEventW(0x1F0003, False, name + '-held')
+        self.rel_ev = k32.OpenEventW(0x1F0003, False, name + '-release')
+        self.set('connected', 1)
+        self.last = ['?'] * 4
+
+    def get(self, key, t=ctypes.c_int32):
+        return t.from_address(self.base + VC_OFF[key]).value
+
+    def set(self, key, v):
+        ctypes.c_int32.from_address(self.base + VC_OFF[key]).value = v
+
+    def hold_until(self, kind, upd, timeout):
+        """True: held (at once when a held game already meets it); False: the game ended or the wait ran out; None: holds are off."""
+        if self.get('barrierOff'):
+            return None
+        if kind == HOLD_UPDATE and self.get('held') and self.get('bar') == BAR_HELD:
+            hc = self.get('heldCounter')
+            if hc != -1 and hc - upd >= 0:
+                return True
+        seq0 = self.get('heldSeq')
+        self.set('holdKind', kind)
+        self.set('holdUpdate', upd)
+        self.set('bar', BAR_ARMED)
+        k32.SetEvent(self.rel_ev)
+        t0 = time.time()
+        while True:
+            if self.get('heldSeq') != seq0 and self.get('held') and self.get('bar') == BAR_HELD:
+                return True
+            if self.get('barrierOff'):
+                return None
+            if not self.g.alive():
+                return False
+            if time.time() - t0 >= timeout:
+                break
+            k32.WaitForSingleObject(self.held_ev, 5)
+        if self.get('bar') == BAR_ARMED:   # take the barrier back (the game has not claimed it)
+            self.set('bar', BAR_FREE)
+        return False
+
+    def counter(self):
+        return self.get('heldCounter')
+
+    def let_go(self):
+        self.set('bar', BAR_FREE)
+        k32.SetEvent(self.rel_ev)
+
+    def drain(self, f):
+        """The --watch changes the game queued, as origrun's "watch N: a -> b at update U" lines."""
+        head, tail = self.get('ringHead'), self.get('ringTail')
+        while tail != head:
+            u, idx, val, ok = struct.unpack('<iiii', ctypes.string_at(self.base + VC_OFF['ring'] + (tail % VC_RING) * 16, 16))
+            new = str(val) if ok else '-'
+            if 0 <= idx < 4:
+                f.write('watch %d: %s -> %s at update %d\n' % (idx + 1, self.last[idx], new, u))
+                self.last[idx] = new
+            tail += 1
+        self.set('ringTail', tail)
+        f.flush()
+
+
+# ---------------------------------------------------------------- stopping and starting the game between steps
+class Sync:
+    """How the driver gets the game to stand still at an update: on the real clock by suspending the process, on the virtual clock
+    by the stand-in's barrier. reach(n): wait for the counter to be n or more; stop(): stand still now; go(): let it run."""
+
+    def __init__(self, g, clk, timeout):
+        self.g, self.clk, self.timeout = g, clk, timeout
+
+    def reach(self, n, deadline_ts):
+        if self.clk:
+            r = self.clk.hold_until(HOLD_UPDATE, n, min(self.timeout, max(1, deadline_ts - time.time())))
+            return self.clk.counter() if r else None
+        t0 = time.time()
+        while time.time() - t0 < self.timeout and time.time() < deadline_ts:
+            c = self.g.counter()
+            if c is not None and c >= n:
+                return c
+            if not self.g.alive():
+                return None
+            if c is None or n - c > 8:
+                time.sleep(0.004)
+            else:
+                short_sleep(0.0005)
+        return None
+
+    def stop(self):
+        if self.clk:
+            if not (self.clk.get('held') and self.clk.get('bar') == BAR_HELD) and not self.clk.hold_until(HOLD_NEXT, 0, 5):
+                return None
+            return self.clk.counter()
+        self.g.hold()
+        return self.g.counter()
+
+    def go(self):
+        if not self.clk:
+            self.g.release()   # on the virtual clock the next reach() lets it go
+
+
+def grab(hw, g, client, shape, release_after):
+    """The game's window as the window itself renders it (PrintWindow, PW_RENDERFULLCONTENT), never the screen. PrintWindow needs the
+    game's thread to answer: on the real clock it is called from a helper thread and the game released 0.5 ms into it (release_after);
+    on the virtual clock the game stays held at its wait, which answers the sent messages. Returns the client area (the whole window's
+    sandbox-shaped canvas with shape "sandbox"), or None."""
+    from PIL import Image
+    r = wt.RECT()
+    u32.GetWindowRect(hw, ctypes.byref(r))
+    w, h = r.right - r.left, r.bottom - r.top
+    cx, cy, cw, ch = client_rect(hw)
+    sdc = u32.GetDC(None)
+    mdc = g32.CreateCompatibleDC(sdc)
+    bmp = g32.CreateCompatibleBitmap(sdc, w, h)
+    u32.ReleaseDC(None, sdc)
+    old = g32.SelectObject(mdc, bmp)
+    done = []
+    t = threading.Thread(target=lambda: done.append(u32.PrintWindow(hw, mdc, 2)), daemon=True)
+    t.start()
+    if release_after:
+        t0 = time.perf_counter()
+        while time.perf_counter() - t0 < 0.0005:
+            pass
+        g.release()
+    t.join(3 if release_after else 10)
+    if t.is_alive() or not done or not done[0]:
+        return None   # a PrintWindow that is late is left to finish; its DC is not freed
+
+    class BMI(ctypes.Structure):
+        _fields_ = [('biSize', wt.DWORD), ('biWidth', wt.LONG), ('biHeight', wt.LONG), ('biPlanes', wt.WORD),
+                    ('biBitCount', wt.WORD), ('biCompression', wt.DWORD), ('biSizeImage', wt.DWORD),
+                    ('biXPelsPerMeter', wt.LONG), ('biYPelsPerMeter', wt.LONG), ('biClrUsed', wt.DWORD),
+                    ('biClrImportant', wt.DWORD), ('pad', wt.DWORD * 4)]
+    buf = ctypes.create_string_buffer(w * h * 4)
+    bmi = BMI()
+    bmi.biSize = 40
+    bmi.biWidth, bmi.biHeight, bmi.biPlanes, bmi.biBitCount = w, -h, 1, 32
+    g32.GetDIBits(mdc, bmp, 0, h, buf, ctypes.byref(bmi), 0)
+    g32.SelectObject(mdc, old)
+    g32.DeleteObject(bmp)
+    g32.DeleteDC(mdc)
+    ox, oy = cx - r.left, cy - r.top
+    im = Image.frombuffer('RGBA', (w, h), buf, 'raw', 'BGRA', 0, 1).convert('RGB').crop((ox, oy, ox + cw, oy + ch))
+    if shape == 'sandbox':   # origrun's sandbox shots: the client at (3, 26) of a canvas 6 and 29 pixels larger (shotdiff cuts it away)
+        canvas = Image.new('RGB', (cw + 6, ch + 29))
+        canvas.paste(im, (3, 26))
+        return canvas
+    return im
+
+
+def xy(x, y):
+    return (y << 16) | (x & 0xffff)
+
+
+def post_input(g, cur, cmd, args):
+    """Posts the input to the game's window, and (with the scripted cursor) writes the point its GetCursorPos reads."""
+    hw = g.window()
+    cx, cy, _, _ = client_rect(hw)
+    if cmd in MOUSE_CMDS:
+        if len(args) >= 2:
+            x, y = int(args[0]), int(args[1])
+            if cur:
+                cur.point(cx + x, cy + y)
+        else:
+            x = y = 0
+        lp = xy(x, y)
+        P = u32.PostMessageW
+        if cmd == 'move':
+            P(hw, WM_MOUSEMOVE, 0, lp)
+        elif cmd == 'click':
+            P(hw, WM_MOUSEMOVE, 0, lp), P(hw, WM_LBUTTONDOWN, 1, lp), P(hw, WM_LBUTTONUP, 0, lp)
+        elif cmd == 'dclick':
+            P(hw, WM_MOUSEMOVE, 0, lp), P(hw, WM_LBUTTONDOWN, 1, lp), P(hw, WM_LBUTTONUP, 0, lp)
+            P(hw, WM_LBUTTONDBLCLK, 1, lp), P(hw, WM_LBUTTONUP, 0, lp)
+        elif cmd == 'rclick':
+            P(hw, WM_MOUSEMOVE, 0, lp), P(hw, WM_RBUTTONDOWN, 2, lp), P(hw, WM_RBUTTONUP, 0, lp)
+        elif cmd == 'down':
+            P(hw, WM_MOUSEMOVE, 0, lp), P(hw, WM_LBUTTONDOWN, 1, lp)
+        elif cmd == 'up':
+            P(hw, WM_LBUTTONUP, 0, lp)
+        elif cmd == 'rdown':
+            P(hw, WM_MOUSEMOVE, 0, lp), P(hw, WM_RBUTTONDOWN, 2, lp)
+        elif cmd == 'rup':
+            P(hw, WM_RBUTTONUP, 0, lp)
+    elif cmd == 'focus':
+        on = args[0] == 'regain'
+        u32.PostMessageW(hw, 0x001C, 1 if on else 0, 0)       # WM_ACTIVATEAPP
+        u32.PostMessageW(hw, 0x0006, 1 if on else 0, 0)       # WM_ACTIVATE
+        u32.PostMessageW(hw, 0x0007 if on else 0x0008, 0, 0)  # WM_SETFOCUS / WM_KILLFOCUS
+    elif cmd == 'key':
+        vk = int(args[0], 0)
+        sc = u32.MapVirtualKeyW(vk, 0)
+        u32.PostMessageW(hw, 0x0100, vk, 1 | (sc << 16))
+        u32.PostMessageW(hw, 0x0101, vk, 1 | (sc << 16) | (1 << 30) | (1 << 31))
+    elif cmd == 'text':
+        for ch in ' '.join(args):
+            u32.PostMessageW(hw, 0x0102, ord(ch), 1)
+    else:
+        raise SystemExit('visrun: cannot post %s' % cmd)
+
+
+# ---------------------------------------------------------------- staging, registry, saves
+def reg(*a):
+    return subprocess.run(['reg'] + list(a), capture_output=True, text=True)
+
+
+def backup_dir(cfg):
+    return os.path.join(WORK, cfg['name'], 'backup')
+
+
+def stage_state(cfg, want3d, preset_text=None):
+    """Backs up the game's registry key and save folders, then starts them clean (the key deleted, with its cached Direct3D test, and
+    set to the config's values and the 3D switch; the save folders emptied and the config's save_seed files copied in)."""
+    b = backup_dir(cfg)
+    if os.path.exists(b):
+        raise SystemExit('visrun: %s exists: an earlier run was not restored (visrun.py %s --restore)' % (b, cfg['_path']))
+    os.makedirs(b)
+    man = {'key': cfg.get('reg_key'), 'dirs': []}
+    if cfg.get('reg_key'):
+        man['had_key'] = reg('export', 'HKCU\\' + cfg['reg_key'], os.path.join(b, 'key.reg'), '/y').returncode == 0
+    for i, d in enumerate(cfg['save_dirs']):
+        had = os.path.isdir(d)
+        man['dirs'].append([d, had])
+        if had:
+            shutil.copytree(d, os.path.join(b, 'saves%d' % i))
+    json.dump(man, open(os.path.join(b, 'manifest.json'), 'w'))
+    for d in cfg['save_dirs']:
+        shutil.rmtree(d, ignore_errors=True)
+    for src, dst in cfg.get('save_seed', []):
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copyfile(src, dst)
+    if cfg.get('reg_key'):
+        reg('delete', 'HKCU\\' + cfg['reg_key'], '/f')
+        if cfg.get('reg_preset'):
+            text = open(cfg['reg_preset'], 'rb').read().decode('utf-16')
+            text = text.replace('HKEY_LOCAL_MACHINE\\SOFTWARE\\PopCap', 'HKEY_CURRENT_USER\\Software\\PopCap')
+            conv = os.path.join(b, 'preset.reg')
+            open(conv, 'wb').write(b'\xff\xfe' + text.encode('utf-16-le'))
+            reg('import', conv)
+        import winreg
+        vals = dict(cfg['reg_values'])
+        if cfg.get('reg_3d_value') and want3d is not None:
+            vals[cfg['reg_3d_value']] = 1 if want3d else 0
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, cfg['reg_key']) as k:
+            for name, v in vals.items():
+                if isinstance(v, int):
+                    winreg.SetValueEx(k, name, 0, winreg.REG_DWORD, v)
+                else:
+                    winreg.SetValueEx(k, name, 0, winreg.REG_SZ, str(v))
+
+
+def restore_state(cfg):
+    b = backup_dir(cfg)
+    mf = os.path.join(b, 'manifest.json')
+    if not os.path.exists(mf):
+        return False
+    man = json.load(open(mf))
+    if man['key']:
+        reg('delete', 'HKCU\\' + man['key'], '/f')
+        if man.get('had_key'):
+            r = reg('import', os.path.join(b, 'key.reg'))
+            if r.returncode != 0:
+                raise SystemExit('visrun: reg import failed, the backup stays in %s: %s' % (b, r.stderr))
+    for i, (d, had) in enumerate(man['dirs']):
+        shutil.rmtree(d, ignore_errors=True)
+        if had:
+            shutil.copytree(os.path.join(b, 'saves%d' % i), d)
+    shutil.rmtree(b)
+    return True
+
+
+def apply_patches(list_path, exe_dir, seed):
+    """origrun's patch list (docs/ORIGRUN.md, "Patching the copy"): <kind> <file> <where va:|rva:|off:> <expected> <replacement>
+    <reason...>, {seed} four little-endian bytes. Every entry is checked before any is written; a mismatch stops the run."""
+    if not os.path.exists(list_path):
+        return []
+    todo = []
+    for no, line in enumerate(open(list_path, encoding='utf-8', errors='replace'), 1):
+        w = line.split(None, 5)
+        if not w or w[0].startswith('#'):
+            continue
+        if len(w) < 5:
+            raise SystemExit('visrun: patch list line %d needs kind file where expected replacement' % no)
+        kind, f, where, exp, rep = w[:5]
+        if '{seed}' in rep.lower():
+            if seed is None:
+                continue
+            rep = re.sub(r'\{seed\}', struct.pack('<I', seed).hex(), rep, flags=re.I)
+        todo.append((kind, f, where, bytes.fromhex(exp.replace('.', '').replace('_', '')), bytes.fromhex(rep.replace('.', '').replace('_', ''))))
+    plan_ = []
+    for kind, f, where, exp, rep in todo:
+        path = os.path.join(exe_dir, f)
+        data = bytearray(open(path, 'rb').read())
+        off = resolve_where(where, data)
+        if off is None or data[off:off + len(exp)] != exp:
+            raise SystemExit('visrun: patch %s at %s: the copy has %s, expected %s' % (kind, where, bytes(data[off:off + len(exp)]).hex() if off is not None else 'no such place', exp.hex()))
+        plan_.append((path, off, rep, kind))
+    for path, off, rep, kind in plan_:
+        data = bytearray(open(path, 'rb').read())
+        data[off:off + len(rep)] = rep
+        open(path, 'wb').write(data)
+    return [p[3] for p in plan_]
+
+
+def resolve_where(where, data):
+    kind, _, v = where.partition(':')
+    v = int(v, 16)
+    if kind == 'off':
+        return v
+    pe = struct.unpack_from('<I', data, 0x3c)[0]
+    count, opt = struct.unpack_from('<H', data, pe + 6)[0], struct.unpack_from('<H', data, pe + 20)[0]
+    base = struct.unpack_from('<I', data, pe + 24 + 28)[0] if kind == 'va' else 0
+    for i in range(count):
+        _, size, rva, raw_size, raw = struct.unpack_from('<8sIIII', data, pe + 24 + opt + 40 * i)
+        if rva <= v - base < rva + max(size, raw_size):
+            return raw + v - base - rva
+    return None
+
+
+def stage_copy(cfg, tag, seed, log):
+    """The game through tools/origrun (--copy-only: the install, or the ready copy, is staged under build/origrun or --stage-root),
+    then a fresh working copy under build/visrun/<tag>/game with no wrapper (dgVoodoo's files, an old stand-in), no saves or logs, the
+    clean exe where an earlier run patched it, the patch list applied and origrun's stand-in (dsound.dll) placed beside the exe."""
+    origrun = os.path.join(ORIGRUN_BIN, 'origrun.exe')
+    if not os.path.exists(origrun):
+        raise SystemExit('visrun: %s is not built (tools/origrun/build.sh)' % origrun)
+    if cfg.get('source_exe'):
+        exe = os.path.abspath(os.path.join(ROOT, cfg['source_exe']))
+    else:
+        cmd = [origrun, '--game', cfg['game'], '--run', 'visrun-' + cfg['name'], '--copy-only']
+        if cfg.get('stage_root'):
+            cmd += ['--stage-root', cfg['stage_root']]
+        r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT)
+        m = re.search(r'^(?:\[[\d:]+\])?\s*exe:\s*(.+?)\s*$', r.stdout + r.stderr, re.M)
+        if r.returncode != 0 or not m:
+            raise SystemExit('visrun: origrun --copy-only failed (%d): %s' % (r.returncode, (r.stdout + r.stderr)[-600:]))
+        exe = m.group(1)
+    src = os.path.dirname(exe)
+    work = os.path.join(cfg.get('work_root') or WORK, tag, 'game')
+    shutil.rmtree(work, ignore_errors=True)
+    skip = shutil.ignore_patterns('users', 'logs', 'crash.txt', '*.log', '*.origrun-unpatched', '*.manifest', *WRAPPER_FILES)
+    shutil.copytree(src, work, ignore=skip)
+    leaf = cfg.get('exe') or os.path.basename(exe)
+    clean = exe + '.origrun-unpatched'
+    if cfg.get('carve_exe'):   # the real exe carved out of the game's wrapper (tools/extract_game_exe.py), placed in the copy
+        shutil.copyfile(os.path.join(ROOT, cfg['carve_exe']), os.path.join(work, leaf))
+    elif os.path.exists(clean):
+        shutil.copyfile(clean, os.path.join(work, leaf))
+    plist = cfg.get('patches')
+    applied = apply_patches(os.path.join(ROOT, plist), work, seed) if plist else []
+    if seed is not None and plist and not any(k == 'seed' for k in applied):
+        raise SystemExit('visrun: --seed %d, but no entry of %s carries {seed}' % (seed, plist))
+    shutil.copyfile(os.path.join(ORIGRUN_BIN, 'dsound.dll'), os.path.join(work, 'dsound.dll'))
+    print('copy %s; patches applied: %s' % (work, applied or 'none'), file=log, flush=True)
+    return os.path.join(work, leaf)
+
+
+def muted(origdir, pid):
+    """The stand-in's sound.log says the process's default audio session is muted (a line after its 'attached pid=<pid>')."""
+    try:
+        lines = open(os.path.join(origdir, 'logs', 'sound.log'), errors='replace').read().split('\n')
+    except OSError:
+        return False
+    on = False
+    for l in lines:
+        if 'attached pid=%d ' % pid in l:
+            on = True
+        elif on and 'default audio session muted on' in l and 'WARNING' not in l:
+            return True
+    return False
+
+
+def gamecount_has_room():
+    r = subprocess.run([sys.executable, '-I', os.path.join(ROOT, 'tools', 'gamecount.py'), '--limit', '6'], capture_output=True, text=True)
+    return r.returncode == 0, r.stdout.strip().split('\n')[0]
+
+
+class Lock:
+    """One visrun on the machine: build/visrun/visrun.lock names the holder; a lock whose process is gone is taken over."""
+
+    def __init__(self):
+        os.makedirs(WORK, exist_ok=True)
+        self.path = os.path.join(WORK, 'visrun.lock')
+        for _ in range(2):
+            try:
+                self.fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                os.write(self.fd, str(os.getpid()).encode())
+                return
+            except FileExistsError:
+                try:
+                    pid = int(open(self.path).read() or 0)
+                except (OSError, ValueError):
+                    pid = 0
+                h = k32.OpenProcess(0x1000, False, pid) if pid else None
+                if h:
+                    raise SystemExit('visrun: another visrun (pid %d) holds %s' % (pid, self.path))
+                os.remove(self.path)
+        raise SystemExit('visrun: cannot take %s' % self.path)
+
+    def release(self):
+        os.close(self.fd)
+        os.remove(self.path)
+
+
+# ---------------------------------------------------------------- the run
+def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, timeout, quiet_s):
+    tag = cfg['name']
+    os.makedirs(out, exist_ok=True)
+    log = open(os.path.join(out, 'visrun.log'), 'w')
+    steps_f = open(os.path.join(out, 'steps.tsv'), 'w')
+    steps_f.write('# wanted\tlanded\tcmd\targs\tseconds\tvalues\n')
+    deadline_ts = deadline.timestamp()
+    cfg['_counter'] = parse_expr(cfg['counter'])
+    cfg['_drawn'] = [Cond(c) for c in cfg['drawn']]
+    cues = {k: Cond(v) for k, v in cfg['cues'].items()}
+    values = {k: parse_expr(v) for k, v in cfg.get('values', {}).items()}
+    ok, line = gamecount_has_room()
+    if not ok:
+        raise SystemExit('visrun: no room for a game process (%s)' % line)
+    lock = Lock()
+    fg0 = u32.GetForegroundWindow()
+    started = False
+    g = clk = None
+    stop = threading.Event()
+    try:
+        t0, clear_since = time.time(), None
+        while clear_since is None or time.time() - clear_since < quiet_s:   # no other game's window for quiet_s seconds
+            if time.time() > deadline_ts or time.time() - t0 > 900:
+                raise SystemExit("visrun: another game's window stayed on the desktop")
+            if other_game_windows(0):
+                clear_since = None
+            elif clear_since is None:
+                clear_since = time.time()
+            time.sleep(1)
+        exe = stage_copy(cfg, tag, seed, log)
+        stage_state(cfg, want3d)
+        started = True
+        run_id = uuid.uuid4().hex[:12]
+        origdir = os.path.join(WORK, tag, 'origdir')
+        shutil.rmtree(origdir, ignore_errors=True)
+        os.makedirs(origdir)
+        env = dict(os.environ, ORIGRUN_DIR=origdir, ORIGRUN_SOUND='stub', ORIGRUN_MSGBOX='hook')
+        for var in ('ORIGRUN_DGVOODOO', 'ORIGRUN_DGVOODOO_CONF'):
+            env.pop(var, None)
+        if cfg.get('reg_map') == 'popcap':
+            env['ORIGRUN_REGMAP'] = 'popcap'
+        cur = None
+        if cfg['cursor'] == 'scripted':
+            cur = Cursor(run_id)
+            env.update(ORIGRUN_CURSOR='scripted', ORIGRUN_CURSOR_ID=run_id)
+        if cfg['clock'] == 'virtual':
+            env.update(ORIGRUN_CLOCK='virtual', ORIGRUN_CLOCK_ID='visrun' + run_id, ORIGRUN_CLOCK_HOST=str(os.getpid()),
+                       ORIGRUN_CLOCK_HOLDSTART='1', ORIGRUN_CLOCK_COUNTER=cfg['counter'])
+            if cfg['watch']:
+                env['ORIGRUN_CLOCK_WATCH'] = ';'.join(cfg['watch'])
+        g = Game(exe, env, cfg)
+        if cfg['clock'] == 'virtual':
+            clk = Clock(env['ORIGRUN_CLOCK_ID'], g)
+            wf = open(os.path.join(out, 'watch.log'), 'w')
+
+            def drainer():
+                while not stop.is_set() and g.alive():
+                    clk.drain(wf)
+                    time.sleep(0.02)
+            threading.Thread(target=drainer, daemon=True).start()
+        sync = Sync(g, clk, timeout)
+        t0 = time.time()
+        while not g.window() and g.alive() and time.time() - t0 < 90 and time.time() < deadline_ts:
+            time.sleep(0.05)
+        if not g.window():
+            print('no window', file=log, flush=True)
+            return 3
+        t_window = time.time()
+        print('window after %.1f s, client %s' % (t_window - t0, client_rect(g.window())[2:]), file=log, flush=True)
+        if cfg.get('require_muted', True) and not wait_muted(origdir, g, 20):
+            print('the stand-in has not logged a muted audio session: stopping before any input', file=log, flush=True)
+            return 3
+        print('the stand-in has muted the default audio session', file=log, flush=True)
+        # a game without the focus ignores posted input: it is told it has it, by messages (the only window of a sandbox had it)
+        post_input(g, cur, 'focus', ['regain'])
+        flag3d = Cond(cfg['flag3d'] + ' != 99') if cfg.get('flag3d') else None
+        flags = set()
+        offset, base, refused = 0, 0, 0
+
+        def vals():
+            out = []
+            for k, tree in values.items():
+                a = eval_expr(tree, g.rd)
+                v = g.rd(a) if a else None
+                out.append('%s=%s' % (k, '-' if v is None else v))
+            return ' '.join(out)
+
+        def log_step(wanted, c, cmd, args):
+            steps_f.write('%s\t%s\t%s\t%s\t%.3f\t%s\n' % (wanted, c, cmd, ' '.join(args), time.time() - t_window, vals()))
+            steps_f.flush()
+
+        def shot_now(name, wanted):
+            nonlocal refused
+            hw = g.window()
+            o = overlapped(hw)
+            if o:
+                print('shot %s refused: a window (%s) overlaps the game' % (name, o), file=log, flush=True)
+                refused += 1
+                return False
+            t1 = time.time()
+            if clk:
+                while not g.drawn():
+                    if time.time() - t1 > 3 or not clk.hold_until(HOLD_NEXT, 0, 2):
+                        print('shot %s refused: no drawn update in 3 s' % name, file=log, flush=True)
+                        refused += 1
+                        return False
+                seq = clk.get('heldSeq')
+                c = clk.counter()
+                im = grab(hw, g, cfg['client'], shape, False)
+                if im is None or clk.get('heldSeq') != seq:
+                    print('shot %s refused: PrintWindow failed or did not return' % name, file=log, flush=True)
+                    refused += 1
+                    return False
+            else:
+                for _ in range(400):
+                    if g.drawn() or not cfg['_drawn']:
+                        g.hold()
+                        if g.drawn() or not cfg['_drawn']:
+                            break
+                        g.release()
+                else:
+                    print('shot %s refused: no drawn update in 400 tries' % name, file=log, flush=True)
+                    refused += 1
+                    return False
+                c = g.counter()
+                im = grab(hw, g, cfg['client'], shape, True)
+                g.held = False   # grab released it
+                if im is None:
+                    print('shot %s refused: PrintWindow failed or did not return' % name, file=log, flush=True)
+                    refused += 1
+                    return False
+            path = os.path.join(out, name + '.png')
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            im.save(path)
+            refused = 0
+            log_step(wanted, c, 'shot', [name, '%dx%d' % im.size])
+            return True
+
+        def foreground_note(n):
+            if u32.GetForegroundWindow() != g.window():
+                post_input(g, cur, 'focus', ['regain'])   # the user's own windows may take the foreground at any time
+        for s in steps:
+            if time.time() > deadline_ts:
+                print('the run\'s deadline (%s) came: stopping' % deadline.strftime('%H:%M'), file=log, flush=True)
+                break
+            if not g.alive():
+                print('the game ended', file=log, flush=True)
+                break
+            if s.cmd == 'quit':
+                break
+            if s.cmd == 'mark':
+                base = g.counter() or 0
+                continue
+            if s.cmd == 'wait':
+                if clk:
+                    print('line %d: wait is real time and means nothing on the virtual clock: ignored' % s.no, file=log, flush=True)
+                else:
+                    time.sleep(int(s.args[0]) / 1000)
+                continue
+            if s.cmd in ('waitcue', 'waitfor'):
+                cond = cues[s.args[0]] if s.cmd == 'waitcue' else Cond(' '.join(s.args[:3]))
+                limit = (float(s.args[1]) if s.cmd == 'waitcue' and len(s.args) > 1 else (int(s.args[3]) / 1000 if len(s.args) > 3 else 60))
+                t1 = time.time()
+                while not cond.holds(g.rd):
+                    if time.time() - t1 > limit or time.time() > deadline_ts or not g.alive():
+                        print('line %d: %r not true in %g s: stopping' % (s.no, cond.text, limit), file=log, flush=True)
+                        return 3
+                    if clk:
+                        clk.hold_until(HOLD_UPDATE, (clk.counter() or 0) + 4, timeout)
+                    else:
+                        time.sleep(0.01)
+                print('line %d: %r true at update %s' % (s.no, cond.text, g.counter() if not clk else clk.counter()), file=log, flush=True)
+                continue
+            if s.cmd == 'gate':
+                # a cue that stands for "loaded" (its time varies on the wall clock): the next commands move on by the updates that took
+                wanted, fade = int(s.args[1]), int(s.args[2]) if len(s.args) > 2 else 0
+                t1 = time.time()
+                while not cues[s.args[0]].holds(g.rd):
+                    if time.time() - t1 > 300 or not g.alive() or (clk and not clk.hold_until(HOLD_UPDATE, (clk.counter() or 0) + 4, timeout)):
+                        print('line %d: the gate cue never held: stopping' % s.no, file=log, flush=True)
+                        return 3
+                    if not clk:
+                        time.sleep(0.01)
+                loaded = (clk.counter() if clk else g.counter()) or 0
+                c = sync.reach(max(wanted + offset, loaded + fade), deadline_ts)
+                if c is None:
+                    break
+                offset = c - wanted
+                sync.go()
+                print('line %d: loaded at update %s; later commands move on by %d updates' % (s.no, loaded, offset), file=log, flush=True)
+                continue
+            # an input, shot or peek: at an update, at a time, or at once
+            wanted = ''
+            if s.at is not None:
+                n = s.at + (base if s.rel else offset)
+                wanted = n
+                c = sync.reach(n, deadline_ts)
+                if c is None:
+                    print('update %d not reached: stopping' % n, file=log, flush=True)
+                    break
+            elif s.t is not None:
+                while time.time() - t_window < s.t and time.time() < deadline_ts:
+                    time.sleep(0.01)
+            if flag3d:
+                f = flag3d.read(g.rd)
+                if f not in flags:
+                    flags.add(f)
+                    print('line %d: 3D flag %s' % (s.no, f), file=log, flush=True)
+            foreground_note(s.no)
+            if s.cmd == 'shot':
+                shot_now(s.args[0], wanted)
+                if refused >= 3:
+                    print('three shots in a row refused: the desktop is taken, ending the run', file=log, flush=True)
+                    return 4
+            elif s.cmd == 'burst':
+                count, k = int(s.args[1]), int(s.args[3])
+                for i in range(count):
+                    if i and sync.reach(s.at + offset + i * k, deadline_ts) is None:
+                        break
+                    shot_now('%s/%04d' % (s.args[0], i), s.at + offset + i * k)
+                json.dump({'interval_ms': k * cfg['update_ms']}, open(os.path.join(out, s.args[0], 'clip.json'), 'w'))
+            elif s.cmd == 'peek':
+                c = clk.counter() if clk else g.counter()
+                log_step(wanted, c, 'peek', s.args)
+            else:
+                hit = forbidden_hit(forbidden, s.cmd, s.args)
+                if hit:   # also refused in the plan before the run; this is the second lock
+                    raise SystemExit('visrun: line %d would click in the forbidden region %r' % (s.no, hit))
+                c = sync.stop()
+                if c is None:
+                    break
+                post_input(g, cur, s.cmd, s.args)   # the game reads it at its next message check, in update c + 1
+                sync.go()
+                log_step(wanted, c, s.cmd, s.args)
+        end = clk.counter() if clk else g.counter()
+        print('end: update %s, 3D flags seen %s%s' % (end, sorted(flags, key=str), '; cursor: ' + cur.stats() if cur else ''), file=log, flush=True)
+        return 0
+    finally:
+        stop.set()
+        # only the process this run started: ask the window to close, and end the process by its handle if it will not
+        if g and g.alive():
+            try:
+                if clk:
+                    clk.drain(wf)
+                    clk.let_go()
+                g.release()
+            except Exception:
+                pass
+            hw = g.window()
+            if hw:
+                u32.PostMessageW(hw, 0x0010, 0, 0)
+            try:
+                g.p.wait(20)
+            except subprocess.TimeoutExpired:
+                g.p.kill()
+                g.p.wait(10)
+                print('killed', file=log)
+        time.sleep(0.5)
+        if started:
+            restore_state(cfg)
+            print('restored the registry key and the save folders', file=log, flush=True)
+        if u32.GetForegroundWindow() != fg0:
+            print('note: the foreground window changed during the run (the user\'s own doing; visrun never activates the game)', file=log)
+        lock.release()
+        if not keep_copy:
+            shutil.rmtree(os.path.join(cfg.get('work_root') or WORK, tag, 'game'), ignore_errors=True)
+        log.close()
+
+
+def wait_muted(origdir, g, seconds):
+    t0 = time.time()
+    while time.time() - t0 < seconds and g.alive():
+        if muted(origdir, g.p.pid):
+            return True
+        time.sleep(0.1)
+    return False
+
+
+# ---------------------------------------------------------------- checks without a game
+def selftest():
+    D = datetime.datetime
+    assert not night(D(2026, 11, 14, 17, 0)) and night(D(2026, 11, 14, 22, 0)) and night(D(2026, 11, 14, 7, 59)) and not night(D(2026, 11, 14, 8, 0))
+    assert run_deadline(D(2026, 11, 14, 17, 0)) is None
+    assert run_deadline(D(2026, 11, 14, 23, 0)) == D(2026, 11, 15, 8, 0)
+    assert run_deadline(D(2026, 11, 14, 3, 0)) == D(2026, 11, 14, 8, 0)
+    assert run_deadline(D(2026, 11, 14, 17, 0), (23, 30)) == D(2026, 11, 14, 23, 30)
+    assert run_deadline(D(2026, 11, 14, 23, 0), (7, 0)) == D(2026, 11, 15, 8, 0)   # the night's own end is later
+    try:
+        run_deadline(D(2026, 11, 14, 17, 0), (8, 0))
+        assert False
+    except SystemExit:
+        pass
+    assert parse_hhmm('08:00') == (8, 0)
+    mem = {0x100: 0x2000, 0x2000 + 0x45a: 7, 0x2000 + 0x47c: 0xfffffffe, 0x3000: 0x100}
+    rd = lambda a, size=4: mem.get(a)
+    assert eval_expr(parse_expr('[0x100]+0x45a'), rd) == 0x245a
+    assert eval_expr(parse_expr('[[0x3000]]+0x47c'), rd) == 0x247c
+    assert Cond('[0x100]+0x45a == 7').holds(rd) and not Cond('[0x100]+0x45a != 7').holds(rd)
+    assert Cond('[0x100]+0x47c < 0').read(rd) == -2 and Cond('[0x100]+0x45a:1 in 3,7').holds(rd)
+    assert not Cond('[0x999]+0x4 == 0').holds(rd)
+    assert pick_window([(1, 640, 480, 'a'), (2, 800, 600, 'Venice Deluxe'), (3, 100, 100, 'x')], (640, 480)) == 2
+    assert pick_window([(1, 640, 480, 'a')], (800, 600)) is None and pick_window([(1, 800, 600, 'Other')], (800, 600), 'venice') is None
+    assert rects_overlap((0, 0, 10, 10), (5, 5, 20, 20)) and not rects_overlap((0, 0, 10, 10), (10, 0, 20, 10))
+    f = [('more_games', 600, 500, 100, 40)]
+    assert forbidden_hit(f, 'click', ['650', '520']) == 'more_games' and forbidden_hit(f, 'move', ['650', '520']) is None
+    assert forbidden_hit(f, 'click', ['10', '10']) is None and forbidden_hit(f, 'down', ['600', '500']) == 'more_games'
+    cur = CurShared()
+    assert ctypes.sizeof(cur) == 320   # cursor.h: 4 DWORDs, a LONG, a LONGLONG, 9 LONGs, 256 BYTEs, padded to 8
+    h = open(os.path.join(ROOT, 'tools', 'origrun', 'cursor.h')).read()
+    assert 'CUR_MAGIC   0x52535543u' in h and 'CUR_VERSION 2' in h
+    vh = open(os.path.join(ROOT, 'tools', 'origrun', 'vclock.h')).read()
+    assert '0x4b4c4356' in vh.lower()
+    print('selftest: ok')
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('config', nargs='?')
+    ap.add_argument('steps', nargs='?')
+    ap.add_argument('--out', help='the shots folder (default build/visrun/<name>/out)')
+    ap.add_argument('--3d', dest='threed', choices=('on', 'off'), default='on', help='the game\'s Hardware Acceleration for the run (default on)')
+    ap.add_argument('--seed', type=int, help='the {seed} of the config\'s patch list')
+    ap.add_argument('--user-window-until', metavar='HH:MM', help='the user opened the desktop to this time, outside 22:00-08:00 (given on every run, never a default)')
+    ap.add_argument('--shape', choices=('client', 'sandbox'), default='client')
+    ap.add_argument('--clock', choices=('real', 'virtual'), help='overrides the config')
+    ap.add_argument('--timeout', type=int, default=120, help='seconds one wait for an update may take')
+    ap.add_argument('--quiet', type=int, default=60, help='seconds another game\'s window must have been gone from the desktop')
+    ap.add_argument('--keep-copy', action='store_true')
+    ap.add_argument('--dry-run', action='store_true', help='parse the config and steps and print the plan; start nothing')
+    ap.add_argument('--restore', action='store_true', help='put back the registry key and saves an interrupted run left')
+    ap.add_argument('--selftest', action='store_true')
+    a = ap.parse_args()
+    if a.selftest:
+        selftest()
+        return
+    if not a.config:
+        ap.error('a config is needed')
+    cfg = load_config(a.config)
+    cfg['_path'] = a.config
+    if a.clock:
+        cfg['clock'] = a.clock
+    if a.restore:
+        print('restored' if restore_state(cfg) else 'nothing to restore')
+        return
+    if not a.steps:
+        ap.error('a step file is needed')
+    steps, forbidden = parse_steps(a.steps, cfg)
+    check_forbidden(steps, forbidden)
+    now = datetime.datetime.now()
+    until = parse_hhmm(a.user_window_until) if a.user_window_until else None
+    deadline = run_deadline(now, until)
+    if a.dry_run:
+        print(plan(cfg, steps, forbidden, deadline))
+        return
+    if not deadline:
+        raise SystemExit('visrun: it is %s: the visible desktop is open only between 22:00 and 08:00, or until the time the user gives '
+                         '(--user-window-until HH:MM, on this run\'s command line)' % now.strftime('%H:%M'))
+    # a run must end 2 minutes before its deadline
+    deadline -= datetime.timedelta(minutes=2)
+    if deadline <= now:
+        raise SystemExit('visrun: less than 2 minutes left of the allowed time')
+    out = os.path.abspath(a.out or os.path.join(WORK, cfg['name'], 'out'))
+    # the output folder is emptied first, so it must lie under build/
+    build_root = os.path.normcase(os.path.join(ROOT, 'build')) + os.sep
+    if not os.path.normcase(out).startswith(build_root):
+        raise SystemExit('visrun: --out must be a folder under %s' % build_root)
+    if os.path.isdir(out):
+        shutil.rmtree(out)
+    try:
+        import signal
+        signal.signal(signal.SIGBREAK, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
+    except (ImportError, AttributeError, ValueError):
+        pass
+    sys.exit(run(cfg, steps, forbidden, out, a.threed == 'on', a.seed, deadline, a.shape, a.keep_copy, a.timeout, a.quiet))
+
+
+if __name__ == '__main__':
+    main()

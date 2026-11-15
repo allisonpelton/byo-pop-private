@@ -24,6 +24,7 @@
 #include "DialogButton.h"
 #include "Gameplay.h"
 #include "GameScreen.h"
+#include "GameWonWidget.h"
 #include "LevelIntroWidget.h"
 #include "LevelRules.h"
 #include "MainMenu.h"
@@ -52,6 +53,7 @@ const char* const kModeNames[NUM_GAME_MODES] = {"classic", "tough", "marathon"};
 
 // the bot's steps (ten updates each) a box has to rest before the bot presses its button
 const int BOX_RESTING_STEPS = 6;
+const int GAME_WON_RESTING_STEPS = 20;
 
 // the repeated "take a widget off the manager, delete it, forget it"
 template <class T>
@@ -246,8 +248,24 @@ bool FindWaitingButton(int* theX, int* theY)
 	// the boxes with one button to press; a box that slides in is not pressed before it has stopped
 	static const int aBoxes[] = {DIALOG_READY_GO, DIALOG_BONUS_ROUND, DIALOG_CHALLENGE_FINISHED, DIALOG_GAME_OVER, DIALOG_GAME_WON,
 		DIALOG_TOUGH_UNLOCKED};
-	static Dialog* sRestingBox = nullptr;
+	static const void* sRestingBox = nullptr;
 	static int sRestingSteps = 0;
+
+	// the page of a won game: its one button ("Main Menu") is pressed after the page has been up a while (the farewell scrolls)
+	if (gApp->mGameWon != nullptr && gApp->mGameWon->mButton != nullptr)
+	{
+		if (gApp->mGameWon != sRestingBox)
+		{
+			sRestingBox = gApp->mGameWon;
+			sRestingSteps = 0;
+		}
+		if (++sRestingSteps < GAME_WON_RESTING_STEPS)
+			return false;
+		*theX = gApp->mGameWon->mButton->mX + gApp->mGameWon->mButton->mWidth / 2;
+		*theY = gApp->mGameWon->mButton->mY + gApp->mGameWon->mButton->mHeight / 2;
+		return true;
+	}
+
 	for (int anId : aBoxes)
 	{
 		Dialog* aDialog = gApp->GetDialog(anId);
@@ -492,6 +510,16 @@ bool Application::HandleScriptCommand(const ScriptCommand& theCommand)
 			return Error(aLine, "cheat <word>"), true;
 		for (char aChar : anArg)
 			KeyChar(aChar);
+		Ok(aLine);
+		return true;
+	}
+
+	// the level a game starts at, for the scenarios that begin where no cheat word jumps to (the original gets a patched start)
+	if (aName == "startlevel")
+	{
+		if (anArg.empty())
+			return Error(aLine, "startlevel <n>"), true;
+		mTestStartLevel = atoi(anArg.c_str());
 		Ok(aLine);
 		return true;
 	}
