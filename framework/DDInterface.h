@@ -61,6 +61,7 @@ public:
 	SDL_Renderer* mRenderer;
 	DDImage* mScreenImage;
 	bool mIs3D;  // true when the renderer is hardware accelerated and the game has not switched 3D off (SexyAppBase::Set3DAcclerated)
+	bool mOriginalSampling = false;  // port: a game that drew through Direct3D 7 at 1x sets it (Bejeweled 2's 3D game): a moved quad that lands on whole pixels samples nearest, and a mesh's vertices take the half pixel in device pixels (its draw adds none of its own)
 	bool mCan3D;  // port: the renderer is hardware accelerated (what mIs3D is before a game switches 3D off)
 	bool mIsWindowed;
 	bool mVSync;

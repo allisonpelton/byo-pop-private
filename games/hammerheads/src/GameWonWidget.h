@@ -33,6 +33,7 @@ public:
 	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x4533d0
 	virtual void	Draw(Graphics* g) override;										// 0x453660
 	virtual void	ButtonDepress(int theId) override;								// 0x453440 (the ButtonListener part)
+	virtual void	ButtonMouseEnter(int theId) override;		// 0x454bc0: the mouse-over sound, whichever button
 };
 
 // 0x4535c0: the page, as big as the application's window and in front, with the focus

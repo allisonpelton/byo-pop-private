@@ -45,6 +45,7 @@ public:
 	virtual void	Draw(Graphics* g) override;								// 0x455550
 	virtual void	ButtonPress(int theId) override;						// 0x454ba0
 	virtual void	ButtonDepress(int theId) override;						// 0x454be0
+	virtual void	ButtonMouseEnter(int theId) override;		// 0x454bc0: the mouse-over sound, whichever button
 
 	// 0x456490: when the score makes a place, the box that tells so (dialog 0x10); to be called before the score is recorded
 	void			Prepare();

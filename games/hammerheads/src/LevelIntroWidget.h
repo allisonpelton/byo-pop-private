@@ -40,6 +40,7 @@ public:
 	virtual void	Draw(Graphics* g) override;									// 0x4579c0
 	virtual void	Closed() override;											// 0x457910
 	virtual void	ButtonDepress(int theId) override;							// 0x4578f0 (the ButtonListener part)
+	virtual void	ButtonMouseEnter(int theId) override;		// 0x454bc0: the mouse-over sound, whichever button
 
 private:
 	void			ReadFile(int theLevel);										// 0x457dc0

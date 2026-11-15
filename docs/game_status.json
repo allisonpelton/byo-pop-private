@@ -513,7 +513,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "3D looks reopened (2026-11-13): the user found Puzzle's WARP wrong in the 3D web build, a screen the 3D comparison (menu and Classic only) never shot; after the reset. Performance waits on the user's window-size choice"
+      "note": "3D looks: the whirlpool's first frames no longer blur or lose a row and column (DDInterface's mOriginalSampling, on for Bejeweled 2's 3D game only, 1bbcbf88/57a6a00a), the whirlpool and off-board gems turn the original's way (6056fe1a, e1ecff84: the action tour's game-over frame 25% to 0.6%); open: Finity 3D's washed-out gems (needs original runs, after the user's stop on running the original), the IDENTICAL_PLAY 3D section"
     },
     "venice": {
       "title": "Venice Deluxe",
@@ -562,7 +562,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "phase one done in full: the game-won sequence, the multiplier gnome and saved games also match the original (9ec2d31b); registration and outbound pictures out (66f32b33); the depth sort on the shared CrtQsort; phase two next"
+      "note": "phase two's sound and music by state done (5e45972f): all 14 phase-one scenarios and classic_focus1 identical in state, sound and music (BASS logged through a stand-in, DirectSound through origrun's); fixed mouse-over on every screen, the in-game menu on release, the ice cream's single gloop and the game-over box's click; next the looks (shots, web and native)"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
