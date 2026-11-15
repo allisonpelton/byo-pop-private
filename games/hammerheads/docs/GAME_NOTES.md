@@ -131,3 +131,12 @@ Behaviour of the original that looks like a mistake and is kept in the port unti
 - **The quit and game-over boxes' button code** (0x44fe50) and the options box's press sound (0x44fe90) are functions the Ghidra
   export lacks (code the linker shared); they are found in the boxes' tables of the button listener (`tools/vtable.py` does not
   print them: read the table at the address in the class's constructor).
+
+## Autosplit
+
+`src/LiveSplitObserver.cpp` fills the shared autosplit block (game id HHDX, layout 2) after each update; it only reads the game. The
+site asks through `byopop_livesplit_block`, a mod's "livesplit" feature or `-livesplitlog=<file>`. Hooks: `CreateGameScreen` (a board,
+resumed for a saved game or restart point and a test game), Go on the first level's introduction card or a "Ready?" box, `LevelFinished`
+(clear; Win for the last row of Classic and Tough Cookie), `Gameplay::GameOver`, `GameToTrophyRoom` (Regicist). Classic and Tough
+Cookie's end is `progress` 1: Go on the "Ready?" box after the trophy room that awarded Regicist. Test: `set kings 1` once a game is
+in play makes that trophy. Both classic and tough have 25 levels. The frozen baseline is unchanged with the block off.
