@@ -7,6 +7,9 @@
 #  4. rngcmp.py and statecmp.py compare the two timelines: the draws and the engine's states, by update.
 # The result is in build/identical/<name>/ (orig.log, state.txt, out.txt) and a last line IDENTICAL or the first difference.
 source "$(dirname "$0")/common.sh"
+# the seconds each stage took, for the batch's timing (chapters.sh collects the "time" lines)
+T0=$SECONDS; TL=$SECONDS
+stage() { echo "time $1: $((SECONDS - TL)) s (total $((SECONDS - T0)) s)"; TL=$SECONDS; }
 N="$1"; SCRIPT="$2"; SEED="${3:-1}"
 D="$OUT/$N"; mkdir -p "$D"
 PORTSCRIPT="$D/script.txt"; cp "$SCRIPT" "$PORTSCRIPT"
@@ -21,25 +24,33 @@ if [ -n "$PROFILE" ]; then
 fi
 portrun() { if [ -n "$PROFILE" ]; then rm -rf "$1/user"; mkdir -p "$1"; cp -r "$PROFILE" "$1/user"; KEEP_USER=1 bash "$TOOLS/port.sh" "$@"; else bash "$TOOLS/port.sh" "$@"; fi; }
 portrun "$D/cal" -seed=$SEED -reseedengine=$SEED -startloadupdates=820 -chapterloadupdates=${CALLOAD:-4107} -script="$PORTSCRIPT" -statelog="$D/cal/state.txt" > /dev/null
+stage "port, first run"
 # the input of the run: its script's clicks and the ones the hooks made (soak, word), in the port's script form
 ( grep -E '^[0-9]+ (click|move|rclick|key|text|char|focus)( |$)' "$PORTSCRIPT"
   grep 'script: input' "$D/cal/out.txt" | awk '{print $4, $5, $6, $7}' ) | sort -n -s -k1,1 > "$D/inputs.txt"
 # the port replays exactly that input: the soak would choose again, and a timing that differs a little would make it choose
 # another word
-( cat "$D/inputs.txt"; awk '$2=="quit"' "$PORTSCRIPT" ) | sort -n -s -k1,1 > "$D/replay.txt"
-python "$TOOLS/toorig.py" "$D/inputs.txt" -1 > "$D/orig.txt"
+# the end: the script's quit, or, when the script asked for chapterend, the update the first run quit at (300 after the map
+# showed again), so that neither program plays on past the chapter
 END=$(awk '$2=="quit"{print $1}' "$PORTSCRIPT" | tail -1)
+CEND=$(grep -o "script: chapterend [0-9]*" "$D/cal/out.txt" | head -1 | awk '{print $3}')
+[ -n "$CEND" ] && END=$((CEND + 300)) && echo "chapter ended at update $CEND"
+( cat "$D/inputs.txt"; echo "$END quit" ) | sort -n -s -k1,1 > "$D/replay.txt"
+python "$TOOLS/toorig.py" "$D/inputs.txt" -1 > "$D/orig.txt"
 # the original's log is made fresh by this run only: a log left by an earlier case (a sandbox run that never started, because another
 # session's sandbox held the lock or the sandbox failed) would be compared as if it were this case's (2026-11-11: the chapter batch
 # compared one stale log against every profile)
 rm -f build/origrun/bwa2s/logs/origrun-sandbox.log "$D/orig.log"
 bash "$TOOLS/sbox.sh" "$D/orig.txt" $SEED $(( ${END:-30000} / 100 + 60 )) 0x7c0000 '[0x7870a4]+0x30' > "$D/sbox.log" 2>&1
+stage "original in the sandbox"
 if ! cp build/origrun/bwa2s/logs/origrun-sandbox.log "$D/orig.log" 2>/dev/null || ! grep -q 'watch 1:' "$D/orig.log"; then
 	echo "ORIGINAL RUN FAILED: no log with the watched values (see $D/sbox.log)"; exit 2
 fi
 OPTS=$(python "$TOOLS/calib.py" "$D/orig.log" "$D/cal/state.txt")
 echo "load lengths of the original: $OPTS"
 portrun "$D/rep" -seed=$SEED -reseedengine=$SEED $OPTS -script="$D/replay.txt" -statelog="$D/state.txt" > /dev/null
+stage "port, replay"
 cp "$D/rep/out.txt" "$D/out.txt"
 python "$TOOLS/rngcmp.py" "$D/orig.log" "$D/state.txt"
 python "$TOOLS/statecmp.py" "$D/orig.log" "$D/state.txt"
+stage "comparison"
