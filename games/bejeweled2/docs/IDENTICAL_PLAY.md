@@ -158,6 +158,11 @@ welcome and the first-game messages, in 2D and 3D, windowed and full screen (bel
 | The test command `goto menu` did not leave a game, so the real-input run of Cognito never reached the menu | since `DoMainMenu` keeps the board (as the original does unless a cheat changed its pictures), the command has to hide the board and slide the menu in as the options dialog's Main Menu button does (`0x5cc563`) | the command does that | 756ffefc |
 | The puzzle tour's board buttons and the app's own buttons made no click sound | the original's Board and WinDMApp each override the button listener's ButtonPress (0x596bc2, 0x5dc1cf) with a play of `SOUND_CLICK` | `Board::ButtonPress` and `WinDMApp::ButtonPress` do the same | f17efe75 |
 | Finity's timer bar ran up where the original's fell, and the warning beep played in three extra stretches of 640 updates | the original's integer arithmetic wraps: `((score - target) * 0x2c4) / 2` goes negative once the score passes about 3 million, which Finity reaches at level 4. The compiler folded the port's expression into one multiply by 354 that does not wrap until twice that score, so the bar's target stayed at the top where the original's went to 0 | the game builds with `-fwrapv`, so every int expression wraps as the original's x86 code does; Finity's sounds and music are then the original's (562 plays against the original's 563, the one that is the title's click, and 204 music events each) | f17efe75 |
+| A gem off the board (a shard-less gem flung out by a blast, the game-over's falling board) turned the wrong way | the original calls `Rotate(-mRot)`, which turns as the port's `RotateRad(-x)`; the port had `RotateRad(mRot)` (the framework header's note "old Rotate(a) is RotateRad(-a)" misled) | `DrawBoard` turns by `RotateRad(-mRot)` at both sites; the Action tour's game-over frame went from 25% of the picture different to 0.6% | e1ecff84 |
+| The text of a puzzle's hint and the pause text showed under a dialog | the original tests the application's dialog count (+0x32c), not the demo pause flag | `GetDialogCount() == 0` | 0c48bccf |
+| The 3D whirlpool of a level change and of Puzzle's WARP turned the board, score box and controls the wrong way | `PushTurnedPart` used the other rotation convention | `RotateRad(-angle)` as the original's `Rotate(angle)` | 6056fe1a |
+| The first frames of the 3D whirlpool were blurred and had a dark first row and column | at render scale 2 a transformed quad is sampled linearly, which blurs a copy on whole pixels, and the mesh's `(v + 0.5) * scale` shifts it a whole device pixel | `DDInterface::mOriginalSampling` (off by default, on for this game's 3D display): such a quad samples nearest, the mesh takes `v * scale + 0.5` | 1bbcbf88 (shared), 57a6a00a |
+| A replay that sent the input faster than the port read it lost input | the command queue was cut at 1024 lines | a longer commands file is read as the queue empties | d5aee40e (shared) |
 
 The comparison tools came with these commits (`origcmp/record.py`, `replay.py`, `run_tour_original.sh`, `to_commands.py --shots`,
 `web_shots.sh`, `state`'s new buttons).
@@ -230,26 +235,33 @@ update later (`--shift`, the 3D loop's click timing, GAME_NOTES, "Oddities"), an
 
 The comparison tools came with these commits (`origcmp/visrun.py`, `landed_to_events.py`, `run_tour_visible.sh`).
 
-**What is identical now.** The tour's 16 shots against the original's (`t3g`): 6 identical (the How To Play screen's four pages, the
-options dialog over a game and the loaded board), 4 identical but for a few hundred to a thousand pixels under 42 levels (the title,
-the first board, the high scores and the board after its moves), and 6 that differ by one button only: the More Games button the
-original draws (the menu, the options dialog and the welcome box over it, "Load Game?" and the menu after it), and in the first of
-them (the new player's screen) also the "?" button of the secret modes, which the original's uninitialised profile counters put on its
-menu (GAME_NOTES, "Oddities"). The animated stretches were compared frame by frame in a second run of the original (`t3d`, 54 shots
-with the 16 above): the whirlpool opening over the loaded game (17 frames, updates 3724 to 3740), the board as it shows (9 frames,
-2420 to 2436) and the loaded board's slide (13 frames, 3806 to 3830). Of them 10 shots are identical, 19 only faint, and 25 differ,
-and the differences are the More Games button (the six menu-family shots above and 8 whirlpool frames, over the pill's 167 by 61
-pixels), the "?" button, a gem or two of the loaded board in 8 of the slide's 13 frames (an oddity, below) and a strip 6 pixels
-high and 162 to 179 wide across the board at the end of its show (3 frames, 32 to 62 pixels over the threshold). Before the clamp
-(38ecf46f) the whirlpool's frames from update 3727 differed in boxes 600 to 800 pixels wide, a hole in the board's backdrop. Every
-shot's boxes were looked at, the faint ones through their size and spread: a few hundred pixels scattered over a picture, or one
-box over the board's big text, with deltas under 60 levels. Direct3D 11's filter against Direct3D 7's is the likely cause, which
-was not tested.
+**The eight modes' 3D tours (2026-11-15).** Every mode has a tour of its own in 3D (`record_3d_tours.sh`, the port's bot with the test
+commands, seed 909, the Steam files' constants of the time; the original on the visible desktop at night, `run_tour_visible.sh`; 21 to 160
+shots a mode, the animated stretches every 23 updates), each compared with shotdiff and every box looked at. The replay keeps the pointer
+where the click put it for the widget manager (`--leave-keep`: the original's WARP glow reads that position, and the first runs lost it),
+gives the help click its extra update by itself, and the generators' indices were equal at every shot in all eight modes.
+After the fixes above: Classic 18 identical, 2 faint, 1 differing; Action 42, 31, 1; Hyper 34, 23, 2; Twilight 14, 6, 2; Endless 5, 92, 4;
+Puzzle 6, 150, 4; Cognito 10, 53, 10; Finity 1, 24, 77. The differing shots of Classic, Action, Hyper and Twilight are the More Games
+button's pill in the menu shots (out by the user's decision) and, in Hyper and Twilight, the same in the secret menu. What is left:
 
-**Not compared in 3D.** The 3D game's sounds and music (they run through the code the 2D game's do, which was compared and
-matches, and the visible desktop runs are silent); the web build's 3D pictures (it shares the clamp, but was not run against
-the original); full screen; and the eight modes' boards (the tour's board is Classic's, and every mode's logic is identical from
-phase one). The 2D shots' pass (above) covers every screen at 640 by 480.
+- **Cognito's warp shots 0 to 8** (sparkles and explosion stars at slightly other positions and phases, up to 4,700 pixels, the shards
+  matched) and its warp 45.
+- **Endless** (level 3-4, 4-14 and 5-11, 33 to 39 pixels over the threshold) and **Puzzle** (the warp's frames 43, 10 and 45: the box of 110 by
+  79 pixels round the black hole's middle, 32 pixels over): faint filtering differences along the hole's edge, Direct3D 11 against Direct3D 7.
+- **Finity, from level 3** (77 shots): every gem of the board washed out white by the point lights of the explosion waves, where the
+  original's gems are not. The cause found so far: the original never sets a shock wave's `mGrowing` (its stack slot decides). The
+  original's watch showed a wave kept for its 30 updates for each of the four explosions of the Action tour (so the byte was non-zero
+  there) and none at all in Finity, whose cascades the port starts waves for 1,759 times; the port sets the byte true. Not settled: what
+  the original's stack holds in Finity (its watch of the wave list did not move even for the score texts, so the offsets read there are
+  not trusted). To go on: a watch of the first wave's `+0x14` in the original in Finity, and `AddPointLight`'s calls (`BoardDrawBoard.cpp`).
+  Written under "Oddities" in GAME_NOTES with how to see it.
+
+The tunnel of the classic hyperspace jump is not reached by any tour; Puzzle's WARP carries the same mesh and matched. A seam in the tunnel
+(SDL refusing triangles with texture coordinates outside 0 to 1) was looked for in `Hyperspace::Draw3dPortal` and is not visible.
+
+**Not compared in 3D.** The 3D game's sounds and music (they run through the 2D game's code, compared and matching; the visible desktop runs
+are silent); the web build's 3D pictures (it shares the code, but the hidden Browser pane was too slow to run it against the original);
+full screen; and a classic hyperspace jump (above). The 2D shots' pass (above) covers every screen at 640 by 480.
 
 ### Differences that stay (phase two)
 
@@ -257,6 +269,7 @@ phase one). The 2D shots' pass (above) covers every screen at 640 by 480.
   levels, where overlapping popups of millions cover the board; every state, the generator's index at every update (compared to update
   8716), the sounds and the music are the original's, so the difference is in what only Finity draws (the bomb, the rock, the wildcard
   destroyer) or in the popups' arithmetic. Not chased (GAME_NOTES, "Oddities"), with how to see it.
+- **Finity's 3D boards** from level 3 (the washed-out gems, 77 shots) and **Cognito's warp sparkles** (shots 0 to 8): above, not settled.
 - **The More Games button** is out by the user's decision, so the 640 by 480 menu's 99 by 26 pill and the 3D menu's pill, which the
   original draws with its label, are boxes of every menu-family shot, in 2D and 3D (the 3D whirlpool's frames over the menu too).
   The title's one click sound is above.

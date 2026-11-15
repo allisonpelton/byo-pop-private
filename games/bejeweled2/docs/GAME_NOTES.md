@@ -224,6 +224,12 @@ constructor does clear).
   was not found. The difference is small against the board's own motion in the same region (the region changes about ten times as
   much between two shots), so another frame of a gem's own animation is unlikely and a filter on a moving gem (Direct3D 7's against
   Direct3D 11's, at a fractional position) is the likelier cause; neither was tested. Not chased.
+- **Finity's 3D boards are washed out by the explosion waves' point lights.** The port sets every shock wave's `mGrowing` true (the original never
+  sets it: stack garbage at `ebp-0x64` of `0x5a63a3` and `ebp-0x4c` of `0x5a6e5f`), so each blast lights the gems around it to white for 30
+  updates. In the original's Action tour all four blasts kept their wave (the byte was non-zero), in Finity's none did. To see it: the Finity
+  3D tour (`record_3d_tours.sh`, `run_tour_visible.sh`, `shotsum.py v3d_n3d_finity`: level 3 shots 1 and 2). To go on: `VISRUN_WATCH` (visrun.py)
+  takes other watch expressions; the wave vector is at Board `+0x16010` (first `+0x16014`, last `+0x16018`, 32-byte elements), but the
+  watch of it did not move in Finity even for the score texts, so check the offsets first. Not chased yet; needs the original at night.
 - **The original's first run after another one sometimes never creates a board** (seen a few times, in 2D and 3D alike, as a
   state watch that stays at its title value); a second run is as the first should have been. `run_original.sh` runs again
   when a log has no board.
@@ -541,7 +547,7 @@ pictures at the title are `Menu-Gadgets` and `GMAP` (1024 by 768, 3 MB each; `GM
 `firering` 1.6 MB and the font, hypergem and black-hole sheets 1.1 to 1.3 MB; the port loads the resource groups the original's manifest names. *2D*: `privateAtStart` 12.3 MB, 243
 pictures at the title (16.2 MB, 3.3 MB of textures), private bytes 59.4 MB at the title and 100.7 MB with the board up (296 pictures, 33.2 MB of
 pixels and 22.8 MB of textures with 111 of them having one): the pictures that were 8-bit pixels and a palette at the title are 32-bit pixels
-with a texture once the board has drawn them (the framework's doing), and the original's private bytes rise by 3 MB at the same point (39.7 to 42.8 MB). Only two pictures are new at the board (the
+with a texture once the board has drawn them (the framework's doing; since 22e4a3d6 the pictures are uploaded at load, which takes 10 MB off the 3D game's first board, so these figures are the older ones), and the original's private bytes rise by 3 MB at the same point (39.7 to 42.8 MB). Only two pictures are new at the board (the
 backdrops, 1.2 MB each) besides the 4 MB the game makes itself. *The web build* (`nodemem.js` under Node, the 2D scenario through the page's
 own wasm, `wasmrun.js game`): the same 6,423 updates and 643 draws and score 565, 3.2 s of processor time with the start-up, the wasm memory 45 MB
 at the title and 93 MB with the board up (Node's own resident set peaks at 165 MB with its 33 MB and the game files' copy). Its frame time in a browser was not measured: the Browser pane may be hidden and runs no
