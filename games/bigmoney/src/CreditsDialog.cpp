@@ -23,14 +23,12 @@ CreditsDialog::CreditsDialog(WinBMApp* theApp) :
 	mCloudRot = 0.0;
 	mCloudX = 0.0;
 	mCloudY = 0.0;
-	mUnused14C = NULL;
 	// WinBMApp::ShowCreditsDialog sets the colours, Resize(196, 16, 388, GetPreferredHeight(388)) and adds it.
 }
 
 // 0x40ee10
 CreditsDialog::~CreditsDialog()
 {
-	delete mUnused14C;
 }
 
 // 0x40ee80

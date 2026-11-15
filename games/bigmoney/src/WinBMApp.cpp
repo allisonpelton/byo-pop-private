@@ -1118,12 +1118,6 @@ void WinBMApp::ButtonDepress(int theId)
 	}
 }
 
-// 0x421450: the original offers an update check when ShouldCheckForUpdate() (ConfirmCheckForUpdates); not
-// ported, the port never checks for updates
-void WinBMApp::LoadingThreadCompleted()
-{
-}
-
 // 0x421470: no mButtonImage, the left bar art shows the buttons; the widget only adds the hover and
 // pressed images (which the app owns, see mButtonImageList)
 ButtonWidget* WinBMApp::MakeButton(int theId, const Rect& theRect, Image* theOverImage, Image* theDownImage)

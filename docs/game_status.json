@@ -402,11 +402,12 @@
         "coverage",
         "site-features",
         "performance",
-        "lite-mod"
+        "lite-mod",
+        "unneeded-code"
       ],
       "na": [],
-      "now": "unneeded-code",
-      "note": ""
+      "now": "readability",
+      "note": "unneeded code out (583a3271: LockableButton, a registration leftover; the empty LoadingThreadCompleted; fields written but never read or saved; the Options dialog's unused link ids; 108 lines out, 41 in; fields a save writes stay); baseline unchanged (66646); next: readability, then the Collection check"
     },
     "tiptop": {
       "title": "TipTop Deluxe",

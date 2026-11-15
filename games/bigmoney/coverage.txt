@@ -71,3 +71,11 @@ none 00419115 exception funclet (catch block of the map code)
 # The two deleting destructors no run reaches (the port has them as a comment on the destructor, not as code).
 none 00414ee0 MoneyDialog::scalar_deleting_dtor: MoneyDialog is only the base of the Options, scores, credits and record-score dialogs, never created itself
 none 0041c9d0 WinBMApp::scalar_deleting_dtor: the app is a global object that is never deleted
+# Taken out as unneeded code on 2026-11-15 (GAME_NOTES.md, Part 6, "Unneeded code taken out"): the selector's three type
+# buttons are plain ButtonWidgets, since LockableButton adds only a lock flag that nothing sets or reads, and the app's
+# loading-done hook did nothing but leave out the update check.
+none 00414d80 LockableButton::LockableButton: ButtonWidget's constructor and a lock flag nothing reads; GameSelector makes a ButtonWidget
+none 00414dc0 LockableButton::~LockableButton: ButtonWidget's destructor
+none 00414dd0 LockableButton::Draw: calls ButtonWidget::Draw and nothing else
+none 00414de0 LockableButton::scalar_deleting_dtor: ButtonWidget's
+none 00421450 WinBMApp::LoadingThreadCompleted: offers the update check the port leaves out; the framework's empty hook is the same
