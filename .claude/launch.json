@@ -4,224 +4,477 @@
     {
       "name": "web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18765", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18765",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18765
     },
     {
       "name": "web-local-test",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "80", "--bind", "10.0.0.194", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "80",
+        "--bind",
+        "10.0.0.194",
+        "--directory",
+        "build/web"
+      ],
       "port": 80
     },
     {
       "name": "web-test",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18766", "--bind", "127.0.0.1", "--directory", "build/web-test"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18766",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web-test"
+      ],
       "port": 18766
     },
     {
       "name": "bigmoney-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18767", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18767",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18767
     },
     {
       "name": "bookworm-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18768", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18768",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18768
     },
     {
       "name": "noahsark-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18769", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18769",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18769
     },
     {
       "name": "atomica-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18772", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18772",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18772
     },
     {
       "name": "alchemy-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18777", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18777",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18777
     },
     {
       "name": "sevenseas-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18771", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18771",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18771
     },
     {
       "name": "mummymaze-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18773", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18773",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18773
     },
     {
       "name": "bookwormadv-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18775", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18775",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18775
     },
     {
       "name": "bookwormadv2-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18792", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18792",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18792
     },
     {
       "name": "tiptop-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18774", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18774",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18774
     },
     {
       "name": "pixelus-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18776", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18776",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18776
     },
     {
       "name": "ningpo-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18779", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18779",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18779
     },
     {
       "name": "wordharmony-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18778", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18778",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18778
     },
     {
       "name": "wordharmony-webtest",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18795"],
+      "runtimeArgs": [
+        "tools/webtest/serve.py",
+        "--port",
+        "18795"
+      ],
       "port": 18795
     },
     {
       "name": "cosmicbugs-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18788", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18788",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18788
     },
     {
       "name": "rocketmania-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18781", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18781",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18781
     },
     {
       "name": "waterbugs-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18789", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18789",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18789
     },
     {
       "name": "dynomite-webtest",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18795"],
+      "runtimeArgs": [
+        "tools/webtest/serve.py",
+        "--port",
+        "18795"
+      ],
       "port": 18795
     },
     {
       "name": "dynomite-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18782", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18782",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18782
     },
     {
       "name": "bonnies-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18787", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18787",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18787
     },
     {
       "name": "cosmicbugs-webtest",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18796"],
+      "runtimeArgs": [
+        "tools/webtest/serve.py",
+        "--port",
+        "18796"
+      ],
       "port": 18796
     },
     {
       "name": "webtest-player",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18797"],
+      "runtimeArgs": [
+        "tools/webtest/serve.py",
+        "--port",
+        "18797"
+      ],
       "port": 18797
     },
     {
       "name": "typershark-webtest",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18803"],
+      "runtimeArgs": [
+        "tools/webtest/serve.py",
+        "--port",
+        "18803"
+      ],
       "port": 18803
     },
     {
       "name": "shotreview",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["tools/shotdiff/serve.py"],
+      "runtimeArgs": [
+        "tools/shotdiff/serve.py"
+      ],
       "port": 18770
     },
     {
       "name": "mahjongjapan-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18790", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18790",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18790
     },
     {
       "name": "mahjongchina-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18793", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18793",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18793
     },
     {
       "name": "bejeweledtwist-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "18794", "--bind", "127.0.0.1", "--directory", "build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "18794",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "build/web"
+      ],
       "port": 18794
     },
     {
       "name": "astropop-webtest",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18798"],
+      "runtimeArgs": [
+        "tools/webtest/serve.py",
+        "--port",
+        "18798"
+      ],
       "port": 18798
     },
     {
       "name": "pagecheck-webtest",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18780"],
+      "runtimeArgs": [
+        "tools/webtest/serve.py",
+        "--port",
+        "18780"
+      ],
       "port": 18780
     },
     {
       "name": "bejeweled2-webtest",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18808"],
+      "runtimeArgs": [
+        "tools/webtest/serve.py",
+        "--port",
+        "18808"
+      ],
       "port": 18808
     },
     {
       "name": "venice-webtest",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18809"],
+      "runtimeArgs": [
+        "tools/webtest/serve.py",
+        "--port",
+        "18809"
+      ],
       "port": 18809
     },
     {
       "name": "hammerheads-webtest",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18811"],
+      "runtimeArgs": [
+        "tools/webtest/serve.py",
+        "--port",
+        "18811"
+      ],
       "port": 18811
     },
     {
       "name": "soundcompare",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-I", "tools/web/soundcompare.py", "--port", "18791"],
+      "runtimeArgs": [
+        "-I",
+        "tools/web/soundcompare.py",
+        "--port",
+        "18791"
+      ],
       "port": 18791
     },
     {
       "name": "heavyweapon-webtest",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18810"],
+      "runtimeArgs": [
+        "tools/webtest/serve.py",
+        "--port",
+        "18810"
+      ],
       "port": 18810
+    },
+    {
+      "name": "pixelus-webtest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "tools/webtest/serve.py",
+        "--port",
+        "18821"
+      ],
+      "port": 18821
     }
   ]
 }

@@ -267,3 +267,12 @@ tile's re-draw counter holds heap garbage in the original (see above); the cyclo
 lesson cells; and, at update 1580, a tile that has landed in the port 5 to 10 updates before the original's shows it (the two
 clicks of the script, 5 updates apart; the original's second cursor shows on the first target cell); the cause is not found,
 under Oddities in the notes.
+
+## Real input after the Tile Master (2026-11-15)
+Native (`tools/realplay/drive.py`, under rundesk): 3 boards of the tutorial's temple played and solved, once plain and once
+with `--full --focus --expert`, no errors. Web (`tools/web/play.js`, `?fsat=1&focusat=1`, silent, in the Browser pane): 3
+solved, 9 moves, focus lost and regained, 0 errors. The page check (new table `tools/web/pagecheck.js`; the native answer to
+the focus line is `timer` hidden and after): 11 passed, 0 failed, 1 information line. The whole-game and every-mode passes
+were not repeated for this change; the Tile Master only moves a sprite, and the state log and the frozen baseline are
+unchanged.
+
