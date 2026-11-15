@@ -36,3 +36,6 @@ none 00411350 static initializer of the global NoahApp object: calls NoahApp's c
 none 00411360 registers the global NoahApp object's destruction with atexit; the port's main deletes the app itself
 # An original mechanism the port does differently on purpose.
 none 0041d3b0 the Options dialog's check box handler: when a box is cleared on a display where the framework found that windowed mode cannot be restored (flag +0x231), it shows the no windowed mode message and ticks full screen again; the port's SDL window can always switch to windowed (SwitchScreenMode)
+# Taken out of the port (GAME_NOTES.md, section 11): the comment above Board::EnsureMoves still names it, which the report would
+# read as a definition.
+none 004061d0 Board::RefillPuzzle: the original's only call of it is in a branch of EnsureMoves that its one caller never takes (new levels call EnsureMoves only for modes other than puzzle and Stampede), so the port has neither the branch nor the function
