@@ -2,6 +2,7 @@
 #include "App.h"
 #include "PizzaFrenzy.h"
 #include "Tiles.h"
+#include "Van.h"
 
 using namespace pizzafrenzy;
 
@@ -288,4 +289,14 @@ void PolicePopup::unpick()
 {
 	PizzaPopup::unpick();
 	mStates.setState(new RestState(this));
+}
+
+// 0x455410: the police's car
+void PolicePopup::sendCar(CustomerTile* theTile)
+{
+	PoliceCar* aCar = new PoliceCar();
+	aCar->loadType();
+	mOwner->addVehicle(mOwner->getRoadCell(), aCar);
+	aCar->goTo(theTile);
+	theTile->serve();
 }

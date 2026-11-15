@@ -94,6 +94,9 @@ Topping::Topping(const std::string& theName, const std::string& theDisplayName, 
                  engine::Image* theCouponImage) :
 	mCouponImage(theCouponImage), mName(theName), mDisplayName(theDisplayName), mUsesImageAsPreview(0)
 {
+	// port: the toppings made so far number this one (ToppingOrder)
+	static int sToppingsMade = 0;
+	mMadeOrder = sToppingsMade++;
 	setImage(theImage);
 }
 

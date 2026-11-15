@@ -212,8 +212,8 @@ void ToppingBookScreen::showTitles()
 	engine::Font* aFont = engine::App::instance()->getFont(TITLE_FONT);
 	int aLineY = 0;
 	int aPoints = 0;
-	std::map<Topping*, int>& aLevels = anApp->mUserGameData->mToppingLevels;
-	for (std::map<Topping*, int>::iterator aLevelIt = aLevels.begin(); aLevelIt != aLevels.end(); ++aLevelIt)
+	ToppingMap<int>& aLevels = anApp->mUserGameData->mToppingLevels;
+	for (ToppingMap<int>::iterator aLevelIt = aLevels.begin(); aLevelIt != aLevels.end(); ++aLevelIt)
 	{
 		if (aLevelIt->first->mUsesImageAsPreview == 0)
 			aPoints = aPoints + 1 + aLevelIt->second;

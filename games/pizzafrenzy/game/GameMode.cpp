@@ -1,5 +1,7 @@
 #include "GameMode.h"
+#include "Van.h"
 #include "App.h"
+#include "CustomerPopup.h"
 #include "ModeStates.h"
 #include "PizzaFrenzy.h"
 #include "Random.h"
@@ -12,6 +14,10 @@ namespace
 {
 // While the time is slowed the music is silent (0x4505f0)
 const float SLOWED_MUSIC_VOLUME = 0.0f;
+// the layer of a vehicle that is drawn above the others (the blimp's)
+const int AIR_LAYER = 4;
+
+
 
 // the texts of the level's titles, by their numbers in the string table
 const int STRING_DAY = 0xe0;
@@ -25,6 +31,14 @@ const char* const NODE_LEVEL_NAME = "text2";
 const char* const NODE_DAY = "text3";
 
 const char* const SOUND_HANGUP = "popup_hangup";
+const char* const SOUND_PICK = "order_click1";
+const char* const SOUND_SEND = "order_click2";
+const char* const SOUND_INVALID_CLICK = "order_invalidClick";
+const char* const SOUND_COUPON = "tip_couponConvert";
+const char* const SOUND_UPGRADE = "bonus_upgrade";
+const char* const SOUND_TOPPING_COMBO = "bonus_toppingCombo";
+const char* const SOUND_SPEEDY = "bonus_speedyBlast";
+const char* const SOUND_FRENZY = "frenzy%d";
 const char* const ACTION_CUSTOMER_HANGUP = "customerHangup";
 const char* const ACTION_FALSE_ARREST = "falseArrest";
 const char* const ACTION_SPECIAL_HANGUP = "specialHangup";
@@ -39,9 +53,35 @@ const int HANGUP_HAPPINESS = -10;
 const int LOW_HAPPINESS = 20;
 const int MAX_HAPPINESS = 100;
 
+// what a delivery is worth: the combo's multiplier grows by a twentieth for each pizza of the same topping in a
+// row after the first; every fifth pizza of the combo is a frenzy, which pays for each of its fives; ten deliveries
+// in a row add happiness
+const float COMBO_STEP = 0.05f;
+const int FRENZY_COMBO = 5;
+const int FRENZY_MAX_SOUND = 5;
+const int FRENZY_BONUS = 300;
+const int STREAK_LENGTH = 10;
+const int STREAK_HAPPINESS = 10;
+const int SPEEDY_HAPPINESS = 10;
+// a tip is worth more the sooner the delivery follows the one before it
+const float TIP_FAST_SECONDS = 1.5f;
+const float TIP_MEDIUM_SECONDS = 3.0f;
+const float TIP_FAST_MULTIPLIER = 3.0f;
+const float TIP_MEDIUM_MULTIPLIER = 2.0f;
+const float TIP_SLOW_MULTIPLIER = 1.0f;
+// a coupon costs a hundred more each time it is used
+const int COUPON_PRICE_STEP = 100;
+// where a tip comes up: the middle of the cell the vehicle stopped on
+const float TIP_CELL_SHARE = -0.5f;
+
 engine::Point toPoint(const engine::FloatPair& thePair)
 {
 	return engine::Point(thePair.mFirst, thePair.mSecond);
+}
+
+void playSound(const std::string& theName, float theVolume = 1.0f, float thePitch = 1.0f)
+{
+	PizzaFrenzy::instance()->mSounds->play(theName, theVolume, thePitch);
 }
 }
 
@@ -86,7 +126,7 @@ void GameMode::connectRightButton()
 // 0x4569c0
 void GameMode::update(engine::UpdateInfo& theInfo)
 {
-	updatePizzas(theInfo);
+	updatePopups(theInfo);
 	mHud->updateHud(theInfo);
 	mStats->mElapsedTime = theInfo.mSeconds + mStats->mElapsedTime;
 	if (0.0f < mSlowTime)
@@ -131,7 +171,7 @@ void GameMode::setLevel(Level* theLevel)
 	makeEvents();
 	mComboTopping = nullptr;
 	mStats->mComboLength = 0;
-	mMap->showCombo(nullptr, 0);
+	mMap->showCombo(nullptr, 0, 0);
 	// the speed bonus banner (0x44fb70, the game screen's +0x204) starts over here: left out, see GameScreen.h
 	beginWaves();
 	mStates.changeState(new ModeIntroState(this));
@@ -165,8 +205,11 @@ void GameMode::updateMap(engine::UpdateInfo& theInfo)
 	mMap->update(theInfo);
 }
 
-void GameMode::updatePizzas(engine::UpdateInfo& theInfo)
+// 0x4569c0's first call: the popup of the special event that shows has its frame
+void GameMode::updatePopups(engine::UpdateInfo& theInfo)
 {
+	if (!mEventPopups.empty())
+		mEventPopups.front()->updatePopup(theInfo);
 }
 
 // 0x417cb0
@@ -205,7 +248,7 @@ void GameMode::reset()
 	mHud->resetHud();
 	mComboTopping = nullptr;
 	mStats->mComboLength = 0;
-	mMap->showCombo(nullptr, 0);
+	mMap->showCombo(nullptr, 0, 0);
 	mRightClickHandled = false;
 	mSlowTime = 0;
 	mSlowFactor = 1.0f;
@@ -237,9 +280,9 @@ void GameMode::updateWaves(engine::UpdateInfo& theInfo)
 			QueuedDelivery aDelivery = mDeliveries.front();
 			CustomerTile* aTile = static_cast<CustomerTile*>(aDelivery.mTile.get());
 			if (aTile->getOrder()->mEvent == nullptr)
-				deliver(aDelivery.mPizza, aTile, true);
+				deliver(aDelivery.mKitchen, aTile, true);
 			else
-				startSpecialEvent(aDelivery.mPizza, aTile);
+				startSpecialEvent(aDelivery.mKitchen, aTile);
 			if (!mDeliveries.empty())
 				mDeliveries.pop_front();
 			if (!mDeliveries.empty())
@@ -399,7 +442,10 @@ void GameMode::waveDone()
 	}
 	if (0.0f < mSpeedBonusTime)
 	{
-		// the banner "bonus_speedyBlast" and the splat "speedyDelivery" are translated next
+		// the splat "speedyDelivery" flies to the happiness meter, which the bonus is added to when it arrives; the
+		// splats are left out, and the happiness is added now
+		playSound(SOUND_SPEEDY);
+		addHappiness(SPEEDY_HAPPINESS);
 	}
 }
 
@@ -582,7 +628,7 @@ void GameMode::releasePicks()
 	{
 		if (mCoupon != nullptr)
 		{
-			// the coupon's own release (slot 0x138) is translated next
+			mCoupon->putBack();
 			mCoupon = nullptr;
 			mScreen->setCouponCursor(nullptr);
 		}
@@ -597,7 +643,7 @@ void GameMode::rightClick()
 	{
 		if (mCoupon != nullptr)
 		{
-			// the coupon's own release (slot 0x138) is translated next
+			mCoupon->putBack();
 			mCoupon = nullptr;
 			mScreen->setCouponCursor(nullptr);
 			mRightClickHandled = false;
@@ -622,16 +668,383 @@ void GameMode::checkLevelEnd()
 		return;
 	if (!mMap->isIdle())
 		return;
-	// no boat is on the river (the map's list at +0x68, translated next)
+	// a tip that waits for its click holds the level (the map's list at +0x68)
+	if (!mMap->mTips.empty())
+		return;
 	PizzaFrenzy::instance()->endLevel();
 }
 
-// 0x4c: 0x45a300
-void GameMode::deliver(engine::Node* thePizza, Tile* theTile, bool theFlag)
+// 0x45adb0: a house of a customer picks its order, or the kitchen's pizza is sent for the orders picked, or the police
+// take the customers of the events picked; a click that is not taken flashes the cursor's indicators and sounds
+void GameMode::click(BuildingTile* theTile)
+{
+	if (!theTile->isClickable())
+		return;
+	PizzaPopup* aPopup = theTile->getOccupant();
+	if (mCoupon != nullptr)
+	{
+		if (aPopup->getKind() != POPUP_CUSTOMER)
+		{
+			playSound(SOUND_INVALID_CLICK);
+			return;
+		}
+		useCoupon(static_cast<CustomerPopup*>(aPopup));
+	}
+	if (aPopup->getKind() == POPUP_CUSTOMER)
+	{
+		if (mPicks.empty())
+		{
+			pickOrder(static_cast<CustomerTile*>(theTile));
+			playSound(SOUND_PICK);
+			return;
+		}
+		Order* aPickedOrder = mPicks.front()->getOrder();
+		Order* anOrder = static_cast<CustomerTile*>(theTile)->getOrder();
+		if (aPickedOrder->mTopping != anOrder->mTopping)
+		{
+			mScreen->flashCursor();
+			playSound(SOUND_INVALID_CLICK);
+			return;
+		}
+		if ((int)mPicks.size() < mStats->getPickLimit(anOrder->mTopping))
+		{
+			pickOrder(static_cast<CustomerTile*>(theTile));
+			playSound(SOUND_PICK);
+			return;
+		}
+		mScreen->flashCursor();
+		playSound(SOUND_INVALID_CLICK);
+	}
+	else if (aPopup->getKind() == POPUP_KITCHEN)
+	{
+		if (mPicks.empty())
+		{
+			playSound(SOUND_INVALID_CLICK);
+			return;
+		}
+		if (mPicks.front()->getOrder()->mTopping == static_cast<KitchenTile*>(theTile)->getTopping())
+		{
+			playSound(SOUND_SEND);
+			for (size_t i = 0; i < mPicks.size(); i++)
+			{
+				QueuedDelivery aDelivery;
+				aDelivery.mTile = mPicks[i];
+				aDelivery.mKitchen = theTile;
+				mDeliveries.push_back(aDelivery);
+			}
+			releasePicks();
+			return;
+		}
+		// the splat "wrongPizza" comes up on the kitchen (left out), and the customers of the orders picked give up
+		for (size_t i = 0; i < mPicks.size(); i++)
+		{
+			mPicks[i]->setImpatient(false);
+			mPicks[i]->unpick();
+		}
+		releasePicks();
+	}
+	else if (aPopup->getKind() == POPUP_POLICE)
+	{
+		int aPoliceOrders = 0;
+		for (size_t i = 0; i < mPicks.size(); i++)
+		{
+			SpecialEvent* anEvent = mPicks[i]->getOrder()->mEvent;
+			if (anEvent != nullptr && !anEvent->mDeliver)
+				aPoliceOrders++;
+		}
+		if (mPicks.empty() || aPoliceOrders == 0)
+		{
+			playSound(SOUND_INVALID_CLICK);
+			return;
+		}
+		playSound(SOUND_SEND);
+		std::vector<engine::Ref<CustomerTile>>::iterator anIter = mPicks.begin();
+		while (anIter != mPicks.end())
+		{
+			engine::Ref<CustomerTile> aPick = *anIter;
+			SpecialEvent* anEvent = aPick->getOrder()->mEvent;
+			if (anEvent != nullptr && !anEvent->mDeliver)
+			{
+				anIter = mPicks.erase(anIter);
+				arrest(theTile, aPick);
+				aPopup->serve();
+			}
+			else
+				++anIter;
+		}
+		refreshPickCursor();
+	}
+}
+
+// 0x45ad20
+void GameMode::pickOrder(CustomerTile* theTile)
+{
+	mPicks.push_back(theTile);
+	theTile->pick();
+	refreshPickCursor();
+}
+
+// 0x4571e0
+void GameMode::refreshPickCursor()
+{
+	mScreen->hideOrderCursor();
+	if (!mPicks.empty())
+	{
+		CustomerPopup* aPopup = static_cast<CustomerPopup*>(mPicks.back()->getOccupant());
+		aPopup->buildPickCards(mScreen->mOrderCursor);
+	}
+}
+
+// 0x455b20: left empty: the special events' popups (the factory 0x44a490 and the classes 0x44a050 to 0x44b100) are
+// translated next; the event's pizza is not served until they are
+void GameMode::startSpecialEvent(BuildingTile* theKitchen, CustomerTile* theTile)
 {
 }
 
-// 0x50: 0x455b20
-void GameMode::startSpecialEvent(engine::Node* theNode, Tile* theTile)
+// 0x455ff0: the customer's order is finished: the tip comes up on the road cell the vehicle stopped on (the citizen's
+// award, for an event that wants no pizza)
+void GameMode::orderFinished(BuildingTile* theTile, Order* theOrder, float theSeconds)
 {
+	engine::IntPair aCell = mMap->cellToPoint(theTile->getRoadCell());
+	int aShift = (int)((float)mMap->getCellSize() * TIP_CELL_SHARE);
+	engine::Point aPoint((float)(aCell.mFirst + aShift), (float)(aCell.mSecond + aShift));
+	TipPopup* aTip;
+	if (theOrder->asksForPizza())
+		aTip = new TipPopup();
+	else
+		aTip = new CitizenAward();
+	addTip(theOrder, aPoint, aTip);
+}
+
+// 0x455d60
+void GameMode::addTip(Order* theOrder, const engine::Point& thePoint, TipPopup* theTip)
+{
+	if (theTip == nullptr)
+		theTip = new TipPopup();
+	float aSeconds = theOrder == nullptr ? 0.0f : theOrder->mSecondsSinceDelivery;
+	float aMultiplier = TIP_SLOW_MULTIPLIER;
+	if (aSeconds >= TIP_FAST_SECONDS)
+	{
+		if (aSeconds < TIP_MEDIUM_SECONDS)
+			aMultiplier = TIP_MEDIUM_MULTIPLIER;
+	}
+	else
+		aMultiplier = TIP_FAST_MULTIPLIER;
+	theTip->setValue(aMultiplier, theOrder == nullptr ? nullptr : theOrder->mTopping);
+	showTip(theTip, thePoint);
+}
+
+// 0x4561a0
+void GameMode::showTip(TipPopup* theTip, const engine::Point& thePoint)
+{
+	theTip->setMap(mMap, thePoint);
+	mScreen->mTipsGroup->addChild(theTip);
+}
+
+// 0x4561d0
+void GameMode::releaseTip(TipPopup* theTip)
+{
+	theTip->addOwnFlags(engine::NODE_REMOVE);
+	if (mMap->isIdle() && mWaveTimer > WAVE_TIMER_CAP)
+		mWaveTimer = WAVE_TIMER_CAP;
+}
+
+// 0x456240
+void GameMode::addVehicleNode(Van* theVan)
+{
+	if (theVan->getLayer() == AIR_LAYER)
+		mScreen->mAirGroup->addChild(theVan);
+	else
+		mScreen->mGroundGroup->addChild(theVan);
+}
+
+// 0x456220
+void GameMode::removeVehicleNode(Van* theVan)
+{
+	theVan->addOwnFlags(engine::NODE_REMOVE);
+	mMap->removeVehicle(theVan);
+}
+
+// 0x45ac60
+void GameMode::addEventPopup(EventPopup* thePopup)
+{
+	if (!mEventPopups.empty())
+		mEventPopups.back()->setVisible(false);
+	mEventPopups.push_back(thePopup);
+	mScreen->addChild(thePopup);
+	thePopup->show();
+}
+
+// 0x457a90
+void GameMode::removeEventPopup(EventPopup* thePopup)
+{
+	for (std::vector<engine::Ref<EventPopup>>::iterator anIter = mEventPopups.begin(); anIter != mEventPopups.end();
+	     ++anIter)
+	{
+		if (anIter->get() == thePopup)
+		{
+			mEventPopups.erase(anIter);
+			break;
+		}
+	}
+	thePopup->addOwnFlags(engine::NODE_REMOVE);
+}
+
+// 0x457b00
+void GameMode::clearEventPopups()
+{
+	for (size_t i = 0; i < mEventPopups.size(); i++)
+		mEventPopups[i]->addOwnFlags(engine::NODE_REMOVE);
+	mEventPopups.clear();
+}
+
+// 0x457c50: with no order picked the coupon is held on the cursor (the one held before goes back); with orders
+// picked and the tips to pay the price for each, the orders ask for the coupon's topping
+void GameMode::pickCoupon(CouponButton* theCoupon)
+{
+	int aTotalPrice = theCoupon->getPrice() * (int)mPicks.size();
+	if (mPicks.empty())
+	{
+		if (mCoupon != nullptr)
+		{
+			mCoupon->putBack();
+			mCoupon = nullptr;
+			mScreen->setCouponCursor(nullptr);
+		}
+		mCoupon = theCoupon;
+		mScreen->setCouponCursor(theCoupon);
+	}
+	else if (aTotalPrice <= mStats->mTipMoney)
+	{
+		playSound(SOUND_COUPON);
+		mStats->addTips(-aTotalPrice);
+		CustomerPopup* aPopup = nullptr;
+		for (size_t i = 0; i < mPicks.size(); i++)
+		{
+			aPopup = static_cast<CustomerPopup*>(mPicks[i]->getOccupant());
+			Order* anOrder = aPopup->getOrder();
+			anOrder->mTopping = theCoupon->getTopping();
+			aPopup->replaceOrder(anOrder, false);
+		}
+		mScreen->hideOrderCursor();
+		theCoupon->setPrice(theCoupon->getPrice() + COUPON_PRICE_STEP);
+		theCoupon->putBack();
+		aPopup->buildPickCards(mScreen->mOrderCursor);
+	}
+}
+
+// 0x457e80: the coupon held is used on the customer's order, and paid for
+void GameMode::useCoupon(CustomerPopup* thePopup)
+{
+	Order* anOrder = thePopup->getOrder();
+	anOrder->mTopping = mCoupon->getTopping();
+	thePopup->replaceOrder(anOrder, true);
+	playSound(SOUND_COUPON);
+	mStats->addTips(-mCoupon->getPrice());
+	mCoupon->setPrice(mCoupon->getPrice() + COUPON_PRICE_STEP);
+	mCoupon->putBack();
+	mCoupon = nullptr;
+	mScreen->setCouponCursor(nullptr);
+}
+
+// 0x456d10
+void GameMode::arrest(BuildingTile* thePoliceTile, CustomerTile* theTile)
+{
+	static_cast<PolicePopup*>(thePoliceTile->getOccupant())->sendCar(theTile);
+	mStats->mCustomersServed++;
+	mWaveCustomersLeft--;
+	mStats->mOrderCount--;
+	if (mWaveCustomersLeft == 0)
+		waveDone();
+	CustomerTile* aPoliceHouse = static_cast<CustomerTile*>(thePoliceTile);
+	if (hasPendingSpecialOrder())
+	{
+		aPoliceHouse->callPolice(Character::SPECIAL_POLICE);
+		return;
+	}
+	Order* anOrder = new Order();
+	anOrder->mTile = aPoliceHouse;
+	anOrder->mCharacter = aPoliceHouse->getCharacter();
+	anOrder->mTopping = theTile->getOrder()->mTopping;
+	anOrder->mPizzaCount = anOrder->mCharacter->mNumPizzas;
+	mStats->mPizzasOrdered += anOrder->mPizzaCount;
+	mStats->mOrderCount++;
+	mStats->mCustomersServed--;
+	mWaveCustomersLeft++;
+	anOrder->mWaitTime = theTile->getOrder()->mWaitTime;
+	aPoliceHouse->setOrder(anOrder, false);
+}
+
+// 0x45a300: the pizza the kitchen made is given to the customer of the tile: the combo's length and best are counted,
+// and the money of the pizzas and of a frenzy is added; the splats that show the money (the combo's text, the frenzy's
+// and the pizzas' "toppingBonus") are left out. The kitchen's van goes to the house, which serves and then finishes
+// the order (the tip); the event that wants no pizza is sent away by the police instead
+void GameMode::deliver(BuildingTile* theKitchen, CustomerTile* theTile, bool theSendVan)
+{
+	Order* anOrder = theTile->getOrder();
+	if (anOrder->mTopping == mComboTopping && anOrder->asksForPizza())
+		mStats->mComboLength++;
+	else
+	{
+		mComboTopping = anOrder->mTopping;
+		mStats->mComboLength = 1;
+	}
+	int& aBestCombo = mStats->mBestCombos[mComboTopping];
+	if (aBestCombo < mStats->mComboLength)
+	{
+		aBestCombo = mStats->mComboLength;
+		int anUpgradeIndex = -1;
+		for (size_t i = 0; mComboTopping != nullptr && i < mComboTopping->mUpgrades.size(); i++)
+		{
+			if (mStats->mComboLength == mComboTopping->mUpgrades[i]->mCombo)
+				anUpgradeIndex = (int)i;
+		}
+		if (mStats->mToppingLevels[mComboTopping] < anUpgradeIndex)
+			playSound(SOUND_UPGRADE);
+	}
+	if (!mActiveOrders.empty())
+		mActiveOrders.pop_front();
+	anOrder->mSecondsSinceDelivery = mSecondsSinceDelivery;
+	mSecondsSinceDelivery = 0;
+	if (!anOrder->asksForPizza())
+	{
+		theTile->removeOccupant();
+		dismissPolice();
+	}
+	else
+	{
+		mStats->mCustomersServed++;
+		int aLength = mStats->mComboLength;
+		if (aLength > 0)
+		{
+			float aMultiplier = (float)(aLength - 1) * COMBO_STEP + 1.0f;
+			int aFives = aLength / FRENZY_COMBO;
+			mMap->showCombo(mComboTopping, aLength, aFives);
+			if (aLength % FRENZY_COMBO == 0 && aFives > 0)
+			{
+				playSound(formatText(SOUND_FRENZY, std::min(aFives - 1, FRENZY_MAX_SOUND)));
+				mStats->addTips(FRENZY_BONUS * aFives);
+			}
+			playSound(SOUND_TOPPING_COMBO, 1.0f, aMultiplier);
+		}
+		mDeliveryStreak++;
+		if (mDeliveryStreak == STREAK_LENGTH)
+		{
+			mDeliveryStreak = 0;
+			addHappiness(STREAK_HAPPINESS);
+		}
+		Topping* aTopping = anOrder->mTopping;
+		int aPizzaCount = anOrder->mPizzaCount;
+		if (aPizzaCount > 0)
+			mStats->addTips(aTopping->getUpgradeValue(mStats->getUpgrade(aTopping)) * aPizzaCount);
+		mStats->mPizzasDelivered += aPizzaCount;
+		if (theSendVan)
+			static_cast<KitchenTile*>(theKitchen)->sendVan(theTile);
+		else
+			mSpeedBonusTime = 0;
+	}
+	mWaveCustomersLeft--;
+	mStats->mOrderCount--;
+	if (mWaveCustomersLeft == 0)
+		waveDone();
 }

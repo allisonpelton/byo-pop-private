@@ -52,7 +52,7 @@ void GameStats::reset()
 	mTipsEarned = 0;
 	mWavesStarted = 0;
 	mComboLength = 0;
-	mTallies.clear();
+	mBestCombos.clear();
 	mCountI = 0;
 	mCountJ = 0;
 	mCountK = 0;
@@ -89,7 +89,7 @@ void GameStats::resetLevelCounters()
 	mTipsEarned = 0;
 	mWavesStarted = 0;
 	mComboLength = 0;
-	mTallies.clear();
+	mBestCombos.clear();
 	mCountI = 0;
 	mCountJ = 0;
 	mCountK = 0;
@@ -106,7 +106,7 @@ void GameStats::pickKitchenToppings(Level* theLevel)
 	for (size_t i = 0; i < theLevel->mKitchens.size(); i++)
 		theLevel->mKitchens[i].mTopping = nullptr;
 	std::vector<engine::Ref<Topping>> aCandidates;
-	for (std::map<Topping*, int>::iterator anIt = mToppingLevels.begin(); anIt != mToppingLevels.end(); ++anIt)
+	for (ToppingMap<int>::iterator anIt = mToppingLevels.begin(); anIt != mToppingLevels.end(); ++anIt)
 		aCandidates.push_back(anIt->first);
 	UserGameData* aUserData = PizzaFrenzy::instance()->mUserGameData;
 	aUserData->mPickToppings.clear();
@@ -149,7 +149,7 @@ void GameStats::saveTo(UserGameData* theUserData, int theMode)
 	aMode.mLastScore = mScore;
 	aMode.mElapsedTime = mElapsedTime;
 	theUserData->mToppingLevels.clear();
-	for (std::map<Topping*, int>::iterator i = mToppingLevels.begin(); i != mToppingLevels.end(); ++i)
+	for (ToppingMap<int>::iterator i = mToppingLevels.begin(); i != mToppingLevels.end(); ++i)
 	{
 		if (i->first != nullptr)
 			theUserData->mToppingLevels[i->first] = i->second;
@@ -179,6 +179,14 @@ Upgrade* GameStats::getUpgrade(Topping* theTopping)
 	if (aLevel >= anUpgrades.size())
 		aLevel = anUpgrades.size() - 1;
 	return anUpgrades[aLevel];
+}
+
+// 0x41a670
+int GameStats::getPickLimit(Topping* theTopping)
+{
+	if (PizzaFrenzy::instance()->mGameMode == PizzaFrenzy::MODE_CONCENTRATION)
+		return 1;
+	return mToppingLevels[theTopping] + 1;
 }
 
 // 0x419b90

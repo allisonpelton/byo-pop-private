@@ -49,8 +49,14 @@ public:
 	// slot 0x170: 0x452d20: the topping of the order is not known until the pictures have run through the toppings
 	// of the map and stopped on it
 	virtual void startChameleon(Order* theOrder, bool theQuiet);
-	// Slot 0x174, 0x454050 and slot 0x178, 0x451e50 (the two cards that show the order picked, built for the click)
-	// are translated next with the click handler.
+	// slot 0x174: 0x454050: the order cursor shows the orders picked: a card for each, this order's pizzas on the last,
+	// and the indicator of how many more orders can be picked with it
+	virtual void buildPickCards(engine::Container* theCursor);
+	// slot 0x178: 0x451e50: one piece of the indicator, in its lit picture on the cursor and its flashing one in the
+	// holder that flashes when a click is not taken (the kind is 0 for the left end, 1 for the middle, 2 for the right
+	// end and 3 for the indicator of a single order)
+	virtual void addIndicator(engine::Container* theCursor, engine::Container* theFlashHolder, float theX, float theY,
+	                          int theKind);
 	// slot 0x17c: 0x452b30: whether the customer is a chameleon; the customer waits again
 	virtual void setChameleon(bool theChameleon);
 	// slot 0x180: 0x453210: the order is finished: the mode is told, and the popup closes

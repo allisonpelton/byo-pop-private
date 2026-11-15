@@ -44,6 +44,10 @@ public:
 	void setCouponCursor(engine::Node* theNode);
 	// 0x435180: the order cursor is emptied
 	void hideOrderCursor();
+	// 0x435210: the flash of the order cursor's indicators shows for a third of a second: a click that is not taken
+	void flashCursor();
+	// 0x4351c0: the container of the indicators that flash is the one the order cursor made last, and is hidden
+	void setFlashIndicators(engine::Node* theIndicators);
 	// 0x435ba0: a frame of the screen (the speed bonus banner's, the vehicles', and the nodes of the sorted group);
 	// translated next
 	void updateScreen(engine::UpdateInfo& theInfo);
@@ -57,7 +61,9 @@ public:
 	engine::Ref<engine::Container> mSfxGroup;          // +0x1ec: "SfxGroup"
 	engine::Ref<engine::Container> mTipsGroup;         // +0x1f0: "TipsGroup"
 	engine::Ref<engine::Container> mOrderCursor;       // +0x1f4: "OrderCursor"
+	engine::Ref<engine::Node> mFlashIndicators;        // +0x1f8: the order cursor's indicators that flash
 	engine::Ref<engine::Image> mGroundImage;           // +0x200: the city's ground, made once
+	float mFlashTime;                                  // +0x214: the seconds the flash still shows
 	// +0x20c: the layout of the screen (res/screenLayouts/gameScreen.xml), which the city select hides while it draws
 	// the postcards
 	engine::Ref<engine::ScreenLayout> mGameLayout;

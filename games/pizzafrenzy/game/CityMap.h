@@ -10,6 +10,8 @@
 #include "DocHandler.h"
 #include "Object.h"
 #include "Tiles.h"
+#include "Tip.h"
+#include "Van.h"
 
 #include <map>
 #include <string>
@@ -48,13 +50,23 @@ public:
 	// 0x413a80
 	void addDecoration(Decoration* theDecoration);
 
-	// 0x4122e0 (slot 0x4): a frame of the map: its tiles (unless they are stopped), and the boat spawners; the boats
-	// and the vehicles are translated next
+	// 0x4122e0 (slot 0x4): a frame of the map: its tiles and tips (unless they are stopped), the vehicles and the boat
+	// spawners; the vehicles are translated next
 	void update(engine::UpdateInfo& theInfo);
+	// 0x413b00: the tip is kept (it waits on the map for the click)
+	void addTip(TipPopup* theTip) { mTips.push_back(theTip); }
+	// 0x4127b0: the tip is let go of, and disconnected
+	void removeTip(TipPopup* theTip);
+	// 0x411c00: the tile that covers the cell, none for a cell off the grid or with no tile
+	Tile* getTileAt(const engine::IntPair& theCell) const;
+	// 0x412020: the road nearest the cell, by the square of the distance, and nearer than the square of the range's;
+	// none when no road is that near
+	Tile* findNearestRoad(const engine::IntPair& theCell, const engine::IntPair& theRange);
 	// 0x413fc0: the toppings the kitchens make are listed, each once
 	void collectKitchenToppings();
-	// 0x412170: the kitchens that make the topping show the length of the combo on their signs, the others none
-	void showCombo(Topping* theTopping, int theLength);
+	// 0x412170: the kitchens that make the topping show the length of the combo and its number of fives on their signs,
+	// the others none
+	void showCombo(Topping* theTopping, int theLength, int theFives);
 	// 0x412940: the boat spawners of the level are let go
 	void clearBoatSpawners();
 	// 0x413f40: the spawner is kept and updated
@@ -68,11 +80,18 @@ public:
 	CustomerTile* findCustomerTileBySpecial(int theSpecial);
 	// 0x4120a0: one of the kitchens' toppings, drawn; none when there are none
 	Topping* getRandomKitchenTopping();
-	// 0x4120f0: the houses have nothing left to wait for (no popup that is not about to go) and no boat is raised
+	// 0x4120f0: the houses have nothing left to wait for (no popup that is not about to go) and no tip waits for the
+	// click
 	bool isIdle();
 
-	// Left for the game's play: 0x413b00 (the boats, +0x68), 0x413b80 (the vehicles, +0xbc) and 0x429cf0 (the
-	// pathfinder's grid, +0x104, which setGrid fills)
+	// 0x413b80: the vehicle is kept and updated
+	void addVehicle(Van* theVan) { mVehicles.push_back(theVan); }
+	// 0x412820: the vehicle is let go of
+	void removeVehicle(Van* theVan);
+	// 0x411af0: the cell the point on the screen is in ((-1, -1) for a point off the grid)
+	engine::IntPair pointToCell(const engine::IntPair& thePoint) const;
+	// 0x411c80: a tile that blocks the vehicles is at the cell
+	bool isBlockedAt(const engine::IntPair& theCell) const;
 
 	// the tiles by their names (+0x2c), which the game screen takes its nodes from in this order
 	std::map<std::string, engine::Ref<Tile>> mTiles;
@@ -83,6 +102,8 @@ public:
 	std::vector<engine::Ref<BoatSpawner>> mBoatSpawners;  // +0x88
 	std::vector<engine::Ref<Topping>> mKitchenToppings;  // +0x9c: the toppings the kitchens make, each once
 	std::vector<engine::Ref<Decoration>> mDecorations;  // +0xac
+	std::vector<engine::Ref<TipPopup>> mTips;           // +0x68: the tips that are up, waiting or going
+	std::vector<engine::Ref<Van>> mVehicles;            // +0xbc
 	// +0x13c: the tiles' frames stop while it is set; nothing translated sets it
 	bool mTilesStopped;
 

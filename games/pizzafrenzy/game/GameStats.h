@@ -38,13 +38,16 @@ public:
 
 	// 0x419b90: the tips are added to the tip money, which is never under 0
 	void addTips(int theTips);
+	// 0x41a670: how many orders for the topping can be picked together: one more than the player's level of it (one in
+	// the concentration mode)
+	int getPickLimit(Topping* theTopping);
 
 	// 0x419d30: the mode's saved game takes the score and the time, and the player's toppings are the game's
 	void saveTo(UserGameData* theUserData, int theMode);
 
 	int mScore;                                  // +0x0c
 	float mElapsedTime;                          // +0x10
-	std::map<Topping*, int> mToppingLevels;      // +0x14: the level of each topping the player has
+	ToppingMap<int> mToppingLevels;      // +0x14: the level of each topping the player has
 	int mPizzasDelivered;                        // +0x20: the pizzas the customers have been given; the level ends with the
 	                                             // prize blimp when they are all (0x456ac0, 0x45a300)
 	int mPizzasOrdered;                          // +0x24: the pizzas the customers have ordered (0x459b90, 0x456d10)
@@ -64,7 +67,8 @@ public:
 	int mWavesStarted;                           // +0x3c: counted up when a wave starts (0x45a9a0)
 	// +0x40: how many pizzas of the same topping the player has delivered in a row (the kitchens' signs show it)
 	int mComboLength;
-	std::map<int, int> mTallies;                 // +0x44: nothing translated reads it
+	// +0x44: the longest combo of each topping this game (0x45a300), which an upgrade's combo is compared with
+	ToppingMap<int> mBestCombos;
 	int mCountI;                                 // +0x50: nothing translated reads it
 	int mCountJ;                                 // +0x54: nothing translated reads it
 	int mCountK;                                 // +0x58: nothing translated reads it

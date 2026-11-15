@@ -218,7 +218,7 @@ void LevelStartScreen::onAction(std::string theAction)
 // 0x446210: the page's toppings are the player's, in the order of the player's map, those before the page skipped
 void LevelStartScreen::showPage(int theSide, int thePage)
 {
-	std::map<Topping*, int>& aLevels = PizzaFrenzy::instance()->mGameStats->mToppingLevels;
+	ToppingMap<int>& aLevels = PizzaFrenzy::instance()->mGameStats->mToppingLevels;
 	int aToppingCount = (int)aLevels.size();
 	mPages[theSide]->setVisible(true);
 	int aPageCount = aToppingCount / TOPPINGS_PER_PAGE;
@@ -236,7 +236,7 @@ void LevelStartScreen::showPage(int theSide, int thePage)
 		mTurnButtons[theSide]->setEnabled(true);
 	}
 	mButtonGroups[theSide]->removeAllChildren();
-	std::map<Topping*, int>::iterator aLevelIt = aLevels.begin();
+	ToppingMap<int>::iterator aLevelIt = aLevels.begin();
 	int aSkipped = thePage * TOPPINGS_PER_PAGE;
 	for (int i = 0; i < aSkipped; i++)
 	{

@@ -20,6 +20,7 @@ const char* const GROUP_NAME_AIR = "AirGroup";
 const char* const GROUP_NAME_SFX = "SfxGroup";
 const char* const GROUP_NAME_TIPS = "TipsGroup";
 const char* const GROUP_NAME_ORDER_CURSOR = "OrderCursor";
+const float FLASH_SECONDS = 0.3f;  // how long the order cursor's flash shows
 
 // 0x470a50 (pizzafrenzy): two rectangles that overlap; an empty rectangle overlaps nothing
 bool rectsIntersect(const engine::Rect& theFirst, const engine::Rect& theSecond)
@@ -80,7 +81,7 @@ void SortedContainer::addChild(engine::Node* theChild)
 }
 
 // 0x434be0
-GameScreen::GameScreen()
+GameScreen::GameScreen() : mFlashTime(0)
 {
 }
 
@@ -239,6 +240,23 @@ void GameScreen::drawCity()
 // 0x435ba0: translated next with the game's play
 void GameScreen::updateScreen(engine::UpdateInfo& theInfo)
 {
+}
+
+// 0x435210
+void GameScreen::flashCursor()
+{
+	if (mFlashIndicators != nullptr)
+	{
+		mFlashIndicators->setVisible(true);
+		mFlashTime = FLASH_SECONDS;
+	}
+}
+
+// 0x4351c0
+void GameScreen::setFlashIndicators(engine::Node* theIndicators)
+{
+	mFlashIndicators = theIndicators;
+	theIndicators->setVisible(false);
 }
 
 // 0x4352a0

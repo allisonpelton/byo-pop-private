@@ -15,6 +15,8 @@
 namespace pizzafrenzy
 {
 
+class Van;
+
 class CityMap;
 class PizzaPopup;
 
@@ -54,6 +56,10 @@ public:
 	virtual void prepare() {}
 	// slot 0x154: 0x454e60 (false) here; the road and the bridge: whether a road is at the cell
 	virtual bool isRoadAt(const engine::IntPair& theCell) { return false; }
+	// slot 0x150: 0x41b230 (-1) here; the road and the bridge: what it costs a vehicle to drive over the cell
+	virtual int getWeight(const engine::IntPair& theCell) { return -1; }
+	// slot 0x158: false here; the bridge: a raised one blocks the vehicles
+	virtual bool isBlocked(const engine::IntPair& theCell) { return false; }
 	// slot 0x164: 0x492310 (nothing) here: a frame of the tile, from the map's update
 	virtual void tick(engine::UpdateInfo& theInfo) {}
 	// slot 0x168: 0x451610 (true) here; the buildings: nothing stands on the tile
@@ -89,6 +95,7 @@ public:
 	engine::Node* getLayerNode(int theLayer) override;                          // 0x426c10: layer 1 only
 	void prepare() override;                                                   // 0x426d30
 	bool isRoadAt(const engine::IntPair& theCell) override { return true; }
+	int getWeight(const engine::IntPair& theCell) override { return mWeight; }  // 0x426ea0
 
 private:
 	engine::Ref<engine::ImageNode> mRoadNode;  // +0x194
@@ -105,6 +112,8 @@ public:
 	engine::Node* getLayerNode(int theLayer) override;                          // 0x4265c0: layers 3 and 2
 	void place(CityMap* theMap, const engine::IntPair& theCell) override;       // 0x426580
 	bool isRoadAt(const engine::IntPair& theCell) override { return true; }
+	int getWeight(const engine::IntPair& theCell) override { return 1; }                // 0x426550
+	bool isBlocked(const engine::IntPair& theCell) override { return mRaised; }         // 0x4263e0
 	// slot 0x164: 0x4263f0: the time the bridge is raised runs out, and it is let down
 	void tick(engine::UpdateInfo& theInfo) override;
 	// slot 0x170: 0x4265e0: the bridge is raised (the way blocked, for two seconds) or let down
@@ -141,8 +150,13 @@ public:
 	virtual void removeOccupant();
 	// slot 0x198: 0x41c140: the popup hangs up
 	void hangUp();
+	// slot 0x170: 0x41bf50: the popup is picked
+	void pick();
 	// slot 0x174: 0x41bf70: the popup's pick, if it is picked, is let go
 	void unpick();
+	// slot 0x1a4: 0x41bd40: the cell on the road where the vehicles of the tile stop and start: the one its parking
+	// spot gives when that has a road, else the nearest road within four cells across and down; (-1, -1) for none
+	engine::IntPair getRoadCell();
 	// slot 0x19c: 0x41c160: the flag of the popup (PizzaPopup.h), false for a tile without one
 	bool isOccupantLeaving();
 
@@ -151,6 +165,10 @@ public:
 
 	// 0x41c3d0: the vans are let go
 	void clearVehicles();
+	// slot 0x1a0: 0x41c560: the van is kept, put on the map at the road cell and on the screen
+	void addVehicle(const engine::IntPair& theCell, Van* theVan);
+	// slot 0x1a8: 0x41c460: the van is let go of and told to leave
+	void removeVehicle(Van* theVan);
 
 	engine::IntPair mParkingSpot;  // +0x198: the cell a van stops at
 
@@ -178,6 +196,15 @@ public:
 	void setOrder(Order* theOrder, bool theFlag);
 	// slot 0x1b0: 0x41b730: the police's popup is put on the tile when the kind is the police's
 	void callPolice(int theSpecial);
+	// slot 0x1b4: 0x41b820: the popup is served: the pizza is on its way
+	void serve();
+	// slot 0x1c0: 0x41b840: a customer's popup finishes, and the police's own customer, when other orders of the
+	// events are pending, brings the police's popup back
+	void finish();
+	// slot 0x1c4: 0x41b8b0: a customer's popup is made impatient, or hangs up
+	void setImpatient(bool theImpatient);
+	// slot 0x1c8: 0x41b980: a customer's popup flashes
+	void flash();
 
 	std::string mCharacterName;     // +0x1b8: the character that lives there
 };
@@ -200,7 +227,12 @@ public:
 	void setVanType(const std::string& theVanType) { mVanType = theVanType; }
 	// 0x41cb80: the sign shows the length of the combo (none for 0), its number in rows of five, and its colour from
 	// the length too
-	void showCombo(int theLength);
+	void showCombo(int theLength, int theFives);
+	// 0x41c9e0: a van of the kitchen that is not on its way, or a new one of the kitchen's type, put on the map
+	Van* getVehicle();
+	// slot 0x1ac: 0x41cf50: a van goes from the kitchen to the house, and the house and the kitchen's popup are served;
+	// translated next with the vehicles
+	void sendVan(CustomerTile* theTile);
 
 	std::string mVanType;          // +0x1b8: "PizzaVan"
 

@@ -53,6 +53,28 @@ const float PICKED_FADE_SECONDS = 0.5f;
 const float DIM = -0.1f;
 const int COLOR_MODE_ADD = 1;
 
+// the cards of the order cursor: one for each order picked, five up from the one before, and the indicator of how
+// many orders more can be picked, which goes under them
+const float CARD_STEP = 5.0f;
+const float INDICATOR_DROP = 45.0f;
+const float INDICATOR_X = -29.0f;
+const float INDICATOR_END_SHIFT_X = 5.0f;
+const float INDICATOR_PART_SHIFT_X = 1.0f;
+const float INDICATOR_SHIFT_Y = 4.0f;
+const char* const INDICATOR_SINGLE_IMAGE = "res/pizza/orderIndicator.jpg";
+const char* const INDICATOR_LEFT_IMAGE = "res/pizza/orderIndicatorL.jpg";
+const char* const INDICATOR_MIDDLE_IMAGE = "res/pizza/orderIndicatorC.jpg";
+const char* const INDICATOR_RIGHT_IMAGE = "res/pizza/orderIndicatorR.jpg";
+const char* const INDICATOR_SINGLE_LIT_IMAGE = "res/pizza/orderIndicator_on.jpg";
+const char* const INDICATOR_LEFT_LIT_IMAGE = "res/pizza/orderIndicatorL_on.jpg";
+const char* const INDICATOR_MIDDLE_LIT_IMAGE = "res/pizza/orderIndicatorC_on.jpg";
+const char* const INDICATOR_RIGHT_LIT_IMAGE = "res/pizza/orderIndicatorR_on.jpg";
+const char* const INDICATOR_SINGLE_FLASH_IMAGE = "res/pizza/orderIndicator_flash.jpg";
+const char* const INDICATOR_LEFT_FLASH_IMAGE = "res/pizza/orderIndicatorL_flash.jpg";
+const char* const INDICATOR_MIDDLE_FLASH_IMAGE = "res/pizza/orderIndicatorC_flash.jpg";
+const char* const INDICATOR_RIGHT_FLASH_IMAGE = "res/pizza/orderIndicatorR_flash.jpg";
+enum { INDICATOR_LEFT = 0, INDICATOR_MIDDLE = 1, INDICATOR_RIGHT = 2, INDICATOR_SINGLE = 3 };
+
 GameMode* getMode()
 {
 	return PizzaFrenzy::instance()->mMode;
@@ -554,4 +576,108 @@ void DimmedState::exit()
 {
 	mOwner->setColorMode(0);
 	mOwner->setColor(0.0f, 0.0f, 0.0f);
+}
+
+// 0x454050
+void CustomerPopup::buildPickCards(engine::Container* theCursor)
+{
+	PizzaFrenzy* anApp = PizzaFrenzy::instance();
+	int aPickCount = anApp->mMode->getPickCount();
+	engine::Image* aCard = engine::App::instance()->createImage(BUTTON_IMAGE, false);
+	aCard->setPivot(1);
+	float aY = 0;
+	for (int i = 0; i < aPickCount; i++)
+	{
+		engine::ImageNode* aNode = new engine::ImageNode(aCard);
+		aNode->setPosition(0.0f, aY);
+		aY = aY - CARD_STEP;
+		theCursor->addChild(aNode);
+	}
+	engine::Container* aPizzas = new engine::Container();
+	theCursor->addChild(aPizzas);
+	aPizzas->setPosition(0.0f, aY);
+	showOrder(aPizzas, mOrder);
+	float anIndicatorY = aY - INDICATOR_DROP;
+	engine::Container* aFlashHolder = new engine::Container();
+	int aLimit = anApp->mGameStats->getPickLimit(mOrder->mTopping);
+	if (aLimit == 1)
+	{
+		engine::Image* aSingle = engine::App::instance()->createImage(INDICATOR_SINGLE_IMAGE, false);
+		engine::ImageNode* aNode = new engine::ImageNode(aSingle);
+		aNode->setPosition(INDICATOR_X, anIndicatorY);
+		theCursor->addChild(aNode);
+		if (0 < aPickCount)
+			addIndicator(theCursor, aFlashHolder, INDICATOR_X, anIndicatorY, INDICATOR_SINGLE);
+	}
+	else
+	{
+		engine::Image* aLeft = engine::App::instance()->createImage(INDICATOR_LEFT_IMAGE, false);
+		engine::ImageNode* aLeftNode = new engine::ImageNode(aLeft);
+		aLeftNode->setPosition(INDICATOR_X, anIndicatorY);
+		theCursor->addChild(aLeftNode);
+		if (0 < aPickCount)
+			addIndicator(theCursor, aFlashHolder, INDICATOR_X, anIndicatorY, INDICATOR_LEFT);
+		float aX = (float)aLeft->getWidth() + INDICATOR_X;
+		for (int i = 0; i < aLimit - 2; i++)
+		{
+			engine::Image* aMiddle = engine::App::instance()->createImage(INDICATOR_MIDDLE_IMAGE, false);
+			engine::ImageNode* aMiddleNode = new engine::ImageNode(aMiddle);
+			aMiddleNode->setPosition(aX, anIndicatorY);
+			theCursor->addChild(aMiddleNode);
+			if (i + 1 < aPickCount)
+				addIndicator(theCursor, aFlashHolder, aX, anIndicatorY, INDICATOR_MIDDLE);
+			aX = (float)aMiddle->getWidth() + aX;
+		}
+		engine::Image* aRight = engine::App::instance()->createImage(INDICATOR_RIGHT_IMAGE, false);
+		engine::ImageNode* aRightNode = new engine::ImageNode(aRight);
+		aRightNode->setPosition(aX, anIndicatorY);
+		theCursor->addChild(aRightNode);
+		if (aPickCount == aLimit)
+			addIndicator(theCursor, aFlashHolder, aX, anIndicatorY, INDICATOR_RIGHT);
+	}
+	theCursor->addChild(aFlashHolder);
+	anApp->mMode->getScreen()->setFlashIndicators(aFlashHolder);
+}
+
+// 0x451e50
+void CustomerPopup::addIndicator(engine::Container* theCursor, engine::Container* theFlashHolder, float theX,
+                                 float theY, int theKind)
+{
+	const char* aLitImage = nullptr;
+	const char* aFlashImage = nullptr;
+	switch (theKind)
+	{
+	case INDICATOR_LEFT:
+		aLitImage = INDICATOR_LEFT_LIT_IMAGE;
+		aFlashImage = INDICATOR_LEFT_FLASH_IMAGE;
+		theX = theX + INDICATOR_END_SHIFT_X;
+		theY = theY + INDICATOR_SHIFT_Y;
+		break;
+	case INDICATOR_MIDDLE:
+		aLitImage = INDICATOR_MIDDLE_LIT_IMAGE;
+		aFlashImage = INDICATOR_MIDDLE_FLASH_IMAGE;
+		theX = theX + INDICATOR_PART_SHIFT_X;
+		theY = theY + INDICATOR_SHIFT_Y;
+		break;
+	case INDICATOR_RIGHT:
+		aLitImage = INDICATOR_RIGHT_LIT_IMAGE;
+		aFlashImage = INDICATOR_RIGHT_FLASH_IMAGE;
+		theX = theX + INDICATOR_PART_SHIFT_X;
+		theY = theY + INDICATOR_SHIFT_Y;
+		break;
+	case INDICATOR_SINGLE:
+		aLitImage = INDICATOR_SINGLE_LIT_IMAGE;
+		aFlashImage = INDICATOR_SINGLE_FLASH_IMAGE;
+		theX = theX + INDICATOR_END_SHIFT_X;
+		theY = theY + INDICATOR_SHIFT_Y;
+		break;
+	default:
+		return;
+	}
+	engine::ImageNode* aLit = new engine::ImageNode(engine::App::instance()->createImage(aLitImage, false));
+	aLit->setPosition(theX, theY);
+	theCursor->addChild(aLit);
+	engine::ImageNode* aFlash = new engine::ImageNode(engine::App::instance()->createImage(aFlashImage, false));
+	aFlash->setPosition(theX, theY);
+	theFlashHolder->addChild(aFlash);
 }

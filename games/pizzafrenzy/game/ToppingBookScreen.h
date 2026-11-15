@@ -49,7 +49,7 @@ private:
 	engine::Ref<engine::TextItem> mDescriptions[2];       // +0x218
 	engine::Ref<engine::TextItem> mPageNumbers[2];        // +0x220
 	engine::Ref<engine::ImageButton> mTurnButtons[2];     // +0x228: the arrows
-	std::map<Topping*, engine::Ref<engine::Image>> mDarkImages;  // +0x230: a topping's picture with its colours gone
+	ToppingMap<engine::Ref<engine::Image>> mDarkImages;  // +0x230: a topping's picture with its colours gone
 	engine::HsvShiftFilter mDarkFilter;                   // +0x23c: a counted object in the original
 	std::string mValueTemplate;                           // +0x240: the left value's text as the layout has it
 	std::string mLevelTemplate;                           // +0x25c

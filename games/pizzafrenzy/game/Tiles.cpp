@@ -3,7 +3,9 @@
 #include "CityMap.h"
 #include "CustomerPopup.h"
 #include "PizzaFrenzy.h"
+#include "GameMode.h"
 #include "PizzaPopup.h"
+#include "Van.h"
 
 using namespace pizzafrenzy;
 
@@ -20,6 +22,8 @@ const int ROAD_PREVIOUS_COLUMN = 2;
 const int ROAD_PREVIOUS_ROW = 4;
 const int ROAD_NEXT_COLUMN = 8;
 const float WATER_OPACITY = 0.5f;
+// how far from a building the nearest road is looked for, in cells across and down
+const int ROAD_SEARCH_RANGE = 4;
 const float RAISED_SECONDS = 2.0f;
 // where the popup of a kitchen stands on its tile (0x41c640)
 const float POPUP_TOP = 16.0f;
@@ -376,6 +380,26 @@ void BuildingTile::hangUp()
 		mOccupant->hangUp();
 }
 
+// 0x41bf50
+void BuildingTile::pick()
+{
+	if (mOccupant != nullptr)
+		mOccupant->pick();
+}
+
+// 0x41bd40: the road cell is the parking spot's from the tile's cell when a road is there, else the nearest road
+engine::IntPair BuildingTile::getRoadCell()
+{
+	engine::IntPair aCell = {mCell.mFirst + mParkingSpot.mFirst, mCell.mSecond + mParkingSpot.mSecond};
+	Tile* aTile = mMap->getTileAt(aCell);
+	if (aTile != nullptr && aTile->isRoadAt(aCell))
+		return aCell;
+	Tile* aRoad = mMap->findNearestRoad(mCell, engine::IntPair{ROAD_SEARCH_RANGE, ROAD_SEARCH_RANGE});
+	if (aRoad != nullptr)
+		return aRoad->getCell();
+	return engine::IntPair{-1, -1};
+}
+
 // 0x41bf70
 void BuildingTile::unpick()
 {
@@ -437,6 +461,39 @@ void CustomerTile::callPolice(int theSpecial)
 	}
 }
 
+// 0x41b820
+void CustomerTile::serve()
+{
+	if (mOccupant != nullptr)
+		mOccupant->serve();
+}
+
+// 0x41b840
+void CustomerTile::finish()
+{
+	if (mOccupant != nullptr && mOccupant->getKind() == POPUP_CUSTOMER)
+	{
+		static_cast<CustomerPopup*>(mOccupant.get())->finish();
+		if (getCharacter()->mSpecial == Character::SPECIAL_POLICE &&
+		    PizzaFrenzy::instance()->mMode->hasPendingSpecialOrder())
+			callPolice(Character::SPECIAL_POLICE);
+	}
+}
+
+// 0x41b8b0
+void CustomerTile::setImpatient(bool theImpatient)
+{
+	if (mOccupant != nullptr && mOccupant->getKind() == POPUP_CUSTOMER)
+		static_cast<CustomerPopup*>(mOccupant.get())->setImpatient(theImpatient);
+}
+
+// 0x41b980
+void CustomerTile::flash()
+{
+	if (mOccupant != nullptr && mOccupant->getKind() == POPUP_CUSTOMER)
+		static_cast<CustomerPopup*>(mOccupant.get())->flash();
+}
+
 // 0x41c6f0
 Topping* KitchenTile::getTopping()
 {
@@ -473,7 +530,57 @@ void KitchenTile::tick(engine::UpdateInfo& theInfo)
 }
 
 // 0x41cb80: the sign shows the length of the combo in the hue its row of five gives; translated next
-void KitchenTile::showCombo(int theLength)
+void KitchenTile::showCombo(int theLength, int theFives)
 {
 	// the sign's pictures are shifted in hue from the images "kitchenMarquis%d" and "kitchenMarquis4": translated next
+}
+
+// 0x41c560
+void BuildingTile::addVehicle(const engine::IntPair& theCell, Van* theVan)
+{
+	mVehicles.push_back(theVan);
+	theVan->setup(mMap, theCell, this);
+	PizzaFrenzy::instance()->mMode->addVehicleNode(theVan);
+}
+
+// 0x41c460 (by 0x41c360)
+void BuildingTile::removeVehicle(Van* theVan)
+{
+	theVan->leave();
+	for (size_t i = 0; i < mVehicles.size(); i++)
+	{
+		if (mVehicles[i].get() == theVan)
+		{
+			mVehicles.erase(mVehicles.begin() + i);
+			return;
+		}
+	}
+}
+
+// 0x41c9e0: the vans of the type "copter" and "canoe" are not translated, and are vans
+Van* KitchenTile::getVehicle()
+{
+	for (size_t i = 0; i < mVehicles.size(); i++)
+	{
+		Van* aVan = static_cast<Van*>(mVehicles[i].get());
+		if (aVan->isIdle())
+			return aVan;
+	}
+	Van* aVan = new Van(mVanType);
+	aVan->loadType();
+	addVehicle(getRoadCell(), aVan);
+	return aVan;
+}
+
+// 0x41cf50
+void KitchenTile::sendVan(CustomerTile* theTile)
+{
+	Van* aVan = getVehicle();
+	if (aVan != nullptr)
+	{
+		aVan->goTo(theTile);
+		theTile->serve();
+	}
+	if (mOccupant != nullptr)
+		mOccupant->serve();
 }

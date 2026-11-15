@@ -40,6 +40,9 @@ void CityMap::clear()
 	mRoads.clear();
 	mDecorations.clear();
 	mBridges.clear();
+	mTips.clear();
+	mVehicles.clear();
+	mBoatSpawners.clear();
 	mTilesStopped = false;
 }
 
@@ -81,6 +84,38 @@ engine::IntPair CityMap::cellToPoint(const engine::IntPair& theCell) const
 		aPoint.mSecond = (theCell.mSecond + 1) * mCellSize - 1 + mOffset.mSecond;
 	}
 	return aPoint;
+}
+
+// 0x412820
+void CityMap::removeVehicle(Van* theVan)
+{
+	for (size_t i = 0; i < mVehicles.size(); i++)
+	{
+		if (mVehicles[i].get() == theVan)
+		{
+			mVehicles.erase(mVehicles.begin() + i);
+			return;
+		}
+	}
+}
+
+// 0x411af0
+engine::IntPair CityMap::pointToCell(const engine::IntPair& thePoint) const
+{
+	engine::IntPair aCell = {(thePoint.mFirst - mOffset.mFirst) / mCellSize,
+	                         (thePoint.mSecond - mOffset.mSecond) / mCellSize};
+	if (!inGrid(aCell))
+		return engine::IntPair{-1, -1};
+	return aCell;
+}
+
+// 0x411c80
+bool CityMap::isBlockedAt(const engine::IntPair& theCell) const
+{
+	if (!inGrid(theCell))
+		return false;
+	Tile* aTile = mGrid[theCell.mFirst][theCell.mSecond];
+	return aTile != nullptr && aTile->isBlocked(theCell);
 }
 
 // 0x411c30
@@ -186,9 +221,11 @@ void CityMap::update(engine::UpdateInfo& theInfo)
 		for (std::map<std::string, engine::Ref<Tile>>::iterator anIter = mTiles.begin(); anIter != mTiles.end();
 		     ++anIter)
 			anIter->second->tick(theInfo);
-		// the boats' frames (0x42e560) are translated next
+		for (size_t i = 0; i < mTips.size(); i++)
+			mTips[i]->updateTip(theInfo);
 	}
-	// the vehicles' frames (slot 0x144 of each) are translated next
+	for (size_t i = 0; i < mVehicles.size(); i++)
+		mVehicles[i]->updateVehicle(theInfo);
 	for (size_t i = 0; i < mBoatSpawners.size(); i++)
 		mBoatSpawners[i]->update(theInfo);
 }
@@ -211,12 +248,13 @@ void CityMap::collectKitchenToppings()
 }
 
 // 0x412170
-void CityMap::showCombo(Topping* theTopping, int theLength)
+void CityMap::showCombo(Topping* theTopping, int theLength, int theFives)
 {
 	for (size_t i = 0; i < mKitchens.size(); i++)
 	{
 		KitchenTile* aKitchen = static_cast<KitchenTile*>(mKitchens[i].get());
-		aKitchen->showCombo(aKitchen->getTopping() == theTopping ? theLength : 0);
+		bool aMatch = aKitchen->getTopping() == theTopping;
+		aKitchen->showCombo(aMatch ? theLength : 0, aMatch ? theFives : 0);
 	}
 }
 
@@ -293,5 +331,51 @@ bool CityMap::isIdle()
 		if (!aTile->isEmpty() && !aTile->isOccupantLeaving() && aTile->getOccupant()->getKind() != 2)
 			anIdle = false;
 	}
+	for (size_t i = 0; i < mTips.size(); i++)
+	{
+		if (mTips[i]->isWaiting())
+			anIdle = false;
+	}
 	return anIdle;
+}
+
+// 0x4127b0
+void CityMap::removeTip(TipPopup* theTip)
+{
+	theTip->disconnect();
+	for (size_t i = 0; i < mTips.size(); i++)
+	{
+		if (mTips[i].get() == theTip)
+		{
+			mTips.erase(mTips.begin() + i);
+			break;
+		}
+	}
+}
+
+// 0x411c00
+Tile* CityMap::getTileAt(const engine::IntPair& theCell) const
+{
+	if (!inGrid(theCell))
+		return nullptr;
+	return mGrid[theCell.mFirst][theCell.mSecond];
+}
+
+// 0x412020: the first of the roads at the least distance
+Tile* CityMap::findNearestRoad(const engine::IntPair& theCell, const engine::IntPair& theRange)
+{
+	Tile* aNearest = nullptr;
+	int aLeast = theRange.mFirst * theRange.mFirst + theRange.mSecond * theRange.mSecond;
+	for (size_t i = 0; i < mRoads.size(); i++)
+	{
+		engine::IntPair aRoadCell = mRoads[i]->getCell();
+		int aDistance = (aRoadCell.mFirst - theCell.mFirst) * (aRoadCell.mFirst - theCell.mFirst) +
+		                (aRoadCell.mSecond - theCell.mSecond) * (aRoadCell.mSecond - theCell.mSecond);
+		if (aDistance < aLeast)
+		{
+			aLeast = aDistance;
+			aNearest = mRoads[i];
+		}
+	}
+	return aNearest;
 }

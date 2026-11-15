@@ -38,6 +38,10 @@ const char* const OTHER_EXCEPTION_TEXT = "Exception";
 // The host's ticks: microseconds (the original's QueryPerformanceCounter, whose rate the machine sets)
 const uint64_t TICKS_PER_SECOND = 1000000;
 
+// port: -seed=N (PizzaFrenzyApp::HandleCmdLineParam), which takes the place of the time the game seeds rand() with
+bool gTestSeedGiven = false;
+unsigned int gTestSeed = 0;
+
 // The framework's side of engine::Host
 class PizzaFrenzyHost : public engine::Host
 {
@@ -56,6 +60,15 @@ public:
 	uint64_t ticksPerSecond() override { return TICKS_PER_SECOND; }
 
 	bool fixOn(const char* theFix) override { return Platform::FixOn(theFix); }
+
+	// port: -seed=N, for the game's srand of the time
+	bool testSeed(unsigned int& theSeed) override
+	{
+		if (!gTestSeedGiven)
+			return false;
+		theSeed = gTestSeed;
+		return true;
+	}
 
 	bool readGameFile(const std::string& theName, std::vector<uint8_t>& theData) override
 	{
@@ -516,6 +529,17 @@ void PizzaFrenzyApp::EngineFailed(const char* theWhat)
 }
 
 // The run loop's end: the controller's shutdown (the settings saved)
+// port: -seed=N, for the identical-play runs
+void PizzaFrenzyApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-seed")
+	{
+		gTestSeedGiven = true;
+		gTestSeed = strtoul(theParamValue.c_str(), nullptr, 10);
+	}
+	SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
+}
+
 void PizzaFrenzyApp::Shutdown()
 {
 	if (mEngineRunning)

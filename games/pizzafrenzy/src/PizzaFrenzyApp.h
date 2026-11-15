@@ -74,6 +74,8 @@ public:
 	DDInterface* CreateDDInterface() override;
 #endif
 	void Shutdown() override;
+	// port: -seed=N, for the game's srand of the time
+	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	void GotFocus() override;
 	void LostFocus() override;
 

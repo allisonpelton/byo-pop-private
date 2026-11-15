@@ -70,7 +70,7 @@ private:
 	std::vector<engine::Ref<engine::ImageButton>> mVanButtonList;  // +0x1fc
 	std::vector<engine::Ref<engine::ImageNode>> mVanPictures;      // +0x20c: the picture of each van's topping
 	std::vector<engine::Ref<Topping>> mChosen;              // +0x21c: the topping of each van, null for none
-	std::map<Topping*, engine::Ref<ToppingButton>> mToppingButtons;  // +0x22c: the buttons of the pages shown
+	ToppingMap<engine::Ref<ToppingButton>> mToppingButtons;  // +0x22c: the buttons of the pages shown
 	engine::Ref<Topping> mHeld;                             // +0x238: the topping picked up
 	engine::Ref<engine::ImageNode> mHeldPicture;            // +0x23c: its picture, which follows the mouse
 	Level* mLevel;                                          // +0x240

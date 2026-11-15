@@ -15,6 +15,7 @@ namespace pizzafrenzy
 {
 
 class BuildingTile;
+class CustomerTile;
 class Order;
 
 // What a popup stands for (the number of its slot 0x138)
@@ -149,9 +150,8 @@ public:
 	void serve() override;
 	// slot 0x150: 0x4559a0
 	void unpick() override;
-	// Slot 0x168, 0x455410 (the police's car is sent, from the popup's tile to the house of the order picked) is
-	// translated next with the vehicles.
-
+	// slot 0x168: 0x455410: the police's car goes from the popup's tile to the house of the customer to arrest
+	virtual void sendCar(CustomerTile* theTile);
 private:
 	engine::Ref<engine::ImageNode> mButton;  // +0x14c
 };

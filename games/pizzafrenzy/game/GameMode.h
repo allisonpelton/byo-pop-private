@@ -23,6 +23,7 @@
 #include "Signal.h"
 #include "Sound.h"
 #include "State.h"
+#include "Tip.h"
 
 #include <deque>
 #include <list>
@@ -31,6 +32,37 @@
 
 namespace pizzafrenzy
 {
+
+class CustomerPopup;
+class Van;
+
+// What the hud's coupon buttons (0x44ef50, vtable 0x4ffc88) give the mode while one is held on the cursor: a topping,
+// bought with the tips for the price, which makes the orders picked ask for it
+class CouponButton : public engine::Container
+{
+public:
+	// slot 0x138: the coupon goes back where it came from
+	virtual void putBack() = 0;
+	// slot 0x144
+	virtual Topping* getTopping() = 0;
+	// slot 0x148
+	virtual int getPrice() = 0;
+	// slot 0x14c
+	virtual void setPrice(int thePrice) = 0;
+};
+
+// What a special event shows while it plays (the factory 0x44a490 makes one of the classes of 0x44a050 to 0x44b100 from
+// the event's type): the mode keeps the popups in a list and updates the first
+class EventPopup : public engine::Container
+{
+public:
+	// slot 0x12c: the popup is for the kitchen that sent the pizza and the house of the event's customer
+	virtual void begin(BuildingTile* theKitchen, CustomerTile* theTile) = 0;
+	// slot 0x130: the popup is shown
+	virtual void show() = 0;
+	// slot 0x138: a frame of the popup
+	virtual void updatePopup(engine::UpdateInfo& theInfo) = 0;
+};
 
 class GameMode : public engine::Object, public engine::HasSlots
 {
@@ -69,19 +101,49 @@ public:
 	virtual void updateMap(engine::UpdateInfo& theInfo);
 	// 0x40: 0x456ac0: the level ends when the happiness is gone, or when the customers and the vehicles are done
 	virtual void checkLevelEnd();
-	// 0x44: the house or the kitchen of the tile is clicked; translated next (the click handler: the callers are
-	// BuildingTile::onMouseDownEvent 0x41bd20 and the popups' clicks 0x454cd0)
-	virtual void click(BuildingTile* theTile) {}
-	// 0x54: the order of the popup on the tile is finished, after the seconds it was shown; translated next with the
-	// delivery (the caller is CustomerPopup::finish 0x453210)
-	virtual void orderFinished(BuildingTile* theTile, Order* theOrder, float theSeconds) {}
+	// 0x44: 0x45adb0: the house or the kitchen of the tile is clicked (the callers are
+	// BuildingTile::onMouseDownEvent 0x41bd20 and the popups' clicks 0x454cd0): a house picks its order, a kitchen
+	// sends the pizza for the orders picked or turns them away, the police take the customers of the events
+	virtual void click(BuildingTile* theTile);
+	// 0x54: 0x455ff0: the order of the popup on the tile is finished, after the seconds it was shown: the tip it
+	// leaves comes up near the house (the caller is CustomerPopup::finish 0x453210)
+	virtual void orderFinished(BuildingTile* theTile, Order* theOrder, float theSeconds);
 	// 0x48: 0x456130 (speed), 0x45b370 (concentration): the right button lets go of the coupon held, or of the
 	// orders picked
 	virtual void rightClick();
-	// 0x4c: 0x45a300: the pizza is given to the customer of the tile; translated next
-	virtual void deliver(engine::Node* thePizza, Tile* theTile, bool theFlag);
-	// 0x50: 0x455b20: the special event of the tile starts; translated next
-	virtual void startSpecialEvent(engine::Node* theNode, Tile* theTile);
+	// 0x4c: 0x45a300: the pizza the kitchen made is given to the customer of the tile: the orders and the combo are
+	// counted, the money of the pizzas and the combo's added, and the kitchen's van goes to the house (not for the
+	// pizza the flag says is not to be sent)
+	virtual void deliver(BuildingTile* theKitchen, CustomerTile* theTile, bool theSendVan);
+	// 0x50: 0x455b20: the special event of the tile starts with the kitchen's pizza; translated next with the events'
+	// popups
+	virtual void startSpecialEvent(BuildingTile* theKitchen, CustomerTile* theTile);
+	// 0x5c: 0x455d60: a tip comes up at the point for the order (the multiplier from the seconds it waited since the
+	// last delivery: 3 under a second and a half, 2 under three, else 1); a tip made already is the citizen award's
+	virtual void addTip(Order* theOrder, const engine::Point& thePoint, TipPopup* theTip);
+	// 0x60: 0x4561a0: the tip stands on the map at the point, and the game screen shows it
+	virtual void showTip(TipPopup* theTip, const engine::Point& thePoint);
+	// 0x64: 0x4561d0: the tip is let go at the next update, and the wave's timer is held to a second and a half when
+	// the houses are idle
+	virtual void releaseTip(TipPopup* theTip);
+	// slot 0x7c: 0x456240: the vehicle is drawn on the screen, in the air's group or the ground's
+	virtual void addVehicleNode(Van* theVan);
+	// slot 0x78: 0x456220: the vehicle is taken off its group, and the map lets go of it
+	virtual void removeVehicleNode(Van* theVan);
+	// 0x6c: 0x45ac60: the popup of an event is kept and shown, the one before it hidden
+	virtual void addEventPopup(EventPopup* thePopup);
+	// 0x70: 0x457a90: the popup of an event is let go
+	virtual void removeEventPopup(EventPopup* thePopup);
+	// 0x74: 0x457b00: the popups of the events are let go
+	virtual void clearEventPopups();
+	// 0x88: 0x457c50: the coupon is picked: it is held on the cursor when no order is picked, and with some picked it
+	// is paid for with the tips (the price for each order) and the orders ask for its topping
+	virtual void pickCoupon(CouponButton* theCoupon);
+	// 0x8c: 0x457e80: the coupon held is used on the customer's order: it asks for the coupon's topping, and is paid
+	virtual void useCoupon(CustomerPopup* thePopup);
+	// 0x90: 0x456d10: the order picked is arrested by the police of the tile: their car goes to its house, the
+	// customer is counted served, and the police ask for a pizza of their own when no more are pending
+	virtual void arrest(BuildingTile* thePoliceTile, CustomerTile* theTile);
 	// 0x68: 0x456bd0: the tips are added to the score, and when the houses are all idle the wave's timer is held to
 	// a second and a half
 	virtual void addTips(int theTips);
@@ -139,10 +201,11 @@ protected:
 	size_t mWaveIndex;                         // +0x74: the wave that plays (the original's iterator over the level's)
 	engine::FloatPair mSpawnDelay;             // +0x78: the wave's seconds between one customer and the next
 	engine::FloatPair mWaitTime;               // +0x80: the wave's seconds a customer waits
+	// +0x48: the popups of the special events that play, the first one updated
+	std::vector<engine::Ref<EventPopup>> mEventPopups;
 	std::vector<engine::Ref<CustomerTile>> mPicks;  // +0x9c: the houses whose orders are picked
 	bool mWavesDone;                           // +0xac: the level's orders have all begun
-	// +0xb0: the coupon held (0x138 lets it go, 0x144 is its topping, 0x148 its price); translated next
-	engine::Ref<engine::Object> mCoupon;
+	engine::Ref<CouponButton> mCoupon;         // +0xb0: the coupon held
 	float mSlowFactor;                         // +0xb4: how much of a frame's time passes while the time is slowed
 	float mSlowTime;                           // +0xb8: the seconds the time stays slowed
 	engine::Sound* mSlowSound;                 // +0xbc: the voice "special_timeEffect", which plays while it is
@@ -157,18 +220,22 @@ protected:
 	int mDeliveryStreak;                       // +0xf0: the deliveries in a row, ten of which add happiness
 	bool mRightClickHandled;                   // +0xf4: the click's own handler took the right button
 	Topping* mComboTopping;                    // +0xf8: the topping of the last pizza delivered
-	// +0x100: the pizzas on their way to a house, the oldest first, each with the house; its timer is the
-	// seconds to the next (translated next)
+	// +0x100: the pizzas on their way to a house, the oldest first, each with the kitchen that made it; mDeliveryTimer
+	// is the seconds to the next
 	struct QueuedDelivery
 	{
-		engine::Ref<Tile> mTile;
-		engine::Ref<engine::Node> mPizza;
+		engine::Ref<CustomerTile> mTile;
+		engine::Ref<BuildingTile> mKitchen;
 	};
 	std::deque<QueuedDelivery> mDeliveries;
 	float mDeliveryTimer;                      // +0x114: 0.4 seconds from one delivery to the next
 
-	// 0x138 of the first pizza being made (the list at +0x48): translated next
-	void updatePizzas(engine::UpdateInfo& theInfo);
+	// 0x4569c0's first call: slot 0x138 of the first popup of an event in the list at +0x48
+	void updatePopups(engine::UpdateInfo& theInfo);
+	// 0x45ad20: the house is picked (the customer's popup is told) and the order cursor shows the orders picked
+	void pickOrder(CustomerTile* theTile);
+	// 0x4571e0: the order cursor shows the orders picked, from the last (none when none is picked)
+	void refreshPickCursor();
 	// 0x417cb0: an event timer for each of the level's events
 	void makeEvents();
 	// 0x459150: the event timers are let go

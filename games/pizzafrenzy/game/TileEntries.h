@@ -10,6 +10,7 @@
 #include "Graphics.h"
 #include "Object.h"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -143,7 +144,28 @@ public:
 	std::string mName;                         // +0x2c
 	std::string mDisplayName;                  // +0x48
 	int mUsesImageAsPreview;                   // +0x64 (0)
+	// port: the order the toppings were made in (the manifest's), which the maps keyed by a topping follow
+	int mMadeOrder;
 };
+
+// port: the order of the maps keyed by a topping. The original's maps follow the toppings' addresses, which change
+// from run to run in the port; the toppings are made one after another as the manifest loads, so their addresses in
+// the original rise in the manifest's order, and the port keeps that order (a null topping first, as address 0 is).
+struct ToppingOrder
+{
+	bool operator()(const Topping* theFirst, const Topping* theSecond) const
+	{
+		if (theFirst == nullptr)
+			return theSecond != nullptr;
+		if (theSecond == nullptr)
+			return false;
+		return theFirst->mMadeOrder < theSecond->mMadeOrder;
+	}
+};
+
+// port: a map keyed by a topping, in the order of ToppingOrder
+template <typename T>
+using ToppingMap = std::map<Topping*, T, ToppingOrder>;
 
 // A special event (0xa8 bytes, constructor 0x41f5e0)
 class SpecialEvent : public engine::Object
