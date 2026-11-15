@@ -297,10 +297,12 @@ Node* Container::hitTest(unsigned int theFlags, Point& thePoint)
 	return nullptr;
 }
 
-// 0x4392b0 (wordharmony)
+// 0x4392b0 (wordharmony), 0x4672b0 (pizzafrenzy): the signal build looks only at each child's drawable flag, not at
+// the container's own visibility (a hidden screen still draws when it is asked to, as the city select's postcards ask
+// the game screen)
 void Container::draw(Graphics* g)
 {
-	if (mVisible)
+	if (gSignalBuild || mVisible)
 	{
 		std::vector<Node*>::iterator anIt = mChildren.begin();
 		if (anIt != mChildren.end())
