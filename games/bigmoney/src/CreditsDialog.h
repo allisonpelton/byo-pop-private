@@ -24,7 +24,6 @@ public:
 	};
 
 	WinBMApp*		mApp;                   // +0x148
-	Widget*			mUnused14C;             // +0x14c deleted by the dtor if set; never set
 	double			mCloudRot;              // +0x150 rotation of the big cloud layer (radians), += 0.004
 	double			mCloudX;                // +0x158 horizontal scroll, += 0.2, -512 when > 0
 	double			mCloudY;                // +0x160 vertical scroll, += 0.3, -512 when > 0

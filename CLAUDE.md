@@ -38,6 +38,8 @@ the visible desktop, Windows Sandbox or sound may have them at any hour (the las
   short path is staged under `E:\byo-og` (origrun's `--stage-root`), and scratch stays in the worktree's `build/` or the
   session's scratchpad.
 - Leave nothing running: afterwards look for processes whose command line is inside your folder and stop them by id.
+  Never walk `/` or a whole drive (`find /`, `du /c`, `grep -r x /`): in Git Bash it reaches `/proc/registry`, never
+  ends and leaks kernel memory, and a user-level hook refuses it. Search a named folder, or use Glob and Grep.
   Stop only processes you started, never a game exe by name alone. End a turn waiting only on something that wakes you
   (a background command, a Monitor that ends by itself); a hidden pane runs no requestAnimationFrame unless shimmed.
 - **Desktop and Sandbox at any hour (the user, 2026-11-15, replacing the 22:00-08:00 window):** any game, port or

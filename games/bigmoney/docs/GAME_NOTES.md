@@ -299,7 +299,7 @@ zeroes everything except `mGroupSize = 1` and increments the live counter `gPiec
 | 0x94 | int | mTargetY | | y |
 | 0x98 | bool | mDying | removed coin playing its vanish animation | y |
 | 0x9c | int | mLifeTimer | if > 0: counts down in UpdatePhysics, deletes at 0, blinks below 200. Never set > 0 by the game (dead feature) | y |
-| 0xa0 | int | mUnusedA0 | only ctor/save/load touch it | y |
+| 0xa0 | int | mZeroInSave | only ctor/save/load touch it | y |
 | 0xa4 | - | (pad) | | |
 
 #### 2.2 List payloads (std::list nodes: next +0, prev +4, payload +8; offsets below are payload-relative)
@@ -1169,7 +1169,7 @@ keeps the current mti, see open questions).
 
 Piece record (108 bytes): `d mX, d mY, d mVX, d mVY, i mShakeX, i mShakeY, i mCol, i mRow, i mColor,
 u8 mIsSpecial, u8 mFallThrough, i mSpecialType, i mImageSet, i mFrame, u8 mFlying, d mFlyT, d
-mFlySpeed, i mStartX, i mStartY, i mTargetX, i mTargetY, u8 mDying, i mLifeTimer, i mUnusedA0`
+mFlySpeed, i mStartX, i mStartY, i mTargetX, i mTargetY, u8 mDying, i mLifeTimer, i mZeroInSave`
 (0x401120 read / 0x4012b0 write).
 
 Body:
@@ -4469,6 +4469,55 @@ of processor time in the game and the graphics driver (the machine 96 to 100 % b
 too; the original has no 2x mode to compare with. The web build was not measured.
 
 
+### Unneeded code taken out (2026-11-15)
+
+The coverage check found nothing to take out: the two functions the port defines that no run reaches are deleting
+destructors it has only as a comment. So this step read the port itself for code the game does not need, with the
+compiler's unused-code warnings (`-Wunused`, unused member functions, private fields, macros, templates and constants:
+none fired) and a search for every member function the game defines that nothing calls (seven, all overrides the
+framework calls). What was taken out, 107 lines out and 14 in over 16 files:
+
+- **LockableButton** (0x414d80 to 0x414de0): a ButtonWidget with a lock flag that nothing sets or reads, a registration
+  leftover, and a `Draw` that only calls ButtonWidget's. The selector's three type buttons are plain ButtonWidgets, made
+  with the same id, listener and images.
+- **WinBMApp::LoadingThreadCompleted** (0x421450): the original offers its update check there, which the port leaves
+  out, so the override was empty, as the framework's own hook is.
+- **Fields written and never read**, none of them in a save: Board's tick at construction (+0x08c, the timer now takes
+  `GetTickCount` itself), its repaint countdown (+0x774, only ever set to 0, so its countdown never ran), the glint's tick
+  (+0x7b4: the glint keeps its random draw and its redraws, which change what is drawn when), and the zeroed +0x7a4;
+  the count of live pieces (0x52d860); StartButton's highlight speed (+0x128, Update uses its own 0.1) and +0x130;
+  GameSelector's +0x098; the credits' +0x14c (never set, deleted if set); the Options dialog's ids of the PopCap page
+  and the partner links, whose buttons the port does not make.
+
+What stays: the fields a save writes (they keep the file's format: the meter's flash and fill flags, the bills to come,
+the level-up's 0.03, the piece's +0xa0), the empty destructors that carry the original's addresses, the selector's
+`mPanelY` (always 0, but the layout's anchor) and `MRANIM_UNUSED_18`, which numbers the animation table. `coverage.txt`
+gets `none` lines for the five functions. The frozen baseline is as before (`tools/check.sh bigmoney`: game 1 over,
+score 66646), and the port builds natively and for the web.
+
+### Readability (2026-11-15)
+
+`tools/namecheck.py games/bigmoney` found 122 places against `docs/CODE_STANDARDS.md` and finds none now.
+
+- **Functions without an address or a port marker (99).** The mods' files (the Puzzle Solver, replays, the gameplay
+  settings, Winnable Puzzles, the mods sign) carry `port(mods):` in their first comment, as rule 9 asks; Board's Solver
+  and Pickpocket functions and `WinBMApp::UpdateFrames` have it above each. The helpers split out of an original
+  function name it: the pause music cues (`Board::Pause`, 0x402930), the save's bool and colour fields (`WriteSaveGame`
+  0x403300, `ReadSaveGame` 0x4075d0), the particle maker, the coin colours, the high-score records (0x412eb0, 0x413100),
+  the badge's flash (0x419950), the highlighted and grey pixels (0x41d9a0, 0x41efd0), MSVC's `rand` (0x4d9372) and 1.2's
+  Slider (0x421fd0, 0x422000).
+- **Names (23).** One-letter names used over more than ten lines became `aRow`, `aCol`, `aColumn`, `aReader`, `aChar`,
+  `aTunables`, `aBlock`, `aPhase`, `aScale` and `theBlock`; `aTemp` became `aTempPath`; `aStacked`, which namecheck takes
+  for a decompiler's name, became `aCoinsInTube`; and the piece's `mUnusedA0` (+0xa0), always 0 and kept by the save,
+  became `mZeroInSave`.
+- **`tools/splitfields.py`** lists four members: the Solver's warning cells and the bot's Pickpocket count are written
+  through `memset`, `memcpy` and a post-increment the tool does not see, the export's lines are the original's reads of
+  fields the port names, and Board's count of Pickpockets used was written and never read, so it is gone.
+
+The renames change no instruction: `tools/objsnap.py` finds the 30 objects' 695 functions the same before and after,
+no string in the sources changed, and the web build compiles. The frozen baseline is as before (`tools/check.sh
+bigmoney`: game 1 over, score 66646).
+
 ## Coverage check (2026-11-08)
 
 The coverage check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran, in 17 runs on the host
@@ -4533,3 +4582,37 @@ and `ButtonDepress` were reached by the menus tour. The framework's sound code l
 nine waited for room for most of an hour. No agent was used: the 19 functions were identified from their decompilation by this session. A spec for the tool
 goes to the coordinator: the report lists a function the port defines under "Defined in the port, never reached" even when a `none`
 line leaves it out.
+
+## The PopCap Game Collection version (2026-11-15)
+
+The port was made from the Steam copy. There `WinBM.exe` holds the game inside Steam's wrapper (`BigMoney.exe` beside it
+is a launcher), and the game carved out of it is `re/bigmoney/bin/BigMoneyGame.exe`. Big Money Deluxe is on the user's
+PopCap Game Collection disc, in the group `BigMoneyDeluxeComponent`, so it is checked against that version
+(`docs/COORDINATION.md`, "Done means"). `unshield` read that group from the disc image's cabinet, mounted read-only and
+dismounted afterwards: 190 files, 3.8 MB, in the main checkout's `re/_installers/BigMoneyDeluxeCollection` (git-ignored).
+The copy has no wrapper: its `BigMoney.exe` is the game itself, beside `bass.dll`, `license.txt`, the two readmes and the
+folders `data`, `images`, `music`, `properties` and `sounds`.
+
+**It is the same game.**
+
+- **The exe.** BookWorm's `tools/collection/cmpexe.py` set it beside the carved game. Both were linked at the same second
+  (14 November 2005, 19:49:24). `.text` and `.data` are the same bytes. `.rdata` differs in eight bytes, the digits after
+  PopCap's build-info marker. The framework reads them only when it checks `properties/partner.xml` against its `.sig`,
+  so each copy's number matches its own signed file; the port checks no signature. `.rsrc` holds other icons and version
+  resources. The port reads nothing from the exe.
+- **The other files.** BookWorm's `cmpfiles.py` finds 180 of the Collection's 190 files byte for byte in the Steam copy:
+  all the data, sounds and music. The Collection has no `drm.*`, `Flash.ocx`, `cobrand` pictures or Steam's `cached`
+  sounds, and adds a `readme.txt`. Its `license.txt`, `readme.html` and `properties/partner.xml` differ. Its
+  partner.xml is NoReg too and sets no cobrand; it differs in DontUpdate (false: the update check is not ported) and in
+  its options link (popcap.com: the port has no outbound buttons), so nothing in it reaches the port.
+- **The pictures.** Four differ in their bytes. `images/editbox.png` (paletted on Steam, RGB on the disc) and
+  `images/sliderthumb.png` decode to the same pixels. The one that really differs is the loading screen's bar and logo,
+  `images/barandlogo.gif` with its alpha `_barandlogo.gif`. The Collection's has PopCap's newer round logo where the Steam
+  copy's reads "PopCap games" over the web address, and its bar is the same but for a re-made palette (at most 4 a
+  channel). The port shows whichever copy the player has.
+
+**The port runs on it.** The port played the suite's bot game (`-seed=1`, action, skill 3, `-fast`) from the staged
+Steam copy and from the Collection's folder. The two state logs (142,347 lines) and input logs are the same, game 1 over
+at 66646. It also played the menus tour (the port's script made from the original's log) from both. The states are the
+same, and of its 122 shots only the title screen's 27 differ, every difference inside the bar and logo's rectangle
+(100,331 to 640,480). No code needs a second look.

@@ -28,7 +28,7 @@ The same method as Bejeweled (`games/bejeweled/src`, `games/bejeweled/docs/GAME_
 | Board (Board.cpp) | (board notes) | `Board.h`, `Board.cpp` (rules), `BoardDraw.cpp` (drawing) | Board.cpp is split in two files because it is the largest module (9.7K decompiled lines) |
 | Piece (Board.cpp) | | `Piece.h` | a coin / bag / bomb cell |
 | MrMoney, Points, OverlayWidget | | `MrMoney.*`, `Points.*`, `OverlayWidget.*` | widgets drawn over the board |
-| MoneyDialog, LockableButton | 0x158, 0x120 | `MoneyDialog.*`, `LockableButton.*` | MoneyDialog is the base of the game's dialogs (running lights) |
+| MoneyDialog, LockableButton | 0x158, 0x120 | `MoneyDialog.*`; LockableButton none | MoneyDialog is the base of the game's dialogs (running lights); LockableButton adds only a lock flag nothing reads, so the selector makes plain ButtonWidgets (taken out 2026-11-15) |
 | TitleScreen, StartButton | 0x118, 0x138 | `TitleScreen.*`, `StartButton.*` | |
 | GameSelector, HelpWidget, CreditsDialog | 0xe0, 0xa0, 0x168 | `GameSelector.*`, `HelpWidget.*`, `CreditsDialog.*` | game type (Action / Strategy / Puzzle) and skill 1..3; per-mode how-to-play; credits over drifting clouds |
 | HighScoreWidget, HighScoreDialog, RecordScoreDialog, OptionsDialog | 0x304, 0x160, 0x168, 0x198 | same names | `hiscores.dat` is owned by HighScoreWidget |

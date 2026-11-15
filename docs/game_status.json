@@ -284,11 +284,13 @@
         "performance",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "site-features",
+        "lite-mod"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "Presets wait on the site"
+      "now": null,
+      "note": "the lite-mod step done with no mod (2f58af40, games/ningpo/docs/LITE_MOD.md: tileAtCell's linear scan is the only costly search, and a cell table would answer the same, so it is not lite; the shuffle could differ but saves no time; the hint and move count have no early stop); every phase but modding done"
     },
     "pixelus": {
       "title": "Pixelus Deluxe",
@@ -298,11 +300,12 @@
         "registration-out",
         "fixes-mod",
         "site-features",
-        "identical-look"
+        "identical-look",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
-      "note": ""
+      "now": "lite-mod",
+      "note": "coverage done (coverage.txt, GAME_NOTES section 11; three Oddities: the editor's thumbnail reorder, a grid pulse colour nothing reads, the pause's sound ducking 0x431a50); in since the last merge: the temple's and select-user's scroll bars, bubble tips, plaque and title, flash buttons, the island's gull flock, the particle engine (temple bursts, the mystery puzzle's chains and lock), the main menu link's shadow, the sound buttons' alpha hit test; baseline refrozen (the bursts draw the app generator: apprand-only lines, game state identical); next: lite mod, unneeded code, readability, performance"
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",
@@ -401,11 +404,14 @@
         "coverage",
         "site-features",
         "performance",
-        "lite-mod"
+        "lite-mod",
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "unneeded-code",
-      "note": ""
+      "now": null,
+      "note": "the Collection check done (46dd468f): the Collection's BigMoneyDeluxeComponent is the Steam game (the exe's .text and .data byte for byte, 8 .rdata bytes of the build-info id only partner.xml's .sig check reads; 180 of 190 files the same; only the loading screen's bar and logo differ); the port from both folders plays the same states (66646), only the title's logo rectangle differs; every phase but modding done. Open: a re-measure of processor time under the compositor wait (the default since 2026-11-15)"
     },
     "tiptop": {
       "title": "TipTop Deluxe",
@@ -420,11 +426,12 @@
         "readability",
         "collection",
         "performance",
-        "lite-mod"
+        "lite-mod",
+        "site-features"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "lite mod done with no mod: nothing measured is worth taking (docs/LITE_MOD.md); the site's features next"
+      "now": null,
+      "note": "every phase but modding done; on the site: the Sounds board with seven presets, and Music playing its MIDI song as the port does (TinySoundFont with the bank cut from GeneralUser GS; the site's 9815e16d); speedrun.com has no TipTop board, so no autosplitter"
     },
     "wordharmony": {
       "title": "Word Harmony",

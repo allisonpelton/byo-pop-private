@@ -1,6 +1,7 @@
 # fwtest -corner -realinput=tools/fwtest/flags.txt (tools/check.sh unit, on DDInterface and on the software screen with
-# SOFTWARE_SCREEN=on SOFTSCREEN_SCALED=1): the display's flags a game or the player chose hold through every change of
-# size and mode. Lines as realinput.txt's: "<update> <command> [args]", checked two updates later.
+# SOFTWARE_SCREEN=on SOFTSCREEN_SCALED=1 SURFACE_STRETCH=0, so that its full screen takes the GPU): the display's flags a
+# game or the player chose hold through every change of size and mode. Lines as realinput.txt's: "<update> <command>
+# [args]", checked two updates later.
 
 50 expect board
 # the fast stretch's sampling the game set once the display was made (-corner, as Big Money's countdown samples) holds

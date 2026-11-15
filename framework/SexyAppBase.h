@@ -353,6 +353,8 @@ public:
 	//                                          hovered gem's crossfade from the 1x pixels, as in 1x
 	//                                          rendering, see CreateCrossfadeImage)
 	//                     screenshotfull <png> the same at the render target's size (shows HD art)
+	//                     screenshotwindow <png> the window as the last present showed it, at the window's size
+	//                                          (DDInterface::ReadWindow: bars and the stretch included)
 	//                     focus lose|regain    the window loses or regains the focus, as its focus
 	//                                          event does (mute, LostFocus/GotFocus), like origrun's
 	//                     quit                 Shutdown()
@@ -424,7 +426,8 @@ public:
 	//                                           write "focus lost" before it)
 	//                     resize <w> <h>        SDL_SetWindowSize: the window's client area, in screen pixels
 	//                     close                 the window's close button: SDL_WINDOWEVENT_CLOSE, then SDL_QUIT
-	//                     screenshot, screenshotfull, quit, pointer, memreport  as in -script (done at once, not pushed)
+	//                     screenshot, screenshotfull, screenshotwindow, quit, pointer, memreport  as in -script (done at
+	//                                          once, not pushed)
 	//                   Full screen is Alt+Enter: "keydown Left Alt", "key Return", "keyup Left Alt". Other
 	//                   commands go to the game's HandleScriptCommand, run at once; so does a bare "move" (no
 	//                   point), which asks the game's bot for its next move (docs/TEST_COMMANDS.md).
@@ -582,6 +585,7 @@ protected:
 	// SaveScreenshot for the framework's shots taken mid-update (after the count moved, before the widgets updated),
 	// drawn with the count one lower
 	bool SaveScreenshotMidUpdate(const std::string& theFileName, bool fullResolution = false);
+	bool SaveWindowShot(const std::string& theFileName);
 
 	// Registry emulation helpers
 	void LoadRegistry();
@@ -604,6 +608,10 @@ protected:
 public:
 	SexyAppBase();
 	virtual ~SexyAppBase();
+
+	// port: the framework's own widget open over the game (the mod menu), or NULL: a display that shows the app's own
+	// frame rather than what the widgets drew (SurfaceDisplay) draws it over that frame
+	Widget* OverlayWidget() const;
 
 	// port: the app clock: timeGetTime(), or the virtual clock with -fast (public for WidgetManager)
 	DWORD GetClockTime();
