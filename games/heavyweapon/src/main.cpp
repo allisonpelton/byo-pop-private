@@ -5,11 +5,14 @@
 //                    (Heavy Weapon Deluxe.exe, read for the game's texts and never run): the staged copy that
 //                    games/heavyweapon/tools/stage_heavyweapon_assets.py makes (assets/heavyweapon)
 //   -userdir=<dir>   writable folder for the game's userdata/ (players and high scores) and registry.ini
+//   -modsdir=<dir>   folder of data mods, one sub-folder each (the fixes mod: games/heavyweapon/mods/fixes)
+//   -nomods          start without any mods
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the framework's test
 // hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
 #include "HeavyWeaponApp.h"
 #include "GameText.h"
+#include "platform/ModManager.h"
 #include "platform/Relaunch.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
@@ -34,6 +37,19 @@ static std::string ArgValue(int argc, char** argv, const char* theKey)
 			return a + n + 1;
 	}
 	return "";
+}
+
+static bool HasFlag(int argc, char** argv, const char* theFlag)
+{
+	for (int i = 1; i < argc; i++)
+	{
+		const char* a = argv[i];
+		while (*a == '-')
+			a++;
+		if (!strcmp(a, theFlag))
+			return true;
+	}
+	return false;
 }
 
 // The game's texts are read from the original's executable (GameText.h), so it is part of the game folder
@@ -74,6 +90,7 @@ int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");
 	std::string userDir = ArgValue(argc, argv, "userdir");
+	std::string modsDir = ArgValue(argc, argv, "modsdir");
 
 #ifdef __EMSCRIPTEN__
 	// port (web): its page (web/shell.html, games/heavyweapon/web/page.js) mounts its own IndexedDB-backed folder, so
@@ -82,6 +99,8 @@ int main(int argc, char** argv)
 		gameDir = "/hwpersist/game";
 	if (userDir.empty())
 		userDir = "/hwpersist/userdata";
+	if (modsDir.empty())
+		modsDir = "/hwpersist/mods";
 #else
 	if (gameDir.empty())
 		gameDir = FindGameDir();
@@ -93,6 +112,8 @@ int main(int argc, char** argv)
 		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
 			userDir.pop_back();
 	}
+	if (modsDir.empty())
+		modsDir = ExeDir() + "/mods-heavyweapon";
 #endif
 
 	if (gameDir.empty() || !LooksLikeGameDir(gameDir))
@@ -112,7 +133,13 @@ int main(int argc, char** argv)
 	Platform::RestoreUserDataBackup(userDir);
 	Platform::VFS::Get().SetBaseDir(gameDir);
 	Platform::VFS::Get().SetUserDir(userDir);
-	SDL_Log("game: %s | user: %s", gameDir.c_str(), userDir.c_str());
+	// port: the fixes mod is read through the options layer (platform/GameOptions.h); a test run with no -modsdir finds
+	// no mods beside the exe, so every option is off and the game is the original
+	Platform::MakeDirs(modsDir);
+	Platform::ModManager::Get().SetModsDir(modsDir);
+	if (!HasFlag(argc, argv, "nomods"))
+		Platform::ModManager::Get().Refresh();
+	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
 
 	// The music is one MO3 module played from order positions (BASS in the original): libopenmpt. Without this the
 	// module does not load and the game plays no music

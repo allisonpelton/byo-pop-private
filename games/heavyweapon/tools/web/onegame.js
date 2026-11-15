@@ -1,23 +1,29 @@
-// Plays Heavy Weapon Deluxe in the player-only page with real DOM input only (docs/WEB_PLAYER.md, "Drivers"): the intro clicked
-// away, the title's "click here to play", the new player's name typed in its box, the main menu's mode button, and then the port's
-// own bot chooses every move (the test command "move", src/testhooks/Bot.cpp: the map's link, the help's OK, the play tips, the
-// results, the armory's upgrades and GO, the tank's aim and fire) and this sends it as mouse events, until the game is over or the
-// moves run out; a game that ends is left by the game-over box's QUIT. A shot is taken only to check what is drawn. Code plays; the
-// session reads the result.
-// Parameters of the page: mode= campaign (default) or survival; moves= the bot's moves (1500); shots=1 saves a shot at each screen.
+// Plays Heavy Weapon in the player-only page with real DOM input only (docs/WEB_PLAYER.md, "Drivers"), as tools/playbymove plays
+// the native build from launch: the intro clicked away, the title's "click here to play", the new player box (a wrong letter
+// and a Backspace first), the main menu's campaign (or, with mode=survival, every mode unlocked by the test command and the
+// main menu's survival), and then the port's own bot chooses every move (the test command "move": the help's PLAY, the map's
+// link, the play tips, the results, the armory, and the tank's moves and fire) and this sends it as mouse events, until the
+// game-over box. A shot is taken only to check what is drawn. Code plays; the session reads the result.
+// Parameters of the page: mode= campaign (default) or survival; is3d= 0 (2D, the software screen) or 1 (3D); moves= the bot's
+// moves at most (40000); focus=1 loses and regains the focus once a few hundred moves into the game (the game pauses, stays
+// paused once the focus is back, and goes on at a click, as the original does); scale= draws the canvas at that many times its
+// size (CSS), so that the DOM events land at scaled points as they do in full screen, which the Browser pane cannot enter;
+// shots=1 saves a shot at each screen.
 // Opened as .../heavyweapon.html?player=1&assets=1&hold=1&fast=1&silent=1&driver=games/heavyweapon/tools/web/onegame.js&run=web-heavyweapon
 var params = new URLSearchParams(location.search);
 var mode = params.get("mode") || "campaign";
-var maxMoves = Number(params.get("moves") || 1500);
+var is3d = params.get("is3d") === "1";
+var maxMoves = Number(params.get("moves") || 40000);
+var doFocus = params.get("focus") === "1";
+var scale = Number(params.get("scale") || 1);
 var shots = params.get("shots") === "1";
 var started = Date.now();
 var result = { notes: [], screens: [] };
 
-var INTRO_CLICK = [320, 240];
-var TITLE_PLAY = [320, 419];						// TitleScreen's play button (PLAY_BUTTON_Y 405, 29 high)
-var MENU_BUTTON = { campaign: [100, 250], survival: [230, 380] };	// MainMenu's buttons 0 and 1
-var GAME_OVER_QUIT = { campaign: [395, 310], survival: [395, 320] };	// GameOverDialog's QUIT
-var USER_NAME_DIALOG = 0x1b;
+var INTRO = [320, 240];
+var TITLE_PLAY = [320, 419];
+var MENU_BUTTON = { campaign: [100, 250], survival: [230, 380] };
+var CONTINUE = [320, 240];          // "click anywhere to continue" after a pause
 
 function note(text) {
   result.notes.push({ at: Math.round((Date.now() - started) / 1000), update: t.updates(), text: text });
@@ -43,68 +49,93 @@ async function state() {
   return s;
 }
 
-async function waitFor(test, what, limit) {
-  var s;
-  for (var i = 0; i < (limit || 100); i++) {
-    s = await state();
-    if (test(s)) return s;
-    await t.wait(10);
-  }
-  throw new Error(what + ": the screen is " + (s && s.screen) + ", dialog " + (s && s.dialog));
+function expect(s, key, value, what) {
+  if (s[key] !== value) throw new Error(what + ": " + key + " is " + JSON.stringify(s[key]) + ", not " + JSON.stringify(value));
 }
 
 try {
-  // a fresh test profile first, so that the game starts with no player, then the game starts
+  // a held page (hold=1): a fresh test profile with the display setting, so that the run is a first run (the name box)
   if (params.get("hold") === "1") {
     await t.profile.wipe();
+    await t.profile.seed({ "registry.ini": "[SOFTWARE\\PopCap\\HeavyWeapon]\nIs3D=dword:" + (is3d ? 1 : 0) + "\n" });
     await t.start();
   }
   await t.ready;
-  var s = await waitFor(function (x) { return x.screen === "title"; }, "start", 400);
-  await t.wait(30);
-  await shot("intro");
-  // the intro takes a click for the focus and another to end; the game loads, and the title shows its link
-  await handClick(INTRO_CLICK);
-  await handClick(INTRO_CLICK);
-  await t.wait(120);
+  if (scale !== 1) {
+    var cv = document.getElementById("canvas");
+    cv.style.width = Math.round(640 * scale) + "px";
+    cv.style.height = Math.round(480 * scale) + "px";
+    await t.wait(20);
+    result.scale = Math.round(cv.getBoundingClientRect().width) + "x" + Math.round(cv.getBoundingClientRect().height);
+  }
+  // the intro clicked away, as a player who does not watch it
+  await t.click(INTRO[0], INTRO[1]);
+  await t.wait(2);
+  await t.click(INTRO[0], INTRO[1]);
+  var s;
+  for (var i = 0; i < 400; i++) {
+    s = await state();
+    if (s.screen === "title") break;
+    await t.wait(30);
+  }
+  expect(s, "screen", "title", "start");
+  await t.wait(60);
   await shot("title");
   await handClick(TITLE_PLAY);
-  await t.wait(30);
+  await t.wait(40);
+  await shot("newuser");
+  await t.type("X");
+  await t.wait(4);
+  await t.key("Backspace");
+  await t.wait(4);
+  var name = "Test";
+  for (var c = 0; c < name.length; c++) {
+    await t.type(name[c]);
+    await t.wait(3);
+  }
+  await t.key("Enter");
+  await t.wait(80);
   s = await state();
-  if (s.dialog === USER_NAME_DIALOG) {
-    await shot("newuser");
-    await t.type("X");
-    await t.wait(4);
-    await t.key("Backspace");
-    await t.wait(4);
-    var name = "Test";
-    for (var c = 0; c < name.length; c++) {
-      await t.type(name[c]);
-      await t.wait(3);
-    }
-    await t.key("Enter");
-    await t.wait(40);
-    note("a new player's name typed");
-  }
-  s = await waitFor(function (x) { return x.screen === "menu" && x.dialog === -1; }, "the main menu", 50);
-  // survival opens once the campaign is won (the menu shows a box until then): the standard test command reaches that
-  if (mode === "survival") {
-    var lines = await t.command("unlock all");
-    if (!/^OK /.test(lines[lines.length - 1])) throw new Error("unlock all -> " + lines[lines.length - 1]);
-    note("survival unlocked with the test command");
-  }
+  expect(s, "screen", "menu", "after the name");
   await shot("menu");
+  if (mode === "survival") {
+    var unlock = await t.command("unlock all");
+    note("unlock all: " + unlock[unlock.length - 1]);
+    await t.wait(10);
+  }
   await handClick(MENU_BUTTON[mode]);
-  await t.wait(30);
+  await t.wait(40);
   s = await state();
-  await shot(mode === "campaign" ? "map" : "survival");
+  await shot("after_menu");
 
-  var moves = 0, nulls = 0, stop = null, seen = {};
+  // the bot's game: a move null (a screen still coming in, the map's link not yet up) waits 30 updates; 60 of them running
+  // stop the run
+  var moves = 0, nulls = 0, focusDone = false, stop = "limit", lastPoint = [320, 240];
   for (;;) {
     s = await state();
-    if (!seen[s.screen]) { seen[s.screen] = true; await shot("screen-" + s.screen); }
-    if (s.over === true) { stop = "over"; break; }
-    if (moves >= maxMoves) { stop = "limit"; break; }
+    if (s.over) { stop = "over"; break; }
+    if (moves >= maxMoves) break;
+    if (doFocus && !focusDone && s.screen === "game" && moves >= 300) {
+      focusDone = true;
+      var before = s;
+      // a hand lets go of the fire button before it switches away (held, the next click would only release it: SDL takes
+      // no press of a button that is already down)
+      await t.up(lastPoint[0], lastPoint[1]);
+      await t.wait(2);
+      await t.blur();
+      await t.wait(100);
+      var hidden = await state();
+      await t.focus();
+      await t.wait(100);
+      var back = await state();
+      await shot("focus_back");
+      await handClick(CONTINUE);
+      await t.wait(20);
+      var after = await state();
+      result.focus = { before: before.paused, hidden: hidden.paused, back: back.paused, afterClick: after.paused };
+      note("focus: paused " + before.paused + " -> " + hidden.paused + " -> " + back.paused + " -> " + after.paused + " after a click");
+      continue;
+    }
     var m = await t.botMove();
     if (m === null) {
       if (++nulls >= 60) { stop = "no move"; break; }
@@ -112,25 +143,17 @@ try {
       continue;
     }
     nulls = 0;
-    await t.playMove(m);
     moves++;
+    if (typeof m.x === "number") lastPoint = [m.x, m.y];
+    await t.playMove(m);
   }
-  await shot("end-of-play");
-  if (stop === "over") {
-    await handClick(GAME_OVER_QUIT[mode]);
-    await t.wait(60);
-    s = await state();
-    note("QUIT on the game-over box: " + s.screen);
-    await shot("after-quit");
-  }
-  result.mode = mode;
+  await shot("end");
   result.moves = moves;
   result.stop = stop;
   result.state = s;
 } catch (e) {
-  result.error = String(e && e.stack || e);
+  result.error = String(e && e.message || e);
 }
-result.errors = t.errors.length;
-result.updates = t.updates();
+result.errors = t.errors.slice(0, 5);
 result.seconds = Math.round((Date.now() - started) / 1000);
 return result;

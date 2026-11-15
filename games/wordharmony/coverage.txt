@@ -1,6 +1,6 @@
 # tools/coverage.py's settings for Word Harmony (docs/COVERAGE.md).
 export re/wordharmony/gh/functions.jsonl
-src games/wordharmony/engine
+src engines/sprout
 src games/wordharmony/game
 src games/wordharmony/src
 # The game's own code, which the port translates (docs/README.md, "The binary"): the game (0x401000-0x424000) and Sprout's
@@ -297,16 +297,16 @@ none 0043ed10 a small helper of a value type (copy, set, add, subtract, a flag's
 none 0043ed70 a constructor or destructor of a class with virtual bases as the compiler wrote it (vtables set in order, this adjusted): the port's class has its own
 none 0043ede0 a constructor or destructor of a class with virtual bases as the compiler wrote it (vtables set in order, this adjusted): the port's class has its own
 none 0043ee50 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
-none 0043f070 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 0043f070 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engines/sprout/Stream.h)
 none 0043f160 the compiler's thunk: this adjusted for a virtual base, then a jump
 none 0043f170 the compiler's thunk: this adjusted for a virtual base, then a jump
-none 0043f350 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 0043f350 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engines/sprout/Stream.h)
 none 0043f430 the compiler's scalar deleting destructor
 none 0043f450 the release of a counted reference: the port's Ref does it
 none 0043f500 the cleanup of a stream pointer in the compiler's unwind code (a virtual call that deletes it): the port's streams are destroyed by their owners' destructors
-none 0043f850 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
-none 0043fc90 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
-none 0043fcc0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 0043f850 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engines/sprout/Stream.h)
+none 0043fc90 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engines/sprout/Stream.h)
+none 0043fcc0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engines/sprout/Stream.h)
 none 0043fd30 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 0043fd60 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 0043fd80 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
@@ -316,24 +316,24 @@ none 0043fee0 the C++ library's templates (MSVC 7.1 string, vector, list, map, d
 none 00440160 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 00440200 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 00440440 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
-none 00440640 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 00440640 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engines/sprout/Stream.h)
 none 004407d0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 00440840 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 00440900 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 00440b60 the compiler's thunk: this adjusted for a virtual base, then a jump
-none 00440b90 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 00440b90 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engines/sprout/Stream.h)
 none 00440c40 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
-none 00440fb0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
-none 00441490 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
-none 00441540 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
-none 004417c0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
-none 004418c0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
-none 004418d0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
-none 004418e0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
-none 00441930 the archive's keyed MD5 digests, which the port does not check (engine/ResourceManager.h)
-none 00442240 the archive's keyed MD5 digests, which the port does not check (engine/ResourceManager.h)
-none 00442290 the archive's keyed MD5 digests, which the port does not check (engine/ResourceManager.h)
-none 00442390 the archive's keyed MD5 digests, which the port does not check (engine/ResourceManager.h)
+none 00440fb0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engines/sprout/Stream.h)
+none 00441490 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engines/sprout/Stream.h)
+none 00441540 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engines/sprout/Stream.h)
+none 004417c0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engines/sprout/Stream.h)
+none 004418c0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engines/sprout/Stream.h)
+none 004418d0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engines/sprout/Stream.h)
+none 004418e0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engines/sprout/Stream.h)
+none 00441930 the archive's keyed MD5 digests, which the port does not check (engines/sprout/ResourceManager.h)
+none 00442240 the archive's keyed MD5 digests, which the port does not check (engines/sprout/ResourceManager.h)
+none 00442290 the archive's keyed MD5 digests, which the port does not check (engines/sprout/ResourceManager.h)
+none 00442390 the archive's keyed MD5 digests, which the port does not check (engines/sprout/ResourceManager.h)
 none 00442490 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
 none 004425f0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
 none 004427a0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
@@ -402,61 +402,61 @@ none 00454b70 the C++ library's templates (MSVC 7.1 string, vector, list, map, d
 none 00454c30 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 00454cb0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 00454d30 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
-none 00454e00 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00454e00 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
 none 00454fb0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 00455160 the compiler's thunk: this adjusted for a virtual base, then a jump
 none 00455170 the compiler's thunk: this adjusted for a virtual base, then a jump
 none 00455190 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
-none 00455600 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 004556e0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455600 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 004556e0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
 none 004557de the compiler's stack cookie check, which does nothing
 none 00455800 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
-none 00455820 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00455840 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00455870 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00455890 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455820 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00455840 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00455870 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00455890 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
 none 004558a0 the compiler's thunk: this adjusted for a virtual base, then a jump
-none 004558d0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 004558d0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
 none 00455940 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
-none 00455960 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00455b10 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00455b90 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00455bd0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00455d70 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00455d80 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00455e10 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00455e60 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00455ee0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00455f90 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00456170 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 004561a0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00456200 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00456440 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 004565b0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 004566c0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00456730 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455960 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00455b10 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00455b90 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00455bd0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00455d70 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00455d80 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00455e10 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00455e60 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00455ee0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00455f90 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00456170 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 004561a0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00456200 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00456440 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 004565b0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 004566c0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00456730 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
 none 00456990 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 00456a30 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
-none 00456ad0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00456c10 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00456df0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00456ef0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00456ad0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00456c10 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00456df0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00456ef0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
 none 00456f80 the compiler's scalar deleting destructor
-none 00456fa0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00456fc0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00457010 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 004570c0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 004572c0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 004572e0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00457320 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00456fa0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00456fc0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00457010 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 004570c0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 004572c0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 004572e0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00457320 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
 none 00457480 the compiler's thunk: this adjusted for a virtual base, then a jump
 none 00457490 the compiler's thunk: this adjusted for a virtual base, then a jump
-none 004574b0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 004574b0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
 none 00457810 the compiler's scalar deleting destructor
 none 00457850 the blitters' stopwatch (QueryPerformanceCounter): it measures and changes nothing drawn
 none 004578a0 the blitters' stopwatch (QueryPerformanceCounter): it measures and changes nothing drawn
-none 00457970 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
-none 00457980 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00457970 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
+none 00457980 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
 none 00458660 the blitters' stopwatch (QueryPerformanceCounter): it measures and changes nothing drawn
 none 0045bcb0 the blitters' stopwatch (QueryPerformanceCounter): it measures and changes nothing drawn
 none 0045dd10 the Windows layer's render context destructor: ScreenGraphics (src/Render.cpp) is the port's

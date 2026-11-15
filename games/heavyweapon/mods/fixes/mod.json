@@ -1,0 +1,15 @@
+{
+  "id": "fixes",
+  "name": "Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends faults of the original Heavy Weapon Deluxe and leaves the game as it was: its rules, scores, look, sounds and pace. Each fix is a toggle; turn the whole mod off to play the original exactly as it was.",
+  "settings": [
+    { "id": "savedBonuses", "label": "A saved campaign keeps its score", "type": "bool", "default": true,
+      "help": "After each level the game saves the campaign for the next one. The level's bonuses for survival, friendly fire and destruction are already in the score by then, and the original adds them a second time for the save, so a campaign continued from it starts with more points than it had. On: the save holds the score you had. Nothing else changes." },
+    { "id": "survivalBest", "label": "Survival keeps your best time", "type": "bool", "default": true,
+      "help": "Shooting the supply helicopter in Survival takes 30 seconds off your time. The original replaces your best time when the time before those penalties beats it, and stores the time after them, so a game whose time is worse can take the place of a better best. On: the best is replaced only by a better time. The high score table is unchanged either way." },
+    { "id": "wormHead", "label": "The worm boss's head is solid", "type": "bool", "default": false,
+      "help": "The worm boss destroys the tank its body touches. The original tests each rib where it is, but its head at the wrong place (it reads one entry past its ribs' table), so at the head only the rib beneath it counts, a quarter of the head's size, and the tank can touch most of the head unharmed. On: the head destroys the tank it touches, as the ribs do. Off by default, since the fight is then harder than the one players know." }
+  ]
+}

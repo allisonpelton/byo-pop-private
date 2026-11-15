@@ -8,8 +8,8 @@ at run time) come from the player's own copy and are never in the repository.
 
 Word Harmony is not a SexyAppFramework game. It runs on Sprout Games' own engine, the C++ namespace `engine`, which
 Sprout also used for Pizza Frenzy and Iggle Pop; `ENGINE.md` describes it. The port keeps the original's three
-layers. `engine/` is the engine translated, free of game code so that it can become shared code when a second Sprout
-game is ported, and mapped onto `platform/` through a host interface (`engine::Host` in `engine/Host.h`: the clock,
+layers. `engines/sprout/` is the engine translated, free of game code and shared with Pizza Frenzy (`docs/ENGINES.md`,
+"Sprout"), and mapped onto `platform/` through a host interface (`engine::Host` in `engines/sprout/Host.h`: the clock,
 the game's files, image decoding, the registry, the screen mode, links, messages, the log and the sound system).
 `game/` is the game (the exe's 0x401000-0x424000): the controller, the screens, the settings and saved games, the
 levels, the physics, the ball system with the rules of the three modes, and the HUD. `src/` is the host: the
@@ -37,7 +37,7 @@ RTTI only for three engine classes. The game is 0x401000-0x424000 (the controlle
 0x41e760-0x41f7e0, the HUD from 0x4221c0); the engine follows it up to 0x446000, then the C runtime, the engine's
 Windows layer (0x454a40-0x45ee00) and the libraries (libpng 1.2.5, zlib 1.1.4, the JPEG decoder). `WORKING_NOTES.md` has what each part does, as read.
 
-`WHArchive.saf` is Sprout's archive. The port reads it through the engine's own reader (`engine/ResourceManager.cpp`),
+`WHArchive.saf` is Sprout's archive. The port reads it through the engine's own reader (`engines/sprout/ResourceManager.cpp`),
 and for reading the data it is extracted to the git-ignored `re/wordharmony/saf/`. The game names its texts by
 address: `GT(0x...)` in the code, and `tools/make_gametext.py` writes `game/GameTextTable.inc` (each text's address,
 length and hash, no text) from the carved exe.
@@ -551,7 +551,7 @@ rotated blit's `aCos` and `aSin`), and the host's `kUnknownException` is `OTHER_
 same thing in more than one place have names: `BALL_CAPACITY` (105), `BALL_RADIUS` (22, which the obstacles and the bot
 use as well), `SPAWN_X` and `SPAWN_Y` (where a new ball appears and the blossom opens), `PHYSICS_STEP` (0.03 seconds),
 `WATER_SWING`, `DIALOG_X` and `DIALOG_Y`, `LEVEL_WORDS` (the 14 words of a level and the lines of the HUD), and the bot's
-two step costs. `SCREEN_WIDTH` and `SCREEN_HEIGHT` moved from the host into `engine/App.h`, where the game's own code
+two step costs. `SCREEN_WIDTH` and `SCREEN_HEIGHT` moved from the host into `engines/sprout/App.h`, where the game's own code
 reads them, and `AppConfig::mFullScreen` names the window's flag at +0x9c (false, and not read by the port).
 
 **Unread fields (rule 3).** Four fields and two words were never read: `Window::mUnknownBC`, `Ball::mE4`,

@@ -81,7 +81,7 @@ holds the rules every session follows; this file does not repeat them.
   native, not just its log. Each brief says so.
 - **Done means every phase but modding (the user, 2026-11-08, 2026-11-11):** a game is done, and may go on the live
   site, only after every step above, its features on the site included: its tunes placed, grouped and split in Music,
-  and its soundboard's presets ("All these accessory features should be added to our definition of done"). The site
+  its modules' unused patterns in Music's section for them (2026-11-15), and its soundboard's presets ("All these accessory features should be added to our definition of done"). The site
   session builds those and the game's session answers its questions. The games done on 2026-12-31 go live then (the
   site going public is still the user's word); the rest follow when done. Modding waits: new mods and the changes in
   `docs/MOD_ROADMAP.md`.
@@ -101,6 +101,10 @@ holds the rules every session follows; this file does not repeat them.
   other decomps this week?" and then said "Start both". So Heavy Weapon (Opus) and Hammer Heads (Sonnet) started side
   by side, each through the port and phase one only. Their later steps wait for the user's word. Heavy Weapon moves
   Bookworm Adventures' SWF player under `engines/`, and Hammer Heads uses it from there.
+  On 2026-11-15 the user asked for one new game this week, while the current ones finish: "I'd at least like one new
+  game brought up to playable this week, though." Pizza Frenzy, first in the order, started that evening, aiming at a
+  playable port (its first playable merge) within the week and then going on through every phase but modding. It
+  moves Word Harmony's engine to `engines/sprout/`. Iggle Pop and Feeding Frenzy still wait for the rule above.
 - **A new port writes to the standards from its first draft (the user, 2026-11-12: "Yes, add it").** Of what the
   eleven smaller games spent after their first playable merge (about $2,200 at Opus prices), about half went on the
   checks against the original (identical play, screens and sound, coverage, the Collection), a fifth on performance and

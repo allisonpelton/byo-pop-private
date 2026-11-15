@@ -358,7 +358,7 @@ public:
 	void			UpdateTank();												// 0x412dc0
 	void			UpdateBossDeath();											// 0x4138e0
 	void			UpdateFloatingTexts();										// 0x414a70
-	// A campaign's score gains thePoints (never below 0), shown floating up from (x, y); survival scores nothing
+	// A campaign's score gains thePoints (never below 0), shown floating up from (x, y); survival shows no points
 	void			AddScore(int thePoints, int x, int y);						// 0x417230
 	// A projectile theSprite's cel touches at (x, y) takes theDamage; true if one was hit
 	bool			HitProjectiles(Sprite* theSprite, int x, int y, int theColumn, int theRow, double theDamage); // 0x417390

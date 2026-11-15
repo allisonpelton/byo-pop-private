@@ -1,7 +1,7 @@
 // Entry point for the Rocket Mania Deluxe port (native and Emscripten).
 //
 // Arguments (all optional):
-//   -gamedir=<dir>   folder containing the game's images/, data/, sounds/, music/ and RocketMania.exe (read for the
+//   -gamedir=<dir>   folder containing the game's images/, data/, sounds/, music/, properties/ and RocketMania.exe (read for the
 //                    game's texts, never run)
 //   -userdir=<dir>   writable folder for the saved game, high scores and registry.ini
 //   -modsdir=<dir>   folder containing data mods (one sub-folder per mod)
@@ -143,8 +143,8 @@ int main(int argc, char** argv)
 	if (gameDir.empty() || !LooksLikeGameDir(gameDir))
 	{
 		std::string msg = "Could not find the Rocket Mania Deluxe game files.\n\n"
-			"Run with -gamedir=\"<your Rocket Mania Deluxe folder>\" or copy the images, data, sounds and music "
-			"folders and the original RocketMania.exe (the game's texts are read from it) into an assets/rocketmania "
+			"Run with -gamedir=\"<your Rocket Mania Deluxe folder>\" or copy the images, data, sounds, music "
+			"and properties folders and the original RocketMania.exe (the game's texts are read from it) into an assets/rocketmania "
 			"folder next to the executable.";
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Rocket Mania Deluxe", msg.c_str(), nullptr);
 		SDL_Log("%s", msg.c_str());

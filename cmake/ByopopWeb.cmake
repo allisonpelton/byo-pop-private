@@ -15,7 +15,9 @@
 # sexyframework static library, where EMSCRIPTEN_KEEPALIVE alone would not link them: EXPORTED_FUNCTIONS names them,
 # which pulls them in. That list replaces Emscripten's default, so it names _main too.
 # web/modpanel.js (the Mods panel, the rescue and restart bookkeeping, the page's file helpers: Module.byopop) is
-# appended to the game's JS with --post-js, so every game's page has the same one without a file of its own.
+# put inline on every game's page, before the game's script, so every page has the same one without a file of its own.
+# The page is written apart from the link (cmake/ByopopWebPage.cmake): an edit to it, to the shell or to modpanel.js
+# rewrites the pages in seconds and relinks no game.
 # wasm-opt, which emcc runs when it links a game, uses every core by default, and a build is not under rundesk's low
 # priority: one link took the user's machine to 100% (2026-11-01). BINARYEN_CORES caps its threads, so a link takes at
 # most 4 of the machine's 20.
@@ -35,6 +37,7 @@ set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall HEAPU8)
 list(APPEND BYOPOP_WEB_EXPORTED_FUNCTIONS _byopop_test_command)
 get_filename_component(BYOPOP_WEB_SHELL "${CMAKE_CURRENT_LIST_DIR}/../web/shell.html" ABSOLUTE)
 get_filename_component(BYOPOP_WEB_POST_JS "${CMAKE_CURRENT_LIST_DIR}/../web/modpanel.js" ABSOLUTE)
+get_filename_component(BYOPOP_WEB_PAGE_SCRIPT "${CMAKE_CURRENT_LIST_DIR}/ByopopWebPage.cmake" ABSOLUTE)
 get_filename_component(BYOPOP_WEB_FOOTER "${CMAKE_CURRENT_LIST_DIR}/../web/footer.html" ABSOLUTE)
 get_filename_component(BYOPOP_WEB_FOOTER_CSS "${CMAKE_CURRENT_LIST_DIR}/../web/footer.css" ABSOLUTE)
 # where each game can be bought (BYOPOP_BUY_<target>), shown under its terms
@@ -340,7 +343,7 @@ endif()
 # game, written here from web/copyright.html: the game's <name> and <notice> (plain text: the copyright and
 # trademark lines of the readme that comes with the game), what the player is, and the license of every library
 # in web/licenses/ that the page is built from. LICENSES adds a game's own libraries (BookWorm: libopenmpt).
-# Sets <var> to the generated template in the build folder, for --shell-file. Both files are rewritten only when
+# Sets <var> to the generated template in the build folder, for ByopopWebPage.cmake. Both files are rewritten only when
 # their text changes, and CMake runs again when one of their inputs changes. byopop_web_game() calls it.
 set(BYOPOP_WEB_LICENSES popcap-framework sdl2 stb libjpeg libxmp-lite tremor minimp3 byopop-sans)
 set(BYOPOP_WEB_TOOLCHAIN_LICENSES emscripten musl)
@@ -850,13 +853,27 @@ function(byopop_web_game target)
   list(REMOVE_DUPLICATES export_list)
   list(JOIN export_list "','" exports)
   list(JOIN BYOPOP_WEB_RUNTIME_METHODS "','" methods)
-  set_target_properties(${target} PROPERTIES SUFFIX ".html")
-  set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS ${page} ${BYOPOP_WEB_POST_JS})
+  # the link writes <target>.js and .wasm only; the page, <target>.html, is a step of its own (ByopopWebPage.cmake),
+  # which building the game's target runs first
+  set_target_properties(${target} PROPERTIES SUFFIX ".js")
   target_link_options(${target} PRIVATE
-    "--shell-file=${page}" "--post-js=${BYOPOP_WEB_POST_JS}"
     "-sALLOW_MEMORY_GROWTH=1" "-sFORCE_FILESYSTEM=1" "-sINVOKE_RUN=0"
     "-sEXPORTED_RUNTIME_METHODS=['${methods}']"
     "-sEXPORTED_FUNCTIONS=['${exports}']" "-lidbfs.js")
+  set(html ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${target}.html)
+  # minified as emcc minifies a page it writes: at -O1 and over without -g, so not in a Debug build
+  set(minify "")
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(minify "-DNODE=${CMAKE_CROSSCOMPILING_EMULATOR}"
+      "-DMINIFIER=${EMSCRIPTEN_ROOT_PATH}/node_modules/html-minifier-terser/cli.js")
+  endif()
+  add_custom_command(OUTPUT ${html}
+    COMMAND ${CMAKE_COMMAND} -DSHELL=${page} -DPANEL=${BYOPOP_WEB_POST_JS} -DNAME=${target} -DOUT=${html} ${minify}
+      -P ${BYOPOP_WEB_PAGE_SCRIPT}
+    DEPENDS ${page} ${BYOPOP_WEB_POST_JS} ${BYOPOP_WEB_PAGE_SCRIPT}
+    COMMENT "Writing ${target}.html" VERBATIM)
+  add_custom_target(${target}_page DEPENDS ${html})
+  add_dependencies(${target} ${target}_page)
 endfunction()
 
 # byopop_web_index(): writes the listing page, build/web/index.html, from web/index.html: for each target in

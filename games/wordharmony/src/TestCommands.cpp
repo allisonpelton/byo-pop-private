@@ -5,8 +5,8 @@
 
 #include "WordHarmonyApp.h"
 #include "Bot.h"
-#include "engine/App.h"
-#include "engine/Random.h"
+#include "sprout/App.h"
+#include "sprout/Random.h"
 #include "game/Game.h"
 #include "game/Hud.h"
 #include "game/Screens.h"
