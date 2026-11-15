@@ -31,9 +31,16 @@ public:
 	std::map<Topping*, int> mToppingLevels;      // +0x14: the level of each topping the player has
 	int mCountA;                                 // +0x20: nothing translated reads it
 	int mCountB;                                 // +0x24: nothing translated reads it
-	int mCountC;                                 // +0x28: starts at 50; nothing translated reads it
+	// +0x28: the happiness meter, which starts at 50; the hud makes a burst of stars (the splat "happinessBonus")
+	// when it is over 99 (0x4397d0)
+	int mHappiness;
 	int mCountD;                                 // +0x2c: nothing translated reads it
-	int mCountE;                                 // +0x34: nothing translated reads it
+	// +0x30: the hud's orders (0x439650: a slip for each 15, rounded up, and none shown at 0); neither the reset nor
+	// the constructor writes it, and nothing translated does
+	int mOrderCount = 0;
+	// +0x34: what the hud compares with the price of a vehicle to show whether it can be bought (0x439b00, 0x44eac0);
+	// the meaning of the number (the tips) is not confirmed
+	int mTipMoney;
 	int mCountF;                                 // +0x38: nothing translated reads it
 	int mCountG;                                 // +0x3c: nothing translated reads it
 	int mCountH;                                 // +0x40: nothing translated reads it

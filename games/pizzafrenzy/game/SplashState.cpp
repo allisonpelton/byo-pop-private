@@ -1,10 +1,12 @@
 #include "SplashState.h"
 #include "EditBox.h"
 #include "GameMusicPlayer.h"
+#include "GameScreen.h"
 #include "GameStats.h"
 #include "LevelManifest.h"
 #include "MenuState.h"
 #include "PizzaFrenzy.h"
+#include "Scene.h"
 #include "Players.h"
 #include "TileManifest.h"
 #include "UserGameData.h"
@@ -37,6 +39,10 @@ const float UNLOCK_NOTICE_SLIDE_FROM_X = 800.0f;
 // The level manifest's file, and the city select's fade
 const char* const LEVEL_MANIFEST_FILE = "res\\manifests\\levelManifestSpeed.xml";
 const float CITY_SELECT_FADE_SECONDS = 0.3f;
+
+// The game screen's fade, and the splat factory's file
+const float GAME_SCREEN_FADE_SECONDS = 0.5f;
+const char* const SPLATS_FILE = "res\\manifests\\splats.xml";
 
 // The load bar's share after each stage
 const float LOADED_TILE_MANIFEST = 0.05f;
@@ -150,12 +156,23 @@ void SplashState::update(engine::UpdateInfo& theInfo)
 		setUpScreen(mApp->mRestoreGameConfirm, "res/screenLayouts/restoreGameConfirm.xml", aFade, aFade);
 		aLoaded = LOADED_RESTORE_CONFIRMATION;
 	}
-	else if (mApp->mGameStats == nullptr)
+	else if (mApp->mGameScreen == nullptr)
 	{
-		// The game's screens and managers (the game screen 0x434be0, 0x414260, the hud 0x438ac0, 0x436440 and the
-		// splat factory 0x474f40) are made here too in the original: translated next, with the game. The stats are
-		// the application's +0x120.
+		// the game screen with its fade, the stats, the city's map and the hud (given the stats), the link between
+		// them, and the splat factory, which the scene holds
+		engine::Ref<engine::Transition> aFade = new engine::FadeTransition(GAME_SCREEN_FADE_SECONDS);
+		mApp->mGameScreen = new GameScreen();
+		mApp->mGameScreen->setTransitions(aFade, aFade);
+		mApp->mGameScreen->mActionSignal.connect(mApp, &PizzaFrenzy::onScreenAction);
 		mApp->mGameStats = new GameStats();
+		mApp->mCityMap = new CityMap();
+		mApp->mHud = new Hud();
+		mApp->mHud->setup(mApp->mGameStats);
+		mApp->mHud->mActionSignal.connect(mApp, &PizzaFrenzy::onScreenAction);
+		mApp->mGameScreen->link(mApp->mHud, mApp->mCityMap);
+		mApp->mSplatFactory = new engine::SplatFactory();
+		mApp->mSplatFactory->load(SPLATS_FILE);
+		mApp->mScene->addChild(mApp->mSplatFactory);
 		aLoaded = LOADED_GAME_STATS;
 	}
 	else if (mApp->mUnlockNotice == nullptr)

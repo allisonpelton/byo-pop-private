@@ -5,6 +5,7 @@
 // engine's run loop starts. It keeps the settings, the scene, the sounds, the screens and the game's managers, and
 // a state machine (+0x24) whose current state gets each frame's update and each screen's action.
 
+#include "CityMap.h"
 #include "CitySelectScreen.h"
 #include "GameScreen.h"
 #include "GameStats.h"
@@ -13,6 +14,7 @@
 #include "GenericScreen.h"
 #include "GenericUserSelectScreen.h"
 #include "HighScoreScreen.h"
+#include "Hud.h"
 #include "ImageNode.h"
 #include "Level.h"
 #include "MainMenu.h"
@@ -21,6 +23,7 @@
 #include "ScreenMgr.h"
 #include "Settings.h"
 #include "SoundMgr.h"
+#include "SplatFactory.h"
 #include "State.h"
 #include "TextItem.h"
 #include "TileManifest.h"
@@ -91,12 +94,17 @@ public:
 	std::string mUnlockNoticeTemplate;                       // +0xb8: the node "notifyText"'s text as the layout has it
 	engine::Ref<engine::GenericScreen> mPauseMenu;           // +0xd4
 	engine::Ref<CitySelectScreen> mCitySelect;               // +0xf0
-	engine::Ref<GameScreen> mGameScreen;                     // +0x114: made next, with the game
-	engine::Ref<engine::GenericScreen> mHud;                 // +0x118: made next, with the game
+	engine::Ref<GameScreen> mGameScreen;                     // +0x114
+	engine::Ref<Hud> mHud;                                   // +0x118
+	engine::Ref<CityMap> mCityMap;                           // +0x11c: the city on the game screen
 	engine::Ref<GameStats> mGameStats;                       // +0x120: what the game being played has counted
 	engine::Ref<TileManifest> mTileManifest;                 // +0x124: the game's data
 	engine::Ref<UserGameData> mUserGameData;                 // +0x128: the current player's
+	engine::Ref<engine::SplatFactory> mSplatFactory;         // +0x12c: the scene's, loaded from the splats' file
 	engine::Ref<GameMusicPlayer> mMusicPlayer;               // +0x130
+	// +0x137: set by the game's states (0x402730 and 0x4027d0), cleared by 0x402790, which the translated states do not
+	// reach: a game is on the screen. The water of the roads is only drawn while it is set.
+	bool mGameScreenActive = false;
 	bool mBonusRound;                                        // +0x136: the level being played is a bonus round
 	std::vector<engine::Ref<City>> mCities;                  // +0x138: the level manifest's cities, in order
 	std::map<int, engine::Ref<Pizza>> mPizzaById;            // +0x158: the pizza manifest's pizzas by their numbers
@@ -130,8 +138,8 @@ public:
 	// The +0xfc object's slot 0xc, and the state 0x402e00 after it; translated next
 	void startPizzaEditor();
 
-	// 0x405270, translated next with the game: the level's city file is loaded into the game screen, which the city
-	// select draws the postcards from
+	// 0x405270: the level's city file is loaded into the game screen's map and the screen draws it; the city select
+	// draws the postcards from it
 	void loadCityFile(const std::string& theFile, GameScreen* theScreen);
 
 private:

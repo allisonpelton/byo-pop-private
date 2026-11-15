@@ -7,8 +7,7 @@
 //
 // Left out of what the manifest reads: the particle systems of the effects (the signal build's particle document
 // handler, 0x47bc40, is not translated), and the previews of the toppings (Topping::setImage). The finders no state of
-// the loading reaches are not translated: getTile 0x422c00 (callers 0x411570, 0x41bbe0, 0x41d190, 0x422ca0, 0x4267a0),
-// getVehicle 0x422ca0, getRoadTile 0x422d30, getCharacter 0x422d60, getParticleEffect 0x422dd0, getEvent 0x422df0 and
+// the loading reaches are not translated: getVehicle 0x422ca0, getCharacter 0x422d60, getEvent 0x422df0 and
 // getCharacterByNameTheme 0x422f90, nor the destructor 0x4263c0.
 
 #include "GameMusicPlayer.h"
@@ -32,6 +31,13 @@ public:
 
 	// 0x422d80: the topping of that name, null when there is none
 	Topping* getTopping(const std::string& theName);
+	// 0x422c00: the tile of that name of the class (not "roads", whose tiles getRoadTile gives), null when there is none
+	TileType* getTile(const std::string& theName, const std::string& theClass);
+	// 0x422d30: the picture of a road's sheet, 0 to 15, null when the road has none; the original makes an empty entry
+	// for a name it does not have, which the port does not
+	TileType* getRoadTile(const std::string& theName, int theIndex);
+	// 0x422dd0: the particle effect of that name, null when there is none
+	ParticleEffect* getParticleEffect(const std::string& theName);
 	// The toppings by name (+0x30)
 	std::map<std::string, engine::Ref<Topping>>& getToppings() { return mToppings; }
 	// 0x422e10: the music clip of that name, null when there is none

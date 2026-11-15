@@ -336,11 +336,6 @@ void PizzaFrenzy::setUpLevel()
 	enterModeGame(aLevel);
 }
 
-// 0x405270: translated next with the game
-void PizzaFrenzy::loadCityFile(const std::string& theFile, GameScreen* theScreen)
-{
-}
-
 // 0x402ba0: translated next with the game
 void PizzaFrenzy::enterStoryState(Level* theLevel, const std::string& theStory)
 {

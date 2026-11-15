@@ -8,7 +8,7 @@ namespace
 // A game with more toppings than this counts the pizzas the player designed as toppings too
 const int BASE_TOPPING_COUNT = 4;
 
-const int STARTING_COUNT_C = 50;
+const int STARTING_HAPPINESS = 50;
 }
 
 // 0x41a930: the two maps are empty, and the reset does the rest
@@ -42,10 +42,10 @@ void GameStats::reset()
 		addDesignedPizzas();
 	mCountO = 0;
 	mCountA = 0;
-	mCountC = STARTING_COUNT_C;
+	mHappiness = STARTING_HAPPINESS;
 	mCountD = 0;
 	mCountB = 0;
-	mCountE = 0;
+	mTipMoney = 0;
 	mCountF = 0;
 	mCountG = 0;
 	mCountH = 0;

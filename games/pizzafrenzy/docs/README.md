@@ -159,11 +159,21 @@ the game's start, the city select, the topping book, the designer and the editor
 "translated next". The engine has the edit box, list box and table with their models, the text typer, and the generic
 option, player select and high score screens. A copy with no player opens the new player's entry over the main menu;
 a name typed there makes the player, the menu greets them, and the high scores and the options open and close.
-Next: the city select, the levels and the game itself.
+The levels and the game screen's frame are in: the level manifest and the cities, the player's statistics, the city
+select (each postcard is the city's first level drawn by the game screen into a canvas, then shrunk onto the card),
+the game screen with its city map, tiles and decorations read from the city files, the HUD's layout and the splat
+factory. The loading state now runs to its end and opens the menu state. With a player whose highest city is the
+fourth, the city select shows the first four cities open and the others locked, each card showing its city. Next: the
+speed mode and the game state (customers, deliveries, the timer and the score), then the other modes, the story, the
+new toppings, the start and end of a level, and the banners.
 
-Left for later: the particle effects' systems (0x47bc40). The smooth blit's sub-pixel and rotated loops
-(0x4c47c0, 0x4c9f50-0x4ca2d0) are read as a bilinear sampler and are not checked against the original's pixels yet.
-The options' version line (0x4669d0) shows the layout's own text: the original formats its own file's version
-(0x4bdb20: FileVersion and SpecialBuild under the user's language and code page 04B0, or "no version info"). The
-Steam copy's launcher has no version resource and only the wrapped game image has one, so what the Steam original
-shows depends on how the launcher runs the image; an origrun run settles it in the looks phase.
+Left for later: the particle effects' systems (0x47bc40), among them the tip jar's coins and the bursts. The banners
+(the message banner 0x42bb30, the speed bonus banner 0x44fb70) and the in-and-out effect (0x42c980); the splats'
+definitions from splats.xml and their update (0x473b90); the city map's and the tiles' slots that only play reaches; the
+game screen's active flag (+0x137); and most of the player's statistics, whose fields keep placeholder names until play
+names them. The smooth blit's sub-pixel and rotated loops (0x4c47c0, 0x4c9f50-0x4ca2d0) are read as a bilinear sampler
+and are not checked against the original's pixels yet. The options' version line (0x4669d0) shows the layout's own text:
+the original formats its own file's version (0x4bdb20: FileVersion and SpecialBuild under the user's language and code
+page 04B0, or "no version info"). The Steam copy's launcher has no version resource and only the wrapped game image has
+one, so what the Steam original shows depends on how the launcher runs the image; an origrun run settles it in the looks
+phase.

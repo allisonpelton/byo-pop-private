@@ -279,6 +279,39 @@ Topping* TileManifest::getTopping(const std::string& theName)
 	return anIt->second;
 }
 
+// 0x422c00
+TileType* TileManifest::getTile(const std::string& theName, const std::string& theClass)
+{
+	if (theClass == "roads")
+		return nullptr;
+	std::map<std::string, std::map<std::string, engine::Ref<TileType>>>::iterator aClass = mTiles.find(theClass);
+	if (aClass == mTiles.end())
+		return nullptr;
+	std::map<std::string, engine::Ref<TileType>>::iterator anIt = aClass->second.find(theName);
+	if (anIt == aClass->second.end())
+		return nullptr;
+	return anIt->second;
+}
+
+// 0x422d30
+TileType* TileManifest::getRoadTile(const std::string& theName, int theIndex)
+{
+	std::map<std::string, std::vector<engine::Ref<TileType>>>::iterator anIt = mRoadTiles.find(theName);
+	if (anIt == mRoadTiles.end() || theIndex < 0 || ROAD_TILE_COUNT <= theIndex
+	    || (int)anIt->second.size() <= theIndex)
+		return nullptr;
+	return anIt->second[theIndex];
+}
+
+// 0x422dd0
+ParticleEffect* TileManifest::getParticleEffect(const std::string& theName)
+{
+	std::map<std::string, engine::Ref<ParticleEffect>>::iterator anIt = mParticleEffects.find(theName);
+	if (anIt == mParticleEffects.end())
+		return nullptr;
+	return anIt->second;
+}
+
 // 0x422e10: the original's lookup adds a null entry for a name that is not there; the port leaves the map alone
 GameMusicClip* TileManifest::getMusic(const std::string& theName)
 {
