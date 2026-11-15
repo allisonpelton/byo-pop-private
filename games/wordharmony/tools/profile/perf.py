@@ -421,7 +421,7 @@ def orig_run(out, script, runs, load_only=False):
     update counter, and srand taking the run's seed), the registry key cleared first, as tour 2's runs had it."""
     root = os.getcwd()
     origrun = os.path.join(root, 'build', 'origrun-bin', 'origrun.exe')
-    staged = 'C:/byo-og/wh/game'
+    staged = 'E:/byo-og/wh/game'
     run = 'whperf'
     results = []
     for i in range(runs):

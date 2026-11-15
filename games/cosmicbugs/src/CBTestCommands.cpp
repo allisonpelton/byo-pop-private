@@ -453,6 +453,10 @@ std::string Move()
 	if (aLevel != nullptr && aLevel->mKind == LEVEL_BOARD && aLevel->mState == LEVEL_WON && aLevel->mGameOver == 0 &&
 		aLevel->mTexts.mHead != nullptr)
 		return "MOVE {\"kind\":\"continue\",\"input\":[{\"click\":[400,300]},{\"wait\":20}]}";
+	// the instructions page (the one Start Game shows a new player, and the title's Instructions button): its Play button
+	// starts the game. The title's and the options' buttons are the driver's own (a tour names them)
+	if (aLevel != nullptr && aLevel->mKind == LEVEL_HELP2)
+		return "MOVE {\"kind\":\"launch\",\"input\":[{\"click\":[400,563]},{\"wait\":20}]}";
 	// the board waits while the pointer is over its panel (Level_IsPlaying): a click that started the board, on the
 	// instructions page's Play button, leaves it there, and a player moves it up into the board
 	if (aLevel != nullptr && aLevel->mKind == LEVEL_BOARD && aLevel->mState == LEVEL_PLAYING &&

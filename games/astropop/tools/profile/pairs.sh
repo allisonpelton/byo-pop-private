@@ -6,7 +6,7 @@
 # (tools/pincore.py: this script starts itself under it). Five pairs and medians are the rule.
 #   WORK=1        also a run of each without waiting (the work a test run does)
 #   BEFORE_EXE=<name>  adds a run without waiting of that exe in build/native (a build kept from before a change)
-#   PERF_3D=1 PERF_DESKTOP=1  the port in 3D on the visible desktop (22:00 to 08:00; the original is `night3d.sh`'s side, perf.py orig3d)
+#   PERF_3D=1 PERF_DESKTOP=1  the port in 3D on the visible desktop (the original is `night3d.sh`'s side, perf.py orig3d)
 # Waits first, up to WAIT_S seconds (default 3600), for room (at most 6 game processes on the machine); each run's line says how many other
 # game processes ran (others_start, others_end). The lines of every run go to <out dir>/runs.txt, each with its kind before it. Run it in
 # the background: it ends by itself.

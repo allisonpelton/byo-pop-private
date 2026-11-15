@@ -138,12 +138,12 @@ def run_original(lines, end, seed, names, tag):
     if SAVEFILE:
         # the staged copy savecmp.py made, with the saved game put back in it
         run = 'savecmp'
-        shutil.copy(SAVEFILE, os.path.join('C:/byo-og', run, 'game', 'SAVEGAME.DAT'))
+        shutil.copy(SAVEFILE, os.path.join('E:/byo-og', run, 'game', 'SAVEGAME.DAT'))
     else:
-        shutil.rmtree(os.path.join('C:/byo-og', run), ignore_errors=True)
+        shutil.rmtree(os.path.join('E:/byo-og', run), ignore_errors=True)
         shutil.rmtree(os.path.join(ROOT, 'build/origrun', run), ignore_errors=True)
     cmd = [os.path.join(ROOT, 'build/origrun-bin/origrun.exe'), '--game', 'atomica', '--run', run, '--stage-root',
-           'C:/byo-og', '--script', script, '--clock', 'virtual', '--cursor', 'scripted', '--seed', str(seed),
+           'E:/byo-og', '--script', script, '--clock', 'virtual', '--cursor', 'scripted', '--seed', str(seed),
            '--timeout', '900']
     for n in names:
         cmd += ['--watch', WATCH[n]]

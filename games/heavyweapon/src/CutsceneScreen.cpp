@@ -79,6 +79,7 @@ void CutsceneScreen::EndCutscene()
 	else if (mCutscene == CUTSCENE_FINAL)
 	{
 		int aRank = mApp->AddHighScore(false, true);
+		mApp->EndGame();		// port(autosplit): the campaign is over, the high scores or the menu next
 		if (aRank == Board::NO_RANK)
 			mApp->ShowMainMenu();
 		else

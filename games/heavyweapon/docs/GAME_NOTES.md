@@ -526,3 +526,36 @@ folders `data`, `fonts`, `images`, `music`, `properties` and `sounds`.
 (the performance pass's input): once from the staged Steam copy and once from the Collection's folder. Both runs'
 states at the stretch's two ends are the same in every field (score 275 to 9930, lives 2 to 1, level time 292 to
 2895), and shots of the intro and of the level in play match in every pixel. No code needs a second look.
+
+## The autosplit block (2026-11-15)
+
+speedrun.com's "Heavy Weapon" board has one PC category, Mission Mode (PC). Its run starts when the campaign is chosen
+from the main menu and ends at the final debriefing. For the site's Splits window and a LiveSplit script, the port
+publishes the shared autosplit block (`platform/AutosplitBlock.h`, layout 2, game id `HWDX`) from
+`src/LiveSplitObserver.cpp`, whose header comment gives every field and event. The block is written only once something
+asks for it: the page's `byopop_livesplit_block`, the `livesplit` mod (`mods/livesplit`), or `-livesplitlog`. Until then
+nothing is written, and when it is written it only reads the game.
+
+The board the block reports is a game, from the click that starts it until the main menu or the high scores come back.
+The game itself has no record of where a game begins: the campaign begins on the mission map, and the first Board comes
+two screens later. So the app keeps a port-only counter (`HeavyWeaponApp::BeginGame` and `EndGame`, marked
+`port(autosplit)`). `BeginGame` is called at each click that starts a game: the menu's Campaign for a new player, the
+continue dialog's NEW GAME and CONTINUE (the latter resumed), Survival or the help's PLAY before it, and the game-over box's
+CONTINUE in survival. `EndGame` is called by `ShowMainMenu` and by the game-over box's SCORES. The game-over box's CONTINUE
+in a campaign keeps the same game. The test commands `goto campaign` and `goto survival` begin a game as those clicks do.
+`level <n>` outside a campaign begins one as resumed, and the other `goto` screens end it.
+
+Checked: the heavyweapon suite passes with the frozen baseline identical, and its tour and three bot games give the same
+screens, states and player files with `-livesplitlog` on as off. The seven block logs made for the site's tests (a new
+campaign, the final level's win, a game over continued, a game over to the scores, a saved campaign continued, survival,
+a quit) are in the shared notes, `heavyweapon-site/logs`.
+
+Making them found a fault in the test hooks. `goto menu` removed the old menu with a delayed delete, so its destructor
+cleared `mMainMenu` after the new menu had set it. The new menu's continue dialog then gave its buttons no listener, and
+its CONTINUE crashed (the frozen baseline does the same). The hooks now delete the old menu at once. A menu reached by
+play was never affected.
+
+The site's pane check found a second fault in the test hooks: `goto` left a cutscene up. After the final level's results,
+`goto campaign` showed the map under the final cutscene, and the bot's `move` kept clicking the cutscene, so the level
+never started. `goto` now removes a cutscene as it removes the other screens, and the armory and the map too (left up, they stayed over the next campaign's map and the bot kept answering their buttons). The final cutscene's end (the high scores, or
+the menu with no rank) also ends the block's game now, as the high scores do elsewhere.

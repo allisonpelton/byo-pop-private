@@ -12,7 +12,7 @@
 # the backup's Tester.bwa alone, the pilot's start profile); PROFILE=<x.bwa> is a save played as Tester's (one of
 # play.py's start profiles); LastUser is Tester.
 #   CLOCK=real     the wall clock (the sound code runs only on it)
-#   RUN=<id>       origrun's run folder (default cov1; the copy is staged under C:\byo-og\<id>)
+#   RUN=<id>       origrun's run folder (default cov1; the copy is staged under E:\byo-og\<id>)
 set -u
 ROOT="$(git rev-parse --show-toplevel)"; cd "$ROOT" || exit 1
 NAME=$1; STEPS=$2; T=${3:-300}
@@ -44,7 +44,7 @@ reg add 'HKCU\Software\PopCap\WinBAD' //v InProgress //t REG_DWORD //d 0 //f > /
 
 until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 5; done
 R=build/origrun/$RUN; rm -f "$R/coverage.txt"
-build/origrun-bin/origrun.exe --game bookwormadv --run "$RUN" --stage-root 'C:\byo-og' \
+build/origrun-bin/origrun.exe --game bookwormadv --run "$RUN" --stage-root 'E:\byo-og' \
 	--script "$(cygpath -w "$PWD/$C/scripts/$NAME.txt")" $CLK --cursor scripted --counter "[0x8259e4]+0x484" --update-ms 10 \
 	--seed 12345 --coverage "$(cygpath -w "$PWD/$C/functions.txt")" --timeout "$T" > "$H/$NAME.log" 2>&1
 cp "$R/coverage.txt" "$H/$NAME.txt" || { echo "$NAME: no hits file"; tail -5 "$H/$NAME.log"; exit 1; }

@@ -240,6 +240,12 @@ public:
 	std::vector<UserRecord>				mUsers;				// +0x1488
 	MTRand			mRand;						// +0x1498 the game's own generator, seeded from Rand() after Init
 	FILE*			mTraceFile;					// port: the test command "trace" writes the state each update leaves here
+	// port(autosplit): the games begun, for the autosplit block (LiveSplitObserver.cpp), which only reads them. A game is a
+	// campaign or a survival game from the click that starts it until the main menu or the high scores come back.
+	unsigned int	mGamesBegun;				// the games begun since the start
+	unsigned int	mGameSerial;				// the game in progress (its mGamesBegun), 0 between games
+	bool			mGameIsSurvival;			// it is a survival game
+	bool			mGameResumed;				// it continues the player's saved campaign (the continue dialog's CONTINUE)
 
 public:
 	HeavyWeaponApp();															// 0x40b750
@@ -260,6 +266,9 @@ public:
 	virtual DDInterface* CreateDDInterface() override;						// port: the 2D screen's software stretch
 	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override; // port: the test commands (testhooks)
 	void			TraceFrame();												// port: a line of the test trace (testhooks)
+	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override; // port(autosplit): -livesplitlog
+	void			BeginGame(bool isSurvival, bool isResumed);					// port(autosplit): a game begins (mGameSerial)
+	void			EndGame() { mGameSerial = 0; }								// port(autosplit): back to the menus
 
 	using SexyApp::PlaySample;
 

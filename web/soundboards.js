@@ -1521,6 +1521,133 @@ var ByopopSoundboards = {
       ["sounds/mama2.ogg", "Mama 2 (unused)", "Never played: the game loads the first mama file twice instead, so this one is never loaded"]
     ] },
   ] },
+  // Heavy Weapon's 92 sounds are its sound table (games/heavyweapon/src: Res.h, Res.cpp gSoundInfo), every file of sounds/;
+  // its game runs 200 updates a second, and a sound plays again only once its last play is 10 updates old (20 for the two
+  // explosions, 5 for the beep: HeavyWeaponApp::PlaySample). The five gun sounds go with the gun's power, two at once between
+  // steps. laser is never played. The voice lines' words are by ear (whisper.cpp) where its reading fits the code, the file
+  // names' otherwise
+  heavyweapon: {
+    // presets from the port's sound log of the bot's campaign and of level 1 played to its results by test commands (5 ms an
+    // update; tools/soundpreset.py --loopstops), the player's own shots left out
+    presets: [
+      { name: "Boss Warning", when: "The boss warning: five flashes 127 updates apart, the voice in the first, and the boss's name typed out", steps: [["sounds/alert", 0, {"v": -774}], ["sounds/v_danger", 315, {"v": -199}], ["sounds/statbeep", 320, {"v": -597}], ["sounds/statbeep", 350, {"v": -597}], ["sounds/statbeep", 380, {"v": -597}], ["sounds/statbeep", 410, {"v": -597}], ["sounds/statbeep", 440, {"v": -597}], ["sounds/statbeep", 470, {"v": -597}], ["sounds/statbeep", 500, {"v": -597}], ["sounds/statbeep", 530, {"v": -597}], ["sounds/statbeep", 560, {"v": -597}], ["sounds/statbeep", 590, {"v": -597}], ["sounds/statbeep", 620, {"v": -597}], ["sounds/alert", 635, {"v": -774}], ["sounds/statbeep", 650, {"v": -597}], ["sounds/statbeep", 680, {"v": -597}], ["sounds/statbeep", 710, {"v": -597}], ["sounds/alert", 1270, {"v": -774}], ["sounds/alert", 1905, {"v": -774}], ["sounds/alert", 2540, {"v": -774}]]},
+      { name: "Boss Destroyed", when: "A beaten boss's explosions, then its last blast clears the field", steps: [["sounds/bigexplode", 0, {"p": -495}], ["sounds/bigexplode", 155, {"p": -480}], ["sounds/bigexplode", 290, {"p": 243}], ["sounds/bigexplode", 475, {"p": -417}], ["sounds/bigexplode", 635, {"p": -144}], ["sounds/bigexplode", 820, {"p": -333}], ["sounds/bigexplode", 920, {"p": -195}], ["sounds/bigexplode", 1075, {"p": 42}], ["sounds/bigexplode", 1270, {"p": -21}], ["sounds/bigexplode", 1370, {"p": -210}], ["sounds/bigexplode", 1470, {"p": 180}], ["sounds/bigexplode", 1640, {"p": -213}], ["sounds/bossblast", 1710]]},
+      { name: "Level Complete", when: "The results after a level: the voice, a tick for each line, the bonuses counting up and two reinforcement tanks", steps: [["sounds/v_levelcomplete", 0, {"v": -199}], ["sounds/stats", 495, {"v": -597}], ["sounds/stats", 745, {"v": -597}], ["sounds/stats", 995, {"v": -597}], ["sounds/stats", 1245, {"v": -597}], ["sounds/statbeep", 1250, {"v": -597}], ["sounds/statbeep", 1275, {"v": -597}], ["sounds/statbeep", 1300, {"v": -597}], ["sounds/statbeep", 1325, {"v": -597}], ["sounds/statbeep", 1350, {"v": -597}], ["sounds/statbeep", 1375, {"v": -597}], ["sounds/statbeep", 1400, {"v": -597}], ["sounds/statbeep", 1425, {"v": -597}], ["sounds/statbeep", 1450, {"v": -597}], ["sounds/statbeep", 1475, {"v": -597}], ["sounds/stats", 1495, {"v": -597}], ["sounds/statbeep", 1500, {"v": -597}], ["sounds/statbeep", 1525, {"v": -597}], ["sounds/statbeep", 1550, {"v": -597}], ["sounds/statbeep", 1575, {"v": -597}], ["sounds/statbeep", 1600, {"v": -597}], ["sounds/statbeep", 1625, {"v": -597}], ["sounds/statbeep", 1650, {"v": -597}], ["sounds/statbeep", 1675, {"v": -597}], ["sounds/statbeep", 1700, {"v": -597}], ["sounds/statbeep", 1725, {"v": -597}], ["sounds/stats", 1745, {"v": -597}], ["sounds/statbeep", 1750, {"v": -597}], ["sounds/statbeep", 1775, {"v": -597}], ["sounds/statbeep", 1800, {"v": -597}], ["sounds/statbeep", 1825, {"v": -597}], ["sounds/statbeep", 1850, {"v": -597}], ["sounds/statbeep", 1875, {"v": -597}], ["sounds/statbeep", 1900, {"v": -597}], ["sounds/statbeep", 1925, {"v": -597}], ["sounds/statbeep", 1950, {"v": -597}], ["sounds/statbeep", 1975, {"v": -597}], ["sounds/stats", 1995, {"v": -597}], ["sounds/reinforcements", 1995, {"v": -597}], ["sounds/statbeep", 2000, {"v": -597}], ["sounds/statbeep", 2025, {"v": -597}], ["sounds/statbeep", 2050, {"v": -597}], ["sounds/statbeep", 2075, {"v": -597}], ["sounds/statbeep", 2100, {"v": -597}], ["sounds/statbeep", 2125, {"v": -597}], ["sounds/statbeep", 2150, {"v": -597}], ["sounds/statbeep", 2175, {"v": -597}], ["sounds/statbeep", 2200, {"v": -597}], ["sounds/statbeep", 2225, {"v": -597}], ["sounds/reinforcements", 2245, {"v": -597}], ["sounds/statbeep", 2250, {"v": -597}], ["sounds/statbeep", 2275, {"v": -597}], ["sounds/statbeep", 2300, {"v": -597}], ["sounds/statbeep", 2325, {"v": -597}], ["sounds/statbeep", 2350, {"v": -597}], ["sounds/statbeep", 2375, {"v": -597}], ["sounds/statbeep", 2400, {"v": -597}], ["sounds/statbeep", 2425, {"v": -597}], ["sounds/statbeep", 2450, {"v": -597}], ["sounds/statbeep", 2475, {"v": -597}], ["sounds/statbeep", 2500, {"v": -597}], ["sounds/statbeep", 2525, {"v": -597}], ["sounds/statbeep", 2550, {"v": -597}], ["sounds/statbeep", 2575, {"v": -597}], ["sounds/statbeep", 2600, {"v": -597}], ["sounds/statbeep", 2625, {"v": -597}], ["sounds/statbeep", 2650, {"v": -597}], ["sounds/statbeep", 2675, {"v": -597}], ["sounds/statbeep", 2700, {"v": -597}], ["sounds/statbeep", 2725, {"v": -597}], ["sounds/statbeep", 2750, {"v": -597}]]},
+      { name: "Tank Lost", when: "A tank blows up and the next comes in", steps: [["sounds/smallexplode", 0, {"v": -446, "p": -57}], ["sounds/bigexplode", 0, {"p": -178}], ["sounds/tankexplode", 0, {"v": -95, "p": -178}], ["sounds/bigexplode", 300, {"p": 584}], ["sounds/v_getready", 505, {"v": -199}]]},
+      { name: "Game Over", when: "The last tank blows up", steps: [["sounds/smallexplode", 0, {"v": -446, "p": 38}], ["sounds/tankexplode", 0, {"v": -95, "p": -88}], ["sounds/smallexplode", 420, {"v": -446, "p": 118}], ["sounds/v_gameover", 505, {"v": -199}]]}
+    ],
+    groups: [
+    { name: "Menus", sounds: [
+      ["sounds/mapover.ogg", "Hover", "The pointer comes onto or leaves a main menu button, or an armory weapon tile or one of its buttons (unless the tile already glows full); panned by where it is"],
+      ["sounds/buttondown.ogg", "Button down", "A button is pressed; also a checkbox ticked (help, options, play tips)"],
+      ["sounds/buttonup.ogg", "Button up", "A pressed button is let go over it; also a checkbox unticked"],
+      ["sounds/denied.ogg", "Denied", "An armory plus or minus that can do nothing; a nuke asked for with none left, while the tank is down or a nuke still flashes, during the boss warning, or while the boss cannot be hurt"],
+      ["sounds/shorting.ogg", "Light buzz", "The main menu's or the armory's light flickers (a flicker starts one update in 200); loops until it ends"],
+      ["sounds/swoosh.ogg", "Map zoom", "The map's invasion starts: the region zooms in from its place"]
+    ] },
+    { name: "The tank's weapons", sounds: [
+      ["sounds/tankfire.ogg", "Gun 1", "The tank's gun fires, at the lowest gun power; as the power rises the next sound takes over, and between two both play, each the quieter the further the power is from it"],
+      ["sounds/tankfire1.ogg", "Gun 2", "The tank's gun fires, at the second step of gun power"],
+      ["sounds/tankfire2.ogg", "Gun 3", "The tank's gun fires, at the third step of gun power"],
+      ["sounds/tankfire3.ogg", "Gun 4", "The tank's gun fires, at the fourth step of gun power"],
+      ["sounds/tankfire4.ogg", "Gun 5", "The tank's gun fires, at full gun power"],
+      ["sounds/tanklaser.ogg", "Lasers", "The tank's lasers fire, at most every 100 updates (half a second) while the gun fires"],
+      ["sounds/smallmissile.ogg", "Rockets", "The tank's rocket pods fire a volley (at most every 40 updates), and each homing missile it launches"],
+      ["sounds/flak.ogg", "Flak", "The tank's flak fires a burst (at most every 50 updates)"],
+      ["sounds/staticshot.ogg", "Static shot", "The tank's static weapon fires a bolt"],
+      ["sounds/statichit.ogg", "Static hit", "A static bolt reaches its target"],
+      ["sounds/orbhit.ogg", "Orb hit", "An orb circling the tank destroys a projectile it touches, or stops an enemy bullet. Also in Zuma's Revenge, as sounds/orbhit.ogg."],
+      ["sounds/megalaser_start.ogg", "Mega laser on", "The left button goes down while the mega laser has charge"],
+      ["sounds/megalaser.ogg", "Mega laser", "The mega laser fires; loops while it does"],
+      ["sounds/megalaser_stop.ogg", "Mega laser off", "The left button comes up while the mega laser has charge left"],
+      ["sounds/megalaser_out.ogg", "Mega laser low", "The mega laser's charge runs low: at 400, 300, 200, 100 and 0 left of its 3000"],
+      ["sounds/nukeblast.ogg", "Nuke", "A nuke goes off (the right button, with one left): the screen flashes and shakes"]
+    ] },
+    { name: "Power-ups", sounds: [
+      ["sounds/pupcopter.ogg", "Supply copter", "A supply helicopter crosses with a power-up to drop; its rotor loops while it is on the field"],
+      ["sounds/gunpowerup.ogg", "Gun power-up", "The tank catches a gun power, fire rate or spread power-up; also as the loading finishes on the title screen"],
+      ["sounds/shieldup.ogg", "Shield up", "The tank catches a shield power-up"],
+      ["sounds/speedup.ogg", "Speed up", "The tank catches a speed power-up"],
+      ["sounds/powerup.ogg", "Power-up", "The tank catches a nuke"],
+      ["sounds/upgrade.ogg", "Weapon upgrade", "The tank catches a weapon crate and the weapon goes up a level (below its highest)"],
+      ["sounds/star.ogg", "Part caught", "The tank catches a falling mega laser part, which flies to the top of the screen"],
+      ["sounds/megaup1.ogg", "Part 1", "The first mega laser part caught reaches the top: 1000 points"],
+      ["sounds/megaup2.ogg", "Part 2", "The second part reaches the top: 2000 points"],
+      ["sounds/megaup3.ogg", "Part 3", "The third part reaches the top: 3000 points"],
+      ["sounds/megaup4.ogg", "Part 4", "The fourth part reaches the top: the mega laser is charged (3000)"],
+      ["sounds/starsmash.ogg", "Part lost", "A mega laser part falls to the ground and explodes, leaving a crater"],
+      ["sounds/friendly1.ogg", "Copter hit 1", "The tank's fire takes the supply copter below three quarters of its health"],
+      ["sounds/friendly2.ogg", "Copter hit 2", "The tank's fire takes the supply copter below half its health"],
+      ["sounds/friendly3.ogg", "Copter hit 3", "The tank's fire takes the supply copter below a quarter of its health"],
+      ["sounds/friendlydie.ogg", "Copter down", "The tank shoots the supply copter down: points lost, or in Survival 30 seconds of time"]
+    ] },
+    { name: "Hits", sounds: [
+      ["sounds/bullethit.ogg", "Bullet hit", "One of the tank's bullets hits an enemy or a destructible projectile that lives on, or a flak burst a living enemy"],
+      ["sounds/smallexplode.ogg", "Small explosion", "An explosion up to 140 (its width and height together); also a rocket or missile hit on an enemy that lives on"],
+      ["sounds/bigexplode.ogg", "Big explosion", "An explosion over 140 (its width and height together)"],
+      ["sounds/tankexplode.ogg", "Tank destroyed", "The player's tank blows up"],
+      ["sounds/shielddown.ogg", "Shield down", "The tank's last shield level goes: a bullet, a projectile or a cruise missile hits it"],
+      ["sounds/sparking.ogg", "Shield sparks", "With the shield's last level going, and when a satellite's beam burns the shield away"],
+      ["sounds/deflect.ogg", "Deflected", "A deflector's shield turns one of the tank's bullets back at it"]
+    ] },
+    { name: "Enemies", sounds: [
+      ["sounds/enemyfire.ogg", "Enemy gun", "An enemy fires a bullet from its gun"],
+      ["sounds/enemytankgun.ogg", "Enemy shell", "An enemy tank fires a shell; also the battleship's turrets"],
+      ["sounds/bombfall.ogg", "Bomb falls", "A bomb is dropped: a dumb bomb, a fat boy, a frag bomb, an iron bomb or a guided bomb"],
+      ["sounds/missile.ogg", "Missile", "A missile is launched: a head missile, a hellfire or an RPG. Also in Peggle Deluxe, Peggle Extreme, Peggle Nights and Peggle World of Warcraft Edition, as sounds/missile.ogg."],
+      ["sounds/airraid.ogg", "Air raid", "A big missile lifts off from the ground in the background and climbs out of sight"],
+      ["sounds/meteor.ogg", "Meteor", "A meteor comes onto the screen"],
+      ["sounds/jetdive.ogg", "Strafer", "A strafer comes in from a side"],
+      ["sounds/laserpowerup.ogg", "Satellite charge", "A satellite in reach starts its beam (at random)"],
+      ["sounds/satlaser.ogg", "Satellite beam", "A satellite's beam starts to burn, 100 updates (half a second) later: it destroys a tank beneath it, or its shield"],
+      ["sounds/sat1.ogg", "Satellite chatter 1", "A satellite chatters: one of seven at random, one update in 100 and at least 100 updates apart"],
+      ["sounds/sat2.ogg", "Satellite chatter 2", "A satellite chatters (one of seven at random)"],
+      ["sounds/sat3.ogg", "Satellite chatter 3", "A satellite chatters (one of seven at random)"],
+      ["sounds/sat4.ogg", "Satellite chatter 4", "A satellite chatters (one of seven at random)"],
+      ["sounds/sat5.ogg", "Satellite chatter 5", "A satellite chatters (one of seven at random)"],
+      ["sounds/sat6.ogg", "Satellite chatter 6", "A satellite chatters (one of seven at random)"],
+      ["sounds/sat7.ogg", "Satellite chatter 7", "A satellite chatters (one of seven at random)"],
+      ["sounds/shortkey.ogg", "Short key", "A satellite's keys click between its chatters, short or long at random (one update in four)"],
+      ["sounds/longkey.ogg", "Long key", "A satellite's keys click between its chatters, short or long at random (one update in four)"]
+    ] },
+    { name: "Bosses", sounds: [
+      ["sounds/alert.ogg", "Alert", "The boss warning flashes: at each of its five flashes, 127 updates apart"],
+      ["sounds/statbeep.ogg", "Beep", "Each letter the boss warning types, every other update (at most every 5); also the results' bonuses counting up"],
+      ["sounds/bosscopter.ogg", "Copter boss", "The helicopter boss's rotor, louder as it comes down into view; loops"],
+      ["sounds/tractorbeam.ogg", "Tractor beam", "The rainer boss's dish turns up and its beam hums; loops until the dish goes down and its meteors fall"],
+      ["sounds/airmine.ogg", "Air mine", "The rainer boss drops an air mine"],
+      ["sounds/diesel.ogg", "Wrecker engine", "The wrecker boss's engine, louder as it drives in; loops"],
+      ["sounds/airbrake.ogg", "Air brake", "The wrecker boss brakes to a stop"],
+      ["sounds/chain.ogg", "Chain", "The wrecker boss's chain pays out (or reels in once the last tank is lost); loops while it moves"],
+      ["sounds/bigthud.ogg", "Big thud", "The ape boss lands from a jump, or the wrecker's ball slams down"],
+      ["sounds/robotsmash.ogg", "Robot stamp", "The robot boss's foot comes down on the ground"],
+      ["sounds/robotlaser.ogg", "Robot laser", "The robot boss fires a bolt at the tank. Also in Banana Bugs, as sounds/thunder.ogg."],
+      ["sounds/earthquake.ogg", "Earthquake", "The sand stirs where the worm boss is about to come up"],
+      ["sounds/energyfire.ogg", "Energy shot", "The eye boss fires an energy shot"],
+      ["sounds/boltcharge.ogg", "Bolt charge", "The eye boss picks a hand to charge a bolt"],
+      ["sounds/thunder.ogg", "Thunder", "The eye boss's bolt strikes"],
+      ["sounds/bosslaser.ogg", "Final laser", "The final boss starts charging its two lasers"],
+      ["sounds/bosslaserblast.ogg", "Laser blast", "The final boss's lasers fire, dropping bomb fragments"],
+      ["sounds/bossblast.ogg", "Boss destroyed", "A beaten boss's last blast: after its twentieth explosion everything on the field is cleared with a flash"]
+    ] },
+    { name: "Results", sounds: [
+      ["sounds/stats.ogg", "Results line", "The results' lines appear after a level, a tick every 50 updates from 100 to 350 (to 400 with a destruction bonus)"],
+      ["sounds/reinforcements.ogg", "Reinforcements", "A reinforcement tank appears on the results, at update 400 and again at 450 for a second"]
+    ] },
+    { name: "Voice", sounds: [
+      ["sounds/v_atomictank.ogg", "\"Heavy Weapon!\"", "The title screen goes as the main menu comes up: the voice calls the game's name"],
+      ["sounds/v_prepare.ogg", "\"Prepare for battle!\"", "A level starts, as its music fades in"],
+      ["sounds/v_danger.ogg", "\"Danger\"", "The boss warning's first flash is half done"],
+      ["sounds/v_getready.ogg", "\"Get ready!\"", "A new tank comes after one is lost, with its banner"],
+      ["sounds/v_gameover.ogg", "\"Game over!\"", "The last tank is lost, with its banner"],
+      ["sounds/v_levelcomplete.ogg", "\"Victory!\"", "The results come up after a level"],
+      ["sounds/v_megalaser.ogg", "\"Mega laser!\"", "The fourth mega laser part reaches the top: the mega laser is charged"],
+      ["sounds/v_waffle.ogg", "\"Waffle\"", "Typing the game's secret word during a level; it does nothing else"]
+    ] },
+    { name: "Unused", sounds: [
+      ["sounds/laser.ogg", "Laser (unused)", "Never played: loaded, but no code asks for it"]
+    ] },
+  ] },
   mahjongchina: {
     // presets from the sound logs of the Mahjong session's driven runs (5 ms an update; mahjong-soundlogs/INDEX.md)
     presets: [

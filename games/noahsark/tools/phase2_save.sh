@@ -21,7 +21,7 @@ python -I games/noahsark/tools/origrun_replay.py script "$MENU" "$D/bot" "$D/ori
 ( grep -v '^quit' "$D/orig.base"
   for s in $SHOTS; do echo "at ${s%%:*} shot ${s#*:}"; done ) > "$D/orig.unsorted"
 ( grep '^at ' "$D/orig.unsorted" | sort -n -s -k2,2; echo quit ) > "$D/orig.txt"
-R="build/origrun/p2_$N"; rm -rf "$R" "C:/byo-og/p2_$N"
+R="build/origrun/p2_$N"; rm -rf "$R" "E:/byo-og/p2_$N"
 build/origrun-bin/origrun.exe --game noahsark --run "p2_$N" --copy-only > "$D/stage.log" 2>&1
 mkdir -p "$R/game/data"; cp "$SAVE" "$R/game/data/savegame.dat"
 build/origrun-bin/origrun.exe --game noahsark --run "p2_$N" --clock virtual --seed 1 --sandbox \

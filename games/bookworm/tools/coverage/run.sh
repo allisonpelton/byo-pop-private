@@ -2,7 +2,7 @@
 # run.sh <what> ...: coverage runs of the original (docs/COVERAGE.md): tools/identical/orig.sh with origrun's --coverage on
 # the list that `python -I tools/coverage.py list bookworm` writes. Each run waits for a free game slot (at most 6 game
 # processes on the machine), and its hits go to build/coverage/bookworm/hits/<name>.txt, its log beside them. The original
-# is staged by `OG_STAGE=C:/byo-og/bwp tools/identical/setup.sh` (set OG_STAGE for every run, the same one).
+# is staged by `OG_STAGE=E:/byo-og/bwp tools/identical/setup.sh` (set OG_STAGE for every run, the same one).
 #   run.sh orig <name> <origrun script> <seed> [timeout s]      a script of origrun commands, on the virtual clock
 #   run.sh case <name> <mode> <bot seed> <game seed> [cap]      the port's bot plays <mode> (classic, action, both or a list;
 #                                                              cap: it quits at that update, saving the game); its input

@@ -29,7 +29,7 @@ public:
 	void Detach();
 
 	// Waits for the desktop compositor's next composition (DwmFlush, dwmapi.dll looked up at the first call), as a vsync present
-	// waits for the vertical blank (SurfaceDisplay's SURFACE_PACE=dwm). False when DWM cannot be waited for.
+	// waits for the vertical blank (SurfaceDisplay's pace on Windows). False when DWM cannot be waited for.
 	static bool WaitForComposition();
 
 	// Paints a frame: thePixels, thePitch bytes a row, theWidth x theHeight 32-bit pixels 0x??RRGGBB (the top byte is not read), stretched

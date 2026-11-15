@@ -41,9 +41,6 @@ mkdir -p build/visrun build/origrun
 # at most three game processes on the machine (docs/COORDINATION.md): wait for a free place
 wait_slot() { for i in $(seq 1 360); do python tools/gamecount.py --limit 6 > /dev/null && return 0; sleep 15; done; return 1; }
 
-# the original runs on the visible desktop: only from 22:00 to 08:00 local (CLAUDE.md, "Overnight"); visrun.py checks too
-h=$(date +%H); h=$((10#$h))
-if [ -z "$portonly" ] && [ $h -ge 8 ] && [ $h -lt 22 ]; then echo "the visible desktop is for 22:00 to 08:00 local; it is $(date +%H:%M)"; exit 5; fi
 
 if [ -z "$portonly" ]; then
   script=build/origrun/bej2_$tag.txt

@@ -15,6 +15,10 @@ none, and the table matches either (web/sounds.js tries the extensions the game 
 named (the file's name without folder or extension): those the player's own moves played, a bot's in a driven run.
 Venice's port logs its own lines (games/venice/src/VeniceSound.cpp: by file name, a frequency and a volume in percent),
 read the same way, the file's rate and length taken from it in --gamedir (Venice runs 250 updates a second: --ms 4).
+--loopstops keeps only a looping sound's stop. The framework logs "stop" also when it frees a finished voice, at the next
+play (SDLSoundInstance::IsReleased); its mixer runs on the wall clock, so in a driven run, where the game waits on the
+driver, a one-shot is freed after fewer updates than it lasts and would be cut short. For a game whose code never stops
+a one-shot it played (Heavy Weapon: PlaySample keeps no handle).
 """
 import argparse
 import json
@@ -52,6 +56,7 @@ def main():
     ap.add_argument("--when", default="")
     ap.add_argument("--ms", type=int, default=10)
     ap.add_argument("--gamedir", default="", help="the staged game folder, for a log that names files (Venice's)")
+    ap.add_argument("--loopstops", action="store_true", help="keep only a looping sound's stop (see the docstring)")
     a = ap.parse_args()
 
     names, length = {}, {}
@@ -146,6 +151,9 @@ def main():
             if u > a.last and kind != "stop":
                 continue
             at = (u - t0) * a.ms
+            if kind == "stop" and a.loopstops and not s.get("loop"):
+                del live[inst]
+                continue
             if kind == "stop":
                 natural = s["at"] + s["len"] * 1000 / s.get("r", 1)
                 if s.get("loop") or at < natural - 10:
