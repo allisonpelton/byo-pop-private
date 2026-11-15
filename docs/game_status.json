@@ -304,11 +304,12 @@
         "coverage",
         "lite-mod",
         "unneeded-code",
-        "readability"
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "collection",
-      "note": "readability done (namecheck 140 findings to 0); baseline identical; the flake found (GAME_NOTES Oddities): both failing runs began on a profile an overlapping check run had left (no first new-player line), not the clock; check.sh now locks each suite and stops when a cleaned run folder is not gone (bb118777); next: the Collection check, real input, then performance"
+      "now": "performance",
+      "note": "the Collection check done (the same build and files; the port plays on them, edc01fb0); the real-input pass (native windowed, full screen with focus loss and expert, web, page check, 4a6bc9ac); next: the whole 210-puzzle game through real input natively and on the web, then performance"
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",
@@ -530,8 +531,8 @@
         "readability"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "the eight retail 3D tours compare clean: scores equal step for step in every mode, Action's TIME UP at the same update (19861); the earlier Classic/Finity and Action differences were the comparison's (the help click's shift read too early, b75b56dd; a slowed original run); boxes left: the menu's More Games pill (removed by rule) and three small ones (Hyper 4-4 one gem's light, Hyper 6-1, Finity's first board); Finity 3D's washed-out gems not seen in the retail tours (an Oddity, unreproduced); next: Hyper 4-4's light, then the web 3D and full-screen comparison"
+      "now": null,
+      "note": "the eight retail 3D tours compare clean (scores equal step for step, Action's TIME UP at update 19861); Hyper's 3D tour replays with 37 shots identical (only the removed More Games pill differs); the classic hyperspace jump and full screen compared in 3D; the web build replays the native Classic tour (10 shots, same boards and scores, animation phase differs); boxes left: Hyper 4-4 one gem's light, Hyper 6-1, Finity's first board; Finity 3D's washed-out gems an Oddity; next: the no-GPU fallback and the other web modes"
     },
     "venice": {
       "title": "Venice Deluxe",
@@ -578,11 +579,12 @@
       "done": [
         "port",
         "identical-play",
-        "registration-out"
+        "registration-out",
+        "site-features"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "phase two looks begun (77266590 looks.py: original shots in Windows Sandbox and port shots at the same updates, then shotdiff; 6 scenarios, ~340 pairs); port fixes: the cubby cover cut from the level's backdrop (13f4410f), the Health label at the box's width, the coin hint's floater at y 150 (09163b2a); frozen screens refrozen (a6852126, states unchanged); open: particle effects and one help popup differ in phase, the how-to-play Flash page does not render in the sandbox; next: those, the remaining dialogs, web against native, real input"
+      "now": null,
+      "note": "phase two looks begun (77266590 looks.py: original shots in Windows Sandbox and port shots at the same updates, then shotdiff; 6 scenarios, ~340 pairs); port fixes: the cubby cover, the Health label, the coin hint's floater (13f4410f, 09163b2a); the site's features done (Music, a 111-sound board with 6 presets, the autosplitter for Classic% and Tough Cookie%); open: particle effects and one help popup differ in phase, the how-to-play Flash page does not render in the sandbox; next: those, the remaining dialogs, web against native, real input"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",

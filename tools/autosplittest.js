@@ -429,6 +429,31 @@ var hwWin = hwLog("final").map(function (l) {
   return / board=1 /.test(l) ? l.replace(/flags=(1?)06 /, "flags=$104 ").replace("go=0/0", "go=1/1") : l;
 });
 check(blockReplay("heavyweapon", HW_MISSION, hwWin) === "start; " + splits(19), "Heavy Weapon: the final level's results end the run in any segment");
+// Hammer Heads: its block logs (tools/autosplit/hammerheads/, the port's -livesplitlog runs from Hammer Heads' session,
+// 2026-11-15; a line at each change)
+function hhLog(name) { return fs.readFileSync(path.join(__dirname, "autosplit", "hammerheads", name + ".block.log"), "utf8").split(/\r?\n/); }
+check(blockReplay("hammerheads", "Classic%", hhLog("newgame")) === "start; split; reset resetQuit" &&
+      blockReplay("hammerheads", "Tough Cookie%", hhLog("newgame")) === "",
+      "Hammer Heads Classic%: from the level card's Go!, level 1's end splits, the main menu resets; Tough Cookie% ignores it");
+check(blockReplay("hammerheads", "Tough Cookie%", hhLog("tough")) === "start; split; reset resetQuit" &&
+      blockReplay("hammerheads", "Classic%", hhLog("tough")) === "", "Hammer Heads Tough Cookie%: from the Ready? box's Go!; Classic% ignores it");
+check(blockReplay("hammerheads", "Classic%", hhLog("gameover")) === "start; reset resetHealth",
+      "Hammer Heads: out of health resets, and the try again's new game is a new board");
+check(blockReplay("hammerheads", "Classic%", hhLog("quit")) === "start; reset resetQuit", "Hammer Heads: the in-game menu's way to the main menu resets");
+check(blockReplay("hammerheads", "Classic%", hhLog("continued")) === "" && blockReplay("hammerheads", "Classic%", hhLog("marathon")) === "" &&
+      blockReplay("hammerheads", "Tough Cookie%", hhLog("marathon")) === "", "Hammer Heads: a continued game and Marathon start nothing");
+// (the king's log, from `level 25` on a new board, as the 25th level of a run: 24 level clears before it, the first just after its GO)
+var hhKing = [];
+hhLog("king").forEach(function (l) {
+  var m = / go=1\/1 /.test(l) ? l.replace(/ lc=(\d+)\/(\d+) /, function (x, a, b) { return " lc=" + (+a + 24) + "/" + b + " "; })
+                                   .replace(/ blc=(\d+) /, function (x, a) { return " blc=" + (+a + 24) + " "; }) : l;
+  if (/ go=1\/1 /.test(l) && !hhKing.some(function (x) { return / go=1\/1 /.test(x); })) {
+    hhKing.push(l);
+    for (var k = 1; k <= 24; k++) hhKing.push(l.replace(/ lc=0\/0 /, " lc=" + k + "/1 ").replace(/ blc=0 /, " blc=" + k + " "));
+  } else hhKing.push(m);
+});
+check(blockReplay("hammerheads", "Classic%", hhKing) === "start; " + splits(25),
+      "Hammer Heads Classic%: the Go! after King Globus's trophy room ends the run, before the level's own end and the win");
 
 // Bejeweled Twist: block lines made from its port's event logs (the Twist session's classic, zen and challenge games,
 // 2026-11-14): a board's GO, its level clears, game overs and challenge wins, and the game's own words (the modes open, the
