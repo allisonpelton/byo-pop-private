@@ -256,11 +256,12 @@ def tourdialogs(d, a):
     return {}
 
 
-def puzzle_world(d, a, settle):
+def puzzle_world(d, a, settle, secret=False):
     """TOUR_DOME=1 (the 3D tours): the planet's five puzzles by the bot's moves, as real input, until the bot's next move is the click on the
     dome (the WARP), whose place it gives (the 2D layout's [95, 103] is not the 3D game's); the shots then follow the WARP every
     TOUR_WARP_STEP updates (10) until the game is past it ("post warp"), at most TOUR_WARP_SHOTS (70). TOUR_WORLDS (1) planets are warped
-    through one after the other; the shots of planet N are named w<N>-solved, w<N>-warp<NN> and w<N>-after-warp."""
+    through one after the other; the shots of planet N are named w<N>-solved, w<N>-warp<NN> and w<N>-after-warp. With secret (Cognito)
+    there is no dome: the game starts its whirlpool itself when the fourth puzzle of a run is solved, and the shots follow from there."""
     step = int(os.environ.get('TOUR_WARP_STEP', '10'))
     limit = int(os.environ.get('TOUR_WARP_SHOTS', '70'))
     for world in range(int(os.environ.get('TOUR_WORLDS', '1'))):
@@ -271,6 +272,9 @@ def puzzle_world(d, a, settle):
             if s['dialogs']:
                 settle(lambda s: False if s['dialogs'] else True)
                 continue
+            if secret and s.get('phase') == 'whirlpool':
+                m = None
+                break
             m = d.bot_move()
             if m is None:
                 d.idle(0.01)
@@ -280,10 +284,11 @@ def puzzle_world(d, a, settle):
             d.play_input(m['input'])
         else:
             raise SystemExit('the planet was not solved: ' + full.describe(d.state()))
-        d.ok('wait 200')
-        d.shot('w%d-solved' % world)
-        # the input of the dome move is a move, a wait and a click; the click is the recorded one
-        d.play_input(m['input'])
+        if not secret:
+            d.ok('wait 200')
+            d.shot('w%d-solved' % world)
+            # the input of the dome move is a move, a wait and a click; the click is the recorded one
+            d.play_input(m['input'])
         post = 0
         for k in range(limit):
             d.ok('wait %d' % step)
@@ -368,7 +373,7 @@ def tourmode(d, a):
                 d.ok('wait %d' % int(os.environ.get('TOUR_LEVEL_STEP', '40')))
                 d.shot('level%s-%d' % (level, k))
     if mode in full.PUZZLE_MODES and os.environ.get('TOUR_DOME'):
-        puzzle_world(d, a, settle)
+        puzzle_world(d, a, settle, secret=(mode == 'cognito'))
     elif mode in full.PUZZLE_MODES:
         settle(lambda s: s['screen'] == 'game' and s.get('phase') in ('idle', 'puzzle solved'), screens=True)
     if mode in full.PUZZLE_MODES and not os.environ.get('TOUR_DOME') and d.state().get('phase') == 'puzzle solved':
