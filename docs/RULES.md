@@ -258,8 +258,9 @@ Every call re-reads the whole context, so what costs is context times calls, and
   game (Bejeweled Twist) then takes them before every other game does ("Rules look good to start, but I'd want them
   tested on a more complex game before moving forward with them for EVERY game", 2026-11-08), and every other game
   takes its pass now that the user has approved them ("new standards approved", 2026-11-10, after the doc was cut to its rules and tools). The pass leaves no unknown or unnamed variable, field, parameter, global or
-  constant ("NO unknown/unnamed variables"). The decomps in progress go on; the games still to port start after those
-  passes, each taken all the way through, readability pass included: the easier ones side by side again and the harder
+  constant ("NO unknown/unnamed variables"). The decomps in progress go on. The games still to port start only once every
+  current game is done, every phase but modding (the user, 2026-11-15: "All games need to reach my definition of done
+  before new ones start"; until then the gate had been the readability passes), each taken all the way through, readability pass included: the easier ones side by side again and the harder
   ones from Chuzzle on two at a time after them (`docs/COORDINATION.md`, "Which games, in what order"). That morning
   the user had put every one of them in sequence, so that wasteful token use would show sooner, and dropped it the
   same day: "We'll nix the one-at-a-time rule then. The idea behind it was it'd allow inefficient token usage to be

@@ -11,6 +11,7 @@
 #include "ModeButton.h"
 #include "Piece.h"
 #include "Profile.h"
+#include "Res.h"
 #include "TwistButton.h"
 #include "TwistDialog.h"
 #include "Tutorial.h"
@@ -92,6 +93,28 @@ static RankBonusWidget* TestRankBar(Board* theBoard)
 	return aRank != nullptr && aRank->mWidgetManager != nullptr ? aRank : nullptr;
 }
 
+// Whether a twist clicked now would start at once: Board::MouseDown's own tests (no dialog over the board, no pause, no
+// replay, no level's end, the hint ready and no twist turning, no input lock or click block, the cursor at least half
+// faded in: it rises by 0.02 an update by itself, from 0 at a level's start), and none of the level's jump
+// (IsBusy). While gems fall, a twist turns or a match clears, mHintsReady is clear and a click only waits in the queue
+// for up to 20 updates, so a driver's twist then mostly never takes.
+static bool TestBoardReady(Board* theBoard)
+{
+	if (theBoard->IsBusy() || theBoard->mGameOver || theBoard->mPauseCount != 0 || theBoard->mIsReplay ||
+		theBoard->mReplayPlaying || theBoard->mShownBeforeStart || theBoard->mLevelDone ||
+		!theBoard->mElectroStrikes.empty() || !theBoard->mHintsReady || theBoard->mTwisting ||
+		theBoard->mInputLock != 0 || 0 < theBoard->mClickBlockUpdates || theBoard->mClicksIgnored ||
+		theBoard->mCursorAlpha < 0.5f)
+		return false;
+	if (theBoard->mShownDialog != nullptr && theBoard->mShownDialog->mMouseVisible &&
+		(Widget*)theBoard->mShownDialog != theBoard->mTutorial)
+		return false;
+	for (TwistWidget* aDialog : theBoard->mPendingDialogs)
+		if (aDialog->mMouseVisible)
+			return false;
+	return true;
+}
+
 std::string WinTwistApp::TestScreen()
 {
 	if (mCredits != nullptr)
@@ -157,7 +180,7 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 		if (aBoard != nullptr) {
 			aLine += StrFormat(",\"mode\":\"%s\",\"level\":%d,\"score\":%d,\"moves\":%d,\"progress\":[%d,%d],\"busy\":%s,\"over\":%s",
 				ModeName(aBoard->mGameMode), aBoard->mLevel, aBoard->mScore, aBoard->mTwistsMade,
-				aBoard->mLevelProgress, aBoard->mLevelProgressGoal, aBoard->IsBusy() ? "true" : "false", aBoard->mGameOver ? "true" : "false");
+				aBoard->mLevelProgress, aBoard->mLevelProgressGoal, !TestBoardReady(aBoard) ? "true" : "false", aBoard->mGameOver ? "true" : "false");
 			if (aBoard->mGameMode == Board::MODE_BLITZ)
 				aLine += StrFormat(",\"timer\":%d", aBoard->mBlitzStartTime / 100);
 			if (gWheelSpin != nullptr)
@@ -398,7 +421,7 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 				return true;
 			}
 			if (0 <= aBoard->mTipCol && 0 <= aBoard->mTipRow) {
-				if (aBoard->IsBusy()) {
+				if (!TestBoardReady(aBoard)) {
 					Reply("MOVE null");
 					return true;
 				}
@@ -412,6 +435,12 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 				Reply("MOVE null");
 				return true;
 			}
+		}
+		// a twist only while the board would take one: while gems fall or a twist turns, MOVE null (the page's driver
+		// waits while the state says busy)
+		if (!TestBoardReady(aBoard)) {
+			Reply("MOVE null");
+			return true;
 		}
 		int aRows = aBoard->mRows;
 		int aCols = aBoard->mCols;
@@ -558,17 +587,20 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 	}
 
 	if (aCommand == "gem") {
-		// gem <row> <col> flame|counter <n>|lock|doom: the gem there becomes that special at once, through the
+		// gem <row> <col> flame|counter <n>|lock|doom|prelock|doomwarn: the gem there becomes that special at once, through the
 		// game's own makers (MakePower as a match of four does, MakeCounter with its count then set to n, LockPiece,
 		// and LockPiece on a gem flagged doom, as BoardTwist's doom drop does), so a driver can reach a rare event
-		// with real twists. The user asked for board edits for this, 2026-11-13.
+		// with real twists. The user asked for board edits for this, 2026-11-13. prelock and doomwarn give the lock's
+		// warning instead, as the game's lock drop (PreLockPiece, with gem_prelock) and doom drop (also flagged doom, with
+		// doomgem_appears) do: the game's own turns then close the lock, two twists later.
 		int aRow = -1, aCol = -1, aCount = 0;
 		char aKind[16] = {};
 		int aRead = std::sscanf(anArgs.c_str(), "%d %d %15s %d", &aRow, &aCol, aKind, &aCount);
 		std::string aWhat = aRead >= 3 ? aKind : "";
-		if (aRead < 3 || (aWhat != "flame" && aWhat != "counter" && aWhat != "lock" && aWhat != "doom") ||
+		if (aRead < 3 || (aWhat != "flame" && aWhat != "counter" && aWhat != "lock" && aWhat != "doom" &&
+			 aWhat != "prelock" && aWhat != "doomwarn") ||
 			(aWhat == "counter" && (aRead != 4 || aCount < 1 || aCount > 99))) {
-			ReplyError(theCommand, "gem <row> <col> flame|counter <1-99>|lock|doom");
+			ReplyError(theCommand, "gem <row> <col> flame|counter <1-99>|lock|doom|prelock|doomwarn");
 			return true;
 		}
 		Piece* aPiece = aRow >= 0 && aRow < aBoard->mRows && aCol >= 0 && aCol < aBoard->mCols ?
@@ -580,9 +612,16 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 		if (aWhat == "flame") {
 			aPiece->MakePower(0.0f);
 		} else if (aWhat == "counter") {
+			aPiece->ClearSpecial();  // a counter drops in as a plain gem's (BoardFill), never over another special
 			aBoard->MakeCounter(aPiece);
 			aPiece->mBombCount = aCount;
 			aPiece->MakeCountImage();
+		} else if (aWhat == "prelock" || aWhat == "doomwarn") {
+			aBoard->PreLockPiece(aPiece);
+			if (aWhat == "doomwarn") {
+				aPiece->SetFlag(Piece::FLAG_DOOM, true);
+				PlaySample(SOUND_DOOMGEM_APPEARS);
+			}
 		} else {
 			if (aWhat == "doom")
 				aPiece->SetFlag(Piece::FLAG_DOOM, true);
