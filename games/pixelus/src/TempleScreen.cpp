@@ -95,13 +95,13 @@ static double ArmSine(int theMode, int theTicks)
 	}
 }
 
-// 0x42e110: the temple screen gives the figure a speech bubble, with the picture of the map behind it where the bubble's
-// mode goes (which the bubble does not understand: -1)
-GodFigure::GodFigure(PixelusApp* theApp, int theGod, Widget* theOwner)
+// 0x42e110: the temple screen gives the figure a speech bubble; the mode says which opening hint it shows (0 the first
+// visit, 1 a return, 2 one of the random ones)
+GodFigure::GodFigure(PixelusApp* theApp, int theGod, Widget* theOwner, int theMode)
 {
 	mApp = theApp;
 	mGod = theGod;
-	mCharacter = new Character(theApp, theGod, theOwner, -1);
+	mCharacter = new Character(theApp, theGod, theOwner, theMode);
 }
 
 GodFigure::~GodFigure()
@@ -246,25 +246,36 @@ public:
 // 0x413ce0
 // 0x4106d0: the skip button placement
 // 0x410900: the mystery-chain break
-TempleScreen::TempleScreen(PixelusApp* theApp, MemoryImage* theBackdrop)
+TempleScreen::TempleScreen(PixelusApp* theApp, MemoryImage* theBackdrop, int theMode)
 {
 	mApp = theApp;
 	mBackdrop = theBackdrop;
 	mTemple = theApp->mCurrentTemple;
 	mFirst = 0;
+	mScrollFrac = 0.0f;
+	mScrollDir = 0;
+	mScrollActive = false;
+	mScrollDone = 0;
+	mScrollTarget = 0;
 	mFirstUnsolved = -1;
 	mTicks = 0;
 	mTextAlpha = 0;
 	mFade = theBackdrop != NULL ? new TempleFade(theBackdrop) : NULL;
-	mDragging = false;
-	mDragOffset = 0;
 	mPanel = NULL;
-	mGod = new GodFigure(theApp, mTemple, this);
+	mGod = new GodFigure(theApp, mTemple, this, theMode);
 
 	bool aTutorial = mTemple == 0;
 	mBackButton = MakeStripButton(mApp, this, ID_BACK, IMAGE_BACKTOISLAND, 6, -3);
-	mMoreButton = MakeStripButton(mApp, this, ID_MORE, IMAGE_MOREPUZZLESBUTTON, FRAME_X + (FRAME_W - 292) / 2, 432);
+	mMoreButton = MakeStripButton(mApp, this, ID_MORE, IMAGE_MOREPUZZLESBUTTON, FRAME_X + (FRAME_W - 292) / 2, FRAME_Y + FRAME_H - 3);	// 0x4106d0
+	mMoreButton->SetFont(mApp->mFonts[FONT_GARAMOND14]);	// 0x4140c7
+	static_cast<SoundButton*>(mMoreButton)->SetFlash(true, 4, false, 100, 0);	// 0x41bf40
 	mSkipButton = MakeStripButton(mApp, this, ID_SKIP, IMAGE_SKIPTUTORIAL, 0x131, 0x1b7);	// 0x4106d0 places it
+
+	// 0x41c7d0: the scroll bar of the puzzles' rows, with the pictures of the slider
+	mScrollbar = new PixelusScrollbar(6, mApp->mImages[IMAGE_SLIDERBDROP], mApp->mImages[IMAGE_SLIDER],
+		mApp->mImages[IMAGE_SLIDERUP], mApp->mImages[IMAGE_SLIDERDOWN], this, this);
+	mScrollbar->ResizeScrollbar(FRAME_X + FRAME_W, FRAME_Y, mApp->mImages[IMAGE_SLIDERBDROP]->GetWidth(), FRAME_H);	// 0x414275
+	mScrollbar->SetInvisIfNoScroll(true);
 
 	BuildThumbs();
 
@@ -278,6 +289,7 @@ TempleScreen::TempleScreen(PixelusApp* theApp, MemoryImage* theBackdrop)
 		aLevelData->mCurrentPuzzle = 0;
 	while (ROWS * COLUMNS + mFirst <= aLevelData->mCurrentPuzzle)
 		mFirst += COLUMNS;
+	mScrollbar->mValue = mFirst / COLUMNS;
 	UpdateButtons();
 
 	// 0x410900: when all the others are solved the mystery puzzle's chains break
@@ -323,6 +335,7 @@ TempleScreen::~TempleScreen()
 	delete mBackButton;
 	delete mMoreButton;
 	delete mSkipButton;
+	delete mScrollbar;
 	delete mGod;
 	delete mPanel;
 	delete mFade;
@@ -335,6 +348,7 @@ void TempleScreen::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mBackButton);
 	theWidgetManager->AddWidget(mMoreButton);
 	theWidgetManager->AddWidget(mSkipButton);
+	theWidgetManager->AddWidget(mScrollbar);
 	if (mFade != NULL)
 	{
 		mFade->Resize(0, 0, mWidth, mHeight);
@@ -349,6 +363,7 @@ void TempleScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mBackButton);
 	theWidgetManager->RemoveWidget(mMoreButton);
 	theWidgetManager->RemoveWidget(mSkipButton);
+	theWidgetManager->RemoveWidget(mScrollbar);
 	if (mFade != NULL)
 		theWidgetManager->RemoveWidget(mFade);
 }
@@ -448,32 +463,32 @@ int TempleScreen::HitTest(int x, int y) const
 	return -1;
 }
 
-void TempleScreen::ScrollTo(int theFirst)
-{
-	int aMax = std::max(0, GetRows() - ROWS) * COLUMNS;
-	theFirst = std::max(0, std::min(aMax, theFirst));
-	if (theFirst != mFirst)
-	{
-		mFirst = theFirst;
-		UpdateButtons();
-		MarkDirty();
-	}
-}
-
-// 0x410210 and 0x40fca0: the plaque shows only while there are more puzzles below; the skip button only in the cave
+// 0x410210 and 0x40fca0: the scroll bar and the plaque work only when the puzzles do not fit on one page; the skip button
+// shows only in the cave
 void TempleScreen::UpdateButtons()
 {
-	mMoreButton->SetVisible((int) mThumbs.size() > ROWS * COLUMNS && mFirst + ROWS * COLUMNS < (int) mThumbs.size());
+	int aCount = (int) mThumbs.size();
+	if (ROWS * COLUMNS < aCount)
+	{
+		mScrollbar->SetMaxValue((double) ((aCount - 1 + COLUMNS) / COLUMNS));
+		mScrollbar->SetPageSize((double) ROWS);
+		mScrollbar->SetDisabled(false);
+		mMoreButton->SetDisabled(false);
+		mMoreButton->SetVisible(true);
+	}
+	else
+	{
+		mScrollbar->SetMaxValue(1.0);
+		mScrollbar->SetPageSize(1.0);
+		mScrollbar->SetDisabled(true);
+		mMoreButton->SetDisabled(true);
+		mMoreButton->SetVisible(false);
+	}
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
 	mSkipButton->SetVisible(mTemple == 0 && aUser != NULL && !aUser->mFlag79);
 }
 
-bool TempleScreen::SliderVisible() const
-{
-	return (int) mThumbs.size() > ROWS * COLUMNS;
-}
-
-// 0x411200: the part the port has; the animated scroll is not ported
+// 0x411200
 void TempleScreen::Update()
 {
 	Widget::Update();
@@ -484,7 +499,140 @@ void TempleScreen::Update()
 	for (size_t i = 0; i < mThumbs.size(); i++)
 		if (mThumbs[i].mSolved && mThumbs[i].mFade > 0 && mThumbs[i].mFade < 255)
 			mThumbs[i].mFade = std::min(255, mThumbs[i].mFade + 3);
+	// 0x411200: the plaque's words follow the page
+	mMoreButton->mLabel = ROWS * COLUMNS + mFirst < (int) mThumbs.size() ? GT(0x50d930) : GT(0x50d944);
+	bool aGliding = mScrollActive;
+	UpdateScroll();
+	if (aGliding)
+	{
+		mScrollbar->mValue = GetScrollValue();
+		mScrollbar->MarkDirty();
+	}
 	MarkDirty();
+}
+
+// 0x411313: a run of rows glides by 0.04 an update (25 updates a row) until the rows asked for are done or the end of the
+// puzzles is reached; the end of a run lets the mouse look at the cell it is over (0x410680)
+void TempleScreen::UpdateScroll()
+{
+	if (!mScrollActive)
+		return;
+	int aCount = (int) mThumbs.size();
+	bool aStop = true;
+	if (mScrollDir == 1)
+	{
+		int aEnd = ROWS * COLUMNS + mFirst;
+		if (aCount > aEnd)
+		{
+			if (mScrollDone < mScrollTarget || mScrollTarget == -1)
+			{
+				mScrollFrac += 0.04f;
+				if (mScrollFrac > 0.999f)
+				{
+					mScrollFrac = 0.0f;
+					mFirst += COLUMNS;
+					mScrollDone++;
+				}
+				UpdateButtons();
+				return;
+			}
+			if (aCount <= aEnd)
+				mScrollDir = 0;
+		}
+		else
+			mScrollDir = 0;
+	}
+	else if (mScrollDir == 0)
+	{
+		if (mFirst > 0)
+		{
+			if (mScrollDone < mScrollTarget || mScrollTarget == -1)
+			{
+				mScrollFrac -= 0.04f;
+				if (mScrollFrac < -0.999f)
+				{
+					mScrollFrac = 0.0f;
+					mFirst -= COLUMNS;
+					mScrollDone++;
+				}
+				UpdateButtons();
+				return;
+			}
+		}
+		else if (mFirst == 0)
+			mScrollDir = 1;
+	}
+	if (aStop)
+	{
+		mScrollDone = 0;
+		mScrollActive = false;
+		MouseMove(mApp->mWidgetManager->mLastMouseX, mApp->mWidgetManager->mLastMouseY);
+	}
+}
+
+// 0x40fe30: the scroll bar's value changed to thePosition rows (theHeld: its thumb is held, so the fraction stays); let go
+// with a fraction, the puzzles glide to the nearer row; nothing happens while they glide
+void TempleScreen::ScrollTo(double thePosition, bool theHeld)
+{
+	if (mScrollActive)
+		return;
+	mApp->mLevelData->mCurrentPuzzle = -1;
+	int aRow = (int) thePosition;
+	mScrollFrac = (float) (thePosition - aRow);
+	mFirst = aRow * COLUMNS;
+	if (!theHeld)
+	{
+		if (mScrollFrac > 0.0f && mScrollFrac <= 0.5f)
+		{
+			mFirst += COLUMNS;
+			mScrollFrac -= 1.0f;
+			mScrollActive = true;
+			mScrollDir = 0;
+			mScrollTarget = 1;
+			mScrollDone = 0;
+		}
+		else if (mScrollFrac > 0.5f)
+		{
+			mScrollActive = true;
+			mScrollDir = 1;
+			mScrollTarget = 1;
+			mScrollDone = 0;
+		}
+	}
+	UpdateButtons();
+	MarkDirty();
+	mApp->mLevelData->mCurrentPuzzle = -1;
+}
+
+// 0x40fe30 (the listener of the scroll bar): its thumb is held when it is pressed on the thumb
+void TempleScreen::ScrollPosition(int theId, double thePosition)
+{
+	ScrollTo(thePosition, mScrollbar->mPressedOnThumb);
+}
+
+// 0x4100b0 to 0x4100e0: the scroll bar's arrows and the track around its thumb glide the puzzles like the keys do
+bool TempleScreen::LineUp()
+{
+	KeyDown(KEYCODE_UP);
+	return true;
+}
+
+bool TempleScreen::LineDown()
+{
+	KeyDown(KEYCODE_DOWN);
+	return true;
+}
+
+bool TempleScreen::PageUp()
+{
+	KeyDown(KEYCODE_PRIOR);
+	return true;
+}
+
+bool TempleScreen::PageDown()
+{
+	KeyDown(KEYCODE_NEXT);
+	return true;
 }
 
 // 0x4119e0
@@ -497,7 +645,10 @@ void TempleScreen::DrawThumbs(Graphics* g)
 	bool aTutorial = mTemple == 0;
 
 	g->SetClipRect(FRAME_X, FRAME_Y, FRAME_W, FRAME_H);
-	for (int aRow = 0; aRow < ROWS; aRow++)
+	// 0x4119e0: gliding up the row above the first shows, gliding down the row below the ninth, each moved by the fraction
+	int aFirstRow = mScrollFrac < 0.0f && mFirst > 0 ? -1 : 0;
+	int aLastRow = mScrollFrac > 0.0f ? ROWS : ROWS - 1;
+	for (int aRow = aFirstRow; aRow <= aLastRow; aRow++)
 		for (int aCol = 0; aCol < COLUMNS; aCol++)
 		{
 			int anIndex = mFirst + aRow * COLUMNS + aCol;
@@ -505,7 +656,7 @@ void TempleScreen::DrawThumbs(Graphics* g)
 				continue;
 			const Thumb& aThumb = mThumbs[anIndex];
 			int aX = LEFT + PITCH * aCol;
-			int aY = TOP + PITCH * aRow;
+			int aY = TOP + (int) ((aRow - mScrollFrac) * PITCH);
 
 			if (!aTutorial)
 				g->DrawImage(mApp->mImages[IMAGE_PUZZLEPATTERN], aX - 10, aY - 10);
@@ -590,26 +741,6 @@ void TempleScreen::DrawThumbs(Graphics* g)
 	g->ClearClipRect();
 }
 
-static bool SliderMouseInTrack(int x, int y)
-{
-	return x >= TempleScreen::SLIDER_X && x < TempleScreen::SLIDER_X + 16 && y >= TempleScreen::TOP && y < TempleScreen::TOP + TempleScreen::SLIDER_H;
-}
-
-void TempleScreen::DrawSlider(Graphics* g)
-{
-	if (!SliderVisible())
-		return;
-	g->DrawImage(mApp->mImages[IMAGE_SLIDERBDROP], SLIDER_X, TOP);
-	g->DrawImage(mApp->mImages[IMAGE_SLIDERUP], SLIDER_X, TOP);
-	g->DrawImage(mApp->mImages[IMAGE_SLIDERDOWN], SLIDER_X, TOP + SLIDER_H - 16);
-
-	Image* aThumb = mApp->mImages[IMAGE_SLIDER];
-	int aTrack = SLIDER_H - 32 - aThumb->GetHeight();
-	int aMaxRow = std::max(1, GetRows() - ROWS);
-	int aY = TOP + 16 + aTrack * (mFirst / COLUMNS) / aMaxRow;
-	g->DrawImage(aThumb, SLIDER_X, aY);
-}
-
 // 0x412990
 void TempleScreen::Draw(Graphics* g)
 {
@@ -630,21 +761,16 @@ void TempleScreen::Draw(Graphics* g)
 		g->SetColor(Color(0xe8, 0xb9, 0x19));
 		g->DrawRect(FRAME_X, FRAME_Y, FRAME_W - 1, FRAME_H - 1);
 
-		// "Temple of" in the pediment, the name on the plate
+		// "Temple of" and the name, in white over the pediment, the lines centred on the frame (0x412aba to 0x412c7c): the
+		// fonts are the ones with the dark outline in their art, so there is no shadow to draw
 		std::string aName = gTemples[mTemple].mName;
 		for (size_t i = 0; i < aName.size(); i++)
 			aName[i] = (char) toupper((unsigned char) aName[i]);
+		g->SetColor(Color(255, 255, 255));
 		g->SetFont(mApp->mFonts[FONT_GARAMOND14]);
-		int aCenter = FRAME_X + FRAME_W / 2;
-		g->SetColor(Color(0x40, 0x20, 0x00));
-		g->DrawString(GT(0x50dbd0), aCenter - g->StringWidth(GT(0x50dbd0)) / 2 + 1, 41);
-		g->SetColor(Color(255, 255, 255));
-		g->DrawString(GT(0x50dbd0), aCenter - g->StringWidth(GT(0x50dbd0)) / 2, 40);
+		g->DrawString(GT(0x50dbd0), FRAME_X + (FRAME_W - g->StringWidth(GT(0x50dbd0))) / 2, 20);
 		g->SetFont(mApp->mFonts[FONT_GARAMOND20]);
-		g->SetColor(Color(0x40, 0x20, 0x00));
-		g->DrawString(aName, aCenter - g->StringWidth(aName) / 2 + 1, 73);
-		g->SetColor(Color(255, 255, 255));
-		g->DrawString(aName, aCenter - g->StringWidth(aName) / 2, 72);
+		g->DrawString(aName, FRAME_X + (FRAME_W - g->StringWidth(aName)) / 2, 45);
 	}
 	else
 	{
@@ -659,7 +785,6 @@ void TempleScreen::Draw(Graphics* g)
 	}
 
 	DrawThumbs(g);
-	DrawSlider(g);
 
 	// how many puzzles are left (0x412990: not in the tutorial's cave)
 	if (aUser != NULL && !aTutorial)
@@ -677,12 +802,9 @@ void TempleScreen::Draw(Graphics* g)
 			aLine = aBuffer;
 		}
 		g->SetFont(mApp->mFonts[FONT_GARAMOND12]);
-		int aCenter = FRAME_X + FRAME_W / 2;
-		int aY = aTutorial ? 420 : 426;
-		g->SetColor(Color(0, 0, 0));
-		g->DrawString(aLine, aCenter - g->StringWidth(aLine) / 2 + 1, aY + 1);
+		int aY = 69;
 		g->SetColor(Color(255, 255, 255));
-		g->DrawString(aLine, aCenter - g->StringWidth(aLine) / 2, aY);
+		g->DrawString(aLine, FRAME_X + (FRAME_W - g->StringWidth(aLine)) / 2, aY);
 	}
 
 	mGod->Draw(g);
@@ -692,7 +814,7 @@ void TempleScreen::Draw(Graphics* g)
 void TempleScreen::MouseMove(int x, int y)
 {
 	Widget::MouseMove(x, y);
-	if (mDragging)
+	if (mScrollbar->mPressedOnThumb)
 		return;
 	int aHit = HitTest(x, y);
 	LevelData* aLevelData = mApp->mLevelData;
@@ -705,50 +827,32 @@ void TempleScreen::MouseMove(int x, int y)
 	}
 }
 
-void TempleScreen::MouseDrag(int x, int y)
-{
-	Widget::MouseDrag(x, y);
-	if (mDragging)
-		SliderMouse(y, false);
-}
-
-void TempleScreen::MouseUp(int x, int y)
-{
-	Widget::MouseUp(x, y);
-	mDragging = false;
-}
-
 void TempleScreen::MouseWheel(int theDelta)
 {
-	ScrollTo(mFirst + (theDelta > 0 ? -COLUMNS : COLUMNS));
+	if (theDelta > 0)
+		KeyDown(KEYCODE_UP);
+	else if (theDelta < 0)
+		KeyDown(KEYCODE_DOWN);
 }
 
-// the slider: its arrows move a row, its thumb is dragged, the track around the thumb moves a page
-void TempleScreen::SliderMouse(int y, bool theStart)
+// 0x40fd50: up and down take a row, page up and page down a page of rows, glided; one in the direction of a run that is on adds
+// to it, one against it is dropped
+void TempleScreen::KeyDown(KeyCode theKey)
 {
-	Image* aThumb = mApp->mImages[IMAGE_SLIDER];
-	int aTrack = SLIDER_H - 32 - aThumb->GetHeight();
-	int aMaxRow = std::max(1, GetRows() - ROWS);
-	if (theStart)
-	{
-		int aThumbY = TOP + 16 + aTrack * (mFirst / COLUMNS) / aMaxRow;
-		if (y < TOP + 16)
-			ScrollTo(mFirst - COLUMNS);
-		else if (y >= TOP + SLIDER_H - 16)
-			ScrollTo(mFirst + COLUMNS);
-		else if (y < aThumbY)
-			ScrollTo(mFirst - ROWS * COLUMNS);
-		else if (y >= aThumbY + aThumb->GetHeight())
-			ScrollTo(mFirst + ROWS * COLUMNS);
-		else
-		{
-			mDragging = true;
-			mDragOffset = y - aThumbY;
-		}
+	bool aUp = theKey == KEYCODE_UP || theKey == KEYCODE_PRIOR;
+	bool aDown = theKey == KEYCODE_DOWN || theKey == KEYCODE_NEXT;
+	if (!aUp && !aDown)
 		return;
-	}
-	int aRow = (y - mDragOffset - (TOP + 16)) * aMaxRow / std::max(1, aTrack);
-	ScrollTo(std::max(0, std::min(aMaxRow, aRow)) * COLUMNS);
+	int aRows = (theKey == KEYCODE_PRIOR || theKey == KEYCODE_NEXT) ? ROWS : 1;
+	int aDir = aUp ? 0 : 1;
+	if (!mScrollActive)
+		mScrollTarget = aRows;
+	else if (mScrollDir == aDir)
+		mScrollTarget += aRows;
+	else
+		return;
+	mScrollDir = aDir;
+	mScrollActive = true;
 }
 
 // 0x411600
@@ -758,12 +862,6 @@ void TempleScreen::MouseDown(int x, int y, int theClickCount)
 {
 	if (theClickCount != 1)
 		return;
-	if (SliderVisible() && SliderMouseInTrack(x, y))
-	{
-		SliderMouse(y, true);
-		return;
-	}
-
 	// a click on the god makes it pull a face
 	if (x >= 0x11 && x <= 0x88 && y >= 0xb6 && y <= 0x191)
 	{
@@ -819,7 +917,15 @@ void TempleScreen::ButtonDepress(int theId)
 		SkipTutorial();
 		break;
 	case ID_MORE:
-		ScrollTo(mFirst + ROWS * COLUMNS);
+		// 0x414510: a page down, or, when there is no page below, all the way up
+		if (!mScrollActive)
+		{
+			mScrollActive = true;
+			mScrollTarget = ROWS;
+			mScrollDir = ROWS * COLUMNS + mFirst < (int) mThumbs.size() ? 1 : 0;
+			if (mScrollDir == 0)
+				mScrollTarget = -1;
+		}
 		break;
 	}
 }

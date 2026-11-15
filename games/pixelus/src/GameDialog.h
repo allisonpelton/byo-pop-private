@@ -53,11 +53,20 @@ public:
 	PixelusApp*		mApp;
 	int				mClickSound;    // +0x108
 	int				mOverSound;     // +0x10c
+	bool			mFlashOn;       // +0x124 the button pulses: a copy of it drawn over itself with an alpha that rises and falls
+	int				mFlashCount;    // +0x128 pulses left (-1 without end)
+	bool			mFlashAdditive; // +0x12c the copy is added to what is under it
+	int				mFlashPeriod;   // +0x130 updates for one pulse
+	int				mFlashTime;     // +0x120 counts up an update at a time
+
+	void			SetFlash(bool theOn, int theCount, bool theAdditive, int thePeriod, int theTime);	// 0x41bf40
 
 	SoundButton(PixelusApp* theApp, Image* theImage, int theId, ButtonListener* theListener);
 
 	virtual void	MouseEnter() override;                                          // 0x41bf80
 	virtual void	MouseDown(int x, int y, int theClickCount) override;            // 0x41bfb0
+	virtual void	Update() override;                                              // 0x41bff0
+	virtual void	Draw(Graphics* g) override;                                     // 0x41c0a0
 	using DialogButton::MouseDown;
 };
 

@@ -481,7 +481,9 @@ void PixelusApp::EnterTemple(int theTemple)
 	mCurrentTemple = theTemple;
 	mLevelData->mCurrentLevel = aName;
 
-	ShowTemple();
+	// 0x4173cc: the first entry of a temple since the game started shows the bubble "welcome", later ones "welcome back"
+	bool aEntered = aUser != NULL && !aUser->mEnteredTemples.insert(theTemple).second;
+	ShowTemple(aEntered ? 1 : 0);
 	if (mIslandMap != NULL)
 	{
 		mWidgetManager->RemoveWidget(mIslandMap);
@@ -491,7 +493,7 @@ void PixelusApp::EnterTemple(int theTemple)
 }
 
 // 0x432420: the temple screen, over a picture of the island if the island is there
-void PixelusApp::ShowTemple()
+void PixelusApp::ShowTemple(int theMode)
 {
 	MemoryImage* aBackdrop = NULL;
 	if (mIslandMap != NULL)
@@ -507,7 +509,7 @@ void PixelusApp::ShowTemple()
 		mWidgetManager->RemoveWidget(mTempleScreen);
 		SafeDeleteWidget(mTempleScreen);
 	}
-	mTempleScreen = new TempleScreen(this, aBackdrop);
+	mTempleScreen = new TempleScreen(this, aBackdrop, theMode);
 	mTempleScreen->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mTempleScreen);
 	mWidgetManager->SetFocus(mTempleScreen);
@@ -906,7 +908,7 @@ void PixelusApp::HandlePaused(bool theWasPaused, bool theIsPaused, int theCount)
 	if (mBoard != NULL && !theWasPaused && theIsPaused)
 		mBoard->mPauseStarted = true;
 	if (mBoard != NULL && theWasPaused && !theIsPaused)
-		mBoard->mIdleTicks = 0;
+		mBoard->mIdleCount = 0;
 }
 
 // what the dialog factory does to every dialog it makes: the fonts, colours and margins

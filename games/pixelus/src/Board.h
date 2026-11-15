@@ -103,7 +103,9 @@ public:
 	bool			mFirstAfterTutorial;	// +0x1d0 a puzzle after the tutorial, whose player has seen all of it: the profile's flag 3 is set when it is solved
 	bool			mFinishedOnce;		// +0x1d1 the finished puzzle has been handled (0x40a161)
 	bool			mFinishSounded;		// the sting of a finished puzzle has played and the music fades
-	int				mIdleTicks;			// +0x4c with no click (the original nags after 4500)
+	int				mMovesSeen;			// +0xfc the grid's move count when mIdleCount last restarted
+	int				mIdleCount;			// +0x100 updates (not paused) without a move; at 4500 the Hint button starts to pulse
+	bool			mNagged;			// +0x104 it has
 	int				mMusicDelay;		// +0x78 -1 until the puzzle has been on for a moment, then counts down to the in-game music
 	int				mErrorTicks;		// +0x1cc
 	std::vector<int> mBestMoves;		// unused

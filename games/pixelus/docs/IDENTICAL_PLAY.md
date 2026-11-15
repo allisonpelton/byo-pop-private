@@ -276,3 +276,4 @@ the focus line is `timer` hidden and after): 11 passed, 0 failed, 1 information 
 were not repeated for this change; the Tile Master only moves a sprite, and the state log and the frozen baseline are
 unchanged.
 
+The frozen baseline was refreshed again on 2026-11-15 (the old exe is kept as `pixelus.before-bubble-mode.exe`): the temple screen now takes the original's mode (0x432420), so the god's first bubble in a returned-to temple draws the application's generator once more (0x42c4a0, mode 2), and the state logs differ from update 3291 only in their `apprand` counter; the game's own state is identical.

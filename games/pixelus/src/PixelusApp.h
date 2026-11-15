@@ -114,7 +114,7 @@ public:
 	void					ShowIslandMap();                                // 0x432600
 	void					BackToMainMenu();                               // 0x433c90: from the island
 	void					EnterTemple(int theTemple);                     // 0x4170d0: a click on a temple of the island
-	void					ShowTemple();                                   // 0x432420 (the island is kept as its backdrop)
+	void					ShowTemple(int theMode = 2);                                   // 0x432420 (the island is kept as its backdrop)
 	void					BackToIsland();                                 // 0x432ac0
 	void					StartPuzzle(bool theRestart);                   // 0x433820: from the temple to the board
 	void					ShowResumeQuestion();                           // 0x434f70 (dialog 0x20)

@@ -7,6 +7,7 @@
 // the original's byte layout in the same files (version 4; strings with a four-byte length).
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -39,6 +40,7 @@ public:
 	bool			mFlag79;					// +0x79
 	bool			mFlag7A;					// +0x7a
 	std::map<std::string, PuzzleRecord>	mRecords;	// by puzzle uuid
+	std::set<int>						mEnteredTemples;	// +0xc of the temple record (0x439dc0): entered since the game started, not saved
 	std::map<std::string, int>			mTempleFlags;	// per temple (+0x10 visited, +0x11, +0x12): bits 1, 2, 4
 
 public:

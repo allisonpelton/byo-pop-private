@@ -20,6 +20,61 @@ SoundButton::SoundButton(PixelusApp* theApp, Image* theImage, int theId, ButtonL
 	mApp = theApp;
 	mClickSound = SOUND_UI_LITTLE_BEEP_05B;
 	mOverSound = -1;
+	mFlashOn = false;
+	mFlashCount = -1;
+	mFlashAdditive = false;
+	mFlashPeriod = 100;
+	mFlashTime = 0;
+}
+
+// 0x41bf40
+void SoundButton::SetFlash(bool theOn, int theCount, bool theAdditive, int thePeriod, int theTime)
+{
+	mFlashTime = theTime;
+	mFlashOn = theOn;
+	mFlashCount = theCount;
+	mFlashAdditive = theAdditive;
+	mFlashPeriod = thePeriod;
+}
+
+// 0x41bff0
+void SoundButton::Update()
+{
+	mFlashTime++;
+	DialogButton::Update();
+	if (mFlashOn)
+		MarkDirty();
+}
+
+// 0x41c0a0: while it pulses the button is drawn without its label, and then again, label and all, over itself with an alpha
+// that goes from 0 up to 255 and back down within one period (added to the picture below when mFlashAdditive); each time a
+// period starts a pulse is counted off, and the last one ends it
+void SoundButton::Draw(Graphics* g)
+{
+	if (!mFlashOn)
+		DialogButton::Draw(g);
+	else
+	{
+		SexyString aLabel = mLabel;
+		mLabel = "";
+		DialogButton::Draw(g);
+		mLabel = aLabel;
+	}
+	if (!mFlashOn)
+		return;
+	int aPhase = mFlashTime % mFlashPeriod;
+	if (aPhase == 0 && mFlashCount != -1 && --mFlashCount == 0)
+		SetFlash(false, -1, false, 100, 0);
+	double aHalf = mFlashPeriod * 0.5;
+	if (aPhase > aHalf)
+		aPhase = mFlashPeriod - aPhase;
+	g->SetColor(Color(255, 255, 255, (int) (aPhase / aHalf * 255.0)));
+	g->SetColorizeImages(true);
+	if (mFlashAdditive)
+		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+	DialogButton::Draw(g);
+	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	g->SetColorizeImages(false);
 }
 
 // 0x41bf80
@@ -59,6 +114,13 @@ DialogButton* Sexy::MakeStripButton(PixelusApp* theApp, ButtonListener* theListe
 	aButton->mOverImage = anImage;
 	aButton->mDownImage = anImage;
 	aButton->mComponentImage = NULL;
+	// 0x431380 styles it like the dialogs' buttons: its label (the temple's plaque has one) is drawn in their font and
+	// colours, three pixels up
+	aButton->mTextOffsetX = 0;
+	aButton->mTextOffsetY = -3;
+	aButton->SetFont(theApp->mFonts[FONT_VESPASIANO15]);
+	aButton->SetColor(0, Color(255, 255, 255, 255));
+	aButton->SetColor(1, Color(0xff, 0xc0, 0x40));
 	aButton->Resize(theX, theY, aWidth, aHeight);
 	return aButton;
 }

@@ -72,7 +72,9 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 	mCompleted = false;
 	mFinishSounded = false;
 	mMaxedAtStart = false;
-	mIdleTicks = 0;
+	mMovesSeen = 0;
+	mIdleCount = 0;
+	mNagged = false;
 	mMusicDelay = -1;
 	mErrorTicks = 0;
 	mHintShown = false;
@@ -146,7 +148,9 @@ Board::Board(PixelusApp* theApp, int theRows, int theCols, int theGridX, int the
 	mCompleted = false;
 	mFinishSounded = false;
 	mMaxedAtStart = false;
-	mIdleTicks = 0;
+	mMovesSeen = 0;
+	mIdleCount = 0;
+	mNagged = false;
 	mMusicDelay = -1;
 	mErrorTicks = 0;
 	mHintShown = false;
@@ -526,7 +530,6 @@ void Board::DoThrow()
 	if (mDemo)
 		return;
 	RecordUndo(aSide, aCursor, -1, aBounces ? 2 : aLeaves ? 3 : 0);
-	mIdleTicks = 0;
 	SaveProgress();
 }
 
@@ -553,7 +556,6 @@ void Board::DoPull()
 	if (mDemo)
 		return;
 	RecordUndo(aSide, aCursor, aPosition, 1);
-	mIdleTicks = 0;
 	SaveProgress();
 }
 
@@ -863,7 +865,35 @@ void Board::Update()
 	}
 	if (mHintShown && --mHintTicks <= 0)
 		mHintShown = false;
-	mIdleTicks++;
+	// 0x409c2b: 4500 updates with no move and the Hint button starts to pulse, five times; once for a puzzle
+	if (!mNagged)
+	{
+		if (mGrid->mMoveCount != mMovesSeen)
+		{
+			mMovesSeen = mGrid->mMoveCount;
+			mIdleCount = 0;
+		}
+		else
+		{
+			if (!mApp->IsPaused())
+				mIdleCount++;
+			if (mIdleCount == 4500)
+			{
+				if (!mApp->GetHintsDisabled() && mHintButton != NULL)
+					static_cast<SoundButton*>(mHintButton)->SetFlash(true, 5, true, 100, 0);
+				mNagged = true;
+			}
+		}
+	}
+	// 0x40a212: with the mouse over a tile that Undo would take back, the Undo button glows (the glow is renewed each update
+	// the mouse stays, and runs out within 13 updates of leaving)
+	if (!mExpert && mUndoButton != NULL && !mApp->IsPaused() && mHoverRow >= 0)
+	{
+		int aCursor = 0;
+		if (mGrid->FindPullSide(mHoverRow, mHoverCol, mTileMaster->GetSide(), &aCursor) >= 0 && !mGrid->mDone && mGrid->mCanPull &&
+			mGrid->HasObject(mGrid->mStuckRow, mGrid->mStuckCol) && IsLastThrownTile(mHoverRow, mHoverCol))
+			static_cast<SoundButton*>(mUndoButton)->SetFlash(true, 1, false, 30, 17);
+	}
 
 	// 150 updates after the puzzle appears (and no help screen over it) the music of the puzzles comes in
 	if (mMusicDelay == -1 && mApp->mHelpScreen == NULL)
