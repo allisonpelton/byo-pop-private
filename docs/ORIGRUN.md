@@ -248,9 +248,8 @@ origrun runs itself and the game again in that session.
   `VideoInput` are disabled and `ProtectedClient` is enabled, so a game reaches no network (no "More Games" page,
   no update check, no Steam). `vGPU` is disabled, so the sandbox renders in software, unless `--sandbox-vgpu`:
   the user allowed that for Bookworm Adventures' 3D comparison (2026-11-01), Bejeweled Twist's 3D mode
-  (2026-11-02), and Typer Shark's and Bejeweled 2's 3D comparisons (2026-11-11); between 22:00 and 08:00 local time
-  any game may use it (CLAUDE.md, "Overnight, desktop and sound allowed"), and at other hours another game's 3D runs
-  ask first. Exactly two folders are mapped, the run folder read-write
+  (2026-11-02), and Typer Shark's and Bejeweled 2's 3D comparisons (2026-11-11), and since 2026-11-15 any game may
+  use it at any hour (CLAUDE.md, "Desktop and Sandbox at any hour"). Exactly two folders are mapped, the run folder read-write
   as `C:\run` and `build/origrun-bin` read-only as `C:\origrun`; origrun resolves both to their final paths (a
   junction shows where it leads) and refuses the run unless the run folder sits directly under the repository's
   `build\origrun` and the binaries' folder ends in `\build\origrun-bin`, both on a local drive.
