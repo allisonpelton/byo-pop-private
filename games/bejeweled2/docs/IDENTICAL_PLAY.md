@@ -237,7 +237,7 @@ update later (`--shift`, the 3D loop's click timing, GAME_NOTES, "Oddities"), an
 The comparison tools came with these commits (`origcmp/visrun.py`, `landed_to_events.py`, `run_tour_visible.sh`).
 
 **The eight modes' 3D tours (2026-11-15).** Every mode has a tour of its own in 3D (`record_3d_tours.sh`, the port's bot with the test
-commands, seed 909, the Steam files' constants of the time; the original on the visible desktop at night, `run_tour_visible.sh`; 21 to 160
+commands, seed 909, the Steam files' constants of the time; the original on the visible desktop, `run_tour_visible.sh`; 21 to 160
 shots a mode, the animated stretches every 23 updates), each compared with shotdiff and every box looked at. The replay keeps the pointer
 where the click put it for the widget manager (`--leave-keep`: the original's WARP glow reads that position, and the first runs lost it),
 gives the help click its extra update by itself, and the generators' indices were equal at every shot in all eight modes.
