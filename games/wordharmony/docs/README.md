@@ -14,8 +14,8 @@ the game's files, image decoding, the registry, the screen mode, links, messages
 `game/` is the game (the exe's 0x401000-0x424000): the controller, the screens, the settings and saved games, the
 levels, the physics, the ball system with the rules of the three modes, and the HUD. `src/` is the host: the
 SexyAppFramework only gives it a window, a clock, the input and the 800x600 screen (`src/WordHarmonyApp.cpp`), and
-the host draws the engine's images into that screen with blitters of its own (`src/Render.cpp`) and plays its sounds
-through the platform's mixer (`src/SoundHost.cpp`).
+the host draws the engine's images into that screen with blitters of its own (`engines/sprout/host/Render.cpp`) and plays its sounds
+through the platform's mixer (`engines/sprout/host/SoundHost.cpp`).
 
 Everything a player sees is there: the splash, the main menu with its falling blossoms, the three modes (TSUNAMI, the
 action game with the rising water and the bonus word; RELAX, the hundred puzzle levels with their word lists; THINK,
@@ -178,7 +178,7 @@ The port needs about three to four times the original's processor time over the 
 
 ## Performance pass (2026-11-11)
 
-The pass changes how the port works, never what it does: its changes are in `src/Render.cpp`, `src/WordHarmonyApp.cpp` and
+The pass changes how the port works, never what it does: its changes are in `engines/sprout/host/Render.cpp`, `src/WordHarmonyApp.cpp` and
 `game/Dictionary.h`, no draw call, game rule or random draw changed, and the frozen baseline (`tools/check.sh wordharmony`:
 the two scripted games, their saves and screenshots) and the pictures of phase two's tours 1, 2, 3 and 5 (74 shots and each
 tour's state log, `tools/profile/pixcmp.sh <old exe> <new exe> <dir>`, the old and the new exe side by side with `-fast`
@@ -303,7 +303,7 @@ instrumentation was reverted): RunFrame 2.66, of which the draw calls 2.44 (abou
 `SDL_UpdateTexture` 0.58; `SDL_RenderPresent` 0.77; the rest about 0.4, 4.46 in all, with the driver's worker about 1.15 more.
 In the TSUNAMI window only about 7,900 of the 480,000 pixels change from one frame to the next.
 
-**What changed: retained drawing** (`src/Render.cpp`, `ScreenGraphics`; item 2 above's lazy clear and item 1's
+**What changed: retained drawing** (`engines/sprout/host/Render.cpp`, `ScreenGraphics`; item 2 above's lazy clear and item 1's
 `sBlitColumns` are gone, the pixel operations are the same templates). `drawImage` and `drawLine` no longer draw: they record
 the call (`Blit`: image serial, operation, the rectangles, colour, 23 32-bit words, and for an unrotated call its
 source column and row maps). `finish()` sorts the calls into per-tile lists (32 by 32 pixels, 25 by 19 tiles) and redraws a

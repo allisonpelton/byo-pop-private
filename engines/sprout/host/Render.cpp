@@ -1,5 +1,7 @@
 #include "Render.h"
 #include "platform/ImageLoader.h"
+#include "sprout/Build.h"
+#include "sprout/ImageFilter.h"
 
 #include <algorithm>
 #include <cmath>
@@ -7,7 +9,6 @@
 #include <type_traits>
 
 using namespace engine;
-using namespace wordharmony;
 
 namespace
 {
@@ -39,8 +40,9 @@ bool maskHasAlpha(const std::vector<uint8_t>& theMask)
 
 }
 
-// 0x45e760, 0x45ea10: the image read from a PNG and its mask (the platform decodes both; the mask is read below)
-ScreenImage* wordharmony::decodeImage(const std::vector<uint8_t>& theData, const std::vector<uint8_t>* theMask)
+// 0x45e760 (wordharmony), 0x45ea10 (wordharmony): the image read from a PNG and its mask (the platform decodes both;
+// the mask is read below)
+ScreenImage* engine::decodeImage(const std::vector<uint8_t>& theData, const std::vector<uint8_t>* theMask)
 {
 	int aWidth = 0;
 	int aHeight = 0;
@@ -52,9 +54,10 @@ ScreenImage* wordharmony::decodeImage(const std::vector<uint8_t>& theData, const
 	anImage->mBits.swap(aBits);
 	if (theMask != nullptr)
 	{
-		// (0x45ea10, 0x4651c0) the last channel of each of the mask's pixels is the alpha. The reader makes an RGB mask
-		// and a palette one without transparency grey (png_set_rgb_to_gray, libpng's default weights) and expands a
-		// palette with it to RGBA, so a mask with alpha gives its alpha and any other its grey level.
+		// (0x45ea10 (wordharmony), 0x4651c0 (wordharmony)) the last channel of each of the mask's pixels is the alpha.
+		// The reader makes an RGB mask and a palette one without transparency grey (png_set_rgb_to_gray, libpng's
+		// default weights) and expands a palette with it to RGBA, so a mask with alpha gives its alpha and any other
+		// its grey level.
 		int aMaskWidth = 0;
 		int aMaskHeight = 0;
 		std::vector<uint32_t> aMaskBits;
@@ -102,9 +105,9 @@ namespace
 #endif
 
 // Each channel is (source * alpha + destination * (255 - alpha)) / 255. Port (for speed): red and blue are worked out
-// together in the two 16-bit lanes of a word, and a sum x of at most 65025 divided by 255 as (x + 1 + (x >> 8)) >> 8, which
-// is the same for every x up to 65534 (checked against the division for every alpha, every pair of channel values and 400
-// million random pixels)
+// together in the two 16-bit lanes of a word, and a sum x of at most 65025 divided by 255 as (x + 1 + (x >> 8)) >> 8,
+// which is the same for every x up to 65534 (checked against the division for every alpha, every pair of channel values
+// and 400 million random pixels)
 BLIT_INLINE uint32_t blend(uint32_t theDest, uint32_t theRGB, int theAlpha)
 {
 	if (theAlpha >= 255)
@@ -125,14 +128,68 @@ inline int clampByte(int theValue)
 	return theValue < 0 ? 0 : (theValue > 255 ? 255 : theValue);
 }
 
+// The signal build's division by 255 (the rounding of 0x4c5e70 (pizzafrenzy) and 0x4c3870 (pizzafrenzy))
+inline int divide255(int theValue)
+{
+	int aSum = theValue + 0x80;
+	return ((aSum >> 8) + aSum) >> 8;
+}
+
+// 0x4c30a0 (pizzafrenzy): a pixel blended in by its alpha and the opacity (the MMX loop: each channel, the alpha too,
+// moves by (source - destination) * (alpha * opacity >> 4) / 4096, saturating)
+BLIT_INLINE uint32_t blendSignal(uint32_t theDest, uint32_t theSrc, int theOpacity)
+{
+	int anAlpha = (int)(theSrc >> 24);
+	if (anAlpha == 255 && theOpacity == 255)
+		return theSrc;
+	if (anAlpha == 0 || theOpacity <= 0)
+		return theDest;
+	int aWeight = (anAlpha * theOpacity) >> 4;
+	uint32_t aResult = 0;
+	for (int aShift = 0; aShift < 32; aShift += 8)
+	{
+		int aDest = (int)((theDest >> aShift) & 0xff);
+		int aSrc = (int)((theSrc >> aShift) & 0xff);
+		aResult |= (uint32_t)clampByte(aDest + ((((aSrc - aDest) << 4) * aWeight) >> 16)) << aShift;
+	}
+	return aResult;
+}
+
+// 0x4c5e70 (pizzafrenzy) and 0x4c3870 (pizzafrenzy): the colour modes. theMultiply picks the second; the colour is in
+// theColor (red, green, blue), the alpha of the colour is the opacity.
+BLIT_INLINE uint32_t blendColorMode(bool theMultiply, uint32_t theDest, uint32_t theSrc, const int* theColor,
+	int theOpacity)
+{
+	int anAlpha = divide255((int)(theSrc >> 24) * theOpacity);
+	int aDestAlpha = (int)(theDest >> 24);
+	uint32_t aResult = (uint32_t)clampByte(aDestAlpha - divide255(aDestAlpha * anAlpha) + anAlpha) << 24;
+	for (int i = 0; i < 3; i++)
+	{
+		int aShift = 16 - 8 * i;
+		int aDest = (int)((theDest >> aShift) & 0xff);
+		int aSrc = (int)((theSrc >> aShift) & 0xff);
+		int aFrom = theMultiply ? divide255(aSrc * theColor[i]) : aSrc + theColor[i];
+		int aValue = clampByte(aDest + divide255((aFrom - aDest) * anAlpha));
+		aResult |= (uint32_t)aValue << aShift;
+	}
+	return aResult;
+}
+
 // The pixel operations of the four blitters
 enum
 {
-	OP_COPY,    // 0x45c070: opaque
-	OP_TEST,    // 0x45c780: the pixels above the threshold (blended by their alpha in the port: the original's
+	OP_COPY,    // 0x45c070 (wordharmony): opaque
+	OP_TEST,    // 0x45c780 (wordharmony): the pixels above the threshold (blended by their alpha in the port: the original's
 	            // filtered copy is not reproduced)
-	OP_BLEND,   // 0x45ce90: alpha times the opacity
-	OP_OFFSET   // 0x45d5a0: the colour offset added, then blended
+	OP_BLEND,   // 0x45ce90 (wordharmony): alpha times the opacity
+	OP_OFFSET,  // 0x45d5a0 (wordharmony): the colour offset added, then blended
+	// The signal build's pixel operations (pizzafrenzy); each also works out the destination's alpha, as the images
+	// drawn into need it. mOffsetR-B hold the colour of the colour modes in 0-255 (negative for a colour below 0).
+	OP_SB_COPY,   // 0x4c1e90 (pizzafrenzy): the pixel as it is
+	OP_SB_TEST,   // 0x4c2cb0 (pizzafrenzy): the pixel as it is when its alpha is above the threshold
+	OP_SB_BLEND,  // 0x4c30a0 (pizzafrenzy): the alpha times the opacity (mOpacity, 0-255) blends the pixel in
+	OP_SB_ADD,    // 0x4c5e70 (pizzafrenzy): colour mode 1, the colour added to the pixel, then blended by its alpha
+	OP_SB_MUL     // 0x4c3870 (pizzafrenzy): colour mode 2, the pixel multiplied by the colour, then blended
 };
 
 struct PixelOp
@@ -143,9 +200,10 @@ struct PixelOp
 	int mOffsetR, mOffsetG, mOffsetB;
 };
 
-// 0x45c780 and 0x45ce90: the pixel loops of the alpha-test and blend blitters, with the scanline helpers they share
-// (0x4579c0, 0x4581c0, 0x458230, 0x458560, 0x458cb0). The operation is a template parameter (port, for speed: the
-// blit picks it once and its pixel loops have no switch); a pixel the blend would leave as it is is not written.
+// 0x45c780 (wordharmony) and 0x45ce90 (wordharmony): the pixel loops of the alpha-test and blend blitters, with the
+// scanline helpers they share (0x4579c0 (wordharmony), 0x4581c0 (wordharmony), 0x458230 (wordharmony),
+// 0x458560 (wordharmony), 0x458cb0 (wordharmony)). The operation is a template parameter (port, for speed: the blit
+// picks it once and its pixel loops have no switch); a pixel the blend would leave as it is is not written.
 template <int OP>
 BLIT_INLINE void applyPixel(const PixelOp& theOp, uint32_t& theDest, uint32_t theSrc)
 {
@@ -162,6 +220,20 @@ BLIT_INLINE void applyPixel(const PixelOp& theOp, uint32_t& theDest, uint32_t th
 		int aBlendAlpha = anAlpha * theOp.mOpacity / 255;
 		if (aBlendAlpha > 0)
 			theDest = blend(theDest, theSrc, aBlendAlpha);
+	}
+	else if (OP == OP_SB_COPY)
+		theDest = theSrc;
+	else if (OP == OP_SB_TEST)
+	{
+		if (theOp.mThreshold < anAlpha)
+			theDest = theSrc;
+	}
+	else if (OP == OP_SB_BLEND)
+		theDest = blendSignal(theDest, theSrc, theOp.mOpacity);
+	else if (OP == OP_SB_ADD || OP == OP_SB_MUL)
+	{
+		const int aColor[3] = {theOp.mOffsetR, theOp.mOffsetG, theOp.mOffsetB};
+		theDest = blendColorMode(OP == OP_SB_MUL, theDest, theSrc, aColor, theOp.mOpacity);
 	}
 	else
 	{
@@ -189,6 +261,21 @@ void withOp(int theOp, Body&& theBody)
 	case OP_BLEND:
 		theBody(std::integral_constant<int, OP_BLEND>());
 		break;
+	case OP_SB_COPY:
+		theBody(std::integral_constant<int, OP_SB_COPY>());
+		break;
+	case OP_SB_TEST:
+		theBody(std::integral_constant<int, OP_SB_TEST>());
+		break;
+	case OP_SB_BLEND:
+		theBody(std::integral_constant<int, OP_SB_BLEND>());
+		break;
+	case OP_SB_ADD:
+		theBody(std::integral_constant<int, OP_SB_ADD>());
+		break;
+	case OP_SB_MUL:
+		theBody(std::integral_constant<int, OP_SB_MUL>());
+		break;
 	default:
 		theBody(std::integral_constant<int, OP_OFFSET>());
 		break;
@@ -197,15 +284,16 @@ void withOp(int theOp, Body&& theBody)
 
 }
 
-// port (for speed): retained drawing. A frame is a list of draw calls, and the value of a pixel depends only on the calls
-// that cover it, in order, on the black the screen starts the frame as, and on the images' pixels (which never change once
-// decoded). So the calls are recorded as they come (drawImage and drawLine only record), and at the frame's end (finish)
-// the screen is taken in tiles: a tile whose calls are the same as the last frame's keeps its pixels, and every other tile is
-// made black and has its calls drawn again, clipped to the tile. The pixels are those the original's drawing gives, call
-// for call: each pixel is worked out by the same code from the same inputs. Two calls are the same when they would write the
-// same pixels, not only when their numbers are the same: a position that moved by a fraction of a pixel, in a call that
-// reads the same source column and row for each pixel as before, is the same call (the columns and rows are worked out once
-// for the call, as the original's loops work them out for each of its rows).
+// port (for speed): retained drawing. A frame is a list of draw calls, and the value of a pixel depends only on the
+// calls that cover it, in order, on the black the screen starts the frame as, and on the images' pixels (which never
+// change once decoded). So the calls are recorded as they come (drawImage and drawLine only record), and at the frame's
+// end (finish) the screen is taken in tiles: a tile whose calls are the same as the last frame's keeps its pixels, and
+// every other tile is made black and has its calls drawn again, clipped to the tile. The pixels are those the
+// original's drawing gives, call for call: each pixel is worked out by the same code from the same inputs. Two calls
+// are the same when they would write the same pixels, not only when their numbers are the same: a position that moved
+// by a fraction of a pixel, in a call that reads the same source column and row for each pixel as before, is the same
+// call (the columns and rows are worked out once for the call, as the original's loops work them out for each of its
+// rows).
 namespace
 {
 
@@ -218,8 +306,8 @@ enum
 };
 
 // Everything that decides the pixels one draw call writes (a record compared with the last frame's, so the members are
-// all 32 bits wide, with no padding between them). A line keeps its ends in mSrc*, its colour in mThreshold and its alpha in
-// mOpacity.
+// all 32 bits wide, with no padding between them). A line keeps its ends in mSrc*, its colour in mThreshold and its
+// alpha in mOpacity.
 struct Blit
 {
 	int32_t mKind;
@@ -229,14 +317,15 @@ struct Blit
 	float mRotation, mScaleX, mScaleY;
 	int32_t mPivotX, mPivotY;
 	int32_t mOp, mThreshold, mOpacity, mOffsetR, mOffsetG, mOffsetB;
+	int32_t mSmooth;  // the signal build's smooth blit: each pixel is the bilinear mix of four source pixels
 	int32_t mLeft, mTop, mRight, mBottom;  // the pixels the call can write (a part of the screen)
 };
 
-static_assert(sizeof(Blit) == 23 * 4, "Blit is compared as bytes, so it has no padding");
+static_assert(sizeof(Blit) == 24 * 4, "Blit is compared as bytes, so it has no padding");
 
-// What an unrotated image call reads for each pixel it can write, worked out once for the call: the source column of each
-// destination column (mLeft to mRight) and the source row of each destination row (mTop to mBottom), -1 where the call
-// leaves the pixel. The numbers are in the frame's mMapData.
+// What an unrotated image call reads for each pixel it can write, worked out once for the call: the source column of
+// each destination column (mLeft to mRight) and the source row of each destination row (mTop to mBottom), -1 where the
+// call leaves the pixel. The numbers are in the frame's mMapData.
 struct BlitMaps
 {
 	int32_t mColumns;  // where the columns start in the map data, or -1 for a call without maps (rotated, or a line)
@@ -275,8 +364,8 @@ PixelOp blitOp(const Blit& theBlit)
 	return anOp;
 }
 
-// The part of the screen an image draw call can write; false when it writes nothing. The rectangles are those the pixel loops of
-// renderBlit run over (the position, scale and rotation as the loops take them).
+// The part of the screen an image draw call can write; false when it writes nothing. The rectangles are those the pixel
+// loops of renderBlit run over (the position, scale and rotation as the loops take them).
 bool blitBounds(Blit& theBlit, int theScreenWidth, int theScreenHeight)
 {
 	float aRotation = theBlit.mRotation;
@@ -326,9 +415,10 @@ bool blitBounds(Blit& theBlit, int theScreenWidth, int theScreenHeight)
 	return theBlit.mLeft < theBlit.mRight && theBlit.mTop < theBlit.mBottom;
 }
 
-// An unrotated call's maps (0x45c070's unrotated path), appended to the frame's map data. The column each destination column reads
-// is the float mapping of the original's loop; a mirrored scale reads the image's columns the other way round. False when the
-// call reads nothing (no column or no row falls inside the source), and so writes nothing.
+// An unrotated call's maps (0x45c070 (wordharmony)'s unrotated path), appended to the frame's map data. The column each
+// destination column reads is the float mapping of the original's loop; a mirrored scale reads the image's columns the
+// other way round. False when the call reads nothing (no column or no row falls inside the source), and so writes
+// nothing.
 bool makeMaps(const Blit& theBlit, const ScreenImage& theImage, Frame& theFrame, BlitMaps& theMaps)
 {
 	float aSX = std::fabs(theBlit.mScaleX);
@@ -393,8 +483,8 @@ bool makeMaps(const Blit& theBlit, const ScreenImage& theImage, Frame& theFrame,
 	return true;
 }
 
-// Whether the call i of the frame A writes the pixels the call j of the frame B writes, as the same function of the pixels
-// under it
+// Whether the call i of the frame A writes the pixels the call j of the frame B writes, as the same function of the
+// pixels under it
 bool sameCall(const Frame& theA, size_t i, const Frame& theB, size_t j)
 {
 	const Blit& aFirstBlit = theA.mBlits[i];
@@ -419,11 +509,53 @@ bool sameCall(const Frame& theA, size_t i, const Frame& theB, size_t j)
 			(size_t)(aFirstBlit.mRight - aFirstBlit.mLeft + aFirstBlit.mBottom - aFirstBlit.mTop) * sizeof(int)) == 0;
 }
 
+// The signal build's smooth sampling (the loop of 0x4c2d30 (pizzafrenzy)): the pixel at (u, v) of the source rectangle
+// (in its own pixels) as the bilinear mix of the four pixels around it, each weighted by its alpha, so that the colour
+// is the alpha-weighted mean and the alpha the plain mix. The rectangle's edge pixels are repeated. False when the
+// mix has no alpha.
+bool sampleSmooth(const ScreenImage& theImage, const Blit& theBlit, float u, float v, uint32_t& thePixel)
+{
+	int aLeft = std::max(theBlit.mSrcLeft, 0);
+	int aTop = std::max(theBlit.mSrcTop, 0);
+	int aRight = std::min(theBlit.mSrcRight, theImage.mWidth) - 1;
+	int aBottom = std::min(theBlit.mSrcBottom, theImage.mHeight) - 1;
+	float aSourceX = std::min(std::max(u - 0.5f + theBlit.mSrcLeft, (float)aLeft), (float)aRight);
+	float aSourceY = std::min(std::max(v - 0.5f + theBlit.mSrcTop, (float)aTop), (float)aBottom);
+	int aX0 = (int)aSourceX;
+	int aY0 = (int)aSourceY;
+	int aX1 = std::min(aX0 + 1, aRight);
+	int aY1 = std::min(aY0 + 1, aBottom);
+	int aFractionX = (int)((aSourceX - aX0) * 256.0f);
+	int aFractionY = (int)((aSourceY - aY0) * 256.0f);
+	const uint32_t aPixels[4] = {theImage.mBits[aY0 * theImage.mWidth + aX0],
+		theImage.mBits[aY0 * theImage.mWidth + aX1], theImage.mBits[aY1 * theImage.mWidth + aX0],
+		theImage.mBits[aY1 * theImage.mWidth + aX1]};
+	const uint32_t aWeights[4] = {(uint32_t)((256 - aFractionX) * (256 - aFractionY)),
+		(uint32_t)(aFractionX * (256 - aFractionY)), (uint32_t)((256 - aFractionX) * aFractionY),
+		(uint32_t)(aFractionX * aFractionY)};
+	uint64_t aAlphaSum = 0;
+	uint64_t aColorSum[3] = {0, 0, 0};
+	for (int i = 0; i < 4; i++)
+	{
+		uint64_t aWeight = (uint64_t)aWeights[i] * (aPixels[i] >> 24);
+		aAlphaSum += aWeight;
+		aColorSum[0] += aWeight * ((aPixels[i] >> 16) & 0xff);
+		aColorSum[1] += aWeight * ((aPixels[i] >> 8) & 0xff);
+		aColorSum[2] += aWeight * (aPixels[i] & 0xff);
+	}
+	if (aAlphaSum == 0)
+		return false;
+	thePixel = (uint32_t)(aAlphaSum >> 16) << 24 | (uint32_t)(aColorSum[0] / aAlphaSum) << 16 |
+		(uint32_t)(aColorSum[1] / aAlphaSum) << 8 | (uint32_t)(aColorSum[2] / aAlphaSum);
+	return true;
+}
+
 // Draws one recorded image call into the screen, only the pixels inside the clip rectangle (a part of the screen).
-// 0x45e2d0, 0x45c070 and the other blitters: the position with the state's translation, snapped (truncated) as the state
-// says; the source rectangle placed with its pivot at the position, scaled and rotated about it. Without a rotation a
-// negative scale mirrors the image inside the rectangle the positive scale would cover (as 0x45c070's unrotated path does).
-// (0x457930 and 0x457940 set the blit's flags and 0x4589e0 compares two floats: translated inline)
+// 0x45e2d0 (wordharmony), 0x45c070 (wordharmony) and the other blitters: the position with the state's translation,
+// snapped (truncated) as the state says; the source rectangle placed with its pivot at the position, scaled and rotated
+// about it. Without a rotation a negative scale mirrors the image inside the rectangle the positive scale would cover
+// (as 0x45c070 (wordharmony)'s unrotated path does). (0x457930 (wordharmony) and 0x457940 (wordharmony) set the blit's
+// flags and 0x4589e0 (wordharmony) compares two floats: translated inline)
 void renderBlit(uint32_t* theBits, int theScreenWidth, const Blit& theBlit, const BlitMaps& theMaps, const int* theMapData,
 	const ScreenImage* theImage, int theClipLeft, int theClipTop, int theClipRight, int theClipBottom)
 {
@@ -477,11 +609,44 @@ void renderBlit(uint32_t* theBits, int theScreenWidth, const Blit& theBlit, cons
 		return;
 	}
 
-	// Rotated: translate(-pivot), scale, rotate, translate(position) (0x45c070's matrix); each screen pixel's centre
-	// is mapped back into the source
+	// Rotated: translate(-pivot), scale, rotate, translate(position) (0x45c070 (wordharmony)'s matrix); each screen
+	// pixel's centre is mapped back into the source
 	float aRotation = theBlit.mRotation;
 	float x = theBlit.mX;
 	float y = theBlit.mY;
+	if (theBlit.mSmooth && std::fabs(aRotation) < 2.3841858e-07f)
+	{
+		// The signal build's smooth blit without a rotation (a scale, or a position between pixels): the rectangle the
+		// call covers, a negative scale mirroring the image inside it
+		float aSX = std::fabs(theBlit.mScaleX);
+		float aSY = std::fabs(theBlit.mScaleY);
+		float aLeft = x - (float)theBlit.mPivotX * aSX;
+		float aTop = y - (float)theBlit.mPivotY * aSY;
+		float aSourceWidth = (float)(theBlit.mSrcRight - theBlit.mSrcLeft);
+		float aSourceHeight = (float)(theBlit.mSrcBottom - theBlit.mSrcTop);
+		withOp(anOp.mOp, [&](auto theTag)
+		{
+			constexpr int OP = decltype(theTag)::value;
+			for (int dy = aY0; dy < aY1; dy++)
+			{
+				uint32_t* aDest = theBits + dy * theScreenWidth;
+				float v = (dy + 0.5f - aTop) / aSY;
+				if (theBlit.mScaleY < 0)
+					v = aSourceHeight - v;
+				for (int dx = aX0; dx < aX1; dx++)
+				{
+					float u = (dx + 0.5f - aLeft) / aSX;
+					if (theBlit.mScaleX < 0)
+						u = aSourceWidth - u;
+					uint32_t aPixel;
+					if (u >= 0 && v >= 0 && u < aSourceWidth && v < aSourceHeight &&
+						sampleSmooth(*theImage, theBlit, u, v, aPixel))
+						applyPixel<OP>(anOp, aDest[dx], aPixel);
+				}
+			}
+		});
+		return;
+	}
 	int aSrcX = std::max(theBlit.mSrcLeft, 0);
 	int aSrcY = std::max(theBlit.mSrcTop, 0);
 	int aSrcRight = std::min(theBlit.mSrcRight, theImage->mWidth);
@@ -505,12 +670,19 @@ void renderBlit(uint32_t* theBits, int theScreenWidth, const Blit& theBlit, cons
 			{
 				float aRelX = dx + 0.5f - x;
 				// the inverse rotation, then the inverse scale
-				float u = (aCos * aRelX + aSin * aRelY) * anInvX + aPivotX;
-				float v = (-aSin * aRelX + aCos * aRelY) * anInvY + aPivotY;
-				if (u < 0 || v < 0 || u >= aWidth || v >= aHeight)
+				float aSourceU = (aCos * aRelX + aSin * aRelY) * anInvX + aPivotX;
+				float aSourceV = (-aSin * aRelX + aCos * aRelY) * anInvY + aPivotY;
+				if (aSourceU < 0 || aSourceV < 0 || aSourceU >= aWidth || aSourceV >= aHeight)
 					continue;
-				int aU = (int)u + theBlit.mSrcLeft;
-				int aV = (int)v + theBlit.mSrcTop;
+				if (theBlit.mSmooth)
+				{
+					uint32_t aPixel;
+					if (sampleSmooth(*theImage, theBlit, aSourceU, aSourceV, aPixel))
+						applyPixel<OP>(anOp, aDest[dx], aPixel);
+					continue;
+				}
+				int aU = (int)aSourceU + theBlit.mSrcLeft;
+				int aV = (int)aSourceV + theBlit.mSrcTop;
 				if (aU < aSrcX || aU >= aSrcRight || aV < aSrcY || aV >= aSrcBottom)
 					continue;
 				applyPixel<OP>(anOp, aDest[dx], aSrcBits[aV * aSrcPitch + aU]);
@@ -519,8 +691,8 @@ void renderBlit(uint32_t* theBits, int theScreenWidth, const Blit& theBlit, cons
 	});
 }
 
-// Draws one recorded line (slot 7, 0x45e180): a one-pixel line in the state's colour and opacity, only the pixels inside the
-// clip rectangle
+// Draws one recorded line (slot 7, 0x45e180 (wordharmony)): a one-pixel line in the state's colour and opacity, only
+// the pixels inside the clip rectangle
 void renderLine(uint32_t* theBits, int theScreenWidth, const Blit& theBlit, int theClipLeft, int theClipTop, int theClipRight,
 	int theClipBottom)
 {
@@ -573,6 +745,136 @@ const std::vector<ScreenGraphics::Rectangle>& ScreenGraphics::redrawn() const
 	return mRetained->mRedrawn;
 }
 
+// 0x4bea40 (pizzafrenzy): a new image with the same pixels, alpha mode, threshold and pivot
+Image* ScreenImage::clone()
+{
+	ScreenImage* aCopy = new ScreenImage(mWidth, mHeight);
+	aCopy->mBits = mBits;
+	aCopy->setAlphaMode(getAlphaMode(), getAlphaThreshold());
+	aCopy->setPivot(getPivotX(), getPivotY());
+	return aCopy;
+}
+
+namespace
+{
+
+// 0x4cf990 (pizzafrenzy) with the filter code 6: the Mitchell-Netravali filter (B = C = 1/3, support 2)
+double mitchellFilter(double theDistance)
+{
+	const double B = 1.0 / 3.0;
+	const double C = 1.0 / 3.0;
+	double x = std::fabs(theDistance);
+	if (x < 1.0)
+		return ((12.0 - 9.0 * B - 6.0 * C) * x * x * x + (-18.0 + 12.0 * B + 6.0 * C) * x * x + (6.0 - 2.0 * B)) / 6.0;
+	if (x < 2.0)
+		return ((-B - 6.0 * C) * x * x * x + (6.0 * B + 30.0 * C) * x * x + (-12.0 * B - 48.0 * C) * x +
+			(8.0 * B + 24.0 * C)) / 6.0;
+	return 0.0;
+}
+
+// 0x4cf990 (pizzafrenzy): one channel's line of theSourceCount values resampled to theDestCount, by the filter's
+// weights about each destination pixel's centre (the neighbours past either end mirrored); each value is clamped to
+// 0-255 and truncated to a byte
+void resampleLine(const uint8_t* theSource, int theSourceStride, int theSourceCount, uint8_t* theDest,
+	int theDestStride, int theDestCount)
+{
+	double aRatio = (double)theDestCount / (double)theSourceCount;
+	for (int i = 0; i < theDestCount; i++)
+	{
+		double aCenter = (double)i / aRatio;
+		double aSum = 0.0;
+		if (aRatio >= 1.0)
+		{
+			int aLeft = (int)std::ceil(aCenter - 2.0);
+			int aRight = (int)std::floor(aCenter + 2.0);
+			for (int j = aLeft; j <= aRight; j++)
+			{
+				int aIndex = j < 0 ? -j : (j >= theSourceCount ? 2 * theSourceCount - j - 1 : j);
+				aIndex = std::min(std::max(aIndex, 0), theSourceCount - 1);
+				aSum += mitchellFilter(aCenter - j) * theSource[aIndex * theSourceStride];
+			}
+		}
+		else
+		{
+			double aWidth = 2.0 / aRatio;
+			int aLeft = (int)std::ceil(aCenter - aWidth);
+			int aRight = (int)std::floor(aCenter + aWidth);
+			for (int j = aLeft; j <= aRight; j++)
+			{
+				int aIndex = j < 0 ? -j : (j >= theSourceCount ? 2 * theSourceCount - j - 1 : j);
+				aIndex = std::min(std::max(aIndex, 0), theSourceCount - 1);
+				aSum += mitchellFilter((aCenter - j) * aRatio) * aRatio * theSource[aIndex * theSourceStride];
+			}
+		}
+		theDest[i * theDestStride] = (uint8_t)(aSum < 0.0 ? 0.0 : (aSum > 255.0 ? 255.0 : aSum));
+	}
+}
+
+}
+
+// 0x4becb0 (pizzafrenzy): the image resampled in place to ftol(width * |factor|) by ftol(height * |factor|), a
+// horizontal pass and then a vertical one, each channel on its own; the pivot is left where it was
+void ScreenImage::scale(float theScaleX, float theScaleY)
+{
+	int aNewWidth = std::max(1, (int)(mWidth * std::fabs(theScaleX)));
+	int aNewHeight = std::max(1, (int)(mHeight * std::fabs(theScaleY)));
+	std::vector<uint32_t> aResult((size_t)aNewWidth * aNewHeight);
+	for (int aShift = 0; aShift < 32; aShift += 8)
+	{
+		std::vector<uint8_t> aSource((size_t)mWidth * mHeight);
+		for (size_t i = 0; i < aSource.size(); i++)
+			aSource[i] = (uint8_t)(mBits[i] >> aShift);
+		std::vector<uint8_t> aFirst((size_t)aNewWidth * mHeight);
+		for (int y = 0; y < mHeight; y++)
+			resampleLine(aSource.data() + (size_t)y * mWidth, 1, mWidth, aFirst.data() + (size_t)y * aNewWidth, 1,
+				aNewWidth);
+		std::vector<uint8_t> aSecond((size_t)aNewWidth * aNewHeight);
+		for (int x = 0; x < aNewWidth; x++)
+			resampleLine(aFirst.data() + x, aNewWidth, mHeight, aSecond.data() + x, aNewWidth, aNewHeight);
+		for (size_t i = 0; i < aResult.size(); i++)
+			aResult[i] |= (uint32_t)aSecond[i] << aShift;
+	}
+	mWidth = aNewWidth;
+	mHeight = aNewHeight;
+	mBits.swap(aResult);
+	mSerial = nextSerial();
+}
+
+// 0x4be780 (pizzafrenzy): a copy scaled in place. Word Harmony's has no such call (its image hands itself back).
+Image* ScreenImage::createScaled(float theScaleX, float theScaleY)
+{
+	if (!gSignalBuild)
+		return this;
+	return Image::createScaled(theScaleX, theScaleY);
+}
+
+// 0x4beec0 (pizzafrenzy): every pixel the colour, each channel its value times 255 truncated
+void ScreenImage::fill(const Color4& theColor)
+{
+	uint32_t aPixel = (uint32_t)clampByte((int)(theColor.a * 255.0f)) << 24 |
+		(uint32_t)clampByte((int)(theColor.r * 255.0f)) << 16 | (uint32_t)clampByte((int)(theColor.g * 255.0f)) << 8 |
+		(uint32_t)clampByte((int)(theColor.b * 255.0f));
+	std::fill(mBits.begin(), mBits.end(), aPixel);
+	mSerial = nextSerial();
+}
+
+// 0x4be830 (pizzafrenzy): each pixel replaced by what the filter makes of it
+void ScreenImage::applyFilter(PixelFx& theFilter)
+{
+	for (int y = 0; y < mHeight; y++)
+	{
+		for (int x = 0; x < mWidth; x++)
+		{
+			uint32_t& aPixel = mBits[(size_t)y * mWidth + x];
+			uint8_t aRed, aGreen, aBlue, anAlpha;
+			theFilter.filter(x, y, (uint8_t)(aPixel >> 16), (uint8_t)(aPixel >> 8), (uint8_t)aPixel,
+				(uint8_t)(aPixel >> 24), &aRed, &aGreen, &aBlue, &anAlpha);
+			aPixel = (uint32_t)anAlpha << 24 | (uint32_t)aRed << 16 | (uint32_t)aGreen << 8 | aBlue;
+		}
+	}
+	mSerial = nextSerial();
+}
+
 // port (for speed): the number the next image has
 uint32_t ScreenImage::nextSerial()
 {
@@ -594,14 +896,15 @@ ScreenGraphics::~ScreenGraphics()
 	delete mRetained;
 }
 
-// port (for speed): the start of a frame: the screen is black, and nothing is drawn (the calls are recorded, and finish draws them)
+// port (for speed): the start of a frame: the screen is black, and nothing is drawn (the calls are recorded, and finish
+// draws them)
 void ScreenGraphics::clear()
 {
 	mRetained->mFrame.clear();
 }
 
-// port (for speed): the end of a frame: the tiles whose calls differ from the last frame's are drawn. Returns whether any pixel may
-// have changed.
+// port (for speed): the end of a frame: the tiles whose calls differ from the last frame's are drawn. Returns whether
+// any pixel may have changed.
 bool ScreenGraphics::finish()
 {
 	Retained& aRetained = *mRetained;
@@ -692,30 +995,47 @@ bool ScreenGraphics::finish()
 	return aChanged;
 }
 
-// The image's call recorded: the position with the state's translation, snapped (truncated) as the state says, and the
-// pixel operation the state and the image choose (0x45e2d0)
-void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, float y)
+namespace
 {
-	ScreenImage* anImage = static_cast<ScreenImage*>(theImage);
-	if (anImage == nullptr || theSrc.isEmpty())
-		return;
-	float aRotation = getRotation();
-	float aScaleX = getScaleX();
-	float aScaleY = getScaleY();
-	float anOpacity = getOpacity();
-	const RenderState& aState = state();
+
+// The call the graphics' state and the image choose, for a target of theTargetWidth x theTargetHeight pixels: the
+// position with the state's translation, snapped (truncated) as the state says, and the pixel operation
+// (0x45e2d0 (wordharmony)). The signal build's (0x4bf8e0 (pizzafrenzy)) floors the position without the smooth type,
+// and the colour mode, the opacity and the image's alpha mode choose its blitter. False when the call writes nothing.
+bool makeBlit(Graphics& theGraphics, ScreenImage* theImage, const IntRect& theSrc, float x, float y, int theTargetWidth,
+	int theTargetHeight, Frame& theFrame, Blit& theBlit, BlitMaps& theMaps)
+{
+	float aRotation = theGraphics.getRotation();
+	float aScaleX = theGraphics.getScaleX();
+	float aScaleY = theGraphics.getScaleY();
+	float anOpacity = theGraphics.getOpacity();
+	const RenderState& aState = theGraphics.state();
 	x = x + aState.mTranslation.x;
 	y = y + aState.mTranslation.y;
-	int aSnap = getSnap();
-	if (aSnap == SNAP_BOTH || aSnap == SNAP_Y)
-		y = (float)(int)y;
-	if (aSnap == SNAP_BOTH || aSnap == SNAP_X)
-		x = (float)(int)x;
+	bool aSmooth = false;
+	if (gSignalBuild)
+	{
+		if (aState.mSmoothType == 0)
+		{
+			x = std::floor(x);
+			y = std::floor(y);
+		}
+		else
+			aSmooth = aRotation != 0 || aScaleX != 1.0f || aScaleY != 1.0f || x != std::floor(x) || y != std::floor(y);
+	}
+	else
+	{
+		int aSnap = theGraphics.getSnap();
+		if (aSnap == SNAP_BOTH || aSnap == SNAP_Y)
+			y = (float)(int)y;
+		if (aSnap == SNAP_BOTH || aSnap == SNAP_X)
+			x = (float)(int)x;
+	}
 
-	Blit aBlit;
+	Blit& aBlit = theBlit;
 	std::memset(&aBlit, 0, sizeof(aBlit));
 	aBlit.mKind = BLIT_IMAGE;
-	aBlit.mImage = anImage->mSerial;
+	aBlit.mImage = theImage->mSerial;
 	aBlit.mSrcLeft = theSrc.left;
 	aBlit.mSrcTop = theSrc.top;
 	aBlit.mSrcRight = theSrc.right;
@@ -725,40 +1045,92 @@ void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, 
 	aBlit.mRotation = aRotation;
 	aBlit.mScaleX = aScaleX;
 	aBlit.mScaleY = aScaleY;
-	aBlit.mPivotX = anImage->getPivotX();
-	aBlit.mPivotY = anImage->getPivotY();
-	aBlit.mThreshold = anImage->getAlphaThreshold();
+	aBlit.mPivotX = theImage->getPivotX();
+	aBlit.mPivotY = theImage->getPivotY();
+	aBlit.mThreshold = theImage->getAlphaThreshold();
 	aBlit.mOpacity = clampByte((int)(anOpacity * 255.0f));
-	const Color& anOffset = getColorOffset();
-	if (2.3841858e-07f <= std::fabs(anOffset.r) || 2.3841858e-07f <= std::fabs(anOffset.g) ||
-		2.3841858e-07f <= std::fabs(anOffset.b))
+	aBlit.mSmooth = aSmooth ? 1 : 0;
+	if (gSignalBuild)
 	{
-		aBlit.mOp = OP_OFFSET;
-		aBlit.mOffsetR = (int)(anOffset.r * 255.0f);
-		aBlit.mOffsetG = (int)(anOffset.g * 255.0f);
-		aBlit.mOffsetB = (int)(anOffset.b * 255.0f);
+		if (aState.mColorMode == 1 || aState.mColorMode == 2)
+		{
+			aBlit.mOp = aState.mColorMode == 1 ? OP_SB_ADD : OP_SB_MUL;
+			aBlit.mOffsetR = (int)(aState.mColor.r * 255.0f);
+			aBlit.mOffsetG = (int)(aState.mColor.g * 255.0f);
+			aBlit.mOffsetB = (int)(aState.mColor.b * 255.0f);
+		}
+		else if (theImage->getAlphaMode() != ALPHA_BLEND && std::fabs(anOpacity - 1.0f) < 2.3841858e-07f)
+			aBlit.mOp = theImage->getAlphaMode() == ALPHA_TEST ? OP_SB_TEST : OP_SB_COPY;
+		else
+			aBlit.mOp = OP_SB_BLEND;
+		if (aBlit.mOp != OP_SB_COPY && aBlit.mOp != OP_SB_TEST && aBlit.mOpacity == 0)
+			return false;
 	}
-	else if (anImage->getAlphaMode() != ALPHA_BLEND && std::fabs(anOpacity - 1.0f) < 2.3841858e-07f)
-		aBlit.mOp = anImage->getAlphaMode() == ALPHA_TEST ? OP_TEST : OP_COPY;
 	else
-		aBlit.mOp = OP_BLEND;
-	if (aBlit.mOp != OP_COPY && aBlit.mOp != OP_TEST && aBlit.mOpacity == 0)
+	{
+		const Color& anOffset = theGraphics.getColorOffset();
+		if (2.3841858e-07f <= std::fabs(anOffset.r) || 2.3841858e-07f <= std::fabs(anOffset.g) ||
+			2.3841858e-07f <= std::fabs(anOffset.b))
+		{
+			aBlit.mOp = OP_OFFSET;
+			aBlit.mOffsetR = (int)(anOffset.r * 255.0f);
+			aBlit.mOffsetG = (int)(anOffset.g * 255.0f);
+			aBlit.mOffsetB = (int)(anOffset.b * 255.0f);
+		}
+		else if (theImage->getAlphaMode() != ALPHA_BLEND && std::fabs(anOpacity - 1.0f) < 2.3841858e-07f)
+			aBlit.mOp = theImage->getAlphaMode() == ALPHA_TEST ? OP_TEST : OP_COPY;
+		else
+			aBlit.mOp = OP_BLEND;
+		if (aBlit.mOp != OP_COPY && aBlit.mOp != OP_TEST && aBlit.mOpacity == 0)
+			return false;
+	}
+	if (!blitBounds(aBlit, theTargetWidth, theTargetHeight))
+		return false;
+	theMaps.mColumns = theMaps.mRows = -1;
+	theMaps.mFirst = theMaps.mLast = 0;
+	theMaps.mRun = false;
+	return aSmooth || std::fabs(aRotation) >= 2.3841858e-07f || makeMaps(aBlit, *theImage, theFrame, theMaps);
+}
+
+}
+
+// 0x45e2d0 (wordharmony), 0x4bf8e0 (pizzafrenzy): the image's call recorded
+void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, float y)
+{
+	ScreenImage* anImage = static_cast<ScreenImage*>(theImage);
+	if (anImage == nullptr || theSrc.isEmpty())
 		return;
-	if (!blitBounds(aBlit, mWidth, mHeight))
-		return;
+	Blit aBlit;
 	BlitMaps aMaps;
-	aMaps.mColumns = aMaps.mRows = -1;
-	aMaps.mFirst = aMaps.mLast = 0;
-	aMaps.mRun = false;
 	Frame& aFrame = mRetained->mFrame;
-	if (std::fabs(aRotation) < 2.3841858e-07f && !makeMaps(aBlit, *anImage, aFrame, aMaps))
+	if (!makeBlit(*this, anImage, theSrc, x, y, mWidth, mHeight, aFrame, aBlit, aMaps))
 		return;
 	aFrame.mBlits.push_back(aBlit);
 	aFrame.mImages.push_back(anImage);
 	aFrame.mMaps.push_back(aMaps);
 }
 
-// Slot 7 (0x45e180): a one-pixel line (with the translation) in the state's colour and opacity, recorded
+// 0x4bf8e0 (pizzafrenzy) onto an image's own surface (port: the call is drawn at once, over the pixels the image has)
+void ImageGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, float y)
+{
+	ScreenImage* anImage = static_cast<ScreenImage*>(theImage);
+	if (anImage == nullptr || theSrc.isEmpty())
+		return;
+	Blit aBlit;
+	BlitMaps aMaps;
+	Frame aFrame;
+	if (!makeBlit(*this, anImage, theSrc, x, y, mTarget->mWidth, mTarget->mHeight, aFrame, aBlit, aMaps))
+		return;
+	renderBlit(mTarget->mBits.data(), mTarget->mWidth, aBlit, aMaps, aFrame.mMapData.data(), anImage, 0, 0,
+		mTarget->mWidth, mTarget->mHeight);
+}
+
+// Port: the original's line into an image (0x4bf790 (pizzafrenzy)) is not reached by the game
+void ImageGraphics::drawLine(const Point& theFrom, const Point& theTo)
+{
+}
+
+// Slot 7 (0x45e180 (wordharmony)): a one-pixel line (with the translation) in the state's colour and opacity, recorded
 void ScreenGraphics::drawLine(const Point& theFrom, const Point& theTo)
 {
 	const RenderState& aState = state();

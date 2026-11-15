@@ -528,7 +528,7 @@
       ],
       "na": [],
       "now": null,
-      "note": "every phase but modding done but one: the 3D original's tour is done (8251 frames agree in seed and ticks, 31 shots faint-only; VeniceDisplay adds Direct3D 7's half pixel in 3D); left: the tutorial's don't-show-again box; site features with the site session"
+      "note": "every phase but modding done except the site features (Music, soundboard presets, an autosplitter if speedrun.com has a board), which wait on the site's session; the tutorial's don't-show-again box is settled (9e662bc1): it sits on levels/tutorial.xml, a scene the original never loads, so the original never shows it"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
@@ -539,11 +539,12 @@
         "fixes-mod",
         "readability",
         "coverage",
-        "registration-out"
+        "registration-out",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "readability (1a205bd4) and the coverage check (7fcccaee) merged: 36 origrun runs reach 801 of the 1050 game functions, none without a counterpart, the 57 never reached read again or explained; now the performance pass"
+      "now": null,
+      "note": "the performance pass merged (0ec9910f): in 2D on rundesk over level 4 the port takes 2.67 M cycles an update at 1x and 2.74 at 2x against the original's 3.13, about 85% with the mixer counted apart and 94% with it, no code change; next the lite mod"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",
@@ -561,7 +562,7 @@
       "done": [],
       "na": [],
       "now": "port",
-      "note": "the port under way since 2026-11-15, aiming at playable within the week (the user's one exception to new games waiting)"
+      "note": "first boot and the front end work natively (93753d25): the main menu, options, player select and entry, high scores; the game link and online scores removed. The Word Harmony host moved to engines/sprout/host and the engine gained the signal build (engine::gSignalBuild); Word Harmony's state log and shots unchanged. The port continues toward playable this week (the user's one exception to new games waiting)"
     },
     "igglepop": {
       "title": "Iggle Pop Deluxe",

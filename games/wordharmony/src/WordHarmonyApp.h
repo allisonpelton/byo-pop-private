@@ -16,7 +16,7 @@
 
 #include "Bot.h"
 
-namespace wordharmony
+namespace engine
 {
 class HostSoundSystem;
 class ScreenGraphics;
@@ -37,7 +37,7 @@ public:
 	SurfaceDisplay* mSurfaceDisplay;
 	std::vector<uint32_t> mSurfaceBits;
 	const uint32_t* mPixels;  // the 800x600 screen, 0xffRRGGBB: the picture's pixels, or mSurfaceBits
-	wordharmony::ScreenGraphics* mGraphics;
+	engine::ScreenGraphics* mGraphics;
 	DWORD mLastLoop;       // the run loop's last tick count
 	int mAccumulated;      // the milliseconds not yet run as frames (0x4552b0's carry)
 	DWORD mLastSoundTick;

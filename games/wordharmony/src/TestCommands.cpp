@@ -12,7 +12,7 @@
 #include "game/Screens.h"
 #include "game/WordBallSystem.h"
 #include "platform/MemReport.h"
-#include "SoundHost.h"
+#include "sprout/host/SoundHost.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -156,7 +156,7 @@ void WordHarmonyApp::AddMemReportHolders(Platform::MemReport* theReport)
 	int aCount = engine::App::instance()->getImageMemory(&aBytes);
 	theReport->mImageCount += aCount;
 	theReport->mImagePixelBytes += aBytes;
-	wordharmony::HostSoundSystem* aSounds = dynamic_cast<wordharmony::HostSoundSystem*>(engine::App::getSoundSystem());
+	engine::HostSoundSystem* aSounds = dynamic_cast<engine::HostSoundSystem*>(engine::App::getSoundSystem());
 	if (aSounds != nullptr)
 	{
 		theReport->mSoundCount += aSounds->getSoundMemory(&aBytes);

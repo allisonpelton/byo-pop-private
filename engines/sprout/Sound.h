@@ -10,6 +10,8 @@
 namespace engine
 {
 
+class InputStream;
+
 // A voice (0x58 bytes, constructor 0x443fc0 (wordharmony), vtable 0x4851e0 (wordharmony); 0x5c bytes with vtable
 // 0x4850f8 (wordharmony) for a short sound). Its volume is multiplied by its category's volume and the system's; it
 // fades in when it starts and out when it stops (or nears its end, without a loop) when it has those times.
@@ -18,6 +20,7 @@ class Sound
 public:
 	virtual ~Sound() {}
 	virtual void play() = 0;                       // 0x00: from where it is; nothing when it plays
+	virtual void halt() = 0;                       // 0x04: 0x443dd0 (wordharmony), stops where it is
 	virtual void stop() = 0;                       // 0x08: 0x443df0 (wordharmony), a fade-out, or halt and rewind
 	virtual void rewind() = 0;                     // 0x0c: 0x443e40 (wordharmony)
 	virtual void close() = 0;                      // 0x10: 0x4447b0 (wordharmony)
@@ -43,6 +46,16 @@ public:
 	virtual bool load(const char* theName, const char* theFile) = 0;
 	// 0x04: 0x443b60 (wordharmony), the same for a sound played from its file as it goes (the music)
 	virtual bool loadStream(const char* theName, const char* theFile) = 0;
+	// The signal build's system takes the sound's data as a stream the application has opened (the application's
+	// slots 0x58 and 0x5c (pizzafrenzy) open it, from the archive or a loose file, and wrap it in the sound library's
+	// stream, 0x484840 (pizzafrenzy)); the listener build's system does not have these slots (SimpleSoundDX's, vtable
+	// 0x5044f0 (pizzafrenzy))
+	// 0x00: 0x48e3a0 (pizzafrenzy), a sound is loaded under the name
+	virtual bool isLoaded(const char* theName) { return false; }
+	// 0x04: 0x48ece0 (pizzafrenzy), a sound loaded from the stream under the name
+	virtual bool load(const char* theName, InputStream* theStream) { return false; }
+	// 0x08: 0x48ee20 (pizzafrenzy), the same for a sound played as it goes (the music)
+	virtual bool loadStream(const char* theName, InputStream* theStream) { return false; }
 	// 0x14: 0x4435e0 (wordharmony), a new voice of a loaded sound (the system keeps it); null when the name is not
 	// loaded. theStatic says the voice's buffer is a whole short sound whose pitch can change (the original's
 	// DirectSound buffer flags STATIC and CTRLFREQUENCY), not a stream; theCategory is the voice's volume category (0
