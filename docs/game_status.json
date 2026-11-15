@@ -398,10 +398,11 @@
         "fixes-mod",
         "coverage",
         "site-features",
-        "performance"
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
+      "now": "unneeded-code",
       "note": ""
     },
     "tiptop": {

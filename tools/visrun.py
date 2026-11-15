@@ -6,8 +6,8 @@ a step file, with shots of the game's own window. docs/VISRUN.md has the rules a
     python -I tools/visrun.py CONFIG.toml --restore                  (puts back what an interrupted run left)
     python -I tools/visrun.py --selftest                             (checks the time, expression and window helpers)
 
-Only between 22:00 and 08:00 local time, or until the HH:MM that the user opened the desktop to, given on the command line
-of that run (never a default). The game is staged by tools/origrun (--copy-only), its stand-in is placed, the game runs with
+A run may start at any hour (the user lifted the time window on 2026-11-15). It stops at the latest 14 hours after it starts,
+a safety stop for a run that hangs, or earlier at the HH:MM given with --user-window-until. The game is staged by tools/origrun (--copy-only), its stand-in is placed, the game runs with
 no activation, silent, at below-normal priority, and only its own window is touched: input is posted to it, never through
 the user's cursor or keyboard. The window, the game's registry key and its save folders are put back at the end.
 """
@@ -32,7 +32,7 @@ ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 ORIGRUN_BIN = os.path.join(ROOT, 'build', 'origrun-bin')
 WORK = os.path.join(ROOT, 'build', 'visrun')
 WRAPPER_FILES = ('ddraw.dll', 'd3dimm.dll', 'dgvoodoo.conf', 'origrun-wrapper.txt', 'dsound.dll')
-NIGHT_START, NIGHT_END = 22, 8
+MAX_RUN_HOURS = 14   # the longest a run may last: its deadline is its start plus this
 
 
 # ---------------------------------------------------------------- time guard
@@ -43,27 +43,21 @@ def parse_hhmm(text):
     return int(m.group(1)), int(m.group(2))
 
 
-def night(now):
-    return now.hour >= NIGHT_START or now.hour < NIGHT_END
-
-
 def next_at(now, h, m):
     t = now.replace(hour=h, minute=m, second=0, microsecond=0)
     return t if t > now else t + datetime.timedelta(days=1)
 
 
 def run_deadline(now, user_until=None):
-    """The moment a run must be over, or None when this is no time to run: the next 08:00 at night, and, with the user's window
-    (--user-window-until), the next HH:MM (at most 14 hours ahead), whichever is later."""
-    ends = []
-    if night(now):
-        ends.append(next_at(now, NIGHT_END, 0))
+    """The moment a run must be over: MAX_RUN_HOURS after it starts, or, with --user-window-until, the next HH:MM when that is
+    earlier (an HH:MM more than MAX_RUN_HOURS away is refused)."""
+    limit = now + datetime.timedelta(hours=MAX_RUN_HOURS)
     if user_until:
         t = next_at(now, *user_until)
-        if t - now > datetime.timedelta(hours=14):
-            raise SystemExit('visrun: --user-window-until %02d:%02d is more than 14 hours away' % user_until)
-        ends.append(t)
-    return max(ends) if ends else None
+        if t > limit:
+            raise SystemExit('visrun: --user-window-until %02d:%02d is more than %d hours away' % (user_until + (MAX_RUN_HOURS,)))
+        return min(t, limit)
+    return limit
 
 
 # ---------------------------------------------------------------- expressions and conditions (origrun's memory grammar)
@@ -255,7 +249,7 @@ def check_forbidden(steps, forbidden):
 
 def plan(cfg, steps, forbidden, deadline):
     out = ['game %s, clock %s, counter %s, client %dx%d' % (cfg['name'], cfg['clock'], cfg['counter'], *cfg['client'])]
-    out.append('run must end by %s' % (deadline.strftime('%Y-%m-%d %H:%M') if deadline else 'now: NOT ALLOWED (outside 22:00-08:00 and no --user-window-until)'))
+    out.append('run must end by %s' % deadline.strftime('%Y-%m-%d %H:%M'))
     for f in forbidden:
         out.append('forbidden region %s: x %d y %d w %d h %d' % f)
     for s in steps:
@@ -1183,14 +1177,13 @@ def wait_muted(origdir, g, seconds):
 # ---------------------------------------------------------------- checks without a game
 def selftest():
     D = datetime.datetime
-    assert not night(D(2026, 11, 14, 17, 0)) and night(D(2026, 11, 14, 22, 0)) and night(D(2026, 11, 14, 7, 59)) and not night(D(2026, 11, 14, 8, 0))
-    assert run_deadline(D(2026, 11, 14, 17, 0)) is None
-    assert run_deadline(D(2026, 11, 14, 23, 0)) == D(2026, 11, 15, 8, 0)
-    assert run_deadline(D(2026, 11, 14, 3, 0)) == D(2026, 11, 14, 8, 0)
+    assert run_deadline(D(2026, 11, 14, 17, 0)) == D(2026, 11, 15, 7, 0)
+    assert run_deadline(D(2026, 11, 14, 23, 0)) == D(2026, 11, 15, 13, 0)
     assert run_deadline(D(2026, 11, 14, 17, 0), (23, 30)) == D(2026, 11, 14, 23, 30)
-    assert run_deadline(D(2026, 11, 14, 23, 0), (7, 0)) == D(2026, 11, 15, 8, 0)   # the night's own end is later
+    assert run_deadline(D(2026, 11, 14, 23, 0), (7, 0)) == D(2026, 11, 15, 7, 0)
+    assert run_deadline(D(2026, 11, 14, 17, 0), (7, 0)) == D(2026, 11, 15, 7, 0)   # exactly 14 hours is allowed
     try:
-        run_deadline(D(2026, 11, 14, 17, 0), (8, 0))
+        run_deadline(D(2026, 11, 14, 17, 0), (8, 0))   # 15 hours away
         assert False
     except SystemExit:
         pass
@@ -1224,7 +1217,7 @@ def main():
     ap.add_argument('--out', help='the shots folder (default build/visrun/<name>/out)')
     ap.add_argument('--3d', dest='threed', choices=('on', 'off'), default='on', help='the game\'s Hardware Acceleration for the run (default on)')
     ap.add_argument('--seed', type=int, help='the {seed} of the config\'s patch list')
-    ap.add_argument('--user-window-until', metavar='HH:MM', help='the user opened the desktop to this time, outside 22:00-08:00 (given on every run, never a default)')
+    ap.add_argument('--user-window-until', metavar='HH:MM', help='stop the run at this time, earlier than the %d-hour limit every run has (at most %d hours ahead)' % (MAX_RUN_HOURS, MAX_RUN_HOURS))
     ap.add_argument('--shape', choices=('client', 'sandbox'), default='client')
     ap.add_argument('--clock', choices=('real', 'virtual'), help='overrides the config')
     ap.add_argument('--timeout', type=int, default=120, help='seconds one wait for an update may take')
@@ -1256,9 +1249,6 @@ def main():
     if a.dry_run:
         print(plan(cfg, steps, forbidden, deadline))
         return
-    if not deadline:
-        raise SystemExit('visrun: it is %s: the visible desktop is open only between 22:00 and 08:00, or until the time the user gives '
-                         '(--user-window-until HH:MM, on this run\'s command line)' % now.strftime('%H:%M'))
     # a run must end 2 minutes before its deadline
     deadline -= datetime.timedelta(minutes=2)
     if deadline <= now:

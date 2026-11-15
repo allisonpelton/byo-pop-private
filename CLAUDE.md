@@ -8,7 +8,8 @@ matters.
 
 ## Running games in tests
 
-The user works on this machine, so every test run of a game is invisible, silent and low priority.
+The user works on this machine, so a routine test run of a game is invisible, silent and low priority. A run that needs
+the visible desktop, Windows Sandbox or sound may have them at any hour (the last item below).
 - Start every game exe (ports, `fwtest`, `smoke`, `lsprobe`, frozen baselines, scratch builds) through
   `build/native/rundesk.exe`, or a script under it: `build/native/rundesk.exe bash my-loop.sh` (a private desktop,
   SDL's silent audio driver, below-normal priority; build it with `cmake --build build/native --target rundesk`).
@@ -37,11 +38,12 @@ The user works on this machine, so every test run of a game is invisible, silent
 - Leave nothing running: afterwards look for processes whose command line is inside your folder and stop them by id.
   Stop only processes you started, never a game exe by name alone. End a turn waiting only on something that wakes you
   (a background command, a Monitor that ends by itself); a hidden pane runs no requestAnimationFrame unless shimmed.
-- Never run `-script`/`-autoplay` runs on the user's desktop (`ORACLE_VISIBLE=1` is the user's).
-- **Overnight, 22:00 to 08:00 local:** any game, port or original, and any test program that opens a window, may run on
-  the visible desktop or in Windows Sandbox (`--sandbox-vgpu`, `--sandbox-connect`) with sound, scripted runs too; a
-  run started then ends by 08:00. Everything else holds: 6 processes, no link clicks, the user's cursor and keyboard
-  never touched (input posted to the game's window), window, registry and saves put back, nothing left running.
+- **Desktop and Sandbox at any hour (the user, 2026-11-15, replacing the 22:00-08:00 window):** any game, port or
+  original, and any test program that opens a window, may run on the visible desktop or in Windows Sandbox
+  (`--sandbox-vgpu`, `--sandbox-connect`) with sound, scripted and driven runs too, at any time of day. A game script
+  that still refuses outside 22:00-08:00 is out of date: drop its guard. Everything else holds: 6 processes, no link
+  clicks, a window opened without taking the focus, the user's cursor and keyboard never touched (input posted to the
+  game's window), window, registry and saves put back, nothing left running. `ORACLE_VISIBLE=1` stays the user's.
 
 ## Token economy
 

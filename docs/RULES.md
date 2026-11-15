@@ -89,16 +89,21 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   requestAnimationFrame unless it is shimmed, so it can stand still for good. A session that ended its turn on "waiting
   for the web tour" sat idle for a day (2026-11-03). Stop only processes you started, identified by a command line inside your own folder or worktree;
   several sessions share this machine, so never stop a game exe by its name alone.
-- Never run `-script`/`-autoplay` runs on the user's desktop. `ORACLE_VISIBLE=1` exists only for the user.
-- **Overnight, desktop and sound allowed (the user, 2026-11-11):** "from 10 PM to 8 AM you have my permission to run
-  any of the games on my desktop or sandbox with sound to test play". Between 22:00 and 08:00 local time a session may
-  run any game, port or original, on the visible desktop or in Windows Sandbox (`--sandbox-vgpu` and
-  `--sandbox-connect` included), with real sound, scripted and driven runs too; a run started in that window ends by
-  08:00. Benchmarks and other test programs that open a window (a presenter or vsync bench) may run there on the same
-  terms (the user, 2026-11-12, asked whether rundesk's desktop, which may never signal a vertical blank, makes a
-  present cost more than on a player's screen: "Yes"). Everything else above still holds: at most 6 game processes, no link, "Buy" or "More Games" click, the
-  user's cursor and keyboard never touched (input posted to the game's own window), the window, registry and saves
-  put back as `docs/ORIGRUN.md` says, nothing left running. Outside those hours the rules above apply unchanged.
+- `ORACLE_VISIBLE=1` exists only for the user. (Until 2026-11-15, `-script`/`-autoplay` runs never went on the
+  user's desktop; the item below replaced that.)
+- **Desktop and Sandbox at any hour (the user, 2026-11-15):** "Get rid of the time restrictions on concurrent sessions
+  and running on my visible desktop. Do what you want forever now". It replaced the overnight window of 2026-11-11
+  ("from 10 PM to 8 AM you have my permission to run any of the games on my desktop or sandbox with sound to test
+  play"). At any hour a session may run any game, port or original, on the visible desktop or in Windows Sandbox
+  (`--sandbox-vgpu` and `--sandbox-connect` included), with real sound, scripted and driven runs too. Benchmarks and
+  other test programs that open a window (a presenter or vsync bench) may run there on the same terms (the user,
+  2026-11-12, asked whether rundesk's desktop, which may never signal a vertical blank, makes a present cost more than
+  on a player's screen: "Yes"). Routine runs stay under rundesk, which keeps windows and sound off the user's work;
+  the desktop is for what needs it (3D, vsync, sound, real input). A game's own script that still refuses outside
+  22:00-08:00 is out of date and loses its guard at its next use. Everything else above still holds: at most 6 game
+  processes, no link, "Buy" or "More Games" click, a window shown without taking the focus, the user's cursor and
+  keyboard never touched (input posted to the game's own window), the window, registry and saves put back as
+  `docs/ORIGRUN.md` says, nothing left running.
 
 ## Token economy (the user's rules, 2026-10-24)
 
