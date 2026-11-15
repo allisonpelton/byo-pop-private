@@ -3,6 +3,7 @@
 #include "XMLParser.h"
 #include "SoundManager.h"
 #include "DDImage.h"
+#include "DDInterface.h"
 #include "ImageFont.h"
 #include "SexyAppBase.h"
 #include "../platform/ImageLoader.h"
@@ -662,30 +663,9 @@ bool ResourceManager::LoadAlphaGridImage(ImageRes *theRes, DDImage *theImage)
 	if (anAlphaImage->mWidth!=aCelWidth || anAlphaImage->mHeight!=aCelHeight)
 		return Fail(StrFormat("GridAlphaImage size mismatch between %s and %s",theRes->mPath.c_str(),theRes->mAlphaGridImage.c_str()));
 
-	unsigned long *aMasterRowPtr = theImage->mBits;
-	for (int i=0; i < aNumRows; i++)
-	{
-		unsigned long *aMasterColPtr = aMasterRowPtr;
-		for (int j=0; j < aNumCols; j++)
-		{
-			unsigned long* aRowPtr = aMasterColPtr;
-			const uint32_t* anAlphaBits = anAlphaImage->mBits.data();
-			for (int y=0; y<aCelHeight; y++)
-			{
-				unsigned long *aDestPtr = aRowPtr;
-				for (int x=0; x<aCelWidth; x++)
-				{
-					*aDestPtr = (*aDestPtr & 0x00FFFFFF) | ((*anAlphaBits & 0xFF) << 24);
-					++anAlphaBits;
-					++aDestPtr;
-				}
-				aRowPtr += theImage->mWidth;
-			}
-
-			aMasterColPtr += aCelWidth;
-		}
-		aMasterRowPtr += aCelHeight*theImage->mWidth;
-	}
+	// port: the loop is MemoryImage::ApplyAlphaGrid's, which a dropped picture's pixels are made again with
+	MemoryImage::ApplyAlphaGrid(theImage->mBits, theImage->mWidth, theImage->mHeight, aNumRows, aNumCols, anAlphaImage->mBits.data(),
+		anAlphaImage->mWidth, anAlphaImage->mHeight);
 
 	theImage->BitsChanged();
 	return true;
@@ -705,16 +685,8 @@ bool ResourceManager::LoadAlphaImage(ImageRes *theRes, DDImage *theImage)
 	if (anAlphaImage->mWidth!=theImage->mWidth || anAlphaImage->mHeight!=theImage->mHeight)
 		return Fail(StrFormat("AlphaImage size mismatch between %s and %s",theRes->mPath.c_str(),theRes->mAlphaImage.c_str()));
 
-	unsigned long* aBits1 = theImage->mBits;
-	const uint32_t* aBits2 = anAlphaImage->mBits.data();
-	int aSize = theImage->mWidth*theImage->mHeight;
-
-	for (int i = 0; i < aSize; i++)
-	{
-		*aBits1 = (*aBits1 & 0x00FFFFFF) | ((*aBits2 & 0xFF) << 24);
-		++aBits1;
-		++aBits2;
-	}
+	// port: the loop is MemoryImage::ApplyAlphaImage's, which a dropped picture's pixels are made again with
+	MemoryImage::ApplyAlphaImage(theImage->mBits, theImage->mWidth*theImage->mHeight, anAlphaImage->mBits.data());
 
 	theImage->BitsChanged();
 	return true;
@@ -743,17 +715,38 @@ bool ResourceManager::DoLoadImage(ImageRes *theRes)
 
 	if (isNew)
 	{
+		// port: the file's pixels with these alpha steps can be made again after they are dropped (MemoryImage.h,
+		// mBitsSource), when nothing else changed them since the file gave them
+		MemoryImage::BitsSource* aSource = NULL;
+		if (aDDImage->BitsSourceValid() && ((!theRes->mAlphaImage.empty()) || (!theRes->mAlphaGridImage.empty())))
+		{
+			aSource = new MemoryImage::BitsSource(*aDDImage->mBitsSource);
+			aSource->mAlphaPath = theRes->mAlphaImage;
+			aSource->mAlphaGridPath = theRes->mAlphaGridImage;
+			aSource->mGridRows = theRes->mRows;
+			aSource->mGridCols = theRes->mCols;
+		}
+
 		if (!theRes->mAlphaImage.empty())
 		{
 			if (!LoadAlphaImage(theRes, aSharedImageRef))
+			{
+				delete aSource;
 				return false;
+			}
 		}
 		
 		if (!theRes->mAlphaGridImage.empty())
 		{
 			if (!LoadAlphaGridImage(theRes, aSharedImageRef))
+			{
+				delete aSource;
 				return false;
+			}
 		}
+
+		if (aSource != NULL)
+			aDDImage->SetBitsSource(aSource);
 	}
 	
 	aDDImage->CommitBits();
@@ -812,6 +805,9 @@ bool ResourceManager::DoLoadImage(ImageRes *theRes)
 		aDDImage->PurgeBits();
 
 	ResourceLoadedHook(theRes);
+	// port: the picture's texture now, and its pixels gone until something needs them (DDInterface::UploadLoadedImage)
+	if ((isNew) && (aDDImage->mDDInterface != NULL))
+		aDDImage->mDDInterface->UploadLoadedImage(aDDImage);
 	return true;
 }
 

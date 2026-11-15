@@ -581,7 +581,7 @@ one for the fields at that class's offsets) and the port (`-fast -seed -script -
 differing updates and a verdict line. `queue.sh` runs a jobs file one job at a time; `endcmp.py <tag>` compares the registry
 and `users` folders at the end; `show.py`, `summ.py`, `peek_expr.py` and `peek_more.py` are for finding the cause of a
 difference. `tools/leak` holds the counting build's scripts (`build.sh`, `scenarios.py`, `runall.sh`, `leaksites.py`), whose
-scratch commands (`leak`, `press`, `dyes`, `dno`, `dlist`, `dname`) exist only in that build. `tools/regress.py` is a
+scratch commands (`leak`, `dlist`, `dname`) exist only in that build (`press <id>`, `dyes` and `dno <dialog id>`, which the scenarios and the autosplit tests use, are standard test commands since 2026-11-12). `tools/regress.py` is a
 regression check on the port's own play (it was uncommitted when these notes were written; to check its state).
 
 ## 10. The fixes mod and the fix candidates (2026-11-09)
@@ -802,8 +802,12 @@ and end is the same in the original's runs but for a field of the sharks' list t
 | The three pairs on a busy machine (0.85 to 1.00 of the processors in use) | 4,332, 3,908, 4,025 | 3,682, 3,720, 3,368 |
 | The two pairs on a quiet machine (0.44 to 0.58 in use) | 2,713, 3,691 | 4,222, 4,343 |
 | Stock stand-in, median of ten pairs (01:12 to 02:14) | 4,713 (3,651 to 5,270), cursor thread 735 | 3,565 (3,021 to 4,456) |
+| **Fixed stand-in** (trunk 38a0512b, `223d9bdf`), median of five pairs (22:02 to 22:15, the machine 0.17 to 0.24 in use) | **2,396** (2,281 to 2,516): main thread 2,294, other 79, cursor thread 27 | **3,805** (3,511 to 4,004): main 1,774, driver 1,862, mixer 172 |
 
-The port is lower in the busy pairs and **higher in the quiet ones**, so at its best the port is level with the original and the target is not met on a quiet machine. A run's
+The port is lower in the busy pairs and **higher in the quiet ones**, so at its best the port is level with the original and the target is not met on a quiet machine. **With the fixed stand-in
+(the last row, the machine quiet at 0.17 to 0.24 in use) the port is 3,805 M against the original's 2,396 M: 1.59 of it, 1.4 G more in 20 s, higher in all five pairs (3,511 / 2,516, 3,863 / 2,396, 4,004 / 2,416, 3,805 / 2,316, 3,598 / 2,281).**
+The original's main thread, which holds its DirectDraw and Direct3D 7 calls, is 2,294 M; the port's own main thread (its game code and the framework's draw glue, SDL's queueing and `SDL_RenderPresent`) is 1,774 M and its mixer 172 M,
+so everything but the Direct3D 11 driver's worker thread is 0.81 of the original, and **the whole excess is that worker thread, 1,862 M (49% of the port)**, the shared present cost of "What is left" below. A run's
 cycles depend on how busy the machine is, but not alike on the two sides: the original's rise with it (its main thread 2.6 G at 0.46 in use against 4.1 G at 1.0: an SMT
 sibling and a shared cache), the port's driver thread *falls* (3.2 to 3.6 G at 0.39 to 0.47 in use, 1.8 to 2.5 G at 0.58 and above, in every pair of the fifteen), so a player's mostly quiet machine
 is where the port's thread is dearest. The pairs alternate and the medians are of five for that reason, but nothing makes the machine quiet while other sessions run games; the quiet pairs are three in all.
@@ -818,6 +822,8 @@ the visible desktop), the original's 2D drawing 4.7 to 6.5 G on its main thread.
 **4,485 M** (4,274 to 5,472: main 2,123, driver thread 2,173, mixer 218) against the original **5,616 M** (4,753 to 6,684: main 5,462, cursor thread 45, other 109), the port lower in all five pairs (4,679 / 5,416, 4,485 / 5,616, 4,438 / 4,753,
 5,472 / 6,220, 4,274 / 6,684), 0.80 of it. The stand-in's fix took the original's cursor thread from 655 M to 45 M and its median from 6,398 M to 5,616 M. The original here draws in 2D (DirectDraw, software), which the player's 3D mode
 does not, so the figures of the visible desktop above stay the ones for a player's machine.
+
+**After the framework's 3D same-texture batching (main 2264f0f9, merged; 2026-11-15, 02:25 to 02:38, five pairs, the machine 0.95 to 1.0 in use, so every figure is higher than the quiet-machine pairs above):** port **5,686 M** (5,418 to 6,093: driver thread 2,826, main 2,534, mixer 320), original **4,519 M** (3,763 to 5,137: main 4,335, cursor thread 56), 1.26 of the original. The driver thread is still half of the port; the pairs are not comparable with the quiet ones, and a quiet-machine round is still to do.
 
 **Where the port's main thread goes** (a temporary probe of the cycles around each call, removed again; one run on the visible desktop, 2,000 updates, 1,204 presented frames,
 that is 60 a second with vsync): the main thread 1,065 M = `ProcessEvents` 26, `UpdateFrames` 66 (the game's own update), `BeginFrame` 32, `DrawScreen` 466 (the game's draw, with
@@ -835,7 +841,7 @@ pass and no clear and copy in `Present` (four pairs on the hidden desktop, 02:46
 4.3 G) without it, and the driver thread 1,452 M against 1,442 M. The extra pass is not what the driver's thread spends; it is a per-present cost.
 
 **What is left, and whose it is.** Nothing in the game's own code (about 2% of the cycles), so the port stays as it is. The shared costs, for the coordinator (`docs/COORDINATION.md`, shared costs):
-(1) the present: the Direct3D 11 driver's worker thread (60% of the port's cycles on the desktop, about 1.7 to 2.7 M cycles a presented frame, more on a quiet machine) and `SDL_RenderPresent` itself on the main thread (0.2 M a frame on a display
+(1) the present: the Direct3D 11 driver's worker thread (49% of the port's cycles on the quiet machine with the fixed stand-in, 60% in the earlier pairs; about 1.5 to 2.7 M cycles a presented frame, more on a quiet machine) and `SDL_RenderPresent` itself on the main thread (0.2 M a frame on a display
 with a blank, ten times that on rundesk's) are the same finding as AstroPop's; every API that SDL offered cost as much or more and skipping the render-target pass did not help, so what would is fewer presents (a frame that nothing changed in need not be presented, though Typer Shark redraws its whole scene every frame). The window-surface presenter that the Mahjong session built (`cf1dea5f`, no renderer and no driver thread) is for a frame that is one finished software-drawn picture;
 Typer Shark's is about 600 alpha-blended quads a frame through the renderer, and drawing them in software would cost what the original's own 2D mode does here (4.7 to 6.5 G on its main thread, hidden desktop), so it does not apply;
 (2) the draw glue: 593 SDL calls a frame for 20 runs of one texture, so a queue in `DDInterface` that joins the quads of consecutive
@@ -1223,3 +1229,81 @@ Tools (`tools/phase2`): `mksaved.sh` makes the saved adventure, `mkprofile.py` t
 and `win`, the first try: the whole-adventure route up to the dialog, which the original could not finish in the sandbox), `medal.sh <ngc: 0, 2 or 4>
 [dialog|dialogkeep]` runs a dialog tour on both programs with the patched byte (`runorig.sh` takes `PATCHES=<file under build/ts-p2>`: the list of
 `tools/origrun/patches/typershark.txt` plus the line `test TyperSharkGame.exe va:0x454e9b 83f807 83f801 <reason>`) and `shotdiff`.
+
+## 19. The autosplit block (2026-11-12)
+
+Typer Shark Deluxe has a speedrun.com board (Adventure Mode on each of the five difficulties, Abyss Mode, and Death%), so the port writes the
+shared autosplit block the site's Splits window reads (`platform/AutosplitBlock.h`, layout 2; `docs/WEB_PLAYER.md`, "One design for every
+port"). The observer is `src/LiveSplitObserver.cpp` (called after each update from `WinWSApp::UpdateFrames`, and from `~WinWSApp` for the last
+write). The block's game id is `TSDX`. It reads the game and writes nothing of it: until something asks for it, it only tests a flag (the mod
+list is looked at every 64 updates). The page asks by calling `byopop_livesplit_block` (exported in the web build: `EXPORTS
+_byopop_livesplit_block` in `games/typershark/CMakeLists.txt`); natively the `livesplit` feature of an enabled mod does
+(`mods/livesplit/mod.json`, a manifest only). `-livesplitlog=<file>` writes one line for each write that changes what a splitter acts on
+(board, events, state, level, mode, skill, flags), and the events go to the log as `livesplit: game 1 GO at tick 4200 (mode 0, skill 1)` and
+the like.
+
+**A block "board" is a game, not a Board.** The game builds a new `Board` for every level (`WinWSApp::StartBoard`, from the map's start
+button) and shows the map screen between two of them, so one game is many Boards. The block's board serial is `WinWSApp::mAutosplitGameSerial`,
+which `CreateBoard` (the first Board of a game: the difficulty button, the Abyss button, a continued save) and `RestartBoard` (play again)
+count; `Board::mBoardSerial` counts the Boards, which the observer uses for the per-level baseline. Both are written by the port only to be
+read by the observer (the inert state of the standing rule). `WinWSApp::mAutosplitContinued` is set by the "CONTINUE?" dialog's yes for a saved
+adventure. When the menu comes back (the options' "end this game", a game over answered, a quit) there is no Board and the block shows none.
+
+**Numbering.** `mode` 0 Adventure, 1 Abyss. `skill` is `WinWSApp::mDifficulty`: 0 Easy, 1 Normal, 2 Hard, 3 Expert, 4 X-Treme!, and 0 in the
+Abyss (which has none; the game stores -1). Death kinds: 0 an adventure out of lives, 1 an Abyss dive out of lives; 2 and 3 are unused.
+`state` is the diver's state (`Player::mState`: 0 swimming, 1 climbing down, 2, 3 and 10 beaten, 4 on the floor, 5 the streak game or the clams,
+6 waiting or the treasure, 7 and 12 level won, 8 game over, 9 afraid of a boss), or the block's own 20 while the map screen is up between two
+levels. `level` is the diver's level number (`Player::mLevelNumber`, 0 for the first level of the game: it counts levels played in this game,
+not the map's site number); `displayLevel` is the number the HUD shows (`level + 1`). `displayScore` is the HUD's points
+(`Player::mScore`); `score` is the same, except in the Abyss where it is the depth in feet (`Board::mScore`). `tick` is the app's update count
+(`mUpdateCount`; the WSTimers count 10 milliseconds an update, so 100 updates are a second of game time). `progress`, in an adventure, is the
+levels beaten and left: `mLevelNumber`, plus one while the map is up after a level, so that it **reaches N on the update on which the map
+comes back after the Nth beaten level**, and it stays N through the next level's board until that is beaten; -1 in the Abyss.
+`gameOwn` holds two int32: the game's time in milliseconds as the game-over screen shows it (`WinWSApp::mGameTimeSoFar` plus the Board's timer
+minus its paused time; the same number the dialog's `mGameTime` gets in `Board::PlayerEaten`, which the observer reads from the dialog once
+it exists, so it is frozen at the game over to the very value shown) and the depth an Abyss game started at (0 from the surface and in an
+adventure). The flags are RESUMED (a continued save, or an Abyss dive that starts below the surface), VANILLA (no score key, i.e. no mod
+that changes scores is on) and PAUSED (`Board::mPaused`: the options, a hint box or the pause key).
+
+**Events** (for the current game):
+- *GO*: the first update of a new game that is not a continued save, not a dive that starts below the surface, and not first seen at
+  activation. That is the update after the difficulty button (Adventure) or the Abyss button made the first Board, the moment the board's
+  rule "the time starts after the difficulty is chosen" names. A "play again" is a new game with its own GO.
+- *Level clear*: the diver enters state 12 (`Board::Update` after the treasure: the level bonus is added, `mStats.mReserved[7]` takes the
+  level's time), or state 7 without it, or state 6 in a bonus level (the treasure shown). That is when the level is won, **before** the player
+  leaves it: the space bar (`Board::KeyChar` at state 7 or a bonus level's state 6) or the continue link (`WinWSApp::ReturnToMap`) brings
+  the map back, and that is when `progress` rises. In a script that does nothing after `win` it takes 554 updates from state 12 to state 7
+  (the treasure's 3000 timer units and the fade of its alpha), and the map comes back whenever the player presses the space bar. A Board seen
+  already won raises no level clear. The Abyss has no level end.
+- *Game over*: the diver enters state 8 (`Board::PlayerEaten` with no life left: the game-over dialog opens the same update). Kind 0 in an
+  adventure, 1 in the Abyss. Leaving a game from the options' "end this game" (which saves it) is not a game over.
+- *Win*: the win dialog (`DIALOG_WIN_GAME`, 0x8d) appears. `MapScreen::Update` creates it when the map's final scroll after the last site is
+  done, so it comes about 120 updates (a second and a bit) **after** `progress` reaches the last level's number and the map is back; the
+  board's end moment (the return to the map after level 11) is the `progress` edge, not this event.
+
+A game's first update is a baseline for the level clear, the game over and the win (a game seen already over has had its game over), and a
+Board's first update is a baseline for its own level clear.
+
+**The board's level 11.** The adventure's whole-adventure regression route (`adventure-route-s1`, the typing bot on Easy) plays the sites 0, 1, 6, 9,
+21, 26, 27, 32, 33, 34 and 35, eleven levels (the HUD shows 1 to 11), and the last, site 35, is the final level whose win opens the
+end-of-adventure dialog; so on that route `progress` reaches 11 on the update on which the map comes back after the 11th level (the board's
+"returning to the map after beating level 11"), and `displayLevel` is 11 while it is played. Only this one route was played to the end (the
+sites between depend on the chests taken at the map's forks), so whether every route has eleven levels is not shown here; the win event does not
+depend on it, and `progress` is what counts levels beaten.
+
+**Tests.** `games/typershark/tools/livesplit/run_tests.py <out dir>` (under rundesk with `-fast`, one game at a time; about 15 minutes on a
+busy machine): scripted games of the standard commands (`goto`, `win`, `lose`, `level <n>`, and `press <id>`, `dyes <dialog id>`, which are now
+standard test commands, no longer only the leak-counting build's, and the framework's `char SPACE`): an adventure on each difficulty (a win,
+the space bar, a second level, a win, the space bar, a third level, then the last life lost: one GO, two level clears, one game over of kind 0,
+`progress` 0, 1, 2 with the map as state 20 between them), an Abyss game lost (GO, kind 1, the game-over time in `gameOwn`: 15,380 ms at update
+5800), an Abyss dive started at 1,200 feet (RESUMED, no GO, `gameOwn` start depth 1200), a game left from the options (a GO, no game over, no
+board after it), a saved game continued (the "CONTINUE?" dialog's yes: RESUMED, no GO, `progress` 1) and a game won (`level 35`, `win`, the
+space bar: one win, `wins=1`, 118 updates after the map came back). A new profile has hints on, and a hint box opens 138 updates after a Board
+starts and pauses it (`AUTOSPLIT_FLAG_PAUSED`), so the scripts close it (`dyes 0x3f3`) before they win. The block logs of these runs (the
+adventure on each difficulty, the Abyss, the deep dive, the left game, the continued game, the win) went to the site session.
+
+**Proof that it is inert.** `run_tests.py` ends with `games/typershark/tools/regress.py --quick` run with `TSMODSDIR` pointing at a folder
+that holds only the `livesplit` mod, so the block is on (the port's log says `livesplit: block at ...`): the five games' state logs hash to
+`regress_expected.txt` and the frozen baseline's, unchanged (`tools/check.sh typershark`, which has no mod, passes too). The change to
+`tools/phase1/cmp.py` only lets that mods folder lack the `fixes` mod. The web build links with the export (`typershark.js` carries
+`byopop_livesplit_block`).

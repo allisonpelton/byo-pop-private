@@ -106,6 +106,9 @@ public:
 	virtual void	ButtonDepress(int theId) override;                       // 0x420f10 slot 2
 	virtual void	LoadingThreadCompleted() override;                       // 0x421450 slot 16 (update check prompt, not ported)
 	virtual MusicInterface* CreateMusicInterface() override;                 // port: SexyAppBase's default in the original (BASS); here SDLMusicInterface
+	// port: the screen drawn in software, as the original's DirectDraw screen (framework/SoftwareScreenDisplay.h), with 1.2's
+	// rotation (DDInterface::mBltRotated12)
+	virtual DDInterface* CreateDDInterface() override;
 	virtual void	LoadingThreadProc() override;                            // 0x41efd0 slot 22
 	virtual void	WriteToRegistry() override;                              // 0x41c9f0 slot 23
 	virtual void	ReadFromRegistry() override;                             // 0x41cb60 slot 24

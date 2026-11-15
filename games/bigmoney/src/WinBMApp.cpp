@@ -30,6 +30,7 @@
 #include "Insets.h"
 #include "SoundManager.h"
 #include "SDLMusicInterface.h"
+#include "SoftwareScreenDisplay.h"
 
 #include <algorithm>
 
@@ -86,7 +87,7 @@ static MemoryImage* MakeExtraCoins(SexyAppBase* theApp, MemoryImage* theSource, 
 	int aWidth = theSource->GetWidth();
 	MemoryImage* anImage = new MemoryImage(theApp);
 	anImage->Create(aWidth, aRows * 29);
-	const ulong* aSrcBits = theSource->GetBits();
+	const ulong* aSrcBits = theSource->ReadBits();
 	ulong* aDestBits = anImage->GetBits();
 	HDPixels aSrcHD = GetHDPixels(theSource);
 	HDPixels aDestHD;
@@ -141,6 +142,10 @@ static ulong GreyPixel(ulong thePixel)
 // 0x41c790
 WinBMApp::WinBMApp()
 {
+	// The original starts in 2D: its 3D test runs only for a registry Is3D, which nothing a player can reach sets (no 3D box;
+	// Shift+F8 only with the debug keys). So the display keeps the 2D flags on the GPU path too: 2x and the web
+	// (SexyAppBase::mDefault3D, DDInterface::mAppWants3D)
+	mDefault3D = false;
 	mPendingSeed = 0; // port(mods)
 	mReplayDir = "replays";
 	mWatchFile = NULL;
@@ -680,22 +685,28 @@ void WinBMApp::Init()
 	for (int i = 0; i < NUM_IMAGES; i++)
 		mImages[i] = NULL;
 
-	// port: the original also calls Palletize() on every image and logs "%s - PALLETIZED!" /
-	// "%s - 32 Bit Only" (a memory saving with no visible effect)
+	// Each picture is made 8-bit where it has no more than 256 colours (Palletize: the same pixels, a quarter of the memory;
+	// the software screen draws from them as they are). port: the original also logs "%s - PALLETIZED!" or
+	// "%s - 32 Bit Only" with OutputDebugString, which no player sees
 	for (int i = 0; i < NUM_IMAGES; i++)
 	{
+		// port: the table lists mouths twice and nothing draws the first; the original loads both, the port only the one
+		// it draws (0.6 MB; mImages[IMAGE_MOUTHS_UNUSED] stays NULL)
+		if (i == IMAGE_MOUTHS_UNUSED)
+			continue;
 		if (!LoadAppImage(i))
 		{
 			Shutdown();
 			return;
 		}
+		((MemoryImage*) mImages[i])->Palletize();
 	}
 
 	// Highlighted coins: every colour channel c -> min(255, c * 280 / 255 + 48), alpha unchanged
 	MemoryImage* aCoinsImage = (MemoryImage*) mImages[IMAGE_COINS];
 	mBrightCoinsImage = new MemoryImage(this);
 	mBrightCoinsImage->Create(aCoinsImage->GetWidth(), aCoinsImage->GetHeight());
-	ulong* aSrcBits = aCoinsImage->GetBits();
+	ulong* aSrcBits = aCoinsImage->ReadBits();
 	ulong* aDestBits = mBrightCoinsImage->GetBits();
 	int aNumPixels = aCoinsImage->GetWidth() * aCoinsImage->GetHeight();
 	for (int i = 0; i < aNumPixels; i++)
@@ -777,6 +788,25 @@ MusicInterface* WinBMApp::CreateMusicInterface()
 	return new SDLMusicInterface();
 }
 
+// port: the original draws its screen in software into a DirectDraw surface (it has no 3D), so the port does too where it
+// can: natively the window shows it through its own surface (framework/SoftwareScreenDisplay.h); the web build keeps the
+// default display
+DDInterface* WinBMApp::CreateDDInterface()
+{
+#ifdef __EMSCRIPTEN__
+	DDInterface* aDisplay = SexyAppBase::CreateDDInterface();
+#else
+	// (its fast stretch samples pixel centres: the original's DDImage::StretchBlt, 0x452e80, hands a stretch of a picture
+	// without alpha, drawn white in normal mode, to DirectDraw's Blt, which today's Windows draws so; the selector's slide.
+	// A picture with alpha it stretches itself, from the corner: the countdown's zoom, BoardDraw's BeginCornerSampling)
+	DDInterface* aDisplay = SoftwareScreenDisplay::Create(this);
+#endif
+	// a rotation drawn in software is 1.2's own (DDImage::BltRotated, 0x44ed40): Mr. Money's wobble, the level-up sign, the
+	// credits' clouds
+	aDisplay->mBltRotated12 = true;
+	return aDisplay;
+}
+
 // 0x41efd0 (loading thread; on the web it runs synchronously)
 void WinBMApp::LoadingThreadProc()
 {
@@ -802,7 +832,7 @@ void WinBMApp::LoadingThreadProc()
 	MemoryImage* anIllustrations = dynamic_cast<MemoryImage*>(mImages[IMAGE_ILLUSTRATIONS]);
 	MemoryImage* aGreyImage = new MemoryImage(this);
 	aGreyImage->Create(anIllustrations->GetWidth(), anIllustrations->GetHeight());
-	ulong* aSrcBits = anIllustrations->GetBits();
+	ulong* aSrcBits = anIllustrations->ReadBits();
 	ulong* aDestBits = aGreyImage->GetBits();
 	int aNumPixels = anIllustrations->GetWidth() * anIllustrations->GetHeight();
 	for (int i = 0; i < aNumPixels; i++)

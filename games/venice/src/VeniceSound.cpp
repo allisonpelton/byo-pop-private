@@ -2,9 +2,12 @@
 
 #include "VeniceSound.h"
 
+#include "SDLSoundManager.h"
 #include "VeniceApp.h"
+#include "platform/VFS.h"
 
 #include <cstring>
+#include <vector>
 
 int gMusicVolume = 50; // 0x5b51d0
 int gSoundVolume = 55; // 0x5b51d4
@@ -26,6 +29,19 @@ bool Sound::Load(const char* theName, bool theLoop, bool theIsMusic)
 	mLoop = theLoop;
 	mIsMusic = theIsMusic;
 	strcpy(mName, theName);
+	if (Sexy::SoundLogOn()) {
+		// a test run compares the sounds with the original's by the file's checksum (tools/idplay/soundcmp.py)
+		std::vector<uint8_t> aFile;
+		unsigned int aCrc = 0xffffffff;
+		if (Platform::VFS::Get().ReadAll(mName, aFile)) {
+			for (uint8_t aByte : aFile) {
+				aCrc ^= aByte;
+				for (int aBit = 0; aBit < 8; aBit++)
+					aCrc = (aCrc >> 1) ^ (0xedb88320 & (0 - (aCrc & 1)));
+			}
+		}
+		Sexy::SoundLog("load %s loop=%d crc %08x len %zu", mName, theLoop ? 1 : 0, ~aCrc, aFile.size());
+	}
 	return true;
 }
 
@@ -44,6 +60,7 @@ void Sound::Play(int theFrequency)
 		return;
 	sRecentStarts[sRecentStartIndex] = aNow;
 	sRecentStartIndex = sRecentStartIndex + 1 < 12 ? sRecentStartIndex + 1 : 0;
+	Sexy::SoundLog("play %s freq=%d vol=%d", mName, theFrequency, mIsMusic ? 0 : gSoundVolume);
 	if (mData == nullptr) {
 		mData = Platform::Mixer::Get().LoadSound(mName);
 		if (mData == nullptr)
@@ -60,10 +77,12 @@ void Sound::SetVolume(float thePercent)
 	if (!Platform::Mixer::Get().IsVoicePlaying(mChannel))
 		return;
 	if (thePercent < 0.0f) {
+		Sexy::SoundLog("stop %s", mName);
 		Platform::Mixer::Get().StopVoice(mChannel);
 		return;
 	}
 	int aVolume = ((int)thePercent * (mIsMusic ? gMusicVolume : gSoundVolume)) / 100;
+	Sexy::SoundLog("volume %s %d", mName, aVolume);
 	float aGain = (float)aVolume / 100.0f;
 	Platform::Mixer::Get().SetVoiceGain(mChannel, aGain, aGain);
 }
@@ -125,11 +144,13 @@ void LoadAndPlaySound(const char* theName, int theFrequency)
 // their place (a deviation: they play on, unheard, while the window has no focus)
 void PauseSounds()
 {
+	Sexy::SoundLog("pause");
 	Platform::Mixer::Get().SetSfxMasterGain(0.0f);
 }
 
 void ResumeSounds()
 {
+	Sexy::SoundLog("start");
 	Platform::Mixer::Get().SetSfxMasterGain(1.0f);
 }
 

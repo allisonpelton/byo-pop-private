@@ -25,6 +25,7 @@
 #include "VeniceApp.h"
 
 #include "Bot.h"
+#include "Cupid.h"
 #include "GameText.h"
 #include "Layer.h"
 #include "Level.h"
@@ -340,6 +341,11 @@ bool VeniceApp::HandleScriptCommand(const Sexy::ScriptCommand& theCommand)
 			Error(aLine, "unlock all");
 			return true;
 		}
+		if (gRelaxedScenes.mTail == nullptr || gGameScenes.mTail == nullptr) {
+			// port: the level lists come with the loading's end; a test that asks earlier waits for it
+			Error(aLine, "the levels are not loaded yet");
+			return true;
+		}
 		aProfile.mFlagReachedBuilding3 = 1;
 		aProfile.mFlagFinishedRelaxed = 1;
 		aProfile.mFlagFinishedGame = 1;
@@ -383,6 +389,36 @@ bool VeniceApp::HandleScriptCommand(const Sexy::ScriptCommand& theCommand)
 		else
 			gActiveLevel->LoseTry();
 		Ok(aLine);
+		return true;
+	}
+	if (aName == "cupid") {
+		// port: the cupid power-up's effect without the power-up (Powerup::GiveCupid): a cupid comes in next to the shooter, to
+		// catch the next jewel shot, so that a test reaches the cupid's sounds without waiting for one in the Flood or Survival modes
+		if (gShooter == nullptr || gActiveLevel == nullptr || gActiveLevel != gScenes.mTail) {
+			Error(aLine, "no level is in play");
+			return true;
+		}
+		gShooter->mParent->NewChild(new Cupid());
+		Ok(aLine);
+		return true;
+	}
+	if (aName == "player") {
+		// port: the name box's work for a test that does not type the name: the first free slot gets the name, and is the current
+		// player; a player that is chosen already stays
+		if (aProfile.mName[0] != ' ') {
+			Ok(aLine);
+			return true;
+		}
+		std::string aPlayerName = anArg.empty() ? "Test" : anArg;
+		for (int aSlot = 0; aSlot < ProfileCount; aSlot++) {
+			if (gProfiles[aSlot].mName[0] == ' ') {
+				gCurrentProfile = aSlot;
+				strncpy(gProfiles[aSlot].mName, aPlayerName.c_str(), ProfileNameSize - 1);
+				Ok(aLine);
+				return true;
+			}
+		}
+		Error(aLine, "no free player slot");
 		return true;
 	}
 	if (aName == "seed") {
@@ -467,7 +503,8 @@ bool VeniceApp::HandleScriptCommand(const Sexy::ScriptCommand& theCommand)
 			Reply("MOVE {\"kind\":\"wait\",\"input\":[{\"wait\":10}]}");
 		else if (aMove.mAction == BotAction::Swap) {
 			char aText[200];
-			snprintf(aText, sizeof(aText), "MOVE {\"kind\":\"swap\",\"input\":[{\"rclick\":[%d,%d]},{\"wait\":20}]}", aMove.mX, aMove.mY);
+			snprintf(aText, sizeof(aText), "MOVE {\"kind\":\"swap\",\"input\":[{\"press\":[%d,%d],\"button\":\"right\"},{\"wait\":2},{\"release\":[%d,%d],\"button\":\"right\"},{\"wait\":20}]}",
+				aMove.mX, aMove.mY, aMove.mX, aMove.mY);
 			Reply(aText);
 		} else if (aMove.mAction == BotAction::Click) {
 			char aText[200];

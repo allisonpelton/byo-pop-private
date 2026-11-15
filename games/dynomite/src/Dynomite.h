@@ -97,6 +97,11 @@ public:
 	int					mSongOffset;		// +0x23c where mSong starts (FadeIn's offset; Panic 0x47, Time Trial 0x2b)
 	unsigned int		mStartTicks;		// +0x240 GetTickCount at construction
 	bool				mInputLocked;		// +0x244 the tutorial holds the aim, the shot and the fire prompt
+	// port(livesplit): inert state the autosplit block reads (LiveSplitObserver.h); the game never reads it
+	unsigned int		mSerial;			// this game's number, from NextSerial
+	bool				mResumed;			// LoadSavedGame filled this board from a saved game
+	// port(livesplit): the next game's number (1 the first), for a board and for the tutorial
+	static unsigned int	NextSerial();
 
 	Dynomite();								// 0x404030
 	virtual ~Dynomite();					// 0x4041e0

@@ -17,7 +17,7 @@ public:
 	int mWaitTicks = 0; // 0x158: the updates the cupid has waited for a jewel
 
 	Cupid(); // 0x403520
-	bool Update() override; // 0x403890
+	bool Update() override; // 0x403890, and 0x4038d0 (its test of the entering stage)
 	void OnCustomEvent() override; // 0x403f50: the cupid has reached its slot and lets go of the jewel
 
 private:

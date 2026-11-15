@@ -1,0 +1,8 @@
+# a step file: origrun's script lines, plus forbid, waitcue, gate (docs/VISRUN.md)
+forbid buy_button 600 540 190 50
+waitcue running 120
+at 1500 shot title
+at 1500 move 400 300
+at 1600 click 400 300
+at 1700 shot after_click
+quit

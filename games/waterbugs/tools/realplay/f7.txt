@@ -1,0 +1,29 @@
+# Water Bugs in a window of the game's own size (-windowscale=1), the display the window's surface, taken to full screen and back
+# with the game's own F7 key (the framework's Alt+Enter goes to the game as it)
+wait 3
+shot menu
+clickp 400 303        # Start Game
+wait 1.5
+shot map
+clickp 76 263         # the first world
+wait 1.5
+shot story
+click 400 467         # the story's button
+wait 4
+shot board
+beams 6 watch
+wait 5                 # the beams' walls are built
+probe p1x
+key 118
+wait 2
+probe f7_full
+key 118
+wait 2
+probe f7_windowed
+altenter
+wait 2
+probe altenter_full
+key 118
+wait 2
+probe f7_windowed_from_altenter
+end

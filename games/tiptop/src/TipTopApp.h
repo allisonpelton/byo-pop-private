@@ -26,12 +26,9 @@ public:
 	// picture was as before; the whole image at the first call), for a presenter that sends only what changed
 	int mChangedX, mChangedY, mChangedWidth, mChangedHeight;
 	// and the same pixels more closely: the runs of 32x32 tiles, one row of tiles at a time, that hold a changed pixel (in play
-	// the changed pixels fill 5 to 6% of the image, the tiles 14 to 17% and the one rectangle 39 to 43%)
-	struct ChangedRect
-	{
-		int x, y, width, height;
-	};
-	std::vector<ChangedRect> mChangedRects;
+	// the changed pixels fill 5 to 6% of the image, the tiles 14 to 17% and the one rectangle 39 to 43%). A native build's Draw
+	// hands them to the window's SurfaceDisplay together with the image's pixels and draws nothing itself.
+	std::vector<Rect> mChangedRects;
 	bool ScreenDiffersFromShown();
 
 	TipTopWidget();
@@ -91,6 +88,12 @@ public:
 	virtual void GotFocus() override;
 	virtual void LostFocus() override;
 	virtual void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
+#ifndef __EMSCRIPTEN__
+	// The window's display is a SurfaceDisplay (framework/SurfaceDisplay.h): the screen is one finished software-drawn picture, so
+	// the window shows only what changed, without a renderer's frame at 2x or 1x. SURFACE_DISPLAY=off in a test run keeps the
+	// framework's display and the widget's image, to compare the two.
+	virtual DDInterface* CreateDDInterface() override;
+#endif
 	virtual void SetMusicVolume(double theVolume) override;
 	virtual void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	// Test hooks (testhooks/Script.cpp): TipTop's -script commands, canvasshot and musicwav

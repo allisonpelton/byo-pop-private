@@ -28,12 +28,16 @@ if(NOT saveimport_old STREQUAL saveimport_header)
   file(WRITE ${SAVEIMPORT_HEADER} "${saveimport_header}")
 endif()
 
+# The C runtime's qsort (platform/crt): a library of its own, because the headless Retro64 tools link it without the framework.
+add_library(sexycrt STATIC ${SHARED_ROOT}/platform/crt/CrtQsort.cpp)
+target_include_directories(sexycrt PUBLIC ${SHARED_ROOT})
+
 add_library(sexyframework STATIC ${FRAMEWORK_SOURCES})
 target_include_directories(sexyframework PUBLIC
   ${SHARED_ROOT}
   ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(sexyframework PRIVATE ${CMAKE_BINARY_DIR}/generated)
-target_link_libraries(sexyframework PUBLIC ${PORT_SDL} stb xmp_lite tremor minimp3)
+target_link_libraries(sexyframework PUBLIC ${PORT_SDL} stb xmp_lite tremor minimp3 sexycrt)
 # IJG libjpeg 6b for JPEG images (platform/JPEGDecoder.cpp); private: its headers are not for the games
 target_link_libraries(sexyframework PRIVATE ijgjpeg)
 if(NOT MSVC)

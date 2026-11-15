@@ -106,6 +106,7 @@ void Board::Flash::Draw(Graphics* g)
 
 // ---- construction ----
 
+// 0x4168a0
 Board::Board(GameApp* theApp, bool theIsMiniGame) : mIsMiniGame(theIsMiniGame), mApp(theApp)
 {
 	// port: the original sets gBoard before its members are made
@@ -125,6 +126,7 @@ Board::Board(GameApp* theApp, bool theIsMiniGame) : mIsMiniGame(theIsMiniGame), 
 	mTooltip = new TooltipWidget();
 }
 
+// 0x416f40
 Board::~Board()
 {
 	CallLinkedMethod("Destructor", 0);
@@ -211,6 +213,7 @@ void Board::Init()
 	mApp->ClearUpdateBacklog(false);
 }
 
+// 0x426230 (the Lua call with the mini-game's name string; also made by DeselectTile and SubmitWord) is inline here
 void Board::InitMiniGame(const std::string& theName, int x, int y, int theXGap, int theYGap, int theCols, int theRows,
                          const std::string& theLetters, bool theNoTilesWhilePaused)
 {
@@ -540,6 +543,7 @@ void Board::DeselectAllTiles()
 		SetAttackDisabled(true, false);
 }
 
+// 0x426320 (the Lua call with the two flags) is inline here
 void Board::LayoutWord(Tile* theTile, bool theSelected)
 {
 	if (mIsMiniGame) {
@@ -839,6 +843,7 @@ void Board::KeyDown(KeyCode theKey)
 // whether the app is between a chapter's loading screen and its battle (no updates, draws or input then)
 #define LOADING_CHAPTER() (mApp->mLoadingChapter && mApp->mChapterLoadScreen != nullptr)
 
+// 0x4263c0 and 0x4263f0 (the Lua calls with the update's time) are inline here
 void Board::Update()
 {
 	if (LOADING_CHAPTER() || gTileEngine == nullptr || mDisabled)
@@ -942,6 +947,7 @@ void Board::Update()
 	MarkDirty();
 }
 
+// 0x4262e0 (the Lua call with the float theFrac) is inline here
 void Board::UpdateF(float theFrac)
 {
 	if (mPauseCount >= 1 || LOADING_CHAPTER())
@@ -1237,6 +1243,7 @@ void Board::KeyChar(SexyChar theChar)
 	}
 }
 
+// 0x426470 (the Lua call with the mouse position and the click count) is inline here
 void Board::MouseDown(int x, int y, int theClickCount)
 {
 	if (theClickCount != -1 && theClickCount != 1)
@@ -1652,6 +1659,7 @@ int ChangeAttackBtnImage(Board* theBoard, lua_State* L)  // 0x41e660
 
 }  // namespace
 
+// 0x41fc00, 0x41fd00 and 0x421360 (the class registration thunks of Board and its LuaWidget base) are inline here
 void Board::RegisterLua()
 {
 	static bool sRegistered = false;

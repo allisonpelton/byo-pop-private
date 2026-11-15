@@ -2,7 +2,7 @@
 """Generate games/wordharmony/game/GameTextTable.inc: where each text of Word Harmony's exe that the port uses is.
 
 The port carries no game text (games/wordharmony/game/GameText.h): it reads the texts it shows from the player's own
-WordHarmony.exe by address. This lists the addresses that engine/, game/ and src/ name with GT(0x...), with each
+WordHarmony.exe by address. This lists the addresses that game/ and src/ name with GT(0x...), with each
 text's length and hash, read from the carved game image (re/wordharmony/bin/WordHarmonyGame.exe, git-ignored). Run it
 again after adding a GT().
 
@@ -19,7 +19,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
 GAME = os.path.join(ROOT, "games", "wordharmony")
-DIRS = ["engine", "game", "src"]
+DIRS = ["game", "src"]
 
 
 def fnv1a(data):

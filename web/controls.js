@@ -7,7 +7,8 @@
 //                  B right-clicks, and the other buttons press the game's keys (X, Y, LB, RB, Back, Start in the order of
 //                  the table, unless the player chose others); nothing runs until a gamepad is connected
 //   touch keys     (setting "touchKeys": auto shows them on a touch screen) a button under the game for each of its keys
-//   input display  (setting "inputDisplay") the keys and mouse buttons held, in the game's corner
+//   input display  (setting "inputDisplay") the keys and mouse buttons held that the game reads (the table's {uses} entry), in
+//                  the game window's status bar or under the game
 //   game speed     (setting "speed", 1 by default) the framework's own update multiplier (byopop_set_speed): the game runs
 //                  its updates that much faster or slower in real time; never on the player-only test page (?player=1),
 //                  whose runs keep the game's own speed
@@ -20,7 +21,10 @@ var ByopopControls = (function () {
 
   function setting(name) { try { return ByopopSettings.get(name, pageGame || undefined); } catch (e) { return null; } }
   function T(key, o) { try { return ByopopStrings.t(key, o); } catch (e) { return key; } }
-  function table() { try { return (window.ByopopControlData && ByopopControlData[pageGame]) || []; } catch (e) { return []; } }
+  function entries() { try { return (window.ByopopControlData && ByopopControlData[pageGame]) || []; } catch (e) { return []; } }
+  function table() { return entries().filter(function (c) { return !!c.does; }); }
+  // the input the game reads (its {uses} entry), or null when the table gives none
+  function uses() { var u = entries().filter(function (c) { return !!c.uses; })[0]; return u ? u.uses : null; }
   function keyEntries() { return table().filter(function (c) { return c.keys && c.keys.length; }); }
 
   // ---------- the player's map ----------
@@ -196,20 +200,30 @@ var ByopopControls = (function () {
   window.addEventListener("gamepadconnected", function () { padOn = true; hook(); });
 
   // ---------- the input display ----------
+  // Only the input the game itself reads is shown, where its table says what that is (the coordinator for the user,
+  // 2026-11-13): its keys, letters if it takes typed letters, every key if any key counts, and its mouse buttons. A remapped
+  // key is shown as the game's key it stands in for, so it is kept.
   var held = {}, display = null, shownText = "";
+  function keyShown(code) {
+    var u = uses();
+    if (!u || u.anyKey) return true;
+    if (u.letters && /^Key[A-Z]$/.test(code)) return true;
+    return keyEntries().some(function (c) { return c.keys.indexOf(code) >= 0; });
+  }
+  function buttonShown(name) { var u = uses(); return !u || (u.mouse || []).indexOf(name) >= 0; }
   function show() {
     if (!display) return;
     var parts = [];
-    for (var c in held) if (held[c]) parts.push(keyName(c));
-    if (mouseHeld & 1) parts.push(T("controls.display.left"));
-    if (mouseHeld & 2) parts.push(T("controls.display.right"));
-    if (mouseHeld & 4) parts.push(T("controls.display.middle"));
+    for (var c in held) if (held[c] && keyShown(c)) parts.push(keyName(c));
+    if ((mouseHeld & 1) && buttonShown("left")) parts.push(T("controls.display.left"));
+    if ((mouseHeld & 2) && buttonShown("right")) parts.push(T("controls.display.right"));
+    if ((mouseHeld & 4) && buttonShown("middle")) parts.push(T("controls.display.middle"));
     var text = parts.join(" ");
     if (text === shownText) return;
     shownText = text;
     display.textContent = "";
     parts.forEach(function (p) { var s = document.createElement("span"); s.textContent = p; display.appendChild(s); });
-    display.hidden = !parts.length;
+    display.style.visibility = parts.length ? "" : "hidden";
   }
   function onSeen(e) {
     if (!display) return;
@@ -227,7 +241,7 @@ var ByopopControls = (function () {
       display = document.createElement("div");
       display.className = "bc-display";
       display.setAttribute("aria-hidden", "true");
-      display.hidden = true;
+      display.style.visibility = "hidden";
       // never over the game's picture (the user, 2026-11-10: "Never show anything but the game itself (and the mod menu) inside the
       // game"): in the game window's status bar where there is one, else under the game
       var bar = document.querySelector(".d95-statusbar"), main = document.getElementById("main");
@@ -479,8 +493,12 @@ var ByopopControls = (function () {
     drawPanel();
   }
 
-  var STYLE = ".bc-display.bc-in-bar, .bc-display.bc-under { position: static; flex: 0 1 auto; }" +
-    ".bc-display.bc-in-bar span, .bc-display.bc-under span { background: none; color: inherit; text-shadow: none; padding: 0 4px; border: 1px solid currentColor; border-radius: 0; font-size: 11px; }" +
+  // In the status bar or under the game the display keeps one line of a fixed height, shorter than the bar's text, whether
+  // keys are held or not (visibility, never hidden or a second row), so nothing around it moves (the user, 2026-11-13: "The
+  // input display is too tall and causes the window to move when any input gets displayed")
+  var STYLE = ".bc-display.bc-in-bar, .bc-display.bc-under { position: static; flex: 0 1 auto; flex-wrap: nowrap; overflow: hidden; align-items: center; }" +
+    ".bc-display.bc-under { height: 16px; padding: 2px 0; }" +
+    ".bc-display.bc-in-bar span, .bc-display.bc-under span { background: none; color: inherit; text-shadow: none; padding: 0 3px; border: 1px solid currentColor; border-radius: 0; font-size: 11px; line-height: 11px; flex: none; }" +
     ".bc-display { position: absolute; bottom: 6px; left: 6px; z-index: 2; pointer-events: none; display: flex; gap: 4px; flex-wrap: wrap; }" +
     ".bc-display span { padding: 2px 7px; border-radius: 4px; font: 600 13px/1.3 ui-monospace, Consolas, monospace; color: #fff;" +
     " background: rgba(0, 0, 0, 0.6); text-shadow: 0 1px 1px #000; }" +

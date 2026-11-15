@@ -66,6 +66,7 @@ struct Arg<bool> {
 };
 template <class T>
 struct Arg<T, std::enable_if_t<std::is_floating_point_v<T>>> {
+	// 0x6cae90 (a number argument, as a float)
 	static T Get(lua_State* L, int i) { return (T)luaL_checknumber(L, i); }
 };
 template <>
@@ -192,6 +193,11 @@ struct MethodThunk;
 template <class C, class R, class... A, R (C::*M)(A...)>
 struct MethodThunk<M> {
 	using Class = C;
+	// 0x666200, 0x677010 (a method taking a string), 0x6772e0 (a method taking a boolean), 0x677560 (a method taking
+	// four numbers): the calls of MethodWrapper instances; 0x45d140 (GameApp's method taking an int, a number and two
+	// ints) is one too, and so are 0x4129f0 (a method taking a string), 0x412ce0 and 0x4a6730 (a method taking a
+	// boolean), 0x4a6550 (a method taking a string and two booleans) and 0x676a90 (a method taking two strings and
+	// returning a value)
 	static int Call(lua_State* L, void* self)
 	{
 		C* obj = (C*)self;
@@ -231,6 +237,8 @@ template <class C>
 class Class {
 public:
 	// `deletable': Lua may own objects of the class (and then deletes them when it collects them)
+	// The classes' registration objects: 0x6617f0 (LuaApp), 0x670a90 (LuaImage), 0x670be0 (LuaFont), 0x670d70
+	// (sexy.Graphics), 0x670fc0 (sexy.WidgetContainer), 0x6720d0 (sexy.WidgetManager), 0x672220 (sexy.Widget)
 	explicit Class(const std::string& name, bool deletable = true)
 	{
 		Destroy destroy = nullptr;
@@ -241,6 +249,7 @@ public:
 		ClassOf<C>::info = mInfo;
 	}
 
+	// 0x671210 (sexy.WidgetManager on sexy.WidgetContainer), 0x671420 (sexy.Widget on sexy.WidgetContainer)
 	template <class B>
 	Class& Base()
 	{
@@ -250,6 +259,10 @@ public:
 	}
 
 	// A member function of C or of a base of C
+	// MethodWrapper<Class, method> instances: 0x6735d0 (LuaImage, int ()), 0x673730 (LuaImage, void (int)), 0x673890
+	// (LuaImage::GetCelRect), 0x673a00 (LuaImage::Create), 0x673b70 (LuaImage::SetImageMode), 0x673ce0
+	// (LuaImage::GetPixel), 0x673e50 (LuaImage::PutPixel), 0x673fc0 (LuaImage::Palletize), 0x674130 (LuaImage::Clear),
+	// 0x6742a0 (LuaImage::GetGraphics), 0x674410 (LuaFont::StringWidth), 0x674580 (LuaFont, int ())
 	template <auto M>
 	Class& Method(const std::string& name)
 	{
@@ -268,6 +281,7 @@ public:
 
 	// A function int f(C*, lua_State*) that reads its own arguments (from index 1; self is removed) and pushes
 	// its own results, as the original's raw wrappers did
+	// 0x661690 (RawMethodWrapper<LuaApp>)
 	template <int (*F)(C*, lua_State*)>
 	Class& Raw(const std::string& name)
 	{

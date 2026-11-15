@@ -279,6 +279,8 @@ std::string GameApp::WordMasterGuessForTests(const std::vector<std::string>& the
 // "word"). Only what the driver sees: its clicks go through the real input
 void GameApp::LogBoardForTests()
 {
+	if (mShutdown)
+		return;  // the screens come down as the game quits: a driver would read the last as a screen shown
 	static std::string sLast;
 	static int sCount = 0;
 	// a dialog: "dialog: <n> <id> ok x,y", its first button (yes, ok), once for each dialog shown

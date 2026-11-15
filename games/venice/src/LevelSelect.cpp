@@ -133,39 +133,3 @@ void LevelSelect::Position()
 	anOuterLayer->mStages.mHead->mEnd[AttributeX] = anEndX;
 	anInnerLayer->mStages.mHead->mEnd[AttributeX] = anEndX;
 }
-
-void LevelScroller::Draw()
-{
-	SceneObject::Draw();
-	DrawHot();
-}
-
-// The outer layer's first stage becomes a 1.2 s slide of half a screen, to the side this scroller is on, from where the layer
-// is, when a thumbnail is past that side's edge and the layer is not at its first stage. (The original runs the setup twice.)
-void LevelScroller::OnCustomEvent()
-{
-	SceneObject* anOuterLayer = gOuterLayer;
-	float aDirection = 0.0f <= 0.0f - mLocal[AttributeX] ? 1.0f : -1.0f;
-	float aShift = (aDirection * gScreenWidth) / 2.0f;
-	bool aThumbnailPastEdge = false;
-	SceneObject* aLevelSelect = gActiveLevel->FindChildByType(ObjectTypeLayer, nullptr)
-		->FindChildByType(ObjectTypeLayer, nullptr)->FindChildByType(ObjectTypeLevelSelect, nullptr);
-	for (SceneObject* aThumbnail = aLevelSelect->mChildren.mHead; aThumbnail != nullptr; aThumbnail = aThumbnail->mNext) {
-		if (0.0f <= aShift) {
-			if (aThumbnail->mWorld[AttributeX] < 0.0f)
-				aThumbnailPastEdge = true;
-		} else if (gScreenWidth < aThumbnail->mWorld[AttributeX]) {
-			aThumbnailPastEdge = true;
-		}
-	}
-	if (aThumbnailPastEdge && anOuterLayer->mStages.mCursor != anOuterLayer->mStages.mHead) {
-		for (int aPass = 0; aPass < 2; aPass++) {
-			SceneStage* aFirstStage = anOuterLayer->mStages.mHead;
-			strcpy(aFirstStage->mName, "scroll");
-			aFirstStage->mLength = 300.0f;
-			aFirstStage->mStart[AttributeX] = anOuterLayer->mLocal[AttributeX];
-			aFirstStage->mEnd[AttributeX] = anOuterLayer->mLocal[AttributeX] + aShift;
-			anOuterLayer->GoToStageByName("scroll");
-		}
-	}
-}

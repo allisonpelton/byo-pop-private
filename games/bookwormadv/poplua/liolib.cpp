@@ -38,6 +38,7 @@ static MemFile* tofile(lua_State* L, int findex)
 	return f;
 }
 
+// 0x70b830
 static int pushresult(lua_State* L, int i, const char* filename)
 {
 	if (i) {
@@ -62,6 +63,7 @@ static int flushfile(MemFile* f)
 	return 1;
 }
 
+// 0x70ba10
 static int aux_close(lua_State* L, MemFile* f)
 {
 	int ok = flushfile(f);
@@ -73,6 +75,7 @@ static int aux_close(lua_State* L, MemFile* f)
 	return ok;
 }
 
+// 0x70bb30
 static int io_gc(lua_State* L)
 {
 	MemFile* f = (MemFile*)luaL_checkudata(L, 1, FILEHANDLE);
@@ -94,6 +97,8 @@ static int io_tostring(lua_State* L)
 }
 
 // io.open(name [, mode]): "r" reads through the host; "w", "a" and "+" modes need its writer
+// 0x70b9b0 (newfile) is inline here
+// 0x70bc30
 static int io_open(lua_State* L)
 {
 	const char* filename = luaL_checkstring(L, 1);
@@ -128,6 +133,7 @@ static int io_open(lua_State* L)
 	return 1;
 }
 
+// 0x70bad0
 static int io_close(lua_State* L)
 {
 	return pushresult(L, aux_close(L, tofile(L, 1)), NULL);
@@ -170,6 +176,7 @@ static int test_eof(lua_State* L, MemFile* f)
 	return f->pos < f->data->size();
 }
 
+// 0x70c500
 static int read_line(lua_State* L, MemFile* f)
 {
 	const std::string& d = *f->data;
@@ -244,6 +251,7 @@ static int f_read(lua_State* L)
 	return g_read(L, tofile(L, 1), 2);
 }
 
+// 0x70ca40
 static int io_readline(lua_State* L)
 {
 	MemFile* f = (MemFile*)lua_touserdata(L, lua_upvalueindex(2));
@@ -259,6 +267,7 @@ static int io_readline(lua_State* L)
 	return 0;
 }
 
+// 0x70c1b0
 static void aux_lines(lua_State* L, int idx, int close)
 {
 	lua_pushliteral(L, FILEHANDLE);
@@ -268,6 +277,7 @@ static void aux_lines(lua_State* L, int idx, int close)
 	lua_pushcclosure(L, io_readline, 3);
 }
 
+// 0x70c2b0
 static int f_lines(lua_State* L)
 {
 	tofile(L, 1);  // check that it's a valid file handle
@@ -489,6 +499,7 @@ static const luaL_reg syslib[] = {
 };
 
 // 0x70e430
+// 0x70d030 (the file metatable, with __index to itself) is inline here
 int luaopen_io(lua_State* L)
 {
 	luaL_openlib(L, LUA_OSLIBNAME, syslib, 0);

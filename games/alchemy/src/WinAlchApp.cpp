@@ -10,6 +10,7 @@
 #include "GameText.h"
 #include "HighScores.h"
 #include "IntroScreen.h"
+#include "LiveSplitObserver.h"
 #include "DDImage.h"
 #include "testhooks/Autoplay.h"
 #include "Compat2004.h"
@@ -109,6 +110,7 @@ WinAlchApp::WinAlchApp()
 // then the widgets are taken off the screen and deleted, and the images and fonts
 WinAlchApp::~WinAlchApp()
 {
+	LiveSplitObserver::AppDestroyed(this); // port(mod): the autosplit block's last write
 	if (mBoard != NULL && mBoard->IsInProgress())
 		mBoard->SaveGame();
 
@@ -193,6 +195,9 @@ void WinAlchApp::UpdateFrames()
 			mAutoplayBot = new AutoplayBot(this, mAutoplaySeed);
 		mAutoplayBot->Update();
 	}
+
+	// port(mod): the autosplit block, after the update (LiveSplitObserver.h)
+	LiveSplitObserver::AfterUpdate(this);
 }
 
 // port (web): the save the original's ~WinAlchApp writes now (see SexyAppBase::UpdateUserDataBackup): savegame.dat of
@@ -249,6 +254,8 @@ void WinAlchApp::HandleCmdLineParam(const std::string& theParamName, const std::
 		mAutoplayStart = atoi(theParamValue.c_str());
 	else if (theParamName == "-statelog")
 		mStateLogFileName = theParamValue;
+	else if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue); // port(mod): test hook, a line for each change in the autosplit block
 	else if (theParamName == "-autoplayshots")
 		mAutoplayShotPrefix = theParamValue;
 	else

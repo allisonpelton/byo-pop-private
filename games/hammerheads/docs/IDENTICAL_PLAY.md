@@ -1,0 +1,188 @@
+# Hammer Heads Deluxe: the identical-play pass
+
+Written for the user. Phase one (the game plays out the same in the original and the port) is done for the scenarios below;
+phase two (it looks and sounds the same) is under way: the sound and the music are compared by state (below), the looks are not yet. This file grows with each phase.
+
+## Phase one: plays identical
+
+### What is compared and how
+
+The original (`HammerHeadsGame.exe`, the user's copy staged under `C:\byo-og\hh2\game`) runs under origrun on its virtual clock
+with scripted mouse and key input, with its random seed pinned (`tools/origrun/patches.txt` stands a fixed value in for
+`GetTickCount`, which both of the exe's generators are seeded from). origrun counts the application's update counter
+(Application +0x44c) and holds the game after each update; at every hold it reads, with `peek`, 318 values of the game's
+memory: the Mersenne generator's index and two of its words, the 50 numbers of the stats, the game screen's level, mode and
+cycle, the gameplay's phase and its timers (the next pop, the clover, the strawberry, the double hit, the five times), the level's
+timer, and for each of the first ten cubbies its state, its rise, its creature's kind, state, age, height and its velocity,
+health, hit stage and frame, and its position, and the avatar's swing, its frame and the count of clicks. The port is given the
+same run through `-script` and writes the same values with its `trace` test command (`GAME_NOTES.md`), and
+`games/hammerheads/tools/idplay/idplay.py` compares the two update by update. The random generator is the strict value: a
+number drawn in another place or not drawn shows at once and stays different.
+
+The framework runs a frame as three steps (the first runs one tick, the second the ticks the frame still owes and then the
+frame's `UpdateF`, the third waits), and origrun's hold lands between steps. A record taken after the first step's tick (the
+exe's update state 2) is the one the port can write at the same place, so only those are compared: the first tick of each frame,
+3 of every 5 updates (16790 records for 28000 updates). What the frame's later ticks did shows in the next record. The
+comparison is of values, never of the pictures.
+
+The input does not come from a person. `botclick` (in `TestCommands.cpp`) is the port's player: it reads the game's state, picks
+the first creature that is standing up and not a bomb, aims at the point the avatar would strike it at (the cubby's strike
+point, where a solid pixel of the creature lies five pixels all round, so that a click does not fall on an edge the two
+games' pictures would not both have), waits for the hammer to be idle, and clicks. It also presses the level introduction's
+button and the one button of each box that waits (the "Ready?" box, a bonus round, a finished challenge, the game over and
+game won boxes, the Tough Cookie notice, which it presses only after the box has rested for six steps of its own), picks the
+highest point on the page of restart points, buys three things in the shop and leaves it, and now and then, from a random
+generator of its own seeded by the scenario (`BOT_SEED`), clicks a bomb or bare ground instead (3 and 1.5 in a hundred). Its
+clicks are written to a file (`scenarios/<name>.clicks`, one `update x y` per line) and both games get them at the same update
+counts, a mouse move first; the port runs an input at the update after the one the original reads it at (the original reads
+the message when the frame is over). The bot draws no random number of the game's. Its play is not what is tested; the aim
+is that both games, given the same clicks, play the same.
+
+Three details of the harness matter. The port runs `-fast` with its refresh rate fixed at 60 (the exe reads the display's, 60
+on rundesk's desktop). The original's frame rate gives `1000 / (10 * 60)` ticks to a frame, kept as a double in the exe
+(0x4d5d30) where the 2004 framework rounds it to a float, so the first frame owes 1 tick, the next 2 and the third 2; the port's
+framework had the float and every tick after the first frames fell in another frame (`mUpdatesPerUpdateFExact`, a flag in
+`SexyAppBase` that only this game sets). And a scenario that starts at a later level does not play the earlier ones: the original
+through a patched copy, in which the game screen's constructor (0x4527c0) loads the level that the cheat word `jumpto<n>` would
+(a patch at 0x4529c4), the port through its `cheat` command, the same cheat typed (the main menu clears the cheats when it is
+made, so the command goes after the menu is up). Tough Cookie and Marathon are unlocked the same way: the original's
+`IsToughUnlocked` (0x41f2d0) and `HasFewRestartPoints` (0x41f290) are patched to answer yes and no, the port gets `unlock all`
+and `unlock marathon`. The `nomissdamage` and `noawaydamage` cheats, made true in the original by patching the two tests of the
+cheat flag (0x44a2c5, 0x44a39c), keep the bot's game from being lost in the `classic_nd*` scenarios.
+
+| scenario | T records compared | what it covers |
+| --- | --- | --- |
+| `classic1` | 17991 (30000 updates) | Classic Bash from the loading screen: the new player's name, the how-to-play page, the first level's introduction, then levels 1 to 4 played by the bot, each ended by the level's clock (the pause after the last cubby, the summary, the next level) |
+| `classic_j5`, `_j10`, `_j15`, `_j20`, `_j25` | 16788, 16787, 16791, 16790, 16791 | Classic Bash started at level 5, 10, 15, 20 and 25 (the `jumpto` cheat), the bot playing it until the game is lost (hearts gone, the game-over box, the page of restart points, the same level again), over and over; the creatures of those levels (bombs, bubble heads, silvers, strongs, switchers, ducks, napoleons, strawberries), the shop, and the bot's bombs and misses |
+| `tough1` | 16790 | Tough Cookie unlocked and started from the main menu, levels 1 to 3 |
+| `marathon1` | 16791 | Marathon unlocked and started from the main menu, levels 1 to 4 of the marathon, a shop between them |
+| `classic_nd1` | 16791 | as `classic1` with the two damage cheats on: levels 1 to 3 |
+| `classic_nd5`, `_nd10`, `_nd15`, `_nd20`, `_nd25` | 16791, 16790, 16787, 16789, 16789 | Classic Bash started at level 5, 10, 15, 20 and 25 with the cheats on, so that the bot is not lost: levels 5 and 6, 10 and 11 (a challenge screen entered and left), 15 and 16 (a challenge), 20 and 21 (a shop), 25 (the last level's kings; it does not end in the time of the script) |
+| `classic_nd22` | 16652 (28000 updates) | the cheats on, started at level 22 (the test command `startlevel 22`; the original gets the same patched start), levels 22 and 23: the multiplier gnome (struck, so that its x5 timer ran 1246 updates), a challenge and a shop |
+| `classic_sp25` | 19704 (33000 updates) | the cheats on and `superpower` on (a hammer of level 3 on fire, 7 hearts, 50000 coins), started at level 25: the kings brought down, the level ended, the zoom wipe, the game-won page (its "Main Menu" button pressed by the bot), the main menu and the Tough Cookie notice (the original's screen pointers were read at the same updates: the game-won page stands at 30750, the main menu from 31000, in both) |
+| `classic_save1` | 9514 (16000 updates) | `classic1` left in the middle of level 1 (the in-game menu, "Main Menu", "Yes" of "Leave Game?", which saves the game) and resumed from the main menu ("Classic Bash", "Continue" of the box that offers the saved game, "Go!" of the "Ready?" box): the saved game's level, score, stats, gnomes and random generator come back, and levels 1 and 2 play on identically |
+| `classic_save22` | 13187 (22000 updates) | the same at level 22 with the cheats on (typed again in the port after the menu clears them): the multiplier gnome, silvers, strongs, switchers, napoleons, bubble heads, a shop and the clover stand in the saved game, and the resumed level plays on identically |
+
+Together the runs stood up every kind of creature in a cubby (the gnome, the woman, the strong, the bomb, the
+bubble head, the hide, the forky chap, the silver, the cupido, the heart, the coin and the big coin, the chest, the clover, the
+ice cream and the duck of the bonus, the strawberry, the rabbit, the king, the save, the napoleon, the power-up, the switcher, the
+shop's and the challenge's gnomes, and the multiplier), and the screens game, shop, challenge, the game-won page and the menu. Each run's own coverage (levels, phases,
+creatures, swings that struck something, the stats at its end) is written by `idplay.py` to `coverage.txt` in its run folder.
+The state log lists the cubbies only: the flying and the bouncing gnomes, which are objects outside them, and the stickers show in
+it through the score, the stats and the random generator when the bot or a miss reaches them.
+
+### Differences found and fixed
+
+| difference | cause | what the port does now | commit |
+| --- | --- | --- | --- |
+| The first gnome popped at another update (the pop timer's wait) | the pop test in `Gameplay::FixedUpdate` asked for the timer above zero; the exe's test is at or below zero | `mNextPopTimer <= 0.0` | fbafe16f |
+| Every tick after the first frames fell in another frame, so the level's clock and the pops drifted one tick at a time | the framework rounds the ticks a frame owes (1000 / (10 * 60)) to a float; the exe keeps a double, so its second frame owes exactly 2 and the sum of owed ticks reaches 1 at another frame | `mUpdatesPerUpdateFExact`, set by this game | 01654778 (shared) |
+| A click on a sticker, a flying gnome or a bouncing gnome found no target (or the wrong one) | these three answer `MouseOver` (0x443290) with a test of their bounds alone (no solid-pixel test, as a cubby's creature has); the port's objects answered false | `SimpleObject::PointInBounds` and the three `MouseOver` overrides | 3458c287 |
+| A click beside a sticker struck the gnome behind it, where the original struck the sticker | the original's `Avatar::Probe` (0x42e120) asks every object `Hit` with the hammer's mask as well as `MouseOver` and uses the first `Hit` when none answers `MouseOver`; the port had left `Hit` out, its comment saying the original never used the answer | `Probe` keeps both and falls back to the first `Hit` | 85afce3d |
+| Every sticker lay half its picture up and to the left of the original's, so clicks that struck one in the original missed it, and the picture was drawn in the wrong place | the board's editor tool makes a sticker at the middle of its box (its corner plus half the width and height, 0x408d60); the port made it at the box's corner | `GameScreen::Start` adds half the box; `BoardFile` reads Width and Height | 85afce3d |
+
+The original's own crash is not a difference: see the first deviation below.
+
+### Oddities skipped
+
+**The "Ready?" box's first update at rest.** In Tough Cookie the box slides in from above and the port's reached its resting
+place by update 3000 of the first scenario; a click at that update was lost in the original (the level did not start and the
+game stayed under the box), where the same click is taken by the port. The bot now waits six of its steps (60 updates) after the
+box rests, and both games then agree. The slide runs in frames (`NcMovingDialog::UpdateF`), the logic does not read it, and so
+it is no difference of play; whether the box settles at the same update in both belongs to phase two (the look and the timing of
+the slide).
+
+### Deviations that remain
+
+As `GAME_NOTES.md` lists them. The one the runs found is "A swing whose target is gone": a click that has begun a swing on the
+shop's gnome while the shop is left deletes the gnome, and the original then strikes through a null pointer at frame 3
+(`Avatar::FixedUpdate`, 0x42eb80; an access violation at 0x42ebb2, found when the bot's click on the shop's arrow fell in that
+frame); the port tests the pointer and the swing ends with no strike. No scenario reaches it any more, since the bot waits for an
+idle hammer before it leaves the shop.
+
+### Left in phase one
+
+The runs do not record which boxes came up (a challenge's or a bonus round's finish, the high score entry after a lost game), only
+that the challenge screen was entered and left in `classic_nd10` and `classic_nd15`. The flying and the bouncing gnomes' own state
+is not in the log (only its effects). A game left and resumed was run twice (`classic_save1`, `classic_save22`: the saved game,
+the continue box and the resumed level play on identically); a game that is lost with a saved game waiting, and the saved games of
+Tough Cookie and Marathon (the marathon's own clock), were not. These belong to the coverage check before the final merge, with
+the focus loss and regain and the Tough Cookie and Marathon runs at later levels (`jumpto` works in both modes); the looks and the
+sound belong to phase two.
+
+## Phase two: the sound and the music, by state
+
+### What is compared and how
+
+The runs of phase one carry the sound too, so that what is compared is what the same input makes the game play.
+
+The sounds go through DirectSound. origrun's stand-in for it logs every buffer the original plays and stops, with the virtual
+clock's time, the buffer's volume, pan and frequency, and which sound the buffer is (a duplicate of a sound's own buffer); the
+port's framework logs the same for its samples (`BYOPOP_SOUNDLOG`, the update count first). `tools/idplay/soundcmp.py` lines the
+two up: the plays are compared in order, sound by sound, with volume, pan, pitch and whether it loops. A stop is not compared
+where the sound ended by itself, since the port's instance ends where the original's buffer does and the original's stop is the
+game's own for a buffer it still thinks is playing. When the plays are the same, how the times fall can be listed as information
+(`--times`): the port's plays that an input made come one or two updates after the original's, because the harness posts the port
+its input an update later (as in phase one). Both sides are cut where the run ends; the original's shutdown runs the virtual clock
+ahead (marathon1's by 20 seconds), and what it plays then is not the run's.
+
+The music goes through BASS (four ogg files, one stream each). `tools/bassproxy` is a stand-in `bass.dll` that sits in a copy of
+the original beside the real one (renamed `bass_real.dll`), logs every call with the update count (read from the game's own
+counter) and its arguments, and answers for a stream that BASS's no-sound device cannot make (the only device the stand-in
+DirectSound leaves it) with a handle of its own that plays and stops as BASS's would. `tools/idplay/musiccmp.py` reduces that log
+and the music lines of the port's sound log to the same events: a file made into a stream, a song's volume set (at every update
+of a fade), a song started, stopped, paused or resumed, and the master volume. It compares them in order with the update of each.
+Two differences in how BASS is asked, with the same result, are not events: the original stops every other song whenever one is
+faded in and stops a song just before it plays it again (a stop of a song that is not playing, and a stop followed at once by the
+same song's play, are dropped), and the port's mixer starts at full volume before the game sets its own (the last of several master
+volumes at one update stays). When the three other songs are made into streams is the loader's business (the original's loading
+thread does it a little after the start, the port's at 0), so the files are compared as a list. A master volume that a focus change sets comes
+one update later in the port, as every input does.
+
+Each scenario below is one `idplay.py run`: the original and the port with the same input, the state compared as in phase one, then
+the sound, then the music.
+
+| scenario | plays, music events | what it reaches |
+| --- | --- | --- |
+| `classic1` | 1152 plays | a first game of Classic Bash from the loading screen: the buttons' mouse-over and click, the dialogs' woosh, the hammer's and the gnomes' sounds, the level's ending |
+| `classic_save1` | 396 plays; 1613 music events (the first 16000 updates) | the saved game left and resumed: the menu and in-game music swapped, with the fades, to the update |
+| `classic_nd10`, `classic_nd22` | 1547 and 1901 plays; 2016 music events each | levels 10 and 11 and levels 22 and 23: the challenge and the shop (the shop's mole and the hint popups), the multiplier gnome's timer |
+| `classic_sp25` | 2479 plays; 2680 music events | the kings, the zoom wipe, the game-won page and its voice, the Tough Cookie notice |
+| `tough1` | 1349 plays; 1939 music events | Tough Cookie from its first level |
+| `marathon1` | 1043 plays; 1874 music events | Marathon through the game over box, "Try Again" and a new game |
+| `classic_save22` | 1413 plays; 2009 music events | the saved game of level 22 resumed |
+| `classic_focus1` | 333 plays; 996 music events | the window losing and regaining the focus on the loading screen, on a level's introduction and twice in a level (the second time for four seconds with the bot's clicks arriving): state, sounds and music identical, the music's master volume going to 0 on the loss and back to 85 on the regain |
+
+### Differences found and fixed
+
+| difference | cause | what the port does now | commit |
+| --- | --- | --- | --- |
+| The original played the mouse-over sound for every button and the port for some | the six screens' `ButtonListener` tables share one `MouseEnter` function (0x454bc0, which plays sound 0); the port had no override on the screens that did not make it themselves | `ButtonMouseEnter` on the main menu, the how-to-play page, the level introduction, the game screen, the game-won page and the high score table | f4d747a4 |
+| The in-game menu opened at the press of its button and the original's opens when the button is let go | the game screen's handler (0x450e10) is the listener's `ButtonDepress`; the port's was `ButtonPress` | renamed, same body | f4d747a4 |
+| The ice cream gnome played its gloop twice | `GnomeBonus::Hit` played it, and so does `StartIceCreamPower` (0x435fd0) | the extra play removed | f4d747a4 |
+| "Try Again" and "Main Menu" of the game over box played no click | the box's `ButtonListener` table points at 0x44fe90, which plays the click for any button pressed (the options box's own handler is the same function); the port's box had none, and the moving dialog's handler it inherited (0x468bb0) clicks only for ids that no dialog's own buttons have | `GameOverDialog::ButtonPress` plays the click | 7e802bbd |
+
+The harness had one fault of its own that looked like a game difference and is fixed in it, not in the port: the original played the
+mouse-over sound at nearly every click (twice at some). The cause was origrun's shared desktop. A click was posted to the game's
+window with the cursor set to its point, and the original's own timer test for "is the mouse still in the window" (0x4d7000) asks
+which window is under the cursor; on rundesk's desktop another run's window was found there, the original took that for the mouse
+leaving, and entered again at the next move. The original now runs with origrun's `--cursor scripted`, which answers that question
+from the scripted point, and with a test patch for the one comparison left that does not use it (0x4d7805, listed in
+`tools/origrun/patches.txt`).
+
+### Deviations that remain
+
+How BASS is asked is not the same: the original calls `BASS_ChannelStop` on a song before it plays it, and on the other three
+whenever one is faded in; the port's mixer stops what is playing as it plays what is next. What is heard is the same, and the
+comparison is of the state. `GAME_NOTES.md` lists it with the others.
+
+### Also run
+
+The phase-one scenarios `classic_nd1`, `_nd5`, `_nd15`, `_nd20`, `_nd25` and `classic_j5`, `_j10`, `_j15`, `_j20`, `_j25` (28000 updates
+each) are identical in state, sound and music too.
+
+### Left in phase two's sound
+
+The sounds of a game lost with a saved game waiting, the high score entry and Tough Cookie's and Marathon's saved games are not
+reached yet. The looks (every screen and dialog against the original's, natively and on the page) are phase two's next part: the
+shots need a visible desktop, which the rules allow from 22:00.

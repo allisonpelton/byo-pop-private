@@ -248,9 +248,8 @@ origrun runs itself and the game again in that session.
   `VideoInput` are disabled and `ProtectedClient` is enabled, so a game reaches no network (no "More Games" page,
   no update check, no Steam). `vGPU` is disabled, so the sandbox renders in software, unless `--sandbox-vgpu`:
   the user allowed that for Bookworm Adventures' 3D comparison (2026-11-01), Bejeweled Twist's 3D mode
-  (2026-11-02), and Typer Shark's and Bejeweled 2's 3D comparisons (2026-11-11); between 22:00 and 08:00 local time
-  any game may use it (CLAUDE.md, "Overnight, desktop and sound allowed"), and at other hours another game's 3D runs
-  ask first. Exactly two folders are mapped, the run folder read-write
+  (2026-11-02), and Typer Shark's and Bejeweled 2's 3D comparisons (2026-11-11), and since 2026-11-15 any game may
+  use it at any hour (CLAUDE.md, "Desktop and Sandbox at any hour"). Exactly two folders are mapped, the run folder read-write
   as `C:\run` and `build/origrun-bin` read-only as `C:\origrun`; origrun resolves both to their final paths (a
   junction shows where it leads) and refuses the run unless the run folder sits directly under the repository's
   `build\origrun` and the binaries' folder ends in `\build\origrun-bin`, both on a local drive.
@@ -818,6 +817,9 @@ Where 3D runs:
 | the sandbox | No original has run in 3D there. In session 0 the Direct3D test fails (DDERR_NOTFOUND), with `--sandbox-vgpu` too, and with `--dgvoodoo` the game crashes at start. With `--sandbox-connect` the game moves to the user session, whose "Microsoft Remote Display Adapter" fails Direct3D 7's CreateDevice. `ORIGRUN_DGVOODOO_CONF` names a dgVoodoo.conf to try in place of origrun's own. |
 | the user's visible desktop | Works with no wrapper, and needs the user's leave game by game: Bookworm Adventures' 3D comparison ("Yes, capture it", 2026-11-01) and Bejeweled Twist's ("Sandbox, then desktop", 2026-11-02: first `--sandbox --sandbox-vgpu --sandbox-connect`, and the desktop only if the original still falls back to 2D there), and Typer Shark's and Bejeweled 2's on the same terms ("Yes, both routes", 2026-11-11). Between 22:00 and 08:00 local time any game may run there, with sound (CLAUDE.md, "Overnight, desktop and sound allowed"). |
 
+The shared driver for it is `tools/visrun.py` (`docs/VISRUN.md`: a config and a step file per game; the game-local
+drivers named below are what it replaces).
+
 A run on the user's desktop goes as Bookworm Adventures' `tools/pilot/visrun.py` does it
 (`games/bookwormadv/docs/IDENTICAL_PLAY.md`, "3D mode"): a copy under `build/`, the window kept on top, a shot
 refused while another window overlaps it, the picture taken only with `PrintWindow` from the game's own window,
@@ -871,6 +873,7 @@ game's registry key and 3D-flag address to games.tsv.
 | bookwormadv2 | Steam copy | virtual clock, scripted cursor, seed patch; its saves and registry values in the sandbox | has one; the sandbox has none (`Is3D=0`) | not wrapped; `Steam.dll` is copied in |
 | cosmicbugs | local install | host, windowed, virtual clock, scripted cursor, two test patches (the seed, and a frame wait of exactly 10 ms). Sandbox shots by `--surface-screen` (5-5-5) | none | full screen it stops at "Screen Setup Failed" on the headless desktop, which cannot open its 800×600 mode; `--dgvoodoo` gives it a desktop-sized window and the title menu |
 | dynomite | Steam copy | host, virtual clock, short `--stage-root` | has one | `Steam.dll` is copied from the Steam library root into the copy |
+| hammerheads | Steam copy (`HammerHeadsGame.exe`) | host, virtual clock, the seed pinned (`games/hammerheads/tools/origrun/patches.txt`); each scenario adds its jump, unlock and cheat patches through `PATCHES` (`games/hammerheads/tools/idplay`, recipe in `games/hammerheads/docs/WORKING_NOTES.md`, "Phase one's runs") | | |
 | mahjongchina | local install | sandbox: whole stages and the ending | has one; off (`HardwareAcceleration=0` by `--reg`) | as mahjongjapan; `games/mahjongchina/tools/sandbox_run.sh` does it all. Shots need `games/mahjongchina/tools/ddrawcap` beside the copy, or every one is black (its window class has a black background brush). Its players live in `%LOCALAPPDATA%\JollyBear\Mahjong Escape`. Never click the PopCap and SpinTop logos at the menu's bottom corners: they are links |
 | mahjongjapan | local install | sandbox: whole stages to the ending | has one; off (`HardwareAcceleration=0` by `--reg`) | JollyBear engine, windowed DirectDraw (`FullScreen=0` by `--reg`). Posted clicks need a `move` 150 ms before. Its players live in `%LOCALAPPDATA%\JollyBear\Mahjong Escape Ancient Japan`, which inside is SYSTEM's: stage them under `sandbox-files/C/Windows/System32/config/systemprofile/AppData/Local/...`, re-signed for `C:\run\game\` (a player's checksum covers the exe's folder). Its hover reads `GetCursorPos`; `--cursor scripted` would answer it only in a copy that loads the stand-in, which its packed `bass.dll` does not (a coverage run's exe does); untested |
 | mummymaze | local install | virtual clock, scripted cursor | none | in real time its window takes about 45 s to appear |

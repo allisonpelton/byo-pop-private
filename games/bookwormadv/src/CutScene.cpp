@@ -12,6 +12,7 @@
 
 using namespace Sexy;
 
+// 0x4415d0
 CutScene::CutScene(GameApp* theApp) : mApp(theApp)
 {
 	mFlash = new FlashWidget(0, this);

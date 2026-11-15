@@ -28,8 +28,10 @@ const std::string& LuaClassRet::String() const
 	return count > 0 && v[0].type == TString ? v[0].str : kNone.str;
 }
 
+// 0x6c99f0
 LuaLinkedClass::LuaLinkedClass() {}
 
+// 0x6c9a90
 LuaLinkedClass::~LuaLinkedClass()
 {
 	DeleteLinkedObject();
@@ -120,6 +122,7 @@ LuaClassRet LuaLinkedClass::CallLinkedMethod(const char* method, int nargs)
 	return CallLua("CallLinkedMethod", nargs + 2);
 }
 
+// 0x6c9270 (LuaClassRet's constructor, which reads the results off the stack) is inline here
 LuaClassRet LuaLib::CallLua(const std::string& path, int nargs)
 {
 	LuaClassRet r;

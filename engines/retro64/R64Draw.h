@@ -90,11 +90,6 @@ void Dirty_AddClippedRect(Dirty* theDirty, const int* theRect, const int* theCli
 void Dirty_AddClippedShown(Dirty* theDirty, int x, int y, int theWidth, int theHeight, const int* theClip);
 void Dirty_AddClippedImage(Dirty* theDirty, int x, int y, const Image* theImage, const int* theClip);
 
-// 0x444c50 (cosmicbugs), 0x445090 (waterbugs) (and shortsort 0x444bc0 (cosmicbugs), 0x445000 (waterbugs)): the MSVC
-// 2005 CRT's qsort, which DrawList_Flush relies on: its comparator
-// never answers 0, so the order of equal depths is whatever this algorithm leaves
-void CrtQsort(void* theBase, size_t theNum, size_t theWidth, int (*theCompare)(const void*, const void*));
-
 // R64Line.cpp. 0x42cd10 (cosmicbugs), 0x42d1f0 (waterbugs): the surface lines go to (clipped to all of it; a null
 // format keeps the last one)
 void Draw_SetTarget(uint8_t* theBits, int thePitch, int theW, int theH, const PixelFormat* theFmt);

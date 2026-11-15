@@ -39,6 +39,7 @@ void luaD_throw(lua_State* L, int errcode)
 	exit(EXIT_FAILURE);
 }
 
+// 0x708b70
 int luaD_rawrunprotected(lua_State* L, Pfunc f, void* ud)
 {
 	lua_longjmp lj;
@@ -68,6 +69,7 @@ static void restore_stack_limit(lua_State* L)
 
 // ---- stack reallocation ------------------------------------------------------------------------------
 
+// 0x708c20
 static void correctstack(lua_State* L, TObject* oldstack)
 {
 	CallInfo* ci;
@@ -82,6 +84,7 @@ static void correctstack(lua_State* L, TObject* oldstack)
 	L->base = L->ci->base;
 }
 
+// 0x708ca0
 void luaD_reallocstack(lua_State* L, int newsize)
 {
 	TObject* oldstack = L->stack;
@@ -91,6 +94,7 @@ void luaD_reallocstack(lua_State* L, int newsize)
 	correctstack(L, oldstack);
 }
 
+// 0x708ce0
 void luaD_reallocCI(lua_State* L, int newsize)
 {
 	CallInfo* oldci = L->base_ci;
@@ -100,6 +104,7 @@ void luaD_reallocCI(lua_State* L, int newsize)
 	L->end_ci = L->base_ci + L->size_ci;
 }
 
+// 0x708d60
 void luaD_growstack(lua_State* L, int n)
 {
 	if (n <= L->stacksize)  // double size is enough?
@@ -108,6 +113,7 @@ void luaD_growstack(lua_State* L, int n)
 		luaD_reallocstack(L, L->stacksize + n + EXTRA_STACK);
 }
 
+// 0x708db0
 static void luaD_growCI(lua_State* L)
 {
 	if (L->size_ci > LUA_MAXCALLS)  // overflow while handling overflow?
@@ -203,6 +209,7 @@ StkId luaD_precall(lua_State* L, StkId func)
 	}
 }
 
+// 0x7092f0
 void luaD_poscall(lua_State* L, int wanted, StkId firstResult)
 {
 	StkId res;
@@ -222,6 +229,7 @@ void luaD_poscall(lua_State* L, int wanted, StkId firstResult)
 // Call a function (C or Lua). The function to be called is at *func. The arguments are on the stack, right
 // after the function. When returns, all the results are on the stack, starting at the original function
 // position.
+// 0x709380
 void luaD_call(lua_State* L, StkId func, int nResults)
 {
 	StkId firstResult;
@@ -316,6 +324,7 @@ int lua_yield(lua_State* L, int nresults)
 
 // ---- protected calls and the parser ------------------------------------------------------------------
 
+// 0x709630
 int luaD_pcall(lua_State* L, Pfunc func, void* u, ptrdiff_t old_top, ptrdiff_t ef)
 {
 	int status;
@@ -344,6 +353,7 @@ struct SParser {  // data to `f_parser'
 	int bin;
 };
 
+// 0x7096d0
 static void f_parser(lua_State* L, void* ud)
 {
 	SParser* p;
@@ -358,6 +368,7 @@ static void f_parser(lua_State* L, void* ud)
 	incr_top(L);
 }
 
+// 0x709770
 int luaD_protectedparser(lua_State* L, void* z, int bin)
 {
 	SParser p;

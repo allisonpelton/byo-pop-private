@@ -82,7 +82,8 @@ live channel", says what they played.
 
 The game's fixes mod, `mods/fixes` (`GAME_NOTES.md`, section 7): two toggles, on by default on the site, for the bugs of the original that
 the port keeps (a missing tile rim on the first column and row, and the end of a continued game drawn off the board). The port
-without the mod is the original. No other mods until the user asks for one (`MOD_IDEAS.md` lists the ones worth making).
+without the mod is the original. The lite mod step is done with no mod: `LITE_MOD.md` says what was looked at and why nothing is taken.
+No other mods until the user asks for one (`MOD_IDEAS.md` lists the ones worth making).
 
 ## Status (2026-10-26)
 

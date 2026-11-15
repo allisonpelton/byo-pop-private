@@ -213,15 +213,28 @@ void WinDMApp::TestAdvanceGoto()
 		mHighScoreWidget->ButtonDepress(HighScoreWidget::BUTTON_BACK);
 		return;
 	}
-	if (mBoard != NULL || mMainMenu == NULL)
+	if (mBoard != NULL && mMainMenu == NULL)
 	{
-		// from a game (or its end screen): back to the menu, as the game's own menu button does
+		// from a game (or its end screen): back to the menu as the options dialog's Main Menu button does (0x5cc563, as "goto menu"
+		// does): the board hides, the menu is made (DoMainMenu keeps the board) and slides in, and kills the board when it is down
+		mBoard->Hide();
+		DoMainMenu();
+		mMainMenu->Show();
+		mMainMenu->mBackdropClear = true;
+		return;
+	}
+	if (mBoard != NULL)
+		return;  // the menu is sliding in over the board
+	if (mMainMenu == NULL)
+	{
 		DoMainMenu();
 		return;
 	}
 	if (mMainMenu->mState != MainMenu::STATE_READY || mMainMenu->mWelcomeTimer > 0 || mMainMenu->mUserDialogTimer > 0 ||
 		mMainMenu->mStartTimer > 0)
 		return;
+	if (!mSafeDeleteList.empty())
+		return;  // the board that went away is deleted first: its destructor saves the game into the file of the mode still set
 	if (mProfile == NULL || mProfile->mName.empty())
 	{
 		DoCreateUserDialog();
@@ -261,7 +274,8 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 	const std::string& aCommand = theCommand.mCommand;
 	const std::string& anArgs = theCommand.mArgs;
 	if (aCommand != "state" && aCommand != "goto" && aCommand != "level" && aCommand != "unlock" && aCommand != "set" &&
-		aCommand != "win" && aCommand != "lose" && aCommand != "seed" && aCommand != "move" && aCommand != "nosparkle")
+		aCommand != "win" && aCommand != "lose" && aCommand != "seed" && aCommand != "move" && aCommand != "nosparkle" &&
+		aCommand != "gem")
 		return false;
 
 	std::string aScreen = TestScreen();
@@ -780,6 +794,30 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 			ReplyError(theCommand, "can set score");
 			return true;
 		}
+		ReplyOK(theCommand);
+		return true;
+	}
+
+	if (aCommand == "gem")
+	{
+		// gem <row> <col> <colour 0-6>: the plain gem there takes that colour (its type, as the state's board shows it),
+		// so a driver can lay out a move the game rarely deals (a line of five for a hyper cube). Only while the board is
+		// idle and only on a plain gem; the board finds any set it makes on its next update, as after a fall
+		int aRow = -1, aCol = -1, aType = -1;
+		if (sscanf(anArgs.c_str(), "%d %d %d", &aRow, &aCol, &aType) != 3 || aRow < 0 || aRow > 7 || aCol < 0 || aCol > 7 ||
+			aType < 0 || aType > 6)
+		{
+			ReplyError(theCommand, "gem <row 0-7> <col 0-7> <colour 0-6>");
+			return true;
+		}
+		Piece* aPiece = aBoard->mBoard[aRow][aCol];
+		if (aBoard->mState != Board::STATE_IDLE || aPiece == NULL || aPiece->mFlame || aPiece->mHypercubeTick != -1 ||
+			aPiece->mType > 6)
+		{
+			ReplyError(theCommand, "the board is busy, or no plain gem is there");
+			return true;
+		}
+		aPiece->mType = aType;
 		ReplyOK(theCommand);
 		return true;
 	}

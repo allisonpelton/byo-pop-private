@@ -4,6 +4,7 @@
 
 #include "Profiles.h"
 #include "SceneLoader.h"
+#include "TextFixes.h"
 #include "Shooter.h"
 #include "VeniceDraw.h"
 #include "VeniceGlobals.h"
@@ -60,11 +61,11 @@ void Level::Load(const char* theText, SceneTag* theTag)
 	if (theTag->Has("thumbnail"))
 		strcpy(mThumbnail, theTag->GetString("thumbnail"));
 	if (theTag->Has("win_message"))
-		strcpy(mWinMessage, theTag->GetString("win_message"));
+		strcpy(mWinMessage, CorrectedText(theTag->GetString("win_message")));
 	if (theTag->Has("lose_message"))
-		strcpy(mLoseMessage, theTag->GetString("lose_message"));
+		strcpy(mLoseMessage, CorrectedText(theTag->GetString("lose_message")));
 	if (theTag->Has("title")) {
-		strcpy(mTitle, theTag->GetString("title"));
+		strcpy(mTitle, CorrectedText(theTag->GetString("title")));
 		// a level with a title gets its title text object from a file of objects, which one depends on the level
 		const char* aTextFile = nullptr;
 		if (strcmp(mName, "trickshot") == 0)

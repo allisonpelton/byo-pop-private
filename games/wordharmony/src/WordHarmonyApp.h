@@ -4,7 +4,7 @@
 // The port's host for Word Harmony (no original counterpart: the original was the engine's Windows layer, 0x454a40-
 // 0x45ee00). The engine runs one frame per call, so the framework drives it: the widget runs a frame whenever the
 // game's frame period has passed (the original loop's test, 0x4552b0), draws the 800x600 screen and turns the
-// framework's input into the root window's (as the window procedure did). The host interface (engine/Host.h) is
+// framework's input into the root window's (as the window procedure did). The host interface (engines/sprout/Host.h) is
 // implemented in WordHarmonyApp.cpp over the framework and the platform layer.
 
 #include "SexyAppBase.h"
@@ -16,7 +16,7 @@
 
 #include "Bot.h"
 
-namespace wordharmony
+namespace engine
 {
 class HostSoundSystem;
 class ScreenGraphics;
@@ -26,12 +26,18 @@ namespace Sexy
 {
 
 class MemoryImage;
+class SurfaceDisplay;
 
 class WordHarmonyWidget : public Widget
 {
 public:
-	MemoryImage* mScreenImage;
-	wordharmony::ScreenGraphics* mGraphics;
+	MemoryImage* mScreenImage;  // the screen the framework draws, null when the window's display keeps it (mSurfaceDisplay)
+	// port (for speed): the window's display (framework/SurfaceDisplay.h), native builds: it shows mSurfaceBits itself, the
+	// rectangles of it that changed handed over each frame; null in the web build and with SURFACE_DISPLAY=off
+	SurfaceDisplay* mSurfaceDisplay;
+	std::vector<uint32_t> mSurfaceBits;
+	const uint32_t* mPixels;  // the 800x600 screen, 0xffRRGGBB: the picture's pixels, or mSurfaceBits
+	engine::ScreenGraphics* mGraphics;
 	DWORD mLastLoop;       // the run loop's last tick count
 	int mAccumulated;      // the milliseconds not yet run as frames (0x4552b0's carry)
 	DWORD mLastSoundTick;
@@ -71,6 +77,10 @@ public:
 	~WordHarmonyApp() override;
 
 	void Init() override;
+#ifndef __EMSCRIPTEN__
+	// port (for speed): the window's display is the surface display, which keeps the screen and copies only what changed
+	DDInterface* CreateDDInterface() override;
+#endif
 	void Shutdown() override;
 	void GotFocus() override;
 	void LostFocus() override;

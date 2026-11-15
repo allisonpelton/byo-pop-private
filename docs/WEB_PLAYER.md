@@ -8,8 +8,8 @@ opens the pages (`?silent=1`, the test key, the Browser pane) is in CLAUDE.md, "
 ## The pieces
 
 For each game (`bejeweled` as the example) the build writes `bejeweled.html` (`web/shell.html` with the game's
-`web/page.*`), `bejeweled.js` (Emscripten's loader, `Module`, with `web/modpanel.js` appended; readable with
-`BUILD_TYPE=Debug tools/build.sh web`) and `bejeweled.wasm` (the game with `framework/`, `platform/` and SDL2). The
+`web/page.*`, then `web/modpanel.js` inline before the game's script), `bejeweled.js` (Emscripten's loader,
+`Module`; readable with `BUILD_TYPE=Debug tools/build.sh web`) and `bejeweled.wasm` (the game with `framework/`, `platform/` and SDL2). The
 player's game files are copied into this browser's storage, never uploaded and never part of the build. A new site
 script in `web/` goes into `BYOPOP_WEB_SHARED_JS` (every page) or `BYOPOP_WEB_INDEX_JS` (the listing page) in
 `cmake/ByopopWeb.cmake`.
@@ -20,7 +20,13 @@ The page loads `<game>.js`, which compiles the wasm while `main()` waits (`INVOK
 IndexedDB at its persist folder and copies it into memory (`game/`, `userdata/`, `mods/`, `replays/`), first putting
 back saves that reached only the localStorage backup (`byopop_userdata_restore`). A Web Lock (`PAGE.lock`) lets one tab
 run a game. The fixes mod is put in place, the terms are asked, and without the game's files the import card copies
-only what `page.js` names, by the rules in `web/gameimport.js` (a pak named in `paks` is unpacked). Play calls `main()`
+only what `page.js` names, by the rules in `web/gameimport.js` (a pak named in `paks` is unpacked). The exe of a game
+that `web/exetrim.js` lists is stored without its code sections, and a launcher's inner image alone, as the port reads
+only texts and tables from it (about 32 MB down to 7 MB over the listed games; `tools/exetrimtest.js` checks every table
+address reads the same; a game stored before keeps its whole exe until it is imported again). Files no port opens stay
+out too, by `NEVER_OPENED` in `web/gameimport.js`: AstroPop's and Dynomite's `sounds/cached_*.wav`, the originals'
+decoded copies of their Ogg sounds (15.4 MB of the Steam copies). `tools/web/unreferenced.py` lists every stored file
+nothing names, as a list to check by hand: names the code builds keep most of the rest of its 20.5 MB in use. Play calls `main()`
 with `-gamedir=/persist/game -userdir=... -modsdir=...`, plus `-gameseed=N` for `?seed=N`, `-placeholders` for
 `?placeholders=1` and `-nomods` for "Play without mods"; the game runs one frame per animation frame. Saves go to
 IndexedDB as they happen, with a small backup in localStorage, because a closing tab cannot wait for IndexedDB.
@@ -53,8 +59,11 @@ own panels, each `<aside class="panel" data-button="Name">`). IDBFS names a game
 (Bejeweled `/persist`, Big Money `/bmpersist`), so a folder and lock never change once players have saves there; a new
 game takes its own. `byopop_web_game(<target> TITLE "..." COPYRIGHT "..." [LICENSES <name>...])`, called from the
 game's `CMakeLists.txt`, fills the shell's `byopop:game-js`, `byopop:game-css` and `byopop:game-panels` markers and
-`@BYOPOP_TITLE@`; `byopop_web_shell()` adds the footer, the terms and the styles and writes `<game>-shell.html` (emcc's
-`--shell-file`) and `build/web/<game>-copyright.html`.
+`@BYOPOP_TITLE@`; `byopop_web_shell()` adds the footer, the terms and the styles and writes `<game>-shell.html` and
+`build/web/<game>-copyright.html`. The page is written apart from the game's link (`cmake/ByopopWebPage.cmake`, the
+`<game>_page` target): its `{{{ SCRIPT }}}` line becomes `web/modpanel.js` inline, then the game's script as emcc
+writes it, and the page is minified as emcc minifies one. So an edit to a page, to `web/shell.html` or to
+`web/modpanel.js` rebuilds every page in seconds and relinks no game.
 
 **Names.** Every name the site shows for a game is its `TITLE` (or its row in `BYOPOP_WEB_UPCOMING`), never with
 "Deluxe" (the user, 2026-11-04: "Let's not use the name Deluxe anywhere in names on the site"). "Deluxe" stays only
@@ -80,7 +89,10 @@ user's uploaded games so that they can select one to use across the whole site (
 `web/cursors.js` (checked by `tools/cursorstest.js`) a started game's page takes its cursors with
 `byopop_cursor_set_copy()` into `byopop-cursors`; the choice is `byopop-site-cursor`. A game's own cursor wins on its
 page. A kind may carry animation `frames`, which the page plays itself (Banana Bugs will need them,
-`docs/POPCAP_GAMES_SURVEY.md`).
+`docs/POPCAP_GAMES_SURVEY.md`). Water Bugs and Cosmic Bugs draw their own pointer, the "pointer" animation of their
+files, so their pages read it from those files instead (`web/flicursor.js`, `ByopopFlicCursor`): every frame of the FLIC
+with its mask and the shadow the game draws, the hot spot at the top left, and the frame time from the animation file
+(500 ms and 300 ms, 10 frames each). Ning Po's pointer sprite is empty, so it has no set.
 
 ### The terms
 
@@ -220,7 +232,64 @@ has no skin. Its controls are drawn as the 1995 desktop drew them (the user, 202
 un-95"), in our own SVG.
 
 **Windows.** A page is a desktop (`ByopopSkin.desk`) whose game, chat and panels are windows, added with
-`ByopopSkin.desk.add(element, {id, title, ...})`. The desktop never scrolls, and F6 moves between its panes. The game
+`ByopopSkin.desk.add(element, {id, title, ...})`. The desktop never scrolls, and F6 moves between its panes. Alt+\`
+switches windows as Windows' Alt+Tab did, since the browser keeps Alt+Tab (the user, 2026-11-13): held down, each \`
+steps through the open windows, the one used last first, in a box of their desktop icons with the chosen one's title
+(Shift+\` steps back, Escape lets go), and letting go of Alt brings that window to the front, restored if it was
+minimized; a quick Alt+\` goes back to the window before. From a window's page on the listing's desktop the keys go to
+that desktop (`ByopopApps.altTab`), so the game's canvas never sees them. Alt+4 closes the window in front, standing in
+for the Alt+F4 the browser keeps (the user, 2026-11-14), and with no window open opens the Pop menu on Shut Down; it goes
+to the desktop the same way (`ByopopApps.closeFront`), and leaves AltGr+4 (Ctrl+Alt on Windows) and text fields alone,
+where it types a currency or cent sign. On Linux, Chrome and Firefox switch to the fourth tab on Alt+4; the page calls
+`preventDefault`, which has not been tried there, so the switch may still happen. **Shut Down** (the Pop menu's last
+entry) closes every window as its Close does, a game's with its saves, and covers the page with a wordless black last
+screen until a key or a click brings the desktop back with its windows closed; on a game's own page the game closes and the
+listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the desktop around it shuts down.
+
+**As in 1995** (the user, 2026-11-14, by the coordinator's list):
+- **Moving and sizing:** a window is moved and sized by a dotted outline that inverts what it crosses, and goes there when
+  let go (`showGhost`, `settle`).
+- **The control menu:** every title bar has its icon, which opens it, and a right click on the title bar or the window's
+  task bar button opens it too. It holds Restore, Move, Size, Minimize, Maximize and Close, those that do nothing greyed.
+  Move and Size work from the arrow keys (Size's first arrow picks the edge), with Enter or a click to place and Escape to
+  cancel (`keyMove`).
+- **Minimize and restore:** a caption flies between the window and its task bar button (`fly`). There is none with
+  reduced motion, and a timer shows the window even where no animation runs.
+- **The icons:** they stand in columns until one is dragged, then each stays where it was put (`byopop-desk-icons`, by
+  page). A drag on the empty desktop selects them with a dotted rectangle, and a drag of a selected icon moves them all.
+- **The empty desktop's right click:** Arrange Icons (back to the columns), Line up Icons (each to the nearest free
+  place) and Properties (Settings' Appearance).
+- **The task bar's right click:** Cascade, Tile Horizontally, Tile Vertically and Minimize All Windows, which becomes
+  Undo Minimize All.
+- **Tooltips:** drawn as 1995's, a pale yellow box with a black border half a second after the pointer rests. The title
+  is taken off while the box may show, so the browser draws none, and an element named only by it keeps that name.
+- **The tray's speaker:** it opens a Volume slider with Mute (`ByopopVolume`: `byopop-master-volume`,
+  `byopop-master-mute`). Everything the site plays follows it, each sound at its own level times this one: the games,
+  through a gain the game's page puts after its output node (`siteVolume` in `web/shell.html`, which the hush in
+  `web/deskapps.js` then takes off the speakers), plus Music, Sounds and a theme's sounds.
+- **The Recycle Bin's icon,** on the listing: it opens All games' bin, and a game's cap dropped on it asks there to forget
+  that game's files. It is full while the bin holds the names of the games forgotten (`byopop-bin`), until Empty Recycle
+  Bin, from its menu, clears them.
+- **The theme's events** now include start, exit, empty and error. Start comes at the first press or key of the browser's
+  session on the listing, since a page may play nothing before that, and again when Shut Down's last screen goes. Exit is
+  Shut Down, and empty is Empty Recycle Bin. Error is a game stopped by an error and an import refused, on either page.
+- **The player's own event sounds:** Settings' Sound section on the listing lists the events, each with the file kept for
+  it, Browse, a test press and Remove, plus Add files and a drop for many at once. A file goes to its event by its name, as
+  a sound scheme's files were named (`OWN_NAMES` in `web/themes.js`: "Windows Minimize.wav", recycle.wav, tada.wav), and
+  a name that matches none is listed for Browse. The files stay in this browser, in IndexedDB (`byopop-own-sounds`, at
+  most 4 MB each), and nothing is uploaded or shipped. An event with its own sound plays it whatever the theme; every open
+  page reads them again when `byopop-own-sounds-at` changes.
+- **Copying a game's files** shows the file-copy dialog (`ByopopCopy`), on either page's import: our own drawing of a
+  page flying between two folders, the file being copied, its size and a progress bar. A game page inside the listing
+  shows it on the listing's desktop. Without the desktop the pages' own messages say how the copy goes.
+- **The readme:** the import keeps the game's own `readme.html` or `readme.txt` from beside its exe, and the game window's
+  Help menu, named by that file, opens it as text in a text window. A copy imported before this has none until it is
+  imported again. The address does not keep the window.
+- **A game stopped by an error** turns its window blue (`blueScreen` in `web/shell.html`), with only the engine's own words
+  for the error and the WebAssembly offset of the innermost frame of the game's code. The stopped card comes at the next key
+  or click. A game that stops before its screen is made shows the card at once.
+
+The game
 window's menu bar spreads the game's commands over Game, View, Options and Help (the user, 2026-11-09: "don't hide
 everything under "Game""), and no menu shows Alt+F4 or Alt+Space, which the browser keeps. The game is always at a
 whole multiple of its size in device pixels (`sizeStage`); the window takes the status bar's height rounded up
@@ -495,18 +564,46 @@ never with invented titles. A game's session sets these from its code:
   "Danger 2": Title Case, one place, at most 20 characters, several tunes of one place numbered in the order the game
   reaches them; the user, 2026-11-11: "Rip style please!").
 - `unused`: the tunes the game's code never plays.
+- `order`: the list's order, the tunes as a player hears them from launch through a game to its end, modes, levels and
+  books as the game reaches them, unused tunes last (the user, 2026-11-13: "more closely follow what you might hear instead
+  of having the parts in order, and put unused tracks at the end").
 - `cuts` and `chains`: tracks split and grouped as the game plays them (the user, 2026-11-11: "Group and split").
   `cuts` splits a subsong where the game's code starts a different tune partway through it, the second piece being
-  `"<file>#<n>@<order>"`; `chains` makes one track of parts the game only ever plays as jumps inside one tune.
+  `"<file>#<n>@<order>"`; `chains` makes one track of parts the game only ever plays as jumps inside one tune. `starts`
+  is for an order the game also starts a subsong at while the tune before plays on through it in a long game (no seam:
+  Bejeweled 2's Action Mode starts at order 122, which Classic Mode reaches after about 18 minutes): the piece from there
+  is a track, and the subsong stays whole (the user's seam review, 2026-11-12: "I hear no seam").
 - `level`: "Music levels".
 
 **The decoder** is the games' own two module renderers, built for the web as `openmpt.js` and `openmpt.wasm` (target
 `byopop_openmpt`) and picked as `Platform::Mixer` picks them, so a tune sounds as it does in its game.
 
 **The player's rules**, from the user: long silent endings are skipped (the user's notes, 2026-11-10: "Some of the
-short tracks have a bunch of dead air at the end, where the tracker slows to a crawl"; `trimEnd`); only the playlist
+short tracks have a bunch of dead air at the end, where the tracker slows to a crawl"; `trimEnd`), the first piece of a cut subsong too (Twist's Game Over: a 3.5-second jingle,
+then the module's own 13 seconds of silence before the cut); only the playlist
 scrolls (2026-11-09); closing the window stops the music and frees what it held (2026-11-09;
 `ByopopMusicPanel.held()` tells a test what is still held).
+
+**Nothing drawn unseen** (the user, 2026-11-15: lower the web builds' processor time; the site's animated parts do no work
+while nobody can see them). Music's views and the Splits window's running timer draw a frame at a time only while their
+window is on the screen: closed, minimized, scrolled out of view or in a hidden tab, their loop stops (a tune plays on, a
+run's time goes on), and shown again (an IntersectionObserver on the window, and the tab's visibility) they draw from the
+current state at once. A tune playing in a minimized Music window then costs only its decoding.
+
+**Unused patterns** (the user, 2026-11-15: "Add unused tracker patterns to their own section in the music player (since
+they're not compositions unto themselves, not listed alongside their game, and don't start playing them while going down
+through the list, only when one is selected)"; part of a game's definition of done) are a module's patterns that no order
+of any subsong plays (markers skipped), as the decoder reads them (`bm_patterns`, `bm_order_pattern`), leaving out one
+with no notes (`bm_pattern_notes`). They come from the scan for every game at once, with no field in `soundtracks.js`,
+and are listed in their own section after every game's tunes, never under their game: each entry is "<file>, pattern
+<n>" with its game beside it. Playing on and next/previous wrap at the last real tune and never enter the section; a
+pattern plays only when picked, once, and then stops (next/previous step among the patterns while one is chosen). The
+decoder's `bm_solo` plays one alone from its first row and reports it as the module's only order, so the tracker, piano
+roll and score read it as any tune: libopenmpt's order list is put aside for one naming the pattern
+(`web/music/openmpt_solo.cpp`, which reaches the module's sound file because libopenmpt's C interface cannot change that
+list), and libxmp-lite's first order plays it instead, ending where play leaves that order or goes back to an earlier row.
+A pattern's own commands still count (Bejeweled's Network pattern 10 sets speed 10 on its first row and lasts 33 seconds).
+A game whose code starts a module at a pattern outside its order lists would say so in `soundtracks.js`; none does yet.
 
 **The views**, cycled by a click on the display (spectrum, tracker, piano roll, score, nothing), follow the user's
 notes:
@@ -567,6 +664,16 @@ sequences that sound off in game"): a cascade of each depth, a level up, the gam
 log (`BYOPOP_SOUNDLOG`) of a game the port's own bot played (`tools/playbymove`), made into a preset by
 `tools/soundpreset.py <log> <first update> <last update>` and named rip style, as Music's places are.
 
+**Other games' sounds.** A when-line ends with what the user's reviews found of the sound in other games
+(`tools/web/soundcompare.py`, its decisions in `testnotes/`). "Also in *game* as *name*" is the same recording,
+noted where one side is unused or the other game is not ported (`tools/soundmatch.py`). "Resembles *game*'s *name*" is
+a near copy the user heard as similar, with how this one differs. "Made from the same sound as …" is a pair the user
+accepted from `tools/soundbased.py`'s list (2026-11-13), with what sets the two apart: pitched, sped up or slowed,
+layered with another sound, filtered, a tail cut or added. Its direction is the detector's, which of the two holds more
+of the other, not which game came first (in 23 pairs Bejeweled 3's sound is the one held in Bejeweled 2's), so the words are
+"made from the same sound", never "based on". A sound with three or more such partners names them in one sentence and
+says only what they differ in. A decision on a pair stands for every identical copy of either side.
+
 ### The splits timer
 
 The Splits window (`web/splits.js`) stands in for LiveSplit (the user: "a LiveSplit stand-in on the site so that people
@@ -578,7 +685,8 @@ none.
 **Auto splitting** (the user, 2026-11-11: "Add Bejeweled autosplitter to the site. Also, let's build in autosplitters to
 every port of a game with a leaderboard on speedrun.com"). `web/autosplit.js` holds each game's auto splitter: the block
 the port publishes, how to read it and the decisions. With Options, Auto Splitter on (the default), the window polls a game
-every 10 ms, as LiveSplit does. That is the game window in front while the timer is idle, and the run's own window while it
+every 10 ms, as LiveSplit does, while a game window is open (with none, every half second, so the page is not woken a
+hundred times a second for nothing; the user, 2026-11-15). That is the game window in front while the timer is idle, and the run's own window while it
 runs. It does so only when the game has an auto splitter and the splits' game name is the game's speedrun.com name. Its
 decisions go through the timer's own Start, Split and Reset, so an automatic reset asks about new bests as the player's does.
 The timer is idle again before that question is asked, and the answer applies to the attempt that was reset: a reset for a
@@ -641,21 +749,28 @@ off and with it on.
 
 **The rules table** is in `web/autosplit.js`, one entry for each game:
 
-- `name`: the game's name on speedrun.com, which the splits' game name must match;
+- `name`: the game's name on speedrun.com, which the splits' game name must match (the game's own title where it has no
+  board of its own: Rocket Mania Deluxe);
 - `id`: the block's game id;
 - `modes` and `skills`: the names behind the block's numbers;
-- `deaths`: what each of the four death kinds is (each one a reset setting, as in Bejeweled);
-- `templates`: one per speedrun.com category and subcategory, each with `mode` and `skill` (none for any, or a
+- `deaths`: what each of the four death kinds is (each one a reset setting, as in Bejeweled; one with `goesOn` is no end of the
+  run, as Venice's sunk Flood building, played again on the same board);
+- `templates`: one per speedrun.com category and subcategory (the site's own where there is no board), each with `mode` and `skill` (none for any, or a
   list of the allowed ones), its segments, and `end`, how the run finishes:
   - `levels N` (the Nth level clear);
   - `score N` (the score on screen reaches N);
-  - `won` (`wins` rises);
+  - `won` (`wins` rises on the run's board): the run's end whatever segment it is in, the segments left split with it, and
+    seen even when the board has gone in the same poll (Dynomite's tutorial wins as it closes);
   - `lost` (a game over; for a death% category), or `lost N` (a game over while the game's progress is at most N; any
     other game over resets the run as usual);
   - `progress N` (the game's own figure reaches N);
 
   and, where a category's splits are not its levels, `by: "progress"`: each segment but the last splits when the game's
   progress reaches its number (Mummy Maze's treasures).
+  `targets: [N, ...]` splits each segment but the last at that many level clears, for a game of many levels (Cosmic
+  Bugs' 577 boards in 13 segments). `limit: {field, max, setting}` resets the run when a block field passes `max` (AstroPop's SUPA Weapon count, in No SUPA
+  Weapon). `games: N` makes a run of N games, a segment each, each ending at the end's progress; between them the run
+  waits, and goes on with the next new game of a skill it hasn't had (AstroPop's 100%, one game a pilot).
 
 One decider reads every entry. It starts at a GO in the template's mode and skill, but never on a resumed save or a
 replay. It splits at each level clear, or when the score reaches a segment's number (Bejeweled's naming rules: "Level 3",
@@ -676,15 +791,55 @@ level-complete page. Its progress is the treasures collected, which in Classic r
 Pyramid (Classic) is 15 chamber splits and the end at `progress 1`, the spawn in the next pyramid. 100% Run (Adventure)
 splits at each treasure, a template with `by: "progress"` (each segment's split is the progress reaching its number, not
 a level clear), and ends `won`, at the last pyramid's chest. Being caught is no game over; Abandon Hope is the only one. Rocket
-Mania (speedrun.com: Rocket Mania!): Level 10, 20 and 30 on each difficulty, from "Get Ready!" (the first update of a new
-game) to the last level's "Level Up!"; a split at each Level Up. The board doesn't say which mode it means: Arcade and
-Classic both have levels and Strategy never ends one, so the templates' `mode` is the list [Arcade, Classic]. Its losses
+Mania Deluxe has no board of its own (the one named Rocket Mania! is for a Java edition), so its row is the site's own
+categories, named after the game: Level 10, 20 and 30 on each difficulty, from "Get Ready!" (the first update of a new
+game) to the last level's "Level Up!"; a split at each Level Up. Arcade and Classic both have levels and Strategy never ends
+one, so the templates' `mode` is the list [Arcade, Classic]. Its losses
 (the night running out, the top line filling, no matches left) count at the game-over screen, since a launch still burning
 can clear the level in Classic. It has no win. Alchemy (speedrun.com: Alchemy Deluxe): 1 Board and 7 Boards in
 Strategic or Time Trial, from the click on Start New Game to the board's result screen (the statistics panel), with any
 skill, and Tutorial%, which ends `won` at the tutorial's last step appearing: that is the code's one moment for done, and
 the button under it only leaves. Its deaths are the forge overflowing (one kind in each mode), the Time Trial forge
-staying full, and leaving a game mid-board. Big Money has no board, so its row is its native
+staying full, and leaving a game mid-board. AstroPop (speedrun.com: Astropop Deluxe): Any% and Any% (No SUPA Weapon)
+for each pilot (the skill), a new Classic game from level 1 to level 32's "Level Up". Its GO is the new game's first
+update: the board's start click comes before the pilot is chosen, which the block can't see. Its progress is the level
+just cleared, since a fast warp gate skips levels, so the splits are `by: "progress"`. No SUPA Weapon has a `limit`: the
+game's own first word (`own0`, block 0x80) counts the weapon's uses, and the first resets the run (`resetSupa`). 100% is
+the four pilots, each a new game, and a template with `games: 4`: a segment a game, each ending at that game's `progress
+32`. Between games the run waits: the finished game's END GAME resets nothing, and the next new game with a pilot the run
+hasn't had carries it on. Survival has no timer. Typer Shark (speedrun.com: Typer Shark Deluxe): a block board is a
+whole game, its GO the first update after the difficulty or the Abyss is chosen. Adventure Mode, for each difficulty,
+ends on returning to the map after level 11 is beaten. Its progress is the levels beaten and left, rising as the map
+comes back, so the splits are `by: "progress"`; a level's own clear comes earlier, before the player leaves it. Abyss
+Mode ends `lost`, at its game over (the screen's time is the game's, in its own first word, which the site doesn't use
+yet), and Death% at an adventure's first game over. "End this game" in the options is no game over: the game goes
+away, a quit. Cosmic Bugs (speedrun.com: Cosmic Bugs; its board's 2005 PC game is Retro64's, the one PopCap
+published in 2007): Any%, from Play on the instructions page, the screen a new player's Start Game shows, to the
+mission-complete screen, its win. A continued game or a chosen board skips that page and starts nothing. A mission is
+577 boards, so the template has `targets`: the level clears at which each segment splits, here the first board and the
+last of each of the 12 steps of 48 boards, and the end at the win. Dynomite (speedrun.com: Dynomite! Deluxe): a board is
+a whole game. Endless Puzzle, for each amount (1K to 50K) and difficulty, runs from the difficulty's click to the score on
+screen reaching the amount, its segments the amounts up to it. Time Trial, for each difficulty, runs from the first egg
+fired (its GO, after the shot and not at the click) to the board cleared, its win; the board times it in game time, which
+is the game's updates from that GO. Fossil Challenge, Strategic or Panic, splits at each fossil found (the third fragment
+off the bottom) and ends at the fifteenth, its win. Tutorial splits at each mode's part and ends at the main menu with
+every part done; that win comes in the update the tutorial closes. The board's Easy, Normal and Hard are the game's Normal,
+Hard and Expert. Leaving a game is a game over of its own kind. Venice Deluxe (speedrun.com: Venice): a board is one pass through a mode, from its click on the mode menu to the main menu.
+Journey and Flood run from the click away from the world map before building 1 in a new game (the tutorial is not timed),
+split at each building cleared and end at the map's CONGRATULATIONS! after building 71, its win; a Journey game out of
+tries resets, a sunk Flood building is played again and the run goes on. Trick Shots runs from the click on the mode to
+the win scene with every trick shot made. A continued game starts nothing. The board's per-level Journey and Flood
+categories have no template. Bejeweled Twist: Level 10 in Classic and in Zen run from the start button's click to level
+10's "Level Complete" picture; Unlock% from a new Classic game to the fourth mode opening. Enigma% and Challenge 100% are
+runs over many challenges, a board each (`across` in the template): from the first challenge's click to the win of
+Voltage 1 or Enigma 7, read from the block's own words (the challenge's category and number). A failed challenge, tried
+again, resets nothing, and each earlier win splits while segments are left. The per-level 100% category has no template.
+Bejeweled 2 (B2DX): Classic, Action and Hyper to a level or a score, and Puzzle to its win or to the puzzles solved on the
+run's board (25% at 20, All Puzzles at 80; not the profile's count, which an opened galaxy starts at 80), each from the
+board's GO, after the portal and How to Play. 4 Square and Switcharoo run over many boards (`ownLevels` in the template)
+and count the levels the block keeps per mode: the modes with four each, and Action's and Endless's together. Endless's
+"N Gem", Hyper's Max Score and Full Loop, and the per-level 100% have no template. Its block logs replay in the test.
+Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
 scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
 speedrun.com categories and its session's answer on where in its code GO, a level clear, a game over and a win happen.
@@ -749,7 +904,7 @@ never colour alone; every animation stops under `prefers-reduced-motion: reduce`
 
 **How the game gets keys, and how to leave it.** The shell sets `SDL_EMSCRIPTEN_KEYBOARD_ELEMENT=#canvas`, so the game
 gets keys only while its canvas has the focus, and then every key, Tab included, except F11; **F6** and Shift+F6 move
-the focus out, and the game never sees them. Moving the focus to a control on the page is not the game losing the
+the focus out, and the game never sees them, nor Alt+\` (the window switch). Moving the focus to a control on the page is not the game losing the
 focus: SDL and the framework (`EmscriptenFocusCallback`) take that from the window's `focus` and `blur` events.
 
 **The checker** is `tools/a11ycheck.js` (`unit-web`), which reads the built pages with no browser; markup that scripts
@@ -832,6 +987,19 @@ menu shows and hides it (the user, 2026-11-11: "it's difficult to show/hide the 
 game's share of the main thread is never labelled as the computer's CPU use, and the panel never asks for a WebGL
 context before the game has made its own, since that would take the canvas from the game.
 
+## The sound panel
+
+The setting `soundPanel` (`web/soundpanel.js`, off by default) shows the sounds the game plays, beside the game at the
+right of the performance panel, and the game window's View menu shows and hides it (the user, 2026-11-13: "Add a
+toggleable menu that appears beside the game like the perf panel that shows what sounds are being played in the game and
+at what volume and pitch"). Like the performance panel it only reads. With it off no timer runs and the mixer keeps no
+log; with it on, ten times a second it calls `byopop_sounds_view` (`Mixer::WebVoicesView` in `platform/Audio.cpp`, web
+builds only), which gives the voices playing and the ones started since the last call, so a sound shorter than a tenth
+of a second still gets its row. A row is one voice: the sound's file name, its volume and pan as the game set them
+(before the effects volume, which the header gives), and its pitch as a rate and in semitones; a looping sound is marked,
+and a row stays greyed for two seconds after its voice ends. A game built before the call existed says it needs a
+rebuild.
+
 ## View, controls and play settings
 
 These are site settings, each off or at the game's own behaviour by default. They act on the page around the game: what
@@ -852,7 +1020,10 @@ dither. Both are drawn by a WebGL canvas over the game canvas, filled in the fra
 The Controls panel (`web/controls.js`) lists the game's controls in our own short words, from `web/controldata.js`,
 keyed by game id, whose header gives an entry's form; only keys the game's own code handles are listed. The same table
 drives key remapping (`byopop-keys`), the gamepad (`gamepad`, read once a frame) and the on-screen keys (`touchKeys`);
-`inputDisplay` shows the keys and mouse buttons the game is sent.
+`inputDisplay` shows the keys and mouse buttons the game is sent. Where a game's entry starts with `{uses}`, which names the
+mouse buttons its own code handles and whether it takes typed letters or any key, the display shows only that input and
+its listed keys, so the framework's own keys and the buttons the game ignores drop out; a game without one shows
+everything.
 
 ### Phones
 

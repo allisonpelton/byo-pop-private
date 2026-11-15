@@ -76,7 +76,7 @@ var ByopopApps = (function () {
   // ---- the address ----
   function state() {
     var act = desk.active(), a = act && byId(act);
-    return { d95: true, open: apps.map(function (x) { return x.key; }), active: a ? a.key : null };
+    return { d95: true, open: apps.filter(function (x) { return !x.note; }).map(function (x) { return x.key; }), active: a && !a.note ? a.key : null };
   }
   function write(push) {
     if (restoring) return;
@@ -112,12 +112,13 @@ var ByopopApps = (function () {
   }
 
   // ---- a window ----
-  function make(key, kind) {
+  // note: { title, text }, a text window of text the page gave (a game's readme), which the address does not keep
+  function make(key, kind, note) {
     var id = "app-" + (++seq), g = kind === "game" ? games()[pathOf(key)] : null;
-    var app = { id: id, key: key, kind: kind, frame: null, el: null, game: g ? g.id : "" };
+    var app = { id: id, key: key, kind: kind, frame: null, el: null, game: g ? g.id : "", note: !!note };
     var el = document.createElement("section");
     el.className = "d95-app d95-app-" + kind;
-    var title = g ? g.title : pathOf(key).split("/").filter(Boolean).pop() || key;
+    var title = note ? note.title : g ? g.title : pathOf(key).split("/").filter(Boolean).pop() || key;
     app.title = title;
     // a game's menu bar, as a Windows 95 program's (the user, 2026-11-09: "don't hide everything under "Game""): Game, View,
     // Options and Help (barMenus), each with its access key, the first letter underlined (Alt and the letter, menuKey)
@@ -142,7 +143,8 @@ var ByopopApps = (function () {
       var pre = document.createElement("pre"); pre.className = "d95-app-text"; pre.tabIndex = 0;
       pre.setAttribute("aria-label", title);
       client.appendChild(pre);
-      fetch(new URL(key, SITE).href).then(function (r) { return r.ok ? r.text() : Promise.reject(new Error(r.status)); })
+      if (note) pre.textContent = note.text;
+      else fetch(new URL(key, SITE).href).then(function (r) { return r.ok ? r.text() : Promise.reject(new Error(r.status)); })
         .then(function (t) { pre.textContent = t; }, function () { pre.textContent = T("skin.apps.unreadable"); });
       app.text = pre;
     } else {
@@ -207,6 +209,10 @@ var ByopopApps = (function () {
     var help = [], terms = null;
     try { terms = w.document.querySelector("a[href$='-copyright.html']"); } catch (e) {}
     if (terms) help.push({ label: T("skin.apps.terms"), fn: function () { open(terms.href, "push"); } });
+    // the game's own readme, in a text window (the user, 2026-11-14, by the coordinator's list), named by its file
+    var readme = null;
+    try { readme = w.ByopopEmbed.readme ? w.ByopopEmbed.readme() : null; } catch (e) {}
+    if (readme) help.push({ label: readme.name, fn: function () { openNote("readme:" + app.key, readme.name, readme.text); } });
     var about = null;
     try { about = w.ByopopEmbed.about(); } catch (e) {}
     if (about) {
@@ -296,6 +302,17 @@ var ByopopApps = (function () {
     write(false);
   }
 
+  // a text window of text a page gave (a game's readme): one for each key, brought to the front when it is open already
+  function openNote(key, title, text) {
+    if (!on()) return false;
+    desk.closeMenus();
+    var app = byKey(key) || make(key, "txt", { title: title, text: text });
+    var was = restoring;
+    restoring = true;
+    try { desk.openWin(app.id); } finally { restoring = was; }
+    return true;
+  }
+
   // ---- opening ----
   // how: "push" (the player opened it: a new address), "replace" (this address), "none" (Back or Forward is putting it back)
   function open(href, how) {
@@ -327,6 +344,11 @@ var ByopopApps = (function () {
   // ---- what the pages in the windows tell the desktop ----
   function activated(win) { var a = byWin(win); if (a && desk.active() !== a.id) desk.activate(a.id); }
   function f6(win, back) { var a = byWin(win); if (a) desk.f6From(a.id, back); }
+  // Alt+` from a window's page (web/skins.js): the switch between the desktop's windows
+  function altTab(win, how) { if (desk.altTab) desk.altTab(how); }
+  // Alt+4 and Shut Down from a window's page (web/skins.js): the desktop's front window closes, or the desktop shuts down
+  function closeFront(win) { if (desk.closeFront) desk.closeFront(); }
+  function shutDown(win) { if (desk.shutDown) desk.shutDown(); }
   function closed(win) { var a = byWin(win); if (a) drop(a); }
   function title(win, text) { var a = byWin(win); if (a && text) { desk.setTitle(a.id, text); if (a.frame) a.frame.title = text; } }
   // the largest size a window's page can have on the desktop, above the task bar (the scales its View menu offers)
@@ -447,7 +469,7 @@ var ByopopApps = (function () {
       if (a.kind !== "game") return;
       var want = a !== one;
       try {
-        var w = inner(a), out = w && w.Module && w.Module.byopopAudio, node = out && out.node;
+        var w = inner(a), out = w && w.Module && w.Module.byopopAudio, node = out && (out.master || out.node);
         if (!node) return;
         if (want && a.hushedNode !== node) { node.disconnect(node.context.destination); a.hushedNode = node; }
         else if (!want && a.hushedNode) { if (a.hushedNode === node) node.connect(node.context.destination); a.hushedNode = null; }
@@ -455,12 +477,14 @@ var ByopopApps = (function () {
     });
   }
   window.addEventListener("byopop-desk-active", function () { setTimeout(hush, 0); });
+  // a game's page put its sound through its own gain (the site's volume, web/shell.html): heard or hushed again by that
+  function rehush() { hush(); }
   window.addEventListener("byopop-music-state", hush);
   // (a game's output is made when it starts, some time after its window opens)
   setInterval(function () { if (gameCount()) hush(); }, 1000);
   function hushed(win) { var a = byWin(win); return !!(a && a.hushedNode); }
 
-  return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, activated: activated, f6: f6, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
+  return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, activated: activated, f6: f6, altTab: altTab, closeFront: closeFront, shutDown: shutDown, rehush: rehush, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
     menuKey: menuKey, fullScreen: function (win) { var a = byWin(win); if (a) fullScreen(a); },
     count: function () { return apps.length; },
     // the address back to the root (a link to #settings and the like, web/index.html)

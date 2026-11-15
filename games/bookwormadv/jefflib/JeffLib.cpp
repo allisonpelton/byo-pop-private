@@ -99,6 +99,7 @@ static std::string FindDirectory(const std::string& theRoot, const std::string& 
 	return aPath;
 }
 
+// 0x6aa500, 0x6aa740 and 0x6ab720 (the sort of the names, with its introsort and insertion sort) are the std::sort here
 std::vector<std::string> GetFilesInDirectory(const std::string& thePattern)
 {
 	std::string aPattern = thePattern;

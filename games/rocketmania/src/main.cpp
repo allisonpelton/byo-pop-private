@@ -1,7 +1,7 @@
 // Entry point for the Rocket Mania Deluxe port (native and Emscripten).
 //
 // Arguments (all optional):
-//   -gamedir=<dir>   folder containing the game's images/, data/, sounds/, music/ and RocketMania.exe (read for the
+//   -gamedir=<dir>   folder containing the game's images/, data/, sounds/, music/, properties/ and RocketMania.exe (read for the
 //                    game's texts, never run)
 //   -userdir=<dir>   writable folder for the saved game, high scores and registry.ini
 //   -modsdir=<dir>   folder containing data mods (one sub-folder per mod)
@@ -10,10 +10,14 @@
 // framework's test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
 #include "RocketApp.h"
+#ifndef BYOPOP_DERIVED
 #include "platform/ModManager.h"
+#endif
 #include "platform/SaveImport.h"
 #include "platform/VFS.h"
+#ifndef BYOPOP_DERIVED
 #include "platform/WebPersist.h"
+#endif
 
 #include <SDL.h>
 #include <cstdio>
@@ -36,6 +40,7 @@ static std::string ArgValue(int argc, char** argv, const char* theKey)
 	}
 	return "";
 }
+#ifndef BYOPOP_DERIVED
 
 static bool HasFlag(int argc, char** argv, const char* theFlag)
 {
@@ -49,6 +54,7 @@ static bool HasFlag(int argc, char** argv, const char* theFlag)
 	}
 	return false;
 }
+#endif
 
 // The game's texts are read from the original's RocketMania.exe (GameText.h), so it is part of the game folder
 static bool LooksLikeGameDir(const std::string& theDir)
@@ -94,7 +100,9 @@ int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");
 	std::string userDir = ArgValue(argc, argv, "userdir");
+#ifndef BYOPOP_DERIVED
 	std::string modsDir = ArgValue(argc, argv, "modsdir");
+#endif
 
 #ifdef __EMSCRIPTEN__
 	// port (web): its page (web/shell.html, games/rocketmania/web/page.js) mounts its own IndexedDB-backed folder, so
@@ -116,8 +124,10 @@ int main(int argc, char** argv)
 		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
 			userDir.pop_back();
 	}
+#ifndef BYOPOP_DERIVED
 	if (modsDir.empty())
 		modsDir = ExeDir() + "/mods-rocketmania";
+#endif
 #endif
 
 #ifndef __EMSCRIPTEN__
@@ -133,8 +143,8 @@ int main(int argc, char** argv)
 	if (gameDir.empty() || !LooksLikeGameDir(gameDir))
 	{
 		std::string msg = "Could not find the Rocket Mania Deluxe game files.\n\n"
-			"Run with -gamedir=\"<your Rocket Mania Deluxe folder>\" or copy the images, data, sounds and music "
-			"folders and the original RocketMania.exe (the game's texts are read from it) into an assets/rocketmania "
+			"Run with -gamedir=\"<your Rocket Mania Deluxe folder>\" or copy the images, data, sounds, music "
+			"and properties folders and the original RocketMania.exe (the game's texts are read from it) into an assets/rocketmania "
 			"folder next to the executable.";
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Rocket Mania Deluxe", msg.c_str(), nullptr);
 		SDL_Log("%s", msg.c_str());
@@ -142,15 +152,21 @@ int main(int argc, char** argv)
 	}
 
 	Platform::MakeDirs(userDir);
+#ifndef BYOPOP_DERIVED
 	// Web: saves written as the page was closed may only have reached localStorage
 	Platform::RestoreUserDataBackup(userDir);
 	Platform::MakeDirs(modsDir);
+#endif
 	Platform::VFS::Get().SetBaseDir(gameDir);
 	Platform::VFS::Get().SetUserDir(userDir);
+#ifndef BYOPOP_DERIVED
 	Platform::ModManager::Get().SetModsDir(modsDir);
 	if (!HasFlag(argc, argv, "nomods"))
 		Platform::ModManager::Get().Refresh();
 	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
+#else
+	SDL_Log("game: %s | user: %s", gameDir.c_str(), userDir.c_str());
+#endif
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
 	static RocketApp* anApp = new RocketApp();

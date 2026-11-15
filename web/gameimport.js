@@ -87,8 +87,20 @@ var ByopopImport = (function () {
   // The files that are copied, as {rel, read}: the game's folders (stored in lower case, as spec.gameDirs names them: the pages
   // look for them that way, and a Steam install's "Images" would never be found; the game itself finds files in any case) and its
   // files at the top, but the .sig files and spec.skip's
+  var README = /^read ?me\.(html?|txt)$/i;
+  // Files a port never opens, left out of the stored copy by game id (the user, 2026-11-13: "Let's do the first two", of the
+  // ways to store less; docs/WEB_PLAYER.md, "What happens when a game's page opens"). Only these: the static check
+  // tools/web/unreferenced.py finds about 21 MB of 381 named by nothing, but most of the rest is reached by names the code
+  // builds in ways a search cannot be sure of, so only what is checked against the port by hand goes. The 2004 framework's
+  // originals decode each Ogg sound once and write it beside it as cached_<name>.wav (docs/FRAMEWORK_2004.md, 1.3); AstroPop's
+  // and Dynomite's ports decode the Ogg itself and never ask for the copy (their GAME_NOTES and staging), so the 67 and 38 of
+  // them, 11.7 and 3.7 MB of the Steam copies, stay out. Rocket Mania's port reads its music's cached_ files, so it is not here.
+  var NEVER_OPENED = {
+    astropop: [/^sounds\/cached_[^\/]*\.wav$/i],
+    dynomite: [/^sounds\/cached_[^\/]*\.wav$/i]
+  };
   function pick(spec, entries, root, safeRel) {
-    var skip = spec.skip || [], files = spec.gameFiles || [], wanted = [];
+    var skip = (spec.skip || []).concat(NEVER_OPENED[spec.id] || []), files = spec.gameFiles || [], wanted = [];
     entries.forEach(function (e) {
       if (!under(e, root)) return;
       var rel = safeRel(e.path.substring(root.length));
@@ -96,6 +108,8 @@ var ByopopImport = (function () {
       var top = rel.split("/")[0];
       if (spec.gameDirs.indexOf(top.toLowerCase()) >= 0) wanted.push({ rel: top.toLowerCase() + rel.substring(top.length), read: e.read });
       else if (files.indexOf(rel.toLowerCase()) >= 0) wanted.push({ rel: rel, read: e.read });
+      // the game's own readme beside its exe, which the desktop's game window shows in a text window (Help, web/deskapps.js)
+      else if (README.test(rel)) wanted.push({ rel: rel.toLowerCase(), read: e.read });
     });
     return wanted;
   }
@@ -384,11 +398,12 @@ var ByopopImport = (function () {
     });
   }
   // Replaces the game folder (persist + "/game") with files [{rel, read}], reading and writing about 32 MB at a time.
-  // progress(done, total) after each file; cleared() once the old copy is gone. The files go in their order, so the caller
+  // progress(done, total) after each batch; cleared() once the old copy is gone; each(rel, bytes, done, total), if given, as each
+  // file is read (the desktop's copy dialog, ByopopCopy). The files go in their order, so the caller
   // puts last the ones the game page checks for (ordered): a copy that stops partway (the tab closed) is then not taken for the
   // game. A write that fails partway takes out what it wrote; one that fails before the old copy is gone leaves that copy.
   // Each batch writes the folder records of its own files, so a folder is not there before its files are.
-  function writeGame(persist, files, progress, cleared) {
+  function writeGame(persist, files, progress, cleared, each) {
     var game = persist + "/game", now = new Date(), range = IDBKeyRange.bound(game + "/", game + "/\uffff"), dirs = {};
     function putDirs(store, rel) {
       var parts = rel.split("/");
@@ -411,7 +426,11 @@ var ByopopImport = (function () {
           function readMore() {
             if (at >= files.length || (chunk.length > 0 && bytes >= BATCH_BYTES)) return Promise.resolve();
             var f = files[at++];
-            return f.read().then(function (data) { chunk.push({ key: game + "/" + f.rel, data: data }); bytes += data.length; return readMore(); });
+            return f.read().then(function (data) {
+              chunk.push({ key: game + "/" + f.rel, data: data }); bytes += data.length;
+              if (each) each(f.rel, data.length, at, files.length);
+              return readMore();
+            });
           }
           return readMore().then(function () {
             var t = db.transaction(DB_STORE, "readwrite"), s = t.objectStore(DB_STORE);
@@ -438,6 +457,17 @@ var ByopopImport = (function () {
   }
   // The files in the order writeGame writes them: last the game's markers (what the game page's hasGameFiles looks for), and
   // before them, for a game whose marker is a pak (it checks that a game folder holds something), the files of its game folders
+  // The files as they are stored: a game's exe without its code (web/exetrim.js), once the import has checked the original
+  function stored(id, files) {
+    var X = typeof ByopopExeTrim !== "undefined" ? ByopopExeTrim : null;
+    if (!X || !X.TRIM[id]) return files;
+    return files.map(function (f) {
+      if (String(f.rel).toLowerCase() !== X.TRIM[id].exe) return f;
+      return { rel: f.rel, read: function () {
+        return Promise.resolve(f.read()).then(function (d) { return X.stored(id, f.rel, d instanceof Uint8Array ? d : new Uint8Array(d)); });
+      } };
+    });
+  }
   function ordered(spec, files) {
     var paks = spec.paks || [], pakMarker = false, res = [];
     spec.markers.forEach(function (m) {
@@ -549,8 +579,11 @@ var ByopopImport = (function () {
         return exeUnreadable(spec.id, files).then(function (bad) {
         if (bad) throw new Error(ByopopStrings.t("import.err.exe", {exe: bad}));
         if (say) say(ByopopStrings.t("import.say.copying", {count: files.length}));
-        return writeGame(spec.persist, ordered(spec, files), function (n, total) { if (say) say(ByopopStrings.t("import.say.progress", {percent: Math.round(n * 100 / total)})); },
-          function () { try { ByopopGameFiles.replacing(spec.id); } catch (e) {} })  // the old copy is gone
+        var copy = typeof ByopopCopy !== "undefined" ? ByopopCopy.open() : null;
+        return writeGame(spec.persist, ordered(spec, stored(spec.id, files)), function (n, total) { if (say) say(ByopopStrings.t("import.say.progress", {percent: Math.round(n * 100 / total)})); },
+          function () { try { ByopopGameFiles.replacing(spec.id); } catch (e) {} },  // the old copy is gone
+          function (rel, bytes, n, total) { if (copy) { copy.file(rel, bytes); copy.progress(n, total); } })
+          .then(function (v) { if (copy) copy.close(); return v; }, function (e) { if (copy) copy.close(); throw e; })
           .then(function () { return icon(spec, all, root, files); })
           .then(function (got) {
             try { ByopopGameFiles.mark(spec.id); if (got.url) ByopopGameFiles.setIcon(spec.id, got.url, got.built, got.small); } catch (e) {}
@@ -589,7 +622,7 @@ var ByopopImport = (function () {
     }).catch(function () { return none; });
   }
 
-  return { exeUnreadable: exeUnreadable, probeHolds: probeHolds, markerPattern: markerPattern, findRoot: findRoot, withPaks: withPaks, pick: pick, hasMarkers: hasMarkers, exeIcon: exeIcon,
+  return { stored: stored, exeUnreadable: exeUnreadable, probeHolds: probeHolds, markerPattern: markerPattern, findRoot: findRoot, withPaks: withPaks, pick: pick, hasMarkers: hasMarkers, exeIcon: exeIcon,
     games: games, add: add, sort: sort, otherGame: otherGame, otherNote: otherNote, nameScore: nameScore, fromDrop: fromDrop, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
     forgetGame: forgetGame, ordered: ordered, missingIn: missingIn, missingMarkers: missingMarkers, markerList: markerList };
 })();

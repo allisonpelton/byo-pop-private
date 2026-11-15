@@ -1,0 +1,38 @@
+# fwtest -corner -realinput=tools/fwtest/flags.txt (tools/check.sh unit, on DDInterface and on the software screen with
+# SOFTWARE_SCREEN=on SOFTSCREEN_SCALED=1): the display's flags a game or the player chose hold through every change of
+# size and mode. Lines as realinput.txt's: "<update> <command> [args]", checked two updates later.
+
+50 expect board
+# the fast stretch's sampling the game set once the display was made (-corner, as Big Money's countdown samples) holds
+# through the display's first Init (fwtest starts at 2x where the desktop has room) and through 1x and 2x again (the
+# software screen: its window's surface, then GDI's stretch, still in software)
+50 expect centre 0
+50 resize 640 480
+52 expect windowsize 640 480
+52 expect centre 0
+52 resize 1280 960
+54 expect windowsize 1280 960
+54 expect centre 0
+# the 3D box cleared, then full screen, where the software screen goes to the GPU: the 2D flags stay (DDInterface's
+# mAppWants3D, as for a game whose original starts in 2D), there and back in a window
+54 3d off
+56 expect 3d 0
+56 keydown Left Alt
+56 key Return
+56 keyup Left Alt
+58 expect windowed 0
+58 expect 3d 0
+58 expect centre 0
+58 keydown Left Alt
+58 key Return
+58 keyup Left Alt
+60 expect windowed 1
+60 expect 3d 0
+# the box ticked again gives the 3D flags, and they hold through a change of size (the run ends with the default saved)
+60 3d on
+62 expect 3d 1
+62 resize 640 480
+64 expect 3d 1
+64 resize 1280 960
+66 expect 3d 1
+68 report

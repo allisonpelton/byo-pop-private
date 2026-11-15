@@ -40,6 +40,7 @@ public:
 	Tile();   // 0x4988f0
 	~Tile() override;  // 0x498c10: the Lua object's Destructor first
 
+	// 0x498820
 	const char* LuaGetRegisteredName() override { return "Tile"; }
 	// The original registered the class in the constructor (0x4988f0), every time
 	static void RegisterLua();

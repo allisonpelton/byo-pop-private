@@ -31,6 +31,7 @@ extern Color* const gOrigGemColors;
 float gSinTable[4096];
 float gCosTable[4096];
 static bool gTablesMade = false;        // 0x6797c8
+static unsigned int gBoardSerials = 0;  // port(mod): the boards made so far (Board::mBoardSerial, for the autosplit block)
 
 // port: the board's memory is zeroed first (Board.h)
 void* Board::operator new(size_t theSize)
@@ -151,6 +152,10 @@ Board::Board(WinDMApp* theApp)
 	mHyperCubeTipShown = false;
 	mHintPiece = 0;
 	mNoMoveYet = true;
+	mBoardSerial = ++gBoardSerials;
+	mResumed = false;
+	mLevelClears = 0;
+	mWins = 0;
 
 	// the mode says which rules play
 	int aMode = mApp->mGameMode;

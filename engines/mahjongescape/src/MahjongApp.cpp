@@ -10,7 +10,11 @@
 #include "platform/GameOptions.h"
 #include "PeResources.h"
 #include "Players.h"
+#include "ScreenLog.h"
 #include "Splash.h"
+#ifndef __EMSCRIPTEN__
+#include "SurfaceDisplay.h"
+#endif
 #include "User.h"
 #include "Graphics.h"
 #include "KeyCodes.h"
@@ -19,6 +23,8 @@
 #include "platform/VFS.h"
 
 #include <SDL.h>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 using namespace Sexy;
@@ -250,25 +256,100 @@ public:
 		gApp->mApplyingGameMode = false;
 	}
 
-	void Present(const uint8_t* thePixels, int thePitch) override
+	void Present(const uint8_t* thePixels, int thePitch, const jb::Rect* theRects, int theCount) override
 	{
 		MahjongWidget* aWidget = gApp->mWidget;
 		if (aWidget == nullptr)
 			return;
-		// port: one pass from the engine's buffer into the widget's image. The screen is opaque: the buffer's alpha
-		// bytes are not its pixels' alpha (the engine's drawing leaves them as they are).
+#ifndef __EMSCRIPTEN__
+		SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(gApp->mDDInterface);
+		if (aDisplay != nullptr)
+		{
+			// port: the display keeps the buffer's pixels and shows the rects that changed (the rest of the window is the
+			// last frame's)
+			mRects.clear();
+			for (int i = 0; i < theCount; i++)
+				mRects.push_back(Rect(theRects[i].left, theRects[i].top, theRects[i].right - theRects[i].left,
+					theRects[i].bottom - theRects[i].top));
+			aDisplay->SetFrame((const uint32_t*)thePixels, thePitch, mRects.data(), theCount);
+			if (jb::screenlog::Verifying())
+				VerifyRects(thePixels, thePitch, theRects, theCount);
+			if (0 < theCount)
+				aWidget->mScreenChanged = true;
+			return;
+		}
+#endif
+		// port: the rects that changed copied from the engine's buffer into the widget's image (the rest of the image
+		// is the last frame's). The screen is opaque: the buffer's alpha bytes are not its pixels' alpha (the engine's
+		// drawing leaves them as they are).
 		MemoryImage* anImage = aWidget->mScreenImage;
 		ulong* aBits = anImage->GetBits();
+		for (int i = 0; i < theCount; i++)
+		{
+			for (int y = theRects[i].top; y < theRects[i].bottom; y++)
+			{
+				const uint32_t* aSrc = (const uint32_t*)(thePixels + y * thePitch);
+				ulong* aDst = aBits + y * jb::SCREEN_WIDTH;
+				for (int x = theRects[i].left; x < theRects[i].right; x++)
+					aDst[x] = 0xff000000 | (aSrc[x] & 0xffffff);
+			}
+		}
+		if (jb::screenlog::Verifying())
+		{
+			// JB_VERIFY_FRAMES: the widget's image is the whole screen, whatever the rects were
+			for (int y = 0; y < jb::SCREEN_HEIGHT; y++)
+			{
+				const uint32_t* aSrc = (const uint32_t*)(thePixels + y * thePitch);
+				for (int x = 0; x < jb::SCREEN_WIDTH; x++)
+				{
+					if (aBits[y * jb::SCREEN_WIDTH + x] != (0xff000000 | (aSrc[x] & 0xffffff)))
+					{
+						fprintf(stderr, "screenlog: the widget's image differs from the screen at (%d, %d)\n", x, y);
+						fflush(stderr);
+						abort();
+					}
+				}
+			}
+		}
+		if (0 < theCount)
+		{
+			anImage->BitsChanged();
+			aWidget->mScreenChanged = true;
+		}
+	}
+
+private:
+	// JB_VERIFY_FRAMES for a display that keeps the buffer: a copy of the screen made of the rects alone is the screen
+	void VerifyRects(const uint8_t* thePixels, int thePitch, const jb::Rect* theRects, int theCount)
+	{
+		if (mShadow.empty())
+			mShadow.assign((size_t)jb::SCREEN_WIDTH * jb::SCREEN_HEIGHT, 0xff000000);
+		for (int i = 0; i < theCount; i++)
+		{
+			for (int y = theRects[i].top; y < theRects[i].bottom; y++)
+			{
+				const uint32_t* aSrc = (const uint32_t*)(thePixels + y * thePitch);
+				for (int x = theRects[i].left; x < theRects[i].right; x++)
+					mShadow[y * jb::SCREEN_WIDTH + x] = 0xff000000 | (aSrc[x] & 0xffffff);
+			}
+		}
 		for (int y = 0; y < jb::SCREEN_HEIGHT; y++)
 		{
 			const uint32_t* aSrc = (const uint32_t*)(thePixels + y * thePitch);
-			ulong* aDst = aBits + y * jb::SCREEN_WIDTH;
 			for (int x = 0; x < jb::SCREEN_WIDTH; x++)
-				aDst[x] = 0xff000000 | (aSrc[x] & 0xffffff);
+			{
+				if (mShadow[y * jb::SCREEN_WIDTH + x] != (0xff000000 | (aSrc[x] & 0xffffff)))
+				{
+					fprintf(stderr, "screenlog: the rects of the frame do not make the screen at (%d, %d)\n", x, y);
+					fflush(stderr);
+					abort();
+				}
+			}
 		}
-		anImage->BitsChanged();
-		aWidget->mScreenChanged = true;
 	}
+
+	std::vector<Rect> mRects;
+	std::vector<uint32_t> mShadow;
 };
 
 MahjongHost gHost;
@@ -280,15 +361,22 @@ MahjongHost gHost;
 
 MahjongWidget::MahjongWidget()
 {
-	mScreenImage = new MemoryImage(gApp);
-	mScreenImage->Create(jb::SCREEN_WIDTH, jb::SCREEN_HEIGHT);
-	// port: opaque, so that the framework need not look through the 480000 pixels for alpha after each present
-	mScreenImage->SetImageMode(false, false);
-	// and its alpha bytes are all 0xff (Present), so the framework need not premultiply it pixel by pixel to upload it
-	mScreenImage->mUploadAsIs = true;
-	ulong* aBits = mScreenImage->GetBits();
-	for (int i = 0; i < jb::SCREEN_WIDTH * jb::SCREEN_HEIGHT; i++)
-		aBits[i] = 0xff000000;
+	mScreenImage = nullptr;
+#ifndef __EMSCRIPTEN__
+	// port: the window's display keeps the screen (CreateDDInterface); the widget then has no image of its own
+	if (dynamic_cast<SurfaceDisplay*>(gApp->mDDInterface) == nullptr)
+#endif
+	{
+		mScreenImage = new MemoryImage(gApp);
+		mScreenImage->Create(jb::SCREEN_WIDTH, jb::SCREEN_HEIGHT);
+		// port: opaque, so that the framework need not look through the 480000 pixels for alpha after each present
+		mScreenImage->SetImageMode(false, false);
+		// and its alpha bytes are all 0xff (Present), so the framework need not premultiply it pixel by pixel to upload it
+		mScreenImage->mUploadAsIs = true;
+		ulong* aBits = mScreenImage->GetBits();
+		for (int i = 0; i < jb::SCREEN_WIDTH * jb::SCREEN_HEIGHT; i++)
+			aBits[i] = 0xff000000;
+	}
 	mScreenChanged = true;
 	mButtons = 0;
 	mWantsFocus = true;
@@ -310,7 +398,9 @@ void MahjongWidget::Update()
 void MahjongWidget::Draw(Graphics* g)
 {
 	mScreenChanged = false;
-	g->DrawImage(mScreenImage, 0, 0);
+	// (a display that keeps the screen shows it itself)
+	if (mScreenImage != nullptr)
+		g->DrawImage(mScreenImage, 0, 0);
 }
 
 // WM_CHAR
@@ -413,6 +503,7 @@ MahjongApp::MahjongApp()
 	mGameEnded = false;
 	mApplyingGameMode = false;
 	mNextFrame = 0;
+	mModalPauses = 0;
 }
 
 MahjongApp::~MahjongApp()
@@ -422,8 +513,41 @@ MahjongApp::~MahjongApp()
 		mWidgetManager->RemoveWidget(mWidget);
 		delete mWidget;
 	}
+#ifndef __EMSCRIPTEN__
+	// the engine's screen buffer goes with the game
+	if (SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(mDDInterface))
+		aDisplay->SetFrame(nullptr, 0, nullptr, -1);
+#endif
 	delete mGame;
 }
+
+#ifndef __EMSCRIPTEN__
+// Whether a window of a size that is no whole scale (the full-screen window of the default start, a resized window) is shown by GDI's
+// nearest-neighbour stretch (SurfaceDisplay's stretch mode), which costs what the 800x600 window's surface does, or by the renderer, whose
+// texture filter blends the pixels and whose Direct3D device costs more processor time than the original's whole window
+// (games/mahjongjapan/docs/GAME_NOTES.md, "The window-surface presenter").
+static const bool kStretchOtherSizes = false;
+// and, when it does, whether the screen fills the window as far as its aspect ratio allows (pixels 3 or 4 wide at one place and another on a
+// 4K screen) or is shown at the largest whole scale that fits with bars around it (3x on a 4K screen: every pixel the same size, 2400x1800)
+static const bool kStretchWholeScalesOnly = false;
+
+DDInterface* MahjongApp::CreateDDInterface()
+{
+	// test only (a test run reads it): SURFACE_DISPLAY=off keeps the framework's own display and the widget's image (the path before the
+	// SurfaceDisplay), to measure the two against each other
+	// (IsTestRun reads the environment too, and SDL_getenv answers from one shared buffer on Windows: it is asked first and
+	// the value is used before the next SDL_getenv)
+	if (IsTestRun())
+	{
+		const char* aMode = SDL_getenv("SURFACE_DISPLAY");
+		if ((aMode != nullptr) && (strcmp(aMode, "off") == 0))
+			return SexyAppBase::CreateDDInterface();
+	}
+	SurfaceDisplay* aDisplay = new SurfaceDisplay(this);
+	aDisplay->AllowStretch(kStretchOtherSizes, kStretchWholeScalesOnly);
+	return aDisplay;
+}
+#endif
 
 // 0x42b600 (mahjongchina), 0x426850 (mahjongjapan) inlined here: the exe's file version for the logo screen (the block
 // after LoadGameTexts)
@@ -582,6 +706,28 @@ void MahjongApp::LostFocus()
 	SexyAppBase::LostFocus();
 	if (mGameStarted && !mGameEnded)
 		mGame->mManager.Activate(false);
+}
+
+// port: not in the original (the registered game has no modal dialog of the framework's); the mod menu and the framework's dialogs hold the
+// game. Manager::Pause (0x42c110 in mahjongjapan, 0x4221d0 in mahjongchina) is the game's own pause: its clock is shifted by the time spent
+// paused when the pause ends, and it counts, so a game that was paused before the menu opened is still paused after it closes
+void MahjongApp::ModalOpen()
+{
+	SexyAppBase::ModalOpen();
+	if ((mGame == nullptr) || !mGameStarted || mGameEnded)
+		return;
+	mGame->mManager.Pause(true);
+	mModalPauses = mModalPauses + 1;
+}
+
+void MahjongApp::ModalClose()
+{
+	SexyAppBase::ModalClose();
+	// only a pause this class made is taken off, and never one left over from a game that has ended
+	if ((mGame == nullptr) || (mModalPauses == 0))
+		return;
+	mModalPauses = mModalPauses - 1;
+	mGame->mManager.Pause(false);
 }
 
 // Alt+Enter and the web page's full screen button change the mode as the options' check box does

@@ -285,9 +285,17 @@ var ByopopSkin = (function () {
     }
     // a window's control menu, from its title bar's icon
     function controlMenu(w, from, x, y) {
-      var entries = [{ label: T("skin.desk.m.minimize"), fn: function () { setMin(w, true); } }];
-      if (w.maximize) entries.push({ label: T(maxed(w) ? "skin.desk.m.restore" : "skin.desk.m.maximize"), fn: function () { w.maximize(); } });
-      entries.push({ rule: true });
+      // as 1995's (the user, 2026-11-14, by the coordinator's list): Restore, Move, Size, Minimize, Maximize and Close, those
+      // that do nothing in the window's state greyed; Move and Size work from the arrow keys (keyMove), and the game's window,
+      // whose sizes are whole multiples, has no Size but its list of sizes
+      var mx = maxed(w);
+      var entries = [
+        { label: T("skin.desk.m.restore"), disabled: !mx && !w.min, fn: function () { if (w.min) setMin(w, false); else if (w.maximize) w.maximize(); } },
+        { label: T("skin.desk.m.move"), disabled: mx, fn: function () { keyMove(w, false); } },
+        { label: T("skin.desk.m.resize"), disabled: mx || !!w.sizes, fn: function () { keyMove(w, true); } },
+        { label: T("skin.desk.m.minimize"), fn: function () { setMin(w, true); } },
+        { label: T("skin.desk.m.maximize"), disabled: mx || !w.maximize, fn: function () { w.maximize(); } },
+        { rule: true }];
       // the game's window: its whole-multiple sizes that fit (o.sizes), the one it has ticked
       if (w.sizes) {
         var sz = w.sizes();
@@ -363,19 +371,128 @@ var ByopopSkin = (function () {
     // minimized: out of sight, its button on the task bar, which brings it back where it was
     function setMin(w, m) {
       if (m) closeAllMenus();
-      if (!!m !== !!w.min) deskEvent(m ? "minimize" : "restore");
+      if (!!m !== !!w.min) { deskEvent(m ? "minimize" : "restore"); fly(w, !!m); }
       w.min = !!m;
       w.el.classList.toggle("d95-min", w.min);
       if (!w.min) { raise(w); place(w, true); }
       save();
       tasks();
     }
+    // The caption's flight (the user, 2026-11-14, by the coordinator's list): as 1995's, a title bar flies from the window's to
+    // its task bar button when it is minimized, and back when it is restored; the window shows once it lands. None with reduced
+    // motion asked for, nor without the desktop.
+    function fly(w, toBar) {
+      if (!on || !taskbar || !taskbar.button) return;
+      try { if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return; } catch (e) {}
+      var b = taskbar.button(w.id), cap = w.el.querySelector(":scope > .d95-tb") || w.el.querySelector(":scope > .d95-handle");
+      if (!b || !cap || !b.getClientRects().length) return;
+      var wasMin = w.el.classList.contains("d95-min");
+      if (wasMin) w.el.classList.remove("d95-min");
+      var cr = cap.getBoundingClientRect(), br = b.getBoundingClientRect();
+      if (wasMin) w.el.classList.add("d95-min");
+      if (!cr.width || !el95Animate()) return;
+      function box(r) { return { left: unzoom(r.left) + "px", top: unzoom(r.top) + "px", width: unzoom(r.width) + "px", height: unzoom(r.height) + "px" }; }
+      var f = document.createElement("div");
+      f.className = "d95-fly"; f.setAttribute("aria-hidden", "true");
+      var title = document.createElement("span"); title.textContent = w.el.getAttribute("data-d95-title") || ""; f.appendChild(title);
+      document.body.appendChild(f);
+      var a = box(toBar ? cr : br), z = box(toBar ? br : cr);
+      if (!toBar) w.el.style.visibility = "hidden";
+      var anim = f.animate([a, z], { duration: 220, easing: "linear" });
+      // landed: also on a timer, as a page out of sight runs no animation and the window must never stay unseen
+      var landed = function () { if (f.parentNode) f.parentNode.removeChild(f); w.el.style.visibility = ""; };
+      anim.onfinish = anim.oncancel = landed;
+      setTimeout(landed, 300);
+    }
+    function el95Animate() { return typeof document.body.animate === "function"; }
     // ---- a window's size (the user, 2026-11-08: "Non-game windows should be resizable") ----
     // Every window but the game's (whose sizes are whole multiples, o.sizes) is resized by its edges and corners as in 1995: a
     // band along each edge and a square at each corner, inside its frame, that a press drags. The size goes from the smallest
     // that keeps its controls usable (RZ_MIN) to the room above the task bar; its contents scroll or reflow in it. The size is
     // kept with the window's place (byopop-desk), and goes off with the desktop.
     var RZ_EDGES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"], RZ_MIN = { w: 200, h: 120 };
+    // ---- the outline (the user, 2026-11-14, by the coordinator's list): a window is moved and sized as in 1995, by a dotted
+    // frame that follows the pointer or the arrow keys, and goes there when it is let go. Its place is clamped as place()
+    // clamps a window's.
+    var ghost = null;
+    function clampAt(w, x, y, width) {
+      var r = room();
+      return { x: Math.max(-(width - 80), Math.min(r.w - 80, Math.round(x))), y: Math.max(0, Math.min(r.h - 24, Math.round(y))) };
+    }
+    function showGhost(x, y, width, height) {
+      if (!ghost) {
+        ghost = document.createElement("div");
+        ghost.className = "d95-ghost"; ghost.setAttribute("aria-hidden", "true");
+        document.body.appendChild(ghost);
+      }
+      ghost.style.left = x + "px"; ghost.style.top = y + "px";
+      ghost.style.width = Math.round(width) + "px"; ghost.style.height = Math.round(height) + "px";
+    }
+    function hideGhost() { if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost); ghost = null; }
+    // where a move or a resize ends: the window takes the outline's place and size
+    function settle(w, p) {
+      if (p.w !== undefined) sizeTo(w, p.w, p.h);
+      w.x = p.x; w.y = p.y;
+      place(w); commit(w);
+      w.placed = true;
+      save();
+    }
+    // a size for edge's drag by dx, dy from st (the window's place and size when it began)
+    function sized(w, edge, st, dx, dy) {
+      var r = room(), nw = st.w, nh = st.h;
+      if (edge.indexOf("e") >= 0) nw = st.w + dx;
+      if (edge.indexOf("w") >= 0) nw = st.w - dx;
+      if (edge.indexOf("s") >= 0) nh = st.h + dy;
+      if (edge.indexOf("n") >= 0) nh = st.h - dy;
+      // a window may ask for more than RZ_MIN (o.minHeight: Music keeps its player and three of its list's rows; o.minWidth
+      // and o.minHeight: a game's window is never smaller than its game, web/deskapps.js)
+      var leastW = RZ_MIN.w, least = RZ_MIN.h;
+      if (w.minWidth) try { leastW = Math.max(leastW, w.minWidth() || 0); } catch (err) {}
+      if (w.minHeight) try { least = Math.max(least, w.minHeight() || 0); } catch (err) {}
+      nw = Math.max(Math.min(leastW, r.w - 8), Math.min(r.w - 8, nw));
+      nh = Math.max(Math.min(least, r.h - 8), Math.min(r.h - 8, nh));
+      // and the edge dragged stays on the desktop: the bottom above the task bar, the right inside the screen, the top and the
+      // left at 0 at most
+      if (edge.indexOf("s") >= 0) nh = Math.max(Math.min(least, r.h - st.y), Math.min(nh, r.h - st.y));
+      if (edge.indexOf("e") >= 0) nw = Math.max(Math.min(leastW, r.w - st.x), Math.min(nw, r.w - st.x));
+      if (edge.indexOf("n") >= 0) nh = Math.min(nh, st.y + st.h);
+      if (edge.indexOf("w") >= 0) nw = Math.min(nw, st.x + st.w);
+      // the left and top edges move the window as it grows the other way
+      return { x: edge.indexOf("w") >= 0 ? st.x + st.w - nw : st.x, y: edge.indexOf("n") >= 0 ? st.y + st.h - nh : st.y, w: nw, h: nh };
+    }
+    // Move and Size from the control menu: the arrow keys move the outline (Size: the first one picks the edge it moves), Enter
+    // or a click puts the window there, Escape leaves it where it was
+    var keying = null;
+    function keyMove(w, sizing) {
+      if (!on || keying) return;
+      var at = drawn(w);
+      var st = { x: at.x, y: at.y, w: w.el.offsetWidth, h: w.el.offsetHeight };
+      var k = { w: w, sizing: sizing, edge: "", dx: 0, dy: 0, p: { x: st.x, y: st.y } };
+      if (sizing) { k.p.w = st.w; k.p.h = st.h; }
+      keying = k;
+      showGhost(st.x, st.y, st.w, st.h);
+      function done(keep) {
+        document.removeEventListener("keydown", key, true);
+        document.removeEventListener("pointerdown", click, true);
+        keying = null;
+        hideGhost();
+        if (keep) settle(w, k.p);
+      }
+      function key(ev) {
+        var step = { ArrowLeft: [-8, 0], ArrowRight: [8, 0], ArrowUp: [0, -8], ArrowDown: [0, 8] }[ev.key];
+        if (ev.key === "Enter" || ev.key === "Escape") { ev.preventDefault(); ev.stopImmediatePropagation(); done(ev.key === "Enter"); return; }
+        if (!step) return;
+        ev.preventDefault(); ev.stopImmediatePropagation();
+        if (sizing && !k.edge) k.edge = { ArrowLeft: "w", ArrowRight: "e", ArrowUp: "n", ArrowDown: "s" }[ev.key];
+        k.dx += step[0]; k.dy += step[1];
+        if (sizing) k.p = sized(w, k.edge, st, k.dx, k.dy);
+        else k.p = clampAt(w, st.x + k.dx, st.y + k.dy, st.w);
+        showGhost(k.p.x, k.p.y, sizing ? k.p.w : st.w, sizing ? k.p.h : st.h);
+      }
+      function click(ev) { ev.preventDefault(); ev.stopImmediatePropagation(); done(true); }
+      document.addEventListener("keydown", key, true);
+      document.addEventListener("pointerdown", click, true);
+    }
     function sizeTo(w, width, height) {
       w.w = Math.round(width); w.h = Math.round(height);
       w.el.style.width = w.w + "px"; w.el.style.height = w.h + "px";
@@ -397,37 +514,16 @@ var ByopopSkin = (function () {
         });
         h.addEventListener("pointermove", function (ev) {
           if (!st || ev.pointerId !== st.id) return;
-          var dx = unzoom(ev.clientX - st.px), dy = unzoom(ev.clientY - st.py), r = room(), nw = st.w, nh = st.h;
-          if (edge.indexOf("e") >= 0) nw = st.w + dx;
-          if (edge.indexOf("w") >= 0) nw = st.w - dx;
-          if (edge.indexOf("s") >= 0) nh = st.h + dy;
-          if (edge.indexOf("n") >= 0) nh = st.h - dy;
-          // a window may ask for more than RZ_MIN (o.minHeight: Music keeps its player and three of its list's rows; o.minWidth
-          // and o.minHeight: a game's window is never smaller than its game, web/deskapps.js)
-          var leastW = RZ_MIN.w, least = RZ_MIN.h;
-          if (w.minWidth) try { leastW = Math.max(leastW, w.minWidth() || 0); } catch (err) {}
-          if (w.minHeight) try { least = Math.max(least, w.minHeight() || 0); } catch (err) {}
-          nw = Math.max(Math.min(leastW, r.w - 8), Math.min(r.w - 8, nw));
-          nh = Math.max(Math.min(least, r.h - 8), Math.min(r.h - 8, nh));
-          // and the edge dragged stays on the desktop: the bottom above the task bar, the right inside the screen, the top and the
-          // left at 0 at most
-          if (edge.indexOf("s") >= 0) nh = Math.max(Math.min(least, r.h - st.y), Math.min(nh, r.h - st.y));
-          if (edge.indexOf("e") >= 0) nw = Math.max(Math.min(leastW, r.w - st.x), Math.min(nw, r.w - st.x));
-          if (edge.indexOf("n") >= 0) nh = Math.min(nh, st.y + st.h);
-          if (edge.indexOf("w") >= 0) nw = Math.min(nw, st.x + st.w);
-          // the left and top edges move the window as it grows the other way
-          w.x = edge.indexOf("w") >= 0 ? st.x + st.w - nw : st.x;
-          w.y = edge.indexOf("n") >= 0 ? st.y + st.h - nh : st.y;
-          sizeTo(w, nw, nh);
-          place(w);
+          st.p = sized(w, edge, st, unzoom(ev.clientX - st.px), unzoom(ev.clientY - st.py));
+          showGhost(st.p.x, st.p.y, st.p.w, st.p.h);
         });
         var end = function (ev) {
           if (!st || ev.pointerId !== st.id) return;
+          var p = st.p;
           st = null;
           document.documentElement.classList.remove("d95-dragging");
-          commit(w);
-          w.placed = true;
-          save();
+          hideGhost();
+          if (p) settle(w, p);
         };
         h.addEventListener("pointerup", end);
         h.addEventListener("pointercancel", end);
@@ -449,14 +545,16 @@ var ByopopSkin = (function () {
         var dx = unzoom(ev.clientX - start.px), dy = unzoom(ev.clientY - start.py);
         if (!moved && Math.abs(dx) + Math.abs(dy) < 4) return;
         if (!moved) { moved = true; try { handle.setPointerCapture(ev.pointerId); } catch (e) {} document.documentElement.classList.add("d95-dragging"); }
-        w.x = start.x + dx; w.y = start.y + dy;
-        place(w);
+        start.p = clampAt(w, start.x + dx, start.y + dy, w.el.offsetWidth);
+        showGhost(start.p.x, start.p.y, w.el.offsetWidth, w.el.offsetHeight);
       });
       function end(ev) {
         if (!start || ev.pointerId !== start.id) return;
+        var p = start.p;
         start = null;
         document.documentElement.classList.remove("d95-dragging");
-        if (moved) { commit(w); w.placed = true; save(); }
+        hideGhost();
+        if (moved && p) settle(w, p);
       }
       window.addEventListener("pointerup", end);
       window.addEventListener("pointercancel", end);
@@ -555,15 +653,23 @@ var ByopopSkin = (function () {
         if (!findArea() && window.MutationObserver) { var mo = new MutationObserver(function () { if (findArea()) mo.disconnect(); }); mo.observe(el, { childList: true, subtree: true }); }
       }
       handle.classList.add("d95-handle");
-      // the control menu (o.menu): the title bar's icon opens it: Minimize, Maximize, Close. No key opens it: Alt+Space is the
-      // browser window's own menu on Windows, and Alt+F4 closes the browser's window (the user, 2026-11-09)
-      if (o.menu && handle.classList.contains("d95-tb")) {
+      // the control menu: every window's title bar has its icon, which opens it (o.menuIcon, else a page's), and a right click
+      // on the title bar opens it there, as in 1995 (the user, 2026-11-14, by the coordinator's list). No key opens it: Alt+Space
+      // is the browser window's own menu on Windows, and Alt+F4 closes the browser's window (the user, 2026-11-09)
+      if (handle.classList.contains("d95-tb")) {
         var sys = document.createElement("button");
         sys.type = "button"; sys.className = "d95-sys";
         sys.setAttribute("aria-label", TW("skin.desk.menu", o.title)); sys.setAttribute("aria-haspopup", "menu");
-        if (o.menuIcon) sys.appendChild(o.menuIcon);
+        var mi = o.menuIcon;
+        if (!mi) { mi = document.createElement("i"); mi.className = "d95-sys-doc"; mi.setAttribute("aria-hidden", "true"); }
+        sys.appendChild(mi);
         handle.insertBefore(sys, handle.firstChild);
         sys.addEventListener("click", function () { var r = sys.getBoundingClientRect(); controlMenu(w, sys, r.left, r.bottom); });
+        handle.addEventListener("contextmenu", function (ev) {
+          if (!on || ev.target.closest("button:not(.d95-sys), input, select, textarea, a")) return;
+          ev.preventDefault();
+          controlMenu(w, sys, ev.clientX, ev.clientY);
+        });
         w.sys = sys;
       }
       if (o.minimize) {
@@ -713,6 +819,7 @@ var ByopopSkin = (function () {
       if (!icons) return;
       var b = document.createElement("button");
       b.type = "button"; b.className = "d95-icon d95-icon-" + w.id;
+      b.setAttribute("data-key", "w:" + w.id);
       var pic = document.createElement("i"); pic.setAttribute("aria-hidden", "true");
       if (w.pic) { var c = w.pic.cloneNode(true); c.removeAttribute("id"); pic.appendChild(c); b.classList.add("d95-icon-pic"); }
       var name = document.createElement("span"); name.textContent = title;
@@ -733,6 +840,7 @@ var ByopopSkin = (function () {
       // the windows' icons in the order they were added, then About, then the favourites' (favIcons)
       var after = w.id === "about" ? icons.querySelector(".d95-fav") : icons.querySelector(".d95-icon-about, .d95-fav");
       icons.insertBefore(b, after);
+      layoutIcons();
     }
     // opens a window (its icon, a link to it) and puts the focus in it
     function show(w) {
@@ -784,9 +892,57 @@ var ByopopSkin = (function () {
       var strip = document.createElement("div"); strip.className = "d95-tasks";
       var tray = document.createElement("div"); tray.className = "d95-tray";
       clock = document.createElement("span"); clock.className = "d95-clock";
+      // the speaker: a click opens the volume's slider above it, with Mute (ByopopVolume)
+      var spk = document.createElement("button");
+      spk.type = "button"; spk.className = "d95-spk"; spk.setAttribute("aria-label", T("skin.vol.button")); spk.title = T("skin.vol.button");
+      spk.setAttribute("aria-haspopup", "dialog"); spk.setAttribute("aria-expanded", "false");
+      var spkPic = document.createElement("i"); spkPic.setAttribute("aria-hidden", "true"); spk.appendChild(spkPic);
+      tray.appendChild(spk);
       tray.appendChild(clock);
+      var vol = null;
+      function showMuted() { spk.classList.toggle("d95-spk-off", ByopopVolume.muted()); }
+      ByopopVolume.on(function () { showMuted(); if (vol) { vol.range.value = ByopopVolume.get(); vol.mute.checked = ByopopVolume.muted(); } });
+      showMuted();
+      function closeVol(focusBack) {
+        if (!vol) return;
+        document.removeEventListener("pointerdown", vol.out, true);
+        if (vol.el.parentNode) vol.el.parentNode.removeChild(vol.el);
+        vol = null;
+        spk.setAttribute("aria-expanded", "false");
+        if (focusBack) spk.focus();
+      }
+      spk.addEventListener("click", function () {
+        if (vol) { closeVol(false); return; }
+        closeAllMenus();
+        var el = document.createElement("div");
+        el.className = "d95-vol"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", T("skin.vol.title"));
+        var head = document.createElement("div"); head.className = "d95-vol-head"; head.textContent = T("skin.vol.title");
+        var range = document.createElement("input");
+        range.type = "range"; range.min = "0"; range.max = "100"; range.step = "1"; range.value = ByopopVolume.get();
+        range.className = "d95-vol-range"; range.setAttribute("aria-label", T("skin.vol.title")); range.setAttribute("orient", "vertical");
+        var lab = document.createElement("label"); lab.className = "d95-vol-mute";
+        var mute = document.createElement("input"); mute.type = "checkbox"; mute.checked = ByopopVolume.muted();
+        lab.appendChild(mute); lab.appendChild(document.createTextNode(" " + T("skin.vol.mute")));
+        el.appendChild(head); el.appendChild(range); el.appendChild(lab);
+        range.addEventListener("input", function () { ByopopVolume.set(+range.value); });
+        mute.addEventListener("change", function () { ByopopVolume.set(null, mute.checked); });
+        el.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); closeVol(true); } });
+        document.body.appendChild(el);
+        var r = spk.getBoundingClientRect();
+        el.style.left = Math.max(0, Math.min(unzoom(r.right) - el.offsetWidth, viewW() - el.offsetWidth - 2)) + "px";
+        el.style.top = (unzoom(r.top) - el.offsetHeight - 4) + "px";
+        vol = { el: el, range: range, mute: mute, out: function (ev) { if (!el.contains(ev.target) && ev.target !== spk && !spk.contains(ev.target)) closeVol(false); } };
+        document.addEventListener("pointerdown", vol.out, true);
+        spk.setAttribute("aria-expanded", "true");
+        range.focus();
+      });
       bar.appendChild(wrap); bar.appendChild(strip); bar.appendChild(tray);
       document.body.appendChild(bar);
+      bar.addEventListener("contextmenu", function (ev) {
+        if (ev.target.closest(".d95-popwrap, .d95-menu")) return;
+        ev.preventDefault();
+        barMenu(ev.clientX, ev.clientY);
+      });
 
       function tick() {
         var d = new Date();
@@ -911,6 +1067,9 @@ var ByopopSkin = (function () {
           list.appendChild(rule());
           list.appendChild(item(T("skin.pop.listing"), null, { href: "./", cls: "d95-leave" }));
         }
+        // Shut Down, last (the user, 2026-11-14, by the coordinator's list): every window closes, then the last screen
+        list.appendChild(rule());
+        list.appendChild(item(T("skin.pop.shutdown"), closeThen(shutDown), { cls: "d95-shutdown" }));
       }
       function items(m) { return Array.prototype.filter.call(m.querySelectorAll(".d95-item"), function (b) { return b.getClientRects().length > 0; }); }
       function focusIn(m, i) { var a = items(m); if (!a.length) return; a[(i + a.length) % a.length].focus(); }
@@ -989,6 +1148,7 @@ var ByopopSkin = (function () {
           if (!b) {
             b = buttons[w.id] = document.createElement("button");
             b.type = "button"; b.className = "d95-task";
+            b.addEventListener("contextmenu", function (ev) { ev.preventDefault(); ev.stopPropagation(); controlMenu(w, b, ev.clientX, ev.clientY); });
             var t = document.createElement("span"); b.appendChild(t);
             b.addEventListener("click", function () {
               if (w.min) setMin(w, false);
@@ -1036,7 +1196,10 @@ var ByopopSkin = (function () {
         }
         if (want) taskList();
       }
-      return { el: bar, turn: turn, tasks: taskList, close: function () { close(false); } };
+      // the menu open on Shut Down, for Alt+4 with no window open (Enter then shuts down, Escape leaves it)
+      function openShutDown() { if (menu.hidden) open(); var b = list.querySelector(".d95-shutdown"); if (b) b.focus(); }
+      return { el: bar, turn: turn, tasks: taskList, close: function () { close(false); }, openShutDown: openShutDown,
+               button: function (id) { return buttons[id] || null; } };
     }
     // ---- favourites' icons (the user, 2026-11-08: "on Windows 95, a desktop icon specifically for that game") ----
     // Each favourite game (ByopopSettings.favourites, web/settings.js) has an icon after the windows' in the column: its own icon
@@ -1056,6 +1219,7 @@ var ByopopSkin = (function () {
       list.forEach(function (g) {
         var b = document.createElement("button");
         b.type = "button"; b.className = "d95-icon d95-fav";
+        b.setAttribute("data-key", "f:" + g.id);
         b.setAttribute("data-win95", win95Of(g.id));
         b.setAttribute("aria-label", T2("skin.fav.icon", { game: g.title }));
         b.setAttribute("aria-haspopup", "menu");
@@ -1075,6 +1239,269 @@ var ByopopSkin = (function () {
         });
         icons.appendChild(b);
       });
+      layoutIcons();
+    }
+    // ---- the desktop's icons where the player puts them, and the desktop's own menus (the user, 2026-11-14, by the
+    // coordinator's list) ----
+    // The icons stand in columns down the left until one is dragged; from then on each stays where it was put (kept for the
+    // page, byopop-desk-icons), a new one taking the first free place. Arrange Icons puts them back in their columns, Line up
+    // Icons moves each to the nearest free place of those columns. A drag on the empty desktop draws a dotted rectangle that
+    // selects the icons it touches, and a drag of a selected icon moves every selected one.
+    var ICON_KEY = "byopop-desk-icons", CELL = { w: 88, h: 64 };
+    function iconStore() { try { var o = JSON.parse(localStorage.getItem(ICON_KEY) || "{}"); return o && typeof o === "object" ? o : {}; } catch (e) { return {}; } }
+    function iconPlaces() { var o = iconStore()[pageKey()]; return o && typeof o === "object" ? o : null; }
+    function keepIconPlaces(p) {
+      var o = iconStore();
+      if (p) o[pageKey()] = p; else delete o[pageKey()];
+      try { localStorage.setItem(ICON_KEY, JSON.stringify(o)); } catch (e) {}
+    }
+    function iconList() { return icons ? Array.prototype.filter.call(icons.querySelectorAll(":scope > .d95-icon"), function (b) { return !b.hidden; }) : []; }
+    function cellRows() { return Math.max(1, Math.floor((icons.clientHeight || 400) / CELL.h)); }
+    function cellAt(n) { var rows = cellRows(); return [Math.floor(n / rows) * CELL.w, (n % rows) * CELL.h]; }
+    function layoutIcons() {
+      if (!icons) return;
+      var p = on ? iconPlaces() : null;
+      icons.classList.toggle("d95-icons-free", !!p);
+      var list = iconList();
+      if (!p) { list.forEach(function (b) { b.style.left = b.style.top = ""; }); return; }
+      var taken = {}, n = 0;
+      list.forEach(function (b) { var at = p[b.getAttribute("data-key")]; if (at) taken[at[0] + "," + at[1]] = true; });
+      list.forEach(function (b) {
+        var at = p[b.getAttribute("data-key")];
+        if (!at) { do { at = cellAt(n++); } while (taken[at[0] + "," + at[1]]); taken[at[0] + "," + at[1]] = true; }
+        b.style.left = at[0] + "px"; b.style.top = at[1] + "px";
+      });
+    }
+    // every icon's place as it is drawn now (the columns' when none was moved yet)
+    function iconsNow() {
+      var p = {};
+      iconList().forEach(function (b) { p[b.getAttribute("data-key")] = [b.offsetLeft, b.offsetTop]; });
+      return p;
+    }
+    function arrangeIcons() { keepIconPlaces(null); layoutIcons(); }
+    function lineUpIcons() {
+      var p = iconPlaces();
+      if (!p) return;
+      var rows = cellRows(), taken = {}, out = {};
+      iconList().forEach(function (b) {
+        var k = b.getAttribute("data-key"), at = p[k] || [b.offsetLeft, b.offsetTop];
+        var c = Math.max(0, Math.round(at[0] / CELL.w)), r = Math.max(0, Math.min(rows - 1, Math.round(at[1] / CELL.h)));
+        var n = c * rows + r;
+        while (taken[n]) n++;
+        taken[n] = true;
+        out[k] = cellAt(n);
+      });
+      keepIconPlaces(out);
+      layoutIcons();
+    }
+    // The recycle bin's icon (the user, 2026-11-14, by the coordinator's list), on the listing: it opens the bin of All games
+    // (web/addgames.js), a game's cap dropped on it asks there to forget its files, and it is full while the bin holds the names of
+    // the games forgotten (byopop-bin), until Empty Recycle Bin, its menu's, clears them with the theme's sound
+    var BIN_KEY = "byopop-bin";
+    function binItems() { try { var a = JSON.parse(localStorage.getItem(BIN_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+    function openBin(id) {
+      var gw = find(gamesWindow());
+      if (gw) { if (gw.min) setMin(gw, false); show(gw); }
+      if (window.ByopopAddGames && ByopopAddGames.bin) ByopopAddGames.bin(id || null);
+    }
+    function emptyBin() {
+      try { localStorage.removeItem(BIN_KEY); } catch (e) {}
+      deskEvent("empty");
+      try { window.dispatchEvent(new CustomEvent("byopop-bin")); } catch (e) {}
+    }
+    function binIcon() {
+      if (!icons || EMBED || !document.getElementById("bin") || icons.querySelector(".d95-icon-bin")) return;
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "d95-icon d95-icon-bin"; b.setAttribute("data-key", "w:bin");
+      var pic = document.createElement("i"); pic.setAttribute("aria-hidden", "true");
+      var name = document.createElement("span"); name.textContent = T("skin.bin.name");
+      b.appendChild(pic); b.appendChild(name);
+      function full() { return binItems().length > 0; }
+      function draw() { b.classList.toggle("d95-bin-full", full()); b.setAttribute("aria-label", T(full() ? "skin.bin.label_full" : "skin.bin.label_empty")); }
+      draw();
+      window.addEventListener("byopop-bin", draw);
+      window.addEventListener("storage", function (ev) { if (!ev.key || ev.key === BIN_KEY) draw(); });
+      b.addEventListener("click", function () { openBin(null); });
+      function menu(x, y) {
+        popMenu(b, [{ label: T("skin.bin.open"), bold: true, fn: function () { openBin(null); } }, { rule: true },
+          { label: T("skin.bin.empty"), disabled: !full(), fn: emptyBin }], x, y, T("skin.bin.name"));
+      }
+      b.addEventListener("contextmenu", function (ev) { ev.preventDefault(); menu(ev.clientX, ev.clientY); });
+      b.addEventListener("keydown", function (ev) {
+        if (ev.key === "ContextMenu" || (ev.key === "F10" && ev.shiftKey)) { ev.preventDefault(); var r = b.getBoundingClientRect(); menu(r.right - 8, r.top + 8); }
+      });
+      var CAP = "application/x-byopop-game";
+      function isCap(ev) { return !!ev.dataTransfer && Array.prototype.indexOf.call(ev.dataTransfer.types || [], CAP) >= 0; }
+      b.addEventListener("dragenter", function (ev) { if (isCap(ev)) { ev.preventDefault(); b.classList.add("d95-icon-sel"); } });
+      b.addEventListener("dragover", function (ev) { if (isCap(ev)) { ev.preventDefault(); ev.dataTransfer.dropEffect = "move"; } });
+      b.addEventListener("dragleave", function () { b.classList.remove("d95-icon-sel"); });
+      b.addEventListener("drop", function (ev) {
+        b.classList.remove("d95-icon-sel");
+        if (!isCap(ev)) return;
+        ev.preventDefault();
+        openBin(ev.dataTransfer.getData(CAP));
+      });
+      icons.insertBefore(b, icons.querySelector(".d95-fav"));
+      layoutIcons();
+      startSound();
+    }
+    // the desktop starting: its sound at the first press or key of the browser's session on the listing (a page may not play a
+    // sound before the player does something), and again when the last screen of Shut Down goes (binIcon, once the page is there)
+    function startSound() {
+      var started = false;
+      try { started = sessionStorage.getItem("byopop-started") === "1"; } catch (e) {}
+      if (!started) {
+        var startUp = function () {
+          document.removeEventListener("pointerdown", startUp, true);
+          document.removeEventListener("keydown", startUp, true);
+          try { sessionStorage.setItem("byopop-started", "1"); } catch (e) {}
+          if (on && !offScreen) deskEvent("start");
+        };
+        document.addEventListener("pointerdown", startUp, true);
+        document.addEventListener("keydown", startUp, true);
+      }
+    }
+    function selected() { return iconList().filter(function (b) { return b.classList.contains("d95-icon-sel"); }); }
+    function select(list) { iconList().forEach(function (b) { b.classList.toggle("d95-icon-sel", list.indexOf(b) >= 0); }); }
+    // the empty desktop: nothing of a window, the task bar, a menu or an icon under the pointer
+    function emptyDesk(t) {
+      if (!on || !t || !t.closest) return false;
+      if (t.closest(".d95-icon, .d95-taskbar, .d95-menu, .d95-ctx, .d95-switch, .d95-off, .d95-vol, button, a, input, select, textarea, label, iframe, [role=dialog]")) return false;
+      return !wins.some(function (w) { return !w.closed && w.el.contains(t); });
+    }
+    var iconDrag = null, band = null;
+    document.addEventListener("pointerdown", function (ev) {
+      if (!on || EMBED || !icons || ev.button !== 0) return;
+      var b = ev.target.closest && ev.target.closest(".d95-icons > .d95-icon");
+      if (b) {
+        if (ev.ctrlKey) b.classList.toggle("d95-icon-sel");
+        else if (!b.classList.contains("d95-icon-sel")) select([b]);
+        iconDrag = { id: ev.pointerId, px: ev.clientX, py: ev.clientY, moved: false, list: selected(), from: null };
+        return;
+      }
+      if (!emptyDesk(ev.target)) return;
+      if (!ev.ctrlKey) select([]);
+      band = { id: ev.pointerId, px: ev.clientX, py: ev.clientY, el: null, had: selected() };
+    }, true);
+    window.addEventListener("pointermove", function (ev) {
+      if (iconDrag && ev.pointerId === iconDrag.id) {
+        var dx = unzoom(ev.clientX - iconDrag.px), dy = unzoom(ev.clientY - iconDrag.py);
+        if (!iconDrag.moved && Math.abs(dx) + Math.abs(dy) < 5) return;
+        if (!iconDrag.moved) {
+          iconDrag.moved = true;
+          // the first move of any icon: every icon keeps the place it has now
+          if (!iconPlaces()) { keepIconPlaces(iconsNow()); layoutIcons(); }
+          iconDrag.from = iconDrag.list.map(function (x) { return [x, x.offsetLeft, x.offsetTop]; });
+          document.documentElement.classList.add("d95-dragging");
+        }
+        iconDrag.from.forEach(function (f) { f[0].style.left = Math.max(0, f[1] + dx) + "px"; f[0].style.top = Math.max(0, f[2] + dy) + "px"; });
+        return;
+      }
+      if (band && ev.pointerId === band.id) {
+        var x0 = Math.min(band.px, ev.clientX), y0 = Math.min(band.py, ev.clientY), x1 = Math.max(band.px, ev.clientX), y1 = Math.max(band.py, ev.clientY);
+        if (!band.el) {
+          if (x1 - x0 + y1 - y0 < 5) return;
+          band.el = document.createElement("div"); band.el.className = "d95-band"; band.el.setAttribute("aria-hidden", "true");
+          document.body.appendChild(band.el);
+          document.documentElement.classList.add("d95-dragging");
+        }
+        band.el.style.left = unzoom(x0) + "px"; band.el.style.top = unzoom(y0) + "px";
+        band.el.style.width = unzoom(x1 - x0) + "px"; band.el.style.height = unzoom(y1 - y0) + "px";
+        var hit = iconList().filter(function (b) {
+          var r = b.getBoundingClientRect();
+          return r.right > x0 && r.left < x1 && r.bottom > y0 && r.top < y1;
+        });
+        select(ev.ctrlKey ? band.had.concat(hit) : hit);
+      }
+    });
+    function pointerEnd(ev) {
+      if (iconDrag && ev.pointerId === iconDrag.id) {
+        var d = iconDrag;
+        iconDrag = null;
+        document.documentElement.classList.remove("d95-dragging");
+        if (!d.moved) return;
+        var p = iconPlaces() || {};
+        d.from.forEach(function (f) { p[f[0].getAttribute("data-key")] = [f[0].offsetLeft, f[0].offsetTop]; });
+        keepIconPlaces(p);
+        // the drag is not also the icon's click
+        var eat = function (e) { e.stopImmediatePropagation(); e.preventDefault(); document.removeEventListener("click", eat, true); };
+        document.addEventListener("click", eat, true);
+        setTimeout(function () { document.removeEventListener("click", eat, true); }, 0);
+      }
+      if (band && ev.pointerId === band.id) {
+        if (band.el && band.el.parentNode) band.el.parentNode.removeChild(band.el);
+        band = null;
+        document.documentElement.classList.remove("d95-dragging");
+      }
+    }
+    window.addEventListener("pointerup", pointerEnd);
+    window.addEventListener("pointercancel", pointerEnd);
+    window.addEventListener("resize", function () { if (on) layoutIcons(); });
+    // the empty desktop's menu: Arrange Icons, Line up Icons, and Properties, which opens Settings' Appearance
+    document.addEventListener("contextmenu", function (ev) {
+      if (EMBED || !emptyDesk(ev.target)) return;
+      ev.preventDefault();
+      var look = find("set-look") || find("tab-settings") || find("panel-settings");
+      popMenu(document.body, [
+        { label: T("skin.deskmenu.arrange"), fn: arrangeIcons },
+        { label: T("skin.deskmenu.lineup"), disabled: !iconPlaces(), fn: lineUpIcons },
+        { rule: true },
+        { label: T("skin.deskmenu.props"), disabled: !look, fn: function () { if (look.min) setMin(look, false); show(look); } }
+      ], ev.clientX, ev.clientY, T("skin.deskmenu.label"));
+    });
+    // ---- the task bar's menu: the open windows cascaded or tiled, or all minimized (and back) ----
+    function openWins() {
+      return wins.filter(function (w) { return present(w) && !w.min && !maxed(w); })
+        .sort(function (a, b) { return (parseInt(a.el.style.zIndex, 10) || 0) - (parseInt(b.el.style.zIndex, 10) || 0); });
+    }
+    function putAt(w, x, y, width, height) {
+      if (!w.sizes && width) {
+        var lw = RZ_MIN.w, lh = RZ_MIN.h;
+        if (w.minWidth) try { lw = Math.max(lw, w.minWidth() || 0); } catch (e) {}
+        if (w.minHeight) try { lh = Math.max(lh, w.minHeight() || 0); } catch (e) {}
+        sizeTo(w, Math.max(lw, width), Math.max(lh, height));
+      }
+      w.x = x; w.y = y; w.placed = true;
+      place(w, true); commit(w);
+    }
+    function cascade() {
+      var list = openWins(), r = room();
+      list.forEach(function (w, i) {
+        var k = i % 10, x = 8 + k * 24, y = 8 + k * 24;
+        putAt(w, x, y, Math.min(w.el.offsetWidth, r.w - x - 8), Math.min(w.el.offsetHeight, r.h - y - 8));
+        raise(w);
+      });
+      save();
+    }
+    function tile(across) {
+      var list = openWins(), r = room(), n = list.length;
+      if (!n) return;
+      list.forEach(function (w, i) {
+        if (across) putAt(w, Math.floor(i * r.w / n), 0, Math.floor(r.w / n), r.h);
+        else putAt(w, 0, Math.floor(i * r.h / n), r.w, Math.floor(r.h / n));
+      });
+      save();
+    }
+    var minimizedAll = null;
+    function minimizeAll() {
+      minimizedAll = wins.filter(function (w) { return present(w) && !w.min; });
+      minimizedAll.forEach(function (w) { setMin(w, true); });
+    }
+    function undoMinimizeAll() {
+      var list = minimizedAll || [];
+      minimizedAll = null;
+      list.forEach(function (w) { if (present(w) && w.min) setMin(w, false); });
+    }
+    function barMenu(x, y) {
+      var undo = minimizedAll && minimizedAll.some(function (w) { return present(w) && w.min; });
+      var some = openWins().length > 0;
+      popMenu(taskbar ? taskbar.el : document.body, [
+        { label: T("skin.bar.cascade"), disabled: !some, fn: cascade },
+        { label: T("skin.bar.tileh"), disabled: !some, fn: function () { tile(false); } },
+        { label: T("skin.bar.tilev"), disabled: !some, fn: function () { tile(true); } },
+        { rule: true },
+        undo ? { label: T("skin.bar.undominall"), fn: undoMinimizeAll } : { label: T("skin.bar.minall"), fn: minimizeAll }
+      ], x, y, T("skin.taskbar"));
     }
     // a game's page: its window on the one page (web/deskapps.js), else the page itself
     function openPage(page) {
@@ -1222,7 +1649,7 @@ var ByopopSkin = (function () {
     }
     function winOf(el) { for (var i = 0; i < wins.length; i++) if (wins[i].el === el) return wins[i]; return null; }
     // the active window: its title bar in colour, the others grey (none while the icons or the task bar have the focus)
-    var active = null;
+    var active = null, used = [];
     function activate(w) {
       if (active === w) return;
       // another window to the front: the open menus close, as Windows' did (the task bar's or the desktop's focus is no window,
@@ -1230,6 +1657,7 @@ var ByopopSkin = (function () {
       if (w) closeAllMenus();
       if (active) active.el.classList.remove("d95-active");
       active = w;
+      if (w) { var at = used.indexOf(w); if (at >= 0) used.splice(at, 1); used.unshift(w); }
       if (w) { w.el.classList.add("d95-active"); if (String(w.el.style.zIndex) !== String(top)) raise(w); }
       try { window.dispatchEvent(new CustomEvent("byopop-desk-active", { detail: { id: w ? w.id : null } })); } catch (e) {}
     }
@@ -1302,6 +1730,186 @@ var ByopopSkin = (function () {
       }
     }
     document.addEventListener("keydown", onKeys, true);
+    // ---- Alt+` (the user, 2026-11-13: "Add Alt+Backtick as a site shortcut that works like Alt-Tab in Windows"), since the
+    // browser keeps Alt+Tab. Held down, each ` steps through the open windows, the one used last first, in a box in the middle
+    // of the desktop (Shift+` steps back, Escape lets go of it); letting go of Alt brings the chosen one to the front, restored
+    // if it was minimized, and gives it the focus. A quick Alt+` so goes back to the window used before. In a window's page on
+    // the listing's desktop the keys go to that desktop (ByopopApps.altTab), as F6 does, so the switch is between its windows.
+    var sw = null;
+    function switchList() {
+      var l = used.filter(function (w) { return present(w); });
+      wins.forEach(function (w) { if (present(w) && l.indexOf(w) < 0) l.push(w); });
+      return l;
+    }
+    function drawSwitch() {
+      if (!sw.box) {
+        sw.box = document.createElement("div");
+        sw.box.className = "d95-switch";
+        sw.icons = document.createElement("div"); sw.icons.className = "d95-switch-icons";
+        sw.name = document.createElement("div"); sw.name.className = "d95-switch-name"; sw.name.setAttribute("aria-live", "polite");
+        sw.box.appendChild(sw.icons); sw.box.appendChild(sw.name);
+        document.body.appendChild(sw.box);
+      }
+      sw.icons.textContent = "";
+      sw.list.forEach(function (w, i) {
+        // the window's icon on the desktop, drawn by the same rules (d95-icon-<id>), else a plain window
+        var c = document.createElement("span"), di = icons && icons.querySelector(".d95-icon-" + w.id + " > i");
+        c.className = "d95-icon d95-icon-" + w.id + (di && di.parentNode.classList.contains("d95-icon-pic") ? " d95-icon-pic" : "") +
+          " d95-switch-icon" + (i === sw.at ? " d95-switch-on" : "");
+        c.appendChild(di ? di.cloneNode(true) : document.createElement("i"));
+        sw.icons.appendChild(c);
+      });
+      var t = sw.list[sw.at];
+      sw.name.textContent = t.el.getAttribute("data-d95-title") || t.id;
+    }
+    function altTab(how) {
+      if (!on) return;
+      if (how === "cancel" || how === "commit") {
+        if (!sw) return;
+        var cur = sw;
+        sw = null;
+        if (cur.box && cur.box.parentNode) cur.box.parentNode.removeChild(cur.box);
+        if (how === "commit") { var w = cur.list[cur.at]; if (w.min) setMin(w, false); else raise(w); focusPane(w.el, false); }
+        return;
+      }
+      var back = how === "back";
+      if (!sw) {
+        var l = switchList();
+        if (!l.length) return;
+        closeAllMenus();
+        sw = { list: l, at: back ? l.length - 1 : (l[0] === active && l.length > 1 ? 1 : 0) };
+      } else sw.at = (sw.at + (back ? sw.list.length - 1 : 1)) % sw.list.length;
+      drawSwitch();
+    }
+    var forwarded = false;   // a page in a window: a switch is on in the desktop around it
+    function switching() { return !!sw || forwarded; }
+    function sendSwitch(how) {
+      var P = parentApps();
+      if (P && P.altTab) { forwarded = how === "next" || how === "back"; try { P.altTab(window, how); } catch (e) {} return; }
+      altTab(how);
+    }
+    document.addEventListener("keydown", function (ev) {
+      if (ev.code === "Backquote" && ev.altKey && !ev.ctrlKey && !ev.metaKey) {
+        if (!on && !parentApps()) return;
+        ev.preventDefault(); ev.stopImmediatePropagation();
+        sendSwitch(ev.shiftKey ? "back" : "next");
+      } else if (ev.key === "Escape" && switching()) {
+        ev.preventDefault(); ev.stopImmediatePropagation();
+        sendSwitch("cancel");
+      }
+    }, true);
+    document.addEventListener("keyup", function (ev) {
+      if (ev.key !== "Alt" || !switching()) return;
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      sendSwitch("commit");
+    }, true);
+    window.addEventListener("blur", function () { if (sw) altTab("cancel"); forwarded = false; });
+    // ---- tooltips drawn as 1995's (the user, 2026-11-14, by the coordinator's list): a pale yellow box with a black border under
+    // the pointer, half a second after it rests on something with a title, in place of the browser's own. While the box may show
+    // the title is taken off the element (the browser would draw its own), and an element named only by it keeps that name.
+    var tip = null;
+    function tipEnd() {
+      if (!tip) return;
+      clearTimeout(tip.timer);
+      if (tip.box && tip.box.parentNode) tip.box.parentNode.removeChild(tip.box);
+      if (tip.el.getAttribute("title") === null) tip.el.setAttribute("title", tip.text);
+      if (tip.named) tip.el.removeAttribute("aria-label");
+      tip = null;
+    }
+    document.addEventListener("pointerover", function (ev) {
+      if (!on || ev.pointerType === "touch") return;
+      var el = ev.target.closest && ev.target.closest("[title]");
+      if (tip && tip.el === el) return;
+      tipEnd();
+      if (!el || !el.getAttribute("title") || el.closest(".d95-menu, .d95-ctx")) return;
+      var text = el.getAttribute("title");
+      var named = !el.hasAttribute("aria-label") && !el.hasAttribute("aria-labelledby") && !el.textContent.trim();
+      if (named) el.setAttribute("aria-label", text);
+      el.removeAttribute("title");
+      tip = { el: el, text: text, named: named, x: ev.clientX, y: ev.clientY, box: null };
+      tip.timer = setTimeout(function () {
+        if (!tip || tip.el !== el) return;
+        var b = document.createElement("div");
+        b.className = "d95-tip"; b.setAttribute("aria-hidden", "true"); b.textContent = text;
+        document.body.appendChild(b);
+        var x = unzoom(tip.x), y = unzoom(tip.y) + 20;
+        b.style.left = Math.max(0, Math.min(x, viewW() - b.offsetWidth - 2)) + "px";
+        b.style.top = (y + b.offsetHeight > room().h ? unzoom(tip.y) - b.offsetHeight - 4 : y) + "px";
+        tip.box = b;
+        tip.timer = setTimeout(tipEnd, 6000);
+      }, 500);
+    });
+    document.addEventListener("pointermove", function (ev) { if (tip && !tip.box) { tip.x = ev.clientX; tip.y = ev.clientY; } }, true);
+    document.addEventListener("pointerout", function (ev) { if (tip && (!ev.relatedTarget || !tip.el.contains(ev.relatedTarget))) tipEnd(); });
+    document.addEventListener("pointerdown", tipEnd, true);
+    document.addEventListener("keydown", tipEnd, true);
+    window.addEventListener("blur", tipEnd);
+    // ---- Alt+4 closes the window in front (the user, 2026-11-14, by the coordinator's list), standing in for the Alt+F4 the
+    // browser keeps; with no window open it opens the Pop menu on Shut Down. In a window's page on the listing's desktop it goes to
+    // that desktop (ByopopApps.closeFront), as Alt+` does, never to the game. AltGr+4 (Ctrl and Alt together on Windows, where it
+    // types a currency sign on some layouts) and a key typed into a text field (Option+4 types a cent sign on a Mac) are left
+    // alone.
+    function closeFront() {
+      if (!on) return;
+      closeAllMenus();
+      var w = active && present(active) && !active.min ? active : frontmost();
+      if (w) closeWin(w);
+      else if (taskbar) taskbar.openShutDown();
+    }
+    function typing(el) {
+      if (!el || !el.tagName) return false;
+      if (el.isContentEditable || el.tagName === "TEXTAREA") return true;
+      return el.tagName === "INPUT" && !/^(button|checkbox|radio|range|color|file|image|reset|submit)$/i.test(el.type || "");
+    }
+    document.addEventListener("keydown", function (ev) {
+      if (ev.code !== "Digit4" || !ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.repeat) return;
+      if ((ev.getModifierState && ev.getModifierState("AltGraph")) || typing(ev.target)) return;
+      var P = parentApps();
+      if (!on && !P) return;
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      if (P && P.closeFront) { try { P.closeFront(window); } catch (e) {} return; }
+      closeFront();
+    }, true);
+    // ---- Shut Down: every window closes as its Close closes it (a game's with its saves), and the last screen covers the page,
+    // wordless and black, until a key or a click brings the desktop back with its windows closed. On a game's own page the game
+    // closes and the listing shows the last screen (web/shell.html, closeProgram); in a window's page the desktop around it
+    // shuts down.
+    function shutDown() {
+      var P = parentApps();
+      if (P && P.shutDown) { try { P.shutDown(window); } catch (e) {} return; }
+      closeAllMenus();
+      deskEvent("exit");
+      var game = find("game");
+      wins.slice().forEach(function (w) { if (w !== game && present(w)) closeWin(w); });
+      if (game && present(game) && game.onClose) { window.byopopShutDown = true; lastScreen(true); closeWin(game); return; }
+      lastScreen(false);
+    }
+    var offScreen = null;
+    function lastScreen(stay) {
+      if (offScreen) return;
+      var s = document.createElement("div");
+      s.className = "d95-off"; s.tabIndex = -1;
+      s.setAttribute("role", "dialog"); s.setAttribute("aria-modal", "true"); s.setAttribute("aria-label", T("skin.pop.shutdown.screen"));
+      document.body.appendChild(s);
+      offScreen = s;
+      try { s.focus(); } catch (e) {}
+      if (stay) return;   // the game's page goes on to the listing, which shows its own
+      var armed = false;
+      setTimeout(function () { armed = true; }, 800);
+      function back(ev) {
+        if (!armed || ev.key === "Alt" || ev.key === "Shift" || ev.key === "Control" || ev.key === "Meta") return;
+        ev.preventDefault(); ev.stopImmediatePropagation();
+        document.removeEventListener("keydown", back, true);
+        document.removeEventListener("pointerdown", back, true);
+        s.parentNode.removeChild(s);
+        offScreen = null;
+        deskEvent("start");
+        activate(frontmost());
+        if (taskbar && taskbar.el) { var p = taskbar.el.querySelector(".d95-pop"); if (p) p.focus(); }
+      }
+      document.addEventListener("keydown", back, true);
+      document.addEventListener("pointerdown", back, true);
+    }
     document.addEventListener("focusin", function (ev) {
       if (!on) return;
       var pane = paneOf(ev.target), w = pane && winOf(pane);
@@ -1328,6 +1936,7 @@ var ByopopSkin = (function () {
         document.body.insertBefore(icons, document.body.firstChild);
         wins.forEach(function (w) { if (!w.noIcon) addIcon(w, w.el.getAttribute("data-d95-title") || w.id); });
         favIcons();
+        binIcon();
         window.addEventListener("byopop-favourites", favIcons);
         window.addEventListener("storage", function (ev) { if (!ev.key || (window.ByopopSettings && ev.key === ByopopSettings.KEY)) favIcons(); });
       }
@@ -1337,6 +1946,7 @@ var ByopopSkin = (function () {
       else wins.forEach(function (w) { if (w.w && w.h) sizeTo(w, w.w, w.h); });
       try { window.dispatchEvent(new CustomEvent("byopop-desk", { detail: { on: on } })); } catch (e) {}
       if (on) layout();
+      layoutIcons();
       // the keys, said once: a line in About
       var ab = find("about"), keysLine = ab && ab.el.querySelector(".d95-keys");
       if (on && ab && !keysLine) {
@@ -1363,6 +1973,7 @@ var ByopopSkin = (function () {
              // the focus into this page from the desktop it is in (F6): its first pane, or its last going back
              enter: function (back) { var p = panes(); if (p.length) focusPane(back ? p[p.length - 1] : p[0], back); },
              // F6 from a window's page, past its own panes: the desktop's pane after (or before) that window
+             altTab: altTab, closeFront: closeFront, shutDown: shutDown, lastScreen: lastScreen,
              f6From: function (id, back) {
                var w = find(id), list = panes();
                if (!w || !list.length) return;
@@ -1476,4 +2087,71 @@ var ByopopSkin = (function () {
   }
   document.addEventListener("selectstart", function (ev) { var t = ev.target; if (t && t.nodeType !== 1) t = t.parentNode; if (t && t.closest && t.closest(".stage") && !t.closest(".overlay")) ev.preventDefault(); }, true);
   return { zoom: zoom, unzoom: unzoom, ratio: ratio, viewW: viewW, viewH: viewH, gamesWindow: gamesWindow, EMBED: EMBED, SITE: SITE, testQuery: testQuery, current: current, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync };
+})();
+// The volume of everything the site plays (the tray's speaker; the user, 2026-11-14, by the coordinator's list): the games, Music,
+// Sounds and a theme's sounds, each at its own level times this one. Kept in localStorage (byopop-master-volume, 0 to 100, and
+// byopop-master-mute "1"), so every page and window follows it; on(fn) is told of each change, here or in another page.
+var ByopopVolume = (function () {
+  "use strict";
+  var VOL = "byopop-master-volume", MUTE = "byopop-master-mute", fns = [];
+  function get() { try { var v = parseInt(localStorage.getItem(VOL), 10); return v >= 0 && v <= 100 ? v : 100; } catch (e) { return 100; } }
+  function muted() { try { return localStorage.getItem(MUTE) === "1"; } catch (e) { return false; } }
+  function level() { return muted() ? 0 : get() / 100; }
+  function fire() { fns.forEach(function (fn) { try { fn(level()); } catch (e) {} }); }
+  function set(v, mute) {
+    try {
+      if (v !== null && v !== undefined) localStorage.setItem(VOL, String(Math.max(0, Math.min(100, Math.round(v)))));
+      if (mute !== undefined) { if (mute) localStorage.setItem(MUTE, "1"); else localStorage.removeItem(MUTE); }
+    } catch (e) {}
+    fire();
+  }
+  window.addEventListener("storage", function (ev) { if (!ev.key || ev.key === VOL || ev.key === MUTE) fire(); });
+  return { get: get, muted: muted, level: level, set: set, on: function (fn) { fns.push(fn); } };
+})();
+// The copy of a game's files, drawn as 1995's file-copy dialog on the desktop (the user, 2026-11-14, by the coordinator's list):
+// our own drawing of a page flying from one folder to another, the file being copied, its size and a progress bar. Only while the
+// desktop is on (in a game page inside the listing, the listing's desktop); else open() gives calls that do nothing, and the page's
+// own messages say how the copy goes. open() -> { file(name, bytes), progress(done, total), close() }.
+var ByopopCopy = (function () {
+  "use strict";
+  var NOOP = { file: function () {}, progress: function () {}, close: function () {} };
+  function T(k, v) { try { return ByopopStrings.t(k, v); } catch (e) { return k; } }
+  function open() {
+    try { if (!document.documentElement.classList.contains("d95-desk") && window.parent !== window && window.parent.ByopopCopy) return window.parent.ByopopCopy.open(); } catch (e) {}
+    if (!document.documentElement.classList.contains("d95-desk") || !document.body) return NOOP;
+    var el = document.createElement("div");
+    el.className = "d95-win d95-active d95-copy";
+    el.setAttribute("role", "dialog"); el.setAttribute("aria-labelledby", "d95-copy-title");
+    var tb = document.createElement("div"); tb.className = "d95-tb d95-handle";
+    var h = document.createElement("h2"); h.className = "d95-tb-text"; h.id = "d95-copy-title"; h.textContent = T("skin.copy.title");
+    tb.appendChild(h); el.appendChild(tb);
+    var pic = document.createElement("div"); pic.className = "d95-copy-pic"; pic.setAttribute("aria-hidden", "true");
+    pic.innerHTML = "<i class='d95-copy-from'></i><i class='d95-copy-page'></i><i class='d95-copy-to'></i>";
+    el.appendChild(pic);
+    var name = document.createElement("div"); name.className = "d95-copy-name";
+    var size = document.createElement("div"); size.className = "d95-copy-size";
+    var bar = document.createElement("div"); bar.className = "d95-copy-bar"; bar.setAttribute("role", "progressbar");
+    bar.setAttribute("aria-valuemin", "0"); bar.setAttribute("aria-valuemax", "100"); bar.setAttribute("aria-valuenow", "0");
+    bar.setAttribute("aria-label", T("skin.copy.title"));
+    var fill = document.createElement("i"); bar.appendChild(fill);
+    el.appendChild(name); el.appendChild(size); el.appendChild(bar);
+    document.body.appendChild(el);
+    var closed = false;
+    return {
+      file: function (n, bytes) {
+        if (closed) return;
+        name.textContent = String(n).split("/").pop();
+        name.title = String(n);
+        size.textContent = bytes >= 0 ? T("skin.copy.size", { kb: Math.max(1, Math.ceil(bytes / 1024)).toLocaleString() }) : "";
+      },
+      progress: function (done, total) {
+        if (closed) return;
+        var pct = total ? Math.min(100, Math.round(done * 100 / total)) : 0;
+        fill.style.width = pct + "%";
+        bar.setAttribute("aria-valuenow", String(pct));
+      },
+      close: function () { if (closed) return; closed = true; if (el.parentNode) el.parentNode.removeChild(el); }
+    };
+  }
+  return { open: open };
 })();

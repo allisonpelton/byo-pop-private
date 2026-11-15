@@ -138,6 +138,7 @@ public:
 	double					mDivePos;				// +0xd48 constructor 1.0; the depth reached in pixels (Update += mDiverSpeed)
 	double					mDivePosMarked;			// +0xd50 constructor 0; mDivePos at the last time Update moved the score on (every 8.0)
 	WinWSApp*				mApp;					// +0xd58 constructor argument
+	unsigned int			mBoardSerial;			// port: the number of this board (one for each level), counted from 1 over the run, which the autosplit observer reads (LiveSplitObserver.cpp); nothing in the game reads it
 	LessonManager*			mLessonManager;			// +0xd5c SetLessonManager
 	bool					mAlwaysFalse;				// +0xd60 constructor false; never read
 	int						mBonusCreaturesKilled;				// +0xd64 constructor 0; SpawnWave zeroes it for each wave; HandleBonusCreatureEvents adds one for every bonus creature whose word is finished and pays 200 points times the count (the rising tone follows the count too)

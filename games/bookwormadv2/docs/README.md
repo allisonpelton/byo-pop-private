@@ -10,7 +10,7 @@ and are never in the repository. Volume 1's folder is never edited from here.
 Most of the game is not in the exe's C++ but in 462 Lua scripts compiled for PopCap's fork of Lua 5.0 (PopLua), and in
 304 PopAnim animations (`.pam`, versions 1 to 3) and 5 Flash cut scenes. The folders are Volume 1's: `poplua/` (the VM
 and compiler, `POPLUA.md`), `lualib/` and `luaapp/` (the layer that links C++ objects to Lua), `jefflib/` (the
-helper library the game's classes use), `popanim/`, `swf/` and, to be reworked for Volume 2, `src/` (the game's C++
+helper library the game's classes use), `popanim/` (the Flash player is the shared `engines/swf`) and, to be reworked for Volume 2, `src/` (the game's C++
 classes). `ENGINE.md` maps the exe's regions to them; its addresses are Volume 1's.
 
 ## The binary

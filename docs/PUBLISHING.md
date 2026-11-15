@@ -50,6 +50,80 @@ snapshot, which is the parent of the next one; when the tree has not changed sin
 The commit's author is whoever git's configuration names, and its message is "byo-pop snapshot, <date>" unless
 `-m` gives another first line.
 
+## Derived repositories
+
+A derived repository is a read-only copy of one finished game: the game's code and notes, the shared code it links
+and a top-level `CMakeLists.txt` and `README.md` that build and describe that one game. It is generated from the
+trunk, never edited, and its README sends changes to this repository. Rocket Mania is the first
+(`https://github.com/allisonpelton/byo-pop-rocketmania`). A game gets one once its entry in `docs/game_status.json`
+shows every step done. It has no history either, only snapshots.
+
+A game's manifest is `tools/publish_targets/<game>.txt`, read from the trunk: its repository's url, the paths to take
+(`include` and `exclude`, a file or a folder each) and the generated files (a `file` line puts a trunk file at another
+path, a `transform` line runs one of the functions in `tools/publish.py`'s `TRANSFORMS` on a trunk file). To add a game,
+copy `rocketmania.txt`, list its folders, the libraries its CMake targets link (follow `games/<game>/CMakeLists.txt`
+and `third_party/CMakeLists.txt`) and its staging script, leave out the tools that need an original exe, origrun or the
+Ghidra exports, write its README next to the manifest, and run the check below. The `toplevel` transform takes the
+game's folder name; the other two cut the framework's and `third_party`'s lists down to the libraries that were taken,
+so a game that needs another library extends them. The `.publishignore` paths and private blocks apply as for the
+whole repository, and so do its checks; a manifest path that matches nothing stops the publish.
+
+No file of a derived repository refers to the site or to the mods (the user, 2026-11-13), and the trunk's sources
+carry markers only where the code itself differs (the user, 2026-11-14). Four kinds of manifest line see to it.
+`rewords <table>` gives the published copy its own wording of the trunk comments that name the site or the mods,
+while the trunk keeps its own: each entry of `tools/publish_targets/<game>.rewords.txt` names a file, the trunk's lines
+exactly and the lines that replace them, and the publish stops when an entry's lines are no longer in its file, so a
+trunk edit to such a comment means changing the entry too. `unifdef -U__EMSCRIPTEN__ -DBYOPOP_DERIVED` then decides
+those two conditionals in every C and C++ file taken, as the `unifdef` tool does: the web build's branches go, and so
+does what the trunk wraps in `#ifndef BYOPOP_DERIVED`, with its `#else` branch, when it has one, in its place. The
+trunk wraps that way only code: the includes, calls, members, functions and signatures of the mod menu, the mod
+manager, the restart, the web build's backup and the autosplit block, with the comments that sit inside that code.
+Nothing defines `BYOPOP_DERIVED` in the trunk, so a normal build compiles exactly what it did before; a wrap's lines
+start at column 0. Each `forbid <regex>` stops the publish while a line of a published file still matches it, and
+lists every such line, so a new reference in the trunk is caught at the next publish and not on GitHub: give it a
+rewords entry, wrap its code, or leave its file out. `vendor <path>` leaves a path (`third_party`) as it is, untouched
+by all three. The `toolchain` and `stage` transforms reword the CMake toolchain file and the staging script. Rocket
+Mania has no fixes and no lite changes, so leaving `platform/GameOptions` out changes nothing; a game that has them
+needs its `FixOn` and `LiteOn` calls decided before its manifest can leave that file out.
+
+```bash
+python tools/publish.py --target rocketmania --model "Opus 5.5"          # into refs/publish/rocketmania/next
+git show --stat refs/publish/rocketmania/next
+git diff --stat refs/publish/rocketmania/main refs/publish/rocketmania/next   # against what GitHub has now
+python tools/publish.py --target rocketmania --build-check --release-zip # builds it, plays a game, writes the ZIP
+python tools/publish.py --target rocketmania --push --model "Opus 5.5"   # to the manifest's url, then refs/publish/rocketmania/main
+python tools/publish.py --target rocketmania --source <commit> --out <new folder>   # the tree only, no commit
+```
+
+`--build-check` needs `LLVM_MINGW_ROOT` set (here `E:/retools/llvm-mingw-20261006-ucrt-x86_64`): the derived repository's
+toolchain file asks for it where the trunk's falls back to this machine's folder, and without it cmake stops before it
+looks for Ninja or a compiler.
+
+`--out` writes the tree a snapshot would hold into a new folder and makes no commit, which is how to try a manifest
+or new wraps before they are committed (`--source` takes any commit, such as one made with `git commit-tree` from a
+temporary index). `--release-zip` builds the snapshot as the build check does and writes
+`build/byo-pop-<game>-<date>.zip`, the date being the snapshot's. It holds one folder: the exe, the DLLs of the build
+folder that the exe loads (read from its import table: only SDL2, since the derived top-level `CMakeLists.txt` links
+libc++ and libunwind into the exe; Windows' own are not copied),
+`README.txt` (the README up to its `## Building` heading, with Windows line ends) and the empty `assets/<game>/`
+folder for the player's own game files. No game file goes in, and nothing is uploaded.
+
+A derived repository stays open, not archived: GitHub's documentation ("Archiving repositories") says an archived
+repository takes no push and no release until its owner unarchives it, and the user chose to keep it open (2026-11-15).
+Each update is the `--push` command, then, in the browser since `gh` is not installed, a new release on the
+repository's Releases page, its tag named after the snapshot's date, with the ZIP attached.
+
+The snapshot is "byo-pop-rocketmania snapshot, <date>" with the same trailer. The build check extracts the snapshot into
+a temporary folder outside the repository, configures and builds it with the generator and toolchain of
+`docs/BUILDS.md`, then runs one scripted `-fast` game of the bot (the one `tools/check.sh rocketmania` plays) with the
+derived exe and with the trunk's `build/native` exe, both under rundesk on the main checkout's staged files. The
+two state logs must be byte-identical. It takes a few minutes, so run it in the background. The browser version is not
+in a derived repository, since the page around it is the site's (`web/`); it is built from the trunk.
+
+Each publish of the trunk also refreshes every derived repository: after `python tools/publish.py --push`, run the
+`--target` commands above for each manifest, with the release step, so that the derived repositories
+never lag behind the code they were made from.
+
 <!-- private -->
 
 ## Backups

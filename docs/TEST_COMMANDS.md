@@ -33,9 +33,12 @@ test hooks of their own keep them and add these names beside them, sharing the c
 | `unlock all` | unlocks every mode, level, minigame and item in the current profile, as the game's own unlocks would |
 | `set <name> <value>` | sets one of the `state` keys (`score 90000`, `enemy 1`, `timer 5`) |
 | `win`, `lose` | ends the current level or game now, as a win or a loss, through the game's own ending |
+| `press <id>` | presses the button with that id as a click would, through the app's own `ButtonDepress` (a SexyAppFramework port) |
+| `dyes <dialog id>`, `dno <dialog id>` | presses the open dialog's yes or no button (its `ButtonDepress(mId + 2000)` or `+ 3000`); an error when no such dialog is open |
 | `seed <n>` | seeds the game's random numbers, where the game draws them from one generator |
 | `move` | prints the move the game's bot would make next, `MOVE {...}`: what it is (the swap, the word, the tile, the shot) and `input`, the real input that makes it, as an ordered list of steps in game coordinates (below); or `MOVE null` when there is none; it changes nothing |
 | `memreport [file]` | prints what the game holds in memory as one JSON line, `MEMREPORT {...}` (below); with a file it also writes the detail there (a SexyAppFramework port: every picture with its copies, and the heaps). It changes nothing |
+| `3d on`, `3d off` | ticks or clears the Options dialog's 3D box through the app's own `Set3DAcclerated` (a SexyAppFramework port) and answers what the display made of it, `OK 3d on: Is3DAccelerated <0 or 1>, Is3DAccelerationSupported <0 or 1>`; on the software screen 3D on hands the screen to the GPU where 3D is offered (docs/MEMORY.md, "The 3D box") |
 | `cyclesplit [label]` | with `-cyclesplit=<file>`: a snapshot of the cycle counters, kept in memory and written with the file at exit ("The cycle split", below); `cyclesplit pause` and `cyclesplit resume` stop and start the readings; an error without the option |
 
 `memreport` answers with the same line in every game, so that a game's memory splits the same way everywhere:
@@ -169,8 +172,12 @@ for N times the logical size; `-renderscale=N` is the render target's size, a se
 call's start in microseconds from the first present and its length. Its header says what held the presents: `renderer <name>
 vsync_asked <0|1> vsync_flag <0|1> pace_ms <ms>`, where `pace_ms` above 0 means the renderer has no vertical blank under it and the
 frame loop holds the draws to the display's refresh interval (`DDInterface::FrameHeldByPace`), and 0 means the blank holds them. The
-intervals between starts show whether the presents come evenly (the blank's 16.7 ms at 60 Hz, or the pace's). Without the option a
-present costs the test of one flag; with it, two counter reads and one record.
+intervals between starts show whether the presents come evenly (the blank's 16.7 ms at 60 Hz, or the pace's). A display that shows
+its frames without a renderer (`SurfaceDisplay` and the software screen) logs its presents the same way, its renderer named
+`surface` (the window's surface), `surface-gdi` (GDI's stretch at 2x to 4x) or `stretch` (stretch mode), each with `-dwm` after
+it under `SURFACE_PACE=dwm`, and with its `scale`. The header's `first_counter` is the first present's start on SDL's performance counter, so that the presents can
+be set against another clock's events, such as DWM's vertical blanks. Without the option a present costs the test of one flag; with
+it, two counter reads and one record.
 
 ## The bot behind `move`
 
@@ -235,7 +242,9 @@ coordinates, waits its `updates`, and asks again, until the state says `"over": 
 `--first <line>` sends a command before the loop (`goto`, `level`, `seed`, `set`), and `--shot` takes a screenshot at
 the end. Its last line is the summary (`playbymove <game>: <n> moves, stop over; STATE {...}`), its run folder
 (`build/playbymove/<game>` by default) holds the game's log and `driver.txt`, every line sent and its answer. A session's
-native driver is a call to it, with the game's own arguments.
+native driver is a call to it, with the game's own arguments. A game whose `over` is also a screen the bot plays on from (Venice's level
+summaries) imports it and calls `play(parse_args(), is_over)` with its own end of play, as
+`games/venice/tools/realinput/drive.py` does.
 
 `-hold` is what makes it repeatable: once the game has loaded, an update runs only when the driver's lines let it (each
 new batch runs one, `wait <n>` runs n), so a game under `-fast` never runs on while the driver decides, the bot's move

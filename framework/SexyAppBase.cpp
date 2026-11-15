@@ -11,6 +11,7 @@
 #include "Widget.h"
 #include "KeyCodes.h"
 #include "DDInterface.h"
+#include "SoftwareScreenDisplay.h"
 #include "DDImage.h"
 #include "MemoryImage.h"
 #include "Dialog.h"
@@ -21,15 +22,21 @@
 #include "SDLSoundManager.h"
 #include "SDLMusicInterface.h"
 #include "SoundInstance.h"
+#ifndef BYOPOP_DERIVED
 #include "ModMenu.h"
 #include "WebSettings.h"
+#endif
 #include "../platform/VFS.h"
 #include "../platform/ImageLoader.h"
+#ifndef BYOPOP_DERIVED
 #include "../platform/ModManager.h"
 #include "../platform/GameOptions.h"
 #include "../platform/WebPersist.h"
+#endif
 #include "../platform/UserFiles.h"
+#ifndef BYOPOP_DERIVED
 #include "../platform/Relaunch.h"
+#endif
 #include "../platform/Placeholders.h"
 #include "../platform/Json.h"
 #include "../platform/Audio.h"
@@ -51,6 +58,7 @@
 #include <malloc.h>
 #include "WebProfiles.h"
 #endif
+#ifndef BYOPOP_DERIVED
 
 // port: the player-only page's hold on the updates (byopop_hold_updates_at, below), web only; -1 holds nothing
 #ifdef __EMSCRIPTEN__
@@ -60,6 +68,7 @@ static bool WebUpdatesHeld(int theUpdateCount) { return (gWebHoldAt >= 0) && (th
 static double gWebFrameBudget = 0;
 #else
 static bool WebUpdatesHeld(int) { return false; }
+#endif
 #endif
 
 using namespace Sexy;
@@ -96,6 +105,7 @@ static void SDLCALL PostedInputHook(void* theUserData, void* theHWnd, unsigned i
 
 //////////////////////////////////////////////////////////////////////////
 // Helpers
+#ifndef BYOPOP_DERIVED
 
 // Platform::UserDataChanged (platform/UserFiles.h): a user file the platform layer wrote (mods.json,
 // mod-settings.json, mods-status.json) goes into the next localStorage backup like the game's own saves
@@ -104,6 +114,7 @@ static void OnUserDataChanged()
 	if (gSexyAppBase != NULL)
 		gSexyAppBase->mBackupDirty = true;
 }
+#endif
 
 // Game strings are narrow Windows-1252/Latin-1 text; SDL and the browser use UTF-8.
 static std::string Latin1ToUTF8(const std::string& theString)
@@ -566,7 +577,9 @@ static EM_BOOL EmscriptenFocusCallback(int theEventType, const EmscriptenFocusEv
 SexyAppBase::SexyAppBase()
 {
 	gSexyAppBase = this;
+#ifndef BYOPOP_DERIVED
 	Platform::SetUserDataChangedCallback(&OnUserDataChanged);
+#endif
 
 	mOnlyAllowOneCopyToRun = true;
 	mNoDefer = false;
@@ -678,12 +691,14 @@ SexyAppBase::SexyAppBase()
 	mAlphaDisabled = false;
 	mUserChanged3DSetting = false;
 	mWant3D = true;
+	mDefault3D = true;
 	mDebugKeysEnabled = false;
 	mNoSoundNeeded = false;
 	mWantFMod = false;
 
 	mSyncRefreshRate = 100;
 	mVSyncUpdates = false;
+	mUpdatesPerUpdateFExact = false;
 	mWaitForVSync = false;
 	mAutoEnable3D = false;
 	mTest3D = false;
@@ -703,11 +718,13 @@ SexyAppBase::SexyAppBase()
 	mLastMouseX = 0;
 	mLastMouseY = 0;
 	mLoadingThreadRunning = false;
+#ifndef BYOPOP_DERIVED
 	mNothingDue = false;
 	mBackupDirty = true;
 	mLastBackupCheck = 0;
 	mLastBackupTime = 0;
 	mBackupHasSave = false;
+#endif
 	mRegistryCapture = false;
 	mHasSeedParam = false;
 	mFastMode = false;
@@ -730,19 +747,26 @@ SexyAppBase::SexyAppBase()
 	mCommandsFilePos = 0;
 	mCommandsFileLine = 0;
 	mCommandsWaitLogged = false;
+#ifndef BYOPOP_DERIVED
 	mLiveCommandCount = 0;
+#endif
 	mCommandsHold = false;
 	mLiveRunUntil = 0;
 	mLiveWaitUntil = -1;
+#ifndef BYOPOP_DERIVED
 	mModMenu = NULL;
 	mModMenuKeyDown = false;
 	mModMenuClosingKey = KEYCODE_UNKNOWN;
+	mModMenuClosedByTest = false;
+#endif
 	mKeyInHandling = KEYCODE_UNKNOWN;
 	mLastKeyPressed = KEYCODE_UNKNOWN;
+#ifndef BYOPOP_DERIVED
 	mRestartRequested = false;
 	mActivationClickPending = false;
 	mActivatedTime = 0;
 	mActivationButtons = 0;
+#endif
 
 	int i;
 
@@ -784,6 +808,7 @@ SexyAppBase::~SexyAppBase()
 	}
 	mDialogMap.clear();
 	mDialogList.clear();
+#ifndef BYOPOP_DERIVED
 
 	// port: the mod menu, then its fonts and their image (while the display still exists)
 	if (mModMenu != NULL)
@@ -793,6 +818,7 @@ SexyAppBase::~SexyAppBase()
 		mModMenu = NULL;
 	}
 	ModMenu::FreeResources();
+#endif
 
 	delete mWidgetManager;
 	mWidgetManager = NULL;
@@ -833,7 +859,9 @@ SexyAppBase::~SexyAppBase()
 		SDL_DestroyWindow(aWindow);
 	}
 
+#ifndef BYOPOP_DERIVED
 	Platform::SetUserDataChangedCallback(NULL);
+#endif
 	gSexyAppBase = NULL;
 }
 
@@ -1466,13 +1494,17 @@ bool SexyAppBase::EraseFile(const std::string& theFileName)
 
 void SexyAppBase::SyncUserData()
 {
+#ifndef BYOPOP_DERIVED
 	Platform::SyncUserData();
 	mBackupDirty = true;
+#endif
 }
+#ifndef BYOPOP_DERIVED
 
 void SexyAppBase::GetShutdownSaves(std::vector<ShutdownSave>* /*theSaves*/)
 {
 }
+#endif
 
 void SexyAppBase::WriteShutdownRegistry()
 {
@@ -1495,6 +1527,7 @@ std::string SexyAppBase::GetShutdownRegistryText()
 	mRegistry.swap(aRegistry);
 	return aText;
 }
+#ifndef BYOPOP_DERIVED
 
 // The path inside the user dir that VFS::Open() writes a game file to ("" if outside it)
 static std::string UserDirRelativePath(const std::string& theFileName)
@@ -1570,6 +1603,7 @@ void SexyAppBase::PageGoingAway()
 		WriteToRegistry();
 	UpdateUserDataBackup(true);
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -1631,8 +1665,34 @@ void SexyAppBase::DoExit(int theCode)
 
 void SexyAppBase::UpdateFrames()
 {
+#ifndef BYOPOP_DERIVED
+	// (when a test's command closed the mod menu in this update, UpdateModMenuFrame has counted it and run its channels)
+	if (mModMenuClosedByTest)
+		mModMenuClosedByTest = false;
+	else
+	{
+		mUpdateCount++;
+		RunTestChannels();
+	}
+#else
 	mUpdateCount++;
+	RunTestChannels();
+#endif
 
+	if (!mMinimized)
+	{
+		if (mWidgetManager->UpdateFrame())
+			++mFPSDirtyCount;
+	}
+
+	mMusicInterface->Update();
+	CleanSharedImages();
+}
+
+// port: the tests' input and commands of one update (-script, -realinput, -commands, BYOPOP_SHOT_REQUEST), before the
+// widgets update
+void SexyAppBase::RunTestChannels()
+{
 	if (mScriptPos < mScript.size())
 		RunScript();
 	if (mRealInputPos < mRealInput.size())
@@ -1662,26 +1722,59 @@ void SexyAppBase::UpdateFrames()
 				SaveScreenshotMidUpdate(aPath);
 		}
 	}
+}
+#ifndef BYOPOP_DERIVED
 
-	if (!mMinimized)
+// port: an update while the mod menu is open (docs/MOD_MENU_DESIGN.md 5.4): the tests' channels, the menu, the
+// music, and nothing of the game. No widget below the menu updates and the game's own UpdateFrames does not run, so
+// the game stands still until the menu closes, whether its ModalOpen pauses it or not (Venice's levels ran on under
+// the menu, the user, 2026-11-13). mUpdateCount still counts, so a test's waits and -fast's drawing go on. False when
+// a test's command closed the menu: the rest of the update is then the game's, as when a test closes a dialog
+// (DoUpdateFrames).
+bool SexyAppBase::UpdateModMenuFrame()
+{
+	mUpdateCount++;
+
+	RunTestChannels();
+
+	if (mModMenu == NULL)
 	{
-		if (mWidgetManager->UpdateFrame())
-			++mFPSDirtyCount;
+		mModMenuClosedByTest = true;
+		return false;
 	}
+	if (!mMinimized)
+		mModMenu->Update();
 
 	mMusicInterface->Update();
 	CleanSharedImages();
+	return true;
 }
+#endif
 
 void SexyAppBase::DoUpdateFramesF(float theFrac)
 {
+#ifndef BYOPOP_DERIVED
+	// port: nothing of the game moves while the mod menu is open (UpdateModMenuFrame)
+	if ((mVSyncUpdates) && (!mMinimized) && (mModMenu == NULL))
+#else
 	if ((mVSyncUpdates) && (!mMinimized))
+#endif
 		mWidgetManager->UpdateFrameF(theFrac);
 }
 
 bool SexyAppBase::DoUpdateFrames()
 {
 	Platform::CycleScope aCycleScope(Platform::CYCLE_UPDATE);      // the "update" part of -cyclesplit
+#ifndef BYOPOP_DERIVED
+
+	if ((mModMenu != NULL) && UpdateModMenuFrame())
+	{
+		// under -fast the sounds that play on go on with the clock, as below
+		if (mFastMode)
+			Platform::Mixer::Get().AdvanceVoices(mFrameTime / mUpdateMultiplier);
+		return true;
+	}
+#endif
 
 	if ((mLoadingThreadCompleted) && (!mLoaded))
 	{
@@ -1727,7 +1820,8 @@ bool SexyAppBase::DrawDirtyStuff()
 
 	DWORD aStartTime = timeGetTime();
 
-	// port: the GPU back buffer isn't persistent, so a frame is either skipped or redrawn completely.
+	// port: the GPU back buffer isn't persistent, so a frame is either skipped or redrawn completely (a software screen
+	// keeps its pixels and draws only the dirty widgets, below).
 	// Whether to draw follows 1.3: something is dirty, the custom cursor changed or a second passed
 	// (and the draw throttle used while loading allows it). The first frame is always drawn.
 	bool hasDirtyWidgets = false;
@@ -1759,7 +1853,9 @@ bool SexyAppBase::DrawDirtyStuff()
 
 	mIsDrawing = true;
 	mDDInterface->BeginFrame();
-	mWidgetManager->MarkAllDirty();
+	// a software screen (SoftwareScreenDisplay) keeps its pixels, so only the dirty widgets are drawn, as in 1.x
+	if (!mDDInterface->ScreenOnCPU())
+		mWidgetManager->MarkAllDirty();
 	mWidgetManager->DrawScreen();
 	mIsDrawing = false;
 
@@ -2281,6 +2377,7 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 
 			mLastUserInputTick = timeGetTime();
 
+#ifndef BYOPOP_DERIVED
 			// port: F2 opens and closes the mod menu (docs/MOD_MENU_DESIGN.md 5.1): a press without modifiers
 			// that is not a key repeat. The game sees neither that press nor its release. (A -script run never
 			// gets here: its real input is dropped above.)
@@ -2315,6 +2412,7 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 					break;
 				mModMenuClosingKey = KEYCODE_UNKNOWN;
 			}
+#endif
 			if (keyDown)
 				mLastKeyPressed = aKeyCode;
 			else if (aKeyCode == mLastKeyPressed)
@@ -2362,10 +2460,12 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 		{
 			mLastUserInputTick = timeGetTime();
 
+#ifndef BYOPOP_DERIVED
 			// port: the text a held key that closed the mod menu types again (Space on its Close button; its
 			// repeated presses are dropped above, so no other key was pressed since)
 			if ((mModMenuClosingKey != KEYCODE_UNKNOWN) && (mModMenuClosingKey == mLastKeyPressed))
 				break;
+#endif
 			mKeyInHandling = mLastKeyPressed;
 			std::string aText = UTF8ToLatin1(theEvent.text.text);
 			for (size_t i = 0; i < aText.length(); i++)
@@ -2402,6 +2502,17 @@ std::string SexyAppBase::NotifyCrashHook()
 
 DDInterface* SexyAppBase::CreateDDInterface()
 {
+#ifndef __EMSCRIPTEN__
+	// port: SOFTWARE_SCREEN=on in a test run gives an app that keeps DDInterface the software screen instead (its 2D draws
+	// through the framework's blitters, and in a window of 1x, or of 2x to 4x with SOFTSCREEN_SCALED=1, no Direct3D device
+	// at all), to measure what the screen costs a port whose original draws in 2D; a player's run never takes it
+	// ("3d": the software screen with the original's 3D mode, SoftwareScreenDisplay::Create's theOffers3D)
+	// (copied at once: SDL_getenv's answer on Windows lives in one buffer that the next SDL_getenv, IsTestRun's, overwrites)
+	const char* anEnv = SDL_getenv("SOFTWARE_SCREEN");
+	const std::string aSoftwareScreen = (anEnv != NULL) ? anEnv : "";
+	if (((aSoftwareScreen == "on") || (aSoftwareScreen == "3d")) && (IsTestRun()))
+		return SoftwareScreenDisplay::Create(this, aSoftwareScreen == "3d");
+#endif
 	return new DDInterface(this);
 }
 
@@ -2820,7 +2931,11 @@ bool SexyAppBase::Process(bool allowSleep)
 	if (mVSyncUpdates)
 	{
 		aFrameFTime = (1000.0 / mSyncRefreshRate) / mUpdateMultiplier;
-		anUpdatesPerUpdateF = (float) (1000.0 / (mFrameTime * mSyncRefreshRate));
+		// port: 1.3 rounds the ticks a frame owes to a float; an exe that keeps the double (Hammer Heads') takes its extra tick
+		// where the sum is exactly one, which the float's 1.6666666 never reaches (mUpdatesPerUpdateFExact)
+		anUpdatesPerUpdateF = 1000.0 / (mFrameTime * mSyncRefreshRate);
+		if (!mUpdatesPerUpdateFExact)
+			anUpdatesPerUpdateF = (float) anUpdatesPerUpdateF;
 	}
 	else
 	{
@@ -2845,9 +2960,15 @@ bool SexyAppBase::Process(bool allowSleep)
 			// port: with -drawevery an update that has not been drawn yet is drawn before the next one
 			if (((++mNonDrawCount < (int) ceil(10*mUpdateMultiplier)) || (!mLoaded)) && ((!mDrawEvery) || (!mHasPendingDraw)))
 			{
+#ifndef BYOPOP_DERIVED
 				// port: a test may hold the updates (byopop_hold_updates_at on the web, -hold natively): the frame is still
 				// drawn, and -fast's clock stops at the held update's time
 				if ((mUpdateFTimeAcc >= aFrameFTime) && (!WebUpdatesHeld(mUpdateCount)) && (!(isHeld = LiveUpdatesHeld())))
+#else
+				// port: a test may hold the updates (-hold): the frame is still drawn, and -fast's clock stops at the
+				// held update's time
+				if ((mUpdateFTimeAcc >= aFrameFTime) && (!(isHeld = LiveUpdatesHeld())))
+#endif
 				{
 					bool hadRealUpdate = DoUpdateFrames();
 					if (hadRealUpdate)
@@ -2907,6 +3028,10 @@ bool SexyAppBase::Process(bool allowSleep)
 			{
 				// Let us take into account the time it took to draw dirty stuff
 				int aTimeToNextFrame = (int) (aFrameFTime - mUpdateFTimeAcc);
+				// port: -fast's clock moves in whole milliseconds, so a frame time that is not one (16.67 ms at a 60 Hz
+				// refresh) would leave a fraction that rounds to no wait and the clock would never reach the next update
+				if (mFastMode && aTimeToNextFrame <= 0 && aFrameFTime > mUpdateFTimeAcc)
+					aTimeToNextFrame = 1;
 				if (aTimeToNextFrame > 0)
 				{
 					if (mFastMode)
@@ -3032,8 +3157,10 @@ bool SexyAppBase::UpdateAppStep(bool* updated)
 
 	if (mExitToTop)
 		return false;
+#ifndef BYOPOP_DERIVED
 
 	mNothingDue = false;
+#endif
 
 	if (mUpdateAppState == UPDATESTATE_PROCESS_DONE)
 		mUpdateAppState = UPDATESTATE_MESSAGES;
@@ -3120,7 +3247,7 @@ int SexyAppBase::InitDDInterface()
 		bool aWant3D = mWant3D;
 		if (!mUserChanged3DSetting)
 		{
-			aWant3D = true;
+			aWant3D = mDefault3D;
 			RegistryReadBoolean("Is3D", &aWant3D);
 #ifdef __EMSCRIPTEN__
 			// the site's "3D acceleration" (always 1, never 0; -1 leaves it to the game) decides this run in place of the saved
@@ -3129,6 +3256,9 @@ int SexyAppBase::InitDDInterface()
 				aWant3D = Byopop::SiteAccel3D() != 0;
 #endif
 		}
+		// a display that draws in software while 3D is off takes the GPU for 3D first (SoftwareScreenDisplay), so that mIs3D
+		// and mCan3D say what this run has
+		mDDInterface->NoteWant3D(aWant3D);
 		if (!aWant3D)
 			mDDInterface->mIs3D = false;
 
@@ -3169,7 +3299,9 @@ void SexyAppBase::Start()
 	DWORD aStartTime = timeGetTime();
 
 	mRunning = true;
+#ifndef BYOPOP_DERIVED
 	Platform::ModManager::Get().SetGameRunning(true);
+#endif
 	mLastTime = aStartTime;
 	mLastUserInputTick = aStartTime;
 	mLastTimerTime = aStartTime;
@@ -3183,7 +3315,9 @@ void SexyAppBase::MainLoopFinished()
 	ProcessSafeDeleteList();
 
 	mRunning = false;
+#ifndef BYOPOP_DERIVED
 	Platform::ModManager::Get().SetGameRunning(false);
+#endif
 
 	SDL_Log("Seconds = %g, Sleep Count = %d, Update Count = %d, Draw Count = %d",
 		(timeGetTime() - mTimeLoaded) / 1000.0, mSleepCount, mUpdateCount, mDrawCount);
@@ -3238,6 +3372,7 @@ bool SexyAppBase::LoadProperties(const std::string& theFileName, bool required, 
 	else
 		return true;
 }
+#ifndef BYOPOP_DERIVED
 
 // The printf conversions of a text, in order ("d;s;" for "LEVEL %d of %s"; "%%" is none). Malformed ones count
 // as "?", so two texts match only if printf reads the same arguments from both.
@@ -3283,12 +3418,14 @@ static std::string FormatSignature(const std::wstring& theText)
 	}
 	return aSignature;
 }
+#endif
 
 bool SexyAppBase::LoadProperties()
 {
 	// Load required language-file properties
 	if (!LoadProperties("properties\\default.xml", true, false))
 		return false;
+#ifndef BYOPOP_DERIVED
 	// port: what the game's own texts say, to check the mods' texts against
 	StringWStringMap aGameStrings = mStringProperties;
 
@@ -3331,6 +3468,7 @@ bool SexyAppBase::LoadProperties()
 		SDL_Log("mod strings: %s: its %% codes differ from the game's text, so the game's text is used", anItr->first.c_str());
 		anItr->second = aGame->second;
 	}
+#endif
 	return true;
 }
 
@@ -3576,9 +3714,11 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 	// port: the time of every present, for reading the intervals between them (DDInterface::StartPresentLog)
 	else if (theParamName == "-presentlog")
 		DDInterface::StartPresentLog(theParamValue);
+#ifndef BYOPOP_DERIVED
 	// port: the site's "Always skip start-up logos" natively, for testing a game's wiring (framework/WebSettings.h)
 	else if (theParamName == "-skiplogos")
 		Byopop::SetSiteSkipLogos(true);
+#endif
 	else if (theParamName == "-trace")
 		mTraceMode = true;
 	else if (theParamName == "-drawevery")
@@ -3587,9 +3727,11 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 		mForcedRenderScale = atoi(theParamValue.c_str());
 	else if (theParamName == "-windowscale")
 		mForcedWindowScale = std::max(0, std::min(4, atoi(theParamValue.c_str())));
+#ifndef BYOPOP_DERIVED
 	// port: -original, -fix=<id>[=off] and -lite=<id>[=off], the game's improvements (platform/GameOptions.h)
 	else if ((theParamName == "-original") || (theParamName == "-fix") || (theParamName == "-lite"))
 		Platform::HandleOptionParam(theParamName, theParamValue);
+#endif
 	// port: stand-ins for missing game files (platform/Placeholders.h)
 	else if (theParamName == "-placeholders")
 		Platform::SetPlaceholders(true);
@@ -3748,8 +3890,10 @@ int SexyAppBase::RunScriptCommand(const ScriptCommand& theCommand, std::string* 
 		else
 			mWidgetManager->KeyUp(aKeyCode);
 	}
+#ifndef BYOPOP_DERIVED
 	else if (aName == "modmenu")
 		ModMenu::RunScriptCommand(this, aCommand);
+#endif
 	else if ((aName == "char") && (!aCommand.mArgs.empty()))
 	{
 		// The arguments are trimmed, so a space is spelled "char SPACE" (exactly; anything else types
@@ -3775,6 +3919,13 @@ int SexyAppBase::RunScriptCommand(const ScriptCommand& theCommand, std::string* 
 	}
 	else if (aName == "quit")
 		Shutdown();
+	else if ((aName == "3d") && ((aCommand.mArgs == "on") || (aCommand.mArgs == "off")))
+	{
+		// the Options dialog's 3D box, ticked or cleared (Set3DAcclerated), and what the display made of it
+		Set3DAcclerated(aCommand.mArgs == "on");
+		SDL_Log("OK 3d %s: Is3DAccelerated %d, Is3DAccelerationSupported %d", aCommand.mArgs.c_str(), Is3DAccelerated() ? 1 : 0,
+			Is3DAccelerationSupported() ? 1 : 0);
+	}
 	else if (aName == "memreport")
 	{
 		// what the game holds in memory, answered on the log (platform/MemReport.h): a test reads it, the game does not change
@@ -3883,6 +4034,10 @@ static void LiveLogOutput(void* theData, int theCategory, SDL_LogPriority thePri
 	fflush(stderr);
 }
 
+// The most live commands that wait for the next update. A driver's line past it is dropped (and logged); a -commands file's lines
+// are read only while the queue has room (PollLiveCommands), so a long script is not cut off.
+static const size_t kMaxLiveCommands = 1024;
+
 bool SexyAppBase::QueueLiveCommand(const std::string& theLine, int theLineNum)
 {
 	std::string aText = StripScriptComment(theLine);
@@ -3892,9 +4047,9 @@ bool SexyAppBase::QueueLiveCommand(const std::string& theLine, int theLineNum)
 	aCommand.mLine = theLineNum;
 	if (!(aStream >> aCommand.mCommand))
 		return false;  // a blank line or a comment
-	if (mLiveCommands.size() >= 1024)
+	if (mLiveCommands.size() >= kMaxLiveCommands)
 	{
-		SDL_Log("commands: more than 1024 commands wait for the next update; '%s' dropped", aText.c_str());
+		SDL_Log("commands: more than %d commands wait for the next update; '%s' dropped", (int) kMaxLiveCommands, aText.c_str());
 		return false;
 	}
 	std::string aRest;
@@ -3909,6 +4064,9 @@ bool SexyAppBase::QueueLiveCommand(const std::string& theLine, int theLineNum)
 // its start.
 void SexyAppBase::PollLiveCommands()
 {
+	// a file longer than the queue (a replay's whole script is one) is read as the queue empties: the lines not yet read stay in the file
+	if (mLiveCommands.size() >= kMaxLiveCommands)
+		return;
 	long long aSize;
 	if (!mCommandsFileWatch.Query(mCommandsFileName, &aSize))
 	{
@@ -3949,12 +4107,14 @@ void SexyAppBase::PollLiveCommands()
 	size_t aPos = 0;
 	while (aPos <= aLast)
 	{
+		if (mLiveCommands.size() >= kMaxLiveCommands)
+			break;  // the queue is full: this line and the ones after it are read at a later look (a script of thousands of lines was cut off here)
 		size_t anEnd = aData.find('\n', aPos);
 		mCommandsFileLine++;
 		QueueLiveCommand(aData.substr(aPos, anEnd - aPos), mCommandsFileLine);
 		aPos = anEnd + 1;
 	}
-	mCommandsFilePos += (long long) (aLast + 1);
+	mCommandsFilePos += (long long) aPos;
 }
 
 // -hold (natively, with -commands): once the game has loaded, an update runs only when the driver lets it, so a game
@@ -4532,6 +4692,13 @@ int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::strin
 		SaveScreenshotMidUpdate(aCommand.mArgs, true);
 	else if (aName == "quit")
 		Shutdown();
+	else if ((aName == "3d") && ((aCommand.mArgs == "on") || (aCommand.mArgs == "off")))
+	{
+		// the Options dialog's 3D box, ticked or cleared (Set3DAcclerated), and what the display made of it
+		Set3DAcclerated(aCommand.mArgs == "on");
+		SDL_Log("OK 3d %s: Is3DAccelerated %d, Is3DAccelerationSupported %d", aCommand.mArgs.c_str(), Is3DAccelerated() ? 1 : 0,
+			Is3DAccelerationSupported() ? 1 : 0);
+	}
 	else if (aName == "memreport")
 	{
 		// what the game holds in memory, answered on the log (platform/MemReport.h): a test reads it, the game does not change
@@ -4570,12 +4737,19 @@ int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::strin
 			mWidgetManager->mMouseIn ? "true" : "false");
 		return SCRIPT_GAME;
 	}
+#ifndef BYOPOP_DERIVED
+	// port: the mod menu's commands, as in -script (its "targets" tells a driver where to click: tools/modmenutest/
+	// clickthrough.py); F2 itself is a key line
+	else if (aName == "modmenu")
+		ModMenu::RunScriptCommand(this, aCommand);
+#endif
 	else if (HandleScriptCommand(aCommand))
 		return SCRIPT_GAME;
 	else
 		return SCRIPT_UNKNOWN;
 	return SCRIPT_RAN;
 }
+#ifndef BYOPOP_DERIVED
 
 //////////////////////////////////////////////////////////////////////////
 // port: the mod menu and restarts (docs/MOD_MENU_DESIGN.md 5, 6)
@@ -4594,7 +4768,12 @@ void SexyAppBase::OpenModMenu()
 	mModMenu->mPriority = 0x7FFFFFF0;
 	mWidgetManager->AddWidget(mModMenu);
 	mWidgetManager->BringToFront(mModMenu);
-	// As AddDialog does for a modal dialog: the widgets below get no mouse or keys, and the game pauses
+	// Every mouse and key event goes to the menu alone, and what a game polls stays as it was (a game that reads the
+	// widget manager's buttons itself fired through the menu: Venice, the user, 2026-11-13); first the game's widgets
+	// let go of their buttons and keys, while they still have the focus
+	mWidgetManager->SetInputCapture(mModMenu);
+	// As AddDialog does for a modal dialog: the widgets below get no mouse or keys, and the game's own modal hook
+	// pauses it where it has one. Nothing of the game updates while the menu is open (UpdateModMenuFrame).
 	mWidgetManager->AddBaseModal(mModMenu);
 	mWidgetManager->SetFocus(mModMenu);
 	ModalOpen();
@@ -4612,11 +4791,16 @@ void SexyAppBase::CloseModMenu()
 	if ((mKeyInHandling != KEYCODE_UNKNOWN) && (mKeyInHandling != KEYCODE_F2))
 		mModMenuClosingKey = mKeyInHandling;
 	aMenu->Closing();
+	// The input back to the game's widgets: a key still held stays out of them until it is released
+	mWidgetManager->SetInputCapture(NULL);
 	// KillDialog's order: the widget, the game's modal hook, then the focus back to what had it
 	mWidgetManager->RemoveWidget(aMenu);
 	ModalClose();
 	mWidgetManager->RemoveBaseModal(aMenu);
 	SafeDeleteWidget(aMenu);
+	// the widget under the pointer learns where it is (a press still held from the menu stays the menu's: no button
+	// is down for the game)
+	mWidgetManager->RehupMouse();
 }
 
 bool SexyAppBase::CanRestartNow(SexyString* /*theReason*/)
@@ -4675,12 +4859,14 @@ void SexyAppBase::GetModMessages(std::vector<ModMessage>* theMessages)
 		theMessages->push_back(aMessage);
 	}
 }
+#endif
 
 bool SexyAppBase::IsTestRun()
 {
 	return (SDL_getenv("BYOPOP_TEST_RUN") != NULL) || (SDL_getenv("BEJ_TEST_DESKTOP") != NULL) || (!mScriptFileName.empty()) ||
 		(mScriptedInput) || (!mRealInputFileName.empty()) || (!mCommandsFileName.empty());
 }
+#ifndef BYOPOP_DERIVED
 
 void SexyAppBase::QuitAsGame()
 {
@@ -4764,6 +4950,7 @@ bool SexyAppBase::TakeRelaunch(std::vector<std::string>* theArgs)
 	SDL_Log("restart:%s", aLine.c_str());
 	return true;
 }
+#endif
 
 // Draws the whole screen now and saves it as a PNG, at the logical size or (fullResolution) at the
 // render target's size, which shows HD art (see -renderscale).
@@ -5059,6 +5246,14 @@ Sexy::DDImage* SexyAppBase::GetOptionalImage(const std::string& theFileName, boo
 	if ((aLoadedImage.mHDScale > 1) && (!aLoadedImage.mHDBits.empty()))
 		anImage->SetHDBits(&aLoadedImage.mHDBits[0], aLoadedImage.mHDWidth, aLoadedImage.mHDHeight, aLoadedImage.mHDScale);
 	anImage->mFilePath = theFileName;
+	// port: the file makes these pixels again once they are dropped after upload (MemoryImage.h, mBitsSource); a picture the
+	// game's generator drew is not a file's
+	if (!aLoadedImage.mGenerated)
+	{
+		MemoryImage::BitsSource* aSource = new MemoryImage::BitsSource();
+		aSource->mPath = theFileName;
+		anImage->SetBitsSource(aSource);
+	}
 
 	return anImage;
 }
@@ -5750,6 +5945,8 @@ void SexyAppBase::Set3DAcclerated(bool is3D, bool reinit)
 	// display is made; no re-init is needed, so reinit has nothing to do
 	if (mDDInterface == NULL)
 		return;
+	// a software screen hands itself to the GPU for 3D first (SoftwareScreenDisplay::NoteWant3D)
+	mDDInterface->NoteWant3D(is3D);
 	bool aIs3D = is3D && mDDInterface->mCan3D;
 	if (mDDInterface->mIs3D == aIs3D && mWant3D == is3D)
 		return;

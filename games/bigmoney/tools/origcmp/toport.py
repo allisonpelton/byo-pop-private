@@ -12,8 +12,10 @@ both sides.
 
 Shots (a sandbox run): shots/landed.tsv gives the update each shot shows, L; the port takes it as
 "L+<shot offset> screenshot <name>.png" (default 1, the port's frame after update L is the one on screen when the
-script runs before update L+1). --earlier K also takes the K updates before it as <name>~1.png ... (for a shot origrun
-marks "or-earlier", which may show an older frame). The script ends with a quit 2 updates after the run's last command.
+script runs before update L+1). --earlier K also takes the K updates before it as <name>~1.png ... for each shot origrun
+marks "or-earlier", which may show an older frame (the original skipped a draw: sel_hover_strategy in the menus tour
+shows update 1129, though landed at 1130); pickshot.py then keeps the one that matches. The script ends with a quit 2
+updates after the run's last command.
 """
 import os
 import re
@@ -60,8 +62,9 @@ def main():
         elif cmd[0] == "shot" and cmd[1] in landed:
             u = landed[cmd[1]][0] + opt["--shot-offset"]
             out.append((u, 0, "screenshot %s.png" % cmd[1]))
-            for e in range(1, opt["--earlier"] + 1):
-                out.append((u - e, 0, "screenshot %s~%d.png" % (cmd[1], e)))
+            if landed[cmd[1]][1].startswith("or-earlier"):
+                for e in range(1, opt["--earlier"] + 1):
+                    out.append((u - e, 0, "screenshot %s~%d.png" % (cmd[1], e)))
             last = max(last, u)
     out.sort(key=lambda t: (t[0], t[1]))
     for u, _, line in out:

@@ -5,6 +5,7 @@
 
 #include "CBLevel.h"
 #include "R64Sys.h"
+#include "platform/crt/CrtQsort.h"
 
 #include <cstdio>
 #include <cstring>
@@ -308,7 +309,7 @@ void LoadProfiles()
 
 int SortHighScores()
 {
-	CrtQsort(gHighScores, 9, 0x24, CompareHighScores);
+	Platform::CrtQsort(gHighScores, 9, 0x24, CompareHighScores);
 	SaveProfiles();
 	return 1;
 }

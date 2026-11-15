@@ -400,12 +400,15 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
 <script src="profiles.js"></script>
 <script src="exeicon.js"></script>
 <script src="exeprobes.js"></script>
+<script src="exetrim.js"></script>
+<script src="flicursor.js"></script>
 <script src="gameimport.js"></script>
 <script src="other-games.js"></script>
 <script src="chat-games.js"></script>
 <script src="chat.js"></script>
 <script src="playcount.js"></script>
 <script src="perf.js"></script>
+<script src="soundpanel.js"></script>
 <script src="view.js"></script>
 <script src="controldata.js"></script>
 <script src="controls.js"></script>
@@ -493,6 +496,8 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
   try { ByopopSkin.setGame(PAGE.id); } catch (e) {}
   // the performance panel (web/perf.js), when the site setting is on; it waits for the page to be drawn
   try { document.addEventListener("DOMContentLoaded", function () { ByopopPerf.setGame(PAGE.id); }); } catch (e) {}
+  // the sound panel (web/soundpanel.js), likewise
+  try { document.addEventListener("DOMContentLoaded", function () { ByopopSoundPanel.setGame(PAGE.id); }); } catch (e) {}
   // the view settings (web/view.js): scanlines, a colour filter
   try { document.addEventListener("DOMContentLoaded", function () { ByopopView.setGame(PAGE.id); }); } catch (e) {}
   // the game's controls (web/controls.js): the Controls panel, remapped keys, the gamepad, touch keys, the input display
@@ -731,22 +736,27 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     try { r = P && P.room(window); } catch (e) {}
     return r ? { w: r.w, h: r.h - statusBarHeight() } : null;
   }
-  // what stands at the right of the game inside its window (the performance panel, web/perf.js): the window is that much wider
-  // (on a narrow page it is under the game instead)
+  // what stands at the right of the game inside its window (the performance panel, web/perf.js, and the sound panel,
+  // web/soundpanel.js, side by side): the window is that much wider (on a narrow page they are under the game instead)
+  function sidePanels() {
+    return [["perf-panel", "perf-side"], ["snd-panel", "snd-side"]].map(function (s) { var p = $(s[0]); return p && !p.hidden && p.classList.contains(s[1]) ? p : null; })
+      .filter(function (p) { return p; });
+  }
   function sideWidth() {
-    var p = $("perf-panel");
-    if (!EMBED || !p || p.hidden || !p.classList.contains("perf-side")) return 0;
+    if (!EMBED) return 0;
     try { if (window.matchMedia("(max-width: 600px)").matches) return 0; } catch (e) {}
-    return p.offsetWidth;
+    return sidePanels().reduce(function (w, p) { return w + p.offsetWidth; }, 0);
   }
   // and how tall it is: the window is at least that tall, so that its readings are never cut off (a play-test, 2026-11-11, had to
   // scroll them in a 640 by 480 game's window)
   function sideHeight() {
     if (!sideWidth()) return 0;
-    var p = $("perf-panel"), last = p.lastElementChild;
-    if (!last) return 0;
-    var pad = parseFloat(getComputedStyle(p).paddingBottom) || 0;
-    return Math.ceil(last.getBoundingClientRect().bottom - p.getBoundingClientRect().top + p.scrollTop + pad);
+    return sidePanels().reduce(function (h, p) {
+      var last = p.lastElementChild;
+      if (!last) return h;
+      var pad = parseFloat(getComputedStyle(p).paddingBottom) || 0;
+      return Math.max(h, Math.ceil(last.getBoundingClientRect().bottom - p.getBoundingClientRect().top + p.scrollTop + pad));
+    }, 0);
   }
   function withSide(h) { return Math.max(h, sideHeight()); }
   window.addEventListener("byopop-side", function () { embedFitted = ""; sizeStage(); });
@@ -832,7 +842,34 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     var perfOn = false;
     try { perfOn = ByopopPerf.isOn(); } catch (e) {}
     view.push({ label: T("settings.perf.label"), ticked: perfOn, fn: function () { setView("perf", perfOn ? "off" : "on"); } });
+    // the sound panel beside it (the user, 2026-11-13: "a toggleable menu that appears beside the game like the perf panel")
+    var soundsOn = false;
+    try { soundsOn = ByopopSoundPanel.isOn(); } catch (e) {}
+    view.push({ label: T("settings.soundpanel.label"), ticked: soundsOn, fn: function () { setView("soundPanel", soundsOn ? "off" : "on"); } });
     return { game: game, view: view, options: options };
+  }
+  // Help's readme (the desktop's game window, web/deskapps.js): the game's own readme from its folder, kept at the import
+  // (web/gameimport.js, pick), as plain text: { name, text }, or null when the copy has none (one imported before it was kept)
+  function embedReadme() {
+    var name = null;
+    try { web().fs.listDir(GAME).forEach(function (n) { if (!name && /^read ?me\.(html?|txt)$/i.test(n)) name = n; }); } catch (e) {}
+    if (!name) return null;
+    var bytes;
+    try { bytes = Module.FS.readFile(GAME + "/" + name); } catch (e) { return null; }
+    var text;
+    try { text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); } catch (e) { text = new TextDecoder("windows-1252").decode(bytes); }
+    if (/\.html?$/i.test(name)) {
+      // the page's words, its lines and paragraphs kept, as a text editor would not show them but a reader wants them
+      var doc = new DOMParser().parseFromString(text, "text/html");
+      Array.prototype.forEach.call(doc.querySelectorAll("script, style, head"), function (n) { n.remove(); });
+      Array.prototype.forEach.call(doc.querySelectorAll("br"), function (n) { n.replaceWith("\n"); });
+      Array.prototype.forEach.call(doc.querySelectorAll("p, div, h1, h2, h3, h4, h5, h6, tr, table, ul, ol, pre, blockquote, hr"), function (n) {
+        n.insertAdjacentText("beforebegin", "\n"); n.insertAdjacentText("afterend", "\n");
+      });
+      Array.prototype.forEach.call(doc.querySelectorAll("li"), function (n) { n.insertAdjacentText("afterbegin", "\n* "); });
+      text = (doc.body ? doc.body.textContent : "").replace(/[ \t\u00a0]+/g, " ").replace(/ *\n */g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    }
+    return { name: name, text: text.replace(/\r\n?/g, "\n") };
   }
   // Help's About box: the game's name and the copyright and trademark lines of its readme (the page's footer)
   function embedAbout() {
@@ -870,7 +907,8 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     printErr: function (t) { console.warn(t); },
     setStatus: function (t) { if (t) setStatus(t); },
     onRuntimeInitialized: function () { siteBusy(false); acquireInstanceLock().then(mountStorage).then(function () { return ByopopTerms.ready; }).then(boot); },
-    onAbort: function (what) { showStopped(what); },
+    // (the stack here, as abort() is called from the game's code, gives where it stopped: the desktop's blue screen)
+    onAbort: function (what) { var st = ""; try { st = String(new Error().stack || ""); } catch (e) {} showStopped(what, st); },
     // The game has loaded: no mod stopped this start
     onGameLoaded: function () { if (session) session.markFinished(); },
     // The game screen's size, which a game gives before it makes its window when it is not 640 x 480 (BookWorm's
@@ -957,7 +995,9 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
 
   // The game stopped with an error (a crash, out of memory): nothing more runs in this page. A mod may be the
   // cause, so the next start can leave them out.
-  function showStopped(what) {
+  function showStopped(what, stack) {
+    deskError();
+    var blue = blueScreen(what, stack);
     gameWindowLoading(false);
     setGameState("stopped");
     siteBusy(false);
@@ -978,8 +1018,46 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
       {detail: what ? " (" + String(what).substring(0, 200) + ")" : ""});
     $("btn-play-again").disabled = false;
     $("btn-exit-nomods").hidden = !hasMods;
-    $("exit-overlay").hidden = false;
-    focusCard("exit-card");
+    function card() { $("exit-overlay").hidden = false; focusCard("exit-card"); }
+    // on the desktop the blue screen first, and the card at the next key or click, as 1995's went at a key
+    if (blue) blue(card); else card();
+  }
+
+  // The theme's error sound (web/themes.js): a game stopped by an error, a folder refused
+  function deskError() { try { window.dispatchEvent(new CustomEvent("byopop-desk-event", { detail: { what: "error" } })); } catch (e) {} }
+  // On the desktop, the game's window turns blue when the game stops with an error, as in 1995 (the user, 2026-11-14, by the
+  // coordinator's list), with only the error's code and where in the game's code it stopped: the engine's own words for the error
+  // (Emscripten's abort text, its first line) and the WebAssembly offset of the innermost of the game's frames. The page's
+  // stopped card says the rest once a key is pressed or the screen clicked. Returns a function that takes what to do then, or null
+  // off the desktop.
+  function blueScreen(what, stack) {
+    // (a game that stopped before its screen was made has no stage showing: the card at once)
+    if (!document.documentElement.classList.contains("d95-desk") || document.documentElement.classList.contains("game-unmade")) return null;
+    var stage = $("stage");
+    if (!stage || stage.querySelector(".d95-bsod")) return null;
+    var code = String(what === undefined || what === null ? "" : what).split("\n")[0].replace(/^(RuntimeError|Error|abort)\s*[:(]\s*/i, "").replace(/\)\s*$/, "").trim();
+    var at = /wasm-function\[\d+\]:(0x[0-9a-f]+)/i.exec(String(stack || ""));
+    var el = document.createElement("div");
+    el.className = "d95-bsod";
+    el.setAttribute("role", "alertdialog"); el.tabIndex = -1;
+    var line1 = document.createElement("p"), line2 = document.createElement("p");
+    line1.textContent = code.substring(0, 80) || "?";
+    line2.textContent = at ? at[1].replace(/^0x/i, "").toUpperCase().padStart(8, "0") : "";
+    el.setAttribute("aria-label", line1.textContent + (line2.textContent ? " " + line2.textContent : ""));
+    el.appendChild(line1); if (line2.textContent) el.appendChild(line2);
+    stage.appendChild(el);
+    return function (then) {
+      var gone = false;
+      function go(ev) {
+        if (gone) return;
+        if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+        gone = true;
+        el.removeEventListener("keydown", go); el.removeEventListener("pointerdown", go);
+        then();
+      }
+      el.addEventListener("keydown", go); el.addEventListener("pointerdown", go);
+      try { el.focus({ preventScroll: true }); } catch (e) {}
+    };
   }
 
   // ---------- one copy at a time ----------
@@ -1145,6 +1223,7 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     var msg = $("import-msg");
     msg.textContent = "";
     if (!isError) { msg.textContent = text; return; }
+    deskError();
     var span = document.createElement("span");
     span.className = "error";
     span.setAttribute("role", "alert");
@@ -1178,11 +1257,11 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     // an exe the port can't read its texts from is refused before anything is copied (web/gameimport.js, exeUnreadable)
     return ByopopImport.exeUnreadable(PAGE.id, wanted).then(function (bad) {
       if (bad) { importMessage(ByopopStrings.t("game.import.exe", {exe: bad}), true); return false; }
-      return copyChecked(W, msg, wanted, entries, root);
+      return copyChecked(W, msg, ByopopImport.stored(PAGE.id, wanted), entries, root);
     });
   }
   function copyChecked(W, msg, wanted, entries, root) {
-    var done = 0;
+    var done = 0, copy = typeof ByopopCopy !== "undefined" ? ByopopCopy.open() : null;
     importProgress(0, wanted.length);
     msg.textContent = ByopopStrings.t("game.import.copying", {count: wanted.length});
     W.fs.rmTree(GAME); Module.FS.mkdirTree(GAME);
@@ -1190,11 +1269,13 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     return wanted.reduce(function (p, e) {
       return p.then(function () {
         return e.read().then(function (data) {
+          if (copy) copy.file(e.rel, data.length);
           W.fs.writeFile(GAME + "/" + e.rel, data);
           importProgress(++done, wanted.length);
+          if (copy) copy.progress(done, wanted.length);
         });
       });
-    }, Promise.resolve()).then(W.sync).then(function () {
+    }, Promise.resolve()).then(W.sync).then(function (v) { if (copy) copy.close(); return v; }, function (x) { if (copy) copy.close(); throw x; }).then(function () {
       // boot() would otherwise show this card again, still saying "Copied", as if the page were stuck
       if (!hasGameFiles()) throw new Error(ByopopStrings.t("game.import.error_missing", {markers: ByopopImport.missingIn(PAGE, wanted.map(function (f) { return f.rel; }))}));
       msg.textContent = ByopopStrings.t("game.import.copied", {count: wanted.length});
@@ -1366,6 +1447,26 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
   function takeCursorSet() {
     var n, now = Date.now();
     if (now < cursorSetNext) return;
+    // a game that draws its own pointer as an animation of its files (web/flicursor.js): its set read from them, once
+    if (window.ByopopFlicCursor && ByopopFlicCursor.GAMES[PAGE.id]) {
+      cursorSetTaken = true;
+      var flic = null;
+      try {
+        flic = ByopopFlicCursor.build(PAGE.id, function (rel) {
+          // (the file's own spelling in the game's folder)
+          var parts = rel.split("/"), path = GAME;
+          for (var i = 0; i < parts.length; i++) {
+            var want = parts[i].toLowerCase(), found = null;
+            try { Module.FS.readdir(path).forEach(function (x) { if (!found && x.toLowerCase() === want) found = x; }); } catch (e) { return null; }
+            if (!found) return null;
+            path += "/" + found;
+          }
+          try { return Module.FS.readFile(path); } catch (e) { return null; }
+        }, window.ByopopCursors);
+      } catch (e) { flic = null; }
+      if (flic) try { ByopopCursors.save(PAGE.id, $("brand-name").textContent, flic); } catch (e) {}
+      return;
+    }
     try { n = Module.ccall("byopop_cursor_set_copy", "number", [], []) | 0; } catch (e) { cursorSetTaken = true; return; }
     if (n <= 0) return;
     // the framework's kinds by number (framework/SexyAppBase.h) that the site shows somewhere (web/cursors.js); the sizing arrows
@@ -1815,9 +1916,24 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     // in a window of the one page: the game's own close with its saves, then the window goes (web/deskapps.js)
     var P = desktopApps();
     if (P) { closeGameThen(function () { try { P.closed(window); } catch (e) {} }, true); return; }
-    try { sessionStorage.setItem("byopop-desk-open", "games"); } catch (e) {}
+    try { sessionStorage.setItem("byopop-desk-open", window.byopopShutDown ? "shutdown" : "games"); } catch (e) {}
     closeGameThen(function () { location.href = "./" + (pageSilent() ? "?silent=1" : ""); }, true);
   }
+  // The game's sound at the site's volume (the tray's speaker, ByopopVolume in web/skins.js): its output node
+  // (platform/Audio.cpp, Module.byopopAudio) put through a gain of the page's own, made once the node is there and again if it
+  // is made anew; on the listing's desktop the hush (web/deskapps.js) then takes that gain off the speakers
+  function siteVolume() {
+    var out = window.Module && Module.byopopAudio, node = out && out.node;
+    if (!node || out.masterFor === node || !window.ByopopVolume) return;
+    var ctx = node.context, g = ctx.createGain();
+    g.gain.value = ByopopVolume.level();
+    try { node.disconnect(ctx.destination); } catch (e) {}
+    node.connect(g); g.connect(ctx.destination);
+    out.master = g; out.masterFor = node;
+    try { var P = desktopApps(); if (P && P.rehush) P.rehush(); } catch (e) {}
+  }
+  setInterval(siteVolume, 1000);
+  if (window.ByopopVolume) ByopopVolume.on(function (v) { var out = window.Module && Module.byopopAudio; if (out && out.master) out.master.gain.value = v; });
   function showMissingFiles() {
     $("files-missing").hidden = !missingFiles.length;
     $("files-missing-summary").textContent = ByopopStrings.t("game.files.missing", {n: missingFiles.length});
@@ -2406,7 +2522,7 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     var dpr = window.devicePixelRatio || 1, n = chosenScale() || 1;
     return { w: gameScreen.w * n / dpr + sideWidth(), h: withSide(gameScreen.h * n / dpr + statusBarHeight()) };
   }
-  if (EMBED) window.ByopopEmbed = { close: closeProgram, menus: embedMenus, about: embedAbout, least: embedLeast };
+  if (EMBED) window.ByopopEmbed = { close: closeProgram, menus: embedMenus, about: embedAbout, readme: embedReadme, least: embedLeast };
   // what web/testkit.js reads and calls on the player-only page; nothing on any other page
   if (PLAYER_ONLY) window.ByopopShell = {
     hooks: testHooks, PAGE: PAGE, PERSIST: PERSIST, GAME: GAME, USER: USER, testProfile: TEST_PROFILE,

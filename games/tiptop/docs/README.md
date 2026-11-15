@@ -72,7 +72,9 @@ Native options: `-gamedir=<dir>` (else `assets/tiptop` next to the exe or up to 
 `musicwav <file> <seconds>`), `-canvas=<width>x<height>` (a test run's larger screen, see Testing),
 `-screenhash=<file>` (a hash of the screen after every pass) with `-scramble` (noise on the whole screen before every pass;
 GAME_NOTES.md, "Performance, second round") and `-soundfont=<file>` (the music's bank, else `tiptop.sf2` beside the exe,
-where the build copies it).
+where the build copies it). A native window shows the screen through its own surface (the framework's `SurfaceDisplay`);
+in a test run `SURFACE_DISPLAY=off` in the environment keeps the framework's renderer display instead, to compare the two
+(GAME_NOTES.md, "The surface display").
 
 ## Testing
 
@@ -132,6 +134,7 @@ sounds (peaks at 0 dB), and under 0 dB at full volume.
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
 making.
+The lite mod step is done with no mod: `LITE_MOD.md` says what was looked at and why nothing is taken.
 
 ## Status (2026-10-25)
 

@@ -166,6 +166,7 @@ static int G_PolyFill(Graphics* g, lua_State* L)
 	return 0;
 }
 
+// 0x669d70 (PolyFillAA's own reading of the points, the same as PolyFill's) is inline here
 static int G_PolyFillAA(Graphics* g, lua_State* L)
 {
 	std::vector<Point> pts;
@@ -195,6 +196,7 @@ static int G_SetClipRect(Graphics* g, lua_State* L)
 	return 0;
 }
 
+// 0x66a400
 static int G_FillRect(Graphics* g, lua_State* L)
 {
 	g->FillRect(LuaCheckRect(L, 1));
@@ -208,6 +210,7 @@ static int G_DrawRect(Graphics* g, lua_State* L)
 }
 
 // SetColor(0xAARRGGBB), SetColor(r, g, b) or SetColor(r, g, b, a)
+// 0x669130
 static int G_SetColor(Graphics* g, lua_State* L)
 {
 	int n = lua_gettop(L);
@@ -227,6 +230,7 @@ static int G_SetColorI(Graphics* g, lua_State* L)
 }
 
 // DrawImage(img, destRect[, srcRect]), DrawImage(img, x, y, srcRect) or DrawImage(img, x, y)
+// 0x66a8b0
 static int G_DrawImage(Graphics* g, lua_State* L)
 {
 	Image* img = CheckImage(L, 1);
@@ -260,6 +264,7 @@ static int G_DrawImageF(Graphics* g, lua_State* L)
 }
 
 // DrawImageCel(img, x, y, cel), (img, x, y, col, row) or (img, x, y, col, row, width, height) stretched
+// 0x66add0
 static int G_DrawImageCel(Graphics* g, lua_State* L)
 {
 	Image* img = CheckImage(L, 1);
@@ -325,6 +330,7 @@ static int DrawRotated(Graphics* g, lua_State* L, bool allowFloatFlag)
 	return 0;
 }
 
+// 0x66b430
 static int G_DrawImageRotated(Graphics* g, lua_State* L)
 {
 	return DrawRotated(g, L, true);
@@ -336,6 +342,7 @@ static int G_DrawImageRotatedF(Graphics* g, lua_State* L)
 }
 
 // DrawImageBox(destRect | x, y, w, h[, srcRect], img)
+// 0x66bb40
 static int G_DrawImageBox(Graphics* g, lua_State* L)
 {
 	Rect dest;
@@ -375,6 +382,7 @@ static int G_DrawImageMirror(Graphics* g, lua_State* L)
 
 // DrawImageTiled(img, x, y, width, height): the image's left and right thirds as caps, its middle third
 // stretched between them
+// 0x66c1a0
 static int G_DrawImageTiled(Graphics* g, lua_State* L)
 {
 	if (lua_gettop(L) != 5)
@@ -396,6 +404,7 @@ static int G_DrawImageTiled(Graphics* g, lua_State* L)
 	return 0;
 }
 
+// 0x66c460
 static int G_SetFont(Graphics* g, lua_State* L)
 {
 	LuaFont* f = (LuaFont*)gLuaSupport->CheckObject(1, ClassOf<LuaFont>::info);
@@ -412,6 +421,7 @@ static int G_GetFontHeight(Graphics* g, lua_State* L)
 	return 1;
 }
 
+// 0x66c560
 static int G_DrawString(Graphics* g, lua_State* L)
 {
 	std::string s = CheckString(L, 1);
@@ -423,6 +433,7 @@ static int G_DrawString(Graphics* g, lua_State* L)
 
 // WriteWordWrapped(text, rect | x, y, w, h, lineSpacing, justification[, centreVertically[, maxChars
 // [, lastWidth]]]): the height written, the widest line and the last line's width
+// 0x66c660
 static int G_WriteWordWrapped(Graphics* g, lua_State* L)
 {
 	std::string s = CheckString(L, 1);
@@ -777,6 +788,7 @@ static int WriteScriptFile(const char* thePath, const char* theData, size_t theS
 
 // ---- registering (0x66f510) ----
 
+// 0x66f510 (the constructor; the original registered everything below in it)
 void PopLua::OpenPopLua()
 {
 	poplua_setreader(ReadScriptFile);

@@ -12,9 +12,11 @@ function check(name, ok, detail) {
 
 // A 4-channel ProTracker module: two patterns of 64 rows at speed 6, 125 BPM (each row 0.12 s, the tune 15.36 s); row 0 of
 // pattern 0 plays sample 1 at period 428 with effect F06, and every 8th row of either pattern a note on channel 2
-function protracker() {
-  const pat = 64 * 4 * 4, sampleWords = 32;
-  const b = Buffer.alloc(1084 + 2 * pat + sampleWords * 2);
+// hidden: a third pattern, in the order table past the song's two orders (a pattern no order plays), with a note on channel
+// 1 every 16th row
+function protracker(hidden) {
+  const pat = 64 * 4 * 4, sampleWords = 32, pats = hidden ? 3 : 2;
+  const b = Buffer.alloc(1084 + pats * pat + sampleWords * 2);
   b.write("byo-pop test", 0, "latin1");
   const s = 20;  // sample 1
   b.write("square", s, "latin1");
@@ -35,7 +37,8 @@ function protracker() {
   }
   cell(0, 0, 0, 428, 1, 0xf, 6);
   for (let p = 0; p < 2; p++) for (let r = 0; r < 64; r += 8) cell(p, r, 2, 214, 1, 0, 0);
-  const data = 1084 + 2 * pat;
+  if (hidden) { b[954] = 2; for (let r = 0; r < 64; r += 16) cell(2, r, 1, 320, 1, 0, 0); }
+  const data = 1084 + pats * pat;
   for (let i = 0; i < sampleWords * 2; i++) b[data + i] = i < sampleWords ? 0x40 : 0xc0;
   return b;
 }
@@ -95,6 +98,23 @@ function protracker() {
   check("mod: the channels with notes", JSON.stringify(used(m)) === JSON.stringify(usedByText(m)) && used(m).length > 0, [used(m), usedByText(m)]);
   M._bm_free(m);
 
+  // ---------- an unused pattern played alone (bm_solo; the music player's own section, the user, 2026-11-15) ----------
+  const h = load(protracker(true));
+  check("solo: the hidden pattern is a pattern no order plays", M._bm_patterns(h) === 3 && M._bm_orders(h) === 2 &&
+        [0, 1].every((o) => M._bm_order_pattern(h, o) !== 2) && M._bm_pattern_notes(h, 2) === 1, [M._bm_patterns(h), M._bm_orders(h)]);
+  check("solo: plays it alone, its orders that one", M._bm_solo(h, 2) === 64 && M._bm_orders(h) === 1 && M._bm_order_pattern(h, 0) === 2 &&
+        view(h).pattern === 2);
+  render(h, 1.0);
+  check("solo: about 8 rows in a second, in the pattern", view(h).pattern === 2 && view(h).row >= 7 && view(h).row <= 9, view(h));
+  at = M._bm_seek(h, RATE, 4.0);
+  check("solo: seeks inside it", Math.abs(at - 4.0) < 0.05 && view(h).pattern === 2 && view(h).row >= 32 && view(h).row <= 34, [at, view(h)]);
+  M._bm_seek(h, RATE, 0);
+  let alone = render(h, 30) / RATE;
+  check("solo: once through, then it ends (64 rows of 0.12 s)", Math.abs(alone - 7.68) < 0.05, alone);
+  M._bm_solo(h, -1);
+  check("solo: the module put back", M._bm_orders(h) === 2 && M._bm_order_pattern(h, 0) === 0 && M._bm_order_pattern(h, 1) === 1);
+  M._bm_free(h);
+
   // ---------- libopenmpt: a game's MO3, when the staged files are there ----------
   let mo3 = null;
   const roots = assets ? [assets] : [];
@@ -123,6 +143,14 @@ function protracker() {
     const len = M._bm_duration(t), half = Math.min(len / 2, 30);
     at = M._bm_seek(t, RATE, half);
     check("mo3: seeks", Math.abs(at - half) < 0.5 && Math.abs(M._bm_position(t) - half) < 0.5, [at, half]);
+    // its first order's pattern alone: libopenmpt's order list set aside for that one, then put back
+    const orders = M._bm_orders(t), first = M._bm_order_pattern(t, 0), rows = M._bm_pattern_rows(t, first);
+    check("mo3 solo: the pattern alone", M._bm_solo(t, first) === rows && M._bm_orders(t) === 1 && M._bm_order_pattern(t, 0) === first, [orders, first]);
+    let secs = 0;
+    for (let k = 0; k < 600; k++) { const g = M._bm_render(t, 8000, 8000, out); secs += g / 8000; if (g < 8000) break; }
+    check("mo3 solo: once through, then it ends", secs > 0.5 && secs < 120, secs);
+    M._bm_solo(t, -1);
+    check("mo3 solo: the order list put back", M._bm_orders(t) === orders && M._bm_order_pattern(t, 0) === first);
     M._bm_free(t);
   }
 
@@ -194,15 +222,17 @@ function protracker() {
   check("places: some", places.length > 100, places.length);
   const long = places.filter((p) => p[2].length > 20);
   check("places: at most 20 characters", long.length === 0, long);
-  // Title Case: every word starts with a capital or a digit, but for "of" (Hall of Fame)
-  const lower = places.filter((p) => p[2].split(/[\s-]+/).some((w) => w !== "of" && !/^[A-Z0-9]/.test(w)));
+  // Title Case: every word starts with a capital or a digit, but for "of" and "to" after the first (Hall of Fame, Venice's
+  // Welcome to Venice)
+  const lower = places.filter((p) => p[2].split(/[\s-]+/).some((w, i) => !(i > 0 && (w === "of" || w === "to")) && !/^[A-Z0-9]/.test(w)));
   check("places: Title Case", lower.length === 0, lower);
   const unusedPlaced = Object.keys(table).reduce((a, g) => a.concat((table[g].unused || []).filter((k) => (table[g].where || {})[k])), []);
   check("places: no unused tune placed", unusedPlaced.length === 0, unusedPlaced);
   // every "<file>#<n>@<order>" named anywhere is a piece some cut makes, and no chained part is placed on its own
   const orphans = [], chained = [];
   for (const g of Object.keys(table)) {
-    const e = table[g], cuts = e.cuts || {};
+    const e = table[g], cuts = Object.assign({}, e.cuts || {});
+    for (const k of Object.keys(e.starts || {})) cuts[k] = (cuts[k] || []).concat(e.starts[k]);
     const keys = Object.keys(e.where || {}).concat(e.unused || [], e.skip || [], Object.keys(e.names || {}));
     for (const k of keys) {
       const at = k.lastIndexOf("@");
@@ -210,7 +240,7 @@ function protracker() {
     }
     for (const head of Object.keys(e.chains || {})) for (const k of e.chains[head]) if ((e.where || {})[k]) chained.push(g + " " + k);
   }
-  check("cuts: every piece named is cut", orphans.length === 0, orphans);
+  check("cuts: every piece named is cut or started", orphans.length === 0, orphans);
   check("chains: no part placed on its own", chained.length === 0, chained);
 
   // the soundboards' presets (web/soundboards.js): rip-style names (Title Case, at most 20 characters), steps in time order,

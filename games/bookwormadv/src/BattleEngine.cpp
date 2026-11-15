@@ -67,6 +67,8 @@ BattleEngine::~BattleEngine()
 		gBattleEngine = nullptr;
 }
 
+// 0x414f70 (the class registration), 0x4151f0 (LuaGetRegisteredName), 0x415370 (GetBoard), 0x4154f0 (Update), 0x415670
+// (GetState), 0x4157f0 (LostTurn) and 0x415970 (SetState) (the method registrations) are inline here
 void BattleEngine::RegisterLua()
 {
 	static bool sRegistered = false;
@@ -138,6 +140,7 @@ bool BattleEngine::CanClickItems()
 	return AskScript(this, "CanClickItems");
 }
 
+// 0x415af0 (the Lua call SubmitTiles(number of tiles, word)) is inline here
 bool BattleEngine::SubmitTiles(std::list<Tile*>& theTiles)
 {
 	if (gTileEngine != nullptr && gTileEngine->mMovingCount > 0)

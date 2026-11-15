@@ -302,13 +302,26 @@ option(BUILD_VENICE "Build the Venice Deluxe port" ON)
 if(BUILD_VENICE AND EXISTS ${PROJECT_SOURCE_DIR}/games/venice/CMakeLists.txt)
   add_subdirectory(games/venice)
 endif()
-# Bookworm Adventures Deluxe: optional while it is new; the build skips it if its folder is missing
+# Hammer Heads Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_HAMMERHEADS "Build the Hammer Heads Deluxe port" ON)
+if(BUILD_HAMMERHEADS AND EXISTS ${PROJECT_SOURCE_DIR}/games/hammerheads/CMakeLists.txt)
+  add_subdirectory(games/hammerheads)
+endif()
+# The SWF player (engines/swf), one copy for the ports that play Flash cutscenes: built when any of them is
 option(BUILD_BOOKWORMADV "Build the Bookworm Adventures Deluxe port" ON)
+option(BUILD_BOOKWORMADV2 "Build the Bookworm Adventures Volume 2 port" ON)
+option(BUILD_HEAVYWEAPON "Build the Heavy Weapon Deluxe port" ON)
+if((BUILD_BOOKWORMADV AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv/CMakeLists.txt) OR
+   (BUILD_BOOKWORMADV2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv2/CMakeLists.txt) OR
+   (BUILD_HEAVYWEAPON AND EXISTS ${PROJECT_SOURCE_DIR}/games/heavyweapon/CMakeLists.txt) OR
+   (BUILD_HAMMERHEADS AND EXISTS ${PROJECT_SOURCE_DIR}/games/hammerheads/CMakeLists.txt))
+  add_subdirectory(engines/swf)
+endif()
+# Bookworm Adventures Deluxe: optional while it is new; the build skips it if its folder is missing
 if(BUILD_BOOKWORMADV AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv/CMakeLists.txt)
   add_subdirectory(games/bookwormadv)
 endif()
 # Bookworm Adventures Volume 2: the same engine as Volume 1, copied into its own folder; optional while it is new
-option(BUILD_BOOKWORMADV2 "Build the Bookworm Adventures Volume 2 port" ON)
 if(BUILD_BOOKWORMADV2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bookwormadv2/CMakeLists.txt)
   add_subdirectory(games/bookwormadv2)
 endif()
@@ -338,10 +351,21 @@ option(BUILD_NINGPO "Build the Ning Po Mahjong Deluxe port" ON)
 if(BUILD_NINGPO AND EXISTS ${PROJECT_SOURCE_DIR}/games/ningpo/CMakeLists.txt)
   add_subdirectory(games/ningpo)
 endif()
-# Word Harmony: Sprout's engine (games/wordharmony/engine) under the framework's app host; optional while it is new
+# Sprout's first-generation engine (engines/sprout), one copy for Word Harmony and Pizza Frenzy: built when either game
+# is
 option(BUILD_WORDHARMONY "Build the Word Harmony port" ON)
+option(BUILD_PIZZAFRENZY "Build the Pizza Frenzy port" ON)
+if((BUILD_WORDHARMONY AND EXISTS ${PROJECT_SOURCE_DIR}/games/wordharmony/CMakeLists.txt) OR
+   (BUILD_PIZZAFRENZY AND EXISTS ${PROJECT_SOURCE_DIR}/games/pizzafrenzy/CMakeLists.txt))
+  add_subdirectory(engines/sprout)
+endif()
+# Word Harmony: Sprout's engine under the framework's app host; optional while it is new
 if(BUILD_WORDHARMONY AND EXISTS ${PROJECT_SOURCE_DIR}/games/wordharmony/CMakeLists.txt)
   add_subdirectory(games/wordharmony)
+endif()
+# Pizza Frenzy: the second game on Sprout's engine; optional while it is new
+if(BUILD_PIZZAFRENZY AND EXISTS ${PROJECT_SOURCE_DIR}/games/pizzafrenzy/CMakeLists.txt)
+  add_subdirectory(games/pizzafrenzy)
 endif()
 # Retro64's engine (engines/retro64), one copy for Cosmic Bugs and Water Bugs: built when either game is
 option(BUILD_COSMICBUGS "Build the Cosmic Bugs port" ON)
@@ -394,4 +418,8 @@ endif()
 option(BUILD_BEJEWELED2 "Build the Bejeweled 2 Deluxe port" ON)
 if(BUILD_BEJEWELED2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweled2/CMakeLists.txt)
   add_subdirectory(games/bejeweled2)
+endif()
+# Heavy Weapon Deluxe (the Popgun decompilation): optional while it is new; the build skips it if its folder is missing
+if(BUILD_HEAVYWEAPON AND EXISTS ${PROJECT_SOURCE_DIR}/games/heavyweapon/CMakeLists.txt)
+  add_subdirectory(games/heavyweapon)
 endif()

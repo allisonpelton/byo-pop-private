@@ -77,6 +77,8 @@ void WinWSApp::ResetGame(bool theKeepGameMode)
 // 0x42ee10: restarts the game with a new lesson manager, board, status bar and (if it is gone) map screen
 void WinWSApp::RestartBoard()
 {
+	mAutosplitGameSerial++;			// port: a new game, for the autosplit observer
+	mAutosplitContinued = false;
 	if (mLessonManager != NULL)
 		delete mLessonManager;                  // 0x421c50, then free()
 	mGameTimeSoFar = 0;
@@ -194,6 +196,8 @@ void WinWSApp::RestartBoard()
 // (hidden, if it is gone) and the status bar
 void WinWSApp::CreateBoard()
 {
+	mAutosplitGameSerial++;			// port: a new game, for the autosplit observer
+	mAutosplitContinued = false;
 	if (mLessonManager != NULL)
 		delete mLessonManager;                  // 0x421c50, then free()
 	mLessonManager = new LessonManager(this);   // 0x4270e0 (sizeof 0xc0)

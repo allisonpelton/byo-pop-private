@@ -12,6 +12,7 @@
 using namespace Sexy;
 using namespace LuaLib;
 
+// 0x429cf0
 BookManager::BookManager(GameApp* theApp) : mApp(theApp)
 {
 	RegisterLua();
@@ -31,6 +32,7 @@ BookManager::~BookManager()
 }
 
 // The original registered the class in the constructor (0x42b6f0), every time
+// 0x42bcc0 (the class registration) is inline here
 void BookManager::RegisterLua()
 {
 	static bool sRegistered = false;
@@ -217,6 +219,7 @@ void BookManager::Update()
 		UpdateF(1.0f);
 }
 
+// 0x4262e0 (the Lua call with the float theFrac) is inline here
 void BookManager::UpdateF(float theFrac)
 {
 	if (IsAsleep(false) || mApp->GetDialogCount() > 0)

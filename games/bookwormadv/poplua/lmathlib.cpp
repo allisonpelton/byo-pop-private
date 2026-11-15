@@ -36,12 +36,14 @@ static int math_abs(lua_State* L)
 	return 1;
 }
 
+// 0x703b60
 static int math_sin(lua_State* L)
 {
 	lua_pushnumber(L, sin(luaL_checknumber(L, 1)));
 	return 1;
 }
 
+// 0x703c00
 static int math_cos(lua_State* L)
 {
 	lua_pushnumber(L, cos(luaL_checknumber(L, 1)));
@@ -116,6 +118,7 @@ static int math_mod(lua_State* L)
 	return 1;
 }
 
+// 0x7043e0 (the number check is inline here)
 static int math_sqrt(lua_State* L)
 {
 	lua_pushnumber(L, sqrt(luaL_checknumber(L, 1)));

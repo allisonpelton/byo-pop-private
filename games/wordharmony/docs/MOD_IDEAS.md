@@ -4,7 +4,7 @@ None of these is made (the user's rule: no new game gets mods until every PopCap
 ordered by how much they change the game for how little work the port needs.
 
 **Archive overrides.** Most of the others need it: a mod is a folder of files named as in `WHArchive.saf` (such as
-`config\HUD.xml`, a level file or `res\ball.png`), and the engine's resource manager (`engine/ResourceManager.cpp`,
+`config\HUD.xml`, a level file or `res\ball.png`), and the engine's resource manager (`engines/sprout/ResourceManager.cpp`,
 which already reads the archive through the host) takes a file from the mod when it has one. Replacing a level, a
 screen's layout, a ball's picture or a sound is then a matter of files alone.
 

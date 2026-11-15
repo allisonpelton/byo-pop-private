@@ -4,8 +4,8 @@
 // controls turned and shrunk about their middles by the display's transform stack.
 //
 // The original asks its D3DInterface (the one at the app's +0x36c, its +0x30) to PushTransform and PopTransform. The
-// port's display keeps that stack in the GPU2D of a GPUDisplay, so the two helpers below reach it there; any other
-// display has no stack (and never takes these paths, since Is3DAccelerated is false for it).
+// port's display keeps that stack (DDInterface's, which the 3D game draws through; a GPUDisplay forwards it to its GPU2D),
+// so the two helpers below reach it there.
 
 #include "Board.h"
 #include "WinDMApp.h"
@@ -13,8 +13,6 @@
 #include "StarField.h"
 #include "DDInterface.h"
 #include "MemoryImage.h"
-#include "GPUDisplay.h"
-#include "GPU2D.h"
 #include "SexyMatrix.h"
 #include "TriVertex.h"
 #include "Graphics.h"
@@ -27,17 +25,13 @@ using namespace Sexy;
 // 0x44b8f0 D3DInterface::PushTransform(theTransform, true)
 static void PushScreenTransform(WinDMApp* theApp, const SexyTransform2D& theTransform)
 {
-	GPUDisplay* aDisplay = dynamic_cast<GPUDisplay*>(theApp->mDDInterface);
-	if (aDisplay != NULL && aDisplay->mGPU2D != NULL)
-		aDisplay->mGPU2D->PushTransform(theTransform, true);
+	theApp->mDDInterface->PushTransform(theTransform, true);
 }
 
 // 0x44b990 D3DInterface::PopTransform
 static void PopScreenTransform(WinDMApp* theApp)
 {
-	GPUDisplay* aDisplay = dynamic_cast<GPUDisplay*>(theApp->mDDInterface);
-	if (aDisplay != NULL && aDisplay->mGPU2D != NULL)
-		aDisplay->mGPU2D->PopTransform();
+	theApp->mDDInterface->PopTransform();
 }
 
 // port: the box of the score (the same places as DrawScore's, BoardDraw.cpp): the pixel offset of its top left corner in the
@@ -59,9 +53,12 @@ static int ScoreBoxLeft(const Board* theBoard)
 
 // port: The matrix that the original builds for each of the three parts (the original writes these steps out in full for each
 // one): the part's picture is moved so that its middle is at the origin (the original takes its width for both
-// directions), scaled by theScale and turned by theAngle (the original's Rotate(-theAngle), which is RotateRad(theAngle)
-// in the framework's newer names), and then moved to where its middle should be: theOffsetX/Y (already ScaleNum'ed)
-// from the middle of the picture, scaled, about the middle of the screen (theCenterX/Y). The stack takes the matrix.
+// directions), scaled by theScale and turned by theAngle, and then moved to where its middle should be: theOffsetX/Y (already
+// ScaleNum'ed) from the middle of the picture, scaled, about the middle of the screen (theCenterX/Y). The stack takes the matrix.
+// A growing theAngle turns the part clockwise on the screen, which is RotateRad(-theAngle) here: the framework's header says that
+// the old Rotate(angle) is the newer RotateRad(-angle), which would make the decompilation's Rotate(-theAngle) RotateRad(theAngle)
+// and turn the board anticlockwise, but the original's frames of the puzzle tour's WARP (2026-11-14, the board's tilt 0.8, 5.5
+// and 16.8 degrees at 6, 12 and 18 updates into its flight, 5 * mInterfaceFly radians) turn clockwise.
 static void PushTurnedPart(WinDMApp* theApp, int theWidth, float theScale, float theAngle, int theOffsetX, int theOffsetY,
 	int theCenterX, int theCenterY)
 {
@@ -69,7 +66,7 @@ static void PushTurnedPart(WinDMApp* theApp, int theWidth, float theScale, float
 	float aHalf = (float)-(theWidth / 2);
 	aTransform.Translate(aHalf, aHalf);
 	aTransform.Scale(theScale, theScale);
-	aTransform.RotateRad(theAngle);
+	aTransform.RotateRad(-theAngle);
 
 	float aCenterX = (float)theCenterX;
 	float aCenterY = (float)theCenterY;
