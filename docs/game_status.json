@@ -295,11 +295,12 @@
         "identical-play",
         "registration-out",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "identical-look"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "Screen fixes under way"
+      "now": "coverage",
+      "note": ""
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",

@@ -144,8 +144,7 @@ The how-to-play screen (0x40e1a0, shown by 0x4328c0, closed by 0x432c20) is a pi
 frame (`helpfront`, `helpback`): the left plays two demonstrations of throwing a tile onto a board and pulling one off, the right
 completes a picture (the puzzle `levels/helpscreen.txt`, a ring of walls with eight holes), with fades between the runs; a
 check box "Don't show this screen again" keeps the opposite of its state in the player's flag 0x2d (`mFlag2D`), and a player
-whose flag is set sees the screen before every puzzle outside the tutorial. The port draws the demonstration its own way (the
-tiles of the picture slide in one after the other).
+whose flag is set sees the screen before every puzzle outside the tutorial. The left window plays a script of 950 updates on a small board; the right replays the shipped solution and fades (the port has both, as real boards of the demo constructor).
 
 ## 8. Tests and tools
 
