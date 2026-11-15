@@ -25,6 +25,7 @@
 #include "VeniceApp.h"
 
 #include "Bot.h"
+#include "Cupid.h"
 #include "GameText.h"
 #include "Layer.h"
 #include "Level.h"
@@ -387,6 +388,17 @@ bool VeniceApp::HandleScriptCommand(const Sexy::ScriptCommand& theCommand)
 			gMiddleLayer->GoToStageByName("victory");
 		else
 			gActiveLevel->LoseTry();
+		Ok(aLine);
+		return true;
+	}
+	if (aName == "cupid") {
+		// port: the cupid power-up's effect without the power-up (Powerup::GiveCupid): a cupid comes in next to the shooter, to
+		// catch the next jewel shot, so that a test reaches the cupid's sounds without waiting for one in the Flood or Survival modes
+		if (gShooter == nullptr || gActiveLevel == nullptr || gActiveLevel != gScenes.mTail) {
+			Error(aLine, "no level is in play");
+			return true;
+		}
+		gShooter->mParent->NewChild(new Cupid());
 		Ok(aLine);
 		return true;
 	}

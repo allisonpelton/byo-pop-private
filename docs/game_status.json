@@ -530,11 +530,12 @@
         "readability",
         "collection",
         "lite-mod",
-        "registration-out"
+        "registration-out",
+        "site-features"
       ],
       "na": [],
       "now": null,
-      "note": "every phase but modding done except the site features (Music, soundboard presets, an autosplitter if speedrun.com has a board), which wait on the site's session; the tutorial's don't-show-again box is settled (9e662bc1): it sits on levels/tutorial.xml, a scene the original never loads, so the original never shows it"
+      "note": "every phase but modding done; on the site from this merge (Music, the Sounds board with nine presets, the autosplitter's VNDX block for speedrun.com's Venice board)"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
