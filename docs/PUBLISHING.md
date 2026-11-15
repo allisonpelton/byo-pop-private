@@ -141,7 +141,7 @@ beside it: its imports are Windows' own (`--release-zip` stops when one is not).
   initialize the display" box say "No graphics renderer could be started. Updating the graphics driver may help.", with
   SDL's reason, and the program ends with status 1 (the trunk, which links the official SDL2.dll, tries the software
   renderer next, as before). `SDL_RENDER_DRIVER=software` in a release's environment names no driver, so SDL goes on to its
-  other drivers as it does for any name it lacks. The exe went from 2,422,784 to 1,905,152 bytes (517 KB). What is still in:
+  other drivers as it does for any name it lacks. Checked on 2026-11-15: 90 shots of three scripted tours (3D, 2D, and the test-only window surface) are pixel-identical (tolerance 0) with the trunk exe's, the same with `SDL_RENDER_DRIVER=opengl`, and the scripted game's state log is the trunk's. Processor time of the game's thread, 8 turn-about rounds of `games/rocketmania/tools/profile` on a busy machine, differed by +6% in the median with rounds 25% apart, so nothing shows beyond the noise (the cut code is not on the draw path). The exe went from 2,422,784 to 1,905,152 bytes (517 KB). What is still in:
   the audio converter and `SDL_LoadWAV` (the framework's sound loading), and a few KB of `SDL_gesture`, `SDL_shape` and
   `SDL_bmp` that no switch reaches, which a patch to SDL's source could take out and which are not worth altering it for.
 - **No exceptions.** The derived build compiles with `-fno-exceptions -fno-unwind-tables -fno-asynchronous-unwind-tables`
