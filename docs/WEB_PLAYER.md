@@ -23,7 +23,10 @@ run a game. The fixes mod is put in place, the terms are asked, and without the 
 only what `page.js` names, by the rules in `web/gameimport.js` (a pak named in `paks` is unpacked). The exe of a game
 that `web/exetrim.js` lists is stored without its code sections, and a launcher's inner image alone, as the port reads
 only texts and tables from it (about 32 MB down to 7 MB over the listed games; `tools/exetrimtest.js` checks every table
-address reads the same; a game stored before keeps its whole exe until it is imported again). Play calls `main()`
+address reads the same; a game stored before keeps its whole exe until it is imported again). Files no port opens stay
+out too, by `NEVER_OPENED` in `web/gameimport.js`: AstroPop's and Dynomite's `sounds/cached_*.wav`, the originals'
+decoded copies of their Ogg sounds (15.4 MB of the Steam copies). `tools/web/unreferenced.py` lists every stored file
+nothing names, as a list to check by hand: names the code builds keep most of the rest of its 20.5 MB in use. Play calls `main()`
 with `-gamedir=/persist/game -userdir=... -modsdir=...`, plus `-gameseed=N` for `?seed=N`, `-placeholders` for
 `?placeholders=1` and `-nomods` for "Play without mods"; the game runs one frame per animation frame. Saves go to
 IndexedDB as they happen, with a small backup in localStorage, because a closing tab cannot wait for IndexedDB.

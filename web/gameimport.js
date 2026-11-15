@@ -88,8 +88,19 @@ var ByopopImport = (function () {
   // look for them that way, and a Steam install's "Images" would never be found; the game itself finds files in any case) and its
   // files at the top, but the .sig files and spec.skip's
   var README = /^read ?me\.(html?|txt)$/i;
+  // Files a port never opens, left out of the stored copy by game id (the user, 2026-11-13: "Let's do the first two", of the
+  // ways to store less; docs/WEB_PLAYER.md, "What happens when a game's page opens"). Only these: the static check
+  // tools/web/unreferenced.py finds about 21 MB of 381 named by nothing, but most of the rest is reached by names the code
+  // builds in ways a search cannot be sure of, so only what is checked against the port by hand goes. The 2004 framework's
+  // originals decode each Ogg sound once and write it beside it as cached_<name>.wav (docs/FRAMEWORK_2004.md, 1.3); AstroPop's
+  // and Dynomite's ports decode the Ogg itself and never ask for the copy (their GAME_NOTES and staging), so the 67 and 38 of
+  // them, 11.7 and 3.7 MB of the Steam copies, stay out. Rocket Mania's port reads its music's cached_ files, so it is not here.
+  var NEVER_OPENED = {
+    astropop: [/^sounds\/cached_[^\/]*\.wav$/i],
+    dynomite: [/^sounds\/cached_[^\/]*\.wav$/i]
+  };
   function pick(spec, entries, root, safeRel) {
-    var skip = spec.skip || [], files = spec.gameFiles || [], wanted = [];
+    var skip = (spec.skip || []).concat(NEVER_OPENED[spec.id] || []), files = spec.gameFiles || [], wanted = [];
     entries.forEach(function (e) {
       if (!under(e, root)) return;
       var rel = safeRel(e.path.substring(root.length));
