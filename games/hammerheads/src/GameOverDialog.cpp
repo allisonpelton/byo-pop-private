@@ -229,6 +229,12 @@ int GameOverDialog::GetPreferredHeight(int theWidth)
 	return ShowsCreature() ? HEIGHT_WITH_CREATURE : HEIGHT_WITHOUT_CREATURE;
 }
 
+// 0x44fe90: every button of the box clicks when it is pressed (the box's own buttons make no sound of themselves)
+void GameOverDialog::ButtonPress(int theId, int theClickCount)
+{
+	gApp->PlaySample(SOUND_UI_BUTTON_CLICK);
+}
+
 // 0x44fe50: either button takes the box away, answering with its own id (the application is not told at the press, as the moving
 // dialog's own answer would)
 void GameOverDialog::ButtonDepress(int theId)

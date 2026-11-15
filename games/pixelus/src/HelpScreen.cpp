@@ -2,6 +2,9 @@
 #include "PixelusApp.h"
 #include "UserDirectory.h"
 #include "Grid.h"
+#include "Board.h"
+#include "TileMaster.h"
+#include "Res.h"
 #include "GameDialog.h"
 #include "GameText.h"
 #include "Graphics.h"
@@ -15,30 +18,44 @@
 
 using namespace Sexy;
 
-// 0x40e1a0: the check box starts as the opposite of the profile's flag; the button is the screen's way out
+// 0x40e1a0: the left board (0x40ddd0) is a 12 by 12 grid with places for two tiles in a row (and a third out of the way),
+// a block at the end of the row, the Tile Master at the left of it, and no wave of light; the right board (0x40df90) is the
+// puzzle of levels/helpscreen.txt with its best solution played by the grid
 HelpScreen::HelpScreen(PixelusApp* theApp) :
 	mApp(theApp)
 {
-	// the original shows a small grid beside the slides (0x40ddd0: a grid of 12 by 12 with one tile in it); the port draws
-	// its picture from the slides' own grid, but the grid and the tile take two draws of the game's random numbers, which
-	// the draws after them depend on
-	mApp->RandNext();
-	mApp->RandNext();
-	mGrid = new Grid(16, 16);
+	mLeft = new Board(mApp, 12, 12, 100, -40);
+	Grid* aLeftGrid = mLeft->mGrid;
+	aLeftGrid->mCells[6][4].mWanted = true;		// 0x424410 with 4: a place for a tile
+	aLeftGrid->mCells[6][6].mWanted = true;
+	aLeftGrid->mCells[6][7].mFixed = true;		// with 1: a block
+	aLeftGrid->mCells[6][7].mObject = aLeftGrid->NewObject(6, 7);
+	aLeftGrid->mCells[6][7].mObject->mFixed = true;
+	aLeftGrid->mCells[0][0].mWanted = true;
+	aLeftGrid->SetCursor(Grid::SIDE_RIGHT, 6);	// 0x424590 (6, 1)
+	aLeftGrid->Recount();
+	aLeftGrid->mSupply = aLeftGrid->mEmptyWanted;	// 0x421b20
+	mLeft->mTileMaster = new TileMaster(mApp, 100, -40, 12, 12);
+	mLeft->mTileMaster->SetTarget(Grid::SIDE_RIGHT, 6, true);
+	mLeftMode = MODE_RUN;
+	mLeftDark = 200.0;
+	mPointerFrom = mPointerTo = 220.0;
+	mPointerWalk = 0.0;
+	mPointerStep = 0.015;
+	mGlow = 0.0;
+	mLeftFrame = 0;
+
+	mRight = new Board(mApp, 16, 16, 5, -43);
 	Buffer aBuffer;
 	if (mApp->ReadBufferFromFile("levels/helpscreen.txt", &aBuffer))
-	{
-		std::string aText((const char*) aBuffer.GetDataPtr(), aBuffer.GetDataLen());
-		mGrid->LoadFromText(aText);
-	}
-	for (int r = 0; r < mGrid->mRows; r++)
-		for (int c = 0; c < mGrid->mCols; c++)
-			if (mGrid->mCells[r][c].mWanted)
-				mOrder.push_back(r * Grid::MAX_SIZE + c);
-	int aLast = FIRST_SLIDE + SLIDE_GAP * (int) mOrder.size() + SLIDE_UPDATES;
-	mCycle = aLast + HOLD_UPDATES + FADE_UPDATES;
-	mTimer = 0;
-	mDemoFrame = 0;
+		mPuzzleText.assign((const char*) aBuffer.GetDataPtr(), aBuffer.GetDataLen());
+	mRight->LoadDemoPuzzle(mPuzzleText);
+	mRight->StartReplay(25, 100);					// 0x426560 (the first move comes after 25 updates), 0x422460
+	mRightMode = MODE_IDLE;
+	mRightDark = 200.0;
+	mPictureAlpha = 0;
+	mPicturePhase = 0;
+	mHold = 0;
 
 	mDontShowBox = new Checkbox(mApp->mImages[IMAGE_CHECKBOX_UNCHECKED], mApp->mImages[IMAGE_CHECKBOX_CHECKED], 0, this);
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
@@ -51,7 +68,8 @@ HelpScreen::HelpScreen(PixelusApp* theApp) :
 
 HelpScreen::~HelpScreen()
 {
-	delete mGrid;
+	delete mLeft;
+	delete mRight;
 	delete mOKButton;
 	delete mDontShowBox;
 }
@@ -84,110 +102,176 @@ void HelpScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 	mDontShowBox->Resize(mX + 0x14, mOKButton->mY + 7, aBox->GetWidth(), aBox->GetHeight());
 }
 
+// 0x40d2d0: the pointer goes from one column of the grid to another (the grid starts at 100 and a cell is 20 wide)
+void HelpScreen::MovePointer(int theFromCol, int theToCol)
+{
+	mPointerFrom = (theFromCol * 5 + 25) * 4;
+	mPointerTo = (theToCol * 5 + 25) * 4;
+	mPointerWalk = 0.0;
+	mPointerStep = 0.015;
+}
+
+// 0x40d320: the left window's turn: the script of 950 updates
+void HelpScreen::UpdateLeft()
+{
+	if (mLeftMode != MODE_RUN)
+	{
+		// under the dark layer
+		if (mLeftDark != 200.0)
+			mLeftDark = std::min(200.0, mLeftDark + 1.5);
+		return;
+	}
+
+	mLeftDark = std::max(0.0, mLeftDark - 1.5);
+	mLeftFrame++;
+	mPointerWalk += mPointerStep;
+	if (mPointerWalk >= 1.0 || mPointerWalk <= 0.0)
+		mPointerStep = 0.0;
+	mGlow = std::max(0.0, mGlow - 0.03);
+
+	switch (mLeftFrame % 950)
+	{
+	case 1:
+	case 650: mLeft->SetHover(6, 6, true); break;
+	case 50:
+	case 150:
+	case 250: mLeft->DoThrow(); mGlow = 1.0; break;
+	case 75: MovePointer(6, 5); break;
+	case 100:
+	case 550: mLeft->SetHover(5, 6, true); break;
+	case 175: MovePointer(5, 4); break;
+	case 200: mLeft->SetHover(4, 6, true); break;
+	case 500:
+	case 600:
+	case 700: mLeft->DoPull(); mGlow = 1.0; break;
+	case 790: mLeft->mTileMaster->IdleSoon(); break;	// 0x40d507
+	case 525: MovePointer(4, 5); break;
+	case 625: MovePointer(5, 6); break;
+	case 949: mLeftMode = MODE_DONE; break;
+	}
+	mLeft->UpdateDemo();
+}
+
+// 0x40d840: the board plays its solution again
+void HelpScreen::RestartRight()
+{
+	mRight->StartReplay(25, 100);
+	mPictureAlpha = 0;
+	mPicturePhase = 0;
+}
+
+// 0x40d8d0: the right window's turn: the solution is played, the finished picture stays 100 updates, then a picture covers
+// the board, the puzzle is loaded again and the picture goes
+void HelpScreen::UpdateRight()
+{
+	if (mRightMode != MODE_RUN)
+	{
+		if (mRightDark != 200.0)
+			mRightDark = std::min(200.0, mRightDark + 1.5);
+		return;
+	}
+
+	mRightDark = std::max(0.0, mRightDark - 1.0);
+	if (mRightDark != 0.0)
+		return;
+
+	mRight->UpdateDemo();
+	if (mHold > 0 && --mHold < 1)
+	{
+		mPicturePhase = 2;
+		mPictureAlpha = 0;
+	}
+	if (mPicturePhase == 2)
+	{
+		mPictureAlpha += 2;
+		if (mPictureAlpha > 254)
+		{
+			mRight->LoadDemoPuzzle(mPuzzleText);
+			mPicturePhase = 1;
+			mPictureAlpha = 255;
+		}
+	}
+	else if (mPicturePhase == 1 && (mPictureAlpha -= 2) < 1)
+	{
+		mRightMode = MODE_DONE;
+		RestartRight();
+	}
+	if (mRight->mGrid->mDone && !mRight->mGrid->mTileMoving && mPicturePhase != 2 && mPictureAlpha != 255 && mHold < 1)
+	{
+		mHold = 100;
+		mPicturePhase = 0;
+		mPictureAlpha = 0;
+	}
+}
+
+// 0x40dd50: the two windows take turns (each window's own update runs first)
 void HelpScreen::Update()
 {
 	Widget::Update();
-	if (++mTimer >= mCycle)
-		mTimer = 0;
-	// the demo throws a tile (a draw) at 50, 150 and 250 of its 950 updates (0x40d483 in 0x40d320)
-	mDemoFrame = (mDemoFrame + 1) % 950;
-	if (mDemoFrame == 50 || mDemoFrame == 150 || mDemoFrame == 250)
-		mApp->RandNext();
-	// the demo's tile moves play the move sample; a thrown tile lands 11 updates later (0x40d320, 0x424750)
-	if (mDemoFrame == 50 || mDemoFrame == 150 || mDemoFrame == 250 || mDemoFrame == 500 || mDemoFrame == 600 || mDemoFrame == 700)
-		mApp->PlaySample(SOUND_TILE_MOVING_02D);
-	if (mDemoFrame == 61 || mDemoFrame == 161 || mDemoFrame == 261)
-		mApp->PlaySample(SOUND_TILE_TARGET_02C);
+	UpdateLeft();
+	UpdateRight();
+	if (mLeftMode == MODE_DONE)
+	{
+		mLeftMode = MODE_IDLE;
+		mRightMode = MODE_RUN;
+	}
+	if (mRightMode == MODE_DONE)
+	{
+		mLeftMode = MODE_RUN;
+		mRightMode = MODE_IDLE;
+	}
 	MarkDirty();
 }
 
-void HelpScreen::DrawDark(Graphics* g, int theX, int theWidth, int theAlpha)
+void HelpScreen::DrawDark(Graphics* g, int theX, int theWidth, double theDark)
 {
-	if (theAlpha <= 0)
+	if (theDark <= 0.0)
 		return;
-	g->SetColor(Color(0, 0, 0, std::min(theAlpha, 200)));
+	g->SetColorizeImages(true);
+	g->SetColor(Color(0, 0, 0, theDark <= 200.0 ? (int) theDark : 200));
 	g->FillRect(theX, WINDOW_Y, theWidth, WINDOW_H);
+	g->SetColorizeImages(false);
 }
 
-// 0x40e360: the picture behind the frame, the fades, the frame, and the box's text
+// 0x40e360: the picture behind the windows, the boards in them, the dark layers, the frame, and the box's text
 void HelpScreen::Draw(Graphics* g)
 {
-	// the cells of the puzzle (its walls and the places for the tiles), and how big they are in the two windows
-	int aMinRow = 99, aMaxRow = -1, aMinCol = 99, aMaxCol = -1;
-	for (int r = 0; r < mGrid->mRows; r++)
-		for (int c = 0; c < mGrid->mCols; c++)
-			if (mGrid->mCells[r][c].mWanted || mGrid->mCells[r][c].mFixed)
-			{
-				aMinRow = std::min(aMinRow, r);
-				aMaxRow = std::max(aMaxRow, r);
-				aMinCol = std::min(aMinCol, c);
-				aMaxCol = std::max(aMaxCol, c);
-			}
-	int aRows = aMaxRow - aMinRow + 1, aCols = aMaxCol - aMinCol + 1;
-	const int aSmall = 13;
-	int aLeftX = BOARD_X + (LEFT_X + LEFT_W - BOARD_X - aCols * aSmall) / 2;
-	int aLeftY = WINDOW_Y + (LEFT_VISIBLE_H - aRows * aSmall) / 2;
-	const int aBig = Grid::CELL_SIZE;	// the right window shows the cells at their own size (a stretched tile loses its colour)
-	int aRightX = RIGHT_X + (RIGHT_W - aCols * aBig) / 2;
-	int aRightY = WINDOW_Y + (WINDOW_H - aRows * aBig) / 2;
-
 	g->DrawImage(mApp->mImages[IMAGE_HELPBACK], LEFT_X, WINDOW_Y);
-	g->SetClipRect(BOARD_X, WINDOW_Y, LEFT_X + LEFT_W - BOARD_X, LEFT_VISIBLE_H);
-	for (int r = aMinRow; r <= aMaxRow; r++)
-		for (int c = aMinCol; c <= aMaxCol; c++)
-		{
-			const Grid::Cell& aCell = mGrid->mCells[r][c];
-			int aLeft = aLeftX + (c - aMinCol) * aSmall, aTop = aLeftY + (r - aMinRow) * aSmall;
-			int aRight = aRightX + (c - aMinCol) * aBig, aBottom = aRightY + (r - aMinRow) * aBig;
-			if (aCell.mWanted)
-			{
-				g->DrawImage(mApp->mImages[IMAGE_TILEBACK_WANTTILE_20X20], aLeft, aTop, aSmall, aSmall);
-				g->ClearClipRect();
-				g->DrawImage(mApp->mImages[IMAGE_TILEBACK_WANTTILE_20X20], aRight, aBottom);
-				g->SetClipRect(BOARD_X, WINDOW_Y, LEFT_X + LEFT_W - BOARD_X, LEFT_VISIBLE_H);
-			}
-			else if (aCell.mFixed)
-			{
-				g->DrawImage(mApp->mImages[IMAGE_REDX_20X20], aLeft, aTop, aSmall, aSmall);
-				g->ClearClipRect();
-				g->DrawImage(mApp->mImages[IMAGE_REDX_20X20], aRight, aBottom);
-				g->SetClipRect(BOARD_X, WINDOW_Y, LEFT_X + LEFT_W - BOARD_X, LEFT_VISIBLE_H);
-			}
-		}
 
-	// the tiles come one after the other from the rack on the left, and each that lands is on the picture too
-	for (size_t i = 0; i < mOrder.size(); i++)
+	// the left window (0x40d740): the board, the Tile Master and the pointer, which flashes when a tile is thrown or pulled
+	g->SetClipRect(0, WIDGET_Y, LEFT_W, WINDOW_H);
+	g->Translate(0, WIDGET_Y);
+	mLeft->DrawDemo(g);
+	float aPointerX = (float) ((mPointerTo - mPointerFrom) * mPointerWalk + mPointerFrom - 14.0);
+	g->DrawImageF(mApp->mImages[IMAGE_CURSOR_POINTER], aPointerX, 70.0f);
+	if (mGlow > 0.0)
 	{
-		int aRow = mOrder[i] / Grid::MAX_SIZE - aMinRow, aCol = mOrder[i] % Grid::MAX_SIZE - aMinCol;
-		double aProgress = std::max(0.0, std::min(1.0, (mTimer - (FIRST_SLIDE + SLIDE_GAP * (int) i)) / (double) SLIDE_UPDATES));
-		if (aProgress <= 0)
-			continue;
-		double anEase = 1 - (1 - aProgress) * (1 - aProgress);
-		int aTargetX = aLeftX + aCol * aSmall;
-		int aX = (int) (BOARD_X - aSmall + (aTargetX - (BOARD_X - aSmall)) * anEase);
-		Image* aTile = mApp->mImages[IMAGE_TILEBLUE01 + (int) (i % 5)];
-		g->DrawImage(aTile, aX, aLeftY + aRow * aSmall, aSmall, aSmall);
-
-		if (aProgress >= 1)
-		{
-			g->ClearClipRect();
-			g->DrawImage(aTile, aRightX + aCol * aBig, aRightY + aRow * aBig);
-			g->SetClipRect(BOARD_X, WINDOW_Y, LEFT_X + LEFT_W - BOARD_X, LEFT_VISIBLE_H);
-		}
+		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, (int) (mGlow * 255.0)));
+		g->DrawImageF(mApp->mImages[IMAGE_CURSOR_POINTER], aPointerX, 70.0f);
+		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+		g->SetColorizeImages(false);
 	}
+	g->Translate(0, -WIDGET_Y);
 	g->ClearClipRect();
 
-	// the fades: in at the start, out at the end
-	int aFadeOutStart = mCycle - FADE_UPDATES;
-	int anAlpha = 0;
-	if (mTimer < FADE_UPDATES)
-		anAlpha = 200 - (int) (mTimer * 1.5);
-	else if (mTimer >= aFadeOutStart)
-		anAlpha = (int) ((mTimer - aFadeOutStart) * 1.5);
-	g->SetColorizeImages(true);
-	DrawDark(g, LEFT_X, LEFT_W, anAlpha);
-	DrawDark(g, RIGHT_X, RIGHT_W, anAlpha);
-	g->SetColorizeImages(false);
+	// the right window (0x40e0b0): the board, and the picture over it while the puzzle is loaded again
+	if (mPictureAlpha != 255)
+	{
+		g->SetClipRect(RIGHT_X, WIDGET_Y, RIGHT_W, WINDOW_H);
+		g->Translate(RIGHT_X, WIDGET_Y);
+		mRight->DrawDemo(g);
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, std::max(0, mPictureAlpha)));
+		g->DrawImageF(mApp->mImages[IMAGE_HELPBACK], -7.0f, -4.0f, Rect(0x130, 0, 0x128, 0x10c));
+		g->SetColorizeImages(false);
+		g->Translate(-RIGHT_X, -WIDGET_Y);
+		g->ClearClipRect();
+	}
+
+	DrawDark(g, LEFT_X, LEFT_W, mLeftDark);
+	DrawDark(g, RIGHT_X, RIGHT_W, mRightDark);
 
 	g->DrawImage(mApp->mImages[IMAGE_HELPFRONT], 0, 0);
 	g->SetFont(mApp->mFonts[FONT_GARAMOND14]);

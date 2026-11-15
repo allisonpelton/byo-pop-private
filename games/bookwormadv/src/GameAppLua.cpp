@@ -178,9 +178,10 @@ bool IsResGroupLoaded(GameApp* app, std::string theGroup)  // 0x44cb30
 
 bool LoadResGroup(GameApp* app, std::string theGroup)  // 0x44cb60
 {
-	bool aLoaded = app->mResourceManager->LoadResources(theGroup);
-	app->ClearUpdateBacklog(false);
-	return aLoaded;
+	if (!app->mResourceManager->LoadResources(theGroup))
+		return false;
+	app->ClearUpdateBacklog(true);  // the time the load took is not made up, and the updates relax for a second
+	return true;
 }
 
 std::string GetResGroupError(GameApp* app)  // 0x44cc70
@@ -402,6 +403,8 @@ int BreakupString(GameApp* app, lua_State* L)
 
 }  // namespace
 
+// 0x452ae0 and 0x453cd0 (the class registration of GameApp and its CreateClass instance) and 0x452be0
+// (LuaGetRegisteredName's registration) are inline here
 void GameApp::RegisterGameAppMethods()
 {
 	Class<GameApp> aClass("GameApp", false);

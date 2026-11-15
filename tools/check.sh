@@ -37,7 +37,7 @@
 #                platform/saveimport.json, the .reg reader and the conversion, web/saveimport.js), chattest (the chat's username,
 #                text and rate rules, its stored history and local source, and that a message goes on the page as text only,
 #                web/chat.js), gameimporttest (the import rules for a game's files and the sorting of dropped folders into games,
-#                web/gameimport.js) and a11ycheck (tools/a11ycheck.js: the site's pages in the build, as index.html lists them; each page's
+#                web/gameimport.js), exetrimtest (tools/exetrimtest.js: the stored exe without its code, web/exetrim.js) and a11ycheck (tools/a11ycheck.js: the site's pages in the build, as index.html lists them; each page's
 #                landmarks, headings, names, references, live regions and contrast) and stringstest (tools/stringstest.js: the
 #                site's text, web/strings/en.txt, against the code that uses it, and web/i18n.js's rules), playcounttest (the play
 #                counter's Worker and Durable Object, web/counter/playcount.mjs, on stand-ins for Cloudflare's runtime) and
@@ -194,7 +194,9 @@
 # processes at a time (bonnies, venice and hammerheads, which start two at once when their frozen baselines exist, count as
 # two, and heavyweapon, which starts three at once, as three).
 # Each suite's line is printed whole when it ends, so the lines come in the order the suites end. The builds, unit,
-# unit-web, gpu, verify, modmenu, livesplit and the oracle always run alone.
+# unit-web, gpu, verify, modmenu, livesplit and the oracle always run alone, except build-web: it runs in the background
+# beside the suites after it, and unit-web, verify and the oracle, which read build/web, wait for it. In merge mode they
+# come last, after the game suites, so that the web build's link time is spent beside the native suites.
 #
 # Merge mode, --changed <rev>: picks the suites a change can affect from `git diff --name-only <rev>` (the working tree,
 # staged changes included, against <rev>: a merge made with --no-commit is checked with `--changed HEAD`; `<a>..<b>` is
@@ -265,7 +267,7 @@ WB_LOSS="30000 ms: score 0, lives 0, board 0, filled 0 of 90%"
 WB_SHOTS="2a54908cecb8 42df2d86a04f 983a569fb1b6"  # the first 12 hex digits of the sha256 of game/start.png, game/beam.png and loss/scores.png (pixels, with the bubble column masked, see wb_hash): the frozen baseline
 MJ_DEAL="222 layouts, 0 failed"
 BB_SHOTS="99a302e2a141 fbf6b1061117 8b26c14dac8a"  # the first 12 hex digits of the sha256 of played.png, highscores.png and timeup.png (games/bonnies/tools/tour_test.txt): the frozen baseline
-VN_FROZEN="638acb1206cb 6de40abf8b88"  # the first 12 hex digits of the sha256 of the tour's 15 screens' hashes and of its state lines (games/venice/tools/tour_test.txt): the frozen baseline
+VN_FROZEN="91fa05746617 6de40abf8b88"  # the first 12 hex digits of the sha256 of the tour's 15 screens' hashes and of its state lines (games/venice/tools/tour_test.txt): the frozen baseline (screens refrozen 2026-11-15: the 3D display puts a transformed picture half a pixel over, as the 3D original does, so the pictures are sharper; the states are the same)
 HW_FROZEN="0f9a91bb0a10 61398f211445"  # the first 12 hex digits of the sha256 of the tour's 19 screens' hashes and of its state lines (games/heavyweapon/tools/tour_test.txt): the frozen baseline
 # Heavy Weapon Deluxe: the bot's summary lines (tools/playbymove's last line) for its campaign from the title, level 9 and survival: the frozen baseline
 HW_CAMPAIGN='playbymove heavyweapon: 3400 moves, stop limit; STATE {"screen":"game","dialog":-1,"mode":"campaign","level":2,"maxlevel":1,"score":49620,"lives":1,"nukes":1,"timer":3950,"length":15000,"boss":-1,"bosshealth":0,"bossup":0,"enemies":0,"tankx":-161.522,"tankdead":0,"fire":0,"paused":0,"suspended":0,"updates":4648,"over":false,"appupdates":17894}'
@@ -293,7 +295,7 @@ BT_MENU="02beec06fa7d da8353fcb954"  # the start's screens at 60 (the loader han
 # refrozen 2026-11-11 after phase two (the looks-identical pass): the menu's slide-in widgets are at the original's places (4 lines of
 # each transcript, the same in every mode: updates 76 to 100 of the start), and Finity's int arithmetic wraps as the original's (-fwrapv), which
 # changes Finity's end screen (its timer bar) and no line of its transcript; every other end screen is as before)
-declare -A BJ2_PLAYS=([classic]="b9d87f5adc92:7ccfdd5b8faf" [action]="90d63e45cf7f:950c77b82a20" [puzzle]="5815000ef06d:a8b0773b7f3f" [endless]="bdc08bd259dc:6c7b27839583" [twilight]="de8c03468564:8059d707c87c" [hyper]="58da52692f1f:7c808bde4f7b" [cognito]="c44bde2956fb:b8dd13b43d05" [finity]="640f47957c85:0280181642a0" [hidden]="c33e07c611ee:7afbbb32f140")
+declare -A BJ2_PLAYS=([classic]="b9d87f5adc92:7ccfdd5b8faf" [action]="90d63e45cf7f:7b659fc03b56" [puzzle]="5815000ef06d:a8b0773b7f3f" [endless]="bdc08bd259dc:6c7b27839583" [twilight]="de8c03468564:67d9f459fef4" [hyper]="58da52692f1f:83b1c28355ba" [cognito]="c44bde2956fb:b8dd13b43d05" [finity]="640f47957c85:0280181642a0" [hidden]="c33e07c611ee:7afbbb32f140")
 declare -A BJ2_STEPS=([classic]=1200 [action]=400 [puzzle]=500 [endless]=400 [twilight]=400 [hyper]=400 [cognito]=300 [finity]=300 [hidden]=300)
 BJ2_MODES="classic action puzzle endless twilight hyper cognito finity hidden"
 
@@ -308,7 +310,9 @@ GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwo
 # the oracle is left out of `all` and of shared code's "every suite" (the user, 2026-11-11: "Seems like the Bejeweled oracle
 # is causing a lot of slowdown for no benefit"); it runs when games/bejeweled changes, or when named
 ALL_SUITES=(build build-web build-nov unit unit-web gpu verify modmenu livesplit "${GAME_SUITES[@]}")
-ORDER=(build build-web build-nov unit unit-web gpu origrun verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
+ORDER=(build build-web build-nov unit gpu origrun modmenu livesplit "${GAME_SUITES[@]}" unit-web verify oracle)
+# the suites that read build/web, and so wait for a build-web running in the background (below)
+needs_web() { case "$1" in unit-web|verify|oracle) return 0 ;; esac; return 1; }
 known_suite() { case " ${ORDER[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
 is_game_suite() { case " ${GAME_SUITES[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
 # suite_weight <suite>: sets WEIGHT to the game processes the suite has at once (bonnies runs its rerun and the frozen baseline's together;
@@ -327,7 +331,7 @@ declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52 [typershark]=270
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
 SH_ORDER=() WEB_T=() GL_FILES=()
 NOTHING=0 AREA="" GS="" REASONS="" EST_S=0 WEIGHT=1 SAVEIMPORT=0
-WEB_FULL_EST=10  # the whole web build, unless a change relinks every game's wasm (356 s; 10 s when it only writes the listing page)
+WEB_FULL_EST=10  # the whole web build, unless a change relinks every game's wasm (356 s; 10 s when it only writes the listing page or the games' pages)
 
 area_of() {  # <path>: sets AREA to the folder a path is listed under in the plan
 	local p="$1" top rest
@@ -409,9 +413,9 @@ classify() {  # <path>: chooses the suites a changed file needs
 			done ;;
 		web/*|cmake/ByopopWeb.cmake|cmake/ByopopStores.cmake)
 			pick build-web "$AREA" "$p"; pick unit-web "$AREA" "$p"
-			# what every game's page and link depend on (cmake/ByopopWeb.cmake: the shell, the post-js, the footer, the licenses,
-			# and the site's text, which fills the shell)
-			case "$p" in web/modpanel.js|web/shell.html|web/footer.*|web/copyright.html|web/terms.html|web/licenses/*|web/strings/*) WEB_FULL_EST=356 ;; esac ;;
+			# what every game's page depends on (cmake/ByopopWeb.cmake: the shell, modpanel.js, the footer, the licenses, and
+			# the site's text, which fills the shell): each page is rewritten, and no game is relinked (cmake/ByopopWebPage.cmake)
+			case "$p" in web/modpanel.js|web/shell.html|web/footer.*|web/copyright.html|web/terms.html|web/licenses/*|web/strings/*) [ "$WEB_FULL_EST" -ge 60 ] || WEB_FULL_EST=60 ;; esac ;;
 		tools/*)
 			x="${p#tools/}"
 			case "$x" in
@@ -496,7 +500,7 @@ web_est() {  # <target,target...>: sets EST_S to a rough time for building only 
 
 # select_changed <rev>: fills SUITES from the files that differ from <rev>, prints the plan
 select_changed() {
-	local rev="$1" f a b t tok base arg name seq=0 games=0 longest=0 wall total e q targets listing shared=""
+	local rev="$1" f a b t tok base arg name seq=0 games=0 longest=0 web=0 after=0 wall total e q targets listing shared=""
 	local -a named=("${SUITES[@]}") files=() args
 	SUITES=()
 	case "$rev" in
@@ -542,17 +546,21 @@ select_changed() {
 		SUITES+=("$tok")
 		if [ "$JOBS" -gt 1 ] && is_game_suite "$name"; then
 			suite_weight "$name"; games=$((games + e * WEIGHT)); [ "$e" -le "$longest" ] || longest="$e"
+		elif [ "$name" = build-web ]; then
+			web=$e
 		else
-			seq=$((seq + e))
+			seq=$((seq + e)); if needs_web "$name"; then after=$((after + e)); fi
 		fi
 		reasons_of "$name"
 		printf '  %-18s ~%4ss  %s<- %s\n' "$name$q" "$e" "${targets:+[${targets//,/ }] }" "$REASONS"
 	done
 	if [ ${#SUITES[@]} -eq 0 ]; then echo "check: nothing to run"; return; fi
 	wall=$(((games * 115 / 100 + JOBS - 1) / JOBS)); [ "$wall" -ge "$longest" ] || wall="$longest"
-	total=$((seq + wall))
+	# build-web runs beside everything before the suites that read build/web, which wait for it
+	total=$((seq - after + wall)); [ "$total" -ge "$web" ] || total="$web"; total=$((total + after))
 	e="${seq}s for the suites that run alone"
 	[ "$games" -eq 0 ] || e="$e, ${wall}s for the game suites ($JOBS at a time)"
+	[ "$web" -eq 0 ] || e="$e, ${web}s for the web build beside them"
 	if [ "$total" -lt 90 ]; then t="under 2 minutes"; else t="about $(((total + 30) / 60)) minutes"; fi
 	echo "check: $t ($e; the time of a web build of some targets is a guess)"
 }
@@ -793,6 +801,9 @@ suite_unit-web() {
 	# the import rules for a game's files and the sorting of dropped folders into games (web/gameimport.js)
 	"$NODE" tools/gameimporttest.js > "$1.gi" 2>&1 || st=1
 	i="$(lastof "$1.gi" 'gameimporttest:')"
+	# the stored exe without its code (web/exetrim.js): every address of the ports' tables reads the same from the trimmed exe
+	"$NODE" tools/exetrimtest.js "$W/assets" > "$1.xt" 2>&1 || st=1
+	i="$i; $(lastof "$1.xt" 'exetrimtest:')"
 	# the chat's rules, stored history and local source, and its plain-text rendering (web/chat.js)
 	"$NODE" tools/chattest.js > "$1.ch" 2>&1 || st=1
 	h="$(lastof "$1.ch" 'chattest:')"
@@ -2039,7 +2050,7 @@ mahjongjapan_run() {  # <name>: a new player, escape stage 1 won with the solver
 		printf '%s\n' "$((t + 400)) click 403 330" "$((t + 2400)) screenshot $d/shots/won.png" "$((t + 2600)) click 397 400" \
 			"$((t + 5600)) screenshot $d/shots/map.png" "$((t + 5700)) quit"
 	} > "$d/script.txt"
-	timeout 300 "$W/build/native/mahjongjapan.exe" -gamedir=assets/mahjongjapan -userdir="$d/user" -fast -logos -script="$d/script.txt" \
+	timeout 300 "$W/build/native/mahjongjapan.exe" -gamedir=assets/mahjongjapan -userdir="$d/user" -fast -logos -script="$d/script.txt" ${MJ_EXTRA:-} \
 		> "$d/stdout.txt" 2> "$d/stderr.txt"
 	echo "$n pairs; $(ls "$d/shots" | wc -l) shots; player files: $(ls "$d/user" | grep -c '\.usr$')"
 }
@@ -2075,7 +2086,7 @@ mahjongchina_run() {  # <name>: a new player, Dynasty Adventure stage 1 won with
 		printf '%s\n' "$((t + 400)) click 187 330" "$((t + 2400)) screenshot $d/shots/won.png" "$((t + 2600)) click 397 400" \
 			"$((t + 5600)) screenshot $d/shots/map.png" "$((t + 5700)) quit"
 	} > "$d/script.txt"
-	timeout 300 "$W/build/native/mahjongchina.exe" -gamedir=assets/mahjongchina -userdir="$d/user" -fast -logos -script="$d/script.txt" \
+	timeout 300 "$W/build/native/mahjongchina.exe" -gamedir=assets/mahjongchina -userdir="$d/user" -fast -logos -script="$d/script.txt" ${MJ_EXTRA:-} \
 		> "$d/stdout.txt" 2> "$d/stderr.txt"
 	echo "$n pairs; $(ls "$d/shots" | wc -l) shots; player files: $(ls "$d/user" | grep -c '\.usr$')"
 }
@@ -2492,18 +2503,30 @@ run_batch() {
 			weight[$!]=$WEIGHT; used=$((used + WEIGHT))
 		done
 		wait -n -p pid; st=$?
+		# the web build in the background may end here: kept for web_wait, and no game slot to free
+		if [ -n "$WEB_PID" ] && [ "$pid" = "$WEB_PID" ]; then WEB_ST=$st; WEB_PID=""; continue; fi
 		used=$((used - ${weight[$pid]:-1})); unset 'weight[$pid]'
 		count $st
 	done
 	trap - INT TERM
 }
 
+# build-web runs in the background beside the suites after it (its links take most of a merge check otherwise); a
+# suite that reads build/web (needs_web) waits for it first, and so does the end
+WEB_PID="" WEB_ST=""
+web_wait() {
+	if [ -n "$WEB_PID" ]; then wait "$WEB_PID"; WEB_ST=$?; WEB_PID=""; fi
+	if [ -n "$WEB_ST" ]; then count "$WEB_ST"; WEB_ST=""; fi
+}
 BATCH=()
 for s in "${SUITES[@]}"; do
 	if [ "$JOBS" -gt 1 ] && is_game_suite "${s%%:*}"; then BATCH+=("$s"); continue; fi
 	if [ ${#BATCH[@]} -gt 0 ]; then run_batch "${BATCH[@]}"; BATCH=(); fi
+	if needs_web "${s%%:*}"; then web_wait; fi
+	if [ "${s%%:*}" = build-web ]; then run_suite "$s" & WEB_PID=$!; continue; fi
 	run_suite "$s"; count $?
 done
 if [ ${#BATCH[@]} -gt 0 ]; then run_batch "${BATCH[@]}"; fi
+web_wait
 echo "check: $PASSED passed, $FAILED failed"
 [ $FAILED -eq 0 ]

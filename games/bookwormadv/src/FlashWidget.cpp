@@ -17,6 +17,7 @@ FlashWidget::FlashWidget(int theId, FlashListener* theListener) : mId(theId), mF
 	mMovie.mListener = this;
 }
 
+// 0x527ec0, with 0x528070 (the release of the control's host, +0xb0) inline: the movie is a member
 FlashWidget::~FlashWidget()
 {
 	delete mImage;
@@ -53,9 +54,10 @@ void FlashWidget::Unpause()
 		mState = STATE_PLAYING;
 }
 
+// 0x528a50, with the game's MyFlashWidget's Update (0x482520), which leaves it out while a dialog is open (the app's
+// mDialogMap, +0x328)
 void FlashWidget::Update()
 {
-	// MyFlashWidget's Update (0x482520) leaves this out while a dialog is open (the app's mDialogMap, +0x328).
 	// port: the framework's paused the movie while the app was not active; that is not ported
 	if (!gSexyAppBase->mDialogMap.empty())
 		return;
@@ -78,6 +80,8 @@ void FlashWidget::Update()
 		MarkDirty();
 }
 
+// 0x528b10 (the framework's Resize, which also resized the control) is inline here: the image is made again when the
+// size changes
 void FlashWidget::Draw(Graphics* g)
 {
 	if (mWidth <= 0 || mHeight <= 0)

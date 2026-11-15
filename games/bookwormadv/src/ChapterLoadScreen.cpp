@@ -11,6 +11,7 @@
 
 using namespace Sexy;
 
+// 0x42e780
 ChapterLoadScreen::ChapterLoadScreen(GameApp* theApp) : mApp(theApp)
 {
 	Resize(225, 200, 350, 200);

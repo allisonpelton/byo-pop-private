@@ -125,6 +125,7 @@ int luaL_error(lua_State* L, const char* fmt, ...)
 	return lua_error(L);
 }
 
+// 0x6f1e00
 int luaL_findstring(const char* name, const char* const list[])
 {
 	int i;
@@ -134,6 +135,7 @@ int luaL_findstring(const char* name, const char* const list[])
 	return -1;  // name not found
 }
 
+// 0x6f1e50
 int luaL_newmetatable(lua_State* L, const char* tname)
 {
 	lua_pushstring(L, tname);
@@ -151,12 +153,14 @@ int luaL_newmetatable(lua_State* L, const char* tname)
 	return 1;
 }
 
+// 0x6f2020
 void luaL_getmetatable(lua_State* L, const char* tname)
 {
 	lua_pushstring(L, tname);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 }
 
+// 0x6f20a0
 void* luaL_checkudata(lua_State* L, int ud, const char* tname)
 {
 	const char* tn;
@@ -247,6 +251,7 @@ lua_Int luaL_optint(lua_State* L, int narg, lua_Int def)
 		return luaL_checkint(L, narg);
 }
 
+// 0x6f2410
 int luaL_getmetafield(lua_State* L, int obj, const char* event)
 {
 	if (!lua_getmetatable(L, obj))  // no metatable?
@@ -273,6 +278,7 @@ int luaL_callmeta(lua_State* L, int obj, const char* event)
 	return 1;
 }
 
+// 0x6f2530
 void luaL_openlib(lua_State* L, const char* libname, const luaL_reg* l, int nup)
 {
 	if (libname) {
@@ -306,6 +312,7 @@ void luaL_getfield(lua_State* L, int idx, const char* k)
 	lua_gettable(L, idx);
 }
 
+// 0x6ef450 (lua_setfield in the original)
 void luaL_setfield(lua_State* L, int idx, const char* k)
 {
 	idx = abs_index(L, idx);
@@ -373,6 +380,7 @@ int luaL_getn(lua_State* L, int t)
 #define bufffree(B) ((size_t)(LUAL_BUFFERSIZE - bufflen(B)))
 #define LIMIT (LUA_MINSTACK / 2)
 
+// 0x6f2ac0
 static int emptybuffer(luaL_Buffer* B)
 {
 	size_t l = bufflen(B);
@@ -386,6 +394,7 @@ static int emptybuffer(luaL_Buffer* B)
 	}
 }
 
+// 0x6f2b20
 static void adjuststack(luaL_Buffer* B)
 {
 	if (B->lvl > 1) {
@@ -413,6 +422,7 @@ char* luaL_prepbuffer(luaL_Buffer* B)
 	return B->buffer;
 }
 
+// 0x6f2ca0 (the same with luaL_putchar inline)
 void luaL_addlstring(luaL_Buffer* B, const char* s, size_t l)
 {
 	while (l--)
@@ -569,6 +579,7 @@ void poplua_fullpath(const char* name, char* out, size_t size)
 // name that is not found is read as its compiled file: a .lua as the .luc of the same name, any other name
 // with .luc added. (The original also reads the .luc in place of a .lua that is there when the .luc is newer:
 // a feature for its developers.)
+// 0x6f3440 (the "cannot read" error) is inline here
 int luaL_loadfile(lua_State* L, const char* filename)
 {
 	char* data;

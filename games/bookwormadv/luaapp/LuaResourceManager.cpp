@@ -8,22 +8,27 @@ using namespace LuaLib;
 
 LuaResourceManager* Sexy::gLuaResourceManager = nullptr;
 
+// 0x65d3c0
 LuaResourceManager::LuaResourceManager(SexyAppBase* theApp, PopLua* theLua) : ResourceManager(theApp), mLua(theLua)
 {
 	gLuaResourceManager = this;
 }
 
+// 0x65d490
 LuaResourceManager::~LuaResourceManager()
 {
 	if (gLuaResourceManager == this)
 		gLuaResourceManager = nullptr;
 }
 
+// 0x65d930, and its compiled copy in the game's CustomResManager (0x4bfe70); 0x65dee0 (the set's insert) is inline
+// here: mLoaded.insert
 void LuaResourceManager::ResourceLoadedHook(BaseRes* theRes)
 {
 	mLoaded.insert(theRes);
 }
 
+// 0x65d950
 void LuaResourceManager::ExportToLua()
 {
 	while (!mLoaded.empty()) {
@@ -34,6 +39,8 @@ void LuaResourceManager::ExportToLua()
 	}
 }
 
+// 0x66ffe0 (making the LuaImage of an image resource) and 0x670080 (making the borrowed LuaFont of a font resource) are
+// inline here
 void LuaResourceManager::PushResource(BaseRes* theRes)
 {
 	if (mLua == nullptr || mLua->L == nullptr)
@@ -62,6 +69,7 @@ void LuaResourceManager::PushResource(BaseRes* theRes)
 	mLua->SetPath(theRes->mId);
 }
 
+// 0x65d9b0
 void LuaResourceManager::DeleteResources(const std::string& theGroup)
 {
 	if (mLua != nullptr && mLua->L != nullptr) {

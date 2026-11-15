@@ -4,78 +4,104 @@
 var ByopopThemeData = {
   bejeweled: { wallpaper: "images/titlescreen6.jpg",
     sounds: { open: "sounds/menuclick.ogg", close: "sounds/select.ogg", minimize: "sounds/gemongem2.ogg", restore: "sounds/go1.ogg",
-      maximize: "sounds/gotsetbig2.ogg", menu: "sounds/select.ogg", ding: "sounds/bad2.ogg" } },
+      maximize: "sounds/gotsetbig2.ogg", menu: "sounds/select.ogg", ding: "sounds/bad2.ogg",
+      start: "sounds/levelup1.ogg", exit: "sounds/gameover1.ogg", empty: "sounds/explode2.ogg", error: "sounds/warning1.ogg" } },
   // Alchemy
   alchemy: { wallpaper: "images/title.jpg",
-    sounds: { open: "sounds/click.ogg", close: "sounds/thunk.ogg", minimize: "sounds/melt.ogg", restore: "sounds/forgedown.ogg", maximize: "sounds/gemchange.ogg", menu: "sounds/click.ogg", ding: "sounds/bad.ogg" } },
+    sounds: { open: "sounds/click.ogg", close: "sounds/thunk.ogg", minimize: "sounds/melt.ogg", restore: "sounds/forgedown.ogg", maximize: "sounds/gemchange.ogg", menu: "sounds/click.ogg", ding: "sounds/bad.ogg",
+      start: "sounds/v4-welcome.ogg", exit: "sounds/v4-gameover.ogg", empty: "sounds/finalvanish.ogg", error: "sounds/warning.ogg" } },
   // Astropop
   astropop: { wallpaper: "images/gameselector.jpg",
-    sounds: { open: "sounds/click2.ogg", close: "sounds/mouseover.ogg", minimize: "sounds/magzap1.ogg", restore: "sounds/magzap3.ogg", maximize: "sounds/activated.ogg", menu: "sounds/mouseover.ogg", ding: "sounds/magzap1.ogg" } },
+    sounds: { open: "sounds/click2.ogg", close: "sounds/mouseover.ogg", minimize: "sounds/magzap1.ogg", restore: "sounds/magzap3.ogg", maximize: "sounds/activated.ogg", menu: "sounds/mouseover.ogg", ding: "sounds/magzap1.ogg",
+      start: "sounds/v_welcome.ogg", exit: "sounds/v_gameover.ogg", empty: "sounds/killall_explode.ogg", error: "sounds/klaxon.ogg" } },
   // Atomica
   atomica: { wallpaper: "images/titlescreen.jpg",
-    sounds: { open: "sounds/dooropen.ogg", close: "sounds/doorslam.ogg", minimize: "sounds/lowwhoosh.ogg", restore: "sounds/swoop.ogg", maximize: "sounds/whoosh.ogg", menu: "sounds/capclick.ogg", ding: "sounds/selectatom.ogg" } },
+    sounds: { open: "sounds/dooropen.ogg", close: "sounds/doorslam.ogg", minimize: "sounds/lowwhoosh.ogg", restore: "sounds/swoop.ogg", maximize: "sounds/whoosh.ogg", menu: "sounds/capclick.ogg", ding: "sounds/selectatom.ogg",
+      start: "sounds/voices/getready.ogg", exit: "sounds/voices/gameover.ogg", empty: "sounds/nukeblast.ogg", error: "sounds/heartbeat.ogg" } },
   // Bejeweled 2
   bejeweled2: { wallpaper: "images/backdrops/backdrop00.jpg",
-    sounds: { open: "sounds/menuclick.ogg", close: "sounds/mainmenu_mouseoff.ogg", minimize: "sounds/panelslide1.ogg", restore: "sounds/mainmenu_mouseover.ogg", maximize: "sounds/panelslide1.ogg", menu: "sounds/menuclick2.ogg", ding: "sounds/bad2.ogg" } },
+    sounds: { open: "sounds/menuclick.ogg", close: "sounds/mainmenu_mouseoff.ogg", minimize: "sounds/panelslide1.ogg", restore: "sounds/mainmenu_mouseover.ogg", maximize: "sounds/panelslide1.ogg", menu: "sounds/menuclick2.ogg", ding: "sounds/bad2.ogg",
+      start: "sounds/Welcome.ogg", exit: "sounds/Goodbye.ogg", empty: "sounds/bombexplode.ogg", error: "sounds/warning1.ogg" } },
   // Bejeweled Twist
   bejeweledtwist: { wallpaper: "images/1200/visualizers/magicsnake_bg.jp2",
-    sounds: { open: "sounds/click.ogg", close: "sounds/click_dialog.ogg", minimize: "sounds/menu_slide.ogg", restore: "sounds/doorlock2.ogg", maximize: "sounds/steamlock1.ogg", menu: "sounds/mouseover1.ogg", ding: "sounds/badmove.ogg" } },
+    sounds: { open: "sounds/click.ogg", close: "sounds/click_dialog.ogg", minimize: "sounds/menu_slide.ogg", restore: "sounds/doorlock2.ogg", maximize: "sounds/steamlock1.ogg", menu: "sounds/mouseover1.ogg", ding: "sounds/badmove.ogg",
+      start: "sounds/voice_welcometobejeweledtwist.ogg", exit: "sounds/voice_goodbye.ogg", empty: "sounds/gem_shatters.ogg", error: "sounds/counter_warning.ogg" } },
   // Big Money
   bigmoney: { wallpaper: "images/titleback.jpg",
-    sounds: { open: "sounds/buttonclick.ogg", close: "sounds/cointube.ogg", minimize: "sounds/moveup.ogg", restore: "sounds/gotbag.ogg", maximize: "sounds/bonus.ogg", menu: "sounds/buttonclick.ogg", ding: "sounds/warning.ogg" } },
+    sounds: { open: "sounds/buttonclick.ogg", close: "sounds/cointube.ogg", minimize: "sounds/moveup.ogg", restore: "sounds/gotbag.ogg", maximize: "sounds/bonus.ogg", menu: "sounds/buttonclick.ogg", ding: "sounds/warning.ogg",
+      start: "sounds/welcome.ogg", exit: "sounds/gameover.ogg", empty: "sounds/clearcoins.ogg", error: "sounds/bad.ogg" } },
   // Bonnie's Bookstore
   bonnies: { wallpaper: "Graphics/Credits.jpg",
-    sounds: { open: "Sound/Button_Press.ogg", close: "Sound/Button_Release.ogg", minimize: "Sound/Cancel.ogg", restore: "Sound/Place_01.ogg", maximize: "Sound/Place_03.ogg", menu: "Sound/PaperButton_Press.ogg", ding: "Sound/Error.ogg" } },
+    sounds: { open: "Sound/Button_Press.ogg", close: "Sound/Button_Release.ogg", minimize: "Sound/Cancel.ogg", restore: "Sound/Place_01.ogg", maximize: "Sound/Place_03.ogg", menu: "Sound/PaperButton_Press.ogg", ding: "Sound/Error.ogg",
+      start: "Sound/Logo.ogg", exit: "Sound/GameOver.ogg", empty: "Sound/Blocker_Fallout.ogg", error: "Sound/Error.ogg" } },
   // BookWorm
   bookworm: { wallpaper: "images/backdrop_title.jpg",
-    sounds: { open: "sounds/nextselect.ogg", close: "sounds/chomp.ogg", minimize: "sounds/up1.ogg", restore: "sounds/up3.ogg", maximize: "sounds/up5.ogg", menu: "sounds/nextselect.ogg", ding: "sounds/buzzer.ogg" } },
+    sounds: { open: "sounds/nextselect.ogg", close: "sounds/chomp.ogg", minimize: "sounds/up1.ogg", restore: "sounds/up3.ogg", maximize: "sounds/up5.ogg", menu: "sounds/nextselect.ogg", ding: "sounds/buzzer.ogg",
+      start: "sounds/lex_welcome.ogg", exit: "sounds/gameovertone.ogg", empty: "sounds/redtilecleared.ogg", error: "sounds/bad.ogg" } },
   // Bookworm Adventures
   bookwormadv: { wallpaper: "images/mainmenu/mainmenu_bg.png",
-    sounds: { open: "sounds/click1.ogg", close: "sounds/click2.ogg", minimize: "sounds/click1.ogg", restore: "sounds/click2.ogg", maximize: "sounds/lex_chomp.ogg", menu: "sounds/click2.ogg", ding: "sounds/buzzer.ogg" } },
+    sounds: { open: "sounds/click1.ogg", close: "sounds/click2.ogg", minimize: "sounds/click1.ogg", restore: "sounds/click2.ogg", maximize: "sounds/lex_chomp.ogg", menu: "sounds/click2.ogg", ding: "sounds/buzzer.ogg",
+      start: "sounds/v_welcometobookwormadventures.ogg", exit: "sounds/v_quit.ogg", empty: "sounds/tiles_smashed_01.ogg", error: "sounds/powerdown_01.ogg" } },
   // Bookworm Adventures Volume 2
   bookwormadv2: { wallpaper: "images/minigames/tentbackground.jpg",
-    sounds: { open: "sounds/click1.ogg", close: "sounds/click2.ogg", minimize: "sounds/tile_undo.ogg", restore: "sounds/click1.ogg", maximize: "sounds/lex_chomp.ogg", menu: "sounds/click2.ogg", ding: "sounds/buzzer.ogg" } },
+    sounds: { open: "sounds/click1.ogg", close: "sounds/click2.ogg", minimize: "sounds/tile_undo.ogg", restore: "sounds/click1.ogg", maximize: "sounds/lex_chomp.ogg", menu: "sounds/click2.ogg", ding: "sounds/buzzer.ogg",
+      start: "sounds/v_welcometobookwormadventures.ogg", exit: "sounds/v_quit.ogg", empty: "sounds/tiles_smashed_01.ogg", error: "sounds/powerdown_01.ogg" } },
   // Cosmic Bugs
   cosmicbugs: { wallpaper: "art.dat|bbk:logo_background",
-    sounds: { open: "audio/click.wav", close: "audio/clank.wav", minimize: "audio/powerdn.wav", restore: "audio/powerup.wav", maximize: "audio/fill_end.wav", menu: "audio/click.wav", ding: "audio/clank.wav" } },
+    sounds: { open: "audio/click.wav", close: "audio/clank.wav", minimize: "audio/powerdn.wav", restore: "audio/powerup.wav", maximize: "audio/fill_end.wav", menu: "audio/click.wav", ding: "audio/clank.wav",
+      start: "audio/canon.wav", exit: "audio/electricity.wav", empty: "audio/explosion1.wav", error: "audio/bump.wav" } },
   // Dynomite
   dynomite: { wallpaper: "images/title.jpg",
-    sounds: { open: "sounds/click.ogg", close: "sounds/egglands.wav", minimize: "sounds/breakegg.wav", restore: "sounds/popbonus.ogg", maximize: "sounds/rubbershot.ogg", menu: "sounds/click.ogg", ding: "sounds/warning.ogg" } },
+    sounds: { open: "sounds/click.ogg", close: "sounds/egglands.wav", minimize: "sounds/breakegg.wav", restore: "sounds/popbonus.ogg", maximize: "sounds/rubbershot.ogg", menu: "sounds/click.ogg", ding: "sounds/warning.ogg",
+      start: "sounds/xwelcometodynomite.ogg", exit: "sounds/xgameover.ogg", empty: "sounds/kaboom.ogg", error: "sounds/alert.ogg" } },
   // Mahjong Escape: Ancient China
   mahjongchina: { wallpaper: "Resource.dll|pe:JPG:109",
-    sounds: { open: "Resource.dll|pe:WAVE:105", close: "Resource.dll|pe:WAVE:351", minimize: "Resource.dll|pe:WAVE:349", restore: "Resource.dll|pe:WAVE:350", maximize: "Resource.dll|pe:WAVE:352", menu: "Resource.dll|pe:WAVE:175", ding: "Resource.dll|pe:WAVE:174" } },
+    sounds: { open: "Resource.dll|pe:WAVE:105", close: "Resource.dll|pe:WAVE:351", minimize: "Resource.dll|pe:WAVE:349", restore: "Resource.dll|pe:WAVE:350", maximize: "Resource.dll|pe:WAVE:352", menu: "Resource.dll|pe:WAVE:175", ding: "Resource.dll|pe:WAVE:174",
+      start: "Resource.dll|pe:WAVE:373", exit: "Resource.dll|pe:WAVE:375", empty: "Resource.dll|pe:WAVE:176", error: "Resource.dll|pe:WAVE:174" } },
   // Mahjong Escape: Ancient Japan
   mahjongjapan: { wallpaper: "Resource.dll|pe:JPG:109",
-    sounds: { open: "Resource.dll|pe:WAVE:105", close: "Resource.dll|pe:WAVE:351", minimize: "Resource.dll|pe:WAVE:349", restore: "Resource.dll|pe:WAVE:350", maximize: "Resource.dll|pe:WAVE:352", menu: "Resource.dll|pe:WAVE:175", ding: "Resource.dll|pe:WAVE:174" } },
+    sounds: { open: "Resource.dll|pe:WAVE:105", close: "Resource.dll|pe:WAVE:351", minimize: "Resource.dll|pe:WAVE:349", restore: "Resource.dll|pe:WAVE:350", maximize: "Resource.dll|pe:WAVE:352", menu: "Resource.dll|pe:WAVE:175", ding: "Resource.dll|pe:WAVE:174",
+      start: "Resource.dll|pe:WAVE:373", exit: "Resource.dll|pe:WAVE:375", empty: "Resource.dll|pe:WAVE:176", error: "Resource.dll|pe:WAVE:174" } },
   // Mummy Maze
   mummymaze: { wallpaper: "images/menuback.jpg",
-    sounds: { open: "sounds/click.ogg", close: "sounds/tombslide.ogg", minimize: "sounds/gate.ogg", restore: "sounds/expwalk30a.ogg", maximize: "sounds/finishedlevel.ogg", menu: "sounds/click.ogg", ding: "sounds/badankh.ogg" } },
+    sounds: { open: "sounds/click.ogg", close: "sounds/tombslide.ogg", minimize: "sounds/gate.ogg", restore: "sounds/expwalk30a.ogg", maximize: "sounds/finishedlevel.ogg", menu: "sounds/click.ogg", ding: "sounds/badankh.ogg",
+      start: "sounds/opentreasure.ogg", exit: "sounds/mummyhowl.ogg", empty: "sounds/pit.ogg", error: "sounds/poison.ogg" } },
   // Ning Po
   ningpo: { wallpaper: "ningpo.pyz|zip:loading_np.jpg",
-    sounds: { open: "ningpo.pyz|zip:nm_guiclick.wav", close: "ningpo.pyz|zip:nm_unclick.wav", minimize: "ningpo.pyz|zip:nm_hint.ogg", restore: "ningpo.pyz|zip:nm_click.wav", maximize: "ningpo.pyz|zip:nm_match.ogg", menu: "ningpo.pyz|zip:nm_guiclick.wav", ding: "ningpo.pyz|zip:nm_blocked.ogg" } },
+    sounds: { open: "ningpo.pyz|zip:nm_guiclick.wav", close: "ningpo.pyz|zip:nm_unclick.wav", minimize: "ningpo.pyz|zip:nm_hint.ogg", restore: "ningpo.pyz|zip:nm_click.wav", maximize: "ningpo.pyz|zip:nm_match.ogg", menu: "ningpo.pyz|zip:nm_guiclick.wav", ding: "ningpo.pyz|zip:nm_blocked.ogg",
+      start: "ningpo.pyz|zip:nm_splash.ogg", exit: "ningpo.pyz|zip:nm_gameover.ogg", empty: "ningpo.pyz|zip:nm_youwin.ogg", error: "ningpo.pyz|zip:nm_blocked.ogg" } },
   // Noah's Ark
   noahsark: { wallpaper: "images/title.jpg",
-    sounds: { open: "sounds/click.ogg", close: "sounds/deselect.ogg", minimize: "sounds/fallingclick.ogg", restore: "sounds/select.ogg", maximize: "sounds/pop.ogg", menu: "sounds/click.ogg", ding: "sounds/warning.ogg" } },
+    sounds: { open: "sounds/click.ogg", close: "sounds/deselect.ogg", minimize: "sounds/fallingclick.ogg", restore: "sounds/select.ogg", maximize: "sounds/pop.ogg", menu: "sounds/click.ogg", ding: "sounds/warning.ogg",
+      start: "sounds/getready.ogg", exit: "sounds/gameover.ogg", empty: "sounds/thunder3.ogg", error: "sounds/warning.ogg" } },
   // Pixelus
   pixelus: { wallpaper: "images/gameselect.jpg",
-    sounds: { open: "sounds/ui menu click 01c.ogg", close: "sounds/ui little beep 05b.ogg", minimize: "sounds/ui menu mouseover 02.ogg", restore: "sounds/ui island click 01.ogg", maximize: "sounds/ui island mouseover 02.ogg", menu: "sounds/ui menu click 01c.ogg", ding: "sounds/illegal blocked 03.ogg" } },
+    sounds: { open: "sounds/ui menu click 01c.ogg", close: "sounds/ui little beep 05b.ogg", minimize: "sounds/ui menu mouseover 02.ogg", restore: "sounds/ui island click 01.ogg", maximize: "sounds/ui island mouseover 02.ogg", menu: "sounds/ui menu click 01c.ogg", ding: "sounds/illegal blocked 03.ogg",
+      start: "sounds/pixelus start of puzzle v02.ogg", exit: "sounds/pixelus game completed sting v01.ogg", empty: "sounds/chain breaking 01.ogg", error: "sounds/illegal nothing 01.ogg" } },
   // Rocket Mania
   rocketmania: { wallpaper: "images/selectback.jpg",
-    sounds: { open: "sounds/ui little beep 05b.ogg", close: "sounds/block rotating 03.ogg", minimize: "sounds/tubebump.ogg", restore: "sounds/lantern 01.ogg", maximize: "sounds/hint popup 01.ogg", menu: "sounds/ui little beep 05b.ogg", ding: "sounds/hint popup 01.ogg" } },
+    sounds: { open: "sounds/ui little beep 05b.ogg", close: "sounds/block rotating 03.ogg", minimize: "sounds/tubebump.ogg", restore: "sounds/lantern 01.ogg", maximize: "sounds/hint popup 01.ogg", menu: "sounds/ui little beep 05b.ogg", ding: "sounds/hint popup 01.ogg",
+      start: "sounds/voice/welcome to rocket mania 03.ogg", exit: "sounds/voice/game over 02.ogg", empty: "sounds/explosion 01.ogg", error: "sounds/timer danger 06.ogg" } },
   // Seven Seas
   sevenseas: { wallpaper: "images/title.jpg",
-    sounds: { open: "sounds/click.ogg", close: "sounds/whirlout.ogg", minimize: "sounds/whirlin.ogg", restore: "sounds/reappear.ogg", maximize: "sounds/moveevil.ogg", menu: "sounds/click.ogg", ding: "sounds/explode.ogg" } },
+    sounds: { open: "sounds/click.ogg", close: "sounds/whirlout.ogg", minimize: "sounds/whirlin.ogg", restore: "sounds/reappear.ogg", maximize: "sounds/moveevil.ogg", menu: "sounds/click.ogg", ding: "sounds/explode.ogg",
+      start: "sounds/talkwelcometosevenseas.ogg", exit: "sounds/sink.ogg", empty: "sounds/boom.ogg", error: "sounds/bonuslose.ogg" } },
   // Tip Top
   tiptop: { wallpaper: "TipTop.dat|tiptop:art/MenuBkgd.JPG",
-    sounds: { open: "TipTop.dat|tiptop:sounds/MouseClick.ogg", close: "TipTop.dat|tiptop:sounds/BlocksFall.ogg", minimize: "TipTop.dat|tiptop:sounds/LaunchBlockMoves.ogg", restore: "TipTop.dat|tiptop:sounds/BlockLaunch.ogg", maximize: "TipTop.dat|tiptop:sounds/GameStart.ogg", menu: "TipTop.dat|tiptop:sounds/MouseOver.ogg", ding: "TipTop.dat|tiptop:sounds/VolumeAdjust.ogg" } },
+    sounds: { open: "TipTop.dat|tiptop:sounds/MouseClick.ogg", close: "TipTop.dat|tiptop:sounds/BlocksFall.ogg", minimize: "TipTop.dat|tiptop:sounds/LaunchBlockMoves.ogg", restore: "TipTop.dat|tiptop:sounds/BlockLaunch.ogg", maximize: "TipTop.dat|tiptop:sounds/GameStart.ogg", menu: "TipTop.dat|tiptop:sounds/MouseOver.ogg", ding: "TipTop.dat|tiptop:sounds/VolumeAdjust.ogg",
+      start: "TipTop.dat|tiptop:sounds/LevelStart.ogg", exit: "TipTop.dat|tiptop:sounds/GameLost.ogg", empty: "TipTop.dat|tiptop:sounds/ColumnNukeCollision.ogg", error: "TipTop.dat|tiptop:sounds/TimeWarning.ogg" } },
   // Typer Shark
   typershark: { wallpaper: "images/titlescreen.jpg",
-    sounds: { open: "sounds/buttonclick.ogg", close: "sounds/shipmove.ogg", minimize: "sounds/type.ogg", restore: "sounds/type3.ogg", maximize: "sounds/divebell1.ogg", menu: "sounds/buttonclick.ogg", ding: "sounds/wrong.ogg" } },
+    sounds: { open: "sounds/buttonclick.ogg", close: "sounds/shipmove.ogg", minimize: "sounds/type.ogg", restore: "sounds/type3.ogg", maximize: "sounds/divebell1.ogg", menu: "sounds/buttonclick.ogg", ding: "sounds/wrong.ogg",
+      start: "sounds/diverenters.ogg", exit: "sounds/playerdies.ogg", empty: "sounds/explosion.ogg", error: "sounds/bad.ogg" } },
   // Water Bugs
   waterbugs: { wallpaper: "water_art.dat|bbk:mainmenu",
-    sounds: { open: "audio/click.wav", close: "audio/pop.wav", minimize: "audio/clank.wav", restore: "audio/fill.wav", maximize: "audio/fill_end.wav", menu: "audio/click.wav", ding: "audio/buzzer.wav" } },
+    sounds: { open: "audio/click.wav", close: "audio/pop.wav", minimize: "audio/clank.wav", restore: "audio/fill.wav", maximize: "audio/fill_end.wav", menu: "audio/click.wav", ding: "audio/buzzer.wav",
+      start: "audio/extralife.wav", exit: "audio/anchor.wav", empty: "audio/explosion1.wav", error: "audio/bump.wav" } },
   // Word Harmony
   wordharmony: { wallpaper: "res/splash/sproutSplash.jpg",
-    sounds: { open: "res/sounds/menu_clicked.wav", close: "res/sounds/ball_pop.wav", minimize: "res/sounds/ball_rustle.wav", restore: "res/sounds/ball_rustle2.WAV", maximize: "res/sounds/level_begin.wav", menu: "res/sounds/menu_mouseover.wav", ding: "res/sounds/level_intro.wav" } }
+    sounds: { open: "res/sounds/menu_clicked.wav", close: "res/sounds/ball_pop.wav", minimize: "res/sounds/ball_rustle.wav", restore: "res/sounds/ball_rustle2.WAV", maximize: "res/sounds/level_begin.wav", menu: "res/sounds/menu_mouseover.wav", ding: "res/sounds/level_intro.wav",
+      start: "res/sounds/level_up.wav", exit: "res/sounds/level_complete.wav", empty: "res/sounds/pop_wind.WAV",
+      error: "res/sounds/message_add.wav" } }
 };
 if (typeof module !== "undefined" && module.exports) module.exports = ByopopThemeData;

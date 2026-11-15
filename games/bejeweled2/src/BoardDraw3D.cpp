@@ -53,9 +53,12 @@ static int ScoreBoxLeft(const Board* theBoard)
 
 // port: The matrix that the original builds for each of the three parts (the original writes these steps out in full for each
 // one): the part's picture is moved so that its middle is at the origin (the original takes its width for both
-// directions), scaled by theScale and turned by theAngle (the original's Rotate(-theAngle), which is RotateRad(theAngle)
-// in the framework's newer names), and then moved to where its middle should be: theOffsetX/Y (already ScaleNum'ed)
-// from the middle of the picture, scaled, about the middle of the screen (theCenterX/Y). The stack takes the matrix.
+// directions), scaled by theScale and turned by theAngle, and then moved to where its middle should be: theOffsetX/Y (already
+// ScaleNum'ed) from the middle of the picture, scaled, about the middle of the screen (theCenterX/Y). The stack takes the matrix.
+// A growing theAngle turns the part clockwise on the screen, which is RotateRad(-theAngle) here: the framework's header says that
+// the old Rotate(angle) is the newer RotateRad(-angle), which would make the decompilation's Rotate(-theAngle) RotateRad(theAngle)
+// and turn the board anticlockwise, but the original's frames of the puzzle tour's WARP (2026-11-14, the board's tilt 0.8, 5.5
+// and 16.8 degrees at 6, 12 and 18 updates into its flight, 5 * mInterfaceFly radians) turn clockwise.
 static void PushTurnedPart(WinDMApp* theApp, int theWidth, float theScale, float theAngle, int theOffsetX, int theOffsetY,
 	int theCenterX, int theCenterY)
 {
@@ -63,7 +66,7 @@ static void PushTurnedPart(WinDMApp* theApp, int theWidth, float theScale, float
 	float aHalf = (float)-(theWidth / 2);
 	aTransform.Translate(aHalf, aHalf);
 	aTransform.Scale(theScale, theScale);
-	aTransform.RotateRad(theAngle);
+	aTransform.RotateRad(-theAngle);
 
 	float aCenterX = (float)theCenterX;
 	float aCenterY = (float)theCenterY;

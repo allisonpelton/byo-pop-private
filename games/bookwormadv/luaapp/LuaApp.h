@@ -39,6 +39,7 @@ public:
 
 	// The PopLua state (when there is none yet) and the classes scripts use (slot 105). A game's app makes
 	// its own state (a LuaInterface) before calling this.
+	// 0x65f070 (the registering of the classes and the app's 48 methods)
 	virtual void RegisterClasses();
 	virtual void LuaAppHook() {}  // slot 104, empty
 

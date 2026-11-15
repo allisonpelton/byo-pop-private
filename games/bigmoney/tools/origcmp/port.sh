@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Runs the port on a -script for the identical-play comparison with the original (orig.sh), invisibly and silently
-# under rundesk (CLAUDE.md), with -fast, a fresh user folder with the original's settings, no mods, and -statelog.
+# under rundesk (CLAUDE.md), with -fast -drawevery, a fresh user folder with the original's settings, no mods, and -statelog.
 #   games/bigmoney/tools/origcmp/port.sh <run id> <script.txt | -> [seed] [extra game args...]
 # ("-" runs no script, for a bot game: -autoplay=... as extra arguments)
 # Writes build/bmcmp/<run>/state.txt (the -statelog lines, for statecmp.py) and out.txt. BM_EXE names another exe
 # (default build/native/bigmoney.exe); PORT_SAVE=<file> starts from a saved game (orig.sh's ORIG_SAVE);
-# PORT_SETTINGS=<settings.txt> gives the sandbox runs' settings instead of a copy of the original's HKLM key.
+# PORT_SETTINGS=<settings.txt> gives the sandbox runs' settings instead of a copy of the original's HKLM key. The window is
+# the game's own size (-windowscale=1), where the screen is drawn in software as the original's (WinBMApp::CreateDDInterface)
+# and a shot is the frame as drawn (docs/SHOTDIFF.md).
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 HERE="$ROOT/games/bigmoney/tools/origcmp"
@@ -21,10 +23,13 @@ if [ -n "${PORT_SETTINGS:-}" ]; then python "$HERE/regini.py" --settings "$PORT_
 else python "$HERE/regini.py" --hklm > "$DIR/user/registry.ini"; fi
 [ -n "${PORT_SAVE:-}" ] && cp "$PORT_SAVE" "$DIR/user/savegame.dat"
 mkdir -p "$DIR/shots"; cd "$DIR/shots"   # the script's screenshots land here
-FAST=(-fast); [ "${PORT_REALTIME:-0}" = 1 ] && FAST=()   # PORT_REALTIME=1: real time (the stats panel's game time)
+# -fast with -drawevery: every update drawn, as the original draws on its virtual clock. -fast alone draws every 10th,
+# and a picture with a soft edge drawn over what the screen held before (the left bar's fade at x 176..177, over Mr.
+# Money's trail as he flies to the board) takes ten times as many updates to cover it (board_start in the menus tour)
+FAST=(-fast -drawevery); [ "${PORT_REALTIME:-0}" = 1 ] && FAST=()   # PORT_REALTIME=1: real time (the stats panel's game time)
 timeout "${PORT_TIMEOUT:-300}" "$ROOT/build/native/rundesk.exe" "$EXE" -gamedir="$(cygpath -w "$ROOT/assets/bigmoney")" \
 	-userdir="$(cygpath -w "$DIR/user")" -modsdir="$(cygpath -w "$DIR/mods")" -seed="$SEED" "${FAST[@]}" \
-	"${SARG[@]}" -statelog="$(cygpath -w "$DIR/state.txt")" "$@" > "$DIR/out.txt" 2>&1
+	"${SARG[@]}" -statelog="$(cygpath -w "$DIR/state.txt")" -windowscale=1 "$@" > "$DIR/out.txt" 2>&1
 status=$?
 # A hung run whose rundesk was killed by timeout: stop only this run's game (its user folder is on its command line)
 USERDIR_W="$(cygpath -w "$DIR/user")"

@@ -4034,6 +4034,10 @@ static void LiveLogOutput(void* theData, int theCategory, SDL_LogPriority thePri
 	fflush(stderr);
 }
 
+// The most live commands that wait for the next update. A driver's line past it is dropped (and logged); a -commands file's lines
+// are read only while the queue has room (PollLiveCommands), so a long script is not cut off.
+static const size_t kMaxLiveCommands = 1024;
+
 bool SexyAppBase::QueueLiveCommand(const std::string& theLine, int theLineNum)
 {
 	std::string aText = StripScriptComment(theLine);
@@ -4043,9 +4047,9 @@ bool SexyAppBase::QueueLiveCommand(const std::string& theLine, int theLineNum)
 	aCommand.mLine = theLineNum;
 	if (!(aStream >> aCommand.mCommand))
 		return false;  // a blank line or a comment
-	if (mLiveCommands.size() >= 1024)
+	if (mLiveCommands.size() >= kMaxLiveCommands)
 	{
-		SDL_Log("commands: more than 1024 commands wait for the next update; '%s' dropped", aText.c_str());
+		SDL_Log("commands: more than %d commands wait for the next update; '%s' dropped", (int) kMaxLiveCommands, aText.c_str());
 		return false;
 	}
 	std::string aRest;
@@ -4060,6 +4064,9 @@ bool SexyAppBase::QueueLiveCommand(const std::string& theLine, int theLineNum)
 // its start.
 void SexyAppBase::PollLiveCommands()
 {
+	// a file longer than the queue (a replay's whole script is one) is read as the queue empties: the lines not yet read stay in the file
+	if (mLiveCommands.size() >= kMaxLiveCommands)
+		return;
 	long long aSize;
 	if (!mCommandsFileWatch.Query(mCommandsFileName, &aSize))
 	{
@@ -4100,12 +4107,14 @@ void SexyAppBase::PollLiveCommands()
 	size_t aPos = 0;
 	while (aPos <= aLast)
 	{
+		if (mLiveCommands.size() >= kMaxLiveCommands)
+			break;  // the queue is full: this line and the ones after it are read at a later look (a script of thousands of lines was cut off here)
 		size_t anEnd = aData.find('\n', aPos);
 		mCommandsFileLine++;
 		QueueLiveCommand(aData.substr(aPos, anEnd - aPos), mCommandsFileLine);
 		aPos = anEnd + 1;
 	}
-	mCommandsFilePos += (long long) (aLast + 1);
+	mCommandsFilePos += (long long) aPos;
 }
 
 // -hold (natively, with -commands): once the game has loaded, an update runs only when the driver lets it, so a game

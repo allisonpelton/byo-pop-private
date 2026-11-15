@@ -26,6 +26,7 @@ public:
 	explicit TreasureScreen(GameApp* theApp);
 	~TreasureScreen() override;  // 0x4a4520: the Lua object's Destructor first
 
+	// 0x4a4140
 	const char* LuaGetRegisteredName() override { return "TreasureScreen"; }
 	static void RegisterLua();
 

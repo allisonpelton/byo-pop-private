@@ -493,4 +493,5 @@ trunk (main):
 | `tools/ghidra_headless.sh` | `GHIDRA_PROJECT` / `GHIDRA_PROGRAM` / `EXPORT_DIR` overrides (defaults: Bejeweled's) |
 | `tools/ghidra_scripts/DisableNoReturnDiscovery.java` | new pre-script (G4) |
 | `tools/rtti_msvc70.py`, `tools/saf_vtable_layout.py`, `tools/saf_struct_layout.py` | new, game-agnostic (G4; the 1.2 maps are reused for Hammer Heads) |
+| `framework/DDImage.cpp`, `framework/DDInterface.h`, `.cpp` | 1.2's software rotation (0x44ed40 with its bounds 0x43b720) behind `DDInterface::mBltRotated12`, off by default; Hammer Heads' original has the same function |
 | `framework/PropertiesParser.cpp` | a `StringArray` replaces an earlier one of the same id (as `String`, `Integer` etc. already do), so a mod's properties file can change one, e.g. the rank titles; the games' own files repeat none |

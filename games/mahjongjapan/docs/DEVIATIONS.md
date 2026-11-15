@@ -30,6 +30,13 @@ the screen's rect at 0x432000 and maps the mouse back at 0x42cb90. Without that,
 looks the same as the port; a driver set to stretch fills a wide screen. The port keeps the setting, shows its
 checkbox when the original would (0x5d8e32, from the desktop's size) and saves it, but never changes the display mode.
 
+The original drew each image and fill to the screen as it came, and every frame in full, from the topmost opaque layer. The
+port keeps the frame's screen draws as a list and, at the frame's end, draws again only the rects in which the list differs
+from the last frame's (`engines/jollybear/ScreenLog.h`), and the host shows only those rects. Every pixel is the one the
+original's whole redraw gives: each frame can be drawn both ways and compared (`JB_VERIFY_FRAMES=1`), and was, over the suites
+and the screen tour of both games (`GAME_NOTES.md`, "Like for like, thread by thread"). It has no visible effect; it is there
+for the processor time.
+
 ## The players' checksum
 
 A player's file (`<id>.usr`) ends in a checksum that also covers the folder of the exe (0x416100), so the original

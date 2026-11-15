@@ -13,6 +13,7 @@ static lua_State* LS()
 	return gLuaSupport->L;
 }
 
+// 0x40cb60 (LuaWidgetTpl<Widget>'s)
 void LuaWidgetTplBase::ButtonPress(int theId, int theClickCount)
 {
 	lua_pushint(LS(), theId);
@@ -20,30 +21,35 @@ void LuaWidgetTplBase::ButtonPress(int theId, int theClickCount)
 	CallLinkedMethod("ButtonPress", 2);
 }
 
+// 0x40cbe0 (LuaWidgetTpl<Widget>'s)
 void LuaWidgetTplBase::ButtonDepress(int theId)
 {
 	lua_pushint(LS(), theId);
 	CallLinkedMethod("ButtonDepress", 1);
 }
 
+// 0x40cdd0 (LuaWidgetTpl<Widget>'s)
 void LuaWidgetTplBase::ButtonDownTick(int theId)
 {
 	lua_pushint(LS(), theId);
 	CallLinkedMethod("ButtonDownTick", 1);
 }
 
+// 0x40ccc0 (LuaWidgetTpl<Widget>'s)
 void LuaWidgetTplBase::ButtonMouseEnter(int theId)
 {
 	lua_pushint(LS(), theId);
 	CallLinkedMethod("ButtonMouseEnter", 1);
 }
 
+// 0x40cd20 (LuaWidgetTpl<Widget>'s)
 void LuaWidgetTplBase::ButtonMouseLeave(int theId)
 {
 	lua_pushint(LS(), theId);
 	CallLinkedMethod("ButtonMouseLeave", 1);
 }
 
+// 0x40cd80 (LuaWidgetTpl<Widget>'s)
 void LuaWidgetTplBase::ButtonMouseMove(int theId, int theX, int theY)
 {
 	lua_pushint(LS(), theId);
@@ -52,6 +58,7 @@ void LuaWidgetTplBase::ButtonMouseMove(int theId, int theX, int theY)
 	CallLinkedMethod("ButtonMouseMove", 3);
 }
 
+// 0x40ce70 (LuaWidgetTpl<Widget>'s)
 void LuaWidgetTplBase::EditWidgetText(int theId, const SexyString& theString)
 {
 	lua_pushint(LS(), theId);
@@ -59,6 +66,7 @@ void LuaWidgetTplBase::EditWidgetText(int theId, const SexyString& theString)
 	CallLinkedMethod("EditWidgetText", 2);
 }
 
+// 0x40cee0 (LuaWidgetTpl<Widget>'s)
 bool LuaWidgetTplBase::AllowKey(int theId, KeyCode theKey)
 {
 	lua_pushint(LS(), theId);
@@ -66,6 +74,7 @@ bool LuaWidgetTplBase::AllowKey(int theId, KeyCode theKey)
 	return CallLinkedMethod("AllowKey", 2).Bool();
 }
 
+// 0x40cf60 (LuaWidgetTpl<Widget>'s)
 bool LuaWidgetTplBase::AllowChar(int theId, SexyChar theChar)
 {
 	char s[2] = {(char)theChar, 0};
@@ -74,6 +83,7 @@ bool LuaWidgetTplBase::AllowChar(int theId, SexyChar theChar)
 	return CallLinkedMethod("AllowChar", 2).Bool();
 }
 
+// 0x40cfe0 (LuaWidgetTpl<Widget>'s)
 bool LuaWidgetTplBase::AllowText(int theId, const SexyString& theText)
 {
 	lua_pushint(LS(), theId);
@@ -88,6 +98,7 @@ void LuaWidgetTplBase::ScrollPosition(int theId, double thePosition)
 	CallLinkedMethod("ScrollPosition", 2);
 }
 
+// 0x40cc40 (LuaWidgetTpl<Widget>'s)
 void LuaWidgetTplBase::CheckboxChecked(int theId, bool checked)
 {
 	lua_pushint(LS(), theId);
@@ -95,6 +106,7 @@ void LuaWidgetTplBase::CheckboxChecked(int theId, bool checked)
 	CallLinkedMethod("CheckboxChecked", 2);
 }
 
+// 0x40d050 (LuaWidgetTpl<Widget>'s)
 void LuaWidgetTplBase::ListClicked(int theId, int theIdx, int theClickCount)
 {
 	lua_pushint(LS(), theId);
@@ -103,12 +115,14 @@ void LuaWidgetTplBase::ListClicked(int theId, int theIdx, int theClickCount)
 	CallLinkedMethod("ListClicked", 3);
 }
 
+// 0x40d0a0 (LuaWidgetTpl<Widget>'s)
 void LuaWidgetTplBase::ListClosed(int theId)
 {
 	lua_pushint(LS(), theId);
 	CallLinkedMethod("ListClosed", 1);
 }
 
+// 0x40d100 (LuaWidgetTpl<Widget>'s)
 void LuaWidgetTplBase::ListHiliteChanged(int theId, int theOldIdx, int theNewIdx)
 {
 	lua_pushint(LS(), theId);

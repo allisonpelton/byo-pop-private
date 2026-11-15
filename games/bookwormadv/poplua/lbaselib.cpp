@@ -186,6 +186,7 @@ static int luaB_gcinfo(lua_State* L)
 }
 
 // 0x6ff700: 5.1's options, answered by this collector (which is not incremental): "step" collects
+// 0x6ef9a0 (lua_gc, the switch over the options) is inline here
 static int luaB_collectgarbage(lua_State* L)
 {
 	static const char* const opts[] = {"stop", "restart", "collect", "count", "step", "setpause", "setstepmul", NULL};
@@ -236,6 +237,7 @@ static int luaB_type(lua_State* L)
 	return 1;
 }
 
+// 0x6ff8c0
 static int luaB_next(lua_State* L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
@@ -440,6 +442,7 @@ static int luaB_newproxy(lua_State* L)
 #define LUA_PATH_MARK '?'
 #define LUA_PATH_DEFAULT "?;?.lua"
 
+// 0x700690
 static const char* getpath(lua_State* L)
 {
 	const char* path;
@@ -452,6 +455,7 @@ static const char* getpath(lua_State* L)
 	return LUA_PATH_DEFAULT;  // else use default (the environment is not read)
 }
 
+// 0x700740
 static const char* pushnextpath(lua_State* L, const char* path)
 {
 	const char* l;
@@ -466,6 +470,7 @@ static const char* pushnextpath(lua_State* L, const char* path)
 	return l;
 }
 
+// 0x700830
 static void pushcomposename(lua_State* L)
 {
 	const char* path = lua_tostring(L, -1);
@@ -884,6 +889,7 @@ static const luaL_reg base_funcs[] = {
 	{NULL, NULL}
 };
 
+// 0x701b10
 static void base_open(lua_State* L)
 {
 	lua_pushliteral(L, "_G");

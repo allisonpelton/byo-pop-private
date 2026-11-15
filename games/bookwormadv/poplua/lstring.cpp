@@ -8,6 +8,7 @@ void luaS_freeall(lua_State* L)
 	luaM_freearray(L, G(L)->strt.hash, G(L)->strt.size, TString*);
 }
 
+// 0x719d00
 void luaS_resize(lua_State* L, int newsize)
 {
 	GCObject** newhash = luaM_newvector(L, newsize, GCObject*);
@@ -32,6 +33,7 @@ void luaS_resize(lua_State* L, int newsize)
 	tb->hash = newhash;
 }
 
+// 0x719e70
 static TString* newlstr(lua_State* L, const char* str, size_t l, lu_hash h)
 {
 	TString* ts = (TString*)luaM_malloc(L, sizestring(l));
@@ -68,6 +70,7 @@ lu_hash luaS_hash(const char* str, size_t l)
 	return h;
 }
 
+// 0x719f60
 TString* luaS_newlstr(lua_State* L, const char* str, size_t l)
 {
 	GCObject* o;
@@ -80,6 +83,7 @@ TString* luaS_newlstr(lua_State* L, const char* str, size_t l)
 	return newlstr(L, str, l, h);  // not found
 }
 
+// 0x71a0c0
 Udata* luaS_newudata(lua_State* L, size_t s)
 {
 	Udata* u;

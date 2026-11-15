@@ -10,12 +10,13 @@
 // Which sizes it draws in software:
 //   - The game's own size (1x): always, through the window's surface. There it costs less than the GPU path, which pays
 //     the driver for every present (Dynomite, 2026-11-12: 1.49 M cycles an update against 1.80, the original 1.63).
-//   - 2x to 4x on Windows, where the port asks (Create's theScaledInSoftware): in software too, the surface showing each
-//     changed rect through GDI's stretch (SurfaceDisplay, PresentWithGdi). The window then holds no Direct3D device, 40 to 44
-//     MB for Big Money's scripted minute at 2x against 67 to 70 MB on the GPU, but the software draws cost more processor
-//     time than the GPU's: 18.6 G cycles for that run against 15.6, and Dynomite's minute 12.4 G against 9.3 (2026-11-15,
-//     docs/MEMORY.md, "Windows at 2x to 4x"); the stretch itself costs little (Big Money at 1x: 19.5 G). The picture is the
-//     1x software screen's, each pixel repeated; the GPU path's differs from it where its blending rounds otherwise.
+//   - 2x to 4x on Windows, where the port asks (Create's theScaledInSoftware): in software too, GDI stretching the changed
+//     rects into the window (SurfaceDisplay, PresentScaledByGdi). The window then holds no Direct3D device, 40 to 44 MB for
+//     Big Money's scripted minute at 2x against 67 to 70 MB on the GPU, but it costs about a sixth more processor time than
+//     the GPU there: 18.6 G cycles for that run against 15.6, and Dynomite's minute 10.6 G against 9.1 (2026-11-15,
+//     docs/MEMORY.md, "Windows at 2x to 4x"); the stretch itself costs little (Dynomite's software screen 9.8 G at 1x).
+//     The picture is the 1x software screen's, each pixel repeated; the GPU path's differs from it where its blending
+//     rounds otherwise.
 //     SOFTSCREEN_SCALED=1 or 0 in a test run gives the one or the other whatever the port asked.
 //   - Any other size, with an accelerated renderer (a full screen that is no whole multiple, or 2x to 4x without GDI or
 //     without theScaledInSoftware): not.

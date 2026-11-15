@@ -787,6 +787,7 @@ void WinDMApp::UpdateFrames()
 		mDDInterface->mSoftwareStretch = !Is3DAccelerated();
 		mDDInterface->mSoftwareTransforms = !Is3DAccelerated();
 		mDDInterface->mKeepScreen = !Is3DAccelerated();
+		mDDInterface->mOriginalSampling = Is3DAccelerated();   // the 3D game's whirlpool, as Direct3D 7 at 1x draws it (DDInterface.h); the 2D game keeps the old sampling
 	}
 	SexyApp::UpdateFrames();
 	if (mTraceMode)

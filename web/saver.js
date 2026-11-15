@@ -11,11 +11,9 @@
 var ByopopSaver = (function () {
   "use strict";
   // the games whose port answers `move` (docs/TEST_COMMANDS.md, "The bot behind move") and whose state names the mode that
-  // ?begin=mode starts. Pixelus is left out until its state gives one: its title and menu name none, so its frame stayed on the
-  // title (the user, 2026-11-13: "The "screensaver" just seems to blink the home screen every couple of seconds, at least set
-  // to Pixelus", when a run that made no move was reloaded every two seconds)
+  // ?begin=mode starts (Pixelus's since dff4920a: before it named none, its frame stayed on the title; the user, 2026-11-13)
   var BOTS = ["alchemy", "astropop", "atomica", "bejeweled", "bejeweled2", "bejeweledtwist", "bigmoney", "bookworm", "bookwormadv",
-    "bookwormadv2", "cosmicbugs", "dynomite", "mummymaze", "ningpo", "noahsark", "rocketmania", "sevenseas", "tiptop",
+    "bookwormadv2", "cosmicbugs", "dynomite", "mummymaze", "ningpo", "noahsark", "pixelus", "rocketmania", "sevenseas", "tiptop",
     "typershark", "waterbugs", "wordharmony"];
   var WAITS = ["1", "2", "3", "5", "10", "15", "20", "30", "60"];
   var ids = ["none"].concat(BOTS);

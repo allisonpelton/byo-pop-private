@@ -39,6 +39,7 @@ Image* FindImage(const std::string& theName)
 }  // namespace
 
 // 0x4c8970: the root, which is its own parent
+// 0x4c90b0 (the common part of both constructors: the name 'Layout', the fields set) is inline here
 XLayout::XLayout() : mParent(this)
 {
 	Clear();
@@ -324,6 +325,7 @@ void XLayout::Update()
 		mChildren[i]->Update();
 }
 
+// 0x4cc410 (the box or stretched picture of the node) is inline here
 void XLayout::Draw(Graphics* g)
 {
 	// 0x4cc2f0
@@ -379,6 +381,7 @@ std::vector<Attr> GetAttrs(XMLElement& theElement)
 	return aList;
 }
 
+// 0x4c86a0
 int ParseDirection(const std::string& theValue)
 {
 	// 0x4c86a0
@@ -394,6 +397,8 @@ int ParseDirection(const std::string& theValue)
 
 }  // namespace
 
+// 0x4c9730 (a new child node under the current one), 0x4c9890 (Justification), 0x4c9a60 (Bounds), 0x4c9d50 (Control),
+// 0x4ca150 (Align), 0x4ca9d0 (Data text) and 0x4cad90 (Data image) (the tags' handlers) are inline here
 bool XLayout::Load(const std::string& theFileName)
 {
 	// 0x6b3820 and the tags' handlers (below): the elements in the order they come. Each Child is a node of its own

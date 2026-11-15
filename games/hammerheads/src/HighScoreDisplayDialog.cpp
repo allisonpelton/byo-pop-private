@@ -293,6 +293,12 @@ void HighScoreDisplayDialog::ButtonPress(int theId)
 	gApp->PlaySample(SOUND_UI_BUTTON_CLICK);
 }
 
+// 0x454bc0: the one function the six screens' ButtonListener tables share; the mouse-over sound plays for every button
+void HighScoreDisplayDialog::ButtonMouseEnter(int theId)
+{
+	gApp->PlaySample(SOUND_UI_BUTTON_MOUSE_OVER);
+}
+
 // 0x454be0: the table goes, and the main menu comes back if the player was looking at it
 void HighScoreDisplayDialog::ButtonDepress(int theId)
 {

@@ -155,6 +155,7 @@ public:
 	GameApp();
 	~GameApp() override;
 
+	// 0x442e30
 	const char* LuaGetRegisteredName() override { return "GameApp"; }
 
 	void Init() override;                   // 0x445a50
@@ -165,6 +166,8 @@ public:
 	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	void UpdateFrames() override;           // 0x44aa50
 	void Shutdown() override;               // 0x445960
+	using LuaApp::SwitchScreenMode;
+	void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;  // 0x4458b0
 	void GotFocus() override;               // 0x451230: the screens update again
 	void LostFocus() override;              // 0x451160: the screens stop updating
 	// port: the test scripts' "word" (TestHooks.cpp)
@@ -254,6 +257,7 @@ public:
 	// 0x44b5e0: the click of a button pressed, and of a dialog's yes or no (2000 + id, 3000 + id): SOUND_CLICK2 for
 	// buttons 1 and 11, SOUND_CLICK1 for the rest
 	using SexyAppBase::ButtonPress;
+	// 0x44b5e0
 	void ButtonPress(int theId) override;
 	// 0x44ad10: the dialogs' answers (2000 + id for yes, 3000 + id for no), and the buttons of the screens
 	// that send theirs here

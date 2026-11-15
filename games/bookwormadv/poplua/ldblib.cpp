@@ -4,6 +4,7 @@
 
 #include "lauxlib.h"
 
+// 0x6f5d40
 static void settabss(lua_State* L, const char* i, const char* v)
 {
 	lua_pushstring(L, i);
@@ -11,6 +12,7 @@ static void settabss(lua_State* L, const char* i, const char* v)
 	lua_rawset(L, -3);
 }
 
+// 0x6f5db0
 static void settabsi(lua_State* L, const char* i, int v)
 {
 	lua_pushstring(L, i);

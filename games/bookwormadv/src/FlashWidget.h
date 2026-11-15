@@ -46,6 +46,7 @@ public:
 	void Update() override;  // 0x528a50
 	void Draw(Graphics* g) override;  // 0x528be0
 	// MyFlashWidget's (0x482540): the mouse-ups go to the widget that shows the movie (the cut scene) too
+	// 0x528e90 (the framework's: sends the mouse-up to the control)
 	void MouseUp(int x, int y, int theBtnNum, int theClickCount) override;
 
 	void SwfCommand(const std::string& theCommand, const std::string& theArgs) override;

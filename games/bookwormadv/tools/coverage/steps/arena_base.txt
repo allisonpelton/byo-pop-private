@@ -1,0 +1,11 @@
+# The arena: the base of play.py. Profile arena326.bwa: the bot's save at book 3's third chapter, with the arena
+# unlocked as the end of book 3 unlocks it (UnlockedArena, NeedsArenaDialog), so Lex tells of it on the menu first.
+at 31000
+click 400 300            # Lex's first page
+wait 3000
+click 400 300            # the second: the panel goes
+wait 6000
+click 575 300            # the colosseum (in the port this first click is not taken)
+wait 4000
+click 575 300            # the colosseum: the arena
+wait 4000

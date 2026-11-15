@@ -431,6 +431,7 @@ public:
 	bool			UndoKeysActive() const;                         // the undo keys undo (KeyChar) rather than pause
 	bool			RequestUndo();                                  // the keys and the red orb: UNDO recorded, then Undo; refused: bad2
 	// The fixes mod (features.fixes; docs/MOD_ROADMAP.md "The fixes mod", GAME_NOTES.md "Fix candidates"; BoardVariant.cpp)
+	bool			HasStaleSelection() const;                      // the selected gem is no longer on the board (a refill dropped it)
 	bool			DropStaleSelection();                           // fixes.selection: a selected gem no longer on the board is deselected (true: it was)
 	void			ResumeLevelLook();                              // fixes.resumeLook: a loaded game's own level background and tint
 	void			Undo();                                         // the newest snapshot back (playback applies UNDO with it)

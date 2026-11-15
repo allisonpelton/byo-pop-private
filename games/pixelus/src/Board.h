@@ -99,9 +99,22 @@ public:
 	bool			mHintShown;
 	int				mHintTicks;
 	Grid::Move		mHintMove;
+	int				mGridX;				// where the grid's top left corner is (GRID_X, GRID_Y; the help screen's grids are elsewhere)
+	int				mGridY;
+	bool			mDemo;				// one of the help screen's two grids: no buttons, no sidebar, no puzzle of the temple
+
+	// the grid plays a solution by itself (0x426560, replayed in 0x424b30): a move every mReplayPeriod updates
+	bool			mReplayOn;			// +0xb140
+	std::vector<Grid::Move> mReplay;	// +0xb144
+	int				mReplayIndex;		// +0xb154
+	int				mReplayDelay;		// +0xb158 updates to the next move
+	int				mReplayPeriod;		// +0xb15c
 
 public:
 	Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleIndex);	// 0x407f10
+	// a grid for the help screen (0x40ddd0, 0x40df90): theText is a puzzle file's text, which may be empty (then the grid is
+	// empty and the caller fills it)
+	Board(PixelusApp* theApp, int theRows, int theCols, int theGridX, int theGridY);
 	virtual ~Board();																// 0x4045e0
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;		// 0x4028c0 slot 1
@@ -138,6 +151,13 @@ public:
 	// the hint (0x433050): the next move of the best known solution, or an undo when the moves so far depart from it
 	bool				FindHint(Grid::Move* theMove, bool* theUndo);
 	void				ShowHint();
+
+	// the help screen's grids
+	bool				LoadDemoPuzzle(const std::string& theText);					// 0x427330: load a puzzle (and its picture), the replay stops
+	void				StartReplay(int theFirstDelay, int thePeriod);				// 0x426560, 0x422460
+	void				UpdateDemo();													// the grid's part of 0x40d320 and 0x40d8d0
+	void				DrawDemo(Graphics* g);
+	void				SetHover(int theCol, int theRow, bool theValid);				// 0x4223d0
 
 	// drawing
 	void				DrawGrid(Graphics* g);											// 0x422ab0

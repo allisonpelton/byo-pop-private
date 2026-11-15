@@ -25,6 +25,8 @@ public:
 	void ShutdownHook() override; // 0x43ffa0
 	void LostFocus() override; // 0x440410
 	void GotFocus() override; // 0x440450
+	void ModalClose() override; // port: no counterpart in the original; the mod menu calls it when it closes, ticks stop counting while it is open
+	Sexy::DDInterface* CreateDDInterface() override; // port: the display with the original's Direct3D 7 placement of a transformed picture (VeniceApp.cpp)
 	void WriteToRegistry() override;
 	bool HandleScriptCommand(const Sexy::ScriptCommand& theCommand) override; // TestCommands.cpp: the standard test commands
 	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override; // port: -livesplitlog

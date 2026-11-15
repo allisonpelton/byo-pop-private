@@ -136,6 +136,7 @@ public:
 		mLeftMs = 3000;
 		mPlays++;
 	}
+	void halt() override { mLeftMs = 0; }
 	void stop() override { mLeftMs = 0; }
 	void rewind() override {}
 	void close() override {}

@@ -167,13 +167,6 @@ void ResultsScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mAdvanceButton);
 }
 
-// 0x426bc0 slot 13
-void ResultsScreen::Resize(int theX, int theY, int theWidth, int theHeight)
-{
-	Widget::Resize(theX, theY, theWidth, theHeight);
-	mAdvanceButton->Resize(ADVANCE_X, ADVANCE_Y, ADVANCE_WIDTH, ADVANCE_HEIGHT);
-}
-
 // 0x426c00 slot 31: a click skips to the end of the current line's 50 updates
 void ResultsScreen::MouseUp(int x, int y)
 {

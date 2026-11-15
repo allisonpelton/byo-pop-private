@@ -486,9 +486,11 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 		break;
 
 	case Replay::OP_DESELECT:
-		if (!isMouseDownOpen)
+		// A right click, or fixes.selection dropping a gem that a refill took off the board: MouseDown does that behind
+		// its gates, MouseDrag in play with no pause or input-delay gate (Board::DropStaleSelection)
+		if (!isMouseDownOpen && !((aBoard->mState == STATE_PLAYING) && aBoard->HasStaleSelection()))
 		{
-			aWhy = "a right click MouseDown would ignore";
+			aWhy = "a right click MouseDown would ignore, with no stale selection for a drag to drop";
 			isOk = false;
 			break;
 		}

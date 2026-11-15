@@ -3,13 +3,14 @@ shot of origcmp/record.py's events.json goes to the update at which the original
 plays the same inputs at the same updates (to_commands.py --shots, then the port natively) and its shots can be compared with
 the original's by tools/shotdiff.
 
-    python games/bejeweled2/tools/origcmp/landed_to_events.py events.json landed.tsv out-events.json [--shot-delta N] [--shift FROM TO DELTA]... [--leave-after N]
+    python games/bejeweled2/tools/origcmp/landed_to_events.py events.json landed.tsv out-events.json [--shot-delta N] [--shift FROM TO DELTA]... [--leave-after N] [--leave-keep]
 
-With --leave-after N the port's mouse leaves the window N updates after every click: the original's mouse position is the real
-cursor's, which the visible-desktop runs never move into the game's window, so the original's board gets the posted move and click
-and the leave at once, and no hover (the glow of the gem under the mouse, the highlight of a button) lasts, and the manager's last
-mouse position is the cursor's, outside the window (the board's own MouseMove call from its idle state reads it); the port's
-replayed mouse stays where the last move put it. The port's mouse goes to a point outside the window and leaves it.
+With --leave-after N the port's mouse leaves the window N updates after every click: the real cursor, which the original reads, is
+never moved into the game's window in the visible-desktop runs, so the original's board gets the posted move and click and the
+leave at once, and no hover (the glow of the gem under the mouse, the highlight of a button) lasts. The widget manager's last
+mouse position, though, stays where the posted click put it (the WARP button's glow reads it), so --leave-keep sends the leave
+alone, without the move to -9,-9 that would also take the manager's position away; the port's mouse then goes to a point outside
+the window and leaves it.
 
 A shot is taken at the update it landed at, an input at the update its hold found (the counter when it was posted; the original
 reads it in the next update, as the port reads a command given at that update). The input that reaches a dialog needs no shift
@@ -39,6 +40,9 @@ def main():
         i = a.index('--leave-after')
         leave_after = int(a[i + 1])
         del a[i:i + 2]
+    keep_position = '--leave-keep' in a   # --leave-keep: the leave alone, with no move out first (the manager's last position stays)
+    if keep_position:
+        a.remove('--leave-keep')
     src, landed, out = a
     ev = json.load(open(src))
     rows = [l.rstrip('\n').split('\t') for l in open(landed) if l.strip()]
@@ -56,7 +60,8 @@ def main():
             c += sum(d for lo, hi, d in shifts if lo <= c <= hi)
         new.append([c, cmd] + marks)
         if leave_after is not None and cmd.startswith('click '):
-            new.append([c + leave_after, 'move game -9 -9'] + marks)
+            if not keep_position:
+                new.append([c + leave_after, 'move game -9 -9'] + marks)
             new.append([c + leave_after, 'leave'] + marks)
     # the same update twice is fine in a commands file (the lines up to a wait run in one update)
     new.sort(key=lambda e: e[0])

@@ -85,6 +85,7 @@ static std::string FindGameDir()
 }
 #endif
 
+// 0x477cf0 (WinMain: makes the app, seeds the random numbers, runs it, shuts it down)
 int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");

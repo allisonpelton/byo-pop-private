@@ -214,6 +214,7 @@ static TObject* setslot(lua_State* L, Table* t, const TObject* key, int* flags, 
 }
 
 // 0x7166e0 (SETTABLE, SETGLOBAL and the API)
+// 0x7164b0 (the API's version, without the lookup cache)
 void luaV_settable(lua_State* L, const TObject* t, TObject* key, StkId val)
 {
 	const TObject* tm;
@@ -587,6 +588,7 @@ static int tonumber_inplace(StkId o)
 // luaV_execute without a word otherwise; no compiled code does that)
 #define checkkey(L, k) { if (!ttisstring(k)) luaG_runerror(L, "method name is not a string"); }
 
+// 0x717540
 StkId luaV_execute(lua_State* L)
 {
 	LClosure* cl;
