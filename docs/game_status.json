@@ -431,11 +431,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "performance"
+        "performance",
+        "lite-mod"
       ],
       "na": [],
       "now": null,
-      "note": "performance through SurfaceDisplay: 0.28 of the original's processor time windowed at 800x600, 0.87 in full screen (its default; the framework's renderer thread is the rest)"
+      "note": "every phase but modding done: the lite mod step closed with no mod (5b1c7f50), the game's logic being about 1% of a scripted minute (drawing 21%, present and driver about 50% in full screen)"
     },
     "cosmicbugs": {
       "title": "Cosmic Bugs",
@@ -528,7 +529,7 @@
       ],
       "na": [],
       "now": null,
-      "note": "every phase but modding done but one: the 3D original's tour is done (8251 frames agree in seed and ticks, 31 shots faint-only; VeniceDisplay adds Direct3D 7's half pixel in 3D); left: the tutorial's don't-show-again box; site features with the site session"
+      "note": "every phase but modding done except the site features (Music, soundboard presets, an autosplitter if speedrun.com has a board), which wait on the site's session; the tutorial's don't-show-again box is settled (9e662bc1): it sits on levels/tutorial.xml, a scene the original never loads, so the original never shows it"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",

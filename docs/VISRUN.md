@@ -91,6 +91,18 @@ clips with `clip.json`, `watch.log`. On the real clock the update a step lands a
 the landed updates in the port. Exit 0 done, 3 the run stopped (no window, not muted, a cue or update never came), 4 shots
 refused three times.
 
+## Lessons from the first live runs
+
+Venice's 3D tour (2026-11-15) was the first long run, and it taught four things:
+- **Give every config a `pos`.** Windows that were centred overlapped another game's window, every shot was refused,
+  and the run ended with exit 4.
+- **A long tour needs `--timeout 600`.**
+- **`values` print unsigned.** A negative number shows as its 32-bit pattern: -2 is 4294967294.
+- **Peek every update while an update number matters.** The loading thread moves the first running update, which was
+  1132 in one run and 936 in another, so a script cannot assume it. A peek can also fall inside an update: the
+  counter can step by more than one update's ticks between two peeks, and a value read per frame (Venice's `batch`)
+  need not belong to the frame drawn.
+
 ## Checked without a desktop
 
 `python -I tools/visrun.py --selftest` (the time window, expressions, window picking, overlap, forbidden regions, the layout
