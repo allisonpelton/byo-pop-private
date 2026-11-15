@@ -35,7 +35,7 @@
 //                   highscores (the main menu's items); a mini-game by its class (wordmaster, letterrip, linknspell,
 //                   wordup, mutawords, goldencoins: the mini-games' menu's buttons, opened first from the main menu)
 //   unlock all      the arena, the mini-games and the tome, as the end of a book unlocks them
-//   set health|enemy <n>   Lex's or the enemy's health (the scripts' _LexSetHealth, _EnemySetHealth)
+//   set health|enemy <n>   Lex's or the enemy's health (the scripts' _LexSetHealth, _EnemySetHealth); refused ("no enemy") once the enemy is dead (its overlay: the script resurrects it, and a later call reached a freed object), and capped at its maximum by the script
 //   win             the battle's enemy dies (the scripts' _KillEnemy, only while the battle waits for a word)
 //   lose            Lex near death (the scripts' _lex_near_death), so that the enemy's next attack ends the battle
 //   move            MOVE {json} the move the drivers' bot makes next, or MOVE null (MoveForTests); it changes nothing
@@ -812,7 +812,8 @@ bool GameApp::HandleDriverCommand(const ScriptCommand& theCommand)
 			if (aKey == "health")
 				aChunk = StrFormat("_LexSetHealth(%d) return ''", aValue);
 			else if (aKey == "enemy" || aKey == "enemyhealth")
-				aChunk = StrFormat("if gBattleEngine.mEnemyPtr == nil then return 'no enemy' end _EnemySetHealth(%d) return ''",
+				aChunk = StrFormat("if gBattleEngine.mEnemyPtr == nil or gBattleEngine.mEnemyPtr.mHealth <= 0 then return 'no enemy' end "
+				                   "_EnemySetHealth(%d) return ''",
 				                   aValue);
 			else
 				return Error("only health and enemy");
