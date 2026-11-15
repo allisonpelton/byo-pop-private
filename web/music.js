@@ -926,7 +926,10 @@ var ByopopMusic = (function () {
 
     // On the screen: the views draw, and the tracker's rows are looked up, only while the player is (web/skins.js closes its
     // window; the tab's panel hides): so the tracker costs nothing while its window is closed
-    function onScreen() { return document.visibilityState !== "hidden" && root.getClientRects().length > 0; }
+    // (the window in view: not closed, not minimized, not scrolled away, the tab not hidden; inView from an IntersectionObserver
+    // on the player, set up below)
+    var inView = true;
+    function onScreen() { return document.visibilityState !== "hidden" && inView && root.getClientRects().length > 0; }
 
     // A value in the display when there is no tune to show (reading, none, an error): a word or two, the sentence in its tooltip
     function say(word, sentence) {
@@ -2660,8 +2663,10 @@ var ByopopMusic = (function () {
         g.fillRect(x, hgt - 2 - Math.round(peaks[i] * (hgt - 4)), bw, 2);
       }
     }
-    // One look a frame while a tune plays (the browser runs none for a page in the background), the views drawn only while the
-    // player is on the screen; none at all while nothing plays and the spectrum's bars have fallen
+    // One look a frame while the player is on the screen and a tune plays (or a game is followed, or the spectrum's bars are
+    // falling), none at all otherwise: a tune playing in a closed, minimized or scrolled-away window costs no frames (the user,
+    // 2026-11-15: the site's animated parts do no work while nobody can see them). Shown again, the loop starts from the tune's
+    // state then (the listeners and the observer below).
     var ticking = false;
     function tick() {
       if (ticking) return;
@@ -2673,7 +2678,8 @@ var ByopopMusic = (function () {
         // hushes the games, web/deskapps.js), so the views and the seek bar are its (the user, 2026-11-12: "If a game is open while
         // I use the music player, jumping around in the song does not actually skip the audio")
         var seen = onScreen(), own = state === "playing" || state === "loading", front = seen && !own ? frontGame() : null;
-        if (seen) { followGame(front); drawTracker(); drawPiano(); drawScore(); drawSpectrum(); } else unfollow();
+        if (!seen) { unfollow(); return; }
+        followGame(front); drawTracker(); drawPiano(); drawScore(); drawSpectrum();
         var settling = levels.some(function (l, i) { return l > 0.001 || peaks[i] > 0.001; });
         if (state === "playing" || front || (!spectrum.hidden && settling)) { ticking = true; requestAnimationFrame(frame); }
         // game windows open but none in front (all minimized, say): a look twice a second, so one restored is followed again
@@ -2928,6 +2934,11 @@ var ByopopMusic = (function () {
       followEl.title = tip;
     }
     window.addEventListener("byopop-desk-active", function () { if (onScreen()) tick(); });
+    // opened, restored or scrolled back into view: the loop again
+    if (window.IntersectionObserver) new IntersectionObserver(function (seen) {
+      inView = seen[seen.length - 1].isIntersecting;
+      if (onScreen()) tick();
+    }).observe(root);
     // back from another tab: the frame that ran as the page was hidden ended the loop (nothing seen, nothing followed), so it starts
     // again here (the user, 2026-11-10: "when you switch back, the tracker window has to be activated again to resume")
     document.addEventListener("visibilitychange", function () { if (onScreen()) tick(); });

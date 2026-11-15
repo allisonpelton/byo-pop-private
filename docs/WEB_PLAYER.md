@@ -581,6 +581,12 @@ then the module's own 13 seconds of silence before the cut); only the playlist
 scrolls (2026-11-09); closing the window stops the music and frees what it held (2026-11-09;
 `ByopopMusicPanel.held()` tells a test what is still held).
 
+**Nothing drawn unseen** (the user, 2026-11-15: lower the web builds' processor time; the site's animated parts do no work
+while nobody can see them). Music's views and the Splits window's running timer draw a frame at a time only while their
+window is on the screen: closed, minimized, scrolled out of view or in a hidden tab, their loop stops (a tune plays on, a
+run's time goes on), and shown again (an IntersectionObserver on the window, and the tab's visibility) they draw from the
+current state at once. A tune playing in a minimized Music window then costs only its decoding.
+
 **Unused patterns** (the user, 2026-11-15: "Add unused tracker patterns to their own section in the music player (since
 they're not compositions unto themselves, not listed alongside their game, and don't start playing them while going down
 through the list, only when one is selected)"; part of a game's definition of done) are a module's patterns that no order
@@ -666,7 +672,8 @@ none.
 **Auto splitting** (the user, 2026-11-11: "Add Bejeweled autosplitter to the site. Also, let's build in autosplitters to
 every port of a game with a leaderboard on speedrun.com"). `web/autosplit.js` holds each game's auto splitter: the block
 the port publishes, how to read it and the decisions. With Options, Auto Splitter on (the default), the window polls a game
-every 10 ms, as LiveSplit does. That is the game window in front while the timer is idle, and the run's own window while it
+every 10 ms, as LiveSplit does, while a game window is open (with none, every half second, so the page is not woken a
+hundred times a second for nothing; the user, 2026-11-15). That is the game window in front while the timer is idle, and the run's own window while it
 runs. It does so only when the game has an auto splitter and the splits' game name is the game's speedrun.com name. Its
 decisions go through the timer's own Start, Split and Reset, so an automatic reset asks about new bests as the player's does.
 The timer is idle again before that question is asked, and the answer applies to the attempt that was reset: a reset for a
