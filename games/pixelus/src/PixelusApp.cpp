@@ -34,6 +34,7 @@ using namespace Sexy;
 
 PixelusApp* Sexy::gApp = NULL;
 
+// port: a helper of the port (GridRandom)
 static int GridRandom()
 {
 	return gApp->RandNext();
@@ -94,6 +95,7 @@ PixelusApp::PixelusApp()
 	mColorLight = new Color(0x49, 0x8c, 0x7a);
 }
 
+// port: the destructor (PixelusApp::~PixelusApp)
 PixelusApp::~PixelusApp()
 {
 	delete mStateLog;
@@ -200,13 +202,13 @@ void PixelusApp::PlayGame()
 	}
 
 	UserProfile* aUser = mUserDirectory->GetCurrent();
-	if ((aUser != NULL) && aUser->mFlag7A)
+	if ((aUser != NULL) && aUser->mStorySeen)
 	{
 		ShowIslandMap();
 		return;
 	}
 	if (aUser != NULL)
-		aUser->mFlag7A = true;
+		aUser->mStorySeen = true;
 	ShowStory(false, 0);
 }
 
@@ -288,7 +290,7 @@ void PixelusApp::NewUserOK(bool theOK)
 		}
 		UserProfile* aUser = mUserDirectory->AddUser(aName);
 		if (anExpert)
-			aUser->mFlag38 = true;
+			aUser->mExpert = true;
 		mUserDirectory->Save();
 		KillDialog(0x12);
 		KillDialog(0x13);
@@ -549,7 +551,7 @@ void PixelusApp::StartPuzzle(bool theRestart)
 	ShowBoard(mLevelData->mCurrentLevel, aPuzzle);
 
 	// a player who has asked for it sees the "how to play" screen before every puzzle outside the tutorial
-	if (aUser != NULL && aUser->mFlag2D && !mBoard->mTutorial)
+	if (aUser != NULL && aUser->mShowHelp && !mBoard->mTutorial)
 		ShowHelp();
 }
 
@@ -575,7 +577,7 @@ void PixelusApp::SkipTutorialOK()
 	KillDialog(0x1b);
 	UserProfile* aUser = mUserDirectory->GetCurrent();
 	if (aUser != NULL)
-		aUser->mFlag79 = true;
+		aUser->mTutorialDone = true;
 	// 0x432dc0: the temple goes and the story of the opened temple plays (it ends on the island map)
 	if (mTempleScreen != NULL)
 	{

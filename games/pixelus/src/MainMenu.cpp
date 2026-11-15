@@ -15,6 +15,7 @@
 
 using namespace Sexy;
 
+// port: a helper of the port (ToUpper)
 static std::string ToUpper(std::string theString)	// __strupr
 {
 	for (size_t i = 0; i < theString.size(); i++)
@@ -117,6 +118,7 @@ void MainMenu::RemovedFromManager(WidgetManager* theWidgetManager)
 }
 
 // the link only makes sense when a player is signed in
+// port: a helper of the port (MainMenu::UserChanged)
 void MainMenu::UserChanged()
 {
 	mUserLink->SetVisible(mApp->mUserDirectory->GetCurrent() != NULL);

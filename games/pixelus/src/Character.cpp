@@ -264,6 +264,7 @@ Character::Character(PixelusApp* theApp, int theGod, Widget* theOwner, int theMo
 	mBubble = theOwner != NULL ? new SpeechBubble(theApp, theGod, theOwner, theMode) : NULL;
 }
 
+// port: the destructor (Character::~Character)
 Character::~Character()
 {
 	delete mBubble;

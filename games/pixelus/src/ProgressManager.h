@@ -43,7 +43,7 @@ public:
 	LevelData*					mLevelData;			// +0x1c
 	std::map<std::string, Best>	mBest;				// +4
 	std::map<std::string, History>	mHistory;		// +0x10 of the user loaded last
-	int							mHistoryUser;
+	int							mHistoryUser;		// the user the history was loaded for; nothing reads it (the original keeps it)
 
 public:
 	ProgressManager(PixelusApp* theApp, LevelData* theLevelData);	// 0x421380

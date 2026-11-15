@@ -60,13 +60,14 @@ HelpScreen::HelpScreen(PixelusApp* theApp) :
 
 	mDontShowBox = new Checkbox(mApp->mImages[IMAGE_CHECKBOX_UNCHECKED], mApp->mImages[IMAGE_CHECKBOX_CHECKED], 0, this);
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
-	mDontShowBox->SetChecked(aUser == NULL || !aUser->mFlag2D, false);
+	mDontShowBox->SetChecked(aUser == NULL || !aUser->mShowHelp, false);
 
 	mOKButton = new SoundButton(mApp, mApp->mImages[IMAGE_DIALOGBUTTONCOMPONENTS], ID_OK, this);
 	mOKButton->mLabel = GT(0x50b558);
 	StyleButton(mApp, mOKButton, 3);
 }
 
+// port: the destructor (HelpScreen::~HelpScreen)
 HelpScreen::~HelpScreen()
 {
 	delete mLeft;
@@ -90,7 +91,7 @@ void HelpScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mDontShowBox);
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
 	if (aUser != NULL)
-		aUser->mFlag2D = !mDontShowBox->mChecked;
+		aUser->mShowHelp = !mDontShowBox->mChecked;
 }
 
 // 0x40db80
@@ -224,6 +225,7 @@ void HelpScreen::Update()
 	MarkDirty();
 }
 
+// port: a helper of the port (HelpScreen::DrawDark)
 void HelpScreen::DrawDark(Graphics* g, int theX, int theWidth, double theDark)
 {
 	if (theDark <= 0.0)
