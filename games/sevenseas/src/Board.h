@@ -156,6 +156,9 @@ public:
 	int					mSeconds;           // +0x5bc
 	DWORD				mStartTick;         // +0x5c0
 	int					mPoints[GRID][GRID];    // +0x5c4 points to show at a cell
+	// port(mod): what the autosplit observer reads (LiveSplitObserver.cpp): which board this is, and that it was loaded
+	uint32_t			mBoardSerial;
+	bool				mResumed;
 	bool				mDirty;             // +0x7a8
 	int					mCellFlash[GRID][GRID]; // +0x7ac
 	bool				mBonus;             // +0x991 the bonus screen (digging for treasure) is on

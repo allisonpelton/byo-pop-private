@@ -8,6 +8,7 @@
 #include "SceneObject.h"
 #include "VeniceGlobals.h"
 #include "VeniceMath.h"
+#include "platform/GameOptions.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -274,7 +275,15 @@ const char* TranslateText(const char* theId)
 		int aRow = HighScoreRow(theId, "HIGH_SCORE_SCORE_");
 		sprintf(sText, "%d", gHighScores[aMode][aRow].mScore);
 	} else if (strcmp(theId, "TRICKSHOT_RESULT") == 0) {
-		strcpy(sText, FindUnfilledSlot() == nullptr ? "GREAT SHOT!" : "MAYBE NEXT TIME");
+		bool aWon = FindUnfilledSlot() == nullptr;
+		// the original copies the level's own win or lose message (the data file's win_message and lose_message) into the text
+		// and then, in the next statement, the generic one over it (0x405e10), so a trick shot level's message is never shown; the fixes
+		// mod's "trickMessages" shows it
+		const char* aLevelMessage = aWon ? FirstScene()->mWinMessage : FirstScene()->mLoseMessage;
+		if (Platform::FixOn("trickMessages") && aMode == GameModeTrickShot && aLevelMessage[0] != 0)
+			strcpy(sText, aLevelMessage);
+		else
+			strcpy(sText, aWon ? "GREAT SHOT!" : "MAYBE NEXT TIME");
 	} else if (strcmp(theId, "TRICKSHOT_BONUS") == 0) {
 		TranslateTrickShotBonus(aProfile);
 	} else if (strcmp(theId, "PICK_LEVEL_SELECT_OR_LOADING2") == 0) {

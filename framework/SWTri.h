@@ -49,6 +49,11 @@ public:
 
 typedef void(*DrawTriFunc)(SWHelper::SWVertex * pVerts, void * pFrameBuffer, const unsigned int bytepitch, const SWHelper::SWTextureInfo * textureInfo, SWHelper::SWDiffuse & globalDiffuse);
 void	SWTri_AddAllDrawTriFuncs();
+// The clip rectangle's right and bottom edges for a transformed draw into software memory: by default one pixel inside the
+// rectangle (x + width - 1, y + height - 1), as the released source does. A game whose exe passes the rectangle's own far
+// edges (x + width, y + height; Venice's 0x504860 does) sets this, so that its last column and row of a draw that reaches the
+// clip are drawn.
+void	SWTri_SetClipToFarEdges(bool theClipToFarEdges);
 void	SWTri_AddDrawTriFunc(bool textured, bool talpha, bool mod_argb, bool global_argb, int thePixelFormat, bool blend, DrawTriFunc theFunc);
 
 extern void DrawTriangle_8888_TEX0_TALPHA0_MOD0_GLOB0_BLEND0(SWHelper::SWVertex * pVerts, void * pFrameBuffer, const unsigned int bytepitch, const SWHelper::SWTextureInfo * textureInfo, SWHelper::SWDiffuse & globalDiffuse);

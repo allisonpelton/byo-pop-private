@@ -10,9 +10,12 @@
 // its saves, not the site's records, so a saver's games leave no trace. When a game ends the frame starts another.
 var ByopopSaver = (function () {
   "use strict";
-  // the games whose port answers `move` (docs/TEST_COMMANDS.md, "The bot behind move")
+  // the games whose port answers `move` (docs/TEST_COMMANDS.md, "The bot behind move") and whose state names the mode that
+  // ?begin=mode starts. Pixelus is left out until its state gives one: its title and menu name none, so its frame stayed on the
+  // title (the user, 2026-11-13: "The "screensaver" just seems to blink the home screen every couple of seconds, at least set
+  // to Pixelus", when a run that made no move was reloaded every two seconds)
   var BOTS = ["alchemy", "astropop", "atomica", "bejeweled", "bejeweled2", "bejeweledtwist", "bigmoney", "bookworm", "bookwormadv",
-    "bookwormadv2", "cosmicbugs", "dynomite", "mummymaze", "ningpo", "noahsark", "pixelus", "rocketmania", "sevenseas", "tiptop",
+    "bookwormadv2", "cosmicbugs", "dynomite", "mummymaze", "ningpo", "noahsark", "rocketmania", "sevenseas", "tiptop",
     "typershark", "waterbugs", "wordharmony"];
   var WAITS = ["1", "2", "3", "5", "10", "15", "20", "30", "60"];
   var ids = ["none"].concat(BOTS);
@@ -50,7 +53,8 @@ var ByopopSaver = (function () {
       try { frame.contentWindow.addEventListener("keydown", activity, true); } catch (e) {}
     });
     startedAt = Date.now();
-    // a game that ended (the driver's result) starts again
+    // a game that ended (the driver's result) starts again; a run that made no move would only end the same way, so it is left
+    // on the screen it stopped at rather than reloaded every two seconds
     watch();
     return true;
   }
@@ -61,7 +65,10 @@ var ByopopSaver = (function () {
       if (!frame) return;
       try {
         var t = frame.contentWindow.byopop && frame.contentWindow.byopop.test;
-        if (t && t.result !== undefined) { frame.src = frame.src; }
+        if (t && t.result !== undefined) {
+          if (!(t.result && t.result.moves > 0)) return;
+          frame.src = frame.src;
+        }
       } catch (e) {}
       watch();
     }, 2000);

@@ -112,14 +112,16 @@ lowos::Sound* LoadSound(int theId)
 		memcpy(&aRate, aWav + 0x18, 4);
 		lowos::Sound* aSound = lowos::CreateSound(aWav + 0x2c, aSize, aRate,
 			(uint8_t)((aChannels != 2 ? 0x100 : 2) | (aBits != 0x10 ? 0x100 : 0xd)));
-		// port: BYOPOP_SOUNDLOG's line for the sound, by the name TipTop.dat stores it under (Sounds\X.ogg)
-		if (aSound != nullptr && Sexy::SoundLogOn())
+		// port: the sound's name, the path TipTop.dat stores it under (Sounds/X.ogg), for the site's sound panel and BYOPOP_SOUNDLOG's line
+		if (aSound != nullptr)
 		{
 			const char* aStored = res::StoredName(res::GROUP_SOUNDS, theId);
 			std::string aName = aStored != nullptr ? aStored : "?";
 			std::replace(aName.begin(), aName.end(), '\\', '/');
-			Sexy::SoundLog("load %d %s frames=%d rate=%d ch=%d", aSound->mHandle, aName.c_str(),
-				(int)(aSize / (aChannels * (aBits / 8))), (int)aRate, (int)aChannels);
+			lowos::SetSoundName(aSound, aName);
+			if (Sexy::SoundLogOn())
+				Sexy::SoundLog("load %d %s frames=%d rate=%d ch=%d", aSound->mHandle, aName.c_str(),
+					(int)(aSize / (aChannels * (aBits / 8))), (int)aRate, (int)aChannels);
 		}
 		return aSound;
 	}

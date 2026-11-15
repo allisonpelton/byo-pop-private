@@ -202,7 +202,8 @@ function protracker() {
   // every "<file>#<n>@<order>" named anywhere is a piece some cut makes, and no chained part is placed on its own
   const orphans = [], chained = [];
   for (const g of Object.keys(table)) {
-    const e = table[g], cuts = e.cuts || {};
+    const e = table[g], cuts = Object.assign({}, e.cuts || {});
+    for (const k of Object.keys(e.starts || {})) cuts[k] = (cuts[k] || []).concat(e.starts[k]);
     const keys = Object.keys(e.where || {}).concat(e.unused || [], e.skip || [], Object.keys(e.names || {}));
     for (const k of keys) {
       const at = k.lastIndexOf("@");
@@ -210,7 +211,7 @@ function protracker() {
     }
     for (const head of Object.keys(e.chains || {})) for (const k of e.chains[head]) if ((e.where || {})[k]) chained.push(g + " " + k);
   }
-  check("cuts: every piece named is cut", orphans.length === 0, orphans);
+  check("cuts: every piece named is cut or started", orphans.length === 0, orphans);
   check("chains: no part placed on its own", chained.length === 0, chained);
 
   // the soundboards' presets (web/soundboards.js): rip-style names (Title Case, at most 20 characters), steps in time order,

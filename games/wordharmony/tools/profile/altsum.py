@@ -1,7 +1,7 @@
-"""The summary of alt.sh's runs: for each run of the original and of the port, the cycles of the scripted minute (billions: the
-threads' QueryThreadCycleTime, perf.py's cycles_in_minute_g) by thread, then the medians and the port's cycles against the
-original's. The port's SDL audio thread (its software mixer, which the original's stand-in DirectSound has no counterpart of)
-is shown apart, and the comparison is given with and without it.
+"""The summary of alt.sh's runs: for each run of the original and of the port (and of portold, the port with SURFACE_DISPLAY=off), the
+cycles of the scripted minute (billions: the threads' QueryThreadCycleTime, perf.py's cycles_in_minute_g) by thread, then the medians
+and each port side's cycles against the original's. The port's SDL audio thread (its software mixer, which the original's stand-in
+DirectSound has no counterpart of) is shown apart, and the comparison is given with and without it.
 
     python -I games/wordharmony/tools/profile/altsum.py <alt.sh's out dir>
 """
@@ -29,9 +29,11 @@ def split(r):
 
 def main():
     d = sys.argv[1]
-    rows = {'orig': [], 'port': []}
-    for side in rows:
-        for path in sorted(glob.glob(os.path.join(d, side + '*.json'))):
+    sides = ['orig', 'port', 'portold', 'portrs1']
+    rows = {}
+    for side in sides:
+        rows[side] = []
+        for path in sorted(glob.glob(os.path.join(d, side + '[0-9]*.json'))):
             r = load(path)
             if r is None or 'cycles_in_minute_g' not in r:
                 continue
@@ -39,16 +41,19 @@ def main():
             rows[side].append((total, audio, driver, mn, r['machine_busy'], os.path.basename(path)))
             print('%-12s total %6.3f G   main %6.3f   driver %6.3f   audio %5.3f   busy %.2f' % (
                 os.path.basename(path), total, mn, driver, audio, r['machine_busy']))
-    for side in rows:
+    for side in sides:
         if rows[side]:
-            print('%-5s median total %6.3f G (%d runs)   without the audio thread %6.3f G' % (
-                side, statistics.median(x[0] for x in rows[side]), len(rows[side]),
+            print('%-7s median total %6.3f G (%d runs)   main %6.3f   driver %6.3f   audio %5.3f   without the audio thread %6.3f G' % (
+                side, statistics.median(x[0] for x in rows[side]), len(rows[side]), statistics.median(x[3] for x in rows[side]),
+                statistics.median(x[2] for x in rows[side]), statistics.median(x[1] for x in rows[side]),
                 statistics.median(x[0] - x[1] for x in rows[side])))
-    if rows['orig'] and rows['port']:
+    if rows['orig']:
         o = statistics.median(x[0] for x in rows['orig'])
-        p = statistics.median(x[0] for x in rows['port'])
-        pa = statistics.median(x[0] - x[1] for x in rows['port'])
-        print('port / original: %.2f   (without the port\'s audio thread: %.2f)' % (p / o, pa / o))
+        for side in sides[1:]:
+            if rows[side]:
+                p = statistics.median(x[0] for x in rows[side])
+                pa = statistics.median(x[0] - x[1] for x in rows[side])
+                print('%s / original: %.2f   (without the audio thread: %.2f)' % (side, p / o, pa / o))
 
 
 if __name__ == '__main__':

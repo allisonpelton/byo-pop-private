@@ -261,6 +261,11 @@ seeded, so the scores differ from run to run):
 Each ended on the title after the game over, the Hall of Fame and its Back button, and each froze with the focus gone
 (for example 10935 updates, then 10978 and 10978 while the window was inactive, 11489 half a second after the regain).
 
+After the processor-time pass moved the native build's screen onto the framework's `SurfaceDisplay` (2026-11-12), the same drivers
+played six games again, two of them starting in a window (800x600 and 1600x1200) so that the window's own surface shows the screen, and
+`tools/play/windowcheck.py` took the window through resizes, a minimise and restore, full screen and Alt+Enter; all passed
+(`README.md`, "The processor-time target", "Real input through the window" and "Window checks").
+
 On the web `tools/web/play.js` does the same as a page driver (`?player=1&silent=1&fast=1&hold=1&driver=...`), through
 `byopop.test`'s mouse and key events on the canvas and its `blur` and `focus`, in the Browser pane. The pane cannot enter full
 screen, so `&scale=2` stands in for it: the canvas is drawn at 1600 by 1200, and every event lands at a scaled point, as in a

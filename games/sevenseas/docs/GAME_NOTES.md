@@ -348,6 +348,22 @@ than the port (3700 against 2740 over the same 5500 updates; 2766 in a probe run
 state of the play); not chased. Oddity: in 3 of the first 5 runs of the first scenario the original sat on the title or the menu
 the whole stretch (700 draws, 2 to 3 G).
 
+## 11c. The autosplit block (2026-11-12)
+
+`src/LiveSplitObserver.cpp` writes the shared autosplit block (platform/AutosplitBlock.h, layout 2, game id "SSDX") after
+every update, for the site's Splits window and LiveSplit. It only reads the game. It writes while an enabled mod has the
+feature "livesplit" or, on the web, once the page has called `byopop_livesplit_block`; until then it tests two flags.
+`-livesplitlog <file>` writes one line per event. The game's own side is two inert fields on `Board`: `mBoardSerial` and
+`mResumed`. Numbering: mode 0 a game, 1 the tutorial, -1 off a board; skill 1 Easy, 2 Average, 3 Hard (the menu's
+difficulty), 0 off a board. GO is the board's first update of a new game (on Easy the demo's "Click Here To Start" makes
+the board; on Average and Hard the menu's Play does). A level clear is the update in which `Board::mLevel` goes up
+(NewLevel, after the level's panel is closed); after a treasure level the same call shows the map, so there the clear and
+the map are one update. Undo is cleared in NewLevel, so no clear is taken back. `progress` = levels completed
+(`mLevel - 1`, 30 when level 31 has begun). Game over kind 0: out of lives (Board::GameOver); kinds 1 to 3 unused.
+Leaving through New Game saves the game and removes the board, with no event. No win: the game goes on past level 30.
+Proof of inertness: the three bot games of `tools/check.sh sevenseas` give the same log and screenshots with the block
+off and with it on, and the suite's frozen baseline is unchanged.
+
 ## 12. Coverage check (2026-11-11)
 
 The whole check of `docs/COVERAGE.md`. origrun's `--coverage` recorded which of the original's functions ran in 16 runs on the

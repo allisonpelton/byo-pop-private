@@ -1,0 +1,65 @@
+# The check suite's tour of Hammer Heads Deluxe (tools/check.sh hammerheads): the loading screen, a new player's name typed in the
+# name box, the main menu, the high scores and the trophy room, a Classic level in play and won, the shop and the challenge
+# screen, Tough Cookie, Marathon and a game lost. The standard test commands (docs/TEST_COMMANDS.md) reach each screen. @DIR@ is
+# the run's folder (check.sh replaces it). Run with -fast -seed=1: the updates are the game's own, so every run gives the same
+# screens. The loading screen's button waits for a click from update 650 in -fast, the name box is typed with `char` lines, and
+# a level's introduction waits for a click on its Go button (400 438 for a new gnome's card, 400 344 for the Ready box, 400 388 for Marathon's).
+300 seed 1
+640 screenshot @DIR@/loaded.png
+650 click 397 532
+900 char T
+910 char e
+920 char s
+930 char t
+1000 screenshot @DIR@/name.png
+1100 click 310 392
+1500 state
+1600 screenshot @DIR@/menu.png
+1700 goto highscores
+2000 screenshot @DIR@/highscores.png
+2001 state
+2100 goto menu
+2200 goto trophies
+2800 screenshot @DIR@/trophies.png
+2801 state
+2900 goto menu
+3000 goto classic
+3100 level 3
+3500 screenshot @DIR@/game.png
+3501 state
+3510 click 400 438
+3900 screenshot @DIR@/play.png
+3901 state
+4000 win
+4800 screenshot @DIR@/won.png
+4801 state
+4900 level 6
+4901 set coins 500
+5000 goto shop
+5500 screenshot @DIR@/shop.png
+5501 state
+5600 level 6
+5601 set coins 500
+5700 goto challenge
+6100 screenshot @DIR@/challenge.png
+6101 state
+6200 unlock all
+6201 goto tough
+6700 screenshot @DIR@/toughintro.png
+6701 state
+6705 move 400 344
+6710 click 400 344
+7100 screenshot @DIR@/tough.png
+7101 state
+7200 goto marathon
+7700 screenshot @DIR@/marathonintro.png
+7701 state
+7705 move 400 388
+7710 click 400 388
+8100 screenshot @DIR@/marathon.png
+8101 state
+8200 lose
+9200 screenshot @DIR@/lost.png
+9201 state
+9300 memreport
+9400 quit

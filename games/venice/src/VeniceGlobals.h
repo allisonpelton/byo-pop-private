@@ -12,6 +12,7 @@ class Shooter;
 
 namespace Sexy
 {
+class DDImage;
 class Graphics;
 }
 
@@ -20,6 +21,10 @@ extern float gScreenHeight; // 0x5b5164: 600
 
 // the Graphics of the frame being drawn (0xa2a180, set by the game widget's Draw)
 extern Sexy::Graphics* gGraphics;
+
+// The picture the pictures are being drawn into instead of the screen (the engine wrapper's field at 0x5ba42c + 4): the layer merge
+// draws a layer's pictures into a few tall pictures this way, and null the rest of the time
+extern Sexy::DDImage* gRenderTarget;
 
 // The scenes, bottom first: the screens and levels that are on the stack. Only the top one (the tail) takes the mouse; each is
 // drawn over the ones below it.

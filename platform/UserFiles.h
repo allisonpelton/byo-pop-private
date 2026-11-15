@@ -28,12 +28,14 @@ bool RenameUserFile(const std::string& theFrom, const std::string& theTo);
 // Removes <user dir>/<theRelPath> if it exists; then UserDataChanged(). Returns false if nothing was removed.
 bool RemoveUserFile(const std::string& theRelPath);
 
+#ifndef BYOPOP_DERIVED
 // Called after every change to the user dir made here (the running app marks its backup out of date).
 void SetUserDataChangedCallback(void (*theCallback)());
 
 // Syncs the user dir and runs the callback. Web without a running app (before callMain): updates the
 // localStorage backup at once, since nothing else will.
 void UserDataChanged();
+#endif
 
 }
 

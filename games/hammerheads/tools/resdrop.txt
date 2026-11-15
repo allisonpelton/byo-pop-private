@@ -1,0 +1,9 @@
+# Resources of resources.xml that the port does not have (resgen.py leaves them out of Res.h and Res.cpp, the staging leaves
+# them out of the staged resources.xml and does not copy their files). One id a line, then why.
+IMAGE_UPSELL            the registration's upsell page (the demo's buy page)
+IMAGE_UPSELL_SHOT1      a picture on the upsell page
+IMAGE_UPSELL_SHOT2      a picture on the upsell page
+IMAGE_UPSELL_SHOT3      a picture on the upsell page
+IMAGE_UPSELL_SHOT4      a picture on the upsell page
+IMAGE_UPSELL_SHOT5      a picture on the upsell page
+IMAGE_MAINMENU_MOREGAMES the main menu's "More Games" button, which led out of the game

@@ -266,6 +266,10 @@ public:
 	virtual ~FossilizedApp();									// 0x419320
 
 	virtual void	Init() override;							// 0x41f820 (slot 14)
+#ifndef __EMSCRIPTEN__
+	// port: the screen drawn in software, as the original's DirectDraw screen (framework/SoftwareScreenDisplay.h)
+	virtual DDInterface* CreateDDInterface() override;
+#endif
 	virtual void	LoadingThreadProc() override;				// slot 15 runs LoadGame
 	virtual void	ReadFromRegistry() override;				// 0x41e250
 	virtual void	WriteToRegistry() override;					// 0x41e420

@@ -31,6 +31,15 @@ public:
 private:
 	void Init();
 	void RemoveTexture();
+	// port: a draw by the software blitters onto the screen tells its display what it covered (DDInterface::ScreenDrawn);
+	// the second form rounds float bounds out by the margin BltSoftwareTransformed takes and keeps them within theClipRect
+	void NoteScreenDrawn(const Rect& theRect)
+	{
+		if (mIsScreen && (mDDInterface != NULL))
+			NoteScreenDrawnTo(theRect);
+	}
+	void NoteScreenDrawn(float theMinX, float theMinY, float theMaxX, float theMaxY, const Rect& theClipRect);
+	void NoteScreenDrawnTo(const Rect& theRect);
 
 public:
 	DDImage();

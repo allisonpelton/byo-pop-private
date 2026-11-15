@@ -236,7 +236,7 @@
       ]
     },
     "venice": {
-      "folder": "Venice Deluxe",
+      "folder": "Venice Deluxe", "appdata": "Venice",
       "note": "Venice keeps its players, their progress and the high scores beside its exe; the registry holds only its two volumes, which are not brought over.",
       "files": [
         { "from": "userdata/profiles.dat", "to": "userdata/profiles.dat", "what": "the players, their progress and the high scores" }
@@ -318,6 +318,37 @@
       "files": [
         { "from": "users/user.idx", "to": "users/user.idx", "what": "the list of players" },
         { "from": "users/user#.dat", "to": "users/user#.dat", "what": "a player" }
+      ]
+    },
+    "hammerheads": {
+      "folder": "Hammer Heads Deluxe", "steam": "Hammer Heads Deluxe",
+      "note": "Hammer Heads keeps its players (each one's saved game and restart points) and the high scores in users beside its exe; the original keeps no other save.",
+      "registry": {
+        "key": "PopCap\\Hammer Heads",
+        "hives": ["vs", "hklm", "hkcu"],
+        "sets": ["base"]
+      },
+      "files": [
+        { "from": "users/directory.txt", "to": "users/directory.txt", "what": "the list of players" },
+        { "from": "users/*.xml", "to": "users/*.xml", "what": "a player, their saved game and restart points" },
+        { "from": "users/hiscores.dat", "to": "users/hiscores.dat", "what": "the high scores" }
+      ]
+    },
+    "heavyweapon": {
+      "folder": "Heavy Weapon Deluxe", "steam": "Heavy Weapon Deluxe",
+      "note": "Heavy Weapon keeps its players (each one's campaign in progress, furthest level, armory and statistics) and both high-score lists in userdata beside its exe; the registry holds which player was last chosen and the particle setting besides the usual options.",
+      "registry": {
+        "key": "PopCap\\HeavyWeapon",
+        "hives": ["vs", "hklm", "hkcu"],
+        "sets": ["base", "app"],
+        "values": ["LastUser=dword", "Particles=dword"]
+      },
+      "files": [
+        { "from": "userdata/users.dat", "to": "users.dat", "what": "the players and their progress" },
+        { "from": "userdata/hiscores.dat", "to": "hiscores.dat", "what": "the campaign's and survival's high scores" }
+      ],
+      "skipFiles": [
+        { "from": "userdata/users.bak", "why": "the copy the original keeps of a players file from an older version, which no version reads" }
       ]
     }
   }

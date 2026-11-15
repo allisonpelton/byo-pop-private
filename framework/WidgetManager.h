@@ -82,14 +82,31 @@ public:
 	DWORD					mLastMouseDownTick;
 	
 	bool					mKeyDown[0xFF];
-	int						mLastDownButtonId;	
-	
+	int						mLastDownButtonId;
+
 	int						mWidgetFlags;
+
+	// port: one widget may take every mouse and key event for itself (SetInputCapture): the mod menu while it is open
+	// (SexyAppBase::OpenModMenu). The events then reach it alone, and what a game reads between them stays as it was:
+	// mLastMouseX, mLastMouseY, mMouseIn, mDownButtons, mActualDownButtons, mKeyDown, mLastDownButtonId,
+	// mLastInputUpdateCnt, mLastMouseDownTick, mOverWidget and mLastDownWidget. A game that polls the buttons itself
+	// (Venice fires on mDownButtons, docs/MOD_MENU_DESIGN.md 5.4) sees none held. The capture keeps its own pointer,
+	// buttons and keys (IsInputKeyDown).
+	Widget*					mCaptureWidget;
+	int						mCaptureMouseX;
+	int						mCaptureMouseY;
+	bool					mCaptureMouseIn;
+	int						mCaptureDownButtons;		// as mDownButtons: 1 left, 2 right, 4 middle
+	bool					mCaptureKeyDown[0xFF];
+	// a key held when the capture ended: its press went to the capture's widget, and its repeats reach no other (its
+	// release does)
+	bool					mHeldPastCapture[0xFF];
 
 protected:
 	int						GetWidgetFlags();
 	void					MouseEnter(Widget* theWidget);
 	void					MouseLeave(Widget* theWidget);
+	void					CaptureMouse(int x, int y);
 
 protected:
 	void					SetBaseModal(Widget* theWidget, const FlagsMod& theBelowFlagsMod);
@@ -137,6 +154,14 @@ public:
 	bool					IsLeftButtonDown();
 	bool					IsMiddleButtonDown();
 	bool					IsRightButtonDown();
+
+	// port: theWidget takes every event from now on (see mCaptureWidget), NULL gives them back. Taking them lets go of
+	// what the widgets had: the one under the pointer is left, the buttons come up and the keys come up, as a lost
+	// focus does; the keys held stay held for the capture. Giving them back leaves the pointer where the capture saw it
+	// last; RehupMouse then tells the widgets under it.
+	void					SetInputCapture(Widget* theWidget);
+	// port: whether a key is held for the widget that gets the keys: the capture's while there is one
+	bool					IsInputKeyDown(KeyCode theKey);
 };
 
 }

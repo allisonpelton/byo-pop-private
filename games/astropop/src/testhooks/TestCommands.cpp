@@ -65,6 +65,24 @@ void EnsureUser(AstroPopApp* theApp)
 	theApp->ValidateUser();
 }
 
+// A game that a test command starts while the previous game's full-screen help or a box of its is still up (the original's player
+// cannot: they are modal): they go first, the help with its own Continue and each box killed as its button would (the boxes of the
+// game are ids 100 to 0x7c: the upgrade box of the warp screen, the weapon's, the checkpoint's, how to play, options, leave).
+// Left up, they stay under the new Board, which is added over them, so that they are not drawn, take no click (the help also holds
+// the Board's updates and input while mHelpScreen is set) and the bot answers them for good ("help", "upgrade", "power": its click
+// reaches the Board, not the button)
+void CloseOldGameScreens(AstroPopApp* theApp)
+{
+	if (theApp->mHelpScreen != NULL)
+		theApp->CloseFullScreenHelp();
+	for (int anId = 100; anId <= 0x7c; anId++)
+	{
+		if (theApp->GetDialog(anId) != NULL)
+			theApp->KillDialog(anId);
+	}
+	theApp->mOpenDialogs = 0;
+}
+
 // The title screen and the selector both go before a game starts: the title's button is pressed (the descriptor and the
 // profile load), and a folder with no player gets the one the new-player dialog would make
 void LeaveMenus(AstroPopApp* theApp)
@@ -73,6 +91,7 @@ void LeaveMenus(AstroPopApp* theApp)
 		theApp->OnClickToPlay();
 	EnsureUser(theApp);
 	theApp->CloseMainMenu();
+	CloseOldGameScreens(theApp);
 }
 
 // The words of a command's arguments as numbers (missing ones stay as they are)
@@ -216,6 +235,7 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		else
 		{
 			EnsureUser(this);
+			CloseOldGameScreens(this);
 			StartClassicGame(aLevel, false, true);
 			ReplyOK(theCommand);
 		}
@@ -307,13 +327,20 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 
 	if (theCommand.mCommand == "win")
 	{
-		// the level is complete (a classic game); the second type of game has no win: it ends
+		// the level in play is complete (a classic game); the second type of game has no win: it ends
 		if (mBoard == NULL)
 			ReplyError(theCommand, "needs a game");
 		else if (mBoard->mGameType == 1)
 		{
-			mBoard->LevelComplete();
-			ReplyOK(theCommand);
+			// only a level in play is won (Board::WinBlockedReason): a driver that retries until OK plays on until it is
+			const char* aBlocked = mBoard->WinBlockedReason();
+			if (aBlocked != NULL)
+				ReplyError(theCommand, std::string("the level is not in play: ") + aBlocked);
+			else
+			{
+				mBoard->LevelComplete();
+				ReplyOK(theCommand);
+			}
 		}
 		else
 			ReplyError(theCommand, "win needs a classic game (lose ends the other)");

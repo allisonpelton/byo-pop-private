@@ -9,6 +9,7 @@ float gScreenWidth = 800.0f; // 0x5b5160
 float gScreenHeight = 600.0f; // 0x5b5164
 
 Sexy::Graphics* gGraphics = nullptr;
+Sexy::DDImage* gRenderTarget = nullptr;
 
 CursorList<SceneObject> gScenes;
 

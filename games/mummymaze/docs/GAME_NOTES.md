@@ -167,7 +167,9 @@ Abandon Hope, from where the explorer stands): the plan is made once and followe
 it does not (a new search at every step walked in circles, because the depth first search that keeps the shortest way it found does
 not always give the same first step). When there is no way out it presses RESET MAZE. It has no dice, unlike the autoplay bot of
 `Autoplay.cpp` (which takes random walks and undoes on purpose): it always wins the chamber, so a whole game ends at the victory
-screen. `over` is true on the victory screen and on the high score table after a lost game once the name is asked, and, with
+screen. A dialog is answered before the screen under it, except a tip that is behind the level-complete page (`win` while a tip is up
+leaves the page above the tip, and the page takes the clicks): there `screen` says `complete` and `move` clicks the page's link, and the
+tip, if it is still up afterwards, is answered like any dialog. `over` is true on the victory screen and on the high score table after a lost game once the name is asked, and, with
 `botmode tutorial`, once the tutorial has handed over to the classic game.
 
 A key is held for one update to take one step (`Board::UpdateExplorer` reads the key table at the next update); in a `-fast` run a
@@ -601,7 +603,12 @@ path of the game reaches or needs, by seven scans of `src/` (the test hooks apar
 | `Board::mTutorialPart` | not a field of the original: its "+0x498" is `mTutorialStep` (+0x4e4) seen from the button listener's part of the board (0x4112b0); only ever zeroed | removed |
 | `Board::mWalkTick` | a second name for +0x4c0, which is `mMoveTick`; only ever zeroed | removed |
 | pictures `internethighscore`, `dbuttonclear` | drawn only by the Internet score list (0x416540, 0x415e50), which the port has not got | left out of the list (`make_res.py`); `NUM_IMAGES` is 160 |
+| `DrawImageBox2003` in `Button2003.h` (the original's 0x432210, the 2003 framework's box) | the framework has the same function behind `Graphics::mDrawImageBox2003`: its corners, strips, loops and clips equal this one's term for term for any picture over two pixels (compared 2026-11-14); `MMApp`'s constructor turns the flag on, as Dynomite's and Rocket Mania's do | removed; the buttons call `g->DrawImageBox`. The dialog's frame is 192 x 192, a multiple of three, so it is the same either way |
 | the text table's 970 other entries | the port's code names 238 of the exe's 1208 strings (see "Registration", above) | left out of the table (`make_gametext.py`) |
+
+**The box, 2026-11-14.** All 17 screenshots of two adventure runs (the options, the intro, the credits, the saved-adventures dialog with its slot and delete buttons, the new
+adventure's name box, the high scores, a tip, the map, a pyramid, a finished chamber) are byte for byte the same in the build before the swap and after it, and `tools/check.sh mummymaze` is unchanged (classic, tips and tutorial
+photographs against the frozen baseline: the options, the tips and the tutorial buttons, whose 127 x 45 picture is the other one that is not a multiple of three).
 
 **Looked at and kept.** `light6`, `light8` and `light10`, which no code names and the first search of the original did not
 find, are the explorer's fourth idle animation: `kExplorerIdleCount` is 4 and the picture is `readmap6 + size + 3 * kind`. (They
@@ -629,6 +636,12 @@ nine phase-two scenarios that need no saved game (the menu, the options and thei
 tutorial, an adventure, the focus) run on both with the same script and seed under `-fast`. All 114 screenshots are byte for
 byte the same. A script reads `Res.h` and `Res.cpp` before and after and finds every id still at the same file name in the
 same order (162 against 160), and the four runs of ids ending where they ended.
+
+## The lite mod (2026-11-14)
+
+There is none: nothing in the game's logic is worth a toggle (`docs/LITE_MOD.md`, which says what was looked at). The only search the game has, the
+solver behind the Ankh and Abandon Hope, took 0.51 s of a 29 s bot game of 1,006,551 updates (the whole 225 chambers), about 9 M cycles in the 7,700 M of a
+minute of play at a player's pace, which is less than the five-pair measurement can see. The lite-mod step is done with no mod.
 
 ## The readability pass (2026-11-11)
 
@@ -778,3 +791,49 @@ nothing they read changes what is drawn or played.
 `mTotalTime` and `mDeaths` stay in the tool's list for `0x4201e0`: its case 0x7db (a new adventure, writing the zeros) is
 `MMApp::CreateAdventure` and its case 0x7d3 is `AdventureLeave`, which are the port's own functions with their own
 comments. The finding is the tool's limit (it reads one translation per address); both are read and compared.
+
+## The autosplit block (2026-11-12)
+
+The site's Splits window times a game on its speedrun.com board's rules (`docs/WEB_PLAYER.md`, "One design for every port"); the
+port writes the shared block it reads (`platform/AutosplitBlock.h`, layout 2, game id `MMDX`) from `src/LiveSplitObserver.cpp`.
+The board (Mummy Maze Deluxe) has two categories that both start when the player takes control of the explorer: 1st Pyramid
+(Classic) ends when the first pyramid's treasure is collected and the next pyramid begins, and 100% Run (Adventure) when the last
+treasure is collected.
+
+**Inert.** Nothing is written until something asks: the web page (`byopop_livesplit_block`, exported in CMakeLists.txt) or, natively,
+an enabled mod with the feature `livesplit` (`mods/livesplit`, looked for once every 101 updates until then). Before that the
+observer costs a test of a counter an update. It reads the app's and the board's fields and writes none: five hooks in the game's
+code, none of which changes anything it does (the call after `SexyApp::UpdateFrames` and the one in `~MMApp`, the `-livesplitlog`
+option, and `SavedGameLoaded()` in `LoadGame` and in the saved-adventure slot's button, which only set a flag the observer reads).
+`tools/livesplit/run_tests.sh` runs the check suite's three bot games (classic, tips, tutorial) with the block off, with it on and
+with the frozen baseline: their logs and screenshots are identical in all three, and there is no block log with the block off.
+
+**A board of the block is a game**, from the menu's Classic or Adventure link until the main menu is back; the game's own `Board` is
+one chamber (or a pyramid's ending scene), so it spans many boards and the map, level-complete and high-score screens between
+them. The tutorial is no game (mode -1). `mode` is 0 Classic and 1 Adventure, `skill` 0 (the game has none). `level` is the
+chamber's number 0 to 224 (pyramid x 15 + chamber, in the adventure by the pyramid's own number, whichever order the player
+takes them in) and `displayLevel` is `level + 1`. `tick` is the app's update count (100 a second, from the start of the process),
+`goTick` the tick of the GO, `score` and `displayScore` the classic game's score (0 in the adventure), `state` the board's state
+(10, STATE_DONE, on the level-complete screen, which has no board; -1 on the map). `flags`: VANILLA while none of the fixes mod's
+three fixes is on, RESUMED for a saved game continued, PAUSED while a dialog is up.
+
+**Events** (in `LiveSplitObserver.cpp`'s header comment, with where each is in the code):
+- GO: the first update of a fresh game's first chamber on which the board is STATE_READY with the maze risen and no dialog up,
+  which is what `Board::UpdateExplorer` and `Board::MouseDown` wait for (259 updates, 2.6 s, after the first board is made in the bot's
+  classic games). Once a game.
+- Level clear: the level-complete screen comes up (`Board::Update`, `MMApp::DoNextLevel`), once for each of a pyramid's fifteen
+  chambers, in both modes. Its constructor takes the board away, so the observer sees the screen, not a board in STATE_DONE.
+- Treasure: the ending scene's chest opens (`Board::Update`, STATE_READY to STATE_ENDING_FADE in MODE_CLASSIC_DONE or
+  MODE_ADVENTURE_DONE; SOUND_OPENTREASURE), 284 updates (2.8 s, the fade's length in `Board::Update`) before the scene's Continue
+  link shows. Win: the treasure of pyramid 14 (the dark tomb), in either mode.
+- `progress`, the treasures collected: the adventure's counts a chest as it opens (15 for the 100% run; the adventure's counter starts
+  at 0 for a saved game too, which never starts a run). The classic game's is the pyramid number, so that it rises when the next
+  pyramid has begun (the Continue link on the ending scene makes the next pyramid's board in the same call, so its first update shows
+  the new number), 1 in pyramid 2, and the last pyramid's treasure counts as 15 when its chest opens, since no pyramid follows.
+- Game over: Abandon Hope in the classic game once its solution has played (the high scores then come up), kind 0, the only one.
+  Being caught is not one: the panel offers Undo, Try again and the others, the timer goes on, and in the adventure it only counts
+  a catch. The sidebar's retry and Save and Quit, and leaving to the menu, end the game as the menu coming back does.
+
+**Logs.** `-livesplitlog=<file>` writes one line for each event with the block's fields after it; `run_tests.sh` makes one of each
+kind (a classic game across a pyramid to Abandon Hope, one to the last treasure, an adventure's first pyramid, a saved adventure
+played to the last treasure by `craft_adventure.py`, a resumed classic game).

@@ -10,6 +10,7 @@
 class LevelLocker : public SceneObject
 {
 public:
+	LevelLocker() {} // 0x409a70
 	void OnObjectClosed() override; // 0x4051f0
 };
 

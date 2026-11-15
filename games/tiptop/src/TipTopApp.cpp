@@ -8,6 +8,9 @@
 #include "platform/Audio.h"
 #include "Graphics.h"
 #include "MemoryImage.h"
+#ifndef __EMSCRIPTEN__
+#include "SurfaceDisplay.h"
+#endif
 #include "WidgetManager.h"
 #include "compat2004/Compat2004.h"
 
@@ -160,10 +163,20 @@ void TipTopWidget::Draw(Graphics* g)
 			int aRunEnd = aTileX;
 			while ((aRunEnd < 640 / 32) && aTiles[aTileY][aRunEnd])
 				aRunEnd++;
-			mChangedRects.push_back(ChangedRect{aTileX * 32, aTileY * 32, (aRunEnd - aTileX) * 32, 32});
+			mChangedRects.push_back(Rect(aTileX * 32, aTileY * 32, (aRunEnd - aTileX) * 32, 32));
 			aTileX = aRunEnd;
 		}
 	}
+#ifndef __EMSCRIPTEN__
+	if (SurfaceDisplay* aDisplay = dynamic_cast<SurfaceDisplay*>(gApp->mDDInterface))
+	{
+		// The window shows the image's pixels, only the changed tiles of them (a window that was exposed or resized asks for all
+		// of the picture itself), and nothing is drawn through the widgets.
+		aDisplay->SetFrame((const uint32_t*)aBits, 640 * 4, mChangedRects.data(),
+			isFirstDraw ? -1 : (int)mChangedRects.size());
+		return;
+	}
+#endif
 	mScreenImage->BitsChanged();
 	g->DrawImage(mScreenImage, 0, 0);
 }
@@ -263,6 +276,11 @@ void TipTopApp::Init()
 	SexyAppBase::Init();
 	if (mShutdown)
 		return;
+	// The original ran one pass of its main loop per vertical blank, 60 a second on a 60 Hz screen (GAME_NOTES.md, "The pass rate"), where
+	// the framework's own step is 10 ms, 100 a second: real-time play takes 16 ms a pass, 62.5 a second. A -fast run keeps the 10 ms:
+	// its virtual clock moves a pass's time at a time, and the state logs, the frozen baseline and the identical-play scripts count passes.
+	if (!mFastMode)
+		mFrameTime = 16;
 	// 0x411fff seeds the C library's generator with GetTickCount(); -seed=N makes a run repeatable
 	tiptop::SRand(mHasSeedParam ? (unsigned int)mRandSeed : (unsigned int)GetClockTime());
 	gSteadyClock = !mFastMode && Platform::FixOn("steadyClock");  // a -fast run is steady already
@@ -361,6 +379,22 @@ void TipTopApp::LostFocus()
 	SexyAppBase::LostFocus();
 	lowos::HostSetActive(false);
 }
+
+#ifndef __EMSCRIPTEN__
+DDInterface* TipTopApp::CreateDDInterface()
+{
+	// test only (a test run reads it): SURFACE_DISPLAY=off keeps the framework's display and the widget's image, to compare the two.
+	// SDL_getenv's result is a buffer the next SDL_getenv call overwrites on Windows (IsTestRun reads two variables), so the
+	// variable is read after the test run is known and used at once.
+	if (IsTestRun())
+	{
+		const char* aMode = SDL_getenv("SURFACE_DISPLAY");
+		if ((aMode != nullptr) && (strcmp(aMode, "off") == 0))
+			return SexyAppBase::CreateDDInterface();
+	}
+	return new SurfaceDisplay(this);
+}
+#endif
 
 // Alt+Enter (and the web page's full screen button) go to the game like the original's Alt+Enter; the game then
 // asks for the mode through LOWOS_ScreenScope, which RunFrame applies.

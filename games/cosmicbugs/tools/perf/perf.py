@@ -32,6 +32,7 @@ import ctypes.wintypes as W
 import json
 import os
 import statistics
+import struct
 import subprocess
 import sys
 import threading
@@ -357,7 +358,7 @@ def run_port(args):
     for (u, x, y) in CLICKS:
         lines += ["%d down %d %d" % (u // 10, x, y), "%d up %d %d" % (u // 10 + 3, x, y)]
     if args.verify:
-        lines += ["600 state", "3000 state"]
+        lines += ["600 state", "3000 state", "610 screenshotfull " + str(out / "window.png")]
     lines += ["%d quit" % ((END + 300) // 10)]  # the game ends itself, so that its log (block-buffered into a pipe) reaches the file
     script = out / "port-script.txt"
     script.write_text("\n".join(lines) + "\n")
@@ -366,6 +367,10 @@ def run_port(args):
     # the mods folder of the build in build/native, whichever exe (a frozen copy has none beside it), so that every run has the same mods
     cmd = [str(exe), "-gamedir=" + str(ROOT / "assets/cosmicbugs"), "-userdir=" + str(out / "user"), "-script=" + str(script),
            "-modsdir=" + str(ROOT / "build/native/mods-cosmicbugs")]
+    if args.windowscale:
+        # the window at N times the game's 800x600 (a build with the -windowscale test option); without it the window starts at
+        # 2x (1600x1200) when it fits the desktop, which it does on rundesk's
+        cmd.append("-windowscale=%d" % args.windowscale)
     # (a pipe, as tools/play/drive.py reads it: the game's log did not reach a file handle it was given)
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, cwd=str(ROOT))
 
@@ -404,6 +409,9 @@ def run_port(args):
         logf.close()
         if args.verify:
             res["checks"] = [ln for ln in (out / "game.log").read_text(errors="replace").splitlines() if "STATE " in ln][:4]
+            shot = out / "window.png"  # the picture's size is the render scale times 800x600 (1x the original's, 2x the default window)
+            if shot.exists():
+                res["screenshotfull_size"] = list(struct.unpack(">II", shot.read_bytes()[16:24]))
 
 
 def run_orig(args):
@@ -540,6 +548,7 @@ def main():
     ap.add_argument("--label", default=None)
     ap.add_argument("--paced", type=int, default=0, help="orig: the original's main loop sleeps this many ms a pass (16 for a 60 Hz screen)")
     ap.add_argument("--nosound", action="store_true", help="port: the sound and the music off in the settings (origrun's stand-in mixes no sound, so this is the port counted the same way)")
+    ap.add_argument("--windowscale", type=int, default=0, help="port: the window at this many times the game's 800x600 (-windowscale=N; 0 keeps the framework's default of 2x)")
     ap.add_argument("--verify", action="store_true", help="check that the clicks reached the board (the original's level kind watched, the port's screen read at update 6000 and 30000); not for a measured run")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()

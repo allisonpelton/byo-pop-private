@@ -1,0 +1,9 @@
+# The functions origrun's --count counts in Venice Deluxe's original (VeniceGame.exe), at the boundaries the port's -cyclesplit
+# counts (docs/TEST_COMMANDS.md, "The cycle split"; docs/ORIGRUN.md, "Counting cycles inside the original's functions").
+# A line is: label, address, len=N (the first instructions' length, whole instructions: tools/origrun/prologue.py checks it).
+#   update   SexyApp::DoUpdateFrames: the scenes' updates and the music's update (its UpdateFrames adds one to the count at +0x484)
+#   draw     SexyApp::DrawDirtyStuff, less the present it reaches: the dirty scan and the game's own drawing
+#   present  SexyApp::Redraw: the Blt or Flip to the screen
+update   0x482d70  len=5
+draw     0x48bd70  len=7
+present  0x497360  len=5

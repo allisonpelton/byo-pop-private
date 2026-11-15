@@ -1,5 +1,7 @@
 #include "Placeholders.h"
+#ifndef BYOPOP_DERIVED
 #include "ModManager.h"
+#endif
 #include "VFS.h"
 
 #include <SDL.h>
@@ -50,9 +52,11 @@ void SetPlaceholders(bool on)
 	if (on == gPlaceholders)
 		return;
 	gPlaceholders = on;
+#ifndef BYOPOP_DERIVED
 	// the applied score key has a "placeholders" entry while the switch is on, -nomods runs included; the framework
 	// turns it on in SexyAppBase::Init, after main() has had the mods applied
 	ModManager::Get().ComputeScoreKey();
+#endif
 }
 
 bool Placeholders()

@@ -32,6 +32,7 @@
 #include "Insets.h"
 #include "Color.h"
 #include "Common.h"
+#include "LiveSplitObserver.h"
 
 #include <SDL.h>
 
@@ -149,6 +150,8 @@ WinWSApp::WinWSApp()
 	mLettersWrongSoFar = 0;
 	mLettersRightSoFar = 0;
 	mDeleteUserAsked = false;
+	mAutosplitGameSerial = 0;
+	mAutosplitContinued = false;
 
 	mNumLoadingThreadTasks = NUM_LOADING_TASKS;
 }
@@ -157,6 +160,7 @@ WinWSApp::WinWSApp()
 // original's order. The containers (strings, vectors, maps) free themselves.
 WinWSApp::~WinWSApp()
 {
+	LiveSplitObserver::AppDestroyed(this);	// port: the autosplit block's last write
 	mWidgetManager->MarkAllDirty();
 
 	// the dialogs still open
@@ -598,6 +602,16 @@ void WinWSApp::UpdateFrames()
 	SexyApp::UpdateFrames();
 	if (mMusic != NULL)     // port: the original does not test
 		mMusic->Update();
+	LiveSplitObserver::AfterUpdate(this);	// port: the autosplit block, after the update (LiveSplitObserver.h)
+}
+
+// port: -livesplitlog=<file>, one line for each change the autosplit block shows (tests); the rest is the framework's
+void WinWSApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);
+	else
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
 // 0x4127c0 slot 47

@@ -72,7 +72,7 @@ target_include_directories(bwa_jefflib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/jeffli
 target_link_libraries(bwa_jefflib PUBLIC sexyframework)
 add_executable(bookwormadv ${BWA_SOURCES})
 target_include_directories(bookwormadv PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(bookwormadv PRIVATE bwa_luaapp bwa_popanim bwa_swf bwa_jefflib sexyframework sexyopenmpt sexyopenjpeg)
+target_link_libraries(bookwormadv PRIVATE bwa_luaapp bwa_popanim sexyswf bwa_jefflib sexyframework sexyopenmpt sexyopenjpeg)
 if(NOT MSVC)
   target_compile_options(bwa_jefflib PRIVATE -Wall)
   target_compile_options(bookwormadv PRIVATE -Wall -Wno-overloaded-virtual)
@@ -86,19 +86,11 @@ else()
     VERBATIM)
 endif()
 
-# bwa_swf: Sexy::SwfMovie, a small player for the Flash (.swf) movies of the story cutscenes (swf/), kept free of
-# game code. bwa_swftest plays every cutscene of the staged game files through and draws frames of any of them to
-# PNGs, headless (tools/swftest/swftest.cpp).
-file(GLOB SWF_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/swf/*.cpp)
-add_library(bwa_swf STATIC ${SWF_SOURCES})
-target_include_directories(bwa_swf PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/swf)
-target_link_libraries(bwa_swf PUBLIC sexyframework)
-if(NOT MSVC)
-  target_compile_options(bwa_swf PRIVATE -Wall)
-endif()
+# bwa_swftest plays every cutscene of the staged game files through and draws frames of any of them to PNGs, headless
+# (tools/swftest/swftest.cpp), with the shared SWF player (engines/swf, sexyswf).
 if(NOT EMSCRIPTEN)
   add_executable(bwa_swftest tools/swftest/swftest.cpp)
-  target_link_libraries(bwa_swftest PRIVATE bwa_swf)
+  target_link_libraries(bwa_swftest PRIVATE sexyswf)
   add_custom_command(TARGET bwa_swftest POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bwa_swftest>
     VERBATIM)
