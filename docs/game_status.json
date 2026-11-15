@@ -404,11 +404,12 @@
         "site-features",
         "performance",
         "lite-mod",
-        "unneeded-code"
+        "unneeded-code",
+        "readability"
       ],
       "na": [],
-      "now": "readability",
-      "note": "unneeded code out (583a3271: LockableButton, a registration leftover; the empty LoadingThreadCompleted; fields written but never read or saved; the Options dialog's unused link ids; 108 lines out, 41 in; fields a save writes stay); baseline unchanged (66646); next: readability, then the Collection check"
+      "now": "collection",
+      "note": "readability done (f21c756a: namecheck 122 places to 0; the mods' files and functions marked port(mods); helper markers name the original functions; one-letter names renamed; mUnusedA0 is mZeroInSave; mPickpocketsUsed out; objsnap 0 of 30 objects changed, strings unchanged); baseline unchanged (66646); next: the Collection check"
     },
     "tiptop": {
       "title": "TipTop Deluxe",
