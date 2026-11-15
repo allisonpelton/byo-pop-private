@@ -560,5 +560,19 @@ var ByopopSoundtracks = {
       "tubetricks level up loop one v01": "A level ends; until the buy-rockets screen closes",
       "tubetricks game over loop one v01": "The night runs out, the top line fills, or strategy mode runs out of moves"
     },
+  },
+  // Hammer Heads' four tracks, one a screen (Application::StartMusic, games/hammerheads/src/Application.cpp: a track fades in
+  // over the others, and one already playing goes on where it was). Its credits name its developers and nobody for the music
+  hammerheads: {
+    files: ["sounds/Music - *.ogg"],
+    where: { "Music - Loading and Menu": "Main Menu", "Music - In-Game": "In-Game", "Music - Bonus Game": "Bonus Round",
+      "Music - High Score": "Trophy Room" },
+    order: ["Music - Loading and Menu", "Music - In-Game", "Music - Bonus Game", "Music - High Score"],
+    when: {
+      "Music - Loading and Menu": "Fades in slowly over the loading screen and plays on through the main menu, and again whenever the main menu opens",
+      "Music - In-Game": "A game opens (new, continued or from a restart point), and again after each wave's result, a bonus round or the trophy room; fades out at each wave's result, the game over and the win",
+      "Music - Bonus Game": "A bonus round opens",
+      "Music - High Score": "The trophy room opens, from the main menu or from a game when trophies are won; also the high score table from the main menu"
+    },
   }
 };

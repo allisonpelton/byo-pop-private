@@ -19,7 +19,9 @@
 // ("skill", "mode"). Heavy Weapon's (its own, instead of the common one, with no "replaced": a player starts no campaign
 // during a run): the final level's results end the run in any segment ("split"); out of tanks in the campaign, TRY AGAIN
 // plays the level again and the run goes on ("goeson"); QUIT to the high scores after it resets ("scores"); Survival and a
-// continued campaign start nothing ("survival", "resumed").
+// continued campaign start nothing ("survival", "resumed"). Hammer Heads' (its own): Classic%, cut to Level 1 and Level 25,
+// ends at the Go! after King Globus's trophy room ("split"), and Tough Cookie% never starts on a Classic game and starts on its
+// own ("mode", "tough").
 // Every reset's question (keep the new bests?) is answered No; the stored splits of the categories it ran are removed at the
 // end, and the last run the window had open is put back.
 var results = [];
@@ -78,7 +80,10 @@ async function settle() {
   return n;
 }
 async function cmd(line) { var l = await t.command(line); return l[l.length - 1]; }
+// (Hammer Heads' bot only smashes: its boxes are pressed by its own command before each move, stepFirst)
+var stepFirst = null;
 async function botStep() {
+  if (stepFirst) await stepFirst();
   var m = await t.botMove();
   if (m === null) { await t.wait(5); return null; }
   await t.playMove(m);
@@ -121,10 +126,11 @@ async function newGame(line) {
   throw new Error("no new game");
 }
 function name(tp) { return tp.sub ? tp.category + " - " + tp.sub : tp.category; }
-async function load(category) {
+// (segments: other names than the template's, as a player may cut them: Hammer Heads' Level 1 and Level 25)
+async function load(category, segments) {
   step = category;
   var tp = G.templates.filter(function (x) { return name(x) === category; })[0];
-  timer.load({ game: G.name, category: category, offset: 0, attempts: 0, segments: tp.segments.map(function (n) { return { name: n, pb: { rt: null, gt: null }, best: { rt: null, gt: null } }; }) });
+  timer.load({ game: G.name, category: category, offset: 0, attempts: 0, segments: (segments || tp.segments).map(function (n) { return { name: n, pb: { rt: null, gt: null }, best: { rt: null, gt: null } }; }) });
   // (the auto splitter's first poll of the loaded run comes before the game starts: a start in that poll is taken as already
   // seen)
   await settle();
@@ -593,6 +599,81 @@ var PLANS = {
     note("skill", att().phase === "idle", "a Hard game (skill " + snap().skill + "): " + att().phase);
     await newGame("goto strategy 1");
     note("mode", att().phase === "idle", "a Strategy game (mode " + snap().mode + "): " + att().phase);
+  },
+  hammerheads: async function () {
+    // (Hammer Heads' bot, `move`, only smashes gnomes: the level card's Go!, the "Ready?" box, the bonus round's box and the game
+    // over box are pressed by its `botclick` before each move (sent straight to the game: it answers only when it clicks, so
+    // the test kit's command would wait out its timeout). The trophy pages and the
+    // trophy room's Back are pressed here: the page's Click to Continue and the Back both cover (400, 570),
+    // games/hammerheads/src/TrophyRoomWidget.cpp. The room over a game is paused with the level in play and no dialog; the
+    // shop is too, and botclick works it)
+    stepFirst = async function () { F.Module.ccall("byopop_test_command", "number", ["string"], ["botclick"]); await t.wait(1); };
+    async function state() { return JSON.parse(String(await cmd("state")).slice(6)); }
+    async function press(x, y) { await t.move(x, y); await t.wait(3); await t.down(x, y); await t.wait(3); await t.up(x, y); await t.wait(3); }
+    async function roomStep() {
+      var st = await state();
+      if (st.paused && st.inplay && !st.dialogs.length) { await t.wait(60); await press(400, 570); }
+      else await botStep();
+      return st;
+    }
+    // the level in play, past its card or "Ready?" box and any trophy room (Stats::Set looks for trophies at once, and the
+    // game every 100 updates)
+    async function inPlay() {
+      for (var k = 0; k < 600; k++) { var st = await roomStep(); if (st.inplay && !st.paused) return; }
+      throw new Error("no level in play");
+    }
+    snap();
+    await t.wait(5);
+    var s0 = snap();
+    note("attach", !!s0 && s0.active === 1, s0 ? "active " + s0.active : "no block read");
+    // (no damage, so that the bot's misses and the gnomes it lets go cost nothing; Tough Cookie opened)
+    await cmd("cheat nomissdamage");
+    await cmd("cheat noawaydamage");
+    await cmd("unlock all");
+    // Classic%, cut to Level 1 and Level 25: the level card's Go! starts it, level 1's end splits, then King Globus's level
+    // with his death set: the trophy room that awards his trophy, and the "Ready?" box's Go! after it ends the run
+    await load("Classic%", ["Level 1", "Level 25"]);
+    await newGame("goto classic");
+    var a0 = att();
+    note("start", a0.phase === "running" && a0.index === 0, "phase " + a0.phase + ", index " + a0.index + ", board " + snap().boardSerial);
+    var a1 = await clearLevel();
+    await cmd("set level 25");
+    await inPlay();
+    await cmd("set kings 1");
+    for (var k = 0; k < 600 && att().phase === "running"; k++) await roomStep();
+    await settle();
+    var s1 = snap(), a2 = att();
+    note("split", a1.phase === "running" && a1.index === 1 && a2.phase === "ended" && s1.progress === 1 && s1.wins === 0,
+         "after level 1: " + a1.phase + " at " + a1.index + "; after the king's trophy room: " + a2.phase + ", progress " + s1.progress + ", wins " + s1.wins);
+    await resetByHand();
+    // a new game resets, and starts the next run
+    await load("Classic%");
+    await newGame("goto classic");
+    await clearLevel();
+    var b1 = att(), resetCause = null;
+    var p = (async function () { resetCause = await sawReset(30000); })();
+    var serial2 = await newGame("goto classic");
+    await p;
+    await settle();
+    var b2 = att();
+    note("replaced", b1.phase === "running" && b1.index === 1 && resetCause !== null && b2.phase === "running" && b2.index === 0,
+         "before: " + b1.phase + " at " + b1.index + "; reset " + resetCause + "; after: " + b2.phase + " at " + b2.index + " (board " + serial2 + ")");
+    // out of health resets (its check runs while the level is in play)
+    await clearLevel();
+    await inPlay();
+    resetCause = null;
+    p = (async function () { resetCause = await sawReset(30000); })();
+    await lose();
+    await p;
+    var s2 = snap();
+    note("lost", resetCause !== null && att().phase === "idle", "reset " + resetCause + ", then " + att().phase + "; deaths " + [s2.death0, s2.death1, s2.death2, s2.death3].join(","));
+    // Tough Cookie% never starts on a Classic game, and starts on its own
+    await load("Tough Cookie%");
+    await newGame("goto classic");
+    note("mode", att().phase === "idle", "a Classic game (mode " + snap().mode + "): " + att().phase);
+    await newGame("goto tough");
+    var c1 = att();
+    note("tough", c1.phase === "running" && c1.index === 0, "a Tough Cookie game (mode " + snap().mode + "): " + c1.phase + " at " + c1.index);
   },
   sevenseas: async function () {
     await common("Level 30 (Easy)", 30, "goto easy");

@@ -579,11 +579,12 @@
       "done": [
         "port",
         "identical-play",
-        "registration-out"
+        "registration-out",
+        "site-features"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "phase two looks begun (77266590 looks.py: original shots in Windows Sandbox and port shots at the same updates, then shotdiff; 6 scenarios, ~340 pairs); port fixes: the cubby cover cut from the level's backdrop (13f4410f), the Health label at the box's width, the coin hint's floater at y 150 (09163b2a); frozen screens refrozen (a6852126, states unchanged); open: particle effects and one help popup differ in phase, the how-to-play Flash page does not render in the sandbox; next: those, the remaining dialogs, web against native, real input"
+      "now": null,
+      "note": "phase two looks begun (77266590 looks.py: original shots in Windows Sandbox and port shots at the same updates, then shotdiff; 6 scenarios, ~340 pairs); port fixes: the cubby cover, the Health label, the coin hint's floater (13f4410f, 09163b2a); the site's features done (Music, a 111-sound board with 6 presets, the autosplitter for Classic% and Tough Cookie%); open: particle effects and one help popup differ in phase, the how-to-play Flash page does not render in the sandbox; next: those, the remaining dialogs, web against native, real input"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
