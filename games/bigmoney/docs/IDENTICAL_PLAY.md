@@ -371,12 +371,21 @@ The frozen baseline holds the logic, which none of this touches: `tools/check.sh
 
 ### Deviations that remain, and what was not compared
 
-- **At 2x and on the web the port still draws on the GPU** with 3D's flags, so rotated, stretched and soft-edged sprites
-  sample as in phase two: compared with the original, the web's menus tour has 6 shots identical, 3 faint and 25 with
-  boxes, and every box but the loading bar's and the Options dialog's is Mr. Money, whose rotated edges SDL's software
-  renderer under Node draws lighter. The game tours' web boxes are Mr. Money (on the left bar and where he flies over the
-  board), the move digit's zoom, the level-up sign and the play time. The
-  framework's switch for 2D flags on the GPU is to come; the shots at 2x and on the web are compared again then.
+- **At 2x and on the web the port still draws through SDL's renderer**, not the software screen, so rotated, stretched
+  and soft-edged sprites sample as in phase two: compared with the original, the web's menus tour has 6 shots
+  identical, 3 faint and 25 with boxes, and every box but the loading bar's and the Options dialog's is Mr. Money, whose
+  rotated edges SDL's software renderer under Node draws lighter. The game tours' web boxes are Mr. Money (on the left
+  bar and where he flies over the board), the move digit's zoom, the level-up sign and the play time. Since 2026-11-15
+  the port keeps the 2D flags there too (`mDefault3D` false, below), but its shots at 2x and in a browser with WebGL
+  have not been compared with the original's yet.
+- **The 2D flags on the GPU path (2026-11-15).** The original starts in 2D, so `WinBMApp`'s constructor sets
+  `SexyAppBase::mDefault3D` false: with no `Is3D` in the registry the display keeps 3D off (`mIs3D` false, kept through
+  changes of size and full screen by `DDInterface::mAppWants3D`) on the GPU path as well. There the widgets stretch the
+  fast way, blend without the linear filter and are not batched as 3D's are, as PopCap's 2D mode draws. It changes
+  nothing at 1x natively (the software screen already had 3D off) or under Node (SDL's software renderer has no
+  acceleration, so 3D was off already): the frozen baseline (`tools/check.sh bigmoney`, score 66 646) and the menus
+  tour's native and web shots are pixel for pixel as before. It changes the 2x window and the page in a browser with
+  WebGL, whose shots are still to be compared.
 - The Options dialog's More Games, the play time under `-fast`, the loading speed (above).
 - The original loads the mouths picture twice (the image table lists it twice) and draws only one; the port loads one
   (0.6 MB), with nothing on screen different.

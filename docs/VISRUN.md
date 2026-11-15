@@ -7,9 +7,10 @@ step file. Run it with `python -I`.
 
 ## When it may run
 
-Only between 22:00 and 08:00 local time (CLAUDE.md, "Overnight"), or, when the user opens the desktop for a stretch of
-the day, until the time they gave, written on that run's command line as `--user-window-until HH:MM` (at most 14 hours
-ahead, never a default, never in a config). A run ends 2 minutes before the deadline. `--dry-run`, `--selftest` and
+A run may start at any hour. The user lifted the time window on 2026-11-15: "Get rid of the time restrictions on ... running on my
+visible desktop. Do what you want forever now". A run still has a deadline, as a safety stop for one that hangs: 14 hours
+after it starts, and it ends 2 minutes before that. `--user-window-until HH:MM` on the command line sets an earlier stop
+(the next HH:MM, at most 14 hours ahead; never a default, never in a config). `--dry-run`, `--selftest` and
 `--help` run at any hour. Before starting it checks `tools/gamecount.py --limit 6`, takes `build/visrun/visrun.lock` (one
 visrun on the machine), and waits until no other game window (class `MainWindow` or `SDL_app`) has been on the desktop
 for `--quiet` seconds (default 60).
