@@ -30,7 +30,8 @@ public:
 
 	// 0x422d80: the topping of that name, null when there is none
 	Topping* getTopping(const std::string& theName);
-	// 0x422c00: the tile of that name of the class (not "roads", whose tiles getRoadTile gives), null when there is none
+	// 0x422c00: the tile of that name of the class (not "roads", whose tiles getRoadTile gives), null when there is
+	// none
 	TileType* getTile(const std::string& theName, const std::string& theClass);
 	// 0x422d30: the picture of a road's sheet, 0 to 15, null when the road has none; the original makes an empty entry
 	// for a name it does not have, which the port does not
@@ -43,6 +44,11 @@ public:
 	std::vector<engine::Ref<Topping>>& getToppingList() { return mToppingList; }
 	// The score titles in the order the manifest gives them (+0x70)
 	std::vector<engine::Ref<ScoreTitle>>& getTitles() { return mTitles; }
+	// 0x41e120: the title of the points: the last of the titles whose points the player has reached, where each is
+	// read from the second on, so that the first is the least
+	ScoreTitle* getTitle(int thePoints);
+	// 0x41e600: a random fun fact (one random draw)
+	const std::string& getRandomFunFact();
 	// 0x422df0: the special event of that name, null when there is none
 	SpecialEvent* getEvent(const std::string& theName);
 	// 0x422d60: the customer of that exact key (one is made, empty, for a key the manifest has not got)

@@ -5,6 +5,7 @@
 #include "Host.h"
 #include "Layout.h"
 #include "PizzaFrenzy.h"
+#include "Random.h"
 #include "Stream.h"
 
 #include <cstdio>
@@ -442,6 +443,25 @@ void TileManifest::registerMusic(const std::string& theName, GameMusicClip* theC
 	if (mMusic[theName] != nullptr)
 		throw engine::Exception("registering music clip which already exists!");
 	mMusic[theName] = theClip;
+}
+
+// 0x41e120
+ScoreTitle* TileManifest::getTitle(int thePoints)
+{
+	ScoreTitle* aTitle = mTitles[0];
+	for (size_t i = 1; i < mTitles.size() && mTitles[i]->mPoints <= thePoints; i++)
+		aTitle = mTitles[i];
+	return aTitle;
+}
+
+// 0x41e600: the original reads the entry the draw gives without a check
+const std::string& TileManifest::getRandomFunFact()
+{
+	static const std::string aNoFact;
+	int aPick = engine::randomRange(0, (int)mFunFacts.size() - 1);
+	if (aPick < 0 || (size_t)aPick >= mFunFacts.size())
+		return aNoFact;
+	return mFunFacts[aPick];
 }
 
 // 0x4223e0

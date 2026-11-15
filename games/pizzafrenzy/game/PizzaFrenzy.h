@@ -164,8 +164,7 @@ public:
 	void stopGame();
 	// 0x407080: the game is paused, and the pause menu is shown; the state that paused is the one that comes back
 	void pauseGame(engine::State* theNextState);
-	// 0x407370: the level is over: the level's end is shown, and the next level or the game's end follows; translated
-	// with the level's end
+	// 0x407370: the level is over: the level's end is shown, and the next level or the game's end follows
 	void endLevel();
 	// +0x188: the window has the focus
 	bool isActive() const { return mActive; }

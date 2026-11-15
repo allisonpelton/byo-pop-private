@@ -53,11 +53,11 @@ void GameStats::reset()
 	mWavesStarted = 0;
 	mComboLength = 0;
 	mBestCombos.clear();
-	mCountI = 0;
-	mCountJ = 0;
-	mCountK = 0;
-	mCountL = 0;
-	mCountM = 0;
+	mPerfectToppings = 0;
+	mGoodToppings = 0;
+	mOkayToppings = 0;
+	mMissedToppings = 0;
+	mBonusSecondsLeft = 0;
 	mStarted = true;
 }
 
@@ -90,11 +90,11 @@ void GameStats::resetLevelCounters()
 	mWavesStarted = 0;
 	mComboLength = 0;
 	mBestCombos.clear();
-	mCountI = 0;
-	mCountJ = 0;
-	mCountK = 0;
-	mCountL = 0;
-	mCountM = 0;
+	mPerfectToppings = 0;
+	mGoodToppings = 0;
+	mOkayToppings = 0;
+	mMissedToppings = 0;
+	mBonusSecondsLeft = 0;
 	mStarted = true;
 }
 
@@ -187,6 +187,34 @@ int GameStats::getPickLimit(Topping* theTopping)
 	if (PizzaFrenzy::instance()->mGameMode == PizzaFrenzy::MODE_CONCENTRATION)
 		return 1;
 	return mToppingLevels[theTopping] + 1;
+}
+
+// 0x419cf0
+int GameStats::getToppingPoints()
+{
+	int aPoints = 0;
+	for (ToppingMap<int>::iterator i = mToppingLevels.begin(); i != mToppingLevels.end(); ++i)
+	{
+		if (i->first != nullptr && !i->first->mUsesImageAsPreview)
+			aPoints = aPoints + 1 + i->second;
+	}
+	return aPoints;
+}
+
+// 0x419da0
+Topping* GameStats::getBestComboTopping()
+{
+	Topping* aBest = nullptr;
+	int aBestCombo = 0;
+	for (ToppingMap<int>::iterator i = mBestCombos.begin(); i != mBestCombos.end(); ++i)
+	{
+		if (aBestCombo < i->second)
+		{
+			aBest = i->first;
+			aBestCombo = i->second;
+		}
+	}
+	return aBest;
 }
 
 // 0x419b90

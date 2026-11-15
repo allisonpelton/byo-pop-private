@@ -130,7 +130,7 @@ bool LevelSummaryState::showNextUpgrade()
 		}
 		if (aStats->mToppingLevels[aTopping] < aNewLevel)
 		{
-			mApp->mStoryScreen->showUpgrade(aTopping, aTopping->mUpgrades[aNewLevel]);
+			mApp->mStoryScreen->showUpgrade(aTopping, aTopping->mUpgrades[aNewLevel], aNewLevel);
 			aStats->mToppingLevels[aTopping] = aNewLevel;
 			mApp->saveGame();
 			return true;

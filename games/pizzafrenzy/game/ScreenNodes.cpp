@@ -88,6 +88,14 @@ std::string pizzafrenzy::formatText(const std::string& theFormat, int theFirst, 
 	return aBuffer;
 }
 
+// 0x46db00
+std::string pizzafrenzy::formatText(const std::string& theFormat, int theFirst, int theSecond, int theThird)
+{
+	char aBuffer[FORMAT_BUFFER_SIZE];
+	snprintf(aBuffer, sizeof(aBuffer), theFormat.c_str(), theFirst, theSecond, theThird);
+	return aBuffer;
+}
+
 // 0x4bd850: FormatMessageA over the text (FORMAT_MESSAGE_FROM_STRING alone) with one insert, a string. Port: the
 // function's rules written out: %1 to %99 are inserts, each with an optional !format! after it (an insert is a
 // string, so the format is not read); %0 ends the text; %n is a line break, %r a carriage return, %t a tab; %%, %!,

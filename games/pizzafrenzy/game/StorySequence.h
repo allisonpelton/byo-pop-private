@@ -69,6 +69,16 @@ public:
 	bool isDone() const { return mDone; }
 	// 0x44e160: an action goes at the end (the story file's handlers add them)
 	void addAction(StoryAction* theAction);
+	// The actions the story screen makes itself, for the level's upgrades
+	// 0x44be70: an event for the screen
+	void addEvent(const std::string& theAction, const std::string& theParam);
+	// 0x44b7f0: a line of a character's speech
+	void addDialog(const std::string& theText, const std::string& theSpeaker);
+	// 0x44cb50: a wait of that many seconds
+	void addPause(float theSeconds);
+	// 0x44e380: a wait for the fast forward press, with nothing told to the screen when it starts and the click to
+	// continue shown after a second
+	void addWaitForPress();
 
 	// What the actions ask of the screen
 	// 0x44d3b0: the speaker's portrait and bubble show, and no other's; the text of the speaker (null for a name that

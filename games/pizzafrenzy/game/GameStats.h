@@ -38,6 +38,12 @@ public:
 
 	// 0x419b90: the tips are added to the tip money, which is never under 0
 	void addTips(int theTips);
+	// 0x419cf0: one for each topping the player has that is not a designed pizza, and its level: the number the
+	// level's end looks the player's title up by
+	int getToppingPoints();
+	// 0x419da0: the topping of the longest combo this game (the first of the toppings in the map's order when
+	// several are as long), null when no combo is counted
+	Topping* getBestComboTopping();
 	// 0x41a670: how many orders for the topping can be picked together: one more than the player's level of it (one in
 	// the concentration mode)
 	int getPickLimit(Topping* theTopping);
@@ -69,11 +75,12 @@ public:
 	int mComboLength;
 	// +0x44: the longest combo of each topping this game (0x45a300), which an upgrade's combo is compared with
 	ToppingMap<int> mBestCombos;
-	int mCountI;                                 // +0x50: nothing translated reads it
-	int mCountJ;                                 // +0x54: nothing translated reads it
-	int mCountK;                                 // +0x58: nothing translated reads it
-	int mCountL;                                 // +0x5c: nothing translated reads it
-	int mCountM;                                 // +0x60: nothing translated reads it
+	// +0x50 to +0x60: what the bonus round counts, shown by its summary (0x43f3f0); nothing else translated reads them
+	int mPerfectToppings;                        // +0x50: each is worth 100
+	int mGoodToppings;                           // +0x54: each is worth 20
+	int mOkayToppings;                           // +0x58: each is worth 5
+	int mMissedToppings;                         // +0x5c: each takes off 50
+	int mBonusSecondsLeft;                       // +0x60: each is worth 100
 	int mLevelOrders;                            // +0x64: the level's number of orders (0x41a740); nothing reads it
 	int mLevelGoal;                              // +0x68: the level's goal, the tip jar's size (0x41a740, 0x4393f0)
 	bool mStarted;                               // +0x6c: set by the reset; nothing translated reads it

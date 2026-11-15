@@ -23,6 +23,10 @@ const float SPEECH_FAST_RATE = 2400.0f;
 // Who says a dialog when the file gives no speaker (and, for no text, what it says: GT(0x4ffaa8))
 const char* const NO_SPEAKER = "nobody";
 
+// The wait for a press the screen makes itself shows the click to continue after this long
+const char* const EVENT_SHOW_CLICK_TO_CONTINUE = "showClickToContinue";
+const float WAIT_CLICK_DELAY = 1.0f;
+
 // The event the screen is told when a line starts
 const char* const EVENT_DIALOG_START = "dialogStart";
 
@@ -481,6 +485,30 @@ void StorySequence::clear()
 void StorySequence::addAction(StoryAction* theAction)
 {
 	mActions.push_back(theAction);
+}
+
+// 0x44be70
+void StorySequence::addEvent(const std::string& theAction, const std::string& theParam)
+{
+	addAction(new EventAction(theAction, theParam));
+}
+
+// 0x44b7f0
+void StorySequence::addDialog(const std::string& theText, const std::string& theSpeaker)
+{
+	addAction(new DialogAction(theText, theSpeaker));
+}
+
+// 0x44cb50
+void StorySequence::addPause(float theSeconds)
+{
+	addAction(new PauseAction(theSeconds));
+}
+
+// 0x44e380
+void StorySequence::addWaitForPress()
+{
+	addAction(new WaitEventAction("", ACTION_FAST_FORWARD, EVENT_SHOW_CLICK_TO_CONTINUE, WAIT_CLICK_DELAY));
 }
 
 // 0x44d3b0

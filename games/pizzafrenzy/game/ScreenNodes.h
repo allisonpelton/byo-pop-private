@@ -28,6 +28,7 @@ std::string formatMessage(const std::string& theText, const std::string& theInse
 std::string formatText(const std::string& theFormat, const std::string& theText);
 std::string formatText(const std::string& theFormat, int theNumber);
 std::string formatText(const std::string& theFormat, int theFirst, int theSecond);
+std::string formatText(const std::string& theFormat, int theFirst, int theSecond, int theThird);
 
 } // namespace pizzafrenzy
 
