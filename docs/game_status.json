@@ -556,7 +556,7 @@
       ],
       "na": [],
       "now": "site-features",
-      "note": "the Collection check done (65ce9233): the Collection's game is the same (.text and .data identical to Steam's, 241 of 242 differing pictures pixel-identical where shown; title.jpg has the newer logo), and the port plays level 4 from its files identically; left: the site features, with the site's session"
+      "note": "the autosplit block is in (e8740d69: layout 2, HWDX, inert until asked; mods/livesplit asks for it natively); left: the site's part of the site features (Music, soundboard presets, the Splits window), with the site's session"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",

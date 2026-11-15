@@ -202,8 +202,9 @@ bool LeaveScreens(HeavyWeaponApp* theApp)
 	if (aMenu != NULL)
 	{
 		theApp->mWidgetManager->RemoveWidget(aMenu);
-		theApp->SafeDeleteWidget(aMenu);
-		theApp->mMainMenu = NULL;
+		// deleted at once (a test command runs between the widgets' updates): its destructor clears mMainMenu, and run
+		// later it cleared the next menu's (goto menu), whose continue dialog then gave its buttons no listener
+		delete aMenu;
 	}
 	HighScoresScreen* aScores = FindWidget<HighScoresScreen>(theApp);
 	if (aScores != NULL)
@@ -649,6 +650,8 @@ bool HeavyWeaponApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			ReplyError(theCommand, "still loading: send it again");
 			return true;
 		}
+		if (anArgs != "options" && anArgs != "armory")
+			EndGame();					// the screens that leave a game end it, as the menus do (autosplit)
 		if (anArgs == "menu")
 		{
 			ShowMainMenu();
@@ -671,10 +674,12 @@ bool HeavyWeaponApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		else if (anArgs == "campaign")
 		{
+			BeginGame(false, false);	// as the main menu's campaign does
 			NewGame(false);
 		}
 		else if (anArgs == "survival")
 		{
+			BeginGame(true, false);		// as the main menu's survival does
 			NewGame(true);
 		}
 		else if (anArgs == "armory")
@@ -729,6 +734,8 @@ bool HeavyWeaponApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		mMapScreen = NULL;
 		mLevel = aLevel - 1;
+		if (mGameSerial == 0 || mGameIsSurvival)
+			BeginGame(false, true);		// a campaign game for the autosplit block, as a continued one (no GO)
 		LoadWaves(false);
 		StartLevel();
 		ReplyOK(theCommand);
