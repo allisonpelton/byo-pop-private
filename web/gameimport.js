@@ -446,6 +446,17 @@ var ByopopImport = (function () {
   }
   // The files in the order writeGame writes them: last the game's markers (what the game page's hasGameFiles looks for), and
   // before them, for a game whose marker is a pak (it checks that a game folder holds something), the files of its game folders
+  // The files as they are stored: a game's exe without its code (web/exetrim.js), once the import has checked the original
+  function stored(id, files) {
+    var X = typeof ByopopExeTrim !== "undefined" ? ByopopExeTrim : null;
+    if (!X || !X.TRIM[id]) return files;
+    return files.map(function (f) {
+      if (String(f.rel).toLowerCase() !== X.TRIM[id].exe) return f;
+      return { rel: f.rel, read: function () {
+        return Promise.resolve(f.read()).then(function (d) { return X.stored(id, f.rel, d instanceof Uint8Array ? d : new Uint8Array(d)); });
+      } };
+    });
+  }
   function ordered(spec, files) {
     var paks = spec.paks || [], pakMarker = false, res = [];
     spec.markers.forEach(function (m) {
@@ -558,7 +569,7 @@ var ByopopImport = (function () {
         if (bad) throw new Error(ByopopStrings.t("import.err.exe", {exe: bad}));
         if (say) say(ByopopStrings.t("import.say.copying", {count: files.length}));
         var copy = typeof ByopopCopy !== "undefined" ? ByopopCopy.open() : null;
-        return writeGame(spec.persist, ordered(spec, files), function (n, total) { if (say) say(ByopopStrings.t("import.say.progress", {percent: Math.round(n * 100 / total)})); },
+        return writeGame(spec.persist, ordered(spec, stored(spec.id, files)), function (n, total) { if (say) say(ByopopStrings.t("import.say.progress", {percent: Math.round(n * 100 / total)})); },
           function () { try { ByopopGameFiles.replacing(spec.id); } catch (e) {} },  // the old copy is gone
           function (rel, bytes, n, total) { if (copy) { copy.file(rel, bytes); copy.progress(n, total); } })
           .then(function (v) { if (copy) copy.close(); return v; }, function (e) { if (copy) copy.close(); throw e; })
@@ -600,7 +611,7 @@ var ByopopImport = (function () {
     }).catch(function () { return none; });
   }
 
-  return { exeUnreadable: exeUnreadable, probeHolds: probeHolds, markerPattern: markerPattern, findRoot: findRoot, withPaks: withPaks, pick: pick, hasMarkers: hasMarkers, exeIcon: exeIcon,
+  return { stored: stored, exeUnreadable: exeUnreadable, probeHolds: probeHolds, markerPattern: markerPattern, findRoot: findRoot, withPaks: withPaks, pick: pick, hasMarkers: hasMarkers, exeIcon: exeIcon,
     games: games, add: add, sort: sort, otherGame: otherGame, otherNote: otherNote, nameScore: nameScore, fromDrop: fromDrop, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
     forgetGame: forgetGame, ordered: ordered, missingIn: missingIn, missingMarkers: missingMarkers, markerList: markerList };
 })();

@@ -400,6 +400,7 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
 <script src="profiles.js"></script>
 <script src="exeicon.js"></script>
 <script src="exeprobes.js"></script>
+<script src="exetrim.js"></script>
 <script src="gameimport.js"></script>
 <script src="other-games.js"></script>
 <script src="chat-games.js"></script>
@@ -1255,7 +1256,7 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     // an exe the port can't read its texts from is refused before anything is copied (web/gameimport.js, exeUnreadable)
     return ByopopImport.exeUnreadable(PAGE.id, wanted).then(function (bad) {
       if (bad) { importMessage(ByopopStrings.t("game.import.exe", {exe: bad}), true); return false; }
-      return copyChecked(W, msg, wanted, entries, root);
+      return copyChecked(W, msg, ByopopImport.stored(PAGE.id, wanted), entries, root);
     });
   }
   function copyChecked(W, msg, wanted, entries, root) {
