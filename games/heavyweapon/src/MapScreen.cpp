@@ -83,7 +83,7 @@ MapScreen::MapScreen(HeavyWeaponApp* theApp)
 	mInvadeLink = new HyperlinkWidget(BUTTON_INVADE, this);
 	mInvadeLink->mLabel = GT(0x52dda4);
 	mInvadeLink->SetFont(mApp->mFonts[FONT_NORMAL]->Duplicate());
-	mInvadeLink->mColor = Color(0xff, 0xff, 0xff, 0xff);
+	mInvadeLink->SetColor(0, Color(0xff, 0xff, 0xff, 0xff)); // colour 0 of the list, which the link never reads
 	mInvadeLink->SetVisible(false);
 	mIntelButton = new HyperlinkWidget(BUTTON_INTEL, this);
 	mIntelButton->mLabel = "";

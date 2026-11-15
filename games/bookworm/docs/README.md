@@ -112,6 +112,8 @@ original's.
 | `livesplit` (LiveSplit) | Windows: the game keeps a small block of its state in memory (mode, level, score, game over and why, the board's serial; `src/LiveSplitBlock.h`, the same layout as Big Money's, game id `BWDX`) for the autosplitter `BookWormDeluxe-byopop.asl` (in the mod, and `tools/livesplit/`). It starts when a new game begins (never a continued one), splits at each level cleared or at score marks such as 25K, and resets when the game ends or is left. Split templates ("Classic - 10 Levels", "Action - 100K Points", ...) are copied to `<user folder>/livesplit` on first use; categories with Classic or Action in the name start only in that mode. Play is unchanged. |
 | `hd4x-textures` (4x Textures, generated) | Every image and font strip at 4x, upscaled with Real-ESRGAN from the player's own game files: `python games/bookworm/tools/make_hd4x_mod.py [--game <BookWorm folder>] [--upscaler <realesrgan-ncnn-vulkan.exe>]` writes it into `games/bookworm/mods/hd4x-textures/`. It is made from the game's art: git-ignored (`mods/.gitignore`), never commit or share it. |
 
+The lite mod step is done with no mod: `LITE_MOD.md` says what was looked at and why nothing is taken.
+
 The tests use the `-autoplay` bot. With `-autoplayhints=1` it plays the solver's first hint every move (Tab,
 then Submit) and logs `HINT MISMATCH` wherever the game scores a word otherwise than the solver said; on seed 1
 it plays Classic to level 24 in 30,000 updates (193 words, fire, bonus and best hints) with no mismatch.
