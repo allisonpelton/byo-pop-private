@@ -18,6 +18,9 @@ Phase two (the looks) runs the same games again:
     idplay.py web <scenario>              the web build under Node plays the last shot run's script, and shotdiff compares
                                           its shots with the native port's
 
+--coverage <functions.txt> (with original, run or sound) has origrun record which of the listed functions the original's run
+reaches (docs/COVERAGE.md), into the scenario's folder as orig_coverage.txt.
+
 Both games are counted from the anchor: the update whose end first finds the loading done (the app's +0x91c, the title told).
 The intro is ended by a click at update 50 in both, and nothing before the anchor draws a random number; the anchor is
 update 51 in the port and 52 in the original. Frame f is the anchor's update plus f. An input the port's script gives at
@@ -60,6 +63,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..',
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_ROOT = os.path.join(ROOT, 'build', 'logs', 'idplay')
 ORIGRUN = os.path.join(ROOT, 'build', 'origrun-bin', 'origrun.exe')
+COVERAGE = None   # --coverage: the functions origrun watches, or None
 RUN = 'heavyweapon'
 COPY = os.path.join(ROOT, 'build', 'origrun', RUN, 'game')
 ORIGINAL_EXE = os.path.join(COPY, 'HeavyWeaponGame.exe')
@@ -266,12 +270,12 @@ def wait_for_room():
 def original_command(port_command):
     """the origrun script command for a port script command"""
     name, _, rest = port_command.partition(' ')
-    if name in ('click', 'move', 'down', 'up') or port_command in ('focus lose', 'focus regain'):
+    if name in ('click', 'rclick', 'move', 'down', 'up') or port_command in ('focus lose', 'focus regain'):
         return port_command
     if name == 'char':
         return 'text ' + (' ' if rest == 'SPACE' else rest)
-    if name == 'key':
-        return 'key %d' % KEY_CODES[rest]
+    if name in ('key', 'keydown', 'keyup'):
+        return '%s %d' % (name, int(rest) if rest.isdigit() else KEY_CODES[rest])
     sys.exit('idplay: no original command for "%s"' % port_command)
 
 
@@ -584,15 +588,13 @@ def original(name, sandbox=False, sound=False):
     script = os.path.join(folder, 'original-script.txt')
     open(script, 'w', newline='\n').write('\n'.join(lines) + '\n')
     profile = getattr(scenario, 'PROFILE', None)
-    reset_original_state(profile)
-    wait_for_room()
     overrides = data_overrides(scenario)
-    for leaf, text in overrides.items():
-        open(os.path.join(COPY, 'data', leaf), 'w', encoding='latin-1', newline='').write(text)
     command = [ORIGRUN, '--game', RUN, '--run', RUN, '--exe', win_path(ORIGINAL_EXE), '--seed', str(getattr(scenario, 'SEED', 1)),
                '--clock', 'virtual', '--cursor', 'scripted', '--keys', 'scripted', '--reg-map', 'popcap', '--counter', '0x56b5b4',
                '--update-ms', '10', '--timeout', '3000' if sandbox else '1800', '--script', script]
     run_folder = os.path.join(ROOT, 'build', 'origrun', RUN)
+    if COVERAGE:
+        command += ['--coverage', win_path(COVERAGE)]
     if sandbox:
         # each shot shows exactly the update it is labelled with: the count of updates not yet drawn serves as both the
         # pending draw and the update state (zero once the update is drawn), as Typer Shark's does
@@ -600,20 +602,34 @@ def original(name, sandbox=False, sound=False):
                     '--update-state', UNDRAWN_UPDATES]
         shutil.rmtree(os.path.join(run_folder, 'shots'), ignore_errors=True)
     if sound:
-        # the stand-in adds to its log run after run: this run's alone
-        if os.path.exists(os.path.join(run_folder, 'logs', 'sound.log')):
-            os.remove(os.path.join(run_folder, 'logs', 'sound.log'))
         if not os.path.exists(BASS_PROXY):
             sys.exit('idplay: no %s: build it as games/bigmoney/tools/bassproxy/bassproxy.c says' % BASS_PROXY)
         if not os.path.exists(BASS_REAL):
             os.replace(BASS_DLL, BASS_REAL)
         shutil.copy(BASS_PROXY, BASS_DLL)
-    try:
-        with open(os.path.join(folder, 'original.log'), 'w') as f:
-            result = subprocess.run(command, stdout=f, stderr=subprocess.STDOUT)
-    finally:
-        for leaf in overrides:
-            shutil.copy(os.path.join(GAMEDIR, 'data', leaf), os.path.join(COPY, 'data', leaf))
+    for attempt in range(1, LATE_START_ATTEMPTS + 1):
+        reset_original_state(profile)
+        wait_for_room()
+        for leaf, text in overrides.items():
+            open(os.path.join(COPY, 'data', leaf), 'w', encoding='latin-1', newline='').write(text)
+        if COVERAGE and os.path.exists(os.path.join(run_folder, 'coverage.txt')):
+            os.remove(os.path.join(run_folder, 'coverage.txt'))
+        # the stand-in adds to its log run after run: this run's alone
+        if sound and os.path.exists(os.path.join(run_folder, 'logs', 'sound.log')):
+            os.remove(os.path.join(run_folder, 'logs', 'sound.log'))
+        try:
+            with open(os.path.join(folder, 'original.log'), 'w') as f:
+                result = subprocess.run(command, stdout=f, stderr=subprocess.STDOUT)
+        finally:
+            for leaf in overrides:
+                shutil.copy(os.path.join(GAMEDIR, 'data', leaf), os.path.join(COPY, 'data', leaf))
+        late = None if sandbox else late_start(os.path.join(folder, 'original.log'))
+        if late is None:
+            break
+        log("%s: origrun first read the counter at %d, past the first input's update %d, so the input came together: "
+            'run %d of %d' % (name, late[1], late[0], attempt, LATE_START_ATTEMPTS))
+    else:
+        sys.exit('idplay: %s: origrun read the counter late in every run' % name)
     if sandbox:
         # the peeks are logged inside the sandbox, in a file of the run's folder; the shots are in its shots/
         with open(os.path.join(folder, 'original.log'), 'a', encoding='utf-8') as out:
@@ -626,10 +642,28 @@ def original(name, sandbox=False, sound=False):
         os.replace(BASS_REAL, BASS_DLL)
         shutil.copy(os.path.join(run_folder, 'logs', 'sound.log'), os.path.join(folder, 'orig_sound.log'))
         shutil.move(os.path.join(COPY, 'basslog.txt'), os.path.join(folder, 'orig_bass.log'))
+    if COVERAGE and os.path.exists(os.path.join(run_folder, 'coverage.txt')):
+        shutil.copy(os.path.join(run_folder, 'coverage.txt'), os.path.join(folder, 'orig_coverage.txt'))
     text = open(os.path.join(folder, 'original.log'), encoding='utf-8', errors='replace').read()
     exit_line = re.search(r'game exited \(its process\'s exit code (\S+)\)', text)
     log('%s: the original ran (origrun %d, the game\'s exit code %s)' % (name, result.returncode,
                                                                         exit_line.group(1) if exit_line else 'not seen'))
+
+
+LATE_START_ATTEMPTS = 3
+
+
+def late_start(log_path):
+    """(the first hold's update, the counter origrun first read) when origrun began reading the game's counter only after
+    the game had run past the script's first input (now and then it starts reading 20 s late, the game running on, and
+    every input up to then is posted at once); None when the first input came at its update"""
+    hold_line = re.compile(r'at (\d+): counter reached (\d+) -> ')
+    for line in open(log_path, encoding='utf-8', errors='replace'):
+        match = hold_line.search(line)
+        if match:
+            update, counter = int(match.group(1)), int(match.group(2))
+            return (update, counter) if counter > update + 1 else None
+    return None
 
 
 def parse_original(name):
@@ -922,7 +956,10 @@ def main():
     parser.add_argument('--reuse', action='store_true', help='with shots: the original\'s last sandbox run and its shots')
     parser.add_argument('scenario', nargs='?')
     parser.add_argument('--record', action='store_true', help='with run: record the input again')
+    parser.add_argument('--coverage', help='with original, run or sound: the functions for origrun to watch (docs/COVERAGE.md)')
     args = parser.parse_args()
+    global COVERAGE
+    COVERAGE = os.path.abspath(args.coverage) if args.coverage else None
     if args.step == 'prepare':
         prepare()
         return
