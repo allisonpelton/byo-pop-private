@@ -10,3 +10,12 @@ target_include_directories(sprout PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CUR
 if(NOT MSVC)
   target_compile_options(sprout PRIVATE -Wall -Wno-unused-private-field)
 endif()
+
+# The port's side of the engine's Windows layer (host/): its images and the render context over the framework's screen
+# (Render), its sound system over the platform's mixer (SoundHost). The game's app implements the rest of the host.
+file(GLOB SPROUT_HOST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/host/*.cpp)
+add_library(sprouthost STATIC ${SPROUT_HOST_SOURCES})
+target_link_libraries(sprouthost PUBLIC sprout sexyframework)
+if(NOT MSVC)
+  target_compile_options(sprouthost PRIVATE -Wall -Wno-unused-private-field)
+endif()

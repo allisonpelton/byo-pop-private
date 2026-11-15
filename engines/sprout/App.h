@@ -10,6 +10,7 @@
 
 #include "Node.h"
 #include "ResourceManager.h"
+#include "Signal.h"
 #include <cstdint>
 #include <map>
 #include <string>
@@ -24,6 +25,7 @@ const int SCREEN_HEIGHT = 600;
 class Font;
 class Graphics;
 class Image;
+class Sound;
 class SoundSystem;
 
 // The configuration the controller fills in (the application's +0x88) The controller's settings for the window (filled
@@ -48,7 +50,9 @@ public:
 	virtual void configure(AppConfig& theConfig) = 0;  // slot 0x04
 	virtual void init() = 0;                           // slot 0x08: after the window and the display exist
 	virtual void shutdown() = 0;                       // slot 0x0c
-	virtual void update(UpdateInfo& theInfo) = 0;      // slot 0x10: once a frame, before the root window
+	// slot 0x10: once a frame, before the root window (the signal build's application takes its frames from the
+	// application's update signal instead, and has nothing here)
+	virtual void update(UpdateInfo& theInfo) {}
 	virtual void activate(bool theActive) {}           // slot 0x14: the window's focus gained or lost
 };
 
@@ -86,12 +90,21 @@ public:
 	Image* findImage(const char* theName);
 	// 0x58: the log (the release build's does nothing)
 	void log(const char* theText);
+	// The signal build's slot 0x58: 0x461a50 (pizzafrenzy): false without a sound system; true when the name is loaded
+	// already; else the file, opened through openFile (the archive or a loose file), is loaded under the name
+	bool loadSound(const std::string& theName, const std::string& theFile);
+	// The signal build's slot 0x5c: 0x461b70 (pizzafrenzy), the same for a sound played as it goes (the music)
+	bool loadSoundStream(const std::string& theName, const std::string& theFile);
+	// The signal build's slot 0x60: 0x461c90 (pizzafrenzy), a new voice of a loaded sound; null without a sound system
+	Sound* createSound(const std::string& theName, bool theStatic, int theCategory);
 	// 0x5c: 0x454180 (wordharmony), timeGetTime()
 	uint32_t getTime();
 	// 0x60: 0x454190 (wordharmony)
 	int getTicksPerSecond() { return 1000; }
 	// 0x70: 0x454230 (wordharmony), PostQuitMessage(theCode)
 	void quit(int theCode);
+	// The signal build's slot 0x8c: 0x4bd790 (pizzafrenzy), a text of the exe's string table
+	std::string loadString(int theId);
 	// 0x78: 0x4540a0 (wordharmony), a new font loaded from the archive
 	Font* createFont(const char* theName);
 
@@ -106,6 +119,14 @@ public:
 	void start(Controller* theController);
 	// 0x4542e0 (wordharmony): one frame
 	void frame(Graphics* g);
+	// The signal build's (Pizza Frenzy's) run loop, which sends the frame and the window's input through the
+	// application's signals and makes no root window: the controller makes its own scene and connects it.
+	// startSignalled is the loop's start (0x4bda70 (pizzafrenzy) and 0x4bdf20 (pizzafrenzy) up to the loop), the
+	// controller's configure and init; frameSignalled is one frame (0x4bd210 (pizzafrenzy)): the seconds since the
+	// last frame (at most 0.33) to the update signal, then the screen to the draw signal (when there is one). The
+	// times are the host's ticks (timeTicks, ticksPerSecond).
+	void startSignalled(Controller* theController);
+	void frameSignalled(Graphics* g);
 	// The run loop's end
 	void shutdown();
 
@@ -114,6 +135,30 @@ public:
 	// port (the "memreport" test command, docs/TEST_COMMANDS.md): how many pictures the image table holds and the bytes
 	// of their 32-bit pixels (the fonts' pictures are in it)
 	int getImageMemory(size_t* theBytes) const;
+
+	// The signal build's signals (0x463c10 (pizzafrenzy) makes them): the run loop's and the window procedure's
+	// (0x4bd3b0 (pizzafrenzy))
+	Signal<UpdateInfo&> mUpdateSignal;    // +0x04: each frame
+	Signal<Graphics*> mDrawSignal;        // +0x14: each frame after the update, when the display can draw
+	Signal<bool> mActivateSignal;         // +0x24: WM_ACTIVATE, the window's focus gained (true) or lost
+	Signal<int> mKeyDownSignal;           // +0x34: WM_KEYDOWN, not a repeat: the virtual key
+	Signal<int, int> mKeyRepeatSignal;    // +0x44: WM_KEYDOWN, every one: the key and its repeat count
+	Signal<int> mKeyUpSignal;             // +0x54: WM_KEYUP
+	Signal<int> mCharSignal;              // +0x64: WM_CHAR, the character
+	Signal<Point&> mMouseDownSignal;      // +0x74: WM_LBUTTONDOWN and WM_LBUTTONDBLCLK, in the screen's pixels
+	Signal<Point&> mMouseUpSignal;        // +0x84: WM_LBUTTONUP
+	Signal<Point&> mRightDownSignal;      // +0x94: WM_RBUTTONDOWN
+	Signal<Point&> mRightUpSignal;        // +0xa4: WM_RBUTTONUP
+	Signal<Point&> mMouseMoveSignal;      // +0xb4: WM_MOUSEMOVE
+	Signal<> mCloseSignal;                // +0xc4: WM_SYSCOMMAND SC_CLOSE
+	Signal<> mMinimizeSignal;             // +0xd4: SC_MINIMIZE
+	Signal<> mMaximizeSignal;             // +0xe4: SC_MAXIMIZE
+	Signal<> mRestoreSignal;              // +0xf4: SC_RESTORE
+	Signal<int> mTimerSignal;             // +0x104: WM_TIMER 1, every 100 ms: 100
+	// The signal build's last mouse position in the screen's pixels (+0x264 (pizzafrenzy)), which the host keeps as
+	// the window procedure did (0x4bd050 (pizzafrenzy)); slot 0xc8 (pizzafrenzy) returns it
+	Point mMousePosition;
+	Point getMousePosition() const { return mMousePosition; }
 
 protected:
 	std::map<std::string, Ref<Image>> mImages;  // +0x4c
@@ -124,6 +169,7 @@ protected:
 	Ref<Controller> mController;                // +0xa4
 	Ref<Window> mRootWindow;                    // +0xa8
 	uint32_t mLastTime;                         // +0xb4
+	uint64_t mLastTicks = 0;                    // the signal build's +0x210: the last frame's start
 };
 
 } // namespace engine

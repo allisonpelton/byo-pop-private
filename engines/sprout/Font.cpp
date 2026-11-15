@@ -1,10 +1,11 @@
 #include "Font.h"
 #include "App.h"
+#include "Build.h"
 #include "ResourceManager.h"
 
 using namespace engine;
 
-// 0x43d770 (wordharmony)
+// 0x43d770 (wordharmony), 0x47e8d0 (pizzafrenzy)
 Font::Font(ResourceManager* theResources)
 	: mResources(theResources), mHeight(0), mSpaceWidth(0), mGap(0), mCursorX(0), mCursorY(0), mLeftOverlap(0),
 	  mRightOverlap(0), mTopOverlap(0), mBottomOverlap(0)
@@ -17,12 +18,12 @@ Font::Font(ResourceManager* theResources)
 	}
 }
 
-// 0x43d680 (wordharmony)
+// 0x43d680 (wordharmony), 0x47e7e0 (pizzafrenzy)
 Font::~Font()
 {
 }
 
-// 0x43d840 (wordharmony)
+// 0x43d840 (wordharmony), 0x47eb90 (pizzafrenzy)
 void Font::load(const char* theFileName)
 {
 	Ref<InputStream> aStream = mResources->openStream(theFileName);
@@ -30,13 +31,13 @@ void Font::load(const char* theFileName)
 	parseXml(aParser, aStream);
 }
 
-// 0x43d530 (wordharmony)
+// 0x43d530 (wordharmony), 0x47e630 (pizzafrenzy)
 bool Font::hasGlyph(char c) const
 {
 	return !mGlyphRects[index(c)].isEmpty();
 }
 
-// 0x43d550 (wordharmony)
+// 0x43d550 (wordharmony), 0x47e650 (pizzafrenzy)
 int Font::getStringWidth(const char* theString)
 {
 	int aWidth = 0;
@@ -55,31 +56,49 @@ int Font::getStringWidth(const char* theString)
 	return aWidth;
 }
 
-// 0x43d610 (wordharmony)
+// 0x43d610 (wordharmony), 0x47e770 (pizzafrenzy)
 int Font::getLeadingWidth(char c) const
 {
 	return mA[index(c)] - mLeftOverlap;
 }
 
-// 0x43d630 (wordharmony)
+// 0x43d630 (wordharmony), 0x47e790 (pizzafrenzy)
 int Font::getTrailingWidth(char c) const
 {
 	return mC[index(c)] + mB[index(c)] - mRightOverlap;
 }
 
-// 0x43d660 (wordharmony)
+// 0x43d660 (wordharmony), 0x47e7c0 (pizzafrenzy)
 const IntRect* Font::getGlyphRect(char c) const
 {
 	return &mGlyphRects[index(c)];
 }
 
-// 0x43daa0 (wordharmony)
+// 0x43daa0 (wordharmony), 0x47ead0 (pizzafrenzy): the listener build leaves half the gap on each side of a glyph, the
+// signal build the whole gap
 void Font::addGlyph(int theChar, int theA, int theB, int theC)
 {
 	int i = theChar & 0xff;
 	mA[i] = theA;
 	mB[i] = theB;
 	mC[i] = theC;
+	if (gSignalBuild)
+	{
+		int aMargins = mGap * 2;
+		if (mImage->getWidth() < mCursorX + aMargins + theB)
+		{
+			mCursorX = 0;
+			mCursorY = mCursorY + mHeight + aMargins;
+		}
+		int aLeft = mCursorX + mGap;
+		mGlyphRects[i].left = aLeft;
+		mGlyphRects[i].right = aLeft + theB;
+		int aTop = mGap + mCursorY;
+		mGlyphRects[i].top = aTop;
+		mGlyphRects[i].bottom = mHeight + aTop;
+		mCursorX = mCursorX + theB + mGap * 2;
+		return;
+	}
 	int aGap = mGap;
 	if (mImage->getWidth() < mCursorX + aGap + theB)
 	{
@@ -95,7 +114,7 @@ void Font::addGlyph(int theChar, int theA, int theB, int theC)
 	mCursorX = mCursorX + mGap + theB;
 }
 
-// 0x43db80 (wordharmony)
+// 0x43db80 (wordharmony), 0x47eca0 (pizzafrenzy)
 void FontParser::startElement(const std::string& theName, const XmlAttributes& theAttributes)
 {
 	if (theName.compare("font") == 0)

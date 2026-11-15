@@ -124,3 +124,37 @@ int Graphics::getHAlign() { return (state().mFlags & HALIGN_MASK) >> HALIGN_SHIF
 // port: as getHAlign
 int Graphics::getVAlign() { return (state().mFlags & VALIGN_MASK) >> VALIGN_SHIFT; }
 int Graphics::getSnap() { return (state().mFlags & SNAP_MASK) >> SNAP_SHIFT; }  // 0x43cad0 (wordharmony)
+
+// 0x477f50 (pizzafrenzy)
+void Graphics::setColorMode(int theMode)
+{
+	state().mColorMode = theMode;
+}
+
+// 0x478190 (pizzafrenzy)
+void Graphics::setSmoothType(int theSmoothType)
+{
+	state().mSmoothType = theSmoothType;
+}
+
+// 0x478060 (pizzafrenzy): the state holds a reference
+void Graphics::setBltFx(BltFx* theBltFx)
+{
+	state().mBltFx = theBltFx;
+}
+
+// 0x4bfc20 (pizzafrenzy): port: each pixel row of the rectangle is a line of the state's colour
+void Graphics::fillRect(const Rect& theRect)
+{
+	for (int aRow = (int)theRect.top; aRow < (int)theRect.bottom; aRow++)
+		drawLine(Point(theRect.left, (float)aRow), Point(theRect.right - 1, (float)aRow));
+}
+
+// 0x478320 (pizzafrenzy): port: the translation moves the text's origin to (x, y)
+void Graphics::drawString(const char* theString, float x, float y)
+{
+	pushState();
+	translate(x, y);
+	drawString(theString);
+	popState();
+}

@@ -113,6 +113,15 @@ the game sets which; Pizza Frenzy's game code lists each such switch in its note
 headers by name (`"Node.h"`), a host that also sees the framework's headers by the folder's (`"sprout/Font.h"`). The
 library is `sprout`.
 
+The port's side of the engine's Windows layer is shared too, in `engines/sprout/host` (library `sprouthost`): `Render`,
+the images and the render context over the framework's screen, and `SoundHost`, the engine's sound system over the
+platform's mixer. Each game's app implements the rest of `Host.h`. Which of the two builds an exe holds is one switch,
+`engine::gSignalBuild` (`Build.h`): false for Word Harmony's listener build (the application drives the controller and
+a root window, and buttons and screens tell listener interfaces), true for Pizza Frenzy's signal build (the
+application, the scene and the screens talk through signals, and the controller keeps a state machine). The game sets
+it at start, before it makes any node. Classes only one build has stay apart, and a shared function whose two versions
+differ reads the switch.
+
 ## The SWF player (`engines/swf`, library `sexyswf`)
 
 The originals that show Flash movies play them through the Flash ActiveX control, which no port can use, so the ports
