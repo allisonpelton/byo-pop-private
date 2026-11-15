@@ -284,11 +284,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "site-features"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "Presets wait on the site"
+      "now": "lite-mod",
+      "note": "site features done (the Game Over preset beside You Win, d2c871a4; speedrun.com: none); next: the lite mod"
     },
     "pixelus": {
       "title": "Pixelus Deluxe",
@@ -422,11 +423,12 @@
         "readability",
         "collection",
         "performance",
-        "lite-mod"
+        "lite-mod",
+        "site-features"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "lite mod done with no mod: nothing measured is worth taking (docs/LITE_MOD.md); the site's features next"
+      "now": null,
+      "note": "every phase but modding done; on the site: the Sounds board with seven presets, and Music playing its MIDI song as the port does (TinySoundFont with the bank cut from GeneralUser GS; the site's 9815e16d); speedrun.com has no TipTop board, so no autosplitter"
     },
     "wordharmony": {
       "title": "Word Harmony",
