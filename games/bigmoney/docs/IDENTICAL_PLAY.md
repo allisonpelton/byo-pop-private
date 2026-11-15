@@ -159,7 +159,8 @@ all five, and its shots differ from the native ones only at the rotated sprites 
   wobble), the selector slides as a stretched snapshot, the digit zooms and the loose coins are drawn scaled and edge-on.
   In each pair the sprite sits in the same place at the same size and angle; only the edge pixels differ, as the two
   renderers sample a transformed image differently. In every other shot the same sprites came out only faintly
-  different. No mask was used.
+  different. No mask was used. (2026-11-15: drawn in software as the original, these match; below, "The software screen
+  and 1.2's rotation".)
 
 ### Changes the pass made
 
@@ -273,3 +274,109 @@ dialog rewriting `hiscores.dat` (below Part 5's quirk 2). Each is in GAME_NOTES 
 - Windowed and full screen were each played natively; the web build only windowed, in the pane.
 - Losing the focus over an open dialog was not tried in the real-input runs either.
 - The "scripted minute" of the performance measurement uses the identical input on both sides (GAME_NOTES, Part 6, "Performance").
+
+## The software screen and 1.2's rotation (2026-11-15)
+
+Phase two compared the port as it drew then: through the framework's default display, which starts with 3D on and draws on
+the GPU. The original never does. Its Direct3D tester runs only when the registry's `Is3D` is set or the app asks for 3D
+by itself (`mTest3D` at app+0x58c, `mAutoEnable3D` at +0x58b), and both are false on a first run. Its Options dialog has
+no 3D checkbox (full screen and custom cursors only). Shift+F8 switches 3D only with the debug keys on (Ctrl+Alt+D,
+`mDebugKeysEnabled` at +0x570, `DebugKeyDown` 0x489350), and its destructor (0x48a120) writes `Is3D` only when the player
+changed it that way. So a player of the original sees every frame drawn in software into a DirectDraw surface, with no
+Direct3D device and the processor's floating point left at 53 bits (the runtime's start, 0x4e008b).
+
+The port now draws the same way. Natively at 1x, `WinBMApp::CreateDDInterface` makes the framework's
+`SoftwareScreenDisplay`: 3D off, every picture drawn by the framework's software blitters into a 640 by 480 screen that
+the window shows as it is. At 2x that display hands the window to the GPU (3D on), and the web build keeps the default
+display (SDL's renderer: the GPU in a browser, SDL's software renderer under Node). No player can turn 3D on in the port
+either, so a "3D ticked with the 2D look" case does not arise. Phase two's shots were taken on the GPU with 3D's flags;
+the shots below at 1x on the software screen.
+
+### What changed besides the display
+
+- **Rotation.** The original's `DDImage::BltRotated` (0x44ed40), drawn in software, rotates a picture drawn white in
+  normal mode with its own loop: 16.16 steps, each edge pixel clamped and weighted by its own rules, the bounds from
+  0x43b720. The framework's 1.3 loop (`MemoryImage::BltRotated`) blends the edges otherwise, up to 4 levels a channel on
+  Mr. Money. The 1.2 loop is now the framework's, behind `DDInterface::mBltRotated12` (off by default, set by Big Money's
+  `CreateDDInterface`). It draws Mr. Money's wobble, the level-up sign and the credits' clouds. Hammer Heads' original
+  has the same function (its DDImage slot 9 at 0x4a6570, the bounds at 0x4938d0), and its session opts in. Bookworm's
+  DDImage slot 8 (0x45acb0) is a variant with fewer branches, not compared.
+- **Stretching.** The original's `DDImage::StretchBlt` (0x452e80) hands a stretch of a picture without alpha, drawn white
+  in normal mode, to DirectDraw's `Blt`, which samples pixel centres on today's Windows (the selector's slide); a picture
+  with alpha it stretches itself, in 16.16 steps from the source's corner (the countdown's and the move digit's zoom).
+  The software screen samples centres by default (`mFastStretchCentre`); `BoardDraw`'s `BeginCornerSampling` turns that
+  off around the two zooms.
+- **Every update drawn.** `-fast` draws every tenth update. The left bar's soft edge (its alpha fades over x 170 to 182)
+  blends over what the screen held before, so where Mr. Money flies to the board his trail stayed at x 176 and 177 for
+  ten times as many updates as in the original (board_start). `port.sh` and `webport.sh` now add `-drawevery`, which
+  draws every update and leaves the logic unchanged.
+- **Shots the original took late.** origrun marks a shot "or-earlier" when the original skipped a draw: the picture shows
+  the landed update or an older frame. `toport.py --earlier 8` now has the port shoot the landed update and the 8 before
+  it, and `pickshot.py` keeps the one closest to the original's shot and prints which it kept. Mr. Money's 129 visible
+  pixels in a selector shot (an earlier count) were this: the original's picture showed update 1 129, before he swung.
+
+### What was compared
+
+The tours of phase two again (`tour.sh`, `gametour.sh`; the originals' runs fresh in the sandbox, the menus tour on its
+earlier run), the port from the same builds after the rotation moved to the framework.
+
+| Run | Shots | Identical within shotdiff's tolerance | Only faintly different | With visible boxes | State, sound and music |
+|---|---|---|---|---|---|
+| menus | 34 | 24 | 1 | 9 | identical to update 3 141; 25 plays, 864 music events |
+| gs3 | 25 | 11 | 7 | 7 | identical to the last change, update 5 459; 501 plays, 508 music events |
+| gp2 | 30 | 19 | 10 | 1 | identical to update 7 712; 357 plays, 710 music events |
+| ga2 | 6 | 4 | 0 | 2 | identical to update 6 162; 246 plays, 255 music events |
+| ga1 | 36 | 27 | 9 | 0 | identical to the original's last change, update 40 883 (its quit at 41 571); 2 553 plays, 1 014 music events |
+
+In phase two the menus tour had 7 shots identical, 18 faintly and 9 visibly different, and Mr. Money, the selector's
+slide, the move digit's zoom and the flying coins were among the boxes. Each now matches. The web build under Node played
+every tour with a state log identical to the native port's.
+
+### Every visible box, judged
+
+- **The Options dialog's size** (options, options_music, board_options, after_scores) and its light column behind the
+  scores and the credits (scores, credits1, credits2), as in phase two: the original's fourth row, More Games, is left out.
+- **The loading bar** (title_loading). The port loads its files at the machine's speed, so its bar is further along at
+  the same update; a listed change of the port.
+- **The selector's slide** (selector_slide, 125 pixels in two thin boxes). DirectDraw's `Blt` on Windows picks a source
+  pixel by its own rounding where a step falls on a pixel's edge, and the software screen's centres round the other way
+  on a few columns and one row. The slide lasts a few frames.
+- **The play time on the stats panel** (all 7 of gs3's boxes, gp2's one, ga2's two), as in phase two: under `-fast` the
+  port's clock is the wall clock's.
+
+The faint ones: the left bar's soft edge at x 173 to 177 over Mr. Money's path (board_start, three game shots; a few
+pixels where the two sides last drew on different updates), the soft edges of the level-up bills (below), a one-pixel line
+at the bottom of one Strategy shot, and 31 pixels of the play time in four of gp2's game-over shots.
+
+### Changes the pass made
+
+| Difference | Cause in the original | What the port does now | Commit |
+|---|---|---|---|
+| Every frame drawn on the GPU with 3D's flags | no 3D unless a debug key turns it on | the software screen natively at 1x (`WinBMApp::CreateDDInterface`) | 35f2894 |
+| Rotated sprites' edges | 1.2's `DDImage::BltRotated` loop (0x44ed40, bounds 0x43b720) | the framework's `mBltRotated12` | 38060d0 (shared), 35f2894 |
+| The countdown's zoom sampled from pixel centres | 1.2's `StretchBlt` stretches a picture with alpha from the corner | `BeginCornerSampling` | 35f2894 |
+| Mr. Money's trail at the left bar in board_start | the tools: `-fast` drew every tenth update | `-drawevery` in `port.sh`, `webport.sh` | 35f2894 |
+
+The frozen baseline holds the logic, which none of this touches: `tools/check.sh bigmoney` passes unchanged.
+
+### Oddities skipped
+
+- **Soft edges of pictures with alpha differ by up to 42 levels** in a few hundred to a few thousand pixels (the bills
+  falling at a level's end: gp2's g003100, every level's stats shot in gp2 and ga1), never in a box shotdiff calls visible. The rest of each
+  picture is the same. Cause not looked into; it would mean comparing 1.2's alpha blit in `DDImage` with the framework's
+  `MemoryImage` one. To see it: shotdiff's faint list for gp2.
+- **Most shots differ by 1 to 3 levels a channel in parts of the screen** (the title's logo and badge, the bars), under
+  shotdiff's tolerance of 8. The JPEG pictures decode as the original's (libjpeg 6b with ImageLib's settings), so these
+  are drawn, not loaded, differences. Not looked into.
+
+### Deviations that remain, and what was not compared
+
+- **At 2x and on the web the port still draws on the GPU** with 3D's flags, so rotated, stretched and soft-edged sprites
+  sample as in phase two: compared with the original, the web's menus tour has 6 shots identical, 3 faint and 25 with
+  boxes, and every box but the loading bar's and the Options dialog's is Mr. Money, whose rotated edges SDL's software
+  renderer under Node draws lighter. The game tours' web boxes are Mr. Money (on the left bar and where he flies over the
+  board), the move digit's zoom, the level-up sign and the play time. The
+  framework's switch for 2D flags on the GPU is to come; the shots at 2x and on the web are compared again then.
+- The Options dialog's More Games, the play time under `-fast`, the loading speed (above).
+- The original loads the mouths picture twice (the image table lists it twice) and draws only one; the port loads one
+  (0.6 MB), with nothing on screen different.

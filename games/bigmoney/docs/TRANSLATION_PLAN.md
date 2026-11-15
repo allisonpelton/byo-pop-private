@@ -45,7 +45,7 @@ The same method as Bejeweled (`games/bejeweled/src`, `games/bejeweled/docs/GAME_
 
 | Original | Port |
 |---|---|
-| DirectDraw / D3D7 drawing (DDImage, DDInterface) | the port's SDL2 renderer behind the same Graphics / Image / DDImage API |
+| DirectDraw drawing in software (DDImage, DDInterface; the original never turns on 3D) | natively at 1x, a screen drawn in software as the original's (`framework/SoftwareScreenDisplay.h`, from `WinBMApp::CreateDDInterface`); at 2x and on the web, the port's SDL2 renderer behind the same Graphics / Image / DDImage API |
 | DirectSound sounds (`.ogg`, `.au`), Ogg decoded by Tremor (SAF 1.2 `USE_OGG_LIB`) | `SDLSoundManager` + `Platform::Mixer`. The Ogg files use Vorbis floor 0 (2002 encoder), which stb_vorbis cannot read, so they go through the same Tremor (`third_party/tremor`). `.au` mu-law is decoded with the framework's own table (`Mixer::LoadSoundData`) |
 | BASS 2.0 music (one `.it` module, songs by order position) | `SDLMusicInterface` + libxmp-lite, which supports `PlayMusic` / `FadeIn` order offsets (`MAKELONG(order, row)`) |
 | `HKLM\SOFTWARE\PopCap\BigMoney` (direct Win32 calls in WinBMApp) | the framework's emulated registry (`registry.ini` in the user dir), same value names |
@@ -72,6 +72,9 @@ with it for every class Big Money uses:
 | Graphics::WriteString colour codes `^RRGGBB^` | 1.3 adds `^oldclr^` and fixes `^^` at the end of a string | none (no such strings) |
 | SysFont fallbacks | the port has no SysFont; the game always sets ImageFonts | none |
 | C runtime `rand()` | host `rand()` differs (Emscripten) | `CrtRand` |
+| DDImage::BltRotated in software | 1.2 rotates a MemoryImage drawn white in normal mode with its own loop (0x44ed40, its bounds 0x43b720); 1.3's MemoryImage::BltRotated blends the edges otherwise, up to 4 steps a channel on Mr. Money | the framework's 1.2 loop, `DDInterface::mBltRotated12`, set by `WinBMApp::CreateDDInterface` (Mr. Money, the level-up sign, the credits' clouds) |
+| DDImage::StretchBlt (fast stretch) | 1.2 (0x452e80) hands a picture without alpha, drawn white in normal mode, to DirectDraw's Blt, which samples pixel centres; one with alpha it stretches itself in 16.16 steps from the source's corner | the software screen samples centres (`mFastStretchCentre`, the selector's slide); `BoardDraw`'s `BeginCornerSampling` turns it off for the countdown's zoom |
+| MemoryImage::Palletize | both call it on every picture (8-bit where it has 256 colours or fewer) | none: the software screen draws from the palette as it is |
 
 ## 5. Data and mods
 
