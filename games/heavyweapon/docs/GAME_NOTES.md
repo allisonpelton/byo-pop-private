@@ -266,4 +266,11 @@ recorded (`docs/COORDINATION.md`).
 - **0x430580**: the player list's Draw, which only calls `Dialog::Draw`. The port's class inherits it.
 - **The framework**: 0x44bc80 and everything after it, which the shared framework replaces.
 - **Registration and leaving the game**: the registration and update dialogs, the buy and "more games" pages, and the
-  update check.
+  update check. The trial's boxes at the end of the loading (0x4045d0, called from 0x406ad5, whose last step the port
+  keeps), the registration dialog's button handler (0x42d140, slot 9 of the vtable at 0x52f6d0), the update check
+  (0x405130, from `Init` at 0x40e0e5 and the update button at 0x40e671), and the Options box's REGISTER and UPDATE
+  buttons and its "Auto Updates" checkbox (`OptionsDialog.h`), whose box keeps the original's layout for a registered
+  copy. No text, picture or sound is loaded that only these used; the one text they share (0x52a320) is also the label
+  of the game-over box's quit button. The main menu has no "more games" button in this version (0x425c40 places the same
+  six buttons as the port), so no gap needed closing. The exe's links (the update check, the registration and beta
+  pages, DirectX's) are all in what is left out, and no code in the port opens a link.

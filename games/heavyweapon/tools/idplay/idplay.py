@@ -9,6 +9,15 @@ port play the same input, and the game's state is compared update by update.
     idplay.py compare <scenario>          the two compared
     idplay.py run <scenario>              all four (record only when there is no input.txt yet, or with --record)
 
+Phase two (the looks) runs the same games again:
+
+    idplay.py shots <scenario> [--reuse]  the original inside Windows Sandbox with the scenario's shots (SHOTS, SHOT_EVERY),
+                                          the port with its own at the updates they landed on, then tools/shotdiff
+    idplay.py sound <scenario> [--reuse]  the original on the host with the logging BASS, the port with its sound log, then
+                                          soundcmp.py on the two
+    idplay.py web <scenario>              the web build under Node plays the last shot run's script, and shotdiff compares
+                                          its shots with the native port's
+
 Both games are counted from the anchor: the update whose end first finds the loading done (the app's +0x91c, the title told).
 The intro is ended by a click at update 50 in both, and nothing before the anchor draws a random number; the anchor is
 update 51 in the port and 52 in the original. Frame f is the anchor's update plus f. An input the port's script gives at
@@ -37,6 +46,7 @@ level<n>, see profile_users) and SEED (both games' seed, 1 when not given).
 """
 
 import argparse
+import glob
 import importlib.util
 import io
 import os
@@ -54,7 +64,13 @@ RUN = 'heavyweapon'
 COPY = os.path.join(ROOT, 'build', 'origrun', RUN, 'game')
 ORIGINAL_EXE = os.path.join(COPY, 'HeavyWeaponGame.exe')
 PATCHES = os.path.join(ROOT, 'tools', 'origrun', 'patches', 'heavyweapon.txt')
+BASS_PROXY = os.path.join(ROOT, 'build', 'bassproxy-hw', 'bass.dll')
+BASS_DLL = os.path.join(COPY, 'bass.dll')
+BASS_REAL = os.path.join(COPY, 'bass_real.dll')
 PORT_EXE = os.path.join(ROOT, 'build', 'native', 'heavyweapon.exe')
+WEB_JS = os.path.join(ROOT, 'build', 'web', 'heavyweapon.js')
+NODE = 'E:/retools/emsdk/node/24.19.0_64bit/node.exe'
+WASMRUN = os.path.join(ROOT, 'games', 'bejeweled', 'tools', 'verify', 'wasmrun.js')
 RUNDESK = os.path.join(ROOT, 'build', 'native', 'rundesk.exe')
 GAMEDIR = os.path.join(ROOT, 'assets', 'heavyweapon')
 REGISTRY_KEY = r'HKCU\SOFTWARE\PopCap\HeavyWeapon'   # the original's HKLM key, mapped by origrun's --reg-map popcap
@@ -75,6 +91,8 @@ WAITS = (0, 2, 4, 5, 7)
 LAST_BITS = 1 << 12                    # a tank X that differs by no more units in its last place (see compare)
 MARGIN = 2                              # updates run after the last frame before the games are closed
 GAME_OVER_MARGIN = 500                  # frames compared after the bot's game is over
+UNDRAWN_UPDATES = '0x56b580'            # the app's count of updates since its last draw (+0x3e0; 0x451307 adds, 0x45136d clears)
+SHOT_LAG = 1                         # the port's screenshot at update N + SHOT_LAG shows what the original's at N does
 
 # The original's patches (va, expected bytes, replacement); {seed} is origrun's --seed as four little-endian bytes
 PATCH_LINES = [
@@ -248,7 +266,7 @@ def wait_for_room():
 def original_command(port_command):
     """the origrun script command for a port script command"""
     name, _, rest = port_command.partition(' ')
-    if name in ('click', 'move', 'down', 'up'):
+    if name in ('click', 'move', 'down', 'up') or port_command in ('focus lose', 'focus regain'):
         return port_command
     if name == 'char':
         return 'text ' + (' ' if rest == 'SPACE' else rest)
@@ -323,33 +341,71 @@ def short_levels_data(length):
     return re.sub(r'(<Level\b[^>]*\blength=")\d+(")', r'\g<1>%d\g<2>' % length, text)
 
 
-def game_dir(scenario):
-    """the port's game folder: the staged assets, or for a scenario with SHORT_LEVELS a copy with its short levels"""
+def weak_bosses_data():
+    """data/bosses.xml with every boss, and every part of one, at 1 point of armor, so that the bot beats each boss and the
+    game goes on to the boss's death, the results, the cutscenes and the campaign's end"""
+    text = open(os.path.join(GAMEDIR, 'data', 'bosses.xml'), encoding='latin-1').read()
+    return re.sub(r'(\barmor=")\d+(")', r'\g<1>1\g<2>', text)
+
+
+def data_overrides(scenario):
+    """{file of data/: its text} for a scenario that changes the game's data (SHORT_LEVELS, WEAK_BOSSES); both games read the
+    same files, the port from a copy of its game folder, the original from its own copy's data, put back after the run"""
+    overrides = {}
     length = getattr(scenario, 'SHORT_LEVELS', None)
-    if length is None:
+    if length is not None:
+        overrides['levels.xml'] = short_levels_data(length)
+    if getattr(scenario, 'WEAK_BOSSES', False):
+        overrides['bosses.xml'] = weak_bosses_data()
+    return overrides
+
+
+def game_dir(scenario):
+    """the port's game folder: the staged assets, or for a scenario that changes the game's data a copy with its changes"""
+    overrides = data_overrides(scenario)
+    if not overrides:
         return GAMEDIR
-    folder = os.path.join(OUT_ROOT, '_short%d' % length)
-    levels = os.path.join(folder, 'data', 'levels.xml')
-    if not os.path.exists(levels):
+    key = []
+    if getattr(scenario, 'SHORT_LEVELS', None) is not None:
+        key.append('short%d' % scenario.SHORT_LEVELS)
+    if getattr(scenario, 'WEAK_BOSSES', False):
+        key.append('weak')
+    folder = os.path.join(OUT_ROOT, '_' + '_'.join(key))
+    if not os.path.exists(os.path.join(folder, 'data', 'done.txt')):
         shutil.rmtree(folder, ignore_errors=True)
         shutil.copytree(GAMEDIR, folder)
-        open(levels, 'w', encoding='latin-1', newline='').write(short_levels_data(length))
+        for leaf, text in overrides.items():
+            open(os.path.join(folder, 'data', leaf), 'w', encoding='latin-1', newline='').write(text)
+        open(os.path.join(folder, 'data', 'done.txt'), 'w').write('made by idplay.py\n')
     return folder
 
 
-def run_port(script_lines, folder, user_folder, users=None, timeout=900, seed=1, gamedir=GAMEDIR):
-    """the port under rundesk with -fast and -seed=N, from an empty user folder (or one with the players file `users`)"""
-    script = os.path.join(folder, 'script.txt')
-    open(script, 'w', newline='\n').write('\n'.join(script_lines) + '\n')
+def make_user_folder(user_folder, users, shots):
+    """a port run's user folder, made afresh: the players file `users`, if any, and for a shot run the registry's settings
+    the original's sandbox.reg gives it"""
     shutil.rmtree(user_folder, ignore_errors=True)
     os.makedirs(user_folder, exist_ok=True)
     if users:
         shutil.copy(users, os.path.join(user_folder, 'users.dat'))
+    if shots:
+        with open(os.path.join(user_folder, 'registry.ini'), 'w', newline='\n') as f:
+            f.write('[SOFTWARE\\PopCap\\HeavyWeapon]\nScreenMode=dword:0\nIs3D=dword:0\nCustomCursors=dword:0\n' +
+                    ('LastUser=dword:0\n' if users else ''))
+
+
+def run_port(script_lines, folder, user_folder, users=None, timeout=900, seed=1, gamedir=GAMEDIR, shots=False, environment=None):
+    """the port under rundesk with -fast and -seed=N, from an empty user folder (or one with the players file `users`); a
+    shot run (`shots`) draws every update at the game's own size (-drawevery -renderscale=1, docs/SHOTDIFF.md), in a window and
+    in software and without the drawn cursor, as the original in the sandbox"""
+    script = os.path.join(folder, 'script.txt')
+    open(script, 'w', newline='\n').write('\n'.join(script_lines) + '\n')
+    make_user_folder(user_folder, users, shots)
     wait_for_room()
-    command = '"%s" -gamedir="%s" -userdir="%s" -fast -seed=%d -script="%s" > "%s" 2>&1' % (
-        PORT_EXE.replace('\\', '/'), gamedir.replace('\\', '/'), user_folder.replace('\\', '/'), seed, script.replace('\\', '/'),
+    command = '"%s" -gamedir="%s" -userdir="%s" -fast%s -seed=%d -script="%s" > "%s" 2>&1' % (
+        PORT_EXE.replace('\\', '/'), gamedir.replace('\\', '/'), user_folder.replace('\\', '/'),
+        ' -drawevery -renderscale=1' if shots else '', seed, script.replace('\\', '/'),
         os.path.join(folder, 'stdout.txt').replace('\\', '/'))
-    result = subprocess.run([RUNDESK, 'bash', '-c', command], timeout=timeout)
+    result = subprocess.run([RUNDESK, 'bash', '-c', command], timeout=timeout, env=dict(os.environ, **(environment or {})))
     errors = [line for line in open(os.path.join(folder, 'stdout.txt'), encoding='utf-8', errors='replace') if line.startswith('ERROR')]
     if errors:
         sys.exit('idplay: the port\'s script failed: ' + errors[0].strip())
@@ -429,8 +485,11 @@ def record(name):
     record_trace = os.path.join(folder, 'record-trace.txt')
     lines = ['1 trace ' + record_trace.replace('\\', '/'), '%d click %d %d' % ((PORT_INTRO_CLICK_UPDATE,) + INTRO_POINT)]
     lines += ['%d %s' % (anchor + frame, command) for frame, command in opening]
-    lines += ['%d botrecord %s %d %s' % (anchor + scenario.BOT_FROM, record_file.replace('\\', '/'), WAIT_PERIOD,
-                                         ' '.join(str(residue) for residue in residues))]
+    if scenario.BOT_FROM is not None:   # a tour of the menus has no bot
+        lines += ['%d botrecord %s %d %s' % (anchor + scenario.BOT_FROM, record_file.replace('\\', '/'), WAIT_PERIOD,
+                                             ' '.join(str(residue) for residue in residues))]
+    else:
+        open(record_file, 'w').close()
     lines += ['%d quit' % (anchor + scenario.END + MARGIN)]
     profile = getattr(scenario, 'PROFILE', None)
     run_port(lines, folder, os.path.join(folder, 'record-user'), profile_users(profile) if profile else None,
@@ -472,7 +531,36 @@ def read_inputs(name):
     return inputs
 
 
-def original(name):
+def shot_list(name, scenario):
+    """[(frame, shot name)]: the scenario's SHOTS, and with SHOT_EVERY = (first, step) a shot every step frames from first to
+    the last frame compared"""
+    shots = list(getattr(scenario, 'SHOTS', []))
+    every = getattr(scenario, 'SHOT_EVERY', None)
+    if every:
+        first, step = every
+        shots += [(frame, '%s_%05d' % (name, frame)) for frame in range(first, scenario_end(name) + 1, step)]
+    return sorted(shots)
+
+
+def sandbox_presets(folder, profile):
+    """the registry the sandbox's copy starts from (docs/ORIGRUN.md, "Saves and the registry"): the window, software drawing,
+    the system's cursor (the cursor the game draws itself is in the original's capture but not in the port's screenshot) and,
+    with a players file, its first player; under HKCU, where --reg-map popcap sends the game's HKLM key"""
+    lines = ['Windows Registry Editor Version 5.00', '', '[%s]' % REGISTRY_KEY.replace('HKCU', 'HKEY_CURRENT_USER'),
+             '"ScreenMode"=dword:00000000', '"Is3D"=dword:00000000', '"CustomCursors"=dword:00000000']
+    if profile:
+        lines.append('"LastUser"=dword:00000000')
+    path = os.path.join(folder, 'sandbox.reg')
+    open(path, 'w', encoding='utf-16', newline='\r\n').write('\n'.join(lines) + '\n')
+    return path
+
+
+def original(name, sandbox=False, sound=False):
+    """the original plays input.txt under origrun, its state peeked after every update; a phase-two run (`sandbox`) is inside
+    Windows Sandbox, the only place origrun takes a shot (docs/ORIGRUN.md, "The host-capture ban"), and takes the scenario's
+    shots there, into orig/ with the updates they landed on (landed.tsv). A sound run (`sound`, on the host) has the logging
+    BASS beside the copy's exe (BASS_PROXY, built from games/bigmoney/tools/bassproxy, which passes every call on), and keeps
+    its log and origrun's sound log (every DirectSound buffer's creation, play and stop) as orig_bass.log and orig_sound.log"""
     scenario = load_scenario(name)
     prepare()
     folder = out_dir(name)
@@ -480,30 +568,64 @@ def original(name):
     by_update = {}
     for frame, command in inputs:
         by_update.setdefault(ORIGINAL_ANCHOR + frame - 1, []).append(original_command(command))
+    shots = {}
+    if sandbox:
+        for frame, shot_name in shot_list(name, scenario):
+            shots.setdefault(ORIGINAL_ANCHOR + frame, []).append(shot_name)
     lines = ['focus regain', 'at %d move %d %d' % ((INTRO_CLICK_UPDATE,) + INTRO_POINT),
              'at %d click %d %d' % ((INTRO_CLICK_UPDATE,) + INTRO_POINT)]
     for update in range(ORIGINAL_ANCHOR - 2, ORIGINAL_ANCHOR + scenario_end(name) + 1):
         lines.extend(peek_lines(update))
         for command in by_update.get(update, []):
             lines.append('at %d %s' % (update, command))
+        for shot_name in shots.get(update, []):
+            lines.append('at %d shot %s' % (update, shot_name))
     lines.append('quit')
     script = os.path.join(folder, 'original-script.txt')
     open(script, 'w', newline='\n').write('\n'.join(lines) + '\n')
-    reset_original_state(getattr(scenario, 'PROFILE', None))
+    profile = getattr(scenario, 'PROFILE', None)
+    reset_original_state(profile)
     wait_for_room()
-    levels = os.path.join(COPY, 'data', 'levels.xml')
-    length = getattr(scenario, 'SHORT_LEVELS', None)
-    if length is not None:
-        open(levels, 'w', encoding='latin-1', newline='').write(short_levels_data(length))
+    overrides = data_overrides(scenario)
+    for leaf, text in overrides.items():
+        open(os.path.join(COPY, 'data', leaf), 'w', encoding='latin-1', newline='').write(text)
+    command = [ORIGRUN, '--game', RUN, '--run', RUN, '--exe', win_path(ORIGINAL_EXE), '--seed', str(getattr(scenario, 'SEED', 1)),
+               '--clock', 'virtual', '--cursor', 'scripted', '--keys', 'scripted', '--reg-map', 'popcap', '--counter', '0x56b5b4',
+               '--update-ms', '10', '--timeout', '3000' if sandbox else '1800', '--script', script]
+    run_folder = os.path.join(ROOT, 'build', 'origrun', RUN)
+    if sandbox:
+        # each shot shows exactly the update it is labelled with: the count of updates not yet drawn serves as both the
+        # pending draw and the update state (zero once the update is drawn), as Typer Shark's does
+        command += ['--sandbox', '--reg', win_path(sandbox_presets(folder, profile)), '--pending-draw', UNDRAWN_UPDATES,
+                    '--update-state', UNDRAWN_UPDATES]
+        shutil.rmtree(os.path.join(run_folder, 'shots'), ignore_errors=True)
+    if sound:
+        # the stand-in adds to its log run after run: this run's alone
+        if os.path.exists(os.path.join(run_folder, 'logs', 'sound.log')):
+            os.remove(os.path.join(run_folder, 'logs', 'sound.log'))
+        if not os.path.exists(BASS_PROXY):
+            sys.exit('idplay: no %s: build it as games/bigmoney/tools/bassproxy/bassproxy.c says' % BASS_PROXY)
+        if not os.path.exists(BASS_REAL):
+            os.replace(BASS_DLL, BASS_REAL)
+        shutil.copy(BASS_PROXY, BASS_DLL)
     try:
         with open(os.path.join(folder, 'original.log'), 'w') as f:
-            result = subprocess.run([ORIGRUN, '--game', RUN, '--run', RUN, '--exe', win_path(ORIGINAL_EXE),
-                                     '--seed', str(getattr(scenario, 'SEED', 1)), '--clock', 'virtual', '--cursor', 'scripted', '--keys', 'scripted', '--reg-map',
-                                     'popcap', '--counter', '0x56b5b4', '--update-ms', '10', '--timeout', '1800', '--script',
-                                     script], stdout=f, stderr=subprocess.STDOUT)
+            result = subprocess.run(command, stdout=f, stderr=subprocess.STDOUT)
     finally:
-        if length is not None:
-            shutil.copy(os.path.join(GAMEDIR, 'data', 'levels.xml'), levels)
+        for leaf in overrides:
+            shutil.copy(os.path.join(GAMEDIR, 'data', leaf), os.path.join(COPY, 'data', leaf))
+    if sandbox:
+        # the peeks are logged inside the sandbox, in a file of the run's folder; the shots are in its shots/
+        with open(os.path.join(folder, 'original.log'), 'a', encoding='utf-8') as out:
+            out.write(open(os.path.join(run_folder, 'logs', 'origrun-sandbox.log'), encoding='utf-8', errors='replace').read())
+        original_shots = os.path.join(folder, 'orig')
+        shutil.rmtree(original_shots, ignore_errors=True)
+        if os.path.isdir(os.path.join(run_folder, 'shots')):
+            shutil.copytree(os.path.join(run_folder, 'shots'), original_shots)
+    if sound:
+        os.replace(BASS_REAL, BASS_DLL)
+        shutil.copy(os.path.join(run_folder, 'logs', 'sound.log'), os.path.join(folder, 'orig_sound.log'))
+        shutil.move(os.path.join(COPY, 'basslog.txt'), os.path.join(folder, 'orig_bass.log'))
     text = open(os.path.join(folder, 'original.log'), encoding='utf-8', errors='replace').read()
     exit_line = re.search(r'game exited \(its process\'s exit code (\S+)\)', text)
     log('%s: the original ran (origrun %d, the game\'s exit code %s)' % (name, result.returncode,
@@ -521,7 +643,7 @@ def parse_original(name):
     holds = []                          # [command, the counter at the hold, the index of the peek before it]
     peeks = []                          # (update, the WidgetManager's count, its last input's count), in the log's order
     peek_line = re.compile(r'peek u=(\d+) (.*)$')
-    hold_line = re.compile(r'at (\d+): counter reached (\d+) -> (?!peek)(.*)$')
+    hold_line = re.compile(r'at (\d+): counter reached (\d+) -> (?!peek|shot)(.*)$')
     names = {expression: key for key, expression in EXPRESSIONS}
     for line in open(os.path.join(out_dir(name), 'original.log'), encoding='utf-8', errors='replace'):
         match = hold_line.search(line)
@@ -560,7 +682,8 @@ def parse_original(name):
     taken = []
     for command, reached, before in holds:
         read_before = reached + 1
-        if before >= 0:
+        # a focus change is no input, and leaves the last-input count as it was: read before the next update
+        if before >= 0 and not command.startswith('focus '):
             held_count = peeks[before][1]
             # the first peek after the hold whose last input is no older than the hold has the read's count
             read_count = next((peeks[k][2] for k in range(before + 1, len(peeks)) if peeks[k][2] >= held_count), None)
@@ -573,7 +696,22 @@ def parse_original(name):
     return records, taken
 
 
-def port(name):
+def read_landed(name):
+    """{shot name: the update the original's shot landed on}, from the sandbox run's landed.tsv (its name, its update and how
+    sure that update is, docs/ORIGRUN.md, "Timing to the game's updates")"""
+    landed = {}
+    path = os.path.join(out_dir(name), 'orig', 'landed.tsv')
+    for line in open(path, encoding='utf-8', errors='replace'):
+        fields = line.rstrip('\n').split('\t')
+        if len(fields) >= 2 and fields[1].isdigit():
+            landed[fields[0]] = int(fields[1])
+    return landed
+
+
+def port(name, shots=False, environment=None):
+    """the port replays the input at the updates the original read it before, with its trace; a shot run (`shots`) also takes
+    each of the original's shots at the update it landed on, SHOT_LAG later (the port's `screenshot` draws the state the
+    update before it left), into port/"""
     scenario = load_scenario(name)
     folder = out_dir(name)
     inputs = read_inputs(name)
@@ -593,10 +731,18 @@ def port(name):
         if read_before != original_anchor + frame:
             late += 1
         lines.append('%d %s' % (anchor + read_before - original_anchor, command))
+    if shots:
+        port_shots = os.path.join(folder, 'port')
+        shutil.rmtree(port_shots, ignore_errors=True)
+        os.makedirs(port_shots)
+        for shot_name, update in sorted(read_landed(name).items(), key=lambda item: item[1]):
+            lines.append('%d screenshot %s/%s.png' % (anchor + update - original_anchor + SHOT_LAG, port_shots.replace('\\', '/'),
+                                                      shot_name))
     lines.append('%d quit' % (anchor + scenario_end(name) + MARGIN))
+    lines.sort(key=lambda line: int(line.split(' ', 1)[0]))     # stable: an update's input before its shot
     profile = getattr(scenario, 'PROFILE', None)
     run_port(lines, folder, os.path.join(folder, 'port-user'), profile_users(profile) if profile else None,
-             seed=getattr(scenario, 'SEED', 1), gamedir=game_dir(scenario))
+             seed=getattr(scenario, 'SEED', 1), gamedir=game_dir(scenario), shots=shots, environment=environment)
     log('%s: the port replayed %d inputs (%d taken an update later by the original)' % (name, len(taken), late))
 
 
@@ -698,9 +844,77 @@ def compare(name):
     return differing == 0
 
 
+def shots(name, reuse=False):
+    """phase two: the original's run inside Windows Sandbox with its shots (or, with `reuse`, the last one's), the port's run
+    with its own at the updates the original's landed on, the comparison of their states (a shot draws the screen once more
+    in both, so the games must still agree) and tools/shotdiff on the two folders (docs/SHOTDIFF.md)"""
+    if not reuse:
+        original(name, sandbox=True)
+    port(name, shots=True)
+    agree = compare(name)
+    folder = out_dir(name)
+    log('%s: %d shots of the original, %d of the port' % (name, len(glob.glob(os.path.join(folder, 'orig', '*.png'))),
+                                                         len(glob.glob(os.path.join(folder, 'port', '*.png')))))
+    subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'shotdiff', 'shotdiff.py'), '--game', 'heavyweapon', '--orig',
+                     os.path.join(folder, 'orig'), '--port', os.path.join(folder, 'port'), '--run', name], cwd=ROOT)
+    return agree
+
+
+def web(name):
+    """phase two's web build: the last shot run's script played by the web build under Node (wasmrun.js: the same switches as
+    the native run, a copy of the run's folder as its file system) from the same user folder, its shots into web/shots/, and
+    shotdiff with the native port's shots as the reference. The two are one program on two back ends, so what differs is the
+    drawing, not the play"""
+    scenario = load_scenario(name)
+    folder = out_dir(name)
+    case = os.path.join(folder, 'web')
+    shutil.rmtree(case, ignore_errors=True)
+    os.makedirs(os.path.join(case, 'shots'))
+    profile = getattr(scenario, 'PROFILE', None)
+    make_user_folder(os.path.join(case, 'port-user'), profile_users(profile) if profile else None, True)
+    script = open(os.path.join(folder, 'script.txt'), encoding='utf-8').read()
+    script = re.sub(r'(screenshot) \S*/([^/\s]+\.png)', r'\1 shots/\2', script)
+    script = re.sub(r'(trace) \S+', r'\1 web-trace.txt', script)
+    open(os.path.join(case, 'script.txt'), 'w', newline='\n').write(script)
+    wait_for_room()
+    command = [NODE, WASMRUN, 'game', '--timeout', '3000', WEB_JS, '-gamedir=' + game_dir(scenario).replace('\\', '/'),
+               '-userdir=port-user', '-fast', '-drawevery', '-renderscale=1', '-seed=%d' % getattr(scenario, 'SEED', 1),
+               '-script=script.txt']
+    with open(os.path.join(case, 'web.out'), 'w') as out:
+        status = subprocess.call(command, stdout=out, stderr=subprocess.STDOUT, cwd=case)
+    taken = glob.glob(os.path.join(case, 'shots', '*.png'))
+    log('%s: the web build exited with %d and took %d shots' % (name, status, len(taken)))
+    # the native trace has CRLF line ends, and the web build's last line is cut off where the game quit without flushing
+    # it: the lines before the last are compared
+    def trace_lines(path):
+        return [line.rstrip('\r') for line in open(path, encoding='utf-8', newline='').read().split('\n') if line.strip()]
+    web_trace = os.path.join(case, 'web-trace.txt')
+    native_lines = trace_lines(os.path.join(folder, 'trace.txt'))
+    web_lines = trace_lines(web_trace) if os.path.exists(web_trace) else []
+    same_trace = len(web_lines) == len(native_lines) and web_lines[:-1] == native_lines[:-1]
+    log('%s: the web build\'s trace is %s the native port\'s (%d updates)' % (
+        name, 'the same as' if same_trace else 'NOT the same as', len(native_lines) - 1))
+    subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'shotdiff', 'shotdiff.py'), '--game', 'heavyweapon', '--orig',
+                     os.path.join(folder, 'port'), '--port', os.path.join(case, 'shots'), '--run', name + '_web'], cwd=ROOT)
+    return status == 0 and same_trace
+
+
+def sound(name, reuse=False):
+    """phase two's sound: the original on the host with the logging BASS (or, with `reuse`, its last such run), the port with
+    its sound log (BYOPOP_SOUNDLOG), the comparison of their states, then of their sounds (soundcmp.py)"""
+    if not reuse:
+        original(name, sound=True)
+    folder = out_dir(name)
+    port(name, environment={'BYOPOP_SOUNDLOG': os.path.join(folder, 'port_sound.log').replace('\\', '/')})
+    agree = compare(name)
+    result = subprocess.call([sys.executable, os.path.join(HERE, 'soundcmp.py'), folder])
+    return agree and result == 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('step', choices=['prepare', 'record', 'original', 'port', 'compare', 'run'])
+    parser.add_argument('step', choices=['prepare', 'record', 'original', 'port', 'compare', 'run', 'shots', 'sound', 'web'])
+    parser.add_argument('--reuse', action='store_true', help='with shots: the original\'s last sandbox run and its shots')
     parser.add_argument('scenario', nargs='?')
     parser.add_argument('--record', action='store_true', help='with run: record the input again')
     args = parser.parse_args()
@@ -709,9 +923,15 @@ def main():
         return
     if not args.scenario:
         sys.exit('idplay: which scenario?')
-    if args.step in ('record', 'run') and (args.record or args.step == 'record' or
-                                            not os.path.exists(os.path.join(out_dir(args.scenario), 'input.txt'))):
+    if args.step in ('record', 'run', 'shots', 'sound') and (args.record or args.step == 'record' or
+                                                              not os.path.exists(os.path.join(out_dir(args.scenario), 'input.txt'))):
         record(args.scenario)
+    if args.step == 'shots':
+        sys.exit(0 if shots(args.scenario, args.reuse) else 1)
+    if args.step == 'sound':
+        sys.exit(0 if sound(args.scenario, args.reuse) else 1)
+    if args.step == 'web':
+        sys.exit(0 if web(args.scenario) else 1)
     if args.step in ('original', 'run'):
         original(args.scenario)
     if args.step in ('port', 'run'):

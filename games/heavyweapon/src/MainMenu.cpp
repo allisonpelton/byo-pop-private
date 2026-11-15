@@ -68,7 +68,9 @@ MainMenu::MainMenu(HeavyWeaponApp* theApp)
 	mUserButton = new HyperlinkWidget(BUTTON_USER, this);
 	mUserButton->mLabel = GT(0x52e070);
 	mUserButton->SetFont(mApp->mFonts[FONT_COMPUTER]->Duplicate());
-	mUserButton->mColor = Color(0xc0, 0x40, 0x20);
+	// colour 0 of the widget's list, which the link's own drawing never reads (it draws in mColor, white): the original's
+	// link is white
+	mUserButton->SetColor(0, Color(0xc0, 0x40, 0x20));
 	mUserButton->mUnderlineSize = 0;
 	for (int i = 0; i < NUM_BUTTONS; i++)
 	{
@@ -106,7 +108,7 @@ void MainMenu::AddedToManager(WidgetManager* theManager)
 {
 	Widget::AddedToManager(theManager);
 	theManager->AddWidget(mUserButton);
-	mUserButton->mColor = Color(0xc0, 0x40, 0x20);
+	mUserButton->SetColor(0, Color(0xc0, 0x40, 0x20));
 	for (int i = 0; i < NUM_BUTTONS; i++)
 		theManager->AddWidget(mButtons[i]);
 }
@@ -161,7 +163,7 @@ void MainMenu::Resize(int theX, int theY, int theWidth, int theHeight)
 }
 
 // 0x426140 slot 16: the picture, the greeting and the name, the lamp, the glow, and the description of each glowing
-// button in black and then (above it) in yellow
+// button, its lines centred, in black and then (above it) in yellow
 void MainMenu::Draw(Graphics* g)
 {
 	if (mState != 0)
@@ -201,11 +203,11 @@ void MainMenu::Draw(Graphics* g)
 		g->SetFont(mApp->mFonts[FONT_OUTLINE]);
 		g->SetColor(Color(0, 0, 0, mButtons[i]->mGlow));
 		WriteWordWrapped2004(g, Rect(DESCRIPTION_X, DESCRIPTION_BLACK_Y, DESCRIPTION_WIDTH, DESCRIPTION_HEIGHT), aText,
-			mApp->mFonts[FONT_NORMAL]->GetHeight(), -1);
+			mApp->mFonts[FONT_NORMAL]->GetHeight(), 0);
 		g->SetFont(mApp->mFonts[FONT_OUTLINED]);
 		g->SetColor(Color(0xff, 0xe0, 0x40, (int) (mButtons[i]->mGlow * YELLOW_ALPHA_SCALE)));
 		WriteWordWrapped2004(g, Rect(DESCRIPTION_X, DESCRIPTION_YELLOW_Y, DESCRIPTION_WIDTH, DESCRIPTION_HEIGHT), aText,
-			mApp->mFonts[FONT_NORMAL]->GetHeight(), -1);
+			mApp->mFonts[FONT_NORMAL]->GetHeight(), 0);
 	}
 	g->SetColorizeImages(false);
 }
