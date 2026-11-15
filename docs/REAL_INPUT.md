@@ -35,8 +35,8 @@ It works with `-fast` and in real time. The file is a `-script` file, one `<upda
 events of a line are pushed when that update starts and handled once it is done, before the next update, as a hand's
 events between two updates are; so the effect of a click at update 300 shows at update 301. A line's points are window
 pixels, or game pixels after the word `game` (`click game 320 450`), mapped as the window shows the game at that moment,
-so the same file works in a window of any size and in full screen. `screenshot`, `screenshotfull` and `quit` work as in
-`-script` and run at once; any other command goes to the game's `HandleScriptCommand`, so a game's own test hooks (a save,
+so the same file works in a window of any size and in full screen. `screenshot`, `screenshotfull`, `screenshotwindow` (the
+window as shown, at its own size) and `quit` work as in `-script` and run at once; any other command goes to the game's `HandleScriptCommand`, so a game's own test hooks (a save,
 a state dump) can check what the input did. In real time a game may still be loading at an update count that is past
 loading with `-fast` (in real time TipTop was still on its loading bar at update 300 and at its menu by 900), so take a
 screenshot before the first click.

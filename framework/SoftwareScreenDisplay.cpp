@@ -32,6 +32,7 @@ DDInterface* SoftwareScreenDisplay::Create(SexyAppBase* theApp, bool theOffers3D
 SoftwareScreenDisplay::SoftwareScreenDisplay(SexyAppBase* theApp, bool theOffers3D, bool theScaledInSoftware) :
 	SurfaceDisplay(theApp)
 {
+	mWidgetsInBuffer = true;
 	mOffers3D = theOffers3D;
 	mWants3D = false;
 	// at 2x to 4x the screen stays in software only where the game asks and GDI stretches the frames into the window
@@ -119,6 +120,18 @@ int SoftwareScreenDisplay::WantedSurfaceScale()
 	if ((aScale > 1) && (!mNoGpuRenderer) && (!mScaledSurface))
 		return 0;
 	return aScale;
+}
+
+bool SoftwareScreenDisplay::WantsStretch()
+{
+	// stretch mode (SurfaceDisplay's smooth stretch on the processor) only where the renderer is asked for nothing else:
+	// not for a drawn cursor, not with 3D wanted (the GPU takes the screen), not once the GPU has it, and not at 2x to 4x,
+	// where the port chose the surface or the GPU (theScaledInSoftware)
+	if ((mGpuScreen) || (mCursorSeen) || (mCursorImage != NULL) || ((mOffers3D) && (mWants3D) && (!mNoGpuRenderer)))
+		return false;
+	if (SurfaceDisplay::WantedSurfaceScale() > 1)
+		return false;
+	return SurfaceDisplay::WantsStretch();
 }
 
 bool SoftwareScreenDisplay::WindowAtScreenSize()
@@ -488,6 +501,13 @@ bool SoftwareScreenDisplay::ReadScreen(ulong* theBits)
 	for (size_t i = 0; i < aSize; i++)
 		theBits[i] = 0xFF000000 | (aPixels[i] & 0xFFFFFF);
 	return true;
+}
+
+bool SoftwareScreenDisplay::ReadWindow(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight)
+{
+	if (mGpuScreen)
+		return DDInterface::ReadWindow(theBits, theWidth, theHeight);
+	return SurfaceDisplay::ReadWindow(theBits, theWidth, theHeight);
 }
 
 bool SoftwareScreenDisplay::ReadScreenFull(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight)
