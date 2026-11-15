@@ -295,6 +295,11 @@ public:
 	int				mMoreHintsDelay;    // +0x1910 updates until the "More Hints?" box (25 after a puzzle was set back)
 	int				mHintsUsed;         // +0x1918 the hints that the puzzle has asked for (the secret puzzles count only those solved without one)
 	bool			mFinale;            // +0x191c the jump to the last planet's finale
+	// port(mod): what the autosplit block reads (LiveSplitObserver.h); the game's own code only counts, and nothing reads these back
+	unsigned int	mBoardSerial;       // the board's number among the ones this run made (1 for the first)
+	bool			mResumed;           // LoadGame filled the board from a saved game
+	int				mLevelClears;       // the levels cleared (a bar filled) or puzzles solved on this board
+	int				mWins;              // the galaxy's last planet solved, or the secret galaxy's last puzzle
 	bool			mIsPlanetIntro;     // +0x191d the planet's intro puzzle is on the board (SelectPuzzlePod with -1)
 	float			mTutorialMoveFade;  // +0x1944 the tutorial pointer over the move that was made: 1 fading to 0
 	float			mTutorialNextFade;  // +0x1948 the pointer over the next move: 0 rising to 1
