@@ -103,7 +103,8 @@ looks for Ninja or a compiler.
 or new wraps before they are committed (`--source` takes any commit, such as one made with `git commit-tree` from a
 temporary index). `--release-zip` builds the snapshot as the build check does and writes
 `build/byo-pop-<game>-<date>.zip`, the date being the snapshot's. It holds one folder: the exe, the DLLs of the build
-folder that the exe loads (read from its import table: SDL2, libc++ and libunwind; Windows' own are not copied),
+folder that the exe loads (read from its import table: only SDL2, since the derived top-level `CMakeLists.txt` links
+libc++ and libunwind into the exe; Windows' own are not copied),
 `README.txt` (the README up to its `## Building` heading, with Windows line ends) and the empty `assets/<game>/`
 folder for the player's own game files. No game file goes in, and nothing is uploaded.
 

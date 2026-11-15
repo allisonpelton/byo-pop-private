@@ -398,10 +398,11 @@
         "fixes-mod",
         "coverage",
         "site-features",
-        "performance"
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
+      "now": "unneeded-code",
       "note": ""
     },
     "tiptop": {
@@ -475,11 +476,12 @@
         "readability",
         "site-features",
         "collection",
-        "performance"
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "performance done: 0.86 of its original's processor time at 800x600 through SurfaceDisplay; real input through the window (4 step files) and the page check pass; the lite mod next"
+      "now": null,
+      "note": "every phase but modding done; lite mod: none taken (LITE_MOD.md: the only whole-board work is one exact flood fill per closed beam, too cheap to show a gain); performance 0.86 of the original's processor time at 800x600"
     },
     "bonnies": {
       "title": "Bonnie's Bookstore Deluxe",

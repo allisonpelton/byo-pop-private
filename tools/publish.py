@@ -167,7 +167,14 @@ def tf_toplevel(text, game):
             f"project(byo-pop-{game} C CXX)\n\n"
             "set(CMAKE_CXX_STANDARD 17)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\nset(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n"
             "# the exe and the DLLs it loads land in the build folder itself\n"
-            "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})\n\n")
+            "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})\n\n"
+            "# One exe that carries the C++ runtime it uses (libc++ and libunwind linked in, so SDL2.dll is the only DLL\n"
+            "# beside it), without the functions nothing calls and, in a Release build, without its symbol table. The code\n"
+            "# is compiled the same either way; only what is linked changes.\n"
+            "if(MINGW)\n"
+            "  add_compile_options(-ffunction-sections -fdata-sections)\n"
+            "  add_link_options(-static-libstdc++ -static-libgcc -Wl,--gc-sections $<$<CONFIG:Release>:-s>)\n"
+            "endif()\n\n")
     body = cmake_native("CMakeLists.txt", text[sdl:web] + "\n" + text[shared:tests])
     return head + body + f"add_subdirectory(games/{game})\n"
 

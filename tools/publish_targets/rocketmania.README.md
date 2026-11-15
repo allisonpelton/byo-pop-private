@@ -79,8 +79,8 @@ the CMake files. Point `LLVM_MINGW_ROOT` at the toolchain folder, then from this
       -DSDL2_DIR=<SDL2>/i686-w64-mingw32/lib/cmake/SDL2
     cmake --build build --target rocketmania
 
-`build/rocketmania.exe` and the DLLs it needs (SDL2 and the llvm-mingw runtime) are in `build/`. To copy the game's
-files into `assets/rocketmania/`, where the program finds them when it runs from `build/`:
+`build/rocketmania.exe` and `SDL2.dll`, the one DLL it needs (the C++ runtime is linked in), are in `build/`. To
+copy the game's files into `assets/rocketmania/`, where the program finds them when it runs from `build/`:
 
     python games/rocketmania/tools/stage_rocketmania_assets.py "<your Rocket Mania Deluxe folder>"
 

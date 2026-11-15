@@ -32,10 +32,10 @@ holds the rules every session follows; this file does not repeat them.
   session for one evening (2026-11-10): a phase cost about what it does on Sonnet but took about three times the share
   of the all-models window, so the sessions went back ("Yes, switch back", 2026-11-11). Fable suits short stretches of
   judgement-heavy work, not many sessions at once.
-- **How many at once (the user, 2026-11-11):** "Too many sessions, some crashed. Set a comfortable limit". At most 8
-  sessions in a turn besides the coordinator ("Based on CPU and RAM usage it might be ok to run an extra session or
-  two"); a session idle while its own background run goes on does not count ("Only count active sessions"). Before
-  waking one the coordinator also checks the machine: under 6 GB free or over 80% of the commit limit means waiting.
+- **How many at once:** no fixed number since 2026-11-15 (the user: "Get rid of the time restrictions on concurrent
+  sessions ... Do what you want forever now"), replacing the limit of 8 set on 2026-11-11 after "Too many sessions,
+  some crashed. Set a comfortable limit". To keep sessions from crashing, the coordinator still checks the machine
+  before waking one: under 6 GB available or over 80% of the commit limit means waiting.
   The limit of 6 game processes (CLAUDE.md) holds for all of them, so more sessions mean longer waits for a game slot.
   A session past the limit waits idle on a background wait for its own file (`until [ -f <main
   checkout>/build/slots/<name>.go ]; do sleep 60; done; cat` the file), which the coordinator writes with any news

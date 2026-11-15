@@ -305,13 +305,14 @@ def port_exe():
 
 def port_settings(userdir):
     """Unless PERF_WINDOW=default: the original's settings on this machine in the port's registry.ini (windowed) and the
-    game's own size; the port's arguments for it."""
+    game's own size; the port's arguments for it, with PERF_ARGS's (such as
+    -cyclesplit=<file>)."""
     if os.environ.get('PERF_WINDOW') == 'default':
         return []
     with open(os.path.join(userdir, 'registry.ini'), 'w') as f:
         f.write(subprocess.run([sys.executable, '-I', os.path.join(os.getcwd(), 'games', 'bigmoney', 'tools', 'origcmp', 'regini.py'),
                                 '--hklm'], capture_output=True, text=True, check=True).stdout)
-    return ['-windowscale=%s' % os.environ.get('PERF_SCALE', '1')]
+    return ['-windowscale=%s' % os.environ.get('PERF_SCALE', '1')] + os.environ.get('PERF_ARGS', '').split()
 
 
 def port_load(out, runs):
