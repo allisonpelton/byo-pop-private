@@ -678,6 +678,13 @@ int HighScoresScreen::handleEvent(Event* theEvent)
 
 static int gLogoLoaded;           // 0x4791b4: the app's resources are loaded
 static int gLogoSkip;             // 0x4791b8: a click or key hurries the logos
+
+// port (test): whether the logos have loaded the app's resources (the fonts and pictures every other screen draws with)
+bool appResourcesLoaded()
+{
+	return gLogoLoaded != 0;
+}
+
 bool gSkipLogos = false;
 static int gLogoFade = 0x96;      // 0x473e50: a logo's fade, in ms
 static int gPopCapTime = 0x5dc;   // 0x473e54: PopCap's logo shows this long

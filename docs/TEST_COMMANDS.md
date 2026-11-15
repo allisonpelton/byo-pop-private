@@ -175,7 +175,8 @@ frame loop holds the draws to the display's refresh interval (`DDInterface::Fram
 intervals between starts show whether the presents come evenly (the blank's 16.7 ms at 60 Hz, or the pace's). A display that shows
 its frames without a renderer (`SurfaceDisplay` and the software screen) logs its presents the same way, its renderer named
 `surface` (the window's surface), `surface-gdi` (GDI's stretch at 2x to 4x) or `stretch` (stretch mode), each with `-dwm` after
-it under `SURFACE_PACE=dwm`, and with its `scale`. The header's `first_counter` is the first present's start on SDL's performance counter, so that the presents can
+it under the wait for DWM's next composition (the default on Windows; `SURFACE_PACE=ms` in a test run gives the
+framework's millisecond pace instead), and with its `scale`. The header's `first_counter` is the first present's start on SDL's performance counter, so that the presents can
 be set against another clock's events, such as DWM's vertical blanks. Without the option a present costs the test of one flag; with
 it, two counter reads and one record.
 

@@ -294,6 +294,9 @@ public:
 	Image* mImage = nullptr;  // +0x54
 };
 
+// port (test): whether the app's resources are loaded, which the logo screen does when it has shown
+bool appResourcesLoaded();
+
 // 0x418710: the game's menu (Esc or its button)
 void showGameMenu();
 // 0x41d600: the interstitial, when the portal has one (theWin: after a won game; theLoss: after a lost one)

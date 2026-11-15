@@ -145,8 +145,9 @@ route, a hint, a deal). Each "lite" below says only where a difference could com
   a hashed visited set gives the same yes or no (the performance pass); the solution Abandon Hope plays depends on the
   search order: lite only if a maze has more than one solution the two searches would choose between.
 - Word Harmony: findHints walks the 61,691-node hint tree after every word; its notes measure the game's own logic at
-  a few percent per function, and the hints are shown in tree order. Bonnie's Bookstore: findHint's random walks run
-  up to 120 ms of wall clock when a hint is asked for, and a wildcard isWord scans a letter's whole bucket.
+  a few percent per function, and the hints are shown in tree order. Bonnie's Bookstore: findHint's random walks may
+  run up to 120 ms of wall clock when a hint is asked for, but measured they take about 1 ms a call (2.2 to 2.6 M
+  cycles), and a wildcard isWord scans a letter's whole bucket; nothing was taken (games/bonnies/docs/LITE_MOD.md).
 - Rocket Mania: Board::Connections re-traces every fuse from both edges of the 6x9 grid on every update; a flag set
   when a tile turns gives the same paths (the performance pass).
 
