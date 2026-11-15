@@ -1,5 +1,6 @@
 #include "Board.h"
 #include "Character.h"
+#include "Bubbles.h"
 #include "TempleScreen.h"
 #include "PixelusApp.h"
 #include "TileMaster.h"
@@ -63,7 +64,7 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 	mReplayIndex = mReplayDelay = mReplayPeriod = 0;
 	mHoverCol = mHoverRow = -1;
 	mHoverValid = false;
-	mAlpha = 0;
+	mAlpha = 255;
 	mIntro = 0;
 	mPauseFade = 0.0;
 	mPauseStarted = false;
@@ -71,13 +72,14 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 	mCompleted = false;
 	mFinishSounded = false;
 	mMaxedAtStart = false;
-	mIdleTicks = 0;
+	mMovesSeen = 0;
+	mIdleCount = 0;
+	mNagged = false;
 	mMusicDelay = -1;
 	mErrorTicks = 0;
-	memset(mFlash, 0, sizeof(mFlash));
-	memset(mFlashWanted, 0, sizeof(mFlashWanted));
 	mHintShown = false;
 	mLessonShown = false;
+	InitLesson();
 	mHintTicks = 0;
 	mHintMove.mSide = mHintMove.mCursor = mHintMove.mPosition = 0;
 	mHintMove.mRemove = false;
@@ -146,13 +148,14 @@ Board::Board(PixelusApp* theApp, int theRows, int theCols, int theGridX, int the
 	mCompleted = false;
 	mFinishSounded = false;
 	mMaxedAtStart = false;
-	mIdleTicks = 0;
+	mMovesSeen = 0;
+	mIdleCount = 0;
+	mNagged = false;
 	mMusicDelay = -1;
 	mErrorTicks = 0;
-	memset(mFlash, 0, sizeof(mFlash));
-	memset(mFlashWanted, 0, sizeof(mFlashWanted));
 	mHintShown = false;
 	mLessonShown = false;
+	InitLesson();
 	mHintTicks = 0;
 	mHintMove.mSide = mHintMove.mCursor = mHintMove.mPosition = 0;
 	mHintMove.mRemove = false;
@@ -161,9 +164,11 @@ Board::Board(PixelusApp* theApp, int theRows, int theCols, int theGridX, int the
 }
 
 // 0x4045e0
+// 0x403d80: the destructor body
 Board::~Board()
 {
 	delete mTeacher;
+	delete mHelper;
 	delete mGrid;
 	delete mTileMaster;
 	delete mResetButton;
@@ -179,6 +184,8 @@ void Board::AddedToManager(WidgetManager* theWidgetManager)
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mMenuButton);
 	theWidgetManager->AddWidget(mBackButton);
+	mHelper->Resize(0, 0, mApp->mWidth, mApp->mHeight);
+	theWidgetManager->AddWidget(mHelper);
 	if (mUndoButton != NULL)
 		theWidgetManager->AddWidget(mUndoButton);
 	if (mResetButton != NULL)
@@ -193,6 +200,7 @@ void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 	Widget::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mMenuButton);
 	theWidgetManager->RemoveWidget(mBackButton);
+	theWidgetManager->RemoveWidget(mHelper);
 	if (mUndoButton != NULL)
 		theWidgetManager->RemoveWidget(mUndoButton);
 	if (mResetButton != NULL)
@@ -211,6 +219,7 @@ void Board::Resize(int theX, int theY, int theWidth, int theHeight)
 }
 
 // 0x408f60: the puzzle of the temple's list
+// 0x409880: the Tile Master and the maxed flag
 bool Board::LoadPuzzle()
 {
 	const LevelData::Level* aLevel = mApp->mLevelData->GetLevel(mLevelName);
@@ -272,6 +281,7 @@ void Board::Restore()
 		}
 		else
 		{
+			// 0x423c10: a throw that leaves the board or bounces
 			bool aLeaves = !mGrid->mCanPlace && mGrid->mSlidesOut;
 			bool aBounces = !aLeaves && mGrid->IsBouncyAhead();
 			if (!mGrid->PlaceTile(true))
@@ -342,10 +352,9 @@ void Board::RestartPuzzle()
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
 	if (aUser != NULL)
 		mApp->mProgress->RemoveHistory(aUser->mId, mUuid);
-	memset(mFlash, 0, sizeof(mFlash));
 	mHintShown = false;
 	mIntro = 0;
-	mAlpha = 0;
+	mAlpha = 255;
 	LoadPuzzle();
 }
 
@@ -491,6 +500,26 @@ void Board::DoThrow()
 	bool aBounces = !aLeaves && mGrid->IsBouncyAhead();
 	if (!mGrid->PlaceTile(true))
 	{
+		// 0x408400: with no tile left on the bench the click says so in a bubble (the first time after the tutorial's
+		// first 200 updates, then again after the bench has been looked at for a while), and the lesson checks wait 250 updates
+		if (!mDemo && !mApp->GetHintsDisabled())
+		{
+			const std::string aText = GT(0x50bf64);
+			if (mUpdateCnt > 200 && (mBubbleId == -1 || mBubbleX != 0x196 || mBubbleY != 0x1d5 || aText != mBubbleText))
+			{
+				ClearBubble();
+				if (--mLessonTimers[13] <= (mLessonFast ? 0x19 : 0))
+				{
+					mLessonTimers[13] = 0;
+					mLessonFast = true;
+					mBubbleId = mHelper->Add(0x196, 0x1d5, 1, aText, true);
+					mBubbleY = 0x1d5;
+					mBubbleX = 0x196;
+					mBubbleText = aText;
+				}
+			}
+			mErrorTicks = 0xfa;
+		}
 		mApp->PlaySample(SOUND_ILLEGAL_NONE_LEFT_03B);
 		return;
 	}
@@ -502,11 +531,11 @@ void Board::DoThrow()
 	if (mDemo)
 		return;
 	RecordUndo(aSide, aCursor, -1, aBounces ? 2 : aLeaves ? 3 : 0);
-	mIdleTicks = 0;
 	SaveProgress();
 }
 
 // a click on a tile pulls it back
+// 0x42ecd0: the tile is marked as pulled
 void Board::DoPull()
 {
 	if (mGrid->mDone)
@@ -528,7 +557,6 @@ void Board::DoPull()
 	if (mDemo)
 		return;
 	RecordUndo(aSide, aCursor, aPosition, 1);
-	mIdleTicks = 0;
 	SaveProgress();
 }
 
@@ -537,16 +565,15 @@ void Board::DoPull()
 void Board::TileArrived(GridObject* theObject)
 {
 	const Grid::Cell& aCell = mGrid->mCells[theObject->mRow][theObject->mCol];
-	bool aWanted = aCell.mWanted || aCell.mStart;
 	if (aCell.mStart)
 		mApp->PlaySample(SOUND_TILE_TARGET_02C);
 	mApp->PlaySample(aCell.mWanted ? SOUND_TILE_TARGET_02C : SOUND_TILE_NON_TARGET_02B);
-	mFlash[theObject->mRow][theObject->mCol] = 40;
-	mFlashWanted[theObject->mRow][theObject->mCol] = aWanted;
 	mGrid->Nudge(theObject->mRow, theObject->mCol, theObject->mDir);
 }
 
 // 0x42f740 for every tile: the flight, the return and the fading of the trail
+// 0x42ee70
+// 0x42ee90
 void Board::UpdateTiles()
 {
 	for (size_t i = 0; i < mGrid->mObjects.size(); i++)
@@ -706,7 +733,6 @@ void Board::SetHover(int theCol, int theRow, bool theValid)
 bool Board::LoadDemoPuzzle(const std::string& theText)
 {
 	mReplayOn = false;
-	memset(mFlash, 0, sizeof(mFlash));
 	bool aLoaded = mGrid->LoadFromText(theText);
 	LoadPuzzlePicture(mApp, mGrid);
 	return aLoaded;
@@ -741,10 +767,6 @@ void Board::UpdateDemo()
 	mUpdateCnt++;
 	UpdateTiles();
 	mGrid->UpdateFinish();
-	for (int r = 0; r < Grid::MAX_SIZE; r++)
-		for (int c = 0; c < Grid::MAX_SIZE; c++)
-			if (mFlash[r][c] > 0)
-				mFlash[r][c]--;
 	if (mReplayOn && --mReplayDelay < 1)
 	{
 		const Grid::Move& aMove = mReplay[mReplayIndex];
@@ -789,8 +811,6 @@ void Board::Update()
 		mPulse = std::min(1.0, mPulse + 0.003);
 
 	mIntro++;
-	if (mAlpha < 255)
-		mAlpha = std::min(255, mAlpha + 255 / 30 + 1);
 
 	// the pause screen comes in by 0.05 an update, and only for a pause that began while the board was there; it goes out
 	// by 0.075 (0x409bd0)
@@ -802,7 +822,13 @@ void Board::Update()
 		mPauseStarted = false;
 	}
 	if (mApp->IsPaused())
+	{
+		// 0x40a2b7: a paused game takes its bubbles back
+		mErrorTicks = 0;
+		ClearBubble();
+		mHelper->RemoveAll();
 		return;
+	}
 
 	// 0x422590, when the last tile has been thrown: the sting, and the music fades out
 	if (mGrid->mDone && !mFinishSounded)
@@ -820,15 +846,55 @@ void Board::Update()
 	UpdateTiles();
 	mGrid->UpdateFinish();
 	mTileMaster->Update();
-	for (int r = 0; r < Grid::MAX_SIZE; r++)
-		for (int c = 0; c < Grid::MAX_SIZE; c++)
-			if (mFlash[r][c] > 0)
-				mFlash[r][c]--;
+	// 0x409bd0: every fifth update, unless a click that did nothing has its bubble up, the lesson of a tutorial puzzle is looked at
+	if (mErrorTicks <= 0 && mUpdateCnt % 5 == 0)
+		HintCheck();
 	if (mErrorTicks > 0)
 		mErrorTicks--;
+	// 0x40a13e: a finished puzzle takes its bubbles back; the first update of it settles the tutorial's last flag
+	if (mGrid->IsSettled())
+	{
+		ClearBubble();
+		mHelper->RemoveAll();
+		if (!mFinishedOnce)
+		{
+			mFinishedOnce = true;
+			UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
+			if (mFirstAfterTutorial && aUser != NULL)
+				aUser->mFlags[3] = 1;	// 0x402fe0
+		}
+	}
 	if (mHintShown && --mHintTicks <= 0)
 		mHintShown = false;
-	mIdleTicks++;
+	// 0x409c2b: 4500 updates with no move and the Hint button starts to pulse, five times; once for a puzzle
+	if (!mNagged)
+	{
+		if (mGrid->mMoveCount != mMovesSeen)
+		{
+			mMovesSeen = mGrid->mMoveCount;
+			mIdleCount = 0;
+		}
+		else
+		{
+			if (!mApp->IsPaused())
+				mIdleCount++;
+			if (mIdleCount == 4500)
+			{
+				if (!mApp->GetHintsDisabled() && mHintButton != NULL)
+					static_cast<SoundButton*>(mHintButton)->SetFlash(true, 5, true, 100, 0);
+				mNagged = true;
+			}
+		}
+	}
+	// 0x40a212: with the mouse over a tile that Undo would take back, the Undo button glows (the glow is renewed each update
+	// the mouse stays, and runs out within 13 updates of leaving)
+	if (!mExpert && mUndoButton != NULL && !mApp->IsPaused() && mHoverRow >= 0)
+	{
+		int aCursor = 0;
+		if (mGrid->FindPullSide(mHoverRow, mHoverCol, mTileMaster->GetSide(), &aCursor) >= 0 && !mGrid->mDone && mGrid->mCanPull &&
+			mGrid->HasObject(mGrid->mStuckRow, mGrid->mStuckCol) && IsLastThrownTile(mHoverRow, mHoverCol))
+			static_cast<SoundButton*>(mUndoButton)->SetFlash(true, 1, false, 30, 17);
+	}
 
 	// 150 updates after the puzzle appears (and no help screen over it) the music of the puzzles comes in
 	if (mMusicDelay == -1 && mApp->mHelpScreen == NULL)
@@ -855,61 +921,12 @@ void Board::Update()
 		}
 	}
 
-	// 0x409bd0: every fifth update the hint of a tutorial puzzle is looked at; the first puzzle with sticky spots brings up
-	// the hint about them (once for a player: the profile's flag +0x3d)
-	if (mUpdateCnt % 5 == 0)
-		HintCheck();
+	// 0x409bd0: the first puzzle with sticky spots brings up the hint about them (once for a player: the profile's flag +0x3d)
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
 	if (mGrid->mHasStart && aUser != NULL && !aUser->mFlags[4])
 	{
-		mApp->ShowHint(0x104, 200, GT(0x50c4cc), aUser->mFlag38 ? GT(0x50b8c8) : GT(0x50b940));
+		mApp->ShowHint(0x104, 200, GT(0x50c4cc), aUser->mFlag38 ? GT(0x50b8c8) : GT(0x50b940), 0, -0x3c);
 		aUser->mFlags[4] = 1;
-	}
-}
-
-// 0x407aa0: the hints of the tutorial puzzles (the ninth is the 'try it yourself' note): each puts up its text once. The
-// bubbles that point at cells (0x406050, 0x40ece0) come later with the drawing.
-void Board::HintCheck()
-{
-	if (mApp->GetHintsDisabled() || mApp->IsPaused() || !mTutorial || mLessonShown)
-		return;
-	static const int aWidths[9] = { 0xfa, 0xfa, 0xfa, 0xdc, 0xfa, 0xdc, 0xfa, 0xdc, 300 };
-	static const unsigned int aTexts[8] = { 0x50be48, 0x50bdd8, 0x50bd68, 0x50bd08, 0x50bca8, 0x50bc50, 0x50bc00, 0x50bbd0 };
-	if (mPuzzleIndex < 0 || mPuzzleIndex > 8)
-		return;
-	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
-	bool anExpert = aUser != NULL && aUser->mFlag38;
-	mLessonShown = true;
-	// the cells each lesson step marks when it shows its bubble (0x4061f0 and its neighbours): row, column
-	static const int aCells0[2][2] = { { 9, 8 }, { 9, 9 } };
-	static const int aCells1[2][2] = { { 5, 9 }, { 5, 12 } };
-	static const int aCells2[1][2] = { { 2, 4 } };
-	static const int aPos4[1][2] = { { 247, 166 } };
-	static const int aPos5[1][2] = { { 245, 219 } };
-	static const int aPos3[1][2] = { { 347, 219 } };	// no cells: the corner measured on the original's screen
-	static const int aPos6[1][2] = { { 282, 326 } };
-	static const int aPos7[1][2] = { { 290, 82 } };
-	if (mPuzzleIndex < 8)
-	{
-		int aCount = 0;
-		const int (*aCells)[2] = NULL;
-		switch (mPuzzleIndex)
-		{
-		case 0: aCount = 2; aCells = aCells0; break;
-		case 1: aCount = 2; aCells = aCells1; break;
-		case 2: aCount = 1; aCells = aCells2; break;
-		case 3: aCount = -1; aCells = aPos3; break;
-		case 4: aCount = -1; aCells = aPos4; break;
-		case 5: aCount = -1; aCells = aPos5; break;
-		case 6: aCount = -1; aCells = aPos6; break;
-		case 7: aCount = -1; aCells = aPos7; break;
-		}
-		mApp->ShowHint(aWidths[mPuzzleIndex], -1, "", GT(aTexts[mPuzzleIndex]), aCount, aCells);
-	}
-	else
-	{
-		static const int aPos8[1][2] = { { 257, 101 } };
-		mApp->ShowHint(aWidths[8], -1, "", anExpert ? GT(0x50b9a8) : GT(0x50bab8), -1, aPos8);
 	}
 }
 
@@ -945,6 +962,19 @@ void Board::MouseMove(int x, int y)
 	if (mUpdateCnt == 0 || mApp->IsPaused() || mGrid->mDone)
 		return;
 
+	// 0x403370: the mouse moving more than 40 pixels from where it last went down takes the bubbles a click made back
+	if (mClickX != -1 && mClickY != -1)
+	{
+		float aDX = (float) (mClickX - x);
+		float aDY = (float) (mClickY - y);
+		if (1600.0f < aDY * aDY + aDX * aDX)
+		{
+			if (mHelper->RemoveFlagged())
+				mGrid->HidePointer();
+			mErrorTicks = 0;
+		}
+	}
+
 	PixelToCell(x, y, &mHoverCol, &mHoverRow);
 	mHoverValid = false;
 	if (!mGrid->InGrid(mHoverRow, mHoverCol))
@@ -974,10 +1004,36 @@ void Board::MouseMove(int x, int y)
 	}
 }
 
+// 0x425620: what stopped the click, as the grid sees the cell under the mouse; it plays the sound of the reason (a fixed block,
+// a line that is open to the cell, no line open) and gives the number of the reason, 0 when the mouse is on the cell a
+// throw or a pull would use
+int Board::ClickReason()
+{
+	if (!mGrid->InGrid(mHoverRow, mHoverCol))
+		return 0;
+	// 0x421d90
+	if ((mGrid->mCanPlace && mHoverCol == mGrid->mLandCol && mHoverRow == mGrid->mLandRow) ||
+		(mGrid->mCanPull && mHoverCol == mGrid->mStuckCol && mHoverRow == mGrid->mStuckRow))
+		return 0;
+	int aReason = mGrid->ClickReason(mHoverRow, mHoverCol);
+	if (!mDemo)
+	{
+		if (aReason == 1)
+			mApp->PlaySample(SOUND_ILLEGAL_FIXED_01C);
+		else if (aReason == 2)
+			mApp->PlaySample(SOUND_ILLEGAL_NOTHING_01);
+		else if (aReason == 3)
+			mApp->PlaySample(SOUND_ILLEGAL_BLOCKED_03);
+	}
+	return aReason;
+}
+
 // 0x408400 (point and click: control mode 2)
 void Board::MouseDown(int x, int y, int theClickCount)
 {
 	Widget::MouseDown(x, y, theClickCount);
+	mClickX = x;
+	mClickY = y;
 	if (mApp->IsPaused())
 	{
 		mApp->Pause(false);
@@ -998,24 +1054,46 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		int aSide = mGrid->FindThrowSide(aRow, aCol, mTileMaster->GetSide(), &aCursor);
 		if (aSide >= 0)
 		{
+			ResetLessonTimers();
 			Aim(aSide, aCursor);
 			DoThrow();
 			return;
 		}
-		mApp->PlaySample(SOUND_ILLEGAL_BLOCKED_03);
-		return;
+	}
+	else
+	{
+		int aSide = mGrid->FindPullSide(aRow, aCol, mTileMaster->GetSide(), &aCursor);
+		if (aSide >= 0)
+		{
+			ResetLessonTimers();
+			Aim(aSide, aCursor);
+			// a click on the tile that was thrown last takes the throw back (the undo), unless the player has switched the
+			// hints and the undo off
+			if (!mExpert && IsLastThrownTile(aRow, aCol))
+			{
+				Undo();
+				return;
+			}
+			DoPull();
+			return;
+		}
 	}
 
-	int aSide = mGrid->FindPullSide(aRow, aCol, mTileMaster->GetSide(), &aCursor);
-	if (aSide >= 0)
-	{
-		Aim(aSide, aCursor);
-		DoPull();
-		return;
-	}
-	const GridObject* anObject = mGrid->mCells[aRow][aCol].mObject;
+	// nothing to do there: the Tile Master shrugs, the sound says why, and a bubble tells the player
 	mTileMaster->Shrug();	// 0x4088a6
-	mApp->PlaySample(anObject->mFixed ? SOUND_ILLEGAL_FIXED_01C : SOUND_ILLEGAL_NOTHING_01);
+	int aReason = ClickReason();
+	if (mApp->GetHintsDisabled())
+		return;
+	int aCorner = BubbleCorner(aRow, aCol);
+	switch (aReason)
+	{
+	case 1: PointAtCell(aRow, aCol, aCorner, 10, true); break;
+	case 2: PointAtCell(aRow, aCol, aCorner, 9, true); break;
+	case 3: PointAtCell(aRow, aCol, aCorner, mGrid->HasObject(aRow, aCol) ? 11 : 12, true); break;
+	case 4: PointAtCell(aRow, aCol, aCorner, 8, true); break;
+	}
+	if (aReason != 0)
+		mErrorTicks = 0xfa;
 }
 
 // 0x409160 (slot 5 of the listener): the buttons
@@ -1088,6 +1166,14 @@ void Board::ShowHint()
 // every cell; the one at the left shows the picture n % 5 of the n that lie there, the next (n - 1) % 5 and so on. The 17th
 // is the last that is drawn; the rest are in bags, each of 20, with their count beside them (the slots slide one pixel an
 // update toward their places, 0x4216c0, which do not change here: the list is made again each time the supply changes)
+// 0x402d20: the pending-tile count
+// 0x402d40
+// 0x421730
+// 0x421760
+// 0x421870
+// 0x4217c0
+// 0x433340
+// 0x433350
 void Board::DrawWorkbench(Graphics* g)
 {
 	const int aLeft = 0xcc;
@@ -1359,19 +1445,25 @@ void Board::DrawGrid(Graphics* g)
 			DrawTile(g, anObject);
 		}
 
-	// the glow where a tile has just landed
+	// the glow of the cells the tutorial points at (0x422ab0: additive, 5 pixels outside the cell), then the cursor picture
 	g->SetColorizeImages(true);
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 	for (int r = 0; r < mGrid->mRows; r++)
 		for (int c = 0; c < mGrid->mCols; c++)
-			if (mFlash[r][c] > 0)
-			{
-				int aAlpha = (int) (sin(mFlash[r][c] * PI / 40.0) * 255.0);
-				g->SetColor(Color(255, 255, 255, aAlpha));
-				Image* aGlow = mApp->mImages[mFlashWanted[r][c] ? IMAGE_TILE_GLOW : IMAGE_TILE_REDGLOW];
-				g->DrawImage(aGlow, mGridX + c * S + S / 2 - aGlow->GetWidth() / 2, mGridY + r * S + S / 2 - aGlow->GetHeight() / 2);
-			}
+		{
+			const Grid::Cell& aCell = mGrid->mCells[r][c];
+			if (aCell.mGlowState == 0)
+				continue;
+			int aValue = aCell.mGlowValue < 1 ? 0 : aCell.mGlowValue;
+			g->SetColor(Color(255, 255, 255, (int) (sin(aValue * 0.006159986) * mAlpha)));
+			g->DrawImage(mApp->mImages[aCell.mGlowWanted ? IMAGE_TILE_GLOW : IMAGE_TILE_REDGLOW], mGridX + c * S - 5, mGridY + r * S - 5);
+		}
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+	if (!mGrid->mDone && mGrid->mPointerOn)
+	{
+		g->SetColor(Color(255, 255, 255, std::min(255, mGrid->mPointerAlpha * mAlpha / 255)));
+		g->DrawImage(mApp->mImages[IMAGE_AIM_CURSOR_BLUE], mGridX + mGrid->mPointerCol * S - 5, mGridY + mGrid->mPointerRow * S - 5);
+	}
 	g->SetColorizeImages(false);
 
 	DrawAim(g);

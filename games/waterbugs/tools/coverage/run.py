@@ -1,6 +1,6 @@
 """One coverage run of the original Water Bugs (docs/COVERAGE.md): origrun with --coverage on the list that
 `python -I tools/coverage.py list waterbugs` writes, the script that scripts.py wrote (orig-<name>.txt), a fresh copy of the game
-under C:/byo-og/wbcov, windowed (the original's full screen is DirectDraw's own mode, which a private desktop opens only through
+under E:/byo-og/wbcov, windowed (the original's full screen is DirectDraw's own mode, which a private desktop opens only through
 dgVoodoo2, so --dgvoodoo keeps the copy's wrapper and the config's full screen).
 
     python -I games/waterbugs/tools/coverage/run.py <name> [--clock virtual|real] [--timeout 240] [--cb <cb.dat>] [--cfg <text>]
@@ -19,7 +19,7 @@ import time
 
 ROOT = os.getcwd()
 CFG = '<CP_CONFIG\n    fullscreen="%d"\n    desktopResolution="0"\n    wave="1"\n    music="1"\n/>\n'
-COPY = 'C:/byo-og/wbcov'
+COPY = 'E:/byo-og/wbcov'
 
 
 def room():
@@ -44,7 +44,7 @@ def main():
         time.sleep(15)
     shutil.rmtree(COPY, ignore_errors=True)
     shutil.rmtree(os.path.join(ROOT, 'build', 'origrun', 'wbcov'), ignore_errors=True)
-    subprocess.run([origrun, '--game', 'waterbugs', '--run', 'wbcov', '--stage-root', 'C:/byo-og', '--copy-only'], capture_output=True)
+    subprocess.run([origrun, '--game', 'waterbugs', '--run', 'wbcov', '--stage-root', 'E:/byo-og', '--copy-only'], capture_output=True)
     game = COPY + '/game'
     with open(game + '/cp.cfg', 'w', newline='\n') as f:
         f.write(a.cfg if a.cfg else CFG % (1 if a.dgvoodoo else 0))
@@ -54,7 +54,7 @@ def main():
                 os.remove(game + '/' + n)
     if a.cb:
         shutil.copy(a.cb, game + '/cb.dat')
-    cmd = [origrun, '--game', 'waterbugs', '--run', 'wbcov', '--stage-root', 'C:/byo-og', '--script', script.replace('\\', '/'),
+    cmd = [origrun, '--game', 'waterbugs', '--run', 'wbcov', '--stage-root', 'E:/byo-og', '--script', script.replace('\\', '/'),
            '--counter', '0x460a1c', '--update-ms', '1', '--cursor', 'scripted', '--clock', a.clock, '--timeout', a.timeout,
            '--coverage', os.path.join(ROOT, 'build', 'coverage', 'waterbugs', 'functions.txt').replace('\\', '/')]
     if a.dgvoodoo:

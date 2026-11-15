@@ -21,18 +21,6 @@ cd "$(dirname "$0")/../../../.." || exit 2
 ABS=$PWD
 # the click that closes the first game's help screen (743, 678) is read by the original one update after the port's (GAME_NOTES, "Oddities"),
 # so the replay gives it (and the move before it) that update: --shift FROM TO 1, found in the original's landed.tsv (LDARGS= sets all by hand)
-if [ -z "${LDARGS+x}" ]; then
-  LDARGS="--leave-after 1 --leave-keep $(python - build/visrun/$tag/landed.tsv <<'PYEOF'
-import sys
-rows = [l.rstrip(chr(10)).split(chr(9)) for l in open(sys.argv[1])]
-for i, r in enumerate(rows):
-    if r[0] == 'click' and r[1] == '743 678':
-        lo = int(rows[i - 1][2]) if i and rows[i - 1][0] == 'move' else int(r[2])
-        print('--shift %d %d 1' % (lo, int(r[2])))
-        break
-PYEOF
-)"
-fi
 # the player of the recording (record_3d_tours.sh's PROFILE: make_profile.py's, every mode unlocked) is the original's players while
 # its run lasts, and the port's replay has it in its user folder; PROFILE= (empty) starts both with no player
 PROFILE=${PROFILE-build/logs/bej2/profile}
@@ -41,9 +29,6 @@ mkdir -p build/visrun build/origrun
 # at most three game processes on the machine (docs/COORDINATION.md): wait for a free place
 wait_slot() { for i in $(seq 1 360); do python tools/gamecount.py --limit 6 > /dev/null && return 0; sleep 15; done; return 1; }
 
-# the original runs on the visible desktop: only from 22:00 to 08:00 local (CLAUDE.md, "Overnight"); visrun.py checks too
-h=$(date +%H); h=$((10#$h))
-if [ -z "$portonly" ] && [ $h -ge 8 ] && [ $h -lt 22 ]; then echo "the visible desktop is for 22:00 to 08:00 local; it is $(date +%H:%M)"; exit 5; fi
 
 if [ -z "$portonly" ]; then
   script=build/origrun/bej2_$tag.txt
@@ -66,6 +51,19 @@ fi
 
 [ -n "${ORIG_ONLY:-}" ] && exit 0
 
+# (derived here, after the original's run has written landed.tsv)
+if [ -z "${LDARGS+x}" ]; then
+  LDARGS="--leave-after 1 --leave-keep $(python - build/visrun/$tag/landed.tsv <<'PYEOF'
+import sys
+rows = [l.rstrip(chr(10)).split(chr(9)) for l in open(sys.argv[1])]
+for i, r in enumerate(rows):
+    if r[0] == 'click' and r[1] == '743 678':
+        lo = int(rows[i - 1][2]) if i and rows[i - 1][0] == 'move' else int(r[2])
+        print('--shift %d %d 1' % (lo, int(r[2])))
+        break
+PYEOF
+)"
+fi
 V=$ABS/build/visrun/p_$tag
 rm -rf $V; mkdir -p $V/cwd/shots $V/user
 python games/bejeweled2/tools/origcmp/landed_to_events.py $ev build/visrun/$tag/landed.tsv $V/events.json $LDARGS > /dev/null || exit 2

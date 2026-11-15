@@ -20,8 +20,6 @@ class StartButton : public ButtonWidget
 public:
 	WinBMApp*		mApp;                   // +0x118
 	double			mHiliteAlpha;           // +0x120 0..1 cross-fade to the highlighted text cell, +-0.1 per update
-	double			mHiliteSpeed;           // +0x128 0.05; never read (Update uses a literal 0.1)
-	int				mUnused130;             // +0x130 zeroed by Update when the highlight rises, never read (port: initialised)
 	int				mArrowFrame;            // +0x134 0..7, +1 every 16 idle updates; 5 lights all arrows (forced while hovered)
 
 public:

@@ -4431,7 +4431,8 @@ first run, no checkbox, Shift+F8 only with the debug keys), so natively at 1x th
 after upload, the framework's own GIF decoder). The game's part: every picture is palletized as in the original (8-bit where it has 256
 colours or fewer, a quarter of the memory), the image table's second, never-drawn mouths picture is not loaded (0.6 MB), and the
 game's own pixel edits read their source through `ReadBits`, which does not turn a palettized picture back into 32-bit. Nothing was
-measured change by change; the figures below are the whole. At 2x and on the web the port still draws on the GPU.
+measured change by change; the figures below are the whole. At 2x and on the web the port still draws on the GPU (since
+the same day with 2D's flags: `mDefault3D` false, IDENTICAL_PLAY.md).
 
 **How.** As on 2026-11-08 (`tools/profile/perf.py`, the same seed-21 minute), with each run on a performance core of its own
 (`tools/pincore.py`): the port's load five times, the original's three, then five pairs of minutes, port and original in turn, and two
@@ -4467,6 +4468,32 @@ directly. The load is unchanged at about 0.7 s.
 of processor time in the game and the graphics driver (the machine 96 to 100 % busy). The 2x window keeps each picture as a GPU texture
 too; the original has no 2x mode to compare with. The web build was not measured.
 
+
+### Unneeded code taken out (2026-11-15)
+
+The coverage check found nothing to take out: the two functions the port defines that no run reaches are deleting
+destructors it has only as a comment. So this step read the port itself for code the game does not need, with the
+compiler's unused-code warnings (`-Wunused`, unused member functions, private fields, macros, templates and constants:
+none fired) and a search for every member function the game defines that nothing calls (seven, all overrides the
+framework calls). What was taken out, 107 lines out and 14 in over 16 files:
+
+- **LockableButton** (0x414d80 to 0x414de0): a ButtonWidget with a lock flag that nothing sets or reads, a registration
+  leftover, and a `Draw` that only calls ButtonWidget's. The selector's three type buttons are plain ButtonWidgets, made
+  with the same id, listener and images.
+- **WinBMApp::LoadingThreadCompleted** (0x421450): the original offers its update check there, which the port leaves
+  out, so the override was empty, as the framework's own hook is.
+- **Fields written and never read**, none of them in a save: Board's tick at construction (+0x08c, the timer now takes
+  `GetTickCount` itself), its repaint countdown (+0x774, only ever set to 0, so its countdown never ran), the glint's tick
+  (+0x7b4: the glint keeps its random draw and its redraws, which change what is drawn when), and the zeroed +0x7a4;
+  the count of live pieces (0x52d860); StartButton's highlight speed (+0x128, Update uses its own 0.1) and +0x130;
+  GameSelector's +0x098; the credits' +0x14c (never set, deleted if set); the Options dialog's ids of the PopCap page
+  and the partner links, whose buttons the port does not make.
+
+What stays: the fields a save writes (they keep the file's format: the meter's flash and fill flags, the bills to come,
+the level-up's 0.03, the piece's +0xa0), the empty destructors that carry the original's addresses, the selector's
+`mPanelY` (always 0, but the layout's anchor) and `MRANIM_UNUSED_18`, which numbers the animation table. `coverage.txt`
+gets `none` lines for the five functions. The frozen baseline is as before (`tools/check.sh bigmoney`: game 1 over,
+score 66646), and the port builds natively and for the web.
 
 ## Coverage check (2026-11-08)
 

@@ -72,7 +72,7 @@ set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js saveimport.js modpanel.
 # list with no web page is a configure error.
 set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica mummymaze tiptop bookwormadv ningpo
   pixelus alchemy wordharmony cosmicbugs waterbugs rocketmania dynomite bookwormadv2 mahjongjapan mahjongchina
-  bonnies bejeweledtwist bejeweled2 venice)
+  bonnies bejeweledtwist bejeweled2 venice heavyweapon)
 # The games still to come, <target>|<title>, each shown on the listing page as a "Coming soon" tile among the finished ones
 # (the user, 2026-11-02: "Add tiles for the upcoming games to the site and have them display disabled and say coming soon"):
 # the badge, the title and the year, sorted with the rest, not a link, and where to buy the game, so that a visitor can get
@@ -84,7 +84,7 @@ set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica m
 # games here are "The ports still to make" in docs/COORDINATION.md. Zuma Deluxe, Insaniquarium and Plants vs.
 # Zombies are left out: nobody ports them (the user, 2026-10-26).
 set(BYOPOP_WEB_UPCOMING
-  "heavyweapon|Heavy Weapon" "hammerheads|Hammer Heads"
+  "hammerheads|Hammer Heads"
   "astropop|AstroPop" "typershark|Typer Shark!" "pizzafrenzy|Pizza Frenzy" "igglepop|Iggle Pop"
   "feedingfrenzy|Feeding Frenzy" "chuzzle|Chuzzle" "feedingfrenzy2|Feeding Frenzy 2"
   "peggle|Peggle" "pegglenights|Peggle Nights" "bejeweled3|Bejeweled 3" "bananabugs|Banana Bugs"
@@ -1150,6 +1150,11 @@ function(byopop_web_index)
   # the music player's licence (web/music.js links it): libopenmpt's, as openmpt.wasm is built from it
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/libopenmpt.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/libopenmpt.txt COPYONLY)
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/libxmp-lite.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/libxmp-lite.txt COPYONLY)
+  # and its MIDI tunes': TinySoundFont, and TipTop's General MIDI bank cut from GeneralUser GS (third_party/generaluser-gs,
+  # whose licence asks a site to serve its own copy), fetched only when a MIDI tune plays
+  configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/tinysoundfont.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/tinysoundfont.txt COPYONLY)
+  configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/generaluser-gs.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/generaluser-gs.txt COPYONLY)
+  configure_file(${BYOPOP_WEB_BRAND_DIR}/../../third_party/generaluser-gs/tiptop.sf2 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/soundfonts/tiptop.sf2 COPYONLY)
   # the desktop themes' JPEG 2000 decoder's (web/gamepics.js loads jp2.wasm, built from OpenJPEG)
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/openjpeg.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/openjpeg.txt COPYONLY)
   # Desktop 95's text (web/skins.css): Byopop Sans, made from W95FA by Alina Sava (SIL OFL 1.1) by tools/web/pixelfont.py,
@@ -1267,9 +1272,11 @@ function(byopop_web_jungle)
 endfunction()
 if(EMSCRIPTEN)
   # The music player's decoder (web/music/openmpt_web.c, web/music.js; docs/WEB_PLAYER.md, "The music player"): libopenmpt on its
-  # own, as openmpt.js and openmpt.wasm beside the pages, which the listing page loads when its Music tab is first opened
-  add_executable(byopop_openmpt ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_web.c ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_solo.cpp)
-  target_link_libraries(byopop_openmpt PRIVATE openmpt xmp_lite stb)
+  # own, as openmpt.js and openmpt.wasm beside the pages, which the listing page loads when its Music tab is first opened. Its
+  # MIDI tunes (TipTop's) play through TinySoundFont (web/music/midi_web.c)
+  add_executable(byopop_openmpt ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_web.c ${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_solo.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../web/music/midi_web.c)
+  target_link_libraries(byopop_openmpt PRIVATE openmpt xmp_lite stb tinysoundfont)
   # (openmpt_solo.cpp reaches libopenmpt's own classes: its include folders and its build's definition, as its sources have)
   set(byopop_openmpt_dir ${CMAKE_CURRENT_LIST_DIR}/../third_party/libopenmpt)
   set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/../web/music/openmpt_solo.cpp PROPERTIES

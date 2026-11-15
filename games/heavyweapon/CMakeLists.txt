@@ -19,7 +19,8 @@ endif()
 if(EMSCRIPTEN)
   # A float or double out of the int range converts as on x86 (cvttsd2si: INT_MIN), not as wasm's saturating conversion
   target_compile_options(heavyweapon PRIVATE -mno-nontrapping-fptoint)
-  byopop_web_game(heavyweapon TITLE "Heavy Weapon Deluxe"
+  # _byopop_livesplit_block: the page's speedrun timer asks for the autosplit block's address (src/LiveSplitObserver.cpp)
+  byopop_web_game(heavyweapon EXPORTS _byopop_livesplit_block TITLE "Heavy Weapon Deluxe"
     COPYRIGHT "Heavy Weapon Deluxe © 2005 PopCap Games, Inc. All rights reserved." LICENSES libopenmpt)
 else()
   add_custom_command(TARGET heavyweapon POST_BUILD

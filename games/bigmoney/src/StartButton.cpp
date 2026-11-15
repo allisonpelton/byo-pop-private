@@ -14,8 +14,6 @@ StartButton::StartButton(WinBMApp* theApp, int theId, ButtonListener* theListene
 	mArrowFrame = 0;
 	mApp = theApp;
 	mDoFinger = true;
-	mHiliteSpeed = 0.05;
-	mUnused130 = 0; // port: left unset by the original (never read)
 }
 
 // 0x4192c0
@@ -53,7 +51,6 @@ void StartButton::Update()
 
 		if (mHiliteAlpha < 1.0)
 		{
-			mUnused130 = 0;
 			mHiliteAlpha += 0.1;
 			MarkDirty();
 		}

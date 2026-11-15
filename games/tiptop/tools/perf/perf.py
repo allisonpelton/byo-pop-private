@@ -42,7 +42,7 @@ ROOT = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], tex
 sys.path.insert(0, str(ROOT / "games/tiptop/tools"))
 NM = "E:/retools/llvm-mingw-20261006-ucrt-x86_64/bin/llvm-nm.exe"
 ORIGRUN = ROOT / "build/origrun-bin/origrun.exe"
-STAGE_ROOT = "C:\\byo-og"
+STAGE_ROOT = "E:\\byo-og"
 STAGE_RUN = "ttperf"
 SCREEN_GAME = 6
 SCREEN_GAMEOVER = 10

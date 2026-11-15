@@ -104,10 +104,11 @@ SurfaceDisplay::SurfaceDisplay(SexyAppBase* theApp) :
 	mVerifyWindow = false;
 #ifdef _WIN32
 	mGdiPresent = true;
+	mDwmPace = true;
 #else
 	mGdiPresent = false;
-#endif
 	mDwmPace = false;
+#endif
 	mFrameTexture = NULL;
 	mFrameTextureWhole = false;
 	mMaxPending = kDefaultMaxPendingRects;
@@ -130,9 +131,11 @@ SurfaceDisplay::SurfaceDisplay(SexyAppBase* theApp) :
 		anEnv = SDL_getenv("SURFACE_PRESENT");
 		if ((anEnv != NULL) && (strcmp(anEnv, "copy") == 0))
 			mGdiPresent = false;
-		// each present waiting for DWM's next composition instead of the framework's pace (no default: the user's choice)
+		// SURFACE_PACE=ms: the framework's millisecond pace in place of the wait for DWM's next composition, as before
+		// 2026-11-15 (the wait has been the default since, the user's choice), to measure against
 		anEnv = SDL_getenv("SURFACE_PACE");
-		mDwmPace = (anEnv != NULL) && (strcmp(anEnv, "dwm") == 0);
+		if ((anEnv != NULL) && (strcmp(anEnv, "ms") == 0))
+			mDwmPace = false;
 #endif
 	}
 }

@@ -73,6 +73,13 @@ public:
 		bool		mBouncy;
 		bool		mStart;
 		GridObject*	mObject;
+		// the glow the tutorial puts on the cells it points at (0x422610; the record at the cell's +0x40): state 0 none, 1 rising,
+		// 2 falling; the value is the strength 0..255 (it starts at minus the delay); the pause between two glows
+		int			mGlowState;
+		int			mGlowValue;
+		bool		mGlowWanted;	// the picture is the bright one, not the red one
+		bool		mGlowRepeat;
+		int			mGlowPause;
 	};
 
 	// one entry of the move history (+0xb114): {side, cursor, -1} for a thrown tile, {side, cursor, row or column of
@@ -106,6 +113,10 @@ public:
 	bool		mTileMoving;		// +0xb0a8 a tile was in flight at the last update
 	double		mGlow;				// +0xb108 the delay: 1.0 at the last throw, down by 0.03 an update to -1.5
 	int			mReveal;			// +0xb100 cells still to show as the picture: rows * cols, down by 3 an update
+	bool		mPointerOn;			// +0xb180 the cursor picture on a cell the tutorial points at
+	int			mPointerAlpha;		// +0xb17c 0 up by 5 an update to 255
+	int			mPointerCol;		// +0xb174
+	int			mPointerRow;		// +0xb178
 	bool		mGlowDone;			// +0xb110 the sweep is over
 	bool		mWaveOn;			// +0xf the shimmer runs
 	bool		mWaveEnabled;		// +0x1c the shimmer comes by itself (the help screen's grids switch it off, 0x422510)
@@ -162,6 +173,18 @@ public:
 	bool			IsBouncyAhead() const;						// the cell behind the landing cell is a bouncy block
 
 	void			Nudge(int theRow, int theCol, int theDir);	// 0x423d30: push the tiles in line behind a tile that landed
+	void			StartGlow(int theRow, int theCol, int theDelay);	// 0x422610
+	void			StartClickGlow(int theRow, int theCol);		// 0x424fc0: the red glow once, on a cell a click could not use
+	bool			AnyObjectIn(int theFirstRow, int theLastRow, int theFirstCol, int theLastCol) const;	// 0x422120
+	bool			HasOpenSide(int theRow, int theCol) const;	// 0x422180: not all four lines out of the cell hold an object
+	bool			FindStray(int* theRow, int* theCol) const;	// 0x4221f0: the first loose tile (in no wanted cell, not fixed) that has an open side
+	bool			FindStrayFrom(int* theRow, int* theCol, int theSkipRow, int theSkipCol) const;	// 0x422280: the same, from the cell given, skipping one
+	bool			IsSettled() const { return mDone && !mTileMoving; }	// 0x421df0
+	int				ClickReason(int theRow, int theCol);		// 0x424fc0: why a click on the cell did nothing (1 fixed block, 2 a line is open, 3 none is, 4 a start tile)
+
+	void			StopGlowRepeats();							// 0x421ae0
+	void			ShowPointer(int theRow, int theCol);			// 0x422520: the blue cursor picture fades in on the cell
+	void			HidePointer() { mPointerOn = false; }		// 0x422570
 	void			UpdateFinish();								// 0x424b30 after the tiles: the delay, the sweep and the shimmer
 	bool			IsFinished() const;							// 0x421e10: the countdown to the puzzle-completed screen may run
 

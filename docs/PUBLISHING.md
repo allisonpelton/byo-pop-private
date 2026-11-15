@@ -102,10 +102,52 @@ looks for Ninja or a compiler.
 `--out` writes the tree a snapshot would hold into a new folder and makes no commit, which is how to try a manifest
 or new wraps before they are committed (`--source` takes any commit, such as one made with `git commit-tree` from a
 temporary index). `--release-zip` builds the snapshot as the build check does and writes
-`build/byo-pop-<game>-<date>.zip`, the date being the snapshot's. It holds one folder: the exe, the DLLs of the build
-folder that the exe loads (read from its import table: SDL2, libc++ and libunwind; Windows' own are not copied),
-`README.txt` (the README up to its `## Building` heading, with Windows line ends) and the empty `assets/<game>/`
-folder for the player's own game files. No game file goes in, and nothing is uploaded.
+`build/byo-pop-<game>-<date>.zip`, the date being the snapshot's. It holds one folder: the exe, `README.txt` (the
+README up to its `## Building` heading, with Windows line ends) and the empty `assets/<game>/` folder for the player's
+own game files. No game file goes in, and nothing is uploaded.
+
+### What a release holds, and the small SDL
+
+The user's wish (2026-11-15): "For all the releases, I want to build everything except assets into the exe, and I want
+to minimize the uncompressed size of that exe without affecting performance". So a release is one exe, with no DLL
+beside it: its imports are Windows' own (`--release-zip` stops when one is not). The derived top-level `CMakeLists.txt`
+(the `toplevel` transform) sees to it for every game, and a manifest line sees to what differs per game:
+
+- **SDL is linked in.** `third_party/sdl-small/build.py <SDL2-2.32.10 source> <install folder>` builds SDL 2.32.10 from
+  its own release source, unmodified, as a static library at -O3 with its functions and data in sections, without unwind
+  tables and with its dynamic API off, keeping only what the ports call: the Windows video driver and the dummy one,
+  the Direct3D 11, Direct3D 9, OpenGL and software renderers, WASAPI, DirectSound and the dummy audio driver (the test
+  runs set `SDL_AUDIODRIVER=dummy`), events, threads, timers, files, the clipboard and OpenURL. Left out: joysticks,
+  haptics, sensors, HIDAPI, XInput, power, Vulkan, OpenGL ES, the offscreen and disk audio drivers, the Direct3D 12
+  renderer, and the test library. The ports never call `SDL_Init`, only `SDL_InitSubSystem` for video and audio, so a
+  subsystem left out cannot make it fail. On this machine it is installed in
+  `E:/retools/SDL2-2.32.10-small-i686` (the derived build and `--release-zip` look there unless `SDL2_DIR` says
+  otherwise), and the derived top-level file links `SDL2::SDL2-static`. The recipe is in every derived repository
+  (`include third_party/sdl-small`), and its README's "Building from source" says how to run it first.
+- **No exceptions.** The derived build compiles with `-fno-exceptions -fno-unwind-tables -fno-asynchronous-unwind-tables`
+  and links `--gc-sections` over `-ffunction-sections -fdata-sections`, `-static-libstdc++ -static-libgcc`, and `-s` in
+  a Release build. Nothing in a derived repository catches an exception (`framework/XMLWriter.cpp`'s one handler guards
+  an `fprintf` that cannot throw), and the only throws are `ResourceManager`'s `Get...Throw` functions, which end the
+  program (`std::terminate`) as the uncaught throw did. Both files compile either way (`__cpp_exceptions`), so the trunk
+  keeps its exceptions: AstroPop, Bejeweled 2, Bejeweled Twist, BookWorm Adventures 1 and 2 and Hammer Heads catch
+  `ResourceManagerException` in their `Res.cpp`, so a derived repository of one of them needs that decided first.
+  `platform/DerivedRuntime.cpp`, empty in the trunk, becomes real code in a derived repository and goes into the exe
+  itself (the `framework` transform): a `__cxa_demangle` that demangles nothing, which keeps libc++abi's demangler (some
+  140 KB with its tables) out. What is left of the exception machinery (libunwind, the personality routine, about 30 KB
+  of `.eh_frame`) is pulled in by libc++'s own prebuilt `string`, `mutex`, `thread` and `system_error`, which are built
+  with exceptions; none of the game's, the framework's or SDL's code adds a table of its own.
+- **No iostream.** The framework reads script lines, registry text and point arguments with `framework/TextScanner.h`,
+  which parses exactly as `std::istringstream` did (`tools/textscannertest.cpp` compares the two on 600,000 strings),
+  so libc++'s locale and iostream code (about 250 KB) is not linked into any game's exe.
+- **The save-import table of the game only.** The `saveimport` transform takes the game's name as its argument and
+  leaves that game's entry in `platform/saveimport.json`.
+- **Only the image formats the game's files hold.** The `stb` transform takes a list (`png,gif` for Rocket Mania) and
+  defines `STBI_ONLY_<format>` for each in `third_party/stb/stb_impl.c`. `platform/ImageLoader.cpp` hands JPEG files
+  to libjpeg first and GIF files to its own decoder, and stb_image decodes the rest and what they refuse. Read the
+  list from the game's files in the staged `assets/<game>/`, the Steam and disc copies and `re/_installers/`: all
+  of Rocket Mania's images are GIF, JPEG (baseline or progressive, 8 bits, 1 or 3 components, which libjpeg takes) and
+  PNG, with no TGA or BMP. A format a player's copy can hold stays in the list.
+- **-O3 stays.** The code is compiled and optimised as the trunk's; the size comes from what is not linked.
 
 A derived repository stays open, not archived: GitHub's documentation ("Archiving repositories") says an archived
 repository takes no push and no release until its owner unarchives it, and the user chose to keep it open (2026-11-15).

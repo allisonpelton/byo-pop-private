@@ -142,6 +142,10 @@ static ulong GreyPixel(ulong thePixel)
 // 0x41c790
 WinBMApp::WinBMApp()
 {
+	// The original starts in 2D: its 3D test runs only for a registry Is3D, which nothing a player can reach sets (no 3D box;
+	// Shift+F8 only with the debug keys). So the display keeps the 2D flags on the GPU path too: 2x and the web
+	// (SexyAppBase::mDefault3D, DDInterface::mAppWants3D)
+	mDefault3D = false;
 	mPendingSeed = 0; // port(mods)
 	mReplayDir = "replays";
 	mWatchFile = NULL;
@@ -1112,12 +1116,6 @@ void WinBMApp::ButtonDepress(int theId)
 		ConfirmQuit();
 		break;
 	}
-}
-
-// 0x421450: the original offers an update check when ShouldCheckForUpdate() (ConfirmCheckForUpdates); not
-// ported, the port never checks for updates
-void WinBMApp::LoadingThreadCompleted()
-{
 }
 
 // 0x421470: no mButtonImage, the left bar art shows the buttons; the widget only adds the hover and

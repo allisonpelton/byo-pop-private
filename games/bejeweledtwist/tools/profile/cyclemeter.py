@@ -7,6 +7,8 @@ Every quarter second it reads QueryProcessCycleTime, the cycles the process's th
 included, and the process's age from its creation time. It writes the cycles in the window <from> to <to> seconds of the
 process's life (read at the first sample at or past each end) and over the whole run, until the process exits. Cycle
 counts, not GetProcessTimes: Windows charges those at the 15.6 ms clock tick, so a reading moves by whole ticks.
+With each reading it takes the process's private bytes (GetProcessMemoryInfo's PrivateUsage), and writes them at <from>
+(inside the first board on both sides) and at their peak.
 """
 import ctypes
 import ctypes.wintypes as W
@@ -26,6 +28,18 @@ SYNCHRONIZE = 0x100000
 def cycles(h):
     c = ctypes.c_ulonglong()
     return c.value if k32.QueryProcessCycleTime(h, ctypes.byref(c)) else None
+
+
+class PMC(ctypes.Structure):
+    _fields_ = [('cb', W.DWORD), ('PageFaultCount', W.DWORD)] + [(n, ctypes.c_size_t) for n in (
+        'PeakWorkingSetSize', 'WorkingSetSize', 'QuotaPeakPagedPoolUsage', 'QuotaPagedPoolUsage',
+        'QuotaPeakNonPagedPoolUsage', 'QuotaNonPagedPoolUsage', 'PagefileUsage', 'PeakPagefileUsage', 'PrivateUsage')]
+
+
+def private_mb(h):
+    m = PMC()
+    m.cb = ctypes.sizeof(m)
+    return round(m.PrivateUsage / 2**20, 1) if psapi.GetProcessMemoryInfo(h, ctypes.byref(m), m.cb) else None
 
 
 def created(h):
@@ -77,15 +91,19 @@ def main():
     at0 = at1 = None
     last = 0
     samples = []
+    mem0, peak = None, 0
     while k32.WaitForSingleObject(h, 250) != 0:
         c = cycles(h)
         if c is None:
             continue
         age = now() - born
         last = c
-        samples.append((round(age, 2), c))
+        mb = private_mb(h)
+        samples.append((round(age, 2), c, mb))
+        peak = max(peak, mb or 0)
         if at0 is None and age >= w0:
             at0 = (age, c)
+            mem0 = mb
         if at1 is None and age >= w1:
             at1 = (age, c)
     c = cycles(h)
@@ -94,11 +112,13 @@ def main():
     if at0 and at1:
         res['window_gcycles'] = round((at1[1] - at0[1]) / 1e9, 3)
         res['window_read_at'] = [round(at0[0], 2), round(at1[0], 2)]
+    res['private_mb_at_from'] = mem0
+    res['private_mb_peak'] = peak
     res['samples'] = samples
     with open(out, 'w') as f:
         json.dump(res, f)
-    print('%s: window %s Gcycles, whole run %.3f Gcycles in %.1f s' % (
-        os.path.basename(out), res.get('window_gcycles', 'n/a'), total / 1e9, res['lifetime_s']))
+    print('%s: window %s Gcycles, whole run %.3f Gcycles in %.1f s, private %s MB at %g s, peak %s MB' % (
+        os.path.basename(out), res.get('window_gcycles', 'n/a'), total / 1e9, res['lifetime_s'], mem0, w0, peak))
     if proc:
         proc.wait()
 
