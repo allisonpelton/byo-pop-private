@@ -167,7 +167,27 @@ the scratch's comparison is the test it would have to pass: the same route in ev
 
 The lite-mod step is therefore done with no mod.
 
-## Figures to redo when the renderer default is settled
+## Re-measured on the settled renderer (main at bdfda2f7, 2026-11-15)
+
+Main now batches draws on the GPU path and waits for DWM by default. The held-atom stretch (the same script, `-fix=drawRandom`, real
+time, one performance core, rundesk, the scratch build with the original search or the exact one, turn about) was run again, six pairs
+on the new default and three on `SDL_RENDER_DRIVER=opengl`. The machine was close to fully busy during the default runs (the log's
+busy fraction 0.95 to 1.0 in all but one), and some runs fell behind the 100 updates a second (73 to 80 in three), so these are noisier
+than the earlier ones.
+
+| | original, process G cycles | exact, process G cycles | median ratio | the pairs' ratios |
+|---|---|---|---|---|
+| new default (a graphics driver thread, 1.1 to 2.4 G of the total) | 9.63, 7.41, 4.65, 9.63, 9.92, 10.24 | 8.53, 8.76, 7.94, 9.78, 8.52, 8.04 | 0.885 | 0.79 to 1.71 |
+| `SDL_RENDER_DRIVER=opengl` | 9.55, 8.47, 9.50 | 6.42, 8.96, 9.48 | 0.943 | 0.67 to 1.06 |
+
+The searches themselves, counted in the one run with both: 2,002 searches, the original 922 M cycles (default) and 813 M (OpenGL)
+against 34 M and 48 M for the exact method, no different route. The totals still move by a factor of two from run to run (4.65 to
+10.24 G for the original on the default), so the process cost of the stretch is as before: the ratios lean below 1, as the 5 to 8%
+share allows, but a pair can read 1.71, and nothing here can be told from the machine's load. The conclusion stands: no mod. The game
+thread's own figures (the per-search cycles, the route counts, the 1,187,177 comparisons) do not depend on the renderer and were not
+repeated.
+
+## Figures taken before that (the earlier default, Direct3D 11 asked for first)
 
 The framework session is re-deciding the renderer default (trunk commit ccec8c20 asks SDL for Direct3D 11 first; the
 `SDL_RENDER_DRIVER` environment variable overrides it; a run's log line says `renderer direct3d11` even with
