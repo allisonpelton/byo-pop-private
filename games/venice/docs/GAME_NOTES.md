@@ -41,8 +41,39 @@ original's BASS calls (`tools/bassproxy`, a logging BASS beside the exe) with th
 `webshots.py <scenario>` takes the same shots from the web build under Node (`wasmrun.js`) and compares them with the native
 ones. The tours: `shots_name`, `shots_tutorial`, `shots_menus`, `shots_ingame`, `shots_flood`, `shots_survival`,
 `shots_trickshot`, `shots_journey` and `shots_focus` (the window losing the focus and getting it back; its original run needs
-the sandbox, and a shot in the lost state is a `waitshot`). `shots_menus3d` is the 3D original's menus (see "Left in phase two"
-in `IDENTICAL_PLAY.md`). A scenario's `SHOT_MARGIN` (1000 frames) keeps the run going past its last shot.
+the sandbox, and a shot in the lost state is a `waitshot`). `shots_menus3d` is the 3D original's menus, which cannot run in the sandbox
+and goes through `visshots.py` instead (the next section). A scenario's `SHOT_MARGIN` (1000 frames) keeps the run going past its last shot.
+
+## The 3D original on the desktop (visrun)
+
+The original's Direct3D 7 mode does not run in the sandbox, so its shots come from `tools/visrun.py` (`docs/VISRUN.md`) on the
+visible desktop, 22:00 to 08:00 or with `--user-window-until`. `games/venice/tools/idplay/visshots.py` does the whole of it for a
+scenario (`shots_menus3d`), and the port's side is idplay's, with the original's ticks and landed updates:
+
+```bash
+python -I games/venice/tools/idplay/visshots.py prep shots_menus3d       # the step file and the config, then visrun's --dry-run
+python -I games/venice/tools/idplay/visshots.py original shots_menus3d   # about 8 minutes; --user-window-until HH:MM outside the night
+python -I games/venice/tools/idplay/visshots.py port shots_menus3d       # the port's run, under rundesk
+python -I games/venice/tools/idplay/visshots.py compare shots_menus3d    # the seed, the last scene's ticks and the ticks, frame by frame
+python -I games/venice/tools/idplay/visshots.py diff shots_menus3d       # tools/shotdiff on the two folders
+```
+
+What `games/venice/tools/visrun/venice.toml` needed, for the next game that uses visrun: `pos` (a game not placed stays centred, and
+another game's window over it makes visrun refuse the shot, exit 4); `--timeout 600` (the default 120 s was too short for a wait on
+the loading); the values visrun prints are unsigned (`loadstate` -2 and -1 come as 4294967294, so `visshots` reads them signed); and a
+peek at every update, since the update the loading ends at differs from run to run (the original loads on a thread of real time).
+Only `gamecount` says whether there is room for another game process; a chained run waits in a loop for it.
+
+The peeks are read inside the game at its waits, and in the 3D original that can fall inside an update, so for a frame the
+counter's step (`0xa2a1ac`) is the ticks run between two peeks, 235 at most here, and `0x5b51c8` (the ticks of the last batch) is
+not the frame's; a step over 100 is more than one widget update (the widget gives up above 100, `GiveUpBehindUpdates`, which the
+decompilation of 0x440650 confirms). A reset of the tick base in the update's loop (a scene inserted by an action) leaves the counter
+at 1 for that frame: `visshots.schedule` takes the ticks of that frame and the next from the clock's move over both and the new
+scene's tick count in the next, which is how the credits' loading screen turned out to end on the same tick in 3D and 2D.
+
+The 3D picture is half a pixel from SDL's, because Direct3D 7 has the centre of a pixel at the whole-number coordinate: `VeniceDisplay`
+(`VeniceApp.cpp`) adds 0.5 to the position of a transformed picture in the 3D mode. Other games of the framework that were
+D3D7 originals and draw transformed pictures in 3D may be half a pixel off in the same way.
 
 ## Deviations (each without a visible effect)
 
