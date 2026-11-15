@@ -53,6 +53,11 @@ tutorial's bubbles and the sticky-spots bubble, which takes updates, and to 4647
 
 ## Oddities (not chased)
 
+- **Two scripted clicks in the tutorial's first puzzle (`t20`, updates 1566 and 1571).** At update 1580 the port shows
+  both thrown tiles landed; the original shows the second one only and the white cursor with its arrow on the first
+  target cell. By update 1620 both have them and the puzzle ends the same. What it would take: the original's click path
+  (0x408400 stores the click's place at +0x148 and +0x14c, and 0x403370 compares it with the next move: a move of more than
+  40 pixels clears +0x1cc and ends a pending pull; the port has neither) and a log of its tile flights.
 - **Cursor and side after the first throw.** The original's cursor/side values (`grid+0xb054`, `+0xb058`) at the first
   move are the ones the port shows after its second move (it skips one change), then both agree. The tiles' places, the
   moves and everything else are the same; the values are the aim, which the bot's hover/click pairs set in a different
