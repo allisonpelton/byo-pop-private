@@ -133,8 +133,9 @@ beside it: its imports are Windows' own (`--release-zip` stops when one is not).
   `ResourceManagerException` in their `Res.cpp`, so a derived repository of one of them needs that decided first.
   `platform/DerivedRuntime.cpp`, empty in the trunk, becomes real code in a derived repository and goes into the exe
   itself (the `framework` transform): a `__cxa_demangle` that demangles nothing, which keeps libc++abi's demangler (some
-  140 KB) out, and `operator new` and `delete` over `malloc`, which end the program when memory runs out as the
-  uncaught `std::bad_alloc` did, and keep the unwinder and its tables out.
+  140 KB with its tables) out. What is left of the exception machinery (libunwind, the personality routine, about 30 KB
+  of `.eh_frame`) is pulled in by libc++'s own prebuilt `string`, `mutex`, `thread` and `system_error`, which are built
+  with exceptions; none of the game's, the framework's or SDL's code adds a table of its own.
 - **No iostream.** The framework reads script lines, registry text and point arguments with `framework/TextScanner.h`,
   which parses exactly as `std::istringstream` did (`tools/textscannertest.cpp` compares the two on 600,000 strings),
   so libc++'s locale and iostream code (about 250 KB) is not linked into any game's exe.
