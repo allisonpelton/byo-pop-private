@@ -640,6 +640,14 @@ pictures of the interface that the exe never names). The differences:
   neither file's, apart from the 20 (the Collection's 40 and 10 are the first two swapped). So the two versions' games score differently: in Classic the bot's game first differs at a blast on
   level 2 (update 7,755), where the Steam files' game stands at 5,902 and the Collection's at 1,492. The port takes whichever file it is
   given, as the original does.
+- **Steam's file check, 2026-11-15, replaced that `config.xml`** (the user ran "Verify integrity of game files": 28 files failed and were
+  rewritten, `config.xml` and 27 pictures of `data`, `images` and `drm/common`, the same pictures that the Steam launcher's first run had
+  rewritten). The install's `config.xml` had been the one dated 2018-02-21 with the Steam constants above (1.0, 1000, 1000, 400, 1, 1), and the
+  file Steam serves now has the Collection's (0.05, 40, 10, 20, 500, 150). So the scores that the user doubted on 2026-11-10 (5,500 and 2,400 on
+  levels 10 and 11) and the all-flame Finity boards were the stale file's, not the shipped game's; the port's play on them was right, and
+  it takes whichever file it is given. The staged assets (`assets/bejeweled2`) and the original's copy under `build/visrun/bej2` were
+  copied before the check, so every comparison and frozen baseline so far (the tours, `tools/check.sh bejeweled2`'s bot games) holds the old
+  constants; restaging gives the new ones and changes the three constant-reading games' transcripts (Classic, Endless, Finity) as the section above says.
 
 **The port on the Collection's files** (`tools/collection/run.sh`; `tools/stage_assets.py` stages a Collection folder as it does a Steam
 one: it takes `Bejeweled2.exe` as well as `WinBej2.exe` and renames the puzzle folder). `portshots.sh` takes `PORT_EXE` and `REGKEY`
