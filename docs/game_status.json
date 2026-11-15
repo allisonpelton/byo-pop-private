@@ -544,11 +544,12 @@
         "registration-out",
         "performance",
         "lite-mod",
-        "unneeded-code"
+        "unneeded-code",
+        "collection"
       ],
       "na": [],
-      "now": null,
-      "note": "the lite mod step done with no mod (1b87b2ec: the whole game update is 5.3% of the port's cycles) and unneeded code out (8d8a9cc9: the cutscene's, map's and results screen's Resize overrides, which no play reaches; the map places its children itself as the original does); next the Collection check, then the site features"
+      "now": "site-features",
+      "note": "the Collection check done (65ce9233): the Collection's game is the same (.text and .data identical to Steam's, 241 of 242 differing pictures pixel-identical where shown; title.jpg has the newer logo), and the port plays level 4 from its files identically; left: the site features, with the site's session"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",
