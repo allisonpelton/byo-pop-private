@@ -399,6 +399,10 @@ The tools in `tools/profile`: `alt.sh` (the alternating runs; sides `orig`, `por
 `WH_PERF_PATCHES` (the original's patch file), `WH_PERF_FRAMES=<from>:<to>` (a shorter window), `WH_PERF_EXE`, `WH_PERF_WINDOWED`
 and `WH_PERF_PORTARGS`.
 
+## Lite mod (2026-11-15)
+
+None: nothing in the game's logic is worth a toggle (about 1% of the samples). `docs/LITE_MOD.md` says what was looked at.
+
 ## Coverage check (2026-11-11)
 
 `docs/COVERAGE.md` describes the check. `coverage.txt` beside this folder is its settings file (the export, the sources, the
