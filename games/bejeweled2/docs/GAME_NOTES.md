@@ -171,6 +171,7 @@ menu's fields as its second base sees them, and the update checkbox that is not 
 constructor does clear).
 
 ## Oddities (skipped, not chased)
+- **3D Classic and Finity tours on the retail constants (2026-11-15): the global generator's phase differs by a few draws, so a level change puts the carried-over flame gem on another square.** What differs: in `record_3d_tours.sh`'s Classic tour the original and the port draw the same number of numbers from the global generator, but a small burst of per-update draws (3 draws at update 1914-1916, then 2 at 3121 in the original and 2 at 3172 in the port, 2 at 4234 and 4285, the same 51 updates apart) happens at a different update, so when the level changes (update 6207) the port is 3 to 5 draws ahead, `BoardWhirl.cpp`'s carried-over flame is picked from other numbers (the original's lands on the top row's third gem, the port's on the sixth row's first) and the next clear scores 112 where the port's scores 75 (a flame's 25 times 1.5 more); the boards differ from there (Classic's board-played shot, score 912 against 755). Finity differs the same way from its level change at update 7270. The other six modes' score sequences are equal step for step. How to see it: `MODES=classic OUT=build/visrun/rec3d_ret record_3d_tours.sh`, then `VISRUN_WATCH='{B}+0x15e20;0x67d910;{B}+0x170c;{B}+0x15e0' run_tour_visible.sh build/visrun/rec3d_ret/classic/events.json <tag>` and compare watch 2 of the original with watch 5 of the port's `port.log` per update (draws per update: the first mismatch is at 1914). Not found: which effect draws those 2 or 3 numbers and why it comes 51 updates later in the port (a timer that the board starts from another update count is the likeliest). To go on: log the caller of `Rand()` at port updates 1914 and 3172 and find the original's caller at 3121 by a watch or a breakpoint in the original, or in the port's `Board::Update` check the timers that count from `mUpdateCnt` against the original's app counter (`[0x67ccd8]+0x484`).
 
 - **PuzzlePackSelector's double click** calls `ButtonDepress(1000)`.
 - **A missing galaxy file** (`GalaxyParser`): the "Unable to open galaxy.xml file" error is overwritten by the empty parse
@@ -224,6 +225,12 @@ constructor does clear).
   was not found. The difference is small against the board's own motion in the same region (the region changes about ten times as
   much between two shots), so another frame of a gem's own animation is unlikely and a filter on a moving gem (Direct3D 7's against
   Direct3D 11's, at a fractional position) is the likelier cause; neither was tested. Not chased.
+- **Finity's 3D boards are washed out by the explosion waves' point lights.** The port sets every shock wave's `mGrowing` true (the original never
+  sets it: stack garbage at `ebp-0x64` of `0x5a63a3` and `ebp-0x4c` of `0x5a6e5f`), so each blast lights the gems around it to white for 30
+  updates. In the original's Action tour all four blasts kept their wave (the byte was non-zero), in Finity's none did. To see it: the Finity
+  3D tour (`record_3d_tours.sh`, `run_tour_visible.sh`, `shotsum.py v3d_n3d_finity`: level 3 shots 1 and 2). To go on: `VISRUN_WATCH` (visrun.py)
+  takes other watch expressions; the wave vector is at Board `+0x16010` (first `+0x16014`, last `+0x16018`, 32-byte elements), but the
+  watch of it did not move in Finity even for the score texts, so check the offsets first. Not chased yet; needs the original at night.
 - **The original's first run after another one sometimes never creates a board** (seen a few times, in 2D and 3D alike, as a
   state watch that stays at its title value); a second run is as the first should have been. `run_original.sh` runs again
   when a log has no board.
@@ -541,7 +548,7 @@ pictures at the title are `Menu-Gadgets` and `GMAP` (1024 by 768, 3 MB each; `GM
 `firering` 1.6 MB and the font, hypergem and black-hole sheets 1.1 to 1.3 MB; the port loads the resource groups the original's manifest names. *2D*: `privateAtStart` 12.3 MB, 243
 pictures at the title (16.2 MB, 3.3 MB of textures), private bytes 59.4 MB at the title and 100.7 MB with the board up (296 pictures, 33.2 MB of
 pixels and 22.8 MB of textures with 111 of them having one): the pictures that were 8-bit pixels and a palette at the title are 32-bit pixels
-with a texture once the board has drawn them (the framework's doing), and the original's private bytes rise by 3 MB at the same point (39.7 to 42.8 MB). Only two pictures are new at the board (the
+with a texture once the board has drawn them (the framework's doing; since 22e4a3d6 the pictures are uploaded at load, which takes 10 MB off the 3D game's first board, so these figures are the older ones), and the original's private bytes rise by 3 MB at the same point (39.7 to 42.8 MB). Only two pictures are new at the board (the
 backdrops, 1.2 MB each) besides the 4 MB the game makes itself. *The web build* (`nodemem.js` under Node, the 2D scenario through the page's
 own wasm, `wasmrun.js game`): the same 6,423 updates and 643 draws and score 565, 3.2 s of processor time with the start-up, the wasm memory 45 MB
 at the title and 93 MB with the board up (Node's own resident set peaks at 165 MB with its 33 MB and the game files' copy). Its frame time in a browser was not measured: the Browser pane may be hidden and runs no
