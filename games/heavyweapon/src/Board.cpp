@@ -367,6 +367,7 @@ void Board::ButtonDepress(int theId)
 			anApp->mWidgetManager->RemoveWidget(this);
 			anApp->SafeDeleteWidget(this);
 			anApp->mBoard = NULL;
+			anApp->BeginGame(true, false);		// port(autosplit): survival starts again
 			anApp->StartSurvival();
 			return;
 		}
@@ -385,6 +386,7 @@ void Board::ButtonDepress(int theId)
 		else
 			mApp->mWidgetManager->AddWidget(new HighScoresScreen(mApp, mIsSurvival, mRank));
 		HeavyWeaponApp* anApp = mApp;
+		anApp->EndGame();		// port(autosplit): the high scores end the game
 		anApp->mBoard = NULL;
 		anApp->KillDialog(DIALOG_GAME_OVER);
 		anApp->mWidgetManager->RemoveWidget(this);

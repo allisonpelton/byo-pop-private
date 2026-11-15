@@ -1,4 +1,5 @@
 #include "HeavyWeaponApp.h"
+#include "LiveSplitObserver.h"
 #include "FlickerLight.h"
 #include "Armory.h"
 #include "Board.h"
@@ -90,6 +91,10 @@ HeavyWeaponApp::HeavyWeaponApp()
 	mTitleScreen = NULL;
 	mLoadingCompleteShown = false;
 	mTraceFile = NULL;
+	mGamesBegun = 0;
+	mGameSerial = 0;
+	mGameIsSurvival = false;
+	mGameResumed = false;
 	mMainMenu = NULL;
 	mMusicVolume = 0.3;
 	mSfxVolume = 0.9;
@@ -127,6 +132,7 @@ HeavyWeaponApp::HeavyWeaponApp()
 // the port frees them
 HeavyWeaponApp::~HeavyWeaponApp()
 {
+	LiveSplitObserver::AppDestroyed(this);		// port(autosplit): the autosplit block's last write
 	if (mTraceFile != NULL)
 		fclose(mTraceFile);
 	for (int i = 0; i < NUM_IMAGES; i++)
@@ -338,6 +344,7 @@ void HeavyWeaponApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 // 0x401a80: the main menu; with no player yet, the dialog that asks for a name over it
 void HeavyWeaponApp::ShowMainMenu()
 {
+	EndGame();		// port(autosplit)
 	mMainMenu = new MainMenu(this);
 	mWidgetManager->AddWidget(mMainMenu);
 	mWidgetManager->SetFocus(mMainMenu);
@@ -564,6 +571,27 @@ void HeavyWeaponApp::UpdateFrames()
 		if (mSoundDelays[aSound] > 0)
 			mSoundDelays[aSound]--;
 	}
+	LiveSplitObserver::AfterUpdate(this);		// port(autosplit): the autosplit block, after the update
+}
+
+// port(autosplit): -livesplitlog=<file> asks for the autosplit block and logs it; everything else is the framework's
+void HeavyWeaponApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);
+	else
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
+}
+
+// port(autosplit): a game begins, at the click that starts it: the main menu's campaign for a new player, the continue
+// dialog's NEW GAME or CONTINUE, survival (or the help's PLAY before it), and the game-over box's CONTINUE in survival,
+// which starts survival again. The game-over box's CONTINUE in a campaign goes on with the same game.
+void HeavyWeaponApp::BeginGame(bool isSurvival, bool isResumed)
+{
+	mGamesBegun++;
+	mGameSerial = mGamesBegun;
+	mGameIsSurvival = isSurvival;
+	mGameResumed = isResumed;
 }
 
 // 0x406b20 slot 38: the last player and the particle setting to the registry, the players and high scores to their files
@@ -967,6 +995,7 @@ void HeavyWeaponApp::ButtonDepress(int theId)
 		mWidgetManager->RemoveWidget(mHelpScreen);
 		SafeDeleteWidget(mHelpScreen);
 		mHelpScreen = NULL;
+		BeginGame(true, false);		// port(autosplit)
 		NewGame(true);
 		break;
 	}

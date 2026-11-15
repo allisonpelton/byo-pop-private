@@ -70,16 +70,21 @@ works. You can switch the hints off, or show them again, in Options.
 
 ## Building from source
 
-The build makes a 32-bit Windows program with llvm-mingw. You need CMake 3.20 or later, Ninja, an llvm-mingw
-toolchain (i686 target) and the SDL2 development package for MinGW (2.32.x), whose `i686-w64-mingw32` folder holds
-the CMake files. Point `LLVM_MINGW_ROOT` at the toolchain folder, then from this folder:
+The build makes a 32-bit Windows program with llvm-mingw, in one exe: SDL2 and the C++ runtime are linked into it. You
+need CMake 3.20 or later, Ninja, Python 3, an llvm-mingw toolchain (i686 target) and the source of SDL2 2.32.10
+(SDL2-2.32.10.tar.gz from libsdl.org, unpacked as it is). Point `LLVM_MINGW_ROOT` at the toolchain folder. First build
+the small static SDL2 that the program links, once (it keeps only what the program uses):
+
+    python third_party/sdl-small/build.py <SDL2-2.32.10 source folder> <SDL2 install folder>
+
+then, from this folder:
 
     cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_TOOLCHAIN_FILE=cmake/llvm-mingw-i686.cmake \
-      -DSDL2_DIR=<SDL2>/i686-w64-mingw32/lib/cmake/SDL2
+      -DSDL2_DIR=<SDL2 install folder>/lib/cmake/SDL2
     cmake --build build --target rocketmania
 
-`build/rocketmania.exe` and `SDL2.dll`, the one DLL it needs (the C++ runtime is linked in), are in `build/`. To
+`build/rocketmania.exe` is the whole program, with no DLL beside it. To
 copy the game's files into `assets/rocketmania/`, where the program finds them when it runs from `build/`:
 
     python games/rocketmania/tools/stage_rocketmania_assets.py "<your Rocket Mania Deluxe folder>"

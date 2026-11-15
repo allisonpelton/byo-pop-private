@@ -122,7 +122,8 @@ or over. The input steps are those the drivers send as real events: `{"move": [x
 `"button": "right"` for the aim switch), `{"press": ...}`/`{"release": ...}`, `{"key": "Escape"}` and `{"wait": n}`
 (n game updates). The `kind` says why: `hover` (put the pointer on the board, since a pointer over the bottom panel stops
 the play), `aim` (move to the line's start), `turn` (the right click that switches across and down), `shot` (the
-click), `launch` (the button a title, options or instructions screen needs), `continue` (a click through a won board's
+click), `launch` (the instructions page's Play button, or a power-up weapon's launch click on a board; the title's and
+options' buttons are the driver's own), `continue` (a click through a won board's
 texts), `wait` (nothing to do for 10 updates) and null. The bot searches the cells where a line fills most of the board without crossing an enemy's
 path in the time the line takes (`Safe`), and when it finds none for 30 asks in a row on a board it takes the best gain
 anyway, so a board always ends. It plays the game's own rules from the game's own state, one shot at a time, and a mod
@@ -190,6 +191,8 @@ or down could turn at every junction. The fix keeps it for both. It changes the 
 after it, which is what a fix to play is. `shieldFlash`: a beam touching an enemy starts its shield flash at the
 enemy's x for its y (`Enemy_Shield`, "sic" in the code) and the next update puts it right, so a frame drawn between
 shows it in the wrong place. The fix starts it on the enemy. It changes no draw of the game's random numbers.
+
+There is no lite mod: the game's logic is 3 to 5% of the process and its one lite candidate, the star list, under 1% of it (`LITE_MOD.md`).
 
 ### Fix candidates
 
@@ -411,9 +414,31 @@ and `tools/shotdiff`. The exe's pictures equal the runner's in 47 of 47 at both 
 differs between any two runs of one exe on either display (the bimodal oddity below); the web build's equal the exe's 47 of 47 at 1x and 46
 of 47 at 2x, the one a faint difference in the same animation. The runner is the engine that phase two compared with the original screen by
 screen (and its frozen baseline keeps it so), and the new display only changes how that screen reaches the window, so the chain
-original, runner, exe, web holds. A fresh run of the original beside it, in Windows Sandbox, was not made: origrun's patch file for this game
-(`tools/origrun/patches/cosmicbugs.txt`: the seed and the frame wait) is git-ignored and was not in this worktree, the main checkout or the
-backup mirror, so the sandbox run could not start; recreating it is possible from the export but was not needed for the display's part.
+original, runner, exe, web holds. A fresh run of the original beside it, in Windows Sandbox, was not made that day: origrun's patch file for
+this game (`tools/origrun/patches/cosmicbugs.txt`: the seed and the frame wait, git-ignored) was in no worktree, in the main checkout or in the
+backup mirror. It was written again from the export that evening: the seed patch replaces the call to `timeGetTime` and its push in
+`SeedCrtRand` (0x42b8c0: `e8bbd5ffff50`, six bytes, becomes `68{seed}90`), and the wait replaces the 39 bytes of `GameMain`'s loop from
+0x41ef64 that call the message pump, read the time, subtract the last one and sleep 1 ms when the difference is negative: the pump, then
+`Sys_Sleep(10)` (0x428820), then the time read and the subtraction, so that every frame's elapsed time is exactly 10 (a wait put after the
+present instead, tried first, runs the original one frame ahead of the runner: its lives changed at update 2991 where the runner's changed at
+3001). `tools/play/pair.sh` on g1, g2 and a1 with the new file gives what IDENTICAL_PLAY.md records: seed, score, lives and fill the same at
+every update of the 200, 400 and 300 seconds (the original's seed series has one more change than the runner's at the end of g1, past the
+last compared update).
+
+**The original in Windows Sandbox, the same day (2026-11-12).** With that patch file the original's menus tour (`test/tours/menus.txt`, 47
+shots, `tools/play/tour.py`, `or.sh` with `--sandbox --surface-screen 708ee0,708edc,800,600,15 --surface-gate 707880`, plain sandbox runs
+with no window and no sound) was shot beside the runner's (`CB_555=1`) and compared by `tools/shotdiff`: 42 pairs identical and 5 only
+faintly different (the title after Esc from a board, and the Change User screens: the one-step soft edges IDENTICAL_PLAY.md lists). The
+player's name is the one visible difference, and a harness condition: a new profile takes the Windows user name, which is SYSTEM for the
+sandbox's run and GUEST for the runner's host, so `games/cosmicbugs/shotdiff.json` ignores the name's rectangles on the pairs that show it
+(the "Hello, <name>" line on the title, the Change User list). The 400 s g2 play with a shot every 4 s (99 shots, the first at the very
+millisecond of the instructions page's Play click) gave 84 identical, 4 faint and 11 differing. Three of those (s001, s049, s086) are the
+original's shot landing two or three frames late (`landed.tsv`: 20, 10 and 30 updates after the one asked for); the port's shots at
+the updates they landed on equal them, 3 of 3. The other eight (s059, s060, s071, s072, s074, s075, s080, s091) each differ in a box around
+one enemy sprite, the draw-order oddity of IDENTICAL_PLAY.md (same-depth sprites are ordered by their address, which differs between the
+original and the port, and between the port's builds: that pass found 2 such shots in 100, this build 8 in 99): with the draw list's tie
+rule flipped in a scratch runner build, which was not kept, those eight shots no longer differ visibly (like every other shot of that
+build they differ faintly on the stars, which the same rule orders), so the order is their cause.
 
 **Real input through the window.** `tools/play/drive.py` (posted SDL events through `-realinput`, the bot's moves through `move`, under rundesk,
 in real time) now also starts a game in a window (`manual-win1x`: 800x600, `auto-win2x`: the framework's 1600x1200), where the window's own

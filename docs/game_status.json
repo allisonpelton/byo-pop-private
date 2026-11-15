@@ -132,7 +132,7 @@
         "collection"
       ],
       "now": null,
-      "note": "every phase but modding done: the lite mod step closed with no mod (20a8029f). An exact Dijkstra-pruned route search gives the same route in all 1,187,177 searches compared, but the original's search is 5-8% of the process only in its worst state and about 0.5% in bot games, so neither is measurable; its figures to redo after the renderer decision are listed in LITE_MOD.md"
+      "note": "every phase but modding done: the lite mod step closed with no mod (20a8029f). An exact Dijkstra-pruned route search gives the same route in all 1,187,177 searches compared, but the original's search is 5-8% of the process only in its worst state and about 0.5% in bot games, so neither is measurable; re-measured on the settled renderer (main bdfda2f7): six pairs, median ratio 0.885 but pairs from 0.79 to 1.71 on a busy machine, so still not measurable (LITE_MOD.md)"
     },
     "mummymaze": {
       "title": "Mummy Maze Deluxe",
@@ -457,11 +457,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "performance"
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "performance done: 86 against 110 M cycles a second at 800x600 through SurfaceDisplay; real-input play, window changes and the screens pass with it; the autosplit block, then the lite mod"
+      "now": null,
+      "note": "every phase but modding done; lite mod: none taken (LITE_MOD.md, measured again on merged main: the step is 3 to 5% of the process, the star list under 1%); performance 86 against 110 M cycles a second at 800x600 through SurfaceDisplay"
     },
     "waterbugs": {
       "title": "Water Bugs",
@@ -496,11 +497,12 @@
         "readability",
         "collection",
         "site-features",
-        "performance"
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "processor time 0.85 of the original's at 800x600 and 0.83 in the default window, through SurfaceDisplay (full screen keeps the renderer, about 1.1); the lite survey next"
+      "now": null,
+      "note": "every phase but modding done; lite mod: none taken (LITE_MOD.md: findHint's walks take about 1 ms a call); the mod menu holds the game and its clock (402f4ffb, clickthrough passes); processor time 0.85 of the original's at 800x600 and 0.83 in the default window through SurfaceDisplay, measured before the batching merges"
     },
     "bejeweled2": {
       "title": "Bejeweled 2 Deluxe",
@@ -556,7 +558,7 @@
       ],
       "na": [],
       "now": "site-features",
-      "note": "the Collection check done (65ce9233): the Collection's game is the same (.text and .data identical to Steam's, 241 of 242 differing pictures pixel-identical where shown; title.jpg has the newer logo), and the port plays level 4 from its files identically; left: the site features, with the site's session"
+      "note": "the autosplit block is in (e8740d69: layout 2, HWDX, inert until asked; mods/livesplit asks for it natively); left: the site's part of the site features (Music, soundboard presets, the Splits window), with the site's session"
     },
     "hammerheads": {
       "title": "Hammer Heads Deluxe",

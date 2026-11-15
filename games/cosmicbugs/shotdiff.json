@@ -1,0 +1,7 @@
+{"ignore": [
+  {"rect": [350, 160, 101, 11], "pairs": "users*", "label": "the player's name on Change User: the original takes the Windows user name (SYSTEM in the sandbox), the runner's host gives GUEST"},
+  {"rect": [350, 160, 101, 11], "pairs": "newname*", "label": "the player's name on Change User: SYSTEM against GUEST"},
+  {"rect": [143, 580, 65, 8], "pairs": "hover_*", "label": "the title's 'Hello, <name>': SYSTEM against GUEST"},
+  {"rect": [143, 580, 65, 8], "pairs": "help_back*", "label": "the title's 'Hello, <name>': SYSTEM against GUEST"},
+  {"rect": [143, 580, 65, 8], "pairs": "options_back*", "label": "the title's 'Hello, <name>': SYSTEM against GUEST"}
+]}

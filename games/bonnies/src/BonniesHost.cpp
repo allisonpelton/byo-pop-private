@@ -1349,7 +1349,10 @@ void BonniesHostApp::DoMainLoop()
 	SexyAppBase::DoMainLoop();
 }
 
-static uint32_t GameClock()
+// the time the mod menu held the game, which the game's clock leaves out
+static uint32_t gHeldTime = 0;
+
+static uint32_t RawClock()
 {
 	// (once the framework is shut down no update comes, so the game's last waits as it quits run on the machine's clock)
 	if (gSteadyClock && !gHostApp->mShutdown)
@@ -1357,8 +1360,28 @@ static uint32_t GameClock()
 	return gHostApp->GetClockTime();
 }
 
+static uint32_t GameClock()
+{
+	return RawClock() - gHeldTime;
+}
+
 void BonniesHostApp::RunFramework(int theMs)
 {
+	// the mod menu holds the game: its clock stands still and the game stays in this call, while the framework runs
+	// the menu, until it is closed
+	if (IsModMenuOpen())
+	{
+		uint32_t aHeldFrom = RawClock();
+		while (IsModMenuOpen() && !mShutdown)
+		{
+			UpdateAppStep(nullptr);
+#ifdef __EMSCRIPTEN__
+			bonnies_sleep(1);
+#endif
+		}
+		gHeldTime += RawClock() - aHeldFrom;
+		mLastFrameworkRun = GetClockTime();
+	}
 	// the game's clock: with "steadyClock" a sleep lasts whole updates, so a frame of the game always spans as many
 	DWORD anEnd = GameClock() + (DWORD)theMs;
 	do
@@ -1389,6 +1412,9 @@ void BonniesHostApp::RunFramework(int theMs)
 #endif
 		mLastFrameworkRun = GetClockTime();
 		gSpin = 0;
+		// a menu opened by this update holds the game from here (its time up to now is the game's)
+		if (IsModMenuOpen())
+			break;
 	} while ((int)(GameClock() - anEnd) < 0);
 }
 

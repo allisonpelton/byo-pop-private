@@ -229,6 +229,7 @@ void MainMenu::ButtonDepress(int theId)
 	case BUTTON_CAMPAIGN:
 		if (mApp->CurrentUser().mLevel == 0)
 		{
+			mApp->BeginGame(false, false);		// port(autosplit)
 			mApp->NewGame(false);
 			mApp->mWidgetManager->RemoveWidget(this);
 			mApp->SafeDeleteWidget(this);
@@ -249,7 +250,10 @@ void MainMenu::ButtonDepress(int theId)
 			mApp->mHelpPending = false;
 		}
 		else
+		{
+			mApp->BeginGame(true, false);		// port(autosplit)
 			mApp->NewGame(true);
+		}
 		mApp->mMainMenu = NULL;
 		mApp->mWidgetManager->RemoveWidget(this);
 		mApp->SafeDeleteWidget(this);
@@ -275,12 +279,14 @@ void MainMenu::ButtonDepress(int theId)
 		return;
 	case ContinueDialog::BUTTON_CONTINUE:
 		mApp->KillDialog(ContinueDialog::DIALOG_ID);
+		mApp->BeginGame(false, true);		// port(autosplit)
 		mApp->ContinueGame(mApp->CurrentUser().mLevel);
 		mApp->mWidgetManager->RemoveWidget(this);
 		mApp->SafeDeleteWidget(this);
 		return;
 	case ContinueDialog::BUTTON_NEW_GAME:
 		mApp->KillDialog(ContinueDialog::DIALOG_ID);
+		mApp->BeginGame(false, false);		// port(autosplit)
 		mApp->NewGame(false);
 		mApp->mWidgetManager->RemoveWidget(this);
 		mApp->SafeDeleteWidget(this);
