@@ -99,10 +99,11 @@ restart, scripting.
 Each file's header says what it holds. What is not obvious from the names: `platform/UserFiles.*` has
 `WriteUserFileAtomic` and the "user data changed" callback; `platform/Relaunch.*` has `Relaunch(args, gameName)`
 (Windows `CreateProcessW`); `platform/WebApi.cpp` is web only and holds the exported functions of 4.5 that need
-no running game; `web/modpanel.js` is appended with `--post-js` and leaves `Module.byopop`; `web/shell.html`
+no running game; `web/modpanel.js` goes inline on every page before the game's script (`cmake/ByopopWebPage.cmake`) and leaves
+`Module.byopop`; `web/shell.html`
 restores the backup before it reads anything and handles restart and autostart; `cmake/ByopopWeb.cmake` has
-`byopop_web_game`, one function for every game's web link options (shell, `--post-js`, exported functions,
-runtime methods); `tools/rundesk/rundesk.c` runs its child in a job object and returns when the whole job has
+`byopop_web_game`, one function for every game's web link options (exported functions, runtime methods) and its
+page; `tools/rundesk/rundesk.c` runs its child in a job object and returns when the whole job has
 ended, so a relaunched game stays on the invisible desktop; `tools/modsettingstest/`, `tools/modmenutest/` and
 the JSON-only fixture mod `tools/fixtures/mods/settings-demo/` are the tests of 7.3.
 

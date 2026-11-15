@@ -194,7 +194,9 @@
 # processes at a time (bonnies, venice and hammerheads, which start two at once when their frozen baselines exist, count as
 # two, and heavyweapon, which starts three at once, as three).
 # Each suite's line is printed whole when it ends, so the lines come in the order the suites end. The builds, unit,
-# unit-web, gpu, verify, modmenu, livesplit and the oracle always run alone.
+# unit-web, gpu, verify, modmenu, livesplit and the oracle always run alone, except build-web: it runs in the background
+# beside the suites after it, and unit-web, verify and the oracle, which read build/web, wait for it. In merge mode they
+# come last, after the game suites, so that the web build's link time is spent beside the native suites.
 #
 # Merge mode, --changed <rev>: picks the suites a change can affect from `git diff --name-only <rev>` (the working tree,
 # staged changes included, against <rev>: a merge made with --no-commit is checked with `--changed HEAD`; `<a>..<b>` is
@@ -308,7 +310,9 @@ GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwo
 # the oracle is left out of `all` and of shared code's "every suite" (the user, 2026-11-11: "Seems like the Bejeweled oracle
 # is causing a lot of slowdown for no benefit"); it runs when games/bejeweled changes, or when named
 ALL_SUITES=(build build-web build-nov unit unit-web gpu verify modmenu livesplit "${GAME_SUITES[@]}")
-ORDER=(build build-web build-nov unit unit-web gpu origrun verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
+ORDER=(build build-web build-nov unit gpu origrun modmenu livesplit "${GAME_SUITES[@]}" unit-web verify oracle)
+# the suites that read build/web, and so wait for a build-web running in the background (below)
+needs_web() { case "$1" in unit-web|verify|oracle) return 0 ;; esac; return 1; }
 known_suite() { case " ${ORDER[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
 is_game_suite() { case " ${GAME_SUITES[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
 # suite_weight <suite>: sets WEIGHT to the game processes the suite has at once (bonnies runs its rerun and the frozen baseline's together;
@@ -327,7 +331,7 @@ declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52 [typershark]=270
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
 SH_ORDER=() WEB_T=() GL_FILES=()
 NOTHING=0 AREA="" GS="" REASONS="" EST_S=0 WEIGHT=1 SAVEIMPORT=0
-WEB_FULL_EST=10  # the whole web build, unless a change relinks every game's wasm (356 s; 10 s when it only writes the listing page)
+WEB_FULL_EST=10  # the whole web build, unless a change relinks every game's wasm (356 s; 10 s when it only writes the listing page or the games' pages)
 
 area_of() {  # <path>: sets AREA to the folder a path is listed under in the plan
 	local p="$1" top rest
@@ -409,9 +413,9 @@ classify() {  # <path>: chooses the suites a changed file needs
 			done ;;
 		web/*|cmake/ByopopWeb.cmake|cmake/ByopopStores.cmake)
 			pick build-web "$AREA" "$p"; pick unit-web "$AREA" "$p"
-			# what every game's page and link depend on (cmake/ByopopWeb.cmake: the shell, the post-js, the footer, the licenses,
-			# and the site's text, which fills the shell)
-			case "$p" in web/modpanel.js|web/shell.html|web/footer.*|web/copyright.html|web/terms.html|web/licenses/*|web/strings/*) WEB_FULL_EST=356 ;; esac ;;
+			# what every game's page depends on (cmake/ByopopWeb.cmake: the shell, modpanel.js, the footer, the licenses, and
+			# the site's text, which fills the shell): each page is rewritten, and no game is relinked (cmake/ByopopWebPage.cmake)
+			case "$p" in web/modpanel.js|web/shell.html|web/footer.*|web/copyright.html|web/terms.html|web/licenses/*|web/strings/*) [ "$WEB_FULL_EST" -ge 60 ] || WEB_FULL_EST=60 ;; esac ;;
 		tools/*)
 			x="${p#tools/}"
 			case "$x" in
@@ -496,7 +500,7 @@ web_est() {  # <target,target...>: sets EST_S to a rough time for building only 
 
 # select_changed <rev>: fills SUITES from the files that differ from <rev>, prints the plan
 select_changed() {
-	local rev="$1" f a b t tok base arg name seq=0 games=0 longest=0 wall total e q targets listing shared=""
+	local rev="$1" f a b t tok base arg name seq=0 games=0 longest=0 web=0 after=0 wall total e q targets listing shared=""
 	local -a named=("${SUITES[@]}") files=() args
 	SUITES=()
 	case "$rev" in
@@ -542,17 +546,21 @@ select_changed() {
 		SUITES+=("$tok")
 		if [ "$JOBS" -gt 1 ] && is_game_suite "$name"; then
 			suite_weight "$name"; games=$((games + e * WEIGHT)); [ "$e" -le "$longest" ] || longest="$e"
+		elif [ "$name" = build-web ]; then
+			web=$e
 		else
-			seq=$((seq + e))
+			seq=$((seq + e)); if needs_web "$name"; then after=$((after + e)); fi
 		fi
 		reasons_of "$name"
 		printf '  %-18s ~%4ss  %s<- %s\n' "$name$q" "$e" "${targets:+[${targets//,/ }] }" "$REASONS"
 	done
 	if [ ${#SUITES[@]} -eq 0 ]; then echo "check: nothing to run"; return; fi
 	wall=$(((games * 115 / 100 + JOBS - 1) / JOBS)); [ "$wall" -ge "$longest" ] || wall="$longest"
-	total=$((seq + wall))
+	# build-web runs beside everything before the suites that read build/web, which wait for it
+	total=$((seq - after + wall)); [ "$total" -ge "$web" ] || total="$web"; total=$((total + after))
 	e="${seq}s for the suites that run alone"
 	[ "$games" -eq 0 ] || e="$e, ${wall}s for the game suites ($JOBS at a time)"
+	[ "$web" -eq 0 ] || e="$e, ${web}s for the web build beside them"
 	if [ "$total" -lt 90 ]; then t="under 2 minutes"; else t="about $(((total + 30) / 60)) minutes"; fi
 	echo "check: $t ($e; the time of a web build of some targets is a guess)"
 }
@@ -2492,18 +2500,30 @@ run_batch() {
 			weight[$!]=$WEIGHT; used=$((used + WEIGHT))
 		done
 		wait -n -p pid; st=$?
+		# the web build in the background may end here: kept for web_wait, and no game slot to free
+		if [ -n "$WEB_PID" ] && [ "$pid" = "$WEB_PID" ]; then WEB_ST=$st; WEB_PID=""; continue; fi
 		used=$((used - ${weight[$pid]:-1})); unset 'weight[$pid]'
 		count $st
 	done
 	trap - INT TERM
 }
 
+# build-web runs in the background beside the suites after it (its links take most of a merge check otherwise); a
+# suite that reads build/web (needs_web) waits for it first, and so does the end
+WEB_PID="" WEB_ST=""
+web_wait() {
+	if [ -n "$WEB_PID" ]; then wait "$WEB_PID"; WEB_ST=$?; WEB_PID=""; fi
+	if [ -n "$WEB_ST" ]; then count "$WEB_ST"; WEB_ST=""; fi
+}
 BATCH=()
 for s in "${SUITES[@]}"; do
 	if [ "$JOBS" -gt 1 ] && is_game_suite "${s%%:*}"; then BATCH+=("$s"); continue; fi
 	if [ ${#BATCH[@]} -gt 0 ]; then run_batch "${BATCH[@]}"; BATCH=(); fi
+	if needs_web "${s%%:*}"; then web_wait; fi
+	if [ "${s%%:*}" = build-web ]; then run_suite "$s" & WEB_PID=$!; continue; fi
 	run_suite "$s"; count $?
 done
 if [ ${#BATCH[@]} -gt 0 ]; then run_batch "${BATCH[@]}"; fi
+web_wait
 echo "check: $PASSED passed, $FAILED failed"
 [ $FAILED -eq 0 ]
