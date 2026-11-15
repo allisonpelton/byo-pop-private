@@ -85,6 +85,7 @@
 #include "PopAnimManager.h"
 #include "Profile.h"
 #include "Tile.h"
+#include "TileEngine.h"
 #include "TreasureScreen.h"
 
 using namespace Sexy;
@@ -865,32 +866,23 @@ static int sChapterEndAt = -1;     // chapterend: the update the map showed agai
 // letter bonuses, gems, treasures and Lex's offence bonus; not the enemy's defences); -1 when it cannot be had
 static double WordDamageForTests(const std::vector<Tile*>& theTiles)
 {
+	if (gTileEngine == nullptr || !gTileEngine->IsLinked())
+		return -1;
 	lua_State* L = LuaLib::gLuaSupport->L;
-	int aTop = lua_gettop(L);
-	lua_getglobal(L, "gTileEngine");
-	if (!lua_istable(L, -1)) {
-		lua_settop(L, aTop);
-		return -1;
-	}
-	lua_pushstring(L, "GetFullWordValue");
-	lua_gettable(L, -2);
-	if (!lua_isfunction(L, -1)) {
-		lua_settop(L, aTop);
-		return -1;
-	}
-	lua_pushvalue(L, -2);  // self
+	// the tiles' Lua objects (gLinkedObjectTable[tile]), as the battle engine's mSubmittedTileTables holds them
+	lua_getglobal(L, "gLinkedObjectTable");
+	int aLinked = lua_gettop(L);
 	lua_newtable(L);
 	int anIndex = 0;
 	for (Tile* aTile : theTiles) {
 		lua_pushint(L, anIndex++);
 		Tile::PushTile(aTile);
+		lua_gettable(L, aLinked);
 		lua_settable(L, -3);
 	}
-	double aDamage = -1;
-	if (lua_pcall(L, 2, 1, 0) == 0 && lua_isnumber(L, -1))
-		aDamage = lua_tonumber(L, -1);
-	lua_settop(L, aTop);
-	return aDamage;
+	lua_remove(L, aLinked);
+	LuaLib::LuaClassRet aResult = gTileEngine->CallLinkedMethod("GetFullWordValue", 1);
+	return aResult.count > 0 ? aResult.Number() : -1;
 }
 
 // The treasure room's next click, "x y" (empty when there is none): a companion first, then the treasures, one
@@ -1303,7 +1295,7 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		// only short words: Scramble for a better board (it costs the turn, so not for anything longer)
 		auto aScramble = mBoard->mButtons.find(Board::BUTTON_SCRAMBLE);
-		if (aBest.size() <= 3 && aScramble != mBoard->mButtons.end() && aScramble->second != nullptr &&
+		if (!aTiles.empty() && aBest.size() <= 3 && aScramble != mBoard->mButtons.end() && aScramble->second != nullptr &&
 		    aScramble->second->mVisible && !aScramble->second->mDisabled) {
 			Widget* aButton = aScramble->second;
 			std::string aCentre = StrFormat("%d %d", mBoard->mX + aButton->mX + aButton->mWidth / 2,

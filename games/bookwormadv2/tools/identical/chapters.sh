@@ -12,8 +12,10 @@ for n in "$@"; do
 	rm -rf "build/chapter-profile-$n"; cp -r "$P/$n" "build/chapter-profile-$n"; python games/bookwormadv2/tools/identical/clearneeds.py "build/chapter-profile-$n"
 	PROFILE="$PWD/build/chapter-profile-$n" CALLOAD=9000 bash games/bookwormadv2/tools/identical/case.sh "chapter-$n" "$PWD/$cf" > "build/chapter-$n.log" 2>&1
 	# the verdict lines (rngcmp's header and its last difference, the engine states) and how many differences were listed
-	{ echo "== $n"; grep -E "^original:|IDENTICAL|engine states|DIFFERENT|first difference|^time |chapter ended|ORIGINAL RUN FAILED" "build/chapter-$n.log" | cut -c1-200
+	{ echo "== $n"; grep -E "^original:|^draws:|IDENTICAL|engine states|DIFFERENT|first difference|^time |chapter ended|ORIGINAL RUN FAILED" "build/chapter-$n.log" | cut -c1-200
 	  echo "draw differences listed: $(grep -c '^update' "build/chapter-$n.log"); last: $(grep '^update' "build/chapter-$n.log" | tail -1 | cut -c1-120)"; } >> build/chapter-results.txt
-	rm -rf "build/chapter-profile-$n" "build/identical/chapter-$n" "build/chapter-$n.log" "$cf"
+	# the case's own log (the verdicts in full, a few KB) stays in build/chapter-logs; its runs are deleted
+	mkdir -p build/chapter-logs; mv "build/chapter-$n.log" build/chapter-logs/
+	rm -rf "build/chapter-profile-$n" "build/identical/chapter-$n" "$cf"
 done
 echo "chapters.sh finished" >> build/chapter-results.txt

@@ -17,6 +17,8 @@ PORTSCRIPT="$D/script.txt"; cp "$SCRIPT" "$PORTSCRIPT"
 # profile, the original in its sandbox, where it keeps its players (C:\ProgramData\WildTangent\BWAVol2\users)
 if [ -n "$PROFILE" ]; then
 	rm -rf "$D/profile"; mkdir -p "$D/profile"; cp -r "$PROFILE/." "$D/profile/"
+	# the port windowed: a profile saved full screen draws at the private desktop's size (4K: five times slower; the logic is the same)
+	sed -i 's/^ScreenMode=dword:1/ScreenMode=dword:0/' "$D/profile/registry.ini"
 	NAME="$(basename "$(ls "$D"/profile/users/*.bwa | head -1)" .bwa)"
 	{ cat "$TOOLS/orig.reg"; echo; echo "\"LastUser\"=\"$NAME\""; } > "$D/orig.reg"
 	python "$TOOLS/utf16.py" "$D/orig.reg" > "$D/orig16.reg"
