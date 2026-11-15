@@ -984,6 +984,13 @@ html.d95-desk .d95-vol { position: absolute; z-index: 2147483300; display: grid;
   background: var(--panel); color: var(--fg); box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo); font-size: 11px; }
 html.d95-desk .d95-vol-range { writing-mode: vertical-lr; direction: rtl; width: 22px; height: 100px; }
 html.d95-desk .d95-vol-mute { display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+/* the Recycle Bin's icon: a wire basket, with paper in it when full */
+html.d95-desk .d95-icon-bin > i { width: 24px; height: 28px; background: transparent; box-shadow: none;
+  background-image: repeating-linear-gradient(90deg, #c0c0c0 0 2px, #808080 2px 4px); clip-path: polygon(0 12%, 100% 12%, 88% 100%, 12% 100%); }
+html.d95-desk .d95-icon-bin > i::before { left: -2px; right: -2px; top: 0; height: 3px; background: #dfdfdf; box-shadow: 0 1px #404040; }
+html.d95-desk .d95-icon-bin > i::after { display: none; }
+html.d95-desk .d95-icon-bin.d95-bin-full > i::after { display: block; left: 3px; right: 3px; top: 2px; bottom: auto; height: 9px; background: #ffffff;
+  clip-path: polygon(0 60%, 20% 0, 45% 40%, 70% 5%, 100% 50%, 85% 100%, 10% 100%); }
 /* Shut Down's last screen: wordless, over everything */
 html.d95-desk .d95-off { position: fixed; inset: 0; z-index: 2147483600; background: #000; outline: none; }
 html.d95-desk .d95-switch { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2147483000;

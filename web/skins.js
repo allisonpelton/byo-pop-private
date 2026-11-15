@@ -1294,6 +1294,73 @@ var ByopopSkin = (function () {
       keepIconPlaces(out);
       layoutIcons();
     }
+    // The recycle bin's icon (the user, 2026-11-14, by the coordinator's list), on the listing: it opens the bin of All games
+    // (web/addgames.js), a game's cap dropped on it asks there to forget its files, and it is full while the bin holds the names of
+    // the games forgotten (byopop-bin), until Empty Recycle Bin, its menu's, clears them with the theme's sound
+    var BIN_KEY = "byopop-bin";
+    function binItems() { try { var a = JSON.parse(localStorage.getItem(BIN_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+    function openBin(id) {
+      var gw = find(gamesWindow());
+      if (gw) { if (gw.min) setMin(gw, false); show(gw); }
+      if (window.ByopopAddGames && ByopopAddGames.bin) ByopopAddGames.bin(id || null);
+    }
+    function emptyBin() {
+      try { localStorage.removeItem(BIN_KEY); } catch (e) {}
+      deskEvent("empty");
+      try { window.dispatchEvent(new CustomEvent("byopop-bin")); } catch (e) {}
+    }
+    function binIcon() {
+      if (!icons || EMBED || !document.getElementById("bin") || icons.querySelector(".d95-icon-bin")) return;
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "d95-icon d95-icon-bin"; b.setAttribute("data-key", "w:bin");
+      var pic = document.createElement("i"); pic.setAttribute("aria-hidden", "true");
+      var name = document.createElement("span"); name.textContent = T("skin.bin.name");
+      b.appendChild(pic); b.appendChild(name);
+      function full() { return binItems().length > 0; }
+      function draw() { b.classList.toggle("d95-bin-full", full()); b.setAttribute("aria-label", T(full() ? "skin.bin.label_full" : "skin.bin.label_empty")); }
+      draw();
+      window.addEventListener("byopop-bin", draw);
+      window.addEventListener("storage", function (ev) { if (!ev.key || ev.key === BIN_KEY) draw(); });
+      b.addEventListener("click", function () { openBin(null); });
+      function menu(x, y) {
+        popMenu(b, [{ label: T("skin.bin.open"), bold: true, fn: function () { openBin(null); } }, { rule: true },
+          { label: T("skin.bin.empty"), disabled: !full(), fn: emptyBin }], x, y, T("skin.bin.name"));
+      }
+      b.addEventListener("contextmenu", function (ev) { ev.preventDefault(); menu(ev.clientX, ev.clientY); });
+      b.addEventListener("keydown", function (ev) {
+        if (ev.key === "ContextMenu" || (ev.key === "F10" && ev.shiftKey)) { ev.preventDefault(); var r = b.getBoundingClientRect(); menu(r.right - 8, r.top + 8); }
+      });
+      var CAP = "application/x-byopop-game";
+      function isCap(ev) { return !!ev.dataTransfer && Array.prototype.indexOf.call(ev.dataTransfer.types || [], CAP) >= 0; }
+      b.addEventListener("dragenter", function (ev) { if (isCap(ev)) { ev.preventDefault(); b.classList.add("d95-icon-sel"); } });
+      b.addEventListener("dragover", function (ev) { if (isCap(ev)) { ev.preventDefault(); ev.dataTransfer.dropEffect = "move"; } });
+      b.addEventListener("dragleave", function () { b.classList.remove("d95-icon-sel"); });
+      b.addEventListener("drop", function (ev) {
+        b.classList.remove("d95-icon-sel");
+        if (!isCap(ev)) return;
+        ev.preventDefault();
+        openBin(ev.dataTransfer.getData(CAP));
+      });
+      icons.insertBefore(b, icons.querySelector(".d95-fav"));
+      layoutIcons();
+      startSound();
+    }
+    // the desktop starting: its sound at the first press or key of the browser's session on the listing (a page may not play a
+    // sound before the player does something), and again when the last screen of Shut Down goes (binIcon, once the page is there)
+    function startSound() {
+      var started = false;
+      try { started = sessionStorage.getItem("byopop-started") === "1"; } catch (e) {}
+      if (!started) {
+        var startUp = function () {
+          document.removeEventListener("pointerdown", startUp, true);
+          document.removeEventListener("keydown", startUp, true);
+          try { sessionStorage.setItem("byopop-started", "1"); } catch (e) {}
+          if (on && !offScreen) deskEvent("start");
+        };
+        document.addEventListener("pointerdown", startUp, true);
+        document.addEventListener("keydown", startUp, true);
+      }
+    }
     function selected() { return iconList().filter(function (b) { return b.classList.contains("d95-icon-sel"); }); }
     function select(list) { iconList().forEach(function (b) { b.classList.toggle("d95-icon-sel", list.indexOf(b) >= 0); }); }
     // the empty desktop: nothing of a window, the task bar, a menu or an icon under the pointer
@@ -1869,6 +1936,7 @@ var ByopopSkin = (function () {
         document.body.insertBefore(icons, document.body.firstChild);
         wins.forEach(function (w) { if (!w.noIcon) addIcon(w, w.el.getAttribute("data-d95-title") || w.id); });
         favIcons();
+        binIcon();
         window.addEventListener("byopop-favourites", favIcons);
         window.addEventListener("storage", function (ev) { if (!ev.key || (window.ByopopSettings && ev.key === ByopopSettings.KEY)) favIcons(); });
       }

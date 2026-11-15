@@ -11,7 +11,9 @@
 // file's bytes in base64). Choosing None, or forgetting the game's files, removes both.
 //
 // The events (web/skins.js and web/deskapps.js send "byopop-desk-event"): open and close (a window to and from its icon), minimize,
-// restore, maximize, menu (a menu opens) and ding (a message box). The sounds play at the Sounds window's volume and mute
+// restore, maximize, menu (a menu opens), ding (a message box), start (the desktop starting: the session's first press on the
+// listing, and the end of Shut Down's last screen), exit (Shut Down), empty (Empty Recycle Bin) and error (a game stopped by an
+// error, a folder refused). The sounds play at the Sounds window's volume and mute
 // (byopop-sounds-volume, byopop-sounds-mute; web/sounds.js), and never at ?silent=1.
 //
 // THEMES: by game id, {wallpaper: the background's path in the game's folder, sounds: {event: path}}, every path one the game's
@@ -20,7 +22,7 @@ var ByopopThemes = (function () {
   "use strict";
   var THEMES = (typeof ByopopThemeData !== "undefined") ? ByopopThemeData : {};
   var WALL_KEY = "byopop-theme-wallpaper", SOUND_KEY = "byopop-theme-sounds", WALL_MAX = 1280, SOUND_MAX = 98304;
-  var EVENTS = ["open", "close", "minimize", "restore", "maximize", "menu", "ding"];
+  var EVENTS = ["open", "close", "minimize", "restore", "maximize", "menu", "ding", "start", "exit", "empty", "error"];
   var SILENT = /[?&]silent=1(&|$)/.test(location.search);
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }
   function readJson(key) { try { var s = store(), o = s ? JSON.parse(s.getItem(key) || "null") : null; return o && typeof o === "object" ? o : null; } catch (e) { return null; } }

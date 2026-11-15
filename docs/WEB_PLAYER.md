@@ -255,6 +255,12 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   `byopop-master-mute`). Everything the site plays follows it, each sound at its own level times this one: the games,
   through a gain the game's page puts after its output node (`siteVolume` in `web/shell.html`, which the hush in
   `web/deskapps.js` then takes off the speakers), plus Music, Sounds and a theme's sounds.
+- **The Recycle Bin's icon,** on the listing: it opens All games' bin, and a game's cap dropped on it asks there to forget
+  that game's files. It is full while the bin holds the names of the games forgotten (`byopop-bin`), until Empty Recycle
+  Bin, from its menu, clears them.
+- **The theme's events** now include start, exit, empty and error. Start comes at the first press or key of the browser's
+  session on the listing, since a page may play nothing before that, and again when Shut Down's last screen goes. Exit is
+  Shut Down, and empty is Empty Recycle Bin.
 
 The game
 window's menu bar spreads the game's commands over Game, View, Options and Help (the user, 2026-11-09: "don't hide

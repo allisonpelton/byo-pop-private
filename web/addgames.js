@@ -345,6 +345,7 @@ var ByopopAddGames = (function () {
   // games whose files are here, for the keyboard and for browsers without drag and drop.
   var CAP_TYPE = "application/x-byopop-game";
   var asking = null;  // the game whose files the panel asks about
+  var binOpen = null;
   function initBin() {
     var bin = $("bin"), binPanel = $("bin-panel");
     if (!bin || !binPanel) return;
@@ -381,6 +382,8 @@ var ByopopAddGames = (function () {
       bin.focus();
     }
     bin.addEventListener("click", function () { if (binPanel.hidden) show(null); else hide(); });
+    // the desktop's Recycle Bin icon (web/skins.js): the panel, asking about a game dropped on it
+    binOpen = function (id) { show(id && byId[id] ? byId[id] : null); };
     $("bin-close").addEventListener("click", hide);
     binPanel.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && !$("bin-yes").disabled) { ev.preventDefault(); hide(); } });
     $("bin-forget").addEventListener("click", function () { var g = byId[$("bin-game").value]; if (g) ask(g); });
@@ -391,6 +394,14 @@ var ByopopAddGames = (function () {
       $("bin-yes").disabled = $("bin-no").disabled = true;
       status(ByopopStrings.t("add.bin.forgetting"));
       ByopopImport.forgetGame(g).then(function () {
+        // the game's name in the bin (byopop-bin), which fills the desktop's Recycle Bin icon until it is emptied (web/skins.js)
+        try {
+          var held = JSON.parse(localStorage.getItem("byopop-bin") || "[]");
+          if (!Array.isArray(held)) held = [];
+          held.push({ id: g.spec.id, title: g.title, at: Date.now() });
+          localStorage.setItem("byopop-bin", JSON.stringify(held.slice(-50)));
+          window.dispatchEvent(new CustomEvent("byopop-bin"));
+        } catch (x) {}
         return ByopopStrings.t("add.bin.forgotten", {title: g.title});
       }, function (e) { return (e && e.message) || ByopopStrings.t("add.bin.failed"); }).then(function (text) {
         // the list again, once the cards have been checked (their data-files)
@@ -434,5 +445,6 @@ var ByopopAddGames = (function () {
     queue = kept;
   }
   return { init: init, fromFiles: fromFiles, onCardDrop: onCardDrop, enqueue: enqueue, fromInput: fromInput, cancel: cancel,
+    bin: function (id) { if (binOpen) binOpen(id); },
     W: W, byTarget: function (t) { return byTarget[t] || null; } };
 })();
