@@ -304,11 +304,12 @@
         "coverage",
         "lite-mod",
         "unneeded-code",
-        "readability"
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "collection",
-      "note": "readability done (namecheck 140 findings to 0); baseline identical; the flake found (GAME_NOTES Oddities): both failing runs began on a profile an overlapping check run had left (no first new-player line), not the clock; check.sh now locks each suite and stops when a cleaned run folder is not gone (bb118777); next: the Collection check, real input, then performance"
+      "now": "performance",
+      "note": "the Collection check done (the same build and files; the port plays on them, edc01fb0); the real-input pass (native windowed, full screen with focus loss and expert, web, page check, 4a6bc9ac); next: the whole 210-puzzle game through real input natively and on the web, then performance"
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",
