@@ -1,9 +1,9 @@
-#ifndef __WORDHARMONY_SOUNDHOST_H__
-#define __WORDHARMONY_SOUNDHOST_H__
+#ifndef __SPROUT_HOST_SOUNDHOST_H__
+#define __SPROUT_HOST_SOUNDHOST_H__
 
-// The port's sound system: the engine's SimpleSoundDX (0x443980, engines/sprout/Sound.h) over the platform's mixer. Sounds are
-// decoded whole when they are loaded (the original streamed the music's clips from their files); the mixer cannot
-// seek, so a voice halted and played again starts over.
+// The port's sound system: the engine's SimpleSoundDX (0x443980 (wordharmony), engines/sprout/Sound.h) over the
+// platform's mixer. Sounds are decoded whole when they are loaded (the original streamed the music's clips from their
+// files); the mixer cannot seek, so a voice halted and played again starts over.
 
 #include "sprout/Sound.h"
 #include "platform/Audio.h"
@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-namespace wordharmony
+namespace engine
 {
 
 class HostSoundSystem;
@@ -26,7 +26,7 @@ public:
 	~HostSound() override;
 
 	void play() override;
-	void halt();  // 0x443dd0: stops where it is (the original's slot 4; only the sound's own functions call it)
+	void halt();  // 0x443dd0 (wordharmony): stops where it is (the original's slot 4; only the sound's own functions call it)
 	void stop() override;
 	void rewind() override;
 	void close() override;
@@ -34,19 +34,20 @@ public:
 	float getPitch() override { return mPitch; }
 	void setVolume(float theVolume) override;
 	float getVolume() override { return mVolume; }
-	// 0x443fb0
+	// 0x443fb0 (wordharmony)
 	void setLoop(bool theLoop) override { mLoop = theLoop; }
 	bool isLoop() override { return mLoop; }
 	bool isPlaying() override;
-	// 0x4444f0
+	// 0x4444f0 (wordharmony)
 	void setFadeIn(float theSeconds) override { mFadeIn = theSeconds; }
-	// 0x444520
+	// 0x444520 (wordharmony)
 	void setFadeOut(float theSeconds) override { mFadeOut = theSeconds; }
 	void setCategory(int theCategory) override { mCategory = theCategory; }
 	int getCategory() override { return mCategory; }
 	void update(int theMs) override;
 
-	// The gains the mixer plays the voice at (0x444730: category x master x the faded volume; the pan is always the middle)
+	// The gains the mixer plays the voice at (0x444730 (wordharmony): category x master x the faded volume; the pan is
+	// always the middle)
 	void applyGain();
 
 private:
@@ -83,11 +84,11 @@ public:
 	~HostSoundSystem() override;
 
 	bool load(const char* theName, const char* theFile) override;
-	// 0x443b60
+	// 0x443b60 (wordharmony)
 	bool loadStream(const char* theName, const char* theFile) override { return load(theName, theFile); }
 	engine::Sound* createSound(const char* theName, bool theStatic, int theCategory) override;
 	void setVolume(float theVolume) override;
-	// 0x443a20
+	// 0x443a20 (wordharmony)
 	float getVolume() override { return mVolume; }
 	void setCategoryVolume(int theCategory, float theVolume) override;
 	float getCategoryVolume(int theCategory) override;
@@ -104,6 +105,6 @@ private:
 	float mCategoryVolumes[64];
 };
 
-} // namespace wordharmony
+} // namespace engine
 
 #endif

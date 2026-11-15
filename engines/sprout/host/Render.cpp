@@ -7,7 +7,6 @@
 #include <type_traits>
 
 using namespace engine;
-using namespace wordharmony;
 
 namespace
 {
@@ -39,8 +38,9 @@ bool maskHasAlpha(const std::vector<uint8_t>& theMask)
 
 }
 
-// 0x45e760, 0x45ea10: the image read from a PNG and its mask (the platform decodes both; the mask is read below)
-ScreenImage* wordharmony::decodeImage(const std::vector<uint8_t>& theData, const std::vector<uint8_t>* theMask)
+// 0x45e760 (wordharmony), 0x45ea10 (wordharmony): the image read from a PNG and its mask (the platform decodes both;
+// the mask is read below)
+ScreenImage* engine::decodeImage(const std::vector<uint8_t>& theData, const std::vector<uint8_t>* theMask)
 {
 	int aWidth = 0;
 	int aHeight = 0;
@@ -52,9 +52,10 @@ ScreenImage* wordharmony::decodeImage(const std::vector<uint8_t>& theData, const
 	anImage->mBits.swap(aBits);
 	if (theMask != nullptr)
 	{
-		// (0x45ea10, 0x4651c0) the last channel of each of the mask's pixels is the alpha. The reader makes an RGB mask
-		// and a palette one without transparency grey (png_set_rgb_to_gray, libpng's default weights) and expands a
-		// palette with it to RGBA, so a mask with alpha gives its alpha and any other its grey level.
+		// (0x45ea10 (wordharmony), 0x4651c0 (wordharmony)) the last channel of each of the mask's pixels is the alpha.
+		// The reader makes an RGB mask and a palette one without transparency grey (png_set_rgb_to_gray, libpng's
+		// default weights) and expands a palette with it to RGBA, so a mask with alpha gives its alpha and any other
+		// its grey level.
 		int aMaskWidth = 0;
 		int aMaskHeight = 0;
 		std::vector<uint32_t> aMaskBits;
@@ -102,9 +103,9 @@ namespace
 #endif
 
 // Each channel is (source * alpha + destination * (255 - alpha)) / 255. Port (for speed): red and blue are worked out
-// together in the two 16-bit lanes of a word, and a sum x of at most 65025 divided by 255 as (x + 1 + (x >> 8)) >> 8, which
-// is the same for every x up to 65534 (checked against the division for every alpha, every pair of channel values and 400
-// million random pixels)
+// together in the two 16-bit lanes of a word, and a sum x of at most 65025 divided by 255 as (x + 1 + (x >> 8)) >> 8,
+// which is the same for every x up to 65534 (checked against the division for every alpha, every pair of channel values
+// and 400 million random pixels)
 BLIT_INLINE uint32_t blend(uint32_t theDest, uint32_t theRGB, int theAlpha)
 {
 	if (theAlpha >= 255)
@@ -128,11 +129,11 @@ inline int clampByte(int theValue)
 // The pixel operations of the four blitters
 enum
 {
-	OP_COPY,    // 0x45c070: opaque
-	OP_TEST,    // 0x45c780: the pixels above the threshold (blended by their alpha in the port: the original's
+	OP_COPY,    // 0x45c070 (wordharmony): opaque
+	OP_TEST,    // 0x45c780 (wordharmony): the pixels above the threshold (blended by their alpha in the port: the original's
 	            // filtered copy is not reproduced)
-	OP_BLEND,   // 0x45ce90: alpha times the opacity
-	OP_OFFSET   // 0x45d5a0: the colour offset added, then blended
+	OP_BLEND,   // 0x45ce90 (wordharmony): alpha times the opacity
+	OP_OFFSET   // 0x45d5a0 (wordharmony): the colour offset added, then blended
 };
 
 struct PixelOp
@@ -143,9 +144,10 @@ struct PixelOp
 	int mOffsetR, mOffsetG, mOffsetB;
 };
 
-// 0x45c780 and 0x45ce90: the pixel loops of the alpha-test and blend blitters, with the scanline helpers they share
-// (0x4579c0, 0x4581c0, 0x458230, 0x458560, 0x458cb0). The operation is a template parameter (port, for speed: the
-// blit picks it once and its pixel loops have no switch); a pixel the blend would leave as it is is not written.
+// 0x45c780 (wordharmony) and 0x45ce90 (wordharmony): the pixel loops of the alpha-test and blend blitters, with the
+// scanline helpers they share (0x4579c0 (wordharmony), 0x4581c0 (wordharmony), 0x458230 (wordharmony),
+// 0x458560 (wordharmony), 0x458cb0 (wordharmony)). The operation is a template parameter (port, for speed: the blit
+// picks it once and its pixel loops have no switch); a pixel the blend would leave as it is is not written.
 template <int OP>
 BLIT_INLINE void applyPixel(const PixelOp& theOp, uint32_t& theDest, uint32_t theSrc)
 {
@@ -197,15 +199,16 @@ void withOp(int theOp, Body&& theBody)
 
 }
 
-// port (for speed): retained drawing. A frame is a list of draw calls, and the value of a pixel depends only on the calls
-// that cover it, in order, on the black the screen starts the frame as, and on the images' pixels (which never change once
-// decoded). So the calls are recorded as they come (drawImage and drawLine only record), and at the frame's end (finish)
-// the screen is taken in tiles: a tile whose calls are the same as the last frame's keeps its pixels, and every other tile is
-// made black and has its calls drawn again, clipped to the tile. The pixels are those the original's drawing gives, call
-// for call: each pixel is worked out by the same code from the same inputs. Two calls are the same when they would write the
-// same pixels, not only when their numbers are the same: a position that moved by a fraction of a pixel, in a call that
-// reads the same source column and row for each pixel as before, is the same call (the columns and rows are worked out once
-// for the call, as the original's loops work them out for each of its rows).
+// port (for speed): retained drawing. A frame is a list of draw calls, and the value of a pixel depends only on the
+// calls that cover it, in order, on the black the screen starts the frame as, and on the images' pixels (which never
+// change once decoded). So the calls are recorded as they come (drawImage and drawLine only record), and at the frame's
+// end (finish) the screen is taken in tiles: a tile whose calls are the same as the last frame's keeps its pixels, and
+// every other tile is made black and has its calls drawn again, clipped to the tile. The pixels are those the
+// original's drawing gives, call for call: each pixel is worked out by the same code from the same inputs. Two calls
+// are the same when they would write the same pixels, not only when their numbers are the same: a position that moved
+// by a fraction of a pixel, in a call that reads the same source column and row for each pixel as before, is the same
+// call (the columns and rows are worked out once for the call, as the original's loops work them out for each of its
+// rows).
 namespace
 {
 
@@ -218,8 +221,8 @@ enum
 };
 
 // Everything that decides the pixels one draw call writes (a record compared with the last frame's, so the members are
-// all 32 bits wide, with no padding between them). A line keeps its ends in mSrc*, its colour in mThreshold and its alpha in
-// mOpacity.
+// all 32 bits wide, with no padding between them). A line keeps its ends in mSrc*, its colour in mThreshold and its
+// alpha in mOpacity.
 struct Blit
 {
 	int32_t mKind;
@@ -234,9 +237,9 @@ struct Blit
 
 static_assert(sizeof(Blit) == 23 * 4, "Blit is compared as bytes, so it has no padding");
 
-// What an unrotated image call reads for each pixel it can write, worked out once for the call: the source column of each
-// destination column (mLeft to mRight) and the source row of each destination row (mTop to mBottom), -1 where the call
-// leaves the pixel. The numbers are in the frame's mMapData.
+// What an unrotated image call reads for each pixel it can write, worked out once for the call: the source column of
+// each destination column (mLeft to mRight) and the source row of each destination row (mTop to mBottom), -1 where the
+// call leaves the pixel. The numbers are in the frame's mMapData.
 struct BlitMaps
 {
 	int32_t mColumns;  // where the columns start in the map data, or -1 for a call without maps (rotated, or a line)
@@ -275,8 +278,8 @@ PixelOp blitOp(const Blit& theBlit)
 	return anOp;
 }
 
-// The part of the screen an image draw call can write; false when it writes nothing. The rectangles are those the pixel loops of
-// renderBlit run over (the position, scale and rotation as the loops take them).
+// The part of the screen an image draw call can write; false when it writes nothing. The rectangles are those the pixel
+// loops of renderBlit run over (the position, scale and rotation as the loops take them).
 bool blitBounds(Blit& theBlit, int theScreenWidth, int theScreenHeight)
 {
 	float aRotation = theBlit.mRotation;
@@ -326,9 +329,10 @@ bool blitBounds(Blit& theBlit, int theScreenWidth, int theScreenHeight)
 	return theBlit.mLeft < theBlit.mRight && theBlit.mTop < theBlit.mBottom;
 }
 
-// An unrotated call's maps (0x45c070's unrotated path), appended to the frame's map data. The column each destination column reads
-// is the float mapping of the original's loop; a mirrored scale reads the image's columns the other way round. False when the
-// call reads nothing (no column or no row falls inside the source), and so writes nothing.
+// An unrotated call's maps (0x45c070 (wordharmony)'s unrotated path), appended to the frame's map data. The column each
+// destination column reads is the float mapping of the original's loop; a mirrored scale reads the image's columns the
+// other way round. False when the call reads nothing (no column or no row falls inside the source), and so writes
+// nothing.
 bool makeMaps(const Blit& theBlit, const ScreenImage& theImage, Frame& theFrame, BlitMaps& theMaps)
 {
 	float aSX = std::fabs(theBlit.mScaleX);
@@ -393,8 +397,8 @@ bool makeMaps(const Blit& theBlit, const ScreenImage& theImage, Frame& theFrame,
 	return true;
 }
 
-// Whether the call i of the frame A writes the pixels the call j of the frame B writes, as the same function of the pixels
-// under it
+// Whether the call i of the frame A writes the pixels the call j of the frame B writes, as the same function of the
+// pixels under it
 bool sameCall(const Frame& theA, size_t i, const Frame& theB, size_t j)
 {
 	const Blit& aFirstBlit = theA.mBlits[i];
@@ -420,10 +424,11 @@ bool sameCall(const Frame& theA, size_t i, const Frame& theB, size_t j)
 }
 
 // Draws one recorded image call into the screen, only the pixels inside the clip rectangle (a part of the screen).
-// 0x45e2d0, 0x45c070 and the other blitters: the position with the state's translation, snapped (truncated) as the state
-// says; the source rectangle placed with its pivot at the position, scaled and rotated about it. Without a rotation a
-// negative scale mirrors the image inside the rectangle the positive scale would cover (as 0x45c070's unrotated path does).
-// (0x457930 and 0x457940 set the blit's flags and 0x4589e0 compares two floats: translated inline)
+// 0x45e2d0 (wordharmony), 0x45c070 (wordharmony) and the other blitters: the position with the state's translation,
+// snapped (truncated) as the state says; the source rectangle placed with its pivot at the position, scaled and rotated
+// about it. Without a rotation a negative scale mirrors the image inside the rectangle the positive scale would cover
+// (as 0x45c070 (wordharmony)'s unrotated path does). (0x457930 (wordharmony) and 0x457940 (wordharmony) set the blit's
+// flags and 0x4589e0 (wordharmony) compares two floats: translated inline)
 void renderBlit(uint32_t* theBits, int theScreenWidth, const Blit& theBlit, const BlitMaps& theMaps, const int* theMapData,
 	const ScreenImage* theImage, int theClipLeft, int theClipTop, int theClipRight, int theClipBottom)
 {
@@ -477,8 +482,8 @@ void renderBlit(uint32_t* theBits, int theScreenWidth, const Blit& theBlit, cons
 		return;
 	}
 
-	// Rotated: translate(-pivot), scale, rotate, translate(position) (0x45c070's matrix); each screen pixel's centre
-	// is mapped back into the source
+	// Rotated: translate(-pivot), scale, rotate, translate(position) (0x45c070 (wordharmony)'s matrix); each screen
+	// pixel's centre is mapped back into the source
 	float aRotation = theBlit.mRotation;
 	float x = theBlit.mX;
 	float y = theBlit.mY;
@@ -519,8 +524,8 @@ void renderBlit(uint32_t* theBits, int theScreenWidth, const Blit& theBlit, cons
 	});
 }
 
-// Draws one recorded line (slot 7, 0x45e180): a one-pixel line in the state's colour and opacity, only the pixels inside the
-// clip rectangle
+// Draws one recorded line (slot 7, 0x45e180 (wordharmony)): a one-pixel line in the state's colour and opacity, only
+// the pixels inside the clip rectangle
 void renderLine(uint32_t* theBits, int theScreenWidth, const Blit& theBlit, int theClipLeft, int theClipTop, int theClipRight,
 	int theClipBottom)
 {
@@ -594,14 +599,15 @@ ScreenGraphics::~ScreenGraphics()
 	delete mRetained;
 }
 
-// port (for speed): the start of a frame: the screen is black, and nothing is drawn (the calls are recorded, and finish draws them)
+// port (for speed): the start of a frame: the screen is black, and nothing is drawn (the calls are recorded, and finish
+// draws them)
 void ScreenGraphics::clear()
 {
 	mRetained->mFrame.clear();
 }
 
-// port (for speed): the end of a frame: the tiles whose calls differ from the last frame's are drawn. Returns whether any pixel may
-// have changed.
+// port (for speed): the end of a frame: the tiles whose calls differ from the last frame's are drawn. Returns whether
+// any pixel may have changed.
 bool ScreenGraphics::finish()
 {
 	Retained& aRetained = *mRetained;
@@ -693,7 +699,7 @@ bool ScreenGraphics::finish()
 }
 
 // The image's call recorded: the position with the state's translation, snapped (truncated) as the state says, and the
-// pixel operation the state and the image choose (0x45e2d0)
+// pixel operation the state and the image choose (0x45e2d0 (wordharmony))
 void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, float y)
 {
 	ScreenImage* anImage = static_cast<ScreenImage*>(theImage);
@@ -758,7 +764,7 @@ void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, 
 	aFrame.mMaps.push_back(aMaps);
 }
 
-// Slot 7 (0x45e180): a one-pixel line (with the translation) in the state's colour and opacity, recorded
+// Slot 7 (0x45e180 (wordharmony)): a one-pixel line (with the translation) in the state's colour and opacity, recorded
 void ScreenGraphics::drawLine(const Point& theFrom, const Point& theTo)
 {
 	const RenderState& aState = state();

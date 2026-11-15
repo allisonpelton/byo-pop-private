@@ -334,67 +334,67 @@ none 00441930 the archive's keyed MD5 digests, which the port does not check (en
 none 00442240 the archive's keyed MD5 digests, which the port does not check (engines/sprout/ResourceManager.h)
 none 00442290 the archive's keyed MD5 digests, which the port does not check (engines/sprout/ResourceManager.h)
 none 00442390 the archive's keyed MD5 digests, which the port does not check (engines/sprout/ResourceManager.h)
-none 00442490 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 004425f0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00442490 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 004425f0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
 none 004427a0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 004427e0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 004428e0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 00442aa0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
-none 00442b00 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00442b00 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
 none 00442eb0 the C++ library's vector insert, compiled once for each element type
 none 00443090 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 00443260 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 00443410 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 00443710 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 004438c0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
-none 00443d50 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00444030 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 004445b0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00444810 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00444970 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00444b90 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00444c20 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00444d90 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00444da0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00444dc0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00444dd0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00444de0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00444e40 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445010 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445090 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 004450a0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 004450b0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 004450c0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 004450e0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445280 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 004452f0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445450 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 004454a0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 004454e0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445500 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445520 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445540 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445590 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 004456f0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00443d50 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00444030 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 004445b0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00444810 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00444970 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00444b90 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00444c20 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00444d90 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00444da0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00444dc0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00444dd0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00444de0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00444e40 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445010 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445090 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 004450a0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 004450b0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 004450c0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 004450e0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445280 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 004452f0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445450 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 004454a0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 004454e0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445500 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445520 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445540 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445590 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 004456f0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
 none 00445710 the compiler's scalar deleting destructor
-none 00445730 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445780 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 004457f0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445810 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445840 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445960 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445a30 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445a80 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445ae0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445b00 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445ba0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445c70 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445cc0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445cd0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
-none 00445d00 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445730 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445780 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 004457f0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445810 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445840 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445960 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445a30 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445a80 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445ae0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445b00 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445ba0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445c70 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445cc0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445cd0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
+none 00445d00 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
 none 00445e50 the compiler's thunk: this adjusted for a virtual base, then a jump
 none 00445ea0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
-none 00445f20 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445f20 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (engines/sprout/host/SoundHost.cpp)
 none 00445f40 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 004544e0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
 none 00454890 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
@@ -459,7 +459,7 @@ none 00457970 the Windows layer's window, message loop and DirectDraw display: t
 none 00457980 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engines/sprout/Host.h)
 none 00458660 the blitters' stopwatch (QueryPerformanceCounter): it measures and changes nothing drawn
 none 0045bcb0 the blitters' stopwatch (QueryPerformanceCounter): it measures and changes nothing drawn
-none 0045dd10 the Windows layer's render context destructor: ScreenGraphics (src/Render.cpp) is the port's
+none 0045dd10 the Windows layer's render context destructor: ScreenGraphics (engines/sprout/host/Render.cpp) is the port's
 none 0045e580 a constructor or destructor of a class with virtual bases as the compiler wrote it (vtables set in order, this adjusted): the port's class has its own
 none 0045e640 a small helper of a value type (copy, set, add, subtract, a flag's getter): the port's structs do it with assignments and operators
 none 0045ebd0 the PNG reader's libpng wrappers: the platform's decoder replaces them (src/Render.cpp, decodeImage)
@@ -483,4 +483,4 @@ none 00435080 the text button and its layout element (0x42e2b0, with 0x435040, 0
 none 00435240 the text button and its layout element (0x42e2b0, with 0x435040, 0x435050, 0x435080 and 0x435240 for its text): only the level editor's HUD (EditorHUD.xml, loaded and never shown) used them
 none 00436ff0 the application's map from node names to nodes (0x437f60 adds, 0x436ff0 removes): only a particle stream's anchor read it, and no data has one
 none 00437f60 the application's map from node names to nodes (0x437f60 adds, 0x436ff0 removes): only a particle stream's anchor read it, and no data has one
-none 0043d3c0 the float rectangle's intersection, which the original's drawing clips with: the port's drawing clips on its own (src/Render.cpp)
+none 0043d3c0 the float rectangle's intersection, which the original's drawing clips with: the port's drawing clips on its own (engines/sprout/host/Render.cpp)
