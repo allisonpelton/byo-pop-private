@@ -528,7 +528,7 @@
       ],
       "na": [],
       "now": null,
-      "note": "every phase but modding done but one: the 3D original's tour is done (8251 frames agree in seed and ticks, 31 shots faint-only; VeniceDisplay adds Direct3D 7's half pixel in 3D); left: the tutorial's don't-show-again box; site features with the site session"
+      "note": "every phase but modding done except the site features (Music, soundboard presets, an autosplitter if speedrun.com has a board), which wait on the site's session; the tutorial's don't-show-again box is settled (9e662bc1): it sits on levels/tutorial.xml, a scene the original never loads, so the original never shows it"
     },
     "heavyweapon": {
       "title": "Heavy Weapon Deluxe",
