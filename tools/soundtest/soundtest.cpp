@@ -14,6 +14,7 @@
 
 #include <SDL.h>  // main becomes SDL_main, which SDL2main's entry point calls
 #include <algorithm>
+#include <chrono>
 #include <cctype>
 #include <cmath>
 #include <cstdint>
@@ -301,8 +302,17 @@ void CheckStreamed(const char* thePath)
 	std::ifstream aStream(thePath, std::ios::binary);
 	std::vector<uint8_t> aFile((std::istreambuf_iterator<char>(aStream)), std::istreambuf_iterator<char>());
 	Platform::Mixer& mixer = Platform::Mixer::Get();
+	// the time each load takes, and each mix at the first pitch (the processor time streaming moves into the mix)
+	auto aMs = [](std::chrono::steady_clock::time_point theFrom) {
+		return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - theFrom).count();
+	};
+	auto aStart = std::chrono::steady_clock::now();
 	std::shared_ptr<Platform::SoundData> aWhole = mixer.LoadSoundData(aFile, thePath);
+	double aWholeMs = aMs(aStart);
+	aStart = std::chrono::steady_clock::now();
 	std::shared_ptr<Platform::SoundData> aStreamed = mixer.LoadStreamedSoundData(aFile, thePath);
+	double aStreamedMs = aMs(aStart);
+	double aMixMs[2] = {0, 0};
 	gChecks++;
 	if (!aWhole || !aStreamed || !aStreamed->mStreamFile || aWhole->mFrames != aStreamed->mFrames)
 	{
@@ -320,6 +330,7 @@ void CheckStreamed(const char* thePath)
 		{
 			anOut[k].assign((size_t)aFrames * 2, 0.0f);
 			int aVoice = mixer.StartVoice(k == 0 ? aWhole : aStreamed, 0.8f, 0.6f, aPitch, true);
+			aStart = std::chrono::steady_clock::now();
 			for (int i = 0; i < aFrames; i += 1000)
 			{
 				if (i / 1000 == aFrames / 3000)
@@ -329,6 +340,8 @@ void CheckStreamed(const char* thePath)
 				mixer.RenderOffline(&anOut[k][(size_t)i * 2], std::min(1000, aFrames - i));
 			}
 			mixer.StopVoice(aVoice);
+			if (aPitch == aPitches[0])
+				aMixMs[k] = aMs(aStart);
 		}
 		gChecks++;
 		if (memcmp(anOut[0].data(), anOut[1].data(), anOut[0].size() * sizeof(float)) != 0)
@@ -340,6 +353,9 @@ void CheckStreamed(const char* thePath)
 			printf("sound: %s: at pitch %.3f the streamed voice differs from frame %u\n", thePath, aPitch, (unsigned)(aFirst / 2));
 		}
 	}
+	printf("sound: %s: %u frames; load %.1f ms whole, %.1f ms streamed; the mix at pitch 1 (%.1f s) %.1f ms whole, %.1f ms streamed\n",
+		thePath, (unsigned)aWhole->mFrames, aWholeMs, aStreamedMs, (double)aWhole->mFrames / aWhole->mRate + 2.0, aMixMs[0],
+		aMixMs[1]);
 }
 
 int main(int argc, char** argv)
