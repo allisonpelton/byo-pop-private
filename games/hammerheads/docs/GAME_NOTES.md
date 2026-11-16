@@ -221,3 +221,26 @@ goes another way and the original never reaches it either), `RulesSheet::GetRowC
 `RuleDouble`, `Score::SetScore` and `GetScore` (0x44b170, 0x44b190) and `ObjectManager`'s destructor (kept: a singleton's). The
 first six are out. Everything else it lists is the framework's (the 2004 dialog classes, string helpers, the XML parser), not this
 game's to cut.
+
+## The PopCap Game Collection version (2026-11-15)
+
+The port was made from the Steam copy (`HammerHeadsGame.exe`, the game inside the Steam launcher), so it is checked against the game's
+version on the PopCap Game Collection disc (`docs/COORDINATION.md`). `unshield` read the group `HammerHeadsDeluxeComponent` (543 files)
+out of the disc image's cabinet into `E:/byo-og/hhcoll`; it came out with the folder `images/gui/main_menu` where the game's resources
+name `main menu`, an extraction artifact (the check renames it back).
+
+**The exe is another build** (`HammerHeads.exe`, 2,057,528 bytes against the Steam game's 2,072,994, with no Steam or DRM files). The
+port reads no texts from the exe, so unlike Bookworm's it is not touched by that: the port's data is the files.
+
+**The files.** Of the Collection's 543 and the Steam copy's 659 (the rest of its 659: the DRM and Steam files, the launcher exe, the
+runtime sound cache), 274 are the same byte for byte and 246 differ. Of the 239 pictures that differ, 238 are the same pixels in another
+encoding (the Steam copy's are recompressed). The one that is not is `loading_publisher_logo.png` (the publisher logo on the loading
+screen: the Steam copy's and the Collection's logos are different pictures; both are 250 by 250). The others that differ are
+`bass.dll` and `Flash.ocx` (the port uses neither), `license.txt`, `readme.html`, and `properties/partner.xml` (the Collection's has
+`NoReg`-less values: DefaultWindowed false, a registry key `PopCap\HammerHeads`, no Steam id or store link). `resources.xml` differs
+by the registration's upsell pictures, which the staging script takes out as it does for the Steam copy.
+
+**The port on the Collection's files.** `stage_hammerheads_assets.py` staged the Collection's folder (537 files) and the tour of
+`tools/tour_test.txt` ran on it and on the Steam copy's staged files: the 31 state lines, the 15 screenshots (byte for byte) and the
+player files are identical. What is not known: whether the Collection's own exe plays the same as the Steam one (its code was not
+compared and it was not run); what speaks for it is that its data is the same pictures, boards, texts, sounds and fonts.
