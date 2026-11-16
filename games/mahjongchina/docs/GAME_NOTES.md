@@ -150,7 +150,7 @@ are within 0.4 G of each other. The difference was the original's own spread, no
 **Memory.** Before any game file is read the process holds 52.3 MB (the framework, SDL and the video driver: shared). At the
 end of the play it holds 102.5 MB private: the engine's images (9.4 MB of decoded bits and 12.1 MB of 32-bit copies, 82
 images), 5.1 MB of sounds (19) and, from the menu on, the two MO3 modules the menu loads (ids 335 and 339), the rest, about
-24 MB. The original keeps 31 MB. `memreport <file>` (a test command, only from a test) writes these figures.
+24 MB. The original keeps 31 MB. `memreport <file>` and `memimages <file>` (test commands, only from a test; Japan's notes say what each writes) show these figures.
 
 **On the web** (`tools/profile/webperf.js`, as Japan's):
 
@@ -218,22 +218,36 @@ threads of `QueryThreadCycleTime` (`threadprof.py`); five rounds of the original
 
 No size is above the original's. The 2x window has one run at 3.17 G (the others 1.30 to 1.96); not chased, the median does not rest on it. None of the ten original runs' `origrun.log` said "no window in the first 20 s".
 
-**Memory** (private bytes in MB, the check's scripted play of 60 s, sampled every 50 ms by `perfmin.py`: the peak; two rounds, the two runs of a size within 0.3 MB of
-each other except the full-screen runs (3 MB apart) and China's original (2.3 MB); the original through origrun):
+**Memory** (private bytes in MB; the check's scripted play of 60 s, sampled every 50 ms by `perfmin.py`: the peak; the original through origrun). First measured the
+same day, before the memory follow-up: the port peaked at 44.2 MB (800x600 window), 42.5 (2x) and 44.9 (full screen) against the original's 32.4, and was at 25.6 MB at
+the title; those notes said the original's private bytes were flat from its title, which they are not (below). After the follow-up:
 
-| | original | port 800x600 | port 2x | port full screen | port at the title (12 s in, 800x600) |
+| | original | port 800x600 | port 2x | port full screen | port at the main menu |
 |---|---|---|---|---|---|
-| peak private bytes | 32.4 | 44.2 | 42.5 | 44.9 | 25.6 (renderer 56.9) |
-| peak working set | 52.1 | 55.8 | 54.0 | 60.8 | 37.1 |
+| peak private bytes | 32.4 | 31.9 (31.8 to 31.9) | 30.1 | 31.1 | 17.8 (the original: 16.9) |
+| peak working set | 52.1 | 47.2 | 45.5 | 46.6 | |
 
-So the port is below the original at the title (25.6 against 32.4 MB; the README's 34 and 104 MB were before the surface display, the streamed music and one
-copy of the pictures) and above it in play, by 12 MB. The original's private bytes are flat from its title to the end of the play; the port's grow by
-about 15 MB between the menu and a board (`tools/realplay/memprobe.py`: 25.1 MB at the menu, 40.0 MB on a stage's board after a quarter of its tiles, `tools/memmap.py`'s
-private memory 22.0 and 36.4; the libraries' 91 MB are file-backed and not counted). Where that growth goes is not known: the Mahjong engine's `memreport`
-counts none of its pictures or sounds (it reports one picture, the screen), so the split into pictures, sounds and music is not available, and nothing was changed for it.
-This is the one figure still above the original's; the target of the performance step is processor time, which no size misses, so it is listed under "Oddities" as
-open and not chased. The likely holders are the pictures kept as 32-bit copies where the original's surfaces were 8 or 16 bits, and the sounds and the
-modules' streams decoded when the board's first sounds play.
+Three runs of the 800x600 window, one at 2x and two full screen, in the machine's normal state; the margin at 800x600 is 0.5 MB, which is inside the original's own spread
+(2.3 MB between its two runs in the first measurement). In the other state, which the runs fall into now and then (end of this section), the figures are 2 to 3 MB higher. The
+processor time after the same change (`altconfigs.sh`, three rounds, billions of cycles in 30 s, medians, with the mixer): 0.80 G at 800x600, 1.49 G at 2x, 1.22 G full
+screen, against 1.00, 1.65 and 1.34 G before it (the machine was quieter; none is higher).
+
+**Where the memory is** (as Japan's section: `memreport` filled in by `MahjongApp::AddMemReportHolders`, `memimages`, `memprobe.py --series --memmap`, `scriptmem.py`, `origmem.sh`).
+- The game's exe and Resource.dll were read in with `fread` and kept: 1.57 and 9.8 MB of private bytes, for the whole run. The original loaded Resource.dll as a module, which
+  the system holds as a mapped file and does not count as private. `PeResources` now maps both files read-only and reads from the view (it reads the file in where it cannot map,
+  and in a browser). That alone was more than the 12 MB the port was above the original in play.
+- The logos' pictures (1.2 to 1.5 MB, the SplashLogo file and the exe's six) are freed when the logo layer goes (`Logo::~Logo`); only a run with `-logos` loads them.
+- The original's private bytes are 11.5 at its start, 16.9 at the menu and 31.2 on a board (`origmem.sh`, the check's first board): 14.3 MB for the board. The port's go from
+  13.7 MB at the menu to 28.6 on a stage's board (memprobe's fast start, stage 9, a quarter of its tiles played): 14.9 MB, which are pictures 6.2 MB (61 against 20, as the 32-bit
+  premultiplied copy the display draws from, and 0.7 MB of decoded bits kept for some), the 18 sounds 4.7 MB (decoded 16-bit PCM, no slack) and 3.5 MB for the board's data, the
+  blit buffer and the second music player. The original's regions at a board are as large (4.1, 3.4 and 2.0 MB blocks, three of 1.9 MB, a dozen of 1 to 1.4 MB); the first
+  brief's suspects, 32-bit pictures against 8 or 16-bit surfaces and sounds decoded at the board's first sounds, did not show.
+- The last level of a stage loads 27 more pictures, among them six backgrounds of 800x460: memprobe's series reads 28.9 MB after a quarter of the tiles of stage 9's board and
+  43.5 MB at its last tiles (pictures +11.0 MB). The original was not measured there and the check's play does not reach it, so the comparison holds for a stage's boards.
+
+**The other machine state.** As Japan's section describes: in about every other run at some hours a game process gets 13 to 16 threads and the software Direct3D
+renderer's libraries (+3 MB private, +11 MB working set), for a cause not found. In it the port's peaks are 34.8 to 34.9 MB (800x600), 32.9 to 33.2 (2x) and 34.0 to 34.2 (full screen):
+0.5 to 2.5 MB above the original's 32.4. The original was not watched for the state.
 
 **Where full screen stands, now (2026-11-16).** The 2026-11-15 paragraph above is out of date: the framework's smooth stretch is the default and full screen is
 0.42 (0.36) of the original's processor time in a window of the same play, with the renderer's look to the pixel (0 differing in the six screens).
@@ -392,7 +406,7 @@ of China pass kind 0 or 1 and no stops), the dialog text's delay and fade, its s
 What the scans found here, on the 39 object files and the 38 sources of the native build: after the removals 182 functions
 with no relocation, none whose name appears only at its declaration and its definition; the compiler warnings of the
 list in Japan's section give 996 unused parameters (the virtual hooks' signatures) and nothing else; every one of the 84
-constants is used; and the only `_WIN32` blocks are the memory report of the test commands and `main.cpp`'s search for the
+constants is used; and the only `_WIN32` blocks are `PeResources.cpp`'s mapping of the exe and Resource.dll and `main.cpp`'s search for the
 Game Collection's install. The 18 U rows of the coverage check are taken out or kept as Japan's are (its "Looked at and
 kept"). The test hooks are the same 1,300 lines as Japan's.
 
@@ -422,9 +436,4 @@ the web target builds.
 
 ## Oddities (not chased)
 
-**Memory above the original's in play (2026-11-16).** The port's private bytes peak at 44.2 MB in the 60 s of the scripted play (800x600 window; 42.5 at 2x, 44.9 full
-screen) against the original's 32.4 MB, which is flat from its title; at the title the port is at 25.6 MB, below it. The growth of about 15 MB between the main menu and a stage's board has no
-split: the Mahjong engine's `memreport` reports one picture (the screen) and no sound, so the pictures, sounds and music are not told apart. To see it: `tools/realplay/memprobe.py <out> --game china --memmap`
-under rundesk (the `memreport` line and `tools/memmap.py`'s summary at the menu and on a board) and `tools/profile/altmem.sh` for the peaks. What it would take: the engine's `memreport` filled in as
-`platform/MemReport.h` describes (pictures from the display's image table, sounds from the mixer, the songs), then each holder against what the original's DirectDraw surfaces and DirectSound buffers hold. The
-processor-time target is met at every size, so this was not chased.
+**Memory (2026-11-16, followed up).** The port's private bytes in the check's scripted play are now below the original's at every size in the machine's normal state (31.9 MB at 800x600, 30.1 at 2x, 31.1 full screen, against the original's 32.4; "Round three" has the split, what was done and what the other machine state does). What is left, and why it is left: (1) the main menu's music module stays loaded once the stage's song starts (2 to 3 MB); letting it go would mean loading it again each time the player returns to the menu, which changes when that work happens (at every return, not once), so it was not done; (2) the pictures are the display's 32-bit premultiplied copies, as the framework's other ports hold them; holding the pictures that have no transparency at 16 bits would save part of them and change what a shot shows (the rounding), so it was not done; (3) The stage's last level adds 14.5 MB to the port (27 more pictures, six of them backgrounds of 800x460: 28.9 to 43.5 MB between a quarter of stage 9's tiles and its last in `memprobe.py --series`) and the original was not measured there, so the comparison holds for a stage's boards, which the check's play is, and not for its last level. Measuring the original there needs a player file at that stage and a play of its first eight levels, or a save made for it. What chooses the machine state with 13 to 16 threads and the software renderer's libraries (+3 MB private) was not found.

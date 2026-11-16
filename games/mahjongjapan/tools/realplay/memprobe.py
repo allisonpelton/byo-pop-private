@@ -1,9 +1,10 @@
 """Where a Mahjong Escape's memory is (docs/MEMORY.md, `memreport`): the game in its 800x600 window (surface mode), once at the main menu and
-once on escape stage <level> after the bot has played <played> percent of its tiles, with the standard `memreport` command's line and the
+once on escape stage <level> after the bot has played <played> percent of its tiles (--series: at the board's start, after 25, 50, 75
+and 99 percent, then at the screen after the board and at the map), with the standard `memreport` command's line and the
 process's private bytes at each place (the Mahjong engine's memreport counts no pictures or sounds of its own, so its line gives the process's numbers
 only; --memmap adds tools/memmap.py's summary line of the same moment). Run it under rundesk:
 
-    build/native/rundesk.exe python -I games/mahjongjapan/tools/realplay/memprobe.py <out dir> --game japan|china [--level N] [--played PERCENT] [--memmap]
+    build/native/rundesk.exe python -I games/mahjongjapan/tools/realplay/memprobe.py <out dir> --game japan|china [--level N] [--played PERCENT] [--memmap] [--series]
 """
 import json
 import os
@@ -33,10 +34,14 @@ def report(g, out, name):
         time.sleep(0.2)
     found = lines()
     print(name, found[-1][found[-1].index('MEMREPORT'):] if len(found) > before else 'no MEMREPORT line')
+    with open(g.cf, 'a', newline='\n') as f:      # the engine's own table of pictures (TestCommands.cpp, memimages)
+        f.write('memimages ' + os.path.join(out, 'images-' + name + '.txt').replace(chr(92), '/') + '\n')
+    time.sleep(1)
     if '--memmap' in sys.argv:  # tools/memmap.py's reading of the process's address space (what the libraries, the heaps and the files hold)
         import subprocess
         root = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..')
-        done = subprocess.run([sys.executable, '-I', os.path.join(root, 'tools', 'memmap.py'), str(g.proc.pid)], capture_output=True, text=True)
+        done = subprocess.run([sys.executable, '-I', os.path.join(root, 'tools', 'memmap.py'), str(g.proc.pid), '--json', os.path.join(out, 'memmap-' + name + '.json')],
+                              capture_output=True, text=True)
         print(name, 'MEMMAP', (done.stdout + done.stderr).strip().splitlines()[0])
 
 
@@ -57,22 +62,47 @@ def main():
         g.ask('set player Probe')
         g.ask('level %d' % level)
         st = g.until('the board', lambda s: s['screen'] == 'escape' and not s['busy'] and s['board'] and s['board']['started'] and s['tiles'] > 0)
-        goal = st['tiles'] * (100 - played) // 100
-        for _ in range(4000):
-            if st['tiles'] <= goal:
-                break
-            if st['busy']:
-                g.wait(3)
-            else:
-                mv = g.ask('move')
-                if mv is None:
+        total = st['tiles']
+        series = '--series' in sys.argv
+        steps = [0, 25, 50, 75, 99] if series else [played]
+        for step in steps:
+            goal = total * (100 - step) // 100
+            for _ in range(4000):
+                if st['tiles'] <= goal:
+                    break
+                if st['busy']:
                     g.wait(3)
                 else:
-                    g.send(mv)
-                    g.wait(5)
+                    mv = g.ask('move')
+                    if mv is None:
+                        g.wait(3)
+                    else:
+                        g.send(mv)
+                        g.wait(5)
+                st = g.state()
+            g.settle('the board at rest')
+            report(g, out, 'board%d' % step if series else 'board')
+        if series:
+            for _ in range(4000):
+                if st['screen'] != 'escape' or st['tiles'] == 0:
+                    break
+                if st['busy']:
+                    g.wait(3)
+                else:
+                    mv = g.ask('move')
+                    if mv is None:
+                        g.wait(3)
+                    else:
+                        g.send(mv)
+                        g.wait(5)
+                st = g.state()
+            g.wait(60)
             st = g.state()
-        g.settle('the board at rest')
-        report(g, out, 'board')
+            g.settle('the screen after the board')
+            report(g, out, 'after-' + str(st['screen']).replace(' ', '-'))
+            g.ask('goto escape')
+            g.settle('the map')
+            report(g, out, 'map')
     finally:
         g.close()
 

@@ -194,7 +194,7 @@
         "collection"
       ],
       "now": null,
-      "note": "third performance round merged (2026-11-16): full screen is fw-memory's smooth stretch on the processor (no renderer at any size, 0 pixels differ from the renderer's look in six screens); processor time at 0.41 / 0.66 / 0.79 (Japan) and 0.32 / 0.52 / 0.42 (China) of the original's in the 800x600 window, 2x and full screen; memory below the original's at the title and 12 MB above it at the peak of a play (listed, not chased); the lite mod quickRedeal (the shuffle's deal search stopped after a count of steps, docs/LITE_MOD.md), not yet on the web build"
+      "note": "memory follow-up merged (2026-11-16): the exe and Resource.dll mapped instead of read in, the logos freed with their layer; play peak 38.8 MB at 800x600 against the original's 40.8, menu 17.6 against 22.8; open: a software-renderer state some runs fall into (+3 MB), the stage's last level unmeasured in the original"
     },
     "mahjongchina": {
       "title": "Mahjong Escape: Ancient China",
@@ -215,7 +215,7 @@
         "collection"
       ],
       "now": null,
-      "note": "third performance round merged (2026-11-16): full screen is fw-memory's smooth stretch on the processor (no renderer at any size, 0 pixels differ from the renderer's look in six screens); processor time at 0.41 / 0.66 / 0.79 (Japan) and 0.32 / 0.52 / 0.42 (China) of the original's in the 800x600 window, 2x and full screen; memory below the original's at the title and 12 MB above it at the peak of a play (listed, not chased); the lite mod quickRedeal (the shuffle's deal search stopped after a count of steps, docs/LITE_MOD.md), not yet on the web build"
+      "note": "memory follow-up merged (2026-11-16): the exe and Resource.dll mapped instead of read in, the logos freed with their layer; play peak 31.9 MB at 800x600 against the original's 32.4; open: a software-renderer state some runs fall into (+3 MB, then 0.5 to 2.5 MB above the original), the stage's last level unmeasured in the original"
     },
     "bejeweledtwist": {
       "title": "Bejeweled Twist",
