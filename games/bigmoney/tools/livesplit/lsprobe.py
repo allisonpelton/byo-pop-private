@@ -2,9 +2,11 @@
 """Read Big Money's LiveSplit block from the running game, the way the auto splitter does (Windows).
 
     lsprobe.py --exe <path to bigmoney.exe> --log <file> [--interval-ms 10] [--wait-seconds 60]
+        [--ready <file>]
     lsprobe.py --check <probe log> <game log>
 
-The first form waits for a process of that exe (started after the probe), then, like
+The first form waits for a process of that exe (started after the probe; with --ready, the probe creates that
+file, empty, as soon as it has listed the running processes, so a caller starts the game only after it), then, like
 BigMoneyDeluxe-byopop.asl: the main module's PE header from the game's memory, each writable section scanned at
 4-byte steps for the magic, the game id, the layout and size, and self (0 or the hit's own address); then it
 polls until the process ends: seq, the 0xB0 bytes, seq again; a copy counts when both seqs are equal and even
@@ -158,8 +160,10 @@ def format_block(b):
             "self=* qpc=* qpcf=*") % ((v[1], v[2], v[3]) + w + x + (key,))
 
 
-def probe(exe, log, interval, wait):
+def probe(exe, log, interval, wait, ready=None):
     before = {pid for pid, _ in processes()}
+    if ready:
+        open(ready, "w").close()
     t0 = time.time()
     pid = None
     while pid is None:
@@ -249,11 +253,12 @@ def main():
     ap.add_argument("--log")
     ap.add_argument("--interval-ms", type=int, default=10)
     ap.add_argument("--wait-seconds", type=int, default=60)
+    ap.add_argument("--ready", help="file to create once the running processes are listed")
     ap.add_argument("--check", nargs=2, metavar=("PROBE_LOG", "GAME_LOG"))
     a = ap.parse_args()
     if a.check:
         return check(*a.check)
-    probe(a.exe, a.log, a.interval_ms, a.wait_seconds)
+    probe(a.exe, a.log, a.interval_ms, a.wait_seconds, a.ready)
     return 0
 
 
