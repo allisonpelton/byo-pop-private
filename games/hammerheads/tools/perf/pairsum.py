@@ -19,7 +19,7 @@ def stretch(path):
         if line.startswith('{'):
             j = json.loads(line)
             snaps[j['label']] = j
-    a, b = snaps['a'], snaps['b']
+    a, b = snaps['a'], snaps.get('b') or snaps['exit']   # a paused port takes no snapshot b: its exit one, ten updates later, stands in
     updates = b['update'] - a['update']
     parts = {k: (b['parts'][k]['cycles'] - a['parts'][k]['cycles']) / updates / 1e6 for k in ('update', 'draw', 'present')}
     return (b['process_cycles'] - a['process_cycles']) / updates / 1e6, parts

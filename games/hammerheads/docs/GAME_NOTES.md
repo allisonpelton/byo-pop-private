@@ -189,3 +189,26 @@ original do not have (candidates for taking out, with the helpers only they call
 quit and options boxes' rarer paths; the rest are small drawing and update helpers of the shop's gift box, the rotating floater, the
 hammer display, the challenge meter and the high score entry box, which only certain rounds reach. None is removed or read again
 yet; the rare flows still need runs of their own.
+
+## Performance
+
+`tools/perf/perf.py`, `pairs.sh`, `pairsum.py` and `count.txt` measure the processor time like for like (docs/COORDINATION.md, "The
+target"): the port and the original play updates 4000 to 8000 of the `classic1` inputs (level 1 in play, 40 s of real time) in a window
+of 800x600 each (the port's `ScreenMode=0` in a fresh `registry.ini`, `-windowscale=1`), turn about, each pinned to a performance core
+(`tools/pincore.py`), with the counting paused inside the window (`cyclesplit pause`, `count pause`) so that the process cycles are a
+player's. The original is paced: its main loop spins at about 67 passes an update on rundesk's desktop (DirectDraw does not wait for a
+blank), so `perf.py` patches a `Sleep(4)` stub into the padding of its code (`paced_patches`: 4 ms keeps the 59 draws a second of a 60 Hz
+screen; 8 ms gives 41, 13 ms gives 10), and the cycle counter of origrun's `--count` follows the framework's `UpdateAppStep` (0x4d7d60),
+`DrawDirtyStuff` (0x4dcf40) and `Redraw` (0x4e4bf0). The first boundary, 0x4d3290, is a once-a-pass housekeeping function and not the
+update (67 calls an update), so the original's "update" part in the split is not the update; draw and present are.
+
+Five pairs, million cycles an update, paced original: 2.17, 2.28, 2.28, 2.20, 2.21 (median 2.21). The port: 1.42, 2.68, 2.53, 2.42, 1.46
+(median 2.42, ratio 1.10), two modes with the same code. The split of two pairs: the port's picture (draw, present and the driver's
+threads) is 2.2 M, nearly all of it in the present, against the original's 1.73 M draw and 0.48 M Blt; the port's own update is
+0.014 M against 0.004 M... (not comparable, see above). With the renderer's vertical sync off (`SDL_RENDER_VSYNC=0` in the
+environment; the framework turns it on for every game unless `-fast`, `DDInterface::Init`) three port runs cost 1.30, 1.30 and 1.44
+M an update, 0.59 to 0.65 of the original, in one mode: the Direct3D 11 driver's wait for the blank is a busy wait that the cycle
+counts charge, in the part of the 16.7 ms frame where it lands. So the port's processor time is below the original's when the wait
+is not counted, and above it by a tenth in the runs where it is. The fix is the framework's, the same for every game with a GPU
+present (a present that does not wait, the frame loop's own pace, which `DDInterface` already has as `pace_ms`): sent to the
+coordinator with these numbers. Nothing in the game's own code is slower than the original's: the draw is 0.09 M against 1.73 M.
