@@ -183,8 +183,9 @@ the cache that made it peak at 47 to 49 MB. In about one run in five Windows add
 time on this machine. At 1x the software screen costs the game about what the GPU path does (Dynomite's medians 9.8 G
 cycles against 10.2, the pairs going either way); at 2x it costs about a sixth more (Dynomite 10.6 G against 9.1, Big
 Money 18.6 against 15.6), GDI's stretch on top of the same software draws. What dwm and the kernel spend on either could
-not be told apart on a machine that was never quiet. So the GPU stays the default above 1x, and a port may take the
-software screen there for its memory ("Windows at 2x to 4x").
+not be told apart on a machine that was never quiet. So the software screen is for 1x only and the GPU takes every
+window above it (the user, 2026-11-15: "It seems like software drawing only makes sense for 1x"); `SOFTSCREEN_SCALED=1`
+stays a test run's switch, and no port asks for software there ("Windows at 2x to 4x").
 
 ### What the original runs in
 
@@ -896,3 +897,24 @@ same fork of Lua 5.0.2, with the same object layout (`games/bookwormadv/docs/POP
 and the port's 39 MB over the original (the survey's "Thirteen games at a first board" and `build/memsurvey/table.md`)
 lies outside Lua. Translating the 621 scripts into C++ would save at most this heap, less what their tables and texts
 would take as C++ data; the scripts also carry the rules a large class of mods would change (`MOD_IDEAS.md`).
+
+## A kernel leak from Direct3D 11 devices (2026-11-15)
+
+After 55 hours of sessions at work the machine's kernel held 8.9 GB of paged pool and 2.3 GB of nonpaged: about 800,000
+access tokens (pool tags `Toke`, `SeAt`, `SeTd`, `SeTl`) and 528,259 file handles held by the System process, every one
+unnamed (Sysinternals Handle, run elevated: `handle64 -s -p 4`). Only a restart frees them. `build/leak/` holds the
+tests, which need no elevation (pool tags through `NtQuerySystemInformation`, class 22; handles by type, class 64).
+Starting 300 each of cmd, bash, Python and `rundesk cmd` left nothing behind, and nor did creating, reading and deleting
+2,000 files. `tools/smoke` (an SDL window with a renderer for 180 frames, under rundesk) did:
+
+| 25 to 60 runs of the smoke test | System's handles | Tokens | `WCri` (wcifs file contexts) |
+|---|---|---|---|
+| `SDL_RENDER_DRIVER=software` | +8 for 25 | +0 | +0 |
+| `SDL_VIDEODRIVER=dummy` (no window) | +21 for 25 | -3 | +0 |
+| `SDL_RENDER_DRIVER=direct3d11` | +212 for 25, +569 for 60 | -75 for 25, +148 for 60 | +365, +430 |
+
+So every process that makes a Direct3D 11 device leaves about nine file handles in the System process, and probably a
+few tokens (the token count moves by a hundred either way with the other sessions' processes), while software drawing
+leaves none. The machine runs NVIDIA's driver 32.0.15.6094 (560.94, August 2024) on a GTX 1080 under Windows 11 build
+26300; whether the leak is the NVIDIA driver's or Windows' own was not found. Test runs that need no GPU leak nothing on
+the software screen or with `SDL_RENDER_DRIVER=software`.
