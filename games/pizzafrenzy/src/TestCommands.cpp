@@ -37,6 +37,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <typeinfo>
 #include <map>
 #include <string>
 
@@ -1044,4 +1046,56 @@ bool PizzaFrenzyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	std::fflush(stdout);
 	return true;
+}
+
+namespace
+{
+std::string bitsText(float theValue)
+{
+	int aBits = 0;
+	std::memcpy(&aBits, &theValue, sizeof(aBits));
+	return std::to_string(aBits);
+}
+}
+
+void PizzaFrenzyApp::LogState()
+{
+	pf::PizzaFrenzy* anApp = pf::PizzaFrenzy::instance();
+	std::vector<std::string> aState;
+	aState.push_back(std::to_string((int)engine::crtRandState()));
+	engine::State* aCurrent = anApp != nullptr ? anApp->mStates.getState() : nullptr;
+	aState.push_back(aCurrent != nullptr ? typeid(*aCurrent).name() : "-");
+	aState.push_back(anApp != nullptr ? std::to_string(anApp->mCurrentCity) : "-");
+	aState.push_back(anApp != nullptr ? std::to_string(anApp->mCurrentLevel) : "-");
+	pf::GameStats* aStats = anApp != nullptr ? anApp->mGameStats.get() : nullptr;
+	auto aStat = [aStats](int theValue) { return aStats != nullptr ? std::to_string(theValue) : std::string("-"); };
+	aState.push_back(aStat(aStats ? aStats->mScore : 0));
+	aState.push_back(aStats ? bitsText(aStats->mElapsedTime) : "-");
+	aState.push_back(aStat(aStats ? aStats->mPizzasDelivered : 0));
+	aState.push_back(aStat(aStats ? aStats->mPizzasOrdered : 0));
+	aState.push_back(aStat(aStats ? aStats->mHappiness : 0));
+	aState.push_back(aStat(aStats ? aStats->mCustomersServed : 0));
+	aState.push_back(aStat(aStats ? aStats->mTipMoney : 0));
+	aState.push_back(aStat(aStats ? aStats->mWavesStarted : 0));
+	aState.push_back(aStat(aStats ? aStats->mComboLength : 0));
+	pf::GameMode* aMode = anApp != nullptr ? dynamic_cast<pf::GameMode*>(anApp->mMode.get()) : nullptr;
+	pf::GameMode::LoggedValues aValues = aMode != nullptr ? aMode->loggedValues() : pf::GameMode::LoggedValues();
+	aState.push_back(aMode ? bitsText(aValues.mWaveTimer) : "-");
+	aState.push_back(aMode ? bitsText(aValues.mSpawnTimer) : "-");
+	aState.push_back(aMode ? bitsText(aValues.mDeliveryTimer) : "-");
+	aState.push_back(aMode ? std::to_string(aValues.mWaveCustomersLeft) : "-");
+	aState.push_back(aMode ? std::to_string(aValues.mOrdersBegun) : "-");
+	aState.push_back(aMode ? std::to_string(aValues.mDeliveryStreak) : "-");
+	static const char* const NAMES[] = {"rand", "state", "city", "level", "score", "elapsed", "delivered", "ordered",
+		"happiness", "served", "tipmoney", "waves", "combo", "wavetimer", "spawntimer", "deliverytimer", "customersleft",
+		"ordersbegun", "streak"};
+	if (mLoggedState.size() != aState.size())
+		mLoggedState.assign(aState.size(), std::string());
+	for (size_t i = 0; i < aState.size(); i++)
+	{
+		if (mLoggedState[i] != aState[i])
+			std::fprintf(mStateLog, "%d %s %s\n", mFrames, NAMES[i], aState[i].c_str());
+	}
+	mLoggedState = aState;
+	std::fflush(mStateLog);
 }

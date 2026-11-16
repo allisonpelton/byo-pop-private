@@ -279,7 +279,8 @@ std::vector<engine::IntPair> pizzafrenzy::findPath(CityMap* theMap, const engine
 	return PathSearch(theMap, theStart, theGoal).run();
 }
 
-// 0x430860
+// 0x430860: the map updates the vehicle itself (updateVehicle), so its parent's update leaves it out (the mask's
+// listeners bit)
 Van::Van(const std::string& theTypeName) :
 	mMap(nullptr),
 	mCell{0, 0},
@@ -295,6 +296,7 @@ Van::Van(const std::string& theTypeName) :
 	mArrivedTime(0)
 {
 	setName(theTypeName);
+	setListenersMasked(true);
 }
 
 // 0x42f920

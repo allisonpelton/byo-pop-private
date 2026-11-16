@@ -200,6 +200,22 @@ public:
 	// the level's titles (the node "titles" of the game screen's layout)
 	engine::FadeContainer* getTitles() { return mTitles; }
 
+	// port: the mode's values the identical-play state log compares with the original's (src/TestCommands.cpp,
+	// PizzaFrenzyApp::LogState)
+	struct LoggedValues
+	{
+		float mWaveTimer;
+		float mSpawnTimer;
+		float mDeliveryTimer;
+		int mWaveCustomersLeft;
+		int mOrdersBegun;
+		int mDeliveryStreak;
+	};
+	LoggedValues loggedValues() const
+	{
+		return { mWaveTimer, mSpawnTimer, mDeliveryTimer, mWaveCustomersLeft, mOrdersBegun, mDeliveryStreak };
+	}
+
 protected:
 	engine::Ref<CityMap> mMap;                 // +0x1c
 	engine::Ref<GameScreen> mScreen;           // +0x20

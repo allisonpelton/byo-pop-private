@@ -52,6 +52,8 @@ private:
 
 	PizzaFrenzy* mApp;  // +0x0c
 	float mDelay;       // +0x10: the splash screen's second
+	// port: the frame of the global score post's stage has passed (the port makes no screen in it)
+	bool mGlobalPostStagePassed = false;
 };
 
 } // namespace pizzafrenzy

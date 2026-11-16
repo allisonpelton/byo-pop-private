@@ -501,8 +501,13 @@ void PizzaFrenzyApp::RunFrame()
 	try
 	{
 		mWidget->mGraphics->clear();
+		// port: what the input since the last frame changed is logged under that frame, as origrun logs the original's
+		if (mStateLog != nullptr)
+			LogState();
 		mFrames++;
 		engine::App::instance()->frameSignalled(mWidget->mGraphics);
+		if (mStateLog != nullptr)
+			LogState();
 		if (mWidget->mGraphics->finish())
 		{
 #ifndef __EMSCRIPTEN__
@@ -552,6 +557,8 @@ void PizzaFrenzyApp::HandleCmdLineParam(const std::string& theParamName, const s
 		gTestSeedGiven = true;
 		gTestSeed = strtoul(theParamValue.c_str(), nullptr, 10);
 	}
+	else if (theParamName == "-statelog")
+		mStateLog = fopen(theParamValue.c_str(), "w");
 	SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
 }
 

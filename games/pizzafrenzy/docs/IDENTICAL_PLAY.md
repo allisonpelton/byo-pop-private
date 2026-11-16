@@ -1,0 +1,78 @@
+# Pizza Frenzy: the identical-play pass
+
+Phase one of the pass CLAUDE.md names: **plays identical**. The same input gives the same games in the original and the
+port, by the game's state, not by pictures. Phase two, **looks identical**, follows in its own section once this one is
+done.
+
+The original is the game carved out of its wrapper (`re/pizzafrenzy/bin/PizzaFrenzyGame.exe`, image base 0x400000), run
+only through `tools/origrun`, from a copy staged under `E:\byo-og\pf\game` by
+`games/pizzafrenzy/tools/identical/setup.sh`, under rundesk, on origrun's virtual clock and with the scripted cursor.
+`orig.sh` refuses to start when the game's registry key is there already and removes only the key its own run made, so
+every run starts the way a first run does.
+
+## How both sides are driven
+
+**One input for both.** A case starts with the port's bot playing from a first launch (an empty user folder) through
+`tools/playbymove`, held, for a number of moves; `record.py` turns its transcript into a port `-realinput` file
+(`<update> move|click|type|key ...`), adding up the bot's waits. The port plays that file again with `-fast` and writes
+its state log; `toorig.py` turns the same file into an origrun script (`at <update> ...`, delta 0: the first case showed
+each input's effects on the same frames that way).
+
+**One start and one step.** The game seeds the C library's `rand` with `time(NULL)` at start; a test patch puts the
+run's seed there (origrun's `--seed`), and the port's `-seed=N` is the same `srand(N)`. The frame's seconds come from
+the clock; a test patch makes them the period (33.333 ms) and counts the frames at 0x541a00 for origrun's `at`, `peek`
+and `--watch`. The game links the multithreaded C library, which keeps `rand`'s state in the thread's data, so a third
+patch mirrors the state to 0x541a04 after every `rand` and `srand`. All of them are in
+`tools/origrun/patches/pizzafrenzy.txt` (git-ignored; `setup.sh` writes it); none touches anything but the seed, the
+frame time and the mirror.
+
+**Compared values.** origrun watches four expressions a run. The game object is the pointer at 0x532900: its state (the
+vtable at +0x30), city and level; its stats (+0x120): score, elapsed time, pizzas delivered and ordered, happiness,
+customers served, tip money, waves and combo; its mode (+0x110): the wave, spawn and delivery timers, the wave's
+customers left, the orders begun and the delivery streak. The port writes the same names with `-statelog=<file>`
+(`PizzaFrenzyApp::LogState`, floats as their bits). `cmp.py` compares every change of every value with its frame. The
+random state is peeked at every frame instead (a watch can miss a value when several come close together), and
+`randseq.py` checks that the port's values come in the original's order, each within two frames: a peek is taken where
+the patched counter goes up, after the mode's update and before the scene's, so a frame's particle draws show one peek
+later than its mode's.
+
+`case.sh <name> <seed> <moves>` runs all of it; `INPUT=<file>` replays a recorded input instead of recording one.
+
+## Differences found and fixed
+
+**The tip and the vehicles were updated twice a frame.** The original's constructors of the tip (0x42f050) and the
+vehicles (0x430860) set bit value 4 of a node's mask (+0x74, 0x467d70), the listeners flag, so their parent's update
+leaves them out: the map updates them itself (`TipPopup::updateTip`, `Van::updateVehicle`). The port had read the value
+as the mouse bit (value 2), so the tip took no mouse and both were updated by their group and again by the map: their
+particle streams emitted at twice the rate and drew twice the random numbers, and from the first delivery's tip on the
+random state went apart (in the first long case, a customer then got a different house, and the port hung up an order
+the original never had). The engine's node now keeps the listeners bit of the mask (`setListenersMasked`, a shared
+change, read only by the signal build), and the tip and the vehicles set it.
+
+**A kitchen let its van go after every trip.** A vehicle that has finished its trip calls its home's slot 0x1a8. For a
+house (the police car's) that is 0x41c460, which lets the vehicle go; for a kitchen it is 0x492310, which does nothing,
+so the kitchen keeps its vans and sends a parked one the next time. The port called the house's version for both, so a
+kitchen made a new van for every order: a new van's emitter has a full credit and emits at once, where the original's
+parked van carries the credit its last trip left, and the random state went apart again two frames later. The kitchen
+now overrides the slot with nothing.
+
+**The global score post's stage frame.** The original's loading makes the online score post's screen in a frame of its
+own (the load bar at 0.8), which the port has no screen for; the port now keeps an empty frame there, so the loading
+takes the original's frames.
+
+## Oddities
+
+**The particle warmup's frame.** The port starts the decorations' particle warmup (150 seconds, 24 draws) in frame 50,
+during the city's postcards; the original makes the same draws in frame 51. The random state is the same from frame 51
+on. The cause was not found within the hour: the original's start, flags, setup and the city setting all look the same
+as the port's.
+
+**One more state at the level's start.** The original passes through a state the port does not have within frame 251
+(both are in the game from that frame on).
+
+## Deviations left
+
+The global score post is left out of the port (it is outbound), and two frames of play show it. The loading keeps the
+post screen's stage as an empty frame, so the loading takes the original's frames. At the game's end the original
+opens the post's dialog (a state of its own, until the player closes it), where the port goes to the menu at once: the
+comparison of a case ends there, and the input after it lands on other screens on the two sides.

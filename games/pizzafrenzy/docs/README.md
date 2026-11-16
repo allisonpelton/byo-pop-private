@@ -146,6 +146,10 @@ stays.
   the original writes them beside its exe. A missing file is read as no pizzas, and the first pizza gets id 0.
 - **A pizza's name with a double quote** is saved with an apostrophe in its place, so that the file stays valid XML;
   what the original does with one has not been checked yet.
+- **The global score post's loading frame** stays, empty: the original makes the post's screen in a stage of its own
+  (the load bar at 0.8), and the port keeps that frame with nothing in it, so the loading takes the original's frames.
+- **The game's end goes to the menu** at once: the original opens the global score post's dialog there first (a state
+  of its own, until the player closes it), which the port does not have.
 
 ## Progress
 
