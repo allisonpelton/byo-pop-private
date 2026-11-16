@@ -183,12 +183,12 @@ A crash found by the `dialogs` run: the change-player box ("If this is not you, 
 port's `Dialog` does not make). Found with AddressSanitizer (`build/asan-hh`), fixed in the constructor.
 
 Defined in the port and never reached in these runs: 137 functions. 35 are the gnomes' and shop items' `SaveExtra` and `LoadExtra`
-(vf09 and vf10, 0x435de0 and the like), read and written only for the per-object extras of a board file, which the boards of the
-original do not have (candidates for taking out, with the helpers only they call); 14 are Application functions at 0x41e960-0x422460
-(the dialog and screen plumbing of rare flows); 21 are in the Resurrect page, the credits, the player list's rename and delete, the
-quit and options boxes' rarer paths; the rest are small drawing and update helpers of the shop's gift box, the rotating floater, the
-hammer display, the challenge meter and the high score entry box, which only certain rounds reach. None is removed or read again
-yet; the rare flows still need runs of their own.
+(vf09 and vf10, 0x435de0 and the like): the saved game's per-creature state, which only a save made while one of those creatures is on
+the board reaches (`classic_save1` and `classic_save22` saved on boards of simple gnomes). They are not dead code; a run that saves
+with each kind on the board would reach them. 14 are Application functions at 0x41e960-0x422460 (the dialog and screen plumbing of
+rare flows); 21 are in the Resurrect page, the credits, the player list's rename and delete, the quit and options boxes' rarer
+paths; the rest are small drawing and update helpers of the shop's gift box, the rotating floater, the hammer display, the challenge
+meter and the high score entry box, which only certain rounds reach. None is removed; the rare flows still need runs of their own.
 
 ## Performance
 
@@ -212,3 +212,12 @@ counts charge, in the part of the 16.7 ms frame where it lands. So the port's pr
 is not counted, and above it by a tenth in the runs where it is. The fix is the framework's, the same for every game with a GPU
 present (a present that does not wait, the frame loop's own pace, which `DDInterface` already has as `pace_ms`): sent to the
 coordinator with these numbers. Nothing in the game's own code is slower than the original's: the draw is 0.09 M against 1.73 M.
+
+## Unneeded code
+
+The linker's list of discarded sections (an -O0 build with `-ffunction-sections -fdata-sections` and `--gc-sections --verbose`,
+`build/gc-hh`, docs/COVERAGE.md) names, in the game's own code, `Application::GameWonToMainMenu` (0x421c30: the game-won page's button
+goes another way and the original never reaches it either), `RulesSheet::GetRowCount`, `NcMovingDialog::IsMoving` (0x468bf0),
+`RuleDouble`, `Score::SetScore` and `GetScore` (0x44b170, 0x44b190) and `ObjectManager`'s destructor (kept: a singleton's). The
+first six are out. Everything else it lists is the framework's (the 2004 dialog classes, string helpers, the XML parser), not this
+game's to cut.
