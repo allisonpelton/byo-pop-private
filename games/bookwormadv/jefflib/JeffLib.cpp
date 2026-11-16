@@ -51,21 +51,21 @@ bool StringLessNatural(const std::string& a, const std::string& b)
 }
 
 // The * and ? of a FindFirstFile pattern, ignoring case
-static bool WildMatch(const char* p, const char* s)
+static bool WildMatch(const char* thePattern, const char* theText)
 {
-	for (; *p; p++, s++) {
-		if (*p == '*') {
-			for (const char* t = s;; t++) {
-				if (WildMatch(p + 1, t))
+	for (; *thePattern; thePattern++, theText++) {
+		if (*thePattern == '*') {
+			for (const char* t = theText;; t++) {
+				if (WildMatch(thePattern + 1, t))
 					return true;
 				if (!*t)
 					return false;
 			}
 		}
-		if (!*s || (*p != '?' && tolower((unsigned char)*p) != tolower((unsigned char)*s)))
+		if (!*theText || (*thePattern != '?' && tolower((unsigned char)*thePattern) != tolower((unsigned char)*theText)))
 			return false;
 	}
-	return !*s;
+	return !*theText;
 }
 
 // A folder under a real folder, its name in any case; "" when there is none. (VFS::FindCaseInsensitive finds

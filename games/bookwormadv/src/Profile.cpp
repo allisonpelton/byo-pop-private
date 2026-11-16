@@ -29,6 +29,7 @@ static const Profile::FormatChange kFormatChanges[] = {
 // Keys a file's values never set (the constructor's list at +0x10; they had versions, which nothing compared)
 static const char* const kNotLoaded[] = {"Gold", "NeedsScrambleHint"};
 
+// port: the path of a user's file
 static std::string ProfilePath(const std::string& theName)
 {
 	return GetAppDataFolder() + "users/" + theName + ".bwa";
@@ -274,6 +275,7 @@ static void WriteTable(Buffer& theBuffer, const std::vector<Profile::Entry>& the
 	}
 }
 
+// port: from 0x48a140 (a value written by its type)
 static void WriteValue(Buffer& theBuffer, const Profile::Value& theValue)
 {
 	theBuffer.WriteLong(theValue.mType);
@@ -317,6 +319,7 @@ static void ReadTable(const Buffer& theBuffer, std::vector<Profile::Entry>& theT
 	} while (aHasNext && !theBuffer.AtEnd());
 }
 
+// port: from 0x48aff0 (a value read by its type)
 static void ReadValue(const Buffer& theBuffer, Profile::Value& theValue)
 {
 	theValue.mType = (Profile::ValueType)theBuffer.ReadLong();
@@ -437,6 +440,7 @@ bool Profile::Load(bool theQuiet)
 
 // ---- the Lua functions ----
 
+// port: the app's profile for the scripts' functions
 static Profile* CurrentProfile(lua_State* L)
 {
 	if (gApp->mProfile == nullptr)
@@ -444,6 +448,7 @@ static Profile* CurrentProfile(lua_State* L)
 	return gApp->mProfile;
 }
 
+// port: the key argument of the scripts' functions
 static std::string KeyArg(lua_State* L)
 {
 	const char* aKey = lua_tostring(L, 1);
@@ -541,6 +546,7 @@ static void PushTable(lua_State* L, const std::vector<Profile::Entry>& theTable)
 	}
 }
 
+// port: from 0x48c0f0 (a value pushed by its type)
 static void PushValue(lua_State* L, const Profile::Value& theValue)
 {
 	switch (theValue.mType) {

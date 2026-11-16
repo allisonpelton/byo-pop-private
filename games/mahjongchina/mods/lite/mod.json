@@ -1,0 +1,20 @@
+{
+  "id": "lite",
+  "name": "Mahjong Escape Ancient China Lite",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Makes the Shuffle button quicker. The original searches for a deal that can be cleared for up to a second, with the game standing still, and deals at random if it finds none; this stops that search sooner and changes nothing else. The look, the rules, the sounds and the pace of play stay as they were. A shuffle can then end with a random deal where the original would have found a clearable one; the mod menu's setting says how rarely. With the whole mod off the game is the original.",
+  "features": {
+    "lite": true
+  },
+  "settings": [
+    {
+      "id": "quickRedeal",
+      "label": "Shuffle without the wait",
+      "type": "bool",
+      "default": true,
+      "apply": "restart",
+      "help": "The shuffle button deals the tiles left on the board again. The original searches for a deal that can be cleared for up to a second of the machine's clock, with the game standing still, and deals at random when it finds none. Most boards are solved within a few milliseconds; on some boards no deal exists, and the second is then the whole cost (on the boards after a stretch of the winning moves about one shuffle in eight). With this on the search stops after 200 clock checks of 1,001 steps (about 15 milliseconds), the same on every run, so the random deal it ends with does not depend on the machine's speed. A shuffle that the original would have solved with more steps (none seen in the games tried) gets a random deal instead, which can leave the board with fewer moves or none. Off: the original's second. A new game's deal keeps its 2 seconds."
+    }
+  ]
+}

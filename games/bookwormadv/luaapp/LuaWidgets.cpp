@@ -33,6 +33,7 @@ void LuaWidget::RegisterLua()
 	Class<LuaWidget>("LuaWidget", false).Base<LuaWidgetTpl<Widget>>().Method<&LuaWidget::RegisterObject>("RegisterObject");
 }
 
+// 0x677e90
 void LuaTextWidget::Draw(Graphics* g)
 {
 	LuaWidget::Draw(g);
@@ -45,12 +46,14 @@ void LuaTextWidget::Draw(Graphics* g)
 	g->WriteWordWrapped(Rect(0, 0, mWidth, mHeight), mLabel, mLineSpacing, mJustification, nullptr, -1);
 }
 
+// 0x677e40
 void LuaTextWidget::SetFont(LuaFont* theFont)
 {
 	delete mFont;
 	mFont = theFont != nullptr ? theFont->mFont->Duplicate() : nullptr;  // the original crashed on nil
 }
 
+// port: registers the class with the scripts (the original did it where the first one was made)
 void LuaTextWidget::RegisterLua()
 {
 	Class<LuaTextWidget>("LuaTextWidget", false)
@@ -67,6 +70,7 @@ void LuaTextWidget::RegisterLua()
 // ---- LuaButtonWidget, LuaHyperlinkWidget ----
 
 // ButtonWidget::SetFont keeps a copy of the font (and needs one)
+// port: the part of LuaButtonWidget::SetFont (0x678280) and LuaHyperlinkWidget::SetFont (0x678580) that sets the font
 static void SetButtonFont(ButtonWidget* w, LuaFont* theFont)
 {
 	if (theFont != nullptr) {
@@ -77,11 +81,13 @@ static void SetButtonFont(ButtonWidget* w, LuaFont* theFont)
 	}
 }
 
+// 0x678280
 void LuaButtonWidget::SetFont(LuaFont* theFont)
 {
 	SetButtonFont(this, theFont);
 }
 
+// port: registers the class with the scripts (the original did it where the first one was made)
 void LuaButtonWidget::RegisterLua()
 {
 	LuaWidgetTpl<ButtonWidget>::RegisterLua("LuaWidgetTpl<ButtonWidget>");
@@ -116,11 +122,13 @@ void LuaHyperlinkWidget::SetColor(int theIdx, const Color& theColor)
 		mOverColor = theColor;
 }
 
+// 0x678580
 void LuaHyperlinkWidget::SetFont(LuaFont* theFont)
 {
 	SetButtonFont(this, theFont);
 }
 
+// port: registers the class with the scripts (the original did it where the first one was made)
 void LuaHyperlinkWidget::RegisterLua()
 {
 	LuaWidgetTpl<HyperlinkWidget>::RegisterLua("LuaWidgetTpl<HyperlinkWidget>");
@@ -140,11 +148,13 @@ void LuaHyperlinkWidget::RegisterLua()
 
 // ---- LuaEditWidget ----
 
+// 0x678870
 void LuaEditWidget::SetText(const char* theText, LuaValue theLeftPos)
 {
 	EditWidget::SetText(theText, lua_toboolean(gLuaSupport->L, theLeftPos.idx) != 0);
 }
 
+// port: registers the class with the scripts (the original did it where the first one was made)
 void LuaEditWidget::RegisterLua()
 {
 	LuaWidgetTpl<EditWidget>::RegisterLua("LuaWidgetTpl<EditWidget>");
@@ -169,6 +179,7 @@ void LuaEditWidget::RegisterLua()
 
 // ---- LuaListWidget ----
 
+// port: registers the class with the scripts (the original did it where the first one was made)
 void LuaListWidget::RegisterLua()
 {
 	LuaWidgetTpl<ListWidget>::RegisterLua("LuaWidgetTpl<ListWidget>");
@@ -209,6 +220,7 @@ void LuaListWidget::RegisterLua()
 
 // ---- LuaScrollbarWidget ----
 
+// port: registers the class with the scripts (the original did it where the first one was made)
 void LuaScrollbarWidget::RegisterLua()
 {
 	LuaWidgetTpl<ScrollbarWidget>::RegisterLua("LuaWidgetTpl<ScrollbarWidget>");
@@ -234,6 +246,7 @@ void LuaScrollbarWidget::RegisterLua()
 
 // ---- LuaCheckboxWidget ----
 
+// port: registers the class with the scripts (the original did it where the first one was made)
 void LuaCheckboxWidget::RegisterLua()
 {
 	LuaWidgetTpl<Checkbox>::RegisterLua("LuaWidgetTpl<Checkbox>");
@@ -254,6 +267,7 @@ int LuaDialog::WaitForResult(LuaValue theAutoKill)
 	return Dialog::WaitForResult(lua_toboolean(gLuaSupport->L, theAutoKill.idx) != 0);
 }
 
+// port: registers the class with the scripts (the original did it where the first one was made)
 void LuaDialog::RegisterLua()
 {
 	LuaWidgetTpl<Dialog>::RegisterLua("LuaWidgetTpl<Dialog>");
@@ -273,6 +287,7 @@ void LuaDialog::RegisterLua()
 		.Method<&C::SetId>("SetId");
 }
 
+// port: registers every widget class with the scripts (the original did it as each widget was made)
 void Sexy::RegisterLuaWidgets()
 {
 	LuaWidget::RegisterLua();

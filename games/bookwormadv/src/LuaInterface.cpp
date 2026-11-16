@@ -108,6 +108,7 @@ static int DoHandCursor(lua_State* L)
 	return 0;
 }
 
+// 0x4c4d40
 static int DoPointerCursor(lua_State* L)
 {
 	gSexyAppBase->SetCursor(CURSOR_POINTER);
@@ -172,6 +173,7 @@ static int PerfNothing(lua_State* L)
 // ---- the scripts' animations (the app's PopAnimManager), mostly through scripts/PAMAnimator ----
 
 // A number argument as the original read them: a number or a string that converts, truncated
+// port: reads a number argument as the original's functions read it
 static int NumberArg(lua_State* L, int theIndex)
 {
 	if (!lua_isnumber(L, theIndex))

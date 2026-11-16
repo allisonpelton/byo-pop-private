@@ -99,6 +99,7 @@ MainMenu::Tooltip::Tooltip(Image* theTitle, const std::string& theText, int theT
 	mState = STATE_HIDDEN;
 }
 
+// port: frees the tooltip's image
 MainMenu::Tooltip::~Tooltip()
 {
 	delete mImage;
@@ -286,6 +287,7 @@ MainMenu::~MainMenu()
 	}
 }
 
+// port: from 0x4785a0 (the constructor's making of the tooltips, which RefreshUnlocks repeats)
 void MainMenu::MakeTooltips(const std::string& theTomeText)
 {
 	for (int i = ITEM_ADVENTURE; i < NUM_ITEMS; i++) {
@@ -806,6 +808,7 @@ void MainMenu::ButtonPress(int theId)
 	mApp->PlaySample(SOUND_CLICK2);
 }
 
+// 0x47c720 (its thunk through the second base is 0x47d540)
 void MainMenu::ButtonDepress(int theId)
 {
 	if (theId != mChangeUserLink->mId || mApp->IsCurtainMoving())
@@ -1006,6 +1009,7 @@ void MainMenu::PopAnimStopped(int theId)
 	mLex->PlayLabel(kIdleLabel);
 }
 
+// 0x47da10
 void MainMenu::PopAnimCommand(int theId, const std::string& theCommand, const std::string& theParam)
 {
 	if (theId != mLex->mId || SDL_strcasecmp(theCommand.c_str(), "playsound") != 0)

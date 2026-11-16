@@ -8,6 +8,7 @@ void Sexy::PushGraphics(Graphics* g)
 	gLuaSupport->PushObject(ClassOf<Graphics>::info, g);
 }
 
+// port: the Lua state (the original's methods read it inline)
 static lua_State* LS()
 {
 	return gLuaSupport->L;
@@ -91,6 +92,7 @@ bool LuaWidgetTplBase::AllowText(int theId, const SexyString& theText)
 	return CallLinkedMethod("AllowText", 2).Bool();
 }
 
+// 0x40f6b0
 void LuaWidgetTplBase::ScrollPosition(int theId, double thePosition)
 {
 	lua_pushint(LS(), theId);

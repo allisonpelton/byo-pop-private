@@ -94,6 +94,7 @@ XLayout* XLayout::FindNode(const std::string& theName)
 	return nullptr;
 }
 
+// port: the width of the node's picture or box
 int XLayout::ContentWidth() const
 {
 	// the box's width, or the picture's cel (0x4c8660 is the animation's)
@@ -102,6 +103,7 @@ int XLayout::ContentWidth() const
 	return mImage->GetCelWidth();
 }
 
+// port: the height of the node's picture or box
 int XLayout::ContentHeight() const
 {
 	if (mSrcRect.mHeight >= 1)
@@ -109,6 +111,7 @@ int XLayout::ContentHeight() const
 	return mImage->GetCelHeight();
 }
 
+// port: the height of the node's text, word-wrapped to its bounds
 int XLayout::TextHeight()
 {
 	// a Graphics of its own, with the node's font: the height of the text word-wrapped to the bounds' width
@@ -489,13 +492,13 @@ bool XLayout::Load(const std::string& theFileName)
 			if (aKind == CONTENT_TEXT) {
 				// 0x4ca9d0
 				std::string aText;
-				int r = 0, g = 0, b = 0, a = 255;
+				int aRed = 0, g = 0, b = 0, a = 255;
 				Font* aFont = nullptr;
 				for (size_t i = 0; i < anAttrs.size(); i++) {
 					const std::string& aKey = anAttrs[i].mKey;
 					int aValue = atol(anAttrs[i].mValue.c_str());
 					if (aKey == "COLORR")
-						r = aValue;
+						aRed = aValue;
 					else if (aKey == "COLORG")
 						g = aValue;
 					else if (aKey == "COLORB")
@@ -507,7 +510,7 @@ bool XLayout::Load(const std::string& theFileName)
 					else if (aKey == "TEXT")
 						aText = anAttrs[i].mValue;
 				}
-				aCur->SetText(aText, r, g, b, a, aFont);
+				aCur->SetText(aText, aRed, g, b, a, aFont);
 			} else if (aKind == CONTENT_IMAGE) {
 				// 0x4cad90
 				Image* anImage = nullptr;
