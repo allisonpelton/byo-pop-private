@@ -3,9 +3,13 @@
 // as they did when every sound was resampled to the device rate as stereo floats at load: the old pipeline is rebuilt
 // here from the same samples (its load-time linear resampler, then its voice loop), and the two must match within
 // float rounding at pitch 1, within the second resampling's error at other pitches, and in length. Given folders, it
-// instead loads every sound in them and prints the memory they take now and took as stereo floats at 48 kHz.
+// instead loads every sound in them and prints the memory they take now and took as stereo floats at 48 kHz. With
+// -stream, each Ogg file given is loaded whole and streamed (Mixer::LoadStreamedSoundData), and the two are played on
+// looping voices past the loop's end, at several pitches and with the pitch and gain changed on the way: the mixed
+// output must be the same to the bit.
 //   soundtest
 //   soundtest <folder>...
+//   soundtest -stream <file.ogg>...
 #include "platform/Audio.h"
 
 #include <SDL.h>  // main becomes SDL_main, which SDL2main's entry point calls
@@ -14,6 +18,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -289,9 +294,64 @@ void Measure(const char* theFolder)
 
 }
 
+// the whole and the streamed sound of one Ogg file, each alone on a looping voice for its length and two seconds more, in
+// blocks of 1000 frames (a pitch change at a third of the way, a gain change at two thirds), compared to the bit
+void CheckStreamed(const char* thePath)
+{
+	std::ifstream aStream(thePath, std::ios::binary);
+	std::vector<uint8_t> aFile((std::istreambuf_iterator<char>(aStream)), std::istreambuf_iterator<char>());
+	Platform::Mixer& mixer = Platform::Mixer::Get();
+	std::shared_ptr<Platform::SoundData> aWhole = mixer.LoadSoundData(aFile, thePath);
+	std::shared_ptr<Platform::SoundData> aStreamed = mixer.LoadStreamedSoundData(aFile, thePath);
+	gChecks++;
+	if (!aWhole || !aStreamed || !aStreamed->mStreamFile || aWhole->mFrames != aStreamed->mFrames)
+	{
+		gFailed++;
+		printf("sound: %s: not streamed, or %u frames streamed against %u whole\n", thePath, aStreamed ? (unsigned)aStreamed->mFrames : 0u,
+			aWhole ? (unsigned)aWhole->mFrames : 0u);
+		return;
+	}
+	const double aPitches[] = {1.0, 22050.0 / 48000.0, 1.37};
+	for (double aPitch : aPitches)
+	{
+		std::vector<float> anOut[2];
+		const int aFrames = (int)((double)aWhole->mFrames / aWhole->mRate * kRate / aPitch) + 2 * kRate;
+		for (int k = 0; k < 2; k++)
+		{
+			anOut[k].assign((size_t)aFrames * 2, 0.0f);
+			int aVoice = mixer.StartVoice(k == 0 ? aWhole : aStreamed, 0.8f, 0.6f, aPitch, true);
+			for (int i = 0; i < aFrames; i += 1000)
+			{
+				if (i / 1000 == aFrames / 3000)
+					mixer.SetVoicePitch(aVoice, aPitch * 1.01);
+				if (i / 1000 == 2 * aFrames / 3000)
+					mixer.SetVoiceGain(aVoice, 0.5f, 0.9f);
+				mixer.RenderOffline(&anOut[k][(size_t)i * 2], std::min(1000, aFrames - i));
+			}
+			mixer.StopVoice(aVoice);
+		}
+		gChecks++;
+		if (memcmp(anOut[0].data(), anOut[1].data(), anOut[0].size() * sizeof(float)) != 0)
+		{
+			gFailed++;
+			size_t aFirst = 0;
+			while (anOut[0][aFirst] == anOut[1][aFirst])
+				aFirst++;
+			printf("sound: %s: at pitch %.3f the streamed voice differs from frame %u\n", thePath, aPitch, (unsigned)(aFirst / 2));
+		}
+	}
+}
+
 int main(int argc, char** argv)
 {
 	Platform::Mixer::Get().InitOffline(kRate);
+	if ((argc > 1) && (strcmp(argv[1], "-stream") == 0))
+	{
+		for (int i = 2; i < argc; i++)
+			CheckStreamed(argv[i]);
+		printf("sound streamed: %d checks, %d failed\n", gChecks, gFailed);
+		return gFailed ? 1 : 0;
+	}
 	if (argc > 1)
 	{
 		for (int i = 1; i < argc; i++)

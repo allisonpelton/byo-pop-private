@@ -1927,6 +1927,23 @@ bool CSoundFile::ReadMO3(FileReader &file, ModLoadingFlags loadFlags)
 			// beginning. MO3 files with this property are yet to be spotted in the
 			// wild, thus, this behaviour is currently not problematic.
 
+			// byo-pop: a long sample kept as the bytes below and decoded as it plays (SampleStream.h)
+			if(SampleStreams::Wanted(sample))
+			{
+				std::vector<std::byte> keptHeader, keptData;
+				if(sharedHeader)
+				{
+					FileReader::PinnedView headChunkView = headerChunk.GetPinnedView(initialRead);
+					keptHeader.assign(headChunkView.data(), headChunkView.data() + headChunkView.size());
+				}
+				FileReader::PinnedView sampleDataView = sampleData.GetPinnedView();
+				keptData.assign(sampleDataView.data(), sampleDataView.data() + sampleDataView.size());
+				if(!m_sampleStreams)
+					m_sampleStreams = std::make_unique<SampleStreams>();
+				if(m_sampleStreams->Keep(sample, std::move(keptHeader), std::move(keptData)))
+					continue;
+			}
+
 			int consumed = 0, error = 0;
 			stb_vorbis *vorb = nullptr;
 			if(sharedHeader)

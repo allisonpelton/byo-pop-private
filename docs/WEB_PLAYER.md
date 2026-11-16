@@ -1098,6 +1098,8 @@ browser's or a 20 ms timer's, whichever comes first, and plays are not counted. 
   reach the game.
 - `driver=<path>`: a driver script ("Drivers"). `run=<id>`: the folder of `shot(name)`'s files under `build/webshots/`
   (default "default"). `seed=N`, `placeholders=1`: as on the full page.
+- `env=NAME=VALUE,...`: environment variables the game reads (a native run's switches, `BYOPOP_STREAM_MUSIC=0` for
+  one), set before the runtime starts.
 
 `python tools/webtest/serve.py [--port 18780]` serves `build/web` on the loopback address only, with the staged files at
 `/__assets/<name>/`, the repo's driver scripts at `/__repo/` and `POST /__shot`, which saves
