@@ -587,18 +587,21 @@
         "registration-out",
         "site-features",
         "fixes-mod",
-        "identical-look"
+        "identical-look",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
-      "note": "identical in play and looks: Sandbox shots against the port's through shotdiff (fixed: the cubby cover, the Health label, the coin hint's floater, the Snapshot Saved! photo), the menus, how-to-play by frame (content and order; its wall-clock timing not compared), particles and edges judged (one-pixel rims of GPU blending), the web build against the native one in four tours (d8901789: only the back end's edge filtering and the Options ticks differ), the page check 11 pass, real input natively and on the page in every mode; the fixes mod and livesplit mod done; the site's features done; next: coverage, performance, the lite mod, unneeded code, readability"
+      "now": "performance",
+      "note": "coverage check done (f741c1b1): the reached-without-port list empty; fixes: shop/challenge MouseMove/MouseDrag, the 2nd bonus round's ordinal, the change-player box's crash (UserDialog's lines font); 137 port functions never reached, listed"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
-      "done": [],
+      "done": [
+        "port"
+      ],
       "na": [],
-      "now": "port",
-      "note": "Ported so far: first boot, the front end, the levels and cities, the city select and the game's start up to a level; gameplay next"
+      "now": "identical-play",
+      "note": "first playable merged (012bf8ef): every mode played by the bot through real input natively and on the web; the last city, the won story and a real game over not reached yet; nothing compared with the original yet"
     },
     "igglepop": {
       "title": "Iggle Pop Deluxe",

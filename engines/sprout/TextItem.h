@@ -52,8 +52,13 @@ public:
 	}
 	// 0x4279f0 (wordharmony): a number with commas between the thousands
 	void setNumber(int theNumber);
+	// 0x470340 (pizzafrenzy): the same with a text before it
+	void setNumber(int theNumber, const std::string& thePrefix);
 	// 0x427b60 (wordharmony): seconds as hours:minutes:seconds
 	void setTime(int theSeconds);
+	// 0x470500 (pizzafrenzy): the same, but with no hours when there are none (as minutes:seconds, or 0:seconds under
+	// a minute) unless theWithHours asks for them
+	void setTime(int theSeconds, bool theWithHours);
 
 	std::string mText;                // +0x88; +0x108 (pizzafrenzy)
 	std::vector<std::string> mLines;  // +0xa4; +0x124 (pizzafrenzy)

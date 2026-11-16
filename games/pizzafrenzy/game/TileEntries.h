@@ -9,7 +9,9 @@
 #include "Geometry.h"
 #include "Graphics.h"
 #include "Object.h"
+#include "SignalParticles.h"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -120,10 +122,22 @@ public:
 class Topping : public engine::Object
 {
 public:
+	// 0x420a90: a pizza the player designed is a topping that uses its picture as its preview
 	Topping(const std::string& theName, const std::string& theDisplayName, engine::Image* theImage,
-	        engine::Image* theCouponImage);  // 0x420a90
+	        engine::Image* theCouponImage, int theUsesImageAsPreview = 0);
 	// 0x41dc60: the image centred, and the smaller ones made from it
 	void setImage(engine::Image* theImage);
+
+	// What an upgrade is worth in points: its multiplier times a number that is larger for a topping that uses its
+	// image
+	// as its preview (the two numbers at 0x4fa248 and 0x4fa24c)
+	static const int VALUE_PER_MULTIPLIER = 10;
+	static const int VALUE_PER_MULTIPLIER_WITH_PREVIEW = 15;
+	int getUpgradeValue(Upgrade* theUpgrade)
+	{
+		return theUpgrade->mBonusMultiplier *
+			(mUsesImageAsPreview != 0 ? VALUE_PER_MULTIPLIER_WITH_PREVIEW : VALUE_PER_MULTIPLIER);
+	}
 
 	engine::Ref<engine::Image> mImage;         // +0x0c
 	engine::Ref<engine::Image> mCouponImage;   // +0x10
@@ -133,7 +147,28 @@ public:
 	std::string mName;                         // +0x2c
 	std::string mDisplayName;                  // +0x48
 	int mUsesImageAsPreview;                   // +0x64 (0)
+	// port: the order the toppings were made in (the manifest's), which the maps keyed by a topping follow
+	int mMadeOrder;
 };
+
+// port: the order of the maps keyed by a topping. The original's maps follow the toppings' addresses, which change
+// from run to run in the port; the toppings are made one after another as the manifest loads, so their addresses in
+// the original rise in the manifest's order, and the port keeps that order (a null topping first, as address 0 is).
+struct ToppingOrder
+{
+	bool operator()(const Topping* theFirst, const Topping* theSecond) const
+	{
+		if (theFirst == nullptr)
+			return theSecond != nullptr;
+		if (theSecond == nullptr)
+			return false;
+		return theFirst->mMadeOrder < theSecond->mMadeOrder;
+	}
+};
+
+// port: a map keyed by a topping, in the order of ToppingOrder
+template <typename T>
+using ToppingMap = std::map<Topping*, T, ToppingOrder>;
 
 // A special event (0xa8 bytes, constructor 0x41f5e0)
 class SpecialEvent : public engine::Object
@@ -152,13 +187,19 @@ public:
 	bool mDeliver;                         // +0x9c
 };
 
-// A particle effect (0x1c bytes, constructor 0x41de80): the layer it is drawn in
+// A particle effect (0x1c bytes, constructor 0x41de80): the particle system a file defines, and its layer
 class ParticleEffect : public engine::Object
 {
 public:
-	explicit ParticleEffect(int theLayer) : mLayer(theLayer) {}  // 0x41de80
+	// the definition is read from the file (through the application's stream) and its pictures are found
+	ParticleEffect(const std::string& theFile, int theLayer) :
+		mDef(engine::loadParticleSystemDef(theFile)),
+		mLayer(theLayer)
+	{
+	}  // 0x41de80
 
-	int mLayer;  // +0x10
+	engine::Ref<engine::ParticleSystemDef> mDef;  // +0x0c
+	int mLayer;                                   // +0x10
 };
 
 // A title of the scores (0x34 bytes, constructor 0x41f000): the text from its points up

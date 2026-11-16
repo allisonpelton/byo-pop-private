@@ -106,26 +106,20 @@ void CitySelectScreen::refresh()
 	}
 }
 
-// 0x434790: the game screen and its hud are hidden while the postcards are drawn on the game screen's account. Port:
-// the game screen and the hud are made next with the game; until then the application has none, and nothing is hidden
-// or drawn from it (a city's postcard is its card with no picture).
+// 0x434790: the hud and the game screen's layout are hidden while the postcards draw each city on the game screen
 void CitySelectScreen::setCities(std::vector<engine::Ref<City>>& theCities)
 {
 	PizzaFrenzy* anApp = PizzaFrenzy::instance();
-	if (anApp->mHud != nullptr)
-		anApp->mHud->setVisible(false);
-	if (anApp->mGameScreen != nullptr)
-		anApp->mGameScreen->mHiddenWhileDrawing->setVisible(false);
+	anApp->mHud->setVisible(false);
+	anApp->mGameScreen->mGameLayout->setVisible(false);
 	for (size_t i = 0; i < theCities.size(); i++)
 	{
 		engine::Ref<engine::Image> aPostcard = makePostcard(theCities[i]);
 		mPostcardImages.push_back(aPostcard);
 	}
-	mUnknownPostcard = makePostcard(nullptr);
-	if (anApp->mHud != nullptr)
-		anApp->mHud->setVisible(true);
-	if (anApp->mGameScreen != nullptr)
-		anApp->mGameScreen->mHiddenWhileDrawing->setVisible(true);
+	mNoCityPostcard = makePostcard(nullptr);
+	anApp->mHud->setVisible(true);
+	anApp->mGameScreen->mGameLayout->setVisible(true);
 	for (int i = 0; i < (int)mPostcardImages.size(); i++)
 	{
 		engine::Image* aPostcard = mPostcardImages[i];
@@ -206,12 +200,9 @@ engine::Image* CitySelectScreen::makePostcard(City* theCity)
 	else
 	{
 		anApp->loadCityFile(aLevel->getCityFile(), anApp->mGameScreen);
-		if (anApp->mGameScreen != nullptr)
-		{
-			anApp->mGameScreen->setOpacity(1.0f);
-			anApp->mGameScreen->applyTransform(aCanvasGraphics);
-			anApp->mGameScreen->draw(aCanvasGraphics);
-		}
+		anApp->mGameScreen->setOpacity(1.0f);
+		anApp->mGameScreen->applyTransform(aCanvasGraphics);
+		anApp->mGameScreen->draw(aCanvasGraphics);
 	}
 	delete aCanvasGraphics;
 
