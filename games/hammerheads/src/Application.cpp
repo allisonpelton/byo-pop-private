@@ -176,6 +176,13 @@ Application::~Application()
 // port draws in software too, with the GPU taken while 3D is on (framework/SoftwareScreenDisplay.h)
 DDInterface* Application::CreateDDInterface()
 {
+	// test only (a test run reads it): HAMMERHEADS_SCREEN=gpu keeps the framework's own display, to measure the two against each other
+	if (IsTestRun())
+	{
+		const char* aScreen = SDL_getenv("HAMMERHEADS_SCREEN");
+		if ((aScreen != nullptr) && (strcmp(aScreen, "gpu") == 0))
+			return SexyAppBase::CreateDDInterface();
+	}
 	return SoftwareScreenDisplay::Create(this, true);
 }
 #endif

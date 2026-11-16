@@ -258,3 +258,32 @@ Five alternating pairs with `Is3D=0` (`PERF_REG` in `perf.py` adds the registry 
 159.7 MB against 138.6 MB on the GPU path, 21 MB more, since the pictures stay in memory. So with 3D off the port is under the
 original; with 3D on (the default) it is at the GPU path's 1.10, which is the driver's wait for the vertical blank (above). The
 present intervals (`-presentlog`) were not taken.
+
+### The screens against each other, and the presents without vsync (2026-11-15, after the coordinator's questions)
+
+`tools/perf/screens.sh` (summed by `screensum.py`; `peak.py` samples the peak private bytes) took five rounds of one paced original and
+the port four ways, one process at a time on a pinned core, updates 4000 to 8000. The original's median was 3.17 M cycles an update.
+`HAMMERHEADS_SCREEN=gpu` (a test run only) keeps the framework's display in place of the software screen.
+
+| way | cycles an update (median) | against the round's original | peak private bytes (median) |
+|---|---|---|---|
+| default, 3D on, vsync on (GPU) | 2.26 M | 0.71 (0.47 to 1.03) | 142 MB |
+| 3D on, vsync off | 1.51 M | 0.47 (0.40 to 0.73) | 143 MB |
+| 3D off, GPU path | 2.43 M | 0.68 (0.48 to 1.09) | 178 MB |
+| 3D off, software screen | 2.98 M | 1.05 (0.83 to 1.22) | 157 MB |
+
+The memory the software screen saves is real against its own comparison: with 3D off the GPU path holds the pictures in memory as well
+as on the card (178 MB), and the software screen 157 MB, 21 MB less. The 21 MB higher of the first reading (159.7 against 138.6) was
+the software screen with 3D off against the GPU path with 3D on, two modes. The software screen's price is processor time: 2.98 M an
+update against 2.43 M with 3D off, since the framework's blitters draw what the GPU draws for nothing.
+
+The 1.10 of the earlier pairs (same default, the same window) did not come back: this sweep's default is 0.71 of the original. The runs
+vary by round from 0.47 to 1.03, and the original's own cycles moved from 3.67 M to 3.17 M between the two sweeps, so the machine's state
+(it had a kernel pool leak, which the user restarted for) moves both. Read the default as under the original on this machine today and over
+it in some rounds, and the vsync wait as the largest part of what is above it.
+
+**Presents without vsync** (`SDL_RENDER_VSYNC=0`, `-presentlog`; the framework's frame loop paces at the display's 16.667 ms when the
+renderer has no vsync flag, DDInterface.cpp's pace code): the intervals of the five runs have a median of 16.7 ms and 76 to 83 percent
+within 2 ms of it, p90 18.4 to 19.2 ms, p99 42 to 50 ms; with vsync on (one run, `presents-v.txt`) the median is 16.7, 75 percent are
+within 2 ms, p90 19.4 and p99 37.7. Both runs have a stall of a second or two at the start (the level's loading). So the presents come
+as evenly without vsync as with it, with none of AstroPop's quantising to the updates' 10 ms.
