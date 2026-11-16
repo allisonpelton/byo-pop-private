@@ -144,8 +144,8 @@ class ParticleEffect
 public:
 	const EmitterDef*	mEmitter;		// +0x00
 	const FragmentDef*	mFragment;		// +0x04
-	std::vector<ParticleFragment>	mFragments;	// +0x08: every fragment it owns
-	std::vector<ParticleFragment*>	mPool;		// +0x08: those not in the air (the last one goes out first)
+	std::vector<ParticleFragment>	mFragments;	// the port's storage for every fragment it owns (the original allocates each one as a list node)
+	std::vector<ParticleFragment*>	mPool;		// +0x08 (a list in the original): those not in the air (the last one goes out first)
 	std::list<ParticleFragment*>	mLive;		// +0x0c: those in the air, in the order they went out
 	ParticleVector	mPos;				// +0x10
 	ParticleVector	mVel;				// +0x28

@@ -591,11 +591,13 @@
         "coverage",
         "lite-mod",
         "unneeded-code",
-        "collection"
+        "collection",
+        "performance",
+        "readability"
       ],
       "na": [],
-      "now": "performance",
-      "note": "lite mod: none (LITE_MOD.md); unneeded code out; Collection check: data identical in pixels, tour identical on its files, the exe another build (95800f56). Performance: 1.10 of the paced original with vsync; trying the software screen"
+      "now": null,
+      "note": "every phase but modding done: performance 0.71 of the original's processor time and 142 MB with 3D and vsync, its default (the software screen tried and dropped: 3D off cost more memory); readability: shared math constants (object code identical, 2,180 functions), unread fields noted; lite mod none; unneeded code out; Collection check identical"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
