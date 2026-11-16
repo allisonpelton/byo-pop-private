@@ -522,6 +522,8 @@ std::string PizzaFrenzyApp::TestState()
 
 // The name the bot gives its pizza, typed key by key into the name screen
 const char* const BOT_PIZZA_NAME = "BOT PIZZA";
+// The name of the player the bot makes on a first launch
+const char* const BOT_PLAYER_NAME = "BOT";
 
 // The toppings the bot puts on a pizza, each this far from the middle of the pizza (the first is on the middle)
 const int BOT_PIZZA_TOPPINGS = 3;
@@ -582,18 +584,21 @@ static std::string EditorMove(pf::PizzaFrenzy* theApp)
 	return nodeMove("exit", anEditor->getScreen()->getNode("menu"));
 }
 
-static std::string NameMove(pf::PizzaFrenzy* theApp)
+// A name screen (the pizza's, or the new player's on a first launch): the name typed into its "nameEntry", then its
+// "done" button
+static std::string NameMove(engine::GenericScreen* theScreen, const char* theName)
 {
-	engine::EditBox* anEntry = static_cast<engine::EditBox*>(theApp->mPizzaNameScreen->getNode("nameEntry"));
-	if (anEntry->getText().compare(BOT_PIZZA_NAME) != 0)
-		return inputLine("typeName", "", typeInput(anEntry->getText(), BOT_PIZZA_NAME));
-	return nodeMove("nameDone", theApp->mPizzaNameScreen->getNode("done"));
+	engine::EditBox* anEntry = static_cast<engine::EditBox*>(theScreen->getNode("nameEntry"));
+	if (anEntry->getText().compare(theName) != 0)
+		return inputLine("typeName", "", typeInput(anEntry->getText(), theName));
+	return nodeMove("nameDone", theScreen->getNode("done"));
 }
 
 // The bot's move on the screens before play, each a real click or key on what a player presses, the place read from the
 // screen's own node: the splash screen only runs on (it loads by itself), the menu's speed mode button, the postcard of
 // the furthest open city, the story's Escape while its skip hint shows and else its Next button, the new topping's
-// first button, and on the level start the first topping no van has into the first empty van and then the Next button.
+// first button, on the level start the first topping no van has into the first empty van and then the Next button, and
+// on a name screen the name typed and its done button.
 // A screen still coming in is waited for; the summary has no move.
 static std::string ScreenMove(pf::PizzaFrenzy* theApp)
 {
@@ -602,7 +607,7 @@ static std::string ScreenMove(pf::PizzaFrenzy* theApp)
 		return waitLine(WAIT_UPDATES);
 	if (aScreen != "menu" && aScreen != "citySelect" && aScreen != "story" && aScreen != "summary"
 		&& aScreen != "newTopping" && aScreen != "levelStart" && aScreen != "designer" && aScreen != "editor"
-		&& aScreen != "pizzaName")
+		&& aScreen != "pizzaName" && aScreen != "newPlayer")
 		return "null";
 	if (theApp->mScreens->isBusy())
 		return waitLine(WAIT_UPDATES);
@@ -611,7 +616,9 @@ static std::string ScreenMove(pf::PizzaFrenzy* theApp)
 	if (aScreen == "editor")
 		return EditorMove(theApp);
 	if (aScreen == "pizzaName")
-		return NameMove(theApp);
+		return NameMove(theApp->mPizzaNameScreen, BOT_PIZZA_NAME);
+	if (aScreen == "newPlayer")
+		return NameMove(theApp->mNewUserEntry, BOT_PLAYER_NAME);
 	engine::GenericScreen* aShown = shownScreen(theApp->mScreens);
 	if (aScreen == "menu")
 	{
