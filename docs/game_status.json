@@ -586,11 +586,12 @@
         "identical-play",
         "registration-out",
         "site-features",
-        "fixes-mod"
+        "fixes-mod",
+        "identical-look"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "phase two looks (Sandbox shots against the port's at the same updates, through shotdiff): port fixes the cubby cover, the Health label, the coin hint's floater and the Snapshot Saved! photo; the menus compared; how-to-play's demo judged by frame (content and order equal, timing not compared); the page check 11 pass; real input natively and on the page in every mode (the win path by test commands); the fixes mod (quitEscape, menuTrophySting, restartCoinCount; fixes_check.sh) and the livesplit mod (4a99b9ed); the site's features done; next: web against native looks, then coverage, performance, the lite mod, unneeded code, readability"
+      "now": "coverage",
+      "note": "identical in play and looks: Sandbox shots against the port's through shotdiff (fixed: the cubby cover, the Health label, the coin hint's floater, the Snapshot Saved! photo), the menus, how-to-play by frame (content and order; its wall-clock timing not compared), particles and edges judged (one-pixel rims of GPU blending), the web build against the native one in four tours (d8901789: only the back end's edge filtering and the Options ticks differ), the page check 11 pass, real input natively and on the page in every mode; the fixes mod and livesplit mod done; the site's features done; next: coverage, performance, the lite mod, unneeded code, readability"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
