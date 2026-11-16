@@ -622,15 +622,22 @@
       "title": "Iggle Pop Deluxe",
       "done": [],
       "na": [],
-      "now": null,
-      "note": "Not started"
+      "now": "port",
+      "note": "port in progress (session from 2026-11-16) on the shared Sprout engine (engines/sprout)"
     },
     "feedingfrenzy": {
       "title": "Feeding Frenzy Deluxe",
       "done": [],
       "na": [],
-      "now": null,
-      "note": "Not started"
+      "now": "port",
+      "note": "port in progress (session from 2026-11-16) on the shared Sprout engine (engines/sprout)"
+    },
+    "feedingfrenzy2": {
+      "title": "Feeding Frenzy 2 Deluxe",
+      "done": [],
+      "na": [],
+      "now": "port",
+      "note": "port in progress: Sprout's second-generation engine (engines/sprout2) in main early for Talismania: its core, the draw context and the frame loop"
     }
   }
 }
