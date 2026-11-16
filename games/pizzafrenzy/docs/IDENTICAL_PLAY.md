@@ -179,8 +179,25 @@ book's line for a topping with no next upgrade was empty: both read the exe's te
 (`GT(ADDRESS_...)`), which `make_gametext.py` did not look for, so the table of texts the port reads from the exe left
 them out. The generator now takes a name's address from its file.
 
+**A scaled picture's pivot** (a shared change of the renderer). The memory mode's order popup showed each pizza's
+topping up and to the left of the pizza's middle, where the original centres it (mem1's play_600). A topping's preview
+(0x41dc60) is the cheese pizza with the topping drawn on it at 0.55 of its size, from the scaled copy's pivot. The
+original's in-place scale (0x4becb0) ends by scaling the pivot with the picture (truncated); the port's kept the
+full-size pivot, so the topping was drawn from a point half its full size up and left. The port's scale now scales
+the pivot too. The other scaled copies (the topping book's and the new topping screen's coupons, a layout's scaled
+pictures) take the same pivot as the original's.
+
+**The blimp's sign was missing.** The prize blimp that ends a level with every order delivered carries a dot matrix
+sign that scrolls a message with the player's name (string 0x69, in capitals, 0x46dc60); the port had left it out.
+It is made as the original makes it (0x430d50: the text drawn once on a black picture in `dotMatrix.xml`, shown
+through a clip window from 82 left of the blimp to 61 right of it, 17 above) and scrolled as 0x430b90 does, crossing
+the window every eight seconds; conc1's frame 5000 matches. (The original also makes a balloon tip there and lets it go
+at once; its constructor has no effect the port keeps, so it is left out.)
+
 **Explained: the toppings' order.** The play shots show the two topping coupons in the other order from the original
-in some runs, and each kitchen's sign with the other topping (the small boxes over the kitchens). The kitchens' toppings come from maps keyed by the topping's address; the port orders them by the
+in some runs, each kitchen's sign with the other topping (the small boxes over the kitchens), and in the concentration
+mode the pizzas on the houses with the other topping. The kitchens' toppings come from maps keyed by the topping's
+address; the port orders them by the
 manifest's order (`ToppingOrder`), taking the addresses to rise as the manifest loads. Peeks of the original on one
 input and seed show the coupons in either order from run to run, so the original's order is not fixed and the port's
 is one of its outcomes; nothing else in the coupons differs.
@@ -192,7 +209,16 @@ port), where play, the menu's fade and the level ends match on their own frames.
 the transitions' update and start (0x468ee0, 0x468e90), the state change (0x4707f0), and the frame's order (the scene
 connects to the update signal before the game does, 0x409220, and the signal calls its listeners in order). Finding
 it would take peeking a story screen's transition in the original over its first frames, to see which update the
-original gives it that the port does not.
+original gives it that the port does not. The level summary's buttons are the same (conc1's summary1: the original
+shows its Save/Quit button at frame 2600, the port from 2601), and so is the memory bonus round's start (mem1's
+bonus_start matches the port's frame 4051).
+
+**Oddity: a taken tip's flight.** A tip the player takes flies to the tip jar as a picture splat, from the tip's
+place to the jar's count in a straight line over the distance divided by the splat's speed. In conc1's play_1500 the
+original's picture is about halfway between where the port's is at frames 1499 and 1500 (some 28 pixels a frame), and
+no port frame matches. The tips stand at the same points in both (peeks of the map's tips at 1500: (212, 387) at scale
+1 and (487, 262) appearing at 0.5, opacity 0, the same as the port's), so the start is the same. Finding it would take
+peeking the splat in the original (its origin, destination, lifetime and time left) over the flight's frames.
 
 **Oddity: the level end's sparkles.** When the level's end title leaves, each letter's burst (`BurstFx`: three streams
 of `basicSparkle`, a JPEG with a greyscale mask) draws its particles at the same places in both, but the port's are

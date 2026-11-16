@@ -1,0 +1,10 @@
+# the concentration mode (case conc1, seed 1): play, the level's end and summary, the second level
+300 play_300
+600 play_600
+1500 play_1500
+2500 play_2500
+2600 summary1
+2700 level2_100
+3500 level2_900
+4500 level2_1900
+5000 level2_2400

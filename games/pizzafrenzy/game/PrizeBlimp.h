@@ -3,11 +3,10 @@
 
 // The prize blimp (0x1b8 bytes, constructor 0x431330, vtable 0x4fc910): the vehicle that ends a level in which every
 // pizza ordered was delivered. It flies across the city's sky over its shadow, and drops three balloon tips (Tip.h)
-// every second or so while it is over the middle of the screen, until it has flown off the other side.
-//
-// Left out: the dot matrix sign that scrolls under the blimp (0x430b90, with its image made in 0x430d50 from the font
-// "dotMatrix.xml").
+// every second or so while it is over the middle of the screen, until it has flown off the other side. A dot matrix
+// sign under it scrolls a message with the player's name.
 
+#include "ImageNode.h"
 #include "Sound.h"
 #include "Van.h"
 
@@ -38,11 +37,15 @@ public:
 private:
 	// 0x430970: the blimp flies on for the seconds, and is let go once it is off the screen
 	void fly(engine::UpdateInfo& theInfo);
+	// 0x430b90: the sign's text scrolls on through its window
+	void scrollSign(engine::UpdateInfo& theInfo);
 
 	engine::Point mVelocity;     // +0x194
 	float mDropTimer;            // +0x19c: the seconds before the next drop
 	engine::Sound* mEngine;      // +0x1a0: the voice "bonus_blimpEngine"
 	bool mFlownOff;              // +0x1a4: the blimp is off the screen
+	engine::Ref<engine::ImageNode> mSign;  // +0x1a8: the dot matrix sign
+	float mSignTimer;            // +0x1ac: the seconds left of the sign's pass
 };
 
 } // namespace pizzafrenzy

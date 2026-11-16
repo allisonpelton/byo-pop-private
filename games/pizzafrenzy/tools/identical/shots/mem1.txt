@@ -1,0 +1,12 @@
+# the memory mode (case mem1, seed 1): play, the level's end and summary, the second level, the story and the bonus round
+300 play_300
+600 play_600
+1200 play_1200
+2000 play_2000
+2230 summary1
+2300 level2_300
+3000 level2_1000
+3890 summary2
+3940 story
+4050 bonus_start
+4400 bonus_400
