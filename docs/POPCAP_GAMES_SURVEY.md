@@ -48,7 +48,7 @@ another's engine goes after it. Efforts are the estimates without references (3.
 | 10 | Peggle Nights (5.13) | Sonnet | no | ~4-5x after Deluxe | Peggle Deluxe's port; a Mac build |
 | 11 | Bejeweled 3 (5.14) | Opus | yes | ~30x | the post-2010 "prime" framework; builds the layer Zuma's Revenge reuses; a Mac build |
 | 12 | Banana Bugs (5.15) | Opus | yes | ~15x | a public-generation SAF with PakInterface, BASS and JPEG 2000; game RTTI |
-| 13 | Gyromancer (5.16) | Opus | yes | large | Square Enix's own engine |
+| 13 | Gyromancer (5.16) | Opus | yes | ~12-18x | Square Enix's own engine with game RTTI; Direct3D 9 effects; encrypted archives |
 | 14 | Zuma's Revenge! (5.17) | Opus | web only | ~35x | the 2009 internal framework; Bejeweled 3's layer and Bookworm Adventures' JeffLib; a Mac build |
 | 15 | Talismania Deluxe (5.18) | Sonnet | yes | ~12-16x after Feeding Frenzy 2 | Feeding Frenzy 2's engine |
 
@@ -475,13 +475,22 @@ dumper or a downloaded unpacker, and that now serves only as a check on the clea
 
 ### 5.16 Gyromancer
 
-**Opus, published, large.** Added on 2026-10-25.
+**Opus, published, ~12-18x.** Added on 2026-10-25; sized on 2026-11-16.
 
 - **Copy:** Steam, `E:/SteamLibrary/steamapps/common/Gyromancer` (2009-09). A puzzle RPG made by PopCap with
   Square Enix, which published it, on battles like Bejeweled Twist's.
 - **Engine:** not Twist's or any PopCap framework: no SexyApp class strings at all, and 80 game classes of
   Square Enix's own engine (`CGM_*` game modes, `CData*` tables, effects). Its data is in its own archives
   (`.bjm`, `.cab`, `.dat`).
+- **Size (2026-11-16, from the clear image):** 725 KB of code, statically linked with the C runtime and Ogg
+  Vorbis (perhaps 250 KB together), which leaves roughly 450 to 500 KB of Square Enix's engine and the game. With
+  no public source for the engine, all of it is decompiled, so size alone gives about 8x. On top of that, it
+  draws in 3D through Direct3D 9 and D3DX effects compiled into its resources, which the port's renderer has to
+  reproduce. Its data (`media/data.bin` 112 MB, 31 `.bjm` scene files, 15 `.cab`) shows no header and looks
+  encrypted, to be decoded from the export. Sound streams through XAudio2 (`CSoundOGG`, `CSoundWAVE`; the
+  `CSoundXMA2` and `CSoundXWMA` classes are the Xbox 360 build's), input through DirectInput 8 and XInput, and a
+  Steam online layer (`COnlineSystemSteam`) is to go. 92 RTTI names (game modes `CGM_*`, `CData*` tables, effects,
+  puzzle actions) cut the naming work. Hence ~12-18x, between Bookworm Adventures (10-15x) and Twist (~25x).
 - **Image:** Steam's DRM stub has encrypted the Steam exe's code section. A clear image of the same build, found
   on 2026-11-04, is kept as `re/gyromancer/bin/Gyromancer_clear.exe` beside the Steam exe, with a README.
 
