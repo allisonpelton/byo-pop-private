@@ -82,7 +82,7 @@ ThunderButton::ThunderButton(Image* theComponentImage, int theId, ButtonListener
 	mLastHoverTime = NEVER_HOVERED;
 	mDownSound = NO_SOUND;
 	mHoverSound = NO_SOUND;
-	mHoverSoundVolume = 1.0f; // (the original leaves it as it was in memory)
+	mHoverSoundPitch = 0.0f; // (the original leaves it as it was in memory; every button that has a hover sound sets it)
 	mDrawEnabled = true;
 	mFontColor = BUTTON_FONT_COLOR_NONE;
 	mRightClicked = false;
@@ -129,7 +129,7 @@ void ThunderButton::MouseEnter()
 			}
 			else
 			{
-				aSound->SetVolume(mHoverSoundVolume);
+				aSound->AdjustPitch(mHoverSoundPitch);
 				aSound->Play(false, true);
 			}
 			mLastHoverTime = anApp->mUpdateCount;

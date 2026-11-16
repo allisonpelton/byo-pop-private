@@ -92,10 +92,10 @@ public:
 	bool mUnknownEE;				   // 0xee
 	bool mUnknownEF;				   // 0xef
 	std::multiset<int> mUnknownF0;	   // 0xf0
-	std::set<int> mUnknownFC;		   // 0xfc
+	std::set<int> mTrophiesEarned;	   // 0xfc: the ids of the trophies earned
 	std::map<int, int> mUnknown108;	   // 0x108
-	int mUnknown114;				   // 0x114: 16 bits in the file
-	std::set<std::string, StringLessNoCase> mUnknown118; // 0x118
+	int mTrophyRank;				   // 0x114: 0 none, 1 the adventure beaten, 2 all the trophies earned too, 3 all the levels cleared too (16 bits in the file)
+	std::set<std::string, StringLessNoCase> mLevelsCleared; // 0x118: the levels cleared (by its use in MainMenu::SyncPlayerInfo)
 	int mUnknown124;				   // 0x124: one byte in the file
 	int mUnknown128;				   // 0x128: one byte in the file
 	GameStats mTotalStats;			   // 0x12c

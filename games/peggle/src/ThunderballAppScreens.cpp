@@ -1,13 +1,17 @@
 // ThunderballAppScreens.cpp: the part of ThunderballApp that puts the game's screens up and takes them down.
 
 #include "LoadingScreen.h"
+#include "MainMenu.h"
 #include "MusicInterface.h"
 #include "NotTranslated.h"
 #include "SoundManager.h"
+#include "ThunderDialog.h"
 #include "ThunderballApp.h"
 #include "WidgetManager.h"
 
 using namespace Sexy;
+
+static const int OPTIONS_DIALOG_SLIDE_SPEED_X = 40; // how fast the options dialog goes off to the side when the menu comes in
 
 // the music of the levels: a tracker module the game ships (the original loads every music file but the two of the menus)
 static const char* const LEVEL_MUSIC_FILE = "music/pegglebeats.mo3";
@@ -97,10 +101,85 @@ void ThunderballApp::ScrollOn(Widget* theScreen)
 	}
 }
 
-// The screens that are not translated yet
+// 0x42d480
 void ThunderballApp::ShowMainMenu()
 {
-	NOT_TRANSLATED("ThunderballApp::ShowMainMenu");
+	mSoundManager->StopAllSounds();
+	CheckPlayMusic(false);
+	ResetTwoPlayerStats();
+
+	if (mMainMenu != nullptr)
+	{
+		// the menu is up already: every other screen goes
+		MainMenu* aMenu = mMainMenu;
+		mMainMenu = nullptr;
+		CleanupScreens(true);
+		mMainMenu = aMenu;
+		mWidgetManager->SetFocus(aMenu);
+		return;
+	}
+
+	// the screen that is up leaves, and the menu comes in from the side it left to
+	mScrollOnFrom = SCROLL_DOWN;
+	CheckScrollOff(mLoadingScreen, SCROLL_LEFT, true);
+	CheckScrollOff(mLevelScreen, SCROLL_RIGHT, true);
+	CheckScrollOff(mTrophyScreen, SCROLL_RIGHT, true);
+	CheckScrollOff(mStoryScreen, SCROLL_RIGHT, true);
+	CheckScrollOff(mAdventureScreen, SCROLL_RIGHT, true);
+	CheckScrollOff(mBoard, SCROLL_RIGHT, true);
+
+	// an options dialog that is up goes along to the side
+	ThunderDialog* anOptionsDialog = static_cast<ThunderDialog*>(GetDialog(DIALOG_OPTIONS));
+	if (anOptionsDialog != nullptr)
+		anOptionsDialog->mScrollSpeedX = OPTIONS_DIALOG_SLIDE_SPEED_X;
+
+	CleanupScreens(true);
+	FinishOptionsDialog(true, true);
+
+	mMainMenu = new MainMenu(this);
+	mMainMenu->Resize(0, 0, mWidth, mHeight);
+	mWidgetManager->AddWidget(mMainMenu);
+	mWidgetManager->SetFocus(mMainMenu);
+	ScrollOn(mMainMenu);
+	BringDialogsToFront();
+	if (mCurrentPlayer == nullptr)
+		DoCreateUserDialog();
+}
+
+// The screens that are not translated yet
+void ThunderballApp::ShowStoryScreen(bool theFromMenu, bool theScrollOn)
+{
+	NOT_TRANSLATED("ThunderballApp::ShowStoryScreen");
+}
+
+void ThunderballApp::ShowAdventureScreen()
+{
+	NOT_TRANSLATED("ThunderballApp::ShowAdventureScreen");
+}
+
+void ThunderballApp::ShowLevelScreen(bool theScrollOn)
+{
+	NOT_TRANSLATED("ThunderballApp::ShowLevelScreen");
+}
+
+void ThunderballApp::ShowTrophyScreen()
+{
+	NOT_TRANSLATED("ThunderballApp::ShowTrophyScreen");
+}
+
+void ThunderballApp::StartAdventureGame()
+{
+	NOT_TRANSLATED("ThunderballApp::StartAdventureGame");
+}
+
+void ThunderballApp::ViewReplays()
+{
+	NOT_TRANSLATED("ThunderballApp::ViewReplays");
+}
+
+bool ThunderballApp::CheckSaveGame(bool theAskToContinue)
+{
+	NOT_TRANSLATED("ThunderballApp::CheckSaveGame");
 }
 
 void ThunderballApp::ShowHelpScreen(bool theFromMenu, bool theScrollOn)

@@ -99,3 +99,17 @@ PlayerInfo* ProfileMgr::GetAnyProfile()
 	aProfile->mUseSeq = mNextUseSeq++;
 	return aProfile;
 }
+
+// 0x4717c0
+PlayerInfo* ProfileMgr::AddProfile(const std::string& theName)
+{
+	std::pair<ProfileMap::iterator, bool> anInsert = mProfiles.insert(std::make_pair(theName, PlayerInfo()));
+	if (!anInsert.second)
+		return nullptr;
+
+	PlayerInfo* aProfile = &anInsert.first->second;
+	aProfile->mName = theName;
+	aProfile->mUserId = mNextUserId++;
+	aProfile->mUseSeq = mNextUseSeq++;
+	return aProfile;
+}

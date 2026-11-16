@@ -900,6 +900,7 @@ extern Image* IMAGE_UPSELL_SWOOSH;
 extern Image* IMAGE_UPSELL_TEXT;
 extern Image* IMAGE_UPSELL_ZEN;
 
+Font* GetFontById(int theId); // 0x403910
 bool ExtractResourcesByName(ResourceManager* theManager, const char* theName); // 0x41f9f0
 const char* GetStringIdById(int theId);
 void ReplaceImageById(ResourceManager* theManager, int theId, Image* theImage); // 0x41bab0

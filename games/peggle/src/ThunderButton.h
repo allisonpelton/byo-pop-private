@@ -53,7 +53,7 @@ public:
 
 	int mDownSound;				// +0x138: the sample played when the button is pressed (-1 for none)
 	int mHoverSound;			// +0x13c: the sound played when the mouse comes over it (-1 for none)
-	float mHoverSoundVolume;	// +0x140
+	float mHoverSoundPitch;		// +0x140: how many semitones the hover sound is raised (the main menu's buttons go up a major scale)
 	int mLastHoverTime;			// +0x144: the update count of the last hover sound, so a quick pass makes only one
 	bool mDrawEnabled;			// +0x148: false hides the whole button
 	int mBlinkCount;			// +0x14c: counts down while it blinks, 0 when it does not

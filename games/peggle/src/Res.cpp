@@ -988,6 +988,69 @@ bool Sexy::ExtractUpsellResources(ResourceManager* theManager)
 	return true;
 }
 
+Font* Sexy::GetFontById(int theId)
+{
+	switch (theId)
+	{
+	case FONT_OVERLOAD16_ID:
+		return FONT_OVERLOAD16;
+	case FONT_OVERLOAD16OUTLINE_ID:
+		return FONT_OVERLOAD16OUTLINE;
+	case FONT_OVERLOAD16OUTLINE2_ID:
+		return FONT_OVERLOAD16OUTLINE2;
+	case FONT_PLAIN_ID:
+		return FONT_PLAIN;
+	case FONT_PLAIN2BIG_ID:
+		return FONT_PLAIN2BIG;
+	case FONT_SMALL_ID:
+		return FONT_SMALL;
+	case FONT_SMALLMONO_ID:
+		return FONT_SMALLMONO;
+	case FONT_SCORE_DISP_ID:
+		return FONT_SCORE_DISP;
+	case FONT_SMALL_DISP_ID:
+		return FONT_SMALL_DISP;
+	case FONT_BALLSLEFT_ID:
+		return FONT_BALLSLEFT;
+	case FONT_BUTTON_ID:
+		return FONT_BUTTON;
+	case FONT_STAGE_ID:
+		return FONT_STAGE;
+	case FONT_BONK_ID:
+		return FONT_BONK;
+	case FONT_OVERLOAD10_ID:
+		return FONT_OVERLOAD10;
+	case FONT_OVERLOAD12_ID:
+		return FONT_OVERLOAD12;
+	case FONT_OVERLOAD24_ID:
+		return FONT_OVERLOAD24;
+	case FONT_OVERLOADMONO10_ID:
+		return FONT_OVERLOADMONO10;
+	case FONT_OVERLOADMONO12_ID:
+		return FONT_OVERLOADMONO12;
+	case FONT_OVERLOAD10OUTLINE_ID:
+		return FONT_OVERLOAD10OUTLINE;
+	case FONT_OVERLOAD12OUTLINE_ID:
+		return FONT_OVERLOAD12OUTLINE;
+	case FONT_OVERLOAD24OUTLINE_ID:
+		return FONT_OVERLOAD24OUTLINE;
+	case FONT_OVERLOAD24GRAD1_ID:
+		return FONT_OVERLOAD24GRAD1;
+	case FONT_OVERLOAD24GRAD2_ID:
+		return FONT_OVERLOAD24GRAD2;
+	case FONT_PLAINOUTLINE_ID:
+		return FONT_PLAINOUTLINE;
+	case FONT_PLAIN2_ID:
+		return FONT_PLAIN2;
+	case FONT_PLAIN2OUTLINE_ID:
+		return FONT_PLAIN2OUTLINE;
+	case FONT_PLAIN2BIGOUTLINE_ID:
+		return FONT_PLAIN2BIGOUTLINE;
+	default:
+		return nullptr;
+	}
+}
+
 bool Sexy::ExtractResourcesByName(ResourceManager* theManager, const char* theName)
 {
 	if (strcmp(theName, "Adventure") == 0)

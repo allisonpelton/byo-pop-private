@@ -27,6 +27,7 @@ public:
 	void SyncState(DataSync& theSync);		   // 0x473280
 	PlayerInfo* GetProfile(const std::string& theName); // 0x442e10: loads its details and marks it as the last used
 	PlayerInfo* GetAnyProfile();			   // 0x441ca0: the first profile of the list, loaded the same way
+	PlayerInfo* AddProfile(const std::string& theName); // 0x4717c0: a new profile of that name, none if there is one
 
 	ProfileMap mProfiles;					   // 0x8
 	int mNextUserId;						   // 0x10: the number the next profile made gets

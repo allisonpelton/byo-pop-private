@@ -64,13 +64,13 @@ void PlayerInfo::Reset(bool theKeepEarned)
 	mUnknown208 = 0;
 	if (!theKeepEarned)
 	{
-		mUnknownFC.clear();
+		mTrophiesEarned.clear();
 		mUnknown108.clear();
-		mUnknown118.clear();
+		mLevelsCleared.clear();
 		mUnknownF0.clear();
 		mTotalStats.Reset();
 	}
-	mUnknown114 = 0;
+	mTrophyRank = 0;
 }
 
 // 0x403670
@@ -101,7 +101,7 @@ void PlayerInfo::SyncDetails(DataSync& theSync)
 	theSync.SyncLong(mSelCharacter2);
 	theSync.SyncString(mUnknownB4);
 	theSync.SyncLong(mUnknown38);
-	theSync.SyncLongSet(mUnknownFC);
+	theSync.SyncLongSet(mTrophiesEarned);
 	theSync.SyncLongSet(mUnknownF0);
 	theSync.SyncLongMap(mUnknown108);
 	theSync.SyncString(mUnknownD0);
@@ -116,7 +116,7 @@ void PlayerInfo::SyncDetails(DataSync& theSync)
 	theSync.SyncByte(mUnknown54);
 	theSync.SyncByte(mUnknown124);
 	theSync.SyncByte(mUnknown128);
-	theSync.SyncStringSet(mUnknown118);
+	theSync.SyncStringSet(mLevelsCleared);
 	theSync.SyncLong(mAdventuresBeaten);
 	theSync.SyncByte(mUnknown58);
 	theSync.SyncLong(mTipsSeen);
@@ -134,7 +134,7 @@ void PlayerInfo::SyncDetails(DataSync& theSync)
 	if (aVersion > 0x15)
 		theSync.SyncShort(mOtherTipCount);
 	if (aVersion > 0x16)
-		theSync.SyncShort(mUnknown114);
+		theSync.SyncShort(mTrophyRank);
 }
 
 // 0x426bd0

@@ -122,6 +122,12 @@ def main():
             source.append('\t\t%s = theManager->%s("%s");' % (name, GETTER[item_kind], name))
         source += ['\t} catch (ResourceManagerException&) {', '\t\treturn false;', '\t}', '\treturn true;', '}', '']
     # the lookups the exe's ResGen output has: a group by name, a resource's name by id, an image replaced by id
+    header += ['Font* GetFontById(int theId); // 0x403910']
+    source += ['Font* Sexy::GetFontById(int theId)', '{', '	switch (theId)', '	{']
+    for name in ids:
+        if kind[name] == 'font':
+            source += ['	case %s_ID:' % name, '		return %s;' % name]
+    source += ['	default:', '		return nullptr;', '	}', '}', '']
     header += ['bool ExtractResourcesByName(ResourceManager* theManager, const char* theName); // 0x41f9f0',
                'const char* GetStringIdById(int theId);', 'void ReplaceImageById(ResourceManager* theManager, int theId, Image* theImage); // 0x41bab0', '']
     source += ['bool Sexy::ExtractResourcesByName(ResourceManager* theManager, const char* theName)', '{']
