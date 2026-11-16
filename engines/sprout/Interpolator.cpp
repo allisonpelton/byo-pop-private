@@ -6,39 +6,38 @@ using namespace engine;
 // 0x494710 (pizzafrenzy): the run speed makes the whole curve end at 1
 void EaseCurve::set(float theStartSpeed, float theEndSpeed, float theAccelEnd, float theDecelStart)
 {
+	// the decel time is stored; the run speed, the acceleration and the accel value are stored and also used unrounded
 	float aDecelTime = 1.0f - theDecelStart;
 	mStartSpeed = theStartSpeed;
 	mAccelEnd = theAccelEnd;
 	mEndSpeed = theEndSpeed;
 	mDecelStart = theDecelStart;
-	float aRunSpeed = ((2.0f - theStartSpeed * theAccelEnd) - aDecelTime * theEndSpeed) /
-	                  ((theDecelStart - theAccelEnd) + 1.0f);
-	mRunSpeed = aRunSpeed;
-	float anAccel;
+	double aRunSpeed = ((2.0 - (double)theStartSpeed * theAccelEnd) - (double)aDecelTime * theEndSpeed) /
+	                   (((double)theDecelStart - theAccelEnd) + 1.0);
+	mRunSpeed = (float)aRunSpeed;
+	double anAccel;
 	if (theAccelEnd == 0.0f)
-		anAccel = 0.0f;
+		anAccel = 0.0;
 	else
-		anAccel = (aRunSpeed - theStartSpeed) / (theAccelEnd + theAccelEnd);
-	mAccel = anAccel;
-	float aDecel;
+		anAccel = (aRunSpeed - theStartSpeed) / ((double)theAccelEnd + theAccelEnd);
+	mAccel = (float)anAccel;
 	if (theDecelStart == 1.0f)
-		aDecel = 0.0f;
+		mDecel = 0.0f;
 	else
-		aDecel = (theEndSpeed - aRunSpeed) / (aDecelTime + aDecelTime);
-	mDecel = aDecel;
-	float anAccelValue = (anAccel * theAccelEnd + theStartSpeed) * theAccelEnd;
-	mAccelValue = anAccelValue;
-	mDecelValue = aRunSpeed * (theDecelStart - theAccelEnd) + anAccelValue;
+		mDecel = (float)((theEndSpeed - aRunSpeed) / ((double)aDecelTime + aDecelTime));
+	double anAccelValue = (anAccel * theAccelEnd + theStartSpeed) * theAccelEnd;
+	mAccelValue = (float)anAccelValue;
+	mDecelValue = (float)(aRunSpeed * ((double)theDecelStart - theAccelEnd) + anAccelValue);
 }
 
 // 0x4947e0 (pizzafrenzy)
-float EaseCurve::get(float theTime) const
+double EaseCurve::get(float theTime) const
 {
 	if (theTime < mAccelEnd)
-		return (theTime * mAccel + mStartSpeed) * theTime;
+		return ((double)theTime * mAccel + mStartSpeed) * theTime;
 	if (theTime < mDecelStart)
-		return (theTime - mAccelEnd) * mRunSpeed + mAccelValue;
-	float aTime = theTime - mDecelStart;
+		return ((double)theTime - mAccelEnd) * mRunSpeed + mAccelValue;
+	double aTime = (double)theTime - mDecelStart;
 	return (aTime * mDecel + mRunSpeed) * aTime + mDecelValue;
 }
 
@@ -107,10 +106,12 @@ Point PositionInterpolator::get(float theTime)
 	const PositionKey& aKey = mKeys[aCurrent];
 	if (theTime < aKey.mTime)
 		return aKey.mValue;
-	float aValue = mCurve.get((theTime - aKey.mTime) / (mKeys[aNext].mTime - aKey.mTime));
+	// the stretch's time and the curve's value are stored as floats; each coordinate is worked out unrounded
+	float aTime = (float)(((double)theTime - aKey.mTime) / ((double)mKeys[aNext].mTime - aKey.mTime));
+	float aValue = (float)mCurve.get(aTime);
 	const PositionKey& aNextKey = mKeys[aNext];
-	return Point((aNextKey.mValue.x - aKey.mValue.x) * aValue + aKey.mValue.x,
-	             (aNextKey.mValue.y - aKey.mValue.y) * aValue + aKey.mValue.y);
+	return Point((float)(((double)aNextKey.mValue.x - aKey.mValue.x) * aValue + aKey.mValue.x),
+	             (float)(((double)aNextKey.mValue.y - aKey.mValue.y) * aValue + aKey.mValue.y));
 }
 
 // 0x42c930 (pizzafrenzy)
@@ -122,12 +123,13 @@ void PositionInterpolator::apply(Node* theNode, const Point& theValue)
 // 0x47fc70 (pizzafrenzy)
 void PositionInterpolator::setCurve(const PositionKey& theKey, const PositionKey& theNext)
 {
-	float aScale = 1.0f / (theNext.mTime - theKey.mTime);
-	float anAccelEnd = aScale * theKey.mOutTime;
-	float aDecelStart = 1.0f - aScale * theNext.mInTime;
+	// the scale is used unrounded; the two ends are passed as floats
+	double aScale = 1.0 / ((double)theNext.mTime - theKey.mTime);
+	float anAccelEnd = (float)(aScale * theKey.mOutTime);
+	double aDecelStart = 1.0 - aScale * theNext.mInTime;
 	float aStart = anAccelEnd;
 	if (anAccelEnd < aDecelStart)
-		aStart = aDecelStart;
+		aStart = (float)aDecelStart;
 	mCurve.set(theKey.mOutSpeed, theNext.mInSpeed, anAccelEnd, aStart);
 }
 
@@ -191,19 +193,22 @@ float ScalarInterpolator::get(float theTime)
 	const ScalarKey& aKey = mKeys[aCurrent];
 	if (theTime < aKey.mTime)
 		return aKey.mValue;
-	float aValue = mCurve.get((theTime - aKey.mTime) / (mKeys[aNext].mTime - aKey.mTime));
-	return (mKeys[aNext].mValue - aKey.mValue) * aValue + aKey.mValue;
+	// the stretch's time is stored as a float; the curve's value is used unrounded (unlike the position's blend)
+	float aTime = (float)(((double)theTime - aKey.mTime) / ((double)mKeys[aNext].mTime - aKey.mTime));
+	double aValue = mCurve.get(aTime);
+	return (float)(((double)mKeys[aNext].mValue - aKey.mValue) * aValue + aKey.mValue);
 }
 
 // 0x47fbf0 (pizzafrenzy)
 void ScalarInterpolator::setCurve(const ScalarKey& theKey, const ScalarKey& theNext)
 {
-	float aScale = 1.0f / (theNext.mTime - theKey.mTime);
-	float anAccelEnd = aScale * theKey.mOutTime;
-	float aDecelStart = 1.0f - aScale * theNext.mInTime;
+	// the scale is used unrounded; the two ends are passed as floats
+	double aScale = 1.0 / ((double)theNext.mTime - theKey.mTime);
+	float anAccelEnd = (float)(aScale * theKey.mOutTime);
+	double aDecelStart = 1.0 - aScale * theNext.mInTime;
 	float aStart = anAccelEnd;
 	if (anAccelEnd < aDecelStart)
-		aStart = aDecelStart;
+		aStart = (float)aDecelStart;
 	mCurve.set(theKey.mOutSpeed, theNext.mInSpeed, anAccelEnd, aStart);
 }
 
