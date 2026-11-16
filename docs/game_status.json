@@ -251,7 +251,7 @@
       ],
       "na": [],
       "now": null,
-      "note": "every phase but modding done; performance like for like in 3D on the visible desktop, both sides' sound threads left out: port 2,498 M cycles in 20 s against the original's 2,537 (0.98), 1.06 with the port's mixer; the two main-thread spikes an Oddity (likely the NVIDIA driver presenting inline); 2D 0.80; left before the final merge: the 3D comparison of the abyss and bonus levels, an idle game, and the boards after a pause and a resume"
+      "note": "done but modding: identical in 2D and 3D (every screen tour natively, on the web and in 3D on the visible desktop, the idle game, abyss, bonus levels and a paused board included; only the original's real-clock sprite phase differs), sound and music, real input natively and on the web; registration out, fixes mod, coverage, performance like for like in 3D 0.98 (1.06 with the port's mixer), 2D 0.80, the lite mod (none needed), unneeded code out, readability, the Collection check, the site's features"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
