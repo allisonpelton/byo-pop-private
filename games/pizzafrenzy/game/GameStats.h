@@ -7,6 +7,7 @@
 // (0x41a900). The modes and the screens that show it are translated next; the fields below are the ones the reset
 // and the loading state reach, and the counters it zeroes are named for their place.
 
+#include "Level.h"
 #include "Object.h"
 #include "TileEntries.h"
 #include "UserGameData.h"
@@ -26,30 +27,71 @@ public:
 	// 0x41a900: reset, then the score and the time the mode's saved game had
 	void resume(UserGameData* theUserData, int theMode);
 
+	// 0x41a610: the upgrade of the topping the player has the level of (the last one for a level past the list)
+	Upgrade* getUpgrade(Topping* theTopping);
+
+	// 0x41a740: a level starts: the number of orders and the goal are the level's, the level's counters start over
+	// and each kitchen the level gives no topping is given one of the player's
+	void startLevel(Level* theLevel);
+	// 0x419c90: the counters of a level start over (not the number of orders)
+	void resetLevelCounters();
+
+	// 0x419b90: the tips are added to the tip money, which is never under 0
+	void addTips(int theTips);
+	// 0x419cf0: one for each topping the player has that is not a designed pizza, and its level: the number the
+	// level's end looks the player's title up by
+	int getToppingPoints();
+	// 0x419da0: the topping of the longest combo this game (the first of the toppings in the map's order when
+	// several are as long), null when no combo is counted
+	Topping* getBestComboTopping();
+	// 0x41a670: how many orders for the topping can be picked together: one more than the player's level of it (one in
+	// the concentration mode)
+	int getPickLimit(Topping* theTopping);
+
+	// 0x419d30: the mode's saved game takes the score and the time, and the player's toppings are the game's
+	void saveTo(UserGameData* theUserData, int theMode);
+
 	int mScore;                                  // +0x0c
 	float mElapsedTime;                          // +0x10
-	std::map<Topping*, int> mToppingLevels;      // +0x14: the level of each topping the player has
-	int mCountA;                                 // +0x20: nothing translated reads it
-	int mCountB;                                 // +0x24: nothing translated reads it
-	int mCountC;                                 // +0x28: starts at 50; nothing translated reads it
-	int mCountD;                                 // +0x2c: nothing translated reads it
-	int mCountE;                                 // +0x34: nothing translated reads it
-	int mCountF;                                 // +0x38: nothing translated reads it
-	int mCountG;                                 // +0x3c: nothing translated reads it
-	int mCountH;                                 // +0x40: nothing translated reads it
-	std::map<int, int> mTallies;                 // +0x44: nothing translated reads it
-	int mCountI;                                 // +0x50: nothing translated reads it
-	int mCountJ;                                 // +0x54: nothing translated reads it
-	int mCountK;                                 // +0x58: nothing translated reads it
-	int mCountL;                                 // +0x5c: nothing translated reads it
-	int mCountM;                                 // +0x60: nothing translated reads it
-	int mCountN;                                 // +0x64: nothing translated reads it
-	int mCountO;                                 // +0x68: nothing translated reads it
+	ToppingMap<int> mToppingLevels;      // +0x14: the level of each topping the player has
+	// +0x20: the pizzas the customers have been given; the level ends with the prize blimp when they are all (0x456ac0,
+	// 0x45a300)
+	int mPizzasDelivered;
+	int mPizzasOrdered;                          // +0x24: the pizzas the customers have ordered (0x459b90, 0x456d10)
+	// +0x28: the happiness meter, which starts at 50; the hud makes a burst of stars (the splat "happinessBonus")
+	// when it is over 99 (0x4397d0)
+	int mHappiness;
+	int mCustomersServed;                        // +0x2c: counted up when an order is served and down when a customer
+	                                             // makes the next order (0x45a300, 0x456d10)
+	// +0x30: the hud's orders (0x439650: a slip for each 15, rounded up, and none shown at 0); the number of orders
+	// the level has, less one for each customer that leaves (0x456d10, 0x457760)
+	int mOrderCount = 0;
+	// +0x34: the tips: the money in the tip jar, which the coupon buttons are bought with (0x4393f0, 0x44eac0)
+	int mTipMoney;
+	// +0x38: 1000 where the level is ended by hand (0x456460); the meaning of the number is not confirmed
+	int mTipsEarned;
+	int mWavesStarted;                           // +0x3c: counted up when a wave starts (0x45a9a0)
+	// +0x40: how many pizzas of the same topping the player has delivered in a row (the kitchens' signs show it)
+	int mComboLength;
+	// +0x44: the longest combo of each topping this game (0x45a300), which an upgrade's combo is compared with
+	ToppingMap<int> mBestCombos;
+	// +0x50 to +0x60: what the bonus round counts, shown by its summary (0x43f3f0); nothing else translated reads them
+	int mPerfectToppings;                        // +0x50: each is worth 100
+	int mGoodToppings;                           // +0x54: each is worth 20
+	int mOkayToppings;                           // +0x58: each is worth 5
+	int mMissedToppings;                         // +0x5c: each takes off 50
+	int mBonusSecondsLeft;                       // +0x60: each is worth 100
+	int mLevelOrders;                            // +0x64: the level's number of orders (0x41a740); nothing reads it
+	int mLevelGoal;                              // +0x68: the level's goal, the tip jar's size (0x41a740, 0x4393f0)
 	bool mStarted;                               // +0x6c: set by the reset; nothing translated reads it
 
-private:
 	// 0x41a6a0: the pizzas the player designed count as toppings, with the level the player has of each (0 for none)
 	void addDesignedPizzas();
+
+private:
+	// 0x41a220: every kitchen of the level is given one of the player's toppings, none twice while there are more
+	// toppings than kitchens; the toppings the kitchens have are the player's picks, which the player keeps
+	void pickKitchenToppings(Level* theLevel);
 };
 
 } // namespace pizzafrenzy

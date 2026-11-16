@@ -1,4 +1,5 @@
 #include "Random.h"
+#include "DocHandler.h"
 
 using namespace engine;
 
@@ -48,4 +49,22 @@ float engine::randomFloat(const Point& theRange)
 	float aHigh = theRange.y;
 	int aRand = crtRand();
 	return (float)((double)aRand * RAND_SCALE * ((double)aHigh - aLow) + aLow);
+}
+
+// 0x479550 (pizzafrenzy)
+int engine::randomRange(int theFirst, int theSecond)
+{
+	int aRand = crtRand();
+	if (theSecond < theFirst)
+		return aRand % ((theFirst - theSecond) + 1) + theFirst;
+	return aRand % ((theSecond - theFirst) + 1) + theFirst;
+}
+
+// 0x479580 (pizzafrenzy)
+int engine::randomRange(const IntPair& theRange)
+{
+	int aRand = crtRand();
+	if (theRange.mSecond < theRange.mFirst)
+		return aRand % ((theRange.mFirst - theRange.mSecond) + 1) + theRange.mFirst;
+	return aRand % ((theRange.mSecond - theRange.mFirst) + 1) + theRange.mFirst;
 }

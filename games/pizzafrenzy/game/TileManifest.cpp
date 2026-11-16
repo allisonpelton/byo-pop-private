@@ -4,6 +4,8 @@
 #include "Exception.h"
 #include "Host.h"
 #include "Layout.h"
+#include "PizzaFrenzy.h"
+#include "Random.h"
 #include "Stream.h"
 
 #include <cstdio>
@@ -110,11 +112,10 @@ void TileManifestDocHandler::startElement(const std::string& theName, const engi
 	}
 	else if (theName == "particleFx")
 	{
-		// The effect's particle system, read from the file of "fxPath" by the signal build's particle document handler
-		// (0x47bc40), is left out: the effect has its layer only
 		std::string aName = engine::getStringAttribute(theAttributes, "name", "");
+		std::string aFile = engine::getStringAttribute(theAttributes, "fxPath", "");
 		int aLayer = (int)engine::getIntAttribute(theAttributes, "layer", DEFAULT_EFFECT_LAYER);
-		mManifest->registerParticleEffect(aName, new ParticleEffect(aLayer));
+		mManifest->registerParticleEffect(aName, new ParticleEffect(aFile, aLayer));
 	}
 	else if (theName == "event")
 	{
@@ -144,7 +145,7 @@ void TileManifestDocHandler::startElement(const std::string& theName, const engi
 	}
 }
 
-// A tile of the map: a kitchen, a customer's house or a bridge
+// 0x423bd0: the "tile" element of startElement. A tile of the map: a kitchen, a customer's house or a bridge
 void TileManifestDocHandler::addTile(const engine::XmlAttributes& theAttributes)
 {
 	std::string aName = engine::getStringAttribute(theAttributes, "name", "");
@@ -184,6 +185,7 @@ void TileManifestDocHandler::addTile(const engine::XmlAttributes& theAttributes)
 	mManifest->registerTile(aName, aClass, aTile);
 }
 
+// 0x423bd0: the "vehicle" element of startElement
 void TileManifestDocHandler::addVehicle(const engine::XmlAttributes& theAttributes)
 {
 	std::string aName = engine::getStringAttribute(theAttributes, "name", "");
@@ -204,6 +206,7 @@ void TileManifestDocHandler::addVehicle(const engine::XmlAttributes& theAttribut
 	mManifest->registerTile(aName, "vehicle", aVehicle);
 }
 
+// 0x423bd0: the "character" element of startElement
 void TileManifestDocHandler::addCharacter(const engine::XmlAttributes& theAttributes)
 {
 	std::string aName = engine::getStringAttribute(theAttributes, "name", "");
@@ -222,7 +225,8 @@ void TileManifestDocHandler::addCharacter(const engine::XmlAttributes& theAttrib
 	mManifest->registerCharacter(aKey, aCharacter);
 }
 
-// A topping, and the handler of its upgrades put on the stack until its element ends
+// 0x423bd0: the "topping" element of startElement: a topping, and the handler of its upgrades put on the stack until
+// its element ends
 void TileManifestDocHandler::addTopping(const engine::XmlAttributes& theAttributes)
 {
 	std::string aName = engine::getStringAttribute(theAttributes, "name", "");
@@ -237,6 +241,7 @@ void TileManifestDocHandler::addTopping(const engine::XmlAttributes& theAttribut
 	getParent()->addHandler(aHandler);
 }
 
+// 0x423bd0: the "music" element of startElement
 void TileManifestDocHandler::addMusic(const engine::XmlAttributes& theAttributes)
 {
 	std::string aName = engine::getStringAttribute(theAttributes, "name", "");
@@ -279,11 +284,65 @@ Topping* TileManifest::getTopping(const std::string& theName)
 	return anIt->second;
 }
 
+// 0x422c00
+TileType* TileManifest::getTile(const std::string& theName, const std::string& theClass)
+{
+	if (theClass == "roads")
+		return nullptr;
+	std::map<std::string, std::map<std::string, engine::Ref<TileType>>>::iterator aClass = mTiles.find(theClass);
+	if (aClass == mTiles.end())
+		return nullptr;
+	std::map<std::string, engine::Ref<TileType>>::iterator anIt = aClass->second.find(theName);
+	if (anIt == aClass->second.end())
+		return nullptr;
+	return anIt->second;
+}
+
+// 0x422d30
+TileType* TileManifest::getRoadTile(const std::string& theName, int theIndex)
+{
+	std::map<std::string, std::vector<engine::Ref<TileType>>>::iterator anIt = mRoadTiles.find(theName);
+	if (anIt == mRoadTiles.end() || theIndex < 0 || ROAD_TILE_COUNT <= theIndex
+	    || (int)anIt->second.size() <= theIndex)
+		return nullptr;
+	return anIt->second[theIndex];
+}
+
+// 0x422dd0
+ParticleEffect* TileManifest::getParticleEffect(const std::string& theName)
+{
+	std::map<std::string, engine::Ref<ParticleEffect>>::iterator anIt = mParticleEffects.find(theName);
+	if (anIt == mParticleEffects.end())
+		return nullptr;
+	return anIt->second;
+}
+
 // 0x422e10: the original's lookup adds a null entry for a name that is not there; the port leaves the map alone
 GameMusicClip* TileManifest::getMusic(const std::string& theName)
 {
 	std::map<std::string, engine::Ref<GameMusicClip>>::iterator anIt = mMusic.find(theName);
 	if (anIt == mMusic.end())
+		return nullptr;
+	return anIt->second;
+}
+
+// 0x422df0: the original's lookup adds a null entry for a name that is not there; the port leaves the map alone
+SpecialEvent* TileManifest::getEvent(const std::string& theName)
+{
+	std::map<std::string, engine::Ref<SpecialEvent>>::iterator anIt = mEvents.find(theName);
+	if (anIt == mEvents.end())
+		return nullptr;
+	return anIt->second;
+}
+
+// 0x422f90: the same lookup as the others', over the key the characters are registered under
+Character* TileManifest::getCharacterByNameTheme(const std::string& theName)
+{
+	std::string aKey = theName;
+	aKey.push_back('_');
+	aKey.append(PizzaFrenzy::instance()->getCurrentCity()->mTheme);
+	std::map<std::string, engine::Ref<Character>>::iterator anIt = mCharacters.find(aKey);
+	if (anIt == mCharacters.end())
 		return nullptr;
 	return anIt->second;
 }
@@ -383,6 +442,25 @@ void TileManifest::registerMusic(const std::string& theName, GameMusicClip* theC
 	if (mMusic[theName] != nullptr)
 		throw engine::Exception("registering music clip which already exists!");
 	mMusic[theName] = theClip;
+}
+
+// 0x41e120
+ScoreTitle* TileManifest::getTitle(int thePoints)
+{
+	ScoreTitle* aTitle = mTitles[0];
+	for (size_t i = 1; i < mTitles.size() && mTitles[i]->mPoints <= thePoints; i++)
+		aTitle = mTitles[i];
+	return aTitle;
+}
+
+// 0x41e600: the original reads the entry the draw gives without a check
+const std::string& TileManifest::getRandomFunFact()
+{
+	static const std::string aNoFact;
+	int aPick = engine::randomRange(0, (int)mFunFacts.size() - 1);
+	if (aPick < 0 || (size_t)aPick >= mFunFacts.size())
+		return aNoFact;
+	return mFunFacts[aPick];
 }
 
 // 0x4223e0

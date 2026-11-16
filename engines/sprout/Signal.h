@@ -71,6 +71,14 @@ public:
 		theTarget->signalConnect(this);
 	}
 
+	// connect a call of the object's that takes less than the signal sends (the original's connection of a method of
+	// fewer arguments, which ignores the rest)
+	void connectCall(HasSlots* theTarget, std::function<void(Args...)> theCall)
+	{
+		mConnections.push_back(Connection{theTarget, theCall});
+		theTarget->signalConnect(this);
+	}
+
 	// disconnect: every connection to the object goes
 	void disconnect(HasSlots* theTarget)
 	{

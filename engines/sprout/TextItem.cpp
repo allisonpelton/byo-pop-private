@@ -359,6 +359,64 @@ void TextItem::setNumber(int theNumber)
 	layout();
 }
 
+// 0x470340 (pizzafrenzy): the digits grouped as setNumber does, with the prefix before them
+void TextItem::setNumber(int theNumber, const std::string& thePrefix)
+{
+	char aBuffer[32];
+	sprintf(aBuffer, "%d", theNumber);
+	mLines.clear();
+	int aLast = (int)strlen(aBuffer) - 1;
+	int aNewLast = aLast + aLast / 3;
+	int aDigits = 0;
+	if (-1 < aNewLast)
+	{
+		const char* aSource = aBuffer + aLast;
+		int aDest = aNewLast;
+		do
+		{
+			int aPos = aDest;
+			if (aDigits == 3)
+			{
+				aBuffer[aDest] = ',';
+				aPos = aDest - 1;
+				aDigits = 0;
+			}
+			aDest = aPos - 1;
+			aBuffer[aPos] = *aSource;
+			aSource--;
+			aDigits++;
+		} while (-1 < aDest);
+	}
+	aBuffer[aNewLast + 1] = '\0';
+	mText = thePrefix + aBuffer;
+	mLines.push_back(mText);
+	layout();
+}
+
+// 0x470500 (pizzafrenzy)
+void TextItem::setTime(int theSeconds, bool theWithHours)
+{
+	char aBuffer[32];
+	int aSeconds = theSeconds % 60;
+	int aMinutes = (theSeconds / 60) % 60;
+	int anHours = (theSeconds / 60) / 60;
+	const char* aSecondsPad = aSeconds > 9 ? "" : "0";
+	const char* aMinutesPad = aMinutes > 9 ? "" : "0";
+	if (anHours < 1 && !theWithHours)
+	{
+		if (aMinutes < 1)
+			sprintf(aBuffer, "0:%s%d", aSecondsPad, aSeconds);
+		else
+			sprintf(aBuffer, "%s%d:%s%d", aMinutesPad, aMinutes, aSecondsPad, aSeconds);
+	}
+	else
+		sprintf(aBuffer, "%d:%s%d:%s%d", anHours, aMinutesPad, aMinutes, aSecondsPad, aSeconds);
+	mLines.clear();
+	mText = std::string(aBuffer, strlen(aBuffer));
+	mLines.push_back(mText);
+	layout();
+}
+
 // 0x427b60 (wordharmony)
 void TextItem::setTime(int theSeconds)
 {

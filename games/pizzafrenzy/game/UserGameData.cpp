@@ -134,7 +134,7 @@ void UserGameData::setMaxCity(int theCity)
 // 0x4287c0
 int UserGameData::getToppingLevel(Topping* theTopping)
 {
-	std::map<Topping*, int>::iterator anIt = mToppingLevels.find(theTopping);
+	ToppingMap<int>::iterator anIt = mToppingLevels.find(theTopping);
 	if (anIt == mToppingLevels.end())
 		return NOT_SET;
 	return anIt->second;
@@ -143,7 +143,7 @@ int UserGameData::getToppingLevel(Topping* theTopping)
 // 0x428d30
 void UserGameData::addNewTopping(Topping* theTopping)
 {
-	std::map<Topping*, int>::iterator anIt = mToppingLevels.find(theTopping);
+	ToppingMap<int>::iterator anIt = mToppingLevels.find(theTopping);
 	if (anIt == mToppingLevels.end() || anIt->second < 0)
 	{
 		for (size_t i = 0; i < mNewToppings.size(); i++)
@@ -242,7 +242,7 @@ void UserGameData::setToppings(std::vector<engine::Ref<Topping>>& theToppings, c
 std::string UserGameData::getToppingLevels()
 {
 	std::string aLevels;
-	for (std::map<Topping*, int>::iterator anIt = mToppingLevels.begin(); anIt != mToppingLevels.end(); ++anIt)
+	for (ToppingMap<int>::iterator anIt = mToppingLevels.begin(); anIt != mToppingLevels.end(); ++anIt)
 	{
 		char aNumber[16];
 		snprintf(aNumber, sizeof(aNumber), "%d", anIt->second);

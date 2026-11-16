@@ -82,6 +82,8 @@ public:
 	virtual void setPosition(const Point& thePosition);              // 0x14: 0x439aa0 (wordharmony)
 	virtual void setPosition(float x, float y);                      // 0x18: 0x439a70 (wordharmony)
 	virtual void setScale(float theScaleX, float theScaleY);         // 0x1c: 0x439ae0 (wordharmony)
+	// 0x20: 0x467b40 (pizzafrenzy): the signal build's one factor for both directions
+	virtual void setScale(float theScale) { setScale(theScale, theScale); }
 	virtual Rect* getBounds() { return &mBounds; }                   // 0x24: 0x439a60 (wordharmony)
 	virtual void setOpacity(float theOpacity) { mOpacity = theOpacity; }  // 0x28: 0x439ad0 (wordharmony)
 	virtual float getOpacity() { return mOpacity; }                 // 0x2c: 0x409d00 (wordharmony)
@@ -142,7 +144,16 @@ public:
 	void addOwnFlags(unsigned int theFlags);
 	// 0x439cd0 (wordharmony)
 	void removeOwnFlags(unsigned int theFlags);
-	bool hasFlag(unsigned int theFlags) const { return (mAllFlags & theFlags) != 0; }     // 0x439d30 (wordharmony)
+	// 0x439d30 (wordharmony), 0x467e10 (pizzafrenzy): the signal build leaves out the flags its mask (+0x74) holds, the
+	// drawable flag of a hidden node (setVisible) and the mouse flag of a masked one (setMouseMasked)
+	bool hasFlag(unsigned int theFlags) const { return (mAllFlags & ~getMaskedFlags() & theFlags) != 0; }
+	// The signal build's mask (+0x74 (pizzafrenzy)), from the two fields that keep its bits
+	unsigned int getMaskedFlags() const
+	{
+		if (!gSignalBuild)
+			return 0;
+		return (mVisible ? 0 : NODE_DRAWABLE) | (mMouseMasked ? NODE_MOUSE : 0);
+	}
 	bool hasOwnFlag(unsigned int theFlags) const { return (mFlags & theFlags) != 0; }     // 0x439d40 (wordharmony)
 	unsigned int getAllFlags() const { return mAllFlags; }                                // 0x439d50 (wordharmony)
 	// The signal build's mouse (Pizza Frenzy's): its scene hands the node under the mouse an event. Each public slot
@@ -225,7 +236,8 @@ public:
 	Container();            // 0x40f110 (wordharmony)
 	~Container() override;  // 0x439460 (wordharmony)
 
-	Node* hitTest(unsigned int theFlags, Point& p) override;  // 0x48: 0x4390f0 (wordharmony)
+	Node* hitTest(unsigned int theFlags, Point& p) override;  // 0x48: 0x4390f0 (wordharmony); 0x467110 (pizzafrenzy)
+	Node* hitTestSignal(unsigned int theFlags, Point& thePoint);  // 0x467110 (pizzafrenzy)
 	void draw(Graphics* g) override;                          // 0x6c: 0x4392b0 (wordharmony)
 	void update(UpdateInfo& theInfo) override;                // 0x70: 0x439510 (wordharmony)
 	void layout() override;                                   // 0x74: 0x439210 (wordharmony)
