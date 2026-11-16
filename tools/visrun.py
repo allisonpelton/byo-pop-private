@@ -864,7 +864,7 @@ def muted(origdir, pid):
 
 
 def gamecount_has_room():
-    r = subprocess.run([sys.executable, '-I', os.path.join(ROOT, 'tools', 'gamecount.py'), '--limit', '6'], capture_output=True, text=True)
+    r = subprocess.run([sys.executable, '-I', os.path.join(ROOT, 'tools', 'gamecount.py'), '--limit'], capture_output=True, text=True)
     return r.returncode == 0, r.stdout.strip().split('\n')[0]
 
 
