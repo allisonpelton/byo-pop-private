@@ -40,17 +40,60 @@ another's engine goes after it. Efforts are the estimates without references (3.
 | 2 | Heavy Weapon Deluxe (5.2) | Opus | yes | ~5x | a 2005 framework no port has, between BookWorm's and Big Money's; no game RTTI; SWF cutscenes; MO3 |
 | 3 | Hammer Heads Deluxe (5.3) | Sonnet | yes | ~6x | Big Money's 1.2 framework; TinyXML object files; an SWF how-to-play |
 | 4 | Pizza Frenzy (5.7) | Opus | yes | ~8x | Sprout's first-generation engine, from Word Harmony's port; no RTTI |
-| 5 | Iggle Pop Deluxe (5.8) | Sonnet | yes | ~5-6x after Pizza Frenzy | Pizza Frenzy's engine build (72% of its functions identical); a Mac build with class names |
-| 6 | Feeding Frenzy Deluxe (5.9) | Sonnet | yes | small to medium after Iggle Pop | the same engine in an older build; a Mac build with class names |
-| 7 | Chuzzle Deluxe (5.10) | Opus | yes | ~8-12x | Raptisoft's own engine, no RTTI; a Mac build with names |
-| 8 | Feeding Frenzy 2 Deluxe (5.11) | Opus | yes | ~10x | Sprout's second-generation engine, which no port has; `.theora` animations |
+| 5 | Iggle Pop Deluxe (5.8) | Sonnet | yes | ~5-8x after Pizza Frenzy | Pizza Frenzy's engine build (72% of its functions identical); a Mac build with class names |
+| 6 | Feeding Frenzy Deluxe (5.9) | Sonnet | yes | ~4-5x after Iggle Pop | the same engine in an older build; a Mac build with class names |
+| 7 | Chuzzle Deluxe (5.10) | Opus | yes | ~9-11x | Raptisoft's own engine, no RTTI; a Mac build with names |
+| 8 | Feeding Frenzy 2 Deluxe (5.11) | Opus | yes | ~15-17x | Sprout's second-generation engine, which no port has; `.theora` animations |
 | 9 | Peggle Deluxe (5.12) | Sonnet | no | ~12x | Bejeweled's framework generation; JPEG 2000 and MO3; a Mac build |
 | 10 | Peggle Nights (5.13) | Sonnet | no | ~4-5x after Deluxe | Peggle Deluxe's port; a Mac build |
-| 11 | Bejeweled 3 (5.14) | Opus | yes | ~30x | the post-2010 "prime" framework; builds the layer Zuma's Revenge reuses; a Mac build |
+| 11 | Bejeweled 3 (5.14) | Opus | yes | ~25-35x | the post-2010 "prime" framework; builds the layer Zuma's Revenge reuses; a Mac build |
 | 12 | Banana Bugs (5.15) | Opus | yes | ~15x | a public-generation SAF with PakInterface, BASS and JPEG 2000; game RTTI |
-| 13 | Gyromancer (5.16) | Opus | yes | large | Square Enix's own engine |
-| 14 | Zuma's Revenge! (5.17) | Opus | web only | ~35x | the 2009 internal framework; Bejeweled 3's layer and Bookworm Adventures' JeffLib; a Mac build |
-| 15 | Talismania Deluxe (5.18) | Sonnet | yes | ~12-16x after Feeding Frenzy 2 | Feeding Frenzy 2's engine |
+| 13 | Gyromancer (5.16) | Opus | yes | ~9-13x | Square Enix's own engine with game RTTI; Direct3D 9 effects; encrypted archives |
+| 14 | Zuma's Revenge! (5.17) | Opus | web only | ~30-40x | the 2009 internal framework; Bejeweled 3's layer and Bookworm Adventures' JeffLib; a Mac build |
+| 15 | Talismania Deluxe (5.18) | Sonnet | yes | ~20-25x after Feeding Frenzy 2 | Feeding Frenzy 2's engine |
+
+**Ghidra exports (2026-11-16).** Every game in the table has one: `re/<game>/gh` for Iggle Pop, Feeding Frenzy,
+Chuzzle, Feeding Frenzy 2, Bejeweled 3, Gyromancer, Zuma's Revenge and Talismania (the last three without
+`RecoverClassesFromRTTIScript`, which a session can rerun), `re/peggle/deluxe/gh` and `re/peggle/nights/gh`, and
+`re/bananabugs/game`. Ghidra's projects are `<game>_game` under `E:/retools/projects`.
+
+**Measured from those exports (2026-11-16).** Each export's functions were split into the C runtime and other named
+library code, statically linked libpng, libjpeg and zlib, exception-cleanup stubs, code that matches a sibling build
+byte for byte (`tools/funcmatch.py`: Pizza Frenzy for Iggle Pop and Feeding Frenzy, Feeding Frenzy 2 and Talismania
+against each other, Bejeweled Twist for Zuma's Revenge), and the rest: the game's own code plus any engine or
+framework that matched nothing. The table's efforts now rest on that rest, against Bejeweled's 60 KB and 12,700 lines:
+
+| Game | Own code | Lines | Ratio (KB / lines) | Before |
+|---|---:|---:|---|---|
+| Feeding Frenzy | 318 KB | 57,400 | 5.3x / 4.5x | small to medium |
+| Iggle Pop | 475 KB | 87,400 | 7.9x / 6.9x | ~5-6x |
+| Gyromancer | 469 KB | 81,300 | 7.8x / 6.4x | large |
+| Chuzzle | 626 KB | 100,800 | 10.4x / 7.9x | ~8-12x |
+| Feeding Frenzy 2 | 1,033 KB | 225,500 | 17.2x / 17.8x | ~10x |
+| Bejeweled 3 | 1,549 KB (2,456 with unmatched `Sexy` classes) | 257,900 (388,600) | 25.8x / 20.3x (41x / 31x) | ~30x |
+| Zuma's Revenge | 2,280 KB (2,964) | 422,700 (519,800) | 38.0x / 33.3x (49x / 41x) | ~35x |
+| Talismania | 2,474 KB | 492,600 | 41.2x / 38.8x | ~12-16x |
+| Bejeweled Twist (ported, for scale) | 1,957 KB | 346,700 | 32.6x / 27.3x | ~25x; cost $1,439 |
+
+Iggle Pop's and Feeding Frenzy's rest still holds Sprout engine code that did not match Pizza Frenzy's build, so their
+own code is smaller than the figure. Zuma's Revenge's holds libraries the ports share or will share (JeffLib, the
+FEAST lexer and parser, PIL particles, AELib). Talismania is the surprise. Half its 33,774 functions are exception
+stubs, but the rest is still 2.3 times Feeding Frenzy 2's. It has 836 classes against Feeding Frenzy 2's 581: about
+15 `C*Cell` classes with 1,415 small virtual functions, 169 `Atlantis*` classes, 34 level classes and 75 data
+loaders. Only 6% of it has no caller and no vtable, so it is not a dead block. Feeding Frenzy 2 and Talismania barely
+match byte for byte (different engine builds), though 197 classes share names, so Feeding Frenzy 2's port would bring
+up to about 150 KB of Talismania's rest.
+
+Most of the gap is how Talismania (internally "Atlantis": `AtlantisApp`, `AtlantisChapter`, `AtlantisBuilding`,
+`AtlantisJournal`) was written, not what it does. Every kind of thing has a class that describes it, a loader that
+reads it from data and an instance; behaviour is spelled out in 181 small state classes (a building alone has idle,
+tier done, coin statue, ranking, the delays around ranking and throwing bonus coins); events go through the sigslot
+signal library, whose source is public; and each data type gets its own `std::map` and `std::set`. So 948 KB (38%)
+of its own code repeats byte for byte apart from addresses, against 6% in Feeding Frenzy 2: one 655-byte map
+function exists 75 times. A port writes those as one `std::map`. Without the repeats and the first copies of the
+standard library, it is 1,466 KB, 24x, near Bejeweled Twist's 1,663 KB measured the same way (Feeding Frenzy 2 949
+KB, Zuma's Revenge 1,873, Bejeweled 3 1,405 before its `Sexy` classes, Chuzzle 621, Iggle Pop 430, Feeding Frenzy
+284); with Feeding Frenzy 2's engine and sigslot in hand first, ~20-25x. The other games' ranges stand.
 
 ### Where a port is published
 
@@ -475,13 +518,26 @@ dumper or a downloaded unpacker, and that now serves only as a check on the clea
 
 ### 5.16 Gyromancer
 
-**Opus, published, large.** Added on 2026-10-25.
+**Opus, published, ~9-13x.** Added on 2026-10-25; sized from its Ghidra export on 2026-11-16.
 
 - **Copy:** Steam, `E:/SteamLibrary/steamapps/common/Gyromancer` (2009-09). A puzzle RPG made by PopCap with
   Square Enix, which published it, on battles like Bejeweled Twist's.
 - **Engine:** not Twist's or any PopCap framework: no SexyApp class strings at all, and 80 game classes of
   Square Enix's own engine (`CGM_*` game modes, `CData*` tables, effects). Its data is in its own archives
   (`.bjm`, `.cab`, `.dat`).
+- **Size (2026-11-16, from the clear image):** 725 KB of code, statically linked with the C runtime and Ogg
+  Vorbis (perhaps 250 KB together), which leaves roughly 450 to 500 KB of Square Enix's engine and the game. With
+  no public source for the engine, all of it is decompiled, so size alone gives about 8x. On top of that, it
+  draws in 3D through Direct3D 9 and D3DX effects compiled into its resources, which the port's renderer has to
+  reproduce. Its data (`media/data.bin` 112 MB, 31 `.bjm` scene files, 15 `.cab`) shows no header and looks
+  encrypted, to be decoded from the export. Sound streams through XAudio2 (`CSoundOGG`, `CSoundWAVE`; the
+  `CSoundXMA2` and `CSoundXWMA` classes are the Xbox 360 build's), input through DirectInput 8 and XInput, and a
+  Steam online layer (`COnlineSystemSteam`) is to go. 92 RTTI names (game modes `CGM_*`, `CData*` tables, effects,
+  puzzle actions) cut the naming work. That first look gave ~12-18x.
+- **Export (2026-11-16, `re/gyromancer/gh`):** 1,915 functions. The engine and game fill 0x401000 to 0x488000
+  in one block: 1,235 functions, 469 KB, 81,300 decompiled lines. The C runtime (named by Ghidra) and Ogg Vorbis
+  follow it. Against Bejeweled's 250 functions, 60 KB and 12,700 lines, that is 4.9x by functions, 7.8x by
+  bytes and 6.4x by lines. The Direct3D 9 effects, the archives and the sound bring it to ~9-13x.
 - **Image:** Steam's DRM stub has encrypted the Steam exe's code section. A clear image of the same build, found
   on 2026-11-04, is kept as `re/gyromancer/bin/Gyromancer_clear.exe` beside the Steam exe, with a README.
 
@@ -697,10 +753,54 @@ Luxor 2 HD and Evolved probably sit on its family. The same guide's method fails
 Afterlife and 5th Passage, so those differ in archive at least; 5th Passage is credited to another studio
 (Absolutist) and uses a `pfpk` archive, so it is probably not MumboJumbo's engine at all. Nothing ties the 7 Wonders
 series (Hot Lava Games, bought by MumboJumbo in 2007) or the hidden-object series (Midnight Mysteries, Samantha
-Swift) to either engine. The user owns only the four Luxor games; Steam also has Luxor and Amun Rising
-(`E:/SteamLibrary`), but as portal builds in wrappers (a Flash splash launcher; Reflexive Arcade with an encrypted
-`.RWG`), so the plain installs under `MumboJumbo/` are the ones to export. Mac builds of Luxor, Amun Rising, Mah
+Swift) to either engine. The user owns only the four Luxor games. `E:/SteamLibrary/steamapps/common` also has a
+`Luxor` folder, which is Steam's Luxor demo (a Flash splash launcher), and a `Luxor Amun Rising` folder that is not
+Steam's but a Reflexive Arcade build with an encrypted `.RWG` exe (the user, 2026-11-16); the plain installs under
+`MumboJumbo/` are the ones to export. Mac builds of Luxor, Amun Rising, Mah
 Jong and Luxor 2 were sold and might carry symbols; the user has none.
+
+**HipSoft's Build-a-lot games (looked at 2026-11-16; after PopCap's games, the user):** eleven games in eight
+installs. Six are Steam installs in `A:/SteamLibrary/steamapps/common/`. The first is the Bundle 4 in 1 (built 2009),
+which holds Build-a-lot 1 to 4. Then come The Elizabethan Era (2010), On Vacation (2011), Fairy Tales, Mysteries
+and Build-a-lot 10 (`BuildalotWorld.exe`, 2014). Two come from HipSoft's own installers in
+`C:/Program Files (x86)/HipSoft/`: Build-a-lot 9 (`Buildalot9.exe`, 2014) and Big Dreams (`buildalot11.exe`, 2020).
+They fall into three groups: 1 to 4 plain on the old engine, 5 to 9 wrapped, and 10 and 11 on a newer engine. All
+eight use one archive format: Monolith's RezMgr (`.rez`, the documented LithTech REZ v1 layout), with 3,900 to
+6,600 entries each. Most entries are PNG pictures, with JPEG 2000 in 1 to 6, Ogg music and sounds (WAV in Big
+Dreams), and TrueType fonts. The rest are HipSoft's own `.him`, `.hif`, `.hef` and `.ani` files, to be decoded
+from our export. Build-a-lot 1 carries its data inside its DLL's resources (47 MB).
+
+The bundle is the place to start. `Bundler.exe` is wrapped, but the four games are plain DLLs: `Buildalot.dll` to
+`Buildalot4.dll`, with 1.32 to 1.52 MB of code, ordinary sections and no protection, so they export as they are.
+All four are built on one engine of HipSoft's own: MFC linked in statically, DirectDraw (`Ddrawmgr.cpp`,
+`Dirsurf.cpp`), DirectSound, FreeType, libpng, zlib 1.2.3, JasPer for JPEG 2000 and Ogg Vorbis. Our OpenJPEG
+decoder, already used for BookWorm Adventures, takes JasPer's place. WinINet is imported too, likely for the
+outbound links to remove. The game's own classes carry no RTTI (only MFC's 40 do), so names come from strings
+(`CHighScoreMgr`) and our own reading. How much of each DLL is HipSoft's code and how much is MFC and the libraries
+is unknown until Ghidra separates them. The four would share one copy under `engines/` (`docs/ENGINES.md`), so each
+sequel costs mostly its own additions.
+
+The Elizabethan Era, On Vacation, Fairy Tales, Mysteries and 9 are exes of 2.4 to 2.9 MB wrapped on disk. Their
+original `.text`, `.rdata` and `.data` are empty, their code sits in encrypted sections, the entry point is in
+`.adata`, and the only imports left are the wrapper's own (kernel32, user32, gdi32, comdlg32, and shell32 in four).
+The section names (`.text1`, `.adata`, `.data1`, `.pdata`) match Armadillo's, and Big Dreams' engine has a lock
+class beside an `Armadillo` name (`CHipLockNone` in that build). Their archives hold the same file types, which
+points to the same engine grown further. Build-a-lot 9 came out in 2014 like 10 but stayed with this group. Exporting them needs the unwrapped image from a run through origrun; how
+that is done goes only in a private block, and its size is unknown until then. The Elizabethan Era also ships Big
+Fish's `gas` tools (a `ddraw.dll` proxy, `detours.dll`, `gas.dll`). Build-a-lot 10 is a different generation. Its
+exe is packed with PECompact (1.4 MB on disk, a 19 MB image in memory). It draws through Direct3D 9 behind Big Fish's
+proxy `d3d9.dll`, links Big Fish's SDK (`BigFish.dll`) and loads Lua 5.1.4 (no `.lua` entries in its archive, so
+any scripts are elsewhere). Its archive is 379 MB, nearly all PNG. Mac builds of some of the series were sold; the user has
+none.
+
+Big Dreams is the easiest start of the newer pair. Its exe is plain, with 2.3 MB of code built with Visual Studio
+2015 from HipSoft's "balw" tree (Build-a-lot World, 10's codebase; a `Release NoF2P` configuration). It also carries
+RTTI names for 369 classes. 165 are HipSoft's engine (`CHipCollection*`, `CHipDirectSoundMgr`,
+`CHipDisplayMgrD3DWin`, `CHipBaseRezFile`, `CHipNetURLMgr`), and the rest are the game's (42 `Goal` classes, 32
+dialog states, 24 `CBarMenu*` menus). Those names would carry over to 10's export once it is unpacked. The downside
+is a free-to-play layer compiled in: a HipPay billing manager, store dialogs, energy and lives, a daily spin,
+Facebook, email capture, friend invites and server tracking. What the NoF2P build still shows has to be checked
+before the removal rule for registration and outbound buttons is applied to it.
 
 ## Appendix B: other projects and modding communities
 
