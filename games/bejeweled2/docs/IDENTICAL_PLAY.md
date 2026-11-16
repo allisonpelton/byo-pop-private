@@ -282,6 +282,10 @@ the original's full screen (a Direct3D exclusive mode change of the user's displ
   (GAME_NOTES, "Oddities").
 - **The 3D tour's hover and first click timing** are shaped by the replay, not the port: the pointer leaves the window after each
   click and the help screen's click goes one update later, as the original's runs on the desktop do (GAME_NOTES, "Oddities").
+- **The web page's animation phase** after a click (1 to 2 updates, in every mode's replay; GAME_NOTES, "Oddities"): boards, gems and scores are the original's, the dialog's slide-in, the shooting star and the game-over explosion are a couple of updates apart.
+- **The software screen** (no GPU): identical to the GPU path in all eight 2D tours; its 3D look is the GPU's (a machine without a GPU has no 3D).
+
+**Looks identical: done (2026-11-15).** Every screen, dialog and text of the 2D game and the 3D game in all eight modes was compared with the original (2D at 640 by 480, 3D on the visible desktop under dgVoodoo2, the port natively, on the web page and as the no-GPU software screen), and every flagged difference is fixed or listed above and under "Oddities" in GAME_NOTES with how to see it. What was not compared: the original's own full screen (a Direct3D exclusive mode change, never made by the port or put on the user's display) and the web page's pictures at the update (the phase offset above).
 
 ### Performance numbers
 
