@@ -22,7 +22,7 @@
 
 using namespace Sexy;
 
-// 0x441250
+// 0x441250, 0x42f230 (whether the health is full, held inline)
 bool Sexy::CanBuy(int theKind, int thePrice, bool theAnnounce)
 {
 	int aRefusal = 0;

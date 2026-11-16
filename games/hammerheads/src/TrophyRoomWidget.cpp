@@ -261,7 +261,7 @@ void TrophyRoomWidget::Draw(Graphics* g)
 		aG.DrawImage(IMAGE_TOUGH_COOKIE_STAMP, mWidth - IMAGE_TOUGH_COOKIE_STAMP->mWidth, mHeight - IMAGE_TOUGH_COOKIE_STAMP->mHeight);
 }
 
-// 0x4609b0
+// 0x4609b0, 0x4609b9 (the part of it after the first test)
 void TrophyRoomWidget::ButtonDepress(int theId)
 {
 	if (theId == BUTTON_BACK)

@@ -13,7 +13,7 @@ Cubby* CubbyContainer::GetCubby(int theIndex) const
 	return dynamic_cast<Cubby*>(mCubbies[theIndex].Get());
 }
 
-// 0x434be0
+// 0x434be0, 0x4333c0 (the factory that makes a cubby with a drawn variant, which this holds inline)
 Cubby* CubbyContainer::AddCubby(int theX, int theY, const std::string& theName)
 {
 	// 0x4333c0: the variant is drawn before the constructor draws its own wait

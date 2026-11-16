@@ -41,7 +41,7 @@ static bool GetAttribute(const std::string& theTag, const char* theName, std::st
 	return true;
 }
 
-// port: reads a board file (a stream of length-prefixed text chunks) into the objects it lists; the original's reader is its TinyXML copy (0x463240-0x468490)
+// port: reads a board file (a stream of length-prefixed text chunks) into the objects it lists; the original's reader is its TinyXML copy (0x463240-0x468490; 0x465390 joins the chunks and reads them)
 bool Sexy::LoadBoardFile(const std::string& theFileName, std::vector<BoardObject>* theObjects)
 {
 	theObjects->clear();
