@@ -104,7 +104,7 @@ asked.
 | Ning Po Mahjong Deluxe | 0.36 s | 0.82 s | 6.3 % of one core | 14.9 % of one core | 54 MB | 21 MB |
 | Pixelus Deluxe | 0.9 to 1.4 s | 0.8 to 1.0 s | 2.1 to 3.2 M cycles an update (median 2.9 with its mixer; the main thread 2.2) | 2.6 to 3.6 M cycles an update (median 3.3) | 95 to 98 MB | 91 to 93 MB |
 | Alchemy Deluxe | 1.74 s | 1.76 s | 4.6 to 5.3 s a minute | 4.2 and 6.4 s a minute | 67 to 69 MB | 51 to 56 MB |
-| Word Harmony | 0.71 s | 2.6 to 3.4 s | 10.3 and 13.6 s a minute | 2.2 and 3.4 s a minute | 154 and 155 MB | 53 MB |
+| Word Harmony | 0.71 s | 2.6 to 3.4 s | 10.3 and 13.6 s a minute | 2.2 and 3.4 s a minute | 88 to 94 MB | 53 to 57 MB |
 | Cosmic Bugs | 0.6 to 0.9 s | 0.4 to 1.0 s | 18 to 19 % of one core | 4.7 and 5.6 % of one core | 130 MB | 88 and 89 MB |
 | Water Bugs | 2.76 s | 3.16 s | 10 s a minute | 58 s a minute | 160 MB | 97 and 101 MB |
 | Rocket Mania Deluxe | 1.8 to 2.0 s | 0.9 and 1.1 s | 1.4 to 2.5 M cycles an update (8 to 13 % of one core) | about 4.2 M cycles an update (20 % of one core) | 132 MB | 62 MB |
