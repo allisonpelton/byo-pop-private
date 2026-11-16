@@ -28,6 +28,11 @@ public:
 	// A file of the game's folder (WHArchive.saf, res/...), by its relative name with '/'
 	virtual bool readGameFile(const std::string& theName, std::vector<uint8_t>& theData) = 0;
 	virtual bool gameFileExists(const std::string& theName) = 0;
+	// The signal build's player files (the application's slot 0x3c (pizzafrenzy), which opens a loose file, and the
+	// file writer 0x493670 (pizzafrenzy)): a file of the writable folder, by its name. Read false when there is
+	// none; a host with no such folder (Word Harmony's) has none and cannot write one.
+	virtual bool readUserFile(const std::string& theName, std::string& theData) { return false; }
+	virtual bool writeUserFile(const std::string& theName, const std::string& theData) { return false; }
 	// An image decoded from a PNG or JPEG file's bytes, with the alpha of a mask's bytes when theMask is not empty
 	// (0x457510 (wordharmony)); null when it does not decode
 	virtual Image* createImage(const std::vector<uint8_t>& theData, const std::vector<uint8_t>* theMask) = 0;
