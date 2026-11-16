@@ -38,6 +38,8 @@
 #include "MusicInterface.h"
 #include "SDLMusicInterface.h"
 #include "PakInterface.h"
+#include "SoftwareScreenDisplay.h"
+#include "platform/Audio.h"
 
 #include <SDL.h>
 #include <algorithm>
@@ -1051,8 +1053,22 @@ MusicInterface* BookWormApp::CreateMusicInterface()
 
 	SDLMusicInterface* aMusicInterface = new SDLMusicInterface();
 	aMusicInterface->mMaxMusicVolume = 100;
+	// port: the five songs are five BASS channels of one module, which a game starts at an order it names (the menu's, the
+	// mode's, danger's, the jingle's) and never carries on from a stop; at most two play at once (a crossfade). libopenmpt's
+	// player takes about 4.5 MB, so a song holds one only while it plays (platform/Audio.h, SetSongPlayersPooled).
+	Platform::Mixer::Get().SetSongPlayersPooled(true);
 	return aMusicInterface;
 }
+
+#ifndef __EMSCRIPTEN__
+// port: the original draws its 2D mode in software into a DirectDraw surface, so the port does too, and the window
+// shows it through its own surface (framework/SoftwareScreenDisplay.h). The original also has a 3D mode (the Options
+// box, Is3DAccelerationSupported): the display offers it and hands the screen to the GPU while it is on.
+DDInterface* BookWormApp::CreateDDInterface()
+{
+	return SoftwareScreenDisplay::Create(this, true);
+}
+#endif
 
 // port (web): the save Shutdown() would write now (CleanupWidgets: a game in progress to
 // players/<name>/<mode>.dat), taken without changing the board (see SexyAppBase::UpdateUserDataBackup)
@@ -1568,7 +1584,7 @@ bool BookWormApp::DoLoadImageFont(int theFontId)
 // prefix-compressed: a number on a line is how many leading letters of the previous word the next word
 // keeps, and it stays in force for the following lines until the next number ("aa", "2h", "3ed", "ing",
 // "s" -> AA (skipped), AAH, AAHED, AAHING, AAHS). Text mode (CR LF reads as LF).
-bool BookWormApp::LoadWordList(const SexyString& theFileName, std::set<SexyString>* theSet,
+bool BookWormApp::LoadWordList(const SexyString& theFileName, WordSet* theSet,
 	std::vector<SexyString>* theVector)
 {
 	enum { BUFFER_SIZE = 256 };
@@ -1617,7 +1633,7 @@ bool BookWormApp::LoadWordList(const SexyString& theFileName, std::set<SexyStrin
 				{
 					UpperCaseString(aString);
 					if (theSet != NULL)
-						theSet->insert(aString);
+						theSet->Insert(aString);
 					if (theVector != NULL)
 						theVector->push_back(aString);
 				}
@@ -1640,12 +1656,14 @@ bool BookWormApp::LoadWordList(const SexyString& theFileName, std::set<SexyStrin
 	}
 
 	p_fclose(aFile);
+	if (theSet != NULL)
+		theSet->Settle();   // port
 	// (the original logs "Time to load word list (%s): %d" with OutputDebugString)
 	return true;
 }
 
 // 0x41a860
-bool BookWormApp::LoadDictionary(const SexyString& theFileName, std::set<SexyString>* theSet)
+bool BookWormApp::LoadDictionary(const SexyString& theFileName, WordSet* theSet)
 {
 	return LoadWordList(theFileName, theSet, NULL);
 }
