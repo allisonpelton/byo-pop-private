@@ -10,6 +10,8 @@ SIZE_A 8, SIZE_B 9, SIZE_C 9, sizeof(lua_Number) 8, then the test number. A func
 the implicit-self flag (int), nups, numparams, is_vararg, maxstacksize (bytes), line info, local variables (name,
 startpc, endpc), upvalue names, constants (tag 0 nil, 1 bool, 3 double, 4 int32, 5 string), nested functions, code.
 An instruction is OP:6 C:9 B:9 A:8 from the low bit; an RK operand >= 250 (MAXSTACK) is constant RK-250.
+GETSELFORGLOBAL and SETSELFORGLOBAL take their name as Kst(Bx); SELFORGLOBAL is A B C with its name in RK(C), and
+CALLSELFORGLOBAL and TAILCALLSELFORGLOBAL are A B C like CALL and TAILCALL (poplua/lopcodes.h).
 """
 import collections
 import glob
@@ -23,10 +25,10 @@ OPS = ('MOVE LOADK LOADBOOL LOADNIL GETUPVAL GETGLOBAL GETTABLE SETGLOBAL SETUPV
        'GETSELFORGLOBAL SELFORGLOBAL CALLSELFORGLOBAL TAILCALLSELFORGLOBAL INT BREAK CLOSURE').split()
 MAXSTACK = 250
 BX_OPS = {'LOADK', 'GETGLOBAL', 'SETGLOBAL', 'CLOSURE', 'CONSTGLOBAL', 'DEFGLOBAL', 'GETSELFORGLOBAL',
-          'SETSELFORGLOBAL', 'SELFORGLOBAL', 'CALLSELFORGLOBAL', 'TAILCALLSELFORGLOBAL'}
+          'SETSELFORGLOBAL'}
 SBX_OPS = {'JMP', 'FORLOOP', 'TFORPREP'}
 RK_OPS = {'GETTABLE', 'SETTABLE', 'SELF', 'ADD', 'SUB', 'MUL', 'DIV', 'POW', 'MOD', 'EQ', 'LT', 'LE',
-          'CONSTTABLE', 'DEFTABLE', 'ALTSELF'}
+          'CONSTTABLE', 'DEFTABLE', 'ALTSELF', 'SELFORGLOBAL'}
 
 
 class Reader:
