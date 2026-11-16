@@ -53,6 +53,7 @@ StoryScreen::StoryScreen(PixelusApp* theApp, bool theFromMenu, int theFrom, int 
 	Load(LowerCase(std::string(gTemples[theFrom].mName) + gTemples[theTo].mName));
 }
 
+// port: the destructor (StoryScreen::~StoryScreen)
 StoryScreen::~StoryScreen()
 {
 	delete mContinueButton;
@@ -129,12 +130,14 @@ void StoryScreen::Load(const std::string& theName)
 			mSpeeches[i].mY += 0x46;
 }
 
+// port: a helper of the port (StoryScreen::AddedToManager)
 void StoryScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mContinueButton);
 }
 
+// port: a helper of the port (StoryScreen::RemovedFromManager)
 void StoryScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);

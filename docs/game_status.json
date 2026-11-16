@@ -246,11 +246,12 @@
         "collection",
         "site-features",
         "identical-look",
-        "lite-mod"
+        "lite-mod",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "the lite mod step done with no mod (c0ee6258: the game's update is under 2% of the process); performance stays open: 3D is 1.26 of the original on a busy machine, half the port's cycles the Direct3D 11 driver thread, which waits on the framework's renderer item; 2D 0.80"
+      "now": null,
+      "note": "done but modding: identical in 2D and 3D (every screen tour natively, on the web and in 3D on the visible desktop, the idle game, abyss, bonus levels and a paused board included; only the original's real-clock sprite phase differs), sound and music, real input natively and on the web; registration out, fixes mod, coverage, performance like for like in 3D 0.98 (1.06 with the port's mixer), 2D 0.80, the lite mod (none needed), unneeded code out, readability, the Collection check, the site's features"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
@@ -302,11 +303,15 @@
         "site-features",
         "identical-look",
         "coverage",
-        "lite-mod"
+        "lite-mod",
+        "unneeded-code",
+        "readability",
+        "collection",
+        "performance"
       ],
       "na": [],
-      "now": "unneeded-code",
-      "note": "the lite-mod step done with no mod (41fe5da4, games/pixelus/docs/LITE_MOD.md: grid walks and scans of at most 32x32 cells, the hint reads a stored solution; the two scans that cost anything have faster forms with the same answers, so not lite); next: unneeded code, then readability"
+      "now": null,
+      "note": "every phase but modding done; performance (9b2dd17e, GAME_NOTES section 10): cycle counts over the same 6000 updates of scripted play, 5 alternating pairs pinned to one core on a busy machine, medians port 2.94 M cycles an update (all threads, the mixer counted; main thread 2.21) against the original's 3.28, pair ratios median 0.90, one pair of five above, so not above; no code changed; left before the final merge: the whole 210-puzzle game through real input, natively and on the web"
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",
@@ -525,11 +530,14 @@
         "coverage",
         "collection",
         "unneeded-code",
-        "readability"
+        "readability",
+        "identical-look",
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "the eight retail 3D tours compare clean: scores equal step for step in every mode, Action's TIME UP at the same update (19861); the earlier Classic/Finity and Action differences were the comparison's (the help click's shift read too early, b75b56dd; a slowed original run); boxes left: the menu's More Games pill (removed by rule) and three small ones (Hyper 4-4 one gem's light, Hyper 6-1, Finity's first board); Finity 3D's washed-out gems not seen in the retail tours (an Oddity, unreproduced); next: Hyper 4-4's light, then the web 3D and full-screen comparison"
+      "now": null,
+      "note": "every phase but modding done: identical in play and looks natively, on the web and in 3D (the web page's 1 to 2 updates of animation phase after clicks and Finity 3D's washed-out gems Oddities); the no-GPU fallback takes the software screen, equal to the GPU path and the original in 2D; performance at or under the original in 2D and 3D (5.1 % software, 5.8 % GPU, 5.4 % 3D against 9.6 % and 58.1 %); the lite mod not needed (the game logic at most 1.4 % of a core, LITE_MOD.md)"
     },
     "venice": {
       "title": "Venice Deluxe",
@@ -576,18 +584,27 @@
       "done": [
         "port",
         "identical-play",
-        "registration-out"
+        "registration-out",
+        "site-features",
+        "fixes-mod",
+        "identical-look",
+        "coverage",
+        "lite-mod",
+        "unneeded-code",
+        "collection"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "phase two looks begun (77266590 looks.py: original shots in Windows Sandbox and port shots at the same updates, then shotdiff; 6 scenarios, ~340 pairs); port fixes: the cubby cover cut from the level's backdrop (13f4410f), the Health label at the box's width, the coin hint's floater at y 150 (09163b2a); frozen screens refrozen (a6852126, states unchanged); open: particle effects and one help popup differ in phase, the how-to-play Flash page does not render in the sandbox; next: those, the remaining dialogs, web against native, real input"
+      "now": "performance",
+      "note": "lite mod: none (LITE_MOD.md); unneeded code out; Collection check: data identical in pixels, tour identical on its files, the exe another build (95800f56). Performance: 1.10 of the paced original with vsync; trying the software screen"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
-      "done": [],
+      "done": [
+        "port"
+      ],
       "na": [],
-      "now": "port",
-      "note": "Ported so far: first boot, the front end, the levels and cities, the city select and the game's start up to a level; gameplay next"
+      "now": "identical-play",
+      "note": "first playable merged (012bf8ef): every mode played by the bot through real input natively and on the web; the last city, the won story and a real game over not reached yet; nothing compared with the original yet"
     },
     "igglepop": {
       "title": "Iggle Pop Deluxe",

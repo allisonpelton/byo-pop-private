@@ -134,7 +134,6 @@ public:
 	void				BuildThumbs();									// 0x4138d0 (0x413420 each)
 	int					FindFirstUnsolved();							// 0x413a00
 	int					HitTest(int x, int y) const;					// 0x4102f0
-	int					GetRows() const;
 	void				ScrollTo(double thePosition, bool theHeld);		// 0x40fe30: the scroll bar moved to thePosition rows
 	void				UpdateScroll();									// 0x411313: the glide
 	double				GetScrollValue() const { return mFirst / COLUMNS + mScrollFrac; }

@@ -56,7 +56,7 @@ bool Sexy::HasIntroFile(int theLevel)
 	return gApp->FileExists(GetIntroFileName(theLevel));
 }
 
-// 0x457100
+// 0x457100, 0x437800 (the chest's first stage and timer, set inline)
 Creature* Sexy::MakeIntroCreature(int theIntroIndex)
 {
 	switch (theIntroIndex)

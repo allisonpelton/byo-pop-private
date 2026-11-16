@@ -69,11 +69,13 @@ void MenuState::update(engine::UpdateInfo& theInfo)
 	}
 }
 
-// 0x4022f0: translated next with the game
+// 0x4022f0
 void MenuState::clearEndedGame()
 {
+	mApp->stopGame();
 }
 
+// 0x40c7a0: the dialog state of the actions that open a dialog
 void MenuState::showDialog(engine::GenericScreen* theScreen)
 {
 	mApp->mStates.changeState(new DialogState(mApp, theScreen, this));
@@ -100,8 +102,8 @@ void MenuState::action(const std::string& theAction)
 	}
 	else if (theAction.compare("viewToppingBook") == 0)
 	{
-		// the topping book (the application's +0xe0): its slot 0x180, and a dialog state that shows it; translated
-		// next with the topping screens
+		mApp->mToppingBook->showPages();
+		showDialog(mApp->mToppingBook);
 	}
 	else if (theAction.compare("nextLevel") == 0)
 	{
@@ -147,7 +149,7 @@ void MenuState::action(const std::string& theAction)
 			showDialog(mApp->mUnlockNotice);
 		}
 		else
-			mApp->startPizzaEditor();
+			mApp->startPizzaEditor(false);
 	}
 	else if (theAction.compare("quit") == 0)
 		showDialog(mApp->mAppQuitConfirm);

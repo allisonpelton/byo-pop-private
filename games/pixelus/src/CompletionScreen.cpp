@@ -21,6 +21,7 @@ CompletionScreen::CompletionScreen(PixelusApp* theApp, int theMode)
 	StyleButton(mApp, mContinueButton, 3);
 }
 
+// port: the destructor (CompletionScreen::~CompletionScreen)
 CompletionScreen::~CompletionScreen()
 {
 	delete mContinueButton;

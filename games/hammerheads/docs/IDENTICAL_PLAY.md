@@ -185,7 +185,7 @@ each) are identical in state, sound and music too.
 
 The sounds of a game lost with a saved game waiting, the high score entry and Tough Cookie's and Marathon's saved games are not
 reached yet. The looks (every screen and dialog against the original's, natively and on the page) are phase two's next part: the
-shots need a visible desktop, which the rules allow from 22:00.
+shots may use the visible desktop or Windows Sandbox at any hour (CLAUDE.md, "Desktop and Sandbox at any hour").
 
 ## Phase two: the looks (begun)
 
@@ -207,21 +207,89 @@ challenge, the trophy pages, Tough Cookie's notice, the game-won page, the game 
 | A black strip under each hole of a level | the cubby's cover (the backdrop under the hole, 0x433080) was made from the cubby's own back image: the board-file path in `GameScreen` passed `GetCubbyBackImage()` where the original's container passes the level's backdrop | `GetBackdrop()` | see the log: "looks pass" |
 | The "Health" label of the hearts bar 40 pixels too far left | the original puts it at the hearts' x plus the box width (`rowWidth + 0x28`) minus the label's width minus 0x26 (0x449c40); the port used the row width | the box width | same |
 | The coin hint ("Pick up", level 1 and Marathon) 66 pixels too low | `GnomeCoin::Update` (0x438e20) makes the hint's floater at (400, 150); the port made it at (400, 216) | 150 | "looks pass" |
+| The "Snapshot Saved!" photo (the camera trophy's floater) faded out as it came in, with no text | `FloaterPhoto::Draw` (0x4485c0): the colour's alpha is `0x80 - ftol(-128 * move)`, so 128 up to 256 (the port had `0x80 - 128 * move`); the text's alpha comes from `(1 - width) * 255`, below 0 while the picture comes in, which the original's shots show as the text whole (the port had it hidden) | alpha `0x80 + 128 * move`; a negative text alpha is drawn opaque | "looks pass" |
 
 ### Judged, not changed
 
 - **"More Games" on the main menu** is in the original and not in the port: the outbound buttons are removed on purpose (CLAUDE.md,
   "Registration and outbound buttons are removed"), and the Options and Quit buttons close the gap.
-- **The how-to-play page** cannot be compared in the sandbox: the original plays `howtoplay.swf` in a Flash control that does not
-  draw there (the shot shows only the page's title on green). The port plays the movie through `engines/swf`; it needs a run on
-  the visible desktop (`tools/visrun.py`) or a judgement from the movie itself.
+- **The how-to-play page** draws in the sandbox (the Flash control shows its title, hearts, three captions and the gnome's demo), but its
+  demo loops on the original's wall clock while the port's runs on updates, so a shot at the same update shows different moments of
+  the loop (the title and hearts being drawn in the port, the gnome up in the original). The captions, holes, plants and buttons are
+  identical. Compared by the movie's frames instead of by update (`scenarios/howto.py`: 20 original shots across 9000 updates against 641
+  port frames every 10 updates): the same elements in the same order (the page fading in with its title and hearts, the hammer and
+  ring over the gnome, the MISS burst, the hearts going from five to four to three, the caption lit in turn, the ring moving to the other
+  holes). A frame-exact phase match is not possible, because the original's movie restarts on the wall clock and each of its shots
+  lands on an arbitrary frame (the best matches differ by about 2.6 on a 0-255 scale, the floor of the sprites' edge differences, with
+  the periodic loop making the best frame ambiguous). Judged equal: the demo's content and order; its timing is not compared.
 - **Particle effects and rotated sprites** (the smash debris, the stars, a rising creature's glow): a shot series every five updates
   from a hit shows the pieces at the same places in the same updates and differing only along their edges, the same
   one-pixel rims as below.
 - **Edge pixels:** a creature's or platform's rim differs by one pixel row in a few updates and every colour by one level; both
   are the framework's GPU blending against the original's software blit, below the tolerance except at a rim.
 
+- **The menus' boxes and screens** (`menus` scenario: Options, its Credits box, High Scores, the Trophy Room, each shot open and
+  closed): High Scores, the Credits box after it opens, and the closed main menu match pixel for pixel apart from the removed "More
+  Games" button and the closed gap. The Options box differs only in the Hardware Acceleration and Full Screen ticks (the sandbox
+  runs the original windowed with no acceleration, the port full screen: the player's settings, not the game) and in which button
+  the mouse rests on (the highlight), both scenario effects; the Trophy Room differs in its button's highlight.
+
+- **The page check** (`tools/web/pagecheck.js` through `games/hammerheads/tools/web/pagecheck.js`, in the Browser pane): 11 checks pass,
+  none fail. The focus line matches the native build's answer (the pause count changes while the focus is away and when it is
+  back), the keys and the pointer at four canvas sizes are right, a second copy waits for the first, and the saves come back after
+  a reload. The table plays the loading screen's click and a new profile's name box itself, as the game waits for both. The bot made
+  no moves before the reload (the level was still on its Ready box), so the "game in progress" line has no save to restore.
+
+### Real input, natively
+
+`games/hammerheads/tools/realplay.py` plays the port under rundesk with `-realinput` (docs/REAL_INPUT.md): SDL events pushed into
+SDL's own queue, the moves from the port's bot (`move`), the state (`state`) saying which box is up. From a clean user folder it
+clicks the loading screen, types "X", a Backspace and "Test" into the name box, clicks OK, clicks the mode's button and then every
+button the game shows: the how-to-play page, each introduction's and Ready box's Go, the shop's Back to Game, the bonus round's
+opening and the summaries. A screenshot is never used to choose. Runs (seed 1, `--heal`, which sets the hearts back to 5 when
+they are down to 2.5 so that the weak bot reaches later levels; a test command, not an input):
+
+| run | result |
+| --- | --- |
+| Classic, windowed | launch to level 25 (the king's level): 3698 moves, 25 levels, the shops and bonus rounds in between; the game is lost to the king, which the bot does not defeat |
+| Classic, full screen after the first level, with the focus lost and regained | 8 levels, the clicks and moves landing as in the window (an earlier run of the driver, before `--heal` took 2.5) |
+| Tough Cookie | to level 25, 4765 moves, lost to the king |
+| Marathon | 3000 moves to level 23 |
+| a lost game (`lose` after 6 moves) | the Game Over box (dialog 15) |
+
+The driver's clicks on the summaries, the trophy award and the shop are found by trying the buttons the first run showed in turn, so
+a screen where none changes the state stops the run (none did after the driver waited out the wipes). The king's defeat and the
+game-won screen are reached by the test commands (`set kings`, `win`) in the autosplit logs, not by the bot.
+
+### Real input, on the page
+
+`games/hammerheads/tools/web/onegame.js` is the same driver as a page driver (the Browser pane, `hammerheads.html?player=1&assets=1&hold=1&fast=1&silent=1&driver=games/hammerheads/tools/web/onegame.js&mode=<m>&heal=1&moves=<n>`):
+DOM mouse and key events only, the bot's moves from the test command `move`, the same screens and buttons as the native driver.
+Classic ran from the loading screen to its last level and the king (3767 moves, lost there like the native run), Tough Cookie the
+same (3736 moves), Marathon 3000 moves, and a Classic run to level 6 lost and regained the focus once; no page error in any of them,
+and the screens met are the native run's (name box, how-to-play, introductions, Ready boxes, shops, bonus rounds with their finished
+box, Game Over). The Browser pane cannot enter full screen, so the page is checked at the sizes `pagecheck` draws it at (11 pass).
+
 ### Open
 
-- Not yet shot: the options box, the high score table, the hard modes' remaining boxes, the saved games' resume pages, the web
-  build against the native one, the real-input runs, and the how-to-play page.
+- Not yet shot: the hard modes' remaining boxes, the saved games' resume pages, the web
+  build against the native one is done (next section).
+
+### The web build against the native one
+
+`games/hammerheads/tools/idplay/webshots.py <scenario> <first> <last> <step>` plays a scenario's port inputs in the native port and in
+the web build under Node (the same script, seed, `-fast -drawevery`, a clean user folder) and compares the shots with `tools/shotdiff`.
+Run: `menus` (21 pairs), `classic1` (30, every 1000 updates), `tough1` (14) and `marathon1` (14). Both builds play the same game:
+every shot shows the same screen, the same gnomes, scores, hearts and pieces at the same places. Shotdiff flags most pairs (6 of 21,
+8 of 30, 1 of 14 and 0 of 14 match exactly), for three causes, all of the back end and none of the play:
+
+- **Edges of rotated and fractionally placed pictures** (the title's hammer, which `DrawImageF` puts at a fractional position, the
+  trophy medal's rays, the smash debris, the stars): the native build draws them through SDL's renderer with filtering, the web build
+  through SDL's software renderer, which snaps and does not smooth. Blurred 8 pixels wide, the shots agree to within a channel value
+  of about 20 to 36 (the debris of `classic1` at 11000 is the largest), with no shift of any piece.
+- **The Options box's Hardware Acceleration and Full Screen ticks**: the web build has neither (the player's setting; the native run
+  starts full screen with acceleration), the same two ticks that differ against the original.
+- **The loading screen** (`classic1` at 1000): the title's glow is the loading thread's, on the wall clock.
+
+Left as it is: a fractional-position snap in the software renderer is the framework's, shared by every game.
+

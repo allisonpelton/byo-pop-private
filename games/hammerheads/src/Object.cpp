@@ -117,7 +117,7 @@ void ObjectRef::Set(const Object* theObject)
 	*this = aSwapped;
 }
 
-// 0x402dc0
+// 0x402dc0, 0x402980 (the dead flag's read)
 bool ObjectRef::IsValid() const
 {
 	return mObject != nullptr && !mObject->mDead;

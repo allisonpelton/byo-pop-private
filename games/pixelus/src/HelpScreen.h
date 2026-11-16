@@ -7,7 +7,7 @@
 // 0x40d740) plays a script of 950 updates (a pointer shows where the mouse is, the Tile Master throws three tiles and
 // pulls them back), on the right a 16 by 16 board (0x40df90, update 0x40d8d0, draw 0x40e0b0) replays the shipped solution
 // of levels/helpscreen.txt through the grid's own replay and fades the picture out and in to start again. The check box at
-// the bottom is "Don't show this screen again": its state goes to the player's profile (mFlag2D, the opposite) when the
+// the bottom is "Don't show this screen again": its state goes to the player's profile (mShowHelp, the opposite) when the
 // screen goes.
 //
 // port: the Tile Master has no idle animation (the script's two nudges, frames 315 and 790, do nothing).

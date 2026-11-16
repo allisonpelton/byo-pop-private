@@ -297,6 +297,19 @@ void ShopScreen::MouseLeave()
 		anAvatar->mCrosshairVisible = false;
 }
 
+// 0x45dcf0 (the original's slot for both): the hammer follows the pointer
+void ShopScreen::MouseMove(int x, int y)
+{
+	Avatar* anAvatar = GetAvatar();
+	if (anAvatar != nullptr)
+		anAvatar->SetMouse(x, y);
+}
+
+void ShopScreen::MouseDrag(int x, int y)
+{
+	MouseMove(x, y);
+}
+
 // 0x45dd20: a click is the hammer's
 void ShopScreen::MouseDown(int x, int y, int theClickCount)
 {

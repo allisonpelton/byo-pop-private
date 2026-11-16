@@ -66,6 +66,8 @@ public:
 	void apply(Node* theNode, const Point& theValue);
 	// The modifier's slot 0: 0x42c650 (pizzafrenzy)
 	void modify(float theTime, Node* theNode) { apply(theNode, get(theTime)); }
+	// 0x14: 0x480030 (pizzafrenzy): the last key's time (0 with no key)
+	float getLastTime() const { return mKeys.empty() ? 0.0f : mKeys.back().mTime; }
 
 private:
 	// 0x47fc70 (pizzafrenzy): the curve from a key to the next
@@ -74,6 +76,61 @@ private:
 	std::vector<PositionKey> mKeys;  // +0x0c: by time (a map in the original)
 	size_t mCurrent;                 // +0x18: the current key, mKeys.size() for none
 	EaseCurve mCurve;                // +0x1c
+};
+
+// A key of a number over time (the same fields as a position's, with one value)
+struct ScalarKey
+{
+	float mTime;      // +0x00
+	float mValue;     // +0x04
+	float mInTime;    // +0x08
+	float mInSpeed;   // +0x0c
+	float mOutTime;   // +0x10
+	float mOutSpeed;  // +0x14
+};
+
+// A number over time (0x50 bytes, on the interpolator 0x480d00 (pizzafrenzy), vtable 0x4fc12c (pizzafrenzy) with the
+// modifier 0x42c600 (pizzafrenzy) at +0x40): the keys and curves of a position, with one value. What it sets is its
+// subclass's.
+class ScalarInterpolator
+{
+public:
+	virtual ~ScalarInterpolator() {}
+
+	// 0x04: 0x480c40 (pizzafrenzy)
+	void addKey(const ScalarKey& theKey);
+	// 0x08: 0x47fcf0 (pizzafrenzy)
+	void clear();
+	// 0x0c: 0x47fd30 (pizzafrenzy): the value at a time, as the position's is (0 with no key)
+	float get(float theTime);
+	// 0x14: 0x480000 (pizzafrenzy): the last key's time (0 with no key)
+	float getLastTime() const { return mKeys.empty() ? 0.0f : mKeys.back().mTime; }
+	// 0x18: the node takes the value
+	virtual void apply(Node* theNode, float theValue) = 0;
+	// The modifier's slot 0: 0x42c600 (pizzafrenzy)
+	void modify(float theTime, Node* theNode) { apply(theNode, get(theTime)); }
+
+private:
+	// 0x47fbf0 (pizzafrenzy): the curve from a key to the next
+	void setCurve(const ScalarKey& theKey, const ScalarKey& theNext);
+
+	std::vector<ScalarKey> mKeys;  // +0x0c
+	size_t mCurrent = 0;           // +0x18
+	EaseCurve mCurve;              // +0x1c
+};
+
+// 0x42c710 (pizzafrenzy), apply 0x42c7b0 (pizzafrenzy): the node's scale
+class ScaleInterpolator : public ScalarInterpolator
+{
+public:
+	void apply(Node* theNode, float theValue) override;
+};
+
+// 0x42c7d0 (pizzafrenzy), apply 0x42c870 (pizzafrenzy): the node's opacity
+class OpacityInterpolator : public ScalarInterpolator
+{
+public:
+	void apply(Node* theNode, float theValue) override;
 };
 
 } // namespace engine

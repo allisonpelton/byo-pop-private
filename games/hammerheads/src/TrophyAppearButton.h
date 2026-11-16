@@ -18,7 +18,7 @@ public:
 
 public:
 	// theTrophy: the one the first page shows (-1 for none)
-	TrophyAppearButton(int theId, ButtonListener* theListener, int theTrophy);	// 0x45f5e0
+	TrophyAppearButton(int theId, ButtonListener* theListener, int theTrophy, bool theSilent = false);	// 0x45f5e0
 
 	// 0x45f590: the page starts again for another trophy
 	void			Start(int theTrophy, bool theBlend);

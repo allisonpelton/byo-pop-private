@@ -7,6 +7,7 @@
 #include "LevelData.h"
 #include "ProgressManager.h"
 #include "UserDirectory.h"
+#include "Effects.h"
 #include "Graphics.h"
 #include "Image.h"
 #include "ImageFont.h"
@@ -143,7 +144,7 @@ PuzzleCompletedScreen::PuzzleCompletedScreen(PixelusApp* theApp, MemoryImage* th
 					mOpenedIndex = i;
 				}
 		}
-		else if (aTutorialDone && !aUser->mFlag79)
+		else if (aTutorialDone && !aUser->mTutorialDone)
 		{
 			mOpenedTemple = true;
 			mOpenedIndex = 1;
@@ -202,7 +203,7 @@ PuzzleCompletedScreen::PuzzleCompletedScreen(PixelusApp* theApp, MemoryImage* th
 	// mode 5 of 0x41b3c0: only the solve that finishes the tutorial says so (the same test before and after the record)
 	mTutorialDone = mMode == 5;
 	if (mTutorialDone && aUser != NULL)
-		aUser->mFlag79 = true;
+		aUser->mTutorialDone = true;
 
 	mApp->mLastSolvedUuid = theUuid;
 
@@ -210,8 +211,23 @@ PuzzleCompletedScreen::PuzzleCompletedScreen(PixelusApp* theApp, MemoryImage* th
 	mContinueButton = new SoundButton(mApp, mApp->mImages[IMAGE_DIALOGBUTTONCOMPONENTS], ID_CONTINUE, this);
 	mContinueButton->mLabel = GT(0x50c9a0);
 	StyleButton(mApp, mContinueButton, 3);
+
+	// 0x41b3c0: the characters round the tablet, which move once the picture is in (0x437530 Medusa, 0x437630 the sparkles,
+	// 0x437440 the second faun, who only moves when a temple has opened)
+	Image** anImages = mApp->mImages;
+	mEffects.Add(new PingPongEffect(anImages[IMAGE_ANIMMEDUSA], 3, 0x193, 0x38, 0.5, 0.5));
+	mEffects.Add(new SparkleEffect(anImages[IMAGE_ANIMFAUN1], 2, 0x139, 0x13, 1.0, 5.0, 0.1, 0.1));
+	if (mOpenedTemple)
+		mEffects.Add(new FrameEffect(anImages[IMAGE_ANIMFAUN2], 2, 0x5b, 0x1a0, 0.2, 0.1));
+	mEffects.Add(new SparkleEffect(anImages[IMAGE_ANIMFAUN3], 2, 0xc0, 0x1ab, 1.0, 5.0, 2.0, 0.1));
+	mEffects.Add(new SparkleEffect(anImages[IMAGE_ANIMFAUN4], 2, 0x1a3, 0x1ac, 1.0, 5.0, 0.1, 0.1));
+	mEffects.Add(new SparkleEffect(anImages[IMAGE_ANIMFAUN5], 2, 0x119, 0x14f, 1.0, 5.0, 1.0, 0.1));
+	mEffects.Add(new SparkleEffect(anImages[IMAGE_ANIMCENTAUR], 3, 0x1b0, 0x144, 3.0, 10.0, 0.1, 0.1));
+	mEffects.Add(new SparkleEffect(anImages[IMAGE_ANIMCYCLOP], 2, 0xaf, 0x61, 1.0, 5.0, 0.1, 0.1));
+	mEffects.Add(new SparkleEffect(anImages[IMAGE_ANIMMERMAID], 2, 0x4b, 0x103, 1.0, 5.0, 0.1, 0.1));
 }
 
+// port: the destructor (PuzzleCompletedScreen::~PuzzleCompletedScreen)
 PuzzleCompletedScreen::~PuzzleCompletedScreen()
 {
 	delete mContinueButton;
@@ -246,10 +262,13 @@ void PuzzleCompletedScreen::Update()
 {
 	Widget::Update();
 	mTicks++;
+	// 0x419a00: the characters move once the picture is in
+	if (mProgress >= 1.0f)
+		mEffects.Update(0.01);
 	if (mProgress < 1.0f)
 	{
 		mProgress = std::min(1.0f, mProgress + 0.0125f);
-		float t = mProgress * mProgress * (3.0f - 2.0f * mProgress);
+		float anEase = mProgress * mProgress * (3.0f - 2.0f * mProgress);
 		if (mProgress >= 1.0f)
 		{
 			mSize = END_SIZE;
@@ -259,9 +278,9 @@ void PuzzleCompletedScreen::Update()
 		}
 		else
 		{
-			mSize = (int) (320 + (END_SIZE - 320) * t);
-			mX = mStartX + (END_X - mStartX) * t;
-			mY = mStartY + (END_Y - mStartY) * t;
+			mSize = (int) (320 + (END_SIZE - 320) * anEase);
+			mX = mStartX + (END_X - mStartX) * anEase;
+			mY = mStartY + (END_Y - mStartY) * anEase;
 		}
 	}
 	else if (mMedal < 1.0f)
@@ -269,11 +288,13 @@ void PuzzleCompletedScreen::Update()
 	MarkDirty();
 }
 
+// port: a helper of the port (PuzzleCompletedScreen::DrawCentered)
 void PuzzleCompletedScreen::DrawCentered(Graphics* g, const std::string& theText, int theCenterX, int theY)
 {
 	g->DrawString(theText, theCenterX - g->GetFont()->StringWidth(theText) / 2, theY);
 }
 
+// port: a helper of the port (PuzzleCompletedScreen::DrawOutlined)
 void PuzzleCompletedScreen::DrawOutlined(Graphics* g, const std::string& theText, int theCenterX, int theY,
 	const Color& theColor, const Color& theOutline)
 {
@@ -369,6 +390,7 @@ void PuzzleCompletedScreen::Draw(Graphics* g)
 }
 
 // the picture on its way to the tablet, and the shine over it once it is there
+// port: a helper of the port (PuzzleCompletedScreen::DrawPicture)
 void PuzzleCompletedScreen::DrawPicture(Graphics* g)
 {
 	bool aArrived = mProgress >= 1.0f;
@@ -393,6 +415,7 @@ void PuzzleCompletedScreen::DrawPicture(Graphics* g)
 	}
 }
 
+// port: a helper of the port (PuzzleCompletedScreen::DrawContent)
 void PuzzleCompletedScreen::DrawContent(Graphics* g, bool thePicture)
 {
 	const int CENTER = 320;			// the tablet's middle
@@ -418,10 +441,9 @@ void PuzzleCompletedScreen::DrawContent(Graphics* g, bool thePicture)
 		g->SetColor(aColor);
 		g->DrawString(aTitle, aTitleX, 240);
 	}
+	// 0x419e60: the characters, once the picture is in
 	if (aArrived)
-	{
-		// the sparkle of the picture settling in the tablet
-	}
+		mEffects.Draw(g);
 
 	// the sign on the left: the temple that has opened, or the time
 	if (!mTutorial && (mWasMaxed || mOpenedTemple))
@@ -574,6 +596,7 @@ void PuzzleCompletedScreen::DrawContent(Graphics* g, bool thePicture)
 
 // what the button does: the way on is to the island when something opened (the tablet's news is the temple's), else the
 // temple the puzzle belongs to
+// port: a helper of the port (PuzzleCompletedScreen::ButtonDepress)
 void PuzzleCompletedScreen::ButtonDepress(int theId)
 {
 	if (theId != ID_CONTINUE)

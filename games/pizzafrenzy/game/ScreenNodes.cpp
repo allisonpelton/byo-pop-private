@@ -24,6 +24,7 @@ bool isBelow(engine::Node* theNode, engine::Node* theAncestor)
 }
 }
 
+// port: a node of a layout that leads out of the game is taken out of its parent and the screen
 void pizzafrenzy::removeScreenNode(engine::ScreenLayout* theScreen, const std::string& theName)
 {
 	engine::Node* aNode = theScreen->getNode(theName);
@@ -43,6 +44,7 @@ void pizzafrenzy::removeScreenNode(engine::ScreenLayout* theScreen, const std::s
 		aParent->removeChild(aNode);
 }
 
+// port: a button of a layout, and its labels, move to close the gap a removed button leaves
 void pizzafrenzy::moveButtonWithLabels(engine::ScreenLayout* theScreen, const std::string& theButton, float theX)
 {
 	engine::Node* aButton = theScreen->getNode(theButton);
@@ -71,10 +73,43 @@ std::string pizzafrenzy::formatText(const std::string& theFormat, const std::str
 }
 
 // 0x46db00
+std::string pizzafrenzy::formatText(const std::string& theFormat, const std::string& theFirst,
+                                    const std::string& theSecond)
+{
+	char aBuffer[FORMAT_BUFFER_SIZE];
+	snprintf(aBuffer, sizeof(aBuffer), theFormat.c_str(), theFirst.c_str(), theSecond.c_str());
+	return aBuffer;
+}
+
+// 0x46db00
 std::string pizzafrenzy::formatText(const std::string& theFormat, int theNumber)
 {
 	char aBuffer[FORMAT_BUFFER_SIZE];
 	snprintf(aBuffer, sizeof(aBuffer), theFormat.c_str(), theNumber);
+	return aBuffer;
+}
+
+// 0x46db00
+std::string pizzafrenzy::formatText(const std::string& theFormat, int theNumber, const std::string& theText)
+{
+	char aBuffer[FORMAT_BUFFER_SIZE];
+	snprintf(aBuffer, sizeof(aBuffer), theFormat.c_str(), theNumber, theText.c_str());
+	return aBuffer;
+}
+
+// 0x46db00
+std::string pizzafrenzy::formatText(const std::string& theFormat, int theFirst, int theSecond)
+{
+	char aBuffer[FORMAT_BUFFER_SIZE];
+	snprintf(aBuffer, sizeof(aBuffer), theFormat.c_str(), theFirst, theSecond);
+	return aBuffer;
+}
+
+// 0x46db00
+std::string pizzafrenzy::formatText(const std::string& theFormat, int theFirst, int theSecond, int theThird)
+{
+	char aBuffer[FORMAT_BUFFER_SIZE];
+	snprintf(aBuffer, sizeof(aBuffer), theFormat.c_str(), theFirst, theSecond, theThird);
 	return aBuffer;
 }
 
@@ -83,6 +118,14 @@ std::string pizzafrenzy::formatText(const std::string& theFormat, int theNumber)
 // string, so the format is not read); %0 ends the text; %n is a line break, %r a carriage return, %t a tab; %%, %!,
 // %. and "% " are the character itself. Line breaks in the text are kept.
 std::string pizzafrenzy::formatMessage(const std::string& theText, const std::string& theInsert)
+{
+	return formatMessage(theText, theInsert, std::string());
+}
+
+// The same with two inserts, as the pause menu's caption has (the exe's call passes the day as a number; as a string
+// it reads the same)
+std::string pizzafrenzy::formatMessage(const std::string& theText, const std::string& theInsert,
+                                       const std::string& theSecondInsert)
 {
 	std::string aResult;
 	size_t i = 0;
@@ -113,6 +156,8 @@ std::string pizzafrenzy::formatMessage(const std::string& theText, const std::st
 			}
 			if (anInsert == 1)
 				aResult += theInsert;
+			else if (anInsert == 2)
+				aResult += theSecondInsert;
 		}
 		else if (anEscape == '0')
 			break;

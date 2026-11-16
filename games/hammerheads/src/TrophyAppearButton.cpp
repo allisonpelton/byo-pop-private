@@ -31,13 +31,14 @@ const int HEADING_Y = 0x28;
 }
 
 // 0x45f5e0
-TrophyAppearButton::TrophyAppearButton(int theId, ButtonListener* theListener, int theTrophy) :
+TrophyAppearButton::TrophyAppearButton(int theId, ButtonListener* theListener, int theTrophy, bool theSilent) :
 	TrophyPageButton(theId, theListener)
 {
 	mTrophy = theTrophy;
 	mBlend = true;
 	mHasAlpha = true;
-	gApp->PlaySample(SOUND_STING_MEDAL_AWARDED);
+	if (!theSilent)
+		gApp->PlaySample(SOUND_STING_MEDAL_AWARDED);
 }
 
 // 0x45f590
