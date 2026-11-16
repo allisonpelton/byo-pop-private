@@ -366,7 +366,7 @@
       ],
       "na": [],
       "now": "identical-play",
-      "note": "the chapter batch rerun with the original reseeded (5c909e77): 9 of 29 chapters match, the rest written up in IDENTICAL_PLAY.md; scramble fixes (a wild tile takes no letter or draw, '?' counted in the total only, the row-of-10 pattern), the fast bot and the chapter harness"
+      "note": "phase one: 21 of 29 chapters identical in their engine states after the -fast curtain fix (the curtain done once its last frame is drawn) and the harness's state log, load timing and update-counter wait; 4 more differ only by the original's own variance; open: 5.3, 5.4, two +1 draws (IDENTICAL_PLAY.md)"
     },
     "bookwormadv": {
       "title": "Bookworm Adventures Deluxe",

@@ -15,6 +15,12 @@ public:
 	virtual ~MusicInterface();
 
 	virtual bool			LoadMusic(int theSongId, const std::string& theFileName);
+	// port: a song played from Ogg files in turn, the first again after the last, as the track joined from them would play
+	// (Platform::Mixer::LoadSongSegments: frame for frame the joined WAV's, each file decoded as it plays instead of the
+	// whole track held decoded): theFiles in their order, a file named again played again; theName is the joined track's,
+	// for the sound log. False where it cannot (here, and for a file the mixer will not stream), so that the game joins
+	// them itself as before.
+	virtual bool			LoadMusicSegments(int theSongId, const std::vector<std::string>& theFiles, const std::string& theName);
 	virtual void			PlayMusic(int theSongId, int theOffset = 0, bool noLoop = false);		
 	virtual void			StopMusic(int theSongId);
 	virtual void			PauseMusic(int theSongId);

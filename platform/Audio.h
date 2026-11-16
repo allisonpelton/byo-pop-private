@@ -140,6 +140,14 @@ public:
 	// Returns a song handle (>0) or 0 on failure. A mod remap of theGamePath (VFS::GetRemap) can set a
 	// start order inside a multi-song module, a stream loop point and a per-track gain.
 	int LoadSong(const std::string& theGamePath);
+	// A song played from Ogg Vorbis files in turn, the first again after the last, as one track joined from them plays
+	// (Rocket Mania's music, which the original joins into a WAV at load): theGamePaths in their order, a file named
+	// again played again, each file kept once and decoded as it plays, frame for frame as LoadSoundData decodes it, so the
+	// song's frames are the joined WAV's to the bit (16-bit samples at the first file's rate and channels, as the WAV
+	// stores them). Returns 0, so that the game joins them itself, when a file is missing, is not an Ogg stb_vorbis opens,
+	// does not state its length, or differs from the first in rate or channels, and with BYOPOP_STREAM_MUSIC=0. A mod's
+	// file for the joined track is the game's to look for first, and to load with LoadSong. Off unless a game calls it.
+	int LoadSongSegments(const std::vector<std::string>& theGamePaths);
 	// port: with this on, a song whose player a registered format makes (MO3 via libopenmpt, about 4.5 MB a player whatever
 	// the module) holds it only while it can still be heard: StopSong gives the player back to a pool shared by the songs
 	// loaded from the same file, and the next PlaySong takes one from it (or makes one). The players alive are then those

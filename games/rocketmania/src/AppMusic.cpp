@@ -6,6 +6,7 @@
 // as that file. See docs/GAME_NOTES.md.
 
 #include "RocketApp.h"
+#include "MusicInterface.h"
 #include "platform/Audio.h"
 #include "platform/VFS.h"
 
@@ -63,6 +64,29 @@ static std::string ReadPlaylistLetters(const std::string& thePlaylist)
 		aGot = aRead(true, &aLetter);
 	}
 	return aLetters;
+}
+
+// port: the piece played from its segments in turn (MusicInterface::LoadMusicSegments) instead of joined into a WAV, which
+// holds the whole piece decoded: the same frames, the segments decoded as they play. False (the piece then joined as before)
+// when the game folder has the original's cached_*.wav, which plays instead, or when the mixer cannot stream the segments.
+bool LoadMusicSegments(MusicInterface* theMusic, int theSongId, const std::string& thePrefix, char theLastSegment)
+{
+	size_t aSlash = thePrefix.find_last_of("\\/");
+	std::string aCacheName = (aSlash == std::string::npos) ? std::string() : thePrefix.substr(0, aSlash + 1);
+	aCacheName += "cached_" + thePrefix.substr(aSlash == std::string::npos ? 0 : aSlash + 1) + ".wav";
+	Platform::VFS& aVFS = Platform::VFS::Get();
+	std::vector<uint8_t> aPlaylistFile;
+	if (aVFS.Exists(aCacheName) || !aVFS.ReadAll(thePrefix + " PLAYLIST.txt", aPlaylistFile))
+		return false;
+	std::string aLetters = ReadPlaylistLetters(std::string(aPlaylistFile.begin(), aPlaylistFile.end()));
+	std::vector<std::string> aFiles;
+	for (size_t i = 0; i < aLetters.size(); i++)
+	{
+		std::string aName = thePrefix + " " + aLetters[i] + ".ogg";
+		if (aLetters[i] >= 'A' && aLetters[i] <= theLastSegment && aVFS.Exists(aName))
+			aFiles.push_back(aName);
+	}
+	return !aFiles.empty() && theMusic->LoadMusicSegments(theSongId, aFiles, aCacheName);
 }
 
 // 0x429460, with 0x429880 (MySound: one piece decoded), 0x4299e0 (the WAV file's writer) and 0x429b30 (its write of the samples) inline:

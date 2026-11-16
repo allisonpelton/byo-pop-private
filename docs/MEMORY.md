@@ -10,7 +10,8 @@ original's own figures and asked what a 2D game spends on Direct3D ("Big Money a
 the same day, found why Atomica's processor time had grown fourfold on Direct3D 11 and chose the renderer again ("Which
 renderer, and SDL's batching"). A fourth lets a port whose original starts in 2D keep the 2D flags on the GPU path ("The
 2D flags on the GPU path"). A fifth, of 2026-11-16, measured the web builds and lowered their peak ("The web
-builds").
+builds"), and a sixth lets Rocket Mania's music play from its segments instead of a track joined from them ("Rocket
+Mania's music from its segments").
 
 ## How it was measured
 
@@ -1042,7 +1043,7 @@ memory (`webmem.js --growstack` on a build linked with `--profiling-funcs`) puts
 its sounds (56 MB) and the JPEG 2000 decoder's working buffers (about 56 MB over the load): OpenJPEG holds each tile's
 components as 32-bit integers while it decodes, and frees them after. Decoding a large picture a strip at a time would
 bound that; it was not done. Rocket Mania's 58 MB of free arena is its music, joined from segments into one track at
-load; streaming the segments in turn is the next piece of work.
+load; played from its segments instead, its arena has 3 MB free ("Rocket Mania's music from its segments", below).
 
 ### Presenting
 
@@ -1076,3 +1077,55 @@ record why"; `WEB_PLAYER.md`, "Memory use"). It would save the files the page ho
 Bejeweled Twist and 34 MB for Venice, but the game would have to wait on a read: Asyncify, linked into those three with
 nothing else changed, grew their wasm by 42 to 52 % and their processor time by 16 to 21 % held at a board, and JSPI,
 Chromium's alone, stops at the runtime's start unless every way into the wasm becomes an asynchronous export.
+
+## Rocket Mania's music from its segments (2026-11-16)
+
+Rocket Mania's in-game and menu music are made of Ogg segments, which the game joins into one WAV at load in its
+playlists' order, as the original does (its `cached_*.wav`): 34 segments from 8 files for the in-game piece, which runs
+119 s, and 4 from 3 files for the menu's 26 s, half a megabyte of files in all. The two joined pieces held 24.4 MB of
+decoded samples, more than the port's whole lead over the original's memory (Rocket Mania's notes: 71.3 MB settled in 2D
+at 1x, against the original's 57.4 MB). `Mixer::LoadSongSegments`, with `MusicInterface::LoadMusicSegments` over it for
+a game, plays the files in turn as one song instead: each file is kept once, a segment is decoded as it plays by a
+decoder opened at its first frame, frame for frame as `LoadSoundData` decodes the file, and the last segment loops back
+to the first. Nothing changes until a game calls it, and Rocket Mania's call is the game's own to add: it looks for the
+original's `cached_*.wav` first, which plays instead as it does now, and joins the segments itself as before when the
+call returns false. The figures below are from a build with that call added and not committed.
+
+**The same music to the bit.** `soundtest -segments` (in `tools/check.sh unit` where Rocket Mania is staged) builds the
+WAV as the game's `AssembleMusic` does and plays it against the segments, each alone for twice the piece's length and
+two seconds more, with a change of gain and two stops and resumes in the middle of a segment, which seek inside it. For
+both pieces the mixed output is the same to the bit. With the call added, `tools/check.sh rocketmania` passed with its
+baseline identical.
+
+**What it saves.**
+
+| | Joined (as now) | From its segments |
+|---|---|---|
+| The music's tracks (`memreport`) | 25.6 MB | 0.54 MB |
+| 2D at 1x (`mem.py`, two runs each): private bytes settled, at the run's end | 73.8, 74.0 MB | 50.4, 50.4 MB |
+| 2D at 1x: peak private bytes | 94.6, 95.0 MB | 50.7, 50.7 MB |
+| Direct3D at 1x (three runs each): private bytes ten seconds into a game (`memreport`) | 106.3 MB | 81.2 MB |
+| Direct3D at 1x: peak private bytes | 144.3 to 144.7 MB | 80.4 to 80.6 MB |
+| Loading the two pieces (`soundtest`) | 139 and 47 ms | 5.7 and 3.6 ms |
+| Web, at the first board: WebAssembly memory, and the heap in use | 118.5 MB, 60.6 MB | 45.6 MB, 37.0 MB |
+| Web: the renderer's private bytes | 178.8 MB | 109.2 MB |
+
+Settled in 2D, the port now holds 50.4 MB against the original's 57.4. The peak fell by more than the samples the music
+held, since joining and loading a piece held it two or three times over for a moment in the loading thread: the decoded
+segments beside the WAV, then the WAV beside the song's own samples.
+
+**What it costs.** The decoding moves into the mixer. `soundtest` mixes the in-game piece's 239 s in 314 ms from its
+segments against 69 ms joined, and the menu piece's 54.5 s in 77 ms against 16: about 1.0 to 1.1 ms of processor time
+for each second of music. Of that, opening a decoder at each segment's first frame takes 0.3 to 0.8 ms a time, about a
+tenth at the in-game piece's 34 joins. A decoder kept open for each file and sent back to its start (which decodes the
+same samples as a new one) would save that tenth for eight decoders' memory; it was not done. In the game, over
+`cycles.py`'s scenario (three games of the bot, 77 s in real time, Direct3D at 1x, pinned to a core, under rundesk; five
+rounds, their order turned about), SDL's audio thread took 0.770 G cycles (0.678 to 0.820) against 0.395 G (0.383 to
+0.455): 0.37 G more, every round between 0.27 and 0.38 G more than its own pair's, about 4.8 M cycles for each second of
+play, a quarter of a percent of a core, and about 4 % more than the process's 8.7 G joined. The process's totals moved
+with the other games on the machine (8.3 to 12.9 G joined) and show nothing beyond the audio thread. On the web the
+renderer's processor time to the board and over the hold stayed within the runs' spread.
+
+BookWorm's pooled module players (`SetSongPlayersPooled`) and the songs streamed from files share nothing but the
+mixer's lock: a streamed song has no module file, so `OpenModule`, `StopSong`'s return of a player to the pool and
+`UnloadSong`'s clearing of it pass it by. No game uses both.
