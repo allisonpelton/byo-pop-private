@@ -6,7 +6,7 @@ root = os.getcwd()
 cc = json.load(open(root + '/build/native/compile_commands.json'))
 base = None
 for e in cc:
-    if e['file'].replace('\\', '/').endswith('feedingfrenzy/game/StageInfo.cpp'):
+    if e['file'].replace('\\', '/').endswith(os.environ.get('SYN_BASE','feedingfrenzy/game/StageInfo.cpp')):
         base = e
         break
 if base is None:
@@ -25,7 +25,7 @@ for i, p in enumerate(parts):
         continue
     if p in ('-c', '-MD', '-MMD'):
         continue
-    if p.endswith('StageInfo.cpp'):
+    if p.endswith(os.environ.get('SYN_BASE','feedingfrenzy/game/StageInfo.cpp').split('/')[-1]):
         continue
     out.append(p)
 failed = 0

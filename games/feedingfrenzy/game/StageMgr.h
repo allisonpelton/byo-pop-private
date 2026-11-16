@@ -226,6 +226,8 @@ public:
 	static void onMouseUp(int theX, int theY, int theButton, void* thePlayer);
 
 	StageInfoScreen* getStartScreen() { return mStartScreen; }
+	// port (test commands): the screen over the stage that shows, as a word ("" when none does)
+	const char* getScreenName() const;
 	StageHud* getHud() { return mHud; }
 	FishSpawner* getBonusSpawner() { return mBonusSpawner; }  // +0x2ac: the spawner of the mermaid
 

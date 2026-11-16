@@ -1,9 +1,9 @@
-#ifndef __FEEDINGFRENZY_PIZZAFRENZYAPP_H__
-#define __FEEDINGFRENZY_PIZZAFRENZYAPP_H__
+#ifndef __FEEDINGFRENZY_FEEDINGFRENZYAPP_H__
+#define __FEEDINGFRENZY_FEEDINGFRENZYAPP_H__
 
 // The port's host for Feeding Frenzy (no original counterpart: the original was the engine's Windows layer,
 // 0x4bcc50 (feedingfrenzy) on). The engine runs one frame per call, so the framework drives it: the widget runs a frame
-// once the frame's time has come (the original loop's test, 0x4bdf20), draws the 800x600 screen and turns the
+// once the frame's time has come (the original loop's test, 0x4bdf20), draws the 640x480 screen and turns the
 // framework's input into the application's signals (as the window procedure did, 0x4bd3b0). The host interface
 // (engines/sprout/Host.h) is implemented in FeedingFrenzyApp.cpp over the framework and the platform layer.
 
@@ -33,7 +33,7 @@ public:
 	// the rectangles of it that changed handed over each frame; null in the web build and with SURFACE_DISPLAY=off
 	SurfaceDisplay* mSurfaceDisplay;
 	std::vector<uint32_t> mSurfaceBits;
-	const uint32_t* mPixels;  // the 800x600 screen, 0xffRRGGBB: the picture's pixels, or mSurfaceBits
+	const uint32_t* mPixels;  // the 640x480 screen, 0xffRRGGBB: the picture's pixels, or mSurfaceBits
 	engine::ScreenGraphics* mGraphics;
 	uint64_t mNextFrame;     // the run loop's time for the next frame, in the host's ticks
 	uint32_t mLastTimer;     // the window's 100 ms timer's last tick

@@ -31,8 +31,7 @@ FeedingFrenzyApp* Sexy::gApp = nullptr;
 namespace
 {
 
-// The text WinMain shows for an exception that is not the engine's own (the earlier build's, kept until Pizza
-// Frenzy's own is read)
+// port: the text shown for an exception that is not the engine's own
 const char* const OTHER_EXCEPTION_TEXT = "Exception";
 
 // The host's ticks: microseconds (the original's QueryPerformanceCounter, whose rate the machine sets)
@@ -77,7 +76,7 @@ public:
 
 	bool gameFileExists(const std::string& theName) override { return Platform::VFS::Get().Exists(theName); }
 
-	// port: the player's own pizzas file is in the user folder (the original's is beside the exe)
+	// port: the settings and the scores are in the user folder (the original's are beside the exe)
 	bool readUserFile(const std::string& theName, std::string& theData) override
 	{
 		return Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/" + theName, &theData);
@@ -259,7 +258,7 @@ public:
 
 FeedingFrenzyHost gHost;
 
-// 0x4bd050 (feedingfrenzy): every mouse position the window procedure passes on is held inside the 800x600 screen
+// 0x4bd050 (feedingfrenzy): every mouse position the window procedure passes on is held inside the 640x480 screen
 engine::Point clampToScreen(int x, int y)
 {
 	if (x < 0)

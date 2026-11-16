@@ -3,7 +3,7 @@
 // Arguments (all optional):
 //   -gamedir=<dir>   folder containing FFArchive.saf, splash/, properties/ and FeedingFrenzy.exe (read for the game's
 //                    texts, never run)
-//   -userdir=<dir>   writable folder for the settings, the players and their pizzas (the emulated registry and files)
+//   -userdir=<dir>   writable folder for the settings and the scores (the emulated registry and files)
 //   -modsdir=<dir>   folder containing mods (one sub-folder per mod)
 //   -nomods          start without any mods
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the framework's test

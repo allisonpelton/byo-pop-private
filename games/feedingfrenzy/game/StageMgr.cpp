@@ -142,7 +142,7 @@ void StageMgr::startLoad(StageInfo* theInfo)
 void StageMgr::init()
 {
 	setName("StageMgr");
-	App* anApp = App::instance();
+	FishFood* aFood = FishFood::instance();
 	mHudOffsetGroup = new Container();
 	mPlayGroup = new Container();
 	mPlayGroup->setName("PlayGroup");
@@ -229,11 +229,10 @@ void StageMgr::init()
 	addChild(aCatcher);
 	addChild(mHud->getRoot());
 
-	Window* aWindow = anApp->getRootWindow();
 	if (mType != STAGE_MENU)
-		aWindow->addKeyHandler(static_cast<KeyHandler*>(mPlayer.get()));
+		aFood->addKeyHandler(static_cast<KeyHandler*>(mPlayer.get()));
 	if (mType != STAGE_MENU)
-		aWindow->addKeyHandler(this);
+		aFood->addKeyHandler(this);
 	addHudSpawners();
 	if (mType != STAGE_MENU)
 		loadEffects();
@@ -386,10 +385,10 @@ bool StageMgr::keyDown(int theKey)
 // 0x438000: the stage lets go of what it holds, for the controller to delete it
 void StageMgr::cleanup()
 {
-	Window* aWindow = App::instance()->getRootWindow();
-	aWindow->removeKeyHandler(this);
+	FishFood* aFood = FishFood::instance();
+	aFood->removeKeyHandler(this);
 	if (mPlayer != nullptr)
-		aWindow->removeKeyHandler(static_cast<KeyHandler*>(mPlayer.get()));
+		aFood->removeKeyHandler(static_cast<KeyHandler*>(mPlayer.get()));
 	if (mScreenShown != nullptr)
 	{
 		FishFood::instance()->hideScreen(mScreenShown, 0.0f);
@@ -1500,6 +1499,22 @@ void StageMgr::addHudSpawners()
 		aNext->setShownInHud(true);
 		aLastLevel = aNextLevel;
 	}
+}
+
+// port (test commands)
+const char* StageMgr::getScreenName() const
+{
+	if (mScreenShown == nullptr)
+		return "";
+	if (mScreenShown == mStartScreen)
+		return "stagestart";
+	if (mScreenShown == mCompleteScreen)
+		return "stageend";
+	if (mScreenShown == mContinueScreen)
+		return "continue";
+	if (mScreenShown == mGameOverScreen)
+		return "gameover";
+	return "";
 }
 
 } // namespace feedingfrenzy

@@ -114,6 +114,15 @@ public:
 	float getLoadProgress();
 	const std::string& getVersion() const { return mManifest.mVersion; }  // 0x42d2b0
 
+	// port (test commands): the part of the game the controller is in, and the popup screen that shows over it, each as
+	// a word ("" when there is no popup)
+	const char* getStateName() const;
+	const char* getPopupName() const;
+	// port (test commands): the screen whose buttons a click reaches: the popup that shows, or the main menu
+	engine::ScreenLayout* getClickScreen();
+	// port (test commands): the furthest stage of both lists is the last of the manifest
+	void unlockAllStages();
+
 private:
 	// The controller's state (+0x54), the part of the game it is in
 	enum State
@@ -177,6 +186,7 @@ private:
 	engine::Ref<ScreenFader> mFader;         // +0x88
 	engine::Ref<engine::Container> mLogoGroup;  // +0xb4: the logo and its "TM"
 	engine::Ref<engine::ScreenLayout> mShowingScreen;  // +0x7c
+	engine::ScreenLayout* mPopup;            // port (test commands): the popup screen that shows
 	float mShowFadeSeconds;                  // +0x84
 	int mLogoState;                          // +0xb8: 0 hidden, 1 sliding in, 2 shown, 3 sliding out
 	float mLogoSecondsLeft;                  // +0xbc

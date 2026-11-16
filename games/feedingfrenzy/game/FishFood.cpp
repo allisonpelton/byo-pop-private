@@ -120,7 +120,7 @@ void setNodeVisible(engine::ScreenLayout* theScreen, const char* theName, bool t
 
 // 0x430ee0
 FishFood::FishFood() :
-	mState(FOOD_STATE_LOADING), mStateSeconds(0.0f), mStep(0), mMapWait(0.0f), mShowFadeSeconds(0.0f),
+	mState(FOOD_STATE_LOADING), mStateSeconds(0.0f), mStep(0), mMapWait(0.0f), mPopup(nullptr), mShowFadeSeconds(0.0f),
 	mLogoState(LOGO_HIDDEN), mLogoSecondsLeft(-1.0f), mLogoSlideSeconds(LOGO_SLIDE_SECONDS),
 	mLogoHiddenPosition(LOGO_X, LOGO_HIDDEN_Y), mLogoShownPosition(LOGO_X, LOGO_SHOWN_Y), mMenuMusic(nullptr),
 	mStageIndex(0), mCursorLocked(false), mGameMode(GAME_MODE_NORMAL), mScoresLoaded(false)
@@ -277,6 +277,72 @@ void FishFood::updateCursorLock()
 		mCursorLocked = false;
 		engine::getHost()->setCursorLocked(false);
 	}
+}
+
+// port (test commands): the controller's state as a word
+const char* FishFood::getStateName() const
+{
+	switch (mState)
+	{
+	case FOOD_STATE_LOADING:
+		return "loading";
+	case FOOD_STATE_MENU:
+		return "menu";
+	case FOOD_STATE_LOAD_MAP:
+		return "loadmap";
+	case FOOD_STATE_PLAYING:
+		return "stage";
+	case FOOD_STATE_STAGE_ENDED:
+		return "stageended";
+	case FOOD_STATE_GAME_WON:
+		return "gamewon";
+	case FOOD_STATE_ENTERING_SCORE:
+		return "entername";
+	case FOOD_STATE_NEXT_STAGE:
+		return "nextstage";
+	}
+	return "unknown";
+}
+
+// port (test commands): the popup screen that shows, by the screen it is
+const char* FishFood::getPopupName() const
+{
+	if (mPopup == nullptr)
+		return "";
+	if (mPopup == mOptionsScreen)
+		return "options";
+	if (mPopup == mHighScoreScreen)
+		return "highscores";
+	if (mPopup == mHighScoreEntryScreen)
+		return "entername";
+	if (mPopup == mGameWonScreen)
+		return "gamewon";
+	if (mPopup == mPauseScreen)
+		return "pause";
+	if (mPopup == mCreditsScreen)
+		return "credits";
+	if (mPopup == mMapScreen)
+		return "map";
+	if (mPopup == mLoadMapScreen)
+		return "loadmap";
+	return "popup";
+}
+
+// port (test commands)
+engine::ScreenLayout* FishFood::getClickScreen()
+{
+	if (mPopup != nullptr)
+		return mPopup;
+	if (mState == FOOD_STATE_MENU)
+		return mMainMenu;
+	return nullptr;
+}
+
+// port (test commands)
+void FishFood::unlockAllStages()
+{
+	mNormalScores.reachStage(getStageCount());
+	mTimedScores.reachStage(getStageCount());
 }
 
 // 0x42c230: the window's focus lost pauses a game that is running
@@ -620,6 +686,8 @@ void FishFood::showScreen(engine::ScreenLayout* theScreen, float theFadeSeconds)
 void FishFood::hideScreen(engine::ScreenLayout* theScreen, float theFadeSeconds)
 {
 	theScreen->setEnabled(false);
+	if (mPopup == theScreen)
+		mPopup = nullptr;
 	if (theFadeSeconds == 0.0f)
 		theScreen->addOwnFlags(engine::NODE_REMOVE);
 	else
@@ -632,6 +700,7 @@ void FishFood::updateScreens()
 	if (mShowingScreen != nullptr)
 	{
 		mPopups->addChild(mShowingScreen);
+		mPopup = mShowingScreen;
 		mShowingScreen->fade(true, mShowFadeSeconds, 1.0f, false);
 		mShowingScreen = nullptr;
 	}
