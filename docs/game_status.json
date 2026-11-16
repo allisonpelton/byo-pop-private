@@ -311,7 +311,7 @@
       ],
       "na": [],
       "now": null,
-      "note": "every phase but modding done; performance (9b2dd17e, GAME_NOTES section 10): cycle counts over the same 6000 updates of scripted play, 5 alternating pairs pinned to one core on a busy machine, medians port 2.94 M cycles an update (all threads, the mixer counted; main thread 2.21) against the original's 3.28, pair ratios median 0.90, one pair of five above, so not above; no code changed; left before the final merge: the whole 210-puzzle game through real input, natively and on the web"
+      "note": "every phase but modding done, final merge 2026-11-15 (bd6d9d05): the whole 210-puzzle game through real input, natively under rundesk (210 solved, 0 errors, 7316 s) and on the web in the pane (210 solved, 7899 moves, 0 errors); performance (9b2dd17e) pair ratios median 0.90; oddity: three boards where the bot's click read as another move, cleared by Undo (IDENTICAL_PLAY.md); next the software screen at 1x"
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",

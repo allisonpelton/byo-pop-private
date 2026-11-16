@@ -16,6 +16,7 @@ var EXPERT = params.has("expert");
 var result = { boards: 0, moves: 0, notes: [] };
 var done = {};
 var lastTemple = 0;
+var scrolled = 0;
 var started = Date.now();
 var TIMEOUT = (Number(params.get("timeout")) || 1500) * 1000;
 
@@ -61,7 +62,13 @@ async function playBoard() {
     if (b.busy) { await waitUpdates(3); continue; }
     var mv = await t.botMove();
     if (mv === null) {
-      if (++stall > 400) throw new Error("the board stood still");
+      // no solution move: the board is off the shipped solution (a move landed differently). The player's way back is the Undo button
+      // (id 9): press it, once for each 30 polls, and say so in the notes
+      if (++stall % 30 === 0) {
+        var ub = (await targets()).buttons.filter(function (x) { return x.id === 9; });
+        if (ub.length) { await t.click(ub[0].x, ub[0].y); result.undos = (result.undos || 0) + 1; result.notes.push("undo at board " + result.boards + ", " + b.moves + " moves"); }
+      }
+      if (stall > 400) throw new Error("the board stood still");
       await waitUpdates(5);
       continue;
     }
@@ -152,11 +159,18 @@ try {
       var open = pz.filter(function (q) { return !q.solved && !q.mystery; });
       if (!open.length) open = pz.filter(function (q) { return !q.solved; });
       if (!open.length) {
+        // a temple of more than nine puzzles shows the rest below: scroll with the arrow button
+        var dn = (await targets()).buttons.filter(function (x) { return x.label === "Scroll Puzzles Down"; });
+        if (dn.length && scrolled < 4) { scrolled++; await t.click(dn[0].x, dn[0].y); await waitUpdates(20); continue; }
+        scrolled = 0;
         done[lastTemple] = true;
-        await pressButton(null, 0);
+        // leave by the button at the top left (a temple with a scroll button has a labelled one that pressButton would take)
+        var bk = (await targets()).buttons.filter(function (x) { return x.label === ""; }).sort(function (a, b) { return a.x - b.x; });
+        if (bk.length) await t.click(bk[0].x, bk[0].y); else await pressButton(null, 0);
         await waitUpdates(20);
         continue;
       }
+      scrolled = 0;
       await t.click(open[0].x, open[0].y);
       await waitUpdates(20);
     } else if (scr === "board") {
