@@ -394,6 +394,9 @@ struct Mixer::Song
 	// bytes: Big Money loads its one module once per tune, 14 times, and a session plays about six of them
 	std::shared_ptr<const std::vector<uint8_t> > mModuleFile;
 	std::unique_ptr<ModulePlayer> mModule;   // a registered module format (e.g. MO3 via libopenmpt)
+	ModuleFactory mFactory = nullptr;        // the registered format that makes mModule, from mModuleFile, at the first OpenModule
+	int mSavedOrder = -1;                    // where a pooled player stood when it went back to the pool (SetSongPlayersPooled), -1: not
+	int mSavedRow = 0;
 #ifndef BYOPOP_DERIVED
 	int mMeter = 0;   // an IT's row highlights (rows per beat << 16 | per bar; ModuleText.h's byopop_it_meter), 0 for none
 #endif
@@ -1300,17 +1303,35 @@ int Mixer::LoadSong(const std::string& theGamePath)
 		{
 			if (fmt.mDetect(file))
 			{
-				song->mModule = fmt.mCreate(file, mRate);
-				if (!song->mModule)
+				// port: a registered format's player is made when the song is first played or looked into (OpenModule), as libxmp's
+				// is below: libopenmpt's takes about 3 MB whatever the module, and BookWorm loads its one module five times, once for
+				// each of its songs, of which a game plays three or four. Songs loaded from the same bytes keep one copy of the
+				// file. The first song of a file gets its player now, which is the try that a player can load the file (the same
+				// bytes load the same way, so the others are not tried), and fails here as it did when every song made its own.
+				song->mFactory = fmt.mCreate;
+				for (const std::unique_ptr<Song>& anOther : mSongs)
 				{
-					SDL_Log("cannot load music %s", theGamePath.c_str());
-					return 0;
+					if (anOther && anOther->mModuleFile && (anOther->mFactory == fmt.mCreate) && (*anOther->mModuleFile == file))
+					{
+						song->mModuleFile = anOther->mModuleFile;
+						break;
+					}
+				}
+				if (!song->mModuleFile)
+				{
+					song->mModule = fmt.mCreate(file, mRate);
+					if (!song->mModule)
+					{
+						SDL_Log("cannot load music %s", theGamePath.c_str());
+						return 0;
+					}
+					song->mModuleFile = std::make_shared<const std::vector<uint8_t> >(std::move(file));
 				}
 				break;
 			}
 		}
 	}
-	if (!song->IsStream() && !song->mModule)
+	if (!song->IsStream() && !song->mModule && !song->mFactory)
 	{
 #ifdef __EMSCRIPTEN__
 		int aBeat = 0, aBar = 0;
@@ -1395,6 +1416,19 @@ void Mixer::UnloadSong(int theSong)
 	}
 	if (s->mVorbis)
 		stb_vorbis_close(s->mVorbis);
+	// the pooled players of a file that no song holds any more go with it
+	if (s->mModuleFile && (s->mModuleFile.use_count() == 1))
+	{
+		Lock();
+		for (size_t i = 0; i < mFreePlayers.size();)
+		{
+			if (mFreePlayers[i].first == s->mModuleFile.get())
+				mFreePlayers.erase(mFreePlayers.begin() + i);
+			else
+				i++;
+		}
+		Unlock();
+	}
 }
 
 #define SONG_FOR_HANDLE(h) \
@@ -1407,8 +1441,32 @@ bool Mixer::OpenModule(int theSong)
 	SONG_FOR_HANDLE(theSong);
 	if (!s)
 		return false;
-	if (s->mCtx || !s->mModuleFile)
-		return s->mCtx != nullptr;
+	if (s->mCtx || s->mModule || !s->mModuleFile)
+		return (s->mCtx != nullptr) || (s->mModule != nullptr);
+	if (s->mFactory)
+	{
+		std::unique_ptr<ModulePlayer> aModule;
+		Lock();
+		for (size_t i = 0; (i < mFreePlayers.size()) && !aModule; i++)
+		{
+			if (mFreePlayers[i].first == s->mModuleFile.get())
+			{
+				aModule = std::move(mFreePlayers[i].second);
+				mFreePlayers.erase(mFreePlayers.begin() + i);
+			}
+		}
+		Unlock();
+		if (!aModule)
+			aModule = s->mFactory(*s->mModuleFile, mRate);
+		if (!aModule)
+			SDL_Log("cannot load music module %d", theSong);
+		Lock();
+		s->mModule = std::move(aModule);
+		Unlock();
+		if (!mPoolPlayers)
+			s->mModuleFile.reset();
+		return s->mModule != nullptr;
+	}
 	xmp_context aCtx = xmp_create_context();
 	if (xmp_load_module_from_memory(aCtx, s->mModuleFile->data(), (long)s->mModuleFile->size()) != 0)
 	{
@@ -1443,6 +1501,11 @@ void Mixer::PlaySong(int theSong, int theOrder, int theRow, bool theLoop, bool t
 			if (theResetPosition || s->mEnded || !s->mPlaying)
 				s->Restart(theResetPosition || s->mEnded ? s->mStartFrame : s->mPcmPos);
 		}
+		else if (!theResetPosition && s->mModule && (s->mSavedOrder >= 0))
+		{
+			// a pooled player given to the song again to carry on where it stopped (SetSongPlayersPooled)
+			s->mModule->SetPosition(s->mSavedOrder, s->mSavedRow);
+		}
 		else if (theResetPosition)
 		{
 			// A mod remap can start a track partway into a multi-song module; the game's own offset
@@ -1459,6 +1522,7 @@ void Mixer::PlaySong(int theSong, int theOrder, int theRow, bool theLoop, bool t
 				xmp_set_row(s->mCtx, theRow);
 			}
 		}
+		s->mSavedOrder = -1;
 		s->mLoop = theLoop;
 		s->mPlaying = true;
 		s->mPaused = false;
@@ -1477,8 +1541,30 @@ void Mixer::StopSong(int theSong)
 	Lock();
 	SONG_FOR_HANDLE(theSong);
 	if (s)
+	{
 		s->mPlaying = false;
+		if (mPoolPlayers && s->mFactory && s->mModule && s->mModuleFile)
+			ReleasePlayer(*s);
+	}
 	Unlock();
+}
+
+void Mixer::SetSongPlayersPooled(bool thePooled)
+{
+	Lock();
+	mPoolPlayers = thePooled;
+	if (!thePooled)
+		mFreePlayers.clear();
+	Unlock();
+}
+
+void Mixer::ReleasePlayer(Song& theSong)
+{
+	int anOrder = 0, aRow = 0;
+	bool known = theSong.mModule->GetPosition(anOrder, aRow);
+	theSong.mSavedOrder = known ? anOrder : 0;
+	theSong.mSavedRow = known ? aRow : 0;
+	mFreePlayers.push_back(std::make_pair((const void*)theSong.mModuleFile.get(), std::move(theSong.mModule)));
 }
 
 void Mixer::PauseSong(int theSong, bool thePaused)
@@ -1543,6 +1629,7 @@ bool Mixer::GetSongPosition(int theSong, int& theOrder, int& theRow)
 int Mixer::GetSongTempo(int theSong)
 {
 	int aTempo = 0;
+	OpenModule(theSong);
 	Lock();
 	SONG_FOR_HANDLE(theSong);
 	if (s && s->mModule)
@@ -1553,6 +1640,7 @@ int Mixer::GetSongTempo(int theSong)
 
 void Mixer::SetSongTempo(int theSong, int theBPM)
 {
+	OpenModule(theSong);
 	Lock();
 	SONG_FOR_HANDLE(theSong);
 	if (s && s->mModule)
@@ -1562,6 +1650,7 @@ void Mixer::SetSongTempo(int theSong, int theBPM)
 
 int Mixer::GetSongChannelVolume(int theSong, int theChannel)
 {
+	OpenModule(theSong);
 	Lock();
 	SONG_FOR_HANDLE(theSong);
 	int aVolume = s && s->mModule ? s->mModule->GetChannelVolume(theChannel) : -1;
@@ -1571,6 +1660,7 @@ int Mixer::GetSongChannelVolume(int theSong, int theChannel)
 
 void Mixer::SetSongChannelVolume(int theSong, int theChannel, int theVolume)
 {
+	OpenModule(theSong);
 	Lock();
 	SONG_FOR_HANDLE(theSong);
 	if (s && s->mModule)

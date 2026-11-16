@@ -7319,6 +7319,97 @@ motion (8.4 thousand cycles an update, the embers 1.9 thousand of it), which a l
 dictionary's load (218 M cycles once, 104 ms), has a faster method with the same result, so it is not lite, and it did not earn a
 change. The solver's search (2.3 ms a call) is the mod "solver" and the test bot, not the game. The lite-mod step is done with no mod.
 
+## Memory and the software screen (2026-11-15)
+
+The coordinator asked for the software screen at 1x (`framework/SoftwareScreenDisplay.h`) and for what else holds the port's memory, so that
+it comes as close to the original's as it can with its processor time at or under the original's.
+
+**The original's start mode.** `mAutoEnable3D` is true (see 1.1), so the original starts in Direct3D where its D3DTester passes the card
+and in DirectDraw 2D where it does not, and a player can switch it in the Options box. origrun's runs of it are in 2D on this machine, as
+every comparison of this game has been, so the software screen, which draws as the original's 2D mode does, is the mode to measure against.
+`BookWormApp::CreateDDInterface` (not in the web build) returns `SoftwareScreenDisplay::Create(this, true)`: the screen is drawn in
+software while the app does not want 3D, and goes to the GPU while it does (`mDefault3D`, a saved `Is3D`, the Options box), as Bejeweled 2's
+does. `mDefault3D` stays true (the coordinator, 2026-11-15: a port starting in 2D on a card where the original starts in 3D would be a
+deviation a player sees): a player whose card passes the test starts in 3D on the GPU, as the original does, and pays for the device there
+(62.3 MB at the title, below); the software screen serves 2D, a saved `Is3D=0` or 3D cleared in the Options box. So the like for like is in
+2D on both sides: the port with `Is3D=0` in its `registry.ini` (`PERF_REG='Is3D=dword:0'` in `perf.py` and `cycles.py`) at the original's
+640x480 window (`-windowscale=1`), the original under origrun, where its tester fails and it runs 2D, the mode of its 39 to 43 MB.
+
+**The pictures.** A Classic and an Action bot game at 1x (`-fast -drawevery -renderscale=1 -seed=1`), on the software screen and with
+`SURFACE_DISPLAY=off` (the GPU path, DDInterface): the state logs are identical (1,597 and 21,324 lines), and shotdiff on the 21 pairs of
+shots (the Hall of Fame, the game over, the level-ups, the word marks) at tolerance 0 finds no visible difference in any; the pairs differ
+faintly, 16,000 to 54,000 of the 307,200 pixels by 12 of 255 levels in a channel at most (over 8 in 8 pairs, in 1 to 71 pixels each), the
+blending's rounding of the two ways of drawing.
+
+**Where the memory was.** The GPU path at 1x was 76 MB at the title. The software screen takes the Direct3D device's and textures' share
+(about 22 MB) and leaves 51 to 54 MB, against the original's 41. What was left was two things the port made for itself: the music and the
+dictionary. BookWorm loads its one module (`bookworm1.mo3`, 439 KB) five times, once for each song, and every load made a libopenmpt player
+at once, 4.3 to 4.5 MB each whatever the module (the module's samples unpacked, and the player's own state), where the original's BASS
+holds a song's channel and not five copies of the module's samples; and the dictionary was a `std::set<SexyString>` of the 151,381 words,
+7 MB in the port.
+
+**What was cut.**
+
+*Players made at first use, and pooled (shared, `platform/Audio.cpp`, commit 39dc6668).* A registered format's player is made when its
+song is first played or looked into, as libxmp's is; songs loaded from the same bytes share one copy of the file, and only the first song
+of a file makes its player at once (that is the try that the file loads). `Mixer::SetSongPlayersPooled(true)`, which BookWorm sets in
+`CreateMusicInterface`, gives a stopped song's player back to a pool shared by the songs of its file, and the next `PlaySong` takes one
+from it; so the players alive are those of the songs playing at once, two at most (a crossfade), not five. A song started again with no
+position carries on from the order and row where it stopped; one started at an order gets a seek, and BookWorm's songs always do
+(`FadeIn(-1)` is only used on a song still running silently, which never went back to the pool). `tools/songpostest` checks it.
+libopenmpt's renders differ a little between two fresh players of one module (rms 0.009 of a full scale of 1; not looked into), so a
+bit-exact comparison of a pooled player with a fresh one cannot hold, and the check holds the pooled player's difference from a fresh one
+against two fresh players' difference from each other (0.0096 against 0.0089). A deviation with an effect: the second player is made at
+the first crossfade, about 50 to 65 ms of one update at a click, once in a session, where the original's BASS had its channels ready;
+every later start takes a player from the pool.
+
+*The dictionary as flat arrays (`WordSet.h`, `WordSet.cpp`).* The words' letters one after another and each word's place, in the set's
+byte order, where the set held a node and a string a word: 2 MB. The lookups (`Contains`, the solver's prefix walk `Lookup`) are a binary
+search with the same answers; the load sorts once instead of inserting 151,381 times. `mDictionary`, `LoadWordList`, `LoadModWords`,
+`FindBoardWords`, `WordScore::Validate` and the test bot use it.
+
+**Like for like** (the port on the software screen at 1x under rundesk, the original under origrun, real time, one game at a time; the
+machine was 0.13 to 0.32 busy, 0 to 1 other game processes; three runs each, the medians and ranges):
+
+| | Original | Port |
+|---|---|---|
+| Load to the title | 1.67 to 1.83 s | 0.42 to 0.48 s |
+| Private bytes at the title | 41.9 MB (40.8 to 43.3) | 34.4 MB (34.2 to 34.5) |
+| Peak private bytes of the scenario (7,060 updates, 71 s) | 43.1 MB (43.0 to 43.4) | 47.0 MB (46.1 to 47.0) |
+
+At the title the port is 7.5 MB under the original, and over the scenario's play 3.9 MB over it. The music is most of that: in play the
+port holds two players (9 MB) where the original's BASS holds its songs' channels, and the images' copies grow by 3 MB. The first
+measurement of this pass, a lazy-player build without the pool, peaked at 60.5 MB, the pool at 49.5, the dictionary at 44.2 to 47.0 (the
+spread is real time: runs on a busier machine, and which songs overlap); the port was at 95.8 to 97.9 MB on 2026-11-11.
+
+Processor time, five alternating pairs (`pairs2.sh` with `PERF_NOPIN=1`, below), cycles an update (`cycles.py`, as in "Processor time like for
+like"), medians and ranges:
+
+| Stretch (updates) | Port, share of one core | Port without its audio thread | Original | Cycles an update, port / original |
+|---|---|---|---|---|
+| 1,500 to 3,500 | 7.5 % (6.5 to 8.5) | 6.9 % | 14.2 % (13.3 to 16.9) | 1.57 M / 2.92 M (0.54) |
+| 3,500 to 5,060 | 7.3 % (6.4 to 7.9) | 6.6 % | 13.0 % (12.3 to 14.9) | 1.53 M / 2.69 M (0.57) |
+| 5,060 to 7,059 | 6.8 % (5.8 to 7.3) | 5.9 % | 11.7 % (11.4 to 13.9) | 1.40 M / 2.41 M (0.58) |
+
+The port is under the original in every stretch of every pair (the closest, 1.45 M against 2.37 M, the third stretch of the second). The original reads lower than on
+2026-11-11 (3.9 to 4.8 M an update) on a quieter machine, and the two kinds of figure are the same. The port on the GPU path at 1x was 2.86 M
+an update, so the software screen is also the cheaper way to draw 640x480. Under `tools/pincore.py` the original's window takes 24 s to
+appear (2 s without it), origrun gives up waiting at 20 s, the script's first click is lost and the game idles in a menu at 0.4 M cycles an
+update, a result no pair should be taken from; `PERF_NOPIN=1` runs both sides unpinned (so these pairs were not pinned). The origrun patch
+lists, git-ignored, also have to be in the worktree (`tools/setup_worktree.sh` copies them).
+
+**The default window.** The software screen is for 1x only (the user, 2026-11-15; `docs/RULES.md`), so the 2x window stays on the GPU. The
+task also asked for the port at 2x on the software screen (`SOFTSCREEN_SCALED=1`); it was run once, before that decision, and its figures are not kept.
+Today's default, the GPU path at the default 1280x960 window (one run, with the cuts above, without `Is3D=0`): 62.3 MB at the title and 78.6 MB at the
+scenario's peak, against 77.7 to 79.9 and 95.8 to 97.9 MB on 2026-11-11; the software screen at 1x is 28 MB under it at the title and 32 MB at the peak.
+
+### Oddities
+
+The two players of a crossfade (9 MB, most of the port's 3.9 MB over the original at the scenario's peak). A player's 4.3 to 4.5 MB is
+mostly the module's samples unpacked, and two players of one module hold two copies of them; libopenmpt has no way to share one set between
+two `CSoundFile`s, so a cut would be a change inside the library, or a fade that ends the old song's player early (which changes the
+sound). Not done.
+
 ## The readability pass (2026-11-11)
 
 The rules are `docs/CODE_STANDARDS.md`; `python tools/namecheck.py games/bookworm` checks the ones a tool can check and reports no
