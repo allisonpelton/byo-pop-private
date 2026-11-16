@@ -245,19 +245,16 @@ by the registration's upsell pictures, which the staging script takes out as it 
 player files are identical. What is not known: whether the Collection's own exe plays the same as the Steam one (its code was not
 compared and it was not run); what speaks for it is that its data is the same pictures, boards, texts, sounds and fonts.
 
-### The software screen (2026-11-15)
+### The software screen: tried and dropped (2026-11-15)
 
-The coordinator's answer to the vsync finding (the framework keeps vsync on the GPU path) was to try the software screen. The
-original enables 3D itself (`mAutoEnable3D`, set in the constructor) and offers it in its options box, so `Application::CreateDDInterface`
-returns `SoftwareScreenDisplay::Create(this, true)` (the 3D offer), under `#ifndef __EMSCRIPTEN__`. With the player's default (3D on) the
-display hands the screen to the GPU at once, so a default start is as it was. With `Is3D=0` (3D off, which is the 2D mode the original
-draws in software, and the one it ran in on rundesk's desktop) the screen is drawn in the surface and presented through GDI.
-
-Five alternating pairs with `Is3D=0` (`PERF_REG` in `perf.py` adds the registry line; paced original as before): 0.75, 0.91, 0.82,
-0.88 and 1.09, median 0.91 of the original's cycles an update (port 3.33 M, original 3.67 M). Peak private bytes of the same run:
-159.7 MB against 138.6 MB on the GPU path, 21 MB more, since the pictures stay in memory. So with 3D off the port is under the
-original; with 3D on (the default) it is at the GPU path's 1.10, which is the driver's wait for the vertical blank (above). The
-present intervals (`-presentlog`) were not taken.
+The software screen (`SoftwareScreenDisplay`, the framework's opt-in for a port whose original draws its 2D mode in software) was tried
+as a way under the default's 1.10 of the earlier pairs: `Application::CreateDDInterface` returned `SoftwareScreenDisplay::Create(this, true)`
+(the original enables 3D itself, `mAutoEnable3D`, so the 3D offer). At the default (3D on) the display hands the screen to the GPU at once,
+so a default player never reaches it; with `Is3D=0` it draws in software and presents through the surface. Measured in the five rounds
+below, the two 3D-off rows are the GPU path 0.68 of the original and 178 MB, and the software screen 1.05 and 157 MB: 21 MB less memory for
+a 3D-off player, at a processor time over the original's, which the performance rule does not allow. The override was taken out (the
+coordinator, 2026-11-15); the default path was 0.71 of the original in the same rounds, so nothing needed it. The test switch
+`HAMMERHEADS_SCREEN=gpu` went with it; `PERF_REG` in `perf.py` stays (extra registry lines for a port run).
 
 ### The screens against each other, and the presents without vsync (2026-11-15, after the coordinator's questions)
 
@@ -287,3 +284,6 @@ renderer has no vsync flag, DDInterface.cpp's pace code): the intervals of the f
 within 2 ms of it, p90 18.4 to 19.2 ms, p99 42 to 50 ms; with vsync on (one run, `presents-v.txt`) the median is 16.7, 75 percent are
 within 2 ms, p90 19.4 and p99 37.7. Both runs have a stall of a second or two at the start (the level's loading). So the presents come
 as evenly without vsync as with it, with none of AstroPop's quantising to the updates' 10 ms.
+
+No vsync opt-out is needed (the coordinator, 2026-11-15: at the default the port is at 0.71 of the original, so the framework's rule of vsync on
+the GPU path stands); the figures without vsync (0.47, 143 MB) and the present intervals above are kept in case the question returns.

@@ -3,7 +3,6 @@
 // check at 0x41e520) is left out: the full game is the only path.
 
 #include "Application.h"
-#include "SoftwareScreenDisplay.h"
 #include "LiveSplitObserver.h"
 
 #include "ChallengeScreen.h"
@@ -170,22 +169,6 @@ Application::~Application()
 	delete mParticleRand;
 	mParticleRand = nullptr;
 }
-
-#ifndef __EMSCRIPTEN__
-// port: the original draws its 2D mode into a DirectDraw surface in software and offers 3D (it enables it itself, mAutoEnable3D), so the
-// port draws in software too, with the GPU taken while 3D is on (framework/SoftwareScreenDisplay.h)
-DDInterface* Application::CreateDDInterface()
-{
-	// test only (a test run reads it): HAMMERHEADS_SCREEN=gpu keeps the framework's own display, to measure the two against each other
-	if (IsTestRun())
-	{
-		const char* aScreen = SDL_getenv("HAMMERHEADS_SCREEN");
-		if ((aScreen != nullptr) && (strcmp(aScreen, "gpu") == 0))
-			return SexyAppBase::CreateDDInterface();
-	}
-	return SoftwareScreenDisplay::Create(this, true);
-}
-#endif
 
 // 0x4205f0 slot 45
 void Application::Init()
