@@ -587,7 +587,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "phase two looks (looks.py: original shots in Windows Sandbox and port shots at the same updates, then shotdiff): port fixes the cubby cover, the Health label, the coin hint's floater (13f4410f, 09163b2a) and the Snapshot Saved! photo's alpha and text as 0x4485c0 has them (4702e7e6); the menus' boxes and screens compared (Options, Credits, High Scores, Trophy Room; b726ff6d); the page check 11 pass, 0 fail on the web build (932773e7); the frozen tour with the autosplit block on unchanged; the site's features done; next: how-to-play by frame, web against native, real input"
+      "note": "phase two looks (looks.py: original shots in Windows Sandbox and port shots at the same updates, then shotdiff): port fixes the cubby cover, the Health label, the coin hint's floater and the Snapshot Saved! photo; the menus compared; the page check 11 pass; real input natively (realplay.py: launch to level 25 in Classic and Tough Cookie, Marathon 3000 moves, full screen with focus loss, a lost game) and on the page (onegame.js, the same modes, no page errors); the bot never beats King Globus, so the win path is reached by the test commands; the site's features done; next: how-to-play by frame, web against native looks"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
