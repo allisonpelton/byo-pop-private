@@ -5,7 +5,7 @@
 
 using namespace engine;
 
-// 0x426f10 (wordharmony)
+// 0x426f10 (wordharmony), 0x47bb40 (pizzafrenzy)
 Selector::Selector()
 {
 	mCurrent = -1;
@@ -14,7 +14,9 @@ Selector::Selector()
 	mDuration = 0;
 	mFadeIn = false;
 	addOwnFlags(NODE_DRAWABLE | NODE_LISTENERS);
-	setName("Selector");
+	// 0x47bb40 (pizzafrenzy): the signal build's selector has no name of its own
+	if (!gSignalBuild)
+		setName("Selector");
 }
 
 // 0x426c90 (wordharmony): the current child and, during a change, the next one, each in its own state; their visibility

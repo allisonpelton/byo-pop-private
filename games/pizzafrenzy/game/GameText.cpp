@@ -192,6 +192,7 @@ size_t findGameImage(const std::vector<uint8_t>& theData)
 
 }
 
+// port: the texts of the exe are read from the player's own copy at start-up
 bool loadGameTexts()
 {
 	std::map<uint32_t, std::string>& aTexts = texts();
@@ -243,6 +244,7 @@ bool loadGameTexts()
 	return aMatched > 0 || !strings().empty();
 }
 
+// port: the exe's text at the address
 const std::string& gameText(unsigned int theVA)
 {
 	static const std::string sEmpty;
@@ -251,6 +253,7 @@ const std::string& gameText(unsigned int theVA)
 	return it == aTexts.end() ? sEmpty : it->second;
 }
 
+// port: the exe's string table text of the id
 const std::string& stringResource(unsigned int theId)
 {
 	static const std::string sEmpty;

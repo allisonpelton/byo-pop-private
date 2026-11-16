@@ -13,6 +13,7 @@
 #include "DrawUtil.h"
 #include "Font.h"
 #include "GameScreen.h"
+#include "HighScoreDisplayDialog.h"
 #include "Graphics.h"
 #include "Image.h"
 #include "Insets.h"
@@ -418,6 +419,19 @@ void ChallengeScreen::MouseLeave()
 	gApp->mGameScreen->UpdateHover();
 }
 
+// 0x45dcf0 (the shop's function, the same in this screen's slot): the hammer follows the pointer
+void ChallengeScreen::MouseMove(int x, int y)
+{
+	Avatar* anAvatar = GetAvatar();
+	if (anAvatar != nullptr)
+		anAvatar->SetMouse(x, y);
+}
+
+void ChallengeScreen::MouseDrag(int x, int y)
+{
+	MouseMove(x, y);
+}
+
 // 0x44ce10: a click ends the pause, or is the hammer's
 void ChallengeScreen::MouseDown(int x, int y, int theClickCount)
 {
@@ -561,9 +575,9 @@ void ChallengeScreen::Draw(Graphics* g)
 		bool aHaveText = true;
 		if (mCountdown > COUNTDOWN_LEVEL_TEXT_END)
 		{
-			char aBuffer[32];
-			snprintf(aBuffer, sizeof(aBuffer), "%d", gApp->mGameScreen->mBonusRoundsDone + 1);
-			aText = std::string(aBuffer) + " Bonus Round!";
+			// 0x405450: the number with its ordinal ending, "2nd"
+			int aRound = gApp->mGameScreen->mBonusRoundsDone + 1;
+			aText = StrFormat("%d", aRound) + GetOrdinalSuffix(aRound) + " Bonus Round!";
 			aProgress = (mCountdown - COUNTDOWN_LEVEL_TEXT_END) * 0.375;
 		}
 		else if (mCountdown > COUNTDOWN_READY_END)

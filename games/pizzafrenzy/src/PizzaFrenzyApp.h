@@ -64,6 +64,7 @@ public:
 	bool mQuitRequested;
 	int mFrames;             // port: the engine's frames
 	uint64_t mEngineClock;   // port: -fast: the engine's ticks, one frame period a frame
+	bool mGameSeen = false;  // port (test commands): the state has shown a game's screen, so the menu is its end
 
 	PizzaFrenzyApp();
 	~PizzaFrenzyApp() override;
@@ -74,8 +75,18 @@ public:
 	DDInterface* CreateDDInterface() override;
 #endif
 	void Shutdown() override;
+	// port: -seed=N, for the game's srand of the time
+	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	void GotFocus() override;
 	void LostFocus() override;
+
+	// port: the standard test commands (docs/TEST_COMMANDS.md, src/TestCommands.cpp)
+	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port: the memreport test command: what the engine holds beside the framework's own pictures and sounds
+	void AddMemReportHolders(Platform::MemReport* theReport) override;
+	// port: the state command's JSON, and the move command's line (the bot's next move, or "null")
+	std::string TestState();
+	std::string TestMove();
 
 	// A frame of the engine (0x4bd210); an exception the original would not survive ends the program
 	void RunFrame();

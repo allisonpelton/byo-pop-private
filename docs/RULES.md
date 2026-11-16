@@ -313,7 +313,8 @@ Every call re-reads the whole context, so what costs is context times calls, and
   builds them, and the game's session answers the site's questions about its code and adds the few inert lines of
   state an autosplitter reads. So the coverage check and the performance pass come game by game, not after every game is done
   (`docs/COORDINATION.md`). Modding, which waits, is the mods' own work: new mods and the changes waiting in
-  `docs/MOD_ROADMAP.md`. Whatever games are done by 2026-12-31 go on the live site then; the rest follow when done,
+  `docs/MOD_ROADMAP.md`. Whatever games are done by the launch date go on the live site then: Christmas Day, 2026-12-25 (the user,
+  2026-11-15: "I'm setting the site launch date to Christmas Day"; it had been the end of December); the rest follow when done,
   never hurried. A session may speed up its own port before its performance pass, at any time, so its `-fast` test runs go
   faster (the user, 2026-11-08: "Sessions should be allowed to improve performance early on so they can test with
   -fast and run even faster"), under the performance pass's rules: how the port works changes, never what it does,

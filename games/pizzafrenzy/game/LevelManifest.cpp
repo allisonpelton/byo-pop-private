@@ -122,8 +122,8 @@ void CityDocHandler::startElement(const std::string& theName, const engine::XmlA
 	}
 }
 
-// A "level" element: a bonus round has its time and no city file; a level of a mode has a story file of its own, or
-// one "story" for all three
+// 0x414f50: the "level" element of startElement. A bonus round has its time and no city file; a level of a mode has a
+// story file of its own, or one "story" for all three
 void CityDocHandler::addLevel(const engine::XmlAttributes& theAttributes)
 {
 	std::string aCityFile = engine::getStringAttribute(theAttributes, "city", "");
