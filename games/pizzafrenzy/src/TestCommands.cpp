@@ -7,6 +7,7 @@
 #include "PizzaFrenzyApp.h"
 #include "platform/MemReport.h"
 #include "sprout/App.h"
+#include "sprout/EditBox.h"
 #include "sprout/Random.h"
 #include "sprout/ScreenMgr.h"
 #include "sprout/host/SoundHost.h"
@@ -23,6 +24,8 @@
 #include "game/ModeStates.h"
 #include "game/NewToppingScreen.h"
 #include "game/NewToppingState.h"
+#include "game/PizzaEditor.h"
+#include "game/PizzaEditorState.h"
 #include "game/PizzaFrenzy.h"
 #include "game/SplashState.h"
 #include "game/StoryScreen.h"
@@ -113,6 +116,7 @@ const char* dialogName(pf::PizzaFrenzy* theApp, engine::GenericScreen* theScreen
 	if (theScreen == theApp->mAppQuitConfirm) return "quit";
 	if (theScreen == theApp->mGameExitConfirm) return "exitGame";
 	if (theScreen == theApp->mUnlockNotice) return "unlockNotice";
+	if (theScreen == theApp->mPizzaNameScreen) return "pizzaName";
 	return "dialog";
 }
 
@@ -142,7 +146,9 @@ std::string screenName(pf::PizzaFrenzy* theApp)
 	if (dynamic_cast<pf::StoryState*>(aState) != nullptr)
 		return "story";
 	if (dynamic_cast<pf::NewToppingState*>(aState) != nullptr)
-		return "newTopping";
+		return shownScreen(theApp->mScreens) == theApp->mDesignerScreen ? "designer" : "newTopping";
+	if (dynamic_cast<pf::PizzaEditorState*>(aState) != nullptr)
+		return "editor";
 	if (dynamic_cast<pf::LevelStartState*>(aState) != nullptr)
 		return "levelStart";
 	if (dynamic_cast<pf::GameState*>(aState) != nullptr || dynamic_cast<pf::BonusGameState*>(aState) != nullptr)
@@ -383,6 +389,38 @@ std::string bonusState(pf::BonusGame* theGame)
 
 }
 
+// the pizza editor's part of the state: the pizza it shows (its number in the list of the player's pizzas, its name and
+// its toppings with their places on the pizza), the topping picked, the buttons of the toppings the player has, the
+// name the name screen holds, and the middle of the pizza on the screen, where a click puts the picked topping
+std::string editorState(pf::PizzaFrenzy* theApp)
+{
+	pf::PizzaEditor* anEditor = theApp->mPizzaEditor;
+	pf::Pizza* aPizza = anEditor->getPizza();
+	char aBuf[256];
+	engine::Point aMiddle = pf::BonusGame::getAbsPosition(anEditor->getPizzaToppingGroup());
+	engine::EditBox* aNameEntry = static_cast<engine::EditBox*>(theApp->mPizzaNameScreen->getNode("nameEntry"));
+	std::snprintf(aBuf, sizeof(aBuf), ",\"editor\":{\"pizza\":%d,\"pizzas\":%d,\"id\":%d,\"nextId\":%d,\"name\":",
+		anEditor->getPizzaIndex() + 1, (int)anEditor->getPizzaCount(), aPizza == nullptr ? -1 : aPizza->mId,
+		theApp->getPizzaMaxId(true));
+	std::string aText = aBuf;
+	aText += jsonText(aPizza == nullptr ? "" : aPizza->mName);
+	aText += ",\"picked\":" + jsonText(toppingName(anEditor->getSelectedTopping()));
+	std::snprintf(aBuf, sizeof(aBuf), ",\"buttons\":%d,\"middle\":[%d,%d],\"nameEntry\":",
+		(int)anEditor->getToppingButtons()->mChildren.size(), roundedPoint(aMiddle.x), roundedPoint(aMiddle.y));
+	aText += aBuf + jsonText(aNameEntry->getText()) + ",\"toppings\":[";
+	bool aFirst = true;
+	for (const engine::Ref<pf::PizzaTopping>& aPlaced : anEditor->getPlacedToppings())
+	{
+		std::snprintf(aBuf, sizeof(aBuf), "%s{\"topping\":", aFirst ? "" : ",");
+		aText += aBuf + jsonText(toppingName(aPlaced->getTopping()));
+		std::snprintf(aBuf, sizeof(aBuf), ",\"x\":%d,\"y\":%d}", (int)aPlaced->getPosition()->x,
+			(int)aPlaced->getPosition()->y);
+		aText += aBuf;
+		aFirst = false;
+	}
+	return aText + "]}";
+}
+
 // The game's state as one JSON line: the screen the game is on, the player's progress, and, in a level, the stats'
 // numbers and the board (every customer with an order, every kitchen, every tip waiting for its click), all points in
 // the game's 800x600 screen. money is the tips the level has brought, tips the tip jar's money, which the coupons are
@@ -410,6 +448,8 @@ std::string PizzaFrenzyApp::TestState()
 	bool anOver = mGameSeen && (aScreen == "menu" || aScreen == "highScores" || aScreen == "citySelect");
 	aState += std::string(",\"levelOver\":") + (aLevelOver ? "true" : "false");
 	aState += std::string(",\"over\":") + (anOver ? "true" : "false");
+	if (aScreen == "editor" || aScreen == "pizzaName")
+		return aState + editorState(anApp) + "}";
 	pf::GameStats* aStats = anApp->mGameStats;
 	if (aStats != nullptr)
 	{
@@ -480,6 +520,76 @@ std::string PizzaFrenzyApp::TestState()
 	return aState + "]}}";
 }
 
+// The name the bot gives its pizza, typed key by key into the name screen
+const char* const BOT_PIZZA_NAME = "BOT PIZZA";
+
+// The toppings the bot puts on a pizza, each this far from the middle of the pizza (the first is on the middle)
+const int BOT_PIZZA_TOPPINGS = 3;
+const int BOT_TOPPING_SPACING = 40;
+
+// a move of the keys that type a text, the editing box emptied first by as many Backspaces as it holds letters
+std::string typeInput(const std::string& theOldText, const char* theText)
+{
+	std::string anInput = "[";
+	for (size_t i = 0; i < theOldText.size(); i++)
+		anInput += std::string(i == 0 ? "" : ",") + "{\"key\":\"Backspace\"}";
+	for (const char* aLetter = theText; *aLetter != '\0'; aLetter++)
+	{
+		std::string aKey = *aLetter == ' ' ? " " : std::string(1, *aLetter);
+		anInput += std::string(anInput.size() > 1 ? "," : "") + "{\"key\":\"" + aKey + "\"}";
+	}
+	return anInput + "]";
+}
+
+// The bot's move in the pizza designer's introduction (its first button) and in the pizza editor, as a player designs a
+// pizza: with no topping picked, the first topping's button; with one picked, a click on the pizza, until the pizza has
+// the toppings of BOT_PIZZA_TOPPINGS; then its name is edited (the edit button opens the name screen, where the name is
+// typed and the OK button pressed), and then the pizza is left by the editor's exit button, which saves the file.
+static std::string DesignerMove(pf::PizzaFrenzy* theApp)
+{
+	engine::Container* aGroup = static_cast<engine::Container*>(theApp->mDesignerScreen->getNode("pizzaDesignerGroup"));
+	for (const engine::Ref<engine::Node>& aChild : aGroup->mChildren)
+	{
+		engine::Container* aButtonGroup = dynamic_cast<engine::Container*>(aChild.get());
+		if (aButtonGroup != nullptr && !aButtonGroup->mChildren.empty())
+			return nodeMove("tryDesigner", aButtonGroup->mChildren.front());
+	}
+	return waitLine(WAIT_UPDATES);
+}
+
+static std::string EditorMove(pf::PizzaFrenzy* theApp)
+{
+	pf::PizzaEditor* anEditor = theApp->mPizzaEditor;
+	pf::Pizza* aPizza = anEditor->getPizza();
+	if (aPizza == nullptr)
+		return waitLine(WAIT_UPDATES);
+	engine::Container* aButtons = anEditor->getToppingButtons();
+	int aPlaced = (int)anEditor->getPlacedToppings().size();
+	if (aPlaced < BOT_PIZZA_TOPPINGS)
+	{
+		if (anEditor->getSelectedTopping() == nullptr)
+		{
+			if (aButtons->mChildren.empty())
+				return waitLine(WAIT_UPDATES);
+			return nodeMove("topping", aButtons->mChildren.front());
+		}
+		engine::Point aPlace = pf::BonusGame::getAbsPosition(anEditor->getPizzaToppingGroup());
+		aPlace.x += (float)(aPlaced * BOT_TOPPING_SPACING);
+		return moveLine("place", "", aPlace);
+	}
+	if (aPizza->mName.compare(BOT_PIZZA_NAME) != 0)
+		return nodeMove("editName", anEditor->getScreen()->getNode("editCaption"));
+	return nodeMove("exit", anEditor->getScreen()->getNode("menu"));
+}
+
+static std::string NameMove(pf::PizzaFrenzy* theApp)
+{
+	engine::EditBox* anEntry = static_cast<engine::EditBox*>(theApp->mPizzaNameScreen->getNode("nameEntry"));
+	if (anEntry->getText().compare(BOT_PIZZA_NAME) != 0)
+		return inputLine("typeName", "", typeInput(anEntry->getText(), BOT_PIZZA_NAME));
+	return nodeMove("nameDone", theApp->mPizzaNameScreen->getNode("done"));
+}
+
 // The bot's move on the screens before play, each a real click or key on what a player presses, the place read from the
 // screen's own node: the splash screen only runs on (it loads by itself), the menu's speed mode button, the postcard of
 // the furthest open city, the story's Escape while its skip hint shows and else its Next button, the new topping's
@@ -491,10 +601,17 @@ static std::string ScreenMove(pf::PizzaFrenzy* theApp)
 	if (aScreen == "splash")
 		return waitLine(WAIT_UPDATES);
 	if (aScreen != "menu" && aScreen != "citySelect" && aScreen != "story" && aScreen != "summary"
-		&& aScreen != "newTopping" && aScreen != "levelStart")
+		&& aScreen != "newTopping" && aScreen != "levelStart" && aScreen != "designer" && aScreen != "editor"
+		&& aScreen != "pizzaName")
 		return "null";
 	if (theApp->mScreens->isBusy())
 		return waitLine(WAIT_UPDATES);
+	if (aScreen == "designer")
+		return DesignerMove(theApp);
+	if (aScreen == "editor")
+		return EditorMove(theApp);
+	if (aScreen == "pizzaName")
+		return NameMove(theApp);
 	engine::GenericScreen* aShown = shownScreen(theApp->mScreens);
 	if (aScreen == "menu")
 	{
@@ -750,7 +867,22 @@ bool PizzaFrenzyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		// the menu state's own actions and the game's own functions: the screens open as the menu's buttons open them
 		bool aMenu = dynamic_cast<pf::MenuState*>(anApp->mStates.getState()) != nullptr;
 		std::string aScreen = lowerCase(anArgs);
-		if (!aMenu)
+		if (aScreen == "designer")
+		{
+			// the pizza designer's introduction, which the new topping screen shows when the player has five toppings:
+			// from the menu, the new topping state comes with the introduction on its screen
+			bool aNewTopping = dynamic_cast<pf::NewToppingState*>(anApp->mStates.getState()) != nullptr;
+			if (!aMenu && !aNewTopping)
+				error("only from the main menu or while the new topping screen is shown");
+			else
+			{
+				if (aMenu)
+					anApp->mStates.changeState(new pf::NewToppingState(anApp));
+				anApp->mScreens->showScreen(anApp->mDesignerScreen, 0);
+				ok();
+			}
+		}
+		else if (!aMenu)
 			error("only from the main menu or the screens it opens");
 		else if (aScreen == "menu")
 			anApp->screenAction("highScoreDone"), ok();
@@ -760,6 +892,8 @@ bool PizzaFrenzyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			anApp->screenAction("options"), ok();
 		else if (aScreen == "toppings")
 			anApp->screenAction("viewToppingBook"), ok();
+		else if (aScreen == "editor")
+			anApp->screenAction("editPizza"), ok();
 		else if (aScreen == "cityselect")
 		{
 			anApp->mGameMode = pf::PizzaFrenzy::MODE_SPEED;
@@ -775,7 +909,7 @@ bool PizzaFrenzyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			ok();
 		}
 		else
-			error("menu, citySelect, highscores, options, toppings, speed, memory or concentration");
+			error("menu, citySelect, highscores, options, toppings, editor, designer, speed, memory or concentration");
 	}
 	else if (aCmd == "level")
 	{

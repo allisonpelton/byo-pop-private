@@ -14,9 +14,8 @@
 //
 // The slots of GameMode that the round does not override are the speed mode's, which nothing reaches here.
 //
-// Left out: the pizza designer and the editor, which share the screen and the topping class; the slot 0xa4 (0x45c500,
-// which ends the round at once), which only the debug flag at 0x532908 calls. Lorenzo's text is made (0x45e140) and
-// hidden, and nothing types it.
+// Left out: the slot 0xa4 (0x45c500, which ends the round at once), which only the debug flag at 0x532908 calls.
+// Lorenzo's text is made (0x45e140) and hidden, and nothing types it.
 
 #include "GameMode.h"
 #include "Interpolator.h"

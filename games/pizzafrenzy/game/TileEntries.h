@@ -122,8 +122,9 @@ public:
 class Topping : public engine::Object
 {
 public:
+	// 0x420a90: a pizza the player designed is a topping that uses its picture as its preview
 	Topping(const std::string& theName, const std::string& theDisplayName, engine::Image* theImage,
-	        engine::Image* theCouponImage);  // 0x420a90
+	        engine::Image* theCouponImage, int theUsesImageAsPreview = 0);
 	// 0x41dc60: the image centred, and the smaller ones made from it
 	void setImage(engine::Image* theImage);
 

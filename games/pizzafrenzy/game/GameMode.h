@@ -11,8 +11,8 @@
 // into the mode (ModeStates.h). The customers and their orders, the pizzas and the deliveries are translated with
 // them; the places that reach them here are the methods marked "translated next".
 //
-// Left out of the port for good, one line each: the pizza designer and the level editor. The memory mode's game is
-// MemoryGame.h, the concentration mode's ConcentrationGame.h, and the bonus round's BonusGame.h.
+// Left out of the port for good: the level editor. The pizza designer's editor is PizzaEditor.h. The memory mode's
+// game is MemoryGame.h, the concentration mode's ConcentrationGame.h, and the bonus round's BonusGame.h.
 
 #include "CityMap.h"
 #include "CouponButton.h"

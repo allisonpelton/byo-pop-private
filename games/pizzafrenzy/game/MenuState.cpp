@@ -149,7 +149,7 @@ void MenuState::action(const std::string& theAction)
 			showDialog(mApp->mUnlockNotice);
 		}
 		else
-			mApp->startPizzaEditor();
+			mApp->startPizzaEditor(false);
 	}
 	else if (theAction.compare("quit") == 0)
 		showDialog(mApp->mAppQuitConfirm);

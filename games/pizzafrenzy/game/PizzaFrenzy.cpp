@@ -14,6 +14,7 @@
 #include "TextItem.h"
 #include "LevelStartState.h"
 #include "NewToppingState.h"
+#include "PizzaEditorState.h"
 #include "StoryState.h"
 #include "Sound.h"
 #include "SpeedGame.h"
@@ -22,6 +23,7 @@
 #include "SplashState.h"
 #include "Transition.h"
 
+#include <cctype>
 #include <ctime>
 #include <stdexcept>
 
@@ -51,6 +53,18 @@ const float SPLASH_FADE_SECONDS = 0.5f;
 const int STRING_PAUSE_CITY_DAY = 0xe3;
 const int STRING_PAUSE_BONUS_DAY = 0xe4;
 const int STRING_PAUSE_TIPS = 0xe5;
+
+// A pizza of the player's is a topping of this name with the pizza's number, whose picture (and coupon) are these. It
+// has an upgrade for each step from -2 on, while the step plus the combo base is under the end sum: the multiplier is
+// the step plus its base, and the combo is the step plus the combo base (the step itself from 0 on) in fives.
+const char* const DESIGNED_TOPPING_NAME = "pizza%d";
+const char* const DESIGNED_COUPON_IMAGE = "res\\pizza\\couponBlue.jpg";
+const int STRING_DESIGNED_UPGRADE = 0xdb;
+const int DESIGNED_UPGRADE_FIRST_STEP = -2;
+const int DESIGNED_UPGRADE_END_SUM = 4;
+const int DESIGNED_MULTIPLIER_BASE = 3;
+const int DESIGNED_COMBO_BASE = 2;
+const int DESIGNED_COMBO_UNIT = 5;
 
 // The stories of a level's end
 const char* const STORY_LEVEL_SUMMARY = "res\\story\\levelSummary.xml";
@@ -462,10 +476,15 @@ void PizzaFrenzy::enterBonusRound(Level* theLevel)
 	mStates.changeState(new BonusGameState(this));
 }
 
-// 0x4099b0: the pizza goes in the list when it is not there, and is kept by its number (the player's own pizzas of
-// the designer, which this slot also takes, are left out)
-void PizzaFrenzy::addPizza(Pizza* thePizza)
+// 0x4099b0
+void PizzaFrenzy::addPizza(Pizza* thePizza, bool theDesigned)
 {
+	if (theDesigned)
+	{
+		addDesignedPizza(thePizza);
+		return;
+	}
+	// the pizza goes in the list when it is not there, and is kept by its number
 	bool aKept = false;
 	for (size_t i = 0; i < mPizzas.size(); i++)
 		if (mPizzas[i] == thePizza)
@@ -475,12 +494,56 @@ void PizzaFrenzy::addPizza(Pizza* thePizza)
 	mPizzaById[thePizza->mId] = thePizza;
 }
 
-// 0x40dab0, 0x402d70: translated next
+// 0x40dab0, 0x402d70: the city editor (editorTiles, editorExit) of the original's development; the button that opens
+// it is hidden and disabled by the main menu, and nothing else starts it
 void PizzaFrenzy::startPizzaDesigner()
 {
 }
 
-// 0x402e00: translated next
-void PizzaFrenzy::startPizzaEditor()
+// 0x40c7a0, 0x4084b0
+void PizzaFrenzy::startPizzaEditor(bool theFromNewTopping)
 {
+	mPizzaEditor->show();
+	mStates.changeState(new PizzaEditorState(this, theFromNewTopping));
+}
+
+// 0x4099b0, the player's pizzas: the pizza is in their list once. Its topping, made the first time with the name
+// "pizza" and the pizza's number, has the pizza's picture and the pizza's name in capitals, and four upgrades, each
+// with the same text, the multipliers 1 to 4 and the combos 0, 5, 10 and 20; the rest of the manifest's pizzas'
+// bookkeeping does not apply to it.
+void PizzaFrenzy::addDesignedPizza(Pizza* thePizza)
+{
+	bool aKept = false;
+	for (size_t i = 0; i < mDesignedPizzas.size(); i++)
+		if (mDesignedPizzas[i] == thePizza)
+			aKept = true;
+	if (!aKept)
+		mDesignedPizzas.push_back(thePizza);
+	engine::Ref<engine::Image> aPicture = thePizza->makeImage();
+	engine::Image* aCouponImage = engine::App::instance()->getImage(DESIGNED_COUPON_IMAGE);
+	std::string aDisplayName = thePizza->mName;
+	for (size_t i = 0; i < aDisplayName.size(); i++)
+		aDisplayName[i] = (char)std::toupper((unsigned char)aDisplayName[i]);
+	engine::Ref<Topping> aTopping;
+	if (mPizzaToppings.find(thePizza->mId) != mPizzaToppings.end())
+	{
+		aTopping = mPizzaToppings[thePizza->mId];
+		aTopping->setImage(aPicture);
+		aTopping->mDisplayName = aDisplayName;
+	}
+	else
+	{
+		aTopping = new Topping(formatText(DESIGNED_TOPPING_NAME, thePizza->mId), aDisplayName, aPicture,
+		                       aCouponImage, 1);
+		mPizzaToppings[thePizza->mId] = aTopping;
+	}
+	aTopping->mUpgrades.clear();
+	int aStep = DESIGNED_UPGRADE_FIRST_STEP;
+	do
+	{
+		int aCombo = (aStep + DESIGNED_COMBO_BASE + (aStep < 0 ? 0 : aStep)) * DESIGNED_COMBO_UNIT;
+		aTopping->mUpgrades.push_back(new Upgrade(thePizza->mName,
+			engine::App::instance()->loadString(STRING_DESIGNED_UPGRADE), aStep + DESIGNED_MULTIPLIER_BASE, aCombo));
+		aStep++;
+	} while (aStep + DESIGNED_COMBO_BASE < DESIGNED_UPGRADE_END_SUM);
 }

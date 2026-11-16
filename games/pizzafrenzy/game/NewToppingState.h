@@ -3,7 +3,7 @@
 
 // The state that shows the player's new toppings (0x18 bytes, constructor 0x402ce0, vtable 0x4f9574): the new topping
 // screen is shown over the story's music, and the toppings are chosen one at a time until none is new; then the level
-// starts, or the pizza designer opens.
+// starts, or the pizza designer's introduction shows (its button opens the pizza editor, PizzaEditorState.h).
 
 #include "PizzaFrenzy.h"
 #include "State.h"

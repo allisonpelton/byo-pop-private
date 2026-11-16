@@ -91,8 +91,9 @@ Upgrade::Upgrade(const std::string& theName, const std::string& theDescription, 
 
 // 0x420a90
 Topping::Topping(const std::string& theName, const std::string& theDisplayName, engine::Image* theImage,
-                 engine::Image* theCouponImage) :
-	mCouponImage(theCouponImage), mName(theName), mDisplayName(theDisplayName), mUsesImageAsPreview(0)
+                 engine::Image* theCouponImage, int theUsesImageAsPreview) :
+	mCouponImage(theCouponImage), mName(theName), mDisplayName(theDisplayName),
+	mUsesImageAsPreview(theUsesImageAsPreview)
 {
 	// port: the toppings made so far number this one (ToppingOrder)
 	static int sToppingsMade = 0;

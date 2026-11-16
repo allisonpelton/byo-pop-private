@@ -1,4 +1,5 @@
 #include "PizzaTopping.h"
+#include "App.h"
 #include "Selector.h"
 
 using namespace pizzafrenzy;
@@ -26,4 +27,24 @@ void PizzaTopping::setMarked(bool theMarked)
 {
 	mSelector->select(theMarked ? IMAGE_OVER : IMAGE_UP, 0, true);
 	mMarked = theMarked;
+}
+
+// 0x4197c0
+void PizzaTopping::mouseDownEvent(engine::MouseEvent& e)
+{
+	engine::ImageButton::mouseDownEvent(e);
+	engine::Point aMouse = engine::App::instance()->getMousePosition();
+	mDragOffset = *getPosition();
+	mDragOffset.subtract(aMouse);
+}
+
+// 0x419760
+void PizzaTopping::mouseMoveEvent(engine::MouseEvent& e)
+{
+	if (mState == STATE_DOWN || mState == STATE_OUT_DOWN)
+	{
+		engine::Point aPlace = engine::App::instance()->getMousePosition();
+		aPlace.add(mDragOffset);
+		setPosition(aPlace);
+	}
 }

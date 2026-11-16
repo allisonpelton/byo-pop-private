@@ -85,12 +85,13 @@ public:
 	int mLevelGoal;                              // +0x68: the level's goal, the tip jar's size (0x41a740, 0x4393f0)
 	bool mStarted;                               // +0x6c: set by the reset; nothing translated reads it
 
+	// 0x41a6a0: the pizzas the player designed count as toppings, with the level the player has of each (0 for none)
+	void addDesignedPizzas();
+
 private:
 	// 0x41a220: every kitchen of the level is given one of the player's toppings, none twice while there are more
 	// toppings than kitchens; the toppings the kitchens have are the player's picks, which the player keeps
 	void pickKitchenToppings(Level* theLevel);
-	// 0x41a6a0: the pizzas the player designed count as toppings, with the level the player has of each (0 for none)
-	void addDesignedPizzas();
 };
 
 } // namespace pizzafrenzy

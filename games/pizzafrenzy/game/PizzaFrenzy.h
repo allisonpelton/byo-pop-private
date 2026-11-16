@@ -23,6 +23,7 @@
 #include "NewToppingScreen.h"
 #include "OptionScreen.h"
 #include "Pizza.h"
+#include "PizzaEditor.h"
 #include "ScreenMgr.h"
 #include "Settings.h"
 #include "SoundMgr.h"
@@ -111,7 +112,11 @@ public:
 	engine::Ref<LevelStartScreen> mLevelStartScreen;         // +0xe4: the vans' toppings
 	engine::Ref<NewToppingScreen> mNewToppingScreen;         // +0xec: the toppings the player has not been shown
 	engine::Ref<CitySelectScreen> mCitySelect;               // +0xf0
+	engine::Ref<GameScreen> mDesignerScreen;                 // +0xe8: the pizza designer's introduction
 	engine::Ref<GameScreen> mDecorateScreen;                 // +0xf4: the bonus round's screen (decoratePizza.xml)
+	engine::Ref<PizzaEditor> mPizzaEditor;                   // +0xfc: the pizza editor's work
+	engine::Ref<engine::GenericScreen> mPizzaEditorScreen;   // +0x100: userPizzaEditor.xml
+	engine::Ref<engine::GenericScreen> mPizzaNameScreen;     // +0x104: pizzaNameScreen.xml
 	engine::Ref<GameScreen> mGameScreen;                     // +0x114
 	engine::Ref<Hud> mHud;                                   // +0x118
 	engine::Ref<CityMap> mCityMap;                           // +0x11c: the city on the game screen
@@ -131,6 +136,7 @@ public:
 	std::vector<engine::Ref<Pizza>> mDesignedPizzas;         // +0x164: the pizzas the player designed
 	std::map<int, engine::Ref<Topping>> mPizzaToppings;      // +0x174: the topping each pizza of the player's is
 	int mPizzaMaxId = 0;                                     // +0x180: the number the next pizza takes
+	int mDesignedPizzaMaxId = 0;                             // +0x184: the number the next pizza of the player's takes
 	bool mShowHighScores;                                    // +0x134: the menu shows the high scores when it starts
 	bool mShowCitySelect;                                    // +0x135: the menu shows the city select when it starts
 
@@ -146,8 +152,18 @@ public:
 	void addCity(City* theCity) { mCities.push_back(theCity); }
 	// 0x409990: the pizza of the manifest's number (an empty one, which stays, for a number the manifest has not given)
 	Pizza* getPizza(int theId) { return mPizzaById[theId]; }
-	// 0x4099b0: a pizza of the manifest is kept, in the list and by its number
-	void addPizza(Pizza* thePizza);
+	// 0x4099b0: a pizza of the manifest is kept, in the list and by its number; a pizza of the player's is kept in
+	// theirs, and is a topping (mPizzaToppings) of the picture the pizza makes, whose four upgrades are made again
+	void addPizza(Pizza* thePizza, bool theDesigned = false);
+	// 0x401040, 0x401060: the number the next pizza takes (the player's pizzas have their own)
+	int getPizzaMaxId(bool theDesigned) const { return theDesigned ? mDesignedPizzaMaxId : mPizzaMaxId; }
+	void setPizzaMaxId(int theId, bool theDesigned)
+	{
+		if (theDesigned)
+			mDesignedPizzaMaxId = theId;
+		else
+			mPizzaMaxId = theId;
+	}
 	// 0x40c700: a game of the mode starts in the city, from the saved one when the mode has one
 	void startGame(int theMode, int theCity);
 	// 0x4023d0: the city select is shown, after its slot 0x180
@@ -156,10 +172,12 @@ public:
 	void advanceLevel();
 	// 0x409f30: the level starts: its story first when the player has not seen it, then the level itself
 	void startLevel();
-	// 0x40dab0, and the state 0x402d70 after it; translated next
+	// 0x40dab0, and the state 0x402d70 after it: the city editor of the original's development, whose button the main
+	// menu hides and disables (MainMenu::setup), so that nothing reaches it; left out
 	void startPizzaDesigner();
-	// The +0xfc object's slot 0xc, and the state 0x402e00 after it; translated next
-	void startPizzaEditor();
+	// 0x40c7a0 and 0x4084b0: the editor's list is shown (its slot 0xc, 0x40f9d0) and the state 0x402e00 starts; its end
+	// goes on to the level when the designer's introduction opened it (theFromNewTopping), else to the menu
+	void startPizzaEditor(bool theFromNewTopping);
 
 	// 0x408090: the toppings the level gives are the player's, which the player is shown when they are new
 	void giveToppings();
@@ -185,6 +203,8 @@ public:
 	void loadCityFile(const std::string& theFile, GameScreen* theScreen);
 
 private:
+	// 0x4099b0, the player's pizzas
+	void addDesignedPizza(Pizza* thePizza);
 	// 0x403b60: a game starts at the first level of the city, on the day after the days the cities before it have
 	void beginCity(int theCity);
 	// 0x404660: the checked subscript of the level lists, whose error is an out_of_range exception

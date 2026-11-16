@@ -27,14 +27,14 @@ void NewToppingState::action(const std::string& theAction)
 		mApp->saveGame();
 		if ((int)mApp->mGameStats->mToppingLevels.size() == DESIGNER_OPENS_AT_TOPPINGS)
 		{
-			// the pizza designer's screen (the application's +0xe8) is shown: translated with the designer
+			mApp->mScreens->showScreen(mApp->mDesignerScreen, 0);
 			return;
 		}
 	}
 	else if (theAction.compare("keepPlaying") != 0)
 	{
 		if (theAction.compare("designPizza") == 0)
-			mApp->startPizzaEditor();
+			mApp->startPizzaEditor(true);
 		return;
 	}
 	mApp->showLevelStart();

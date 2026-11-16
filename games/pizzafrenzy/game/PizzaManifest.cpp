@@ -2,6 +2,7 @@
 #include "App.h"
 #include "DocHandler.h"
 #include "Exception.h"
+#include "Host.h"
 #include "Layout.h"
 #include "PizzaFrenzy.h"
 #include "Stream.h"
@@ -20,8 +21,8 @@ const char* const DEFAULT_TOPPING_NAME = "Topping";
 class PizzaDocHandler : public engine::BaseDocHandler
 {
 public:
-	PizzaDocHandler(const std::string& theName, engine::DocHandlerStack* theParent) :
-		engine::BaseDocHandler(theName, theParent), mMaxId(DEFAULT_MAX_ID)
+	PizzaDocHandler(const std::string& theName, engine::DocHandlerStack* theParent, bool theDesigned) :
+		engine::BaseDocHandler(theName, theParent), mMaxId(DEFAULT_MAX_ID), mDesigned(theDesigned)
 	{
 	}
 
@@ -63,28 +64,40 @@ public:
 		PizzaFrenzy* anApp = PizzaFrenzy::instance();
 		if (theName == "pz")
 		{
-			anApp->addPizza(mPizza);
+			anApp->addPizza(mPizza, mDesigned);
 			mPizza = nullptr;
 		}
 		else if (theName == "pm")
-			anApp->mPizzaMaxId = mMaxId;
+			anApp->setPizzaMaxId(mMaxId, mDesigned);
 	}
 
 private:
 	engine::Ref<Pizza> mPizza;  // +0x34: the pizza being read
 	int mMaxId;                 // +0x38: the number the next pizza without one takes
+	bool mDesigned;             // +0x3c: the player's own pizzas
 };
 }
 
-// 0x4057b0: the handler goes on a stack of handlers, which reads the file; a failure is an error of the manifest
-void pizzafrenzy::loadPizzaManifest(const std::string& theFile)
+// 0x4057b0: the handler goes on a stack of handlers, which reads the file; a failure is an error of the manifest. The
+// player's own pizzas (theDesigned) are read from their file in the user folder, which the player has not made until
+// the editor first saves: no file is no pizzas.
+void pizzafrenzy::loadPizzaManifest(const std::string& theFile, bool theDesigned)
 {
+	engine::Ref<engine::InputStream> aStream;
+	if (theDesigned)
+	{
+		std::string aData;
+		if (!engine::getHost()->readUserFile(theFile, aData))
+			return;
+		aStream = new engine::MemoryStream(std::vector<uint8_t>(aData.begin(), aData.end()));
+	}
 	engine::Ref<engine::DocHandlerStack> aStack = new engine::DocHandlerStack();
-	engine::Ref<PizzaDocHandler> aHandler = new PizzaDocHandler("pm", aStack);
+	engine::Ref<PizzaDocHandler> aHandler = new PizzaDocHandler("pm", aStack, theDesigned);
 	aStack->addHandler(aHandler);
 	try
 	{
-		engine::Ref<engine::InputStream> aStream = engine::App::instance()->openStream(theFile.c_str());
+		if (!theDesigned)
+			aStream = engine::App::instance()->openStream(theFile.c_str());
 		engine::parseXml(*aStack, aStream);
 	}
 	catch (...)

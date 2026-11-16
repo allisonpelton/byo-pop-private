@@ -12,6 +12,7 @@
 #include "game/PizzaFrenzy.h"
 #include "MemoryImage.h"
 #include "WidgetManager.h"
+#include "platform/UserFiles.h"
 #include "platform/VFS.h"
 #ifndef __EMSCRIPTEN__
 #include "SurfaceDisplay.h"
@@ -76,6 +77,17 @@ public:
 	}
 
 	bool gameFileExists(const std::string& theName) override { return Platform::VFS::Get().Exists(theName); }
+
+	// port: the player's own pizzas file is in the user folder (the original's is beside the exe)
+	bool readUserFile(const std::string& theName, std::string& theData) override
+	{
+		return Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/" + theName, &theData);
+	}
+
+	bool writeUserFile(const std::string& theName, const std::string& theData) override
+	{
+		return Platform::WriteUserFileAtomic(theName, theData);
+	}
 
 	engine::Image* createImage(const std::vector<uint8_t>& theData, const std::vector<uint8_t>* theMask) override
 	{

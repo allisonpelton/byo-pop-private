@@ -140,6 +140,13 @@ use:
 The Sprout logo on the main menu is a button too, but it only shows a line of text in the menu's text box, so it
 stays.
 
+## Deviations
+
+- **The player's pizzas** (`userPizzas.xml`) are kept in the user folder, as every port keeps its writable files;
+  the original writes them beside its exe. A missing file is read as no pizzas, and the first pizza gets id 0.
+- **A pizza's name with a double quote** is saved with an apostrophe in its place, so that the file stays valid XML;
+  what the original does with one has not been checked yet.
+
 ## Progress
 
 The engine's signal build is translated as far as the splash screen and the layouts need: the application's signals
@@ -155,8 +162,8 @@ build leaves half.
 The front end is in: the loading state's stages for the main menu, the options, the designer's unlock notice, the
 player select and the new player's entry, and the high scores with their reset confirmation; the dialog state (a
 screen shown in a second screen manager over the darkened screens beneath) and the menu state, whose actions reach
-the game's start, the city select, the topping book, the designer and the editor through empty functions marked
-"translated next". The engine has the edit box, list box and table with their models, the text typer, and the generic
+the game's start, the city select and the topping book (the designer and the editor came later: `PizzaEditor`,
+`PizzaEditorState`; the city editor of the original's development, `startPizzaDesigner`, is left out). The engine has the edit box, list box and table with their models, the text typer, and the generic
 option, player select and high score screens. A copy with no player opens the new player's entry over the main menu;
 a name typed there makes the player, the menu greets them, and the high scores and the options open and close.
 The levels and the game screen's frame are in: the level manifest and the cities, the player's statistics, the city
@@ -192,6 +199,11 @@ The standard commands of `docs/TEST_COMMANDS.md` (`-script`, `-commands`, the we
 - `state`: the state line, below.
 - `goto menu`, `goto highscores`, `goto options`, `goto toppings`: from the main menu (or a screen it opens), the menu
   state's own actions `highScoreDone`, `showHighScores`, `options` and `viewToppingBook`.
+- `goto editor`: the menu's "design your own pizzas" button (`editPizza`): the pizza editor opens on the player's last
+  pizza (a new one when the player has none), or the notice of the designer's lock when the player has too few toppings.
+- `goto designer`: from the menu, or while the new topping screen shows: the designer's introduction (the screen of
+  the new topping state that `NewToppingState::action` shows when the player gets the fifth topping), whose button
+  opens the editor and whose end goes on to the level.
 - `goto citySelect`: `PizzaFrenzy::showCitySelect` (0x4023d0) for the speed mode.
 - `goto speed`, `goto memory`, `goto concentration`: `PizzaFrenzy::startGame` (0x40c700) of the mode at the first city;
   the game left in the mode is restored, as the menu's restore does. The bot's menu move presses the button of the
@@ -212,7 +224,7 @@ The standard commands of `docs/TEST_COMMANDS.md` (`-script`, `-commands`, the we
 
 `state` prints `screen` (splash, menu, citySelect, highScores, story, newTopping, levelStart, game, pause, summary, or
 the open dialog: options, toppings, players, newPlayer, deletePlayer, resetScores, restoreGame, quit, exitGame,
-unlockNotice, dialog; other for a state not listed), `mode`, `city` and `cityName`, `level` (in the city, from 1),
+unlockNotice, pizzaName, dialog; designer: the introduction of the pizza designer; editor: the pizza editor; other for a state not listed), `mode`, `city` and `cityName`, `level` (in the city, from 1),
 `day`, `frame`, `levelOver` (the level's end, the summary), `over` (the game has ended: it was played and the menu
 (or the high scores a game over shows) is back), then `score`, `tips` (the tip jar), `tipGoal`, `money` (the tips
 earned this level), `happiness`, `ordersToGo`, `timer` (the stats' seconds, which every mode keeps), `delivered`,
@@ -221,6 +233,13 @@ earned this level), `happiness`, `ordersToGo`, `timer` (the stats' seconds, whic
 `hidden`: the order is behind the question mark, `age`: its place among the orders placed, the oldest 0, -1 for none),
 `kitchens` (`cell`, `x`, `y`, `topping`, `clickable`, `vanOut`) and `tips` (`x`, `y`, `amount`, `waiting`). In the
 concentration mode `showLeft` is the seconds the orders still show (0 once they are hidden).
+
+In the editor and the pizza name dialog the state has an `editor` object instead of the stats and the board: `pizza` (the
+shown pizza's place in the player's list, from 1), `pizzas` (the list's length), `id` and `nextId` (the number the next
+pizza takes), `name`, `picked` (the topping on the cursor), `buttons` (the toppings the player has), `middle` (the point
+of the middle of the pizza on the screen: a click within 128 pixels of it puts the picked topping), `nameEntry` (the
+text of the name screen's box) and `toppings` (each `topping`, `x`, `y` from the middle of the pizza). The player's
+pizzas are in `userPizzas.xml` of the user folder, written when the editor is left and read when the game loads.
 
 In a bonus round the state has `phase` (intro, arrive: a pizza and its buttons come in, play, score: the toppings of
 the target are scored, end) and a `bonus` object instead of the board: `timeLeft` and `pizzasLeft`, `playing` (the
@@ -256,7 +275,16 @@ Mode button, `speedMode`); the city screen a click on the postcard button of the
 `leftButtons` (`newTopping`); the level start, with three or more toppings, a click on `doneButton` (`levelStart`)
 once every van has a topping, else, with no topping picked up, a click on the first topping button no van has
 (`topping`) and with one picked up a click on the first van with none (`van`, the node `vanButton<n>`). The dialogs
-have no move (`MOVE null`).
+have no move (`MOVE null`), except the pizza name dialog, below.
+
+The designer's introduction gets a click on its first button (`tryDesigner`, "Try it now"). In the editor the bot puts
+three toppings on the pizza, clicking the first topping button (`topping`) and then three places along the pizza's
+middle line, 40 pixels apart (`place`); then, while the name is not BOT PIZZA, a click on `editCaption` (`editName`),
+which opens the name dialog; there it types the name into the box, a Backspace for each letter in it first (`typeName`,
+real key steps), and clicks `done` (`nameDone`); and in the end a click on the exit button `menu` (`exit`), which writes
+the file. A pizza that already has the name (a later run's, read from the file) is left at once. A topping dragged on
+the pizza (`PizzaTopping` slots 0xa0 and 0xd0) is not used: the placed toppings are not enabled, as in the original, so
+a topping goes on by a click on its button and a click on the pizza (a right click takes one back).
 
 The summary is pressed through like the story: the Escape key while its `skipString` shows, else a click on
 `continueButton`; the upgrades' stories after it are met the same way, and then the next level's story, new topping and
