@@ -52,8 +52,8 @@ public:
 	// implements them, and the defaults are an image that cannot be copied.
 	// Slot 0x34 (0x4bea40 (pizzafrenzy)): a new image with the same pixels, alpha mode, threshold and pivot
 	virtual Image* clone() { return nullptr; }
-	// Slot 0x38 (0x4becb0 (pizzafrenzy)): the image resampled in place to the size the factors (their sizes) give; the
-	// pivot stays where it was
+	// Slot 0x38 (0x4becb0 (pizzafrenzy)): the image resampled in place to the size the factors (their sizes) give, and
+	// its pivot scaled with it
 	virtual void scale(float theScaleX, float theScaleY) {}
 	// Slot 0x2c (0x4be780 (pizzafrenzy)): a copy of the image scaled by the factors (its clone, scaled in place); an
 	// image that has no clone gives itself back

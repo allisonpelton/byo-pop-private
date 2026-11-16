@@ -968,7 +968,8 @@ void resampleLine(const uint8_t* theSource, int theSourceStride, int theSourceCo
 }
 
 // 0x4becb0 (pizzafrenzy): the image resampled in place to ftol(width * |factor|) by ftol(height * |factor|), a
-// horizontal pass and then a vertical one, each channel on its own; the pivot is left where it was
+// horizontal pass and then a vertical one, each channel on its own; the pivot is scaled with it (ftol of the pivot
+// times the factor)
 void ScreenImage::scale(float theScaleX, float theScaleY)
 {
 	int aNewWidth = std::max(1, (int)(mWidth * std::fabs(theScaleX)));
@@ -992,6 +993,7 @@ void ScreenImage::scale(float theScaleX, float theScaleY)
 	mWidth = aNewWidth;
 	mHeight = aNewHeight;
 	mBits.swap(aResult);
+	setPivot((int)((double)getPivotX() * theScaleX), (int)((double)getPivotY() * theScaleY));
 	mSerial = nextSerial();
 }
 
