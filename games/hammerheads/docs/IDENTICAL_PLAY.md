@@ -273,4 +273,23 @@ box, Game Over). The Browser pane cannot enter full screen, so the page is check
 ### Open
 
 - Not yet shot: the hard modes' remaining boxes, the saved games' resume pages, the web
-  build against the native one.
+  build against the native one is done (next section).
+
+### The web build against the native one
+
+`games/hammerheads/tools/idplay/webshots.py <scenario> <first> <last> <step>` plays a scenario's port inputs in the native port and in
+the web build under Node (the same script, seed, `-fast -drawevery`, a clean user folder) and compares the shots with `tools/shotdiff`.
+Run: `menus` (21 pairs), `classic1` (30, every 1000 updates), `tough1` (14) and `marathon1` (14). Both builds play the same game:
+every shot shows the same screen, the same gnomes, scores, hearts and pieces at the same places. Shotdiff flags most pairs (6 of 21,
+8 of 30, 1 of 14 and 0 of 14 match exactly), for three causes, all of the back end and none of the play:
+
+- **Edges of rotated and fractionally placed pictures** (the title's hammer, which `DrawImageF` puts at a fractional position, the
+  trophy medal's rays, the smash debris, the stars): the native build draws them through SDL's renderer with filtering, the web build
+  through SDL's software renderer, which snaps and does not smooth. Blurred 8 pixels wide, the shots agree to within a channel value
+  of about 20 to 36 (the debris of `classic1` at 11000 is the largest), with no shift of any piece.
+- **The Options box's Hardware Acceleration and Full Screen ticks**: the web build has neither (the player's setting; the native run
+  starts full screen with acceleration), the same two ticks that differ against the original.
+- **The loading screen** (`classic1` at 1000): the title's glow is the loading thread's, on the wall clock.
+
+Left as it is: a fractional-position snap in the software renderer is the framework's, shared by every game.
+
