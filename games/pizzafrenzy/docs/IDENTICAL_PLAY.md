@@ -76,3 +76,11 @@ The global score post is left out of the port (it is outbound), and two frames o
 post screen's stage as an empty frame, so the loading takes the original's frames. At the game's end the original
 opens the post's dialog (a state of its own, until the player closes it), where the port goes to the menu at once: the
 comparison of a case ends there, and the input after it lands on other screens on the two sides.
+
+## Where it stands (2026-11-15)
+
+Case play1 (150 moves, seed 1) matches through the first level. record.py now times each input by the frame the bot's
+last state reply gave (a held run spends a frame on each round of queries, which the sum of the waits left out), so a
+replay plays the game the bot played. Case long1 (500 moves, seed 1: three levels of the first city, its bonus round
+and the second city's start) is the next lead: the random state goes apart at frame 1615, the original scores 720 at
+frame 2041 where the port does not, and the original's first level ends at 2178, the port's later.
