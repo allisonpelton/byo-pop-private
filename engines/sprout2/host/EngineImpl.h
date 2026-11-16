@@ -50,6 +50,10 @@ public:
 	// stamp once it is calibrated; the port reads SDL's performance counter, or the frames' own clock under -fast
 	uint64_t getTicks() override;
 	uint64_t getTicksPerSecond() override;
+	// 0x48da20 (feedingfrenzy2)
+	void setFrameRate(int theFramesPerSecond) override { mFrameRate = theFramesPerSecond; }
+	// The frame's period in ticks, 0 for none (the original keeps it at +0x160)
+	uint64_t getFramePeriod() { return mFrameRate == 0 ? 0 : getTicksPerSecond() / (uint64_t)mFrameRate; }
 	// 0x4a4a00 (feedingfrenzy2): PostQuitMessage; the app ends the run loop when it sees the request
 	void quit() override { mQuitRequested = true; }
 
@@ -62,6 +66,7 @@ public:
 private:
 	int mWidth;
 	int mHeight;
+	int mFrameRate;   // +0x58
 	bool mVirtualClock;
 	uint64_t mVirtualTicks;
 };

@@ -135,6 +135,17 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
 - TextItem's wrap drops the character on which a word longer than the width breaks (kept; nothing in the splash
   wraps).
 
+## The splash's phases
+
+- Waiting (until the screen has settled and the timer, 0 at the start, is below 0), loading (30 frames a second; the
+  bar follows the loader's progress by at most a hundredth a frame, and fills at once when the progress reaches 1),
+  failed (the thread did not start: the program ends), loaded (the bar full, 60 frames a second, the bubbles burst,
+  the stage container shown, the burst's sound), bursting (until every glyph's effect is done, then the next state).
+- The original loads on a thread while the splash goes on drawing; the port loads at once (at the machine's speed),
+  so the bar fills in a frame. A glyph still waiting to grow does not burst: with the loader empty, the burst comes
+  about 0.3 s in, after "LOA", and "DING" grows in afterwards and stays. How long the original's loader takes (and
+  so how much of "LOADING" has grown when it bursts) is to be measured once the loader is translated.
+
 ## Done
 
 - `engines/sprout2`: objects and references, sigslot, streams, the archive and resource manager, the engine's
@@ -157,11 +168,13 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   interpolator with its ease curve. The splash's three bubble effects run (`-fast`, a shot at update 180).
 - `engines/sprout2`: the theme's particle effects and their pools, TextItem. `games/feedingfrenzy2/src`: BubbleText
   and BubbleGlyph. The splash's "LOADING" grows in letter by letter and rocks (`-fast`, shots at updates 20 and 90).
+- The splash's phases and the engine's frame rate (the loader empty, the sounds and the next state not yet).
 
 ## Next
 
-- The splash: the loader (the original's thread, 0x47e450) and the phases after the wait (the burst, its sound, the
-  wait for the effects); then the menu.
+- The splash's loader (0x47e450: fishes.xml, the stage manifests, the stages' screen data, fun facts, player ranks,
+  the sound manager, the users' and game data, every shell screen), the burst's sound, the sound system's and the
+  game's updates in the bursting phase; then the menu.
 - The configuration's string table and options, the start's options, key, activate and music connections, the
   popups and the debug display.
 - The engine's log goes to SDL_LogDebug, which nothing shows: a way to see it (the original wrote a log file).

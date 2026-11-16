@@ -60,6 +60,9 @@ public:
 	// 0xe4 (0x4383a0 (feedingfrenzy2)) and 0xe8 (0x435ba0 (feedingfrenzy2)): the clock in ticks
 	virtual uint64_t getTicks() = 0;
 	virtual uint64_t getTicksPerSecond() = 0;
+	// 0xc8 (0x48da20 (feedingfrenzy2)): the run loop's frames per second, 0 for no wait between frames (EngineImpl's
+	// +0x58, with the frame's period in ticks at +0x160)
+	virtual void setFrameRate(int theFramesPerSecond) = 0;
 	// 0xf8 (0x4a4a00 (feedingfrenzy2)): the program ends (PostQuitMessage)
 	virtual void quit() = 0;
 

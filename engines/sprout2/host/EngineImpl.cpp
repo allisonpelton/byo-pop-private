@@ -37,7 +37,8 @@ int FileInputStream::tell()
 }
 
 EngineImpl::EngineImpl(int theWidth, int theHeight)
-	: mQuitRequested(false), mWidth(theWidth), mHeight(theHeight), mVirtualClock(false), mVirtualTicks(0)
+	: mQuitRequested(false), mWidth(theWidth), mHeight(theHeight), mFrameRate(0), mVirtualClock(false),
+	  mVirtualTicks(0)
 {
 }
 

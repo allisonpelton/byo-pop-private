@@ -19,7 +19,8 @@ namespace
 // The game's screen (FeedingFrenzyTwo's configuration, 0x48c080 (feedingfrenzy2))
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
-// And its frame rate
+// And its frame rate before the splash loads, the rate the game sets after loading (where the original sets its first
+// rate is not yet found)
 const int FRAME_RATE = 60;
 
 } // namespace
@@ -97,7 +98,7 @@ FeedingFrenzy2App::~FeedingFrenzy2App()
 
 uint64_t FeedingFrenzy2App::FramePeriod() const
 {
-	return mEngine->getTicksPerSecond() / FRAME_RATE;
+	return mEngine->getFramePeriod();
 }
 
 void FeedingFrenzy2App::Init()
@@ -111,6 +112,7 @@ void FeedingFrenzy2App::Init()
 	mWidgetManager->SetFocus(mWidget);
 	mEngine = new engine::EngineImpl(SCREEN_WIDTH, SCREEN_HEIGHT);
 	mEngine->setVirtualClock(mFastMode);
+	mEngine->setFrameRate(FRAME_RATE);
 	mDisplay = new engine::Surface();
 	mDisplay->addRef();
 	mDisplay->allocate(SCREEN_WIDTH, SCREEN_HEIGHT);
