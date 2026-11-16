@@ -69,9 +69,10 @@ skin.apps.game_menu = Game
 skin.apps.terms = Terms, copyright and licenses
 skin.apps.close = Close
 skin.apps.ok = OK
-skin.apps.limit_title = Too many games
-skin.apps.limit = {n} games are open. Close one first.
-skin.apps.limit_one = A game is open. Close it first.
+skin.apps.limit_title = Memory
+skin.apps.limit = All the games open here share the browser's memory. With this one open as well, it may run out. If it does, the browser closes every open game, and anything not saved is lost.
+skin.apps.limit_open = Open anyway
+skin.apps.limit_cancel = Cancel
 skin.apps.unreadable = This file could not be read.
 skin.apps.view_menu = View
 skin.apps.options_menu = Options
@@ -602,6 +603,11 @@ game.exit.saving_restart = Saving, then starting again…
 game.exit.closed_saved = The game has closed. Your game in progress was saved, and you can continue it when
   you play again.
 game.exit.closed_settings = The game has closed. Your settings and high scores are saved.
+game.exit.lost = The game stopped drawing
+game.exit.lost_saved = The browser stopped drawing this game, as it does when too many games are open at once. The game
+  has closed, and your game in progress was saved. Play again to continue it.
+game.exit.lost_settings = The browser stopped drawing this game, as it does when too many games are open at once. The
+  game has closed, and your settings and high scores are saved. Play again to start it again.
 game.exit.stopped = The game stopped
 # {detail} is " (" and what the browser said when the game stopped, ")", or nothing
 game.exit.error_mods = Something went wrong{detail}. If a mod caused it, play once without mods, then turn
@@ -719,8 +725,6 @@ settings.wakelock.label = Keep the screen awake while a game runs
 settings.wakelock.hint = Stops the screen dimming or locking. Browser settings may override this.
 settings.confirmleave.label = Ask before closing
 settings.confirmleave.hint = Most games save progress continuously.
-settings.pausehidden.label = Pause when the tab is hidden
-settings.pausehidden.hint = Stops the game and its sound on another tab. Natively, some games pause when focus is lost.
 settings.showchat.label = Show chat
 settings.showchat.hint = For now a test: the messages are made up and stay in this browser.
 settings.chatplace.label = Chat position

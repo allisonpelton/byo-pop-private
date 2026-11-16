@@ -388,6 +388,18 @@ endif()
 if(BUILD_FEEDINGFRENZY AND EXISTS ${PROJECT_SOURCE_DIR}/games/feedingfrenzy/CMakeLists.txt)
   add_subdirectory(games/feedingfrenzy)
 endif()
+# Sprout's second-generation engine (engines/sprout2), one copy for Feeding Frenzy 2 and Talismania: built when either
+# game is
+option(BUILD_FEEDINGFRENZY2 "Build the Feeding Frenzy 2 port" ON)
+option(BUILD_TALISMANIA "Build the Talismania port" ON)
+if((BUILD_FEEDINGFRENZY2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/feedingfrenzy2/CMakeLists.txt) OR
+   (BUILD_TALISMANIA AND EXISTS ${PROJECT_SOURCE_DIR}/games/talismania/CMakeLists.txt))
+  add_subdirectory(engines/sprout2)
+endif()
+# Feeding Frenzy 2: Sprout's second-generation engine under the framework's app host; optional while it is new
+if(BUILD_FEEDINGFRENZY2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/feedingfrenzy2/CMakeLists.txt)
+  add_subdirectory(games/feedingfrenzy2)
+endif()
 # Retro64's engine (engines/retro64), one copy for Cosmic Bugs and Water Bugs: built when either game is
 option(BUILD_COSMICBUGS "Build the Cosmic Bugs port" ON)
 option(BUILD_WATERBUGS "Build the Water Bugs port" ON)

@@ -15,6 +15,9 @@
   POST /__shot                  {"run": ..., "name": ..., "png": "data:image/png;base64,..."}: saved as
                                 build/webshots/<run>/<name>.png, for tools/shotdiff (--port build/webshots/<run>)
 
+--isolate sends the headers of a cross-origin isolated page (COOP same-origin, COEP require-corp), which
+performance.measureUserAgentSpecificMemory needs (tools/webtest/webmem.js).
+
 It listens on the loopback address only and refuses requests whose Host or Origin is not this server's own, and writes
 nothing but those PNGs.
 """
@@ -43,6 +46,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 	def end_headers(self):
 		self.send_header("Cache-Control", "no-store")
+		if self.server.isolate:
+			# --isolate: a cross-origin isolated page, which performance.measureUserAgentSpecificMemory needs
+			# (tools/webtest/webmem.js); every file here is this server's own, so nothing is blocked
+			self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+			self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
+			self.send_header("Cross-Origin-Resource-Policy", "same-origin")
 		super().end_headers()
 
 	def own(self):
@@ -174,10 +183,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 			sys.stderr.write("webtest: %s\n" % (fmt % args))
 
 
-def make_server(root, assets, shots, port=DEFAULT_PORT, verbose=False):
+def make_server(root, assets, shots, port=DEFAULT_PORT, verbose=False, isolate=False):
 	"""A server on the loopback address (port 0 picks a free one); the caller runs serve_forever()."""
 	srv = http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(Handler, directory=os.path.abspath(root)))
-	srv.assets, srv.shots, srv.verbose = os.path.abspath(assets), os.path.abspath(shots), verbose
+	srv.assets, srv.shots, srv.verbose, srv.isolate = os.path.abspath(assets), os.path.abspath(shots), verbose, isolate
 	return srv
 
 
@@ -188,9 +197,10 @@ def main(argv=None):
 	ap.add_argument("--assets", default=os.path.join(ROOT, "assets"))
 	ap.add_argument("--shots", default=os.path.join(ROOT, "build", "webshots"))
 	ap.add_argument("--verbose", action="store_true", help="log every request")
+	ap.add_argument("--isolate", action="store_true", help="send the COOP and COEP headers of a cross-origin isolated page")
 	a = ap.parse_args(argv)
 	try:
-		srv = make_server(a.root, a.assets, a.shots, a.port, a.verbose)
+		srv = make_server(a.root, a.assets, a.shots, a.port, a.verbose, a.isolate)
 	except OSError as e:
 		sys.exit("webtest: cannot listen on 127.0.0.1:%d (%s); another server may hold the port" % (a.port, e))
 	print("webtest: serving %s at http://127.0.0.1:%d/ (staged files from %s)" % (os.path.abspath(a.root), srv.server_address[1], a.assets), flush=True)

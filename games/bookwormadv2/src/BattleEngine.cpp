@@ -105,6 +105,7 @@ void BattleEngine::SetState(int theState)
 	// Port: the original also asked Lua for the stack info of the caller (lua_getstack and lua_getinfo "Snl") and did
 	// nothing with it
 	mState = theState;
+	gApp->LogEngineState(theState);  // port: -statelog only
 }
 
 bool BattleEngine::LostTurn()

@@ -37,6 +37,7 @@ public:
 	virtual ~SDLMusicInterface();
 
 	virtual bool LoadMusic(int theSongId, const std::string& theFileName);
+	virtual bool LoadMusicSegments(int theSongId, const std::vector<std::string>& theFiles, const std::string& theName);
 	virtual void PlayMusic(int theSongId, int theOffset = 0, bool noLoop = false);
 	virtual void StopMusic(int theSongId);
 	virtual void PauseMusic(int theSongId);

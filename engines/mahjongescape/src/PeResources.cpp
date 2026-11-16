@@ -6,17 +6,23 @@
 #include <cstdio>
 #include <cstring>
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#undef LoadString   // windows.h renames it to LoadStringA, and PeResources has a member of the name
+#endif
+
 using namespace mahjong;
 
 namespace
 {
 
-uint16_t U16(const std::vector<uint8_t>& theData, size_t theOffset)
+uint16_t U16(const PeResources::Bytes& theData, size_t theOffset)
 {
 	return theOffset + 2 <= theData.size() ? uint16_t(theData[theOffset] | theData[theOffset + 1] << 8) : 0;
 }
 
-uint32_t U32(const std::vector<uint8_t>& theData, size_t theOffset)
+uint32_t U32(const PeResources::Bytes& theData, size_t theOffset)
 {
 	if (theOffset + 4 > theData.size())
 		return 0;
@@ -77,30 +83,89 @@ uint32_t PeResources::RvaToOffset(uint32_t theRva) const
 	return 0;
 }
 
-bool PeResources::Open(const std::string& thePath)
+void PeResources::Close()
 {
-	mData.clear();
-	mDir.clear();
-	mOrder.clear();
+#ifdef _WIN32
+	if (mData.mBase != nullptr && mMapHandle != nullptr)
+		UnmapViewOfFile(mData.mBase);
+	if (mMapHandle != nullptr)
+		CloseHandle((HANDLE)mMapHandle);
+	if (mFileHandle != nullptr)
+		CloseHandle((HANDLE)mFileHandle);
+	mMapHandle = nullptr;
+	mFileHandle = nullptr;
+#endif
+	mRead.clear();
+	mRead.shrink_to_fit();
+	mData = Bytes();
+}
+
+// the file mapped read-only (Windows); false where that cannot be done
+bool PeResources::MapFile(const std::string& thePath)
+{
+#ifdef _WIN32
+	HANDLE aFile = CreateFileA(thePath.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
+		nullptr);
+	if (aFile == INVALID_HANDLE_VALUE)
+		return false;
+	LARGE_INTEGER aLength;
+	HANDLE aMap = nullptr;
+	if (GetFileSizeEx(aFile, &aLength) && aLength.QuadPart > 0 && aLength.QuadPart < 0x7fffffff)
+		aMap = CreateFileMappingA(aFile, nullptr, PAGE_READONLY, 0, 0, nullptr);
+	void* aView = aMap != nullptr ? MapViewOfFile(aMap, FILE_MAP_READ, 0, 0, 0) : nullptr;
+	if (aView == nullptr)
+	{
+		if (aMap != nullptr)
+			CloseHandle(aMap);
+		CloseHandle(aFile);
+		return false;
+	}
+	mFileHandle = aFile;
+	mMapHandle = aMap;
+	mData.mBase = (const uint8_t*)aView;
+	mData.mSize = (size_t)aLength.QuadPart;
+	return true;
+#else
+	return false;
+#endif
+}
+
+bool PeResources::ReadIn(const std::string& thePath)
+{
 	FILE* aFile = fopen(thePath.c_str(), "rb");
 	if (!aFile)
 		return false;
 	fseek(aFile, 0, SEEK_END);
 	long aLength = ftell(aFile);
 	fseek(aFile, 0, SEEK_SET);
-	mData.resize(aLength > 0 ? size_t(aLength) : 0);
-	if (aLength <= 0 || fread(mData.data(), 1, mData.size(), aFile) != mData.size())
-		mData.clear();
+	mRead.resize(aLength > 0 ? size_t(aLength) : 0);
+	if (aLength <= 0 || fread(mRead.data(), 1, mRead.size(), aFile) != mRead.size())
+		mRead.clear();
 	fclose(aFile);
+	mData.mBase = mRead.data();
+	mData.mSize = mRead.size();
+	return !mRead.empty();
+}
+
+bool PeResources::Open(const std::string& thePath)
+{
+	Close();
+	mDir.clear();
+	mOrder.clear();
+	if (!MapFile(thePath) && !ReadIn(thePath))
+	{
+		Close();
+		return false;
+	}
 	if (mData.size() < 0x40 || mData[0] != 'M' || mData[1] != 'Z')
 	{
-		mData.clear();
+		Close();
 		return false;
 	}
 	uint32_t aPeHeader = U32(mData, 0x3c);
 	if (U32(mData, aPeHeader) != 0x4550)
 	{
-		mData.clear();
+		Close();
 		return false;
 	}
 	uint32_t anOptionalHeader = aPeHeader + 24;
