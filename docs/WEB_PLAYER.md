@@ -1216,4 +1216,17 @@ pictures are decoded one at a time. Against the peak, the heap grows 4 MB at a t
 `cmake/ByopopWeb.cmake`) rather than by Emscripten's fifth of itself, and an Ogg sound is decoded straight into its own
 samples (`Platform::Mixer::LoadSoundData`), so that a long track no longer needs three times its size for a moment.
 `tools/webtest/webmem.js` measures a game at its first board, and `docs/MEMORY.md` ("The web builds") has every game's
-figures. Not yet done: read files lazily from IndexedDB.
+figures.
+
+Reading the game's files from IndexedDB only when the game opens them, rather than holding them all in memory from the
+start, was dropped (the user, 2026-11-16: "Drop it, record why"). The game would have to wait on a read in the middle of
+its own code, and both ways to let it cost more than the reading would save. Asyncify slows every game whether or not
+it ever waits: AstroPop, Bejeweled Twist and Venice, linked again with it and nothing else changed, grew their wasm by
+42 to 52 % (30 to 36 % gzipped), took 11 to 38 % longer to reach their menus where the processor sets that time
+(Venice's logos set its own), and took 16 to 21 % more processor time held at a board and 9 to 41 % more from the start
+to it, against the ports' target of the originals' processor time. JSPI works in Chromium alone, and as linked it stops
+at the runtime's start; every way into the wasm (the start, `main`, the frame callback, the page's exports and the test
+commands) would have to become an asynchronous export, and the page's calls into the game asynchronous with them. At
+best it would save the game's files held in the page, 6.7 MB for AstroPop, 42 MB for Bejeweled Twist and 34 MB for
+Venice, kept as JavaScript buffers beside the WebAssembly memory, less the files a game keeps open, such as a streamed
+track.

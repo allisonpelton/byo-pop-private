@@ -1071,5 +1071,8 @@ spread, and Heavy Weapon took 1.22 to 1.27 s against 0.96 to 1.05. It is not use
 
 ### Left as it is
 
-Reading the game's files from IndexedDB only when they are opened, rather than all into memory at the start, waits
-for the user's decision.
+Reading the game's files from IndexedDB only when the game opens them was dropped (the user, 2026-11-16: "Drop it,
+record why"; `WEB_PLAYER.md`, "Memory use"). It would save the files the page holds, 6.7 MB for AstroPop, 42 MB for
+Bejeweled Twist and 34 MB for Venice, but the game would have to wait on a read: Asyncify, linked into those three with
+nothing else changed, grew their wasm by 42 to 52 % and their processor time by 16 to 21 % held at a board, and JSPI,
+Chromium's alone, stops at the runtime's start unless every way into the wasm becomes an asynchronous export.
