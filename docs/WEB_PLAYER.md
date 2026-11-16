@@ -436,19 +436,22 @@ Left out on purpose: BookWorm Adventures' mini-game tables, which the game's scr
 challenge progress and per-player bests in `profile.dat`, and AstroPop's per-player bests, which are a player's record rather
 than a high-score list; Pixelus, which keeps no score list.
 
-### The fixes mod on the site
+### The fixes and lite mods on the site
 
 Every game is served improved (`docs/MOD_ROADMAP.md`, "What a player gets", the user, 2026-11-12): its fixes mod on and
-its lite mod on once it has one. The fixes mod
-(`docs/MOD_ROADMAP.md`, "The fixes mod") is one mod, `fixes`, each of whose settings toggles one fix, in
-`games/<game>/mods/fixes`. The web build copies it beside the page as `<game>-fixes/` and writes its `version` and file
-list into the page (`FIXES` in `web/shell.html`); a game in `BYOPOP_WEB_NO_MODS`, or without the folder, gets none.
-Before the game can start, the page puts the mod into `/persist/mods/fixes`, on, its fixes at their defaults, and notes
-it in the game's user dir, `site-fixes.json` (`{"installed": "<version>"}` or `{"removed": true}`). A newer shipped
-version replaces the mod's files and leaves `mods.json` and `mod-settings.json` alone, so the player's choices hold. A
-player who removes the mod never gets it back: a start that finds the note saying "installed" and no folder notes it as
-removed. `-DBYOPOP_WEB_TEST_FIXES=<game>` (set back to empty afterwards) gives a game with no fixes mod
-`tools/webtest/fixes`, a stand-in with one toggle that changes nothing.
+its lite mod on once it has one. The fixes mod (`docs/MOD_ROADMAP.md`, "The fixes mod") is one mod, `fixes`, each of
+whose settings toggles one fix, in `games/<game>/mods/fixes`. The lite mod ("The lite mod") is one mod, `lite`, each of
+whose settings toggles one faster computation, in `games/<game>/mods/lite`. The site treats the two alike. The web build
+copies each beside the page as `<game>-fixes/` and `<game>-lite/` and writes its `version` and file list into the page
+(`FIXES` and `LITE` in `web/shell.html`, from `byopop_web_site_mod` in `cmake/ByopopWeb.cmake`); a game in
+`BYOPOP_WEB_NO_MODS`, or without the folder, gets none. Before the game can start, the page puts each into
+`/persist/mods/fixes` and `/persist/mods/lite`, the fixes mod first, on, its toggles at their defaults, and notes each
+in the game's user dir, `site-fixes.json` and `site-lite.json` (`{"installed": "<version>"}` or `{"removed": true}`).
+A newer shipped version replaces the mod's files and leaves `mods.json` and `mod-settings.json` alone, so the player's
+choices hold. A player who removes a mod never gets it back: a start that finds the note saying "installed" and no
+folder notes it as removed. `-DBYOPOP_WEB_TEST_FIXES=<game>` (set back to empty afterwards) gives a game with no fixes
+mod `tools/webtest/fixes`, a stand-in with one toggle that changes nothing. The lite mod needs no stand-in: Mahjong
+Escape's two games ship one, `quickRedeal`, and their log says `lite: quickRedeal` when the game reads it as on.
 
 **The Original switch** is a check box, Original, in the game's Mods panel (`web/modpanel.js`). It is shown whenever
 the game has a `fixes` or `lite` mod. Turning it on turns both mods off through the game's own model, as the mod menu
@@ -457,9 +460,10 @@ off puts back exactly those states. The mods' own settings, every fix's toggle i
 so they hold through both. The record stays in the note through a new shipped version. While the switch is on, a fixes
 or lite mod that arrives later (its first install) is turned off and remembered as on, as it would have started. If the
 player turns one of the two back on in the mod menu, they have left the original: the switch goes off and their mods
-stay as they are. A removed fixes mod stays removed whatever the switch says, because the switch only turns on what is
-there. Like the note, the switch belongs to one game's user dir and never changes another game. A change while a game
-runs waits for its restart, like any change in the mod menu.
+stay as they are. A removed fixes or lite mod stays removed whatever the switch says, because the switch only turns on
+what is there. The record is kept in `site-fixes.json` for both mods, also in a game that has only a lite mod. Like
+the note, the switch belongs to one game's user dir and never changes another game. A change while a game runs waits for
+its restart, like any change in the mod menu.
 
 ### Site settings
 
