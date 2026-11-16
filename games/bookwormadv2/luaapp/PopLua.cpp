@@ -7,6 +7,8 @@
 
 #include <vector>
 
+#include <SDL.h>
+
 #include "Color.h"
 #include "Common.h"
 #include "Font.h"
@@ -778,11 +780,22 @@ static int WriteScriptFile(const char* thePath, const char* theData, size_t theS
 	return ok ? 1 : 0;
 }
 
+// Port: the scripts' print() goes to the log as one line each. Left to the C library's buffered stdout it interleaved
+// mid-line with the log's own lines in a redirected run (lex.luc prints a word's part of speech, "noun", per tile),
+// which broke the test scripts made from that log
+static void PrintScriptLine(const char* theText, size_t theLength)
+{
+	while (theLength > 0 && (theText[theLength - 1] == '\n' || theText[theLength - 1] == '\r'))
+		theLength--;
+	SDL_Log("lua: %.*s", (int)theLength, theText);
+}
+
 // ---- registering (0x66f510) ----
 
 void PopLua::OpenPopLua()
 {
 	poplua_setreader(ReadScriptFile);
+	poplua_setprint(PrintScriptLine);
 	poplua_setexists(ScriptFileExists);
 	poplua_setwriter(WriteScriptFile);
 	Open();

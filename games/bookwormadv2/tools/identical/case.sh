@@ -30,6 +30,10 @@ stage "port, first run"
 # the input of the run: its script's clicks and the ones the hooks made (soak, word), in the port's script form
 ( grep -E '^[0-9]+ (click|move|rclick|key|text|char|focus)( |$)' "$PORTSCRIPT"
   grep 'script: input' "$D/cal/out.txt" | awk '{print $4, $5, $6, $7}' ) | sort -n -s -k1,1 > "$D/inputs.txt"
+# a malformed input line (another output written into the middle of a log line) makes the replay refuse its whole script
+if BAD=$(grep -E '^[0-9]+ ' "$D/inputs.txt" | grep -vE '^[0-9]+ (click|move|rclick) -?[0-9]+ -?[0-9]+$|^[0-9]+ (key|text|char|focus)( |$)' | head -3) && [ -n "$BAD" ]; then
+	echo "BAD INPUT LINES in the first run's log: $BAD"; exit 3
+fi
 # the port replays exactly that input: the soak would choose again, and a timing that differs a little would make it choose
 # another word
 # the end: the script's quit, or, when the script asked for chapterend, the update the first run quit at (300 after the map
@@ -37,17 +41,36 @@ stage "port, first run"
 END=$(awk '$2=="quit"{print $1}' "$PORTSCRIPT" | tail -1)
 CEND=$(grep -o "script: chapterend [0-9]*" "$D/cal/out.txt" | head -1 | awk '{print $3}')
 [ -n "$CEND" ] && END=$((CEND + 300)) && echo "chapter ended at update $CEND"
-( cat "$D/inputs.txt"; echo "$END quit" ) | sort -n -s -k1,1 > "$D/replay.txt"
-python "$TOOLS/toorig.py" "$D/inputs.txt" -1 > "$D/orig.txt"
+# the chapter's anchor: where the first run made its battle engine (the chapter load's end; its first "estate" after the
+# first "chload 1"). The original's inputs from there on wait for its own engine (toorig.py) and count from its mark, and
+# the original quits once the last of them is past (the peek at the end)
+ANCHOR=$(awk '$2=="chload" && $3=="1" && !l {l=1} l && $2=="estate" && $3!="-" {print $1; exit}' "$D/cal/state.txt")
+if [ -n "$ANCHOR" ]; then
+	echo "the first run made its engine at update $ANCHOR"
+	{ python "$TOOLS/toorig.py" "$D/inputs.txt" -1 "$ANCHOR" '[0x7870a4]'; echo "at +$((END - ANCHOR)) peek [0x7870a4]"; echo "quit"; } > "$D/orig.txt"
+	TIMEOUT=$(( END / 100 + 600 ))
+else
+	python "$TOOLS/toorig.py" "$D/inputs.txt" -1 > "$D/orig.txt"
+	TIMEOUT=$(( ${END:-30000} / 100 + 60 ))
+fi
 # the original's log is made fresh by this run only: a log left by an earlier case (a sandbox run that never started, because another
 # session's sandbox held the lock or the sandbox failed) would be compared as if it were this case's (2026-11-11: the chapter batch
 # compared one stale log against every profile)
 rm -f build/origrun/bwa2s/logs/origrun-sandbox.log "$D/orig.log"
-bash "$TOOLS/sbox.sh" "$D/orig.txt" $SEED $(( ${END:-30000} / 100 + 60 )) 0x7c0000 '[0x7870a4]+0x30' > "$D/sbox.log" 2>&1
+bash "$TOOLS/sbox.sh" "$D/orig.txt" $SEED $TIMEOUT 0x7c0000 '[0x7870a4]+0x30' > "$D/sbox.log" 2>&1
 stage "original in the sandbox"
 if ! cp build/origrun/bwa2s/logs/origrun-sandbox.log "$D/orig.log" 2>/dev/null || ! grep -q 'watch 1:' "$D/orig.log"; then
 	echo "ORIGINAL RUN FAILED: no log with the watched values (see $D/sbox.log)"; exit 2
 fi
+# the port replays exactly that input (the soak would choose again, and a timing that differs a little would make it choose
+# another word), the lines from the anchor on moved to the original's mark
+MARK=$(grep -o "mark: the counter reads [0-9]*" "$D/orig.log" | head -1 | awk '{print $5}')
+SHIFT=0
+if [ -n "$ANCHOR" ]; then
+	grep -q "waitfor.*: met" "$D/orig.log" || { echo "ORIGINAL RUN FAILED: its engine was never made (waitfor not met)"; exit 2; }
+	SHIFT=$((MARK - ANCHOR)); echo "the original marked update $MARK: the replay's lines from $ANCHOR on move by $SHIFT"
+fi
+( awk -v a="${ANCHOR:-999999999}" -v s=$SHIFT '{ if ($1 >= a) $1 += s; print }' "$D/inputs.txt"; echo "$((END + SHIFT)) quit" ) | sort -n -s -k1,1 > "$D/replay.txt"
 OPTS=$(python "$TOOLS/calib.py" "$D/orig.log" "$D/cal/state.txt")
 echo "load lengths of the original: $OPTS"
 portrun "$D/rep" -seed=$SEED -reseedengine=$SEED $OPTS -script="$D/replay.txt" -statelog="$D/state.txt" > /dev/null
