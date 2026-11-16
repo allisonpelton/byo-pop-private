@@ -12,7 +12,7 @@
 # PORT_EXE names the build of the port in build/native (atomica.exe). A run of the original that missed the title's click
 # (under 30 frames a second in the stretch: it sat on the title) is written as orig-missed and run again, up to three times.
 # Run the whole loop on one core of its own: python -I tools/pincore.py -- bash games/atomica/tools/profile/softpairs.sh <out> 5
-# It waits for room (fewer than 3 game processes on the machine) before each run, up to WAIT_S seconds (3600) each, and
+# It waits for room (fewer than ROOM_LIMIT, 8, game processes) and a machine at most QUIET_MAX (0.5) busy before each run, up to WAIT_S seconds (3600) each, and
 # writes one line a run to <out dir>/runs.txt (the kind, then perf.py's JSON). It ends by itself: run it in the background.
 cd "$(dirname "$0")/../../../.." || exit 2
 OUT="$1"; WANT="${2:-5}"; WAIT_S="${WAIT_S:-3600}"
@@ -21,11 +21,14 @@ P=games/atomica/tools/profile/perf.py; SC=games/atomica/tools/identical/s2.txt
 PY="$(cygpath -w "$(command -v python)")"
 mkdir -p "$OUT"; : > "$OUT/runs.txt"
 room() {
+	# room on the machine (fewer than ROOM_LIMIT game processes, 8 by default) and, when QUIET_MAX is set (0.5 by default, 0
+	# for none), a machine at or under that share busy: quiet.py samples it. Both give up after WAIT_S seconds.
 	local start; start=$(date +%s)
-	until python -I tools/gamecount.py --limit 3 > /dev/null 2>&1; do
+	until python -I tools/gamecount.py --limit "${ROOM_LIMIT:-8}" > /dev/null 2>&1; do
 		[ $(( $(date +%s) - start )) -ge "$WAIT_S" ] && break
 		sleep 10
 	done
+	[ "${QUIET_MAX:-0.5}" = 0 ] || python -I games/atomica/tools/profile/quiet.py "${QUIET_MAX:-0.5}" "$WAIT_S" >> "$OUT/quiet.txt" 2>&1
 }
 echo "start $(date '+%F %T')" >> "$OUT/runs.txt"
 one() {  # <kind> <command...>: a run's last JSON line with its kind
