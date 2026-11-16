@@ -17,7 +17,7 @@ Only MO3 goes through it (the user's choice): `platform/openmpt/OpenMPTPlayer.cp
 
 ## Changes
 
-Streamed samples (fw-memory's trial, 2026-11-15, not yet chosen by the user): a long Ogg Vorbis sample of an MO3 can be
+Streamed samples (2026-11-15, the user: "Merge both"): a long Ogg Vorbis sample of an MO3 can be
 kept as its Vorbis data and decoded as it plays instead of decoded whole when the module loads, so that Mahjong Escape's
 recorded music does not hold tens of MB of decoded samples. It is off unless `byopop_openmpt_stream_samples(1)` is called
 before a module is loaded (`platform/openmpt/OpenMPTPlayer.cpp` does it for Mahjong Escape's music only). Each changed
