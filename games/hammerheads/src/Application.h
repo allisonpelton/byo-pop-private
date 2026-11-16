@@ -140,6 +140,9 @@ public:
 
 	// The framework's hooks
 	virtual void	Init() override;									// 0x4205f0 (slot 45)
+#ifndef __EMSCRIPTEN__
+	virtual DDInterface*	CreateDDInterface() override;
+#endif
 	virtual void	LoadingThreadProc() override;						// 0x420950 (slot 22)
 	virtual void	LoadingThreadCompleted() override;					// 0x41e660 (slot 16)
 	virtual void	UpdateFrames() override;							// 0x41f040 (slot 8)

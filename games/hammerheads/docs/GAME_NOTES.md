@@ -244,3 +244,17 @@ by the registration's upsell pictures, which the staging script takes out as it 
 `tools/tour_test.txt` ran on it and on the Steam copy's staged files: the 31 state lines, the 15 screenshots (byte for byte) and the
 player files are identical. What is not known: whether the Collection's own exe plays the same as the Steam one (its code was not
 compared and it was not run); what speaks for it is that its data is the same pictures, boards, texts, sounds and fonts.
+
+### The software screen (2026-11-15)
+
+The coordinator's answer to the vsync finding (the framework keeps vsync on the GPU path) was to try the software screen. The
+original enables 3D itself (`mAutoEnable3D`, set in the constructor) and offers it in its options box, so `Application::CreateDDInterface`
+returns `SoftwareScreenDisplay::Create(this, true)` (the 3D offer), under `#ifndef __EMSCRIPTEN__`. With the player's default (3D on) the
+display hands the screen to the GPU at once, so a default start is as it was. With `Is3D=0` (3D off, which is the 2D mode the original
+draws in software, and the one it ran in on rundesk's desktop) the screen is drawn in the surface and presented through GDI.
+
+Five alternating pairs with `Is3D=0` (`PERF_REG` in `perf.py` adds the registry line; paced original as before): 0.75, 0.91, 0.82,
+0.88 and 1.09, median 0.91 of the original's cycles an update (port 3.33 M, original 3.67 M). Peak private bytes of the same run:
+159.7 MB against 138.6 MB on the GPU path, 21 MB more, since the pictures stay in memory. So with 3D off the port is under the
+original; with 3D on (the default) it is at the GPU path's 1.10, which is the driver's wait for the vertical blank (above). The
+present intervals (`-presentlog`) were not taken.

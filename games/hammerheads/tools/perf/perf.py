@@ -81,7 +81,7 @@ def main():
         # windowed, as the original's run is (its ScreenMode is 0 through origrun's --reg); a fresh port starts full screen, which is
         # the whole desktop under rundesk
         with open(os.path.join(user, 'registry.ini'), 'w') as registry:
-            registry.write('[SOFTWARE\\PopCap\\HammerHeads]\nScreenMode=dword:0\n')
+            registry.write('[SOFTWARE\\PopCap\\HammerHeads]\nScreenMode=dword:0\n' + os.environ.get('PERF_REG', ''))
         command = [idplay.RUNDESK, idplay.PORT_EXE, '-seed=1', '-windowscale=1', '-userdir=' + user, '-script=' + script,
                    '-cyclesplit=' + os.path.join(out, 'port.json')] + port_args
         status = subprocess.call(command, stdout=open(os.path.join(out, 'port.log'), 'w'), stderr=subprocess.STDOUT, cwd=ROOT)
