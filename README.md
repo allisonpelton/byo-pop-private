@@ -54,7 +54,7 @@ installed copy (for example from Steam):
 | [Mahjong Escape: Ancient China](games/mahjongchina/docs/README.md) | Opus | Coverage | 2026-11-01 | 1 | $4 | | | $4 |
 | [Bonnie's Bookstore Deluxe](games/bonnies/README.md) | Opus | Every phase but modding | 2026-11-01 | 1 | $230 | | | $230 |
 | [Bejeweled Twist](games/bejeweledtwist/docs/NOTES.md) | Opus | Every phase but modding | 2026-11-02 | 1 | $1,294 | | $6 | $1,300 |
-| [Bejeweled 2 Deluxe](games/bejeweled2/docs/IDENTICAL_PLAY.md) | Sonnet | Performance | 2026-11-08 | | $254 | | | $254 |
+| [Bejeweled 2 Deluxe](games/bejeweled2/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-08 | | $254 | | | $254 |
 | [AstroPop Deluxe](games/astropop/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-08 | | $322 | | | $322 |
 | [Typer Shark! Deluxe](games/typershark/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-09 | | $367 | | | $367 |
 | [Venice Deluxe](games/venice/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-12 | | | | | |

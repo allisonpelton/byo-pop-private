@@ -532,11 +532,12 @@
         "unneeded-code",
         "readability",
         "identical-look",
-        "performance"
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "looks identical done (bf0877e3); performance done (4c2f4874, GAME_NOTES Performance): five pinned pairs on the idle board, medians: port 5.1 % of one core in 2D on the software screen, 5.8 % on a GPU, 5.4 % in 3D (sound threads out; 5.7, 6.4, 5.9 % with the mixer) against the original's 9.6 % in 2D and 58.1 % in 3D under dgVoodoo2; a recorded Classic game without waits 0.62 s software / 0.13 s GPU against 6.41 s; not measured: the software screen in the default 2x window; next: the lite mod"
+      "now": null,
+      "note": "every phase but modding done: identical in play and looks natively, on the web and in 3D (the web page's 1 to 2 updates of animation phase after clicks and Finity 3D's washed-out gems Oddities); the no-GPU fallback takes the software screen, equal to the GPU path and the original in 2D; performance at or under the original in 2D and 3D (5.1 % software, 5.8 % GPU, 5.4 % 3D against 9.6 % and 58.1 %); the lite mod not needed (the game logic at most 1.4 % of a core, LITE_MOD.md)"
     },
     "venice": {
       "title": "Venice Deluxe",
