@@ -186,13 +186,15 @@
         "coverage",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "performance",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": "second performance round merged: SurfaceDisplay's stretch mode (GDI nearest, off by default; full screen at 4K 0.57 and 0.52 of the original's processor time) and the modal pause under the mod menu; the default full screen stays on the renderer (over the original) until the user's choice of look and fw-memory's processor-side smooth stretch"
+      "note": "third performance round merged (2026-11-16): full screen is fw-memory's smooth stretch on the processor (no renderer at any size, 0 pixels differ from the renderer's look in six screens); processor time at 0.41 / 0.66 / 0.79 (Japan) and 0.32 / 0.52 / 0.42 (China) of the original's in the 800x600 window, 2x and full screen; memory below the original's at the title and 12 MB above it at the peak of a play (listed, not chased); the lite mod quickRedeal (the shuffle's deal search stopped after a count of steps, docs/LITE_MOD.md), not yet on the web build"
     },
     "mahjongchina": {
       "title": "Mahjong Escape: Ancient China",
@@ -205,13 +207,15 @@
         "coverage",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "performance",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": "second performance round merged: SurfaceDisplay's stretch mode (GDI nearest, off by default; full screen at 4K 0.57 and 0.52 of the original's processor time) and the modal pause under the mod menu; the default full screen stays on the renderer (over the original) until the user's choice of look and fw-memory's processor-side smooth stretch"
+      "note": "third performance round merged (2026-11-16): full screen is fw-memory's smooth stretch on the processor (no renderer at any size, 0 pixels differ from the renderer's look in six screens); processor time at 0.41 / 0.66 / 0.79 (Japan) and 0.32 / 0.52 / 0.42 (China) of the original's in the 800x600 window, 2x and full screen; memory below the original's at the title and 12 MB above it at the peak of a play (listed, not chased); the lite mod quickRedeal (the shuffle's deal search stopped after a count of steps, docs/LITE_MOD.md), not yet on the web build"
     },
     "bejeweledtwist": {
       "title": "Bejeweled Twist",
@@ -374,11 +378,14 @@
         "fixes-mod",
         "site-features",
         "coverage",
-        "performance"
+        "performance",
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
       "now": null,
-      "note": "the performance pass done (7a852454): five pinned pairs at the title, 7.9 G cycles a minute against 24.4, 79.3 MB against 91.9 (the peak 101.1 against 92.2 is the driver's upload staging); the curtain copies' pixels dropped after upload (shared hook MemoryImage::BitsSource::mMake, inert unless set), the word list flat; next the unneeded-code step"
+      "note": "readability (138a3385, 24b183fc): namecheck 0 over src, jefflib, luaapp, lualib and popanim, objects identical; Collection check: the paks are the same, the exe is another build whose texts LoadGameTexts finds by content, and the suite's runs on the Collection's files are identical; the unneeded-code step before it (d79f2eab): 37 functions nothing calls out; next the lite mod"
     },
     "bookworm": {
       "title": "BookWorm Deluxe",

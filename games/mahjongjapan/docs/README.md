@@ -130,7 +130,7 @@ they had ended, which the game then paused and resumed.
 ## Mods
 
 The fixes mod (`mods/fixes`: `seededDeals` and `steadyClock`, on by default on the site; `GAME_NOTES.md`, "Fix
-candidates and the fixes mod"). No other mods (the user's rule: no new mods unless someone requests one); `MOD_IDEAS.md` lists
+candidates and the fixes mod") and the lite mod (`mods/lite`: `quickRedeal`, the Shuffle button's deal search stopped after a count of steps instead of a second of the machine's clock; `LITE_MOD.md`, the proof and the measurements). No other mods (the user's rule: no new mods unless someone requests one); `MOD_IDEAS.md` lists
 the ones worth making.
 
 ## Changes outside the game's folder
