@@ -76,13 +76,13 @@ public:
 	int				mPuzzleIndex;		// its place in the temple
 	std::string		mUuid;
 	bool			mTutorial;			// +0x1a1 the first temple: the sidebar teaches
-	bool			mExpert;			// the player has switched the hints and undo off (UserProfile::mFlag38)
+	bool			mExpert;			// the player has switched the hints and undo off (UserProfile::mExpert)
 	std::vector<UndoMove> mUndo;		// +0x17c
 	int				mHoverCol;			// the cell under the mouse (the grid's +0xb088/+0xb08c)
 	int				mHoverRow;
 	bool			mHoverValid;		// +0xb098 a click there would do something
 	int				mAlpha;				// +0xb184 how much of the grid shows (the grid constructor, 0x425f7e, sets 255)
-	int				mIntro;				// updates since the puzzle appeared
+	int				mIntro;				// updates since the puzzle appeared; nothing reads it (the original keeps the count)
 	double			mPauseFade;			// +0x170 how far the pause screen has come in
 	bool			mPauseStarted;		// +0x1a2 the game went from running to paused (0x403010); only then does the pause screen come in
 	int				mDoneTimer;			// +0xe0 the countdown to the puzzle-completed screen, DONE_DELAY once it has started

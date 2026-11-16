@@ -59,6 +59,7 @@ NewUserDialog::NewUserDialog(PixelusApp* theApp, bool theRename) :
 #endif
 }
 
+// port: the destructor (NewUserDialog::~NewUserDialog)
 NewUserDialog::~NewUserDialog()
 {
 	delete mEdit;
@@ -201,6 +202,7 @@ SelectUserDialog::SelectUserDialog(PixelusApp* theApp) :
 	FillList(aCurrent != NULL ? aCurrent->mName : "");
 }
 
+// port: the destructor (SelectUserDialog::~SelectUserDialog)
 SelectUserDialog::~SelectUserDialog()
 {
 	delete mList;

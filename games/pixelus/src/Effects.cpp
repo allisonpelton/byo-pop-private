@@ -22,6 +22,7 @@ FrameEffect::FrameEffect(Image* theImage, int theFrames, int theX, int theY, dou
 }
 
 // the cross-fade runs over the last mFadeTime seconds of each interval
+// port: a helper of the port (FrameEffect::UpdateFade)
 void FrameEffect::UpdateFade()
 {
 	if (mFadeTime > 0)
@@ -36,6 +37,7 @@ void FrameEffect::UpdateFade()
 	mFade = 0;
 }
 
+// port: a helper of the port (FrameEffect::AdvanceFrame)
 void FrameEffect::AdvanceFrame()
 {
 	mCur = mNext;
@@ -72,6 +74,7 @@ void FrameEffect::Draw(Graphics* g)
 	}
 }
 
+// port: the constructor (PingPongEffect::PingPongEffect)
 PingPongEffect::PingPongEffect(Image* theImage, int theFrames, int theX, int theY, double theInterval, double theFadeTime) :
 	FrameEffect(theImage, theFrames, theX, theY, theInterval, theFadeTime)
 {
@@ -106,6 +109,7 @@ SparkleEffect::SparkleEffect(Image* theImage, int theFrames, int theX, int theY,
 }
 
 // a random time between the two limits, in 32 steps
+// port: a helper of the port (SparkleEffect::RandomWait)
 double SparkleEffect::RandomWait()
 {
 	return (mMaxWait - mMinWait) * (double) (CrtRand() & 31) * 0.03225806451612903 + mMinWait;
@@ -132,11 +136,13 @@ void SparkleEffect::Update(double theDelta)
 		mPlaying = true;
 }
 
+// port: the destructor (EffectList::~EffectList)
 EffectList::~EffectList()
 {
 	Clear();
 }
 
+// port: a helper of the port (EffectList::Clear)
 void EffectList::Clear()
 {
 	for (size_t i = 0; i < mEffects.size(); i++)
@@ -144,12 +150,14 @@ void EffectList::Clear()
 	mEffects.clear();
 }
 
+// port: a helper of the port (EffectList::Update)
 void EffectList::Update(double theDelta)
 {
 	for (size_t i = 0; i < mEffects.size(); i++)
 		mEffects[i]->Update(theDelta);
 }
 
+// port: a helper of the port (EffectList::Draw)
 void EffectList::Draw(Graphics* g)
 {
 	for (size_t i = 0; i < mEffects.size(); i++)

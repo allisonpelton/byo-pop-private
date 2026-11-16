@@ -144,7 +144,7 @@ PuzzleCompletedScreen::PuzzleCompletedScreen(PixelusApp* theApp, MemoryImage* th
 					mOpenedIndex = i;
 				}
 		}
-		else if (aTutorialDone && !aUser->mFlag79)
+		else if (aTutorialDone && !aUser->mTutorialDone)
 		{
 			mOpenedTemple = true;
 			mOpenedIndex = 1;
@@ -203,7 +203,7 @@ PuzzleCompletedScreen::PuzzleCompletedScreen(PixelusApp* theApp, MemoryImage* th
 	// mode 5 of 0x41b3c0: only the solve that finishes the tutorial says so (the same test before and after the record)
 	mTutorialDone = mMode == 5;
 	if (mTutorialDone && aUser != NULL)
-		aUser->mFlag79 = true;
+		aUser->mTutorialDone = true;
 
 	mApp->mLastSolvedUuid = theUuid;
 
@@ -227,6 +227,7 @@ PuzzleCompletedScreen::PuzzleCompletedScreen(PixelusApp* theApp, MemoryImage* th
 	mEffects.Add(new SparkleEffect(anImages[IMAGE_ANIMMERMAID], 2, 0x4b, 0x103, 1.0, 5.0, 0.1, 0.1));
 }
 
+// port: the destructor (PuzzleCompletedScreen::~PuzzleCompletedScreen)
 PuzzleCompletedScreen::~PuzzleCompletedScreen()
 {
 	delete mContinueButton;
@@ -267,7 +268,7 @@ void PuzzleCompletedScreen::Update()
 	if (mProgress < 1.0f)
 	{
 		mProgress = std::min(1.0f, mProgress + 0.0125f);
-		float t = mProgress * mProgress * (3.0f - 2.0f * mProgress);
+		float anEase = mProgress * mProgress * (3.0f - 2.0f * mProgress);
 		if (mProgress >= 1.0f)
 		{
 			mSize = END_SIZE;
@@ -277,9 +278,9 @@ void PuzzleCompletedScreen::Update()
 		}
 		else
 		{
-			mSize = (int) (320 + (END_SIZE - 320) * t);
-			mX = mStartX + (END_X - mStartX) * t;
-			mY = mStartY + (END_Y - mStartY) * t;
+			mSize = (int) (320 + (END_SIZE - 320) * anEase);
+			mX = mStartX + (END_X - mStartX) * anEase;
+			mY = mStartY + (END_Y - mStartY) * anEase;
 		}
 	}
 	else if (mMedal < 1.0f)
@@ -287,11 +288,13 @@ void PuzzleCompletedScreen::Update()
 	MarkDirty();
 }
 
+// port: a helper of the port (PuzzleCompletedScreen::DrawCentered)
 void PuzzleCompletedScreen::DrawCentered(Graphics* g, const std::string& theText, int theCenterX, int theY)
 {
 	g->DrawString(theText, theCenterX - g->GetFont()->StringWidth(theText) / 2, theY);
 }
 
+// port: a helper of the port (PuzzleCompletedScreen::DrawOutlined)
 void PuzzleCompletedScreen::DrawOutlined(Graphics* g, const std::string& theText, int theCenterX, int theY,
 	const Color& theColor, const Color& theOutline)
 {
@@ -387,6 +390,7 @@ void PuzzleCompletedScreen::Draw(Graphics* g)
 }
 
 // the picture on its way to the tablet, and the shine over it once it is there
+// port: a helper of the port (PuzzleCompletedScreen::DrawPicture)
 void PuzzleCompletedScreen::DrawPicture(Graphics* g)
 {
 	bool aArrived = mProgress >= 1.0f;
@@ -411,6 +415,7 @@ void PuzzleCompletedScreen::DrawPicture(Graphics* g)
 	}
 }
 
+// port: a helper of the port (PuzzleCompletedScreen::DrawContent)
 void PuzzleCompletedScreen::DrawContent(Graphics* g, bool thePicture)
 {
 	const int CENTER = 320;			// the tablet's middle
@@ -591,6 +596,7 @@ void PuzzleCompletedScreen::DrawContent(Graphics* g, bool thePicture)
 
 // what the button does: the way on is to the island when something opened (the tablet's news is the temple's), else the
 // temple the puzzle belongs to
+// port: a helper of the port (PuzzleCompletedScreen::ButtonDepress)
 void PuzzleCompletedScreen::ButtonDepress(int theId)
 {
 	if (theId != ID_CONTINUE)

@@ -297,3 +297,15 @@ sound ducking of a pause. The chains of a mystery puzzle blow apart with the par
 The puzzle-completed screen has the original's characters (Medusa, the fauns, the centaur, the cyclops, the mermaid: 0x41b3c0, 0x419a00,
 0x419e60), which blink and move once the picture is in, and reading a hint ends the repeats of the board's glows (0x403050). This
 corrects the entry above that said the screen has no effects. The frozen baseline is unchanged. Not compared against the original's shots yet.
+
+## Real input with the final port (2026-11-15)
+Native (`tools/realplay/drive.py`, under rundesk, every click and key an SDL event): launch, the loading link, the new-user dialog, the story,
+the island, the temples and the boards, windowed: 12 boards played and 12 solved (the tutorial's nine and three of the next temple), no errors,
+626 s. Then with `--full --focus --expert`: Alt+Enter into full screen after the first board and back, the focus lost and regained in the
+middle of a board, the expert box ticked: 10 boards solved, no errors, 483 s. Web (`tools/web/play.js` in the Browser pane, `?silent=1`,
+DOM events): the same two runs, 12 solved windowed and 10 solved with `fsat=1&focusat=1&expert=1`, focus lost and regained at each, 0 errors
+(the pane cannot make an element full screen, so Alt+Enter reports `fullscreenElement none`; the native run covers full screen). The page
+check (`tools/web/pagecheck.js`): 11 passed, 0 failed, 1 information line. The web driver needs `hold=1`, which wipes the test profile:
+on a profile that already holds a finished tutorial it stops on the island ("no temple opens"), because it expects a first run.
+Not done: a whole game of 210 puzzles by real input (a board takes about 50 s that way, about three hours for the game); the bot's whole game
+by state is in `tools/check.sh pixelus` instead.

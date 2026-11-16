@@ -81,6 +81,7 @@ static const GodInfo gGods[NUM_TEMPLES] =
 		{ IMAGE_JUPITER_ARM2, 2, 19, true, 0.1, 2, 97, 127, true }, { 0 } } }
 };
 
+// port: a helper of the port (ArmSine)
 static double ArmSine(int theMode, int theTicks)
 {
 	switch (theMode)
@@ -105,6 +106,7 @@ GodFigure::GodFigure(PixelusApp* theApp, int theGod, Widget* theOwner, int theMo
 	mCharacter = new Character(theApp, theGod, theOwner, theMode);
 }
 
+// port: the destructor (GodFigure::~GodFigure)
 GodFigure::~GodFigure()
 {
 	delete mCharacter;
@@ -142,6 +144,7 @@ static void DrawHead(PixelusApp* mApp, Character* theCharacter, Graphics* g, flo
 		g->SetColorizeImages(false);
 }
 
+// port: a helper of the port (GodFigure::Draw)
 void GodFigure::Draw(Graphics* g)
 {
 	DrawCharacter(mApp, mCharacter, g);
@@ -401,6 +404,7 @@ TempleScreen::~TempleScreen()
 	delete mBackdrop;
 }
 
+// port: a helper of the port (TempleScreen::AddedToManager)
 void TempleScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
@@ -418,6 +422,7 @@ void TempleScreen::AddedToManager(WidgetManager* theWidgetManager)
 	StartMusic(mApp, MUSIC_PIXELUS_TEMPLE_SCREEN_LOOP_V01, true);
 }
 
+// port: a helper of the port (TempleScreen::RemovedFromManager)
 void TempleScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
@@ -543,7 +548,7 @@ void TempleScreen::UpdateButtons()
 		mMoreButton->SetVisible(false);
 	}
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
-	mSkipButton->SetVisible(mTemple == 0 && aUser != NULL && !aUser->mFlag79);
+	mSkipButton->SetVisible(mTemple == 0 && aUser != NULL && !aUser->mTutorialDone);
 }
 
 // 0x411200
@@ -811,7 +816,7 @@ void TempleScreen::Draw(Graphics* g)
 		g->DrawImage(mPanel, 0, 0);
 	g->SetColorizeImages(false);
 
-	if (aTutorial && aUser != NULL && !aUser->mFlag79)
+	if (aTutorial && aUser != NULL && !aUser->mTutorialDone)
 		g->DrawImage(mApp->mImages[IMAGE_TREE], 244, 424);
 
 	if (!aTutorial)
