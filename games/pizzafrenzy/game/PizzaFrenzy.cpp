@@ -7,6 +7,7 @@
 #include "Scene.h"
 #include "Scoreboards.h"
 #include "GameText.h"
+#include "BonusStates.h"
 #include "DialogState.h"
 #include "GameState.h"
 #include "ScreenNodes.h"
@@ -450,9 +451,27 @@ void PizzaFrenzy::enterModeGame(Level* theLevel)
 	mStates.changeState(new GameState(this));
 }
 
-// 0x45f830 and the state 0x402a40: translated next with the game
+// 0x45f830, 0x402a40: the bonus round's game takes the decorating screen and the stats, then the level; the state
+// shows the screen
 void PizzaFrenzy::enterBonusRound(Level* theLevel)
 {
+	mMode = new BonusGame();
+	static_cast<BonusGame*>(mMode.get())->setStats(mDecorateScreen, mGameStats);
+	mMode->setLevel(theLevel);
+	mStates.changeState(new BonusGameState(this));
+}
+
+// 0x4099b0: the pizza goes in the list when it is not there, and is kept by its number (the player's own pizzas of
+// the designer, which this slot also takes, are left out)
+void PizzaFrenzy::addPizza(Pizza* thePizza)
+{
+	bool aKept = false;
+	for (size_t i = 0; i < mPizzas.size(); i++)
+		if (mPizzas[i] == thePizza)
+			aKept = true;
+	if (!aKept)
+		mPizzas.push_back(thePizza);
+	mPizzaById[thePizza->mId] = thePizza;
 }
 
 // 0x40dab0, 0x402d70: translated next

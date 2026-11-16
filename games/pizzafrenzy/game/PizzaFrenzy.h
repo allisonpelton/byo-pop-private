@@ -111,6 +111,7 @@ public:
 	engine::Ref<LevelStartScreen> mLevelStartScreen;         // +0xe4: the vans' toppings
 	engine::Ref<NewToppingScreen> mNewToppingScreen;         // +0xec: the toppings the player has not been shown
 	engine::Ref<CitySelectScreen> mCitySelect;               // +0xf0
+	engine::Ref<GameScreen> mDecorateScreen;                 // +0xf4: the bonus round's screen (decoratePizza.xml)
 	engine::Ref<GameScreen> mGameScreen;                     // +0x114
 	engine::Ref<Hud> mHud;                                   // +0x118
 	engine::Ref<CityMap> mCityMap;                           // +0x11c: the city on the game screen
@@ -125,9 +126,11 @@ public:
 	bool mGameScreenActive = false;
 	bool mBonusRound;                                        // +0x136: the level being played is a bonus round
 	std::vector<engine::Ref<City>> mCities;                  // +0x138: the level manifest's cities, in order
+	std::vector<engine::Ref<Pizza>> mPizzas;                 // +0x148: the pizza manifest's pizzas, in its order
 	std::map<int, engine::Ref<Pizza>> mPizzaById;            // +0x158: the pizza manifest's pizzas by their numbers
 	std::vector<engine::Ref<Pizza>> mDesignedPizzas;         // +0x164: the pizzas the player designed
 	std::map<int, engine::Ref<Topping>> mPizzaToppings;      // +0x174: the topping each pizza of the player's is
+	int mPizzaMaxId = 0;                                     // +0x180: the number the next pizza takes
 	bool mShowHighScores;                                    // +0x134: the menu shows the high scores when it starts
 	bool mShowCitySelect;                                    // +0x135: the menu shows the city select when it starts
 
@@ -143,6 +146,8 @@ public:
 	void addCity(City* theCity) { mCities.push_back(theCity); }
 	// 0x409990: the pizza of the manifest's number (an empty one, which stays, for a number the manifest has not given)
 	Pizza* getPizza(int theId) { return mPizzaById[theId]; }
+	// 0x4099b0: a pizza of the manifest is kept, in the list and by its number
+	void addPizza(Pizza* thePizza);
 	// 0x40c700: a game of the mode starts in the city, from the saved one when the mode has one
 	void startGame(int theMode, int theCity);
 	// 0x4023d0: the city select is shown, after its slot 0x180
@@ -197,8 +202,8 @@ private:
 	// kept at +0x110; its slot 0x4 (the game screen, the hud and the stats) and slot 0x10 (the level), then the state
 	// 0x4029b0 (GameState.h). The speed mode's is translated; the other two modes' are translated with those modes.
 	void enterModeGame(Level* theLevel);
-	// 0x45f830, kept at +0x110: its slot 0xbc (the stats, with the object at +0xf4) and slot 0x10 (the level), then
-	// the state 0x402a40
+	// 0x45f830 (BonusGame.h), kept at +0x110: its slot 0xbc (the decorating screen at +0xf4 and the stats) and slot
+	// 0x10 (the level), then the state 0x402a40 (BonusStates.h)
 	void enterBonusRound(Level* theLevel);
 
 	void onAppUpdate(engine::UpdateInfo& theInfo) { update(theInfo); }  // 0x401560

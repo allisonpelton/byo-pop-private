@@ -34,6 +34,9 @@ public:
 	void showDimmed();
 
 	Topping* getTopping() { return mTopping; }  // +0x130
+	// +0x138: the number on the card, which the bonus round counts down (the caption shows it by 0x45cf60 there)
+	int getNumber() const { return mNumber; }
+	void setNumber(int theNumber) { mNumber = theNumber; }
 
 private:
 	engine::Ref<engine::ImageButton> mButton;  // +0x128: the card

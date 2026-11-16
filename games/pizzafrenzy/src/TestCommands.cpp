@@ -10,6 +10,7 @@
 #include "sprout/Random.h"
 #include "sprout/ScreenMgr.h"
 #include "sprout/host/SoundHost.h"
+#include "game/BonusStates.h"
 #include "game/CitySelectScreen.h"
 #include "game/CustomerPopup.h"
 #include "game/DialogState.h"
@@ -31,6 +32,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <map>
 #include <string>
 
 using namespace Sexy;
@@ -119,7 +121,8 @@ std::string screenName(pf::PizzaFrenzy* theApp)
 	}
 	if (pf::DialogState* aDialog = dynamic_cast<pf::DialogState*>(aState))
 	{
-		if (dynamic_cast<pf::GameState*>(aDialog->getNextState()) != nullptr)
+		if (dynamic_cast<pf::GameState*>(aDialog->getNextState()) != nullptr ||
+			dynamic_cast<pf::BonusGameState*>(aDialog->getNextState()) != nullptr)
 			return "pause";
 		return dialogName(theApp, aDialog->getShownScreen());
 	}
@@ -129,16 +132,28 @@ std::string screenName(pf::PizzaFrenzy* theApp)
 		return "newTopping";
 	if (dynamic_cast<pf::LevelStartState*>(aState) != nullptr)
 		return "levelStart";
-	if (dynamic_cast<pf::GameState*>(aState) != nullptr)
+	if (dynamic_cast<pf::GameState*>(aState) != nullptr || dynamic_cast<pf::BonusGameState*>(aState) != nullptr)
 		return "game";
 	if (dynamic_cast<pf::LevelSummaryState*>(aState) != nullptr)
 		return "summary";
 	return "other";
 }
 
-// where the mode's own states are: the introduction's titles, play, the prize blimp's flight and the level's end
+// where the mode's own states are: the introduction's titles, play, the prize blimp's flight and the level's end; the
+// bonus round's are its introduction, a pizza coming in ("arrive"), play, the scoring of a pizza, and its end
 const char* modePhase(pf::GameMode* theMode)
 {
+	if (pf::BonusGame* aBonus = dynamic_cast<pf::BonusGame*>(theMode))
+	{
+		switch (aBonus->getPhase())
+		{
+		case pf::BonusGame::PHASE_INTRO: return "intro";
+		case pf::BonusGame::PHASE_ARRIVE: return "arrive";
+		case pf::BonusGame::PHASE_PLAY: return "play";
+		case pf::BonusGame::PHASE_SCORE: return "score";
+		case pf::BonusGame::PHASE_END: return "end";
+		}
+	}
 	engine::State* aState = theMode->mStates.getState();
 	if (dynamic_cast<pf::ModeIntroState*>(aState) != nullptr)
 		return "intro";
@@ -292,6 +307,56 @@ std::string nodeMove(const char* theWhat, engine::Node* theNode)
 	return moveLine(theWhat, "", nodeCenter(theNode));
 }
 
+// the point of the player's pizza (in the screen's points) that a topping of the bonus round's pizza lies at
+engine::Point pizzaPoint(pf::BonusGame* theGame, pf::PizzaTopping* theTopping)
+{
+	engine::Point aGroup = pf::BonusGame::getAbsPosition(theGame->getUserGroup());
+	return engine::Point(aGroup.x + theTopping->getPosition()->x, aGroup.y + theTopping->getPosition()->y);
+}
+
+// the bonus round's part of the state: the time and pizzas left, the topping picked, the toppings of the target pizza
+// (with the point of the player's pizza each is put at), the ones put, and the buttons with the number each has left
+std::string bonusState(pf::BonusGame* theGame)
+{
+	char aBuf[256];
+	std::snprintf(aBuf, sizeof(aBuf), ",\"bonus\":{\"timeLeft\":%.2f,\"pizzasLeft\":%d,\"playing\":%s,\"selected\":%s",
+		theGame->getTimeLeft(), theGame->getPizzasLeft(), theGame->isPlaying() ? "true" : "false",
+		jsonText(toppingName(theGame->getSelectedTopping())).c_str());
+	std::string aState = aBuf;
+	aState += ",\"targets\":[";
+	bool aFirst = true;
+	for (const engine::Ref<pf::PizzaTopping>& aTarget : theGame->getTargetToppings())
+	{
+		engine::Point aPoint = pizzaPoint(theGame, aTarget);
+		std::snprintf(aBuf, sizeof(aBuf), "%s{\"topping\":%s,\"x\":%d,\"y\":%d}", aFirst ? "" : ",",
+			jsonText(toppingName(aTarget->getTopping())).c_str(), roundedPoint(aPoint.x), roundedPoint(aPoint.y));
+		aState += aBuf;
+		aFirst = false;
+	}
+	aState += "],\"placed\":[";
+	aFirst = true;
+	for (const engine::Ref<pf::PizzaTopping>& aPlaced : theGame->getUserToppings())
+	{
+		engine::Point aPoint = pizzaPoint(theGame, aPlaced);
+		std::snprintf(aBuf, sizeof(aBuf), "%s{\"topping\":%s,\"x\":%d,\"y\":%d}", aFirst ? "" : ",",
+			jsonText(toppingName(aPlaced->getTopping())).c_str(), roundedPoint(aPoint.x), roundedPoint(aPoint.y));
+		aState += aBuf;
+		aFirst = false;
+	}
+	aState += "],\"buttons\":[";
+	aFirst = true;
+	for (const auto& aButton : theGame->getButtons())
+	{
+		engine::Point aPoint = nodeCenter(aButton.second);
+		std::snprintf(aBuf, sizeof(aBuf), "%s{\"topping\":%s,\"number\":%d,\"x\":%d,\"y\":%d}",
+			aFirst ? "" : ",", jsonText(toppingName(aButton.first)).c_str(), aButton.second->getNumber(),
+			roundedPoint(aPoint.x), roundedPoint(aPoint.y));
+		aState += aBuf;
+		aFirst = false;
+	}
+	return aState + "]}";
+}
+
 }
 
 // The game's state as one JSON line: the screen the game is on, the player's progress, and, in a level, the stats'
@@ -329,6 +394,11 @@ std::string PizzaFrenzyApp::TestState()
 			aStats->mTipMoney, aStats->mLevelGoal, aStats->mTipsEarned, aStats->mHappiness, aStats->mOrderCount,
 			aStats->mElapsedTime, aStats->mPizzasDelivered, aStats->mPizzasOrdered, aStats->mComboLength);
 		aState += aBuf;
+	}
+	if (pf::BonusGame* aBonus = dynamic_cast<pf::BonusGame*>(aMode))
+	{
+		std::snprintf(aBuf, sizeof(aBuf), ",\"phase\":%s", jsonText(modePhase(aMode)).c_str());
+		return aState + aBuf + bonusState(aBonus) + "}";
 	}
 	if (aMode == nullptr || aMode->getMap() == nullptr)
 		return aState + "}";
@@ -409,11 +479,6 @@ static std::string ScreenMove(pf::PizzaFrenzy* theApp)
 			aCity = (int)theApp->mCities.size() - 1;
 		return nodeMove("city", theApp->mCitySelect->getPostcardButton(aCity));
 	}
-	// the bonus round that follows is not ported: the summary can only be left through it
-	pf::City* aCity = theApp->getCurrentCity();
-	if (aScreen == "summary" && theApp->mCurrentLevel < (int)aCity->mLevels.size() &&
-		aCity->mLevels[theApp->mCurrentLevel]->mBonusRound)
-		return "null";
 	if (aScreen == "story" || aScreen == "summary")
 	{
 		engine::Node* aSkip = theApp->mStoryScreen->getNode("skipString");
@@ -447,6 +512,44 @@ static std::string ScreenMove(pf::PizzaFrenzy* theApp)
 	return nodeMove("topping", aStart->findFreeToppingButton());
 }
 
+// The bot's move in the bonus round, from the state alone as a player plays it: the introduction is skipped with a
+// click; with a pizza in, the first topping of the target that the player has not put yet (the target's toppings in
+// order, the ones of a kind matched to the ones put of that kind in order) is wanted: its button is clicked when
+// another topping or none is picked, and then the point of the player's pizza where the target has it. Every other
+// phase waits.
+static std::string BonusMove(pf::BonusGame* theGame)
+{
+	std::string aPhase = modePhase(theGame);
+	if (aPhase == "intro")
+		return moveLine("skipIntro", "", engine::Point((float)SCREEN_CENTER_X, (float)SCREEN_CENTER_Y));
+	if (aPhase != "play" || !theGame->isPlaying())
+		return waitLine(WAIT_UPDATES);
+	std::map<pf::Topping*, int> aPlacedCount;
+	for (const engine::Ref<pf::PizzaTopping>& aPlaced : theGame->getUserToppings())
+		aPlacedCount[aPlaced->getTopping()]++;
+	std::map<pf::Topping*, int> aSeen;
+	pf::PizzaTopping* aWanted = nullptr;
+	for (const engine::Ref<pf::PizzaTopping>& aTarget : theGame->getTargetToppings())
+	{
+		if (aSeen[aTarget->getTopping()]++ >= aPlacedCount[aTarget->getTopping()])
+		{
+			aWanted = aTarget;
+			break;
+		}
+	}
+	if (aWanted == nullptr)
+		return waitLine(WAIT_UPDATES);
+	std::string aDetail = ",\"topping\":" + jsonText(toppingName(aWanted->getTopping()));
+	if (theGame->getSelectedTopping() != aWanted->getTopping())
+	{
+		pf::ToppingButton* aButton = theGame->getButton(aWanted->getTopping());
+		if (aButton == nullptr || aButton->getNumber() <= 0)
+			return waitLine(WAIT_UPDATES);
+		return moveLine("topping", aDetail, nodeCenter(aButton));
+	}
+	return moveLine("place", aDetail, pizzaPoint(theGame, aWanted));
+}
+
 // The bot's next move (the line after "MOVE "), from the state alone: it reads the game and never changes it, and it
 // draws from no generator. In the level's introduction it clicks to skip it. In play, with no order picked it takes a
 // tip that waits for its click, else picks the customer with the least wait left; with an order picked it picks more
@@ -458,6 +561,11 @@ std::string PizzaFrenzyApp::TestMove()
 {
 	pf::PizzaFrenzy* anApp = pf::PizzaFrenzy::instance();
 	pf::GameMode* aMode = anApp->mMode;
+	if (pf::BonusGame* aBonus = dynamic_cast<pf::BonusGame*>(aMode))
+	{
+		if (dynamic_cast<pf::BonusGameState*>(anApp->mStates.getState()) != nullptr)
+			return BonusMove(aBonus);
+	}
 	if (aMode == nullptr || dynamic_cast<pf::GameState*>(anApp->mStates.getState()) == nullptr)
 		return ScreenMove(anApp);
 	std::string aPhase = modePhase(aMode);
@@ -649,8 +757,6 @@ bool PizzaFrenzyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		else if (aCity < 0 || aCity >= (int)anApp->mCities.size() || aLevel < 0
 			|| aLevel >= (int)anApp->mCities[aCity]->mLevels.size())
 			error("no such level");
-		else if (anApp->mCities[aCity]->mLevels[aLevel]->mBonusRound)
-			error("a bonus round is not played yet");
 		else
 		{
 			int aDay = 1 + aLevel;

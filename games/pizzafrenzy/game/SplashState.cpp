@@ -5,6 +5,7 @@
 #include "GameStats.h"
 #include "LevelManifest.h"
 #include "MenuState.h"
+#include "PizzaManifest.h"
 #include "PizzaFrenzy.h"
 #include "Scene.h"
 #include "Players.h"
@@ -53,6 +54,10 @@ const float STORY_SCREEN_FADE_SECONDS = 0.4f;
 const float TOPPING_BOOK_SLIDE_FROM_X = -800.0f;
 const float TOPPING_SCREEN_FADE_SECONDS = 0.5f;
 
+// The decorating screen's layout, and the pizza manifest's file
+const char* const DECORATE_LAYOUT = "res/screenLayouts/decoratePizza.xml";
+const char* const PIZZA_MANIFEST_FILE = "res\\manifests\\pizzas.xml";
+
 // The load bar's share after each stage
 const float LOADED_TILE_MANIFEST = 0.05f;
 const float LOADED_MAIN_MENU = 0.1f;
@@ -61,6 +66,7 @@ const float LOADED_PAUSE_MENU = 0.2f;
 const float LOADED_CONFIRMATIONS = 0.25f;
 const float LOADED_RESTORE_CONFIRMATION = 0.3f;
 const float LOADED_GAME_STATS = 0.4f;
+const float LOADED_DECORATE_SCREEN = 0.43f;
 const float LOADED_STORY_SCREEN = 0.55f;
 const float LOADED_UNLOCK_NOTICE = 0.6f;
 const float LOADED_USER_SELECT = 0.65f;
@@ -195,10 +201,24 @@ void SplashState::update(engine::UpdateInfo& theInfo)
 		mApp->mScene->addChild(mApp->mSplatFactory);
 		aLoaded = LOADED_GAME_STATS;
 	}
-	// The original makes these stages here, which the port does not have yet: the screens of the pizza designer (the
-	// decorating screen at +0xf4 and the designer at +0xe8, each with a fade of 0.5; the load bar at 0.43), the pizza
-	// manifest and the player's pizzas (0.44, which show no load bar), and the pizza editor and name screens (+0x100
-	// with a fade of 0.3, +0x104 sliding as the options do, and the editor's object at +0xfc; 0.45)
+	else if (mApp->mDecorateScreen == nullptr)
+	{
+		// the decorating screen of the bonus round (+0xf4), a game screen with its fade; the original makes the
+		// pizza designer's screen (+0xe8) in this stage too, which the port leaves out with the designer
+		engine::Ref<engine::Transition> aFade = new engine::FadeTransition(GAME_SCREEN_FADE_SECONDS);
+		mApp->mDecorateScreen = new GameScreen();
+		mApp->mDecorateScreen->setTransitions(aFade, aFade);
+		mApp->mDecorateScreen->mActionSignal.connect(mApp, &PizzaFrenzy::onScreenAction);
+		mApp->mDecorateScreen->loadLayout(DECORATE_LAYOUT);
+		aLoaded = LOADED_DECORATE_SCREEN;
+	}
+	else if (mApp->mPizzas.empty())
+	{
+		// the pizza manifest (0.44, which leaves the load bar as it is); the player's own pizzas (the designer's)
+		// and the pizza editor's and name screens (0.45) are left out with the designer and the editor
+		loadPizzaManifest(PIZZA_MANIFEST_FILE);
+		return;
+	}
 	else if (mApp->mStoryScreen == nullptr)
 	{
 		// the story screen (which is also the level's end) with its layout, its nodes, the game's stats and its

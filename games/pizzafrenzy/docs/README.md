@@ -197,7 +197,7 @@ The standard commands of `docs/TEST_COMMANDS.md` (`-script`, `-commands`, the we
   menu's restore does.
 - `level <day>`, `level <city> <level>`: from the main menu (numbers from 1; the day counts the levels of every city):
   the speed mode's saved game is put at the level with no score and `startGame` runs from it, so the story, the new
-  toppings and the level start come as for any level. A bonus round is refused: it is not played yet.
+  toppings and the level start come as for any level; a bonus round is started the same way (the city's last level).
 - `unlock all`: the last city is the player's furthest (`UserGameData::setMaxCity`), every topping the player lacks is
   at level 0 and no longer new, and the data is saved. The stories still show, since the furthest day is not touched.
 - `set score|tips|money|happiness|ordersToGo <n>`: in a level: the stats' score, tip jar money, tips earned, the
@@ -219,12 +219,25 @@ earned this level), `happiness`, `ordersToGo`, `timer` (the stats' seconds, whic
 (`cell`, `x`, `y` the point to click, `topping`, `picked`, `wait` seconds left, `clickable`, `event`, `chameleon`),
 `kitchens` (`cell`, `x`, `y`, `topping`, `clickable`, `vanOut`) and `tips` (`x`, `y`, `amount`, `waiting`).
 
+In a bonus round the state has `phase` (intro, arrive: a pizza and its buttons come in, play, score: the toppings of
+the target are scored, end) and a `bonus` object instead of the board: `timeLeft` and `pizzasLeft`, `playing` (the
+player may put toppings), `selected` (the topping on the cursor), `targets` and `placed` (each `topping`, and `x`, `y`
+the point of the player's pizza that the target has it at, or that it was put at), and `buttons` (`topping`, `number`
+left to put, `x`, `y` the point to click). `levelOver` is true from the round's end phase.
+
 The bot reads the state and nothing else, and draws from no generator. In the introduction it clicks to skip it. In
 play, with no order picked it clicks a tip that waits, else picks the clickable customer with the least wait left (the
 first of two); with an order picked it picks more customers of the same topping while the pick limit allows
 (`GameStats::getPickLimit`, 0x41a670, read without its insertion), then clicks a kitchen that makes the topping. A
 customer of a special event is left alone, since the events' pizzas are not served yet. Every move is a `move` step
 and a `click` step and waits 2 updates; the blimp's flight and the level's end are `MOVE null`.
+
+In a bonus round (the introduction is skipped with a click, as above) the bot waits while a pizza comes in and while
+one is scored, and in play takes the first topping of the target pizza that has no topping of its kind put for it (the
+target's toppings in order, the ones of a kind matched with the ones put of that kind in order): a click on the
+topping's button (`topping`) while another or no topping is on the cursor, then a click (`place`) on the point of the
+player's pizza where the target has it, which scores a perfect topping. It never takes a topping back with the right
+button. The round's end ends in the summary, which is pressed through as below.
 
 On the screens before play the bot answers too, each move a real click or key on what a player presses, the point
 read from the screen's own node (the centre of its bounds, with its parents' places added, in game points). A screen
@@ -241,5 +254,5 @@ have no move (`MOVE null`).
 The summary is pressed through like the story: the Escape key while its `skipString` shows, else a click on
 `continueButton`; the upgrades' stories after it are met the same way, and then the next level's story, new topping and
 level start come as above. A game over ends the run as `over` (the menu or the high scores is back; the game won
-story is not tried). The summary that leads into a bonus round has no move (`MOVE null`, the bonus round is not
-ported), so a run from launch ends there.
+story is not tried). A run from launch goes through a city's levels, its bonus round and its summary into the next
+city (the `-seed=1` run of 3000 steps reaches city 6).
