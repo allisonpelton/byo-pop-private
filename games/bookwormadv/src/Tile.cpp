@@ -85,14 +85,14 @@ void Tile::PushTile(Tile* theTile)
 }
 
 // 0x498e30
-void Tile::CreateLinkedObject(void* theObject, bool theUnused)
+void Tile::CreateLinkedObject(void* theObject, bool theIgnoredFlag)
 {
 	LuaSupport* s = gLuaSupport;
 	mLinkedName = LuaGetRegisteredName();
 	mLinkedObj = theObject;
 	lua_pushstring(s->L, mLinkedName);
 	PushLinkedObject();
-	lua_pushboolean(s->L, theUnused);
+	lua_pushboolean(s->L, theIgnoredFlag);
 	s->Call("CreateLinkedObject", 3, 0);
 	// Port: no RegisterEnums here (the original did it; a tile has no constants)
 }
@@ -252,13 +252,6 @@ bool Tile::SlideStep()
 	mY = aY;
 	TileYChanged(aY);
 	return aSliding;
-}
-
-void Tile::Fall(int theDistance, int theDelay)
-{
-	mFalling = true;
-	mFallDistance = theDistance;
-	mFallDelay = theDelay;
 }
 
 void Tile::TileXChanged(int theX)

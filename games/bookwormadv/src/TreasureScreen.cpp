@@ -72,6 +72,7 @@ void TreasureScreen::SetButtonState(int theId, bool theVisible, bool theEnabled)
 	}
 }
 
+// port: the rect of a button, for GetButtonX (0x4a4db0), GetButtonY (0x4a4e40), GetButtonW (0x4a4ed0) and GetButtonH (0x4a4f60)
 int TreasureScreen::GetButtonRect(int theId, int theField)
 {
 	if (theId != BUTTON_BACK && theId != BUTTON_CONTINUE && theId != BUTTON_OPTIONS)
@@ -149,6 +150,7 @@ void TreasureScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 	lua_setglobal(L, "gTreasureScreen");
 }
 
+// port: whether the screen is hidden or behind a chapter's loading screen
 bool TreasureScreen::IsAsleep(bool theCheckState) const
 {
 	if (!mVisible && mDisabled && (!theCheckState || mState != STATE_NORMAL))

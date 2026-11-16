@@ -352,42 +352,73 @@ the battle intros and the attacks are the game's own animations, which hold the 
 This is a result of the play-throughs, not of a line-by-line reading of the export for waits, so a later find is added
 here.
 
-## Performance (2026-11-08)
+## Performance (2026-11-16)
 
-The original and the port measured back to back on this machine (a Core i7-12700F, Windows 11), for the user's morning
-report. No other game process ran at the start or the end of any run (`tools/gamecount.py`; `build/perf/procs_*.txt`,
-git-ignored), but other sessions' builds may have, so the performance pass re-measures on a quiet machine. Both ran
-windowed, in real time, with no sound: the original under origrun on the host with its silent stand-in and the user's own
-saved player, the port natively under rundesk with SDL's silent driver and a saved player of its own.
+The performance pass. Both sides ran on this machine (a Core i7-12700F with a GTX 1080, Windows 11) in real time, held
+at the title with a saved player and no input, since the title draws every frame on both sides (Lex, the logo, the
+curtains' frame) and a minute of play on the original would need its board read back through origrun. The port ran
+under rundesk with the test profile (`tests/menu`), in 3D as on a card that passes the original's Direct3D test (the
+original's first run on a player's machine), windowed in its own 800x600 window (ScreenMode 0, `-windowscale=1`; its log:
+"client 800x600 px, logical 800x600, render scale 1, windowed, renderer direct3d11"), with no `-commands` channel in the
+processor runs. The original ran through origrun on rundesk's desktop with the user's saved player, where DirectDraw has
+no hardware and it runs in 2D (each run's log: "3D mode: the game reports OFF"; none logged a late window).
+`tools/profile/memrun.py` reads either process from outside: private bytes every 50 ms, the process's and each thread's
+cycle counts (QueryProcessCycleTime, QueryThreadCycleTime) at two moments, `tools/memmap.py` and every private
+allocation at chosen times, and the port's `memreport`. `tools/profile/pairs.sh` runs the two sides turn about, each
+pinned to a performance core of its own (`tools/pincore.py`), the cycles counted from 40 to 100 s and the memory read at
+105 s; `pairsum.py` gives the medians.
 
-**What was measured, and how.** `tools/profile/runperf.sh`: three rounds of the original and then the port, each run 90 s
-from launch with no input (the loading, then the title with the player's welcome), sampled every 50 ms by Bejeweled's
-`perfmin.py` (working set, private bytes, processor time, threads), the processor time over 20 to 80 s. The minute is the
-title at rest, not play: a scripted minute of play on the original would need its board read back through origrun, and
-the title's drawing (Lex, the logo, the curtains' frame) runs every frame on both sides. Loading: the port's
-`tools/profile/loadtime.py` (the `state` command's title with `"loaded":true`, asked every 20 ms, five runs), the
-original's by perfmin's thread count, where its loading thread ends.
-
-| | original (3 runs) | port (3 runs) |
+| Five pairs, pinned | The original (2D) | The port (3D, 800x600) |
 |---|---|---|
-| Peak working set | 125.7 MB (125.6 to 125.7) | 172.2 MB (172.1 to 172.5) |
-| Peak private bytes | 93.6 MB (93.5 to 93.7) | 164.7 MB (164.6 to 165.0) |
-| Private bytes at rest (20 to 80 s) | 93.5 MB | 145.0 MB |
-| Processor time, 20 to 80 s | 9.4, 7.8 and 8.6 % of one core | 3.0, 2.9 and 3.2 % of one core |
-| Processor time, whole 90 s run | 8.9, 7.7 and 8.8 s | 3.8, 3.7 and 3.7 s |
-| Launch to the title loaded | 6.35 to 6.41 s (its loading thread's end) | 1.70 s median (1.68 to 1.75, 5 runs); 5.25 s before the logo came out |
+| Processor time, 40 to 100 s | 24.4 G cycles (17.5 to 26.6) | 7.9 G cycles (6.9 to 9.2); 6.9 G (6.0 to 8.5) without SDL's audio thread |
+| Private bytes at the title | 91.9 MB (91.4 to 94.1) | 79.3 MB (77.4 to 80.3) |
+| Peak private bytes | 92.2 MB (91.6 to 94.5) | 101.1 MB (97.4 to 105.2) |
 
-**Reading it.** The port holds about 50 MB more private memory at rest than the original, and peaks 20 MB higher while it
-loads. Like Bejeweled's, it keeps every image's pixels at 4 bytes a pixel after the GPU has its texture, and its sounds as
-48 kHz float; why the original holds less was not examined. The port uses about a third of the original's processor time
-at rest, and loads to the title in a quarter of its time: the original loads only after its PopCap logo (356 updates, 3.6
-s, nothing loaded meanwhile and no click to leave it), which the port now skips (`-popcaplogo` keeps it for comparisons;
-"Deviations from the original"), and the load itself runs at the machine's speed. The memory and processor rounds ran
-before the logo came out; the logo is over long before their 20 s window.
+The port takes a third of the original's processor time. The original's music thread (BASS, which mixes its MO3 in
+the game's process) is counted on its side, so the port's figure with its mixer is the one to set beside it. The
+port's default is full screen, which on rundesk's desktop is 3840x2160 at render scale 4: one pinned run took 16.0 G
+cycles, still under the original, and held 77.3 MB at the title with a peak of 100.1. Unpinned, the port's main thread
+took 5.7 to 25.6 G cycles in the same minute (four runs: 10.2 to 30.9 G in all), as its vsync present spins on the free
+cores of a desktop that has no vertical blank; pinned, as the trunk measures every GPU-drawn port (`docs/MEMORY.md`,
+"Like for like, for a renderer whose cost lands in a driver thread"), it does not. In 3D through dgVoodoo (`--dgvoodoo
+--3d on`, one run) the original held 157.7 MB at the title and peaked at 188.9 MB; dgVoodoo loads Direct3D 9's and 11's
+driver images both, so that is an upper figure for its 3D mode.
 
-**What could not be measured.** The web build's load time: the Browser pane is hidden and its timers throttled, so a load
-there says nothing faithful about a player's browser, where the network and the wasm compile dominate. A minute of play
-(above). Full screen and the GPU's own load.
+**Where the memory went.** At the start of the pass the port held 98.4 MB at the title (three runs, 98.2 to 98.5) and
+peaked at 117 to 121 MB while it loaded. Against the original's 2D figure that is 6 MB at rest with the Direct3D 11
+device's 28 MB inside it, so the port's own allocations were already below the original's. Two holders came out:
+
+- **The curtain's three copies, 16 MB.** The original makes the flipped and mirrored copies of the curtain for each
+  transition and frees them with it; the port makes them once and keeps them (no 25 to 30 ms hitch at each curtain),
+  and kept their pixels too, 5.3 MB each. A copy's pixels now go once its texture is up and are made again the same
+  way when anything needs them (a lost device, a software draw): `MemoryImage::BitsSource::mMake`, a framework hook
+  for a picture a game made, as a file makes a loaded picture's again. With `BYOPOP_DROPCHECK=2` (each dropped picture
+  made again at once and compared) no picture differed.
+- **The word list, 5 MB.** The original keeps its 167,624 words as a `std::set<std::string>`, a node of 40 to 64 bytes
+  each with the heap's header (307,895 blocks in the port's heap, 7.3 MB of them the set's). `Lex` now holds the
+  letters in one array and the words' places, sorted in the set's order, in another, about 2.3 MB, with the same
+  answers; the heap fell to 97,223 blocks. This one is below what the original holds.
+
+What is left at the title (`memreport`): the libraries and devices at start 34.3 MB, the Direct3D 11 device about 28 of
+it; the pictures' pixels 7.7 MB (palettes 2.8 MB, the curtain's own indices among them, and the PopAnim pictures,
+which load outside the resource manager); the 92 sounds 5.5 MB, as 16-bit samples at their own rates as the original's
+buffers hold them; the music's module file 2.0 MB and the player of the song that plays; PopLua's heap 2.1 MB. The
+textures, 62.8 MB by the estimate, live on the card and cost no private bytes; the original in 2D keeps all of them as
+32-bit pixels in its own memory.
+
+**The load's peak** is the graphics driver's, not the game's. Between 5 and 16 s one private allocation of 20.4 MB,
+write-combined (protection 0x404), shrank to 3.1 MB about 6.5 s after the load ended: the NVIDIA driver's staging for
+the pictures' uploads, which the trunk sends to the GPU every 2 MB (`platform/GPUFlush.cpp`). It is shared code, so it
+went to the coordinator as a note rather than a change here. The original's 2D mode has no such device; its 3D mode
+through dgVoodoo peaked 31 MB above its own resting figure.
+
+**Looked at and left.** `Mixer::SetSongPlayersPooled`: JeffLib's song player loads the one module twice and crossfades
+between the two songs, and the pool keeps a stopped player for the next song, so both players live after the first
+crossfade either way; the port already makes each at its first play. Lua's heap: 2.1 MB at the title, as the
+original's (`docs/MEMORY.md`, "Bookworm Adventures' Lua heap"). Loading: 1.70 s to the title against the original's
+6.4 s (the performance notes of 2026-11-08, before its PopCap logo came out), not measured again.
+
+The frozen baseline is identical after both changes (`tools/check.sh bookwormadv`).
 
 ## Coverage check (2026-11-15)
 
@@ -464,6 +495,204 @@ only ends the panel (`arena`'s steps click the colosseum twice); the original wa
 **Cost.** The original's runs took about 40 minutes of machine time, the port's step-by-step plays (each step a run
 of the port from the start) about two hours, and the sorting about 30 minutes of Sonnet agents.
 
+## Unneeded code (2026-11-16)
+
+What nothing reaches was found two ways. First the linker: an -O0 build of the game alone in `build/gc`, compiled
+with `-ffunction-sections -fdata-sections` and linked with `-Wl,--gc-sections -Wl,--verbose` (docs/COVERAGE.md), whose
+"Discarded" lines `tools/coverage/gcdead.py` matches against the functions each of the game's own objects defines.
+Second, a function defined inline in a header that nothing calls is never compiled, so the linker never sees it;
+`tools/coverage/inlinedead.py` lists every inline member whose name no other line of the game's sources uses. Each
+candidate was then read against the export (its callers, its vtable slots, `bindings.txt`) before it went, and has a
+`none` line in `coverage.txt` with the reason. A second linker run after the cuts found nothing more in the game's code.
+
+Taken out: `Board::LoadScripts` (0x4185d0, a developer's reload of the scripts, with no caller); the conversation
+panel's `Deactivate` (0x4320b0, whose only caller was the trial's buy screen, already out) and
+`SetAllContinueTextColors` (0x432cb0, a vtable slot nothing calls and no script binding names); `Tile::Fall` and
+`Tile::IsInRow`, `TileEngine::DrawTiles` (no caller in the original either), `Board::GetGridWidth` and `GetGridHeight`;
+`ExtractResourcesByName` (0x4aead0, no caller) and the MiniGameCommon group's globals and their Extract function, which
+no C++ code reads (the mini-games' scripts take those pictures from the resource manager), now left out by
+`tools/resgen.py` so that `Res.h` and `Res.cpp` stay generated; 19 of `JeffLib::Animator`'s virtuals (the other draws,
+the tints, ranges, direction, random order, the frame setters) and its copying, now deleted, since the one Animator in
+the game (a conversation portrait) only loops; `BonusText`'s second constructor (0x6c4820); `DataDrivenClass::Reload`
+(0x6b3e50) with the two virtuals only it called and the credits' versions of them, and the file name it kept for it;
+`LuaResourceManager`'s three lookups (0x65d500, 0x65d580, 0x65d5f0: the port's `LuaApp` bindings look resources up
+themselves), `LuaApp::LuaAppHook` (an empty slot), `LuaSupport::SetOwned`, `LuaClassRet::Number`,
+`LuaLinkedClass::GetLinkedObject` and `Class<T>::Info`.
+
+Kept. `Animator::Update` and its draw colour, and `BonusText::Update`, keep the original's branches for what only the
+removed functions turned on (ping-pong, ranges, reverse and random order, tints, a target height): each is one function
+of the original translated whole, and taking its branches apart would rewrite it rather than take code out. The 21
+functions of PopLua the linker lists (`lua_dofile`, `luaL_ref`, `lua_equal` and the like, and the host hooks
+`poplua_setprint` and `poplua_setcwd`) are Lua's C API in PopCap's fork, kept whole as a library, as the C runtime is.
+The compiler stays too, since the loader compiles a `.lua` that is newer than its `.luc`, as the original's does, so a
+player's file reaches it, and so do the script-facing functions that the coverage review found no script calling
+(`LoadResGroup`, the Lua widgets' forwarders, `string.rep` and the rest): a script can call them, and they are what a
+script mod has to work with.
+
+## Readability (2026-11-16)
+
+The pass followed `docs/CODE_STANDARDS.md`. `namecheck.txt` now brings `jefflib/`, `luaapp/`, `lualib/` and `popanim/` into the
+check beside `src/`; `poplua/` stays out, as PopCap's fork of Lua 5.0.2 in Lua's own names and style, kept as a library. The
+first run found 248 things; `tools/namecheck.py games/bookwormadv` now finds none.
+
+**Fields.** The fields nothing reads came out where nothing depends on them: BattleEngine's +0x34, the tile's +0x80, the board's
++0xe5 and its two strings at +0x130 and +0x14c (copied and cleared, never read), the stats book list's +0x138, and the
+Animator's four unknowns (+0x2c, +0x30, +0x98, +0x99, read only by its copying, which is gone). Two were read and got names:
+the board's `mIgnoreUnpauseClick` (+0xe9) and `mLastSpacePauseTime` (+0x10c). The flag that the scripts pass to a new tile and
+an arrow hint, and that nothing uses, is `theIgnoredFlag`: the scripts' own `CreateLinkedObject` takes two arguments and drops
+the third. `tools/splitfields.py` listed 15 fields written and never read. Fourteen now say in their comment that nothing reads
+them, and one, the credits' animation id, is read after all, as the id each new animation takes. It also listed 20 members
+that one of the original's functions touches and its translation never names. Every one is a pairing of the wrong
+function with an address mentioned in a comment, or an offset through a base class (Draw and Update see the object 0x28
+on): none is a difference in what the port does.
+
+**Addresses.** 184 functions had neither an address nor a `port:` marker. About 105 got their address. The Lua bindings
+took theirs from `bindings.txt`, the rest came from the export, and `F_Rand` (0x66d4b0) came from the disassembly, since the
+export does not show the pointer its registration passes. About 80 are the port's own, mostly helpers that read a Lua
+call's arguments and the curtains' callbacks, and say `port:`, naming the original function they come from where there
+is one. `GameText.cpp` is the port's in its first comment. 28 one-letter names that ran over ten lines were renamed
+(`aPanel`, `aSupport`, `aTransform`, ...).
+
+**Proof.** The field cuts by the suite's frozen baseline (identical). The addresses, the comments and the renames by the
+object code: `tools/objsnap.py` found the game's 94 objects and 4,895 functions the same before and after.
+
+## The PopCap Game Collection version (2026-11-16)
+
+The port was made from the retail install (`C:/Program Files (x86)/PopCap Games/Bookworm Adventures Deluxe`), so it is
+checked against the game on the PopCap Game Collection disc (`docs/COORDINATION.md`).
+
+**Getting the files.** `unshield` (`E:\retools\unshield-build`) read the group `BookwormAdventuresDeluxeComponent` out of the
+disc image's cabinet, which was mounted read-only and dismounted afterwards. That gave 13 files, 33 MB. They were deleted once
+this was written; to bring them back, make a folder, enter it and run `unshield -g BookwormAdventuresDeluxeComponent -d . x
+F:/data1.cab`. Like the install, the copy keeps nearly everything in `main.pak`.
+
+**The files** (`games/bejeweled/tools/collection/cmpfiles.py`, and `tools/popcap_pak.py` to unpack both paks). Of the
+paks' 5,157 files, 5,156 are the same byte for byte. The one that is not is `scripts/common/dprops_editor.luc`, a developer's
+properties editor, where only the source path compiled into the chunk differs (another folder on PopCap's build machine).
+The four cutscenes, `bass.dll`, `Flash.ocx` and `j2k-codec.dll` are the same. `properties/partner.xml` differs in its
+distribution tag and offering number only; its registry key (`PopCap\WinBAD`) is the install's, so a player's settings sit
+in the same place. The licence and readme differ.
+
+**The exe is another build.** `games/bejeweled/tools/collection/cmpexe.py` puts the Collection's `BookwormAdventures.exe`
+(4,765,000 bytes) beside the install's (4,760,904). Every section differs throughout, and `.text` is 4 KB longer. The port
+reads 273 texts from the player's exe by address (`GameText.h`). None is at its address in the Collection's build, but 272 are
+there byte for byte at other addresses. `LoadGameTexts` now looks for the texts it cannot find at their address by their
+content, as Astro Pop's does: every zero-terminated run in the image, and every tail of one, matched by length and hash. The
+one it cannot find is the fourth of the profile format's changes (0.0.5). The Collection words it a little differently,
+and it is shown only for a profile saved before 0.0.5, from before the game shipped, which no player has. The two builds
+list the same 14 format changes and so the same format, 0.1.5.
+
+**The port on the Collection's files.** The Collection's folder was made from the staged install with its exe,
+`partner.xml` and editor script put in. The suite's chapter and screens runs (`tools/check.sh`, with a screenshot of the
+loading screen added) then ran on both folders. The board logs, script lines, saved profiles and all seven screenshots
+are the same byte for byte; on the Collection's exe the log says 272 of the 273 texts were found by content.
+
+What is not known: whether the Collection's own exe plays the same as the install's. Its code differs throughout, so no
+function was compared and it was not run; what speaks for it is that its data is the same files. Where the Collection's
+build keeps a player's profiles was not checked either: the two builds name them the same way, and no Collection save was
+at hand.
+
+## The lite mod (2026-11-16)
+
+There is no lite mod: `LITE_MOD.md` says what was looked at and why nothing is taken. The C++ logic has no search (the word
+check is a binary search over the word list, the letter deal a weighted draw, the refill a fall). The rules are in the
+original's Lua scripts, which the port runs unchanged. Over the chapter run's battles under `-fast`, the update is 0.314 M
+cycles an update, 49% of the process, against 0.300 M for the picture. A sampling profile puts the scripts' interpreter at 21%
+of the battles' cycles and the bot's own search at 1.7%. None of the board's or the tile engine's functions reaches 0.1%. In
+real play, at 100 updates a second, the battles' update is under 2% of a core.
+
+## Leftovers and developer features (2026-11-16)
+
+This section covers what the shipped scripts still hold from development. Each point was read from the scripts' bytecode
+with `python games/bookwormadv/tools/luc.py dis <script>`. The line numbers are the scripts' own, from their debug
+information. The port runs the scripts unchanged, so all of it is in the port as in the original. Apart from the
+best-word placeholders, a player of the shipped game never meets any of it.
+
+**The flags.** At its top main.lua defines `CHEATED` false (line 24), `BETA_BUILD` false (line 26) and `DISABLE_CHEATS`
+true (line 29). The exe sets the last two again. It calls `main.SetDisableCheats(true)` right after it runs main.lua,
+and `main.SetBetaBuild(false)` after `main.LoadInitialResources` at the end of the load (`GameApp.cpp`). Across every
+script, nothing else writes either flag, so the two debug gates below stay shut. `CHEATED` is written only by the kill
+cheat and by the end of a battle.
+
+**The cheat functions.** cheat.lua is one of the startup scripts (the list in packs/default.lua) and defines 25 global
+functions, each named with a leading underscore:
+- Lex's and the enemy's health: set, raised, lowered, filled, made very large, or for Lex left at a quarter of a heart
+  (`_lex_near_death`).
+- A potion of the kind given, health, attack or purify (`_GiveLexPotion`), a level-up (`_LexLevelUp`) and full experience (`_LexMaxXP`).
+- The kill (`_KillEnemy`).
+- `_CompleteChapter`, which marks the selected chapter completed and fills the profile's treasures.
+- `_NukeProfile`, which clears every chapter's completion and saves.
+- The tile attributes: add, remove, test, and a test of their tooltips on random tiles.
+- `_Particles` and `_StatusTest`, a particle burst and every ailment and effect applied at once.
+- `_SetPtrs`, which sets two globals to the player and the enemy.
+- `_DefaultMP`, the media player's default list.
+- The two profile hooks `_debug_profile_loaded_value` and `_debug_profile_done_loading`.
+
+The exe calls the two hooks when it loads a player's profile; the second is what unlocks the tome ("Faults the pilot found"). Nothing
+in the exe or the other scripts calls any of the other functions, and neither binds a key to them. The kill refuses the
+hydra and the sphinx with a debug message box that names Tab as the kill key and Delete as the way to weaken them, so the
+developers' build had keys for both. The port's test commands `win`, `lose`, `set health` and `set enemy` call these
+functions ("The drivers' commands and the board log").
+
+**The best and longest words.** At the end of a battle (`EndBattle`, line 898; lines 1024 to 1067 within it) the player's
+best and longest words are taken from `mRoundWords`. The best is the word of the highest value (the tile engine's
+`GetWordValue`, rounded and capped at 12). The list
+is emptied when a battle (re)starts (`UpdateState`'s restart, line 3046) and grows only when a word is submitted
+(`SubmitTiles`, line 1799). With the list empty, `mBestWord` and `mLongestWord` get a pair of placeholders: the best is
+the word for cheating, and the longest is a short accusation of it, written as one word. The pair goes to the word scroll
+after a win (line 1076); after a loss, the best word goes to Lex's gravestone (line 1209). So a battle lost without a word
+spelled, such as scrambling until Lex dies, shows the placeholder on the gravestone. Which other damage could end a battle
+with the list empty was not traced.
+
+`_KillEnemy` (lines 104 to 107) sets `CHEATED` and appends a fake entry to `mRoundWords` and `mChapterWords`. The entry's
+word is the same word for cheating, with a value of 1. A kill made with it alone therefore shows that word as both
+best and longest, where the empty list would give the accusation as the longest. `CHEATED` has one reader. At the end of a
+battle (line 946) it skips `ToughItUp`, the record of Lex's health over the last five battles (`Last5HP`) from which the
+scripts set the profile's `BeatdownMultiplier`, so a cheated win does not change the difficulty. It goes back to false at
+line 1643. It is not an anti-cheat: nothing checks the saves or the memory.
+
+**The stats book's layout editor.** In the stats book's `MouseDown` (statsbook.lua lines 976 to 982), a click with a
+count of 3 toggles `mDebugMode`. In SexyApp a count of 3 is the middle button. The toggle needs `BETA_BUILD` false and
+`DISABLE_CHEATS` false, and the stats book must not be the media player. In that mode, dragging moves the selected
+creature's picture (`mNudgeX`, `mNudgeY`). A right click (a negative count) calls `WriteNudgeValues` (line 938), which
+writes every offset to `scripts\nudge.lua` (line 945) as a commented `gNudgeTable`. The stats book loads
+`scripts/nudge` plus the scripts' extension when it is made (lines 27 to 33). The game ships `nudge.luc`, and with
+compiled packs the extension is `.LUC`, so a nudge.lua written by the editor would be read back only in a setup that has
+source packs.
+
+**The battle's debug gate.** The battle's `MouseUp` (battleengine.lua line 3489) has the same gate, plus a click count of
+3 and the tutorial's `mHideLore` off. A middle click on one of the enemy's lore panels (its attacks' descriptions) sets
+that attack's `mDebugMaxUrgency`. The attack classes then report the attack as ready (`CanAttack`) and give it an urgency
+of 999999 once (`GetUrgency`, which clears the flag), so the enemy uses it next. While it is set, the enemy's
+`DrawLorePanel` (pambasedenemy.lua line 364, behind the same two flags) draws a black box with a red label saying the
+attack is forced.
+
+**Packs and expansion hooks.** main.lua's script loading (lines 345 to 372) requires packs/default.lua first. It then sets
+`EXTENSION` to `.LUA` when `scripts/packs/*.lua` finds any file, and otherwise to `.LUC` with the `.luc` files, so source
+packs are preferred when present (the loader also compiles a `.lua` that is newer than its `.luc`; "Unneeded code").
+Every pack but DEFAULT is required in name order: book1 to book3 and bosslist1 to bosslist3. For each pack named BOOK
+with a number and not ending in `_INIT`, the book's `__Book<n>GetFullEnemyList()` is appended to `MAIN_ENEMY_LIST`.
+
+main.lua lines 37 to 49 define five empty tables for an expansion, and they are used to different degrees:
+- `EXPANSION_HOF_ARENA_DETAILS` is the one that is filled: the three boss lists fill it with the arena's bosses, and the
+  hall of fame (`HallOfFame.cpp`) reads it through the functions at lines 1398 to 1414.
+- The treasure screen walks `EXPANSION_TREASURE_INIT_FUNCS` and `EXPANSION_TREASURE_DRAW_FUNCS`, both empty here.
+- `NeedsIntroCutscene` (line 1433) walks `EXPANSION_INTRO_INFO`, also empty.
+- `EXPANSION_MM_EXTRA_BUTTONS` gets one test entry (line 1464): the tome's three images, a test label and the callback
+  `main.callbacktest`, which only prints its own name. Nothing in the exe or the scripts reads the table.
+- `main.NeedsMMExpansionExpansion` (line 1465) returns false, and nothing calls it.
+
+**Covered elsewhere in these notes:**
+- "Faults the pilot found": the profile hooks that unlock the tome, and the island that arena.lua draws only in 3D.
+- `ENGINE.md` ("LuaSupport") and "Status": the Lua debugger console and the save points (`luatemp.dat`).
+- "Coverage check": the profiler (`perf.Start`, `perf.End`), the developers' script reload and the DProps editor that
+  nothing loads.
+- "Unneeded code": the compiler, kept because the loader compiles a newer `.lua`.
+- "The PopCap Game Collection version": the DProps editor's chunk, which records another source folder on PopCap's
+  build machine, and the message for a profile saved before format 0.0.5.
+- The arena is the code's "timed mode": `MainMenu::StartArena` (0x47c290) calls `main.SetTimedMode(true)`, and the app's
+  `mTimedMode`, the scripts' `gTimedMode` and the profile's `TM_` keys all belong to it.
+
 ## Mods
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
@@ -491,4 +720,6 @@ same dialect (the suite's 150 dialect checks), which is what script mods would n
 
 `CMakeLists.txt` (the `BUILD_BOOKWORMADV` option), `tools/check.sh` (the `bookwormadv` suite and the unit suite's
 jp2test), `.claude/launch.json` (the `bookwormadv-web` preview on port 18775) and the platform's JPEG 2000 images
-(`platform/openjpeg`, registered with the framework's image loader).
+(`platform/openjpeg`, registered with the framework's image loader). The performance pass added `MemoryImage::BitsSource::mMake`
+(`framework/MemoryImage.h`, a `shared:` commit): a picture a game made can drop its pixels after its upload, as a
+loaded picture does; off unless a game sets it.

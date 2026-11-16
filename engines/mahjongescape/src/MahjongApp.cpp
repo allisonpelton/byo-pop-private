@@ -2,6 +2,7 @@
 
 #include "MahjongApp.h"
 
+#include "Deal.h"
 #include "Edition.h"
 #include "GameText.h"
 #include "Host.h"
@@ -593,6 +594,10 @@ void MahjongApp::Init()
 	// original
 	gSteadyClock = !mFastMode && Platform::FixOn("steadyClock");  // a -fast run is steady already
 	gSeededDeals = Platform::FixOn("seededDeals");
+	// the lite mod (docs/LITE_MOD.md): the shuffle's redeal in search steps, not on the machine's clock
+	mahjong::gQuickRedeal = Platform::LiteOn("quickRedeal");
+	if (mahjong::gQuickRedeal)
+		SDL_Log("lite: quickRedeal (a shuffle's search stops after %d clock checks)", mahjong::kQuickRedealChecks);
 
 	mWidget = new MahjongWidget();
 	mWidget->Resize(0, 0, mWidth, mHeight);

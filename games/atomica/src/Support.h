@@ -145,6 +145,7 @@ public:
 	~Sprite();
 	void		SetImage(Image* theImage);	// 0x429610: the whole image
 	unsigned int* GetBits();				// 0x429650
+	void		Palletize();				// 0x429670: the image keeps a palette and one byte a pixel when it has 256 colours or fewer
 	void		BitsChanged();				// 0x429660
 
 	// 0x4014c0: top left at x, y

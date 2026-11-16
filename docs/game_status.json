@@ -132,7 +132,7 @@
         "collection"
       ],
       "now": null,
-      "note": "every phase but modding done: the lite mod step closed with no mod (20a8029f). An exact Dijkstra-pruned route search gives the same route in all 1,187,177 searches compared, but the original's search is 5-8% of the process only in its worst state and about 0.5% in bot games, so neither is measurable; re-measured on the settled renderer (main bdfda2f7): six pairs, median ratio 0.885 but pairs from 0.79 to 1.71 on a busy machine, so still not measurable (LITE_MOD.md)"
+      "note": "every phase but modding done: the lite mod step closed with no mod (20a8029f). An exact Dijkstra-pruned route search gives the same route in all 1,187,177 searches compared, but the original's search is 5-8% of the process only in its worst state and about 0.5% in bot games, so neither is measurable; re-measured on the settled renderer (main bdfda2f7): six pairs, median ratio 0.885 but pairs from 0.79 to 1.71 on a busy machine, so still not measurable (LITE_MOD.md); then the software screen at 1x with the original's palettes (47540674): 7.59 G cycles against the original's 8.79 (median ratio 0.88 over six pinned pairs), 58 to 63 MB against 66 to 67, the pictures within 8 pixels of the original's"
     },
     "mummymaze": {
       "title": "Mummy Maze Deluxe",
@@ -186,13 +186,15 @@
         "coverage",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "performance",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": "second performance round merged: SurfaceDisplay's stretch mode (GDI nearest, off by default; full screen at 4K 0.57 and 0.52 of the original's processor time) and the modal pause under the mod menu; the default full screen stays on the renderer (over the original) until the user's choice of look and fw-memory's processor-side smooth stretch"
+      "note": "third performance round merged (2026-11-16): full screen is fw-memory's smooth stretch on the processor (no renderer at any size, 0 pixels differ from the renderer's look in six screens); processor time at 0.41 / 0.66 / 0.79 (Japan) and 0.32 / 0.52 / 0.42 (China) of the original's in the 800x600 window, 2x and full screen; memory below the original's at the title and 12 MB above it at the peak of a play (listed, not chased); the lite mod quickRedeal (the shuffle's deal search stopped after a count of steps, docs/LITE_MOD.md), not yet on the web build"
     },
     "mahjongchina": {
       "title": "Mahjong Escape: Ancient China",
@@ -205,13 +207,15 @@
         "coverage",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "performance",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": "second performance round merged: SurfaceDisplay's stretch mode (GDI nearest, off by default; full screen at 4K 0.57 and 0.52 of the original's processor time) and the modal pause under the mod menu; the default full screen stays on the renderer (over the original) until the user's choice of look and fw-memory's processor-side smooth stretch"
+      "note": "third performance round merged (2026-11-16): full screen is fw-memory's smooth stretch on the processor (no renderer at any size, 0 pixels differ from the renderer's look in six screens); processor time at 0.41 / 0.66 / 0.79 (Japan) and 0.32 / 0.52 / 0.42 (China) of the original's in the 800x600 window, 2x and full screen; memory below the original's at the title and 12 MB above it at the peak of a play (listed, not chased); the lite mod quickRedeal (the shuffle's deal search stopped after a count of steps, docs/LITE_MOD.md), not yet on the web build"
     },
     "bejeweledtwist": {
       "title": "Bejeweled Twist",
@@ -311,7 +315,7 @@
       ],
       "na": [],
       "now": null,
-      "note": "every phase but modding done, final merge 2026-11-15 (bd6d9d05): the whole 210-puzzle game through real input, natively under rundesk (210 solved, 0 errors, 7316 s) and on the web in the pane (210 solved, 7899 moves, 0 errors); performance (9b2dd17e) pair ratios median 0.90; oddity: three boards where the bot's click read as another move, cleared by Undo (IDENTICAL_PLAY.md); next the software screen at 1x"
+      "note": "every phase but modding done, final merge 2026-11-15 (bd6d9d05): the whole 210-puzzle game through real input, natively under rundesk (210 solved, 0 errors, 7316 s) and on the web in the pane (210 solved, 7899 moves, 0 errors); performance (9b2dd17e) pair ratios median 0.90; oddity: three boards where the bot's click read as another move, cleared by Undo (IDENTICAL_PLAY.md); the software screen at 1x (8a1646b9): 66.8 to 69.6 MB with 3D off against 91 to 93 for the original, 2.20 M cycles an update against 3.43"
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",
@@ -373,11 +377,16 @@
         "identical-look",
         "fixes-mod",
         "site-features",
-        "coverage"
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "collection",
+        "lite-mod"
       ],
       "na": [],
       "now": null,
-      "note": "the coverage step done (8ea57115): 17 runs of the original, every function it ran has a counterpart or a none line (coverage.txt, 1931 lines for 3525 functions); GameApp::SwitchScreenMode and Init's flags translated (full screen sets mVSyncUpdates and mWaitForVSync), two slips fixed (GameDialog's Escape, LoadResGroup); 77 unreachable functions and PopLua's compiler are the unneeded-code step's candidates; next performance"
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: no search in the C++ logic, the rules are the original's Lua scripts; the battles' update is under 2% of a core in real play, the board's and tile engine's functions each under 0.1% of a profile)"
     },
     "bookworm": {
       "title": "BookWorm Deluxe",
@@ -591,11 +600,13 @@
         "coverage",
         "lite-mod",
         "unneeded-code",
-        "collection"
+        "collection",
+        "performance",
+        "readability"
       ],
       "na": [],
-      "now": "performance",
-      "note": "lite mod: none (LITE_MOD.md); unneeded code out; Collection check: data identical in pixels, tour identical on its files, the exe another build (95800f56). Performance: 1.10 of the paced original with vsync; trying the software screen"
+      "now": null,
+      "note": "every phase but modding done: performance 0.71 of the original's processor time and 142 MB with 3D and vsync, its default (the software screen tried and dropped: 3D off cost more memory); readability: shared math constants (object code identical, 2,180 functions), unread fields noted; lite mod none; unneeded code out; Collection check identical"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",

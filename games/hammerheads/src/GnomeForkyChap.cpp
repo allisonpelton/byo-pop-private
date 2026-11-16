@@ -1,4 +1,5 @@
 #include "GnomeForkyChap.h"
+#include "MathConstants.h"
 
 #include "Application.h"
 #include "HammerDisplay.h"
@@ -20,7 +21,7 @@ GnomeForkyChap::GnomeForkyChap() :
 	mCenterY(0.0)
 {
 	int aSpeedRand = Rand();
-	mFrameSpeed = ((double)aSpeedRand * 4.656612875245797e-10 * 0.06 - 0.03) + 0.1;
+	mFrameSpeed = ((double)aSpeedRand * RAND_SCALE * 0.06 - 0.03) + 0.1;
 	mRepeats = Rand() % 2 + 1;
 	gApp->PlaySample(SOUND_VOICE_STABBING_NYA);
 }

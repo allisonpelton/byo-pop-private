@@ -105,7 +105,6 @@ bool DataDrivenClass::Load(const std::string& theFileName)
 		SDL_Log("DataDrivenClass: %s: %s", theFileName.c_str(), aParser.GetErrorText().c_str());
 		return false;
 	}
-	mFileName = theFileName;
 
 	std::vector<Node*> aStack;  // the groups open (a group that is not known is a null)
 	XMLElement anElement;
@@ -152,14 +151,4 @@ bool DataDrivenClass::Load(const std::string& theFileName)
 		return false;
 	}
 	return true;
-}
-
-// 0x6b3e50: for this object
-// 0x6b36f0 (the global table's lookup of the file an object was loaded from) is mFileName here
-bool DataDrivenClass::Reload()
-{
-	BeforeReload();
-	bool aResult = Load(mFileName);
-	AfterReload();
-	return aResult;
 }

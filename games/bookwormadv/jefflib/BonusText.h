@@ -36,10 +36,8 @@ public:
 	// 0x6c46a0: at (x, y), where a negative x centres it across the screen and a negative y down it (a y of
 	// its own is moved down by the font's ascent, and Draw moves it down by that once more)
 	BonusText(const std::string& theText, Sexy::Font* theFont, float x, float y, float theSpeed, int theFadeDelay);
-	// 0x6c4820: rises from the bottom of the screen (y 480) at x to theTargetY, where it stays theHoldUpdates
-	// (port: nothing in the game uses it)
-	BonusText(const std::string& theText, Sexy::Font* theFont, float x, float theTargetY, int theHoldUpdates,
-	          float theSpeed);
+	// (0x6c4820, a text that rises from the bottom of the screen to a target y and waits there, has no caller: left
+	// out, README "Unneeded code"; Update keeps its branch for the target)
 
 	void Update();                // 0x6c4910
 	void Draw(Sexy::Graphics* g);  // 0x6c4a10

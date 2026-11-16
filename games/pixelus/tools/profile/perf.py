@@ -17,7 +17,7 @@ import ctypes, ctypes.wintypes as W, json, os, re, subprocess, sys, threading, t
 k32 = ctypes.WinDLL('kernel32', use_last_error=True)
 psapi = ctypes.WinDLL('psapi', use_last_error=True)
 ROOT = os.getcwd()
-EXE = os.path.join(ROOT, 'build', 'native', 'pixelus.exe')
+EXE = os.path.join(ROOT, 'build', 'native', os.environ.get('PERF_EXE', 'pixelus.exe'))   # PERF_EXE: another build kept in build/native
 ORIGRUN = os.path.join(ROOT, 'build', 'origrun-bin', 'origrun.exe')
 OG_GAME = 'E:/byo-og/pix/game/PixelusGame.exe'
 TOOLS = {'rundesk.exe', 'python.exe', 'bash.exe', 'cmake.exe', 'ninja.exe', 'node.exe', 'sh.exe', 'conhost.exe', 'pythonw.exe'}
@@ -184,10 +184,13 @@ def main():
     user = os.path.join(out, 'user')
     subprocess.run(['cmd', '/c', 'rmdir', '/s', '/q', user], capture_output=True)
     os.makedirs(user)
+    if os.environ.get('PERF_2D') and kind == 'port':
+        # the player who has cleared the 3D box: Is3D 0 saved, so the display starts in 2D (the software screen)
+        open(os.path.join(user, 'registry.ini'), 'w').write('[SOFTWARE' + chr(92) + 'PopCap' + chr(92) + 'Pixelus]' + chr(10) + 'Is3D=dword:0' + chr(10))
     cf = os.path.join(out, 'commands.txt')
     reader = None
     if kind == 'port':
-        args = [EXE, '-userdir=' + user, '-seed=1', '-windowscale=1']
+        args = [EXE, '-userdir=' + user, '-seed=1'] + ([] if os.environ.get('PERF_2X') else ['-windowscale=1'])   # PERF_2X: the default window, 2x
         if what == 'load':
             open(cf, 'w').close()
             args += ['-commands=' + cf]

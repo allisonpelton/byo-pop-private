@@ -72,6 +72,7 @@ void MenuDialog::ButtonPress(int theId)
 	mApp->PlaySample(SOUND_CLICK1);
 }
 
+// 0x480230
 void MenuDialog::ButtonDepress(int theId)
 {
 	// 0x480230. Any button but "Main Menu" over a battle ends the menu (so does Escape, as the way back), and the

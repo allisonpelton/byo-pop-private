@@ -26,11 +26,13 @@ using namespace LuaLib;
 // ---- argument helpers ----
 
 // An argument read as the raw functions read them: ints, numbers (truncated) and number strings, else 0
+// port: reads a raw function's int argument (the original's functions did it inline)
 static int ToInt(lua_State* L, int idx)
 {
 	return idx <= lua_gettop(L) ? (int)lua_toint(L, idx) : 0;
 }
 
+// port: reads a raw function's number argument (the original's functions did it inline)
 static float ToFloat(lua_State* L, int idx)
 {
 	return idx <= lua_gettop(L) ? (float)lua_tonumber(L, idx) : 0.0f;
@@ -63,6 +65,7 @@ static Color ToColor(lua_State* L, int idx)
 }
 
 // The int field `key' of the table at idx; an argument error unless it is a number
+// port: reads one field of a Lua table (the original's rect readers did it inline)
 static int FieldInt(lua_State* L, int idx, const char* key)
 {
 	lua_pushstring(L, key);
@@ -74,6 +77,7 @@ static int FieldInt(lua_State* L, int idx, const char* key)
 	return v;
 }
 
+// port: reads a rect from a Lua table (inline in the original's functions)
 static Rect TableRect(lua_State* L, int idx)
 {
 	if (idx < 0)
@@ -93,6 +97,7 @@ Rect Sexy::LuaCheckRect(lua_State* L, int idx)
 	return Rect(ToInt(L, idx), ToInt(L, idx + 1), ToInt(L, idx + 2), ToInt(L, idx + 3));
 }
 
+// port: checks an image argument (inline in the original's functions)
 static Image* CheckImage(lua_State* L, int idx)
 {
 	LuaImage* img = (LuaImage*)gLuaSupport->CheckObject(idx, ClassOf<LuaImage>::info);
@@ -101,6 +106,7 @@ static Image* CheckImage(lua_State* L, int idx)
 	return ImageOf(img);
 }
 
+// port: checks a string argument (inline in the original's functions)
 static std::string CheckString(lua_State* L, int idx)
 {
 	return std::string(luaL_checkstring(L, idx), lua_strlen(L, idx));
@@ -108,6 +114,7 @@ static std::string CheckString(lua_State* L, int idx)
 
 // ---- sexy.Graphics (0x669100-0x66ce40) ----
 
+// 0x669100
 static int G_GetColorizedAlpha(Graphics* g, lua_State* L)
 {
 	lua_pushint(L, g->mColor.mAlpha);
@@ -116,16 +123,17 @@ static int G_GetColorizedAlpha(Graphics* g, lua_State* L)
 
 // PolyFill(points, n[, convex]) with points a table of n {mX, mY} from index 0, or
 // PolyFill(x1, y1, ..., xn, yn, n[, convex])
+// port: from 0x6696e0 (PolyFill's reading of the points, shared with PolyFillAA)
 static void ReadPolygon(lua_State* L, std::vector<Point>& pts, bool& convex)
 {
-	int n = lua_gettop(L);
+	int aTop = lua_gettop(L);
 	convex = false;
-	if (lua_istable(L, 1) && n < 4) {
+	if (lua_istable(L, 1) && aTop < 4) {
 		int count = ToInt(L, 2);
 		if (count < 0)
 			count = 0;
 		pts.assign(count, Point(0, 0));
-		if (n == 3)
+		if (aTop == 3)
 			convex = lua_toboolean(L, 3) != 0;
 		lua_pushnil(L);
 		while (lua_next(L, 1) != 0) {
@@ -147,15 +155,16 @@ static void ReadPolygon(lua_State* L, std::vector<Point>& pts, bool& convex)
 		}
 		return;
 	}
-	if (n >= 1 && lua_type(L, n) == LUA_TBOOLEAN) {
-		convex = lua_toboolean(L, n) != 0;
-		n--;
+	if (aTop >= 1 && lua_type(L, aTop) == LUA_TBOOLEAN) {
+		convex = lua_toboolean(L, aTop) != 0;
+		aTop--;
 	}
-	int count = n >= 1 ? ToInt(L, n) : 0;
-	for (int i = 0; i < count && 2 * i + 2 <= n - 1; i++)
+	int count = aTop >= 1 ? ToInt(L, aTop) : 0;
+	for (int i = 0; i < count && 2 * i + 2 <= aTop - 1; i++)
 		pts.push_back(Point(ToInt(L, 2 * i + 1), ToInt(L, 2 * i + 2)));
 }
 
+// 0x6696e0
 static int G_PolyFill(Graphics* g, lua_State* L)
 {
 	std::vector<Point> pts;
@@ -177,12 +186,14 @@ static int G_PolyFillAA(Graphics* g, lua_State* L)
 	return 0;
 }
 
+// 0x66a460
 static int G_ClearRect(Graphics* g, lua_State* L)
 {
 	g->ClearRect(LuaCheckRect(L, 1));
 	return 0;
 }
 
+// 0x66a430
 static int G_ClipRect(Graphics* g, lua_State* L)
 {
 	g->ClipRect(LuaCheckRect(L, 1));
@@ -203,6 +214,7 @@ static int G_FillRect(Graphics* g, lua_State* L)
 	return 0;
 }
 
+// 0x6696b0
 static int G_DrawRect(Graphics* g, lua_State* L)
 {
 	g->DrawRect(LuaCheckRect(L, 1));
@@ -223,6 +235,7 @@ static int G_SetColor(Graphics* g, lua_State* L)
 	return 0;
 }
 
+// 0x6692f0
 static int G_SetColorI(Graphics* g, lua_State* L)
 {
 	g->SetColor(Color((int)ToColorBits(L, 1)));
@@ -253,6 +266,7 @@ static int G_DrawImage(Graphics* g, lua_State* L)
 }
 
 // DrawImageF(img, x, y[, srcRect])
+// 0x66a4c0
 static int G_DrawImageF(Graphics* g, lua_State* L)
 {
 	Image* img = CheckImage(L, 1);
@@ -289,32 +303,33 @@ static int G_DrawImageCel(Graphics* g, lua_State* L)
 // DrawImageRotated(img, x, y, rot[, useFloat][, cx, cy][, srcRect | cel | col, row]) and DrawImageRotatedF
 // (without useFloat). The centre defaults to the middle of a cel, the source to the first cel; a single cel
 // number counts along the longer side of the strip.
+// port: from 0x66b430 (DrawImageRotated, shared with DrawImageRotatedF, 0x66b820)
 static int DrawRotated(Graphics* g, lua_State* L, bool allowFloatFlag)
 {
 	Image* img = CheckImage(L, 1);
-	int n = lua_gettop(L);
+	int aTop = lua_gettop(L);
 	float x = ToFloat(L, 2);
 	float y = ToFloat(L, 3);
 	float rot = ToFloat(L, 4);
 	bool useFloat = !allowFloatFlag;
 	int i = 5;
-	if (allowFloatFlag && n >= 5 && lua_type(L, 5) == LUA_TBOOLEAN) {
+	if (allowFloatFlag && aTop >= 5 && lua_type(L, 5) == LUA_TBOOLEAN) {
 		useFloat = lua_toboolean(L, 5) != 0;
 		i = 6;
 	}
 	int cw = img->GetCelWidth();
 	int ch = img->GetCelHeight();
-	float cx = n < i ? cw * 0.5f : (float)lua_tonumber(L, i);
-	float cy = n < i + 1 ? ch * 0.5f : (float)lua_tonumber(L, i + 1);
+	float cx = aTop < i ? cw * 0.5f : (float)lua_tonumber(L, i);
+	float cy = aTop < i + 1 ? ch * 0.5f : (float)lua_tonumber(L, i + 1);
 	Rect src(0, 0, cw, ch);
 	int s = i + 2;
-	if (n >= s) {
+	if (aTop >= s) {
 		if (lua_istable(L, s)) {
 			src = LuaCheckRect(L, s);
 		} else {
 			int a = (int)lua_tonumber(L, s);
 			int col = a, row = 0;
-			if (n >= s + 1)
+			if (aTop >= s + 1)
 				row = (int)lua_tonumber(L, s + 1);
 			else if (img->mNumCols < img->mNumRows) {
 				col = 0;
@@ -336,6 +351,7 @@ static int G_DrawImageRotated(Graphics* g, lua_State* L)
 	return DrawRotated(g, L, true);
 }
 
+// 0x66b820
 static int G_DrawImageRotatedF(Graphics* g, lua_State* L)
 {
 	return DrawRotated(g, L, false);
@@ -368,6 +384,7 @@ static int G_DrawImageBox(Graphics* g, lua_State* L)
 }
 
 // DrawImageMirror(img, x, y[, srcRect])
+// 0x66b060
 static int G_DrawImageMirror(Graphics* g, lua_State* L)
 {
 	Image* img = CheckImage(L, 1);
@@ -414,6 +431,7 @@ static int G_SetFont(Graphics* g, lua_State* L)
 	return 0;
 }
 
+// 0x66c520
 static int G_GetFontHeight(Graphics* g, lua_State* L)
 {
 	Font* f = g->GetFont();
@@ -437,8 +455,8 @@ static int G_DrawString(Graphics* g, lua_State* L)
 static int G_WriteWordWrapped(Graphics* g, lua_State* L)
 {
 	std::string s = CheckString(L, 1);
-	int n = lua_gettop(L);
-	Rect r;
+	int aTop = lua_gettop(L);
+	Rect aRect;
 	int spacing, just, maxChars = -1, lastWidth = 0;
 	bool vcenter = false;
 	if (lua_istable(L, 2)) {
@@ -450,39 +468,40 @@ static int G_WriteWordWrapped(Graphics* g, lua_State* L)
 		lua_gettable(L, 2);
 		lua_pushstring(L, "mHeight");
 		lua_gettable(L, 2);
-		r = Rect(ToInt(L, -4), ToInt(L, -3), ToInt(L, -2), ToInt(L, -1));
+		aRect = Rect(ToInt(L, -4), ToInt(L, -3), ToInt(L, -2), ToInt(L, -1));
 		lua_pop(L, 4);
 		spacing = (int)luaL_checkint(L, 3);
 		just = (int)luaL_checkint(L, 4);
-		if (n > 4)
+		if (aTop > 4)
 			vcenter = lua_toboolean(L, 5) != 0;
-		if (n > 5)
+		if (aTop > 5)
 			maxChars = (int)luaL_checkint(L, 6);
-		if (n >= 7)
+		if (aTop >= 7)
 			lastWidth = (int)luaL_checkint(L, 7);
 	} else {
-		r = Rect((int)luaL_checkint(L, 2), (int)luaL_checkint(L, 3), (int)luaL_checkint(L, 4), (int)luaL_checkint(L, 5));
+		aRect = Rect((int)luaL_checkint(L, 2), (int)luaL_checkint(L, 3), (int)luaL_checkint(L, 4), (int)luaL_checkint(L, 5));
 		spacing = (int)luaL_checkint(L, 6);
 		just = (int)luaL_checkint(L, 7);
-		if (n > 7)
+		if (aTop > 7)
 			vcenter = lua_toboolean(L, 8) != 0;
-		if (n > 8)
+		if (aTop > 8)
 			maxChars = (int)luaL_checkint(L, 9);
-		if (n >= 10)
+		if (aTop >= 10)
 			lastWidth = (int)luaL_checkint(L, 10);
 	}
 	if (vcenter) {
-		int height = g->GetWordWrappedHeight(r.mWidth, s, spacing, nullptr);
-		r.mY += r.mHeight / 2 - height / 2;
+		int height = g->GetWordWrappedHeight(aRect.mWidth, s, spacing, nullptr);
+		aRect.mY += aRect.mHeight / 2 - height / 2;
 	}
 	int maxWidth = 0;
-	int result = g->WriteWordWrapped(r, s, spacing, just, &maxWidth, maxChars, &lastWidth);
+	int result = g->WriteWordWrapped(aRect, s, spacing, just, &maxWidth, maxChars, &lastWidth);
 	lua_pushint(L, result);
 	lua_pushint(L, maxWidth);
 	lua_pushint(L, lastWidth);
 	return 3;
 }
 
+// 0x66cbe0
 static int G_StringWidth(Graphics* g, lua_State* L)
 {
 	lua_pushint(L, g->StringWidth(CheckString(L, 1)));
@@ -490,6 +509,7 @@ static int G_StringWidth(Graphics* g, lua_State* L)
 }
 
 // GetWordWrappedHeight(width, text[, lineSpacing]): the height and the widest line
+// 0x66cce0
 static int G_GetWordWrappedHeight(Graphics* g, lua_State* L)
 {
 	int width = (int)luaL_checkint(L, 1);
@@ -504,6 +524,7 @@ static int G_GetWordWrappedHeight(Graphics* g, lua_State* L)
 
 // DrawTriangleTex(img, triangles[, r, g, b, a]): triangles from index 0, each three vertices {x, y, u, v
 // [, color]}; at most 1024. No script of Bookworm Adventures uses it.
+// 0x66ce40
 static int G_DrawTriangleTex(Graphics* g, lua_State* L)
 {
 	Image* img = CheckImage(L, 1);
@@ -524,7 +545,7 @@ static int G_DrawTriangleTex(Graphics* g, lua_State* L)
 		for (int j = 0; j < 3; j++) {
 			lua_pushint(L, j);
 			lua_gettable(L, -2);
-			TriVertex v;
+			TriVertex aVertex;
 			if (lua_istable(L, -1)) {
 				const char* keys[4] = {"x", "y", "u", "v"};
 				float f[4];
@@ -534,14 +555,14 @@ static int G_DrawTriangleTex(Graphics* g, lua_State* L)
 					f[k] = (float)lua_tonumber(L, -1);
 					lua_pop(L, 1);
 				}
-				v = TriVertex(f[0], f[1], f[2], f[3], color);
+				aVertex = TriVertex(f[0], f[1], f[2], f[3], color);
 				lua_pushstring(L, "color");
 				lua_gettable(L, -2);
 				if (lua_isnumber(L, -1))
-					v.color = ToColorBits(L, -1);
+					aVertex.color = ToColorBits(L, -1);
 				lua_pop(L, 1);
 			}
-			verts.push_back(v);
+			verts.push_back(aVertex);
 			lua_pop(L, 1);
 		}
 		lua_pop(L, 1);
@@ -553,6 +574,7 @@ static int G_DrawTriangleTex(Graphics* g, lua_State* L)
 
 // ---- sexy.Widget (0x66e770-0x66ee30) ----
 
+// 0x66ea70
 static int W_SetColors(Widget* w, lua_State* L)
 {
 	if (!lua_istable(L, 1))
@@ -566,6 +588,7 @@ static int W_SetColors(Widget* w, lua_State* L)
 	return 0;
 }
 
+// 0x66eb50
 static int W_WriteCenteredLine(Widget* w, lua_State* L)
 {
 	std::string s = CheckString(L, 3);
@@ -575,41 +598,47 @@ static int W_WriteCenteredLine(Widget* w, lua_State* L)
 	return 0;
 }
 
+// 0x66ed20
 static int W_SetTabNext(Widget* w, lua_State* L)
 {
 	w->mTabNext = (Widget*)gLuaSupport->CheckObject(1, ClassOf<Widget>::info);
 	return 0;
 }
 
+// 0x66ee30
 static int W_SetTabPrev(Widget* w, lua_State* L)
 {
 	w->mTabPrev = (Widget*)gLuaSupport->CheckObject(1, ClassOf<Widget>::info);
 	return 0;
 }
 
-template <class C, bool C::*F>
-static int GetBool(C* o, lua_State* L)
+// port: the Lua getter of a bool field (the original has a function for each field)
+template <class TClass, bool TClass::*F>
+static int GetBool(TClass* o, lua_State* L)
 {
 	lua_pushboolean(L, o->*F);
 	return 1;
 }
 
-template <class C, bool C::*F>
-static int SetBool(C* o, lua_State* L)
+// port: the Lua setter of a bool field (the original has a function for each field)
+template <class TClass, bool TClass::*F>
+static int SetBool(TClass* o, lua_State* L)
 {
 	o->*F = lua_toboolean(L, 1) != 0;
 	return 0;
 }
 
-template <class C, int C::*F>
-static int GetInt(C* o, lua_State* L)
+// port: the Lua getter of an int field (the original has a function for each field)
+template <class TClass, int TClass::*F>
+static int GetInt(TClass* o, lua_State* L)
 {
 	lua_pushint(L, o->*F);
 	return 1;
 }
 
-template <class C, int C::*F>
-static int SetInt(C* o, lua_State* L)
+// port: the Lua setter of an int field (the original has a function for each field)
+template <class TClass, int TClass::*F>
+static int SetInt(TClass* o, lua_State* L)
 {
 	o->*F = (int)luaL_checkint(L, 1);
 	return 0;
@@ -617,12 +646,14 @@ static int SetInt(C* o, lua_State* L)
 
 // ---- sexy.WidgetContainer (0x66e490-0x66f130) ----
 
+// 0x66e490
 static int WC_GetParent(WidgetContainer* w, lua_State* L)
 {
 	gLuaSupport->PushObject(ClassOf<WidgetContainer>::info, w->mParent);
 	return 1;
 }
 
+// 0x66ef40
 static int WC_GetAbsPos(WidgetContainer* w, lua_State* L)
 {
 	Point p = w->GetAbsPos();
@@ -631,6 +662,7 @@ static int WC_GetAbsPos(WidgetContainer* w, lua_State* L)
 	return 2;
 }
 
+// 0x66ef90
 static int WC_GetSize(WidgetContainer* w, lua_State* L)
 {
 	lua_pushint(L, w->mWidth);
@@ -638,18 +670,21 @@ static int WC_GetSize(WidgetContainer* w, lua_State* L)
 	return 2;
 }
 
+// 0x66efd0
 static int WC_AddWidget(WidgetContainer* w, lua_State* L)
 {
 	w->AddWidget((Widget*)gLuaSupport->CheckObject(1, ClassOf<Widget>::info));
 	return 0;
 }
 
+// 0x66f080
 static int WC_RemoveWidget(WidgetContainer* w, lua_State* L)
 {
 	w->RemoveWidget((Widget*)gLuaSupport->CheckObject(1, ClassOf<Widget>::info));
 	return 0;
 }
 
+// 0x66f130
 static int WC_Draw(WidgetContainer* w, lua_State* L)
 {
 	w->Draw((Graphics*)gLuaSupport->CheckObject(1, ClassOf<Graphics>::info));
@@ -658,12 +693,14 @@ static int WC_Draw(WidgetContainer* w, lua_State* L)
 
 // ---- sexy.WidgetManager (0x66f1e0-0x66f4d0) ----
 
+// 0x66f1e0
 static int WM_SetFocus(WidgetManager* wm, lua_State* L)
 {
 	wm->SetFocus((Widget*)gLuaSupport->CheckObject(1, ClassOf<Widget>::info));
 	return 0;
 }
 
+// 0x66f310
 static int WM_GetAnyWidgetAt(WidgetManager* wm, lua_State* L)
 {
 	int wx, wy;
@@ -672,6 +709,7 @@ static int WM_GetAnyWidgetAt(WidgetManager* wm, lua_State* L)
 	return 1;
 }
 
+// 0x66f3d0
 static int WM_GetWidgetAt(WidgetManager* wm, lua_State* L)
 {
 	int wx, wy;
@@ -680,6 +718,7 @@ static int WM_GetWidgetAt(WidgetManager* wm, lua_State* L)
 	return 1;
 }
 
+// 0x66f490
 static int WM_IsKeyDown(WidgetManager* wm, lua_State* L)
 {
 	int k = (int)luaL_checkint(L, 1) & 0xff;
@@ -687,6 +726,7 @@ static int WM_IsKeyDown(WidgetManager* wm, lua_State* L)
 	return 1;
 }
 
+// 0x66f4d0
 static int WM_GetLastMousePos(WidgetManager* wm, lua_State* L)
 {
 	lua_pushint(L, wm->mLastMouseX);
@@ -696,6 +736,7 @@ static int WM_GetLastMousePos(WidgetManager* wm, lua_State* L)
 
 // ---- free functions (0x66d430-0x66df40) ----
 
+// 0x66d4b0 (registered by the constructor through a function pointer the export does not show)
 static int F_Rand(lua_State* L)
 {
 	lua_pushint(L, Sexy::Rand());
@@ -703,6 +744,7 @@ static int F_Rand(lua_State* L)
 }
 
 // sexy.PlaySample(id[, pan])
+// 0x66d430
 static int F_PlaySample(lua_State* L)
 {
 	if (lua_gettop(L) == 1)
@@ -712,6 +754,7 @@ static int F_PlaySample(lua_State* L)
 	return 0;
 }
 
+// 0x66dda0
 static int F_StringToInt(lua_State* L)
 {
 	std::string s = CheckString(L, 1);
@@ -743,6 +786,7 @@ static std::string UserFile(const char* thePath)
 	return Platform::VFS::FindCaseInsensitive(aUserDir, Platform::VFS::Normalize(thePath));
 }
 
+// port: reads a script through the file system layer (the original read the current folder's files)
 static int ReadScriptFile(const char* thePath, char** theData, size_t* theSize)
 {
 	std::vector<uint8_t> aData;
@@ -767,11 +811,13 @@ static int ReadScriptFile(const char* thePath, char** theData, size_t* theSize)
 	return 1;
 }
 
+// port: tells whether a script exists in the file system layer (the original looked in the current folder)
 static int ScriptFileExists(const char* thePath)
 {
 	return !UserFile(thePath).empty() || Platform::VFS::Get().Exists(Platform::VFS::Normalize(thePath));
 }
 
+// port: writes a script's file into the user folder (the original wrote the current folder)
 static int WriteScriptFile(const char* thePath, const char* theData, size_t theSize)
 {
 	std::string aPath = Platform::VFS::Get().GetUserDir() + "/" + Platform::VFS::Normalize(thePath);

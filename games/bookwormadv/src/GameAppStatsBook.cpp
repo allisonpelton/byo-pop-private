@@ -11,11 +11,13 @@
 
 using namespace Sexy;
 
+// port: the curtain's callback for ShowTome (0x444310)
 static void ShowTomeCallback(void* theApp)
 {
 	static_cast<GameApp*>(theApp)->ShowTome();
 }
 
+// port: the curtain's callback for ShowMediaPlayer (0x4443c0)
 static void ShowMediaPlayerCallback(void* theApp)
 {
 	static_cast<GameApp*>(theApp)->ShowMediaPlayer();
@@ -56,6 +58,7 @@ void GameApp::ShowTome()
 	mWidgetManager->BringToFront(mCurtain);
 }
 
+// 0x4443c0
 void GameApp::ShowMediaPlayer()
 {
 	// 0x4443c0

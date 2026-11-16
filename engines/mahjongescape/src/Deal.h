@@ -70,6 +70,15 @@ bool SolveInTime();
 
 extern int gDealCount;  // 0x532988 (mahjongchina), 0x533630 (mahjongjapan) the tiles the search must take
 
+// port: the lite mod's "quickRedeal" (docs/LITE_MOD.md). The search of a redeal (the shuffle's) is cut at 1 s of the machine's
+// clock, however many steps that is, and the kinds go at random if it has found no order by then; with this on it is cut after
+// kQuickRedealChecks clock checks (1001 search steps each) instead, so it ends at the same step on every run and costs a few
+// milliseconds at most. The deal of a new game keeps its 2 s. Set once at start from Platform::LiteOn; off is the original.
+extern bool gQuickRedeal;
+const int kQuickRedealChecks = 200;
+// port: the clock checks the last search made (a test reads it)
+extern int gSolveChecks;
+
 } // namespace mahjong
 
 #endif

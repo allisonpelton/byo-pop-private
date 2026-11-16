@@ -1,4 +1,5 @@
 #include "Cubby.h"
+#include "MathConstants.h"
 
 #include <cmath>
 
@@ -74,7 +75,7 @@ Cubby::Cubby(double theX, double theY, int theVariant, Image* theBackdrop) :
 
 	mState = STATE_EMPTY;
 	if (!gApp->IsShopOpen())
-		mTimer = (double)Rand() * 4.656612875245797e-10 * 3.0 + 2.0;
+		mTimer = (double)Rand() * RAND_SCALE * 3.0 + 2.0;
 	else
 		mTimer = 0.01;
 	UpdateHitRect();
@@ -307,7 +308,7 @@ void Cubby::SetState(int theState, int theKind)
 	if (theState == STATE_EMPTY)
 	{
 		if (!gApp->IsShopOpen())
-			mTimer = (double)Rand() * 4.656612875245797e-10 * 3.0 + 2.0;
+			mTimer = (double)Rand() * RAND_SCALE * 3.0 + 2.0;
 		else
 			mTimer = 0.01;
 		ReleaseCreature();

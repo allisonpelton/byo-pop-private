@@ -12,6 +12,7 @@ using namespace Sexy;
 
 static_assert(sizeof(ulong) == sizeof(uint32_t), "MemoryImage bits are 32-bit pixels");
 
+// 0x527be0 (FlashWidget's constructor), 0x4824d0 (MyFlashWidget's)
 FlashWidget::FlashWidget(int theId, FlashListener* theListener) : mId(theId), mFlashListener(theListener)
 {
 	mMovie.mListener = this;
@@ -47,6 +48,7 @@ void FlashWidget::Pause()
 		mState = STATE_IDLE;
 }
 
+// 0x528450
 void FlashWidget::Unpause()
 {
 	mPauseCount--;
@@ -109,6 +111,7 @@ void FlashWidget::MouseUp(int x, int y, int theBtnNum, int theClickCount)
 		mMouseOwner->MouseUp(x, y, theBtnNum, theClickCount);
 }
 
+// port: the movie's command goes to the game's listener
 void FlashWidget::SwfCommand(const std::string& theCommand, const std::string& theArgs)
 {
 	if (mFlashListener != nullptr)

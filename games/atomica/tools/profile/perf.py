@@ -412,6 +412,12 @@ def port_load(out, runs):
     print(json.dumps({'port_load_s': t, 'median_s': round(statistics.median(t), 3)}))
 
 
+def regions_at(pid, folder, original=False):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import regions
+    regions.take(pid, os.path.join(folder, 'regions.json'), original)
+
+
 def port_minute(out, script):
     exe, gamedir = port_exe()
     out = os.path.abspath(out)
@@ -433,7 +439,11 @@ def port_minute(out, script):
     samples = []
     thread_samples = []
     meter = ThreadMeter(p.pid, h)
+    snapped = False
     while p.poll() is None:
+        if REGIONS and not snapped and time.time() - created >= REGIONS:
+            snapped = True
+            regions_at(p.pid, out)
         s = sample(h)
         if s:
             cyc, total = meter.read()
@@ -465,6 +475,7 @@ COUNTER = int(os.environ.get('PERF_COUNTER', '0x4d0044'), 16)   # the counter or
 SHIFT = int(os.environ.get('PERF_COUNTER_SHIFT', '0'))   # +0x3ec (the updates) is 1 behind +0x3e4 (the sleeps) from the first update on, on
                                                      # origrun's virtual clock (checked at updates 1000 to 4399): with PERF_COUNTER=0x4d004c the
                                                      # script's lines go 1 earlier (PERF_COUNTER_SHIFT=1) to fire at the same moment of the game
+APP = 0x4CFC60                                       # the app object (static)
 SLEEPS, FRAMES, UPDATES =0x4D0044, 0x4D0048, 0x4D004C   # +0x3e4 sleeps of the loop, +0x3e8 frames drawn (0x437780), +0x3ec updates (0x4375e0)
 REAL = os.environ.get('PERF_CLOCK') == 'real'        # the scenario in real time, for both games
 PACED = int(os.environ.get('PERF_PACED', '0'))       # the original waits this many ms where it waits for the vertical blank (16: 60 Hz)
@@ -474,6 +485,7 @@ PACED = int(os.environ.get('PERF_PACED', '0'))       # the original waits this m
 PACED_PATCH = ('test Atomica.exe va:0x45f8ab 8b46088b10536a0150ff5258 6a%02xff15e8e04a0090909090 '
                'a pass of the loop waits %d ms for the screen, as the wait for a 60 Hz screens vertical blank would\n')
 TERMINATE = 0x1
+REGIONS = float(os.environ.get('PERF_REGIONS', '0'))   # seconds into the run: a snapshot of the process's private allocations (regions.py), regions.json in the run's folder
 MHZ = nominal_mhz()
 NL = chr(10)
 
@@ -524,6 +536,8 @@ def orig_run(out, script, runs, load_only=False):
         meter = None
         next_sample = 0
         done = False
+        snapped = False
+        board_since = None
         deadline = time.time() + 420
         while p.poll() is None and not done and time.time() < deadline:
             if load_only and ready is not None:
@@ -545,6 +559,9 @@ def orig_run(out, script, runs, load_only=False):
                         if width:
                             ready = now - created
                             ready_mem = sample(h)
+                if REGIONS and not snapped and now - created >= REGIONS:
+                    snapped = True
+                    regions_at(pid, d, True)
                 if now >= next_sample:
                     s = sample(h)
                     c = read32(h, COUNTER)
@@ -556,6 +573,11 @@ def orig_run(out, script, runs, load_only=False):
                         thread_samples.append((samples[-1][0], cyc))
                         counters.append((round(now - created, 3), c))
                         loop_counts.append((round(now - created, 3), read32(h, SLEEPS), read32(h, FRAMES), read32(h, UPDATES)))
+                        board = read32(h, APP + 0x494)         # the app's mBoard: a game in progress
+                        if board and board_since is None:
+                            board_since = round(now - created, 3)
+                        elif not board:
+                            board_since = None
                     next_sample = now + 0.1
                     if c is not None and c >= last + 30:   # the script's quit has run: the original keeps running, so stop it here
                         done = True
@@ -590,6 +612,7 @@ def orig_run(out, script, runs, load_only=False):
                     'paced_ms': PACED, 'real_clock': bool(load_only or REAL),
                     'load_s': round(ready, 3) if ready else None, 'origrun_to_process_s': round(spawned, 1) if h else None,
                     'last_update_reached': counters[-1][1] if counters else None, 'game_started': started,
+                    'board_up_since_s': board_since,
                     'others_start': len(others0), 'others_end': len(game_processes(mine_prefixes()))})
         if ready_mem:
             res.update({'working_set_mb_at_title': round(ready_mem[0] / 1048576, 1),

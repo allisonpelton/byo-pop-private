@@ -174,6 +174,7 @@ void ArrowHint::SetState(int theState)
 	EnterState(theState);
 }
 
+// port: from 0x6acbb0 (the entry function of the state SetState goes to)
 void ArrowHint::EnterState(int theState)
 {
 	switch (theState) {
@@ -208,6 +209,7 @@ bool ArrowHint::ChangeState(int theState)
 }
 
 // The current state's update function; true when the hint is finished
+// port: calls the current state's update function (their addresses are in the cases)
 bool ArrowHint::UpdateState()
 {
 	switch (mState) {
@@ -500,21 +502,21 @@ void ArrowHint::SetDir(int theDir)
 	FitToScreen();
 }
 
-void ArrowHint::SetHotSpot(int x, int y, int w, int h)
+void ArrowHint::SetHotSpot(int x, int y, int theWidth, int theHeight)
 {
-	if (x == -1 && y == -1 && w == -1 && h == -1) {
+	if (x == -1 && y == -1 && theWidth == -1 && theHeight == -1) {
 		// both bubbles
 		mHotSpots.push_back(mRectShort);
 		x = mRectLong.mX;
 		y = mRectLong.mY;
-		w = mRectLong.mWidth;
-		h = mRectLong.mHeight;
-	} else if (x == 0 && y == 0 && w == 0 && h == 0) {
+		theWidth = mRectLong.mWidth;
+		theHeight = mRectLong.mHeight;
+	} else if (x == 0 && y == 0 && theWidth == 0 && theHeight == 0) {
 		// the whole screen
-		w = kScreenWidth;
-		h = kScreenHeight;
+		theWidth = kScreenWidth;
+		theHeight = kScreenHeight;
 	}
-	mHotSpots.push_back(Rect(x, y, w, h));
+	mHotSpots.push_back(Rect(x, y, theWidth, theHeight));
 }
 
 void ArrowHint::AddOverSpot(int x, int y, int w, int h)
@@ -776,6 +778,7 @@ void ArrowHintManager::RemovedFromManager(WidgetManager* theWidgetManager)
 }
 
 // The hints added during a walk join the list; with none the widget sleeps (invisible, disabled)
+// port: ends a walk over the hints: the ones added during it join the list
 void ArrowHintManager::EndWalk()
 {
 	for (size_t i = 0; i < mPending.size(); i++)

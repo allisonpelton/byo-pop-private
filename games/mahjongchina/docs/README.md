@@ -105,7 +105,7 @@ another order, and Board::Measure has no -5 (China's board stands 5 pixels lower
 
 ## Mods
 
-The fixes mod (`mods/fixes`: `seededDeals` and `steadyClock`, on by default on the site; `GAME_NOTES.md`, "The standard test commands, the fixes mod and the finishing pass"). No other mods (the user's rule: no new mods unless someone requests one); `MOD_IDEAS.md` lists
+The fixes mod (`mods/fixes`: `seededDeals` and `steadyClock`, on by default on the site; `GAME_NOTES.md`, "The standard test commands, the fixes mod and the finishing pass") and the lite mod (`mods/lite`: `quickRedeal`, the Shuffle button's deal search stopped after a count of steps instead of a second of the machine's clock; `LITE_MOD.md`, the proof and the measurements). No other mods (the user's rule: no new mods unless someone requests one); `MOD_IDEAS.md` lists
 the ones worth making.
 
 ## Changes outside the game's folder

@@ -91,6 +91,7 @@ void GameApp::CloseCredits()
 		mHoverTooltip->MouseLeave();
 }
 
+// port: the curtain's callback for CloseCredits (0x450e90)
 void GameApp::CloseCreditsCallback(void* theApp)
 {
 	static_cast<GameApp*>(theApp)->CloseCredits();

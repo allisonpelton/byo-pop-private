@@ -41,7 +41,6 @@ public:
 	// its own state (a LuaInterface) before calling this.
 	// 0x65f070 (the registering of the classes and the app's 48 methods)
 	virtual void RegisterClasses();
-	virtual void LuaAppHook() {}  // slot 104, empty
 
 	void Init() override;          // RegisterClasses, then SexyApp's
 	void Shutdown() override;      // the state's shutdown, then SexyAppBase's

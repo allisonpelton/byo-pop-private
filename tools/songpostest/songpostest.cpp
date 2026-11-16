@@ -166,10 +166,13 @@ static bool CheckTempo(const char* thePath)
 
 // SetSongPlayersPooled (platform/Audio.h): song c plays elsewhere and stops, its player goes to the pool, song d takes it
 // and plays from order 3; that must be the audio a fresh player gives for order 3 (song b, made before pooling was on).
-// libopenmpt's renders differ a little from one fresh player to the next (rms 0.009 of a full scale of 1 here; the cause
-// is not looked into), so the pooled player's difference from a fresh one is held against two fresh players' difference
-// from each other. Then c, started again with no position, carries on from the order and row where it
-// stopped. Runs last: the mixer stays pooled.
+// libopenmpt's renders differ a little from one fresh player to the next (rms 0.009 of a full scale of 1 here: some
+// instruments swing their volume and pan at random, and libopenmpt draws the swings anew for each player), so the pooled
+// player's difference from a fresh one is held against two fresh players' difference from each other. A pooled player
+// that kept the mix plugins' state (Bejeweled Twist's music has an echo and a chorus) differed from a fresh one by four
+// times that. Then c, started again with no position, carries on from the order and row where it stopped, and a song
+// never played, started with no position, takes a pooled player and starts at the beginning as a fresh one does.
+// Runs last: the mixer stays pooled.
 static std::vector<float> RenderBlocks(Platform::Mixer& mixer, int theBlocks)
 {
 	std::vector<float> all;
@@ -211,6 +214,15 @@ static bool CheckPool(const char* thePath)
 	double aFreshRms = RmsDifference(aFresh, aFreshAgain);
 	mixer.UnloadSong(a);
 	mixer.UnloadSong(b);
+	int aStartOrder = -1, aStartRow = -1;
+	{
+		int fresh = mixer.LoadSong(thePath);
+		mixer.PlaySong(fresh, 0, 0, true, false);   // never played, no position: the beginning
+		RenderBlocks(mixer, 1);
+		mixer.GetSongPosition(fresh, aStartOrder, aStartRow);
+		mixer.StopSong(fresh);
+		mixer.UnloadSong(fresh);
+	}
 
 	mixer.SetSongPlayersPooled(true);
 	int c = mixer.LoadSong(thePath);
@@ -241,7 +253,19 @@ static bool CheckPool(const char* thePath)
 				savedRow, order, row);
 			ok = false;
 		}
-		mixer.StopSong(c);
+		mixer.StopSong(c);       // c's player, at the order and row where it stopped, goes to the pool again
+		int e = mixer.LoadSong(thePath);
+		mixer.PlaySong(e, 0, 0, true, false);  // e was never played: it takes that player and starts at the beginning
+		RenderBlocks(mixer, 1);
+		int anEndOrder = -1, anEndRow = -1;
+		if (!mixer.GetSongPosition(e, anEndOrder, anEndRow) || (anEndOrder != aStartOrder) || (anEndRow != aStartRow))
+		{
+			printf("pool: %s: a fresh player started with no position is at order %d row %d, a pooled one at order %d row %d\n", thePath,
+				aStartOrder, aStartRow, anEndOrder, anEndRow);
+			ok = false;
+		}
+		mixer.StopSong(e);
+		mixer.UnloadSong(e);
 	}
 	mixer.UnloadSong(c);
 	mixer.UnloadSong(d);
