@@ -16,7 +16,8 @@ PY="$(cygpath -w "$(command -v python)")"
 mkdir -p "$OUT"; : > "$OUT/runs.txt"
 export PERF_2D=1
 until python -I tools/gamecount.py --limit 6 > /dev/null 2>&1; do sleep 15; done
-one() { local kind="$1"; shift; echo "$kind $("$@" 2>> "$OUT/errors.txt" | tail -1)" >> "$OUT/runs.txt"; }
+one() { local kind="$1"; shift; until python -I tools/gamecount.py --limit 5 > /dev/null 2>&1; do sleep 15; done  # a run starts only with 4 or fewer game processes running (the coordinator, 2026-11-16)
+	 echo "$kind $("$@" 2>> "$OUT/errors.txt" | tail -1)" >> "$OUT/runs.txt"; }
 run() {  # <variant> <round>
 	case "$1" in
 	orig) one orig python -I $P orig play "$OUT/orig$2" build/perf/orig-play.txt
