@@ -157,6 +157,29 @@ before: the fades out of the splash and into the menu build up over their frames
 redrawn tile with black first, so its fades went through black where the original's go through the screen before. It
 draws over the last frame now; the menu's fade-in matches frame by frame.
 
+**Slides ended a pixel short** (a shared change of the engine's interpolator). The original works its ease curves
+(0x494710, 0x4947e0) and their blends (0x47fea0, 0x47fd30) on the x87, whose registers hold more than a float, and
+rounds only where it stores a value. The port rounded every step to a float, so the bonus round's pizza slid in to
+204.99997 and was drawn at 204, where a peek of the original shows 205.0 exactly: the left half of the bonus screen
+(its title and pizza) stood one pixel left of the original's, and the name dialog's slide ended the same way. The
+port now works in double between the stores the original makes (the curve's value is stored as a float in the
+position's blend and used unrounded in the scalar's).
+
+**Scaled pictures read other rows** (a shared change of the renderer). A picture drawn at a scale other than 1 (the
+Pause button, 0.6 by 0.8, and every other scaled button) goes in the original through a stretch between two
+whole-pixel rectangles (0x4ca3b0 and its siblings for the other operations, 0x4c4680 and its siblings): the screen
+rectangle is the source's scaled about the pivot and truncated side by side, and an error term steps the source, so
+screen row i reads source row i times the source's height over the screen's, rounded down. The port read the row
+under each screen pixel's centre, the mapping it had from Word Harmony's renderer, and so drew an edge row of each
+scaled button from a neighbouring source row. The signal build now steps as the original does; with the slides'
+fix, look1's matching pictures went from 7 of 25 to 15.
+
+**Explained: the toppings' order.** The play shots show the two topping coupons in the other order from the original
+in some runs, and each kitchen's sign with the other topping (the small boxes over the kitchens). The kitchens' toppings come from maps keyed by the topping's address; the port orders them by the
+manifest's order (`ToppingOrder`), taking the addresses to rise as the manifest loads. Peeks of the original on one
+input and seed show the coupons in either order from run to run, so the original's order is not fixed and the port's
+is one of its outcomes; nothing else in the coupons differs.
+
 **Oddity: the level end's sparkles.** When the level's end title leaves, each letter's burst (`BurstFx`: three streams
 of `basicSparkle`, a JPEG with a greyscale mask) draws its particles at the same places in both, but the port's are
 brighter: from the first frame of the burst (2125 in look1's case) about 2700 to 5000 pixels a frame are lighter by
