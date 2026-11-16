@@ -215,6 +215,31 @@ the original; private bytes 95 to 98 MB and 91 to 93 MB. No hot spot to speed up
 The original's runs went to origrun's 200 s cap (its `quit` at counter 8950 came after the stretch), which the stretch does not include.
 
 
+**Memory: the software screen for 2D (2026-11-16).** The original's constructor turns `mAutoEnable3D` on (the base constructor, 0x4e30f0,
+stores 1 at +0x5cd, where Bookworm's era keeps it at +0x5c5), so its machine test decides and it starts in 3D on a card that
+passes; the port keeps its default of 3D. `PixelusApp::CreateDDInterface` (marked `override`, native only) returns
+`SoftwareScreenDisplay::Create(this, true)`, so the screen is drawn in software while 2D is on (a saved Is3D 0, or the 3D box cleared in
+Options) at 1x, and the GPU takes it with 3D on and at every larger window (the user, 2026-11-15: software drawing only for 1x). A player
+who starts in 3D sees no change; the frozen baseline and `tools/check.sh pixelus` are identical. Measured like the original ran under
+origrun (its machine test fails there, so it draws in 2D; the port with Is3D 0 saved), the scripted play of the notes above, five
+rounds in rotating order, one game process of ours at a time on a pinned core (`tools/profile/variants.sh`; its first runs measured one
+build five times over because a variable did not reach the port, and `perf.py` had not been given its switches: both fixed, those runs
+discarded). The machine was busy (8 to 10 game processes of other sessions in every run), so the spread is wide. Million cycles an update
+over the whole process (mixer counted), peak private bytes:
+
+| | processor, five runs | median | private bytes |
+| --- | --- | --- | --- |
+| Original | 4.61, 3.50, 3.43, 3.01, 3.01 | 3.43 | 91 to 93 MB |
+| Port, software screen at 1x | 3.27, 2.20, 2.38, 2.00, 2.15 | 2.20 | 66.8 to 69.6 MB |
+| Port, GPU drawing 2D at 1x (the build without the override) | 2.10, 2.81, 3.66, 2.50, 1.80 | 2.50 | 100.6 to 103.6 MB |
+| Port, default window 2x (the GPU) | 4.57, 3.24, 3.43, 2.75, 2.05 | 3.24 | 99.6 to 103.1 MB |
+
+The software screen saves about 33 MB of private bytes against the GPU path at 1x and is 24 to 26 MB under the original, and its
+processor time is at or under the original's: its median is 0.64 of the original's, and its worst run (3.27) is under the original's
+median. The spread of one side (1.6 times) is larger than the gap between the GPU and software medians at 1x, so no claim is made
+between those two beyond "not above". The 2x row is the GPU, unchanged by this step; nothing at 2x was changed.
+
+
 ## 11. Coverage check (2026-11-15) and Oddities
 
 The whole coverage check (`docs/COVERAGE.md`). origrun's `--coverage` recorded which of the original's functions ran in

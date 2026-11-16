@@ -1,4 +1,5 @@
 #include "PixelusApp.h"
+#include "SoftwareScreenDisplay.h"
 #include "DialogButton.h"
 #include "testhooks/StateLog.h"
 #include "GameDialog.h"
@@ -112,6 +113,15 @@ PixelusApp::~PixelusApp()
 }
 
 // 0x4336f0
+#ifndef __EMSCRIPTEN__
+// port: the original offers a 3D mode (mAutoEnable3D, so its machine test decides and the port's default stays 3D); this display
+// keeps the screen in software while 2D is on (a saved Is3D 0, or 3D cleared in Options) and hands it to the GPU while 3D is on
+DDInterface* PixelusApp::CreateDDInterface()
+{
+	return SoftwareScreenDisplay::Create(this, true);
+}
+#endif
+
 void PixelusApp::Init()
 {
 	NcApp::Init();

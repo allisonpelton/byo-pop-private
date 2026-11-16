@@ -1,4 +1,5 @@
 #include "GnomeBouncing.h"
+#include "MathConstants.h"
 
 #include "Application.h"
 #include "Coins.h"
@@ -196,7 +197,7 @@ void GnomeBouncing::Strike(double theX, double theY)
 	mSpeedX = mSpeedX + mSpeedX;
 	if (Rand() % 2 == 0)
 		mSpeedX = mSpeedX * -1.0;
-	mRotationSpeed = (double)Rand() * 4.656612875245797e-10 * 0.05 + 0.1;
+	mRotationSpeed = (double)Rand() * RAND_SCALE * 0.05 + 0.1;
 	if (Rand() % 2 == 0)
 		mRotationSpeed = mRotationSpeed * -1.0;
 	mHit = true;

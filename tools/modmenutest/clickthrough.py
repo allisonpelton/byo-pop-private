@@ -33,7 +33,7 @@ transcript (driver.txt). The last line printed is the summary:
     clickthrough <game>: <n> clicks and <k> keys on <p> pages; paused <ok|CHANGED: ...>; after close <ok|CHANGED: ...>
 The exit code is 0 when both checks hold, 1 when one fails, 2 when the run could not get there.
 
-One game process. Count first: python -I tools/gamecount.py --limit 6.
+One game process. Count first: python -I tools/gamecount.py --limit.
 """
 
 import argparse

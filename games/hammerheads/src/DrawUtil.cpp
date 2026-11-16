@@ -1,4 +1,5 @@
 #include "DrawUtil.h"
+#include "MathConstants.h"
 
 #include <cmath>
 
@@ -89,7 +90,7 @@ void Sexy::DrawFillBar(Graphics* g, Image* theEmptyImage, Image* theFullImage, i
 		{
 			if (aColumn < theFullImage->mWidth)
 			{
-				g->SetColor(Color(255, 255, 255, (int)(cos(((double)i * 1.5707963267948966) / (double)theFadeWidth) * 255.0)));
+				g->SetColor(Color(255, 255, 255, (int)(cos(((double)i * HALF_PI) / (double)theFadeWidth) * 255.0)));
 				g->DrawImage(theFullImage, i + aFilledWidth + theX + theMargin, theY, Rect(aColumn, 0, 1, theFullImage->mHeight));
 			}
 		}
