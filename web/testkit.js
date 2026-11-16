@@ -518,6 +518,17 @@
   // ?drawevery=1 adds -drawevery: every update is drawn before the next runs, so that a shot is the frame of the update asked for (a fast
   // run draws every few updates, which is a few updates stale for a game whose frames change with each one, as Bejeweled 2's 3D warp).
   if (params.get("fast") === "1") shell.hooks.args = function () { return params.get("drawevery") === "1" ? ["-fast", "-drawevery"] : ["-fast"]; };
+  // ?env=NAME=VALUE,NAME=VALUE: environment variables the game reads with getenv (a native run's switches, such as
+  // BYOPOP_STREAM_MUSIC=0), set before the runtime starts, as the page's own SDL hint is (Module.preRun)
+  if (params.get("env")) {
+    M.preRun = [].concat(M.preRun || []);
+    M.preRun.push(function () {
+      params.get("env").split(",").forEach(function (pair) {
+        var at = pair.indexOf("=");
+        if (at > 0) { try { ENV[pair.slice(0, at)] = pair.slice(at + 1); } catch (e) { addError("env", e && e.message || e); } }
+      });
+    });
+  }
   // test.loaded resolves once the page could start the game (its files are in); with ?hold=1 a driver runs then, before the
   // game starts, and starts it with t.start() (which resolves with test.ready, the first drawn frame).
   var startNow = params.get("hold") !== "1", canStart = false, resolveLoaded;

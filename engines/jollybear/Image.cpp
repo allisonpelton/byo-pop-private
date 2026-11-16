@@ -9,6 +9,7 @@
 #include "platform/ImageLoader.h"
 #include "stb_image.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -89,6 +90,8 @@ void Image::Release()
 		mBits = nullptr;
 		mOwnsBits = false;
 	}
+	mSource = nullptr;
+	mBitsDropped = false;
 	if (mDisplay != nullptr)
 		mDisplay->Untrack(this);
 }
@@ -119,7 +122,15 @@ bool Image::LoadResource(int theId, Module theModule)
 		else
 			aType = 1;
 	}
-	return Decode(aData, aSize, aType);
+	bool aDecoded = Decode(aData, aSize, aType);
+	// port: bits decoded into memory of their own can be decoded again from the resource (DropBits)
+	if (aDecoded && mOwnsBits)
+	{
+		mSource = aData;
+		mSourceSize = aSize;
+		mSourceType = aType;
+	}
+	return aDecoded;
 }
 
 // 0x426e70 (mahjongchina), 0x42d080 (mahjongjapan)
@@ -571,7 +582,10 @@ bool Image::EnsurePrepared()
 // 0x428680 (mahjongchina), 0x42e8b0 (mahjongjapan)
 bool Image::Prepare()
 {
-	if (mBits == nullptr)
+	// port: a picture whose bits were dropped has its 32-bit copy
+	if (mBitsDropped && mPrepared && mPixels != nullptr)
+		return true;
+	if (!EnsureBits())
 		return false;
 	if (mPrepared && mPixels != nullptr)
 		return true;
@@ -582,7 +596,42 @@ bool Image::Prepare()
 		blit::Premultiply(mPixels, mPixelPitch, mWidth, mHeight);
 	mPrepared = true;
 	mStamp = NextImageStamp();
+	DropBits();
 	return true;
+}
+
+static bool KeepImageBits()
+{
+	static const bool sKeep = getenv("JB_KEEP_IMAGE_BITS") != nullptr && atoi(getenv("JB_KEEP_IMAGE_BITS")) != 0;
+	return sKeep;
+}
+
+void Image::DropBits()
+{
+	if (KeepImageBits() || mSource == nullptr || !mOwnsBits || mBits == nullptr || mCreated || mFlipped || mPixels == nullptr)
+		return;
+	blit::Free(mBits);
+	mBits = nullptr;
+	mOwnsBits = false;
+	mBitsDropped = true;
+}
+
+bool Image::EnsureBits()
+{
+	if (mBits == nullptr && mBitsDropped && mSource != nullptr)
+	{
+		mBitsDropped = false;
+		// the same decode as LoadResource's, into new bits
+		if (!Decode(mSource, mSourceSize, mSourceType) || mBits == nullptr)
+			mSource = nullptr;
+	}
+	return mBits != nullptr;
+}
+
+void Image::BitsWillChange()
+{
+	EnsureBits();
+	mSource = nullptr;
 }
 
 // 0x428710 (mahjongchina), 0x42e940 (mahjongjapan)
@@ -678,6 +727,7 @@ void Image::Create(int theWidth, int theHeight, Display* theDisplay)
 // 0x428960 (mahjongchina), 0x42eb90 (mahjongjapan)
 void Image::BeginDrawing()
 {
+	BitsWillChange();
 	FreePixels();
 	FlipRows();
 	mFlipped = true;
@@ -686,6 +736,7 @@ void Image::BeginDrawing()
 // 0x428980 (mahjongchina), 0x42ebb0 (mahjongjapan)
 void Image::Fill(uint32_t theColour)
 {
+	BitsWillChange();
 	FreePixels();
 	uint8_t aValue[4] = {(uint8_t)(theColour >> 16), (uint8_t)(theColour >> 8), (uint8_t)theColour,
 		(uint8_t)(theColour >> 24)};
@@ -735,6 +786,7 @@ bool Image::LoadDllKeyed(int theId, uint32_t theKey)
 bool Image::DrawTo(Image* theTarget, int theX, int theY, const Rect& theSrc, int theScaleX, int theScaleY,
 	int theAlpha)
 {
+	theTarget->BitsWillChange();
 	if (mWidth != 0 && mHeight != 0)
 		return Blit(theX, theY, theSrc, theScaleX, theScaleY, theAlpha, theTarget->mBits, theTarget->mPitch);
 	return false;
@@ -744,6 +796,7 @@ bool Image::DrawTo(Image* theTarget, int theX, int theY, const Rect& theSrc, int
 // the alpha), bottom-up as the DIB is
 bool Image::SaveBmp(const char* thePath)
 {
+	EnsureBits();
 	if (mFlipped)
 		FlipRows();
 	FILE* aFile = fopen(thePath, "wb");

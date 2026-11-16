@@ -336,6 +336,9 @@ Every call re-reads the whole context, so what costs is context times calls, and
   and each was a visible difference that the screen comparison finds anyway, so the others (Big Money, Mummy Maze)
   write none (the user, 2026-11-08: "Yes, drop them"). A game already translated reads the Mac names where they help
   explain a difference, and takes their naming and structure corrections in the readability pass.
+- **The software screen is for 1x only** (the user, 2026-11-15: "It seems like software drawing only makes sense for
+  1x"): a 2D port that starts in 2D takes it in its 1x window, and the GPU takes every larger window and full screen
+  (`docs/MEMORY.md`).
 - **Sonnet sessions** translate loops in their original shape (a test-then-increment loop does not become a for
   loop), check what a comment claims about the original before writing it, and build with AddressSanitizer at the
   first sign of a crash or memory corruption (`docs/COORDINATION.md`, "Model selection").

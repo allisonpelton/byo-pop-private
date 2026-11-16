@@ -146,6 +146,29 @@ baseline identical. Not changed: decoding the music track whole (streaming it ne
 for the coordinator if wanted) and the 22 MB the framework itself holds, which are known shared costs.
 
 
+### Streamed music (2026-11-15)
+
+The track is kept as its Ogg file and decoded as it plays (`PGApp::loadMusic`,
+`Platform::Mixer::LoadStreamedSoundData`), as the original's stream is (`HAudio.h`, 0x425296), instead of decoded whole
+(the user, 2026-11-15: "Merge both"). The frames are the same to the bit (1,459,860, none differing) and
+`tools/check.sh ningpo`'s baseline is identical. The track is loaded with the sounds during the loading screen (`PGApp::loadAssets`,
+`loadSounds`), not once a game has started as the figures above have it: the gap between the two variants below is there
+one second into each run. Measured by fw-memory: 5 rounds of alternating runs of the screen tour, pinned to one core, in
+real time under rundesk; medians with their ranges:
+
+| | decoded whole (before) | streamed |
+|---|---|---|
+| Peak private bytes | 53.4 MB (53.3 to 56.1) | 48.8 MB (48.6 to 51.1) |
+| The mixer (SDL's audio thread), G cycles in 30 s | 0.057 (0.054 to 0.075) | 0.149 (0.147 to 0.198) |
+| The main thread, G cycles in 30 s | 3.27 (2.91 to 3.78) | 3.19 (3.10 to 3.89) |
+| Loading the track (`soundtest -stream`, 10 runs) | 40 ms (36.5 to 42.9) | 1.7 ms (1.5 to 1.8) |
+| Mixing the 68 s track once (`soundtest -stream`) | 11 ms (10.3 to 11.3) | 55 ms (49.9 to 60.8) |
+| Web: WebAssembly memory, and the heap in use, after the tour | 28.1 MB, 17.55 MB | 17.6 MB, 12.27 MB |
+
+The cost is processor time while the music plays: the mixer's cycles go up by 0.095 G in 30 s (each round against its
+own: +0.090 to +0.123), about 2 % of the process's, or about 0.65 ms of processor time per second of music, paid at
+every loop; after about a minute of music the port has spent more on the track than its decode at load took.
+
 ## Coverage check (2026-11-08)
 
 The first whole coverage check of a game (`docs/COVERAGE.md`). origrun's `--coverage` recorded which of the original's

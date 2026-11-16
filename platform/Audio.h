@@ -81,8 +81,13 @@ struct SoundData
 	int mRate = 48000;
 	size_t mFrames = 0;
 	std::string mName;  // the game path it was loaded from (LoadSoundData's theName), for the site's sound panel
+	// A sound decoded as it plays (LoadStreamedSoundData): its Ogg file, with mSamples empty; each voice that plays it
+	// decodes its own way through the file, a Vorbis frame at a time. mFirstFrame is frame 0, which a looping voice's
+	// last frame blends with.
+	std::shared_ptr<const std::vector<uint8_t> > mStreamFile;
+	int16_t mFirstFrame[2] = {0, 0};
 
-	size_t Bytes() const { return mSamples.capacity() * sizeof(int16_t); }
+	size_t Bytes() const { return mSamples.capacity() * sizeof(int16_t) + (mStreamFile ? mStreamFile->size() : 0); }
 };
 
 class Mixer
@@ -101,6 +106,10 @@ public:
 	// Decodes Ogg Vorbis (stb_vorbis) or WAV (SDL) from the VFS and resamples to the device rate.
 	std::shared_ptr<SoundData> LoadSound(const std::string& theGamePath);
 	std::shared_ptr<SoundData> LoadSoundData(const std::vector<uint8_t>& theFile, const std::string& theName);
+	// The same sound played the same, but an Ogg Vorbis file is kept as it is and decoded as its voices play (the
+	// mixer's callback), a few kilobytes at a time instead of the whole track: for long music. Anything else, or
+	// BYOPOP_STREAM_MUSIC=0, is LoadSoundData's.
+	std::shared_ptr<SoundData> LoadStreamedSoundData(const std::vector<uint8_t>& theFile, const std::string& theName);
 
 	// --- voices (sound effects) ---
 	// Returns a voice handle (>0) or 0 if no voice is free.
@@ -127,6 +136,15 @@ public:
 	// Returns a song handle (>0) or 0 on failure. A mod remap of theGamePath (VFS::GetRemap) can set a
 	// start order inside a multi-song module, a stream loop point and a per-track gain.
 	int LoadSong(const std::string& theGamePath);
+	// port: with this on, a song whose player a registered format makes (MO3 via libopenmpt, about 4.5 MB a player whatever
+	// the module) holds it only while it can still be heard: StopSong gives the player back to a pool shared by the songs
+	// loaded from the same file, and the next PlaySong takes one from it (or makes one). The players alive are then those
+	// of the songs playing at once, two or three at the most for a game that crossfades, not one for each song loaded
+	// (BookWorm loads its one module five times). A song stopped and started again at a position it names plays as it did
+	// (a seek sets a player to the state of a fresh one at that position); one started again with no position resumes at
+	// the order and row where it stopped, not at the exact tick and mixer state. Settings made with SetSongTempo or
+	// SetSongChannelVolume belong to the player, not the song: do not combine them with this. Off by default.
+	void SetSongPlayersPooled(bool thePooled);
 	// A song a game renders itself, such as a synthesizer its own sequencer plays live (TipTop's MIDI music):
 	// the mixer calls thePlayer's Render in the audio callback, so the game changes the player's state only
 	// between Lock and Unlock. Returns the song handle, played and freed like a loaded song's.
@@ -242,9 +260,14 @@ private:
 	static void Callback(void* theUser, uint8_t* theStream, int theLen);
 	void Mix(float* theOut, int theFrames);
 	void MixVoice(Voice& v, float* theOut, int theFrames);
+	void MixStreamedVoice(Voice& v, float* theOut, int theFrames);
 	// Gives a tracker module song its player the first time it is needed (LoadSong keeps only the file). Main thread,
 	// outside the lock; false when the song has no player (not a module, or its file did not load).
 	bool OpenModule(int theSong);
+	// SetSongPlayersPooled: gives theSong's registered-format player back to the pool (under the lock), remembering where it was.
+	void ReleasePlayer(Song& theSong);
+	bool mPoolPlayers = false;
+	std::vector<std::pair<const void*, std::unique_ptr<ModulePlayer>>> mFreePlayers;   // by the song's file, which its songs share
 #ifdef __EMSCRIPTEN__
 	// The web page's own output (Audio.cpp, byopop_audio_open): an AudioWorklet with a short queue that asks for each chunk.
 	bool InitPage();

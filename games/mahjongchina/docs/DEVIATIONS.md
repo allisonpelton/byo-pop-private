@@ -118,3 +118,13 @@ These four are Ancient Japan's, with China's addresses where the two exes' funct
 The JPEGs are decoded by the shared libjpeg 6b loader (`Platform::LoadImageFromMemory`), as the original's own libjpeg
 does, where stb_image decoded them before; the frozen screens of the suite were taken again (at most 3 levels of a channel
 of difference, in the JPEG backgrounds only).
+
+## A picture's decoded bits (2026-11-15)
+
+As in Ancient Japan (its `DEVIATIONS.md` describes it): a picture decoded from a resource frees its decoded bits once
+its 32-bit copy is made (`Image::Prepare`, 0x428680 here), and decodes them again from the resource only if something
+needs them (`jb::Image::DropBits` and `EnsureBits`); the tile sheets the game draws into keep theirs. When the display
+is released and made again (a full-screen toggle, `Display::Release`, 0x42cd30 and 0x42c4d0 here), the port keeps such
+a picture's 32-bit copy where the original frees it and makes it again from the bits. The copy holds the same pixels a
+new one would, so nothing drawn changes: the frozen screens and every check are identical. Why: 9.4 MB of bits the game
+never reads again (8 MB less peak private memory, `GAME_NOTES.md`). `JB_KEEP_IMAGE_BITS=1` keeps them, as the original.
