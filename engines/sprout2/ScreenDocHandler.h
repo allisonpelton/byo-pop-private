@@ -51,6 +51,7 @@ private:
 	void readGroup(Params& theAttributes, bool theComposite, bool theAttachPoint);  // 0x45acf0 (feedingfrenzy2)
 	void readModifier(Params& theAttributes);                              // 0x477d60 (feedingfrenzy2)
 	void readBltFx(Params& theAttributes);                                 // 0x4195f0 (feedingfrenzy2)
+	void readParticleSystem(Params& theAttributes);                        // 0x46ed00 (feedingfrenzy2)
 
 	ScreenLayout* mLayout;                  // +0x50
 	std::vector<Container*> mContainers;    // +0x54: the groups the current element is inside, the innermost last

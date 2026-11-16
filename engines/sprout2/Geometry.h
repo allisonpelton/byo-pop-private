@@ -62,6 +62,16 @@ struct Rect
 typedef Rect<float> RectF;
 typedef Rect<int> RectI;
 
+// Two ends a random value is drawn between (a particle's speeds, sizes, lives; read by Params::getRange)
+struct FloatRange
+{
+	float mLow;
+	float mHigh;
+
+	FloatRange() : mLow(0), mHigh(0) {}
+	FloatRange(float theLow, float theHigh) : mLow(theLow), mHigh(theHigh) {}
+};
+
 // 0x46d360 (feedingfrenzy2): the smaller, the first on a tie
 template <class T>
 inline T minOf(T a, T b)

@@ -32,6 +32,15 @@ public:
 	Vector2<int> getIntPair(const std::string& theName, const Vector2<int>& theDefault) const;
 	// 0x4572a0 (feedingfrenzy2): two numbers, " %f , %f "; one the value does not hold keeps the default's
 	Vector2f getFloatPair(const std::string& theName, const Vector2f& theDefault) const;
+	// 0x455d50 (feedingfrenzy2): a range, "( %f , %f )" when the value starts with a bracket, else one number for
+	// both ends; a number the value does not hold keeps the default's (with one number, both ends take the low one)
+	FloatRange getRange(const std::string& theName, const FloatRange& theDefault) const;
+	// 0x472210 (feedingfrenzy2): " %d , %d , %d , %d " (left, top, right, bottom); one the value does not hold keeps
+	// the default's
+	RectI getRect(const std::string& theName, const RectI& theDefault) const;
+	// 0x473180 (feedingfrenzy2): upperleft, topcenter, bottomcenter or center, any case (Pivot); anything else, and
+	// no value, the centre
+	int getPivot(const std::string& theName) const;
 	// 0x472870 (feedingfrenzy2): " %d , %d , %d , %d ", each 0 to 255: with three, the default's alpha kept; with
 	// fewer, the default
 	Color getColor(const std::string& theName, const Color& theDefault) const;

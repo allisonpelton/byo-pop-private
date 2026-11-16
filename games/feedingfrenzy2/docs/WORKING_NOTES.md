@@ -102,6 +102,27 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   pointer (the top row's into the lock structure's width), so a translucent outline at full opacity would corrupt
   memory; the game is not seen drawing one. The circle may write one pixel past the target's right or bottom edge.
 
+## Particles
+
+- An effect's file (`<particleSystem>` of `<particleStream>`s) is read by ParticleSystemDocHandler into definitions;
+  each stream's images are `path0.png` (or `.jpg`), `path1`, ... up to the first missing number. A stream fills a pool
+  when the effect is made: `ftol(longest life * rate * min(1.5, auto-stop) + 1)` particles, at most its maximum. A
+  free particle is one whose only reference is the pool's; an emission tries 25 at random (`rand() % size`) and gives
+  up if none is free.
+- Every emission draws, in order: acceleration, x, y, start scale, end scale (unless constant), life, velocity x and
+  y, rotation, start opacity, end opacity (unless constant), jitter amplitude x and y, and when either is not 0 the
+  jitter period y then x. Each is `rand() * (1/32767) * (high - low) + low`, so the splash's bubbles take draws from
+  the game's sequence from the first frame; their count depends on the frame times (the rate times the elapsed time,
+  with the fraction carried).
+- Oddities kept: the rotation's "degrees" go to cos and sin as radians; jitter's `rate`, scale's `constantScale` and
+  opacity's `constantOpacity` are not read (the files that give them get the defaults); a stream's computeBounds
+  empties its particles' kill rectangle rather than its own bounds (nothing reaches it: the effect's computeBounds
+  does not recurse); a group-relative stream passes an unset base to its emissions, which do not read it; opacity
+  keys out of order leave the ease curve of the last pair used.
+- Not yet translated: animated particles (`sequence="anim"`, AnimImage; the particle is kept without its animation so
+  the draws stay the same), and the theme's pool of effects (0x475950; a screen with a theme loads its effects on
+  their own, logged).
+
 ## Done
 
 - `engines/sprout2`: objects and references, sigslot, streams, the archive and resource manager, the engine's
@@ -114,16 +135,18 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   the display and shown).
 - `engines/sprout2` (shared with Talismania, whose exe has the same classes by RTTI): themes (images, fonts, colours,
   vectors; particle effects, sounds, music and animations logged), screen layouts read by ScreenDocHandler (images,
-  groups, modifiers, wave effects; particle systems, Theora frames, scaled copies and composites logged), Image,
+  groups, modifiers, wave effects, particle systems; Theora frames, scaled copies and composites logged), Image,
   FadeContainer, the wave modifier and effect, GenericScreen with its phases, Transition and FadeTransition, the
   Scene's update and draw (its mouse and activation not yet), State and StateMgr.
 - `games/feedingfrenzy2/src`: FeedingFrenzyTwo (the archive of its configuration; of its start the scene, the two
   named containers, the screen manager and the splash state), ScreenMgr, SplashState's screen, load bar and theme.
   The splash screen fades in and shows its background, logos and empty load bar (`-fast`, a shot at update 60).
+- `engines/sprout2`: particle effects (their files, ParticleSystem, ParticleStream, Particle) and the float key
+  interpolator with its ease curve. The splash's three bubble effects run (`-fast`, a shot at update 180).
 
 ## Next
 
-- The splash: the bubble text, its particle effect and the screen's particle systems; the loader (the original's
+- The splash: the bubble text and its particle effect (the theme's pool); the loader (the original's
   thread, 0x47e450) and the phases after the wait; then the menu.
 - The configuration's string table and options, the start's options, key, activate and music connections, the
   popups and the debug display.

@@ -1,10 +1,27 @@
 #include "Params.h"
 
+#include "Surface.h"
+
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 
 namespace engine
 {
+
+// The C library's _stricmp in the "C" locale: equal but for the case of ASCII letters
+static bool equalsIgnoringCase(const char* theString, const char* theLiteral)
+{
+	for (;; theString++, theLiteral++)
+	{
+		int aLeft = tolower((unsigned char)*theString);
+		int aRight = tolower((unsigned char)*theLiteral);
+		if (aLeft != aRight)
+			return false;
+		if (aLeft == 0)
+			return true;
+	}
+}
 
 std::string Params::getString(const std::string& theName, const std::string& theDefault) const
 {
@@ -48,6 +65,47 @@ Vector2f Params::getFloatPair(const std::string& theName, const Vector2f& theDef
 		return aPair;
 	sscanf(anIt->second.c_str(), " %f , %f ", &aPair.x, &aPair.y);
 	return aPair;
+}
+
+FloatRange Params::getRange(const std::string& theName, const FloatRange& theDefault) const
+{
+	FloatRange aRange = theDefault;
+	std::map<std::string, std::string>::const_iterator anIt = mValues.find(theName);
+	if (anIt == mValues.end())
+		return aRange;
+	if (anIt->second.c_str()[0] == '(')
+		sscanf(anIt->second.c_str(), "( %f , %f )", &aRange.mLow, &aRange.mHigh);
+	else
+	{
+		sscanf(anIt->second.c_str(), "%f", &aRange.mLow);
+		aRange.mHigh = aRange.mLow;
+	}
+	return aRange;
+}
+
+RectI Params::getRect(const std::string& theName, const RectI& theDefault) const
+{
+	RectI aRect = theDefault;
+	std::map<std::string, std::string>::const_iterator anIt = mValues.find(theName);
+	if (anIt == mValues.end())
+		return aRect;
+	sscanf(anIt->second.c_str(), " %d , %d , %d , %d ", &aRect.left, &aRect.top, &aRect.right, &aRect.bottom);
+	return aRect;
+}
+
+int Params::getPivot(const std::string& theName) const
+{
+	std::map<std::string, std::string>::const_iterator anIt = mValues.find(theName);
+	if (anIt == mValues.end())
+		return PIVOT_CENTER;
+	const char* aValue = anIt->second.c_str();
+	if (equalsIgnoringCase(aValue, "upperleft"))
+		return PIVOT_UPPER_LEFT;
+	if (equalsIgnoringCase(aValue, "topcenter"))
+		return PIVOT_TOP;
+	if (equalsIgnoringCase(aValue, "bottomcenter"))
+		return PIVOT_BOTTOM;
+	return PIVOT_CENTER;
 }
 
 float channelOf(int theValue)

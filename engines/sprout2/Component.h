@@ -178,6 +178,8 @@ public:
 	void addModifier(Modifier* theModifier);
 	// 0x484530 (feedingfrenzy2): the modifier taken out, if the component has it
 	void removeModifier(Modifier* theModifier);
+	// 0x457760 (feedingfrenzy2): every modifier taken out
+	void removeAllModifiers() { mModifiers.clear(); }
 	void removeOwnState(int theStates);
 	int getOwnStates() const { return mOwnStates; }
 	int getTreeStates() const { return mTreeStates; }
