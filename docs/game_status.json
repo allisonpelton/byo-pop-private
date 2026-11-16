@@ -588,11 +588,14 @@
         "site-features",
         "fixes-mod",
         "identical-look",
-        "coverage"
+        "coverage",
+        "lite-mod",
+        "unneeded-code",
+        "collection"
       ],
       "na": [],
       "now": "performance",
-      "note": "coverage check done (f741c1b1): the reached-without-port list empty; fixes: shop/challenge MouseMove/MouseDrag, the 2nd bonus round's ordinal, the change-player box's crash (UserDialog's lines font); 137 port functions never reached, listed"
+      "note": "lite mod: none (LITE_MOD.md); unneeded code out; Collection check: data identical in pixels, tour identical on its files, the exe another build (95800f56). Performance: 1.10 of the paced original with vsync; trying the software screen"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
