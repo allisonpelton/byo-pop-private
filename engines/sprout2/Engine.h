@@ -109,6 +109,10 @@ public:
 	virtual bool addImage(Surface* theImage, const std::string& thePath);
 	// 0x94 (0x469650 (feedingfrenzy2)): the image kept under the path, null for none
 	virtual Surface* findImage(const std::string& thePath);
+	// 0x4719f0 and 0x418120 (feedingfrenzy2), from Theme::load: the kept images, and the kept fonts, that nothing but
+	// the engine holds let go
+	void releaseUnusedImages();
+	void releaseUnusedFonts();
 	// 0x110 (EngineImpl's 0x407760 (feedingfrenzy2)): a new font loaded from the archives
 	virtual Font* createFont(const std::string& thePath);
 

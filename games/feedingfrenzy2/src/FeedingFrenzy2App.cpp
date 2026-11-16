@@ -3,6 +3,7 @@
 #include "FeedingFrenzy2App.h"
 #include "DXDrawContext.h"
 #include "EngineImpl.h"
+#include "FeedingFrenzyTwo.h"
 #include "Graphics.h"
 #include "MemoryImage.h"
 #include "Surface.h"
@@ -74,6 +75,7 @@ FeedingFrenzy2App::FeedingFrenzy2App()
 	mWidget = nullptr;
 	mEngine = nullptr;
 	mDisplay = nullptr;
+	mGame = nullptr;
 	mEngineRunning = false;
 	mFrames = 0;
 	mLastFrameTicks = 0;
@@ -86,6 +88,8 @@ FeedingFrenzy2App::~FeedingFrenzy2App()
 		mWidgetManager->RemoveWidget(mWidget);
 		delete mWidget;
 	}
+	if (mGame != nullptr)
+		mGame->release();
 	if (mDisplay != nullptr)
 		mDisplay->release();
 	delete mEngine;
@@ -110,6 +114,12 @@ void FeedingFrenzy2App::Init()
 	mDisplay = new engine::Surface();
 	mDisplay->addRef();
 	mDisplay->allocate(SCREEN_WIDTH, SCREEN_HEIGHT);
+	// The run (0x4383b0 (feedingfrenzy2)) has 0x49bc60 (feedingfrenzy2) make the application and ask for its
+	// configuration, then starts it (the screensaver's letters are not yet translated)
+	mGame = new FeedingFrenzyTwo();
+	mGame->addRef();
+	mGame->configure();
+	mGame->start(false);
 	mLastFrameTicks = mEngine->getTicks();
 	mEngineRunning = true;
 }

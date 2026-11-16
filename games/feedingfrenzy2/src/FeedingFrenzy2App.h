@@ -12,6 +12,8 @@
 
 #include <cstdint>
 
+class FeedingFrenzyTwo;
+
 namespace engine
 {
 class EngineImpl;
@@ -44,6 +46,8 @@ public:
 	engine::EngineImpl* mEngine;
 	// The display's back buffer, which each frame is drawn into (the engine's +0x2a4, a DirectDraw surface)
 	engine::Surface* mDisplay;
+	// The game's application (the engine's +0x288)
+	FeedingFrenzyTwo* mGame;
 	bool mEngineRunning;
 	int mFrames;  // port: the engine's frames
 	uint64_t mLastFrameTicks;  // the clock when the last frame began (the engine's +0x2c8)

@@ -111,4 +111,24 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
 - `engines/sprout2`: the draw context's clip stack and region; DXDrawContext with its fills, outlines, lines, circles
   and images (the first-draft sampler where noted).
 - `games/feedingfrenzy2/src`: the app skeleton (a window, the engine made, frames run on the clock, each drawn into
-  the display and shown; nothing connected to the draw signal yet).
+  the display and shown).
+- `engines/sprout2` (shared with Talismania, whose exe has the same classes by RTTI): themes (images, fonts, colours,
+  vectors; particle effects, sounds, music and animations logged), screen layouts read by ScreenDocHandler (images,
+  groups, modifiers, wave effects; particle systems, Theora frames, scaled copies and composites logged), Image,
+  FadeContainer, the wave modifier and effect, GenericScreen with its phases, Transition and FadeTransition, the
+  Scene's update and draw (its mouse and activation not yet), State and StateMgr.
+- `games/feedingfrenzy2/src`: FeedingFrenzyTwo (the archive of its configuration; of its start the scene, the two
+  named containers, the screen manager and the splash state), ScreenMgr, SplashState's screen, load bar and theme.
+  The splash screen fades in and shows its background, logos and empty load bar (`-fast`, a shot at update 60).
+
+## Next
+
+- The splash: the bubble text, its particle effect and the screen's particle systems; the loader (the original's
+  thread, 0x47e450) and the phases after the wait; then the menu.
+- The configuration's string table and options, the start's options, key, activate and music connections, the
+  popups and the debug display.
+- The engine's log goes to SDL_LogDebug, which nothing shows: a way to see it (the original wrote a log file).
+- The looks: the frame does not clear the display, so the splash's quarter-second fade builds up over the last frame
+  (the background at 6, 17, 33, 50, 66% of its brightness in the first frames where the fade's progress is 7, 13, 20,
+  27, 33%). Compare with the original windowed (its back buffer blitted, so kept) and full screen (a flip chain, so
+  the buffer two frames back).
