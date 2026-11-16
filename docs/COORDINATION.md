@@ -35,7 +35,8 @@ holds the rules every session follows; this file does not repeat them.
 - **How many at once:** no fixed number since 2026-11-15 (the user: "Get rid of the time restrictions on concurrent
   sessions ... Do what you want forever now"), replacing the limit of 8 set on 2026-11-11 after "Too many sessions,
   some crashed. Set a comfortable limit". To keep sessions from crashing, the coordinator still checks the machine
-  before waking one: under 6 GB available or over 80% of the commit limit means waiting.
+  before waking one: under 6 GB available or over 80% of the commit limit means waiting, and so does less than 8 GB free on C:, since a
+  working worktree grows to about 3 GB ("Disk" in CLAUDE.md).
   The limit of 10 game processes (CLAUDE.md) holds for all of them, so more sessions mean longer waits for a game slot.
   A session past the limit waits idle on a background wait for its own file (`until [ -f <main
   checkout>/build/slots/<name>.go ]; do sleep 60; done; cat` the file), which the coordinator writes with any news
@@ -93,10 +94,11 @@ holds the rules every session follows; this file does not repeat them.
   before new ones start"). Venice, Heavy Weapon and Hammer Heads count as current games. Before that the gate was the
   readability pass ("Move up readability passes to come before additional decomps", 2026-11-08). Then the easier ones side by side
   (by `docs/POPCAP_GAMES_SURVEY.md` section 2: Venice, Heavy Weapon, Hammer Heads, then Pizza Frenzy with Iggle Pop and
-  Feeding Frenzy after it), and the harder ones from Chuzzle two at a time, in the survey's order (Feeding Frenzy 2,
+  Feeding Frenzy after it), and the harder ones from Chuzzle on, in the survey's order (Feeding Frenzy 2,
   Peggle Deluxe and Peggle Nights, Bejeweled 3, Banana Bugs, Gyromancer, Zuma's Revenge, Talismania after Feeding
-  Frenzy 2), each taken all the way through. The first pair is watched for trouble: "When we get to it, see if running
-  two-by-two causes issues. If not, continue with two". A game that builds on another's engine waits for that game; a
+  Frenzy 2), each taken all the way through. They no longer go two at a time (the user, 2026-11-16: "I don't think the two-at-a-time limit makes sense for the remaining decomps, actually. Lift it and park the remainder of the sessions now so they can be resumed as slots free"): each has a
+  session from that day, parked on its slot file ("How many at once" above), and the coordinator wakes them in this
+  order as the machine has room. A game that builds on another's engine waits for that game; a
   slot the next game cannot use yet goes to the cheapest remaining one. Within a step, the lowest-effort games go first
   ("Start with lowest effort", 2026-11-03). The user has made exceptions to the first sentence. Venice started early,
   on 2026-11-12, to test the rule below. Later that day, after Venice's port and both phases of identical play came in
