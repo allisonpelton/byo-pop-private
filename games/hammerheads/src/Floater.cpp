@@ -1,4 +1,5 @@
 #include "Floater.h"
+#include "MathConstants.h"
 
 #include <climits>
 #include <cmath>
@@ -23,11 +24,6 @@
 
 using namespace Sexy;
 
-static const double HALF_PI = 1.5707963267948966;
-static const double HALF_PI_FLOAT = 1.5707963705062866;		// pi / 2 as a float, the exe's constant for most of the ease curves
-static const double PI = 3.141592653589793;
-static const double PI_FLOAT = 3.1415927410125732;
-static const double TWO_PI_FLOAT = 6.2831854820251465;
 
 // port: What the exe's _ftol gives: the value cut toward zero, or the "indefinite" integer when it does not fit
 static std::string FormatInt(const char* theFormat, int theValue)
@@ -547,7 +543,7 @@ void Floater::Draw(Graphics* g)
 		if (mType == FLOATER_FLASH)
 		{
 			anImage = IMAGE_FLASH;
-			aScale = cos(((aTime + aTime) * 6.283185307179586) + PI) + 1.0;
+			aScale = cos(((aTime + aTime) * TWO_PI) + PI) + 1.0;
 		}
 		else
 		{

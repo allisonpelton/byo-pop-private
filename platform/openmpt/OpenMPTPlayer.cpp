@@ -68,6 +68,16 @@ public:
 				ApplyChannelVolume(i);
 	}
 
+	// libopenmpt's seek keeps the module's mix plugins as the last play left them (an echo's delay line, a chorus's phase;
+	// Bejeweled Twist's music has both), so a used player sounded unlike a new one from the same position: one channel of
+	// a Twist module, played again after another song, differed from a new player's by more than its own level. The control
+	// (third_party/libopenmpt, BYO-POP.md) starts the plugins afresh on each seek, this one and the ones that follow
+	void PrepareReuse() override
+	{
+		openmpt_module_ctl_set_boolean(mModule, "seek.reset_plugins", 1);
+		SetPosition(0, 0);
+	}
+
 	int GetTempo() override
 	{
 		return (int)std::lround(openmpt_module_get_current_tempo2(mModule));

@@ -30,3 +30,12 @@ line is marked `byo-pop`:
 - `soundlib/ModSample.cpp`: `PrecomputeLoops` leaves a kept sample's one-frame placeholder alone.
 - `soundlib/Fastmix.cpp`: `MixChannel` points a channel playing a kept sample at the decoded frames its run reads.
 - `soundlib/Sndfile.{h,cpp}`: the module's `m_sampleStreams`, freed first in `Destroy`.
+
+Plugins started afresh on a seek (2026-11-16): a seek keeps the module's mix plugins as the last play left them (the Echo
+and Chorus of Bejeweled Twist's music hold a delay line and a phase), so a player used before sounded unlike a new one
+from the same position, which matters where `Platform::Mixer::SetSongPlayersPooled` hands one player to several songs. The
+control `seek.reset_plugins` (boolean, off by default, so the library's own behaviour) suspends the plugins before a
+`set_position_seconds` or `set_position_order_row` seek and resumes them after it, the way a module just loaded has them
+(`OpenMPTModule::PrepareReuse` in `platform/openmpt/OpenMPTPlayer.cpp` turns it on for a pooled player). Each changed line is
+marked `byo-pop`: `libopenmpt/libopenmpt_impl.{hpp,cpp}` (the member, its ctl entries and the two seeks) and the control's
+line in `libopenmpt/libopenmpt.{h,hpp}`.

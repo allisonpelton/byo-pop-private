@@ -1,4 +1,5 @@
 #include "Popper.h"
+#include "MathConstants.h"
 
 #include <cmath>
 
@@ -12,8 +13,6 @@
 
 using namespace Sexy;
 
-static const double HALF_PI_FLOAT = 1.5707963705062866;		// pi / 2 as a float, the exe's constant
-static const double PI_FLOAT = 3.1415927410125732;			// pi as a float
 static const float SIXTEENTH_OF_A_SECOND = 0.06666667f;		// 1 / 15: the explosion shows each cel for 15 steps
 
 // 0x440830. Each type has an emitter and a fragment definition by name; the types that fly the way a hit came from take

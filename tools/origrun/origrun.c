@@ -1162,6 +1162,7 @@ static void dump_desktop(void)
 }
 
 // Wait for the game's window to first appear; returns its pid (0 on timeout).
+static int gNoWindowSec=0;   // seconds waited in vain for the game's window (0: it appeared); the final RESULT line says so
 static DWORD find_game_pid(int timeout_ms)
 {
 	int waited=0;
@@ -2969,14 +2970,18 @@ static DWORD WINAPI driver_thread(LPVOID p)
 	}
 	// Informational only: the game's window can be delayed (activation phone-home) or flaky under load, so we
 	// never bail on this -- the script's own waitshot/record commands poll for the window.
+	// A game pinned to one core at below-normal priority can take well over 20 s to show its window (BookWorm: 24 s), and a
+	// script whose first command is a click would then lose it: keep waiting up to 120 s in all.
+	ULONGLONG tWin=GetTickCount64();
 	DWORD pid=find_game_pid(20000);
+	if (!pid) { logline("no window in the first 20s; still waiting, up to 120 s in all"); pid=find_game_pid(100000); if (pid) logline("game window first seen after %llu ms", (unsigned long long)(GetTickCount64()-tWin)); }
 	if (pid) {
 		gGamePidHint=pid;
 		char gpu[MAX_PATH]; int g=process_uses_gpu_api(pid,gpu,sizeof(gpu));
 		logline("game window first seen: pid=%lu; GPU modules: %s; %s", pid, g>0 ? gpu : (g<0 ? "(list not readable)" : "none"),
 			gInSandbox ? "inside Windows Sandbox, so shots are taken" : "on the host, so no shot is taken");
 	}
-	else logline("no window in the first 20s; proceeding anyway (the script polls for it)");
+	else if (!gStop) { gNoWindowSec=120; logline("WARNING: NO WINDOW 120s: no game window in 120 s; proceeding anyway (the script polls for it), but its first commands may be lost"); }
 	if (GetEnvironmentVariableA("ORIGRUN_MONITOR",NULL,0) || getenv("ORIGRUN_MONITOR")) {
 		for (int t=0;t<30 && !gStop;t++){ DWORD rp=0; HWND rw=resolve_window(0,&rp); logline("--- t+%dms  resolve_window -> hwnd=%p pid=%lu ---",t*1000,(void*)rw,rp); dump_desktop(); Sleep(1000); }
 	}
@@ -3470,6 +3475,7 @@ static int watch_run(Launched* L, const char* script, int timeout, const char* k
 
 	logline("done. captures in %s, logs in %s", gShotDir, logs);
 	audio_result();
+	if (gNoWindowSec) logline("RESULT: NO WINDOW %ds: the game's window did not appear in the first %d s, so the script's first commands may have been lost; the run is not a valid measurement.", gNoWindowSec, gNoWindowSec);
 	int rc=0;
 	if (gMode3dExpr[0]) {
 		LONG m=gMode3dLast;
