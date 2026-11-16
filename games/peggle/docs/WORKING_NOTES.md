@@ -68,6 +68,8 @@ CharacterMgr, TrophyInfo::mUnknown60) are named when their users are translated.
 
 ## State
 
-The app skeleton builds (`TARGET=peggle bash tools/build.sh native`) and starts: it loads the resource groups, the music, the cursors
-and every data manager (a run under rundesk takes 1.0 s with a screenshot) and shows an empty window. Next: the loading screen and the
-main menu (MakeWinButton, CheckMaxStage, ShowLoadingScreen, LoadingScreen, MainMenu, ThunderButton, ThunderDialog).
+Builds and runs to the main menu (loading screen, menu, bubble, trophy, the locked and quit dialogs): see `GAME_NOTES.md` for
+what is translated, what is left out and the order of the rest. `decread.py` was fixed after the first data classes were
+translated (it dropped some arguments); the functions translated with the old tool are checked again in the identical-play
+pass. `disasm.py <addr> [<from> <to>] [--math]` shows the real arguments and x87 maths, `modvals.py` lists the ModVal numbers,
+`callctx.py <caller> <callee>` shows one call's arguments. How to translate a function: `TRANSLATION_GUIDE.md`.
