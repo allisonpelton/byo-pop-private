@@ -246,11 +246,12 @@
         "collection",
         "site-features",
         "identical-look",
-        "lite-mod"
+        "lite-mod",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "the lite mod step done with no mod (c0ee6258); performance: after the renderer fix the 3D driver thread fell from 2,826 to 1,289 M cycles in 20 s; five interleaved pinned 3D pairs on the visible desktop, a quieter machine: port 2,700 M with its mixer against the original's 2,537 (1.06), about 0.99 without the mixer (origrun's stand-in mixes nothing), the port higher in all five, two of them main-thread spikes; next: the spikes looked at (an hour), the like-for-like figure, then the 3D medal screens; 2D 0.80"
+      "now": null,
+      "note": "every phase but modding done; performance like for like in 3D on the visible desktop, both sides' sound threads left out: port 2,498 M cycles in 20 s against the original's 2,537 (0.98), 1.06 with the port's mixer; the two main-thread spikes an Oddity (likely the NVIDIA driver presenting inline); 2D 0.80; left before the final merge: the 3D comparison of the abyss and bonus levels, an idle game, and the boards after a pause and a resume"
     },
     "astropop": {
       "title": "AstroPop Deluxe",

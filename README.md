@@ -111,7 +111,7 @@ asked.
 | Bejeweled Twist | 2.71 s | 10.81 s | 38.8 G cycles a minute in 2D, 43.2 in 3D | 41.5 G cycles a minute in 2D, 47.2 in 3D | 354 to 390 MB in 2D, 250 to 258 in 3D | 183 to 189 MB in 2D, 300 to 303 in 3D |
 | Bejeweled 2 Deluxe | 0.9 to 1.2 s in 2D, 1.4 s in 3D | 4.4 s in 2D, 4.7 s in 3D (dgVoodoo2) | 7.5 % of one core in 2D on a GPU renderer, 6.6 % on SDL's software renderer (48.5 % in its default 2x window), 8.8 % in 3D | 9.4 % of one core in 2D, 61 % in 3D (dgVoodoo2) | 82 to 109 MB | 42 MB in 2D, 149 MB in 3D (dgVoodoo2) |
 | AstroPop Deluxe | 1.0 to 1.3 s | 1.5 s (2D), 5 to 13 s (3D) | 4.25 G cycles in a 2,030-update stretch (2D), 3.02 G (3D) | 6.13 G (2D), 3.43 G (3D) | 159 to 164 MB | 81 to 83 MB (2D), 118 MB (3D) |
-| Typer Shark! Deluxe | 0.72 to 0.82 s | 0.76 to 1.28 s | 3.7 G cycles in 20 s (3D, visible desktop) | 3.9 G cycles in 20 s (3D) | 86 to 89 MB | 49 to 51 MB |
+| Typer Shark! Deluxe | 0.72 to 0.82 s | 0.76 to 1.28 s | 2.50 G cycles in 20 s without its mixer, 2.70 G with it (3D, visible desktop, medians) | 2.54 G cycles in 20 s (3D; its sound a silent stand-in) | 86 to 89 MB | 49 to 51 MB |
 
 Every number comes from the game's own notes, its latest measurement there: the native port under rundesk and the
 original under origrun, back to back on one machine, windowed and silent, over the same scripted play, with the load
