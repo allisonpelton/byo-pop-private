@@ -7,6 +7,7 @@
 #include <ivorbisfile.h>
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 
 #define STB_VORBIS_HEADER_ONLY
@@ -257,9 +258,104 @@ static const int kVoiceSerialShift = 8;  // handle = serial << 8 | slot
 static const uint32_t kPageDevice = 0xffffffffu;  // mDevice while the web page's own output plays (InitPage): no SDL device
 #endif
 
+// A streamed sound's frames as one voice plays them (SoundData::mStreamFile): decoded from the start in the order and in the
+// calls of stb_vorbis_decode_memory, so each frame is the one LoadSoundData would have kept; a few frames are kept behind
+// the last asked for, and asking for an earlier one starts again from the file's start (a loop).
+class StreamedFrames
+{
+public:
+	~StreamedFrames() { Close(); }
+
+	void Close()
+	{
+		if (mVorbis != nullptr)
+			stb_vorbis_close(mVorbis);
+		mVorbis = nullptr;
+		mData = nullptr;
+	}
+
+	// frame theIndex of theData (its mChannels samples), 0 to mFrames - 1; zeros past the decoder's end
+	const int16_t* Frame(const SoundData& theData, int64_t theIndex)
+	{
+		const int64_t k = theIndex - mStart;
+		if ((&theData == mData) && (k >= 0) && (k < mCount))
+			return &mFrames[(size_t)k * mChannels];
+		return Decode(theData, theIndex);
+	}
+
+private:
+	const int16_t* Decode(const SoundData& theData, int64_t theIndex)
+	{
+		static const int16_t kSilence[2] = {0, 0};
+		if ((&theData != mData) || (theIndex < mStart))
+		{
+			Close();
+			int anError = 0;
+			mVorbis = stb_vorbis_open_memory(theData.mStreamFile->data(), (int)theData.mStreamFile->size(), &anError, nullptr);
+			if (mVorbis == nullptr)
+				return kSilence;
+			mData = &theData;
+			mChannels = theData.mChannels;
+			mFileChannels = stb_vorbis_get_info(mVorbis).channels;
+			mScratch.resize((size_t)mFileChannels * 4096);
+			mFrames.clear();
+			mStart = 0;
+			mCount = 0;
+			mEnded = false;
+		}
+		// keep the frame before theIndex (an interpolation reads two in a row)
+		int64_t aKeep = std::max<int64_t>(theIndex - 1, mStart);
+		if (aKeep > mStart)
+		{
+			const int64_t aDrop = std::min(aKeep - mStart, mCount);
+			mFrames.erase(mFrames.begin(), mFrames.begin() + (size_t)aDrop * mChannels);
+			mStart += aDrop;
+			mCount -= aDrop;
+		}
+		while (!mEnded && (theIndex >= mStart + mCount))
+		{
+			// as stb_vorbis_decode_memory: a Vorbis frame at a time into room for 4096 frames, the first one or two channels
+			// kept as LoadSoundData keeps them
+			const int n = stb_vorbis_get_frame_short_interleaved(mVorbis, mFileChannels, mScratch.data(), (int)mScratch.size());
+			if (n == 0)
+			{
+				mEnded = true;
+				break;
+			}
+			int aFirst = 0;
+			if (mCount == 0)
+			{
+				// frames before the one kept are not needed
+				const int64_t aSkip = std::min<int64_t>(aKeep - mStart, n);
+				aFirst = (int)aSkip;
+				mStart += aSkip;
+			}
+			for (int i = aFirst; i < n; i++)
+				for (int c = 0; c < mChannels; c++)
+					mFrames.push_back(mScratch[(size_t)i * mFileChannels + c]);
+			mCount += n - aFirst;
+		}
+		const int64_t k = theIndex - mStart;
+		if ((k >= 0) && (k < mCount))
+			return &mFrames[(size_t)k * mChannels];
+		return kSilence;
+	}
+
+	const SoundData* mData = nullptr;
+	stb_vorbis* mVorbis = nullptr;
+	int mChannels = 1;
+	int mFileChannels = 1;
+	std::vector<int16_t> mScratch;
+	std::vector<int16_t> mFrames;   // mCount frames from frame mStart
+	int64_t mStart = 0;
+	int64_t mCount = 0;
+	bool mEnded = false;
+};
+
 struct Mixer::Voice
 {
 	std::shared_ptr<SoundData> mData;
+	std::unique_ptr<StreamedFrames> mStream;   // a streamed sound's decoder (SoundData::mStreamFile), made at its first mix
 	double mPos = 0.0;
 	double mStep = 1.0;
 	float mGainL = 1.0f, mGainR = 1.0f;
@@ -940,6 +1036,60 @@ std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file
 	return data;
 }
 
+static bool StreamMusic()
+{
+	static const bool sStream = !(getenv("BYOPOP_STREAM_MUSIC") != nullptr && atoi(getenv("BYOPOP_STREAM_MUSIC")) == 0);
+	return sStream;
+}
+
+std::shared_ptr<SoundData> Mixer::LoadStreamedSoundData(const std::vector<uint8_t>& file, const std::string& theName)
+{
+	if (!StreamMusic() || (file.size() <= 4) || (memcmp(file.data(), "OggS", 4) != 0))
+		return LoadSoundData(file, theName);
+	// the length from the last page's position (LoadSoundData counts the decoded frames: BYOPOP_STREAM_CHECK=1 compares)
+	int anError = 0;
+	stb_vorbis* aVorbis = stb_vorbis_open_memory(file.data(), (int)file.size(), &anError, nullptr);
+	if (aVorbis == nullptr)
+		return LoadSoundData(file, theName);
+	const stb_vorbis_info anInfo = stb_vorbis_get_info(aVorbis);
+	const int aChannels = anInfo.channels;
+	const int aRate = (int)anInfo.sample_rate;
+	const unsigned int aFrames = stb_vorbis_stream_length_in_samples(aVorbis);
+	stb_vorbis_close(aVorbis);
+	if ((aRate <= 0) || (aFrames == 0) || (aChannels <= 0))
+		return LoadSoundData(file, theName);
+	auto data = std::make_shared<SoundData>();
+	data->mName = theName;
+	data->mChannels = std::min(aChannels, 2);
+	data->mRate = aRate;
+	data->mFrames = aFrames;
+	data->mStreamFile = std::make_shared<const std::vector<uint8_t> >(file);
+	{
+		StreamedFrames aFirst;
+		const int16_t* aFrame = aFirst.Frame(*data, 0);
+		data->mFirstFrame[0] = aFrame[0];
+		data->mFirstFrame[1] = aFrame[data->mChannels - 1];
+	}
+	const char* aCheck = getenv("BYOPOP_STREAM_CHECK");
+	if ((aCheck != nullptr) && (atoi(aCheck) != 0))
+	{
+		std::shared_ptr<SoundData> aWhole = LoadSoundData(file, theName);
+		StreamedFrames aStream;
+		size_t aDiffering = 0;
+		const size_t aCompared = aWhole ? std::min(aWhole->mFrames, data->mFrames) : 0;
+		for (size_t i = 0; i < aCompared; i++)
+		{
+			const int16_t* aFrame = aStream.Frame(*data, (int64_t)i);
+			for (int c = 0; c < data->mChannels; c++)
+				if (aFrame[c] != aWhole->mSamples[i * data->mChannels + c])
+					aDiffering++;
+		}
+		SDL_Log("stream check: %s: %u frames streamed, %u decoded whole, %u samples differing", theName.c_str(),
+			(unsigned)data->mFrames, aWhole ? (unsigned)aWhole->mFrames : 0u, (unsigned)aDiffering);
+	}
+	return data;
+}
+
 // ---------------------------------------------------------------------------------------------
 // Voices
 
@@ -1021,6 +1171,7 @@ void Mixer::StopVoice(int theVoice)
 	{
 		v->mActive = false;
 		v->mData.reset();
+		v->mStream.reset();
 	}
 	Unlock();
 }
@@ -1041,6 +1192,7 @@ void Mixer::StopAllVoices()
 	{
 		v->mActive = false;
 		v->mData.reset();
+		v->mStream.reset();
 	}
 	Unlock();
 }
@@ -1075,6 +1227,7 @@ void Mixer::AdvanceVoices(double theMilliseconds)
 				{
 					v.mActive = false;
 					v.mData.reset();
+					v.mStream.reset();
 				}
 			}
 		}
@@ -1508,6 +1661,11 @@ void Mixer::MixVoice(Voice& v, float* theOut, int theFrames)
 		v.mStartedAt = 0.0;
 	}
 #endif
+	if (v.mData->mStreamFile)
+	{
+		MixStreamedVoice(v, theOut, theFrames);
+		return;
+	}
 	const int16_t* src = v.mData->mSamples.data();
 	const int ch = v.mData->mChannels;
 	const double len = (double)v.mData->mFrames;
@@ -1537,6 +1695,57 @@ void Mixer::MixVoice(Voice& v, float* theOut, int theFrames)
 	}
 	if (!v.mActive)
 		v.mData.reset();
+}
+
+// MixVoice's loop for a streamed sound: the same arithmetic on the same frames, taken from the voice's decoder
+void Mixer::MixStreamedVoice(Voice& v, float* theOut, int theFrames)
+{
+	if (!v.mStream)
+		v.mStream.reset(new StreamedFrames());
+	const SoundData& aData = *v.mData;
+	const int ch = aData.mChannels;
+	const double len = (double)aData.mFrames;
+	const float gl = v.mGainL * mSfxMaster, gr = v.mGainR * mSfxMaster;
+	for (int i = 0; i < theFrames; i++)
+	{
+		if (v.mPos >= len)
+		{
+			if (v.mLoop)
+				v.mPos = std::fmod(v.mPos, len);
+			else
+			{
+				v.mActive = false;
+				break;
+			}
+		}
+		int i0 = (int)v.mPos;
+		int i1 = i0 + 1 < (int)len ? i0 + 1 : (v.mLoop ? 0 : i0);
+		float t = (float)(v.mPos - i0);
+		const int16_t* aFrameA = v.mStream->Frame(aData, i0);
+		const int16_t a[2] = {aFrameA[0], aFrameA[ch - 1]};
+		int16_t b[2];
+		if (i1 == 0)
+		{
+			b[0] = aData.mFirstFrame[0];
+			b[1] = aData.mFirstFrame[1];
+		}
+		else
+		{
+			const int16_t* aFrameB = v.mStream->Frame(aData, i1);
+			b[0] = aFrameB[0];
+			b[1] = aFrameB[ch - 1];
+		}
+		float l = (a[0] + (b[0] - a[0]) * t) * (1.0f / 32768.0f);
+		float r = ch > 1 ? (a[1] + (b[1] - a[1]) * t) * (1.0f / 32768.0f) : l;
+		theOut[i * 2] += l * gl;
+		theOut[i * 2 + 1] += r * gr;
+		v.mPos += v.mStep;
+	}
+	if (!v.mActive)
+	{
+		v.mData.reset();
+		v.mStream.reset();
+	}
 }
 
 void Mixer::Mix(float* theOut, int theFrames)

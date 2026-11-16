@@ -165,6 +165,31 @@ images), 5.1 MB of sounds (19) and, from the menu on, the two MO3 modules the me
 The bytes handed out are 2 MB fewer (the vector that went); the heap's own size depends on where its growth steps fell. What is
 left is Japan's list.
 
+### Streamed music and one copy of the pictures (2026-11-15)
+
+As Japan's (its `GAME_NOTES.md` has the method; the user, 2026-11-15: "Merge both"): the music modules are decoded as
+they play, the same to the bit, and a picture decoded from a resource keeps only its 32-bit copy (`DEVIATIONS.md`, "A
+picture's decoded bits"). 5 rounds of alternating runs pinned to one core, the check's play in real time; medians with
+their ranges:
+
+| | both as before | music streamed | pictures kept once |
+|---|---|---|---|
+| Peak private bytes | 70.5 MB (70.5 to 73.5) | 54.7 MB (51.8 to 54.8) | 62.8 MB (62.5 to 65.5) |
+| The mixer (SDL's audio thread), G cycles in 30 s | 0.154 (0.143 to 0.206) | 0.244 (0.220 to 0.326) | 0.154 (0.145 to 0.211) |
+| The main thread, G cycles in 30 s | 1.34 (1.22 to 1.79) | 1.32 (1.20 to 1.82) | 1.31 (1.24 to 1.81) |
+| Launch to the main menu | 0.977 s (0.956 to 1.047) | 0.971 s (0.935 to 1.011) | 0.951 s (0.941 to 1.013) |
+| The map's Continue to the first board | 1.760 s | 1.762 s | 1.747 s |
+| Web: WebAssembly memory after the play (it grows in steps of about a fifth) | 67.0 MB | 55.8 MB | 67.0 MB (inside one step) |
+
+The streaming's cost: the mixer's cycles go up by 0.088 G in 30 s (each round against its own: +0.069 to +0.121), 58 %
+of its own and about 6 % of the process's; offline about 0.6 ms of processor time per second of music (300 s of the
+menu's and the game's modules: 185 and 183 ms decoded whole, 362 and 375 ms streamed), paid at every loop, where the
+whole decode was paid once at load (29 ms for 335, 148 ms for 339, 38 to 69 ms for the classic list's three), so after
+under a minute (the menu's) to about four minutes (the game's) of a module's music the port has spent more on it than
+the decode took. A jump into the middle of a recording would decode it from its start inside one mixer callback; the
+game's jumps land only on orders that start one. The pictures change costs nothing measurable, and no picture is decoded
+again during the play.
+
 ## Coverage check (2026-11-08)
 
 The first whole coverage check of Ancient China (`docs/COVERAGE.md`, "A game's whole check"), made after Ancient Japan's

@@ -821,6 +821,7 @@ bool CSoundFile::CreateInternal(FileReader file, ModLoadingFlags loadFlags)
 
 bool CSoundFile::Destroy()
 {
+	m_sampleStreams.reset();  // byo-pop
 	for(auto &chn : m_PlayState.Chn)
 	{
 		chn.pModInstrument = nullptr;

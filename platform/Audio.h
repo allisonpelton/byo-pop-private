@@ -81,8 +81,13 @@ struct SoundData
 	int mRate = 48000;
 	size_t mFrames = 0;
 	std::string mName;  // the game path it was loaded from (LoadSoundData's theName), for the site's sound panel
+	// A sound decoded as it plays (LoadStreamedSoundData): its Ogg file, with mSamples empty; each voice that plays it
+	// decodes its own way through the file, a Vorbis frame at a time. mFirstFrame is frame 0, which a looping voice's
+	// last frame blends with.
+	std::shared_ptr<const std::vector<uint8_t> > mStreamFile;
+	int16_t mFirstFrame[2] = {0, 0};
 
-	size_t Bytes() const { return mSamples.capacity() * sizeof(int16_t); }
+	size_t Bytes() const { return mSamples.capacity() * sizeof(int16_t) + (mStreamFile ? mStreamFile->size() : 0); }
 };
 
 class Mixer
@@ -101,6 +106,10 @@ public:
 	// Decodes Ogg Vorbis (stb_vorbis) or WAV (SDL) from the VFS and resamples to the device rate.
 	std::shared_ptr<SoundData> LoadSound(const std::string& theGamePath);
 	std::shared_ptr<SoundData> LoadSoundData(const std::vector<uint8_t>& theFile, const std::string& theName);
+	// The same sound played the same, but an Ogg Vorbis file is kept as it is and decoded as its voices play (the
+	// mixer's callback), a few kilobytes at a time instead of the whole track: for long music. Anything else, or
+	// BYOPOP_STREAM_MUSIC=0, is LoadSoundData's.
+	std::shared_ptr<SoundData> LoadStreamedSoundData(const std::vector<uint8_t>& theFile, const std::string& theName);
 
 	// --- voices (sound effects) ---
 	// Returns a voice handle (>0) or 0 if no voice is free.
@@ -242,6 +251,7 @@ private:
 	static void Callback(void* theUser, uint8_t* theStream, int theLen);
 	void Mix(float* theOut, int theFrames);
 	void MixVoice(Voice& v, float* theOut, int theFrames);
+	void MixStreamedVoice(Voice& v, float* theOut, int theFrames);
 	// Gives a tracker module song its player the first time it is needed (LoadSong keeps only the file). Main thread,
 	// outside the lock; false when the song has no player (not a module, or its file did not load).
 	bool OpenModule(int theSong);
