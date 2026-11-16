@@ -4,6 +4,8 @@
 #ifndef __THUNDERMATH_H__
 #define __THUNDERMATH_H__
 
+#include "SexyVector.h"
+
 namespace Sexy
 {
 
@@ -14,6 +16,10 @@ extern const float PI_AS_FLOAT;		  // 0x5f0e64
 
 // 0x4bc2d0: turns the point (*theX, *theY) around (theCenterX, theCenterY) by theAngle (radians)
 void RotateXY(float* theX, float* theY, float theCenterX, float theCenterY, float theAngle);
+
+// 0x432660 (the original's SexyVector2::Normalize): the length is the square root of a sum that is rounded once, where the
+// framework's own Normalize rounds each square, so the vectors of the physics are normalised with this one
+SexyVector2 NormalizeVector(const SexyVector2& theVector);
 
 float GetCanonicalAngleDeg(float theAngle); // 0x4bc340: the same angle in [0, 360)
 float GetCanonicalAngleRad(float theAngle); // 0x4bc3b0: the same angle in [0, 2 pi)

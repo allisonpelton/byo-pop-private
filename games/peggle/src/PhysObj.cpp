@@ -5,6 +5,7 @@
 #include "DataSync.h"
 #include "Image.h"
 #include "ImageMgr.h"
+#include "NotTranslated.h"
 #include "ThunderballApp.h"
 
 #include <cmath>
@@ -356,4 +357,53 @@ void PhysObj::SyncState(DataSync& theSync)
 		if (!gSyncNoImages)
 			LoadImage();
 	}
+}
+
+// 0x479940
+void PhysObj::UpdateFromMover()
+{
+	if (mMover != nullptr)
+	{
+		mMover->CalcPos(mMoverTime, 0);
+		SetPos(mMover->mX, mMover->mY);
+	}
+}
+
+// 0x479980
+void PhysObj::SetMoverTime(int theTime)
+{
+	mMoverTime = theTime;
+	UpdateFromMover();
+}
+
+// 0x4799a0
+void PhysObj::MoveToPhase(float thePhase, bool theJump)
+{
+	if (mMover == nullptr)
+		return;
+	bool aCountBack = thePhase < 0;
+	if (aCountBack)
+		thePhase = thePhase * -1.0f;
+	int aTime = mMoverTime;
+	int aTicks = mMover->GetTimeToPhase(aTime, thePhase);
+	if (aTicks < 1)
+	{
+		if (aCountBack)
+			aTicks += mMover->mPause2 + mMover->mPause1 + mMover->mPeriod;
+		if (aTicks < 1)
+			return;
+	}
+	if (theJump)
+	{
+		SetMoverTime(aTime + aTicks);
+		return;
+	}
+	mMoving = true;
+	mMovingTimer = aTicks;
+}
+
+// 0x476bf0
+void PhysObj::PlayHitEffects(int theSound)
+{
+	NOT_TRANSLATED("PhysObj::PlayHitEffects (the sound and the bubbles of a piece that toggles; needs the board's effects)");
 }

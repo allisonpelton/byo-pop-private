@@ -42,6 +42,8 @@ public:
 	void SyncState(DataSync& theSync); // 0x47a9f0
 	void Shift(float theDeltaX, float theDeltaY); // 0x476420: moves the whole path
 	float GetCyclePosition(int theTime) const; // 0x4764f0: how far through its cycle it is at an update, 0 up to 1
+	int GetTimeToPhase(int theTime, float thePhase) const; // 0x476460: the updates from theTime until the cycle is at thePhase (0 when it has no cycle)
+	static int WrapTime(int theTime, int thePeriod); // 0x476400: theTime brought into 0 up to thePeriod
 	// 0x478ea0: sets mX and mY (and mAngle) for the update theTime; theSubFrame is how far (in updates) the picture is
 	// drawn between two updates (the slow motion's steps)
 	void CalcPos(int theTime, float theSubFrame);

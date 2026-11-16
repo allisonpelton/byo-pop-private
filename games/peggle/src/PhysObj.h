@@ -72,6 +72,10 @@ public:
 	void SetActive(bool theActive); // 0x4769f0: a piece that is not active is neither hit nor drawn
 	void Reset();					// 0x47f740: everything a level file may set goes back to its default
 	bool LoadImage();				// 0x47f830: gets the picture named mImageName; false when there is none
+	void UpdateFromMover();			// 0x479940: puts the piece where its mover has it at mMoverTime
+	void SetMoverTime(int theTime); // 0x479980
+	void MoveToPhase(float thePhase, bool theJump); // 0x4799a0: runs the mover until its cycle is at thePhase (a negative phase counts back from the next cycle), or jumps there at once
+	void PlayHitEffects(int theSound); // 0x476bf0: the sound and the bubbles of a piece that toggles
 
 	int mSerialNumber;		   // +0x58: counts the pieces made (the original's global at 0x650a68)
 	int mKind;				   // +0x10: see PhysObjKind

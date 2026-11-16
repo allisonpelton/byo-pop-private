@@ -348,3 +348,37 @@ void Mover::CalcPos(int theTime, float theSubFrame)
 	if (mPathRotation != 0)
 		RotateXY(&mX, &mY, mCenterX, mCenterY, mPathRotation);
 }
+
+// 0x476400
+int Mover::WrapTime(int theTime, int thePeriod)
+{
+	if (theTime < 0)
+		return thePeriod - -theTime % thePeriod;
+	return theTime % thePeriod;
+}
+
+// 0x476460
+int Mover::GetTimeToPhase(int theTime, float thePhase) const
+{
+	int aCycle;
+	int aTarget;
+	if (mPause1 > 0)
+	{
+		aCycle = mPeriod + mPause2 + mPause1;
+		if (mPeriod <= 0 || aCycle <= 0)
+			return 0;
+		aTarget = (int)((double)mPeriod * thePhase);
+		if ((double)mPhase1 < thePhase)
+			aTarget += mPause1;
+		if ((double)mPhase2 < thePhase)
+			aTarget += mPause2;
+	}
+	else
+	{
+		if (mPeriod <= 0)
+			return 0;
+		aCycle = mPeriod;
+		aTarget = (int)((double)mPeriod * thePhase);
+	}
+	return WrapTime(aTarget - mOffset - theTime, aCycle);
+}

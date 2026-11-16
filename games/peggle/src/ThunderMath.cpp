@@ -21,6 +21,15 @@ void Sexy::RotateXY(float* theX, float* theY, float theCenterX, float theCenterY
 	*theY = (float)(((double)aCos * aDeltaY + theCenterY) - (double)aSin * aDeltaX);
 }
 
+// 0x432660
+SexyVector2 Sexy::NormalizeVector(const SexyVector2& theVector)
+{
+	float aLength = (float)std::sqrt((double)(float)((double)theVector.y * theVector.y + (double)theVector.x * theVector.x));
+	if (aLength == 0)
+		return theVector;
+	return SexyVector2(theVector.x / aLength, theVector.y / aLength);
+}
+
 // 0x4bc340
 float Sexy::GetCanonicalAngleDeg(float theAngle)
 {
