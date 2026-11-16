@@ -530,11 +530,12 @@
         "coverage",
         "collection",
         "unneeded-code",
-        "readability"
+        "readability",
+        "identical-look"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "the eight retail 3D tours compare clean natively; the web build replays them in all eight modes with the same boards and scores (1 to 2 updates of animation phase after clicks, cause unproved); the no-GPU fallback takes the software screen, and its 2D tours equal the GPU path's (which equals the original's) in all eight modes after one game-side line (the software screen's stretch steps from the corner as the original's, mFastStretchCentre off: floating scores were 1 px off); Finity 3D's washed-out gems an Oddity, unreproduced; next: identical-look recorded as done, then performance and the lite mod"
+      "now": "performance",
+      "note": "looks identical done (bf0877e3): the eight retail 3D tours compare clean natively; the web build replays them in all eight modes with the same boards and scores (1 to 2 updates of animation phase after clicks, an Oddity); the no-GPU fallback takes the software screen, its 2D tours equal the GPU path's and the original's in all eight modes after one game-side line (mFastStretchCentre off: floating scores were 1 px off); Finity 3D's washed-out gems an Oddity, unreproduced; next: performance, then the lite mod"
     },
     "venice": {
       "title": "Venice Deluxe",
