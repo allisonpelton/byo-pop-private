@@ -59,7 +59,7 @@ installed copy (for example from Steam):
 | [Typer Shark! Deluxe](games/typershark/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-09 | 2 | $588 | $26 | | $614 |
 | [Venice Deluxe](games/venice/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-12 | 2 | $335 | $11 | | $346 |
 | [Heavy Weapon Deluxe](games/heavyweapon/docs/IDENTICAL_PLAY.md) | Opus | Every phase but modding | 2026-11-12 | 2 | $332 | $19 | | $351 |
-| [Hammer Heads Deluxe](games/hammerheads/docs/IDENTICAL_PLAY.md) | Sonnet | Coverage | 2026-11-13 | 2 | $320 | $6 | | $325 |
+| [Hammer Heads Deluxe](games/hammerheads/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-13 | 2 | $320 | $6 | | $325 |
 | [Pizza Frenzy](games/pizzafrenzy/docs/README.md) | Opus | Ported | 2026-11-15 | | $305 | | | $305 |
 | Iggle Pop Deluxe, Feeding Frenzy Deluxe | | Not started: once every game above is done | | | under $1 each | | | |
 | Chuzzle Deluxe, Feeding Frenzy 2, Peggle Deluxe, Peggle Nights, Bejeweled 3, Banana Bugs, Gyromancer, Zuma's Revenge, Talismania Deluxe | | After those, two at a time | | | $19 | | | $19 |
@@ -120,6 +120,7 @@ asked.
 | Typer Shark! Deluxe | 0.72 to 0.82 s | 0.76 to 1.28 s | 2.50 G cycles in 20 s without its mixer, 2.70 G with it (3D, visible desktop, medians) | 2.54 G cycles in 20 s (3D; its sound a silent stand-in) | 86 to 89 MB | 49 to 51 MB |
 | Venice Deluxe | | | 2.61 M cycles an update (31.1 % of one core) in its own 800x600 window, 2.37 M at 2x; 0.75 M in 3D | 4.92 M cycles an update (58.8 % of one core) in 2D | 36 to 38 MB at a first board | |
 | Heavy Weapon Deluxe | | | 2.67 M cycles an update (12.8 % of one core) in 2D in its own 640x480 window, 2.74 M at 2x, its mixer left out (2.94 and 3.01 M with it) | 3.125 M cycles an update (15.0 % of one core) in 2D | 109 MB at the first board of the campaign | |
+| Hammer Heads Deluxe | | | 2.26 M cycles an update in 3D with vsync, its default (0.71 of the original in the same rounds, 0.47 to 1.03) | 3.17 M cycles an update (paced) | 142 MB at the peak | |
 
 Every number comes from the game's own notes, its latest measurement there: the native port under rundesk and the
 original under origrun, back to back on one machine, windowed and silent, over the same scripted play, with the load
