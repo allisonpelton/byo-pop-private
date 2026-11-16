@@ -19,6 +19,9 @@
 #include "ReloadDisplay.h"
 #include "DDImage.h"
 #include "DDInterface.h"
+#ifndef __EMSCRIPTEN__
+#include "SoftwareScreenDisplay.h"
+#endif
 #include "SDLMusicInterface.h"
 #include "SoundInstance.h"
 #include "SoundManager.h"
@@ -171,6 +174,14 @@ double WinDMApp::ScaleNum(double theValue, double theOffset)
 }
 
 // 0x5e2a19
+#ifndef __EMSCRIPTEN__
+DDInterface* WinDMApp::CreateDDInterface()
+{
+	// the original offers a 3D mode (theOffers3D): it takes the screen to the GPU while it is on
+	return SoftwareScreenDisplay::Create(this, true);
+}
+#endif
+
 void WinDMApp::Init()
 {
 	SexyApp::Init();

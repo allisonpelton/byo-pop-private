@@ -534,7 +534,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "the eight retail 3D tours compare clean natively (scores equal step for step, Action's TIME UP at update 19861); the web build replays the native 3D tours in all eight modes with the same boards and scores, its boxes 1 to 2 updates of animation phase after clicks (cause unproved, IDENTICAL_PLAY.md); Hyper's 3D tour 37 shots identical; full screen and the hyperspace jump compared in 3D; Hyper 4-4's light did not recur on a second recording; Finity 3D's washed-out gems an Oddity, unreproduced; next: the no-GPU fallback onto SoftwareScreenDisplay"
+      "note": "the eight retail 3D tours compare clean natively; the web build replays them in all eight modes with the same boards and scores (1 to 2 updates of animation phase after clicks, cause unproved); Hyper 4-4's light did not recur; Finity 3D's washed-out gems an Oddity, unreproduced; the no-GPU fallback takes the software screen (CreateDDInterface returns SoftwareScreenDisplay, the GPU path and baselines unchanged), its 2D shots differing from the GPU path's in the background's lower band (blend rounding), not yet compared with the original's 2D; next: that comparison, then performance and the lite mod"
     },
     "venice": {
       "title": "Venice Deluxe",
