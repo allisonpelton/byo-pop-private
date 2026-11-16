@@ -798,6 +798,7 @@ void WinDMApp::UpdateFrames()
 		mDDInterface->mSoftwareStretch = !Is3DAccelerated();
 		mDDInterface->mSoftwareTransforms = !Is3DAccelerated();
 		mDDInterface->mKeepScreen = !Is3DAccelerated();
+		mDDInterface->mFastStretchCentre = false;   // the original's fast stretch steps from the source's corner; the software screen samples centres by default (SoftwareScreenDisplay.h)
 		mDDInterface->mOriginalSampling = Is3DAccelerated();   // the 3D game's whirlpool, as Direct3D 7 at 1x draws it (DDInterface.h); the 2D game keeps the old sampling
 	}
 	SexyApp::UpdateFrames();
