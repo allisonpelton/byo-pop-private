@@ -1380,7 +1380,7 @@ void StageMgr::updateLoad()
 			mPoolIndex++;
 		}
 		else
-			mLoadStep = (mType != STAGE_MENU) ? LOAD_STEP_MERMAID : LOAD_STEP_START_SCREEN;
+			mLoadStep = (mType != STAGE_MENU) ? LOAD_STEP_MERMAID : LOAD_STEP_DONE;
 		break;
 	case LOAD_STEP_MERMAID:
 		if (mType != STAGE_MENU)
