@@ -5,7 +5,7 @@
 // where the mouse takes it, eats the fish smaller than it, grows as it eats, and is eaten by bigger ones. It keeps the
 // player's score for the stage, the chain of fish eaten that makes a frenzy, and the effects of the bonus bubbles
 // (twice the score, speed, shield, stun, feeding fury) and of what hurts it (stings and poison). The stage's file says
-// the kind of player fish (the four kinds in PlayerKinds.h), its speeds, its pictures and the sizes it grows through.
+// the kind of player fish (this class or JohnDoryPlayer), its speeds, its pictures and the sizes it grows through.
 
 #include "AnimImage.h"
 #include "FishBase.h"
@@ -59,6 +59,7 @@ public:
 
 	// 0x300: the mouse's movement is the fish's, and the cursor is kept in the window's middle; the menu's fish is not
 	void setCursorLocked(bool theLocked) { mCursorLocked = theLocked; }
+	void setFluidDrag(float theDrag) { mFluidDrag = theDrag; }  // how much the water slows the fish by its speed
 
 	// The mouse's buttons (0x248 to 0x254): the left button's going up and down, the right's
 	virtual void leftButtonUp() { releaseSpecial(); }  // 0x248: 0x410490
