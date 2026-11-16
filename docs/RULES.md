@@ -66,9 +66,11 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   needs it: LiveSplit's real-time runs, sound and focus checks, the Browser pane. Before relying on `-fast`, check that
   it leaves the run's results unchanged (a game that draws random numbers while drawing would not). Speed comes from
   not waiting, never from threads: no game's code is made multithreaded to run faster (the user, 2026-11-02).
-- Run at most 6 game processes on the machine at a time, counted across every session (the user, 2026-11-11: "Yes, 6",
-  raised from 3), and never add artificial CPU load: count the game processes already running before starting more
-  (`python tools/gamecount.py --limit 6` lists them and exits 1 when there is no room; a wait loop waits on it). One
+- Run at most 10 game processes on the machine at a time, counted across every session (the user, 2026-11-16: "Raise
+  to 10", from 6, on seeing the processor mostly idle while sessions queued for slots; 2026-11-11: "Yes, 6", raised
+  from 3), and never add artificial CPU load: count the game processes already running before starting more
+  (`python tools/gamecount.py --limit` lists them and exits 1 when there is no room; a wait loop waits on it; an older
+  script's `--limit 6` is read as the same limit). One
   check, oracle or script takes at most 3 of them (check.sh's and the oracle's `--jobs`, at most 3), so that others
   still get slots.
 - Only one oracle runs on the machine at a time. To wait for another, look for processes that run the oracle script
@@ -116,7 +118,7 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   2026-11-12, asked whether rundesk's desktop, which may never signal a vertical blank, makes a present cost more than
   on a player's screen: "Yes"). Routine runs stay under rundesk, which keeps windows and sound off the user's work;
   the desktop is for what needs it (3D, vsync, sound, real input). A game's own script that still refuses outside
-  22:00-08:00 is out of date and loses its guard at its next use. Everything else above still holds: at most 6 game
+  22:00-08:00 is out of date: the session that owns it drops the guard at once, and no work waits for the night (the user, 2026-11-15, on finding sessions still holding desktop runs for 22:00: "I had lifted the restrictions about running during daytime, though"). Everything else above still holds: at most 6 game
   processes, no link, "Buy" or "More Games" click, a window shown without taking the focus, the user's cursor and
   keyboard never touched (input posted to the game's own window), the window, registry and saves put back as
   `docs/ORIGRUN.md` says, nothing left running.
@@ -313,7 +315,8 @@ Every call re-reads the whole context, so what costs is context times calls, and
   builds them, and the game's session answers the site's questions about its code and adds the few inert lines of
   state an autosplitter reads. So the coverage check and the performance pass come game by game, not after every game is done
   (`docs/COORDINATION.md`). Modding, which waits, is the mods' own work: new mods and the changes waiting in
-  `docs/MOD_ROADMAP.md`. Whatever games are done by 2026-12-31 go on the live site then; the rest follow when done,
+  `docs/MOD_ROADMAP.md`. Whatever games are done by the launch date go on the live site then: Christmas Day, 2026-12-25 (the user,
+  2026-11-15: "I'm setting the site launch date to Christmas Day"; it had been the end of December); the rest follow when done,
   never hurried. A session may speed up its own port before its performance pass, at any time, so its `-fast` test runs go
   faster (the user, 2026-11-08: "Sessions should be allowed to improve performance early on so they can test with
   -fast and run even faster"), under the performance pass's rules: how the port works changes, never what it does,
@@ -335,6 +338,9 @@ Every call re-reads the whole context, so what costs is context times calls, and
   and each was a visible difference that the screen comparison finds anyway, so the others (Big Money, Mummy Maze)
   write none (the user, 2026-11-08: "Yes, drop them"). A game already translated reads the Mac names where they help
   explain a difference, and takes their naming and structure corrections in the readability pass.
+- **The software screen is for 1x only** (the user, 2026-11-15: "It seems like software drawing only makes sense for
+  1x"): a 2D port that starts in 2D takes it in its 1x window, and the GPU takes every larger window and full screen
+  (`docs/MEMORY.md`).
 - **Sonnet sessions** translate loops in their original shape (a test-then-increment loop does not become a for
   loop), check what a comment claims about the original before writing it, and build with AddressSanitizer at the
   first sign of a crash or memory corruption (`docs/COORDINATION.md`, "Model selection").

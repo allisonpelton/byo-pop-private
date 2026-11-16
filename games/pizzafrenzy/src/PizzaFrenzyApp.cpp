@@ -12,6 +12,7 @@
 #include "game/PizzaFrenzy.h"
 #include "MemoryImage.h"
 #include "WidgetManager.h"
+#include "platform/UserFiles.h"
 #include "platform/VFS.h"
 #ifndef __EMSCRIPTEN__
 #include "SurfaceDisplay.h"
@@ -38,6 +39,10 @@ const char* const OTHER_EXCEPTION_TEXT = "Exception";
 // The host's ticks: microseconds (the original's QueryPerformanceCounter, whose rate the machine sets)
 const uint64_t TICKS_PER_SECOND = 1000000;
 
+// port: -seed=N (PizzaFrenzyApp::HandleCmdLineParam), which takes the place of the time the game seeds rand() with
+bool gTestSeedGiven = false;
+unsigned int gTestSeed = 0;
+
 // The framework's side of engine::Host
 class PizzaFrenzyHost : public engine::Host
 {
@@ -57,12 +62,32 @@ public:
 
 	bool fixOn(const char* theFix) override { return Platform::FixOn(theFix); }
 
+	// port: -seed=N, for the game's srand of the time
+	bool testSeed(unsigned int& theSeed) override
+	{
+		if (!gTestSeedGiven)
+			return false;
+		theSeed = gTestSeed;
+		return true;
+	}
+
 	bool readGameFile(const std::string& theName, std::vector<uint8_t>& theData) override
 	{
 		return Platform::VFS::Get().ReadAll(theName, theData);
 	}
 
 	bool gameFileExists(const std::string& theName) override { return Platform::VFS::Get().Exists(theName); }
+
+	// port: the player's own pizzas file is in the user folder (the original's is beside the exe)
+	bool readUserFile(const std::string& theName, std::string& theData) override
+	{
+		return Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/" + theName, &theData);
+	}
+
+	bool writeUserFile(const std::string& theName, const std::string& theData) override
+	{
+		return Platform::WriteUserFileAtomic(theName, theData);
+	}
 
 	engine::Image* createImage(const std::vector<uint8_t>& theData, const std::vector<uint8_t>* theMask) override
 	{
@@ -457,6 +482,9 @@ void PizzaFrenzyApp::Init()
 		new engine::App();
 		engine::App::instance()->startSignalled(new pizzafrenzy::PizzaFrenzy());
 		mEngineRunning = true;
+		// port: the original's window gets WM_ACTIVATE as it opens, which sets the game's active flag (+0x188); the
+		// framework has the focus from the start and sends no first activation, so the state it has is passed on
+		engine::App::instance()->mActivateSignal.emit(mHasFocus);
 	}
 	catch (const engine::Exception& e)
 	{
@@ -516,6 +544,17 @@ void PizzaFrenzyApp::EngineFailed(const char* theWhat)
 }
 
 // The run loop's end: the controller's shutdown (the settings saved)
+// port: -seed=N, for the identical-play runs
+void PizzaFrenzyApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-seed")
+	{
+		gTestSeedGiven = true;
+		gTestSeed = strtoul(theParamValue.c_str(), nullptr, 10);
+	}
+	SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
+}
+
 void PizzaFrenzyApp::Shutdown()
 {
 	if (mEngineRunning)

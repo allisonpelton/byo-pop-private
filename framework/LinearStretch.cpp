@@ -3,6 +3,13 @@
 #include <algorithm>
 #include <string.h>
 
+// SSE2 for the blends where the compiler targets it (the native build: framework/CMakeLists.txt's -msse2); otherwise the
+// same arithmetic one pixel at a time
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && (_M_IX86_FP >= 2))
+#define LINEARSTRETCH_SSE2 1
+#include <emmintrin.h>
+#endif
+
 using namespace Sexy;
 
 LinearStretch::LinearStretch()
@@ -10,6 +17,7 @@ LinearStretch::LinearStretch()
 	mSrcWidth = 0;
 	mSrcHeight = 0;
 	mRenderScale = 0;
+	mSeamsAdjacent = true;
 }
 
 // theNumerator / theDenominator (both above 0) as a 32-bit float holds it, rounded to nearest (ties to even) or toward zero:
@@ -90,22 +98,30 @@ void LinearStretch::Setup(int theSrcWidth, int theSrcHeight, int theRenderScale,
 	mRenderScale = std::max(1, theRenderScale);
 	MakeTaps(theSrcWidth, mRenderScale, std::max(0, theOutWidth), theOutHeight, mCols);
 	MakeTaps(theSrcHeight, mRenderScale, std::max(0, theOutHeight), theOutWidth, mRows);
-	// the columns in runs of the same taps: a frame pixel's copies are one value, worked out once a row
-	mColSpans.clear();
-	mColSpanOf.resize(mCols.size());
+	// each column's first pixel (a copy column's value), and the seams, where two pixels blend
+	mColSource.resize(mCols.size());
+	mSeams.clear();
+	mSeamWeights.clear();
+	mSeamFrom.resize(mCols.size() + 1);
+	mSeamsAdjacent = true;
 	for (int x = 0; x < (int) mCols.size(); x++)
 	{
 		const Tap& t = mCols[x];
-		if ((!mColSpans.empty()) && (mColSpans.back().mTap.mA == t.mA) && (mColSpans.back().mTap.mB == t.mB) &&
-			(mColSpans.back().mTap.mWeight == t.mWeight))
-			mColSpans.back().mCount++;
-		else
+		mColSource[x] = t.mA;
+		mSeamFrom[x] = (int) mSeams.size();
+		if (t.mWeight != 0)
 		{
-			Span aSpan = { x, 1, t };
-			mColSpans.push_back(aSpan);
+			Seam aSeam = { x, t.mA, t.mB, t.mWeight };
+			mSeams.push_back(aSeam);
+			mSeamWeights.push_back((uint64_t) t.mWeight * 0x0001000100010001ULL);
+			// the second texel is the first's neighbour, so a seam's second pixel is the next one (the edges clamp to one pixel,
+			// which makes no seam)
+			if (t.mB != t.mA + 1)
+				mSeamsAdjacent = false;
 		}
-		mColSpanOf[x] = (int) mColSpans.size() - 1;
 	}
+	mSeamFrom[mCols.size()] = (int) mSeams.size();
+	mBlendedRow.assign((size_t) std::max(1, theSrcWidth), 0);
 }
 
 bool LinearStretch::IsSetFor(int theSrcWidth, int theSrcHeight, int theRenderScale, int theOutWidth, int theOutHeight) const
@@ -154,13 +170,57 @@ static inline uint32_t Blend4(const uint8_t* theLevel, uint32_t p00, uint32_t p1
 	return aPixel;
 }
 
-// theCount pixels of theValue
-static inline uint32_t* Fill(uint32_t* theOut, uint32_t theValue, int theCount)
+#ifdef LINEARSTRETCH_SSE2
+// LevelTable's arithmetic in eight 16-bit lanes at once. ((s * 257 + 128) >> 12) is (s + ((s + 128) >> 8)) >> 4, and
+// ((q * 255 + 2047) >> 12) is (q + ((2047 - q) >> 8)) >> 4 with the inner shift arithmetic (it may be negative), so no
+// lane leaves 16 bits for any sum up to 255 * 256 (CheckLevels compares every one with the table).
+static inline __m128i Levels(__m128i theSums)
 {
-	for (int i = 0; i < theCount; i++)
-		theOut[i] = theValue;
-	return theOut + theCount;
+	const __m128i aQ = _mm_srli_epi16(_mm_add_epi16(theSums, _mm_srli_epi16(_mm_add_epi16(theSums, _mm_set1_epi16(128)), 8)), 4);
+	return _mm_srli_epi16(_mm_add_epi16(aQ, _mm_srai_epi16(_mm_sub_epi16(_mm_set1_epi16(2047), aQ), 8)), 4);
 }
+
+// sixteen sums (four pixels' channels, in the low and the high lanes) levelled and packed as four pixels, the top byte 0
+static inline __m128i PackPixels(__m128i theLow, __m128i theHigh)
+{
+	return _mm_and_si128(_mm_packus_epi16(Levels(theLow), Levels(theHigh)), _mm_set1_epi32(0xFFFFFF));
+}
+
+// two pixels' channels weighted, each weight over its pixel's four lanes: theA * (256 - theW) + theB * theW. Every product
+// and sum stays below 2^16 (at most 255 * 256), so the low halves of the 16-bit products are exact.
+static inline __m128i Sums2(__m128i theA, __m128i theB, __m128i theW)
+{
+	return _mm_add_epi16(_mm_mullo_epi16(theA, _mm_sub_epi16(_mm_set1_epi16(256), theW)), _mm_mullo_epi16(theB, theW));
+}
+
+// the same for the four pixels of a two-axis blend, the weights made from theWx and theWy as Blend4 makes them
+static inline __m128i Sums4(__m128i p00, __m128i p10, __m128i p01, __m128i p11, __m128i theWx, __m128i theWy)
+{
+	const __m128i w11 = _mm_srli_epi16(_mm_add_epi16(_mm_mullo_epi16(theWx, theWy), _mm_set1_epi16(128)), 8);
+	const __m128i w10 = _mm_sub_epi16(theWx, w11);
+	const __m128i w01 = _mm_sub_epi16(theWy, w11);
+	const __m128i w00 = _mm_add_epi16(_mm_sub_epi16(_mm_sub_epi16(_mm_set1_epi16(256), theWx), theWy), w11);
+	return _mm_add_epi16(_mm_add_epi16(_mm_mullo_epi16(p00, w00), _mm_mullo_epi16(p10, w10)),
+		_mm_add_epi16(_mm_mullo_epi16(p01, w01), _mm_mullo_epi16(p11, w11)));
+}
+
+// four seams' pixels from theRow, each seam's two read at once (its second is the first's right neighbour): the first
+// pixels in *theFirst, the second in *theSecond, seam 0 lowest
+template <class SeamType>
+static inline void Pairs(const uint32_t* theRow, const SeamType* theSeams, __m128i* theFirst, __m128i* theSecond)
+{
+	// [first 0, second 0, first 1, second 1] and the same for seams 2 and 3
+	const __m128i a01 = _mm_unpacklo_epi64(_mm_loadl_epi64((const __m128i*) (theRow + theSeams[0].mA)),
+		_mm_loadl_epi64((const __m128i*) (theRow + theSeams[1].mA)));
+	const __m128i a23 = _mm_unpacklo_epi64(_mm_loadl_epi64((const __m128i*) (theRow + theSeams[2].mA)),
+		_mm_loadl_epi64((const __m128i*) (theRow + theSeams[3].mA)));
+	// [first 0, first 2, second 0, second 2] and [first 1, first 3, second 1, second 3]
+	const __m128i t0 = _mm_unpacklo_epi32(a01, a23);
+	const __m128i t1 = _mm_unpackhi_epi32(a01, a23);
+	*theFirst = _mm_unpacklo_epi32(t0, t1);
+	*theSecond = _mm_unpackhi_epi32(t0, t1);
+}
+#endif
 
 void LinearStretch::Draw(const uint32_t* thePixels, int thePitch, int theX0, int theY0, int theX1, int theY1, uint32_t* theOut,
 	int theOutPitch) const
@@ -172,14 +232,17 @@ void LinearStretch::Draw(const uint32_t* thePixels, int thePitch, int theX0, int
 	if ((theX0 >= theX1) || (theY0 >= theY1))
 		return;
 	const uint8_t* aLevel = LevelTable();
-	// the column runs of theX0 to theX1, the first and last cut to the range
-	const int aFirstSpan = mColSpanOf[theX0];
-	const int aLastSpan = mColSpanOf[theX1 - 1];
-	const int aSpanCount = aLastSpan - aFirstSpan + 1;
-	const Span* aSpans = &mColSpans[aFirstSpan];
-	const int aHeadCount = std::min(aSpans[0].mFirst + aSpans[0].mCount, theX1) - theX0;
-	const int aTailCount = (aSpanCount > 1) ? (theX1 - aSpans[aSpanCount - 1].mFirst) : aHeadCount;
 	const int aWidth = theX1 - theX0;
+	const int* aSource = &mColSource[theX0];
+	const int aSeamCount = mSeamFrom[theX1] - mSeamFrom[theX0];
+	const Seam* aSeams = (aSeamCount > 0) ? &mSeams[mSeamFrom[theX0]] : NULL;
+	// the frame's columns the range reads (the taps rise with the output)
+	const int aSrc0 = mCols[theX0].mA;
+	const int aSrc1 = mCols[theX1 - 1].mB + 1;
+	uint32_t* aBlended = &mBlendedRow[0];
+#ifdef LINEARSTRETCH_SSE2
+	const __m128i aZero = _mm_setzero_si128();
+#endif
 	const Tap* aLastRow = NULL;
 	const uint32_t* aLastOut = NULL;
 	for (int y = theY0; y < theY1; y++)
@@ -197,27 +260,128 @@ void LinearStretch::Draw(const uint32_t* thePixels, int thePitch, int theX0, int
 		aLastOut = aOut;
 		const uint32_t* aRowA = (const uint32_t*) ((const uint8_t*) thePixels + (size_t) r.mA * thePitch);
 		const uint32_t* aRowB = (const uint32_t*) ((const uint8_t*) thePixels + (size_t) r.mB * thePitch);
-		const uint32_t wy = (uint32_t) r.mWeight;
-		for (int s = 0; s < aSpanCount; s++)
+		const int wy = r.mWeight;
+		// the copy columns' values: one row of the frame, or between two rows each column of the first blended with the
+		// second's, worked out once for each of the frame's columns the range reads
+		const uint32_t* aCopies = aRowA;
+		if (wy != 0)
 		{
-			const Tap& c = aSpans[s].mTap;
-			const int aCount = (s == 0) ? aHeadCount : ((s == aSpanCount - 1) ? aTailCount : aSpans[s].mCount);
-			uint32_t aValue;
+			int i = aSrc0;
+#ifdef LINEARSTRETCH_SSE2
+			const __m128i aWy = _mm_set1_epi16((short) wy);
+			for (; i + 4 <= aSrc1; i += 4)
+			{
+				const __m128i a = _mm_loadu_si128((const __m128i*) (aRowA + i));
+				const __m128i b = _mm_loadu_si128((const __m128i*) (aRowB + i));
+				_mm_storeu_si128((__m128i*) (aBlended + i), PackPixels(Sums2(_mm_unpacklo_epi8(a, aZero), _mm_unpacklo_epi8(b, aZero), aWy),
+					Sums2(_mm_unpackhi_epi8(a, aZero), _mm_unpackhi_epi8(b, aZero), aWy)));
+			}
+#endif
+			for (; i < aSrc1; i++)
+				aBlended[i] = Blend2(aLevel, aRowA[i], aRowB[i], (uint32_t) wy);
+			aCopies = aBlended;
+		}
+		if (aCopies == aRowA)
+		{
+			for (int i = 0; i < aWidth; i++)
+				aOut[i] = aRowA[aSource[i]] & 0xFFFFFF;
+		}
+		else
+		{
+			for (int i = 0; i < aWidth; i++)
+				aOut[i] = aBlended[aSource[i]];
+		}
+		// the seams over them, four at a time
+		int k = 0;
+#ifdef LINEARSTRETCH_SSE2
+		const __m128i aWy = _mm_set1_epi16((short) wy);
+		const uint64_t* aWeights = (aSeamCount > 0) ? &mSeamWeights[mSeamFrom[theX0]] : NULL;
+		for (; mSeamsAdjacent && (k + 4 <= aSeamCount); k += 4)
+		{
+			const Seam* s = aSeams + k;
+			const __m128i aWxLow = _mm_unpacklo_epi64(_mm_loadl_epi64((const __m128i*) (aWeights + k)),
+				_mm_loadl_epi64((const __m128i*) (aWeights + k + 1)));
+			const __m128i aWxHigh = _mm_unpacklo_epi64(_mm_loadl_epi64((const __m128i*) (aWeights + k + 2)),
+				_mm_loadl_epi64((const __m128i*) (aWeights + k + 3)));
+			__m128i a0, a1;
+			Pairs(aRowA, s, &a0, &a1);
+			__m128i aPixels;
 			if (wy == 0)
-			{
-				// one row of the frame: only the columns' seams blend
-				aValue = (c.mWeight == 0) ? (aRowA[c.mA] & 0xFFFFFF) : Blend2(aLevel, aRowA[c.mA], aRowA[c.mB], (uint32_t) c.mWeight);
-			}
-			else if (c.mWeight == 0)
-			{
-				// two rows of the frame, one column
-				aValue = Blend2(aLevel, aRowA[c.mA], aRowB[c.mA], wy);
-			}
+				aPixels = PackPixels(Sums2(_mm_unpacklo_epi8(a0, aZero), _mm_unpacklo_epi8(a1, aZero), aWxLow),
+					Sums2(_mm_unpackhi_epi8(a0, aZero), _mm_unpackhi_epi8(a1, aZero), aWxHigh));
 			else
-				aValue = Blend4(aLevel, aRowA[c.mA], aRowA[c.mB], aRowB[c.mA], aRowB[c.mB], (uint32_t) c.mWeight, wy);
-			aOut = Fill(aOut, aValue, aCount);
+			{
+				__m128i b0, b1;
+				Pairs(aRowB, s, &b0, &b1);
+				aPixels = PackPixels(Sums4(_mm_unpacklo_epi8(a0, aZero), _mm_unpacklo_epi8(a1, aZero), _mm_unpacklo_epi8(b0, aZero),
+						_mm_unpacklo_epi8(b1, aZero), aWxLow, aWy),
+					Sums4(_mm_unpackhi_epi8(a0, aZero), _mm_unpackhi_epi8(a1, aZero), _mm_unpackhi_epi8(b0, aZero),
+						_mm_unpackhi_epi8(b1, aZero), aWxHigh, aWy));
+			}
+			uint32_t aValues[4];
+			_mm_storeu_si128((__m128i*) aValues, aPixels);
+			aOut[s[0].mX - theX0] = aValues[0];
+			aOut[s[1].mX - theX0] = aValues[1];
+			aOut[s[2].mX - theX0] = aValues[2];
+			aOut[s[3].mX - theX0] = aValues[3];
+		}
+#endif
+		for (; k < aSeamCount; k++)
+		{
+			const Seam& s = aSeams[k];
+			aOut[s.mX - theX0] = (wy == 0) ? Blend2(aLevel, aRowA[s.mA], aRowA[s.mB], (uint32_t) s.mWeight) :
+				Blend4(aLevel, aRowA[s.mA], aRowA[s.mB], aRowB[s.mA], aRowB[s.mB], (uint32_t) s.mWeight, (uint32_t) wy);
 		}
 	}
+}
+
+void LinearStretch::DrawReference(const uint32_t* thePixels, int thePitch, int theX0, int theY0, int theX1, int theY1,
+	uint32_t* theOut, int theOutPitch) const
+{
+	theX0 = std::max(0, theX0);
+	theY0 = std::max(0, theY0);
+	theX1 = std::min((int) mCols.size(), theX1);
+	theY1 = std::min((int) mRows.size(), theY1);
+	const uint8_t* aLevel = LevelTable();
+	for (int y = theY0; y < theY1; y++)
+	{
+		const Tap& r = mRows[y];
+		const uint32_t* aRowA = (const uint32_t*) ((const uint8_t*) thePixels + (size_t) r.mA * thePitch);
+		const uint32_t* aRowB = (const uint32_t*) ((const uint8_t*) thePixels + (size_t) r.mB * thePitch);
+		uint32_t* aOut = theOut + (size_t) (y - theY0) * theOutPitch;
+		for (int x = theX0; x < theX1; x++)
+		{
+			const Tap& c = mCols[x];
+			uint32_t aValue;
+			if (r.mWeight == 0)
+				aValue = (c.mWeight == 0) ? (aRowA[c.mA] & 0xFFFFFF) : Blend2(aLevel, aRowA[c.mA], aRowA[c.mB], (uint32_t) c.mWeight);
+			else if (c.mWeight == 0)
+				aValue = Blend2(aLevel, aRowA[c.mA], aRowB[c.mA], (uint32_t) r.mWeight);
+			else
+				aValue = Blend4(aLevel, aRowA[c.mA], aRowA[c.mB], aRowB[c.mA], aRowB[c.mB], (uint32_t) c.mWeight, (uint32_t) r.mWeight);
+			aOut[x - theX0] = aValue;
+		}
+	}
+}
+
+int LinearStretch::CheckLevels()
+{
+	int aMisses = 0;
+#ifdef LINEARSTRETCH_SSE2
+	const uint8_t* aLevel = LevelTable();
+	for (uint32_t s = 0; s <= 255 * 256; s += 8)
+	{
+		uint16_t aSums[8];
+		uint16_t aLevels[8];
+		for (int i = 0; i < 8; i++)
+			aSums[i] = (uint16_t) std::min<uint32_t>(s + i, 255 * 256);
+		_mm_storeu_si128((__m128i*) aLevels, Levels(_mm_loadu_si128((const __m128i*) aSums)));
+		for (int i = 0; i < 8; i++)
+			if (aLevels[i] != aLevel[aSums[i]])
+				aMisses++;
+	}
+#endif
+	return aMisses;
 }
 
 void LinearStretch::OutputRange(const std::vector<Tap>& theTaps, int theSrc0, int theSrc1, int* theOut0, int* theOut1)

@@ -1,0 +1,7 @@
+# namecheck config (tools/namecheck.py; docs/CODE_STANDARDS.md): every exception says why. poplua/ is not checked: it
+# is PopCap's fork of Lua 5.0.2, translated in Lua's own names and style (lua_State* L, luaH_get, TObject), kept as a
+# library as the C runtime is
+folder jefflib -- JeffLib, the PopCap Lua games' helper library, translated from the exe with the game
+folder luaapp -- LuaApp, PopLua's framework bindings and the Lua widgets, translated from the exe with the game
+folder lualib -- LuaLib, the class bindings the scripts use, translated from the exe with the game
+folder popanim -- Sexy::PopAnim and its .pam reader, part of the exe's framework that the shared framework/ lacks

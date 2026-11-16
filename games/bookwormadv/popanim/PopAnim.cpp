@@ -16,11 +16,13 @@ using namespace Sexy;
 
 // ---- the data (PopAnimData.h) ----
 
+// port: the data's constructor
 PAObjectPos::PAObjectPos() : mColor(Color::White)
 {
 	mTransform.LoadIdentity();
 }
 
+// port: the data's constructor
 PAImage::PAImage()
 {
 	mTransform.LoadIdentity();
@@ -84,6 +86,7 @@ static SexyMatrix3 InterpolateTransforms(const SexyMatrix3& theFrom, const SexyM
 
 // The rotation by an angle that the file gives in thousandths of a radian, in the form the matrices have
 // (x' = cos x - sin y, y' = sin x + cos y). The angle goes through a float, as in the exe.
+// port: the rotation of a version 1 file's matrix
 static void RotationFromThousandths(int theThousandths, float* theSin, float* theCos)
 {
 	float anAngle = (float)(theThousandths / 1000.0);
@@ -373,25 +376,25 @@ bool PopAnim::LoadPam(const std::string& thePath)
 
 		// where the image sits in its sprite: a rotation and a position in the first version, a matrix and a
 		// position in the others
-		SexyMatrix3& m = anImage.mTransform;
-		m.LoadIdentity();
+		SexyMatrix3& aTransform = anImage.mTransform;
+		aTransform.LoadIdentity();
 		if (mVersion == 1) {
 			float aSin, aCos;
 			RotationFromThousandths(aBuffer.ReadShort(), &aSin, &aCos);
-			m.m00 = aCos;
-			m.m01 = -aSin;
-			m.m10 = aSin;
-			m.m11 = aCos;
-			m.m02 = (float)(aBuffer.ReadShort() / 20.0);
-			m.m12 = (float)(aBuffer.ReadShort() / 20.0);
+			aTransform.m00 = aCos;
+			aTransform.m01 = -aSin;
+			aTransform.m10 = aSin;
+			aTransform.m11 = aCos;
+			aTransform.m02 = (float)(aBuffer.ReadShort() / 20.0);
+			aTransform.m12 = (float)(aBuffer.ReadShort() / 20.0);
 		}
 		else {
-			m.m00 = (float)((int)aBuffer.ReadLong() / 1310720.0);
-			m.m01 = (float)((int)aBuffer.ReadLong() / 1310720.0);
-			m.m10 = (float)((int)aBuffer.ReadLong() / 1310720.0);
-			m.m11 = (float)((int)aBuffer.ReadLong() / 1310720.0);
-			m.m02 = (float)(aBuffer.ReadShort() / 20.0);
-			m.m12 = (float)(aBuffer.ReadShort() / 20.0);
+			aTransform.m00 = (float)((int)aBuffer.ReadLong() / 1310720.0);
+			aTransform.m01 = (float)((int)aBuffer.ReadLong() / 1310720.0);
+			aTransform.m10 = (float)((int)aBuffer.ReadLong() / 1310720.0);
+			aTransform.m11 = (float)((int)aBuffer.ReadLong() / 1310720.0);
+			aTransform.m02 = (float)(aBuffer.ReadShort() / 20.0);
+			aTransform.m12 = (float)(aBuffer.ReadShort() / 20.0);
 		}
 	}
 
@@ -732,29 +735,29 @@ void PopAnim::DrawSprite(Graphics* g, PASpriteInst* theInst, const SexyMatrix3* 
 		if (aMemoryImage == NULL)
 			continue;  // a picture that could not be loaded
 
-		SexyMatrix3 m = MultiplyTransforms(aWorld, anImage.mTransform);
+		SexyMatrix3 aTransform = MultiplyTransforms(aWorld, anImage.mTransform);
 		Rect aSrcRect = aPos.mHasSrcRect ? aPos.mSrcRect : Rect(0, 0, aMemoryImage->mWidth, aMemoryImage->mHeight);
 		g->SetColorizeImages(true);
 		g->SetColor(aColor);
 		g->SetDrawMode(anImage.mDrawMode);
 
-		if (m.m00 == 1.0f && m.m01 == 0.0f && m.m10 == 0.0f && m.m11 == 1.0f) {
+		if (aTransform.m00 == 1.0f && aTransform.m01 == 0.0f && aTransform.m10 == 0.0f && aTransform.m11 == 1.0f) {
 			// only moved
-			g->DrawImageF(aMemoryImage, m.m02, m.m12, aSrcRect);
+			g->DrawImageF(aMemoryImage, aTransform.m02, aTransform.m12, aSrcRect);
 		}
-		else if (mVersion == 1 || (m.m00 == m.m11 && -m.m10 == m.m01 &&
-		                           fabs(((double)m.m00 * m.m00 + (double)m.m01 * m.m01) - 1.0) < 0.01)) {
+		else if (mVersion == 1 || (aTransform.m00 == aTransform.m11 && -aTransform.m10 == aTransform.m01 &&
+		                           fabs(((double)aTransform.m00 * aTransform.m00 + (double)aTransform.m01 * aTransform.m01) - 1.0) < 0.01)) {
 			// rotated: the framework turns an image about its middle, so the position is that of the top left corner
 			// the image would have if it were not turned
-			float anAngle = (float)atan2((double)m.m01, (double)m.m00);
+			float anAngle = (float)atan2((double)aTransform.m01, (double)aTransform.m00);
 			float aTurn = -anAngle;
 			float aSin = (float)sin((double)aTurn);
 			float aCos = (float)cos((double)aTurn);
 			double aWidth = aMemoryImage->mWidth;
 			double aHeight = aMemoryImage->mHeight;
-			float aY = (float)(((double)m.m12 + (aWidth * aSin) * 0.5) + (aHeight * aCos) * 0.5);
+			float aY = (float)(((double)aTransform.m12 + (aWidth * aSin) * 0.5) + (aHeight * aCos) * 0.5);
 			aY = (float)((double)aY - aHeight * 0.5);
-			float aX = (float)(((double)m.m02 + (aWidth * aCos) * 0.5) - (aHeight * aSin) * 0.5);
+			float aX = (float)(((double)aTransform.m02 + (aWidth * aCos) * 0.5) - (aHeight * aSin) * 0.5);
 			aX = (float)((double)aX - aWidth * 0.5);
 			g->DrawImageRotatedF(aMemoryImage, aX, aY, (double)anAngle, &aSrcRect);
 		}
@@ -765,7 +768,7 @@ void PopAnim::DrawSprite(Graphics* g, PASpriteInst* theInst, const SexyMatrix3* 
 			aCenter.LoadIdentity();
 			aCenter.m02 = (float)(aSrcRect.mWidth * 0.5);
 			aCenter.m12 = (float)(aSrcRect.mHeight * 0.5);
-			g->DrawImageMatrix(aMemoryImage, MultiplyMatrices(m, aCenter), aSrcRect, 0.0f, 0.0f);
+			g->DrawImageMatrix(aMemoryImage, MultiplyMatrices(aTransform, aCenter), aSrcRect, 0.0f, 0.0f);
 		}
 	}
 	g->SetColorizeImages(false);

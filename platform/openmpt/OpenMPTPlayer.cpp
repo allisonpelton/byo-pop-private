@@ -5,6 +5,7 @@
 
 #include <libopenmpt/libopenmpt.h>
 #include <libopenmpt/libopenmpt_ext.h>
+#include <cstdlib>
 #include <string>
 #include <SDL.h>
 #include <cmath>
@@ -65,6 +66,16 @@ public:
 		for (int i = 0; i < (int)mChannelVolumes.size(); i++)
 			if (mChannelVolumes[i] >= 0)
 				ApplyChannelVolume(i);
+	}
+
+	// libopenmpt's seek keeps the module's mix plugins as the last play left them (an echo's delay line, a chorus's phase;
+	// Bejeweled Twist's music has both), so a used player sounded unlike a new one from the same position: one channel of
+	// a Twist module, played again after another song, differed from a new player's by more than its own level. The control
+	// (third_party/libopenmpt, BYO-POP.md) starts the plugins afresh on each seek, this one and the ones that follow
+	void PrepareReuse() override
+	{
+		openmpt_module_ctl_set_boolean(mModule, "seek.reset_plugins", 1);
+		SetPosition(0, 0);
 	}
 
 	int GetTempo() override
@@ -301,9 +312,18 @@ std::unique_ptr<ModulePlayer> CreateModule(const std::vector<uint8_t>& theFile, 
 
 }
 
+// libopenmpt's byo-pop addition (third_party/libopenmpt/soundlib/SampleStream.h)
+extern "C" void byopop_openmpt_stream_samples(int theOn);
+
 std::unique_ptr<ModulePlayer> CreateOpenMPTModule(const std::vector<uint8_t>& theFile, int theRate)
 {
-	return CreateModule(theFile, theRate);
+	// a module's long Ogg samples are decoded as they play (Mahjong Escape's music is a few minutes of recordings), the
+	// same frames as decoded whole; BYOPOP_STREAM_MUSIC=0 decodes them whole when the module loads
+	const char* aStream = getenv("BYOPOP_STREAM_MUSIC");
+	byopop_openmpt_stream_samples((aStream != nullptr && atoi(aStream) == 0) ? 0 : 1);
+	std::unique_ptr<ModulePlayer> aModule = CreateModule(theFile, theRate);
+	byopop_openmpt_stream_samples(0);
+	return aModule;
 }
 
 void RegisterOpenMPTModules()

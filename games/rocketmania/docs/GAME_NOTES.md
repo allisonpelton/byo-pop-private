@@ -725,3 +725,56 @@ loading screen, which shows the Collection's own picture (looked at). No sound f
 **Saves.** The Collection's saves are `Players/*.dat` and its settings are under `PopCap\RocketMania`, as in Steam's `partner.xml`, so
 the save import's entry for the game (`platform/saveimport.json`) covers them; no Collection copy's save was at hand to test one.
 Nothing in the port changed for the Collection's files; the Collection's own exe was not run (it is the same game image).
+
+## The software screen at 1x (2026-11-16)
+
+`RocketApp::CreateDDInterface` (not on the web) returns `SoftwareScreenDisplay::Create(this, true)`, the opt-in of `docs/MEMORY.md`,
+"The other 2D ports on DDInterface". The original starts in 3D where its tester passes the card (the app constructor sets `mTest3D`)
+and offers 3D in its Options (the Hardware Acceleration box), so the display offers 3D too and `mDefault3D` stays true: a
+default start still goes to the GPU, and a game with 3D off (the box unticked, or `Is3D=0`, which the screen comparisons use) draws in
+software at the game's own size, with no renderer and nothing uploaded. A window larger than 1x takes the GPU, by the user's decision
+(`docs/RULES.md`: software drawing is for 1x only). The port's 2D transforms were already the original's own
+(`mSoftwareTransforms`, `mKeepScreen`), so the pictures are unchanged: `tools/check.sh rocketmania` passes with the baseline identical
+(the frozen baseline predates the override and draws the same game).
+
+Measured 2026-11-16 (the machine had four to seven other game processes running), the port at 1x with `Is3D=0`, windowed at 640x480:
+
+| | Peak private bytes at the first board | Processor time, cycles an update over the scenario's five segments |
+|---|---|---|
+| Port, GPU path (`Is3D=1`, Direct3D 11) | 146.6 MB | |
+| Port, software screen (`Is3D=0`) | 116.7 MB | 2.17, 2.54, 2.51, 2.42 and 4.05 M (11 to 20 % of one core) |
+| Original (`Is3D=0`, origrun, paced) | 57.4 MB (62 MB on 2026-11-08) | 5.26, 5.09, 5.64, 5.15 and 6.15 M (26 to 31 % of one core) |
+
+The software port's processor time is 0.41, 0.50, 0.44, 0.47 and 0.66 of the original's in the five segments (two pairs
+pinned, one round, `tools/profile/pairs.sh`; `mem.py` measures the memory; no "no window in the first 20s" line in any origrun log, so the
+pinned original was playing). Memory stays about twice the original's. At the first board, with the software screen, memreport
+holds 24.2 MB of pictures' pixels (281 pictures, no textures), 17.4 MB of sounds (65, decoded to 16-bit), 25.6 MB of music (four
+tracks, decoded whole), about 5 MB at the start (libraries, devices) and heaps beside. The peak is not the steady state: the
+process reaches 116.7 MB in the first second of loading and settles at 95.8 MB (100 MB with the game running), the difference
+being what loading frees again, which with the music's decoding the whole of is the music's (fw-memory's streamed music is waiting for
+the user's decision, so it was left alone). The original keeps its music as small modules and its sounds as the same decoded
+samples, so the music is the largest piece the port holds that the original does not; the heaps' rest (about 27 MB against the
+original's 16 or so) was not taken apart.
+
+### The music's samples held once (2026-11-16)
+
+The memory survey counted the music at 25.6 MB (four tracks), but the process held it about twice more. The in-game and the menu piece are
+joined from Ogg segments (0.5 MB of files in all) into a 16-bit WAV that the VFS holds as a generated file (`AppMusic.cpp`, the original's
+`cached_*.wav`, which it writes to disk and plays from there), and `LoadMusic` reads that WAV again and decodes it to the song's samples. The
+WAV stayed in the VFS for the whole run: about 24 MB held for nothing. `LoadingThreadProc` now makes each joined piece just before it
+loads it, and drops the piece's generated file once the song holds its samples (a `cached_*.wav` of the game folder is never touched);
+`AssembleMusic` frees its decoded segments before the VFS copies the WAV. The music is the same samples as before (the CRCs the sound log
+prints for the two joined files, 7412075f and 3e1ede1c, are the same as in the frozen baseline, and `tools/check.sh rocketmania` passes with
+the baseline identical), and playing it costs what it did.
+
+Streaming the music as the Ogg is not possible here as it is for Ning Po: Ning Po's music is one Ogg file, while these two pieces are
+segments joined in a playlist's order (some played twice), so `Mixer::LoadStreamedSoundData`, which takes one file, would need to take a list
+of segments. That is a shared change (a stream whose frames come from several Ogg files in turn, with a loop back to the first); it
+would take the 24 MB of the two joined pieces to a few hundred KB, at the cost of the decoding in the audio thread. Not done.
+
+Measured with `mem.py` (1x, `Is3D=0`, the first board): settled 71.3 MB (95.8 before), against the original's 57.4 MB. The peak in the first
+second of loading is 92 MB in three runs of five and 112 MB in two (it was 116.7 MB): the same code reaches either, depending on
+which of the loading thread's allocations coincide, and the 20 MB between them was not taken apart. Processor time against the original,
+three pinned pairs of one round each, 4 to 8 other game processes running: the port's cycles an update are 0.43, 0.60, 0.54, 0.67 and
+0.73 of the original's in the five segments (medians; 1.86, 2.82, 2.78, 2.80 and 3.95 M against 4.30, 4.67, 5.11, 4.18 and 5.44 M); one pair
+of the last segment came to 1.00. No "no window in the first 20s" line in any origrun log.

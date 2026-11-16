@@ -479,6 +479,7 @@ void module_impl::ctor( const std::map< std::string, std::string > & ctls ) {
 	m_ctl_load_skip_plugins = false;
 	m_ctl_load_skip_subsongs_init = false;
 	m_ctl_seek_sync_samples = true;
+	m_ctl_seek_reset_plugins = false;   // byo-pop
 	// init member variables that correspond to ctls
 	for ( const auto & ctl : ctls ) {
 		ctl_set( ctl.first, ctl.second, false );
@@ -1164,8 +1165,10 @@ double module_impl::set_position_seconds( double seconds ) {
 	} else {
 		subsong = &subsongs[m_current_subsong];
 	}
+	if ( m_ctl_seek_reset_plugins ) m_sndFile->SuspendPlugins();   // byo-pop
 	m_sndFile->SetCurrentOrder( static_cast<OpenMPT::ORDERINDEX>( subsong->start_order ) );
 	OpenMPT::GetLengthType t = m_sndFile->GetLength( m_ctl_seek_sync_samples ? OpenMPT::eAdjustSamplePositions : OpenMPT::eAdjust, OpenMPT::GetLengthTarget( seconds ).StartPos( static_cast<OpenMPT::SEQUENCEINDEX>( subsong->sequence ), static_cast<OpenMPT::ORDERINDEX>( subsong->start_order ), static_cast<OpenMPT::ROWINDEX>( subsong->start_row ) ) ).back();
+	if ( m_ctl_seek_reset_plugins ) m_sndFile->ResumePlugins();   // byo-pop
 	m_sndFile->m_PlayState.m_nNextOrder = m_sndFile->m_PlayState.m_nCurrentOrder = t.targetReached ? t.restartOrder : t.endOrder;
 	m_sndFile->m_PlayState.m_nNextRow = t.targetReached ? t.restartRow : t.endRow;
 	m_sndFile->m_PlayState.m_nTickCount = OpenMPT::CSoundFile::TICKS_ROW_FINISHED;
@@ -1184,11 +1187,13 @@ double module_impl::set_position_order_row( std::int32_t order, std::int32_t row
 	} else {
 		row = 0;
 	}
+	if ( m_ctl_seek_reset_plugins ) m_sndFile->SuspendPlugins();   // byo-pop
 	m_sndFile->m_PlayState.m_nCurrentOrder = static_cast<OpenMPT::ORDERINDEX>( order );
 	m_sndFile->SetCurrentOrder( static_cast<OpenMPT::ORDERINDEX>( order ) );
 	m_sndFile->m_PlayState.m_nNextRow = static_cast<OpenMPT::ROWINDEX>( row );
 	m_sndFile->m_PlayState.m_nTickCount = OpenMPT::CSoundFile::TICKS_ROW_FINISHED;
 	m_currentPositionSeconds = m_sndFile->GetLength( m_ctl_seek_sync_samples ? OpenMPT::eAdjustSamplePositions : OpenMPT::eAdjust, OpenMPT::GetLengthTarget( static_cast<OpenMPT::ORDERINDEX>( order ), static_cast<OpenMPT::ROWINDEX>( row ) ) ).back().duration;
+	if ( m_ctl_seek_reset_plugins ) m_sndFile->ResumePlugins();   // byo-pop
 	return m_currentPositionSeconds;
 }
 std::vector<std::string> module_impl::get_metadata_keys() const {
@@ -1724,6 +1729,7 @@ std::pair<const module_impl::ctl_info *, const module_impl::ctl_info *> module_i
 		{ "load.skip_plugins", ctl_type::boolean },
 		{ "load.skip_subsongs_init", ctl_type::boolean },
 		{ "seek.sync_samples", ctl_type::boolean },
+		{ "seek.reset_plugins", ctl_type::boolean },   // byo-pop
 		{ "subsong", ctl_type::integer },
 		{ "play.tempo_factor", ctl_type::floatingpoint },
 		{ "play.pitch_factor", ctl_type::floatingpoint },
@@ -1826,6 +1832,8 @@ bool module_impl::ctl_get_boolean( std::string_view ctl, bool throw_if_unknown )
 		return m_ctl_load_skip_subsongs_init;
 	} else if ( ctl == "seek.sync_samples" ) {
 		return m_ctl_seek_sync_samples;
+	} else if ( ctl == "seek.reset_plugins" ) {   // byo-pop
+		return m_ctl_seek_reset_plugins;
 	} else if ( ctl == "render.resampler.emulate_amiga" ) {
 		return ( m_sndFile->m_Resampler.m_Settings.emulateAmiga != OpenMPT::Resampling::AmigaFilter::Off );
 	} else {
@@ -2049,6 +2057,8 @@ void module_impl::ctl_set_boolean( std::string_view ctl, bool value, bool throw_
 		m_ctl_load_skip_subsongs_init = value;
 	} else if ( ctl == "seek.sync_samples" ) {
 		m_ctl_seek_sync_samples = value;
+	} else if ( ctl == "seek.reset_plugins" ) {   // byo-pop
+		m_ctl_seek_reset_plugins = value;
 	} else if ( ctl == "render.resampler.emulate_amiga" ) {
 		OpenMPT::CResamplerSettings newsettings = m_sndFile->m_Resampler.m_Settings;
 		const bool enabled = value;

@@ -225,6 +225,20 @@ def script_span(path):
     return min(nums), max(nums)
 
 
+def port_args():
+    """Extra command-line options for the port (PERF_ARGS, e.g. "-windowscale=1" for the original's 640x480 window)."""
+    return os.environ.get('PERF_ARGS', '').split()
+
+
+def write_registry(user_dir):
+    """PERF_REG, e.g. "Is3D=dword:0" (lines separated by ;), as the port's registry.ini under the user folder."""
+    lines = [l for l in os.environ.get('PERF_REG', '').split(';') if l]
+    if lines:
+        with open(os.path.join(user_dir, 'registry.ini'), 'w', newline='\n') as f:
+            f.write('; Settings (emulated Windows registry, HKEY_CURRENT_USER)\n\n[SOFTWARE\\PopCap\\BookWorm]\n' +
+                    ''.join(l + '\n' for l in lines))
+
+
 def port_exe():
     root = os.getcwd()
     # PERF_EXE names another build of the port in build/native (an exe kept from before a change)
@@ -239,22 +253,27 @@ def port_load(out, runs):
         shutil.rmtree(d, ignore_errors=True)
         os.makedirs(os.path.join(d, 'user'))
         os.makedirs(os.path.join(d, 'mods'))
+        write_registry(os.path.join(d, 'user'))
         commands = os.path.join(d, 'commands.txt')
         open(commands, 'wb').close()
         log = open(os.path.join(d, 'game.log'), 'wb')
         others0 = game_processes(mine_prefixes())
         s0 = system_times()
         p = subprocess.Popen([exe, '-gamedir=' + gamedir, '-userdir=' + os.path.join(d, 'user'), '-modsdir=' + os.path.join(d, 'mods'),
-                              '-commands=' + commands], cwd=d, stdout=log, stderr=subprocess.STDOUT)
+                              '-commands=' + commands] + port_args(), cwd=d, stdout=log, stderr=subprocess.STDOUT)
         h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
         created = creation_time(h)
         reader = open(os.path.join(d, 'game.log'), 'rb')
         seen = None
+        peak = 0                  # the largest private bytes read (every 50 ms) before the title's play link
         deadline = time.time() + 120
         while seen is None and p.poll() is None and time.time() < deadline:
             with open(commands, 'ab') as f:
                 f.write(b'move\n')
             until = time.time() + 0.05
+            reading = sample(h)
+            if reading:
+                peak = max(peak, reading[1])
             while time.time() < until:
                 data = reader.read()
                 if b'"what":"play"' in data:
@@ -264,6 +283,13 @@ def port_load(out, runs):
         m = sample(h)
         s1 = system_times()
         others1 = game_processes(mine_prefixes())
+        if seen is not None and os.environ.get('PERF_MEMREPORT'):     # what the port holds at the title: the line, and the heaps in mem.txt
+            time.sleep(2)
+            with open(commands, 'ab') as f:
+                f.write(('memreport ' + os.path.join(d, 'mem.txt').replace('\\', '/') + '\n').encode())
+            until = time.time() + 15
+            while time.time() < until and b'MEMREPORT ' not in open(os.path.join(d, 'game.log'), 'rb').read():
+                time.sleep(0.1)
         k32.CloseHandle(h)
         with open(commands, 'ab') as f:
             f.write(b'quit\n')
@@ -277,8 +303,8 @@ def port_load(out, runs):
             print(json.dumps({'error': 'no play move', 'exit': p.returncode}), flush=True)
             continue
         r = {'load_s': round(seen - created, 3), 'working_set_mb_at_title': round(m[0] / 1048576, 1),
-             'private_mb_at_title': round(m[1] / 1048576, 1), 'processor_s_at_title': round(m[4], 2),
-             'machine_busy': round(busy_fraction(s0, s1), 2), 'others_start': len(others0), 'others_end': len(others1)}
+             'private_mb_at_title': round(m[1] / 1048576, 1), 'peak_private_mb_to_title': round(max(peak, m[1]) / 1048576, 1),
+             'processor_s_at_title': round(m[4], 2), 'machine_busy': round(busy_fraction(s0, s1), 2), 'others_start': len(others0), 'others_end': len(others1)}
         results.append(r)
         print(json.dumps(r), flush=True)
     t = [r['load_s'] for r in results]
@@ -292,6 +318,7 @@ def port_minute(out, scenario_file):
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(os.path.join(out, 'user'))
     os.makedirs(os.path.join(out, 'mods'))
+    write_registry(os.path.join(out, 'user'))
     script = port_script(scenario_file, os.path.join(out, 'script.txt'))
     first, last = script_span(script)
     mark = os.path.join(out, 'mark.png')
@@ -301,7 +328,7 @@ def port_minute(out, scenario_file):
     s0 = system_times()
     log = open(os.path.join(out, 'game.log'), 'wb')
     p = subprocess.Popen([exe, '-gamedir=' + gamedir, '-userdir=' + os.path.join(out, 'user'), '-modsdir=' + os.path.join(out, 'mods'),
-                          '-seed=' + os.environ.get('PERF_SEED', '1'), '-script=' + script] + ([] if REAL else ['-fast']),
+                          '-seed=' + os.environ.get('PERF_SEED', '1'), '-script=' + script] + port_args() + ([] if REAL else ['-fast']),
                          cwd=out, stdout=log, stderr=subprocess.STDOUT)
     h = k32.OpenProcess(QUERY | VM_READ | QUERY_LIMITED, False, p.pid)
     created = creation_time(h)

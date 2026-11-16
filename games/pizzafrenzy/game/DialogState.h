@@ -34,6 +34,10 @@ public:
 	// screens beneath, is not called by anything translated yet)
 	// 0x1c: 0x406270: another screen takes the dialog's place
 	void show(engine::GenericScreen* theScreen);
+	// port (the test commands' state): the screen the dialogs' screen manager shows or is about to show, none when it
+	// is closing, and the state that follows the dialog
+	engine::GenericScreen* getShownScreen() const;
+	engine::State* getNextState() const { return mNextState; }
 
 private:
 	// The dialogs' screen manager (0x532904)

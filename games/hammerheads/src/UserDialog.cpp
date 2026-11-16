@@ -54,6 +54,8 @@ UserDialog::UserDialog() :
 	NcMovingDialog(DIALOG_SIZE, IMAGE_DIALOG_BOX, IMAGE_DIALOG_BUTTON, DIALOG_USER, true, "Who are you?", "", "", Dialog::BUTTONS_OK_CANCEL)
 {
 	SetHeaderFont(FONT_PTBANANASPLIT27);
+	// the box has no lines of text, but Dialog::Draw still measures the lines' font (the original's box has the framework's default one)
+	SetLinesFont(FONT_EUROFURENCE14);
 	SetColor(Dialog::COLOR_HEADER, Color(255, 255, 255, 255));
 	mYesButton->mLabel = "Ok";
 	mNoButton->mLabel = "Cancel";

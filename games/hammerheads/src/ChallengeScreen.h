@@ -60,6 +60,8 @@ public:
 	virtual void	LostFocus() override;							// 0x44cdc0 (the original does not override GotFocus)
 	virtual void	MouseEnter() override;							// 0x44cbb0
 	virtual void	MouseLeave() override;							// 0x44cc00
+	virtual void	MouseMove(int x, int y) override;				// 0x45dcf0: the hammer follows the pointer
+	virtual void	MouseDrag(int x, int y) override;				// 0x45dcf0
 	virtual void	MouseDown(int x, int y, int theClickCount) override;	// 0x44ce10
 	using Widget::MouseDown;
 	virtual void	ButtonDepress(int theId) override;				// 0x44cd50 (the ButtonListener part)

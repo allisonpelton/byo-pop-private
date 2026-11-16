@@ -30,7 +30,8 @@
 #                the screenshot comparison on synthetic pictures, its pages and its marks server); and geomtest
 #                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table); and wraptest
 #                (framework/TriangleWrap: DrawTrianglesTex's texture wrap, triangles cut at whole-number u and v); and stretchcal
-#                (framework/LinearStretch against the renderer's linear present on this machine's card, four sizes); and
+#                (framework/LinearStretch against the renderer's linear present on this machine's card, four sizes, and its
+#                Draw against DrawReference at many sizes, -selftest); and
 #                fwtest -realinput=tools/fwtest/realinput.txt with -fast and in real time, with no game files (real SDL
 #                events through HandleEvent and the widget manager, docs/REAL_INPUT.md); and fwtest -corner
 #                -realinput=tools/fwtest/flags.txt on DDInterface and on the software screen (the fast stretch's
@@ -183,11 +184,15 @@
 #                play and won, the shop and the challenge screen, Tough Cookie and Marathon (lost); a rerun with the same
 #                screens, states and player files, which are the frozen baseline's (and build/baseline-hammerheads/
 #                hammerheads.exe's, when there is one) (under a minute)
+#   pizzafrenzy  Pizza Frenzy: the bot plays by real input (games/pizzafrenzy/tools/suite/suite.sh): the speed mode from
+#                launch for 700 moves, then the memory and the concentration modes for 300 moves each, every run twice with
+#                the same transcript, and build/baseline-pizzafrenzy/pizzafrenzy.exe's runs the same when there is one (about
+#                three minutes, four and a half with the baseline; one game process at a time)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs. Not in `all`: it
 #                compares Bejeweled's game logic with the original's, which a change outside games/bejeweled leaves as
 #                Bejeweled's frozen baseline (verify) already proves; merge mode runs it when games/bejeweled changes
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads; all = every suite but the oracle, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads pizzafrenzy; all = every suite but the oracle, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -318,7 +323,7 @@ OUT="build/logs/check"
 QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 
 # The suites in the order `all` runs them (origrun is not in `all`), and the game suites among them
-GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads)
+GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads pizzafrenzy)
 # the oracle is left out of `all` and of shared code's "every suite" (the user, 2026-11-11: "Seems like the Bejeweled oracle
 # is causing a lot of slowdown for no benefit"); it runs when games/bejeweled changes, or when named
 ALL_SUITES=(build build-web build-nov unit unit-web gpu verify modmenu livesplit "${GAME_SUITES[@]}")
@@ -337,7 +342,7 @@ suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bon
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [origrun]=5 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [oracle]=1080)
+	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [pizzafrenzy]=180 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52 [typershark]=270)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
@@ -780,9 +785,11 @@ suite_unit() {
 	wr="$(lastof "$1.wrp" 'wraptest: [0-9]+ checks, [0-9]+ failed')"
 	# framework/LinearStretch (stretch mode's smooth flavour) against the renderer's own present of test pictures at the four
 	# calibration sizes, where this machine's card and the model agree to the byte (docs/MEMORY.md, "A smooth stretch on the processor")
+	# and its Draw (copies through a table, SSE2 blends) against DrawReference, the arithmetic pixel by pixel, at many sizes
 	local sc
 	(cd build/native && timeout 120 ./stretchcal.exe) > "$1.sc" 2>&1 || st=1
-	sc="$(lastof "$1.sc" 'stretchcal: [0-9]+ cases differing from LinearStretch')"
+	(cd build/native && timeout 120 ./stretchcal.exe -selftest) >> "$1.sc" 2>&1 || st=1
+	sc="$(lastof "$1.sc" 'stretchcal: [0-9]+ cases differing from LinearStretch'), $(lastof "$1.sc" 'stretchcal selftest: [0-9]+ cases, [0-9]+ differing' | sed 's/^stretchcal //; s/ ([0-9.]* s)$//')"
 	# -realinput (docs/REAL_INPUT.md): real SDL events pushed into SDL's queue reach fwtest's board through HandleEvent,
 	# the window mapping and the widget manager, with -fast and in real time; a line it could not play fails it too
 	local k r
@@ -2432,6 +2439,15 @@ suite_hammerheads() {
 	fi
 	SUMMARY="the tour (the loading screen, a new player's name, the main menu, the high scores and trophy room, a Classic level in play and won, the shop and challenge screens, Tough Cookie, Marathon lost); rerun identical; screens and states as frozen$bl"
 	return 0
+}
+
+# Pizza Frenzy's suite is its own script, which prints one summary line and exits 0 when every check passed
+suite_pizzafrenzy() {
+	local e
+	need_assets pizzafrenzy || return 1
+	bash games/pizzafrenzy/tools/suite/suite.sh "$OUT/pizzafrenzy" > "$1" 2>&1; e=$?
+	SUMMARY="$(tail -n 1 "$1")"
+	return $e
 }
 
 HW_SHOTS_ALL="title menu highscores credits help map firsthelp game tip boss results armory level5 gameover afterquit survival survivalover aftersurvival options"

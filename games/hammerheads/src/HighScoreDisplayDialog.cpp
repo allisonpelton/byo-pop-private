@@ -107,20 +107,6 @@ int GetCheck(const std::string& theName, int theLength, int theScore)
 	return (int) aCheck;
 }
 
-// 0x455480: what follows the number of a place
-const char* GetOrdinalSuffix(int thePlace)
-{
-	if ((thePlace % 100) / 10 == 1)
-		return "th";
-	switch (thePlace % 10)
-	{
-	case 1: return "st";
-	case 2: return "nd";
-	case 3: return "rd";
-	default: return "th";
-	}
-}
-
 // The colours that run through the lines of the new place and of the best of the day
 void GetMovingColors(double theTime, int theLine, Color& thePale, Color& theDeep)
 {

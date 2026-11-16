@@ -158,6 +158,11 @@ public:
 	double			ScaleNum(double theValue, double theOffset);    // 0x5dbb3f
 
 	virtual void	Init() override;                                // 0x5e2a19
+#ifndef __EMSCRIPTEN__
+	// port: the 2D game draws its screen in software as the original's DirectDraw path does, and the 3D game on the GPU; a machine with no GPU
+	// renderer keeps it in software at every size (framework/SoftwareScreenDisplay.h)
+	virtual DDInterface* CreateDDInterface() override;
+#endif
 	virtual void	Shutdown() override;                            // 0x5ddf3a
 	virtual void	PreDisplayHook() override;                      // 0x5e0b6f
 	virtual void	LoadingThreadProc() override;                   // 0x5de207

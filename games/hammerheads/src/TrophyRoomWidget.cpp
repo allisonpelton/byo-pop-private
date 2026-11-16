@@ -1,4 +1,6 @@
 #include "TrophyRoomWidget.h"
+#include "MathConstants.h"
+#include "platform/GameOptions.h"
 
 #include <cmath>
 #include <string>
@@ -95,7 +97,9 @@ TrophyRoomWidget::TrophyRoomWidget(int theMode, const std::vector<int>& theNewTr
 	}
 
 	mCloseUp = new TrophyCloseUpButton(BUTTON_CLOSE_UP, this);
-	mAppear = new TrophyAppearButton(BUTTON_APPEAR, this, mNewIndex < 0 ? -1 : mNewTrophies[mNewIndex]);
+	// fix (menuTrophySting): the room opened from the main menu announces nothing, so it makes no sound
+	mAppear = new TrophyAppearButton(BUTTON_APPEAR, this, mNewIndex < 0 ? -1 : mNewTrophies[mNewIndex],
+		theMode == MODE_MENU && Platform::FixOn("menuTrophySting"));
 
 	if (theMode == MODE_MENU)
 	{
@@ -181,7 +185,7 @@ void TrophyRoomWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 	{
 		int aColumn = aPlace % PLACES_PER_ROW;
 		int aRow = aPlace / PLACES_PER_ROW;
-		int aWave = ToInt(sin((double) aColumn * WAVE_STEP * 3.141592653589793) * WAVE_AMPLITUDE);
+		int aWave = ToInt(sin((double) aColumn * WAVE_STEP * PI) * WAVE_AMPLITUDE);
 		int aWaveSign = aWave >> 31;
 		mTrophyButtons[PLACE_TROPHY[aPlace]]->Resize(
 			(aTrophyWidth + PLACE_GAP) * aColumn + (mWidth - (aTrophyWidth + PLACE_GAP) * PLACES_PER_ROW) / 2 + SHELF_LEFT_MARGIN,
@@ -258,7 +262,7 @@ void TrophyRoomWidget::Draw(Graphics* g)
 		aG.DrawImage(IMAGE_TOUGH_COOKIE_STAMP, mWidth - IMAGE_TOUGH_COOKIE_STAMP->mWidth, mHeight - IMAGE_TOUGH_COOKIE_STAMP->mHeight);
 }
 
-// 0x4609b0
+// 0x4609b0, 0x4609b9 (the part of it after the first test)
 void TrophyRoomWidget::ButtonDepress(int theId)
 {
 	if (theId == BUTTON_BACK)

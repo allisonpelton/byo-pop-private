@@ -466,6 +466,9 @@ void ModSample::PrecomputeLoops(CSoundFile &sndFile, bool updateChannels)
 {
 	if(!HasSampleData())
 		return;
+	// byo-pop: a streamed sample's data is a placeholder, and its padding is the stream's (SampleStream.h)
+	if(sndFile.m_sampleStreams && sndFile.m_sampleStreams->IsStreamed(*this))
+		return;
 
 	SanitizeLoops();
 

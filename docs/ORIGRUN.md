@@ -141,7 +141,9 @@ without a sign: gate the first click on the game's own state (`at`, `waitfor`), 
    measured before the mute: sound while a session was not muted reached the speakers, and the log then has a
    `WARNING: SOUND LEAK` line and `SOUND LEAK` in its RESULT line, with the times. Otherwise the RESULT line says
    that each session was muted from its start and whether the game made sound at all; a `WARNING` line says when
-   a game process loaded the system's `dsound.dll`.
+   a game process loaded the system's `dsound.dll`. Before the script starts, origrun waits up to 120 s for the
+   game's window (a game pinned to one core can need over 20 s: BookWorm took 24 s); if none appears the script runs
+   anyway, but the RESULT line says `NO WINDOW 120s` and the run is not a valid measurement.
 
    Details: Windows keeps what it read of a manifest until the exe changes, so origrun sets the exe's write time
    whenever it writes or removes one; a manifest that is not origrun's is left alone, and an exe with a manifest
@@ -815,7 +817,7 @@ Where 3D runs:
 | rundesk's desktop, no wrapper | Never: Windows gives legacy DirectDraw hardware only to the input desktop ("CreateSurface Windowed DrawSurface: DDERR_NODIRECTDRAWHW"); the game runs in software. |
 | rundesk's desktop, `--dgvoodoo` | Works (Bookworm Adventures' on and off are proven): Direct3D 11 does get a hardware device there. No shot, as on every host run. It also gets the full-screen DirectDraw games past "Screen Setup Failed". |
 | the sandbox | No original has run in 3D there. In session 0 the Direct3D test fails (DDERR_NOTFOUND), with `--sandbox-vgpu` too, and with `--dgvoodoo` the game crashes at start. With `--sandbox-connect` the game moves to the user session, whose "Microsoft Remote Display Adapter" fails Direct3D 7's CreateDevice. `ORIGRUN_DGVOODOO_CONF` names a dgVoodoo.conf to try in place of origrun's own. |
-| the user's visible desktop | Works with no wrapper, and needs the user's leave game by game: Bookworm Adventures' 3D comparison ("Yes, capture it", 2026-11-01) and Bejeweled Twist's ("Sandbox, then desktop", 2026-11-02: first `--sandbox --sandbox-vgpu --sandbox-connect`, and the desktop only if the original still falls back to 2D there), and Typer Shark's and Bejeweled 2's on the same terms ("Yes, both routes", 2026-11-11). Between 22:00 and 08:00 local time any game may run there, with sound (CLAUDE.md, "Overnight, desktop and sound allowed"). |
+| the user's visible desktop | Works with no wrapper. Since 2026-11-15 any game, port or original, may run there at any hour, with sound (CLAUDE.md, "Desktop and Sandbox at any hour"). Before that it needed the user's leave game by game: Bookworm Adventures' 3D comparison ("Yes, capture it", 2026-11-01) and Bejeweled Twist's ("Sandbox, then desktop", 2026-11-02: first `--sandbox --sandbox-vgpu --sandbox-connect`, and the desktop only if the original still falls back to 2D there), and Typer Shark's and Bejeweled 2's on the same terms ("Yes, both routes", 2026-11-11); from 2026-11-11 to 2026-11-15 any game could also run there between 22:00 and 08:00. |
 
 The shared driver for it is `tools/visrun.py` (`docs/VISRUN.md`: a config and a step file per game; the game-local
 drivers named below are what it replaces).

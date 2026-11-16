@@ -1,4 +1,5 @@
 #include "NcButton.h"
+#include "MathConstants.h"
 
 #include <cmath>
 
@@ -37,7 +38,7 @@ void NcButton::Draw(Graphics* g)
 		if (mDarkensWithFade && gApp->mFade > 0.0)
 		{
 			aG.SetColorizeImages(true);
-			int aValue = ToInt(255.0 - sin(gApp->mFade * 1.5707963267948966) * 180.0);
+			int aValue = ToInt(255.0 - sin(gApp->mFade * HALF_PI) * 180.0);
 			aG.SetColor(Color(aValue, aValue, aValue));
 		}
 

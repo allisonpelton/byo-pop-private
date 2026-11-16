@@ -36,7 +36,6 @@ public:
 	GameApp* mApp;                        // +0x28
 	Board* mBoard;                        // +0x2c
 	int mState = BE_UNDEFINED;            // +0x30
-	int m34 = 0;                          // +0x34: set to 0 by the constructor; no use found
 	bool mInitialized = false;            // +0x38: Init has run
 
 	BattleEngine(Board* theBoard, GameApp* theApp);  // 0x413ec0

@@ -367,6 +367,37 @@ which the original's 0x41f8b0 may do too; not chased (a test command's path, lis
 Proof of inertness: the three bot games of `tools/check.sh sevenseas` give the same log and screenshots with the block
 off and with it on, and the suite's frozen baseline is unchanged.
 
+## 17. The software screen at 1x (2026-11-15)
+
+The coordinator's memory task ("beat the original where we can", docs/MEMORY.md "The other 2D ports on DDInterface"). The
+2003 exe has no Direct3D mode (the Is3D paragraph above), so it starts in 2D: `SevenSeasApp` sets `mDefault3D` false, and its
+`CreateDDInterface` (under `#ifndef __EMSCRIPTEN__`, marked override) returns `SoftwareScreenDisplay::Create`, as Dynomite's
+and Big Money's do. The web build keeps DDInterface. At 640x480 the window is drawn in software, and the 28 to 30 MB of the
+Direct3D device are not made; at 2x and full screen the framework still takes the GPU (the user's call whether it should
+not; `SOFTSCREEN_SCALED=1` is the test switch).
+
+**Frozen baseline.** `tools/check.sh sevenseas`: baseline identical (on a rebuilt exe; the first run of it after the edit
+was against the build before it, and so were the first pairs, which were thrown away).
+
+**Memory.** Peak private bytes over the whole scripted run of section 11b (the title to the quit, sampled every 50 ms by
+`tools/profile/cycles.py`, which now reports `peak_private_mb`): 34.2, 34.2, 37.4, 34.1, 34.2 MB at 640x480, against 41.5,
+50.9 and 51.2 MB for the original (section 11, the same script's lineage) and 65.9 for the port before. With
+`SOFTSCREEN_SCALED=1` at the default 1280x960 window: 33.0, 33.1, 36.3, 33.2, 33.0 MB.
+
+**Processor time, in pairs** (`pairs.sh`, five rounds, the original first in each; the stretch is 55 s):
+
+| | original | port 640x480, software | port 1280x960, software (SOFTSCREEN_SCALED=1) |
+|---|---|---|---|
+| G cycles in the stretch | 12.17, 15.00 (median 13.58; three of its five runs did not report cycles: its screen watcher missed the demo, not examined) | 9.47, 8.89, 8.00, 8.37, 8.18 (median 8.37) | 8.45, 8.56, 9.45, 8.74, 8.84 (median 8.74) |
+| a minute | 14.8 G | 9.1 G | 9.5 G |
+
+The port is under the original in every pair, as before. Against the GPU path measured in section 11b (6.18 G at 640x480
+and 5.44 G at 1280x960, in a quieter hour: the original's own median was 9.59 then and 13.58 now) the software screen costs
+about 2 to 3 G cycles in the stretch at 1x, the processor time it trades for 30 MB of memory, as "The other 2D ports" says;
+that comparison is across sessions, not in pairs. At the default 2x the software screen would cost 8.74 G against 5.44 for the
+GPU for 33 MB against 66, so 2x is left on the GPU. Two port runs (one per window) held 86 and 94 updates a second at the
+start of their stretch (the machine was busy: 3 to 5 other game processes); their cycles are in the medians.
+
 ## 12. Coverage check (2026-11-11)
 
 The whole check of `docs/COVERAGE.md`. origrun's `--coverage` recorded which of the original's functions ran in 16 runs on the

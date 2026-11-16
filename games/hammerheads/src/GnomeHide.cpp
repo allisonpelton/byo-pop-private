@@ -1,4 +1,5 @@
 #include "GnomeHide.h"
+#include "MathConstants.h"
 
 #include "Application.h"
 #include "HammerDisplay.h"
@@ -8,7 +9,6 @@
 
 using namespace Sexy;
 
-static const double RAND_SCALE = 4.656612875245797e-10;		// 1 / 2^31: Rand() as a number from 0 to 1
 
 // 0x43b200
 GnomeHide::GnomeHide() :

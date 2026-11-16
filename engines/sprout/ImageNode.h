@@ -16,12 +16,19 @@ class ImageNode : public Node
 {
 public:
 	ImageNode(Image* theImage);  // 0x435d50 (wordharmony), 0x470fd0 (pizzafrenzy)
+	ImageNode();                 // 0x470d20 (pizzafrenzy): no image, and no layout flag until it has one
 	~ImageNode() override;       // 0x435ec0 (wordharmony)
 
 	void draw(Graphics* g) override;  // 0x6c: 0x435d20 (wordharmony); 0x90: 0x470f20 (pizzafrenzy)
 	void layout() override;           // 0x74: 0x435c60 (wordharmony); 0x98: 0x470e40 (pizzafrenzy)
 
 	// The signal build's (Pizza Frenzy's)
+	// 0x470df0 (pizzafrenzy): the image (counted), and the node needs a layout
+	void setImage(Image* theImage)
+	{
+		mImage = theImage;
+		setFlags(NODE_LAYOUT);
+	}
 	// 0x470ce0 (pizzafrenzy): whether the node draws only the clip rectangle of its image (the original's setClip)
 	void setClipped(bool theClipped) { mClipped = theClipped; }
 	// 0x470cf0 (pizzafrenzy): the part of the image the clip draws (whole pixels when it draws)

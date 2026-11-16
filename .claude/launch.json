@@ -234,6 +234,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["tools/webtest/serve.py", "--port", "18821"],
       "port": 18821
+    },
+    {
+      "name": "pizzafrenzy-webtest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18823"],
+      "port": 18823
     }
   ]
 }

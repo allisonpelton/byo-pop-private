@@ -36,7 +36,7 @@ holds the rules every session follows; this file does not repeat them.
   sessions ... Do what you want forever now"), replacing the limit of 8 set on 2026-11-11 after "Too many sessions,
   some crashed. Set a comfortable limit". To keep sessions from crashing, the coordinator still checks the machine
   before waking one: under 6 GB available or over 80% of the commit limit means waiting.
-  The limit of 6 game processes (CLAUDE.md) holds for all of them, so more sessions mean longer waits for a game slot.
+  The limit of 10 game processes (CLAUDE.md) holds for all of them, so more sessions mean longer waits for a game slot.
   A session past the limit waits idle on a background wait for its own file (`until [ -f <main
   checkout>/build/slots/<name>.go ]; do sleep 60; done; cat` the file), which the coordinator writes with any news
   when a slot frees; that wake costs no message. A crashed session comes back only into a free slot.
@@ -85,8 +85,8 @@ holds the rules every session follows; this file does not repeat them.
 - **Done means every phase but modding (the user, 2026-11-08, 2026-11-11):** a game is done, and may go on the live
   site, only after every step above, its features on the site included: its tunes placed, grouped and split in Music,
   its modules' unused patterns in Music's section for them (2026-11-15), and its soundboard's presets ("All these accessory features should be added to our definition of done"). The site
-  session builds those and the game's session answers its questions. The games done on 2026-12-31 go live then (the
-  site going public is still the user's word); the rest follow when done. Modding waits: new mods and the changes in
+  session builds those and the game's session answers its questions. The games done by 2026-12-25 go live then (the launch
+  date, the user's of 2026-11-15; putting the site on a public host is still the user's word on the day); the rest follow when done. Modding waits: new mods and the changes in
   `docs/MOD_ROADMAP.md`.
 - **The ports still to make (the user, 2026-11-01, 2026-11-08, 2026-11-15):** none starts until every current game is
   done by the definition above, every phase but modding (2026-11-15: "All games need to reach my definition of done
@@ -218,9 +218,13 @@ holds the rules every session follows; this file does not repeat them.
   being let off.
   Shared costs are found once and fixed in the framework for every game; the list below holds them.
 - **Shared costs waiting for a fix:**
-  - Loading GIFs: decoded to 32 bits (`_stbi__out_gif_code`) and quantized back to 8 (`Sexy::Quantize8Bit`, a binary
-    search a pixel; a cache of the last colour gives the identical table), about a quarter of a load's processor time,
-    0.15 to 0.2 s of a load in any game with GIFs (Typer Shark, AstroPop, GAME_NOTES section 11). With the JPEG and
+  - Loading GIFs: decoded to 32 bits and quantized back to 8 (`Sexy::Quantize8Bit`, a binary search a pixel; a cache
+    of the last colour gives the identical table), about a quarter of a load's processor time, 0.15 to 0.2 s of a load
+    in any game with GIFs (Typer Shark, AstroPop, GAME_NOTES section 11), measured before `platform/GIFDecoder.cpp`
+    halved the decoding (1572aba0, 2026-11-14). The quantizing is left: a GIF's own indices, with its colours
+    put in the order Quantize8Bit would give them, make the same table without the 32-bit pass. Converting the GIFs to
+    another format would not help: lossless PNG or WebP of the eight games with the most GIFs is 30.6 or 23.9 MB
+    against 36.7, and neither decodes faster than the GIF decoder now (2026-11-15). With the JPEG and
     Vorbis decoders and Platform::DecodeImage, the load's decoding is about 12% of Bejeweled 2's 3D run without waiting.
   - imagehlp.dll, 2.4 to 7.6% of a run's cycles, from a call site not yet found (Typer Shark, AstroPop, Bejeweled 2).
   - The 2D path on SDL's software renderer (`DDInterface.cpp`, `mIs3D` false, about lines 784 to 833): every sprite an

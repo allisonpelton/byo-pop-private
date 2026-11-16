@@ -246,7 +246,6 @@ public:
 	void			TrophyRoomToMainMenu();								// 0x4211c0
 	void			TrophyRoomToGame();									// 0x421200
 	void			ShowTrophyRoomFromMenu();							// 0x41f700
-	void			GameWonToMainMenu();								// 0x421c30
 	void			LevelIntroDone();									// 0x41fbf0
 	void			ShowHowToPlay(bool theWithNewGame);					// 0x41ec30
 	void			HideHowToPlay();									// 0x41ec50

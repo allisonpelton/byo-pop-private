@@ -7,6 +7,8 @@
 // a tempo, twice that tempo (half when twice is over BASS's 255) plays its first order in half the time (twice) and
 // reports the tempo set; channels report volume 100 (-1 past the last), tempo and volume keep to BASS 2.2's 1 to 255
 // and 0 to 100; and every channel at volume 0 is silence.
+// And for MO3s, SetSongPlayersPooled: a player one song gives back and another takes renders what a fresh player does from
+// the same position, bit for bit, and a song started again with no position carries on where it stopped.
 //   songpostest <gamedir> <music path>...
 #include "platform/Audio.h"
 #include "platform/VFS.h"
@@ -16,6 +18,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <set>
 #include <utility>
 #include <vector>
@@ -161,6 +164,118 @@ static bool CheckTempo(const char* thePath)
 	return ok;
 }
 
+// SetSongPlayersPooled (platform/Audio.h): song c plays elsewhere and stops, its player goes to the pool, song d takes it
+// and plays from order 3; that must be the audio a fresh player gives for order 3 (song b, made before pooling was on).
+// libopenmpt's renders differ a little from one fresh player to the next (rms 0.009 of a full scale of 1 here: some
+// instruments swing their volume and pan at random, and libopenmpt draws the swings anew for each player), so the pooled
+// player's difference from a fresh one is held against two fresh players' difference from each other. A pooled player
+// that kept the mix plugins' state (Bejeweled Twist's music has an echo and a chorus) differed from a fresh one by four
+// times that. Then c, started again with no position, carries on from the order and row where it stopped, and a song
+// never played, started with no position, takes a pooled player and starts at the beginning as a fresh one does.
+// Runs last: the mixer stays pooled.
+static std::vector<float> RenderBlocks(Platform::Mixer& mixer, int theBlocks)
+{
+	std::vector<float> all;
+	std::vector<float> out(4800 * 2);
+	for (int i = 0; i < theBlocks; i++)
+	{
+		mixer.RenderOffline(out.data(), 4800);
+		all.insert(all.end(), out.begin(), out.end());
+	}
+	return all;
+}
+
+static double RmsDifference(const std::vector<float>& theLeft, const std::vector<float>& theRight)
+{
+	double aSum = 0;
+	for (size_t i = 0; i < theLeft.size(); i++)
+		aSum += ((double)theLeft[i] - theRight[i]) * ((double)theLeft[i] - theRight[i]);
+	return std::sqrt(aSum / theLeft.size());
+}
+
+static bool CheckPool(const char* thePath)
+{
+	Platform::Mixer& mixer = Platform::Mixer::Get();
+	int a = mixer.LoadSong(thePath);
+	int b = mixer.LoadSong(thePath);
+	if (!a || !b || (mixer.GetSongTempo(a) <= 0))
+	{
+		// libxmp's songs have no player of a registered format to pool
+		mixer.UnloadSong(a);
+		mixer.UnloadSong(b);
+		return true;
+	}
+	mixer.PlaySong(b, 3, 0, true, true);
+	std::vector<float> aFresh = RenderBlocks(mixer, 20);
+	mixer.StopSong(b);
+	mixer.PlaySong(a, 3, 0, true, true);
+	std::vector<float> aFreshAgain = RenderBlocks(mixer, 20);
+	mixer.StopSong(a);
+	double aFreshRms = RmsDifference(aFresh, aFreshAgain);
+	mixer.UnloadSong(a);
+	mixer.UnloadSong(b);
+	int aStartOrder = -1, aStartRow = -1;
+	{
+		int fresh = mixer.LoadSong(thePath);
+		mixer.PlaySong(fresh, 0, 0, true, false);   // never played, no position: the beginning
+		RenderBlocks(mixer, 1);
+		mixer.GetSongPosition(fresh, aStartOrder, aStartRow);
+		mixer.StopSong(fresh);
+		mixer.UnloadSong(fresh);
+	}
+
+	mixer.SetSongPlayersPooled(true);
+	int c = mixer.LoadSong(thePath);
+	int d = mixer.LoadSong(thePath);
+	bool ok = c && d;
+	int order = -1, row = -1, saved = -1, savedRow = -1;
+	double aPooledRms = 0;
+	if (ok)
+	{
+		mixer.PlaySong(c, 7, 4, true, true);
+		RenderBlocks(mixer, 15);
+		mixer.GetSongPosition(c, saved, savedRow);
+		mixer.StopSong(c);       // c's player goes to the pool
+		mixer.PlaySong(d, 3, 0, true, true);   // d takes it
+		std::vector<float> aPooled = RenderBlocks(mixer, 20);
+		aPooledRms = RmsDifference(aPooled, aFresh);
+		if (aPooledRms > aFreshRms * 1.5 + 1e-4)
+		{
+			printf("pool: %s: from order 3 a pooled player differs from a fresh one by %g (rms), two fresh ones by %g\n", thePath, aPooledRms, aFreshRms);
+			ok = false;
+		}
+		mixer.StopSong(d);
+		mixer.PlaySong(c, 0, 0, true, false);  // no position: where it stopped
+		RenderBlocks(mixer, 1);
+		if (!mixer.GetSongPosition(c, order, row) || (order != saved) || (row < savedRow) || (row > savedRow + 4))
+		{
+			printf("pool: %s: stopped at order %d row %d, started again with no position it is at %d row %d\n", thePath, saved,
+				savedRow, order, row);
+			ok = false;
+		}
+		mixer.StopSong(c);       // c's player, at the order and row where it stopped, goes to the pool again
+		int e = mixer.LoadSong(thePath);
+		mixer.PlaySong(e, 0, 0, true, false);  // e was never played: it takes that player and starts at the beginning
+		RenderBlocks(mixer, 1);
+		int anEndOrder = -1, anEndRow = -1;
+		if (!mixer.GetSongPosition(e, anEndOrder, anEndRow) || (anEndOrder != aStartOrder) || (anEndRow != aStartRow))
+		{
+			printf("pool: %s: a fresh player started with no position is at order %d row %d, a pooled one at order %d row %d\n", thePath,
+				aStartOrder, aStartRow, anEndOrder, anEndRow);
+			ok = false;
+		}
+		mixer.StopSong(e);
+		mixer.UnloadSong(e);
+	}
+	mixer.UnloadSong(c);
+	mixer.UnloadSong(d);
+	mixer.SetSongPlayersPooled(false);
+	if (ok)
+		printf("pool: %s: from order 3 a pooled player differs from a fresh one by %g (rms), two fresh ones by %g; started again with no position it carries on from order %d row %d ok\n", thePath,
+			aPooledRms, aFreshRms, saved, savedRow);
+	return ok;
+}
+
 int main(int argc, char** argv)
 {
 	if (argc < 3)
@@ -172,7 +287,7 @@ int main(int argc, char** argv)
 	Platform::RegisterOpenMPTModules();
 	int failed = 0;
 	for (int i = 2; i < argc; i++)
-		if (!CheckSong(argv[i]) || !CheckTempo(argv[i]))
+		if (!CheckSong(argv[i]) || !CheckTempo(argv[i]) || !CheckPool(argv[i]))
 			failed++;
 	printf("songpos: %d of %d songs ok\n", argc - 2 - failed, argc - 2);
 	return failed ? 1 : 0;

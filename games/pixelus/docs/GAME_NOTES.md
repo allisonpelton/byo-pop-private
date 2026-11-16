@@ -191,6 +191,55 @@ web build's load was not timed. The port loads in one go as the framework's load
 remains; the original's own load is as fast here because its resources are few.
 
 
+**Measured again by the target's rules (2026-11-15).** `tools/profile/pairs.sh` (perf.py, cycle counts as `QueryProcessCycleTime`
+over 6000 updates of the same scripted play, taken at 100 updates a second; the port's script is the bot's first six puzzles
+turned into input, and the original's is the same input through `toorig.py` with the original's 2500 later Play button). The
+port runs the shipped Release exe with only `-script` and `-windowscale=1` (windowed 640x480, the display line says "render scale
+1, windowed, renderer direct3d11"), under rundesk; the original under origrun on its real clock; each pair on one performance core
+of its own (`tools/pincore.py`, core 14), the order flipping, one game process of ours at a time. The machine was busy (3 to 6 game
+processes of other sessions, the mean in each run's file), so the spread is wide. Million cycles an update, five runs of each:
+
+| | runs | median |
+| --- | --- | --- |
+| Original | 2.91, 3.56, 2.63, 3.28, 3.60 | 3.28 |
+| Port, all threads (its mixer counted) | 2.06, 2.60, 2.94, 3.13, 3.23 | 2.94 |
+| Port, main thread only | 1.12, 1.64, 2.21, 2.28, 2.42 | 2.21 |
+
+The port's mixer thread cost 0.7 to 0.8 M an update in three of the runs and 0.03 in two (no sound playing). The original shows no
+thread above 0.03 M beside its main one: under origrun's stand-in its sounds are never mixed and the game has no BASS music thread.
+The pairs' port-to-original ratios are 0.71, 0.73, 1.12, 0.95 and 0.90, median 0.90, so the port's whole process stays at or below the
+original's in four pairs of five and above it in one (a pair on which the machine was busiest), and its main thread, with the mixer
+counted apart, is clearly below. The spread inside a side (1.6 times for the port, 1.4 for the original) is larger than the gap
+between the medians, so the claim is "not above", not a figure. Memory: working set 96 to 106 MB peak for the port, 107 to 116 MB for
+the original; private bytes 95 to 98 MB and 91 to 93 MB. No hot spot to speed up was found that the spread would show; none was changed.
+The original's runs went to origrun's 200 s cap (its `quit` at counter 8950 came after the stretch), which the stretch does not include.
+
+
+**Memory: the software screen for 2D (2026-11-16).** The original's constructor turns `mAutoEnable3D` on (the base constructor, 0x4e30f0,
+stores 1 at +0x5cd, where Bookworm's era keeps it at +0x5c5), so its machine test decides and it starts in 3D on a card that
+passes; the port keeps its default of 3D. `PixelusApp::CreateDDInterface` (marked `override`, native only) returns
+`SoftwareScreenDisplay::Create(this, true)`, so the screen is drawn in software while 2D is on (a saved Is3D 0, or the 3D box cleared in
+Options) at 1x, and the GPU takes it with 3D on and at every larger window (the user, 2026-11-15: software drawing only for 1x). A player
+who starts in 3D sees no change; the frozen baseline and `tools/check.sh pixelus` are identical. Measured like the original ran under
+origrun (its machine test fails there, so it draws in 2D; the port with Is3D 0 saved), the scripted play of the notes above, five
+rounds in rotating order, one game process of ours at a time on a pinned core (`tools/profile/variants.sh`; its first runs measured one
+build five times over because a variable did not reach the port, and `perf.py` had not been given its switches: both fixed, those runs
+discarded). The machine was busy (8 to 10 game processes of other sessions in every run), so the spread is wide. Million cycles an update
+over the whole process (mixer counted), peak private bytes:
+
+| | processor, five runs | median | private bytes |
+| --- | --- | --- | --- |
+| Original | 4.61, 3.50, 3.43, 3.01, 3.01 | 3.43 | 91 to 93 MB |
+| Port, software screen at 1x | 3.27, 2.20, 2.38, 2.00, 2.15 | 2.20 | 66.8 to 69.6 MB |
+| Port, GPU drawing 2D at 1x (the build without the override) | 2.10, 2.81, 3.66, 2.50, 1.80 | 2.50 | 100.6 to 103.6 MB |
+| Port, default window 2x (the GPU) | 4.57, 3.24, 3.43, 2.75, 2.05 | 3.24 | 99.6 to 103.1 MB |
+
+The software screen saves about 33 MB of private bytes against the GPU path at 1x and is 24 to 26 MB under the original, and its
+processor time is at or under the original's: its median is 0.64 of the original's, and its worst run (3.27) is under the original's
+median. The spread of one side (1.6 times) is larger than the gap between the GPU and software medians at 1x, so no claim is made
+between those two beyond "not above". The 2x row is the GPU, unchanged by this step; nothing at 2x was changed.
+
+
 ## 11. Coverage check (2026-11-15) and Oddities
 
 The whole coverage check (`docs/COVERAGE.md`). origrun's `--coverage` recorded which of the original's functions ran in
@@ -254,3 +303,19 @@ names for the screen at +0x690), judged and left. Two fields nobody reads (`Boar
 The play is unchanged (`tools/check.sh pixelus`, baseline identical).
 
 **Oddity: a check run that differs under load (2026-11-15).** Twice a `tools/check.sh pixelus` run failed once and passed on every later run (the bot's game of 25 puzzles played another solution, 66 moves against 68, and the full game stopped at 27 puzzles). Both failing runs have the same sign: their log has no first line `new player dialog ...`, which a run on an empty user folder always starts with, so the game began on a profile that an earlier run had left (a run on a used profile, played here by hand, starts at `play` the same way, and plays the puzzles that are not solved yet). Nothing in the game reads the clock on its logic path: 6 runs of the 25-puzzle game and one of 210 puzzles on a quiet machine were identical, and so was every run after. The likeliest cause is the check's own run folder not being empty when the game started, from two check runs overlapping (the first came from a background shell of this session that was believed dead). Not proved. To see it: run the game twice with the same `-userdir`. What it would take: `tools/check.sh` could refuse to start while another run of the same suite is going, and stop when the folder it has just emptied is not.
+
+## 14. The Collection check (2026-11-15)
+
+The PopCap Game Collection ISO holds `PixelusDeluxeComponent` (949 files, taken out with `unshield g PixelusDeluxeComponent` in a folder under
+`build/`, never kept). Compared with the retail install the port was made from:
+- Every file of `images/`, `data/`, `levels/`, `music/`, `sounds/` and `NcFramework/` is the same, byte for byte (the level list is `Levels.txt`
+  against `levels.txt`, the same file on Windows). The Collection adds `data/writeprobe.txt` (the write probe the port does not carry) and a
+  `users/` folder; its `properties/partner.xml` and signature are its own.
+- Its `Pixelus.exe` is the game itself with no PopCap wrapper (1,488,176 bytes). Its game image has the same `.text` and `.data` as the retail
+  one, byte for byte, and differs in 8 bytes of `.rdata` (the linker's stamp) and in the resources; so the original is the same build, and
+  every address in the notes holds. The port's text loader finds the image at the start of the file when there is no marker, and all of its
+  texts matched (no "do not match" line).
+- Its `partner.xml` has `DefaultWindowed` false, so the game starts full screen as the original does with it; the retail file leaves it windowed.
+  That is the only difference the port shows: the bot's 25-puzzle game run on the Collection's folder gives the same log and, with the retail
+  `partner.xml` put in the copy, the same 16 screenshots as the retail folder (taken full screen, the shots differ in scaling only).
+Nothing to change in the port.

@@ -53,11 +53,10 @@ public:
 	bool mLevelupOverlay = false;               // +0xe2: the battle engine's level-up overlay is up
 	bool mEndingChapter = false;                // +0xe3: the battle engine is in BE_END_CHAPTER (and DoAltarScene)
 	bool mShowTooltips = true;                  // +0xe4 (AllowTooltips)
-	bool mFlagE5 = false;                       // +0xe5
 	bool mScrambling = false;                   // +0xe6: the letters change one by one (no hilite)
 	bool mIsMiniGame = false;                   // +0xe7
 	bool mNoTilesWhilePaused = false;           // +0xe8: a mini-game's (InitMiniGame's last argument)
-	bool mFlagE9 = false;                       // +0xe9: the button click that unpaused, to be ignored
+	bool mIgnoreUnpauseClick = false;           // +0xe9: the button click that unpaused, to be ignored
 	bool mScrambleWasEnabled = false;           // +0xea: Pause disabled an enabled scramble button
 	bool mDrawArrowHintsAboveOverlay = false;   // +0xeb
 	bool mZoomingIn = false;                    // +0xec
@@ -70,18 +69,16 @@ public:
 	int mPauseCount = 0;                        // +0xfc
 	int mPauseNoBannerCount = 0;                // +0x100: pauses without the "paused" banner
 	int mUnpauseUpdateCnt = -1;                 // +0x104: the update of the click that unpaused
-	int mRandSeed = 0;                          // +0x108: a Rand() of each submitted word
-	int mField10C = 0;                          // +0x10c: the space bar's last pause (updates times 10)
+	int mRandSeed = 0;                          // +0x108: a Rand() of each submitted word; nothing reads it (the draw stays, for the order of draws)
+	int mLastSpacePauseTime = 0;                // +0x10c: the space bar's last pause (updates times 10)
 	int mGridWidth = 4;                         // +0x110: columns
 	int mGridHeight = 4;                        // +0x114: rows
-	int mZoomX = 0;                             // +0x118 (SetZoomCoords)
-	int mZoomY = 0;                             // +0x11c
+	int mZoomX = 0;                             // +0x118 (SetZoomCoords): the zoom's x; nothing reads it
+	int mZoomY = 0;                             // +0x11c: the zoom's y; nothing reads it
 	int mZoomHoldCount = 0;                     // +0x120: updates zoomed in
 	int mPauseFade = 0;                         // +0x124: the pause's darkening, up to 140
 	int mMuteCount = 0;                         // +0x128: the pauses that muted the app
 	float mZoom = 0.0f;                         // +0x12c: 0 to 1
-	std::string mString130;                     // +0x130: cleared with each tile selected
-	std::string mString14C;                     // +0x14c
 	// +0x168: the disabled attack button's. Nothing adds it to a widget manager, so the original never showed it.
 	TooltipWidget* mTooltip = nullptr;
 	GameApp* mApp;                              // +0x16c
@@ -93,7 +90,7 @@ public:
 	Tile* mHiliteTile = nullptr;                // +0x1ac: the tile under the mouse
 	std::vector<std::string> mOverlayCallbacks; // +0x1b4: Lua functions that draw over the board
 	std::vector<FadeButton*> mOverlayDisabled;  // +0x1c4: the buttons an overlay disabled
-	bool mRestoringGrid = false;                // +0x1d0: Init sets the tiles' letters
+	bool mRestoringGrid = false;                // +0x1d0: Init sets the tiles' letters; nothing reads it
 
 	Board(GameApp* theApp, bool theIsMiniGame);
 	~Board() override;
@@ -110,7 +107,6 @@ public:
 	// InitMiniGame(theName) (the mini-game's class), which makes the mini-game and loads its resources
 	void InitMiniGame(const std::string& theName, int x, int y, int theXGap, int theYGap, int theCols, int theRows,
 	                  const std::string& theLetters, bool theNoTilesWhilePaused);
-	static void LoadScripts();  // 0x4185d0
 
 	// Widget
 	void AddedToManager(WidgetManager* theWidgetManager) override;      // 0x41aba0
@@ -137,8 +133,6 @@ public:
 	void ButtonMouseEnter(int theId) override;                // 0x41dda0
 	void ButtonMouseLeave(int theId) override;                // 0x41de40
 
-	int GetGridWidth() const { return mGridWidth; }
-	int GetGridHeight() const { return mGridHeight; }
 	bool IsMiniGame() const { return mIsMiniGame; }
 	bool IsGridCell(int theCol, int theRow) const;   // 0x418dc0
 	Tile* GridGetTile(int theCol, int theRow);       // 0x418e10

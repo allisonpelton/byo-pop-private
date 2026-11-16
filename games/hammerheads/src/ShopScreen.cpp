@@ -1,4 +1,5 @@
 #include "ShopScreen.h"
+#include "MathConstants.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -31,7 +32,6 @@ using namespace Sexy;
 namespace
 {
 
-const double PI_HALF = 1.5707963267948966;
 
 // How long the mole's words last (in the hundredths the timer counts down in): a refusal, a purchase's thanks, and the start
 // of the first mood
@@ -297,6 +297,19 @@ void ShopScreen::MouseLeave()
 		anAvatar->mCrosshairVisible = false;
 }
 
+// 0x45dcf0 (the original's slot for both): the hammer follows the pointer
+void ShopScreen::MouseMove(int x, int y)
+{
+	Avatar* anAvatar = GetAvatar();
+	if (anAvatar != nullptr)
+		anAvatar->SetMouse(x, y);
+}
+
+void ShopScreen::MouseDrag(int x, int y)
+{
+	MouseMove(x, y);
+}
+
 // 0x45dd20: a click is the hammer's
 void ShopScreen::MouseDown(int x, int y, int theClickCount)
 {
@@ -377,11 +390,11 @@ void ShopScreen::UpdateF(float theFrac)
 		case REFUSE_HAVE_STRAWBERRY:
 		case REFUSE_HEALTH_FULL:
 			mMood = MOOD_BROWSING;
-			mMoodTimer = (double)Rand() * 4.656612875245797e-10 * 4.0 + 3.0;
+			mMoodTimer = (double)Rand() * RAND_SCALE * 4.0 + 3.0;
 			break;
 		case MOOD_BROWSING:
 			mMood = MOOD_LOOKING;
-			mMoodTimer = (double)Rand() * 4.656612875245797e-10 * 4.0 + 3.0;
+			mMoodTimer = (double)Rand() * RAND_SCALE * 4.0 + 3.0;
 			break;
 		}
 	}
@@ -500,7 +513,7 @@ void ShopScreen::Draw(Graphics* g)
 
 	if (mFade > 0.0)
 	{
-		int anAlpha = ToInt(sin(mFade * PI_HALF) * 128.0);
+		int anAlpha = ToInt(sin(mFade * HALF_PI) * 128.0);
 		aG.SetColor(Color(0, 0, 0, anAlpha));
 		aG.FillRect(0, 0, mWidth, mHeight);
 	}

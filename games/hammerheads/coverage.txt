@@ -1,0 +1,192 @@
+# tools/coverage.py's settings for Hammer Heads Deluxe (docs/COVERAGE.md).
+export re/hammerheads/ghidra/functions.jsonl
+src games/hammerheads/src
+# The game's own code and its own libraries (WORKING_NOTES.md, "Layout of the code"); the framework starts at 0x469000.
+game 00401000-00468e30
+none 00405550-00419c70 level editor: the property widgets and tools of the original's editor GameScreen, which the port leaves out (GAME_NOTES.md)
+none 0041a000-0041d9c0 beta-test login, update check and DRM client, removed with the registration code (GAME_NOTES.md)
+none 00401040 constructor of the original's CRect (x, y, width, height): the port uses the framework's Rect
+none 00401060 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 004013a0 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 00401480 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 0040151c debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 00401600-00401640 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 00401920 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 00401a90-00401ad0 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 00401e80-00401f40 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 004021d0 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 00402380-00402530 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 00402630 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 00402940 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 00402aa0 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 00402f20 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 00403030 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 004030a0 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 00403300 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 00403470 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 00403950-00403990 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 00403ce0 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 00404120 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 004043e0 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 00405420 debug std::string, std::vector, std::list and std::map instantiations of the original's compiler (library code); the port uses the standard containers
+none 0041e520 registration's level-allowed check (GAME_NOTES.md, Left out): always true in the full game
+none 0041e580 getter of the global application pointer: the port reads gApp
+none 0041ebd0-0041ebe0 one-field accessor: the port reads the member directly
+none 0041f350-0041f370 the level editor's tools (Cubby::Tool, Sticker::Tool, ToolStyle, and the one that makes the tools), left out with the editor (GAME_NOTES.md, Left out)
+none 0041f5e0 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 0041fd80 getter that copies a string member out: the port reads the member directly
+none 00422c90-00422cc0 standard library iostream and locale instantiations (basic_filebuf, locale facets) of the original's compiler; the port uses the standard library
+none 00422d60 standard library iostream and locale instantiations (basic_filebuf, locale facets) of the original's compiler; the port uses the standard library
+none 00422e00-00422e40 standard library iostream and locale instantiations (basic_filebuf, locale facets) of the original's compiler; the port uses the standard library
+none 00423040 standard library iostream and locale instantiations (basic_filebuf, locale facets) of the original's compiler; the port uses the standard library
+none 004230b0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00423150-004231d0 standard library iostream and locale instantiations (basic_filebuf, locale facets) of the original's compiler; the port uses the standard library
+none 00423430-004235a0 standard library iostream and locale instantiations (basic_filebuf, locale facets) of the original's compiler; the port uses the standard library
+none 00423660 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 004236f0-00423760 standard library iostream and locale instantiations (basic_filebuf, locale facets) of the original's compiler; the port uses the standard library
+none 004238d0-00423b30 standard library iostream and locale instantiations (basic_filebuf, locale facets) of the original's compiler; the port uses the standard library
+none 00423c20-00423d20 standard library iostream and locale instantiations (basic_filebuf, locale facets) of the original's compiler; the port uses the standard library
+none 00423e80 standard library iostream and locale instantiations (basic_filebuf, locale facets) of the original's compiler; the port uses the standard library
+none 00423fb0 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 00424060-00424370 standard library iostream and locale instantiations (basic_filebuf, locale facets) of the original's compiler; the port uses the standard library
+none 00424496 standard library iostream and locale instantiations (basic_filebuf, locale facets) of the original's compiler; the port uses the standard library
+none 00424a70 standard library iostream and locale instantiations (basic_filebuf, locale facets) of the original's compiler; the port uses the standard library
+none 00424c50 standard library iostream and locale instantiations (basic_filebuf, locale facets) of the original's compiler; the port uses the standard library
+none 00424d00-00424d40 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 00425f00 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 00425fc0-00426100 standard library iostream and locale instantiations (basic_filebuf, locale facets) of the original's compiler; the port uses the standard library
+none 0042d890 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 0042d960 destructor that only frees the class's containers and chains to its base: the port's classes use standard containers and the compiler's own destructor
+none 0042de40 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 0042e0b0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0042f140 copy of a ValueList: the port copies its std::vector
+none 00431490 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00431af0 the level editor's tools (Cubby::Tool, Sticker::Tool, ToolStyle, and the one that makes the tools), left out with the editor (GAME_NOTES.md, Left out)
+none 00431ca0 Cubby virtual that forwards to the creature's empty virtual (0x408d10, Unused20); nothing is done and the port has no such call
+none 00431ed0 Cubby's escape animation (a position that rose and fell): started when a creature got away and never read (Cubby.cpp, FixedUpdate); left out
+none 00431f10 rectangle intersection: the port uses the framework's Rect::Intersection
+none 00432b40 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00433450 the level editor's tools (Cubby::Tool, Sticker::Tool, ToolStyle, and the one that makes the tools), left out with the editor (GAME_NOTES.md, Left out)
+none 00433950 the level editor's tools (Cubby::Tool, Sticker::Tool, ToolStyle, and the one that makes the tools), left out with the editor (GAME_NOTES.md, Left out)
+none 004346c0 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 00434890 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 004352c0 destructor that only frees the class's containers and chains to its base: the port's classes use standard containers and the compiler's own destructor
+none 00435550 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00435dc0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00436020 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00436750 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00437340 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00437630 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00437930 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00437f70 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00438e00 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 004391d0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00439af0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043ab80 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043b020 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043b680 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043ba80 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043c390 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043c890 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043ce20 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043d0e0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043d4d0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043d820 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043dcd0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043e080 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043e4b0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043f0f0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043f920 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0043fea0-0043ff80 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 004410e0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00441b20 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 004424a0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00443270 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00443400 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00443430-00443530 the level editor's tools (Cubby::Tool, Sticker::Tool, ToolStyle, and the one that makes the tools), left out with the editor (GAME_NOTES.md, Left out)
+none 00443620-00443860 the level editor's tools (Cubby::Tool, Sticker::Tool, ToolStyle, and the one that makes the tools), left out with the editor (GAME_NOTES.md, Left out)
+none 00443ca0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00443f30 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 00444070 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 00444130 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00444d90 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00447da0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 004481b0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 004484c0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00448e20 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00449570 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00449a00 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 00449f20 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 00449fe0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0044a690 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0044b1e0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0044be30 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0044c170 destructor that only frees the class's containers and chains to its base: the port's classes use standard containers and the compiler's own destructor
+none 0044c2f0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0044d340 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0044e2a0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0044f8b0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0044ff50 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00450e40 GameScreen virtual that calls an empty stub and a global getter and returns nothing; nothing is done
+none 00450fd0-00450ff0 one-field accessor: the port reads the member directly
+none 00451600 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 00451c50 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00452390-004523e0 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 004526b0 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 00452770 the original's own growable-array template (grow, copy, append, erase, destructor of its instantiations): the port uses std::vector
+none 004534a0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00454c30 getter of the high score file's name: the port's TABLES_FILE_NAME constant
+none 004568b0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00456be0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00457da0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00458210 LoadingScreen resize that also resizes a widget at +0xc4, which nothing ever sets (always null); the port has no such field
+none 00459240 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00459a00 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00459a20 getter that copies a string member out: the port reads the member directly
+none 0045b740 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0045cc90 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0045e740 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0045f580 destructor that only frees the class's containers and chains to its base: the port's classes use standard containers and the compiler's own destructor
+none 0045f680 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0045fad0 destructor that only frees the class's containers and chains to its base: the port's classes use standard containers and the compiler's own destructor
+none 0045fcf0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0045fe50 destructor that only frees the class's containers and chains to its base: the port's classes use standard containers and the compiler's own destructor
+none 00460100 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00460590 returns the number of trophies (21): the port's NUM_TROPHIES
+none 004605c0 TrophyRoomWidget update that counts a fade (+0xb0) down: written and never read (GAME_NOTES.md, Left out)
+none 00460be0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00462da0 destructor that only frees the class's containers and chains to its base: the port's classes use standard containers and the compiler's own destructor
+none 00462f10 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00463270-00463350 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 004633b0-00463550 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00463630-00463700 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00463790-00463810 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00463d90 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00463e20 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00463f10-00463ff0 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00464190-004645a0 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00464690 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 004647b0 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00464a70 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00464c00-004652f0 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00465580 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00465780 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00465aa0-00465c50 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00465ed0-00465f40 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00466110-00466160 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 004662f0-004665d0 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00466870 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00466c10-00466cc0 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00466f10-00467140 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 004675b0 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 004677d0-004678e0 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00467f00 TinyXML: the original's own copy; the port reads and writes its XML with XmlLite and reads boards with BoardFile
+none 00468960 destructor that only frees the class's containers and chains to its base: the port's classes use standard containers and the compiler's own destructor
+none 00468b20 empty function
+none 00468c10 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00468cd0 destructor that only frees the class's containers and chains to its base: the port's classes use standard containers and the compiler's own destructor
+none 00468e30 the level editor's tools (Cubby::Tool, Sticker::Tool, ToolStyle, and the one that makes the tools), left out with the editor (GAME_NOTES.md, Left out)
+none 0044a990 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00401090 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 0044f2e0 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
+none 00462210 deleting destructor: the compiler makes one for each class; the port deletes through the C++ destructor
