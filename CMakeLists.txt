@@ -366,12 +366,14 @@ option(BUILD_NINGPO "Build the Ning Po Mahjong Deluxe port" ON)
 if(BUILD_NINGPO AND EXISTS ${PROJECT_SOURCE_DIR}/games/ningpo/CMakeLists.txt)
   add_subdirectory(games/ningpo)
 endif()
-# Sprout's first-generation engine (engines/sprout), one copy for Word Harmony and Pizza Frenzy: built when either game
-# is
+# Sprout's first-generation engine (engines/sprout), one copy for Word Harmony, Pizza Frenzy and Feeding Frenzy: built
+# when any of them is
 option(BUILD_WORDHARMONY "Build the Word Harmony port" ON)
 option(BUILD_PIZZAFRENZY "Build the Pizza Frenzy port" ON)
+option(BUILD_FEEDINGFRENZY "Build the Feeding Frenzy port" ON)
 if((BUILD_WORDHARMONY AND EXISTS ${PROJECT_SOURCE_DIR}/games/wordharmony/CMakeLists.txt) OR
-   (BUILD_PIZZAFRENZY AND EXISTS ${PROJECT_SOURCE_DIR}/games/pizzafrenzy/CMakeLists.txt))
+   (BUILD_PIZZAFRENZY AND EXISTS ${PROJECT_SOURCE_DIR}/games/pizzafrenzy/CMakeLists.txt) OR
+   (BUILD_FEEDINGFRENZY AND EXISTS ${PROJECT_SOURCE_DIR}/games/feedingfrenzy/CMakeLists.txt))
   add_subdirectory(engines/sprout)
 endif()
 # Word Harmony: Sprout's engine under the framework's app host; optional while it is new
@@ -381,6 +383,10 @@ endif()
 # Pizza Frenzy: the second game on Sprout's engine; optional while it is new
 if(BUILD_PIZZAFRENZY AND EXISTS ${PROJECT_SOURCE_DIR}/games/pizzafrenzy/CMakeLists.txt)
   add_subdirectory(games/pizzafrenzy)
+endif()
+# Feeding Frenzy: the third game on Sprout's engine, in an older build of it; optional while it is new
+if(BUILD_FEEDINGFRENZY AND EXISTS ${PROJECT_SOURCE_DIR}/games/feedingfrenzy/CMakeLists.txt)
+  add_subdirectory(games/feedingfrenzy)
 endif()
 # Retro64's engine (engines/retro64), one copy for Cosmic Bugs and Water Bugs: built when either game is
 option(BUILD_COSMICBUGS "Build the Cosmic Bugs port" ON)
