@@ -48,13 +48,18 @@ into a `.reg` that `orig.sh` imports (`REG=`) before the original starts. The or
 `userPizzas.xml` beside its exe, where the port keeps them in its user folder; `orig.sh` removes the file before each
 run, so every run starts without pizzas, and the case compares the two files at its end.
 
-**The held run and its replay.** The bot plays held (`-hold`: an update runs only when its driver lets it), and an
-input of a held run takes effect a little later than the update record.py gives it: from the first launch's name
-dialog on, the replay's game runs two frames ahead of the bot's, and somewhere in a long case one click lands on
-something else and the two part (in seed 3, at frame 9790). The original agrees with the replay, so the comparisons
-hold, but a long case ends somewhere other than where the bot's game went: long2's lost level, at frame 11552, is the
-replay's. The framework is to log the update each input of a held run took effect at (`-recordlive`); until then the
-editor's case starts from a saved player.
+**The held run and its replay.** The bot plays held (`-hold`: an update runs only when its driver lets it). Its input
+is the framework's own record of the run (`-recordlive`, each input at the update that ran it), which record.py
+makes the case's input; the transcript's frames, which record.py read before, put each input a little early, and the
+replay's game ran two frames ahead of the bot's from the first launch's name dialog on. `follows.py` checks that the
+replay is the bot's game, by the random state's values and their frames. With the live record they are the same on
+the same frames until, in a long case, the bot's game makes a draw one frame before the replay's (seed 3: frame 9791
+against 9792, in the second city's second level, with no input there and the same values compared before and after),
+and the two part. The bot's own queries (state and move, comments in the replay) are the only thing the replay does
+not have; which of them moves the draw was not found within the hour (an oddity of the test bot, not of the port). The
+original agrees with the replay, so the comparisons hold, but a long case ends somewhere other than where the bot's
+game went: long2's lost level, at frame 11552, and the second city's lost level in seed 3 (edit2, which matches the
+original to the game's end) are the replay's. The editor's case starts from a saved player.
 
 ## Differences found and fixed
 

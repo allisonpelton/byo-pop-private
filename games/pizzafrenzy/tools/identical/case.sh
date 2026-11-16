@@ -1,8 +1,10 @@
 #!/bin/bash
 # case.sh <name> <seed> <bot moves> [playbymove options...]: one comparison.
 # 1. The port's bot plays from a first launch (an empty user folder) for that many moves by tools/playbymove (held,
-#    -fast), and record.py turns its transcript into an input file (build/identical/<name>/input.txt).
-# 2. The port plays that file again as real input (-realinput, -fast) and writes its state log (state.txt).
+#    -fast); the framework writes its input at the updates that ran it (-recordlive), and record.py makes that the
+#    case's input file (build/identical/<name>/input.txt).
+# 2. The port plays that file again as real input (-realinput, -fast) and writes its state log (state.txt);
+#    follows.py checks that the replay is the bot's game.
 # 3. The original plays the same input (toorig.py) on the same seed, watching four values a run, and cmp.py compares
 #    each with the port's log, change by change with the frame each came at. A last run peeks the random state at
 #    every update, and randseq.py compares the order of its values.
@@ -25,12 +27,16 @@ if [ -n "$INPUT" ]; then
 else
 	rm -rf "$D/bot"; mkdir -p "$D/bot"
 	if [ -n "$PLAYER_DIR" ]; then cp -r "$PLAYER_DIR" "$D/bot/user"; else mkdir -p "$D/bot/user"; fi
-	timeout 280 python -I tools/playbymove/playbymove.py --dir "$D/bot/run" --steps "$MOVES" "$@" \
-		build/native/pizzafrenzy.exe -gamedir=assets/pizzafrenzy -userdir="$D/bot/user" -seed="$SEED" > "$D/bot/out.txt" 2>&1
-	python -I "$TOOLS/record.py" "$D/bot/run/driver.txt" > "$D/input.txt"
+	timeout 3600 python -I tools/playbymove/playbymove.py --dir "$D/bot/run" --steps "$MOVES" "$@" \
+		build/native/pizzafrenzy.exe -gamedir=assets/pizzafrenzy -userdir="$D/bot/user" -seed="$SEED" \
+		-recordlive="$D/bot/live.txt" -statelog="$D/bot/state.txt" > "$D/bot/out.txt" 2>&1
+	# the framework's record of the input at the updates that ran it (-recordlive); the bot's own lines are comments
+	python -I "$TOOLS/record.py" "$D/bot/run/driver.txt" --live "$D/bot/live.txt" > "$D/input.txt"
 fi
 "$TOOLS/port.sh" "$D/port" -seed="$SEED" -realinput="$(win "$D/input.txt")" -statelog="$(win "$D/state.txt")" \
 	> /dev/null
+# the replay should be the bot's game: their random states' values in the same order
+[ -f "$D/bot/state.txt" ] && python -I "$TOOLS/follows.py" "$D/bot/state.txt" "$D/state.txt"
 python -I "$TOOLS/toorig.py" "$D/input.txt" > "$D/orig.txt" || exit 1
 QUIT=$(tail -1 "$D/input.txt" | cut -d" " -f1)
 # the game's values are compared from the frame the port's first level starts (the stats are made)
@@ -51,7 +57,8 @@ ALL=(state city level score elapsed delivered ordered happiness served tipmoney 
 	deliverytimer customersleft ordersbegun streak)
 if [ -n "$FIELDS" ]; then IFS=, read -ra NAMES <<< "${FIELDS//rand/}"; else NAMES=("${ALL[@]}"); fi
 NAMES=($(printf "%s\n" "${NAMES[@]}" | grep .))
-TO=$((QUIT / 100 + 40))
+# origrun stops a run at its timeout (seconds); the virtual clock runs about a hundred frames a second
+TO=$((QUIT / 50 + 60))
 st=0
 for ((i = 0; i < ${#NAMES[@]}; i += 4)); do
 	E=(); for n in "${NAMES[@]:i:4}"; do E+=("${EX[$n]}"); done
