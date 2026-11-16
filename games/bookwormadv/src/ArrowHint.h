@@ -68,7 +68,7 @@ public:
 	bool mBlockMouse = false;            // +0xf3: BlockMouseEvents was called
 	std::string mCallback;               // +0xf4: the scripts' function (SetCallback)
 	Font* mFont = nullptr;               // +0x110: the lines' font (the LuaFont's)
-	LuaFont* mLuaFont = nullptr;         // +0x114
+	LuaFont* mLuaFont = nullptr;         // +0x114: the font SetFont was given (mFont is made from it); nothing reads it
 	int mState = STATE_SHOWING;          // the state machine's current state (+0x44 points at its State)
 
 	ArrowHint(ArrowHintManager* theManager, int theId);  // 0x402b90

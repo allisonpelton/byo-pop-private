@@ -69,12 +69,12 @@ public:
 	int mPauseCount = 0;                        // +0xfc
 	int mPauseNoBannerCount = 0;                // +0x100: pauses without the "paused" banner
 	int mUnpauseUpdateCnt = -1;                 // +0x104: the update of the click that unpaused
-	int mRandSeed = 0;                          // +0x108: a Rand() of each submitted word
+	int mRandSeed = 0;                          // +0x108: a Rand() of each submitted word; nothing reads it (the draw stays, for the order of draws)
 	int mLastSpacePauseTime = 0;                // +0x10c: the space bar's last pause (updates times 10)
 	int mGridWidth = 4;                         // +0x110: columns
 	int mGridHeight = 4;                        // +0x114: rows
-	int mZoomX = 0;                             // +0x118 (SetZoomCoords)
-	int mZoomY = 0;                             // +0x11c
+	int mZoomX = 0;                             // +0x118 (SetZoomCoords): the zoom's x; nothing reads it
+	int mZoomY = 0;                             // +0x11c: the zoom's y; nothing reads it
 	int mZoomHoldCount = 0;                     // +0x120: updates zoomed in
 	int mPauseFade = 0;                         // +0x124: the pause's darkening, up to 140
 	int mMuteCount = 0;                         // +0x128: the pauses that muted the app
@@ -90,7 +90,7 @@ public:
 	Tile* mHiliteTile = nullptr;                // +0x1ac: the tile under the mouse
 	std::vector<std::string> mOverlayCallbacks; // +0x1b4: Lua functions that draw over the board
 	std::vector<FadeButton*> mOverlayDisabled;  // +0x1c4: the buttons an overlay disabled
-	bool mRestoringGrid = false;                // +0x1d0: Init sets the tiles' letters
+	bool mRestoringGrid = false;                // +0x1d0: Init sets the tiles' letters; nothing reads it
 
 	Board(GameApp* theApp, bool theIsMiniGame);
 	~Board() override;

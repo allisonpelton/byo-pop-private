@@ -87,7 +87,7 @@ public:
 	int mState = STATE_OFF;                 // +0x1d8
 	int mAlpha = 0;                         // +0x1dc: the darkening's, then the beam's while it fades
 	int mBeamX = 0;                         // +0x1e0
-	int mBeamY = 0;                         // +0x1e4
+	int mBeamY = 0;                         // +0x1e4: moved by the offset; nothing reads it
 	int mBeamTarget = 0;                    // +0x1e8
 	int mPanelX = 0;                        // +0x1ec
 	int mPanelY = 0;                        // +0x1f0
