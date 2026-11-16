@@ -50,8 +50,8 @@ installed copy (for example from Steam):
 | [Rocket Mania Deluxe](games/rocketmania/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | 1 | $336 | $8 | | $344 |
 | [Dynomite Deluxe](games/dynomite/docs/README.md) | Opus | Every phase but modding | 2026-10-26 | | $427 | | | $427 |
 | [Bookworm Adventures Volume 2](games/bookwormadv2/docs/README.md) | Sonnet | Ported | 2026-10-26 | | $316 | | | $316 |
-| [Mahjong Escape: Ancient Japan](games/mahjongjapan/docs/README.md) | Opus | Coverage | 2026-11-01 | 1 | $473 | $2 | | $475 |
-| [Mahjong Escape: Ancient China](games/mahjongchina/docs/README.md) | Opus | Coverage | 2026-11-01 | 1 | $4 | | | $4 |
+| [Mahjong Escape: Ancient Japan](games/mahjongjapan/docs/README.md) | Opus | Coverage | 2026-11-01 | 1 | $476 | $2 | | $478 |
+| [Mahjong Escape: Ancient China](games/mahjongchina/docs/README.md) | Opus | Coverage | 2026-11-01 | 1 | with Ancient Japan | | | |
 | [Bonnie's Bookstore Deluxe](games/bonnies/README.md) | Opus | Every phase but modding | 2026-11-01 | 1 | $282 | $2 | | $285 |
 | [Bejeweled Twist](games/bejeweledtwist/docs/NOTES.md) | Opus | Every phase but modding | 2026-11-02 | 2 | $1,439 | $10 | $6 | $1,456 |
 | [Bejeweled 2 Deluxe](games/bejeweled2/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-08 | 1 | $614 | $19 | | $633 |
@@ -86,7 +86,7 @@ session ported Bejeweled and set up the repository, and its work counts for Beje
 commit by commit: each commit gets the cost of the work since the one before, classified by what it did; the finishing
 phases count as port work. "Other" is publishing, the website, licences, usage measurement and rules for the sessions.
 The Mods column counts each game's mods, its fixes and LiveSplit mods among them. The two Mahjong Escape games share
-one engine, and its work counts for Ancient Japan. `tools/game_costs.py` computes the costs; the table is refreshed when
+one engine, and their costs are one figure, on Ancient Japan's row. `tools/game_costs.py` computes the costs; the table is refreshed when
 asked.
 
 ### Performance

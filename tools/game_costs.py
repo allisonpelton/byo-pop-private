@@ -64,6 +64,8 @@ For every piece in the file, give:
 Judge by the commits and edits first, then the instruction. When a piece mixes kinds, choose the one that most of its work served.
 Return one item for every piece in the file, with its id number."""
 KINDS = ('decomp', 'mods', 'other')
+# Games counted under another: the two Mahjong Escape games share one engine, so their work is one figure.
+FOLD = {'mahjongchina': 'mahjongjapan'}
 
 
 def call_cost(m, r, seen):
@@ -284,7 +286,7 @@ def table():
             game, kind = g, 'decomp'
             has_mods = os.path.isdir(os.path.join(OUT, '..', '..', 'games', g, 'mods'))
             missing += p['cost'] if has_mods and p['cost'] >= 0.05 else 0
-        t[game][kind] += p['cost']
+        t[FOLD.get(game, game)][kind] += p['cost']
     print(f"{'game':14} {'port':>8} {'mods':>8} {'other':>8} {'total':>8}")
     for g, d in sorted(t.items(), key=lambda x: -sum(x[1].values())):
         print(f"{g:14} {d['decomp']:8.0f} {d['mods']:8.0f} {d['other']:8.0f} {sum(d.values()):8.0f}")
