@@ -47,6 +47,11 @@ public:
 	// 0x42f190: a screen's action
 	void screenAction(std::string theAction) override;
 
+	// 0x42c0c0: the stage the game is in: the menu's in the loading and menu states, else the game's
+	StageMgr* getStageMgr();
+	// 0x42d230: a sound of the sound bank plays
+	void playSound(const std::string& theName, float theVolume, float thePitch);
+
 	GameStrings& getStrings() { return mStrings; }  // 0x42c730's table (+0x30)
 	Settings& getSettings() { return mSettings; }   // 0x42bb40 (+0xd4)
 
@@ -78,6 +83,8 @@ private:
 
 	static FishFood* sInstance;
 
+	engine::Ref<StageMgr> mGameStage;        // +0x20: the stage being played
+	engine::Ref<StageMgr> mMenuStage;        // +0x24: the stage behind the menu
 	int mState;                              // +0x54
 	float mStateSeconds;                     // +0x5c: the seconds left of the state's wait
 	int mStep;                               // +0x60: the step inside the state
