@@ -94,34 +94,38 @@ asked.
 |---|---:|---:|---:|---:|---:|---:|
 | Bejeweled Deluxe | 0.88 s | 1.06 s | 4.1 % of one core | 4.5 % of one core | 55 MB | 36 MB |
 | Big Money Deluxe | 0.73 s | 1.38 s | 3.0 to 5.8 s a minute | 5.5 to 11.2 s a minute | 37 to 42 MB | 42 to 44 MB |
-| BookWorm Deluxe | 1.2 to 1.8 s | 2.7 to 3.7 s | 7.3 to 12.2 % of one core (cycle counts; the port's window 1280x960 at render scale 2) | 15.7 to 26.7 % of one core (cycle counts; its window 640x480) | 97 MB | 41 MB |
+| BookWorm Deluxe | 1.2 to 1.8 s | 2.7 to 3.7 s | 9.6 to 9.8 % of one core (medians; its 1280x960 default window; 2.37 M cycles an update, 2.86 in its own 640x480) | 18.6 to 23.0 % of one core (medians; 5.42 M cycles an update; its window 640x480) | 97 MB | 41 MB |
 | Noah's Ark Deluxe | 0.60 s | 2.12 s | 8.0 s a minute | 18.1 and 19.0 s a minute | 63 and 66 MB | 67 MB |
 | Seven Seas Deluxe | 1.07 s | 1 to 2 s | 6.7 G cycles a minute (window 640x480; 5.9 at the default 1280x960) | 10.5 G cycles a minute (medians; its window 640x480) | 66 MB | 41.5 to 51.2 MB |
-| Atomica Deluxe | 1.20 s | 1.07 s | 18 % of one core | 20 % of one core | 163 to 183 MB | 64 to 67 MB |
+| Atomica Deluxe | 1.20 s | 1.07 s | 18 % of one core | 20 % of one core | 109 to 112 MB (a 20 s idle board) | 64 to 67 MB |
 | Mummy Maze Deluxe | 0.38 and 0.44 s | 4.5 s | 7.7 G cycles a minute | 8.7 G cycles a minute | 58 MB | 65 and 66 MB |
-| TipTop Deluxe | 0.6 to 0.9 s | 4.7 and 4.8 s | 4.07 G cycles in 30 s of strategy, 1.87 G in 20 s at the menu (800x600, 62.5 passes a second) | 4.96 G and 2.07 G (paced to 62 passes a second) | 82 and 83 MB | 46 MB |
+| TipTop Deluxe | 0.6 to 0.9 s | 4.7 and 4.8 s | 4.07 G cycles in 30 s of strategy, 1.87 G in 20 s at the menu (640x480, 62.5 passes a second) | 4.96 G and 2.07 G (paced to 62 passes a second) | 82 and 83 MB | 46 MB |
 | Bookworm Adventures Deluxe | 1.70 s | 6.4 s | 2.9 to 3.2 % of one core | 7.8 to 9.4 % of one core | 165 MB | 94 MB |
 | Ning Po Mahjong Deluxe | 0.36 s | 0.82 s | 6.3 % of one core | 14.9 % of one core | 54 MB | 21 MB |
 | Pixelus Deluxe | 0.9 to 1.4 s | 0.8 to 1.0 s | 2.1 to 3.2 M cycles an update (median 2.9 with its mixer; the main thread 2.2) | 2.6 to 3.6 M cycles an update (median 3.3) | 95 to 98 MB | 91 to 93 MB |
 | Alchemy Deluxe | 1.74 s | 1.76 s | 4.6 to 5.3 s a minute | 4.2 and 6.4 s a minute | 67 to 69 MB | 51 to 56 MB |
 | Word Harmony | 0.71 s | 2.6 to 3.4 s | 3.26 G cycles a minute in its own 800x600 window, 8.82 G full screen (its default) | 11.81 G cycles a minute windowed, 10.19 G full screen | 88 to 94 MB | 53 to 57 MB |
-| Cosmic Bugs | 0.6 to 0.9 s | 0.4 to 1.0 s | 86 M cycles a second on a board in its own 800x600 window, 102 M in the default 2x window (sound off, as the original's) | 110 M cycles a second (its loop paced to 60 Hz) | 130 MB | 88 and 89 MB |
-| Water Bugs | 2.76 s | 3.16 s | 10 s a minute | 58 s a minute | 160 MB | 97 and 101 MB |
-| Rocket Mania Deluxe | 1.8 to 2.0 s | 0.9 and 1.1 s | 1.4 to 2.5 M cycles an update (8 to 13 % of one core) | about 4.2 M cycles an update (20 % of one core) | 132 MB | 62 MB |
+| Cosmic Bugs | 0.33 to 0.38 s | 0.60 s | 86 M cycles a second on a board in its own 800x600 window, 102 M in the default 2x window (sound off, as the original's) | 110 M cycles a second (its loop paced to 60 Hz) | 130 MB | 88 and 89 MB |
+| Water Bugs | 2.76 s | 3.16 s | 118 M cycles a second on a board in its own 800x600 window (108 with sound off, as the original's), 128 M in the default 2x window | 136 M cycles a second (its loop paced to 60 Hz) | 104 MB | 97 MB |
+| Rocket Mania Deluxe | 1.8 to 2.0 s | 0.9 and 1.1 s | 1.69 to 2.08 M cycles an update in its own 640x480 window (8 to 10 % of one core), 1.44 to 1.91 M in the default 2x window | 4.02 to 4.57 M cycles an update (19 to 22 % of one core) | 132 MB | 62 MB |
 | Dynomite Deluxe | 0.96 s | 2.2 s | 11.4 G cycles a minute at the game's own 640x480, 9.1 G in its default 1280x960 window | 12.9 G cycles a minute at 60 Hz | 48 to 51 MB at 640x480, 84 MB in the default window | 63 MB |
 | Bookworm Adventures Volume 2 | | | | | | |
-| Mahjong Escape: Ancient Japan | 1.31 s | | 1.58 G cycles in 30 s in its own 800x600 window, 1.69 G at 2x, 4.64 G full screen (its default) | 3.78 G (windowed) | 146 MB | 40 MB |
-| Mahjong Escape: Ancient China | 1.29 s | | 1.01 G cycles in 30 s in its own 800x600 window, 1.16 G at 2x, 4.79 G full screen (its default) | 3.60 G (windowed) | 104 MB | 31 MB |
+| Mahjong Escape: Ancient Japan | 1.31 s | | 1.58 G cycles in 30 s in its own 800x600 window, 1.69 G at 2x, 4.77 G full screen (its default) | 3.78 G (windowed) | 42 MB at the 400th update in its own window; 146 MB over a whole game before the surface display | 40 MB |
+| Mahjong Escape: Ancient China | 1.29 s | | 1.01 G cycles in 30 s in its own 800x600 window, 1.16 G at 2x, 4.79 G full screen (its default) | 3.60 G (windowed) | 34 MB at the 400th update in its own window; 104 MB over a whole game before the surface display | 31 MB |
 | Bonnie's Bookstore Deluxe | 6.8 and 12.9 s | 6.2 and 6.4 s | 7.9 G cycles at 800x600, 6.1 G in its default 1600x1200 window | 9.5 G and 7.3 G cycles in the same rounds | 52 MB at 800x600, 58 MB at 1600x1200 | 54 MB |
-| Bejeweled Twist | 2.71 s | 10.81 s | 38.8 G cycles a minute in 2D, 43.2 in 3D | 41.5 G cycles a minute in 2D, 47.2 in 3D | 354 to 390 MB in 2D, 250 to 258 in 3D | 183 to 189 MB in 2D, 300 to 303 in 3D |
+| Bejeweled Twist | 2.71 s | 10.81 s | 38.8 G cycles a minute in 2D, 43.2 in 3D | 41.5 G cycles a minute in 2D, 47.2 in 3D | 354 to 390 MB in 2D, 250 to 258 in 3D | 183 to 189 MB in 2D, 332 to 340 in 3D |
 | Bejeweled 2 Deluxe | 0.80 s in 2D on the software screen, 1.03 s on a GPU, 1.25 s in 3D | 4.10 s in 2D, 4.38 s in 3D (dgVoodoo2) | 5.1 % of one core in 2D on the software screen, 5.8 % on a GPU, 5.4 % in 3D (idle board, sound threads left out; 5.7, 6.4 and 5.9 % with the mixer) | 9.6 % of one core in 2D, 58.1 % in 3D (dgVoodoo2 included) | 67 MB on the software screen, 83 MB on a GPU, 93 MB in 3D | 44 MB in 2D, 151 MB in 3D (dgVoodoo2) |
-| AstroPop Deluxe | 1.0 to 1.3 s | 1.5 s (2D), 5 to 13 s (3D) | 4.25 G cycles in a 2,030-update stretch (2D), 3.02 G (3D) | 6.13 G (2D), 3.43 G (3D) | 159 to 164 MB | 81 to 83 MB (2D), 118 MB (3D) |
+| AstroPop Deluxe | 1.0 to 1.3 s | 1.5 s (2D), 5 to 13 s (3D) | 4.25 G cycles in a 2,030-update stretch (2D), 3.02 G (3D) | 6.13 G (2D), 3.43 G (3D) | 119 MB (2D), 84 MB (3D) | 81 to 83 MB (2D), 118 MB (3D) |
 | Typer Shark! Deluxe | 0.72 to 0.82 s | 0.76 to 1.28 s | 2.50 G cycles in 20 s without its mixer, 2.70 G with it (3D, visible desktop, medians) | 2.54 G cycles in 20 s (3D; its sound a silent stand-in) | 86 to 89 MB | 49 to 51 MB |
+| Venice Deluxe | | | 2.61 M cycles an update (31.1 % of one core) in its own 800x600 window, 2.37 M at 2x; 0.75 M in 3D | 4.92 M cycles an update (58.8 % of one core) in 2D | 36 to 38 MB at a first board | |
+| Heavy Weapon Deluxe | | | 2.67 M cycles an update (12.8 % of one core) in 2D in its own 640x480 window, 2.74 M at 2x, its mixer left out (2.94 and 3.01 M with it) | 3.125 M cycles an update (15.0 % of one core) in 2D | 109 MB at the first board of the campaign | |
 
 Every number comes from the game's own notes, its latest measurement there: the native port under rundesk and the
 original under origrun, back to back on one machine, windowed and silent, over the same scripted play, with the load
 time from the process's start to the first screen that takes input and the memory the peak of the process's private
-bytes. Processor time is as each game measured it, a share of one core over a stretch of play or seconds over a scripted
+bytes (Atomica's and AstroPop's ports over a 20-second stretch of play and Venice's and Heavy Weapon's at a first
+board, as `docs/MEMORY.md` measured them after the memory work, and the Mahjong games' early in a game, where their notes
+have nothing later; Venice and Heavy Weapon have no figure for their originals). Processor time is as each game measured it, a share of one core over a stretch of play or seconds over a scripted
 minute (Atomica's over the last 20 seconds of a scripted game, as the cycle counts of the process's threads, medians
 of ten alternating pairs: port 7.5, original 8.6 billion cycles, at the processor's nominal 2.11 GHz; Bookworm
 Adventures was measured at rest on the title; Bejeweled Twist's and Mummy Maze's are the cycles their threads ran in a minute of the
@@ -133,7 +137,7 @@ Dynomite Deluxe's processor time is the cycles its threads ran in the same scrip
 medians of five pinned rounds run in turn, with its original windowed at 640x480 and drawing at most 60 times a second
 as in full screen, measured again on 2026-11-15 on a busier machine than its first figures. At that size the port draws its
 screen in software, as the original does; in a larger window it draws on the GPU. It is under its original at both sizes. Rocket Mania's, Bejeweled 2's and AstroPop's ports ran in the original's own window
-size too (Bejeweled 2's on an idle board); AstroPop's 3D is over its original by the same present cost.
+size too (Bejeweled 2's on an idle board); AstroPop's 3D is 0.88 of its original with vsync and level with it when paced like it (3.02 and 3.41 G against 3.43).
 
 Two things differ in every native port on purpose, the user's choice for all of them, with no mod needed. Full screen is
 a borderless window over the whole monitor at the desktop's own resolution, never the originals' change of the display's
