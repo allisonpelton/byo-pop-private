@@ -41,7 +41,6 @@ var ByopopSettings = (function () {
     startSound: { values: null, def: 50 },          // a level: the sound volume a game starts at
     wakeLock: { values: SWITCH, def: "off" },       // on: the screen stays awake while a game runs
     confirmLeave: { values: SWITCH, def: "off" },   // on: ask before leaving the page while a game runs
-    pauseHidden: { values: SWITCH, def: "off" },    // on: a hidden tab pauses the game
     autoStart: { values: SWITCH, def: "on" },       // on: a game starts when its page opens, if the browser allows sound
     showChat: { values: SWITCH, def: "on" },        // off: the chat beside the game is not drawn (web/chat.js)
     chatPlace: { values: ["edge", "game"], def: "edge" },  // game: the chat beside the game, the two centred; edge: at the page's right edge
@@ -323,8 +322,6 @@ var ByopopSettings = (function () {
       hint: T("settings.wakelock.hint") },
     { name: "confirmLeave", label: T("settings.confirmleave.label"),
       hint: T("settings.confirmleave.hint") },
-    { name: "pauseHidden", label: T("settings.pausehidden.label"),
-      hint: T("settings.pausehidden.hint") },
     { section: "chat" },
     { name: "showChat", label: T("settings.showchat.label"),
       hint: T("settings.showchat.hint") },

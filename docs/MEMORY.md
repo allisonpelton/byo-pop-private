@@ -9,7 +9,8 @@ a thread of ours, and that speed comes from not waiting. A second part, of 2026-
 original's own figures and asked what a 2D game spends on Direct3D ("Big Money at the original's memory"). A third,
 the same day, found why Atomica's processor time had grown fourfold on Direct3D 11 and chose the renderer again ("Which
 renderer, and SDL's batching"). A fourth lets a port whose original starts in 2D keep the 2D flags on the GPU path ("The
-2D flags on the GPU path").
+2D flags on the GPU path"). A fifth, of 2026-11-16, measured the web builds and lowered their peak ("The web
+builds").
 
 ## How it was measured
 
@@ -925,3 +926,153 @@ runs +125; `WCri` +0 in every batch. So the wcifs contexts no longer leak, and t
 after the first batch against nine before, the first batch after the boot probably a one-time warm-up. Whether two a
 run is a leak or the machine's own noise is measured over the first day's work: the System process held 1,793 file
 handles at 23:4x on 2026-11-15, against about 9,700 more an hour before the update.
+
+## The web builds (2026-11-16)
+
+A game takes more memory in a browser than natively, and the WebAssembly memory never shrinks: whatever the heap grew
+to while the game loaded, the browser holds until the tab closes. This part measured every web build at a first board,
+checked the pixel drop of step 1 there, lowered the peak, and checked how the page presents its frames, what a hidden
+tab costs, and what SIMD and link-time optimization would give.
+
+### How it was measured
+
+`tools/webtest/webmem.js` runs each game's web build in headless Edge 157 over the DevTools protocol, under `rundesk`,
+from `tools/webtest/serve.py` with cross-origin isolation. Each run opens a fresh tab on the game's player-only page,
+starts the game on a test profile wiped after every run, takes it to the first board of a mode with the commands of
+`tools/webtest/webstarts.js` (the native tables' modes where they had one) and holds it there in real time. It records
+the WebAssembly memory's size (`HEAPU8.length`: the browser holds all of it), the C heap's arena from `mallinfo` (in
+use and free together: the most the game ever had at once, less what a later allocation took back) and what is in use
+at the end, the JavaScript heap (`performance.memory`), the tab's own figure (`measureUserAgentSpecificMemory`), the
+renderer processes' private bytes, and the renderer's and GPU process's processor seconds to the board and over the
+hold. Builds compared like for like ran turn about on one profile, every game once unmeasured first so that its files
+were imported. Bonnie's Bookstore is not in the tables: headless Edge draws none of its frames, so it never reaches a
+board there, and the cause was not quick to find.
+
+### At a first board
+
+Main as it was, then this branch, each game's medians. The columns are the WebAssembly memory the browser holds, the C
+heap's arena (its high-water mark) and what is in use at the board, the JavaScript heap, and the renderer processes'
+private bytes.
+
+| Game | WebAssembly memory | Arena | In use | JS heap | Renderer private |
+|---|---|---|---|---|---|
+| Alchemy (Strategic) | 30.3, 29.5 MB | 27.0, 27.0 MB | 25.6, 25.6 MB | 6.6 MB | 90.7, 90.4 MB |
+| AstroPop (Classic) | 45.2, 46.1 MB | 41.0, 40.8 MB | 35.1, 34.9 MB | 13.9 MB | 124.0, 125.2 MB |
+| Atomica (Strategy) | 52.8, 53.6 MB | 49.2, 49.3 MB | 45.5, 45.5 MB | 7.5 MB | 112.3, 115.3 MB |
+| Bejeweled (Timed) | 25.4, 21.6 MB | 19.7, 19.7 MB | 12.8, 12.8 MB | 6.6 MB | 86.0, 83.5 MB |
+| Bejeweled 2 (Classic) | 45.0, 42.0 MB | 36.8, 36.8 MB | 28.9, 28.9 MB | 13.1 MB | 121.2, 119.6 MB |
+| Bejeweled Twist (Classic) | 236.2, 222.2 MB | 219.0, 219.0 MB | 182.7, 181.9 MB | 86.3 MB | 480.3, 464.4 MB |
+| Big Money (selector) | 30.5, 29.6 MB | 25.2, 25.2 MB | 21.1, 20.2 MB | 6.7 MB | 89.3, 90.5 MB |
+| Bookworm (Classic) | 37.5, 34.0 MB | 30.1, 30.1 MB | 27.8, 27.8 MB | 15.5 MB | 107.7, 107.7 MB |
+| Bookworm Adventures (first battle) | 65.2, 66.6 MB | 61.8, 61.8 MB | 60.4, 60.5 MB | 35.3 MB | 182.0, 193.1 MB |
+| Bookworm Adventures 2 (first battle) | 94.8, 86.3 MB | 83.8, 83.8 MB | 81.3, 81.4 MB | 72.6 MB | 258.8, 254.4 MB |
+| Cosmic Bugs | 102.5, 97.1 MB | 90.2, 90.2 MB | 89.9, 89.9 MB | 23.8 MB | 186.1, 179.8 MB |
+| Dynomite (Endless) | 43.7, 41.5 MB | 39.1, 39.2 MB | 36.0, 36.0 MB | 7.3 MB | 107.1, 102.0 MB |
+| Hammer Heads (Classic) | 95.8, 89.5 MB | 87.9, 87.9 MB | 74.9, 74.9 MB | 14.3 MB | 171.5, 163.8 MB |
+| Heavy Weapon (level 1) | 77.8, 74.0 MB | 68.7, 68.7 MB | 60.7, 60.7 MB | 12.4 MB | 152.5, 149.5 MB |
+| Mahjong Escape: Ancient China (Classic) | 38.8, 38.6 MB | 32.6, 32.5 MB | 32.1, 31.9 MB | 15.8 MB | 108.7, 110.9 MB |
+| Mahjong Escape: Ancient Japan (Classic) | 46.5, 42.6 MB | 39.3, 39.3 MB | 38.8, 38.8 MB | 18.9 MB | 118.0, 121.2 MB |
+| Mummy Maze (Classic) | 17.6, 17.6 MB | 9.8, 9.8 MB | 7.0, 7.0 MB | 8.1 MB | 82.3, 80.5 MB |
+| Ning Po Mahjong | 17.6, 17.6 MB | 14.0, 14.1 MB | 12.3, 12.3 MB | 7.5 MB | 76.4, 79.0 MB |
+| Noah's Ark (Action) | 17.5, 17.5 MB | 8.2, 8.2 MB | 3.6, 3.6 MB | 7.1 MB | 75.2, 76.8 MB |
+| Pixelus (Normal) | 63.4, 57.6 MB | 56.0, 56.0 MB | 54.2, 54.2 MB | 10.8 MB | 129.0, 125.2 MB |
+| Pizza Frenzy (level 1) | 63.6, 57.7 MB | 57.3, 52.4 MB | 51.4, 51.4 MB | 11.7 MB | 124.7, 120.2 MB |
+| Rocket Mania (Arcade) | 119.9, 118.5 MB | 118.4, 117.0 MB | 60.6, 60.6 MB | 9.1 MB | 180.3, 178.8 MB |
+| Seven Seas (Easy) | 30.3, 29.5 MB | 25.0, 25.0 MB | 15.5, 15.5 MB | 7.0 MB | 92.3, 91.6 MB |
+| Tip Top (Timed) | 51.7, 52.7 MB | 45.4, 45.4 MB | 44.1, 44.1 MB | 11.1 MB | 116.5, 120.1 MB |
+| Typer Shark (Adventure) | 45.0, 42.0 MB | 37.1, 37.1 MB | 34.1, 34.1 MB | 11.5 MB | 120.2, 117.3 MB |
+| Venice (level 5) | 91.3, 62.7 MB | 89.1, 61.1 MB | 54.6, 54.6 MB | 39.0 MB | 188.9, 160.2 MB |
+| Water Bugs (level 1) | 98.6, 99.5 MB | 93.5, 93.5 MB | 93.2, 93.2 MB | 28.2 MB | 186.5, 187.9 MB |
+| Word Harmony (Think) | 52.8, 53.6 MB | 48.9, 49.0 MB | 48.7, 48.7 MB | 9.6 MB | 113.4, 118.6 MB |
+
+The two builds ran in separate runs, so the table sets runs beside each other rather than turn about. On one test
+profile the memory figures repeat to within a few tenths of a MB; the renderer's private bytes move by a few MB from run
+to run. Two things moved with the profile and not with the build: Pizza Frenzy's arena was 5 MB lower on the second
+test profile than on the first with the same build (its in use the same), and the two Bookworm Adventures games
+reached a different first battle there, so their rows are from the first profile like main's. Over the 28 games the
+WebAssembly memory fell from 1,737 to 1,641 MB and the arena from 1,554 to 1,520 MB; the like-for-like runs below give
+each change's own share. The processor time did not move with either change.
+
+### The pixel drop on the web
+
+Step 1, a picture's pixels dropped once its texture is uploaded, is on in the web builds too. With it switched off
+(`BYOPOP_KEEPBITS=1`) against on, at the same boards:
+
+| Game | Arena, kept | Arena, dropped | Private, kept | Private, dropped |
+|---|---|---|---|---|
+| AstroPop | 83.6 MB | 42.5 MB | 169.2 MB | 126.2 MB |
+| Bejeweled 2 | 70.1 MB | 36.8 MB | 153.7 MB | 119.3 MB |
+| Hammer Heads | 141.7 MB | 88.0 MB | 225.0 MB | 167.0 MB |
+| Venice | 92.8 MB | 89.2 MB | 204.9 MB | 190.0 MB |
+| Big Money | 27.3 MB | 25.2 MB | 88.3 MB | 88.2 MB |
+| Dynomite | 40.3 MB | 39.1 MB | 105.8 MB | 106.2 MB |
+| Seven Seas | 27.0 MB | 25.0 MB | 89.0 MB | 88.1 MB |
+| Rocket Mania | 120.2 MB | 118.4 MB | 180.7 MB | 181.6 MB |
+
+The games on the framework's resource manager upload their pictures as they load them, so the drop takes 33 to 54 MB
+off the arena of AstroPop, Bejeweled 2 and Hammer Heads. Venice, Big Money, Dynomite, Seven Seas and Rocket Mania load
+each picture through `GetImage` and drop its pixels only at its first draw, and a first board has drawn few of them, so
+the drop saves them 1 to 4 MB there. An
+upload at load in `GetOptionalImage` would reach them, at the risk of decoding again a picture whose pixels a game
+reads back later; it was not done.
+
+### A lower peak
+
+**The heap's growth step.** Emscripten grows the WebAssembly memory by a fifth of itself at a time, so a game could be
+left holding a fifth more than it ever needed. The link now asks for 4 MB at a time (`-sMEMORY_GROWTH_LINEAR_STEP`,
+`cmake/ByopopWeb.cmake`). Over the 28 games the memory fell from 1,737 to 1,675 MB, Bejeweled Twist's by 14 MB and
+Bookworm Adventures 2's by 9; the renderers' private bytes fell from 3,982 to 3,933 MB. The arena did not move, and nor
+did the processor time: 42.2 s to the boards with the step against 42.4 s without, and 16.0 s over the holds against
+16.3, over all 28 games.
+
+**Ogg sounds decoded in place.** `stb_vorbis_decode_memory` grows its buffer by doubling and the mixer copied it
+after, so a long track took up to three times its size for a moment. Venice's music set its whole heap's peak that
+way. `Mixer::LoadSoundData` now decodes straight into the sound's own samples, in a buffer of the stream's stated
+length (`stb_vorbis_get_samples_short_interleaved` carries a frame over between calls, so nothing is left over); the
+few sounds that state no length go on through a small buffer and are trimmed after. The samples are the same as
+before in every one of the 1,307 staged Ogg files stb_vorbis decodes (the other 205 are Tremor's). Venice's memory
+fell from 90.8 to 62.7 MB and its renderer's private bytes from 186 to 159 MB.
+
+**Pictures, tried and left.** Freeing a picture's compressed bytes as soon as it is decoded, and decoding it straight
+into the image's own pixels, moved no game's arena by more than its runs differ among themselves, so both were taken
+out again. Pictures were already decoded one at a time.
+
+**What still sets a peak.** Bejeweled Twist ends at its board with 36 MB of its arena free. Tracing each growth of its
+memory (`webmem.js --growstack` on a build linked with `--profiling-funcs`) puts the growth in its pictures (60 MB),
+its sounds (56 MB) and the JPEG 2000 decoder's working buffers (about 56 MB over the load): OpenJPEG holds each tile's
+components as 32-bit integers while it decodes, and frees them after. Decoding a large picture a strip at a time would
+bound that; it was not done. Rocket Mania's 58 MB of free arena is its music, joined from segments into one track at
+load; streaming the segments in turn is the next piece of work.
+
+### Presenting
+
+A game presents only when something changed, at most once a second otherwise (1.3's rule), and never more often than
+it updates, and that already held. At a steady 125 frames a second (a Worker's 8 ms tick), AstroPop, Bejeweled 2 and
+Atomica drew 2,000 frames in 20 s, one for each of their 2,000 updates. At the headless browser's own 57 frames a
+second they drew 1,130 frames, each after one or two updates in an even pattern ("1222"), never none and never three;
+at 62.5 frames a second, ones and twos alternated, 500 and 750. Nothing was changed.
+
+### Hidden tabs
+
+A hidden tab's game is frozen and silent (`WEB_PLAYER.md`, "Sound"). Held hidden for 20 s with the browser's own
+visibility (`webmem.js --hide --realfocus --audio`), six games ran no frames and no updates, but their mixers kept
+mixing silence for an AudioContext that still ran, about 3,850 chunks each, at 0.24 to 0.51 s of processor time every
+10 s. With the page suspending that context, 11 games (those six and the five that set their volume their own way)
+sent nothing while hidden and took 0.01 to 0.04 s; Ning Po alone ran 30 updates before the hide took effect. The site's
+Music player, on a context of its own, played on through nine minutes hidden, with AstroPop open beside it and its
+context suspended throughout.
+
+### SIMD and link-time optimization
+
+`-msimd128` with `-flto` gives the same states after every move, the same shots and the same update counts in all 28
+games (`tools/webtest/webdet.js`: each game stepped through its start and up to 30 of its bot's moves in both builds), and makes the wasm about a fifth larger (Bejeweled Twist 5.1 to 6.3 MB, AstroPop 4.2 to 5.0). It saved no
+processor time: AstroPop, Bejeweled Twist, Venice and Atomica held their boards for the same time within their runs'
+spread, and Heavy Weapon took 1.22 to 1.27 s against 0.96 to 1.05. It is not used.
+
+### Left as it is
+
+Reading the game's files from IndexedDB only when the game opens them was dropped (the user, 2026-11-16: "Drop it,
+record why"; `WEB_PLAYER.md`, "Memory use"). It would save the files the page holds, 6.7 MB for AstroPop, 42 MB for
+Bejeweled Twist and 34 MB for Venice, but the game would have to wait on a read: Asyncify, linked into those three with
+nothing else changed, grew their wasm by 42 to 52 % and their processor time by 16 to 21 % held at a board, and JSPI,
+Chromium's alone, stops at the runtime's start unless every way into the wasm becomes an asynchronous export.
