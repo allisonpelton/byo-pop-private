@@ -39,6 +39,7 @@ public:
 	void setMode(int theMode) { mMode = theMode; }         // +0x14
 	void addSecondsPlayed(float theSeconds) { mSecondsPlayed += theSeconds; }  // 0x435720
 	float getSecondsPlayed() const { return mSecondsPlayed; }                  // 0x435730
+	void resetSecondsPlayed() { mSecondsPlayed = 0.0f; }                       // 0x44df10
 	void clearContinues() { mContinues = 0; }                                  // 0x435740
 	// 0x435750: the points are added, and a score that passes the next mark wins an extra fish, with a message and a
 	// sound; a score below nothing is made nothing

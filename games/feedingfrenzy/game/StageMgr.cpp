@@ -12,6 +12,7 @@
 #include "BubbleString.h"
 #include "StageDocHandler.h"
 #include "StageHud.h"
+#include "GameSession.h"
 #include "StageEndScreen.h"
 #include "StageInfoScreen.h"
 #include "WaveFx.h"
@@ -91,6 +92,12 @@ const float SCREEN_HIDE_SECONDS = 0.1f;
 const float MUSIC_FADE_IN_SECONDS = 1.0f;
 const float MUSIC_FADE_OUT_SECONDS = 2.0f;
 const float AMBIENT_VOLUME = 0.7f;
+// The levels addHudSpawners starts from: below every kind, and above every kind
+const float NO_LEVEL_YET = -9999.0f;
+const float NO_NEXT_LEVEL = 9999.0f;
+// What the stage sets the background's waves to each frame
+const float WAVE_SIZE = 1.25f;
+const float WAVE_AMOUNT = 0.03f;
 
 // How a collision pass of two fish ends: what the rectangle tests find out
 enum
@@ -488,7 +495,11 @@ void StageMgr::fadeMusicIn()
 void StageMgr::updatePlaying(UpdateInfo& theInfo)
 {
 	if (mWaveFx != nullptr)
-		mWaveFx->advance(theInfo.mSeconds);
+	{
+		mWaveFx->setSize(WAVE_SIZE);
+		mWaveFx->setTime(mWaveFx->getTime() + theInfo.mSeconds);
+		mWaveFx->setAmount(WAVE_AMOUNT);
+	}
 	mSecondsLeft -= theInfo.mSeconds;
 	mSecondsPlayed += theInfo.mSeconds;
 	if (mSecondsLeft <= 0.0f)
@@ -1398,6 +1409,97 @@ void StageMgr::updateLoad()
 		setUpScreens();
 		mLoadStep = LOAD_STEP_DONE;
 		break;
+	}
+}
+
+// A node of a screen is shown or hidden
+static void setNodeVisible(ScreenLayout* theScreen, const char* theName, bool theVisible)
+{
+	theScreen->getNode(theName)->setVisible(theVisible);
+}
+
+// A time (a number of seconds) is put in a text node of a screen
+static void setNodeTime(ScreenLayout* theScreen, const char* theName, int theSeconds, bool theWithHours)
+{
+	static_cast<TextItem*>(theScreen->getNode(theName))->setTime(theSeconds, theWithHours);
+}
+
+// 0x438870: the objective the start screen shows and the groups of the end screen that go with the game's mode; in the
+// timed game a normal stage is timed, and the time left from the stage before is added to this stage's
+void StageMgr::setUpScreens()
+{
+	GameSession* aSession = FishFood::instance()->getSession();
+	bool aTimedGame = aSession->getMode() == GAME_MODE_TIMED;
+	if (aTimedGame && mType == STAGE_NORMAL)
+		mType = STAGE_TIMED_NORMAL;
+	if (aTimedGame)
+	{
+		setNodeVisible(mStartScreen, "NoTimeObjective", false);
+		setNodeVisible(mStartScreen, "TimeObjective", true);
+		setNodeVisible(mCompleteScreen, "FunFactGroup", true);
+		setNodeVisible(mCompleteScreen, "TimeModeGroup", true);
+		setNodeVisible(mCompleteScreen, "TimeBonusGroup", false);
+		if (mType != STAGE_TIMED_BONUS)
+		{
+			setNodeVisible(mStartScreen, "timeObjectiveLine1Time", true);
+			setNodeTime(mStartScreen, "timeObjectiveLine1Time", (int)mTimeLimit, true);
+			setNodeVisible(mStartScreen, "timeObjectiveLine2Header", true);
+			mTimeLimit = aSession->getSecondsPlayed() + mTimeLimit;
+			aSession->resetSecondsPlayed();
+			setNodeVisible(mStartScreen, "timeObjectiveLine2Time", true);
+			setNodeTime(mStartScreen, "timeObjectiveLine2Time", (int)mTimeLimit, true);
+		}
+		else
+		{
+			setNodeTime(mStartScreen, "timeObjectiveLine1Time", (int)mTimeLimit, false);
+			setNodeVisible(mStartScreen, "timeObjectiveLine2Header", false);
+			setNodeVisible(mStartScreen, "timeObjectiveLine2Time", false);
+		}
+	}
+	else
+	{
+		setNodeVisible(mStartScreen, "TimeObjective", false);
+		setNodeVisible(mStartScreen, "NoTimeObjective", true);
+		bool aBonus = mType == STAGE_TIMED_BONUS;
+		setNodeVisible(mCompleteScreen, "FunFactGroup", !aBonus);
+		setNodeVisible(mCompleteScreen, "TimeModeGroup", false);
+		setNodeVisible(mCompleteScreen, "TimeBonusGroup", aBonus);
+	}
+	TextItem* aTitle = static_cast<TextItem*>(mStartScreen->getNode("title"));
+	if (aTitle != nullptr)
+	{
+		aTitle->setText(FishFood::instance()->getStrings().format(
+			"levelStartCapFormat", {mStageInfo->getIndex(), mStageInfo->getName()}));
+	}
+	resetSecondsLeft();
+}
+
+// 0x439a50: the HUD and the end screen get the pictures of the (up to four) kinds of fish that show a menu picture,
+// the weakest first
+void StageMgr::addHudSpawners()
+{
+	float aLastLevel = NO_LEVEL_YET;
+	for (int i = 0; i < HUD_MENU_BUBBLES; i++)
+	{
+		FishSpawner* aNext = nullptr;
+		float aNextLevel = NO_NEXT_LEVEL;
+		for (size_t j = 0; j < mSpawners.size(); j++)
+		{
+			FishSpawner* aSpawner = mSpawners[j];
+			if (aSpawner->getDisplayMenuImage() && aLastLevel < aSpawner->getLevel() && !aSpawner->isShownInHud() &&
+			    aSpawner->getLevel() < aNextLevel)
+			{
+				aNext = aSpawner;
+				aNextLevel = aSpawner->getLevel();
+			}
+		}
+		if (aNext == nullptr)
+			return;
+		mHud->setMenuBubble(i, aNext->getMenuImage(), aNext->getLevel(), aNext->getColorShift());
+		if (mCompleteScreen != nullptr)
+			mCompleteScreen->setMenuBubble(i, aNext->getMenuImage(), aNext->getLevel(), aNext->getColorShift());
+		aNext->setShownInHud(true);
+		aLastLevel = aNextLevel;
 	}
 }
 

@@ -217,7 +217,8 @@ FishSpawner::FishSpawner() :
     mSpawnType(SPAWN_OFFSCREEN_LR), mDisplayMenuImage(false), mEatenSoundPitch(1.0f), mMode(SPAWN_NORMAL),
     mCurrentRule(-1), mHasHitRect(false), mSchoolSize(1.0f, 1.0f), mSchoolDistance(INITIAL_SCHOOL_DISTANCE),
     mSchoolNeighbourDistance(INITIAL_SCHOOL_NEIGHBOUR_DISTANCE), mSchoolSeparation(0.0f), mSchoolAlignment(0.0f),
-    mSchoolCohesionDivisor(0.0f), mSchoolTarget(0.0f), mSchoolChase(0.0f), mSchoolRun(0.0f), mColorShift(nullptr)
+    mSchoolCohesionDivisor(0.0f), mSchoolTarget(0.0f), mSchoolChase(0.0f), mSchoolRun(0.0f), mColorShift(nullptr),
+    mShownInHud(false)
 {
 	mThought.mScale = 1.0f;
 }

@@ -93,6 +93,9 @@ public:
 	// 0x41db50: whether the stage's list of the fish eaten shows the kind's picture
 	void setDisplayMenuImage(bool theDisplay) { mDisplayMenuImage = theDisplay; }
 	bool getDisplayMenuImage() const { return mDisplayMenuImage; }
+	// +0x1ec: the kind has its picture in the HUD (and the end screen) already
+	bool isShownInHud() const { return mShownInHud; }
+	void setShownInHud(bool theShown) { mShownInHud = theShown; }
 	// 0x420800: a rule from the stage's file; 0x420bf0: a fish that stands in the stage when it starts
 	void addRule(float theMinPlayerLevel, int theMaxCount, float theRespawnLow, float theRespawnHigh);
 	void addPlacement(float theX, float theY, bool theMarked);
@@ -217,6 +220,7 @@ private:
 	ThoughtBubbleInfo mThought;                // +0x1b4
 	std::map<std::string, FishReaction*> mReactions;  // +0x1dc
 	engine::HsvShiftFilter* mColorShift;       // +0x1e8
+	bool mShownInHud;                          // +0x1ec
 };
 
 } // namespace feedingfrenzy
