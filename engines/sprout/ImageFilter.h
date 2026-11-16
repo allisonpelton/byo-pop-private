@@ -28,6 +28,10 @@ public:
 	HsvShiftFilter() : mHue(0), mSaturation(0), mValue(0) {}
 	// 0x47b110 (pizzafrenzy)
 	void setShift(float theHue, float theSaturation, float theValue);
+	// 0x41a6b0 (feedingfrenzy): the three shifts, which Feeding Frenzy's fish name their shifted pictures by
+	float getHue() const { return mHue; }
+	float getSaturation() const { return mSaturation; }
+	float getValue() const { return mValue; }
 	// 0x47b550 (pizzafrenzy): the shifted colour of one (the alpha comes back as it was)
 	void filter(uint8_t theRed, uint8_t theGreen, uint8_t theBlue, uint8_t theAlpha, uint8_t* theNewRed,
 	            uint8_t* theNewGreen, uint8_t* theNewBlue, uint8_t* theNewAlpha) const;

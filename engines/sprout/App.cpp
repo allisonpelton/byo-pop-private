@@ -97,6 +97,16 @@ Font* App::getFont(const char* theName)
 	return aFont;
 }
 
+// 0x445310 (feedingfrenzy)
+bool App::addImage(const char* theName, Image* theImage)
+{
+	std::map<std::string, Ref<Image>>::iterator anIt = mImages.find(theName);
+	if (anIt != mImages.end() && anIt->second != nullptr)
+		return false;
+	mImages[theName] = Ref<Image>(theImage);
+	return true;
+}
+
 // 0x453f80 (wordharmony), 0x454010 (wordharmony) and the loader 0x457510 (wordharmony): a PNG or a JPEG, and the alpha
 // of "<dir>_<name>.png" when that exists. (The original opens the mask through the archive or as a loose file by the
 // low byte of the name's address, a slip for theFromFile; the port uses theFromFile.)

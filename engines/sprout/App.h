@@ -88,6 +88,9 @@ public:
 	Image* createImage(const char* theName, bool theFromFile);
 	// 0x54: 0x436a70 (wordharmony)
 	Image* findImage(const char* theName);
+	// 0x58: 0x445310 (feedingfrenzy): an image added to the table under a name; false, with the table as it was,
+	// when the name has an image already
+	bool addImage(const char* theName, Image* theImage);
 	// 0x58: the log (the release build's does nothing)
 	void log(const char* theText);
 	// The signal build's slot 0x58: 0x461a50 (pizzafrenzy): false without a sound system; true when the name is loaded
