@@ -28,9 +28,7 @@ of the same exe differ by in the pairs (4.4 to 5.15% of a core for the same exe)
 ## Where a faster method could differ
 
 Nothing was changed, so nothing was proved to differ. For the record, the three scans have the faster methods the roadmap names
-(test only the rows and columns through the gems that changed; stop a search at the first move). The first gives the same answer
-and would go into the port's performance pass if it were worth it; the second is what the game already does (the search stops
-at the first move it finds, in the order of the original's loops), so there is no cheaper result to take.
+(test only the rows and columns through the gems that changed; stop a search at the first move). The first gives the same answer and would go into the port's performance pass if it were worth it; whether the search already stops at the first move it finds was not checked for this file.
 
 ## Why none is taken
 
