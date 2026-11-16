@@ -179,17 +179,32 @@ the main menu's "buy now" voice (`tools/resgen.py` leaves them out of `Res.h`/`R
 comments about what the original did in its trial. Two functions stay because the original's scripts call them: the scripts' `QueuedHydraLockout`
 and `ShouldDoHydraLockout` (constants, `false`), so a script that asks still gets an answer.
 
-## Chapter-by-chapter batch (2026-11-12/13, from the bot-saved profiles `after-4.1` .. `after-6.9`)
+## Chapter-by-chapter batch (rerun 2026-11-16, the original reseeded, from the bot-saved profiles `after-4.1` .. `after-6.10`)
 
-`tools/identical/chapters.sh` runs the comparison case for each saved profile (Adventure, the map's Enter, a 50,000-update
-soak). Result of the 29 cases: only two are clean comparisons. `after-4.2` and `after-4.8` give identical engine states
-(the one battle each) and a draw difference that is the constant +30/+31 offset seen before every first battle (see above)
-and does not grow. `after-4.4`, `after-4.7` and `after-4.9` ran a battle on one side only or with the engine-state lines
-out of step (the original's run ended earlier than the port's or the reverse): not judged. `after-4.3`, `after-4.5` and
-`after-4.6`: the original made no battle engine change (its run did not reach a battle): not judged. All 20 profiles of books
-5 and 6 reach no battle on either side: the map of a new book stands with a conversation panel that is active, visible, in
-its text state, with one panel, and that a click does not dismiss, so the case's Enter click does nothing (state's
-`talkstate`, `talkpanel`, `talkvis`, `talkdis`, `talkpages` fields show it). Whether the original's panel there behaves the
-same (a profile artefact of the snapshot) or the port's panel is stuck is not yet known; it is the next thing to look at
-before books 5 and 6 can be compared. Until then chapter coverage in books 4 to 6 stands on `boss-chapter1`,
-`boss-chapter2`, `after-4.2` and `after-4.8`.
+`tools/identical/chapters.sh` runs the comparison case for each saved profile: Adventure, the map's Enter, then the fast
+bot (`fastkill`: the highest-scoring word, Scramble on a board without a nine-letter word or a one-hit kill, a red potion
+at half health) plays until the map shows again (`chapterend`), at most 15,000 updates. The original's inputs are
+anchored on its battle engine (origrun's `waitfor` and `mark`) and the port's replay is shifted to match; a case takes
+four to seven minutes. The batch of 2026-11-12/13 and the first runs of 2026-11-15 compared against an unseeded original
+(the ignored patch list had lost its reseed lines, see Oddities) and are void.
+
+Each case is named by the profile it starts from, so `after-4.1` plays chapter 4.2. Of the 29:
+
+- **Identical engine states and no draw difference inside the battles** (9): `after-4.1`, `after-4.3`, `after-4.4`,
+  `after-4.8`, `after-5.10`, `after-6.1`, `after-6.8`, `after-6.10`, and `after-4.5` (no draw difference; one change 7
+  updates late, past the tolerance of 6).
+- **Identical engine states, draws differ inside a battle** (4): `after-4.2` and `after-5.6` (+1 at the engine's first
+  draws, then the same changes; `after-5.6` has one change 7 updates late), `after-5.1` (-1 there), `after-5.5` (+54).
+- **The original goes to state 5 where the port attacks** (6): `after-5.2`, `after-5.7`, `after-5.9`, `after-6.5`,
+  `after-6.7`, `after-6.9` (and `after-4.8` in its first run): the original's change to 5 comes about 55 updates before
+  the port's change to 2. In `after-6.5` the cause is the scramble oddity (the word the bot chose from the port's board
+  is not on the original's); the others are not yet looked at, and a +54 draw step at the start of several of them
+  (`after-5.5`, `after-5.7`, `after-6.7`) is the next thing to compare.
+- **Other** (10): `after-4.6` (+1 draw late in the chapter, then a change 7 updates late), `after-4.9` (The Deuce: on 2026-11-15 all 76 changes matched, one 7 updates late; in this batch the
+  port's run left the battle early, 13 changes against 41, so its first change already differs), `after-5.4` (the original's Lex dies, state 7, 91 updates after the port's scramble), `after-6.2` and
+  `after-6.4` (no draw difference; a change 7 or 92 updates late), `after-6.3` (+1 draw, then a change 7 updates late),
+  `after-4.7`, `after-6.6`, `after-5.3` and `after-5.8` (a battle on one side only or none: the runs ended apart; not judged).
+- The original's run failed in 8 cases of the first pass (its startup outlasted the Adventure click at 5000 while the
+  machine was busy); all 8 ran again and are counted above.
+
+The full verdict lines are in `build/chapter-results-1.txt` and `build/chapter-logs/` while they last.
