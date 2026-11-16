@@ -21,7 +21,7 @@ for ((i = 1; i <= N; i++)); do
 	until python tools/gamecount.py --limit 2 > /dev/null; do sleep 20; done
 	U="$P/user"; rm -rf "$U"; mkdir -p "$U"
 	"$RUNDESK" python "$PERFMIN" "$P/port-$i.json" 20,50 -- "$(win "$ROOT/build/native/ningpo.exe")" -gamedir=assets/ningpo \
-		-userdir="$U" -seed=7 -realinput="$(win "$PWD/$P/port-tour.txt")" > "$P/port-$i.txt" 2>&1
+		-userdir="$U" -seed=7 -windowscale=${WINDOWSCALE:-2} -realinput="$(win "$PWD/$P/port-tour.txt")" > "$P/port-$i.txt" 2>&1
 	echo "run $i: orig $(tail -1 "$P/orig-$i.txt" | cut -c1-200)"
 	echo "run $i: port $(tail -1 "$P/port-$i.txt" | cut -c1-200)"
 done
