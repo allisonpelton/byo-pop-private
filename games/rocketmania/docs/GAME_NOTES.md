@@ -770,7 +770,8 @@ the baseline identical), and playing it costs what it did.
 Streaming the music as the Ogg is not possible here as it is for Ning Po: Ning Po's music is one Ogg file, while these two pieces are
 segments joined in a playlist's order (some played twice), so `Mixer::LoadStreamedSoundData`, which takes one file, would need to take a list
 of segments. That is a shared change (a stream whose frames come from several Ogg files in turn, with a loop back to the first); it
-would take the 24 MB of the two joined pieces to a few hundred KB, at the cost of the decoding in the audio thread. Not done.
+would take the 24 MB of the two joined pieces to a few hundred KB, at the cost of the decoding in the audio thread. Done later the same
+day ("The music played from its segments", below).
 
 Measured with `mem.py` (1x, `Is3D=0`, the first board): settled 71.3 MB (95.8 before), against the original's 57.4 MB. The peak in the first
 second of loading is 92 MB in three runs of five and 112 MB in two (it was 116.7 MB): the same code reaches either, depending on
@@ -778,3 +779,21 @@ which of the loading thread's allocations coincide, and the 20 MB between them w
 three pinned pairs of one round each, 4 to 8 other game processes running: the port's cycles an update are 0.43, 0.60, 0.54, 0.67 and
 0.73 of the original's in the five segments (medians; 1.86, 2.82, 2.78, 2.80 and 3.95 M against 4.30, 4.67, 5.11, 4.18 and 5.44 M); one pair
 of the last segment came to 1.00. No "no window in the first 20s" line in any origrun log.
+
+### The music played from its segments (2026-11-16)
+
+The shared change the paragraph above asks for is in main: `Mixer::LoadSongSegments` and `MusicInterface::LoadMusicSegments` (merge
+470bd6a0; `docs/MEMORY.md`, "Rocket Mania's music from its segments"). `LoadingThreadProc` now calls `LoadMusicSegments` (`AppMusic.cpp`)
+for the in-game and the menu piece before `AssembleMusic`. When the game folder has no `cached_*.wav` for the piece, the playlist's letters
+from A to the piece's last segment whose file exists make the list of Ogg files, and the song plays them in turn, decoding as it plays and
+looping back to the first. When the folder has the original's `cached_*.wav` (a mod's file of that name too), or the mixer cannot stream
+the list (a segment missing or not readable, a rate or channel count unlike the first's, or `BYOPOP_STREAM_MUSIC=0`), the piece is joined
+and loaded as before. The frames are the joined WAV's to the bit: `soundtest -segments` (`tools/check.sh unit`) plays both pieces twice
+through the loop, with a gain change and two stops and resumes in mid-segment, against the joined WAV. So the deviation in "A deviation
+the music's run showed" is unchanged. The sound log prints `segments=34` (in-game) and `segments=4` (menu) where it printed the joined
+files' CRCs 7412075f and 3e1ede1c; the frozen baseline does not hold those lines and stays identical.
+
+Measured by the framework session: in 2D at 1x the game settles at 50.4 MB of private bytes (73.8 to 74.0 before), under the original's
+57.4 MB, and its peak falls from about 95 to 50.7 MB; with Direct3D the peak falls from 144.5 to 80.5 MB; on the web the WebAssembly
+memory falls from 118.5 to 45.6 MB. The cost is SDL's audio thread, about 4.8 M cycles a second of play, some 4% of the process's cycles,
+which leaves the port's processor time below the original's (0.43 to 0.73 of it in the measurement above).

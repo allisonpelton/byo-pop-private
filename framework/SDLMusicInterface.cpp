@@ -81,6 +81,19 @@ bool SDLMusicInterface::LoadMusic(int theSongId, const std::string& theFileName)
 	return true;
 }
 
+bool SDLMusicInterface::LoadMusicSegments(int theSongId, const std::vector<std::string>& theFiles, const std::string& theName)
+{
+	int handle = Mixer::Get().LoadSongSegments(theFiles);
+	if (!handle)
+		return false;
+	UnloadMusic(theSongId);
+	SongInfo info;
+	info.mHandle = handle;
+	mSongs[theSongId] = info;
+	SoundLog("music load %d %s segments=%u", theSongId, theName.c_str(), (unsigned)theFiles.size());
+	return true;
+}
+
 void SDLMusicInterface::PlayMusic(int theSongId, int theOffset, bool noLoop)
 {
 	auto it = mSongs.find(theSongId);

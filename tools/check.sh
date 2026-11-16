@@ -26,7 +26,8 @@
 #                songpostest on Bejeweled's, BookWorm's and Bejeweled Twist's modules, with the MO3s' tempo and
 #                channel volumes (skipped without their assets); spectrumtest
 #                (the music player's FFT against BASS 2.3's on the same tones); and soundtest (sounds kept as 16-bit at
-#                their own rate, voices against the old stereo-float pipeline); and shotdiff's selftest (tools/shotdiff:
+#                their own rate, voices against the old stereo-float pipeline; with -segments, Rocket Mania's two pieces
+#                streamed from their segments against the WAV joined from them, skipped without its assets); and shotdiff's selftest (tools/shotdiff:
 #                the screenshot comparison on synthetic pictures, its pages and its marks server); and geomtest
 #                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table); and wraptest
 #                (framework/TriangleWrap: DrawTrianglesTex's texture wrap, triangles cut at whole-number u and v); and stretchcal
@@ -778,6 +779,15 @@ suite_unit() {
 	# Mixer's sounds: 16-bit at their own rate, resampled by the voices; needs no game files
 	(cd build/native && timeout 60 ./soundtest.exe) > "$1.snd" 2>&1 || st=1
 	h="$(lastof "$1.snd" 'sound: [0-9]+ checks, [0-9]+ failed')"
+	# Mixer::LoadSongSegments: Rocket Mania's two pieces streamed from their segments against the WAV the game joins from them,
+	# to the bit, where they are staged
+	if [ -d assets/rocketmania/music ]; then
+		(cd build/native && timeout 120 ./soundtest.exe -segments ../../assets/rocketmania "music/Tubetricks In-Game One v02" I \
+			"music/Tubetricks Menu One v02" C) > "$1.seg" 2>&1 || st=1
+		h="$h, $(lastof "$1.seg" 'sound segments: [0-9]+ checks, [0-9]+ failed')"
+	else
+		h="$h, segments skipped (no assets/rocketmania)"
+	fi
 	# tools/shotdiff: the screenshot comparison on synthetic pictures (statuses, boxes, alignment, pages, the marks server)
 	timeout 120 python tools/shotdiff/selftest.py > "$1.sdf" 2>&1 || st=1
 	i="$(lastof "$1.sdf" 'shotdiff: [0-9]+ checks, [0-9]+ failed')"
