@@ -251,7 +251,7 @@
       ],
       "na": [],
       "now": null,
-      "note": "every phase but modding done; performance like for like in 3D on the visible desktop, both sides' sound threads left out: port 2,498 M cycles in 20 s against the original's 2,537 (0.98), 1.06 with the port's mixer; the two main-thread spikes an Oddity (likely the NVIDIA driver presenting inline); 2D 0.80; left before the final merge: the 3D comparison of the abyss and bonus levels, an idle game, and the boards after a pause and a resume"
+      "note": "done but modding: identical in 2D and 3D (every screen tour natively, on the web and in 3D on the visible desktop, the idle game, abyss, bonus levels and a paused board included; only the original's real-clock sprite phase differs), sound and music, real input natively and on the web; registration out, fixes mod, coverage, performance like for like in 3D 0.98 (1.06 with the port's mixer), 2D 0.80, the lite mod (none needed), unneeded code out, readability, the Collection check, the site's features"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
@@ -530,11 +530,12 @@
         "coverage",
         "collection",
         "unneeded-code",
-        "readability"
+        "readability",
+        "identical-look"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "the eight retail 3D tours compare clean (scores equal step for step, Action's TIME UP at update 19861); Hyper's 3D tour replays with 37 shots identical (only the removed More Games pill differs); the classic hyperspace jump and full screen compared in 3D; the web build replays the native Classic tour (10 shots, same boards and scores, animation phase differs); boxes left: Hyper 4-4 one gem's light, Hyper 6-1, Finity's first board; Finity 3D's washed-out gems an Oddity; next: the no-GPU fallback and the other web modes"
+      "now": "performance",
+      "note": "looks identical done (bf0877e3): the eight retail 3D tours compare clean natively; the web build replays them in all eight modes with the same boards and scores (1 to 2 updates of animation phase after clicks, an Oddity); the no-GPU fallback takes the software screen, its 2D tours equal the GPU path's and the original's in all eight modes after one game-side line (mFastStretchCentre off: floating scores were 1 px off); Finity 3D's washed-out gems an Oddity, unreproduced; next: performance, then the lite mod"
     },
     "venice": {
       "title": "Venice Deluxe",
