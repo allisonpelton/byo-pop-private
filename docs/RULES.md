@@ -299,7 +299,9 @@ Every call re-reads the whole context, so what costs is context times calls, and
   both phases of identical play, registration and outbound buttons out, its fixes mod (the site serves every game with
   it on), the readability pass, the coverage check, the performance pass (the user, 2026-11-03), which brings the port's processor time to its
   original's or below, measured like for like (the user, 2026-11-11: "that should be an enforced target";
-  `docs/COORDINATION.md`, "The target"), its lite mod, which swaps the game's own computations for faster ones that
+  `docs/COORDINATION.md`, "The target"; level with the original within the machine's noise counts as at it, the user,
+  2026-11-16: "Accept as level", for Alchemy at 0.93 to 1.11 of the original in three sets of pairs and Bejeweled at a
+  paired median of 0.955, where going clearly under would take a cut in the shared mixer's cost), its lite mod, which swaps the game's own computations for faster ones that
   may play differently, each difference proved reachable in the game's own levels and explained, and starts on (the user, 2026-11-12; `docs/MOD_ROADMAP.md`, "The
   lite mod"), taking out the other
   code it does not need, for a game ported from its Steam copy the check against its PopCap Game Collection

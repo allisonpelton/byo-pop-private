@@ -167,6 +167,10 @@ holds the rules every session follows; this file does not repeat them.
     port's music share of its mixer back to the second (fw-memory, 2026-11-15). Counting audiodg would matter only with
     real devices on both sides (`origrun --sound real`, muted, against the port on a real device); measure one such pair
     before it becomes a rule.
+  - **Level counts as at (the user, 2026-11-16: "Accept as level"):** a port whose sets of pairs scatter around the
+    original's figure within the machine's noise meets the target (Alchemy at 0.93 to 1.11 in three sets, Bejeweled at a
+    paired median of 0.955 with 0.90 to 1.02 around it). Report every set and its spread rather than one ratio. A
+    clear gap above, in sets that agree, still needs a cut.
   - **Cycle counts, not GetProcessTimes or GetThreadTimes.** Count processor time as the threads' cycle counts
     (QueryThreadCycleTime, summed over the process's threads; `games/tiptop/tools/perf/cpuprof2.py` at seconds 0
     reads them without disturbing the run). Windows charges process and thread times by sampling at the 15.6 ms clock
