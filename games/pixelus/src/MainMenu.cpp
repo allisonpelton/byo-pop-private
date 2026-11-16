@@ -15,12 +15,30 @@
 
 using namespace Sexy;
 
+// port: a helper of the port (ToUpper)
 static std::string ToUpper(std::string theString)	// __strupr
 {
 	for (size_t i = 0; i < theString.size(); i++)
 		theString[i] = (char) toupper((unsigned char) theString[i]);
 	return theString;
 }
+
+// 0x40fb40 constructor, 0x40fad0 Draw: the player's name link has a black shadow one pixel to the right and down of its text
+class ShadowLink : public HyperlinkWidget
+{
+public:
+	ShadowLink(int theId, ButtonListener* theListener) : HyperlinkWidget(theId, theListener) {}
+	virtual void Draw(Graphics* g) override
+	{
+		if (mFont != NULL)
+		{
+			g->SetColor(Color(0, 0, 0, 255));	// 0x53e7d0
+			g->SetFont(mFont);
+			g->DrawString(mLabel, (mWidth - mFont->StringWidth(mLabel)) / 2 + 1, (mFont->GetAscent() + mHeight) / 2);
+		}
+		HyperlinkWidget::Draw(g);
+	}
+};
 
 // 0x40ac30 with the base 0x4e60e0
 MainMenu::MainMenu(PixelusApp* theApp)
@@ -46,7 +64,7 @@ MainMenu::MainMenu(PixelusApp* theApp)
 		aButtons[i]->mOverAlphaFadeInSpeed = 0.04;
 	}
 
-	mUserLink = new HyperlinkWidget(ID_USER_LINK, this);
+	mUserLink = new ShadowLink(ID_USER_LINK, this);
 	mUserLink->SetFont(mApp->mFonts[FONT_PRAITOR24]);
 	mUserLink->mColor = Color(255, 255, 255);
 	mUserLink->mOverColor = Color(0xff, 0xf2, 0x5c);
@@ -100,6 +118,7 @@ void MainMenu::RemovedFromManager(WidgetManager* theWidgetManager)
 }
 
 // the link only makes sense when a player is signed in
+// port: a helper of the port (MainMenu::UserChanged)
 void MainMenu::UserChanged()
 {
 	mUserLink->SetVisible(mApp->mUserDirectory->GetCurrent() != NULL);

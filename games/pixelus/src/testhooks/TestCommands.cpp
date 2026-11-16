@@ -191,7 +191,7 @@ bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			aLine += ",\"ready\":true";
 		if (aUser != NULL)
 			aLine += StrFormat(",\"player\":\"%s\",\"solved\":%d,\"expert\":%s", aUser->mName.c_str(), aUser->CountSolved(),
-				aUser->mFlag38 ? "true" : "false");
+				aUser->mExpert ? "true" : "false");
 		if (mLevelData != NULL && !mLevelData->mCurrentLevel.empty())
 			aLine += StrFormat(",\"temple\":\"%s\",\"level\":%d,\"puzzles\":%d", mLevelData->mCurrentLevel.c_str(),
 				mLevelData->mCurrentPuzzle, mLevelData->GetPuzzleCount(mLevelData->mCurrentLevel));
@@ -239,6 +239,22 @@ bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		return true;
 	}
 
+	if (aCommand == "history")
+	{
+		// the moves the board has made against the best known solution (the bot's), as the move strings
+		if (mBoard == NULL)
+		{
+			Reply("HISTORY null");
+			return true;
+		}
+		std::string aMade;
+		for (size_t i = 0; i < mBoard->mGrid->mHistory.size(); i++)
+			aMade += Grid::MoveToString(mBoard->mGrid->mHistory[i]);
+		const ProgressManager::Best* aBest = mProgress->FindBest(mBoard->mUuid);
+		Reply("HISTORY " + aMade + " SOLUTION " + (aBest == NULL ? std::string("none") : aBest->mSolution));
+		return true;
+	}
+
 	if (aCommand == "move")
 	{
 		Grid::Move aMove;
@@ -275,7 +291,7 @@ bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			TestClearScreens();
 			if (aUser == NULL)
 				aUser = mUserDirectory->AddUser("Saver");
-			aUser->mFlag38 = aFirst == "expert";
+			aUser->mExpert = aFirst == "expert";
 			mLevelData->mCurrentLevel = gTemples[1].mName;
 			mLevelData->mCurrentPuzzle = 0;
 			StartPuzzle(true);

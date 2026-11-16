@@ -15,6 +15,13 @@ ImageNode::ImageNode(Image* theImage)
 		setName("Image");
 }
 
+// 0x470d20 (pizzafrenzy)
+ImageNode::ImageNode()
+{
+	mClipped = false;
+	addOwnFlags(NODE_DRAWABLE);
+}
+
 // 0x435ec0 (wordharmony), 0x470dd0 (pizzafrenzy)
 ImageNode::~ImageNode()
 {

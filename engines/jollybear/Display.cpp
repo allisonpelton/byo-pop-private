@@ -54,9 +54,10 @@ Display::~Display()
 void Display::Release()
 {
 	screenlog::Invalidate();
+	// port: a picture whose bits were dropped keeps its copy, its only one (the same pixels as a new one)
 	for (auto& anEntry : mImages)
 	{
-		if (anEntry.second != nullptr)
+		if (anEntry.second != nullptr && !anEntry.second->mBitsDropped)
 			anEntry.second->FreePixels();
 	}
 	for (Image* anImage : mCreated)

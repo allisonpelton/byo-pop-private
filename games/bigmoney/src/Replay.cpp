@@ -1,3 +1,4 @@
+// port(mods): replays of Big Money games (Replay.h). Not in the original.
 #include "Replay.h"
 #include "Board.h"
 #include "WinBMApp.h"
@@ -218,21 +219,21 @@ bool Replay::File::Read(const std::vector<uint8_t>& theData, std::string* theErr
 			*theError = "the file is cut short";
 			return false;
 		}
-		Reader r(aLen ? &theData[aPos] : NULL, aLen);
+		Reader aReader(aLen ? &theData[aPos] : NULL, aLen);
 		if (aTag == Tag("META"))
 			mMeta.assign((const char*) (aLen ? &theData[aPos] : NULL), aLen);
 		else if (aTag == Tag("GAME"))
 		{
-			mGameType = (int) r.U8();
-			mSkill = (int) r.U8();
-			mUserSeeded = (r.U8() != 0);
-			mAppFlags = r.U8();
-			mRngSeed = r.U32();
-			mGameSeed = r.U32();
-			uint32_t aKeyLen = r.U16();
-			for (uint32_t i = 0; (i < aKeyLen) && (r.mOk); i++)
-				mScoreKey += (char) r.U8();
-			if ((!r.mOk) || (mGameType < 0) || (mGameType > 2) || (mSkill < 1) || (mSkill > 3))
+			mGameType = (int) aReader.U8();
+			mSkill = (int) aReader.U8();
+			mUserSeeded = (aReader.U8() != 0);
+			mAppFlags = aReader.U8();
+			mRngSeed = aReader.U32();
+			mGameSeed = aReader.U32();
+			uint32_t aKeyLen = aReader.U16();
+			for (uint32_t i = 0; (i < aKeyLen) && (aReader.mOk); i++)
+				mScoreKey += (char) aReader.U8();
+			if ((!aReader.mOk) || (mGameType < 0) || (mGameType > 2) || (mSkill < 1) || (mSkill > 3))
 			{
 				*theError = "the game record is damaged";
 				return false;
@@ -241,7 +242,7 @@ bool Replay::File::Read(const std::vector<uint8_t>& theData, std::string* theErr
 		}
 		else if (aTag == Tag("EVTS"))
 		{
-			uint32_t aCount = r.U32();
+			uint32_t aCount = aReader.U32();
 			if (aCount > MAX_ITEMS)
 			{
 				*theError = "too many events";
@@ -249,12 +250,12 @@ bool Replay::File::Read(const std::vector<uint8_t>& theData, std::string* theErr
 			}
 			mEvents.reserve(aCount);
 			uint32_t aTick = 0;
-			for (uint32_t i = 0; (i < aCount) && (r.mOk); i++)
+			for (uint32_t i = 0; (i < aCount) && (aReader.mOk); i++)
 			{
 				Event anEvent;
-				aTick += r.Varint();
+				aTick += aReader.Varint();
 				anEvent.mTick = aTick;
-				anEvent.mOp = (int) r.U8();
+				anEvent.mOp = (int) aReader.U8();
 				int anArgs = OpArgCount(anEvent.mOp);
 				if (anArgs < 0)
 				{
@@ -263,12 +264,12 @@ bool Replay::File::Read(const std::vector<uint8_t>& theData, std::string* theErr
 				}
 				if (anArgs == 2)
 				{
-					anEvent.mX = r.Zigzag();
-					anEvent.mY = r.Zigzag();
+					anEvent.mX = aReader.Zigzag();
+					anEvent.mY = aReader.Zigzag();
 				}
 				mEvents.push_back(anEvent);
 			}
-			if (!r.mOk)
+			if (!aReader.mOk)
 			{
 				*theError = "the events are damaged";
 				return false;
@@ -276,22 +277,22 @@ bool Replay::File::Read(const std::vector<uint8_t>& theData, std::string* theErr
 		}
 		else if (aTag == Tag("BAGS"))
 		{
-			uint32_t aCount = r.U32();
+			uint32_t aCount = aReader.U32();
 			if ((aCount > MAX_ITEMS) || ((size_t) aCount * 2 + 4 > aLen))
 			{
 				*theError = "the bag draws are damaged";
 				return false;
 			}
 			for (uint32_t i = 0; i < aCount; i++)
-				mBagColumns.push_back((uint16_t) r.U16());
+				mBagColumns.push_back((uint16_t) aReader.U16());
 		}
 		else if (aTag == Tag("END "))
 		{
-			mEndTick = r.U32();
-			mScore = (int32_t) r.U32();
-			mLevel = (int32_t) r.U32();
-			mCoins = (int32_t) r.U32();
-			if (!r.mOk)
+			mEndTick = aReader.U32();
+			mScore = (int32_t) aReader.U32();
+			mLevel = (int32_t) aReader.U32();
+			mCoins = (int32_t) aReader.U32();
+			if (!aReader.mOk)
 			{
 				*theError = "the end record is damaged";
 				return false;
@@ -393,21 +394,21 @@ void ReplayRecorder::AddBagColumn(int theValue)
 static std::string JsonString(const std::string& theText)
 {
 	std::string anOut = "\"";
-	for (unsigned char c : theText)
+	for (unsigned char aChar : theText)
 	{
-		if ((c == '"') || (c == '\\'))
+		if ((aChar == '"') || (aChar == '\\'))
 		{
 			anOut += '\\';
-			anOut += (char) c;
+			anOut += (char) aChar;
 		}
-		else if (c < 0x20)
+		else if (aChar < 0x20)
 		{
 			char aBuffer[8];
-			snprintf(aBuffer, sizeof(aBuffer), "\\u%04x", c);
+			snprintf(aBuffer, sizeof(aBuffer), "\\u%04x", aChar);
 			anOut += aBuffer;
 		}
 		else
-			anOut += (char) c;
+			anOut += (char) aChar;
 	}
 	return anOut + "\"";
 }

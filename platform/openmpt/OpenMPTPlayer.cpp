@@ -5,6 +5,7 @@
 
 #include <libopenmpt/libopenmpt.h>
 #include <libopenmpt/libopenmpt_ext.h>
+#include <cstdlib>
 #include <string>
 #include <SDL.h>
 #include <cmath>
@@ -301,9 +302,18 @@ std::unique_ptr<ModulePlayer> CreateModule(const std::vector<uint8_t>& theFile, 
 
 }
 
+// libopenmpt's byo-pop addition (third_party/libopenmpt/soundlib/SampleStream.h)
+extern "C" void byopop_openmpt_stream_samples(int theOn);
+
 std::unique_ptr<ModulePlayer> CreateOpenMPTModule(const std::vector<uint8_t>& theFile, int theRate)
 {
-	return CreateModule(theFile, theRate);
+	// a module's long Ogg samples are decoded as they play (Mahjong Escape's music is a few minutes of recordings), the
+	// same frames as decoded whole; BYOPOP_STREAM_MUSIC=0 decodes them whole when the module loads
+	const char* aStream = getenv("BYOPOP_STREAM_MUSIC");
+	byopop_openmpt_stream_samples((aStream != nullptr && atoi(aStream) == 0) ? 0 : 1);
+	std::unique_ptr<ModulePlayer> aModule = CreateModule(theFile, theRate);
+	byopop_openmpt_stream_samples(0);
+	return aModule;
 }
 
 void RegisterOpenMPTModules()

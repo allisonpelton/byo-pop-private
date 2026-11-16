@@ -1,4 +1,6 @@
 #include "IslandMap.h"
+#include "GullFlock.h"
+#include "Particles.h"
 #include "PixelusApp.h"
 #include "GameDialog.h"
 #include "GameText.h"
@@ -36,6 +38,7 @@ public:
 
 // ---- the panel -------------------------------------------------------------------------------------------------
 
+// port: the constructor (IslandPanel::IslandPanel)
 IslandPanel::IslandPanel(PixelusApp* theApp, IslandMap* theIsland)
 {
 	mApp = theApp;
@@ -85,6 +88,7 @@ void IslandPanel::Clear()
 	mFadeState = 1;
 }
 
+// port: a helper of the port (IslandPanel::DrawCentered)
 void IslandPanel::DrawCentered(Graphics* g, int theFont, const std::string& theText, int theY)
 {
 	Font* aFont = mApp->mFonts[theFont];
@@ -131,7 +135,7 @@ void IslandPanel::Draw(Graphics* g)
 	DrawCentered(g, FONT_GARAMOND14, GT(0x50de18), 0x1a);
 	DrawCentered(g, FONT_GARAMOND24GOLD, GT(0x50de10), 0x3d);
 	int aOutside = aUser != NULL ? aUser->CountSolved() - aUser->CountSolved(gTemples[0].mName) : 0;
-	if (aUser != NULL && aUser->mFlag79)
+	if (aUser != NULL && aUser->mTutorialDone)
 	{
 		DrawCentered(g, FONT_GARAMOND20, IsTempleLocked(mApp, 1) ? GT(0x50ddac) : GT(0x50ddc0), 0x65);
 		for (int i = 0; i < NUM_TEMPLES; i++)
@@ -206,6 +210,7 @@ void IslandPanel::Draw(Graphics* g)
 
 // ---- the island ------------------------------------------------------------------------------------------------
 
+// port: a helper of the port (IslandMap::Rand01)
 double IslandMap::Rand01()
 {
 	return mApp->AppRandNext() * 4.656612875245797e-10;
@@ -274,10 +279,22 @@ IslandMap::IslandMap(PixelusApp* theApp)
 				// the first time the temple shows, its door opening is heard
 				if (aUser != NULL && i >= 1 && i <= 8 && !(aFlags & 2))
 				{
+					// 0x439d00: the temple is marked as seen
 					aUser->mTempleFlags[aName] |= 2;
-					// 0x4176a0: the bursts at its door (Rumble, PauseBloom, PauseBloomUp: not ported yet) bring it in
-					// after the first 1.1 s, so until then it is state 1, which is not drawn
+					// 0x4176a0: the bursts at its door (Rumble, PauseBloom, PauseBloomUp) bring it in after the first
+					// 1.1 s, so until then it is state 1, which is not drawn
 					mState[i] = STATE_OPEN;
+					if (mApp->mParticles == NULL)
+						mApp->mParticles = new ParticleLibrary(mApp);
+					const int aColor[4] = { gTemples[i].mRed, gTemples[i].mGreen, gTemples[i].mBlue, 255 };
+					const ParticleVec aPlace(gTemples[i].mLightX, gTemples[i].mLightY, 0);
+					static const char* const aBursts[3] = { "Rumble", "PauseBloom", "PauseBloomUp" };
+					for (int b = 0; b < 3; b++)
+					{
+						ParticleImageDef* anImage = mApp->mParticles->FindImageDef("DustPuff");
+						ParticleEmitterDef* anEmitter = mApp->mParticles->FindEmitterDef(aBursts[b]);
+						mEffects.push_back(new ParticleEffect(mApp, anEmitter, anImage, aColor, aPlace, ParticleVec()));
+					}
 					mApp->PlaySample(SOUND_PIXELUS_TEMPLE_SCREEN_V01);
 				}
 			}
@@ -294,10 +311,15 @@ IslandMap::IslandMap(PixelusApp* theApp)
 	}
 	mNextGull1 = mApp->AppRandNext() % 100 + 350 + mApp->mUpdateCount;
 	mNextGull2 = mApp->AppRandNext() % 100 + 400 + mApp->mUpdateCount;
+	mFlock = new GullFlock(mApp->mImages[IMAGE_BIRD], mSolvedTotal * 30 / 100 + 10);	// 0x430ab0
 }
 
+// port: the destructor (IslandMap::~IslandMap)
 IslandMap::~IslandMap()
 {
+	delete mFlock;
+	for (size_t i = 0; i < mEffects.size(); i++)
+		delete mEffects[i];
 	delete mBackButton;
 	delete mPanel;
 	for (int i = 0; i < NUM_TEMPLES; i++)
@@ -444,6 +466,12 @@ void IslandMap::Update()
 			mLightning = (45.0 - 10) * Rand01();
 	}
 	MarkDirty();
+	bool anyAlive = false;
+	for (size_t i = 0; i < mEffects.size(); i++)
+		anyAlive |= mEffects[i]->Update(0.01);
+	if (anyAlive)
+		MarkDirty();
+	mFlock->Update();
 }
 
 // 0x416950
@@ -513,6 +541,34 @@ void IslandMap::Draw(Graphics* g)
 		int aBounce = (int) (fabs(sin(mPhase * 3.0)) * 24.0);
 		g->DrawImage(anArrow, gTemples[i].mLightX - aBounce - anArrow->GetWidth() / 2 - 0x14, gTemples[i].mLightY - aBounce - 0x50);
 	}
+	for (size_t i = 0; i < mEffects.size(); i++)
+		mEffects[i]->Draw(g, mApp->Is3DAccelerated());
+	mFlock->Draw(g);
+}
+
+// 0x4161b0, 0x4161f0, 0x416220, 0x416250: the gulls follow the pointer
+void IslandMap::MouseMove(int x, int y)
+{
+	Widget::MouseMove(x, y);
+	mFlock->MouseMove(x, y);
+}
+
+void IslandMap::MouseDrag(int x, int y)
+{
+	Widget::MouseDrag(x, y);
+	mFlock->MouseMove(x, y);
+}
+
+void IslandMap::MouseDown(int x, int y, int theClickCount)
+{
+	Widget::MouseDown(x, y, theClickCount);
+	mFlock->MouseDown(x, y);
+}
+
+void IslandMap::MouseUp(int x, int y, int theClickCount)
+{
+	Widget::MouseUp(x, y, theClickCount);
+	mFlock->MouseUp(x, y);
 }
 
 // 0x416180: a sound when the mouse comes onto a temple
@@ -522,6 +578,7 @@ void IslandMap::ButtonMouseEnter(int theId)
 		mApp->PlaySample(SOUND_UI_ISLAND_CLICK_01);
 }
 
+// port: a helper of the port (IslandMap::ButtonMouseLeave)
 void IslandMap::ButtonMouseLeave(int theId)
 {
 }

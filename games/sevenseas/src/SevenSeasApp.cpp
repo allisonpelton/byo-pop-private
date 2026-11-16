@@ -18,6 +18,7 @@
 #include "ImageFont.h"
 #include "MemoryImage.h"
 #include "MusicInterface.h"
+#include "SoftwareScreenDisplay.h"
 #include "SoundManager.h"
 #include "WidgetManager.h"
 #include "platform/UserFiles.h"
@@ -53,6 +54,9 @@ SevenSeasApp::SevenSeasApp()
 	mRegKey = "PopCap\\SevenSeas";
 	mWidth = GAME_WIDTH;
 	mHeight = GAME_HEIGHT;
+	// port: the original has no 3D (its export has no Direct3D calls), so the display keeps the 2D flags on the GPU path too:
+	// 2x, full screen and the web (SexyAppBase::mDefault3D, DDInterface::mAppWants3D)
+	mDefault3D = false;
 
 	mImages = NULL;
 	for (int i = 0; i < NUM_FONTS; i++)
@@ -226,6 +230,15 @@ AnimDef* SevenSeasApp::GetAnimDef(const std::string& theName)
 		return NULL;
 	return anItr->second;
 }
+
+#ifndef __EMSCRIPTEN__
+// port: the original draws its screen in software into a DirectDraw surface (it has no 3D), so the port does too, and the
+// window shows it through its own surface (framework/SoftwareScreenDisplay.h)
+DDInterface* SevenSeasApp::CreateDDInterface()
+{
+	return SoftwareScreenDisplay::Create(this);
+}
+#endif
 
 // 0x41e580
 void SevenSeasApp::Init()

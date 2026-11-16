@@ -3,6 +3,7 @@
 // check at 0x41e520) is left out: the full game is the only path.
 
 #include "Application.h"
+#include "LiveSplitObserver.h"
 
 #include "ChallengeScreen.h"
 #include "Common.h"
@@ -157,6 +158,7 @@ Application::Application()
 // 0x420400
 Application::~Application()
 {
+	LiveSplitObserver::AppDestroyed(this);		// port(autosplit): the autosplit block's last write
 	if (mResourceManager != nullptr)
 		mResourceManager->DeleteResources("");
 
@@ -316,8 +318,18 @@ void Application::LoadingScreenDone()
 void Application::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
+	LiveSplitObserver::AfterUpdate(this);		// port(autosplit): the autosplit block, after the update
 	if (mQuitting)
 		Shutdown();
+}
+
+// port(autosplit): -livesplitlog=<file> asks for the autosplit block and logs it; everything else is the framework's
+void Application::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+{
+	if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);
+	else
+		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
 // 0x41f420 slot 20
@@ -1020,6 +1032,7 @@ void Application::CreateGameScreen(bool theContinue, bool theFromRestartPoint)
 	}
 	else
 		mUserManager->GetCurrentUser()->LoadSavedGame();
+	LiveSplitObserver::BoardCreated(theContinue || theFromRestartPoint);		// port(autosplit)
 
 	if (GetDialog(DIALOG_READY_GO) != nullptr)
 		mWidgetManager->BringToFront(GetDialog(DIALOG_READY_GO));
@@ -1261,18 +1274,6 @@ void Application::GameEndToMainMenu()
 	ObjectManager::Get()->Clear();
 }
 
-// 0x421c30
-void Application::GameWonToMainMenu()
-{
-	KillDialog(DIALOG_GAME_WON);
-	PauseGame(false);
-	RemoveAllScreens();
-	CreateMainMenu();
-	ObjectManager::Get()->Clear();
-	if (mLevelIntro != nullptr)
-		DropWidget(mLevelIntro);
-}
-
 // 0x422460
 void Application::GameOverDone()
 {
@@ -1402,6 +1403,7 @@ void Application::LevelFinished()
 	if (mGameMode == GAME_MODE_CLASSIC || mGameMode == GAME_MODE_TOUGH_COOKIE)
 	{
 		bool aLastLevel = GetRulesSheet()->IsLastRow(mGameScreen->mLevel - 1);
+		LiveSplitObserver::LevelEnded(mGameScreen->mLevel, aLastLevel);		// port(autosplit)
 		PlaySample(SOUND_STING_LEVEL_UP);
 		if (aLastLevel)
 		{
@@ -1413,7 +1415,10 @@ void Application::LevelFinished()
 		mLevelUpPending = true;
 	}
 	else if (mGameMode == GAME_MODE_MARATHON)
+	{
+		LiveSplitObserver::LevelEnded(mGameScreen->mLevel, false);		// port(autosplit)
 		mGameScreen->NextLevel();
+	}
 }
 
 // 0x41fa70
@@ -1443,6 +1448,7 @@ void Application::DoChallengeScreen()
 // 0x41f950
 void Application::GameToTrophyRoom(const std::vector<int>& theTrophies)
 {
+	LiveSplitObserver::TrophiesAwarded(theTrophies);		// port(autosplit)
 	PauseGame(true);
 	CreateTrophyRoom(1, theTrophies);
 }

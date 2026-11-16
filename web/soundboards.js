@@ -1790,7 +1790,9 @@ var ByopopSoundboards = {
   ] },
   ningpo: {
     presets: [
-      { name: "You Win", when: "The last pair is taken", steps: [["ningpo.pyz|zip:nm_youwin.ogg", 0]]}
+      { name: "You Win", when: "The last pair is taken", steps: [["ningpo.pyz|zip:nm_youwin.ogg", 0]]},
+      { name: "Game Over", when: "A pair leaves tiles but no move, and the no-moves box's End Game is chosen",
+        steps: [["ningpo.pyz|zip:nm_gameover.ogg", 0]]}
     ],
     groups: [
     { name: "Menus", sounds: [
@@ -2352,6 +2354,151 @@ var ByopopSoundboards = {
     ] },
     { name: "Unused", sounds: [
       ["res/sounds/level_up.wav", "Level up chime (unused)", "Never played: not in the game's sound list (its LEVEL_UP is res/music/intense-levelend.wav), so nothing loads it"]
+    ] }
+  ] },
+  hammerheads: {
+    // Updates are 10 ms each (100 a second), and most of the game's timers count down 0.01 an update, so 1.0 is a second. The
+    // sounds are in games/hammerheads/src/Res.h and resources.xml; they are played by PlaySample, by sound instances (the
+    // aviator's engine, the bomb fuse, the mole's pen, the gift wheel's ticks) and by the level summary's applause table.
+    // presets from the site session's sound logs of the port's bot (botclick, -fast, 10 ms updates; 2026-11-15), its own swings
+    // left out, and with them the first level's don't-miss hint (Game Over) and the gnomes still about during a wipe (Game Won)
+    presets: [
+      { name: "Wave Cleared", when: "A level's first wave ends with every swing in it a hit: the sting as the music fades out, then Perfect! as the result's stars burst", steps: [["sounds/Sting - End Of Wave", 0], ["sounds/voices/Bonus - Perfect", 3920]]},
+      { name: "Level Up", when: "A level's last wave ends with fewer than 95 percent of its swings hits, so no voice: the sting, the summary's applause and its three lines, then the level up and the wipe to the next level", steps: [["sounds/Sting - End Of Wave", 0], ["sounds/Crowd Applause 02", 7000], ["sounds/Hint Popup 01", 8100], ["sounds/Hint Popup 01", 8600], ["sounds/Hint Popup 01", 9100], ["sounds/Sting - Level Up", 13030], ["sounds/UI - Zoom Transition", 13030]]},
+      { name: "Game Over", when: "The last of the health goes to a miss: the miss and the lost heart, the game over sting as the music stops, and five seconds later the game over box sliding in", steps: [["sounds/UI - Heart Lost", 0], ["sounds/Hammer - Miss", 0], ["sounds/Sting - Game Over", 0], ["sounds/UI - Moving Dialog Woosh", 5020]]},
+      { name: "Bonus Round", when: "A bonus round once its box is closed: Ready? and Go!, the sixteen coin piles rising one by one with two of them hit, then Well done! as the result box slides in, and its coins counted", steps: [["sounds/voices/Bonus - Ready", 0], ["sounds/voices/Bonus - Go", 2090], ["sounds/Misc - Platform Appear 3", 2170], ["sounds/Misc - Platform Appear 3", 2770], ["sounds/Misc - Platform Appear 3", 3370], ["sounds/Misc - Platform Appear 3", 3970], ["sounds/Misc - Platform Appear 3", 4570], ["sounds/Misc - Platform Appear 3", 5170], ["sounds/Misc - Platform Appear 3", 5770], ["sounds/Misc - Platform Appear 3", 6370], ["sounds/Coin - Three Picked", 6590], ["sounds/Misc - Platform Appear 3", 6970], ["sounds/Misc - Platform Appear 3", 7570], ["sounds/Misc - Platform Appear 3", 8170], ["sounds/Misc - Platform Appear 3", 8770], ["sounds/Misc - Platform Appear 3", 9370], ["sounds/Misc - Platform Appear 3", 9970], ["sounds/Misc - Platform Appear 3", 10570], ["sounds/Coin - Three Picked", 10790], ["sounds/Misc - Platform Appear 3", 11170], ["sounds/UI - Moving Dialog Woosh", 13800], ["sounds/voices/Bonus - Well Done", 13800], ["sounds/Coin - Three Picked", 14050]]},
+      { name: "Game Won", when: "The last level of Classic is finished: the level up and the wipe, then the game won sting a second after the page opens", steps: [["sounds/Sting - Level Up", 0], ["sounds/UI - Zoom Transition", 0], ["sounds/Sting - Game Won", 1670]]},
+      { name: "The Gnome King", when: "The Gnome King rises in the last level: his sting and platform, his drone as he starts to open, then the other seven platforms popping up as he flashes", steps: [["sounds/Sting - Gnome King", 0], ["sounds/Misc - Platform Appear 6", 0], ["sounds/Gnome King - Droning", 3020], ["sounds/Misc - Platform Appear 6", 4300], ["sounds/Misc - Platform Appear 6", 4300], ["sounds/Misc - Platform Appear 6", 4300], ["sounds/Misc - Platform Appear 6", 4300], ["sounds/Misc - Platform Appear 6", 4300], ["sounds/Misc - Platform Appear 6", 4300], ["sounds/Misc - Platform Appear 6", 4300], ["sounds/Gnome King - Flashing", 4300]]}
+    ],
+    groups: [
+    { name: "Menus and dialogs", sounds: [
+      ["sounds/UI - Click To Play.ogg", "Click to play", "The loading screen finishes loading and its play button starts to work"],
+      ["sounds/UI - Button Mouse Over.wav", "Button hover", "The pointer comes onto a button of the main menu, how-to-play box, level intro, high score table, game screen or game won screen; on a dialog's buttons only once the dialog has stopped sliding in"],
+      ["sounds/UI - Button Click.ogg", "Button click", "A button is pressed: a dialog's own buttons, the user button on the main menu, the options and game over boxes, the high score table, the resurrect screen's pictures; the loading screen's play button and the trophy room's page buttons when they are let go"],
+      ["sounds/UI - Check.ogg", "Check box", "A check box is ticked or cleared in the options box or the how-to-play box"],
+      ["sounds/UI - Moving Dialog Woosh.ogg", "Dialog slides in", "A dialog box is made and starts to fall into place from above the screen"],
+      ["sounds/UI - Zoom Transition.ogg", "Zoom wipe", "A zoom wipe between screens is made: to the main menu, into a game, to the next level or to the game won screen"]
+    ] },
+    { name: "Hammer", sounds: [
+      ["sounds/Hammer - Woosh.wav", "Hammer swings", "A click lands on a target and the hammer swings down; one per swing"],
+      ["sounds/Hammer - Woosh Fast.wav", "Hammer swings (on fire)", "The same swing while the hammer is on fire, in place of the ordinary one"],
+      ["sounds/Hammer - Miss.ogg", "Hammer misses", "A click hits nothing and the miss mark is shown: not in the shop, and not in a level while the strawberry power is on"],
+      ["sounds/Hammer - Boing.ogg", "Hammer bounces", "A hit does nothing to a gnome that is not shielded, and the hammer bounces off"],
+      ["sounds/Hammer - Hat.ogg", "Hit hat", "Every hit on the rabbit; the hit that takes the flag mole down, with its picked-flag sound"],
+      ["sounds/Hammer - Metal1.ogg", "Hit metal", "The bouncing jester or the aviator is struck, with its cry"],
+      ["sounds/Hammer - Plastic.ogg", "Hit plastic", "Every hit on the inflating head gnome"],
+      ["sounds/Hammer - Rock.ogg", "Hit rock", "Every hit on the Gnome King; the hit on the shop sign or on a challenge sign that opens its screen"],
+      ["sounds/Hammer - Wood.ogg", "Hit wood", "A hit on the stabbing gnome, the switcher gnome or the bucket gnome (not the hit that kills it), each with its cry; on the woman gnome, with her cry, when the hit leaves her one hit point and she turns angry"],
+      ["sounds/Hammer - Wood2.ogg", "Hit wood 2", "Every hit on the strong gnome or on Napoleon, with the cry (the strong gnome's cry only when it survives)"],
+      ["sounds/Hammer - Plop 2.ogg", "Hit sticker", "The hammer strikes a sticker"]
+    ] },
+    { name: "Platforms and breaking", sounds: [
+      ["sounds/Misc - Platform Appear 1.ogg", "Platform appears 1", "A platform starts to rise with its creature; the level's rise speed picks the nearest of ten sounds, and this is the one for the slowest speed"],
+      ["sounds/Misc - Platform Appear 2.ogg", "Platform appears 2", "A platform starts to rise, at the second of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 3.ogg", "Platform appears 3", "A platform starts to rise, at the third of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 4.ogg", "Platform appears 4", "A platform starts to rise, at the fourth of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 5.ogg", "Platform appears 5", "A platform starts to rise, at the fifth of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 6.ogg", "Platform appears 6", "A platform starts to rise, at the sixth of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 7.ogg", "Platform appears 7", "A platform starts to rise, at the seventh of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 8.ogg", "Platform appears 8", "A platform starts to rise, at the eighth of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 9.ogg", "Platform appears 9", "A platform starts to rise, at the ninth of ten rise speeds"],
+      ["sounds/Misc - Platform Appear 10.ogg", "Platform appears 10", "A platform starts to rise, at the fastest of the ten rise speeds"],
+      ["sounds/Misc - Gnome Breaking 1.ogg", "Gnome breaks 1", "A gnome is hit down and breaks into pieces: one of the five at random, but always this one for a bomb gnome; a frozen gnome shatters instead"],
+      ["sounds/Misc - Gnome Breaking 2.ogg", "Gnome breaks 2", "A gnome breaks into pieces; one of the five at random (not for a bomb gnome)"],
+      ["sounds/Misc - Gnome Breaking 3.ogg", "Gnome breaks 3", "A gnome breaks into pieces; one of the five at random (not for a bomb gnome)"],
+      ["sounds/Misc - Gnome Breaking 4.ogg", "Gnome breaks 4", "A gnome breaks into pieces; one of the five at random (not for a bomb gnome)"],
+      ["sounds/Misc - Gnome Breaking 5.ogg", "Gnome breaks 5", "A gnome breaks into pieces; one of the five at random (not for a bomb gnome)"],
+      ["sounds/Misc - Ice Shatter 1.ogg", "Ice shatter 1", "A frozen gnome, bomb gnome or not, is hit and shatters; one of the three at random"],
+      ["sounds/Misc - Ice Shatter 2.ogg", "Ice shatter 2", "A frozen gnome is hit and shatters; one of the three at random"],
+      ["sounds/Misc - Ice Shatter 3.ogg", "Ice shatter 3", "A frozen gnome is hit and shatters; one of the three at random"]
+    ] },
+    { name: "Special gnomes", sounds: [
+      ["sounds/Bomb Face - Fuse.ogg", "Bomb fuse", "A bomb gnome plays it as soon as it is up and not frozen, then every 100 updates (1 second); the switcher gnome plays it when its bomb costume goes on, then every second while it is not frozen, and cuts it off when the costume comes off"],
+      ["sounds/Bomb Face - Explosion.ogg", "Explosion", "An explosion cloud is made, when a bomb gnome or the switcher's bomb costume goes off; twice at once when the Gnome King is beaten"],
+      ["sounds/Bouncing Jester - Bounce.ogg", "Jester bounce", "The bouncing jester lands on the floor on its way down, while it is on the screen"],
+      ["sounds/Inflating Head - Inflate.ogg", "Head inflates", "The inflating head is hit and does not pop, so it swells to the next size; in the idle show, each time it starts to swell from nothing"],
+      ["sounds/Inflating Head - Deflate.ogg", "Head deflates", "The inflating head, at rest for 0.5 seconds after swelling, shrinks a stage back; in the idle show, 1 second after reaching full size"],
+      ["sounds/Inflating Head - Pop.ogg", "Head pops", "A hit brings the inflating head to its last stage and it bursts"],
+      ["sounds/Bucket Gnome - Putting On.ogg", "Bucket goes on", "The bucket gnome puts its bucket on after about 0.8 seconds bare; the switcher gnome puts its bomb or coin costume on"],
+      ["sounds/Bucket Gnome - Removing.ogg", "Bucket comes off", "The bucket gnome lifts its bucket off after about 2.2 seconds under it; the switcher gnome takes its costume off"],
+      ["sounds/Shop Mole - Writing.ogg", "Mole writes", "The shop mole writes its thanks after something is bought"],
+      ["sounds/Misc - Neon Buzz.wav", "Neon sign buzz", "The shop sign buzzes once every 200 updates (2 seconds), at its 30th; the challenge sign buzzes at the 40th update of each cycle of its picture cels"],
+      ["sounds/Flag Mole - Waving.ogg", "Flag waves", "The flag mole waves its flag, and again every 128 updates (about 1.3 seconds) while it waves and is not frozen"],
+      ["sounds/Flag Mole - Picked and Moving.ogg", "Flag picked", "The flag mole is hit and its five-times sign flies to the bonus tray"],
+      ["sounds/Iron Gnome - Strike 0.ogg", "Iron strike 1", "The iron gnome's first hit (its health is then 5)"],
+      ["sounds/Iron Gnome - Strike 1.ogg", "Iron strike 2", "The iron gnome's second hit (its health is then 4)"],
+      ["sounds/Iron Gnome - Strike 2.ogg", "Iron strike 3", "The iron gnome's third hit (its health is then 3)"],
+      ["sounds/Iron Gnome - Strike 3.ogg", "Iron strike 4", "The iron gnome's fourth hit (its health is then 2)"],
+      ["sounds/Iron Gnome - Strike 4.ogg", "Iron strike 5", "The iron gnome's fifth hit (its health is then 1)"],
+      ["sounds/Iron Gnome - Strike 5.ogg", "Iron strike 6", "The iron gnome's last hit, as its health reaches 0"],
+      ["sounds/Cupido - Magic.ogg", "Cupid magic", "Cupid is hit and turns gnomes into hearts, with its cry"],
+      ["sounds/Treasure Chest - Opening.ogg", "Chest opens", "A treasure chest opens, when it is hit, or by itself once its timer runs out; it throws coins"],
+      ["sounds/Aviator - Engine L2R.ogg", "Plane engine, left to right", "An aviator gnome is made flying from the left (the side is a coin flip); it is cut off when the plane is hit"],
+      ["sounds/Aviator - Engine R2L.ogg", "Plane engine, right to left", "An aviator gnome is made flying from the right; it is cut off when the plane is hit"],
+      ["sounds/Aviator - Hit.ogg", "Plane hit", "The aviator is struck, with the metal hit and its cry; the plane then falls"],
+      ["sounds/Gnome King - Droning.ogg", "King drones", "The Gnome King's wait ends and he starts to open"],
+      ["sounds/Gnome King - Flashing.ogg", "King flashes", "The Gnome King has opened fully, his crystal glows and the other platforms pop"],
+      ["sounds/Misc - Camera Flash.ogg", "Camera flash", "The save gnome is hit and its photo is taken"]
+    ] },
+    { name: "Pickups and powers", sounds: [
+      ["sounds/Coin - Single Appear.ogg", "Coin appears", "A single coin jumps up (not in a challenge, where coins sit still)"],
+      ["sounds/Coin - Single Picked.ogg", "Coin picked", "A single coin is hit; also each coin a chest, the jester or the aviator gives, and the rabbit's coin when it is beaten"],
+      ["sounds/Coin - Three Appear.ogg", "Big coin appears", "A three-coin pile jumps up (not in a challenge)"],
+      ["sounds/Coin - Three Picked.ogg", "Big coin picked", "A three-coin pile is hit; also the strong gnome taking coins, the switcher's coin costume bursting, and the challenge results counting coins, one every 25 updates (0.25 seconds)"],
+      ["sounds/Heart - Appear.ogg", "Heart appears", "A heart gnome appears; silent when Cupid makes several at once"],
+      ["sounds/Heart - Picked.ogg", "Heart picked", "A heart is hit and flies to the health row"],
+      ["sounds/Lucky Clover - Picked and Activated.ogg", "Power picked up", "The clover power starts, the power bottle is hit, or the strawberry power starts"],
+      ["sounds/Various - Squish Strawberry.ogg", "Strawberry squish", "The strawberry power starts; also each click that hits nothing in a level while it lasts"],
+      ["sounds/Various - Icecream Gloop.ogg", "Ice cream gloop", "The ice cream power starts and everything freezes for 5 seconds, with the freeze sound"],
+      ["sounds/Misc - Ice Freeze.ogg", "Ice freeze", "The ice cream power starts, together with the gloop"],
+      ["sounds/Various - Duck Quack.ogg", "Duck quack", "The duck bonus is hit"]
+    ] },
+    { name: "Bonuses and counters", sounds: [
+      ["sounds/UI - Speed Bonus 1.ogg", "Speed bonus 1", "The lowest speed bonus is made (250 points)"],
+      ["sounds/UI - Speed Bonus 2.ogg", "Speed bonus 2", "The second speed bonus, Super (500 points)"],
+      ["sounds/UI - Speed Bonus 3.ogg", "Speed bonus 3", "The third speed bonus, Hyper (750 points)"],
+      ["sounds/UI - Speed Bonus 4.ogg", "Speed bonus 4", "The fourth speed bonus, Ultra (1000 points)"],
+      ["sounds/UI - Speed Bonus 5.ogg", "Speed bonus 5", "The top speed bonus, Giga (2000 points)"],
+      ["sounds/UI - Time Bonus.ogg", "Time bonus", "Marathon mode: each time a minute of play ends and its time bonus is shown"],
+      ["sounds/UI - Heart Lost.ogg", "Heart lost", "A miss, or a gnome that escapes, costs health, unless the matching cheat is on"],
+      ["sounds/Hint Popup 01.ogg", "Hint pops up", "A hint appears in the first level; each of the last three lines of a level summary as it is shown (at 8.1, 8.6 and 9.1 seconds in); the gift wheel's ticks as its picture changes, falling in pitch and then one much higher for the prize"]
+    ] },
+    { name: "Level end and game over", sounds: [
+      ["sounds/Sting - Gnome King.ogg", "Gnome King arrives", "The Gnome King is released into a level"],
+      ["sounds/Sting - End Of Wave.ogg", "End of wave", "A wave's result appears; the music fades out as it does"],
+      ["sounds/Sting - Level Up.ogg", "Level up", "A level is finished in Classic or Tough Cookie mode, before the wipe to the next level or the game won screen"],
+      ["sounds/Crowd Applause 01.ogg", "Applause 1", "The level summary opens its totals, 7 seconds in, for levels 4, 8, 12 and so on (the level number mod 4 is 0)"],
+      ["sounds/Crowd Applause 02.ogg", "Applause 2", "The level summary opens its totals, 7 seconds in, for levels 1, 5, 9 and so on"],
+      ["sounds/Crowd Applause 03.ogg", "Applause 3", "The level summary opens its totals, 7 seconds in, for levels 2, 6, 10 and so on"],
+      ["sounds/Crowd Applause 04.ogg", "Applause 4", "The level summary opens its totals, 7 seconds in, for levels 3, 7, 11 and so on"],
+      ["sounds/Sting - Game Over.ogg", "Game over", "The game over text appears"],
+      ["sounds/Sting - Game Won.ogg", "Game won", "The game won screen has been open for 100 updates (1 second)"],
+      ["sounds/Sting - Medal Awarded.ogg", "Trophy awarded", "A trophy won is shown on its own page in the trophy room, and again for each further one won at the same time"]
+    ] },
+    { name: "Voices", sounds: [
+      ["sounds/voices/Bonus - Ready.ogg", "\"Ready?\"", "The ready box opens at the start of a game or when a level begins, or comes back when the how-to-play box closes; in a bonus round, about 2.3 seconds into its countdown"],
+      ["sounds/voices/Bonus - Go.ogg", "\"Go!\"", "The ready box is closed and play starts; in a bonus round, about 4.4 seconds into its countdown"],
+      ["sounds/voices/Bonus - Perfect.ogg", "\"Perfect!\"", "A bonus round's result box when every coin was hit without a miss; also a wave's result when every swing of the wave was a hit"],
+      ["sounds/voices/Bonus - Well Done.ogg", "\"Well done!\"", "A bonus round's result box when it was not perfect; also a wave's result when 95 percent or more of its swings were hits"],
+      ["sounds/voices/Bouncing - Ai.ogg", "\"Ai!\"", "The bouncing jester or the aviator is hit"],
+      ["sounds/voices/Bouncing - Yoohoo.ogg", "\"Yoohoo!\"", "The jester or the aviator first comes well into the screen; also the peeking gnome that calls out on the main menu"],
+      ["sounds/voices/Bucket - Au.ogg", "\"Au!\" (bucket gnome)", "The bucket gnome is hit and survives"],
+      ["sounds/voices/Cheat - Cheater.ogg", "\"Cheater!\"", "A cheat is turned on"],
+      ["sounds/voices/Cheat - Honest.ogg", "\"Honest!\"", "A cheat is turned off"],
+      ["sounds/voices/Cupid - Au.ogg", "\"Au!\" (Cupid)", "Cupid is hit, with its magic"],
+      ["sounds/voices/Cupid - Love.ogg", "\"Love\"", "Cupid's platform comes up"],
+      ["sounds/voices/Napoleon - Ugh.ogg", "\"Ugh\"", "Napoleon is hit"],
+      ["sounds/voices/Stabbing - Au.ogg", "\"Au!\" (stabbing gnome)", "The stabbing gnome is hit while its fork is out"],
+      ["sounds/voices/Stabbing - Hehe.ogg", "\"Hehe\"", "The stabbing gnome has finished its turns and starts to stab"],
+      ["sounds/voices/Stabbing - Nya.ogg", "\"Nya\"", "The stabbing gnome appears, and each time it goes back to idle after a stab or a hurt"],
+      ["sounds/voices/Strong - Au.ogg", "\"Au!\" (strong gnome)", "The strong gnome is hit and survives"],
+      ["sounds/voices/Strong - Hehehehe.ogg", "\"Hehehehe\"", "The strong gnome ends its flex after taking coins from the counter"],
+      ["sounds/voices/Switcher - Ai.ogg", "\"Ai!\" (switcher gnome)", "The switcher gnome is hit"],
+      ["sounds/voices/Woman - Helaba.ogg", "\"Helaba\"", "The woman gnome is hit and turns angry"]
+    ] },
+    { name: "Unused", sounds: [
+      ["sounds/Misc - Gnome Breaking Big.ogg", "Big gnome break (unused)", "Never played: it is in the resource list and loaded, but no call or table reaches it"],
+      ["sounds/UI - Target Over Gnome.ogg", "Target over gnome (unused)", "Never played: it is in the resource list and loaded, but no call or table reaches it"]
     ] }
   ] }
 };

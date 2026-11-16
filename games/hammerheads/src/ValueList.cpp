@@ -9,7 +9,9 @@ ValueList::ValueList() : mPos(0)
 {
 }
 
-// 0x41e090: the text is cut at each ";" (a backslash keeps the next character), a "," in a number is read as a point,
+// 0x41e090 (with 0x41dbb0, the cut at a character that a backslash escapes, 0x41dfe0, the comma made a point, 0x41db20 and
+// 0x41db50, the string's end and erase that the cut uses; the original's list of numbers, 0x41deb0, 0x41dda0, 0x41df20 and
+// 0x41df80 its construction, growth, copy and append, is a std::vector<double> here): the text is cut at each ";" (a backslash keeps the next character), a "," in a number is read as a point,
 // and each piece is read by atof in the English locale
 ValueList::ValueList(const std::string& theText) : mPos(0)
 {

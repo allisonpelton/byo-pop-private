@@ -5,11 +5,8 @@
 // the map, the vehicles, the customers, the toppings, the particle effects, the special events, the music and the score
 // titles, read by the loading state from res\manifests\tileManifest.xml and found by name.
 //
-// Left out of what the manifest reads: the particle systems of the effects (the signal build's particle document
-// handler, 0x47bc40, is not translated), and the previews of the toppings (Topping::setImage). The finders no state of
-// the loading reaches are not translated: getTile 0x422c00 (callers 0x411570, 0x41bbe0, 0x41d190, 0x422ca0, 0x4267a0),
-// getVehicle 0x422ca0, getRoadTile 0x422d30, getCharacter 0x422d60, getParticleEffect 0x422dd0, getEvent 0x422df0 and
-// getCharacterByNameTheme 0x422f90, nor the destructor 0x4263c0.
+// Left out of what the manifest reads: the previews of the toppings (Topping::setImage). The finders no state of
+// the loading reaches are not translated: getVehicle 0x422ca0 and getCharacter 0x422d60, nor the destructor 0x4263c0.
 
 #include "GameMusicPlayer.h"
 #include "Object.h"
@@ -32,8 +29,31 @@ public:
 
 	// 0x422d80: the topping of that name, null when there is none
 	Topping* getTopping(const std::string& theName);
+	// 0x422c00: the tile of that name of the class (not "roads", whose tiles getRoadTile gives), null when there is
+	// none
+	TileType* getTile(const std::string& theName, const std::string& theClass);
+	// 0x422d30: the picture of a road's sheet, 0 to 15, null when the road has none; the original makes an empty entry
+	// for a name it does not have, which the port does not
+	TileType* getRoadTile(const std::string& theName, int theIndex);
+	// 0x422dd0: the particle effect of that name, null when there is none
+	ParticleEffect* getParticleEffect(const std::string& theName);
 	// The toppings by name (+0x30)
 	std::map<std::string, engine::Ref<Topping>>& getToppings() { return mToppings; }
+	// The toppings in the order the manifest gives them (+0x3c)
+	std::vector<engine::Ref<Topping>>& getToppingList() { return mToppingList; }
+	// The score titles in the order the manifest gives them (+0x70)
+	std::vector<engine::Ref<ScoreTitle>>& getTitles() { return mTitles; }
+	// 0x41e120: the title of the points: the last of the titles whose points the player has reached, where each is
+	// read from the second on, so that the first is the least
+	ScoreTitle* getTitle(int thePoints);
+	// 0x41e600: a random fun fact (one random draw)
+	const std::string& getRandomFunFact();
+	// 0x422df0: the special event of that name, null when there is none
+	SpecialEvent* getEvent(const std::string& theName);
+	// 0x422d60: the customer of that exact key (one is made, empty, for a key the manifest has not got)
+	Character* getCharacter(const std::string& theKey) { return mCharacters[theKey]; }
+	// 0x422f90: the customer "<name>_<theme>", the theme the one of the city that is played; null when there is none
+	Character* getCharacterByNameTheme(const std::string& theName);
 	// 0x422e10: the music clip of that name, null when there is none
 	GameMusicClip* getMusic(const std::string& theName);
 

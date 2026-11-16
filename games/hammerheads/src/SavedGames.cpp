@@ -109,7 +109,7 @@ SavedGame::SavedGame() :
 		mBoardOrder[i] = 0;
 }
 
-// 0x46d620: the game on screen goes into the saved game of its mode
+// 0x46d620, 0x4435f0 (the sticker's copy, held inline): the game on screen goes into the saved game of its mode
 void User::StoreGameSnapshot()
 {
 	GameScreen* aGameScreen = gApp->mGameScreen;

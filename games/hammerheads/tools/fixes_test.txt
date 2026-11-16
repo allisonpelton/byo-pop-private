@@ -1,0 +1,20 @@
+# The fixes mod's tour (games/hammerheads/tools/fixes_check.sh): a new player, the trophy room from the main menu (menuTrophySting),
+# the quit box and Escape (quitEscape).. @DIR@ is the run's folder.
+300 seed 1
+650 click 397 532
+900 char T
+910 char e
+920 char s
+930 char t
+1100 click 310 392
+1500 unlock marathon
+1600 goto trophies
+2000 goto menu
+2400 state
+2500 click 480 480
+2900 screenshot @DIR@/quit.png
+2901 state
+2950 key Escape
+3400 screenshot @DIR@/afterescape.png
+3401 state
+4200 quit

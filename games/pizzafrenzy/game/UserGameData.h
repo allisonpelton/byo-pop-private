@@ -82,7 +82,7 @@ public:
 
 	std::string mPlayerName;  // +0x1c
 	int mMaxCity;             // +0x38
-	std::map<Topping*, int> mToppingLevels;                 // +0x3c: the level of each topping
+	ToppingMap<int> mToppingLevels;                 // +0x3c: the level of each topping
 	std::vector<engine::Ref<Topping>> mNewToppings;         // +0x4c
 	std::vector<engine::Ref<Topping>> mPickToppings;        // +0x5c
 	bool mUnlockTopping;      // +0x68

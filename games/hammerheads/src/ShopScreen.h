@@ -66,6 +66,8 @@ public:
 	virtual void	Draw(Graphics* g) override;						// 0x45dfb0
 	virtual void	MouseEnter() override;							// 0x45dd50
 	virtual void	MouseLeave() override;							// 0x45dd90
+	virtual void	MouseMove(int x, int y) override;				// 0x45dcf0: the hammer follows the pointer
+	virtual void	MouseDrag(int x, int y) override;				// 0x45dcf0
 	virtual void	MouseDown(int x, int y, int theClickCount) override;	// 0x45dd20
 	using Widget::MouseDown;
 	virtual void	ButtonDepress(int theId) override;				// 0x45df40 (the ButtonListener part)

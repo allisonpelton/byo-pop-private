@@ -48,9 +48,7 @@ public:
 	void				Load();						// 0x42a870 (puzzle by puzzle: 0x429c70)
 	const Level*		GetLevel(const std::string& theName) const;
 	int					GetPuzzleCount(const std::string& theName) const;		// 0x4283e0 (-1: no such temple)
-	const Puzzle*		GetCurrentPuzzle() const;								// 0x42a080 and the index
 	bool				IsKnown(const std::string& theUuid) const { return mFileByUuid.find(theUuid) != mFileByUuid.end(); }	// 0x427d00
-	const Puzzle*		FindPuzzle(const std::string& theUuid) const;
 };
 
 }

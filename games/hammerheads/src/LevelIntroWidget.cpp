@@ -1,4 +1,5 @@
 #include "LevelIntroWidget.h"
+#include "LiveSplitObserver.h"
 
 #include "Application.h"
 #include "Buffer.h"
@@ -176,6 +177,7 @@ void LevelIntroWidget::ButtonDepress(int theId)
 {
 	if (theId == BUTTON_CONTINUE)
 	{
+		LiveSplitObserver::GoPressed();		// port(autosplit): the first level's Go when it has an introduction
 		mCloseResult = 0;
 		mLeaving = true;
 	}

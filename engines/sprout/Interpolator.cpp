@@ -130,3 +130,91 @@ void PositionInterpolator::setCurve(const PositionKey& theKey, const PositionKey
 		aStart = aDecelStart;
 	mCurve.set(theKey.mOutSpeed, theNext.mInSpeed, anAccelEnd, aStart);
 }
+
+// 0x480c40 (pizzafrenzy)
+void ScalarInterpolator::addKey(const ScalarKey& theKey)
+{
+	size_t i = 0;
+	while (i < mKeys.size() && mKeys[i].mTime < theKey.mTime)
+		i++;
+	if (i == mKeys.size() || theKey.mTime < mKeys[i].mTime)
+		mKeys.insert(mKeys.begin() + i, theKey);
+	mCurrent = i;
+}
+
+// 0x47fcf0 (pizzafrenzy)
+void ScalarInterpolator::clear()
+{
+	mKeys.clear();
+	mCurrent = 0;
+}
+
+// 0x47fd30 (pizzafrenzy)
+float ScalarInterpolator::get(float theTime)
+{
+	size_t anEnd = mKeys.size();
+	size_t aCurrent = mCurrent;
+	bool aMoved = false;
+	size_t aNext = aCurrent < anEnd ? aCurrent + 1 : anEnd;
+	if (aNext != anEnd)
+	{
+		do
+		{
+			if (theTime <= mKeys[aNext].mTime)
+				break;
+			aCurrent = aNext;
+			aNext++;
+			aMoved = true;
+		} while (aNext != anEnd);
+	}
+	bool aMovedBack = aMoved;
+	if (aCurrent != 0)
+	{
+		do
+		{
+			aMoved = aMovedBack;
+			if (mKeys[aCurrent].mTime <= theTime)
+				break;
+			aNext = aCurrent;
+			aCurrent--;
+			aMoved = true;
+			aMovedBack = true;
+		} while (aCurrent != 0);
+	}
+	mCurrent = aCurrent;
+	if (anEnd == 0)
+		return 0.0f;
+	if (aNext == anEnd)
+		return mKeys[aCurrent].mValue;
+	if (aMoved)
+		setCurve(mKeys[aCurrent], mKeys[aNext]);
+	const ScalarKey& aKey = mKeys[aCurrent];
+	if (theTime < aKey.mTime)
+		return aKey.mValue;
+	float aValue = mCurve.get((theTime - aKey.mTime) / (mKeys[aNext].mTime - aKey.mTime));
+	return (mKeys[aNext].mValue - aKey.mValue) * aValue + aKey.mValue;
+}
+
+// 0x47fbf0 (pizzafrenzy)
+void ScalarInterpolator::setCurve(const ScalarKey& theKey, const ScalarKey& theNext)
+{
+	float aScale = 1.0f / (theNext.mTime - theKey.mTime);
+	float anAccelEnd = aScale * theKey.mOutTime;
+	float aDecelStart = 1.0f - aScale * theNext.mInTime;
+	float aStart = anAccelEnd;
+	if (anAccelEnd < aDecelStart)
+		aStart = aDecelStart;
+	mCurve.set(theKey.mOutSpeed, theNext.mInSpeed, anAccelEnd, aStart);
+}
+
+// 0x42c7b0 (pizzafrenzy)
+void ScaleInterpolator::apply(Node* theNode, float theValue)
+{
+	theNode->setScale(theValue);
+}
+
+// 0x42c870 (pizzafrenzy)
+void OpacityInterpolator::apply(Node* theNode, float theValue)
+{
+	theNode->setOpacity(theValue);
+}

@@ -1,4 +1,5 @@
 #include "ResurrectButton.h"
+#include "platform/GameOptions.h"
 
 #include "Color.h"
 #include "Common.h"
@@ -129,6 +130,9 @@ void ResurrectButton::Draw(Graphics* g)
 		g->DrawImage(IMAGE_TINYFLAME, aHammerX + aHammer->mWidth, FLAME_Y);
 
 	// the coin and the number of coins, together in the middle (the number is measured in the font the line above was written in)
+	// fix (restartCoinCount): measured in the font it is drawn in, so the pair sits in the middle
+	if (Platform::FixOn("restartCoinCount"))
+		g->SetFont(FONT_ARIAL10B);
 	int aCoinsWidth = g->GetFont()->StringWidth(aCoins) + IMAGE_TINYCOIN->mWidth + COIN_GAP;
 	int aCoinX = mWidth / 2 - aCoinsWidth / 2;
 	g->DrawImage(IMAGE_TINYCOIN, aCoinX, COIN_Y);

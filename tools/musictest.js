@@ -1,6 +1,7 @@
 // The music player's decoder (web/music/openmpt_web.c, build/web/openmpt.js) under Node: the tracker view's position and rows and
 // the seek bar's seek, on a small ProTracker module made here (libxmp-lite's side) and, when the main checkout's staged files are
-// there, a game's MO3 (libopenmpt's side). node tools/musictest.js <build/web/openmpt.js> [assets dir]
+// there, a game's MO3 (libopenmpt's side); the MIDI player on a small file made here, and TipTop's song when its archive is
+// staged. node tools/musictest.js <build/web/openmpt.js> [assets dir]
 "use strict";
 const path = require("path"), fs = require("fs");
 const [jsPath, assets] = process.argv.slice(2);
@@ -162,7 +163,76 @@ function protracker(hidden) {
     for (; i < src.length; i++) { if (src[i] === "{") d++; else if (src[i] === "}" && --d === 0) break; }
     return src.slice(a, i + 1);
   }
-  const R = new Function(grab("peResources") + grab("zipEntry") + grab("baseName") + "return { peResources, zipEntry, baseName };")();
+  const R = new Function("var TIPTOP_SRC = [2, 6, 0, 7, 5, 4, 1, 3], tipTopDecode = null;" + grab("peResources") + grab("zipEntry") +
+    grab("baseName") + grab("tipTopEntry") + "return { peResources, zipEntry, baseName, tipTopEntry };")();
+  check("tiptop: an entry's name", R.baseName("TipTop.dat|tiptop:sounds/bkgd.mid") === "bkgd", R.baseName("TipTop.dat|tiptop:sounds/bkgd.mid"));
+
+  // ---------- MIDI (web/music/midi_web.c): TipTop's sequencer into TinySoundFont, with the port's bank beside the pages ----------
+  // A format 1 file made here: one track at 96 ticks a beat and 120 BPM, a note of a beat on channel 1, a drum on channel 10,
+  // and the track's end at 4 beats (2 s)
+  function midiFile() {
+    const ev = [0x00, 0xff, 0x51, 0x03, 0x07, 0xa1, 0x20, 0x00, 0xb0, 0x07, 0x64, 0x00, 0x90, 0x3c, 0x64, 0x00, 0x99, 0x26, 0x64,
+      0x60, 0x80, 0x3c, 0x00, 0x00, 0x89, 0x26, 0x00, 0x82, 0x20, 0xff, 0x2f, 0x00];
+    const b = Buffer.alloc(22 + ev.length);
+    b.write("MThd", 0, "latin1"); b.writeUInt32BE(6, 4); b.writeUInt16BE(1, 8); b.writeUInt16BE(1, 10); b.writeUInt16BE(96, 12);
+    b.write("MTrk", 14, "latin1"); b.writeUInt32BE(ev.length, 18); Buffer.from(ev).copy(b, 22);
+    return b;
+  }
+  function put(b) { const p = M._malloc(b.length); M.HEAPU8.set(b, p); return p; }
+  function midiSeconds(b) { const p = put(b), s = M._bm_midi_seconds(p, b.length); M._free(p); return s; }
+  const bankPath = path.join(path.dirname(jsPath), "soundfonts", "tiptop.sf2");
+  const bank = fs.existsSync(bankPath) ? fs.readFileSync(bankPath) : null;
+  check("midi: the bank beside the pages", !!bank, bankPath);
+  function midiLoad(b) { const f = put(b), k = put(bank), h = M._bm_midi_load(f, b.length, k, bank.length, RATE); M._free(f); M._free(k); return h; }
+  // renders until the end or for seconds; the frames and every chunk's length
+  function midiRender(h, chunk, seconds) {
+    const buf = M._malloc(chunk * 8), pcm = [], sizes = [];
+    let frames = 0, n;
+    while (frames < RATE * seconds && (n = M._bm_midi_render(h, chunk, buf)) > 0) {
+      pcm.push(Float32Array.from(M.HEAPF32.subarray(buf >> 2, (buf >> 2) + n * 2)));
+      sizes.push(n);
+      frames += n;
+    }
+    M._free(buf);
+    const all = new Float32Array(frames * 2);
+    let at = 0;
+    for (const a of pcm) { all.set(a, at); at += a.length; }
+    return { frames, all, sizes };
+  }
+  const mf = midiFile();
+  check("midi: the song's length as the sequencer plays it", Math.abs(midiSeconds(mf) - 2) < 0.002, midiSeconds(mf));
+  check("midi: not a MIDI file", midiSeconds(Buffer.from("MThd not really a midi file")) === 0 && !midiLoad(Buffer.from("RIFF....")));
+  if (bank) {
+    let h = midiLoad(mf);
+    check("midi: loads", !!h);
+    M._bm_midi_loop(h, 0);
+    const once = midiRender(h, 4096, 10);
+    let peak = 0;
+    for (const v of once.all) peak = Math.max(peak, Math.abs(v));
+    check("midi: once through, then it ends", Math.abs(once.frames / RATE - 2) < 0.002 && M._bm_midi_render(h, 4096, 0) === 0, once.frames / RATE);
+    check("midi: the notes sound", peak > 0.01 && peak < 1, peak);
+    // the same frames whatever the chunks: each millisecond is rendered whole, as the port's musicwav renders it
+    M._bm_midi_seek(h, 0);
+    const odd = midiRender(h, 1000, 10);
+    check("midi: the same in any chunks", odd.frames === once.frames && odd.all.every((v, i) => v === once.all[i]));
+    // repeat on: the song plays on from its start, the chunk before the start again cut there, the position back to 0
+    M._bm_midi_seek(h, 0);
+    M._bm_midi_loop(h, 1);
+    const twice = midiRender(h, 4096, 3);
+    const cut = twice.sizes.findIndex((n) => n < 4096);
+    check("midi: repeat plays on", twice.frames >= RATE * 3 && cut >= 0 && twice.sizes.slice(0, cut + 1).reduce((a, n) => a + n, 0) === once.frames &&
+      Math.abs(M._bm_midi_position(h) - (twice.frames - once.frames) / RATE) < 0.001, [twice.frames, cut, M._bm_midi_position(h)]);
+    M._bm_midi_seek(h, 1.5);
+    check("midi: seeks", Math.abs(M._bm_midi_position(h) - 1.5) < 0.002, M._bm_midi_position(h));
+    M._bm_midi_free(h);
+    // TipTop's own song, when its archive is staged: 168.8 s once through (games/tiptop/docs/README.md)
+    const dat = assets ? path.join(assets, "tiptop", "TipTop.dat") : "";
+    if (dat && fs.existsSync(dat)) {
+      const song = R.tipTopEntry(new Uint8Array(fs.readFileSync(dat)), "sounds/bkgd.mid");
+      check("midi: TipTop's song from its archive", !!song && song.length > 0);
+      if (song) check("midi: TipTop's song is 168.8 s", Math.abs(midiSeconds(Buffer.from(song)) - 168.843) < 0.01, midiSeconds(Buffer.from(song)));
+    }
+  }
   // places numbered as the game reaches them, in that order where the files' order put them; the others where they were
   const NB = new Function(grab("numbered") + "return numbered;")();
   check("numbered places in order", NB([{ where: "Main Menu" }, { where: "Level Theme 3" }, { where: "Level Theme 2" }, { where: "" }, { where: "Level Theme 1" }])

@@ -121,3 +121,20 @@ search's time limit, checked at 0x413fa0 and started at 0x413500; under `-fast` 
 move while a deal searches), and `Host::SeedTick` is the clock again at the three deal sites (`Board::SetLayout` 0x40aa40,
 `Board::Start` 0x40ae60, `Board::Reshuffle` 0x40b0a0). `steadyClock` replaces the first with a clock of the updates,
 and `seededDeals` the third with a seed the page gives.
+
+## A picture's decoded bits (2026-11-15)
+
+The original keeps a picture twice once it has been drawn: its decoded bits (the DIB) and the 32-bit copy that every
+blit reads (`Image::Prepare`, 0x42e8b0). The port frees the decoded bits once the copy is made, for a picture whose bits
+it decoded from a resource itself (JPEG, PNG or RLE TGA; a BMP's bits are the resource's own and cost nothing), and
+decodes them again from the resource only if something needs them: drawing into the picture, `SaveBmp`, or the copy
+made again (`jb::Image::DropBits` and `EnsureBits`). The pictures the game draws into (the tile sheets of the board and
+of the layouts list) are made with `CreateImage` and keep their bits.
+
+One thing follows from it. When the display is released and made again (a full-screen toggle, `Display::Release`,
+0x432db0 and 0x432520), the original frees every picture's copy and makes it again from the bits at its next draw; the
+port keeps the copy of a picture whose bits it dropped, which has nothing else to be made from. That copy holds the
+pixels a new one would (both come from the same decode of the same resource, converted the same way), so nothing drawn
+changes: the frozen screens and every check are identical. Why: the bits are 14.9 MB the game never reads again (13 MB
+less peak private memory, `GAME_NOTES.md`, "Streamed music and one copy of the pictures"). `JB_KEEP_IMAGE_BITS=1` keeps
+every picture's bits, as the original does.

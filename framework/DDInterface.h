@@ -354,6 +354,10 @@ public:
 
 	// Reads the logical screen back into ARGB pixels (used for screenshots / GetBits on the screen).
 	virtual bool ReadScreen(ulong* theBits);
+	// Test: the window as the last present showed it (the presentation rect and the bars around it), theWidth x theHeight pixels
+	// 0x00RRGGBB: the renderer's present made again into its back buffer and read back (nothing is presented).
+	virtual bool ReadWindow(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight);
+
 	// Reads the render target at full resolution (logical size * mRenderScale), ARGB.
 	virtual bool ReadScreenFull(std::vector<uint32_t>& theBits, int& theWidth, int& theHeight);
 

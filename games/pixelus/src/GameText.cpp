@@ -111,6 +111,7 @@ struct PEImage
 
 }
 
+// port: a helper of the port (Sexy::LoadGameTexts)
 bool Sexy::LoadGameTexts()
 {
 	std::map<unsigned int, SexyString>& aTexts = Texts();
@@ -199,6 +200,7 @@ bool Sexy::LoadGameTexts()
 	return aMatched > 0;
 }
 
+// port: a helper of the port (Sexy::GameText)
 const SexyString& Sexy::GameText(unsigned int theVA)
 {
 	static const SexyString sEmpty;

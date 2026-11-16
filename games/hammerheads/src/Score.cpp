@@ -29,18 +29,6 @@ Score::~Score()
 {
 }
 
-// 0x44b170
-void Score::SetScore(int theScore)
-{
-	GetStats()->SetInt(STAT_SCORE, theScore);
-}
-
-// 0x44b190
-int Score::GetScore() const
-{
-	return GetStats()->GetInt(STAT_SCORE);
-}
-
 // 0x44b0f0
 Score* Sexy::GetScore()
 {

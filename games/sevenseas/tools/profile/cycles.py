@@ -246,6 +246,20 @@ def port_counts(h, pid, app_rva, exe_name):
     return None if None in c else c
 
 
+class PMC(ctypes.Structure):
+    _fields_ = [('cb', W.DWORD), ('PageFaultCount', W.DWORD)] + [(n, ctypes.c_size_t) for n in (
+        'PeakWorkingSetSize', 'WorkingSetSize', 'QuotaPeakPagedPoolUsage', 'QuotaPagedPoolUsage',
+        'QuotaPeakNonPagedPoolUsage', 'QuotaNonPagedPoolUsage', 'PagefileUsage', 'PeakPagefileUsage', 'PrivateUsage')]
+
+
+def private_bytes(h):
+    """The process's private bytes now (psapi), or 0."""
+    m = PMC()
+    m.cb = ctypes.sizeof(m)
+    ctypes.windll.psapi.GetProcessMemoryInfo.argtypes = [W.HANDLE, ctypes.c_void_p, W.DWORD]
+    return m.PrivateUsage if ctypes.windll.psapi.GetProcessMemoryInfo(h, ctypes.byref(m), m.cb) else 0
+
+
 def idle():
     """This process at idle priority: the game (rundesk's below normal) is then never kept from the core by its poller."""
     k32.SetPriorityClass(k32.GetCurrentProcess(), 0x40)
@@ -287,8 +301,12 @@ def port(out, script, seed):
     exe_name = os.path.basename(exe).lower()
     marks, counts = [], []
     deadline = time.time() + 400
+    peak, tick = 0, 0
     while p.poll() is None and len(marks) < 2 and time.time() < deadline:
         time.sleep(0.005)
+        tick += 1
+        if tick % 10 == 0:
+            peak = max(peak, private_bytes(h))
         try:
             c = port_counts(h, p.pid, app_rva, exe_name) if app_rva else None
         except (ctypes.ArgumentError, OverflowError):
@@ -298,13 +316,16 @@ def port(out, script, seed):
         if c[2] >= FIRST + MINUTE * len(marks):
             marks.append(reading(h, threads))
             counts.append(c)
-    try:
-        p.wait(60)
-    except subprocess.TimeoutExpired:
+    end = time.time() + 60
+    while p.poll() is None and time.time() < end:
+        peak = max(peak, private_bytes(h))
+        time.sleep(0.05)
+    if p.poll() is None:
         k32.TerminateProcess(h, 0)
     log.close()
     res = {'side': 'port-visible' if visible else 'port', 'exit': p.returncode, 'others_start': n0, 'others_end': others()}
     res['window'] = mode or 'fresh'
+    res['peak_private_mb'] = round(peak / 1048576, 1)
     try:
         res['display'] = next(l.strip().partition('display: ')[2] for l in open(os.path.join(out, 'game.log'), errors='replace') if 'display: ' in l)
     except StopIteration:

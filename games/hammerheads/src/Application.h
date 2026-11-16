@@ -143,6 +143,7 @@ public:
 	virtual void	LoadingThreadProc() override;						// 0x420950 (slot 22)
 	virtual void	LoadingThreadCompleted() override;					// 0x41e660 (slot 16)
 	virtual void	UpdateFrames() override;							// 0x41f040 (slot 8)
+	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;	// port(autosplit): -livesplitlog=<file>
 	virtual void	ShutdownHook() override;							// 0x41f420 (slot 20): the screens are taken down
 	virtual Dialog*	NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines,
 						const SexyString& theDialogFooter, int theButtonMode) override;	// 0x41ee10 (slot 25)
@@ -245,7 +246,6 @@ public:
 	void			TrophyRoomToMainMenu();								// 0x4211c0
 	void			TrophyRoomToGame();									// 0x421200
 	void			ShowTrophyRoomFromMenu();							// 0x41f700
-	void			GameWonToMainMenu();								// 0x421c30
 	void			LevelIntroDone();									// 0x41fbf0
 	void			ShowHowToPlay(bool theWithNewGame);					// 0x41ec30
 	void			HideHowToPlay();									// 0x41ec50

@@ -93,6 +93,18 @@ void DialogState::show(engine::GenericScreen* theScreen)
 	mApp->mSounds->play(SOUND_DIALOG_IN, 1.0f, 1.0f);
 }
 
+// port: the test commands' state reads which dialog is open
+engine::GenericScreen* DialogState::getShownScreen() const
+{
+	if (sDialogScreens == nullptr)
+		return nullptr;
+	if (!sDialogScreens->mQueue.empty())
+		return sDialogScreens->mQueue.back();
+	if (sDialogScreens->mNext != nullptr)
+		return sDialogScreens->mNext;
+	return sDialogScreens->mCurrent;
+}
+
 // 0x406310
 void DialogState::close()
 {
@@ -186,20 +198,22 @@ void DialogState::action(const std::string& theAction)
 	}
 	else if (theAction.compare("toppingScreen") == 0)
 	{
-		// the topping book (the application's +0xe0): its slot 0x180, and then this state shows it; translated next
-		// with the topping screens
 		mFromPause = true;
+		mApp->mToppingBook->showPages();
+		show(mApp->mToppingBook);
 	}
 	else if (theAction.compare("gameExitSave") == 0)
 	{
 		mApp->saveGame();
-		// the game's +0x110 object's slot 0x20 stops the game when there is one; translated next
+		if (mApp->mMode != nullptr)
+			mApp->mMode->finishLevel();  // slot 0x20
 		mNextState = new MenuState(mApp);
 		close();
 	}
 	else if (theAction.compare("gameExitQuit") == 0)
 	{
-		// the game's +0x110 object's slot 0x20 stops the game when there is one; translated next
+		if (mApp->mMode != nullptr)
+			mApp->mMode->finishLevel();  // slot 0x20
 		mApp->mUserGameData->clearSavedGame(mApp->mGameMode);
 		if (mApp->mHighScores->addCurrentScore())
 			mApp->mShowHighScores = true;

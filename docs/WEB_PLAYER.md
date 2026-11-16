@@ -576,7 +576,16 @@ never with invented titles. A game's session sets these from its code:
 - `level`: "Music levels".
 
 **The decoder** is the games' own two module renderers, built for the web as `openmpt.js` and `openmpt.wasm` (target
-`byopop_openmpt`) and picked as `Platform::Mixer` picks them, so a tune sounds as it does in its game.
+`byopop_openmpt`) and picked as `Platform::Mixer` picks them, so a tune sounds as it does in its game. A MIDI file
+(TipTop's one tune; `bank` in `soundtracks.js`) plays in the same decoder as TipTop's port plays it
+(`web/music/midi_web.c`): the game's own sequencer, a pass over the tracks each millisecond, into TinySoundFont with the
+port's General MIDI bank cut from GeneralUser GS. The page fetches the bank from `soundfonts/` (3.3 MB, served beside
+the pages, as its licence asks) the first time a MIDI tune plays. Each millisecond renders whole, so the sound does not
+depend on how the worklet's chunks fall. Against the port's `musicwav` render it differs by at most one step in 32767 over
+180 seconds, the song's loop included, the margin the port's notes give between its native and web builds. With repeat on
+the song plays on from its start as the game's does, the notes still sounding carried over. Seeking runs the sequencer
+silently to the place, setting its programs and controllers but playing no notes. A MIDI tune has no tracker, piano roll
+or score.
 
 **The player's rules**, from the user: long silent endings are skipped (the user's notes, 2026-11-10: "Some of the
 short tracks have a bunch of dead air at the end, where the tracker slows to a crawl"; `trimEnd`), the first piece of a cut subsong too (Twist's Game Over: a 3.5-second jingle,
@@ -844,6 +853,12 @@ to the final level's results screen, its win in the same update as that level's 
 results. A campaign continued from the menu starts nothing. The game-over box's TRY AGAIN plays the level again on the
 same board and the run goes on (a death that `goesOn`); QUIT or the menu after it resets as a quit, as the main menu
 after Venice's sunk Flood building does. Survival and the console categories have no template.
+Hammer Heads Deluxe (HHDX; speedrun.com: Hammer Heads Deluxe): Classic% and Tough Cookie% run from the Go! that starts a
+new game's first level (Classic's level card, Tough Cookie's "Ready?" box), split at each of the 25 levels' ends, and end
+at the Go! on the "Ready?" box after the trophy room that awards King Globus's trophy (`end: "progress 1"`), as the
+board's rules say; the last level's own end and the win come after it. Out of health is a game over (`resetHealth`): its
+try again is a new game on a new board. A continued game starts nothing. Marathon% is timed by the game's own clock, which
+the block has not, and All Trophies% runs over many games and modes, so neither has a template.
 Big Money has no board, so its row is its native
 script's rules, with mode and skill in the category's name and levels or scores as segments. Both replay their native
 scripts' scenarios in `tools/autosplittest.js`. Every other game with a board gets its row in Milestone 3, from the
@@ -944,7 +959,13 @@ category's end, resets on a new game (and starts the next run at once) and on a 
 BookWorm's Bookburner ends at a game over at rank 0 and resets at rank 1; Seven Seas' Easy run never starts on a Hard game. Heavy Weapon's
 has no new game during a run (a player leaves the level first, a quit): its game-over box's TRY AGAIN keeps the run going
 to the level's results, QUIT resets it, and its plan starts each campaign from a screen `goto` takes away (the menus,
-the high scores), since one under the armory, the map or a cutscene leaves that screen up for the bot. It answers every question No and removes the splits it stored. `tools/web/musicmutecheck.js` mutes a channel from
+the high scores), since one under the armory, the map or a cutscene leaves that screen up for the bot. Hammer Heads' bot
+only smashes, so its plan sends the game's `botclick` before each move for the level card, the "Ready?" box and the game
+over box, and presses the trophy pages and the room's Back itself; its Classic% run is cut to Level 1 and Level 25, and
+`set level 25` after level 1, then `set kings 1` once that level is in play, bring the trophy room whose Go! ends it (a
+stat set looks for trophies at once, and the plan presses the room only over a level in play). It also plays into a level
+before `lose`, since the game checks the player's health only during play. It answers every question No and removes the
+splits it stored. `tools/web/musicmutecheck.js` mutes a channel from
 Music's tracker, turns the view off and on, switches tunes and comes back, and compares the tracker's header with what the
 player itself has muted (`bm_mute_status`). It then sends the keyboard's media keys with Music open and closed and checks
 the player's state and its sound context, not its buttons (`web/music.js`, `syncMutes` and the media keys). It needs games
@@ -1089,6 +1110,8 @@ browser's or a 20 ms timer's, whichever comes first, and plays are not counted. 
   reach the game.
 - `driver=<path>`: a driver script ("Drivers"). `run=<id>`: the folder of `shot(name)`'s files under `build/webshots/`
   (default "default"). `seed=N`, `placeholders=1`: as on the full page.
+- `env=NAME=VALUE,...`: environment variables the game reads (a native run's switches, `BYOPOP_STREAM_MUSIC=0` for
+  one), set before the runtime starts.
 
 `python tools/webtest/serve.py [--port 18780]` serves `build/web` on the loopback address only, with the staged files at
 `/__assets/<name>/`, the repo's driver scripts at `/__repo/` and `POST /__shot`, which saves

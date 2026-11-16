@@ -2,7 +2,7 @@
 # vsync.sh <out dir> [rounds]: the 3D stretch with the display's vertical blank holding the presents (the framework's default: vsync
 # asked of the renderer) against the same with vsync off and the presents held by the frame loop's own pace (DDInterface::FrameHeldByPace,
 # the display's refresh interval; `SDL_RENDER_VSYNC=0` takes the renderer's vsync away, so the pace engages), one game process at a time, in
-# real time, on the visible desktop (22:00 to 08:00 only), at the original's own window size (PERF_WINDOW=1), the order rotating every round,
+# real time, on the visible desktop, at the original's own window size (PERF_WINDOW=1), the order rotating every round,
 # the whole loop on one performance core (tools/pincore.py), the original (perf.py orig3d) in every round as the reference. Every port run
 # writes its present log (-presentlog: the start and length of each SDL_RenderPresent call; header: renderer, vsync asked and granted, pace);
 # `present_intervals.py <dir>` reads the intervals, `windows_report.py` the processor time and, with SPLIT=1, the split.

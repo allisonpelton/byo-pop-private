@@ -36,7 +36,6 @@ public:
 
 	void			CloseWith(int theResult);								// 0x468aa0: it goes back up, answering theResult
 	void			SetEscapeResult(int theResult);							// 0x468b30: what the escape key answers (-1 for nothing)
-	bool			IsMoving() const;										// 0x468bf0: it is still sliding, in or out
 	int				GetContentX() const;									// 0x468ac0: the page's left edge on the screen
 	int				GetContentY() const;									// 0x468ae0: the top of the page's lines on the screen
 	int				GetContentWidth() const;								// 0x468b00

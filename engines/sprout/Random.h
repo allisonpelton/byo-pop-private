@@ -26,6 +26,14 @@ int randomIndex(int theLow, int theHigh);
 // 0x42bd10 (wordharmony): a number between a range's two ends (x and y)
 float randomFloat(const Point& theRange);
 
+struct IntPair;
+
+// 0x479550 (pizzafrenzy): rand() modulo the number of whole numbers from theFirst to theSecond, plus theFirst; when
+// theSecond is the smaller, the count is taken from theSecond up to theFirst and the numbers still start at theFirst
+int randomRange(int theFirst, int theSecond);
+// 0x479580 (pizzafrenzy): the same over a pair of numbers
+int randomRange(const IntPair& theRange);
+
 } // namespace engine
 
 #endif

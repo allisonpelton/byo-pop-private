@@ -24,7 +24,7 @@ public:
 	void action(const std::string& theAction) override;
 
 private:
-	// 0x4022f0: the game that ended is let go; translated next with the game
+	// 0x4022f0: the game that ended is let go
 	void clearEndedGame();
 	// The dialog states are made with the screen to show and this state to come back to
 	void showDialog(engine::GenericScreen* theScreen);

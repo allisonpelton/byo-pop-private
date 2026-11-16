@@ -85,8 +85,8 @@ holds the rules every session follows; this file does not repeat them.
 - **Done means every phase but modding (the user, 2026-11-08, 2026-11-11):** a game is done, and may go on the live
   site, only after every step above, its features on the site included: its tunes placed, grouped and split in Music,
   its modules' unused patterns in Music's section for them (2026-11-15), and its soundboard's presets ("All these accessory features should be added to our definition of done"). The site
-  session builds those and the game's session answers its questions. The games done on 2026-12-31 go live then (the
-  site going public is still the user's word); the rest follow when done. Modding waits: new mods and the changes in
+  session builds those and the game's session answers its questions. The games done by 2026-12-25 go live then (the launch
+  date, the user's of 2026-11-15; putting the site on a public host is still the user's word on the day); the rest follow when done. Modding waits: new mods and the changes in
   `docs/MOD_ROADMAP.md`.
 - **The ports still to make (the user, 2026-11-01, 2026-11-08, 2026-11-15):** none starts until every current game is
   done by the definition above, every phase but modding (2026-11-15: "All games need to reach my definition of done
@@ -138,7 +138,10 @@ holds the rules every session follows; this file does not repeat them.
   origrun under rundesk; the port as `games/bejeweled/docs/PROFILE.md` and `tools/profile` do it: working set, private
   bytes, processor time and where it goes), and the web build's memory and frame time; on a busy machine, per-thread
   cycle counters (QueryThreadCycleTime) and alternating runs, and the coordinator gives a measuring slot when few game
-  processes run. Then the session speeds up what the profile shows, natively and on the web: how the port works
+  processes run. A script that reads the game's `OutputDebugString` markers (each game's `tools/profile/cycles.py`)
+  listens on the machine-wide DBWIN objects, so two listeners at once steal each other's lines and a run "misses a
+  marker": a listener waits while `CreateFileMappingW("DBWIN_BUFFER")` reports that it already exists (error 183),
+  then listens (Rocket Mania's SDL check, 2026-11-15: 56 runs of 56 whole with that wait). Then the session speeds up what the profile shows, natively and on the web: how the port works
   changes, never what it does, proved by the frozen baseline. One that changes what the player sees is a toggle in the
   fixes mod when it keeps the original's look and only stops wasting time, otherwise a mod of its own that starts off
   (like Bejeweled's `lean`). One that computes faster but may play differently is listed under "Lite candidates" for
@@ -215,9 +218,13 @@ holds the rules every session follows; this file does not repeat them.
   being let off.
   Shared costs are found once and fixed in the framework for every game; the list below holds them.
 - **Shared costs waiting for a fix:**
-  - Loading GIFs: decoded to 32 bits (`_stbi__out_gif_code`) and quantized back to 8 (`Sexy::Quantize8Bit`, a binary
-    search a pixel; a cache of the last colour gives the identical table), about a quarter of a load's processor time,
-    0.15 to 0.2 s of a load in any game with GIFs (Typer Shark, AstroPop, GAME_NOTES section 11). With the JPEG and
+  - Loading GIFs: decoded to 32 bits and quantized back to 8 (`Sexy::Quantize8Bit`, a binary search a pixel; a cache
+    of the last colour gives the identical table), about a quarter of a load's processor time, 0.15 to 0.2 s of a load
+    in any game with GIFs (Typer Shark, AstroPop, GAME_NOTES section 11), measured before `platform/GIFDecoder.cpp`
+    halved the decoding (1572aba0, 2026-11-14). The quantizing is left: a GIF's own indices, with its colours
+    put in the order Quantize8Bit would give them, make the same table without the 32-bit pass. Converting the GIFs to
+    another format would not help: lossless PNG or WebP of the eight games with the most GIFs is 30.6 or 23.9 MB
+    against 36.7, and neither decodes faster than the GIF decoder now (2026-11-15). With the JPEG and
     Vorbis decoders and Platform::DecodeImage, the load's decoding is about 12% of Bejeweled 2's 3D run without waiting.
   - imagehlp.dll, 2.4 to 7.6% of a run's cycles, from a call site not yet found (Typer Shark, AstroPop, Bejeweled 2).
   - The 2D path on SDL's software renderer (`DDInterface.cpp`, `mIs3D` false, about lines 784 to 833): every sprite an

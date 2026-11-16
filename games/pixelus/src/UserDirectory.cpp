@@ -16,16 +16,17 @@ using namespace Sexy;
 
 static const long USER_VERSION = 4;			// 0x53df8c
 
+// port: the constructor (UserProfile::UserProfile)
 UserProfile::UserProfile(PixelusApp* theApp)
 {
 	mApp = theApp;
 	mId = 0;
 	mCurrent = false;
-	mFlag2D = true;
-	mFlag38 = false;
+	mShowHelp = true;
+	mExpert = false;
 	memset(mFlags, 0, sizeof(mFlags));
-	mFlag79 = false;
-	mFlag7A = false;
+	mTutorialDone = false;
+	mStorySeen = false;
 }
 
 // 0x4383a0: the records of the puzzles the temple holds
@@ -100,12 +101,14 @@ void UserProfile::SetRecord(const std::string& theUuid, int theSolved, int theMo
 }
 
 // the original's strings in these files: a four-byte length, then the characters
+// port: a helper of the port (WriteText)
 static void WriteText(Buffer* theBuffer, const std::string& theString)
 {
 	theBuffer->WriteLong((long) theString.size());
 	theBuffer->WriteBytes((const uchar*) theString.data(), (int) theString.size());
 }
 
+// port: a helper of the port (ReadText)
 static std::string ReadText(const Buffer* theBuffer)
 {
 	long aLength = theBuffer->ReadLong();
@@ -117,6 +120,7 @@ static std::string ReadText(const Buffer* theBuffer)
 }
 
 // the original keeps the records of a temple in a map by UUID: ordered by the first four bytes as a signed number
+// port: a helper of the port (UuidBefore)
 static bool UuidBefore(const std::string& theA, const std::string& theB)
 {
 	int aA = (int) strtoul(theA.substr(0, 8).c_str(), NULL, 16), aB = (int) strtoul(theB.substr(0, 8).c_str(), NULL, 16);
@@ -130,12 +134,12 @@ void UserProfile::Write(Buffer* theBuffer) const
 	WriteText(theBuffer, mName);
 	theBuffer->WriteLong(mId);
 	theBuffer->WriteBoolean(mCurrent);
-	theBuffer->WriteBoolean(mFlag2D);
-	theBuffer->WriteBoolean(mFlag38);
+	theBuffer->WriteBoolean(mShowHelp);
+	theBuffer->WriteBoolean(mExpert);
 	for (int i = 0; i < NUM_FLAGS; i++)
 		theBuffer->WriteByte(mFlags[i]);
-	theBuffer->WriteBoolean(mFlag79);
-	theBuffer->WriteBoolean(mFlag7A);
+	theBuffer->WriteBoolean(mTutorialDone);
+	theBuffer->WriteBoolean(mStorySeen);
 
 	std::vector<std::string> aUuids[NUM_TEMPLES];
 	int aTemples = 0;
@@ -153,22 +157,22 @@ void UserProfile::Write(Buffer* theBuffer) const
 	}
 
 	theBuffer->WriteLong(aTemples);
-	for (int t = 0; t < NUM_TEMPLES; t++)
+	for (int aTemple = 0; aTemple < NUM_TEMPLES; aTemple++)
 	{
-		std::map<std::string, int>::const_iterator aFlags = mTempleFlags.find(gTemples[t].mName);
+		std::map<std::string, int>::const_iterator aFlags = mTempleFlags.find(gTemples[aTemple].mName);
 		int aBits = aFlags != mTempleFlags.end() ? aFlags->second : 0;
-		if (aUuids[t].empty() && aBits == 0)
+		if (aUuids[aTemple].empty() && aBits == 0)
 			continue;
-		theBuffer->WriteLong(t);
-		theBuffer->WriteLong((long) aUuids[t].size());
+		theBuffer->WriteLong(aTemple);
+		theBuffer->WriteLong((long) aUuids[aTemple].size());
 		theBuffer->WriteBoolean((aBits & 1) != 0);
 		theBuffer->WriteBoolean((aBits & 2) != 0);
 		theBuffer->WriteBoolean((aBits & 4) != 0);
-		for (size_t i = 0; i < aUuids[t].size(); i++)
+		for (size_t i = 0; i < aUuids[aTemple].size(); i++)
 		{
-			const PuzzleRecord& aRecord = mRecords.find(aUuids[t][i])->second;
-			WriteText(theBuffer, aUuids[t][i]);
-			theBuffer->WriteLong(IsMaxed(aRecord, aUuids[t][i]) ? 1 : 0);
+			const PuzzleRecord& aRecord = mRecords.find(aUuids[aTemple][i])->second;
+			WriteText(theBuffer, aUuids[aTemple][i]);
+			theBuffer->WriteLong(IsMaxed(aRecord, aUuids[aTemple][i]) ? 1 : 0);
 			theBuffer->WriteLong(aRecord.mMoves);
 			theBuffer->WriteLong(aRecord.mMoves2);
 		}
@@ -187,16 +191,16 @@ bool UserProfile::Read(const Buffer* theBuffer)
 	mName = ReadText(theBuffer);
 	mId = theBuffer->ReadLong();
 	mCurrent = theBuffer->ReadBoolean();
-	mFlag2D = theBuffer->ReadBoolean();
+	mShowHelp = theBuffer->ReadBoolean();
 	if (aVersion > 0)
-		mFlag38 = theBuffer->ReadBoolean();
+		mExpert = theBuffer->ReadBoolean();
 	if (aVersion > 1)
 		for (int i = 0; i < NUM_FLAGS; i++)
 			mFlags[i] = theBuffer->ReadByte();
 	if (aVersion > 2)
-		mFlag79 = theBuffer->ReadBoolean();
+		mTutorialDone = theBuffer->ReadBoolean();
 	if (aVersion > 3)
-		mFlag7A = theBuffer->ReadBoolean();
+		mStorySeen = theBuffer->ReadBoolean();
 
 	mTempleFlags.clear();
 	mRecords.clear();
@@ -276,12 +280,14 @@ UserDirectory::UserDirectory(PixelusApp* theApp)
 	}
 }
 
+// port: the destructor (UserDirectory::~UserDirectory)
 UserDirectory::~UserDirectory()
 {
 	for (size_t i = 0; i < mUsers.size(); i++)
 		delete mUsers[i];
 }
 
+// port: a helper of the port (UserDirectory::FindUser)
 UserProfile* UserDirectory::FindUser(int theId)
 {
 	for (size_t i = 0; i < mUsers.size(); i++)
@@ -290,6 +296,7 @@ UserProfile* UserDirectory::FindUser(int theId)
 	return NULL;
 }
 
+// port: a helper of the port (UserDirectory::FindUserByName)
 UserProfile* UserDirectory::FindUserByName(const std::string& theName)
 {
 	for (size_t i = 0; i < mUsers.size(); i++)

@@ -21,6 +21,8 @@ for i in $(seq 1 "$N"); do
 	if [ $((i % 2)) = 1 ]; then W="1x 2x"; else W="2x 1x"; fi
 	for w in $W; do
 		room
+		# the software screen stays in software at 2x too (SOFTSCREEN_SCALED, docs/MEMORY.md), measured as asked, changing nothing there
+		if [ "$w" = 2x ]; then export SOFTSCREEN_SCALED=1; else unset SOFTSCREEN_SCALED; fi
 		echo "port $(CYC_WINDOW=$w build/native/rundesk.exe "$PY" -I $C port "$OUT/p$w$i" $D/perf_port.txt 7 2>> "$OUT/errors.txt" | tail -1)" >> "$OUT/runs.txt"
 	done
 done

@@ -246,11 +246,12 @@
         "collection",
         "site-features",
         "identical-look",
-        "lite-mod"
+        "lite-mod",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "the lite mod step done with no mod (c0ee6258: the game's update is under 2% of the process); performance stays open: 3D is 1.26 of the original on a busy machine, half the port's cycles the Direct3D 11 driver thread, which waits on the framework's renderer item; 2D 0.80"
+      "now": null,
+      "note": "done but modding: identical in 2D and 3D (every screen tour natively, on the web and in 3D on the visible desktop, the idle game, abyss, bonus levels and a paused board included; only the original's real-clock sprite phase differs), sound and music, real input natively and on the web; registration out, fixes mod, coverage, performance like for like in 3D 0.98 (1.06 with the port's mixer), 2D 0.80, the lite mod (none needed), unneeded code out, readability, the Collection check, the site's features"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
@@ -265,11 +266,12 @@
         "collection",
         "site-features",
         "identical-look",
-        "lite-mod"
+        "lite-mod",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "3D at 1x 105 to 121% of the original (the pace cap no clear gain over vsync); the excess is a shared cost per present (the driver thread's ~120 draw calls a frame) and the mixer thread; 2D 69%"
+      "now": null,
+      "note": "every phase but modding done; performance: 3D at 1x with SDL's batching, ten rounds pooled on a shared machine, medians original 3.43 G, port 3.02 with vsync (88%) and 3.41 with the pace (about 100%), the renderer unchanged (58933167); the two runs alone read 133/128% and 82/99%, so the figure sits inside the machine's noise; 2D 69%"
     },
     "ningpo": {
       "title": "Ning Po Mahjong Deluxe",
@@ -283,11 +285,13 @@
         "performance",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "site-features",
+        "lite-mod"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "Presets wait on the site"
+      "now": null,
+      "note": "the lite-mod step done with no mod (2f58af40, games/ningpo/docs/LITE_MOD.md: tileAtCell's linear scan is the only costly search, and a cell table would answer the same, so it is not lite; the shuffle could differ but saves no time; the hint and move count have no early stop); every phase but modding done"
     },
     "pixelus": {
       "title": "Pixelus Deluxe",
@@ -297,11 +301,17 @@
         "registration-out",
         "fixes-mod",
         "site-features",
-        "identical-look"
+        "identical-look",
+        "coverage",
+        "lite-mod",
+        "unneeded-code",
+        "readability",
+        "collection",
+        "performance"
       ],
       "na": [],
-      "now": "coverage",
-      "note": ""
+      "now": null,
+      "note": "every phase but modding done, final merge 2026-11-15 (bd6d9d05): the whole 210-puzzle game through real input, natively under rundesk (210 solved, 0 errors, 7316 s) and on the web in the pane (210 solved, 7899 moves, 0 errors); performance (9b2dd17e) pair ratios median 0.90; oddity: three boards where the bot's click read as another move, cleared by Undo (IDENTICAL_PLAY.md); next the software screen at 1x"
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",
@@ -400,11 +410,14 @@
         "coverage",
         "site-features",
         "performance",
-        "lite-mod"
+        "lite-mod",
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "unneeded-code",
-      "note": ""
+      "now": null,
+      "note": "every phase but modding done; processor time re-measured under the compositor wait (068bde60): five pairs of the seed-21 minute, each on its own P-core, port 2.98-5.80 s against the original's 5.50-11.19 s, about half like for like; peak private bytes 36.8-42.1 MB against 42.1-44.4; software 2x not taken"
     },
     "tiptop": {
       "title": "TipTop Deluxe",
@@ -419,11 +432,12 @@
         "readability",
         "collection",
         "performance",
-        "lite-mod"
+        "lite-mod",
+        "site-features"
       ],
       "na": [],
-      "now": "site-features",
-      "note": "lite mod done with no mod: nothing measured is worth taking (docs/LITE_MOD.md); the site's features next"
+      "now": null,
+      "note": "every phase but modding done; on the site: the Sounds board with seven presets, and Music playing its MIDI song as the port does (TinySoundFont with the bank cut from GeneralUser GS; the site's 9815e16d); speedrun.com has no TipTop board, so no autosplitter"
     },
     "wordharmony": {
       "title": "Word Harmony",
@@ -516,11 +530,14 @@
         "coverage",
         "collection",
         "unneeded-code",
-        "readability"
+        "readability",
+        "identical-look",
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "the staged config.xml is Steam's retail file (the old one put flame gems everywhere); the chain bonus reads ExplosionChainBonusAdd per step on ExplosionChainBonus as the original (3ab848a5: Finity's first match 1300 as the original, was 700); Classic, Endless and Finity refrozen (3c6e6ccb); 3D tours re-recorded on the retail values: scores equal step for step in six modes, Classic and Finity drift at the level change (an Oddity: the generator a few draws off), Action's game-over shots differ (not traced); open: judging the rest of the re-recorded shots, Finity 3D's washed-out gems"
+      "now": null,
+      "note": "every phase but modding done: identical in play and looks natively, on the web and in 3D (the web page's 1 to 2 updates of animation phase after clicks and Finity 3D's washed-out gems Oddities); the no-GPU fallback takes the software screen, equal to the GPU path and the original in 2D; performance at or under the original in 2D and 3D (5.1 % software, 5.8 % GPU, 5.4 % 3D against 9.6 % and 58.1 %); the lite mod not needed (the game logic at most 1.4 % of a core, LITE_MOD.md)"
     },
     "venice": {
       "title": "Venice Deluxe",
@@ -567,18 +584,27 @@
       "done": [
         "port",
         "identical-play",
-        "registration-out"
+        "registration-out",
+        "site-features",
+        "fixes-mod",
+        "identical-look",
+        "coverage",
+        "lite-mod",
+        "unneeded-code",
+        "collection"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "phase two's sound and music by state done (5e45972f): all 14 phase-one scenarios and classic_focus1 identical in state, sound and music (BASS logged through a stand-in, DirectSound through origrun's); fixed mouse-over on every screen, the in-game menu on release, the ice cream's single gloop and the game-over box's click; next the looks (shots, web and native)"
+      "now": "performance",
+      "note": "lite mod: none (LITE_MOD.md); unneeded code out; Collection check: data identical in pixels, tour identical on its files, the exe another build (95800f56). Performance: 1.10 of the paced original with vsync; trying the software screen"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
-      "done": [],
+      "done": [
+        "port"
+      ],
       "na": [],
-      "now": "port",
-      "note": "Ported so far: first boot, the front end, the levels and cities, the city select and the game's start up to a level; gameplay next"
+      "now": "identical-play",
+      "note": "first playable merged (012bf8ef): every mode played by the bot through real input natively and on the web; the last city, the won story and a real game over not reached yet; nothing compared with the original yet"
     },
     "igglepop": {
       "title": "Iggle Pop Deluxe",

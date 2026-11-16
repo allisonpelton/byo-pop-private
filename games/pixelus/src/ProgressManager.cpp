@@ -7,6 +7,7 @@
 
 using namespace Sexy;
 
+// port: a helper of the port (BufferToString)
 static std::string BufferToString(const Buffer& theBuffer)
 {
 	return std::string((const char*) theBuffer.GetDataPtr(), theBuffer.GetDataLen());
@@ -108,6 +109,7 @@ int ProgressManager::GetBestMoves(const std::string& theUuid) const
 	return aBest == NULL ? 0 : aBest->mMoves;
 }
 
+// port: a helper of the port (ProgressManager::FindBest)
 const ProgressManager::Best* ProgressManager::FindBest(const std::string& theUuid) const
 {
 	std::map<std::string, Best>::const_iterator anItr = mBest.find(UuidKey(theUuid));
@@ -184,6 +186,7 @@ void ProgressManager::LoadHistory(int theUserId)
 	}
 }
 
+// port: a helper of the port (ProgressManager::SaveHistory)
 void ProgressManager::SaveHistory(int theUserId)
 {
 	char aName[64];

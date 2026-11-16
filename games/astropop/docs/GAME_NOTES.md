@@ -758,6 +758,17 @@ same loads with no such rise. So in the stretch totals the port is over by about
 for the split; `FIRST=7 APPEND=1` adds rounds), then `python -I games/astropop/tools/profile/windows_report.py <dir>` and `python -I
 games/astropop/tools/profile/present_intervals.py <dir>`. The raw run folders were deleted once these figures were written.
 
+
+### 11e. The 3D stretch again, with SDL's batching back on (2026-11-15; main ea577cbe)
+
+Re-measured like for like at 1x: the 3D stretch in real time on the visible desktop at the original's window size, one core, the original in
+every round, two runs of five rounds (ten in all). Processor time in G cycles for the stretch, the port's including its mixer thread
+(0.29 to 0.35 G). First run: original 2.60, port with vsync 3.46, port with the pace 3.32. Second run: 3.51, 2.88, 3.46. The two runs lie on
+opposite sides because other sessions' games shared the machine in the first (five game processes) and the original's rounds ranged 2.27 to
+4.35 G in both, so no run alone decides. Pooled over the ten rounds the medians are original 3.43, port with vsync 3.02 (88%), port with the
+pace 3.41 (about 100%); without the mixer about 80% and 91%. The port is at or below the original in both ways of holding the presents,
+the renderer choice unchanged. Performance is done for 3D; 2D was measured earlier (11).
+
 ## 12. The readability pass (2026-11-11; `docs/CODE_STANDARDS.md`)
 
 **Result.** `tools/namecheck.py games/astropop` reports no finding in 114 files, and no identifier of the game's sources is a prefix and an
