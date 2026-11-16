@@ -918,3 +918,10 @@ few tokens (the token count moves by a hundred either way with the other session
 leaves none. The machine runs NVIDIA's driver 32.0.15.6094 (560.94, August 2024) on a GTX 1080 under Windows 11 build
 26300; whether the leak is the NVIDIA driver's or Windows' own was not found. Test runs that need no GPU leak nothing on
 the software screen or with `SDL_RENDER_DRIVER=software`.
+
+After a restart with NVIDIA's driver 582.78 (32.0.15.8278, June 2026), the same tests, one after another on a quiet
+machine: 60 Direct3D 11 runs +495 System handles, 25 software runs -21, 25 Direct3D 11 runs +10, then 60 Direct3D 11
+runs +125; `WCri` +0 in every batch. So the wcifs contexts no longer leak, and the handles grow at about two a run
+after the first batch against nine before, the first batch after the boot probably a one-time warm-up. Whether two a
+run is a leak or the machine's own noise is measured over the first day's work: the System process held 1,793 file
+handles at 23:4x on 2026-11-15, against about 9,700 more an hour before the update.
