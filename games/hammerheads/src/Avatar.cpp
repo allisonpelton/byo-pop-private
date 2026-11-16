@@ -1,4 +1,5 @@
 #include "Avatar.h"
+#include "MathConstants.h"
 
 #include <cmath>
 
@@ -61,7 +62,7 @@ Avatar::Avatar() :
 	// The hammer's reach: the distinct points of a circle of radius 26, in the order a walk round it meets them
 	for (int anAngle = 0; anAngle < 360; anAngle++)
 	{
-		double aRadians = (double)anAngle * 0.017453292519943295;
+		double aRadians = (double)anAngle * DEGREES_TO_RADIANS;
 		Point aPoint((int)(std::cos(aRadians) * 26.0), (int)(std::sin(aRadians) * 26.0));
 
 		bool aKnown = false;
@@ -430,7 +431,7 @@ void Avatar::Draw(Graphics* g)
 	{
 		// after a bomb the hammer spins and hops: a quarter turn and a half in 0.65 of the shake
 		double anEase = Ease(1.0 - mBombShake * 1.5384615384615383, 0.0, 0.8);
-		double aHop = std::sin(3.1415927410125732 * anEase) * -90.0;
+		double aHop = std::sin(PI_FLOAT * anEase) * -90.0;
 		double aSpin = anEase * 14.13716733455658;
 		Rect aSrcRect = aHammer->GetCelRect(aFrame, 0);
 		aGraphics.DrawImageRotatedF(aHammer,

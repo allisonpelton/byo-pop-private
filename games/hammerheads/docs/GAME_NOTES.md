@@ -287,3 +287,21 @@ as evenly without vsync as with it, with none of AstroPop's quantising to the up
 
 No vsync opt-out is needed (the coordinator, 2026-11-15: at the default the port is at 0.71 of the original, so the framework's rule of vsync on
 the GPU path stands); the figures without vsync (0.47, 143 MB) and the present intervals above are kept in case the question returns.
+
+## Readability pass (2026-11-16)
+
+`tools/namecheck.py games/hammerheads`: 0 findings in 185 files (43 allowed, each with its reason in `namecheck.txt`). The other rules were
+read against the sources:
+
+- **Fields nobody reads (rule 3).** `tools/splitfields.py` listed 42 places. The members it called read-only in an exported function
+  (the main menu's buttons, `Application::mGameScreen`, `mGameMode`, `mUpgradeTimer`, `Avatar::mTarget`, the restart-point lists and the
+  rest) are all assigned in other functions, so they are false findings. Two are written and never read: `Creature::mCubbyReleased`
+  and `ObjectManager::mFixedStepCount`; both comments now say that nothing reads them. The one same-offset finding, `ParticleEffect`'s
+  `mFragments` and `mPool` at +0x08, is the original's two lists (+0x08 free, +0x0c in the air) against the port's one vector that
+  owns the fragments and a vector of pointers to the free ones; the comments now say so.
+- **Numbers (rule 7).** Constants that several files wrote out or defined for themselves (`Rand()`'s 1 / 2^31, pi, half and twice pi, pi
+  as a float and its halves, degrees to radians) are one set of names in `src/MathConstants.h`, replacing 12 per-file definitions and
+  about 40 written-out values. Each keeps its literal, so the object code is the same: `objsnap` before and after, 101 objects, 2,180
+  functions, 0 differ. The 47 other long decimals are each used once or twice, a reciprocal the exe keeps as a constant (a division
+  would round differently), with the line's comment saying what they scale; they stay.
+- **Comments (rule 8):** no stage, phase or milestone labels and no history in the sources.
