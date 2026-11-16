@@ -601,6 +601,98 @@ cycles an update, 49% of the process, against 0.300 M for the picture. A samplin
 of the battles' cycles and the bot's own search at 1.7%. None of the board's or the tile engine's functions reaches 0.1%. In
 real play, at 100 updates a second, the battles' update is under 2% of a core.
 
+## Leftovers and developer features (2026-11-16)
+
+This section covers what the shipped scripts still hold from development. Each point was read from the scripts' bytecode
+with `python games/bookwormadv/tools/luc.py dis <script>`. The line numbers are the scripts' own, from their debug
+information. The port runs the scripts unchanged, so all of it is in the port as in the original. Apart from the
+best-word placeholders, a player of the shipped game never meets any of it.
+
+**The flags.** At its top main.lua defines `CHEATED` false (line 24), `BETA_BUILD` false (line 26) and `DISABLE_CHEATS`
+true (line 29). The exe sets the last two again. It calls `main.SetDisableCheats(true)` right after it runs main.lua,
+and `main.SetBetaBuild(false)` after `main.LoadInitialResources` at the end of the load (`GameApp.cpp`). Across every
+script, nothing else writes either flag, so the two debug gates below stay shut. `CHEATED` is written only by the kill
+cheat and by the end of a battle.
+
+**The cheat functions.** cheat.lua is one of the startup scripts (the list in packs/default.lua) and defines 25 global
+functions, each named with a leading underscore:
+- Lex's and the enemy's health: set, raised, lowered, filled, made very large, or for Lex left at a quarter of a heart
+  (`_lex_near_death`).
+- A potion of the kind given, health, attack or purify (`_GiveLexPotion`), a level-up (`_LexLevelUp`) and full experience (`_LexMaxXP`).
+- The kill (`_KillEnemy`).
+- `_CompleteChapter`, which marks the selected chapter completed and fills the profile's treasures.
+- `_NukeProfile`, which clears every chapter's completion and saves.
+- The tile attributes: add, remove, test, and a test of their tooltips on random tiles.
+- `_Particles` and `_StatusTest`, a particle burst and every ailment and effect applied at once.
+- `_SetPtrs`, which sets two globals to the player and the enemy.
+- `_DefaultMP`, the media player's default list.
+- The two profile hooks `_debug_profile_loaded_value` and `_debug_profile_done_loading`.
+
+The exe calls the two hooks when it loads a player's profile; the second is what unlocks the tome ("Faults the pilot found"). Nothing
+in the exe or the other scripts calls any of the other functions, and neither binds a key to them. The kill refuses the
+hydra and the sphinx with a debug message box that names Tab as the kill key and Delete as the way to weaken them, so the
+developers' build had keys for both. The port's test commands `win`, `lose`, `set health` and `set enemy` call these
+functions ("The drivers' commands and the board log").
+
+**The best and longest words.** At the end of a battle (`EndBattle`, line 898; lines 1024 to 1067 within it) the player's
+best and longest words are taken from `mRoundWords`. The best is the word of the highest value (the tile engine's
+`GetWordValue`, rounded and capped at 12). The list
+is emptied when a battle (re)starts (`UpdateState`'s restart, line 3046) and grows only when a word is submitted
+(`SubmitTiles`, line 1799). With the list empty, `mBestWord` and `mLongestWord` get a pair of placeholders: the best is
+the word for cheating, and the longest is a short accusation of it, written as one word. The pair goes to the word scroll
+after a win (line 1076); after a loss, the best word goes to Lex's gravestone (line 1209). So a battle lost without a word
+spelled, such as scrambling until Lex dies, shows the placeholder on the gravestone. Which other damage could end a battle
+with the list empty was not traced.
+
+`_KillEnemy` (lines 104 to 107) sets `CHEATED` and appends a fake entry to `mRoundWords` and `mChapterWords`. The entry's
+word is the same word for cheating, with a value of 1. A kill made with it alone therefore shows that word as both
+best and longest, where the empty list would give the accusation as the longest. `CHEATED` has one reader. At the end of a
+battle (line 946) it skips `ToughItUp`, the record of Lex's health over the last five battles (`Last5HP`) from which the
+scripts set the profile's `BeatdownMultiplier`, so a cheated win does not change the difficulty. It goes back to false at
+line 1643. It is not an anti-cheat: nothing checks the saves or the memory.
+
+**The stats book's layout editor.** In the stats book's `MouseDown` (statsbook.lua lines 976 to 982), a click with a
+count of 3 toggles `mDebugMode`. In SexyApp a count of 3 is the middle button. The toggle needs `BETA_BUILD` false and
+`DISABLE_CHEATS` false, and the stats book must not be the media player. In that mode, dragging moves the selected
+creature's picture (`mNudgeX`, `mNudgeY`). A right click (a negative count) calls `WriteNudgeValues` (line 938), which
+writes every offset to `scripts\nudge.lua` (line 945) as a commented `gNudgeTable`. The stats book loads
+`scripts/nudge` plus the scripts' extension when it is made (lines 27 to 33). The game ships `nudge.luc`, and with
+compiled packs the extension is `.LUC`, so a nudge.lua written by the editor would be read back only in a setup that has
+source packs.
+
+**The battle's debug gate.** The battle's `MouseUp` (battleengine.lua line 3489) has the same gate, plus a click count of
+3 and the tutorial's `mHideLore` off. A middle click on one of the enemy's lore panels (its attacks' descriptions) sets
+that attack's `mDebugMaxUrgency`. The attack classes then report the attack as ready (`CanAttack`) and give it an urgency
+of 999999 once (`GetUrgency`, which clears the flag), so the enemy uses it next. While it is set, the enemy's
+`DrawLorePanel` (pambasedenemy.lua line 364, behind the same two flags) draws a black box with a red label saying the
+attack is forced.
+
+**Packs and expansion hooks.** main.lua's script loading (lines 345 to 372) requires packs/default.lua first. It then sets
+`EXTENSION` to `.LUA` when `scripts/packs/*.lua` finds any file, and otherwise to `.LUC` with the `.luc` files, so source
+packs are preferred when present (the loader also compiles a `.lua` that is newer than its `.luc`; "Unneeded code").
+Every pack but DEFAULT is required in name order: book1 to book3 and bosslist1 to bosslist3. For each pack named BOOK
+with a number and not ending in `_INIT`, the book's `__Book<n>GetFullEnemyList()` is appended to `MAIN_ENEMY_LIST`.
+
+main.lua lines 37 to 49 define five empty tables for an expansion, and they are used to different degrees:
+- `EXPANSION_HOF_ARENA_DETAILS` is the one that is filled: the three boss lists fill it with the arena's bosses, and the
+  hall of fame (`HallOfFame.cpp`) reads it through the functions at lines 1398 to 1414.
+- The treasure screen walks `EXPANSION_TREASURE_INIT_FUNCS` and `EXPANSION_TREASURE_DRAW_FUNCS`, both empty here.
+- `NeedsIntroCutscene` (line 1433) walks `EXPANSION_INTRO_INFO`, also empty.
+- `EXPANSION_MM_EXTRA_BUTTONS` gets one test entry (line 1464): the tome's three images, a test label and the callback
+  `main.callbacktest`, which only prints its own name. Nothing in the exe or the scripts reads the table.
+- `main.NeedsMMExpansionExpansion` (line 1465) returns false, and nothing calls it.
+
+**Covered elsewhere in these notes:**
+- "Faults the pilot found": the profile hooks that unlock the tome, and the island that arena.lua draws only in 3D.
+- `ENGINE.md` ("LuaSupport") and "Status": the Lua debugger console and the save points (`luatemp.dat`).
+- "Coverage check": the profiler (`perf.Start`, `perf.End`), the developers' script reload and the DProps editor that
+  nothing loads.
+- "Unneeded code": the compiler, kept because the loader compiles a newer `.lua`.
+- "The PopCap Game Collection version": the DProps editor's chunk, which records another source folder on PopCap's
+  build machine, and the message for a profile saved before format 0.0.5.
+- The arena is the code's "timed mode": `MainMenu::StartArena` (0x47c290) calls `main.SetTimedMode(true)`, and the app's
+  `mTimedMode`, the scripts' `gTimedMode` and the profile's `TM_` keys all belong to it.
+
 ## Mods
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
