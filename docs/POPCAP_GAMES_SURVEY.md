@@ -703,14 +703,16 @@ Steam's but a Reflexive Arcade build with an encrypted `.RWG` exe (the user, 202
 `MumboJumbo/` are the ones to export. Mac builds of Luxor, Amun Rising, Mah
 Jong and Luxor 2 were sold and might carry symbols; the user has none.
 
-**HipSoft's Build-a-lot games (looked at 2026-11-16; their place in the order is the user's):** six Steam installs
-in `A:/SteamLibrary/steamapps/common/`. The first is the Bundle 4 in 1 (built 2009), which holds Build-a-lot 1 to 4.
-Then come The Elizabethan Era (2010), On Vacation (2011), Fairy Tales, Mysteries and Build-a-lot 10
-(`BuildalotWorld.exe`, 2014). The user is installing the 9th and 11th games (2026-11-16); `gamesurvey.py`'s look
-fits them once they are in. All six use one archive format: Monolith's RezMgr (`.rez`, the documented LithTech
-REZ v1 layout), with 3,900 to 6,600 entries each. Most entries are PNG pictures, with JPEG 2000 in 1 to 6, Ogg
-music and sounds, and TrueType fonts. The rest are HipSoft's own `.him`, `.hif`, `.hef` and `.ani` files, to be
-decoded from our export. Build-a-lot 1 carries its data inside its DLL's resources (47 MB).
+**HipSoft's Build-a-lot games (looked at 2026-11-16; after PopCap's games, the user):** eleven games in eight
+installs. Six are Steam installs in `A:/SteamLibrary/steamapps/common/`. The first is the Bundle 4 in 1 (built 2009),
+which holds Build-a-lot 1 to 4. Then come The Elizabethan Era (2010), On Vacation (2011), Fairy Tales, Mysteries
+and Build-a-lot 10 (`BuildalotWorld.exe`, 2014). Two come from HipSoft's own installers in
+`C:/Program Files (x86)/HipSoft/`: Build-a-lot 9 (`Buildalot9.exe`, 2014) and Big Dreams (`buildalot11.exe`, 2020).
+They fall into three groups: 1 to 4 plain on the old engine, 5 to 9 wrapped, and 10 and 11 on a newer engine. All
+eight use one archive format: Monolith's RezMgr (`.rez`, the documented LithTech REZ v1 layout), with 3,900 to
+6,600 entries each. Most entries are PNG pictures, with JPEG 2000 in 1 to 6, Ogg music and sounds (WAV in Big
+Dreams), and TrueType fonts. The rest are HipSoft's own `.him`, `.hif`, `.hef` and `.ani` files, to be decoded
+from our export. Build-a-lot 1 carries its data inside its DLL's resources (47 MB).
 
 The bundle is the place to start. `Bundler.exe` is wrapped, but the four games are plain DLLs: `Buildalot.dll` to
 `Buildalot4.dll`, with 1.32 to 1.52 MB of code, ordinary sections and no protection, so they export as they are.
@@ -722,17 +724,27 @@ outbound links to remove. The game's own classes carry no RTTI (only MFC's 40 do
 is unknown until Ghidra separates them. The four would share one copy under `engines/` (`docs/ENGINES.md`), so each
 sequel costs mostly its own additions.
 
-The Elizabethan Era, On Vacation, Fairy Tales and Mysteries are exes of 2.4 to 2.9 MB wrapped on disk. Their
+The Elizabethan Era, On Vacation, Fairy Tales, Mysteries and 9 are exes of 2.4 to 2.9 MB wrapped on disk. Their
 original `.text`, `.rdata` and `.data` are empty, their code sits in encrypted sections, the entry point is in
-`.adata`, and the only imports left are the wrapper's own (kernel32, user32, gdi32, comdlg32, shell32). The section
-names (`.text1`, `.adata`, `.data1`, `.pdata`) match Armadillo's. Their archives hold the same file types, which
-points to the same engine grown further. Exporting them needs the unwrapped image from a run through origrun; how
+`.adata`, and the only imports left are the wrapper's own (kernel32, user32, gdi32, comdlg32, and shell32 in four).
+The section names (`.text1`, `.adata`, `.data1`, `.pdata`) match Armadillo's, and Big Dreams' engine has a lock
+class beside an `Armadillo` name (`CHipLockNone` in that build). Their archives hold the same file types, which
+points to the same engine grown further. Build-a-lot 9 came out in 2014 like 10 but stayed with this group. Exporting them needs the unwrapped image from a run through origrun; how
 that is done goes only in a private block, and its size is unknown until then. The Elizabethan Era also ships Big
 Fish's `gas` tools (a `ddraw.dll` proxy, `detours.dll`, `gas.dll`). Build-a-lot 10 is a different generation. Its
 exe is packed with PECompact (1.4 MB on disk, a 19 MB image in memory). It draws through Direct3D 9 behind Big Fish's
 proxy `d3d9.dll`, links Big Fish's SDK (`BigFish.dll`) and loads Lua 5.1.4 (no `.lua` entries in its archive, so
-any scripts are elsewhere). Its archive is 379 MB, nearly all PNG. Mac builds of the series were sold; the user has
+any scripts are elsewhere). Its archive is 379 MB, nearly all PNG. Mac builds of some of the series were sold; the user has
 none.
+
+Big Dreams is the easiest start of the newer pair. Its exe is plain, with 2.3 MB of code built with Visual Studio
+2015 from HipSoft's "balw" tree (Build-a-lot World, 10's codebase; a `Release NoF2P` configuration). It also carries
+RTTI names for 369 classes. 165 are HipSoft's engine (`CHipCollection*`, `CHipDirectSoundMgr`,
+`CHipDisplayMgrD3DWin`, `CHipBaseRezFile`, `CHipNetURLMgr`), and the rest are the game's (42 `Goal` classes, 32
+dialog states, 24 `CBarMenu*` menus). Those names would carry over to 10's export once it is unpacked. The downside
+is a free-to-play layer compiled in: a HipPay billing manager, store dialogs, energy and lives, a daily spin,
+Facebook, email capture, friend invites and server tracking. What the NoF2P build still shows has to be checked
+before the removal rule for registration and outbound buttons is applied to it.
 
 ## Appendix B: other projects and modding communities
 
