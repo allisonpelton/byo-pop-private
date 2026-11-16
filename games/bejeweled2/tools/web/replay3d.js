@@ -19,15 +19,18 @@ function leave() {
     canvas.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window, relatedTarget: document.body }));
   });
 }
-var shots = 0;
+var shots = 0, debt = 0, skew = Number(new URLSearchParams(location.search).get("skew") || 0), skewAt = Number(new URLSearchParams(location.search).get("at") || 0), clicks = 0;
+// the page's input calls each wait a frame (counted in t.updates only when it runs one), and a click reaches the game one update before
+// the native click does (measured on the board's slide-in: one update, 16 pixels): what was spent comes off the next wait
+async function spent(f) { var u0 = t.updates(); await f(); debt += t.updates() - u0; }
 await t.step(1);
 for (var i = 0; i < CMDS.length; i++) {
   var w = CMDS[i].split(/\s+/), c = w[0];
-  if (c === "wait") await t.step(Number(w[1]));
-  else if (c === "move") await t.move(Number(w[2]), Number(w[3]));
-  else if (c === "click") { await t.down(Number(w[2]), Number(w[3])); await t.up(Number(w[2]), Number(w[3])); }
+  if (c === "wait") { var n = Number(w[1]) + (clicks === skewAt ? (clicks++, skew) : 0), k = Math.min(n, debt); debt -= k; if (n > k) await t.step(n - k); }
+  else if (c === "move") await spent(function () { return t.move(Number(w[2]), Number(w[3])); });
+  else if (c === "click") await spent(async function () { clicks++; await t.down(Number(w[2]), Number(w[3])); await t.up(Number(w[2]), Number(w[3])); }), debt += Number(new URLSearchParams(location.search).get("cd") || 0);
   else if (c === "leave") leave();
-  else if (c === "key") await t.key(w[1]);
+  else if (c === "key") await spent(function () { return t.key(w[1]); });
   else if (c === "screenshot") { await t.shot(w[1].replace(/^shots\//, "").replace(/\.png$/, "")); shots++; }
   else if (c === "quit") break;
   else if (c === "") continue;
