@@ -877,3 +877,22 @@ loaded Windows' text-input interface (`msutb.dll`, `InputSwitch.dll`, `TextInput
 for its own drawing, with `StaticCache.dat` mapped), 3.7 MB of private bytes more than the other runs; the original's
 runs load none of them. SDL's `SDL_StartTextInput`, which turns on the text services framework, is the likely cause. Not
 chased: it would need text input started only while a text field has the focus, and a check of every game's text fields.
+
+## Bookworm Adventures' Lua heap (2026-11-15)
+
+Asked to judge whether taking Lua out of Bookworm Adventures would pay, the port was run on the main build under
+rundesk, windowed at 1x, in real time, and the game's `lua` test command asked the scripts' VM for its own count
+(`gcinfo()`, the kilobytes Lua has allocated), then again after a full collection, with the process's private bytes beside
+each. One run; the bot played from the title through the first chapter into the second (book 1, chapter 2, Polyphemus).
+
+| Where | Private bytes | Lua allocated | Lua live (after `collectgarbage()`) |
+|---|---|---|---|
+| The title, its load over | 133.3 MB | 2.8 MB | 2.6 MB |
+| A battle, book 1 chapter 2 | 139.0 MB | 13.9 MB | 8.7 MB |
+
+Lua holds 2 to 6% of the port's private bytes when live, up to 10% counting garbage not yet collected (Lua 5.0 collects
+when its count reaches twice what was live after the last collection). The original runs the same scripts on the
+same fork of Lua 5.0.2, with the same object layout (`games/bookwormadv/docs/POPLUA.md`), so it pays about the same,
+and the port's 39 MB over the original (the survey's "Thirteen games at a first board" and `build/memsurvey/table.md`)
+lies outside Lua. Translating the 621 scripts into C++ would save at most this heap, less what their tables and texts
+would take as C++ data; the scripts also carry the rules a large class of mods would change (`MOD_IDEAS.md`).
