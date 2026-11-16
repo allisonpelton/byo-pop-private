@@ -9,7 +9,9 @@
 #     (the Mac builds and their symbol lists a new decomp starts from, CLAUDE.md "Mac versions");
 #   - the generated, git-ignored files under games/*/mods (e.g. Bejeweled's bejeweled2-audio, which the
 #     oracle's "mods" case expects).
-# Existing files are left alone, so it is safe to run again. Prints one summary line.
+# Existing files are left alone, so it is safe to run again, except two sets that rerunning refreshes file by file
+# (copied when the worktree lacks the file or main's copy is newer): re/bookwormadv/jp2ref and origrun's configs and
+# patch lists (tools/origrun/*.cfg, tools/origrun/patches/*.txt). Prints one summary line.
 #
 # --refresh brings the baselines and staged assets that a worktree already has up to date with the main
 # checkout, for the games the worktree does not own (the coordinator refreezes a baseline or restages a file
@@ -110,10 +112,25 @@ copy_dir() {  # copy_dir <relative path>: only when the source has it and the ta
 	fi
 }
 
+copy_newer() {  # copy_newer <relative dir>: file by file, when the worktree lacks the file or main's copy is newer
+	[ -d "$MAIN/$1" ] || return 0
+	local n=0 f p
+	while IFS= read -r f; do
+		p="${f#"$MAIN"/}"
+		if [ ! -e "$TARGET/$p" ] || [ "$f" -nt "$TARGET/$p" ]; then
+			mkdir -p "$(dirname "$TARGET/$p")"
+			cp -p "$f" "$TARGET/$p"
+			n=$((n + 1))
+		fi
+	done < <(find "$MAIN/$1" -type f)
+	[ "$n" -gt 0 ] && copied+=("$1 ($n file$([ "$n" = 1 ] || echo s))")
+	return 0
+}
+
 for g in "$MAIN"/assets/*/; do
 	[ -d "$g" ] && copy_dir "assets/$(basename "$g")"
 done
-copy_dir re/bookwormadv/jp2ref
+copy_newer re/bookwormadv/jp2ref
 copy_dir build/baseline
 copy_dir build/baseline-stage0
 for b in "$MAIN"/build/baseline-*/; do
@@ -124,14 +141,14 @@ for d in "$MAIN"/re/*/bin/ "$MAIN"/re/*/mac/ "$MAIN"/re/*/*/mac/; do
 	[ -d "$d" ] && copy_dir "${p%/}"
 done
 [ "$CACHE" = 1 ] && copy_dir build/oracle-cache
-# origrun's per-game configs and patch lists (docs/ORIGRUN.md): git-ignored, each file copied only when the worktree lacks it
+# origrun's per-game configs and patch lists (docs/ORIGRUN.md): git-ignored, each file copied when the worktree lacks it or main's is newer
 n=0
 for f in "$MAIN"/tools/origrun/*.cfg "$MAIN"/tools/origrun/patches/*.txt; do
 	[ -f "$f" ] || continue
 	p="${f#"$MAIN"/}"
-	[ -e "$TARGET/$p" ] && continue
+	[ -e "$TARGET/$p" ] && ! [ "$f" -nt "$TARGET/$p" ] && continue
 	mkdir -p "$(dirname "$TARGET/$p")"
-	cp "$f" "$TARGET/$p"
+	cp -p "$f" "$TARGET/$p"
 	n=$((n + 1))
 done
 [ "$n" -gt 0 ] && copied+=("$n origrun configs and patch lists")

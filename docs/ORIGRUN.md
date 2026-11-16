@@ -141,7 +141,9 @@ without a sign: gate the first click on the game's own state (`at`, `waitfor`), 
    measured before the mute: sound while a session was not muted reached the speakers, and the log then has a
    `WARNING: SOUND LEAK` line and `SOUND LEAK` in its RESULT line, with the times. Otherwise the RESULT line says
    that each session was muted from its start and whether the game made sound at all; a `WARNING` line says when
-   a game process loaded the system's `dsound.dll`.
+   a game process loaded the system's `dsound.dll`. Before the script starts, origrun waits up to 120 s for the
+   game's window (a game pinned to one core can need over 20 s: BookWorm took 24 s); if none appears the script runs
+   anyway, but the RESULT line says `NO WINDOW 120s` and the run is not a valid measurement.
 
    Details: Windows keeps what it read of a manifest until the exe changes, so origrun sets the exe's write time
    whenever it writes or removes one; a manifest that is not origrun's is left alone, and an exe with a manifest
