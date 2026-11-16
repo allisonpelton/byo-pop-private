@@ -28,7 +28,6 @@ void Animator::Init()
 	mGoingBack = true;
 	mFrameChanged = true;
 	mStep = 1;
-	mUnknown2c = -1;
 	mStopCounter = -1;
 	mStopAfter = -1;
 	mStopped = true;
@@ -43,9 +42,6 @@ void Animator::Init()
 	mImage = nullptr;
 	mRangeEnd = 0;
 	mRangeStart = 0;
-	mUnknown30 = 0;
-	mUnknown99 = false;
-	mUnknown98 = false;
 	mAdditive = false;
 	mColorize = false;
 	mRandom = false;

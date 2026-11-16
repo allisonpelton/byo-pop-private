@@ -41,8 +41,6 @@ public:
 	int mRangeEnd;                       // +0x20
 	int mDirection;                      // +0x24: below 0 backwards
 	int mStep;                           // +0x28: cels a change
-	int mUnknown2c;                      // +0x2c (-1; copied, not read here)
-	int mUnknown30;                      // +0x30 (copied, not read here)
 	int mStopAfter;                      // +0x34: updates until it stops, 0 or less for never
 	int mStopCounter;                    // +0x38
 	float mX;                            // +0x3c
@@ -63,8 +61,6 @@ public:
 	Fade* mFade = nullptr;               // +0x74
 	std::vector<int> mFrameDelays;       // +0x78: a delay a cel
 	std::vector<int> mRandomOrder;       // +0x88: the cels not yet shown this loop
-	bool mUnknown98;                     // +0x98
-	bool mUnknown99;                     // +0x99
 
 	Animator();                                  // 0x6ade80
 	Animator(const Animator&) = delete;  // 0x6adf30 and operator= (vf 0x64, 0x6ae200): nothing copies one

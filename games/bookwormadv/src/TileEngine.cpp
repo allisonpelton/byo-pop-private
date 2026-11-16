@@ -119,7 +119,7 @@ void TileEngine::DeleteAllTiles()
 	mTiles.clear();
 }
 
-Tile* TileEngine::CreateTile(bool theUnused, bool theRegister, bool theRandomLetter)
+Tile* TileEngine::CreateTile(bool theIgnoredFlag, bool theRegister, bool theRandomLetter)
 {
 	Tile* aTile = new Tile();
 	char aLetter = ' ';
@@ -129,7 +129,7 @@ Tile* TileEngine::CreateTile(bool theUnused, bool theRegister, bool theRandomLet
 		else
 			aLetter = (char)(Rand() % 26 + 'A');
 	}
-	aTile->CreateLinkedObject(aTile, theUnused);
+	aTile->CreateLinkedObject(aTile, theIgnoredFlag);
 	if (theRegister) {
 		Tile::PushTile(aTile);
 		PushLetter(aLetter);

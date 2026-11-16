@@ -35,7 +35,6 @@ public:
 	double mSlideToY = 0.0;               // +0x70
 	float mSlideSpeed = 0.0f;             // +0x78: mSlideCurve->mT grows by this each update; 0 when not sliding
 	float mScale = 1.0f;                  // +0x7c
-	int m80 = 0;                          // +0x80: set to 0 by the constructor; no use found
 
 	Tile();   // 0x4988f0
 	~Tile() override;  // 0x498c10: the Lua object's Destructor first
@@ -51,7 +50,7 @@ public:
 	// vf09 (0x498e30): LuaLinkedClass::CreateLinkedObject with one more argument for the script's CreateLinkedObject
 	// (which ignores it)
 	using LuaLib::LuaLinkedClass::CreateLinkedObject;
-	void CreateLinkedObject(void* theObject, bool theUnused);
+	void CreateLinkedObject(void* theObject, bool theIgnoredFlag);
 	// 0x498cb0: takes over another tile's state (position, cell, fall, slide, alpha), not its scale
 	void CopyState(const Tile* theTile);
 

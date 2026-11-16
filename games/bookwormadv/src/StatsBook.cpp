@@ -226,8 +226,6 @@ StatsBook::StatsBook(GameApp* theApp, bool theFromGame, bool theBestiary, bool t
 	mScrollDown->SetupImage(IMAGE_SB_SCROLL_DOWN);
 	AddWidget(mScrollUp);
 	AddWidget(mScrollDown);
-	if (mFromGame && !mBestiary && !mMediaPlayer)
-		mList->mUnused138 = true;
 }
 
 // 0x493fa0: the movie goes, then the scripts' Destructor (unless the app is shutting down), the widgets, the

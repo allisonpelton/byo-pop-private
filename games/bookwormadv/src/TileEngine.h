@@ -40,7 +40,7 @@ public:
 	// The scripts' methods
 	// 0x49a990: a new tile with a letter chosen at random (theRandomLetter; otherwise a space); the script's
 	// RegisterTile hears of it when theRegister
-	Tile* CreateTile(bool theUnused, bool theRegister, bool theRandomLetter);
+	Tile* CreateTile(bool theIgnoredFlag, bool theRegister, bool theRandomLetter);
 	// 0x49abb0: no more of the tile for the board; the script's UnregisterTile hears of it when theUnregister,
 	// and theDelete deletes it
 	void DeleteTile(Tile* theTile, bool theUnregister, bool theDelete);

@@ -454,7 +454,6 @@ bool Board::SelectTile(Tile* theTile)
 	mApp->PlaySample(SOUND_TILE_SELECT);
 	LayoutWord(theTile, true);
 	if (!mIsMiniGame) {
-		mString130.clear();
 		CheckIfWordStillValid();
 	}
 	return true;
@@ -491,7 +490,6 @@ void Board::DeselectTile(Tile* theTile)
 	}
 	LayoutWord(theTile, false);
 	if (!mIsMiniGame) {
-		mString130.clear();
 		std::string aWord = GetWord(mSelected);
 		if (!IsValidWord(aWord, false)) {
 			gTileEngine->ValidWordSpelled(mSelected, false);
@@ -529,7 +527,6 @@ void Board::DeselectAllTiles()
 		}
 	}
 	mSelected.clear();
-	mString130.clear();
 	gTileEngine->ValidWordSpelled(mSelected, false);
 	gTileEngine->CallLinkedMethod("DeselectedAllTiles", 0);
 	if (!mIsMiniGame && !BattleCall("GridHasOverlay").Bool())
@@ -1075,8 +1072,6 @@ void Board::SubmitWord()
 	} else if (!mLevelupOverlay) {
 		if (!anEndChapter && gBattleEngine->SubmitTiles(mSelected)) {
 			ArrowHintsClick(mWidgetManager->mLastMouseX, mWidgetManager->mLastMouseY, 1);
-			mString14C = mString130;
-			mString130.clear();
 			mRandSeed = Rand();
 			std::string aWord = GetWord(mSelected);
 			// the word's tiles leave the grid
@@ -1229,8 +1224,8 @@ void Board::KeyChar(SexyChar theChar)
 	if (theChar == ' ' && mPauseNoBannerCount == 0) {
 		// pauses and unpauses, not again within 10 updates
 		int aTime = mApp->mUpdateCount * 10;
-		if ((unsigned)(aTime - mField10C) > 99) {
-			mField10C = aTime;
+		if ((unsigned)(aTime - mLastSpacePauseTime) > 99) {
+			mLastSpacePauseTime = aTime;
 			Pause(mPauseCount == 0, false);
 		}
 	}
@@ -1333,7 +1328,7 @@ void Board::ButtonPress(int theId, int theClickCount)
 {
 	if (mUpdateCnt == mUnpauseUpdateCnt) {
 		// the click that unpaused
-		mFlagE9 = true;
+		mIgnoreUnpauseClick = true;
 		return;
 	}
 	if (mZooming)
@@ -1353,8 +1348,8 @@ void Board::ButtonDepress(int theId)
 {
 	if (mApp->IsCurtainMoving() || mZooming)
 		return;
-	if (mFlagE9) {
-		mFlagE9 = false;
+	if (mIgnoreUnpauseClick) {
+		mIgnoreUnpauseClick = false;
 		return;
 	}
 	if (mWidgetManager->mLastDownButtonId < 0) {
