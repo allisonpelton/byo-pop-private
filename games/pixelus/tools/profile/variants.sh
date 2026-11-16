@@ -18,7 +18,9 @@ until python -I tools/gamecount.py --limit 6 > /dev/null 2>&1; do sleep 15; done
 one() { local kind="$1"; shift; echo "$kind $("$@" 2>> "$OUT/errors.txt" | tail -1)" >> "$OUT/runs.txt"; }
 run() {  # <variant> <round>
 	case "$1" in
-	orig) one orig python -I $P orig play "$OUT/orig$2" build/perf/orig-play.txt ;;
+	orig) one orig python -I $P orig play "$OUT/orig$2" build/perf/orig-play.txt
+		# pinned, the original's window can take over 20 s to appear, its first click is lost and it idles (BookWorm, 2026-11-15)
+		grep -q "no window in the first" "$OUT/orig$2/origrun.log" 2>/dev/null && echo "orig-no-window-run $2 (the run above idled: do not use it)" >> "$OUT/runs.txt" ;;
 	soft1x) PERF_EXE=pixelus-soft.exe one soft1x build/native/rundesk.exe "$PY" -I $P port play "$OUT/soft1x$2" build/perf/port-play.txt ;;
 	gpu1x) PERF_EXE=pixelus-gpu.exe one gpu1x build/native/rundesk.exe "$PY" -I $P port play "$OUT/gpu1x$2" build/perf/port-play.txt ;;
 	gpu2x) PERF_2X=1 PERF_EXE=pixelus-gpu.exe one gpu2x build/native/rundesk.exe "$PY" -I $P port play "$OUT/gpu2x$2" build/perf/port-play.txt ;;
