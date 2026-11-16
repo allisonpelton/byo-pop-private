@@ -737,3 +737,85 @@ differs when changed and costs anything is the discard's melt (2,500 draws of th
 updates a discard): 14 us an update in the quietest bot game and up to 63 us in the busiest, 0.4% to 1.9% of a minute of play at the
 bot's six discards a minute, less than the five-pair measurement can see. The scans of the 72 cells (`DetermineValidMoves`,
 `MakeRandomPiece`) cost 1 to 5 us a piece and give the same answers any faster way. The lite-mod step is done with no mod.
+
+## 15. The software screen at 1x (2026-11-16)
+
+The user's decision (`docs/RULES.md`): software drawing is for 1x only, the GPU takes every larger window. Alchemy now draws its
+screen in software at the game's own size and hands the window to the GPU from 2x up, as the shared `SoftwareScreenDisplay`
+does for the other games. At 1x the port's peak private bytes are 35 MB (34.9 to 39.2, 64 runs) against 68 MB before (67.2 to
+70.3) and the original's 53 (48 to 56, 100 runs, one at 65.6). Processor time at 1x is about level with the original's, not
+below it: 0.93 to 1.11 of its cycles over three runs of the measurement, 0.86 to 1.04 without the port's mixer thread (details
+below, where the noise of the measurement is the main finding).
+
+**The original starts in 2D.** The flags that ask for 3D (`mAutoEnable3D` at app+0x5cd and `mTest3D` at +0x5ce) are cleared
+in the `SexyAppBase` constructor and nothing in the game sets them; the Direct3D test (`0x452c20`, which makes the
+`D3DTester`) runs only for those flags or for the registry's `Is3D` (`SexyApp::vf10`, `0x46eca0`), which the game never writes.
+So it draws through a DirectDraw surface and the port's `mDefault3D` is false. In `WinAlchApp`: `mDefault3D = false` in the
+constructor (the GPU path then keeps the 2D flags, a fast stretch and no linear blend, at 2x, full screen and on the web),
+and a `CreateDDInterface` override returning `SoftwareScreenDisplay::Create` (`#ifndef __EMSCRIPTEN__`: the web build keeps the
+default display). `tools/check.sh alchemy` passes with the frozen baseline identical, before and after the shared fix below.
+
+**One shared fix, found by the screens.** The first comparison of the software screen against the baseline (tours 1 to 7,
+`tools/shotdiff`, port shots with `-renderscale=1`) flagged 31 shots, all of one kind: where the board lights a cell (the hint,
+the cell the piece is over) or a full row or column (a clearing), the software screen showed an opaque dark bar in place of
+the light. The game fills those with `DRAWMODE_ADDITIVE`, and `MemoryImage::FillRect` has no additive mode. The original's
+`DDImage::FillRect` (`0x44f450`) sends an additive fill, on a surface with no alpha and no transparency, to
+`AdditiveFillRect` (`0x43afd0`): each colour channel is the destination's plus the fill's, to 255, the fill's alpha unused.
+`DDImage::FillRect` now does the same for the screen when it is drawn on the processor (commit `4380712f`, `shared:`; only the
+screen image, so no other image and no GPU screen changes). Every game that draws its screen on the processor gets the same
+additive fills where it uses them.
+
+**The screens after the fix.** Seven tours, 183 shots: the software screen against the baseline has no flagged shot and no
+shot that differs visibly: four shots are identical and every other pair is "only faint", 104 to 144 pixels of a shot (0.04 to
+0.05 %), the same few edges in every shot: the rim of the forge's brass oval (14 pixels by up to 47 levels, the rest 20 to 30)
+and three short edges of the same oval, and in tour 2's scores screen a red edge where 18 pixels differ by up to 217 levels (the
+baseline's is stair-stepped, the software screen's smooth). The sources were not chased (a sub-pixel difference in how the edge
+of an image is blended, GPU against processor; the difference of the forge shot amplified eightfold shows a thin line on the
+rim and nothing else). The GPU variants against the baseline: `gpu1`
+(1x, `SURFACE_DISPLAY=off`) and `gpu2` (the default 2x window) match it in every shot of every tour but one pixel by 9 levels
+in tour 4's forge bubbles, so `mDefault3D = false` changes no picture at `-renderscale=1`. (That setting also changes the final
+scale at 2x, in full screen and on the web, from the linear blend to the fast stretch, which the shots at render scale 1 do not
+show; that is the 2D flags the original has.)
+
+**The measurement.** Processor time as the other games' notes have it: cycles (`QueryProcessCycleTime`) over the same scripted
+minute of the bot's Strategic game, seed 11, 6,000 updates from update 600, the original under `tools/origrun` on the real clock
+with its `WaitForVSync` registry value set, so that its draw step is paced as a 60 Hz screen (0.54 to 0.57 frames an update
+against the port's 0.60), the port under `rundesk`, both on a performance core of their own (`tools/pincore.py`). Peak private
+bytes over the whole run. What went wrong, and how it is handled:
+
+- The original does not play the script reliably on the real clock: `origrun` reads the update counter from outside, so an
+  input lands an update early or late, and the bot's game, which depends on the exact update, drifts away from the port's after
+  a while and stays away (the port's own game is the same every run). Out of step it is a different, usually much cheaper
+  game (0.3 to 0.5 M cycles an update against 1.5). So each original run is compared only over the leading segments of 500
+  updates in which its board (level and score, read at every mark) was where the port's was. A third of the runs keep up for the
+  first segment, an eighth for the first three (100 runs). One that started late is behind from the first mark and covers
+  nothing; no log of the three datasets shows the 20 s window delay `pincore` can cause.
+- Identical runs differ by a third. The same port run costs 1.1 to 2.1 M cycles an update between runs of one session, with
+  no pattern against the number of other games running that I could find; the clock speed and the siblings on the same core
+  are not ours to hold. So the figures
+  are medians, with the best run beside them (what the processor does when left alone), and each ratio is taken within one
+  dataset, never across: the ratios of the three datasets are the spread.
+
+| dataset | port at 1x (software screen), M cycles an update | original | ratio (without the mixer) |
+|---|---|---|---|
+| 5 rounds, alternating, 40 original runs, updates 600 to 3100 (`pairs4`) | 1.63 (1.52 without the mixer) | 1.47 | 1.11 (1.04) |
+| 29 pairs, alternating, a short stretch, updates 600 to 2100 (`pairs5`) | 1.77 (1.64) | 1.66 | 1.07 (0.99) |
+| 30 pairs run at the same moment on two cores, updates 600 to 1100, 5 usable originals (`pairs6`) | 1.97 (1.82) | 2.12 | 0.93 (0.86) |
+
+The mixer thread (`SDLAudio*`, silent under `rundesk`) is 7 % of the port's cycles. The original's sound goes through
+`origrun`'s stand-in DirectSound (silenced), so what sound costs the original's process on a user's machine is not in its
+figure while the port's mixer is in the port's; the figure without the mixer is the closer comparison of the game itself, and
+the one with it is what the port's process pays. The original is cheap already, 1.5 M cycles an update; BookWorm's port at 2D
+and 1x costs 1.4 to 1.6 M an update (README), so about what Alchemy's does: the port's floor, the event loop, the timers, the
+mixer and the present of the surface, is shared framework code, and going clearly under an original this cheap would take a cut
+there, not in Alchemy.
+
+**At 2x** (nothing changed there; the software screen gives the window to the GPU): `gpu1x` (the GPU path at 1x, which is what
+the port was before) costs 2.34 M cycles an update, 1.6 of the original's in its rounds, peak 68.4 MB (5 runs); `port2xgpu`, the
+default 2x window as it is now, 2.18 M, 1.49 of the original's, peak 68.9 MB (68.5 to 71.8). The software screen at 1x takes the
+processor cost from about 1.5 times the original's to about 1.0 and the memory from 68 to 35 MB.
+
+The tools, under `games/alchemy/tools/`: `profile/gen.sh` (the bot's script), `profile/cycles.py` (one run's cycles per segment
+and its peak, port or original; `CYC_REF` holds the original to the port's boards), `profile/pairs.sh` (the rounds; `QUICK=1`
+for the short stretch with no retries, `LIMIT` for a quieter machine), `profile/concur.sh` (the two at the same moment),
+`profile/summarize.py` (the per-segment pooling above), `shots/softcmp.sh` (a tour in the four variants for `tools/shotdiff`).

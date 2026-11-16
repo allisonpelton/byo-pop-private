@@ -20,13 +20,17 @@ C=games/alchemy/tools/profile/cycles.py
 T=games/alchemy/tools/identical
 PY="$(cygpath -w "$(command -v python)")"
 R=build/native/rundesk.exe
-FIRST=600; COUNT=6000; SEED=11
+# QUICK=1: a short stretch (COUNT 2500, the script quits at update 3200), every run once (no retries; CYC_MIN_MARKS 0: summarize.py
+# takes from each original run the segments it was in step for), many rounds; LIMIT is the count of game processes
+# gamecount.py waits to be under (a quieter machine for a timing run)
+FIRST=600; COUNT=6000; SEED=11; QUIT=7000; LIMIT="${LIMIT:-6}"
+if [ -n "$QUICK" ]; then COUNT=2500; QUIT=3200; export CYC_MIN_MARKS=0; fi
 mkdir -p "$OUT"
 [ -f "$OUT/bot.txt" ] || { echo "no $OUT/bot.txt (games/alchemy/tools/profile/gen.sh writes it)"; exit 2; }
-awk '$1 <= 7000' "$OUT/bot.txt" > "$OUT/port.txt"
-echo "7000 quit" >> "$OUT/port.txt"
+awk -v q=$QUIT '$1 <= q' "$OUT/bot.txt" > "$OUT/port.txt"
+echo "$QUIT quit" >> "$OUT/port.txt"
 python -I $T/toorig.py "$OUT/port.txt" -1 > "$OUT/orig.txt"
-room() { until python -I tools/gamecount.py --limit 6 > /dev/null 2>&1; do sleep 20; done; }
+room() { until python -I tools/gamecount.py --limit $LIMIT > /dev/null 2>&1; do sleep 20; done; }
 echo "start $(date '+%F %T'), the stretch from update $FIRST, $COUNT updates, configs: $CONFIGS" >> "$OUT/runs.txt"
 # the port's boards at the marks (its game is the same every run): the reference the original is held to (cycles.py, CYC_REF)
 if [ ! -f "$OUT/ref.json" ]; then
@@ -40,7 +44,7 @@ for i in $(seq 1 "$N"); do
 	# a run whose JSON says "invalid" (the original fell behind the bot's script before update 3600, or started late, or a
 	# counter moved) is run again, the original up to eight times, a port up to three; each line stays in runs.txt, so the
 	# discards are counted
-	max=3; [ "$cfg" = orig ] && max=8
+	max=3; [ "$cfg" = orig ] && max=8; [ -n "$QUICK" ] && max=1
 	for attempt in $(seq 1 $max); do
 		room
 		case $cfg in

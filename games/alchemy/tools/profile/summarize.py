@@ -1,18 +1,27 @@
-"""summarize.py <runs.txt> [--tol N]: the figures of pairs.sh's runs. For each round, the leading marks at which the original's
-board (level, score) was where the port's was (the same level and a score within --tol, default 25: the marks are read a
-few updates apart) say how long the original kept up with the bot's script on the real clock; the segments inside that
-are the stretch both played the same game in, and the cycles of every run in the round are summed over those segments.
-Runs marked "invalid" are left out. Prints, per configuration, the cycles for 1000 updates and the draws for 1000 updates
-(medians over the rounds, the values beside them), the whole minute's cycles of the port with and without its mixer
-thread, and the peak private bytes at the end of the stretch (medians; the whole run, whatever the original's play)."""
+"""summarize.py <runs.txt> [--ref ref.json] [--tol N] [--minn N]: the figures of pairs.sh's runs, segment by segment.
+
+The original plays the bot's script on the real clock and falls out of step with it for good after a while (docs: GAME_NOTES.md,
+"The software screen at 1x"); the port plays it exactly, every run. A segment of 500 updates is therefore compared only where the
+original's board (level, score) at both of its ends was where the port's was (the same level and a score within --tol, default 25:
+the marks are read a few updates apart). For each configuration and each such segment the cycles for 1000 updates of every run that
+covers it are collected (the port's runs all cover every segment; the original's, those that were still in step); the figures are
+the median and the minimum over those runs, averaged over the leading segments that at least --minn (default 3) original runs
+covered. The minimum is what the processor did when the machine left it alone (a busy sibling thread, a build or another game
+inflates a run's cycles by a third or more, and the runs differ that much); the median is the typical run. The port's mixer thread
+(SDLAudio*) is taken off by its share of the whole run's cycles. Memory is the peak private bytes at the end of each whole run
+(whatever the original's play); draws are the median draws for 1000 updates."""
 import json
+import os
 import statistics
 import sys
 
 path = sys.argv[1]
-tol = int(sys.argv[sys.argv.index('--tol') + 1]) if '--tol' in sys.argv else 25
-runs = []                      # (round, config, result)
-rnd, seen = 0, {}
+arg = lambda name, default: sys.argv[sys.argv.index(name) + 1] if name in sys.argv else default
+tol = int(arg('--tol', 25))
+minn = int(arg('--minn', 3))
+ref_path = arg('--ref', os.path.join(os.path.dirname(path), 'ref.json'))
+ref = json.load(open(ref_path))
+runs = []                      # (config, result)
 for line in open(path):
     if line.startswith(('start', 'end', 'stopped')):
         continue
@@ -21,55 +30,69 @@ for line in open(path):
         r = json.loads(js)
     except ValueError:
         continue
-    if r.get('invalid') or 'segments' not in r:
+    if 'segments' not in r:
         continue
-    seen[cfg] = seen.get(cfg, 0) + 1
-    runs.append((seen[cfg], cfg, r))        # the n-th valid run of a configuration: its round, as the discards are redone
+    runs.append((cfg, r))
 
 
-def tracks(a, b):
+def tracked_marks(r):
     n = 0
-    for x, y in zip(a, b):
+    for x, y in zip(r.get('level_score', []), ref):
         if x[0] is None or x[0] != y[0] or abs(x[1] - y[1]) > tol:
             break
         n += 1
     return n
 
 
-rounds = sorted({n for n, _, _ in runs})
-table = {}
-for n in rounds:
-    here = {c: r for m, c, r in runs if m == n}
-    if 'orig' not in here or 'port1x' not in here:
+def covered(cfg, r):
+    """how many leading segments the run covers: all for a port (it plays the script exactly), for the original the segments
+    between marks it was in step at (an original run the script's own checks marked invalid still counts for what it covered)"""
+    if cfg != 'orig':
+        return 0 if r.get('invalid') else len(r['segments'])
+    return max(0, tracked_marks(r) - 1)
+
+
+per = {}                       # config -> segment -> [(value, mixerless value, draws)]
+whole = {}
+for cfg, r in runs:
+    if r.get('invalid') and cfg != 'orig':
         continue
-    marks = tracks(here['orig']['level_score'], here['port1x']['level_score'])
-    segs = max(0, marks - 1)                # marks 0..marks-1 agree: the segments between them
-    if segs == 0:
-        print('round %d: the original had no segment in step with the port (marks %s against %s)'
-              % (n, here['orig']['level_score'][:3], here['port1x']['level_score'][:3]))
-        continue
-    print('round %d: the original kept up for %d segments of 500 updates (to update %d)' % (n, segs, 600 + 500 * segs))
-    for c, r in here.items():
-        g = sum(s['g'] for s in r['segments'][:segs])
-        u = sum(s['upd'] for s in r['segments'][:segs])
-        d = sum(s['draws'] for s in r['segments'][:segs])
-        mixer = sum(t[1] for t in r['threads'] if t[0].startswith('SDLAudio'))
-        share = mixer / r['gcycles'] if r['gcycles'] else 0
-        row = table.setdefault(c, {'g': [], 'gm': [], 'd': [], 'peak': [], 'segs': [], 'whole': []})
-        row['g'].append(g * 1000.0 / u)
-        row['gm'].append(g * (1 - share) * 1000.0 / u)
-        row['d'].append(d * 1000.0 / u)
-        row['peak'].append(r['peak_private_mb'])
-        row['segs'].append(segs)
-        row['whole'].append(r['gcycles'] * 6000.0 / r['updates'])
-for c, row in table.items():
-    med = lambda k: round(statistics.median(row[k]), 3)
-    print('%-10s rounds %d  G/1000 upd %s (median %.3f; without the mixer %.3f)  draws/1000 upd median %.0f  peak MB %s (median %.1f)'
-          '  whole stretch G per 6000 upd %s'
-          % (c, len(row['g']), [round(x, 3) for x in row['g']], med('g'), med('gm'), med('d'),
-             row['peak'], statistics.median(row['peak']), [round(x, 2) for x in row['whole']]))
-orig = table.get('orig')
-for c, row in table.items():
-    if c != 'orig' and orig:
-        pairs = list(zip(row['g'], orig['g'][:len(row['g'])]))
-        print('%-10s over the original, per round: %s' % (c, [round(a / b, 3) for a, b in pairs]))
+    mixer = sum(t[1] for t in r.get('threads', []) if t[0].startswith('SDLAudio'))
+    share = mixer / r['gcycles'] if r.get('gcycles') else 0
+    for i, s in enumerate(r['segments'][:covered(cfg, r)]):
+        if s['upd'] <= 0:
+            continue
+        v = s['g'] * 1000.0 / s['upd']
+        per.setdefault(cfg, {}).setdefault(i, []).append((v, v * (1 - share), s['draws'] * 1000.0 / s['upd']))
+    if r.get('peak_private_mb'):
+        whole.setdefault(cfg, []).append(r['peak_private_mb'])
+
+orig = per.get('orig', {})
+counts = [len(orig.get(i, [])) for i in range(max(orig) + 1)] if orig else []
+K = 0
+while K < len(counts) and counts[K] >= minn:
+    K += 1
+print('original runs covering each segment of 500 updates from update 600: %s (of %d original runs)'
+      % (counts, sum(1 for c, _ in runs if c == 'orig')))
+print('segments compared: the first %d (updates 600 to %d)' % (K, 600 + 500 * K))
+if K == 0:
+    sys.exit(1)
+res = {}
+for cfg in per:
+    segs = [per[cfg][i] for i in range(K) if i in per[cfg]]
+    med = statistics.mean(statistics.median(x[0] for x in s) for s in segs)
+    medm = statistics.mean(statistics.median(x[1] for x in s) for s in segs)
+    low = statistics.mean(min(x[0] for x in s) for s in segs)
+    lowm = statistics.mean(min(x[1] for x in s) for s in segs)
+    dr = statistics.mean(statistics.median(x[2] for x in s) for s in segs)
+    res[cfg] = (med, medm, low, lowm)
+    pk = whole.get(cfg, [])
+    print('%-10s runs %2d  G/1000 upd: median %.3f (without mixer %.3f), best %.3f (without mixer %.3f)  draws/1000 upd %.0f'
+          '  peak MB median %.1f (min %.1f, max %.1f)'
+          % (cfg, len(pk), med, medm, low, lowm, dr, statistics.median(pk) if pk else 0, min(pk) if pk else 0, max(pk) if pk else 0))
+if 'orig' in res:
+    for cfg, v in res.items():
+        if cfg != 'orig':
+            o = res['orig']
+            print('%-10s over the original: median %.2f (without mixer %.2f), best %.2f (without mixer %.2f)'
+                  % (cfg, v[0] / o[0], v[1] / o[0], v[2] / o[2], v[3] / o[2]))
