@@ -6,6 +6,7 @@
 #include <xmp.h>
 #include <ivorbisfile.h>
 #include <algorithm>
+#include <climits>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -29,7 +30,9 @@
 // page, as the game does) and sends it over. The queue is as long as the page's slowest answer of the last few seconds
 // needs: it grows at once when the page answers late (a busy frame, loading) and shrinks again once it answers quickly.
 // Where there is no AudioWorklet (a page not served from https or localhost) a ScriptProcessor of 1024 frames does the
-// same job. The statements end in semicolons: EM_JS joins the lines into one.
+// same job. Until the context first runs (before the player's first click) a timer mixes in its place and resumes the context
+// once the page has been used; it does neither while the page is hidden, where web/shell.html keeps the game's sound
+// suspended (a hidden tab's game is frozen). The statements end in semicolons: EM_JS joins the lines into one.
 EM_JS_DEPS(byopop_audio, "$dynCall");
 
 EM_JS(void, byopop_audio_open, (void* theMixer, void* theRender, int theChunk, int theTarget, int theMax, int theMargin), {
@@ -52,7 +55,7 @@ EM_JS(void, byopop_audio_open, (void* theMixer, void* theRender, int theChunk, i
 		out.timer = 0;
 	};
 	out.timer = setInterval(function () {
-		if (ctx.state === 'running') return;
+		if (ctx.state === 'running' || document.hidden) return;
 		if (navigator.userActivation && navigator.userActivation.hasBeenActive) ctx.resume();
 		render(1024);
 	}, 1024 / rate * 1000);
@@ -942,14 +945,51 @@ std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file
 	// Detect Ogg by content: mods may remap a game path to a file with another name.
 	if (file.size() > 4 && !memcmp(file.data(), "OggS", 4))
 	{
-		int channels = 0, rate = 0;
-		short* pcm = nullptr;
-		int frames = stb_vorbis_decode_memory(file.data(), (int)file.size(), &channels, &rate, &pcm);
-		if (frames <= 0 || !pcm)
+		// the samples of stb_vorbis_decode_memory, decoded straight into the sound's own (all the file's channels into a buffer
+		// of their own past two), sized from the stream's length: stb's buffer grows by doubling and was copied after, so a
+		// long track needed up to three times its size for a moment (Venice's music set the web heap's peak, which never
+		// shrinks). stb_vorbis_get_samples_short_interleaved carries a frame over from one call to the next, so the buffer is
+		// exactly the stream's length and nothing is left over; a stream that does not say its length (some of Venice's short
+		// sounds) or says too little goes on through a small buffer, and is trimmed after.
+		int channels = 0, rate = 0, frames = 0;
+		int anError = 0;
+		stb_vorbis* aVorbis = stb_vorbis_open_memory(file.data(), (int)file.size(), &anError, nullptr);
+		std::vector<int16_t> anAll;
+		std::vector<int16_t>& aPcm = data->mSamples;
+		if (aVorbis != nullptr)
+		{
+			const stb_vorbis_info anInfo = stb_vorbis_get_info(aVorbis);
+			channels = anInfo.channels;
+			rate = (int)anInfo.sample_rate;
+			std::vector<int16_t>& anOut = (channels <= 2) ? aPcm : anAll;
+			const size_t aSaid = (channels > 0) ? (size_t)stb_vorbis_stream_length_in_samples(aVorbis) : 0;
+			anOut.resize(std::min(aSaid * channels, (size_t)INT_MAX / channels * channels));
+			size_t anOffset = 0;
+			if (!anOut.empty())
+			{
+				frames = stb_vorbis_get_samples_short_interleaved(aVorbis, channels, anOut.data(), (int)anOut.size());
+				anOffset = (size_t)frames * channels;
+				anOut.resize(anOffset);
+			}
+			if (channels > 0)
+			{
+				std::vector<int16_t> aMore((size_t)channels * 4096);
+				int n;
+				while ((n = stb_vorbis_get_samples_short_interleaved(aVorbis, channels, aMore.data(), (int)aMore.size())) > 0)
+				{
+					anOut.insert(anOut.end(), aMore.begin(), aMore.begin() + (size_t)n * channels);
+					frames += n;
+				}
+				if ((size_t)frames != aSaid)
+					anOut.shrink_to_fit();
+			}
+			stb_vorbis_close(aVorbis);
+		}
+		if (frames <= 0)
 		{
 			// stb_vorbis has no Vorbis floor 0 (pre-1.0 encoders, e.g. Big Money's 2002 sounds): decode
 			// with Tremor, the decoder SexyAppFramework 1.2 itself used
-			free(pcm);
+			std::vector<int16_t>().swap(aPcm);
 			std::vector<float> f;
 			if (!DecodeOggTremor(file, f, &channels, &rate))
 				return nullptr;
@@ -959,17 +999,19 @@ std::shared_ptr<SoundData> Mixer::LoadSoundData(const std::vector<uint8_t>& file
 		// already 16-bit: keep the first one or two channels as they are
 		if (rate <= 0)
 		{
-			free(pcm);
+			std::vector<int16_t>().swap(aPcm);
 			return data;
 		}
 		data->mChannels = std::min(channels, 2);
 		data->mRate = rate;
 		data->mFrames = (size_t)frames;
-		data->mSamples.resize((size_t)frames * data->mChannels);
-		for (size_t i = 0; i < (size_t)frames; i++)
-			for (int c = 0; c < data->mChannels; c++)
-				data->mSamples[i * data->mChannels + c] = pcm[i * channels + c];
-		free(pcm);
+		if (channels > 2)
+		{
+			aPcm.resize((size_t)frames * data->mChannels);
+			for (size_t i = 0; i < (size_t)frames; i++)
+				for (int c = 0; c < data->mChannels; c++)
+					aPcm[i * data->mChannels + c] = anAll[i * channels + c];
+		}
 		return data;
 	}
 	// Sun/NeXT .au (Big Money, Insaniquarium, Typer Shark, BookWorm)
