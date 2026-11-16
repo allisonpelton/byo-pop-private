@@ -68,7 +68,7 @@ def seg(u):
     nxt = bounds[k + 1] if k + 1 < len(bounds) else 1 << 30
     m = [x for x in masks if bounds[k] < x < nxt]
     return bounds[k], (m[0] if m else nxt)
-bad = 0; seen = 0
+bad = 0; seen = 0; inbattle = 0; battlepoints = 0; firstbattle = None
 for k, c in enumerate(changes):
     if c > end: break
     u = c + TOL + 1
@@ -80,8 +80,16 @@ for k, c in enumerate(changes):
     else:
         d = sp(u) - so(u)
     seen += 1
+    battlepoints += sg is not None
     if d % 624 != 0:
         if bad < 10: print("update %d (settled since %d): original count %d, port %d (%+d)" % (u, c, so(u), sp(u), d))
         bad += 1
+        if sg is not None:
+            inbattle += 1
+            if firstbattle is None: firstbattle = "update %d (settled since %d): %+d since the engine was made at %d" % (u, c, d, sg[0])
 if bad == 0:
     print("IDENTICAL draws up to update %d: the counts agree (modulo the original's 624 wrap) at %d settled points, and every change of either program is within %d updates of the other's" % (end, seen, TOL))
+# the summary: differences before the first engine is made (the title, the menus, the map: the accepted offset of +30, see
+# IDENTICAL_PLAY.md) apart from those inside the battles (each engine's making to its victory), which must be none
+print("draws: %d of %d settled points differ; inside battles %d of %d%s" % (bad, seen, inbattle, battlepoints,
+      "; first " + firstbattle if firstbattle else ""))

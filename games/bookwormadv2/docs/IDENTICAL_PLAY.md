@@ -75,6 +75,8 @@ updates. Victory effects and fireworks draw per frame, so they are not comparabl
 | After the first battles the random draws drifted (a book listed twice) | `LoadBookScripts` skips the books it already has by comparing names with the case the pak and folder held ("Book4.luc"); the staged files are lower case, so the port saw them as new | `GetFilesInDirectory` lists the original's case, from `filecase.txt` written by the stager | d8697ae |
 | The cut scene's Skip button never showed and could not be clicked | The original shows it as soon as the curtain is open | `CutScene::Update` makes it visible when it enables it | 002309c |
 | (test only) No way to match the original's load lengths, to log inputs or to start a battle on a fixed seed | n/a | `-startloadupdates`, `-chapterloadupdates`, `-reseedengine`, `-statelog`, input lines in the log | d8697ae, 002309c |
+| Chapter 6.5: a scramble drew one random number a letter more than the original (16 against 15 each step) | `TileEngine::ChangeLetters` (0x486d40) gives a wild tile "?" without generating a letter; the port generated one for every tile | `ChangeLetters` asks `IsWildTile` first | this pass |
+| Chapter 6.5: with a wild tile on the board a scramble chose other letters than the original from the same random numbers | `GenerateLetter` (0x485dd0) counts a "?" tile in the total but neither as a vowel nor as a consonant; the port counted it as a consonant, so nine consonants shut every consonant out a tile early. The original also builds a pattern for a row of 10 tiles, which the port left out | The count skips "?"; the row-of-10 pattern is built. Checked by simulating the 13 steps of a scramble from the original's own Mersenne state (peeked before the click): the result is its board | this pass |
 
 ## The baseline guard
 
@@ -93,6 +95,19 @@ it green.
   button or by the clock.
 - **Victory-effect draws depend on the draw rate**, so they differ between runs of the original too.
 - **The original's load lengths vary** (above); the port copies the measured lengths rather than modelling them.
+- **A scramble starts one update later in the original** (chapter 6.5, 2026-11-15). After the same Scramble click the
+  original's first letter change comes two updates after the click and the port's one update after, while the scripts'
+  burst of 22 draws 52 updates after the click lands on the same update in both. The letter changes then follow
+  `mUpdateCnt % mScrambleStep`, so the last of the 13 steps falls after two more of the per-update animation draws than
+  in the port: the first 12 steps give the same letters (proved by simulating them from the original's peeked Mersenne
+  state), the last one gives others, and the battle parts there. `Board::Scramble` (0x414fb0) and the step code in
+  `Board::Update` (0x4167b5) are the port's; shifting the port's inputs moves the burst with the steps, so it is no
+  harness offset. Not found within the hour: where the original loses the update between the click and the first step
+  (to see it: the case `after-6.5`, `drawwin.py` around +615; what it would take: the original's button and focus path
+  for the Scramble button, from the click to `Board::Scramble`).
+- **The original's draws before a battle varied between runs until 2026-11-15** because this worktree's ignored
+  `tools/origrun/patches/bookwormadv2.txt` had lost its reseed lines (the battle engine's and the mini-game's); the
+  chapter batch before then compared against an unseeded original, and is rerun.
 
 ## Not covered
 
@@ -121,6 +136,8 @@ The **curtain lag** is a hitch at the start of every transition, not a slow cel 
 ## Performance items (for the performance pass)
 
 - **The first Board's `main.LoadResources` stalls the web build for about 1.5 s** (smaller stalls of 190 to 290 ms around it). `Board.cpp` calls the script `main.LoadResources`, which makes about 35 `LoadPAMFile` calls (the tile and effect animations: `tilefx_*`, `fx_*`, `potion_*`, `grid_*`), hundreds of JPEG and GIF-mask decodes, in one call, once per Board. The original makes the same call on its main thread, so a one-time stall before the first battle is its behaviour too; the port's is longer because decoding is slower in wasm. Possible fix: decode the PAMs' images ahead of the call, on the title screen's time-sliced load (hold them in the shared-image cache), which needs the list of the PAMs the scripts name. Natively the call took 5 s before the shared image-lookup fix (8a73a4fe) and well under a second after it. To go with the JPEG decoder question.
+
+- **Memory use: the sequel's port takes about three times the working set of Bookworm Adventures 1's** (the user's observation, 2026-11-15, both running side by side; not measured here). Staged assets are 87 MB against 43 MB. Measure first: the working set at the title screen, in the first battle and after the same number of updates, per game, and find which images and sounds account for the gap. Suspects: decoded 32-bit images held per chapter (`GAME_NOTES.md` section 1: the exe never unloads a chapter's resources, and the port may keep that), sounds and music decoded whole, and a leak in the port (a working set that keeps growing in a soak).
 
 ## Played with real input (before the final merge)
 
@@ -161,3 +178,33 @@ the main menu's "buy now" voice (`tools/resgen.py` leaves them out of `Res.h`/`R
 `DIALOG_TRIAL_COMPLETE`, which were never made) with their answers, the `mQueuedHydraLockout` flag with the checks on it (always false), and the
 comments about what the original did in its trial. Two functions stay because the original's scripts call them: the scripts' `QueuedHydraLockout`
 and `ShouldDoHydraLockout` (constants, `false`), so a script that asks still gets an answer.
+
+## Chapter-by-chapter batch (rerun 2026-11-16, the original reseeded, from the bot-saved profiles `after-4.1` .. `after-6.10`)
+
+`tools/identical/chapters.sh` runs the comparison case for each saved profile: Adventure, the map's Enter, then the fast
+bot (`fastkill`: the highest-scoring word, Scramble on a board without a nine-letter word or a one-hit kill, a red potion
+at half health) plays until the map shows again (`chapterend`), at most 15,000 updates. The original's inputs are
+anchored on its battle engine (origrun's `waitfor` and `mark`) and the port's replay is shifted to match; a case takes
+four to seven minutes. The batch of 2026-11-12/13 and the first runs of 2026-11-15 compared against an unseeded original
+(the ignored patch list had lost its reseed lines, see Oddities) and are void.
+
+Each case is named by the profile it starts from, so `after-4.1` plays chapter 4.2. Of the 29:
+
+- **Identical engine states and no draw difference inside the battles** (9): `after-4.1`, `after-4.3`, `after-4.4`,
+  `after-4.8`, `after-5.10`, `after-6.1`, `after-6.8`, `after-6.10`, and `after-4.5` (no draw difference; one change 7
+  updates late, past the tolerance of 6).
+- **Identical engine states, draws differ inside a battle** (4): `after-4.2` and `after-5.6` (+1 at the engine's first
+  draws, then the same changes; `after-5.6` has one change 7 updates late), `after-5.1` (-1 there), `after-5.5` (+54).
+- **The original goes to state 5 where the port attacks** (6): `after-5.2`, `after-5.7`, `after-5.9`, `after-6.5`,
+  `after-6.7`, `after-6.9` (and `after-4.8` in its first run): the original's change to 5 comes about 55 updates before
+  the port's change to 2. In `after-6.5` the cause is the scramble oddity (the word the bot chose from the port's board
+  is not on the original's); the others are not yet looked at, and a +54 draw step at the start of several of them
+  (`after-5.5`, `after-5.7`, `after-6.7`) is the next thing to compare.
+- **Other** (10): `after-4.6` (+1 draw late in the chapter, then a change 7 updates late), `after-4.9` (The Deuce: on 2026-11-15 all 76 changes matched, one 7 updates late; in this batch the
+  port's run left the battle early, 13 changes against 41, so its first change already differs), `after-5.4` (the original's Lex dies, state 7, 91 updates after the port's scramble), `after-6.2` and
+  `after-6.4` (no draw difference; a change 7 or 92 updates late), `after-6.3` (+1 draw, then a change 7 updates late),
+  `after-4.7`, `after-6.6`, `after-5.3` and `after-5.8` (a battle on one side only or none: the runs ended apart; not judged).
+- The original's run failed in 8 cases of the first pass (its startup outlasted the Adventure click at 5000 while the
+  machine was busy); all 8 ran again and are counted above.
+
+The full verdict lines are in `build/chapter-results-1.txt` and `build/chapter-logs/` while they last.

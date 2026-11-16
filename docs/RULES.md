@@ -283,12 +283,15 @@ Every call re-reads the whole context, so what costs is context times calls, and
   takes its pass now that the user has approved them ("new standards approved", 2026-11-10, after the doc was cut to its rules and tools). The pass leaves no unknown or unnamed variable, field, parameter, global or
   constant ("NO unknown/unnamed variables"). The decomps in progress go on. The games still to port start only once every
   current game is done, every phase but modding (the user, 2026-11-15: "All games need to reach my definition of done
-  before new ones start"; until then the gate had been the readability passes), each taken all the way through, readability pass included: the easier ones side by side again and the harder
-  ones from Chuzzle on two at a time after them (`docs/COORDINATION.md`, "Which games, in what order"). That morning
+  before new ones start"; until then the gate had been the readability passes; on 2026-11-16, with every game but Pizza
+  Frenzy and Bookworm Adventures Volume 2 done and their sessions idle, the user started Iggle Pop and Feeding Frenzy:
+  "Start them now"), each taken all the way through, readability pass included: the easier ones side by side again and the harder
+  ones from Chuzzle on after them (`docs/COORDINATION.md`, "Which games, in what order"). That morning
   the user had put every one of them in sequence, so that wasteful token use would show sooner, and dropped it the
   same day: "We'll nix the one-at-a-time rule then. The idea behind it was it'd allow inefficient token usage to be
   spotted sooner, overall saving time, but now we have a much better idea of procedure"; of the harder ones: "When
-  we get to it, see if running two-by-two causes issues. If not, continue with two". **A new port writes to those
+  we get to it, see if running two-by-two causes issues. If not, continue with two". The user lifted that limit on 2026-11-16: "I don't think the two-at-a-time limit makes sense for the remaining decomps, actually. Lift it and park the remainder of the sessions now so they can be resumed as slots free". Each remaining game has a session from
+  then, parked until the coordinator wakes it. **A new port writes to those
   standards from its first draft (the user, 2026-11-12: "Yes, add it"):** names, code left untranslated where the export
   shows nothing can reach it, the known shared costs avoided, so its readability, unneeded-code and performance steps
   shrink to checks; the steps keep their order (`docs/COORDINATION.md`, "Which games, in what order").
@@ -299,7 +302,9 @@ Every call re-reads the whole context, so what costs is context times calls, and
   both phases of identical play, registration and outbound buttons out, its fixes mod (the site serves every game with
   it on), the readability pass, the coverage check, the performance pass (the user, 2026-11-03), which brings the port's processor time to its
   original's or below, measured like for like (the user, 2026-11-11: "that should be an enforced target";
-  `docs/COORDINATION.md`, "The target"), its lite mod, which swaps the game's own computations for faster ones that
+  `docs/COORDINATION.md`, "The target"; level with the original within the machine's noise counts as at it, the user,
+  2026-11-16: "Accept as level", for Alchemy at 0.93 to 1.11 of the original in three sets of pairs and Bejeweled at a
+  paired median of 0.955, where going clearly under would take a cut in the shared mixer's cost), its lite mod, which swaps the game's own computations for faster ones that
   may play differently, each difference proved reachable in the game's own levels and explained, and starts on (the user, 2026-11-12; `docs/MOD_ROADMAP.md`, "The
   lite mod"), taking out the other
   code it does not need, for a game ported from its Steam copy the check against its PopCap Game Collection

@@ -90,7 +90,7 @@
         "collection"
       ],
       "now": null,
-      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the discard's melt would be lite in kind but costs 0.4% to 1.9% of a minute, below what the medians resolve)"
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the discard's melt would be lite in kind but costs 0.4% to 1.9% of a minute, below what the medians resolve); software screen at 1x (76a31289): 35 to 39 MB private against the original's 48 to 56, processor time level with the original's (0.93 to 1.11 in three sets of pairs)"
     },
     "noahsark": {
       "title": "Noah's Ark Deluxe",
@@ -366,7 +366,7 @@
       ],
       "na": [],
       "now": "identical-play",
-      "note": "The bot plays into book 4; chapter comparison under way"
+      "note": "the chapter batch rerun with the original reseeded (5c909e77): 9 of 29 chapters match, the rest written up in IDENTICAL_PLAY.md; scramble fixes (a wild tile takes no letter or draw, '?' counted in the total only, the row-of-10 pattern), the fast bot and the chapter harness"
     },
     "bookwormadv": {
       "title": "Bookworm Adventures Deluxe",
