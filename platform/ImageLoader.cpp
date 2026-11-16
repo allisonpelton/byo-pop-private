@@ -4,6 +4,7 @@
 
 #include <stb_image.h>
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <map>
 
@@ -188,7 +189,37 @@ bool DecodeImage(const std::vector<uint8_t>& theData, int& theWidth, int& theHei
 	return true;
 }
 
-static bool DecodeFile(const std::string& theRealPath, int& w, int& h, std::vector<uint32_t>& bits, bool* hasAlpha)
+// BYOPOP_GIF_QUANTIZE=1: GIFs decoded straight to 32 bits with no indices kept, so that Palletize quantizes them, as before
+static bool QuantizeGIFs()
+{
+	static int aQuantize = -1;
+	if (aQuantize < 0)
+	{
+		const char* aValue = getenv("BYOPOP_GIF_QUANTIZE");
+		aQuantize = ((aValue != nullptr) && (atoi(aValue) != 0)) ? 1 : 0;
+	}
+	return aQuantize != 0;
+}
+
+// A GIF that DecodeImage would give to DecodeGIF, decoded to its indices (DecodeGIFIndices) with the colour of each. False
+// for anything else (and for a frame that leaves pixels unreached), which DecodeImage decodes.
+static bool DecodeGIFAsIndices(const std::vector<uint8_t>& theData, int& w, int& h, GIFIndices& theIndices)
+{
+	if (QuantizeGIFs() || (theData.size() < 4) || (memcmp(theData.data(), "GIF8", 4) != 0))
+		return false;
+	for (const ImageFormat& format : ImageFormats())
+	{
+		if (format.mDetect(theData))
+			return false;  // DecodeImage tries the registered formats first
+	}
+	uint32_t aColors[256];
+	if (!DecodeGIFIndices(theData.data(), theData.size(), w, h, theIndices.mIndices, aColors))
+		return false;
+	theIndices.mColors.assign(aColors, aColors + 256);
+	return true;
+}
+
+static bool ReadFile(const std::string& theRealPath, std::vector<uint8_t>& theData)
 {
 	FILE* f = fopen(theRealPath.c_str(), "rb");
 	if (!f)
@@ -196,12 +227,48 @@ static bool DecodeFile(const std::string& theRealPath, int& w, int& h, std::vect
 	fseek(f, 0, SEEK_END);
 	long len = ftell(f);
 	fseek(f, 0, SEEK_SET);
-	std::vector<uint8_t> data(len > 0 ? (size_t)len : 0);
-	size_t got = len > 0 ? fread(data.data(), 1, data.size(), f) : 0;
+	theData.resize(len > 0 ? (size_t)len : 0);
+	size_t got = len > 0 ? fread(theData.data(), 1, theData.size(), f) : 0;
 	fclose(f);
-	if (got != data.size() || data.empty())
+	return (got == theData.size()) && (!theData.empty());
+}
+
+// theIndices (when not null) gets a GIF's indices (DecodeGIFAsIndices), with the pixels made from them, the same pixels
+// and alpha flag as DecodeGIF's; or it is emptied
+static bool DecodeFile(const std::string& theRealPath, int& w, int& h, std::vector<uint32_t>& bits, bool* hasAlpha,
+	GIFIndices* theIndices = nullptr)
+{
+	if (theIndices != nullptr)
+		*theIndices = GIFIndices();
+	std::vector<uint8_t> data;
+	if (!ReadFile(theRealPath, data))
 		return false;
+	if ((theIndices != nullptr) && DecodeGIFAsIndices(data, w, h, *theIndices))
+	{
+		bits.resize(theIndices->mIndices.size());
+		const uint8_t* anIndex = theIndices->mIndices.data();
+		const uint32_t* aColors = theIndices->mColors.data();
+		uint32_t* aPixel = bits.data();
+		uint32_t anAll = 0xFFFFFFFF;  // every pixel ANDed: its alpha is 255 only when each one's is
+		for (size_t i = 0; i < bits.size(); i++)
+		{
+			aPixel[i] = aColors[anIndex[i]];
+			anAll &= aPixel[i];
+		}
+		if (hasAlpha)
+			*hasAlpha = (anAll >> 24) != 0xFF;
+		return true;
+	}
+	if (theIndices != nullptr)
+		*theIndices = GIFIndices();
 	return DecodeImage(data, w, h, bits, hasAlpha);
+}
+
+// A GIF mask's indices only (DecodeGIFAsIndices), for a colour picture that has its own: false for anything else
+static bool DecodeMaskAsIndices(const std::string& theRealPath, int& w, int& h, GIFIndices& theIndices)
+{
+	std::vector<uint8_t> data;
+	return ReadFile(theRealPath, data) && DecodeGIFAsIndices(data, w, h, theIndices);
 }
 
 struct Candidate
@@ -423,7 +490,8 @@ static bool LoadGameImageLayers(const std::string& theGamePath, LoadedImage& the
 		{
 			int w, h;
 			bool a = false;
-			if (DecodeFile(one.mPath, w, h, theOut.mBits, &a))
+			// port: a GIF's indices are kept beside the pixels for Palletize (GIFIndices)
+			if (DecodeFile(one.mPath, w, h, theOut.mBits, &a, &theOut.mGIFIndices))
 			{
 				theOut.mWidth = w;
 				theOut.mHeight = h;
@@ -434,10 +502,26 @@ static bool LoadGameImageLayers(const std::string& theGamePath, LoadedImage& the
 				{
 					int mw, mh;
 					std::vector<uint32_t> mask;
-					if (DecodeFile(maskOne.mPath, mw, mh, mask, nullptr) && mw == w && mh == h)
+					GIFIndices maskIndices;
+					if ((!theOut.mGIFIndices.mIndices.empty()) && DecodeMaskAsIndices(maskOne.mPath, mw, mh, maskIndices) &&
+						mw == w && mh == h)
+					{
+						// port: a GIF mask of a GIF: its alpha straight from its indices, as ApplyMask takes it from its pixels,
+						// and the two pictures' indices kept together for Palletize
+						uint32_t* aPixel = theOut.mBits.data();
+						const uint8_t* aMaskIndex = maskIndices.mIndices.data();
+						const uint32_t* aMaskColors = maskIndices.mColors.data();
+						for (size_t i = 0; i < theOut.mBits.size(); i++)
+							aPixel[i] = (aPixel[i] & 0x00FFFFFF) | ((aMaskColors[aMaskIndex[i]] & 0xFF) << 24);
+						hasAlpha = true;
+						theOut.mGIFIndices.mMaskIndices.swap(maskIndices.mIndices);
+						theOut.mGIFIndices.mMaskColors.swap(maskIndices.mColors);
+					}
+					else if (DecodeFile(maskOne.mPath, mw, mh, mask, nullptr) && mw == w && mh == h)
 					{
 						ApplyMask(theOut.mBits, mask);
 						hasAlpha = true;
+						theOut.mGIFIndices = GIFIndices();  // the colour's indices alone no longer give the pixels
 					}
 				}
 				colourHasAlpha = colourHasAlpha || hasAlpha;
@@ -466,7 +550,7 @@ static bool LoadGameImageLayers(const std::string& theGamePath, LoadedImage& the
 				for (size_t i = 0; i < mask.size(); i++)
 					theOut.mHDBits[i] = ((mask[i] & 0xFF) << 24) | 0xFFFFFF;
 			}
-			if ((!maskOne.mPath.empty()) && DecodeFile(maskOne.mPath, w, h, mask, nullptr))
+			if ((!maskOne.mPath.empty()) && DecodeFile(maskOne.mPath, w, h, mask, nullptr, &theOut.mGIFIndices))
 			{
 				if (theOut.mSourcePath.empty())
 					theOut.mSourcePath = maskOne.mPath;
@@ -475,6 +559,8 @@ static bool LoadGameImageLayers(const std::string& theGamePath, LoadedImage& the
 				theOut.mBits.resize(mask.size());
 				for (size_t i = 0; i < mask.size(); i++)
 					theOut.mBits[i] = ((mask[i] & 0xFF) << 24) | 0xFFFFFF;
+				for (uint32_t& aColor : theOut.mGIFIndices.mColors)  // the indices' colours made white the same way
+					aColor = ((aColor & 0xFF) << 24) | 0xFFFFFF;
 			}
 			else if (!theOut.mHDBits.empty())
 				BoxDownsample(theOut.mHDBits, theOut.mHDWidth, theOut.mHDHeight, theOut.mHDScale, theOut.mBits, theOut.mWidth, theOut.mHeight);
@@ -501,6 +587,7 @@ static bool LoadGameImageLayers(const std::string& theGamePath, LoadedImage& the
 				{
 					ApplyMask(theOut.mBits, mask);
 					theOut.mHasAlpha = true;
+					theOut.mGIFIndices = GIFIndices();  // a lower layer's mask is not in the indices
 					if (!theOut.mHDBits.empty())
 					{
 						// scale the 1x mask up to the HD texture (nearest)

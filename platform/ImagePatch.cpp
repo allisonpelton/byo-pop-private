@@ -182,6 +182,8 @@ void ApplyImagePatches(const std::string& theGamePath, LoadedImage& theImage)
 			continue;
 		}
 
+		theImage.mGIFIndices = GIFIndices();  // the patched pixels are not the GIF's
+
 		// Promote the image to the patch's density if the patch is sharper than what we have.
 		int scale = theImage.mHDBits.empty() ? 1 : theImage.mHDScale;
 		if (patch.mScale > scale)

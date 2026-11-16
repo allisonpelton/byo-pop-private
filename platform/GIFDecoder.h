@@ -18,6 +18,13 @@ namespace Platform
 // caller leaves those to stb.
 bool DecodeGIF(const uint8_t* theData, size_t theSize, int& theWidth, int& theHeight, std::vector<uint32_t>& theBits, bool* theHasAlpha);
 
+// The same frame as its colour indices: theIndices (theWidth x theHeight) holds the index each pixel was written with and
+// theColors the pixel DecodeGIF writes for each index, so DecodeGIF's pixel i is theColors[theIndices[i]]. False where
+// DecodeGIF is, and for a frame that leaves a pixel of the screen unreached (no index gives its colour). The image loader
+// makes the 32-bit pixels from these and keeps them for Palletize (ImageLoader.h, LoadedImage::mColorIndices).
+bool DecodeGIFIndices(const uint8_t* theData, size_t theSize, int& theWidth, int& theHeight, std::vector<uint8_t>& theIndices,
+	uint32_t theColors[256]);
+
 }
 
 #endif

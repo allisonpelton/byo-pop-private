@@ -2741,11 +2741,26 @@ void SexyAppBase::LoadingThreadProcStub(void* theArg)
 {
 	SexyAppBase* aSexyApp = (SexyAppBase*) theArg;
 
+	// port: BYOPOP_LOADTIME=1 logs the loading's own cost, without the start-up that "Resource Loading Time" counts as well:
+	// its real time and the cycles the main thread ran in it (QueryThreadCycleTime; none on the web), to measure a load
+	// like for like (docs/MEMORY.md)
+	const char* aLoadTime = SDL_getenv("BYOPOP_LOADTIME");
+	bool isLoadTimed = (aLoadTime != NULL) && (atoi(aLoadTime) != 0);
+	Uint64 aLoadStart = SDL_GetPerformanceCounter();
+	unsigned long long aLoadCycles = Platform::CurrentThreadCycles();
+	gPictureCyclesOn = isLoadTimed;
+	gPictureCycles = 0;
+
 	aSexyApp->mLoadingThreadRunning = true;
 	aSexyApp->LoadingThreadProc();
 	aSexyApp->mLoadingThreadRunning = false;
 
 	SDL_Log("Resource Loading Time: %d", (int) (GetTickCount() - aSexyApp->mTimeLoaded));
+	if (isLoadTimed)
+		SDL_Log("loading: %.1f ms, %.1f M cycles of the main thread, %.1f M of them in pictures loaded from files and palettized",
+			(double) (SDL_GetPerformanceCounter() - aLoadStart) * 1000.0 / (double) SDL_GetPerformanceFrequency(),
+			(double) (Platform::CurrentThreadCycles() - aLoadCycles) / 1e6, (double) gPictureCycles / 1e6);
+	gPictureCyclesOn = false;
 
 	aSexyApp->mLoadingThreadCompleted = true;
 }
@@ -5269,6 +5284,7 @@ Sexy::DDImage* SexyAppBase::GetImage(const std::string& theFileName, bool commit
 
 Sexy::DDImage* SexyAppBase::GetOptionalImage(const std::string& theFileName, bool commitBits)
 {
+	PictureCycleScope aCycles; // port: BYOPOP_LOADTIME's count (MemoryImage.h)
 	// Platform::LoadGameImage applies the SexyApp rules (extension probing, alpha masks) plus the mod
 	// overlay and HD (@2x) variants
 	Platform::LoadedImage aLoadedImage;
@@ -5281,6 +5297,8 @@ Sexy::DDImage* SexyAppBase::GetOptionalImage(const std::string& theFileName, boo
 	if ((aLoadedImage.mHDScale > 1) && (!aLoadedImage.mHDBits.empty()))
 		anImage->SetHDBits(&aLoadedImage.mHDBits[0], aLoadedImage.mHDWidth, aLoadedImage.mHDHeight, aLoadedImage.mHDScale);
 	anImage->mFilePath = theFileName;
+	// port: a GIF's own indices, for a Palletize straight after this (MemoryImage::KeepGIFIndices)
+	anImage->KeepGIFIndices(aLoadedImage.mGIFIndices);
 	// port: the file makes these pixels again once they are dropped after upload (MemoryImage.h, mBitsSource); a picture the
 	// game's generator drew is not a file's
 	if (!aLoadedImage.mGenerated)
