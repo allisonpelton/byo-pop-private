@@ -237,7 +237,7 @@ runtime sound cache), 274 are the same byte for byte and 246 differ. Of the 239 
 encoding (the Steam copy's are recompressed). The one that is not is `loading_publisher_logo.png` (the publisher logo on the loading
 screen: the Steam copy's and the Collection's logos are different pictures; both are 250 by 250). The others that differ are
 `bass.dll` and `Flash.ocx` (the port uses neither), `license.txt`, `readme.html`, and `properties/partner.xml` (the Collection's has
-`NoReg`-less values: DefaultWindowed false, a registry key `PopCap\HammerHeads`, no Steam id or store link). `resources.xml` differs
+`NoReg` true, DefaultWindowed false and the registry key `PopCap\HammerHeads`, with no Steam id or store link). `resources.xml` differs
 by the registration's upsell pictures, which the staging script takes out as it does for the Steam copy.
 
 **The port on the Collection's files.** `stage_hammerheads_assets.py` staged the Collection's folder (537 files) and the tour of
