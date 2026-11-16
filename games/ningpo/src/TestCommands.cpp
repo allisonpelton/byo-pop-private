@@ -459,8 +459,9 @@ bool NingPoApp::HandleScriptCommand(const ScriptCommand& theCommand)
 
 // docs/TEST_COMMANDS.md, "memreport": what the game holds beside the framework's own pictures. The sprites are the game's
 // table (a dialog's own sprites are loaded and released as it opens and closes), 15 bits a pixel and a byte of alpha
-// where a picture has one; the sounds are the 64 decoded sounds; the music is the track that is playing, which the port
-// decodes whole; the back buffer is the 15-bit screen the game draws into
+// where a picture has one; the sounds are the 64 decoded sounds; the music is the track that is playing, kept as its Ogg
+// file and decoded as it plays (Platform::Mixer::LoadStreamedSoundData); the back buffer is the 15-bit screen the game
+// draws into
 void NingPoApp::AddMemReportHolders(Platform::MemReport* theReport)
 {
 	if (mGame == nullptr)
@@ -484,6 +485,6 @@ void NingPoApp::AddMemReportHolders(Platform::MemReport* theReport)
 	size_t aMusicBytes = mGame->mMixer.mMusic ? mGame->mMixer.mMusic->Bytes() : 0;
 	theReport->mOthers.push_back({"sprites (" + std::to_string(aSpriteCount) + ", 15 bits and alpha)", aSpriteBytes});
 	theReport->mOthers.push_back({"sounds (decoded)", aSoundBytes});
-	theReport->mOthers.push_back({"music (the whole track decoded)", aMusicBytes});
+	theReport->mOthers.push_back({"music (the track)", aMusicBytes});
 	theReport->mOthers.push_back({"back buffer (15 bits)", mGame->mDisplay->mScreen.capacity() * sizeof(uint16_t)});
 }

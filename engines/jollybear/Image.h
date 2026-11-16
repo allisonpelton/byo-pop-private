@@ -53,6 +53,13 @@ public:
 	Display* mDisplay = nullptr;     // +0x34 the display that tracks it
 	uint32_t mStamp = NextImageStamp();  // port: which pixels mPixels holds; a new one each time they are made
 	uint32_t mRecordSerial = 0;          // port: the frame whose command list last held a draw of this image
+	// port: memory. A picture decoded from a resource keeps only its 32-bit copy once that is made: the decoded bits are
+	// freed (DropBits) and decoded again from the resource only when something needs them again (EnsureBits). Drawn
+	// into, it keeps its bits. JB_KEEP_IMAGE_BITS=1 keeps every picture's bits, as the original does.
+	const uint8_t* mSource = nullptr;    // the resource the bits were decoded from, null when they are not its alone
+	uint32_t mSourceSize = 0;
+	int mSourceType = 0;                 // Decode's theType
+	bool mBitsDropped = false;           // mBits freed; mPixels is the picture's only copy
 
 	// 0x426c20 (mahjongchina), 0x42cdb0 (mahjongjapan)
 	Image() {}
@@ -121,6 +128,12 @@ public:
 		int theAlpha);
 	// 0x428b40 (mahjongchina), 0x42ed70 (mahjongjapan): a 24-bit BMP file
 	bool SaveBmp(const char* thePath);
+	// port: mBits freed after Prepare, for a picture decoded from a resource that is not drawn into
+	void DropBits();
+	// port: mBits there again (decoded from mSource after DropBits); false when there are none
+	bool EnsureBits();
+	// port: mBits are about to change: decoded again if dropped, and no longer the resource's to decode again
+	void BitsWillChange();
 };
 
 // The software screen, 800x600, 32-bit top-down (0x5d8098 (mahjongchina), 0x5d8f30 (mahjongjapan), pitch

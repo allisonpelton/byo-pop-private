@@ -576,6 +576,38 @@ shows the menu over the dimmed board. The pause does not change it (the run with
 night (the window read from the screen, 3840x2160, the menu open from update 3470): this build shows the board as it stood when the menu
 opened and no menu; main's build shows the menu. A fix belongs to `SurfaceDisplay`, not to the game; see the coordinator's note.
 
+### Streamed music and one copy of the pictures (2026-11-15)
+
+The two shared costs named above are gone (the user, 2026-11-15: "Merge both"). The music modules (the menu's, the
+classic list's and the game's) are kept as their Ogg Vorbis data and decoded as they play, in the mixer's callback
+(libopenmpt's `soundlib/SampleStream`, `third_party/libopenmpt/BYO-POP.md`); the sound is the same to the bit (every
+module rendered for 300 s with the game's order jumps, streamed against whole: no value differing). A picture decoded
+from a resource frees its decoded bits once its 32-bit copy is made (`DEVIATIONS.md`, "A picture's decoded bits").
+Measured by fw-memory: 5 rounds of alternating runs, each variant alone, pinned to one core (`tools/pincore.py`), the
+check's play in real time under rundesk (`perfscript.py`'s script, `-logos`), perfmin.py's peak private bytes and
+threadprof.py's cycles in the window 20 to 50 s; medians with their ranges:
+
+| | both as before | music streamed | pictures kept once |
+|---|---|---|---|
+| Peak private bytes | 111.5 MB (111.1 to 114.0) | 65.5 MB (65.2 to 65.5) | 98.3 MB (96.5 to 101.3) |
+| The mixer (SDL's audio thread), G cycles in 30 s | 0.175 (0.159 to 0.210) | 0.307 (0.291 to 0.314) | 0.194 (0.167 to 0.233) |
+| The main thread, G cycles in 30 s | 2.14 (1.85 to 2.34) | 2.08 (2.00 to 2.14) | 2.30 (1.44 to 2.79) |
+| Launch to the main menu | 1.052 s (0.998 to 1.126) | 0.983 s (0.963 to 1.021) | 1.034 s (0.985 to 1.105) |
+| The map's Continue to the first board | 1.776 s | 1.761 s | 1.766 s |
+| Web: WebAssembly memory after the play (it grows in steps of about a fifth) | 116.4 MB | 67.0 MB | 107.3 MB |
+
+The streaming's cost is processor time while the music plays. The mixer's cycles go up by 0.121 G in 30 s (each round
+against its own run with both as before: +0.101 to +0.148), 75 % of its own and about 5 % of the process's; offline that
+is about 1 ms of processor time per second of music (300 s of the menu's and the game's modules: 205 ms decoded whole,
+500 and 522 ms streamed). It is paid again every time the music loops, where the whole decode was paid once at load (54
+ms for 335, 265 ms for 339, 124 and 119 ms for the classic list's 336 and 337), so after about a minute of the menu's
+music and four of the game's the port has spent more processor time on it than the decode at load took. A jump into the
+middle of a recording would decode it from its start inside one mixer callback (about 0.1 s for the longest, a gap in
+the sound); the game's jumps land only on orders that start a recording. The pictures change costs nothing measurable:
+the main thread's differences are within the noise between runs (other sessions' games ran beside them), and no picture
+is decoded again during the play (a build that logged each one, the check's play). The mixer's 0.019 G more with the
+pictures kept once is under "Oddities".
+
 ## Coverage check (2026-11-08)
 
 The first whole coverage check of Ancient Japan (`docs/COVERAGE.md`, "A game's whole check"). origrun's `--coverage`
@@ -895,3 +927,14 @@ original's shape throughout.
 its options gives the list for rule 4; a script renames each declaration within its scope (comments and strings left
 alone), another finds the number literals passed for parameters that hold ids (by the parameter's name) and writes the
 constants; and a snapshot of every object's disassembly before the pass is compared after each step.
+
+## Oddities (not chased)
+
+**The mixer's cycles with the pictures kept once (2026-11-15).** In the measurement of "Streamed music and one copy of
+the pictures", the variant that keeps the pictures once (the music decoded whole) gave the mixer thread 0.019 G cycles
+more in 30 s than the variant with both as before, in all five rounds (each against its own round: +0.007 to +0.043);
+Ancient China's same comparison shows none (+0.002, -0.009 to +0.005). Nothing in that change runs in the mixer (it
+frees picture memory on the main thread), so a cause would be indirect, such as where the heap now places the music's
+buffers. To see it: `tools/profile/perfrun.sh port` with `TOOL=games/mahjongjapan/tools/profile/threadprof.py`, under
+`tools/pincore.py`, `BYOPOP_STREAM_MUSIC=0` in both runs and `JB_KEEP_IMAGE_BITS=1` in one, alternating. It would take a
+profile of the mixer thread in both variants to explain.
