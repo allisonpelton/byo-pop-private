@@ -7396,11 +7396,10 @@ appear (2 s without it), origrun gives up waiting at 20 s, the script's first cl
 update, a result no pair should be taken from; `PERF_NOPIN=1` runs both sides unpinned (so these pairs were not pinned). The origrun patch
 lists, git-ignored, also have to be in the worktree (`tools/setup_worktree.sh` copies them).
 
-**The port at the default 2x window** (`SOFTSCREEN_SCALED=1`, the software screen stretched to 1280x960; a report, nothing changed at 2x):
-5.5 to 6.5 % of one core, 1.13 to 1.34 M cycles an update over the three stretches (three runs; the machine was quieter than for the
-1x pairs, so the 1x and 2x figures cannot be ordered), 33.1 MB at the title (0.42 s) and 45.1 and 45.9 MB at the scenario's peak (two runs).
-Today's default, the GPU path at the default window (a first run without `Is3D=0`, with the cuts above): 62.3 MB at the title and
-78.6 MB at the peak.
+**The default window.** The software screen is for 1x only (the user, 2026-11-15; `docs/RULES.md`), so the 2x window stays on the GPU. The
+task also asked for the port at 2x on the software screen (`SOFTSCREEN_SCALED=1`); it was run once, before that decision, and its figures are not kept.
+Today's default, the GPU path at the default 1280x960 window (one run, with the cuts above, without `Is3D=0`): 62.3 MB at the title and 78.6 MB at the
+scenario's peak, against 77.7 to 79.9 and 95.8 to 97.9 MB on 2026-11-11; the software screen at 1x is 28 MB under it at the title and 32 MB at the peak.
 
 ### Oddities
 
