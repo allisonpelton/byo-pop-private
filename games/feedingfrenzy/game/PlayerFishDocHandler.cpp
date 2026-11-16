@@ -1,3 +1,4 @@
+#include "Font.h"
 #include "PlayerFishDocHandler.h"
 #include "Exception.h"
 #include "ImageFilter.h"

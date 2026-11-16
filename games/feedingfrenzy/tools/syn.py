@@ -39,4 +39,6 @@ for f in sys.argv[1:]:
     for l in lines[:40]:
         print(l[:300])
     failed |= r.returncode
+    if os.environ.get('SYN_FULL'):
+        print(text[:8000])
 sys.exit(1 if failed else 0)

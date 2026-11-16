@@ -4,6 +4,7 @@
 // The glow around the player's fish while it has a shield (PlayerShieldFx, 0x148 bytes, constructor 0x419490,
 // vtable 0x4a3350): a particle effect that circles the fish, passing in front of it and behind it.
 
+#include "Font.h"
 #include "Node.h"
 #include "Particles.h"
 

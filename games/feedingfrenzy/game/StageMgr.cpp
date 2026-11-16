@@ -2,6 +2,7 @@
 #include "App.h"
 #include "FishBase.h"
 #include "FishFactory.h"
+#include "Mine.h"
 #include "FishFood.h"
 #include "FishSchool.h"
 #include "FishSpawner.h"
@@ -53,12 +54,19 @@ const char* const SPLATS_FILE = "config\\splats.xml";
 const char* const EAT_SPLATS_FILE = "config\\eatSplats.xml";
 const char* const CLEAR_BUBBLES_FILE = "config\\fx\\stageClearBubbles.xml";
 const char* const GAMEPLAY_SOUNDS_FILE = "config\\gameplaySounds.xml";
+const char* const STAGE_FILE_NAME = "stage.xml";
 const char* const BONUS_FISH_FILE = "config\\fish\\Mermaid.xml";
 const char* const CONTINUE_SCREEN_FILE = "config\\gameOverContinue.xml";
 const char* const GAME_OVER_SCREEN_FILE = "config\\gameOver.xml";
 const char* const PAUSE_FONT_FILE = "resources\\hud\\textFont.xml";
 const float CLEAR_BUBBLES_X = 320.0f;
 const float CLEAR_BUBBLES_Y = 240.0f;
+// The banners that end a stage: the seconds each letter waits after the one before, how far apart the letters are (the
+// stage, clear and sorry banners, and the perfect and time up banners), and how long the clear banner waits to begin
+const float BANNER_LETTER_DELAY = 0.15f;
+const float BANNER_WIDE_SPACING = 80.0f;
+const float BANNER_NARROW_SPACING = 71.0f;
+const float BANNER_CLEAR_START_DELAY = 0.8f;
 const float PAUSE_MESSAGE_X = 10.0f;
 const float PAUSE_MESSAGE_Y = 450.0f;
 
@@ -206,7 +214,7 @@ void StageMgr::init()
 		mHud->getRoot()->setVisible(false);
 		mVerticalOffset = 0.0f;
 		mPlayer->setVisible(false);
-		mPlayer->setControlled(false);
+		mPlayer->setCursorLocked(false);
 	}
 	mHudOffsetGroup->setPosition(0.0f, mVerticalOffset);
 	mViewHeight -= (int)mVerticalOffset;
@@ -217,12 +225,13 @@ void StageMgr::init()
 
 	Window* aWindow = anApp->getRootWindow();
 	if (mType != STAGE_MENU)
-		aWindow->addKeyHandler(mPlayer->getKeyHandler());
+		aWindow->addKeyHandler(static_cast<KeyHandler*>(mPlayer.get()));
 	if (mType != STAGE_MENU)
 		aWindow->addKeyHandler(this);
 	addHudSpawners();
 	if (mType != STAGE_MENU)
 		loadEffects();
+	Mine::resetLeaveCount();
 
 	mPauseCover = new FadeContainer();
 	addChild(mPauseCover);
@@ -251,19 +260,20 @@ void StageMgr::loadEffects()
 	const GameStrings& aStrings = FishFood::instance()->getStrings();
 	mStageBanner = new BubbleString();
 	addChild(mStageBanner);
-	mStageBanner->setText(aStrings.get("levelEndStage"));
+	mStageBanner->setText(aStrings.get("levelEndStage"), BANNER_LETTER_DELAY, BANNER_WIDE_SPACING, 0.0f);
 	mClearBanner = new BubbleString();
 	addChild(mClearBanner);
-	mClearBanner->setText(aStrings.get("levelEndClear"));
+	mClearBanner->setText(aStrings.get("levelEndClear"), BANNER_LETTER_DELAY, BANNER_WIDE_SPACING,
+	                      BANNER_CLEAR_START_DELAY);
 	mLostBanner = new BubbleString();
 	addChild(mLostBanner);
-	mLostBanner->setText(aStrings.get("levelEndSorry"));
+	mLostBanner->setText(aStrings.get("levelEndSorry"), BANNER_LETTER_DELAY, BANNER_WIDE_SPACING, 0.0f);
 	mPerfectBanner = new BubbleString();
 	addChild(mPerfectBanner);
-	mPerfectBanner->setText(aStrings.get("levelEndPerfect"));
+	mPerfectBanner->setText(aStrings.get("levelEndPerfect"), BANNER_LETTER_DELAY, BANNER_NARROW_SPACING, 0.0f);
 	mTimeUpBanner = new BubbleString();
 	addChild(mTimeUpBanner);
-	mTimeUpBanner->setText(aStrings.get("levelEndTimeUp"));
+	mTimeUpBanner->setText(aStrings.get("levelEndTimeUp"), BANNER_LETTER_DELAY, BANNER_NARROW_SPACING, 0.0f);
 }
 
 // 0x4396f0: the stage is built: the player begins its life, the camera starts in the middle of the stage, and the
@@ -277,14 +287,8 @@ void StageMgr::beginPlay()
 		mCameraY = 0.0f;
 	mPlayGroup->setPosition(-mCameraX, -mCameraY);
 
-	float aMenuY = 120.0f;
 	for (size_t i = 0; i < mSpawners.size(); i++)
-	{
 		mSpawners[i]->spawnInitial();
-		addChild(mSpawners[i]->getMenuImageGroup());
-		mSpawners[i]->getMenuImageGroup()->setPosition(10.0f, aMenuY);
-		aMenuY += 20.0f;
-	}
 
 	if (mType == STAGE_MENU)
 	{
@@ -379,7 +383,7 @@ void StageMgr::cleanup()
 	Window* aWindow = App::instance()->getRootWindow();
 	aWindow->removeKeyHandler(this);
 	if (mPlayer != nullptr)
-		aWindow->removeKeyHandler(mPlayer->getKeyHandler());
+		aWindow->removeKeyHandler(static_cast<KeyHandler*>(mPlayer.get()));
 	if (mScreenShown != nullptr)
 	{
 		FishFood::instance()->hideScreen(mScreenShown, 0.0f);
@@ -505,7 +509,7 @@ void StageMgr::updatePlaying(UpdateInfo& theInfo)
 			mPauseCover->fade(false, 1.0f, 1.0f, false);
 	}
 	testCollisions();
-	mHud->update();
+	mHud->update(theInfo);
 	for (size_t i = 0; i < mSchools.size(); i++)
 		mSchools[i]->update(theInfo);
 	Container::update(theInfo);
@@ -519,7 +523,7 @@ void StageMgr::updatePlaying(UpdateInfo& theInfo)
 		mStartDelay -= theInfo.mSeconds;
 		return;
 	}
-	if (mPlayer != nullptr && mPlayer->getState() != PLAYER_DEAD)
+	if (mPlayer != nullptr && mPlayer->getState() != PLAYER_DYING)
 	{
 		for (size_t i = 0; i < mSpawners.size(); i++)
 		{
@@ -580,10 +584,10 @@ void StageMgr::updateEnding(UpdateInfo& theInfo)
 	else
 	{
 		testCollisions();
-		mHud->update();
+		mHud->update(theInfo);
 	}
 	updateCamera(theInfo.mSeconds);
-	mHud->update();
+	mHud->update(theInfo);
 	Container::update(theInfo);
 	removeFishOutOfPlay();
 	if (mPauseCover != nullptr && mType != STAGE_MENU)
@@ -657,7 +661,7 @@ void StageMgr::beginMermaidEnd()
 void StageMgr::clearStage()
 {
 	for (size_t i = 0; i < mSpawners.size(); i++)
-		mSpawners[i]->setMode(FishSpawner::MODE_PAUSED);
+		mSpawners[i]->setMode(SPAWN_PAUSED);
 	for (size_t i = 0; i < mFish.size(); i++)
 		mFish[i]->leave();
 	FishFood::instance()->playSound("starPickup", 1.0f, 1.0f);
@@ -859,11 +863,12 @@ void StageMgr::shakeCamera(float theSeconds, float theAmount)
 }
 
 // 0x436ab0: the camera follows the player: the stage's two layouts scroll slower than the play group, and the camera
-// moves when the player's fish nears the view's edge (when the stage is cleared it settles to the stage's middle)
+// moves when the player's fish nears the view's edge (while the fish comes into the stage it settles to the stage's
+// middle, and in the feeding fury it stays)
 void StageMgr::updateCamera(float theSeconds)
 {
 	Point aNose = mPlayer->getNosePosition();
-	if (mPlayer->getState() == PLAYER_DEAD)
+	if (mPlayer->getState() == PLAYER_FURY)
 		return;
 	Point aScreen = worldToScreen(aNose);
 	aScreen.y -= mVerticalOffset;
@@ -871,7 +876,7 @@ void StageMgr::updateCamera(float theSeconds)
 		mFgLayout->setPosition(mCameraX * -FOREGROUND_PARALLAX, 0.0f);
 	if (mMgLayout != nullptr)
 		mMgLayout->setPosition(mCameraX * -MIDDLE_PARALLAX, 0.0f);
-	if (mPlayer->getState() == PLAYER_CLEARED && mType != STAGE_MENU)
+	if (mPlayer->getState() == PLAYER_SPAWN && mType != STAGE_MENU)
 	{
 		Point aCentre((float)(mWorldWidth - mViewWidth) * 0.5f, (float)(mWorldHeight - mViewHeight) * 0.5f);
 		aCentre.subtract(Point(mCameraX, mCameraY));
@@ -991,7 +996,7 @@ void StageMgr::testCollisions()
 			}
 			else if (mPlayer != nullptr && mType != STAGE_MENU && aFirst == mPlayer && aSecond->isPickup() &&
 			         aFirst->getBodyRect()->intersects(aSecond->getMouthRect()->getRect()) &&
-			         aFirst->canEat(aSecond) && !mPlayer->isFrenzied())
+			         aFirst->canEat(aSecond) && !mPlayer->isInvincible())
 			{
 				aFirst->eat(aSecond);
 				break;
@@ -1019,7 +1024,7 @@ void StageMgr::testCollisions()
 				if (aSting.intersects(aFirstHit))
 				{
 					aSecond->onContact(aFirst);
-					if (mPlayer->getState() != PLAYER_DEAD)
+					if (mPlayer->getState() != PLAYER_DYING)
 						break;
 				}
 			}
@@ -1029,7 +1034,7 @@ void StageMgr::testCollisions()
 				if (aSting.intersects(aSecondHit))
 				{
 					aFirst->onContact(aSecond);
-					if (mPlayer->getState() != PLAYER_DEAD)
+					if (mPlayer->getState() != PLAYER_DYING)
 						break;
 				}
 			}
@@ -1115,7 +1120,7 @@ int StageMgr::countFishToEat() const
 {
 	int aCount = 0;
 	for (size_t i = 0; i < mSpawners.size(); i++)
-		if (mSpawners[i]->getMode() == FishSpawner::MODE_ONLY_UNEATEN)
+		if (mSpawners[i]->getMode() == SPAWN_ONLY_UNEATEN)
 			aCount += mSpawners[i]->getPoolSize();
 	return aCount;
 }
@@ -1125,7 +1130,7 @@ int StageMgr::countEaten() const
 {
 	int aCount = 0;
 	for (size_t i = 0; i < mSpawners.size(); i++)
-		if (mSpawners[i]->getMode() == FishSpawner::MODE_ONLY_UNEATEN)
+		if (mSpawners[i]->getMode() == SPAWN_ONLY_UNEATEN)
 			aCount += mSpawners[i]->getEatenCount();
 	return aCount;
 }
@@ -1283,7 +1288,6 @@ void StageMgr::setPlayer(PlayerFish* thePlayer)
 // 0x438e50: the three layouts of the stage; the background always, the others when the stage's file names them
 void StageMgr::loadLayouts()
 {
-	App::instance()->clearImageCache();
 	mBgLayout = new ScreenLayout();
 	mBgLayout->loadLayout(mBackgroundLayoutName);
 	mBgLayout->setName("BgLayout");
@@ -1344,13 +1348,9 @@ void StageMgr::updateLoad()
 		mLoadStep = LOAD_STEP_FILE;
 		break;
 	case LOAD_STEP_FILE:
-	{
-		StageDocHandler aHandler;
-		aHandler.setStage(this);
-		parseFile(aFolder + "stage.xml", aHandler);
+		loadStageFile(aFolder + STAGE_FILE_NAME, this);
 		mLoadStep = LOAD_STEP_LAYOUTS;
 		break;
-	}
 	case LOAD_STEP_LAYOUTS:
 		loadLayouts();
 		mLoadStep = LOAD_STEP_MUSIC;
@@ -1379,25 +1379,21 @@ void StageMgr::updateLoad()
 			mBonusSpawner->load(BONUS_FISH_FILE, 1);
 			mBonusSpawner->createFish();
 			mBonusSpawner->setDisplayMenuImage(false);
-			mBonusSpawner->setMode(FishSpawner::MODE_STOPPED);
+			mBonusSpawner->setMode(SPAWN_STOPPED);
 		}
 		mLoadStep = LOAD_STEP_START_SCREEN;
 		break;
 	case LOAD_STEP_START_SCREEN:
 		mStartScreen = new StageInfoScreen(this);
 		mStartScreen->loadLayout(aFolder + "startScreen.xml");
-		mStartScreen->addRef();
 		mLoadStep = LOAD_STEP_SCREENS;
 		break;
 	case LOAD_STEP_SCREENS:
 		mCompleteScreen = new StageEndScreen(this);
 		mCompleteScreen->loadLayout(aFolder + "completeScreen.xml");
-		mCompleteScreen->addRef();
 		mContinueScreen = new StageInfoScreen(this);
-		mContinueScreen->addRef();
 		mContinueScreen->loadLayout(CONTINUE_SCREEN_FILE);
 		mGameOverScreen = new StageInfoScreen(this);
-		mGameOverScreen->addRef();
 		mGameOverScreen->loadLayout(GAME_OVER_SCREEN_FILE);
 		setUpScreens();
 		mLoadStep = LOAD_STEP_DONE;

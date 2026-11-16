@@ -102,9 +102,9 @@ public:
 	virtual float getSpeedBoostSeconds() { return mSpeedBoostSeconds; }    // 0x2d0: 0x40dfb0
 	virtual void setFrenzyTime(float theSeconds) { mFrenzyTime = theSeconds; }  // 0x2d4: 0x410440
 	virtual int getChainCount() { return mChainCount; }          // 0x2d8: 0x410450
-	virtual void updateFrenzyLevel();                            // 0x2dc: 0x410460
+	virtual int updateFrenzyLevel();                             // 0x2dc: 0x410460: the level, 1 for each 7 in the chain
 	virtual int getGrowthLevelCount();                           // 0x2e0: 0x410ad0
-	virtual GrowthLevel* getGrowthLevel(int theIndex);           // 0x2e4: 0x411390
+	virtual float getGrowthScore(int theIndex);                  // 0x2e4: 0x411390: the score a size starts at
 	virtual bool isSpecialReady() { return false; }              // 0x2e8: 0x4608c0
 	virtual float getSpecialProgress() { return 0.0f; }          // 0x2ec: 0x410520
 	virtual void updateGrowth();                                 // 0x2f0: 0x412d60: the size follows the score

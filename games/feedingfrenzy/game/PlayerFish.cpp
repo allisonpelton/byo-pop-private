@@ -448,9 +448,10 @@ void PlayerFish::updateSpecial(UpdateInfo& theInfo)
 }
 
 // 0x410460
-void PlayerFish::updateFrenzyLevel()
+int PlayerFish::updateFrenzyLevel()
 {
 	mFrenzyLevel = mChainCount / CHAIN_STEP + 1;
+	return mFrenzyLevel;
 }
 
 // 0x4104a0
@@ -738,9 +739,9 @@ float PlayerFish::getGrowthProgress()
 }
 
 // 0x411390
-GrowthLevel* PlayerFish::getGrowthLevel(int theIndex)
+float PlayerFish::getGrowthScore(int theIndex)
 {
-	return &mGrowthLevels[theIndex];
+	return (float)mGrowthLevels[theIndex].mScore;
 }
 
 // 0x411620

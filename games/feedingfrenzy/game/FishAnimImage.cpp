@@ -60,3 +60,25 @@ std::string FishAnimImage::getShiftedName(const std::string& theBase, const engi
 	snprintf(aSuffix, sizeof(aSuffix), "_H_%d_S_%d_V_%d", (int)aHuePart, (int)aSaturationPart, (int)aValuePart);
 	return theBase + aSuffix;
 }
+
+// 0x432550 and 0x426f10
+engine::Image* FishAnimImage::getMenuImage(const std::string& theFile, engine::HsvShiftFilter* theShift)
+{
+	engine::App* anApp = engine::App::instance();
+	engine::Image* anImage;
+	if (theShift == nullptr)
+		anImage = anApp->getImage(theFile.c_str());
+	else
+	{
+		std::string aShiftedName = getShiftedName(theFile, *theShift);
+		anImage = anApp->findImage(aShiftedName.c_str());
+		if (anImage == nullptr)
+		{
+			anImage = anApp->createImage(theFile.c_str(), false);
+			anImage->applyFilter(*theShift);
+			anApp->addImage(aShiftedName.c_str(), anImage);
+		}
+	}
+	anImage->setPivot(1);
+	return anImage;
+}

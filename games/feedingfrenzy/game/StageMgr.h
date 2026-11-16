@@ -117,7 +117,7 @@ public:
 	// 0x4373e0: a flag the end of a bonus stage clears: the stage has no more time
 	bool isTimed() const { return mTimed; }
 	StageInfo* getStageInfo() { return mStageInfo; }  // 0x437430
-	const std::string& getName() const { return mName; }
+	const std::string& getStageName() const { return mStageName; }  // the stage's friendly name
 	const std::string& getNextStageName() const { return mNextStageName; }
 	int getNextLevelAt() const { return mNextLevelAt; }
 
@@ -184,6 +184,7 @@ public:
 
 	// The groups of the stage a fish or an effect is added to
 	void addToPlayGroup(engine::Node* theNode) { mPlayGroup->addChild(theNode); }          // 0x4370c0
+	engine::Container* getPlayGroup() { return mPlayGroup; }                              // 0x46c490 (+0x124)
 	void addToBehind(engine::Node* theNode) { mBehindGroup->addChild(theNode); }           // 0x437310
 	void removeFromBehind(engine::Node* theNode) { mBehindGroup->removeChild(theNode); }   // 0x437320
 	void addToMidGround(engine::Node* theNode) { mMidGroundGroup->addChild(theNode); }     // 0x437330
@@ -207,7 +208,7 @@ public:
 
 	// The stage's file says them: the name and what follows (0x43b5a0 and 0x43b600), the layouts (0x43b7f0), the
 	// sounds and music (0x43b8a0)
-	void setName(const std::string& theName) { mName = theName; }
+	void setStageName(const std::string& theName) { mStageName = theName; }
 	void setNext(const std::string& theName, int theLevelAt);
 	void setLayoutNames(const std::string& theBackground, const std::string& theForeground, const std::string& theMiddle);
 	void setSounds(const std::string& theIntro, const std::string& theOutro, const std::string& theAmbient,
@@ -301,7 +302,7 @@ private:
 	float mCameraY;                                  // +0x1e0
 	int mViewWidth;                                  // +0x1e4
 	int mViewHeight;                                 // +0x1e8
-	std::string mName;                               // +0x1ec
+	std::string mStageName;                          // +0x1ec
 	std::string mNextStageName;                      // +0x208
 	int mNextLevelAt;                                // +0x224: the score at which the next stage opens
 	std::string mIntroSound;                         // +0x228

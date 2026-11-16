@@ -8,6 +8,9 @@
 // VisitURL and ILink: an outbound button) and the screen saver's selection (SaverSelection).
 
 #include "GenericGameOptions.h"
+#include "ScreenLayout.h"
+
+#include <string>
 
 namespace feedingfrenzy
 {
@@ -29,6 +32,11 @@ public:
 	// 0x4331c0: how much faster the player's fish swims for the sensitivity (0.8, 1.1, 1.3 and 1.55); a value out of range
 	// is put back to 1
 	float getMouseSpeedFactor();
+
+	// 0x433540: the options screen shows the settings: the boxes checked (the full screen as the display has it), the
+	// mouse sensitivity's button, the game's version; without a sound system the sound and music are off, cannot be
+	// turned on, and the text that says why shows
+	void updateScreen(engine::ScreenLayout* theScreen, const std::string& theVersion);
 
 private:
 	bool mTipsEnabled;              // +0x03

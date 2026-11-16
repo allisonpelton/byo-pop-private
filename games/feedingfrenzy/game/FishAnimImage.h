@@ -6,6 +6,7 @@
 // file). Each shifted frame is made once and kept under its own name, like the shifted fish of a school.
 
 #include "AnimImage.h"
+#include "Graphics.h"
 #include "ImageFilter.h"
 #include <string>
 
@@ -24,6 +25,11 @@ public:
 
 	// The name a picture is kept under when the colour offset has shifted it: "<theBase>_H_<hue+180>_S_<(saturation+1)*100>_V_<(value+1)*100>"
 	static std::string getShiftedName(const std::string& theBase, const engine::HsvShiftFilter& theShift);
+
+	// 0x432550 and 0x426f10: a fish's menu picture as the stage's HUD and its end screen show it, centred on its pivot:
+	// the file's picture, or with a colour offset the shifted one (made from the file and kept under its shifted name
+	// when it is not there yet)
+	static engine::Image* getMenuImage(const std::string& theFile, engine::HsvShiftFilter* theShift);
 };
 
 } // namespace feedingfrenzy
