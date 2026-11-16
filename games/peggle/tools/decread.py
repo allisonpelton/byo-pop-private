@@ -38,6 +38,12 @@ FRAME_NOISE = re.compile(
 # an inlined std::string being reset to empty, and its release
 STRING_RESET = re.compile(r"^\s*\w+ = 0xf;\s*\n\s*\w+ = 0;\s*\n\s*\w+ = \(void \*\)\(\(uint\)\w+ & 0xffffff00\);\s*\n", re.M)
 STRING_FREE = re.compile(r"^\s*if \(0xf < \w+\) \{\s*\n\s*_free\(\w+\);\s*\n\s*\}\s*\n", re.M)
+# std::string::c_str() inlined: the capacity at +0x14 decides whether the characters are inside the object or on the heap
+STRING_CSTR = re.compile(
+    r"if \(\*\(uint \*\)\((\w+) \+ (0x[0-9a-f]+)\) < 0x10\) \{\s*(\w+) = \([\w ]+\*\)\(\1 \+ (0x[0-9a-f]+)\);\s*\}\s*"
+    r"else \{\s*\3 = \*\([\w ]+\*\*\)\(\1 \+ \4\);\s*\}")
+# a debug-iterator check of the std containers: an if whose only statement reports the failure
+BOUNDS_CHECK = re.compile(r"^[ \t]*if \((?:[^{};])*?\) \{\s*FUN_0059cd0b\(\);\s*\}[ \t]*\n", re.M)
 
 
 def load_symbols():
@@ -131,6 +137,8 @@ def compact(text, names):
     text = "\n".join(lines) + "\n"
     text = STRING_RESET.sub("", text)
     text = STRING_FREE.sub("", text)
+    text = STRING_CSTR.sub(lambda m: "%s = c_str(%s + %s);" % (m.group(3), m.group(1), m.group(4)), text)
+    text = BOUNDS_CHECK.sub("", text)
     text = text.replace("undefined4 *", "u32*").replace("undefined4", "u32").replace("undefined1", "u8")
     text = text.replace("undefined2", "u16").replace("(code **)", "(fn**)")
 
