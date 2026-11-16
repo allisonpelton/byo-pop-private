@@ -215,6 +215,7 @@ void AtomicaApp::LoadingThreadProc()
 	}
 	mAdjacentSheet = mSprites->Load("adjacentreflections");
 	mCompletedLoadingThreadTasks++;
+	mAdjacentSheet->Palletize();
 	for (int i = 0; i < 4; i++)
 		mAdjacent[i] = mSprites->Cell(mAdjacentSheet, 0x37, 0x37, i);
 	mFloatyFont = new ImageFont(this, "data\\floatyfont.txt");
@@ -235,6 +236,7 @@ void AtomicaApp::LoadingThreadProc()
 	}
 	mStarBurst = mSprites->Load("starburst");
 	mCompletedLoadingThreadTasks++;
+	mStarBurst->Palletize();
 
 	mLoadingText = GT(0x4af110);
 	PumpLoading();
@@ -246,6 +248,7 @@ void AtomicaApp::LoadingThreadProc()
 	mCompletedLoadingThreadTasks++;
 	mMachineRim = mSprites->Load("atomicrim");
 	mCompletedLoadingThreadTasks++;
+	mMachineRim->Palletize();
 	mMachineBomber = mSprites->Load("atomicmachine(bomber)");
 	mCompletedLoadingThreadTasks++;
 	mMachineBomberMeter = mSprites->Load("atomicmachine(bombermeter)");
@@ -284,8 +287,10 @@ void AtomicaApp::LoadingThreadProc()
 	mCompletedLoadingThreadTasks++;
 	mSmallHeadSheet = mSprites->Load("smallatomicushead");
 	mCompletedLoadingThreadTasks++;
+	mSmallHeadSheet->Palletize();
 	mCoat = mSprites->Load("coat");
 	mCompletedLoadingThreadTasks++;
+	mCoat->Palletize();
 	for (int i = 0; i < 11; i++)
 	{
 		mSmallHead[i] = mSprites->Cell(mSmallHeadSheet, 0x70, 0x7b, i);
@@ -293,8 +298,10 @@ void AtomicaApp::LoadingThreadProc()
 	}
 	mLeftNodSheet = mSprites->Load("atomicusleftnod");
 	mCompletedLoadingThreadTasks++;
+	mLeftNodSheet->Palletize();
 	mRightNodSheet = mSprites->Load("atomicusrightnod");
 	mCompletedLoadingThreadTasks++;
+	mRightNodSheet->Palletize();
 	for (int i = 0; i < 5; i++)
 	{
 		mLeftNod[i] = mSprites->Cell(mLeftNodSheet, 0x6e, 0x7b, i);
@@ -312,6 +319,7 @@ void AtomicaApp::LoadingThreadProc()
 	}
 	mNukeFlash = mSprites->Load("nukeflash");
 	mCompletedLoadingThreadTasks++;
+	mNukeFlash->Palletize();
 	mSpark = mSprites->Load("spark");
 	mCompletedLoadingThreadTasks++;
 	mMiniSpark = mSprites->Load("minispark");
@@ -319,8 +327,11 @@ void AtomicaApp::LoadingThreadProc()
 	mBigWordsSheet = mSprites->Load("bigwords");
 	mCompletedLoadingThreadTasks++;
 	mBigWords[0] = mSprites->SubSprite(mBigWordsSheet, 0x31, 0x1f, 0x136, 0x7d);
+	mBigWords[0]->Palletize();
 	mBigWords[1] = mSprites->SubSprite(mBigWordsSheet, 0x30, 0xe6, 0x124, 0x80);
+	mBigWords[1]->Palletize();
 	mBigWords[2] = mSprites->SubSprite(mBigWordsSheet, 0x1a, 0x1b0, 0x14f, 0x7d);
+	mBigWords[2]->Palletize();
 	mMouthSheet = mSprites->Load("atomicmouth");
 	mCompletedLoadingThreadTasks++;
 	for (int i = 0; i < 0x32; i++)
@@ -335,6 +346,7 @@ void AtomicaApp::LoadingThreadProc()
 	mCompletedLoadingThreadTasks++;
 	mFreeze = mSprites->Load("Freeze");
 	mCompletedLoadingThreadTasks++;
+	mFreeze->Palletize();
 
 	mLoadingText = GT(0x4aee54);
 	PumpLoading();
@@ -348,8 +360,10 @@ void AtomicaApp::LoadingThreadProc()
 	}
 	mBonusLevelsSheet = mSprites->Load("bonuslevels");
 	mCompletedLoadingThreadTasks++;
+	mBonusLevelsSheet->Palletize();
 	mBonusNucleusSheet = mSprites->Load("bonuslevelsnucleus");
 	mCompletedLoadingThreadTasks++;
+	mBonusNucleusSheet->Palletize();
 	for (int i = 0; i < 160; i++)
 	{
 		mBonusLevels[i] = mSprites->Cell(mBonusLevelsSheet, 0x3d, 0x3d, i);
@@ -357,6 +371,7 @@ void AtomicaApp::LoadingThreadProc()
 	}
 	mBonusWordsSheet = mSprites->Load("bonuswords");
 	mCompletedLoadingThreadTasks++;
+	mBonusWordsSheet->Palletize();
 	mBonusWords[0] = mSprites->Cell(mBonusWordsSheet, 0x116, 0x32, 0);
 	mBonusWords[1] = mSprites->Cell(mBonusWordsSheet, 0x116, 0x32, 1);
 	mBonusWords[2] = mSprites->Cell(mBonusWordsSheet, 0x116, 0x32, 4);
@@ -364,10 +379,12 @@ void AtomicaApp::LoadingThreadProc()
 	mBonusWords[4] = mSprites->Cell(mBonusWordsSheet, 0x116, 0x32, 3);
 	mLevelAndScore = mSprites->Load("levelandscore");
 	mCompletedLoadingThreadTasks++;
+	mLevelAndScore->Palletize();
 	mGeigerGlow = mSprites->Load("geigerglow");
 	mCompletedLoadingThreadTasks++;
 	mAtomicExplosionSheet = mSprites->Load("atomicexplosion");
 	mCompletedLoadingThreadTasks++;
+	mAtomicExplosionSheet->Palletize();
 	for (int i = 0; i < 16; i++)
 	{
 		mAtomicExplosion[i] = mSprites->Cell(mAtomicExplosionSheet, 100, 100, i);
@@ -375,6 +392,7 @@ void AtomicaApp::LoadingThreadProc()
 	}
 	mClouds = mSprites->Load("clouds");
 	mCompletedLoadingThreadTasks++;
+	mClouds->Palletize();
 	for (int i = 0; i < 6; i++)
 	{
 		mCloud[i] = mSprites->Cell(mClouds, 100, 100, i);
@@ -382,11 +400,13 @@ void AtomicaApp::LoadingThreadProc()
 	}
 	mGameTypeSheet = mSprites->Load("gametypeimages");
 	mCompletedLoadingThreadTasks++;
+	mGameTypeSheet->Palletize();
 	mGameType[0] = mSprites->SubSprite(mGameTypeSheet, 0, 0, 0x52, 0x4e);
 	mGameType[1] = mSprites->SubSprite(mGameTypeSheet, 0, 0x53, 0x52, 0x51);
 	mGameType[2] = mSprites->SubSprite(mGameTypeSheet, 0, 0xa6, 0x52, 0x56);
 	mBombSymbol = mSprites->Load("AtomicBombSymbol");
 	mCompletedLoadingThreadTasks++;
+	mBombSymbol->Palletize();
 	mRankSheet = mSprites->Load("RankStrip");
 	mCompletedLoadingThreadTasks++;
 	for (int i = 0; i < 0x16; i++)
@@ -396,8 +416,10 @@ void AtomicaApp::LoadingThreadProc()
 	}
 	mGreenAtomicus = mSprites->Load("GreenAtomicus");
 	mCompletedLoadingThreadTasks++;
+	mGreenAtomicus->Palletize();
 	mScoreArrowsSheet = mSprites->Load("HighScoreArrows");
 	mCompletedLoadingThreadTasks++;
+	mScoreArrowsSheet->Palletize();
 	mScoreArrows[0] = mSprites->Cell(mScoreArrowsSheet, 0x18, 0x1b, 0);
 	mCompletedLoadingThreadTasks++;
 	mScoreArrows[1] = mSprites->Cell(mScoreArrowsSheet, 0x18, 0x1b, 1);
@@ -425,6 +447,7 @@ void AtomicaApp::LoadingThreadProc()
 	mCompletedLoadingThreadTasks++;
 	mMagnetSheet = mSprites->Load("magnetsheet");
 	mCompletedLoadingThreadTasks++;
+	mMagnetSheet->Palletize();
 	for (int i = 0; i < 8; i++)
 	{
 		mMagnet[i] = mSprites->Cell(mMagnetSheet, 0x4d, 0x4d, i);
@@ -438,6 +461,7 @@ void AtomicaApp::LoadingThreadProc()
 	mCompletedLoadingThreadTasks++;
 	mLevelNumbersSheet = mSprites->Load("levelnumbers");
 	mCompletedLoadingThreadTasks++;
+	mLevelNumbersSheet->Palletize();
 	for (int i = 0; i < 10; i++)
 	{
 		mLevelNumber[i][0] = mSprites->Cell(mLevelNumbersSheet, 0xc, 0x13, i);

@@ -44,6 +44,7 @@ def main():
     ap.add_argument('--seed', type=int, default=1)
     ap.add_argument('--port-only', action='store_true')
     ap.add_argument('--orig-only', action='store_true')
+    ap.add_argument('--args', default='', help='more game arguments for the port (ATOMICA_EXE in the environment names another build)')
     ap.add_argument('--savefile')
     ap.add_argument('--hs', help='a HS.CFG to start both games with (a table every score beats shows the entry box)')
     a = ap.parse_args()
@@ -74,7 +75,7 @@ def main():
         if a.hs:
             shutil.copy(a.hs, os.path.join(ud, 'HS.CFG'))
         subprocess.run([BASH, fwd(os.path.join(ROOT, 'games/atomica/tools/run_script.sh')), fwd(script), fwd(ud), '600',
-                        '-seed=%d' % a.seed, '-drawevery'], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        '-seed=%d' % a.seed, '-drawevery'] + a.args.split(), cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         shutil.rmtree(d, ignore_errors=True)
         print('port: %d pictures' % len(os.listdir(pdir)))
     if not a.port_only:

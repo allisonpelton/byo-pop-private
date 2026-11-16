@@ -7,7 +7,7 @@
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 SCRIPT="$1"; USERDIR="$2"; LIMIT="${3:-120}"; shift 3 2>/dev/null || shift $#
-EXE_UNIX="$ROOT/build/native/atomica.exe"
+EXE_UNIX="$ROOT/build/native/${ATOMICA_EXE:-atomica.exe}"   # ATOMICA_EXE names another build kept in build/native
 EXE="$(cygpath -w "$EXE_UNIX" 2>/dev/null || echo "$EXE_UNIX")"
 grep -q "quit" "$SCRIPT" || { echo "run_script: $SCRIPT has no quit line" >&2; exit 2; }
 mkdir -p "$USERDIR"
