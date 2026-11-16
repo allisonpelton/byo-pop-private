@@ -216,7 +216,12 @@ challenge, the trophy pages, Tough Cookie's notice, the game-won page, the game 
 - **The how-to-play page** draws in the sandbox (the Flash control shows its title, hearts, three captions and the gnome's demo), but its
   demo loops on the original's wall clock while the port's runs on updates, so a shot at the same update shows different moments of
   the loop (the title and hearts being drawn in the port, the gnome up in the original). The captions, holes, plants and buttons are
-  identical. Compared by the movie's frames instead of by update, when `tools/visrun.py` is used for the page.
+  identical. Compared by the movie's frames instead of by update (`scenarios/howto.py`: 20 original shots across 9000 updates against 641
+  port frames every 10 updates): the same elements in the same order (the page fading in with its title and hearts, the hammer and
+  ring over the gnome, the MISS burst, the hearts going from five to four to three, the caption lit in turn, the ring moving to the other
+  holes). A frame-exact phase match is not possible, because the original's movie restarts on the wall clock and each of its shots
+  lands on an arbitrary frame (the best matches differ by about 2.6 on a 0-255 scale, the floor of the sprites' edge differences, with
+  the periodic loop making the best frame ambiguous). Judged equal: the demo's content and order; its timing is not compared.
 - **Particle effects and rotated sprites** (the smash debris, the stars, a rising creature's glow): a shot series every five updates
   from a hit shows the pieces at the same places in the same updates and differing only along their edges, the same
   one-pixel rims as below.
@@ -268,4 +273,4 @@ box, Game Over). The Browser pane cannot enter full screen, so the page is check
 ### Open
 
 - Not yet shot: the hard modes' remaining boxes, the saved games' resume pages, the web
-  build against the native one, the how-to-play movie against the original's by frame.
+  build against the native one.

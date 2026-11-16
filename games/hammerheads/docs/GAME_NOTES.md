@@ -88,17 +88,28 @@ a `click` and ten updates' wait, which is what a player's click does.
   and the listener, are not in the port. The options box and the quit box have no registration or outbound button, so nothing was
   taken out of them.
 
+## Fixes (the fixes mod)
+
+`mods/fixes/mod.json` has the three fixes; the port asks `Platform::FixOn(id)` at each one and keeps the original's path beside it
+(every option is off in a test run with no `-modsdir`, so the frozen baseline is the original). The page ships the mod as
+`hammerheads-fixes/` and installs it on. `games/hammerheads/tools/fixes_check.sh` runs `tools/fixes_test.txt` as the original, with the mod
+at its defaults and with each fix alone (under rundesk, `-fast -seed=1`).
+
+- **quitEscape** (on): the quit box (`QuitDialog`) sets no escape answer, as the options box does ("Done"); with the fix Escape answers
+  "No". Checked: the box stays open on Escape without it, and closes with it and with the mod.
+- **menuTrophySting** (on): `TrophyAppearButton`'s constructor (0x45f5e0) plays the medal sting when the trophy room opens from the main
+  menu as well as when a game awards one; with the fix it is silent from the menu. Checked in the sound log: the sting plays once
+  without it and not with it or the mod.
+- **restartCoinCount** (on): on a restart point's card (`ResurrectButton::Draw`) the number's width is measured in the font of the
+  line above (Eurofurence 14) and drawn in Arial 10 bold, so the coin and the number sit off the middle; with the fix it is measured in
+  the font it is drawn in. Not in the tour (the card needs a Marathon game to its first restart point): the change is the one font
+  set before the measurement.
+
 ## Fix candidates
 
-Behaviour of the original that looks like a mistake and is kept in the port until the fixes mod.
+Behaviour of the original that looks like a mistake and is kept in the port, with no fix yet.
 
-- **The coin count on a restart point's card** is measured in the font of the line above it (Eurofurence 14) and drawn in the
-  other (Arial 10 bold), so the pair of the coin and the number sits a little off the middle.
-- **The announcement of a trophy** plays its sting when the trophy room opens from the main menu as well as when a game awards one
-  (the constructor, 0x45f5e0).
-
-- **The escape key does nothing in the quit box**: it sets no escape answer, as the other boxes do (the options box answers it
-  as "Done").
+- **The button sound of a moving dialog** never plays (see Oddities); **a check box that cannot be ticked** plays its sound twice.
 
 ## Oddities (not chased)
 
