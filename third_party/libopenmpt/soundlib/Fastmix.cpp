@@ -477,7 +477,25 @@ bool CSoundFile::MixChannel(int count, ModChannel &chn, CHANNELINDEX channel, bo
 #ifdef MPT_BUILD_DEBUG
 				SamplePosition targetpos = chn.position + chn.increment * nSmpCount;
 #endif
+				// byo-pop: a streamed sample's frames for this run, the position moved back to the first of them for it
+				// (SampleStream.h)
+				const void *streamedPointer = nullptr;
+				int32 streamedShift = 0;
+				if(m_sampleStreams && chn.pModSample)
+				{
+					if(const void *window = m_sampleStreams->Window(*chn.pModSample, chn, nSmpCount, &streamedShift))
+					{
+						streamedPointer = chn.pCurrentSample;
+						chn.pCurrentSample = window;
+						chn.position -= SamplePosition(streamedShift, 0);
+					}
+				}
 				MixFuncTable::Functions[functionNdx | (chn.nRampLength ? MixFuncTable::ndxRamp : 0)](chn, m_Resampler, pbuffer, nSmpCount);
+				if(streamedPointer)
+				{
+					chn.position += SamplePosition(streamedShift, 0);
+					chn.pCurrentSample = streamedPointer;
+				}
 #ifdef MPT_BUILD_DEBUG
 				MPT_ASSERT(chn.position.GetUInt() == targetpos.GetUInt());
 #endif

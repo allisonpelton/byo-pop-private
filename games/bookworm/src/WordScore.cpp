@@ -157,10 +157,10 @@ int WordScore::CalcScore()
 }
 
 // 0x406130: in the dictionary (case-sensitive: the app's set holds upper-case words)
-bool WordScore::Validate(const std::set<SexyString>* theDictionary)
+bool WordScore::Validate(const WordSet* theDictionary)
 {
 	if ((mWord.size() > 2) && (theDictionary->size() != 0) &&
-		(theDictionary->find(mWord) != theDictionary->end()))
+		(theDictionary->Contains(mWord)))
 	{
 		mValid = true;
 		return mValid;

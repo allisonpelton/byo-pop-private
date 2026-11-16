@@ -28,13 +28,14 @@ namespace Sexy
 {
 class Board;
 class Graphics;
+class WordSet;
 
 // Calls theVisitor for every path over theTiles (adjacent tiles, each at most once) that spells a word of
 // theDictionary (3..12 letters, a Q tile spelling "QU"). A path ends where no word starts with its
 // letters. Paths start at the tiles in the order given and continue through the neighbours in that order.
 // The -autoplay test bot uses it too.
 typedef std::function<void(const std::vector<Piece*>& thePath, const SexyString& theWord)> BoardWordVisitor;
-void FindBoardWords(const std::vector<Piece*>& theTiles, const std::set<SexyString>& theDictionary,
+void FindBoardWords(const std::vector<Piece*>& theTiles, const WordSet& theDictionary,
 	const BoardWordVisitor& theVisitor);
 
 enum SolverHintKind

@@ -50,7 +50,7 @@ bool Sexy::SolverHotkeys()
 	return ModFeatureBool("solver", "hotkeys", true);
 }
 
-void Sexy::FindBoardWords(const std::vector<Piece*>& theTiles, const std::set<SexyString>& theDictionary,
+void Sexy::FindBoardWords(const std::vector<Piece*>& theTiles, const WordSet& theDictionary,
 	const BoardWordVisitor& theVisitor)
 {
 	size_t aCount = theTiles.size();
@@ -79,13 +79,13 @@ void Sexy::FindBoardWords(const std::vector<Piece*>& theTiles, const std::set<Se
 		if (aPiece->mLetter == 'Q')
 			aWord += 'U';
 
-		// the first word not before the letters so far starts with them, or no word does
-		std::set<SexyString>::const_iterator anItr = theDictionary.lower_bound(aWord);
-		if ((anItr != theDictionary.end()) && (anItr->compare(0, aWord.size(), aWord) == 0))
+		// a word starts with the letters so far, or none does
+		WordSet::LookupResult aLookup = theDictionary.Lookup(aWord);
+		if (aLookup != WordSet::LOOKUP_NONE)
 		{
 			anInPath[theIdx] = true;
 			aPath.push_back(aPiece);
-			if ((aWord.size() >= 3) && (*anItr == aWord))
+			if ((aWord.size() >= 3) && (aLookup == WordSet::LOOKUP_WORD))
 				theVisitor(aPath, aWord);
 			if ((int)aWord.size() < aMaxLength)
 			{

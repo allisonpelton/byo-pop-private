@@ -17,6 +17,7 @@ namespace Sexy
 {
 
 class BookWormApp;
+class WordSet;
 
 class WordScore
 {
@@ -41,7 +42,7 @@ public:
 	void			Clear();                                    // 0x4069c0 (mScore is kept)
 	void			CalcTileStats(const PieceList* thePieces);          // 0x406a10
 	int				CalcScore();                                // 0x404f60 (the only formula)
-	bool			Validate(const std::set<SexyString>* theDictionary); // 0x406130
+	bool			Validate(const WordSet* theDictionary); // 0x406130
 	SexyString		CommonPrefix(const SexyString& theOther);   // 0x406b00 (OverlayWidget::Draw)
 	void			Save(FILE* theFile);                        // 0x404fe0
 	void			Load(FILE* theFile);                        // 0x406180
