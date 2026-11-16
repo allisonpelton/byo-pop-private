@@ -102,7 +102,7 @@ std::vector<std::string> FileNames(const Platform::JsonValue& theValue)
 
 }
 
-void Sexy::LoadModWords(BookWormApp* theApp, std::set<SexyString>* theDictionary)
+void Sexy::LoadModWords(BookWormApp* theApp, WordSet* theDictionary)
 {
 	gModWordLists.clear();
 	gMaxWordLength = 12;
@@ -130,7 +130,7 @@ void Sexy::LoadModWords(BookWormApp* theApp, std::set<SexyString>* theDictionary
 			{
 				if ((aWord.size() > 12) && (!isLong))
 					continue;
-				if (theDictionary->find(aWord) == theDictionary->end())
+				if (!theDictionary->Contains(aWord))
 				{
 					aList.mWords.push_back(aWord);
 					gMaxWordLength = std::max(gMaxWordLength, (int)aWord.size());
@@ -148,9 +148,10 @@ void Sexy::LoadModWords(BookWormApp* theApp, std::set<SexyString>* theDictionary
 			gModWordLists.push_back(aList);
 	}
 	for (const std::vector<SexyString>& aWords : aMerged)
-		theDictionary->insert(aWords.begin(), aWords.end());
+		theDictionary->Insert(aWords);
 	for (const ModWordList& aList : gModWordLists)
-		theDictionary->insert(aList.mWords.begin(), aList.mWords.end());
+		theDictionary->Insert(aList.mWords);
+	theDictionary->Settle();
 }
 
 int Sexy::ModWordMaxLength()

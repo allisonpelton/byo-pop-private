@@ -93,7 +93,6 @@ public:
 	RulesSheet();													// 0x424e40
 	void			Load(const std::string& theFileName);			// 0x4261b0
 
-	int				GetRowCount() const;
 	// 0x424500: the text of a cell; a row past the last is the last row
 	std::string		GetText(int theRow, int theColumn) const;
 	int				GetInt(int theRow, int theColumn) const;		// 0x4245a0: atol of the cell
@@ -107,7 +106,6 @@ RulesSheet* GetRulesSheet(bool theReload = false);
 // The row of the level being played, and the cells of it
 int RuleRow();														// the level number less one
 int RuleInt(int theColumn);											// the sheet's number in the level's row
-double RuleDouble(int theColumn);
 
 // 0x4514d0: the seconds of one wave of the level: its time over its number of waves
 double GetWaveLength();

@@ -108,12 +108,6 @@ void RulesSheet::Load(const std::string& theFileName)
 	}
 }
 
-// port: the number of rows of the sheet
-int RulesSheet::GetRowCount() const
-{
-	return (int)mRows.size();
-}
-
 // 0x424500
 std::string RulesSheet::GetText(int theRow, int theColumn) const
 {
@@ -184,12 +178,6 @@ int Sexy::RuleRow()
 int Sexy::RuleInt(int theColumn)
 {
 	return GetRulesSheet()->GetInt(RuleRow(), theColumn);
-}
-
-// port: the sheet's number in the level's row
-double Sexy::RuleDouble(int theColumn)
-{
-	return GetRulesSheet()->GetDouble(RuleRow(), theColumn);
 }
 
 // 0x4514d0
