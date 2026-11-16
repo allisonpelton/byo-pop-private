@@ -1506,6 +1506,7 @@ LIBOPENMPT_API const char * openmpt_module_highlight_pattern_row_channel( openmp
  *          - load.skip_plugins (boolean): Set to "1" to avoid loading plugins
  *          - load.skip_subsongs_init (boolean): Set to "1" to avoid pre-initializing sub-songs. Skipping results in faster module loading but slower seeking.
  *          - seek.sync_samples (boolean): Set to "0" to not sync sample playback when using openmpt_module_set_position_seconds or openmpt_module_set_position_order_row.
+ *          - seek.reset_plugins (boolean): Set to "1" to start the mix plugins (an echo's delay line, a chorus's phase) afresh on every openmpt_module_set_position_seconds or openmpt_module_set_position_order_row, as a module just loaded has them. Off by default, as upstream: a seek keeps them. (byo-pop)
  *          - subsong (integer): The current subsong. Setting it has identical semantics as openmpt_module_select_subsong(), getting it returns the currently selected subsong.
  *          - play.at_end (text): Chooses the behaviour when the end of song is reached. The song end is considered to be reached after the number of reptitions set by openmpt_module_set_repeat_count was played, so if the song is set to repeat infinitely, its end is never considered to be reached.
  *                         - "fadeout": Fades the module out for a short while. Subsequent reads after the fadeout will return 0 rendered frames.

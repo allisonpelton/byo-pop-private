@@ -27,6 +27,10 @@ public:
 	virtual ~ModulePlayer() {}
 	// Restarts playback at a module position (BASS_MusicPlayEx offset = MAKELONG(order, row)).
 	virtual void SetPosition(int theOrder, int theRow) = 0;
+	// Readies a player taken from SetSongPlayersPooled's pool for another song (Mixer::OpenModule, before any song has
+	// it): from here a SetPosition leaves it sounding as a player just made would from that position, and the player stands
+	// at the start. Nothing for a player that keeps no state a seek would carry over.
+	virtual void PrepareReuse() {}
 	// Writes theFrames interleaved stereo frames (float, +-1.0) at the mixer rate to theOut. Returns false
 	// once a module that does not loop has ended (theOut is then silence from there on).
 	virtual bool Render(float* theOut, int theFrames, bool theLoop) = 0;
@@ -141,7 +145,7 @@ public:
 	// loaded from the same file, and the next PlaySong takes one from it (or makes one). The players alive are then those
 	// of the songs playing at once, two or three at the most for a game that crossfades, not one for each song loaded
 	// (BookWorm loads its one module five times). A song stopped and started again at a position it names plays as it did
-	// (a seek sets a player to the state of a fresh one at that position); one started again with no position resumes at
+	// (a seek sets a player to the state of a fresh one at that position, ModulePlayer::PrepareReuse); one started again with no position resumes at
 	// the order and row where it stopped, not at the exact tick and mixer state. Settings made with SetSongTempo or
 	// SetSongChannelVolume belong to the player, not the song: do not combine them with this. Off by default.
 	void SetSongPlayersPooled(bool thePooled);
