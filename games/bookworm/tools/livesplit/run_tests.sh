@@ -31,6 +31,21 @@ ASL="$(cygpath -w "$HERE/BookWormDeluxe-byopop.asl")"
 CSC=/c/Windows/Microsoft.NET/Framework/v4.0.30319/csc.exe
 status=0
 
+# probe_ready <ready file> <probe pid>: waits (60 s at most) for lsprobe.py's --ready file, which it writes once it
+# has listed the running processes; a game started before that would never be picked up
+probe_ready() {
+	local i
+	for ((i = 0; i < 600; i++)); do
+		[ -e "$1" ] && return 0
+		kill -0 "$2" 2>/dev/null || break
+		sleep 0.1
+	done
+	echo "run_tests: lsprobe.py was not ready within 60 s ($1); its scenario is skipped" >&2
+	kill "$2" 2>/dev/null
+	status=1
+	return 1
+}
+
 for r in bot_classic bot_action bot_both bot_modded quit leave resume probe_classic off mods mods_keyed mods_off; do
 	rm -rf "$OUT/$r"
 done
@@ -85,17 +100,24 @@ mkdir -p "$T/user"
 timeout 400 "$EXE" -userdir="$T/user" -modsdir="$OUT/mods" -fast -seed=8 -script="$T/s1.txt" > "$T/log1.txt" 2>&1
 game resume "$OUT/mods" -fast -seed=7 -autoplay=7 -autoplaymode=classic -autoplaycontinue=1 -autoplaycap=2500
 
-# probe_classic: real speed, probed (no other game starts while a probe waits for one)
+# probe_classic: real speed, probed (no other game starts while a probe waits for one; the game starts once the
+# probe has listed the running processes, see probe_ready)
 mkdir -p "$OUT/probe_classic" "$OUT/off/user"
-python "$HERE/lsprobe.py" --exe "$EXE" --log "$OUT/probe_classic/probe.log" > "$OUT/probe_classic/lsprobe.txt" 2>&1 &
-sleep 1
-game probe_classic "$OUT/mods" -seed=64 -autoplay=64 -autoplaymode=classic -autoplaycap=6500
+rm -f "$OUT/probe_classic/ready"
+python "$HERE/lsprobe.py" --exe "$EXE" --log "$OUT/probe_classic/probe.log" --ready "$OUT/probe_classic/ready" > "$OUT/probe_classic/lsprobe.txt" 2>&1 &
+PROBE1=$!
+if probe_ready "$OUT/probe_classic/ready" $PROBE1; then
+	game probe_classic "$OUT/mods" -seed=64 -autoplay=64 -autoplaymode=classic -autoplaycap=6500
+fi
 wait
 # off: the game without the mod, probed for 17 s of real time
-python "$HERE/lsprobe.py" --exe "$EXE" --log "$OUT/off/probe.log" > "$OUT/off/lsprobe.txt" 2>&1 &
-sleep 1
+rm -f "$OUT/off/ready"
+python "$HERE/lsprobe.py" --exe "$EXE" --log "$OUT/off/probe.log" --ready "$OUT/off/ready" > "$OUT/off/lsprobe.txt" 2>&1 &
+PROBE2=$!
 printf '%s\n' "1700 quit" > "$OUT/off/s.txt"
-timeout 120 "$EXE" -userdir="$OUT/off/user" -modsdir="$OUT/mods_off" -seed=1 -script="$OUT/off/s.txt" > "$OUT/off/log.txt" 2>&1
+if probe_ready "$OUT/off/ready" $PROBE2; then
+	timeout 120 "$EXE" -userdir="$OUT/off/user" -modsdir="$OUT/mods_off" -seed=1 -script="$OUT/off/s.txt" > "$OUT/off/log.txt" 2>&1
+fi
 wait
 cat "$OUT/probe_classic/lsprobe.txt" "$OUT/off/lsprobe.txt"
 

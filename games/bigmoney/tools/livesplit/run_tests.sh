@@ -33,6 +33,21 @@ ASL="$(cygpath -w "$HERE/BigMoneyDeluxe-byopop.asl")"
 CSC=/c/Windows/Microsoft.NET/Framework/v4.0.30319/csc.exe
 status=0
 
+# probe_ready <ready file> <probe pid>: waits (60 s at most) for lsprobe.py's --ready file, which it writes once it
+# has listed the running processes; a game started before that would never be picked up
+probe_ready() {
+	local i
+	for ((i = 0; i < 600; i++)); do
+		[ -e "$1" ] && return 0
+		kill -0 "$2" 2>/dev/null || break
+		sleep 0.1
+	done
+	echo "run_tests: lsprobe.py was not ready within 60 s ($1); its scenario is skipped" >&2
+	kill "$2" 2>/dev/null
+	status=1
+	return 1
+}
+
 # The mods: LiveSplit (with replays, which changes nothing in play), and replays only for "off"
 mkdir -p "$OUT/mods/livesplit" "$OUT/mods/replays" "$OUT/mods_off/replays"
 echo '{ "id": "livesplit", "name": "LiveSplit", "version": "1.0", "features": { "livesplit": true } }' > "$OUT/mods/livesplit/mod.json"
@@ -78,18 +93,24 @@ T="$OUT/resume"
 mkdir -p "$T/user"
 timeout 400 "$EXE" -userdir="$T/user" -modsdir="$OUT/mods" -fast -seed=61 -script="$T/s1.txt" > "$T/log1.txt" 2>&1
 game resume -fast -seed=7 -script="$T/s2.txt"
-# probe_strategy: real speed, probed (no other game starts while a probe waits for one)
+# probe_strategy: real speed, probed (no other game starts while a probe waits for one; the game starts once the
+# probe has listed the running processes, see probe_ready)
 mkdir -p "$OUT/probe_strategy" "$OUT/off/user"
-python "$HERE/lsprobe.py" --exe "$EXE" --log "$OUT/probe_strategy/probe.log" > "$OUT/probe_strategy/lsprobe.txt" 2>&1 &
+rm -f "$OUT/probe_strategy/ready"
+python "$HERE/lsprobe.py" --exe "$EXE" --log "$OUT/probe_strategy/probe.log" --ready "$OUT/probe_strategy/ready" > "$OUT/probe_strategy/lsprobe.txt" 2>&1 &
 PROBE1=$!
-sleep 1
-game probe_strategy -seed=64 -autoplay=64 -autoplaymode=1 -autoplayskill=3 -autoplaygames=1 -autoplaycap=6000 &
+if probe_ready "$OUT/probe_strategy/ready" $PROBE1; then
+	game probe_strategy -seed=64 -autoplay=64 -autoplaymode=1 -autoplayskill=3 -autoplaygames=1 -autoplaycap=6000 &
+fi
 wait
 # off: the game without the mod, probed for 15 s of real time
-python "$HERE/lsprobe.py" --exe "$EXE" --log "$OUT/off/probe.log" > "$OUT/off/lsprobe.txt" 2>&1 &
-sleep 1
+rm -f "$OUT/off/ready"
+python "$HERE/lsprobe.py" --exe "$EXE" --log "$OUT/off/probe.log" --ready "$OUT/off/ready" > "$OUT/off/lsprobe.txt" 2>&1 &
+PROBE2=$!
 printf '%s\n' "1500 quit" > "$OUT/off/s.txt"
-timeout 120 "$EXE" -userdir="$OUT/off/user" -modsdir="$OUT/mods_off" -seed=1 -script="$OUT/off/s.txt" > "$OUT/off/log.txt" 2>&1
+if probe_ready "$OUT/off/ready" $PROBE2; then
+	timeout 120 "$EXE" -userdir="$OUT/off/user" -modsdir="$OUT/mods_off" -seed=1 -script="$OUT/off/s.txt" > "$OUT/off/log.txt" 2>&1
+fi
 wait
 cat "$OUT/probe_strategy/lsprobe.txt" "$OUT/off/lsprobe.txt"
 
