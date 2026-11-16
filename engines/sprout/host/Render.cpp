@@ -896,8 +896,8 @@ ScreenGraphics::~ScreenGraphics()
 	delete mRetained;
 }
 
-// port (for speed): the start of a frame: the screen is black, and nothing is drawn (the calls are recorded, and finish
-// draws them)
+// port (for speed): the start of a frame: nothing is drawn (the calls are recorded, and finish draws them, over black,
+// or over the last frame in the signal build)
 void ScreenGraphics::clear()
 {
 	mRetained->mFrame.clear();
@@ -957,8 +957,12 @@ bool ScreenGraphics::finish()
 				aRedrawn.back().mWidth += aRight - aLeft;
 			else
 				aRedrawn.push_back({aLeft, aTop, aRight - aLeft, aBottom - aTop});
-			for (int y = aTop; y < aBottom; y++)
-				std::fill(mBits + y * mWidth + aLeft, mBits + y * mWidth + aRight, 0xff000000);
+			// the signal build never clears its screen (pizzafrenzy: the display's lock, 0x4ccee0, hands out the last
+			// frame's pixels, and a dirty region is drawn over them), so a translucent screen blends with what was
+			// there: a fade in or out builds on the frame before
+			if (!gSignalBuild)
+				for (int y = aTop; y < aBottom; y++)
+					std::fill(mBits + y * mWidth + aLeft, mBits + y * mWidth + aRight, 0xff000000);
 			for (uint32_t anIndex : aNow)
 			{
 				const Blit& aBlit = aNowFrame.mBlits[anIndex];
