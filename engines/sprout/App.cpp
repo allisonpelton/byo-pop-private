@@ -208,6 +208,13 @@ uint32_t App::getTime()
 	return getHost()->timeMs();
 }
 
+// 0x4108a0 (feedingfrenzy): SetCursorPos, with the position the game reads from then on
+void App::warpMousePosition(int theX, int theY)
+{
+	mMousePosition = Point((float)theX, (float)theY);
+	getHost()->warpCursor(theX, theY);
+}
+
 // 0x454230 (wordharmony): the code is not used
 void App::quit(int theCode)
 {

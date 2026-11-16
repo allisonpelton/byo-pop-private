@@ -162,6 +162,10 @@ public:
 	// the window procedure did (0x4bd050 (pizzafrenzy)); slot 0xc8 (pizzafrenzy) returns it
 	Point mMousePosition;
 	Point getMousePosition() const { return mMousePosition; }
+	// Feeding Frenzy's player fish puts the pointer back at a point of the screen once it has read it (0x4108a0
+	// (feedingfrenzy)), so that the next reading is how far the pointer moved: the position the game sees is that point
+	// at once, and the host moves the real pointer there
+	void warpMousePosition(int theX, int theY);
 
 protected:
 	std::map<std::string, Ref<Image>> mImages;  // +0x4c
