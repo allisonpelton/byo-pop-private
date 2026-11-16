@@ -229,7 +229,7 @@ constructor does clear).
   updates. In the original's Action tour all four blasts kept their wave (the byte was non-zero), in Finity's none did. To see it: the Finity
   3D tour (`record_3d_tours.sh`, `run_tour_visible.sh`, `shotsum.py v3d_n3d_finity`: level 3 shots 1 and 2). To go on: `VISRUN_WATCH` (visrun.py)
   takes other watch expressions; the wave vector is at Board `+0x16010` (first `+0x16014`, last `+0x16018`, 32-byte elements), but the
-  watch of it did not move in Finity even for the score texts, so check the offsets first. Not chased yet; needs the original at night.
+  watch of it did not move in Finity even for the score texts, so check the offsets first. Not chased yet; the original may now run on the desktop at any hour.
 - **The original's first run after another one sometimes never creates a board** (seen a few times, in 2D and 3D alike, as a
   state watch that stays at its title value); a second run is as the first should have been. `run_original.sh` runs again
   when a log has no board.
