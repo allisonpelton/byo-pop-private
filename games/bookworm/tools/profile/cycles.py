@@ -223,6 +223,7 @@ def port_run(out, scenario_file):
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(os.path.join(out, 'user'))
     os.makedirs(os.path.join(out, 'mods'))
+    perf.write_registry(os.path.join(out, 'user'))     # PERF_REG='Is3D=dword:0': the software screen where the port's default is the GPU
     script = perf.port_script(scenario_file, os.path.join(out, 'script.txt'))
     first, last = perf.script_span(script)
     ms = marks(last - 2)      # the scenario's own quit is at `last` - 1 and runs before a marker of the same update

@@ -27,6 +27,7 @@
 namespace Sexy
 {
 class BookWormApp;
+class WordSet;
 class Definitionator;
 
 enum ModWordBonus
@@ -45,7 +46,7 @@ struct ModWordEffects
 	bool			mComment;       // Lex comments and cries danger
 };
 
-void			LoadModWords(BookWormApp* theApp, std::set<SexyString>* theDictionary);  // after wordlist.txt
+void			LoadModWords(BookWormApp* theApp, WordSet* theDictionary);  // after wordlist.txt
 void			LoadModDefinitions(Definitionator* theDefinitionator);                 // before popdefs.txt
 SexyString		ModWordNote(const SexyString& theWord);  // "" for the game's own words, or with no note
 bool			ModWordGetEffects(const SexyString& theWord, ModWordEffects* theEffects); // false: none

@@ -1040,7 +1040,7 @@ void AutoplayBot::PlanNext(Board* theBoard)
 		}
 
 		mPlanWord = PathWord(theBoard, aPath);
-		bool isWord = mApp->mDictionary.find(mPlanWord) != mApp->mDictionary.end();
+		bool isWord = mApp->mDictionary.Contains(mPlanWord);
 		if (Random(4) == 0)
 		{
 			int aMethod = Random(2) ? METHOD_CLICKS_ONLY : METHOD_DRAG_OFF;
