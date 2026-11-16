@@ -84,6 +84,8 @@ unsigned int HashWords(unsigned int theHash, const void* theData, size_t theCoun
 // What a picture's file (and the resource's alpha steps) gives, as the load gave it
 bool MakeBits(const MemoryImage::BitsSource& theSource, Platform::LoadedImage& theOut)
 {
+	if (theSource.mMake)
+		return theSource.mMake(theOut.mWidth, theOut.mHeight, theOut.mBits) && (!theOut.mBits.empty());
 	if ((!Platform::LoadGameImage(theSource.mPath, theOut, true)) || theOut.mBits.empty() || theOut.mGenerated)
 		return false;
 	if ((!theSource.mAlphaPath.empty()) || (!theSource.mAlphaGridPath.empty()))

@@ -4,6 +4,7 @@
 #include "Image.h"
 
 #include <stdint.h>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -92,7 +93,7 @@ public:
 
 	// port: pixels dropped after upload (docs/MEMORY.md, "Pixels dropped after upload"), as PopCap's PurgeBits let a picture's
 	// pixels go once the device had its texture. A picture loaded from a file keeps how it was made (mBitsSource: the
-	// file and the resource manager's alpha steps); DDInterface drops its pixels (and palette and alpha caches)
+	// file and the resource manager's alpha steps, or for a picture a game made, the game's maker); DDInterface drops its pixels (and palette and alpha caches)
 	// once a texture is uploaded from them, and they are made again from the file when they are needed: a texture for a
 	// second filter or after a lost device, a software draw from the picture, a GetBits call. A picture whose pixels
 	// changed after it loaded (BitsChanged), that GetBits gave out (whoever holds them may change them in place), or that
@@ -106,6 +107,10 @@ public:
 		std::string			mAlphaGridPath;	// its alphagrid, as LoadAlphaGridImage does, over mGridRows x mGridCols cels
 		int					mGridRows;
 		int					mGridCols;
+		// A picture the game made (a flipped copy, say) in place of a file: makes the same pixels again, as 32-bit ARGB,
+		// with their size; false when it cannot. The file fields are then unused. The game sets it with SetBitsSource
+		// once the pixels are final, and BYOPOP_DROPCHECK checks it as it checks a file
+		std::function<bool(int& theWidth, int& theHeight, std::vector<uint32_t>& theBits)> mMake;
 		BitsSource() : mGridRows(1), mGridCols(1) {}
 	};
 	BitsSource*				mBitsSource;		// NULL when the pixels cannot be made again

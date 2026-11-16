@@ -352,42 +352,73 @@ the battle intros and the attacks are the game's own animations, which hold the 
 This is a result of the play-throughs, not of a line-by-line reading of the export for waits, so a later find is added
 here.
 
-## Performance (2026-11-08)
+## Performance (2026-11-16)
 
-The original and the port measured back to back on this machine (a Core i7-12700F, Windows 11), for the user's morning
-report. No other game process ran at the start or the end of any run (`tools/gamecount.py`; `build/perf/procs_*.txt`,
-git-ignored), but other sessions' builds may have, so the performance pass re-measures on a quiet machine. Both ran
-windowed, in real time, with no sound: the original under origrun on the host with its silent stand-in and the user's own
-saved player, the port natively under rundesk with SDL's silent driver and a saved player of its own.
+The performance pass. Both sides ran on this machine (a Core i7-12700F with a GTX 1080, Windows 11) in real time, held
+at the title with a saved player and no input, since the title draws every frame on both sides (Lex, the logo, the
+curtains' frame) and a minute of play on the original would need its board read back through origrun. The port ran
+under rundesk with the test profile (`tests/menu`), in 3D as on a card that passes the original's Direct3D test (the
+original's first run on a player's machine), windowed in its own 800x600 window (ScreenMode 0, `-windowscale=1`; its log:
+"client 800x600 px, logical 800x600, render scale 1, windowed, renderer direct3d11"), with no `-commands` channel in the
+processor runs. The original ran through origrun on rundesk's desktop with the user's saved player, where DirectDraw has
+no hardware and it runs in 2D (each run's log: "3D mode: the game reports OFF"; none logged a late window).
+`tools/profile/memrun.py` reads either process from outside: private bytes every 50 ms, the process's and each thread's
+cycle counts (QueryProcessCycleTime, QueryThreadCycleTime) at two moments, `tools/memmap.py` and every private
+allocation at chosen times, and the port's `memreport`. `tools/profile/pairs.sh` runs the two sides turn about, each
+pinned to a performance core of its own (`tools/pincore.py`), the cycles counted from 40 to 100 s and the memory read at
+105 s; `pairsum.py` gives the medians.
 
-**What was measured, and how.** `tools/profile/runperf.sh`: three rounds of the original and then the port, each run 90 s
-from launch with no input (the loading, then the title with the player's welcome), sampled every 50 ms by Bejeweled's
-`perfmin.py` (working set, private bytes, processor time, threads), the processor time over 20 to 80 s. The minute is the
-title at rest, not play: a scripted minute of play on the original would need its board read back through origrun, and
-the title's drawing (Lex, the logo, the curtains' frame) runs every frame on both sides. Loading: the port's
-`tools/profile/loadtime.py` (the `state` command's title with `"loaded":true`, asked every 20 ms, five runs), the
-original's by perfmin's thread count, where its loading thread ends.
-
-| | original (3 runs) | port (3 runs) |
+| Five pairs, pinned | The original (2D) | The port (3D, 800x600) |
 |---|---|---|
-| Peak working set | 125.7 MB (125.6 to 125.7) | 172.2 MB (172.1 to 172.5) |
-| Peak private bytes | 93.6 MB (93.5 to 93.7) | 164.7 MB (164.6 to 165.0) |
-| Private bytes at rest (20 to 80 s) | 93.5 MB | 145.0 MB |
-| Processor time, 20 to 80 s | 9.4, 7.8 and 8.6 % of one core | 3.0, 2.9 and 3.2 % of one core |
-| Processor time, whole 90 s run | 8.9, 7.7 and 8.8 s | 3.8, 3.7 and 3.7 s |
-| Launch to the title loaded | 6.35 to 6.41 s (its loading thread's end) | 1.70 s median (1.68 to 1.75, 5 runs); 5.25 s before the logo came out |
+| Processor time, 40 to 100 s | 24.4 G cycles (17.5 to 26.6) | 7.9 G cycles (6.9 to 9.2); 6.9 G (6.0 to 8.5) without SDL's audio thread |
+| Private bytes at the title | 91.9 MB (91.4 to 94.1) | 79.3 MB (77.4 to 80.3) |
+| Peak private bytes | 92.2 MB (91.6 to 94.5) | 101.1 MB (97.4 to 105.2) |
 
-**Reading it.** The port holds about 50 MB more private memory at rest than the original, and peaks 20 MB higher while it
-loads. Like Bejeweled's, it keeps every image's pixels at 4 bytes a pixel after the GPU has its texture, and its sounds as
-48 kHz float; why the original holds less was not examined. The port uses about a third of the original's processor time
-at rest, and loads to the title in a quarter of its time: the original loads only after its PopCap logo (356 updates, 3.6
-s, nothing loaded meanwhile and no click to leave it), which the port now skips (`-popcaplogo` keeps it for comparisons;
-"Deviations from the original"), and the load itself runs at the machine's speed. The memory and processor rounds ran
-before the logo came out; the logo is over long before their 20 s window.
+The port takes a third of the original's processor time. The original's music thread (BASS, which mixes its MO3 in
+the game's process) is counted on its side, so the port's figure with its mixer is the one to set beside it. The
+port's default is full screen, which on rundesk's desktop is 3840x2160 at render scale 4: one pinned run took 16.0 G
+cycles, still under the original, and held 77.3 MB at the title with a peak of 100.1. Unpinned, the port's main thread
+took 5.7 to 25.6 G cycles in the same minute (four runs: 10.2 to 30.9 G in all), as its vsync present spins on the free
+cores of a desktop that has no vertical blank; pinned, as the trunk measures every GPU-drawn port (`docs/MEMORY.md`,
+"Like for like, for a renderer whose cost lands in a driver thread"), it does not. In 3D through dgVoodoo (`--dgvoodoo
+--3d on`, one run) the original held 157.7 MB at the title and peaked at 188.9 MB; dgVoodoo loads Direct3D 9's and 11's
+driver images both, so that is an upper figure for its 3D mode.
 
-**What could not be measured.** The web build's load time: the Browser pane is hidden and its timers throttled, so a load
-there says nothing faithful about a player's browser, where the network and the wasm compile dominate. A minute of play
-(above). Full screen and the GPU's own load.
+**Where the memory went.** At the start of the pass the port held 98.4 MB at the title (three runs, 98.2 to 98.5) and
+peaked at 117 to 121 MB while it loaded. Against the original's 2D figure that is 6 MB at rest with the Direct3D 11
+device's 28 MB inside it, so the port's own allocations were already below the original's. Two holders came out:
+
+- **The curtain's three copies, 16 MB.** The original makes the flipped and mirrored copies of the curtain for each
+  transition and frees them with it; the port makes them once and keeps them (no 25 to 30 ms hitch at each curtain),
+  and kept their pixels too, 5.3 MB each. A copy's pixels now go once its texture is up and are made again the same
+  way when anything needs them (a lost device, a software draw): `MemoryImage::BitsSource::mMake`, a framework hook
+  for a picture a game made, as a file makes a loaded picture's again. With `BYOPOP_DROPCHECK=2` (each dropped picture
+  made again at once and compared) no picture differed.
+- **The word list, 5 MB.** The original keeps its 167,624 words as a `std::set<std::string>`, a node of 40 to 64 bytes
+  each with the heap's header (307,895 blocks in the port's heap, 7.3 MB of them the set's). `Lex` now holds the
+  letters in one array and the words' places, sorted in the set's order, in another, about 2.3 MB, with the same
+  answers; the heap fell to 97,223 blocks. This one is below what the original holds.
+
+What is left at the title (`memreport`): the libraries and devices at start 34.3 MB, the Direct3D 11 device about 28 of
+it; the pictures' pixels 7.7 MB (palettes 2.8 MB, the curtain's own indices among them, and the PopAnim pictures,
+which load outside the resource manager); the 92 sounds 5.5 MB, as 16-bit samples at their own rates as the original's
+buffers hold them; the music's module file 2.0 MB and the player of the song that plays; PopLua's heap 2.1 MB. The
+textures, 62.8 MB by the estimate, live on the card and cost no private bytes; the original in 2D keeps all of them as
+32-bit pixels in its own memory.
+
+**The load's peak** is the graphics driver's, not the game's. Between 5 and 16 s one private allocation of 20.4 MB,
+write-combined (protection 0x404), shrank to 3.1 MB about 6.5 s after the load ended: the NVIDIA driver's staging for
+the pictures' uploads, which the trunk sends to the GPU every 2 MB (`platform/GPUFlush.cpp`). It is shared code, so it
+went to the coordinator as a note rather than a change here. The original's 2D mode has no such device; its 3D mode
+through dgVoodoo peaked 31 MB above its own resting figure.
+
+**Looked at and left.** `Mixer::SetSongPlayersPooled`: JeffLib's song player loads the one module twice and crossfades
+between the two songs, and the pool keeps a stopped player for the next song, so both players live after the first
+crossfade either way; the port already makes each at its first play. Lua's heap: 2.1 MB at the title, as the
+original's (`docs/MEMORY.md`, "Bookworm Adventures' Lua heap"). Loading: 1.70 s to the title against the original's
+6.4 s (the performance notes of 2026-11-08, before its PopCap logo came out), not measured again.
+
+The frozen baseline is identical after both changes (`tools/check.sh bookwormadv`).
 
 ## Coverage check (2026-11-15)
 
@@ -491,4 +522,6 @@ same dialect (the suite's 150 dialect checks), which is what script mods would n
 
 `CMakeLists.txt` (the `BUILD_BOOKWORMADV` option), `tools/check.sh` (the `bookwormadv` suite and the unit suite's
 jp2test), `.claude/launch.json` (the `bookwormadv-web` preview on port 18775) and the platform's JPEG 2000 images
-(`platform/openjpeg`, registered with the framework's image loader).
+(`platform/openjpeg`, registered with the framework's image loader). The performance pass added `MemoryImage::BitsSource::mMake`
+(`framework/MemoryImage.h`, a `shared:` commit): a picture a game made can drop its pixels after its upload, as a
+loaded picture does; off unless a game sets it.
