@@ -10,6 +10,17 @@
 
 using namespace Sexy;
 
+// port: one of the curtain's copies as the original's constructor made it: 0 flipped, 1 mirrored, 2 mirrored and flipped
+static DDImage* MakeCurtainCopy(GameApp* theApp, int theKind)
+{
+	DDImage* anImage = theApp->CopyImage(IMAGE_CURTAIN_ANIM);
+	if (theKind != 0)
+		theApp->MirrorImage(anImage);
+	if (theKind != 1)
+		theApp->FlipImage(anImage);
+	return anImage;
+}
+
 // 0x440e90
 CurtainTransition::CurtainTransition(GameApp* theApp)
 {
@@ -23,19 +34,27 @@ CurtainTransition::CurtainTransition(GameApp* theApp)
 
 	// port: the flipped and mirrored copies of the curtain are made by the first curtain and kept by the app. The
 	// original made them for every curtain (a new one each transition), 25 to 30 ms before its first frame and three
-	// new textures on it: a hitch at the start of every transition
+	// new textures on it: a hitch at the start of every transition. Each copy's pixels (5.3 MB) go once its texture is
+	// up, as a loaded picture's do, and are made again the same way if anything needs them (MemoryImage::BitsSource),
+	// so that the app holds no more than the original between curtains
 	Image** aCopies = mApp->mCurtainCopies;
 	if (aCopies[0] == nullptr) {
-		DDImage* anImage = mApp->CopyImage(IMAGE_CURTAIN_ANIM);
-		mApp->FlipImage(anImage);
-		aCopies[0] = anImage;
-		anImage = mApp->CopyImage(IMAGE_CURTAIN_ANIM);
-		mApp->MirrorImage(anImage);
-		aCopies[1] = anImage;
-		anImage = mApp->CopyImage(IMAGE_CURTAIN_ANIM);
-		mApp->MirrorImage(anImage);
-		mApp->FlipImage(anImage);
-		aCopies[2] = anImage;
+		for (int aKind = 0; aKind < 3; aKind++) {
+			DDImage* anImage = MakeCurtainCopy(mApp, aKind);
+			MemoryImage::BitsSource* aSource = new MemoryImage::BitsSource;
+			GameApp* anApp = mApp;
+			aSource->mMake = [anApp, aKind](int& theWidth, int& theHeight, std::vector<uint32_t>& theBits) {
+				DDImage* aCopy = MakeCurtainCopy(anApp, aKind);
+				theWidth = aCopy->mWidth;
+				theHeight = aCopy->mHeight;
+				const ulong* aBits = aCopy->GetBits();
+				theBits.assign(aBits, aBits + (size_t)theWidth * theHeight);
+				delete aCopy;
+				return true;
+			};
+			anImage->SetBitsSource(aSource);
+			aCopies[aKind] = anImage;
+		}
 	}
 	mFlippedImage = aCopies[0];
 	mMirroredImage = aCopies[1];
