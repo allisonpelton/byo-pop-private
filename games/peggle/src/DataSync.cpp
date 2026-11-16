@@ -11,6 +11,36 @@ DataSync::DataSync()
 {
 }
 
+// 0x4bb330
+int DataSync::RegisterObject(const void* theObject)
+{
+	if (theObject == nullptr)
+		return 0;
+	std::pair<std::map<const void*, int>::iterator, bool> aResult = mObjectNumbers.insert(std::make_pair(theObject, 0));
+	if (!aResult.second)
+		return aResult.first->second;
+	int aNumber = (int)mObjectNumbers.size() + 2;
+	aResult.first->second = aNumber;
+	mObjectsByNumber[aNumber] = const_cast<void*>(theObject);
+	return 1;
+}
+
+// 0x4baac0
+void* DataSync::FindObject(int theNumber)
+{
+	std::map<int, void*>::iterator anObject = mObjectsByNumber.find(theNumber);
+	if (anObject == mObjectsByNumber.end())
+		throw DataSyncException();
+	return anObject->second;
+}
+
+// 0x4bb1f0
+void DataSync::ForgetObjects()
+{
+	mObjectNumbers.clear();
+	mObjectsByNumber.clear();
+}
+
 // 0x4bb6a0
 void DataSync::StartReadMemory(const void* theData, size_t theSize)
 {

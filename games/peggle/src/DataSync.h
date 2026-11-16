@@ -6,6 +6,8 @@
 #ifndef __DATASYNC_H__
 #define __DATASYNC_H__
 
+#include "SharedPtr.h"
+
 #include <cstdint>
 #include <cstring>
 #include <exception>
@@ -151,6 +153,44 @@ public:
 		}
 	}
 
+	// The objects that are written once and afterwards named by a number (0x4bb330, 0x4baac0, 0x406860): a code of 0 stands for
+	// no object, 1 for an object that follows, and a larger one for an object that came before. An object gets its number
+	// as it is first met, when writing and when reading alike, and the numbers start at 3 (the original counts the entries of
+	// its table after adding the object, and adds 2).
+	int RegisterObject(const void* theObject); // 0x4bb330: 0 when there is none, 1 when it is new (now numbered), else its number
+	void* FindObject(int theNumber);		   // 0x4baac0: throws when no object has that number
+	void ForgetObjects();					   // 0x4bb1f0: the numbers are given out again from the start
+
+	// 0x406860: a shared object of the class T, which creates itself with its default constructor and syncs with
+	// SyncState(DataSync&). On reading the new object is numbered before its contents are read.
+	template <typename T>
+	void SyncSharedObject(SharedPtr<T>& theObject)
+	{
+		if (mReading)
+		{
+			int aCode = 0;
+			SyncLong(aCode);
+			if (aCode == 0)
+				theObject = nullptr;
+			else if (aCode == 1)
+			{
+				T* aNew = new T();
+				theObject = aNew;
+				RegisterObject(aNew);
+				aNew->SyncState(*this);
+			}
+			else
+				theObject = (T*)FindObject(aCode);
+		}
+		else
+		{
+			int aCode = RegisterObject(theObject);
+			SyncLong(aCode);
+			if (aCode == 1)
+				theObject->SyncState(*this);
+		}
+	}
+
 	int mVersion; // the file format version a Sync function may test (0x48)
 
 private:
@@ -165,6 +205,8 @@ private:
 	int mReadBitPos;		// the next bit of mReadBits to give out; 7 until a bit run has started
 	uint8_t mReadBits;
 	std::vector<uint8_t> mWritten;
+	std::map<const void*, int> mObjectNumbers; // what each registered object was numbered (the original's +0x68 table)
+	std::map<int, void*> mObjectsByNumber;		// and the object of each number (+0x74)
 	int mWriteBitCount;		// how many bits of the last written byte a bit run has used
 };
 
