@@ -1,4 +1,5 @@
 #!/bin/bash
+# NOTE (2026-11-15): the software-screen override and HAMMERHEADS_SCREEN=gpu were taken out afterwards; g3off and s3off now run the same (GPU) build, so only g3on and g3onnv are repeatable.
 # The screens against each other (the coordinator's order of 2026-11-15): per round one original (paced) and the port in four ways, each
 # one game process at a time on a performance core of its own, updates 4000 to 8000: g3off (the GPU path, 3D off:
 # HAMMERHEADS_SCREEN=gpu, Is3D=0), s3off (the software screen, 3D off), g3on (the default, vsync on), g3onnv (the default with
