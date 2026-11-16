@@ -452,6 +452,17 @@ public:
 	//                   lines play the same way. New lines let one update run (the one that runs them), "wait <n>"
 	//                   lets n run; held, nothing moves (-fast's clock neither) and the loop sleeps a millisecond at
 	//                   a time. tools/playbymove plays a game this way by its "move" answers.
+	//   -recordlive=<file>  with -commands, natively: every line the channel runs (not its own "wait") is appended
+	//                   to the file, flushed line by line, as a -script line "<update> <command> [args]", <update>
+	//                   being the update that ran it, the one a -realinput line of that count takes effect in. An
+	//                   input command of -realinput's list that ran (move <point>, down, up, click, dblclick, wheel,
+	//                   enter, leave, keydown, keyup, key, keyrepeat, type, text, focus, minimize, restore, maximize,
+	//                   resize, close) is written as it is, so the file replays the session's input on the same
+	//                   updates under -realinput (under -script when the session ran without -realinput: the
+	//                   two map a point differently); any other line (a state query, a bare "move", a screenshot, a
+	//                   game's command) is written as the comment "# <update> <line>", so a replay shows where it
+	//                   fell. A line that failed is a comment with "  ERROR: <reason>" after it, never a plain line.
+	//                   The old file is truncated when the option is read.
 	enum { FAST_DRAW_INTERVAL = 10 };
 	bool mHasSeedParam;
 	bool mFastMode;
@@ -489,6 +500,7 @@ public:
 #endif
 	std::vector<ScriptCommand> mLiveCommands;  // waiting for the next update
 	bool mCommandsHold;            // -hold: once loaded, an update runs only when the driver's lines let it
+	FILE* mRecordLiveFile;         // -recordlive: the file the live lines are written to (RunLiveCommands), or NULL
 	int mLiveRunUntil;             // -hold: the updates run while mUpdateCount is below it
 	int mLiveWaitUntil;            // "wait <n>": the update its answer and the lines after it wait for, -1 for none
 	std::string mLiveWaitLine;     // that wait's line, for its answer
