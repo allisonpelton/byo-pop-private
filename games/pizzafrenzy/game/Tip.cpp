@@ -239,6 +239,8 @@ void CitizenAward::setValue(float theMultiplier, Topping* theTopping)
 		aNode->setPosition(AWARD_X, AWARD_Y);
 		addChild(aNode);
 	}
+	// the award takes the mouse itself, so the scene gives it the click wherever the screen's hover is
+	addOwnFlags(engine::NODE_MOUSE);
 	mWaiting = true;
 	mStates.changeState(new TipAppearState(this));
 }

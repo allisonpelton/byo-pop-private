@@ -84,6 +84,18 @@ level's end bonus came out 250 short. A peek of the popups' states in the origin
 Seen in passing: the chameleon's state (vtable 0x500638) takes clicks and picks in the original (slots 0x14 and 0x18
 are the base's 0x451610), which the port had as not; it takes them now.
 
+**The pending special order looked at the wrong list.** The mode's check for a special order still to come (0x456e50)
+ends with the wave's orders not placed yet (the list at +0xc0); the port's last loop read the orders under way (+0xcc)
+instead. In the second long case the original placed four orders at frame 9788 that the port held back, and the counts
+of orders and customers served went apart from there. The loop reads the wave's orders now.
+
+**The citizen award waited for a second click.** The award's setValue (0x42d630) gives it the mouse flag after its
+picture is added (0x467d30 with 2, as the balloon tip's 0x42e110 does), so the scene's hit test finds the award itself
+and hands it the click, whatever the game screen is hovering. The port left the flag out, so a click reached the award
+only through the screen's hover, which was a kitchen's popup under the cursor there: the original took the award (500)
+on the first click, the port on the next one, four frames later, and the random state went apart with its fly to the
+tip jar. Peeks of the screen's hover and of the award's flags in the original showed it.
+
 ## Oddities
 
 **The particle warmup's frame.** The port starts the decorations' particle warmup (150 seconds, 24 draws) in frame 50,
@@ -108,5 +120,8 @@ state reply gave (a held run spends a frame on each round of queries, which the 
 plays the game the bot played. Case long1 (500 moves, seed 1: three levels of the first city, its bonus round and the
 second city's start, 7742 frames) matches on every compared value, and the random state's 1634 values come in the same
 order. Case mem1 (the memory mode, 300 moves, seed 1: two levels and the third's start, 4433 frames) and case conc1
-(the concentration mode, 300 moves, seed 1, 5017 frames) match the same way. Next: longer cases, a lost level and the
-editor.
+(the concentration mode, 300 moves, seed 1, 5017 frames) match the same way. Case long2 (1200 moves, seed 2: the first
+city, its bonus round and the second city to a lost level, where the game ends at frame 11552) matches on every compared
+value to the game's end, and the random state's values come in the same order to frame 11507; after it the original's
+score post dialog takes a state the port does not have (the deviation below). Next: longer memory and concentration
+cases and the editor.
