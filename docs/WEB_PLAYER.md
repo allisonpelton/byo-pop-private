@@ -485,7 +485,9 @@ it has one, else the site's. Each setting is described where it acts; the ones a
   game with its own volume engine registers a function in `Byopop::gSiteVolume` (`framework/WebSettings.h`), which
   `byopop_site_apply` calls instead; a game with no volume option is listed in `MIXER_VOLUME` in `web/shell.html` (or
   sets `PAGE.mixerVolume`), and the page sets the mixer's master gains (`byopop_mixer_gain`).
-- `pauseHidden` (off) stops a hidden tab's game; off must stay as it is, since the originals keep running unseen. A
+- A hidden tab's game is frozen, with no setting for it (the user, 2026-11-16: "Freeze games in hidden tabs. Only the
+  music player should continue while hidden"); "Sound", below, has how. The `pauseHidden` setting, which did this only
+  when switched on, is gone with its strings and its handler (2026-11-16): the freeze is what every page does now. A
   hidden Browser pane does not set `document.hidden`, so a test overrides it and dispatches `visibilitychange`.
 - `autoStart` (on) never starts a game at `?silent=1`, where tests press Play themselves.
 
@@ -1188,7 +1190,16 @@ clicks outside it or presses F6.
 Every game's sound goes through the shared mixer (`platform/Audio.cpp`), which on the web plays through an AudioWorklet
 of the page's own, keeping a short queue that it refills on demand, rather than SDL's ScriptProcessor, which made sounds
 late; a page with no AudioWorklet (plain http from another machine) falls back to a ScriptProcessor pulled the same way.
-The page mutes the game while its tab is hidden (`SexyAppBase::EmscriptenPageHidden`).
+A hidden tab's game is frozen (the user, 2026-11-16: "Freeze games in hidden tabs. Only the music player should continue
+while hidden"). The browser gives a hidden page no animation frames, so the game neither updates nor draws;
+`SexyAppBase::EmscriptenPageHidden` mutes it at once, as a lost focus does; and `web/shell.html` suspends the game's
+AudioContext, so its mixer stops too. Mixing silence had cost 0.24 to 0.51 s of processor time for every 10 s hidden (2 to
+5 % of a core); suspended, 11 games held hidden took 0.01 to 0.04 s and sent no sound at all. Shown again, the game's music and any long sound go on from where they were when
+the tab was hidden. That differs from the originals, whose sounds move on in silence while the game is unfocused, and it
+follows from the user's choice to freeze. The site's Music player has an AudioContext of its own in the listing page and
+plays on in a hidden tab: nine minutes hidden in headless Edge with no stall, and its page's timers still fired once a
+second past the five-minute mark, where Chromium can cut a silent hidden page's to once a minute. Only the browser's own `visibilitychange` suspends: a test's
+pretended hide is not trusted, and the test kit stops the browser's own unless `?realfocus=1`.
 
 For tests, `Module.byopopAudio` has the output's state (`kind`: `worklet` or `script`; `target`, the queue's length;
 `gaps`, how often it ran dry; `late`). `Module.audioOutput = 'script'`, set before Play, forces the ScriptProcessor. A
@@ -1199,6 +1210,23 @@ so the timing is the same.
 ## Memory use
 
 A game takes more memory in a browser than natively: IDBFS's copy in memory of every stored file, decoded images held
-both in the game's memory and as WebGL textures, and WebAssembly memory that never shrinks after the loading peak. Not
-yet done: read files lazily from IndexedDB, free an image's decoded pixels once its texture is on the GPU, and decode
-large images one at a time.
+both in the game's memory and as WebGL textures, and WebAssembly memory that never shrinks after the loading peak. A
+picture's decoded pixels are dropped once its texture is on the GPU, as natively (`docs/MEMORY.md`, step 1), and
+pictures are decoded one at a time. Against the peak, the heap grows 4 MB at a time (`-sMEMORY_GROWTH_LINEAR_STEP` in
+`cmake/ByopopWeb.cmake`) rather than by Emscripten's fifth of itself, and an Ogg sound is decoded straight into its own
+samples (`Platform::Mixer::LoadSoundData`), so that a long track no longer needs three times its size for a moment.
+`tools/webtest/webmem.js` measures a game at its first board, and `docs/MEMORY.md` ("The web builds") has every game's
+figures.
+
+Reading the game's files from IndexedDB only when the game opens them, rather than holding them all in memory from the
+start, was dropped (the user, 2026-11-16: "Drop it, record why"). The game would have to wait on a read in the middle of
+its own code, and both ways to let it cost more than the reading would save. Asyncify slows every game whether or not
+it ever waits: AstroPop, Bejeweled Twist and Venice, linked again with it and nothing else changed, grew their wasm by
+42 to 52 % (30 to 36 % gzipped), took 11 to 38 % longer to reach their menus where the processor sets that time
+(Venice's logos set its own), and took 16 to 21 % more processor time held at a board and 9 to 41 % more from the start
+to it, against the ports' target of the originals' processor time. JSPI works in Chromium alone, and as linked it stops
+at the runtime's start; every way into the wasm (the start, `main`, the frame callback, the page's exports and the test
+commands) would have to become an asynchronous export, and the page's calls into the game asynchronous with them. At
+best it would save the game's files held in the page, 6.7 MB for AstroPop, 42 MB for Bejeweled Twist and 34 MB for
+Venice, kept as JavaScript buffers beside the WebAssembly memory, less the files a game keeps open, such as a streamed
+track.
