@@ -174,6 +174,11 @@ under each screen pixel's centre, the mapping it had from Word Harmony's rendere
 scaled button from a neighbouring source row. The signal build now steps as the original does; with the slides'
 fix, look1's matching pictures went from 7 of 25 to 15.
 
+**Two texts were missing.** The level start's topping buttons showed no level under their pictures, and the topping
+book's line for a topping with no next upgrade was empty: both read the exe's texts through a named address
+(`GT(ADDRESS_...)`), which `make_gametext.py` did not look for, so the table of texts the port reads from the exe left
+them out. The generator now takes a name's address from its file.
+
 **Explained: the toppings' order.** The play shots show the two topping coupons in the other order from the original
 in some runs, and each kitchen's sign with the other topping (the small boxes over the kitchens). The kitchens' toppings come from maps keyed by the topping's address; the port orders them by the
 manifest's order (`ToppingOrder`), taking the addresses to rise as the manifest loads. Peeks of the original on one
