@@ -123,5 +123,7 @@ order. Case mem1 (the memory mode, 300 moves, seed 1: two levels and the third's
 (the concentration mode, 300 moves, seed 1, 5017 frames) match the same way. Case long2 (1200 moves, seed 2: the first
 city, its bonus round and the second city to a lost level, where the game ends at frame 11552) matches on every compared
 value to the game's end, and the random state's values come in the same order to frame 11507; after it the original's
-score post dialog takes a state the port does not have (the deviation below). Next: longer memory and concentration
-cases and the editor.
+score post dialog takes a state the port does not have (the deviation below). Case mem2 (the memory mode, 800 moves,
+seed 2: the first city, its bonus round and three levels of the second, 12129 frames) and case conc2 (the
+concentration mode, 800 moves, seed 2: the first city, its bonus round and the second city's third level, 13898
+frames) match on every compared value, their random states' 2100 and 1949 values in the same order. Next: the editor.
