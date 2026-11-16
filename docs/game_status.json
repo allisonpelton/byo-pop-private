@@ -69,7 +69,7 @@
       ],
       "na": [],
       "now": null,
-      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the whole board logic is about 1 us an update)"
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the whole board logic is about 1 us an update); software screen at 1x (9b9cffdb): 22.5 MB private against the original's 34.5, processor time a tie (6.1 % of one core against 5.9, paired median 0.955)"
     },
     "alchemy": {
       "title": "Alchemy Deluxe",
