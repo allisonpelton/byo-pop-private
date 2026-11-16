@@ -200,7 +200,7 @@ private:
 	void enterLevelStartState(Level* theLevel);
 	// 0x459510, 0x460610 and 0x45b3e0 (the speed, memory and concentration mode's game, which the mode number picks),
 	// kept at +0x110; its slot 0x4 (the game screen, the hud and the stats) and slot 0x10 (the level), then the state
-	// 0x4029b0 (GameState.h). The speed mode's is translated; the other two modes' are translated with those modes.
+	// 0x4029b0 (GameState.h). 
 	void enterModeGame(Level* theLevel);
 	// 0x45f830 (BonusGame.h), kept at +0x110: its slot 0xbc (the decorating screen at +0xf4 and the stats) and slot
 	// 0x10 (the level), then the state 0x402a40 (BonusStates.h)

@@ -274,8 +274,9 @@ void GameMode::beginWaves()
 		aDay->setText(formatMessage(engine::App::instance()->loadString(STRING_DAY), std::to_string(anApp->mDay)));
 }
 
-// 0x457490
-void GameMode::updateWaves(engine::UpdateInfo& theInfo)
+// 0x457490's first block (0x460710 and 0x45b6e0 have it too): the pizzas that are on their way are given out, one
+// every 0.4 seconds
+void GameMode::updateDeliveries(engine::UpdateInfo& theInfo)
 {
 	if (!mDeliveries.empty())
 	{
@@ -294,6 +295,12 @@ void GameMode::updateWaves(engine::UpdateInfo& theInfo)
 				mDeliveryTimer = DELIVERY_INTERVAL;
 		}
 	}
+}
+
+// 0x457490
+void GameMode::updateWaves(engine::UpdateInfo& theInfo)
+{
+	updateDeliveries(theInfo);
 	if (mWavesDone)
 		return;
 	mSecondsSinceDelivery += theInfo.mSeconds;
@@ -416,9 +423,10 @@ bool GameMode::assignOrder(Order* theOrder)
 	return true;
 }
 
-// 0x459b90: an order that has a house is kept, the pizzas it asks for are counted, and the house is given the order;
-// the order of an event that wants no pizza makes the police come
-bool GameMode::placeOrder(Order* theOrder)
+// 0x459b90 (speed and memory, 0x461560 is a copy), 0x45ba10 (concentration, which dims the popup): an order that has a
+// house is kept, the pizzas it asks for are counted, and the house is given the order; the order of an event that
+// wants no pizza makes the police come
+bool GameMode::placeOrderAs(Order* theOrder, bool theDimmed)
 {
 	if (!assignOrder(theOrder))
 		return false;
@@ -427,8 +435,14 @@ bool GameMode::placeOrder(Order* theOrder)
 		mStats->mPizzasOrdered += theOrder->mPizzaCount;
 	else if (CustomerTile* aPoliceTile = mMap->findCustomerTileBySpecial(Character::SPECIAL_POLICE))
 		aPoliceTile->callPolice(Character::SPECIAL_POLICE);
-	theOrder->mTile->setOrder(theOrder, false);
+	theOrder->mTile->setOrder(theOrder, theDimmed);
 	return true;
+}
+
+// 0x459b90
+bool GameMode::placeOrder(Order* theOrder)
+{
+	return placeOrderAs(theOrder, false);
 }
 
 // 0x459fc0: the wave's timer is held to a second and a half when the houses are idle, and to the level's gap (not

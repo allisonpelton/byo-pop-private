@@ -197,8 +197,8 @@ public:
 	Order* getOrder();
 	// slot 0x1b8: 0x41b8f0: the same when the popup takes a click
 	Order* getActiveOrder();
-	// slot 0x1ac: 0x41b6a0: a customer's popup is made for the order and put on the tile
-	void setOrder(Order* theOrder, bool theFlag);
+	// slot 0x1ac: 0x41b6a0: a customer's popup is made for the order (dimmed: it takes no click) and put on the tile
+	void setOrder(Order* theOrder, bool theDimmed);
 	// slot 0x1b0: 0x41b730: the police's popup is put on the tile when the kind is the police's
 	void callPolice(int theSpecial);
 	// slot 0x1b4: 0x41b820: the popup is served: the pizza is on its way

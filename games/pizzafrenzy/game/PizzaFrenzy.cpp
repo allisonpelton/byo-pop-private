@@ -17,6 +17,8 @@
 #include "StoryState.h"
 #include "Sound.h"
 #include "SpeedGame.h"
+#include "MemoryGame.h"
+#include "ConcentrationGame.h"
 #include "SplashState.h"
 #include "Transition.h"
 
@@ -441,11 +443,10 @@ void PizzaFrenzy::enterModeGame(Level* theLevel)
 {
 	if (mGameMode == MODE_SPEED)
 		mMode = new SpeedGame();
+	else if (mGameMode == MODE_MEMORY)
+		mMode = new MemoryGame();
 	else
-	{
-		// the memory mode's game (0x460610) and the concentration mode's (0x45b3e0) are translated with those modes
-		return;
-	}
+		mMode = new ConcentrationGame();
 	mMode->setup(mGameScreen, mCityMap, mHud, mGameStats);
 	mMode->setLevel(theLevel);
 	mStates.changeState(new GameState(this));

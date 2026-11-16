@@ -11,9 +11,8 @@
 // into the mode (ModeStates.h). The customers and their orders, the pizzas and the deliveries are translated with
 // them; the places that reach them here are the methods marked "translated next".
 //
-// Left out of the port for good, one line each: the memory mode (0x460610) and the concentration mode (0x45b3e0, and
-// its splats at 0x4609f0, 0x460c40, 0x461030, 0x4611a0); the pizza designer and the level editor. The bonus round's
-// game is BonusGame.h.
+// Left out of the port for good, one line each: the pizza designer and the level editor. The memory mode's game is
+// MemoryGame.h, the concentration mode's ConcentrationGame.h, and the bonus round's BonusGame.h.
 
 #include "CityMap.h"
 #include "CouponButton.h"
@@ -60,7 +59,8 @@ public:
 	GameMode();           // 0x459510 (speed), 0x45b3e0 (concentration)
 	~GameMode() override;  // 0x45a2e0 (speed), 0x4596d0
 
-	// 0x04: 0x459950 (speed), 0x45bbd0 (concentration): the game screen, the map, the hud and the stats it plays on
+	// 0x04: 0x459950 (speed and memory), 0x45bbd0 (concentration): the game screen, the map, the hud and the stats it
+	// plays on
 	virtual void setup(GameScreen* theScreen, CityMap* theMap, Hud* theHud, GameStats* theStats) = 0;
 	// 0x08: 0x4569c0: the pizza being made and the hud, the stats' time, the slowed time, the screen and the states
 	virtual void update(engine::UpdateInfo& theInfo);
@@ -74,7 +74,8 @@ public:
 	virtual void clearLevel();
 	// 0x18: 0x457290 (speed): every counter and list of a level starts over
 	virtual void reset();
-	// 0x1c: 0x456c20: the introduction is over: the hud's vehicles are shown and play starts
+	// 0x1c: 0x456c20 (speed, concentration), 0x4606a0 (memory, with no coupon buttons): the introduction is over: the
+	// hud's vehicles are shown and play starts
 	virtual void startPlay();
 	// 0x20: 0x456320: the level is over: the music stops, the orders picked, the tiles' popups and the events' popups
 	// are let go, and the tips go to the score
@@ -86,11 +87,13 @@ public:
 	virtual void hangUpAll(bool theQuiet);
 	// 0x2c: 0x456300: the game is paused (the orders picked are let go and the tip jar's roll stops) or not
 	virtual void setPaused(bool thePaused);
-	// 0x30: 0x4d0470 (speed: an empty stub): the customers' orders were changed by an event
+	// 0x30: 0x4d0470 (speed and memory: an empty stub), 0x45b4f0 (concentration): the customers' orders were changed by
+	// an event
 	virtual void ordersChanged() {}
 	// 0x34: 0x458c40 (shared): the orders picked are let go
 	virtual void clearPicks();
-	// 0x38: 0x457490 (speed), 0x45b6e0 (concentration): the customers' waves, and what they wait for
+	// 0x38: 0x457490 (speed), 0x460710 (memory), 0x45b6e0 (concentration): the customers' waves, and what they wait
+	// for
 	virtual void updateWaves(engine::UpdateInfo& theInfo);
 	// 0x3c: 0x455fe0: the map's update (its tiles, boats and vehicles)
 	virtual void updateMap(engine::UpdateInfo& theInfo);
@@ -155,20 +158,24 @@ public:
 	virtual bool isPoliceBusy();
 	// 0xa0: 0x4580f0: the level's titles are written, and the waves begin
 	virtual void beginWaves();
-	// 0xa8: 0x451610 (true)
+	// 0xa8: 0x451610 (true; the concentration mode's 0x4529d0 is false)
 	virtual bool isSpeedMode() { return true; }
 	// 0xac: 0x45a9a0: the next wave of the level: its orders are made and shuffled
 	virtual void startNextWave();
 	// 0xb0: 0x457100: the order is given a house, a customer, a wait and a topping where it has none; false when
 	// there is no house free
 	virtual bool assignOrder(Order* theOrder);
-	// 0xb4: 0x459b90: the order is given a place and goes to its house, and the pizzas it asks for are counted
+	// 0xb4: 0x459b90 (speed, and memory's 0x461560), 0x45ba10 (concentration): the order is given a place and goes to
+	// its house, and the pizzas it asks for are counted
 	virtual bool placeOrder(Order* theOrder);
 	// 0xb8: 0x459fc0: the last customer of the wave is gone: the wave's timer is held to what it can be
 	virtual void waveDone();
 
 	// the number of orders picked
 	int getPickCount() { return (int)mPicks.size(); }
+	// port (the test commands' bot and state): the orders placed and not finished, the oldest first (the memory mode
+	// serves them in this order)
+	const std::list<engine::Ref<Order>>& getActiveOrders() const { return mActiveOrders; }
 	// port (the test commands' bot): the houses whose orders are picked, the first picked first
 	const std::vector<engine::Ref<CustomerTile>>& getPicks() const { return mPicks; }
 	// port (the test commands "win" and "lose"): the level ends through checkLevelEnd's own paths at the next update:
@@ -235,8 +242,12 @@ protected:
 	std::deque<QueuedDelivery> mDeliveries;
 	float mDeliveryTimer;                      // +0x114: 0.4 seconds from one delivery to the next
 
+	// 0x459b90 and 0x45ba10: placeOrder, the popup made dimmed (it takes no click, and its wait does not run) or not
+	bool placeOrderAs(Order* theOrder, bool theDimmed);
 	// 0x4569c0's first call: slot 0x138 of the first popup of an event in the list at +0x48
 	void updatePopups(engine::UpdateInfo& theInfo);
+	// 0x457490's first block, which 0x460710 and 0x45b6e0 repeat: a pizza on its way is delivered every 0.4 seconds
+	void updateDeliveries(engine::UpdateInfo& theInfo);
 	// 0x45ad20: the house is picked (the customer's popup is told) and the order cursor shows the orders picked
 	void pickOrder(CustomerTile* theTile);
 	// 0x4571e0: the order cursor shows the orders picked, from the last (none when none is picked)

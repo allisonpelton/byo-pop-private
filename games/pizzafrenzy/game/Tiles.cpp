@@ -485,11 +485,11 @@ Order* CustomerTile::getActiveOrder()
 }
 
 // 0x41b6a0
-void CustomerTile::setOrder(Order* theOrder, bool theFlag)
+void CustomerTile::setOrder(Order* theOrder, bool theDimmed)
 {
 	CustomerPopup* aPopup = new CustomerPopup();
 	aPopup->setOwner(this);
-	aPopup->setOrder(theOrder, theFlag);
+	aPopup->setOrder(theOrder, theDimmed);
 	setOccupant(aPopup);
 }
 

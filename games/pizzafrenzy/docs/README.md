@@ -187,16 +187,17 @@ phase.
 
 The standard commands of `docs/TEST_COMMANDS.md` (`-script`, `-commands`, the web test page), in
 `games/pizzafrenzy/src/TestCommands.cpp`. Each answers with one line, `STATE {...}`, `MOVE {...}` or `MOVE null`,
-`OK <command>` or `ERROR <command>: <reason>`. Only the speed mode is ported, so they play only that.
+`OK <command>` or `ERROR <command>: <reason>`. They play the speed, memory and concentration modes.
 
 - `state`: the state line, below.
 - `goto menu`, `goto highscores`, `goto options`, `goto toppings`: from the main menu (or a screen it opens), the menu
   state's own actions `highScoreDone`, `showHighScores`, `options` and `viewToppingBook`.
 - `goto citySelect`: `PizzaFrenzy::showCitySelect` (0x4023d0) for the speed mode.
-- `goto speed`: `PizzaFrenzy::startGame` (0x40c700) at the first city; the game left in the mode is restored, as the
-  menu's restore does.
-- `level <day>`, `level <city> <level>`: from the main menu (numbers from 1; the day counts the levels of every city):
-  the speed mode's saved game is put at the level with no score and `startGame` runs from it, so the story, the new
+- `goto speed`, `goto memory`, `goto concentration`: `PizzaFrenzy::startGame` (0x40c700) of the mode at the first city;
+  the game left in the mode is restored, as the menu's restore does. The bot's menu move presses the button of the
+  mode the game was last in (the speed mode's from launch).
+- `level [speed|memory|concentration] <day>`, `level [mode] <city> <level>`: from the main menu (numbers from 1; the
+  day counts the levels of every city; the speed mode when none is named): the mode's saved game is put at the level with no score and `startGame` runs from it, so the story, the new
   toppings and the level start come as for any level; a bonus round is started the same way (the city's last level).
 - `unlock all`: the last city is the player's furthest (`UserGameData::setMaxCity`), every topping the player lacks is
   at level 0 and no longer new, and the data is saved. The stories still show, since the furthest day is not touched.
@@ -216,8 +217,10 @@ unlockNotice, dialog; other for a state not listed), `mode`, `city` and `cityNam
 (or the high scores a game over shows) is back), then `score`, `tips` (the tip jar), `tipGoal`, `money` (the tips
 earned this level), `happiness`, `ordersToGo`, `timer` (the stats' seconds, which every mode keeps), `delivered`,
 `ordered` and `combo`; with a game on, `phase` (intro, play, blimp, end), `picks` and a `board` of `customers`
-(`cell`, `x`, `y` the point to click, `topping`, `picked`, `wait` seconds left, `clickable`, `event`, `chameleon`),
-`kitchens` (`cell`, `x`, `y`, `topping`, `clickable`, `vanOut`) and `tips` (`x`, `y`, `amount`, `waiting`).
+(`cell`, `x`, `y` the point to click, `topping`, `picked`, `wait` seconds left, `clickable`, `event`, `chameleon`,
+`hidden`: the order is behind the question mark, `age`: its place among the orders placed, the oldest 0, -1 for none),
+`kitchens` (`cell`, `x`, `y`, `topping`, `clickable`, `vanOut`) and `tips` (`x`, `y`, `amount`, `waiting`). In the
+concentration mode `showLeft` is the seconds the orders still show (0 once they are hidden).
 
 In a bonus round the state has `phase` (intro, arrive: a pizza and its buttons come in, play, score: the toppings of
 the target are scored, end) and a `bonus` object instead of the board: `timeLeft` and `pizzasLeft`, `playing` (the
@@ -231,6 +234,10 @@ first of two); with an order picked it picks more customers of the same topping 
 (`GameStats::getPickLimit`, 0x41a670, read without its insertion), then clicks a kitchen that makes the topping. A
 customer of a special event is left alone, since the events' pizzas are not served yet. Every move is a `move` step
 and a `click` step and waits 2 updates; the blimp's flight and the level's end are `MOVE null`.
+In the memory mode the customers must be served in the order they came, so the bot picks only the oldest customer
+not picked yet (`age`; the police's own customer, which no list holds, first) and waits when that one takes no click.
+In the concentration mode the orders are dimmed and take no click while they show, so the bot waits (reading the
+hidden order's topping from the state, as a player who remembered it) until they are hidden.
 
 In a bonus round (the introduction is skipped with a click, as above) the bot waits while a pizza comes in and while
 one is scored, and in play takes the first topping of the target pizza that has no topping of its kind put for it (the
