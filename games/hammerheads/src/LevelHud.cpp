@@ -1,4 +1,5 @@
 #include "LevelHud.h"
+#include "MathConstants.h"
 
 #include <cmath>
 #include <cstdio>
@@ -154,9 +155,9 @@ void MarathonMeter::Draw(Graphics* g)
 
 	double aMinuteFraction = (((double)(aSeconds % 60) + aTime) - (double)aSeconds) * 0.016666666666666666;
 	g->DrawImage(IMAGE_MARATHON_CLOCK, aClockX, 0x221);
-	double aHourAngle = (((double)(aSeconds % 720) + aTime) - (double)aSeconds) * 0.001388888888888889 * -6.283185307179586;
+	double aHourAngle = (((double)(aSeconds % 720) + aTime) - (double)aSeconds) * 0.001388888888888889 * -TWO_PI;
 	g->DrawImageRotated(IMAGE_MARATHON_CLOCK_HOURHAND, aClockX, 0x221, aHourAngle, nullptr);
-	double aMinuteAngle = (aMinuteFraction - 0.004166666666666667) * -6.283185307179586;
+	double aMinuteAngle = (aMinuteFraction - 0.004166666666666667) * -TWO_PI;
 	g->DrawImageRotated(IMAGE_MARATHON_CLOCK_MINUTEHAND, aClockX, 0x221, aMinuteAngle, nullptr);
 	g->DrawString(aText, aClockWidth + 0xc + aClockX, IMAGE_MARATHON_CLOCK->mHeight / 2 + 0x232);
 
