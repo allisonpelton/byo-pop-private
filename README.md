@@ -103,7 +103,7 @@ asked.
 | TipTop Deluxe | 0.6 to 0.9 s | 4.7 and 4.8 s | 4.07 G cycles in 30 s of strategy, 1.87 G in 20 s at the menu (640x480, 62.5 passes a second) | 4.96 G and 2.07 G (paced to 62 passes a second) | 82 and 83 MB | 46 MB |
 | Bookworm Adventures Deluxe | 1.70 s | 6.4 s | 2.9 to 3.2 % of one core | 7.8 to 9.4 % of one core | 165 MB | 94 MB |
 | Ning Po Mahjong Deluxe | 0.36 s | 0.82 s | 6.3 % of one core | 14.9 % of one core | 54 MB | 21 MB |
-| Pixelus Deluxe | 0.9 to 1.4 s | 0.8 to 1.0 s | 2.1 to 3.2 M cycles an update (median 2.9 with its mixer; the main thread 2.2) | 2.6 to 3.6 M cycles an update (median 3.3) | 95 to 98 MB | 91 to 93 MB |
+| Pixelus Deluxe | 0.9 to 1.4 s | 0.8 to 1.0 s | 2.0 to 3.3 M cycles an update in 2D at 1x with the software screen (median 2.20, 0.64 of the original in the same rounds); 2.1 to 3.2 on the GPU (median 2.9 with its mixer) | 3.0 to 4.6 M cycles an update (median 3.43 in the same rounds; 2.6 to 3.6 earlier) | 66.8 to 69.6 MB in 2D at 1x (about 100 MB in 3D, its default, and in its default 2x window) | 91 to 93 MB |
 | Alchemy Deluxe | 1.74 s | 1.76 s | 4.6 to 5.3 s a minute | 4.2 and 6.4 s a minute | 67 to 69 MB | 51 to 56 MB |
 | Word Harmony | 0.71 s | 2.6 to 3.4 s | 3.26 G cycles a minute in its own 800x600 window, 8.82 G full screen (its default) | 11.81 G cycles a minute windowed, 10.19 G full screen | 88 to 94 MB | 53 to 57 MB |
 | Cosmic Bugs | 0.33 to 0.38 s | 0.60 s | 86 M cycles a second on a board in its own 800x600 window, 102 M in the default 2x window (sound off, as the original's) | 110 M cycles a second (its loop paced to 60 Hz) | 130 MB | 88 and 89 MB |
