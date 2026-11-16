@@ -447,7 +447,8 @@ bool PGApp::loadMusic(const char* theName, int theLoopStart)
 		PGLog("...***could not open theme music***\n");
 		return false;
 	}
-	mMusic = Platform::Mixer::Get().LoadSoundData(aFile, theName);
+	// port: the track is kept as its Ogg file and decoded as it plays, as the original's stream is (0x425296)
+	mMusic = Platform::Mixer::Get().LoadStreamedSoundData(aFile, theName);
 	return mMusic != nullptr;
 }
 
