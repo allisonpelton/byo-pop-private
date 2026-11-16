@@ -271,3 +271,16 @@ the same run on the staged copy. No change to the port was needed, and the froze
 
 None: nothing in the game's logic both cuts measurable processor time and can change play. `docs/LITE_MOD.md` says what
 was looked at (the tile scan, the shuffle, the hint and move count) and why each was left. Lite candidates: none.
+
+
+### The software screen at 1x (2026-11-15)
+
+`NingPoApp::CreateDDInterface` returns the framework's software screen (not on the web), with `mDefault3D` false, as the
+original is a 640x480 DirectDraw window with no 3D. The Direct3D device (about 29 MB) is gone at 1x. Back to back on the
+screen tour (`tools/perf/perf.sh`, `WINDOWSCALE=1`, three pairs, the original paced on origrun's real clock with no sound
+device, the port under rundesk): peak private bytes 20.2 MB median for the original (19.6 to 20.4), 23.8 MB for the port
+(23.4 to 27.0); processor time of the whole run 6.06 s for the original (5.52 to 6.78), 3.11 s for the port (2.42 to
+3.28), so it stays under the original's. `memreport` in a game: 26.2 MB private, of which sprites 6.4, the whole music
+track 5.6 (left for the memory trial that streams it), the framework's pictures 2.3, the back buffer 0.6 and sounds 0.3
+MB; the rest, about 5.6 MB, is heap and code, and nothing in it was found to cut. `tools/check.sh ningpo`: baseline
+identical. 2x with `SOFTSCREEN_SCALED=1` is not yet measured.
