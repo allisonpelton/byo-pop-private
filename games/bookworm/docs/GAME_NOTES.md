@@ -7329,9 +7329,11 @@ and in DirectDraw 2D where it does not, and a player can switch it in the Option
 every comparison of this game has been, so the software screen, which draws as the original's 2D mode does, is the mode to measure against.
 `BookWormApp::CreateDDInterface` (not in the web build) returns `SoftwareScreenDisplay::Create(this, true)`: the screen is drawn in
 software while the app does not want 3D, and goes to the GPU while it does (`mDefault3D`, a saved `Is3D`, the Options box), as Bejeweled 2's
-does. `mDefault3D` is not set false: whether a first run starts in 2D is the coordinator's to decide, and until it is a player starts on the
-GPU path and gets the software screen by turning 3D off. Every figure below sets `Is3D=0` for the port, by `PERF_REG='Is3D=dword:0'` in
-`perf.py` and `cycles.py` (the port's `registry.ini`), at the original's 640x480 window (`-windowscale=1`).
+does. `mDefault3D` stays true (the coordinator, 2026-11-15: a port starting in 2D on a card where the original starts in 3D would be a
+deviation a player sees): a player whose card passes the test starts in 3D on the GPU, as the original does, and pays for the device there
+(62.3 MB at the title, below); the software screen serves 2D, a saved `Is3D=0` or 3D cleared in the Options box. So the like for like is in
+2D on both sides: the port with `Is3D=0` in its `registry.ini` (`PERF_REG='Is3D=dword:0'` in `perf.py` and `cycles.py`) at the original's
+640x480 window (`-windowscale=1`), the original under origrun, where its tester fails and it runs 2D, the mode of its 39 to 43 MB.
 
 **The pictures.** A Classic and an Action bot game at 1x (`-fast -drawevery -renderscale=1 -seed=1`), on the software screen and with
 `SURFACE_DISPLAY=off` (the GPU path, DDInterface): the state logs are identical (1,597 and 21,324 lines), and shotdiff on the 21 pairs of
