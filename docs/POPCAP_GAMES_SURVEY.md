@@ -660,11 +660,47 @@ Android. The user's copy is an APK in the Downloads folder (version 1.0.10, 40.7
 ad and Play services libraries, which are left out, and the game as a 5.9 MB native library built only for the
 old 32-bit `armeabi` ABI; its levels are XML files with PNG maps. The user would like native, browser and
 Android versions; the Ghidra route fits, on ARM code, and an Android build would be a new target.
+A closer look (2026-11-16): the manifest targets API 28 (minimum 14), so today's Android still installs it; the
+library has no text relocations, so the 32-bit code is what keeps it off a phone without 32-bit support. `libgame.so`
+is cocos2d-x 2.2.6 with OpenSSL 1.0.2g, libpng 1.6.16, libjpeg, libtiff, libwebp, libwebsockets, Chipmunk and
+tinyxml2, all open source, and it exports 18,841 named symbols. The game's own classes (`Map`, `LevelEditor`,
+`RollMenu`, the sprite and controller classes, Facebook and mail code to drop) come to roughly 150 to 200 KB of
+the 3.3 MB of code. So an arm64 build needs only those classes decompiled, linked against cocos2d-x 2.2.6 built
+from source, and put back into the original Java shell (cocos2d-x's own, with the ad networks removed).
 
 **The Tasty Planet series, after Glass Tower (the user, 2026-11-01):** Dingo Games' series. The user doesn't own
 every game yet. Three are in the Steam library on A: (Tasty Planet, Tasty Planet 2, and Tasty Planet Forever,
 app 946010, 78 MB). Forever is a 4.4 MB native exe, `tastyplanet4.exe`, on SDL2 and SDL2_mixer with
 `steam_api.dll`, its data in `assets/`; the port can keep SDL2. The two older games were not looked at.
+
+**MumboJumbo's Luxor games (looked at 2026-11-16; their place in the order is the user's):** four installed in
+`C:/Program Files (x86)/MumboJumbo/`: Luxor (2005), Luxor: Amun Rising and Luxor: Mah Jong (2006), all on one
+engine, and Luxor 2 (2006) on a later one. No DRM wrapper: plain sections, the user's own installs. The engine is
+split into DLLs whose exports carry full C++ names (`core`, `file`, `gfx2d` with DirectDraw 7, Direct3D 8 and OpenGL
+back ends, `imglib`, `snd3d`, `ui2`, `net`, `logger`, `crash`; `core.pdb` under `C:\code\mjo\mjlibs`), so Ghidra
+starts with the engine's classes and methods named. Luxor's own code is about 0.45 MB with the engine (0.61 MB
+with libjpeg, crash reporting and DirectX setup); Amun Rising's exe is 118 KB and Mah Jong's 176 KB on the same
+DLLs. Luxor 2 has about 1.2 MB of its own (`engine.dll` 315 KB, `platform.dll` 209 KB with zlib, `luxor2.exe`
+257 KB) plus libpng and libjpeg, and a trial mode to take out (`IsTrialMode`, `command_buyNowCb`, an unlock timer).
+Sound goes through FMOD 3 (Luxor 1's three) and FMOD Ex (Luxor 2), both proprietary, so the port's own mixer
+replaces them; music and sounds are Ogg. The data sits in `MJZ0` archives (`data.mjz`, `english.mjz`; 910 to
+1,940 entries) to be decoded from our export, holding `.spr` sprites, `.font` fonts, `.ui` interface scripts, `.lvl`
+levels and JPEG, PNG and TGA pictures. Luxor's exe takes `-unlocklevels` and `-unlockstages`, useful for tests.
+The three games on the first engine would share one copy under `engines/` (`docs/ENGINES.md`), Luxor 2 its own.
+
+Which other games run on these engines is far less known than for SAF: no public source names MumboJumbo's engine
+for any game, and there is no public source code to match against, so the evidence is the user's four installs plus
+a few hints (searched 2026-11-16). The first engine is certain only for these three Luxor games; a fan guide says
+one `.mjz` extraction method also works on Chainz, Gearz and Mad Caps, which would put them on it. The second
+engine is certain only for Luxor 2; a modding wiki's pages on "the Luxor 2 engine" cover Luxor Evolved (2012), so
+Luxor 2 HD and Evolved probably sit on its family. The same guide's method fails on Luxor 3, Quest for the
+Afterlife and 5th Passage, so those differ in archive at least; 5th Passage is credited to another studio
+(Absolutist) and uses a `pfpk` archive, so it is probably not MumboJumbo's engine at all. Nothing ties the 7 Wonders
+series (Hot Lava Games, bought by MumboJumbo in 2007) or the hidden-object series (Midnight Mysteries, Samantha
+Swift) to either engine. The user owns only the four Luxor games; Steam also has Luxor and Amun Rising
+(`E:/SteamLibrary`), but as portal builds in wrappers (a Flash splash launcher; Reflexive Arcade with an encrypted
+`.RWG`), so the plain installs under `MumboJumbo/` are the ones to export. Mac builds of Luxor, Amun Rising, Mah
+Jong and Luxor 2 were sold and might carry symbols; the user has none.
 
 ## Appendix B: other projects and modding communities
 

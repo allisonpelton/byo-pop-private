@@ -1,4 +1,5 @@
 #include "ShopItem.h"
+#include "MathConstants.h"
 
 #include <cstdio>
 
@@ -522,7 +523,7 @@ ShopItemFlame::~ShopItemFlame()
 void ShopItemFlame::Update(const double thePos[2])
 {
 	ShopItem::Update(thePos);
-	mFlameCounter = (double)Rand() * 4.656612875245797e-10 * 0.2 + mFlameCounter + 0.2;
+	mFlameCounter = (double)Rand() * RAND_SCALE * 0.2 + mFlameCounter + 0.2;
 }
 
 // 0x442460: the cel of the flame's sheet is the counter's whole part, round the sheet
@@ -577,7 +578,7 @@ void ShopItemGift::StartRoll(int thePrize)
 void ShopItemGift::Update(const double thePos[2])
 {
 	ShopItem::Update(thePos);
-	mGlowTurn = (double)Rand() * 4.656612875245797e-10 * 0.2 + mGlowTurn + 0.2;
+	mGlowTurn = (double)Rand() * RAND_SCALE * 0.2 + mGlowTurn + 0.2;
 
 	if (0.0 < mOpenTimer)
 	{

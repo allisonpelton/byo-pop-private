@@ -67,7 +67,7 @@ static std::string ReadPlaylistLetters(const std::string& thePlaylist)
 
 // 0x429460, with 0x429880 (MySound: one piece decoded), 0x4299e0 (the WAV file's writer) and 0x429b30 (its write of the samples) inline:
 // thePrefix is the pieces' common path ("music\Tubetricks Menu One v02"), theLastSegment the last letter
-void RocketApp::AssembleMusic(const std::string& thePrefix, char theLastSegment)
+std::string RocketApp::AssembleMusic(const std::string& thePrefix, char theLastSegment)
 {
 	// the cache's name: "cached_" in front of the file name part, ".wav" after it
 	size_t aSlash = thePrefix.find_last_of("\\/");
@@ -76,7 +76,7 @@ void RocketApp::AssembleMusic(const std::string& thePrefix, char theLastSegment)
 
 	Platform::VFS& aVFS = Platform::VFS::Get();
 	if (aVFS.Exists(aCacheName))
-		return;
+		return std::string();
 
 	// the segments, A to the last letter
 	std::shared_ptr<Platform::SoundData> aSegments[26];
@@ -92,7 +92,7 @@ void RocketApp::AssembleMusic(const std::string& thePrefix, char theLastSegment)
 
 	std::vector<uint8_t> aPlaylistFile;
 	if (!aVFS.ReadAll(thePrefix + " PLAYLIST.txt", aPlaylistFile))
-		return;
+		return std::string();
 	std::string aLetters = ReadPlaylistLetters(std::string(aPlaylistFile.begin(), aPlaylistFile.end()));
 
 	// the playlist's segments in order, and the length of the whole
@@ -107,7 +107,7 @@ void RocketApp::AssembleMusic(const std::string& thePrefix, char theLastSegment)
 		aDataBytes += aSegments[anIndex]->mSamples.size() * 2;
 	}
 	if (anOrder.empty())
-		return;
+		return std::string();
 
 	// 0x4299e0: the RIFF header in the first piece's format, then every piece's samples
 	Platform::SoundData* aFirst = anOrder[0];
@@ -132,5 +132,10 @@ void RocketApp::AssembleMusic(const std::string& thePrefix, char theLastSegment)
 		for (size_t s = 0; s < anOrder[i]->mSamples.size(); s++)
 			PutLE16(aWav, (uint16_t) anOrder[i]->mSamples[s]);
 	}
+	// port: the decoded segments are not needed once the WAV holds them; they go before the VFS makes its own copy of it
+	anOrder.clear();
+	for (int i = 0; i < 26; i++)
+		aSegments[i].reset();
 	aVFS.SetGeneratedFile(aCacheName, aWav);
+	return aCacheName;
 }
