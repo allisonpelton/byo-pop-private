@@ -340,11 +340,48 @@ opens a tab.
   goes to the root with `?open=<page>` (`onePage` in `web/skins.js`), which opens its window and is taken off again.
 - **Test parameters stay.** `?silent=1` and `?assets=` stay on the root and pass to every frame. A game's own page
   opened with `?silent=1`, `?player=1` or `?assets=` stays that page, as the drivers open it.
-- **Up to three games run at once,** each in its own frame with its own module and saves. The window in front has the
-  focus, and the other games' frames get the window blur the framework listens for (`EmscriptenFocusCallback`), so
-  each behaves as a page that lost the focus.
+- **Several games run at once,** each in its own frame with its own module and saves, as many as the player opens past
+  a warning (below). The window in front has the focus, and the other games' frames get the window blur the framework
+  listens for (`EmscriptenFocusCallback`), so each behaves as a page that lost the focus.
 - **The chat is one window for every game** ("The chat"), a message tagged with the game in front.
 - **Closing a game** returns to the window the setting `gamesOpen` names (All games or the Library).
+
+**How many games at once.** Up to 2026-11-16 the desktop opened at most three games, and one on a narrow screen; a
+fourth got a message box naming the limit. Asked whether the cap should become a warning past a memory budget, the user
+answered "Make it a warning" (2026-11-16). Every game window is a frame of the one page, so all of them share one browser
+process. When it runs out of memory, Chrome puts its out-of-memory error in place of the whole page and an iPad reloads
+it, so every open game closes at once and loses what it had not saved. A cap prevents that, but it also stops players
+whose machines have room: Valve's survey of October 2026 has 16 GB as the most common amount, at 41%, then 32 GB at 37%
+and 8 GB at 7.5%. So each game has a weight, the browser has a budget, and a game that would take the open games past the
+budget asks first (`WEIGHTS` and `budget()` in `web/deskapps.js`).
+
+A game's weight is its own memory at a first board in units of 100 MB, rounded, and at least 1. It is read from
+`docs/MEMORY.md`, "The web builds", "At a first board": the renderer's private bytes less about 60 MB for the page
+itself. Bejeweled Twist (about 400 MB of its own) weighs 4 and Bookworm Adventures 2 (about 190 MB) weighs 2. Every
+other measured game comes to 1, Rocket Mania (about 55 MB since its music plays from its segments) among them, and a
+game not measured counts 1. A new measurement changes the table by the same rule. The budget is 6. Where the browser
+says how much memory the device has (`navigator.deviceMemory`, only in Chromium browsers, which give 8 or, in newer
+ones, up to 32 for a large machine), it is 3 at 4 GB and 1 at 2 GB or less. Safari and Firefox say nothing and get 6.
+
+A game that takes the total past the budget brings up Desktop 95's message box, titled Memory: "All the games open here
+share the browser's memory. With this one open as well, it may run out. If it does, the browser closes every open game,
+and anything not saved is lost." Its buttons are Open anyway and Cancel, and Cancel has the focus and answers Escape.
+It asks each time a game would go past the budget, but not when no other game is open, since then there is nothing else
+to lose. It never asks while windows are being put back by a reload, Back or Forward, since they were open before. A
+game's page that finishes loading behind the box would take the focus into its frame, so the box takes it back. A
+narrow screen (under 760 pixels) needs no limit of its own: every window there is maximized, and the task bar switches
+between them as it does for the other windows. Its one-game limit was about memory only, so narrow screens now get the
+same warning.
+
+**Graphics contexts.** A browser keeps only so many WebGL contexts at once, and Chrome drops the oldest past about 16
+in a renderer process, which the desktop page and its frames share. Each game uses one, or two with the 256-colour view
+filter (`web/view.js`). It was tested in the Browser pane with Mahjong Escape: Ancient Japan running and 16 more
+contexts made in its page. Seventeen games would be past the machine's limit of 10 game processes for tests, and the
+page's own contexts count the same as its frames'. The game's context went, its canvas went blank and stayed blank,
+and the game ran on unseen, with no way back: its pictures on the graphics card were gone. Now the page listens for the
+canvas's `webglcontextlost` (`pictureLost` in `web/shell.html`). The game closes its own way, its saves written first,
+and its card says "The game stopped drawing" and offers Play again, which starts it with a new context. A graphics
+driver's reset ends the same way.
 
 ### The Library
 

@@ -3,8 +3,9 @@
 // window?"). On the listing in Desktop 95 the player never leaves the desktop: every page of ours a link, an icon or a menu
 // leads to opens as a window on it.
 //   - a game: its page in a frame (?embed=1: the game, its setup cards and its own windows, no desktop of its own), with a
-//     menu bar for those windows; at most three at once (one on a narrow screen), each with its own heap, files, sound and
-//     keys. Only the active window's game has the focus, so the others get the focus loss they get when a page loses it.
+//     menu bar for those windows, each with its own heap, files, sound and keys. Only the active window's game has the
+//     focus, so the others get the focus loss they get when a page loses it. Every game shares this page's memory, so one
+//     that would take the open games past a memory budget asks first (the user, 2026-11-16: "Make it a warning"; below).
 //   - another page of ours (a game's copyright and licences, the terms): its page in a frame, scrolling with the skin's bars.
 //   - a licence text (licenses/*.txt): the text itself in the window.
 // Links to other sites still open a tab. The address is always the site's root (the user, 2026-11-09: "What we're developing
@@ -17,7 +18,7 @@ var ByopopApps = (function () {
   "use strict";
   var SKIN = window.ByopopSkin, desk = SKIN && SKIN.desk, SITE = SKIN && SKIN.SITE;
   var Q = new URLSearchParams(location.search), SILENT = Q.get("silent") === "1";
-  var MAX_GAMES = 3, NARROW = 760;
+  var NARROW = 760;
   var apps = [], seq = 0, restoring = false;
   function T(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
   function on() { return !!(desk && desk.isOn()); }
@@ -73,6 +74,27 @@ var ByopopApps = (function () {
   function byWin(win) { for (var i = 0; i < apps.length; i++) if (apps[i].frame && apps[i].frame.contentWindow === win) return apps[i]; return null; }
   function gameCount() { return apps.filter(function (a) { return a.kind === "game"; }).length; }
 
+  // ---- how many games at once (docs/WEB_PLAYER.md, "Desktop 95 in one page"; the user, 2026-11-16: "Make it a warning") ----
+  // Every game window is a frame of this one page, so they all share one browser process. When it runs out of memory the
+  // browser shows its error in place of the whole page (an iPad reloads it), and every open game closes at once. So each
+  // game has a weight and the browser a budget, and a game that would take the open games' total past the budget asks
+  // first. A weight is the game's own memory at a first board in 100 MB, rounded, at least 1: docs/MEMORY.md, "The web
+  // builds", "At a first board", its renderer private bytes less about 60 MB for the page itself. Bejeweled Twist (about
+  // 400 MB) is 4 and Bookworm Adventures 2 (about 190 MB) is 2; every other game measured comes to 1, and a game not
+  // measured counts 1.
+  var WEIGHTS = { bejeweledtwist: 4, bookwormadv2: 2 };
+  function weightOf(id) { return WEIGHTS[id] || 1; }
+  function gamesWeight() {
+    return apps.reduce(function (n, a) { return n + (a.kind === "game" ? weightOf(a.game) : 0); }, 0);
+  }
+  // 6, or less where the browser says how much memory the device has (navigator.deviceMemory, only Chromium's, which says 8
+  // for "8 GB or more", or in newer ones up to 32): 3 at 4 GB, 1 at 2 GB or less. Safari and Firefox say nothing, so 6.
+  function budget() {
+    var gb = navigator.deviceMemory;
+    if (typeof gb !== "number" || !(gb > 0) || gb >= 8) return 6;
+    return gb >= 4 ? 3 : 1;
+  }
+
   // ---- the address ----
   function state() {
     var act = desk.active(), a = act && byId(act);
@@ -84,8 +106,9 @@ var ByopopApps = (function () {
     try { history[push ? "pushState" : "replaceState"](st, "", rootAddress()); } catch (e) {}
   }
 
-  // ---- a Windows 95 message box (the fourth game) ----
-  function messageBox(title, text, plain) {
+  // ---- a Windows 95 message box (a game past the memory budget, an About box) ----
+  // buttons: [{label, fn}], the last one also the answer to Escape and the one with the focus; OK alone without them
+  function messageBox(title, text, plain, buttons) {
     var d = document.createElement("dialog");
     d.className = "d95-msgbox";
     d.setAttribute("aria-labelledby", "d95-msgbox-title"); d.setAttribute("aria-describedby", "d95-msgbox-text");
@@ -98,17 +121,31 @@ var ByopopApps = (function () {
     // an About box: the game's lines as they are, without the warning sign
     if (plain) { p.style.whiteSpace = "pre-line"; d.classList.add("d95-msgbox-about"); } else body.appendChild(icon);
     body.appendChild(p);
-    var ok = document.createElement("button"); ok.type = "button"; ok.textContent = T("skin.apps.ok");
-    var row = document.createElement("div"); row.className = "d95-msgbox-row"; row.appendChild(ok);
+    var row = document.createElement("div"); row.className = "d95-msgbox-row";
+    var last = null;
+    // (a game's page that finishes loading behind the box focuses its own card, which takes the focus into its frame: it
+    // comes back to the box)
+    function keep() { setTimeout(function () { if (d.open && document.activeElement && document.activeElement.tagName === "IFRAME") last.el.focus(); }, 0); }
+    window.addEventListener("blur", keep);
+    function done(fn) {
+      window.removeEventListener("blur", keep);
+      try { d.close(); } catch (e) {}
+      if (d.parentNode) d.parentNode.removeChild(d);
+      if (fn) fn();
+    }
+    (buttons || [{ label: T("skin.apps.ok") }]).forEach(function (b) {
+      var btn = document.createElement("button"); btn.type = "button"; btn.textContent = b.label;
+      btn.addEventListener("click", function () { done(b.fn); });
+      row.appendChild(btn);
+      last = { el: btn, fn: b.fn };
+    });
     d.appendChild(tb); d.appendChild(body); d.appendChild(row);
     document.body.appendChild(d);
-    function done() { try { d.close(); } catch (e) {} if (d.parentNode) d.parentNode.removeChild(d); }
-    ok.addEventListener("click", done);
-    d.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); done(); } });
-    d.addEventListener("cancel", function (ev) { ev.preventDefault(); done(); });
+    d.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); done(last.fn); } });
+    d.addEventListener("cancel", function (ev) { ev.preventDefault(); done(last.fn); });
     d.showModal();
     try { desk.event("ding"); } catch (e) {}
-    ok.focus();
+    last.el.focus();
   }
 
   // ---- a window ----
@@ -314,8 +351,9 @@ var ByopopApps = (function () {
   }
 
   // ---- opening ----
-  // how: "push" (the player opened it: a new address), "replace" (this address), "none" (Back or Forward is putting it back)
-  function open(href, how) {
+  // how: "push" (the player opened it: a new address), "replace" (this address), "none" (Back or Forward is putting it back);
+  // anyway: the player answered Open anyway to the memory warning
+  function open(href, how, anyway) {
     if (!on()) return false;
     var key = relOf(href);
     if (key === null) return false;
@@ -325,9 +363,14 @@ var ByopopApps = (function () {
     if (kind === "index") { desk.openWin("games"); return true; }
     var app = byKey(key);
     if (!app) {
-      var limit = narrow() ? 1 : MAX_GAMES;
-      if (kind === "game" && gameCount() >= limit) {
-        messageBox(T("skin.apps.limit_title"), T(limit === 1 ? "skin.apps.limit_one" : "skin.apps.limit", { n: limit }));
+      // past the budget, the player is asked each time, unless no other game is open (nothing else to lose) or windows are
+      // being put back (a reload, Back or Forward: they were open before)
+      var g = kind === "game" ? games()[pathOf(key)] : null;
+      if (g && !anyway && !restoring && gameCount() > 0 && gamesWeight() + weightOf(g.id) > budget()) {
+        messageBox(T("skin.apps.limit_title"), T("skin.apps.limit"), false, [
+          { label: T("skin.apps.limit_open"), fn: function () { open(href, how, true); } },
+          { label: T("skin.apps.limit_cancel") }
+        ]);
         return true;
       }
       app = make(key, kind);
