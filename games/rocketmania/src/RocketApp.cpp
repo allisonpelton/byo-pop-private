@@ -19,6 +19,7 @@
 #include "DDInterface.h"
 #include "MemoryImage.h"
 #include "MusicInterface.h"
+#include "SoftwareScreenDisplay.h"
 #include "SoundManager.h"
 #include "WidgetManager.h"
 #include "platform/VFS.h"
@@ -184,6 +185,17 @@ void Sexy::GetGlobalRandState(uint32_t* theState, int* theIndex)
 {
 	sGlobalRand.GetState(theState, theIndex);
 }
+
+#ifndef __EMSCRIPTEN__
+// port: with 3D off the original draws its screen in software into a DirectDraw surface, so the port does too, and the window shows
+// it through its own surface (framework/SoftwareScreenDisplay.h) with no renderer and no uploaded pictures. The original offers
+// 3D in its Options (Hardware Acceleration) and starts in it where its tester passes the card (mTest3D), so the display stays
+// ready to hand the screen to the GPU (theOffers3D) and mDefault3D stays true
+DDInterface* RocketApp::CreateDDInterface()
+{
+	return SoftwareScreenDisplay::Create(this, true);
+}
+#endif
 
 // 0x42b9b0
 void RocketApp::Init()

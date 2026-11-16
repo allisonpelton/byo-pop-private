@@ -114,6 +114,10 @@ public:
 	virtual ~RocketApp();
 
 	// SexyApp
+#ifndef __EMSCRIPTEN__
+	// port: the 2D game's software screen (the original's DirectDraw surface), opt-in of docs/MEMORY.md
+	virtual DDInterface*	CreateDDInterface() override;
+#endif
 	virtual void			Init() override;
 	virtual void			LoadingThreadProc() override;
 	virtual Dialog*			NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
