@@ -592,6 +592,15 @@ function was compared and it was not run; what speaks for it is that its data is
 build keeps a player's profiles was not checked either: the two builds name them the same way, and no Collection save was
 at hand.
 
+## The lite mod (2026-11-16)
+
+There is no lite mod: `LITE_MOD.md` says what was looked at and why nothing is taken. The C++ logic has no search (the word
+check is a binary search over the word list, the letter deal a weighted draw, the refill a fall). The rules are in the
+original's Lua scripts, which the port runs unchanged. Over the chapter run's battles under `-fast`, the update is 0.314 M
+cycles an update, 49% of the process, against 0.300 M for the picture. A sampling profile puts the scripts' interpreter at 21%
+of the battles' cycles and the bot's own search at 1.7%. None of the board's or the tile engine's functions reaches 0.1%. In
+real play, at 100 updates a second, the battles' update is under 2% of a core.
+
 ## Mods
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
