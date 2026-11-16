@@ -37,7 +37,10 @@ def main():
             k += 1
         if k == len(orig):
             raise SystemExit("mkport3d: step %s %s %s is not in orig.txt" % (n, cmd, rest))
-        text = port[k][1]
+        # (a click and a shot of one update may stand in the other order in port.txt: the lines are matched by their kind and rank)
+        rank = sum(1 for o in orig[:k] if (o[2] == "shot") == (cmd == "shot"))
+        same = [q for q in port if (q[1].split()[0] == "shot") == (cmd == "shot")]
+        text = same[rank][1]
         k += 1
         if cmd == "shot":
             text = "shot %s/%s.png" % (pd, rest)

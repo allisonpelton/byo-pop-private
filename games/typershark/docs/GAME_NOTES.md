@@ -1134,7 +1134,8 @@ bubbles' sub-update phase on a running board, the caret's blink, the player list
 and the stats bars' growth (they read `mSecondTimer->Elapsed()`, milliseconds), and a board that has run on after a pause and a resume.
 A virtual-clock origrun with a window of its own would make all of them equal; none is a rendering difference.
 
-**Not compared in 3D:** the abyss and bonus levels, an idle game, the boards after a pause and a resume (the real clock again), and the
+**The other 3D tours** (2026-11-15): the idle game, the abyss, the bonus levels and a paused board were compared on the desktop; only sprite-sized
+differences of the real clock remain, none is the 3D drawing's (`IDENTICAL_PLAY.md`, "The remaining 3D tours"). **Not compared in 3D:** the
 original's single-precision rounding of x87 code in 3D (Twist found it in its own comparison; nothing here depends on it).
 
 ## 17. Widgets drawn without the fast stretch (2026-11-11)
