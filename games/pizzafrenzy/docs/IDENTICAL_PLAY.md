@@ -180,6 +180,15 @@ manifest's order (`ToppingOrder`), taking the addresses to rise as the manifest 
 input and seed show the coupons in either order from run to run, so the original's order is not fixed and the port's
 is one of its outcomes; nothing else in the coupons differs.
 
+**Oddity: some screens run a frame behind.** The launch's fade-in, the splash's second picture and the story pages
+(their panel's slide and their typed text) are the original's of the frame before: each port picture matches the
+original's taken one frame earlier, exactly (frame 45's splash and frame 6300's story text at 46 and 6301 in the
+port), where play, the menu's fade and the level ends match on their own frames. Checked and the same as the export:
+the transitions' update and start (0x468ee0, 0x468e90), the state change (0x4707f0), and the frame's order (the scene
+connects to the update signal before the game does, 0x409220, and the signal calls its listeners in order). Finding
+it would take peeking a story screen's transition in the original over its first frames, to see which update the
+original gives it that the port does not.
+
 **Oddity: the level end's sparkles.** When the level's end title leaves, each letter's burst (`BurstFx`: three streams
 of `basicSparkle`, a JPEG with a greyscale mask) draws its particles at the same places in both, but the port's are
 brighter: from the first frame of the burst (2125 in look1's case) about 2700 to 5000 pixels a frame are lighter by
