@@ -1,5 +1,6 @@
 #include "Lex.h"
 
+#include <algorithm>
 #include <cctype>
 #include <cstring>
 
@@ -32,24 +33,26 @@ bool Lex::Load(const std::string& theDefsFile, const std::string& theWordFile, s
 			break;
 		if (gSexyAppBase != nullptr && gSexyAppBase->mShutdown)
 			break;
-		char c = (char)aChar;
-		if (c >= '0' && c <= '9') {
+		char aLetter = (char)aChar;
+		if (aLetter >= '0' && aLetter <= '9') {
 			if (!inNumber) {
-				aPrefixLength = c - '0';
+				aPrefixLength = aLetter - '0';
 				inNumber = true;
 			} else {
-				aPrefixLength = aPrefixLength * 10 + (c - '0');
+				aPrefixLength = aPrefixLength * 10 + (aLetter - '0');
 			}
-		} else if (c == '\r' || c == '\n') {
+		} else if (aLetter == '\r' || aLetter == '\n') {
 			if (aLength > 0) {
 				memcpy(aPrevWord, aWord, aLength);
 				if (aLength >= 3 && aLength <= 16) {
-					std::string aString(aWord, aLength);
-					for (char& ch : aString)
-						ch = (char)toupper((unsigned char)ch);
-					mWords.insert(aString);
+					// port: the word goes to the end of the letters (the set inserted it in its place; the places are
+					// sorted once the file is read)
+					mPlaces.push_back((uint32_t)mLetters.size());
+					for (int i = 0; i < aLength; i++)
+						mLetters.push_back((char)toupper((unsigned char)aWord[i]));
+					mLetters.push_back('\0');
 					if (theWords != nullptr)
-						theWords->push_back(aString);
+						theWords->push_back(&mLetters[mPlaces.back()]);
 				}
 				aLength = 0;
 			}
@@ -60,9 +63,30 @@ bool Lex::Load(const std::string& theDefsFile, const std::string& theWordFile, s
 				memcpy(aWord, aPrevWord, aLength);
 			}
 			if (aLength < BUFFER_SIZE - 1)
-				aWord[aLength++] = c;
+				aWord[aLength++] = aLetter;
 		}
 	}
 	p_fclose(aFile);
+
+	// port: the places in the set's order, each word once (the set kept the first of equal words; they are the same
+	// letters, so which place stays does not matter)
+	const char* aLetters = mLetters.data();
+	std::sort(mPlaces.begin(), mPlaces.end(),
+	          [aLetters](uint32_t a, uint32_t b) { return strcmp(aLetters + a, aLetters + b) < 0; });
+	mPlaces.erase(std::unique(mPlaces.begin(), mPlaces.end(),
+	                          [aLetters](uint32_t a, uint32_t b) { return strcmp(aLetters + a, aLetters + b) == 0; }),
+	              mPlaces.end());
+	mLetters.shrink_to_fit();
+	mPlaces.shrink_to_fit();
 	return true;
+}
+
+// port: the set's find, as a binary search over the sorted places
+bool Lex::IsWord(const std::string& theWord) const
+{
+	const char* aLetters = mLetters.data();
+	const char* aWord = theWord.c_str();
+	std::vector<uint32_t>::const_iterator anItr = std::lower_bound(mPlaces.begin(), mPlaces.end(), aWord,
+		[aLetters](uint32_t thePlace, const char* theKey) { return strcmp(aLetters + thePlace, theKey) < 0; });
+	return anItr != mPlaces.end() && strcmp(aLetters + *anItr, aWord) == 0 && theWord.size() == strlen(aLetters + *anItr);
 }

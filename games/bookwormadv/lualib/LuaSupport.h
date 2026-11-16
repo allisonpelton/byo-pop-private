@@ -64,8 +64,6 @@ public:
 	void* CheckObject(int idx, ClassInfo* cls);
 	// A C++ object is gone: its userdata stay, but using them raises an error.
 	void ObjectDeleted(void* obj);
-	// Lua no longer owns the object (C++ takes it over), or now does.
-	void SetOwned(void* obj, bool owned);
 
 	// ---- paths and calls (0x6d0dd0, 0x6d0e40, 0x6d0a30, vf08 0x6d77e0) ----
 	// Pushes the value at a dotted path from the globals ("main.LoadResources"); false (and nothing pushed)

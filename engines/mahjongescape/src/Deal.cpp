@@ -21,6 +21,8 @@ int gBonusCounts[8];
 int gQuadKinds;
 int gPairKinds;
 int gDealCount;  // 0x532988 (mahjongchina), 0x533630 (mahjongjapan)
+bool gQuickRedeal = false;
+int gSolveChecks = 0;
 
 // The search (0x413810 (mahjongchina), 0x413d90 (mahjongjapan)): its state is in globals in the original
 static bool gSolveGold;            // 0x532950 (mahjongchina), 0x5335f8 (mahjongjapan) a gold tile is among those taken
@@ -29,6 +31,7 @@ static int gSolveKinded;
 static uint32_t gSolveLimit;       // 0x532958 (mahjongchina), 0x533600 (mahjongjapan) ms
 static uint32_t gSolveStart;       // 0x53295c (mahjongchina), 0x533604 (mahjongjapan)
 static int gSolveSteps;            // 0x532960 (mahjongchina), 0x533608 (mahjongjapan) -1 when the time is up
+static bool gSolveRedeal;           // port: the search is a redeal's
 static int gQuadNext;              // 0x532964 (mahjongchina), 0x53360c (mahjongjapan)
 static int gQuadTiles;             // 0x532968 (mahjongchina), 0x533610 (mahjongjapan)
 static int gPairNext;              // 0x53296c (mahjongchina), 0x533614 (mahjongjapan)
@@ -218,6 +221,8 @@ void Deal::Start(Layout* theLayout, int theQuadPercent, int theMove, bool theRed
 	gSolveBlank = 0;
 	gSolveQuads = 0;
 	gSolveSteps = 0;
+	gSolveChecks = 0;
+	gSolveRedeal = theRedeal;
 	gSolveStart = jb::RealTickCount();
 	gSolveLimit = theRedeal ? 1000 : 2000;
 	int aFree = mLayout->GetFree(gSolveFree[0], 400);
@@ -667,7 +672,17 @@ bool SolveInTime()
 	if (aCheck)
 	{
 		gSolveSteps = 0;
-		if (gSolveLimit + gSolveStart < jb::RealTickCount())
+		gSolveChecks = gSolveChecks + 1;
+		if (gQuickRedeal && gSolveRedeal)
+		{
+			// the lite mod: a redeal's budget in search steps, the same on every run (the original's follows)
+			if (kQuickRedealChecks < gSolveChecks)
+			{
+				gSolveSteps = -1;
+				return false;
+			}
+		}
+		else if (gSolveLimit + gSolveStart < jb::RealTickCount())
 		{
 			gSolveSteps = -1;
 			return false;

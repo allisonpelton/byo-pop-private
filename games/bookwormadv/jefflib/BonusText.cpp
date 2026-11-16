@@ -18,16 +18,6 @@ BonusText::BonusText(const std::string& theText, Font* theFont, float x, float y
 	mWidth = theFont->StringWidth(mText);
 }
 
-BonusText::BonusText(const std::string& theText, Font* theFont, float x, float theTargetY, int theHoldUpdates,
-                     float theSpeed)
-	: mX(x), mY(480.0f), mFadeDelay(0), mHasTarget(true), mTargetX(x), mTargetY(theTargetY),
-	  mHoldUpdates(theHoldUpdates), mSpeed(theSpeed)
-{
-	mText = theText;
-	mFont = theFont;
-	mWidth = theFont->StringWidth(mText);
-}
-
 void BonusText::Update()
 {
 	mUpdateCnt++;

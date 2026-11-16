@@ -121,7 +121,7 @@ public:
 	int mChapterLoadTotal = 0;                     // +0x8f4: and all of them (ChapterLoadScreen's bar)
 	int mTotalBooks = 0;                           // +0x8f8, from main.LoadRequiredScripts
 	int mRegTotalBooks = 0;                        // +0x8fc, the registry's TotalBooks
-	int mUserUpdates = 0;                          // +0x97c, updates since the player was selected
+	int mUserUpdates = 0;                          // +0x97c, updates since the player was selected; nothing reads it
 	bool mNukeProfile = false;                     // +0x910: the scripts' _NukeProfile once the book is up
 	bool mChapterInitQueued = false;               // +0x911: the player's ChapterInit once the curtain is open
 	bool mPlayIntro = false;                       // +0x912: the intro's: the new player's name once it is open
@@ -131,14 +131,14 @@ public:
 	bool mTitleScreenDoneQueued = false;           // +0x915
 	bool mShowTilePips = true;                     // +0x916: CanShowTilePips' answer when the profile has no EnablePips
 	bool mFullCurtain = false;                     // +0x917: a transition of the whole curtain (0x44d080)
-	bool mLoadingDone = false;                     // +0x919
+	bool mLoadingDone = false;                     // +0x919: set when loading is done; nothing reads it
 	bool mNoMusic = false;                         // +0x91a
 	bool mTitleToMainMenu = false;                 // +0x91b
 	bool mTimedMode = false;                       // +0x96e: playing the timed mode (its TM_ profile keys)
 	bool mMiniGameFromMenu = false;                // +0x96f: a mini-game started from the main menu's list (0x4819a0)
 	bool mQuitting = false;                        // +0x91c: leaving the game (0x451c20; 0x451920 clears it)
-	int mBattleUpdates = 0;                        // +0x974: updates of battle (not of a level-up or a chapter's end); written only
-	int mMiniGameUpdates = 0;                      // +0x978: updates of the adventure's mini-games; written only
+	int mBattleUpdates = 0;                        // +0x974: updates of battle (not of a level-up or a chapter's end); nothing reads it
+	int mMiniGameUpdates = 0;                      // +0x978: updates of the adventure's mini-games; nothing reads it
 	std::vector<std::string> mStartupGroups;       // +0x924 (0x38-byte entries; the group's name at +0x1c)
 	std::vector<JeffLib::BonusText*> mBonusTexts;  // +0x934: the mini-games' floating texts (AddBonusText)
 	Lex* mLex = nullptr;                           // +0x940

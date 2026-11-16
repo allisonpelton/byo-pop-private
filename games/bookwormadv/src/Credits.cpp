@@ -65,7 +65,7 @@ const TileDef kTileDefs[] = {
 Credits::Credits()
 	: mCurSection(nullptr), mLex(nullptr), mSectionIndex(0), mNextAnimId(0), mFadeAlpha(0), mFadeStep(3),
 	  mClipY(302), mClipHeight(0), mState(STATE_NONE), mLexX(-120), mLexY(-150), mTileAlpha(0), mFinaleTime(0),
-	  mFlashAlpha(0), mFlash(false), mFading(false), mOpening(true), mEndOfGame(false), mReloadSection(0)
+	  mFlashAlpha(0), mFlash(false), mFading(false), mOpening(true), mEndOfGame(false)
 {
 	mRoot.mName = "Main";
 	Node* aCredit = AddGroup(nullptr, "Credit", [this]() { StartCredit(); }, [this]() { EndCredit(); });
@@ -136,36 +136,6 @@ void Credits::FreeAnims()
 	mSections.clear();
 	mNextAnimId = 0;
 	mCurSection = nullptr;
-	gApp->ClearUpdateBacklog(false);
-}
-
-// 0x435b40: the credit that was showing is remembered
-void Credits::BeforeReload()
-{
-	mReloadSection = mSectionIndex;
-	FreeAnims();
-}
-
-// 0x434dc0 (0x435760): the credit that was showing again, loaded, and the credits begin to fade in
-void Credits::AfterReload()
-{
-	if ((size_t)mSectionIndex < mSections.size()) {
-		// port: the original did not check that the credit is still there
-		mSectionIndex = (size_t)mReloadSection < mSections.size() ? mReloadSection : 0;
-		mCurSection = &mSections[mSectionIndex];
-	} else if (!mSections.empty()) {
-		mSectionIndex = 0;
-		mCurSection = &mSections[0];
-	}
-	if (!kLoadAllAtOnce)
-		LoadSectionAnims();
-	if (mCurSection->mAnim != nullptr)
-		mCurSection->mAnim->PlayLabel(mCurSection->mFrame);
-	mFadeAlpha = 0;
-	mFading = false;
-	mOpening = true;
-	mClipY = 302;
-	mClipHeight = 0;
 	gApp->ClearUpdateBacklog(false);
 }
 

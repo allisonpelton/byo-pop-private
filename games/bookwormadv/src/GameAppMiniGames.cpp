@@ -35,6 +35,7 @@ void GameApp::StartMiniGame(std::string theName, int x, int y, int theXGap, int 
 		mSongPlayer->PlaySong(0x96, 0.005f, true);  // the mini-games' song
 }
 
+// 0x44b9d0
 void GameApp::ReturnToMMFromMiniGame()
 {
 	// 0x44b9d0: the mini-game's board and resources freed, and the main menu
@@ -58,6 +59,7 @@ static void MiniGameDoneCallback(void* theApp)
 	LuaLib::CallLua("gMiniGame:Cleanup", 0);
 }
 
+// 0x44d1e0
 void GameApp::UnlockedMiniGameComplete()
 {
 	// 0x44d1e0: the whole curtain closes over the mini-game, then the main menu
@@ -77,6 +79,7 @@ void GameApp::ShowMiniGameMenu()
 		mWidgetManager->BringToFront(mCurtain);
 }
 
+// 0x44fab0
 void GameApp::AddBonusText(const std::string& theText, float x, float y, float theSpeed, int theFadeDelay,
                            Font* theFont)
 {

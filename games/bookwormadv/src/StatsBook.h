@@ -41,7 +41,6 @@ public:
 	std::string mRedString;        // +0x108
 	Rect mHitRect;                 // +0x124: where the mouse is over the list
 	int mIconIndex = -1;           // +0x134
-	bool mUnused138 = false;       // +0x138: the book sets it for the page after a timed game; nothing reads it
 
 	explicit CustomListWidget(ListListener* theListener);  // 0x495100: id 1, FONT_LARGE
 

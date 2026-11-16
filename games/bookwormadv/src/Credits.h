@@ -143,10 +143,6 @@ public:
 	Credits();                          // 0x434ef0
 	~Credits() override;                // 0x435410 (0x435440)
 
-	// DataDrivenClass: the data is read again (they run, in this order, around Load; nothing calls them)
-	void BeforeReload() override;       // 0x435b40
-	void AfterReload() override;        // 0x434dc0 (0x435760)
-
 	// Widget
 	void Update() override;                              // 0x436ec0
 	void UpdateF(float theFrac) override;                // 0x437c20
@@ -159,7 +155,6 @@ public:
 	void PopAnimCommand(int theId, const std::string& theCommand, const std::string& theParam) override;  // 0x437fe0
 
 private:
-	int mReloadSection;  // port: a global in the original (0x82594c): the credit that was showing when the data was reloaded
 
 	void FreeAnims();    // 0x4355b0: the animations go, and the credits read
 	// port: the animations of the credit that begins loaded (0x435876 in AfterReload and 0x437834 in Update)

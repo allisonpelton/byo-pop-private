@@ -110,6 +110,15 @@ void Sprite::BitsChanged()
 	static_cast<MemoryImage*>(mImage)->BitsChanged();
 }
 
+// 0x429670: the thunk to the image's Palletize (MemoryImage, 0x45f2e0), which the original's loading thread calls on 22 of
+// its pictures (24 calls: three of them on the big words' sheet through its parts). An image with more than 256 colours
+// stays as it is (the atoms' explosion and the game type sheet).
+void Sprite::Palletize()
+{
+	if (mImage != NULL)
+		static_cast<MemoryImage*>(mImage)->Palletize();
+}
+
 // 0x4014c0
 void Sprite::Draw(Graphics* g, int theX, int theY)
 {
