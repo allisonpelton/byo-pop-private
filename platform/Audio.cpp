@@ -413,8 +413,22 @@ struct Mixer::Song
 	int64_t mSourceFrames = 0;               // total length in source frames (0 = unknown)
 	int64_t mPcmPos = 0;
 	std::vector<float> mDecoded;             // Ogg decode buffer (interleaved, source channels)
-	size_t mDecodedPos = 0;                  // next unread frame in mDecoded
+	size_t mDecodedPos = 0;                  // next unread frame in mDecoded (or mSegmentDecoded)
 	size_t mDecodedFrames = 0;
+
+	// A song of Ogg segments played in turn (LoadSongSegments), as the WAV joined from them plays: its frames are decoded as
+	// LoadSoundData decodes each file, 16-bit, and read as the WAV's are (mPcmPos counts them over the whole). One decoder at
+	// a time, opened at its segment's first frame.
+	struct Segment
+	{
+		std::shared_ptr<const std::vector<uint8_t> > mFile;   // shared by the segments that play the same file
+		int64_t mStart = 0;                                    // its first frame in the whole
+	};
+	std::vector<Segment> mSegments;
+	size_t mSegment = 0;                     // the segment mSegmentVorbis decodes
+	stb_vorbis* mSegmentVorbis = nullptr;
+	int mSegmentFileChannels = 0;            // the file's channels, all decoded (the first one or two kept, as LoadSoundData)
+	std::vector<int16_t> mSegmentDecoded;    // its last samples decoded (interleaved, mSegmentFileChannels)
 	float mFrameA[2] = {0, 0};               // resampler: previous and next source frame
 	float mFrameB[2] = {0, 0};
 	double mFrac = 0;
@@ -444,16 +458,75 @@ struct Mixer::Song
 		mHistoryPos = (mHistoryPos + 1) & (kHistoryFrames - 1);
 	}
 
-	bool IsStream() const { return mVorbis || mPcm; }
+	~Song() { CloseSegment(); }   // a segment's decoder (UnloadSong, and Shutdown's clear of the songs)
+
+	bool IsStream() const { return mVorbis || mPcm || !mSegments.empty(); }
 
 	void SeekSource(int64_t theFrame)
 	{
 		theFrame = std::max<int64_t>(0, mSourceFrames > 0 ? std::min(theFrame, mSourceFrames - 1) : theFrame);
 		if (mVorbis)
 			stb_vorbis_seek(mVorbis, (unsigned)theFrame);
+		if (!mSegments.empty())
+		{
+			size_t k = 0;
+			while ((k + 1 < mSegments.size()) && (theFrame >= mSegments[k + 1].mStart))
+				k++;
+			OpenSegment(k, theFrame - mSegments[k].mStart);
+		}
 		mPcmPos = theFrame;
 		mDecodedPos = mDecodedFrames = 0;
 		mEnded = false;
+	}
+
+	// Segment theSegment's decoder, at its frame theFrame (0 its first: a decoder opened afresh, as LoadSoundData's)
+	bool OpenSegment(size_t theSegment, int64_t theFrame)
+	{
+		CloseSegment();
+		mSegment = theSegment;
+		const std::vector<uint8_t>& aFile = *mSegments[theSegment].mFile;
+		int anError = 0;
+		mSegmentVorbis = stb_vorbis_open_memory(aFile.data(), (int)aFile.size(), &anError, nullptr);
+		if (mSegmentVorbis == nullptr)
+			return false;
+		mSegmentFileChannels = stb_vorbis_get_info(mSegmentVorbis).channels;
+		if (theFrame > 0)
+			stb_vorbis_seek(mSegmentVorbis, (unsigned)theFrame);
+		return true;
+	}
+
+	void CloseSegment()
+	{
+		if (mSegmentVorbis != nullptr)
+			stb_vorbis_close(mSegmentVorbis);
+		mSegmentVorbis = nullptr;
+	}
+
+	// The next samples of the segments into mSegmentDecoded, moving on to the next segment at one's end; false past the last
+	bool DecodeSegments()
+	{
+		for (;;)
+		{
+			if (mSegmentVorbis != nullptr)
+			{
+				mSegmentDecoded.resize((size_t)mSegmentFileChannels * 1024);
+				const int n = stb_vorbis_get_samples_short_interleaved(mSegmentVorbis, mSegmentFileChannels, mSegmentDecoded.data(),
+					(int)mSegmentDecoded.size());
+				if (n > 0)
+				{
+					mDecodedFrames = (size_t)n;
+					mDecodedPos = 0;
+					return true;
+				}
+			}
+			// the segment's end (or a file that would not open: none can, as LoadSongSegments opened each)
+			if (mSegment + 1 >= mSegments.size())
+			{
+				CloseSegment();
+				return false;
+			}
+			OpenSegment(mSegment + 1, 0);
+		}
 	}
 
 	// Reads the next source frame as stereo; at the end of the data it loops or reports the end.
@@ -468,6 +541,19 @@ struct Mixer::Song
 					const int16_t* f = &mPcm->mSamples[mPcmPos * mPcm->mChannels];
 					theOut[0] = f[0] / 32768.0f;
 					theOut[1] = (mPcm->mChannels > 1 ? f[1] : f[0]) / 32768.0f;
+					mPcmPos++;
+					return true;
+				}
+			}
+			else if (!mSegments.empty())
+			{
+				// as the WAV's frames above: the first one or two channels, as 16-bit samples
+				if ((mDecodedPos < mDecodedFrames) || DecodeSegments())
+				{
+					const int16_t* f = &mSegmentDecoded[mDecodedPos * mSegmentFileChannels];
+					theOut[0] = f[0] / 32768.0f;
+					theOut[1] = (mSourceChannels > 1 ? f[1] : f[0]) / 32768.0f;
+					mDecodedPos++;
 					mPcmPos++;
 					return true;
 				}
@@ -1404,6 +1490,60 @@ int Mixer::LoadSong(const std::string& theGamePath)
 	return handle;
 }
 
+int Mixer::LoadSongSegments(const std::vector<std::string>& theGamePaths)
+{
+	if (!StreamMusic() || theGamePaths.empty())
+		return 0;
+	std::unique_ptr<Song> song(new Song());
+	std::vector<std::pair<std::string, std::shared_ptr<const std::vector<uint8_t> > > > aFiles;  // each file once, by its path
+	std::vector<int64_t> aLengths;
+	int64_t aTotal = 0;
+	for (const std::string& aPath : theGamePaths)
+	{
+		size_t k = 0;
+		while ((k < aFiles.size()) && (aFiles[k].first != aPath))
+			k++;
+		if (k == aFiles.size())
+		{
+			std::vector<uint8_t> aFile;
+			if (!VFS::Get().ReadAll(aPath, aFile) || (aFile.size() <= 4) || (memcmp(aFile.data(), "OggS", 4) != 0))
+				return 0;
+			int anError = 0;
+			stb_vorbis* aVorbis = stb_vorbis_open_memory(aFile.data(), (int)aFile.size(), &anError, nullptr);
+			if (aVorbis == nullptr)
+				return 0;
+			const stb_vorbis_info anInfo = stb_vorbis_get_info(aVorbis);
+			const int64_t aFrames = (int64_t)stb_vorbis_stream_length_in_samples(aVorbis);
+			stb_vorbis_close(aVorbis);
+			const int aChannels = std::min(anInfo.channels, 2);
+			if ((aFrames <= 0) || (anInfo.channels <= 0) || (anInfo.sample_rate == 0))
+				return 0;
+			// the joined WAV is in the first file's format; a file in another would not join
+			if (aFiles.empty())
+			{
+				song->mSourceRate = (int)anInfo.sample_rate;
+				song->mSourceChannels = aChannels;
+			}
+			else if ((song->mSourceRate != (int)anInfo.sample_rate) || (song->mSourceChannels != aChannels))
+				return 0;
+			aFiles.push_back(std::make_pair(aPath, std::make_shared<const std::vector<uint8_t> >(std::move(aFile))));
+			aLengths.push_back(aFrames);
+		}
+		Song::Segment aSegment;
+		aSegment.mFile = aFiles[k].second;
+		aSegment.mStart = aTotal;
+		aTotal += aLengths[k];
+		song->mSegments.push_back(aSegment);
+	}
+	song->mSourceFrames = aTotal;
+	song->mLoaded = true;
+	Lock();
+	mSongs.push_back(std::move(song));
+	int handle = (int)mSongs.size();
+	Unlock();
+	return handle;
+}
+
 int Mixer::AddSong(std::unique_ptr<ModulePlayer> thePlayer)
 {
 	if (!thePlayer)
@@ -1430,7 +1570,17 @@ void Mixer::GetSongMemory(int* theCount, size_t* theTrackBytes, size_t* theModul
 		if (!s || !s->mLoaded)
 			continue;
 		(*theCount)++;
-		*theTrackBytes += s->mFile.capacity() + s->mDecoded.capacity() * sizeof(float) + (s->mPcm ? s->mPcm->Bytes() : 0);
+		*theTrackBytes += s->mFile.capacity() + s->mDecoded.capacity() * sizeof(float) + (s->mPcm ? s->mPcm->Bytes() : 0) +
+			s->mSegmentDecoded.capacity() * sizeof(int16_t);
+		for (size_t i = 0; i < s->mSegments.size(); i++)
+		{
+			// a segment's file once, where it first plays
+			size_t j = 0;
+			while ((j < i) && (s->mSegments[j].mFile != s->mSegments[i].mFile))
+				j++;
+			if (j == i)
+				*theTrackBytes += s->mSegments[i].mFile->size();
+		}
 		// a module's player holds it (counted as its file's size); a file waiting for its first player is counted once
 		if (s->mCtx || s->mModule)
 			*theModuleFileBytes += s->mModuleFileBytes;
