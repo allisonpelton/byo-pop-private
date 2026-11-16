@@ -86,10 +86,11 @@ void playSound(const char* theName, float theVolume)
 }
 }
 
-// 0x42f050: the tip takes no mouse until it is shown (the mask's bit 2)
+// 0x42f050: the map updates the tip itself (updateTip), so its parent's update leaves it out (the mask's listeners
+// bit)
 TipPopup::TipPopup() : mMultiplier(0), mAmount(0), mMap(nullptr), mWaiting(false)
 {
-	setMouseMasked(true);
+	setListenersMasked(true);
 }
 
 // 0x42ef80
@@ -238,6 +239,8 @@ void CitizenAward::setValue(float theMultiplier, Topping* theTopping)
 		aNode->setPosition(AWARD_X, AWARD_Y);
 		addChild(aNode);
 	}
+	// the award takes the mouse itself, so the scene gives it the click wherever the screen's hover is
+	addOwnFlags(engine::NODE_MOUSE);
 	mWaiting = true;
 	mStates.changeState(new TipAppearState(this));
 }

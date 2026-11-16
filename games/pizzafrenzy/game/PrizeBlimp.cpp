@@ -37,9 +37,8 @@ const float DROP_OFFSET_X = -15.0f;
 const float DROP_OFFSET_Y = 45.0f;
 const int DROP_COUNT = 3;
 
-// The seconds between drops: 0x53290c is a range that nothing in the exe ever sets, which is nothing to nothing, so
-// the blimp drops in every frame it is over the middle (the draw is still made)
-const engine::Point DROP_DELAY(0.0f, 0.0f);
+// the seconds between drops, a range (0x53290c, set by the static initializer 0x4f87c0)
+const engine::Point DROP_DELAY(1.0f, 1.75f);
 }
 
 // 0x431330: the pictures and the engine are made by the slots

@@ -16,6 +16,11 @@ bool MusicInterface::LoadMusic(int theSongId, const std::string& theFileName)
 	return false;
 }
 
+bool MusicInterface::LoadMusicSegments(int theSongId, const std::vector<std::string>& theFiles, const std::string& theName)
+{
+	return false;
+}
+
 void MusicInterface::PlayMusic(int theSongId, int theOffset, bool noLoop)	
 {
 }

@@ -1,0 +1,518 @@
+"""Processor time and memory like for like (docs/COORDINATION.md, "The target"): the port and the original over the same
+stretch of play, in real time, as cycle counts and the peak of private bytes. pairs.sh runs them in turn; from the
+worktree root:
+
+    build/native/rundesk.exe <python.exe> -I games/alchemy/tools/profile/cycles.py port <out dir> <script> <seed> <from> <updates>
+    <python.exe> -I games/alchemy/tools/profile/cycles.py orig <out dir> <origrun script> <seed> <from> <updates>
+                                                    (not under rundesk: origrun puts the game there itself)
+
+(Adapted from games/dynomite/tools/profile/cycles.py; its notes there say what each part is for.)
+
+The stretch is the updates <from> to <from>+<updates> of the same input (a port -script, and the same turned into
+origrun's by identical/toorig.py). Neither side runs test machinery in it: the port reads its input from the -script at
+start and gets no -commands; it is marked by two `state` lines of that script, at <from> and at <from>+<updates>, whose
+replies this script sees in the port's log (polled every 10 ms). The original's update counter (the app's +0x4c0,
+origrun's --counter) is read out of its memory every 10 ms. At each end the process's cycles are read
+(QueryProcessCycleTime: every thread's, those that ended included) and each thread's own (QueryThreadCycleTime, with the
+name a thread was given), so the port's sound thread can be counted apart: origrun's stand-in takes the original's
+DirectSound, so the original's figure holds no DirectSound mixing (Alchemy's music is BASS's, and BASS's mixer thread is
+counted). Cycle counts, never GetProcessTimes or GetThreadTimes, which Windows charges by sampling at the 15.6 ms clock
+tick. At the second mark the process's peak private bytes (launch to that point) are read too.
+
+Each run prints one JSON line: the stretch's cycles (G), its length in seconds and updates a second, the threads'
+cycles in it, the board's level and score at the two marks (the same on both sides when both played the same game),
+the peak private bytes, and for the original its draws in it and its windowed and vsync flags (the app's +0x30e and
++0x5cb). The original is paced as on a player's 60 Hz screen (WaitForVSync on under HKCU, through origrun's --reg-map
+popcap: its draw step then sleeps out the refresh period, at most one draw a refresh); CYC_VSYNC=0 leaves it drawing
+after nearly every update, as in a window. The port's draws are counted too (its app's mDrawCount and mUpdateCount, read
+from outside at each end); its present waits for the vertical blank outside -fast. The port's window is 2x the game's
+size where rundesk's desktop has room (a player's default window); with CYC_WINDOWSCALE=1 it is the game's own 640x480,
+as the original's window (-windowscale=1). Its result names the window and renderer it got, from its log's display
+lines (docs/TEST_COMMANDS.md, "The window line"). SOFTSCREEN_SCALED, SURFACE_DISPLAY and the other test switches are
+read from the environment the port starts in (docs/MEMORY.md, "The switches added").
+
+With CYC_SPLIT=1 a run also splits its cycles into update, draw and present (the port with -cyclesplit); a split run
+is never one of the measured ones.
+"""
+import ctypes
+import ctypes.wintypes as W
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+
+k32 = ctypes.WinDLL('kernel32', use_last_error=True)
+k32.OpenProcess.restype = W.HANDLE
+k32.OpenProcess.argtypes = [W.DWORD, W.BOOL, W.DWORD]
+k32.OpenThread.restype = W.HANDLE
+k32.OpenThread.argtypes = [W.DWORD, W.BOOL, W.DWORD]
+k32.CloseHandle.argtypes = [W.HANDLE]
+k32.CreateToolhelp32Snapshot.restype = W.HANDLE
+k32.CreateToolhelp32Snapshot.argtypes = [W.DWORD, W.DWORD]
+k32.QueryFullProcessImageNameW.argtypes = [W.HANDLE, W.DWORD, W.LPWSTR, ctypes.POINTER(W.DWORD)]
+k32.QueryProcessCycleTime.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_ulonglong)]
+k32.QueryThreadCycleTime.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_ulonglong)]
+k32.GetThreadDescription.argtypes = [W.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)]
+k32.LocalFree.argtypes = [ctypes.c_void_p]
+k32.TerminateProcess.argtypes = [W.HANDLE, W.UINT]
+k32.ReadProcessMemory.argtypes = [W.HANDLE, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t, ctypes.POINTER(ctypes.c_size_t)]
+
+QUERY_LIMITED, VM_READ, TERMINATE, SYNCHRONIZE = 0x1000, 0x10, 0x1, 0x100000
+THREAD_QUERY_LIMITED = 0x800
+
+
+class PE32(ctypes.Structure):
+    _fields_ = [('dwSize', W.DWORD), ('cntUsage', W.DWORD), ('th32ProcessID', W.DWORD), ('th32DefaultHeapID', ctypes.c_size_t),
+                ('th32ModuleID', W.DWORD), ('cntThreads', W.DWORD), ('th32ParentProcessID', W.DWORD),
+                ('pcPriClassBase', ctypes.c_long), ('dwFlags', W.DWORD), ('szExeFile', ctypes.c_char * 260)]
+
+
+class TE32(ctypes.Structure):
+    _fields_ = [('dwSize', W.DWORD), ('cntUsage', W.DWORD), ('th32ThreadID', W.DWORD), ('th32OwnerProcessID', W.DWORD),
+                ('tpBasePri', ctypes.c_long), ('tpDeltaPri', ctypes.c_long), ('dwFlags', W.DWORD)]
+
+
+def process_cycles(h):
+    c = ctypes.c_ulonglong()
+    return c.value if k32.QueryProcessCycleTime(h, ctypes.byref(c)) else None
+
+
+class Threads:
+    """Each thread of a process seen so far, with its handle held (a thread that ends can still be read) and its name."""
+
+    def __init__(self, pid):
+        self.pid, self.h, self.name = pid, {}, {}
+
+    def look(self):
+        snap = k32.CreateToolhelp32Snapshot(4, 0)
+        e = TE32()
+        e.dwSize = ctypes.sizeof(e)
+        ok = k32.Thread32First(snap, ctypes.byref(e))
+        while ok:
+            tid = e.th32ThreadID
+            if e.th32OwnerProcessID == self.pid and tid not in self.h:
+                h = k32.OpenThread(THREAD_QUERY_LIMITED, False, tid)
+                if h:
+                    self.h[tid] = h
+                    p = ctypes.c_wchar_p()
+                    self.name[tid] = ''
+                    if k32.GetThreadDescription(h, ctypes.byref(p)) >= 0 and p.value:
+                        self.name[tid] = p.value
+                        k32.LocalFree(p)
+            ok = k32.Thread32Next(snap, ctypes.byref(e))
+        k32.CloseHandle(snap)
+
+    def cycles(self):
+        self.look()
+        out = {}
+        for tid, h in self.h.items():
+            c = ctypes.c_ulonglong()
+            if k32.QueryThreadCycleTime(h, ctypes.byref(c)):
+                out[tid] = c.value
+        return out
+
+    def close(self):
+        for h in self.h.values():
+            k32.CloseHandle(h)
+
+
+def reading(h, threads):
+    return {'t': time.perf_counter(), 'process': process_cycles(h), 'threads': threads.cycles()}
+
+
+def stretch(a, b, names):
+    """The cycles between two readings, the process's and each thread's (the busiest first, by name where it has one)."""
+    rows = []
+    for tid, c in b['threads'].items():
+        d = c - a['threads'].get(tid, 0)
+        if d > 0:
+            rows.append((d, tid))
+    rows.sort(reverse=True)
+    total = b['process'] - a['process']
+    return {'gcycles': round(total / 1e9, 3), 'seconds': round(b['t'] - a['t'], 2),
+            'threads': [[names.get(tid) or str(tid), round(d / 1e9, 3)] for d, tid in rows if d >= 1e7],
+            'other_threads_gcycles': round((total - sum(d for d, _ in rows)) / 1e9, 3)}
+
+
+def read32(h, address):
+    buf = ctypes.c_uint32(0)
+    got = ctypes.c_size_t(0)
+    if not k32.ReadProcessMemory(h, address, ctypes.byref(buf), 4, ctypes.byref(got)) or got.value != 4:
+        return None
+    return buf.value
+
+
+def processes():
+    snap = k32.CreateToolhelp32Snapshot(2, 0)
+    pe = PE32()
+    pe.dwSize = ctypes.sizeof(PE32)
+    out = []
+    ok = k32.Process32First(snap, ctypes.byref(pe))
+    while ok:
+        out.append((pe.th32ProcessID, pe.szExeFile.decode('mbcs', 'replace')))
+        ok = k32.Process32Next(snap, ctypes.byref(pe))
+    k32.CloseHandle(snap)
+    return out
+
+
+def image_path(pid):
+    h = k32.OpenProcess(QUERY_LIMITED, False, pid)
+    if not h:
+        return ''
+    buf = ctypes.create_unicode_buffer(1024)
+    n = W.DWORD(1024)
+    ok = k32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(n))
+    k32.CloseHandle(h)
+    return buf.value if ok else ''
+
+
+def others():
+    """Game processes running on the machine that are not this run's (tools/gamecount.py's count, roughly)."""
+    n = 0
+    for pid, name in processes():
+        if name.lower() in ('rundesk.exe', 'origrun.exe', 'python.exe', 'bash.exe'):
+            continue
+        p = image_path(pid).lower()
+        if ('\\byo-pop\\' in p or '\\byo-og\\' in p) and '\\byo-og\\alchcyc\\' not in p and os.getcwd().lower() not in p:
+            n += 1
+    return n
+
+
+def with_marks(src, dst, first, last, drop, more=()):
+    """The script without `drop` lines, with a `state` line at `first` and at `last` and the (update, line)s of `more`
+    (in update order)."""
+    lines = []
+    for line in open(src):
+        w = line.split()
+        if not w or any(d in line for d in drop):
+            continue
+        lines.append((int(w[0]), line.rstrip('\n')))
+    lines += [(first, '%d state' % first), (last, '%d state' % last)] + list(more)
+    lines.sort(key=lambda kv: kv[0])
+    with open(dst, 'w', newline='\n') as f:
+        f.write(''.join(l + '\n' for _, l in lines))
+    return dst
+
+
+def new_user(d):
+    """A fresh user folder: the tests' settings (windowed, no vsync)."""
+    u = os.path.join(d, 'user')
+    os.makedirs(u)
+    with open(os.path.join(u, 'registry.ini'), 'w', newline='\n') as f:
+        f.write('[SOFTWARE\\PopCap\\Alchemy]\n' +''.join('%s=dword:%s\n' % kv for kv in (
+            ('CustomCursors', '0'), ('InProgress', '0'), ('MusicVolume', '85'), ('Muted', '0'), ('PreferredX', '-1'),
+            ('PreferredY', '-1'), ('ScreenMode', '0'), ('SfxVolume', '85'), ('TimesExecuted', '5'), ('TimesPlayed', '0'),
+            ('WaitForVSync', '0'))))
+    return u
+
+
+class ME32(ctypes.Structure):
+    _fields_ = [('dwSize', W.DWORD), ('th32ModuleID', W.DWORD), ('th32ProcessID', W.DWORD), ('GlblcntUsage', W.DWORD),
+                ('ProccntUsage', W.DWORD), ('modBaseAddr', ctypes.c_void_p), ('modBaseSize', W.DWORD),
+                ('hModule', ctypes.c_void_p), ('szModule', ctypes.c_char * 256), ('szExePath', ctypes.c_char * 260)]
+
+
+def symbol_rva(exe, name):
+    """A global's offset from the exe's image base, by llvm-nm (LLVM_NM, else llvm-mingw's) and the PE header."""
+    nm = os.environ.get('LLVM_NM', 'E:/retools/llvm-mingw-20261006-ucrt-x86_64/bin/llvm-nm.exe')
+    try:
+        lines = subprocess.run([nm, exe], capture_output=True, text=True).stdout.splitlines()
+    except OSError:
+        return None
+    addr = next((int(l.split()[0], 16) for l in lines if l.endswith(' ' + name)), None)
+    data = open(exe, 'rb').read(4096)
+    pe = int.from_bytes(data[0x3c:0x40], 'little')
+    return addr - int.from_bytes(data[pe + 0x34:pe + 0x38], 'little') if addr else None
+
+
+def module_base(pid, name):
+    snap = k32.CreateToolhelp32Snapshot(0x18, pid)   # the process's modules, the 32-bit ones too
+    m = ME32()
+    m.dwSize = ctypes.sizeof(m)
+    ok = k32.Module32First(snap, ctypes.byref(m))
+    base = None
+    while ok:
+        if m.szModule.decode('mbcs', 'replace').lower() == name:
+            base = m.modBaseAddr
+            break
+        ok = k32.Module32Next(snap, ctypes.byref(m))
+    k32.CloseHandle(snap)
+    return base
+
+
+# psapi: the peak of the process's private bytes (PeakPagefileUsage), as perf.py reads it
+psapi = ctypes.WinDLL('psapi', use_last_error=True)
+
+
+class PMC(ctypes.Structure):
+    _fields_ = [('cb', W.DWORD), ('PageFaultCount', W.DWORD)] + [(n, ctypes.c_size_t) for n in (
+        'PeakWorkingSetSize', 'WorkingSetSize', 'QuotaPeakPagedPoolUsage', 'QuotaPagedPoolUsage',
+        'QuotaPeakNonPagedPoolUsage', 'QuotaNonPagedPoolUsage', 'PagefileUsage', 'PeakPagefileUsage', 'PrivateUsage')]
+
+
+psapi.GetProcessMemoryInfo.argtypes = [W.HANDLE, ctypes.c_void_p, W.DWORD]
+
+
+def peak_private_mb(h):
+    """The process's peak private bytes so far (MB), or None."""
+    m = PMC()
+    m.cb = ctypes.sizeof(m)
+    return round(m.PeakPagefileUsage / 1048576.0, 1) if psapi.GetProcessMemoryInfo(h, ctypes.byref(m), m.cb) else None
+
+
+# the framework's SexyAppBase::mDrawCount and mUpdateCount (clang's offsetof, 2026-11-11); a stretch whose update counter
+# does not advance by about its length reports no draws, so a moved field shows
+DRAW_COUNT, UPDATE_COUNT = 944, 948
+
+
+def port_counts(h, pid, app_rva):
+    """The port's (draws, updates) so far, read from its app object (gSexyAppBase), or None."""
+    base = module_base(pid, 'alchemy.exe') if app_rva else None
+    app = read32(h, base + app_rva) if base else None
+    if not app:
+        return None
+    d, u = read32(h, app + DRAW_COUNT), read32(h, app + UPDATE_COUNT)
+    return None if d is None or u is None else (d, u)
+
+
+def segments(marks, updates, draws, names):
+    """The cycles (G), updates and draws between each two marks, and the cycles for 1000 updates: the original keeps up
+    with the bot's script on a real clock only for the first segment or two on a busy machine (its board falls behind the
+    port's after that, see level_score), so the comparison reads the segments in which both play the same game."""
+    out = []
+    for i in range(len(marks) - 1):
+        g = stretch(marks[i], marks[i + 1], names)['gcycles']
+        u = updates[i + 1] - updates[i]
+        out.append({'g': g, 'upd': u, 'draws': draws[i + 1] - draws[i] if None not in draws[i:i + 2] else None,
+                    'g_per_kupd': round(g * 1000.0 / u, 4) if u else None})
+    return out
+
+
+def tracking(boards, reference, tol=25):
+    """How many leading marks the original's board (level, score) is where the port's was: the same level and a score within
+    `tol` points (the marks are read a few updates apart)."""
+    n = 0
+    for x, y in zip(boards, reference):
+        if x[0] is None or x[0] != y[0] or abs(x[1] - y[1]) > tol:
+            break
+        n += 1
+    return n
+
+
+def mid_marks(first, count, every=500):
+    """The updates inside the stretch at which both sides' board is read (the level and score)."""
+    return [first + every * k for k in range(1, (count - 1) // every + 1)]
+
+
+def state_json(line):
+    try:
+        return json.loads(line[line.index('STATE ') + 6:])
+    except ValueError:
+        return {}
+
+
+def port(out, script, seed, first, count):
+    root = os.getcwd()
+    exe, gamedir = os.path.join(root, 'build', 'native', 'alchemy.exe'), os.path.join(root, 'assets', 'alchemy')
+    out = os.path.abspath(out)
+    shutil.rmtree(out, ignore_errors=True)
+    os.makedirs(out)
+    user = new_user(out)
+    split = os.environ.get('CYC_SPLIT') == '1'
+    # a `state` line every MID updates inside the stretch too, for the board's level and score there (the same on both
+    # sides while both play the same game)
+    mids = mid_marks(first, count)
+    sc = with_marks(script, os.path.join(out, 'script.txt'), first, first + count, ['screenshot', ' state'],
+                    [(k, '%d state' % k) for k in mids] +
+                    ([(first, '%d cyclesplit a' % first), (first + count, '%d cyclesplit b' % (first + count))] if split else []))
+    n0 = others()
+    logpath = os.path.join(out, 'game.log')
+    log = open(logpath, 'wb')
+    args = [exe, '-gamedir=' + gamedir, '-userdir=' + user, '-seed=' + seed, '-script=' + sc]
+    if os.environ.get('CYC_WINDOWSCALE'):
+        args.append('-windowscale=' + os.environ['CYC_WINDOWSCALE'])
+    if split:
+        args.append('-cyclesplit=' + os.path.join(out, 'split.jsonl'))
+    p = subprocess.Popen(args, cwd=out, stdout=log, stderr=subprocess.STDOUT)
+    h = k32.OpenProcess(QUERY_LIMITED | VM_READ | SYNCHRONIZE | TERMINATE, False, p.pid)
+    threads = Threads(p.pid)
+    marks, pos, states = [], 0, []
+    app_rva, counts, peaks = symbol_rva(exe, '__ZN4Sexy12gSexyAppBaseE'), [], []
+    expected = 2 + len(mids)
+    while p.poll() is None and len(states) < expected:
+        time.sleep(0.01)
+        with open(logpath, 'rb') as f:
+            f.seek(pos)
+            data = f.read()
+        end = data.rfind(b'\n') + 1
+        pos += end
+        for line in data[:end].decode('latin-1').splitlines():
+            if 'STATE ' in line and len(states) < expected:
+                marks.append(reading(h, threads))
+                counts.append(port_counts(h, p.pid, app_rva))
+                peaks.append(peak_private_mb(h))
+                states.append(state_json(line))
+    p.wait(120)
+    whole = process_cycles(h)
+    log.close()
+    res = {'side': 'port', 'exit': p.returncode, 'others_start': n0, 'others_end': others(),
+           'whole_run_gcycles': round(whole / 1e9, 3) if whole else None, 'log_bytes': os.path.getsize(logpath)}
+    with open(logpath, 'rb') as f:
+        res['display'] = [l[l.find('display: ') + 9:].strip() for l in f.read().decode('latin-1').splitlines()
+                          if 'display: ' in l]
+    if len(marks) == expected:
+        res.update(stretch(marks[0], marks[-1], threads.name))
+        res['updates'] = count
+        res['updates_per_s'] = round(count / res['seconds'], 1)
+        res['peak_private_mb'] = peaks[-1]
+        res['level_score'] = [[s.get('level'), s.get('score')] for s in states]
+        # the counters are read a few ms (on a busy machine up to a few updates) after each mark's reply, so the update
+        # counter's span may be off by some updates; one far from the stretch's length means the offsets moved
+        if None not in counts and abs(counts[-1][1] - counts[0][1] - count) <= 60:
+            res['draws'] = counts[-1][0] - counts[0][0]
+            res['updates_counted'] = counts[-1][1] - counts[0][1]
+            res['segments'] = segments(marks, [c[1] for c in counts], [c[0] for c in counts], threads.name)
+        elif None not in counts:
+            res['invalid'] = 'the update counter moved %d between the marks, not %d' % (counts[-1][1] - counts[0][1], count)
+    threads.close()
+    k32.CloseHandle(h)
+    print(json.dumps(res), flush=True)
+
+
+# The original's app is the static object at 0x5160b0 (WinAlchApp; its framework is the 2004 one, not Dynomite's): its
+# update counter is +0x4c0 (0x516570, origrun's --counter), its draw counter +0x4bc, its windowed flag +0x30e (ScreenMode 0),
+# its vsync flag +0x5cb (WaitForVSync) and its DDInterface +0x33c (the refresh period the draw step sleeps out is its +0x78); the board is the pointer at +0xe54, with the score at +0xd18
+# and the boards cleared at +0xe0c
+APP = 0x5160B0
+COUNTER, DRAWS, BOARD = APP + 0x4C0, APP + 0x4BC, APP + 0xE54
+STAGE = 'E:/byo-og/alch/game'          # identical/setup.sh's staged original
+COPY = 'E:/byo-og/alchcyc/game'        # a fresh copy of it each run
+HKCU_KEY = r'HKCU\Software\PopCap\Alchemy'
+
+
+def find_process(name, folder):
+    for pid, n in processes():
+        if n.lower() == name.lower() and folder.lower() in image_path(pid).lower():
+            return pid
+    return None
+
+
+def set_registry(vsync):
+    """The copy's settings, under HKCU (origrun's --reg-map popcap): HKLM's values on this machine, windowed, with
+    WaitForVSync as asked. With it on the original's draw step sleeps out the screen's refresh period: at most one draw a
+    refresh, as its full screen's Flip, which waits for the vertical blank, draws on a player's 60 Hz screen."""
+    values = (('InProgress', 'REG_DWORD', '0'), ('MusicVolume', 'REG_DWORD', '85'), ('SfxVolume', 'REG_DWORD', '85'),
+              ('Muted', 'REG_DWORD', '0'), ('ScreenMode', 'REG_DWORD', '0'), ('PreferredX', 'REG_DWORD', '4294967295'),
+              ('PreferredY', 'REG_DWORD', '4294967295'), ('CustomCursors', 'REG_DWORD', '0'), ('ITSuccess', 'REG_DWORD', '0'),
+              ('TimesPlayed', 'REG_DWORD', '10'), ('TimesExecuted', 'REG_DWORD', '58'),
+              ('LastVerCheckQueryTime', 'REG_DWORD', str(0x6af13a69)),
+              ('WaitForVSync', 'REG_DWORD', '1' if vsync else '0'),
+              ('SkillLevel', 'REG_DWORD', '1'), ('TimeTrial', 'REG_DWORD', '0'), ('LastScoreName', 'REG_SZ', 'Bot'))
+    for name, kind, data in values:
+        subprocess.run(['reg', 'add', HKCU_KEY, '/v', name, '/t', kind, '/d', data, '/f'], capture_output=True)
+
+
+def orig(out, script, seed, first, count):
+    root = os.getcwd()
+    origrun = os.path.join(root, 'build', 'origrun-bin', 'origrun.exe')
+    out = os.path.abspath(out)
+    shutil.rmtree(out, ignore_errors=True)
+    os.makedirs(out)
+    sc = os.path.join(out, 'script.txt')
+    with open(script) as f, open(sc, 'w', newline='\n') as g:
+        g.write(''.join(l for l in f if ' shot ' not in l and ' screenshot ' not in l))
+    last_input = max(int(l.split()[1]) for l in open(sc) if l.startswith('at '))
+    shutil.rmtree(os.path.dirname(COPY), ignore_errors=True)
+    shutil.copytree(STAGE, COPY, ignore=shutil.ignore_patterns('hiscores.dat', 'savegame.dat'))
+    # paced as a 60 Hz screen by default (docs/COORDINATION.md, "The target"); CYC_VSYNC=0 runs it windowed as the
+    # user's own settings have it, drawing after nearly every update
+    set_registry(os.environ.get('CYC_VSYNC', '1') != '0')
+    res = orig_play(out, sc, seed, first, count, last_input, origrun)
+    # under tools/pincore.py an original's window can take over 20 s to appear (BookWorm, 2026-11-15): origrun then goes on
+    # without it, the first click is lost and the original idles
+    if 'no window in the first' in open(os.path.join(out, 'origrun.log'), errors='replace').read():
+        res['invalid'] = 'origrun went on with no window after 20 s'
+    print(json.dumps(res), flush=True)
+
+
+def orig_play(out, sc, seed, first, count, last_input, origrun):
+    n0 = others()
+    log = open(os.path.join(out, 'origrun.log'), 'wb')
+    p = subprocess.Popen([origrun, '--exe', COPY + '/AlchemyGame.exe', '--run', 'alchcyc', '--script', sc,
+                          '--clock', 'real', '--cursor', 'scripted', '--counter', hex(COUNTER), '--update-ms', '10',
+                          '--seed', seed, '--reg-map', os.environ.get('CYC_REGMAP', 'popcap'), '--patches', 'tools/origrun/patches/alchemy.txt',
+                          '--timeout', '400'],
+                         stdout=log, stderr=subprocess.STDOUT)
+    h = threads = None
+    marks, flags, draws, boards, peaks = [], None, [], [], []
+    targets = [first] + mid_marks(first, count) + [first + count]
+    deadline = time.time() + 420
+    while p.poll() is None and time.time() < deadline:
+        time.sleep(0.01)
+        if h is None:
+            pid = find_process('AlchemyGame.exe', '\\byo-og\\alchcyc\\')
+            if pid:
+                h = k32.OpenProcess(QUERY_LIMITED | VM_READ | SYNCHRONIZE | TERMINATE, False, pid)
+                threads = Threads(pid)
+            continue
+        c = read32(h, COUNTER)
+        if c is None:
+            continue
+        if len(boards) < len(targets) and c >= targets[len(boards)]:
+            b = read32(h, BOARD)
+            boards.append([(read32(h, b + 0xE0C) + 1) if b else None, read32(h, b + 0xD18) if b else None])
+            marks.append(reading(h, threads))
+            marks[-1]['counter'] = c
+            draws.append(read32(h, DRAWS))
+            peaks.append(peak_private_mb(h))
+            if flags is None:
+                ddi = read32(h, APP + 0x33C)
+                flags = {'windowed': read32(h, APP + 0x30E) & 0xff, 'vsync': read32(h, APP + 0x5CB) & 0xff,
+                         'refresh_ms': read32(h, ddi + 0x78) if ddi else None}
+        if c >= last_input + 30:   # past the script's last input: stop it here
+            break
+    whole = process_cycles(h) if h else None
+    if h:
+        k32.TerminateProcess(h, 0)
+    try:
+        p.wait(30)
+    except subprocess.TimeoutExpired:
+        p.terminate()
+    log.close()
+    res = {'side': 'orig', 'exit': p.returncode, 'others_start': n0, 'others_end': others(),
+           'whole_run_gcycles': round(whole / 1e9, 3) if whole else None, 'flags': flags}
+    if len(marks) == len(targets):
+        res.update(stretch(marks[0], marks[-1], threads.name))
+        res['updates'] = marks[-1]['counter'] - marks[0]['counter']
+        res['updates_per_s'] = round(res['updates'] / res['seconds'], 1)
+        res['peak_private_mb'] = peaks[-1]
+        res['level_score'] = boards
+        if boards[0][0] is None:   # a click lost while the game was still loading (on the real clock the updates do not wait)
+            res['invalid'] = 'no board at the first mark: the original missed its first inputs'
+        # CYC_REF=<file>: the port's level_score list of the same script (pairs.sh writes it from its own first run). The
+        # original keeps up with the bot's script on a real clock for a while and then falls behind for good (an input lands
+        # an update early or late, as the counter is read from outside; the same on the machine's quiet and busy moments),
+        # and one that starts late is behind from the first mark. A run in which it kept up for fewer than CYC_MIN_MARKS
+        # marks (default 7: 3000 updates) is no comparison, and pairs.sh runs it again
+        ref = os.environ.get('CYC_REF')
+        if ref:
+            n = tracking(boards, json.load(open(ref)))
+            res['tracked_marks'] = n
+            if n < int(os.environ.get('CYC_MIN_MARKS', '7')):
+                res['invalid'] = 'the original kept up with the bot for %d marks only (the port: %d)' % (n, len(boards))
+        if None not in draws:
+            res['draws'] = draws[-1] - draws[0]
+            res['segments'] = segments(marks, [m['counter'] for m in marks], draws, threads.name)
+    if threads:
+        threads.close()
+    if h:
+        k32.CloseHandle(h)
+    return res
+
+
+if __name__ == '__main__':
+    if len(sys.argv) != 7 or sys.argv[1] not in ('port', 'orig'):
+        sys.exit(__doc__)
+    (port if sys.argv[1] == 'port' else orig)(sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[5]), int(sys.argv[6]))

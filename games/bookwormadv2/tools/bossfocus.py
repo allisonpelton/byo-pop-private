@@ -31,6 +31,7 @@ def main():
     ap.add_argument("--steps", type=int, default=3000)
     ap.add_argument("--stop-level", help="stop at the first map after a boss, once the level is this (the map shows the level just beaten: 4.1 for the start of chapter 2) without the focus checks, and keep the player's folder")
     ap.add_argument("--save", help="with --stop-level: copy the player's folder here (a profile for a comparison case)")
+    ap.add_argument("--victory-cmd", help="a test command sent once, the moment the boss's health reaches 0 (its answer is printed), instead of the focus checks: `set enemy 30` there crashed the port (2026-11-14)")
     ap.add_argument("--userdir", default=os.path.join(HERE, "identical", "profiles", "bosschapter1"))
     args = ap.parse_args()
     run = os.path.abspath(args.dir)
@@ -66,6 +67,15 @@ def main():
                 moment = "victory"
             elif seen_boss and screen == "map" and not st.get("curtain") and "map" not in done_after and st.get("playing") is not None:
                 moment = "map"
+            if moment == "victory" and args.victory_cmd:
+                try:
+                    answer = game.send(args.victory_cmd)
+                except pbm.Stop as e:
+                    answer = str(e)  # an ERROR answer is a refusal, which the game's answer to a command out of place is
+                game.send("wait 120")
+                print("bossfocus: victory-cmd", repr(args.victory_cmd), "->", answer, "| after:", game.send("state")[-1][:200])
+                results.append(("victory-cmd", "ok", None))
+                break
             if moment:
                 done_after[moment] = True
                 before = (st.get("song"), st.get("playing"))
@@ -99,6 +109,12 @@ def main():
             shutil.copytree(user, args.save)
         print("bossfocus: %s the map of %s (%d moves)" % ("reached" if stopped else "did not reach", args.stop_level, moves))
         return 0 if stopped else 1
+    if args.victory_cmd:
+        for r in results:
+            if r[0] == "stop":
+                print("bossfocus: stopped:", r[1])
+        print("bossfocus:", "PASS" if any(r[0] == "victory-cmd" for r in results) else "FAIL", "(%d moves)" % moves)
+        return 0 if any(r[0] == "victory-cmd" for r in results) else 1
     ok = True
     for screen, before, after in results:
         print("bossfocus:", screen, "before (song, playing)", before, "after the focus came back", after)

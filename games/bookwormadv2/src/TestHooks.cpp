@@ -12,6 +12,13 @@
 //                   board is hidden)
 //   nowords <0|1>  1: the soak spells no words (the rest of it goes on), so a battle is lost to the enemy; 0: it does again
 //   wordmax <n>    the words the soak and the word command spell are at most n letters (0: no limit), so the enemies hit harder than Lex's words
+//   fastkill <0|1>  1: the soak steps every 25 updates and spells a word as soon as the battle waits for one (no clicks
+//                   during an attack or while tiles fall), and the word command picks, among the longest words, the one the
+//                   scripts' TileEngine:GetFullWordValue scores highest, and Scramble when the board has neither a word of
+//                   9 letters or more nor one that kills the enemy at once (Lex drinks a red potion first at half his health
+//                   or less, when he holds one); the comparison cases use it to get through a chapter in fewer updates
+//   chapterend [<margin>]  quits <margin> updates (default 300) after the map shows again once a battle has been seen;
+//                   logs "script: chapterend <update>"
 //   battle <book> [<stage>]  from the main menu (it waits for it) starts a new adventure of the book (4, 5 or 6: the profile's
 //                   CurrentBook is set, AdventureComplete, InGame and the tile help off), goes on to the stage
 //                   (the enemy of the chapter, 1 for the first, one more than the enemies is the boss) once the board shows,
@@ -35,7 +42,7 @@
 //                   highscores (the main menu's items); a mini-game by its class (wordmaster, letterrip, linknspell,
 //                   wordup, mutawords, goldencoins: the mini-games' menu's buttons, opened first from the main menu)
 //   unlock all      the arena, the mini-games and the tome, as the end of a book unlocks them
-//   set health|enemy <n>   Lex's or the enemy's health (the scripts' _LexSetHealth, _EnemySetHealth)
+//   set health|enemy <n>   Lex's or the enemy's health (the scripts' _LexSetHealth, _EnemySetHealth); refused ("no enemy") once the enemy is dead (its victory overlay: the script revives it, and the site saw a crash there that did not repeat), and capped at its maximum by the script
 //   win             the battle's enemy dies (the scripts' _KillEnemy, only while the battle waits for a word)
 //   lose            Lex near death (the scripts' _lex_near_death), so that the enemy's next attack ends the battle
 //   move            MOVE {json} the move the drivers' bot makes next, or MOVE null (MoveForTests); it changes nothing
@@ -65,11 +72,13 @@
 #include "WidgetManager.h"
 #include "FadeButton.h"
 #include "GameApp.h"
+#include "ConversationPanel.h"
 #include "MusicInterface.h"
 #include "GameDialog.h"
 #include "GameText.h"
 #include "Lex.h"
 #include "SongPlayer.h"
+#include "LuaBind.h"
 #include "LuaSupport.h"
 #include "MainMenu.h"
 #include "MinigameMenu.h"
@@ -77,6 +86,7 @@
 #include "PopAnimManager.h"
 #include "Profile.h"
 #include "Tile.h"
+#include "TileEngine.h"
 #include "TreasureScreen.h"
 
 using namespace Sexy;
@@ -667,6 +677,29 @@ bool GameApp::HandleDriverCommand(const ScriptCommand& theCommand)
 			                   mProfile->GetInt("CurrentBook"), mProfile->GetInt("CurrentChapter"));
 		aJson += StrFormat(",\"curtain\":%s,\"dialogs\":%d,\"talk\":%s", aCurtainBusy ? "true" : "false",
 		                   (int)mDialogMap.size(), ShowingConversationPanel() ? "true" : "false");
+		if (mConversationPanel != nullptr && mConversationPanel->Active())
+			aJson += StrFormat(",\"talkstate\":%d,\"talkpanel\":%u,\"talkvis\":%d,\"talkdis\":%d,\"talkpages\":%d,\"talkpage\":%d,\"talkpagesn\":%d,\"talktyping\":%d",
+			                   mConversationPanel->mState, mConversationPanel->mCurPanel, (int)mConversationPanel->mVisible,
+			                   (int)mConversationPanel->mDisabled, (int)mConversationPanel->mPanels.size(),
+			                   mConversationPanel->mCurPanel < mConversationPanel->mPanels.size()
+			                       ? (int)mConversationPanel->mPanels[mConversationPanel->mCurPanel]->mPageIndex : -1,
+			                   mConversationPanel->mCurPanel < mConversationPanel->mPanels.size()
+			                       ? (int)mConversationPanel->mPanels[mConversationPanel->mCurPanel]->mPages.size() : -1,
+			                   mConversationPanel->mCurPanel < mConversationPanel->mPanels.size()
+			                       ? (int)mConversationPanel->mPanels[mConversationPanel->mCurPanel]->mTyping : -1);
+		if (mConversationPanel != nullptr && mConversationPanel->Active()) {
+			int aWX = 0, aWY = 0;
+			Widget* aTop = mWidgetManager->GetWidgetAt(400, 150, &aWX, &aWY);
+			if (mConversationPanel->mCurPanel < mConversationPanel->mPanels.size() &&
+			    mConversationPanel->mPanels[mConversationPanel->mCurPanel]->CurrentPage() != nullptr)
+				aJson += ",\"talktext\":" + JsonString(mConversationPanel->mPanels[mConversationPanel->mCurPanel]->CurrentPage()->mText.substr(0, 60));
+			aJson += StrFormat(",\"talktop\":\"%s\",\"talkmodal\":\"%s\",\"talkfocus\":\"%s\"",
+			                   aTop == nullptr ? "none" : (aTop == mConversationPanel ? "panel" : typeid(*aTop).name()),
+			                   mWidgetManager->mBaseModalWidget == nullptr
+			                       ? "none"
+			                       : (mWidgetManager->mBaseModalWidget == mConversationPanel ? "panel" : typeid(*mWidgetManager->mBaseModalWidget).name()),
+			                   mWidgetManager->mFocusWidget == nullptr ? "none" : typeid(*mWidgetManager->mFocusWidget).name());
+		}
 		if (mMusicInterface != nullptr) {
 			// the music: the last song the scripts asked for (PlaySong) and whether that or a module song (SongPlayer) plays
 			bool aPlaying = mMusicInterface->IsPlaying(mLastSongId);
@@ -806,7 +839,8 @@ bool GameApp::HandleDriverCommand(const ScriptCommand& theCommand)
 			if (aKey == "health")
 				aChunk = StrFormat("_LexSetHealth(%d) return ''", aValue);
 			else if (aKey == "enemy" || aKey == "enemyhealth")
-				aChunk = StrFormat("if gBattleEngine.mEnemyPtr == nil then return 'no enemy' end _EnemySetHealth(%d) return ''",
+				aChunk = StrFormat("if gBattleEngine.mEnemyPtr == nil or gBattleEngine.mEnemyPtr.mHealth <= 0 then return 'no enemy' end "
+				                   "_EnemySetHealth(%d) return ''",
 				                   aValue);
 			else
 				return Error("only health and enemy");
@@ -824,6 +858,33 @@ bool GameApp::HandleDriverCommand(const ScriptCommand& theCommand)
 
 static bool sSoakNoWords = false;  // the nowords command
 static int sSoakMaxWordLen = 0;    // the wordmax command: 0 is no limit
+static bool sFastKill = false;     // the fastkill command
+static int sWordBusyUntil = -1;    // fastkill: the update the last word's clicks and Attack are over
+static bool sSawBattle = false;    // chapterend: a battle's board has shown since the command
+static int sChapterEndAt = -1;     // chapterend: the update the map showed again, -1 before
+
+// fastkill: the damage the word on theTiles would do, by the scripts' own TileEngine:GetFullWordValue (word length,
+// letter bonuses, gems, treasures and Lex's offence bonus; not the enemy's defences); -1 when it cannot be had
+static double WordDamageForTests(const std::vector<Tile*>& theTiles)
+{
+	if (gTileEngine == nullptr || !gTileEngine->IsLinked())
+		return -1;
+	lua_State* L = LuaLib::gLuaSupport->L;
+	// the tiles' Lua objects (gLinkedObjectTable[tile]), as the battle engine's mSubmittedTileTables holds them
+	lua_getglobal(L, "gLinkedObjectTable");
+	int aLinked = lua_gettop(L);
+	lua_newtable(L);
+	int anIndex = 0;
+	for (Tile* aTile : theTiles) {
+		lua_pushint(L, anIndex++);
+		Tile::PushTile(aTile);
+		lua_gettable(L, aLinked);
+		lua_settable(L, -3);
+	}
+	lua_remove(L, aLinked);
+	LuaLib::LuaClassRet aResult = gTileEngine->CallLinkedMethod("GetFullWordValue", 1);
+	return aResult.count > 0 ? aResult.Number() : -1;
+}
 
 // The treasure room's next click, "x y" (empty when there is none): a companion first, then the treasures, one
 // of the unselected each time round (one that does not take the click does not block the others)
@@ -922,8 +983,27 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		int aTick = aSpace == std::string::npos ? 0 : atoi(theCommand.mArgs.c_str() + aSpace + 1);
 		if (mUpdateCount >= anEnd)
 			return true;
-		AddScriptCommand(mUpdateCount + 100, "soak", StrFormat("%d %d", anEnd, aTick + 1));
+		AddScriptCommand(mUpdateCount + (sFastKill ? 25 : 100), "soak", StrFormat("%d %d", anEnd, aTick + 1));
 		bool aWordTurn = aTick % 2 == 0;
+		if (sFastKill && mBoard != nullptr && mBoard->mVisible && !mBoard->mIsMiniGame && gBattleEngine != nullptr &&
+		    mDialogMap.empty() && !ShowingConversationPanel() && (mTreasureScreen == nullptr || !mTreasureScreen->mVisible)) {
+			// fastkill: a word as soon as the battle waits for one, and nothing else while the last one is still played
+			if (mUpdateCount < sWordBusyUntil)
+				return true;
+			bool aWaits = gBattleEngine->mState == BattleEngine::BE_IDLE && !BoardBusyForTests() &&
+			              !(gBattleEngine->LostTurn() && gBattleEngine->CallLinkedMethod("CanEndLostTurnRound", 0).Bool());
+			bool aTutorial = mProfile != nullptr && mProfile->GetBool("TutorialNeedsPower");
+			if (aWaits && !sSoakNoWords && !aTutorial) {
+				AddScriptCommand(mUpdateCount + 1, "word", "attack preferruby");
+				return true;
+			}
+			bool aLostTurn = gBattleEngine->mState == BattleEngine::BE_IDLE && gBattleEngine->LostTurn();
+			if (gBattleEngine->mState == BattleEngine::BE_PRE_ATTACK || gBattleEngine->mState == BattleEngine::BE_ATTACK ||
+			    gBattleEngine->mState == BattleEngine::BE_DEFEND ||
+			    (gBattleEngine->mState == BattleEngine::BE_IDLE && !aTutorial && !aLostTurn))
+				return true;  // an attack, a defence, tiles still falling: no clicks into it
+			aWordTurn = aWaits && aTutorial;  // the rest of the soak's steps: the potion tutorial, a lost turn, a click to go on
+		}
 #ifdef __EMSCRIPTEN__
 		if (aTick % 100 == 0)
 			SDL_Log("script: soak %d: heap %zu bytes", mUpdateCount, emscripten_get_heap_size());
@@ -1034,6 +1114,26 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	if (theCommand.mCommand == "wordmax") {
 		sSoakMaxWordLen = atoi(theCommand.mArgs.c_str());
+		return true;
+	}
+	if (theCommand.mCommand == "fastkill") {
+		sFastKill = atoi(theCommand.mArgs.c_str()) != 0;
+		return true;
+	}
+	if (theCommand.mCommand == "chapterend") {
+		// chapterend [<margin>]: checks every 25 updates; once the map shows again after a battle, logs
+		// "script: chapterend <update>" and quits <margin> updates later (default 300)
+		int aMargin = theCommand.mArgs.empty() ? 300 : atoi(theCommand.mArgs.c_str());
+		bool aBattle = mBoard != nullptr && mBoard->mVisible && !mBoard->mIsMiniGame;
+		sSawBattle = sSawBattle || aBattle;
+		if (sSawBattle && sChapterEndAt < 0 && ScreenForTests() == "map" && !IsCurtainMoving()) {
+			sChapterEndAt = mUpdateCount;
+			SDL_Log("script: chapterend %d", mUpdateCount);
+			AddScriptCommand(mUpdateCount + aMargin, "quit", "");
+			return true;
+		}
+		if (sChapterEndAt < 0)
+			AddScriptCommand(mUpdateCount + 25, "chapterend", StrFormat("%d", aMargin));
 		return true;
 	}
 	if (theCommand.mCommand == "pams") {
@@ -1170,16 +1270,67 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			aBestRubyOrder = anOrder;
 		}
 	}
-	if (!aBestRuby.empty()) {
+	// fastkill scores every word itself (a ruby's bonus is in the scripts' damage), so it takes no ruby word unasked
+	if (!aBestRuby.empty() && !(sFastKill && !mBoard->mIsMiniGame)) {
 		aBest = aBestRuby;
 		aBestOrder = aBestRubyOrder;
+	}
+	double aDamage = -1;
+	if (sFastKill && !mBoard->mIsMiniGame && !aWantRuby) {
+		// the word that does the most damage by the scripts' own reckoning, among the longest the tiles spell (a short word
+		// on gems or bonus letters can beat a longer plain one)
+		std::vector<std::pair<std::string, std::vector<Tile*>>> aCandidates;
+		for (const std::pair<const std::string, int>& aEntry : mLex->mWords) {
+			const std::string& aWord = aEntry.first;
+			if (aWord.size() + 2 < aBest.size() || aWord == anEgg ||
+			    (sSoakMaxWordLen > 0 && (int)aWord.size() > sSoakMaxWordLen) || !Spell(aWord, aTiles, anOrder))
+				continue;
+			aCandidates.emplace_back(aWord, anOrder);
+		}
+		for (const auto& aCandidate : aCandidates) {
+			double aValue = WordDamageForTests(aCandidate.second);
+			if (aValue > aDamage || (aValue == aDamage && aCandidate.first.size() > aBest.size())) {
+				aDamage = aValue;
+				aBest = aCandidate.first;
+				aBestOrder = aCandidate.second;
+			}
+		}
+		// Scramble for a better board unless this one has a word of 9 letters or more or a word that kills the enemy at
+		// once; a scramble gives the enemy its turn, and no enemy kills Lex in one hit, so at half his health or less he
+		// drinks a red potion first when he holds one (the user's rules, 2026-11-15)
+		std::string aHealths;
+		double aLex = 0, aLexMax = 0, anEnemy = 0;
+		if (RunLua("local e = gBattleEngine local p, n = e.mPlayerPtr, e.mEnemyPtr "
+		           "return p.mHealth .. ',' .. p.mMaxHealth .. ',' .. (n and n.mHealth or 0)", aHealths))
+			sscanf(aHealths.c_str(), "%lf,%lf,%lf", &aLex, &aLexMax, &anEnemy);
+		bool aGoodBoard = aBest.size() >= 9 || (anEnemy > 0 && aDamage >= anEnemy);
+		if (aLexMax > 0 && aLex <= aLexMax / 2 && gBattleEngine->CallLinkedMethod("PlayerHasHP", 0).Bool()) {
+			SDL_Log("script: word: red potion (Lex %g of %g, update %d)", aLex, aLexMax, mUpdateCount);
+			AddInput(mUpdateCount + 1, "click", "68 330");  // the red potion (as the first battle's tutorial clicks it)
+			sWordBusyUntil = mUpdateCount + 60;
+			return true;
+		}
+		auto aScramble = mBoard->mButtons.find(Board::BUTTON_SCRAMBLE);
+		if (!aTiles.empty() && (aBest.size() <= 3 || !aGoodBoard) && aScramble != mBoard->mButtons.end() && aScramble->second != nullptr &&
+		    aScramble->second->mVisible && !aScramble->second->mDisabled) {
+			Widget* aButton = aScramble->second;
+			std::string aCentre = StrFormat("%d %d", mBoard->mX + aButton->mX + aButton->mWidth / 2,
+			                                mBoard->mY + aButton->mY + aButton->mHeight / 2);
+			SDL_Log("script: word: scramble (best %s, damage %g, enemy %g, Lex %g of %g, update %d)", aBest.c_str(), aDamage,
+			        anEnemy, aLex, aLexMax, mUpdateCount);
+			AddInput(mUpdateCount + 1, "move", aCentre);
+			AddInput(mUpdateCount + 21, "click", aCentre);
+			sWordBusyUntil = mUpdateCount + 60;
+			return true;
+		}
 	}
 	if (aBest.empty()) {
 		SDL_Log("script: word: no word");
 		return true;
 	}
-	SDL_Log("script: word %s (update %d, engine %d)", aBest.c_str(), mUpdateCount,
-	        gBattleEngine != nullptr ? gBattleEngine->mState : -9);
+	SDL_Log("script: word %s (update %d, engine %d, damage %g)", aBest.c_str(), mUpdateCount,
+	        gBattleEngine != nullptr ? gBattleEngine->mState : -9, aDamage);
+	sWordBusyUntil = mUpdateCount + (int)aBestOrder.size() * 8 + 60;
 
 	int aWhen = mUpdateCount + 1;
 	for (Tile* aTile : aBestOrder) {
@@ -1214,12 +1365,27 @@ void GameApp::HandleCmdLineParam(const std::string& theParamName, const std::str
 			size_t aComma = theParamValue.find(',', aPos);
 			if (aComma == std::string::npos)
 				aComma = theParamValue.size();
-			if (aComma > aPos)
+			// "@<update>": the load ends so that the battle engine is made at that update (stored negated)
+			if (aComma > aPos && theParamValue[aPos] == '@')
+				mChapterLoadUpdates.push_back(-atoi(theParamValue.substr(aPos + 1, aComma - aPos - 1).c_str()));
+			else if (aComma > aPos)
 				mChapterLoadUpdates.push_back(atoi(theParamValue.substr(aPos, aComma - aPos).c_str()));
 			aPos = aComma + 1;
 		}
 	} else
 		LuaApp::HandleCmdLineParam(theParamName, theParamValue);
+}
+
+void GameApp::LogEngineState(int theState)
+{
+	if (mStateLog == nullptr)
+		return;
+	std::string aValue = StrFormat("%d", theState);
+	std::string& aLast = mStateLogLast["estate"];
+	if (aLast != aValue) {
+		aLast = aValue;
+		fprintf(mStateLog, "%d estate %s\n", mUpdateCount, aValue.c_str());
+	}
 }
 
 // -statelog: the values the identical-play comparison reads, written when one changes ("-" when there is none): the

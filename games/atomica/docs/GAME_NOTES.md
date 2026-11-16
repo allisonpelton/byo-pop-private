@@ -571,3 +571,71 @@ at every update, a sparse board; 2,000 searches costing 559 M cycles against 37 
 bot's games, and six alternating pairs over that stretch gave a median ratio of 0.993 with the pairs' ratios from 0.89 to 1.24. The
 exact method stays out of the port, which keeps the original's search in its shape. The only change in the repo is `PERF_ARGS` in
 `tools/profile/perf.py` (more game arguments for the port's profiled runs, such as `-fix=drawRandom`).
+
+## 16. The software screen at 1x and the original's palettes (2026-11-16)
+
+The task: the port's memory at or under the original's, its processor time at or under the original's, both at 1x in the original's own
+640x480 window. Both are met. The user's decision of 2026-11-16 (`docs/RULES.md`) is that software drawing is for 1x only and the GPU
+takes every larger window.
+
+**The original has no 3D.** `Atomica.exe` imports `DirectDrawCreate` and nothing of Direct3D, its `DDInterface` constructor (0x460300) makes
+only the DirectDraw object and the surfaces, and the exe holds no "Is3D" or "Test3D" strings; the port's `mDefault3D = false` agrees. So
+`AtomicaApp::CreateDDInterface` (`override`, native builds only) returns `SoftwareScreenDisplay::Create`, as `games/bigmoney` and
+`games/dynomite` do; the web build keeps `DDInterface`. In a window above 1x the display hands the screen to the GPU.
+
+**Where the last megabytes were: the palettes.** The loading function (0x406f90) calls `Palletize` (0x429670, `MemoryImage` virtual
+0x45f2e0) on 24 pictures it has just loaded: 21 sprites and the 3 sub-sprites of the big words. Palletize turns a picture of 256 colours or
+fewer into one byte a pixel with a table of 0x400 bytes and frees the 4-byte pixels; a picture of more colours stays as it is (here
+`atomicexplosion` and `gametypeimages`). The port never palletized, so every one of those pictures kept 4 bytes a pixel. The port's
+`MemoryImage::Palletize` (exact for 256 colours or fewer) does the same work, and the loading function now calls it at the same 24
+places through `Sprite::Palletize` (0x429670, `Support.cpp`). Read from the original's memory (`tools/profile/regions.py`, which lists its
+pictures by their vtable and pixel stores): the pixel stores of the first board fell from 46.4 MB (4-byte pixels 44.8, palettes 0.2, alpha
+caches 1.3) to 38.4 MB (34.2, 2.9, 1.3), and the peak of private bytes over a scripted menu-and-game run (`tools/profile/memrun.py`) from
+65.8 to 57.8 MB with the software screen. The same scenario shows 163 of 163 pictures identical with and without the palettes.
+
+**Pictures against the original** (`shots.py` on `p2-start2.txt`, run with every line 4,500 updates later because the original's title is
+not up at update 1,510 in the Sandbox and its click misses, as `IDENTICAL_PLAY.md` records for the colour-blind option's pictures). The first
+capture on 2026-11-15, without the later lines, had the original still on its title; its "all differing" report was that, not a
+rendering difference. With the later lines, the six pictures of the game's first moments differ from the original's by 0, 0, 0, 0, 1 and
+8 pixels in the software screen, none visible, and by 0, 0, 0, 441, 493 and 507 pixels (none visible) on the GPU
+path, whose blends round differently from the integer blits that the original and the software screen both do. So the software screen
+is the nearer to the original's pixels. Port against port (GPU against software screen), the 163 pictures of nine
+scenarios differ only faintly (at most about 25 levels). `tools/check.sh atomica` after merging main at e3737b4c: the frozen baseline
+identical (123 s).
+
+**Like for like, 2026-11-16.** The original paced at 16 ms (`PERF_PACED=16`, counted by +0x3ec, as in section 11) and the port in the
+original's window (`-windowscale=1`), turn about, six rounds, the whole loop on one performance core (`tools/pincore.py`), the last 2,000
+updates of `s2.txt` cut at update 4,400, the cycle counts of the process's threads (`tools/profile/softpairs.sh`, `quiet.py`: each run
+waits for a machine at most 60% busy and the busy share of the run is written beside it). Every run of the original played (43 to 46
+frames a second, 99.7 to 100.0 updates a second; none missed the click, and no origrun log says "no window in the first 20s", which
+BookWorm's original did under pincore). Two to eight other games and checks ran on the machine throughout, 35 to 100% busy. These are the
+first figures taken after the NVIDIA 582.78 driver (the GPU rows' driver thread, `nvwgf2um.dll`, cost less than before).
+
+| Stretch of 20 s, six rounds | Original, paced | Port, software screen, 1x |
+| --- | --- | --- |
+| Processor time, giga-cycles, in round order | 9.84, 8.91, 7.97, 8.67, 10.26, 8.19 | 8.92, 6.35, 6.80, 7.77, 7.42, 9.05 |
+| Median | 8.79 (21% of a core at 2.11 GHz) | 7.59 (18% of a core) |
+| The port over the original, pair by pair | 0.91, 0.71, 0.85, 0.90, 0.72, 1.11: under in five of six, median 0.88 | |
+| The machine's busy share in each run | 0.64, 0.70, 0.40, 0.54, 0.65, 0.54 | 0.65, 0.35, 0.36, 0.54, 0.61, 0.82 |
+| By thread | the game's thread 7.8 to 10.0 (median 8.55), `fmod.dll` 0.2 to 0.3 | the game's thread 6.3 to 9.0 (median 7.55), SDL's audio thread 0.12 to 0.20; no graphics driver thread |
+| Peak private bytes, whole run | 65.9 to 67.1 MB | 57.7 to 62.9 MB (57.7 to 57.8 in the last four runs; the first two, 60.6 and 62.9, are unexplained) |
+| Peak working set, whole run | 79.2 to 80.3 MB | 68.3 to 68.5 MB in the last four runs, 79.8 and 81.8 in the first two |
+
+The sixth pair is the one over: the port ran at 82% busy against the original's 54%, the pair that differs most in load, and the ratio
+of the five pairs within 0.7 busy of each other is 0.91, 0.71, 0.85, 0.90 and 0.72. A first loop of one round, taken before the gate on
+the machine's load existed (`build/perfruns/soft-round1`, kept only on this machine), had the port at 97 to 99% busy and gave 10.9 G for
+the software screen against 7.4 G for the original at 37%: a load effect, the GPU build at 1x gave 10.0 G in the same round at the same
+load, and the figures are not used. What the software screen costs and saves: its game thread is about 1.2 G above the GPU build's
+(medians 7.55 and 6.37 G), and it has no driver thread (1.8 to 2.4 G); over the six rounds the GPU build at 1x took a median 8.79 G
+(game 5.9 to 7.6 G, driver 1.8 to 2.4 G, 108 to 113 MB peak private bytes) against 7.59 G and 57.7 to 62.9 MB.
+
+For the default window (2x, GPU path, this build): median 8.54 G (game 5.4 to 6.9 G, driver 2.0 to 2.6 G) and 113 to 118 MB peak private
+bytes, in six runs at 44 to 69% busy; the figure of section 11 for the GPU at 2x (163 to 183 MB) was taken with the earlier driver.
+Nothing is changed at 2x, and no `SOFTSCREEN_SCALED=1` runs were made.
+
+**To repeat.** `tools/origrun/build.sh`, then from the worktree root, in the background:
+`CONFIGS="soft1x gpu1x soft2x" python -I tools/pincore.py -- bash games/atomica/tools/profile/softpairs.sh build/perfruns/soft2 6`
+(`gpu1x` needs the trunk's build kept as `build/native/atomica-before.exe`; `QUIET_MAX`, `ROOM_LIMIT` and `WAIT_S` set the waits). The
+memory run is `python -I games/atomica/tools/profile/memrun.py`; the original's pictures by allocation, `regions.py`.
+
+**Oddities.** None new. The original's Sandbox capture needing later script lines is the one `IDENTICAL_PLAY.md` already records.

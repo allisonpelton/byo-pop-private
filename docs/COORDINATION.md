@@ -35,7 +35,8 @@ holds the rules every session follows; this file does not repeat them.
 - **How many at once:** no fixed number since 2026-11-15 (the user: "Get rid of the time restrictions on concurrent
   sessions ... Do what you want forever now"), replacing the limit of 8 set on 2026-11-11 after "Too many sessions,
   some crashed. Set a comfortable limit". To keep sessions from crashing, the coordinator still checks the machine
-  before waking one: under 6 GB available or over 80% of the commit limit means waiting.
+  before waking one: under 6 GB available or over 80% of the commit limit means waiting, and so does less than 8 GB free on C:, since a
+  working worktree grows to about 3 GB ("Disk" in CLAUDE.md).
   The limit of 10 game processes (CLAUDE.md) holds for all of them, so more sessions mean longer waits for a game slot.
   A session past the limit waits idle on a background wait for its own file (`until [ -f <main
   checkout>/build/slots/<name>.go ]; do sleep 60; done; cat` the file), which the coordinator writes with any news
@@ -93,10 +94,11 @@ holds the rules every session follows; this file does not repeat them.
   before new ones start"). Venice, Heavy Weapon and Hammer Heads count as current games. Before that the gate was the
   readability pass ("Move up readability passes to come before additional decomps", 2026-11-08). Then the easier ones side by side
   (by `docs/POPCAP_GAMES_SURVEY.md` section 2: Venice, Heavy Weapon, Hammer Heads, then Pizza Frenzy with Iggle Pop and
-  Feeding Frenzy after it), and the harder ones from Chuzzle two at a time, in the survey's order (Feeding Frenzy 2,
+  Feeding Frenzy after it), and the harder ones from Chuzzle on, in the survey's order (Feeding Frenzy 2,
   Peggle Deluxe and Peggle Nights, Bejeweled 3, Banana Bugs, Gyromancer, Zuma's Revenge, Talismania after Feeding
-  Frenzy 2), each taken all the way through. The first pair is watched for trouble: "When we get to it, see if running
-  two-by-two causes issues. If not, continue with two". A game that builds on another's engine waits for that game; a
+  Frenzy 2), each taken all the way through. They no longer go two at a time (the user, 2026-11-16: "I don't think the two-at-a-time limit makes sense for the remaining decomps, actually. Lift it and park the remainder of the sessions now so they can be resumed as slots free"): each has a
+  session from that day, parked on its slot file ("How many at once" above), and the coordinator wakes them in this
+  order as the machine has room. A game that builds on another's engine waits for that game; a
   slot the next game cannot use yet goes to the cheapest remaining one. Within a step, the lowest-effort games go first
   ("Start with lowest effort", 2026-11-03). The user has made exceptions to the first sentence. Venice started early,
   on 2026-11-12, to test the rule below. Later that day, after Venice's port and both phases of identical play came in
@@ -107,7 +109,10 @@ holds the rules every session follows; this file does not repeat them.
   On 2026-11-15 the user asked for one new game this week, while the current ones finish: "I'd at least like one new
   game brought up to playable this week, though." Pizza Frenzy, first in the order, started that evening, aiming at a
   playable port (its first playable merge) within the week and then going on through every phase but modding. It
-  moves Word Harmony's engine to `engines/sprout/`. Iggle Pop and Feeding Frenzy still wait for the rule above.
+  moves Word Harmony's engine to `engines/sprout/`. Iggle Pop and Feeding Frenzy waited for the rule above until 2026-11-16, when every game but Pizza Frenzy and Bookworm
+  Adventures Volume 2 was done and the user started both side by side: "Start them now". Both build on Pizza Frenzy's
+  engine in `engines/sprout/` while Pizza Frenzy is still in its looks phase, so each merges its engine additions early
+  and merges main often.
 - **A new port writes to the standards from its first draft (the user, 2026-11-12: "Yes, add it").** Of what the
   eleven smaller games spent after their first playable merge (about $2,200 at Opus prices), about half went on the
   checks against the original (identical play, screens and sound, coverage, the Collection), a fifth on performance and
@@ -167,6 +172,10 @@ holds the rules every session follows; this file does not repeat them.
     port's music share of its mixer back to the second (fw-memory, 2026-11-15). Counting audiodg would matter only with
     real devices on both sides (`origrun --sound real`, muted, against the port on a real device); measure one such pair
     before it becomes a rule.
+  - **Level counts as at (the user, 2026-11-16: "Accept as level"):** a port whose sets of pairs scatter around the
+    original's figure within the machine's noise meets the target (Alchemy at 0.93 to 1.11 in three sets, Bejeweled at a
+    paired median of 0.955 with 0.90 to 1.02 around it). Report every set and its spread rather than one ratio. A
+    clear gap above, in sets that agree, still needs a cut.
   - **Cycle counts, not GetProcessTimes or GetThreadTimes.** Count processor time as the threads' cycle counts
     (QueryThreadCycleTime, summed over the process's threads; `games/tiptop/tools/perf/cpuprof2.py` at seconds 0
     reads them without disturbing the run). Windows charges process and thread times by sampling at the 15.6 ms clock
@@ -218,14 +227,19 @@ holds the rules every session follows; this file does not repeat them.
   being let off.
   Shared costs are found once and fixed in the framework for every game; the list below holds them.
 - **Shared costs waiting for a fix:**
-  - Loading GIFs: decoded to 32 bits and quantized back to 8 (`Sexy::Quantize8Bit`, a binary search a pixel; a cache
-    of the last colour gives the identical table), about a quarter of a load's processor time, 0.15 to 0.2 s of a load
-    in any game with GIFs (Typer Shark, AstroPop, GAME_NOTES section 11), measured before `platform/GIFDecoder.cpp`
-    halved the decoding (1572aba0, 2026-11-14). The quantizing is left: a GIF's own indices, with its colours
-    put in the order Quantize8Bit would give them, make the same table without the 32-bit pass. Converting the GIFs to
-    another format would not help: lossless PNG or WebP of the eight games with the most GIFs is 30.6 or 23.9 MB
-    against 36.7, and neither decodes faster than the GIF decoder now (2026-11-15). With the JPEG and
-    Vorbis decoders and Platform::DecodeImage, the load's decoding is about 12% of Bejeweled 2's 3D run without waiting.
+  - Loading GIFs (closed 2026-11-16, not merged): decoded to 32 bits and quantized back to 8 (`Sexy::Quantize8Bit`, a
+    binary search a pixel), once about a quarter of a load's processor time in the games with GIFs (Typer Shark,
+    AstroPop). Since `platform/GIFDecoder.cpp` halved the decoding (1572aba0, 2026-11-14), every game with GIFs loads at
+    or below its original's time (Typer Shark 0.72 to 0.82 s against 0.76 to 1.28; AstroPop 1.0 to 1.3 against 1.5).
+    fw-memory then built the path from a GIF's own indices, in the order Quantize8Bit gives them (62a6450e on
+    `claude/fw-memory-5fbaa7`, reverted there; its measurements are in that commit's `docs/MEMORY.md`, item 8): the
+    same table for all 11,293 staged GIFs, but a saving of 45 to 70 ms a load in Typer Shark only (AstroPop 14 ms
+    offline, Mummy Maze nothing at its loading), for about 390 lines in the picture loader every game runs through, a
+    second path every later change to it must keep identical, and a 5% slower decode of GIFs never palettized. Not
+    merged: the games already meet their originals' load times. Converting the GIFs to another format would not help
+    either: lossless PNG or WebP of the eight games with the most GIFs is 30.6 or 23.9 MB against 36.7, and neither
+    decodes faster than the GIF decoder now (2026-11-15). With the JPEG and Vorbis decoders and Platform::DecodeImage,
+    the load's decoding is about 12% of Bejeweled 2's 3D run without waiting.
   - imagehlp.dll, 2.4 to 7.6% of a run's cycles, from a call site not yet found (Typer Shark, AstroPop, Bejeweled 2).
   - The 2D path on SDL's software renderer (`DDInterface.cpp`, `mIs3D` false, about lines 784 to 833): every sprite an
     SDL_RenderCopyEx or SDL_RenderGeometry blended in software, 15 to 25 ms a drawn frame in Bejeweled 2's 2D mode (81%

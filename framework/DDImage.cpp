@@ -231,6 +231,33 @@ void DDImage::FillRect(const Rect& theRect, const Color& theColor, int theDrawMo
 	}
 
 	NoteScreenDrawn(theRect);
+
+	// the screen drawn on the processor (SoftwareScreenDisplay, SurfaceDisplay) fills as the original's DDImage::FillRect does on
+	// a surface without alpha or transparency: an additive fill is AdditiveFillRect (Alchemy's 0x43afd0), each colour channel the
+	// destination's plus the fill's, to 255, the fill's alpha unused. MemoryImage::FillRect has no additive fill (the original's
+	// ignores the mode too), so a hint or flash drawn this way came out as an opaque bar.
+	if (mIsScreen && (theDrawMode == Graphics::DRAWMODE_ADDITIVE) && !mHasAlpha && !mHasTrans)
+	{
+		Rect aRect = theRect.Intersection(Rect(0, 0, mWidth, mHeight));
+		ulong* aBits = GetBits();
+		if ((aBits == NULL) || (aRect.mWidth <= 0) || (aRect.mHeight <= 0))
+			return;
+		for (int aRow = aRect.mY; aRow < aRect.mY + aRect.mHeight; aRow++)
+		{
+			ulong* aDestPixels = &aBits[aRow * mWidth + aRect.mX];
+			for (int i = 0; i < aRect.mWidth; i++, aDestPixels++)
+			{
+				ulong aDest = *aDestPixels;
+				int aRed = std::min(255, (int) ((aDest >> 16) & 0xFF) + theColor.mRed);
+				int aGreen = std::min(255, (int) ((aDest >> 8) & 0xFF) + theColor.mGreen);
+				int aBlue = std::min(255, (int) (aDest & 0xFF) + theColor.mBlue);
+				*aDestPixels = (aDest & 0xFF000000) | (aRed << 16) | (aGreen << 8) | aBlue;
+			}
+		}
+		BitsChanged();
+		return;
+	}
+
 	MemoryImage::FillRect(theRect, theColor, theDrawMode);
 }
 

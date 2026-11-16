@@ -3,7 +3,7 @@
 
 // The prize blimp (0x1b8 bytes, constructor 0x431330, vtable 0x4fc910): the vehicle that ends a level in which every
 // pizza ordered was delivered. It flies across the city's sky over its shadow, and drops three balloon tips (Tip.h)
-// each frame while it is over the middle of the screen, until it has flown off the other side.
+// every second or so while it is over the middle of the screen, until it has flown off the other side.
 //
 // Left out: the dot matrix sign that scrolls under the blimp (0x430b90, with its image made in 0x430d50 from the font
 // "dotMatrix.xml").

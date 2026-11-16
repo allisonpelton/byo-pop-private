@@ -40,7 +40,7 @@ def main():
         while moves < args.steps:
             answers = game.send(*(batch + ["state", "move"]))
             st = json.loads(answers[-2][len("STATE "):])
-            if st.get("screen") == "map" and not st.get("curtain") and st.get("level") not in saved:
+            if st.get("screen") == "map" and not st.get("curtain") and not st.get("talk") and st.get("level") not in saved:
                 game.send("wait 200")
                 name = "after-" + str(st.get("level"))
                 dest = os.path.join(out, name)

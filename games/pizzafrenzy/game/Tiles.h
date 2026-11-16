@@ -172,8 +172,8 @@ public:
 	void clearVehicles();
 	// slot 0x1a0: 0x41c560: the van is kept, put on the map at the road cell and on the screen
 	void addVehicle(const engine::IntPair& theCell, Van* theVan);
-	// slot 0x1a8: 0x41c460: the van is let go of and told to leave
-	void removeVehicle(Van* theVan);
+	// slot 0x1a8: 0x41c460: the van is let go of and told to leave (a vehicle has finished its trip)
+	virtual void removeVehicle(Van* theVan);
 
 	engine::IntPair mParkingSpot;  // +0x198: the cell a van stops at
 
@@ -240,6 +240,8 @@ public:
 	bool isVanOut() const;
 	// slot 0x1ac: 0x41cf50: a van goes from the kitchen to the house, and the house and the kitchen's popup are served
 	void sendVan(CustomerTile* theTile);
+	// slot 0x1a8: 0x492310 (nothing): the kitchen keeps its van when the trip is over, to send it again
+	void removeVehicle(Van* theVan) override {}
 
 	std::string mVanType;          // +0x1b8: "PizzaVan"
 

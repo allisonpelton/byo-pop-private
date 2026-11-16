@@ -116,8 +116,22 @@ public:
 	std::shared_ptr<SoundData> LoadStreamedSoundData(const std::vector<uint8_t>& theFile, const std::string& theName);
 
 	// --- voices (sound effects) ---
-	// Returns a voice handle (>0) or 0 if no voice is free.
-	int StartVoice(const std::shared_ptr<SoundData>& theData, float theGainL, float theGainR, double thePitch, bool theLoop);
+	// Returns a voice handle (>0) or 0 if no voice is free. theStartFrame: the frame of the sound it starts at (a DirectSound
+	// buffer played on from where it was stopped), kept within the sound; a streamed sound starts at its first frame whatever
+	// it says, since its decoder only goes on from the file's start. A handle names one start of one voice: once that voice
+	// has ended or been stopped, the handle reaches nothing, even after its slot plays another sound.
+	int StartVoice(const std::shared_ptr<SoundData>& theData, float theGainL, float theGainR, double thePitch, bool theLoop,
+		double theStartFrame = 0.0);
+	// Where a playing voice is in its sound, in its frames (a fraction between two), as far as it has been mixed (natively up
+	// to a device buffer ahead of what is heard), or moved on the game's clock (SetGameClocked); -1 for a voice that has
+	// ended, was stopped, or is not known. DirectSound's play cursor, saved by a game that stops a buffer and plays it on later.
+	double GetVoicePosition(int theVoice);
+	// Moves a playing voice to theFrame of its sound (kept within it), from the next frame mixed; nothing for a streamed
+	// voice, as theStartFrame above.
+	void SetVoicePosition(int theVoice, double theFrame);
+	// From now on, a playing voice loops at its sound's end, or stops there (DirectSound's Play on a buffer that is playing
+	// switches its looping and goes on from where it is).
+	void SetVoiceLoop(int theVoice, bool theLoop);
 	void SetVoiceGain(int theVoice, float theGainL, float theGainR);
 	void SetVoicePitch(int theVoice, double thePitch);
 	void StopVoice(int theVoice);
@@ -140,6 +154,14 @@ public:
 	// Returns a song handle (>0) or 0 on failure. A mod remap of theGamePath (VFS::GetRemap) can set a
 	// start order inside a multi-song module, a stream loop point and a per-track gain.
 	int LoadSong(const std::string& theGamePath);
+	// A song played from Ogg Vorbis files in turn, the first again after the last, as one track joined from them plays
+	// (Rocket Mania's music, which the original joins into a WAV at load): theGamePaths in their order, a file named
+	// again played again, each file kept once and decoded as it plays, frame for frame as LoadSoundData decodes it, so the
+	// song's frames are the joined WAV's to the bit (16-bit samples at the first file's rate and channels, as the WAV
+	// stores them). Returns 0, so that the game joins them itself, when a file is missing, is not an Ogg stb_vorbis opens,
+	// does not state its length, or differs from the first in rate or channels, and with BYOPOP_STREAM_MUSIC=0. A mod's
+	// file for the joined track is the game's to look for first, and to load with LoadSong. Off unless a game calls it.
+	int LoadSongSegments(const std::vector<std::string>& theGamePaths);
 	// port: with this on, a song whose player a registered format makes (MO3 via libopenmpt, about 4.5 MB a player whatever
 	// the module) holds it only while it can still be heard: StopSong gives the player back to a pool shared by the songs
 	// loaded from the same file, and the next PlaySong takes one from it (or makes one). The players alive are then those

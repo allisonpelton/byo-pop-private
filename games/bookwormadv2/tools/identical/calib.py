@@ -29,8 +29,18 @@ for l in open(port):
     if len(a) == 3 and a[1] == 'chload' and a[2] == '1': starts.append(int(a[0]))
 s = first - (rand32 - loaded) if first is not None and rand32 is not None and first < 3000 else -1
 c = []
+# a battle's load is given as "@<update>", the update the original made its battle engine (its watch's first reading of the
+# new engine), so the port's engine is made there however long the port's own startup took (2026-11-16: with the startup
+# load unmeasured, -1, a length from the port's load start missed by up to 30,000 updates); the loads after the last engine (a mini-game's) are
+# measured from their bursts as before
+pending = sorted(made)
 for b in starts:
     e = next((u for u in jumps if u >= b), None)
+    # (the original's next engine; its burst may come long before it when the original's load ran slowly)
+    m = pending[0] if pending else None
+    if m is not None:
+        pending = [u for u in pending if u > m]
+        c.append('@%d' % m); continue
     if e is None: c.append('1'); continue
     # the loading screen draws a letter every 50 updates while the loader works; when the screen stays on well after the last one
     # (a mini-game's), the loader ended at that letter and the port's own steps after it make up the rest

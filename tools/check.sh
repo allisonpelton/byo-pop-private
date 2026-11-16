@@ -26,7 +26,8 @@
 #                songpostest on Bejeweled's, BookWorm's and Bejeweled Twist's modules, with the MO3s' tempo and
 #                channel volumes (skipped without their assets); spectrumtest
 #                (the music player's FFT against BASS 2.3's on the same tones); and soundtest (sounds kept as 16-bit at
-#                their own rate, voices against the old stereo-float pipeline); and shotdiff's selftest (tools/shotdiff:
+#                their own rate, voices against the old stereo-float pipeline; with -segments, Rocket Mania's two pieces
+#                streamed from their segments against the WAV joined from them, skipped without its assets); and shotdiff's selftest (tools/shotdiff:
 #                the screenshot comparison on synthetic pictures, its pages and its marks server); and geomtest
 #                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table); and wraptest
 #                (framework/TriangleWrap: DrawTrianglesTex's texture wrap, triangles cut at whole-number u and v); and stretchcal
@@ -763,7 +764,12 @@ suite_unit() {
 				music/bejeweledtwist24.mo3 >> "$1.sp" 2>&1 || st=1
 			n=5
 		fi
-		f="songpos: $(grep -c ', start at 2 ok' "$1.sp") of $n songs ok, tempo: $(grep -c 'silent channels ok' "$1.sp") ok"
+		# a song is ok when every check of it passed (songpostest's own count, "songpos: N of M songs ok", one line a run);
+		# a check that failed is named, with its song
+		f="songpos: $(grep -oE '^songpos: [0-9]+ of [0-9]+ songs ok' "$1.sp" | awk '{s += $2} END {print s + 0}') of $n songs ok"
+		f="$f, tempo: $(grep -c 'silent channels ok' "$1.sp") ok, pool: $(grep -cE '^pool: .* ok$' "$1.sp") ok"
+		bad="$(grep -E '^(songpos|tempo|pool): [^0-9]' "$1.sp" | grep -v ' ok$' | sed -E 's/^(songpos|tempo|pool): ([^:]*):.*/\1 \2/' | sort -u | paste -sd ';' -)"
+		[ -n "$bad" ] && f="$f; FAILED: $bad"
 	else
 		echo "$f" > "$1.sp"
 	fi
@@ -773,6 +779,15 @@ suite_unit() {
 	# Mixer's sounds: 16-bit at their own rate, resampled by the voices; needs no game files
 	(cd build/native && timeout 60 ./soundtest.exe) > "$1.snd" 2>&1 || st=1
 	h="$(lastof "$1.snd" 'sound: [0-9]+ checks, [0-9]+ failed')"
+	# Mixer::LoadSongSegments: Rocket Mania's two pieces streamed from their segments against the WAV the game joins from them,
+	# to the bit, where they are staged
+	if [ -d assets/rocketmania/music ]; then
+		(cd build/native && timeout 120 ./soundtest.exe -segments ../../assets/rocketmania "music/Tubetricks In-Game One v02" I \
+			"music/Tubetricks Menu One v02" C) > "$1.seg" 2>&1 || st=1
+		h="$h, $(lastof "$1.seg" 'sound segments: [0-9]+ checks, [0-9]+ failed')"
+	else
+		h="$h, segments skipped (no assets/rocketmania)"
+	fi
 	# tools/shotdiff: the screenshot comparison on synthetic pictures (statuses, boxes, alignment, pages, the marks server)
 	timeout 120 python tools/shotdiff/selftest.py > "$1.sdf" 2>&1 || st=1
 	i="$(lastof "$1.sdf" 'shotdiff: [0-9]+ checks, [0-9]+ failed')"
@@ -2608,9 +2623,16 @@ run_batch() {
 
 # build-web runs in the background beside the suites after it (its links take most of a merge check otherwise); a
 # suite that reads build/web (needs_web) waits for it first, and so does the end
-WEB_PID="" WEB_ST=""
+# The background build-web also writes its status to a file: with --jobs 1 the game suites run in this shell, and a bare
+# `wait` inside one (bonnies, venice, hammerheads, heavyweapon) reaps the build-web too, after which `wait "$WEB_PID"`
+# finds no such child (fw-memory, 2026-11-16: a passed build-web counted as a failure)
+WEB_PID="" WEB_ST="" WEB_STATUS="$OUT/build-web.status"
 web_wait() {
-	if [ -n "$WEB_PID" ]; then wait "$WEB_PID"; WEB_ST=$?; WEB_PID=""; fi
+	if [ -n "$WEB_PID" ]; then
+		wait "$WEB_PID" 2>/dev/null
+		WEB_ST=$(cat "$WEB_STATUS" 2>/dev/null); [ -n "$WEB_ST" ] || WEB_ST=1
+		WEB_PID=""
+	fi
 	if [ -n "$WEB_ST" ]; then count "$WEB_ST"; WEB_ST=""; fi
 }
 BATCH=()
@@ -2618,7 +2640,11 @@ for s in "${SUITES[@]}"; do
 	if [ "$JOBS" -gt 1 ] && is_game_suite "${s%%:*}"; then BATCH+=("$s"); continue; fi
 	if [ ${#BATCH[@]} -gt 0 ]; then run_batch "${BATCH[@]}"; BATCH=(); fi
 	if needs_web "${s%%:*}"; then web_wait; fi
-	if [ "${s%%:*}" = build-web ]; then run_suite "$s" & WEB_PID=$!; continue; fi
+	if [ "${s%%:*}" = build-web ]; then
+		rm -f "$WEB_STATUS"
+		{ run_suite "$s"; st=$?; echo "$st" > "$WEB_STATUS"; exit "$st"; } & WEB_PID=$!
+		continue
+	fi
 	run_suite "$s"; count $?
 done
 if [ ${#BATCH[@]} -gt 0 ]; then run_batch "${BATCH[@]}"; fi

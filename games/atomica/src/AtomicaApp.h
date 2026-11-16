@@ -240,6 +240,10 @@ public:
 	virtual ~AtomicaApp();
 
 	virtual void		Init() override;
+#ifndef __EMSCRIPTEN__
+	// port: the screen drawn in software, as the original's DirectDraw screen (framework/SoftwareScreenDisplay.h)
+	virtual DDInterface*	CreateDDInterface() override;
+#endif
 	virtual void		LoadingThreadProc() override;
 	virtual void		LoadingThreadCompleted() override;
 	virtual void		WriteToRegistry() override;

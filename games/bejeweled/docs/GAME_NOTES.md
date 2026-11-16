@@ -2995,3 +2995,81 @@ same trace and the same 32 screenshots on either staging. The worktree is restag
 None: `LITE_MOD.md` has what was looked at. The board's whole logic costs about 1 us an update (81 ms in a Timed game of
 84,425 updates, 14 minutes of play), its three scans (`FindMove`, `HasSet`, `NewBoard`) under 2 ms of that, so no change to
 them can be measured; two of the faster methods give the same result anyway, and the third would only move the hint.
+
+## 25. The software screen at 1x (2026-11-15)
+
+**What changed.** Natively the port now draws its screen in software, as the original's DirectDraw screen, and the window
+shows it through its own surface: `WinDMApp::CreateDDInterface` (under `#ifndef __EMSCRIPTEN__`) returns
+`SoftwareScreenDisplay::Create`, so there is no Direct3D device and no renderer (the display line reads "client 640x480
+px, logical 640x480, render scale 1, windowed, renderer none"). The web build keeps DDInterface. The constructor also sets
+`SexyAppBase::mDefault3D` false, so the display keeps the 2D flags (fast stretch, no linear blend) on the GPU path as
+well. The software screen is for 1x only (the user, 2026-11-15, `docs/RULES.md`): the default 2x window and everything
+above it still go to the GPU.
+
+**Why 2D.** The original starts in 2D. In the export the SexyAppBase constructor (0x43eaa0) stores zero in mAutoEnable3D
+(+0x5bb) and mTest3D (+0x5bc) and nothing else writes either; the DDInterface constructor (0x4013f0) leaves mIs3D at 0;
+MakeWindow (0x44b2b0) takes the registry's `Is3D` into mIs3D only when that key exists, and the registry's 3D test
+(`Test3D`) runs only for mTest3D. The Options dialog has no 3D box. A player's machine therefore draws the original with
+DirectDraw, and the port's GPU start was never what the original did.
+
+**Checks.** `tools/check.sh build` and `verify` (54 checks, the wasm verifier built first), `modmenu` (0 failed) and
+Bejeweled's LiveSplit tests (53 scenario replays, one job at a time) pass on the branch. The oracle at the default 2x window
+(where the window goes to the GPU, so the shots stay the baselines'), three ways (default, forced variant, no variants): 443,
+443 and 293 cases, 0 differences, 9 notes (the options dialog's known "link taken out" box); compare.py now leaves the
+display's own log lines ("display: client ...", `SurfaceDisplay:`, `SoftwareScreenDisplay:`) out of the stderr comparison,
+since a display that is a different class prints different ones. The oracle again with `-windowscale=1` on every candidate
+run (the software screen, `--candidate-args`, default variant): the logic is identical in all 443 cases (stdout, hashes,
+user files), and the 408 differences are all screenshots, 162 pairs against the GPU baseline's, each off by the software
+blitters' blend rounding (the median pair's largest channel step is 3 of 255). Judged with
+`tools/shotdiff` (`--run sc1x-*`, tolerance 8, shift 8, 34 case folders): 153 of the 162 match, 6 differ faintly (the mods
+cases' shots, largest step 64: the mods' own art, drawn through the software path), and 3 differ
+by the options dialog's box (259,217)-(556,280), which is the "link taken out" difference every build has against the
+baseline and which compare.py already accepts. None is a layout, text, colour or sprite difference; the screen at 1x is
+the game's, drawn by the original's own kind of blitters.
+
+**Memory and processor time like for like.** `tools/profile/softpairs.sh` runs the original and the port turn about, one
+game at a time, each on a performance core of its own (`tools/pincore.py`), over `perfscript.py`'s minute of play (Play at
+15 s, 40 swaps from 17 s to 75.5 s, quit at 90 s), real time, windowed. The original is the carved exe under origrun on the
+wall clock with its silent stand-in; the port runs under rundesk from a fresh user folder with no `-commands` channel and
+no per-update log, at `-windowscale=1` (640x480, the original's window) except where the table says 2x. `perfcyc.py`
+samples each from outside every 50 ms: the private bytes, and the processor time as the process's cycle count
+(`QueryProcessCycleTime`, every thread together, as `docs/COORDINATION.md` asks) in the window 20 s to 80 s of the
+process's life. The first five rounds ran the original, the software screen, main's build from before the opt-in (the
+GPU path at 1x) and this build at the default 2x window; ten more rounds ran the original and the software screen with
+the order swapped in every other round. The original was checked for a late window (origrun's "no window in the first
+20s", which loses the script's first click under pincore): none.
+
+| | Peak private bytes, run (MB) | Window cycles (M a second) | Runs |
+|---|---|---|---|
+| The original | 34.5 (34.3 to 34.7; 48.4 once, after the window) | 123 (101 to 173) | 15 |
+| The port, software screen, 1x | 22.5 (22.4 to 25.5) | 126 (90 to 189) | 15 |
+| The port before the opt-in, GPU, 1x | 51.9 (51.8 to 54.4) | 145 (130 to 188) | 5 |
+| The port, GPU, default 2x window | 54.8 (53.8 to 55.9) | 154 (87 to 193) | 5 |
+
+The memory is the figure the original's 36 MB came from (the same play, peak private bytes over the run; 34.5 MB here, 36
+on 2026-11-09). The port on the software screen peaks 12 MB under the original and 29 MB under its GPU path, and its 22.5
+to 25.5 MB is the survey's 22.5 to 25.7. The 1 to 3 MB above its usual 22.5 MB in three of its fifteen runs are the extra
+Windows adds to about one run in five (`docs/MEMORY.md`, "Open").
+
+The processor time is a tie that this machine cannot split. The machine ran five to nine game processes from other
+sessions throughout, and a run of one configuration moved from 100 to 173 M cycles a second (the original) and from 90 to
+189 (the software screen), more than any difference between them: cycle counts rise with the work on the other hardware
+thread of the core. The pairs of one round, port over original: median 0.955, from 0.75 to 1.31, the port lower in ten of
+fifteen; a bootstrap of the median ratio gives 0.90 to 1.02 (95 %). The medians of the fifteen runs each are 125.5 against
+123.3, a ratio of 1.02 with a bootstrap range of 0.81 to 1.23. A noise that only adds cycles favours the lower end, where
+the port is under: its lowest quarter is 102 against the original's 111, its lowest run 90 against 101. So the port is at
+the original's processor time, and not shown above it, by the target's rule of medians of pairs; a quieter machine is
+needed to say more. The GPU path at 1x, five rounds beside the original's of the same rounds, is at 1.01 of the original's
+(median of the pairs) and the software screen at 1.05 of the same five: the software screen costs what the GPU path does
+at 1x, as `docs/MEMORY.md` found for Big Money and Dynomite. At the default 2x window on the GPU the median of five pairs is
+1.07 (0.79 to 1.40).
+
+**Where the port's cycles go on the software screen** (`tools/profile/splitrun.sh`, `-cyclesplit`, updates 2000 to 8000,
+three runs): 1.06, 1.07 and 1.34 M cycles an update (106 to 134 M a second, with the counting's 1.3 %), of which drawing is
+60 %, the present (the copy into the window's surface and the wait for the compositor) 31 %, the audio thread 4 % (0.043 to
+0.052 M an update, SDL's mixer on the silent driver), the loop 4 % and the update itself under 2 %. So the port's figure
+without its mixer is the rest of that: about 102 to 128 M a second. The original under origrun's stand-in mixes no sound
+effects, and its BASS music thread is counted in its figure.
+
+**Not done.** The 2x window was measured on the GPU path only; no software run at 2x, by the user's decision. The web
+build's drawing is the GPU path with the 2D flags now (mDefault3D false); its shots were not taken again here.

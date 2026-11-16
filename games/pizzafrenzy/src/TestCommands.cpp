@@ -37,6 +37,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <typeinfo>
 #include <map>
 #include <string>
 
@@ -58,6 +60,11 @@ const int MOVE_UPDATES = 2;
 const int WAIT_UPDATES = 30;
 
 const char* const MODE_NAMES[] = { "speed", "memory", "concentration" };
+
+// the mode whose button the bot clicks on the main menu (the botmode command); -1: the mode the game was last in
+int gBotMode = -1;
+// botmode editor: the menu's design button instead of a mode's
+const int BOT_EDITOR = 3;
 
 std::string jsonText(const std::string& theText)
 {
@@ -624,10 +631,13 @@ static std::string ScreenMove(pf::PizzaFrenzy* theApp)
 	{
 		if (aShown != theApp->mMainMenu)
 			return "null";
-		// the button of the mode the game was last in (the speed mode's from launch)
-		if (theApp->mGameMode == pf::PizzaFrenzy::MODE_MEMORY)
+		// the button of the mode botmode named, else the mode the game was last in (the speed mode's from launch)
+		if (gBotMode == BOT_EDITOR)
+			return nodeMove("editPizza", theApp->mMainMenu->getNode("editPizzaButton"));
+		int aMode = gBotMode >= 0 ? gBotMode : theApp->mGameMode;
+		if (aMode == pf::PizzaFrenzy::MODE_MEMORY)
 			return nodeMove("memoryMode", theApp->mMainMenu->getNode("NewGame"));
-		if (theApp->mGameMode == pf::PizzaFrenzy::MODE_CONCENTRATION)
+		if (aMode == pf::PizzaFrenzy::MODE_CONCENTRATION)
 			return nodeMove("concentrationMode", theApp->mMainMenu->getNode("ConcentrationGame"));
 		return nodeMove("speedMode", theApp->mMainMenu->getNode("SpeedGame"));
 	}
@@ -844,11 +854,25 @@ bool PizzaFrenzyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	auto ok = [&]() { std::printf("OK %s%s%s\n", aCmd.c_str(), anArgs.empty() ? "" : " ", anArgs.c_str()); };
 	auto error = [&](const char* theWhy) { std::printf("ERROR %s: %s\n", aCmd.c_str(), theWhy); };
 	bool aKnown = aCmd == "state" || aCmd == "move" || aCmd == "goto" || aCmd == "level" || aCmd == "unlock"
-		|| aCmd == "set" || aCmd == "win" || aCmd == "lose" || aCmd == "seed";
+		|| aCmd == "set" || aCmd == "win" || aCmd == "lose" || aCmd == "seed" || aCmd == "botmode";
 	if (!aKnown)
 		return SexyAppBase::HandleScriptCommand(theCommand);
 	pf::PizzaFrenzy* anApp = pf::PizzaFrenzy::instance();
-	if (anApp == nullptr || !mEngineRunning || anApp->mStates.getState() == nullptr)
+	if (aCmd == "botmode")
+	{
+		// the bot's choice alone, so it can be sent before the game has started
+		int aMode = -1;
+		for (int i = 0; i < 3; i++)
+			if (anArgs == MODE_NAMES[i])
+				aMode = i;
+		if (anArgs == "editor")
+			aMode = BOT_EDITOR;
+		if (aMode < 0)
+			error("botmode speed|memory|concentration|editor");
+		else
+			gBotMode = aMode, ok();
+	}
+	else if (anApp == nullptr || !mEngineRunning || anApp->mStates.getState() == nullptr)
 	{
 		error("the game has not started");
 	}
@@ -1044,4 +1068,56 @@ bool PizzaFrenzyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	std::fflush(stdout);
 	return true;
+}
+
+namespace
+{
+std::string bitsText(float theValue)
+{
+	int aBits = 0;
+	std::memcpy(&aBits, &theValue, sizeof(aBits));
+	return std::to_string(aBits);
+}
+}
+
+void PizzaFrenzyApp::LogState()
+{
+	pf::PizzaFrenzy* anApp = pf::PizzaFrenzy::instance();
+	std::vector<std::string> aState;
+	aState.push_back(std::to_string((int)engine::crtRandState()));
+	engine::State* aCurrent = anApp != nullptr ? anApp->mStates.getState() : nullptr;
+	aState.push_back(aCurrent != nullptr ? typeid(*aCurrent).name() : "-");
+	aState.push_back(anApp != nullptr ? std::to_string(anApp->mCurrentCity) : "-");
+	aState.push_back(anApp != nullptr ? std::to_string(anApp->mCurrentLevel) : "-");
+	pf::GameStats* aStats = anApp != nullptr ? anApp->mGameStats.get() : nullptr;
+	auto aStat = [aStats](int theValue) { return aStats != nullptr ? std::to_string(theValue) : std::string("-"); };
+	aState.push_back(aStat(aStats ? aStats->mScore : 0));
+	aState.push_back(aStats ? bitsText(aStats->mElapsedTime) : "-");
+	aState.push_back(aStat(aStats ? aStats->mPizzasDelivered : 0));
+	aState.push_back(aStat(aStats ? aStats->mPizzasOrdered : 0));
+	aState.push_back(aStat(aStats ? aStats->mHappiness : 0));
+	aState.push_back(aStat(aStats ? aStats->mCustomersServed : 0));
+	aState.push_back(aStat(aStats ? aStats->mTipMoney : 0));
+	aState.push_back(aStat(aStats ? aStats->mWavesStarted : 0));
+	aState.push_back(aStat(aStats ? aStats->mComboLength : 0));
+	pf::GameMode* aMode = anApp != nullptr ? dynamic_cast<pf::GameMode*>(anApp->mMode.get()) : nullptr;
+	pf::GameMode::LoggedValues aValues = aMode != nullptr ? aMode->loggedValues() : pf::GameMode::LoggedValues();
+	aState.push_back(aMode ? bitsText(aValues.mWaveTimer) : "-");
+	aState.push_back(aMode ? bitsText(aValues.mSpawnTimer) : "-");
+	aState.push_back(aMode ? bitsText(aValues.mDeliveryTimer) : "-");
+	aState.push_back(aMode ? std::to_string(aValues.mWaveCustomersLeft) : "-");
+	aState.push_back(aMode ? std::to_string(aValues.mOrdersBegun) : "-");
+	aState.push_back(aMode ? std::to_string(aValues.mDeliveryStreak) : "-");
+	static const char* const NAMES[] = {"rand", "state", "city", "level", "score", "elapsed", "delivered", "ordered",
+		"happiness", "served", "tipmoney", "waves", "combo", "wavetimer", "spawntimer", "deliverytimer", "customersleft",
+		"ordersbegun", "streak"};
+	if (mLoggedState.size() != aState.size())
+		mLoggedState.assign(aState.size(), std::string());
+	for (size_t i = 0; i < aState.size(); i++)
+	{
+		if (mLoggedState[i] != aState[i])
+			std::fprintf(mStateLog, "%d %s %s\n", mFrames, NAMES[i], aState[i].c_str());
+	}
+	mLoggedState = aState;
+	std::fflush(mStateLog);
 }
