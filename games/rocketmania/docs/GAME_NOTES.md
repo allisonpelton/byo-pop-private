@@ -755,3 +755,26 @@ being what loading frees again, which with the music's decoding the whole of is 
 the user's decision, so it was left alone). The original keeps its music as small modules and its sounds as the same decoded
 samples, so the music is the largest piece the port holds that the original does not; the heaps' rest (about 27 MB against the
 original's 16 or so) was not taken apart.
+
+### The music's samples held once (2026-11-16)
+
+The memory survey counted the music at 25.6 MB (four tracks), but the process held it about twice more. The in-game and the menu piece are
+joined from Ogg segments (0.5 MB of files in all) into a 16-bit WAV that the VFS holds as a generated file (`AppMusic.cpp`, the original's
+`cached_*.wav`, which it writes to disk and plays from there), and `LoadMusic` reads that WAV again and decodes it to the song's samples. The
+WAV stayed in the VFS for the whole run: about 24 MB held for nothing. `LoadingThreadProc` now makes each joined piece just before it
+loads it, and drops the piece's generated file once the song holds its samples (a `cached_*.wav` of the game folder is never touched);
+`AssembleMusic` frees its decoded segments before the VFS copies the WAV. The music is the same samples as before (the CRCs the sound log
+prints for the two joined files, 7412075f and 3e1ede1c, are the same as in the frozen baseline, and `tools/check.sh rocketmania` passes with
+the baseline identical), and playing it costs what it did.
+
+Streaming the music as the Ogg is not possible here as it is for Ning Po: Ning Po's music is one Ogg file, while these two pieces are
+segments joined in a playlist's order (some played twice), so `Mixer::LoadStreamedSoundData`, which takes one file, would need to take a list
+of segments. That is a shared change (a stream whose frames come from several Ogg files in turn, with a loop back to the first); it
+would take the 24 MB of the two joined pieces to a few hundred KB, at the cost of the decoding in the audio thread. Not done.
+
+Measured with `mem.py` (1x, `Is3D=0`, the first board): settled 71.3 MB (95.8 before), against the original's 57.4 MB. The peak in the first
+second of loading is 92 MB in three runs of five and 112 MB in two (it was 116.7 MB): the same code reaches either, depending on
+which of the loading thread's allocations coincide, and the 20 MB between them was not taken apart. Processor time against the original,
+three pinned pairs of one round each, 4 to 8 other game processes running: the port's cycles an update are 0.43, 0.60, 0.54, 0.67 and
+0.73 of the original's in the five segments (medians; 1.86, 2.82, 2.78, 2.80 and 3.95 M against 4.30, 4.67, 5.11, 4.18 and 5.44 M); one pair
+of the last segment came to 1.00. No "no window in the first 20s" line in any origrun log.

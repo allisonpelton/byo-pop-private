@@ -140,7 +140,7 @@ public:
 	bool					LoadImage(int theImageId);
 	MemoryImage*			CopyImage(Image* theImage, const Rect& theRect);
 	void					GenerateImages();
-	void					AssembleMusic(const std::string& thePrefix, char theLastSegment);
+	std::string				AssembleMusic(const std::string& thePrefix, char theLastSegment);   // the joined WAV's name when it made one
 
 	// the loading screen's play link was clicked (the original's slot 62)
 	virtual void			LoadingScreenDone();
