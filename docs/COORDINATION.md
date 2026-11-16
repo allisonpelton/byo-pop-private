@@ -107,7 +107,10 @@ holds the rules every session follows; this file does not repeat them.
   On 2026-11-15 the user asked for one new game this week, while the current ones finish: "I'd at least like one new
   game brought up to playable this week, though." Pizza Frenzy, first in the order, started that evening, aiming at a
   playable port (its first playable merge) within the week and then going on through every phase but modding. It
-  moves Word Harmony's engine to `engines/sprout/`. Iggle Pop and Feeding Frenzy still wait for the rule above.
+  moves Word Harmony's engine to `engines/sprout/`. Iggle Pop and Feeding Frenzy waited for the rule above until 2026-11-16, when every game but Pizza Frenzy and Bookworm
+  Adventures Volume 2 was done and the user started both side by side: "Start them now". Both build on Pizza Frenzy's
+  engine in `engines/sprout/` while Pizza Frenzy is still in its looks phase, so each merges its engine additions early
+  and merges main often.
 - **A new port writes to the standards from its first draft (the user, 2026-11-12: "Yes, add it").** Of what the
   eleven smaller games spent after their first playable merge (about $2,200 at Opus prices), about half went on the
   checks against the original (identical play, screens and sound, coverage, the Collection), a fifth on performance and
