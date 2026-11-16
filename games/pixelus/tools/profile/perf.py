@@ -184,6 +184,9 @@ def main():
     user = os.path.join(out, 'user')
     subprocess.run(['cmd', '/c', 'rmdir', '/s', '/q', user], capture_output=True)
     os.makedirs(user)
+    if os.environ.get('PERF_2D') and kind == 'port':
+        # the player who has cleared the 3D box: Is3D 0 saved, so the display starts in 2D (the software screen)
+        open(os.path.join(user, 'registry.ini'), 'w').write('[SOFTWARE' + chr(92) + 'PopCap' + chr(92) + 'Pixelus]' + chr(10) + 'Is3D=dword:0' + chr(10))
     cf = os.path.join(out, 'commands.txt')
     reader = None
     if kind == 'port':
