@@ -137,6 +137,9 @@ public:
 	virtual void			ReadFromRegistry() override;
 	virtual Dialog*			NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 								const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override;
+#ifndef __EMSCRIPTEN__
+	virtual DDInterface*	CreateDDInterface() override;
+#endif
 	virtual void			Init() override;
 	virtual void			LostFocus() override;
 	virtual void			HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;

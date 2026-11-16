@@ -25,7 +25,8 @@ void RegisterOpenMPTModules();
 void RegisterOpenMPTOggXM();
 
 // A player for an MO3 file in memory, or nullptr: for a game that renders it through a ModulePlayer of its own
-// (Mixer::AddSong), such as Mahjong Escape's, whose BASS row syncs jump between orders as the music plays.
+// (Mixer::AddSong), such as Mahjong Escape's, whose BASS row syncs jump between orders as the music plays. Its long Ogg
+// samples are decoded as they play (libopenmpt's SampleStream.h; BYOPOP_STREAM_MUSIC=0 decodes them whole at load).
 std::unique_ptr<ModulePlayer> CreateOpenMPTModule(const std::vector<uint8_t>& theFile, int theRate);
 
 }

@@ -183,8 +183,9 @@ the cache that made it peak at 47 to 49 MB. In about one run in five Windows add
 time on this machine. At 1x the software screen costs the game about what the GPU path does (Dynomite's medians 9.8 G
 cycles against 10.2, the pairs going either way); at 2x it costs about a sixth more (Dynomite 10.6 G against 9.1, Big
 Money 18.6 against 15.6), GDI's stretch on top of the same software draws. What dwm and the kernel spend on either could
-not be told apart on a machine that was never quiet. So the GPU stays the default above 1x, and a port may take the
-software screen there for its memory ("Windows at 2x to 4x").
+not be told apart on a machine that was never quiet. So the software screen is for 1x only and the GPU takes every
+window above it (the user, 2026-11-15: "It seems like software drawing only makes sense for 1x"); `SOFTSCREEN_SCALED=1`
+stays a test run's switch, and no port asks for software there ("Windows at 2x to 4x").
 
 ### What the original runs in
 
@@ -877,3 +878,50 @@ loaded Windows' text-input interface (`msutb.dll`, `InputSwitch.dll`, `TextInput
 for its own drawing, with `StaticCache.dat` mapped), 3.7 MB of private bytes more than the other runs; the original's
 runs load none of them. SDL's `SDL_StartTextInput`, which turns on the text services framework, is the likely cause. Not
 chased: it would need text input started only while a text field has the focus, and a check of every game's text fields.
+
+## Bookworm Adventures' Lua heap (2026-11-15)
+
+Asked to judge whether taking Lua out of Bookworm Adventures would pay, the port was run on the main build under
+rundesk, windowed at 1x, in real time, and the game's `lua` test command asked the scripts' VM for its own count
+(`gcinfo()`, the kilobytes Lua has allocated), then again after a full collection, with the process's private bytes beside
+each. One run; the bot played from the title through the first chapter into the second (book 1, chapter 2, Polyphemus).
+
+| Where | Private bytes | Lua allocated | Lua live (after `collectgarbage()`) |
+|---|---|---|---|
+| The title, its load over | 133.3 MB | 2.8 MB | 2.6 MB |
+| A battle, book 1 chapter 2 | 139.0 MB | 13.9 MB | 8.7 MB |
+
+Lua holds 2 to 6% of the port's private bytes when live, up to 10% counting garbage not yet collected (Lua 5.0 collects
+when its count reaches twice what was live after the last collection). The original runs the same scripts on the
+same fork of Lua 5.0.2, with the same object layout (`games/bookwormadv/docs/POPLUA.md`), so it pays about the same,
+and the port's 39 MB over the original (the survey's "Thirteen games at a first board" and `build/memsurvey/table.md`)
+lies outside Lua. Translating the 621 scripts into C++ would save at most this heap, less what their tables and texts
+would take as C++ data; the scripts also carry the rules a large class of mods would change (`MOD_IDEAS.md`).
+
+## A kernel leak from Direct3D 11 devices (2026-11-15)
+
+After 55 hours of sessions at work the machine's kernel held 8.9 GB of paged pool and 2.3 GB of nonpaged: about 800,000
+access tokens (pool tags `Toke`, `SeAt`, `SeTd`, `SeTl`) and 528,259 file handles held by the System process, every one
+unnamed (Sysinternals Handle, run elevated: `handle64 -s -p 4`). Only a restart frees them. `build/leak/` holds the
+tests, which need no elevation (pool tags through `NtQuerySystemInformation`, class 22; handles by type, class 64).
+Starting 300 each of cmd, bash, Python and `rundesk cmd` left nothing behind, and nor did creating, reading and deleting
+2,000 files. `tools/smoke` (an SDL window with a renderer for 180 frames, under rundesk) did:
+
+| 25 to 60 runs of the smoke test | System's handles | Tokens | `WCri` (wcifs file contexts) |
+|---|---|---|---|
+| `SDL_RENDER_DRIVER=software` | +8 for 25 | +0 | +0 |
+| `SDL_VIDEODRIVER=dummy` (no window) | +21 for 25 | -3 | +0 |
+| `SDL_RENDER_DRIVER=direct3d11` | +212 for 25, +569 for 60 | -75 for 25, +148 for 60 | +365, +430 |
+
+So every process that makes a Direct3D 11 device leaves about nine file handles in the System process, and probably a
+few tokens (the token count moves by a hundred either way with the other sessions' processes), while software drawing
+leaves none. The machine runs NVIDIA's driver 32.0.15.6094 (560.94, August 2024) on a GTX 1080 under Windows 11 build
+26300; whether the leak is the NVIDIA driver's or Windows' own was not found. Test runs that need no GPU leak nothing on
+the software screen or with `SDL_RENDER_DRIVER=software`.
+
+After a restart with NVIDIA's driver 582.78 (32.0.15.8278, June 2026), the same tests, one after another on a quiet
+machine: 60 Direct3D 11 runs +495 System handles, 25 software runs -21, 25 Direct3D 11 runs +10, then 60 Direct3D 11
+runs +125; `WCri` +0 in every batch. So the wcifs contexts no longer leak, and the handles grow at about two a run
+after the first batch against nine before, the first batch after the boot probably a one-time warm-up. Whether two a
+run is a leak or the machine's own noise is measured over the first day's work: the System process held 1,793 file
+handles at 23:4x on 2026-11-15, against about 9,700 more an hour before the update.
