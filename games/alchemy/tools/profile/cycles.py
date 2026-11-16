@@ -277,6 +277,35 @@ def port_counts(h, pid, app_rva):
     return None if d is None or u is None else (d, u)
 
 
+def segments(marks, updates, draws, names):
+    """The cycles (G), updates and draws between each two marks, and the cycles for 1000 updates: the original keeps up
+    with the bot's script on a real clock only for the first segment or two on a busy machine (its board falls behind the
+    port's after that, see level_score), so the comparison reads the segments in which both play the same game."""
+    out = []
+    for i in range(len(marks) - 1):
+        g = stretch(marks[i], marks[i + 1], names)['gcycles']
+        u = updates[i + 1] - updates[i]
+        out.append({'g': g, 'upd': u, 'draws': draws[i + 1] - draws[i] if None not in draws[i:i + 2] else None,
+                    'g_per_kupd': round(g * 1000.0 / u, 4) if u else None})
+    return out
+
+
+def tracking(boards, reference, tol=25):
+    """How many leading marks the original's board (level, score) is where the port's was: the same level and a score within
+    `tol` points (the marks are read a few updates apart)."""
+    n = 0
+    for x, y in zip(boards, reference):
+        if x[0] is None or x[0] != y[0] or abs(x[1] - y[1]) > tol:
+            break
+        n += 1
+    return n
+
+
+def mid_marks(first, count, every=500):
+    """The updates inside the stretch at which both sides' board is read (the level and score)."""
+    return [first + every * k for k in range(1, (count - 1) // every + 1)]
+
+
 def state_json(line):
     try:
         return json.loads(line[line.index('STATE ') + 6:])
@@ -292,8 +321,12 @@ def port(out, script, seed, first, count):
     os.makedirs(out)
     user = new_user(out)
     split = os.environ.get('CYC_SPLIT') == '1'
+    # a `state` line every MID updates inside the stretch too, for the board's level and score there (the same on both
+    # sides while both play the same game)
+    mids = mid_marks(first, count)
     sc = with_marks(script, os.path.join(out, 'script.txt'), first, first + count, ['screenshot', ' state'],
-                    [(first, '%d cyclesplit a' % first), (first + count, '%d cyclesplit b' % (first + count))] if split else [])
+                    [(k, '%d state' % k) for k in mids] +
+                    ([(first, '%d cyclesplit a' % first), (first + count, '%d cyclesplit b' % (first + count))] if split else []))
     n0 = others()
     logpath = os.path.join(out, 'game.log')
     log = open(logpath, 'wb')
@@ -307,7 +340,8 @@ def port(out, script, seed, first, count):
     threads = Threads(p.pid)
     marks, pos, states = [], 0, []
     app_rva, counts, peaks = symbol_rva(exe, '__ZN4Sexy12gSexyAppBaseE'), [], []
-    while p.poll() is None and len(marks) < 2:
+    expected = 2 + len(mids)
+    while p.poll() is None and len(states) < expected:
         time.sleep(0.01)
         with open(logpath, 'rb') as f:
             f.seek(pos)
@@ -315,7 +349,7 @@ def port(out, script, seed, first, count):
         end = data.rfind(b'\n') + 1
         pos += end
         for line in data[:end].decode('latin-1').splitlines():
-            if 'STATE ' in line and len(marks) < 2:
+            if 'STATE ' in line and len(states) < expected:
                 marks.append(reading(h, threads))
                 counts.append(port_counts(h, p.pid, app_rva))
                 peaks.append(peak_private_mb(h))
@@ -328,19 +362,20 @@ def port(out, script, seed, first, count):
     with open(logpath, 'rb') as f:
         res['display'] = [l[l.find('display: ') + 9:].strip() for l in f.read().decode('latin-1').splitlines()
                           if 'display: ' in l]
-    if len(marks) == 2:
-        res.update(stretch(marks[0], marks[1], threads.name))
+    if len(marks) == expected:
+        res.update(stretch(marks[0], marks[-1], threads.name))
         res['updates'] = count
         res['updates_per_s'] = round(count / res['seconds'], 1)
-        res['peak_private_mb'] = peaks[1]
+        res['peak_private_mb'] = peaks[-1]
         res['level_score'] = [[s.get('level'), s.get('score')] for s in states]
-        # the counters are read a few ms after each mark's reply, so the update counter's span may be off by an update
-        # or two; one far from the stretch's length means the offsets moved
-        if None not in counts and abs(counts[1][1] - counts[0][1] - count) <= 10:
-            res['draws'] = counts[1][0] - counts[0][0]
-            res['updates_counted'] = counts[1][1] - counts[0][1]
+        # the counters are read a few ms (on a busy machine up to a few updates) after each mark's reply, so the update
+        # counter's span may be off by some updates; one far from the stretch's length means the offsets moved
+        if None not in counts and abs(counts[-1][1] - counts[0][1] - count) <= 60:
+            res['draws'] = counts[-1][0] - counts[0][0]
+            res['updates_counted'] = counts[-1][1] - counts[0][1]
+            res['segments'] = segments(marks, [c[1] for c in counts], [c[0] for c in counts], threads.name)
         elif None not in counts:
-            res['invalid'] = 'the update counter moved %d between the marks, not %d' % (counts[1][1] - counts[0][1], count)
+            res['invalid'] = 'the update counter moved %d between the marks, not %d' % (counts[-1][1] - counts[0][1], count)
     threads.close()
     k32.CloseHandle(h)
     print(json.dumps(res), flush=True)
@@ -395,6 +430,10 @@ def orig(out, script, seed, first, count):
     # user's own settings have it, drawing after nearly every update
     set_registry(os.environ.get('CYC_VSYNC', '1') != '0')
     res = orig_play(out, sc, seed, first, count, last_input, origrun)
+    # under tools/pincore.py an original's window can take over 20 s to appear (BookWorm, 2026-11-15): origrun then goes on
+    # without it, the first click is lost and the original idles
+    if 'no window in the first' in open(os.path.join(out, 'origrun.log'), errors='replace').read():
+        res['invalid'] = 'origrun went on with no window after 20 s'
     print(json.dumps(res), flush=True)
 
 
@@ -408,6 +447,7 @@ def orig_play(out, sc, seed, first, count, last_input, origrun):
                          stdout=log, stderr=subprocess.STDOUT)
     h = threads = None
     marks, flags, draws, boards, peaks = [], None, [], [], []
+    targets = [first] + mid_marks(first, count) + [first + count]
     deadline = time.time() + 420
     while p.poll() is None and time.time() < deadline:
         time.sleep(0.01)
@@ -420,13 +460,13 @@ def orig_play(out, sc, seed, first, count, last_input, origrun):
         c = read32(h, COUNTER)
         if c is None:
             continue
-        if len(marks) < 2 and c >= first + count * len(marks):
+        if len(boards) < len(targets) and c >= targets[len(boards)]:
+            b = read32(h, BOARD)
+            boards.append([(read32(h, b + 0xE0C) + 1) if b else None, read32(h, b + 0xD18) if b else None])
             marks.append(reading(h, threads))
             marks[-1]['counter'] = c
             draws.append(read32(h, DRAWS))
             peaks.append(peak_private_mb(h))
-            b = read32(h, BOARD)
-            boards.append([(read32(h, b + 0xE0C) + 1) if b else None, read32(h, b + 0xD18) if b else None])
             if flags is None:
                 ddi = read32(h, APP + 0x33C)
                 flags = {'windowed': read32(h, APP + 0x30E) & 0xff, 'vsync': read32(h, APP + 0x5CB) & 0xff,
@@ -443,14 +483,28 @@ def orig_play(out, sc, seed, first, count, last_input, origrun):
     log.close()
     res = {'side': 'orig', 'exit': p.returncode, 'others_start': n0, 'others_end': others(),
            'whole_run_gcycles': round(whole / 1e9, 3) if whole else None, 'flags': flags}
-    if len(marks) == 2:
-        res.update(stretch(marks[0], marks[1], threads.name))
-        res['updates'] = marks[1]['counter'] - marks[0]['counter']
+    if len(marks) == len(targets):
+        res.update(stretch(marks[0], marks[-1], threads.name))
+        res['updates'] = marks[-1]['counter'] - marks[0]['counter']
         res['updates_per_s'] = round(res['updates'] / res['seconds'], 1)
-        res['peak_private_mb'] = peaks[1]
+        res['peak_private_mb'] = peaks[-1]
         res['level_score'] = boards
+        if boards[0][0] is None:   # a click lost while the game was still loading (on the real clock the updates do not wait)
+            res['invalid'] = 'no board at the first mark: the original missed its first inputs'
+        # CYC_REF=<file>: the port's level_score list of the same script (pairs.sh writes it from its own first run). The
+        # original keeps up with the bot's script on a real clock for a while and then falls behind for good (an input lands
+        # an update early or late, as the counter is read from outside; the same on the machine's quiet and busy moments),
+        # and one that starts late is behind from the first mark. A run in which it kept up for fewer than CYC_MIN_MARKS
+        # marks (default 7: 3000 updates) is no comparison, and pairs.sh runs it again
+        ref = os.environ.get('CYC_REF')
+        if ref:
+            n = tracking(boards, json.load(open(ref)))
+            res['tracked_marks'] = n
+            if n < int(os.environ.get('CYC_MIN_MARKS', '7')):
+                res['invalid'] = 'the original kept up with the bot for %d marks only (the port: %d)' % (n, len(boards))
         if None not in draws:
-            res['draws'] = draws[1] - draws[0]
+            res['draws'] = draws[-1] - draws[0]
+            res['segments'] = segments(marks, [m['counter'] for m in marks], draws, threads.name)
     if threads:
         threads.close()
     if h:
