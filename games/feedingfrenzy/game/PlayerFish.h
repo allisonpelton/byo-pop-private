@@ -142,7 +142,7 @@ public:
 
 protected:
 	engine::Point mMouseMove;           // +0x2f0: how far the mouse moved this frame, as a speed
-	engine::Point mCursorCentre;        // +0x2f8: where the mouse was the frame before
+	engine::Point mCursorCentre;        // +0x2f8: where the mouse is measured from: where it was when the life began, then the point it is put back to
 	bool mCursorLocked;                 // +0x300: the mouse's movement is the fish's (not in the menu)
 	float mFluidDrag;                   // +0x304: how much the water slows the fish by its speed
 	bool mSpawnSoundPlayed;             // +0x308

@@ -37,6 +37,10 @@ const float START_SIZE = 0.6f;
 const float START_BODY_HALF_SIZE = 6.0f;
 const char* const PLAYER_TYPE_NAME = "Player";
 
+// Where the pointer is put back after each reading, in the screen's pixels
+const float CURSOR_CENTRE_X = 325.0f;
+const float CURSOR_CENTRE_Y = 265.0f;
+
 // The mouse's movement becomes a speed: the pixels it moved, over the seconds of the frame times this much, doubled;
 // a movement under the dead zone is none, and a poisoned fish moves the other way at this part of it
 const float MOUSE_SPEED_NUMERATOR = 2.0f;
@@ -559,10 +563,11 @@ void PlayerFish::followMouse(float theSeconds)
 		mMouseMove.x = 0.0f;
 	if (fabs((double)mMouseMove.y) < MOUSE_DEAD_ZONE)
 		mMouseMove.y = 0.0f;
-	// The original puts the cursor back in the window's middle and measures from there; the port measures from where
-	// the cursor was in the frame before
 	if (mCursorLocked)
-		mCursorCentre = aCursor;
+	{
+		App::instance()->warpMousePosition((int)CURSOR_CENTRE_X, (int)CURSOR_CENTRE_Y);
+		mCursorCentre.set(CURSOR_CENTRE_X, CURSOR_CENTRE_Y);
+	}
 	if (0.0f < mPoisonLeft)
 	{
 		mMouseMove.x = mMouseMove.x * POISONED_MOUSE_FACTOR;

@@ -123,7 +123,7 @@ FishFood::FishFood() :
 	mState(FOOD_STATE_LOADING), mStateSeconds(0.0f), mStep(0), mMapWait(0.0f), mShowFadeSeconds(0.0f),
 	mLogoState(LOGO_HIDDEN), mLogoSecondsLeft(-1.0f), mLogoSlideSeconds(LOGO_SLIDE_SECONDS),
 	mLogoHiddenPosition(LOGO_X, LOGO_HIDDEN_Y), mLogoShownPosition(LOGO_X, LOGO_SHOWN_Y), mMenuMusic(nullptr),
-	mStageIndex(0), mGameMode(GAME_MODE_NORMAL), mScoresLoaded(false)
+	mStageIndex(0), mCursorLocked(false), mGameMode(GAME_MODE_NORMAL), mScoresLoaded(false)
 {
 	sInstance = this;
 	engine::gSignalBuild = true;
@@ -240,6 +240,7 @@ void FishFood::onAppUpdate(engine::UpdateInfo& theInfo)
 	engine::SoundSystem* aSounds = engine::App::getSoundSystem();
 	if (aSounds != nullptr)
 		aSounds->update((int)(theInfo.mSeconds * 1000.0f));
+	updateCursorLock();
 	updateScreens();
 	updateLogo(theInfo);
 	switch (mState)
@@ -256,6 +257,25 @@ void FishFood::onAppUpdate(engine::UpdateInfo& theInfo)
 	case FOOD_STATE_NEXT_STAGE:
 		updateNextStage();
 		break;
+	}
+}
+
+// 0x42c060 (with 0x42bb50): the pointer is held and hidden while the game's stage is played, and let go while it waits
+void FishFood::updateCursorLock()
+{
+	if (mGameStage != nullptr && !mGameStage->isWaiting())
+	{
+		if (!mCursorLocked)
+		{
+			engine::getHost()->setCursorLocked(true);
+			mCursorLocked = true;
+		}
+		return;
+	}
+	if (mCursorLocked)
+	{
+		mCursorLocked = false;
+		engine::getHost()->setCursorLocked(false);
 	}
 }
 

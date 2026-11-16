@@ -244,6 +244,17 @@ public:
 
 	// 0x48ef60 (feedingfrenzy): the sound system of the window (DirectSound)
 	engine::SoundSystem* createSoundSystem() override { return new engine::HostSoundSystem(); }
+
+	// 0x42bb50 (feedingfrenzy) and 0x42c060 (feedingfrenzy): the pointer is hidden while a stage is played; the window
+	// keeps it in itself with the player fish's putting it back after every reading
+	void setCursorLocked(bool theLocked) override
+	{
+		gApp->SetCursor(theLocked ? CURSOR_NONE : CURSOR_POINTER);
+	}
+
+	// 0x4108a0 (feedingfrenzy): the pointer moves to the point of the screen (not in a test run, where the framework
+	// does not move the real pointer)
+	void warpCursor(int theX, int theY) override { gApp->WarpMouse(theX, theY); }
 };
 
 FeedingFrenzyHost gHost;

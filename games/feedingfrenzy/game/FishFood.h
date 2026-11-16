@@ -159,6 +159,7 @@ private:
 	void updateLogo(engine::UpdateInfo& theInfo);        // 0x42bcd0
 
 	void applySettings();  // 0x42bec0: the sound and music volumes, the full screen
+	void updateCursorLock();  // 0x42c060: the pointer is held and hidden while the game's stage is played
 
 	static FishFood* sInstance;
 
@@ -201,6 +202,7 @@ private:
 	GameStrings mStrings;                    // +0x30
 	StageManifest mManifest;                 // +0x1ec, +0x1fc, +0x214
 	int mStageIndex;                         // +0x1e4: the stage of the manifest the game is at (from 0)
+	bool mCursorLocked;                      // +0x1d0: the pointer is held and hidden
 	int mGameMode;                           // +0x20c: how the game is played (a GameMode)
 	ScoreList mNormalScores;                 // +0x140
 	ScoreList mTimedScores;                  // +0x174
