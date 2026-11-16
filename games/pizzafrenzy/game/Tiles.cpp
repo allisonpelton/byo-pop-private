@@ -1,6 +1,8 @@
 #include "Tiles.h"
 #include "App.h"
 #include "CityMap.h"
+#include "Canoe.h"
+#include "Copter.h"
 #include "CustomerPopup.h"
 #include "PizzaFrenzy.h"
 #include "GameMode.h"
@@ -18,6 +20,10 @@ const char* const KIND_ROAD = "roads";
 const char* const KIND_CUSTOMER = "customer";
 const char* const KIND_KITCHEN = "kitchen";
 const char* const KIND_BRIDGE = "bridge";
+// the manifest's kind of a vehicle, and the classes of vehicle the kitchens make other than a van
+const char* const VEHICLE_KIND = "vehicle";
+const char* const CLASS_COPTER = "copter";
+const char* const CLASS_CANOE = "canoe";
 
 // which of the four cells around a road are roads, as the bits of the number of its picture in the sheet
 const int ROAD_NEXT_ROW = 1;
@@ -318,6 +324,31 @@ void BridgeTile::setRaised(bool theRaised)
 	mRaisedTime = theRaised ? RAISED_SECONDS : 0.0f;
 }
 
+// 0x426660
+bool BridgeTile::hasVehicle()
+{
+	for (size_t i = 0; i < mMap->mVehicles.size(); i++)
+	{
+		if (mMap->getTileAt(mMap->mVehicles[i]->getCell()) == this)
+			return true;
+	}
+	return false;
+}
+
+// 0x426440
+bool BridgeTile::raise(bool theRaise)
+{
+	if (!theRaise)
+	{
+		setRaised(false);
+		return true;
+	}
+	if (hasVehicle())
+		return false;
+	setRaised(true);
+	return true;
+}
+
 // 0x41c490
 BuildingTile::BuildingTile()
 {
@@ -609,7 +640,7 @@ void BuildingTile::removeVehicle(Van* theVan)
 	}
 }
 
-// 0x41c9e0: the vans of the type "copter" and "canoe" are not translated, and are vans
+// 0x41c9e0: the vehicle is made by the class of its type: a copter, a canoe, or a van
 Van* KitchenTile::getVehicle()
 {
 	for (size_t i = 0; i < mVehicles.size(); i++)
@@ -618,7 +649,14 @@ Van* KitchenTile::getVehicle()
 		if (aVan->isIdle())
 			return aVan;
 	}
-	Van* aVan = new Van(mVanType);
+	Vehicle* aType = static_cast<Vehicle*>(PizzaFrenzy::instance()->mTileManifest->getTile(mVanType, VEHICLE_KIND));
+	Van* aVan;
+	if (aType->mClass == CLASS_COPTER)
+		aVan = new Copter(mVanType);
+	else if (aType->mClass == CLASS_CANOE)
+		aVan = new Canoe(mVanType);
+	else
+		aVan = new Van(mVanType);
 	aVan->loadType();
 	addVehicle(getRoadCell(), aVan);
 	return aVan;

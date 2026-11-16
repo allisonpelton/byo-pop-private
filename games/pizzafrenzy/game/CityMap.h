@@ -50,8 +50,8 @@ public:
 	// 0x413a80
 	void addDecoration(Decoration* theDecoration);
 
-	// 0x4122e0 (slot 0x4): a frame of the map: its tiles and tips (unless they are stopped), the vehicles and the boat
-	// spawners; the vehicles are translated next
+	// 0x4122e0 (slot 0x4): a frame of the map: its tiles and tips (unless they are stopped), the vehicles (the boats
+	// among them) and the boat spawners
 	void update(engine::UpdateInfo& theInfo);
 	// 0x413b00: the tip is kept (it waits on the map for the click)
 	void addTip(TipPopup* theTip) { mTips.push_back(theTip); }

@@ -662,6 +662,8 @@ bool PizzaFrenzyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		// last), and every topping the player has not got given at level 0, as the new topping screen gives it
 		if (anArgs != "all")
 			error("unlock all");
+		else if (anApp->mUserGameData == nullptr || anApp->mTileManifest == nullptr)
+			error("no player's data yet (the game is still loading)");
 		else
 		{
 			pf::UserGameData* aData = anApp->mUserGameData;

@@ -22,8 +22,8 @@ public:
 	void update(engine::UpdateInfo& theInfo);
 
 private:
-	// slot 0x8: 0x42f4f0: the boat is made on the river, shown and given to the mode's air group; translated next
-	// with the boats
+	// slot 0x8: 0x42f4f0: the boat is made on the river, faces down it, stands on the map, and is given to the mode's
+	// ground group
 	void spawn();
 
 	LevelBoat* mBoat;  // +0x0c

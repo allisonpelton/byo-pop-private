@@ -34,16 +34,6 @@ const float ARRIVED_SECONDS = 1.0f;
 const float LIGHTS_RATE = 4.0f;  // the police car's lights change this many times a second
 enum { LAYER_GROUND = 3 };
 
-// the pictures of the vehicle: east and west, north, south, and a parked one
-enum
-{
-	IMAGE_EAST_WEST = 0,
-	IMAGE_NORTH = 1,
-	IMAGE_SOUTH = 2,
-	IMAGE_ARRIVED = 3,
-	IMAGE_PARKED = 4
-};
-
 // 0x42a600's table (0x532938): left, down, right, up
 const engine::IntPair SEARCH_DIRECTIONS[4] = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}};
 
@@ -334,7 +324,7 @@ void Van::placeAt(const engine::IntPair& theCell)
 	setPosition((float)(aPoint.mFirst - mMap->getCellSize() / 2), (float)(aPoint.mSecond - mMap->getCellSize() / 2));
 	mCell = theCell;
 	mImages->select(IMAGE_EAST_WEST, 0.0f, true);
-	setOpacity(1.0f);
+	setScale(1.0f);
 }
 
 // 0x42f770
@@ -388,6 +378,12 @@ void Van::updateVehicle(engine::UpdateInfo& theInfo)
 void Van::arriveSound()
 {
 	playSound(SOUND_ARRIVE);
+}
+
+// 0x430260
+void Van::reachGoal()
+{
+	arrive();
 }
 
 // 0x42fe60
@@ -496,6 +492,37 @@ void Van::face(const engine::IntPair& theCell)
 	setScale(aDifference.mFirst < 0 ? -1.0f : 1.0f, 1.0f);
 }
 
+// 0x431e40: the picture is the east and west one when the line is at most as much up or down as across; the scale
+// keeps its size and turns round for a line that goes west
+void Van::faceAlong(const engine::IntPair& theCell)
+{
+	if (isAtCell(theCell))
+		return;
+	float aX = (float)(theCell.mFirst - mCell.mFirst);
+	float aY = (float)(theCell.mSecond - mCell.mSecond);
+	float aLength = std::sqrt(aX * aX + aY * aY);
+	if (aLength != 0.0f)
+	{
+		float aFactor = 1.0f / aLength;
+		aX = aFactor * aX;
+		aY = aFactor * aY;
+	}
+	if (std::fabs(aY) <= std::fabs(aX))
+		mImages->select(IMAGE_EAST_WEST, 0.0f, true);
+	else
+		mImages->select(aY < 0.0f ? IMAGE_NORTH : IMAGE_SOUTH, 0.0f, true);
+	float aScaleX = std::fabs(mScale.x);
+	if (aX < 0.0f)
+		aScaleX = -aScaleX;
+	setScale(aScaleX, mScale.y);
+}
+
+// port: the vehicle is in the cell
+bool Van::isAtCell(const engine::IntPair& theCell) const
+{
+	return sameCell(mCell, theCell);
+}
+
 // 0x42f650
 void Van::clearParent(engine::Node* theParent)
 {
@@ -540,7 +567,7 @@ void Van::move(engine::UpdateInfo& theInfo)
 		mNext++;
 		if (mNext == mPath.size())
 		{
-			arrive();
+			reachGoal();
 			break;
 		}
 		face(mPath[mNext]);

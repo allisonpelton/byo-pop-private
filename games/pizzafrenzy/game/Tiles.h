@@ -116,14 +116,19 @@ public:
 	bool isBlocked(const engine::IntPair& theCell) override { return mRaised; }         // 0x4263e0
 	// slot 0x164: 0x4263f0: the time the bridge is raised runs out, and it is let down
 	void tick(engine::UpdateInfo& theInfo) override;
+	// slot 0x16c: 0x426660: a vehicle of the map is on the bridge
+	virtual bool hasVehicle();
 	// slot 0x170: 0x4265e0: the bridge is raised (the way blocked, for two seconds) or let down
 	virtual void setRaised(bool theRaised);
+	// slot 0x174: 0x426440: a boat's passing: false lets the bridge down; true raises it unless a vehicle is on it, and
+	// says whether the bridge was raised (letting it down always succeeds)
+	virtual bool raise(bool theRaise);
 
 private:
 	engine::Ref<engine::Selector> mRoadImages;    // +0x194: "RoadImages"
 	engine::Ref<engine::Selector> mGroundImages;  // +0x198: "GroundImages"
 	float mRaisedTime;                            // +0x19c: 0, and the seconds a raised bridge has left
-	bool mRaised;                                 // +0x1a0: false; nothing translated reads it
+	bool mRaised;                                 // +0x1a0: false; the way is blocked while it is set
 };
 
 // What a customer's house and a kitchen have in common (0x1b8 bytes, constructor 0x41c490, vtable 0x4fae00): the cell a
@@ -173,7 +178,7 @@ public:
 	engine::IntPair mParkingSpot;  // +0x198: the cell a van stops at
 
 protected:
-	// +0x1a0: the vans that start from the tile (the vehicles are translated next)
+	// +0x1a0: the vans that start from the tile
 	std::vector<engine::Ref<engine::Node>> mVehicles;
 	engine::Ref<PizzaPopup> mOccupant;  // +0x1b0
 	engine::Ref<PizzaPopup> mWaiting;   // +0x1b4: takes the place of the popup when the tile has none
@@ -228,12 +233,12 @@ public:
 	// 0x41cb80: the sign shows the length of the combo (none for 0): the number in its row of five, blinking, in the
 	// colour its row gives
 	void showCombo(int theLength);
-	// 0x41c9e0: a van of the kitchen that is not on its way, or a new one of the kitchen's type, put on the map
+	// 0x41c9e0: a van of the kitchen that is not on its way, or a new one of the kitchen's type (a copter, a canoe or
+	// a van), put on the map
 	Van* getVehicle();
 	// port (the test commands' state): a van of the kitchen is on its way
 	bool isVanOut() const;
-	// slot 0x1ac: 0x41cf50: a van goes from the kitchen to the house, and the house and the kitchen's popup are served;
-	// translated next with the vehicles
+	// slot 0x1ac: 0x41cf50: a van goes from the kitchen to the house, and the house and the kitchen's popup are served
 	void sendVan(CustomerTile* theTile);
 
 	std::string mVanType;          // +0x1b8: "PizzaVan"

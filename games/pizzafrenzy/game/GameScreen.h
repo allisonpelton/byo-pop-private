@@ -51,6 +51,9 @@ public:
 	void setFlashIndicators(engine::Node* theIndicators);
 	// 0x4352e0: the message banner shows the text at the position and plays
 	void showMessage(const std::string& theText, const engine::Point& thePosition);
+	// 0x435120: the vehicle is taken out of the group of the layer it is in (ground, 3, or air, 4) and put in the
+	// other's; a layer that is neither does nothing
+	void moveVehicle(Van* theVan, int theFromLayer, int theToLayer);
 	// 0x435ba0: a frame of the screen: the speed bonus banner's frame, the vehicles that moved are put in their place
 	// in the ground group, and the cursor follows the mouse over what it can click
 	void updateScreen(engine::UpdateInfo& theInfo);

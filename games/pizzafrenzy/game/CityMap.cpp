@@ -321,7 +321,7 @@ Topping* CityMap::getRandomKitchenTopping()
 	return mKitchenToppings[engine::randomRange(0, (int)mKitchenToppings.size() - 1)];
 }
 
-// 0x4120f0: the boats (the ones of the list at +0x68 that are raised, 0x160) are translated next
+// 0x4120f0
 bool CityMap::isIdle()
 {
 	bool anIdle = true;

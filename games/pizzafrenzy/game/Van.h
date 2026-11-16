@@ -8,8 +8,8 @@
 //
 // The type's effect (smoke, for most) follows the vehicle while it drives, and the police car's lights flash.
 //
-// Left out: the canoe (0x431ad0) and the copter (0x431dc0), which are not translated: a vehicle of their class is a
-// van. The pathfinder is the function findPath, with the original's search (0x42a600).
+// The boat (Boat.h), the canoe (Canoe.h), the copter (Copter.h) and the prize blimp (PrizeBlimp.h) are vehicles of
+// their own kinds. The pathfinder is the function findPath, with the original's search (0x42a600).
 
 #include "AnimImage.h"
 #include "ImageNode.h"
@@ -66,9 +66,21 @@ public:
 	// slot 0x164: 0x42fc30: the vehicle faces the cell next to it
 	virtual void face(const engine::IntPair& theCell);
 
+	// the pictures of the vehicle: east and west, north, south, the one for a vehicle that has arrived (the copter's
+	// hovering one) and the parked one (the copter's)
+	enum VehicleImage
+	{
+		IMAGE_EAST_WEST = 0,
+		IMAGE_NORTH = 1,
+		IMAGE_SOUTH = 2,
+		IMAGE_ARRIVED = 3,
+		IMAGE_PARKED = 4
+	};
+
 	// 0x42f8f0: the vehicle is not on its way
 	bool isIdle() const { return mPath.empty(); }
 	int getLayer() const { return mLayer; }  // +0x158: 3, the ground's
+	engine::IntPair getCell() const { return mCell; }  // +0x12c
 	bool isDirty() const { return mDirty; }  // 0x42f680
 	void clearDirty() { mDirty = false; }    // 0x42f670
 	// 0x42f650: the map lets go of the vehicle
@@ -79,10 +91,18 @@ protected:
 	{
 		PHASE_PARKED,
 		PHASE_DRIVING,
-		PHASE_ARRIVED
+		PHASE_ARRIVED,
+		PHASE_TAKING_OFF,  // the copter's: its body rises over the ground
+		PHASE_LANDING      // the copter's: its body comes down to the ground
 	};
 	// 0x42fda0 (parked's entry)
-	void park();
+	virtual void park();
+	// 0x430260: the driving state's message "arrived": the vehicle has driven its way to the end
+	virtual void reachGoal();
+	// 0x431e40 (the canoe's and the copter's slot 0x164): the vehicle faces the cell along the straight line to it,
+	// east and west for a line more across than up or down
+	void faceAlong(const engine::IntPair& theCell);
+	bool isAtCell(const engine::IntPair& theCell) const;
 	// 0x430510: the vehicle drives on for the seconds
 	void move(engine::UpdateInfo& theInfo);
 	// 0x42fe60 (arrived's entry)

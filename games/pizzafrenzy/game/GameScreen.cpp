@@ -320,6 +320,31 @@ void GameScreen::showMessage(const std::string& theText, const engine::Point& th
 	mMessageBanner->play();
 }
 
+// 0x435120
+void GameScreen::moveVehicle(Van* theVan, int theFromLayer, int theToLayer)
+{
+	if (theFromLayer == LAYER_GROUND)
+	{
+		if (mGroundGroup != nullptr)
+			mGroundGroup->removeChild(theVan);
+	}
+	else if (theFromLayer == LAYER_AIR)
+	{
+		if (mAirGroup != nullptr)
+			mAirGroup->removeChild(theVan);
+	}
+	if (theToLayer == LAYER_GROUND)
+	{
+		if (mGroundGroup != nullptr)
+			mGroundGroup->addChild(theVan);
+	}
+	else if (theToLayer == LAYER_AIR)
+	{
+		if (mAirGroup != nullptr)
+			mAirGroup->addChild(theVan);
+	}
+}
+
 // 0x435ba0
 void GameScreen::updateScreen(engine::UpdateInfo& theInfo)
 {

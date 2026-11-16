@@ -1,5 +1,9 @@
 #include "BoatSpawner.h"
+#include "Boat.h"
+#include "CityMap.h"
+#include "GameMode.h"
 #include "Node.h"
+#include "PizzaFrenzy.h"
 #include "Random.h"
 
 using namespace pizzafrenzy;
@@ -29,7 +33,12 @@ void BoatSpawner::update(engine::UpdateInfo& theInfo)
 	}
 }
 
-// 0x42f4f0: the boat (0x431810) and its sailing are translated next
+// 0x42f4f0
 void BoatSpawner::spawn()
 {
+	Boat* aBoat = new Boat(mBoat->mName);
+	aBoat->loadType();
+	aBoat->setDirection(engine::Point((float)mBoat->mDirection.mFirst, (float)mBoat->mDirection.mSecond));
+	aBoat->start(mMap, mBoat->mPosition);
+	PizzaFrenzy::instance()->mMode->addVehicleNode(aBoat);
 }

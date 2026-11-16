@@ -11,10 +11,9 @@
 // into the mode (ModeStates.h). The customers and their orders, the pizzas and the deliveries are translated with
 // them; the places that reach them here are the methods marked "translated next".
 //
-// Left out of the port for good, one line each: the boats (the boat spawner's slot 0x42f4f0 makes them), the canoe
-// (0x431ad0) and the copter (0x431dc0); the bonus round (0x45f830, 0x402a40, and its summary 0x43f3f0); the memory
-// mode (0x460610) and the concentration mode (0x45b3e0, and its splats at 0x4609f0, 0x460c40, 0x461030, 0x4611a0);
-// the pizza designer and the level editor.
+// Left out of the port for good, one line each: the bonus round (0x45f830, 0x402a40, and its summary 0x43f3f0); the
+// memory mode (0x460610) and the concentration mode (0x45b3e0, and its splats at 0x4609f0, 0x460c40, 0x461030,
+// 0x4611a0); the pizza designer and the level editor.
 
 #include "CityMap.h"
 #include "CouponButton.h"
