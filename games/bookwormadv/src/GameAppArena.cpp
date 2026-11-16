@@ -12,6 +12,7 @@
 
 using namespace Sexy;
 
+// 0x451450
 static void TimedModeTSTransitionCallback(void* theApp)
 {
 	// 0x451450: once the curtain is closed, the treasure screen as the checkpoint, over the hidden board
@@ -36,6 +37,7 @@ void GameApp::DoTimedModeTSTransition()
 	mCurtainCallbackObject = this;
 }
 
+// 0x4515a0
 void GameApp::EnableBoardForTMCheckpointContinuation()
 {
 	// 0x4515a0: the board again, under the curtain, after the checkpoint

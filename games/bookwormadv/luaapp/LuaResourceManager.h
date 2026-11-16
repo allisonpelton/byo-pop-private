@@ -26,10 +26,6 @@ public:
 	// Sets the globals of the resources loaded since the last call
 	void ExportToLua();
 
-	// The resource of an id, for the scripts' code in C++ (0x65d500, 0x65d580, 0x65d5f0)
-	SharedImageRef LuaGetImage(const std::string& theId) { return GetImage(theId); }
-	int LuaGetSound(const std::string& theId) { return GetSound(theId); }
-
 protected:
 	std::set<BaseRes*> mLoaded;  // +0xd0
 

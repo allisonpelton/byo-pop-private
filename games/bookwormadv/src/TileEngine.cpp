@@ -34,6 +34,7 @@ static const int kMaxLetters[26] = {4, 3, 3, 4, 4, 3, 4, 3, 4, 2, 2, 4, 3, 4, 3,
 static const int kLetterWeights[26] = {9420, 2200, 2000, 4200, 12700, 2000, 2500, 2000, 7330, 700, 700, 4000, 2300,
                                        6000, 7330, 2300, 600,  6900,  5600, 6000, 4400, 1600, 1500, 500, 2100, 500};
 
+// port: whether a letter is a vowel (the letter picks make the test)
 static bool IsVowelLetter(char c)
 {
 	return c == 'a' || c == 'A' || c == 'e' || c == 'E' || c == 'i' || c == 'I' || c == 'o' || c == 'O' || c == 'u' ||
@@ -119,7 +120,7 @@ void TileEngine::DeleteAllTiles()
 	mTiles.clear();
 }
 
-Tile* TileEngine::CreateTile(bool theUnused, bool theRegister, bool theRandomLetter)
+Tile* TileEngine::CreateTile(bool theIgnoredFlag, bool theRegister, bool theRandomLetter)
 {
 	Tile* aTile = new Tile();
 	char aLetter = ' ';
@@ -129,7 +130,7 @@ Tile* TileEngine::CreateTile(bool theUnused, bool theRegister, bool theRandomLet
 		else
 			aLetter = (char)(Rand() % 26 + 'A');
 	}
-	aTile->CreateLinkedObject(aTile, theUnused);
+	aTile->CreateLinkedObject(aTile, theIgnoredFlag);
 	if (theRegister) {
 		Tile::PushTile(aTile);
 		PushLetter(aLetter);
@@ -216,20 +217,6 @@ void TileEngine::Draw(std::list<Tile*>& theTiles, Graphics* g, bool theMoving, b
 	}
 	gLuaSupport->Call("gTileEngine:Draw", aCount * 3 + 2, 0);
 	gLuaSupport->ObjectDeleted(g);
-}
-
-void TileEngine::DrawTiles(std::list<Tile*>& theTiles, Graphics* g, bool theStillOnly)
-{
-	if (mBoard == nullptr)
-		return;
-	if (theStillOnly) {
-		Draw(theTiles, g, false, false);
-		return;
-	}
-	bool aAnyMoving = mMovingCount > 0;
-	Draw(theTiles, g, false, !aAnyMoving);
-	if (aAnyMoving)
-		Draw(theTiles, g, true, true);
 }
 
 void TileEngine::Update(std::list<Tile*>& theTiles, bool theCallLua)
