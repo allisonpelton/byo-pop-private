@@ -7,19 +7,19 @@
 # process's life. Before each run it waits for a free slot (fewer than 3 game processes on the machine, CLAUDE.md), and the
 # machine's game processes are counted once a second during it (<out dir>/<run>.counts).
 #
-# The configurations (CONFIGS, default "orig soft1 before1 soft2"):
+# The configurations (CONFIGS, default "orig soft1 before1 gpu2"; the software screen is for 1x only, the GPU takes every larger window,
+# docs/RULES.md):
 #   orig     the original, the carved exe in E:\byo-og\bej-perf\game under origrun, on the wall clock, windowed at its own size
 #   soft1    this build (build/native/bejeweled.exe), -windowscale=1: the software screen, 640x480
 #   before1  the exe of main before the opt-in (build/before/bejeweled.exe), -windowscale=1: the GPU path, 640x480
-#   soft2    this build at the default 2x window with SOFTSCREEN_SCALED=1 (the software screen stays in software, GDI stretches)
-#   gpu2     this build at the default 2x window: the software screen hands the window to the GPU there
+#   gpu2     this build at the default 2x window: the window goes to the GPU there
 # The port runs windowed (ScreenMode 0) from a fresh user folder, with no -commands channel and no per-update log, under rundesk.
 # The original's saved game in C:\ProgramData\Steam\Bejeweled\userdata is taken away before each run and the one there before
 # is put back at the end (the user allowed this, CLAUDE.md "Originals").
 # Summed by games/bejeweled/tools/profile/softsum.py <out dir>. From the worktree root.
 set -u
 cd "$(dirname "$0")/../../../.."
-OUT="$1"; ROUNDS="${2:-5}"; CONFIGS="${3:-orig soft1 before1 soft2}"
+OUT="$1"; ROUNDS="${2:-5}"; CONFIGS="${3:-orig soft1 before1 gpu2}"
 P=games/bejeweled/tools/profile
 mkdir -p "$OUT"
 win() { cygpath -w "$1"; }
@@ -44,7 +44,7 @@ run() {
 	echo "$name: $(tail -1 "$OUT/$name.perf.txt" | cut -c1-400)"
 }
 
-port() {  # port <name> <exe> <extra args...>; the environment (SOFTSCREEN_SCALED) is the caller's
+port() {  # port <name> <exe> <extra args...>; the environment is the caller's
 	local name="$1" exe="$2"; shift 2
 	local U="$OUT/u-$name"; rm -rf "$U"; mkdir -p "$U"
 	printf '[SOFTWARE\\Steam\\Bejeweled]\nScreenMode=dword:0\n' > "$U/registry.ini"
@@ -61,7 +61,6 @@ for n in $(seq 1 "$ROUNDS"); do
 					--run "soft-o$n" --sound stub --script "$(win "$PWD/$OUT/orig.txt")" --timeout 150 ;;
 			soft1) port "soft1-$n" build/native/bejeweled.exe -windowscale=1 ;;
 			before1) port "before1-$n" build/before/bejeweled.exe -windowscale=1 ;;
-			soft2) SOFTSCREEN_SCALED=1 port "soft2-$n" build/native/bejeweled.exe ;;
 			gpu2) port "gpu2-$n" build/native/bejeweled.exe ;;
 		esac
 	done
