@@ -91,10 +91,11 @@ NewUserDialog::NewUserDialog(ThunderballApp* theApp, bool theRename, bool theCer
 	DoNameWidthEnforce(mEditWidget);
 }
 
-// the edit widget is a child of the manager, not of the dialog, so the manager takes it off in RemovedFromManager; the dialog's
-// own children (buttons) are deleted by the widget container
+// 0x49e510: the dialog's own children (the certificate's OK button) go with it; the edit widget is the manager's child, taken off
+// in RemovedFromManager, and deleted here
 NewUserDialog::~NewUserDialog()
 {
+	RemoveAllWidgets(true, false);
 	delete mEditWidget;
 }
 

@@ -3,14 +3,10 @@
 // each with the line of ThunderballApp.cpp its call names.
 
 #include "Dialog.h"
-#include "EditWidget.h"
-#include "MainMenu.h"
-#include "NewUserDialog.h"
 #include "NotTranslated.h"
 #include "ThunderCommon.h"
 #include "ThunderDialog.h"
 #include "ThunderballApp.h"
-#include "WidgetManager.h"
 
 using namespace Sexy;
 
@@ -19,8 +15,6 @@ static const int CONFIRM_QUIT_X = 235;				// line 191
 static const int CONFIRM_QUIT_Y = 280;				// line 192
 static const int SCROLL_FROM_ABOVE = 1;
 static const int SCROLL_FROM_BELOW = -1;
-static const int CERTIFICATE_X = 30;				// lines 202 and 203: where the certificate of the first run comes to rest, when
-static const int CERTIFICATE_Y = 30;				// the main menu is up
 
 // 0x40c0a0
 Dialog* ThunderballApp::NewDialog(int theDialogId, bool isModal, const std::string& theDialogHeader,
@@ -72,89 +66,6 @@ void ThunderballApp::FinishConfirmQuitDialog(bool theYes)
 		DoScrollOff(DIALOG_CONFIRM_QUIT);
 }
 
-// 0x40c3b0: the certificate that asks for the first player's name. With a profile in use it can be cancelled.
-void ThunderballApp::DoCreateUserDialog()
-{
-	KillDialog(DIALOG_CREATE_USER);
-	NewUserDialog* aDialog = new NewUserDialog(this, false, true, mCurrentPlayer != nullptr);
-	int aWidth = aDialog->mWidth;
-	int aHeight = aDialog->GetPreferredHeight(aWidth);
-	if (GetDialogCount() == 0)
-		aDialog->Resize((mWidth - aWidth) / 2, (mHeight - aHeight) / 2, aWidth, aHeight);
-	else
-		PositionDialog(aDialog, aWidth, false, -1);
-	if (mMainMenu != nullptr)
-	{
-		aDialog->mX = CERTIFICATE_X;
-		aDialog->mY = CERTIFICATE_Y;
-	}
-	aDialog->DoScroll(SCROLL_FROM_ABOVE);
-	AddDialog(DIALOG_CREATE_USER, aDialog);
-}
-
-// 0x427830: OK (theYes) or Cancel of the new-user dialog. A name that is empty or taken brings up a message and keeps the dialog.
-void ThunderballApp::FinishCreateUserDialog(bool theYes)
-{
-	NewUserDialog* aDialog = static_cast<NewUserDialog*>(GetDialog(DIALOG_CREATE_USER));
-	if (aDialog == nullptr)
-		return;
-
-	std::string aName = aDialog->GetName();
-	bool aNameIsEmpty = aName.empty();
-	if (!theYes && mCurrentPlayer != nullptr)
-	{
-		// cancelled with a profile to go back to
-		DoScrollOff(DIALOG_CREATE_USER);
-		return;
-	}
-	if (!theYes || aNameIsEmpty)
-	{
-		// there is no profile to go back to, or OK with no name
-		DoDialogScroll(DIALOG_NAME_ERROR, true, "Enter Your Name",
-					   "Please enter your name to create a new user profile for storing high score data and game progress.", "OK",
-					   Dialog::BUTTONS_FOOTER);
-		return;
-	}
-
-	PlayerInfo* aProfile = mProfileMgr.AddProfile(aName);
-	if (aProfile == nullptr)
-	{
-		DoDialogScroll(DIALOG_NAME_ERROR, true, "Name Conflict",
-					   "The name you entered is already being used.  Please enter a unique player name.", "OK",
-					   Dialog::BUTTONS_FOOTER);
-		return;
-	}
-
-	mProfileMgr.Save();
-	if (mCurrentPlayer != nullptr)
-		mCurrentPlayer->SaveIfDirty();
-	mCurrentPlayer = aProfile;
-	if (mStatsMgr.mName.empty())
-		mStatsMgr.mName = aProfile->mName;
-	mWidgetManager->MarkAllDirty();
-	if (!aDialog->mCertificate)
-	{
-		DoScrollOff(DIALOG_USER);
-		DoScrollOff(DIALOG_CREATE_USER);
-	}
-	else
-		aDialog->StartStamp();
-	if (mMainMenu != nullptr)
-	{
-		mMainMenu->SyncPlayerInfo();
-		mWidgetManager->SetFocus(mMainMenu);
-	}
-}
-
-// 0x408500: the message about the name is closed and the name's box has the keys again
-void ThunderballApp::FinishNameErrorDialog(int theDialogId)
-{
-	DoScrollOff(theDialogId);
-	NewUserDialog* aDialog = static_cast<NewUserDialog*>(GetDialog(theDialogId != DIALOG_NAME_ERROR ? DIALOG_RENAME_USER : DIALOG_CREATE_USER));
-	if (aDialog != nullptr)
-		mWidgetManager->SetFocus(aDialog->mEditWidget);
-}
-
 // 0x4302a0: the dialogs that are not translated yet name their place
 void ThunderballApp::DialogButtonDepress(int theDialogId, int theButtonId)
 {
@@ -164,14 +75,22 @@ void ThunderballApp::DialogButtonDepress(int theDialogId, int theButtonId)
 	case DIALOG_CONFIRM_QUIT:
 		FinishConfirmQuitDialog(aYes);
 		return;
+	case DIALOG_CONFIRM_DELETE_USER:
+		FinishConfirmDeleteUserDialog(aYes);
+		return;
 	case DIALOG_CREATE_USER:
 		FinishCreateUserDialog(aYes);
+		return;
+	case DIALOG_RENAME_USER:
+		FinishRenameUserDialog(aYes);
+		return;
+	case DIALOG_USER:
+		FinishUserDialog(aYes);
 		return;
 	case DIALOG_NAME_ERROR:
 	case DIALOG_NAME_ERROR_2:
 		FinishNameErrorDialog(theDialogId);
 		return;
-	case DIALOG_CONFIRM_DELETE_USER:
 	case DIALOG_CONFIRM_MAIN_MENU:
 	case DIALOG_CONFIRM_RESTART_LEVEL:
 	case DIALOG_CONFIRM_NEW_CHALLENGE:
@@ -180,8 +99,6 @@ void ThunderballApp::DialogButtonDepress(int theDialogId, int theButtonId)
 	case DIALOG_TIP:
 	case DIALOG_HIGH_SCORE_ENTRY:
 	case DIALOG_OPTIONS:
-	case DIALOG_RENAME_USER:
-	case DIALOG_USER:
 	case 0x1b:
 	case 0x22:
 		NOT_TRANSLATED("ThunderballApp::DialogButtonDepress for this dialog");
@@ -231,9 +148,4 @@ void ThunderballApp::FinishOptionsDialog(bool theApply, bool theScrollOff)
 void ThunderballApp::DoOptionsDialog()
 {
 	NOT_TRANSLATED("ThunderballApp::DoOptionsDialog");
-}
-
-void ThunderballApp::DoUserDialog()
-{
-	NOT_TRANSLATED("ThunderballApp::DoUserDialog");
 }

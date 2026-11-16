@@ -9,7 +9,8 @@ Builds natively (`TARGET=peggle bash tools/build.sh native`). Runs to the main m
 ball and sparks, the bricks, pegs and fever stars made while it is up), "Click to play", the scroll to the main menu, the
 mascot's speech bubble that follows the mouse, the trophy, the dialogs that slide in on a chain, and the Demo (locked) and Quit
 questions, and the first run's certificate (the name is typed, Enter or the OK button takes it, the stamp comes down, the
-dialog slides out and the loading screen starts the adventure). Checked under rundesk with screenshots (`-script` with
+dialog slides out and the loading screen starts the adventure) and the list of players ("WHO ARE YOU?": choose with OK or a
+double click, rename, delete with its question, create a new one, the name errors). Checked under rundesk with screenshots (`-script` with
 `profile <name>`, `char`, `key RETURN`, `click`, `move`, `screenshot`). Nothing past the menu and the first run runs yet: every
 other screen stops with a message that names the function (`grep NOT_TRANSLATED games/peggle/src`); the first run ends at
 `StartAdventureGame`.
@@ -17,8 +18,9 @@ other screen stops with a message that names the function (`grep NOT_TRANSLATED 
 Translated: the framework glue (ThunderballApp's start-up, loading, music, screens' scroll, dialogs' frame), the data classes and
 managers (StringParser, ConfigParser, DataSync, GameStats, PlayerInfo, ProfileMgr, HighScoreMgr, StatsMgr, ImageMgr, CharacterMgr's
 file loader, TrophyMgr, StageMgr), BlendedImage, WidgetMover, ThunderButton / ThunderCheckbox / ThunderSlider / ThunderFrame,
-ThunderCommon (the button and edit factories, PositionDialog), ThunderDialog, LoadingScreen, MainMenu, NewUserDialog (with
-DoCreateUserDialog, FinishCreateUserDialog and FinishNameErrorDialog).
+ThunderCommon (the button and edit factories, PositionDialog), ThunderDialog, LoadingScreen, MainMenu, NewUserDialog and UserDialog (with the app's
+DoCreateUserDialog, FinishCreateUserDialog, FinishNameErrorDialog, DoUserDialog, FinishUserDialog, the rename and delete
+dialogs, CheckMaxStage; ProfileMgr's rename and delete).
 
 ## Left out of the port, by address
 
@@ -38,7 +40,8 @@ Registration, trial and outbound buttons are removed, not disabled (the register
 
 Numbers the original reads through `ModValInt` and that are 0, which switch a block off: ThunderDialog's swinging chain (line 851)
 and the bounce at the end of a slide (lines 846, 845); MainMenu's blink of the Adventure button for a new profile (line 516).
-Each is a constant folded away.
+UserDialog's first line "(Create a New User)" (line 935, a flag at +0x198 that is 0); NewUserDialog's frame of the edit box on the
+certificate (line 674). Each is a constant folded away.
 
 ## Deviations (each without a visible effect)
 
@@ -51,6 +54,8 @@ Each is a constant folded away.
 - The hidden sequence of the main menu (the notes of "Ode to Joy" by hover) stops counting at its end; the original goes on
   reading the table past its last entry (nothing can match it there).
 - `ThunderButton::mHoverSoundPitch`: the original does not set it for a button that has no hover sound (uninitialised); 0 here.
+- `FinishRenameUserDialog` saves the profile in use before renaming; the original calls the save without asking whether there is
+  one (a null `this`); the port skips it then. The dialog cannot be reached with none.
 - The debug keys of the original (Ctrl, H, D, A in the loading screen's debug mode) are kept.
 
 ## Fix candidates (for the fixes mod, not the port)
@@ -78,7 +83,7 @@ not translated yet). The rest of the standard set comes with the board.
    (PhysObj, Ball, CollisionMgr, LogicMgr's 99 functions, 57 KB, the largest part), then the Board's rules (83 functions, 34 KB),
    the effects (Effect 47, EffectMgr, FloatingText), InterfaceMgr's drawing and CharacterMgr's animation. About 220 KB of the
    original's code in all.
-2. The dialogs and screens that the menu leads to: UserDialog (the player list) and its rename and delete questions, OptionsDialog, LevelScreen,
+2. The dialogs and screens that the menu leads to: OptionsDialog, LevelScreen,
    AdventureScreen, StoryScreen, TrophyScreen, HelpScreen, CharacterDialog, EndLevelDialog, SlotMachineDialog, the replay
    dialogs; `MainMenu::DrawTrophyEffect` (an x87 particle effect: 0x494b50).
 3. Replays and the bot (AIMgr, AIBall) for the Demo and the Masters, then the test commands and `move`.

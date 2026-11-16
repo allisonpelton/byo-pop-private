@@ -133,6 +133,12 @@ public:
 	void DoCreateUserDialog();					  // 0x40c3b0: the certificate of the first run
 	void FinishCreateUserDialog(bool theYes);	  // 0x427830: OK or Cancel of the new-user dialog
 	void FinishNameErrorDialog(int theDialogId);  // 0x408500: closes the "Enter Your Name" or "Name Conflict" dialog
+	void FinishUserDialog(bool theYes);			  // 0x427720: OK or Cancel of the list of players
+	void DoRenameUserDialog(const std::string& theName); // 0x40c4d0
+	void FinishRenameUserDialog(bool theYes);	  // 0x427b90
+	void DoConfirmDeleteUserDialog(const std::string& theName); // 0x41d260
+	void FinishConfirmDeleteUserDialog(bool theYes); // 0x41d3d0
+	void CheckMaxStage();						  // 0x405aa0
 	void DoConfirmQuitDialog();					  // 0x41c960
 	void FinishConfirmQuitDialog(bool theYes);	  // 0x4084a0
 	void CleanupScreen(Widget* theScreen);		  // 0x4234f0: takes the screen off the manager and deletes it
@@ -160,6 +166,8 @@ public:
 	int mGameMode = GAME_MODE_NONE;	 // +0x760
 	int mStartStage = 0;			 // +0x764: the stage a game starts at
 	int mStartLevel = 0;			 // +0x768
+	int mMaxStage = 0;				 // +0x770: the furthest stage any profile in use has reached (CheckMaxStage raises it)
+	int mMaxLevel = 0;				 // +0x774: and the furthest level of that stage
 	bool mLevelMusicPending = false; // +0x779: the level music is still to be loaded
 	int mCurMusic = -1;				 // +0x77c: what PlayMusic was last told to play
 	int mNextLevelMusicId = 1;		 // +0x780: the music slot the next level music gets

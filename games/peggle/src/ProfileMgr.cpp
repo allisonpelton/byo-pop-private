@@ -113,3 +113,38 @@ PlayerInfo* ProfileMgr::AddProfile(const std::string& theName)
 	aProfile->mUseSeq = mNextUseSeq++;
 	return aProfile;
 }
+
+// 0x471640: a profile keeps its details (they are copied to the entry of the new name, which is where the list puts it) and
+// its files. Only the letters' case changing leaves the entry where it is.
+bool ProfileMgr::RenameProfile(const std::string& theOldName, const std::string& theNewName)
+{
+	ProfileMap::iterator anOld = mProfiles.find(theOldName);
+	if (anOld == mProfiles.end())
+		return false;
+
+	PlayerInfo* aRenamed;
+	if (sexy_stricmp(theOldName.c_str(), theNewName.c_str()) == 0)
+		aRenamed = &anOld->second;
+	else
+	{
+		std::pair<ProfileMap::iterator, bool> anInsert = mProfiles.insert(std::make_pair(theNewName, anOld->second));
+		if (!anInsert.second)
+			return false; // there is one of that name
+		mProfiles.erase(anOld);
+		aRenamed = &anInsert.first->second;
+	}
+	aRenamed->mName = theNewName;
+	return true;
+}
+
+// 0x4526b0, with the erase of 0x452670 that deletes the profile's files first
+bool ProfileMgr::DeleteProfile(const std::string& theName)
+{
+	ProfileMap::iterator aProfile = mProfiles.find(theName);
+	if (aProfile == mProfiles.end())
+		return false;
+
+	aProfile->second.DeleteUserFiles();
+	mProfiles.erase(aProfile);
+	return true;
+}
