@@ -611,11 +611,12 @@
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
       "done": [
-        "port"
+        "port",
+        "identical-play"
       ],
       "na": [],
-      "now": "identical-play",
-      "note": "first playable merged (012bf8ef): every mode played by the bot through real input natively and on the web; the last city, the won story and a real game over not reached yet; nothing compared with the original yet"
+      "now": "identical-look",
+      "note": "logic phase done (3b29ffd9): play1, long1, long2 (1200 moves to a lost level in the second city), mem1, mem2, conc1, conc2 and edit1 match the original on every compared value and the random draws' order; frozen baseline build/baseline-pizzafrenzy from this merge"
     },
     "igglepop": {
       "title": "Iggle Pop Deluxe",

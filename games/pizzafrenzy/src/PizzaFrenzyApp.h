@@ -65,6 +65,9 @@ public:
 	int mFrames;             // port: the engine's frames
 	uint64_t mEngineClock;   // port: -fast: the engine's ticks, one frame period a frame
 	bool mGameSeen = false;  // port (test commands): the state has shown a game's screen, so the menu is its end
+	// port: -statelog=<file>, the values the identical-play runs compare with the original's (LogState)
+	FILE* mStateLog = nullptr;
+	std::vector<std::string> mLoggedState;  // port: the values the state log last wrote
 
 	PizzaFrenzyApp();
 	~PizzaFrenzyApp() override;
@@ -87,6 +90,9 @@ public:
 	// port: the state command's JSON, and the move command's line (the bot's next move, or "null")
 	std::string TestState();
 	std::string TestMove();
+	// port: -statelog: "<frame> <name> <value>" for each value that changed since the last line (the names of
+	// games/pizzafrenzy/tools/identical/case.sh), floats as their bits, "-" for a value that does not exist
+	void LogState();
 
 	// A frame of the engine (0x4bd210); an exception the original would not survive ends the program
 	void RunFrame();

@@ -5,6 +5,7 @@
 // out), and then plays; the level ends with the prize blimp when every pizza was delivered, and with its title, which
 // the application takes on to the level's results or the game's end.
 
+#include "BurstText.h"
 #include "GameMode.h"
 #include "PrizeBlimp.h"
 #include "State.h"
@@ -75,11 +76,9 @@ private:
 };
 
 // The level's title (0x24 bytes, constructor 0x456660, vtable 0x500c64): the tip jar's roll stops, the level is
-// finished, and the game screen stops taking the mouse while the title shows; then the application is told "levelEnd",
-// or "gameOver" when the happiness ran out
-//
-// Left out: the title itself, the burst text (class 0x42b800, made in 0x458490 and let go in 0x45c240), which says the
-// level is complete (the string table's 0xd0, with the prize blimp's flight 0xd1) or the game is over (0xd2)
+// finished, and the game screen stops taking the mouse while the title (BurstText.h) shows and its letters burst;
+// then the application is told "levelEnd", or "gameOver" when the happiness ran out. The title says the level is
+// complete (the string table's 0xd0, or 0xd1 when every pizza ordered was delivered) or the game is over (0xd2).
 class ModeEndState : public engine::State
 {
 public:
@@ -91,11 +90,14 @@ public:
 
 	// 0x04: 0x458490
 	void enter() override;
+	// 0x08: 0x45c240: the title is let go
+	void exit() override { mTitle->addOwnFlags(engine::NODE_REMOVE); }
 	// 0x0c: 0x4587a0
 	void update(engine::UpdateInfo& theInfo) override;
 
 private:
 	GameMode* mMode;      // +0x0c
+	engine::Ref<BurstText> mTitle;  // +0x10
 	float mTimeLeft;      // +0x14
 	bool mTitleLeaving;   // +0x18: the title has been shown and goes
 	bool mGameOver;       // +0x19

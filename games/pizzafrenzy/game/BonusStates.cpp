@@ -15,6 +15,11 @@ const char* const ACTION_PAUSE_GAME = "pauseGame";
 const char* const ACTION_BLUR = "blur";
 const char* const ACTION_MENU = "menu";
 const char* const ACTION_LEVEL_END = "levelEnd";
+// the round's end titles
+const int STRING_ROUND_MISSED = 0xd0;
+const int STRING_ROUND_PERFECT = 0xd1;
+const int STRING_ROUND_OVER = 0xd9;
+const int STRING_ROUND_NO_TIME = 0xda;
 
 // The seconds left at which the waiting sound starts
 const float HURRY_SECONDS = 5.0f;
@@ -213,11 +218,23 @@ void BonusNextPizzaState::update(engine::UpdateInfo& theInfo)
 	}
 }
 
-// 0x45d1b0: the title is made here (the burst text 0x42b800): left out
+// 0x45d1b0
 void BonusEndState::enter()
 {
 	PizzaFrenzy* anApp = PizzaFrenzy::instance();
 	mGame->mPlaying = false;
+	GameStats* aStats = mGame->getStats();
+	int aText;
+	if (aStats->mBonusSecondsLeft == 0)
+		aText = STRING_ROUND_NO_TIME;
+	else if (0 < aStats->mMissedToppings)
+		aText = STRING_ROUND_MISSED;
+	else if (aStats->mMissedToppings == 0 && aStats->mOkayToppings == 0 && aStats->mGoodToppings == 0 &&
+		0 < aStats->mPerfectToppings)
+		aText = STRING_ROUND_PERFECT;
+	else
+		aText = STRING_ROUND_OVER;
+	mTitle = makeEndTitle(mGame->mScreen, aText);
 	mTitleLeaving = false;
 	mTimer = TITLE_SHOWN_SECONDS;
 	mGame->finishLevel();
@@ -225,8 +242,7 @@ void BonusEndState::enter()
 	anApp->mMusicPlayer->play(anApp->mTileManifest->getMusic(MUSIC_LEVEL_COMPLETE));
 }
 
-// 0x45d4b0: the title shows and then goes (its letters leave in 0x42b460, left out with it), and the application is
-// told the level is over
+// 0x45d4b0: the title shows and then its letters leave, and the application is told the level is over
 void BonusEndState::update(engine::UpdateInfo& theInfo)
 {
 	mTimer = mTimer - theInfo.mSeconds;
@@ -234,6 +250,7 @@ void BonusEndState::update(engine::UpdateInfo& theInfo)
 	{
 		if (mTimer < 0.0f)
 		{
+			mTitle->leave();
 			mTitleLeaving = true;
 			mTimer = TITLE_LEAVING_SECONDS;
 		}

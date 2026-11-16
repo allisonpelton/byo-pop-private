@@ -60,7 +60,7 @@ installed copy (for example from Steam):
 | [Venice Deluxe](games/venice/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-12 | 2 | $335 | $11 | | $346 |
 | [Heavy Weapon Deluxe](games/heavyweapon/docs/IDENTICAL_PLAY.md) | Opus | Every phase but modding | 2026-11-12 | 2 | $332 | $19 | | $351 |
 | [Hammer Heads Deluxe](games/hammerheads/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-13 | 2 | $320 | $6 | | $325 |
-| [Pizza Frenzy](games/pizzafrenzy/docs/README.md) | Opus | Ported | 2026-11-15 | | $305 | | | $305 |
+| [Pizza Frenzy](games/pizzafrenzy/docs/README.md) | Opus | Plays identical | 2026-11-15 | | $305 | | | $305 |
 | Iggle Pop Deluxe, Feeding Frenzy Deluxe | | Not started: once every game above is done | | | under $1 each | | | |
 | Chuzzle Deluxe, Feeding Frenzy 2, Peggle Deluxe, Peggle Nights, Bejeweled 3, Banana Bugs, Gyromancer, Zuma's Revenge, Talismania Deluxe | | After those, two at a time | | | $19 | | | $19 |
 | Shared framework, tools and coordination | | | | | $2,019 | $267 | $1,164 | $3,451 |

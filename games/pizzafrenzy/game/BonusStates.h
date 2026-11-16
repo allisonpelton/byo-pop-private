@@ -6,6 +6,7 @@
 // state that holds the round (0x402a40).
 
 #include "BonusGame.h"
+#include "BurstText.h"
 #include "PizzaFrenzy.h"
 #include "State.h"
 
@@ -84,12 +85,10 @@ private:
 	int mCount;        // +0x2c: the target toppings
 };
 
-// The round's end (0x24 bytes, constructor 0x45c3c0): the title shows for two and a half seconds and goes for two,
-// and the application is told the level is over
-//
-// Left out, as the speed mode's ModeEndState leaves it: the title (the burst text 0x42b800, made in 0x45d1b0 and let
-// go in 0x45d4b0), which says the round is over (the string table's 0xda for a round with no seconds left, 0xd0 with
-// a topping missed, 0xd1 with every topping perfect, 0xd9 otherwise)
+// The round's end (0x24 bytes, constructor 0x45c3c0, vtable 0x500f8c): the title (BurstText.h) shows for two and a
+// half seconds and its letters burst and go for two, and the application is told the level is over. The title says
+// the round is over (the string table's 0xda for a round with no seconds left, 0xd0 with a topping missed, 0xd1 with
+// every topping perfect, 0xd9 otherwise).
 class BonusEndState : public engine::State
 {
 public:
@@ -97,11 +96,14 @@ public:
 
 	// 0x04: 0x45d1b0
 	void enter() override;
+	// 0x08: 0x45c240 (ModeEndState's): the title is let go
+	void exit() override { mTitle->addOwnFlags(engine::NODE_REMOVE); }
 	// 0x0c: 0x45d4b0
 	void update(engine::UpdateInfo& theInfo) override;
 
 private:
 	BonusGame* mGame;     // +0x0c
+	engine::Ref<BurstText> mTitle;  // +0x10
 	float mTimer;         // +0x14
 	bool mTitleLeaving;   // +0x18
 };

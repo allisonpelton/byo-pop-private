@@ -146,6 +146,10 @@ stays.
   the original writes them beside its exe. A missing file is read as no pizzas, and the first pizza gets id 0.
 - **A pizza's name with a double quote** is saved with an apostrophe in its place, so that the file stays valid XML;
   what the original does with one has not been checked yet.
+- **The global score post's loading frame** stays, empty: the original makes the post's screen in a stage of its own
+  (the load bar at 0.8), and the port keeps that frame with nothing in it, so the loading takes the original's frames.
+- **The game's end goes to the menu** at once: the original opens the global score post's dialog there first (a state
+  of its own, until the player closes it), which the port does not have.
 
 ## Progress
 
@@ -158,8 +162,9 @@ seed give the same transcripts. `tools/suite/suite.sh` is the check suite (the s
 each twice, and against a frozen baseline when there is one; about three minutes). The page check
 (`tools/web/pagecheck.js`) passes 11 of 11: losing the focus shows the pause menu and stops the clock in the port and
 on the page alike, and the game stays paused when the focus comes back (to compare with the original). Not reached
-yet: the last city and the game's won story; a game over only through the `lose` command. Nothing has been compared
-with the original yet: the logic phase and the looks phase come next.
+yet: the last city and the game's won story; a game over only through the `lose` command. The logic phase is under
+way (`IDENTICAL_PLAY.md`): the speed mode's first three levels, its bonus round and the second city's start play out
+the same as the original's, value for value and draw for draw.
 
 The engine's signal build is translated as far as the splash screen and the layouts need: the application's signals
 and run loop, the scene, states, the generic screen with its transitions, the screen manager, the settings, the sound
@@ -231,6 +236,10 @@ The standard commands of `docs/TEST_COMMANDS.md` (`-script`, `-commands`, the we
   every pizza ordered counted as delivered, so `checkLevelEnd` (0x456ac0) takes the prize blimp's path at its next
   update; `lose` takes the happiness away, which it ends the game on.
 - `seed <n>`: `engine::crtSrand`, as `-seed=N` seeds the game.
+- `botmode speed|memory|concentration|editor`: the mode whose button the bot's `move` clicks on the main menu (the
+  mode the game was last in until it is sent), or with `editor` the design button (it opens the editor only for a
+  player with five toppings); it changes nothing in the game, so a case recorded from a first launch can play the
+  memory or the concentration mode, or design a pizza, with real input alone.
 - `move`: the bot's next move, below.
 - `memreport`: the framework's, with the engine's pictures and sounds added (`AddMemReportHolders`).
 

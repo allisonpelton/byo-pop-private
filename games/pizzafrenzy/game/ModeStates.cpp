@@ -25,6 +25,9 @@ const char* const MUSIC_LEVEL_COMPLETE = "music_levelComplete";
 const char* const MUSIC_GAME_OVER = "music_gameOver";
 const char* const ACTION_LEVEL_END = "levelEnd";
 const char* const ACTION_GAME_OVER = "gameOver";
+const int STRING_LEVEL_COMPLETE = 0xd0;
+const int STRING_LEVEL_PERFECT = 0xd1;
+const int STRING_GAME_OVER = 0xd2;
 }
 
 // 0x45a1a0
@@ -125,7 +128,12 @@ void ModeEndState::enter()
 	PizzaFrenzy* anApp = PizzaFrenzy::instance();
 	if (mMode->getHud() != nullptr)
 		mMode->getHud()->stopTipJar();
-	// the title is made here (the burst text 0x42b800, over the screen's top centre): left out
+	int aText = STRING_LEVEL_COMPLETE;
+	if (mGameOver)
+		aText = STRING_GAME_OVER;
+	else if (mMode->getStats()->mPizzasDelivered == mMode->getStats()->mPizzasOrdered)
+		aText = STRING_LEVEL_PERFECT;
+	mTitle = makeEndTitle(mMode->getScreen(), aText);
 	mTitleLeaving = false;
 	mTimeLeft = TITLE_SHOWN_SECONDS;
 	mMode->finishLevel();
@@ -133,8 +141,7 @@ void ModeEndState::enter()
 	anApp->mMusicPlayer->play(anApp->mTileManifest->getMusic(mGameOver ? MUSIC_GAME_OVER : MUSIC_LEVEL_COMPLETE));
 }
 
-// 0x4587a0: the title shows and then goes (its letters leave in 0x42b460, left out with it), and the application is
-// told the level is over
+// 0x4587a0: the title shows and then its letters leave, and the application is told the level is over
 void ModeEndState::update(engine::UpdateInfo& theInfo)
 {
 	mTimeLeft = mTimeLeft - theInfo.mSeconds;
@@ -142,6 +149,7 @@ void ModeEndState::update(engine::UpdateInfo& theInfo)
 	{
 		if (mTimeLeft < 0.0f)
 		{
+			mTitle->leave();
 			mTitleLeaving = true;
 			mTimeLeft = TITLE_LEAVING_SECONDS;
 		}

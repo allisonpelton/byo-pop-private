@@ -566,8 +566,8 @@ bool GameMode::hasPendingSpecialOrder()
 	}
 	if (aFound)
 		return true;
-	for (std::list<engine::Ref<Order>>::iterator anIter = mActiveOrders.begin(); anIter != mActiveOrders.end();
-	     ++anIter)
+	// the wave's orders not placed yet (+0xc0)
+	for (std::list<engine::Ref<Order>>::iterator anIter = mWaveOrders.begin(); anIter != mWaveOrders.end(); ++anIter)
 	{
 		if ((*anIter)->mEvent != nullptr && !(*anIter)->mEvent->mDeliver)
 			return true;
