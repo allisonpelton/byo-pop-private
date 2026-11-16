@@ -149,6 +149,18 @@ stays.
 
 ## Progress
 
+Where it stands (2026-11-15), the paragraphs after this one being the history: every mode plays, natively under
+rundesk and on the web. The bot (`move`, "Test commands") plays from a first launch (it names the new player) through
+the menu, the stories, the new toppings, the van choice, the levels and their summaries and the bonus rounds: the speed
+mode through the first five cities into the sixth in 3000 moves, the memory and the concentration modes from the menu
+to Riverdale's third level in 800, and the designer and the editor make, name, save and load a pizza. Runs with the same
+seed give the same transcripts. `tools/suite/suite.sh` is the check suite (the speed, memory and concentration modes,
+each twice, and against a frozen baseline when there is one; about three minutes). The page check
+(`tools/web/pagecheck.js`) passes 11 of 11: losing the focus shows the pause menu and stops the clock in the port and
+on the page alike, and the game stays paused when the focus comes back (to compare with the original). Not reached
+yet: the last city and the game's won story; a game over only through the `lose` command. Nothing has been compared
+with the original yet: the logic phase and the looks phase come next.
+
 The engine's signal build is translated as far as the splash screen and the layouts need: the application's signals
 and run loop, the scene, states, the generic screen with its transitions, the screen manager, the settings, the sound
 manager, the layout reader's elements and their widgets, the players and the local scoreboards. The game has its
