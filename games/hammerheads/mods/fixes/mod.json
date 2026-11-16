@@ -7,9 +7,9 @@
   "settings": [
     { "id": "quitEscape", "label": "Escape closes the quit box", "type": "bool", "default": true,
       "help": "The box that asks whether you want to quit answers nothing to the Escape key, while the options box answers it as Done. On: Escape answers No and the box goes away. Nothing else changes." },
-    { "id": "menuTrophySting", "label": "The trophy room is quiet from the main menu", "type": "bool", "default": true,
+    { "id": "menuTrophySting", "label": "Quiet trophy room from the main menu", "type": "bool", "default": true,
       "help": "The trophy room announces a new trophy with a sting. The original plays the sting every time the room opens, from the main menu too, where nothing is announced. On: the sting plays only when a game awards a trophy." },
-    { "id": "restartCoinCount", "label": "A restart point's coins sit in the middle", "type": "bool", "default": true,
+    { "id": "restartCoinCount", "label": "Centre a restart point's coins", "type": "bool", "default": true,
       "help": "On a restart point's card the coin and its number are meant to be centred, but the original measures the number in the font of the line above (a different one from the one it draws it in), so the pair sits a little to one side. On: the number is measured in the font it is drawn in." }
   ]
 }
