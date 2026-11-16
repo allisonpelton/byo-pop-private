@@ -533,7 +533,7 @@ void Poly::SyncCommon(DataSync& theSync, bool theSyncPoints)
 
 	bool aHasMover = mMover != nullptr;
 	bool aHasNormalDir = mNormalDir != 1;
-	bool aHasRotation = mRotation != 0 && !aHasMover;
+	bool aHasRotation = mRotation != 0 && aHasMover; // a piece without a mover keeps its turn in its points, so only a mover's is saved (and read back from the mover)
 	bool aHasAngularVelocity = mAngularVelocity != 0;
 	bool aHasPosition = !aHasMover;
 	bool aHasScale = mScale != 1.0f && gSyncMode == SYNC_LEVEL_FLAGGED;
@@ -577,7 +577,8 @@ void Poly::SyncCommon(DataSync& theSync, bool theSyncPoints)
 	{
 		if (aHasMover)
 		{
-			mRotation = mMover->mAngle;
+			if (!gSyncKeepSavedRotation)
+				mRotation = mMover->mAngle;
 			mX = mMover->mX;
 			mY = mMover->mY;
 		}

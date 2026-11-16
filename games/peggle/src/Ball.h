@@ -1,5 +1,5 @@
-// Ball.h: a round piece of a level (the original's Sexy::Ball): a peg (class 4, mKind 2) or the ball in play (class 5, mKind 3,
-// the cannon's ball, the bonus balls and the hat of a ball). It has a position, a speed and a radius, and what the logic and the
+// Ball.h: a round piece (the original's Sexy::Ball): a round peg of a level (class 5, mKind 3, made by Ball(true)) or a ball in
+// play (class 4, mKind 2, made by Ball(false): the cannon's ball, the bonus balls and the hat of a ball). It has a position, a speed and a radius, and what the logic and the
 // physics keep on it. Only the loading is translated so far: the physics (Update, DoCollideUpdate, CheckCollision), the
 // drawing and the hat's board calls are not, and the fields the physics reads still carry the interim names mUnknownNNN
 // (the offset in the original) until it is.
@@ -15,10 +15,10 @@ namespace Sexy
 class Ball : public PhysObj
 {
 public:
-	Ball(bool theIsBall = false); // 0x480de0: a peg when false, a ball when true
+	Ball(bool theIsPeg = false); // 0x480de0: the ball that is shot when false, a round peg when true
 
 	void SyncState(DataSync& theSync) override;					 // 2, 0x483410
-	int GetClass() const override { return mKind != KIND_PEG ? CLASS_BALL : CLASS_PEG; } // 3, 0x4547a0
+	int GetClass() const override { return mKind != KIND_SHOT_BALL ? CLASS_PEG : CLASS_SHOT_BALL; } // 3, 0x4547a0
 	void SetPos(float theX, float theY) override;				 // 17, 0x474e60
 	void Translate(float theDeltaX, float theDeltaY) override;	 // 18, 0x474eb0
 	void SetVelocity(float theDeltaX, float theDeltaY) override; // 19, 0x475600
@@ -35,23 +35,23 @@ public:
 	void SetAbsPos(float theX, float theY);		   // 0x474dd0: puts the ball there as if it had always been
 	void SetHat(bool theHasHat, bool theMakeBall); // 0x480f50: gives the ball a hat, or takes it off
 
-	int mUnknownE4;			  // +0xe4: saved by a peg
+	int mUnknownE4;			  // +0xe4: saved by a ball in play
 	int mBallId;			  // +0xe8: the number the piece was made with (saved from the version 0x18 on)
 	float mX;				  // +0xec: the middle of the ball
 	float mY;				  // +0xf0
-	float mPreviousX;		  // +0xf4: the place at the start of the update (a peg saves it)
+	float mPreviousX;		  // +0xf4: the place at the start of the update (a ball in play saves it)
 	float mPreviousY;		  // +0xf8
 	float mVelocityX;		  // +0xfc: the speed, in pixels an update
 	float mVelocityY;		  // +0x100
 	float mUnknown104;		  // +0x104: the place when the piece was read, and where SetHat puts the hat's goal
 	float mUnknown108;		  // +0x108
-	float mUnknown10C;		  // +0x10c: saved by a peg
+	float mUnknown10C;		  // +0x10c: saved by a ball in play
 	float mUnknown110;		  // +0x110
-	float mUnknown114[8];	  // +0x114: four pairs, saved by a peg of the version 12 on
+	float mUnknown114[8];	  // +0x114: four pairs, saved by a ball in play of the version 12 on
 	float mUnknown134;		  // +0x134: SetAbsPos sets these two to the place
 	float mUnknown138;		  // +0x138
 	float mRadius;			  // +0x13c
-	bool mIsBall;			  // +0x140: the constructor's argument, saved
+	bool mIsPeg;			  // +0x140: the constructor's argument, saved
 	bool mUnknown142;		  // +0x142
 	bool mUnknown143;		  // +0x143
 	bool mUnknown144;		  // +0x144

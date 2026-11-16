@@ -24,9 +24,9 @@ PhysObj* Sexy::MakePhysObj(int theClass)
 		return new Line();
 	case CLASS_POLY:
 		return new Poly();
-	case CLASS_PEG:
+	case CLASS_SHOT_BALL:
 		return new Ball(false);
-	case CLASS_BALL:
+	case CLASS_PEG:
 		return new Ball(true);
 	case CLASS_BRICK:
 		return new Brick();

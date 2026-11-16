@@ -38,6 +38,7 @@ public:
 	const std::vector<uint8_t>& GetWrittenData() const { return mWritten; }
 
 	bool IsReading() const { return mReading; } // the original's mReader pointer being set (0x4)
+	size_t GetBytesRead() const { return mReadPos; } // how far reading has got (for a test that checks the whole file was used)
 
 	// 0x4ba810 - 0x4ba9b0: each reads into or writes out its value, whichever way the DataSync runs
 	void SyncLong(int& theValue);

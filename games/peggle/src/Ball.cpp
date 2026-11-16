@@ -12,14 +12,14 @@ static const float DEFAULT_RADIUS = 6.0f;		// the original's global at 0x649d78 
 static const int NO_TIMER = 1000000;			// mUnknown148 until set
 static const int NO_VALUE_158 = -1000;			// mUnknown158 until set
 static const int DEFAULT_180 = 10000;			// mUnknown180 until set
-static const int VERSION_PEG_ROW = 12;			// the files from this version on keep four pairs of floats for a peg
+static const int VERSION_PEG_ROW = 12;			// the files from this version on keep four pairs of floats for a ball in play
 static const int VERSION_PEG_FLAGS = 13;		// ... and a run of flags
 static const int VERSION_BALL_ID = 24;			// ... and the number of the piece
 static const int VERSION_PEG_FLAGS_2 = 30;		// ... and a second run of flags
 static const int VERSION_UNKNOWN_180 = 63;		// ... and a third number of the group at 0x178
 
 // 0x480de0
-Ball::Ball(bool theIsBall)
+Ball::Ball(bool theIsPeg)
 {
 	mUnknownE4 = 0;
 	mUnknown10C = 0;
@@ -29,8 +29,8 @@ Ball::Ball(bool theIsBall)
 	mUnknown168 = 0;
 	mUnknown16C = 0;
 	mBallId = mSerialNumber;
-	mIsBall = theIsBall;
-	mKind = theIsBall ? KIND_BALL_3 : KIND_PEG;
+	mIsPeg = theIsPeg;
+	mKind = theIsPeg ? KIND_PEG : KIND_SHOT_BALL;
 	mRadius = DEFAULT_RADIUS;
 	mUnknown14C = 0;
 	mUnknown150 = 0;
@@ -89,7 +89,7 @@ void Ball::SyncState(DataSync& theSync)
 	bool aHas158 = mUnknown158 != NO_VALUE_158;
 	bool aHas154 = mUnknown154 != 0;
 
-	theSync.SyncBoolBit(mIsBall);
+	theSync.SyncBoolBit(mIsPeg);
 	theSync.SyncBoolBit(aHasPosition);
 	theSync.SyncBoolBit(aHasTimer);
 	theSync.SyncBoolBit(mUnknown160);
@@ -113,7 +113,7 @@ void Ball::SyncState(DataSync& theSync)
 	}
 	theSync.SyncFloat(mRadius);
 
-	if (mKind == KIND_PEG)
+	if (mKind == KIND_SHOT_BALL)
 	{
 		theSync.SyncFloat(mPreviousX);
 		theSync.SyncFloat(mPreviousY);

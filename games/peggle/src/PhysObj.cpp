@@ -14,6 +14,7 @@ using namespace Sexy;
 
 int Sexy::gSyncMode = 0;
 bool Sexy::gSyncNoImages = false;
+bool Sexy::gSyncKeepSavedRotation = false;
 
 static int gPhysObjCount = 0; // 0x650a68
 
@@ -133,7 +134,7 @@ unsigned int PhysObj::GetTypeFlags() const
 		aFlags = 0x1000;
 	else
 		aFlags = 1;
-	if (mKind == KIND_PEG || mKind == KIND_BALL_3)
+	if (mKind == KIND_SHOT_BALL || mKind == KIND_PEG)
 		aFlags |= 2;
 	else
 		aFlags |= 0x2000;

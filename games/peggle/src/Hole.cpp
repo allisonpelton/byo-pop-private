@@ -14,7 +14,7 @@ static const int DEFAULT_HEIGHT = 20;
 // 0x4810e0
 Hole::Hole()
 {
-	mKind = KIND_BALL;
+	mKind = KIND_HOLE;
 	mOutDelay = 0;
 	mFlashTimer = 0;
 	mScore = 0;

@@ -25,8 +25,8 @@ enum PhysObjClass
 	CLASS_PHYSOBJ = 1,
 	CLASS_LINE = 2,
 	CLASS_POLY = 3,
-	CLASS_PEG = 4,	// a Ball of the kind PEG_KIND_PEG
-	CLASS_BALL = 5, // a Ball of any other kind
+	CLASS_SHOT_BALL = 4, // a Ball(false): the ball the cannon shoots (the kind KIND_SHOT_BALL)
+	CLASS_PEG = 5,		 // a Ball(true): a round peg of a level (the kind KIND_PEG)
 	CLASS_BRICK = 6,
 	CLASS_GUN = 7,
 	CLASS_HOLE = 8
@@ -36,9 +36,9 @@ enum PhysObjClass
 enum PhysObjKind
 {
 	KIND_PLAIN = 0, // a PhysObj as such
-	KIND_BALL = 1,
-	KIND_PEG = 2,	// a circle that is hit
-	KIND_BALL_3 = 3,
+	KIND_HOLE = 1,
+	KIND_SHOT_BALL = 2, // a ball in play: it moves, so it is saved with its speed and its hat
+	KIND_PEG = 3,		// a round peg of a level
 	KIND_LINE = 4,
 	KIND_POLY = 5
 };
@@ -135,6 +135,7 @@ enum SyncMode
 };
 extern int gSyncMode;			// 0x650a5c
 extern bool gSyncNoImages;		// 0x650a60: when set a piece does not load its picture as it is read
+extern bool gSyncKeepSavedRotation; // test only: a piece with a mover keeps the rotation the file gave it (the original's reader replaces it with the mover's)
 
 } // namespace Sexy
 
