@@ -40,7 +40,7 @@ installed copy (for example from Steam):
 | [Atomica Deluxe](games/atomica/docs/README.md) | Sonnet | Every phase but modding | 2026-10-25 | 1 | $332 | $13 | | $344 |
 | [Mummy Maze Deluxe](games/mummymaze/docs/README.md) | Sonnet | Every phase but modding | 2026-10-25 | 2 | $295 | $25 | | $319 |
 | [TipTop Deluxe](games/tiptop/docs/README.md) | Opus | Every phase but modding | 2026-10-25 | 1 | $281 | $2 | | $283 |
-| [Bookworm Adventures Deluxe](games/bookwormadv/docs/README.md) | Opus | Performance | 2026-10-25 | | $880 | $2 | | $882 |
+| [Bookworm Adventures Deluxe](games/bookwormadv/docs/README.md) | Opus | Every phase but modding | 2026-10-25 | | $880 | $2 | | $882 |
 | [Ning Po Mahjong Deluxe](games/ningpo/docs/README.md) | Opus | Every phase but modding | 2026-10-26 | | $161 | | | $161 |
 | [Pixelus Deluxe](games/pixelus/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | | $344 | | | $344 |
 | [Alchemy Deluxe](games/alchemy/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | 1 | $228 | $16 | | $244 |
