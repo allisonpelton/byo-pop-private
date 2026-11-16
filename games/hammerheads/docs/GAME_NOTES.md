@@ -182,9 +182,10 @@ A crash found by the `dialogs` run: the change-player box ("If this is not you, 
 `UserDialog` never set the lines' font that `Dialog::Draw` measures (the original's box has the framework's default font, which the
 port's `Dialog` does not make). Found with AddressSanitizer (`build/asan-hh`), fixed in the constructor.
 
-Defined in the port and never reached in these runs: 139 functions. About 45 are the gnomes' `LoadExtra` and `SaveExtra`
-properties (0x435de0 and the like), read only for the per-object extras of a board file, and the boards of the original have none
-(candidates for taking out, with the readers they call); about 35 are the Application's dialog plumbing for the Resurrect page, the
-credits, the rename and delete boxes of the player list and the high score entry box (rare flows, still to be given runs); the rest
-are small drawing and update helpers of the shop's gift box, the rotating floater, the hammer display and the challenge meter that
-only certain rounds reach. Not removed.
+Defined in the port and never reached in these runs: 137 functions. 35 are the gnomes' and shop items' `SaveExtra` and `LoadExtra`
+(vf09 and vf10, 0x435de0 and the like), read and written only for the per-object extras of a board file, which the boards of the
+original do not have (candidates for taking out, with the helpers only they call); 14 are Application functions at 0x41e960-0x422460
+(the dialog and screen plumbing of rare flows); 21 are in the Resurrect page, the credits, the player list's rename and delete, the
+quit and options boxes' rarer paths; the rest are small drawing and update helpers of the shop's gift box, the rotating floater, the
+hammer display, the challenge meter and the high score entry box, which only certain rounds reach. None is removed or read again
+yet; the rare flows still need runs of their own.
