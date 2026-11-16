@@ -7,6 +7,7 @@
 // start the scene, the screen manager, the two named containers and the first state.
 
 #include "Container.h"
+#include "GameData.h"
 #include "GenericScreen.h"
 #include "Scene.h"
 #include "State.h"
@@ -48,6 +49,7 @@ public:
 
 	engine::Ref<engine::Scene> mScene;                 // +0x20
 	engine::Ref<ScreenMgr> mScreenMgr;                 // +0x24
+	engine::Ref<GameData> mGameData;                   // +0x3c: made by the splash's loader
 	engine::Ref<engine::Container> mContainerSlot;     // +0x44: "ContainerSlot", in the scene
 	engine::Ref<engine::Container> mStageContainer;    // +0x48: "StageContainer"
 	engine::Ref<engine::GenericScreen> mSplashScreen;  // +0x54

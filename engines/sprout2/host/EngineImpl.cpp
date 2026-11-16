@@ -66,7 +66,7 @@ void EngineImpl::log(const char* theFormat, ...)
 	va_start(anArgs, theFormat);
 	vsnprintf(aLine, sizeof(aLine), theFormat, anArgs);
 	va_end(anArgs);
-	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "%s", aLine);
+	SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "%s", aLine);
 }
 
 uint64_t EngineImpl::getTicks()

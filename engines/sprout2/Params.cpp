@@ -39,6 +39,18 @@ int Params::getInt(const std::string& theName, int theDefault) const
 	return (int)atol(anIt->second.c_str());
 }
 
+bool Params::getBool(const std::string& theName, bool theDefault) const
+{
+	std::map<std::string, std::string>::const_iterator anIt = mValues.find(theName);
+	if (anIt == mValues.end())
+		return theDefault;
+	if (anIt->second == "true")
+		return true;
+	if (anIt->second == "false")
+		return false;
+	return theDefault;
+}
+
 float Params::getFloat(const std::string& theName, float theDefault) const
 {
 	std::map<std::string, std::string>::const_iterator anIt = mValues.find(theName);

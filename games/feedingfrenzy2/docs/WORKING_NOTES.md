@@ -169,6 +169,9 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
 - `engines/sprout2`: the theme's particle effects and their pools, TextItem. `games/feedingfrenzy2/src`: BubbleText
   and BubbleGlyph. The splash's "LOADING" grows in letter by letter and rocks (`-fast`, shots at updates 20 and 90).
 - The splash's phases and the engine's frame rate (the loader empty, the sounds and the next state not yet).
+- The loader's first part: GameData with the game's and the menu's stage manifests (stages and level sets; the
+  level sets' splines and the map pins not yet, being the game map's). The engine's log is now SDL's info level, so
+  it shows on the console.
 
 ## Next
 
@@ -177,7 +180,6 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   game's updates in the bursting phase; then the menu.
 - The configuration's string table and options, the start's options, key, activate and music connections, the
   popups and the debug display.
-- The engine's log goes to SDL_LogDebug, which nothing shows: a way to see it (the original wrote a log file).
 - The looks: the frame does not clear the display, so the splash's quarter-second fade builds up over the last frame
   (the background at 6, 17, 33, 50, 66% of its brightness in the first frames where the fade's progress is 7, 13, 20,
   27, 33%). Compare with the original windowed (its back buffer blitted, so kept) and full screen (a flip chain, so

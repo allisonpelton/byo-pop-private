@@ -141,9 +141,17 @@ void SplashState::startLoading()
 void SplashState::load()
 {
 	mLoadProgress = 0.0f;
-	// The fish, the stages and their manifests, the users' data, the sounds and every screen of the shell: not yet
-	// translated
-	getEngine()->log("SplashState: the loader not yet translated\n");
+	mApp->mGameData = new GameData();
+	// The command line's stages= and menuStages= (the engine's table of arguments, its slot 0x38, read by 0x402970
+	// (feedingfrenzy2)) would name other manifests: not yet translated
+	mApp->mGameData->getStages().load("resource/Stages/stageManifest.xml");
+	mApp->mGameData->getMenuStages().load(
+		mSaverMode ? "resource/Stages/saverManifest.xml" : "resource/Stages/menuManifest.xml");
+	// (The original checks after each part whether the state has left, then sets the phase to failed and stops; the
+	// port loads at once, so it cannot have)
+	// The stages' screen data, fun facts, player ranks, the fish, the menus, the sounds, the stage, the users' data
+	// and every screen of the shell: not yet translated
+	getEngine()->log("SplashState: the loader not yet translated past the manifests\n");
 	mLoadProgress = 1.0f;
 	mPhase = SPLASH_LOADED;
 }

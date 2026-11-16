@@ -44,7 +44,7 @@ public:
 	// 0x40ad60 (feedingfrenzy2): null when the file cannot be opened
 	RandomAccessInputStream* openDiskFile(const std::string& thePath) override;
 	// 0x49a920 (feedingfrenzy2): the line goes to the debugger (and to a log file the original opens only for its
-	// developers); the port's debugger is SDL's debug log
+	// developers); the port's debugger is SDL's log, at the info level (the console, or stderr)
 	void log(const char* theFormat, ...) override;
 	// 0x4383a0 and 0x435ba0 (feedingfrenzy2): the original reads QueryPerformanceCounter, then the processor's time
 	// stamp once it is calibrated; the port reads SDL's performance counter, or the frames' own clock under -fast

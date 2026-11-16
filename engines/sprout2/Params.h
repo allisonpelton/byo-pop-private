@@ -26,6 +26,8 @@ public:
 	std::string getString(const std::string& theName, const std::string& theDefault) const;
 	// 0x4547c0 (feedingfrenzy2): atol of the value
 	int getInt(const std::string& theName, int theDefault) const;
+	// 0x469540 (feedingfrenzy2): "true" or "false"; anything else, and no value, the default
+	bool getBool(const std::string& theName, bool theDefault) const;
 	// 0x453a50 (feedingfrenzy2): atof of the value, rounded to a float
 	float getFloat(const std::string& theName, float theDefault) const;
 	// 0x46d910 (feedingfrenzy2): two numbers, " %d , %d "; one the value does not hold keeps the default's
