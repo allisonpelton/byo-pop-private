@@ -107,6 +107,7 @@ void CurtainTransition::Update()
 		}
 		mCordX += 9;
 		MarkDirty();
+		WantFirstDraw(aNumCels);
 		return;
 	}
 
@@ -133,6 +134,17 @@ void CurtainTransition::Update()
 	}
 	mCordX -= 9;
 	MarkDirty();
+	WantFirstDraw(aNumCels);
+}
+
+// port: the curtain is done only once its last frame has been drawn (mDrawn, set by Draw), and the original draws after
+// every update; -fast draws every FAST_DRAW_INTERVAL-th update, which held the board (IsCurtainMoving) for 0 to 9 more
+// updates depending on the update count's phase. With -fast the update that reaches the last frame asks for a draw
+// after it, as in normal play (2026-11-16, chapter 6.4: a whole battle came out otherwise after a load 8 updates longer).
+void CurtainTransition::WantFirstDraw(int theNumCels)
+{
+	if (mApp->mFastMode && !mDrawn && mFrame == (mClosing ? 0 : theNumCels - 1))
+		mApp->mLastFastDrawUpdate = mApp->mUpdateCount - SexyAppBase::FAST_DRAW_INTERVAL;
 }
 
 void CurtainTransition::Draw(Graphics* g)

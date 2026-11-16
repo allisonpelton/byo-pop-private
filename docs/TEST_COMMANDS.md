@@ -53,8 +53,9 @@ parts: libraries and devices (`privateAtStart`), graphics (`pixels` + `copies`),
 game's own state (`private` less the other three; `others` names what an engine can account for in it).
 
 A SexyAppFramework port answers it in the framework (`SexyAppBase::DoMemReport`, here and in `-script`), with nothing to
-write in the game; a game with large holders of its own adds them in `AddMemReportHolders`. An engine of its own (the
-Mahjong Escapes, Ning Po, Cosmic Bugs and Water Bugs, Bonnie's, Word Harmony) uses `platform/MemReport.h`: it calls
+write in the game; a game with large holders of its own adds them in `AddMemReportHolders` (the Mahjong Escapes add their
+engine's pictures and sounds there, and list the pictures one by one with their own `memimages <file>`). An engine of its own
+(Ning Po, Cosmic Bugs and Water Bugs, Bonnie's, Word Harmony) uses `platform/MemReport.h`: it calls
 `Platform::NoteStartMemory()` once its window and devices are up and before it reads a game file, fills a
 `Platform::MemReport` in its own `memreport` command with what its pictures and sounds hold
 (`Platform::AddSongMemory` adds the mixer's songs; `mOthers` takes any other holder by name), and answers with

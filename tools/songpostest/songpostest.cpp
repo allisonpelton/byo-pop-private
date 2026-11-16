@@ -166,12 +166,15 @@ static bool CheckTempo(const char* thePath)
 
 // SetSongPlayersPooled (platform/Audio.h): song c plays elsewhere and stops, its player goes to the pool, song d takes it
 // and plays from order 3; that must be the audio a fresh player gives for order 3 (song b, made before pooling was on).
-// libopenmpt's renders differ a little from one fresh player to the next (rms 0.009 of a full scale of 1 here: some
-// instruments swing their volume and pan at random, and libopenmpt draws the swings anew for each player), so the pooled
-// player's difference from a fresh one is held against two fresh players' difference from each other. A pooled player
-// that kept the mix plugins' state (Bejeweled Twist's music has an echo and a chorus) differed from a fresh one by four
-// times that. Then c, started again with no position, carries on from the order and row where it stopped, and a song
-// never played, started with no position, takes a pooled player and starts at the beginning as a fresh one does.
+// libopenmpt's renders differ from one fresh player to the next (some instruments swing their volume and pan at random,
+// and each player draws its swings from libopenmpt's global generator), by an rms of 0.004 to 0.010 of a full scale of 1
+// between two fresh players of Bejeweled Twist's first song. One fresh pair is too few to judge by: held against it, a
+// sound pooled player failed about one run in six. So kFreshPlayers fresh players are rendered, and the pooled player's
+// median difference from them may be up to twice the largest difference between two of them (in 80 renders it was at most
+// 1.24 times). A pooled player that kept the mix plugins' state (Bejeweled Twist's music has an echo and a chorus)
+// differed from a fresh one by 0.034, over twice the largest difference of two fresh players in those runs. Then c,
+// started again with no position, carries on from the order and row where it stopped, and a song never played, started
+// with no position, takes a pooled player and starts at the beginning as a fresh one does.
 // Runs last: the mixer stays pooled.
 static std::vector<float> RenderBlocks(Platform::Mixer& mixer, int theBlocks)
 {
@@ -193,27 +196,37 @@ static double RmsDifference(const std::vector<float>& theLeft, const std::vector
 	return std::sqrt(aSum / theLeft.size());
 }
 
+static const int kFreshPlayers = 4;
+
 static bool CheckPool(const char* thePath)
 {
 	Platform::Mixer& mixer = Platform::Mixer::Get();
 	int a = mixer.LoadSong(thePath);
-	int b = mixer.LoadSong(thePath);
-	if (!a || !b || (mixer.GetSongTempo(a) <= 0))
+	if (!a || (mixer.GetSongTempo(a) <= 0))
 	{
 		// libxmp's songs have no player of a registered format to pool
 		mixer.UnloadSong(a);
-		mixer.UnloadSong(b);
 		return true;
 	}
-	mixer.PlaySong(b, 3, 0, true, true);
-	std::vector<float> aFresh = RenderBlocks(mixer, 20);
-	mixer.StopSong(b);
-	mixer.PlaySong(a, 3, 0, true, true);
-	std::vector<float> aFreshAgain = RenderBlocks(mixer, 20);
-	mixer.StopSong(a);
-	double aFreshRms = RmsDifference(aFresh, aFreshAgain);
 	mixer.UnloadSong(a);
-	mixer.UnloadSong(b);
+	// fresh players (pooling is off: each song makes its own), each from order 3
+	std::vector<std::vector<float>> aFresh;
+	for (int i = 0; i < kFreshPlayers; i++)
+	{
+		int aSong = mixer.LoadSong(thePath);
+		mixer.PlaySong(aSong, 3, 0, true, true);
+		aFresh.push_back(RenderBlocks(mixer, 20));
+		mixer.StopSong(aSong);
+		mixer.UnloadSong(aSong);
+	}
+	double aFreshLeast = 1e9, aFreshMost = 0;
+	for (int i = 0; i < kFreshPlayers; i++)
+		for (int j = i + 1; j < kFreshPlayers; j++)
+		{
+			double aRms = RmsDifference(aFresh[i], aFresh[j]);
+			aFreshLeast = std::min(aFreshLeast, aRms);
+			aFreshMost = std::max(aFreshMost, aRms);
+		}
 	int aStartOrder = -1, aStartRow = -1;
 	{
 		int fresh = mixer.LoadSong(thePath);
@@ -238,10 +251,15 @@ static bool CheckPool(const char* thePath)
 		mixer.StopSong(c);       // c's player goes to the pool
 		mixer.PlaySong(d, 3, 0, true, true);   // d takes it
 		std::vector<float> aPooled = RenderBlocks(mixer, 20);
-		aPooledRms = RmsDifference(aPooled, aFresh);
-		if (aPooledRms > aFreshRms * 1.5 + 1e-4)
+		std::vector<double> aPooledRmses;
+		for (const std::vector<float>& aFreshRender : aFresh)
+			aPooledRmses.push_back(RmsDifference(aPooled, aFreshRender));
+		std::sort(aPooledRmses.begin(), aPooledRmses.end());
+		aPooledRms = (aPooledRmses[(kFreshPlayers - 1) / 2] + aPooledRmses[kFreshPlayers / 2]) / 2;
+		if (aPooledRms > aFreshMost * 2 + 1e-4)
 		{
-			printf("pool: %s: from order 3 a pooled player differs from a fresh one by %g (rms), two fresh ones by %g\n", thePath, aPooledRms, aFreshRms);
+			printf("pool: %s: from order 3 a pooled player differs from %d fresh ones by %g at the median (rms), the fresh ones from each other by %g to %g\n",
+				thePath, kFreshPlayers, aPooledRms, aFreshLeast, aFreshMost);
 			ok = false;
 		}
 		mixer.StopSong(d);
@@ -271,8 +289,8 @@ static bool CheckPool(const char* thePath)
 	mixer.UnloadSong(d);
 	mixer.SetSongPlayersPooled(false);
 	if (ok)
-		printf("pool: %s: from order 3 a pooled player differs from a fresh one by %g (rms), two fresh ones by %g; started again with no position it carries on from order %d row %d ok\n", thePath,
-			aPooledRms, aFreshRms, saved, savedRow);
+		printf("pool: %s: from order 3 a pooled player differs from %d fresh ones by %g at the median (rms), the fresh ones from each other by %g to %g; started again with no position it carries on from order %d row %d ok\n",
+			thePath, kFreshPlayers, aPooledRms, aFreshLeast, aFreshMost, saved, savedRow);
 	return ok;
 }
 

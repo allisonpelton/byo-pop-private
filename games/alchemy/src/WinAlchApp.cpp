@@ -21,6 +21,7 @@
 #include "MemoryImage.h"
 #include "MusicInterface.h"
 #include "SDLMusicInterface.h"
+#include "SoftwareScreenDisplay.h"
 #include "SoundManager.h"
 #include "WidgetManager.h"
 
@@ -62,6 +63,11 @@ WinAlchApp::WinAlchApp()
 	mProductVersion = "1.6";
 	mTitle = "Alchemy " + mProductVersion;
 	mRegKey = "PopCap\\Alchemy";
+	// port: the original starts in 2D: nothing in its constructors sets mAutoEnable3D or mTest3D (app+0x5cd and +0x5ce,
+	// cleared in the SexyAppBase constructor), so its Direct3D test runs only for a registry Is3D, which no part of the
+	// game writes (its Options dialog has no 3D box). So the display keeps the 2D flags on the GPU path too: 2x, full
+	// screen and the web (SexyAppBase::mDefault3D, DDInterface::mAppWants3D)
+	mDefault3D = false;
 
 	mSkillLevel = 1;
 	mTimeTrial = false;
@@ -273,6 +279,16 @@ MusicInterface* WinAlchApp::CreateMusicInterface()
 	aMusicInterface->mMaxMusicVolume = 100;
 	return aMusicInterface;
 }
+
+#ifndef __EMSCRIPTEN__
+// port: the original draws its screen in software into a DirectDraw surface (it starts in 2D), so the port does too where
+// it can: natively the window shows it through its own surface (framework/SoftwareScreenDisplay.h); the web build keeps
+// the default display
+DDInterface* WinAlchApp::CreateDDInterface()
+{
+	return SoftwareScreenDisplay::Create(this);
+}
+#endif
 
 // 0x4123f1: images\<name>; a missing file ends the game with a message
 bool WinAlchApp::DoLoadImage(int theIndex)

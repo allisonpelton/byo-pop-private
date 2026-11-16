@@ -30,7 +30,8 @@ public:
 	// 0x42f650 (mahjongjapan)
 	explicit Logo(bool theSplashLogo);
 	// 0x42a340 (mahjongchina), 0x42f680 (mahjongjapan), 0x42a360 (mahjongchina), 0x42f6a0 (mahjongjapan)
-	~Logo() override {}
+	// port: the pictures the logo showed are given up with it (Splash.cpp)
+	~Logo() override;
 
 	void Draw() override;     // 0x42f6b0 (mahjongjapan)
 	void Init() override;     // 0x42f7f0 (mahjongjapan)

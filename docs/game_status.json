@@ -90,7 +90,7 @@
         "collection"
       ],
       "now": null,
-      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the discard's melt would be lite in kind but costs 0.4% to 1.9% of a minute, below what the medians resolve)"
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the discard's melt would be lite in kind but costs 0.4% to 1.9% of a minute, below what the medians resolve); software screen at 1x (76a31289): 35 to 39 MB private against the original's 48 to 56, processor time level with the original's (0.93 to 1.11 in three sets of pairs)"
     },
     "noahsark": {
       "title": "Noah's Ark Deluxe",
@@ -194,7 +194,7 @@
         "collection"
       ],
       "now": null,
-      "note": "third performance round merged (2026-11-16): full screen is fw-memory's smooth stretch on the processor (no renderer at any size, 0 pixels differ from the renderer's look in six screens); processor time at 0.41 / 0.66 / 0.79 (Japan) and 0.32 / 0.52 / 0.42 (China) of the original's in the 800x600 window, 2x and full screen; memory below the original's at the title and 12 MB above it at the peak of a play (listed, not chased); the lite mod quickRedeal (the shuffle's deal search stopped after a count of steps, docs/LITE_MOD.md), not yet on the web build"
+      "note": "memory follow-up merged (2026-11-16): the exe and Resource.dll mapped instead of read in, the logos freed with their layer; play peak 38.8 MB at 800x600 against the original's 40.8, menu 17.6 against 22.8; open: a software-renderer state some runs fall into (+3 MB), the stage's last level unmeasured in the original"
     },
     "mahjongchina": {
       "title": "Mahjong Escape: Ancient China",
@@ -215,7 +215,7 @@
         "collection"
       ],
       "now": null,
-      "note": "third performance round merged (2026-11-16): full screen is fw-memory's smooth stretch on the processor (no renderer at any size, 0 pixels differ from the renderer's look in six screens); processor time at 0.41 / 0.66 / 0.79 (Japan) and 0.32 / 0.52 / 0.42 (China) of the original's in the 800x600 window, 2x and full screen; memory below the original's at the title and 12 MB above it at the peak of a play (listed, not chased); the lite mod quickRedeal (the shuffle's deal search stopped after a count of steps, docs/LITE_MOD.md), not yet on the web build"
+      "note": "memory follow-up merged (2026-11-16): the exe and Resource.dll mapped instead of read in, the logos freed with their layer; play peak 31.9 MB at 800x600 against the original's 32.4; open: a software-renderer state some runs fall into (+3 MB, then 0.5 to 2.5 MB above the original), the stage's last level unmeasured in the original"
     },
     "bejeweledtwist": {
       "title": "Bejeweled Twist",
@@ -366,7 +366,7 @@
       ],
       "na": [],
       "now": "identical-play",
-      "note": "The bot plays into book 4; chapter comparison under way"
+      "note": "phase one: 21 of 29 chapters identical in their engine states after the -fast curtain fix (the curtain done once its last frame is drawn) and the harness's state log, load timing and update-counter wait; 4 more differ only by the original's own variance; open: 5.3, 5.4, two +1 draws (IDENTICAL_PLAY.md)"
     },
     "bookwormadv": {
       "title": "Bookworm Adventures Deluxe",
@@ -622,15 +622,22 @@
       "title": "Iggle Pop Deluxe",
       "done": [],
       "na": [],
-      "now": null,
-      "note": "Not started"
+      "now": "port",
+      "note": "port in progress (session from 2026-11-16) on the shared Sprout engine (engines/sprout)"
     },
     "feedingfrenzy": {
       "title": "Feeding Frenzy Deluxe",
       "done": [],
       "na": [],
-      "now": null,
-      "note": "Not started"
+      "now": "port",
+      "note": "port in progress (session from 2026-11-16) on the shared Sprout engine (engines/sprout)"
+    },
+    "feedingfrenzy2": {
+      "title": "Feeding Frenzy 2 Deluxe",
+      "done": [],
+      "na": [],
+      "now": "port",
+      "note": "port in progress: Sprout's second-generation engine (engines/sprout2) in main early for Talismania: its core, the draw context and the frame loop"
     }
   }
 }

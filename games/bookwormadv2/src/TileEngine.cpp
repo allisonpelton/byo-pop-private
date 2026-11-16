@@ -239,9 +239,14 @@ void TileEngine::Update(std::list<Tile*>& theTiles, bool theCallLua)
 		CallLinkedMethod("Update", 0);
 }
 
+// 0x486d40: a wild tile stays "?" and takes no letter (nor a draw)
 void TileEngine::ChangeLetters(std::list<Tile*>& theTiles)
 {
 	for (Tile* aTile : theTiles) {
+		if (aTile->IsWildTile()) {
+			aTile->SetLetter("?");
+			continue;
+		}
 		char aLetter = GenerateLetter(true);
 		Tile::PushTile(aTile);
 		PushLetter(aLetter);
@@ -328,7 +333,11 @@ char TileEngine::GenerateLetter(bool theReplacing)
 	int aVowels = 0;
 	int aConsonants = 0;
 	bool aIs4x4 = aBoard->mGridHeight == 4 && aBoard->mGridWidth == 4;
-	char aGrid[16];  // [row][col] of a 4x4 grid: the letter, or '*' for no tile
+	bool aIs10x1 = aBoard->mGridHeight == 1 && aBoard->mGridWidth == 10;
+	// [row * 4 + col] of a 4x4 grid or a row of 10: the letter, '?' for a wild tile, or '*' for no tile
+	// (Port: the original leaves a row of 10's empty cell unset, whatever its stack held; '.' here, which no word
+	// matches)
+	char aGrid[16];
 
 	for (int aRow = 0; aRow < aBoard->mGridHeight; aRow++) {
 		for (int aCol = 0; aCol < aBoard->mGridWidth; aCol++) {
@@ -336,6 +345,12 @@ char TileEngine::GenerateLetter(bool theReplacing)
 			if (aTile != nullptr) {
 				aTotal++;
 				char aLetter = aTile->GetLetter();
+				if (aLetter == '?') {
+					// a wild tile counts in the total, but neither as a vowel nor as a consonant
+					if (aIs4x4 || aIs10x1)
+						aGrid[aRow * 4 + aCol] = '?';
+					continue;
+				}
 				// Port: the original counts any character (and would write outside its table for a lowercase one)
 				if (aLetter >= 'A' && aLetter <= 'Z')
 					aCounts[aLetter - 'A']++;
@@ -343,10 +358,12 @@ char TileEngine::GenerateLetter(bool theReplacing)
 					aVowels++;
 				else
 					aConsonants++;
-				if (aIs4x4)
+				if (aIs4x4 || aIs10x1)
 					aGrid[aRow * 4 + aCol] = aLetter;
 			} else if (aIs4x4)
 				aGrid[aRow * 4 + aCol] = '*';
+			else if (aIs10x1)
+				aGrid[aCol] = '.';
 		}
 	}
 
@@ -369,6 +386,14 @@ char TileEngine::GenerateLetter(bool theReplacing)
 				anAppend(aPattern, aGrid[aRow * 4 + aCol]);
 			aPatterns.push_back(aPattern);
 		}
+	}
+	// a row of 10: the row as a string
+	if (aIs10x1) {
+		std::string aPattern;
+		for (int aCol = 0; aCol < 10; aCol++)
+			if (aGrid[aCol] != 0)
+				aPattern += aGrid[aCol];
+		aPatterns.push_back(aPattern);
 	}
 
 	// the letters that may be chosen: below their maximum, and no avoided word in the grid with them
