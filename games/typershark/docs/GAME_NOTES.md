@@ -792,7 +792,7 @@ cursor thread costs 33 to 51 M in 20 s with it (the hidden-desktop pairs below);
 thing for this game.
 
 **On the visible desktop, both in 3D** (the player's own setup: windowed 640 by 480, a display that signals its vertical blank; only 22:00 to 08:00, CLAUDE.md
-"Overnight"; the port is Direct3D 11 through SDL, the original DirectDraw 7 and Direct3D 7 with its 3D flag read as 1 from its memory; the board's state at the stretch's start
+"Desktop and Sandbox at any hour"; the port is Direct3D 11 through SDL, the original DirectDraw 7 and Direct3D 7 with its 3D flag read as 1 from its memory; the board's state at the stretch's start
 and end is the same in the original's runs but for a field of the sharks' list that depends on the update an input landed on). Cycles in 20 s, in millions:
 
 | | Original | Port |
@@ -825,6 +825,10 @@ does not, so the figures of the visible desktop above stay the ones for a player
 
 **After the framework's 3D same-texture batching (main 2264f0f9, merged; 2026-11-15, 02:25 to 02:38, five pairs, the machine 0.95 to 1.0 in use, so every figure is higher than the quiet-machine pairs above):** port **5,686 M** (5,418 to 6,093: driver thread 2,826, main 2,534, mixer 320), original **4,519 M** (3,763 to 5,137: main 4,335, cursor thread 56), 1.26 of the original. The driver thread is still half of the port; the pairs are not comparable with the quiet ones, and a quiet-machine round is still to do.
 
+**After the renderer fix (main ea577cbe: SDL's batching back on, `85b09947`), 2026-11-15, visible desktop, 3D, five pairs, pinned, the machine 0.40 to 0.99 in use (mostly busy):** port **3,623 M** with its mixer (3,378 to 3,898: driver thread 1,822, main 1,589, mixer 314), so **3,309 M without it**; original **4,058 M** (753 to 4,456; its fifth run, 753 M, did not get into play, and without it the median is 4,248: main 3,881, cursor thread 55). The port is lower in three of the four valid pairs (3,742 / 4,456, 3,898 / 4,058, 3,571 / 4,439) and higher in the one on the quietest machine (3,623 / 2,868 at 0.67 in use), the pattern of the earlier rounds (the original's cycles fall on a quiet machine more than the port's). The driver thread fell from 2,826 M (unbatched, the same busy machine) to 1,822 M. Performance is marked done on the medians; a quiet-machine round would be the one to watch.
+
+**A quieter round after the renderer fix (2026-11-15, 16:46 to 17:00, visible desktop, 3D, five pairs, the machine 0.30 to 0.41 in use, one other game process):** port **2,700 M** with its mixer (2,475 to 4,282: driver thread 1,289, main 1,177, mixer 184), about **2,516 M without it**; original **2,537 M** (2,431 to 2,633: main 2,422, cursor thread 32). The port is higher in all five pairs (3,757 / 2,633, 2,642 / 2,479, 4,282 / 2,537, 2,475 / 2,431, 2,700 / 2,579), by 2 to 69%, the two large ones from spikes on its main thread (2.3 and 2.6 G against 1.0 to 1.2 G in the others). So on a quiet machine the port is level with the original (1.06 with its mixer, 0.99 without; the original's own sound is origrun's silent stand-in, which mixes nothing, so the mixer is counted apart as the performance rule says), not clearly below it. The driver thread is down from 2,826 M (unbatched) to 1,289 M.
+
 **Where the port's main thread goes** (a temporary probe of the cycles around each call, removed again; one run on the visible desktop, 2,000 updates, 1,204 presented frames,
 that is 60 a second with vsync): the main thread 1,065 M = `ProcessEvents` 26, `UpdateFrames` 66 (the game's own update), `BeginFrame` 32, `DrawScreen` 466 (the game's draw, with
 the framework's glue and SDL's queueing: 387 k cycles a frame), `DDInterface::Present` 438 (of which `SDL_RenderPresent` 265), no time in `SDL_Delay`. A count of the draw calls (a second
@@ -847,7 +851,7 @@ Typer Shark's is about 600 alpha-blended quads a frame through the renderer, and
 (2) the draw glue: 593 SDL calls a frame for 20 runs of one texture, so a queue in `DDInterface` that joins the quads of consecutive
 same-texture draws into one `SDL_RenderGeometry` call would take about half of the 466 M of `DrawScreen` (an estimate: 0.2 G, 6% of the process, with a frozen-baseline check since the draw order must stay); (3) the stand-in's rescan above, which the coordinator fixed (`223d9bdf`).
 
-**To repeat.** From the worktree root, overnight for the desktop kinds: `KINDS="port3d orig3d" bash games/typershark/tools/profile/pairs2.sh <out dir> 5`
+**To repeat.** From the worktree root (the desktop kinds run at any hour): `KINDS="port3d orig3d" bash games/typershark/tools/profile/pairs2.sh <out dir> 5`
 (`KINDS="port orig"` for the hidden desktop; `SDL_RENDER_VSYNC=0` or `SDL_RENDER_DRIVER=<name>` in front for a variant), then
 `python -I games/typershark/tools/profile/cyc.py summary <out dir>/runs.txt` for the medians by side and by kind of thread. The desktop runs of the original take a `STANDIN` variable (the path of a stand-in `dsound.dll` to copy over the copy's). The original needs the copy under `build/origrun/typershark/game`,
 `build/origrun/typershark-p2/game` (the desktop runs, `visrun3d.py`'s source) and `build/ts-p2/patches.txt`. The raw runs were deleted once these figures were written.
@@ -1207,7 +1211,7 @@ each), KEEP GOING (40) and the statistics screens of the players with `NGC` 1 an
 by nothing stronger, over the whole picture: the two builds' picture decoding, as in every web tour (`IDENTICAL_PLAY.md`, "The web build"). The
 medal's edge, which the missing software stretch had moved by up to 39 levels, is the native port's in the web build too. Not run in a browser.
 
-**In 3D** (2026-11-12, the desktop route of section 16 in the overnight window; `tools/phase2/medal3d.sh <dialog|dialogkeep|stats> <N>` does a whole
+**In 3D** (2026-11-12, the desktop route of section 16 (the desktop route; at any hour since 2026-11-15); `tools/phase2/medal3d.sh <dialog|dialogkeep|stats> <N>` does a whole
 tour, and refuses between 08:00 and 22:00). The original runs through `visrun3d.py` with three options made for this: `--users <dir>` puts the
 profile's two files over the clean users folder, `--reg <file.reg>` imports the profile's registry preset (the `HKLM` values of `mkprofile.py`)
 as `HKCU\Software\PopCap` after `Is3D` and `ScreenMode` are set, `--patch "va:0x454e9b 83f807 83f801"` patches the copy's exe (the byte of the

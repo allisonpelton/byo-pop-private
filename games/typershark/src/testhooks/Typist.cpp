@@ -216,6 +216,8 @@ void Sexy::TestTypistStep(WinWSApp* app)
 {
 	if (gTypist.mMode == 0)
 		return;
+	if (app->IsModMenuOpen())		// the mod menu holds the game and takes all input while it is open (a3437012): the typist waits
+		return;
 	if (gTypist.mMode < 0)
 	{
 		ParseOptions(app);

@@ -250,7 +250,7 @@
       ],
       "na": [],
       "now": "performance",
-      "note": "the lite mod step done with no mod (c0ee6258: the game's update is under 2% of the process); performance stays open: 3D is 1.26 of the original on a busy machine, half the port's cycles the Direct3D 11 driver thread, which waits on the framework's renderer item; 2D 0.80"
+      "note": "the lite mod step done with no mod (c0ee6258); performance: after the renderer fix the 3D driver thread fell from 2,826 to 1,289 M cycles in 20 s; five interleaved pinned 3D pairs on the visible desktop, a quieter machine: port 2,700 M with its mixer against the original's 2,537 (1.06), about 0.99 without the mixer (origrun's stand-in mixes nothing), the port higher in all five, two of them main-thread spikes; next: the spikes looked at (an hour), the like-for-like figure, then the 3D medal screens; 2D 0.80"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
