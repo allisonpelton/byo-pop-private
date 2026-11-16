@@ -373,6 +373,20 @@ void ParticleSystem::startEmitting()
 	}
 }
 
+// 0x441df0 (feedingfrenzy)
+void ParticleSystem::stopEmitting()
+{
+	std::vector<Node*>::iterator anIt = mChildren.begin();
+	if (anIt != mChildren.end())
+	{
+		do
+		{
+			static_cast<ParticleStream*>(*anIt)->stopEmitting();
+			++anIt;
+		} while (anIt != mChildren.end());
+	}
+}
+
 // 0x42b760 (wordharmony)
 bool ParticleSystem::isDone()
 {

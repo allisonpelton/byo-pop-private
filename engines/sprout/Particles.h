@@ -128,6 +128,8 @@ public:
 	void warmup(float theSeconds);
 	// 0x42b6e0 (wordharmony)
 	void startEmitting();
+	// 0x441df0 (feedingfrenzy): every stream stops emitting, and the particles in the air finish their lives
+	void stopEmitting();
 	// 0x42b760 (wordharmony): every stream is done
 	bool isDone();
 	// 0x42b7a0 (wordharmony): reads the streams from a particle file of the archive
