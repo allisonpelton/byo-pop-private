@@ -39,6 +39,7 @@ public:
 	void StartOpening();  // V1:0x441140
 
 	void Update() override;              // 0x436190
+	void WantFirstDraw(int theNumCels);   // port: -fast draws the last frame after the update that reaches it
 	void Draw(Graphics* g) override;     // 0x436370
 };
 

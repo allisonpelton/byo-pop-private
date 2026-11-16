@@ -865,8 +865,10 @@ function(byopop_web_game target)
   # the link writes <target>.js and .wasm only; the page, <target>.html, is a step of its own (ByopopWebPage.cmake),
   # which building the game's target runs first
   set_target_properties(${target} PROPERTIES SUFFIX ".js")
+  # the heap grows 4 MB at a time, not by a fifth of itself (Emscripten's default): it never shrinks, and the browser counts all
+  # of it, so a fifth's step could leave a fifth more than the game ever needed (docs/WEB_PLAYER.md, "Memory use")
   target_link_options(${target} PRIVATE
-    "-sALLOW_MEMORY_GROWTH=1" "-sFORCE_FILESYSTEM=1" "-sINVOKE_RUN=0"
+    "-sALLOW_MEMORY_GROWTH=1" "-sMEMORY_GROWTH_LINEAR_STEP=4194304" "-sFORCE_FILESYSTEM=1" "-sINVOKE_RUN=0"
     "-sEXPORTED_RUNTIME_METHODS=['${methods}']"
     "-sEXPORTED_FUNCTIONS=['${exports}']" "-lidbfs.js")
   set(html ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${target}.html)

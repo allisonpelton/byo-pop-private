@@ -385,6 +385,15 @@ bool Verifying()
 	return sVerify;
 }
 
+size_t MemoryBytes()
+{
+	size_t aBytes = sCur.capacity() * sizeof(ScreenCommand) + sPrev.capacity() * sizeof(ScreenCommand) + sShadow.capacity() +
+		sMatchedPrev.capacity() + sMatchedCur.capacity() + sTraceV.capacity() * sizeof(int);
+	for (const std::vector<int>& aTrace : sTrace)
+		aBytes += aTrace.capacity() * sizeof(int);
+	return aBytes;
+}
+
 const Stats& GetStats()
 {
 	return sStats;

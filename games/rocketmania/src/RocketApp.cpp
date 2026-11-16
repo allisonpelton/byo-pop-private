@@ -232,6 +232,8 @@ void RocketApp::Init()
 	SetCursorImage(3, mImages[IMAGE_CURSOR_TEXT]);
 }
 
+bool LoadMusicSegments(MusicInterface* theMusic, int theSongId, const std::string& thePrefix, char theLastSegment);  // AppMusic.cpp
+
 // 0x42bdb0: the music, the sounds, the other fonts and images, and the pictures made from them
 void RocketApp::LoadingThreadProc()
 {
@@ -241,6 +243,10 @@ void RocketApp::LoadingThreadProc()
 	// three times over (the original plays the WAV from its disk file)
 	for (int i = 0; i < NUM_MUSIC; i++)
 	{
+		if ((i == SONG_GAME) && LoadMusicSegments(mMusicInterface, i, "music\\Tubetricks In-Game One v02", 'I'))
+			continue;
+		if ((i == SONG_MENU) && LoadMusicSegments(mMusicInterface, i, "music\\Tubetricks Menu One v02", 'C'))
+			continue;
 		std::string aGeneratedWav;
 		if (i == SONG_GAME)
 			aGeneratedWav = AssembleMusic("music\\Tubetricks In-Game One v02", 'I');

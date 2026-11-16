@@ -45,6 +45,11 @@ void FreeBlitBuffer()
 	}
 }
 
+size_t BlitBufferBytes()
+{
+	return gBlitBuffer != nullptr ? (size_t)gBlitPitch * gBlitHeight : 0;
+}
+
 // 0x426cc0 (mahjongchina), 0x42cec0 (mahjongjapan): room for the image scaled (and 4 more pixels each way), cleared to
 // 0 when theClear
 static void EnsureBlitBuffer(int theWidth, int theHeight, int theScaleX, int theScaleY, bool theClear)
