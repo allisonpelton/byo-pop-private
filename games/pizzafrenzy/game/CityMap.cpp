@@ -127,14 +127,14 @@ bool CityMap::isRoadAt(const engine::IntPair& theCell) const
 	return aTile != nullptr && aTile->isRoadAt(theCell);
 }
 
-// 0x414a30
+// 0x414a30: the tile covers its dimensions up and to the left of its cell (the cell is its bottom right)
 void CityMap::place(const engine::IntPair& theCell, Tile* theTile)
 {
 	for (int aRow = 0; aRow < theTile->mDimensions.mSecond; aRow++)
 	{
 		for (int aColumn = 0; aColumn < theTile->mDimensions.mFirst; aColumn++)
 		{
-			engine::IntPair aCovered = {theCell.mFirst + aColumn, theCell.mSecond + aRow};
+			engine::IntPair aCovered = {theCell.mFirst - aColumn, theCell.mSecond - aRow};
 			if (inGrid(aCovered))
 			{
 				engine::Ref<Tile> aPlaced = mGrid[aCovered.mFirst][aCovered.mSecond];
@@ -155,7 +155,7 @@ void CityMap::removeTile(Tile* theTile)
 	{
 		for (int aColumn = 0; aColumn < theTile->mDimensions.mFirst; aColumn++)
 		{
-			engine::IntPair aCovered = {aCell.mFirst + aColumn, aCell.mSecond + aRow};
+			engine::IntPair aCovered = {aCell.mFirst - aColumn, aCell.mSecond - aRow};
 			if (inGrid(aCovered))
 				mGrid[aCovered.mFirst][aCovered.mSecond] = nullptr;
 		}

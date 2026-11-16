@@ -64,6 +64,7 @@ public:
 	bool mQuitRequested;
 	int mFrames;             // port: the engine's frames
 	uint64_t mEngineClock;   // port: -fast: the engine's ticks, one frame period a frame
+	bool mGameSeen = false;  // port (test commands): the state has shown a game's screen, so the menu is its end
 
 	PizzaFrenzyApp();
 	~PizzaFrenzyApp() override;

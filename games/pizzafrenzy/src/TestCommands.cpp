@@ -312,8 +312,14 @@ std::string PizzaFrenzyApp::TestState()
 	aState += aBuf;
 	if (anApp->mCurrentCity >= 0 && anApp->mCurrentCity < (int)anApp->mCities.size())
 		aState += ",\"cityName\":" + jsonText(anApp->mCities[anApp->mCurrentCity]->getName());
-	bool anOver = aScreen == "summary" ||
+	bool aLevelOver = aScreen == "summary" ||
 		(aMode != nullptr && std::string(modePhase(aMode)) == "end");
+	if (aScreen == "story" || aScreen == "newTopping" || aScreen == "levelStart" || aScreen == "game" ||
+		aScreen == "pause" || aScreen == "summary")
+		mGameSeen = true;
+	// the game is over when it has been played and the menu is back (after a game over, or the game won story)
+	bool anOver = mGameSeen && (aScreen == "menu" || aScreen == "highScores" || aScreen == "citySelect");
+	aState += std::string(",\"levelOver\":") + (aLevelOver ? "true" : "false");
 	aState += std::string(",\"over\":") + (anOver ? "true" : "false");
 	pf::GameStats* aStats = anApp->mGameStats;
 	if (aStats != nullptr)
@@ -384,8 +390,8 @@ static std::string ScreenMove(pf::PizzaFrenzy* theApp)
 	std::string aScreen = screenName(theApp);
 	if (aScreen == "splash")
 		return waitLine(WAIT_UPDATES);
-	if (aScreen == "summary" || (aScreen != "menu" && aScreen != "citySelect" && aScreen != "story"
-		&& aScreen != "newTopping" && aScreen != "levelStart"))
+	if (aScreen != "menu" && aScreen != "citySelect" && aScreen != "story" && aScreen != "summary"
+		&& aScreen != "newTopping" && aScreen != "levelStart")
 		return "null";
 	if (theApp->mScreens->isBusy())
 		return waitLine(WAIT_UPDATES);
@@ -403,7 +409,12 @@ static std::string ScreenMove(pf::PizzaFrenzy* theApp)
 			aCity = (int)theApp->mCities.size() - 1;
 		return nodeMove("city", theApp->mCitySelect->getPostcardButton(aCity));
 	}
-	if (aScreen == "story")
+	// the bonus round that follows is not ported: the summary can only be left through it
+	pf::City* aCity = theApp->getCurrentCity();
+	if (aScreen == "summary" && theApp->mCurrentLevel < (int)aCity->mLevels.size() &&
+		aCity->mLevels[theApp->mCurrentLevel]->mBonusRound)
+		return "null";
+	if (aScreen == "story" || aScreen == "summary")
 	{
 		engine::Node* aSkip = theApp->mStoryScreen->getNode("skipString");
 		if (aShown != theApp->mStoryScreen)

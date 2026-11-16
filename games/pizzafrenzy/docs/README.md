@@ -212,7 +212,8 @@ The standard commands of `docs/TEST_COMMANDS.md` (`-script`, `-commands`, the we
 `state` prints `screen` (splash, menu, citySelect, highScores, story, newTopping, levelStart, game, pause, summary, or
 the open dialog: options, toppings, players, newPlayer, deletePlayer, resetScores, restoreGame, quit, exitGame,
 unlockNotice, dialog; other for a state not listed), `mode`, `city` and `cityName`, `level` (in the city, from 1),
-`day`, `frame`, `over` (the level's end, the summary), then `score`, `tips` (the tip jar), `tipGoal`, `money` (the tips
+`day`, `frame`, `levelOver` (the level's end, the summary), `over` (the game has ended: it was played and the menu
+(or the high scores a game over shows) is back), then `score`, `tips` (the tip jar), `tipGoal`, `money` (the tips
 earned this level), `happiness`, `ordersToGo`, `timer` (the stats' seconds, which every mode keeps), `delivered`,
 `ordered` and `combo`; with a game on, `phase` (intro, play, blimp, end), `picks` and a `board` of `customers`
 (`cell`, `x`, `y` the point to click, `topping`, `picked`, `wait` seconds left, `clickable`, `event`, `chameleon`),
@@ -234,5 +235,11 @@ Mode button, `speedMode`); the city screen a click on the postcard button of the
 (`skipStory`), else a click on `continueButton` (`next`); the new topping screen a click on the first button of
 `leftButtons` (`newTopping`); the level start, with three or more toppings, a click on `doneButton` (`levelStart`)
 once every van has a topping, else, with no topping picked up, a click on the first topping button no van has
-(`topping`) and with one picked up a click on the first van with none (`van`, the node `vanButton<n>`). The summary
-and the dialogs have no move (`MOVE null`); the state's `over` is as it was.
+(`topping`) and with one picked up a click on the first van with none (`van`, the node `vanButton<n>`). The dialogs
+have no move (`MOVE null`).
+
+The summary is pressed through like the story: the Escape key while its `skipString` shows, else a click on
+`continueButton`; the upgrades' stories after it are met the same way, and then the next level's story, new topping and
+level start come as above. A game over ends the run as `over` (the menu or the high scores is back; the game won
+story is not tried). The summary that leads into a bonus round has no move (`MOVE null`, the bonus round is not
+ported), so a run from launch ends there.
