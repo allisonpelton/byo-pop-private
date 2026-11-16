@@ -63,6 +63,8 @@ const char* const MODE_NAMES[] = { "speed", "memory", "concentration" };
 
 // the mode whose button the bot clicks on the main menu (the botmode command); -1: the mode the game was last in
 int gBotMode = -1;
+// botmode editor: the menu's design button instead of a mode's
+const int BOT_EDITOR = 3;
 
 std::string jsonText(const std::string& theText)
 {
@@ -630,6 +632,8 @@ static std::string ScreenMove(pf::PizzaFrenzy* theApp)
 		if (aShown != theApp->mMainMenu)
 			return "null";
 		// the button of the mode botmode named, else the mode the game was last in (the speed mode's from launch)
+		if (gBotMode == BOT_EDITOR)
+			return nodeMove("editPizza", theApp->mMainMenu->getNode("editPizzaButton"));
 		int aMode = gBotMode >= 0 ? gBotMode : theApp->mGameMode;
 		if (aMode == pf::PizzaFrenzy::MODE_MEMORY)
 			return nodeMove("memoryMode", theApp->mMainMenu->getNode("NewGame"));
@@ -861,8 +865,10 @@ bool PizzaFrenzyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		for (int i = 0; i < 3; i++)
 			if (anArgs == MODE_NAMES[i])
 				aMode = i;
+		if (anArgs == "editor")
+			aMode = BOT_EDITOR;
 		if (aMode < 0)
-			error("botmode speed|memory|concentration");
+			error("botmode speed|memory|concentration|editor");
 		else
 			gBotMode = aMode, ok();
 	}

@@ -11,11 +11,20 @@
 source "$(dirname "$0")/common.sh"
 N="$1"; SEED="$2"; MOVES="$3"; shift 3
 D="$OUT/$N"
-mkdir -p "$D"; rm -f "$D"/orig*.log
+mkdir -p "$D"; rm -f "$D"/orig*.log "$D/orig_pizzas.xml"
+# PLAYER_DIR=<user folder>: both sides start with its player (the port and the bot from copies of the folder, the
+# original from its registry.ini as a .reg); the pizzas the run saves are compared at the end
+if [ -n "$PLAYER_DIR" ]; then
+	python -I "$TOOLS/ini2reg.py" "$PLAYER_DIR/registry.ini" > "$D/user.reg" || exit 1
+	export REG="$D/user.reg"
+	rm -rf "$D/port/user"; mkdir -p "$D/port"; cp -r "$PLAYER_DIR" "$D/port/user"
+	export KEEP_USER=1
+fi
 if [ -n "$INPUT" ]; then
 	cp "$INPUT" "$D/input.txt"
 else
-	rm -rf "$D/bot"; mkdir -p "$D/bot/user"
+	rm -rf "$D/bot"; mkdir -p "$D/bot"
+	if [ -n "$PLAYER_DIR" ]; then cp -r "$PLAYER_DIR" "$D/bot/user"; else mkdir -p "$D/bot/user"; fi
 	timeout 280 python -I tools/playbymove/playbymove.py --dir "$D/bot/run" --steps "$MOVES" "$@" \
 		build/native/pizzafrenzy.exe -gamedir=assets/pizzafrenzy -userdir="$D/bot/user" -seed="$SEED" > "$D/bot/out.txt" 2>&1
 	python -I "$TOOLS/record.py" "$D/bot/run/driver.txt" > "$D/input.txt"
@@ -26,6 +35,8 @@ python -I "$TOOLS/toorig.py" "$D/input.txt" > "$D/orig.txt" || exit 1
 QUIT=$(tail -1 "$D/input.txt" | cut -d" " -f1)
 # the game's values are compared from the frame the port's first level starts (the stats are made)
 export MODE_FROM=$(awk '$2 == "score" && $3 != "-" { print $1; exit }' "$D/state.txt")
+# a case with no level (the editor's) compares from its first frame
+[ -n "$MODE_FROM" ] || unset MODE_FROM
 
 # the original's game is the object whose address is at 0x532900; its stats at +0x120, its mode's game at +0x110;
 # rand's state is mirrored at 0x541a04 (setup.sh)
@@ -52,7 +63,15 @@ done
 if [ -z "$FIELDS" ] || [[ ",$FIELDS," == *,rand,* ]]; then
 	awk -v q="$QUIT" 'BEGIN { k = 1 } $1 == "at" { while (k <= $2 + 0 && k <= q) print "at " k++ " peek 0x541a04" }
 		{ print }' "$D/orig.txt" > "$D/orig_rand.txt"
-	"$TOOLS/orig.sh" "$D/orig_rand.txt" "$SEED" "$TO" > "$D/orig_rand.log" 2>&1
+	PIZZAS="$D/orig_pizzas.xml" "$TOOLS/orig.sh" "$D/orig_rand.txt" "$SEED" "$TO" > "$D/orig_rand.log" 2>&1
 	python -I "$TOOLS/randseq.py" "$D/state.txt" "$D/orig_rand.log" || st=1
+fi
+# the pizzas both sides saved (the original's beside its exe, the port's in its user folder)
+if [ -f "$D/orig_pizzas.xml" ] || [ -f "$D/port/user/userPizzas.xml" ]; then
+	if cmp -s <(tr -d '\r' < "$D/orig_pizzas.xml") <(tr -d '\r' < "$D/port/user/userPizzas.xml"); then
+		echo "pizzas      same"
+	else
+		echo "pizzas      DIFFER (orig_pizzas.xml and port/user/userPizzas.xml)"; st=1
+	fi
 fi
 exit $st

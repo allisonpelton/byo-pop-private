@@ -41,6 +41,21 @@ The original has no test commands, so every case starts from a first launch and 
 bot's `botmode memory` or `botmode concentration` (`--first`, dropped from the recorded input) has it click that
 mode's button on the main menu.
 
+**A saved player.** The editor opens only for a player with five toppings, which takes four cities of play. A case can
+start both sides from a saved player instead: `PLAYER_DIR=<user folder>` copies the folder to the bot and the port,
+and `ini2reg.py` turns its `registry.ini` (the port's emulated registry, whose keys and values are the original's)
+into a `.reg` that `orig.sh` imports (`REG=`) before the original starts. The original keeps the player's pizzas in
+`userPizzas.xml` beside its exe, where the port keeps them in its user folder; `orig.sh` removes the file before each
+run, so every run starts without pizzas, and the case compares the two files at its end.
+
+**The held run and its replay.** The bot plays held (`-hold`: an update runs only when its driver lets it), and an
+input of a held run takes effect a little later than the update record.py gives it: from the first launch's name
+dialog on, the replay's game runs two frames ahead of the bot's, and somewhere in a long case one click lands on
+something else and the two part (in seed 3, at frame 9790). The original agrees with the replay, so the comparisons
+hold, but a long case ends somewhere other than where the bot's game went: long2's lost level, at frame 11552, is the
+replay's. The framework is to log the update each input of a held run took effect at (`-recordlive`); until then the
+editor's case starts from a saved player.
+
 ## Differences found and fixed
 
 **The tip and the vehicles were updated twice a frame.** The original's constructors of the tip (0x42f050) and the
@@ -96,6 +111,12 @@ only through the screen's hover, which was a kitchen's popup under the cursor th
 on the first click, the port on the next one, four frames later, and the random state went apart with its fly to the
 tip jar. Peeks of the screen's hover and of the award's flags in the original showed it.
 
+**A backspace erased two letters.** The original's window procedure (0x4bd3b0) sends a key's first press as the
+key-down signal and returns; only a key held long enough to repeat sends the repeat signal. The port sent the repeat
+signal for the first press too, and the edit box takes both (0x472920 and 0x472a70), so a backspace in the pizza's name
+erased two letters: in the editor's case the original saved its name as the remains of the default name followed by
+the typed one, the port as the typed one alone. The first press sends the key-down signal alone now.
+
 ## Oddities
 
 **The particle warmup's frame.** The port starts the decorations' particle warmup (150 seconds, 24 draws) in frame 50,
@@ -126,4 +147,7 @@ value to the game's end, and the random state's values come in the same order to
 score post dialog takes a state the port does not have (the deviation below). Case mem2 (the memory mode, 800 moves,
 seed 2: the first city, its bonus round and three levels of the second, 12129 frames) and case conc2 (the
 concentration mode, 800 moves, seed 2: the first city, its bonus round and the second city's third level, 13898
-frames) match on every compared value, their random states' 2100 and 1949 values in the same order. Next: the editor.
+frames) match on every compared value, their random states' 2100 and 1949 values in the same order. Case edit1 (a
+player with five toppings, from the bot's seed 3 game; `botmode editor` opens the editor from the menu, where the bot
+places three toppings, names the pizza and leaves, and opens it again a few times) matches on every state, and the
+two programs save the same pizza file.
