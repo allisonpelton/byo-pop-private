@@ -763,7 +763,12 @@ suite_unit() {
 				music/bejeweledtwist24.mo3 >> "$1.sp" 2>&1 || st=1
 			n=5
 		fi
-		f="songpos: $(grep -c ', start at 2 ok' "$1.sp") of $n songs ok, tempo: $(grep -c 'silent channels ok' "$1.sp") ok"
+		# a song is ok when every check of it passed (songpostest's own count, "songpos: N of M songs ok", one line a run);
+		# a check that failed is named, with its song
+		f="songpos: $(grep -oE '^songpos: [0-9]+ of [0-9]+ songs ok' "$1.sp" | awk '{s += $2} END {print s + 0}') of $n songs ok"
+		f="$f, tempo: $(grep -c 'silent channels ok' "$1.sp") ok, pool: $(grep -cE '^pool: .* ok$' "$1.sp") ok"
+		bad="$(grep -E '^(songpos|tempo|pool): [^0-9]' "$1.sp" | grep -v ' ok$' | sed -E 's/^(songpos|tempo|pool): ([^:]*):.*/\1 \2/' | sort -u | paste -sd ';' -)"
+		[ -n "$bad" ] && f="$f; FAILED: $bad"
 	else
 		echo "$f" > "$1.sp"
 	fi
