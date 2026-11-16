@@ -1,4 +1,5 @@
 #include "TrophyRoomWidget.h"
+#include "MathConstants.h"
 #include "platform/GameOptions.h"
 
 #include <cmath>
@@ -184,7 +185,7 @@ void TrophyRoomWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 	{
 		int aColumn = aPlace % PLACES_PER_ROW;
 		int aRow = aPlace / PLACES_PER_ROW;
-		int aWave = ToInt(sin((double) aColumn * WAVE_STEP * 3.141592653589793) * WAVE_AMPLITUDE);
+		int aWave = ToInt(sin((double) aColumn * WAVE_STEP * PI) * WAVE_AMPLITUDE);
 		int aWaveSign = aWave >> 31;
 		mTrophyButtons[PLACE_TROPHY[aPlace]]->Resize(
 			(aTrophyWidth + PLACE_GAP) * aColumn + (mWidth - (aTrophyWidth + PLACE_GAP) * PLACES_PER_ROW) / 2 + SHELF_LEFT_MARGIN,

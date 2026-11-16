@@ -162,7 +162,8 @@ std::string GameApp::BestWordForTests(size_t theMax, std::vector<Tile*>& theOrde
 	std::vector<Tile*> aBestOrder;
 	std::vector<Tile*> anOrder;
 	std::vector<std::string> aWords;
-	for (const std::string& aWord : mLex->mWords)
+	for (size_t aWordIdx = 0; aWordIdx < mLex->GetNumWords(); aWordIdx++) {
+		const std::string aWord = mLex->GetWord(aWordIdx);
 		if ((theLongest != nullptr || aWord.size() > aBest.size()) && aWord.size() <= aMax && aWord != anEgg &&
 		    Spell(aWord, aTiles, anOrder)) {
 			if (aWord.size() > aBest.size()) {
@@ -172,6 +173,7 @@ std::string GameApp::BestWordForTests(size_t theMax, std::vector<Tile*>& theOrde
 			if (theLongest != nullptr)
 				aWords.push_back(aWord);
 		}
+	}
 	if (theLongest != nullptr) {
 		std::stable_sort(aWords.begin(), aWords.end(),
 		                 [](const std::string& a, const std::string& b) { return a.size() > b.size(); });
@@ -226,7 +228,8 @@ std::string GameApp::WordMasterGuessForTests(const std::vector<std::string>& the
 		return aScore;
 	};
 	std::string aGuess;
-	for (const std::string& aWord : mLex->mWords) {
+	for (size_t aWordIdx = 0; aWordIdx < mLex->GetNumWords(); aWordIdx++) {
+		const std::string aWord = mLex->GetWord(aWordIdx);
 		if (aWord.size() != 5 || aWord.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ") != std::string::npos)
 			continue;
 		bool aFits = true;

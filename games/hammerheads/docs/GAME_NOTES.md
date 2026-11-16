@@ -244,3 +244,64 @@ by the registration's upsell pictures, which the staging script takes out as it 
 `tools/tour_test.txt` ran on it and on the Steam copy's staged files: the 31 state lines, the 15 screenshots (byte for byte) and the
 player files are identical. What is not known: whether the Collection's own exe plays the same as the Steam one (its code was not
 compared and it was not run); what speaks for it is that its data is the same pictures, boards, texts, sounds and fonts.
+
+### The software screen: tried and dropped (2026-11-15)
+
+The software screen (`SoftwareScreenDisplay`, the framework's opt-in for a port whose original draws its 2D mode in software) was tried
+as a way under the default's 1.10 of the earlier pairs: `Application::CreateDDInterface` returned `SoftwareScreenDisplay::Create(this, true)`
+(the original enables 3D itself, `mAutoEnable3D`, so the 3D offer). At the default (3D on) the display hands the screen to the GPU at once,
+so a default player never reaches it; with `Is3D=0` it draws in software and presents through the surface. Measured in the five rounds
+below, the two 3D-off rows are the GPU path 0.68 of the original and 178 MB, and the software screen 1.05 and 157 MB: 21 MB less memory for
+a 3D-off player, at a processor time over the original's, which the performance rule does not allow. The override was taken out (the
+coordinator, 2026-11-15); the default path was 0.71 of the original in the same rounds, so nothing needed it. The test switch
+`HAMMERHEADS_SCREEN=gpu` went with it; `PERF_REG` in `perf.py` stays (extra registry lines for a port run).
+
+### The screens against each other, and the presents without vsync (2026-11-15, after the coordinator's questions)
+
+`tools/perf/screens.sh` (summed by `screensum.py`; `peak.py` samples the peak private bytes) took five rounds of one paced original and
+the port four ways, one process at a time on a pinned core, updates 4000 to 8000. The original's median was 3.17 M cycles an update.
+`HAMMERHEADS_SCREEN=gpu` (a test run only) keeps the framework's display in place of the software screen.
+
+| way | cycles an update (median) | against the round's original | peak private bytes (median) |
+|---|---|---|---|
+| default, 3D on, vsync on (GPU) | 2.26 M | 0.71 (0.47 to 1.03) | 142 MB |
+| 3D on, vsync off | 1.51 M | 0.47 (0.40 to 0.73) | 143 MB |
+| 3D off, GPU path | 2.43 M | 0.68 (0.48 to 1.09) | 178 MB |
+| 3D off, software screen | 2.98 M | 1.05 (0.83 to 1.22) | 157 MB |
+
+The memory the software screen saves is real against its own comparison: with 3D off the GPU path holds the pictures in memory as well
+as on the card (178 MB), and the software screen 157 MB, 21 MB less. The 21 MB higher of the first reading (159.7 against 138.6) was
+the software screen with 3D off against the GPU path with 3D on, two modes. The software screen's price is processor time: 2.98 M an
+update against 2.43 M with 3D off, since the framework's blitters draw what the GPU draws for nothing.
+
+The 1.10 of the earlier pairs (same default, the same window) did not come back: this sweep's default is 0.71 of the original. The runs
+vary by round from 0.47 to 1.03, and the original's own cycles moved from 3.67 M to 3.17 M between the two sweeps, so the machine's state
+(it had a kernel pool leak, which the user restarted for) moves both. Read the default as under the original on this machine today and over
+it in some rounds, and the vsync wait as the largest part of what is above it.
+
+**Presents without vsync** (`SDL_RENDER_VSYNC=0`, `-presentlog`; the framework's frame loop paces at the display's 16.667 ms when the
+renderer has no vsync flag, DDInterface.cpp's pace code): the intervals of the five runs have a median of 16.7 ms and 76 to 83 percent
+within 2 ms of it, p90 18.4 to 19.2 ms, p99 42 to 50 ms; with vsync on (one run, `presents-v.txt`) the median is 16.7, 75 percent are
+within 2 ms, p90 19.4 and p99 37.7. Both runs have a stall of a second or two at the start (the level's loading). So the presents come
+as evenly without vsync as with it, with none of AstroPop's quantising to the updates' 10 ms.
+
+No vsync opt-out is needed (the coordinator, 2026-11-15: at the default the port is at 0.71 of the original, so the framework's rule of vsync on
+the GPU path stands); the figures without vsync (0.47, 143 MB) and the present intervals above are kept in case the question returns.
+
+## Readability pass (2026-11-16)
+
+`tools/namecheck.py games/hammerheads`: 0 findings in 185 files (43 allowed, each with its reason in `namecheck.txt`). The other rules were
+read against the sources:
+
+- **Fields nobody reads (rule 3).** `tools/splitfields.py` listed 42 places. The members it called read-only in an exported function
+  (the main menu's buttons, `Application::mGameScreen`, `mGameMode`, `mUpgradeTimer`, `Avatar::mTarget`, the restart-point lists and the
+  rest) are all assigned in other functions, so they are false findings. Two are written and never read: `Creature::mCubbyReleased`
+  and `ObjectManager::mFixedStepCount`; both comments now say that nothing reads them. The one same-offset finding, `ParticleEffect`'s
+  `mFragments` and `mPool` at +0x08, is the original's two lists (+0x08 free, +0x0c in the air) against the port's one vector that
+  owns the fragments and a vector of pointers to the free ones; the comments now say so.
+- **Numbers (rule 7).** Constants that several files wrote out or defined for themselves (`Rand()`'s 1 / 2^31, pi, half and twice pi, pi
+  as a float and its halves, degrees to radians) are one set of names in `src/MathConstants.h`, replacing 12 per-file definitions and
+  about 40 written-out values. Each keeps its literal, so the object code is the same: `objsnap` before and after, 101 objects, 2,180
+  functions, 0 differ. The 47 other long decimals are each used once or twice, a reciprocal the exe keeps as a constant (a division
+  would round differently); they stay as the exe's constants, and most of their lines have no comment saying what they scale (not done).
+- **Comments (rule 8):** no stage, phase or milestone labels and no history in the sources.

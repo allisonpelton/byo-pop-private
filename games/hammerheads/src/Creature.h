@@ -101,7 +101,7 @@ public:
 	double			mGlow;				// 0 to 1, how much its glow shows while the hammer is over it
 	Cubby*			mCubby;
 	int				mCarriedItem;		// -1 until chosen
-	bool			mCubbyReleased;		// set by the cubby just before it deletes the creature
+	bool			mCubbyReleased;		// set by the cubby just before it deletes the creature; nothing in the port reads it
 
 public:
 	explicit Creature(int theKind);								// 0x430340

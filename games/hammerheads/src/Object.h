@@ -109,7 +109,7 @@ public:
 	std::vector<Object*>		mObjects;
 	std::map<std::string, Object*> mByName;
 	int							mCurrentLayer;
-	int							mFixedStepCount;
+	int							mFixedStepCount;		// FixedUpdate's count of steps; nothing reads it
 	double						mAccumulator;			// hundredths of a time unit not yet used by a fixed step
 	std::vector<ObjectRef*>		mRefs;
 	std::vector<Cubby*>		mCubbiesByDepth;

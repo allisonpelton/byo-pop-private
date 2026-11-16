@@ -1,4 +1,5 @@
 #include "GameScreen.h"
+#include "MathConstants.h"
 
 #include <cmath>
 #include <cstdio>
@@ -314,7 +315,7 @@ void GameScreen::Draw(Graphics* g)
 			if (gApp->mFade > 0.0)
 			{
 				Graphics aG(*g);
-				aG.SetColor(Color(0, 0, 20, ToInt(sin(gApp->mFade * 1.5707963267948966) * 220.0)));
+				aG.SetColor(Color(0, 0, 20, ToInt(sin(gApp->mFade * HALF_PI) * 220.0)));
 				aG.FillRect(0, 0, mWidth, mHeight);
 			}
 

@@ -150,6 +150,7 @@ protected:
 	bool m_ctl_load_skip_plugins;
 	bool m_ctl_load_skip_subsongs_init;
 	bool m_ctl_seek_sync_samples;
+	bool m_ctl_seek_reset_plugins;   // byo-pop
 	std::vector<std::string> m_loaderMessages;
 public:
 	void PushToCSoundFileLog( const std::string & text ) const;

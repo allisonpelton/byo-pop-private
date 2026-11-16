@@ -1456,7 +1456,9 @@ bool Mixer::OpenModule(int theSong)
 			}
 		}
 		Unlock();
-		if (!aModule)
+		if (aModule)
+			aModule->PrepareReuse();   // no song has the player yet, so no lock
+		else
 			aModule = s->mFactory(*s->mModuleFile, mRate);
 		if (!aModule)
 			SDL_Log("cannot load music module %d", theSong);

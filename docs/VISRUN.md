@@ -11,7 +11,7 @@ A run may start at any hour. The user lifted the time window on 2026-11-15: "Get
 visible desktop. Do what you want forever now". A run still has a deadline, as a safety stop for one that hangs: 14 hours
 after it starts, and it ends 2 minutes before that. `--user-window-until HH:MM` on the command line sets an earlier stop
 (the next HH:MM, at most 14 hours ahead; never a default, never in a config). `--dry-run`, `--selftest` and
-`--help` run at any hour. Before starting it checks `tools/gamecount.py --limit 6`, takes `build/visrun/visrun.lock` (one
+`--help` run at any hour. Before starting it checks `tools/gamecount.py --limit`, takes `build/visrun/visrun.lock` (one
 visrun on the machine), and waits until no other game window (class `MainWindow` or `SDL_app`) has been on the desktop
 for `--quiet` seconds (default 60).
 
