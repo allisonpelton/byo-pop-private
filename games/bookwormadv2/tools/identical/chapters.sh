@@ -4,14 +4,20 @@
 # build/chapter-results.txt (the verdicts of rngcmp.py and statecmp.py), and the case's outputs are deleted once it is judged.
 cd "$(dirname "$0")/../../../.." || exit 1
 P="$(cd "$1" && pwd)"; shift
+# Adventure at 5000 (the original's startup load ran past 3000 once, 2026-11-15, and its click was lost), the map at 6500.
+# the profiles as the game leaves them once its unlock panel has been shown (clearneeds.py), in a copy of their own
 for n in "$@"; do
 	until python tools/gamecount.py --limit 6 > /dev/null; do sleep 30; done
 	cf="build/chapter-$n.txt"
-	printf '# profile %s: Adventure, the map'"'"'s Enter, then the soak plays the chapter\n3000 click 245 325\n4500 click 400 575\n6500 soak 50000\n56600 quit\n' "$n" > "$cf"
-	PROFILE="$P/$n" CALLOAD=9000 bash games/bookwormadv2/tools/identical/case.sh "chapter-$n" "$PWD/$cf" > "build/chapter-$n.log" 2>&1
+	printf '# profile %s: Adventure, the map'"'"'s Enter, then the soak plays the chapter to kill fast (fastkill)\n# until the map shows again (chapterend), at most 15000 updates\n5000 click 245 325\n6500 click 400 575\n8500 fastkill 1\n8500 chapterend\n8500 soak 23500\n23500 quit\n' "$n" > "$cf"
+	rm -rf "build/chapter-profile-$n"; cp -r "$P/$n" "build/chapter-profile-$n"; python games/bookwormadv2/tools/identical/clearneeds.py "build/chapter-profile-$n"
+	PROFILE="$PWD/build/chapter-profile-$n" CALLOAD=1 bash games/bookwormadv2/tools/identical/case.sh "chapter-$n" "$PWD/$cf" > "build/chapter-$n.log" 2>&1
 	# the verdict lines (rngcmp's header and its last difference, the engine states) and how many differences were listed
-	{ echo "== $n"; grep -E "^original:|IDENTICAL|engine states|DIFFERENT|first difference" "build/chapter-$n.log" | cut -c1-200
+	{ echo "== $n"; grep -E "^original:|^draws:|IDENTICAL|engine states|DIFFERENT|first difference|^time |chapter ended|ORIGINAL RUN FAILED|BAD INPUT" "build/chapter-$n.log" | cut -c1-200
 	  echo "draw differences listed: $(grep -c '^update' "build/chapter-$n.log"); last: $(grep '^update' "build/chapter-$n.log" | tail -1 | cut -c1-120)"; } >> build/chapter-results.txt
-	rm -rf "build/identical/chapter-$n" "build/chapter-$n.log" "$cf"
+	# the case's own log (the verdicts in full, a few KB) stays in build/chapter-logs; its runs are deleted
+	mkdir -p build/chapter-logs; mv "build/chapter-$n.log" build/chapter-logs/
+	rm -rf "build/chapter-profile-$n" "$cf"
+	[ -n "$KEEP" ] || rm -rf "build/identical/chapter-$n"  # KEEP=1 keeps the case's runs, to look into a difference
 done
 echo "chapters.sh finished" >> build/chapter-results.txt
