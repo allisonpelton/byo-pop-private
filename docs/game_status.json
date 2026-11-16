@@ -69,7 +69,7 @@
       ],
       "na": [],
       "now": null,
-      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the whole board logic is about 1 us an update)"
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the whole board logic is about 1 us an update); software screen at 1x (9b9cffdb): 22.5 MB private against the original's 34.5, processor time a tie (6.1 % of one core against 5.9, paired median 0.955)"
     },
     "alchemy": {
       "title": "Alchemy Deluxe",
@@ -295,7 +295,7 @@
       ],
       "na": [],
       "now": null,
-      "note": "the lite-mod step done with no mod (2f58af40, games/ningpo/docs/LITE_MOD.md: tileAtCell's linear scan is the only costly search, and a cell table would answer the same, so it is not lite; the shuffle could differ but saves no time; the hint and move count have no early stop); every phase but modding done"
+      "note": "the lite-mod step done with no mod (2f58af40, games/ningpo/docs/LITE_MOD.md: tileAtCell's linear scan is the only costly search, and a cell table would answer the same, so it is not lite; the shuffle could differ but saves no time; the hint and move count have no early stop); every phase but modding done; software screen at 1x and the streamed track (a9b65b53): 19 MB private against the original's 30, 7.5 % of one core against 11.8"
     },
     "pixelus": {
       "title": "Pixelus Deluxe",
@@ -611,11 +611,12 @@
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
       "done": [
-        "port"
+        "port",
+        "identical-play"
       ],
       "na": [],
-      "now": "identical-play",
-      "note": "first playable merged (012bf8ef): every mode played by the bot through real input natively and on the web; the last city, the won story and a real game over not reached yet; nothing compared with the original yet"
+      "now": "identical-look",
+      "note": "logic phase done (3b29ffd9): play1, long1, long2 (1200 moves to a lost level in the second city), mem1, mem2, conc1, conc2 and edit1 match the original on every compared value and the random draws' order; frozen baseline build/baseline-pizzafrenzy from this merge"
     },
     "igglepop": {
       "title": "Iggle Pop Deluxe",

@@ -194,6 +194,9 @@ public:
 	virtual void	LoadingThreadCompleted() override;                       // 0x4d4591 slot 16 (empty; port: features.lean)
 	virtual bool	DrawDirtyStuff() override;                               // port: features.lean.frameRate
 	virtual MusicInterface* CreateMusicInterface() override;                 // 0x4d45b1 slot 18 (original takes the HWND; always BassMusicInterface, port: SDLMusicInterface)
+#ifndef __EMSCRIPTEN__
+	virtual DDInterface* CreateDDInterface() override;                       // port: the screen drawn in software, as the original's DirectDraw screen (framework/SoftwareScreenDisplay.h)
+#endif
 	void			DoRecordScoreDialog(const SexyString& theLines); // 0x4d45e3
 	virtual Dialog*	NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) override; // 0x4d4653 slot 25
 	virtual void	ModalOpen() override;                                    // 0x4d46fc slot 79 (same body as LostFocus)
