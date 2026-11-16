@@ -61,6 +61,9 @@ const int WAIT_UPDATES = 30;
 
 const char* const MODE_NAMES[] = { "speed", "memory", "concentration" };
 
+// the mode whose button the bot clicks on the main menu (the botmode command); -1: the mode the game was last in
+int gBotMode = -1;
+
 std::string jsonText(const std::string& theText)
 {
 	std::string aText = "\"";
@@ -626,10 +629,11 @@ static std::string ScreenMove(pf::PizzaFrenzy* theApp)
 	{
 		if (aShown != theApp->mMainMenu)
 			return "null";
-		// the button of the mode the game was last in (the speed mode's from launch)
-		if (theApp->mGameMode == pf::PizzaFrenzy::MODE_MEMORY)
+		// the button of the mode botmode named, else the mode the game was last in (the speed mode's from launch)
+		int aMode = gBotMode >= 0 ? gBotMode : theApp->mGameMode;
+		if (aMode == pf::PizzaFrenzy::MODE_MEMORY)
 			return nodeMove("memoryMode", theApp->mMainMenu->getNode("NewGame"));
-		if (theApp->mGameMode == pf::PizzaFrenzy::MODE_CONCENTRATION)
+		if (aMode == pf::PizzaFrenzy::MODE_CONCENTRATION)
 			return nodeMove("concentrationMode", theApp->mMainMenu->getNode("ConcentrationGame"));
 		return nodeMove("speedMode", theApp->mMainMenu->getNode("SpeedGame"));
 	}
@@ -846,11 +850,23 @@ bool PizzaFrenzyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	auto ok = [&]() { std::printf("OK %s%s%s\n", aCmd.c_str(), anArgs.empty() ? "" : " ", anArgs.c_str()); };
 	auto error = [&](const char* theWhy) { std::printf("ERROR %s: %s\n", aCmd.c_str(), theWhy); };
 	bool aKnown = aCmd == "state" || aCmd == "move" || aCmd == "goto" || aCmd == "level" || aCmd == "unlock"
-		|| aCmd == "set" || aCmd == "win" || aCmd == "lose" || aCmd == "seed";
+		|| aCmd == "set" || aCmd == "win" || aCmd == "lose" || aCmd == "seed" || aCmd == "botmode";
 	if (!aKnown)
 		return SexyAppBase::HandleScriptCommand(theCommand);
 	pf::PizzaFrenzy* anApp = pf::PizzaFrenzy::instance();
-	if (anApp == nullptr || !mEngineRunning || anApp->mStates.getState() == nullptr)
+	if (aCmd == "botmode")
+	{
+		// the bot's choice alone, so it can be sent before the game has started
+		int aMode = -1;
+		for (int i = 0; i < 3; i++)
+			if (anArgs == MODE_NAMES[i])
+				aMode = i;
+		if (aMode < 0)
+			error("botmode speed|memory|concentration");
+		else
+			gBotMode = aMode, ok();
+	}
+	else if (anApp == nullptr || !mEngineRunning || anApp->mStates.getState() == nullptr)
 	{
 		error("the game has not started");
 	}

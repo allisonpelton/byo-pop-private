@@ -37,7 +37,7 @@ public:
 	void serve() override;
 	// slot 0x150: 0x452f70: the pick is let go: the order's pizzas show, and the customer waits again
 	void unpick() override;
-	// slot 0x160: 0x4532e0: the customer hangs up
+	// slot 0x160: 0x4532e0: the popup closes (the base's closing state); the mode is not told
 	void hangUp() override;
 	// slot 0x18c: 0x452890
 	Order* getOrder() override { return mOrder; }
@@ -189,8 +189,7 @@ public:
 	void exit() override;
 	// 0x0c: 0x453c10
 	void update(engine::UpdateInfo& theInfo) override;
-	bool isClickable() override { return false; }  // 0x4529d0
-	bool isPicked() override { return false; }
+	// slots 0x14 and 0x18: the base's 0x451610 (true): the changing customer takes a click and a pick
 
 private:
 	float mStepTime = 0;    // +0x10: the seconds before the next topping

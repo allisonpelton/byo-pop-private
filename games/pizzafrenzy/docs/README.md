@@ -236,6 +236,9 @@ The standard commands of `docs/TEST_COMMANDS.md` (`-script`, `-commands`, the we
   every pizza ordered counted as delivered, so `checkLevelEnd` (0x456ac0) takes the prize blimp's path at its next
   update; `lose` takes the happiness away, which it ends the game on.
 - `seed <n>`: `engine::crtSrand`, as `-seed=N` seeds the game.
+- `botmode speed|memory|concentration`: the mode whose button the bot's `move` clicks on the main menu (the mode the
+  game was last in until it is sent); it changes nothing in the game, so a case recorded from a first launch can play
+  the memory or the concentration mode with real input alone.
 - `move`: the bot's next move, below.
 - `memreport`: the framework's, with the engine's pictures and sounds added (`AddMemReportHolders`).
 

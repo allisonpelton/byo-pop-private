@@ -37,6 +37,9 @@ the patched counter goes up, after the mode's update and before the scene's, so 
 later than its mode's.
 
 `case.sh <name> <seed> <moves>` runs all of it; `INPUT=<file>` replays a recorded input instead of recording one.
+The original has no test commands, so every case starts from a first launch and reaches its mode by clicks: the
+bot's `botmode memory` or `botmode concentration` (`--first`, dropped from the recorded input) has it click that
+mode's button on the main menu.
 
 ## Differences found and fixed
 
@@ -72,6 +75,15 @@ level's end state 0x458490 and the bonus round's 0x45d1b0) was left out with its
 original's random state went apart from the port's. The title is translated now (`BurstText`), letters, stages, waves
 and bursts; the stages that only a hold time reaches, which nothing sets, are left out.
 
+**A hung-up wave cost happiness for every customer.** When the whole wave is hung up (in the memory mode, a pizza
+taken to the wrong customer), the customer's popup is told to hang up (slot 0x160, 0x4532e0), which in the original
+only closes it the way any popup closes (the closing state, vtable 0x500574); only the customer the pizza went to
+enters the hang-up state, which tells the mode and costs ten happiness. The port put every customer into the hang-up
+state, so each waiting customer cost ten more; the first memory case lost twenty where the original lost ten, and the
+level's end bonus came out 250 short. A peek of the popups' states in the original showed it. The popup closes now.
+Seen in passing: the chameleon's state (vtable 0x500638) takes clicks and picks in the original (slots 0x14 and 0x18
+are the base's 0x451610), which the port had as not; it takes them now.
+
 ## Oddities
 
 **The particle warmup's frame.** The port starts the decorations' particle warmup (150 seconds, 24 draws) in frame 50,
@@ -95,4 +107,6 @@ Case play1 (150 moves, seed 1) matches through the first level. record.py times 
 state reply gave (a held run spends a frame on each round of queries, which the sum of the waits left out), so a replay
 plays the game the bot played. Case long1 (500 moves, seed 1: three levels of the first city, its bonus round and the
 second city's start, 7742 frames) matches on every compared value, and the random state's 1634 values come in the same
-order. Next: longer cases, the memory and concentration modes, a lost level and the editor.
+order. Case mem1 (the memory mode, 300 moves, seed 1: two levels and the third's start, 4433 frames) and case conc1
+(the concentration mode, 300 moves, seed 1, 5017 frames) match the same way. Next: longer cases, a lost level and the
+editor.
