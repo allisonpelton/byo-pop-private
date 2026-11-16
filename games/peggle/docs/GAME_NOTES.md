@@ -15,6 +15,12 @@ double click, rename, delete with its question, create a new one, the name error
 other screen stops with a message that names the function (`grep NOT_TRANSLATED games/peggle/src`); the first run ends at
 `StartAdventureGame`.
 
+The level pieces are translated as far as loading: PhysObj, PegInfo, Mover, Line, Poly, Brick (with the shape it makes from its
+numbers), Hole, Ball and Gun (their reading, saving and shape), the factory that makes a piece from its class number
+(`PhysObjFactory`) and the level file reader and writer (`LevelFile`; layouts in `LEVEL_PIECES.md`). The `checklevels` test reads
+all 56 files of `levels/` with them and writes each back byte for byte. Their physics, logic and drawing are not translated
+(`NOT_TRANSLATED`), and fields whose use is not translated yet are called `mUnknownNNN` after their offset.
+
 Translated: the framework glue (ThunderballApp's start-up, loading, music, screens' scroll, dialogs' frame), the data classes and
 managers (StringParser, ConfigParser, DataSync, GameStats, PlayerInfo, ProfileMgr, HighScoreMgr, StatsMgr, ImageMgr, CharacterMgr's
 file loader, TrophyMgr, StageMgr), BlendedImage, WidgetMover, ThunderButton / ThunderCheckbox / ThunderSlider / ThunderFrame,
@@ -57,6 +63,14 @@ certificate (line 674). Each is a constant folded away.
 - `FinishRenameUserDialog` saves the profile in use before renaming; the original calls the save without asking whether there is
   one (a null `this`); the port skips it then. The dialog cannot be reached with none.
 - The debug keys of the original (Ctrl, H, D, A in the loading screen's debug mode) are kept.
+- A brick makes its pictures when it is first drawn, not as it is read (the original makes them while it is read); the shape
+  and everything a ball can hit are made when it is read, as in the original.
+- Identical play is compared in 2D mode (x87 maths at 53 bits): the original's x87 code is translated as one `(float)` rounding
+  of a double expression per stored value (`tools/fpu2c.py` writes the first draft of it).
+
+## What the port fixes (memory leaks and bugs that break play)
+
+- A brick frees its pictures and its shadow when it is deleted (the original leaks them).
 
 ## Fix candidates (for the fixes mod, not the port)
 
@@ -75,12 +89,20 @@ None yet.
 `profile <name>`: makes the profile if there is none and takes it as the one in use (the way round the new-player dialog, which is
 not translated yet). The rest of the standard set comes with the board.
 
+`checklevels <folder>`: reads every `.dat` of the folder (`../../assets/peggle/levels` from `build/native`) with the game's level
+reader and writes it back with the same code; a file is OK when all its bytes were used and the written file is the same. A line
+a file: the version (with an `f` when the flag is set), the size, the number of pieces and how many there are of each class number
+1 to 8, and the result; for a file that differs the first differing piece and its bytes. A piece with a mover keeps the file's
+saved rotation for this test (see `LEVEL_PIECES.md`). Run it through `rundesk.exe` with a script `3 checklevels <folder>`,
+`6 quit`.
+
 ## Not translated yet
 
 `grep NOT_TRANSLATED games/peggle/src` is the list. The order the next work takes:
 
-1. The level files and the pieces of a level (PegInfo, Brick, Poly, Line, Hole, Gun, Mover, `LoadLevel`), then the physics
-   (PhysObj, Ball, CollisionMgr, LogicMgr's 99 functions, 57 KB, the largest part), then the Board's rules (83 functions, 34 KB),
+1. The Board (its constructor, `LoadLevel2` 0x429d10 which puts the file's pieces in the level, `SetupLevel` 0x41ea50, Clear,
+   AddObj, then the physics (the pieces' Update and collision functions, CollisionMgr, LogicMgr's 99 functions, 57 KB, the largest
+   part), then the Board's rules (83 functions, 34 KB),
    the effects (Effect 47, EffectMgr, FloatingText), InterfaceMgr's drawing and CharacterMgr's animation. About 220 KB of the
    original's code in all.
 2. The dialogs and screens that the menu leads to: OptionsDialog, LevelScreen,

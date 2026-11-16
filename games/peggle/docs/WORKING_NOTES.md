@@ -19,6 +19,9 @@ slots). The game image is `re/peggle/deluxe/bin/PeggleGame.exe` (the DRM wrapper
 - `edfields.py <addr>...`: for a class's `EditGetSetValHook` (the level editor's property hook) the property names the original
   gives its fields ("physobj_collidable +0x24 EditValSyncBool"): the source of the level pieces' field names. It finds the
   names that are compared by `call 0x4097c0`; the others are read from the disassembly.
+- `fpu2c.py <addr> [--this reg] [--terse]`: the first draft of a function's x87 maths as C statements (one `(float)` rounding of a
+  double expression per stored value); the raw `disasm.py` stays the authority where a line looks odd. `vtable.py <Class>` prints a
+  class's vtable with the Mac names and the slot numbers.
 - `resgen.py`: writes `src/Res.h`, `src/Res.cpp` (421 resources in 15 groups, the exe's ResGen output) and `res_map.txt`.
 
 ## The code
@@ -58,7 +61,8 @@ The registered path stays as the only one. Each function left out is listed by a
 
 ## Translated so far (all build; the data classes are used by `ThunderballApp::Init`)
 
-StringParser, ConfigParser, DataSync, GameStats, PlayerInfo, ProfileMgr, HighScoreMgr, StatsMgr, ImageMgr, CharacterMgr (data and the
+PhysObj, PegInfo, Mover, Line, Poly, Brick, Hole, Ball and Gun (loading, saving and shape only), PhysObjFactory, LevelFile (see
+`LEVEL_PIECES.md`), StringParser, ConfigParser, DataSync, GameStats, PlayerInfo, ProfileMgr, HighScoreMgr, StatsMgr, ImageMgr, CharacterMgr (data and the
 file loader; the animation functions Draw, DrawBack, DrawFront, Update, UpdatePaused, UpdateSlowMo, CalcEyePos, CalcLookPos,
 CalcPowerupActive, CheckCrossEyeFix, SetYinYangEye, CreateShooterImage come with the Board), TrophyMgr, StageMgr (StageMgr::GetRandomLevel
 0x459060, 0x4592b0, 0x4592e0 wait for `ThunderballApp::GetMaxLockedStage/Level`). A run of `Init` reads the real files: 10 characters, 11

@@ -10,20 +10,48 @@ names (`tools/edfields.py`), from `SyncState` and from the users of a field. `to
 `EditValObj` (the editor's base: vftable +0, a reference count +4, +8 a pointer, +0xc a byte; the port keeps only the count)
  - `PhysObj` (size 0xe4 or so; the level piece with a box, flags, a mover, a peg and an image)
     - `Poly` (0x148: points, lines, rotation, scale; the background picture of a level is a Poly with an image)
-       - `Brick` (0x184 or more: a curved or straight brick)
-    - `Ball`, `Hole`, `Line`?, `Gun`?: to be placed from their vtables.
+       - `Brick` (0x51c: a curved or straight brick, with the pictures made for it)
+       - `Gun` (0x1e0: the cannon, a Poly of three one-sided lines with a Ball at its muzzle)
+    - `Line` (0x114: one wall segment), `Ball` (0x190: a round peg, or a ball in play), `Hole` (0x110: a hole in the board that takes a ball and lets it out at another piece after a delay)
  - `PegInfo` (0x28: what makes a piece a peg: kind, hit, flash and the glow timers), a reference-counted object at PhysObj +0xd0.
  - `Mover` (0x68: how a piece moves: a shape with radii, phases and pauses; reached from PhysObj +0x48).
 
 Pointers to a Mover or a PegInfo are shared and counted (the original's `SmartPtr<T>`: `InterlockedIncrement(p + 4)`); a Mover
 is saved with `FUN_00406860`, which writes 0 for none, 1 and the mover for a new one, or the number of one already written.
 
+## The level file
+
+`levels/<name>.dat` (and `levels/_base.dat`, the pieces every level shares, read first unless the level's name starts with `_`)
+is read by `ReadLevelFile` (0x4227c0, `src/LevelFile.cpp`): a version (long, at most 0x42), a flag (bool; set means "flagged
+level", `gSyncMode` 1, clear means `gSyncMode` 0), then the list of pieces: a count (long) and each piece. A piece is written
+by `DataSync::SyncSharedPolymorphic`: a code (0 none, 1 a new piece, n the number of one written earlier; numbers start at 3),
+and for a new one the class number (long) and its `SyncState`. Class numbers (`GetClass`, `MakePhysObj` 0x404ca0): 1 PhysObj,
+2 Line, 3 Poly, 4 Ball(false) (a ball in play), 5 Ball(true) (a round peg), 6 Brick, 7 Gun, 8 Hole. The levels use 3, 5, 6 and 8
+(`_base.dat` has Polys, a few pegs, a brick and Holes); the files hold no Line, no ball in play and no Gun (the board makes the
+cannon, and a Line is part of a Poly), though a saved game may. Besides the level's own
+pieces, `LoadLevel2` makes the background picture `levels/<name>` as one more Poly.
+
+`gSyncMode` (the original's global at 0x650a5c): 0 level, 1 flagged level, 2 saved game or replay state, 3 the editor. It decides
+a few optional fields (a Poly's scale in 1, a PhysObj's saved values in 2, a Brick's points in 3).
+
+Everything read is checked by the `checklevels <folder>` test command (`src/TestCommands.cpp`): each file must be used to its
+last byte and, written back out with the same code, must come out byte for byte as it went in. All 56 files of the game pass.
+One thing is excluded on purpose: a piece with a mover is saved with its rotation at the time of saving, and the original's
+reader overwrites it with the mover's own (`Poly::SyncCommon` 0x487d00), so the test reads each file a second time with
+`gSyncKeepSavedRotation` set (it keeps the file's value) and writes that one back. A piece's rotation is saved only when it has
+a mover.
+
+Findings that mattered while translating: a Brick writes its right angle twice; a `Ball(false)` saves its place, speed and hat
+(the block under `mKind == KIND_SHOT_BALL`), a `Ball(true)` only its place and radius; the `mKind` byte (+0x10) is never saved,
+the constructor sets it (0 PhysObj, 1 Hole, 2 ball in play, 3 round peg, 4 Line, 5 Poly); a brick's picture is made at its
+first draw instead of when it is read (a deviation with no visible effect, and a leak fixed: the original never freed it).
+
 ## PhysObj (the fields found so far)
 
 | offset | what | from |
 |---|---|---|
 | +0x04 | reference count | `FUN_00402d00` |
-| +0x10 | the kind of piece (the Poly constructor sets 5; `GetTypeFlags` tests 2 and 3) | ctor, `GetTypeFlags` |
+| +0x10 | the kind of piece (0 plain, 1 Hole, 2 ball in play, 3 round peg, 4 Line, 5 Poly; `GetTypeFlags` tests 2 and 3) | ctor, `GetTypeFlags` |
 | +0x14, +0x18, +0x1c, +0x20 | the box: left, top, right, bottom (floats) | `GetCenter`, `Translate` |
 | +0x24 | collidable (bool) | `physobj_collidable` |
 | +0x25 | visible | `physobj_visible` |
