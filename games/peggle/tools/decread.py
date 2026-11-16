@@ -32,9 +32,12 @@ DECLARATION = re.compile(
     r"size_t|DWORD|HANDLE|LPVOID|code|[A-Za-z_][\w:<>,]*)(?:\s+\**|\s*\*+)\s*[A-Za-z_]\w*(\[[0-9a-fx]+\])?;\s*$")
 NOISE = re.compile(
     r"^\s*/\* WARNING|^\s*\*/\s*$|std::basic_fstream<char>::vbase_dtor|_Tidy\(.*'\x01'\)")
+# the exception frame's bookkeeping: only in a function that has one (it writes ExceptionList), where local_8 is the try level
+# and local_10 the saved list; in any other function local_8 ... local_14 are the function's own variables and stay
 FRAME_NOISE = re.compile(
-    r"^\s*(local_8|local_c|local_10|local_14).*;\s*$|^\s*local_8\._\d_\d = |^\s*puStack_\w+ = |^\s*ExceptionList = |"
+    r"^\s*local_8 = (0x[0-9a-f]+|-?\d+);\s*$|^\s*local_8\._\d_\d = |^\s*puStack_\w+ = |^\s*ExceptionList = |"
     r"^\s*\w+ = ExceptionList;|__security_check_cookie|^\s*\w+ = DAT_0064e6fc \^ ")
+COOKIE_NOISE = re.compile(r"__security_check_cookie|^\s*\w+ = DAT_0064e6fc \^ ")
 # an inlined std::string being reset to empty, and its release
 STRING_RESET = re.compile(r"^\s*\w+ = 0xf;\s*\n\s*\w+ = 0;\s*\n\s*\w+ = \(void \*\)\(\(uint\)\w+ & 0xffffff00\);\s*\n", re.M)
 STRING_FREE = re.compile(r"^\s*if \(0xf < \w+\) \{\s*\n\s*_free\(\w+\);\s*\n\s*\}\s*\n", re.M)

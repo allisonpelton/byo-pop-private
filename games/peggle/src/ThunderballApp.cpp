@@ -2,14 +2,17 @@
 
 #include "ThunderballApp.h"
 
+#include "BlendedImage.h"
 #include "MusicInterface.h"
-#include <SDL.h>
 #include "Res.h"
 #include "ResourceManager.h"
 
 using namespace Sexy;
 
 ThunderballApp* Sexy::gThunderballApp = nullptr;
+bool Sexy::gColorblind = false;
+BlendedImage* Sexy::gPegImages[NUM_PEG_IMAGES] = {};
+BlendedImage* Sexy::gPegShadowImage = nullptr;
 
 // the slots of the two pieces of music the app loads; the other music is loaded with its level (0x42ca30)
 static const int MUSIC_ODE_TO_JOY = 0;
@@ -28,6 +31,18 @@ ThunderballApp::ThunderballApp()
 
 ThunderballApp::~ThunderballApp()
 {
+	for (int i = 0; i < NUM_FEVER_STAR_COLORS; i++)
+		for (int j = 0; j < NUM_FEVER_STAR_SIZES; j++)
+			delete mFeverStars[i][j];
+	for (int i = 0; i < NUM_BRICK_IMAGES; i++)
+		delete mBrickImages[i];
+	for (int i = 0; i < NUM_PEG_IMAGES; i++)
+	{
+		delete gPegImages[i];
+		gPegImages[i] = nullptr;
+	}
+	delete gPegShadowImage;
+	gPegShadowImage = nullptr;
 }
 
 // 0x42ca30
@@ -73,5 +88,6 @@ void ThunderballApp::Init()
 		return; // (the original shows "No User Profile" and quits)
 	if (mStatsMgr.mName.empty() && mCurrentPlayer != nullptr)
 		mStatsMgr.mName = mCurrentPlayer->mName;
-	SDL_Log("TEMP data: %d characters, %d stages, %d trophy pages, %d trophies, %d tips", (int)mCharacterMgr.mCharacters.size(), mStageMgr.GetNumStages(), (int)mTrophyMgr.mPages.size(), (int)mTrophyMgr.mTrophyById.size(), (int)mStageMgr.mTips.size());
+	mLevelMusicPending = true; // the loading screen loads it
+	ShowLoadingScreen();
 }

@@ -106,7 +106,7 @@ def main():
                        'enum ResourceId {']
     header += ['\t%s_ID,' % name for name in ids]
     header += ['\tRESOURCE_ID_MAX', '};', '']
-    source = HEADER + ['#include "Res.h"', '', '#include "ResourceManager.h"', '#include "Font.h"', '',
+    source = HEADER + ['#include "Res.h"', '', '#include "ResourceManager.h"', '#include "Font.h"', '', '#include <cstring>', '',
                        'using namespace Sexy;', '']
     for name in ids:
         source.append('%s Sexy::%s = %s;' % (KINDS[kind[name]], name, '0' if kind[name] == 'sound' else 'nullptr'))
@@ -121,6 +121,22 @@ def main():
         for name, item_kind in items:
             source.append('\t\t%s = theManager->%s("%s");' % (name, GETTER[item_kind], name))
         source += ['\t} catch (ResourceManagerException&) {', '\t\treturn false;', '\t}', '\treturn true;', '}', '']
+    # the lookups the exe's ResGen output has: a group by name, a resource's name by id, an image replaced by id
+    header += ['bool ExtractResourcesByName(ResourceManager* theManager, const char* theName); // 0x41f9f0',
+               'const char* GetStringIdById(int theId);', 'void ReplaceImageById(ResourceManager* theManager, int theId, Image* theImage); // 0x41bab0', '']
+    source += ['bool Sexy::ExtractResourcesByName(ResourceManager* theManager, const char* theName)', '{']
+    for group, items in groups:
+        source += ['	if (strcmp(theName, "%s") == 0)' % group, '		return Extract%sResources(theManager);' % group]
+    source += ['	return false;', '}', '']
+    source += ['const char* Sexy::GetStringIdById(int theId)', '{', '	static const char* const aNames[] = {']
+    source += ['		"%s",' % name for name in ids]
+    source += ['	};', '	if (theId < 0 || theId >= RESOURCE_ID_MAX)', '		return "";', '	return aNames[theId];', '}', '']
+    source += ['void Sexy::ReplaceImageById(ResourceManager* theManager, int theId, Image* theImage)', '{',
+               '	theManager->ReplaceImage(GetStringIdById(theId), theImage);', '	switch (theId)', '	{']
+    for name in ids:
+        if kind[name] == 'image':
+            source += ['	case %s_ID:' % name, '		%s = theImage;' % name, '		break;']
+    source += ['	default:', '		break;', '	}', '}', '']
     header.append('}  // namespace Sexy')
     with open(os.path.join(SRC, 'Res.h'), 'w', encoding='utf-8', newline='') as handle:
         handle.write('\n'.join(header) + '\n')
