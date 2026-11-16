@@ -81,7 +81,6 @@ const float END_SECONDS = 4.0f;
 const float BANNER_X = 320.0f;
 const float BANNER_Y = 200.0f;
 const float CLEAR_BANNER_Y = 310.0f;
-const float STAGE_BANNER_X = 320.0f;
 
 // The fade of the screens
 const float START_SCREEN_FADE_SECONDS = 0.5f;

@@ -101,6 +101,15 @@ public:
 	ScoreList& getScoreList(int theMode) { return theMode == GAME_MODE_TIMED ? mTimedScores : mNormalScores; }
 	int getStageIndex() const { return mStageIndex; }  // 0x42be10 (+0x1e4)
 	int getStageCount() const { return (int)mManifest.mStages.size(); }  // 0x42c0e0
+	// 0x42c9b0: a stage of the manifest (a number from 0)
+	StageInfo* getStageInfo(int theIndex) { return mManifest.mStages[theIndex].get(); }
+	// 0x42c970: a change of the fish the stages bring (a number from 0); none when there is no such change
+	FishChange* getFishChange(int theIndex)
+	{
+		if (theIndex < 0 || (int)mManifest.mFishChanges.size() <= theIndex)
+			return nullptr;
+		return &mManifest.mFishChanges[theIndex];
+	}
 	// 0x42be20: how far the game stage's load has got (0 to 1)
 	float getLoadProgress();
 	const std::string& getVersion() const { return mManifest.mVersion; }  // 0x42d2b0
