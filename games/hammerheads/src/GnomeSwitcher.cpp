@@ -1,4 +1,5 @@
 #include "GnomeSwitcher.h"
+#include "MathConstants.h"
 
 #include "Application.h"
 #include "HammerDisplay.h"
@@ -16,7 +17,6 @@
 
 using namespace Sexy;
 
-static const double RAND_SCALE = 4.656612875245797e-10;		// 1 / 2^31: Rand() as a number from 0 to 1
 static const double NO_TIMEOUT = 99999.0;					// the timer while a costume goes on or off: it is not run out
 
 // 0x43eb20

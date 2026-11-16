@@ -1,4 +1,5 @@
 #include "GnomeRabbit.h"
+#include "MathConstants.h"
 
 #include "Application.h"
 #include "Cubby.h"
@@ -20,7 +21,7 @@ GnomeRabbit::GnomeRabbit() :
 	mStage(STAGE_HOPPING)
 {
 	int aRand = Rand();
-	mFrameSpeed = ((double)aRand * 4.656612875245797e-10 * 0.05 - 0.025) + 0.1;
+	mFrameSpeed = ((double)aRand * RAND_SCALE * 0.05 - 0.025) + 0.1;
 }
 
 // 0x43cbc0
