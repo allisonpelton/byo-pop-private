@@ -88,17 +88,28 @@ a `click` and ten updates' wait, which is what a player's click does.
   and the listener, are not in the port. The options box and the quit box have no registration or outbound button, so nothing was
   taken out of them.
 
+## Fixes (the fixes mod)
+
+`mods/fixes/mod.json` has the three fixes; the port asks `Platform::FixOn(id)` at each one and keeps the original's path beside it
+(every option is off in a test run with no `-modsdir`, so the frozen baseline is the original). The page ships the mod as
+`hammerheads-fixes/` and installs it on. `games/hammerheads/tools/fixes_check.sh` runs `tools/fixes_test.txt` as the original, with the mod
+at its defaults and with each fix alone (under rundesk, `-fast -seed=1`).
+
+- **quitEscape** (on): the quit box (`QuitDialog`) sets no escape answer, as the options box does ("Done"); with the fix Escape answers
+  "No". Checked: the box stays open on Escape without it, and closes with it and with the mod.
+- **menuTrophySting** (on): `TrophyAppearButton`'s constructor (0x45f5e0) plays the medal sting when the trophy room opens from the main
+  menu as well as when a game awards one; with the fix it is silent from the menu. Checked in the sound log: the sting plays once
+  without it and not with it or the mod.
+- **restartCoinCount** (on): on a restart point's card (`ResurrectButton::Draw`) the number's width is measured in the font of the
+  line above (Eurofurence 14) and drawn in Arial 10 bold, so the coin and the number sit off the middle; with the fix it is measured in
+  the font it is drawn in. Not in the tour (the card needs a Marathon game to its first restart point): the change is the one font
+  set before the measurement.
+
 ## Fix candidates
 
-Behaviour of the original that looks like a mistake and is kept in the port until the fixes mod.
+Behaviour of the original that looks like a mistake and is kept in the port, with no fix yet.
 
-- **The coin count on a restart point's card** is measured in the font of the line above it (Eurofurence 14) and drawn in the
-  other (Arial 10 bold), so the pair of the coin and the number sits a little off the middle.
-- **The announcement of a trophy** plays its sting when the trophy room opens from the main menu as well as when a game awards one
-  (the constructor, 0x45f5e0).
-
-- **The escape key does nothing in the quit box**: it sets no escape answer, as the other boxes do (the options box answers it
-  as "Done").
+- **The button sound of a moving dialog** never plays (see Oddities); **a check box that cannot be ticked** plays its sound twice.
 
 ## Oddities (not chased)
 
@@ -131,3 +142,50 @@ Behaviour of the original that looks like a mistake and is kept in the port unti
 - **The quit and game-over boxes' button code** (0x44fe50) and the options box's press sound (0x44fe90) are functions the Ghidra
   export lacks (code the linker shared); they are found in the boxes' tables of the button listener (`tools/vtable.py` does not
   print them: read the table at the address in the class's constructor).
+
+## Autosplit
+
+`src/LiveSplitObserver.cpp` fills the shared autosplit block (game id HHDX, layout 2) after each update; it only reads the game. The
+site asks through `byopop_livesplit_block`, a mod's "livesplit" feature or `-livesplitlog=<file>`. Hooks: `CreateGameScreen` (a board,
+resumed for a saved game or restart point and a test game), Go on the first level's introduction card or a "Ready?" box, `LevelFinished`
+(clear; Win for the last row of Classic and Tough Cookie), `Gameplay::GameOver`, `GameToTrophyRoom` (Regicist). Classic and Tough
+Cookie's end is `progress` 1: Go on the "Ready?" box after the trophy room that awarded Regicist. Test: `set kings 1` once a game is
+in play makes that trophy. Both classic and tough have 25 levels. The frozen baseline is unchanged with the block off.
+
+With the block on (`-livesplitlog` on the frozen tour, 19 block lines) all 15 screens, the state lines and the player files are byte-identical to the run with it off, so the frozen baseline holds with the block either way (2026-11-15).
+
+## Coverage check
+
+`games/hammerheads/coverage.txt` names the export, the sources and the game's own code (0x401000-0x468e30, 1837 functions); the
+level editor (0x405550-0x419c70), the beta login and DRM client (0x41a000-0x41d9c0), the compiler's deleting destructors, the debug
+`std::` instantiations, the original's own growable-array template, TinyXML (the port reads XML through `XmlLite.cpp` and boards
+through `BoardFile.cpp`) and some one-field accessors are `none` lines with their reasons (732 functions left out on purpose).
+
+Runs of the original (`tools/coverage/run.py <scenario>`, origrun on the host, the virtual clock, `--coverage`): `menus`, `howto`,
+`dialogs` (the change-player box, the quit box with No and with Yes), `classic1`, `classic_save1`, `classic_focus1`, `tough1`,
+`marathon1`, `classic_sp25`, `classic_j5`, `classic_nd10`, `classic_nd25`, `classic_j25`, `classic_save22`. Between them they reach
+1235 of the 1837 functions; the first run of `menus` came out of a cold start with its inputs a little late and reached 1531, the
+second 1757, so a run that reaches much less than its sisters is run again.
+
+Reached in the original with no definition in the port: 268 at the first report. 12 were code the port holds under another shape
+(the string splitter of `ValueList`, `IsValid`, the ordinal ending, the board file's loader and so on; their addresses now stand
+in the comments above the functions that hold them) and the rest were library code, destructors and the editor. Two were logic the
+port lacked, both found and fixed here:
+- **0x45dcf0**, the shop's and the challenge screen's mouse handler (`MouseMove` and `MouseDrag` of both): the hammer follows the
+  pointer there, as it does in the game screen.
+- **0x405450**, the ordinal in the bonus round's opening text: "2nd Bonus Round!", where the port printed "2 Bonus Round!"
+  (`ChallengeScreen::Draw`; the shot comparison had passed, because the identical-play runs compare the first round's card only
+  at a few updates).
+The first list is now empty.
+
+A crash found by the `dialogs` run: the change-player box ("If this is not you, click here") ended the port in a null read, since
+`UserDialog` never set the lines' font that `Dialog::Draw` measures (the original's box has the framework's default font, which the
+port's `Dialog` does not make). Found with AddressSanitizer (`build/asan-hh`), fixed in the constructor.
+
+Defined in the port and never reached in these runs: 137 functions. 35 are the gnomes' and shop items' `SaveExtra` and `LoadExtra`
+(vf09 and vf10, 0x435de0 and the like), read and written only for the per-object extras of a board file, which the boards of the
+original do not have (candidates for taking out, with the helpers only they call); 14 are Application functions at 0x41e960-0x422460
+(the dialog and screen plumbing of rare flows); 21 are in the Resurrect page, the credits, the player list's rename and delete, the
+quit and options boxes' rarer paths; the rest are small drawing and update helpers of the shop's gift box, the rotating floater, the
+hammer display, the challenge meter and the high score entry box, which only certain rounds reach. None is removed or read again
+yet; the rare flows still need runs of their own.

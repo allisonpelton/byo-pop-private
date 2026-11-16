@@ -111,6 +111,7 @@ ParticleLibrary::ParticleLibrary(PixelusApp* theApp)
 		ParticleVec(0, 400.0, 0), 0, 0, 0, 0, 0, 100.0));
 }
 
+// port: the destructor (ParticleLibrary::~ParticleLibrary)
 ParticleLibrary::~ParticleLibrary()
 {
 	for (size_t i = 0; i < mImageDefs.size(); i++)
@@ -180,6 +181,7 @@ ParticleEffect::ParticleEffect(PixelusApp* theApp, ParticleEmitterDef* theEmitte
 	mRateFactor = (Rand01() - 0.5) * mEmitter->mRateSpread + 1.0;
 }
 
+// port: the destructor (ParticleEffect::~ParticleEffect)
 ParticleEffect::~ParticleEffect()
 {
 	for (size_t i = 0; i < mFree.size(); i++)
@@ -189,22 +191,22 @@ ParticleEffect::~ParticleEffect()
 }
 
 // 0x43e250
-void ParticleEffect::UpdateParticle(Particle* p, double theStep)
+void ParticleEffect::UpdateParticle(Particle* theParticle, double theStep)
 {
 	const ParticleImageDef* aDef = mImageDef;
-	p->mAge += theStep * p->mAgeRate;
-	if (p->mAge >= aDef->mLifetime)
+	theParticle->mAge += theStep * theParticle->mAgeRate;
+	if (theParticle->mAge >= aDef->mLifetime)
 	{
-		p->mDead = true;
+		theParticle->mDead = true;
 		return;
 	}
-	p->mVel.x += theStep * aDef->mGravity.x;
-	p->mVel.y += theStep * aDef->mGravity.y;
-	p->mVel.z += theStep * aDef->mGravity.z;
-	if ((aDef->mSpeedUp > 0.0 || aDef->mSwirl > 0.0) && p->mVel.y * p->mVel.y + p->mVel.x * p->mVel.x > 0.0)
+	theParticle->mVel.x += theStep * aDef->mGravity.x;
+	theParticle->mVel.y += theStep * aDef->mGravity.y;
+	theParticle->mVel.z += theStep * aDef->mGravity.z;
+	if ((aDef->mSpeedUp > 0.0 || aDef->mSwirl > 0.0) && theParticle->mVel.y * theParticle->mVel.y + theParticle->mVel.x * theParticle->mVel.x > 0.0)
 	{
-		double aLength = sqrt(p->mVel.x * p->mVel.x + p->mVel.y * p->mVel.y + p->mVel.z * p->mVel.z);	// 0x42fb50
-		ParticleVec aUnit = p->mVel;
+		double aLength = sqrt(theParticle->mVel.x * theParticle->mVel.x + theParticle->mVel.y * theParticle->mVel.y + theParticle->mVel.z * theParticle->mVel.z);	// 0x42fb50
+		ParticleVec aUnit = theParticle->mVel;
 		if (aLength > 1e-06)
 		{
 			aLength = 1.0 / aLength;
@@ -213,32 +215,32 @@ void ParticleEffect::UpdateParticle(Particle* p, double theStep)
 			aUnit.z *= aLength;
 		}
 		double aSpeedUp = theStep * aDef->mSpeedUp;
-		p->mVel.x = aUnit.x * aSpeedUp + p->mVel.x;
-		p->mVel.y = aSpeedUp * aUnit.y + p->mVel.y;
-		p->mVel.z = aUnit.z * aSpeedUp + p->mVel.z;
+		theParticle->mVel.x = aUnit.x * aSpeedUp + theParticle->mVel.x;
+		theParticle->mVel.y = aSpeedUp * aUnit.y + theParticle->mVel.y;
+		theParticle->mVel.z = aUnit.z * aSpeedUp + theParticle->mVel.z;
 		double aSwirl = theStep * aDef->mSwirl;
-		p->mVel.x = -aUnit.y * aSwirl + p->mVel.x;
-		p->mVel.y = aSwirl * aUnit.x + p->mVel.y;
-		p->mVel.z = aSwirl * 0.0 + p->mVel.z;
+		theParticle->mVel.x = -aUnit.y * aSwirl + theParticle->mVel.x;
+		theParticle->mVel.y = aSwirl * aUnit.x + theParticle->mVel.y;
+		theParticle->mVel.z = aSwirl * 0.0 + theParticle->mVel.z;
 	}
 	double aFactor = 1.0 - theStep * aDef->mDragX;
 	if (aFactor < 0.0)
 		aFactor = 0.0;
-	p->mVel.x = aFactor * p->mVel.x;
+	theParticle->mVel.x = aFactor * theParticle->mVel.x;
 	aFactor = 1.0 - theStep * aDef->mDragY;
 	if (aFactor < 0.0)
 		aFactor = 0.0;
-	p->mVel.y = aFactor * p->mVel.y;
+	theParticle->mVel.y = aFactor * theParticle->mVel.y;
 	aFactor = 1.0 - theStep * aDef->mDrag;
 	if (aFactor < 0.0)
 		aFactor = 0.0;
-	p->mVel.x = aFactor * p->mVel.x;
-	p->mVel.y = aFactor * p->mVel.y;
-	p->mPos.x = theStep * p->mVel.x + p->mPos.x;
-	p->mPos.y = theStep * p->mVel.y + p->mPos.y;
-	p->mPos.z = theStep * p->mVel.z + p->mPos.z;
+	theParticle->mVel.x = aFactor * theParticle->mVel.x;
+	theParticle->mVel.y = aFactor * theParticle->mVel.y;
+	theParticle->mPos.x = theStep * theParticle->mVel.x + theParticle->mPos.x;
+	theParticle->mPos.y = theStep * theParticle->mVel.y + theParticle->mPos.y;
+	theParticle->mPos.z = theStep * theParticle->mVel.z + theParticle->mPos.z;
 	if (aDef->mTurnRate != 0.0)
-		p->mAngle = theStep * aDef->mTurnRate * TWO_PI + p->mAngle;
+		theParticle->mAngle = theStep * aDef->mTurnRate * TWO_PI + theParticle->mAngle;
 }
 
 // 0x43eda0
@@ -339,17 +341,17 @@ bool ParticleEffect::Update(double theStep)
 }
 
 // 0x43e480
-void ParticleEffect::DrawParticle(Graphics* g, const Particle* p, bool theRotateFading)
+void ParticleEffect::DrawParticle(Graphics* g, const Particle* theParticle, bool theRotateFading)
 {
 	const ParticleImageDef* aDef = mImageDef;
-	int aX = (int) p->mPos.x;
-	int aY = (int) p->mPos.y;
+	int aX = (int) theParticle->mPos.x;
+	int aY = (int) theParticle->mPos.y;
 	if (aDef->mFades)
 	{
 		Color aColor(mColor[0], mColor[1], mColor[2], mColor[3]);
-		if (aDef->mFadeStart <= p->mAge)
+		if (aDef->mFadeStart <= theParticle->mAge)
 		{
-			int aFade = (int) ((p->mAge - aDef->mFadeStart) * 255.0 / (aDef->mLifetime - aDef->mFadeStart));
+			int aFade = (int) ((theParticle->mAge - aDef->mFadeStart) * 255.0 / (aDef->mLifetime - aDef->mFadeStart));
 			if (aFade > 0xff)
 				aFade = 0xff;
 			aColor = Color(mColor[0], mColor[1], mColor[2], ((0xff - aFade) * mColor[3]) >> 8);
@@ -359,7 +361,7 @@ void ParticleEffect::DrawParticle(Graphics* g, const Particle* p, bool theRotate
 	int aFrame = 0;
 	if (aDef->mAnimMode != 0)
 	{
-		aFrame = (int) (aDef->mFramesPerSecond * p->mAge);
+		aFrame = (int) (aDef->mFramesPerSecond * theParticle->mAge);
 		int aCount = aDef->mFrames;
 		if (aDef->mAnimMode == 1)
 		{
@@ -367,19 +369,19 @@ void ParticleEffect::DrawParticle(Graphics* g, const Particle* p, bool theRotate
 				aFrame = aCount - 1;
 		}
 		else if (aDef->mAnimMode == 2)
-			aFrame = (p->mFrameStart + aFrame) % aCount;
+			aFrame = (theParticle->mFrameStart + aFrame) % aCount;
 		else if (aDef->mAnimMode == 3)
 		{
 			int aPeriod = aCount * 2 - 2;
-			aFrame = (p->mFrameStart + aFrame) % aPeriod;
+			aFrame = (theParticle->mFrameStart + aFrame) % aPeriod;
 			if (aPeriod / 2 < aFrame)
 				aFrame = aPeriod - aFrame;
 		}
 	}
 	int aFrameWidth = aDef->mImage->GetWidth() / aDef->mFrames;
 	Rect aSource(aFrame * aFrameWidth, 0, aFrameWidth, aDef->mImage->GetHeight());
-	if (p->mAngle != 0.0 && (theRotateFading || !aDef->mFades || aDef->mFadeStart > aDef->mLifetime))
-		g->DrawImageRotatedF(aDef->mImage, (float) (aX - aDef->mPivotX), (float) (aY - aDef->mPivotY), p->mAngle,
+	if (theParticle->mAngle != 0.0 && (theRotateFading || !aDef->mFades || aDef->mFadeStart > aDef->mLifetime))
+		g->DrawImageRotatedF(aDef->mImage, (float) (aX - aDef->mPivotX), (float) (aY - aDef->mPivotY), theParticle->mAngle,
 			(float) aDef->mPivotX, (float) aDef->mPivotY, &aSource);
 	else
 		g->DrawImage(aDef->mImage, aX - aDef->mPivotX, aY - aDef->mPivotY, aSource);

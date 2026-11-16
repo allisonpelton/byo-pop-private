@@ -86,6 +86,17 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   (was `C:\byo-og`; every script and note now says E:), and a session's or agent's scratch goes in its worktree's
   `build/` or its scratchpad, never a new folder at a drive's root on C:. The folders found there that day (`C:\byo-og`,
   `C:\scr`, `C:\tmp_pf`, `C:\byo-saw`) were moved to E:.
+- **Never walk / or a whole drive (the user, 2026-11-15: "Hardly anything is running yet memory's at 80%. Is there a
+  leak?", then "this isn't the first time this has happened, so figure out how to stop further incidents" and
+  "Surely there's a better way to do this than a cron job"):** two sessions had run `find / -iname Pixelus.exe` and
+  `find / -ipath *bejeweled*2* -name config.xml` in Git Bash, where `/` reaches every drive and `/proc/registry` (the
+  whole registry, which msys reads leaking a key handle per key). Their shells had ended, so nothing showed them;
+  after four hours they held 7.7 million handles and about 4 GB of the kernel's paged pool (registry key objects,
+  the MSIX container's registry virtualization, the registry cache). Search a named folder (the repo, a worktree,
+  `E:/retools`, an install folder) or use the Glob and Grep tools. A PreToolUse hook in the user's settings
+  (`~/.claude/hooks/no-root-walk.py`) refuses `find`, `du`, `tree`, `rg`, `ls -R` and `grep -r` on `/`, `/c`, `C:\`,
+  `/proc`, `/dev` or `/cygdrive` before they start, in every session. A command that may outlive the Bash call's
+  timeout goes in the background: a timed-out or stopped call can leave its children running.
 - Leave nothing running: loops started in the background end before you finish. Stopping a task can leave its loop's
   shells alive and still starting runs (Ning Po, 2026-11-03), so afterwards look for processes whose command line is
   inside your folder and stop them by id.
@@ -105,7 +116,7 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   2026-11-12, asked whether rundesk's desktop, which may never signal a vertical blank, makes a present cost more than
   on a player's screen: "Yes"). Routine runs stay under rundesk, which keeps windows and sound off the user's work;
   the desktop is for what needs it (3D, vsync, sound, real input). A game's own script that still refuses outside
-  22:00-08:00 is out of date and loses its guard at its next use. Everything else above still holds: at most 6 game
+  22:00-08:00 is out of date: the session that owns it drops the guard at once, and no work waits for the night (the user, 2026-11-15, on finding sessions still holding desktop runs for 22:00: "I had lifted the restrictions about running during daytime, though"). Everything else above still holds: at most 6 game
   processes, no link, "Buy" or "More Games" click, a window shown without taking the focus, the user's cursor and
   keyboard never touched (input posted to the game's own window), the window, registry and saves put back as
   `docs/ORIGRUN.md` says, nothing left running.

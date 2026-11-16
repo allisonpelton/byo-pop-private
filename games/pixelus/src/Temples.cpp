@@ -21,6 +21,7 @@ const TempleInfo Sexy::gTemples[NUM_TEMPLES] =
 };
 
 // the puzzles solved outside the tutorial
+// port: a helper of the port (SolvedOutsideTutorial)
 static int SolvedOutsideTutorial(PixelusApp* theApp)
 {
 	UserProfile* aUser = theApp->mUserDirectory->GetCurrent();
@@ -33,7 +34,7 @@ static int SolvedOutsideTutorial(PixelusApp* theApp)
 bool Sexy::IsTempleOpen(PixelusApp* theApp, int theTemple)
 {
 	UserProfile* aUser = theApp->mUserDirectory->GetCurrent();
-	if (theTemple == 1 && (aUser == NULL || !aUser->mFlag79))
+	if (theTemple == 1 && (aUser == NULL || !aUser->mTutorialDone))
 		return false;
 	return SolvedOutsideTutorial(theApp) >= gTemples[theTemple].mUnlock;
 }

@@ -8,7 +8,7 @@
 // goto <screen>        menu, highscores, trophies, shop, challenge, or a mode's name (classic, tough, marathon) to start it
 // level <n>            starts level n of the mode on screen (classic if there is none), as a new game of the mode starts
 // unlock all|marathon  Tough Cookie, or Marathon (the restart points it asks for), in the current player
-// set <name> <value>   score, level, health, coins
+// set <name> <value>   score, level, health, coins, kings (the kings destroyed: the trophy room for it comes at the next check)
 // win, lose            ends the level in play now (its summary comes up), or the game (the health goes)
 // seed <n>             seeds the game's random numbers as the start of the game does
 // move                 prints MOVE {"kind":"smash","input":[...]} for the creature the bot would hit, or MOVE null
@@ -27,6 +27,7 @@
 #include "GameWonWidget.h"
 #include "LevelIntroWidget.h"
 #include "LevelRules.h"
+#include "LiveSplitObserver.h"
 #include "MainMenu.h"
 #include "NcButton.h"
 #include "NcMovingDialog.h"
@@ -348,6 +349,7 @@ void Application::StartTestGame(int theMode, int theLevel)
 	mWidgetManager->AddWidget(mGameScreen);
 	mWidgetManager->SetFocus(mGameScreen);
 	mGameScreen->Start(mGameMode);
+	LiveSplitObserver::BoardCreated(false);		// port(autosplit): a test game is a new game
 	StartMusic(MUSIC_GAME, false);
 	CreateLevelIntro();
 }
@@ -466,10 +468,12 @@ bool Application::HandleScriptCommand(const ScriptCommand& theCommand)
 			GetStats()->Set(STAT_HEALTH, aValue);
 		else if (aKey == "coins")
 			GetStats()->Set(STAT_COIN_BALANCE, aValue);
+		else if (aKey == "kings")
+			GetStats()->Set(STAT_KINGS_DESTROYED, aValue);
 		else if (aKey == "level" && mGameScreen != nullptr)
 			mGameScreen->SetLevel((int)aValue, mGameScreen->mCycle);
 		else
-			return Error(aLine, "score, health, coins, or level with a game on screen"), true;
+			return Error(aLine, "score, health, coins, kings, or level with a game on screen"), true;
 		Ok(aLine);
 		return true;
 	}

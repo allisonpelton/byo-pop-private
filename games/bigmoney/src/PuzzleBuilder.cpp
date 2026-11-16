@@ -1,3 +1,4 @@
+// port(mods): Puzzle boards that can always be won (PuzzleBuilder.h). Not in the original.
 #include "PuzzleBuilder.h"
 #include "MTRand.h"
 

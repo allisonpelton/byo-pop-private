@@ -277,10 +277,22 @@ game and the original took the mouse for gone, so it was run again); tour W, the
 sharks' tails and bubbles at another sub-update phase, as before; the same tour with the original in 2D on the desktop has 17 differing pairs). The 2D
 tours do not change: the 2D dialog tour (48 shots) is pixel for pixel the same with the exe before and after.
 
-**Not compared in 3D:** the abyss and bonus levels, an idle game and the boards after a pause and a resume (the real clock again), and the
-original's single-precision rounding of x87 code in 3D (Twist found it in its own comparison; nothing in this game's pictures showed it). The
-paused boards, the menus, the dialogs and the statistics screen cover every 3D-specific piece of drawing the port has (the sea's strips and the
-lines).
+**The remaining 3D tours** (2026-11-15, on the desktop, `vis3d.sh`; the original in 3D on the real clock, the port on the same inputs at the updates they
+landed at, `-renderscale=1`): an idle game (`g_idle`, 78 shots: the menus, a board left alone, a game over), an abyss dive (`g_abyss`, 81 shots: the
+hint, the first sharks, a typo, a game over), a game with its bonus levels (`g_bon1`, 364 shots: the levels, the clams and the treasure, the end
+counts, the hint and the pause) and a board paused for 750 updates (`w3_750`, 3 shots). Result: `w3_750` is faint only (0.08 percent, no box); `g_bon1`
+has 350 of 364 shots equal; `g_idle` 35 of 78 and `g_abyss` 6 of 81, and every other shot differs only in boxes of sprite size (a shark, the diver, a
+bubble or a fish, 5 to 150 pixels across; at most 6 percent of the picture, mostly under 1) on a board that was running. I looked at the crops of
+the largest of each kind: the same board, the same words, the same typed letters, the sprites a few pixels apart, which is the original's sub-update
+phase on the real clock (the sharks and the diver move by a fraction of an update between its ticks; the port moves them on whole updates), the same
+difference the 2D desktop runs of the tours above show. The dialogs, the HUD, the sea, the lines and every screen are equal in the shots that
+differ. No difference is the 3D drawing's and nothing was changed in the port. (A first run of the abyss and bonus tours showed the port stuck on
+the hint box: the port's script had lost a click when a click and a shot stood in the same update in another order than the original's, a fault of
+`tools/phase2/mkport3d.py`, fixed.) The boards after a pause and a resume were not run as a whole tour in 3D: the paused board is `w3_750`, and the
+resumed board is the running board above again.
+
+**Not compared in 3D:** the original's single-precision rounding of x87 code in 3D (Twist found it in its own comparison; nothing in this game's
+pictures showed it).
 
 ### Widgets drawn without the fast stretch
 

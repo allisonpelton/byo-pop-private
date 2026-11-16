@@ -191,7 +191,7 @@ bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			aLine += ",\"ready\":true";
 		if (aUser != NULL)
 			aLine += StrFormat(",\"player\":\"%s\",\"solved\":%d,\"expert\":%s", aUser->mName.c_str(), aUser->CountSolved(),
-				aUser->mFlag38 ? "true" : "false");
+				aUser->mExpert ? "true" : "false");
 		if (mLevelData != NULL && !mLevelData->mCurrentLevel.empty())
 			aLine += StrFormat(",\"temple\":\"%s\",\"level\":%d,\"puzzles\":%d", mLevelData->mCurrentLevel.c_str(),
 				mLevelData->mCurrentPuzzle, mLevelData->GetPuzzleCount(mLevelData->mCurrentLevel));
@@ -275,7 +275,7 @@ bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			TestClearScreens();
 			if (aUser == NULL)
 				aUser = mUserDirectory->AddUser("Saver");
-			aUser->mFlag38 = aFirst == "expert";
+			aUser->mExpert = aFirst == "expert";
 			mLevelData->mCurrentLevel = gTemples[1].mName;
 			mLevelData->mCurrentPuzzle = 0;
 			StartPuzzle(true);

@@ -40,6 +40,7 @@ static int ReverseSide(int theSide)		// 0x4218e0
 }
 
 // the cell's coordinate for a pixel offset in the grid, rounding down
+// port: a helper of the port (FloorDiv)
 static int FloorDiv(int theValue, int theDivisor)
 {
 	return theValue >= 0 ? theValue / theDivisor : -((-theValue + theDivisor - 1) / theDivisor);
@@ -86,7 +87,7 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 	mHintMove.mKind = 0;
 
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
-	mExpert = aUser != NULL && aUser->mFlag38;
+	mExpert = aUser != NULL && aUser->mExpert;
 
 	mResetButton = MakeStripButton(mApp, this, ID_RESET, IMAGE_RESET, 0x12, 0x172);
 	if (!mExpert)
@@ -358,11 +359,6 @@ void Board::RestartPuzzle()
 	LoadPuzzle();
 }
 
-int Board::GetMoves() const
-{
-	return mGrid->mMoveCount;
-}
-
 // 0x424590 and 0x42aec0
 void Board::Aim(int theSide, int theCursor)
 {
@@ -490,6 +486,7 @@ bool Board::IsBeyondEdge(int theX, int theY, int theDir) const
 }
 
 // a click on a free cell throws a tile there
+// port: a helper of the port (Board::DoThrow)
 void Board::DoThrow()
 {
 	if (mGrid->mDone)
@@ -925,7 +922,7 @@ void Board::Update()
 	UserProfile* aUser = mApp->mUserDirectory->GetCurrent();
 	if (mGrid->mHasStart && aUser != NULL && !aUser->mFlags[4])
 	{
-		mApp->ShowHint(0x104, 200, GT(0x50c4cc), aUser->mFlag38 ? GT(0x50b8c8) : GT(0x50b940), 0, -0x3c);
+		mApp->ShowHint(0x104, 200, GT(0x50c4cc), aUser->mExpert ? GT(0x50b8c8) : GT(0x50b940), 0, -0x3c);
 		aUser->mFlags[4] = 1;
 	}
 }
@@ -1322,11 +1319,11 @@ void Board::DrawAim(Graphics* g)
 	if (!mGrid->InGrid(aRow, aCol))
 		return;
 
-	const int S = Grid::CELL_SIZE;
+	const int CELL = Grid::CELL_SIZE;
 	g->SetColorizeImages(true);
 	g->SetColor(Color(255, 255, 255, mAlpha));
 	Image* aCursor = mApp->mImages[aValid ? IMAGE_AIM_CURSOR : IMAGE_AIM_CURSOR_RED];
-	g->DrawImage(aCursor, aCol * S + mGridX + S / 2 - aCursor->GetWidth() / 2, aRow * S + mGridY + S / 2 - aCursor->GetHeight() / 2);
+	g->DrawImage(aCursor, aCol * CELL + mGridX + CELL / 2 - aCursor->GetWidth() / 2, aRow * CELL + mGridY + CELL / 2 - aCursor->GetHeight() / 2);
 
 	bool aOnPull = mGrid->mCanPull && aCol == mGrid->mStuckCol && aRow == mGrid->mStuckRow;
 	if (aValid && ((mGrid->mCanPlace && mGrid->mSupply > 0) || aOnPull))
@@ -1350,8 +1347,8 @@ void Board::DrawAim(Graphics* g)
 		{
 			mGrid->Step(&aArrowCol, &aArrowRow, ReverseSide(aSide), aStep);
 			aStep = 2;
-			int aX = aArrowCol * S + mGridX + S / 2 - 20;
-			int aY = aArrowRow * S + mGridY + S / 2 - 10;
+			int aX = aArrowCol * CELL + mGridX + CELL / 2 - 20;
+			int aY = aArrowRow * CELL + mGridY + CELL / 2 - 10;
 			switch (aSide)
 			{
 			case 0: aY += aOffset; break;
@@ -1369,7 +1366,7 @@ void Board::DrawAim(Graphics* g)
 // 0x422ab0
 void Board::DrawGrid(Graphics* g)
 {
-	const int S = Grid::CELL_SIZE;
+	const int CELL = Grid::CELL_SIZE;
 	g->SetColorizeImages(mAlpha < 255);
 	g->SetColor(Color(255, 255, 255, mAlpha));
 	Image* aWanted = mApp->mImages[IMAGE_TILEBACK_WANTTILE_20X20];
@@ -1379,14 +1376,14 @@ void Board::DrawGrid(Graphics* g)
 	bool aSweep = mGrid->mDone && !mGrid->mTileMoving && mGrid->mHasPicture && !mReplayOn;	// the replay flag (+0xb140) keeps the sweep off
 	int aRevealed = aSweep ? mGrid->mRows * mGrid->mCols - mGrid->mReveal : 0;
 
-	for (int r = 0; r < mGrid->mRows; r++)
-		for (int c = 0; c < mGrid->mCols; c++)
+	for (int aRow = 0; aRow < mGrid->mRows; aRow++)
+		for (int aCol = 0; aCol < mGrid->mCols; aCol++)
 		{
-			const Grid::Cell& aCell = mGrid->mCells[r][c];
-			int aX = mGridX + c * S, aY = mGridY + r * S;
-			if (aSweep && r * mGrid->mCols + c < aRevealed)
+			const Grid::Cell& aCell = mGrid->mCells[aRow][aCol];
+			int aX = mGridX + aCol * CELL, aY = mGridY + aRow * CELL;
+			if (aSweep && aRow * mGrid->mCols + aCol < aRevealed)
 			{
-				unsigned int aColor = mGrid->mPicture[r][c];
+				unsigned int aColor = mGrid->mPicture[aRow][aCol];
 				g->SetColorizeImages(true);
 				g->SetColor(Color((aColor >> 16) & 0xff, (aColor >> 8) & 0xff, aColor & 0xff, mAlpha));
 				g->DrawImage(mApp->mImages[IMAGE_GRAYTILE_20X20], aX - 1, aY - 1);	// 0x422ab0: its picture has a one pixel margin, as the wanted back has
@@ -1396,7 +1393,7 @@ void Board::DrawGrid(Graphics* g)
 			}
 
 			// the back of a wanted cell and its sticky spot are only drawn while no tile rests on the cell (0x42ee70)
-			double aStrength = mGrid->mWaveOn ? ShimmerStrength(mGrid, r + c) : 0.0;
+			double aStrength = mGrid->mWaveOn ? ShimmerStrength(mGrid, aRow + aCol) : 0.0;
 			int aShimmer = (int) (aStrength * mAlpha * (30.0 / 255.0));
 			if (aCell.mWanted && (aCell.mObject == NULL || aCell.mObject->mState != 0))
 			{
@@ -1422,7 +1419,7 @@ void Board::DrawGrid(Graphics* g)
 				g->SetColorizeImages(true);
 				g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 				g->SetColor(Color(255, 255, 0x80, aShimmer));
-				g->DrawImage(mApp->mImages[IMAGE_PLAYFIELD], aX + anOffset, aY + anOffset, Rect(aX, aY, S, S));
+				g->DrawImage(mApp->mImages[IMAGE_PLAYFIELD], aX + anOffset, aY + anOffset, Rect(aX, aY, CELL, CELL));
 				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 				g->SetColorizeImages(mAlpha < 255);
 				g->SetColor(Color(255, 255, 255, mAlpha));
@@ -1456,13 +1453,13 @@ void Board::DrawGrid(Graphics* g)
 				continue;
 			int aValue = aCell.mGlowValue < 1 ? 0 : aCell.mGlowValue;
 			g->SetColor(Color(255, 255, 255, (int) (sin(aValue * 0.006159986) * mAlpha)));
-			g->DrawImage(mApp->mImages[aCell.mGlowWanted ? IMAGE_TILE_GLOW : IMAGE_TILE_REDGLOW], mGridX + c * S - 5, mGridY + r * S - 5);
+			g->DrawImage(mApp->mImages[aCell.mGlowWanted ? IMAGE_TILE_GLOW : IMAGE_TILE_REDGLOW], mGridX + c * CELL - 5, mGridY + r * CELL - 5);
 		}
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	if (!mGrid->mDone && mGrid->mPointerOn)
 	{
 		g->SetColor(Color(255, 255, 255, std::min(255, mGrid->mPointerAlpha * mAlpha / 255)));
-		g->DrawImage(mApp->mImages[IMAGE_AIM_CURSOR_BLUE], mGridX + mGrid->mPointerCol * S - 5, mGridY + mGrid->mPointerRow * S - 5);
+		g->DrawImage(mApp->mImages[IMAGE_AIM_CURSOR_BLUE], mGridX + mGrid->mPointerCol * CELL - 5, mGridY + mGrid->mPointerRow * CELL - 5);
 	}
 	g->SetColorizeImages(false);
 

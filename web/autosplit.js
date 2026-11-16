@@ -657,6 +657,25 @@ var ByopopAutosplit = (function () {
     templates: [{ category: "Mission Mode (PC)", segments: levels(19), end: "won", mode: 0 }]
   };
 
+  // Hammer Heads Deluxe (speedrun.com: Hammer Heads Deluxe; the port's block, layout 2, from Hammer Heads' session, 2026-11-15):
+  // Classic% and Tough Cookie% from the Go! that starts a new game's first level (Classic's level card, Tough Cookie's "Ready?"
+  // box) through each of the 25 levels' ends (a level clear each) to the Go! on the "Ready?" box after the trophy room that
+  // awards King Globus's trophy (its progress 1), as the board's rules end them: the last level's own clear and the win come
+  // after it. Out of health is a game over, whose try again is a new game on a new board. A saved game continued, or one
+  // from a restart point, starts nothing. A player who already has King Globus's trophy gets no such room, and splits the
+  // end by hand. Marathon% is timed by the game's own clock, which the block has not, and All Trophies% runs over many games
+  // and modes: neither has a template.
+  var HH_RULES = {
+    name: "Hammer Heads Deluxe", id: "HHDX",
+    modes: { Classic: 0, "Tough Cookie": 1, Marathon: 2 }, skills: {},
+    deaths: [{ setting: "resetHealth", what: "out of health (Classic, Tough Cookie)" },
+             { setting: null, what: "out of health (Marathon, no category)" },
+             { setting: null, what: "unused" },
+             { setting: null, what: "unused" }],
+    templates: [{ category: "Classic%", segments: levels(25), end: "progress 1", mode: 0 },
+                { category: "Tough Cookie%", segments: levels(25), end: "progress 1", mode: 1 }]
+  };
+
   // A row of GAMES from a row of the rules table
   function ruled(rules) {
     return { name: rules.name, block: "_byopop_livesplit_block", read: blockReader(rules.id), decider: makeDecider(rules),
@@ -680,7 +699,8 @@ var ByopopAutosplit = (function () {
     venice: ruled(VN_RULES),
     bejeweledtwist: ruled(TW_RULES),
     bejeweled2: ruled(B2_RULES),
-    heavyweapon: ruled(HW_RULES)
+    heavyweapon: ruled(HW_RULES),
+    hammerheads: ruled(HH_RULES)
   };
 
   // The front game's block, read from its window: {game, snap} or null (no game with an auto splitter in front, or it has not

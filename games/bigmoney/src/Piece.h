@@ -65,7 +65,7 @@ public:
 	bool	mDying;          // +0x98 removed coin playing its vanish animation
 	// +0x99..+0x9b (padding)
 	int		mLifeTimer;      // +0x9c > 0: counts down in UpdatePhysics, deleted at 0, blinks below 200 (never set > 0: dead feature)
-	int		mUnusedA0;       // +0xa0 only the ctor, SaveGame and LoadGame touch it
+	int		mZeroInSave;     // +0xa0 always 0: the ctor sets it and the save keeps it; nothing reads it
 	// +0xa4 (padding, sizeof 0xa8)
 
 public:

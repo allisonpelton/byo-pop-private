@@ -1,4 +1,5 @@
 #include "QuitDialog.h"
+#include "platform/GameOptions.h"
 
 #include <cmath>
 
@@ -89,6 +90,8 @@ QuitDialog::QuitDialog() :
 	mYesButton->mLabel = "Yes";
 	mNoButton->mLabel = "No";
 	mContentInsets = CONTENT_INSETS;
+	if (Platform::FixOn("quitEscape"))
+		SetEscapeResult(Dialog::ID_NO);		// fix: Escape answers "No", as it answers "Done" in the options box
 }
 
 // 0x45c3c0: the hammer swings, and the gnome waves; when the mouse is over "No" he goes to the row that shows it, and he goes

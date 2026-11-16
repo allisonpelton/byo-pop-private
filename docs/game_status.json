@@ -246,11 +246,12 @@
         "collection",
         "site-features",
         "identical-look",
-        "lite-mod"
+        "lite-mod",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "the lite mod step done with no mod (c0ee6258: the game's update is under 2% of the process); performance stays open: 3D is 1.26 of the original on a busy machine, half the port's cycles the Direct3D 11 driver thread, which waits on the framework's renderer item; 2D 0.80"
+      "now": null,
+      "note": "done but modding: identical in 2D and 3D (every screen tour natively, on the web and in 3D on the visible desktop, the idle game, abyss, bonus levels and a paused board included; only the original's real-clock sprite phase differs), sound and music, real input natively and on the web; registration out, fixes mod, coverage, performance like for like in 3D 0.98 (1.06 with the port's mixer), 2D 0.80, the lite mod (none needed), unneeded code out, readability, the Collection check, the site's features"
     },
     "astropop": {
       "title": "AstroPop Deluxe",
@@ -285,11 +286,12 @@
         "unneeded-code",
         "readability",
         "collection",
-        "site-features"
+        "site-features",
+        "lite-mod"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "site features done (the Game Over preset beside You Win, d2c871a4; speedrun.com: none); next: the lite mod"
+      "now": null,
+      "note": "the lite-mod step done with no mod (2f58af40, games/ningpo/docs/LITE_MOD.md: tileAtCell's linear scan is the only costly search, and a cell table would answer the same, so it is not lite; the shuffle could differ but saves no time; the hint and move count have no early stop); every phase but modding done"
     },
     "pixelus": {
       "title": "Pixelus Deluxe",
@@ -300,11 +302,16 @@
         "fixes-mod",
         "site-features",
         "identical-look",
-        "coverage"
+        "coverage",
+        "lite-mod",
+        "unneeded-code",
+        "readability",
+        "collection",
+        "performance"
       ],
       "na": [],
-      "now": "lite-mod",
-      "note": "coverage done (coverage.txt, GAME_NOTES section 11; three Oddities: the editor's thumbnail reorder, a grid pulse colour nothing reads, the pause's sound ducking 0x431a50); in since the last merge: the temple's and select-user's scroll bars, bubble tips, plaque and title, flash buttons, the island's gull flock, the particle engine (temple bursts, the mystery puzzle's chains and lock), the main menu link's shadow, the sound buttons' alpha hit test; baseline refrozen (the bursts draw the app generator: apprand-only lines, game state identical); next: lite mod, unneeded code, readability, performance"
+      "now": null,
+      "note": "every phase but modding done; performance (9b2dd17e, GAME_NOTES section 10): cycle counts over the same 6000 updates of scripted play, 5 alternating pairs pinned to one core on a busy machine, medians port 2.94 M cycles an update (all threads, the mixer counted; main thread 2.21) against the original's 3.28, pair ratios median 0.90, one pair of five above, so not above; no code changed; left before the final merge: the whole 210-puzzle game through real input, natively and on the web"
     },
     "rocketmania": {
       "title": "Rocket Mania Deluxe",
@@ -404,11 +411,13 @@
         "site-features",
         "performance",
         "lite-mod",
-        "unneeded-code"
+        "unneeded-code",
+        "readability",
+        "collection"
       ],
       "na": [],
-      "now": "readability",
-      "note": "unneeded code out (583a3271: LockableButton, a registration leftover; the empty LoadingThreadCompleted; fields written but never read or saved; the Options dialog's unused link ids; 108 lines out, 41 in; fields a save writes stay); baseline unchanged (66646); next: readability, then the Collection check"
+      "now": null,
+      "note": "every phase but modding done; processor time re-measured under the compositor wait (068bde60): five pairs of the seed-21 minute, each on its own P-core, port 2.98-5.80 s against the original's 5.50-11.19 s, about half like for like; peak private bytes 36.8-42.1 MB against 42.1-44.4; software 2x not taken"
     },
     "tiptop": {
       "title": "TipTop Deluxe",
@@ -521,11 +530,14 @@
         "coverage",
         "collection",
         "unneeded-code",
-        "readability"
+        "readability",
+        "identical-look",
+        "performance",
+        "lite-mod"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "the eight retail 3D tours compare clean: scores equal step for step in every mode, Action's TIME UP at the same update (19861); the earlier Classic/Finity and Action differences were the comparison's (the help click's shift read too early, b75b56dd; a slowed original run); boxes left: the menu's More Games pill (removed by rule) and three small ones (Hyper 4-4 one gem's light, Hyper 6-1, Finity's first board); Finity 3D's washed-out gems not seen in the retail tours (an Oddity, unreproduced); next: Hyper 4-4's light, then the web 3D and full-screen comparison"
+      "now": null,
+      "note": "every phase but modding done: identical in play and looks natively, on the web and in 3D (the web page's 1 to 2 updates of animation phase after clicks and Finity 3D's washed-out gems Oddities); the no-GPU fallback takes the software screen, equal to the GPU path and the original in 2D; performance at or under the original in 2D and 3D (5.1 % software, 5.8 % GPU, 5.4 % 3D against 9.6 % and 58.1 %); the lite mod not needed (the game logic at most 1.4 % of a core, LITE_MOD.md)"
     },
     "venice": {
       "title": "Venice Deluxe",
@@ -572,11 +584,15 @@
       "done": [
         "port",
         "identical-play",
-        "registration-out"
+        "registration-out",
+        "site-features",
+        "fixes-mod",
+        "identical-look",
+        "coverage"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "phase two's sound and music by state done (5e45972f): all 14 phase-one scenarios and classic_focus1 identical in state, sound and music (BASS logged through a stand-in, DirectSound through origrun's); fixed mouse-over on every screen, the in-game menu on release, the ice cream's single gloop and the game-over box's click; next the looks (shots, web and native)"
+      "now": "performance",
+      "note": "coverage check done (f741c1b1): the reached-without-port list empty; fixes: shop/challenge MouseMove/MouseDrag, the 2nd bonus round's ordinal, the change-player box's crash (UserDialog's lines font); 137 port functions never reached, listed"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",

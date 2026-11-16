@@ -32,12 +32,12 @@ void LevelData::Load()
 	bool aFirst = true;
 	for (;;)
 	{
-		int c = p_fgetc(aFile);
-		if (c == -1)
+		int aChar = p_fgetc(aFile);
+		if (aChar == -1)
 			break;
-		if (c == '\r' || c == '\n')
+		if (aChar == '\r' || aChar == '\n')
 			continue;
-		if (c == '#')
+		if (aChar == '#')
 		{
 			if (inValue)
 			{
@@ -86,13 +86,13 @@ void LevelData::Load()
 			continue;
 		}
 		if (inTag)
-			aTag += (char)c;
+			aTag += (char)aChar;
 		else if (inValue)
 		{
 			if (aTag == "level")
-				aLevel += (char)c;
+				aLevel += (char)aChar;
 			else if (aTag == "puzzle")
-				aPuzzle += (char)c;
+				aPuzzle += (char)aChar;
 		}
 		else if (aFirst)
 			break;
@@ -117,6 +117,7 @@ void LevelData::Load()
 	p_fclose(aFile);
 }
 
+// port: a helper of the port (Sexy::UuidKey)
 std::string Sexy::UuidKey(const std::string& theUuid)
 {
 	std::string aKey = theUuid;
@@ -126,6 +127,7 @@ std::string Sexy::UuidKey(const std::string& theUuid)
 	return aKey;
 }
 
+// port: a helper of the port (LevelData::GetLevel)
 const LevelData::Level* LevelData::GetLevel(const std::string& theName) const
 {
 	std::map<std::string, Level>::const_iterator anItr = mLevels.find(theName);
@@ -137,26 +139,4 @@ int LevelData::GetPuzzleCount(const std::string& theName) const
 {
 	const Level* aLevel = GetLevel(theName);
 	return aLevel == NULL ? -1 : (int)aLevel->mPuzzles.size();
-}
-
-// 0x42a080 (it throws "invalid level" when the current temple is unknown)
-const LevelData::Puzzle* LevelData::GetCurrentPuzzle() const
-{
-	const Level* aLevel = GetLevel(mCurrentLevel);
-	if (aLevel == NULL || mCurrentPuzzle < 0 || mCurrentPuzzle >= (int)aLevel->mPuzzles.size())
-		return NULL;
-	return &aLevel->mPuzzles[mCurrentPuzzle];
-}
-
-const LevelData::Puzzle* LevelData::FindPuzzle(const std::string& theUuid) const
-{
-	std::string aKey = UuidKey(theUuid);
-	std::map<std::string, std::string>::const_iterator anItr = mFileByUuid.find(aKey);
-	if (anItr == mFileByUuid.end())
-		return NULL;
-	for (std::map<std::string, Level>::const_iterator aLevel = mLevels.begin(); aLevel != mLevels.end(); ++aLevel)
-		for (size_t i = 0; i < aLevel->second.mPuzzles.size(); i++)
-			if (aLevel->second.mPuzzles[i].mUuid == aKey)
-				return &aLevel->second.mPuzzles[i];
-	return NULL;
 }

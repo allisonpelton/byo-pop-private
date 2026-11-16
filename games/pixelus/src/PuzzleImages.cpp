@@ -10,41 +10,42 @@
 using namespace Sexy;
 
 // 0x4e9590 and 0x4e9730: RGB (0-255) to hue (0-6), saturation and value (0-1) and back
-static void RgbToHsv(double r, double g, double b, double* h, double* s, double* v)
+static void RgbToHsv(double theRed, double theGreen, double theBlue, double* theHue, double* theSaturation, double* theValue)
 {
-	double aMax = std::max(r, std::max(g, b));
-	double aMin = std::min(r, std::min(g, b));
+	double aMax = std::max(theRed, std::max(theGreen, theBlue));
+	double aMin = std::min(theRed, std::min(theGreen, theBlue));
 	double aDelta = aMax - aMin;
-	*v = aMax / 255.0;
-	*s = aMax > 0 ? aDelta / aMax : 0;
-	*h = 0;
+	*theValue = aMax / 255.0;
+	*theSaturation = aMax > 0 ? aDelta / aMax : 0;
+	*theHue = 0;
 	if (aDelta <= 0)
 		return;
-	if (aMax == r)
-		*h = (g - b) / aDelta;
-	else if (aMax == g)
-		*h = 2 + (b - r) / aDelta;
+	if (aMax == theRed)
+		*theHue = (theGreen - theBlue) / aDelta;
+	else if (aMax == theGreen)
+		*theHue = 2 + (theBlue - theRed) / aDelta;
 	else
-		*h = 4 + (r - g) / aDelta;
-	if (*h < 0)
-		*h += 6;
+		*theHue = 4 + (theRed - theGreen) / aDelta;
+	if (*theHue < 0)
+		*theHue += 6;
 }
 
-static void HsvToRgb(double h, double s, double v, double* r, double* g, double* b)
+// port: a helper of the port (HsvToRgb)
+static void HsvToRgb(double theHue, double theSaturation, double theValue, double* theRed, double* theGreen, double* theBlue)
 {
-	int i = (int) floor(h) % 6;
-	double f = h - floor(h);
-	double p = v * (1 - s), q = v * (1 - s * f), t = v * (1 - s * (1 - f));
+	int i = (int) floor(theHue) % 6;
+	double f = theHue - floor(theHue);
+	double p = theValue * (1 - theSaturation), q = theValue * (1 - theSaturation * f), t = theValue * (1 - theSaturation * (1 - f));
 	switch (i)
 	{
-	case 0: *r = v; *g = t; *b = p; break;
-	case 1: *r = q; *g = v; *b = p; break;
-	case 2: *r = p; *g = v; *b = t; break;
-	case 3: *r = p; *g = q; *b = v; break;
-	case 4: *r = t; *g = p; *b = v; break;
-	default: *r = v; *g = p; *b = q; break;
+	case 0: *theRed = theValue; *theGreen = t; *theBlue = p; break;
+	case 1: *theRed = q; *theGreen = theValue; *theBlue = p; break;
+	case 2: *theRed = p; *theGreen = theValue; *theBlue = t; break;
+	case 3: *theRed = p; *theGreen = q; *theBlue = theValue; break;
+	case 4: *theRed = t; *theGreen = p; *theBlue = theValue; break;
+	default: *theRed = theValue; *theGreen = p; *theBlue = q; break;
 	}
-	*r *= 255; *g *= 255; *b *= 255;
+	*theRed *= 255; *theGreen *= 255; *theBlue *= 255;
 }
 
 // 0x426910
@@ -86,9 +87,9 @@ bool Sexy::LoadPuzzlePicture(PixelusApp* theApp, Grid* theGrid)
 // a cell nobody wants red, on a wanted cell pale cyan (the colours at 0x542d30, 0x542d40 and the grid's +0x20)
 MemoryImage* Sexy::MakeMiniImage(PixelusApp* theApp, const Grid& theGrid, bool thePicture)
 {
-	const int S = 6;
+	const int CELL = 6;
 	MemoryImage* anImage = new MemoryImage(theApp);
-	anImage->Create(theGrid.mCols * S, theGrid.mRows * S);
+	anImage->Create(theGrid.mCols * CELL, theGrid.mRows * CELL);
 	anImage->SetImageMode(true, true);
 
 	Graphics g(anImage);
@@ -100,7 +101,7 @@ MemoryImage* Sexy::MakeMiniImage(PixelusApp* theApp, const Grid& theGrid, bool t
 			{
 				unsigned int aColor = theGrid.mPicture[r][c];
 				g.SetColor(Color((aColor >> 16) & 0xff, (aColor >> 8) & 0xff, aColor & 0xff));
-				g.DrawImage(theApp->mImages[IMAGE_GRAYTILE_6X6], c * S, r * S);
+				g.DrawImage(theApp->mImages[IMAGE_GRAYTILE_6X6], c * CELL, r * CELL);
 			}
 		return anImage;
 	}
@@ -111,7 +112,7 @@ MemoryImage* Sexy::MakeMiniImage(PixelusApp* theApp, const Grid& theGrid, bool t
 			const Grid::Cell& aCell = theGrid.mCells[r][c];
 			if (aCell.mObject != NULL && aCell.mObject->mState == 0)
 				continue;
-			int aX = c * S, aY = r * S;
+			int aX = c * CELL, aY = r * CELL;
 			g.DrawImage(theApp->mImages[aCell.mWanted ? IMAGE_TILEBACK_WANTTILE_6X6 : IMAGE_TILEBACK_6X6], aX, aY);
 			if (aCell.mStart)
 				g.DrawImage(theApp->mImages[IMAGE_STICKYSPOT_6X6], aX, aY);
@@ -125,16 +126,16 @@ MemoryImage* Sexy::MakeMiniImage(PixelusApp* theApp, const Grid& theGrid, bool t
 		const Grid::Cell& aCell = theGrid.mCells[anObject->mRow][anObject->mCol];
 		Color aColor = aCell.mFixed ? Color(142, 170, 192) : (aCell.mWanted ? Color(203, 255, 255) : Color(255, 80, 80));
 		g.SetColor(aColor);
-		g.DrawImage(theApp->mImages[IMAGE_GRAYTILE_6X6], anObject->mCol * S, anObject->mRow * S);
+		g.DrawImage(theApp->mImages[IMAGE_GRAYTILE_6X6], anObject->mCol * CELL, anObject->mRow * CELL);
 	}
 	return anImage;
 }
 
 MemoryImage* Sexy::MakeSolvedImage(PixelusApp* theApp, const Grid& theGrid)
 {
-	const int S = Grid::CELL_SIZE;
+	const int CELL = Grid::CELL_SIZE;
 	MemoryImage* anImage = new MemoryImage(theApp);
-	anImage->Create(theGrid.mCols * S, theGrid.mRows * S);
+	anImage->Create(theGrid.mCols * CELL, theGrid.mRows * CELL);
 	anImage->SetImageMode(true, true);
 
 	Graphics g(anImage);
@@ -146,7 +147,7 @@ MemoryImage* Sexy::MakeSolvedImage(PixelusApp* theApp, const Grid& theGrid)
 			unsigned int aColor = theGrid.mHasPicture ? theGrid.mPicture[r][c] : 0xffcccccc;
 			g.SetColorizeImages(true);
 			g.SetColor(Color((aColor >> 16) & 0xff, (aColor >> 8) & 0xff, aColor & 0xff));
-			g.DrawImage(theApp->mImages[IMAGE_GRAYTILE_20X20], c * S, r * S);
+			g.DrawImage(theApp->mImages[IMAGE_GRAYTILE_20X20], c * CELL, r * CELL);
 		}
 	return anImage;
 }

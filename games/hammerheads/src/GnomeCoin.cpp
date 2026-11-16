@@ -61,7 +61,7 @@ void GnomeCoin::Update(const double thePos[2])
 			mHintShown = true;
 		if (mHintShown)
 		{
-			Floater* aHint = MakeFloater(FLOATER_HINT_PICK, 400.0, 216.0, nullptr, 0, "");
+			Floater* aHint = MakeFloater(FLOATER_HINT_PICK, 400.0, 150.0, nullptr, 0, "");
 			mHintName = aHint->mName;
 			GetGameplay()->mFlagCC = true;
 		}
