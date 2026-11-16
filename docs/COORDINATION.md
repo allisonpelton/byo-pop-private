@@ -218,14 +218,19 @@ holds the rules every session follows; this file does not repeat them.
   being let off.
   Shared costs are found once and fixed in the framework for every game; the list below holds them.
 - **Shared costs waiting for a fix:**
-  - Loading GIFs: decoded to 32 bits and quantized back to 8 (`Sexy::Quantize8Bit`, a binary search a pixel; a cache
-    of the last colour gives the identical table), about a quarter of a load's processor time, 0.15 to 0.2 s of a load
-    in any game with GIFs (Typer Shark, AstroPop, GAME_NOTES section 11), measured before `platform/GIFDecoder.cpp`
-    halved the decoding (1572aba0, 2026-11-14). The quantizing is left: a GIF's own indices, with its colours
-    put in the order Quantize8Bit would give them, make the same table without the 32-bit pass. Converting the GIFs to
-    another format would not help: lossless PNG or WebP of the eight games with the most GIFs is 30.6 or 23.9 MB
-    against 36.7, and neither decodes faster than the GIF decoder now (2026-11-15). With the JPEG and
-    Vorbis decoders and Platform::DecodeImage, the load's decoding is about 12% of Bejeweled 2's 3D run without waiting.
+  - Loading GIFs (closed 2026-11-16, not merged): decoded to 32 bits and quantized back to 8 (`Sexy::Quantize8Bit`, a
+    binary search a pixel), once about a quarter of a load's processor time in the games with GIFs (Typer Shark,
+    AstroPop). Since `platform/GIFDecoder.cpp` halved the decoding (1572aba0, 2026-11-14), every game with GIFs loads at
+    or below its original's time (Typer Shark 0.72 to 0.82 s against 0.76 to 1.28; AstroPop 1.0 to 1.3 against 1.5).
+    fw-memory then built the path from a GIF's own indices, in the order Quantize8Bit gives them (62a6450e on
+    `claude/fw-memory-5fbaa7`, reverted there; its measurements are in that commit's `docs/MEMORY.md`, item 8): the
+    same table for all 11,293 staged GIFs, but a saving of 45 to 70 ms a load in Typer Shark only (AstroPop 14 ms
+    offline, Mummy Maze nothing at its loading), for about 390 lines in the picture loader every game runs through, a
+    second path every later change to it must keep identical, and a 5% slower decode of GIFs never palettized. Not
+    merged: the games already meet their originals' load times. Converting the GIFs to another format would not help
+    either: lossless PNG or WebP of the eight games with the most GIFs is 30.6 or 23.9 MB against 36.7, and neither
+    decodes faster than the GIF decoder now (2026-11-15). With the JPEG and Vorbis decoders and Platform::DecodeImage,
+    the load's decoding is about 12% of Bejeweled 2's 3D run without waiting.
   - imagehlp.dll, 2.4 to 7.6% of a run's cycles, from a call site not yet found (Typer Shark, AstroPop, Bejeweled 2).
   - The 2D path on SDL's software renderer (`DDInterface.cpp`, `mIs3D` false, about lines 784 to 833): every sprite an
     SDL_RenderCopyEx or SDL_RenderGeometry blended in software, 15 to 25 ms a drawn frame in Bejeweled 2's 2D mode (81%
