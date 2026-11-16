@@ -139,6 +139,34 @@ post screen's stage as an empty frame, so the loading takes the original's frame
 the post's dialog (a state of its own, until the player closes it), where the port goes to the menu at once: the
 comparison of a case ends there, and the input after it lands on other screens on the two sides.
 
+## Looks identical
+
+**Pictures of the original.** The original draws partly into its back surface through locks and partly with
+DirectDraw blits, and a window capture comes back flat (and its paint, while the game is held, crashes it in a draw
+through a null surface). So a second patch list (`setup.sh` writes it beside the first, `-shots.txt`) has the display's
+present, after its own unlock, lock the whole back surface again and copy it into a buffer it allocates once; origrun
+reads the buffer (`--surface-screen`, with a byte that says a copy is under way as `--surface-gate`). The pictures are
+taken only inside Windows Sandbox. `shots.sh <case> <seed> <shot list> <run>` plays a case's recorded input on both
+sides and takes a picture at each frame the list names (`shots/look1.txt`: the launch, the menu and the name dialog,
+the story pages, play, the level and city ends, the bonus round; `shots/fade.txt` and `shots/levelend.txt`, frame by
+frame through the launch's fades and a level's end), and tools/shotdiff compares the two folders.
+
+**The original never clears its screen** (a change of the shared renderer, f8ae2924). The display's lock hands out
+the last frame's pixels and the game draws its dirty regions over them, so a translucent screen blends with the frame
+before: the fades out of the splash and into the menu build up over their frames. The port's signal build filled each
+redrawn tile with black first, so its fades went through black where the original's go through the screen before. It
+draws over the last frame now; the menu's fade-in matches frame by frame.
+
+**Oddity: the level end's sparkles.** When the level's end title leaves, each letter's burst (`BurstFx`: three streams
+of `basicSparkle`, a JPEG with a greyscale mask) draws its particles at the same places in both, but the port's are
+brighter: from the first frame of the burst (2125 in look1's case) about 2700 to 5000 pixels a frame are lighter by
+about a hundred in each channel, none darker, until the particles die (2170). Checked and the same as the export: the
+effect's definition and its reading (the start opacity of 3 clamped to 1 in the particle's update, 0x497f00), the
+pool's pictures and its random pick (0x4944b0, 0x493d90), the letter's scale and leave (0x42ab80, 0x42afb0), the
+particle's transform (0x497e40), the mask's lookup and reading, and the blend's arithmetic. What is left is the
+original's draw of a scaled, translucent masked picture against the port's; it would take tracing one particle's draw
+in the original (its graphics state and the blit it picks) beside the port's.
+
 ## Where it stands (2026-11-16)
 
 Case play1 (150 moves, seed 1) matches through the first level. record.py times each input by the frame the bot's last
