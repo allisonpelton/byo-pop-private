@@ -303,5 +303,5 @@ read against the sources:
   as a float and its halves, degrees to radians) are one set of names in `src/MathConstants.h`, replacing 12 per-file definitions and
   about 40 written-out values. Each keeps its literal, so the object code is the same: `objsnap` before and after, 101 objects, 2,180
   functions, 0 differ. The 47 other long decimals are each used once or twice, a reciprocal the exe keeps as a constant (a division
-  would round differently), with the line's comment saying what they scale; they stay.
+  would round differently); they stay as the exe's constants, and most of their lines have no comment saying what they scale (not done).
 - **Comments (rule 8):** no stage, phase or milestone labels and no history in the sources.
