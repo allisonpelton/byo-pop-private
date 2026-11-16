@@ -673,6 +673,21 @@ every game yet. Three are in the Steam library on A: (Tasty Planet, Tasty Planet
 app 946010, 78 MB). Forever is a 4.4 MB native exe, `tastyplanet4.exe`, on SDL2 and SDL2_mixer with
 `steam_api.dll`, its data in `assets/`; the port can keep SDL2. The two older games were not looked at.
 
+**MumboJumbo's Luxor games (looked at 2026-11-16; their place in the order is the user's):** four installed in
+`C:/Program Files (x86)/MumboJumbo/`: Luxor (2005), Luxor: Amun Rising and Luxor: Mah Jong (2006), all on one
+engine, and Luxor 2 (2006) on a later one. No DRM wrapper: plain sections, the user's own installs. The engine is
+split into DLLs whose exports carry full C++ names (`core`, `file`, `gfx2d` with DirectDraw 7, Direct3D 8 and OpenGL
+back ends, `imglib`, `snd3d`, `ui2`, `net`, `logger`, `crash`; `core.pdb` under `C:\code\mjo\mjlibs`), so Ghidra
+starts with the engine's classes and methods named. Luxor's own code is about 0.45 MB with the engine (0.61 MB
+with libjpeg, crash reporting and DirectX setup); Amun Rising's exe is 118 KB and Mah Jong's 176 KB on the same
+DLLs. Luxor 2 has about 1.2 MB of its own (`engine.dll` 315 KB, `platform.dll` 209 KB with zlib, `luxor2.exe`
+257 KB) plus libpng and libjpeg, and a trial mode to take out (`IsTrialMode`, `command_buyNowCb`, an unlock timer).
+Sound goes through FMOD 3 (Luxor 1's three) and FMOD Ex (Luxor 2), both proprietary, so the port's own mixer
+replaces them; music and sounds are Ogg. The data sits in `MJZ0` archives (`data.mjz`, `english.mjz`; 910 to
+1,940 entries) to be decoded from our export, holding `.spr` sprites, `.font` fonts, `.ui` interface scripts, `.lvl`
+levels and JPEG, PNG and TGA pictures. Luxor's exe takes `-unlocklevels` and `-unlockstages`, useful for tests.
+The three games on the first engine would share one copy under `engines/` (`docs/ENGINES.md`), Luxor 2 its own.
+
 ## Appendix B: other projects and modding communities
 
 Checked on 2026-10-26 for the publishing rule (section 2). "Active" means mods or tools since late 2024; "strong"
