@@ -307,3 +307,17 @@ device, the port under rundesk): peak private bytes 20.2 MB median for the origi
 track 5.6 (left for the memory trial that streams it), the framework's pictures 2.3, the back buffer 0.6 and sounds 0.3
 MB; the rest, about 5.6 MB, is heap and code, and nothing in it was found to cut. `tools/check.sh ningpo`: baseline
 identical. The software screen is for 1x only (docs/RULES.md): the GPU takes every larger window, so 2x is not measured.
+
+
+### The software screen and the streamed track, 1x (2026-11-16)
+
+After merging the framework's streaming (05c5927a; the port's music loader uses it with no change of its own), back to
+back on the screen tour at 1x (`WINDOWSCALE=1 tools/perf/perf.sh`, three pairs, the machine running up to six other
+games, so the wait for a quiet machine was relaxed to four processes; the original paced on origrun's real clock with no
+sound device): the port's peak private bytes 19.4 MB (19.2 to 19.8; `memreport` in a game 17.3 MB, the music holder 0.3
+MB against 5.6), the original's 30.4 MB (29.8 to 30.8). The original read 20.2 MB in the three pairs of 2026-11-15 on
+the same script, so its figure moved 10 MB between the two sets with the stand-in rebuilt in between; the cause was not
+chased, and either way the port is under it. Processor time in the 20 s to 50 s window: 7.45 % of one core for the
+port (7.34 to 8.78), 11.75 % for the original (7.06 to 19.03); the whole run 3.02 s against 4.94 s (3.48 to 7.22), so
+the port stays under the original's. Loading to the start screen 0.93 s against 1.02 s (the port's first reading comes
+late on a busy machine: 0.18 to 1.35 s). The README row has these.
