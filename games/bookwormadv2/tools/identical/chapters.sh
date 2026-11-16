@@ -18,7 +18,7 @@ chapter() {
 		grep -q "lock was not free" "build/identical/chapter-$n/sbox.log" 2>/dev/null || break
 	done
 	# the verdict lines (rngcmp's header and its last difference, the engine states) and how many differences were listed
-	{ echo "== $n"; grep -E "^original:|^draws:|IDENTICAL|engine states|DIFFERENT|first difference|^time |chapter ended|ORIGINAL RUN FAILED|BAD INPUT" "build/chapter-$n.log" | cut -c1-200
+	{ echo "== $n"; grep -E "^original:|^draws:|IDENTICAL|engine states|DIFFERENT|first difference|^time |chapter ended|ORIGINAL RUN FAILED|ORIGINAL RAN FREE|BAD INPUT" "build/chapter-$n.log" | cut -c1-200
 	  echo "draw differences listed: $(grep -c '^update' "build/chapter-$n.log"); last: $(grep '^update' "build/chapter-$n.log" | tail -1 | cut -c1-120)"; } > "build/chapter-$n.verdict"
 	cat "build/chapter-$n.verdict" >> build/chapter-results.txt; rm -f "build/chapter-$n.verdict"  # in one write: cases run at once
 	# the case's own log (the verdicts in full, a few KB) stays in build/chapter-logs; its runs are deleted
