@@ -16,6 +16,9 @@ slots). The game image is `re/peggle/deluxe/bin/PeggleGame.exe` (the DRM wrapper
 - `pe.py`: the exe's sections and bytes. `decread.py`: prints functions compactly, with Mac names, resource globals
   (`res_map.txt`) and `docs/symbols.txt` names in place of FUN_/DAT_ ones, floats and strings noted in place:
   `decread.py <addr>...`, `<lo>-<hi>`, `--list <lo>-<hi>` (address, size, name, strings), `--raw`.
+- `edfields.py <addr>...`: for a class's `EditGetSetValHook` (the level editor's property hook) the property names the original
+  gives its fields ("physobj_collidable +0x24 EditValSyncBool"): the source of the level pieces' field names. It finds the
+  names that are compared by `call 0x4097c0`; the others are read from the disassembly.
 - `resgen.py`: writes `src/Res.h`, `src/Res.cpp` (421 resources in 15 groups, the exe's ResGen output) and `res_map.txt`.
 
 ## The code
@@ -68,7 +71,8 @@ CharacterMgr, TrophyInfo::mUnknown60) are named when their users are translated.
 
 ## State
 
-Builds and runs to the main menu (loading screen, menu, bubble, trophy, the locked and quit dialogs): see `GAME_NOTES.md` for
+Builds and runs to the main menu (loading screen, menu, bubble, trophy, the locked and quit dialogs), the first run's
+certificate and the list of players: see `GAME_NOTES.md` for
 what is translated, what is left out and the order of the rest. `decread.py` was fixed after the first data classes were
 translated (it dropped some arguments); the functions translated with the old tool are checked again in the identical-play
 pass. `disasm.py <addr> [<from> <to>] [--math]` shows the real arguments and x87 maths, `modvals.py` lists the ModVal numbers,
