@@ -22,6 +22,7 @@
 #include "Snd_defs.h"
 #include "tuningbase.h"
 #include "MIDIMacros.h"
+#include "SampleStream.h"  // byo-pop
 #ifdef MODPLUG_TRACKER
 #include "../mptrack/MIDIMapping.h"
 #endif // MODPLUG_TRACKER
@@ -450,6 +451,8 @@ private:
 public:
 	MixerSettings m_MixerSettings;
 	CResampler m_Resampler;
+	// byo-pop: the samples decoded as they play (SampleStream.h); null when none are
+	std::unique_ptr<SampleStreams> m_sampleStreams;
 #ifndef NO_REVERB
 	mixsample_t ReverbSendBuffer[MIXBUFFERSIZE * 2];
 	mixsample_t m_RvbROfsVol = 0, m_RvbLOfsVol = 0;

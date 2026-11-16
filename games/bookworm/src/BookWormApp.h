@@ -17,6 +17,7 @@
 #include "MTRand.h"
 #include "Res.h"
 #include "UserManager.h"
+#include "WordSet.h"
 #include <list>
 #include <set>
 #include <string>
@@ -114,7 +115,7 @@ public:
 	int						mGameMode;          // +0x1254 GameMode of the current / last game; ctor 0
 	int						mSelectedGameMode;  // +0x1258 mode picked in the selector (TryConfirmLoad); ctor -1
 	// +0x125c mScoringMethod: ctor 1, never changed; not ported (0 would select the length formula 0x4040e0)
-	std::set<SexyString>	mDictionary;        // +0x1260 wordlist.txt, upper case, length >= 3
+	WordSet					mDictionary;        // +0x1260 wordlist.txt, upper case, length >= 3 (port: flat arrays, WordSet.h; the original a std::set)
 	std::vector<SexyString>	mBonusWords;        // +0x126c bonus_word_dictionary.txt in file order, upper case
 	// +0x127c mUsedBonusWords (the bonus words completed, never read), +0x1288 and +0x12a4 two unused strings: not ported
 	SexyString				mBonusWord;         // +0x12c0 next bonus word (Board::GetNextBonusWord)
@@ -221,6 +222,12 @@ public:
 	// with BASS 2.0's music gain (docs/FRAMEWORK_2004.md section 6, 4.2)
 	virtual MusicInterface* CreateMusicInterface() override;
 
+#ifndef __EMSCRIPTEN__
+	// port: the screen drawn in software, as the original's DirectDraw 2D mode (framework/SoftwareScreenDisplay.h); the
+	// web build keeps DDInterface
+	virtual DDInterface* CreateDDInterface() override;
+#endif
+
 	// port: the game's texts are read from the player's Bookworm.exe (GameText.h) right after the partner
 	// properties, before ReadFromRegistry (the default high scores) and anything that shows text
 	virtual void	InitPropertiesHook() override;
@@ -272,9 +279,9 @@ public:
 	bool			VerifyHKLMAccess();                      // 0x414910
 	bool			DoLoadImage(int theImageId);                  // 0x4144b0
 	bool			DoLoadImageFont(int theFontId);                    // 0x4146d0
-	bool			LoadWordList(const SexyString& theFileName, std::set<SexyString>* theSet,
+	bool			LoadWordList(const SexyString& theFileName, WordSet* theSet,
 						std::vector<SexyString>* theVector);    // 0x41a5b0
-	bool			LoadDictionary(const SexyString& theFileName, std::set<SexyString>* theSet); // 0x41a860
+	bool			LoadDictionary(const SexyString& theFileName, WordSet* theSet); // 0x41a860
 	bool			LoadBonusWords(const SexyString& theFileName, std::vector<SexyString>* theVector); // 0x41a880
 
 	// Users, saved games, high scores

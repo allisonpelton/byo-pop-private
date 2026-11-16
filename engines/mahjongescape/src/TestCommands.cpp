@@ -105,7 +105,9 @@ void ReplyError(const std::string& theCommand, const std::string& theReason)
 }
 
 // port: memreport <file>: what the engine holds in memory, by image and by sound. An image keeps its
-// DIB (its own bytes only when it decoded them: a BMP resource's are the resource's) and, once drawn, the 32-bit copy.
+// DIB (its own bytes only when it decoded them: a BMP resource's are the resource's) and, once drawn, the 32-bit copy;
+// a picture decoded from a resource drops its own bytes once the copy is made (jb::Image::DropBits), unless
+// JB_KEEP_IMAGE_BITS=1.
 void WriteMemReport(const std::string& thePath)
 {
 	FILE* aFile = fopen(thePath.c_str(), "w");
