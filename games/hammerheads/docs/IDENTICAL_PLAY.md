@@ -235,6 +235,27 @@ challenge, the trophy pages, Tough Cookie's notice, the game-won page, the game 
   a reload. The table plays the loading screen's click and a new profile's name box itself, as the game waits for both. The bot made
   no moves before the reload (the level was still on its Ready box), so the "game in progress" line has no save to restore.
 
+### Real input, natively
+
+`games/hammerheads/tools/realplay.py` plays the port under rundesk with `-realinput` (docs/REAL_INPUT.md): SDL events pushed into
+SDL's own queue, the moves from the port's bot (`move`), the state (`state`) saying which box is up. From a clean user folder it
+clicks the loading screen, types "X", a Backspace and "Test" into the name box, clicks OK, clicks the mode's button and then every
+button the game shows: the how-to-play page, each introduction's and Ready box's Go, the shop's Back to Game, the bonus round's
+opening and the summaries. A screenshot is never used to choose. Runs (seed 1, `--heal`, which sets the hearts back to 5 when
+they are down to 2.5 so that the weak bot reaches later levels; a test command, not an input):
+
+| run | result |
+| --- | --- |
+| Classic, windowed | launch to level 25 (the king's level): 3698 moves, 25 levels, the shops and bonus rounds in between; the game is lost to the king, which the bot does not defeat |
+| Classic, full screen after the first level, with the focus lost and regained | 8 levels, the clicks and moves landing as in the window (an earlier run of the driver, before `--heal` took 2.5) |
+| Tough Cookie | to level 25, 4765 moves, lost to the king |
+| Marathon | 3000 moves to level 23 |
+| a lost game (`lose` after 6 moves) | the Game Over box (dialog 15) |
+
+The driver's clicks on the summaries, the trophy award and the shop are found by trying the buttons the first run showed in turn, so
+a screen where none changes the state stops the run (none did after the driver waited out the wipes). The king's defeat and the
+game-won screen are reached by the test commands (`set kings`, `win`) in the autosplit logs, not by the bot.
+
 ### Open
 
 - Not yet shot: the hard modes' remaining boxes, the saved games' resume pages, the web
