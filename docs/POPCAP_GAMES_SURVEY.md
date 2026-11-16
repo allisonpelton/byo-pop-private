@@ -48,9 +48,14 @@ another's engine goes after it. Efforts are the estimates without references (3.
 | 10 | Peggle Nights (5.13) | Sonnet | no | ~4-5x after Deluxe | Peggle Deluxe's port; a Mac build |
 | 11 | Bejeweled 3 (5.14) | Opus | yes | ~30x | the post-2010 "prime" framework; builds the layer Zuma's Revenge reuses; a Mac build |
 | 12 | Banana Bugs (5.15) | Opus | yes | ~15x | a public-generation SAF with PakInterface, BASS and JPEG 2000; game RTTI |
-| 13 | Gyromancer (5.16) | Opus | yes | ~12-18x | Square Enix's own engine with game RTTI; Direct3D 9 effects; encrypted archives |
+| 13 | Gyromancer (5.16) | Opus | yes | ~9-13x | Square Enix's own engine with game RTTI; Direct3D 9 effects; encrypted archives |
 | 14 | Zuma's Revenge! (5.17) | Opus | web only | ~35x | the 2009 internal framework; Bejeweled 3's layer and Bookworm Adventures' JeffLib; a Mac build |
 | 15 | Talismania Deluxe (5.18) | Sonnet | yes | ~12-16x after Feeding Frenzy 2 | Feeding Frenzy 2's engine |
+
+**Ghidra exports (2026-11-16).** Every game in the table has one: `re/<game>/gh` for Iggle Pop, Feeding Frenzy,
+Chuzzle, Feeding Frenzy 2, Bejeweled 3, Gyromancer, Zuma's Revenge and Talismania (the last three without
+`RecoverClassesFromRTTIScript`, which a session can rerun), `re/peggle/deluxe/gh` and `re/peggle/nights/gh`, and
+`re/bananabugs/game`. Ghidra's projects are `<game>_game` under `E:/retools/projects`.
 
 ### Where a port is published
 
@@ -475,7 +480,7 @@ dumper or a downloaded unpacker, and that now serves only as a check on the clea
 
 ### 5.16 Gyromancer
 
-**Opus, published, ~12-18x.** Added on 2026-10-25; sized on 2026-11-16.
+**Opus, published, ~9-13x.** Added on 2026-10-25; sized from its Ghidra export on 2026-11-16.
 
 - **Copy:** Steam, `E:/SteamLibrary/steamapps/common/Gyromancer` (2009-09). A puzzle RPG made by PopCap with
   Square Enix, which published it, on battles like Bejeweled Twist's.
@@ -490,7 +495,11 @@ dumper or a downloaded unpacker, and that now serves only as a check on the clea
   encrypted, to be decoded from the export. Sound streams through XAudio2 (`CSoundOGG`, `CSoundWAVE`; the
   `CSoundXMA2` and `CSoundXWMA` classes are the Xbox 360 build's), input through DirectInput 8 and XInput, and a
   Steam online layer (`COnlineSystemSteam`) is to go. 92 RTTI names (game modes `CGM_*`, `CData*` tables, effects,
-  puzzle actions) cut the naming work. Hence ~12-18x, between Bookworm Adventures (10-15x) and Twist (~25x).
+  puzzle actions) cut the naming work. That first look gave ~12-18x.
+- **Export (2026-11-16, `re/gyromancer/gh`):** 1,915 functions. The engine and game fill 0x401000 to 0x488000
+  in one block: 1,235 functions, 469 KB, 81,300 decompiled lines. The C runtime (named by Ghidra) and Ogg Vorbis
+  follow it. Against Bejeweled's 250 functions, 60 KB and 12,700 lines, that is 4.9x by functions, 7.8x by
+  bytes and 6.4x by lines. The Direct3D 9 effects, the archives and the sound bring it to ~9-13x.
 - **Image:** Steam's DRM stub has encrypted the Steam exe's code section. A clear image of the same build, found
   on 2026-11-04, is kept as `re/gyromancer/bin/Gyromancer_clear.exe` beside the Steam exe, with a README.
 
