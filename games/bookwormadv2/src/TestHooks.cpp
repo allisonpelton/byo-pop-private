@@ -1365,12 +1365,27 @@ void GameApp::HandleCmdLineParam(const std::string& theParamName, const std::str
 			size_t aComma = theParamValue.find(',', aPos);
 			if (aComma == std::string::npos)
 				aComma = theParamValue.size();
-			if (aComma > aPos)
+			// "@<update>": the load ends so that the battle engine is made at that update (stored negated)
+			if (aComma > aPos && theParamValue[aPos] == '@')
+				mChapterLoadUpdates.push_back(-atoi(theParamValue.substr(aPos + 1, aComma - aPos - 1).c_str()));
+			else if (aComma > aPos)
 				mChapterLoadUpdates.push_back(atoi(theParamValue.substr(aPos, aComma - aPos).c_str()));
 			aPos = aComma + 1;
 		}
 	} else
 		LuaApp::HandleCmdLineParam(theParamName, theParamValue);
+}
+
+void GameApp::LogEngineState(int theState)
+{
+	if (mStateLog == nullptr)
+		return;
+	std::string aValue = StrFormat("%d", theState);
+	std::string& aLast = mStateLogLast["estate"];
+	if (aLast != aValue) {
+		aLast = aValue;
+		fprintf(mStateLog, "%d estate %s\n", mUpdateCount, aValue.c_str());
+	}
 }
 
 // -statelog: the values the identical-play comparison reads, written when one changes ("-" when there is none): the

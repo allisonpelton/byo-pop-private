@@ -1721,6 +1721,8 @@ int GameApp::StartLoadChapterResources(lua_State* L)
 	mChapterLoadError.clear();
 	mChapterLoadStart = mUpdateCount;
 	mChapterLoadWanted = mChapterLoadsStarted < (int)mChapterLoadUpdates.size() ? mChapterLoadUpdates[mChapterLoadsStarted] : -1;
+	if (mChapterLoadWanted <= -2)  // port: "@<update>", the update the load's last step comes at
+		mChapterLoadWanted = std::max(1, -mChapterLoadWanted - mUpdateCount + 1);
 	mChapterLoadsStarted++;
 	mLoadingDone = false;
 #ifdef __EMSCRIPTEN__

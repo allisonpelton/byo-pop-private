@@ -77,6 +77,10 @@ updates. Victory effects and fireworks draw per frame, so they are not comparabl
 | (test only) No way to match the original's load lengths, to log inputs or to start a battle on a fixed seed | n/a | `-startloadupdates`, `-chapterloadupdates`, `-reseedengine`, `-statelog`, input lines in the log | d8697ae, 002309c |
 | Chapter 6.5: a scramble drew one random number a letter more than the original (16 against 15 each step) | `TileEngine::ChangeLetters` (0x486d40) gives a wild tile "?" without generating a letter; the port generated one for every tile | `ChangeLetters` asks `IsWildTile` first | this pass |
 | Chapter 6.5: with a wild tile on the board a scramble chose other letters than the original from the same random numbers | `GenerateLetter` (0x485dd0) counts a "?" tile in the total but neither as a vowel nor as a consonant; the port counted it as a consonant, so nine consonants shut every consonant out a tile early. The original also builds a pattern for a row of 10 tiles, which the port left out | The count skips "?"; the row-of-10 pattern is built. Checked by simulating the 13 steps of a scramble from the original's own Mersenne state (peeked before the click): the result is its board | this pass |
+| (-fast only) Chapter 6.4: a whole battle came out otherwise when the chapter load was 8 updates longer; the curtain held the board 0 to 9 updates more by the update count's phase | The curtain is done only once its last frame has been drawn (`mDrawn`), and the original draws after every update | `CurtainTransition::WantFirstDraw`: with `-fast` (which draws every 10th update) the update that reaches the last frame asks for a draw after it; a `-fast` run and a `-drawevery` run of the same input now match line for line. Normal play is unchanged | 21c03eda |
+| (test only) Six chapters' engine states parted where a lost turn's grid click ends the round | `EndLostTurnRound` sets state 5, then 1, in the click's update, in both programs; the original's watch polls every millisecond and sees that passing 5 only sometimes, the port logged once an update | `-statelog` writes every `BattleEngine::SetState`, and `statecmp.py` lets a state the port leaves in the update it entered go unmatched | 21c03eda |
+| (test only) The port's replay made its engine one update before the original's, or up to 30,000 updates off when the startup load went unmeasured | `calib.py` gave a chapter load as a length from the port's own load start | `-chapterloadupdates=@<update>`: the load ends where the original made its engine; `case.sh` anchors on that update when the original's mark came later | 21c03eda |
+| (test only) On a busy machine the original's first click was given up at update 3515 and the script ran on the wall clock (5.3, 6.6) | origrun's `at` waits 30 s of virtual time, and the startup load runs on the wall clock while the updates stand still | the original's script starts with a `waitfor` on its own update counter; a run whose input was given up is marked `ORIGINAL RAN FREE` | see the commit after 21c03eda |
 
 ## The baseline guard
 
@@ -188,23 +192,29 @@ anchored on its battle engine (origrun's `waitfor` and `mark`) and the port's re
 four to seven minutes. The batch of 2026-11-12/13 and the first runs of 2026-11-15 compared against an unseeded original
 (the ignored patch list had lost its reseed lines, see Oddities) and are void.
 
-Each case is named by the profile it starts from, so `after-4.1` plays chapter 4.2. Of the 29:
+Each case is named by the profile it starts from, so `after-4.1` plays chapter 4.2. The second rerun (2026-11-16
+afternoon, with the fixes of 21c03eda and the startup `waitfor`) took the 20 chapters that were not clean, three cases at
+once (`JOBS`, 51 minutes for the 20; one at a time a case takes five to six). Of the 29:
 
-- **Identical engine states and no draw difference inside the battles** (9): `after-4.1`, `after-4.3`, `after-4.4`,
-  `after-4.8`, `after-5.10`, `after-6.1`, `after-6.8`, `after-6.10`, and `after-4.5` (no draw difference; one change 7
-  updates late, past the tolerance of 6).
-- **Identical engine states, draws differ inside a battle** (4): `after-4.2` and `after-5.6` (+1 at the engine's first
-  draws, then the same changes; `after-5.6` has one change 7 updates late), `after-5.1` (-1 there), `after-5.5` (+54).
-- **The original goes to state 5 where the port attacks** (6): `after-5.2`, `after-5.7`, `after-5.9`, `after-6.5`,
-  `after-6.7`, `after-6.9` (and `after-4.8` in its first run): the original's change to 5 comes about 55 updates before
-  the port's change to 2. In `after-6.5` the cause is the scramble oddity (the word the bot chose from the port's board
-  is not on the original's); the others are not yet looked at, and a +54 draw step at the start of several of them
-  (`after-5.5`, `after-5.7`, `after-6.7`) is the next thing to compare.
-- **Other** (10): `after-4.6` (+1 draw late in the chapter, then a change 7 updates late), `after-4.9` (The Deuce: on 2026-11-15 all 76 changes matched, one 7 updates late; in this batch the
-  port's run left the battle early, 13 changes against 41, so its first change already differs), `after-5.4` (the original's Lex dies, state 7, 91 updates after the port's scramble), `after-6.2` and
-  `after-6.4` (no draw difference; a change 7 or 92 updates late), `after-6.3` (+1 draw, then a change 7 updates late),
-  `after-4.7`, `after-6.6`, `after-5.3` and `after-5.8` (a battle on one side only or none: the runs ended apart; not judged).
-- The original's run failed in 8 cases of the first pass (its startup outlasted the Adventure click at 5000 while the
-  machine was busy); all 8 ran again and are counted above.
+- **Identical engine states** (21): `after-4.1`, `after-4.3`, `after-4.4`, `after-4.5`, `after-4.8`, `after-5.10`,
+  `after-6.1`, `after-6.8`, `after-6.10` (the first batch), and `after-4.2`, `after-5.1`, `after-5.2`, `after-5.5`,
+  `after-5.7`, `after-5.8`, `after-5.9`, `after-6.2`, `after-6.4`, `after-6.6`, `after-6.7`, `after-6.9`, all within 6
+  updates. Two keep a draw difference inside a battle: `after-5.5` (+1: a draw the scripts make every update runs one
+  update longer in the original, 11,400 to 11,514 against the port's 11,513, before Lex's death; the counts agree again
+  after the battle restarts) and `after-6.9` (+1, not yet looked at). The six chapters that had "the original goes to
+  state 5 where the port attacks" were the lost turn's passing state (Changes).
+- **One change 3 to 7 updates apart** (4): `after-4.6`, `after-4.9`, `after-5.6`, `after-6.3`. The gap opens at the end
+  of an attack (state 3 to 5, 7 or 9) and closes at the next input. It is the original's own variance: `after-6.2` had
+  such a gap in one run and none in the next, with the same port and the same input. Not a difference of the port.
+- **A real difference** (3):
+  - `after-5.3`: after a scramble and the enemy's attack, the port's companion turn (state 10) lasts 257 updates (the
+    bot clicks through it) and the original's one update; the enemy's attack before it is 48 updates longer in the
+    port. The companion's power acts every 4 turns, so a turn count that differs is the lead. Open.
+  - `after-5.4`: on MOZARAB against Broken Brother (lightly armored, burning, a flinch defense), Lex at 5.5 health, the
+    port's word takes the enemy from 3.5 to 0.5 and the turn passes; the original's Lex dies during that attack (state
+    7, 251 updates in). The draws agree up to the attack. Open.
+  - `after-6.5`: the scramble oddity (Oddities).
+- **Not comparable** (1): `after-4.7`. The original's update counter stops (11,514 and 12,734 in two runs) while the
+  port goes on: the original stands still, as its Flash movies do in the sandbox on the virtual clock.
 
-The full verdict lines are in `build/chapter-results-1.txt` and `build/chapter-logs/` while they last.
+The full verdict lines are in `build/chapter-results.txt` and `build/chapter-logs/` while they last.

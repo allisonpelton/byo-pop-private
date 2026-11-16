@@ -15,3 +15,5 @@ GAMEDIR="${GAMEDIR:-assets/bookwormadv2}"
 # the app global (gSexyAppBase) and its update count at +0x484 (GetUpdateCount, 0x437e20)
 COUNTER='[0x787170]+0x484'
 win() { cygpath -w "$1"; }
+# the original's origrun run folder (build/origrun/<it>): chapters.sh gives each of its parallel cases one of its own
+ORIG_RUN="${ORIG_RUN:-bwa2s}"

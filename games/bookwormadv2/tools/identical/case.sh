@@ -56,18 +56,33 @@ else
 	python "$TOOLS/toorig.py" "$D/inputs.txt" -1 > "$D/orig.txt"
 	TIMEOUT=$(( ${END:-30000} / 100 + 60 ))
 fi
+# the startup load runs on the wall clock while the updates stand still, and an `at` waits only 30 s of virtual time for
+# its update: on a busy machine the first click's wait ran out at update 3515 and the script went on free (2026-11-16,
+# chapters 5.3 and 6.6). A waitfor on the counter itself holds the script until the startup is nearly done.
+FIRST=$(awk '$1=="at" && $2 ~ /^[0-9]+$/ {print $2; exit}' "$D/orig.txt")
+if [ -n "$FIRST" ] && [ "$FIRST" -gt 20 ]; then
+	{ echo "waitfor $COUNTER >= $((FIRST - 20)) 600000"; cat "$D/orig.txt"; } > "$D/orig.txt.new" && mv "$D/orig.txt.new" "$D/orig.txt"
+fi
 # the original's log is made fresh by this run only: a log left by an earlier case (a sandbox run that never started, because another
 # session's sandbox held the lock or the sandbox failed) would be compared as if it were this case's (2026-11-11: the chapter batch
 # compared one stale log against every profile)
-rm -f build/origrun/bwa2s/logs/origrun-sandbox.log "$D/orig.log"
+rm -f build/origrun/$ORIG_RUN/logs/origrun-sandbox.log "$D/orig.log"
 bash "$TOOLS/sbox.sh" "$D/orig.txt" $SEED $TIMEOUT 0x7c0000 '[0x7870a4]+0x30' > "$D/sbox.log" 2>&1
 stage "original in the sandbox"
-if ! cp build/origrun/bwa2s/logs/origrun-sandbox.log "$D/orig.log" 2>/dev/null || ! grep -q 'watch 1:' "$D/orig.log"; then
+if ! cp build/origrun/$ORIG_RUN/logs/origrun-sandbox.log "$D/orig.log" 2>/dev/null || ! grep -q 'watch 1:' "$D/orig.log"; then
 	echo "ORIGINAL RUN FAILED: no log with the watched values (see $D/sbox.log)"; exit 2
 fi
+# an input whose update the original never reached in time ran on the wall clock: the run is not comparable from there (a
+# frozen original, such as a Flash movie standing still in the sandbox, ends so too)
+FREE=$(grep -o "counter [0-9]* not reached within [0-9]*ms[^;]*" "$D/orig.log" | head -1)
+[ -n "$FREE" ] && echo "ORIGINAL RAN FREE: $FREE"
 # the port replays exactly that input (the soak would choose again, and a timing that differs a little would make it choose
 # another word), the lines from the anchor on moved to the original's mark
 MARK=$(grep -o "mark: the counter reads [0-9]*" "$D/orig.log" | head -1 | awk '{print $5}')
+# the update the original made its engine (its watch's first reading of it), where the mark is later: a waitfor met at once,
+# the engine made before the script reached it (chapter 6.4, 2026-11-16)
+MADE=$(grep -o "watch 2: [^ ]* -> 4294967295 at update [0-9]*" "$D/orig.log" | head -1 | awk '{print $NF}')
+[ -n "$MADE" ] && [ -n "$MARK" ] && [ "$MADE" -lt "$MARK" ] && MARK=$MADE
 SHIFT=0
 if [ -n "$ANCHOR" ]; then
 	grep -q "waitfor.*: met" "$D/orig.log" || { echo "ORIGINAL RUN FAILED: its engine was never made (waitfor not met)"; exit 2; }
