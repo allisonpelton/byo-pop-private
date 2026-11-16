@@ -1,4 +1,5 @@
 #include "TrophyRoomWidget.h"
+#include "platform/GameOptions.h"
 
 #include <cmath>
 #include <string>
@@ -95,7 +96,9 @@ TrophyRoomWidget::TrophyRoomWidget(int theMode, const std::vector<int>& theNewTr
 	}
 
 	mCloseUp = new TrophyCloseUpButton(BUTTON_CLOSE_UP, this);
-	mAppear = new TrophyAppearButton(BUTTON_APPEAR, this, mNewIndex < 0 ? -1 : mNewTrophies[mNewIndex]);
+	// fix (menuTrophySting): the room opened from the main menu announces nothing, so it makes no sound
+	mAppear = new TrophyAppearButton(BUTTON_APPEAR, this, mNewIndex < 0 ? -1 : mNewTrophies[mNewIndex],
+		theMode == MODE_MENU && Platform::FixOn("menuTrophySting"));
 
 	if (theMode == MODE_MENU)
 	{

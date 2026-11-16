@@ -4,10 +4,12 @@
 //   -gamedir=<dir>   folder with the game's boards/, gnomedata/, images/, sounds/, fonts/ and properties/: the staged copy
 //                    that games/hammerheads/tools/stage_hammerheads_assets.py makes (assets/hammerheads)
 //   -userdir=<dir>   writable folder for the player roster and scores (userdata) and registry.ini
+//   -modsdir=<dir>   the mods (the fixes mod is read through the options layer, platform/GameOptions.h); -nomods starts without
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the framework's test
 // hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
 #include "Application.h"
+#include "platform/ModManager.h"
 #include "platform/Relaunch.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
@@ -30,6 +32,18 @@ static std::string ArgValue(int argc, char** argv, const char* theKey)
 			return a + n + 1;
 	}
 	return "";
+}
+
+static bool HasFlag(int argc, char** argv, const char* theFlag)
+{
+	for (int i = 1; i < argc; i++) {
+		const char* a = argv[i];
+		while (*a == '-')
+			a++;
+		if (!strcmp(a, theFlag))
+			return true;
+	}
+	return false;
 }
 
 static bool LooksLikeGameDir(const std::string& theDir)
@@ -67,12 +81,15 @@ int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");
 	std::string userDir = ArgValue(argc, argv, "userdir");
+	std::string modsDir = ArgValue(argc, argv, "modsdir");
 
 #ifdef __EMSCRIPTEN__
 	if (gameDir.empty())
 		gameDir = "/hammerheadspersist/game";
 	if (userDir.empty())
 		userDir = "/hammerheadspersist/userdata";
+	if (modsDir.empty())
+		modsDir = "/hammerheadspersist/mods";
 #else
 	if (gameDir.empty())
 		gameDir = FindGameDir();
@@ -83,6 +100,8 @@ int main(int argc, char** argv)
 		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
 			userDir.pop_back();
 	}
+	if (modsDir.empty())
+		modsDir = ExeDir() + "/mods-hammerheads";
 #endif
 
 	if (gameDir.empty() || !LooksLikeGameDir(gameDir)) {
@@ -101,7 +120,13 @@ int main(int argc, char** argv)
 	Platform::RestoreUserDataBackup(userDir);
 	Platform::VFS::Get().SetBaseDir(gameDir);
 	Platform::VFS::Get().SetUserDir(userDir);
-	SDL_Log("game: %s | user: %s", gameDir.c_str(), userDir.c_str());
+	// port: the fixes mod is read through the options layer (platform/GameOptions.h); a test run with no -modsdir finds no mods
+	// beside the exe, so every option is off and the game is the original
+	Platform::MakeDirs(modsDir);
+	Platform::ModManager::Get().SetModsDir(modsDir);
+	if (!HasFlag(argc, argv, "nomods"))
+		Platform::ModManager::Get().Refresh();
+	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
 	static Application* anApp = new Application();
