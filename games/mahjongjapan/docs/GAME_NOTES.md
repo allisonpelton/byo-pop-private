@@ -543,7 +543,7 @@ coordinator's notes folder.
 dirty only when it has a changed rect (`MahjongHost::Present`), so the framework never draws an unchanged frame here and 1761 of 1761
 presents of a play were needed. No gain, not kept.
 
-**Where full screen stands (2026-11-15).** The coordinator's word, from the user: keep today's look on full screen, so the renderer's linear-filter picture stays the default and the nearest stretch stays an option (off). Until the framework session's CPU presenter (the same look made on the processor in strips, which also draws the mod menu under `SurfaceDisplay`) lands, full screen is still over the original's processor time here (4.77 against 3.78 for Japan, 4.79 against 3.60 for China). It is the one configuration of the two ports above the target; no third presenter is built in this game's folder.
+**Where full screen stands (2026-11-15).** The coordinator's word, from the user: keep today's look on full screen, so the renderer's linear-filter picture stays the default and the nearest stretch stays an option (off). The framework session's CPU presenter then landed (2026-11-15, `SurfaceDisplay::kLinearStretchByDefault`, the same look made on the processor), and full screen no longer misses the target: see "Round three" below (2026-11-16).
 
 ### The game under a modal dialog and the mod menu (2026-11-14)
 
@@ -607,6 +607,64 @@ the sound); the game's jumps land only on orders that start a recording. The pic
 the main thread's differences are within the noise between runs (other sessions' games ran beside them), and no picture
 is decoded again during the play (a build that logged each one, the check's play). The mixer's 0.019 G more with the
 pictures kept once is under "Oddities".
+
+### Round three: the presenters, the figures after fw-memory, the lite mod (2026-11-16)
+
+The coordinator's third round for the Mahjong Escapes: confirm which presenter each size takes now that fw-memory's smooth stretch has
+landed, and measure the processor time and the memory again, like for like, against the original.
+
+**The presenters** (the game's log, the `display:` and `SurfaceDisplay:` lines of a run at each size; none of them makes a renderer, "renderer none"
+in every line). The 800x600 window and the 2x window are *surface mode* (whole scales: the window's own surface, GDI to update it). Full screen,
+the default start, is *stretch mode, smooth flavour*: `SurfaceDisplay::kLinearStretchByDefault` (the framework's `LinearStretch`, "the window's GDI
+stretch (the screen of 800x600 into the window of 3840x2160, smooth, drawn on the processor)"), the renderer's linear-filter picture made on the
+processor, with no Direct3D 11 device and no driver thread. `kStretchOtherSizes`, the GDI nearest stretch, stays an option and is off, as the coordinator
+said; the renderer is made only for a drawn cursor image or a window that has had one (none here).
+
+**The look against the renderer's.** Six screens of a scripted play (the menu, the new player's box, the map, a board, the won box, the map again), the
+window's own pixels (`screenshotwindow`) in full screen 3840x2160, with the smooth stretch and with the renderer (`SURFACE_STRETCH=0`): the six
+PNGs of each game are byte-identical between the two, 0 pixels differ, so `tools/shotdiff` has nothing to flag.
+
+**Processor time, like for like** (billions of cycles of the whole process in the 30 s of the check's scripted play from 20 s to 50 s, the sum over its
+threads of `QueryThreadCycleTime` (`threadprof.py`); five rounds of the original and of each size in turn, every run pinned to one performance core
+(`tools/pincore.py`), the port under rundesk, the original through origrun in its own 800x600 window; medians with their ranges; `tools/profile/altconfigs.sh`,
+`showconfigs.py`). The mixer thread (SDL's audio callback) is in the totals; the original has none of its own, so the ratio without it is given too.
+
+| | original, 800x600 window | port 800x600 | port 2x window | port full screen (3840x2160) |
+|---|---|---|---|---|
+| Ancient Japan | 2.80 (2.27 to 4.58) | 1.15 (1.07 to 1.76) | 1.86 (1.66 to 2.80) | 2.20 (1.95 to 7.44) |
+| of the original's | 1 | 0.41 (0.32 without the mixer) | 0.66 (0.57) | 0.79 (0.69) |
+
+No size is above the original's. The first full-screen run (7.44 G) is a single run in which the game thread cost 7.2 G; the other four are 1.95 to 2.24 G, and the median does not rest on it. It was not repeated. None of the ten original runs' `origrun.log` said "no window in the first 20 s".
+
+**Memory** (private bytes in MB, the check's scripted play of 60 s, sampled every 50 ms by `perfmin.py`: the peak; two rounds, the two runs of a size within 0.3 MB of
+each other except the full-screen runs (3 MB apart) and China's original (2.3 MB); the original through origrun):
+
+| | original | port 800x600 | port 2x | port full screen | port at the title (12 s in, 800x600) |
+|---|---|---|---|---|---|
+| peak private bytes | 40.8 | 52.8 | 51.2 | 53.6 | 31.6 (renderer 61.8) |
+| peak working set | 58.1 | 64.8 | 63.0 | 70.0 | 42.8 |
+
+So the port is below the original at the title (31.6 against 40.8 MB; the README's 42 and 146 MB were before the surface display, the streamed music and one
+copy of the pictures) and above it in play, by 12 MB. The original's private bytes are flat from its title to the end of the play; the port's grow by
+about 17 MB between the menu and a board (`tools/realplay/memprobe.py`: 31.0 MB at the menu, 48.1 MB on a stage's board after a quarter of its tiles, `tools/memmap.py`'s
+private memory 27.6 and 43.7; the libraries' 91 MB are file-backed and not counted). Where that growth goes is not known: the Mahjong engine's `memreport`
+counts none of its pictures or sounds (it reports one picture, the screen), so the split into pictures, sounds and music is not available, and nothing was changed for it.
+This is the one figure still above the original's; the target of the performance step is processor time, which no size misses, so it is listed under "Oddities" as
+open and not chased. The likely holders are the pictures kept as 32-bit copies where the original's surfaces were 8 or 16 bits, and the sounds and the
+modules' streams decoded when the board's first sounds play.
+
+**Where full screen stands, now (2026-11-16).** The 2026-11-15 paragraph above is out of date: the framework's smooth stretch is the default and full screen is
+0.79 (0.69) of the original's processor time in a window of the same play, with the renderer's look to the pixel (0 differing in the six screens).
+
+### The lite mod (2026-11-16)
+
+One change is taken, `quickRedeal`, the Shuffle button's deal search (`Deal::Start` with `theRedeal`) stopped after 200 clock checks of 1,001 steps instead of a
+second of the machine's clock. It is in the shared engine (`engines/mahjongescape/src/Deal.cpp`, `Platform::LiteOn("quickRedeal")` in `MahjongApp.cpp`) and is the whole
+of `mods/lite/mod.json` (feature `lite`, one setting, on by default). Where a shuffle's result differs, the proof, how often (16 of 53 stages, 134 of 795 offline
+redeals find no deal in the original) and the gain are in `docs/LITE_MOD.md`. Everything else looked at (the free-tile scan, the move count, the hit test, the deals of a new game)
+costs under 0.2 ms a call and is not touched. With the option off, or without a mods folder, the game is the port as it was: the frozen screens and the dealtest's boards are unchanged.
+The tools: `tools/realplay/shuffletest.py` and `memprobe.py`, `tools/profile/{altconfigs.sh,showconfigs.py,altmem.sh,showmem.py,stageredeal.py,shufflepairs.sh}` (in the
+Ancient Japan folder; both games use them), and the `dealtest`'s environment options (`STAGE_REDEAL`, `QUICK_REDEAL`, `LOGIC_BENCH`, `REDEAL_BENCH`, `DEAL_ONLY`).
 
 ## Coverage check (2026-11-08)
 
@@ -938,3 +996,10 @@ frees picture memory on the main thread), so a cause would be indirect, such as 
 buffers. To see it: `tools/profile/perfrun.sh port` with `TOOL=games/mahjongjapan/tools/profile/threadprof.py`, under
 `tools/pincore.py`, `BYOPOP_STREAM_MUSIC=0` in both runs and `JB_KEEP_IMAGE_BITS=1` in one, alternating. It would take a
 profile of the mixer thread in both variants to explain.
+
+**Memory above the original's in play (2026-11-16).** The port's private bytes peak at 52.8 MB in the 60 s of the scripted play (800x600 window; 51.2 at 2x, 53.6 full
+screen) against the original's 40.8 MB, which is flat from its title; at the title the port is at 31.6 MB, below it. The growth of about 17 MB between the main menu and a stage's board has no
+split: the Mahjong engine's `memreport` reports one picture (the screen) and no sound, so the pictures, sounds and music are not told apart. To see it: `tools/realplay/memprobe.py <out> --game japan --memmap`
+under rundesk (the `memreport` line and `tools/memmap.py`'s summary at the menu and on a board) and `tools/profile/altmem.sh` for the peaks. What it would take: the engine's `memreport` filled in as
+`platform/MemReport.h` describes (pictures from the display's image table, sounds from the mixer, the songs), then each holder against what the original's DirectDraw surfaces and DirectSound buffers hold. The
+processor-time target is met at every size, so this was not chased.

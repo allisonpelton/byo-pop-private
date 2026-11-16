@@ -186,13 +186,15 @@
         "coverage",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "performance",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": "second performance round merged: SurfaceDisplay's stretch mode (GDI nearest, off by default; full screen at 4K 0.57 and 0.52 of the original's processor time) and the modal pause under the mod menu; the default full screen stays on the renderer (over the original) until the user's choice of look and fw-memory's processor-side smooth stretch"
+      "note": "third performance round merged (2026-11-16): full screen is fw-memory's smooth stretch on the processor (no renderer at any size, 0 pixels differ from the renderer's look in six screens); processor time at 0.41 / 0.66 / 0.79 (Japan) and 0.32 / 0.52 / 0.42 (China) of the original's in the 800x600 window, 2x and full screen; memory below the original's at the title and 12 MB above it at the peak of a play (listed, not chased); the lite mod quickRedeal (the shuffle's deal search stopped after a count of steps, docs/LITE_MOD.md), not yet on the web build"
     },
     "mahjongchina": {
       "title": "Mahjong Escape: Ancient China",
@@ -205,13 +207,15 @@
         "coverage",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "performance",
+        "lite-mod"
       ],
       "na": [
         "collection"
       ],
       "now": null,
-      "note": "second performance round merged: SurfaceDisplay's stretch mode (GDI nearest, off by default; full screen at 4K 0.57 and 0.52 of the original's processor time) and the modal pause under the mod menu; the default full screen stays on the renderer (over the original) until the user's choice of look and fw-memory's processor-side smooth stretch"
+      "note": "third performance round merged (2026-11-16): full screen is fw-memory's smooth stretch on the processor (no renderer at any size, 0 pixels differ from the renderer's look in six screens); processor time at 0.41 / 0.66 / 0.79 (Japan) and 0.32 / 0.52 / 0.42 (China) of the original's in the 800x600 window, 2x and full screen; memory below the original's at the title and 12 MB above it at the peak of a play (listed, not chased); the lite mod quickRedeal (the shuffle's deal search stopped after a count of steps, docs/LITE_MOD.md), not yet on the web build"
     },
     "bejeweledtwist": {
       "title": "Bejeweled Twist",
