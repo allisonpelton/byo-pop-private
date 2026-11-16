@@ -1,4 +1,5 @@
 #include "ChallengeScreen.h"
+#include "MathConstants.h"
 
 #include <cmath>
 #include <cstdio>
@@ -30,7 +31,6 @@ using namespace Sexy;
 namespace
 {
 
-const double PI_HALF = 1.5707963267948966;
 
 // The seconds-ish on the countdown at which each part of it starts: the level's number is shown from 4 down to 2.6667,
 // "Ready?" from there to 0.5714, "Go!" below that, and the round itself runs when the count is under 0.5
@@ -560,7 +560,7 @@ void ChallengeScreen::Draw(Graphics* g)
 
 	if (mFade > 0.0)
 	{
-		int anAlpha = ToInt(sin(mFade * PI_HALF) * 128.0);
+		int anAlpha = ToInt(sin(mFade * HALF_PI) * 128.0);
 		aG.SetColor(Color(0, 0, 0, anAlpha));
 		aG.FillRect(0, 0, mWidth, mHeight);
 	}

@@ -1,4 +1,5 @@
 #include "ImageBlast.h"
+#include "MathConstants.h"
 
 #include <cfloat>
 
@@ -15,7 +16,6 @@
 
 using namespace Sexy;
 
-static const double RAND_SCALE = 4.656612875245797e-10;		// 1 / 2^31: Rand() as a number from 0 to 1
 
 // 0x440030: the picture is cut into theRows by theCols pieces, which the last row and column fill out. A piece flies off
 // the way the point it started from lies from the centre of the picture; the pieces that start in the lower half stand
