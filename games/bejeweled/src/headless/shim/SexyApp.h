@@ -97,6 +97,7 @@ public:
 	virtual void		LoadingThreadCompleted() {}
 	virtual void		URLOpenSucceeded(const std::string& theURL) {}
 	virtual MusicInterface* CreateMusicInterface() { return NULL; }
+	virtual DDInterface* CreateDDInterface() { return NULL; }
 	virtual Dialog*		NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode) { return NULL; }
 	virtual void		ModalOpen() {}
 	virtual void		LostFocus() {}

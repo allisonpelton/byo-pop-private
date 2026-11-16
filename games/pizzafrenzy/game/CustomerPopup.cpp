@@ -204,11 +204,11 @@ void CustomerPopup::unpick()
 	mStates.setState(new WaitingState(this));
 }
 
-// 0x4532e0
+// 0x4532e0: the popup closes as any popup does; the mode is not told (the hang-up state is setImpatient's)
 void CustomerPopup::hangUp()
 {
 	if (mOrder != nullptr)
-		mStates.setState(new HangupState(this));
+		mStates.setState(new ClosingState(this));
 }
 
 // 0x453e50

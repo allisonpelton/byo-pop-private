@@ -185,6 +185,9 @@ void WinDMApp::UpdateFrames()
 void WinDMApp::LoadingThreadCompleted() {}
 bool WinDMApp::DrawDirtyStuff() { return false; }
 MusicInterface* WinDMApp::CreateMusicInterface() { return NULL; }
+#ifndef __EMSCRIPTEN__
+DDInterface* WinDMApp::CreateDDInterface() { return NULL; }
+#endif
 Dialog* WinDMApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines,
 	const SexyString& theDialogFooter, int theButtonMode) { return NULL; }
 void WinDMApp::ModalOpen() {}

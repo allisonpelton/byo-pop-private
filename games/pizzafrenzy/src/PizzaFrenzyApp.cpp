@@ -342,7 +342,8 @@ void PizzaFrenzyWidget::ClearKeys()
 	std::memset(mKeyIsDown, 0, sizeof(mKeyIsDown));
 }
 
-// WM_KEYDOWN: the key-down signal for the first, the repeat signal (with a count of 1) for every one
+// WM_KEYDOWN (the window procedure 0x4bd3b0): the key-down signal for the first, the repeat signal (with a count of 1)
+// for each after it while the key is held, never both
 void PizzaFrenzyWidget::KeyDown(KeyCode theKey)
 {
 	int aKey = (int)theKey;
@@ -357,7 +358,8 @@ void PizzaFrenzyWidget::KeyDown(KeyCode theKey)
 	engine::App* anApp = engine::App::instance();
 	if (!aRepeat)
 		anApp->mKeyDownSignal.emit(aKey);
-	anApp->mKeyRepeatSignal.emit(aKey, 1);
+	else
+		anApp->mKeyRepeatSignal.emit(aKey, 1);
 }
 
 void PizzaFrenzyWidget::KeyUp(KeyCode theKey)
@@ -501,8 +503,13 @@ void PizzaFrenzyApp::RunFrame()
 	try
 	{
 		mWidget->mGraphics->clear();
+		// port: what the input since the last frame changed is logged under that frame, as origrun logs the original's
+		if (mStateLog != nullptr)
+			LogState();
 		mFrames++;
 		engine::App::instance()->frameSignalled(mWidget->mGraphics);
+		if (mStateLog != nullptr)
+			LogState();
 		if (mWidget->mGraphics->finish())
 		{
 #ifndef __EMSCRIPTEN__
@@ -552,6 +559,8 @@ void PizzaFrenzyApp::HandleCmdLineParam(const std::string& theParamName, const s
 		gTestSeedGiven = true;
 		gTestSeed = strtoul(theParamValue.c_str(), nullptr, 10);
 	}
+	else if (theParamName == "-statelog")
+		mStateLog = fopen(theParamValue.c_str(), "w");
 	SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
 }
 

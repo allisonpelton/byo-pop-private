@@ -13,7 +13,8 @@ bool engine::gSignalBuild = false;
 // 0x43a3c0 (wordharmony)
 Node::Node()
 	: mParent(nullptr), mPosition(0, 0), mScale(1.0f, 1.0f), mRotation(0), mOpacity(1.0f), mFont(nullptr),
-	  mColorMode(0), mSmoothType(0), mFlags(0), mAllFlags(0), mVisible(true), mEnabled(true), mMouseMasked(false)
+	  mColorMode(0), mSmoothType(0), mFlags(0), mAllFlags(0), mVisible(true), mEnabled(true), mMouseMasked(false),
+	  mListenersMasked(false)
 {
 }
 

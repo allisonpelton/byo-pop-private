@@ -74,6 +74,7 @@ public:
 	// the standard test commands (docs/TEST_COMMANDS.md; src/TestCommands.cpp)
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
 	void AddMemReportHolders(Platform::MemReport* theReport) override;
+	DDInterface* CreateDDInterface() override;
 	using SexyAppBase::SwitchScreenMode;
 
 	// The event the window procedure would have posted, with the modifier keys held

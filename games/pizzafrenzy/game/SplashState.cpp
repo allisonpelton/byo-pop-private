@@ -80,6 +80,7 @@ const float LOADED_UNLOCK_NOTICE = 0.6f;
 const float LOADED_USER_SELECT = 0.65f;
 const float LOADED_NEW_USER_ENTRY = 0.7f;
 const float LOADED_HIGH_SCORES = 0.75f;
+const float LOADED_GLOBAL_POST = 0.8f;
 const float LOADED_MUSIC_PLAYER = 0.9f;
 const float LOADED_TOPPING_SCREENS = 0.85f;
 const float LOADED_LEVEL_MANIFEST = 0.95f;
@@ -309,8 +310,14 @@ void SplashState::update(engine::UpdateInfo& theInfo)
 		mApp->mHighScoreResetConfirm->setTransitions(aSlide, aSlide);
 		aLoaded = LOADED_HIGH_SCORES;
 	}
-	// The original makes the global score post's screen here (+0xd8, sliding in from the right; the load bar at 0.8),
-	// which the port does not have: it has no online scores
+	// The original makes the global score post's screen here (+0xd8, sliding in from the right), which the port does
+	// not have: it has no online scores. port: its frame stays, making nothing, with the load bar at 0.8, so the
+	// loading takes the original's frames
+	else if (!mGlobalPostStagePassed)
+	{
+		mGlobalPostStagePassed = true;
+		aLoaded = LOADED_GLOBAL_POST;
+	}
 	else if (mApp->mToppingBook == nullptr)
 	{
 		// the topping screens: the topping book (+0xe0, 0x445b20), the level start screen (+0xe4, 0x448860) and the

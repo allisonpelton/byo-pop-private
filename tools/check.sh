@@ -2613,9 +2613,16 @@ run_batch() {
 
 # build-web runs in the background beside the suites after it (its links take most of a merge check otherwise); a
 # suite that reads build/web (needs_web) waits for it first, and so does the end
-WEB_PID="" WEB_ST=""
+# The background build-web also writes its status to a file: with --jobs 1 the game suites run in this shell, and a bare
+# `wait` inside one (bonnies, venice, hammerheads, heavyweapon) reaps the build-web too, after which `wait "$WEB_PID"`
+# finds no such child (fw-memory, 2026-11-16: a passed build-web counted as a failure)
+WEB_PID="" WEB_ST="" WEB_STATUS="$OUT/build-web.status"
 web_wait() {
-	if [ -n "$WEB_PID" ]; then wait "$WEB_PID"; WEB_ST=$?; WEB_PID=""; fi
+	if [ -n "$WEB_PID" ]; then
+		wait "$WEB_PID" 2>/dev/null
+		WEB_ST=$(cat "$WEB_STATUS" 2>/dev/null); [ -n "$WEB_ST" ] || WEB_ST=1
+		WEB_PID=""
+	fi
 	if [ -n "$WEB_ST" ]; then count "$WEB_ST"; WEB_ST=""; fi
 }
 BATCH=()
@@ -2623,7 +2630,11 @@ for s in "${SUITES[@]}"; do
 	if [ "$JOBS" -gt 1 ] && is_game_suite "${s%%:*}"; then BATCH+=("$s"); continue; fi
 	if [ ${#BATCH[@]} -gt 0 ]; then run_batch "${BATCH[@]}"; BATCH=(); fi
 	if needs_web "${s%%:*}"; then web_wait; fi
-	if [ "${s%%:*}" = build-web ]; then run_suite "$s" & WEB_PID=$!; continue; fi
+	if [ "${s%%:*}" = build-web ]; then
+		rm -f "$WEB_STATUS"
+		{ run_suite "$s"; st=$?; echo "$st" > "$WEB_STATUS"; exit "$st"; } & WEB_PID=$!
+		continue
+	fi
 	run_suite "$s"; count $?
 done
 if [ ${#BATCH[@]} -gt 0 ]; then run_batch "${BATCH[@]}"; fi

@@ -145,14 +145,16 @@ public:
 	// 0x439cd0 (wordharmony)
 	void removeOwnFlags(unsigned int theFlags);
 	// 0x439d30 (wordharmony), 0x467e10 (pizzafrenzy): the signal build leaves out the flags its mask (+0x74) holds, the
-	// drawable flag of a hidden node (setVisible) and the mouse flag of a masked one (setMouseMasked)
+	// drawable flag of a hidden node (setVisible), the mouse flag of a masked one (setMouseMasked) and the listeners
+	// flag of one its owner updates itself (setListenersMasked)
 	bool hasFlag(unsigned int theFlags) const { return (mAllFlags & ~getMaskedFlags() & theFlags) != 0; }
 	// The signal build's mask (+0x74 (pizzafrenzy)), from the two fields that keep its bits
 	unsigned int getMaskedFlags() const
 	{
 		if (!gSignalBuild)
 			return 0;
-		return (mVisible ? 0 : NODE_DRAWABLE) | (mMouseMasked ? NODE_MOUSE : 0);
+		return (mVisible ? 0 : NODE_DRAWABLE) | (mMouseMasked ? NODE_MOUSE : 0) |
+			(mListenersMasked ? NODE_LISTENERS : 0);
 	}
 	bool hasOwnFlag(unsigned int theFlags) const { return (mFlags & theFlags) != 0; }     // 0x439d40 (wordharmony)
 	unsigned int getAllFlags() const { return mAllFlags; }                                // 0x439d50 (wordharmony)
@@ -183,6 +185,9 @@ public:
 	// 0x467d70 (pizzafrenzy), 0x467d80 (pizzafrenzy): the mask's bit 2, which keeps the mouse from a node while its
 	// screen is not connected
 	void setMouseMasked(bool theMasked) { mMouseMasked = theMasked; }
+	// 0x467d70 (pizzafrenzy) with the mask's bit 3 (the listeners flag): the parent's update leaves the node out, as
+	// its owner updates it itself (a tip, a vehicle)
+	void setListenersMasked(bool theMasked) { mListenersMasked = theMasked; }
 
 protected:
 	virtual void onMouseDown(Point& p) {}   // 0x80
@@ -220,6 +225,7 @@ public:
 	Rect mBounds;                          // +0x68
 	std::vector<NodeListener*> mListeners; // +0x78 (counted); +0x8c (pizzafrenzy)
 	bool mMouseMasked;                     // +0x74 bit 2 (pizzafrenzy)
+	bool mListenersMasked;                 // +0x74 bit 3 (pizzafrenzy)
 	// The signal build's mouse signals (Pizza Frenzy's node, 0x468ba0 (pizzafrenzy), makes them)
 	Signal<MouseEvent&> mMouseDownSignal;   // +0x98
 	Signal<MouseEvent&> mMouseUpSignal;     // +0xa8

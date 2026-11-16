@@ -55,6 +55,10 @@ way at the next update and answered on the log (`OK click game 320 450`), and th
 `goto`, docs/TEST_COMMANDS.md) answer through the same file. `tools/fwtest/commands.sh` drives fwtest that way, and Bonnie's
 `realplay.py --live` drives its board that way (Bonnie's has its own engine and its own `-realinput`): the board follows a
 press held from frame to frame, which a posted burst never gives it, and each move comes from the port's `move` command.
+A driver that holds the game (`-hold`) can add `-recordlive=<file>`: the framework writes each input line it ran as a plain
+`<update> <command>` line, and every other line (the `state` and `move` queries) as a `# <update> <line>` comment, at the
+update that ran it, so the file is the `-realinput` script that replays the session on the same updates, with no guessing
+of update numbers from the state replies (`docs/TEST_COMMANDS.md`, "Sending them").
 
 ## How it differs from a hand
 

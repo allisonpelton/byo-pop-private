@@ -16,7 +16,7 @@
       'Collection/Mahjong Escape Ancient China</span>) or a .zip of it. Only <span class="mono">Resource.dll</span>, ' +
       '<span class="mono">MahjongEscapeAC.exe</span> (read for its resources; it is never run) and the two logos ' +
       'are copied.',
-    modsIntro: "Its mods are a mod.json of settings (the pictures, sounds and music stay in Resource.dll). The fixes mod is on " +
-      "by default; turn it off to play the original as it was.",
+    modsIntro: "Its mods are a mod.json of settings (the pictures, sounds and music stay in Resource.dll). The fixes mod and the lite mod " +
+      "(a quicker Shuffle) are on by default; turn them off to play the original as it was.",
     seeds: true
   };

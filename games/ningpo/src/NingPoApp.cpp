@@ -8,6 +8,7 @@
 #include "Graphics.h"
 #include "MemoryImage.h"
 #include "WidgetManager.h"
+#include "SoftwareScreenDisplay.h"
 #include "platform/VFS.h"
 
 #include <SDL.h>
@@ -343,6 +344,21 @@ NingPoApp::NingPoApp()
 	mGameRunning = false;
 	mApplyingGameMode = false;
 	mStateLog = nullptr;
+	// the original is a DirectDraw window of 640x480 at 15 bits and has no 3D mode at all, so the display keeps its 2D
+	// flags on the GPU path too (2x and the web)
+	mDefault3D = false;
+}
+
+// port: the original draws its screen in software into a DirectDraw surface, so the port does too where it can:
+// natively the window shows it through the software screen (framework/SoftwareScreenDisplay.h); the web build keeps the
+// default display
+DDInterface* NingPoApp::CreateDDInterface()
+{
+#ifdef __EMSCRIPTEN__
+	return SexyAppBase::CreateDDInterface();
+#else
+	return SoftwareScreenDisplay::Create(this);
+#endif
 }
 
 // port: the framework application that hosts the game

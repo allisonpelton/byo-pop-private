@@ -24,6 +24,7 @@
 #include "ImageFont.h"
 #include "DDImage.h"
 #include "DDInterface.h"
+#include "SoftwareScreenDisplay.h"
 #include "MemoryImage.h"
 #include "Graphics.h"
 #include "SoundManager.h"
@@ -55,6 +56,11 @@ using namespace Sexy;
 // 0x4d4d82
 WinDMApp::WinDMApp()
 {
+	// The original starts in 2D: nothing sets mAutoEnable3D (0x5bb) or mTest3D (0x5bc), whose zeroes the SexyAppBase ctor
+	// (0x43eaa0) stores, and MakeWindow (0x44b2b0) takes the registry's Is3D only when the key is there (no 3D box in its
+	// Options). So the display keeps the 2D flags on the GPU path too: 2x and the web (SexyAppBase::mDefault3D,
+	// DDInterface::mAppWants3D)
+	mDefault3D = false;
 	mShowInstructions = true;
 	mImages = NULL;
 	mGemShrinkImages = NULL;
@@ -383,6 +389,16 @@ MusicInterface* WinDMApp::CreateMusicInterface()
 {
 	return new SDLMusicInterface();
 }
+
+#ifndef __EMSCRIPTEN__
+// port: the original draws its screen in software into a DirectDraw surface (it starts in 2D and its Options have no 3D box),
+// so the port does too, and the window shows it through its own surface (framework/SoftwareScreenDisplay.h); the web build
+// keeps the default display
+DDInterface* WinDMApp::CreateDDInterface()
+{
+	return SoftwareScreenDisplay::Create(this);
+}
+#endif
 
 // 0x4d45e3
 void WinDMApp::DoRecordScoreDialog(const SexyString& theLines)
