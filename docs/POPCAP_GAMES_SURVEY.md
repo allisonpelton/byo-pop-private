@@ -697,9 +697,10 @@ Luxor 2 HD and Evolved probably sit on its family. The same guide's method fails
 Afterlife and 5th Passage, so those differ in archive at least; 5th Passage is credited to another studio
 (Absolutist) and uses a `pfpk` archive, so it is probably not MumboJumbo's engine at all. Nothing ties the 7 Wonders
 series (Hot Lava Games, bought by MumboJumbo in 2007) or the hidden-object series (Midnight Mysteries, Samantha
-Swift) to either engine. The user owns only the four Luxor games; Steam also has Luxor and Amun Rising
-(`E:/SteamLibrary`), but as portal builds in wrappers (a Flash splash launcher; Reflexive Arcade with an encrypted
-`.RWG`), so the plain installs under `MumboJumbo/` are the ones to export. Mac builds of Luxor, Amun Rising, Mah
+Swift) to either engine. The user owns only the four Luxor games. `E:/SteamLibrary/steamapps/common` also has a
+`Luxor` folder, which is Steam's Luxor demo (a Flash splash launcher), and a `Luxor Amun Rising` folder that is not
+Steam's but a Reflexive Arcade build with an encrypted `.RWG` exe (the user, 2026-11-16); the plain installs under
+`MumboJumbo/` are the ones to export. Mac builds of Luxor, Amun Rising, Mah
 Jong and Luxor 2 were sold and might carry symbols; the user has none.
 
 ## Appendix B: other projects and modding communities
