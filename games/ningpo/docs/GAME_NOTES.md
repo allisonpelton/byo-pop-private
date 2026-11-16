@@ -283,4 +283,4 @@ device, the port under rundesk): peak private bytes 20.2 MB median for the origi
 3.28), so it stays under the original's. `memreport` in a game: 26.2 MB private, of which sprites 6.4, the whole music
 track 5.6 (left for the memory trial that streams it), the framework's pictures 2.3, the back buffer 0.6 and sounds 0.3
 MB; the rest, about 5.6 MB, is heap and code, and nothing in it was found to cut. `tools/check.sh ningpo`: baseline
-identical. 2x with `SOFTSCREEN_SCALED=1` is not yet measured.
+identical. The software screen is for 1x only (docs/RULES.md): the GPU takes every larger window, so 2x is not measured.
