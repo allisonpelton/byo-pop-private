@@ -1,4 +1,5 @@
 #include "Particles.h"
+#include "MathConstants.h"
 
 #include <cmath>
 #include <cstdint>
@@ -12,7 +13,7 @@
 
 using namespace Sexy;
 
-static const double UNIT_SCALE = 4.656612875245797e-10;		// 1 / 2^31
+static const double UNIT_SCALE = RAND_SCALE;		// 1 / 2^31
 static const double FULL_TURN = 6.28318;						// the exe's own number for 2 pi
 
 // ---- the generator ----
