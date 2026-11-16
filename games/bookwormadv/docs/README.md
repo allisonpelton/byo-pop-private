@@ -495,6 +495,40 @@ only ends the panel (`arena`'s steps click the colosseum twice); the original wa
 **Cost.** The original's runs took about 40 minutes of machine time, the port's step-by-step plays (each step a run
 of the port from the start) about two hours, and the sorting about 30 minutes of Sonnet agents.
 
+## Unneeded code (2026-11-16)
+
+What nothing reaches was found two ways. First the linker: an -O0 build of the game alone in `build/gc`, compiled
+with `-ffunction-sections -fdata-sections` and linked with `-Wl,--gc-sections -Wl,--verbose` (docs/COVERAGE.md), whose
+"Discarded" lines `tools/coverage/gcdead.py` matches against the functions each of the game's own objects defines.
+Second, a function defined inline in a header that nothing calls is never compiled, so the linker never sees it;
+`tools/coverage/inlinedead.py` lists every inline member whose name no other line of the game's sources uses. Each
+candidate was then read against the export (its callers, its vtable slots, `bindings.txt`) before it went, and has a
+`none` line in `coverage.txt` with the reason. A second linker run after the cuts found nothing more in the game's code.
+
+Taken out: `Board::LoadScripts` (0x4185d0, a developer's reload of the scripts, with no caller); the conversation
+panel's `Deactivate` (0x4320b0, whose only caller was the trial's buy screen, already out) and
+`SetAllContinueTextColors` (0x432cb0, a vtable slot nothing calls and no script binding names); `Tile::Fall` and
+`Tile::IsInRow`, `TileEngine::DrawTiles` (no caller in the original either), `Board::GetGridWidth` and `GetGridHeight`;
+`ExtractResourcesByName` (0x4aead0, no caller) and the MiniGameCommon group's globals and their Extract function, which
+no C++ code reads (the mini-games' scripts take those pictures from the resource manager), now left out by
+`tools/resgen.py` so that `Res.h` and `Res.cpp` stay generated; 19 of `JeffLib::Animator`'s virtuals (the other draws,
+the tints, ranges, direction, random order, the frame setters) and its copying, now deleted, since the one Animator in
+the game (a conversation portrait) only loops; `BonusText`'s second constructor (0x6c4820); `DataDrivenClass::Reload`
+(0x6b3e50) with the two virtuals only it called and the credits' versions of them, and the file name it kept for it;
+`LuaResourceManager`'s three lookups (0x65d500, 0x65d580, 0x65d5f0: the port's `LuaApp` bindings look resources up
+themselves), `LuaApp::LuaAppHook` (an empty slot), `LuaSupport::SetOwned`, `LuaClassRet::Number`,
+`LuaLinkedClass::GetLinkedObject` and `Class<T>::Info`.
+
+Kept. `Animator::Update` and its draw colour, and `BonusText::Update`, keep the original's branches for what only the
+removed functions turned on (ping-pong, ranges, reverse and random order, tints, a target height): each is one function
+of the original translated whole, and taking its branches apart would rewrite it rather than take code out. The 21
+functions of PopLua the linker lists (`lua_dofile`, `luaL_ref`, `lua_equal` and the like, and the host hooks
+`poplua_setprint` and `poplua_setcwd`) are Lua's C API in PopCap's fork, kept whole as a library, as the C runtime is.
+The compiler stays too, since the loader compiles a `.lua` that is newer than its `.luc`, as the original's does, so a
+player's file reaches it, and so do the script-facing functions that the coverage review found no script calling
+(`LoadResGroup`, the Lua widgets' forwarders, `string.rep` and the rest): a script can call them, and they are what a
+script mod has to work with.
+
 ## Mods
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
