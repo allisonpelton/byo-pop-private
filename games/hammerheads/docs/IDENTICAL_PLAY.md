@@ -185,7 +185,7 @@ each) are identical in state, sound and music too.
 
 The sounds of a game lost with a saved game waiting, the high score entry and Tough Cookie's and Marathon's saved games are not
 reached yet. The looks (every screen and dialog against the original's, natively and on the page) are phase two's next part: the
-shots need a visible desktop, which the rules allow from 22:00.
+shots may use the visible desktop or Windows Sandbox at any hour (CLAUDE.md, "Desktop and Sandbox at any hour").
 
 ## Phase two: the looks (begun)
 
@@ -207,21 +207,35 @@ challenge, the trophy pages, Tough Cookie's notice, the game-won page, the game 
 | A black strip under each hole of a level | the cubby's cover (the backdrop under the hole, 0x433080) was made from the cubby's own back image: the board-file path in `GameScreen` passed `GetCubbyBackImage()` where the original's container passes the level's backdrop | `GetBackdrop()` | see the log: "looks pass" |
 | The "Health" label of the hearts bar 40 pixels too far left | the original puts it at the hearts' x plus the box width (`rowWidth + 0x28`) minus the label's width minus 0x26 (0x449c40); the port used the row width | the box width | same |
 | The coin hint ("Pick up", level 1 and Marathon) 66 pixels too low | `GnomeCoin::Update` (0x438e20) makes the hint's floater at (400, 150); the port made it at (400, 216) | 150 | "looks pass" |
+| The "Snapshot Saved!" photo (the camera trophy's floater) faded out as it came in, with no text | `FloaterPhoto::Draw` (0x4485c0): the colour's alpha is `0x80 - ftol(-128 * move)`, so 128 up to 256 (the port had `0x80 - 128 * move`); the text's alpha comes from `(1 - width) * 255`, below 0 while the picture comes in, which the original's shots show as the text whole (the port had it hidden) | alpha `0x80 + 128 * move`; a negative text alpha is drawn opaque | "looks pass" |
 
 ### Judged, not changed
 
 - **"More Games" on the main menu** is in the original and not in the port: the outbound buttons are removed on purpose (CLAUDE.md,
   "Registration and outbound buttons are removed"), and the Options and Quit buttons close the gap.
-- **The how-to-play page** cannot be compared in the sandbox: the original plays `howtoplay.swf` in a Flash control that does not
-  draw there (the shot shows only the page's title on green). The port plays the movie through `engines/swf`; it needs a run on
-  the visible desktop (`tools/visrun.py`) or a judgement from the movie itself.
+- **The how-to-play page** draws in the sandbox (the Flash control shows its title, hearts, three captions and the gnome's demo), but its
+  demo loops on the original's wall clock while the port's runs on updates, so a shot at the same update shows different moments of
+  the loop (the title and hearts being drawn in the port, the gnome up in the original). The captions, holes, plants and buttons are
+  identical. Compared by the movie's frames instead of by update, when `tools/visrun.py` is used for the page.
 - **Particle effects and rotated sprites** (the smash debris, the stars, a rising creature's glow): a shot series every five updates
   from a hit shows the pieces at the same places in the same updates and differing only along their edges, the same
   one-pixel rims as below.
 - **Edge pixels:** a creature's or platform's rim differs by one pixel row in a few updates and every colour by one level; both
   are the framework's GPU blending against the original's software blit, below the tolerance except at a rim.
 
+- **The menus' boxes and screens** (`menus` scenario: Options, its Credits box, High Scores, the Trophy Room, each shot open and
+  closed): High Scores, the Credits box after it opens, and the closed main menu match pixel for pixel apart from the removed "More
+  Games" button and the closed gap. The Options box differs only in the Hardware Acceleration and Full Screen ticks (the sandbox
+  runs the original windowed with no acceleration, the port full screen: the player's settings, not the game) and in which button
+  the mouse rests on (the highlight), both scenario effects; the Trophy Room differs in its button's highlight.
+
+- **The page check** (`tools/web/pagecheck.js` through `games/hammerheads/tools/web/pagecheck.js`, in the Browser pane): 11 checks pass,
+  none fail. The focus line matches the native build's answer (the pause count changes while the focus is away and when it is
+  back), the keys and the pointer at four canvas sizes are right, a second copy waits for the first, and the saves come back after
+  a reload. The table plays the loading screen's click and a new profile's name box itself, as the game waits for both. The bot made
+  no moves before the reload (the level was still on its Ready box), so the "game in progress" line has no save to restore.
+
 ### Open
 
-- Not yet shot: the options box, the high score table, the hard modes' remaining boxes, the saved games' resume pages, the web
-  build against the native one, the real-input runs, and the how-to-play page.
+- Not yet shot: the hard modes' remaining boxes, the saved games' resume pages, the web
+  build against the native one, the real-input runs, and the how-to-play movie against the original's by frame.

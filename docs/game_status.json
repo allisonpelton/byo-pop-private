@@ -586,7 +586,7 @@
       ],
       "na": [],
       "now": "identical-look",
-      "note": "phase two looks begun (77266590 looks.py: original shots in Windows Sandbox and port shots at the same updates, then shotdiff; 6 scenarios, ~340 pairs); port fixes: the cubby cover, the Health label, the coin hint's floater (13f4410f, 09163b2a); the site's features done (Music, a 111-sound board with 6 presets, the autosplitter for Classic% and Tough Cookie%); open: particle effects and one help popup differ in phase, the how-to-play Flash page does not render in the sandbox; next: those, the remaining dialogs, web against native, real input"
+      "note": "phase two looks (looks.py: original shots in Windows Sandbox and port shots at the same updates, then shotdiff): port fixes the cubby cover, the Health label, the coin hint's floater (13f4410f, 09163b2a) and the Snapshot Saved! photo's alpha and text as 0x4485c0 has them (4702e7e6); the menus' boxes and screens compared (Options, Credits, High Scores, Trophy Room; b726ff6d); the page check 11 pass, 0 fail on the web build (932773e7); the frozen tour with the autosplit block on unchanged; the site's features done; next: how-to-play by frame, web against native, real input"
     },
     "pizzafrenzy": {
       "title": "Pizza Frenzy",
