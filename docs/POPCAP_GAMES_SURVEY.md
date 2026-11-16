@@ -50,7 +50,7 @@ another's engine goes after it. Efforts are the estimates without references (3.
 | 12 | Banana Bugs (5.15) | Opus | yes | ~15x | a public-generation SAF with PakInterface, BASS and JPEG 2000; game RTTI |
 | 13 | Gyromancer (5.16) | Opus | yes | ~9-13x | Square Enix's own engine with game RTTI; Direct3D 9 effects; encrypted archives |
 | 14 | Zuma's Revenge! (5.17) | Opus | web only | ~30-40x | the 2009 internal framework; Bejeweled 3's layer and Bookworm Adventures' JeffLib; a Mac build |
-| 15 | Talismania Deluxe (5.18) | Sonnet | yes | ~35-40x after Feeding Frenzy 2 | Feeding Frenzy 2's engine |
+| 15 | Talismania Deluxe (5.18) | Sonnet | yes | ~20-25x after Feeding Frenzy 2 | Feeding Frenzy 2's engine |
 
 **Ghidra exports (2026-11-16).** Every game in the table has one: `re/<game>/gh` for Iggle Pop, Feeding Frenzy,
 Chuzzle, Feeding Frenzy 2, Bejeweled 3, Gyromancer, Zuma's Revenge and Talismania (the last three without
@@ -83,6 +83,17 @@ stubs, but the rest is still 2.3 times Feeding Frenzy 2's. It has 836 classes ag
 loaders. Only 6% of it has no caller and no vtable, so it is not a dead block. Feeding Frenzy 2 and Talismania barely
 match byte for byte (different engine builds), though 197 classes share names, so Feeding Frenzy 2's port would bring
 up to about 150 KB of Talismania's rest.
+
+Most of the gap is how Talismania (internally "Atlantis": `AtlantisApp`, `AtlantisChapter`, `AtlantisBuilding`,
+`AtlantisJournal`) was written, not what it does. Every kind of thing has a class that describes it, a loader that
+reads it from data and an instance; behaviour is spelled out in 181 small state classes (a building alone has idle,
+tier done, coin statue, ranking, the delays around ranking and throwing bonus coins); events go through the sigslot
+signal library, whose source is public; and each data type gets its own `std::map` and `std::set`. So 948 KB (38%)
+of its own code repeats byte for byte apart from addresses, against 6% in Feeding Frenzy 2: one 655-byte map
+function exists 75 times. A port writes those as one `std::map`. Without the repeats and the first copies of the
+standard library, it is 1,466 KB, 24x, near Bejeweled Twist's 1,663 KB measured the same way (Feeding Frenzy 2 949
+KB, Zuma's Revenge 1,873, Bejeweled 3 1,405 before its `Sexy` classes, Chuzzle 621, Iggle Pop 430, Feeding Frenzy
+284); with Feeding Frenzy 2's engine and sigslot in hand first, ~20-25x. The other games' ranges stand.
 
 ### Where a port is published
 
