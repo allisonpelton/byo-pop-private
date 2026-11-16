@@ -373,11 +373,12 @@
         "identical-look",
         "fixes-mod",
         "site-features",
-        "coverage"
+        "coverage",
+        "performance"
       ],
       "na": [],
       "now": null,
-      "note": "the coverage step done (8ea57115): 17 runs of the original, every function it ran has a counterpart or a none line (coverage.txt, 1931 lines for 3525 functions); GameApp::SwitchScreenMode and Init's flags translated (full screen sets mVSyncUpdates and mWaitForVSync), two slips fixed (GameDialog's Escape, LoadResGroup); 77 unreachable functions and PopLua's compiler are the unneeded-code step's candidates; next performance"
+      "note": "the performance pass done (7a852454): five pinned pairs at the title, 7.9 G cycles a minute against 24.4, 79.3 MB against 91.9 (the peak 101.1 against 92.2 is the driver's upload staging); the curtain copies' pixels dropped after upload (shared hook MemoryImage::BitsSource::mMake, inert unless set), the word list flat; next the unneeded-code step"
     },
     "bookworm": {
       "title": "BookWorm Deluxe",

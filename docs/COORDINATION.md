@@ -36,7 +36,7 @@ holds the rules every session follows; this file does not repeat them.
   sessions ... Do what you want forever now"), replacing the limit of 8 set on 2026-11-11 after "Too many sessions,
   some crashed. Set a comfortable limit". To keep sessions from crashing, the coordinator still checks the machine
   before waking one: under 6 GB available or over 80% of the commit limit means waiting.
-  The limit of 6 game processes (CLAUDE.md) holds for all of them, so more sessions mean longer waits for a game slot.
+  The limit of 10 game processes (CLAUDE.md) holds for all of them, so more sessions mean longer waits for a game slot.
   A session past the limit waits idle on a background wait for its own file (`until [ -f <main
   checkout>/build/slots/<name>.go ]; do sleep 60; done; cat` the file), which the coordinator writes with any news
   when a slot frees; that wake costs no message. A crashed session comes back only into a free slot.

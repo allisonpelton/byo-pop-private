@@ -29,8 +29,9 @@ the visible desktop, Windows Sandbox or sound may have them at any hour (the las
 - **Uncapped, one core each:** a port runs with `-fast` in every test that does not need real time (check first that
   `-fast` leaves the results unchanged), an original on origrun's virtual clock. Real time only for LiveSplit, sound
   and focus checks and the Browser pane. Speed comes from not waiting, never from threads.
-- At most 6 game processes on the machine across every session, and at most 3 for one check or script (`--jobs`).
-  Count first: `python tools/gamecount.py --limit 6` exits 1 when there is no room, and when there is, holds the slot
+- At most 10 game processes on the machine across every session, and at most 3 for one check or script (`--jobs`).
+  Count first: `python tools/gamecount.py --limit` exits 1 when there is no room (an older script's `--limit 6` means
+  the same), and when there is, holds the slot
   for 30 s so no other session takes it; a script starting two at once (a pair) passes `--need 2`. Never add
   artificial CPU load.
 - One oracle at a time (`docs/BUILDS.md`, "Running the oracle"). A wait loop whose own command line holds "compare.sh"
@@ -47,7 +48,7 @@ the visible desktop, Windows Sandbox or sound may have them at any hour (the las
 - **Desktop and Sandbox at any hour (the user, 2026-11-15, replacing the 22:00-08:00 window):** any game, port or
   original, and any test program that opens a window, may run on the visible desktop or in Windows Sandbox
   (`--sandbox-vgpu`, `--sandbox-connect`) with sound, scripted and driven runs too, at any time of day. A game script
-  that still refuses outside 22:00-08:00 is out of date: drop its guard. Everything else holds: 6 processes, no link
+  that still refuses outside 22:00-08:00 is out of date: drop its guard. Everything else holds: 10 processes, no link
   clicks, a window opened without taking the focus, the user's cursor and keyboard never touched (input posted to the
   game's window), window, registry and saves put back, nothing left running. `ORACLE_VISIBLE=1` stays the user's.
 

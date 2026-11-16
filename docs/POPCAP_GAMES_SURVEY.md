@@ -40,22 +40,60 @@ another's engine goes after it. Efforts are the estimates without references (3.
 | 2 | Heavy Weapon Deluxe (5.2) | Opus | yes | ~5x | a 2005 framework no port has, between BookWorm's and Big Money's; no game RTTI; SWF cutscenes; MO3 |
 | 3 | Hammer Heads Deluxe (5.3) | Sonnet | yes | ~6x | Big Money's 1.2 framework; TinyXML object files; an SWF how-to-play |
 | 4 | Pizza Frenzy (5.7) | Opus | yes | ~8x | Sprout's first-generation engine, from Word Harmony's port; no RTTI |
-| 5 | Iggle Pop Deluxe (5.8) | Sonnet | yes | ~5-6x after Pizza Frenzy | Pizza Frenzy's engine build (72% of its functions identical); a Mac build with class names |
-| 6 | Feeding Frenzy Deluxe (5.9) | Sonnet | yes | small to medium after Iggle Pop | the same engine in an older build; a Mac build with class names |
-| 7 | Chuzzle Deluxe (5.10) | Opus | yes | ~8-12x | Raptisoft's own engine, no RTTI; a Mac build with names |
-| 8 | Feeding Frenzy 2 Deluxe (5.11) | Opus | yes | ~10x | Sprout's second-generation engine, which no port has; `.theora` animations |
+| 5 | Iggle Pop Deluxe (5.8) | Sonnet | yes | ~5-8x after Pizza Frenzy | Pizza Frenzy's engine build (72% of its functions identical); a Mac build with class names |
+| 6 | Feeding Frenzy Deluxe (5.9) | Sonnet | yes | ~4-5x after Iggle Pop | the same engine in an older build; a Mac build with class names |
+| 7 | Chuzzle Deluxe (5.10) | Opus | yes | ~9-11x | Raptisoft's own engine, no RTTI; a Mac build with names |
+| 8 | Feeding Frenzy 2 Deluxe (5.11) | Opus | yes | ~15-17x | Sprout's second-generation engine, which no port has; `.theora` animations |
 | 9 | Peggle Deluxe (5.12) | Sonnet | no | ~12x | Bejeweled's framework generation; JPEG 2000 and MO3; a Mac build |
 | 10 | Peggle Nights (5.13) | Sonnet | no | ~4-5x after Deluxe | Peggle Deluxe's port; a Mac build |
-| 11 | Bejeweled 3 (5.14) | Opus | yes | ~30x | the post-2010 "prime" framework; builds the layer Zuma's Revenge reuses; a Mac build |
+| 11 | Bejeweled 3 (5.14) | Opus | yes | ~25-35x | the post-2010 "prime" framework; builds the layer Zuma's Revenge reuses; a Mac build |
 | 12 | Banana Bugs (5.15) | Opus | yes | ~15x | a public-generation SAF with PakInterface, BASS and JPEG 2000; game RTTI |
 | 13 | Gyromancer (5.16) | Opus | yes | ~9-13x | Square Enix's own engine with game RTTI; Direct3D 9 effects; encrypted archives |
-| 14 | Zuma's Revenge! (5.17) | Opus | web only | ~35x | the 2009 internal framework; Bejeweled 3's layer and Bookworm Adventures' JeffLib; a Mac build |
-| 15 | Talismania Deluxe (5.18) | Sonnet | yes | ~12-16x after Feeding Frenzy 2 | Feeding Frenzy 2's engine |
+| 14 | Zuma's Revenge! (5.17) | Opus | web only | ~30-40x | the 2009 internal framework; Bejeweled 3's layer and Bookworm Adventures' JeffLib; a Mac build |
+| 15 | Talismania Deluxe (5.18) | Sonnet | yes | ~20-25x after Feeding Frenzy 2 | Feeding Frenzy 2's engine |
 
 **Ghidra exports (2026-11-16).** Every game in the table has one: `re/<game>/gh` for Iggle Pop, Feeding Frenzy,
 Chuzzle, Feeding Frenzy 2, Bejeweled 3, Gyromancer, Zuma's Revenge and Talismania (the last three without
 `RecoverClassesFromRTTIScript`, which a session can rerun), `re/peggle/deluxe/gh` and `re/peggle/nights/gh`, and
 `re/bananabugs/game`. Ghidra's projects are `<game>_game` under `E:/retools/projects`.
+
+**Measured from those exports (2026-11-16).** Each export's functions were split into the C runtime and other named
+library code, statically linked libpng, libjpeg and zlib, exception-cleanup stubs, code that matches a sibling build
+byte for byte (`tools/funcmatch.py`: Pizza Frenzy for Iggle Pop and Feeding Frenzy, Feeding Frenzy 2 and Talismania
+against each other, Bejeweled Twist for Zuma's Revenge), and the rest: the game's own code plus any engine or
+framework that matched nothing. The table's efforts now rest on that rest, against Bejeweled's 60 KB and 12,700 lines:
+
+| Game | Own code | Lines | Ratio (KB / lines) | Before |
+|---|---:|---:|---|---|
+| Feeding Frenzy | 318 KB | 57,400 | 5.3x / 4.5x | small to medium |
+| Iggle Pop | 475 KB | 87,400 | 7.9x / 6.9x | ~5-6x |
+| Gyromancer | 469 KB | 81,300 | 7.8x / 6.4x | large |
+| Chuzzle | 626 KB | 100,800 | 10.4x / 7.9x | ~8-12x |
+| Feeding Frenzy 2 | 1,033 KB | 225,500 | 17.2x / 17.8x | ~10x |
+| Bejeweled 3 | 1,549 KB (2,456 with unmatched `Sexy` classes) | 257,900 (388,600) | 25.8x / 20.3x (41x / 31x) | ~30x |
+| Zuma's Revenge | 2,280 KB (2,964) | 422,700 (519,800) | 38.0x / 33.3x (49x / 41x) | ~35x |
+| Talismania | 2,474 KB | 492,600 | 41.2x / 38.8x | ~12-16x |
+| Bejeweled Twist (ported, for scale) | 1,957 KB | 346,700 | 32.6x / 27.3x | ~25x; cost $1,439 |
+
+Iggle Pop's and Feeding Frenzy's rest still holds Sprout engine code that did not match Pizza Frenzy's build, so their
+own code is smaller than the figure. Zuma's Revenge's holds libraries the ports share or will share (JeffLib, the
+FEAST lexer and parser, PIL particles, AELib). Talismania is the surprise. Half its 33,774 functions are exception
+stubs, but the rest is still 2.3 times Feeding Frenzy 2's. It has 836 classes against Feeding Frenzy 2's 581: about
+15 `C*Cell` classes with 1,415 small virtual functions, 169 `Atlantis*` classes, 34 level classes and 75 data
+loaders. Only 6% of it has no caller and no vtable, so it is not a dead block. Feeding Frenzy 2 and Talismania barely
+match byte for byte (different engine builds), though 197 classes share names, so Feeding Frenzy 2's port would bring
+up to about 150 KB of Talismania's rest.
+
+Most of the gap is how Talismania (internally "Atlantis": `AtlantisApp`, `AtlantisChapter`, `AtlantisBuilding`,
+`AtlantisJournal`) was written, not what it does. Every kind of thing has a class that describes it, a loader that
+reads it from data and an instance; behaviour is spelled out in 181 small state classes (a building alone has idle,
+tier done, coin statue, ranking, the delays around ranking and throwing bonus coins); events go through the sigslot
+signal library, whose source is public; and each data type gets its own `std::map` and `std::set`. So 948 KB (38%)
+of its own code repeats byte for byte apart from addresses, against 6% in Feeding Frenzy 2: one 655-byte map
+function exists 75 times. A port writes those as one `std::map`. Without the repeats and the first copies of the
+standard library, it is 1,466 KB, 24x, near Bejeweled Twist's 1,663 KB measured the same way (Feeding Frenzy 2 949
+KB, Zuma's Revenge 1,873, Bejeweled 3 1,405 before its `Sexy` classes, Chuzzle 621, Iggle Pop 430, Feeding Frenzy
+284); with Feeding Frenzy 2's engine and sigslot in hand first, ~20-25x. The other games' ranges stand.
 
 ### Where a port is published
 
