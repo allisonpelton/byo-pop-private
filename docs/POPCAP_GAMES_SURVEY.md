@@ -703,6 +703,37 @@ Steam's but a Reflexive Arcade build with an encrypted `.RWG` exe (the user, 202
 `MumboJumbo/` are the ones to export. Mac builds of Luxor, Amun Rising, Mah
 Jong and Luxor 2 were sold and might carry symbols; the user has none.
 
+**HipSoft's Build-a-lot games (looked at 2026-11-16; their place in the order is the user's):** six Steam installs
+in `A:/SteamLibrary/steamapps/common/`. The first is the Bundle 4 in 1 (built 2009), which holds Build-a-lot 1 to 4.
+Then come The Elizabethan Era (2010), On Vacation (2011), Fairy Tales, Mysteries and Build-a-lot 10
+(`BuildalotWorld.exe`, 2014). The user is installing the 9th and 11th games (2026-11-16); `gamesurvey.py`'s look
+fits them once they are in. All six use one archive format: Monolith's RezMgr (`.rez`, the documented LithTech
+REZ v1 layout), with 3,900 to 6,600 entries each. Most entries are PNG pictures, with JPEG 2000 in 1 to 6, Ogg
+music and sounds, and TrueType fonts. The rest are HipSoft's own `.him`, `.hif`, `.hef` and `.ani` files, to be
+decoded from our export. Build-a-lot 1 carries its data inside its DLL's resources (47 MB).
+
+The bundle is the place to start. `Bundler.exe` is wrapped, but the four games are plain DLLs: `Buildalot.dll` to
+`Buildalot4.dll`, with 1.32 to 1.52 MB of code, ordinary sections and no protection, so they export as they are.
+All four are built on one engine of HipSoft's own: MFC linked in statically, DirectDraw (`Ddrawmgr.cpp`,
+`Dirsurf.cpp`), DirectSound, FreeType, libpng, zlib 1.2.3, JasPer for JPEG 2000 and Ogg Vorbis. Our OpenJPEG
+decoder, already used for BookWorm Adventures, takes JasPer's place. WinINet is imported too, likely for the
+outbound links to remove. The game's own classes carry no RTTI (only MFC's 40 do), so names come from strings
+(`CHighScoreMgr`) and our own reading. How much of each DLL is HipSoft's code and how much is MFC and the libraries
+is unknown until Ghidra separates them. The four would share one copy under `engines/` (`docs/ENGINES.md`), so each
+sequel costs mostly its own additions.
+
+The Elizabethan Era, On Vacation, Fairy Tales and Mysteries are exes of 2.4 to 2.9 MB wrapped on disk. Their
+original `.text`, `.rdata` and `.data` are empty, their code sits in encrypted sections, the entry point is in
+`.adata`, and the only imports left are the wrapper's own (kernel32, user32, gdi32, comdlg32, shell32). The section
+names (`.text1`, `.adata`, `.data1`, `.pdata`) match Armadillo's. Their archives hold the same file types, which
+points to the same engine grown further. Exporting them needs the unwrapped image from a run through origrun; how
+that is done goes only in a private block, and its size is unknown until then. The Elizabethan Era also ships Big
+Fish's `gas` tools (a `ddraw.dll` proxy, `detours.dll`, `gas.dll`). Build-a-lot 10 is a different generation. Its
+exe is packed with PECompact (1.4 MB on disk, a 19 MB image in memory). It draws through Direct3D 9 behind Big Fish's
+proxy `d3d9.dll`, links Big Fish's SDK (`BigFish.dll`) and loads Lua 5.1.4 (no `.lua` entries in its archive, so
+any scripts are elsewhere). Its archive is 379 MB, nearly all PNG. Mac builds of the series were sold; the user has
+none.
+
 ## Appendix B: other projects and modding communities
 
 Checked on 2026-10-26 for the publishing rule (section 2). "Active" means mods or tools since late 2024; "strong"
