@@ -71,10 +71,12 @@ public:
 	TooltipWidget* mTooltip = nullptr;
 	GameApp* mApp;                              // +0x16c
 	std::map<int, FadeButton*> mButtons;        // +0x170
-	std::list<Tile*> mTiles;                    // +0x17c: the tiles in the grid
-	std::list<Tile*> mSelected;                 // +0x188: the tiles of the word, in order
-	std::list<Tile*> mNewTiles;                 // +0x194: tiles placed in the grid, still falling into it
-	std::list<Tile*> mClones;                   // +0x1a0: copies of tiles (CloneTile)
+	// the four lists' offsets were 0x18 lower here until 2026-11-15; Board::Update (0x416640) and GetRandomizedTiles
+	// (0x418df0) show these, and the fields around them are unchecked
+	std::list<Tile*> mTiles;                    // +0x194: the tiles in the grid
+	std::list<Tile*> mSelected;                 // +0x1a0: the tiles of the word, in order
+	std::list<Tile*> mNewTiles;                 // +0x1ac: tiles placed in the grid, still falling into it
+	std::list<Tile*> mClones;                   // +0x1b8: copies of tiles (CloneTile)
 	Tile* mHiliteTile = nullptr;                // +0x1ac: the tile under the mouse
 	std::vector<std::string> mOverlayCallbacks; // +0x1b4: Lua functions that draw over the board
 	std::vector<FadeButton*> mOverlayDisabled;  // +0x1c4: the buttons an overlay disabled

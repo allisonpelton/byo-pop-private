@@ -75,6 +75,8 @@ updates. Victory effects and fireworks draw per frame, so they are not comparabl
 | After the first battles the random draws drifted (a book listed twice) | `LoadBookScripts` skips the books it already has by comparing names with the case the pak and folder held ("Book4.luc"); the staged files are lower case, so the port saw them as new | `GetFilesInDirectory` lists the original's case, from `filecase.txt` written by the stager | d8697ae |
 | The cut scene's Skip button never showed and could not be clicked | The original shows it as soon as the curtain is open | `CutScene::Update` makes it visible when it enables it | 002309c |
 | (test only) No way to match the original's load lengths, to log inputs or to start a battle on a fixed seed | n/a | `-startloadupdates`, `-chapterloadupdates`, `-reseedengine`, `-statelog`, input lines in the log | d8697ae, 002309c |
+| Chapter 6.5: a scramble drew one random number a letter more than the original (16 against 15 each step) | `TileEngine::ChangeLetters` (0x486d40) gives a wild tile "?" without generating a letter; the port generated one for every tile | `ChangeLetters` asks `IsWildTile` first | this pass |
+| Chapter 6.5: with a wild tile on the board a scramble chose other letters than the original from the same random numbers | `GenerateLetter` (0x485dd0) counts a "?" tile in the total but neither as a vowel nor as a consonant; the port counted it as a consonant, so nine consonants shut every consonant out a tile early. The original also builds a pattern for a row of 10 tiles, which the port left out | The count skips "?"; the row-of-10 pattern is built. Checked by simulating the 13 steps of a scramble from the original's own Mersenne state (peeked before the click): the result is its board | this pass |
 
 ## The baseline guard
 
@@ -93,6 +95,19 @@ it green.
   button or by the clock.
 - **Victory-effect draws depend on the draw rate**, so they differ between runs of the original too.
 - **The original's load lengths vary** (above); the port copies the measured lengths rather than modelling them.
+- **A scramble starts one update later in the original** (chapter 6.5, 2026-11-15). After the same Scramble click the
+  original's first letter change comes two updates after the click and the port's one update after, while the scripts'
+  burst of 22 draws 52 updates after the click lands on the same update in both. The letter changes then follow
+  `mUpdateCnt % mScrambleStep`, so the last of the 13 steps falls after two more of the per-update animation draws than
+  in the port: the first 12 steps give the same letters (proved by simulating them from the original's peeked Mersenne
+  state), the last one gives others, and the battle parts there. `Board::Scramble` (0x414fb0) and the step code in
+  `Board::Update` (0x4167b5) are the port's; shifting the port's inputs moves the burst with the steps, so it is no
+  harness offset. Not found within the hour: where the original loses the update between the click and the first step
+  (to see it: the case `after-6.5`, `drawwin.py` around +615; what it would take: the original's button and focus path
+  for the Scramble button, from the click to `Board::Scramble`).
+- **The original's draws before a battle varied between runs until 2026-11-15** because this worktree's ignored
+  `tools/origrun/patches/bookwormadv2.txt` had lost its reseed lines (the battle engine's and the mini-game's); the
+  chapter batch before then compared against an unseeded original, and is rerun.
 
 ## Not covered
 

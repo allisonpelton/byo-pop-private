@@ -24,7 +24,10 @@ if [ -n "$PROFILE" ]; then
 	python "$TOOLS/utf16.py" "$D/orig.reg" > "$D/orig16.reg"
 	export REGFILE="$D/orig16.reg" PROFILE="$D/profile"
 fi
-portrun() { if [ -n "$PROFILE" ]; then rm -rf "$1/user"; mkdir -p "$1"; cp -r "$PROFILE" "$1/user"; KEEP_USER=1 bash "$TOOLS/port.sh" "$@"; else bash "$TOOLS/port.sh" "$@"; fi; }
+# the port draws every update (-drawevery), as the original does: effects that draw random numbers per frame (a victory's
+# fireworks) otherwise draw less often under -fast. Off by default (DRAWEVERY=1 turns it on): eight times slower, and chapter 6.5's difference stayed the same with it
+[ "${DRAWEVERY:-0}" = 1 ] && DRAWOPT=-drawevery || DRAWOPT=
+portrun() { if [ -n "$PROFILE" ]; then rm -rf "$1/user"; mkdir -p "$1"; cp -r "$PROFILE" "$1/user"; KEEP_USER=1 bash "$TOOLS/port.sh" "$@" $DRAWOPT; else bash "$TOOLS/port.sh" "$@" $DRAWOPT; fi; }
 portrun "$D/cal" -seed=$SEED -reseedengine=$SEED -startloadupdates=820 -chapterloadupdates=${CALLOAD:-4107} -script="$PORTSCRIPT" -statelog="$D/cal/state.txt" > /dev/null
 stage "port, first run"
 # the input of the run: its script's clicks and the ones the hooks made (soak, word), in the port's script form
