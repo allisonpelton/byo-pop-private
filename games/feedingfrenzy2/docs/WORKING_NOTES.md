@@ -172,11 +172,15 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
 - The loader's first part: GameData with the game's and the menu's stage manifests (stages and level sets; the
   level sets' splines and the map pins not yet, being the game map's). The engine's log is now SDL's info level, so
   it shows on the console.
+- The loader's next parts: the stages' screen data (the intro screens' texts and layouts by stage id), the shell's
+  theme (a theme now falls back on another for its images, fonts and particle systems, not its colours, vectors or
+  particle definitions), the fun facts and the player ranks (kept sorted by points). Checked by a temporary log: 100
+  facts, 34 ranks, stage1's entry with its layouts and objective.
 
 ## Next
 
-- The splash's loader (0x47e450: fishes.xml, the stage manifests, the stages' screen data, fun facts, player ranks,
-  the sound manager, the users' and game data, every shell screen), the burst's sound, the sound system's and the
+- The splash's loader (0x47e450: fishes.xml, the sound manager, the menus, the stage, the users' data, every shell
+  screen), the burst's sound, the sound system's and the
   game's updates in the bursting phase; then the menu.
 - The configuration's string table and options, the start's options, key, activate and music connections, the
   popups and the debug display.

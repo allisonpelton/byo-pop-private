@@ -36,8 +36,8 @@ public:
 	virtual Color getColor(const std::string& theName);
 	// 0x0c (0x477810 (feedingfrenzy2)): the vector of the name, (0, 0) for none
 	virtual Vector2f getVector(const std::string& theName);
-	// 0x10 (0x407280 (feedingfrenzy2)): the images, particle effects and music emptied; the fonts, colours and
-	// vectors stay
+	// 0x10 (0x407280 (feedingfrenzy2)): the images, particle effects and music emptied and the fallback dropped;
+	// the fonts, colours and vectors stay
 	virtual void clear();
 	// 0x14 (0x431420 (feedingfrenzy2)): the image of the archives at the path, copied and given the pivot, scale and
 	// blend mode, under the name. A copy made before with the same path, pivot, scale and mode is shared
@@ -57,17 +57,21 @@ public:
 		mVectors.insert(std::make_pair(theName, theVector));
 	}
 
-	// 0x46c340 (feedingfrenzy2), with 0x45faa0 (feedingfrenzy2): the image of the name, null for none
+	// 0x46c340 (feedingfrenzy2), with 0x45faa0 (feedingfrenzy2): the image of the name, here or in the fallbacks,
+	// null for none
 	Surface* getImage(const std::string& theName);
-	// 0x475950 (feedingfrenzy2): a copy of the effect of the name from its pool, null for none
+	// 0x475950 (feedingfrenzy2): a copy of the effect of the name from its pool, here or in the fallbacks, null for
+	// none
 	ParticleSystem* getParticleSystem(const std::string& theName);
 	// 0x48d9d0 (feedingfrenzy2): the definition of the effect of the name, null for none (clear forgets the
 	// definitions and keeps the pools)
 	ParticleSystemDef* getParticleDef(const std::string& theName);
 
-	// 0x472f60 (feedingfrenzy2): the font of the name, null for none (the original walks the chain at +0x68 as
-	// getImage does)
+	// 0x472f60 (feedingfrenzy2): the font of the name, here or in the fallbacks, null for none
 	Font* getFont(const std::string& theName);
+
+	// Set where the original writes the field (the splash's loader, 0x4946a0 (feedingfrenzy2))
+	void setFallback(Theme* theTheme) { mFallback = theTheme; }
 
 	const std::string& getBasePath() const { return mBasePath; }
 	void setBasePath(const std::string& theBasePath) { mBasePath = theBasePath; }
@@ -82,10 +86,11 @@ private:
 	std::map<std::string, Ref<ParticleSystemPool>> mParticlePools;   // +0x30
 	std::map<std::string, Ref<Font>> mFonts;             // +0x3c
 	std::string mBasePath;                               // +0x48: the <theme> element's basePath
-	// +0x64: the sounds' manager; +0x6c: the music, by name; +0x7c: the animations, by name (not yet translated).
-	// +0x68 holds a theme getImage looks in when this one has no image of the name (0x46c340 (feedingfrenzy2)
-	// walks the chain); the constructor and clear set it to null and no other write to it was found, so the port
-	// looks in this theme only. +0x78: a number load and the constructor set to 0, its reader not yet found
+	// +0x64: the sounds' manager (not yet translated)
+	Ref<Theme> mFallback;                                // +0x68: looked in for an image, font or effect this
+	                                                     // theme has not (the shell theme's is the minimal theme)
+	// +0x6c: the music, by name; +0x7c: the animations, by name (not yet translated). +0x78: a number load and the
+	// constructor set to 0, its reader not yet found
 	std::map<std::string, Color> mColors;                // +0x88
 	std::map<std::string, Vector2f> mVectors;            // +0x94
 };

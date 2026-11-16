@@ -149,9 +149,19 @@ void SplashState::load()
 		mSaverMode ? "resource/Stages/saverManifest.xml" : "resource/Stages/menuManifest.xml");
 	// (The original checks after each part whether the state has left, then sets the phase to failed and stops; the
 	// port loads at once, so it cannot have)
-	// The stages' screen data, fun facts, player ranks, the fish, the menus, the sounds, the stage, the users' data
-	// and every screen of the shell: not yet translated
-	getEngine()->log("SplashState: the loader not yet translated past the manifests\n");
+	mApp->mStageScreenData = new StageScreenData();
+	mApp->mStageScreenData->load("resource/Stages/stageScreenData.xml");
+	// 0x4946a0 (feedingfrenzy2): the shell's theme, falling back on the minimal one
+	mApp->mShellTheme = new Theme();
+	mApp->mShellTheme->load("resource/themes/shellTheme.xml");
+	mApp->mShellTheme->setFallback(mApp->mTheme);
+	mApp->mFunFacts = new FunFacts();
+	mApp->mFunFacts->load("resource/funFacts.xml");
+	mApp->mPlayerRanks = new PlayerRanks();
+	mApp->mPlayerRanks->load("resource/playerRanks.xml");
+	// The fish (resource/actors/fishes.xml), the menus, the sounds, the stage, the users' data and every screen of
+	// the shell: not yet translated
+	getEngine()->log("SplashState: the loader not yet translated past the player ranks\n");
 	mLoadProgress = 1.0f;
 	mPhase = SPLASH_LOADED;
 }

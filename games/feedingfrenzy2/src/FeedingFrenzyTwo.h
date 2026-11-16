@@ -7,9 +7,12 @@
 // start the scene, the screen manager, the two named containers and the first state.
 
 #include "Container.h"
+#include "FunFacts.h"
 #include "GameData.h"
 #include "GenericScreen.h"
+#include "PlayerRanks.h"
 #include "Scene.h"
+#include "StageScreenData.h"
 #include "State.h"
 #include "Theme.h"
 #include "sigslot.h"
@@ -53,7 +56,12 @@ public:
 	engine::Ref<engine::Container> mContainerSlot;     // +0x44: "ContainerSlot", in the scene
 	engine::Ref<engine::Container> mStageContainer;    // +0x48: "StageContainer"
 	engine::Ref<engine::GenericScreen> mSplashScreen;  // +0x54
-	engine::Ref<engine::Theme> mTheme;                 // +0xb0
+	engine::Ref<engine::Theme> mShellTheme;            // +0xac: resource/themes/shellTheme.xml, falling back on the
+	                                                   // minimal theme
+	engine::Ref<engine::Theme> mTheme;                 // +0xb0: the minimal theme, made by the splash
+	engine::Ref<StageScreenData> mStageScreenData;     // +0xbc
+	engine::Ref<FunFacts> mFunFacts;                   // +0xc0
+	engine::Ref<PlayerRanks> mPlayerRanks;             // +0xc4
 	engine::StateMgr<AppState> mStateMgr;              // +0x354
 };
 

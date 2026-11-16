@@ -49,6 +49,7 @@ void Theme::clear()
 	mImageKeys.clear();
 	mImagesByKey.clear();
 	mParticleDefs.clear();
+	mFallback = nullptr;
 }
 
 void Theme::addParticleEffect(const std::string& theName, const std::string& thePath, int theCount)
@@ -69,10 +70,13 @@ void Theme::addParticleEffect(const std::string& theName, const std::string& the
 
 ParticleSystem* Theme::getParticleSystem(const std::string& theName)
 {
-	std::map<std::string, Ref<ParticleSystemPool>>::iterator anIt = mParticlePools.find(theName);
-	if (anIt == mParticlePools.end())
-		return nullptr;
-	return anIt->second->get();
+	for (Theme* aTheme = this; aTheme != nullptr; aTheme = aTheme->mFallback)
+	{
+		std::map<std::string, Ref<ParticleSystemPool>>::iterator anIt = aTheme->mParticlePools.find(theName);
+		if (anIt != aTheme->mParticlePools.end())
+			return anIt->second->get();
+	}
+	return nullptr;
 }
 
 ParticleSystemDef* Theme::getParticleDef(const std::string& theName)
@@ -85,10 +89,13 @@ ParticleSystemDef* Theme::getParticleDef(const std::string& theName)
 
 Font* Theme::getFont(const std::string& theName)
 {
-	std::map<std::string, Ref<Font>>::iterator anIt = mFonts.find(theName);
-	if (anIt == mFonts.end())
-		return nullptr;
-	return anIt->second;
+	for (Theme* aTheme = this; aTheme != nullptr; aTheme = aTheme->mFallback)
+	{
+		std::map<std::string, Ref<Font>>::iterator anIt = aTheme->mFonts.find(theName);
+		if (anIt != aTheme->mFonts.end())
+			return anIt->second;
+	}
+	return nullptr;
 }
 
 std::string Theme::imageKey(const std::string& thePath, int thePivot, float theScale, int theBlendMode)
@@ -139,15 +146,18 @@ bool Theme::addFont(const std::string& theName, const std::string& thePath)
 
 Surface* Theme::getImage(const std::string& theName)
 {
-	// The original reads both maps with operator[], adding empty entries for a name it does not have; nothing reads
-	// them, so the port only looks
-	std::map<std::string, std::string>::const_iterator aKey = mImageKeys.find(theName);
-	if (aKey == mImageKeys.end())
-		return nullptr;
-	std::map<std::string, Ref<Surface>>::const_iterator anImage = mImagesByKey.find(aKey->second);
-	if (anImage == mImagesByKey.end())
-		return nullptr;
-	return anImage->second.get();
+	for (Theme* aTheme = this; aTheme != nullptr; aTheme = aTheme->mFallback)
+	{
+		// The original reads both maps with operator[], adding empty entries for a name it does not have; nothing
+		// reads them, so the port only looks
+		std::map<std::string, std::string>::const_iterator aKey = aTheme->mImageKeys.find(theName);
+		if (aKey == aTheme->mImageKeys.end())
+			continue;
+		std::map<std::string, Ref<Surface>>::const_iterator anImage = aTheme->mImagesByKey.find(aKey->second);
+		if (anImage != aTheme->mImagesByKey.end() && anImage->second != nullptr)
+			return anImage->second.get();
+	}
+	return nullptr;
 }
 
 void ThemeDocHandler::begin(Params& theAttributes)
