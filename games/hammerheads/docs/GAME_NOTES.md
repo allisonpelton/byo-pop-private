@@ -153,3 +153,39 @@ Cookie's end is `progress` 1: Go on the "Ready?" box after the trophy room that 
 in play makes that trophy. Both classic and tough have 25 levels. The frozen baseline is unchanged with the block off.
 
 With the block on (`-livesplitlog` on the frozen tour, 19 block lines) all 15 screens, the state lines and the player files are byte-identical to the run with it off, so the frozen baseline holds with the block either way (2026-11-15).
+
+## Coverage check
+
+`games/hammerheads/coverage.txt` names the export, the sources and the game's own code (0x401000-0x468e30, 1837 functions); the
+level editor (0x405550-0x419c70), the beta login and DRM client (0x41a000-0x41d9c0), the compiler's deleting destructors, the debug
+`std::` instantiations, the original's own growable-array template, TinyXML (the port reads XML through `XmlLite.cpp` and boards
+through `BoardFile.cpp`) and some one-field accessors are `none` lines with their reasons (732 functions left out on purpose).
+
+Runs of the original (`tools/coverage/run.py <scenario>`, origrun on the host, the virtual clock, `--coverage`): `menus`, `howto`,
+`dialogs` (the change-player box, the quit box with No and with Yes), `classic1`, `classic_save1`, `classic_focus1`, `tough1`,
+`marathon1`, `classic_sp25`, `classic_j5`, `classic_nd10`, `classic_nd25`, `classic_j25`, `classic_save22`. Between them they reach
+1235 of the 1837 functions; the first run of `menus` came out of a cold start with its inputs a little late and reached 1531, the
+second 1757, so a run that reaches much less than its sisters is run again.
+
+Reached in the original with no definition in the port: 268 at the first report. 12 were code the port holds under another shape
+(the string splitter of `ValueList`, `IsValid`, the ordinal ending, the board file's loader and so on; their addresses now stand
+in the comments above the functions that hold them) and the rest were library code, destructors and the editor. Two were logic the
+port lacked, both found and fixed here:
+- **0x45dcf0**, the shop's and the challenge screen's mouse handler (`MouseMove` and `MouseDrag` of both): the hammer follows the
+  pointer there, as it does in the game screen.
+- **0x405450**, the ordinal in the bonus round's opening text: "2nd Bonus Round!", where the port printed "2 Bonus Round!"
+  (`ChallengeScreen::Draw`; the shot comparison had passed, because the identical-play runs compare the first round's card only
+  at a few updates).
+The first list is now empty.
+
+A crash found by the `dialogs` run: the change-player box ("If this is not you, click here") ended the port in a null read, since
+`UserDialog` never set the lines' font that `Dialog::Draw` measures (the original's box has the framework's default font, which the
+port's `Dialog` does not make). Found with AddressSanitizer (`build/asan-hh`), fixed in the constructor.
+
+Defined in the port and never reached in these runs: 137 functions. 35 are the gnomes' and shop items' `SaveExtra` and `LoadExtra`
+(vf09 and vf10, 0x435de0 and the like), read and written only for the per-object extras of a board file, which the boards of the
+original do not have (candidates for taking out, with the helpers only they call); 14 are Application functions at 0x41e960-0x422460
+(the dialog and screen plumbing of rare flows); 21 are in the Resurrect page, the credits, the player list's rename and delete, the
+quit and options boxes' rarer paths; the rest are small drawing and update helpers of the shop's gift box, the rotating floater, the
+hammer display, the challenge meter and the high score entry box, which only certain rounds reach. None is removed or read again
+yet; the rare flows still need runs of their own.

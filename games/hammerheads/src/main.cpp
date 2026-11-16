@@ -76,7 +76,7 @@ static std::string FindGameDir()
 }
 #endif
 
-// port: the original's WinMain makes the app, calls Init, Start and Shutdown on it; the port reads its arguments first
+// 0x422c30: the original's WinMain makes the app, calls Init, Start and Shutdown on it; the port reads its arguments first
 int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");

@@ -62,6 +62,20 @@ private:
 // 0x456810: the table is made, sized to the screen and added as dialog 0xe
 HighScoreDisplayDialog* MakeHighScoreDisplay();
 
+// the ending that follows a number: "st", "nd", "rd" or "th" (0x455480, 0x405450)
+inline const char* GetOrdinalSuffix(int thePlace)
+{
+	if ((thePlace % 100) / 10 == 1)
+		return "th";
+	switch (thePlace % 10)
+	{
+	case 1: return "st";
+	case 2: return "nd";
+	case 3: return "rd";
+	default: return "th";
+	}
+}
+
 }
 
 #endif

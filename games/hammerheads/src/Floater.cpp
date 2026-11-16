@@ -47,7 +47,7 @@ double Sexy::RampBetween(double theTime, double theHigh, double theLow)
 	return (theTime - theLow) / (theHigh - theLow);
 }
 
-// 0x468820: the vector turned by the angle
+// 0x468820, 0x444490 (its member form): the vector turned by the angle
 static void RotateVector(double* theVector, double theAngle)
 {
 	double aCos = cos(theAngle);
@@ -1211,7 +1211,7 @@ FloaterRotating* Sexy::MakeFloaterRotating(double theX0, double theY0, double th
 	return aFloater;
 }
 
-// 0x448d30
+// 0x448d30, 0x402990 (the image's setter, called by the constructor)
 FloaterShrinking::FloaterShrinking(double theX0, double theY0, double theX1, double theY1, Image* theImage, int theCelRow,
 	int theCelCol, double theLift, const Rect& theClip) :
 	Object(0x80),
