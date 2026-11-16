@@ -42,6 +42,7 @@ set(BYOPOP_OTHER_GAMES
   "typershark|Typer Shark!|data/CourierFinalDraft15Bold.txt,data/12ptfontglow.txt||"
   "pizzafrenzy|Pizza Frenzy|PizzaFrenzy.saf,PizzaFrenzy.exe||"
   "igglepop|Iggle Pop|IgglePop.saf,IgglePop.exe||"
+  "feedingfrenzy|Feeding Frenzy|FFArchive.saf,FeedingFrenzy.exe||"
   "chuzzle|Chuzzle|data/mindbenders.txt,data/gamedata.cfg||"
   "feedingfrenzy2|Feeding Frenzy 2|FF2.saf,FeedingFrenzyTwo.exe||"
   "peggle|Peggle|Peggle.exe,main.pak||"
