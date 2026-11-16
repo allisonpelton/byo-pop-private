@@ -196,8 +196,3 @@ void ThunderballApp::ShowReplay(bool theKeepBoard)
 {
 	NOT_TRANSLATED("ThunderballApp::ShowReplay");
 }
-
-void ThunderballApp::DoCreateUserDialog()
-{
-	NOT_TRANSLATED("ThunderballApp::DoCreateUserDialog");
-}

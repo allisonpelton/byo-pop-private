@@ -6,9 +6,11 @@
 #include "Color.h"
 #include "Font.h"
 #include "Dialog.h"
+#include "EditWidget.h"
+#include "Graphics.h"
 #include "Insets.h"
 #include "ListWidget.h"
-#include "NotTranslated.h"
+#include "NewUserDialog.h"
 #include "Res.h"
 #include "SexyAppBase.h"
 #include "ThunderButton.h"
@@ -24,6 +26,18 @@ static const int BROWN_BUTTON_FONT_COLOR = 0;		// the brown buttons use the firs
 static const int DIALOG_BUTTON_FONT_COLOR = 3;		// the others the fourth
 static const int LIST_ITEM_HEIGHT = 16;				// line 130
 
+// the edit boxes (ThunderCommon.cpp lines 149 to 156)
+static const int EDIT_HEIGHT = 24;
+static const int EDIT_NAME_MAX_CHARS = 12;
+static const int EDIT_NAME_MAX_PIXELS = 190;		// line 149
+static const int EDIT_TEXT_COLOR = 0;				// line 150
+static const int EDIT_HILITE_COLOR = 0x80;			// line 151
+static const int EDIT_HILITE_TEXT_COLOR = 0xffffff;	// line 152
+static const int EDIT_BOX_MARGIN_X = 8;				// lines 153, 154: the frame is this far outside the edit box
+static const int EDIT_BOX_MARGIN_Y = 8;
+static const int EDIT_BOX_EXTRA_WIDTH = 16;			// lines 155, 156
+static const int EDIT_BOX_EXTRA_HEIGHT = 16;
+
 // where dialogs go (PositionDialog; the lines are of ThunderCommon.cpp)
 static const int DIALOG_HEADER_PADDING = 20;		// added to the header's width and the insets for the least width
 static const int DIALOG_DEFAULT_TOP = 150;			// the top edge is this less the background's top inset
@@ -34,8 +48,8 @@ static const int MENU_DIALOG_CENTER_X = 290;		// the middle of the part of the m
 static const int MENU_DIALOG_TALL = 300;			// from this height up it does not fit there (line 142)
 static const int MENU_DIALOG_RIGHT_EDGE = 550;		// and goes against this edge instead (line 143)
 static const int MENU_DIALOG_TALL_TOP = 50;			// at this height (line 144)
-static const int NEW_USER_DIALOG_ID = 10;			// the dialog of the first profile; others open below it, lower by
-static const int NEW_USER_DIALOG_OFFSET_Y = 140;	// this much when it can be closed (line 140; line 141 is 0)
+static const int NEW_USER_DIALOG_ID = 10;			// the dialog of the first profile (its certificate); others open below it, lower by
+static const int NEW_USER_DIALOG_OFFSET_Y = 140;	// this much when it is the certificate (line 140; line 141 is 0)
 
 // the colours of the list widget, by its indices (lines 125 to 129)
 static const int LIST_BACKGROUND_COLOR = 0x50;
@@ -223,11 +237,41 @@ void Sexy::PositionDialog(Dialog* theDialog, int theWidth, bool theCentered, int
 	}
 	else
 	{
-		// over the other dialog: the same middle, and the same top (lower when the new-user dialog can be closed)
-		if (anOther->mId == NEW_USER_DIALOG_ID)
-			NOT_TRANSLATED("PositionDialog with the new-user dialog up (its +0x188 flag)");
-		aTop = anOther->mY;
+		// over the other dialog: the same middle, and the same top (lower when it is the certificate of the first run)
+		int aDrop = 0;
+		if (anOther->mId == NEW_USER_DIALOG_ID && static_cast<NewUserDialog*>(anOther)->mCertificate)
+			aDrop = NEW_USER_DIALOG_OFFSET_Y;
+		aTop = aDrop + anOther->mY;
 		aLeft = (anOther->mWidth - theWidth) / 2 + anOther->mX;
 	}
 	theDialog->Resize(aLeft, aTop, theWidth, aHeight);
+}
+
+// 0x405330 (SetupEditWidget) and 0x405420
+EditWidget* Sexy::CreateEditWidget(int theId, EditListener* theListener)
+{
+	EditWidget* anEdit = new EditWidget(theId, theListener);
+	anEdit->SetFont(FONT_PLAIN, nullptr);
+	anEdit->SetColor(EditWidget::COLOR_BKG, Color(0, 0));
+	anEdit->SetColor(EditWidget::COLOR_OUTLINE, Color(0, 0));
+	anEdit->SetColor(EditWidget::COLOR_TEXT, Color(EDIT_TEXT_COLOR));
+	anEdit->SetColor(EditWidget::COLOR_HILITE, Color(EDIT_HILITE_COLOR));
+	anEdit->SetColor(EditWidget::COLOR_HILITE_TEXT, Color(EDIT_HILITE_TEXT_COLOR));
+	anEdit->mHeight = EDIT_HEIGHT;
+	return anEdit;
+}
+
+// 0x4052f0
+void Sexy::DoNameWidthEnforce(EditWidget* theEdit)
+{
+	theEdit->mMaxChars = EDIT_NAME_MAX_CHARS;
+	theEdit->AddWidthCheckFont(FONT_OVERLOAD24, EDIT_NAME_MAX_PIXELS);
+}
+
+// 0x408120
+void Sexy::DrawEditBox(Graphics* g, EditWidget* theEdit)
+{
+	Rect aBox((int)((double)theEdit->mX - g->mTransX - EDIT_BOX_MARGIN_X), (int)((double)theEdit->mY - g->mTransY - EDIT_BOX_MARGIN_Y),
+			  theEdit->mWidth + EDIT_BOX_EXTRA_WIDTH, theEdit->mHeight + EDIT_BOX_EXTRA_HEIGHT);
+	g->DrawImageBox(aBox, IMAGE_DLG_TEXTBOX);
 }

@@ -8,13 +8,17 @@ What the port does differently from the exe, what it leaves out and why, how to 
 Builds natively (`TARGET=peggle bash tools/build.sh native`). Runs to the main menu: the loading screen (logo, sun, light bar,
 ball and sparks, the bricks, pegs and fever stars made while it is up), "Click to play", the scroll to the main menu, the
 mascot's speech bubble that follows the mouse, the trophy, the dialogs that slide in on a chain, and the Demo (locked) and Quit
-questions. Checked under rundesk with screenshots (`-script` with `profile <name>`, `click`, `move`, `screenshot`). Nothing
-past the menu runs yet: every other screen stops with a message that names the function (`grep NOT_TRANSLATED games/peggle/src`).
+questions, and the first run's certificate (the name is typed, Enter or the OK button takes it, the stamp comes down, the
+dialog slides out and the loading screen starts the adventure). Checked under rundesk with screenshots (`-script` with
+`profile <name>`, `char`, `key RETURN`, `click`, `move`, `screenshot`). Nothing past the menu and the first run runs yet: every
+other screen stops with a message that names the function (`grep NOT_TRANSLATED games/peggle/src`); the first run ends at
+`StartAdventureGame`.
 
 Translated: the framework glue (ThunderballApp's start-up, loading, music, screens' scroll, dialogs' frame), the data classes and
 managers (StringParser, ConfigParser, DataSync, GameStats, PlayerInfo, ProfileMgr, HighScoreMgr, StatsMgr, ImageMgr, CharacterMgr's
 file loader, TrophyMgr, StageMgr), BlendedImage, WidgetMover, ThunderButton / ThunderCheckbox / ThunderSlider / ThunderFrame,
-ThunderCommon (the button and edit factories, PositionDialog), ThunderDialog, LoadingScreen, MainMenu.
+ThunderCommon (the button and edit factories, PositionDialog), ThunderDialog, LoadingScreen, MainMenu, NewUserDialog (with
+DoCreateUserDialog, FinishCreateUserDialog and FinishNameErrorDialog).
 
 ## Left out of the port, by address
 
@@ -55,6 +59,8 @@ None yet.
 
 ## Oddities
 
+- The certificate's stamp: the OK button stays drawn under it (the original disables it; whether a disabled embedded button
+  draws differently is to be seen in the shot-diff pass).
 - The Quit button of the main menu (the round purple button at the bottom left) shows "UIT": the Q is under the left frame. It is
   drawn as a child above the frame, so the cause is in the button's artwork or the text's offset; compare with the original in
   the shot-diff pass.
@@ -72,7 +78,7 @@ not translated yet). The rest of the standard set comes with the board.
    (PhysObj, Ball, CollisionMgr, LogicMgr's 99 functions, 57 KB, the largest part), then the Board's rules (83 functions, 34 KB),
    the effects (Effect 47, EffectMgr, FloatingText), InterfaceMgr's drawing and CharacterMgr's animation. About 220 KB of the
    original's code in all.
-2. The dialogs and screens that the menu leads to: NewUserDialog and UserDialog (the first run), OptionsDialog, LevelScreen,
+2. The dialogs and screens that the menu leads to: UserDialog (the player list) and its rename and delete questions, OptionsDialog, LevelScreen,
    AdventureScreen, StoryScreen, TrophyScreen, HelpScreen, CharacterDialog, EndLevelDialog, SlotMachineDialog, the replay
    dialogs; `MainMenu::DrawTrophyEffect` (an x87 particle effect: 0x494b50).
 3. Replays and the bot (AIMgr, AIBall) for the Demo and the Masters, then the test commands and `move`.

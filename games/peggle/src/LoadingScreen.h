@@ -63,6 +63,7 @@ public:
 	int mSunSpinCount;			 // +0x9c: how many updates the sun has spun
 	int mPlayFlashCount;		 // +0xa0: counts up from 1 once the Play button appears; the button flashes during the first 50
 	float mDrawnProgress;		 // +0xa4: the progress the picture shows (the sun's height, the shadow)
+	int mStartAdventureCountdown; // +0xa8: set to 20 when a new player has been stamped on the certificate; the adventure starts when it runs out
 	int mBallState;				 // +0xac: 0 no ball, 1 falling, 2 bounced off the logo, 3 gone
 	int mBallHitCount;			 // +0xb0: updates since the ball hit the logo (the logo bounces and flashes), 0 when it has not
 	float mBallX;				 // +0xb4

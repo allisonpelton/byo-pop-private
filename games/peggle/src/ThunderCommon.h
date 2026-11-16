@@ -13,6 +13,9 @@ namespace Sexy
 class ButtonListener;
 class ButtonWidget;
 class Dialog;
+class EditListener;
+class EditWidget;
+class Graphics;
 class Image;
 class ListListener;
 class ListWidget;
@@ -36,6 +39,11 @@ ThunderButton* MakeEmbeddedButton(int theId, ButtonListener* theListener, Image*
 SimpleButton* MakeSimpleButton(int theId, ButtonListener* theListener, Image* theImage, int theExtraWidth, int theExtraHeight); // 0x405270
 
 ListWidget* MakeListWidget(int theId, ListListener* theListener); // 0x4050a0
+
+// The edit boxes of the game: plain text in black over the dialog's own drawing (DrawEditBox draws the frame), 24 high.
+EditWidget* CreateEditWidget(int theId, EditListener* theListener);	// 0x405420 (SetupEditWidget is 0x405330)
+void DoNameWidthEnforce(EditWidget* theEdit);						// 0x4052f0: a name is at most 12 letters and 190 pixels wide
+void DrawEditBox(Graphics* g, EditWidget* theEdit);					// 0x408120: the frame of IMAGE_DLG_TEXTBOX around it
 
 // Puts a dialog in its place and gives it its size: at least theWidth wide (and as wide as its header needs), as tall as it asks
 // for. With another dialog up it goes at that one's middle; with none, in the middle of the screen, or to the right of the

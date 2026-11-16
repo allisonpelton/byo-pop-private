@@ -130,7 +130,9 @@ public:
 	void DoOptionsDialog();						  // 0x40c210
 	void FinishOptionsDialog(bool theApply, bool theScrollOff); // 0x41c840
 	void DoUserDialog();						  // 0x40c2e0
-	void DoCreateUserDialog();					  // 0x40c3b0
+	void DoCreateUserDialog();					  // 0x40c3b0: the certificate of the first run
+	void FinishCreateUserDialog(bool theYes);	  // 0x427830: OK or Cancel of the new-user dialog
+	void FinishNameErrorDialog(int theDialogId);  // 0x408500: closes the "Enter Your Name" or "Name Conflict" dialog
 	void DoConfirmQuitDialog();					  // 0x41c960
 	void FinishConfirmQuitDialog(bool theYes);	  // 0x4084a0
 	void CleanupScreen(Widget* theScreen);		  // 0x4234f0: takes the screen off the manager and deletes it

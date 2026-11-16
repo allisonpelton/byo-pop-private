@@ -187,6 +187,7 @@ LoadingScreen::LoadingScreen(ThunderballApp* theApp)
 	mSunSpinCount = 0;
 	mPlayFlashCount = 0;
 	mDrawnProgress = 0;
+	mStartAdventureCountdown = 0;
 	mBallState = 0;
 	mBallHitCount = 0;
 	mBallX = 0;
@@ -524,6 +525,14 @@ void LoadingScreen::Update()
 		mSunAngle = (float)((double)SUN_SPIN_SPEED + (double)mSunAngle);
 		if (mApp->Is3DAccelerated())
 			MarkDirty();
+	}
+
+	// a new player was named at the certificate: the adventure starts a little later
+	if (mStartAdventureCountdown > 0)
+	{
+		mStartAdventureCountdown--;
+		if (mStartAdventureCountdown == 0)
+			mApp->StartAdventureGame();
 	}
 
 	// the screen draws every update while the logo is up and then only when something moves
