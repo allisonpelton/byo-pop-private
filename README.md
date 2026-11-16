@@ -59,7 +59,7 @@ installed copy (for example from Steam):
 | [Typer Shark! Deluxe](games/typershark/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-09 | | $367 | | | $367 |
 | [Venice Deluxe](games/venice/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-12 | | | | | |
 | [Heavy Weapon Deluxe](games/heavyweapon/docs/IDENTICAL_PLAY.md) | Opus | Every phase but modding | 2026-11-12 | | | | | |
-| [Hammer Heads Deluxe](games/hammerheads/docs/IDENTICAL_PLAY.md) | Sonnet | Registration out | 2026-11-13 | | | | | |
+| [Hammer Heads Deluxe](games/hammerheads/docs/IDENTICAL_PLAY.md) | Sonnet | Fixes mod | 2026-11-13 | | | | | |
 | [Pizza Frenzy](games/pizzafrenzy/docs/README.md) | Opus | Porting | 2026-11-15 | | | | | |
 | Iggle Pop Deluxe, Feeding Frenzy Deluxe | | Not started: once every game above is done | | | under $1 each | | | |
 | Chuzzle Deluxe, Feeding Frenzy 2, Peggle Deluxe, Peggle Nights, Bejeweled 3, Banana Bugs, Gyromancer, Zuma's Revenge, Talismania Deluxe | | After those, two at a time | | | $19 | | | $19 |
