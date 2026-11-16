@@ -254,13 +254,6 @@ bool Tile::SlideStep()
 	return aSliding;
 }
 
-void Tile::Fall(int theDistance, int theDelay)
-{
-	mFalling = true;
-	mFallDistance = theDistance;
-	mFallDelay = theDelay;
-}
-
 void Tile::TileXChanged(int theX)
 {
 	if (gTileEngine == nullptr)

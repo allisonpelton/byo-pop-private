@@ -64,15 +64,11 @@ public:
 	DataDrivenClass();                     // 0x6b2d40
 	virtual ~DataDrivenClass();            // 0x6b2da0
 
-	// slot 0, 0x6b2b00: the file is about to be read again
-	virtual void BeforeReload() {}
-	// slot 1, 0x4c8420: it was read again
-	virtual void AfterReload() {}
+	// (the original's Reload, 0x6b3e50, and the two virtuals it called around Load, BeforeReload 0x6b2b00 and
+	// AfterReload 0x4c8420, with Credits' versions, have no caller: left out, README "Unneeded code")
 
 	// 0x6b3820: reads theFileName, calling the functions of the tags as they come. False when it cannot be opened.
 	bool Load(const std::string& theFileName);
-	// 0x6b3e50 for this object: BeforeReload, Load of the file it was loaded from, AfterReload
-	bool Reload();
 
 protected:
 	Node mRoot;  // +0x04: the root's tag is its name (set by the derived class)
@@ -84,7 +80,6 @@ protected:
 	void AddElement(Node* theGroup, const std::string& theName, const ElementHandler& theHandler);
 
 private:
-	std::string mFileName;
 	std::vector<std::string> mGroupNames;  // +0x50: the name of every group registered, for IsGroup
 
 	bool IsGroup(const std::string& theName) const;   // 0x6b2f60

@@ -120,7 +120,6 @@ public:
 	void SetMiddleColor(const Color& theColor) { mMiddleColor = theColor; }  // vf 0x13c (0x42f400)
 	void SetInnerColor(const Color& theColor);            // vf 0x140 (0x431e00): the last panel's
 	void SetContinueTextColor(const Color& theColor);     // vf 0x144 (0x432c40): the last panel's
-	void SetAllContinueTextColors(const Color& theColor); // vf 0x148 (0x432cb0)
 	void SetDimensions(int theX, int theY, int theW, int theH);  // vf 0x14c (0x4300e0)
 	void SetAnim(Image* theImage, int theDelay);          // vf 0x150 (0x42fca0): the last panel's portrait
 	void SetAnimXY(int theX, int theY);                   // vf 0x154 (0x42fec0)
@@ -137,7 +136,6 @@ public:
 	void Activate(bool thePauseBoard);
 	void TriggersNewUserDialog();         // 0x4321b0: the last panel's last page asks a new player's name
 	void NextPanel();                     // 0x432210: the next panel, or the closing (the new player's name calls it)
-	void Deactivate();                    // 0x4320b0: off at once, without the callbacks
 	void ReplaceCurrentText(const std::string& theText);  // 0x432d20 (convpanel.DebugReplaceCurrentText)
 
 	void SetUpdateCallback(const std::string& theFunc) { mUpdateCallback = theFunc; }   // 0x4bfea0

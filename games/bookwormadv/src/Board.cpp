@@ -242,13 +242,6 @@ void Board::InitMiniGame(const std::string& theName, int x, int y, int theXGap, 
 	mApp->ClearUpdateBacklog(false);
 }
 
-void Board::LoadScripts()
-{
-	gLuaInterface->DoFile("scripts\\main.lua");
-	CallLua("main.LoadRequiredScripts", 0);
-	CallLua("main.LoadResources", 0);
-}
-
 // ---- the grid ----
 
 bool Board::IsGridCell(int theCol, int theRow) const

@@ -150,12 +150,6 @@ void ConversationPanel::SetContinueTextColor(const Color& theColor)
 	LastPanel()->mContinueColor = theColor;
 }
 
-void ConversationPanel::SetAllContinueTextColors(const Color& theColor)
-{
-	for (Panel* aPanel : mPanels)
-		aPanel->mContinueColor = theColor;
-}
-
 void ConversationPanel::SetDimensions(int theX, int theY, int theW, int theH)
 {
 	mPanelY = theY;
@@ -340,22 +334,6 @@ void ConversationPanel::ForgetCallbacks()
 	mDisappearingCallback.clear();
 	mInactiveCallback.clear();
 	mGenericCompletionCallback.clear();
-}
-
-void ConversationPanel::Deactivate()
-{
-	mState = STATE_OFF;
-	SetVisible(false);
-	SetDisabled(true);
-	mApp->mWidgetManager->BringToBack(this);
-	if (mPausesBoard)
-		PauseBoard(mApp, false);
-	if (mRestoreFocus != nullptr) {
-		mApp->mWidgetManager->SetFocus(mRestoreFocus);
-		mRestoreFocus = nullptr;
-	}
-	mOnInactive = nullptr;
-	ForgetCallbacks();
 }
 
 bool ConversationPanel::SlideToTarget(Panel* thePanel)

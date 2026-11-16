@@ -218,20 +218,6 @@ void TileEngine::Draw(std::list<Tile*>& theTiles, Graphics* g, bool theMoving, b
 	gLuaSupport->ObjectDeleted(g);
 }
 
-void TileEngine::DrawTiles(std::list<Tile*>& theTiles, Graphics* g, bool theStillOnly)
-{
-	if (mBoard == nullptr)
-		return;
-	if (theStillOnly) {
-		Draw(theTiles, g, false, false);
-		return;
-	}
-	bool aAnyMoving = mMovingCount > 0;
-	Draw(theTiles, g, false, !aAnyMoving);
-	if (aAnyMoving)
-		Draw(theTiles, g, true, true);
-}
-
 void TileEngine::Update(std::list<Tile*>& theTiles, bool theCallLua)
 {
 	for (auto anIt = theTiles.begin(); anIt != theTiles.end(); ++anIt)

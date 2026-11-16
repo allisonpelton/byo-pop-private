@@ -56,9 +56,6 @@ public:
 	void StartRound(bool theTimedMode);
 	// 0x49aca0: draws the tiles of a list that slide (theMoving) or do not, with the script's Draw
 	void Draw(std::list<Tile*>& theTiles, Graphics* g, bool theMoving, bool theDrawExtraStuff);
-	// 0x49af50 (no caller found in the original): the tiles that do not slide, then the ones that do, unless
-	// theStillOnly, which draws only the still ones and without the extras
-	void DrawTiles(std::list<Tile*>& theTiles, Graphics* g, bool theStillOnly);
 	// 0x49afb0: Update of every tile of a list, then the script's Update when theCallLua
 	void Update(std::list<Tile*>& theTiles, bool theCallLua);
 	// 0x49b010: every tile of the list gets a new letter (the script's ChangeLetter)

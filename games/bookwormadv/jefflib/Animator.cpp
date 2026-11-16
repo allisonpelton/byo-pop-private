@@ -13,53 +13,9 @@ Animator::Animator()
 	Init();
 }
 
-Animator::Animator(const Animator& theOther)
-{
-	Init();
-	*this = theOther;
-}
-
 Animator::~Animator()
 {
 	delete mFade;
-}
-
-Animator& Animator::operator=(const Animator& theOther)
-{
-	if (this == &theOther)
-		return *this;
-	mImage = nullptr;
-	if (theOther.mFade == nullptr)
-		mFade = nullptr;  // port: as the original, which forgot its own (Init always makes one, so never seen)
-	else
-		*mFade = *theOther.mFade;
-	mStopAfter = theOther.mStopAfter;
-	mStopCounter = theOther.mStopCounter;
-	mUpdateCount = theOther.mUpdateCount;
-	mGoingBack = theOther.mGoingBack;
-	mDone = theOther.mDone;
-	mFrameChanged = theOther.mFrameChanged;
-	mDelay = theOther.mDelay;
-	SetNumFrames(theOther.mNumFrames);
-	mStopped = theOther.mStopped;
-	mPingPong = theOther.mPingPong;
-	mOnce = theOther.mOnce;
-	if (theOther.mImage != nullptr)
-		SetImage(theOther.mImage);
-	mMaxLoops = theOther.mMaxLoops;
-	mLoopCount = theOther.mLoopCount;
-	mRangeStart = theOther.mRangeStart;
-	mRangeEnd = theOther.mRangeEnd;
-	mDirection = theOther.mDirection;
-	mStep = theOther.mStep;
-	mUseRange = theOther.mUseRange;
-	mX = theOther.mX;
-	mY = theOther.mY;
-	mUnknown30 = theOther.mUnknown30;
-	mUnknown2c = theOther.mUnknown2c;
-	mAdditive = theOther.mAdditive;
-	mAdditiveColor = theOther.mAdditiveColor;
-	return *this;
 }
 
 void Animator::Init()
@@ -258,47 +214,6 @@ void Animator::UpdateFade()
 	}
 }
 
-void Animator::Restart()
-{
-	mStopped = false;
-	mFrame = mDirection < 0 ? mNumFrames - 1 : 0;
-	mDone = false;
-	mLoopCount = 0;
-	mRangeStart = 0;
-	mRangeEnd = mNumFrames;
-	mUseRange = false;
-	mStopCounter = 0;
-	mUpdateCount = 0;
-}
-
-void Animator::SetRange(int theStart, int theEnd)
-{
-	mUseRange = true;
-	mRangeStart = theStart;
-	mRangeEnd = theEnd;
-}
-
-void Animator::SetDirection(int theDirection)
-{
-	mDirection = theDirection;
-	if (theDirection < 0)
-		mFrame = mNumFrames - 1;
-}
-
-void Animator::SetAdditiveColor(const Color& theColor)
-{
-	ClearColorize();
-	mAdditiveColor = theColor;
-	mAdditive = true;
-}
-
-void Animator::SetColorizeColor(const Color& theColor)
-{
-	ClearAdditive();
-	mColorizeColor = theColor;
-	mColorize = true;
-}
-
 void Animator::SetNumFrames(int theNumFrames)
 {
 	mNumFrames = theNumFrames;
@@ -317,37 +232,11 @@ void Animator::SetImage(Image* theImage)
 	mImage = theImage;
 }
 
-void Animator::SetRandomOrder(bool theRandom)
-{
-	mRandom = theRandom;
-	if (theRandom)
-	{
-		mRandomOrder.clear();
-		for (int i = 0; i < mNumFrames; i++)
-			mRandomOrder.push_back(i);
-	}
-}
-
-void Animator::SetFrameDelay(int theDelay, int theFrame)
-{
-	if (theFrame >= 0 && theFrame < (int)mFrameDelays.size())
-		mFrameDelays[theFrame] = theDelay;
-	mDelay = theDelay;
-}
-
 void Animator::SetDelay(int theDelay)
 {
 	mDelay = theDelay;
 	for (int& d : mFrameDelays)
 		d = theDelay;
-}
-
-bool Animator::TakeFrameChanged()
-{
-	if (!mFrameChanged)
-		return false;
-	mFrameChanged = false;
-	return true;
 }
 
 // The tint every draw starts with: the fade's alpha alone, or the additive or colourizing colour (with the fade's
@@ -380,75 +269,12 @@ void Animator::SetDrawColor(Graphics* g) const
 #define ANIMATOR_DRAW_DONE(g) \
 	do { if (!mAdditive && !mColorize && mFade->mState != 0) (g)->SetColorizeImages(false); } while (0)
 
-// the cel's part of the image, for a strip of one row or one column
-Rect Animator::CelSrcRect() const
-{
-	int x = 0, y = 0;
-	if (mImage->mNumCols > mImage->mNumRows)
-		x = mImage->GetCelWidth() * DrawCel();
-	else if (mImage->mNumRows > mImage->mNumCols)
-		y = mImage->GetCelHeight() * DrawCel();
-	return Rect(x, y, mImage->GetCelWidth(), mImage->GetCelHeight());
-}
-
-void Animator::DrawF(Graphics* g, float theX, float theY, bool theFloat)
-{
-	if (!ANIMATOR_DRAWABLE())
-		return;
-	SetDrawColor(g);
-	if (theFloat)
-		g->DrawImageF(mImage, mX + theX, mY + theY, CelSrcRect());
-	else
-		g->DrawImageCel(mImage, (int)(mX + theX), (int)(mY + theY), DrawCel());
-	ANIMATOR_DRAW_DONE(g);
-}
-
 void Animator::Draw(Graphics* g, int theX, int theY)
 {
 	if (!ANIMATOR_DRAWABLE())
 		return;
 	SetDrawColor(g);
 	g->DrawImageCel(mImage, (int)(mX + theX), (int)(mY + theY), DrawCel());
-	ANIMATOR_DRAW_DONE(g);
-}
-
-void Animator::DrawStretched(Graphics* g, float theX, float theY, int theWidth, int theHeight)
-{
-	if (!ANIMATOR_DRAWABLE())
-		return;
-	SetDrawColor(g);
-	g->DrawImageCel(mImage, Rect((int)(mX + theX), (int)(mY + theY), theWidth, theHeight), DrawCel());
-	ANIMATOR_DRAW_DONE(g);
-}
-
-void Animator::DrawScaled(Graphics* g, float theX, float theY, float theScale)
-{
-	if (!ANIMATOR_DRAWABLE())
-		return;
-	SetDrawColor(g);
-	Rect aDest((int)(mX + theX), (int)(mY + theY), (int)((float)mImage->GetCelWidth() * theScale),
-			   (int)(theScale * (float)mImage->GetCelHeight()));
-	g->DrawImageCel(mImage, aDest, DrawCel());
-	ANIMATOR_DRAW_DONE(g);
-}
-
-void Animator::DrawRotated(Graphics* g, float theX, float theY, float theRot, bool theFloat, float theCenterX,
-						   float theCenterY)
-{
-	if (!ANIMATOR_DRAWABLE())
-		return;
-	SetDrawColor(g);
-	if (theFloat)
-	{
-		Rect aSrc = CelSrcRect();
-		g->DrawImageRotatedF(mImage, mX + theX, mY + theY, theRot, theCenterX, theCenterY, &aSrc);
-	}
-	else
-	{
-		Rect aSrc = mImage->GetCelRect(DrawCel());
-		g->DrawImageRotated(mImage, (int)(mX + theX), (int)(mY + theY), theRot, (int)theCenterX, (int)theCenterY,
-							&aSrc);
-	}
 	ANIMATOR_DRAW_DONE(g);
 }
 

@@ -110,7 +110,6 @@ public:
 	// InitMiniGame(theName) (the mini-game's class), which makes the mini-game and loads its resources
 	void InitMiniGame(const std::string& theName, int x, int y, int theXGap, int theYGap, int theCols, int theRows,
 	                  const std::string& theLetters, bool theNoTilesWhilePaused);
-	static void LoadScripts();  // 0x4185d0
 
 	// Widget
 	void AddedToManager(WidgetManager* theWidgetManager) override;      // 0x41aba0
@@ -137,8 +136,6 @@ public:
 	void ButtonMouseEnter(int theId) override;                // 0x41dda0
 	void ButtonMouseLeave(int theId) override;                // 0x41de40
 
-	int GetGridWidth() const { return mGridWidth; }
-	int GetGridHeight() const { return mGridHeight; }
 	bool IsMiniGame() const { return mIsMiniGame; }
 	bool IsGridCell(int theCol, int theRow) const;   // 0x418dc0
 	Tile* GridGetTile(int theCol, int theRow);       // 0x418e10

@@ -82,8 +82,6 @@ public:
 	// Not bound
 	bool Contains(int theX, int theY);   // 0x4992e0: the point is in the tile (scaled about its centre); never while it slides
 	bool SlideStep();                    // 0x4995a0: one step of a slide; false when it is not sliding or has arrived
-	void Fall(int theDistance, int theDelay);  // 0x416430
-	bool IsInRow(int theRow) const { return theRow == mRow; }  // 0x416440
 	void TileXChanged(int theX);         // 0x4993e0: the tile engine's TileXChanged(tile, x)
 	void TileYChanged(int theY);         // 0x499440
 	// 0x498d60: the tile engine's script gives it another letter (ChangeLetter(tile, letter))

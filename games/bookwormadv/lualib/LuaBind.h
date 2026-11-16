@@ -289,8 +289,6 @@ public:
 		return *this;
 	}
 
-	ClassInfo* Info() const { return mInfo; }
-
 private:
 	// converts self to the class that declares the method
 	template <auto M>

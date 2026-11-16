@@ -194,13 +194,6 @@ void LuaSupport::ObjectDeleted(void* obj)
 	mObjects.erase(obj);
 }
 
-void LuaSupport::SetOwned(void* obj, bool owned)
-{
-	auto range = mObjects.equal_range(obj);
-	for (auto it = range.first; it != range.second; ++it)
-		it->second->owned = owned;
-}
-
 // 0x6cf460 (__gc): forget the userdata; an owned object is deleted with it
 int LuaSupport::GC(lua_State* L)
 {

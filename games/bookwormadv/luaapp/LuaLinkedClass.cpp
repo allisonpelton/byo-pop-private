@@ -18,11 +18,6 @@ int LuaClassRet::Int() const
 	return count > 0 && (v[0].type == TNumber || v[0].type == TInt) ? (int)v[0].num : 0;
 }
 
-double LuaClassRet::Number() const
-{
-	return count > 0 && (v[0].type == TNumber || v[0].type == TInt) ? v[0].num : 0;
-}
-
 const std::string& LuaClassRet::String() const
 {
 	return count > 0 && v[0].type == TString ? v[0].str : kNone.str;
