@@ -130,6 +130,8 @@ public:
 	int getBonusEatenCount() const { return mBonusEatenCount; }  // +0x34: and the bonus bubbles
 	const std::vector<engine::Ref<FishBase>>& getPool() const { return mPool; }
 	const std::string& getMenuImage() const { return mMenuImage; }
+	float getLevel() const { return mLevel; }  // +0x8c
+	engine::HsvShiftFilter* getColorShift() const { return mColorShift; }  // +0x1e8
 	const std::string& getClassName() const { return mClassName; }
 
 	// The fish file's elements, set while it is read (0x41d820 and the setters after it)

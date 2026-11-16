@@ -34,3 +34,17 @@ void Settings::save()
 	mKey->writeInt("MouseSensitivity", mMouseSensitivity);
 	mKey->writeString("DefaultScoreName", mDefaultScoreName);
 }
+
+// The factors of the four sensitivities (0x4331c0), and the one a value out of range gets
+const float MOUSE_SPEED_FACTORS[4] = {0.8f, 1.1f, 1.3f, 1.55f};
+const int MOUSE_SENSITIVITY_DEFAULT = 1;
+const float MOUSE_SPEED_FACTOR_DEFAULT = 1.0f;
+
+// 0x4331c0
+float Settings::getMouseSpeedFactor()
+{
+	if (mMouseSensitivity >= 0 && mMouseSensitivity < 4)
+		return MOUSE_SPEED_FACTORS[mMouseSensitivity];
+	mMouseSensitivity = MOUSE_SENSITIVITY_DEFAULT;
+	return MOUSE_SPEED_FACTOR_DEFAULT;
+}

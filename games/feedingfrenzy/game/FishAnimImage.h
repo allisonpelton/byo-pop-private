@@ -7,6 +7,7 @@
 
 #include "AnimImage.h"
 #include "ImageFilter.h"
+#include <string>
 
 namespace feedingfrenzy
 {
@@ -20,6 +21,9 @@ public:
 	// is not there yet, and added to the animation. The shift ends the way a plain load does (the first picture
 	// shows, the bounds are its bounds).
 	void loadShifted(const char* thePath, const char* theExtension, int theFirst, engine::HsvShiftFilter* theShift);
+
+	// The name a picture is kept under when the colour offset has shifted it: "<theBase>_H_<hue+180>_S_<(saturation+1)*100>_V_<(value+1)*100>"
+	static std::string getShiftedName(const std::string& theBase, const engine::HsvShiftFilter& theShift);
 };
 
 } // namespace feedingfrenzy

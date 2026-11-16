@@ -10,6 +10,7 @@
 
 #include "App.h"
 #include "FadeContainer.h"
+#include "GameSession.h"
 #include "GameStrings.h"
 #include "ScreenFader.h"
 #include "ScreenLayout.h"
@@ -52,6 +53,7 @@ public:
 	// 0x42d230: a sound of the sound bank plays
 	void playSound(const std::string& theName, float theVolume, float thePitch);
 
+	GameSession* getSession() { return &mSession; }  // 0x42beb0 (+0x58)
 	GameStrings& getStrings() { return mStrings; }  // 0x42c730's table (+0x30)
 	Settings& getSettings() { return mSettings; }   // 0x42bb40 (+0xd4)
 
@@ -102,6 +104,7 @@ private:
 	float mLogoSlideSeconds;                 // +0xc0
 	engine::Point mLogoHiddenPosition;       // +0xc4
 	engine::Point mLogoShownPosition;        // +0xcc
+	GameSession mSession;                    // +0x58: the game being played
 	Settings mSettings;                      // +0xd4
 	GameStrings mStrings;                    // +0x30
 	StageManifest mManifest;                 // +0x1ec, +0x1fc, +0x214

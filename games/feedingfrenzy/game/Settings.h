@@ -26,6 +26,9 @@ public:
 	void setDefaultScoreName(const std::string& theName) { mDefaultScoreName = theName; }  // 0x433960
 	int getMouseSensitivity() const { return mMouseSensitivity; }                          // 0x433210 (+0x20)
 	void setMouseSensitivity(int theSensitivity) { mMouseSensitivity = theSensitivity; }   // 0x433170
+	// 0x4331c0: how much faster the player's fish swims for the sensitivity (0.8, 1.1, 1.3 and 1.55); a value out of range
+	// is put back to 1
+	float getMouseSpeedFactor();
 
 private:
 	bool mTipsEnabled;              // +0x03

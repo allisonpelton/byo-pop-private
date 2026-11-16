@@ -25,7 +25,10 @@ def read_double(va):
 
 
 def read_string(va):
-    data = FN.read_exe(va, 48).split(b'\0')[0]
+    data = FN.read_exe(va, 48)
+    if data is None:
+        return None
+    data = data.split(bytes([0]))[0]
     if len(data) >= 2 and all(32 <= c < 127 or c in (9, 10, 13) for c in data):
         return data.decode('ascii')
     return None

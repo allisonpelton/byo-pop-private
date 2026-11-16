@@ -31,26 +31,32 @@ void FishAnimImage::loadShifted(const char* thePath, const char* theExtension, i
 	while (true)
 	{
 		char aFileName[512];
-		char aShiftedName[512];
 		snprintf(aFileName, sizeof(aFileName), "%s%d%s", thePath, aNumber, anExtension);
 		aNumber++;
-		float aSaturationPart = std::fabs((theShift->getSaturation() + SHIFT_NAME_OFFSET) * SHIFT_NAME_SCALE);
-		float aHuePart = std::fabs(theShift->getHue() + HUE_NAME_OFFSET);
-		float aValuePart = std::fabs((theShift->getValue() + SHIFT_NAME_OFFSET) * SHIFT_NAME_SCALE);
-		snprintf(aShiftedName, sizeof(aShiftedName), "%s%d_H_%d_S_%d_V_%d", thePath, aNumber, (int)aHuePart,
-			(int)aSaturationPart, (int)aValuePart);
-		engine::Image* anImage = anApp->findImage(aShiftedName);
+		std::string aShiftedName = getShiftedName(std::string(thePath) + std::to_string(aNumber), *theShift);
+		engine::Image* anImage = anApp->findImage(aShiftedName.c_str());
 		if (anImage == nullptr)
 		{
 			if (!anApp->exists(aFileName))
 				break;
 			anImage = anApp->createImage(aFileName, false);
 			anImage->applyFilter(*theShift);
-			anApp->addImage(aShiftedName, anImage);
+			anApp->addImage(aShiftedName.c_str(), anImage);
 		}
 		engine::ImageNode* aNode = new engine::ImageNode(anImage);
 		aNode->layout();
 		addChild(aNode);
 	}
 	finishLoading();
+}
+
+// 0x41a6b0 and 0x40bf00: the parts are whole numbers, and each can come out negative before its absolute value
+std::string FishAnimImage::getShiftedName(const std::string& theBase, const engine::HsvShiftFilter& theShift)
+{
+	float aSaturationPart = std::fabs((theShift.getSaturation() + SHIFT_NAME_OFFSET) * SHIFT_NAME_SCALE);
+	float aHuePart = std::fabs(theShift.getHue() + HUE_NAME_OFFSET);
+	float aValuePart = std::fabs((theShift.getValue() + SHIFT_NAME_OFFSET) * SHIFT_NAME_SCALE);
+	char aSuffix[64];
+	snprintf(aSuffix, sizeof(aSuffix), "_H_%d_S_%d_V_%d", (int)aHuePart, (int)aSaturationPart, (int)aValuePart);
+	return theBase + aSuffix;
 }
