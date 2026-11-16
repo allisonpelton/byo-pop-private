@@ -109,6 +109,20 @@ it green.
   harness offset. Not found within the hour: where the original loses the update between the click and the first step
   (to see it: the case `after-6.5`, `drawwin.py` around +615; what it would take: the original's button and focus path
   for the Scramble button, from the click to `Board::Scramble`).
+- **After a Scramble, the Year of the Rooster's attack hurts Lex in the port and not in the original** (chapter 5.3,
+  2026-11-16). Lex scrambles (the case's input at replay update 14168), which passes the turn, and the Rooster attacks.
+  In the port its attack animation's `causeDamage` command (frame 141 or 176 of `4YearRooster.pam`) reaches
+  `PAMAttackWrapper:UpdateAttack` at 14287, which runs `PerformAttack` for each of the attack's five effects (ten
+  script draws, `DefendBaseClass` and `PlayAttackSound`, and 64 more from C++), and Lex goes from 8 to 6.25. The
+  original makes no draw at all from the scramble's last step to well past the turn, its attack state ends 47 updates
+  sooner, and at the following companion turn the Cheshire Cat (who purifies Lex when `CanPurify` or
+  `GridNeedsPurification`, every fourth turn) does nothing, where the port's purifies for 257 updates. The companion
+  was a consequence: both programs count the same four companion turns. The draws inside the battle agree up to the
+  attack, the scramble's steps keep the one-update lag of the 6.5 oddity, and nothing in the Lua differs (the same
+  scripts run). Not found within the hour: why the original's attack never reaches `PerformAttack` (to see it: the
+  case `after-5.3`, the `lua` script command in the replay around 14280; what it would take: Lex's health and the
+  Rooster's `mCurrentAttack` and its `mAnim.mMessageMap` read from the original's memory during the attack, or its
+  lua.log with a print in `UpdateAttack`, to tell a damage message that never came from one that was skipped).
 - **The original's draws before a battle varied between runs until 2026-11-15** because this worktree's ignored
   `tools/origrun/patches/bookwormadv2.txt` had lost its reseed lines (the battle engine's and the mini-game's); the
   chapter batch before then compared against an unseeded original, and is rerun.
@@ -207,9 +221,9 @@ once (`JOBS`, 51 minutes for the 20; one at a time a case takes five to six). Of
   of an attack (state 3 to 5, 7 or 9) and closes at the next input. It is the original's own variance: `after-6.2` had
   such a gap in one run and none in the next, with the same port and the same input. Not a difference of the port.
 - **A real difference** (3):
-  - `after-5.3`: after a scramble and the enemy's attack, the port's companion turn (state 10) lasts 257 updates (the
-    bot clicks through it) and the original's one update; the enemy's attack before it is 48 updates longer in the
-    port. The companion's power acts every 4 turns, so a turn count that differs is the lead. Open.
+  - `after-5.3`: after a scramble, the enemy's attack hurts Lex in the port and not in the original, so the port's
+    attack runs 47 updates longer and its companion then purifies Lex (257 updates) where the original's does
+    nothing. An oddity (Oddities); the companion's turn count is the same in both.
   - `after-5.4`: on MOZARAB against Broken Brother (lightly armored, burning, a flinch defense), Lex at 5.5 health, the
     port's word takes the enemy from 3.5 to 0.5 and the turn passes; the original's Lex dies during that attack (state
     7, 251 updates in). The draws agree up to the attack. Open.
