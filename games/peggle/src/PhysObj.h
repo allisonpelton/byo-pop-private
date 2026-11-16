@@ -62,6 +62,7 @@ public:
 	virtual void DrawShadow(Graphics* g) {}			// 24
 	virtual void Draw(Graphics* g) {}				// 25
 	virtual void DrawLight(Graphics* g) {}			// 26, 0x479b70 (PegInfo::DrawLight; to be translated with the drawing)
+	virtual void AddedToGame() {}					// 27, 0x52a680: the piece has been put in the board's lists (Ball's is 0x477070)
 	virtual void NotifyCollision() {}				// 28
 	virtual void GetCenter(float* theCenter) const; // 29, 0x476a00
 	virtual float GetXPos() const;					// 30, 0x47d350

@@ -191,6 +191,42 @@ public:
 		}
 	}
 
+	// 0x4067c0: the same for a class that has subclasses: after the code 1 comes the number of the object's class (its GetClass),
+	// from which theFactory makes the object when it is read. Whatever theFactory makes counts as numbered before it is read.
+	template <typename T, typename FactoryType>
+	void SyncSharedPolymorphic(SharedPtr<T>& theObject, FactoryType theFactory)
+	{
+		if (mReading)
+		{
+			int aCode = 0;
+			SyncLong(aCode);
+			if (aCode == 0)
+				theObject = nullptr;
+			else if (aCode == 1)
+			{
+				int aClass = 0;
+				SyncLong(aClass);
+				T* aNew = theFactory(aClass);
+				theObject = aNew;
+				RegisterObject(aNew);
+				aNew->SyncState(*this);
+			}
+			else
+				theObject = (T*)FindObject(aCode);
+		}
+		else
+		{
+			int aCode = RegisterObject(theObject);
+			SyncLong(aCode);
+			if (aCode == 1)
+			{
+				int aClass = theObject->GetClass();
+				SyncLong(aClass);
+				theObject->SyncState(*this);
+			}
+		}
+	}
+
 	int mVersion; // the file format version a Sync function may test (0x48)
 
 private:
