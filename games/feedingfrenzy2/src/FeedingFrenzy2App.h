@@ -15,19 +15,26 @@
 namespace engine
 {
 class EngineImpl;
+class Surface;
 }
 
 namespace Sexy
 {
 
+class MemoryImage;
+
 class FeedingFrenzy2Widget : public Widget
 {
 public:
 	uint64_t mNextFrame;  // the run loop's time for the next frame, in the engine's ticks
+	// The screen as the framework draws it: the display's pixels copied after each frame
+	MemoryImage* mScreenImage;
 
 	FeedingFrenzy2Widget();
+	~FeedingFrenzy2Widget() override;
 
 	void Update() override;
+	void Draw(Graphics* g) override;
 };
 
 class FeedingFrenzy2App : public SexyAppBase
@@ -35,8 +42,11 @@ class FeedingFrenzy2App : public SexyAppBase
 public:
 	FeedingFrenzy2Widget* mWidget;
 	engine::EngineImpl* mEngine;
+	// The display's back buffer, which each frame is drawn into (the engine's +0x2a4, a DirectDraw surface)
+	engine::Surface* mDisplay;
 	bool mEngineRunning;
 	int mFrames;  // port: the engine's frames
+	uint64_t mLastFrameTicks;  // the clock when the last frame began (the engine's +0x2c8)
 
 	FeedingFrenzy2App();
 	~FeedingFrenzy2App() override;

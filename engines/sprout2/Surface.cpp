@@ -233,4 +233,16 @@ void Surface::premultiplyAlpha()
 	}
 }
 
+void Surface::fill(const Color& theColor)
+{
+	// The x87 multiplies at double precision and truncates; a channel above 1 keeps its low byte
+	uint32_t aRed = (uint32_t)(int)((double)theColor.r * 255.0) & 0xff;
+	uint32_t aGreen = (uint32_t)(int)((double)theColor.g * 255.0) & 0xff;
+	uint32_t aBlue = (uint32_t)(int)((double)theColor.b * 255.0) & 0xff;
+	uint32_t anAlpha = (uint32_t)(int)((double)theColor.a * 255.0) & 0xff;
+	uint32_t aPixel = anAlpha << 24 | aRed << 16 | aGreen << 8 | aBlue;
+	for (uint32_t& aTarget : mPixels)
+		aTarget = aPixel;
+}
+
 } // namespace engine

@@ -1,7 +1,11 @@
 // port: the host for Feeding Frenzy 2 (see FeedingFrenzy2App.h).
 
 #include "FeedingFrenzy2App.h"
+#include "DXDrawContext.h"
 #include "EngineImpl.h"
+#include "Graphics.h"
+#include "MemoryImage.h"
+#include "Surface.h"
 #include "WidgetManager.h"
 
 using namespace Sexy;
@@ -21,6 +25,15 @@ const int FRAME_RATE = 60;
 
 FeedingFrenzy2Widget::FeedingFrenzy2Widget() : mNextFrame(0)
 {
+	mScreenImage = new MemoryImage(gApp);
+	mScreenImage->Create(SCREEN_WIDTH, SCREEN_HEIGHT);
+	mScreenImage->SetImageMode(false, false);
+	mScreenImage->mUploadAsIs = true;
+}
+
+FeedingFrenzy2Widget::~FeedingFrenzy2Widget()
+{
+	delete mScreenImage;
 }
 
 // The run loop (0x4383b0 (feedingfrenzy2)): a frame runs once the clock passes the time the last one set, else the
@@ -46,6 +59,11 @@ void FeedingFrenzy2Widget::Update()
 	gApp->RunFrame();
 }
 
+void FeedingFrenzy2Widget::Draw(Graphics* g)
+{
+	g->DrawImage(mScreenImage, 0, 0);
+}
+
 FeedingFrenzy2App::FeedingFrenzy2App()
 {
 	gApp = this;
@@ -55,8 +73,10 @@ FeedingFrenzy2App::FeedingFrenzy2App()
 	mHeight = SCREEN_HEIGHT;
 	mWidget = nullptr;
 	mEngine = nullptr;
+	mDisplay = nullptr;
 	mEngineRunning = false;
 	mFrames = 0;
+	mLastFrameTicks = 0;
 }
 
 FeedingFrenzy2App::~FeedingFrenzy2App()
@@ -66,6 +86,8 @@ FeedingFrenzy2App::~FeedingFrenzy2App()
 		mWidgetManager->RemoveWidget(mWidget);
 		delete mWidget;
 	}
+	if (mDisplay != nullptr)
+		mDisplay->release();
 	delete mEngine;
 }
 
@@ -85,16 +107,43 @@ void FeedingFrenzy2App::Init()
 	mWidgetManager->SetFocus(mWidget);
 	mEngine = new engine::EngineImpl(SCREEN_WIDTH, SCREEN_HEIGHT);
 	mEngine->setVirtualClock(mFastMode);
+	mDisplay = new engine::Surface();
+	mDisplay->addRef();
+	mDisplay->allocate(SCREEN_WIDTH, SCREEN_HEIGHT);
+	mLastFrameTicks = mEngine->getTicks();
 	mEngineRunning = true;
 }
 
 void FeedingFrenzy2App::RunFrame()
 {
+	uint64_t aFrameStart = mEngine->getTicks();
 	engine::UpdateContext aContext;
+	float aTicks = (float)(int64_t)(aFrameStart - mLastFrameTicks);
+	aContext.mElapsed = engine::minOf(0.33f, aTicks / (float)mEngine->getTicksPerSecond());
 	aContext.mFrame = (uint64_t)mFrames;
 	aContext.mDetailLevel = mEngine->getDetailLevel();
 	mFrames++;
+	// (the sound's update, 0x42b8c0 (feedingfrenzy2), comes here with the sound)
 	mEngine->mUpdateSignal.emit(&aContext);
+
+	// The frame drawn into the display through a context whose first state is at the origin, unscaled and opaque;
+	// the original draws and presents only while the display is ready (DirectDraw's surface not lost)
+	{
+		engine::DXDrawContext aDrawContext(mDisplay);
+		aDrawContext.pushState(engine::DrawState());
+		aDrawContext.setDetailLevel(mEngine->getDetailLevel());
+		mEngine->mDrawSignal.emit(&aDrawContext);
+	}
+	// The display's slot 0x14, its flip: port: the pixels copied to the framework's screen image, opaque as the
+	// display's back buffer is
+	const uint32_t* aSource = mDisplay->getPixels();
+	uint32_t* aTarget = (uint32_t*)mWidget->mScreenImage->GetBits();
+	for (int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++)
+		aTarget[i] = aSource[i] | 0xff000000;
+	mWidget->mScreenImage->BitsChanged();
+	mWidget->MarkDirty();
+	mLastFrameTicks = aFrameStart;
+
 	if (mEngine->mQuitRequested)
 		Shutdown();
 }

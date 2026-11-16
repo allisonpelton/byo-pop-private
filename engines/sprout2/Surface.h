@@ -64,6 +64,8 @@ public:
 		mBlendFlag = theBlendFlag;
 	}
 	int getBlendMode() const { return mBlendMode; }
+	// 0x30 (0x427110 (feedingfrenzy2)): every pixel set to the colour, each channel times 255 truncated
+	void fill(const Color& theColor);
 
 	// The pixels, ARGB, row after row (the object's +0x60 (feedingfrenzy2))
 	uint32_t* getPixels() { return mPixels.data(); }

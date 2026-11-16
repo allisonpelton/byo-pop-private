@@ -64,9 +64,8 @@ void Container::paint(DrawContext* theContext)
 		theContext->pushState();
 		aChild->applyTransform(theContext);
 		aChild->paint(theContext);
+		// The original has popState's work written out here
 		theContext->popState();
-		if (theContext->back().mClipCount != theContext->getClipCount())
-			theContext->restoreClips(theContext->back().mClipCount);
 	}
 }
 

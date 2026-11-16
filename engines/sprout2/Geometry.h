@@ -65,6 +65,15 @@ inline T maxOf(T a, T b)
 	return b > a ? b : a;
 }
 
+// 0x46c8e0 (feedingfrenzy2): the two closer than 2^-22, their difference rounded to a float first
+inline bool nearlyEqual(float a, float b)
+{
+	float aDifference = (float)((double)a - (double)b);
+	if (aDifference < 0.0f)
+		aDifference = -aDifference;
+	return 2.384185791015625e-07f > aDifference;
+}
+
 // 0x42b890 (feedingfrenzy2): the value held between the two bounds
 template <class T>
 inline T clampOf(T theValue, T theLow, T theHigh)

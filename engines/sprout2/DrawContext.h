@@ -4,7 +4,8 @@
 // The draw context: what a frame's drawing goes through (engine::DrawContext, vtable 0x55ff3c (feedingfrenzy2); its
 // Windows implementation dxdriver::DXDrawContext draws into a surface with the engine's own blitters). It keeps a stack
 // of states, the transform and the look that a component passes on to its children (Component::applyTransform), and
-// a stack of clip rectangles.
+// a stack of clip rectangles, each adding to, cutting down or taking from the region the ones below it leave; an image
+// is drawn only inside that region (or anywhere on the target while the stack is empty).
 
 #include "Font.h"
 #include "Geometry.h"
@@ -51,6 +52,14 @@ enum TextAlignV
 	TEXT_ALIGN_BOTTOM = 2
 };
 
+// How a clip rectangle changes the region the ones below it leave (the clip stack entry's +0x10)
+enum ClipOp
+{
+	CLIP_ADD = 0,         // the rectangle added to the region
+	CLIP_INTERSECT = 1,   // the region cut down to the rectangle (the rectangle itself when the region is empty)
+	CLIP_SUBTRACT = 2     // the rectangle taken out of the region
+};
+
 // A state of the stack (0x38 bytes in the original)
 struct DrawState
 {
@@ -94,18 +103,20 @@ public:
 	virtual void drawText(const char* theText);
 	// 0x14 (0x4ff716 (feedingfrenzy2)): one character at the state's origin
 	virtual void drawChar(char theChar);
-	// 0x18 (0x513cd5 (feedingfrenzy2)): a rectangle filled with the state's colour
-	virtual void fillRect(const RectI& theRect) = 0;
-	// 0x1c (DXDrawContext's 0x507b7d (feedingfrenzy2)): a rectangle of the size, truncated, at the state's origin
-	virtual void fillRect(float theWidth, float theHeight);
-	// 0x20 (0x44ef30 (feedingfrenzy2)): a rectangle's outline in the state's colour
+	// 0x18 (0x513cd5 (feedingfrenzy2)): a rectangle's outline in the state's colour
 	virtual void drawRect(const RectI& theRect) = 0;
-	// 0x24 (DXDrawContext's 0x45fbd0 (feedingfrenzy2)): an outline of the size, truncated, at the state's origin
+	// 0x1c (DXDrawContext's 0x507b7d (feedingfrenzy2)): an outline of the size, truncated, at the state's origin
 	virtual void drawRect(float theWidth, float theHeight);
+	// 0x20 (0x44ef30 (feedingfrenzy2)): a rectangle filled with the state's colour
+	virtual void fillRect(const RectI& theRect) = 0;
+	// 0x24 (DXDrawContext's 0x45fbd0 (feedingfrenzy2)): a rectangle of the size, truncated, at the state's origin
+	virtual void fillRect(float theWidth, float theHeight);
 	// 0x28 (0x46c520 (feedingfrenzy2)): a line in the state's colour
 	virtual void drawLine(const Vector2f& theFrom, const Vector2f& theTo) = 0;
 	// 0x2c (0x51b5c8 (feedingfrenzy2)): a circle's outline in the state's colour
 	virtual void drawCircle(const Vector2f& theCenter, float theRadius) = 0;
+	// 0x30 (0x435990 (feedingfrenzy2)): each pixel of the target, inside the clip region, darkened by its own alpha
+	virtual void darkenByAlpha() = 0;
 	// 0x34 (DXDrawContext's 0x513cb9 (feedingfrenzy2)): the target filled with the state's colour
 	virtual void clear() = 0;
 
@@ -115,16 +126,36 @@ public:
 	void pushState(const DrawState& theState) { mStates.push_back(theState); }
 	// Container::paint (0x443850 (feedingfrenzy2)): a copy of the state on top
 	void pushState() { mStates.push_back(mStates.back()); }
-	void popState() { mStates.pop_back(); }
+	// 0x435530 (feedingfrenzy2): the state on top removed, and the clips cut back to the count the one below had
+	void popState();
 
-	// The clip stack (0x14-byte entries in the original, a rectangle and a field not yet seen read)
+	// 0x45fb60 (feedingfrenzy2): a rectangle, unless empty, added to the clip stack with how it changes the region the
+	// ones below leave; the state on top then keeps the stack's new size
+	void pushClip(const RectI& theRect, ClipOp theOp);
 	int getClipCount() const { return (int)mClips.size(); }
-	// 0x46ccd0 (feedingfrenzy2): the clip stack cut back to the count a state had
+	// 0x46ccd0 (feedingfrenzy2), with the region's clearing (0x41d2c0 (feedingfrenzy2)) its callers follow it with:
+	// the clip stack cut back to the count a state had
 	void restoreClips(int theCount);
+	// 0x430b40 (feedingfrenzy2): the region the clip stack leaves, as rectangles that do not overlap, built when the
+	// stack has changed (and again while it is empty)
+	const std::vector<RectI>& getClipRegion();
+
+	// The engine's detail level when the frame began (the frame copies the engine's +0x2a0 into it)
+	int getDetailLevel() const { return mDetailLevel; }
+	void setDetailLevel(int theDetailLevel) { mDetailLevel = theDetailLevel; }
 
 protected:
-	std::vector<RectI> mClips;        // +0x0c
-	std::vector<DrawState> mStates;   // +0x38
+	// An entry of the clip stack (0x14 bytes in the original)
+	struct Clip
+	{
+		RectI mRect;
+		ClipOp mOp;
+	};
+
+	int mDetailLevel;                  // +0x08
+	std::vector<Clip> mClips;          // +0x0c
+	std::vector<RectI> mClipRegion;    // +0x18 (a std::list in the original)
+	std::vector<DrawState> mStates;    // +0x38
 };
 
 } // namespace engine

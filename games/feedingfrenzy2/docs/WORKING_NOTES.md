@@ -74,10 +74,41 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   palette with tRNS (`_infoframe`) and RGBA ones, whose alpha is the mask's alpha. libpng's rgb_to_gray weights
   (6968, 23434, 2366) give a grey pixel its own value, so its gamma tables never matter for the game's masks.
 
+## Drawing
+
+- A frame (0x438700) builds the update context (elapsed seconds at most 0.33, the frame number, the detail level),
+  emits the update signal, then draws into the display through a DXDrawContext whose first state is at the origin,
+  unscaled, opaque and black, emits the draw signal and flips. The port copies the display to the framework's screen
+  image, opaque.
+- DXDrawContext's slots: 0x00 an image, 0x18 an outline (0x513cd5), 0x20 a fill (0x44ef30), 0x28 a line, 0x2c a
+  circle, 0x30 each pixel darkened by its own alpha (over the clip region), 0x34 the target filled with the colour
+  (the surface's slot 0x30). Fills, outlines, lines and circles add the state's position truncated (no scale), stop at
+  the target's edges and ignore the clip region; a line or circle not wholly on the target is not drawn.
+- Colours become bytes by truncating channel * 255 at double precision (the low byte kept). The colour blend copies an
+  opaque colour and otherwise adds the colour to the target scaled by 255 - alpha (t = d * (255 - a) + 0x80,
+  (t + (t >> 8)) >> 8, saturated); below full opacity every byte of the colour is first scaled by the opacity byte
+  (0x48ca50 makes 255 into 0x101).
+- An image: the position plus the state's, floored (0x43f520, the CRT's floor) in the snapped filter mode; nothing at
+  opacity 0 or a scale of 0. Then by the colour mode (multiply 0x440910, pixel effect 0x418190, add 0x4609d0) or, with
+  none, by the image's blend mode: 3 0x44cfd0, 2 at full opacity (|o - 1| < 2^-22) 0x441810, 2 or below full opacity
+  0x442740, 1 0x539fb7, else 0x452450 (0x44fc40 when the image's slot 0x28 says 4). Each blitter runs once per
+  rectangle of the clip region, or once over the target when the clip stack is empty.
+- The clip stack (0x45fb60, used by MaskContainer and 0x52004a) holds rectangles that add to, intersect or subtract
+  from the region the ones below leave; the region is rebuilt when the stack changes.
+- Translated exactly so far: the dispatch, the unrotated geometry, the unscaled alpha blend at whole pixels (0x444ec0),
+  the fills, outlines, lines and circles. The scaled, rotated, sub-pixel, multiply, add, pixel effect, colour key and
+  mode 3 blitters are drawn by a plain sampler until the looks pass.
+- Original bug (Oddities when it matters): the outline blitters' first blended pixel of each edge goes through a stale
+  pointer (the top row's into the lock structure's width), so a translucent outline at full opacity would corrupt
+  memory; the game is not seen drawing one. The circle may write one pixel past the target's right or bottom edge.
+
 ## Done
 
 - `engines/sprout2`: objects and references, sigslot, streams, the archive and resource manager, the engine's
   file, XML, image and font slots, components and containers, the draw context's state stack and text, fonts,
   surfaces with their loader and masks, the XML parser and its parameters. `host/` has EngineImpl (the disk files,
   the log, the clock).
-- `games/feedingfrenzy2/src`: the app skeleton (a window, the engine made, frames run on the clock; nothing drawn yet).
+- `engines/sprout2`: the draw context's clip stack and region; DXDrawContext with its fills, outlines, lines, circles
+  and images (the first-draft sampler where noted).
+- `games/feedingfrenzy2/src`: the app skeleton (a window, the engine made, frames run on the clock, each drawn into
+  the display and shown; nothing connected to the draw signal yet).
