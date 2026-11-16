@@ -1,0 +1,26 @@
+# the screens of case look1 (seed 1, the bot's first 500 moves from a first launch): frame, picture name
+20 splash1
+45 splash2
+70 menu_first
+110 name_dialog
+135 name_typed
+170 menu_player
+230 story
+262 game_start
+300 game_tip
+600 game_600
+1500 game_1500
+2150 game_end1
+2200 summary1
+2240 summary1_late
+2300 level2_start
+4815 summary2
+4860 story2
+4920 bonus_start
+5500 bonus_5500
+6250 summary_bonus
+6300 story3
+6370 new_topping
+6430 level_start
+6500 city2_start
+7000 game_7000

@@ -8,7 +8,8 @@
 # 3. The original plays the same input (toorig.py) on the same seed, watching four values a run, and cmp.py compares
 #    each with the port's log, change by change with the frame each came at. A last run peeks the random state at
 #    every update, and randseq.py compares the order of its values.
-# FIELDS=<name,...> picks the values; INPUT=<file> plays a given input file instead of recording one (step 1 skipped).
+# FIELDS=<name,...> picks the values; INPUT=<file> plays a given input file instead of recording one (step 1 skipped);
+# RECORD_ONLY=1 stops after step 2 (shots.sh takes the input and the state log from there).
 # Prints one line per value; exits 1 when one differs.
 source "$(dirname "$0")/common.sh"
 N="$1"; SEED="$2"; MOVES="$3"; shift 3
@@ -37,6 +38,8 @@ fi
 	> /dev/null
 # the replay should be the bot's game: their random states' values in the same order
 [ -f "$D/bot/state.txt" ] && python -I "$TOOLS/follows.py" "$D/bot/state.txt" "$D/state.txt"
+# RECORD_ONLY=1 stops here: the input and the port's state log, for shots.sh
+[ -n "$RECORD_ONLY" ] && exit 0
 python -I "$TOOLS/toorig.py" "$D/input.txt" > "$D/orig.txt" || exit 1
 QUIT=$(tail -1 "$D/input.txt" | cut -d" " -f1)
 # the game's values are compared from the frame the port's first level starts (the stats are made)
