@@ -210,6 +210,7 @@ void UserSelectionDialog::MouseDrag(int x, int y)
 		Dialog::MouseDrag(x, y);
 }
 
+// 0x6c5fc0
 void UserSelectionDialog::MouseDown(int x, int y, int theClickCount)
 {
 	Dialog::MouseDown(x, y, theClickCount);

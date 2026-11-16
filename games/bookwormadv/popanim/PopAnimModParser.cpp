@@ -99,10 +99,10 @@ static void HueShiftImage(MemoryImage* theImage, int theShift)
 	int aCount = theImage->mHeight * theImage->mWidth;
 	ulong* aBits = theImage->GetBits();
 	for (int i = 0; i < aCount; i++) {
-		unsigned int p = (unsigned int)aBits[i];
-		int aR = (p >> 16) & 0xff;
-		int aG = (p >> 8) & 0xff;
-		int aB = p & 0xff;
+		unsigned int aPixel = (unsigned int)aBits[i];
+		int aR = (aPixel >> 16) & 0xff;
+		int aG = (aPixel >> 8) & 0xff;
+		int aB = aPixel & 0xff;
 		int aMax = std::max(aR, std::max(aG, aB));
 		int aMin = std::min(aR, std::min(aG, aB));
 		int aLight = (aMax + aMin) / 2;
@@ -124,24 +124,24 @@ static void HueShiftImage(MemoryImage* theImage, int theShift)
 		if (aHue >= 0x100)
 			aHue -= 0x100;
 
-		// back to red, green and blue: q the larger of the pixel's parts, p the smaller, and the third between
-		int q = aLight < 0x80 ? ((aSat + 0xff) * aLight) / 255 : aLight - (aLight * aSat) / 255 + aSat;
-		int lo = 2 * aLight - q;
+		// back to red, green and blue: aHigh the larger of the pixel's parts, lo the smaller, and the third between
+		int aHigh = aLight < 0x80 ? ((aSat + 0xff) * aLight) / 255 : aLight - (aLight * aSat) / 255 + aSat;
+		int lo = 2 * aLight - aHigh;
 		int aSextant = (6 * aHue + (aHue < 0 ? 0xff : 0)) >> 8;
 		int aFrac = 6 * (aHue - ((aSextant << 8) / 6));
-		double d = (double)aFrac * (double)(q - lo) / 255.0;
+		double d = (double)aFrac * (double)(aHigh - lo) / 255.0;
 		int aUp = std::min((int)(lo + d), 255);
-		int aDown = std::max((int)(q - d), 0);
+		int aDown = std::max((int)(aHigh - d), 0);
 		int r, g, b;
 		switch (aSextant) {
-			case 1: r = aDown; g = q; b = lo; break;
-			case 2: r = lo; g = q; b = aUp; break;
-			case 3: r = lo; g = aDown; b = q; break;
-			case 4: r = aUp; g = lo; b = q; break;
-			case 5: r = q; g = lo; b = aDown; break;
-			default: r = q; g = aUp; b = lo; break;
+			case 1: r = aDown; g = aHigh; b = lo; break;
+			case 2: r = lo; g = aHigh; b = aUp; break;
+			case 3: r = lo; g = aDown; b = aHigh; break;
+			case 4: r = aUp; g = lo; b = aHigh; break;
+			case 5: r = aHigh; g = lo; b = aDown; break;
+			default: r = aHigh; g = aUp; b = lo; break;
 		}
-		aBits[i] = (p & 0xff000000) | ((unsigned int)r << 16) | ((unsigned int)g << 8) | (unsigned int)b;
+		aBits[i] = (aPixel & 0xff000000) | ((unsigned int)r << 16) | ((unsigned int)g << 8) | (unsigned int)b;
 	}
 	theImage->BitsChanged();
 }

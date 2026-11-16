@@ -495,6 +495,103 @@ only ends the panel (`arena`'s steps click the colosseum twice); the original wa
 **Cost.** The original's runs took about 40 minutes of machine time, the port's step-by-step plays (each step a run
 of the port from the start) about two hours, and the sorting about 30 minutes of Sonnet agents.
 
+## Unneeded code (2026-11-16)
+
+What nothing reaches was found two ways. First the linker: an -O0 build of the game alone in `build/gc`, compiled
+with `-ffunction-sections -fdata-sections` and linked with `-Wl,--gc-sections -Wl,--verbose` (docs/COVERAGE.md), whose
+"Discarded" lines `tools/coverage/gcdead.py` matches against the functions each of the game's own objects defines.
+Second, a function defined inline in a header that nothing calls is never compiled, so the linker never sees it;
+`tools/coverage/inlinedead.py` lists every inline member whose name no other line of the game's sources uses. Each
+candidate was then read against the export (its callers, its vtable slots, `bindings.txt`) before it went, and has a
+`none` line in `coverage.txt` with the reason. A second linker run after the cuts found nothing more in the game's code.
+
+Taken out: `Board::LoadScripts` (0x4185d0, a developer's reload of the scripts, with no caller); the conversation
+panel's `Deactivate` (0x4320b0, whose only caller was the trial's buy screen, already out) and
+`SetAllContinueTextColors` (0x432cb0, a vtable slot nothing calls and no script binding names); `Tile::Fall` and
+`Tile::IsInRow`, `TileEngine::DrawTiles` (no caller in the original either), `Board::GetGridWidth` and `GetGridHeight`;
+`ExtractResourcesByName` (0x4aead0, no caller) and the MiniGameCommon group's globals and their Extract function, which
+no C++ code reads (the mini-games' scripts take those pictures from the resource manager), now left out by
+`tools/resgen.py` so that `Res.h` and `Res.cpp` stay generated; 19 of `JeffLib::Animator`'s virtuals (the other draws,
+the tints, ranges, direction, random order, the frame setters) and its copying, now deleted, since the one Animator in
+the game (a conversation portrait) only loops; `BonusText`'s second constructor (0x6c4820); `DataDrivenClass::Reload`
+(0x6b3e50) with the two virtuals only it called and the credits' versions of them, and the file name it kept for it;
+`LuaResourceManager`'s three lookups (0x65d500, 0x65d580, 0x65d5f0: the port's `LuaApp` bindings look resources up
+themselves), `LuaApp::LuaAppHook` (an empty slot), `LuaSupport::SetOwned`, `LuaClassRet::Number`,
+`LuaLinkedClass::GetLinkedObject` and `Class<T>::Info`.
+
+Kept. `Animator::Update` and its draw colour, and `BonusText::Update`, keep the original's branches for what only the
+removed functions turned on (ping-pong, ranges, reverse and random order, tints, a target height): each is one function
+of the original translated whole, and taking its branches apart would rewrite it rather than take code out. The 21
+functions of PopLua the linker lists (`lua_dofile`, `luaL_ref`, `lua_equal` and the like, and the host hooks
+`poplua_setprint` and `poplua_setcwd`) are Lua's C API in PopCap's fork, kept whole as a library, as the C runtime is.
+The compiler stays too, since the loader compiles a `.lua` that is newer than its `.luc`, as the original's does, so a
+player's file reaches it, and so do the script-facing functions that the coverage review found no script calling
+(`LoadResGroup`, the Lua widgets' forwarders, `string.rep` and the rest): a script can call them, and they are what a
+script mod has to work with.
+
+## Readability (2026-11-16)
+
+The pass followed `docs/CODE_STANDARDS.md`. `namecheck.txt` now brings `jefflib/`, `luaapp/`, `lualib/` and `popanim/` into the
+check beside `src/`; `poplua/` stays out, as PopCap's fork of Lua 5.0.2 in Lua's own names and style, kept as a library. The
+first run found 248 things; `tools/namecheck.py games/bookwormadv` now finds none.
+
+**Fields.** The fields nothing reads came out where nothing depends on them: BattleEngine's +0x34, the tile's +0x80, the board's
++0xe5 and its two strings at +0x130 and +0x14c (copied and cleared, never read), the stats book list's +0x138, and the
+Animator's four unknowns (+0x2c, +0x30, +0x98, +0x99, read only by its copying, which is gone). Two were read and got names:
+the board's `mIgnoreUnpauseClick` (+0xe9) and `mLastSpacePauseTime` (+0x10c). The flag that the scripts pass to a new tile and
+an arrow hint, and that nothing uses, is `theIgnoredFlag`: the scripts' own `CreateLinkedObject` takes two arguments and drops
+the third. `tools/splitfields.py` listed 15 fields written and never read. Fourteen now say in their comment that nothing reads
+them, and one, the credits' animation id, is read after all, as the id each new animation takes. It also listed 20 members
+that one of the original's functions touches and its translation never names. Every one is a pairing of the wrong
+function with an address mentioned in a comment, or an offset through a base class (Draw and Update see the object 0x28
+on): none is a difference in what the port does.
+
+**Addresses.** 184 functions had neither an address nor a `port:` marker. About 105 got their address. The Lua bindings
+took theirs from `bindings.txt`, the rest came from the export, and `F_Rand` (0x66d4b0) came from the disassembly, since the
+export does not show the pointer its registration passes. About 80 are the port's own, mostly helpers that read a Lua
+call's arguments and the curtains' callbacks, and say `port:`, naming the original function they come from where there
+is one. `GameText.cpp` is the port's in its first comment. 28 one-letter names that ran over ten lines were renamed
+(`aPanel`, `aSupport`, `aTransform`, ...).
+
+**Proof.** The field cuts by the suite's frozen baseline (identical). The addresses, the comments and the renames by the
+object code: `tools/objsnap.py` found the game's 94 objects and 4,895 functions the same before and after.
+
+## The PopCap Game Collection version (2026-11-16)
+
+The port was made from the retail install (`C:/Program Files (x86)/PopCap Games/Bookworm Adventures Deluxe`), so it is
+checked against the game on the PopCap Game Collection disc (`docs/COORDINATION.md`).
+
+**Getting the files.** `unshield` (`E:\retools\unshield-build`) read the group `BookwormAdventuresDeluxeComponent` out of the
+disc image's cabinet, which was mounted read-only and dismounted afterwards. That gave 13 files, 33 MB. They were deleted once
+this was written; to bring them back, make a folder, enter it and run `unshield -g BookwormAdventuresDeluxeComponent -d . x
+F:/data1.cab`. Like the install, the copy keeps nearly everything in `main.pak`.
+
+**The files** (`games/bejeweled/tools/collection/cmpfiles.py`, and `tools/popcap_pak.py` to unpack both paks). Of the
+paks' 5,157 files, 5,156 are the same byte for byte. The one that is not is `scripts/common/dprops_editor.luc`, a developer's
+properties editor, where only the source path compiled into the chunk differs (another folder on PopCap's build machine).
+The four cutscenes, `bass.dll`, `Flash.ocx` and `j2k-codec.dll` are the same. `properties/partner.xml` differs in its
+distribution tag and offering number only; its registry key (`PopCap\WinBAD`) is the install's, so a player's settings sit
+in the same place. The licence and readme differ.
+
+**The exe is another build.** `games/bejeweled/tools/collection/cmpexe.py` puts the Collection's `BookwormAdventures.exe`
+(4,765,000 bytes) beside the install's (4,760,904). Every section differs throughout, and `.text` is 4 KB longer. The port
+reads 273 texts from the player's exe by address (`GameText.h`). None is at its address in the Collection's build, but 272 are
+there byte for byte at other addresses. `LoadGameTexts` now looks for the texts it cannot find at their address by their
+content, as Astro Pop's does: every zero-terminated run in the image, and every tail of one, matched by length and hash. The
+one it cannot find is the fourth of the profile format's changes (0.0.5). The Collection words it a little differently,
+and it is shown only for a profile saved before 0.0.5, from before the game shipped, which no player has. The two builds
+list the same 14 format changes and so the same format, 0.1.5.
+
+**The port on the Collection's files.** The Collection's folder was made from the staged install with its exe,
+`partner.xml` and editor script put in. The suite's chapter and screens runs (`tools/check.sh`, with a screenshot of the
+loading screen added) then ran on both folders. The board logs, script lines, saved profiles and all seven screenshots
+are the same byte for byte; on the Collection's exe the log says 272 of the 273 texts were found by content.
+
+What is not known: whether the Collection's own exe plays the same as the install's. Its code differs throughout, so no
+function was compared and it was not run; what speaks for it is that its data is the same files. Where the Collection's
+build keeps a player's profiles was not checked either: the two builds name them the same way, and no Collection save was
+at hand.
+
 ## Mods
 
 None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth

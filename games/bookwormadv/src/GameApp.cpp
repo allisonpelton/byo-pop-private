@@ -183,6 +183,7 @@ void GameApp::Init()
 	CreateLinkedObject(this);
 }
 
+// port: the port's own command line options (the original's override is LuaApp's, 0x65f750)
 void GameApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
 	if (theParamName == "-chapterloadupdates") {
@@ -206,6 +207,7 @@ void GameApp::HandleCmdLineParam(const std::string& theParamName, const std::str
 		LuaApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
+// port: runs the loading in steps between the frames
 bool GameApp::UpdateAppStep(bool* updated)
 {
 	// A chapter's resources load between the frames while its loading screen is up (StartLoadChapterResources);
@@ -436,6 +438,7 @@ GameDialog* GameApp::DoOkDialog(const SexyString& theHeader, const SexyString& t
 	return aDialog;
 }
 
+// port: calls the scripts' dialog callback with the answer
 void GameApp::CallDialogCallback(bool theAnswer)
 {
 	if (mDialogCallback.empty())
@@ -632,6 +635,7 @@ void GameApp::LoadingThreadProc()
 	LoadingStep(0);
 }
 
+// port: from 0x4473e0 (the loading thread's failure, run in steps)
 void GameApp::LoadingFailed()
 {
 	ShowResourceError(false);
@@ -640,6 +644,7 @@ void GameApp::LoadingFailed()
 	mLoadingPhase = LOADING_DONE;
 }
 
+// port: from 0x4473e0 (the loading thread's work, run in steps)
 bool GameApp::LoadingStep(unsigned int theDeadline, int theTaskLimit)
 {
 	auto aTimeLeft = [theDeadline]() { return theDeadline == 0 || !SDL_TICKS_PASSED(SDL_GetTicks(), theDeadline); };
@@ -1041,6 +1046,7 @@ CurtainTransition* GameApp::GetCurtain()
 }
 
 // The callback of the curtain (+0x894): called once, then forgotten
+// port: calls the curtain's callback once
 bool GameApp::CallCurtainCallback()
 {
 	void (*aCallback)(void*) = mCurtainCallback;
@@ -1053,6 +1059,7 @@ bool GameApp::CallCurtainCallback()
 }
 
 // The scripts' function the curtain was given, with no arguments, then forgotten
+// port: calls the scripts' function the curtain was given
 bool GameApp::CallCurtainLuaCallback()
 {
 	if (!mCurtainLuaCallback.empty()) {
@@ -1322,6 +1329,7 @@ void GameApp::StartTreasureTransition()
 }
 
 // gName = gLinkedObjectTable[cobj]: the scripts' global of a screen's Lua object
+// port: sets a scripts' global to a screen's Lua object
 static void SetLinkedGlobal(LuaLib::LuaLinkedClass* theObject, const char* theName)
 {
 	lua_State* L = LuaLib::gLuaSupport->L;
@@ -1592,6 +1600,7 @@ bool GameApp::LoadChapterResources(unsigned int theDeadline, int theCountLimit)
 	return true;
 }
 
+// port: from 0x44bb90 (ReturnToChapterSelect's freeing of the chapter's resources)
 void GameApp::FreeChapterResources()
 {
 	for (const ChapterResource& aResource : mChapterResources) {

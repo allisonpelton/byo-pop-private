@@ -88,6 +88,7 @@ void GameApp::ShowEndOfGameHallOfFame()
 	ShowHallOfFame();
 }
 
+// port: the curtain's callback for ShowEndOfGameHallOfFame (0x450c30)
 static void EndOfGameHallOfFameCallback(void* theApp)
 {
 	static_cast<GameApp*>(theApp)->ShowEndOfGameHallOfFame();
@@ -112,6 +113,7 @@ void GameApp::CloseHallOfFame()
 		mWidgetManager->BringToFront(mCurtain);
 }
 
+// 0x451130
 static void EndOfGameCreditsCallback(void* theApp)
 {
 	// 0x451130: the credits come (0x450d80), with the finale of the end of the game (their +0x157, which also makes

@@ -68,7 +68,7 @@ public:
 	bool mBlockMouse = false;            // +0xf3: BlockMouseEvents was called
 	std::string mCallback;               // +0xf4: the scripts' function (SetCallback)
 	Font* mFont = nullptr;               // +0x110: the lines' font (the LuaFont's)
-	LuaFont* mLuaFont = nullptr;         // +0x114
+	LuaFont* mLuaFont = nullptr;         // +0x114: the font SetFont was given (mFont is made from it); nothing reads it
 	int mState = STATE_SHOWING;          // the state machine's current state (+0x44 points at its State)
 
 	ArrowHint(ArrowHintManager* theManager, int theId);  // 0x402b90
@@ -192,8 +192,8 @@ public:
 
 	// ---- the scripts' methods ----
 	// 0x40c110: a new hint with the number theId, unless there is one (null then); added to the list at the end
-	// of a walk when it is made during one. theUnused is a boolean the scripts pass and the original ignores.
-	ArrowHint* AddArrowHint(int theId, bool theUnused);
+	// of a walk when it is made during one. theIgnoredFlag is a boolean the scripts pass and the original ignores.
+	ArrowHint* AddArrowHint(int theId, bool theIgnoredFlag);
 	void DeleteArrowHint(int theId);           // 0x40bc90 (an error message during a walk)
 	int GetArrowHint(int x, int y);            // 0x40bbe0: the number of the first hint (x, y) is over, -32767 for none
 	ArrowHint* GetArrowHintById(int theId);    // 0x40b660

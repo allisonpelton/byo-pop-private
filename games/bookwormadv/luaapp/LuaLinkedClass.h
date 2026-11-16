@@ -27,7 +27,6 @@ struct LuaClassRet {
 	// The first result as a boolean (0x6c94d0); anything else is an error and false.
 	bool Bool() const;
 	int Int() const;
-	double Number() const;
 	const std::string& String() const;
 };
 
@@ -51,7 +50,6 @@ public:
 	LuaClassRet CallLinkedMethod(const char* method, int nargs);
 
 	bool IsLinked() const { return mLinkedObj != nullptr; }
-	void* GetLinkedObject() const { return mLinkedObj; }
 	// Pushes the object's userdata (nil while it is not linked)
 	void PushLinkedObject();
 

@@ -94,6 +94,7 @@ void LuaApp::RegisterClasses()
 		.Method<&LuaApp::SetHeight>("SetHeight");
 }
 
+// 0x660b40
 void LuaApp::Init()
 {
 	RegisterClasses();
@@ -121,6 +122,7 @@ void LuaApp::Shutdown()
 	SexyApp::Shutdown();
 }
 
+// 0x660b60
 void LuaApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
@@ -128,6 +130,7 @@ void LuaApp::UpdateFrames()
 		mLua->UpdateState();
 }
 
+// 0x65f750
 void LuaApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
 	if (theParamName == "-wait")  // the original waited here for a debugger to attach
@@ -143,6 +146,7 @@ bool LuaApp::DebugKeyDown(int theKey)
 
 // ---- widgets and dialogs ----
 
+// 0x660020
 int LuaApp::SafeDeleteWidget_(LuaApp* app, lua_State* L)
 {
 	Widget* w = (Widget*)gLuaSupport->CheckObject(1, ClassOf<Widget>::info);
@@ -152,12 +156,14 @@ int LuaApp::SafeDeleteWidget_(LuaApp* app, lua_State* L)
 	return 0;
 }
 
+// 0x660150
 int LuaApp::GetWidgetManager_(LuaApp* app, lua_State* L)
 {
 	gLuaSupport->PushObject(ClassOf<WidgetManager>::info, app->mWidgetManager);
 	return 1;
 }
 
+// 0x660380
 void LuaApp::LuaAddDialog(LuaValue theDialog)
 {
 	LuaDialog* d = (LuaDialog*)gLuaSupport->CheckObject(theDialog.idx, ClassOf<LuaDialog>::info);
@@ -168,6 +174,7 @@ void LuaApp::LuaAddDialog(LuaValue theDialog)
 	AddDialog(d);
 }
 
+// 0x660200
 LuaMultiRet LuaApp::LuaGetDialog(int theId)
 {
 	LuaDialog* d = dynamic_cast<LuaDialog*>(GetDialog(theId));
@@ -177,11 +184,13 @@ LuaMultiRet LuaApp::LuaGetDialog(int theId)
 	return {1};
 }
 
+// 0x65fa90
 LuaButtonWidget* LuaApp::CreateLuaButtonWidget(int theId, LuaValue theListener)
 {
 	return new LuaButtonWidget(theId, LuaCheckListener(mLua->L, theListener.idx));
 }
 
+// 0x65f860
 LuaDialog* LuaApp::CreateLuaDialog(LuaImage* theComponentImage, LuaImage* theButtonImage, int theId, bool isModal,
                                    const char* theHeader, const char* theLines, const char* theFooter,
                                    int theButtonMode)
@@ -190,11 +199,13 @@ LuaDialog* LuaApp::CreateLuaDialog(LuaImage* theComponentImage, LuaImage* theBut
 	                     theFooter, theButtonMode);
 }
 
+// 0x65fdd0
 LuaScrollbarWidget* LuaApp::CreateLuaScrollbarWidget(int theId, LuaValue theListener)
 {
 	return new LuaScrollbarWidget(theId, LuaCheckListener(mLua->L, theListener.idx));
 }
 
+// 0x65fc00
 LuaEditWidget* LuaApp::CreateLuaEditWidget(int theId, LuaValue theListener)
 {
 	return new LuaEditWidget(theId, LuaCheckListener(mLua->L, theListener.idx));
@@ -202,6 +213,7 @@ LuaEditWidget* LuaApp::CreateLuaEditWidget(int theId, LuaValue theListener)
 
 // Without a font the list gets a system font (the original's SysFont "SansSerif", 10, made again for each
 // such list and never freed)
+// 0x65fc90
 LuaListWidget* LuaApp::CreateLuaListWidget(int theId, LuaFont* theFont, LuaValue theListener)
 {
 	Font* font = FontOf(theFont);
@@ -213,6 +225,7 @@ LuaListWidget* LuaApp::CreateLuaListWidget(int theId, LuaFont* theFont, LuaValue
 	return new LuaListWidget(theId, font, LuaCheckListener(mLua->L, theListener.idx));
 }
 
+// 0x65fe60
 LuaCheckboxWidget* LuaApp::CreateLuaCheckboxWidget(LuaImage* theUnchecked, LuaImage* theChecked, int theId,
                                                    LuaValue theListener)
 {
@@ -220,16 +233,19 @@ LuaCheckboxWidget* LuaApp::CreateLuaCheckboxWidget(LuaImage* theUnchecked, LuaIm
 	                             LuaCheckListener(mLua->L, theListener.idx));
 }
 
+// 0x65f7f0
 LuaWidget* LuaApp::CreateLuaWidget()
 {
 	return new LuaWidget();
 }
 
+// 0x65fb10
 LuaHyperlinkWidget* LuaApp::CreateLuaHyperlinkWidget(int theId, LuaValue theListener)
 {
 	return new LuaHyperlinkWidget(theId, LuaCheckListener(mLua->L, theListener.idx));
 }
 
+// 0x65fb90
 LuaTextWidget* LuaApp::CreateLuaTextWidget()
 {
 	return new LuaTextWidget();
@@ -237,6 +253,7 @@ LuaTextWidget* LuaApp::CreateLuaTextWidget()
 
 // ---- images and fonts ----
 
+// 0x6608b0
 LuaMultiRet LuaApp::LuaGetImage(const char* thePath)
 {
 	LuaMultiRet r = LuaTryGetImage(thePath);
@@ -264,6 +281,7 @@ LuaMultiRet LuaApp::LuaTryGetImage(const char* thePath)
 	return {2};
 }
 
+// 0x6608f0
 LuaMultiRet LuaApp::LuaGetFont(const char* theName)
 {
 	LuaFont* aFont = LuaFont::Load(theName);
@@ -273,6 +291,7 @@ LuaMultiRet LuaApp::LuaGetFont(const char* theName)
 	return {1};
 }
 
+// 0x660a20
 LuaMultiRet LuaApp::LuaTryGetFont(const char* theName)
 {
 	LuaFont* aFont = LuaFont::Load(theName);
@@ -283,21 +302,25 @@ LuaMultiRet LuaApp::LuaTryGetFont(const char* theName)
 	return {1};
 }
 
+// 0x6604e0
 void LuaApp::LuaColorizeImage(LuaImage* theImage, int theColor)
 {
 	ColorizeImage(ImageOf(theImage), Color(theColor));
 }
 
+// 0x660520
 void LuaApp::LuaMirrorImage(LuaImage* theImage)
 {
 	MirrorImage(ImageOf(theImage));
 }
 
+// 0x6605c0
 void LuaApp::LuaFlipImage(LuaImage* theImage)
 {
 	FlipImage(ImageOf(theImage));
 }
 
+// 0x660580
 void LuaApp::LuaRotateImageHue(LuaImage* theImage, int theDelta)
 {
 	RotateImageHue(theImage->Image(), theDelta);
@@ -305,6 +328,7 @@ void LuaApp::LuaRotateImageHue(LuaImage* theImage, int theDelta)
 
 // ---- the app ----
 
+// 0x660310
 LuaMultiRet LuaApp::LuaUpdateAppStep()
 {
 	bool updated = false;
@@ -346,6 +370,7 @@ LuaMultiRet LuaApp::LuaRegistryRead(const char* theName, LuaValue theDefault)
 	return {1};
 }
 
+// 0x661050
 void LuaApp::LuaRegistryWrite(const char* theName, LuaValue theValue)
 {
 	lua_State* L = mLua->L;
@@ -371,6 +396,7 @@ void LuaApp::LuaRegistryWrite(const char* theName, LuaValue theValue)
 	}
 }
 
+// 0x6611e0
 LuaMultiRet LuaApp::LuaRegistryGetSubKeys(const char* theKey)
 {
 	lua_State* L = mLua->L;
@@ -390,16 +416,19 @@ LuaMultiRet LuaApp::LuaRegistryGetSubKeys(const char* theKey)
 
 // ---- sounds ----
 
+// 0x661470
 int LuaApp::LuaLoadSound(const char* thePath)
 {
 	return mSoundManager->LoadSound(thePath);
 }
 
+// 0x661520
 void LuaApp::LuaPlaySample(int theId)
 {
 	PlaySample(theId, lua_toint(mLua->L, 2));
 }
 
+// 0x661580
 void LuaApp::LuaPlaySampleShifted(int theId, double theSteps)
 {
 	if (mSoundManager == nullptr)
@@ -412,6 +441,7 @@ void LuaApp::LuaPlaySampleShifted(int theId, double theSteps)
 	anInst->Play(false, true);
 }
 
+// 0x661610
 void LuaApp::LuaReleaseSound(int theId)
 {
 	mSoundManager->ReleaseSound(theId);
@@ -419,17 +449,20 @@ void LuaApp::LuaReleaseSound(int theId)
 
 // ---- the development features ----
 
+// 0x660b80
 void LuaApp::LuaCreateSavePoint(const char* theName)
 {
 	mLua->CreateSavePoint(theName);
 }
 
+// 0x660c20
 void LuaApp::LuaDeferReload()
 {
 	lua_State* L = mLua->L;
 	mLua->DeferReload(lua_type(L, 1) == LUA_TSTRING ? lua_tostring(L, 1) : "");
 }
 
+// 0x660d10
 void LuaApp::LuaPopSavePoint(const char* theName)
 {
 	mLua->PopSavePoint(theName);

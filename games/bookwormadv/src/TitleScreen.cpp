@@ -244,6 +244,7 @@ void TitleScreen::StartCurtain()
 	mApp->mTransitionState = GameApp::TRANSITION_TITLE_CURTAIN;
 }
 
+// port: the curtain's callback for CurtainClosed (0x49f500)
 void TitleScreen::CurtainClosedCallback(void* theTitleScreen)
 {
 	((TitleScreen*)theTitleScreen)->CurtainClosed();

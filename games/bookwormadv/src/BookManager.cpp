@@ -59,6 +59,7 @@ void BookManager::RegisterLua()
 		.Method<&BookManager::SetState>("SetState");
 }
 
+// port: finds a button by its id
 FadeButton* BookManager::FindButton(int theId)
 {
 	auto anIt = mButtons.find(theId);
@@ -203,6 +204,7 @@ void BookManager::RemovedFromManager(WidgetManager* theWidgetManager)
 	lua_setglobal(L, "gBookManager");
 }
 
+// port: whether the book is hidden or behind a chapter's loading screen
 bool BookManager::IsAsleep(bool theCheckState) const
 {
 	if (!mVisible && mDisabled && (!theCheckState || mState != STATE_NORMAL))
