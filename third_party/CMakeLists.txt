@@ -91,6 +91,20 @@ if(NOT MSVC)
   target_compile_options(openjp2 PRIVATE -w)
 endif()
 
+# libtheora 1.1.1 (Xiph.Org, BSD-style, libtheora/COPYING; libtheora/README.md): the Theora video decoder only, without
+# its x86 assembly or the old API's wrappers, for Sprout's second-generation engine (engines/sprout2), whose animations
+# are Theora packets. include/ogg/ogg.h is ours: the libogg types the decoder uses, no libogg; a file that includes it
+# never includes Tremor's.
+add_library(theoradec STATIC
+  libtheora/lib/bitpack.c libtheora/lib/decinfo.c libtheora/lib/decode.c libtheora/lib/dequant.c
+  libtheora/lib/fragment.c libtheora/lib/huffdec.c libtheora/lib/idct.c libtheora/lib/info.c libtheora/lib/internal.c
+  libtheora/lib/quant.c libtheora/lib/state.c)
+target_include_directories(theoradec PUBLIC libtheora/include)
+target_include_directories(theoradec PRIVATE libtheora/lib)
+if(NOT MSVC)
+  target_compile_options(theoradec PRIVATE -w)
+endif()
+
 # TinySoundFont (MIT, tinysoundfont/LICENSE; tinysoundfont/BYO-POP.md): a SoundFont synthesizer (tsf.h) and MIDI file
 # loader (tml.h), for the games whose music is MIDI (TipTop), with a General MIDI bank cut down from GeneralUser GS
 # (generaluser-gs/). Single headers: the game source that uses them defines TSF_IMPLEMENTATION and TML_IMPLEMENTATION.
