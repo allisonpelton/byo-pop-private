@@ -307,5 +307,17 @@ DOM events): the same two runs, 12 solved windowed and 10 solved with `fsat=1&fo
 (the pane cannot make an element full screen, so Alt+Enter reports `fullscreenElement none`; the native run covers full screen). The page
 check (`tools/web/pagecheck.js`): 11 passed, 0 failed, 1 information line. The web driver needs `hold=1`, which wipes the test profile:
 on a profile that already holds a finished tutorial it stops on the island ("no temple opens"), because it expects a first run.
-Not done: a whole game of 210 puzzles by real input (a board takes about 50 s that way, about three hours for the game); the bot's whole game
-by state is in `tools/check.sh pixelus` instead.
+The whole game by real input (2026-11-15). Native: `drive.py --puzzles 210` under rundesk with `-fast -hold` (an update runs only when the
+driver's lines let it; `wait n` replaces polling), windowed, from launch through the tutorial and every temple of the island to the last
+puzzle: 210 puzzles solved in the profile, no errors, 7316 s. Web: `play.js` in the Browser pane with `fast=1&hold=1`, the same: 210 solved, 7899
+moves, 0 errors, about 2 hours (the hidden pane needs its frame loop on a MessageChannel instead of `setTimeout`, which the pane throttles to
+one a second). A driver plays and takes each move from the port's bot through `move`; no session picked a move. Two drivers' faults were found and
+fixed on the way: a temple of more than nine puzzles shows the rest below and needs its "Scroll Puzzles Down" button (and a finished temple is
+left by the button at the top left, not the first labelled one), and a rare line under `-hold` whose answer waits for the next batch (the
+driver now sends `wait 1` after three quiet seconds; it was not needed in the passing run).
+Oddity (not chased): on three boards the bot's move, played as the click `move` names, was read by the game as another move, and the bot had
+no move to give until Undo was pressed once (then the same move worked): Bacchus puzzle 3 (c810fecc), Vulcan 6 (932858f5, twice) and Jupiter
+(5802d28b). The same boards in both runs, so it repeats; the game answered its own click, so it is most likely `TestFindCell` choosing a click
+position that two moves share, a test-tool fault and not the game's. Not shown by a human play, since a player picks the cell. The drivers press
+Undo (button id 9) and note it; the native run needed it 4 times, the web run 4 times. To chase it: the `history` test command prints the moves made
+beside the shipped solution (`HISTORY <made> SOLUTION <best>`).

@@ -128,12 +128,6 @@ void NcMovingDialog::SetEscapeResult(int theResult)
 	mEscapeResult = theResult;
 }
 
-// 0x468bf0
-bool NcMovingDialog::IsMoving() const
-{
-	return mSlide != 0.0;
-}
-
 // 0x468ac0
 int NcMovingDialog::GetContentX() const
 {
