@@ -26,8 +26,11 @@ print('cycle counter rate: %.2f GHz' % (HZ / 1e9))
 rows = {}
 for path in sorted(glob.glob(os.path.join(out, '*.json'))):
     name = os.path.basename(path)[:-5]
-    m = re.match(r'([a-z]+\d?)-?(\d+)$', name)
+    m = re.match(r'(orig|soft1|before1|gpu2)-?(\d+)$', name)
     if not m:
+        continue
+    if os.path.exists(os.path.join(out, name + '.void')):
+        print('void (late window): ' + name)
         continue
     r = json.load(open(path))
     counts = os.path.join(out, name + '.counts')
