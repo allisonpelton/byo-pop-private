@@ -295,7 +295,7 @@
       ],
       "na": [],
       "now": null,
-      "note": "the lite-mod step done with no mod (2f58af40, games/ningpo/docs/LITE_MOD.md: tileAtCell's linear scan is the only costly search, and a cell table would answer the same, so it is not lite; the shuffle could differ but saves no time; the hint and move count have no early stop); every phase but modding done"
+      "note": "the lite-mod step done with no mod (2f58af40, games/ningpo/docs/LITE_MOD.md: tileAtCell's linear scan is the only costly search, and a cell table would answer the same, so it is not lite; the shuffle could differ but saves no time; the hint and move count have no early stop); every phase but modding done; software screen at 1x and the streamed track (a9b65b53): 19 MB private against the original's 30, 7.5 % of one core against 11.8"
     },
     "pixelus": {
       "title": "Pixelus Deluxe",

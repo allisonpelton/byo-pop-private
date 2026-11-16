@@ -14,14 +14,14 @@ P="$D/perf"; mkdir -p "$P"
 PERFMIN=games/bejeweled/tools/profile/perfmin.py
 grep -v " screenshot " "$D/port.txt" > "$P/port-tour.txt"
 for ((i = 1; i <= N; i++)); do
-	until python tools/gamecount.py --limit 2 > /dev/null; do sleep 20; done
+	until python tools/gamecount.py --limit 4 > /dev/null; do sleep 20; done
 	python "$PERFMIN" "$P/orig-$i.json" 20,50 --attach 'byo-og\np\game\Ningpo.exe' > "$P/orig-$i.txt" 2>&1 &
 	ORIG_SOUND=nodriver bash "$(dirname "$0")/../sound/orig.sh" "$D" 90 > /dev/null 2>&1
 	wait
-	until python tools/gamecount.py --limit 2 > /dev/null; do sleep 20; done
+	until python tools/gamecount.py --limit 4 > /dev/null; do sleep 20; done
 	U="$P/user"; rm -rf "$U"; mkdir -p "$U"
 	"$RUNDESK" python "$PERFMIN" "$P/port-$i.json" 20,50 -- "$(win "$ROOT/build/native/ningpo.exe")" -gamedir=assets/ningpo \
-		-userdir="$U" -seed=7 -realinput="$(win "$PWD/$P/port-tour.txt")" > "$P/port-$i.txt" 2>&1
+		-userdir="$U" -seed=7 -windowscale=${WINDOWSCALE:-2} -realinput="$(win "$PWD/$P/port-tour.txt")" > "$P/port-$i.txt" 2>&1
 	echo "run $i: orig $(tail -1 "$P/orig-$i.txt" | cut -c1-200)"
 	echo "run $i: port $(tail -1 "$P/port-$i.txt" | cut -c1-200)"
 done

@@ -102,7 +102,7 @@ asked.
 | Mummy Maze Deluxe | 0.38 and 0.44 s | 4.5 s | 7.7 G cycles a minute | 8.7 G cycles a minute | 58 MB | 65 and 66 MB |
 | TipTop Deluxe | 0.6 to 0.9 s | 4.7 and 4.8 s | 4.07 G cycles in 30 s of strategy, 1.87 G in 20 s at the menu (640x480, 62.5 passes a second) | 4.96 G and 2.07 G (paced to 62 passes a second) | 82 and 83 MB | 46 MB |
 | Bookworm Adventures Deluxe | 1.70 s | 6.4 s | 7.9 G cycles a minute at the title (medians of five pinned pairs, 3D in its 800x600 window; 16.0 G full screen at 3840x2160) | 24.4 G cycles a minute (medians; 2D, its window 800x600) | 79.3 MB at the title, 101.1 MB at the peak (3D at 1x; 77.3 and 100.1 full screen) | 91.9 MB at the title, 92.2 MB at the peak (2D) |
-| Ning Po Mahjong Deluxe | 0.36 s | 0.82 s | 6.3 % of one core | 14.9 % of one core | 54 MB | 21 MB |
+| Ning Po Mahjong Deluxe | 0.93 s | 1.02 s | 7.5 % of one core (software screen, 1x) | 11.8 % of one core | 19 MB | 30 MB (20 MB in the 2026-11-15 runs) |
 | Pixelus Deluxe | 0.9 to 1.4 s | 0.8 to 1.0 s | 2.0 to 3.3 M cycles an update in 2D at 1x with the software screen (median 2.20, 0.64 of the original in the same rounds); 2.1 to 3.2 on the GPU (median 2.9 with its mixer) | 3.0 to 4.6 M cycles an update (median 3.43 in the same rounds; 2.6 to 3.6 earlier) | 66.8 to 69.6 MB in 2D at 1x (about 100 MB in 3D, its default, and in its default 2x window) | 91 to 93 MB |
 | Alchemy Deluxe | 1.74 s | 1.76 s | 4.6 to 5.3 s a minute | 4.2 and 6.4 s a minute | 67 to 69 MB | 51 to 56 MB |
 | Word Harmony | 0.71 s | 2.6 to 3.4 s | 3.26 G cycles a minute in its own 800x600 window, 8.82 G full screen (its default) | 11.81 G cycles a minute windowed, 10.19 G full screen | 88 to 94 MB | 53 to 57 MB |
