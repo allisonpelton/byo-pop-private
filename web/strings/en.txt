@@ -529,6 +529,7 @@ game.status.ready = Ready
 game.status.last_failed = The last start did not finish
 game.status.need_files = Game files needed
 game.status.fixes = Putting in the fixes mod…
+game.status.lite = Putting in the lite mod…
 game.status.reimport = Import game files again
 game.status.terms = Terms
 game.status.busy = Already open

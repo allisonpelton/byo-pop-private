@@ -332,7 +332,7 @@ Module["byopop"] = (function () {
     pickers.appendChild(this.pickFolder);
     pickers.appendChild(this.pickZip);
     root.appendChild(pickers);
-    // The Original switch (docs/WEB_PLAYER.md, "The fixes mod on the site"): the site's fixes and lite mods off at once
+    // The Original switch (docs/WEB_PLAYER.md, "The fixes and lite mods on the site"): the site's fixes and lite mods off at once
     this.originalRow = el("label", "mp-original");
     this.originalBox = el("input");
     this.originalBox.type = "checkbox";
