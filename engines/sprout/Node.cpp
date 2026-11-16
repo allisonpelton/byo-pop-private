@@ -355,7 +355,8 @@ void Container::draw(Graphics* g)
 }
 
 // 0x439510 (wordharmony): updates the children that have listeners (or wait to be removed), and removes those that
-// asked to be
+// asked to be. A child that takes itself out of this container while it updates (Feeding Frenzy's shield glow, 0x4190d0
+// feedingfrenzy, moves between two groups) can leave the index past the end, so the loop stops at the end.
 void Container::update(UpdateInfo& theInfo)
 {
 	Node::update(theInfo);
@@ -378,7 +379,7 @@ void Container::update(UpdateInfo& theInfo)
 			}
 			else
 				i++;
-		} while (i != mChildren.size());
+		} while (i < mChildren.size());
 	}
 	theInfo.mOrigin.x = theInfo.mOrigin.x - mPosition.x;
 	theInfo.mOrigin.y = theInfo.mOrigin.y - mPosition.y;
