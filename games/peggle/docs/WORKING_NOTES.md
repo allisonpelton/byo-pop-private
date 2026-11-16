@@ -53,7 +53,21 @@ IsRegistered, IsExpired, IsTrialOver, IsLevelDemoLocked / IsLevelLockedTrial, Tr
 `ShowUpsellScreen`, `EndUpsellScreen`, `TryPlayUpsell` calls), the More Games and Buy buttons, the marketing mode, the partner logo.
 The registered path stays as the only one. Each function left out is listed by address in `GAME_NOTES.md` once the port has them.
 
+## Translated so far (all build; the data classes are used by `ThunderballApp::Init`)
+
+StringParser, ConfigParser, DataSync, GameStats, PlayerInfo, ProfileMgr, HighScoreMgr, StatsMgr, ImageMgr, CharacterMgr (data and the
+file loader; the animation functions Draw, DrawBack, DrawFront, Update, UpdatePaused, UpdateSlowMo, CalcEyePos, CalcLookPos,
+CalcPowerupActive, CheckCrossEyeFix, SetYinYangEye, CreateShooterImage come with the Board), TrophyMgr, StageMgr (StageMgr::GetRandomLevel
+0x459060, 0x4592b0, 0x4592e0 wait for `ThunderballApp::GetMaxLockedStage/Level`). A run of `Init` reads the real files: 10 characters, 11
+stages, 15 trophy pages with 75 trophies, 19 tips.
+
+Not reached and left out: `ConfigParser` reading `IncludeFile` and `[...]` lists (the level editor's files only), the file dialogs
+(`LoadLevel2`'s `SexyFileDialog`), the registry fall-backs of the data folder (`FUN_004fb9d0`, the `userdata` move in `Init`), the second
+map of ImageMgr (offset 0x14, nothing reaches it), the high-score editor. Fields still called `mUnknownNN` (PlayerInfo, LevelStats,
+CharacterMgr, TrophyInfo::mUnknown60) are named when their users are translated.
+
 ## State
 
-The app skeleton builds (`TARGET=peggle bash tools/build.sh native`) and starts: it loads the "Init" and "Load" resource groups in
-0.3 s (the JPEG 2000 images through OpenJPEG) and shows an empty window. Next: the data managers, then the loading screen and the main menu.
+The app skeleton builds (`TARGET=peggle bash tools/build.sh native`) and starts: it loads the resource groups, the music, the cursors
+and every data manager (a run under rundesk takes 1.0 s with a screenshot) and shows an empty window. Next: the loading screen and the
+main menu (MakeWinButton, CheckMaxStage, ShowLoadingScreen, LoadingScreen, MainMenu, ThunderButton, ThunderDialog).

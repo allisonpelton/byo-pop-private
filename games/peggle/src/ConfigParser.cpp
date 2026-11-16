@@ -243,6 +243,12 @@ StringParser& ConfigParser::GetValParser()
 	return mValParser;
 }
 
+// 0x43e2f0
+bool ConfigParser::KeyIs(const char* theKey) const
+{
+	return sexy_stricmp(mKey.c_str(), theKey) == 0;
+}
+
 // 0x4bf3d0
 bool ConfigParser::GroupIs(const char* theType, int theDepth)
 {

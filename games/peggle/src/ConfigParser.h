@@ -35,6 +35,7 @@ public:
 	bool Open(const std::string& theFileName, bool theRequired); // 0x4c0510
 	bool ReadNext();						   // 0x4c0db0
 	StringParser& GetValParser();			   // 0x4be5a0
+	bool KeyIs(const char* theKey) const;	   // 0x43e2f0: mKey is theKey, ignoring case
 	// True when the innermost group's type is theType (ignoring case) and, when theDepth is not -1, the groups are theDepth deep.
 	bool GroupIs(const char* theType, int theDepth = -1); // 0x4bf3d0
 	bool Error(const std::string& theMessage, bool theUseKeyLine = false, bool theMayThrow = true); // 0x4bf020
