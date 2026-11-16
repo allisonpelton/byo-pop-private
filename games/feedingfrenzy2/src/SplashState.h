@@ -4,9 +4,10 @@
 // The first of the application's states (FeedingFrenzyTwo::SplashState, 0x4c bytes, vtable 0x55a818 (feedingfrenzy2);
 // its constructor 0x490650 (feedingfrenzy2)): the splash screen shown with a load bar and a bubbling "LOADING" while a
 // thread loads the game, then the menu, the game or the screensaver. Translated so far: the screen made and shown, the
-// load bar found and emptied, the theme loaded. The loader, the bubble text and the phases after the wait are not yet
-// translated.
+// load bar found and emptied, the theme loaded, the bubble text shown. The loader and the phases after the wait are
+// not yet translated.
 
+#include "BubbleText.h"
 #include "FeedingFrenzyTwo.h"
 #include "Image.h"
 
@@ -29,7 +30,9 @@ private:
 	engine::Ref<engine::Image> mLoadBar; // +0x1c: the screen's "loadBar"
 	int mLoadBarWidth;                   // +0x20: its surface's
 	int mLoadBarHeight;                  // +0x24
-	// +0x28 the loader's thread, +0x2c the bubble text, +0x30 the phase, +0x34 the loader's abort flag, +0x38 and
+	// +0x28: the loader's thread, not yet translated
+	engine::Ref<BubbleText> mBubbleText; // +0x2c
+	// +0x30 the phase, +0x34 the loader's abort flag, +0x38 and
 	// +0x3c the progress loaded and shown: not yet translated
 	bool mSaverMode;                     // +0x40: run as the screensaver
 };

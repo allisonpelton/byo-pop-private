@@ -3,6 +3,7 @@
 #include "Engine.h"
 #include "Exception.h"
 #include "Font.h"
+#include "ParticleSystem.h"
 #include "Surface.h"
 
 #include <cstdio>
@@ -47,6 +48,47 @@ void Theme::clear()
 {
 	mImageKeys.clear();
 	mImagesByKey.clear();
+	mParticleDefs.clear();
+}
+
+void Theme::addParticleEffect(const std::string& theName, const std::string& thePath, int theCount)
+{
+	Ref<ParticleSystemDocHandler> aHandler = new ParticleSystemDocHandler();
+	getEngine()->parseXml(thePath, aHandler);
+	ParticleSystemDef* aDef = aHandler->getSystem();
+	// (a file without a <particleSystem> leaves the original with none to read)
+	if (aDef == nullptr || !aDef->loadImages())
+	{
+		getEngine()->log("WARNING: Theme unable to load effect %s\n", thePath.c_str());
+		return;
+	}
+	mParticleDefs.insert(std::make_pair(theName, Ref<ParticleSystemDef>(aDef)));
+	Ref<ParticleSystemPool> aPool = new ParticleSystemPool(aDef, theCount);
+	mParticlePools.insert(std::make_pair(theName, aPool));
+}
+
+ParticleSystem* Theme::getParticleSystem(const std::string& theName)
+{
+	std::map<std::string, Ref<ParticleSystemPool>>::iterator anIt = mParticlePools.find(theName);
+	if (anIt == mParticlePools.end())
+		return nullptr;
+	return anIt->second->get();
+}
+
+ParticleSystemDef* Theme::getParticleDef(const std::string& theName)
+{
+	std::map<std::string, Ref<ParticleSystemDef>>::iterator anIt = mParticleDefs.find(theName);
+	if (anIt == mParticleDefs.end())
+		return nullptr;
+	return anIt->second;
+}
+
+Font* Theme::getFont(const std::string& theName)
+{
+	std::map<std::string, Ref<Font>>::iterator anIt = mFonts.find(theName);
+	if (anIt == mFonts.end())
+		return nullptr;
+	return anIt->second;
 }
 
 std::string Theme::imageKey(const std::string& thePath, int thePivot, float theScale, int theBlendMode)
@@ -143,6 +185,16 @@ void ThemeDocHandler::readFont(Params& theAttributes)
 	mTheme->addFont(aName, aPath);
 }
 
+void ThemeDocHandler::readParticleEffect(Params& theAttributes)
+{
+	std::string aName = theAttributes.getString("name", "");
+	if (aName.empty())
+		throw Exception("No friendly name for theme particleEffect entry");
+	std::string aPath = entryPath(theAttributes);
+	int aCount = theAttributes.getInt("count", 0);
+	mTheme->addParticleEffect(aName, aPath, aCount);
+}
+
 void ThemeDocHandler::startElement(const std::string& theName, Params& theAttributes)
 {
 	if (theName == "image")
@@ -163,9 +215,10 @@ void ThemeDocHandler::startElement(const std::string& theName, Params& theAttrib
 		if (!aName.empty())
 			mTheme->addVector(aName, aVector);
 	}
-	else if (theName == "particleEffect" || theName == "sound" || theName == "mod" || theName == "music" ||
-		theName == "composite")
-		// 0x426070, 0x463210, 0x49d0a0, 0x420850 and the composite's own (feedingfrenzy2)
+	else if (theName == "particleEffect")
+		readParticleEffect(theAttributes);
+	else if (theName == "sound" || theName == "mod" || theName == "music" || theName == "composite")
+		// 0x463210, 0x49d0a0, 0x420850 and the composite's own (feedingfrenzy2)
 		getEngine()->log("Theme: %s %s not yet translated\n", theName.c_str(),
 			theAttributes.getString("name", "").c_str());
 }

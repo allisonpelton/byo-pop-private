@@ -366,10 +366,10 @@ bool ParticleSystem::load(const std::string& thePath)
 	// (a file without a <particleSystem> leaves the original with none to read)
 	if (aDef == nullptr)
 		return false;
-	// 0x4761e0 (feedingfrenzy2)
-	for (size_t i = 0; i < aDef->mStreams.size(); i++)
-		aDef->mStreams[i]->loadImages();
-	return init(aDef);
+	// Neither result is looked at
+	aDef->loadImages();
+	init(aDef);
+	return true;
 }
 
 bool ParticleSystem::init(ParticleSystemDef* theDef)
@@ -429,14 +429,22 @@ bool ParticleSystem::addStream(ParticleStreamDef* theDef)
 	return true;
 }
 
+void ParticleSystem::resetStreams()
+{
+	for (size_t i = 0; i < mChildren.size(); i++)
+		static_cast<ParticleStream*>(mChildren[i])->reset();
+}
+
+void ParticleSystem::clearOffsetParents()
+{
+	for (size_t i = 0; i < mChildren.size(); i++)
+		static_cast<ParticleStream*>(mChildren[i])->mOffsetParent = nullptr;
+}
+
 void ParticleSystem::start()
 {
-	// 0x42a650 (feedingfrenzy2)
 	if (!mStarted)
-	{
-		for (size_t i = 0; i < mChildren.size(); i++)
-			static_cast<ParticleStream*>(mChildren[i])->reset();
-	}
+		resetStreams();
 	for (size_t i = 0; i < mChildren.size(); i++)
 		static_cast<ParticleStream*>(mChildren[i])->start();
 	if (mAutoStop > 0.0f)
@@ -475,6 +483,50 @@ void ParticleSystem::setParticleBounds(const RectI& theBounds)
 {
 	for (size_t i = 0; i < mChildren.size(); i++)
 		static_cast<ParticleStream*>(mChildren[i])->mParticleBounds = theBounds;
+}
+
+ParticleSystemPool::ParticleSystemPool(ParticleSystemDef* theDef, int theCount) : mDef(theDef)
+{
+	for (int i = 0; i < theCount; i++)
+	{
+		Ref<ParticleSystem> aSystem = new ParticleSystem();
+		if (aSystem->init(theDef))
+			mFree.push_back(aSystem);
+	}
+}
+
+ParticleSystem* ParticleSystemPool::get()
+{
+	if (mFree.empty())
+	{
+		std::list<Ref<ParticleSystem>>::iterator anIt = mUsed.begin();
+		while (anIt != mUsed.end())
+		{
+			ParticleSystem* aSystem = *anIt;
+			if (aSystem->refCount() == 1)
+			{
+				mFree.push_back(aSystem);
+				anIt = mUsed.erase(anIt);
+				aSystem->stop();
+				aSystem->resetStreams();
+				aSystem->clearOffsetParents();
+			}
+			else
+				++anIt;
+		}
+		if (mFree.empty())
+		{
+			Ref<ParticleSystem> aSystem = new ParticleSystem();
+			if (!aSystem->init(mDef))
+				return nullptr;
+			mUsed.push_back(aSystem);
+			return aSystem;
+		}
+	}
+	ParticleSystem* aSystem = mFree.front();
+	mUsed.push_back(aSystem);
+	mFree.pop_front();
+	return aSystem;
 }
 
 } // namespace engine

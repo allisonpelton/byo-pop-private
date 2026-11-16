@@ -119,9 +119,21 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   empties its particles' kill rectangle rather than its own bounds (nothing reaches it: the effect's computeBounds
   does not recurse); a group-relative stream passes an unset base to its emissions, which do not read it; opacity
   keys out of order leave the ease curve of the last pair used.
+- A theme's `<particleEffect>` loads the effect's images at once and keeps a pool of copies (made `count` at a time,
+  0 by default); a screen with a theme takes its effects from the pool. A copy is free again when only the pool holds
+  it, and is then stopped and emptied before it is handed out.
 - Not yet translated: animated particles (`sequence="anim"`, AnimImage; the particle is kept without its animation so
-  the draws stay the same), and the theme's pool of effects (0x475950; a screen with a theme loads its effects on
-  their own, logged).
+  the draws stay the same).
+
+## Bubble text
+
+- The splash's "LOADING" (BubbleText, a game class): a glyph for each letter that is not a space, each a bubble image,
+  a TextItem letter centred on it in the theme's colour (multiplied) and an effect. Each new glyph gets a wave of its
+  own (5 pixels up and down, a period of 2.5 to 3.5 s, run once for 0 to 2 s), which takes two draws from `rand()`
+  per glyph before the first particle's. The glyphs grow in from scale 0 over 0.2 s one after another, the last
+  starting 0.2 s before the duration ends; at the end each bursts into its effect.
+- TextItem's wrap drops the character on which a word longer than the width breaks (kept; nothing in the splash
+  wraps).
 
 ## Done
 
@@ -143,11 +155,13 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   The splash screen fades in and shows its background, logos and empty load bar (`-fast`, a shot at update 60).
 - `engines/sprout2`: particle effects (their files, ParticleSystem, ParticleStream, Particle) and the float key
   interpolator with its ease curve. The splash's three bubble effects run (`-fast`, a shot at update 180).
+- `engines/sprout2`: the theme's particle effects and their pools, TextItem. `games/feedingfrenzy2/src`: BubbleText
+  and BubbleGlyph. The splash's "LOADING" grows in letter by letter and rocks (`-fast`, shots at updates 20 and 90).
 
 ## Next
 
-- The splash: the bubble text and its particle effect (the theme's pool); the loader (the original's
-  thread, 0x47e450) and the phases after the wait; then the menu.
+- The splash: the loader (the original's thread, 0x47e450) and the phases after the wait (the burst, its sound, the
+  wait for the effects); then the menu.
 - The configuration's string table and options, the start's options, key, activate and music connections, the
   popups and the debug display.
 - The engine's log goes to SDL_LogDebug, which nothing shows: a way to see it (the original wrote a log file).

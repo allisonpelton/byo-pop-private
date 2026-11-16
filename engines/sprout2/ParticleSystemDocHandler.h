@@ -90,6 +90,9 @@ class ParticleSystemDef : public Object
 public:
 	float mAutoStop = -1.0f;                         // +0x0c: seconds before every stream stops, when above 0
 	float mWarmup = 0.0f;                            // +0x10: seconds run at once when the effect starts
+
+	// 0x4761e0 (feedingfrenzy2): every stream's images loaded, stopping at the first stream that finds none
+	bool loadImages();
 	std::vector<Ref<ParticleStreamDef>> mStreams;    // +0x14
 };
 

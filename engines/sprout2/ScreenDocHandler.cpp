@@ -323,12 +323,15 @@ void ScreenDocHandler::readParticleSystem(Params& theAttributes)
 	if (aFile.empty())
 		return;
 
-	// 0x41b1c0 (feedingfrenzy2): with a theme, the theme's pool of the effect (0x475950 (feedingfrenzy2)) gives it;
-	// that is not yet translated, and the effect is loaded on its own as without one
+	// 0x41b1c0 (feedingfrenzy2): the theme's effect of that name, else the file loaded
+	Ref<ParticleSystem> aSystem;
 	if (mTheme != nullptr)
-		getEngine()->log("ScreenDocHandler: the theme's particle effect %s not yet translated\n", aFile.c_str());
-	Ref<ParticleSystem> aSystem = new ParticleSystem();
-	aSystem->load(aFile);
+		aSystem = mTheme->getParticleSystem(aFile);
+	if (aSystem == nullptr)
+	{
+		aSystem = new ParticleSystem();
+		aSystem->load(aFile);
+	}
 	aSystem->setName(aFile);
 
 	aSystem->setOpacity(anOpacity);

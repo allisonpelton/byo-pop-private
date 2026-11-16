@@ -15,6 +15,7 @@
 #include "KeyInterpolator.h"
 #include "ParticleSystemDocHandler.h"
 
+#include <list>
 #include <string>
 #include <vector>
 
@@ -153,7 +154,8 @@ public:
 	// 0xa8 (0x4237c0 (feedingfrenzy2)): empty bounds; its streams are not reached
 	void computeBounds() override;
 
-	// 0x481c10 (feedingfrenzy2): the effect's file read, its images loaded and its streams made
+	// 0x481c10 (feedingfrenzy2): the effect's file read, its images loaded and its streams made (the original
+	// returns nothing; false here only for a file without an effect, which the original does not survive)
 	bool load(const std::string& thePath);
 	// 0x472e80 (feedingfrenzy2): the streams made from the definition
 	bool init(ParticleSystemDef* theDef);
@@ -167,6 +169,10 @@ public:
 	void warmup(float theSeconds);
 	// 0x47df40 (feedingfrenzy2): the bounds every stream's particles die outside of
 	void setParticleBounds(const RectI& theBounds);
+	// 0x42a650 (feedingfrenzy2): every stream's particles taken out
+	void resetStreams();
+	// 0x42c060 (feedingfrenzy2): no stream's particles placed relative to a named component until it starts again
+	void clearOffsetParents();
 
 private:
 	// 0x462e60 (feedingfrenzy2): a stream made from its definition, its pool filled
@@ -177,6 +183,25 @@ private:
 	float mAutoStop;            // +0xbc: seconds before the streams stop, when above 0
 	float mAutoStopCountdown;   // +0xc0
 	float mWarmup;              // +0xc4
+};
+
+// A theme's copies of one effect (ParticleSystemPool, 0x4c bytes, its constructor 0x47dea0 (feedingfrenzy2)). A copy
+// handed out is the pool's again once the pool holds its only reference.
+class ParticleSystemPool : public Object
+{
+public:
+	// 0x47dea0 (feedingfrenzy2): the count made at once
+	ParticleSystemPool(ParticleSystemDef* theDef, int theCount);
+
+	// 0x42a480 (feedingfrenzy2): a free copy, stopped and emptied when it came back; with none, a new one; null when
+	// the definition makes none
+	ParticleSystem* get();
+
+private:
+	// +0x0c: a string nothing sets or reads
+	Ref<ParticleSystemDef> mDef;            // +0x28
+	std::list<Ref<ParticleSystem>> mFree;   // +0x2c
+	std::list<Ref<ParticleSystem>> mUsed;   // +0x38: handed out
 };
 
 } // namespace engine

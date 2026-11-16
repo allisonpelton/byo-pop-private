@@ -45,6 +45,16 @@ bool ParticleStreamDef::loadImages()
 	return aNumber > 0;
 }
 
+bool ParticleSystemDef::loadImages()
+{
+	for (size_t i = 0; i < mStreams.size(); i++)
+	{
+		if (!mStreams[i]->loadImages())
+			return false;
+	}
+	return true;
+}
+
 // 0x45b6b0 (feedingfrenzy2): a string compared with a literal
 static bool equals(const std::string& theString, const char* theLiteral)
 {

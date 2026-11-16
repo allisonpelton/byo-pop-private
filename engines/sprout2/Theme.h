@@ -5,8 +5,7 @@
 // images, fonts, colours, vectors, particle effects, sounds, music and animations an XML file names, each under a name
 // the screens and the game ask for. A theme's file is read by its own handler (Theme::ThemeDocHandler, 0xa8 bytes, its
 // constructor 0x4070a0 (feedingfrenzy2)), which reads the <theme> element's basePath and passes each entry to the
-// theme's slot for it. The particle effects, sounds, music and animations are not yet translated: their entries are
-// logged.
+// theme's slot for it. The sounds, music and animations are not yet translated: their entries are logged.
 
 #include "Geometry.h"
 #include "MasterDocHandler.h"
@@ -19,6 +18,9 @@ namespace engine
 {
 
 class Font;
+class ParticleSystem;
+class ParticleSystemDef;
+class ParticleSystemPool;
 class Surface;
 
 class Theme : public Object
@@ -41,6 +43,9 @@ public:
 	// blend mode, under the name. A copy made before with the same path, pivot, scale and mode is shared
 	virtual void addImage(const std::string& theName, const std::string& thePath, int thePivot, float theScale,
 		int theBlendMode);
+	// 0x1c (0x47aa40 (feedingfrenzy2)): the effect's file read and its images loaded, kept under the name with a
+	// pool of the count made at once; a name that has one keeps it (a pool is made and dropped)
+	virtual void addParticleEffect(const std::string& theName, const std::string& thePath, int theCount);
 	// 0x28 (0x4233e0 (feedingfrenzy2)): the engine's font at the path under the name, unless the name has one;
 	// false when the font cannot be loaded
 	virtual bool addFont(const std::string& theName, const std::string& thePath);
@@ -54,6 +59,15 @@ public:
 
 	// 0x46c340 (feedingfrenzy2), with 0x45faa0 (feedingfrenzy2): the image of the name, null for none
 	Surface* getImage(const std::string& theName);
+	// 0x475950 (feedingfrenzy2): a copy of the effect of the name from its pool, null for none
+	ParticleSystem* getParticleSystem(const std::string& theName);
+	// 0x48d9d0 (feedingfrenzy2): the definition of the effect of the name, null for none (clear forgets the
+	// definitions and keeps the pools)
+	ParticleSystemDef* getParticleDef(const std::string& theName);
+
+	// 0x472f60 (feedingfrenzy2): the font of the name, null for none (the original walks the chain at +0x68 as
+	// getImage does)
+	Font* getFont(const std::string& theName);
 
 	const std::string& getBasePath() const { return mBasePath; }
 	void setBasePath(const std::string& theBasePath) { mBasePath = theBasePath; }
@@ -64,7 +78,8 @@ private:
 
 	std::map<std::string, Ref<Surface>> mImagesByKey;    // +0x0c: the copies, by imageKey
 	std::map<std::string, std::string> mImageKeys;       // +0x18: each image name's key
-	// +0x24 and +0x30: the particle effects' data and pools, by name (not yet translated)
+	std::map<std::string, Ref<ParticleSystemDef>> mParticleDefs;     // +0x24
+	std::map<std::string, Ref<ParticleSystemPool>> mParticlePools;   // +0x30
 	std::map<std::string, Ref<Font>> mFonts;             // +0x3c
 	std::string mBasePath;                               // +0x48: the <theme> element's basePath
 	// +0x64: the sounds' manager; +0x6c: the music, by name; +0x7c: the animations, by name (not yet translated).
@@ -96,6 +111,8 @@ private:
 	void readImage(Params& theAttributes);
 	// 0x4258f0 (feedingfrenzy2): <font name file|fullPath>
 	void readFont(Params& theAttributes);
+	// 0x426070 (feedingfrenzy2): <particleEffect name file|fullPath count>
+	void readParticleEffect(Params& theAttributes);
 
 	Theme* mTheme;          // +0x80
 	std::string mBasePath;  // +0x84
