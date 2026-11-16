@@ -37,6 +37,9 @@ public:
 	// 0x455d50 (feedingfrenzy2): a range, "( %f , %f )" when the value starts with a bracket, else one number for
 	// both ends; a number the value does not hold keeps the default's (with one number, both ends take the low one)
 	FloatRange getRange(const std::string& theName, const FloatRange& theDefault) const;
+	// 0x46c1e0 (feedingfrenzy2), its parse 0x40dbc0 (feedingfrenzy2): the same of whole numbers, "( %d , %d )" or
+	// one "%d" for both ends; a value that does not hold them all keeps the default
+	IntRange getIntRange(const std::string& theName, const IntRange& theDefault) const;
 	// 0x472210 (feedingfrenzy2): " %d , %d , %d , %d " (left, top, right, bottom); one the value does not hold keeps
 	// the default's
 	RectI getRect(const std::string& theName, const RectI& theDefault) const;
@@ -50,6 +53,13 @@ public:
 	// The parser's: a value set, replacing one of the same name
 	void set(const std::string& theName, const std::string& theValue) { mValues[theName] = theValue; }
 	void clear() { mValues.clear(); }
+	// 0x457f10 (feedingfrenzy2): each of the other's values set here, replacing one of the same name
+	void merge(const Params& theOther)
+	{
+		for (std::map<std::string, std::string>::const_iterator anIt = theOther.mValues.begin();
+			 anIt != theOther.mValues.end(); ++anIt)
+			mValues[anIt->first] = anIt->second;
+	}
 
 private:
 	std::map<std::string, std::string> mValues;  // +0x0c

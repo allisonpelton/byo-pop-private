@@ -72,6 +72,16 @@ struct FloatRange
 	FloatRange(float theLow, float theHigh) : mLow(theLow), mHigh(theHigh) {}
 };
 
+// The same of whole numbers (read by Params::getIntRange)
+struct IntRange
+{
+	int mLow;
+	int mHigh;
+
+	IntRange() : mLow(0), mHigh(0) {}
+	IntRange(int theLow, int theHigh) : mLow(theLow), mHigh(theHigh) {}
+};
+
 // 0x46d360 (feedingfrenzy2): the smaller, the first on a tie
 template <class T>
 inline T minOf(T a, T b)

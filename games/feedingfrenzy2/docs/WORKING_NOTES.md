@@ -176,10 +176,16 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   theme (a theme now falls back on another for its images, fonts and particle systems, not its colours, vectors or
   particle definitions), the fun facts and the player ranks (kept sorted by points). Checked by a temporary log: 100
   facts, 34 ranks, stage1's entry with its layouts and objective.
+- The actors' file (resource/actors/fishes.xml) read into the fish factory: models with their shapes and anchors,
+  fish models, visuals with their colour effects, behaviours (each keeping all its attributes) and fish behaviours
+  with their reactions. Checked by a temporary log: every element counted as in the file, and the values of a few
+  (Herring's speeds, sight cosine and default turn rate, the lure fish's anchors, queenTrigger's older mouth). A
+  model a visual names that does not exist shows a message box in the original; the port logs it (the file has
+  none). The shapes' tests are the game's, not yet translated.
 
 ## Next
 
-- The splash's loader (0x47e450: fishes.xml, the sound manager, the menus, the stage, the users' data, every shell
+- The splash's loader (0x47e450: the sound manager, the menus, the stage, the users' data, every shell
   screen), the burst's sound, the sound system's and the
   game's updates in the bursting phase; then the menu.
 - The configuration's string table and options, the start's options, key, activate and music connections, the

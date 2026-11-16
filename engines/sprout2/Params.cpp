@@ -95,6 +95,30 @@ FloatRange Params::getRange(const std::string& theName, const FloatRange& theDef
 	return aRange;
 }
 
+IntRange Params::getIntRange(const std::string& theName, const IntRange& theDefault) const
+{
+	IntRange aRange = theDefault;
+	std::map<std::string, std::string>::const_iterator anIt = mValues.find(theName);
+	if (anIt == mValues.end())
+		return aRange;
+	int aLow = 0;
+	int aHigh = 0;
+	if (anIt->second.c_str()[0] == '(')
+	{
+		if (sscanf(anIt->second.c_str(), "( %d , %d )", &aLow, &aHigh) != 2)
+			return aRange;
+		aRange.mLow = aLow;
+	}
+	else
+	{
+		if (sscanf(anIt->second.c_str(), "%d", &aHigh) != 1)
+			return aRange;
+		aRange.mLow = aHigh;
+	}
+	aRange.mHigh = aHigh;
+	return aRange;
+}
+
 RectI Params::getRect(const std::string& theName, const RectI& theDefault) const
 {
 	RectI aRect = theDefault;

@@ -2,6 +2,7 @@
 
 #include "DrawContext.h"
 #include "Engine.h"
+#include "FishFactory.h"
 #include "ScreenMgr.h"
 #include "Theme.h"
 #include "Transition.h"
@@ -159,9 +160,9 @@ void SplashState::load()
 	mApp->mFunFacts->load("resource/funFacts.xml");
 	mApp->mPlayerRanks = new PlayerRanks();
 	mApp->mPlayerRanks->load("resource/playerRanks.xml");
-	// The fish (resource/actors/fishes.xml), the menus, the sounds, the stage, the users' data and every screen of
-	// the shell: not yet translated
-	getEngine()->log("SplashState: the loader not yet translated past the player ranks\n");
+	FishFactory::get()->load("resource/actors/fishes.xml");
+	// The menus, the sounds, the stage, the users' data and every screen of the shell: not yet translated
+	getEngine()->log("SplashState: the loader not yet translated past the actors' file\n");
 	mLoadProgress = 1.0f;
 	mPhase = SPLASH_LOADED;
 }
