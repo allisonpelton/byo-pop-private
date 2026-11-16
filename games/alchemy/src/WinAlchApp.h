@@ -149,6 +149,10 @@ public:
 	virtual void			ModalClose() override;                    // 0x410cd3 slot 64
 	virtual void			HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;
 	virtual MusicInterface*	CreateMusicInterface() override;
+#ifndef __EMSCRIPTEN__
+	// port: the screen drawn in software, as the original's DirectDraw screen (framework/SoftwareScreenDisplay.h)
+	virtual DDInterface*	CreateDDInterface() override;
+#endif
 	virtual void			GetShutdownSaves(std::vector<ShutdownSave>* theSaves) override;
 	virtual void			ShutdownHook() override;                  // port (web): ~WinAlchApp's save (the app is never deleted)
 	virtual void			UpdateFrames() override;                  // port: runs the test hook's bot

@@ -90,7 +90,7 @@
         "collection"
       ],
       "now": null,
-      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the discard's melt would be lite in kind but costs 0.4% to 1.9% of a minute, below what the medians resolve)"
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: the discard's melt would be lite in kind but costs 0.4% to 1.9% of a minute, below what the medians resolve); software screen at 1x (76a31289): 35 to 39 MB private against the original's 48 to 56, processor time level with the original's (0.93 to 1.11 in three sets of pairs)"
     },
     "noahsark": {
       "title": "Noah's Ark Deluxe",
