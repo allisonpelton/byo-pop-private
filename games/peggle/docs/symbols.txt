@@ -1,0 +1,4 @@
+# <address> <name> [-- note]. Names for functions and globals that the Mac build's pairs do not give, or give wrongly. Loaded by tools/decread.py.
+0040cea0 std::string::assign_literal -- (string, text, length)
+0059c159 operator_new
+0050f220 std::list_init
