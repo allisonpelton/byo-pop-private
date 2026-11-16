@@ -660,6 +660,13 @@ Android. The user's copy is an APK in the Downloads folder (version 1.0.10, 40.7
 ad and Play services libraries, which are left out, and the game as a 5.9 MB native library built only for the
 old 32-bit `armeabi` ABI; its levels are XML files with PNG maps. The user would like native, browser and
 Android versions; the Ghidra route fits, on ARM code, and an Android build would be a new target.
+A closer look (2026-11-16): the manifest targets API 28 (minimum 14), so today's Android still installs it; the
+library has no text relocations, so the 32-bit code is what keeps it off a phone without 32-bit support. `libgame.so`
+is cocos2d-x 2.2.6 with OpenSSL 1.0.2g, libpng 1.6.16, libjpeg, libtiff, libwebp, libwebsockets, Chipmunk and
+tinyxml2, all open source, and it exports 18,841 named symbols. The game's own classes (`Map`, `LevelEditor`,
+`RollMenu`, the sprite and controller classes, Facebook and mail code to drop) come to roughly 150 to 200 KB of
+the 3.3 MB of code. So an arm64 build needs only those classes decompiled, linked against cocos2d-x 2.2.6 built
+from source, and put back into the original Java shell (cocos2d-x's own, with the ad networks removed).
 
 **The Tasty Planet series, after Glass Tower (the user, 2026-11-01):** Dingo Games' series. The user doesn't own
 every game yet. Three are in the Steam library on A: (Tasty Planet, Tasty Planet 2, and Tasty Planet Forever,
