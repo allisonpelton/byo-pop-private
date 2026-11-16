@@ -2,7 +2,7 @@
 // stbi__gif_load_next for the first frame, stbi__process_gif_raster and stbi__out_gif_code, with the same reads past the end
 // (a zero byte), the same table of 8192 codes and the same refusals, which are left to stb. What differs is only how: a
 // code's pixels are read off its chain into a buffer instead of by recursion, and they go straight into the 32-bit pixels
-// (or the indices, DecodeGIFIndices) instead of through stb's three frame buffers and a copy.
+// instead of through stb's three frame buffers and a copy.
 
 #include "GIFDecoder.h"
 
@@ -52,7 +52,6 @@ struct Code
 
 const int kCodeCount = 8192;  // stb's table (stbi__gif's codes[8192]); a stream that needs more fails there
 
-template <typename Pixel>
 struct Decoder
 {
 	Reader mReader;
@@ -62,12 +61,10 @@ struct Decoder
 	uint8_t mPalette[256][4];                     // blue, green, red, alpha, as stb keeps them
 	uint8_t mLocalPalette[256][4];
 	const uint8_t (*mColors)[4] = nullptr;
-	uint32_t mColorPixels[256];                   // mColors as the pixels stb writes (MakePixels)
-	Pixel mPixels[256];                           // what a pixel of each index is written as: mColorPixels, or the index
+	uint32_t mPixels[256];                        // mColors as the pixels stb writes (MakePixels)
 	Code mCodes[kCodeCount];
 	uint8_t mString[kCodeCount];
-	Pixel* mBits = nullptr;
-	size_t mWritten = 0;                          // pixels written (a first frame writes none twice)
+	uint32_t* mBits = nullptr;
 	std::vector<uint8_t> mReached;                // pixels the frame reached (stb's history), kept only for the background fill
 	// the frame's rectangle and the next pixel, in pixels and rows (stb's are in bytes), with the interlace's step and passes
 	int mStartX = 0, mStartY = 0, mEndX = 0, mEndY = 0, mX = 0, mY = 0, mStep = 1, mPasses = 0;
@@ -99,9 +96,8 @@ struct Decoder
 		for (int i = 0; i < 256; i++)
 		{
 			const uint8_t* aColor = mColors[i];
-			mColorPixels[i] = (aColor[3] > 128) ?
+			mPixels[i] = (aColor[3] > 128) ?
 				((uint32_t) aColor[3] << 24) | ((uint32_t) aColor[2] << 16) | ((uint32_t) aColor[1] << 8) | aColor[0] : 0;
-			mPixels[i] = (sizeof(Pixel) == 1) ? (Pixel) i : (Pixel) mColorPixels[i];
 		}
 	}
 
@@ -127,7 +123,6 @@ struct Decoder
 		if (!mReached.empty())
 			mReached[aPos] = 1;
 		mBits[aPos] = mPixels[theIndex];
-		mWritten++;
 		mX++;
 		if (mX >= mEndX)
 			NextRow();
@@ -143,10 +138,10 @@ struct Decoder
 		if ((mY < mEndY) && (mX + aLength <= mEndX))
 		{
 			size_t aPos = (size_t) mY * mWidth + mX;
-			Pixel* anOut = mBits + aPos;
+			uint32_t* anOut = mBits + aPos;
 			if (aThis.mPrefixAt >= 0)
 			{
-				const Pixel* aPrefix = mBits + aThis.mPrefixAt;
+				const uint32_t* aPrefix = mBits + aThis.mPrefixAt;
 				for (int i = 0; i < aLength - 1; i++)
 					anOut[i] = aPrefix[i];
 				anOut[aLength - 1] = mPixels[aThis.mSuffix];
@@ -163,7 +158,6 @@ struct Decoder
 			if (!mReached.empty())
 				memset(&mReached[aPos], 1, (size_t) aLength);
 			mLastAt = (int32_t) aPos;
-			mWritten += (size_t) aLength;
 			mX += aLength;
 			if (mX >= mEndX)
 				NextRow();
@@ -267,7 +261,7 @@ struct Decoder
 	}
 
 	// stbi__gif_header and stbi__gif_load_next's first frame
-	bool Decode(std::vector<Pixel>& theBits)
+	bool Decode(std::vector<uint32_t>& theBits)
 	{
 		if ((mReader.Get8() != 'G') || (mReader.Get8() != 'I') || (mReader.Get8() != 'F') || (mReader.Get8() != '8'))
 			return false;
@@ -287,7 +281,7 @@ struct Decoder
 			ReadPalette(mPalette, 2 << (mFlags & 7), -1);
 		theBits.assign((size_t) mWidth * mHeight, 0);
 		mBits = &theBits[0];
-		if ((mBackground > 0) && (sizeof(Pixel) != 1))
+		if (mBackground > 0)
 			mReached.assign((size_t) mWidth * mHeight, 0);
 
 		for (;;)
@@ -327,8 +321,6 @@ struct Decoder
 				MakePixels();
 				if (!ReadRaster())
 					return false;
-				if (sizeof(Pixel) == 1)
-					return mWritten == theBits.size();  // indices only for a frame that reaches every pixel of the screen
 				if (mBackground > 0)
 				{
 					// stb copies its palette entry (blue, green, red) into a pixel it reads as red, green, blue
@@ -385,7 +377,7 @@ struct Decoder
 bool DecodeGIF(const uint8_t* theData, size_t theSize, int& theWidth, int& theHeight, std::vector<uint32_t>& theBits, bool* theHasAlpha)
 {
 	// about 80 KB of tables: on the heap, not the stack
-	std::unique_ptr<Decoder<uint32_t>> aDecoder(new Decoder<uint32_t>());
+	std::unique_ptr<Decoder> aDecoder(new Decoder());
 	aDecoder->mReader.mData = theData;
 	aDecoder->mReader.mSize = theSize;
 	aDecoder->mReader.mPos = 0;
@@ -408,24 +400,6 @@ bool DecodeGIF(const uint8_t* theData, size_t theSize, int& theWidth, int& theHe
 		*theHasAlpha = hasAlpha;
 	}
 	theBits.swap(aBits);
-	return true;
-}
-
-bool DecodeGIFIndices(const uint8_t* theData, size_t theSize, int& theWidth, int& theHeight, std::vector<uint8_t>& theIndices,
-	uint32_t theColors[256])
-{
-	// the same steps with a byte a pixel, the index, where DecodeGIF writes that index's pixel
-	std::unique_ptr<Decoder<uint8_t>> aDecoder(new Decoder<uint8_t>());
-	aDecoder->mReader.mData = theData;
-	aDecoder->mReader.mSize = theSize;
-	aDecoder->mReader.mPos = 0;
-	std::vector<uint8_t> anIndices;
-	if (!aDecoder->Decode(anIndices))
-		return false;
-	theWidth = aDecoder->mWidth;
-	theHeight = aDecoder->mHeight;
-	memcpy(theColors, aDecoder->mColorPixels, sizeof(aDecoder->mColorPixels));
-	theIndices.swap(anIndices);
 	return true;
 }
 

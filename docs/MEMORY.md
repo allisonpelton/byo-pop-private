@@ -122,42 +122,6 @@ written instead of walked by recursion, straight into the 32-bit pixels. All 11,
 to the same pixels and alpha flag as stb's; Mummy Maze's 237 take 45.8 ms instead of 87.9, all of them 2.1 s instead of
 4.4.
 
-**8. GIFs made 8-bit from their own indices** (`Platform::DecodeGIFIndices`, `QuantizeIndices` in `framework/Quantize.cpp`;
-numbered after the sections below, which came first). A picture a game palettizes was decoded to 32-bit pixels and then
-numbered by `Quantize8Bit`, a binary search of the colours found so far for every pixel. A GIF's pixels are already
-indices into its palette, so the loader now keeps them, and the palette, beside the 32-bit pixels (with a GIF mask, the
-mask's too, and the alpha is taken straight from the mask's indices), and `GetOptionalImage` hands them to the picture
-(`MemoryImage::KeepGIFIndices`). Only the last picture loaded holds them. If the next thing done to it is `Palletize`, the
-table is built from the indices, each distinct 32-bit colour numbered by its first appearance in pixel order as
-`Quantize8Bit` numbers them: a palette that lists a colour twice, or two pairs of colour and mask index that make the same
-pixel, give one entry, and a 257th colour is refused as before. Every pixel is checked against the 32-bit pixels on the
-way, and at the first that differs (a patched picture, say) `Quantize8Bit` runs instead. Any other kind of picture, and a
-GIF whose mask is not a GIF of its size, takes the old path.
-
-All 11,293 GIFs staged under `assets/`, through the real decoder and quantizers offline, gave the same pixels, alpha
-flag, refusal, indices and used table entries both ways, alone and as the loader puts them together (2,451 masks without
-a colour file, 1,356 colour GIFs with a GIF mask, 294 of them refused by both). In the games `BYOPOP_GIF_CHECK=1` runs
-`Quantize8Bit` as well and compares the two: Typer Shark built 229 tables from indices and had 2 refused, AstroPop 70 and
-5, and none differed. `BYOPOP_GIF_QUANTIZE=1` keeps no indices, which is the old path.
-
-Timed on the same exe with and without `BYOPOP_GIF_QUANTIZE=1`, five pinned pairs turn about, on the software renderer at
-render scale 1. `BYOPOP_LOADTIME=1` logs the loading's real time and the main thread's cycles in it, and of those the
-cycles spent loading pictures from files and in `Palletize` (about 2 M cycles a millisecond here: Mummy Maze's loading,
-which waits on nothing, ran 2.07 M). Other sessions' games kept the machine busy, and the whole loading's time scattered by
-more than the change (AstroPop's from 410 to 2,885 ms), so the picture cycles are the measure. Typer Shark's fell from
-572.7 to 500.8 M at the median, paired −93 M (−48 to −121), and in a second set from 691.6 to 533.1 M, paired −144 M (−49
-to −241): 45 to 70 ms a load. Its whole loading's paired medians were −73, −59 and −79 ms in three sets, and offline its
-217 palettized GIFs with masks take 55 ms instead of 101. AstroPop's paired medians were −103 M (three pairs, −309 to
-+191) and −48 M (−70 to +42), 25 to 50 ms, but the scatter is wide; offline its 56 such pictures take 18 ms instead of 32,
-which is under the 20 ms this change was asked to clear. Mummy Maze palettizes nothing and loads its pictures as they are
-first drawn, so its loading is unchanged; reading its GIF masks from their indices saves 8.5 ms over all of its pictures
-(57.4 against 48.9 ms offline), spread through play.
-
-The costs: a GIF that is never palettized and has no GIF mask decodes about 5 % slower, since the decoder writes indices
-that the loader then expands (all 11,293 as single files: 1.84 s against 1.76 s); one with a GIF mask is a little faster.
-The last picture's indices are held until its `Palletize` or the next load, a byte a pixel and two with a mask (300 KB more
-for a 640x480 picture, for that moment). The change adds about 390 lines to the framework and loader.
-
 ### Big Money, like for like
 
 Real-time bot games (seed 1, skill 3), memory reports every 750 updates, stopped after 5,250 updates, two pairs turn

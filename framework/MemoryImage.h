@@ -13,11 +13,6 @@
 extern bool gOptimizeSoftwareDrawing;
 #endif
 
-namespace Platform
-{
-struct GIFIndices;
-}
-
 namespace Sexy
 {
 
@@ -37,24 +32,6 @@ extern bool (*gMemoryImageRecoverBits)(MemoryImage* theImage);
 // frameworks of 2004's later games do (AstroPop's 0x4b1bf0: the colour's weight is 255 * a / (a + the destination's
 // alpha), so onto transparent bits it is full). A game sets it once, before it draws.
 extern bool gSlowStretchRenormalizesAlpha;
-
-// port: BYOPOP_LOADTIME=1 (SexyAppBase::LoadingThreadProcStub): the cycles the calling thread spends loading pictures from
-// files (SexyAppBase::GetOptionalImage) and in Palletize, the outermost of them only, added to gPictureCycles while
-// gPictureCyclesOn is set; otherwise a scope costs a test of that flag
-extern bool gPictureCyclesOn;
-extern unsigned long long gPictureCycles;
-
-class PictureCycleScope
-{
-public:
-	PictureCycleScope();
-	~PictureCycleScope();
-	PictureCycleScope(const PictureCycleScope&) = delete;
-	PictureCycleScope& operator=(const PictureCycleScope&) = delete;
-private:
-	unsigned long long mStart;
-	bool mCounted;
-};
 
 class MemoryImage : public Image
 {
@@ -225,11 +202,6 @@ public:
 	virtual void			SetVolatile(bool isVolatile);	
 
 	virtual bool			Palletize();
-	// port: a GIF's own colour indices for these pixels (the loader's Platform::GIFIndices, taken), kept until the next
-	// picture's load: a Palletize straight after the load (the resource manager's, or a game's own after GetImage) numbers
-	// them (QuantizeIndices) instead of searching the table for each pixel, with Quantize8Bit's result. GetOptionalImage
-	// keeps them for each picture it loads. BYOPOP_GIF_CHECK=1 quantizes as well and logs whether the two agree.
-	void					KeepGIFIndices(Platform::GIFIndices& theIndices);
 
 	// port: HD pixels (see mHDBits)
 	void					SetHDBits(const uint32_t* theBits, int theWidth, int theHeight, int theScale);

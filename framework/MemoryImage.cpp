@@ -9,7 +9,6 @@
 #include "PerfTimer.h"
 #include "SWTri.h"
 #include "../platform/ImageLoader.h"
-#include "../platform/CycleSplit.h"
 
 #include <SDL.h>
 #include <math.h>
@@ -21,23 +20,6 @@ using namespace Sexy;
 
 bool (*Sexy::gMemoryImageRecoverBits)(MemoryImage* theImage) = NULL;
 bool Sexy::gSlowStretchRenormalizesAlpha = false;
-bool Sexy::gPictureCyclesOn = false;
-unsigned long long Sexy::gPictureCycles = 0;
-
-// how many PictureCycleScopes are open: only the outermost counts
-static int gPictureCycleDepth = 0;
-
-PictureCycleScope::PictureCycleScope() : mStart(0), mCounted(gPictureCyclesOn)
-{
-	if (mCounted && (gPictureCycleDepth++ == 0))
-		mStart = Platform::CurrentThreadCycles();
-}
-
-PictureCycleScope::~PictureCycleScope()
-{
-	if (mCounted && (--gPictureCycleDepth == 0))
-		gPictureCycles += Platform::CurrentThreadCycles() - mStart;
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // port: pixels dropped after upload (MemoryImage.h, mBitsSource)
@@ -88,8 +70,6 @@ bool MakeBits(const MemoryImage::BitsSource& theSource, Platform::LoadedImage& t
 		return theSource.mMake(theOut.mWidth, theOut.mHeight, theOut.mBits) && (!theOut.mBits.empty());
 	if ((!Platform::LoadGameImage(theSource.mPath, theOut, true)) || theOut.mBits.empty() || theOut.mGenerated)
 		return false;
-	if ((!theSource.mAlphaPath.empty()) || (!theSource.mAlphaGridPath.empty()))
-		theOut.mGIFIndices = Platform::GIFIndices();  // the alpha steps change the pixels: the GIF's indices no longer give them
 	if (!theSource.mAlphaPath.empty())
 	{
 		Platform::LoadedImage anAlpha;
@@ -107,60 +87,6 @@ bool MakeBits(const MemoryImage::BitsSource& theSource, Platform::LoadedImage& t
 			return false;
 	}
 	return true;
-}
-
-// The GIF indices of the picture loaded last (MemoryImage::KeepGIFIndices), for its Palletize
-const MemoryImage* gGIFIndicesImage = NULL;
-Platform::GIFIndices gGIFIndices;
-
-void ForgetGIFIndices()
-{
-	gGIFIndicesImage = NULL;
-	gGIFIndices = Platform::GIFIndices();
-}
-
-bool GIFCheck()
-{
-	static int aCheck = -1;
-	if (aCheck < 0)
-	{
-		const char* aValue = getenv("BYOPOP_GIF_CHECK");
-		aCheck = ((aValue != NULL) && (atoi(aValue) != 0)) ? 1 : 0;
-	}
-	return aCheck != 0;
-}
-
-// Quantize8Bit's result for theBits from a GIF's indices (QuantizeIndices): 1, or 0 where it refuses; -1 when the indices
-// do not give these pixels, for Quantize8Bit to do it. BYOPOP_GIF_CHECK=1 quantizes them as well and logs the two.
-int QuantizeGIFIndices(const Platform::GIFIndices& theIndices, const ulong* theBits, int theWidth, int theHeight,
-	uchar* theDestColorIndices, ulong* theDestColorTable, const std::string& thePath)
-{
-	size_t aSize = (size_t) theWidth * theHeight;
-	bool hasMask = !theIndices.mMaskIndices.empty();
-	if ((theIndices.mIndices.size() != aSize) || (theIndices.mColors.size() != 256) ||
-		(hasMask && ((theIndices.mMaskIndices.size() != aSize) || (theIndices.mMaskColors.size() != 256))))
-		return -1;
-	int aResult = QuantizeIndices(theBits, theWidth, theHeight, theIndices.mIndices.data(), theIndices.mColors.data(),
-		hasMask ? theIndices.mMaskIndices.data() : NULL, hasMask ? theIndices.mMaskColors.data() : NULL, theDestColorIndices,
-		theDestColorTable);
-	if (GIFCheck())
-	{
-		std::vector<uchar> anIndices(aSize);
-		ulong aTable[256];
-		bool isQuantized = Quantize8Bit(theBits, theWidth, theHeight, anIndices.data(), aTable);
-		bool isSame = (aResult < 0) || (aResult == (isQuantized ? 1 : 0));
-		if (isSame && (aResult == 1))
-		{
-			int aUsed = 0;
-			for (uchar anIndex : anIndices)
-				aUsed = std::max(aUsed, anIndex + 1);
-			isSame = (memcmp(anIndices.data(), theDestColorIndices, aSize) == 0) &&
-				(memcmp(aTable, theDestColorTable, aUsed * sizeof(ulong)) == 0);
-		}
-		SDL_Log("GIFCHECK %s: %s, %s", thePath.c_str(), (aResult > 0) ? "numbered" : (aResult == 0) ? "refused" : "not its pixels",
-			isSame ? "as Quantize8Bit" : "DIFFERS from Quantize8Bit");
-	}
-	return aResult;
 }
 
 }
@@ -329,9 +255,7 @@ bool MemoryImage::RestoreBits()
 	{
 		mColorIndices = new uchar[aSize];
 		mColorTable = new ulong[256];
-		const ulong* aMadeBits = (const ulong*) aMade.mBits.data();
-		int aQuantized = QuantizeGIFIndices(aMade.mGIFIndices, aMadeBits, mWidth, mHeight, mColorIndices, mColorTable, mFilePath);
-		if ((aQuantized == 0) || ((aQuantized < 0) && (!Quantize8Bit(aMadeBits, mWidth, mHeight, mColorIndices, mColorTable))))
+		if (!Quantize8Bit((const ulong*) aMade.mBits.data(), mWidth, mHeight, mColorIndices, mColorTable))
 		{
 			delete [] mColorIndices;
 			mColorIndices = NULL;
@@ -651,8 +575,6 @@ MemoryImage::~MemoryImage()
 	delete [] mColorTable;
 	delete mBitsSource;
 	FreeHDCaches();
-	if (gGIFIndicesImage == this)
-		ForgetGIFIndices();
 }
 
 void MemoryImage::InitHD()
@@ -2595,18 +2517,8 @@ void MemoryImage::BltTrianglesTex(Image *theTexture, const TriVertex theVertices
 	BitsChanged();
 }
 
-void MemoryImage::KeepGIFIndices(Platform::GIFIndices& theIndices)
-{
-	ForgetGIFIndices();  // the picture loaded before this one's
-	if (theIndices.mIndices.empty())
-		return;
-	std::swap(gGIFIndices, theIndices);
-	gGIFIndicesImage = this;
-}
-
 bool MemoryImage::Palletize()
 {
-	PictureCycleScope aCycles; // port: BYOPOP_LOADTIME's count (MemoryImage.h)
 	RestoreBits();
 	CommitBits();
 	
@@ -2621,14 +2533,7 @@ bool MemoryImage::Palletize()
 	mColorIndices = new uchar[mWidth*mHeight];
 	mColorTable = new ulong[256];
 
-	// port: a GIF loaded straight before is numbered from its own indices (KeepGIFIndices), with Quantize8Bit's result
-	int aQuantized = -1;
-	if (gGIFIndicesImage == this)
-	{
-		aQuantized = QuantizeGIFIndices(gGIFIndices, mBits, mWidth, mHeight, mColorIndices, mColorTable, mFilePath);
-		ForgetGIFIndices();
-	}
-	if ((aQuantized == 0) || ((aQuantized < 0) && (!Quantize8Bit(mBits, mWidth, mHeight, mColorIndices, mColorTable))))
+	if (!Quantize8Bit(mBits, mWidth, mHeight, mColorIndices, mColorTable))
 	{
 		delete [] mColorIndices;
 		mColorIndices = NULL;

@@ -25,19 +25,6 @@
 namespace Platform
 {
 
-// A GIF picture's pixels as the file's own colour indices (DecodeGIFIndices), kept beside LoadedImage::mBits for
-// Palletize (MemoryImage::KeepGIFIndices, QuantizeIndices): mBits[i] is mColors[mIndices[i]], or with a GIF mask that
-// colour's red, green and blue with mMaskColors[mMaskIndices[i]]'s low byte as alpha. A mask-only picture's are its
-// mask's, with mColors made white with the mask's alpha. BYOPOP_GIF_QUANTIZE=1 makes none (the 32-bit decode, and
-// Quantize8Bit, as before).
-struct GIFIndices
-{
-	std::vector<uint8_t> mIndices;      // empty: mBits did not come straight from a GIF's indices
-	std::vector<uint32_t> mColors;      // 256
-	std::vector<uint8_t> mMaskIndices;  // empty without a GIF mask
-	std::vector<uint32_t> mMaskColors;  // 256 with one
-};
-
 struct LoadedImage
 {
 	int mWidth = 0;   // logical size
@@ -51,7 +38,6 @@ struct LoadedImage
 
 	bool mHasAlpha = false;
 	bool mGenerated = false;  // made by the ImageGenerator (SetImageGenerator), not read from a file
-	GIFIndices mGIFIndices;   // the 1x pixels as a GIF's indices, when they came straight from them
 	std::string mSourcePath;  // real path of the colour (or mask) file
 #ifndef BYOPOP_DERIVED
 	std::string mModId;       // empty for the base game
