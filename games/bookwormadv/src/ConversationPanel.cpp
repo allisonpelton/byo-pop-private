@@ -39,6 +39,7 @@ ConversationPanel::Panel::~Panel()
 		delete aPage;
 }
 
+// port: the panel's current page
 ConversationPanel::TextPage* ConversationPanel::Panel::CurrentPage() const
 {
 	return mPageIndex < mPages.size() ? mPages[mPageIndex] : mPages.back();
@@ -93,6 +94,7 @@ void ConversationPanel::SetDefaults(int theSide, const Color& theInner, Image* t
 }
 
 // The side's x the portrait slides to: 20 from the screen's left (not the panel's), or 20 in from the panel's right
+// port: where a portrait slides to
 static int PortraitTarget(const ConversationPanel* thePanel, Image* theImage, int theSide)
 {
 	if (theSide < 0)
@@ -150,12 +152,6 @@ void ConversationPanel::SetContinueTextColor(const Color& theColor)
 	LastPanel()->mContinueColor = theColor;
 }
 
-void ConversationPanel::SetAllContinueTextColors(const Color& theColor)
-{
-	for (Panel* aPanel : mPanels)
-		aPanel->mContinueColor = theColor;
-}
-
 void ConversationPanel::SetDimensions(int theX, int theY, int theW, int theH)
 {
 	mPanelY = theY;
@@ -198,6 +194,7 @@ void ConversationPanel::AlignAnim(int theSide, bool theAlignX)
 	SetAnimXY((int)x, y);
 }
 
+// port: replaces every occurrence of a text in a string
 static std::string ReplaceAll(const std::string& theText, const std::string& theFrom, const std::string& theTo)
 {
 	std::string aResult;
@@ -225,6 +222,7 @@ static std::string WithPlayerName(GameApp* theApp, const std::string& theText)
 
 // The page's top (the text centred in the panel's inner band) and its widest line, then the text wrapped to the
 // text rect
+// port: the layout of a page, shared by adding a page and RewrapPage (0x432530)
 void ConversationPanel::LayOutPage(Panel* thePanel, TextPage* thePage, const std::string& theText)
 {
 	int aMaxWidth = 0;
@@ -304,6 +302,7 @@ void ConversationPanel::OffsetPanelY(int theOffset)
 }
 
 // the battle's board holds while the panel shows
+// port: pauses or unpauses the battle's board
 static void PauseBoard(GameApp* theApp, bool thePause)
 {
 	if (theApp->mBoard != nullptr)
@@ -331,6 +330,7 @@ void ConversationPanel::TriggersNewUserDialog()
 		LastPanel()->mTriggersNewUserDialog = true;
 }
 
+// port: forgets the scripts' callbacks
 void ConversationPanel::ForgetCallbacks()
 {
 	mDrawCallback.clear();
@@ -340,22 +340,6 @@ void ConversationPanel::ForgetCallbacks()
 	mDisappearingCallback.clear();
 	mInactiveCallback.clear();
 	mGenericCompletionCallback.clear();
-}
-
-void ConversationPanel::Deactivate()
-{
-	mState = STATE_OFF;
-	SetVisible(false);
-	SetDisabled(true);
-	mApp->mWidgetManager->BringToBack(this);
-	if (mPausesBoard)
-		PauseBoard(mApp, false);
-	if (mRestoreFocus != nullptr) {
-		mApp->mWidgetManager->SetFocus(mRestoreFocus);
-		mRestoreFocus = nullptr;
-	}
-	mOnInactive = nullptr;
-	ForgetCallbacks();
 }
 
 bool ConversationPanel::SlideToTarget(Panel* thePanel)
@@ -395,18 +379,18 @@ void ConversationPanel::NextPanel()
 {
 	if (mCurPanel + 1 < mPanels.size()) {
 		mCurPanel++;
-		Panel* p = CurPanel();
+		Panel* aPanel = CurPanel();
 		RewrapPage();
 		mState = STATE_NEXT_PANEL;
 		Panel* aPrev = mPanels[mCurPanel - 1];
-		if (p->mTargetX == aPrev->mTargetX) {
+		if (aPanel->mTargetX == aPrev->mTargetX) {
 			aPrev->mArrived = true;
-			p->mArrived = true;
-			p->mAnim->mX = (float)p->mTargetX;
+			aPanel->mArrived = true;
+			aPanel->mAnim->mX = (float)aPanel->mTargetX;
 		} else {
 			// the one who spoke slides out on the far side from where the new speaker comes in
 			int aWidth = aPrev->mAnim->mImage != nullptr ? aPrev->mAnim->mImage->GetCelWidth() : 0;
-			if (p->mAnim->mX <= (float)p->mTargetX)
+			if (aPanel->mAnim->mX <= (float)aPanel->mTargetX)
 				aPrev->mTargetX = mPanelW + mPanelX + aWidth;
 			else
 				aPrev->mTargetX = mPanelX - aWidth;
@@ -480,8 +464,8 @@ std::string ConversationPanel::WordWrap(Font* theFont, std::string theText, int 
 // of the letter, or of the page's end
 bool ConversationPanel::NextLetter()
 {
-	Panel* p = CurPanel();
-	TextPage* aPage = p->CurrentPage();
+	Panel* aPanel = CurPanel();
+	TextPage* aPage = aPanel->CurrentPage();
 	std::string& aText = aPage->mText;
 	int aShown = aPage->mLetters;
 	int aSkip = 0;
@@ -505,7 +489,7 @@ bool ConversationPanel::NextLetter()
 			gLuaSupport->Call(mLetterCallback, 1, 0);
 		}
 	} else {
-		p->mTyping = false;
+		aPanel->mTyping = false;
 		aDone = true;
 		if (!mFinishedCallback.empty() && !mSkipLetterCallback)
 			gLuaSupport->Call(mFinishedCallback, 0, 0);
@@ -540,7 +524,7 @@ void ConversationPanel::Update()
 	if (mApp->GetDialog(GameApp::DIALOG_NEW_USER) != nullptr || mState == STATE_OFF)
 		return;
 	mUpdateCnt++;
-	Panel* p = CurPanel();
+	Panel* aPanel = CurPanel();
 	switch (mState) {
 	case STATE_BEAM_IN:
 		if (mAlpha < mScreenColor.mAlpha) {
@@ -563,15 +547,15 @@ void ConversationPanel::Update()
 		}
 		break;
 	case STATE_TEXT:
-		if (p->mAnim->Update(true))
+		if (aPanel->mAnim->Update(true))
 			MarkDirty();
 		if (mAlpha > 0) {
 			mAlpha -= 6;
 			MarkDirty();
 		}
-		if (!p->mArrived && !SlideToTarget(p))
+		if (!aPanel->mArrived && !SlideToTarget(aPanel))
 			MarkDirty();
-		if (p->mTyping && mLetterDelay > 0 && mAlpha < 1 && p->mArrived && mUpdateCnt % mLetterDelay == 0) {
+		if (aPanel->mTyping && mLetterDelay > 0 && mAlpha < 1 && aPanel->mArrived && mUpdateCnt % mLetterDelay == 0) {
 			if (mUpdateCnt % (mLetterDelay * 2) == 0)
 				mApp->mSoundPlayer->PlaySampleMinTime(SOUND_TEXT_BLIP, 0);
 			NextLetter();
@@ -621,10 +605,10 @@ void ConversationPanel::Update()
 		Panel* aPrev = mPanels[mCurPanel - 1];
 		if (!aPrev->mArrived)
 			SlideToTarget(aPrev);
-		bool aSlid = p->mArrived || SlideToTarget(p);
-		if (StepColor(mCurrentInner, p->mInnerColor) && aSlid)
+		bool aSlid = aPanel->mArrived || SlideToTarget(aPanel);
+		if (StepColor(mCurrentInner, aPanel->mInnerColor) && aSlid)
 			mState = STATE_TEXT;
-		p->mAnim->Update(true);
+		aPanel->mAnim->Update(true);
 		aPrev->mAnim->Update(true);
 		mAlpha = 0;
 		break;
@@ -641,6 +625,7 @@ callbacks:
 		gBattleEngine->CallLinkedMethod("GenericConvPanelUpdateCallback", 0);
 }
 
+// port: calls the scripts' draw callback with a Graphics
 void ConversationPanel::CallDrawCallback(Graphics* g)
 {
 	PushGraphics(g);
@@ -650,7 +635,7 @@ void ConversationPanel::CallDrawCallback(Graphics* g)
 
 void ConversationPanel::Draw(Graphics* g)
 {
-	Panel* p = CurPanel();
+	Panel* aPanel = CurPanel();
 	if (mState != STATE_OFF && !mDrawCallback.empty() && mDrawCallbackUnder)
 		CallDrawCallback(g);
 	int aCenterY = mPanelH / 2 + mPanelY;
@@ -681,7 +666,7 @@ void ConversationPanel::Draw(Graphics* g)
 			g->FillRect(Rect(mPanelX, aCenterY - aHalf, mPanelW, aHalf * 2));
 		}
 		int aHalf = mOpenHalf * 2 > anInnerH ? anInnerH / 2 : mOpenHalf;
-		g->SetColor(p->mInnerColor);
+		g->SetColor(aPanel->mInnerColor);
 		g->FillRect(Rect(mPanelX, aCenterY - aHalf, mPanelW, aHalf * 2));
 		if (mState == STATE_OPENING) {
 			g->SetColor(Color(mBeamColor.mRed, mBeamColor.mGreen, mBeamColor.mBlue, mAlpha));
@@ -699,25 +684,25 @@ void ConversationPanel::Draw(Graphics* g)
 		g->FillRect(mPanelX, mPanelY, mPanelW, mPanelH);
 		g->SetColor(mMiddleColor);
 		g->FillRect(mPanelX, mPanelY + 40, mPanelW, mPanelH - 80);
-		g->SetColor(p->mInnerColor);
+		g->SetColor(aPanel->mInnerColor);
 		g->FillRect(mPanelX, mPanelY + 60, mPanelW, mPanelH - 120);
-		p->mAnim->Draw(g, 0, 0);
-		g->SetFont(p->mFont);
-		g->SetColor(p->mTextColor);
-		if (mAlpha < 1 && p->mArrived) {
-			TextPage* aPage = p->CurrentPage();
-			Rect aRect(p->mTextRect.mX, aPage->mY, p->mTextRect.mWidth, p->mTextRect.mHeight);
+		aPanel->mAnim->Draw(g, 0, 0);
+		g->SetFont(aPanel->mFont);
+		g->SetColor(aPanel->mTextColor);
+		if (mAlpha < 1 && aPanel->mArrived) {
+			TextPage* aPage = aPanel->CurrentPage();
+			Rect aRect(aPanel->mTextRect.mX, aPage->mY, aPanel->mTextRect.mWidth, aPanel->mTextRect.mHeight);
 			if (aPage->mMaxWidth < aRect.mWidth) {
 				int aMargin = (aRect.mWidth - aPage->mMaxWidth) / 2;
 				aRect.mX += aMargin;
 				aRect.mWidth -= aMargin * 2;
 			}
-			if (p->mTyping) {
+			if (aPanel->mTyping) {
 				std::string aShown = aPage->mText.substr(0, aPage->mLetters);
-				g->WriteWordWrapped(aRect, aShown, p->mFont->GetAscent(), -1, nullptr, -1, nullptr);
+				g->WriteWordWrapped(aRect, aShown, aPanel->mFont->GetAscent(), -1, nullptr, -1, nullptr);
 			} else {
-				g->WriteWordWrapped(aRect, aPage->mText, p->mFont->GetAscent(), -1, nullptr, -1, nullptr);
-				g->SetColor(p->mContinueColor);
+				g->WriteWordWrapped(aRect, aPage->mText, aPanel->mFont->GetAscent(), -1, nullptr, -1, nullptr);
+				g->SetColor(aPanel->mContinueColor);
 				g->SetFont(FONT_SMALL);
 				// "(Click anywhere to continue.)"
 				g->WriteString(GT(0x7abc2c), aRect.mX, FONT_SMALL->GetAscent() + mPanelH + mPanelY - 62, aRect.mWidth, 0,
@@ -743,7 +728,7 @@ void ConversationPanel::Draw(Graphics* g)
 		g->SetColor(mCurrentInner);
 		g->FillRect(mPanelX, mPanelY + 60, mPanelW, mPanelH - 120);
 		mPanels[mCurPanel - 1]->mAnim->Draw(g, 0, 0);
-		p->mAnim->Draw(g, 0, 0);
+		aPanel->mAnim->Draw(g, 0, 0);
 		break;
 	}
 	if (mState != STATE_OFF && !mDrawCallback.empty() && !mDrawCallbackUnder)
@@ -765,21 +750,21 @@ void ConversationPanel::MouseDown(int x, int y, int theClickCount)
 	Widget::MouseDown(x, y, theClickCount);
 	if (mApp->GetDialog(GameApp::DIALOG_NEW_USER) != nullptr)
 		return;
-	Panel* p = CurPanel();
+	Panel* aPanel = CurPanel();
 	int aLast = mLastClick;
 	mLastClick = mUpdateCnt;
 	if (mUpdateCnt - aLast <= 1 || theClickCount != 1 || mState != STATE_TEXT)
 		return;
 	MarkDirty();
-	if (p->mTyping) {
+	if (aPanel->mTyping) {
 		while (!NextLetter())
 			;
 		return;
 	}
-	p->mPageIndex++;
-	if (p->mPageIndex >= p->mPages.size()) {
-		p->mTyping = false;
-		if (p->mTriggersNewUserDialog) {
+	aPanel->mPageIndex++;
+	if (aPanel->mPageIndex >= aPanel->mPages.size()) {
+		aPanel->mTyping = false;
+		if (aPanel->mTriggersNewUserDialog) {
 			// the panels wait under the new player's name (NewUserDialogDone goes on to the next)
 			mApp->ShowNewUserDialog(Dialog::BUTTONS_FOOTER);
 			return;
@@ -787,7 +772,7 @@ void ConversationPanel::MouseDown(int x, int y, int theClickCount)
 		NextPanel();
 		return;
 	}
-	p->mTyping = mLetterDelay != 0;
+	aPanel->mTyping = mLetterDelay != 0;
 	RewrapPage();
 	if (!mStartedCallback.empty())
 		CallForBool(mStartedCallback);

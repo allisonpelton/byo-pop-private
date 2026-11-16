@@ -35,7 +35,6 @@ public:
 	double mSlideToY = 0.0;               // +0x70
 	float mSlideSpeed = 0.0f;             // +0x78: mSlideCurve->mT grows by this each update; 0 when not sliding
 	float mScale = 1.0f;                  // +0x7c
-	int m80 = 0;                          // +0x80: set to 0 by the constructor; no use found
 
 	Tile();   // 0x4988f0
 	~Tile() override;  // 0x498c10: the Lua object's Destructor first
@@ -51,7 +50,7 @@ public:
 	// vf09 (0x498e30): LuaLinkedClass::CreateLinkedObject with one more argument for the script's CreateLinkedObject
 	// (which ignores it)
 	using LuaLib::LuaLinkedClass::CreateLinkedObject;
-	void CreateLinkedObject(void* theObject, bool theUnused);
+	void CreateLinkedObject(void* theObject, bool theIgnoredFlag);
 	// 0x498cb0: takes over another tile's state (position, cell, fall, slide, alpha), not its scale
 	void CopyState(const Tile* theTile);
 
@@ -82,8 +81,6 @@ public:
 	// Not bound
 	bool Contains(int theX, int theY);   // 0x4992e0: the point is in the tile (scaled about its centre); never while it slides
 	bool SlideStep();                    // 0x4995a0: one step of a slide; false when it is not sliding or has arrived
-	void Fall(int theDistance, int theDelay);  // 0x416430
-	bool IsInRow(int theRow) const { return theRow == mRow; }  // 0x416440
 	void TileXChanged(int theX);         // 0x4993e0: the tile engine's TileXChanged(tile, x)
 	void TileYChanged(int theY);         // 0x499440
 	// 0x498d60: the tile engine's script gives it another letter (ChangeLetter(tile, letter))

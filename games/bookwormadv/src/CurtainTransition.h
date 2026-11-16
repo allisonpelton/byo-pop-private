@@ -18,7 +18,7 @@ class CurtainTransition : public Widget {
 public:
 	int mFrame;                // +0x88, the cel (0 closed, the last one open)
 	int mTopY;                 // +0x8c, the valance's y (0 down, minus its height up)
-	int mCordX;                // +0x90, the cord's x (moved, never drawn)
+	int mCordX;                // +0x90, the cord's x (moved, never drawn; nothing reads it)
 	bool mDrawn;               // +0x94, drawn at its last frame
 	bool mClosing;             // +0x95
 	bool mDone;                // +0x96

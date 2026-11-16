@@ -13,16 +13,13 @@ bool LuaClassRet::Bool() const
 	return v[0].b;
 }
 
+// 0x6c96c0
 int LuaClassRet::Int() const
 {
 	return count > 0 && (v[0].type == TNumber || v[0].type == TInt) ? (int)v[0].num : 0;
 }
 
-double LuaClassRet::Number() const
-{
-	return count > 0 && (v[0].type == TNumber || v[0].type == TInt) ? v[0].num : 0;
-}
-
+// 0x6c97a0
 const std::string& LuaClassRet::String() const
 {
 	return count > 0 && v[0].type == TString ? v[0].str : kNone.str;
@@ -37,6 +34,7 @@ LuaLinkedClass::~LuaLinkedClass()
 	DeleteLinkedObject();
 }
 
+// port: the push of the linked object that the original's CreateLinkedObject (0x6c9b30), RegisterEnums (0x6c9e10) and DeleteLinkedObject (0x6c9ce0) each make inline
 void LuaLinkedClass::PushLinkedObject()
 {
 	LuaSupport* s = gLuaSupport;
@@ -62,8 +60,8 @@ void LuaLinkedClass::RegisterEnums()
 {
 	if (mEnums.empty())
 		return;
-	LuaSupport* s = gLuaSupport;
-	lua_State* L = s->L;
+	LuaSupport* aSupport = gLuaSupport;
+	lua_State* L = aSupport->L;
 	auto aSet = [&]() {
 		if (!lua_istable(L, -1))
 			return;
@@ -76,7 +74,7 @@ void LuaLinkedClass::RegisterEnums()
 	lua_getglobal(L, "gLinkedObjectTable");
 	if (lua_isnil(L, -1)) {
 		lua_pop(L, 1);
-		s->ReportError("Unable to locate gLinkedObjectTable in LuaLinkedClass::RegisterEnums");
+		aSupport->ReportError("Unable to locate gLinkedObjectTable in LuaLinkedClass::RegisterEnums");
 		return;
 	}
 	PushLinkedObject();
@@ -125,24 +123,24 @@ LuaClassRet LuaLinkedClass::CallLinkedMethod(const char* method, int nargs)
 // 0x6c9270 (LuaClassRet's constructor, which reads the results off the stack) is inline here
 LuaClassRet LuaLib::CallLua(const std::string& path, int nargs)
 {
-	LuaClassRet r;
-	LuaSupport* s = gLuaSupport;
-	lua_State* L = s->L;
-	if (!s->Call(path, nargs, LUA_MULTRET))
-		return r;
-	int n = s->Results();
-	for (int i = 0; i < n && i < 8; i++) {
-		int idx = -n + i;
-		LuaClassRet::Value& v = r.v[i];
+	LuaClassRet aResult;
+	LuaSupport* aSupport = gLuaSupport;
+	lua_State* L = aSupport->L;
+	if (!aSupport->Call(path, nargs, LUA_MULTRET))
+		return aResult;
+	int aCount = aSupport->Results();
+	for (int i = 0; i < aCount && i < 8; i++) {
+		int idx = -aCount + i;
+		LuaClassRet::Value& v = aResult.v[i];
 		switch (lua_type(L, idx)) {
 		case LUA_TNUMBER: v.type = LuaClassRet::TNumber; v.num = lua_tonumber(L, idx); break;
 		case LUA_TINT: v.type = LuaClassRet::TInt; v.num = lua_toint(L, idx); break;
 		case LUA_TSTRING: v.type = LuaClassRet::TString; v.str = lua_tostring(L, idx); break;
 		case LUA_TBOOLEAN: v.type = LuaClassRet::TBool; v.b = lua_toboolean(L, idx) != 0; break;
-		default: s->ReportError("Invalid Lua Result: Invalid return type in LuaClassRet"); break;
+		default: aSupport->ReportError("Invalid Lua Result: Invalid return type in LuaClassRet"); break;
 		}
 	}
-	r.count = n < 8 ? n : 8;
-	lua_pop(L, n);
-	return r;
+	aResult.count = aCount < 8 ? aCount : 8;
+	lua_pop(L, aCount);
+	return aResult;
 }

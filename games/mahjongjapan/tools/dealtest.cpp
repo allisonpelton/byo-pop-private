@@ -2,6 +2,10 @@
 // loaded and dealt, and the kinds dealt are checked to pair up. Usage: mahjongjapan_dealtest <folder with
 // Resource.dll> [quad percent] [seed], or <folder> --solve <layout id> [seed quad percent],
 // or <folder> --stage <escape stage 1-60>
+// The lite mod's measurements (docs/LITE_MOD.md), in the environment: DEAL_ONLY=1 (a deal's time only, "deal: N ms" on stderr),
+// STAGE_REDEAL=<n> with --stage (n seeds of the shuffle's redeal on the board after a quarter, a half and three quarters of the
+// winning moves, a line each), QUICK_REDEAL=1 (the lite mod's quickRedeal on), LOGIC_BENCH=1 (the microseconds of the layout's
+// free-tile and move functions) and REDEAL_BENCH (redeals on played-down boards of every layout, 's' for the escape layouts only)
 // (below)
 
 #include "Bot.h"
@@ -328,8 +332,12 @@ static int Solve(int theId, bool theDeal, unsigned int theSeed, int thePercent)
 		// As Board::Start (0x40ae60) deals a stage's blank tiles: with the stage's seed, from the player's file
 		jb::CrtSrand(theSeed);
 		Deal aDeal;
+		auto aDealStart = std::chrono::steady_clock::now();
 		aDeal.Start(&aLayout, thePercent, 0, false);
+		fprintf(stderr, "deal: %.0f ms\n", std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - aDealStart).count());
 		aLayout.UpdateFree();
+		if (getenv("DEAL_ONLY") != nullptr)  // the lite mod's measurement: only the deal's time (LITE_MOD.md)
+			return 0;
 	}
 	if (getenv("BOTTEST") != nullptr)
 	{
@@ -371,6 +379,48 @@ static int Solve(int theId, bool theDeal, unsigned int theSeed, int thePercent)
 	{
 		gTiles[i]->mTaken = 0;
 		gTiles[i]->mKind = aKinds[i];
+	}
+	if (const char* aRedealSeeds = getenv("STAGE_REDEAL"))
+	{
+		// the lite mod's measurement (LITE_MOD.md): the shuffle's redeal (Deal::Start with theRedeal, a search of at most 1 s) on this
+		// board after the first quarter, half and three quarters of the moves that win it, STAGE_REDEAL clock seeds each (the shuffle
+		// seeds the generator from the clock); one line a redeal
+		gQuickRedeal = getenv("QUICK_REDEAL") != nullptr;  // the lite mod's option, on
+		aLayout.UpdateFree();
+		for (int aQuarter = 1; aQuarter <= 3; aQuarter++)
+		{
+			size_t aPlayed = gMoves.size() * aQuarter / 4;
+			for (size_t i = 0; i < aPlayed; i++)
+				Apply(aLayout, gMoves[i]);
+			std::vector<int> aSavedKinds, aSavedTaken;
+			for (Tile* aTile : gTiles)
+			{
+				aSavedKinds.push_back(aTile->mKind);
+				aSavedTaken.push_back(aTile->mTaken);
+			}
+			for (int s = 1; s <= atoi(aRedealSeeds); s++)
+			{
+				jb::CrtSrand((unsigned int)s * 7919u);
+				Deal aRedeal;
+				auto aRedealStart = std::chrono::steady_clock::now();
+				aRedeal.Start(&aLayout, thePercent, (int)aPlayed + 1, true);
+				double aMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - aRedealStart).count();
+				unsigned int aHash = 2166136261u;
+				for (Tile* aTile : gTiles)
+					aHash = (aHash ^ (unsigned int)aTile->mKind) * 16777619u;
+				printf("redeal stage layout %d: %zu of %zu moves played, seed %d, %.0f ms, %d clock checks, kinds %08x\n", theId, aPlayed, gMoves.size(), s, aMs,
+					gSolveChecks, aHash);
+				for (size_t i = 0; i < gTiles.size(); i++)
+				{
+					gTiles[i]->mKind = aSavedKinds[i];
+					gTiles[i]->mTaken = aSavedTaken[i];
+				}
+				aLayout.UpdateFree();
+			}
+			for (size_t i = aPlayed; i-- > 0;)
+				Undo(aLayout, gMoves[i]);
+		}
+		return 0;
 	}
 	// A point of each tile that the hit test gives to it, with the tiles taken before it gone
 	int aMoveCount = 0;
@@ -566,6 +616,94 @@ extern "C" int SDL_main(int argc, char** argv)
 			aFailed++;
 		printf("layout %u: %d tiles%s, %u ms%s%s\n", aKey.mId, aTiles, aLayout.mHasCounts ? " (kinds of its own)" : "",
 			aTime, aBlank ? " BLANK" : "", anOdd ? " ODD" : "");
+		if (getenv("LOGIC_BENCH") != nullptr)
+		{
+			// the lite mod's measurement (LITE_MOD.md): what the board's free-tile logic costs on this layout, in microseconds a call, each
+			// timed over many calls: the whole UpdateFree (the start, a shuffle), CountMoves (after every move) and the neighbours'
+			// update of one pair (after every move, in both directions), on the dealt board
+			using Clock = std::chrono::steady_clock;
+			auto Micros = [](Clock::time_point theStart, int theReps) {
+				return std::chrono::duration<double, std::micro>(Clock::now() - theStart).count() / theReps;
+			};
+			std::vector<Tile*> aLowest;
+			for (Tile* aTile = aLayout.First(); aTile != nullptr; aTile = aLayout.Next())
+				if (aTile->mZ <= 1 && (aLowest.size() < 2))
+					aLowest.push_back(aTile);
+			const int kReps = 200;
+			auto aT = Clock::now();
+			for (int r = 0; r < kReps; r++)
+				aLayout.UpdateFree();
+			double aFree = Micros(aT, kReps);
+			int aPairs = 0, aLeft = 0, aKindsFree = 0;
+			aT = Clock::now();
+			for (int r = 0; r < kReps; r++)
+				aLayout.CountMoves(&aPairs, &aLeft, &aKindsFree);
+			double aCount = Micros(aT, kReps);
+			int aHitZ = -1, aHitX = 0, aHitY = 0;
+			aT = Clock::now();
+			for (int r = 0; r < kReps; r++)
+			{
+				aHitZ = -1;
+				aLayout.HitTest(-1000, -1000, &aHitZ, &aHitX, &aHitY);  // a point on no tile: the whole list
+			}
+			double aHit = Micros(aT, kReps);
+			double aNear = 0;
+			if (aLowest.size() == 2)
+			{
+				aT = Clock::now();
+				for (int r = 0; r < kReps; r++)
+				{
+					aLayout.UpdateNeighbours(aLowest[0], aLowest[1], nullptr, 0, true);
+					aLayout.UpdateNeighbours(aLowest[0], aLowest[1], nullptr, 0, false);
+				}
+				aNear = Micros(aT, kReps) / 2;
+			}
+			printf("bench layout %u: %d tiles, UpdateFree %.1f us, CountMoves %.1f us, UpdateNeighbours of a pair %.1f us, HitTest %.1f us\n", aKey.mId, aTiles,
+				aFree, aCount, aNear, aHit);
+		}
+		if (getenv("REDEAL_BENCH") != nullptr && (aLayout.mHasCounts || getenv("REDEAL_BENCH")[0] != 's'))
+		{
+			// the lite mod's measurement (LITE_MOD.md): the shuffle's redeal (Deal::Start with theRedeal, a search of at most 1 s) on a
+			// board played down to 25, 50, 75 and 90 % of its tiles left by random free pairs, as the shuffle button finds one
+			std::mt19937 aPick(aKey.mId);
+			std::vector<Tile*> anAll;
+			for (Tile* aTile = aLayout.First(); aTile != nullptr; aTile = aLayout.Next())
+				anAll.push_back(aTile);
+			int aMove = 0;
+			size_t aGoal[4] = {anAll.size() * 3 / 4, anAll.size() / 2, anAll.size() / 4, anAll.size() / 10};
+			for (int aStep = 0; aStep < 4; aStep++)
+			{
+				size_t aLeftNow = 0;
+				for (;;)
+				{
+					aLeftNow = 0;
+					std::vector<std::pair<Tile*, Tile*>> aPairsNow;
+					for (Tile* a : anAll)
+						if (a->mTaken == 0)
+						{
+							aLeftNow++;
+							if (a->mFree)
+								for (Tile* b : anAll)
+									if (b > a && b->mTaken == 0 && b->mFree && KindsMatch(a->mKind, b->mKind))
+										aPairsNow.push_back({a, b});
+						}
+					if (aLeftNow <= aGoal[aStep] || aPairsNow.empty())
+						break;
+					std::pair<Tile*, Tile*> aChosen = aPairsNow[aPick() % aPairsNow.size()];
+					aMove++;
+					aChosen.first->mTaken = aMove;
+					aChosen.second->mTaken = aMove;
+					aLayout.UpdateNeighbours(aChosen.first, aChosen.second, nullptr, 0, true);
+				}
+				aLayout.UpdateFree();
+				Deal aRedeal;
+				uint32_t aRedealStart = aHost.TickCount();
+				aRedeal.Start(&aLayout, aPercent, aMove, true);
+				uint32_t aRedealTime = aHost.TickCount() - aRedealStart;
+				aLayout.UpdateFree();
+				printf("redeal layout %u: %zu tiles left, %u ms\n", aKey.mId, aLeftNow, aRedealTime);
+			}
+		}
 		aLayouts++;
 	}
 	printf("%d layouts, %d failed, slowest %u ms\n", aLayouts, aFailed, aSlowest);

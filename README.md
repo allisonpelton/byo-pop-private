@@ -40,7 +40,7 @@ installed copy (for example from Steam):
 | [Atomica Deluxe](games/atomica/docs/README.md) | Sonnet | Every phase but modding | 2026-10-25 | 1 | $332 | $13 | | $344 |
 | [Mummy Maze Deluxe](games/mummymaze/docs/README.md) | Sonnet | Every phase but modding | 2026-10-25 | 2 | $295 | $25 | | $319 |
 | [TipTop Deluxe](games/tiptop/docs/README.md) | Opus | Every phase but modding | 2026-10-25 | 1 | $281 | $2 | | $283 |
-| [Bookworm Adventures Deluxe](games/bookwormadv/docs/README.md) | Opus | Coverage | 2026-10-25 | | $880 | $2 | | $882 |
+| [Bookworm Adventures Deluxe](games/bookwormadv/docs/README.md) | Opus | Performance | 2026-10-25 | | $880 | $2 | | $882 |
 | [Ning Po Mahjong Deluxe](games/ningpo/docs/README.md) | Opus | Every phase but modding | 2026-10-26 | | $161 | | | $161 |
 | [Pixelus Deluxe](games/pixelus/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | | $344 | | | $344 |
 | [Alchemy Deluxe](games/alchemy/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | 1 | $228 | $16 | | $244 |
@@ -50,8 +50,8 @@ installed copy (for example from Steam):
 | [Rocket Mania Deluxe](games/rocketmania/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | 1 | $336 | $8 | | $344 |
 | [Dynomite Deluxe](games/dynomite/docs/README.md) | Opus | Every phase but modding | 2026-10-26 | | $427 | | | $427 |
 | [Bookworm Adventures Volume 2](games/bookwormadv2/docs/README.md) | Sonnet | Ported | 2026-10-26 | | $316 | | | $316 |
-| [Mahjong Escape: Ancient Japan](games/mahjongjapan/docs/README.md) | Opus | Coverage | 2026-11-01 | 1 | $476 | $2 | | $478 |
-| [Mahjong Escape: Ancient China](games/mahjongchina/docs/README.md) | Opus | Coverage | 2026-11-01 | 1 | with Ancient Japan | | | |
+| [Mahjong Escape: Ancient Japan](games/mahjongjapan/docs/README.md) | Opus | Every phase but modding | 2026-11-01 | 1 | $476 | $2 | | $478 |
+| [Mahjong Escape: Ancient China](games/mahjongchina/docs/README.md) | Opus | Every phase but modding | 2026-11-01 | 1 | with Ancient Japan | | | |
 | [Bonnie's Bookstore Deluxe](games/bonnies/README.md) | Opus | Every phase but modding | 2026-11-01 | 1 | $282 | $2 | | $285 |
 | [Bejeweled Twist](games/bejeweledtwist/docs/NOTES.md) | Opus | Every phase but modding | 2026-11-02 | 2 | $1,439 | $10 | $6 | $1,456 |
 | [Bejeweled 2 Deluxe](games/bejeweled2/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-08 | 1 | $614 | $19 | | $633 |
@@ -59,7 +59,7 @@ installed copy (for example from Steam):
 | [Typer Shark! Deluxe](games/typershark/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-09 | 2 | $588 | $26 | | $614 |
 | [Venice Deluxe](games/venice/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-12 | 2 | $335 | $11 | | $346 |
 | [Heavy Weapon Deluxe](games/heavyweapon/docs/IDENTICAL_PLAY.md) | Opus | Every phase but modding | 2026-11-12 | 2 | $332 | $19 | | $351 |
-| [Hammer Heads Deluxe](games/hammerheads/docs/IDENTICAL_PLAY.md) | Sonnet | Coverage | 2026-11-13 | 2 | $320 | $6 | | $325 |
+| [Hammer Heads Deluxe](games/hammerheads/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-13 | 2 | $320 | $6 | | $325 |
 | [Pizza Frenzy](games/pizzafrenzy/docs/README.md) | Opus | Ported | 2026-11-15 | | $305 | | | $305 |
 | Iggle Pop Deluxe, Feeding Frenzy Deluxe | | Not started: once every game above is done | | | under $1 each | | | |
 | Chuzzle Deluxe, Feeding Frenzy 2, Peggle Deluxe, Peggle Nights, Bejeweled 3, Banana Bugs, Gyromancer, Zuma's Revenge, Talismania Deluxe | | After those, two at a time | | | $19 | | | $19 |
@@ -101,18 +101,18 @@ asked.
 | Atomica Deluxe | 1.20 s | 1.07 s | 18 % of one core | 20 % of one core | 109 to 112 MB (a 20 s idle board) | 64 to 67 MB |
 | Mummy Maze Deluxe | 0.38 and 0.44 s | 4.5 s | 7.7 G cycles a minute | 8.7 G cycles a minute | 58 MB | 65 and 66 MB |
 | TipTop Deluxe | 0.6 to 0.9 s | 4.7 and 4.8 s | 4.07 G cycles in 30 s of strategy, 1.87 G in 20 s at the menu (640x480, 62.5 passes a second) | 4.96 G and 2.07 G (paced to 62 passes a second) | 82 and 83 MB | 46 MB |
-| Bookworm Adventures Deluxe | 1.70 s | 6.4 s | 2.9 to 3.2 % of one core | 7.8 to 9.4 % of one core | 165 MB | 94 MB |
+| Bookworm Adventures Deluxe | 1.70 s | 6.4 s | 7.9 G cycles a minute at the title (medians of five pinned pairs, 3D in its 800x600 window; 16.0 G full screen at 3840x2160) | 24.4 G cycles a minute (medians; 2D, its window 800x600) | 79.3 MB at the title, 101.1 MB at the peak (3D at 1x; 77.3 and 100.1 full screen) | 91.9 MB at the title, 92.2 MB at the peak (2D) |
 | Ning Po Mahjong Deluxe | 0.36 s | 0.82 s | 6.3 % of one core | 14.9 % of one core | 54 MB | 21 MB |
-| Pixelus Deluxe | 0.9 to 1.4 s | 0.8 to 1.0 s | 2.1 to 3.2 M cycles an update (median 2.9 with its mixer; the main thread 2.2) | 2.6 to 3.6 M cycles an update (median 3.3) | 95 to 98 MB | 91 to 93 MB |
+| Pixelus Deluxe | 0.9 to 1.4 s | 0.8 to 1.0 s | 2.0 to 3.3 M cycles an update in 2D at 1x with the software screen (median 2.20, 0.64 of the original in the same rounds); 2.1 to 3.2 on the GPU (median 2.9 with its mixer) | 3.0 to 4.6 M cycles an update (median 3.43 in the same rounds; 2.6 to 3.6 earlier) | 66.8 to 69.6 MB in 2D at 1x (about 100 MB in 3D, its default, and in its default 2x window) | 91 to 93 MB |
 | Alchemy Deluxe | 1.74 s | 1.76 s | 4.6 to 5.3 s a minute | 4.2 and 6.4 s a minute | 67 to 69 MB | 51 to 56 MB |
 | Word Harmony | 0.71 s | 2.6 to 3.4 s | 3.26 G cycles a minute in its own 800x600 window, 8.82 G full screen (its default) | 11.81 G cycles a minute windowed, 10.19 G full screen | 88 to 94 MB | 53 to 57 MB |
 | Cosmic Bugs | 0.33 to 0.38 s | 0.60 s | 86 M cycles a second on a board in its own 800x600 window, 102 M in the default 2x window (sound off, as the original's) | 110 M cycles a second (its loop paced to 60 Hz) | 130 MB | 88 and 89 MB |
 | Water Bugs | 2.76 s | 3.16 s | 118 M cycles a second on a board in its own 800x600 window (108 with sound off, as the original's), 128 M in the default 2x window | 136 M cycles a second (its loop paced to 60 Hz) | 104 MB | 97 MB |
-| Rocket Mania Deluxe | 1.8 to 2.0 s | 0.9 and 1.1 s | 1.69 to 2.08 M cycles an update in its own 640x480 window (8 to 10 % of one core), 1.44 to 1.91 M in the default 2x window | 4.02 to 4.57 M cycles an update (19 to 22 % of one core) | 132 MB | 62 MB |
+| Rocket Mania Deluxe | 1.8 to 2.0 s | 0.9 and 1.1 s | 1.86 to 3.95 M cycles an update in 2D in its own 640x480 window (9 to 19 % of one core; 0.43 to 0.73 of the original in pinned pairs) | 4.18 to 5.44 M cycles an update (paired runs on a loaded machine; 4.02 to 4.57 M quiet, 19 to 22 % of one core) | 71 MB settled, 92 to 112 MB at the loading peak (2D at 1x; 147 MB on the GPU path) | 57 MB |
 | Dynomite Deluxe | 0.96 s | 2.2 s | 11.4 G cycles a minute at the game's own 640x480, 9.1 G in its default 1280x960 window | 12.9 G cycles a minute at 60 Hz | 48 to 51 MB at 640x480, 84 MB in the default window | 63 MB |
 | Bookworm Adventures Volume 2 | | | | | | |
-| Mahjong Escape: Ancient Japan | 1.31 s | | 1.58 G cycles in 30 s in its own 800x600 window, 1.69 G at 2x, 4.77 G full screen (its default) | 3.78 G (windowed) | 42 MB at the 400th update in its own window; 146 MB over a whole game before the surface display | 40 MB |
-| Mahjong Escape: Ancient China | 1.29 s | | 1.01 G cycles in 30 s in its own 800x600 window, 1.16 G at 2x, 4.79 G full screen (its default) | 3.60 G (windowed) | 34 MB at the 400th update in its own window; 104 MB over a whole game before the surface display | 31 MB |
+| Mahjong Escape: Ancient Japan | 1.31 s | | 1.15 G cycles in 30 s in its own 800x600 window, 1.86 G at 2x, 2.20 G full screen (its default) | 2.80 G (windowed) | 32 MB at the title, 53 MB at the peak of a whole play in its own window (51 MB at 2x, 54 MB full screen) | 41 MB |
+| Mahjong Escape: Ancient China | 1.29 s | | 1.00 G cycles in 30 s in its own 800x600 window, 1.65 G at 2x, 1.34 G full screen (its default) | 3.17 G (windowed) | 26 MB at the title, 44 MB at the peak of a whole play in its own window (43 MB at 2x, 45 MB full screen) | 32 MB |
 | Bonnie's Bookstore Deluxe | 6.8 and 12.9 s | 6.2 and 6.4 s | 7.9 G cycles at 800x600, 6.1 G in its default 1600x1200 window | 9.5 G and 7.3 G cycles in the same rounds | 52 MB at 800x600, 58 MB at 1600x1200 | 54 MB |
 | Bejeweled Twist | 2.71 s | 10.81 s | 38.8 G cycles a minute in 2D, 43.2 in 3D | 41.5 G cycles a minute in 2D, 47.2 in 3D | 354 to 390 MB in 2D, 250 to 258 in 3D | 183 to 189 MB in 2D, 332 to 340 in 3D |
 | Bejeweled 2 Deluxe | 0.80 s in 2D on the software screen, 1.03 s on a GPU, 1.25 s in 3D | 4.10 s in 2D, 4.38 s in 3D (dgVoodoo2) | 5.1 % of one core in 2D on the software screen, 5.8 % on a GPU, 5.4 % in 3D (idle board, sound threads left out; 5.7, 6.4 and 5.9 % with the mixer) | 9.6 % of one core in 2D, 58.1 % in 3D (dgVoodoo2 included) | 67 MB on the software screen, 83 MB on a GPU, 93 MB in 3D | 44 MB in 2D, 151 MB in 3D (dgVoodoo2) |
@@ -120,6 +120,7 @@ asked.
 | Typer Shark! Deluxe | 0.72 to 0.82 s | 0.76 to 1.28 s | 2.50 G cycles in 20 s without its mixer, 2.70 G with it (3D, visible desktop, medians) | 2.54 G cycles in 20 s (3D; its sound a silent stand-in) | 86 to 89 MB | 49 to 51 MB |
 | Venice Deluxe | | | 2.61 M cycles an update (31.1 % of one core) in its own 800x600 window, 2.37 M at 2x; 0.75 M in 3D | 4.92 M cycles an update (58.8 % of one core) in 2D | 36 to 38 MB at a first board | |
 | Heavy Weapon Deluxe | | | 2.67 M cycles an update (12.8 % of one core) in 2D in its own 640x480 window, 2.74 M at 2x, its mixer left out (2.94 and 3.01 M with it) | 3.125 M cycles an update (15.0 % of one core) in 2D | 109 MB at the first board of the campaign | |
+| Hammer Heads Deluxe | | | 2.26 M cycles an update in 3D with vsync, its default (0.71 of the original in the same rounds, 0.47 to 1.03) | 3.17 M cycles an update (paced) | 142 MB at the peak | |
 
 Every number comes from the game's own notes, its latest measurement there: the native port under rundesk and the
 original under origrun, back to back on one machine, windowed and silent, over the same scripted play, with the load

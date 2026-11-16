@@ -66,9 +66,11 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   needs it: LiveSplit's real-time runs, sound and focus checks, the Browser pane. Before relying on `-fast`, check that
   it leaves the run's results unchanged (a game that draws random numbers while drawing would not). Speed comes from
   not waiting, never from threads: no game's code is made multithreaded to run faster (the user, 2026-11-02).
-- Run at most 6 game processes on the machine at a time, counted across every session (the user, 2026-11-11: "Yes, 6",
-  raised from 3), and never add artificial CPU load: count the game processes already running before starting more
-  (`python tools/gamecount.py --limit 6` lists them and exits 1 when there is no room; a wait loop waits on it). One
+- Run at most 10 game processes on the machine at a time, counted across every session (the user, 2026-11-16: "Raise
+  to 10", from 6, on seeing the processor mostly idle while sessions queued for slots; 2026-11-11: "Yes, 6", raised
+  from 3), and never add artificial CPU load: count the game processes already running before starting more
+  (`python tools/gamecount.py --limit` lists them and exits 1 when there is no room; a wait loop waits on it; an older
+  script's `--limit 6` is read as the same limit). One
   check, oracle or script takes at most 3 of them (check.sh's and the oracle's `--jobs`, at most 3), so that others
   still get slots.
 - Only one oracle runs on the machine at a time. To wait for another, look for processes that run the oracle script

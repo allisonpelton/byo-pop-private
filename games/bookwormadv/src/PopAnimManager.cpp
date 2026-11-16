@@ -83,6 +83,7 @@ void PopAnimManager::PopAnimStopped(int theId)
 	gLuaInterface->Call(mAnims[theId].mCallback, 3, 0);
 }
 
+// 0x485fa0
 void PopAnimManager::PopAnimCommand(int theId, const std::string& theCommand, const std::string& theParam)
 {
 	lua_State* L = gLuaInterface->L;

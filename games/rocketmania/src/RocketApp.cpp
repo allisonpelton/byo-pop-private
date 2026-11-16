@@ -19,6 +19,7 @@
 #include "DDInterface.h"
 #include "MemoryImage.h"
 #include "MusicInterface.h"
+#include "SoftwareScreenDisplay.h"
 #include "SoundManager.h"
 #include "WidgetManager.h"
 #include "platform/VFS.h"
@@ -185,6 +186,17 @@ void Sexy::GetGlobalRandState(uint32_t* theState, int* theIndex)
 	sGlobalRand.GetState(theState, theIndex);
 }
 
+#ifndef __EMSCRIPTEN__
+// port: with 3D off the original draws its screen in software into a DirectDraw surface, so the port does too, and the window shows
+// it through its own surface (framework/SoftwareScreenDisplay.h) with no renderer and no uploaded pictures. The original offers
+// 3D in its Options (Hardware Acceleration) and starts in it where its tester passes the card (mTest3D), so the display stays
+// ready to hand the screen to the GPU (theOffers3D) and mDefault3D stays true
+DDInterface* RocketApp::CreateDDInterface()
+{
+	return SoftwareScreenDisplay::Create(this, true);
+}
+#endif
+
 // 0x42b9b0
 void RocketApp::Init()
 {
@@ -223,12 +235,21 @@ void RocketApp::Init()
 // 0x42bdb0: the music, the sounds, the other fonts and images, and the pictures made from them
 void RocketApp::LoadingThreadProc()
 {
-	// the music: the in-game and the menu piece are joined from their segments first (when the game folder has no
-	// cached_*.wav of them), then the four files are loaded
-	AssembleMusic("music\\Tubetricks In-Game One v02", 'I');
-	AssembleMusic("music\\Tubetricks Menu One v02", 'C');
+	// the music: the in-game and the menu piece are joined from their segments (when the game folder has no cached_*.wav of
+	// them), then the four files are loaded. port: each joined piece is made just before it is loaded, and its WAV (the
+	// VFS's generated file) is dropped once the song holds its samples, so that a piece's samples are held once and not
+	// three times over (the original plays the WAV from its disk file)
 	for (int i = 0; i < NUM_MUSIC; i++)
+	{
+		std::string aGeneratedWav;
+		if (i == SONG_GAME)
+			aGeneratedWav = AssembleMusic("music\\Tubetricks In-Game One v02", 'I');
+		else if (i == SONG_MENU)
+			aGeneratedWav = AssembleMusic("music\\Tubetricks Menu One v02", 'C');
 		mMusicInterface->LoadMusic(i, gMusicNames[i]);
+		if (!aGeneratedWav.empty())
+			Platform::VFS::Get().SetGeneratedFile(aGeneratedWav, std::string());
+	}
 	mMusicInterface->FadeIn(SONG_MENU, -1, 0.002, false);
 
 	mNumLoadingThreadTasks = 0x150;

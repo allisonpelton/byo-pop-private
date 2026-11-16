@@ -671,6 +671,42 @@ none 006b0840 std::vector<DelayedSample> insert returning an iterator (SoundPlay
 none 006b10d0 std::vector<DelayedSample> single-element insert with growth (SoundPlayer's delayed-sample list); the port's std::vector member does it
 none 006b2490 std::vector<DelayedSample> fill-construct of n copies (SoundPlayer's delayed-sample list); template code
 none 006b28c0 std::vector<DelayedSample> uninitialized copy of a range (SoundPlayer's delayed-sample list); template code
+# Taken out in the unneeded-code step (README, "Unneeded code"): functions that nothing in the port or the exe calls,
+# found by the linker (an -O0 build with --gc-sections) and by a search for inline functions no source names.
+none 004185d0 Board::LoadScripts, a developer's reload of main.lua and its scripts: no caller
+none 004320b0 ConversationPanel::Deactivate: its only caller (0x451850) went on with the trial's buy screen, taken out
+none 00432cb0 ConversationPanel::SetAllContinueTextColors, a vtable slot that nothing calls and no script binding names
+none 004aead0 ExtractResourcesByName: no caller (the port calls each group's Extract function itself; tools/resgen.py)
+none 004b4500 ExtractMiniGameCommonResources: only ExtractResourcesByName called it, and no C++ code reads its globals (the mini-games' scripts take those pictures from the resource manager)
+none 006adf30 JeffLib::Animator's copy constructor: nothing copies an Animator (deleted in the port)
+none 006ae200 JeffLib::Animator::operator=: nothing copies an Animator (deleted in the port)
+none 006ae6e0 Animator::Restart, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006ae6a0 Animator::SetRange, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006ae6c0 Animator::SetDirection, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006adda0 Animator::SetAdditiveColor, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006addd0 Animator::ClearAdditive, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006adde0 Animator::SetColorizeColor, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006ade10 Animator::ClearColorize, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006ae9c0 Animator::DrawF, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006aeef0 Animator::DrawStretched, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006aeca0 Animator::DrawScaled, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006af100 Animator::DrawRotated, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006af420 Animator::SetRandomOrder, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006ae710 Animator::SetFrameDelay, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006af410 Animator::TakeFrameChanged, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006add80 Animator::SetStopAfter, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006ade20 Animator::SetMaxLoops, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006ae0f0 Animator::SetFrame, a JeffLib::Animator virtual with no direct caller in the exe and no Lua binding, which the one user of an Animator (the conversation panel's portraits) does not call
+none 006c4820 JeffLib::BonusText's second constructor (rising to a target y): no caller
+none 006b3e50 JeffLib::DataDrivenClass::Reload: no caller
+none 006b2b00 DataDrivenClass::BeforeReload (empty), a virtual only Reload called
+none 004c8420 DataDrivenClass::AfterReload (empty), a virtual only Reload called
+none 00435b40 Credits::BeforeReload, a virtual only DataDrivenClass::Reload called
+none 00434dc0 Credits::AfterReload, a virtual only DataDrivenClass::Reload called
+none 00435760 Credits::AfterReload's body (0x434dc0 calls it)
+none 0065d500 LuaResourceManager's image lookup for the scripts (from the Lua function at 0x668060): the port's LuaApp bindings (GetImage, GetFont and their Try forms) look resources up themselves
+none 0065d580 LuaResourceManager's lookup for the scripts (from the Lua function at 0x668e60): the port's LuaApp bindings look resources up themselves
+none 0065d5f0 LuaResourceManager's third lookup for the scripts: no caller
 # Generated by tools/coverage/nonelines.py from the export alone (run it again after a new export): the Lua binding's
 # template instances that lualib/LuaBind.h's templates make (each method wrapper's slots, constructor and
 # registration), bodies the compiler emitted for several types, and the compiler's scalar deleting destructors.

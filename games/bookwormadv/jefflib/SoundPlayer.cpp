@@ -61,6 +61,7 @@ void SoundPlayer::Update()
 	}
 }
 
+// port: whether a sample was played within the last updates
 bool SoundPlayer::PlayedWithin(int theId, int theMinUpdates) const
 {
 	auto anIt = mLastPlayed.find(theId);
@@ -108,6 +109,7 @@ void SoundPlayer::PlayCachedSample(int theId, int thePan, int theMinUpdates)
 	mLastPlayed[theId] = mUpdateCount;
 }
 
+// port: whether a cached sample is playing
 bool SoundPlayer::IsCachedSamplePlaying(int theId) const
 {
 	return theId >= 0 && theId < MAX_SAMPLES && mCached[theId] != nullptr && mCached[theId]->IsPlaying();

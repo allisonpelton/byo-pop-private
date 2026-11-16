@@ -115,11 +115,13 @@ int OptionsDialog::ContentLeft() const
 	return mBackgroundInsets.mLeft + mContentInsets.mLeft + mX;
 }
 
+// 0x4bf270
 int OptionsDialog::ContentWidth() const
 {
 	return mWidth - mBackgroundInsets.mRight - mBackgroundInsets.mLeft - mContentInsets.mRight - mContentInsets.mLeft;
 }
 
+// 0x4bf240
 int OptionsDialog::ContentTop() const
 {
 	return mHeaderFont->GetHeight() + mBackgroundInsets.mTop + mContentInsets.mTop + mY;

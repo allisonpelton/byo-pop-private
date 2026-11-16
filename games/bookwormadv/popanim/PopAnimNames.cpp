@@ -4,12 +4,14 @@
 
 using namespace Sexy;
 
+// port: a character in capitals
 static int Upper(char c)
 {
 	return toupper((unsigned char)c);
 }
 
 // Whether a and b are equal, ignoring case (the tests the exe makes with _stricmp and _strnicmp)
+// port: from 0x529920 (the comparisons PopAnimNameMatches makes)
 static bool EqualNoCase(const char* a, const char* b, size_t theLen)
 {
 	for (size_t i = 0; i < theLen; i++) {
@@ -60,6 +62,7 @@ static bool MatchWildcard(const std::string& theName, const std::string& thePatt
 	return true;
 }
 
+// port: from 0x529920 (PopAnimNameMatches's test for a pattern with a star)
 static bool HasWildcard(const std::string& thePattern)
 {
 	return thePattern[0] == '*' || thePattern[thePattern.size() - 1] == '*';
