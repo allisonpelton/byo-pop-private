@@ -256,7 +256,16 @@ The driver's clicks on the summaries, the trophy award and the shop are found by
 a screen where none changes the state stops the run (none did after the driver waited out the wipes). The king's defeat and the
 game-won screen are reached by the test commands (`set kings`, `win`) in the autosplit logs, not by the bot.
 
+### Real input, on the page
+
+`games/hammerheads/tools/web/onegame.js` is the same driver as a page driver (the Browser pane, `hammerheads.html?player=1&assets=1&hold=1&fast=1&silent=1&driver=games/hammerheads/tools/web/onegame.js&mode=<m>&heal=1&moves=<n>`):
+DOM mouse and key events only, the bot's moves from the test command `move`, the same screens and buttons as the native driver.
+Classic ran from the loading screen to its last level and the king (3767 moves, lost there like the native run), Tough Cookie the
+same (3736 moves), Marathon 3000 moves, and a Classic run to level 6 lost and regained the focus once; no page error in any of them,
+and the screens met are the native run's (name box, how-to-play, introductions, Ready boxes, shops, bonus rounds with their finished
+box, Game Over). The Browser pane cannot enter full screen, so the page is checked at the sizes `pagecheck` draws it at (11 pass).
+
 ### Open
 
 - Not yet shot: the hard modes' remaining boxes, the saved games' resume pages, the web
-  build against the native one, the real-input runs, and the how-to-play movie against the original's by frame.
+  build against the native one, the how-to-play movie against the original's by frame.
