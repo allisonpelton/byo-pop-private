@@ -3,7 +3,7 @@
 # paths at 1x and 2x, the player who has 3D off (Is3D 0 saved, as the original ran under origrun), one game process at a time, on one
 # performance core of its own (tools/pincore.py), the order rotating each round. Needs build/native/pixelus-soft.exe (the build with
 # CreateDDInterface returning the software screen) and pixelus-gpu.exe (the same without it, so the GPU draws 2D too).
-#   soft1x  soft2x (SOFTSCREEN_SCALED=1: software kept at 2x)  gpu1x  gpu2x
+#   soft1x  gpu1x  gpu2x (the software screen is for 1x only, the user, 2026-11-15: the GPU takes every larger window)
 cd "$(dirname "$0")/../../../.." || exit 2
 if [ -z "${PINCORED:-}" ]; then
 	export PINCORED=1
@@ -21,12 +21,11 @@ run() {  # <variant> <round>
 	orig) one orig python -I $P orig play "$OUT/orig$2" build/perf/orig-play.txt ;;
 	soft1x) PERF_EXE=pixelus-soft.exe one soft1x build/native/rundesk.exe "$PY" -I $P port play "$OUT/soft1x$2" build/perf/port-play.txt ;;
 	gpu1x) PERF_EXE=pixelus-gpu.exe one gpu1x build/native/rundesk.exe "$PY" -I $P port play "$OUT/gpu1x$2" build/perf/port-play.txt ;;
-	soft2x) PERF_2X=1 SOFTSCREEN_SCALED=1 PERF_EXE=pixelus-soft.exe one soft2x build/native/rundesk.exe "$PY" -I $P port play "$OUT/soft2x$2" build/perf/port-play.txt ;;
 	gpu2x) PERF_2X=1 PERF_EXE=pixelus-gpu.exe one gpu2x build/native/rundesk.exe "$PY" -I $P port play "$OUT/gpu2x$2" build/perf/port-play.txt ;;
 	esac
 }
-ALL=(orig soft1x gpu1x soft2x gpu2x)
+ALL=(orig soft1x gpu1x gpu2x)
 for i in $(seq 1 "$WANT"); do
-	for k in 0 1 2 3 4; do run "${ALL[$(( (k + i) % 5 ))]}" "$i"; done
+	for k in 0 1 2 3; do run "${ALL[$(( (k + i) % 4 ))]}" "$i"; done
 done
 echo "end $(date '+%F %T')" >> "$OUT/runs.txt"
