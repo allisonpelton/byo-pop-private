@@ -688,6 +688,20 @@ replaces them; music and sounds are Ogg. The data sits in `MJZ0` archives (`data
 levels and JPEG, PNG and TGA pictures. Luxor's exe takes `-unlocklevels` and `-unlockstages`, useful for tests.
 The three games on the first engine would share one copy under `engines/` (`docs/ENGINES.md`), Luxor 2 its own.
 
+Which other games run on these engines is far less known than for SAF: no public source names MumboJumbo's engine
+for any game, and there is no public source code to match against, so the evidence is the user's four installs plus
+a few hints (searched 2026-11-16). The first engine is certain only for these three Luxor games; a fan guide says
+one `.mjz` extraction method also works on Chainz, Gearz and Mad Caps, which would put them on it. The second
+engine is certain only for Luxor 2; a modding wiki's pages on "the Luxor 2 engine" cover Luxor Evolved (2012), so
+Luxor 2 HD and Evolved probably sit on its family. The same guide's method fails on Luxor 3, Quest for the
+Afterlife and 5th Passage, so those differ in archive at least; 5th Passage is credited to another studio
+(Absolutist) and uses a `pfpk` archive, so it is probably not MumboJumbo's engine at all. Nothing ties the 7 Wonders
+series (Hot Lava Games, bought by MumboJumbo in 2007) or the hidden-object series (Midnight Mysteries, Samantha
+Swift) to either engine. The user owns only the four Luxor games; Steam also has Luxor and Amun Rising
+(`E:/SteamLibrary`), but as portal builds in wrappers (a Flash splash launcher; Reflexive Arcade with an encrypted
+`.RWG`), so the plain installs under `MumboJumbo/` are the ones to export. Mac builds of Luxor, Amun Rising, Mah
+Jong and Luxor 2 were sold and might carry symbols; the user has none.
+
 ## Appendix B: other projects and modding communities
 
 Checked on 2026-10-26 for the publishing rule (section 2). "Active" means mods or tools since late 2024; "strong"
