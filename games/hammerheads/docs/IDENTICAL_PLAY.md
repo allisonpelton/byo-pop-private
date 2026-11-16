@@ -229,6 +229,12 @@ challenge, the trophy pages, Tough Cookie's notice, the game-won page, the game 
   runs the original windowed with no acceleration, the port full screen: the player's settings, not the game) and in which button
   the mouse rests on (the highlight), both scenario effects; the Trophy Room differs in its button's highlight.
 
+- **The page check** (`tools/web/pagecheck.js` through `games/hammerheads/tools/web/pagecheck.js`, in the Browser pane): 11 checks pass,
+  none fail. The focus line matches the native build's answer (the pause count changes while the focus is away and when it is
+  back), the keys and the pointer at four canvas sizes are right, a second copy waits for the first, and the saves come back after
+  a reload. The table plays the loading screen's click and a new profile's name box itself, as the game waits for both. The bot made
+  no moves before the reload (the level was still on its Ready box), so the "game in progress" line has no save to restore.
+
 ### Open
 
 - Not yet shot: the hard modes' remaining boxes, the saved games' resume pages, the web
