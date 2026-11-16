@@ -57,7 +57,7 @@ if os.path.exists(USER):
     import shutil
     shutil.rmtree(USER)
 
-PROC = subprocess.Popen([EXE, '-userdir=' + USER, '-commands=' + CF, '-realinput=' + EMPTY, '-fast'],
+PROC = subprocess.Popen([EXE, '-userdir=' + USER, '-commands=' + CF, '-realinput=' + EMPTY, '-fast', '-hold'],
                         stdout=open(LOG, 'w'), stderr=subprocess.STDOUT, cwd=ROOT)
 
 
@@ -96,6 +96,7 @@ def send(line, token, wait=30):
     if token is None:
         return None
     end = time.time() + wait
+    nudged = False
     while time.time() < end:
         if PROC.poll() is not None:
             finish(False, 'the game ended on "%s"' % line)
@@ -105,7 +106,14 @@ def send(line, token, wait=30):
                 if token in raw:
                     note('< ' + raw[:300])
                     return raw
-        time.sleep(0.02)
+        if not nudged and time.time() > end - wait + 3:
+            # under -hold a line's update runs when the next batch comes: once in some thousand lines the answer waits for
+            # one, so a quiet 3 seconds is answered with a harmless "wait 1" (and noted)
+            nudged = True
+            note('nudge: no answer to "%s" in 3 s' % line)
+            with open(CF, 'a') as f:
+                f.write('wait 1' + chr(10))
+        time.sleep(0.003)
     finish(False, 'no answer to "%s" within %ds' % (line, wait))
 
 
@@ -127,8 +135,7 @@ def click(x, y):
 
 def wait_updates(n=12):
     """Lets some updates run: a state query is answered between two updates, so a few of them are enough."""
-    for _ in range(n):
-        send('state', 'STATE {')
+    send('wait %d' % n, 'OK wait %d' % n, 120)
 
 
 def shot(name):
@@ -178,6 +185,13 @@ def play_board():
         m = send('move', 'MOVE ', 10)
         if m.strip().endswith('MOVE null'):
             stall += 1
+            # off the shipped solution (a move landed differently): the player's way back is the Undo button (id 9)
+            if stall % 30 == 0:
+                ub = [x for x in targets()['buttons'] if x['id'] == 9]
+                if ub:
+                    click(ub[0]['x'], ub[0]['y'])
+                    UNDOS.append(len(UNDOS))
+                    note('undo: off the solution at %s moves' % b.get('moves'))
             if stall > 400:
                 finish(False, 'the board stood still')
             wait_updates(5)
@@ -209,6 +223,7 @@ def play_board():
 
 DONE = set()
 SCROLLED = [0]
+UNDOS = []
 LAST = [0]
 
 

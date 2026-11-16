@@ -62,7 +62,13 @@ async function playBoard() {
     if (b.busy) { await waitUpdates(3); continue; }
     var mv = await t.botMove();
     if (mv === null) {
-      if (++stall > 400) throw new Error("the board stood still");
+      // no solution move: the board is off the shipped solution (a move landed differently). The player's way back is the Undo button
+      // (id 9): press it, once for each 30 polls, and say so in the notes
+      if (++stall % 30 === 0) {
+        var ub = (await targets()).buttons.filter(function (x) { return x.id === 9; });
+        if (ub.length) { await t.click(ub[0].x, ub[0].y); result.undos = (result.undos || 0) + 1; result.notes.push("undo at board " + result.boards + ", " + b.moves + " moves"); }
+      }
+      if (stall > 400) throw new Error("the board stood still");
       await waitUpdates(5);
       continue;
     }
