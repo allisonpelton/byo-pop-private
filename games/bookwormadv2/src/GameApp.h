@@ -130,7 +130,7 @@ public:
 	int mRegTotalBooks = 0;                        // +0x8fc, the registry's TotalBooks
 	int mAppTime = 0;                              // +0x900, the registry's AppTime, counting updates
 	// port: test hooks -startloadupdates=N and -chapterloadupdates=a,b,c (TestHooks.cpp): the startup load completes at update N
-	// and the k-th chapter load after a updates, as the original's loading threads took in the run compared with
+	// and the k-th chapter load after a updates (or, written @u, at update u), as the original's loading threads took in the run compared with
 	// (they take as long as the machine's work does, which no -fast run can know). Normal play never uses them.
 	bool mPopCapLogo = false;  // port: -popcaplogo keeps the startup's PopCap logo (TitleScreen::Update)
 	int mStartLoadWanted = -1;
@@ -200,6 +200,9 @@ public:
 	unsigned int mRandAtUpdateStart = 0;  // test options: GetRandCount() at the start of the update, and the draws the state log leaves out
 	unsigned int mRandOffset = 0;                         // -reseedengine=<seed>: SRand(seed) as each battle engine is made (0: off)
 	void LogState();
+	// port: -statelog: the engine's state each time BattleEngine::SetState sets it, so a state left within the update it was
+	// entered is logged too (the original's watch polls every millisecond and sees one)
+	void LogEngineState(int theState);
 	void AddInput(int theUpdate, const std::string& theCommand, const std::string& theArgs);
 	// port: test helpers (TestHooks.cpp): the standard test commands (docs/TEST_COMMANDS.md) and what the bot's move reads
 	bool BoardBusyForTests();
