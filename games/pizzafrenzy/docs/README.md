@@ -162,8 +162,9 @@ seed give the same transcripts. `tools/suite/suite.sh` is the check suite (the s
 each twice, and against a frozen baseline when there is one; about three minutes). The page check
 (`tools/web/pagecheck.js`) passes 11 of 11: losing the focus shows the pause menu and stops the clock in the port and
 on the page alike, and the game stays paused when the focus comes back (to compare with the original). Not reached
-yet: the last city and the game's won story; a game over only through the `lose` command. Nothing has been compared
-with the original yet: the logic phase and the looks phase come next.
+yet: the last city and the game's won story; a game over only through the `lose` command. The logic phase is under
+way (`IDENTICAL_PLAY.md`): the speed mode's first three levels, its bonus round and the second city's start play out
+the same as the original's, value for value and draw for draw.
 
 The engine's signal build is translated as far as the splash screen and the layouts need: the application's signals
 and run loop, the scene, states, the generic screen with its transitions, the screen manager, the settings, the sound

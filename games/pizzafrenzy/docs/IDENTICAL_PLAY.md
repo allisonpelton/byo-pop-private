@@ -60,6 +60,18 @@ now overrides the slot with nothing.
 own (the load bar at 0.8), which the port has no screen for; the port now keeps an empty frame there, so the loading
 takes the original's frames.
 
+**The prize blimp dropped its tips every frame.** The blimp waits a random time from a range at 0x53290c between its
+drops; the port read the range as one nothing sets, but the exe's static initializer 0x4f87c0 sets it to one to one and
+three quarter seconds. Over the middle of the screen the port's blimp dropped three balloon tips and drew seven random
+numbers a frame where the original drops every second or so, and its flight held the level's end 86 frames past the
+original's. The range is the original's now.
+
+**The level's end title was left out.** The title that says the level is complete (the burst text, 0x42b800, made by the
+level's end state 0x458490 and the bonus round's 0x45d1b0) was left out with its looks, but its letters each have a
+"BurstFx" particle system that bursts when they leave, and those draw random numbers: from the title's leaving on, the
+original's random state went apart from the port's. The title is translated now (`BurstText`), letters, stages, waves
+and bursts; the stages that only a hold time reaches, which nothing sets, are left out.
+
 ## Oddities
 
 **The particle warmup's frame.** The port starts the decorations' particle warmup (150 seconds, 24 draws) in frame 50,
@@ -73,14 +85,14 @@ as the port's.
 ## Deviations left
 
 The global score post is left out of the port (it is outbound), and two frames of play show it. The loading keeps the
-post screen's stage as an empty frame, so the loading takes the original's frames. At the game's end the original
-opens the post's dialog (a state of its own, until the player closes it), where the port goes to the menu at once: the
+post screen's stage as an empty frame, so the loading takes the original's frames. At the game's end the original opens
+the post's dialog (a state of its own, until the player closes it), where the port goes to the menu at once: the
 comparison of a case ends there, and the input after it lands on other screens on the two sides.
 
-## Where it stands (2026-11-15)
+## Where it stands (2026-11-16)
 
-Case play1 (150 moves, seed 1) matches through the first level. record.py now times each input by the frame the bot's
-last state reply gave (a held run spends a frame on each round of queries, which the sum of the waits left out), so a
-replay plays the game the bot played. Case long1 (500 moves, seed 1: three levels of the first city, its bonus round
-and the second city's start) is the next lead: the random state goes apart at frame 1615, the original scores 720 at
-frame 2041 where the port does not, and the original's first level ends at 2178, the port's later.
+Case play1 (150 moves, seed 1) matches through the first level. record.py times each input by the frame the bot's last
+state reply gave (a held run spends a frame on each round of queries, which the sum of the waits left out), so a replay
+plays the game the bot played. Case long1 (500 moves, seed 1: three levels of the first city, its bonus round and the
+second city's start, 7742 frames) matches on every compared value, and the random state's 1634 values come in the same
+order. Next: longer cases, the memory and concentration modes, a lost level and the editor.
