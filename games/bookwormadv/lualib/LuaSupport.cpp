@@ -198,19 +198,19 @@ void LuaSupport::ObjectDeleted(void* obj)
 int LuaSupport::GC(lua_State* L)
 {
 	LuaSupport* self = gLuaSupport;
-	CObj* o = (CObj*)lua_touserdata(L, 1);
-	if (o == nullptr || self == nullptr || o->obj == nullptr)
+	CObj* anObject = (CObj*)lua_touserdata(L, 1);
+	if (anObject == nullptr || self == nullptr || anObject->obj == nullptr)
 		return 0;
-	auto range = self->mObjects.equal_range(o->obj);
+	auto range = self->mObjects.equal_range(anObject->obj);
 	for (auto it = range.first; it != range.second; ++it)
-		if (it->second == o) {
+		if (it->second == anObject) {
 			self->mObjects.erase(it);
 			break;
 		}
-	if (o->obj != nullptr && o->owned && o->cls->destroy != nullptr) {
-		void* obj = o->obj;
-		o->obj = nullptr;
-		o->cls->destroy(obj);
+	if (anObject->obj != nullptr && anObject->owned && anObject->cls->destroy != nullptr) {
+		void* obj = anObject->obj;
+		anObject->obj = nullptr;
+		anObject->cls->destroy(obj);
 	}
 	return 0;
 }

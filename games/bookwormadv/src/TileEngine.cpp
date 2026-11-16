@@ -34,6 +34,7 @@ static const int kMaxLetters[26] = {4, 3, 3, 4, 4, 3, 4, 3, 4, 2, 2, 4, 3, 4, 3,
 static const int kLetterWeights[26] = {9420, 2200, 2000, 4200, 12700, 2000, 2500, 2000, 7330, 700, 700, 4000, 2300,
                                        6000, 7330, 2300, 600,  6900,  5600, 6000, 4400, 1600, 1500, 500, 2100, 500};
 
+// port: whether a letter is a vowel (the letter picks make the test)
 static bool IsVowelLetter(char c)
 {
 	return c == 'a' || c == 'A' || c == 'e' || c == 'E' || c == 'i' || c == 'I' || c == 'o' || c == 'O' || c == 'u' ||

@@ -179,33 +179,33 @@ end:
 
 void Animator::UpdateFade()
 {
-	Fade* f = mFade;
-	if (f->mState == 2)
+	Fade* aFade = mFade;
+	if (aFade->mState == 2)
 	{
-		f->mAlpha += f->mUpSpeed;
-		if (f->mAlpha >= f->mMax)
+		aFade->mAlpha += aFade->mUpSpeed;
+		if (aFade->mAlpha >= aFade->mMax)
 		{
-			f->mAlpha = f->mMax;
-			if (f->mCount > 0)
-				f->mCount--;
-			f->mState = 1;
+			aFade->mAlpha = aFade->mMax;
+			if (aFade->mCount > 0)
+				aFade->mCount--;
+			aFade->mState = 1;
 		}
 	}
 	else
 	{
-		f->mAlpha -= f->mDownSpeed;
-		if (f->mAlpha <= f->mMin)
+		aFade->mAlpha -= aFade->mDownSpeed;
+		if (aFade->mAlpha <= aFade->mMin)
 		{
-			f->mAlpha = f->mMin;
-			if (f->mCount > 0)
-				f->mCount--;
-			f->mState = 2;
+			aFade->mAlpha = aFade->mMin;
+			if (aFade->mCount > 0)
+				aFade->mCount--;
+			aFade->mState = 2;
 		}
 	}
-	if (f->mCount == 0)
+	if (aFade->mCount == 0)
 	{
-		f->mState = 0;
-		if (f->mDoneWhenFinished)
+		aFade->mState = 0;
+		if (aFade->mDoneWhenFinished)
 			mDone = true;
 	}
 }

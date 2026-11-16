@@ -43,6 +43,7 @@ void FadeButton::EnableEffect(bool theReset, bool theOn)
 	}
 }
 
+// port: the animation goes on or holds where it is
 void FadeButton::SetEffectPlaying(bool isPlaying)
 {
 	if (mEffect != nullptr)

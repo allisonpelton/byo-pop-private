@@ -271,6 +271,7 @@ void StatsBook::PositionWidgets()
 }
 
 // the slider and the arrow buttons: there, and used, or hidden and not
+// port: shows or hides the slider and the arrow buttons
 void StatsBook::ShowArrows(bool theShow)
 {
 	mSlider->SetVisible(theShow);

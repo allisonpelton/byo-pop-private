@@ -35,12 +35,14 @@ using namespace LuaLib;
 
 Board* Sexy::gBoard = nullptr;
 
+// port: the scripts' Lua state
 static lua_State* LS()
 {
 	return gLuaSupport->L;
 }
 
 // a method of the battle engine's Lua object, with no arguments
+// port: calls a method of the battle engine's Lua object with no arguments
 static LuaClassRet BattleCall(const char* theMethod)
 {
 	return gBattleEngine->CallLinkedMethod(theMethod, 0);
@@ -155,6 +157,7 @@ Board::~Board()
 	}
 }
 
+// port: sets a scripts' global to an int
 static void SetGlobalInt(const char* theName, int theValue)
 {
 	lua_pushstring(LS(), theName);
@@ -353,6 +356,7 @@ static Tile* FindTileAt(std::list<Tile*>& theTiles, int x, int y)
 	return nullptr;
 }
 
+// port: calls a method of a tile's Lua object with one bool
 static void TileLua(Tile* theTile, const char* theMethod, bool theArg)
 {
 	lua_pushboolean(LS(), theArg);
@@ -958,6 +962,7 @@ void Board::UpdateF(float theFrac)
 	}
 }
 
+// port: calls a scripts' draw function with a Graphics
 static void DrawLua(Graphics* g, const char* thePath)
 {
 	PushGraphics(g);
@@ -1023,12 +1028,14 @@ void Board::Draw(Graphics* g)
 
 // ---- the battle engine's questions ----
 
+// port: asks the battle engine's Lua object a yes-or-no question
 static bool BattleBool(const char* theMethod)
 {
 	return BattleCall(theMethod).Bool();
 }
 
 // a method of the battle engine's Lua object with theCount int arguments
+// port: calls a method of the battle engine's Lua object with int arguments
 static LuaClassRet BattleCallInts(const char* theMethod, int theCount, int a, int b = 0, int c = 0)
 {
 	int anArgs[3] = {a, b, c};
@@ -1694,12 +1701,14 @@ void Board::RegisterLua()
 
 // ---- the tutorial's arrows ----
 
+// port: tells the arrow hints of a click
 void Board::ArrowHintsClick(int x, int y, int theClickCount)
 {
 	if (mApp->mArrowHintManager != nullptr)
 		mApp->mArrowHintManager->Click(x, y, theClickCount);
 }
 
+// port: hides or shows the arrow hints
 void Board::ArrowHintsHide(bool isHidden)
 {
 	if (mApp->mArrowHintManager != nullptr)

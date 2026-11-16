@@ -33,15 +33,15 @@ bool Lex::Load(const std::string& theDefsFile, const std::string& theWordFile, s
 			break;
 		if (gSexyAppBase != nullptr && gSexyAppBase->mShutdown)
 			break;
-		char c = (char)aChar;
-		if (c >= '0' && c <= '9') {
+		char aLetter = (char)aChar;
+		if (aLetter >= '0' && aLetter <= '9') {
 			if (!inNumber) {
-				aPrefixLength = c - '0';
+				aPrefixLength = aLetter - '0';
 				inNumber = true;
 			} else {
-				aPrefixLength = aPrefixLength * 10 + (c - '0');
+				aPrefixLength = aPrefixLength * 10 + (aLetter - '0');
 			}
-		} else if (c == '\r' || c == '\n') {
+		} else if (aLetter == '\r' || aLetter == '\n') {
 			if (aLength > 0) {
 				memcpy(aPrevWord, aWord, aLength);
 				if (aLength >= 3 && aLength <= 16) {
@@ -63,7 +63,7 @@ bool Lex::Load(const std::string& theDefsFile, const std::string& theWordFile, s
 				memcpy(aWord, aPrevWord, aLength);
 			}
 			if (aLength < BUFFER_SIZE - 1)
-				aWord[aLength++] = c;
+				aWord[aLength++] = aLetter;
 		}
 	}
 	p_fclose(aFile);

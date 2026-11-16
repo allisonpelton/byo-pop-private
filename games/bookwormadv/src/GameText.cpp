@@ -1,3 +1,4 @@
+// port: the game's texts, read from the original's executable (all of this file is the port's own)
 #include "GameText.h"
 #include "SexyAppBase.h"
 #include "platform/VFS.h"

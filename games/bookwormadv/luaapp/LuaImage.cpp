@@ -10,6 +10,7 @@
 using namespace Sexy;
 using namespace LuaLib;
 
+// 0x6686f0
 LuaMultiRet LuaImage::GetCelRect(int theCol, int theRow)
 {
 	Rect r = Image()->GetCelRect(theCol, theRow);
@@ -21,6 +22,7 @@ LuaMultiRet LuaImage::GetCelRect(int theCol, int theRow)
 	return {4};
 }
 
+// 0x667bf0
 int LuaImage::GetPixel(int x, int y)
 {
 	MemoryImage* img = Image();
@@ -29,6 +31,7 @@ int LuaImage::GetPixel(int x, int y)
 	return (int)img->GetBits()[img->mWidth * y + x];
 }
 
+// 0x667c40
 void LuaImage::PutPixel(int x, int y, int theColor)
 {
 	MemoryImage* img = Image();
@@ -44,6 +47,7 @@ LuaMultiRet LuaImage::GetGraphics()
 	return {1};
 }
 
+// 0x667920
 void LuaImage::RegisterLua()
 {
 	Class<LuaImage>("LuaImage")
@@ -69,6 +73,7 @@ void LuaImage::RegisterLua()
 
 // ---- LuaFont ----
 
+// port: compares the start of a string without case
 static bool StartsWithNoCase(const std::string& s, const char* prefix)
 {
 	size_t n = strlen(prefix);
@@ -109,6 +114,7 @@ LuaFont* LuaFont::Load(const std::string& theName)
 	return lf;
 }
 
+// 0x6687a0
 void LuaFont::RegisterLua()
 {
 	Class<LuaFont>("LuaFont")
