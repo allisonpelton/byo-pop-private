@@ -28,8 +28,6 @@ public:
 
 	virtual void	Draw(Graphics* g) override;				// 0x44b200
 
-	void			SetScore(int theScore);					// 0x44b170
-	int				GetScore() const;						// 0x44b190
 
 	// 0x44b9b0: gives the points. A floater of theType (1 flies to the display and adds the points when it gets there, 2
 	// and the others add them at once; -1 shows nothing) shows them at the point. While the score counts five times the
