@@ -75,6 +75,9 @@ public:
 	virtual ~PixelusApp();
 
 	virtual void			Init() override;                                // 0x4336f0 slot 17
+#ifndef __EMSCRIPTEN__
+	virtual DDInterface*	CreateDDInterface() override;                   // the software screen serves 2D (docs/MEMORY.md)
+#endif
 	virtual void			LoadingThreadProc() override;                   // 0x433950 slot 18
 	virtual void			PlayClicked() override;                         // 0x433b90 slot 79
 	virtual void			HandlePaused(bool theWasPaused, bool theIsPaused, int theCount) override; // 0x4333a0 slot 84

@@ -30,7 +30,9 @@ the visible desktop, Windows Sandbox or sound may have them at any hour (the las
   `-fast` leaves the results unchanged), an original on origrun's virtual clock. Real time only for LiveSplit, sound
   and focus checks and the Browser pane. Speed comes from not waiting, never from threads.
 - At most 6 game processes on the machine across every session, and at most 3 for one check or script (`--jobs`).
-  Count first: `python tools/gamecount.py --limit 6` exits 1 when there is no room. Never add artificial CPU load.
+  Count first: `python tools/gamecount.py --limit 6` exits 1 when there is no room, and when there is, holds the slot
+  for 30 s so no other session takes it; a script starting two at once (a pair) passes `--need 2`. Never add
+  artificial CPU load.
 - One oracle at a time (`docs/BUILDS.md`, "Running the oracle"). A wait loop whose own command line holds "compare.sh"
   waits on itself forever: run it from a script file, or exclude your own process tree.
 - **Disk:** C: is small. Delete a run's outputs once their result is in the game's notes, and keep a worktree's
