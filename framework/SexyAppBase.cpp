@@ -751,6 +751,7 @@ SexyAppBase::SexyAppBase()
 	mLiveCommandCount = 0;
 #endif
 	mCommandsHold = false;
+	mRecordLiveFile = NULL;
 	mLiveRunUntil = 0;
 	mLiveWaitUntil = -1;
 #ifndef BYOPOP_DERIVED
@@ -1652,6 +1653,12 @@ void SexyAppBase::Shutdown()
 
 		if (mReadFromRegistry)
 			WriteToRegistry();
+
+		if (mRecordLiveFile != NULL)
+		{
+			fclose(mRecordLiveFile);
+			mRecordLiveFile = NULL;
+		}
 	}
 }
 
@@ -3709,6 +3716,15 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 	}
 	else if (theParamName == "-hold")
 		mCommandsHold = true;
+	else if (theParamName == "-recordlive")
+	{
+		// opened now, truncating the old file; a failure is logged and the run goes on without a record
+		if (mRecordLiveFile != NULL)
+			fclose(mRecordLiveFile);
+		mRecordLiveFile = fopen(theParamValue.c_str(), "wb");
+		if (mRecordLiveFile == NULL)
+			SDL_Log("-recordlive: cannot open %s", theParamValue.c_str());
+	}
 	else if (theParamName == "-fast")
 		mFastMode = true;
 	// port: where the processor time goes, by part and thread, at the boundaries origrun --count uses in the original
@@ -4137,6 +4153,22 @@ bool SexyAppBase::LiveUpdatesHeld()
 	return false;
 }
 
+// Whether a command is one of -realinput's input commands (the list in SexyAppBase.h, RunRealInputCommand's chain: a
+// bare "move" is the bot's question, not input), which -recordlive writes as plain lines. Keep it with that chain.
+static bool IsRealInputCommand(const ScriptCommand& theCommand)
+{
+	static const char* const kNames[] = {"move", "down", "up", "click", "dblclick", "wheel", "enter", "leave",
+		"keydown", "keyup", "key", "keyrepeat", "type", "text", "focus", "minimize", "restore", "maximize", "resize",
+		"close"};
+	const std::string& aName = theCommand.mCommand;
+	if ((aName == "move") && (theCommand.mArgs.find_first_not_of(" \t") == std::string::npos))
+		return false;
+	for (size_t i = 0; i < sizeof(kNames) / sizeof(kNames[0]); i++)
+		if (aName == kNames[i])
+			return true;
+	return false;
+}
+
 // The queued live commands, in order, each answered on the log: "OK <command>" when the framework did it,
 // "ERROR <command>: <reason>" when it could not or nobody knows the command; a game's command answers itself
 // (docs/TEST_COMMANDS.md)
@@ -4190,6 +4222,20 @@ void SexyAppBase::RunLiveCommands()
 			SDL_Log("ERROR %s: %s", aLine.c_str(), anError.c_str());
 		else if (aResult == SCRIPT_UNKNOWN)
 			SDL_Log("ERROR %s: unknown command", aLine.c_str());
+		// -recordlive: "<update> <line>" for an input command that ran, "# <update> <line>" for any other line, and
+		// with its error for one that failed (the file is a -realinput script; flushed for a driver reading it)
+		if (mRecordLiveFile != NULL)
+		{
+			if ((aResult == SCRIPT_RAN) && (IsRealInputCommand(aCommand)))
+				fprintf(mRecordLiveFile, "%d %s\n", mUpdateCount, aLine.c_str());
+			else if (aResult == SCRIPT_FAILED)
+				fprintf(mRecordLiveFile, "# %d %s  ERROR: %s\n", mUpdateCount, aLine.c_str(), anError.c_str());
+			else if (aResult == SCRIPT_UNKNOWN)
+				fprintf(mRecordLiveFile, "# %d %s  ERROR: unknown command\n", mUpdateCount, aLine.c_str());
+			else
+				fprintf(mRecordLiveFile, "# %d %s\n", mUpdateCount, aLine.c_str());
+			fflush(mRecordLiveFile);
+		}
 		// the driver reads the answer from the log as it comes: a log redirected to a file is buffered until exit
 		fflush(stdout);
 		fflush(stderr);

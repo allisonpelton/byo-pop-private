@@ -233,6 +233,18 @@ framework also answers `pointer`, here and in `-script`, with `POINTER {"x":..,"
 widgets last saw it, in game pixels (the page check's resize line, `docs/WEB_PLAYER.md`, "The page check"). The
 full description is with `-script`'s in `framework/SexyAppBase.h`.
 
+With `-hold` a driver can also have the framework record the session: `-recordlive=<file>` appends each line the channel
+runs, except its own `wait`, as a `-script` line `<update> <command> [args]`, the update being the one that ran it (the
+update a `-realinput` line of that count takes effect in), and flushes it at once, so a driver can read it while the game
+runs. An input command that ran (`move <point>`, `down`, `up`, `click`, `dblclick`, `wheel`, `enter`, `leave`, `keydown`,
+`keyup`, `key`, `keyrepeat`, `type`, `text`, `focus`, `minimize`, `restore`, `maximize`, `resize`, `close`) is a plain
+line, so the file replays the same input on the same updates with `-realinput=<file>`; every other line (`state`, a bare
+`move`, a screenshot, a game's command) is a comment `# <update> <line>`, and a line that failed is a comment too, with
+`  ERROR: <reason>` after it, never a plain line. Across `wait <n>`, a line sent in the same append as the wait runs n
+updates after the line before it; one sent after the wait's answer finds the game held and lets one more update run, so
+a wait sent alone puts n + 2 updates between the line before it and the one after. `tools/fwtest/commands.sh` asserts both
+and replays the record.
+
 ## The native loop
 
 `tools/playbymove/playbymove.py [options] <game exe> [game arguments]` is the shared native loop, the twin of the page's

@@ -87,5 +87,54 @@ printf 'report\n' >> "$CF"
 wait_for "OK report"
 wait $PID
 grep -q -E "commands: [0-9]+ checks, 0 failed" "$LOG" || fail "$(grep -E 'commands: [0-9]+ checks' "$LOG")"
-rm -f "$CF" "$CF.empty"
+rm -f "$CF"
+
+# -hold with -recordlive (docs/TEST_COMMANDS.md, "Sending them"): the file the framework writes is -realinput's script.
+# A line sent in the same append as the wait before it runs n updates after the update that ran the wait. A line sent
+# after the wait's answer finds the game held and lets one update run first: n + 1 after the wait's update. Here
+# "click P", "wait 4", "click E" in one append (A, then A + 4); then "wait 3" alone, sent while held at A + 4: it runs
+# at A + 5, is answered at A + 8, and the click sent after the answer runs at A + 9, 5 after A + 4.
+REC="$CF.rec"
+rm -f "$REC" "$CF"
+build/native/fwtest.exe -commands="$CF" -hold -recordlive="$REC" "${EXTRA[@]}" -fast -placeholders -gamedir="$GAMEDIR" > "$LOG" 2>&1 &
+PID=$!
+# rec_lines <n>: up to 30 s for n lines in the record
+rec_lines() {
+	local t=0
+	until [ "$(grep -c . "$REC" 2> /dev/null)" -ge "$1" ]; do
+		kill -0 $PID 2> /dev/null || fail "fwtest ended before $1 lines were recorded"
+		sleep 0.1
+		t=$((t + 1))
+		[ $t -lt 300 ] || fail "$1 lines not recorded within 30 s"
+	done
+}
+wait_for "commands: waiting for"
+printf 'expect board\n' > "$CF"
+wait_for "OK expect board"
+printf 'click %s\nwait 4\nclick %s\n' "$EMPTY" "$EMPTY" >> "$CF"
+rec_lines 3
+printf 'wait 3\n' >> "$CF"
+wait_for "OK wait 3"
+printf 'click %s\n' "$EMPTY" >> "$CF"
+rec_lines 4
+printf 'report\n' >> "$CF"
+wait $PID
+grep -q -E "commands: [0-9]+ checks, 0 failed" "$LOG" || fail "hold: $(grep -E 'commands: [0-9]+ checks' "$LOG")"
+[ "$(grep -c -E '^[0-9]+ click' "$REC")" = 3 ] || fail "recordlive: the clicks are not three plain lines"
+[ "$(grep -c -E '^# [0-9]+ expect ' "$REC")" = 1 ] || fail "recordlive: the query is not one comment"
+grep -q -i 'wait' "$REC" && fail "recordlive: a wait was written"
+grep -q -E '^[0-9]+ expect' "$REC" && fail "recordlive: a query was written as a plain line"
+U1=$(grep -E '^[0-9]+ click' "$REC" | sed -n 1p | cut -d' ' -f1)
+U2=$(grep -E '^[0-9]+ click' "$REC" | sed -n 2p | cut -d' ' -f1)
+U3=$(grep -E '^[0-9]+ click' "$REC" | sed -n 3p | cut -d' ' -f1)
+[ "$U1" -lt "$U2" ] && [ "$U2" -lt "$U3" ] || fail "recordlive: updates not increasing: $U1 $U2 $U3"
+[ $((U2 - U1)) = 4 ] || fail "recordlive: the gap across \"wait 4\" sent with its lines is $((U2 - U1)), not 4"
+[ $((U3 - U2)) = 5 ] || fail "recordlive: the gap across \"wait 3\" sent alone is $((U3 - U2)), not 5"
+# the record replays: -realinput=<it> pushes the same clicks on the same updates
+cp "$REC" "$REC.replay"
+printf '%d expect buttons 3 3\n%d report\n' $((U3 + 3)) $((U3 + 5)) >> "$REC.replay"
+timeout 100 build/native/fwtest.exe -realinput="$REC.replay" -fast -placeholders -gamedir="$GAMEDIR" > "$LOG.replay" 2>&1 || fail "the replay failed: $(tail -3 "$LOG.replay")"
+grep -q -F "OK expect buttons 3 3" "$LOG.replay" || fail "the replay's clicks did not arrive: $(tail -3 "$LOG.replay")"
+grep -q -E "realinput: [0-9]+ checks, 0 failed" "$LOG.replay" || fail "the replay's check: $(tail -3 "$LOG.replay")"
+rm -f "$CF" "$CF.empty" "$REC" "$REC.replay" "$LOG.replay"
 echo "commands $MODE: ok"
