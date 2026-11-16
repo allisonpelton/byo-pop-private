@@ -116,8 +116,22 @@ public:
 	std::shared_ptr<SoundData> LoadStreamedSoundData(const std::vector<uint8_t>& theFile, const std::string& theName);
 
 	// --- voices (sound effects) ---
-	// Returns a voice handle (>0) or 0 if no voice is free.
-	int StartVoice(const std::shared_ptr<SoundData>& theData, float theGainL, float theGainR, double thePitch, bool theLoop);
+	// Returns a voice handle (>0) or 0 if no voice is free. theStartFrame: the frame of the sound it starts at (a DirectSound
+	// buffer played on from where it was stopped), kept within the sound; a streamed sound starts at its first frame whatever
+	// it says, since its decoder only goes on from the file's start. A handle names one start of one voice: once that voice
+	// has ended or been stopped, the handle reaches nothing, even after its slot plays another sound.
+	int StartVoice(const std::shared_ptr<SoundData>& theData, float theGainL, float theGainR, double thePitch, bool theLoop,
+		double theStartFrame = 0.0);
+	// Where a playing voice is in its sound, in its frames (a fraction between two), as far as it has been mixed (natively up
+	// to a device buffer ahead of what is heard), or moved on the game's clock (SetGameClocked); -1 for a voice that has
+	// ended, was stopped, or is not known. DirectSound's play cursor, saved by a game that stops a buffer and plays it on later.
+	double GetVoicePosition(int theVoice);
+	// Moves a playing voice to theFrame of its sound (kept within it), from the next frame mixed; nothing for a streamed
+	// voice, as theStartFrame above.
+	void SetVoicePosition(int theVoice, double theFrame);
+	// From now on, a playing voice loops at its sound's end, or stops there (DirectSound's Play on a buffer that is playing
+	// switches its looping and goes on from where it is).
+	void SetVoiceLoop(int theVoice, bool theLoop);
 	void SetVoiceGain(int theVoice, float theGainL, float theGainR);
 	void SetVoicePitch(int theVoice, double thePitch);
 	void StopVoice(int theVoice);
