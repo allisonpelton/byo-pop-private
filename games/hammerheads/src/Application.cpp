@@ -1274,18 +1274,6 @@ void Application::GameEndToMainMenu()
 	ObjectManager::Get()->Clear();
 }
 
-// 0x421c30
-void Application::GameWonToMainMenu()
-{
-	KillDialog(DIALOG_GAME_WON);
-	PauseGame(false);
-	RemoveAllScreens();
-	CreateMainMenu();
-	ObjectManager::Get()->Clear();
-	if (mLevelIntro != nullptr)
-		DropWidget(mLevelIntro);
-}
-
 // 0x422460
 void Application::GameOverDone()
 {

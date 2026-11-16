@@ -1,0 +1,8 @@
+# The functions origrun's --count counts in Hammer Heads Deluxe's original (HammerHeadsGame.exe), at the boundaries the port's
+# -cyclesplit counts (docs/TEST_COMMANDS.md, "The cycle split"; docs/ORIGRUN.md, "Counting cycles inside the original's functions").
+#   update   SexyAppBase::UpdateFrames (0x4d3290): one update: the script, the widgets' updates, the music's
+#   draw     SexyAppBase::DrawDirtyStuff (vf84, 0x4dcf40), less the present it reaches
+#   present  SexyAppBase::Redraw (vf85, 0x4e4bf0): the Blt or Flip to the screen
+update   0x4d3290  len=5
+draw     0x4dcf40  len=5
+present  0x4e4bf0  len=6

@@ -11,9 +11,12 @@ CYC=games/bookworm/tools/profile/cycles.py
 mkdir -p "$OUT"
 [ -f "$OUT/scenario.txt" ] || cp games/bookworm/tools/profile/scenario.txt "$OUT/scenario.txt"
 slot() { until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 15; done; }
+# PERF_NOPIN=1: no pincore, for both sides. Under pincore (one physical core) the original takes 24 s to show its window (2 s unpinned, 2026-11-15),
+# origrun gives up waiting at 20 s, the script's first click is lost and the game idles in a menu at 0.4 M cycles an update.
+PIN="python -I tools/pincore.py --"; [ -n "$PERF_NOPIN" ] && PIN=""
 for i in $(seq 1 "$N"); do
-	slot; python -I tools/pincore.py -- build/native/rundesk.exe "$PY" $CYC port "$OUT/p$i-port" "$OUT/scenario.txt" 2> /dev/null | grep '^{' > "$OUT/p$i-port.json"
-	slot; python -I tools/pincore.py -- "$PY" $CYC orig "$OUT/p$i-orig" "$OUT/scenario.txt" 2> /dev/null | grep '^{' > "$OUT/p$i-orig.json"
+	slot; $PIN build/native/rundesk.exe "$PY" $CYC port "$OUT/p$i-port" "$OUT/scenario.txt" 2> /dev/null | grep '^{' > "$OUT/p$i-port.json"
+	slot; $PIN "$PY" $CYC orig "$OUT/p$i-orig" "$OUT/scenario.txt" 2> /dev/null | grep '^{' > "$OUT/p$i-orig.json"
 	echo "pair $i done"
 done
 echo finished
