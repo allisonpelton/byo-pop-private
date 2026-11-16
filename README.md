@@ -40,7 +40,7 @@ installed copy (for example from Steam):
 | [Atomica Deluxe](games/atomica/docs/README.md) | Sonnet | Every phase but modding | 2026-10-25 | 1 | $332 | $13 | | $344 |
 | [Mummy Maze Deluxe](games/mummymaze/docs/README.md) | Sonnet | Every phase but modding | 2026-10-25 | 2 | $295 | $25 | | $319 |
 | [TipTop Deluxe](games/tiptop/docs/README.md) | Opus | Every phase but modding | 2026-10-25 | 1 | $281 | $2 | | $283 |
-| [Bookworm Adventures Deluxe](games/bookwormadv/docs/README.md) | Opus | Performance | 2026-10-25 | | $880 | $2 | | $882 |
+| [Bookworm Adventures Deluxe](games/bookwormadv/docs/README.md) | Opus | Every phase but modding | 2026-10-25 | | $880 | $2 | | $882 |
 | [Ning Po Mahjong Deluxe](games/ningpo/docs/README.md) | Opus | Every phase but modding | 2026-10-26 | | $161 | | | $161 |
 | [Pixelus Deluxe](games/pixelus/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | | $344 | | | $344 |
 | [Alchemy Deluxe](games/alchemy/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | 1 | $228 | $16 | | $244 |
@@ -98,7 +98,7 @@ asked.
 | BookWorm Deluxe | 0.42 to 0.48 s | 1.67 to 1.83 s | 6.8 to 7.5 % of one core (medians of five alternating pairs, 2D in its 640x480 window; 1.40 to 1.57 M cycles an update) | 11.7 to 14.2 % of one core (medians; 2.41 to 2.92 M cycles an update; its window 640x480) | 34.4 MB at the title, 47.0 MB at the peak (2D at 1x; 62.3 and 78.6 MB in 3D in its default 2x window) | 41.9 MB at the title, 43.1 MB at the peak |
 | Noah's Ark Deluxe | 0.60 s | 2.12 s | 8.0 s a minute | 18.1 and 19.0 s a minute | 63 and 66 MB | 67 MB |
 | Seven Seas Deluxe | 1.07 s | 1 to 2 s | 9.1 G cycles a minute at 640x480 (software screen; 5.9 in the default 1280x960, on the GPU) | 10.5 to 14.8 G cycles a minute (medians of 4 and of 2 runs; its window 640x480) | 34 to 37 MB at 640x480, 66 MB in the default window | 41.5 to 51.2 MB |
-| Atomica Deluxe | 1.20 s | 1.07 s | 18 % of one core | 20 % of one core | 109 to 112 MB (a 20 s idle board) | 64 to 67 MB |
+| Atomica Deluxe | 1.20 s | 1.07 s | 18 % of one core (1x, the software screen; the same 20 s stretch of a scripted game) | 21 % of one core | 58 to 63 MB (the same stretch; 113 to 118 MB in its default 2x window on the GPU) | 66 to 67 MB |
 | Mummy Maze Deluxe | 0.38 and 0.44 s | 4.5 s | 7.7 G cycles a minute | 8.7 G cycles a minute | 58 MB | 65 and 66 MB |
 | TipTop Deluxe | 0.6 to 0.9 s | 4.7 and 4.8 s | 4.07 G cycles in 30 s of strategy, 1.87 G in 20 s at the menu (640x480, 62.5 passes a second) | 4.96 G and 2.07 G (paced to 62 passes a second) | 82 and 83 MB | 46 MB |
 | Bookworm Adventures Deluxe | 1.70 s | 6.4 s | 7.9 G cycles a minute at the title (medians of five pinned pairs, 3D in its 800x600 window; 16.0 G full screen at 3840x2160) | 24.4 G cycles a minute (medians; 2D, its window 800x600) | 79.3 MB at the title, 101.1 MB at the peak (3D at 1x; 77.3 and 100.1 full screen) | 91.9 MB at the title, 92.2 MB at the peak (2D) |

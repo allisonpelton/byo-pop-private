@@ -10,6 +10,7 @@
 #include "MusicInterface.h"
 #include "SoundManager.h"
 #include "WidgetManager.h"
+#include "SoftwareScreenDisplay.h"
 
 #include <SDL.h>
 #include <cstdio>
@@ -80,6 +81,18 @@ AtomicaApp::~AtomicaApp()
 	delete mSprites;
 	mSprites = NULL;	// a menu still up when the app goes frees its sprites in its destructor
 }
+
+#ifndef __EMSCRIPTEN__
+// port: the original draws its screen in software into a DirectDraw surface (it has no 3D: Atomica.exe imports
+// DirectDrawCreate and nothing of Direct3D, and its DDInterface, 0x460300, makes only the DirectDraw object), so the port
+// does too where it can: the window shows the frames through its own surface, with no Direct3D device
+// (framework/SoftwareScreenDisplay.h). The display hands itself to the GPU in a window above 1x, and the web build keeps
+// DDInterface.
+DDInterface* AtomicaApp::CreateDDInterface()
+{
+	return SoftwareScreenDisplay::Create(this);
+}
+#endif
 
 // 0x4067b0
 void AtomicaApp::Init()

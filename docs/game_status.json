@@ -132,7 +132,7 @@
         "collection"
       ],
       "now": null,
-      "note": "every phase but modding done: the lite mod step closed with no mod (20a8029f). An exact Dijkstra-pruned route search gives the same route in all 1,187,177 searches compared, but the original's search is 5-8% of the process only in its worst state and about 0.5% in bot games, so neither is measurable; re-measured on the settled renderer (main bdfda2f7): six pairs, median ratio 0.885 but pairs from 0.79 to 1.71 on a busy machine, so still not measurable (LITE_MOD.md)"
+      "note": "every phase but modding done: the lite mod step closed with no mod (20a8029f). An exact Dijkstra-pruned route search gives the same route in all 1,187,177 searches compared, but the original's search is 5-8% of the process only in its worst state and about 0.5% in bot games, so neither is measurable; re-measured on the settled renderer (main bdfda2f7): six pairs, median ratio 0.885 but pairs from 0.79 to 1.71 on a busy machine, so still not measurable (LITE_MOD.md); then the software screen at 1x with the original's palettes (47540674): 7.59 G cycles against the original's 8.79 (median ratio 0.88 over six pinned pairs), 58 to 63 MB against 66 to 67, the pictures within 8 pixels of the original's"
     },
     "mummymaze": {
       "title": "Mummy Maze Deluxe",
@@ -381,11 +381,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "collection"
+        "collection",
+        "lite-mod"
       ],
       "na": [],
       "now": null,
-      "note": "readability (138a3385, 24b183fc): namecheck 0 over src, jefflib, luaapp, lualib and popanim, objects identical; Collection check: the paks are the same, the exe is another build whose texts LoadGameTexts finds by content, and the suite's runs on the Collection's files are identical; the unneeded-code step before it (d79f2eab): 37 functions nothing calls out; next the lite mod"
+      "note": "every phase but modding done: the lite mod takes nothing (LITE_MOD.md: no search in the C++ logic, the rules are the original's Lua scripts; the battles' update is under 2% of a core in real play, the board's and tile engine's functions each under 0.1% of a profile)"
     },
     "bookworm": {
       "title": "BookWorm Deluxe",
