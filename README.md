@@ -97,7 +97,7 @@ asked.
 | Big Money Deluxe | 0.73 s | 1.38 s | 3.0 to 5.8 s a minute | 5.5 to 11.2 s a minute | 37 to 42 MB | 42 to 44 MB |
 | BookWorm Deluxe | 1.2 to 1.8 s | 2.7 to 3.7 s | 9.6 to 9.8 % of one core (medians; its 1280x960 default window; 2.37 M cycles an update, 2.86 in its own 640x480) | 18.6 to 23.0 % of one core (medians; 5.42 M cycles an update; its window 640x480) | 97 MB | 41 MB |
 | Noah's Ark Deluxe | 0.60 s | 2.12 s | 8.0 s a minute | 18.1 and 19.0 s a minute | 63 and 66 MB | 67 MB |
-| Seven Seas Deluxe | 1.07 s | 1 to 2 s | 6.7 G cycles a minute (window 640x480; 5.9 at the default 1280x960) | 10.5 G cycles a minute (medians; its window 640x480) | 66 MB | 41.5 to 51.2 MB |
+| Seven Seas Deluxe | 1.07 s | 1 to 2 s | 9.1 G cycles a minute at 640x480 (software screen; 5.9 in the default 1280x960, on the GPU) | 10.5 to 14.8 G cycles a minute (medians of 4 and of 2 runs; its window 640x480) | 34 to 37 MB at 640x480, 66 MB in the default window | 41.5 to 51.2 MB |
 | Atomica Deluxe | 1.20 s | 1.07 s | 18 % of one core | 20 % of one core | 109 to 112 MB (a 20 s idle board) | 64 to 67 MB |
 | Mummy Maze Deluxe | 0.38 and 0.44 s | 4.5 s | 7.7 G cycles a minute | 8.7 G cycles a minute | 58 MB | 65 and 66 MB |
 | TipTop Deluxe | 0.6 to 0.9 s | 4.7 and 4.8 s | 4.07 G cycles in 30 s of strategy, 1.87 G in 20 s at the menu (640x480, 62.5 passes a second) | 4.96 G and 2.07 G (paced to 62 passes a second) | 82 and 83 MB | 46 MB |
