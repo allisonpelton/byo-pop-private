@@ -1070,14 +1070,14 @@ void StageMgr::removeFishOutOfPlay()
 			i++;
 	}
 	if (aRemoved)
-		pickRules();
+		recountSpawners();
 }
 
 // 0x4377f0
-void StageMgr::pickRules()
+void StageMgr::recountSpawners()
 {
 	for (size_t i = 0; i < mSpawners.size(); i++)
-		mSpawners[i]->pickRule();
+		mSpawners[i]->recount();
 }
 
 // 0x43ccc0

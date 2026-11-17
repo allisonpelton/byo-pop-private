@@ -36,6 +36,9 @@ const float MOUSE_STEP_LIMIT = 60.0f;
 const float MOUSE_STEP_PER_SPEED = 0.35f;
 // the speed the bot asks the fish to swim at towards a fish it is going to eat, in pixels a second
 const float CHASE_SPEED = 260.0f;
+// how near a fish that can eat the player pushes it away, in pixels, and how fast at the player's feet
+const float DANGER_DISTANCE = 170.0f;
+const float DANGER_SPEED = 520.0f;
 
 // Whether a game has been started since the launch, which the state's "over" needs: the game is over once the menu is
 // back after one
@@ -205,7 +208,8 @@ engine::Node* firstButton(engine::ScreenLayout* theScreen, const char* const* th
 const char* const CONTINUE_BUTTONS[] = {"continueBtn", "doneBtn", "OK", "resumeBtn"};
 const int CONTINUE_BUTTON_COUNT = 4;
 
-// The fish the bot goes for: the nearest one the player can eat, that is in play and on the screen
+// The fish the bot goes for: the nearest one the player can eat that is in play, on the screen or off it (the stage is
+// larger than the screen, which follows the player)
 ff::FishBase* chaseTarget(ff::StageMgr* theStage, ff::PlayerFish* thePlayer)
 {
 	ff::FishBase* aBest = nullptr;
@@ -216,7 +220,7 @@ ff::FishBase* chaseTarget(ff::StageMgr* theStage, ff::PlayerFish* thePlayer)
 	{
 		ff::FishBase* aVictim = aFish[i];
 		if (aVictim == thePlayer || !aVictim->isInPlay() || aVictim->isEaten() || aVictim->isHidden() ||
-		    !theStage->isFishOnScreen(aVictim) || !thePlayer->canEat(aVictim) || !aVictim->canBeEatenBy(thePlayer))
+		    !thePlayer->canEat(aVictim) || !aVictim->canBeEatenBy(thePlayer))
 			continue;
 		engine::Point aAt = aVictim->getCentre();
 		aAt.subtract(aPlayerAt);
@@ -249,6 +253,24 @@ std::string playMove(ff::StageMgr* theStage)
 		char aBuf[96];
 		std::snprintf(aBuf, sizeof(aBuf), ",\"target\":\"%s\"", aTarget->getTypeName().c_str());
 		aDetail = aBuf;
+	}
+	// a fish that can eat the player pushes it away when it is near
+	engine::Point aPlayerAt = aPlayer->getCentre();
+	const std::vector<ff::FishBase*>& aFish = theStage->getFishList();
+	for (size_t i = 0; i < aFish.size(); i++)
+	{
+		ff::FishBase* aThreat = aFish[i];
+		if (aThreat == aPlayer || !aThreat->isInPlay() || aThreat->isEaten() || aThreat->isHidden() ||
+		    !aThreat->canEat(aPlayer))
+			continue;
+		engine::Point aAway = aPlayerAt;
+		aAway.subtract(aThreat->getCentre());
+		float aDistance = aAway.length();
+		if (aDistance < DANGER_DISTANCE && 0.0f < aDistance)
+		{
+			aAway.scale(DANGER_SPEED * (1.0f - aDistance / DANGER_DISTANCE) / aDistance);
+			aWant.add(aAway);
+		}
 	}
 	engine::Point aSpeed = aPlayer->getVelocity();
 	aWant.subtract(aSpeed);
@@ -334,13 +356,14 @@ std::string FeedingFrenzyApp::TestState()
 		for (size_t i = 0; i < aFish.size(); i++)
 		{
 			ff::FishBase* aOne = aFish[i];
-			if (aOne == aPlayer || !aOne->isInPlay() || !aStage->isFishOnScreen(aOne))
+			if (aOne == aPlayer || !aOne->isInPlay())
 				continue;
 			engine::Point aAt = aStage->worldToScreen(aOne->getCentre());
 			aState += aFirst ? "" : ",";
 			aFirst = false;
 			aState += "{\"type\":" + jsonText(aOne->getTypeName()) + ",\"x\":" + numberText(aAt.x) + ",\"y\":" +
 				numberText(aAt.y) + ",\"level\":" + numberText(aOne->getLevel());
+			aState += std::string(",\"seen\":") + (aStage->isFishOnScreen(aOne) ? "true" : "false");
 			if (aPlayer != nullptr)
 				aState += std::string(",\"edible\":") + (aPlayer->canEat(aOne) ? "true" : "false");
 			aState += "}";

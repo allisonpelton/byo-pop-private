@@ -180,7 +180,7 @@ public:
 	int countEatenOfAll() const;                  // 0x437c60: every fish and bonus bubble eaten, the mermaid's too
 	int countBonusEaten() const;                  // 0x437cb0
 	int countEatenOfLevel(float theLevel) const;  // 0x437cf0
-	void pickRules();                             // 0x4377f0: every spawner picks the rule that holds now
+	void recountSpawners();                       // 0x4377f0: every spawner counts its fish again
 
 	// The groups of the stage a fish or an effect is added to
 	void addToPlayGroup(engine::Node* theNode) { mPlayGroup->addChild(theNode); }          // 0x4370c0
