@@ -16,6 +16,7 @@ namespace engine
 
 class Component;
 class Container;
+class Font;
 class ScreenLayout;
 class Surface;
 class Theme;
@@ -39,6 +40,8 @@ public:
 private:
 	// 0x472160 (feedingfrenzy2): the theme's image of the name, else the engine's
 	Surface* findImage(const std::string& thePath);
+	// 0x4737f0 (feedingfrenzy2): the theme's font of the name, else the engine's (none for no name)
+	Font* findFont(const std::string& thePath);
 	// 0x472f20 (feedingfrenzy2): the group the elements go into
 	Container* getCurrentContainer() { return mContainers.back(); }
 	// 0x461010 (feedingfrenzy2): a colour given as "r,g,b[,a]" (0 to 255), or the theme's colour of the name
@@ -52,6 +55,9 @@ private:
 	void readModifier(Params& theAttributes);                              // 0x477d60 (feedingfrenzy2)
 	void readBltFx(Params& theAttributes);                                 // 0x4195f0 (feedingfrenzy2)
 	void readParticleSystem(Params& theAttributes);                        // 0x46ed00 (feedingfrenzy2)
+	void readImageButton(Params& theAttributes);                           // 0x432b10 (feedingfrenzy2)
+	void readText(Params& theAttributes);                                  // 0x4548c0 (feedingfrenzy2)
+	void readKeyAction(Params& theAttributes);                             // 0x426cb0 (feedingfrenzy2)
 
 	ScreenLayout* mLayout;                  // +0x50
 	std::vector<Container*> mContainers;    // +0x54: the groups the current element is inside, the innermost last

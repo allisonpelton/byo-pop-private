@@ -161,7 +161,13 @@ void SplashState::load()
 	mApp->mPlayerRanks = new PlayerRanks();
 	mApp->mPlayerRanks->load("resource/playerRanks.xml");
 	FishFactory::get()->load("resource/actors/fishes.xml");
-	// The menus, the sounds, the stage, the users' data and every screen of the shell: not yet translated
+	mApp->mMainMenu = new MainMenu();
+	mApp->mMainMenu->init();
+	mApp->mMainMenu->mActionSignal.connect(mApp, &FeedingFrenzyTwo::actionSlot);
+	// The debug level select (the application's +0x2c, DebugSelectMenu over the game's stage manifest, its setup
+	// 0x491b80 (feedingfrenzy2)), its actions connected likewise: not yet translated
+	mLoadProgress = 0.1f;
+	// The sounds, the stage, the users' data and every screen of the shell: not yet translated
 	getEngine()->log("SplashState: the loader not yet translated past the actors' file\n");
 	mLoadProgress = 1.0f;
 	mPhase = SPLASH_LOADED;

@@ -182,12 +182,24 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   (Herring's speeds, sight cosine and default turn rate, the lure fish's anchors, queenTrigger's older mouth). A
   model a visual names that does not exist shows a message box in the original; the port logs it (the file has
   none). The shapes' tests are the game's, not yet translated.
+- The main menu made by the loader (MainMenu, its actions passed to the application's state), with the engine's
+  buttons (ButtonBase, ImageButton, Selector) and the layout's image buttons, texts and key actions. Checked by a
+  temporary dump: the menu's eight image buttons and two texts at the high detail level, as the file has them. The
+  button's mouse is written but not reached until the scene's mouse is translated; its sounds keep their names.
+  - The text element compares its colour, read from 0 to 1, with 255, so every text gets the multiply mode with its
+    colour (white without one): kept as the original's.
+  - The link button (gameLinkBtn) is hidden and switched off, as the original does when the options name no link of
+    a distributor's; it leads out of the game, so it is to be taken out with the registration pass.
+  - The debug level select (the application's +0x2c, DebugSelectMenu) is left out: only the main menu's debugSelect
+    text button, hidden and switched off, has been seen to lead to it. To be checked again with MenuState's actions
+    and keys.
 
 ## Next
 
-- The splash's loader (0x47e450: the sound manager, the menus, the stage, the users' data, every shell
-  screen), the burst's sound, the sound system's and the
-  game's updates in the bursting phase; then the menu.
+- The splash's loader (0x47e450: the sound manager, the stage, the users' data, every shell screen; the layouts'
+  textButton, comboButton, checkBox, include, radioGroup, listBox, table, editBox), the burst's sound, the sound
+  system's and the game's updates in the bursting phase; then the menu state.
+- The scene's mouse (0x40dcb0, 0x40e220 and the slots it connects), for the buttons and real input.
 - The configuration's string table and options, the start's options, key, activate and music connections, the
   popups and the debug display.
 - The looks: the frame does not clear the display, so the splash's quarter-second fade builds up over the last frame

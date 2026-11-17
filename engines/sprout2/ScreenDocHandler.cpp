@@ -5,12 +5,14 @@
 #include "Engine.h"
 #include "Exception.h"
 #include "Image.h"
+#include "ImageButton.h"
 #include "Modifiers.h"
 #include "ParticleSystem.h"
 #include "Random.h"
 #include "ScreenLayout.h"
 #include "Theme.h"
 
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 
@@ -75,12 +77,18 @@ void ScreenDocHandler::startElement(const std::string& theName, Params& theAttri
 		readBltFx(theAttributes);
 	else if (theName == "particleSystem")
 		readParticleSystem(theAttributes);
+	else if (theName == "imageButton")
+		readImageButton(theAttributes);
+	else if (theName == "text")
+		readText(theAttributes);
+	else if (theName == "keyAction")
+		readKeyAction(theAttributes);
 	else
 	{
-		// animation 0x53fffd, text 0x4548c0, imageButton 0x432b10, checkBox 0x46e570, textButton 0x421160,
+		// animation 0x53fffd, checkBox 0x46e570, textButton 0x421160,
 		// comboButton 0x45c5a0, clipGroup 0x535b3e, selector 0x535883, textSub 0x53a144,
 		// editBox 0x412680, include 0x53578b, radioGroup 0x4177a0, listBox 0x4804a0, table 0x40ca40, column
-		// 0x40e640, keyAction 0x426cb0, detailSelector 0x5328bf (feedingfrenzy2): not yet translated
+		// 0x40e640, detailSelector 0x5328bf (feedingfrenzy2): not yet translated
 		getEngine()->log("ScreenDocHandler: <%s> not yet translated\n", theName.c_str());
 	}
 }
@@ -124,6 +132,19 @@ Surface* ScreenDocHandler::findImage(const std::string& thePath)
 			return aSurface;
 	}
 	return getEngine()->getImage(thePath);
+}
+
+Font* ScreenDocHandler::findFont(const std::string& thePath)
+{
+	if (mTheme != nullptr)
+	{
+		Font* aFont = mTheme->getFont(thePath);
+		if (aFont != nullptr)
+			return aFont;
+	}
+	if (thePath.empty())
+		return nullptr;
+	return getEngine()->getFont(thePath);
 }
 
 Color ScreenDocHandler::readColor(Params& theAttributes, const std::string& theName, const Color& theDefault)
@@ -227,6 +248,128 @@ void ScreenDocHandler::readImage(Params& theAttributes)
 	mLayout->registerComponent(anImage, aName);
 	readCommon(theAttributes, anImage);
 	getCurrentContainer()->addChild(anImage);
+}
+
+void ScreenDocHandler::readImageButton(Params& theAttributes)
+{
+	float x = theAttributes.getFloat("x", 0.0f);
+	float y = theAttributes.getFloat("y", 0.0f);
+	float anOpacity = theAttributes.getFloat("opacity", 1.0f);
+	float aScaleX = theAttributes.getFloat("scaleX", 1.0f);
+	float aScaleY = theAttributes.getFloat("scaleY", 1.0f);
+	std::string anUpImage = theAttributes.getString("upImg", "");
+	std::string anOverImage = theAttributes.getString("overImg", "");
+	std::string anActiveImage = theAttributes.getString("activeImg", "");
+	std::string aName = theAttributes.getString("name", "_ImgButton_");
+	std::string anAction = theAttributes.getString("action", "defaultAction");
+	std::string anOverSound = theAttributes.getString("overSound", "");
+	std::string anActiveSound = theAttributes.getString("activeSound", "");
+	Surface* anUpSurface = findImage(anUpImage);
+	Vector2f anUpScale = theAttributes.getFloatPair("upScale", Vector2f(1.0f, 1.0f));
+	Vector2f anOverScale = theAttributes.getFloatPair("overScale", Vector2f(1.0f, 1.0f));
+	float aScaleTime = theAttributes.getFloat("scaleTime", 0.5f);
+	std::string aPivot = theAttributes.getString("pivot", "upperLeft");
+	Surface* anOverSurface = !equals(anOverImage, "") ? findImage(anOverImage) : nullptr;
+	Surface* anActiveSurface = !equals(anActiveImage, "") ? findImage(anActiveImage) : nullptr;
+	if (anUpSurface == nullptr)
+		return;
+
+	ImageButton* aButton = new ImageButton();
+	if (equals(aPivot, "center"))
+		aButton->setPivot(PIVOT_CENTER);
+	// (A button whose images fail is left made and not added, as in the original)
+	if (!aButton->setImages(anUpSurface, anOverSurface, anActiveSurface))
+		return;
+	aButton->setPosition(x, y);
+	aButton->setOpacity(anOpacity);
+	aButton->setScale(aScaleX, aScaleY);
+	aButton->setHighScale(anOverScale);
+	aButton->setNormalScale(anUpScale);
+	aButton->setBaseScale(aScaleX, aScaleY);
+	aButton->setSounds(anOverSound, anActiveSound);
+	aButton->setScaleTime(aScaleTime);
+	aButton->setName(aName);
+	mLayout->addButton(aButton, aName, anAction);
+	mLayout->registerComponent(aButton, aName);
+	readCommon(theAttributes, aButton);
+	getCurrentContainer()->addChild(aButton);
+}
+
+void ScreenDocHandler::readText(Params& theAttributes)
+{
+	std::string aString = theAttributes.getString("string", "");
+	std::string aFontName = theAttributes.getString("font", "");
+	std::string aName = theAttributes.getString("name", "_Text_");
+	float x = theAttributes.getFloat("x", 0.0f);
+	float y = theAttributes.getFloat("y", 0.0f);
+	float anOpacity = theAttributes.getFloat("opacity", 1.0f);
+	Color aColor = readColor(theAttributes, "color", Color(1.0f, 1.0f, 1.0f, 1.0f));
+	int aWrapWidth = theAttributes.getInt("wordWrap", 0);
+	float aScale = theAttributes.getFloat("scale", 1.0f);
+	std::string anAlignH = theAttributes.getString("xAlign", "");
+	std::string anAlignV = theAttributes.getString("yAlign", "");
+	std::string aStyle = theAttributes.getString("style", "");
+	if ((equals(aString, "") && equals(aName, "")) || equals(aFontName, ""))
+		return;
+
+	TextItem* aText = new TextItem();
+	if (aWrapWidth > 0)
+		aText->setWrapWidth(aWrapWidth);
+	// 0x471b10 (feedingfrenzy2)
+	aText->setFont(findFont(aFontName));
+	aText->addState(STATE_BOUNDS_DIRTY);
+	aText->setText(aString);
+	// The colour is read in 0 to 1 and compared with 255, so every text multiplies by its colour (white without one)
+	if (aColor.r != 255.0f || aColor.g != 255.0f || aColor.b != 255.0f)
+	{
+		aText->setColorMode(COLOR_MODE_MULTIPLY);
+		aText->setColor(aColor);
+	}
+	int aHorizontal = TEXT_ALIGN_LEFT;
+	if (equals(anAlignH, "center"))
+		aHorizontal = TEXT_ALIGN_CENTER;
+	else if (equals(anAlignH, "right"))
+		aHorizontal = TEXT_ALIGN_RIGHT;
+	int aVertical = TEXT_ALIGN_TOP;
+	if (equals(anAlignV, "middle"))
+		aVertical = TEXT_ALIGN_MIDDLE;
+	else if (equals(anAlignV, "bottom"))
+		aVertical = TEXT_ALIGN_BOTTOM;
+	aText->setAlignment(aHorizontal, aVertical);
+	if (aStyle.find("underline") != std::string::npos)
+		aText->addFlags(TEXT_ITEM_UNDERLINE);
+	if (aStyle.find("strikethrough") != std::string::npos)
+		aText->addFlags(TEXT_ITEM_STRIKE);
+	if (aStyle.find("shadow") != std::string::npos)
+		aText->addFlags(TEXT_ITEM_SHADOW);
+	Vector2f aShadowOffset = theAttributes.getFloatPair("shadowOffset", Vector2f(1.0f, 1.0f));
+	float aShadowOpacity = theAttributes.getFloat("shadowOpacity", 1.0f);
+	aText->setShadow(aShadowOpacity, aShadowOffset);
+	aText->setPosition(x, y);
+	aText->setFilterMode(FILTER_MODE_SMOOTH);
+	aText->setScale(aScale);
+	aText->setOpacity(anOpacity);
+	aText->setName(aName);
+	mLayout->registerComponent(aText, aName);
+	if (!equals(aName, "_Text_"))
+		mLayout->registerText(aText, aName);
+	readCommon(theAttributes, aText);
+	getCurrentContainer()->addChild(aText);
+}
+
+void ScreenDocHandler::readKeyAction(Params& theAttributes)
+{
+	std::string anAction = theAttributes.getString("action", "");
+	std::string aType = theAttributes.getString("type", "ascii");
+	std::string aKey = theAttributes.getString("key", "");
+	if (aKey.empty() || anAction.empty())
+		return;
+	// A letter's key code is its capital's; else the key is the code as a number
+	int aKeyCode = equals(aType, "ascii") ? toupper(aKey[0]) : theAttributes.getInt("key", 0);
+	if (aKeyCode <= 0)
+		return;
+	if (!mLayout->addKeyAction(aKeyCode, anAction))
+		getEngine()->log("Warning: duplicate action for key code: %d\n", aKeyCode);
 }
 
 void ScreenDocHandler::readGroup(Params& theAttributes, bool theComposite, bool theAttachPoint)

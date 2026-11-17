@@ -10,6 +10,7 @@
 #include "FunFacts.h"
 #include "GameData.h"
 #include "GenericScreen.h"
+#include "MainMenu.h"
 #include "PlayerRanks.h"
 #include "Scene.h"
 #include "StageScreenData.h"
@@ -49,10 +50,16 @@ public:
 	// 0x45dbe0 (feedingfrenzy2): each frame, before the scene's update: the application's state updated (the
 	// playing time and the sound's update are not yet translated)
 	void updateSlot(engine::UpdateContext* theContext);
+	// 0x48b740 (feedingfrenzy2), connected to the shell's screens' action signals: passed to the current state
+	void actionSlot(const std::string& theAction) { mStateMgr.action(theAction); }
 
 	engine::Ref<engine::Scene> mScene;                 // +0x20
 	engine::Ref<ScreenMgr> mScreenMgr;                 // +0x24
 	engine::Ref<GameData> mGameData;                   // +0x3c: made by the splash's loader
+	engine::Ref<MainMenu> mMainMenu;                   // +0x28: made by the splash's loader
+	// +0x2c: the debug level select (DebugSelectMenu, resource/shell/debugLevelSelect.xml, a list of the game's
+	// stages), made by the loader: not yet translated (only the main menu's debugSelect button, hidden and
+	// switched off, has been seen to lead to it)
 	engine::Ref<engine::Container> mContainerSlot;     // +0x44: "ContainerSlot", in the scene
 	engine::Ref<engine::Container> mStageContainer;    // +0x48: "StageContainer"
 	engine::Ref<engine::GenericScreen> mSplashScreen;  // +0x54
@@ -64,5 +71,8 @@ public:
 	engine::Ref<PlayerRanks> mPlayerRanks;             // +0xc4
 	engine::StateMgr<AppState> mStateMgr;              // +0x354
 };
+
+// The application (0x5ac624 (feedingfrenzy2)), set by its constructor
+FeedingFrenzyTwo* getApp();
 
 #endif

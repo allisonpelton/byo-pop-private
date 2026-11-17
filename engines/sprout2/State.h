@@ -4,7 +4,7 @@
 // States and the machines that run them (State, vtable 0x5502d8 (feedingfrenzy2); StateMgr, vtable 0x55bb40
 // (feedingfrenzy2), and its typed form AbstractStateMgr<T>): a machine holds one state, which it enters, updates each
 // frame and leaves when another takes its place. The game's application, its fish and its screens each run one.
-// Only the slots the translated states use are declared; the rest (State's 0x10 to 0x20, StateMgr's 0x10 to 0x18)
+// Only the slots the translated states use are declared; the rest (State's 0x14 to 0x20, StateMgr's 0x14 and 0x18)
 // are added with their first caller.
 
 #include "Engine.h"
@@ -22,6 +22,8 @@ public:
 	virtual void exit() {}
 	// 0x0c: each frame while it is the current one
 	virtual void update(UpdateContext* theContext) {}
+	// 0x10: an action of a screen's (a button's name), passed on by the machine; State's own does nothing
+	virtual void action(const std::string& theAction) {}
 };
 
 template <class T>
@@ -49,6 +51,12 @@ public:
 	{
 		if (mState != nullptr)
 			mState->update(theContext);
+	}
+	// 0x10 (0x40a610 (feedingfrenzy2)): passed to the current state
+	virtual void action(const std::string& theAction)
+	{
+		if (mState != nullptr)
+			mState->action(theAction);
 	}
 	// AbstractStateMgr's 0x20 (0x50b668 (feedingfrenzy2))
 	virtual T* getState() { return mState.get(); }

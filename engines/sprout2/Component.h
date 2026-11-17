@@ -54,7 +54,7 @@ struct MouseEvent
 	class Component* mTarget;   // +0x00
 	Vector2f mPosition;         // +0x04: in the target's space
 	int mButtons;               // +0x0c: bit 0 the left button down, bit 1 the right
-	// +0x10: never read
+	class Scene* mScene;         // +0x10: the scene it comes from (a button takes and gives back its mouse)
 	int mWheelDelta;            // +0x14: the wheel's turn, for a wheel event
 };
 

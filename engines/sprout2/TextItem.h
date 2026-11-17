@@ -50,6 +50,14 @@ public:
 		mAlignV = theAlignV;
 		addState(STATE_BOUNDS_DIRTY);
 	}
+	void addFlags(int theFlags) { mFlags |= (unsigned char)theFlags; }
+	void setWrapWidth(int theWidth) { mWrapWidth = theWidth; }
+	void setShadow(float theOpacity, const Vector2f& theOffset)
+	{
+		mShadowOpacity = theOpacity;
+		mShadowX = theOffset.x;
+		mShadowY = theOffset.y;
+	}
 
 private:
 	std::string mText;                 // +0x98

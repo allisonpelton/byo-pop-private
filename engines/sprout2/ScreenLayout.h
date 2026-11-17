@@ -7,7 +7,9 @@
 // default action and Escape the cancel action, when the screen has them; other keys fire the actions added for them.
 
 #include "BltFx.h"
+#include "ButtonBase.h"
 #include "FadeContainer.h"
+#include "TextItem.h"
 #include "sigslot.h"
 
 #include <map>
@@ -23,14 +25,6 @@ class ILayoutActionListener : public virtual Interface
 public:
 	// 0x00
 	virtual void layoutAction(std::string theAction) = 0;
-};
-
-// What a button calls when it is pressed (IButtonListener, vtable 0x55c7e0 (feedingfrenzy2))
-class IButtonListener : public virtual Interface
-{
-public:
-	// 0x10
-	virtual void buttonAction(std::string theAction) = 0;
 };
 
 class ScreenLayout : public FadeContainer, public IButtonListener, public sigslot::HasSlots
@@ -52,9 +46,15 @@ public:
 	virtual bool load(const std::string& thePath, Theme* theTheme);
 	// 0x130 (0x46cf50 (feedingfrenzy2))
 	virtual void registerComponent(Component* theComponent, const std::string& theName);
-	// 0x134 (0x478cc0 (feedingfrenzy2)) (not yet translated: what it keeps is not yet known)
-	// 0x138 (0x4756b0 (feedingfrenzy2)) and 0x13c (0x499a70 (feedingfrenzy2)): a button's presses passed on as
-	// actions (not yet translated: the buttons are not yet)
+	// 0x134 (0x478cc0 (feedingfrenzy2)): a named text kept by its name too
+	virtual void registerText(TextItem* theText, const std::string& theName) { mTexts[theName] = theText; }
+	// 0x138 (0x4756b0 (feedingfrenzy2)): a button's clicks passed on as the action (the name is not used)
+	virtual void addButton(ButtonBase* theButton, const std::string& theName, std::string theAction)
+	{
+		theButton->addListener(this, theAction);
+	}
+	// 0x13c (0x499a70 (feedingfrenzy2)): a signal of a component's (its +0xbc) connected to the layout (not yet
+	// translated: its callers are not yet)
 	// 0x140 (0x492ef0 (feedingfrenzy2))
 	virtual void doAction(const std::string& theAction);
 	// 0x144 (0x414b70) and 0x148 (0x414b50) (feedingfrenzy2)
@@ -62,13 +62,18 @@ public:
 	virtual void setCancelAction(const std::string& theAction) { mCancelAction = theAction; }
 	// 0x14c (0x493640 (feedingfrenzy2))
 	virtual void keyDown(int theKey);
-	// 0x150 (0x41a820 (feedingfrenzy2)): a key's first action stays
-	virtual void addKeyAction(int theKey, const std::string& theAction);
+	// 0x150 (0x41a820 (feedingfrenzy2)): a key's first action stays; false for a key that has one
+	virtual bool addKeyAction(int theKey, const std::string& theAction);
 	// 0x154 (0x414da0 (feedingfrenzy2)): the key actions only
 	virtual void clearKeyActions() { mKeyActions.clear(); }
 
-	// IButtonListener's 0x10 (0x40b470 (feedingfrenzy2))
-	void buttonAction(std::string theAction) override { doAction(theAction); }
+	// IButtonListener's 0x00 to 0x0c (0x5014fa (feedingfrenzy2)): nothing
+	void buttonEnter(const std::string& theAction) override {}
+	void buttonLeave(const std::string& theAction) override {}
+	void buttonDown(const std::string& theAction) override {}
+	void buttonUp(const std::string& theAction) override {}
+	// IButtonListener's 0x10 (0x40b470 (feedingfrenzy2)): a copy passed to the listener, if there is one
+	void buttonAction(const std::string& theAction) override { doAction(theAction); }
 
 	void setListener(ILayoutActionListener* theListener) { mListener = theListener; }
 	Component* findComponent(const std::string& theName);
@@ -85,7 +90,8 @@ public:
 	}
 
 private:
-	// +0xe8 and +0xf4: maps not yet translated
+	// +0xe8: a map not yet translated
+	std::map<std::string, Ref<TextItem>> mTexts;        // +0xf4
 	std::map<std::string, Component*> mComponents;      // +0x100
 	ILayoutActionListener* mListener;                   // +0x10c
 	std::map<int, std::string> mKeyActions;             // +0x110

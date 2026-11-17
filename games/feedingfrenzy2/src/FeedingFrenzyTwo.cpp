@@ -6,15 +6,29 @@
 
 using namespace engine;
 
+namespace
+{
+
+FeedingFrenzyTwo* gTheApp = nullptr;
+
+} // namespace
+
+FeedingFrenzyTwo* getApp()
+{
+	return gTheApp;
+}
+
 FeedingFrenzyTwo::FeedingFrenzyTwo()
 {
 	// The state manager is a member, not counted by anyone: the port holds a reference so its count never reaches 0
 	mStateMgr.addRef();
+	gTheApp = this;
 }
 
 FeedingFrenzyTwo::~FeedingFrenzyTwo()
 {
 	mStateMgr.changeState(nullptr);
+	gTheApp = nullptr;
 }
 
 void FeedingFrenzyTwo::configure()

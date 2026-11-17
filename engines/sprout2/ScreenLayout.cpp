@@ -77,9 +77,9 @@ void ScreenLayout::keyDown(int theKey)
 		mListener->layoutAction(it->second);
 }
 
-void ScreenLayout::addKeyAction(int theKey, const std::string& theAction)
+bool ScreenLayout::addKeyAction(int theKey, const std::string& theAction)
 {
-	mKeyActions.insert(std::make_pair(theKey, theAction));
+	return mKeyActions.insert(std::make_pair(theKey, theAction)).second;
 }
 
 Component* ScreenLayout::findComponent(const std::string& theName)
