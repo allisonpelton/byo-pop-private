@@ -32,7 +32,7 @@ var ByopopCursors = (function () {
   // an image for one of the set's kinds (SetCursorImage, WebCursorSetKind), whose page takes the set once the game has started,
   // and those whose page reads an animated pointer from their files (web/flicursor.js), which the listing page also does as it
   // adds their files (web/gameimport.js, addGame). The Settings' choice names those whose files are here without their set.
-  var GIVES = ["alchemy", "astropop", "atomica", "bejeweled", "bejeweled2", "bejeweledtwist", "bigmoney", "bookworm", "bookwormadv",
+  var GIVES = ["alchemy", "astropop", "atomica", "bejeweled", "bejeweled2", "bejeweledtwist", "bigmoney", "bonnies", "bookworm", "bookwormadv",
     "bookwormadv2", "cosmicbugs", "dynomite", "hammerheads", "heavyweapon", "mummymaze", "pixelus", "rocketmania", "sevenseas",
     "typershark", "waterbugs"];
   // The kinds the Settings' choice pictures and compares sets by: every game's text cursor is the same I-beam (only its canvas
@@ -51,12 +51,13 @@ var ByopopCursors = (function () {
       c.x === (c.x | 0) && c.y === (c.y | 0) && c.x >= 0 && c.y >= 0 && c.x < 512 && c.y < 512 &&
       (c.k === undefined || (typeof c.k === "string" && /^[0-9a-f]{8}$/.test(c.k)));
   }
-  // a kind's image, its frames (if any) all well-formed and few, each shown for 40 ms to 2 s
+  // a kind's image, its frames (if any) all well-formed and few, each shown for 20 ms to 2 s (Cosmic Bugs' pointer shows each
+  // frame for 30 ms)
   function validImage(c) {
     if (!validFrame(c)) return false;
     if (c.frames === undefined) return true;
     return Array.isArray(c.frames) && c.frames.length >= 1 && c.frames.length < MAX_FRAMES && c.frames.every(validFrame) &&
-      c.ms === (c.ms | 0) && c.ms >= 40 && c.ms <= 2000;
+      c.ms === (c.ms | 0) && c.ms >= 20 && c.ms <= 2000;
   }
   function copyFrame(c) {
     var out = { url: c.url, x: c.x, y: c.y };
@@ -262,6 +263,20 @@ var ByopopCursors = (function () {
     });
   }
 
+  // Water Bugs' and Cosmic Bugs' sets kept before 2026-11-16 took the frame time of their animation file as updates of 10 ms,
+  // but the games step once a millisecond (WBStart.cpp and CBStart.cpp, GameFrame), so their pointers' 500 and 300 ms a frame
+  // are 50 and 30 (the user, 2026-11-16: "They animate extremely slowly ... They animate smoothly in game"). Their pages and the
+  // listing page now build them so (web/flicursor.js); a set kept before is put right here, once.
+  var RETIMED = { waterbugs: [500, 50], cosmicbugs: [300, 30] };
+  function retime() {
+    var o = all(), changed = false;
+    Object.keys(RETIMED).forEach(function (id) {
+      var c = o[id] && o[id].pointer;
+      if (c && c.frames && c.ms === RETIMED[id][0]) { c.ms = RETIMED[id][1]; changed = true; }
+    });
+    if (changed) write(o);
+  }
+
   // ---------- showing it ----------
   // A cursor value: the image with its hot spot, and the browser's own of that kind behind it
   function value(c, fallback) { return c ? 'url("' + c.url + '") ' + c.x + " " + c.y + ", " + fallback : fallback; }
@@ -327,7 +342,18 @@ var ByopopCursors = (function () {
   // which outweighs the site's rules), and gives it back when the mouse leaves it or that cursor no longer applies. Only one
   // element and one timer at a time, none for a set without frames, and none while the page is hidden. The browser shows a
   // changed cursor without the mouse moving.
-  var hovered = null, animKind = "", animEl = null, animTimer = 0, animAt = 0;
+  // The element's own inline cursor is kept aside while it shows the frames and put back after (a game's canvas has SDL's:
+  // none while the game draws its own cursor). Each frame first looks again at what applies: a cursor the page or the game set
+  // on the element since the last frame becomes its own, and a game that has started showing its own cursor (the page's
+  // game-cursor class) or hidden the browser's over its canvas stops the frames at once, so that the site's cursor is never
+  // drawn over the game's (the user, 2026-11-16: "The Cosmic Bugs cursor shows duplicated over the game cursor").
+  // animCursor: the cursor whose frames show, so that another set chosen (or the same set kept again) starts its own frames
+  var hovered = null, animKind = "", animEl = null, animCursor = null, animTimer = 0, animAt = 0, animOwn = null, animLast = "";
+  // el's own inline cursor: the one kept aside while it shows the frames
+  function ownCursor(el) {
+    if (el === animEl && animOwn) return animOwn.value;
+    try { return el.style.getPropertyValue("cursor") || ""; } catch (e) { return ""; }
+  }
   // the kind of cursor the site's rules give el, as css() orders them
   function kindOf(el, set) {
     var root = document.documentElement;
@@ -339,39 +365,84 @@ var ByopopCursors = (function () {
     if (any(TEXT)) return set.text ? "text" : "";
     if (any(HAND)) return set.hand ? "hand" : "";
     if (el.tagName === "CANVAS") {
-      var s = el.getAttribute("style") || "";
-      if (/cursor:\s*none/.test(s)) return "";
-      if (/cursor:\s*pointer/.test(s)) return set.hand ? "hand" : "";
-      if (/cursor:\s*text/.test(s)) return set.text ? "text" : "";
-      if (/cursor:\s*(move|grab)/.test(s)) return set.drag ? "drag" : set.hand ? "hand" : "";
+      var s = ownCursor(el);
+      if (/^\s*none\b/.test(s)) return "";
+      if (/^\s*pointer\b/.test(s)) return set.hand ? "hand" : "";
+      if (/^\s*text\b/.test(s)) return set.text ? "text" : "";
+      if (/^\s*(move|grab)\b/.test(s)) return set.drag ? "drag" : set.hand ? "hand" : "";
     }
     return "pointer";
   }
+  // While the frames show, the page's classes and the element's own cursor are watched, so that the frames stop as the game's
+  // cursor comes on or SDL hides the browser's, before the next frame is drawn rather than at the next frame of the swap.
+  // Whether the frames still apply: a cursor set on the element since the last frame is its own now; if what applies has
+  // changed, the frames stop and start again for what applies now. False once they stopped.
+  function stillApplies() {
+    var now = animEl.style.getPropertyValue("cursor") || "";
+    if (now !== animLast) animOwn = { value: now, priority: animEl.style.getPropertyPriority("cursor") || "" };
+    if (kindOf(animEl, current) === animKind) return true;
+    var at = animEl;
+    stopAnimation();
+    if (at === hovered) animate(at);
+    return false;
+  }
+  var watcher = typeof MutationObserver !== "undefined" ? new MutationObserver(function () { if (animEl) stillApplies(); }) : null;
   function stopAnimation() {
     clearInterval(animTimer);
     animTimer = 0;
-    if (animEl) { try { animEl.style.removeProperty("cursor"); } catch (e) {} }
-    animEl = null; animKind = "";
+    if (watcher) watcher.disconnect();
+    // its own cursor back, unless the page or the game has set another since the last frame
+    if (animEl) {
+      try {
+        if (animEl.style.getPropertyValue("cursor") === animLast) {
+          if (animOwn && animOwn.value) animEl.style.setProperty("cursor", animOwn.value, animOwn.priority);
+          else animEl.style.removeProperty("cursor");
+        }
+      } catch (e) {}
+    }
+    animEl = null; animKind = ""; animCursor = null; animOwn = null; animLast = "";
   }
   function animate(el) {
     var set = current, kind = set ? kindOf(el, set) : "", c = kind ? set[kind] : null;
     if (!c || !c.frames || document.visibilityState === "hidden") { stopAnimation(); return; }
-    if (el === animEl && kind === animKind) return;
+    if (el === animEl && kind === animKind && c === animCursor) return;
     stopAnimation();
     var frames = [c].concat(c.frames), fallback = { pointer: "auto", hand: "pointer", drag: "grabbing", text: "text", notallowed: "not-allowed", wait: "wait" }[kind];
-    animEl = el; animKind = kind; animAt = 0;
+    animEl = el; animKind = kind; animCursor = c; animAt = 0;
+    animOwn = { value: el.style.getPropertyValue("cursor") || "", priority: el.style.getPropertyPriority("cursor") || "" };
     function show() {
+      if (!stillApplies()) return;
       animEl.style.setProperty("cursor", value(frames[animAt], fallback), "important");
+      animLast = animEl.style.getPropertyValue("cursor") || "";
       animAt = (animAt + 1) % frames.length;
     }
+    animLast = animOwn.value;
     show();
+    if (animEl !== el) return;
     animTimer = setInterval(show, c.ms);
+    if (watcher) {
+      try {
+        watcher.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+        watcher.observe(el, { attributes: true, attributeFilter: ["style"] });
+      } catch (e) {}
+    }
   }
   // (cheap: a set without frames never starts a timer; the listeners only look at the element the mouse entered)
   function anyFrames() { var set = current; return !!set && KINDS.some(function (k) { return !!(set[k] && set[k].frames); }); }
   function later() { setTimeout(function () { animate(hovered); }, 0); }
   document.addEventListener("mouseover", function (ev) { hovered = ev.target; if (animTimer || anyFrames()) animate(hovered); }, true);
   document.addEventListener("mouseout", function (ev) { if (!ev.relatedTarget) { hovered = null; stopAnimation(); } }, true);
+  // what applies under a mouse that stays on one element can change (a game showing the browser's cursor again over its
+  // canvas): looked at again as the mouse moves, at most every 100 ms, while nothing is animated
+  var lastLook = 0;
+  document.addEventListener("mousemove", function (ev) {
+    if (animTimer || !anyFrames()) return;
+    var t = Date.now();
+    if (t - lastLook < 100) return;
+    lastLook = t;
+    hovered = ev.target;
+    animate(hovered);
+  }, true);
   // a press and a release can change the rule that applies (a cap being dragged)
   document.addEventListener("mousedown", function () { if (animTimer || anyFrames()) later(); }, true);
   document.addEventListener("mouseup", function () { if (animTimer || anyFrames()) later(); }, true);
@@ -573,6 +644,7 @@ var ByopopCursors = (function () {
     fill(el);
   }
 
+  retime();
   apply();
   setTimeout(upgrade, 0);
   window.addEventListener("storage", function (ev) {

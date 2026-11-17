@@ -52,6 +52,13 @@ The logos draw no random numbers, and the timers and flags they set (`gLogoSkip`
 the logo screen only, so the menu starts as it does after the logos. With the setting off nothing changes: the frozen
 baseline runs without it.
 
+## The site's cursor set (2026-11-16, the site session, with the coordinator's OK)
+
+On the web the host gives the arrow and the hand to the site's cursor set as its pointer and hand (`BonniesHost.cpp`,
+`giveCursorKinds`, `WebCursorSetKind`), each drawn from its art into an image of its own at the first cursor the game sets,
+because the game shows every cursor as the one `CURSOR_CUSTOM` image and so gave the site no set (the user: "I'm missing
+some custom cursors"). What the game shows is unchanged, and none of it is built natively.
+
 ## The sound log (2026-11-11)
 
 `BYOPOP_SOUNDLOG` names a file, as in every port, and the FMOD 3 stand-in (`src/BonniesHost.cpp`, "FMOD 3 on the
