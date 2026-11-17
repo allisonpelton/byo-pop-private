@@ -856,7 +856,9 @@ html.d95-desk .su-drop.drop-on { outline: 1px dotted #000; outline-offset: -5px;
 html.d95-desk .su-rows { flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0; padding: 2px; list-style: none; background: #fff;
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
 html.d95-desk .su-row { display: flex; align-items: center; gap: 6px; min-height: 24px; padding: 1px 4px; }
-html.d95-desk .su-icon:not(#\#) { flex: none; width: 20px; height: 20px; min-width: 0; margin: 0; padding: 0; font-size: 8px; line-height: 20px; overflow: hidden;
+/* (.su-rows and .badge: above the plain icons' badge rule, :root[data-skin="d95"] .badge:not(.has-icon), which gave each row a
+   32 px badge with 20 px margins) */
+html.d95-desk .su-rows .su-icon.badge:not(#\#) { flex: none; width: 20px; height: 20px; min-width: 0; margin: 0; padding: 0; font-size: 8px; line-height: 20px; overflow: hidden;
   display: inline-flex; align-items: center; justify-content: center; box-shadow: none; transform: none; }
 html.d95-desk .su-icon img:not(#\#) { max-width: 20px; max-height: 20px; width: auto !important; height: auto !important; }
 html.d95-desk .su-icon .badge-initials { display: none; }
