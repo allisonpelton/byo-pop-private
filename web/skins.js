@@ -1295,8 +1295,9 @@ var ByopopSkin = (function () {
       layoutIcons();
     }
     // The recycle bin's icon (the user, 2026-11-14, by the coordinator's list), on the listing: it opens the bin of All games
-    // (web/addgames.js), a game's cap dropped on it asks there to forget its files, and it is full while the bin holds the names of
-    // the games forgotten (byopop-bin), until Empty Recycle Bin, its menu's, clears them with the theme's sound
+    // (web/addgames.js), a game's cap dropped on it asks there to forget its files, a desktop shortcut dropped on it is removed
+    // (binUnder), and it is full while the bin holds the names of the games forgotten (byopop-bin), until Empty Recycle Bin, its
+    // menu's, clears them with the theme's sound
     var BIN_KEY = "byopop-bin";
     function binItems() { try { var a = JSON.parse(localStorage.getItem(BIN_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
     function openBin(id) {
@@ -1370,6 +1371,15 @@ var ByopopSkin = (function () {
       return !wins.some(function (w) { return !w.closed && w.el.contains(t); });
     }
     var iconDrag = null, band = null;
+    // the Recycle Bin under the pointer while desktop shortcuts are dragged (the user, 2026-11-16: "Allow dragging desktop
+    // shortcuts into the recycle bin to delete the shortcut (without forgetting the files)"): it lights as for a cap, and a drop
+    // there takes the shortcuts out of the favourites (pointerEnd), never reaching the game's files or the listing
+    function binUnder(ev, d) {
+      var bin = icons && icons.querySelector(".d95-icon-bin");
+      if (!bin || bin.hidden || d.list.indexOf(bin) >= 0 || !d.list.some(function (x) { return x.classList.contains("d95-fav"); })) return null;
+      var r = bin.getBoundingClientRect();
+      return ev.clientX >= r.left && ev.clientX < r.right && ev.clientY >= r.top && ev.clientY < r.bottom ? bin : null;
+    }
     document.addEventListener("pointerdown", function (ev) {
       if (!on || EMBED || !icons || ev.button !== 0) return;
       var b = ev.target.closest && ev.target.closest(".d95-icons > .d95-icon");
@@ -1395,6 +1405,10 @@ var ByopopSkin = (function () {
           document.documentElement.classList.add("d95-dragging");
         }
         iconDrag.from.forEach(function (f) { f[0].style.left = Math.max(0, f[1] + dx) + "px"; f[0].style.top = Math.max(0, f[2] + dy) + "px"; });
+        var lit = binUnder(ev, iconDrag);
+        if (iconDrag.lit && iconDrag.lit !== lit) iconDrag.lit.classList.remove("d95-icon-sel");
+        if (lit) lit.classList.add("d95-icon-sel");
+        iconDrag.lit = lit;
         return;
       }
       if (band && ev.pointerId === band.id) {
@@ -1420,10 +1434,27 @@ var ByopopSkin = (function () {
         iconDrag = null;
         document.documentElement.classList.remove("d95-dragging");
         if (!d.moved) return;
-        var p = iconPlaces() || {};
-        d.from.forEach(function (f) { p[f[0].getAttribute("data-key")] = [f[0].offsetLeft, f[0].offsetTop]; });
-        keepIconPlaces(p);
-        // the drag is not also the icon's click
+        if (d.lit) d.lit.classList.remove("d95-icon-sel");
+        var p = iconPlaces() || {}, bin = binUnder(ev, d);
+        if (bin) {
+          // into the Recycle Bin: each shortcut goes as its menu's Remove from favourites takes it, with no question and no sound,
+          // as Windows 95's drag to the bin; any other icon dragged with them goes back where it was
+          var gone = [];
+          d.from.forEach(function (f) {
+            var k = f[0].getAttribute("data-key");
+            if (f[0].classList.contains("d95-fav")) { gone.push(k.substring(2)); delete p[k]; }
+            else { f[0].style.left = f[1] + "px"; f[0].style.top = f[2] + "px"; }
+          });
+          keepIconPlaces(p);
+          var favs = [];
+          try { favs = ByopopSettings.favourites(); } catch (e) {}
+          favs.forEach(function (g) { if (gone.indexOf(g.id) >= 0) { try { ByopopSettings.setFavourite(g, false); } catch (e) {} } });
+          bin.focus();
+        } else {
+          d.from.forEach(function (f) { p[f[0].getAttribute("data-key")] = [f[0].offsetLeft, f[0].offsetTop]; });
+          keepIconPlaces(p);
+        }
+        // the drag is not also the icon's click (nor, dropped on the bin, the bin's)
         var eat = function (e) { e.stopImmediatePropagation(); e.preventDefault(); document.removeEventListener("click", eat, true); };
         document.addEventListener("click", eat, true);
         setTimeout(function () { document.removeEventListener("click", eat, true); }, 0);

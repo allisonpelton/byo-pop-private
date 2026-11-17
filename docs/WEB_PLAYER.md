@@ -269,7 +269,10 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   `web/deskapps.js` then takes off the speakers), plus Music, Sounds and a theme's sounds.
 - **The Recycle Bin's icon,** on the listing: it opens All games' bin, and a game's cap dropped on it asks there to forget
   that game's files. It is full while the bin holds the names of the games forgotten (`byopop-bin`), until Empty Recycle
-  Bin, from its menu, clears them.
+  Bin, from its menu, clears them. A favourite's desktop shortcut dragged onto it lights it, and dropped there it is taken
+  out of the favourites, as its menu's Remove from favourites does. The game's files and its place in the listing stay,
+  and the bin does not fill. As with Windows 95's drag to the bin, nothing asks first and no sound plays. Any other icon
+  dragged with the shortcuts goes back where it was.
 - **The theme's events** now include start, exit, empty and error. Start comes at the first press or key of the browser's
   session on the listing, since a page may play nothing before that, and again when Shut Down's last screen goes. Exit is
   Shut Down, and empty is Empty Recycle Bin. Error is a game stopped by an error and an import refused, on either page.
