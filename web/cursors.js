@@ -9,22 +9,32 @@
 // site's cursor shows over the game too, as the user asked ("If the custom cursor is disabled in a game, could the site's custom
 // cursor still display over it?").
 //
-// Two localStorage items for the whole site: "byopop-cursors", a JSON object from a game's id to its set, {title, pointer, hand,
-// drag, text, notallowed, wait}, each {url, x, y} (a PNG data URL and its hot spot) or absent; and "byopop-site-cursor", the id of
-// the chosen set, absent for the browser's own cursor. An animated cursor (Water Bugs' and Cosmic Bugs' pointers, web/flicursor.js)
-// also has frames, [{url, x, y}...] after the first, and ms, the time each shows: browsers animate no cursor image, so the page
-// swaps the frames itself on the element under the mouse, and only while it shows that cursor. The images come from the player's own copy of the game and stay in this browser;
+// Three localStorage items for the whole site: "byopop-cursors", a JSON object from a game's id to its set, {title, pointer, hand,
+// drag, text, notallowed, wait}, each {url, x, y} (a PNG data URL and its hot spot) or absent; "byopop-site-cursor", the id of
+// the chosen set, absent for the browser's own cursor; and "byopop-cursors-unkept", the games whose set could not be kept. An
+// animated cursor (Water Bugs' and Cosmic Bugs' pointers, web/flicursor.js) also has frames, [{url, x, y}...] after the first,
+// and ms, the time each shows: browsers animate no cursor image, so the page swaps the frames itself on the element under the
+// mouse, and only while it shows that cursor. The images come from the player's own copy of the game and stay in this browser;
 // forgetting the game's files forgets them too (ByopopGameFiles.forget, web/settings.js).
 var ByopopCursors = (function () {
   "use strict";
-  var KEY = "byopop-cursors", CHOICE = "byopop-site-cursor";
-  // the most the sets may take together (characters of their JSON): localStorage's quota is shared with the games' save
-  // backups (sexy-userdata-backup:*), so a set that would go past it is not kept
-  var MAX_TOTAL = 256 * 1024;
+  var KEY = "byopop-cursors", CHOICE = "byopop-site-cursor", UNKEPT = "byopop-cursors-unkept";
+  // the most the sets may take together (characters of their JSON): localStorage's quota (5 MB) is shared with the games' save
+  // backups (sexy-userdata-backup:*), so a set that would go past it is not kept, and is named in the Settings' choice (unkept,
+  // below). Every game's set together took 196 KB on 2026-11-16, the two animated ones 34 and 36 KB of it, the others 6 to 11
+  // KB; 256 KB would have left room for one more animated set (the user, 2026-11-16: "I'm missing some custom cursors")
+  var MAX_TOTAL = 1024 * 1024;
   var KINDS = ["pointer", "hand", "drag", "text", "notallowed", "wait"];
   // A game whose image for a kind means something else (WEB_PLAYER.md, "The site's cursor", the table): it is not kept for that
   // kind. Seven Seas keeps its shovel, the cursor of its bonus on the board, where the framework keeps the circle-slash.
   var OTHER_MEANING = { sevenseas: ["notallowed"] };
+  // The games that give a set (tools/cursorstest.js checks the list against their sources): those whose port gives the framework
+  // an image for one of the set's kinds (SetCursorImage, WebCursorSetKind), whose page takes the set once the game has started,
+  // and those whose page reads an animated pointer from their files (web/flicursor.js), which the listing page also does as it
+  // adds their files (web/gameimport.js, addGame). The Settings' choice names those whose files are here without their set.
+  var GIVES = ["alchemy", "astropop", "atomica", "bejeweled", "bejeweled2", "bejeweledtwist", "bigmoney", "bookworm", "bookwormadv",
+    "bookwormadv2", "cosmicbugs", "dynomite", "hammerheads", "heavyweapon", "mummymaze", "pixelus", "rocketmania", "sevenseas",
+    "typershark", "waterbugs"];
   // The kinds the Settings' choice pictures and compares sets by: every game's text cursor is the same I-beam (only its canvas
   // differs), so it tells no set from another. A set's own text cursor still shows in text fields.
   var COMPARED = ["pointer", "hand", "drag", "notallowed", "wait"];
@@ -86,22 +96,43 @@ var ByopopCursors = (function () {
       return true;
     } catch (e) { return false; }
   }
+  // The games whose set could not be kept (the sets would take more than MAX_TOTAL, or the browser's storage is full): id ->
+  // title, in localStorage under UNKEPT, so that the Settings' choice says so instead of the set going missing unseen. Kept
+  // the next time the set is, or when the game's files are forgotten.
+  function unkept() {
+    var out = {};
+    try {
+      var s = store(), o = s ? JSON.parse(s.getItem(UNKEPT) || "{}") : {};
+      if (plain(o)) Object.keys(o).forEach(function (id) { if (validId(id) && typeof o[id] === "string") out[id] = o[id].slice(0, 120); });
+    } catch (e) {}
+    return out;
+  }
+  function noteUnkept(id, title) {
+    var o = unkept();
+    if (title === null) { if (!o.hasOwnProperty(id)) return; delete o[id]; } else { if (o[id] === title) return; o[id] = title; }
+    try {
+      var s = store();
+      if (s) { if (Object.keys(o).length) s.setItem(UNKEPT, JSON.stringify(o)); else s.removeItem(UNKEPT); }
+    } catch (e) {}
+    redraw();
+  }
   // Keeps a game's set ({pointer, hand, drag, text, notallowed, wait}, as all() gives them; a kind whose image means something
-  // else in that game is left out); true when it was new or changed. Not kept (false) without a pointer, or when the sets would
-  // then take more than MAX_TOTAL.
+  // else in that game is left out); true when it was new or changed. Not kept (false) without a pointer; nor when the sets would
+  // then take more than MAX_TOTAL or the browser will not store them, when the game is noted as unkept.
   function save(id, title, set) {
     if (!validId(id) || !plain(set) || !validImage(set.pointer)) return false;
     var o = all(), entry = { title: String(title || id).slice(0, 120) }, other = OTHER_MEANING[id] || [];
     KINDS.forEach(function (k) { if (validImage(set[k]) && other.indexOf(k) < 0) entry[k] = copyImage(set[k]); });
-    if (JSON.stringify(o[id]) === JSON.stringify(entry)) return false;
+    if (JSON.stringify(o[id]) === JSON.stringify(entry)) { noteUnkept(id, null); return false; }
     o[id] = entry;
-    if (JSON.stringify(o).length > MAX_TOTAL) return false;
-    if (!write(o)) return false;
+    if (JSON.stringify(o).length > MAX_TOTAL || !write(o)) { noteUnkept(id, entry.title); return false; }
+    noteUnkept(id, null);
     apply();
     redraw();
     return true;
   }
   function forget(id) {
+    noteUnkept(id, null);
     var o = all();
     if (!o.hasOwnProperty(id)) return;
     delete o[id];
@@ -406,10 +437,25 @@ var ByopopCursors = (function () {
       var id = g.ids.indexOf(pick) >= 0 ? pick : g.ids[0];
       option(id, names(g.ids.map(function (i) { return sets[i].title; })), sets[id]);
     });
-    box.appendChild(make("p", "bpc-cur-hint", Object.keys(sets).length
-      ? ByopopStrings.t("cursors.hint")
-      : ByopopStrings.t("cursors.hint_none")));
+    // the games whose set could not be kept, then those whose files are here and whose set is not yet, else the plain hint
+    var lost = unkept(), lostIds = Object.keys(lost).filter(function (id) { return !sets[id]; }), wait = waiting(sets, lost);
+    if (lostIds.length) {
+      var lostTitles = lostIds.map(function (id) { return lost[id]; }).sort(function (a, b) { return a.localeCompare(b); });
+      box.appendChild(make("p", "bpc-cur-hint bpc-cur-unkept", ByopopStrings.t("cursors.unkept", { games: names(lostTitles), n: lostIds.length })));
+    }
+    box.appendChild(make("p", "bpc-cur-hint", wait.length ? ByopopStrings.t("cursors.hint_open", { games: names(wait), n: wait.length })
+      : Object.keys(sets).length ? ByopopStrings.t("cursors.hint") : ByopopStrings.t("cursors.hint_none")));
     el.appendChild(fs);
+  }
+  // The titles of the games that give a set (GIVES) whose files are here (web/settings.js, ByopopGameFiles) and whose set is
+  // neither kept nor unkept, sorted: a game that has to be opened once for it. Only where the games' titles are known (the listing
+  // page's ByopopImport.games); a game's own page names none.
+  function waiting(sets, lost) {
+    var files, titles = {};
+    try { files = ByopopGameFiles.all(); ByopopImport.games.forEach(function (g) { titles[g.spec.id || g.target] = g.title; }); }
+    catch (e) { return []; }
+    return GIVES.filter(function (id) { return !sets[id] && !lost[id] && titles[id] && ByopopGameFiles.present(files[id]); })
+      .map(function (id) { return titles[id]; }).sort(function (a, b) { return a.localeCompare(b); });
   }
   // ---------- sets that look the same ----------
   // Two sets look the same, and share an entry, when every kind in LOOKS looks the same in both: pictures that, laid on each
@@ -530,10 +576,11 @@ var ByopopCursors = (function () {
   apply();
   setTimeout(upgrade, 0);
   window.addEventListener("storage", function (ev) {
-    if (ev.key !== null && ev.key !== KEY && ev.key !== CHOICE && ev.key !== "byopop-settings") return;
+    if (ev.key !== null && ev.key !== KEY && ev.key !== CHOICE && ev.key !== UNKEPT && ev.key !== "byopop-settings" && ev.key !== "byopop-game-files") return;
     apply();
     redraw();
   });
-  return { KEY: KEY, CHOICE: CHOICE, all: all, save: save, forget: forget, chosen: chosen, choose: choose, apply: apply, render: render,
-    refresh: redraw, busy: busy, crop: crop, picture: picture, codec: codec, upgrade: upgrade };
+  return { KEY: KEY, CHOICE: CHOICE, UNKEPT: UNKEPT, MAX_TOTAL: MAX_TOTAL, GIVES: GIVES, all: all, unkept: unkept, save: save, forget: forget,
+    chosen: chosen, choose: choose, apply: apply, render: render, refresh: redraw, busy: busy, crop: crop, picture: picture, codec: codec,
+    upgrade: upgrade };
 })();

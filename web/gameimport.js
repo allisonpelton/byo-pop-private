@@ -865,6 +865,36 @@ var ByopopImport = (function () {
     }, function () { return null; });
   }
 
+  // A game whose pointer is an animation of its files (web/flicursor.js) gives its set for the site's cursor as its files are
+  // added, so the set is in Settings' choice before the game's first opening (the user, 2026-11-16); its page builds the same
+  // set from the same files, and a set that does not build here is left to it. ByopopFlicCursor.build reads synchronously, so
+  // the files it asks for are read and it is run again, a round for each level (the animations' XML, then the FLICs).
+  // Never rejects.
+  function flicSet(g, files) {
+    var F = typeof ByopopFlicCursor !== "undefined" ? ByopopFlicCursor : null, C = typeof ByopopCursors !== "undefined" ? ByopopCursors : null,
+      id = g.spec.id;
+    if (!F || !C || !F.GAMES[id]) return Promise.resolve();
+    var byRel = {}, got = {};
+    files.forEach(function (f) { byRel[String(f.rel).toLowerCase()] = f; });
+    function round(n) {
+      var want = {};
+      var set = F.build(id, function (rel) {
+        var k = rel.toLowerCase();
+        if (got.hasOwnProperty(k)) return got[k];
+        if (byRel.hasOwnProperty(k)) want[k] = true;
+        else got[k] = null;
+        return null;
+      }, C);
+      var keys = Object.keys(want);
+      if (set || !keys.length || n >= 4) return Promise.resolve(set);
+      return Promise.all(keys.map(function (k) {
+        return Promise.resolve(byRel[k].read()).then(function (d) { got[k] = d instanceof Uint8Array ? d : new Uint8Array(d); },
+          function () { got[k] = null; });
+      })).then(function () { return round(n + 1); });
+    }
+    return Promise.resolve().then(function () { return round(0); })
+      .then(function (set) { if (set) C.save(id, g.title, set); }).catch(function () {});
+  }
   // Adds one game's files from the listing page: g a games entry, entries the folder's files, root its game root (sort, or
   // findRoot). Resolves with the number of files; rejects with an Error to show. pak and safeRel: web/modpanel.js's. say(text)
   // reports the steps. The record of the game's files (ByopopGameFiles) is kept as the game page keeps it after an import.
@@ -887,7 +917,7 @@ var ByopopImport = (function () {
           .then(function (got) {
             try { ByopopGameFiles.mark(spec.id); if (got.url) ByopopGameFiles.setIcon(spec.id, got.url, got.built, got.small); } catch (e) {}
             try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (e) {}
-            return files.length;
+            return flicSet(g, files).then(function () { return files.length; });
           });
         });
       });

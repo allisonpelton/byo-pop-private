@@ -5,7 +5,8 @@
 // element under the mouse while the mouse stays still, and given back when it leaves; no timer for a set without frames), and the
 // Settings' choice, where games whose sets look the same share one entry: in every kind but the text cursor, cropped pictures
 // that differ by nothing anyone can see (colours a few steps off, a hot spot a pixel away), sets kept before images were
-// cropped included.
+// cropped included. Also what the sets may take together, a set that cannot be kept (named in the Settings' choice, not dropped
+// unseen), the games named there as needing to be opened once, and the list of games that give a set against their sources.
 //   node tools/cursorstest.js
 // It prints "cursorstest: N checks, M failed" and exits 1 when any failed.
 "use strict";
@@ -39,8 +40,10 @@ function node(tag) {
   Object.defineProperty(n, "textContent", { get() { return n._text || ""; }, set(v) { n._text = v; n.children = []; } });
   return n;
 }
-const STRINGS = { "cursors.browser": "Default", "site.list_two": "{first} and {second}", "site.list_many": "{rest} and {last}" };
-function page(store) {
+const STRINGS = { "cursors.browser": "Default", "site.list_two": "{first} and {second}", "site.list_many": "{rest} and {last}",
+  "cursors.hint": "hint", "cursors.hint_none": "none", "cursors.hint_open": "Open {games} ({n})", "cursors.unkept": "{games} not kept ({n})" };
+// extra: more of the page's globals (ByopopGameFiles, ByopopImport)
+function page(store, extra) {
   const listeners = {}, timers = new Map();
   let nextTimer = 1;
   const root = { classList: classList() };
@@ -53,19 +56,19 @@ function page(store) {
     addEventListener: (t, f) => { (listeners[t] = listeners[t] || []).push(f); }
   };
   const local = Object.assign({}, store || {});
-  const ctx = {
+  const ls = { getItem: (k) => (k in local ? local[k] : null), setItem: (k, v) => { local[k] = String(v); }, removeItem: (k) => { delete local[k]; } };
+  const ctx = Object.assign({
     document, JSON, Object, Array, String,
     ByopopStrings: { t: (k, f) => (STRINGS[k] || k).replace(/\{(\w+)\}/g, (m, n) => f[n]) },
-    window: { localStorage: { getItem: (k) => (k in local ? local[k] : null), setItem: (k, v) => { local[k] = String(v); }, removeItem: (k) => { delete local[k]; } },
-      addEventListener: () => {} },
+    window: { localStorage: ls, addEventListener: () => {} },
     setInterval: (f, ms) => { timers.set(nextTimer, { f, ms }); return nextTimer++; },
     clearInterval: (id) => { timers.delete(id); },
     setTimeout: (f) => { f(); return 0; }
-  };
+  }, extra || {});
   vm.createContext(ctx);
   vm.runInContext(source, ctx, { filename: "cursors.js" });
   return {
-    C: vm.runInContext("ByopopCursors", ctx), root, local, timers,
+    C: vm.runInContext("ByopopCursors", ctx), root, local, ls, timers,
     css: () => (head.children.find((c) => c.id === "byopop-site-cursor") || { textContent: "" }).textContent,
     fire(t, ev) { (listeners[t] || []).forEach((f) => f(ev)); },
     tick() { [...timers.values()].forEach((t) => t.f()); }
@@ -315,6 +318,76 @@ function entryNames(p) {
   const before = p.local["byopop-cursors"];
   p.C.upgrade();
   check("a second pass changes nothing", p.local["byopop-cursors"] === before, true);
+}
+// what the sets may take together, and a set that cannot be kept
+function hints(p) {
+  const el = node("div");
+  p.C.render(el);
+  return el.children[0].children[1].children.filter((c) => c.tagName === "p").map((c) => c.text());
+}
+// a set whose pointer is n characters of picture
+const sized = (n) => ({ pointer: { url: "data:image/png;base64," + "A".repeat(n), x: 0, y: 0 } });
+{
+  const p = page();
+  check("the sets may take 1 MB together", p.C.MAX_TOTAL, 1024 * 1024);
+  // as the site took them on 2026-11-16: two sets of 11 KB and sixteen of 7, then Water Bugs' and Cosmic Bugs' animated ones
+  for (let i = 0; i < 18; i++) p.C.save("game" + i, "Game " + i, sized(i < 2 ? 11400 : 6800));
+  check("every game's set is kept, the animated ones included",
+    [p.C.save("waterbugs", "Water Bugs", sized(36100)), p.C.save("cosmicbugs", "Cosmic Bugs", sized(34200)), Object.keys(p.C.all()).length], [true, true, 20]);
+  check("nothing noted as unkept", [p.C.unkept(), "byopop-cursors-unkept" in p.local, hints(p)], [{}, false, ["hint"]]);
+  for (let i = 0; i < 4; i++) p.C.save("huge" + i, "Huge " + i, sized(190000));
+  check("a set that would take the sets past 1 MB is not kept", p.C.save("toobig", "Too Big", sized(190000)), false);
+  check("it is noted as unkept, and the Settings' choice names it", [p.C.unkept(), hints(p)], [{ toobig: "Too Big" }, ["Too Big not kept (1)", "hint"]]);
+  p.C.forget("huge0");
+  check("kept once there is room, and no longer noted", [p.C.save("toobig", "Too Big", sized(190000)), p.C.unkept(), "byopop-cursors-unkept" in p.local],
+    [true, {}, false]);
+  p.C.save("toobig2", "Too Big Too", sized(190000));
+  p.C.forget("toobig2");
+  check("forgetting a game's files forgets that its set was not kept", p.C.unkept(), {});
+}
+{
+  const p = page(), keep = p.ls.setItem;
+  p.ls.setItem = (k, v) => { if (k === "byopop-cursors") throw new Error("QuotaExceededError"); keep(k, v); };
+  check("a set the browser will not store is not kept", p.C.save("alchemy", "Alchemy", { pointer: img("a") }), false);
+  check("it is noted as unkept", p.C.unkept(), { alchemy: "Alchemy" });
+  p.ls.setItem = keep;
+  check("kept when the browser stores it, and no longer noted", [p.C.save("alchemy", "Alchemy", { pointer: img("a") }), p.C.unkept()], [true, {}]);
+}
+// the games named as needing to be opened once: those that give a set whose files are here, with no set kept or noted as unkept
+{
+  const records = { waterbugs: { loaded: 1 }, bejeweled: { loaded: 1 }, ningpo: { loaded: 1 }, cosmicbugs: { loaded: 1, forgotten: 2 }, alchemy: { loaded: 1 },
+    rocketmania: { loaded: 1 } };
+  const titles = { waterbugs: "Water Bugs", bejeweled: "Bejeweled", ningpo: "Ning Po", cosmicbugs: "Cosmic Bugs", alchemy: "Alchemy", rocketmania: "Rocket Mania",
+    astropop: "AstroPop" };
+  const files = { all: () => records, present: (r) => !!(r && r.loaded && !r.forgotten) };
+  const games = Object.keys(titles).map((id) => ({ target: id, title: titles[id], spec: { id } }));
+  const p = page({ "byopop-cursors-unkept": JSON.stringify({ alchemy: "Alchemy" }) }, { ByopopGameFiles: files, ByopopImport: { games } });
+  p.C.save("bejeweled", "Bejeweled", { pointer: img("b") });
+  check("named: files here and no set; not a game that gives none, forgotten files, no files, a set kept or one noted as unkept",
+    hints(p), ["Alchemy not kept (1)", "Open Rocket Mania and Water Bugs (2)"]);
+  p.C.save("waterbugs", "Water Bugs", { pointer: img("w") });
+  p.C.save("alchemy", "Alchemy", { pointer: img("a") });
+  check("each leaves the hint once its set is kept", hints(p), ["Open Rocket Mania (1)"]);
+  p.C.save("rocketmania", "Rocket Mania", { pointer: img("r") });
+  check("the plain hint once none is left", hints(p), ["hint"]);
+  const own = page(null, { ByopopGameFiles: files });
+  check("a game's own page, which knows no titles, names none", hints(own), ["none"]);
+}
+// GIVES against the sources: the games whose port gives the framework an image for one of the set's kinds (SetCursorImage with a
+// kind other than CURSOR_CUSTOM or CURSOR_NONE, by name or number, or WebCursorSetKind), and those web/flicursor.js reads a pointer for
+{
+  const games = path.join(__dirname, "..", "games");
+  const found = new Set(Object.keys(require(path.join(__dirname, "..", "web", "flicursor.js")).GAMES));
+  const KIND = /\bSetCursorImage\s*\(\s*(?:Sexy::)?(?:CURSOR_(?!CUSTOM\b|NONE\b)[A-Z_]+|(?:[0-4]|10)\s*,)|\bWebCursorSetKind\s*\(/;
+  const walk = (dir, id) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const at = path.join(dir, e.name);
+      if (e.isDirectory()) walk(at, id);
+      else if (/\.(cpp|h)$/i.test(e.name) && KIND.test(fs.readFileSync(at, "utf8"))) found.add(id);
+    }
+  };
+  for (const id of fs.readdirSync(games)) if (fs.statSync(path.join(games, id)).isDirectory()) walk(path.join(games, id), id);
+  check("the games that give a set are those whose sources give one", [...page().C.GIVES], [...found].sort());
 }
 
 console.log(`cursorstest: ${checks} checks, ${failed} failed`);
