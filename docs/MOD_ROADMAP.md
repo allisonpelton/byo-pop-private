@@ -326,6 +326,9 @@ Presentation:
     stay exact.
 29. Jukebox: the player chooses the music, or the game's other tracks play on other levels. The site's soundtrack
     player covers listening outside the game; this mod is what the game plays during play.
+30. Stereo sound (the user, 2026-11-17): each sound panned to where it happens on the screen (a gem's column, a ball's
+    or a bug's position), for games whose sounds play centred, through the pan the framework's sound calls already
+    take; games that already pan keep theirs.
 
 ## Nintendo 3DS port (after Bejeweled works fully with mods)
 
