@@ -765,6 +765,11 @@ cursors.legend = Site cursor
 cursors.browser = Default
 cursors.hint = Play a game to add its custom cursors here.
 cursors.hint_none = Play a game to use its custom cursors sitewide, even in other games!
+# {games}: the titles of the games whose files are here and whose cursors are not yet, as a list ("Hammer Heads and Pixelus"); n:
+# how many
+cursors.hint_open = Open {games} once to add its custom cursors here. | Open {games} once each to add their custom cursors here.
+# {games}: the titles of the games whose cursors could not be kept, as a list; n: how many
+cursors.unkept = The custom cursors of {games} could not be kept: this browser's storage for them is full.
 
 
 # ---- Adding and forgetting a game's files from the listing page (web/gameimport.js)

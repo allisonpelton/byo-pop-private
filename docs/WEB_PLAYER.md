@@ -92,7 +92,17 @@ page. A kind may carry animation `frames`, which the page plays itself (Banana B
 `docs/POPCAP_GAMES_SURVEY.md`). Water Bugs and Cosmic Bugs draw their own pointer, the "pointer" animation of their
 files, so their pages read it from those files instead (`web/flicursor.js`, `ByopopFlicCursor`): every frame of the FLIC
 with its mask and the shadow the game draws, the hot spot at the top left, and the frame time from the animation file
-(500 ms and 300 ms, 10 frames each). Ning Po's pointer sprite is empty, so it has no set.
+(500 ms and 300 ms, 10 frames each). Ning Po's pointer sprite is empty, so it has no set. The listing page builds those
+two sets the same way as it adds their files (`web/gameimport.js`, `flicSet`), so they are in Settings' choice before the
+game is first opened. The other games' sets come only from a running game: the framework holds their pictures once the
+game has loaded its images.
+
+The sets may take 1 MB of localStorage together (`MAX_TOTAL`). On 2026-11-16 every game's set came to 196 KB: the two
+animated ones 34 and 36 KB, the others 6 to 11 KB. A set that would go past the cap, or that the browser will not store,
+is not dropped unseen. Its game is kept in `byopop-cursors-unkept` until its set is kept or its files are forgotten, and
+Settings' choice names it (the user, 2026-11-16: "I'm missing some custom cursors"). `GIVES` lists the games that give a
+set, and `tools/cursorstest.js` checks it against their sources. On the listing page, Settings' choice names each of
+those games whose files are here and whose set is not, as needing to be opened once.
 
 ### The terms
 
