@@ -213,6 +213,13 @@ original gives it that the port does not. The level summary's buttons are the sa
 shows its Save/Quit button at frame 2600, the port from 2601), and so is the memory bonus round's start (mem1's
 bonus_start matches the port's frame 4051).
 
+**Not yet judged: the price badges' text.** The order popups' "$" price (PizzaPopup's price text: centred, smooth
+type on, so drawn at a half pixel) differs faintly in every play shot: in each badge two columns of the digits' right
+edges are darker in the port, up to 123 in a channel over about 18 pixels (mem1's level2_300, boxes at 663,145 and
+663,470). Moving the port's picture by a pixel makes it worse, so the glyphs stand in the same place; the difference
+is in how a smooth draw at a fractional position is resampled, which is the renderer's to settle. mem1's play_300 has
+a faint difference of the same kind on the two trucks (up to 58 in a channel), not looked at yet.
+
 **Oddity: a taken tip's flight.** A tip the player takes flies to the tip jar as a picture splat, from the tip's
 place to the jar's count in a straight line over the distance divided by the splat's speed. In conc1's play_1500 the
 original's picture is about halfway between where the port's is at frames 1499 and 1500 (some 28 pixels a frame), and
