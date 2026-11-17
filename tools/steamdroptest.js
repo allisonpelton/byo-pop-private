@@ -233,11 +233,12 @@ async function main() {
     }
     const b = brief(sorted);
     if (args.includes("--print")) console.log(JSON.stringify(b, null, 1));
-    // every site game found, at its folder, by itself. (The other games' folders may make one more by chance: in the full
-    // library a folder of "Game 023 Classic" holds config.xml beside a folder named properties, which is Venice's markers,
-    // its main.pak standing for any of its game folders, to the old sort and the new alike.)
+    // every site game found, at its folder, by itself, and no other game's folder taken for one. (In the full library a folder of
+    // "Game 023 Classic" holds config.xml beside a folder named properties, Venice's marker and one of its folders' names, which
+    // was taken as Venice while any of its folders stood for its main.pak.)
     const got = b.found.map((f) => JSON.stringify(f.slice(0, 3)));
     check("every game found where it is", SITE.filter(([target, folder]) => got.indexOf(JSON.stringify([folder, target, `${LIB}/common/${folder}/`])) < 0), []);
+    check("no other game's folder found as one of the site's", b.found.map((f) => f[0]).filter((folder) => !SITE.some(([, f]) => f === folder)), []);
     check("the other games named", b.others.map((o) => o[1]).sort(), OTHER.map((o) => o[0]).sort());
     // each game's folder once, and shadercache and workshop (downloading and temp are empty)
     check("every folder sorted once", b.found.length + b.others.length + b.rejected.length, 101 + 2);
@@ -260,6 +261,7 @@ async function main() {
   process.exit(failed ? 1 : 0);
 }
 // The sort's result before it was made quicker: the SHA-1 of brief() of it as JSON, for each size (--print shows it), made by
-// web/gameimport.js as it was at ea0c1d11 (--import)
-const EXPECTED = { small: "05fac1940fa9a96c019c34ad94c34cbae0519307", full: "f200edbf4dad8f0152b106b50c35997f21abb76f" };
+// web/gameimport.js as it was at ea0c1d11 (--import). Since Venice's unpacked copy is known by its pak's own files (PAGE.unpacked),
+// the full library's one difference from it is "Game 023 Classic", once taken as Venice, among the rejected folders.
+const EXPECTED = { small: "05fac1940fa9a96c019c34ad94c34cbae0519307", full: "cd310ca21fd56d3bd3a5f824ed5a4c2aeec20d56" };
 main().catch((e) => { console.log("steamdroptest: " + (e && e.stack || e)); process.exit(1); });
