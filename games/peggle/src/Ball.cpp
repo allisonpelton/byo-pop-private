@@ -237,6 +237,15 @@ void Ball::SetAbsPos(float theX, float theY)
 	mUnknown108 = mY;
 }
 
+// 0x477070: the ball has been put in the game, so it has been here all along
+void Ball::AddedToGame()
+{
+	mPreviousX = mX;
+	mPreviousY = mY;
+	mUnknown134 = mX;
+	mUnknown138 = mY;
+}
+
 // 0x480f50
 void Ball::SetHat(bool theHasHat, bool theMakeBall)
 {
@@ -265,12 +274,6 @@ void Ball::DrawShadow(Graphics* g)
 void Ball::Draw(Graphics* g)
 {
 	NOT_TRANSLATED("Ball::Draw");
-}
-
-// 0x477070
-void Ball::AddedToGame()
-{
-	NOT_TRANSLATED("Ball::AddedToGame");
 }
 
 // 0x477a00

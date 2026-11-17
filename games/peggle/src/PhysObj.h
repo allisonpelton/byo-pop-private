@@ -134,6 +134,7 @@ enum SyncMode
 	SYNC_EDITOR = 3
 };
 extern int gSyncMode;			// 0x650a5c
+extern int gPhysObjCount;	// 0x650a68: the pieces made so far, which gives each its number (the board's Clear starts it again from 0)
 extern bool gSyncNoImages;		// 0x650a60: when set a piece does not load its picture as it is read
 extern bool gSyncKeepSavedRotation; // test only: a piece with a mover keeps the rotation the file gave it (the original's reader replaces it with the mover's)
 

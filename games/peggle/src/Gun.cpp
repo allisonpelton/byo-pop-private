@@ -58,6 +58,20 @@ Gun::Gun(Board* theBoard)
 	CalcPoints();
 }
 
+// 0x47f5f0
+void Gun::Reset()
+{
+	mBall = nullptr;
+	mUnknown1CC = mUnknown1C8; // the vector of 0x1c8 is emptied
+	mUnknown1DC = 0;		   // and so is the list at 0x1d8
+	mUpdateCount = 0;
+	mUnknown17C = 1000.0f;
+	mBouncyGuide = false;
+	mUnknown1A1 = false;
+	mUnknown1A2 = false;
+	mUnknown180 = true;
+}
+
 // 0x4882c0
 void Gun::SyncState(DataSync& theSync)
 {

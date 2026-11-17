@@ -16,7 +16,7 @@ int Sexy::gSyncMode = 0;
 bool Sexy::gSyncNoImages = false;
 bool Sexy::gSyncKeepSavedRotation = false;
 
-static int gPhysObjCount = 0; // 0x650a68
+int Sexy::gPhysObjCount = 0; // 0x650a68
 
 static const char* const LEVEL_IMAGE_FOLDER = "images/levels/"; // 0x5f1bfc: a picture named without a folder is in here
 static const int FLAG_VERSION_DRAW_SORT = 15;					 // the files from this version on have the fourth run of flags
