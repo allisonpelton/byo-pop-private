@@ -936,8 +936,13 @@ html.d95-desk #trophies.tc-win:not(.d95-closed):not(.d95-min) { display: flex; }
 .tc-bar label { display: flex; gap: 6px; align-items: center; }
 .tc-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 0 8px 8px; }
 .tc-game { margin: 0 0 8px; padding: 4px 8px 8px; border: 1px solid #808080; box-shadow: 1px 1px 0 #ffffff inset, 1px 1px 0 #ffffff; }
+/* a game's name in its frame's top edge, as a Windows 95 group box's: the window's grey behind it, so the etched frame's white
+   line (the inset shadow) stops at it as the grey one does, instead of crossing the letters (the user, 2026-11-16: "Trophy
+   cabinet game labels seem to be in the wrong place"), and a whole-pixel line height, as the Sounds board's legends */
+.tc-game > legend { padding: 0 2px; background: var(--panel); line-height: 14px; }
 .tc-table { width: 100%; border-collapse: collapse; background: #ffffff; border: 1px solid #808080; }
-.tc-table th, .tc-table td { padding: 1px 6px; text-align: left; font-weight: normal; white-space: nowrap; }
+/* whole-pixel rows, so that every group after the first, and its name, starts on a whole pixel too */
+.tc-table th, .tc-table td { padding: 1px 6px; text-align: left; font-weight: normal; white-space: nowrap; line-height: 14px; }
 .tc-table th { background: var(--panel); border: 1px solid; border-color: #ffffff #808080 #808080 #ffffff; }
 .tc-table tr.tc-first td { border-top: 1px solid #c0c0c0; }
 .tc-table .tc-num { text-align: right; }
@@ -969,9 +974,12 @@ html.d95-desk .d95-icon.d95-icon-sel { background: rgba(0, 0, 128, .45); }
 html.d95-desk .d95-icon.d95-icon-sel > span { outline: 1px dotted var(--sk-desk-fg); outline-offset: 0; }
 html.d95-desk .d95-band { position: absolute; z-index: 2; pointer-events: none; box-sizing: border-box; border: 1px dotted #ffffff;
   mix-blend-mode: difference; }
-/* 1995's tooltip */
-html.d95-desk .d95-tip { position: absolute; z-index: 2147483500; pointer-events: none; max-width: 320px; padding: 1px 4px;
-  background: #ffffe1; color: #000000; border: 1px solid #000000; font-size: 11px; line-height: 15px; white-space: normal; }
+/* 1995's tooltip: a title's own line breaks kept (the Sounds board's name, when it plays and its file; the user, 2026-11-16:
+   "the soundboard tooltips are hard to read due to lacking line breaks"), long lines wrapped, a long file name broken, and
+   never wider than a narrow screen */
+html.d95-desk .d95-tip { position: absolute; z-index: 2147483500; pointer-events: none; max-width: min(320px, calc(calc(100vw / var(--d95-z, 1)) - 8px));
+  box-sizing: border-box; padding: 1px 4px; background: #ffffe1; color: #000000; border: 1px solid #000000; font-size: 11px; line-height: 15px;
+  white-space: pre-line; overflow-wrap: anywhere; }
 /* the tray's speaker, and the volume's slider above it */
 html.d95-desk .d95-spk { width: 18px; height: 18px; padding: 0; margin: 0 4px 0 0; flex: none; background: transparent; box-shadow: none; border: 0; }
 html.d95-desk .d95-spk > i { display: block; width: 16px; height: 16px; margin: 1px; background: #000000;
