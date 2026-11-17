@@ -207,9 +207,9 @@ public:
 void ReadParticleDef(PPFReader& theReader, PIParticleDef& theDef)
 {
 	theReader.Skip(64);
-	theDef.mDrawInSecondPass = theReader.ReadBool();
+	theDef.mAdditive = theReader.ReadBool();
 	theDef.mSingleParticle = theReader.ReadBool();
-	theDef.mSecondPassOnly = theReader.ReadBool();
+	theDef.mAlsoDrawNormal = theReader.ReadBool();
 	theDef.mAttachToEmitter = theReader.ReadBool();
 	theDef.mAttachRatio = theReader.ReadFloat();
 	theDef.mFlipX = theReader.ReadBool();
@@ -352,8 +352,8 @@ void ReadEmitterInstance(PPFReader& theReader, PIEmitterInstanceDef& theInstance
 	PIValue* aValues[17] = {
 		&theInstance.mLifeScale, &theInstance.mNumberScale, &theInstance.mSizeXScale, &theInstance.mVelocityScale,
 		&theInstance.mWeightScale, &theInstance.mSpinScale, &theInstance.mMotionRandomnessScale,
-		&theInstance.mBounceScale, &theInstance.mScale, &theInstance.mTint, &theInstance.mAlpha, &theInstance.mAngle,
-		&theInstance.mAngleVariation, &theInstance.mValueG, &theInstance.mRotation, &theInstance.mShapeWidth,
+		&theInstance.mBounceScale, &theInstance.mScale, &theInstance.mAlpha, &theInstance.mTint, &theInstance.mAngle,
+		&theInstance.mAngleVariation, &theInstance.mActive, &theInstance.mRotation, &theInstance.mShapeWidth,
 		&theInstance.mShapeHeight};
 	for (int i = 0; i < 17; i++)
 		theReader.ReadValue(*aValues[i]);
@@ -404,7 +404,7 @@ void ReadBlocker(PPFReader& theReader, PIBlocker& theBlocker)
 	theReader.ReadValue2D(theBlocker.mPosition);
 	theReader.ReadPointList(theBlocker.mPoints);
 	theReader.ReadValue(theBlocker.mActive);
-	theReader.ReadValue(theBlocker.mScale);
+	theReader.ReadValue(theBlocker.mAngle);
 }
 
 void ReadForce(PPFReader& theReader, PIForce& theForce)
@@ -420,12 +420,42 @@ void ReadForce(PPFReader& theReader, PIForce& theForce)
 
 PIEffect::PIEffect()
 	: mWidth(0), mHeight(0), mBackgroundColor(0, 0, 0, 255), mFramerate(0), mFirstFrameNum(0), mLastFrameNum(0),
-	  mVersion(0), mBytesRead(0), mCachedStateSize(0)
+	  mVersion(0), mBytesRead(0), mCachedStateSize(0), mLoaded(false), mUpdateCount(0), mFrameNum(0.0f),
+	  mFrameChanged(false), mParticleCount(0), mEmitterCount(0), mDrawArea(0), mAnimSpeed(1.0f), mColor(255, 255, 255, 255),
+	  mDebugDraw(false), mUnreadFlag(true), mLoop(false), mNeedsSeed(true)
 {
+	mDrawTransform.LoadIdentity();
+	mDrawTransform2.LoadIdentity();
 }
 
 PIEffect::~PIEffect()
 {
+	for (size_t i = 0; i < mLayers.size(); i++)
+		delete mLayers[i];
+}
+
+// port: the exe makes the layers and their emitter instances while it reads the file (0x56aac0 (bejeweled3), the loops that call 0x565710
+// and 0x565630); here they are made from the finished definition, which cannot move any more
+void PIEffect::CreateLayers()
+{
+	for (size_t i = 0; i < mLayers.size(); i++)
+		delete mLayers[i];
+	mLayers.clear();
+	for (size_t aLayerIndex = 0; aLayerIndex < mDef.mLayers.size(); aLayerIndex++) {
+		PILayerDef& aLayerDef = mDef.mLayers[aLayerIndex];
+		PILayer* aLayer = new PILayer(&aLayerDef);
+		for (size_t anInstanceIndex = 0; anInstanceIndex < aLayerDef.mEmitterInstances.size(); anInstanceIndex++) {
+			PIEmitterInstanceDef& anInstanceDef = aLayerDef.mEmitterInstances[anInstanceIndex];
+			PIEmitterInstance* anInstance = new PIEmitterInstance(&anInstanceDef);
+			anInstance->mFreeDefInstances.resize(anInstanceDef.mFreeEmitterIndices.size());
+			size_t aParticleDefCount = 0;
+			if ((size_t)anInstanceDef.mEmitterIndex < mDef.mEmitters.size())
+				aParticleDefCount = mDef.mEmitters[anInstanceDef.mEmitterIndex].mParticleDefs.size();
+			anInstance->mDefInstances.resize(aParticleDefCount);
+			aLayer->mEmitterInstances.push_back(anInstance);
+		}
+		mLayers.push_back(aLayer);
+	}
 }
 
 // 0x5679b0 (bejeweled3): without a game around there are no images to find
@@ -456,6 +486,7 @@ void PIEffect::LoadEffect(const std::string& theFileName)
 bool PIEffect::Load(const unsigned char* theData, size_t theSize, const std::string& theFileName)
 {
 	mError.clear();
+	mCachedState.clear();
 	mDef = PIEffectDef();
 	mBytesRead = 0;
 	mCachedStateSize = 0;
@@ -570,14 +601,19 @@ bool PIEffect::Load(const unsigned char* theData, size_t theSize, const std::str
 	aReader.Skip(5);
 	if (mVersion >= 1)
 		mCachedStateSize = aReader.ReadInt();
-	if (mCachedStateSize > 0)
-		aReader.Skip(mCachedStateSize);
+	if (mCachedStateSize > 0) {
+		const unsigned char* aState = aReader.GetData((size_t)mCachedStateSize);
+		if (aState != NULL)
+			mCachedState.assign(aState, aState + mCachedStateSize);
+	}
 
 	mBytesRead = aReader.mPosition;
 	if (aReader.mFailed) {
 		mError = "The file ends too early";
 		return false;
 	}
+	CreateLayers();
+	mLoaded = true;
 	return true;
 }
 
@@ -607,31 +643,6 @@ float PIEffect::GetVariationScalar()
 	double aFirst = (double)GetRandFloat();
 	double aSecond = (double)GetRandFloat();
 	return (float)(aSecond * aFirst);
-}
-
-// port: not translated yet (see games/bejeweled3/docs/NOTES.md, "Particles")
-// 0x573290 (bejeweled3)
-void PIEffect::Update()
-{
-}
-
-// port: not translated yet (see games/bejeweled3/docs/NOTES.md, "Particles")
-// 0x575650 (bejeweled3)
-void PIEffect::Draw(Graphics* /*g*/)
-{
-}
-
-// port: not translated yet (see games/bejeweled3/docs/NOTES.md, "Particles")
-// 0x56f730 (bejeweled3)
-void PIEffect::ResetAnim()
-{
-}
-
-// port: not translated yet (see games/bejeweled3/docs/NOTES.md, "Particles")
-// 0x575790 (bejeweled3)
-bool PIEffect::IsActive()
-{
-	return false;
 }
 
 }

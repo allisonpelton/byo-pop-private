@@ -7,6 +7,9 @@
 #include "PIValue.h"
 
 #include <string>
+#include "PIBezier.h"
+#include "SharedImage.h"
+
 #include <vector>
 
 namespace Sexy {
@@ -17,6 +20,7 @@ struct PITexture {
 	int mFrameCount;             // +0x40: the frames in the image
 	int mColumnCount;            // +0x3c: the frames across (the file's second count)
 	bool mHasMargin;             // +0x44: the image's frames have a 1-pixel margin on each side
+	SharedImageRef mImage;       // +0x34: the image (the old file format's list of images at +0x28 is not translated)
 	std::string mImageId;        // +0x24: the resource id the image is found by
 	PITexture() : mFrameCount(1), mColumnCount(1), mHasMargin(false) {}
 };
@@ -58,9 +62,9 @@ struct PIParticleDef {
 	double mOriginX;                     // +0xa38: where in the texture the particle turns, as a fraction
 	double mOriginY;                     // +0xa40
 	bool mSizeYFollowsX;                 // +0xa48
-	bool mDrawInSecondPass;              // +0xa49
+	bool mAdditive;                      // +0xa49: drawn with the additive blend in the second pass
 	bool mSingleParticle;                // +0xa4a: one particle kept alive instead of a stream (size from the emitter)
-	bool mSecondPassOnly;                // +0xa4b
+	bool mAlsoDrawNormal;               // +0xa4b: (with mAdditive) also drawn in the first pass, in black, before
 	bool mAttachToEmitter;               // +0xa4c: the particle's position and angle follow the emitter
 	int mFrameOffset;                    // +0xa50: -1 for a random frame, else added to the particle's frame
 	bool mRandomStartFrame;              // +0xa54
@@ -97,8 +101,8 @@ struct PIParticleDef {
 	std::vector<ColorPoint> mColorPoints;   // +0xa8c
 	std::vector<AlphaPoint> mAlphaPoints;   // +0xaa4
 
-	PIParticleDef() : mTextureIndex(0), mOriginX(0.0), mOriginY(0.0), mSizeYFollowsX(false), mDrawInSecondPass(false),
-		mSingleParticle(false), mSecondPassOnly(false), mAttachToEmitter(false), mFrameOffset(0),
+	PIParticleDef() : mTextureIndex(0), mOriginX(0.0), mOriginY(0.0), mSizeYFollowsX(false), mAdditive(false),
+		mSingleParticle(false), mAlsoDrawNormal(false), mAttachToEmitter(false), mFrameOffset(0),
 		mRandomStartFrame(false), mAttachRatio(0.0f), mFlipX(false), mFlipY(false), mColorCycles(0), mAlphaCycles(0),
 		mColorFromLifeRatio(false), mColorByIndex(false), mUseInstanceColor(false), mInheritParentTint(false),
 		mUseInstanceAlpha(false), mTintWithLayerColor(false), mColorIndexDivisor(0), mColorStepped(false),
@@ -183,11 +187,11 @@ struct PIEmitterInstanceDef {
 	PIValue mMotionRandomnessScale;      // +0x2e0
 	PIValue mBounceScale;                // +0x33c
 	PIValue mScale;                      // +0x398
-	PIValue mTint;                       // +0x3f4
-	PIValue mAlpha;                      // +0x450
+	PIValue mAlpha;                      // +0x3f4: multiplies the particles' alpha
+	PIValue mTint;                       // +0x450: how far the particles' color goes to the instance color
 	PIValue mAngle;                      // +0x4ac
 	PIValue mAngleVariation;             // +0x508
-	PIValue mValueG;                     // +0x564
+	PIValue mActive;                     // +0x564: the instance runs while its last key at or before the time is above 0.99
 	PIValue mRotation;                   // +0x5c0
 	PIValue mShapeWidth;                 // +0x61c
 	PIValue mShapeHeight;                // +0x678
@@ -209,25 +213,30 @@ struct PIDeflector {
 	PIValue mActive;                     // +0x90
 	PIValue mAngle;                      // +0xec
 	std::vector<PIValue2D> mPoints;      // +0x154
+	std::vector<PIPoint> mTransformedPoints;   // +0x16c: where the points are now (Update)
 	PIDeflector() : mBounce(0.0f), mHits(0.0f), mAllowedDirection(0.0f), mFlagA(false) {}
 };
 
-// 0x2f8 bytes: a polygon particles cannot pass
+// 0x150 bytes: a polygon that hides what is behind it (DrawLayer fills it, with the layer's picture when it has one)
 struct PIBlocker {
 	std::string mName;                   // +0x04
 	PIValue2D mPosition;                 // +0x20
-	PIValue mActive;                     // +0x80
-	PIValue mScale;                      // +0xdc
-	std::vector<PIValue2D> mPoints;      // the polygon's corners
+	PIValue mActive;                     // +0x80: the blocker is drawn while its last key at or before the time is above 0.99
+	PIValue mAngle;                      // +0xdc: degrees (the file's "scale" slot; DrawLayer turns the polygon by it)
+	std::vector<PIValue2D> mPoints;      // +0x144: the polygon's corners
 };
 
-// A force that pushes the particles of its layer
+// 0x2f8 bytes: a force that pushes the particles inside its rectangle
 struct PIForce {
-	std::string mName;
+	std::string mName;                   // +0x04
 	bool mFlagA;
-	PIValue2D mPosition;
+	PIValue2D mPosition;                 // +0x20
+	// +0x80 how strong, +0xdc the direction (degrees), +0x138 (nothing reads it), +0x194 the rectangle's angle,
+	// +0x1f0 its width, +0x24c its height; the file has a seventh curve that the exe's size leaves no room for (see
+	// the report)
 	PIValue mCurves[7];
-	PIForce() : mFlagA(false) {}
+	PIPoint mCorners[5];                 // +0x2a8: the rectangle's four corners and its middle now (Update)
+	PIForce() : mFlagA(false) { for (int i = 0; i < 5; i++) { mCorners[i].mX = 0.0; mCorners[i].mY = 0.0; } }
 };
 
 // 0x150 bytes: a layer of an effect, with its emitters, deflectors, blockers and forces
@@ -235,8 +244,8 @@ struct PILayerDef {
 	std::string mName;                   // +0x04
 	std::vector<PIEmitterInstanceDef> mEmitterInstances;   // +0x1c
 	std::vector<PIDeflector> mDeflectors;                  // +0x34
-	std::vector<PIForce> mForces;                          // +0x4c
-	std::vector<PIBlocker> mBlockers;                      // +0x64
+	std::vector<PIBlocker> mBlockers;                      // +0x4c
+	std::vector<PIForce> mForces;                          // +0x64
 	PIValue2D mPosition;                 // +0x80
 	double mOriginX;                     // +0xe0: the position at time 0
 	double mOriginY;                     // +0xe8
