@@ -174,7 +174,9 @@ var ByopopSetup = (function () {
     el.addEventListener("drop", function (ev) {
       if (!ByopopImport.hasFiles(ev.dataTransfer)) return;
       ev.preventDefault(); ev.stopPropagation();
-      if (page_() === "games") take(ByopopImport.fromDrop(ev.dataTransfer, A().W().zip), false);
+      if (page_() !== "games") return;
+      var watch = ByopopImport.watch();
+      take(ByopopImport.fromDrop(ev.dataTransfer, A().W().zip, watch), false, watch);
     });
     var depth = 0;
     u.drop.addEventListener("dragenter", function (ev) { if (ByopopImport.hasFiles(ev.dataTransfer)) { depth++; u.drop.classList.add("drop-on"); } });
@@ -189,31 +191,58 @@ var ByopopSetup = (function () {
   }
 
   // ---------- Your games ----------
-  // the files dropped or chosen: read, sorted into games, and listed; a drop on the desktop (jump) goes straight on once sorted
-  function take(promise, jump) {
-    var mine = run, reading = make("li", "su-row su-reading", T("setup.reading"));
+  // the files dropped or chosen: read, sorted into games, and listed; a drop on the desktop (jump) goes straight on once sorted.
+  // watch (a drop's, ByopopImport.watch): its reading row counts the folders and files found so far and has a Cancel button that
+  // stops the reading
+  var walks = [];
+  function take(promise, jump, watch) {
+    var mine = run, reading = make("li", "su-row su-reading"), text = make("span", "su-name", T("setup.reading"));
+    reading.appendChild(text);
+    if (watch) {
+      walks.push(watch);
+      var stop = make("button", "su-stop", T("setup.cancel"));
+      stop.type = "button";
+      text.id = "su-reading-" + (++keySeq);
+      stop.setAttribute("aria-describedby", text.id);  // (told apart from the window's own Cancel)
+      stop.addEventListener("click", function () { watch.cancel(); stop.disabled = true; });
+      reading.appendChild(stop);
+      watch.listen(function (folders, files) { text.textContent = ByopopImport.readingText(folders, files); });
+    }
     ui.found.appendChild(reading);
     buttons();
+    function over() { if (watch) { watch.listen(null); walks = walks.filter(function (w) { return w !== watch; }); } }
     promise.then(function (entries) {
-      if (mine !== run) return;
+      return mine === run ? ByopopImport.sortDrop(entries) : null;
+    }).then(function (sorted) {
+      over();
+      if (!sorted || mine !== run) return;
       reading.remove();
-      var sorted = ByopopImport.sort(entries);
+      // (Cancel pressed while the files were sorted: as a reading stopped)
+      if (watch && watch.stopped()) { if (jump) dropAt = null; buttons(); return; }
       sorted.found.forEach(addFound);
       (sorted.others || []).forEach(function (o) {
         var note = ByopopImport.otherNote(document, o.game);
         addFound({ folder: o.folder, unsupported: true, reason: T("add.other", { folder: o.folder }) + " " + (note.textContent || "") });
       });
-      sorted.rejected.forEach(function (folder) { addFound({ folder: folder, unsupported: true, reason: T("add.rejected", { folders: folder }) }); });
-      if (!sorted.found.length && !sorted.rejected.length && !(sorted.others || []).length)
+      // many folders with no game: one row, their names behind Details
+      if (sorted.rejected.length >= ByopopImport.MANY_REJECTED)
+        addFound({ folder: T("import.rejected_many", { n: sorted.rejected.length }), unsupported: true, names: sorted.rejected,
+          reason: T("add.rejected", { folders: sorted.rejected.join(", ") }) });
+      else sorted.rejected.forEach(function (folder) { addFound({ folder: folder, unsupported: true, reason: T("add.rejected", { folders: folder }) }); });
+      // a game's installer dropped in place of its folder: what to do instead, under its row
+      if (sorted.installer) addFound({ folder: sorted.installer.file, unsupported: true, installer: sorted.installer.text, reason: sorted.installer.text });
+      if (!sorted.found.length && !sorted.rejected.length && !(sorted.others || []).length && !sorted.installer)
         addFound({ folder: T("setup.dropped"), error: 1, reason: T("add.nothing") });
       buttons();
       if (jump && found.some(function (f) { return f.game || f.choices; })) onNext();
       // a drop with no game in it: its place is not for games chosen afterwards with Browse
       else if (jump) dropAt = null;
     }, function (e) {
+      over();
       if (mine !== run) return;
       reading.remove();
-      addFound({ folder: T("setup.dropped"), error: 1, reason: (e && e.message) || T("add.read_failed") });
+      // (stopped with Cancel: nothing to say)
+      if (!(e && e.cancelled)) addFound({ folder: T("setup.dropped"), error: 1, reason: (e && e.message) || T("add.read_failed") });
       if (jump) dropAt = null;
       buttons();
     });
@@ -242,10 +271,35 @@ var ByopopSetup = (function () {
     } else {
       li.appendChild(badgeOf(null));
       name.textContent = f.folder;
-      value.textContent = f.error ? T("setup.result.error", { code: f.error }) : T("setup.result.unsupported");
+      value.textContent = f.error ? T("setup.result.error", { code: f.error }) : T(f.installer ? "setup.result.installer" : "setup.result.unsupported");
       value.title = f.reason || "";
     }
-    li.appendChild(name); li.appendChild(value);
+    li.appendChild(name);
+    // (many folders with no game: the line says what became of them)
+    if (!f.names) li.appendChild(value);
+    if (f.installer) {
+      // a dropped installer: the direction, under the row and always shown
+      li.classList.add("su-installer");
+      value.removeAttribute("title");
+      li.appendChild(make("p", "su-note", f.installer));
+    }
+    if (f.names) {
+      // the folders' names, under the row, shown and hidden by its Details button
+      li.classList.add("su-many");
+      var more = make("button", "su-details", T("import.rejected_details") + " >>"), list = make("p", "su-names", f.names.join(", "));
+      more.type = "button";
+      list.id = "su-names-" + f.key;
+      list.hidden = true;
+      more.setAttribute("aria-expanded", "false");
+      more.setAttribute("aria-controls", list.id);
+      more.addEventListener("click", function () {
+        list.hidden = !list.hidden;
+        more.setAttribute("aria-expanded", String(!list.hidden));
+        more.textContent = list.hidden ? T("import.rejected_details") + " >>" : "<< " + T("import.rejected_details");
+      });
+      li.appendChild(more);
+      li.appendChild(list);
+    }
     f.el = li;
     found.push(f);
     ui.found.appendChild(li);
@@ -393,6 +447,9 @@ var ByopopSetup = (function () {
     // the games of an earlier run not yet begun are left out (one begun goes on to its end in the queue)
     try { A().cancel(function (job) { return job.setup !== undefined && job.setup !== run; }); } catch (e) {}
     found = []; steps = []; at = -1; results = {}; pending = 0; dropAt = null;
+    // a reading under way stops: its run is over
+    walks.forEach(function (w) { w.cancel(); });
+    walks = [];
     ui.found.textContent = ""; ui.rows.textContent = ""; ui.done.textContent = "";
     ui.fill.style.width = "0%"; ui.bar.setAttribute("aria-valuenow", "0");
     showGames();
@@ -408,14 +465,15 @@ var ByopopSetup = (function () {
   // with files dropped on the desktop: a new run, on to the next page once they are sorted (a run under way keeps going, and
   // the drop waits for the player on Your games of a new one once it ends). place: where on the desktop it was dropped, as an
   // icon's place (web/addgames.js), for the shortcuts of the games it installs
-  function openWith(promise, place) {
+  // watch: the drop's (ByopopImport.watch), for its reading row
+  function openWith(promise, place, watch) {
     if (!ui) return;
     var p = page_();
-    if (p === "copying" || p === "licence") { deskApi.show("setup"); return; }
+    if (p === "copying" || p === "licence") { if (watch) watch.cancel(); deskApi.show("setup"); return; }
     if (p === "finish") reset();
     dropAt = place || null;
     deskApi.show("setup");
-    take(promise, true);
+    take(promise, true, watch);
   }
   function close() {
     var p = page_();
