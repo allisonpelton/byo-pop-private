@@ -45,8 +45,16 @@ public:
 	// Set where the original writes the fields (the screen's text element, the bubble glyph)
 	void setAlignment(int theAlignH, int theAlignV)
 	{
+		setAlignH(theAlignH);
+		setAlignV(theAlignV);
+	}
+	void setAlignH(int theAlignH)
+	{
 		mAlignH = theAlignH;
 		addState(STATE_BOUNDS_DIRTY);
+	}
+	void setAlignV(int theAlignV)
+	{
 		mAlignV = theAlignV;
 		addState(STATE_BOUNDS_DIRTY);
 	}

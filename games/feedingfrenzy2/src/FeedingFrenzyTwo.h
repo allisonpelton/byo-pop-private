@@ -63,6 +63,24 @@ public:
 	engine::Ref<engine::Container> mContainerSlot;     // +0x44: "ContainerSlot", in the scene
 	engine::Ref<engine::Container> mStageContainer;    // +0x48: "StageContainer"
 	engine::Ref<engine::GenericScreen> mSplashScreen;  // +0x54
+	// The shell's plain screens, made by the splash's loader
+	engine::Ref<engine::GenericScreen> mPauseScreen;             // +0x58
+	engine::Ref<engine::GenericScreen> mUserEntry;               // +0x5c: a new player's name
+	// +0x60: the players' list (GenericUserSelectScreen, 0x1b4 bytes, its constructor 0x49fc30 (feedingfrenzy2),
+	// resource/shell/userSelect.xml): not yet translated
+	engine::Ref<engine::GenericScreen> mUserDeleteConfirm;       // +0x64
+	engine::Ref<engine::GenericScreen> mAppQuitConfirm;          // +0x68
+	engine::Ref<engine::GenericScreen> mUserDuplicateConfirm;    // +0x6c
+	engine::Ref<engine::GenericScreen> mUserListFullConfirm;     // +0x70
+	engine::Ref<engine::GenericScreen> mResetHighScoresConfirm;  // +0x74
+	engine::Ref<engine::GenericScreen> mGameExitConfirm;         // +0x78
+	engine::Ref<engine::GenericScreen> mRestoreGameScreen;       // +0x7c
+	engine::Ref<engine::GenericScreen> mGenericLoadScreen;       // +0x80
+	// +0x84: the map (GameMapScreen): not yet translated
+	engine::Ref<engine::GenericScreen> mCredits;                 // +0x88
+	// +0x8c to +0xa4: the high scores (HighScoreScreen), the two game overs (StageCompleteScreenBonus), the stage's
+	// start (StageIntroScreen), its two ends (StageCompleteScreenNormal and StageCompleteScreenBonus) and the options
+	// (FeedingFrenzyTwoOptionScreen): not yet translated
 	engine::Ref<engine::Theme> mShellTheme;            // +0xac: resource/themes/shellTheme.xml, falling back on the
 	                                                   // minimal theme
 	engine::Ref<engine::Theme> mTheme;                 // +0xb0: the minimal theme, made by the splash

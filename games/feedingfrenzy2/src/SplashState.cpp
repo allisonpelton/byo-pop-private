@@ -19,6 +19,10 @@ const float SPLASH_FADE_SECONDS = 0.25f;
 const float BUBBLE_TEXT_X = 400.0f;
 const float BUBBLE_TEXT_Y = 280.0f;
 const float BUBBLE_TEXT_SPACING = 8.0f;
+// The shell's screens' fades, in and out, and the restore screen's out (the floats at 0x54ddf8 and 0x566880
+// (feedingfrenzy2))
+const float SHELL_FADE_SECONDS = 0.2f;
+const float RESTORE_FADE_OUT_SECONDS = 0.05f;
 // The frames per second while loading and after
 const int LOADING_FRAME_RATE = 30;
 const int GAME_FRAME_RATE = 60;
@@ -167,8 +171,84 @@ void SplashState::load()
 	// The debug level select (the application's +0x2c, DebugSelectMenu over the game's stage manifest, its setup
 	// 0x491b80 (feedingfrenzy2)), its actions connected likewise: not yet translated
 	mLoadProgress = 0.1f;
-	// The sounds, the stage, the users' data and every screen of the shell: not yet translated
-	getEngine()->log("SplashState: the loader not yet translated past the actors' file\n");
+	// The application's sound manager (+0x34, SoundMgr, 0x2c bytes, its constructor 0x48cee0 (feedingfrenzy2): two
+	// empty lists) is made here, and nothing the export shows reads it: not translated
+	mLoadProgress = 0.2f;
+
+	FadeTransition* aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mPauseScreen = loadShellScreen("resource/shell/pauseScreen.xml", mApp->mShellTheme.get(), aFade, aFade);
+	mLoadProgress = 0.3f;
+	// The stage (+0x40, Stage, 0x3e0 bytes, its constructor 0x403aa0 (feedingfrenzy2), over the game data and the
+	// stage's container): not yet translated
+	getEngine()->log("SplashState: the stage not yet translated\n");
+	mLoadProgress = 0.4f;
+
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mUserEntry = loadShellScreen("resource/shell/userEntry.xml", mApp->mShellTheme.get(), aFade, aFade);
+	// The name's edit box ("nameEntry") is given a filter of the characters typed (its +0x12c, 0x4a14e0
+	// (feedingfrenzy2)) that refuses the slash, the backslash, the backquote and the tilde, each with the shell
+	// theme's sound textInvalidInput at full volume and normal pitch: not yet translated, as the edit box is not
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mUserDuplicateConfirm =
+		loadShellScreen("resource/shell/userDuplicateConfirm.xml", mApp->mShellTheme.get(), aFade, aFade);
+	mLoadProgress = 0.45f;
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mUserListFullConfirm =
+		loadShellScreen("resource/shell/userlistfullconfirm.xml", mApp->mShellTheme.get(), aFade, aFade);
+	mLoadProgress = 0.45f;
+	// (Read without a theme)
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mAppQuitConfirm = loadShellScreen("resource/shell/appQuitConfirm.xml", nullptr, aFade, aFade);
+	mLoadProgress = 0.475f;
+
+	// The players' data (+0xb4, UserData, 0x88 bytes, its constructor 0x498300 (feedingfrenzy2)) and its load from
+	// the current player (0x49cf10 (feedingfrenzy2)), then the players' list (+0x60): not yet translated
+	getEngine()->log("SplashState: the players' data and list not yet translated\n");
+	mLoadProgress = 0.5f;
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mUserDeleteConfirm =
+		loadShellScreen("resource/shell/userDeleteConfirm.xml", mApp->mShellTheme.get(), aFade, aFade);
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mGameExitConfirm =
+		loadShellScreen("resource/shell/gameExitConfirm.xml", mApp->mShellTheme.get(), aFade, aFade);
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mResetHighScoresConfirm =
+		loadShellScreen("resource/shell/resetHighScoresConfirm.xml", mApp->mShellTheme.get(), aFade, aFade);
+	mLoadProgress = 0.6f;
+	// (Its own, quicker, out transition, made after the in)
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	FadeTransition* aFadeOut = new FadeTransition(RESTORE_FADE_OUT_SECONDS);
+	mApp->mRestoreGameScreen =
+		loadShellScreen("resource/shell/restoreGameScreen.xml", mApp->mShellTheme.get(), aFade, aFadeOut);
+	mLoadProgress = 0.65f;
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mGenericLoadScreen =
+		loadShellScreen("resource/shell/genericLoadScreen.xml", mApp->mShellTheme.get(), aFade, aFade);
+	mLoadProgress = 0.7f;
+
+	// The options (+0xa4), the map (+0x84), the stage's start (+0x98) and ends (+0x9c and +0xa0), the game overs
+	// (+0x90 and +0x94) and the high scores (+0x8c), each its own kind of screen: not yet translated
+	getEngine()->log("SplashState: the options, map, stage, game over and high score screens not yet translated\n");
+	mLoadProgress = 0.82f;
+	// (Read without a theme)
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mCredits = loadShellScreen("resource/shell/credits.xml", nullptr, aFade, aFade);
+	mLoadProgress = 0.84f;
+
+	// The stage's loader (Stage::StageLoader, 0x34 bytes, its constructor 0x495080 (feedingfrenzy2)) loading the
+	// first menu stage, or the stage the configuration names (the application's +0x338), on a thread the loader
+	// waits on, its progress the bar's last part: not yet translated
+	getEngine()->log("SplashState: the first stage's load not yet translated\n");
 	mLoadProgress = 1.0f;
 	mPhase = SPLASH_LOADED;
+}
+
+GenericScreen* SplashState::loadShellScreen(const char* thePath, Theme* theTheme, Transition* theIn,
+                                            Transition* theOut)
+{
+	GenericScreen* aScreen = new GenericScreen();
+	aScreen->load(thePath, theTheme);
+	aScreen->setTransitions(theIn, theOut);
+	aScreen->mActionSignal.connect(mApp, &FeedingFrenzyTwo::actionSlot);
+	return aScreen;
 }

@@ -41,6 +41,10 @@ private:
 	// 0x47e450 (feedingfrenzy2), run by the loader's thread (0x49f2c0 (feedingfrenzy2)): the game's data, stages and
 	// screens loaded, the progress set after each part; the phase set to loaded at the end
 	void load();
+	// A plain screen of the shell's, as the loader makes each (inlined): read with the theme (none for null), given
+	// its transitions and its actions passed to the application
+	engine::GenericScreen* loadShellScreen(const char* thePath, engine::Theme* theTheme, engine::Transition* theIn,
+	                                       engine::Transition* theOut);
 
 	float mTimer;                        // +0x18: the seconds to wait, counted down
 	engine::Ref<engine::Image> mLoadBar; // +0x1c: the screen's "loadBar"
