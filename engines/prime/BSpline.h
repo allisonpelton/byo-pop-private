@@ -18,11 +18,11 @@ public:
 
 	void AddPoint(float x, float y);                                 // 0x59a400 (bejeweled3)
 	void CalculateSpline();                                          // 0x59ad90 (bejeweled3)
-	float GetXPoint(float t) const { return GetPoint(t, mXCoef); }   // 0x59aef0 (bejeweled3)
-	float GetYPoint(float t) const { return GetPoint(t, mYCoef); }   // 0x59af10 (bejeweled3)
+	float GetXPoint(float thePosition) const { return GetPoint(thePosition, mXCoef); }   // 0x59aef0 (bejeweled3)
+	float GetYPoint(float thePosition) const { return GetPoint(thePosition, mYCoef); }   // 0x59af10 (bejeweled3)
 
 private:
-	float GetPoint(float t, const std::vector<float>& theCoef) const;                      // 0x59adc0 (bejeweled3)
+	float GetPoint(float thePosition, const std::vector<float>& theCoef) const;          // 0x59adc0 (bejeweled3)
 	void CalcArcLengths();                                                                  // 0x59a420 (bejeweled3)
 	static void CalculateSplinePrv(const std::vector<float>& thePoints, std::vector<float>& theCoef);  // 0x59aae0 (bejeweled3)
 };

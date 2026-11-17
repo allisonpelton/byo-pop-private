@@ -127,19 +127,19 @@ void BSpline::CalculateSpline()
 	CalcArcLengths();
 }
 
-float BSpline::GetPoint(float t, const std::vector<float>& theCoef) const
+float BSpline::GetPoint(float thePosition, const std::vector<float>& theCoef) const
 {
 	int aCount = (int)mXPoints.size();
-	int i = Ftol((float)std::floor((double)t));
+	int i = Ftol((float)std::floor((double)thePosition));
 	if (i < 0) {
-		t = 0.0f;
+		thePosition = 0.0f;
 		i = 0;
 	} else if (i >= aCount - 1) {
 		i = aCount - 2;
-		t = (float)(aCount - 1);
+		thePosition = (float)(aCount - 1);
 	}
 	// the powers are stored as floats and summed from the cube down (Bejeweled Twist kept them on the x87, linear first)
-	float f = (float)((double)t - i);
+	float f = (float)((double)thePosition - i);
 	float aSquare = (float)((double)f * f);
 	float aCube = (float)((double)aSquare * f);
 	const float* k = &theCoef[(size_t)i * 4];

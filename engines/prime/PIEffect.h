@@ -18,6 +18,8 @@
 
 namespace Sexy {
 
+class Graphics;
+
 class PIEffect {
 public:
 	PIEffectDef mDef;                    // +0xaf0 (a reference-counted pointer in the original, shared by duplicates)
@@ -51,6 +53,16 @@ public:
 	size_t mBytesRead;
 	// How many bytes of a cached state the file ends with (0 when it has none)
 	int mCachedStateSize;
+
+	// What PopAnim calls (not translated yet, empty here: games/bejeweled3/docs/NOTES.md, "Particles")
+	// 0x573290 (bejeweled3): one step of the effect
+	void Update();
+	// 0x575650 (bejeweled3): draws the effect
+	void Draw(Graphics* g);
+	// 0x56f730 (bejeweled3): back to the start
+	void ResetAnim();
+	// 0x575790 (bejeweled3): whether the effect has particles or emitters left
+	bool IsActive();
 
 	// 0x567d00 (bejeweled3): -1 to 1
 	float GetRandFloat();

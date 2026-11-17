@@ -21,4 +21,21 @@ if(NOT EMSCRIPTEN)
   endforeach()
   target_sources(b3_restest PRIVATE src/Res.cpp)
   target_link_libraries(b3_restest PRIVATE sexyopenjpeg)  # most of the pictures are JPEG 2000
+  target_link_libraries(b3_pamtest PRIVATE sexyopenjpeg)
+endif()
+
+# bejeweled3: the game (src/). Native: bejeweled3.exe [-gamedir=<dir>] [-userdir=<dir>] [-modsdir=<dir>] [-nomods]
+# [-600|-768|-1200] (src/main.cpp); it finds assets/bejeweled3/ by itself. The web build comes with its milestone
+# (docs/PORT_PLAN.md).
+if(NOT EMSCRIPTEN)
+  set(B3_SOURCES src/main.cpp src/Bej3App.cpp src/Res.cpp)
+  add_executable(bejeweled3 ${B3_SOURCES})
+  target_include_directories(bejeweled3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+  target_link_libraries(bejeweled3 PRIVATE prime sexyframework sexyopenmpt sexyopenjpeg)
+  if(NOT MSVC)
+    target_compile_options(bejeweled3 PRIVATE -Wall -Wno-overloaded-virtual)
+  endif()
+  add_custom_command(TARGET bejeweled3 POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bejeweled3>
+    VERBATIM)
 endif()

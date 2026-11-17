@@ -609,4 +609,29 @@ float PIEffect::GetVariationScalar()
 	return (float)(aSecond * aFirst);
 }
 
+// port: not translated yet (see games/bejeweled3/docs/NOTES.md, "Particles")
+// 0x573290 (bejeweled3)
+void PIEffect::Update()
+{
+}
+
+// port: not translated yet (see games/bejeweled3/docs/NOTES.md, "Particles")
+// 0x575650 (bejeweled3)
+void PIEffect::Draw(Graphics* /*g*/)
+{
+}
+
+// port: not translated yet (see games/bejeweled3/docs/NOTES.md, "Particles")
+// 0x56f730 (bejeweled3)
+void PIEffect::ResetAnim()
+{
+}
+
+// port: not translated yet (see games/bejeweled3/docs/NOTES.md, "Particles")
+// 0x575790 (bejeweled3)
+bool PIEffect::IsActive()
+{
+	return false;
+}
+
 }

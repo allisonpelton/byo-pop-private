@@ -412,17 +412,17 @@ double CurvedVal::GetOutVal(double theInVal)
 			return 0.0;
 		if (aRange == 0.0)
 			return 0.0;
-		float t = (float)((theInVal - mInMin) / aRange);
-		if (!(t < 1.0f))
-			t = 1.0f;
+		float aProgress = (float)((theInVal - mInMin) / aRange);
+		if (!(aProgress < 1.0f))
+			aProgress = 1.0f;
 		if (mMode == MODE_PING_PONG) {
-			if (t <= 0.5f)
-				t = t + t;
+			if (aProgress <= 0.5f)
+				aProgress = aProgress + aProgress;
 			else
-				t = (float)((1.0 - t) + (1.0 - t));
+				aProgress = (float)((1.0 - aProgress) + (1.0 - aProgress));
 		}
 		if (mIsHermite) {
-			double h = (mOutMax - mOutMin) * mCurveCacheRecord->mHermiteCurve.Evaluate(t) + mOutMin;
+			double h = (mOutMax - mOutMin) * mCurveCacheRecord->mHermiteCurve.Evaluate(aProgress) + mOutMin;
 			if (mNoClip)
 				return h;
 			double aLow = mOutMin < mOutMax ? mOutMin : mOutMax;
@@ -430,7 +430,7 @@ double CurvedVal::GetOutVal(double theInVal)
 			return h < aLow ? aLow : (h > aHigh ? aHigh : h);
 		}
 		// the table position is stored as a float first (Bejeweled Twist's stayed on the x87)
-		float aPosition = (float)((double)t * 8191.0);
+		float aPosition = (float)((double)aProgress * 8191.0);
 		int anIndex = Ftol(aPosition);
 		const float* aTable = mCurveCacheRecord->mTable;
 		if (anIndex == CURVE_TABLE_SIZE - 1)

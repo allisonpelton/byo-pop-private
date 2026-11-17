@@ -223,6 +223,10 @@ public:
 	int GetSound(const std::string& theId);              // -1 when not loaded
 	Font* GetFont(const std::string& theId);
 	Point GetImageOffset(const std::string& theId);      // the image's x= and y=, 0 when none
+	// What the app's GetSharedImage does first with a name "file|ID" (0x46ff40 (bejeweled3)): the image resource ID's
+	// picture, loaded if nothing holds it; null when the name has no bar or the manager has no such picture, with
+	// *theFileName set to the file to load instead
+	SharedImageRef GetSharedImageByRef(const std::string& theName, std::string* theFileName);
 
 	// The generated code's global for that resource (of any type, at the app's art size): set to the resource
 	// whenever it loads, cleared when it goes. The manifest must be parsed and mCurArtRes set first.

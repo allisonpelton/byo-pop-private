@@ -7,6 +7,7 @@
 #include "DDInterface.h"
 #include "ImageFont.h"
 #include "PIEffect.h"
+#include "PopAnim.h"
 #include "RenderEffectDefinition.h"
 #include "SexyAppBase.h"
 #include "SoundManager.h"
@@ -234,7 +235,7 @@ PrimeResourceManager::PopAnimRes::PopAnimRes() : BaseRes(ResType_PopAnim)
 
 void PrimeResourceManager::PopAnimRes::DeleteResource()
 {
-	// port: the animations are not translated yet (DoLoadPopAnim)
+	delete mPopAnim;
 	mPopAnim = nullptr;
 	if (mGlobalPtr != nullptr)
 		*mGlobalPtr = nullptr;
@@ -1145,9 +1146,21 @@ bool PrimeResourceManager::DoLoadFont(FontRes* theRes)
 
 bool PrimeResourceManager::DoLoadPopAnim(PopAnimRes* theRes)
 {
-	// port: PopAnim is not translated yet. The original makes a PopAnim(0, nullptr), sets its image and draw scales to
-	// mCurArtRes / mBaseArtRes and loads the file, failing with "PopAnim loading error: <error> on file <path>".
-	return Fail("PopAnim loading error: not translated yet on file " + theRes->mPath);
+	// port: the original holds the manager's lock (+0x2b4) while it loads one, which the port's manager does not have
+	PopAnim* anAnim = new PopAnim(0, nullptr);
+	anAnim->mImageScale = (float)mCurArtRes / (float)mBaseArtRes;
+	anAnim->mDrawScale = (float)mCurArtRes / (float)mBaseArtRes;
+	anAnim->LoadAnimation(theRes->mPath);
+	// an animation fails only with an error text: a file the player does not read sets none and loads empty
+	if (!anAnim->GetError().empty()) {
+		std::string anError = "PopAnim loading error: " + anAnim->GetError() + " on file " + theRes->mPath;
+		delete anAnim;
+		return Fail(anError);
+	}
+	if (theRes->mGlobalPtr != nullptr)
+		*theRes->mGlobalPtr = anAnim;
+	theRes->mPopAnim = anAnim;
+	return true;
 }
 
 bool PrimeResourceManager::DoLoadPIEffect(PIEffectRes* theRes)
@@ -1286,6 +1299,31 @@ RenderEffectDefinition* PrimeResourceManager::GetRenderEffectThrow(const std::st
 	std::string anError = StrFormat("RenderEffectDefinition resource not found: %s", theId.c_str());
 	Fail(anError);
 	ThrowResourceError(anError);
+}
+
+// 0x46ff40 (bejeweled3), its first part: this generation's SexyAppBase::GetSharedImage takes a name "file|ID" as the
+// image resource ID when the manager has one with a picture, which it loads if nothing holds it; else the file
+SharedImageRef PrimeResourceManager::GetSharedImageByRef(const std::string& theName, std::string* theFileName)
+{
+	size_t aBar = theName.find('|');
+	if (aBar == std::string::npos) {
+		*theFileName = theName;
+		return SharedImageRef();
+	}
+	SharedImageRef anImage;
+	BaseRes* aRes = GetBaseRes(ResType_Image, theName.substr(aBar + 1));
+	if (aRes != nullptr) {
+		// 0x465540 (bejeweled3): a reference to the resource for the length of the call
+		bool isLoaded = false;
+		if (aRes->mRefCount == 0)
+			DoLoadResource(aRes, &isLoaded);
+		aRes->mRefCount++;
+		anImage = ((ImageRes*)aRes)->mImage;
+		Deref(aRes);
+	}
+	if ((DDImage*)anImage == nullptr)
+		*theFileName = theName.substr(0, aBar);
+	return anImage;
 }
 
 // port: the framework's getters that never throw, for the game's optional resources

@@ -32,6 +32,23 @@ namespace {
 
 std::string gGameDir = "assets/bejeweled3";
 bool gVerbose = false;
+PrimeResourceManager* gManager = nullptr;  // the art size's manager being tested
+
+// The game's app finds a picture named "file|ID" through its resource manager first (Bej3App::GetSharedImage)
+class TestApp : public SexyAppBase {
+public:
+	SharedImageRef GetSharedImage(const std::string& theFileName, const std::string& theVariant = "",
+		bool* isNew = nullptr) override
+	{
+		std::string aFileName = theFileName;
+		if (gManager != nullptr) {
+			SharedImageRef anImage = gManager->GetSharedImageByRef(theFileName, &aFileName);
+			if ((DDImage*)anImage != nullptr)
+				return anImage;
+		}
+		return SexyAppBase::GetSharedImage(aFileName, theVariant, isNew);
+	}
+};
 
 const char* const kKindNames[PrimeResourceManager::NUM_RES_TYPES] = {
 	"Image", "Sound", "Font", "PopAnim", "PIEffect", "RenderEffect"};
@@ -67,10 +84,12 @@ int RunArtRes(int theArtRes, bool theParseOnly)
 {
 	int aFailures = 0;
 	PrimeResourceManager* aManager = new PrimeResourceManager(gSexyAppBase);
+	gManager = aManager;
 	aManager->mBaseArtRes = 1200;  // Bej3App::Init sets both before it parses
 	aManager->mCurArtRes = theArtRes;
 	if (!aManager->ParseResourcesFile("properties/resources.xml")) {
 		printf("FAIL %d: the manifest: %s\n", theArtRes, aManager->GetErrorText().c_str());
+		gManager = nullptr;
 		delete aManager;
 		return 1;
 	}
@@ -124,6 +143,7 @@ int RunArtRes(int theArtRes, bool theParseOnly)
 		}
 	}
 	printf("art %d: %d images and %d fonts loaded, hash %08x\n", theArtRes, anImages, aFonts, aHash);
+	gManager = nullptr;
 	delete aManager;
 	gSexyAppBase->CleanSharedImages();
 	return aFailures;
@@ -163,7 +183,7 @@ int main(int argc, char** argv)
 	SDL_setenv("SDL_AUDIODRIVER", "dummy", 0);
 	Platform::VFS::Get().SetBaseDir(gGameDir);
 	Platform::RegisterOpenJPEGImages();
-	SexyAppBase* anApp = new SexyAppBase();
+	SexyAppBase* anApp = new TestApp();
 	anApp->mDDInterface = new DDInterface(anApp);
 	anApp->mSoundManager = new SDLSoundManager();
 
