@@ -212,15 +212,34 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
     appear: a waiting letter does not burst and the bubble text counts as done, so they grow in as the splash fades
     out, as the original's would on a machine that loads that fast. With no menu stage yet, the frame is not
     painted over and the splash's last frame stays under the menu.
+- The players: the engine's players' list (UserManager, UserInfo) over the engine's persistent keys, which the
+  port's host keeps in the framework's emulated registry under Software, GameHouse, Feeding Frenzy 2, users; the
+  players' data's load and save with their MD5 signatures (the game's own starting words, base64); the popup state
+  (darkening the game's screens to the theme's popupDarkenColor over the screen's transition, its own screen manager)
+  with the name entry's actions; the engine's edit box (typing, the filter, glyphs, Backspace, Delete, Home, End,
+  the arrows, Ctrl+V) and its reader; the time driver and the colour key interpolator. Checked on a fresh folder: the
+  name entry comes up over the darkened menu, "A l x Backspace / e Left y" gives Alye (the slash refused), Return
+  adds the player, the popup fades out and the menu welcomes Alye; the saved signatures match an independent MD5
+  with the game's starting words; a second run loads Alye with no reset and no popup.
+  - Deviations: the players are sorted by an ASCII case-blind compare, not CompareStringA; the registry's root is
+    ignored (one tree); the framework's own settings are not written to the registry; a key with nothing below it is
+    kept by an empty default value; the edit box's paste uses the framework's clipboard and key state (the original
+    asks Windows for Ctrl's state now; posted input reaches neither); characters from 0x80 are refused, as the
+    original's _ismbcprint refuses them on a single-byte code page.
+  - Fix candidates: the paste leaves the clipboard open when the box is full, and never frees its copy of the text
+    (the port frees it, a leak).
+  - Not yet compared with the original: the popup's look and timing, and the signatures of a player the original
+    made (to do through origrun).
+  - The popup's soft shadow piles up into a black frame, and the popup's ghost stays after it closes: nothing
+    repaints the background until the stage is translated (see the looks item below).
 
 ## Next
 
-- The players: the players' list (0x40a630, its folder under the vendor and name, 0x4921e0), the players' data's
-  load and its signatures (0x49cf10, 0x47b1a0), the popup state (0x48a9c0) and the edit box, so a first run asks
-  for a name; then the players' select screen.
+- The players' select screen (+0x60, GenericUserSelectScreen, 0x49fc30) and the popup's other actions; the
+  duplicate name's confirmation is wired but not yet seen.
 - The stage (0x403aa0) and its loader, for the menu's background; the menu's music and sounds; the menu's other
   actions (new game, the map, options, high scores, quit's confirmation).
-- The layouts' textButton, checkBox, include, radioGroup, listBox, table, editBox and compositeGroup; the burst's
+- The layouts' textButton, checkBox, include, radioGroup, listBox, table and compositeGroup's caching; the burst's
   sound, the sound system's and the game's updates in the splash's bursting phase.
 - The configuration's options, the start's options, key, activate and music connections, the popups and the debug
   display.

@@ -72,6 +72,10 @@ public:
 
 	void Init() override;
 	void Shutdown() override;
+	// port: the original keeps no settings of the framework's (its options are its own, and its players are in the
+	// registry key the engine opens); the registry is marked read, so that the web build backs it up
+	void ReadFromRegistry() override;
+	void WriteToRegistry() override;
 	// WM_ACTIVATE: the engine's activate signal
 	void GotFocus() override;
 	void LostFocus() override;

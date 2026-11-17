@@ -51,6 +51,20 @@ bool Params::getBool(const std::string& theName, bool theDefault) const
 	return theDefault;
 }
 
+void Params::setInt(const std::string& theName, int theValue)
+{
+	char aText[32];
+	snprintf(aText, sizeof(aText), "%d", theValue);
+	mValues[theName] = aText;
+}
+
+void Params::setFloat(const std::string& theName, float theValue)
+{
+	char aText[512];
+	snprintf(aText, sizeof(aText), "%f", (double)theValue);
+	mValues[theName] = aText;
+}
+
 float Params::getFloat(const std::string& theName, float theDefault) const
 {
 	std::map<std::string, std::string>::const_iterator anIt = mValues.find(theName);

@@ -57,6 +57,7 @@ private:
 	void readParticleSystem(Params& theAttributes);                        // 0x46ed00 (feedingfrenzy2)
 	void readImageButton(Params& theAttributes);                           // 0x432b10 (feedingfrenzy2)
 	void readComboButton(Params& theAttributes);                           // 0x45c5a0 (feedingfrenzy2)
+	void readEditBox(Params& theAttributes);                               // 0x412680 (feedingfrenzy2)
 	void readText(Params& theAttributes);                                  // 0x4548c0 (feedingfrenzy2)
 	void readKeyAction(Params& theAttributes);                             // 0x426cb0 (feedingfrenzy2)
 

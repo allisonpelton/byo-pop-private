@@ -6,6 +6,7 @@
 #include "Exception.h"
 #include "Image.h"
 #include "ComboButton.h"
+#include "EditBox.h"
 #include "ImageButton.h"
 #include "Modifiers.h"
 #include "ParticleSystem.h"
@@ -86,11 +87,13 @@ void ScreenDocHandler::startElement(const std::string& theName, Params& theAttri
 		readKeyAction(theAttributes);
 	else if (theName == "comboButton")
 		readComboButton(theAttributes);
+	else if (theName == "editBox")
+		readEditBox(theAttributes);
 	else
 	{
 		// animation 0x53fffd, checkBox 0x46e570, textButton 0x421160,
 		// clipGroup 0x535b3e, selector 0x535883, textSub 0x53a144,
-		// editBox 0x412680, include 0x53578b, radioGroup 0x4177a0, listBox 0x4804a0, table 0x40ca40, column
+		// include 0x53578b, radioGroup 0x4177a0, listBox 0x4804a0, table 0x40ca40, column
 		// 0x40e640, detailSelector 0x5328bf (feedingfrenzy2): not yet translated
 		getEngine()->log("ScreenDocHandler: <%s> not yet translated\n", theName.c_str());
 	}
@@ -357,6 +360,34 @@ void ScreenDocHandler::readComboButton(Params& theAttributes)
 	mLayout->registerComponent(aButton, aName);
 	readCommon(theAttributes, aButton);
 	getCurrentContainer()->addChild(aButton);
+}
+
+void ScreenDocHandler::readEditBox(Params& theAttributes)
+{
+	EditBox* aBox = new EditBox();
+	readCommon(theAttributes, aBox);
+	getCurrentContainer()->addChild(aBox);
+	std::string aName = theAttributes.getString("name", "_EditBox_");
+	std::string aFontName = theAttributes.getString("font", "");
+	std::string aBackground = theAttributes.getString("bgImg", "");
+	std::string aCursor = theAttributes.getString("cursorImg", "");
+	Surface* aBackgroundSurface = findImage(aBackground);
+	Surface* aCursorSurface = findImage(aCursor);
+	aBox->setLook(aBackgroundSurface, aCursorSurface, findFont(aFontName));
+	Color aColor = readColor(theAttributes, "color", Color(1.0f, 1.0f, 1.0f, 1.0f));
+	if (aColor.r != 1.0f || aColor.g != 1.0f || aColor.b != 1.0f)
+		aBox->setTextColor(aColor);
+	aBox->setAction(theAttributes.getString("action", ""));
+	float x = theAttributes.getFloat("x", 0.0f);
+	float y = theAttributes.getFloat("y", 0.0f);
+	float anOpacity = theAttributes.getFloat("opacity", 1.0f);
+	aBox->setPosition(x, y);
+	aBox->setOpacity(anOpacity);
+	aBox->setCursorOffset(theAttributes.getFloatPair("cursorOffset", Vector2f(0.0f, 0.0f)));
+	aBox->setBlinkTime(theAttributes.getFloat("cursorBlinkTime", 1.0f));
+	aBox->setTextOffset(theAttributes.getFloatPair("textOffset", Vector2f(0.0f, 0.0f)));
+	aBox->setMaxLength(theAttributes.getInt("strLen", 12));
+	mLayout->registerComponent(aBox, aName);
 }
 
 void ScreenDocHandler::readText(Params& theAttributes)

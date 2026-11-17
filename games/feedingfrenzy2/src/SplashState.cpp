@@ -1,6 +1,7 @@
 #include "SplashState.h"
 
 #include "DrawContext.h"
+#include "EditBox.h"
 #include "Engine.h"
 #include "FishFactory.h"
 #include "MenuState.h"
@@ -30,6 +31,19 @@ const int GAME_FRAME_RATE = 60;
 // The most the bar moves a frame towards the loader's progress (the double at 0x566d58 (feedingfrenzy2), the float's
 // value)
 const float LOAD_BAR_STEP = 0.01f;
+
+// 0x4a14e0 (feedingfrenzy2): the name entry's filter, refusing the slash, the backslash, the backquote and the tilde
+char nameEntryFilter(char theChar)
+{
+	if (theChar == '/' || theChar == 0x5c || theChar == '`' || theChar == '~')
+	{
+		// The shell theme's sound textInvalidInput played at full volume and normal pitch (0x4747a0
+		// (feedingfrenzy2)): not yet translated
+		getEngine()->log("SplashState: the sound textInvalidInput not yet translated\n");
+		return 0;
+	}
+	return theChar;
+}
 
 } // namespace
 
@@ -191,9 +205,7 @@ void SplashState::load()
 
 	aFade = new FadeTransition(SHELL_FADE_SECONDS);
 	mApp->mUserEntry = loadShellScreen("resource/shell/userEntry.xml", mApp->mShellTheme.get(), aFade, aFade);
-	// The name's edit box ("nameEntry") is given a filter of the characters typed (its +0x12c, 0x4a14e0
-	// (feedingfrenzy2)) that refuses the slash, the backslash, the backquote and the tilde, each with the shell
-	// theme's sound textInvalidInput at full volume and normal pitch: not yet translated, as the edit box is not
+	static_cast<EditBox*>(mApp->mUserEntry->findComponent("nameEntry"))->setFilter(nameEntryFilter);
 	aFade = new FadeTransition(SHELL_FADE_SECONDS);
 	mApp->mUserDuplicateConfirm =
 		loadShellScreen("resource/shell/userDuplicateConfirm.xml", mApp->mShellTheme.get(), aFade, aFade);
@@ -208,9 +220,10 @@ void SplashState::load()
 	mLoadProgress = 0.475f;
 
 	mApp->mUserData = new UserData();
-	// The players' data's load from the current player (0x49cf10 (feedingfrenzy2)), then the players' list (+0x60):
-	// not yet translated
-	getEngine()->log("SplashState: the players' data's load and list not yet translated\n");
+	mApp->mUserData->init();
+	// The players' screen (+0x60, GenericUserSelectScreen, 0x1b4 bytes, its constructor 0x49fc30 (feedingfrenzy2),
+	// resource/shell/userSelect.xml): not yet translated
+	getEngine()->log("SplashState: the players' screen not yet translated\n");
 	mLoadProgress = 0.5f;
 	aFade = new FadeTransition(SHELL_FADE_SECONDS);
 	mApp->mUserDeleteConfirm =

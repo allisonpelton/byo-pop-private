@@ -49,9 +49,9 @@ public:
 	virtual bool isSettled();
 	// 0x170 (0x47db20 (feedingfrenzy2)): a ScreenPhase
 	virtual int getPhase() { return mPhase; }
-	// 0x174 (0x490170) and 0x178 (0x509329) (feedingfrenzy2)
-	virtual Transition* getInTransition() { return mInTransition.get(); }
-	virtual Transition* getOutTransition() { return mOutTransition.get(); }
+	// 0x174 (0x490170) and 0x178 (0x509329) (feedingfrenzy2): the seconds of the transition in and out, 0 for none
+	virtual float getInDuration() { return mInTransition == nullptr ? 0.0f : mInTransition->getDuration(); }
+	virtual float getOutDuration() { return mOutTransition == nullptr ? 0.0f : mOutTransition->getDuration(); }
 	// 0x17c (0x501a78 (feedingfrenzy2)): the screen marked for deletion when it ends hidden
 	virtual void setDeleteWhenHidden(bool theDeleteWhenHidden) { mDeleteWhenHidden = theDeleteWhenHidden; }
 

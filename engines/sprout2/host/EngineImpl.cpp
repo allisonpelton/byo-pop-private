@@ -1,4 +1,7 @@
 #include "EngineImpl.h"
+#include "RegistryKey.h"
+#include "SexyAppBase.h"
+#include "WidgetManager.h"
 
 #include "platform/VFS.h"
 
@@ -67,6 +70,36 @@ void EngineImpl::log(const char* theFormat, ...)
 	vsnprintf(aLine, sizeof(aLine), theFormat, anArgs);
 	va_end(anArgs);
 	SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "%s", aLine);
+}
+
+PersistKey* EngineImpl::openPersistKey(PersistKey* theParent, const std::string& theName)
+{
+	const std::string& aParentPath = static_cast<RegistryKey*>(theParent)->getPath();
+	return new RegistryKey(aParentPath.empty() ? theName : aParentPath + "\\" + theName);
+}
+
+PersistKey* EngineImpl::openPersistKey(int theRoot, const std::string& thePath)
+{
+	std::string aPathBelow;
+	if (!RegistryKey::pathBelowApplication(thePath, aPathBelow))
+	{
+		log("Failed to open registry key %s.\n", thePath.c_str());
+		return nullptr;
+	}
+	return new RegistryKey(aPathBelow);
+}
+
+bool EngineImpl::isKeyDown(int theKey)
+{
+	if (theKey < 0 || theKey >= 0xff)
+		return false;
+	return Sexy::gSexyAppBase->mWidgetManager->mKeyDown[theKey];
+}
+
+bool EngineImpl::getClipboardText(std::string& theText)
+{
+	theText = Sexy::gSexyAppBase->GetClipboard();
+	return !theText.empty();
 }
 
 uint64_t EngineImpl::getTicks()

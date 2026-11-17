@@ -50,9 +50,15 @@ public:
 	// fewer, the default
 	Color getColor(const std::string& theName, const Color& theDefault) const;
 
-	// The parser's: a value set, replacing one of the same name
+	// The parser's, and 0x47cc50 (feedingfrenzy2): a value set, replacing one of the same name
 	void set(const std::string& theName, const std::string& theValue) { mValues[theName] = theValue; }
 	void clear() { mValues.clear(); }
+	// 0x433bf0 (feedingfrenzy2): the value written "%d"
+	void setInt(const std::string& theName, int theValue);
+	// 0x40c960 (feedingfrenzy2): the value written "%f"
+	void setFloat(const std::string& theName, float theValue);
+	// The values in the order of their names (a player's are saved so, 0x473c50 (feedingfrenzy2))
+	const std::map<std::string, std::string>& getValues() const { return mValues; }
 	// 0x457f10 (feedingfrenzy2): each of the other's values set here, replacing one of the same name
 	void merge(const Params& theOther)
 	{

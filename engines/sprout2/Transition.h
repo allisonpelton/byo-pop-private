@@ -37,6 +37,9 @@ public:
 	// 0x14: the progress shown on the component
 	virtual void apply() = 0;
 
+	// Read in place by the screen's 0x174 and 0x178 (GenericScreen)
+	float getDuration() const { return mDuration; }
+
 protected:
 	// Whether the progress is at the end of the direction
 	bool isAtEnd() const;

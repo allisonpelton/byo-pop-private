@@ -25,6 +25,7 @@ class DrawContext;
 class Font;
 class Image;
 class InputStream;
+class PersistKey;
 class RandomAccessInputStream;
 class Reader;
 class ResourceManager;
@@ -65,6 +66,15 @@ public:
 	virtual void setFrameRate(int theFramesPerSecond) = 0;
 	// 0xf8 (0x4a4a00 (feedingfrenzy2)): the program ends (PostQuitMessage)
 	virtual void quit() = 0;
+	// 0xbc (0x48b200 (feedingfrenzy2)): the key below a key, made when it is not there; null when it cannot be opened
+	virtual PersistKey* openPersistKey(PersistKey* theParent, const std::string& theName) = 0;
+	// 0xc0 (0x492cf0 (feedingfrenzy2)): the key Software\<path> of HKEY_LOCAL_MACHINE (root 0) or HKEY_CURRENT_USER
+	// (root 1), made when it is not there; null when it cannot be opened
+	virtual PersistKey* openPersistKey(int theRoot, const std::string& thePath) = 0;
+	// port: what the edit box asks Windows for itself. GetAsyncKeyState's key down (a virtual key)
+	virtual bool isKeyDown(int theKey) = 0;
+	// port: the clipboard's text (CF_TEXT), false when it holds none
+	virtual bool getClipboardText(std::string& theText) = 0;
 
 	// --- The engine's own ---
 

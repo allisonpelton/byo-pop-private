@@ -4,8 +4,8 @@
 // The application's state between games (FeedingFrenzyTwo::MenuState, 0x1c bytes, vtable 0x55a858 (feedingfrenzy2);
 // its constructor 0x49a350 (feedingfrenzy2)): the main menu over the menu's stage, or the map or the high scores when
 // a game sends the player back to them, with the player's name and welcome. Once the main menu is first shown, a
-// player with no name is asked for one. Translated so far: the screens shown and hidden and the player's texts; the
-// stage, the music, the popups and the menu's actions are not yet translated.
+// player with no name is asked for one. Translated so far: the screens shown and hidden, the player's texts and the
+// name entry's popup; the stage, the music, the other popups and the menu's actions are not yet translated.
 
 #include "FeedingFrenzyTwo.h"
 

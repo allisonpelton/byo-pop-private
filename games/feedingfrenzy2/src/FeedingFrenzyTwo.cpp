@@ -3,6 +3,8 @@
 #include "Engine.h"
 #include "ScreenMgr.h"
 #include "SplashState.h"
+#include "PopupState.h"
+#include "UserManager.h"
 
 using namespace engine;
 
@@ -28,6 +30,10 @@ FeedingFrenzyTwo::FeedingFrenzyTwo() : mMenuRunning(false), mMenuScreen(MENU_SCR
 FeedingFrenzyTwo::~FeedingFrenzyTwo()
 {
 	mStateMgr.changeState(nullptr);
+	// The shutdown (0x495650 (feedingfrenzy2), not yet translated) closes the players' key (0x4973d0 (feedingfrenzy2))
+	// and deletes the players (0x4a4700 (feedingfrenzy2))
+	UserManager::destroy();
+	PopupState::releaseScreenMgr();
 	gTheApp = nullptr;
 }
 
@@ -63,8 +69,10 @@ void FeedingFrenzyTwo::start(bool theSaverMode)
 	mScreenMgr = new ScreenMgr();
 	mScene->addChild(mScreenMgr.get());
 
-	// The popups (0x40a630 and 0x4921e0 (feedingfrenzy2)) and the debug display (DebugHud, 0x1f0 bytes, with
-	// resource/fonts/debugFont.xml, added to the scene): not yet translated
+	UserManager::instance()->open(mAppName, mVendor);
+
+	// The debug display (DebugHud, 0x1f0 bytes, with resource/fonts/debugFont.xml, added to the scene): not yet
+	// translated
 
 	mStateMgr.changeState(new SplashState(this, theSaverMode));
 }

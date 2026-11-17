@@ -191,6 +191,9 @@ FeedingFrenzy2App::FeedingFrenzy2App()
 	gApp = this;
 	mProdName = "FeedingFrenzy2";
 	mTitle = "Feeding Frenzy 2 - Shipwreck Showdown";
+	// The key the engine's registry keys are below (engines/sprout2/host/RegistryKey.h): Software\<vendor>\<appName> of
+	// HKEY_CURRENT_USER, the vendor and the name being the strings of resource/baseStrings.xml
+	mRegKey = "GameHouse\\Feeding Frenzy 2";
 	mWidth = SCREEN_WIDTH;
 	mHeight = SCREEN_HEIGHT;
 	mWidget = nullptr;
@@ -214,6 +217,15 @@ FeedingFrenzy2App::~FeedingFrenzy2App()
 	if (mDisplay != nullptr)
 		mDisplay->release();
 	delete mEngine;
+}
+
+void FeedingFrenzy2App::ReadFromRegistry()
+{
+	mReadFromRegistry = true;
+}
+
+void FeedingFrenzy2App::WriteToRegistry()
+{
 }
 
 uint64_t FeedingFrenzy2App::FramePeriod() const

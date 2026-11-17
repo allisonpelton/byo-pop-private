@@ -1,6 +1,7 @@
 #include "MenuState.h"
 
 #include "Engine.h"
+#include "PopupState.h"
 #include "ScreenMgr.h"
 #include "TextItem.h"
 
@@ -45,9 +46,7 @@ void MenuState::update(UpdateContext* theContext)
 	if (mApp->mMainMenu->getPhase() != SCREEN_SHOWN)
 		return;
 	if (mApp->mUserData->getName().empty())
-		// A popup of the name entry (+0x5c) pushed over the menu (PopupState, 0x9c bytes, its constructor 0x48a9c0
-		// (feedingfrenzy2), given the application, the screen and this state): not yet translated
-		getEngine()->log("MenuState: the name entry's popup not yet translated\n");
+		mApp->mStateMgr.pushState(new PopupState(mApp, mApp->mUserEntry.get(), this));
 	mPlayerChecked = true;
 }
 

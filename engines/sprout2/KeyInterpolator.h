@@ -2,11 +2,13 @@
 #define __SPROUT2_KEYINTERPOLATOR_H__
 
 // A value kept at key times (the original's Interpolator<T> and KeyInterpolator<T>, templates over float,
-// engine::Color and engine::Vector2<float>; only the float one is translated so far). Between two keys the value
+// engine::Color and engine::Vector2<float>; the float and the colour ones are translated so far). Between two keys the value
 // follows an ease curve that leaves the first key at its out speed over its out time and reaches the second at its in
 // speed over its in time, with a straight run between. Before the first key the value is the first key's, after the
 // last the last's. The interpolator keeps the key it last used and walks from there, and builds the curve again only
 // when it moved.
+
+#include "Geometry.h"
 
 #include <map>
 
@@ -84,6 +86,55 @@ private:
 	KeyMap mKeys;                // +0x0c
 	KeyMap::iterator mCurrent;   // +0x18: the key the last value was read after
 	EaseCurve mCurve;            // +0x20: from the current key to the next
+};
+
+// A key of a colour (0x24 bytes; 0x488250 (feedingfrenzy2) makes one with a colour and the speeds and times of a
+// straight line)
+struct ColorKey
+{
+	float mTime;            // +0x00
+	Color mValue;           // +0x04
+	float mInTime = 0.0f;   // +0x14
+	float mInSpeed = 1.0f;  // +0x18
+	float mOutTime = 0.0f;  // +0x1c
+	float mOutSpeed = 1.0f; // +0x20
+};
+
+// KeyInterpolator<engine::Color> (0x4c bytes with its engine::Object; vtable 0x55ba90 (feedingfrenzy2); its
+// constructor 0x48adb0 (feedingfrenzy2)): the float one's walk, with the stretch, the fraction and the eased fraction
+// each rounded to a float. The port keeps it as a member of what holds it, uncounted.
+class ColorKeyInterpolator
+{
+public:
+	ColorKeyInterpolator() : mCurrent(mKeys.end()) {}
+	ColorKeyInterpolator(const ColorKeyInterpolator&) = delete;
+	ColorKeyInterpolator& operator=(const ColorKeyInterpolator&) = delete;
+
+	// 0x04 (0x409320 (feedingfrenzy2)): as the float one's
+	void addKey(const ColorKey& theKey);
+	// 0x08 (0x407c50 (feedingfrenzy2))
+	void clear();
+	// 0x0c (0x431930 (feedingfrenzy2)): the colour at the time
+	Color getValue(float theTime);
+
+private:
+	// A key's fields after its time, in the map's node from +0x10
+	struct KeyValue
+	{
+		Color mValue;     // node +0x10
+		float mInTime;    // node +0x20
+		float mInSpeed;   // node +0x24
+		float mOutTime;   // node +0x28
+		float mOutSpeed;  // node +0x2c
+	};
+	typedef std::map<float, KeyValue> KeyMap;
+
+	// 0x4183b0 (feedingfrenzy2): the float one's curve
+	void setCurve(KeyMap::iterator theCurrent, KeyMap::iterator theNext);
+
+	KeyMap mKeys;                // +0x0c
+	KeyMap::iterator mCurrent;   // +0x18
+	EaseCurve mCurve;            // +0x20 (the original's 0x431b50 (feedingfrenzy2) reads it for a float's time)
 };
 
 } // namespace engine
