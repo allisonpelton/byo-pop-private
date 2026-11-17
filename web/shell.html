@@ -433,6 +433,10 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
   //               game's folder instead of copying it, as native staging does, and its files count as the install's
   //               (a file in both the pak and the install comes from the pak, as PakInterface reads it). A pak may be
   //               a marker; once imported, files in the game's folders stand for it.
+  //   unpacked    for a pak marker of a game whose folders' names are common ones (Venice's "gfx", "levels"): a few files
+  //               only its pak holds, relative to the game folder, in lower case. A folder of files stands for the pak when
+  //               it holds every one (the pak already unpacked), instead of any file in the game's folders
+  //               (web/gameimport.js, unpackedIn)
   //   markers     the files that make a folder the game's install, relative to it, in any case ("name.*": with any
   //               extension; "a|b": either of two files); the import looks for them, and the page asks for an import
   //               while one is missing

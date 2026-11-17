@@ -20,10 +20,25 @@ var ByopopImport = (function () {
   }
   function under(e, root) { return e.path.substring(0, root.length) === root; }
 
+  // Whether the files (paths relative to the game folder, in any case) show the game's paks already unpacked, as a staged copy or a
+  // zip of the unpacked game has them: every file of spec.unpacked where the page names them (a game whose folders' names are
+  // common ones, Venice's "gfx" or "levels", names a few files only its pak holds; the user, 2026-11-16: "Fix it now", of
+  // another game's config.xml beside a gfx folder taken as Venice), else any file in one of its folders.
+  // relOf(x): the path of an item of list relative to the game folder, or null for one outside it
+  function unpackedIn(spec, list, relOf) {
+    if (!spec.unpacked) return list.some(function (x) {
+      var r = relOf(x), i = r === null ? -1 : r.indexOf("/");
+      return i > 0 && spec.gameDirs.indexOf(r.substring(0, i).toLowerCase()) >= 0;
+    });
+    return spec.unpacked.every(function (f) {
+      return list.some(function (x) { var r = relOf(x, f.length); return r !== null && r.length === f.length && r.toLowerCase() === f; });
+    });
+  }
+  function itself(r) { return r; }
+
   // The folder inside the files that holds every marker (the game root, "" or ending in "/"), or null; with placeholders,
   // failing that, the shallowest folder that holds one of the game's folders. A marker that is a pak (spec.paks) is there when
-  // the pak is, or when the folder holds any of the game's folders: the pak already unpacked, as a staged copy or a zip of the
-  // unpacked game has it (hasMarkers does the same for picked files).
+  // the pak is, or when the folder's files show it unpacked (unpackedIn; hasMarkers does the same for picked files).
   // among (sort's): the entries whose names may be a marker's (markerNames, below), in their order; the markers are looked for
   // only among them, and the root is the same as when every entry is looked at
   function findRoot(spec, entries, placeholders, among) {
@@ -36,10 +51,11 @@ var ByopopImport = (function () {
       var inRoot = marks.filter(function (e) { return under(e, root); });
       return spec.markers.every(function (m, k) {
         if (inRoot.some(function (e) { return atRoot[k].test(e.path.substring(root.length)); })) return true;
-        return isPak(m) && entries.some(function (e) {
-          if (!under(e, root)) return false;
-          var rel = e.path.substring(root.length), j = rel.indexOf("/");
-          return j > 0 && spec.gameDirs.indexOf(rel.substring(0, j).toLowerCase()) >= 0;
+        // length: a file of spec.unpacked is looked for, so only a path of its length is cut; those files are among the marks
+        // (markerNames holds their names)
+        return isPak(m) && unpackedIn(spec, spec.unpacked ? marks : entries, function (e, length) {
+          if (length !== undefined && e.path.length !== root.length + length) return null;
+          return under(e, root) ? e.path.substring(root.length) : null;
         });
       });
     }
@@ -117,12 +133,12 @@ var ByopopImport = (function () {
     return wanted;
   }
 
-  // Whether the picked files hold every marker: a pak that is a marker was unpacked, so then any file in the game's folders will do
+  // Whether the picked files hold every marker: a pak that is a marker was unpacked, so then its files will do (unpackedIn)
   function hasMarkers(spec, rels) {
     var paks = spec.paks || [];
-    var anyGameDir = rels.some(function (r) { var i = r.indexOf("/"); return i > 0 && spec.gameDirs.indexOf(r.substring(0, i)) >= 0; });
+    var unpacked = paks.length ? unpackedIn(spec, rels, itself) : false;
     return spec.markers.every(function (m) {
-      if (paks.indexOf(m.toLowerCase()) >= 0) return anyGameDir;
+      if (paks.indexOf(m.toLowerCase()) >= 0) return unpacked;
       var re = new RegExp("^" + markerPattern(m) + "$", "i");
       return rels.some(function (r) { return re.test(r); });
     });
@@ -136,7 +152,7 @@ var ByopopImport = (function () {
   // "images/gemsheet6"), and the names are joined as a list in the page's language.
   function lacking(spec, rels) {
     return spec.markers.filter(function (m) {
-      return !hasMarkers({ markers: [m], paks: spec.paks, gameDirs: spec.gameDirs }, rels);
+      return !hasMarkers({ markers: [m], paks: spec.paks, gameDirs: spec.gameDirs, unpacked: spec.unpacked }, rels);
     });
   }
   function markerName(spec, m) {
@@ -255,8 +271,9 @@ var ByopopImport = (function () {
     g.marks.forEach(function (e) { var key = groupKey(e.path, g.depth); (marks[key] = marks[key] || []).push(e); });
     return g.order.map(function (k) { return { path: k, entries: g.out[k], marks: marks[k] || [] }; });
   }
-  // The last names of every game's markers, the site's and the others', in lower case (a marker's "x.*" kept as its stem x): a
-  // file named none of them is no game's marker, so the sort looks for markers only among the few files that are
+  // The last names of every game's markers, the site's and the others', in lower case (a marker's "x.*" kept as its stem x), and
+  // of the files that show a game's paks unpacked (spec.unpacked): a file named none of them is no game's marker, so the sort
+  // looks for markers only among the few files that are
   var markerIndex = null;
   function markerNames() {
     var list = otherList(), key = games.length + "/" + list.length;
@@ -268,7 +285,7 @@ var ByopopImport = (function () {
         if (/\.\*$/.test(last)) stems[last.slice(0, -2)] = true; else exact[last] = true;
       });
     }
-    games.forEach(function (g) { g.spec.markers.forEach(addMarker); });
+    games.forEach(function (g) { g.spec.markers.concat(g.spec.unpacked || []).forEach(addMarker); });
     list.forEach(function (o) { o.markers.forEach(addMarker); });
     markerIndex = { key: key, exact: exact, stems: stems };
     return markerIndex;

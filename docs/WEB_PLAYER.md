@@ -166,6 +166,14 @@ nothing, the marker files last. It follows the game page's own rules: `byopop_we
 `page.js` into `import-games.js`. `tools/gameimporttest.js` (`unit-web`) checks the rules and the sorting with every
 finished game's `page.js`.
 
+**A pak marker** (`main.pak` of Bookworm Adventures, its Volume 2, Bejeweled Twist and Venice) is found either as the pak
+or with the pak already unpacked, as a staged copy or a zip of one has it. For the first three, any file in the game's
+folders shows the pak unpacked, since their other marker is their own exe, which no other game has. Venice's other marker is
+`config.xml` and its folders are `audio`, `gfx`, `levels`, `objects` and `properties`, names many games use, so another
+game's folder was taken as Venice (the user, 2026-11-16: "Fix it now"). A page may therefore name `unpacked`, a few files
+only its pak holds; Venice names two, one under `levels` and one under `objects`, and only a folder holding both stands
+for its `main.pak`. The sort looks for them among the files it already picks out by name, so a big drop takes no longer.
+
 **A big drop** (the user, 2026-11-16, of their Steam library's 146,409 files in 24,158 folders):
 
 - **The count.** While a dropped folder is read, the reading row counts the folders and files found so far, four times a

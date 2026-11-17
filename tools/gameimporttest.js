@@ -82,6 +82,33 @@ check("markers after the pick", I.hasMarkers(spec("bejeweled"), picked), true);
 check("markers missing after the pick", I.hasMarkers(spec("bejeweled"), ["music/m.mo3"]), false);
 check("a pak marker: any game folder", I.hasMarkers(spec("bookwormadv"), ["images/a.png", "BookwormAdventures.exe"]), true);
 check("a pak marker: no game folder", I.hasMarkers(spec("bookwormadv"), ["BookwormAdventures.exe"]), false);
+// A pak marker whose game's folders have common names (Venice's: config.xml beside gfx, levels...): its unpacked copy is known
+// by the files only its pak holds (PAGE.unpacked), never by a folder's name (the user, 2026-11-16: "Fix it now")
+{
+  const v = spec("venice"), own = v.unpacked.map((f) => "V/" + f);
+  check("venice: the page names its pak's own files", own.length >= 2, true);
+  for (const d of v.gameDirs)
+    check(`venice: another game's config.xml beside ${d}/ is not Venice`, I.findRoot(v, files("G/config.xml", `G/${d}/a.png`), false), null);
+  check("venice: another game's config.xml beside all its folders is not Venice",
+    I.findRoot(v, files("G/config.xml", ...v.gameDirs.map((d) => `G/${d}/a.xml`)), false), null);
+  check("venice: one of its pak's files is not enough", I.findRoot(v, files("G/config.xml", own[0].replace("V/", "G/"), "G/gfx/a.png"), false), null);
+  check("venice: its install, with main.pak", I.findRoot(v, files("V/main.pak", "V/config.xml", "V/Venice.exe", "V/properties/partner.xml"), false), "V/");
+  check("venice: unpacked", I.findRoot(v, files("V/config.xml", ...own, "V/gfx/a.png"), false), "V/");
+  check("venice: unpacked, in any case", I.findRoot(v, files("V/Copy/CONFIG.XML", ...v.unpacked.map((f) => "V/Copy/" + f.toUpperCase())), false), "V/Copy/");
+  // a dropped .zip's files start with its name without ".zip", its own folder inside it or not
+  const install = ["main.pak", "config.xml", "Venice.exe"], unpacked = ["config.xml", ...v.unpacked, "gfx/a.png", "audio/a.ogg"];
+  const found = (r) => r.found.map((f) => [f.game ? f.game.target : null, f.root]);
+  check("venice: a .zip of the install", found(I.sort(files(...install.map((p) => "Venice/" + p)))), [["venice", "Venice/"]]);
+  check("venice: a .zip of the install's folder", found(I.sort(files(...install.map((p) => "Venice/Venice Deluxe/" + p)))), [["venice", "Venice/Venice Deluxe/"]]);
+  check("venice: a .zip of the unpacked copy", found(I.sort(files(...unpacked.map((p) => "Venice/" + p)))), [["venice", "Venice/"]]);
+  check("venice: a .zip of the unpacked copy's folder", found(I.sort(files(...unpacked.map((p) => "Venice/venice/" + p)))), [["venice", "Venice/venice/"]]);
+  const other = I.sort(files("Other Game/config.xml", "Other Game/gfx/a.png", "Other Game/levels/1.xml", "Other Game/Other.exe"));
+  check("venice: another game's folder is rejected, not Venice", [found(other), other.rejected], [[], ["Other Game"]]);
+  check("venice: picked files unpacked", I.hasMarkers(v, ["config.xml", ...v.unpacked, "gfx/a.png"]), true);
+  check("venice: picked files with its folders only", I.hasMarkers(v, ["config.xml", "gfx/a.png", "levels/1.xml"]), false);
+  // the other pak games' markers hold their own exe, which no other game has, so any of their folders still stands for the pak
+  check("venice: the only pak game naming its pak's files", I.games.filter((g) => g.spec.unpacked).map((g) => g.target), ["venice"]);
+}
 // sorting
 const brief = (r) => ({ found: r.found.map((f) => [f.folder, f.game ? f.game.target : null, f.root, f.choices.map((g) => g.target)]), rejected: r.rejected });
 check("one game's folder", brief(I.sort(files("Bejeweled Deluxe/images/gemsheet6.png"))),
