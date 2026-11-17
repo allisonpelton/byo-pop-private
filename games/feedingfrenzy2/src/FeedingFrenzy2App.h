@@ -32,11 +32,26 @@ public:
 	// The screen as the framework draws it: the display's pixels copied after each frame
 	MemoryImage* mScreenImage;
 
+	bool mKeyIsDown[256];  // the keys that went down and not up yet: a repeat of one is no WM_KEYDOWN's first
+	int mMouseX;           // the last position the mouse was seen at (the engine's +0x2b0 and +0x2b4)
+	int mMouseY;
+
 	FeedingFrenzy2Widget();
 	~FeedingFrenzy2Widget() override;
 
 	void Update() override;
 	void Draw(Graphics* g) override;
+
+	// The window procedure's input (0x424b30 (feedingfrenzy2)), as the engine's signals
+	void KeyDown(KeyCode theKey) override;
+	void KeyUp(KeyCode theKey) override;
+	void KeyChar(SexyChar theChar) override;
+	void MouseMove(int x, int y) override;
+	void MouseDrag(int x, int y) override;
+	void MouseDown(int x, int y, int theBtnNum, int theClickCount) override;
+	void MouseUp(int x, int y, int theBtnNum, int theClickCount) override;
+	void MouseWheel(int theDelta) override;
+	void ClearKeys();
 };
 
 class FeedingFrenzy2App : public SexyAppBase
@@ -57,6 +72,9 @@ public:
 
 	void Init() override;
 	void Shutdown() override;
+	// WM_ACTIVATE: the engine's activate signal
+	void GotFocus() override;
+	void LostFocus() override;
 
 	// A frame of the engine (0x438700 (feedingfrenzy2))
 	void RunFrame();

@@ -193,13 +193,16 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   - The debug level select (the application's +0x2c, DebugSelectMenu) is left out: only the main menu's debugSelect
     text button, hidden and switched off, has been seen to lead to it. To be checked again with MenuState's actions
     and keys.
+- The scene's mouse and activation (the target under the mouse or the capture, enter and leave, the press's cancel
+  when the window goes inactive) and the port's widget turning the framework's mouse, keys and focus into the
+  engine's signals, as the window procedure does (no double clicks: the original's window class has none). Not yet
+  exercised: no screen with buttons is shown until the menu state is translated.
 
 ## Next
 
 - The splash's loader (0x47e450: the sound manager, the stage, the users' data, every shell screen; the layouts'
   textButton, comboButton, checkBox, include, radioGroup, listBox, table, editBox), the burst's sound, the sound
   system's and the game's updates in the bursting phase; then the menu state.
-- The scene's mouse (0x40dcb0, 0x40e220 and the slots it connects), for the buttons and real input.
 - The configuration's string table and options, the start's options, key, activate and music connections, the
   popups and the debug display.
 - The looks: the frame does not clear the display, so the splash's quarter-second fade builds up over the last frame
