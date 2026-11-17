@@ -95,6 +95,8 @@ void Invalidate();
 void Shutdown();
 // JB_VERIFY_FRAMES is set
 bool Verifying();
+// the bytes the frame lists and the shadow screen hold (the memory report, platform/MemReport.h)
+size_t MemoryBytes();
 const Stats& GetStats();
 
 } // namespace screenlog
