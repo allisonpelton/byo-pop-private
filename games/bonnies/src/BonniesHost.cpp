@@ -28,6 +28,9 @@
 #include <memory>
 
 #ifdef __EMSCRIPTEN__
+#include "../engine/Graphics.h"
+#include "WebCursor.h"
+
 #include <emscripten.h>
 
 // The game's sleep yields to the browser (ASYNCIFY). A page that runs hidden can set Module.bonniesSetTimeout to a
@@ -170,6 +173,67 @@ struct SampleHandle
 	int mSfxID = 0;   // port: the number the sound log gives the sample
 };
 
+#ifdef __EMSCRIPTEN__
+// SDL 1.2's 32x32 cursor (a set mask bit: black where the data bit is set, else white; a clear one: clear, or inverted where
+// the data bit is set, drawn black) into a 64x64 image with its hot spot in the middle, as the framework centres an image
+// cursor on the mouse
+static void FillCursorImage(MemoryImage* theImage, const uint8_t* theData, const uint8_t* theMask, int theHotX, int theHotY)
+{
+	ulong* aBits = theImage->GetBits();
+	std::fill(aBits, aBits + 64 * 64, 0);
+	for (int y = 0; y < 32; y++)
+	{
+		for (int x = 0; x < 32; x++)
+		{
+			int aByte = y * 4 + x / 8;
+			int aBit = 0x80 >> (x & 7);
+			bool aData = (theData[aByte] & aBit) != 0;
+			bool aMask = (theMask[aByte] & aBit) != 0;
+			int aX = x + 32 - theHotX;
+			int aY = y + 32 - theHotY;
+			if (aX < 0 || aY < 0 || aX >= 64 || aY >= 64)
+				continue;
+			if (aMask)
+				aBits[aY * 64 + aX] = aData ? 0xff000000 : 0xffffffff;
+			else if (aData)
+				aBits[aY * 64 + aX] = 0xff000000;
+		}
+	}
+	theImage->BitsChanged();
+}
+
+// port(site): a cursor's art as the engine makes its bitmap (engine/Graphics.cpp, Graphics::setCursor): '.' white, 'B' black,
+// 'H' black and the hot spot; a NUL ends a row and '0' the art
+static void CursorArtBits(const char* const* theArt, uint8_t* theData, uint8_t* theMask, int* theHotX, int* theHotY)
+{
+	for (int aRow = 0; aRow < 32; aRow++)
+	{
+		for (int aColumn = 0; aColumn < 32; aColumn++)
+		{
+			char aChar = theArt[aRow][aColumn];
+			if (aChar == '0')
+				return;
+			if (aChar == 0)
+				break;
+			int aByte = aRow * 4 + aColumn / 8;
+			uint8_t aBit = (uint8_t)(1 << (7 - aColumn % 8));
+			if (aChar == '.')
+				theMask[aByte] |= aBit;
+			else if (aChar == 'B' || aChar == 'H')
+			{
+				theData[aByte] |= aBit;
+				theMask[aByte] |= aBit;
+				if (aChar == 'H')
+				{
+					*theHotX = aColumn;
+					*theHotY = aRow;
+				}
+			}
+		}
+	}
+}
+#endif
+
 // The framework's side of bonnies::Host
 class BonniesHostImpl : public bonnies::Host
 {
@@ -184,6 +248,42 @@ public:
 	Channel mChannels[kChannels];
 	MemoryImage* mCursorImage = nullptr;
 	bool mCursorShown = true;
+#ifdef __EMSCRIPTEN__
+	// port(site): the arrow and the hand as the site's cursor set's pointer and hand (framework/WebCursor.h, WebCursorSetKind).
+	// The game shows every cursor through the one CURSOR_CUSTOM image, so each is drawn from its art into an image of its own,
+	// both at the first cursor the game sets; what the game shows is unchanged.
+	MemoryImage* mKindImages[2] = {};
+	static constexpr int kKinds[2] = { CURSOR_POINTER, CURSOR_HAND };
+
+	void giveCursorKinds()
+	{
+		if (mKindImages[0] != nullptr || bonnies::gArrowCursor == nullptr || bonnies::gHandCursor == nullptr)
+			return;
+		const char* const* anArts[2] = { bonnies::gArrowCursor, bonnies::gHandCursor };
+		for (int i = 0; i < 2; i++)
+		{
+			uint8_t aData[128] = {};
+			uint8_t aMask[128] = {};
+			int aHotX = 0;
+			int aHotY = 0;
+			CursorArtBits(anArts[i], aData, aMask, &aHotX, &aHotY);
+			mKindImages[i] = new MemoryImage(gHostApp);
+			mKindImages[i]->Create(64, 64);
+			FillCursorImage(mKindImages[i], aData, aMask, aHotX, aHotY);
+			WebCursorSetKind(kKinds[i], mKindImages[i]);
+		}
+	}
+
+	void takeCursorKinds()
+	{
+		for (int i = 0; i < 2; i++)
+		{
+			WebCursorSetKind(kKinds[i], nullptr);
+			delete mKindImages[i];
+			mKindImages[i] = nullptr;
+		}
+	}
+#endif
 
 	BonniesHostImpl() : mScreen(kScreenWidth * kScreenHeight, 0) {}
 
@@ -310,29 +410,10 @@ public:
 			mCursorImage = new MemoryImage(gHostApp);
 			mCursorImage->Create(64, 64);
 		}
-		ulong* aBits = mCursorImage->GetBits();
-		std::fill(aBits, aBits + 64 * 64, 0);
-		for (int y = 0; y < 32; y++)
-		{
-			for (int x = 0; x < 32; x++)
-			{
-				int aByte = y * 4 + x / 8;
-				int aBit = 0x80 >> (x & 7);
-				bool aData = (theData[aByte] & aBit) != 0;
-				bool aMask = (theMask[aByte] & aBit) != 0;
-				int aX = x + 32 - theHotX;
-				int aY = y + 32 - theHotY;
-				if (aX < 0 || aY < 0 || aX >= 64 || aY >= 64)
-					continue;
-				if (aMask)
-					aBits[aY * 64 + aX] = aData ? 0xff000000 : 0xffffffff;
-				else if (aData)
-					aBits[aY * 64 + aX] = 0xff000000;
-			}
-		}
-		mCursorImage->BitsChanged();
+		FillCursorImage(mCursorImage, theData, theMask, theHotX, theHotY);
 		gHostApp->SetCursorImage(CURSOR_CUSTOM, mCursorImage);
 		gHostApp->SetCursor(mCursorShown ? CURSOR_CUSTOM : CURSOR_NONE);
+		giveCursorKinds();
 #endif
 	}
 
@@ -1343,6 +1424,7 @@ void BonniesHostApp::DoMainLoop()
 			delete gHost.mCursorImage;
 			gHost.mCursorImage = nullptr;
 		}
+		gHost.takeCursorKinds();
 #endif
 		Shutdown();
 	}
