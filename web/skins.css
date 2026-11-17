@@ -134,6 +134,10 @@
 :root[data-skin="d95"] .adding button.bin-yes:not(#\#) { color: #000000; }
 :root[data-skin="d95"] :is(#players, #saves, #music) button:not(#\#):disabled { opacity: 1; color: var(--sk-lo); text-shadow: 1px 1px 0 var(--sk-hi); }
 :root[data-skin="d95"] :is(#players, #saves, #music) :is(.d95-mn, .d95-mx, .d95-x):not(#\#) { padding: 0; }
+/* the title bar's icon, the control menu's button (later than the rules above), is no button face: Music's title bar is the
+   window's own (#music), and its icon took the page's padding and grey face, its page clipped into the corner (the user,
+   2026-11-16: "Music icon is messed up") */
+:root[data-skin="d95"] :is(#players, #saves, #music) button.d95-sys:not(#\#) { padding: 0; background: transparent; }
 /* no empty band at the top of Players or Saves: the status line (a live region, kept in the page) takes no room while it says
    nothing, and the first heading sits at the window's top */
 :root[data-skin="d95"] .pl-status:empty:not(#\#) { min-height: 0; margin: 0; }
@@ -897,8 +901,8 @@ html.d95-desk .lib-win.d95-win:not(#\#) > .d95-tb { background: var(--lib-title)
   border-bottom: 1px solid var(--lib-lo); margin: 0 0 4px; }
 html.d95-desk .lib-win.d95-active:not(#\#) > .d95-tb { background: linear-gradient(var(--lib-title), #586843); }
 html.d95-desk .lib-win:not(.d95-active):not(#\#) > .d95-tb { color: var(--lib-dim); background: var(--lib-head); }
-/* its buttons: square, flat, a 1-pixel bevel */
-html.d95-desk .lib-win .d95-tb button:not(#\#), html.d95-desk .lib-win .lib-btn:not(#\#), html.d95-desk .lib-win .lib-hb:not(#\#) {
+/* its buttons: square, flat, a 1-pixel bevel (the title bar's icon, the control menu's button, is none: as on every window) */
+html.d95-desk .lib-win .d95-tb button:not(.d95-sys):not(#\#), html.d95-desk .lib-win .lib-btn:not(#\#), html.d95-desk .lib-win .lib-hb:not(#\#) {
   background: var(--lib-bg); color: var(--lib-fg); border: 1px solid; border-color: var(--lib-hi) var(--lib-lo) var(--lib-lo) var(--lib-hi);
   border-radius: 0; box-shadow: none; font: inherit; }
 html.d95-desk .lib-win .d95-tb .d95-x:not(#\#) { color: var(--lib-fg); }
