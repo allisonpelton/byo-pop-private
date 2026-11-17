@@ -1023,6 +1023,24 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     if (blue) blue(card); else card();
   }
 
+  // The game's picture lost: a browser keeps only so many WebGL contexts in a page (Chrome about 16, for every frame of the
+  // one page together) and takes the oldest one's away past that, so with many games open on the desktop the first one's
+  // can go; a graphics driver's reset takes them all. Nothing the game draws shows again and its pictures on the graphics
+  // card are gone, so it closes its own way, its saves written first, and its card offers Play again, which starts it with
+  // a new context (docs/WEB_PLAYER.md, "Desktop 95 in one page").
+  function pictureLost() {
+    if (gameState !== "running") return;
+    closeGameThen(function () {
+      setStatus(ByopopStrings.t("game.status.closed"));
+      $("exit-title").textContent = ByopopStrings.t("game.exit.lost");
+      $("exit-msg").textContent = ByopopStrings.t(hasSave() ? "game.exit.lost_saved" : "game.exit.lost_settings");
+      $("exit-overlay").hidden = false;
+      $("btn-play-again").disabled = false;
+      focusCard("exit-card", "btn-play-again");
+    }, true);
+  }
+  $("canvas").addEventListener("webglcontextlost", pictureLost);
+
   // The theme's error sound (web/themes.js): a game stopped by an error, a folder refused
   function deskError() { try { window.dispatchEvent(new CustomEvent("byopop-desk-event", { detail: { what: "error" } })); } catch (e) {} }
   // On the desktop, the game's window turns blue when the game stops with an error, as in 1995 (the user, 2026-11-14, by the
