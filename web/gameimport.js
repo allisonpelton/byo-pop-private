@@ -24,28 +24,31 @@ var ByopopImport = (function () {
   // failing that, the shallowest folder that holds one of the game's folders. A marker that is a pak (spec.paks) is there when
   // the pak is, or when the folder holds any of the game's folders: the pak already unpacked, as a staged copy or a zip of the
   // unpacked game has it (hasMarkers does the same for picked files).
-  function findRoot(spec, entries, placeholders) {
-    var paks = spec.paks || [];
+  // among (sort's): the entries whose names may be a marker's (markerNames, below), in their order; the markers are looked for
+  // only among them, and the root is the same as when every entry is looked at
+  function findRoot(spec, entries, placeholders, among) {
+    var paks = spec.paks || [], marks = among || entries;
     function isPak(m) { return paks.indexOf(m.toLowerCase()) >= 0; }
     var anyDepth = spec.markers.map(function (m) { return new RegExp("^(.*/)?" + markerPattern(m) + "$", "i"); });
     var atRoot = spec.markers.map(function (m) { return new RegExp("^" + markerPattern(m) + "$", "i"); });
     var allPaks = spec.markers.every(isPak), tried = {};
     function holds(root) {
-      var inRoot = entries.filter(function (e) { return under(e, root); });
+      var inRoot = marks.filter(function (e) { return under(e, root); });
       return spec.markers.every(function (m, k) {
         if (inRoot.some(function (e) { return atRoot[k].test(e.path.substring(root.length)); })) return true;
-        return isPak(m) && inRoot.some(function (e) {
+        return isPak(m) && entries.some(function (e) {
+          if (!under(e, root)) return false;
           var rel = e.path.substring(root.length), j = rel.indexOf("/");
           return j > 0 && spec.gameDirs.indexOf(rel.substring(0, j).toLowerCase()) >= 0;
         });
       });
     }
-    for (var i = 0; i < entries.length; i++) {
+    for (var i = 0; i < marks.length; i++) {
       var roots = [];
       anyDepth.forEach(function (re, k) {
         // a pak marker names a root only when every marker is one (else the other markers name it)
         if (isPak(spec.markers[k]) && !allPaks) return;
-        var m = re.exec(entries[i].path);
+        var m = re.exec(marks[i].path);
         if (m) roots.push(m[1] || "");
       });
       for (var r = 0; r < roots.length; r++) {
@@ -220,16 +223,59 @@ var ByopopImport = (function () {
     if (names.indexOf(f) >= 0) return 3;
     return names.some(function (n) { return n.length >= 4 && (f.indexOf(n) >= 0 || n.indexOf(f) >= 0); }) ? 2 : 0;
   }
-  // The files under a folder, with the folder's own part of each path left on
-  function groupBy(entries, depth) {
-    var out = {}, order = [];
-    entries.forEach(function (e) {
-      var parts = e.path.split("/");
-      var key = parts.length > depth + 1 ? parts.slice(0, depth + 1).join("/") : parts.slice(0, depth).join("/");
-      if (!(key in out)) { out[key] = []; order.push(key); }
-      out[key].push(e);
-    });
-    return order.map(function (k) { return { path: k, entries: out[k] }; });
+  // The files under a folder, with the folder's own part of each path left on: the first depth + 1 parts of each path, or its
+  // first depth parts for a file with no more than that (the slashes counted, rather than the path split, as this runs over
+  // every file of a big drop)
+  function groupKey(p, depth) {
+    var n = 0, s = -1, cut = -1;
+    while (n <= depth) {
+      s = p.indexOf("/", s + 1);
+      if (s < 0) break;
+      n++;
+      if (n === depth) cut = s;
+    }
+    if (n === depth + 1) return p.substring(0, s);
+    return depth === 0 ? "" : n === depth ? p.substring(0, cut) : p;
+  }
+  // A grouping of group's entries (and of its marks, the entries that may be markers, sort's) by groupKey, done a part at a time
+  // by groupSome; groups(g) once every entry is in
+  function grouping(group, depth) {
+    return { entries: group.entries, marks: group.marks || [], depth: depth, at: 0, out: Object.create(null), order: [] };
+  }
+  function groupSome(g, count) {
+    for (var end = Math.min(g.entries.length, g.at + count); g.at < end; g.at++) {
+      var e = g.entries[g.at], key = groupKey(e.path, g.depth);
+      if (!(key in g.out)) { g.out[key] = []; g.order.push(key); }
+      g.out[key].push(e);
+    }
+    return g.at < g.entries.length;
+  }
+  function groups(g) {
+    var marks = Object.create(null);
+    g.marks.forEach(function (e) { var key = groupKey(e.path, g.depth); (marks[key] = marks[key] || []).push(e); });
+    return g.order.map(function (k) { return { path: k, entries: g.out[k], marks: marks[k] || [] }; });
+  }
+  // The last names of every game's markers, the site's and the others', in lower case (a marker's "x.*" kept as its stem x): a
+  // file named none of them is no game's marker, so the sort looks for markers only among the few files that are
+  var markerIndex = null;
+  function markerNames() {
+    var list = otherList(), key = games.length + "/" + list.length;
+    if (markerIndex && markerIndex.key === key) return markerIndex;
+    var exact = Object.create(null), stems = Object.create(null);
+    function addMarker(m) {
+      m.split("|").forEach(function (alt) {
+        var last = alt.substring(alt.lastIndexOf("/") + 1).toLowerCase();
+        if (/\.\*$/.test(last)) stems[last.slice(0, -2)] = true; else exact[last] = true;
+      });
+    }
+    games.forEach(function (g) { g.spec.markers.forEach(addMarker); });
+    list.forEach(function (o) { o.markers.forEach(addMarker); });
+    markerIndex = { key: key, exact: exact, stems: stems };
+    return markerIndex;
+  }
+  function mayBeMarker(names, path) {
+    var name = path.substring(path.lastIndexOf("/") + 1).toLowerCase(), dot = name.lastIndexOf(".");
+    return names.exact[name] === true || (dot >= 0 && names.stems[name.substring(0, dot)] === true);
   }
   // ---------- games this site does not play ----------
   // ByopopOtherGames (other-games.js, which byopop_web_index() writes from cmake/ByopopOthers.cmake): [{id, title, markers, project,
@@ -237,11 +283,11 @@ var ByopopImport = (function () {
   function otherList() {
     try { return typeof ByopopOtherGames !== "undefined" && Array.isArray(ByopopOtherGames) ? ByopopOtherGames : []; } catch (e) { return []; }
   }
-  // The games of those whose markers the files hold, as [{game, root}]
-  function otherMatches(entries) {
+  // The games of those whose markers the files hold, as [{game, root}]; among as findRoot's
+  function otherMatches(entries, among) {
     var out = [];
     otherList().forEach(function (o) {
-      var root = findRoot({ markers: o.markers, gameDirs: [] }, entries, false);
+      var root = findRoot({ markers: o.markers, gameDirs: [] }, entries, false, among);
       if (root !== null) out.push({ game: o, root: root });
     });
     return out;
@@ -277,58 +323,126 @@ var ByopopImport = (function () {
   // where it cannot, game is null and choices are the games it could be, for the player to pick. A folder that holds no game but
   // holds games' folders (the "PopCap Games" folder) is looked into, three levels deep at most; a folder with no game in it is
   // rejected.
-  function sort(entries) {
+  // The sort is made of steps, each short (a few thousand files looked at, or one folder sorted), so that sortSteps lets the page
+  // draw between them: a whole Steam library (the user's, 2026-11-16: 146,409 files in 24,158 folders) held the page for ten
+  // seconds at once. The markers are looked for only among the files named as one is (markerNames).
+  function sorter(entries) {
     var found = [], rejected = [], others = [];
+    var names = markerNames(), marked = [], at = 0, todo = null;
+    // the work still to do, the next last: folders to visit, and folders being grouped into their subfolders (then(subs) once
+    // they are, with the subfolders only); each step does one, so the results come in the order a visit of each folder in turn,
+    // grouped at once, gives them
+    function later(subs, depth) { for (var i = subs.length - 1; i >= 0; i--) todo.push({ group: subs[i], depth: depth }); }
+    function grouped(group, depth, then) {
+      todo.push({ grouping: grouping(group, depth), then: function (all) { then(all.filter(function (g) { return g.path !== group.path; })); } });
+    }
     function visit(group, depth) {
       var name = group.path.split("/").pop() || ByopopStrings.t("import.dropped_files");
       var matches = [];
       games.forEach(function (g) {
-        var root = findRoot(g.spec, group.entries, false);
+        var root = findRoot(g.spec, group.entries, false, group.marks);
         if (root !== null) matches.push({ game: g, root: root });
       });
       var roots = {};
       matches.forEach(function (m) { roots[m.root] = true; });
       if (matches.length > 0 && Object.keys(roots).length === 1) {
-        var root = matches[0].root, best = null, top = 0, tie = false;
+        var root = matches[0].root;
         // the game is in a subfolder of a folder that holds others: the subfolder is the row, and the others are named as not added
         if (depth < 3 && root.length > (group.path ? group.path.length + 1 : 0)) {
-          var subs = groupBy(group.entries, depth + 1).filter(function (g) { return g.path !== group.path; });
-          if (subs.length > 1) { subs.forEach(function (g) { visit(g, depth + 1); }); return; }
+          grouped(group, depth + 1, function (subs) { if (subs.length > 1) later(subs, depth + 1); else foundAt(group, name, root, matches); });
+          return;
         }
-        matches.forEach(function (m) {
-          var s = Math.max(nameScore(name, m.game), nameScore(root.replace(/\/$/, "").split("/").pop(), m.game));
-          if (s > top) { top = s; best = m.game; tie = false; } else if (s === top && s > 0) tie = true;
-        });
-        var game = matches.length === 1 ? matches[0].game : (top > 0 && !tie ? best : null);
-        found.push({ folder: name, entries: group.entries, root: root, game: game, choices: matches.map(function (m) { return m.game; }) });
+        foundAt(group, name, root, matches);
         return;
       }
       // (no game anywhere in it: findRoot looks at every depth)
-      var deeper = matches.length > 0 ? groupBy(group.entries, depth + 1).filter(function (g) { return g.path !== group.path; }) : [];
-      if (depth < 3 && deeper.length > 0) {
-        deeper.forEach(function (g) { visit(g, depth + 1); });
+      if (matches.length > 0 && depth < 3) {
+        grouped(group, depth + 1, function (deeper) { if (deeper.length > 0) later(deeper, depth + 1); else noneOfOurs(group, depth, name, matches); });
         return;
       }
-      // none of the site's games: one it does not play is named; a folder of several of them is looked into as above
-      var other = matches.length === 0 ? otherMatches(group.entries) : [];
+      noneOfOurs(group, depth, name, matches);
+    }
+    function foundAt(group, name, root, matches) {
+      var best = null, top = 0, tie = false;
+      matches.forEach(function (m) {
+        var s = Math.max(nameScore(name, m.game), nameScore(root.replace(/\/$/, "").split("/").pop(), m.game));
+        if (s > top) { top = s; best = m.game; tie = false; } else if (s === top && s > 0) tie = true;
+      });
+      var game = matches.length === 1 ? matches[0].game : (top > 0 && !tie ? best : null);
+      found.push({ folder: name, entries: group.entries, root: root, game: game, choices: matches.map(function (m) { return m.game; }) });
+    }
+    // none of the site's games: one it does not play is named; a folder of several of them is looked into as above
+    function noneOfOurs(group, depth, name, matches) {
+      var other = matches.length === 0 ? otherMatches(group.entries, group.marks) : [];
       if (other.length > 0) {
         var otherRoots = {};
         other.forEach(function (m) { otherRoots[m.root] = true; });
-        var subs = depth < 3 && Object.keys(otherRoots).length > 1 ? groupBy(group.entries, depth + 1).filter(function (g) { return g.path !== group.path; }) : [];
-        if (subs.length > 0) { subs.forEach(function (g) { visit(g, depth + 1); }); return; }
+        if (depth < 3 && Object.keys(otherRoots).length > 1) {
+          grouped(group, depth + 1, function (subs) { if (subs.length > 0) later(subs, depth + 1); else others.push({ folder: name, game: other[0].game }); });
+          return;
+        }
         others.push({ folder: name, game: other[0].game });
         return;
       }
       rejected.push(name);
     }
-    groupBy(entries, 0).forEach(function (g) { visit(g, 0); });
-    return { found: found, rejected: rejected, others: others };
+    return {
+      // one step: a few thousand files looked at for markers' names or put in their folders, or one folder visited; true while
+      // there is more
+      step: function () {
+        if (at < entries.length) {
+          for (var end = Math.min(entries.length, at + 8192); at < end; at++)
+            if (mayBeMarker(names, entries[at].path)) marked.push(entries[at]);
+          return true;
+        }
+        if (!todo) {
+          todo = [{ grouping: grouping({ entries: entries, marks: marked }, 0), then: function (all) { later(all, 0); } }];
+          return true;
+        }
+        var t = todo.pop();
+        if (!t) return false;
+        if (!t.grouping) visit(t.group, t.depth);
+        else if (groupSome(t.grouping, 8192)) todo.push(t);
+        else t.then(groups(t.grouping));
+        return todo.length > 0;
+      },
+      result: function () { return { found: found, rejected: rejected, others: others }; }
+    };
+  }
+  function sort(entries) {
+    var s = sorter(entries);
+    while (s.step()) { /* to the end */ }
+    return s.result();
+  }
+  // The sort in steps, about 16 ms of them at a time, the page drawing between: resolves with what sort gives
+  function sortSteps(entries) {
+    var s = sorter(entries);
+    return new Promise(function (resolve, reject) {
+      function run() {
+        try {
+          var until = Date.now() + 16;
+          while (s.step()) if (Date.now() >= until) { yieldThen(run); return; }
+          resolve(s.result());
+        } catch (e) { reject(e); }
+      }
+      yieldThen(run);
+    });
+  }
+  // fn after the page has had its turn: a message to itself, which a hidden tab does not slow down as it does a timer
+  function yieldThen(fn) {
+    if (typeof MessageChannel !== "function") { setTimeout(fn, 0); return; }
+    var c = new MessageChannel();
+    c.port1.onmessage = function () { c.port1.close(); fn(); };
+    c.port2.postMessage(0);
   }
 
   // ---------- reading a drop ----------
   // The files of a drop as {path, read()}: a dropped folder's paths start with its name, and a dropped .zip's with its name
   // without ".zip". Must be called in the drop event itself (the entries are only readable during it). zip: web/modpanel.js's.
-  function fromDrop(dataTransfer, zip) {
+  // watch (optional, watch() below): told the folders listed and the files found as the walk goes, and asked before each folder
+  // whether to stop, when the walk rejects with an Error whose cancelled is true. Every folder is listed, however deep: a game is
+  // known by its files at any depth, so no folder can be passed over before its files are seen.
+  function fromDrop(dataTransfer, zip, watch) {
     var tops = [];
     Array.prototype.forEach.call(dataTransfer.items || [], function (item) {
       if (item.kind !== "file") return;
@@ -336,18 +450,28 @@ var ByopopImport = (function () {
       if (entry) tops.push(entry);
       else { var f = item.getAsFile(); if (f) tops.push({ isFile: true, name: f.name, fullPath: "/" + f.name, plainFile: f }); }
     });
-    var out = [];
+    var out = [], folders = 0;
+    function told() { if (watch && watch.progress) watch.progress(folders, out.length); }
+    function stop() {
+      if (!(watch && watch.stopped && watch.stopped())) return null;
+      var e = new Error(ByopopStrings.t("import.cancelled"));
+      e.cancelled = true;
+      return e;
+    }
     function fileOf(entry) {
       if (entry.plainFile) return Promise.resolve(entry.plainFile);
       return new Promise(function (resolve, reject) { entry.file(resolve, reject); });
     }
     function walk(entry) {
+      var stopped = stop();
+      if (stopped) return Promise.reject(stopped);
       if (entry.isFile) {
         var path = entry.fullPath.replace(/^\//, "");
         if (/\.zip$/i.test(entry.name) && path.indexOf("/") < 0) {
           return fileOf(entry).then(function (f) { return zip.fromFile(f); }).then(function (files) {
             var base = entry.name.replace(/\.zip$/i, "");
             files.forEach(function (z) { out.push({ path: base + "/" + z.path, read: z.read }); });
+            told();
           });
         }
         out.push({ path: path, read: function () { return fileOf(entry).then(function (f) { return f.arrayBuffer(); }).then(function (b) { return new Uint8Array(b); }); } });
@@ -358,18 +482,45 @@ var ByopopImport = (function () {
       return new Promise(function (resolve, reject) {
         var all = [];
         (function more() {
+          var stopped = stop();
+          if (stopped) { reject(stopped); return; }
           reader.readEntries(function (batch) {
             if (!batch.length) { resolve(all); return; }
-            all = all.concat(Array.prototype.slice.call(batch));
+            for (var i = 0; i < batch.length; i++) all.push(batch[i]);
             more();
           }, reject);
         })();
       }).then(function (children) {
+        folders++;
+        told();
         return children.reduce(function (p, c) { return p.then(function () { return walk(c); }); }, Promise.resolve());
       });
     }
-    return tops.reduce(function (p, t) { return p.then(function () { return walk(t); }); }, Promise.resolve()).then(function () { return out; });
+    return tops.reduce(function (p, t) { return p.then(function () { return walk(t); }); }, Promise.resolve())
+      .then(function () { told(); return out; });
   }
+  // A walk's watch for fromDrop: listen(fn) has fn(folders, files) called with the walk's count at most four times a second, and
+  // cancel() stops the walk at its next folder
+  function watch() {
+    var folders = 0, files = 0, stopped = false, fn = null, timer = 0;
+    function show() { timer = 0; if (fn) fn(folders, files); }
+    return {
+      progress: function (f, n) { folders = f; files = n; if (fn && !timer) timer = setTimeout(show, 250); },
+      stopped: function () { return stopped; },
+      cancel: function () { stopped = true; },
+      listen: function (f) { fn = f; if (!f && timer) { clearTimeout(timer); timer = 0; } }
+    };
+  }
+  // What a reading row says while a drop is read: the folders and files found so far, the numbers as the page's language writes them
+  function readingText(folders, files) {
+    function num(n) { try { return n.toLocaleString(ByopopStrings.lang); } catch (e) { return String(n); } }
+    return ByopopStrings.t("import.reading_count", {
+      folders: ByopopStrings.t("import.count.folders", { n: folders, count: num(folders) }),
+      files: ByopopStrings.t("import.count.files", { n: files, count: num(files) }) });
+  }
+  // The folders with no game: listed one by one up to MANY_REJECTED - 1 of them; from MANY_REJECTED on, as one line with their
+  // names behind a Details button (a whole Steam library has about ninety)
+  var MANY_REJECTED = 4;
   // Whether a drag carries files (a folder is a file to the browser), so that a drop target can say it takes them
   function hasFiles(dataTransfer) {
     return !!dataTransfer && Array.prototype.indexOf.call(dataTransfer.types || [], "Files") >= 0;
@@ -623,6 +774,6 @@ var ByopopImport = (function () {
   }
 
   return { stored: stored, exeUnreadable: exeUnreadable, probeHolds: probeHolds, markerPattern: markerPattern, findRoot: findRoot, withPaks: withPaks, pick: pick, hasMarkers: hasMarkers, exeIcon: exeIcon,
-    games: games, add: add, sort: sort, otherGame: otherGame, otherNote: otherNote, nameScore: nameScore, fromDrop: fromDrop, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
+    games: games, add: add, sort: sort, sortSteps: sortSteps, otherGame: otherGame, otherNote: otherNote, nameScore: nameScore, fromDrop: fromDrop, watch: watch, readingText: readingText, MANY_REJECTED: MANY_REJECTED, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
     forgetGame: forgetGame, ordered: ordered, missingIn: missingIn, missingMarkers: missingMarkers, markerList: markerList };
 })();

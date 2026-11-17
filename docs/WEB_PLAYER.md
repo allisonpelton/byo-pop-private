@@ -166,6 +166,23 @@ nothing, the marker files last. It follows the game page's own rules: `byopop_we
 `page.js` into `import-games.js`. `tools/gameimporttest.js` (`unit-web`) checks the rules and the sorting with every
 finished game's `page.js`.
 
+**A big drop** (the user, 2026-11-16, of their Steam library's 146,409 files in 24,158 folders):
+
+- **The count.** While a dropped folder is read, the reading row counts the folders and files found so far, four times a
+  second, and has a Cancel button that stops the walk at its next folder.
+- **Every folder is listed.** A game is known by its files, at any depth, so no folder can be passed over before its
+  files are seen, and the walk does not try.
+- **Markers by name first.** The sort looks for markers only among the files named as some game's marker is
+  (`markerNames`), and gives the same result as looking at every file.
+- **The sort in steps.** `sortSteps` sorts in steps of about 16 ms, the page drawing between them.
+- **The folders with no game,** from four of them on, read as one line, "96 folders hold no game this site plays", with
+  their names behind Details.
+
+On a synthetic library of that size (`tools/steamdroptest.js`), the sort took 10.5 to 13 s at once before this and takes
+0.16 to 0.18 s now, in steps of at most 18 ms, with the same result. The walk is the rest: read from the disk under Node
+(`--disk DIR`, which writes the library under `build/` and deletes it afterwards), the same library's 47,939 listings took
+6.9 s, which is what the count and Cancel are for. `unit-web` runs the test at a tenth of the size.
+
 ### The Setup window
 
 `web/setup.js` is "byo-pop Setup", a wizard over `web/addgames.js` (the user, 2026-11-09: "add an installer window

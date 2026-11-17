@@ -867,6 +867,12 @@ html.d95-desk .su-icon-none::before { content: ""; display: block; width: 16px; 
 html.d95-desk .su-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html.d95-desk .su-value { flex: none; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html.d95-desk .su-error { color: #800000; }
+/* a reading under way: its count and its Cancel; many folders with no game: one row, the names under it behind Details */
+html.d95-desk .su-reading .su-name { white-space: normal; }
+html.d95-desk .su-stop, html.d95-desk .su-details { flex: none; min-height: 21px; padding: 0 8px; }
+html.d95-desk .su-many { flex-wrap: wrap; }
+html.d95-desk .su-names { flex: 1 0 100%; box-sizing: border-box; margin: 2px 0 4px; padding-left: 26px; overflow-wrap: anywhere; }
+html.d95-desk .su-names[hidden] { display: none; }
 html.d95-desk .su-agree-row { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 html.d95-desk .su-terms { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 4px 6px; background: #fff;
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }

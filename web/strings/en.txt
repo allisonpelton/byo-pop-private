@@ -786,6 +786,16 @@ import.say.copying = Copying {count} files…
 import.say.progress = Copying… {percent}%
 # The name for dropped files that are not in a folder, where the adding names a folder
 import.dropped_files = (the dropped files)
+# While a dropped folder is read: the folders and the files found so far ({folders} and {files} are the two count strings
+# below; their {count} is the number with its thousands marked)
+import.reading_count = Reading… {folders}, {files}
+import.count.folders = {count} folder | {count} folders
+import.count.files = {count} file | {count} files
+# The reading stopped with its Cancel button (its row then goes)
+import.cancelled = The reading was stopped.
+# Many dropped folders with no game in them, as one line, their names behind a Details button
+import.rejected_many = {n} folder holds no game this site plays | {n} folders hold no game this site plays
+import.rejected_details = Details
 
 
 # ---- Sizes, shown by the saves and the import (web/saves.js)
