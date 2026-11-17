@@ -969,9 +969,12 @@ html.d95-desk .d95-icon.d95-icon-sel { background: rgba(0, 0, 128, .45); }
 html.d95-desk .d95-icon.d95-icon-sel > span { outline: 1px dotted var(--sk-desk-fg); outline-offset: 0; }
 html.d95-desk .d95-band { position: absolute; z-index: 2; pointer-events: none; box-sizing: border-box; border: 1px dotted #ffffff;
   mix-blend-mode: difference; }
-/* 1995's tooltip */
-html.d95-desk .d95-tip { position: absolute; z-index: 2147483500; pointer-events: none; max-width: 320px; padding: 1px 4px;
-  background: #ffffe1; color: #000000; border: 1px solid #000000; font-size: 11px; line-height: 15px; white-space: normal; }
+/* 1995's tooltip: a title's own line breaks kept (the Sounds board's name, when it plays and its file; the user, 2026-11-16:
+   "the soundboard tooltips are hard to read due to lacking line breaks"), long lines wrapped, a long file name broken, and
+   never wider than a narrow screen */
+html.d95-desk .d95-tip { position: absolute; z-index: 2147483500; pointer-events: none; max-width: min(320px, calc(calc(100vw / var(--d95-z, 1)) - 8px));
+  box-sizing: border-box; padding: 1px 4px; background: #ffffe1; color: #000000; border: 1px solid #000000; font-size: 11px; line-height: 15px;
+  white-space: pre-line; overflow-wrap: anywhere; }
 /* the tray's speaker, and the volume's slider above it */
 html.d95-desk .d95-spk { width: 18px; height: 18px; padding: 0; margin: 0 4px 0 0; flex: none; background: transparent; box-shadow: none; border: 0; }
 html.d95-desk .d95-spk > i { display: block; width: 16px; height: 16px; margin: 1px; background: #000000;
