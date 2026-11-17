@@ -49,7 +49,7 @@ installed copy (for example from Steam):
 | [Water Bugs](games/waterbugs/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | 1 | $254 | $1 | | $255 |
 | [Rocket Mania Deluxe](games/rocketmania/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | 1 | $336 | $8 | | $344 |
 | [Dynomite Deluxe](games/dynomite/docs/README.md) | Opus | Every phase but modding | 2026-10-26 | | $427 | | | $427 |
-| [Bookworm Adventures Volume 2](games/bookwormadv2/docs/README.md) | Sonnet | Ported | 2026-10-26 | | $316 | | | $316 |
+| [Bookworm Adventures Volume 2](games/bookwormadv2/docs/README.md) | Sonnet | Registration out | 2026-10-26 | | $316 | | | $316 |
 | [Mahjong Escape: Ancient Japan](games/mahjongjapan/docs/README.md) | Opus | Every phase but modding | 2026-11-01 | 1 | $476 | $2 | | $478 |
 | [Mahjong Escape: Ancient China](games/mahjongchina/docs/README.md) | Opus | Every phase but modding | 2026-11-01 | 1 | with Ancient Japan | | | |
 | [Bonnie's Bookstore Deluxe](games/bonnies/README.md) | Opus | Every phase but modding | 2026-11-01 | 1 | $282 | $2 | | $285 |

@@ -568,8 +568,14 @@ void ConversationPanel::Update()
 		if (!p->mArrived && !SlideToTarget(p))
 			MarkDirty();
 		if (p->mTyping && mLetterDelay > 0 && mAlpha < 1 && p->mArrived && mUpdateCnt % mLetterDelay == 0) {
-			if (mUpdateCnt % (mLetterDelay * 2) == 0)
-				mApp->mSoundPlayer->PlaySampleMinTime(SOUND_TEXT_BLIP, 0);
+			if (mUpdateCnt % (mLetterDelay * 2) == 0) {
+				// one of the ten typing sounds, by the C library's rand (the one Lua's math.random and the board's
+				// shuffle share, so the draw keeps their sequence the original's)
+				const int aBlips[10] = {SOUND_TEXT_BLIP,  SOUND_TEXT_BLIP1, SOUND_TEXT_BLIP2, SOUND_TEXT_BLIP3,
+				                        SOUND_TEXT_BLIP4, SOUND_TEXT_BLIP5, SOUND_TEXT_BLIP6, SOUND_TEXT_BLIP7,
+				                        SOUND_TEXT_BLIP8, SOUND_TEXT_BLIP9};
+				mApp->mSoundPlayer->PlaySampleMinTime(aBlips[poplua_rand() % 10], 0);
+			}
 			NextLetter();
 		}
 		goto callbacks;

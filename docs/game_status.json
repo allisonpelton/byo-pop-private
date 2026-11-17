@@ -362,11 +362,12 @@
       "done": [
         "port",
         "site-features",
-        "registration-out"
+        "registration-out",
+        "identical-play"
       ],
       "na": [],
-      "now": "identical-play",
-      "note": "phase one: 21 of 29 chapters identical in their engine states after the -fast curtain fix (the curtain done once its last frame is drawn) and the harness's state log, load timing and update-counter wait; 4 more differ only by the original's own variance; open: 5.3, 5.4, two +1 draws (IDENTICAL_PLAY.md)"
+      "now": "identical-look",
+      "note": "phase one done (b79cc0f5): 20 of 29 chapters identical, 5 within the original's own 7-update variance, 2 oddities (5.3, 6.5), 2 not comparable (the original's 4.6 and 4.7 stand still); the C library's rand now seeded as the original's SexyAppBase::Init does; phase two (looks) started"
     },
     "bookwormadv": {
       "title": "Bookworm Adventures Deluxe",
