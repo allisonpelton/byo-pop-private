@@ -972,6 +972,15 @@ html.d95-desk .d95-icons.d95-icons-free { display: block; }
 html.d95-desk .d95-icons.d95-icons-free > .d95-icon { position: absolute; width: 84px; box-sizing: border-box; }
 html.d95-desk .d95-icon.d95-icon-sel { background: rgba(0, 0, 128, .45); }
 html.d95-desk .d95-icon.d95-icon-sel > span { outline: 1px dotted var(--sk-desk-fg); outline-offset: 0; }
+/* an icon's name as Windows 95 draws it: two lines at most, cut with an ellipsis, so that it stays in its place of the grid,
+   which has room for two (the user, 2026-11-16: "Line up icons causes this overlap on a long name"); the whole name only on the
+   icon with the focus, or the one icon selected, drawn over its neighbours (several selected by a drag keep theirs cut, as
+   Windows shows only the focused one's). Clipped, not hidden: a hidden overflow would let the name shrink to the cell's
+   20 px left under the picture, a line and a half */
+html.d95-desk .d95-icon > span:last-child { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: clip; }
+html.d95-desk .d95-icon:focus > span:last-child,
+html.d95-desk .d95-icons:not(:has(> .d95-icon-sel ~ .d95-icon-sel)) > .d95-icon-sel > span:last-child { display: block; -webkit-line-clamp: none; overflow: visible; }
+html.d95-desk .d95-icon:focus, html.d95-desk .d95-icons:not(:has(> .d95-icon-sel ~ .d95-icon-sel)) > .d95-icon-sel { z-index: 3; }
 html.d95-desk .d95-band { position: absolute; z-index: 2; pointer-events: none; box-sizing: border-box; border: 1px dotted #ffffff;
   mix-blend-mode: difference; }
 /* 1995's tooltip: a title's own line breaks kept (the Sounds board's name, when it plays and its file; the user, 2026-11-16:
