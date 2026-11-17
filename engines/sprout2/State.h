@@ -4,8 +4,8 @@
 // States and the machines that run them (State, vtable 0x5502d8 (feedingfrenzy2); StateMgr, vtable 0x55bb40
 // (feedingfrenzy2), and its typed form AbstractStateMgr<T>): a machine holds one state, which it enters, updates each
 // frame and leaves when another takes its place. The game's application, its fish and its screens each run one.
-// Only the slots the translated states use are declared; the rest (State's 0x14 to 0x20, StateMgr's 0x14 and 0x18)
-// are added with their first caller.
+// A state can be put aside for another (a popup) and put back: it is suspended rather than left, and resumed rather
+// than entered.
 
 #include "Engine.h"
 #include "Object.h"
@@ -24,6 +24,10 @@ public:
 	virtual void update(UpdateContext* theContext) {}
 	// 0x10: an action of a screen's (a button's name), passed on by the machine; State's own does nothing
 	virtual void action(const std::string& theAction) {}
+	// 0x14: another put in its place for a while (pushState)
+	virtual void suspend() {}
+	// 0x18: put back in its place (popState)
+	virtual void resume() {}
 };
 
 template <class T>
@@ -45,6 +49,25 @@ public:
 		if (mState != nullptr)
 			mState->enter();
 		return true;
+	}
+	// 0x14 (0x489840 (feedingfrenzy2)): the current state suspended, the new one put in its place and entered (the
+	// machine keeps no stack: the new state holds the old one to put back)
+	virtual void pushState(T* theState)
+	{
+		if (mState != nullptr)
+			mState->suspend();
+		mState = theState;
+		if (mState != nullptr)
+			mState->enter();
+	}
+	// 0x18 (0x48ad30 (feedingfrenzy2)): the current state left, the given one put back and resumed
+	virtual void popState(T* theState)
+	{
+		if (mState != nullptr)
+			mState->exit();
+		mState = theState;
+		if (mState != nullptr)
+			mState->resume();
 	}
 	// 0x0c (0x4448d0 (feedingfrenzy2))
 	virtual void update(UpdateContext* theContext)

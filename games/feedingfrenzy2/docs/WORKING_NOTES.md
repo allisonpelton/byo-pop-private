@@ -197,14 +197,33 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   when the window goes inactive) and the port's widget turning the framework's mouse, keys and focus into the
   engine's signals, as the window procedure does (no double clicks: the original's window class has none). Not yet
   exercised: no screen with buttons is shown until the menu state is translated.
+- The loader's plain shell screens (pause, name entry, the four confirmations of the players' list, the quit's,
+  the game exit's and the high scores' reset, restore, generic load, credits), each with its fades and its actions
+  passed to the application, in the original's order with its progress steps; the engine's combo button (an image
+  button with a text in a font and colour for each state).
+  - The combo button's setFonts sets the three colours to the byte value 1 (nearly black) before the reader sets
+    them: kept.
+  - The application's sound manager (+0x34) is made by the loader and read by nothing the export shows: left out.
+- The configuration's string table (resource/baseStrings.xml), the vendor and the name; the players' data as made
+  (no player); the menu state: the main menu shown with the player's name, the welcome for a new player and the
+  trophies hidden, its credits and back actions, suspend and resume for popups; the state machine's push and pop.
+  Checked by screenshots: the splash hides and the main menu fades in over it.
+  - The loader finishes in a frame, so the splash's burst comes while the last letters of its LOADING still wait to
+    appear: a waiting letter does not burst and the bubble text counts as done, so they grow in as the splash fades
+    out, as the original's would on a machine that loads that fast. With no menu stage yet, the frame is not
+    painted over and the splash's last frame stays under the menu.
 
 ## Next
 
-- The splash's loader (0x47e450: the sound manager, the stage, the users' data, every shell screen; the layouts'
-  textButton, comboButton, checkBox, include, radioGroup, listBox, table, editBox), the burst's sound, the sound
-  system's and the game's updates in the bursting phase; then the menu state.
-- The configuration's string table and options, the start's options, key, activate and music connections, the
-  popups and the debug display.
+- The players: the players' list (0x40a630, its folder under the vendor and name, 0x4921e0), the players' data's
+  load and its signatures (0x49cf10, 0x47b1a0), the popup state (0x48a9c0) and the edit box, so a first run asks
+  for a name; then the players' select screen.
+- The stage (0x403aa0) and its loader, for the menu's background; the menu's music and sounds; the menu's other
+  actions (new game, the map, options, high scores, quit's confirmation).
+- The layouts' textButton, checkBox, include, radioGroup, listBox, table, editBox and compositeGroup; the burst's
+  sound, the sound system's and the game's updates in the splash's bursting phase.
+- The configuration's options, the start's options, key, activate and music connections, the popups and the debug
+  display.
 - The looks: the frame does not clear the display, so the splash's quarter-second fade builds up over the last frame
   (the background at 6, 17, 33, 50, 66% of its brightness in the first frames where the fade's progress is 7, 13, 20,
   27, 33%). Compare with the original windowed (its back buffer blitted, so kept) and full screen (a flip chain, so

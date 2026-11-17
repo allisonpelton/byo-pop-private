@@ -3,6 +3,7 @@
 #include "DrawContext.h"
 #include "Engine.h"
 #include "FishFactory.h"
+#include "MenuState.h"
 #include "ScreenMgr.h"
 #include "Theme.h"
 #include "Transition.h"
@@ -123,11 +124,16 @@ void SplashState::update(UpdateContext* theContext)
 		// hundredth-second steps (0x43a570 (feedingfrenzy2)): not yet translated
 		if (!mBubbleText->isDone())
 			return;
-		// The next state: the screensaver's (SaverState) in saver mode, else the menu (MenuState) or, when the
-		// configuration names a stage to start in (the application's +0x338), the game (GamePlayState): not yet
-		// translated, so the splash stays
+		// The next state: the menu. The screensaver's (SaverState, 0x18 bytes) in saver mode, and the game's
+		// (GamePlayState, 0x1c bytes) when the configuration names a stage to start in (the application's +0x338),
+		// are not yet translated, so in saver mode the splash stays
+		if (!mSaverMode)
+		{
+			mApp->mStateMgr.changeState(new MenuState(mApp));
+			return;
+		}
 		if (!mNextStateLogged)
-			getEngine()->log("SplashState: the next state not yet translated\n");
+			getEngine()->log("SplashState: the screensaver's state not yet translated\n");
 		mNextStateLogged = true;
 		return;
 	}
@@ -201,9 +207,10 @@ void SplashState::load()
 	mApp->mAppQuitConfirm = loadShellScreen("resource/shell/appQuitConfirm.xml", nullptr, aFade, aFade);
 	mLoadProgress = 0.475f;
 
-	// The players' data (+0xb4, UserData, 0x88 bytes, its constructor 0x498300 (feedingfrenzy2)) and its load from
-	// the current player (0x49cf10 (feedingfrenzy2)), then the players' list (+0x60): not yet translated
-	getEngine()->log("SplashState: the players' data and list not yet translated\n");
+	mApp->mUserData = new UserData();
+	// The players' data's load from the current player (0x49cf10 (feedingfrenzy2)), then the players' list (+0x60):
+	// not yet translated
+	getEngine()->log("SplashState: the players' data's load and list not yet translated\n");
 	mLoadProgress = 0.5f;
 	aFade = new FadeTransition(SHELL_FADE_SECONDS);
 	mApp->mUserDeleteConfirm =

@@ -15,7 +15,9 @@
 #include "Scene.h"
 #include "StageScreenData.h"
 #include "State.h"
+#include "StringTable.h"
 #include "Theme.h"
+#include "UserData.h"
 #include "sigslot.h"
 
 class FeedingFrenzyTwo;
@@ -32,15 +34,23 @@ protected:
 	FeedingFrenzyTwo* mApp;  // +0x0c
 };
 
+// The screen the menu shows on entering (the application's +0x330), set by what sends the player to it
+enum MenuScreen
+{
+	MENU_SCREEN_MAIN = 0,
+	MENU_SCREEN_HIGH_SCORES = 1,
+	MENU_SCREEN_MAP = 2
+};
+
 class FeedingFrenzyTwo : public engine::Object, public sigslot::HasSlots
 {
 public:
 	FeedingFrenzyTwo();
 	~FeedingFrenzyTwo() override;
 
-	// Slot 4 (0x48c080 (feedingfrenzy2)): the archives read, not loose files. The string table
-	// (resource/baseStrings.xml: the vendor and name), the options and the window's title, size and rate are not yet
-	// translated (the port's host sets the window)
+	// Slot 4 (0x48c080 (feedingfrenzy2)): the archives read, not loose files, then the string table and from it the
+	// vendor and the name. The options and the window's title, size and rate are not yet translated (the port's host
+	// sets the window)
 	void configure();
 	// Slot 8 (0x408050 (feedingfrenzy2)): the frame's update connected, the scene made and enabled, the screen
 	// manager and the containers made, and the splash state begun. The options read first, the key, minimize, restore
@@ -62,6 +72,7 @@ public:
 	// switched off, has been seen to lead to it)
 	engine::Ref<engine::Container> mContainerSlot;     // +0x44: "ContainerSlot", in the scene
 	engine::Ref<engine::Container> mStageContainer;    // +0x48: "StageContainer"
+	engine::Ref<StringTable> mStrings;                 // +0x4c: resource/baseStrings.xml, read by configure
 	engine::Ref<engine::GenericScreen> mSplashScreen;  // +0x54
 	// The shell's plain screens, made by the splash's loader
 	engine::Ref<engine::GenericScreen> mPauseScreen;             // +0x58
@@ -84,9 +95,15 @@ public:
 	engine::Ref<engine::Theme> mShellTheme;            // +0xac: resource/themes/shellTheme.xml, falling back on the
 	                                                   // minimal theme
 	engine::Ref<engine::Theme> mTheme;                 // +0xb0: the minimal theme, made by the splash
+	engine::Ref<UserData> mUserData;                   // +0xb4: made by the splash's loader
 	engine::Ref<StageScreenData> mStageScreenData;     // +0xbc
 	engine::Ref<FunFacts> mFunFacts;                   // +0xc0
 	engine::Ref<PlayerRanks> mPlayerRanks;             // +0xc4
+	std::string mVendor;                               // +0xc8: the string table's vendor
+	std::string mAppName;                              // +0xe4: the string table's appName
+	bool mMenuRunning;                                 // +0x320: while the menu is the current state, so its stage
+	                                                   // goes on under a popup
+	int mMenuScreen;                                   // +0x330: MenuScreen
 	engine::StateMgr<AppState> mStateMgr;              // +0x354
 };
 
