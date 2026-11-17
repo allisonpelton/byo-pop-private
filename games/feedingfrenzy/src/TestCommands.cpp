@@ -40,6 +40,9 @@ const float CHASE_SPEED = 260.0f;
 const float DANGER_DISTANCE = 170.0f;
 const float DANGER_SPEED = 520.0f;
 
+// The name the bot types for a score that made the list
+const char* const BOT_PLAYER_NAME = "BOT";
+
 // Whether a game has been started since the launch, which the state's "over" needs: the game is over once the menu is
 // back after one
 bool gGameStarted = false;
@@ -385,6 +388,17 @@ std::string FeedingFrenzyApp::TestMove()
 	std::string aState = aFood->getStateName();
 	if (aState == "loading" || aState == "loadmap" || aState == "stageended" || aState == "nextstage")
 		return waitLine(WAIT_UPDATES);
+	if (aScreen == "entername" && aClick != nullptr && aClick->getNode("continueBtn") != nullptr)
+	{
+		// a score that made the list: the bot types its name and presses Done
+		std::string aName = aFood->getEnteredName();
+		std::string aWanted = BOT_PLAYER_NAME;
+		if (aName == aWanted)
+			return nodeMove("done", aClick->getNode("continueBtn"));
+		if (aName.size() < aWanted.size() && aWanted.compare(0, aName.size(), aName) == 0)
+			return inputLine("type", "", std::string("[{\"key\":\"") + aWanted[aName.size()] + "\"}]", 2);
+		return inputLine("erase", "", "[{\"key\":\"Backspace\"}]", 2);
+	}
 	if (aState == "menu" && aClick != nullptr && aScreen == "menu")
 		return nodeMove("new game", aClick->getNode("newGameBtnImg"));
 	if (aState == "stage")
@@ -524,14 +538,16 @@ bool FeedingFrenzyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	{
 		ff::StageMgr* aStage = aFood->getStageMgr();
 		if (std::string(aFood->getStateName()) != "stage" || aStage == nullptr ||
-		    aStage->getState() != ff::STATE_PLAYING)
+		    aStage->getState() != ff::STATE_PLAYING || aStage->getPlayer() == nullptr ||
+		    aStage->getPlayer()->isDying())
 			error("no stage is being played");
 		else
 		{
+			// win: the stage is cleared (the mermaid swims in); lose: the player is eaten, as a fish's bite does
 			if (aCmd == "win")
 				aStage->beginMermaidEnd();
 			else
-				aStage->endLost();
+				aStage->getPlayer()->die();
 			ok();
 		}
 	}

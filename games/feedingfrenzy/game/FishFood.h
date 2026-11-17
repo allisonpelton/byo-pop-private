@@ -122,6 +122,8 @@ public:
 	engine::ScreenLayout* getClickScreen();
 	// port (test commands): the furthest stage of both lists is the last of the manifest
 	void unlockAllStages();
+	// port (test commands): the name typed on the high score entry screen
+	std::string getEnteredName();
 
 private:
 	// The controller's state (+0x54), the part of the game it is in

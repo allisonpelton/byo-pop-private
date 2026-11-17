@@ -345,6 +345,12 @@ void FishFood::unlockAllStages()
 	mTimedScores.reachStage(getStageCount());
 }
 
+// port (test commands)
+std::string FishFood::getEnteredName()
+{
+	return mHighScoreEntryScreen->getEnteredName();
+}
+
 // 0x42c230: the window's focus lost pauses a game that is running
 void FishFood::onAppActivate(bool theActive)
 {
