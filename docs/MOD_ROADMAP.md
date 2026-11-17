@@ -260,7 +260,9 @@ mod for a single setting), under the mod rules above. Where a game already has o
 every game, from the input the page passes on, the canvas it draws on or the framework's clock, so they become site
 settings that the site session builds, off by default (the default must not feel modded, `docs/WEB_PLAYER.md`). Only
 the parts that need a game's own code stay mods here; each item says which. The site also records clips of play, for
-every game.
+every game. An audit on 2026-11-17 found items 8, 14 and 27 wholly covered by the site, and the user dropped the
+jukebox (29: "Remove the jukebox since the site music player takes care of it"); those four are no longer made, and
+their numbers stay only because other docs cite items by number.
 
 The user's first six:
 
@@ -277,8 +279,8 @@ Speedrunning and competition:
 
 7. Replay checker: a saved replay replayed without a window to confirm its score, so scores can be shared as files
    without online features.
-8. Timer and input display on screen, for speedruns in the browser, where LiveSplit cannot read the game. The input
-   display and a run timer are site settings now; splits at the game's own milestones stay a mod.
+8. Timer and input display on screen: not made, covered by the site (its input display, and its Splits window, which
+   splits at the game's own milestones from item 1's block).
 9. Daily board: the same seed for everyone on a date, with its own high scores (BookWorm, Noah's Ark).
 
 Practice and help:
@@ -291,18 +293,20 @@ Practice and help:
     is made, in its modding phase (the user, 2026-11-11: "In the modding phase").
 12. Level select: start at any level or stage, with separate scores.
 13. Game stats: the game's numbers at game over, and lifetime totals (Bejeweled's stage 17, BookWorm's word journal).
-14. Speed control: a slower or faster game clock. A site setting now, through the framework's clock, for every port
-    that uses it.
+14. Speed control: not made, a site setting through the framework's clock (the native builds' control is framework
+    work, not a mod).
 
 Accessibility:
 
-15. Colour-blind help: symbols or other palettes for anything the game tells apart only by colour. Palettes are a site
-    filter over the canvas now; symbols stay a mod.
+15. Colour-blind help: symbols or other palettes for anything the game tells apart only by colour. Palettes are to be a
+    site filter over the canvas (not built as of 2026-11-17: the site's colour filters have none yet); symbols stay a
+    mod.
 16. Reduced motion: screen shake, flashes and heavy particle bursts turned off.
 17. Other controls: keyboard-only or gamepad play for mouse games, touch for phone browsers, remappable keys. Site
     settings now, translated by the page before the game sees the input; a mod only where a game needs controls of its
     own.
-18. Larger text and a high-contrast interface.
+18. Larger text and a high-contrast interface. The site's High contrast colour filter covers the whole picture; larger
+    text, and contrast for one part of the screen, stay a mod.
 
 Rules and content:
 
@@ -320,12 +324,11 @@ Rules and content:
 
 Presentation:
 
-27. Pixel-perfect scaling and an optional scanline filter, for the 640x480 games. Both are site settings:
-    pixel-perfect since 3bd48ae1, the scanline filter to come.
+27. Pixel-perfect scaling and a scanline filter: not made, both site settings (pixel-perfect since 3bd48ae1, then
+    light and strong scanlines).
 28. Smooth frames on high-refresh screens: frames drawn between updates without changing the update clock, so replays
     stay exact.
-29. Jukebox: the player chooses the music, or the game's other tracks play on other levels. The site's soundtrack
-    player covers listening outside the game; this mod is what the game plays during play.
+29. Jukebox: dropped (the user, 2026-11-17); the site's Music player plays every game's tracks.
 30. Stereo sound (the user, 2026-11-17): each sound panned to where it happens on the screen (a gem's column, a ball's
     or a bug's position), for games whose sounds play centred, through the pan the framework's sound calls already
     take; games that already pan keep theirs.
