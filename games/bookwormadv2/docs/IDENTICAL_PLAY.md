@@ -81,6 +81,7 @@ updates. Victory effects and fireworks draw per frame, so they are not comparabl
 | (test only) Six chapters' engine states parted where a lost turn's grid click ends the round | `EndLostTurnRound` sets state 5, then 1, in the click's update, in both programs; the original's watch polls every millisecond and sees that passing 5 only sometimes, the port logged once an update | `-statelog` writes every `BattleEngine::SetState`, and `statecmp.py` lets a state the port leaves in the update it entered go unmatched | 21c03eda |
 | (test only) The port's replay made its engine one update before the original's, or up to 30,000 updates off when the startup load went unmeasured | `calib.py` gave a chapter load as a length from the port's own load start | `-chapterloadupdates=@<update>`: the load ends where the original made its engine; `case.sh` anchors on that update when the original's mark came later | 21c03eda |
 | (test only) On a busy machine the original's first click was given up at update 3515 and the script ran on the wall clock (5.3, 6.6) | origrun's `at` waits 30 s of virtual time, and the startup load runs on the wall clock while the updates stand still | the original's script starts with a `waitfor` on its own update counter; a run whose input was given up is marked `ORIGINAL RAN FREE` | see the commit after 21c03eda |
+| Chapter 5.4: a plague tile spread onto another letter than in the original (the R of MOZARAB instead of a J), so the word did 3 damage where the original's killed | The plague's spread (`poisonedtile.luc`, `GetRandomizedAdjacentTiles` 0x419150) shuffles with the C library's `rand`, which `SexyAppBase::Init` (0x558ef0) seeds with `srand(GetTickCount())`; the port's copy (`poplua_rand`) was never seeded, and the conversation's typing (`ConversationPanel::Update` 0x428860) draws `rand() % 10` for one of ten sounds where the port played the first always | `GameApp::Init` seeds `poplua_rand` from the tick count (1 under `-seed`); the typing sound is drawn as the original's; the patch list's `crtseed` line seeds the original's with 1 (`srand(GetTickCount())` at 0x559432 becomes `srand(1)`) | see the commit after b66ae6ce |
 
 ## The baseline guard
 
@@ -119,7 +120,9 @@ it green.
   `GridNeedsPurification`, every fourth turn) does nothing, where the port's purifies for 257 updates. The companion
   was a consequence: both programs count the same four companion turns. The draws inside the battle agree up to the
   attack, the scramble's steps keep the one-update lag of the 6.5 oddity, and nothing in the Lua differs (the same
-  scripts run). Not found within the hour: why the original's attack never reaches `PerformAttack` (to see it: the
+  scripts run). Seeding the C library's `rand` alike in both (Changes, chapter 5.4) left it as it was, the same
+  first difference in a rerun. The treasure room was checked by shots of the original: it picks the same three.
+  Not found within the hour: why the original's attack never reaches `PerformAttack` (to see it: the
   case `after-5.3`, the `lua` script command in the replay around 14280; what it would take: Lex's health and the
   Rooster's `mCurrentAttack` and its `mAnim.mMessageMap` read from the original's memory during the attack, or its
   lua.log with a print in `UpdateAttack`, to tell a damage message that never came from one that was skipped).
@@ -206,29 +209,28 @@ anchored on its battle engine (origrun's `waitfor` and `mark`) and the port's re
 four to seven minutes. The batch of 2026-11-12/13 and the first runs of 2026-11-15 compared against an unseeded original
 (the ignored patch list had lost its reseed lines, see Oddities) and are void.
 
-Each case is named by the profile it starts from, so `after-4.1` plays chapter 4.2. The second rerun (2026-11-16
-afternoon, with the fixes of 21c03eda and the startup `waitfor`) took the 20 chapters that were not clean, three cases at
-once (`JOBS`, 51 minutes for the 20; one at a time a case takes five to six). Of the 29:
+Each case is named by the profile it starts from, so `after-4.1` plays chapter 4.2. The third rerun (2026-11-16
+evening, all 29, with the C library's `rand` seeded alike in both, see Changes, chapter 5.4) took about 60 minutes,
+three cases at once (`JOBS`; one at a time a case takes five to six). Of the 29:
 
-- **Identical engine states** (21): `after-4.1`, `after-4.3`, `after-4.4`, `after-4.5`, `after-4.8`, `after-5.10`,
-  `after-6.1`, `after-6.8`, `after-6.10` (the first batch), and `after-4.2`, `after-5.1`, `after-5.2`, `after-5.5`,
-  `after-5.7`, `after-5.8`, `after-5.9`, `after-6.2`, `after-6.4`, `after-6.6`, `after-6.7`, `after-6.9`, all within 6
-  updates. Two keep a draw difference inside a battle: `after-5.5` (+1: a draw the scripts make every update runs one
-  update longer in the original, 11,400 to 11,514 against the port's 11,513, before Lex's death; the counts agree again
-  after the battle restarts) and `after-6.9` (+1, not yet looked at). The six chapters that had "the original goes to
-  state 5 where the port attacks" were the lost turn's passing state (Changes).
-- **One change 3 to 7 updates apart** (4): `after-4.6`, `after-4.9`, `after-5.6`, `after-6.3`. The gap opens at the end
-  of an attack (state 3 to 5, 7 or 9) and closes at the next input. It is the original's own variance: `after-6.2` had
-  such a gap in one run and none in the next, with the same port and the same input. Not a difference of the port.
-- **A real difference** (3):
-  - `after-5.3`: after a scramble, the enemy's attack hurts Lex in the port and not in the original, so the port's
-    attack runs 47 updates longer and its companion then purifies Lex (257 updates) where the original's does
-    nothing. An oddity (Oddities); the companion's turn count is the same in both.
-  - `after-5.4`: on MOZARAB against Broken Brother (lightly armored, burning, a flinch defense), Lex at 5.5 health, the
-    port's word takes the enemy from 3.5 to 0.5 and the turn passes; the original's Lex dies during that attack (state
-    7, 251 updates in). The draws agree up to the attack. Open.
-  - `after-6.5`: the scramble oddity (Oddities).
-- **Not comparable** (1): `after-4.7`. The original's update counter stops (11,514 and 12,734 in two runs) while the
-  port goes on: the original stands still, as its Flash movies do in the sandbox on the virtual clock.
+- **Identical engine states** (20): `after-4.1`, `after-4.2`, `after-4.3`, `after-4.4`, `after-4.8`, `after-5.1`,
+  `after-5.2`, `after-5.4`, `after-5.5`, `after-5.7`, `after-5.8`, `after-5.9`, `after-5.10`, `after-6.1`, `after-6.4`,
+  `after-6.6`, `after-6.7`, `after-6.8`, `after-6.9`, `after-6.10`, all within 6 updates (`after-5.9`'s original ran free
+  only after its last state). `after-5.4` was a real difference until the `rand` fix: its word did 3 damage where the
+  original's killed (a plague tile had spread onto another letter). Two keep a draw difference inside a battle:
+  `after-5.5` (+1: a draw the scripts make every update runs one update longer in the original, before Lex's death;
+  the counts agree again after the battle restarts) and `after-6.9` (+1). The six chapters that once had "the original
+  goes to state 5 where the port attacks" were the lost turn's passing state (Changes).
+- **One change 3 to 7 updates apart** (5): `after-4.5`, `after-4.9`, `after-5.6`, `after-6.2`, `after-6.3`. The gap
+  opens at the end of an attack (state 3 to 5, 7 or 9) and closes at the next input. It is the original's own
+  variance: `after-4.5`, `after-4.6` and `after-6.2` each had such a gap in one run and none in another, with the same
+  port and the same input. Not a difference of the port.
+- **Oddities** (2): `after-5.3` (after a scramble the enemy's attack hurts Lex in the port and not in the original,
+  so the port's companion then purifies Lex where the original's does nothing) and `after-6.5` (the scramble's
+  one-update lag). Both under Oddities.
+- **Not comparable this run** (2): `after-4.6` and `after-4.7`, whose originals stood still before their battles (the
+  counter stopped at 5,900 and 16,414). `after-4.6` was comparable in earlier runs (a 7-update gap, above); `after-4.7`
+  never was: its original stops (11,514, 12,734 and 16,414 in three runs) as its Flash movies do in the sandbox on the
+  virtual clock.
 
 The full verdict lines are in `build/chapter-results.txt` and `build/chapter-logs/` while they last.
