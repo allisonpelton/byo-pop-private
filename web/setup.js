@@ -50,6 +50,7 @@ var ByopopSetup = (function () {
   // the state of one run: the folders found (each { key, folder, game, choices, entries, root, here, agreed, supported, el }), the
   // pages after Your games, the page shown, the results by key, the jobs queued
   var found = [], steps = [], at = -1, results = {}, pending = 0, run = 0, agreedNow = {};
+  var dropAt = null;  // openWith's place: a drop on the desktop, where the shortcuts of the games it installs go
 
   function badgeOf(game) {
     var a = game && document.querySelector('a.tile[data-game="' + game.spec.id + '"] .badge');
@@ -207,10 +208,13 @@ var ByopopSetup = (function () {
         addFound({ folder: T("setup.dropped"), error: 1, reason: T("add.nothing") });
       buttons();
       if (jump && found.some(function (f) { return f.game || f.choices; })) onNext();
+      // a drop with no game in it: its place is not for games chosen afterwards with Browse
+      else if (jump) dropAt = null;
     }, function (e) {
       if (mine !== run) return;
       reading.remove();
       addFound({ folder: T("setup.dropped"), error: 1, reason: (e && e.message) || T("add.read_failed") });
+      if (jump) dropAt = null;
       buttons();
     });
   }
@@ -375,6 +379,12 @@ var ByopopSetup = (function () {
       ui.done.appendChild(li);
     });
     ui.live.textContent = T("setup.summary", { installed: sum.counts.installed, total: sum.total });
+    // a run started by a drop on the desktop: a shortcut there for each game it installed (none for one that failed, was
+    // skipped or was already here; a game with a shortcut keeps it where it is)
+    var installed = found.filter(function (f) { return f.game && results[f.key] && results[f.key].kind === "installed"; })
+      .map(function (f) { return f.game.spec.id; });
+    if (dropAt && installed.length) { try { deskApi.addShortcuts(installed, dropAt); } catch (e) {} }
+    dropAt = null;
   }
 
   // ---------- open and close ----------
@@ -382,7 +392,7 @@ var ByopopSetup = (function () {
     run++;
     // the games of an earlier run not yet begun are left out (one begun goes on to its end in the queue)
     try { A().cancel(function (job) { return job.setup !== undefined && job.setup !== run; }); } catch (e) {}
-    found = []; steps = []; at = -1; results = {}; pending = 0;
+    found = []; steps = []; at = -1; results = {}; pending = 0; dropAt = null;
     ui.found.textContent = ""; ui.rows.textContent = ""; ui.done.textContent = "";
     ui.fill.style.width = "0%"; ui.bar.setAttribute("aria-valuenow", "0");
     showGames();
@@ -396,12 +406,14 @@ var ByopopSetup = (function () {
     if (page_() === "games" && !found.length) setTimeout(function () { try { ui.browse.focus(); } catch (e) {} }, 0);
   }
   // with files dropped on the desktop: a new run, on to the next page once they are sorted (a run under way keeps going, and
-  // the drop waits for the player on Your games of a new one once it ends)
-  function openWith(promise) {
+  // the drop waits for the player on Your games of a new one once it ends). place: where on the desktop it was dropped, as an
+  // icon's place (web/addgames.js), for the shortcuts of the games it installs
+  function openWith(promise, place) {
     if (!ui) return;
     var p = page_();
     if (p === "copying" || p === "licence") { deskApi.show("setup"); return; }
     if (p === "finish") reset();
+    dropAt = place || null;
     deskApi.show("setup");
     take(promise, true);
   }

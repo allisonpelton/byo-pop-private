@@ -273,6 +273,16 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   out of the favourites, as its menu's Remove from favourites does. The game's files and its place in the listing stay,
   and the bin does not fill. As with Windows 95's drag to the bin, nothing asks first and no sound plays. Any other icon
   dragged with the shortcuts goes back where it was.
+- **Installing by a drop on the desktop:** files dragged over the desktop's own area dim it inside a dashed edge. A box
+  under the pointer, with an installer's floppy disk, says a drop installs the game (`dropZone` in `web/addgames.js`). A
+  drag tells only that files are coming, so the words fit any, and Setup sorts what is dropped. Windows, the task bar and
+  the logo keep their own drops, and the target goes when the pointer leaves the desktop, on a drop, on Escape, or when
+  the drag ends. A drop there opens Setup with the files, as before. Each game that run installs becomes a favourite with
+  a desktop shortcut: the first at the drop point, the others in the next free places (`iconPlaceAt` and `addShortcuts`
+  in `web/skins.js`). Nothing is added for a game that failed, was skipped, was already here, or already has a
+  shortcut, which stays where it is.
+- **Icon names** are cut to two lines with an ellipsis, as Windows 95 draws them, which the grid has room for. The whole
+  name shows on the icon with the focus, or the one icon selected, drawn over its neighbours.
 - **The theme's events** now include start, exit, empty and error. Start comes at the first press or key of the browser's
   session on the listing, since a page may play nothing before that, and again when Shut Down's last screen goes. Exit is
   Shut Down, and empty is Empty Recycle Bin. Error is a game stopped by an error and an import refused, on either page.

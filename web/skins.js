@@ -1279,6 +1279,36 @@ var ByopopSkin = (function () {
       return p;
     }
     function arrangeIcons() { keepIconPlaces(null); layoutIcons(); }
+    // Games installed by a drop on the desktop (the user, 2026-11-16: "If install is successful, create a desktop shortcut in
+    // that location on the desktop"): the place of an icon whose picture is under a point of the window (iconPlaceAt, at the
+    // drop), then each game not yet a favourite made one (addShortcuts, when Setup has installed them, web/setup.js), the first
+    // at that place, the others in the next free places. Every icon keeps the place it has, as at the first drag of one.
+    function iconPlaceAt(clientX, clientY) {
+      if (!on || !icons) return null;
+      var r = icons.getBoundingClientRect();
+      return [Math.max(0, Math.round(unzoom(clientX - r.left) - CELL.w / 2 + 2)), Math.max(0, Math.round(unzoom(clientY - r.top) - 20))];
+    }
+    function addShortcuts(ids, at) {
+      if (!on || !icons || !window.ByopopSettings) return;
+      var have = [];
+      try { have = ByopopSettings.favourites().map(function (f) { return f.id; }); } catch (e) {}
+      var add = ids.filter(function (id, i) { return have.indexOf(id) < 0 && ids.indexOf(id) === i; }).map(function (id) {
+        var a = document.querySelector('a.tile[data-game="' + id + '"]'), li = a && a.closest("li");
+        if (!li) return null;
+        var name = li.querySelector(".name"), badge = li.querySelector(".badge");
+        // as the card's star makes it (web/index.html)
+        return { id: id, title: li.getAttribute("data-title") || (name ? name.textContent : id), page: a.getAttribute("href") || "",
+                 colour: (/--tile:\s*(#[0-9a-f]{3,8})/i.exec(li.getAttribute("style") || "") || [])[1] || "",
+                 tag: badge ? (badge.getAttribute("data-initials") || badge.textContent || "").trim().slice(0, 4) : "" };
+      }).filter(Boolean);
+      if (!add.length) return;
+      if (at) {
+        var p = iconPlaces() || iconsNow();
+        p["f:" + add[0].id] = at;
+        keepIconPlaces(p);
+      }
+      add.forEach(function (g) { try { ByopopSettings.setFavourite(g, true); } catch (e) {} });
+    }
     function lineUpIcons() {
       var p = iconPlaces();
       if (!p) return;
@@ -2015,6 +2045,7 @@ var ByopopSkin = (function () {
              openWin: function (id) { var w = find(id); if (!w || !on) return; if (w.min) setMin(w, false); if (w.open) { w.open(); raise(w); } else show(w); },
              // a window closed as its Close button closes it (its onClose, or closed and its afterClose)
              close: function (id) { var w = find(id); if (w && !w.closed) closeWin(w); },
+             iconPlaceAt: iconPlaceAt, addShortcuts: addShortcuts,
              list: function () { return wins.map(function (w) { return { id: w.id, title: w.el.getAttribute("data-d95-title") || w.id, closed: !!w.closed }; }); },
              event: deskEvent,
              menu: function (from, entries, x, y, label, opts) { popMenu(from, entries, x, y, label, opts); },

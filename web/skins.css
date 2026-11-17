@@ -981,6 +981,16 @@ html.d95-desk .d95-icon > span:last-child { display: -webkit-box; -webkit-box-or
 html.d95-desk .d95-icon:focus > span:last-child,
 html.d95-desk .d95-icons:not(:has(> .d95-icon-sel ~ .d95-icon-sel)) > .d95-icon-sel > span:last-child { display: block; -webkit-line-clamp: none; overflow: visible; }
 html.d95-desk .d95-icon:focus, html.d95-desk .d95-icons:not(:has(> .d95-icon-sel ~ .d95-icon-sel)) > .d95-icon-sel { z-index: 3; }
+/* the drop target while files are dragged over the desktop (web/addgames.js, dropZone): the desktop dimmed under the windows and
+   the task bar inside a dashed edge, and under the pointer, where a drop puts the shortcut, a box with an installer's disk and what
+   a drop does (the windows over the middle of the desktop would hide one there); the pointer goes through to the desktop */
+html.d95-desk .d95-dropzone { position: fixed; inset: 0; z-index: 5; pointer-events: none; background: rgba(0, 0, 0, .4); }
+html.d95-desk .d95-dropzone::before { content: ""; position: absolute; inset: 6px; border: 2px dashed #ffffff; }
+html.d95-desk .d95-dropzone[hidden] { display: none; }
+html.d95-desk .d95-dropzone-box { position: absolute; display: grid; justify-items: center; gap: 8px; box-sizing: border-box; width: 200px;
+  padding: 14px 12px; background: var(--panel); color: var(--fg); font-size: 12px; text-align: center; border: 2px dashed var(--sk-dk);
+  box-shadow: 0 0 0 3px var(--panel), 3px 3px 0 3px rgba(0, 0, 0, .5); }
+html.d95-desk .d95-dropzone-box > svg { width: 64px; height: 64px; }
 html.d95-desk .d95-band { position: absolute; z-index: 2; pointer-events: none; box-sizing: border-box; border: 1px dotted #ffffff;
   mix-blend-mode: difference; }
 /* 1995's tooltip: a title's own line breaks kept (the Sounds board's name, when it plays and its file; the user, 2026-11-16:

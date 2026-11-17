@@ -114,6 +114,7 @@ skin.bin.label_empty = Recycle Bin, empty
 skin.bin.label_full = Recycle Bin, holding the names of games whose files were forgotten
 skin.bin.open = Open
 skin.bin.empty = Empty Recycle Bin
+skin.drop.install = Drop a game's folder or .zip file here to install it
 skin.vol.button = Volume
 skin.vol.title = Volume
 skin.vol.mute = Mute
