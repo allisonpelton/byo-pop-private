@@ -91,8 +91,16 @@ user's uploaded games so that they can select one to use across the whole site (
 page. A kind may carry animation `frames`, which the page plays itself (Banana Bugs will need them,
 `docs/POPCAP_GAMES_SURVEY.md`). Water Bugs and Cosmic Bugs draw their own pointer, the "pointer" animation of their
 files, so their pages read it from those files instead (`web/flicursor.js`, `ByopopFlicCursor`): every frame of the FLIC
-with its mask and the shadow the game draws, the hot spot at the top left, and the frame time from the animation file
-(500 ms and 300 ms, 10 frames each). Ning Po's pointer sprite is empty, so it has no set. The listing page builds those
+with its mask and the shadow the game draws, the hot spot at the top left, and the frame time from the animation file, in
+the game's updates of 1 ms (the games step once for each millisecond passed): 50 ms and 30 ms, 10 frames each, looping.
+Sets kept before 2026-11-16 read the updates as 10 ms (500 and 300 ms, the user: "They animate extremely slowly"), and
+`web/cursors.js` puts them right once (`retime`). Ning Po's pointer sprite is empty, so it has no set.
+
+The page swaps an animated cursor's frames itself, as the inline cursor of the element under the mouse, keeping that
+element's own inline cursor aside and putting it back after. Each frame first looks again at what applies, so the swap
+stops as soon as the game shows its own cursor (the `game-cursor` class) or hides the browser's over its canvas (SDL's
+`cursor: none`). Before 2026-11-16 the swap wrote over SDL's `none` and so drew the site's cursor over a game drawing
+its own (the user: "The Cosmic Bugs cursor shows duplicated over the game cursor"). The listing page builds those
 two sets the same way as it adds their files (`web/gameimport.js`, `flicSet`), so they are in Settings' choice before the
 game is first opened. The other games' sets come only from a running game: the framework holds their pictures once the
 game has loaded its images.

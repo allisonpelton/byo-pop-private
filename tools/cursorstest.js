@@ -21,11 +21,20 @@ function classList() {
   return { add: (c) => set.add(c), remove: (c) => set.delete(c), contains: (c) => set.has(c),
     toggle: (c, on) => { if (on === undefined) on = !set.has(c); if (on) set.add(c); else set.delete(c); return on; } };
 }
-// An element: its tag, the selectors it matches and its inline style
-function element(tag, matches) {
-  const style = {};
-  return { nodeType: 1, tagName: tag, matches: (sel) => (matches || []).indexOf(sel) >= 0, getAttribute: () => null,
-    style: { setProperty: (k, v, p) => { style[k] = v + (p ? " !" + p : ""); }, removeProperty: (k) => { delete style[k]; } }, inline: style };
+// An element: its tag, the selectors it matches and its inline style (inline: each property with its priority), with own as its
+// inline cursor (SDL's on a game's canvas)
+function element(tag, matches, own) {
+  const style = {}, priority = {};
+  const el = { nodeType: 1, tagName: tag, matches: (sel) => (matches || []).indexOf(sel) >= 0, getAttribute: () => null,
+    style: { setProperty: (k, v, p) => { style[k] = v; priority[k] = p || ""; }, removeProperty: (k) => { delete style[k]; delete priority[k]; },
+      getPropertyValue: (k) => style[k] || "", getPropertyPriority: (k) => priority[k] || "" } };
+  Object.defineProperty(el, "inline", { get() {
+    const o = {};
+    for (const k in style) o[k] = style[k] + (priority[k] ? " !" + priority[k] : "");
+    return o;
+  } });
+  if (own) el.style.setProperty("cursor", own);
+  return el;
 }
 // A node of the Settings' choice: its children, attributes and listeners
 function node(tag) {
@@ -168,6 +177,80 @@ function check(what, got, want) {
   p.fire("mouseover", { target: el });
   p.fire("mouseout", { target: el, relatedTarget: null });
   check("the mouse leaves the page: given back, no timer", [el.inline, p.timers.size], [{}, 0]);
+}
+// animated cursors over a game's canvas: never over a game that shows its own cursor (the user, 2026-11-16: "The Cosmic Bugs
+// cursor shows duplicated over the game cursor")
+{
+  const p = page();
+  p.C.save("cosmicbugs", "Cosmic Bugs", { pointer: Object.assign(img("p0"), { frames: [img("p1"), img("p2")], ms: 30 }) });
+  p.C.choose("cosmicbugs");
+  const frame0 = 'url("data:image/png;base64,AAAAp0") 0 0, auto !important';
+  const hidden = element("CANVAS", [], "none");
+  p.fire("mouseover", { target: hidden });
+  check("a canvas whose game hides the browser's cursor (drawing its own): nothing animated", [hidden.inline, p.timers.size], [{ cursor: "none" }, 0]);
+  const canvas = element("CANVAS", [], "default");
+  p.fire("mouseover", { target: canvas });
+  check("a canvas showing the browser's cursor shows the frames, 30 ms each", [canvas.inline.cursor, [...p.timers.values()].map((t) => t.ms)], [frame0, [30]]);
+  // the game hides the browser's cursor to draw its own, as SDL does (no priority)
+  canvas.style.setProperty("cursor", "none");
+  p.tick();
+  check("the game hides it: the frames stop at the next one, and the game's none stays", [canvas.inline, p.timers.size], [{ cursor: "none" }, 0]);
+  canvas.style.setProperty("cursor", "default");
+  p.fire("mousemove", { target: canvas });
+  check("the game shows it again: the frames again as the mouse moves", [canvas.inline.cursor, p.timers.size], [frame0, 1]);
+  p.root.classList.add("game-cursor");
+  p.tick();
+  check("the game's own cursor shows on the page: the frames stop, and the canvas has its own cursor back", [canvas.inline, p.timers.size],
+    [{ cursor: "default" }, 0]);
+  p.root.classList.remove("game-cursor");
+  p.fire("mousemove", { target: canvas });
+  p.fire("mouseout", { target: canvas, relatedTarget: null });
+  check("the mouse leaves the page: the canvas has its own cursor back", [canvas.inline, p.timers.size], [{ cursor: "default" }, 0]);
+  p.C.save("waterbugs", "Water Bugs", { pointer: Object.assign(img("w0"), { frames: [img("w1")], ms: 50 }) });
+  p.fire("mouseover", { target: canvas });
+  p.C.choose("waterbugs");
+  check("another animated set chosen under a still mouse: its own frames at its own pace",
+    [canvas.inline.cursor, [...p.timers.values()].map((t) => t.ms)], ['url("data:image/png;base64,AAAAw0") 0 0, auto !important', [50]]);
+  p.C.choose("cosmicbugs");
+  const plain = element("CANVAS");
+  p.fire("mouseover", { target: plain });
+  p.fire("mouseover", { target: element("DIV") });
+  check("an element with no cursor of its own is left with none", plain.inline, {});
+}
+// with the page's changes watched (a stand-in MutationObserver whose records the test delivers): the frames stop as the game's
+// cursor comes on, before the next frame of the swap
+{
+  const observers = [];
+  class Watcher { constructor(cb) { this.cb = cb; this.on = []; observers.push(this); } observe(t) { this.on.push(t); } disconnect() { this.on = []; } }
+  const deliver = () => observers.forEach((o) => { if (o.on.length) o.cb([]); });
+  const p = page(null, { MutationObserver: Watcher });
+  p.C.save("cosmicbugs", "Cosmic Bugs", { pointer: Object.assign(img("p0"), { frames: [img("p1"), img("p2")], ms: 30 }) });
+  p.C.choose("cosmicbugs");
+  const canvas = element("CANVAS", [], "default");
+  p.fire("mouseover", { target: canvas });
+  check("the page's classes and the element are watched while the frames show", observers[0].on.length, 2);
+  canvas.style.setProperty("cursor", "none");
+  deliver();
+  check("SDL hides the browser's cursor: the frames stop with no frame of the swap between", [canvas.inline, p.timers.size, observers[0].on.length],
+    [{ cursor: "none" }, 0, 0]);
+  canvas.style.setProperty("cursor", "default");
+  p.fire("mousemove", { target: canvas });
+  p.root.classList.add("game-cursor");
+  deliver();
+  check("the game's cursor comes on: the same", [canvas.inline, p.timers.size], [{ cursor: "default" }, 0]);
+}
+// Water Bugs' and Cosmic Bugs' sets kept with 10 ms updates are put right once: the games step once a millisecond
+{
+  const anim = (ms) => ({ title: "", pointer: Object.assign(img("p0"), { frames: [img("p1")], ms }) });
+  const kept = { waterbugs: anim(500), cosmicbugs: anim(300), bananabugs: anim(500) };
+  const p = page({ "byopop-cursors": JSON.stringify(kept) });
+  const a = JSON.parse(p.local["byopop-cursors"]);
+  check("Water Bugs' 500 ms is 50, Cosmic Bugs' 300 is 30, another game's set is left", [a.waterbugs.pointer.ms, a.cosmicbugs.pointer.ms, a.bananabugs.pointer.ms],
+    [50, 30, 500]);
+  const q = page();
+  q.C.save("waterbugs", "Water Bugs", { pointer: Object.assign(img("p0"), { frames: [img("p1")], ms: 20 }) });
+  q.C.save("cosmicbugs", "Cosmic Bugs", { pointer: Object.assign(img("p0"), { frames: [img("p1")], ms: 19 }) });
+  check("frames of 20 ms are kept, of 19 not", [!!q.C.all().waterbugs, !!q.C.all().cosmicbugs], [true, false]);
 }
 
 // the Settings' choice: games with the same set share one entry
