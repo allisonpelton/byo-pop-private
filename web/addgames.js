@@ -228,6 +228,24 @@ var ByopopAddGames = (function () {
   }
 
   // ---------- drop targets ----------
+  // the drop target over the desktop while files are dragged onto it (init): the desktop dimmed, and a box under the pointer with
+  // an installer's floppy disk, our own drawing in 32 x 32 in the 1995 palette, an arrow going into it, and what a drop does; the
+  // pointer goes through it to what is under it
+  function dropZone() {
+    var el = make("div", "d95-dropzone"), box = make("div", "d95-dropzone-box");
+    el.setAttribute("aria-hidden", "true");
+    el.hidden = true;
+    var pic = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    pic.setAttribute("viewBox", "0 0 32 32"); pic.setAttribute("shape-rendering", "crispEdges");
+    pic.innerHTML = '<path d="M6 13h18l2 2v16H6z" fill="#000080" stroke="#000"/><path d="M11 13h10v6H11z" fill="#c0c0c0" stroke="#000"/>' +
+      '<path d="M17 14h2v4h-2z" fill="#000080"/><path d="M9 22h14v8H9z" fill="#fff" stroke="#000"/><path d="M11 24h10v1H11zM11 27h10v1H11z" fill="#808080"/>' +
+      '<path d="M14 0h4v6h4l-6 6-6-6h4z" fill="#00ff00" stroke="#000"/>';
+    box.appendChild(pic);
+    box.appendChild(make("span", "", ByopopStrings.t("skin.drop.install")));
+    el.appendChild(box);
+    document.body.appendChild(el);
+    return el;
+  }
   function dropTarget(el, onDrop) {
     var depth = 0;
     el.addEventListener("dragenter", function (ev) {
@@ -325,17 +343,49 @@ var ByopopAddGames = (function () {
     var logo = $("logo-drop");
     if (logo) dropTarget(logo, fromDropOrSetup);
     // a drop anywhere else on the desktop opens the Setup window with it (a game's window is a page of its own, which takes its
-    // own drops); with no desktop it does nothing, rather than the browser opening the file in place of the page
+    // own drops); with no desktop it does nothing, rather than the browser opening the file in place of the page.
+    // While files are dragged over the desktop's own area (no window, the task bar or the logo), it dims behind a drop target
+    // that says they will be installed, and the games a drop there installs get their shortcuts where it fell (web/setup.js;
+    // the user, 2026-11-16: "Can the site detect when a folder is being dragged into the desktop and show an icon indicating
+    // it will install it? Design I have in mind is like reverse image search on Google"). A drag tells only that files are
+    // coming, not whether they are a folder or a .zip, so its words fit any, and the drop sorts them as before.
+    var zone = null, zoneTimer = 0, zoneDepth = 0;
+    function onDesk(t) {
+      return !!setup() && !!t && !!t.closest && !t.closest(".d95-win, .d95-taskbar, .d95-menu, .d95-ctx, #logo-drop, [role=dialog]");
+    }
+    function showZone(on, ev) {
+      if (on && !zone) zone = dropZone();
+      if (zone) zone.hidden = !on;
+      // its box under the pointer, inside the window
+      if (on && ev) {
+        var box = zone.firstChild, S = window.ByopopSkin, x = S ? S.unzoom(ev.clientX) : ev.clientX, y = S ? S.unzoom(ev.clientY) : ev.clientY;
+        box.style.left = Math.max(8, Math.min(x - box.offsetWidth / 2, zone.clientWidth - box.offsetWidth - 8)) + "px";
+        box.style.top = Math.max(8, Math.min(y + 18, zone.clientHeight - box.offsetHeight - 8)) + "px";
+      }
+      clearTimeout(zoneTimer);
+      // a drag the browser ends without a word (Escape, or the pointer gone out of the window): dragover comes every 50 ms or so
+      // while it lasts
+      if (on) zoneTimer = setTimeout(function () { zoneDepth = 0; showZone(false); }, 350);
+    }
+    document.addEventListener("dragenter", function (ev) { if (ByopopImport.hasFiles(ev.dataTransfer)) zoneDepth++; });
+    document.addEventListener("dragleave", function (ev) {
+      if (ByopopImport.hasFiles(ev.dataTransfer) && --zoneDepth <= 0) { zoneDepth = 0; showZone(false); }
+    });
+    document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && zone && !zone.hidden) showZone(false); });
     document.addEventListener("dragover", function (ev) {
       if (!ByopopImport.hasFiles(ev.dataTransfer)) return;
       ev.preventDefault();
       if (setup()) ev.dataTransfer.dropEffect = "copy";
+      showZone(onDesk(ev.target), ev);
     });
     document.addEventListener("drop", function (ev) {
+      zoneDepth = 0;
+      showZone(false);
       if (!ByopopImport.hasFiles(ev.dataTransfer)) return;
       ev.preventDefault();
-      var s = setup();
-      if (s) s.openWith(ByopopImport.fromDrop(ev.dataTransfer, W().zip));
+      var s = setup(), place = null;
+      if (s && onDesk(ev.target)) { try { place = ByopopSkin.desk.iconPlaceAt(ev.clientX, ev.clientY); } catch (e) {} }
+      if (s) s.openWith(ByopopImport.fromDrop(ev.dataTransfer, W().zip), place);
     });
     initBin();
   }
