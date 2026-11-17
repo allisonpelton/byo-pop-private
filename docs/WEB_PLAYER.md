@@ -183,6 +183,21 @@ On a synthetic library of that size (`tools/steamdroptest.js`), the sort took 10
 (`--disk DIR`, which writes the library under `build/` and deletes it afterwards), the same library's 47,939 listings took
 6.9 s, which is what the count and Cancel are for. `unit-web` runs the test at a tenth of the size.
 
+**An installer dropped** (the user, 2026-11-16: "detect when an installer was dragged in and provide explicit direction to
+the user against that"). When the sort finds no game in a drop, `installerIn` looks for a game's installer in it: a
+program (.exe or .msi) alone or with a few files (twelve files at most, three programs at most), or the only program in a
+dropped .zip. A program is an installer when its name holds "setup" or "install" (never an uninstaller, DirectX's setup
+or a redistributable, which game folders hold beside the game), or when it carries an installer's mark in its first 4 MB
+or last 64 KB: a Windows Installer package's compound-file header, Inno Setup's (its "Inno" at 0x30, its loader's table or
+its version text), NSIS's, InstallShield's or Wise's text or section, or a self-extracting archive (7-Zip, RAR, a cabinet,
+WinZip's text or a zip's end record). The site never runs or unpacks it. The drop's row then says to install the game
+with it first and drop the folder it installs to. Where the installer's name, or its folder's, names a game the site
+plays, the row names the game and its usual folder from the game page's import text (`C:\Program Files (x86)\PopCap
+Games\...`, or the folder under Steam's `steamapps\common`); an installer dropped on a game's card names that card's game.
+Where the name names a game the site does not play, the row says so as it does for that game's folder. The drag target is
+unchanged: the files are known only at the drop. `tools/gameimporttest.js` checks the marks on small synthetic files and
+that a game folder holding a setup.exe or an uninstaller is still added.
+
 ### The Setup window
 
 `web/setup.js` is "byo-pop Setup", a wizard over `web/addgames.js` (the user, 2026-11-09: "add an installer window

@@ -436,6 +436,135 @@ var ByopopImport = (function () {
     c.port2.postMessage(0);
   }
 
+  // ---------- installers ----------
+  // A game's installer dropped in place of the folder it installs to (the user, 2026-11-16: "detect when an installer was
+  // dragged in and provide explicit direction to the user against that"). The site takes a game's installed files; it never
+  // runs or unpacks an installer, only reads the first 4 MB and the last 64 KB of the file for its marks. A program is one
+  // when its name says so (setup, install or installer anywhere in it: setup.exe, Alchemy_Setup.exe, ZumaDeluxeInstaller.exe;
+  // never an uninstaller, DirectX's setup or a redistributable) or it carries one of these marks:
+  //   msi            a Windows Installer package: the compound file header D0 CF 11 E0 A1 B1 1A E1 at its start
+  //   inno           Inno Setup: "Inno" at offset 0x30 (5.1.5 on), its loader's "rDlPtS" table, or "Inno Setup" in ASCII or
+  //                  UTF-16 (its version text, "This installation was built with Inno Setup.")
+  //   nsis           NSIS: its first header's "NullsoftInst", or "Nullsoft Install System"
+  //   installshield  InstallShield: "InstallShield" in ASCII or UTF-16 (its version text)
+  //   wise           Wise: a PE section named .WISE, or "Wise Installation" in ASCII or UTF-16
+  //   sfx            a self-extracting archive: a 7-Zip ("7z" BC AF 27 1C) or RAR ("Rar!" 1A 07) archive or a cabinet ("MSCF" and
+  //                  four zero bytes, IExpress's) inside it, "WinZip Self-Extractor", or a zip's end record ("PK" 05 06) in its
+  //                  last 64 KB
+  // (all but msi in a program, which starts "MZ")
+  var NOT_INSTALLER = /^(popuninstall|uninst|unins\d|dxsetup|.*redist)/i;
+  var HEAD_BYTES = 4 * 1048576, TAIL_BYTES = 65558;
+  function wide(text) { return text.replace(/[\s\S]/g, "$&\0"); }
+  function holdsText(b, text) { return find(b, text) >= 0 || find(b, wide(text)) >= 0; }
+  function sectionNamed(b, name) {
+    if (b[0] !== 0x4d || b[1] !== 0x5a) return false;
+    var pe = u32(b, 0x3c);
+    if (u32(b, pe) !== 0x4550) return false;
+    var n = u16(b, pe + 6), sec = pe + 24 + u16(b, pe + 20);
+    for (var i = 0; i < n && sec + 8 <= b.length; i++, sec += 40) {
+      var k = 0;
+      while (k < 8 && k < name.length && b[sec + k] === name.charCodeAt(k)) k++;
+      if (k === name.length && (k === 8 || b[sec + k] === 0)) return true;
+    }
+    return false;
+  }
+  function installerMark(head, tail) {
+    if (u32(head, 0) === 0xe011cfd0 && u32(head, 4) === 0xe11ab1a1) return "msi";
+    if (head[0] !== 0x4d || head[1] !== 0x5a) return null;
+    if (u32(head, 0x30) === 0x6f6e6e49 || find(head, "rDlPtS") >= 0 || holdsText(head, "Inno Setup")) return "inno";
+    if (find(head, "NullsoftInst") >= 0 || holdsText(head, "Nullsoft Install System")) return "nsis";
+    if (holdsText(head, "InstallShield")) return "installshield";
+    if (sectionNamed(head, ".WISE") || holdsText(head, "Wise Installation")) return "wise";
+    if (find(head, "7z\xbc\xaf\x27\x1c") >= 0 || find(head, "Rar!\x1a\x07") >= 0 || find(head, "MSCF\0\0\0\0") >= 0 ||
+      holdsText(head, "WinZip Self-Extractor") || find(tail, "PK\x05\x06") >= 0) return "sfx";
+    return null;
+  }
+  function baseName(p) { return p.substring(p.lastIndexOf("/") + 1); }
+  // A file's first and last bytes: through part(start, end) where the entry has it (a drop's, a pick's), else from all of it
+  function ends(e) {
+    if (e.part) return Promise.all([e.part(0, HEAD_BYTES), e.part(-TAIL_BYTES)]);
+    return Promise.resolve(e.read()).then(function (d) {
+      var b = d instanceof Uint8Array ? d : new Uint8Array(d);
+      return [b.subarray(0, HEAD_BYTES), b.subarray(Math.max(0, b.length - TAIL_BYTES))];
+    });
+  }
+  // The game an installer's name (or its folder's) names: of the site's games (game), else of the others (other), the one named
+  // best, or null
+  // whole: only a name that is the game's (a folder's name; a file's may also hold the game's, or be held in it, at four
+  // letters or more: "PopCapAlchemyDeluxe")
+  function gameNamed(file, whole) {
+    var name = file.replace(/\.(exe|msi)$/i, "").replace(/[-_. ]*(setup|installer|install)[-_. ]*/gi, " ");
+    var least = whole || plain(name).length < 4 ? 3 : 2;
+    function best(list) {
+      var got = null, top = 0, tie = false;
+      list.forEach(function (c) {
+        var s = nameScore(name, c.as);
+        if (s > top) { top = s; got = c; tie = false; } else if (s === top && s > 0) tie = true;
+      });
+      return top >= least && !tie ? got : null;
+    }
+    return best(games.map(function (g) { return { game: g, as: g }; })) ||
+      best(otherList().map(function (o) { return { other: o, as: { title: o.title, target: o.id, spec: {} } }; }));
+  }
+  // Where a game's copy usually is, from its page's import text (its first path): {path, steam}, or null
+  function usualFolder(spec) {
+    var m = /<span class="mono">([^<]*)<\/span>/.exec(spec.importHtml || "");
+    if (!m) return null;
+    var p = m[1].replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
+      .replace(/\//g, "\\");
+    if (/^steamapps\\/i.test(p)) return { path: p, steam: true };
+    return { path: "C:\\Program Files (x86)\\" + p.replace(/^Program Files\\/i, ""), steam: false };
+  }
+  // The installer in a drop the sort found no game in: a program alone or with a few other files (12 files at most, 3 programs
+  // at most), or the only program in the drop (a .zip of an installer). Resolves with {entry, file, mark ("name" or a mark
+  // above), group (the sort's name for the folder it is in), game (a site's game its name names) or other (one the site does
+  // not play), folder (game's usualFolder)}, or null.
+  function installerIn(entries, sorted) {
+    if (sorted.found.length || (sorted.others || []).length) return Promise.resolve(null);
+    var programs = entries.filter(function (e) { return /\.(exe|msi)$/i.test(e.path) && !NOT_INSTALLER.test(baseName(e.path)); });
+    if (!programs.length || !(programs.length === 1 || (entries.length <= 12 && programs.length <= 3))) return Promise.resolve(null);
+    function result(e, mark) {
+      // the game its name names, else the one its folder's (or its .zip's) name names
+      var file = baseName(e.path), at = e.path.indexOf("/"), up = e.path.lastIndexOf("/");
+      var named = gameNamed(file, false) || (up > 0 ? gameNamed(baseName(e.path.substring(0, up)), true) : null);
+      return { entry: e, file: file, mark: mark, group: at < 0 ? ByopopStrings.t("import.dropped_files") : e.path.substring(0, at),
+        game: named && named.game || null, other: named && named.other || null, folder: named && named.game ? usualFolder(named.game.spec) : null };
+    }
+    return programs.reduce(function (p, e) {
+      return p.then(function (got) {
+        if (got) return got;
+        if (/setup|install/i.test(baseName(e.path))) return result(e, "name");
+        return ends(e).then(function (two) {
+          var mark = installerMark(two[0], two[1]);
+          return mark ? result(e, mark) : null;
+        }, function () { return null; });
+      });
+    }, Promise.resolve(null));
+  }
+  // What a drop's installer row says: what it is and what to do instead
+  function installerText(inst) {
+    if (!inst.game) return ByopopStrings.t("import.installer", { file: inst.file });
+    var vars = { file: inst.file, title: inst.game.title, folder: inst.folder ? inst.folder.path : "" };
+    if (!inst.folder) return ByopopStrings.t("import.installer_game_any", vars);
+    return ByopopStrings.t(inst.folder.steam ? "import.installer_steam" : "import.installer_game", vars);
+  }
+
+  // A drop's sort for its reading row (Setup's, the panel's): sortSteps, then installerIn. An installer found takes the place of
+  // the folder it is in, as installer (installerIn's, with its text), or, where its name names a game this site does not play,
+  // is named as that game is
+  function sortDrop(entries) {
+    return sortSteps(entries).then(function (sorted) {
+      return installerIn(entries, sorted).then(null, function () { return null; }).then(function (inst) {
+        if (!inst) return sorted;
+        var rejected = sorted.rejected.slice(), at = rejected.indexOf(inst.group);
+        if (at >= 0) rejected.splice(at, 1);
+        if (inst.other) return { found: sorted.found, others: (sorted.others || []).concat([{ folder: inst.file, game: inst.other }]), rejected: rejected };
+        inst.text = installerText(inst);
+        return { found: sorted.found, others: sorted.others || [], rejected: rejected, installer: inst };
+      });
+    });
+  }
+
   // ---------- reading a drop ----------
   // The files of a drop as {path, read()}: a dropped folder's paths start with its name, and a dropped .zip's with its name
   // without ".zip". Must be called in the drop event itself (the entries are only readable during it). zip: web/modpanel.js's.
@@ -474,7 +603,9 @@ var ByopopImport = (function () {
             told();
           });
         }
-        out.push({ path: path, read: function () { return fileOf(entry).then(function (f) { return f.arrayBuffer(); }).then(function (b) { return new Uint8Array(b); }); } });
+        out.push({ path: path, read: function () { return fileOf(entry).then(function (f) { return f.arrayBuffer(); }).then(function (b) { return new Uint8Array(b); }); },
+          // a part of it (installerIn reads a program's ends), as File.slice takes start and end
+          part: function (start, end) { return fileOf(entry).then(function (f) { return f.slice(start, end).arrayBuffer(); }).then(function (b) { return new Uint8Array(b); }); } });
         return Promise.resolve();
       }
       if (!entry.isDirectory) return Promise.resolve();
@@ -774,6 +905,6 @@ var ByopopImport = (function () {
   }
 
   return { stored: stored, exeUnreadable: exeUnreadable, probeHolds: probeHolds, markerPattern: markerPattern, findRoot: findRoot, withPaks: withPaks, pick: pick, hasMarkers: hasMarkers, exeIcon: exeIcon,
-    games: games, add: add, sort: sort, sortSteps: sortSteps, otherGame: otherGame, otherNote: otherNote, nameScore: nameScore, fromDrop: fromDrop, watch: watch, readingText: readingText, MANY_REJECTED: MANY_REJECTED, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
+    games: games, add: add, sort: sort, sortSteps: sortSteps, otherGame: otherGame, otherNote: otherNote, nameScore: nameScore, fromDrop: fromDrop, watch: watch, readingText: readingText, installerIn: installerIn, installerMark: installerMark, installerText: installerText, usualFolder: usualFolder, sortDrop: sortDrop, MANY_REJECTED: MANY_REJECTED, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
     forgetGame: forgetGame, ordered: ordered, missingIn: missingIn, missingMarkers: missingMarkers, markerList: markerList };
 })();

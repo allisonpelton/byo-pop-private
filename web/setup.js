@@ -212,7 +212,7 @@ var ByopopSetup = (function () {
     buttons();
     function over() { if (watch) { watch.listen(null); walks = walks.filter(function (w) { return w !== watch; }); } }
     promise.then(function (entries) {
-      return mine === run ? ByopopImport.sortSteps(entries) : null;
+      return mine === run ? ByopopImport.sortDrop(entries) : null;
     }).then(function (sorted) {
       over();
       if (!sorted || mine !== run) return;
@@ -229,7 +229,9 @@ var ByopopSetup = (function () {
         addFound({ folder: T("import.rejected_many", { n: sorted.rejected.length }), unsupported: true, names: sorted.rejected,
           reason: T("add.rejected", { folders: sorted.rejected.join(", ") }) });
       else sorted.rejected.forEach(function (folder) { addFound({ folder: folder, unsupported: true, reason: T("add.rejected", { folders: folder }) }); });
-      if (!sorted.found.length && !sorted.rejected.length && !(sorted.others || []).length)
+      // a game's installer dropped in place of its folder: what to do instead, under its row
+      if (sorted.installer) addFound({ folder: sorted.installer.file, unsupported: true, installer: sorted.installer.text, reason: sorted.installer.text });
+      if (!sorted.found.length && !sorted.rejected.length && !(sorted.others || []).length && !sorted.installer)
         addFound({ folder: T("setup.dropped"), error: 1, reason: T("add.nothing") });
       buttons();
       if (jump && found.some(function (f) { return f.game || f.choices; })) onNext();
@@ -269,12 +271,18 @@ var ByopopSetup = (function () {
     } else {
       li.appendChild(badgeOf(null));
       name.textContent = f.folder;
-      value.textContent = f.error ? T("setup.result.error", { code: f.error }) : T("setup.result.unsupported");
+      value.textContent = f.error ? T("setup.result.error", { code: f.error }) : T(f.installer ? "setup.result.installer" : "setup.result.unsupported");
       value.title = f.reason || "";
     }
     li.appendChild(name);
     // (many folders with no game: the line says what became of them)
     if (!f.names) li.appendChild(value);
+    if (f.installer) {
+      // a dropped installer: the direction, under the row and always shown
+      li.classList.add("su-installer");
+      value.removeAttribute("title");
+      li.appendChild(make("p", "su-note", f.installer));
+    }
     if (f.names) {
       // the folders' names, under the row, shown and hidden by its Details button
       li.classList.add("su-many");

@@ -13,7 +13,7 @@ const vm = require("vm");
 const waits = [];
 
 const root = path.join(__dirname, "..");
-const ctx = { window: {}, console };
+const ctx = { window: {}, console, setTimeout, clearTimeout, MessageChannel };
 vm.createContext(ctx);
 require("./stringsload").into(ctx);
 vm.runInContext(fs.readFileSync(path.join(root, "web", "gameimport.js"), "utf8"), ctx, { filename: "gameimport.js" });
@@ -224,6 +224,87 @@ check("either: AstroPop with neither exe, named", I.missingMarkers(spec("astropo
     const b = new Uint8Array(fs.readFileSync(sw));
     check("exe: Shockwave's BookWorm is refused", tab.bookworm.probes.some((q) => I.probeHolds(b, q)), false);
   }
+}
+
+// ---- a dropped installer (installerIn, installerMark): small synthetic files, each carrying one mark and nothing else; never a
+// real installer or a game's file
+{
+  // a program: "MZ", the PE header's place at 0x3c, "PE" and one section, then text at 0x200
+  const program = (text, opts) => {
+    const b = new Uint8Array(4096);
+    b[0] = 0x4d; b[1] = 0x5a; b[0x3c] = 0x80;
+    b.set([0x50, 0x45, 0, 0], 0x80);
+    b[0x86] = 1;                     // one section
+    b[0x94] = 0xe0;                  // the optional header's size: the section table at 0x80 + 24 + 0xe0
+    const sec = 0x80 + 24 + 0xe0, name = (opts && opts.section) || ".text";
+    for (let i = 0; i < name.length; i++) b[sec + i] = name.charCodeAt(i);
+    const t = text || "";
+    const bytes = opts && opts.wide ? [...t].flatMap((c) => [c.charCodeAt(0), 0]) : [...t].map((c) => c.charCodeAt(0) & 0xff);
+    b.set(bytes, 0x200);
+    if (opts && opts.at30) b.set([0x49, 0x6e, 0x6e, 0x6f], 0x30);
+    if (opts && opts.tail) { const end = new Uint8Array(b.length + 22); end.set(b); end.set([0x50, 0x4b, 5, 6], b.length); return end; }
+    return b;
+  };
+  const msi = () => { const b = new Uint8Array(1024); b.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]); return b; };
+  const mark = (b) => I.installerMark(b.subarray(0, 4 * 1048576), b.subarray(Math.max(0, b.length - 65558)));
+  check("mark: an MSI's compound file header", mark(msi()), "msi");
+  check("mark: Inno Setup's \"Inno\" at 0x30", mark(program("", { at30: true })), "inno");
+  check("mark: Inno Setup's loader table", mark(program("rDlPtS02\x87eVx")), "inno");
+  check("mark: Inno Setup in its version text (UTF-16)", mark(program("This installation was built with Inno Setup.", { wide: true })), "inno");
+  check("mark: NSIS's first header", mark(program("\xef\xbe\xad\xdeNullsoftInst")), "nsis");
+  check("mark: InstallShield in its version text (UTF-16)", mark(program("InstallShield (R) Setup Launcher", { wide: true })), "installshield");
+  check("mark: Wise's .WISE section", mark(program("", { section: ".WISE" })), "wise");
+  check("mark: Wise Installation", mark(program("Wise Installation Wizard")), "wise");
+  check("mark: a 7-Zip archive inside", mark(program("7z\xbc\xaf\x27\x1c")), "sfx");
+  check("mark: a RAR archive inside", mark(program("Rar!\x1a\x07\x00")), "sfx");
+  check("mark: a cabinet inside (IExpress)", mark(program("MSCF\0\0\0\0")), "sfx");
+  check("mark: WinZip's self-extractor", mark(program("WinZip Self-Extractor")), "sfx");
+  check("mark: a zip's end record at the end", mark(program("", { tail: true })), "sfx");
+  check("mark: a plain program", mark(program("This program cannot be run in DOS mode.")), null);
+  check("mark: a mark's text in a file that is no program", mark(new TextEncoder().encode("Inno Setup NullsoftInst InstallShield")), null);
+  // installerIn over drops: {path, read, part}
+  const file = (p, bytes) => ({ path: p, read: () => Promise.resolve(bytes || new Uint8Array(0)),
+    part: (a, b) => Promise.resolve((bytes || new Uint8Array(0)).slice(a, b)) });
+  const brief7 = (r) => r && { file: r.file, mark: r.mark, group: r.group, game: r.game && r.game.target, other: r.other && r.other.id, folder: r.folder };
+  const drop = (entries) => I.installerIn(entries, I.sort(entries)).then(brief7);
+  const t7 = (what, entries, want) => waits.push(drop(entries).then((r) => check("installer: " + what, r, want)));
+  t7("setup.exe alone, by its name", [file("setup.exe")],
+    { file: "setup.exe", mark: "name", group: "import.dropped_files", game: null, other: null, folder: null });
+  t7("a game's installer by its name: the game and its usual folder", [file("AlchemyDeluxeSetup.exe")],
+    { file: "AlchemyDeluxeSetup.exe", mark: "name", group: "import.dropped_files", game: "alchemy", other: null,
+      folder: { path: "C:\\Program Files (x86)\\PopCap Games\\Alchemy Deluxe", steam: false } });
+  t7("a game the site knows as a Steam copy: steamapps\\common", [file("Bejeweled2_Setup.exe")],
+    { file: "Bejeweled2_Setup.exe", mark: "name", group: "import.dropped_files", game: "bejeweled2", other: null,
+      folder: { path: "steamapps\\common\\Bejeweled 2 Deluxe", steam: true } });
+  t7("a game the site does not play", [file("ZumaDeluxeInstaller.exe")],
+    { file: "ZumaDeluxeInstaller.exe", mark: "name", group: "import.dropped_files", game: null, other: "zuma", folder: null });
+  t7("a program with a mark, with a few files", [file("Stuff/readme.txt"), file("Stuff/game1.exe", program("NullsoftInst")), file("Stuff/data.bin")],
+    { file: "game1.exe", mark: "nsis", group: "Stuff", game: null, other: null, folder: null });
+  t7("setup.exe in a folder named for the game: the folder's name names it", [file("Alchemy Deluxe/setup.exe"), file("Alchemy Deluxe/readme.txt")],
+    { file: "setup.exe", mark: "name", group: "Alchemy Deluxe", game: "alchemy", other: null,
+      folder: { path: "C:\\Program Files (x86)\\PopCap Games\\Alchemy Deluxe", steam: false } });
+  t7("a short name held in a game's is not that game", [file("big_setup.exe")],
+    { file: "big_setup.exe", mark: "name", group: "import.dropped_files", game: null, other: null, folder: null });
+  t7("an .msi by its header", [file("Pkg.msi", msi())], { file: "Pkg.msi", mark: "msi", group: "import.dropped_files", game: null, other: null, folder: null });
+  const many = [];
+  for (let i = 0; i < 40; i++) many.push(file(`Big/data/f${i}.dat`));
+  t7("the only program in a dropped .zip", many.concat([file("Big/run.exe", program("Inno Setup", { wide: true }))]),
+    { file: "run.exe", mark: "inno", group: "Big", game: null, other: null, folder: null });
+  t7("one of many programs with many files is not looked at", many.concat([file("Big/a.exe", program("NullsoftInst")), file("Big/b.exe")]), null);
+  t7("a plain program alone is not one", [file("Tool.exe", program("hello"))], null);
+  t7("an uninstaller alone is not one", [file("unins000.exe"), file("unins000.dat")], null);
+  t7("DirectX's setup alone is not one", [file("dxsetup.exe")], null);
+  // a game's folder with a setup and an uninstaller beside the game is the game, as before
+  const tt = [file("TipTop Deluxe/TipTop.dat"), file("TipTop Deluxe/TipTop.exe"), file("TipTop Deluxe/setup.exe"), file("TipTop Deluxe/unins000.exe")];
+  check("installer: a game's folder with a setup.exe is still the game", brief(I.sort(tt)).found.map((f) => f[1]), ["tiptop"]);
+  t7("none looked for where the sort found the game", tt, null);
+  // sortDrop: the installer takes its folder's place among the rejected; one for a game the site does not play is among the others
+  waits.push(I.sortDrop([file("Stuff/setup.exe"), file("Stuff/a.txt"), file("Photos/b.jpg")]).then((r) =>
+    check("sortDrop: the installer in place of its folder", [r.rejected, r.installer && r.installer.file, r.installer && r.installer.text],
+      [["Photos"], "setup.exe", "import.installer setup.exe"])));
+  waits.push(I.sortDrop([file("ZumaDeluxeSetup.exe")]).then((r) =>
+    check("sortDrop: a game the site does not play, named", [r.rejected, r.others.map((o) => [o.folder, o.game.id]), !!r.installer],
+      [[], [["ZumaDeluxeSetup.exe", "zuma"]], false])));
 }
 
 Promise.all(waits).then(() => {
