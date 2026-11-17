@@ -71,3 +71,21 @@ or `Transition`: the game's own `StageMgr` and screens (`MainMenuScreen`, `Stage
 `HighScoreLayout`...) are `ScreenLayout`s that tell `ILayoutActionListener` and `IButtonListener` interfaces. Its sound
 system is `SimpleSoundDX` (a `SimpleSound` over DirectSound with ACM and WAVE file readers), loose WAV files in
 `resources/` rather than Ogg streams in the archive.
+
+What the exe's own engine does, by the functions the port translates (`gEarlyBuild`, `engines/sprout/Build.h`):
+
+- **The layout reader** (0x457ee0) tries the elements `image`, `text`, `imageButton`, `checkBox`, `textButton`, `group`,
+  `particleSystem`, `textSub` and `include`, in that order, and no others: no screen, key action, edit box, list box,
+  table, column or selector element. Its image and text are the listener build's (`addImage` 0x453120, `addText`
+  0x4562f0), the check box has no pivot and no start state, the image button sets no base scale, a group does not lay
+  itself out, and its point reader is the listener build's `"%f,%f"`. `textButton` (0x455440), `textSub` (0x457120) and
+  `include` (0x457740) are new in the shared engine (`TextButton.*`, `Layout.cpp`).
+- **The scene** (vtable 0x4a8888) takes the application's mouse signals and gives them to the nodes' mouse slots with a
+  point, as the earlier build's window does: the node the hit test finds, or the node that has the mouse, gets
+  mouseDown, mouseUp, rightDown, rightUp or mouseMove, and the node under the mouse changes by mouseExit and mouseEnter
+  (0x44cef0). A button is pressed by its mouse down (`Button::onMouseDown`, 0x4527e0), where the signal build's is
+  pressed by the release. Nodes have no `refreshMouse`, so a screen that comes in under a still mouse does not hover
+  what is under it until the mouse moves.
+- **The key handlers** are a list the original keeps in an object of the engine (+0x108, added to by 0x444c00 and
+  removed from by 0x443640); the port keeps it in the controller, `FishFood`, which passes the keys on to the handlers,
+  the last added first. The app has no window node (the earlier build's root), so there is nothing else to hold them.
