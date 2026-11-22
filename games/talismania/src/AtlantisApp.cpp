@@ -2,6 +2,7 @@
 
 #include "AtlantisData.h"
 #include "Engine.h"
+#include "ScreenDocHandler.h"
 
 bool gUsingArchive = false;
 
@@ -18,6 +19,8 @@ AtlantisApp::~AtlantisApp()
 AtlantisApp* AtlantisApp::boot()
 {
 	engine::Engine* anEngine = engine::getEngine();
+	// Talismania's layouts give components "visible" (the shared reader's switch for it)
+	engine::ScreenDocHandler::setHonorVisible(true);
 	anEngine->setUseLooseFiles(true);
 	if (anEngine->diskFileExists("Talismania.saf"))
 	{

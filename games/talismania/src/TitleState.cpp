@@ -16,6 +16,15 @@ void TitleState::enter()
 {
 	mMainMenu = new engine::GenericScreen();
 	mMainMenu->load(mApp->mOptions.mainMenuLayout, mApp->mTheme.get());
+	// The registration badge and the buttons that lead out of the game (the trial badge, the page of reasons to buy and
+	// the page of more games) are removed, not hidden
+	static const char* const REMOVED[] = {"trialbadge", "whybuybtn", "moregamesbtn"};
+	for (size_t i = 0; i < sizeof(REMOVED) / sizeof(REMOVED[0]); i++)
+	{
+		engine::Component* aRemoved = mMainMenu->findComponent(REMOVED[i]);
+		if (aRemoved != nullptr && aRemoved->getParent() != nullptr)
+			aRemoved->getParent()->removeChild(aRemoved);
+	}
 	mMainMenu->setTransitions(new engine::FadeTransition(MENU_FADE_SECONDS), new engine::FadeTransition(MENU_FADE_SECONDS));
 	engine::Container* aLayer = dynamic_cast<engine::Container*>(mApp->mScene->getLayer("skymenu"));
 	if (aLayer != nullptr)
