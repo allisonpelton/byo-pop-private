@@ -33,8 +33,8 @@
 //           place's tooltip
 //   composer  who wrote the music, by the game's own credits (its credits screen, text or exe; a company where they name no
 //           person), or where they name nobody by the user's word (2026-11-19, cited at the entry); none shown as Unknown. One
-//           form for a person across the site: "Peter Hajba (Skaven)". composers {"<id>": "<name>"} where the music is split by
-//           tune (Heavy Weapon's love theme)
+//           form for a person across the site: "Peter Hajba (Skaven)", "Philippe Charron". composers {"<id>": "<name>"} where
+//           the music is split by tune (Heavy Weapon's love theme); an id without "#<n>" takes every tune of that file
 //   voices  true for a game that plays its tunes as sounds, not as the mixer's songs (Venice): Music follows the one playing
 //           among its voices (web/music.js, voiceTune)
 //   level   the level the game plays its modules at, where it is not the renderer's own (platform/MusicLevels.h):
@@ -61,7 +61,8 @@ var ByopopSoundtracks = {
   // each starting at one of the orders the game plays (0 loading, 5 the menus, 9 a level, 35 the danger siren, 39 the game's
   // end, 41 a level's tally and level-up: games/astropop/src, checked 2026-11-11 once its music played)
   astropop: {
-    composer: "Phillipe Charon",
+    // its credits spell it "Phillipe Charon"; the site has one form for him, the user's (2026-11-19, Twist's entry)
+    composer: "Philippe Charron",
     files: ["music/*.mo3"],
     where: { "music#0": "Loading", "music#1": "Main Menu", "music#2": "In-Game", "music#3": "Danger", "music#4": "Game Over",
       "music#5": "Level Complete" },
@@ -124,7 +125,10 @@ var ByopopSoundtracks = {
     unused: ["BeyondNetwork#3", "BeyondNetwork#4", "BeyondNetwork#7"]
   },
   bejeweledtwist: {
-    composer: "Phillipe Charon & Peter Hajba",
+    // the user, 2026-11-19: "bejewel twist 06.10 is the part composed by Philippe Charron, while BejeweledTwist24 is by Peter
+    // Hajba; update the composers accordingly"
+    composer: "Philippe Charron & Peter Hajba (Skaven)",
+    composers: { "bejewel twist 06.10": "Philippe Charron", "bejeweledtwist24": "Peter Hajba (Skaven)" },
     files: ["music/*.mo3"],
     cuts: { "bejewel twist 06.10#3": [72], "bejewel twist 06.10#7": [73], "bejeweledtwist24#0": [24] },
     skip: ["bejewel twist 06.10#3@72"],
@@ -132,8 +136,8 @@ var ByopopSoundtracks = {
       "bejewel twist 06.10#6": "In-Game 4", "bejewel twist 06.10#7@73": "In-Game 5", "bejewel twist 06.10#8": "In-Game 6", "bejewel twist 06.10#7": "Loading",
       "bejewel twist 06.10#3": "Game Over", "bejewel twist 06.10#4": "Victory", "bejewel twist 06.10#5": "Main Menu",
       "bejeweledtwist24#0": "Blitz", "bejeweledtwist24#0@24": "Blitz 3 Minutes", "bejeweledtwist24#1": "Blitz Results 1", "bejeweledtwist24#2": "Blitz Results 2",
-      "bejeweledtwist24#3": "Blitz Results 3", "bejeweledtwist24#4": "Challenge Menu", "bejeweledtwist24#5": "Challenge 1",
-      "bejeweledtwist24#6": "Challenge 2", "bejeweledtwist24#7": "Bonus" },
+      "bejeweledtwist24#3": "Blitz Results 3", "bejeweledtwist24#4": "Challenge Menu", "bejeweledtwist24#5": "Turn-Based Challenge",
+      "bejeweledtwist24#6": "Unlimited Challenge", "bejeweledtwist24#7": "Bonus" },
     order: ["bejewel twist 06.10#7", "bejewel twist 06.10#5", "bejewel twist 06.10#0", "bejewel twist 06.10#1",
       "bejewel twist 06.10#2", "bejewel twist 06.10#6", "bejewel twist 06.10#7@73", "bejewel twist 06.10#8",
       "bejewel twist 06.10#4", "bejewel twist 06.10#3", "bejeweledtwist24#0", "bejeweledtwist24#7", "bejeweledtwist24#1",
@@ -157,7 +161,7 @@ var ByopopSoundtracks = {
       "bejeweledtwist24#3": "Order 46; Blitz ends with a score of 80000 or more",
       "bejeweledtwist24#4": "Order 48; the Challenge menu opens",
       "bejeweledtwist24#5": "Order 52; an untimed challenge with a Moves goal, at its Go; layers follow the moves made",
-      "bejeweledtwist24#6": "Order 63; an untimed challenge without a Moves goal, at its Go",
+      "bejeweledtwist24#6": "Order 63; a challenge with neither a time limit nor a Moves goal, at its Go",
       "bejeweledtwist24#7": "Order 79; the bonus fruit dance, until it ends after 2200 updates"
     },
     unused: ["bejewel twist 06.10#9", "bejewel twist 06.10#10", "bejewel twist 06.10#11", "bejewel twist 06.10#12",

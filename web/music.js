@@ -442,8 +442,8 @@ var ByopopMusic = (function () {
         // when exactly the game plays it, for the place's tooltip (the user, 2026-11-12: "Make hovering over the brief track
         // description explain when it plays")
         k.when = byId(entry.when, k.id) || "";
-        // who wrote it, from the game's own credits: the tune's own where they split the music, else the game's
-        k.composer = byId(entry.composers, k.id) || entry.composer || "";
+        // who wrote it, from the game's own credits: the tune's own where they split the music (or its file's), else the game's
+        k.composer = byId(entry.composers, k.id) || byId(entry.composers, k.id.replace(/#.*$/, "")) || entry.composer || "";
         k.unused = (entry.unused || []).some(function (u) { return u.toLowerCase() === low; });
       }
       function add(rel, list) {
