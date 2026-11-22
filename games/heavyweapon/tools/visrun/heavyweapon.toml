@@ -10,7 +10,6 @@ patches = "tools/origrun/patches/heavyweapon.txt"   # written by idplay.py prepa
                                       # main thread, the mouse, the refresh rate and the three starting values
 title = "Heavy Weapon"
 client = [640, 480]
-pos = [80, 80]
 clock = "virtual"
 update_ms = 10
 counter = "0x56b5b4"
