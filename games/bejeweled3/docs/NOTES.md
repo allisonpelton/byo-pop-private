@@ -397,3 +397,69 @@ fades BACK and QUIT with the first aux curve), the exe's list of buttons (0x474f
 Fixes found on the way: the PlayMenu's size was written transposed (the menu's constructor passes the rectangle 0, 0,
 art size x 1920/1200, art size); the Profile is saved when it is deleted (0x71c4b0), which the app's destructor now does,
 so the first player's profile.dat exists after a run and the next run loads the player instead of asking again.
+
+## The Classic board: start, data and first fill (Board.h, Board.cpp, TestCommands.cpp)
+
+Start (0x7737d0, called by PlayMenu::ButtonDepress case 0 after it clears the app's +0xc31 and its own +0x3cc): the screen
+at app +0xba4 and the board at +0xbe8 are taken off their parent and deleted; a ClassicBoard (RTTI vftable 0x86511c, 0x3088
+bytes, constructor 0x73b390, derived from Board, constructor 0x74ae30, vftable 0x864cb4) is made, put at +0xbe8, sized (0, 0,
+the app's width, height), ResetGame (slot 85, 0x74a880), slot 213 (0x743f40) with 0x15, the saved-game question
+(Bej3App::DoSavedGameCheck, 0x76cde0: when it says yes it sets +0xc31 and the board is not added), then AddWidget and
+SetFocus on the widget manager (+0x360), NewGame (slot 135, 0x74e410), and the music: FadeOut with no song, then Play of
+the mode's name (slot 89, 0x7413e0: "Classic").
+
+The grid: Piece* at board +0xf8 + (col + row * 8) * 4, 8 by 8; rows 8 and 9 of the same array (+0x1f8, +0x218) are two
+tables the fill uses (a column's last fall delay, floats, and a column tag, -1 after a fill), so a write to "the cell under
+row 7" of a gap would land in the delay table (it never does: row 7 is the first one scanned). The last row is at +0x22e4 (7).
+A cell is 128 in 1200ths of the art height; the grid's corner is (0x20b, 0x4b) of the screen (slots 171 and 172, 0x73bd80 and
+0x73bd70, read +0x2c4c and +0x2c50, both 0 from the constructor).
+
+Piece (0x630 bytes, 0x7203b0 with 0x720120, made by 0x7415c0 which also puts it in the grid, x = col * 128, y = row * 128,
+update counts from the board's +0x38): +0 board, +4 id (the board's counter at +0xf4), +8 col, +0xc row, +0x10 x, +0x14 y,
++0x18 and +0x218 the update it was made and first fell in, +0x1c a float "fall delay" (0 until it first falls), +0x188 the
+column tag it was made with, +0x17e 1 while the fill has seen it (0x17f and 0x182 start at 1), +0x20c -1 keeps it from
+falling, +0x220 the colour (-1 none, 0 to 6), +0x228 the flag bits (0 plain; 0x10, 0x4, 0x80, 0x2, 0x400 to 0x2000 are the
+specials, not translated), +0x230 a busy count (the fill waits while any piece's is above 0), ten curves at +0x20, +0x90,
++0x100, +0x198, +0x280... (idle on a new piece: every test of them in the fill reads "not running").
+
+Random numbers: the board has its own MTRand at +0x258, seeded in its constructor with the app's global generator's next
+number (0x439a90, the generator at 0x8e20e8: the framework's Rand()); a seed of 0 becomes 0x1105, as the framework's does. The
+test command `seed <n>` seeds the framework's generator, so the board made after it is the same each time. Classic's NewGame
+draws nothing before the fill: the background index is set to -1 and 0x749c20 takes the next one (index 0, which the table
+at 0x8d2170 maps to the 11th name of the table at 0x8d2118, lion_tower_cascade), with no draw.
+
+First fill (slot 203, 0x763e90, argument 0): it returns at once when the board's +0x2ef8 is not 0 or any piece has a busy count.
+Then passes over the 8 columns, left to right, until a pass changes nothing: in a column from the last row up, the first empty
+cell starts a run of gaps; a piece above a gap falls one row (row +1, the grid cell moved; +0x1c gets the column's delay + 1 when
+it was 0), a piece with +0x20c = -1 ends the run; after the column a new piece is made in row 0 when there was a gap, with
+fall delay = the last fallen piece's - 0.55, y = (the highest y in the column, as a whole number, - 128) - Next(15) - 10 (clamped
+to -128 - 75 when its place on screen would be below -128), and the column's tag is set to -1. One Next(15) is drawn for each new
+piece, so on an empty board the order of draws is pass by pass, column by column: the 64 pieces end in rows 7, 6, ... 0 in that
+order (the first pass's pieces fall furthest). It also works out how long the columns take to land into +0xe40 (not translated).
+Then the colours: all of the new pieces (the list in making order) get flags 0 and colour -1, then each gets
+colourList[Next(14)], the list at +0x105c being each of 0 to 6 twice (made by the constructor at 0x74b960); this repeats until the
+grid has no run of three (0x73ba40, rows first, then columns; run counts restart at a gap or a colourless cell) and has a move
+(0x75a8e0 with the first move wanted: every cell against its right, lower, left and upper neighbour, swapped in the grid, the
+colour that came to the cell counted along its row and column; for the first five tries only a run of four or more or a crossing
+of two counts, after that any run of three), or until 200,000 tries (a flag at +0x1190 lowers that, and it is 0). Classic's
+overrides read in place: slots 126, 128, 182, 183 return 0 and 184, 185 return 1, 190 returns 5, slot 90 (0x73c410) is 0 after a
+reset (+0xe04 = 0), slot 199 (0x73c870) finds a run through a piece of this update with bit 0x10, which a plain piece has not.
+Slot 204 with 0 does nothing and 0x749220 does nothing for a plain piece.
+
+The first board for seed 1 (rows top to bottom, red R, white W, green G, yellow Y, purple P, orange O, blue B; identical in two
+runs of two processes): OOROOGBW BOYRPWYB OWBWRRYW GOYBGBOG OGBYRYYB YBOOWPOG GPYWWRGY BPRYPORW.
+
+Test commands (TestCommands.cpp): `seed <n>`, `goto classic` (the start above, as the PLAY menu's ball makes it), `state`
+(`STATE {"screen","mode","score","board":[8 strings],"background"}`).
+
+Draw: the Classic board's Draw (slot 26, 0x73b250) runs 0x751d50 (the panel) and then Board::DrawGameElements (0x750320),
+which draws, among much else, each piece by slot 237 (0x757df0). A plain piece (no flags, nothing running on it) is
+IMAGE_GEMS_<colour> (resource ids 0x310 to 0x316: red, white, green, yellow, purple, orange, blue; 5 by 4 cels of 128 at
+1200) drawn at ((0x20b + x), (0x4b + y)) x art / 1200, the cel from the piece's own spin curve. The score is Board_DrawScore
+(0x746f20): FONT_SCORE (id 10), the number through CommaSeperate (board +0xd64), at (250, 202).
+
+Left out: the checkered panel of 0x751d50 (a dark square for every other cell of the 8 by 8 grid, two colours made at the top of
+that function, the side glows 0x712c90 and the score bar), the background widget (Sexy::Background, 0x310 bytes, made by
+0x749c20 from the table of .pam names at 0x8d2118: a PopAnim with worker threads, added to the widget manager under the board),
+the update (slot 22, 0x759170), the piece's spin cel, the fall, the saved game of the mode (0x74e1f0, read through slot 88), the
+camera setup of NewGame (0x73e440), +0xe40, and hiding the main menu when a board is up (the menu still draws under the board).

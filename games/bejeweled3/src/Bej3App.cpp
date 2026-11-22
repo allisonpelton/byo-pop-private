@@ -3,6 +3,7 @@
 
 #include "Bej3Dialog.h"
 #include "Bej3Music.h"
+#include "Board.h"
 #include "MainMenu.h"
 #include "WidgetManager.h"
 #include "DDInterface.h"
@@ -424,4 +425,27 @@ void Bej3App::ShowResourceError(bool doExit)
 	Popup(mPrimeResourceManager->GetErrorText());
 	if (doExit)
 		DoExit(0);
+}
+
+// 0x7737d0 (bejeweled3)
+void Bej3App::StartClassic()
+{
+	// the board of the game before goes (the exe also lets go of another screen at +0xba4: nothing there is made yet)
+	if (mBoard != nullptr) {
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+		mBoard = nullptr;
+	}
+	mBoard = new ClassicBoard();
+	mBoard->Resize(0, 0, mWidth, mHeight);
+	mBoard->ResetGame();
+	// slot 213 (0x743f40) with 0x15 sets what the mode shows: not translated yet
+	// 0x76cde0 asks whether a saved game of the mode is to be resumed: there is none, so the new game starts
+	mWidgetManager->AddWidget(mBoard);
+	mWidgetManager->SetFocus(mBoard);
+	mBoard->NewGame();
+	if (mBej3Music != nullptr) {
+		mBej3Music->QueueEvent("FadeOut", "", false);
+		mBej3Music->QueueEvent("Play", mBoard->GetModeName(), false);
+	}
 }
