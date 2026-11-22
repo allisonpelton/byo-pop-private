@@ -76,7 +76,10 @@ var ByopopSettings = (function () {
     // the game's update rate, times this (web/controls.js): any value the framework takes, 0.01 to 16 (the user, 2026-11-10: "Allow
     // game speed to be set to any arbitrary value instead of the limited options in the dropdown"), and 0, as fast as it goes;
     // the listed ones are the native speed keys' steps (SexyAppBase::SPEED_STEPS)
-    speed: { values: ["0.25", "0.5", "0.75", "1", "1.5", "2", "3", "4", "8", "16", "0"], number: [0.01, 16], def: "1" }
+    speed: { values: ["0.25", "0.5", "0.75", "1", "1.5", "2", "3", "4", "8", "16", "0"], number: [0.01, 16], def: "1" },
+    // on: F6, F7 and F8 in the game step the speed as the native speed keys do (web/controls.js; the user, 2026-11-17: "Add
+    // optional hotkeys for game speed (probably using function keys)")
+    speedKeys: { values: SWITCH, def: "off" }
   };
 
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }
@@ -319,6 +322,7 @@ var ByopopSettings = (function () {
     { name: "speed", label: T("settings.speed.label"), options: [["0.25", "¼×"], ["0.5", "½×"], ["0.75", "¾×"], ["1", T("settings.speed.normal")],
       ["1.5", "1½×"], ["2", "2×"], ["3", "3×"], ["4", "4×"], ["8", "8×"], ["16", "16×"], ["0", T("settings.speed.max")]],
       fixed: OWN_SPEED_GAMES, hint: T("settings.speed.hint") },
+    { name: "speedKeys", label: T("settings.speedkeys.label"), fixed: OWN_SPEED_GAMES, hint: T("settings.speedkeys.hint") },
     { name: "accel3d", label: T("settings.accel3d.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.accel3d.on")], ["off", T("settings.accel3d.off")]], start: true,
       games: ACCEL3D_GAMES, hint: T("settings.accel3d.hint"), help: T("settings.accel3d.help") },
     { name: "pixelPerfect", label: T("settings.pixelperfect.label"),

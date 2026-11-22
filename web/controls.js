@@ -12,6 +12,8 @@
 //   game speed     (setting "speed", 1 by default) the framework's own update multiplier (byopop_set_speed): the game runs
 //                  its updates that much faster or slower in real time; never on the player-only test page (?player=1),
 //                  whose runs keep the game's own speed; 0 is as fast as it goes
+//   speed keys     (setting "speedKeys", off by default) F6, F7 and F8 in the game step the speed as the native keys do, and
+//                  the new speed shows over the game for a moment
 // The events go to the canvas as a player's own do (web/testkit.js does the same for tests), so Emscripten and SDL take them
 // on the same path.
 var ByopopControls = (function () {
@@ -172,6 +174,61 @@ var ByopopControls = (function () {
       M._byopop_set_speed(want);
       if (was > 0 || speedSet === 0 || M._byopop_speed() > 0) { speedSet = want; speedCell(); }
     } catch (e) {}
+  }
+  // The speed keys (setting "speedKeys"): F6 slower, F7 faster, F8 back to normal, along the native keys' steps
+  // (SexyAppBase::SPEED_STEPS and StepGameSpeed), from a speed between two steps to the next one in that direction; past 16 is as
+  // fast as it goes, and below the lowest step the speed stays. The page takes the press and its release before SDL (the
+  // game's own speed keys are not built into the web build's mod menu), and the new speed is this game's own setting.
+  var SPEED_STEPS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 8, 16];
+  var SPEED_KEYS = { F6: -1, F7: 1, F8: 0 };
+  function steppedSpeed(now, dir) {
+    if (!dir) return 1;
+    if (now === 0) return dir > 0 ? 0 : SPEED_STEPS[SPEED_STEPS.length - 1];
+    var i;
+    if (dir > 0) {
+      for (i = 0; i < SPEED_STEPS.length; i++) if (SPEED_STEPS[i] > now * 1.0001) return SPEED_STEPS[i];
+      return 0;
+    }
+    for (i = SPEED_STEPS.length - 1; i >= 0; i--) if (SPEED_STEPS[i] < now * 0.9999) return SPEED_STEPS[i];
+    return now;
+  }
+  function speedKeysOn() { return !testPage && !ownSpeed() && setting("speedKeys") === "on"; }
+  function onSpeedKey(e) {
+    if (e.target !== canvas || !SPEED_KEYS.hasOwnProperty(e.key) || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey || !speedKeysOn()) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (e.type !== "keydown" || e.repeat) return;
+    var v = steppedSpeed(speedWanted(), SPEED_KEYS[e.key]);
+    try { ByopopSettings.set("speed", String(v), pageGame); } catch (err) {}
+    try { window.dispatchEvent(new CustomEvent("byopop-setting", { detail: { name: "speed" } })); } catch (err) {}
+    speedSign();
+  }
+  // The new speed over the game for a moment, in a raised box of the desktop's grey (Desktop 95's look)
+  var sign = null, signTimer = 0;
+  function speedSign() {
+    if (!stage) return;
+    if (!sign) {
+      sign = document.createElement("div");
+      sign.className = "bc-speedsign";
+      sign.setAttribute("role", "status");
+      stage.appendChild(sign);
+    }
+    sign.textContent = T("skin.apps.speed", { n: speedText(speedWanted()) });
+    // at the top of the part of the game that is in sight: a window narrower than the game scrolls it
+    var r = canvas.getBoundingClientRect(), box = { left: r.left, right: r.right, top: r.top };
+    for (var el = stage.parentElement; el && el !== document.documentElement; el = el.parentElement) {
+      var cs = getComputedStyle(el);
+      if (cs.overflowX === "visible" && cs.overflowY === "visible") continue;
+      var c = el.getBoundingClientRect();
+      box.left = Math.max(box.left, c.left); box.right = Math.min(box.right, c.right); box.top = Math.max(box.top, c.top);
+    }
+    box.left = Math.max(box.left, 0); box.right = Math.min(box.right, window.innerWidth); box.top = Math.max(box.top, 0);
+    var s = stage.getBoundingClientRect();
+    sign.style.left = Math.round((box.left + box.right) / 2 - s.left) + "px";
+    sign.style.top = Math.round(box.top - s.top + 8) + "px";
+    sign.hidden = false;
+    clearTimeout(signTimer);
+    signTimer = setTimeout(function () { sign.hidden = true; }, 1500);
   }
   // the speed in the game window's status bar, beside the window's scale, while it is not normal (a play-test, 2026-11-11, read
   // the scale's "1x" as the speed at 1.5)
@@ -514,7 +571,11 @@ var ByopopControls = (function () {
     ".bc-touch button { min-width: 64px; min-height: 44px; padding: 6px 14px; font: inherit; touch-action: none; -webkit-user-select: none; user-select: none; }" +
     ".bc-list { margin: 0 0 12px; } .bc-list dt { font-weight: 600; margin-top: 10px; } .bc-list dd { margin: 3px 0 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }" +
     ".bc-keys kbd { display: inline-block; min-width: 1.6em; text-align: center; padding: 1px 6px; margin-right: 4px; border: 1px solid currentColor; border-radius: 4px; font: 600 12px/1.5 ui-monospace, Consolas, monospace; opacity: 0.85; }" +
-    ".bc-keys kbd.bc-mine { border-style: dashed; }";
+    ".bc-keys kbd.bc-mine { border-style: dashed; }" +
+    ".bc-speedsign { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 3; pointer-events: none; padding: 3px 10px;" +
+    " background: var(--panel, #c0c0c0); color: var(--fg, #000000); font-size: 11px; line-height: 15px; white-space: nowrap;" +
+    " box-shadow: inset -1px -1px var(--sk-dk, #000000), inset 1px 1px var(--sk-hi, #ffffff), inset -2px -2px var(--sk-lo, #808080), inset 2px 2px var(--sk-mid, #dfdfdf); }" +
+    ".bc-speedsign[hidden] { display: none; }";
 
   function sync() {
     stage = stage || document.getElementById("stage");
@@ -529,6 +590,9 @@ var ByopopControls = (function () {
     syncDisplay();
     syncTouch();
     if (speedWanted() !== speedSet) hook();
+    // the hint shown while the game has the keyboard: with the speed keys on, F6 is the game's slower key
+    var keyHint = document.getElementById("key-hint");
+    if (keyHint) keyHint.textContent = T(speedKeysOn() ? "game.canvas_hint_speedkeys" : "game.canvas_hint");
   }
   var listening = false;
   function listen() {
@@ -536,6 +600,9 @@ var ByopopControls = (function () {
     listening = true;
     // window, capture: before the canvas's own listeners, so a remapped key's event never reaches the game
     window.addEventListener("keydown", onCapture, true);
+    // the speed keys, before the remapped keys and SDL
+    window.addEventListener("keydown", onSpeedKey, true);
+    window.addEventListener("keyup", onSpeedKey, true);
     ["keydown", "keyup", "keypress"].forEach(function (t) { window.addEventListener(t, function (e) { if (e.target === canvas) onKey(e); }, true); });
     ["keydown", "keyup", "mousedown", "mouseup"].forEach(function (t) { window.addEventListener(t, function (e) { if (e.target === canvas) onSeen(e); }, true); });
     window.addEventListener("blur", onSeen);
@@ -550,7 +617,7 @@ var ByopopControls = (function () {
   }
   window.addEventListener("byopop-setting", function (ev) {
     var n = ev.detail && ev.detail.name;
-    if (n === "inputDisplay" || n === "touchKeys" || n === "touchPlace" || n === "speed") sync();
+    if (n === "inputDisplay" || n === "touchKeys" || n === "touchPlace" || n === "speed" || n === "speedKeys") sync();
   });
   window.addEventListener("storage", function (ev) {
     if (ev.key === MAPKEY) { map = loadMap(); drawPanel(); }
