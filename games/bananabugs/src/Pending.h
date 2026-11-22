@@ -21,13 +21,6 @@ class BBFont;
 class LevelObj;
 class PipeObj;
 
-// The effect of a bonus on the monkey (0x40bfe0); the stand-in is an object that shows nothing
-class BonusEffect : public ObjBase
-{
-public:
-	void Play();                                // 0x40c040 (EBX the effect): starts its 18 pictures and shows it
-};
-
 // A bonus of the second half of the kinds, not translated yet: it holds its kind (Bonus::Setup) and nothing else, and
 // when it is won it is put away at once, so play goes on. Each stand-in is named after the class at the constructor's
 // address
@@ -41,12 +34,6 @@ class BonusShotSpeed : public PendingBonus      // 0x410ca0 (0x2d8 bytes)
 {
 public:
 	BonusShotSpeed();
-};
-
-class BonusFlyPaper : public PendingBonus       // 0x40c700 (0x2e8 bytes)
-{
-public:
-	BonusFlyPaper();
 };
 
 class BonusZapper : public PendingBonus         // 0x4123e0 (0x2e4 bytes)
@@ -67,28 +54,10 @@ public:
 	BonusSpearCraft();
 };
 
-class BonusMagicArrows : public PendingBonus    // 0x40d740 (0x2d8 bytes)
-{
-public:
-	BonusMagicArrows();
-};
-
-class BonusMissile : public PendingBonus        // 0x40e550 (0x318 bytes)
-{
-public:
-	BonusMissile();
-};
-
 class BonusRain : public PendingBonus           // 0x410660 (0x3bc bytes)
 {
 public:
 	BonusRain();
-};
-
-class BonusHurricane : public PendingBonus      // 0x40d090 (0x3c0 bytes)
-{
-public:
-	BonusHurricane();
 };
 
 class BonusParrot : public PendingBonus         // 0x40eff0 (0x328 bytes)
@@ -109,14 +78,8 @@ public:
 	BonusZuma();
 };
 
-class BonusMine : public PendingBonus           // 0x40d7c0 (0x380 bytes)
-{
-public:
-	BonusMine();
-};
-
-// The pictures PreloadBonusPictures (0x406dd0) loads, in the globals of the second half's bonuses (not translated yet)
-extern Anim* gMissileAnim;    // 0x60e1ac
+// The pictures PreloadBonusPictures (0x406dd0) loads, in the globals of the second half's bonuses (not translated yet;
+// gDropAnim is read by no function of the exe)
 extern Anim* gParrotFlyAnim;  // 0x60e1b8
 extern Anim* gParrotWalkAnim; // 0x60e1bc
 extern Anim* gParrotPeckAnim; // 0x60e1c0
@@ -124,10 +87,8 @@ extern Anim* gDiscoBallAnim;  // 0x60e1c4
 extern Anim* gMilkDropAnim;   // 0x60e1c8
 extern Anim* gDropAnim;       // 0x60e1cc
 extern Anim* gTarzanAnim;     // 0x60e1d0
-extern Anim* gPaperAnim;      // 0x60e1d4
 extern Anim* gZapperAnim;     // 0x60e1d8
 extern Anim* gSwatterAnim;    // 0x60e1dc
-extern Anim* gMineAnim;       // 0x60e1e0
 extern Anim* gZumaAnim;       // 0x60e1e4
 extern Anim* gZumaBallAnim;   // 0x60e1e8
 

@@ -5,6 +5,7 @@
 
 #include "Anim.h"
 #include "BBWindow.h"
+#include "BonusEffect.h"
 #include "Buffer.h"
 #include "Cursor.h"
 #include "Emitter.h"

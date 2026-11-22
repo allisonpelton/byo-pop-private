@@ -88,6 +88,7 @@ public:
 	virtual bool Rotate();                    // slot 20 (+0x50) 0x406be0: turns the held thing (kind 7 turns it over)
 	virtual bool Place();                     // slot 21 (+0x54) 0x406c20: puts it down; false when it may not go there
 
+	bool EndOnLastBug();                      // 0x412570: End, and yes (the EndWhenBugsGone of the kinds 2, 3, 10, 12 and 17; it lies in BonusZapper's range)
 	bool UpdateUpright();                     // 0x40c760: the Update of BonusBomb and BonusFlyPaper (it lies in the second half's range)
 	void BecomeHeld(bool theFlag);            // 0x406c30 (AL): held, not turned, in the state 2
 

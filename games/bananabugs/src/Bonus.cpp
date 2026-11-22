@@ -5,6 +5,9 @@
 #include "BananaBonus.h"
 #include "BonusBomb.h"
 #include "BonusCannon.h"
+#include "BonusFlyPaper.h"
+#include "BonusMine.h"
+#include "BonusMissile.h"
 #include "BugObj.h"
 #include "Emitter.h"
 #include "GameApp.h"
@@ -196,6 +199,13 @@ bool Bonus::EndWhenBugsGone()
 	return false;
 }
 
+// 0x412570: the bonus ends with the last bug, and says it has
+bool Bonus::EndOnLastBug()
+{
+	End();
+	return true;
+}
+
 // 0x406ad0: the bonus is won: its sound, and its message. When the level has already reached its target or has no bug
 // left, there is nothing for the bonus to do and it pays out a bunch of bananas at its own place and is put away
 void Bonus::Start()
@@ -309,7 +319,7 @@ void Bonus::CancelIfDone()
 void Sexy::PreloadBonusPictures()
 {
 	BonusBomb::sCocoBombAnim = Anim::Get("images/cocobomb", ANIM_SCALE_SMOOTH, false, 0, 0, 1, true);
-	gMissileAnim = Anim::Get("images/missile", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
+	BonusMissile::sMissileAnim = Anim::Get("images/missile", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
 	BonusCannon::sCannonBallAnim = Anim::Get("images/cannonball", ANIM_SCALE_SMOOTH, false, 0, 0, 1, true);
 	BonusCannon::sCannonAnim = Anim::Get("images/cannon", ANIM_SCALE_SMOOTH, false, 0, 0, 1, true);
 	gParrotFlyAnim = Anim::Get("images/parrot_fly", ANIM_SCALE_SMOOTH, false, 0x60, 0x60, 0xb, false);
@@ -319,10 +329,10 @@ void Sexy::PreloadBonusPictures()
 	gMilkDropAnim = Anim::Get("images/bonus_milkdrop", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
 	gDropAnim = Anim::Get("images/drop", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
 	gTarzanAnim = Anim::Get("images/bonus_tarzan", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
-	gPaperAnim = Anim::Get("images/bonus_paper", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
+	BonusFlyPaper::sPaperAnim = Anim::Get("images/bonus_paper", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
 	gZapperAnim = Anim::Get("images/bonus_zapper", ANIM_SCALE_SMOOTH, false, 0x3f, 0x55, 2, false);
 	gSwatterAnim = Anim::Get("images/bonus_swatter", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
-	gMineAnim = Anim::Get("images/bonus_mine", ANIM_SCALE_SMOOTH, false, 0, 0, 1, true);
+	BonusMine::sMineAnim = Anim::Get("images/bonus_mine", ANIM_SCALE_SMOOTH, false, 0, 0, 1, true);
 	gZumaAnim = Anim::Get("images/bonus_zuma", ANIM_SCALE_SMOOTH, false, 0x3f, 0x4b, 2, false);
 	gZumaBallAnim = Anim::Get("images/bonus_zuma_ball", ANIM_SCALE_SMOOTH, false, 0, 0, 1, true);
 }

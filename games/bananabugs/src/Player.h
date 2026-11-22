@@ -13,6 +13,7 @@ namespace Sexy
 {
 
 class Anim;
+class BonusEffect;
 struct AnimKey;
 class Emitter;
 class ObjString;
