@@ -538,7 +538,20 @@ frame puts in neither the fixes nor the lite mod and starts the game with `-nomo
 Its page centres the game on black (`html.saver`), and a key pressed while the game's canvas has the focus ends the saver
 too. Only the player's own input counts: the driver's moves are events it makes itself (`isTrusted` false), and before they
 were ignored a bot that moves by keys ended the saver as soon as a level began (the user, 2026-11-19: "Mummy Maze
-screensaver seems to just exit once it gets into a level; ditto with Noah's Ark"). The driver runs with `?begin=mode`, which starts a game still on its title or menus in the mode its state names.
+screensaver seems to just exit once it gets into a level; ditto with Noah's Ark").
+
+**Modes and pace** (the user, 2026-11-17: "Screensavers should choose between different modes if applicable to the game",
+"Let the bot unlock them", and bots that "play nicer"). `PLAY` in `web/saver.js` gives each game its modes: those its bot
+can play, that can be lost, and that a new profile has open, so a locked mode comes into the saver only once the bot's own
+play has opened it in the saver's profile, never by a test command. One is drawn at each start: by its `goto` name
+(`?begin=<name>`), for a game whose bot has no move on its title or menus, or by the `set mode` its bot reads (`?prep=`), for
+one whose bot clicks through its menus itself; a game with a 3D view has 2D or 3D drawn as well (`3d on` or `3d off`). A
+choice every player has from the start is drawn too (`choose`: Ning Po's layout, tile set and table, by the `set` its title's
+arrows answer; the user: "only plays one setup"), and a first run's screen no bot answers gets the test command that does its
+work (`setup`: Venice's name box, `player Saver`). A game left out plays as its bot starts it (`?begin=mode`). `pace` is the updates waited after each move, about a person's speed
+(a hundred are about a second), and none for a game whose bot plays in real time, aiming or dodging, where a pause would only
+lose. A saver's frame opened with `?assets=` (a test of the saver from a first run, with the staged files) keeps a test
+profile of its own, the game's name with `-saver-test`, apart from the game's own tests' `-test`.
 
 **The bot's hook.** The game plays by one call that asks it for its next move. Today that is the test command `move`
 (`docs/TEST_COMMANDS.md`, "The bot behind move"), sent through `byopop_test_command` by the page's `?driver=move`; it exists
@@ -1364,7 +1377,12 @@ async function of `t` (`byopop.test`); what it returns becomes `byopop.test.resu
 `"over": true`, on `MOVE null` twice running while the game is not busy, on an ERROR, or after `?steps=` moves (2000 by
 default); while the state says `busy`, `MOVE null` means "not yet" and it waits 5 updates. With `?begin=mode`, the first
 `MOVE null` twice running while the state names a `mode` (the game on its title or menus) sends `goto <mode>` once and
-goes on, as the native loop's `--first` does (the screen saver uses it). The result is
+goes on, as the native loop's `--first` does. `?begin=<name>` sends `goto <name>` instead, for a game whose state names no
+mode off its board; a goto the game answers with an ERROR (its title not yet gone, a dialog in the way) is sent again
+after the next two empty moves, up to 20 times, and one it takes gets about 24 seconds of empty moves for its board to
+load before the driver stops. `?prep=<command>;<command>` sends those test commands before the first move (`set mode
+action`, `3d on`), one the game refuses being sent again after each move, up to 20 times (Ning Po's start dialog), and
+`?pace=<n>` waits n updates after each move. The screen saver uses all three. The result is
 `{moves, stop, state, updates, errors}`, with `stop` one of "over", "limit", "no move", "busy" or "error: <message>".
 `playByMove({steps})` runs the same loop from a session's own driver.
 

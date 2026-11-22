@@ -19,8 +19,46 @@ var ByopopSaver = (function () {
   // for good. So Pixelus (puzzles, nothing to lose), Mummy Maze (being caught only brings "try again", and its bot is a perfect
   // solver) and both Mahjong Escapes (no board is ever lost) are not here.
   var BOTS = ["alchemy", "astropop", "atomica", "bejeweled", "bejeweled2", "bejeweledtwist", "bigmoney", "bookworm", "bookwormadv",
-    "bookwormadv2", "cosmicbugs", "dynomite", "ningpo", "noahsark", "rocketmania", "sevenseas", "tiptop", "typershark", "waterbugs",
-    "wordharmony"];
+    "bookwormadv2", "cosmicbugs", "dynomite", "hammerheads", "heavyweapon", "ningpo", "noahsark", "rocketmania", "sevenseas", "tiptop",
+    "typershark", "venice", "waterbugs", "wordharmony"];
+  // How the saver starts each game (the user, 2026-11-17: "Screensavers should choose between different modes if applicable to the
+  // game", "Let the bot unlock them", and a watchable pace). Each game's modes are those its bot can play, that can be lost, and that
+  // a new profile has open: a locked one opens only by the bot's own play, never by a test command. One is drawn at each start.
+  //   begin  the names `goto` starts them by (web/testkit.js, ?begin=), for a game whose bot has no move on its title or menus
+  //   prep   the test commands that make the bot pick one, for a game whose bot clicks through its menus itself (`set mode`)
+  //   setup  test commands sent at every start before those, for a first run's screen no bot answers (Venice's name box,
+  //          whose work its `player` command does)
+  //   choose lists of test commands, one drawn from each, for choices any player has from the start (Ning Po's title arrows:
+  //          its layout, tile set and table; the user: "only plays one setup")
+  //   views  2D or 3D drawn too (the `3d on`/`3d off` command, as the Options dialog's box)
+  //   pace   updates waited after each move (a hundred are about a second), about a person's speed; none for a game whose bot plays
+  //          in real time (aiming, dodging), where a pause would only lose
+  // A game left out has no modes to draw and plays as its bot starts it (?begin=mode). The modes come from each port's `goto`,
+  // `set mode` and state (docs/TEST_COMMANDS.md and each game's notes).
+  function counted(command, n) { var out = []; for (var i = 0; i < n; i++) out.push(command + i); return out; }
+  var PLAY = {
+    alchemy: { begin: ["strategic", "timetrial"], pace: 100 },
+    astropop: { begin: ["classic"], views: true },
+    atomica: { pace: 100 },
+    bejeweled: { begin: ["normal", "timed"], pace: 120 },
+    bejeweled2: { begin: ["classic", "action"], views: true, pace: 120 },
+    bejeweledtwist: { begin: ["classic", "blitz"], views: true, pace: 120 },
+    bigmoney: { pace: 80 },
+    bookworm: { pace: 150 },
+    bookwormadv: { begin: ["adventure"], pace: 150 },
+    bookwormadv2: { begin: ["adventure"], pace: 150 },
+    cosmicbugs: { begin: ["game"] },
+    dynomite: { begin: ["stomped", "endless", "fossil", "timetrial"] },
+    hammerheads: { begin: ["classic"] },
+    heavyweapon: { begin: ["campaign"] },
+    ningpo: { choose: [counted("set layout ", 18), counted("set tileset ", 9), counted("set background ", 10)], pace: 120 },
+    noahsark: { prep: ["set mode action", "set mode strategy"], pace: 60 },
+    tiptop: { prep: ["set mode regular", "set mode strategy", "set mode speed"] },
+    typershark: { begin: ["adventure"], pace: 12 },
+    venice: { begin: ["journey"], setup: ["player Saver"], pace: 80 },
+    wordharmony: { begin: ["tsunami"], pace: 150 }
+  };
+  function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
   var WAITS = ["1", "2", "3", "5", "10", "15", "20", "30", "60"];
   var ids = ["none", "random"].concat(BOTS);
   var PROFILE = "-saver";
@@ -48,7 +86,17 @@ var ByopopSaver = (function () {
   function tileOf(id) { return document.querySelector('a.tile[data-game="' + String(id).replace(/[^a-z0-9_-]/g, "") + '"]'); }
   function pageOf(id) { var t = tileOf(id); return t ? t.getAttribute("href") : id + ".html"; }
   function persistOf(id) { var t = tileOf(id); return t ? t.getAttribute("data-persist") : null; }
-  function frameSrc(id) { return new URL(pageOf(id), location.href).pathname + "?player=1&silent=1&saver=1&driver=move&begin=mode&steps=100000"; }
+  // the frame's page for a game: the driver's mode, commands and pace drawn from PLAY
+  function frameSrc(id) {
+    var play = PLAY[id] || {}, prep = (play.setup || []).slice(), q = "?player=1&silent=1&saver=1&driver=move&steps=100000";
+    q += "&begin=" + encodeURIComponent(play.begin ? pick(play.begin) : "mode");
+    (play.choose || []).forEach(function (list) { prep.push(pick(list)); });
+    if (play.prep) prep.push(pick(play.prep));
+    if (play.views) prep.push(pick(["3d on", "3d off"]));
+    if (prep.length) q += "&prep=" + encodeURIComponent(prep.join(";"));
+    if (play.pace) q += "&pace=" + play.pace;
+    return new URL(pageOf(id), location.href).pathname + q;
+  }
 
   // playing: the game in the frame; shuffled: drawn for "random"
   var shade = null, frame = null, timer = null, startedAt = 0, playing = null, shuffled = false;
@@ -173,6 +221,6 @@ var ByopopSaver = (function () {
     window.addEventListener("byopop-setting", function (ev) { var n = ev.detail && ev.detail.name; if (n === "saver" || n === "saverWait") arm(); });
     arm();
   }
-  return { ids: ids, waits: WAITS, PROFILE: PROFILE, wipe: wipe, offered: offered, chosen: chosen, start: start, stop: stop, running: running,
+  return { ids: ids, waits: WAITS, PROFILE: PROFILE, PLAY: PLAY, frameSrc: frameSrc, wipe: wipe, offered: offered, chosen: chosen, start: start, stop: stop, running: running,
     preview: function (id) { stop(); return start(id); } };
 })();

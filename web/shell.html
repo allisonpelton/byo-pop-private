@@ -534,7 +534,8 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
   try { document.addEventListener("DOMContentLoaded", function () { ByopopControls.setGame(PAGE.id); }); } catch (e) {}
   // clip recording (web/clips.js), when the site setting is on: a Record button on the bar
   try { document.addEventListener("DOMContentLoaded", function () { ByopopClips.setGame(PAGE.id); }); } catch (e) {}
-  var PROFILE = TEST_PROFILE ? "-test" : SAVER ? ByopopSaver.PROFILE : "";
+  // (a saver's frame with ?assets=, a test of the saver from a first run: a test profile of its own, apart from the game's tests')
+  var PROFILE = TEST_PROFILE ? (SAVER ? ByopopSaver.PROFILE + "-test" : "-test") : SAVER ? ByopopSaver.PROFILE : "";
   var PERSIST = PAGE.persist + PROFILE;
   var LOCK = PAGE.lock + PROFILE;
   // the saver's frame has the player's game files outside its own database (savedGameFiles), so that they are never copied into it
