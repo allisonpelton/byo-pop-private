@@ -1773,8 +1773,10 @@ def recording_check(r, ref, run, label):
         if not (os.path.exists(pa) and os.path.exists(pb)):
             r.fail("%s: %s missing: %s / %s" % (label, name, os.path.exists(pa), os.path.exists(pb)))
             continue
-        la = [x for x in read_lines(pa) if not x.startswith(LOG_OF_MODS)]
-        lb = [x for x in read_lines(pb) if not x.startswith(LOG_OF_MODS)]
+        # (and the framework's display lines, as in compare_streams: SoftwareScreenDisplay's count of frames drawn on the
+        # GPU follows the wall clock, 89 against 87 in a trunk check of 2026-11-22)
+        la = [x for x in read_lines(pa) if not x.startswith(LOG_OF_MODS) and not (name == "stderr.txt" and DISPLAY_LINE.match(x))]
+        lb = [x for x in read_lines(pb) if not x.startswith(LOG_OF_MODS) and not (name == "stderr.txt" and DISPLAY_LINE.match(x))]
         compare_log(r, la, lb, label + ": " + name)
     ua, ub = os.path.join(ref, "user"), os.path.join(run, "user")
     fa = list_tree(ua, lambda p: True)

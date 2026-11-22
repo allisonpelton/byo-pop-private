@@ -1,0 +1,10 @@
+# A rank-up: Classic by the seeded autoplay from a player one rank point short of rank 2 (the profile's mRankPoints, byte 246, set to 14): the rank bar fills and the award shows (gen.py)
+0 offset 8         # the original's autoplay reached the level's end 4 updates later in this run than in Classic's (osearch)
+2300 shot r01_rankbar
+2500 shot r02_rankbar_full
+2700 shot r03_award
+2800 shot r04_award_rank1
+3000 shot r05_rankup
+3200 shot r06_rankup_b
+3200 state
+3205 end

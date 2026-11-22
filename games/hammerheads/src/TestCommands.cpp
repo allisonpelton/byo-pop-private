@@ -317,6 +317,10 @@ void Application::StartTestGame(int theMode, int theLevel)
 	if (mUserManager->GetCurrentUser() == nullptr)
 		mUserManager->CreateUser("Player");
 
+	// the loading screen's "Click to Play" is skipped once the files are loaded (a bot has no one to click it)
+	if (mLoadingScreen != nullptr && mLoadingThreadCompleted)
+		DropWidget(mLoadingScreen);
+
 	for (int anId = 0; anId < 0x20; anId++)
 		KillDialog(anId);
 	if (mMainMenu != nullptr)

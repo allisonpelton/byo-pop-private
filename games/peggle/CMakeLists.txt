@@ -14,7 +14,7 @@ endif()
 if(EMSCRIPTEN)
   # A float or double out of the int range converts as on x86 (cvttsd2si: INT_MIN), not as wasm's saturating conversion
   target_compile_options(peggle PRIVATE -mno-nontrapping-fptoint)
-  byopop_web_game(peggle TITLE "Peggle Deluxe"
+  byopop_web_game(peggle TITLE "Peggle"
     COPYRIGHT "Peggle Deluxe © 2007 PopCap Games, Inc. All rights reserved."
     LICENSES libopenmpt)
 else()

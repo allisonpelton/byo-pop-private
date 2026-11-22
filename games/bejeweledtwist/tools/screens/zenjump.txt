@@ -1,0 +1,16 @@
+# The zen jump: TWISTBOT's saved Classic game (prep-zenjump, as gameover's) offers Zen, and Zen is taken: the jump, the
+# Zen board's start and the RETURNING TO GAME dialog (gen.py)
+400 click 400 300        # Play
+650 click 200 170        # Classic: a saved game, so the question
+905 click 200 360        # Continue
+1300 shot z01_offer
+1305 click 150 300       # Zen
+1400 shot z02_jump
+1500 shot z03_zen_start
+1700 shot z04_zen_go
+1900 shot z05_returning
+1900 state
+1905 click 400 360       # OK
+2200 shot z06_zen_board
+2200 state
+2205 end

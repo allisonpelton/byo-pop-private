@@ -22,6 +22,9 @@ var ByopopApps = (function () {
   var apps = [], seq = 0, restoring = false;
   function T(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
   function on() { return !!(desk && desk.isOn()); }
+  // the desktop's loading (web/skins.js) waits for the windows start() puts back, with their pages
+  try { SKIN.bootHold("apps"); } catch (e) {}
+  function bootDone() { try { SKIN.bootDone("apps"); } catch (e) {} }
   // the desktop's zoom (web/skins.js): the window's sizes are the screen's CSS pixels, a style's the page's
   function zf() { try { return ByopopSkin.zoom(); } catch (e) { return 1; } }
   function narrow() { return (document.documentElement.clientWidth || window.innerWidth) / zf() < NARROW; }
@@ -190,6 +193,7 @@ var ByopopApps = (function () {
       f.setAttribute("allow", "fullscreen; autoplay; clipboard-write");
       client.appendChild(f);
       app.frame = f;
+      f.addEventListener("load", function () { app.loaded = true; }, { once: true });
       // a page's own title, once it has loaded
       if (kind === "page") f.addEventListener("load", function () {
         try { var t = f.contentDocument && f.contentDocument.title; if (t) { desk.setTitle(id, t); f.title = t; } } catch (e) {}
@@ -211,6 +215,8 @@ var ByopopApps = (function () {
       minHeight: kind === "game" ? function () { return least(app).h; } : null,
       at: function (left) { return [left + 40 + (n % 6) * 26, 20 + (n % 6) * 26]; },
       scroll: kind === "txt" ? app.text : null,
+      // a game's or a page's frame has no height of its own to measure: those windows go to the room; a text's to its length
+      natural: kind === "txt",
       focusIn: function (back) { focusApp(app, back); } });
     apps.push(app);
     if (kind === "game") watchBar();
@@ -439,6 +445,11 @@ var ByopopApps = (function () {
   function fit(win, w, h, force, chosen) {
     var a = byWin(win);
     if (!a || narrow()) return;
+    fitWindow(a, w, h, force, chosen);
+    // (the desktop's loading waits for it, start)
+    if (a.onFit) { var told = a.onFit; a.onFit = null; told(); }
+  }
+  function fitWindow(a, w, h, force, chosen) {
     // a size the player chose restores a maximized window first (its place comes back), as Windows did
     if (chosen && a.el.classList.contains("d95-maxed")) maximize(a);
     if (a.el.classList.contains("d95-maxed") || (!force && a.fitted && a.fitted[0] === w && a.fitted[1] === h)) return;
@@ -490,7 +501,7 @@ var ByopopApps = (function () {
   // web/skins.js onePage); then the root's address
   function start() {
     var want = Q.get("open"), st = history.state;
-    if (!on()) return;
+    if (!on()) { bootDone(); return; }
     if (st && st.d95 && st.open && st.open.length) {
       restoring = true;
       try {
@@ -504,6 +515,18 @@ var ByopopApps = (function () {
       open(SITE + want, "replace");
     }
     write(false);
+    // the desktop shows once each window put back has its page, and a game's window its game's size (fit), which its page
+    // gives once it knows it: until then, or for 3 s after its page has loaded
+    var left = 0;
+    apps.forEach(function (a) {
+      if (!a.frame) return;
+      left++;
+      var done = false;
+      function finish() { if (done) return; done = true; if (--left === 0) bootDone(); }
+      function loaded() { if (a.kind !== "game" || a.fitted) finish(); else { a.onFit = finish; setTimeout(finish, 3000); } }
+      if (a.loaded) loaded(); else a.frame.addEventListener("load", loaded, { once: true });
+    });
+    if (!left) bootDone();
   }
   if (document.readyState === "complete") setTimeout(start, 0); else window.addEventListener("load", function () { setTimeout(start, 0); });
 
@@ -556,7 +579,10 @@ var ByopopApps = (function () {
   setInterval(function () { if (gameCount()) hush(); }, 1000);
   function hushed(win) { var a = byWin(win); return !!(a && a.hushedNode); }
 
-  return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, activated: activated, f6: f6, altTab: altTab, closeFront: closeFront, shutDown: shutDown, rehush: rehush, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
+  // a question from a window's page (a game's Game menu, web/shell.html ask): the desktop's message box, titled by the window
+  function ask(win, text, buttons) { var a = byWin(win); messageBox(a ? a.title : "", text, false, buttons); }
+
+  return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, ask: ask, activated: activated, f6: f6, altTab: altTab, closeFront: closeFront, shutDown: shutDown, rehush: rehush, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
     menuKey: menuKey, fullScreen: function (win) { var a = byWin(win); if (a) fullScreen(a); },
     count: function () { return apps.length; },
     // the address back to the root (a link to #settings and the like, web/index.html)
