@@ -86,7 +86,7 @@ void MenuState::startGame(int theMode)
 		mApp->mStateMgr.pushState(new PopupState(mApp, mApp->mRestoreGameScreen.get(), this));
 		return;
 	}
-	// The application's +0x324 set (its readers not yet found)
+	mApp->mFreshGame = true;
 	// 0x49fa20 (feedingfrenzy2): a stage of the mode reached
 	if (mApp->mUserData->getMode(mApp->mGameData->getMode()).mMaxStage > 0)
 	{

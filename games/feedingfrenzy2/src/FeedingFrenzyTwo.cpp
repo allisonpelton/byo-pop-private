@@ -32,7 +32,7 @@ FeedingFrenzyTwo* getApp()
 	return gTheApp;
 }
 
-FeedingFrenzyTwo::FeedingFrenzyTwo() : mMenuRunning(false), mMenuScreen(MENU_SCREEN_MAIN)
+FeedingFrenzyTwo::FeedingFrenzyTwo() : mMenuRunning(false), mFreshGame(false), mMenuScreen(MENU_SCREEN_MAIN)
 {
 	// The state manager is a member, not counted by anyone: the port holds a reference so its count never reaches 0
 	mStateMgr.addRef();

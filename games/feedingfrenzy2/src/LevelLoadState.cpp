@@ -5,6 +5,7 @@
 #include "Random.h"
 #include "ScreenMgr.h"
 #include "SimpleSound.h"
+#include "StageIntroState.h"
 
 using namespace engine;
 
@@ -101,14 +102,15 @@ void LevelLoadState::update(UpdateContext* theContext)
 		mApp->mStateMgr.changeState(mNextState.get());
 		return;
 	}
+	// The stage's intro when it has intro data, else the play (GamePlayState, 0x1c bytes): not yet translated
+	if (mApp->getScreenData(mEntry->mId) != nullptr)
+	{
+		mApp->mStateMgr.changeState(new StageIntroState(mApp));
+		return;
+	}
 	if (mNextStateLogged)
 		return;
-	// The stage's intro (StageIntroState, 0x18 bytes, 0x49d1b0 (feedingfrenzy2)) when it has intro data, else the
-	// play (GamePlayState, 0x1c bytes): not yet translated
-	if (mApp->getScreenData(mEntry->mId) != nullptr)
-		getEngine()->log("LevelLoadState: %s loaded; the stage's intro not yet translated\n", mEntry->mId.c_str());
-	else
-		getEngine()->log("LevelLoadState: %s loaded; the play not yet translated\n", mEntry->mId.c_str());
+	getEngine()->log("LevelLoadState: %s loaded; the play not yet translated\n", mEntry->mId.c_str());
 	mNextStateLogged = true;
 }
 

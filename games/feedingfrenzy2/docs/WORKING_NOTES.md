@@ -366,11 +366,24 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   every mode's furthest stage set to the count of stages and the player saved. Checked under rundesk with it: Start
   Game shows the map for picking (every pearl gold, "New Game", the instruction, Back To Menu), and a click on the
   first pearl loads stage1, exit 0.
+- The stage's intro (StageIntroScreen.h, the application's +0x98 read from resource/shell/stageStartBase.xml, and
+  StageIntroState.h): a loaded stage with screen data goes to it; its title ("<n>. <title>"), caption, paragraphs and
+  objective come from the data, over the data's text and art layouts (each a ScreenLayout child, read again for each
+  stage), with the timed mode's new time and the clock's totals ("H:mm:ss", 0x44ca60) in place of the objective, the
+  clock's starting total alone while the game is fresh (the application's +0x324, now mFreshGame, set by the menu's
+  new game). Its Continue logs that the play is not yet translated, Options that the options are not, and Quit opens
+  the quit popup. The engine's screen reader now reads an image's Theora frame (TheoraReader::readFrameAt, 0x415b40)
+  and makes the scaled copy of an image whose scale is not 1 (the surface's 0x3c), as 0x453c50 does: the intro's fish
+  pictures and the stages' scaled backdrop pieces, which were drawn at their files' sizes. (A shared engine change:
+  Talismania's scaled images change the same way.) Checked under rundesk: stage1's intro with its art, Quit's popup
+  over it, exit 0. Not compared with the original's yet; the paragraphs keep the file's line breaks and indents as
+  the text item has them.
 
 ## Next
 
-- The restore-game popup's actions, StageIntroState (0x49d1b0) and GamePlayState, the players' spawn and the HUD,
-  toward a stage in play.
+- The play (GamePlayState, 0x1c bytes, its constructor 0x49b390), the players' spawn and the HUD, toward a stage in
+  play; the restore-game popup's actions; the quit popup's actions over the intro; the compositeGroup element (the
+  intro's background group, now skipped).
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's
   simplesound). The stage's slot 0x5c (0x447ef0) is not a clean-up but the stage's ending (player died, perfect, stage
   clear, time up) and slot 0x60 (0x43a950) the camera on the first player (+0x344): both return at once without players,

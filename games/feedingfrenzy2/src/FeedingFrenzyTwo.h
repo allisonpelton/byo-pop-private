@@ -16,6 +16,7 @@
 #include "PlayerRanks.h"
 #include "Scene.h"
 #include "Stage.h"
+#include "StageIntroScreen.h"
 #include "StageScreenData.h"
 #include "State.h"
 #include "StringTable.h"
@@ -98,8 +99,10 @@ public:
 	engine::Ref<engine::GenericScreen> mGenericLoadScreen;       // +0x80
 	engine::Ref<GameMapScreen> mGameMap;                         // +0x84
 	engine::Ref<engine::GenericScreen> mCredits;                 // +0x88
-	// +0x8c to +0xa4: the high scores (HighScoreScreen), the two game overs (StageCompleteScreenBonus), the stage's
-	// start (StageIntroScreen), its two ends (StageCompleteScreenNormal and StageCompleteScreenBonus) and the options
+	// +0x8c to +0x94: the high scores (HighScoreScreen) and the two game overs (StageCompleteScreenBonus): not yet
+	// translated
+	engine::Ref<StageIntroScreen> mStageIntro;                   // +0x98
+	// +0x9c to +0xa4: the stage's two ends (StageCompleteScreenNormal and StageCompleteScreenBonus) and the options
 	// (FeedingFrenzyTwoOptionScreen): not yet translated
 	engine::Ref<engine::Theme> mShellTheme;            // +0xac: resource/themes/shellTheme.xml, falling back on the
 	                                                   // minimal theme
@@ -112,6 +115,9 @@ public:
 	std::string mAppName;                              // +0xe4: the string table's appName
 	bool mMenuRunning;                                 // +0x320: while the menu is the current state, so its stage
 	                                                   // goes on under a popup
+	bool mFreshGame;                                   // +0x324: a game started anew (not one restored), until its
+	                                                   // first stage is complete: the stage intro shows the clock's
+	                                                   // starting total
 	int mMenuScreen;                                   // +0x330: MenuScreen
 	engine::StateMgr<AppState> mStateMgr;              // +0x354
 };

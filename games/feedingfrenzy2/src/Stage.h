@@ -178,6 +178,7 @@ public:
 	// Set by the stage's loader from the manifest's entry (0x48a810 (feedingfrenzy2))
 	void setStageTime(float theStageTime) { mStageTime = theStageTime; }
 	void setCanSuck(bool canSuck) { mCanSuck = canSuck; }
+	bool isBonus() const { return mBonus; }
 
 private:
 	friend class StageDocHandler;

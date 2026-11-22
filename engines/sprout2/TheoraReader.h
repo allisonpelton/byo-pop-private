@@ -38,6 +38,14 @@ public:
 	Surface* readFrame();
 	// 0x474d00 (feedingfrenzy2): the next frame read and decoded, and dropped
 	void skipFrame();
+	// 0x415b40 (feedingfrenzy2): the frames before the one at the index decoded and dropped (up to the stream's end),
+	// then the next read; null at the end
+	Surface* readFrameAt(unsigned int theFrame)
+	{
+		while (mFrameIndex < theFrame && !atEnd())
+			skipFrame();
+		return readFrame();
+	}
 
 private:
 	// 0x45f130 (feedingfrenzy2): the next packet's header and bytes

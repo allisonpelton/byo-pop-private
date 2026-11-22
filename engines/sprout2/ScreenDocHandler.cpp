@@ -9,6 +9,7 @@
 #include "EditBox.h"
 #include "ImageButton.h"
 #include "ListBox.h"
+#include "TheoraReader.h"
 #include "Modifiers.h"
 #include "ParticleSystem.h"
 #include "Random.h"
@@ -189,15 +190,19 @@ void ScreenDocHandler::readImage(Params& theAttributes)
 {
 	std::string aFile = theAttributes.getString("file", "");
 	std::string aTheoraFile = theAttributes.getString("theoraFile", "");
-	theAttributes.getInt("theoraFrame", 0);
+	int aTheoraFrame = theAttributes.getInt("theoraFrame", 0);
 	std::string aName = theAttributes.getString("name", "");
 	Surface* aSurface = nullptr;
+	Ref<Surface> aFrame;  // port: a Theora frame kept until the image holds it or its scaled copy
 	if (!aFile.empty())
 		aSurface = findImage(aFile);
 	else if (!aTheoraFile.empty())
 	{
-		// A frame of a Theora animation (0x415ba0, 0x47b930 and 0x415b40 (feedingfrenzy2)): not yet translated
-		getEngine()->log("ScreenDocHandler: theoraFile %s not yet translated\n", aTheoraFile.c_str());
+		// A frame of a Theora animation, read from its file by a reader of its own
+		TheoraReader aReader;
+		aReader.open(aTheoraFile);
+		aFrame = aReader.readFrameAt((unsigned int)aTheoraFrame);
+		aSurface = aFrame.get();
 	}
 	if (aSurface == nullptr)
 		return;
@@ -219,10 +224,9 @@ void ScreenDocHandler::readImage(Params& theAttributes)
 	else if (equals(anAlphaType, "none"))
 		aSurface->setBlendMode(BLEND_OPAQUE, 0);
 
+	// A scaled copy in its place, the image's own scale left to flip it
 	if (fabsf(aScaleX) != 1.0f || fabsf(aScaleY) != 1.0f)
-		// A scaled copy of the surface: not yet translated
-		getEngine()->log("ScreenDocHandler: %s scaled by %f, %f not yet translated\n", aSurface->getName().c_str(),
-			(double)aScaleX, (double)aScaleY);
+		aSurface = aSurface->scaledCopy(aScaleX, aScaleY);
 	aScaleX = aScaleX < 0.0f ? -1.0f : 1.0f;
 	aScaleY = aScaleY < 0.0f ? -1.0f : 1.0f;
 
