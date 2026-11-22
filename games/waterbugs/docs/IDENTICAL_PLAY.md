@@ -128,3 +128,63 @@ ten seconds for it (shared, `2829e9fe`). The registration and outbound buttons a
 `determinism.sh` (five runs of a fixed short game with the mod off and on) found three different games in five runs with the mod off and one game in all five runs with it on (the same game as one of the three). The second fix, `easyLabel`, only
 changes the Options screen's label for the easiest difficulty. With the mod off the port is the original (the frozen baseline
 and `tools/check.sh waterbugs` are unchanged).
+
+## Screen coverage (2026-11-22)
+
+A screen audit found that the looks phase had compared only the screens its tours visit. `docs/SCREENS.md` now lists every
+screen and dialog the game can show (31 rows, from `WBMenu.cpp`'s requesters, `WBLevel.cpp`'s level types and
+`water_bugs.xml`), each row with the shots that show it; `tools/play/screensmd.py` writes it from the shot names of the tours, so
+a row's shots are what the tours take. The six gaps of the audit are closed: the credits, the delete-player question (and the
+message for the only player), the resume question and the quit question (Water Bugs has no pause screen); the level-finished
+results and the board after them; the game over, the high-score entry (the game enters the player's name itself; typed keys do
+nothing) and the Hall of Fame; power-ups of every kind (the original's own test keys 0 to 9 and A to D, held on the hundreds
+world) and the bugs of every world (each world's first boards, reached with the original's own `.` key); and the Quit path.
+
+**How.** Three tours of `games/waterbugs/test/tours` (`fresh`: the menus of a new profile, the player list, a new game, its quit
+question and a first board played to its end; `end`: a saved game on its last life lost, the game over and the Hall of Fame, the
+resume question; `worlds`: a profile that has reached every level, the map with each world hovered, the level selection,
+each world's boards, the power-ups) are played on the original (`tools/play/runall.sh`, origrun in Windows Sandbox, windowed,
+the virtual clock, the seed pinned, ten steps a frame as the port's runner) and on the port's runner, from the same events
+(`tools/play/tour.py` makes both scripts), 362 shots, compared by `tools/shotdiff` (`games/waterbugs/shotdiff.json` crops the
+original's window frame). `tools/check.sh screens` passes on the newest run (`r3`).
+
+**What was wrong with the first runs, and not with the port.** (1) The input gate `--input-eip 41f467,41f511` held every move
+and click for thousands of updates, because the ten-step frame's wait sits inside that range: the original's shots landed
+many seconds after their scripted times and everything differed. The gate is now `41f489,41f511` (after the wait; an input posted
+during the wait is read by the next frame's message pump, as before), every input lands on its update, and the first 13
+shots match in every pixel or in faint pixels only. (2) The original's run was cut at 600 s of wall time (`--timeout`); the
+longer tours need 3000. (3) The `worlds` tour went through the Instructions screens after the hundreds world, because that world's
+play ends the saved game's lives and a Start with no lives begins a new game instead of asking to resume; the hundreds world
+now goes last, with the story skipped and one line a key so the board outlasts the keys. Both sides did the same thing in
+every case; the tour was what was wrong.
+
+**Differences.** Of 362 pairs, 9 match, 236 differ only faintly, and 117 differ visibly. Every one of the 117 is a board, or a
+screen after a board has been loaded, and in the pixel maps and crops that were looked at (the menus and maps after a load: bubbles
+only; boards: the place of a bug or a sprite's animation frame, a few dozen pixels) it is a bubble, a bug or a beam's piece at
+another place. The cause is not the port. Two runs of the original's `worlds` tour differ from each other in 84 of 194 pairs, with
+1.07 million visible pixels against 1.14 million between the original and the port, and a second run of the original's first board
+differs from the first in 847 visible pixels at the same update: a load reads files on its own thread and the game's
+updates go on meanwhile, so the number of updates a load takes, and with it the state of the bubbles and bugs' random draws, is not the
+same twice. The port differs from itself in the same way (the menu's bubbles, the loading's share of the updates). Where a
+shot can be taken before any bug has moved (the first board's start) the bugs are where the original puts them; where the draws
+have taken different turns, nothing in the port is to be fixed, and no code was changed in this pass. These differences are explained in the Note of
+every row that has them (`SCREENS.md`).
+
+**The baseline.** Because the port's pictures vary from run to run, `games/waterbugs/test/tours.frozen` holds the pixel hash of
+each shot that was whole in six runs (202 of 362), and `tools/check.sh waterbugs` plays the three tours once and wants those
+unchanged and all 362 shots present (`tools/play/tourcheck.py`; the suite takes about three minutes more).
+
+**Full screen.** The original cannot be played full screen in Windows Sandbox: with `fullscreen="1"` it stops with "Screen Setup
+Failed: 800x600 16bit screen could not be opened". Its picture is the same 800x600 surface in both modes; the port's full screen is
+the display layer's scaled copy of that surface, checked in the performance pass (`SURFACE_VERIFY=1`, a scripted F7: 486 frames
+through the surface and 800 through the renderer, none differing). Left to the user's real-input check if it should be
+seen on a monitor.
+
+**Quit.** In the original a click on Quit ends the process (exit code 0) with no window left and no screen of its own; the port's
+runner ends at the click too (`SCREENS.md`).
+
+**"Deluxe".** The text does not appear on the title, loading or main-menu screens of Water Bugs (the main menu shot has none), and
+the CMake `TITLE` is "Water Bugs": nothing to remove.
+
+**Oddities.** None new. The tours' state is compared by pixels, which the original's nondeterminism limits (above); a
+comparison by state (`move`, the bot's states) was not made for the later worlds.
