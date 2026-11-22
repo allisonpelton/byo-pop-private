@@ -73,6 +73,44 @@ int Sexy::BugSharedTakeCommand(BugObj* theBug)
 	return 0;
 }
 
+// 0x416420 (slot 18; the beetle, the roach and the roly-poly): the bug and its column are held and the body is told what for:
+// freezing is a dance, dazing shows the stars, shock the ring. Unlike 0x417aa0 it goes by the command it was given, not the
+// one the bug holds. The original returns false always, whatever the base said
+bool Sexy::BugSharedSetCommandGiven(BugObj* theBug, int theCommand, int theFrames)
+{
+	if (theBug->BugObj::SetCommand(theCommand, theFrames) && theBug->mBody != nullptr) {
+		switch (theCommand) {
+		case COMMAND_FREEZE:
+			theBug->mBody->Slot13(BUG_CMD_FREEZE_ON, theFrames, 0);
+			break;
+		case COMMAND_DAZE:
+			theBug->mBody->Slot13(BUG_CMD_STARS_ON, theFrames, 0);
+			break;
+		case COMMAND_SHOCK:
+			theBug->mBody->Slot13(BUG_CMD_RING_ON, theFrames, 0);
+			break;
+		}
+	}
+	return false;
+}
+
+// 0x418cd0 (slot 19; the roach, the roly-poly and the dragonfly): the hold ends and the body is told to stop the dance and
+// the stars. A bug of the original: the shock's ring is never told to end (the case is missing), where 0x41e1f0 ends it.
+// Returns 0 always
+int Sexy::BugSharedTakeCommandNoRing(BugObj* theBug)
+{
+	if (theBug->mAlive) {
+		int aCommand = theBug->BugObj::TakeCommand();
+		if (aCommand != 0 && theBug->mBody != nullptr) {
+			if (aCommand == COMMAND_FREEZE)
+				theBug->mBody->Slot13(BUG_CMD_FREEZE_OFF, 0, 0);
+			else if (aCommand == COMMAND_DAZE)
+				theBug->mBody->Slot13(BUG_CMD_STARS_OFF, 0, 0);
+		}
+	}
+	return 0;
+}
+
 // 0x415b60 (slot 22): the fade track: 45 frames shrinking and fading away, then a key that ends with the event (the
 // original's code has the 5 in it; the kinds that name it all pass theirs)
 void Sexy::BugSharedBuildFadeTrack(BugObj* theBug, int theEndEvent)

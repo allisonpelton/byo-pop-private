@@ -66,7 +66,10 @@ script reaches level n + 1 with bugs this way: at update 1000 type a name (`char
 window is not open yet), `1100 key RETURN`, then `set progress n`, `set tutorial 1`, `set walkthru 1`; Play at
 (418, 207); the game asks to continue the last game: YES at (310, 320); the map's continue at (600, 555). The level is
 playing by about update 2600. Level 1 with the tutorial not done has no bugs of its own (the intro brings them); the
-first four levels use only the skeeter and the beetle.
+first four levels use only the skeeter and the beetle. After them each kind comes in at its first level (the spawn
+table, LevelObj::InitSpawnTable): the dragonfly at 9, the roly-poly at 17, the caterpillar at 21, the roach at 25, the
+fly at 37, the ant at 58, the centipede at 73, the moth at 101 and the bee at 121 (levels counted from 1). `state`
+lists the kinds of the bugs in play.
 
 ## Translating a class (the register conventions, checked against the code)
 

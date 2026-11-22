@@ -6,7 +6,7 @@
 // off and falls, tumbling, as the death track.
 // Slots this class overrides: Notify (4), Setup (14), StepSegment (15), Vanish (17), SetCommand (18), TakeCommand (19),
 // Zap (20), PlaceAt (21), BuildFadeTrack (22) and BuildDeathTrack (23); Update (5) is the base's. StepSegment, Vanish,
-// TakeCommand and BuildFadeTrack are one function in the original that several kinds' vtables name: they are in
+// SetCommand, TakeCommand and BuildFadeTrack are one function in the original that several kinds' vtables name: they are in
 // BugShared, and each override here calls the shared copy.
 #pragma once
 
@@ -47,7 +47,7 @@ public:
 	void Setup(int theRole, int theWaitFrames, BugObj* theHead, BugObj* thePrevious) override; // 0x4162a0 (slot 14)
 	void StepSegment() override;             // 0x41c620 (slot 15): updates the bug, then its body
 	void Vanish() override;                  // 0x415810 (slot 17)
-	bool SetCommand(int theCommand, int theFrames) override; // 0x416420 (slot 18)
+	bool SetCommand(int theCommand, int theFrames) override; // 0x416420 (slot 18; shared)
 	int TakeCommand() override;              // 0x41e1f0 (slot 19)
 	bool Zap(bool theFollowers, bool theStartTrack, bool thePeaHit) override; // 0x416750 (slot 20)
 	void PlaceAt(int theColumn, int theRow) override; // 0x416480 (slot 21)

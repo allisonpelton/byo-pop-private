@@ -32,7 +32,15 @@ void BugSharedStepSegment(BugObj* theBug);                         // 0x41c620 (
 void BugSharedVanish(BugObj* theBug);                              // 0x415810 (slot 17)
 bool BugSharedSetCommand(BugObj* theBug, int theCommand, int theFrames); // 0x417aa0 (slot 18)
 int BugSharedTakeCommand(BugObj* theBug);                          // 0x41e1f0 (slot 19)
-void BugSharedBuildFadeTrack(BugObj* theBug, int theEndEvent);     // 0x415b60 (slot 22): theEndEvent is the key's event, 5 in the original
+// 0x416420 (slot 18; the beetle, the roach and the roly-poly): SetCommand that tells the body by the command it was given
+// (0x417aa0 goes by the one the bug holds)
+bool BugSharedSetCommandGiven(BugObj* theBug, int theCommand, int theFrames);
+// 0x418cd0 (slot 19; the roach, the roly-poly and the dragonfly): TakeCommand that ends the freeze and the daze on the body
+// but never the shock's ring
+int BugSharedTakeCommandNoRing(BugObj* theBug);
+// 0x415b60 (slot 22): theEndEvent is the key's event, 5 in the original. 0x418130 (the roach, the roly-poly and the
+// centipede) is the same code with the event 6: those kinds call this with 6
+void BugSharedBuildFadeTrack(BugObj* theBug, int theEndEvent);
 
 // The shared slots of the bodies (the original's code reads the track at +0x2a4 of its own body, which the kinds that name
 // it keep at that place; here the track is passed)

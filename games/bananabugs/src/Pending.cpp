@@ -54,8 +54,6 @@ static Anim* sSwatterAnim;           // 0x60e1dc
 static Anim* sMineAnim;              // 0x60e1e0
 static Anim* sZumaAnim;              // 0x60e1e4
 static Anim* sZumaBallAnim;          // 0x60e1e8
-static Anim* sRolyPolyAnim;          // 0x60e2a0
-static Anim* sCockroachWalkAnim;     // 0x60e29c
 
 static Anim* Load(const char* theName, int theCelWidth, int theCelHeight, int theNumCels, bool uniform = false)
 {
@@ -204,16 +202,6 @@ void Sexy::InitBonusTable()
 {
 }
 
-void Sexy::PreloadRolyPoly()
-{
-	sRolyPolyAnim = Load("images/rolypoly", 0x60, 0x4f, 0x3c);
-}
-
-void Sexy::PreloadCockroach()
-{
-	sCockroachWalkAnim = Load("images/cockroach_walk", 0x60, 0x40, 0x1c);
-}
-
 // port: the stand-in bonuses, bugs and bolts do nothing
 // port: the stand-in bonus is not drawn or kept anywhere (the original sets up its place and its looks)
 void BonusCoin::Place(int theColumn, int theRow)
@@ -231,16 +219,6 @@ void HiddenBonus::Uncover()
 BugBrainDragonfly::BugBrainDragonfly() // 0x418880
 {
 	SetKind(2, 4, 2);
-}
-
-BugBrainRolly::BugBrainRolly() // 0x41d0d0
-{
-	SetKind(3, 1, 1);
-}
-
-BugBrainRoach::BugBrainRoach() // 0x41c4f0
-{
-	SetKind(5, 2, 2);
 }
 
 BugBrainCaterpillar::BugBrainCaterpillar() // 0x416ea0

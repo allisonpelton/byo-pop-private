@@ -115,25 +115,10 @@ void BugBrainBeetle::Vanish()
 	BugSharedVanish(this);
 }
 
-// 0x416420 (slot 18): the bug and its column are held and the body is told what for: freezing is a dance, dazing shows
-// the stars, shock the ring. Unlike the shared one (0x417aa0) it goes by the command it was given, not the one the bug
-// holds. The original returns false always, whatever the base said
+// 0x416420 (slot 18; shared): see BugSharedSetCommandGiven
 bool BugBrainBeetle::SetCommand(int theCommand, int theFrames)
 {
-	if (BugObj::SetCommand(theCommand, theFrames) && mBody != nullptr) {
-		switch (theCommand) {
-		case COMMAND_FREEZE:
-			mBody->Slot13(BUG_CMD_FREEZE_ON, theFrames, 0);
-			break;
-		case COMMAND_DAZE:
-			mBody->Slot13(BUG_CMD_STARS_ON, theFrames, 0);
-			break;
-		case COMMAND_SHOCK:
-			mBody->Slot13(BUG_CMD_RING_ON, theFrames, 0);
-			break;
-		}
-	}
-	return false;
+	return BugSharedSetCommandGiven(this, theCommand, theFrames);
 }
 
 // 0x41e1f0 (slot 19; shared): see BugSharedTakeCommand

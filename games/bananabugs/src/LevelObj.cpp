@@ -2,6 +2,8 @@
 #include "Board.h"
 #include "BugBrainAnt.h"
 #include "BugBrainBeetle.h"
+#include "BugBrainRoach.h"
+#include "BugBrainRolly.h"
 #include "BugBrainSkeeter.h"
 
 #include "BananaBonus.h"

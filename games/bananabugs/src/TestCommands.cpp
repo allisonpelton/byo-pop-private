@@ -3,9 +3,10 @@
 // OK <command>, ERROR <command>: <reason> or STATE {...}. The set so far:
 //
 //   state                 STATE {json}: player, level (levels finished), score, lives, bananas, bugs (in the list),
-//                         alive (the bugs alive)
+//                         alive (the bugs alive), kinds (each bug's BugKind, in the list's order)
 //   set <name> <value>    on the current player: progress (levels finished, so Play starts level value + 1), tutorial and
-//                         walkthru (1 marks the tutorial or the walk-through done), score, lives
+//                         walkthru (1 marks the tutorial or the walk-through done), kinds (the
+//                         bug kinds in play, 2 to 8), score, lives
 
 #include "GameApp.h"
 #include "BugObj.h"
@@ -49,7 +50,12 @@ void ReportState()
 			<< ",\"bananas\":" << aPlayer->mBananas
 			<< ",\"inLevel\":" << (aPlayer->mInLevel ? 1 : 0);
 	}
-	aJson << ",\"bugs\":" << BugObj::sCount << ",\"alive\":" << BugObj::sAlive << "}";
+	aJson << ",\"bugs\":" << BugObj::sCount << ",\"alive\":" << BugObj::sAlive << ",\"kinds\":[";
+	for (int i = 0; i < BugObj::sCount; i++) {
+		BugObj* aBug = BugObj::Get(i);
+		aJson << (i > 0 ? "," : "") << (aBug != nullptr ? aBug->mKind : -1);
+	}
+	aJson << "]}";
 	Reply("STATE " + aJson.str());
 }
 
@@ -66,6 +72,8 @@ bool SetValue(const std::string& theFull, const std::string& theName, int theVal
 		aPlayer->mTutorialDone = theValue;
 	else if (theName == "walkthru")
 		aPlayer->mWalkThruDone = theValue;
+	else if (theName == "kinds")
+		aPlayer->mBugKinds = theValue;
 	else if (theName == "score")
 		aPlayer->mScore = theValue;
 	else if (theName == "lives")
