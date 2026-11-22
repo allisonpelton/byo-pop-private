@@ -108,6 +108,12 @@ static const float POWERUP_MAX_Y = 370.0f;			  // a green peg is picked from the
 static const int DEFAULT_NUM_GOAL_PEGS = 25;
 static const int NUM_SHUFFLE_SWAPS = 1000;			  // 0x43d430
 static const int NUM_BALL_RECORDS_RESERVED = 60000;
+static const int SLOW_MO_END_BELOW = 400;			  // ModValInt LogicMgr.cpp 1241,3625: the slow motion's end waits for every ball to be below this
+static const int SLOW_MO_END_TIMER = 1000;			  // what Board::mUnknownD4 is then set to
+static const int FLIPPER_STATE_TIME = 500;			  // 0x649acc: a flipper hit cuts mUnknown38 to this
+static const float FREE_BALL_NEAR_SIDE = 15.0f;		  // the free ball piece counts a ball only this far from the sides
+static const int FREE_BALL_STAY_UPDATES = 9;		  // and after it has been there this many updates
+static const int RICHOCHET_SOUND_CODE = 4;			  // a piece's mSound of 4 makes the ricochet sound when hit
 static const float DEFAULT_BALL_RADIUS = 6.0f;		  // 0x649d78
 static const float GRAVITY = 0.05f;					  // 0x649d80
 static const float ANGLE_CONSTRAINT = 83.0f;		  // degrees to each side of straight down that the cannon cannot point at (ThunderCommon.cpp 123, 125)
@@ -1443,10 +1449,107 @@ void LogicMgr::CheckBallStop()
 	RemoveHitPegs();
 }
 
-// 0x4704a0
+// 0x4704a0: what the balls touched in this update (the collision manager's list) is gone through, each contact in order. The pieces
+// that have a logic are told; a piece named "flipper" starts a flip, and the free ball cover, the bumper hole and the free ball
+// pieces do what their names say; holes and pegs go on to HoleHit and PegHit. The sound of a piece that makes one is played, and the
+// list is emptied.
 void LogicMgr::CheckCollisions()
 {
-	NOT_TRANSLATED("LogicMgr::CheckCollisions");
+	Board* aBoard = mBoard;
+	std::vector<CollisionContact>& aContacts = aBoard->mCollisionMgr->mContacts;
+
+	if (mUnknownF6 && aBoard->mSlowMo && aBoard->mUnknownD4 == 0)
+	{
+		// the slow motion ends by itself when every ball is low and slow
+		std::list<SharedPtr<PhysObj> >::iterator anIt = aBoard->mBalls.begin();
+		while (anIt != aBoard->mBalls.end())
+		{
+			Ball* aBall = static_cast<Ball*>(anIt->get());
+			if ((double)aBall->mY < (double)SLOW_MO_END_BELOW || 9.0 < (double)aBall->mVelocityX * aBall->mVelocityX + (double)aBall->mVelocityY * aBall->mVelocityY)
+				break;
+			++anIt;
+		}
+		if (anIt == aBoard->mBalls.end() && aBoard->mSlowMo && aBoard->mUnknownD4 == 0)
+		{
+			aBoard->mUnknownD4 = SLOW_MO_END_TIMER;
+			aBoard->mUnknownD8 = 1;
+		}
+	}
+
+	for (size_t i = 0; i < aContacts.size(); i++)
+	{
+		SharedPtr<PhysObj> aBallPtr = aContacts[i].mBall;
+		PhysObj* anOther = aContacts[i].mOther.get();
+		Ball* aBall = static_cast<Ball*>(aBallPtr.get());
+
+		if (!anOther->mLogic.empty())
+			anOther->NotifyCollision();
+
+		if (anOther->mId == "flipper")
+		{
+			aBall->mUnknown144 = true;
+			if (FLIPPER_STATE_TIME < mUnknown38)
+				mUnknown38 = FLIPPER_STATE_TIME;
+		}
+		else if (anOther->mId == "freeballcover")
+		{
+			if (aBall->mFireball)
+			{
+				aBall->mUnknown145 = true;
+				anOther->SetActiveWithGrowAnim(false);
+				mBoard->mSoundMgr->AddSound(SOUND_FIREBALLBOUNCE, 0, 0, 0, 1, -1.0f);
+			}
+		}
+		else if (anOther->mId == "lbump")
+			NOT_TRANSLATED("LogicMgr::CheckCollisions, the light bump's effect (0x45bc60)");
+
+		if (anOther->mKind == KIND_HOLE)
+			HoleHit(anOther, aBall);
+		else if (anOther->mPegInfo.get() == nullptr)
+		{
+			if (anOther->mId == "bumperhole")
+				aBall->mUnknown162 = true;
+			else if (anOther->mId == "freeball")
+			{
+				if (aBall->mFireball)
+					mBoard->mSoundMgr->AddSound(SOUND_FIREBALLBOUNCE, 0, 0, 0, 1, -1.0f);
+				if (FREE_BALL_NEAR_SIDE < aBall->mX)
+				{
+					int aRight = mBoard->mUnknown1B0 - (int)FREE_BALL_NEAR_SIDE;
+					if (aBall->mX < (float)aRight)
+					{
+						if (aBall->mUnknown178 < 1)
+							aBall->mUnknown178 = mStateTime;
+						else if (FREE_BALL_STAY_UPDATES < mStateTime - aBall->mUnknown178)
+							aBall->mUnknown17C++;
+					}
+				}
+			}
+		}
+		else
+			PegHit(aBall, anOther, false);
+
+		if (anOther->mSound != 0 && (4 < aBall->mUnknown148 || anOther->mKind == KIND_HOLE) && anOther->mSound == RICHOCHET_SOUND_CODE)
+		{
+			int aSound = aBall->mFireball ? SOUND_FIREBALLBOUNCE : SOUND_RICHOCHET;
+			if (-1 < aSound)
+				mBoard->mSoundMgr->AddSound(aSound, 0, 0, 0, 1, -1.0f);
+		}
+		mUnknownA8 = true;
+	}
+	aContacts.clear();
+}
+
+// 0x470230
+void LogicMgr::HoleHit(PhysObj* theHole, Ball* theBall)
+{
+	NOT_TRANSLATED("LogicMgr::HoleHit");
+}
+
+// 0x46f480
+void LogicMgr::PegHit(Ball* theBall, PhysObj* thePeg, bool theFlag)
+{
+	NOT_TRANSLATED("LogicMgr::PegHit");
 }
 
 // 0x45e920

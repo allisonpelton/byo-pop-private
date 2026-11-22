@@ -98,6 +98,8 @@ public:
 	void CheckCollisions();								// 0x4704a0: what the balls touched in the update (the pegs they hit) is looked at
 	void DoFeverSlow();									// 0x45e920: the slow motion of the fever starts
 	void FinishShot();									// 0x470a50
+	void HoleHit(PhysObj* theHole, Ball* theBall);		// 0x470230
+	void PegHit(Ball* theBall, PhysObj* thePeg, bool theFlag); // 0x46f480
 	void CheckDoFlippers();								// 0x472c70
 	void AddFeverSparks(Ball* theBall, bool theZen);	// 0x451ec0
 	void UpdatePreShot();								// 0x466f10
