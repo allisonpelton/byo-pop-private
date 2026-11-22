@@ -543,13 +543,16 @@ void Board::UpdateMatchGroups()
 	}
 }
 
-// 0x74c770 (bejeweled3), for a plain piece: it goes from the grid and scores nothing itself (its 0x32 is the effect's length; the match scored
-// when it was found). port: the pieces' sparks (the
+// 0x74c770 (bejeweled3), for a plain piece: 50 points for it (a piece without the bits 0x1800 calls slot 152, 0x74df80, at 0x74c87e with 0x32 as the
+// points; ClassicBoard's vtable 0x86511c holds AddPoints at 0x260, and its other callers are the special gems' own: 0x73d380,
+// 0x73f8e0, 0x749650, 0x74c070 and three in 0x767e20), then it goes from the grid. port: the pieces' sparks (the
 // app's Rand() is drawn for them: 14 times 5 for the first ring, 25 times about 13, 14 times 6, and more) and the sounds,
 // the pictures of the destruction and the bits of the flags are not translated, so the app's random numbers are not drawn
 // as the exe draws them
 void Board::DestroyPiece(Piece* thePiece)
 {
+	if ((thePiece->mFlags & FLAGS_SPECIAL_SWAP) == 0)
+		AddPoints(0x32);
 	RemovePiece(thePiece);
 }
 

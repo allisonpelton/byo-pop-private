@@ -514,7 +514,9 @@ timer (+0x178) of 0.9; the group (+0x125c) adds 0.015 to each gem's timer every 
 busy count of 1; the next update's busy countdown destroys it (0x74c770, 0x755b80: gems above take the id; the fill then
 refills the column). The fill and the next match search wait while a group is alive.
 
-Score: a match scores (n - 3 + k) * 50, n the gems, k the matches the move and its cascades have made so far (at least 1),
+Score: every call of AddPoints is slot 152 (0x260) of the board's vtable. For plain gems there are two: the match (below, 0x75d86f) and
+the destroy function (0x74c87e): 50 for each gem without the bits 0x1800. The others belong to the special gems (0x73d380 250,
+0x73f8e0 and 0x74c070, 0x749650 1000 times a count, 0x767e20 300, 20 and 1000 times a level count). A match scores (n - 3 + k) * 50, n the gems, k the matches the move and its cascades have made so far (at least 1),
 and 350 * (n - 4) more from 5 gems (0x75d86f); AddPoints (0x74a210) takes it times the level number (+0xe0c, 1) in steps of
 10, each times the level index + 1 (+0xe04, 0), into +0xd24. The shown score (+0xd64) follows it every fourth update by a
 fifth of the distance, plus or minus 1 (0x73b6d0).
@@ -526,7 +528,6 @@ draws as above.
 
 Uncertain or left out, each marked `// port:` in BoardMoves.cpp: whether the exe begins a swap in the update of the click or
 the next; the group's life (the exe keeps it about 50 updates as an expanding ring that zeroes the speed of gems it passes;
-here it ends with its last gem, about 7 updates after the match); whether the 0x32 passed to 0x792bf0 in the destroy
-function is a score (read as an effect's length, so no per-gem points); the matcher's perpendicular-neighbour deferral;
+here it ends with its last gem, about 7 updates after the match); the matcher's perpendicular-neighbour deferral;
 the flame, star and hypercube (runs of 4 and 5 and crossings make them), the level bar, the end of the game, the hint, the
 help boxes, sounds, the sparks and the counters of 0x73d170 (+0xcc0 and others).
