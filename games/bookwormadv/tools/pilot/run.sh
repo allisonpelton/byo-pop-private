@@ -45,9 +45,15 @@ if [ "${PILOT3D:-off}" = on ]; then
 	SUF=3d; MODE3D=(--3d on --sandbox-vgpu)
 	[ -n "${PILOT_DGVOODOO:-}" ] && MODE3D+=(--dgvoodoo "$(cygpath -w "$PILOT_DGVOODOO")")
 fi
-PO=$P/orig$SUF; PP=$P/port$SUF; N=$name$SUF
-mkdir -p "$PO" "$PP" "$P/scripts"
-python "$T/gen.py" "$T/$name.txt" "$P/scripts/$name.orig.txt" "$P/scripts/$name.port.txt" "$PP" || exit 1
+PO=$P/orig$SUF; PP=$P/port$SUF; N=$name$SUF; SC=$P/scripts$SUF
+# A chapter load's screen draws a hint, one Rand(), every 50 updates, so the next board follows how long the load took,
+# which on a busy machine is anything from 5 to 260 updates. The pilot holds the hints on both sides (seedpatch.py
+# --holdhints, the port's -holdloadhints) and its steps are made so; PILOT_HINTS=on leaves them drawn, for the one pair
+# that shows a load's hint change (hints.txt). A part's 3D steps are tools/pilot/3d/<steps>.txt where it has them.
+HOLD=-holdloadhints; HOLDP=--holdhints; [ "${PILOT_HINTS:-off}" = on ] && HOLD= && HOLDP=
+ST=$T/$name.txt; [ -n "$SUF" ] && [ -f "$T/3d/$name.txt" ] && ST=$T/3d/$name.txt
+mkdir -p "$PO" "$PP" "$SC"
+python "$T/gen.py" "$ST" "$SC/$name.orig.txt" "$SC/$name.port.txt" "$PP" || exit 1
 
 if [ "$which" != port ]; then
 	# The script is timed to the original's own updates (gen.py): SexyAppBase's mUpdateCount, at +0x484 in the app
@@ -63,7 +69,7 @@ if [ "$which" != port ]; then
 	cp -r "$(dirname "$(cygpath -u "$EXE")")" "$R/game"
 	GEXE=$R/game/$(basename "$(cygpath -u "$EXE")")
 	# the same seeds on both sides: the copy's clock reads in SexyAppBase::Init become constants (seedpatch.py)
-	python "$T/seedpatch.py" "$GEXE" $SEED | tee "$P/$name.seedpatch.log"
+	python "$T/seedpatch.py" "$GEXE" $SEED $HOLDP | tee "$P/$name.seedpatch.log"
 	if [ "${PILOT_SOUND:-off}" = on ]; then
 		mv "$R/game/bass.dll" "$R/game/bass_real.dll" && cp "$W/build/bassproxy-bwa/bass.dll" "$R/game/bass.dll" || exit 1
 	fi
@@ -78,7 +84,7 @@ if [ "$which" != port ]; then
 	for f in ${PILOT_USERS:-}; do cp "$f" "$U/"; done
 	sed "s/^ScreenMode=dword:0/ScreenMode=dword:${FULL}/" "$P/portuser0/registry.ini" > "$P/start.ini"
 	python "$T/inireg.py" "$P/start.ini" "$P/start.reg"
-	"$W/build/origrun-bin/origrun.exe" --sandbox --exe "$(cygpath -w "$GEXE")" --run "$run" --script "$(cygpath -w "$P/scripts/$name.orig.txt")" \
+	"$W/build/origrun-bin/origrun.exe" --sandbox --exe "$(cygpath -w "$GEXE")" --run "$run" --script "$(cygpath -w "$SC/$name.orig.txt")" \
 		--reg "$(cygpath -w "$P/start.reg")" "${MODE3D[@]}" --3d-key "Software\PopCap\WinBAD" --3d-flag "[[0x8259e4]+0x36c]+0x38" --counter "[0x8259e4]+0x484" --pending-draw "[0x8259e4]+0x45a" --update-state "[0x8259e4]+0x488" --draw-empty "[0x8259e4]+0x459" --watch "[[0x8259e4]+0x83c]+0xb0" "${WATCH23[@]}" --update-ms 10 --timeout ${PILOT_TIMEOUT:-240} > "$P/$N.orig.log" 2>&1
 	grep -i "RESULT\|timeout\|error\|msgbox\|dialog" "$P/$N.orig.log" | tail -5
 	# How many updates each chapter load's screen stayed up in the original, for the port's -chapterloadupdates: the
@@ -92,7 +98,7 @@ if [ "$which" != port ]; then
 	[ "${PILOT_SOUND:-off}" = on ] && [ -f "$R/logs/sound.log" ] && cp "$R/logs/sound.log" "$P/$N.sound.log"
 	[ -f "$R/game/basslog.txt" ] && cp "$R/game/basslog.txt" "$P/$N.basslog.txt" && echo "BASS calls: $(grep -vc '^#' "$P/$N.basslog.txt") lines"
 	S=$W/build/origrun/$run/shots
-	python - "$S" "$PO" "$T/$name.txt" <<'EOF'
+	python - "$S" "$PO" "$ST" <<'EOF'
 import os, shutil, sys, json
 src, dst, steps = sys.argv[1:4]
 clips = {}
@@ -134,10 +140,10 @@ if [ "$which" != orig ]; then
 	[ -n "${PILOT_PROFILE:-}" ] && cp "$PILOT_PROFILE" "$d/user/users/Tester.bwa"
 	for f in ${PILOT_USERS:-}; do cp "$f" "$d/user/users/"; done
 	[ "${PILOT_SOUND:-off}" = on ] && export BYOPOP_SOUNDLOG="$(cygpath -w "$P/$N.portsound.log")"
-	timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -renderscale=1 -chapterloadupdates=$(cat "$P/$N.loads" 2>/dev/null) -startloadupdates=$(cat "$P/$N.startload" 2>/dev/null) -popcaplogo \
-		-script="$P/scripts/$name.port.txt" > "$d/stdout.txt" 2>&1
+	timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -renderscale=1 -chapterloadupdates=$(cat "$P/$N.loads" 2>/dev/null) -startloadupdates=$(cat "$P/$N.startload" 2>/dev/null) -popcaplogo $HOLD \
+		-script="$SC/$name.port.txt" > "$d/stdout.txt" 2>&1
 	echo "port exit $?"; grep "script\|FATAL" "$d/stdout.txt" | tail -5
-	python - "$PP" "$T/$name.txt" <<'EOF'
+	python - "$PP" "$ST" <<'EOF'
 import os, sys, json
 dst, steps = sys.argv[1:3]
 for line in open(steps):

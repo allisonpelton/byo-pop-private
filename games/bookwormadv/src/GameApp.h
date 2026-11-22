@@ -181,6 +181,10 @@ public:
 	void LogRandForTests();
 	std::string mRandLogForTests;  // port: -randlog, the framework's random draws by update (TestHooks.cpp)
 	bool mPopCapLogo = false;  // port: -popcaplogo keeps the startup's PopCap logo (TitleScreen::Update)
+	// port: test hook -holdloadhints: a chapter load's screen keeps its first hint and draws no new one (no Rand() while
+	// it is up), as the original does with tools/origrun/patches/bookwormadv.txt's ChapterLoadScreen patch, so the next
+	// board does not follow the load's length (the pilot's 3D runs, whose loads take 5 to 90 updates on the desktop)
+	bool mHoldLoadHints = false;
 	std::string ScreenForTests();
 	std::string MoveForTests();
 	void RetryForTests(const std::string& theCommand, const std::string& theArgs);

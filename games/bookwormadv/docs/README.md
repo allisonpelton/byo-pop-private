@@ -289,6 +289,14 @@ identical port frames that includes the original's update, by `landed.tsv`). Wha
 fill while it is up, 238 to 656 pixels in three frames: the original's thread fills it fast at first and then stalls,
 at a pace no update count gives. That is timing, the bar's box masked during a chapter load.
 
+The test option `-holdloadhints` (off unless given, 2026-11-22) holds those hint draws: a chapter load's screen keeps
+the hint it opened with and draws no new one, as the original does with the ChapterLoadScreen patch
+(`tools/origrun/patches/bookwormadv.txt`, `tools/pilot/seedpatch.py --holdhints`). Only the screens pilot gives it
+(`tools/pilot/run.sh`, `vis3d.sh`), because the steps the port's bot makes fit one number of hint draws, and the
+loads on a busy machine took anything from 5 to 260 updates (the 3D desktop's 5 to 86). The frozen baseline,
+`tools/check.sh` and the logic comparisons (`-randlog`, the state checks) never give it: there the hint's draws and
+the original's own load lengths are compared as before.
+
 The startup load did the same to everything after the title: the original ran about 190 updates behind the port from
 its menu on. Its loading thread ran from update 406, where StartLoadingThread (0x549480) sets the app's +0x4f9, to 546,
 where LoadingThreadCompleted sets the app's +0x919 (the thread's own +0x4fa in the same update): 140 updates in the
