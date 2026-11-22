@@ -18,7 +18,7 @@ var ByopopSaver = (function () {
   // "Screen saver should only be for games with a losing condition"): a game its bot never loses would hold one game on the screen
   // for good. So Pixelus (puzzles, nothing to lose), Mummy Maze (being caught only brings "try again", and its bot is a perfect
   // solver) and both Mahjong Escapes (no board is ever lost) are not here.
-  var BOTS = ["alchemy", "astropop", "atomica", "bejeweled", "bejeweled2", "bejeweledtwist", "bigmoney", "bookworm", "bookwormadv",
+  var BOTS = ["alchemy", "astropop", "atomica", "bejeweled", "bejeweled2", "bejeweledtwist", "bigmoney", "bonnies", "bookworm", "bookwormadv",
     "bookwormadv2", "cosmicbugs", "dynomite", "hammerheads", "heavyweapon", "ningpo", "noahsark", "rocketmania", "sevenseas", "tiptop",
     "typershark", "venice", "waterbugs", "wordharmony"];
   // How the saver starts each game (the user, 2026-11-17: "Screensavers should choose between different modes if applicable to the
@@ -46,7 +46,6 @@ var ByopopSaver = (function () {
     bejeweled2: { begin: ["classic", "action"], views: true, pace: 120 },
     bejeweledtwist: { begin: ["classic", "blitz"], views: true, pace: 120 },
     bigmoney: { pace: 80 },
-    // (Bonnie's joins BOTS once its page reports its frames to web/testkit.js: until then the driver never makes a move)
     bonnies: { gap: true, pace: 150 },
     bookworm: { pace: 150 },
     bookwormadv: { begin: ["adventure"], pace: 150 },

@@ -668,8 +668,8 @@ arrows answer; the user: "only plays one setup"), and a first run's screen no bo
 work (`setup`: Venice's name box, `player Saver`). A game left out plays as its bot starts it (`?begin=mode`). `pace` is the updates waited after each move, about a person's speed
 (a hundred are about a second), and none for a game whose bot plays in real time, aiming or dodging, where a pause would only
 lose. `gap` spaces each move's clicks (`?clickgap=1`, above), for Bonnie's tile clicks. Bonnie's bot clicks through its title,
-menus, a new player's name (Saver) and the difficulty itself, so it has no modes drawn; it has its entry but is not offered
-until its page reports its frames to the test kit (`Module.byopopTestFrame`), without which the driver never makes a move. A saver's frame opened with `?assets=` (a test of the saver from a first run, with the staged files) keeps a test
+menus, a new player's name (Saver) and the difficulty itself, so it has no modes drawn. Its game runs its own loop, so its
+page reports its frames to the test kit from its own sleep (`bonnies_sleep`), as Ning Po's does. A saver's frame opened with `?assets=` (a test of the saver from a first run, with the staged files) keeps a test
 profile of its own, the game's name with `-saver-test`, apart from the game's own tests' `-test`.
 
 **The bot's hook.** The game plays by one call that asks it for its next move. Today that is the test command `move`
