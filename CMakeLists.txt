@@ -98,6 +98,13 @@ if(NOT EMSCRIPTEN)
     get_filename_component(PORT_COMPILER_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
     file(GLOB PORT_RUNTIME_DLLS "${PORT_COMPILER_DIR}/../i686-w64-mingw32/bin/libclang_rt.*.dll")
   endif()
+  # A tool with no SDL copies only that list: `COMMAND ${PORT_RUNTIME_COPY} <dir>`. When the list is empty this does
+  # nothing (make_directory on the exe's own folder), since `cmake -E copy_if_different <dir>` with no files is an error.
+  if(PORT_RUNTIME_DLLS)
+    set(PORT_RUNTIME_COPY ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS})
+  else()
+    set(PORT_RUNTIME_COPY ${CMAKE_COMMAND} -E make_directory)
+  endif()
 endif()
 
 # Framework test app (tools/fwtest): loads Bejeweled's assets through the portable framework and draws a
