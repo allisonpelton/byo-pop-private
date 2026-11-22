@@ -1,0 +1,8 @@
+{
+  "ignore": [
+    {"rect": [117, 428, 568, 108], "label": "the main menu's button row: the original has 'More Games' between Options and Quit; the port removes it and the two close the gap (the user's rule on outbound buttons, IDENTICAL_PLAY.md)",
+     "pairs": "menu_*,name_*,players_*,rename_box*,delete_sure*,quit_box*,tough_notice*,resurrect_*,continue_box*,leave_game*"},
+    {"rect": [673, 184, 105, 69], "label": "the word 'Deluxe' under the logo on the main menu, removed in the port on purpose (the user, 2026-11-18: 'Remove the \"Deluxe\" text from the main screen of any game it may appear in, to avoid misleading people about whose game version they're playing')",
+     "pairs": "menu_*,name_*,players_*,rename_box*,delete_sure*,quit_box*,tough_notice*,resurrect_*,continue_box*,leave_game*"}
+  ]
+}
