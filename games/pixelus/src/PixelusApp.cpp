@@ -703,7 +703,7 @@ void PixelusApp::LeaveBoard()
 void PixelusApp::ShowResetDialog()
 {
 	KillDialog(24);
-	Dialog* aDialog = DoDialog(24, true, GT(0x512644), GT(0x512654), "", Dialog::BUTTONS_OK_CANCEL);
+	Dialog* aDialog = DoDialog(24, true, GT(0x512644), GT(0x512654), "", Dialog::BUTTONS_YES_NO);
 	aDialog->Move(((mWidth - 173) - aDialog->mWidth) / 2 + 173, (mHeight - aDialog->mHeight) / 2);
 }
 
@@ -913,6 +913,18 @@ void PixelusApp::UpdateFrames()
 }
 
 // 0x4333a0 (slot 84)
+// 0x433330: regaining the focus lifts the pause that losing it made
+void PixelusApp::GotFocus()
+{
+	Pause(false);
+}
+
+// 0x433320
+void PixelusApp::LostFocus()
+{
+	Pause(true);
+}
+
 // 0x403010
 void PixelusApp::HandlePaused(bool theWasPaused, bool theIsPaused, int theCount)
 {

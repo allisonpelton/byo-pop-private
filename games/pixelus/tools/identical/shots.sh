@@ -10,7 +10,7 @@
 source "$(dirname "$0")/common.sh"
 D="$1"; RUN="${2:-pixsb}"; DELTA="${DELTA:-2500}"
 POINTS="${POINTS:-1200 1300 2600 2700 2850 2900 2980 3050 3100 3150 3350 3600 4000}"
-NOASK=$HOST python "$TOOLS/toorig.py" "$D/script.txt" "$DELTA" > "$D/orig-shots.txt"
+python "$TOOLS/toorig.py" "$D/script.txt" "$DELTA" > "$D/orig-shots.txt"
 for k in $POINTS; do echo "at $((k + DELTA)) shot u$k" >> "$D/orig-shots.txt"; done
 # origrun runs the lines in order, so they must be in the order of their updates
 sort -n -s -k2,2 "$D/orig-shots.txt" -o "$D/orig-shots.txt"
@@ -20,7 +20,7 @@ rm -rf "$R"; mkdir -p "$R"; cp -r "$OG_GAME" "$R/game"
 rm -rf "$R/game/users"; cp -r "$OG_STAGE/levels.orig/." "$R/game/levels/"
 # PRESET: a port-written user folder (users/, levels/maxedscores.txt) both start from, instead of a first run
 if [ -n "$PRESET" ]; then cp -r "$PRESET/users" "$R/game/users"; cp "$PRESET/levels/maxedscores.txt" "$R/game/levels/" 2>/dev/null; fi
-if [ -n "$HOST" ]; then WHERE=(--reader-trial --reader-surface "[[0x579e30]+0x33c]+0x64" --reader-waits 49438a); else WHERE=(--sandbox --sandbox-wait "${SBWAIT:-7200}"); fi
+if [ -n "$HOST" ]; then MSYS_NO_PATHCONV=1 reg delete "HKCU\SOFTWARE\PopCap\Pixelus" /f >/dev/null 2>&1; WHERE=(--reader-trial --reader-surface "[[0x579e30]+0x33c]+0x64" --reader-waits 49438a --reg-map popcap); else WHERE=(--sandbox --sandbox-wait "${SBWAIT:-7200}"); fi
 "$ORIGRUN" --exe "$(win "$R/game/PixelusGame.exe")" --run "$RUN" "${WHERE[@]}" --script "$(win "$D/orig-shots.txt")" \
 	--clock virtual --cursor scripted --counter 0x543270 --update-ms 10 --seed "${SEED:-1}" \
 	--patches tools/origrun/patches/pixelus.txt --timeout "${TIMEOUT:-200}" > "$D/orig-shots.log" 2>&1
