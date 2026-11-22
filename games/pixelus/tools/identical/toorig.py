@@ -2,7 +2,7 @@
 # "K command args" is read before update K's widgets are updated; the original reads an input posted "at N" before update
 # N+1, so a line becomes "at K+delta-1". The delta is the number of updates the original's loading screen takes more than the
 # port's (the first click presses Play once the bar is full): the bot waits for the same number of updates after it in both.
-import sys
+import re, sys
 
 # The original's first run asks something before the loading screen's Play link works (a dialog of 336x316 at 206,42 with a
 # button on each side of y 287, which the port has no counterpart of; its right button is No, as Alchemy's first question).
@@ -16,10 +16,14 @@ for line in ASK_NO:
 out = []
 for line in open(src):
     button = '#button' in line
+    # "#o X Y": the original's own point for this click (a dialog it lays out differently, such as its longer Options)
+    own = re.search(r'#o (\d+) (\d+)', line)
     line = line.split('#')[0].strip()
     if not line:
         continue
     k, cmd, *rest = line.split(None, 2)
+    if own and cmd == 'click':
+        rest = [own.group(1) + ' ' + own.group(2)]
     if cmd == 'quit':
         continue
     if cmd == 'char':

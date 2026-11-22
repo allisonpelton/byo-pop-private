@@ -539,7 +539,7 @@ void IslandMap::Draw(Graphics* g)
 			continue;
 		Image* anArrow = mApp->mImages[IMAGE_TEMPLEARROW];
 		int aBounce = (int) (fabs(sin(mPhase * 3.0)) * 24.0);
-		g->DrawImage(anArrow, gTemples[i].mLightX - aBounce - anArrow->GetWidth() / 2 - 0x14, gTemples[i].mLightY - aBounce - 0x50);
+		g->DrawImage(anArrow, gTemples[i].mLightX - aBounce - anArrow->GetWidth() - 0x14, gTemples[i].mLightY - aBounce - 0x50);
 	}
 	for (size_t i = 0; i < mEffects.size(); i++)
 		mEffects[i]->Draw(g, mApp->Is3DAccelerated());

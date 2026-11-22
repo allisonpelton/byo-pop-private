@@ -47,6 +47,9 @@ NewUserDialog::NewUserDialog(PixelusApp* theApp, bool theRename) :
 	mEdit->mMaxChars = NAME_MAX_CHARS;
 	mEdit->mMaxPixels = NAME_MAX_PIXELS;
 	SetDialogColors(mEdit);
+	// 0x401af0 then clears the alpha of the background and outline colours, so the box shows the frame image's own fill
+	mEdit->mColors[0].mAlpha = 0;
+	mEdit->mColors[1].mAlpha = 0;
 
 	if (!theRename)
 		mExpertBox = new Checkbox(theApp->mImages[IMAGE_CHECKBOX_UNCHECKED], theApp->mImages[IMAGE_CHECKBOX_CHECKED], 1, this);
@@ -180,6 +183,8 @@ SelectUserDialog::SelectUserDialog(PixelusApp* theApp) :
 {
 	mList = new ListWidget(LIST_ID, theApp->mFonts[FONT_GARAMOND14], this);
 	mList->SetColors(gUserListColors, 5);
+	mList->mColors[0].mAlpha = 0;		// the list's background is clear: the frame's own fill and shadow show through
+	mList->mColors[4].mAlpha = 0x80;		// 0x41d710: the selection fill is half transparent
 	mList->mItemHeight = LINE_HEIGHT;
 	mList->mDrawOutline = false;
 	mList->mJustify = ListWidget::JUSTIFY_CENTER;
@@ -258,7 +263,7 @@ void SelectUserDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	int aTop = GetContentTop();
 	int aWidth = GetContentWidth();
 	// the bar takes 16 pixels from the list's width while it shows (as it did before the list's page size was known)
-	int aBarWidth = mScrollbar->mVisible ? 0x10 : 0;
+	int aBarWidth = ((int) mList->mLines.size() > VISIBLE_LINES) ? 0x10 : 0;		// 0x41d460 (the original's bar is hidden here while the lines fit)
 	int aListWidth = aWidth - 0x14 - aBarWidth;
 	int aListHeight = mList->mItemHeight * VISIBLE_LINES + 8;
 	mList->Resize(aLeft + 10, aTop, aListWidth, aListHeight);
@@ -273,7 +278,7 @@ void SelectUserDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 void SelectUserDialog::Draw(Graphics* g)
 {
 	GameDialog::Draw(g);
-	Rect aFrame(mList->mX - mX - 4, mList->mY - mY - 4, mList->mWidth + 8, mList->mHeight + 8);
+	Rect aFrame(mList->mX - mX - 4, mList->mY - mY - 4, mScrollbar->mWidth + 8 + mList->mWidth, mList->mHeight + 8);
 	g->DrawImageBox(aFrame, mApp->mImages[IMAGE_EDITBOX]);
 }
 

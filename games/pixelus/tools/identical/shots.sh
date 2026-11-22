@@ -16,6 +16,8 @@ sort -n -s -k2,2 "$D/orig-shots.txt" -o "$D/orig-shots.txt"
 R="$ROOT/build/origrun/$RUN"
 rm -rf "$R"; mkdir -p "$R"; cp -r "$OG_GAME" "$R/game"
 rm -rf "$R/game/users"; cp -r "$OG_STAGE/levels.orig/." "$R/game/levels/"
+# PRESET: a port-written user folder (users/, levels/maxedscores.txt) both start from, instead of a first run
+if [ -n "$PRESET" ]; then cp -r "$PRESET/users" "$R/game/users"; cp "$PRESET/levels/maxedscores.txt" "$R/game/levels/" 2>/dev/null; fi
 "$ORIGRUN" --exe "$(win "$R/game/PixelusGame.exe")" --run "$RUN" --sandbox --sandbox-wait "${SBWAIT:-7200}" --script "$(win "$D/orig-shots.txt")" \
 	--clock virtual --cursor scripted --counter 0x543270 --update-ms 10 --seed "${SEED:-1}" \
 	--patches tools/origrun/patches/pixelus.txt --timeout "${TIMEOUT:-200}" > "$D/orig-shots.log" 2>&1
@@ -33,6 +35,7 @@ done < "$S/landed.tsv"
 echo "$((LASTU + 5)) quit" >> "$D/script-shots.txt"
 sort -n -s -k1,1 "$D/script-shots.txt" -o "$D/script-shots.txt"
 rm -rf "$D/portshots/user"; mkdir -p "$D/portshots"
+[ -z "$PRESET" ] || cp -r "$PRESET" "$D/portshots/user"
 timeout 300 "$RUNDESK" "$(win build/native/pixelus.exe)" -userdir="$(win "$D/portshots/user")" -fast -seed="${SEED:-1}" -script="$(win "$D/script-shots.txt")" > "$D/portshots/out.txt" 2>&1
 echo "port exit $?"
 ls "$D/shots-port"
