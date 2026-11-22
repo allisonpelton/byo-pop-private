@@ -1118,7 +1118,9 @@ html.d95-desk #trophies.tc-win:not(.d95-closed):not(.d95-min) { display: flex; }
 .tc-table th { background: var(--panel); border: 1px solid; border-color: #ffffff #808080 #808080 #ffffff; }
 .tc-table tr.tc-first td { border-top: 1px solid #c0c0c0; }
 .tc-table .tc-num { text-align: right; }
-.tc-status { flex: none; }
+/* its status line, the count of games: its d95-statusbar class is a game window's, hidden anywhere else, so it is shown here, in
+   the Fonts window's sunken pane (below) */
+html.d95-desk .tc-win .tc-status { display: block; }
 /* the Fonts window (web/fontview.js): its bars of choices, the font's facts on the window's grey, and the sample sheet in a
    well of the chosen background (a checkerboard for None), each picture at whole screen pixels */
 html.d95-desk .fv-win { flex-direction: column; width: min(600px, calc(100vw / var(--d95-z, 1) - 140px)); height: 480px; overflow: hidden; }
@@ -1141,7 +1143,7 @@ html.d95-desk #fontview.fv-win:not(.d95-closed):not(.d95-min) { display: flex; }
 .fv-rule { margin: 8px 0; border: 0; border-top: 1px solid #808080; border-bottom: 1px solid #ffffff; }
 .fv-size { flex: none; min-width: 2em; padding: 1px 3px; background: var(--panel); color: #000000; line-height: 14px; }
 .fv-pic { display: block; flex: none; image-rendering: pixelated; }
-html.d95-desk .fv-status { flex: none; margin: 0 2px 2px; padding: 1px 4px; min-height: 16px; font-size: 12px; line-height: 16px; white-space: nowrap;
+html.d95-desk :is(.fv-status, .tc-status) { flex: none; margin: 0 2px 2px; padding: 1px 4px; min-height: 16px; font-size: 12px; line-height: 16px; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis; box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi); }
 /* the lists at set widths, so that the game, the font and Save As share one row from the least width */
 .fv-bar .fv-game { width: 160px; }
