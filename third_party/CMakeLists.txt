@@ -57,6 +57,18 @@ file(GLOB OPENMPT_SOURCES
   ${OPENMPT_DIR}/src/openmpt/fileformat_base/*.cpp ${OPENMPT_DIR}/src/openmpt/soundbase/*.cpp
   ${OPENMPT_DIR}/src/openmpt/soundfile_data/*.cpp ${OPENMPT_DIR}/soundlib/*.cpp ${OPENMPT_DIR}/soundlib/plugins/*.cpp
   ${OPENMPT_DIR}/soundlib/plugins/dmo/*.cpp ${OPENMPT_DIR}/sounddsp/*.cpp ${OPENMPT_DIR}/libopenmpt/*.cpp)
+# A native exe plays only MO3 through libopenmpt (platform/openmpt/OpenMPTPlayer.cpp; docs/BUILDS.md, "Trimming an exe"), and ReadMO3
+# builds the module itself, so the other formats' loaders (every Load_*.cpp but Load_mo3.cpp) are not compiled; the stubs of
+# openmpt-mo3/loader_stubs.cpp give the format table (Sndfile.cpp) the symbols it names. The web build keeps them all: its music
+# player (web/music/openmpt_web.c) plays every format libopenmpt reads.
+if(NOT EMSCRIPTEN)
+  file(GLOB OPENMPT_LOADER_SOURCES ${OPENMPT_DIR}/soundlib/Load_*.cpp ${OPENMPT_DIR}/soundlib/load_*.cpp)
+  # (Load_mo3.cpp is the one needed; Load_it, Load_dmf, Load_ams and Load_s3m hold code it calls besides their loaders)
+  list(REMOVE_ITEM OPENMPT_LOADER_SOURCES ${OPENMPT_DIR}/soundlib/Load_mo3.cpp ${OPENMPT_DIR}/soundlib/Load_it.cpp
+    ${OPENMPT_DIR}/soundlib/Load_dmf.cpp ${OPENMPT_DIR}/soundlib/Load_ams.cpp ${OPENMPT_DIR}/soundlib/Load_s3m.cpp)
+  list(REMOVE_ITEM OPENMPT_SOURCES ${OPENMPT_LOADER_SOURCES})
+  list(APPEND OPENMPT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/openmpt-mo3/loader_stubs.cpp)
+endif()
 # minimp3 (CC0, libopenmpt/include/minimp3/LICENSE), which came with libopenmpt, is its own library: libopenmpt decodes
 # MP3 samples with it and the framework MP3 sounds (platform/Audio.cpp, Mummy Maze), so both share one copy.
 add_library(minimp3 STATIC ${OPENMPT_DIR}/include/minimp3/minimp3.c)

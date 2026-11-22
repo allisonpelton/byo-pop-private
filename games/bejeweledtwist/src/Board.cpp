@@ -1746,7 +1746,7 @@ void Board::SaveGame(Buffer* theBuffer, bool theReplays)
 	// 0x6af04f: the level's record
 	theBuffer->WriteLong(mLevelRecords[0]);
 	theBuffer->WriteLong(mLevelRecords[1]);
-	theBuffer->WriteString(StrFormat(GTC(0x7dc1e0), (double)mPlaySeconds));
+	theBuffer->WriteString(CrtFormatFloat(GTS(0x7dc1e0), (double)mPlaySeconds));
 	theBuffer->WriteLong(mMostMovesInLevel);
 	theBuffer->WriteLong(mLongestChain);
 	theBuffer->WriteLong(mTwistsMade);
@@ -1937,7 +1937,7 @@ void Board::ResaveAsLoaded(const uchar* theSave, Buffer* theOut)
 	Copy(27);  // +0x208 to the level's record
 	std::string aTime((const char*)aPos + 2, Short());
 	aPos += 2 + aTime.size();
-	theOut->WriteString(StrFormat(GTC(0x7dc1e0), (double)(float)std::atof(aTime.c_str())));
+	theOut->WriteString(CrtFormatFloat(GTS(0x7dc1e0), (double)(float)std::atof(aTime.c_str())));
 	Copy(32);  // +0x234 to +0x1fc4
 	TenThousandths();
 	TenThousandths();

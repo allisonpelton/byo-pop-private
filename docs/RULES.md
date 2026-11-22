@@ -133,9 +133,11 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   that copies the game's own off-screen frame, the user said "Yes, with safeguards". The safeguards: the reader
   copies only surfaces or buffers the game itself created to draw into, never the primary surface, the screen or
   anything another program drew; each shot is checked against the game's window size and the frame the game just
-  presented, and one that fails is deleted unopened and reported; and no session uses it for a game until a trial has
-  compared its shots with sandbox shots of the same screens. Until a game passes that trial, the ban stands for it.
-  Apart from that, origrun's ban holds as before. visrun's `PrintWindow` shots of a game's own window on the visible
+  presented, and one that fails is deleted unopened and reported. A third safeguard, a trial per game comparing its
+  reader shots with sandbox shots of the same screens before any use, was dropped the same day: with six sessions'
+  runs queued behind the one sandbox and only two games through their trials, the user was asked whether to drop it
+  and said "Drop it; I thought that's what we were talking about earlier anyway". Any game whose draw surface the
+  reader accepts may use it at once; the reader's own checks stay. Apart from that, origrun's ban holds as before. visrun's `PrintWindow` shots of a game's own window on the visible
   desktop (`docs/VISRUN.md`, the 3D route) are not part of that ban and go on unchanged.
 - **The visible desktop as a second lane, four windows at once (the user, 2026-11-22):** asked whether desktop runs may
   use the right half of the screen with up to four windows at once, the user said "Right half, four". Runs on the
