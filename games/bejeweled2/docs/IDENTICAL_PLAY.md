@@ -346,6 +346,15 @@ After the fixes the credits shots (fin00 to fin23) match the original, as do the
   the stock install), No Longer Solvable, No Hints, More Hints? and the secret puzzle's hint warning (no recorded input
   reaches them: rows in SCREENS.md say why).
 
+### The desktop lane's 3D and full screen shots of the new tours: not taken
+
+`games/bejeweled2/tools/visrun/run3d.py` and `bejeweled2-3d.toml` (the original in 3D, 1024 by 768, from the port's 3D recording of the
+finale, `build/visrun/rec3d/finale`) are ready, and the port's 3D recording of the finale exists (40 shots). The original's run
+waited an hour for a place: visrun found the Claude window in the right half of the screen over all four places (`visrun.log`,
+"waiting for a place"), and does not move a window it does not own. It was stopped. To take them, run `run3d.py build/visrun/rec3d/finale
+<out> --profile <prof_p75b>` with the right half clear, then shotdiff the port's shots against `<out>`; the 3D forbidden region
+around the title's logo (`bejeweled2-3d.toml`) is the 2D one scaled and unconfirmed. Full screen has no script yet.
+
 ### Runs
 
 `screens2d` (330 pairs; the last run, after the fixes, is named in the merge request).
