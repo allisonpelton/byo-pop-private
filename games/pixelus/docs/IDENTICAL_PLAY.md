@@ -383,10 +383,10 @@ Differences left, each judged:
   one update and about 11,000 over the next hundred (the particle bursts Rumble, PauseBloom and PauseBloomUp of each temple it
   takes for new), and the original makes none until the next click. So the greeting, the chains' sway, the lock's place and
   the Tile Master's place after that follow from the island oddity above: the port has drawn thousands of numbers the original
-  has not. A first visit of a new player (I0) has no such bursts and matches. Reading 0x4176a0 again, `FUN_00439300(profile)`
-  (the record the solved count and the flags at +0x11 and +0x12 come from) takes no temple in the decompile, and the
-  profile's current temple (+0x34) is what 0x439f80 uses; the island may be reading one temple's record for every temple.
-  Unverified; this is the next thing to try.
+  has not. A first visit of a new player (I0) has no such bursts and matches. The disassembly of 0x4176a0 refutes the guess that the island reads one temple's record for every temple: `FUN_00439300` is a
+  fastcall on the profile with the temple index as its stack argument (`push edi`, the loop index, then `call 0x43b310`, a plain
+  getter), so the original reads each temple's own record, as the port does, and counts the record's uuids found in the level
+  data (0x4383a0 through 0x427d00). Not found: why the original makes no new-temple bursts for this profile (kept as an oddity).
 
 Not reached (SCREENS.md says why in each row): the name-exists and rename errors, the story conversations and completion
 screens (they need a finished temple), the expert board, the mystery board, the sticky-spots hint and the scroll bars'
