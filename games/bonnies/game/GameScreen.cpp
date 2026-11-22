@@ -2847,12 +2847,93 @@ static void testCentre(Screen* theScreen, Widget* theWidget, int* theX, int* the
 	*theY = (int)(aY * 600.0f + 0.5f);
 }
 
+// port (test runs): the move away from the board, for "move" (docs/TEST_COMMANDS.md), as a player at the keys would make
+// it, so that the site's screen saver can go from the launch to a board and back unattended: a click through the logos, the
+// menu's Classic Game, a new player's name typed (Saver) and confirmed, the difficulty (the middle one), the story's pages, the
+// chapter's summary; in a dialog its first active button (a game in progress: Resume; the chooser: OK). Empty when the
+// board's own move is the answer, or when there is none ("MOVE null": the game is over).
+static std::string testMenuMove()
+{
+	if (gBonnies == nullptr)
+		return "";
+	char aLine[160];
+	if (gBonnies->mDepth > 0 && gBonnies->mModal[gBonnies->mDepth] != nullptr)
+	{
+		Screen* aModal = gBonnies->mModal[gBonnies->mDepth];
+		Widget* aName = aModal->findWidget(0x323);
+		if (aName != nullptr)
+		{
+			static const char kName[] = "Saver";
+			size_t aTyped = aName->mText.size();
+			if (aTyped < sizeof kName - 1)
+			{
+				snprintf(aLine, sizeof aLine, "MOVE {\"kind\":\"name\",\"input\":[{\"key\":\"%c\"}]}", kName[aTyped]);
+				return aLine;
+			}
+			aName = aModal->findWidget(0x321);
+			if (aName == nullptr)
+				return "MOVE null";
+			int aX, aY;
+			testCentre(aModal, aName, &aX, &aY);
+			snprintf(aLine, sizeof aLine, "MOVE {\"kind\":\"button\",\"id\":%d,\"input\":[{\"click\":[%d,%d]}]}",
+				aName->mId, aX, aY);
+			return aLine;
+		}
+		// the difficulty's dialog has four buttons, the three levels and Cancel: the middle level
+		Widget* aPick = nullptr;
+		if (aModal->findWidget(0x68) != nullptr && aModal->findWidget(0x66) != nullptr)
+			aPick = aModal->findWidget(0x66);
+		for (Widget* aWidget = aModal->mHead; aWidget != nullptr && aPick == nullptr; aWidget = aWidget->mNext)
+		{
+			if (aWidget->mType == 1 && aWidget->isActive() != 0)
+				aPick = aWidget;
+		}
+		if (aPick == nullptr)
+			return "MOVE null";
+		int aX, aY;
+		testCentre(aModal, aPick, &aX, &aY);
+		snprintf(aLine, sizeof aLine, "MOVE {\"kind\":\"button\",\"id\":%d,\"input\":[{\"click\":[%d,%d]}]}", aPick->mId,
+			aX, aY);
+		return aLine;
+	}
+	int aState = gBonnies->mState;
+	if (aState == 3 && gGameScreen != nullptr && gGame != nullptr && gGameScreen->mSequenceState == 1)
+		return "";
+	if (aState == 3 && (gGame == nullptr || gGame->mGameOver != 0 || gGame->mGameOverTime != 0))
+		return "";
+	if (aState == 2)
+	{
+		// the menu: Classic Game
+		for (Screen* aScreen = gBonnies->mHead; aScreen != nullptr; aScreen = aScreen->mNext)
+		{
+			Widget* aButton = aScreen->findWidget(0x12d);
+			if (aButton == nullptr || aButton->isActive() == 0)
+				continue;
+			int aX, aY;
+			testCentre(aScreen, aButton, &aX, &aY);
+			snprintf(aLine, sizeof aLine, "MOVE {\"kind\":\"button\",\"id\":%d,\"input\":[{\"click\":[%d,%d]}]}",
+				aButton->mId, aX, aY);
+			return aLine;
+		}
+		return "MOVE null";
+	}
+	// the logos, the story, the chapter's summary, the help, the credits and the high scores go on at a click, each given 60 updates to play (the logos run on the clock)
+	if (aState == 1 || aState == 3 || aState == 4 || aState == 5 || aState == 6 || aState == 7)
+		return "MOVE {\"kind\":\"click\",\"updates\":60,\"input\":[{\"click\":[400,300]}]}";
+	return "";
+}
+
 // port (test runs): the bot's next move on the board, for the test command "move" (docs/TEST_COMMANDS.md), as a player
 // makes it: a tutorial balloon's own button (Continue); the word a balloon names over the tiles it marks; else the best
 // word (testBest), or the game's own hint when the bot has none. Its input clicks off the board first (Game::pick clears
 // a path left over), then each tile, then Submit. Read only.
+static std::string testMenuMove();
+
 static std::string testMove()
 {
+	std::string aMenuMove = testMenuMove();
+	if (!aMenuMove.empty())
+		return aMenuMove;
 	if (gBonnies == nullptr || gBonnies->mState != 3 || gGameScreen == nullptr || gGame == nullptr ||
 		gDictionary == nullptr || gDictionary->mCount == 0 || gBonnies->inModal() || gGameScreen->mSequenceState != 1 ||
 		gGame->mGameOverTime != 0)
@@ -2958,6 +3039,8 @@ static std::string testJsonState()
 	snprintf(aLine, sizeof aLine, "\"screen\":\"%s\",\"modal\":%d,\"paused\":%d", aState >= 0 && aState < 8 ?
 		kScreens[aState] : "none", gBonnies != nullptr ? gBonnies->mDepth : 0, gBonnies != nullptr ? gBonnies->mPaused : 0);
 	aText += aLine;
+	// over: a game has ended (its dialog, the high scores, the menu after it), until the next one begins
+	aText += (gGame != nullptr && gGame->mGameOver != 0) ? ",\"over\":true" : ",\"over\":false";
 	if (aState == 3 && gGameScreen != nullptr && gGame != nullptr)
 	{
 		bool aClassic = gGame->mClassic != 0;

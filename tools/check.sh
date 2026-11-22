@@ -2207,8 +2207,8 @@ suite_bonnies() {
 	cmp -s "$d/game/tutorial.png" "$d/game/word.png" && { SUMMARY="the clicks chose no letters"; return 1; }
 	cmp -s "$d/game/word.png" "$d/game/played.png" && { SUMMARY="Submit played no word"; return 1; }
 	[ -s "$d/game/user/SavedGames/te.GAM" ] || { SUMMARY="the new player's te.GAM was not saved"; return 1; }
-	# the main menu's Quit ends the game before the script's own quit at update 70000
-	grep -q "Update Count = 6[0-9]\{4\}," "$1" || { SUMMARY="the main menu's Quit did not end the game"; return 1; }
+	# the main menu's Quit ends the game (after update 70000) before the script's own quit at update 80000
+	grep -q "Update Count = 7[0-9]\{4\}," "$1" || { SUMMARY="the main menu's Quit did not end the game"; return 1; }
 	# the rerun, and the frozen baseline (build/baseline-bonnies/bonnies.exe, a copy of the port made when it was last
 	# checked against the original) when there is one, at the same time
 	bonnies_run rerun > "$d/rerun.status" &
