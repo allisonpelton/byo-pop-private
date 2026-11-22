@@ -76,6 +76,39 @@ not seen: use `down` and `up` some updates apart, as real input is. The level's 
 left, (25, 15) in an 800 by 600 window (`state` gives its centre in design space); its menu's Resume, Options and
 Main Menu are at (400, 236), (400, 300) and (400, 364), taking clicks after 50 updates.
 
+## Test commands and the bot
+
+The commands live in src/TestCommands.cpp (the header comment lists them) and the bot in src/Bot.cpp. `state` prints
+one JSON line: screen (menu, map, level, stats, victory, slots, intro, and the loading and transition ones), sub (the
+screen's own state), over, update, pending, player, level, levelNo, score, lives, bananas, percent, target, mode, shots,
+monkey (pos, cell, state, shotPhase, cooldown, aim, vertical, from, to, locked, holding, held), rope (state, vertical,
+from, to, cell), origin, field, bugs, alive, kinds and menuButton; `state bugs` adds every bug and the menu's buttons.
+`player [name]` adds or selects a profile (default BOT), `level <n>` goes to level n through the game's own steps
+(progress, unblocked bonuses, tutorial done for n above 1) and answers at once with `pending` 1 until the level plays,
+`goto menu|map|level`, `win`, `lose` (one life left, then the game's own LoseLife) and `seed <n>` (CrtSRand and the
+level generator GameRandomSeed). The game seeds GameRandom itself in LevelObj::InitCells (level + 0x58d2764), so a
+`seed` before a level starts is overwritten: seed after the level is playing. The slots seed both generators from the
+tick count; SexyApp seeds CrtRand at start (`-seed=N` overrides). From nothing: `player BOT`, then `level n`; or
+`move` alone, which types a name and clicks through the menu.
+
+`move` prints `MOVE {...}` (input steps in 800x600 window coordinates, updates, what) or `MOVE null`. Facts the steps
+depend on: a click counts only if the button is down during an update; hover is computed in DrawAll, which under
+`-fast` runs every 10th update, so the bot waits 12 updates after the pointer arrives before pressing; the monkey
+follows the mean of the last two mouse positions and a repeated move to the same point sends no event, so a shot starts
+with a move from (x-1, y). The bot never changes state and draws from no generator. Strategy: enumerate the stretches
+between consecutive active pipes in every row and column, copy LevelObj::ShowRopePreview's flood fill to get the area
+each would cut (the smaller side; both if each side is at most 32 places or no bug lives), reject lines with a bug
+within 36 px + 0.16 px per px of length (the rope flies shotInterval * length + 10 frames), take the biggest cut, else
+the shortest safe line, else wait. Shots are blocked while the monkey is not PLAYING, shooting, on cooldown, a bug is
+within the startle reach (64 px), or the rope is FLYING (CUTTING and SNAPPED stay until the next shot, so they do not
+block). A held bonus is placed at a bug. Weaknesses: it never turns the rope (below), so only auto-oriented lines are
+used; it is cautious and slow (a 300-move run from the menu reached 62 of 85 percent on level 1 after 23 shots, 7690
+updates, no life lost); no stats, map, shop, victory, game-over, `lose`, `goto` and held-bonus path was exercised
+beyond the intro and the menu clicks.
+
+Game bug seen: a right click shoots instead of turning the rope. GameWidget::MouseDown passes theBtnNum (right is 1)
+but BoardClick tests for a value below 0. Left untouched (original behaviour); to see it, right-click on a level.
+
 ## Translating a class (the register conventions, checked against the code)
 
 Read each function three ways: `decread.py <addr>` for the shape, `callargs.py <addr>` for the registers and pushes at

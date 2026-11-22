@@ -52,7 +52,8 @@ public:
 	void KeyChar(SexyChar theChar) override;
 	void KeyDown(KeyCode theKey) override;
 	void MouseMove(int x, int y) override;
-	void MouseDown(int x, int y, int theBtnNum, int theClickCount) override;
+	void MouseDown(int x, int y, int theClickCount) override;
+	using Widget::MouseDown;
 	void MouseUp(int x, int y, int theBtnNum, int theClickCount) override;
 	void MouseDrag(int x, int y) override;
 

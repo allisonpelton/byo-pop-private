@@ -25,6 +25,7 @@
 #include "Slots.h"
 
 #include "Anim.h"
+#include "Bot.h"
 #include "Color.h"
 #include "Cursor.h"
 #include "GameApp.h"
@@ -147,6 +148,7 @@ bool GameWidget::Preload(int theStep)
 // focus; the port does not wait.
 void GameWidget::Update()
 {
+	TestHooksUpdate(); // port: a test's pending goto or level (does nothing unless one was given)
 	if (!mApp->mHasFocus && BBWindow::sOpenCount < 1) {
 		PauseWin::PauseForFocusLoss();
 		mApp->mFocusLost = false;
@@ -334,15 +336,15 @@ void GameWidget::MouseDrag(int x, int y)
 		ObjBase::MouseDrag(x, y);
 }
 
-// 0x42fd00: a press no object takes goes to the board
-void GameWidget::MouseDown(int x, int y, int theBtnNum, int theClickCount)
+// 0x42fd00 (ret 0xc: the three-argument form): a press no object takes goes to the board with its click count, which
+// is negative for the right button (the turn)
+void GameWidget::MouseDown(int x, int y, int theClickCount)
 {
 	(void)x;
 	(void)y;
-	(void)theClickCount;
 	if (mInputLock == 0) {
 		if (!ObjBase::MousePress() && mScreen == SCREEN_LEVEL)
-			Player::BoardClick(theBtnNum);
+			Player::BoardClick(theClickCount);
 	}
 }
 
