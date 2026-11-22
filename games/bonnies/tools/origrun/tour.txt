@@ -1,7 +1,7 @@
 # Bonnie's original, the port's tour (tools/tour_test.txt) by the clock: logos, menu, a new player,
 # difficulty, story, the tutorial's three words, the game's options, high scores, credits, help, main menu options.
 waitshot logo 20000
-wait 6000
+wait 30000
 shot menu
 click 180 306
 wait 1500
@@ -31,11 +31,11 @@ click 400 300
 wait 2500
 shot tutorial
 click 575 190
-wait 200
+wait 450
 click 620 205
-wait 200
+wait 450
 click 665 230
-wait 200
+wait 450
 click 665 275
 wait 1200
 shot word
@@ -43,11 +43,11 @@ click 450 557
 wait 4000
 shot played
 click 620 250
-wait 200
+wait 450
 click 665 280
-wait 200
+wait 450
 click 710 255
-wait 200
+wait 450
 click 710 205
 wait 1200
 shot cake

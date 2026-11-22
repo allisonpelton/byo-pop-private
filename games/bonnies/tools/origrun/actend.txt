@@ -1,51 +1,49 @@
 # Bonnie's original on an action game saved with little time left (te.GAM made by the port; see the game's README):
-# the resume dialog, the resumed game (its clock waits for the first click), a tile clicked twice, the time running
-# out (about 103 s later) and its message, then the main menu and the player list with its questions for a new player
-# and for deleting one (the tail of the port's tour).
+# the menu, the resume dialog, the resumed game (its clock starts at the first click off the board), the time running
+# out and its message, then the main menu and the player list with its questions for a new player and for deleting
+# one (the tail of the port's tour).
 waitshot logo 20000
-wait 6000
+wait 30000
 shot ae_menu
 click 205 360
-wait 2500
+wait 4000
 shot ae_dialog
 click 460 330
-wait 4000
+wait 5000
 shot ae_resumed
-click 435 210
-wait 500
-click 435 210
-wait 110000
-shot timeup
+click 20 300
+wait 80000
+shot ae_timeup
 click 444 414
-wait 4000
-shot endmenu
+wait 5000
+shot ae_endmenu
 click 670 170
-wait 1200
+wait 1500
 shot z_players
 click 335 392
-wait 1200
+wait 1500
 shot z_newname
 key 0x54
-wait 150
+wait 300
 key 0x45
-wait 150
+wait 300
 key 13
-wait 1200
+wait 1500
 shot z_exists
 key 13
-wait 1200
+wait 1500
 shot z_exists2
 key 27
-wait 1200
+wait 1500
 shot z_afteresc
 click 400 182
-wait 500
+wait 800
 click 462 392
-wait 1200
+wait 1500
 shot z_delete
 click 521 416
-wait 1200
+wait 1500
 shot z_nodelete
 click 462 442
-wait 1000
+wait 1500
 quit
