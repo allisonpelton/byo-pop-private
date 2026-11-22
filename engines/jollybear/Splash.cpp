@@ -16,6 +16,27 @@ Logo::Logo(bool theSplashLogo) : mSplashLogo(theSplashLogo)
 {
 }
 
+// port: the logos are shown once and drawn from nothing again, and the original kept their pictures cached for the whole
+// play (1.5 MB here: the SplashLogo file, decoded as 24-bit bits and as a 32-bit copy, and the exe's six pictures), so the
+// logo gives them up as its screen goes (the screen is deleted after its fade-out, so nothing draws them any more). A
+// picture of the exe that was drawn again would be loaded again from it; the SplashLogo file is not drawn after the logos.
+Logo::~Logo()
+{
+	if (gManager == nullptr || gManager->mDisplay == nullptr)
+		return;
+	if (mSplashLogo)
+	{
+		gManager->FreeImage(FILE_IMAGE_SPLASH_LOGO);
+		return;
+	}
+	gManager->FreeImage(EXE_IMAGE_CREATED_BY);
+	gManager->FreeImage(EXE_IMAGE_SPINTOP_LOGO);
+	gManager->FreeImage(EXE_IMAGE_DEVELOPED_BY);
+	gManager->FreeImage(EXE_IMAGE_JOLLYBEAR_LOGO);
+	gManager->FreeImage(EXE_IMAGE_TRADEMARK);
+	gManager->FreeImage(EXE_IMAGE_COPYRIGHT);
+}
+
 // 0x42f6b0 (mahjongjapan): on black, the SplashLogo image or Jolly Bear's logo with the version at the bottom right
 void Logo::Draw()
 {

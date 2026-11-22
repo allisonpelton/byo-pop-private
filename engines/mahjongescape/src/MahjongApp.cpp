@@ -357,6 +357,12 @@ MahjongHost gHost;
 
 } // namespace
 
+void Sexy::GetResourceFileBytes(size_t* theExeBytes, size_t* theDllBytes)
+{
+	*theExeBytes = gHost.mExe.FileBytes();
+	*theDllBytes = gHost.mDll.FileBytes();
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // The widget: the window procedure and the screen
 

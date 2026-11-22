@@ -15,8 +15,8 @@ for game in ('mahjongjapan', 'mahjongchina'):
             lg = os.path.join(run, 'origrun.log')
             if cfg == 'o' and os.path.exists(lg) and 'no window in the first' in open(lg, errors='replace').read():
                 print('  skip', run, 'origrun: no window in the first 20 s'); continue
-            rows.append((r['peak private MB'], r['peak working set MB']))
+            rows.append((r['peak private MB'], r['peak working set MB'], max(s[4] for s in r['samples'])))
         if rows:
-            print('  %-2s n=%d  peak private %s MB (median %.1f)  peak working set %s MB (median %.1f)' % (
+            print('  %-2s n=%d  peak private %s MB (median %.1f)  peak working set %s MB (median %.1f)  threads %s' % (
                 cfg, len(rows), '/'.join('%.1f' % x[0] for x in rows), statistics.median(x[0] for x in rows),
-                '/'.join('%.1f' % x[1] for x in rows), statistics.median(x[1] for x in rows)))
+                '/'.join('%.1f' % x[1] for x in rows), statistics.median(x[1] for x in rows), '/'.join(str(x[2]) for x in rows)))

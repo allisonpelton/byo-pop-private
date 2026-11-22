@@ -133,6 +133,18 @@
       "registry": { "key": "Pyrogon\\NingPo", "hives": ["hkcu"], "sets": [],
         "values": ["Layout=hex", "Tileset=hex", "Background=hex", "Autohint=hex", "Fullscreen=hex", "Sound Volume=hex", "Music Volume=hex", "HS:*=hex"] }
     },
+    "peggle": {
+      "folder": "Peggle Deluxe", "steam": "Peggle Deluxe",
+      "note": "Peggle keeps its players, their saved games, statistics and the high scores in userdata beside its exe; the registry holds the last player's name and the usual options.",
+      "registry": { "key": "PopCap\\Peggle", "hives": ["vs", "hklm", "hkcu"], "sets": ["base", "app"], "values": ["CurUser=sz"] },
+      "files": [
+        { "from": "userdata/users.dat", "to": "userdata/users.dat", "what": "the list of players" },
+        { "from": "userdata/user#.dat", "to": "userdata/user#.dat", "what": "a player" },
+        { "from": "userdata/*.sav", "to": "userdata/*.sav", "what": "a player's game in progress" },
+        { "from": "userdata/stat_*.dat", "to": "userdata/stat_*.dat", "what": "a player's statistics" },
+        { "from": "userdata/highscores.dat", "to": "userdata/highscores.dat", "what": "the high scores" }
+      ]
+    },
     "pixelus": {
       "folder": "Pixelus Deluxe",
       "registry": { "key": "PopCap\\Pixelus", "hives": ["vs", "hklm", "hkcu"], "sets": ["base", "app"], "values": ["HintsDisabled=dword"] },

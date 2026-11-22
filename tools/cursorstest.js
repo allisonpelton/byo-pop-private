@@ -5,7 +5,8 @@
 // element under the mouse while the mouse stays still, and given back when it leaves; no timer for a set without frames), and the
 // Settings' choice, where games whose sets look the same share one entry: in every kind but the text cursor, cropped pictures
 // that differ by nothing anyone can see (colours a few steps off, a hot spot a pixel away), sets kept before images were
-// cropped included.
+// cropped included. Also what the sets may take together, a set that cannot be kept (named in the Settings' choice, not dropped
+// unseen), the games named there as needing to be opened once, and the list of games that give a set against their sources.
 //   node tools/cursorstest.js
 // It prints "cursorstest: N checks, M failed" and exits 1 when any failed.
 "use strict";
@@ -20,11 +21,20 @@ function classList() {
   return { add: (c) => set.add(c), remove: (c) => set.delete(c), contains: (c) => set.has(c),
     toggle: (c, on) => { if (on === undefined) on = !set.has(c); if (on) set.add(c); else set.delete(c); return on; } };
 }
-// An element: its tag, the selectors it matches and its inline style
-function element(tag, matches) {
-  const style = {};
-  return { nodeType: 1, tagName: tag, matches: (sel) => (matches || []).indexOf(sel) >= 0, getAttribute: () => null,
-    style: { setProperty: (k, v, p) => { style[k] = v + (p ? " !" + p : ""); }, removeProperty: (k) => { delete style[k]; } }, inline: style };
+// An element: its tag, the selectors it matches and its inline style (inline: each property with its priority), with own as its
+// inline cursor (SDL's on a game's canvas)
+function element(tag, matches, own) {
+  const style = {}, priority = {};
+  const el = { nodeType: 1, tagName: tag, matches: (sel) => (matches || []).indexOf(sel) >= 0, getAttribute: () => null,
+    style: { setProperty: (k, v, p) => { style[k] = v; priority[k] = p || ""; }, removeProperty: (k) => { delete style[k]; delete priority[k]; },
+      getPropertyValue: (k) => style[k] || "", getPropertyPriority: (k) => priority[k] || "" } };
+  Object.defineProperty(el, "inline", { get() {
+    const o = {};
+    for (const k in style) o[k] = style[k] + (priority[k] ? " !" + priority[k] : "");
+    return o;
+  } });
+  if (own) el.style.setProperty("cursor", own);
+  return el;
 }
 // A node of the Settings' choice: its children, attributes and listeners
 function node(tag) {
@@ -39,8 +49,10 @@ function node(tag) {
   Object.defineProperty(n, "textContent", { get() { return n._text || ""; }, set(v) { n._text = v; n.children = []; } });
   return n;
 }
-const STRINGS = { "cursors.browser": "Default", "site.list_two": "{first} and {second}", "site.list_many": "{rest} and {last}" };
-function page(store) {
+const STRINGS = { "cursors.browser": "Default", "site.list_two": "{first} and {second}", "site.list_many": "{rest} and {last}",
+  "cursors.hint": "hint", "cursors.hint_none": "none", "cursors.hint_open": "Open {games} ({n})", "cursors.unkept": "{games} not kept ({n})" };
+// extra: more of the page's globals (ByopopGameFiles, ByopopImport)
+function page(store, extra) {
   const listeners = {}, timers = new Map();
   let nextTimer = 1;
   const root = { classList: classList() };
@@ -53,19 +65,19 @@ function page(store) {
     addEventListener: (t, f) => { (listeners[t] = listeners[t] || []).push(f); }
   };
   const local = Object.assign({}, store || {});
-  const ctx = {
+  const ls = { getItem: (k) => (k in local ? local[k] : null), setItem: (k, v) => { local[k] = String(v); }, removeItem: (k) => { delete local[k]; } };
+  const ctx = Object.assign({
     document, JSON, Object, Array, String,
     ByopopStrings: { t: (k, f) => (STRINGS[k] || k).replace(/\{(\w+)\}/g, (m, n) => f[n]) },
-    window: { localStorage: { getItem: (k) => (k in local ? local[k] : null), setItem: (k, v) => { local[k] = String(v); }, removeItem: (k) => { delete local[k]; } },
-      addEventListener: () => {} },
+    window: { localStorage: ls, addEventListener: () => {} },
     setInterval: (f, ms) => { timers.set(nextTimer, { f, ms }); return nextTimer++; },
     clearInterval: (id) => { timers.delete(id); },
     setTimeout: (f) => { f(); return 0; }
-  };
+  }, extra || {});
   vm.createContext(ctx);
   vm.runInContext(source, ctx, { filename: "cursors.js" });
   return {
-    C: vm.runInContext("ByopopCursors", ctx), root, local, timers,
+    C: vm.runInContext("ByopopCursors", ctx), root, local, ls, timers,
     css: () => (head.children.find((c) => c.id === "byopop-site-cursor") || { textContent: "" }).textContent,
     fire(t, ev) { (listeners[t] || []).forEach((f) => f(ev)); },
     tick() { [...timers.values()].forEach((t) => t.f()); }
@@ -165,6 +177,92 @@ function check(what, got, want) {
   p.fire("mouseover", { target: el });
   p.fire("mouseout", { target: el, relatedTarget: null });
   check("the mouse leaves the page: given back, no timer", [el.inline, p.timers.size], [{}, 0]);
+}
+// animated cursors over a game's canvas: never over a game that shows its own cursor (the user, 2026-11-16: "The Cosmic Bugs
+// cursor shows duplicated over the game cursor")
+{
+  const p = page();
+  p.C.save("cosmicbugs", "Cosmic Bugs", { pointer: Object.assign(img("p0"), { frames: [img("p1"), img("p2")], ms: 30 }) });
+  p.C.choose("cosmicbugs");
+  const frame0 = 'url("data:image/png;base64,AAAAp0") 0 0, auto !important';
+  const hidden = element("CANVAS", [], "none");
+  p.fire("mouseover", { target: hidden });
+  check("a canvas whose game hides the browser's cursor (drawing its own): nothing animated", [hidden.inline, p.timers.size], [{ cursor: "none" }, 0]);
+  const canvas = element("CANVAS", [], "default");
+  p.fire("mouseover", { target: canvas });
+  check("a canvas showing the browser's cursor shows the frames, 30 ms each", [canvas.inline.cursor, [...p.timers.values()].map((t) => t.ms)], [frame0, [30]]);
+  // the game hides the browser's cursor to draw its own, as SDL does (no priority)
+  canvas.style.setProperty("cursor", "none");
+  p.tick();
+  check("the game hides it: the frames stop at the next one, and the game's none stays", [canvas.inline, p.timers.size], [{ cursor: "none" }, 0]);
+  canvas.style.setProperty("cursor", "default");
+  p.fire("mousemove", { target: canvas });
+  check("the game shows it again: the frames again as the mouse moves", [canvas.inline.cursor, p.timers.size], [frame0, 1]);
+  p.root.classList.add("game-cursor");
+  p.tick();
+  check("the game's own cursor shows on the page: the frames stop, and the canvas has its own cursor back", [canvas.inline, p.timers.size],
+    [{ cursor: "default" }, 0]);
+  p.root.classList.remove("game-cursor");
+  p.fire("mousemove", { target: canvas });
+  p.fire("mouseout", { target: canvas, relatedTarget: null });
+  check("the mouse leaves the page: the canvas has its own cursor back", [canvas.inline, p.timers.size], [{ cursor: "default" }, 0]);
+  p.C.save("waterbugs", "Water Bugs", { pointer: Object.assign(img("w0"), { frames: [img("w1")], ms: 50 }) });
+  p.fire("mouseover", { target: canvas });
+  p.C.choose("waterbugs");
+  check("another animated set chosen under a still mouse: its own frames at its own pace",
+    [canvas.inline.cursor, [...p.timers.values()].map((t) => t.ms)], ['url("data:image/png;base64,AAAAw0") 0 0, auto !important', [50]]);
+  p.C.choose("cosmicbugs");
+  const plain = element("CANVAS");
+  p.fire("mouseover", { target: plain });
+  p.fire("mouseover", { target: element("DIV") });
+  check("an element with no cursor of its own is left with none", plain.inline, {});
+}
+// with the page's changes watched (a stand-in MutationObserver whose records the test delivers): the frames stop as the game's
+// cursor comes on, before the next frame of the swap
+{
+  const observers = [];
+  class Watcher { constructor(cb) { this.cb = cb; this.on = []; observers.push(this); } observe(t) { this.on.push(t); } disconnect() { this.on = []; } }
+  const deliver = () => observers.forEach((o) => { if (o.on.length) o.cb([]); });
+  const p = page(null, { MutationObserver: Watcher });
+  p.C.save("cosmicbugs", "Cosmic Bugs", { pointer: Object.assign(img("p0"), { frames: [img("p1"), img("p2")], ms: 30 }) });
+  p.C.choose("cosmicbugs");
+  const canvas = element("CANVAS", [], "default");
+  p.fire("mouseover", { target: canvas });
+  check("the page's classes and the element are watched while the frames show", observers[0].on.length, 2);
+  canvas.style.setProperty("cursor", "none");
+  deliver();
+  check("SDL hides the browser's cursor: the frames stop with no frame of the swap between", [canvas.inline, p.timers.size, observers[0].on.length],
+    [{ cursor: "none" }, 0, 0]);
+  canvas.style.setProperty("cursor", "default");
+  p.fire("mousemove", { target: canvas });
+  p.root.classList.add("game-cursor");
+  deliver();
+  check("the game's cursor comes on: the same", [canvas.inline, p.timers.size], [{ cursor: "default" }, 0]);
+}
+// Water Bugs' and Cosmic Bugs' sets kept with 10 ms updates are put right once: the games step once a millisecond
+{
+  const anim = (ms) => ({ title: "", pointer: Object.assign(img("p0"), { frames: [img("p1")], ms }) });
+  const kept = { waterbugs: anim(500), cosmicbugs: anim(300), bananabugs: anim(500) };
+  const p = page({ "byopop-cursors": JSON.stringify(kept) });
+  const a = JSON.parse(p.local["byopop-cursors"]);
+  check("Water Bugs' 500 ms is 50, Cosmic Bugs' 300 is 30, another game's set is left", [a.waterbugs.pointer.ms, a.cosmicbugs.pointer.ms, a.bananabugs.pointer.ms],
+    [50, 30, 500]);
+  const q = page();
+  q.C.save("waterbugs", "Water Bugs", { pointer: Object.assign(img("p0"), { frames: [img("p1")], ms: 20 }) });
+  q.C.save("cosmicbugs", "Cosmic Bugs", { pointer: Object.assign(img("p0"), { frames: [img("p1")], ms: 19 }) });
+  check("frames of 20 ms are kept, of 19 not", [!!q.C.all().waterbugs, !!q.C.all().cosmicbugs], [true, false]);
+}
+// Bonnie's set, taken out at the user's word (2026-11-17), is dropped at load with a choice of it; others stay
+{
+  const set = (n) => ({ title: n, pointer: img(n) });
+  const p = page({ "byopop-cursors": JSON.stringify({ bonnies: set("b"), heavyweapon: set("h") }), "byopop-site-cursor": "bonnies",
+    "byopop-cursors-unkept": JSON.stringify({ bonnies: "Bonnie's Bookstore" }) });
+  check("Bonnie's set dropped, Heavy Weapon's kept", Object.keys(p.C.all()), ["heavyweapon"]);
+  check("and the choice of it gone: the browser's cursor", [p.C.chosen(), "byopop-site-cursor" in p.local], ["", false]);
+  check("and not noted as unkept", "byopop-cursors-unkept" in p.local, false);
+  check("and never kept again", p.C.save("bonnies", "Bonnie's Bookstore", { pointer: img("b2") }), false);
+  const q = page({ "byopop-cursors": JSON.stringify({ heavyweapon: set("h") }), "byopop-site-cursor": "heavyweapon" });
+  check("another choice stays", [q.C.chosen(), Object.keys(q.C.all())], ["heavyweapon", ["heavyweapon"]]);
 }
 
 // the Settings' choice: games with the same set share one entry
@@ -315,6 +413,76 @@ function entryNames(p) {
   const before = p.local["byopop-cursors"];
   p.C.upgrade();
   check("a second pass changes nothing", p.local["byopop-cursors"] === before, true);
+}
+// what the sets may take together, and a set that cannot be kept
+function hints(p) {
+  const el = node("div");
+  p.C.render(el);
+  return el.children[0].children[1].children.filter((c) => c.tagName === "p").map((c) => c.text());
+}
+// a set whose pointer is n characters of picture
+const sized = (n) => ({ pointer: { url: "data:image/png;base64," + "A".repeat(n), x: 0, y: 0 } });
+{
+  const p = page();
+  check("the sets may take 1 MB together", p.C.MAX_TOTAL, 1024 * 1024);
+  // as the site took them on 2026-11-16: two sets of 11 KB and sixteen of 7, then Water Bugs' and Cosmic Bugs' animated ones
+  for (let i = 0; i < 18; i++) p.C.save("game" + i, "Game " + i, sized(i < 2 ? 11400 : 6800));
+  check("every game's set is kept, the animated ones included",
+    [p.C.save("waterbugs", "Water Bugs", sized(36100)), p.C.save("cosmicbugs", "Cosmic Bugs", sized(34200)), Object.keys(p.C.all()).length], [true, true, 20]);
+  check("nothing noted as unkept", [p.C.unkept(), "byopop-cursors-unkept" in p.local, hints(p)], [{}, false, ["hint"]]);
+  for (let i = 0; i < 4; i++) p.C.save("huge" + i, "Huge " + i, sized(190000));
+  check("a set that would take the sets past 1 MB is not kept", p.C.save("toobig", "Too Big", sized(190000)), false);
+  check("it is noted as unkept, and the Settings' choice names it", [p.C.unkept(), hints(p)], [{ toobig: "Too Big" }, ["Too Big not kept (1)", "hint"]]);
+  p.C.forget("huge0");
+  check("kept once there is room, and no longer noted", [p.C.save("toobig", "Too Big", sized(190000)), p.C.unkept(), "byopop-cursors-unkept" in p.local],
+    [true, {}, false]);
+  p.C.save("toobig2", "Too Big Too", sized(190000));
+  p.C.forget("toobig2");
+  check("forgetting a game's files forgets that its set was not kept", p.C.unkept(), {});
+}
+{
+  const p = page(), keep = p.ls.setItem;
+  p.ls.setItem = (k, v) => { if (k === "byopop-cursors") throw new Error("QuotaExceededError"); keep(k, v); };
+  check("a set the browser will not store is not kept", p.C.save("alchemy", "Alchemy", { pointer: img("a") }), false);
+  check("it is noted as unkept", p.C.unkept(), { alchemy: "Alchemy" });
+  p.ls.setItem = keep;
+  check("kept when the browser stores it, and no longer noted", [p.C.save("alchemy", "Alchemy", { pointer: img("a") }), p.C.unkept()], [true, {}]);
+}
+// the games named as needing to be opened once: those that give a set whose files are here, with no set kept or noted as unkept
+{
+  const records = { waterbugs: { loaded: 1 }, bejeweled: { loaded: 1 }, ningpo: { loaded: 1 }, cosmicbugs: { loaded: 1, forgotten: 2 }, alchemy: { loaded: 1 },
+    rocketmania: { loaded: 1 } };
+  const titles = { waterbugs: "Water Bugs", bejeweled: "Bejeweled", ningpo: "Ning Po", cosmicbugs: "Cosmic Bugs", alchemy: "Alchemy", rocketmania: "Rocket Mania",
+    astropop: "AstroPop" };
+  const files = { all: () => records, present: (r) => !!(r && r.loaded && !r.forgotten) };
+  const games = Object.keys(titles).map((id) => ({ target: id, title: titles[id], spec: { id } }));
+  const p = page({ "byopop-cursors-unkept": JSON.stringify({ alchemy: "Alchemy" }) }, { ByopopGameFiles: files, ByopopImport: { games } });
+  p.C.save("bejeweled", "Bejeweled", { pointer: img("b") });
+  check("named: files here and no set; not a game that gives none, forgotten files, no files, a set kept or one noted as unkept",
+    hints(p), ["Alchemy not kept (1)", "Open Rocket Mania and Water Bugs (2)"]);
+  p.C.save("waterbugs", "Water Bugs", { pointer: img("w") });
+  p.C.save("alchemy", "Alchemy", { pointer: img("a") });
+  check("each leaves the hint once its set is kept", hints(p), ["Open Rocket Mania (1)"]);
+  p.C.save("rocketmania", "Rocket Mania", { pointer: img("r") });
+  check("the plain hint once none is left", hints(p), ["hint"]);
+  const own = page(null, { ByopopGameFiles: files });
+  check("a game's own page, which knows no titles, names none", hints(own), ["none"]);
+}
+// GIVES against the sources: the games whose port gives the framework an image for one of the set's kinds (SetCursorImage with a
+// kind other than CURSOR_CUSTOM or CURSOR_NONE, by name or number, or WebCursorSetKind), and those web/flicursor.js reads a pointer for
+{
+  const games = path.join(__dirname, "..", "games");
+  const found = new Set(Object.keys(require(path.join(__dirname, "..", "web", "flicursor.js")).GAMES));
+  const KIND = /\bSetCursorImage\s*\(\s*(?:Sexy::)?(?:CURSOR_(?!CUSTOM\b|NONE\b)[A-Z_]+|(?:[0-4]|10)\s*,)|\bWebCursorSetKind\s*\(/;
+  const walk = (dir, id) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const at = path.join(dir, e.name);
+      if (e.isDirectory()) walk(at, id);
+      else if (/\.(cpp|h)$/i.test(e.name) && KIND.test(fs.readFileSync(at, "utf8"))) found.add(id);
+    }
+  };
+  for (const id of fs.readdirSync(games)) if (fs.statSync(path.join(games, id)).isDirectory()) walk(path.join(games, id), id);
+  check("the games that give a set are those whose sources give one", [...page().C.GIVES], [...found].sort());
 }
 
 console.log(`cursorstest: ${checks} checks, ${failed} failed`);

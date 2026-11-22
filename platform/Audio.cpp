@@ -1224,7 +1224,17 @@ std::shared_ptr<SoundData> Mixer::LoadStreamedSoundData(const std::vector<uint8_
 // ---------------------------------------------------------------------------------------------
 // Voices
 
-int Mixer::StartVoice(const std::shared_ptr<SoundData>& theData, float theGainL, float theGainR, double thePitch, bool theLoop)
+// a frame of theData kept within its sound: [0, mFrames), and 0 for what is not a number
+static double FrameWithin(const SoundData& theData, double theFrame)
+{
+	if (!(theFrame >= 0.0))
+		return 0.0;
+	const double aLength = (double)theData.mFrames;
+	return (theFrame < aLength) ? theFrame : aLength - 1.0;
+}
+
+int Mixer::StartVoice(const std::shared_ptr<SoundData>& theData, float theGainL, float theGainR, double thePitch, bool theLoop,
+	double theStartFrame)
 {
 	if ((!mDevice && !mOffline) || !theData || theData->mFrames == 0)
 		return 0;
@@ -1243,7 +1253,7 @@ int Mixer::StartVoice(const std::shared_ptr<SoundData>& theData, float theGainL,
 	{
 		Voice& v = *mVoices[slot];
 		v.mData = theData;
-		v.mPos = 0.0;
+		v.mPos = theData->mStreamFile ? 0.0 : FrameWithin(*theData, theStartFrame);
 		v.mStep = thePitch * theData->mRate / mRate;  // the sound's frames per mixed frame
 		v.mGainL = theGainL;
 		v.mGainR = theGainR;
@@ -1304,6 +1314,33 @@ void Mixer::StopVoice(int theVoice)
 		v->mData.reset();
 		v->mStream.reset();
 	}
+	Unlock();
+}
+
+double Mixer::GetVoicePosition(int theVoice)
+{
+	Lock();
+	VOICE_FOR_HANDLE(theVoice);
+	const double aPosition = (v && v->mActive && v->mData) ? v->mPos : -1.0;
+	Unlock();
+	return aPosition;
+}
+
+void Mixer::SetVoicePosition(int theVoice, double theFrame)
+{
+	Lock();
+	VOICE_FOR_HANDLE(theVoice);
+	if (v && v->mActive && v->mData && !v->mData->mStreamFile)
+		v->mPos = FrameWithin(*v->mData, theFrame);
+	Unlock();
+}
+
+void Mixer::SetVoiceLoop(int theVoice, bool theLoop)
+{
+	Lock();
+	VOICE_FOR_HANDLE(theVoice);
+	if (v && v->mActive)
+		v->mLoop = theLoop;
 	Unlock();
 }
 

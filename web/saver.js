@@ -86,13 +86,35 @@ var ByopopSaver = (function () {
     }
     arm();
   }
+  // A game playing in the desktop's window in front holds it off too, with no input at all: one being watched, or played by
+  // typing alone (the user, 2026-11-17: "Screensaver activated while I was playing Typer Shark")
+  function gameInFront() {
+    try {
+      var f = document.querySelector(".d95-win.d95-active:not(.d95-min):not(.d95-closed) .d95-app-frame"), w = f && f.contentWindow;
+      return !!(w && w.ByopopEmbed && w.ByopopEmbed.running && w.ByopopEmbed.running());
+    } catch (e) { return false; }
+  }
   function arm() {
     clearTimeout(timer);
     if (chosen() === "none") return;
-    timer = setTimeout(function () { if (!document.hidden) start(); else arm(); }, waitMs());
+    timer = setTimeout(function () { if (!document.hidden && !gameInFront()) start(); else arm(); }, waitMs());
+  }
+  // Input in the desktop's windows is the player's as well: a game's or a page's frame (web/deskapps.js) keeps its keys, presses
+  // and movements to itself, so each frame's page is heard as it loads (same origin), the saver's own frame aside
+  var INPUT = ["pointermove", "pointerdown", "keydown", "wheel", "touchstart"];
+  function hearFrame(f) {
+    if (!f || f === frame || f.tagName !== "IFRAME") return;
+    try {
+      var w = f.contentWindow;
+      if (!w || w.byopopSaverHeard) return;
+      w.byopopSaverHeard = true;
+      INPUT.forEach(function (n) { w.addEventListener(n, activity, true); });
+    } catch (e) {}
   }
   if (typeof window !== "undefined" && document.getElementById("games-title")) {
-    ["pointermove", "pointerdown", "keydown", "wheel", "touchstart"].forEach(function (n) { window.addEventListener(n, activity, true); });
+    INPUT.forEach(function (n) { window.addEventListener(n, activity, true); });
+    document.addEventListener("load", function (ev) { hearFrame(ev.target); }, true);
+    Array.prototype.forEach.call(document.querySelectorAll("iframe"), hearFrame);
     window.addEventListener("byopop-setting", function (ev) { var n = ev.detail && ev.detail.name; if (n === "saver" || n === "saverWait") arm(); });
     arm();
   }
