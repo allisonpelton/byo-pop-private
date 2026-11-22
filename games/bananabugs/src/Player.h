@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Pending.h"
+#include "Bonus.h"
 
 namespace Sexy
 {
@@ -121,7 +122,7 @@ public:
 	int mWalkThruDone;        // +0x350
 	int mShotCooldown;        // +0x354: frames before the next shot
 	bool mInLevel;            // +0x358
-	HeldObj* mHeld;           // +0x35c: what the monkey holds, if any
+	Bonus* mHeld;           // +0x35c: what the monkey holds, if any
 	ObjBase* mHeldOldParent;  // +0x360: its parent before it was picked up
 	ObjBase* mHolder;         // +0x364: what holds it (turns it)
 	int mUpgradeLevel[PLAYER_UPGRADES]; // +0x368 + 8 * kind
@@ -241,8 +242,8 @@ public:
 
 	// What the level and the map do with the current player (they act on sCurrent)
 	static void AppearAtMouse();               // 0x45a400
-	static void PickUp(HeldObj* theObj, int theCount);   // 0x45ab70
-	static HeldObj* Drop();                    // 0x45abd0
+	static void PickUp(Bonus* theObj, int theCount);   // 0x45ab70
+	static Bonus* Drop();                    // 0x45abd0
 	static int RotateHeld();                   // 0x45ac20
 	static int FlipHeld();                     // 0x45ad10
 	static void AddLives(int theCount);        // 0x45b170

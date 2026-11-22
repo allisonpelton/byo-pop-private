@@ -15,7 +15,7 @@ namespace Sexy
 class Anim;
 class FillObj;
 class BugObj;
-class HiddenBonus;
+class BonusCoin;
 class PipeObj;
 
 const int FILL_GRID_COLUMNS = 40;
@@ -84,7 +84,7 @@ public:
 	PipeObj* mShiftPipes[FILL_SHIFT_MAX]; // +0x29c: the pipes at the cell's corners that move when it is cut
 	int mShiftCount;                   // +0x2ac: how many of mShiftPipes are queued
 	bool mLastCut;                     // +0x2b0: this is the cell the wave reached last
-	HiddenBonus* mBonus;               // +0x2b4: the bonus uncovered when the cell goes, if any
+	BonusCoin* mBonus;               // +0x2b4: the bonus uncovered when the cell goes, if any
 	bool mFillDone;                    // +0x2b8: the picture's last key but one ended (guess: nothing in this class reads it)
 	int mWave;                         // +0x2bc: the wave number this cell was cut in; 0 when no pipe move waits
 	ObjBase* mNetFly;                  // +0x2c0: the net fly picture that flashes on a glowing cell
@@ -117,7 +117,7 @@ public:
 	void QueuePipe(PipeObj* thePipe, float theX, float theY); // 0x4287a0
 	void QueueCornerPipes();                           // 0x4287e0
 	void ReleaseQueuedPipes();                         // 0x428940
-	void SetBonus(HiddenBonus* theBonus);              // 0x428970
+	void SetBonus(BonusCoin* theBonus);              // 0x428970
 	void ShowPicture();                                // 0x428990
 	void Cut(int theFromColumn, int theFromRow);       // 0x4289e0
 	void Highlight(int theFromColumn, int theFromRow); // 0x428ac0

@@ -20,39 +20,15 @@ class BBFont;
 class LevelObj;
 class PipeObj;
 
-// A bonus hidden under a cell of the ground (0x409b00..; the class is not translated)
-class HiddenBonus : public ObjBase
+// The bonus under a cell (0x408ed0, 0x498 bytes; the class is not translated): it lies hidden under a cell of the ground
+// and shows itself when the cell is cut (Uncover). The stand-in shows nothing and holds none of the 19 bonuses.
+class BonusCoin : public ObjBase
 {
 public:
 	FillObj* mCell;                             // +0x284: the cell that covers it
-	void Uncover();                             // 0x409bf0
-};
-
-// The bolt of light that runs down a pipe (0x405fb0; 0x520 bytes in the original); the stand-in draws nothing
-class BoltObj : public ObjBase
-{
-public:
-	BoltObj(int theSegments);                   // 0x405fb0
-	void Stop();                                // 0x406280
-	void SetEnds(int theFromX, int theFromY, int theToX, int theToY); // 0x4062b0
-	void UpdateBolt();                          // 0x4062e0
-};
-
-// The bonuses (0x406cd0, 0x406d90); the stand-in has none running
-class Bonus
-{
-public:
-	static void Cancel();                       // 0x406cd0
-	static void CancelIfDone();                 // 0x406d90
-	static void OnAllBugsDead();                // 0x406d40: the last bug in play is gone
-	static void ClearAll();                     // 0x406c60: lets go of what is held and ends the bonuses (a guess at the name)
-};
-
-// The bonus under a cell (0x408ed0, 0x498 bytes); the stand-in is a hidden bonus that shows nothing
-class BonusCoin : public HiddenBonus
-{
-public:
 	void Place(int theColumn, int theRow);      // 0x409970 (EAX the row, the column pushed): puts the bonus at that place
+	void Uncover();                             // 0x409bf0
+	static void ResetCurrent();                 // 0x40af00: puts the coin that is showing back under its cell
 };
 
 // The effect of a bonus on the monkey (0x40bfe0); the stand-in is an object that shows nothing
@@ -60,13 +36,21 @@ class BonusEffect : public ObjBase
 {
 };
 
-// A thing the monkey holds, a bonus on its way to be put down; the stand-in turns and lets go of nothing
-class HeldObj : public ObjBase
-{
-public:
-	virtual void Rotate();                      // slot 20 (+0x50)
-	virtual bool Place();                       // slot 21 (+0x54): false when it may not go there
-};
+// The pictures PreloadBonusPictures (0x406dd0) loads, in the globals of the second half's bonuses (not translated yet)
+extern Anim* gMissileAnim;    // 0x60e1ac
+extern Anim* gParrotFlyAnim;  // 0x60e1b8
+extern Anim* gParrotWalkAnim; // 0x60e1bc
+extern Anim* gParrotPeckAnim; // 0x60e1c0
+extern Anim* gDiscoBallAnim;  // 0x60e1c4
+extern Anim* gMilkDropAnim;   // 0x60e1c8
+extern Anim* gDropAnim;       // 0x60e1cc
+extern Anim* gTarzanAnim;     // 0x60e1d0
+extern Anim* gPaperAnim;      // 0x60e1d4
+extern Anim* gZapperAnim;     // 0x60e1d8
+extern Anim* gSwatterAnim;    // 0x60e1dc
+extern Anim* gMineAnim;       // 0x60e1e0
+extern Anim* gZumaAnim;       // 0x60e1e4
+extern Anim* gZumaBallAnim;   // 0x60e1e8
 
 // The box of the bug the rope last asked about (0x6a6778..0x6a6784), written by the bugs (0x425410)
 extern float gBugBoxX;
@@ -88,7 +72,6 @@ public:
 // GameWidget's preloads (0x42f3b0): each class's pictures, loaded once and kept
 void PreloadNetFly();        // 0x42ad40
 void PreloadSlots();         // 0x46c710
-void PreloadBonusPictures(); // 0x406dd0
 void InitBonusTable();       // 0x40af90
 
 } // namespace Sexy

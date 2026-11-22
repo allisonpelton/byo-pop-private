@@ -24,23 +24,20 @@ static Anim* sSlotWinAnim;           // 0x670218
 static Anim* sSlotSpinAnim;          // 0x67021c
 static Anim* sSlotNumbersAnim;       // 0x670220
 static Anim* sSlotShineAnim;         // 0x670224
-static Anim* sCocoBombAnim;          // 0x60e1a8
-static Anim* sMissileAnim;           // 0x60e1ac
-static Anim* sCannonAnim;            // 0x60e1b0
-static Anim* sCannonBallAnim;        // 0x60e1b4
-static Anim* sParrotFlyAnim;         // 0x60e1b8
-static Anim* sParrotWalkAnim;        // 0x60e1bc
-static Anim* sParrotPeckAnim;        // 0x60e1c0
-static Anim* sDiscoBallAnim;         // 0x60e1c4
-static Anim* sMilkDropAnim;          // 0x60e1c8
-static Anim* sDropAnim;              // 0x60e1cc
-static Anim* sTarzanAnim;            // 0x60e1d0
-static Anim* sPaperAnim;             // 0x60e1d4
-static Anim* sZapperAnim;            // 0x60e1d8
-static Anim* sSwatterAnim;           // 0x60e1dc
-static Anim* sMineAnim;              // 0x60e1e0
-static Anim* sZumaAnim;              // 0x60e1e4
-static Anim* sZumaBallAnim;          // 0x60e1e8
+Anim* Sexy::gMissileAnim = nullptr;           // 0x60e1ac
+Anim* Sexy::gParrotFlyAnim = nullptr;         // 0x60e1b8
+Anim* Sexy::gParrotWalkAnim = nullptr;        // 0x60e1bc
+Anim* Sexy::gParrotPeckAnim = nullptr;        // 0x60e1c0
+Anim* Sexy::gDiscoBallAnim = nullptr;         // 0x60e1c4
+Anim* Sexy::gMilkDropAnim = nullptr;          // 0x60e1c8
+Anim* Sexy::gDropAnim = nullptr;              // 0x60e1cc
+Anim* Sexy::gTarzanAnim = nullptr;            // 0x60e1d0
+Anim* Sexy::gPaperAnim = nullptr;             // 0x60e1d4
+Anim* Sexy::gZapperAnim = nullptr;            // 0x60e1d8
+Anim* Sexy::gSwatterAnim = nullptr;           // 0x60e1dc
+Anim* Sexy::gMineAnim = nullptr;              // 0x60e1e0
+Anim* Sexy::gZumaAnim = nullptr;              // 0x60e1e4
+Anim* Sexy::gZumaBallAnim = nullptr;          // 0x60e1e8
 
 static Anim* Load(const char* theName, int theCelWidth, int theCelHeight, int theNumCels, bool uniform = false)
 {
@@ -81,33 +78,11 @@ void Sexy::PreloadSlots()
 	sSlotShineAnim = Load("images/slot/slot_shine", 0x100, 0xc0, 4);
 }
 
-void Sexy::PreloadBonusPictures()
-{
-	sCocoBombAnim = Load("images/cocobomb", 0, 0, 1, true);
-	sMissileAnim = Load("images/missile", 0, 0, 1);
-	sCannonBallAnim = Load("images/cannonball", 0, 0, 1, true);
-	sCannonAnim = Load("images/cannon", 0, 0, 1, true);
-	sParrotFlyAnim = Load("images/parrot_fly", 0x60, 0x60, 0xb);
-	sParrotWalkAnim = Load("images/parrot_walk", 0x60, 0x60, 0x14);
-	sParrotPeckAnim = Load("images/parrot_peck", 0x60, 0x60, 0x11);
-	sDiscoBallAnim = Load("images/bonus_discoball", 0x60, 0x60, 6, true);
-	sMilkDropAnim = Load("images/bonus_milkdrop", 0, 0, 1);
-	sDropAnim = Load("images/drop", 0, 0, 1);
-	sTarzanAnim = Load("images/bonus_tarzan", 0, 0, 1);
-	sPaperAnim = Load("images/bonus_paper", 0, 0, 1);
-	sZapperAnim = Load("images/bonus_zapper", 0x3f, 0x55, 2);
-	sSwatterAnim = Load("images/bonus_swatter", 0, 0, 1);
-	sMineAnim = Load("images/bonus_mine", 0, 0, 1, true);
-	sZumaAnim = Load("images/bonus_zuma", 0x3f, 0x4b, 2);
-	sZumaBallAnim = Load("images/bonus_zuma_ball", 0, 0, 1, true);
-}
-
 // port: the bonuses' table (the "images/bonuses" picture and each bonus's kind) is not translated yet
 void Sexy::InitBonusTable()
 {
 }
 
-// port: the stand-in bonuses, bugs and bolts do nothing
 // port: the stand-in bonus is not drawn or kept anywhere (the original sets up its place and its looks)
 void BonusCoin::Place(int theColumn, int theRow)
 {
@@ -115,58 +90,11 @@ void BonusCoin::Place(int theColumn, int theRow)
 	(void)theRow;
 }
 
-void HiddenBonus::Uncover()
+void BonusCoin::Uncover()
 {
 }
 
-BoltObj::BoltObj(int theSegments)
-{
-	(void)theSegments;
-}
-
-void BoltObj::Stop()
+void BonusCoin::ResetCurrent()
 {
 }
 
-void BoltObj::SetEnds(int theFromX, int theFromY, int theToX, int theToY)
-{
-	(void)theFromX;
-	(void)theFromY;
-	(void)theToX;
-	(void)theToY;
-}
-
-void BoltObj::UpdateBolt()
-{
-}
-
-// port: the stand-in has no bonus running; the original also ends what the running bonus changed, and lets go of what
-// the monkey holds
-void Bonus::Cancel()
-{
-	Player::Drop();
-}
-
-void Bonus::CancelIfDone()
-{
-}
-
-void Bonus::ClearAll()
-{
-	Player::Drop();
-}
-
-// port: the stand-in held thing
-void HeldObj::Rotate()
-{
-}
-
-bool HeldObj::Place()
-{
-	return false;
-}
-
-// port: the stand-in bonuses have none running
-void Bonus::OnAllBugsDead()
-{
-}

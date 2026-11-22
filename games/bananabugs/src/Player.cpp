@@ -1468,7 +1468,7 @@ void Player::AppearAtMouse()
 }
 
 // 0x45ab70: the monkey takes theObj, which may be put down theCount times
-void Player::PickUp(HeldObj* theObj, int theCount)
+void Player::PickUp(Bonus* theObj, int theCount)
 {
 	Player* aPlayer = sCurrent;
 	if (aPlayer->mInLevel && aPlayer->mHeld == nullptr) {
@@ -1482,12 +1482,12 @@ void Player::PickUp(HeldObj* theObj, int theCount)
 }
 
 // 0x45abd0: lets go of what is held and gives it back to its old parent
-HeldObj* Player::Drop()
+Bonus* Player::Drop()
 {
 	Player* aPlayer = sCurrent;
 	if (aPlayer->mHeld != nullptr)
 		aPlayer->mHeld->SetParent(aPlayer->mHeldOldParent, nullptr);
-	HeldObj* aHeld = aPlayer->mHeld;
+	Bonus* aHeld = aPlayer->mHeld;
 	aPlayer->mHeld = nullptr;
 	aPlayer->mHolding = 0;
 	aPlayer->mHeldCount = 0;

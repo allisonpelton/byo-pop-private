@@ -244,7 +244,7 @@ void FillObj::ReleaseQueuedPipes()
 }
 
 // 0x428970: the bonus lying under the cell, which keeps a pointer back to it
-void FillObj::SetBonus(HiddenBonus* theBonus)
+void FillObj::SetBonus(BonusCoin* theBonus)
 {
 	mBonus = theBonus;
 	if (theBonus != nullptr)
