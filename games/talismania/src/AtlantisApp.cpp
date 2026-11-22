@@ -22,6 +22,7 @@ AtlantisApp* AtlantisApp::boot()
 	engine::Engine* anEngine = engine::getEngine();
 	// Talismania's layouts give components "visible" (the shared reader's switch for it)
 	engine::ScreenDocHandler::setHonorVisible(true);
+	engine::ScreenDocHandler::setScaleImages(true);
 	anEngine->setUseLooseFiles(true);
 	if (anEngine->diskFileExists("Talismania.saf"))
 	{
