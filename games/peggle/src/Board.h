@@ -31,9 +31,12 @@ class CharacterMgr;
 class CollisionMgr;
 class DebugMgr;
 class EffectMgr;
+class EndLevelDialog;
 class FloatingTextMgr;
 class InterfaceMgr;
 class LogicMgr;
+class ReplayDialog;
+class SlotMachineDialog;
 class SoundMgr;
 class ThunderButton;
 class ThunderballApp;
@@ -49,14 +52,20 @@ struct TypingCheck
 class Board : public Widget, public ButtonListener
 {
 public:
-	explicit Board(ThunderballApp* theApp); // 0x4276e0
-	~Board() override;						// 0x4277f0
+	explicit Board(ThunderballApp* theApp); // 0x4238a0
+	~Board() override;
 
 	void Clear(bool theNewGame);			// 0x40d7d0: the level goes, the board is as new (a new game: the players go too)
 	void Reset();							// 0x42da00: a level (re)starts: the mode's options, the music, and the level read again
-	bool LoadLevel(const std::string& theName);	// 0x42aae0: puts a level on the board; false when its file cannot be read
-	bool LoadLevel2(const std::string& theName);	// 0x429d10
+	bool LoadLevel(std::string theName);				// 0x42aae0 (by value: Reset passes the board's own mLevelName, which Clear erases): puts a level on the board; false when its file cannot be read
+	bool LoadLevel2(std::string thePath);	// 0x429d10
 	void SetupLevel();						// 0x41ea50: the rules' start of the level
+	void SubmitTotalStats();				// 0x406a20: the level's statistics join the player's totals (once)
+	void CheckIncTip();						// 0x406c10
+	void RemoveSlotMachineDialog();			// 0x402480
+	void SyncModeOptions();					// 0x40f980: the options the game mode gives the board (the level it plays)
+	void SyncCharacterOptions(bool theDrawAgain); // 0x40f400: false keeps the masters the rules already chose
+	void PlayMusic();						// 0x422640
 	void AddObj(const SharedPtr<PhysObj>& theObj); // 0x422a90 (0x421070): a piece of the level joins the board's lists
 	void SetSlowMo(bool theSlowMo, int theRate); // 0x4026f0
 	void DeleteReplays(bool theKeep);		// 0x40cf70
@@ -95,7 +104,10 @@ public:
 	int mUnknownF0;							// +0xf0
 	int mUnknownF4;							// +0xf4
 	int mUnknownF8;							// +0xf8
-	bool mUnknown104;						// +0x104
+	int mUnknown104;						// +0x104
+	int mUnknown108;						// +0x108
+	int mUnknown10C;						// +0x10c
+	bool mUnknown110;						// +0x110
 	bool mUnknown11C;						// +0x11c
 	bool mUnknown11D;						// +0x11d: true
 	bool mUnknown11E;						// +0x11e
@@ -105,6 +117,7 @@ public:
 	bool mUnknown122;						// +0x122
 	bool mEasterEgg;						// +0x123: the level is an easter egg's
 	int mEasterEggKind;						// +0x124: which (not set by the original's constructor: 0 here)
+	bool mUnknown12C;						// +0x12c
 	TrophyInfo* mChallenge;					// +0x128: the challenge being played (none outside the challenge mode)
 	std::unique_ptr<AIMgr> mAIMgr;			// +0x134
 	CharacterMgr* mCharacterMgr;			// +0x138: the app's
@@ -115,17 +128,22 @@ public:
 	std::unique_ptr<InterfaceMgr> mInterfaceMgr; // +0x14c
 	std::unique_ptr<LogicMgr> mLogicMgr;	// +0x154
 	std::unique_ptr<SoundMgr> mSoundMgr;	// +0x158
+	ReplayDialog* mReplayDialog;			// +0x15c
+	EndLevelDialog* mEndLevelDialog;		// +0x160
+	SlotMachineDialog* mSlotMachineDialog;	// +0x164
 	ThunderButton* mMenuButton;				// +0x168: pauses the game (hidden)
 	ThunderButton* mInstantReplayButton;	// +0x16c
 	Image* mBackgroundImage;				// +0x170: the picture behind the level
+	int mReplayCount;						// +0x184: how many replays are kept (the size of the list the original keeps from +0x17c)
 	std::list<SharedPtr<PhysObj> > mObjects; // +0x190: every piece of the level, in the order they are drawn
 	std::list<SharedPtr<PhysObj> > mBalls;	 // +0x19c: the balls in play
 	int mOriginX;							// +0x1a8: where the level's own places start in the window (75)
 	int mOriginY;							// +0x1ac: (40)
 	int mUnknown1B0;						// +0x1b0: 650
 	int mUnknown1B4;						// +0x1b4: 560
+	int mUnknown1C0;						// +0x1c0: RemoveSlotMachineDialog sets it to 0
 	bool mUnknown1C4;						// +0x1c4
-	std::string mLevelName;					// +0x1d4: the level's path, with "levels/" and no extension
+	std::string mLevelName;					// +0x1d4: the level's path as the file is read (with "levels/" and ".dat")
 };
 
 } // namespace Sexy

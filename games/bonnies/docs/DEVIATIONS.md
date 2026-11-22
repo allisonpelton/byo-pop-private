@@ -71,6 +71,10 @@ on the framework (`ENGINE.md`, "The port"). What follows from that:
   `BONNIES_STATE` names, ten times a second and only in a test run, for `tools/realplay.py`; on the web the page has it
   through `bonnies_test_state`, for `tools/paneplay.js`. Neither does anything until a test asks.
 
+## The main screen does not say "Deluxe"
+
+The user's request of 2026-11-18, for every game it may appear in: "Remove the "Deluxe" text from the main screen of any game it may appear in, to avoid misleading people about whose game version they're playing". The menu draws the version text (`getText(0x4d8)`, "Deluxe Version " and "1.01") without the word "Deluxe", so it reads "Version 1.01" (`MenuScreen::draw`). The text is cut at draw time; the player's own `Language.txt` is read as it is and no edited image or text is committed. The window caption (`getText(0x49b)`) is not the main screen and stays.
+
 ## Loading and the registration
 
 **Loading.** Bonnie's needs no change for fast loading (the user, 2026-11-07). The logo screen loads every resource in

@@ -291,6 +291,15 @@
         { "from": "users/heroic_in_game#.sav", "to": "users/heroic_in_game#.sav", "what": "a player's heroic adventure in progress" }
       ]
     },
+    "bananabugs": {
+      "folder": "Banana Bugs",
+      "appdata": "BananaBugs",
+      "registry": { "key": "PopCap\\BananaBugs", "hives": ["hkcu", "vs", "hklm"], "sets": ["base", "app"], "values": [] },
+      "files": [
+        { "from": "userdata/profiles.dat", "to": "profiles.dat", "what": "the players and their progress" },
+        { "from": "userdata/highscores.dat", "to": "highscores.dat", "what": "the high scores" }
+      ]
+    },
     "bejeweledtwist": {
       "folder": "Bejeweled Twist",
       "steam": "Bejeweled Twist",

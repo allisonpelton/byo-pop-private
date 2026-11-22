@@ -32,7 +32,11 @@ The rules a session follows:
   built yet); its network calls, so that a connection or download fails at once and nothing leaves the machine
   ("Yes, block them", 2026-11-11: "The network block"); and its program, file and link launches (`ShellExecute`,
   `WinExec`, `CreateProcess`), which fail at once ("allow blocking programs, files and links", 2026-11-11:
-  "The launch guard"). Any other hook needs the user's OK first.
+  "The launch guard"); and its window-activation calls (`SetForegroundWindow`, `SetActiveWindow`, `BringWindowToTop`,
+  `SwitchToThisWindow`, and `ShowWindow`, `ShowWindowAsync`, `SetWindowPos`, `DeferWindowPos` and `SetWindowPlacement`
+  made non-activating), so that a copy on the user's desktop never takes the focus ("Yes, hook window activation
+  calls", 2026-11-22, after Bejeweled Twist's 3D original held the user's foreground for a whole visrun run: "The
+  activation hook"). Any other hook needs the user's OK first.
 - **No keygens.** Patch the check in the copy, or set the registry values the game itself writes when registered;
   never generate a registration code. How a copy's protection is handled is written only in the private notes
   under "Per-game status", which a published snapshot strips (`docs/PUBLISHING.md`).
@@ -231,6 +235,20 @@ of the main thread's waits at which that surface holds the frame the game last p
 N; when the hold's wait is not one of those, it steps the game to its next wait, up to 64 waits or 3 s, and the
 counter must still read N. With `pending_draw=` and `update_state=` configured, the wait must also leave no update
 waiting to be drawn.
+
+**A game that catches up (`reader_waits=hold`).** Hammer Heads' `Process` runs several updates in one call before its single draw and
+Sleep, and reads the clock about 300 times between waits, so no wait ever has the counter at N: the counter has moved on (7403 for
+an `at 7401`), and the step to the next hold lands on a clock poll, not a wait. For such a game `reader_waits=hold` takes the
+surface in the hold at update N itself, where it stands: the surface then holds the frame the game last presented, the same one a
+sandbox shot (PrintWindow of the held window) shows at N, and the counter still must read N before and after the copy. A hold at a
+clock poll records the return address of the clock call (as a wait does of its Sleep), and the reader's log line names it; the
+hold's site must be one outside the drawing code, so a run's first shots are checked by reading that address (Hammer Heads: all
+holds at 0x4D5FCA, the `timeGetTime` after `Process`'s update section and before its draw). `ORIGRUN_READER_TRACE=1` logs every
+hold the reader looks at (shot, number, address, counter). A wait list and `hold` can be given together. Measured on Hammer Heads
+(`reader_surface=[[0x5cea54]+0x330]+0x68`, counter `[0x5cea54]+0x44c`): the menu screens (15 shots), 129 zoom-wipe frames and a
+Classic game's 33 shots, each at its update, nothing ignored in `tools/shotdiff`: identical to the sandbox's wherever the sandbox
+landed on the update it was asked for (its `landed.tsv`), apart from the how-to-play movie and the loading screen, which run on
+the wall clock. In a long scenario the sandbox's shots landed up to 4700 updates before their label, and those pairs differ.
 
 Before a PNG is written every one of these holds, or the shot is refused. In the game: the expression reads a
 pointer to readable memory; that interface's vtable and every method called lie in the system's `ddraw.dll` (a
@@ -620,6 +638,52 @@ own clock. The framework finds the function with `GetProcAddress`, which no impo
 puts a jump to its own function at the start of user32's `GetLastInputInfo`, in the copy's process only. A copy
 that never loads the stand-in (`--sound real`, or a game that loads no DirectSound from its folder) is not
 hooked: run those while the user is at the machine.
+
+## The activation hook (always on)
+
+`tools/visrun.py` runs an original on the user's visible desktop, and the run must never take their focus. visrun
+launches the game with `SW_SHOWNOACTIVATE`, but that covers only the game's first `ShowWindow`; later calls
+activate the window, and Windows refuses visrun's `SetForegroundWindow` to hand the foreground back, because visrun
+is not the foreground process (a Bejeweled Twist 3D run held the user's foreground for its whole 26 s: 1268 takes,
+0 hand-backs, 1268 refusals). The user allowed the hook on 2026-11-22 ("Yes, hook window activation calls").
+
+The stand-in (`tools/origrun/activation.c`) therefore changes nine user32 functions in the copy's process, in every
+run that loads it. `SetForegroundWindow` and `BringWindowToTop` return TRUE and do nothing; `SetActiveWindow` returns
+`GetActiveWindow()` and changes nothing; `SwitchToThisWindow` does nothing. `ShowWindow` turns `SW_SHOWNORMAL`,
+`SW_SHOWDEFAULT` and `SW_RESTORE` into `SW_SHOWNOACTIVATE`, `SW_SHOW` into `SW_SHOWNA` and `SW_SHOWMINIMIZED` into
+`SW_SHOWMINNOACTIVE`, and passes the rest on; `SW_SHOWMAXIMIZED` has no form that does not activate, so it passes on
+and is counted on its own. `ShowWindowAsync` maps its command the same way, and `SetWindowPlacement` maps the `showCmd`
+of a copy of the `WINDOWPLACEMENT` and passes the copy on, so the caller's structure is not changed. `SetWindowPos` and
+`DeferWindowPos` get `SWP_NOACTIVATE` added. The last five still do their work: each hook calls the real function
+through a trampoline.
+
+The way in is the last-input hook's: five bytes at the start of user32's own function become a jump, so every caller
+in the process reaches the hook, ddraw.dll, the d3d DLLs and a function found with `GetProcAddress` included, which an
+import patch would miss. The trampoline copies the bytes the jump overwrote and knows the three starts the 32-bit
+user32 has (`mov edi,edi; push ebp; mov ebp,esp`, `jmp [address]`, `jmp`); another start leaves that function
+unhooked, and the install line says so. What it can miss: a caller that makes the system call itself (win32u's
+`NtUser*` functions or a stub of its own) and user32's own internal calls (a dialog or menu that activates its window).
+Left unhooked on purpose, because none of them makes a background window the foreground window here: `SetFocus` (it
+moves the keyboard focus within the calling thread's own queue; the foreground window of another process stays),
+`CreateWindowEx` (a window is shown through `ShowWindow` or `SetWindowPos`, which are hooked), `AnimateWindow`, the dialog
+functions (a dialog is shown through `ShowWindow`, and `MessageBox` is answered by the message-box hook) and input sent
+to a window (it activates a window only when something clicks it, and visrun's posted input is messages, not clicks).
+Hooking any other function needs the user's OK first.
+
+`logs/net.log` of the run folder holds the install line ("activation hook installed: reached ...") and, at exit, how
+many calls each function answered, with the `SW_SHOWMAXIMIZED` passes. `ORIGRUN_ACTIVATION=allow` in the
+environment turns the hook off (the log says "activation hook off"), for a run that needs the real behaviour. A copy
+that never loads the stand-in is not hooked.
+
+`tools/origrun/actest.sh` (in `tools/check.sh origrun`) tests it on `actest.exe`: a window shown inactive, then every
+function and `ShowWindow` command called on it through the import table, through `GetProcAddress` and from a second
+DLL, with neither the foreground nor the active window ever being it and the window in the state the mapped command
+gives; a second run with `ORIGRUN_ACTIVATION=allow` checks that the calls reach Windows.
+
+visrun logs at the start of a run whether the hook was installed (read from `net.log`), and its `keep_focus_away`
+thread still tries one hand-back, but stops the run at once if the game's process owns the foreground window all the
+same: it ends the game process by its pid, the `finally` block restores the window, registry and saves, the log says
+"the game took the user's foreground: run stopped (handed back H, refused R)" and visrun exits with status 5.
 
 ## The network block (always on)
 

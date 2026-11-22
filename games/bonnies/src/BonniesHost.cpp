@@ -201,6 +201,13 @@ public:
 		return GameClock();
 	}
 
+	// port: the music's watchdog keeps real time at every game speed (the user, 2026-11-22: "Don't change music at all when
+	// game speed is changed"); a -fast run has no real time to keep, so it reads the game's clock, as before
+	uint32_t getMusicTicks() override
+	{
+		return gHostApp->mFastMode ? GameClock() : (uint32_t)Sexy::GetRealTickCountMS();
+	}
+
 	// a test run (hidden, on rundesk's desktop) has the focus, as the user's window would, until a script's "focus 0";
 	// a -realinput run has only the focus and the mouse its file's events give (docs/REAL_INPUT.md)
 	unsigned char getAppState() override

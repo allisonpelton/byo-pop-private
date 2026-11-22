@@ -1,7 +1,7 @@
 # Bonnie's Bookstore tour (tools/check.sh bonnies): the logos, the menu, a new player, the difficulty, the story and the
 # first board's three tutorial words, the game's options with its high scores, credits and help, the main menu's
-# options, a new action game with one word played, the focus lost and regained, until its time is up, and the main
-# menu's Quit, which ends the game its own way. Run with -fast -seed=1; @DIR@ is the output folder.
+# options, a new action game with one word played, the focus lost and regained, until its time is up, the player list
+# with its questions for a new player and for deleting one, and the main menu's Quit, which ends the game its own way. Run with -fast -seed=1; @DIR@ is the output folder.
 400 screenshot @DIR@/logo.png
 1200 screenshot @DIR@/menu.png
 1210 click 180 306
@@ -84,5 +84,25 @@
 61000 screenshot @DIR@/timeup.png
 61200 click 444 414
 61500 screenshot @DIR@/endmenu.png
-61600 click 205 525
-70000 quit
+# the player list, a new player's name (taken and free) and deleting a player
+61600 click 670 170
+62800 screenshot @DIR@/z_players.png
+62810 click 335 392
+64010 screenshot @DIR@/z_newname.png
+64020 char t
+64170 char e
+64320 key RETURN
+65520 screenshot @DIR@/z_exists.png
+65530 key RETURN
+66730 screenshot @DIR@/z_exists2.png
+66740 key ESCAPE
+67940 screenshot @DIR@/z_afteresc.png
+67950 click 400 182
+68450 click 462 392
+69650 screenshot @DIR@/z_delete.png
+69660 click 521 416
+70860 screenshot @DIR@/z_nodelete.png
+70870 click 462 442
+# the main menu's Quit
+72500 click 205 525
+80000 quit

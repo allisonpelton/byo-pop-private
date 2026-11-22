@@ -2,8 +2,10 @@
 
 #include "SoundMgr.h"
 
+#include "MusicInterface.h"
 #include "NotTranslated.h"
 #include "SoundInstance.h"
+#include "ThunderballApp.h"
 
 using namespace Sexy;
 
@@ -43,7 +45,14 @@ void SoundMgr::AddFadeSound(SoundInstance* theSound)
 // 0x437560
 void SoundMgr::PauseMusic(bool thePause)
 {
-	NOT_TRANSLATED("SoundMgr::PauseMusic");
+	if (mMusicPaused != thePause)
+	{
+		mMusicPaused = thePause;
+		if (thePause)
+			gThunderballApp->mMusicInterface->PauseAllMusic();
+		else
+			gThunderballApp->mMusicInterface->ResumeAllMusic();
+	}
 }
 
 // 0x4375a0

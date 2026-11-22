@@ -70,6 +70,7 @@ public:
 	int CalcScoreMult(int theNumPegsHit) const;			// 0x4370b0
 	static int CalcMusicIntensity(int theNumPegsLeft);	// 0x437110
 	void CalcGunAngle(bool theSetAtOnce);				// 0x43ece0: aims the cannon where the mouse is, with the lead the ball's fall needs
+	void SetCharacters(int theFirst, int theSecond); // 0x43f020: the masters of the two players; the one of the player in turn is shown
 	void SetGunAngle(float theAngle);					// 0x436fd0: the angle in [0, 2 pi), held to the band the level allows
 	void BeginInitLevel();								// 0x440500
 	void ActivateFreeBallCover(bool theActive);			// 0x440700

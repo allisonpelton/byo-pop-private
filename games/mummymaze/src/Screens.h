@@ -20,6 +20,9 @@ namespace Sexy
 class MMApp;
 class MemoryImage;
 
+// port (deviation, the user, 2026-11-18): the title picture without the word DELUXE; see Screens.cpp
+void				CoverDeluxe(Image* theTitlePicture);
+
 // 0x42a5f0: the title picture, a bar that fills as the sounds load, and the link that starts the game
 class TitleScreen : public Widget, public ButtonListener
 {

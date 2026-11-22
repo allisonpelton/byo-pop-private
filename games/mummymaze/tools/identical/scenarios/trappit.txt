@@ -1,0 +1,61 @@
+99 title
+1000 click 185 376
+1006 click 258 291
+1100 click 395 317
+1400 key 37
+1470 key 37
+1540 key 37
+1610 key 38
+1680 key 39
+1750 key 38
+1799 shot f000
+1805 shot f001
+1811 shot f002
+1817 shot f003
+1823 shot f004
+1829 shot f005
+1835 shot f006
+1841 shot f007
+1847 shot f008
+1853 shot f009
+1859 shot f010
+1865 shot f011
+1871 shot f012
+1877 shot f013
+1883 shot f014
+1889 shot f015
+1895 shot f016
+1901 shot f017
+1907 shot f018
+1913 shot f019
+1919 shot f020
+1925 shot f021
+1931 shot f022
+1937 shot f023
+1943 shot f024
+1949 shot f025
+1955 shot f026
+1961 shot f027
+1967 shot f028
+1973 shot f029
+1979 shot f030
+1985 shot f031
+1991 shot f032
+1997 shot f033
+2003 shot f034
+2009 shot f035
+2015 shot f036
+2021 shot f037
+2027 shot f038
+2033 shot f039
+2039 shot f040
+2045 shot f041
+2051 shot f042
+2057 shot f043
+2063 shot f044
+2069 shot f045
+2075 shot f046
+2081 shot f047
+2087 shot f048
+2093 shot f049
+2119 quit

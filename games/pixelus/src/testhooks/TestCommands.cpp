@@ -397,6 +397,9 @@ bool PixelusApp::HandleScriptCommand(const ScriptCommand& theCommand)
 				continue;
 			for (size_t p = 0; p < aLevel->mPuzzles.size(); p++)
 			{
+				// "unlock all nomystery" leaves the last puzzle of every temple but the cave unsolved, as a game in progress has it
+				if (anArgs == "all nomystery" && i > 0 && p + 1 == aLevel->mPuzzles.size())
+					continue;
 				const std::string& aUuid = aLevel->mPuzzles[p].mUuid;
 				if (aUser->GetRecord(aUuid) != NULL)
 					continue;
