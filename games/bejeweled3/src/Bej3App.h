@@ -11,6 +11,7 @@
 namespace Sexy {
 
 class Bej3Music;
+class MainMenu;
 class PrimeResourceManager;
 class Profile;
 class QuestDataParser;
@@ -35,6 +36,7 @@ public:
 	bool mAnimateBackground = true;         // +0x9e0: "AnimateBackground"
 	int mTipIndex = 0;                      // +0xd78: "TipIdx", the loading screen's next tip in properties\tips.txt
 	Profile* mProfile = nullptr;            // +0xb80: the players and the one loaded
+	MainMenu* mMainMenu = nullptr;          // +0xba0: the first screen
 	Bej3Music* mBej3Music = nullptr;        // +0xa30: the same object as mMusicInterface, with the game's songs (null without sound)
 	QuestDataParser* mDefaultQuestData = nullptr;  // +0xbc8: properties\defaultquest.cfg
 	QuestDataParser* mQuestData = nullptr;  // +0xbcc: properties\quest.cfg

@@ -2,6 +2,8 @@
 #include "Bej3App.h"
 
 #include "Bej3Music.h"
+#include "MainMenu.h"
+#include "WidgetManager.h"
 #include "DDInterface.h"
 #include "EncodingParser.h"
 #include "HighScores.h"
@@ -109,8 +111,12 @@ void Bej3App::Init()
 	SetCursorImage(CURSOR_HAND, IMAGE_CURSOR_HAND);
 	SetCursorImage(CURSOR_DRAGGING, IMAGE_CURSOR_DRAGGING);
 	// port: temple.p3d (0x861b70) is a 3D model; the 3D mode comes later
-	// port: the MainMenu at +0xba0 (0x6a54b0), the TooltipManager at +0xbf0 (0x67c540), the windowed button, the
-	// resize widget, the sound volumes and the Zen file lists come with the next steps of Init
+	// 0x6a54b0: the MainMenu at +0xba0, sized from the art size (offset -160, 1920 by 1200 at 1200) and put on the screen
+	mMainMenu = new MainMenu();
+	mMainMenu->Resize(-160 * mArtRes / 1200, 0, 1920 * mArtRes / 1200, mArtRes);
+	mWidgetManager->AddWidget(mMainMenu);
+	// port: the TooltipManager at +0xbf0 (0x67c540), the windowed button, the resize widget, the sound volumes and the
+	// Zen file lists come with the next steps of Init
 }
 
 // 0x76cd70: the original makes its CustomBassMusicInterface when the framework asks for the music interface
