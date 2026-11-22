@@ -3,9 +3,9 @@
 name = "bejeweledtwist-blitz"
 source_exe = "build/bjt/v3d/game/BejeweledTwist.exe"   # the Steam copy's files, its exe unpatched (the patches come below)
 patches = "tools/origrun/patches/bejeweledtwist.txt"   # the full version, the hover check, the seeds ({seed})
-args = ["-autoplay=blitz"]             # the original's own autoplay, as the screen routes' Blitz
+args = ["-autoplay=blitz", "-4x3"]          # the original's own autoplay, as the screen routes' Blitz
 title = "Bejeweled"
-client = [800, 600]
+client = [800, 600]                     # -4x3: a 4:3 window in 3D too, so it fits a place on the right half
 clock = "real"                          # unfocused, the original counts no updates, so the stretch is timed by `wait`
 update_ms = 10
 counter = "[0xe0b698]+0x48c"
