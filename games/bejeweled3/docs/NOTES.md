@@ -1001,6 +1001,30 @@ Not translated (the `// port:` notes in the source), none of them changes what a
   the colour of 0x73d9f0 (the red warning: its formula is reasoned from the decompile, not checked against a run: the screen's edge and
   the timer glow red under 10 seconds without an account) and the button of Reset (RESET_BUTTON_LIGHTNING, modes 1 and 2 of 0x741840).
   (6) The sounds.
+  Done since (commits d1af6047 and 1a8cb2e4): the shake of the ending (0x7173f0: while +0x30a4 is 1 to 99 and the update count is a multiple of
+  3, the board's place +0x40 and +0x44 are set from two draws of the app's Rand(), each (draw % 1e6 - 500000) / 500000, times 12 of 1200 of the
+  art size, times (100 - count) / 100; two draws per third update, none elsewhere); the exact red warning (0x73b7c0, 0x73d9f0: it is white, not
+  red, with alpha board alpha * 127 * (1 + sin(0.15 updates)) * the share of the 1000-tick window (1500 when the round is over 60 s), fading
+  over 450 ticks once the time is out; the red part is the mega gem's shard MEGASHARD_RED_LIGHTNING at (0x2d, 0x22) in its translation; the
+  flag at +0x12f8 is not translated); the Reset button (id 2, +0x2878, made by 0x745240 for modes 1 to 3, placed by 0x741840; it is shown, the
+  black disc seen earlier was the empty socket of the bottom widget's art; it opens a Yes/No dialog, id 0x16, strings 155 to 156, and Yes
+  starts the game over through slots 85 and 135; the exe also deletes the saved game, which the port does not keep).
+  Oddities, read but not translated (about an hour was not enough for each; the first needs data that cannot be copied):
+  - TimeBonusEffect (type 0x15, 0x2c0 bytes; ctor 0x72a3b0, Update 0x730de0, Draw 0x72ec70). The update's draws in order: a spark (type 5)
+    when a draw is under seconds-based 0.04 steps (angle, radius, speed and the spark's own ctor draws), one draw for the bolt chance
+    (0.15 of min(secs-1,4)/4, or 0.001 in 2D), the bolt's kind and its 3 or 4 segments (two draws each: +-10 and +-0.2), then per bolt and
+    segment the random walk of the arc heights (A += V; limits at 25 and 18; averaging draws at 0.1 and 0.2), the bolt's death draws (0.001,
+    0.005, 0.0075 by kind), and last Rand() % 25 == 0 makes an invisible type-0x11 effect (two draws for its place, one for a flag). The arcs'
+    start radius per angle is a 256-entry table of the gem silhouette (exe data 0x83a548, indexed by (frame*7+colour)*0x400, values 47 to 56):
+    game data, so it cannot go in the repo; the glow colour tables (0x8e1e98 set A, 0x8e1e18 set B) are built at run time by 0x7bcba0 and
+    0x7bcc40, set A in the port's colour order R W G Y P O B being (255,96,96), (255,255,255), (128,255,64), (225,225,128), (225,128,225),
+    (255,160,64), (48,160,255). To do it: port the update with every draw, draw the arcs from a constant radius (a deviation), and then the
+    seconds number with its blink (under 0x1f5 ticks, board +0xe38 / 0x12 even).
+  - SpeedCollectEffect (0x866a08, ctor 0x714520, size 0x3d0, Update 0x719ec0 with 0x714980; its Draw 0x713f80 is empty, so it is a controller):
+    it needs the exe's Bezier path class (0x59a380, 0x59a400, 0x59ad90, 0x59aef0), CurvedVal strings, a PIEffect trail (image DAT_008d735c),
+    the lookup of the type-0x15 effect and the "+N sec" text effect 0x71e5f0.
+  - The SpeedText banners, the curves +0x3290, +0x3300, +0x3370, +0x33e0, +0x3450 and the keyframe edits of the HUD's particle effects in
+    0x7173f0 (DAT_008d8f1c, DAT_008d86f0, DAT_008d6d4c, DAT_008d6e5c): not started.
   What is drawn, in the exe's order: slot 238/250 (0x714840, 0x713f90): the bottom widget and the LIGHTNINGUIBOTTOM PopAnim translated
   by -0xa0 (1200ths of the art size); the overlay (slot 43, 0x716ef0, called from Board::Draw through the new virtual DrawModeOverlay: the
   widget manager draws a DrawOverlay only when the widget asked for it in its Draw) is 0x715cb0: the mega gem (GEM_MEGA, a clip from y 300,
