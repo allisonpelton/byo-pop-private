@@ -973,9 +973,9 @@ game's registry key and 3D-flag address to games.tsv.
 | waterbugs | local install | sandbox, a fresh profile each run; shots by `--surface-screen` with `--surface-eip`; update counter 0x460a1c | none | full-screen DirectDraw, as Cosmic Bugs; `--input-eip` and a `mouse` patch for its input |
 | wordharmony | local install | host, virtual clock, scripted cursor, short `--stage-root`; its registry key is cleared before each run | none | trial (60 min) |
 
-**The in-game frame reader's trials.** Bookworm Deluxe (the carved 1.03 `BookwormGame.exe`, windowed, 2D) passed on
-2026-11-22, with `reader_surface=[[0x5347d4]+0x334]+0x3c` (the app at 0x5347d4, its DDInterface at +0x334,
-`mDrawSurface` at +0x3c: caps 0x840, an off-screen plain surface in system memory, 640x480 at 32 bits) and
+**The in-game frame reader's trials.** Bookworm Deluxe (the carved 1.03 `BookwormGame.exe`, windowed, 2D) passed
+with the reader of 6b5f6492 on 2026-11-22 (its config line: `reader_trial=passed 2026-11-22 6b5f6492`), with
+`reader_surface=[[0x5347d4]+0x334]+0x3c` (the app at 0x5347d4, its DDInterface at +0x334, `mDrawSurface` at +0x3c: caps 0x840, an off-screen plain surface in system memory, 640x480 at 32 bits) and
 `reader_waits=480927` (the return from the `Sleep` at 0x480921 in `Process`'s branch that drew). The sandbox side
 was the Bookworm session's run `bwsb-menus` of 2026-11-08, with its script, seed 1 and 23-patch list; its shots were
 copied, not taken again. Its 37 screens are the title, a new user, the mode selector and its hovers, the hall of fame,
