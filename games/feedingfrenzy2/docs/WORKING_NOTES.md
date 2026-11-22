@@ -251,6 +251,16 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   framework's game clock at the unlimited speed), so at speed 1 the frames are paced as before. Checked in real time:
   at speed 4 the splash is further on at the same update, and at the unlimited speed 600 updates reach the menu in
   a second.
+- The stage's backdrop: the stage (Stage) made by the loader over the game data and the stage container, with its own
+  theme (baseTheme.xml); the first menu stage loaded at the loader's end (menuStage.xml, its set mainMenu.xml); the
+  stage file's attributes; the stage's slot 13 as far as the backdrop: the play bounds, the mask container (its
+  night mask not yet translated), the layer set and its file, the layers' infos (layoutPan only) and the LayoutPan
+  layers with their three containers, the layers fitted to the bounds. Checked under rundesk: the menu shows its
+  backdrop (the three layouts), and the splash's leftovers under the menu are gone, as the stage repaints the
+  frame. Not yet translated: the spawns (the menu's fish), the camera, the play area's edges, the HUD, the stage's
+  start and update, the layers' colour, the panelScroll and propScroll layers.
+  - The base theme names fx/playerShieldGlow.xml, whose images (resource/FX/shieldFish) the archive lacks, so the
+    effect is not loaded (a warning in the log); the original's data is the same.
 
 ## Next
 
@@ -264,6 +274,21 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   stage's file through a MasterDocHandler. The menu needs the stage loaded with its menu level as its background;
   the fish, their AI and the HUD come after. Then the menu's music and sounds and its other actions (new game, the
   map, options, high scores, quit's confirmation).
+- The stage's backdrop, as read so far: the stage file (Stage::DocHandler 0x47c730: title, sizeUnit, set, bonus,
+  scrollRate, night, finalBoss, minLight, maxLight, gameMusic, ambientSound, waterColor, bossLayout; its spawns)
+  names a set. The stage's slot 13 (0x4146b0) makes the play bounds from the display's size (top 75 unless
+  0x491730), a MaskContainer (0x1a8 bytes, resource/hud/darknessMask.png) at +0x2ec, the LayerSet (0x144 bytes,
+  0x4892a0; a Container overriding only its destructor) at +0x2d8, read by 0x40a4e0, and fits the layers to the
+  bounds inset by 200 and 160 (0x4858d0). The set's reader (LayerSet::DocHandler: baseLayer, waterLevel, skyCeiling
+  at +0xd8..+0xe0, the night colours at +0x118 and +0x128, nightColorLightPct +0x138; each <layer> by its type,
+  layoutPan (LayoutPanInfo, the default), panelScroll or propScroll) keeps an info per layer; LayerInfo (0x478650)
+  reads color, blend or colorMode, an alpha-like float, panSize and scrollRate, LayoutPanInfo (0x417680) the
+  layout. Each info makes its layer (slot 2, LayoutPan 0x34 bytes, 0x40a0f0) given the water level: 0x480e90 keeps
+  the info at +0x18 and makes the containers PanLayerActors (+0x20), PanLayerPlayers (+0x24) and PanLayerOverlays
+  (+0x28), then the init (0x411050) loads the layout (+0x1c, a ScreenLayout), adds a colour effect over (-100,
+  water level) to the pan size plus 100 when the colour's alpha is above 0, and adds the three containers to the
+  layout. LayoutPan's slot 7 (0x43c090) pans the layout by the layer's factors (+0xc, +0x10), which 0x4858d0 sets
+  from each layer's pan size against the base layer's.
 - The layouts' textButton, checkBox, include, radioGroup, table and compositeGroup's caching; the burst's
   sound, the sound system's and the game's updates in the splash's bursting phase.
 - The configuration's options, the start's options, key, activate and music connections, the popups and the debug

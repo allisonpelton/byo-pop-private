@@ -198,9 +198,7 @@ void SplashState::load()
 	FadeTransition* aFade = new FadeTransition(SHELL_FADE_SECONDS);
 	mApp->mPauseScreen = loadShellScreen("resource/shell/pauseScreen.xml", mApp->mShellTheme.get(), aFade, aFade);
 	mLoadProgress = 0.3f;
-	// The stage (+0x40, Stage, 0x3e0 bytes, its constructor 0x403aa0 (feedingfrenzy2), over the game data and the
-	// stage's container): not yet translated
-	getEngine()->log("SplashState: the stage not yet translated\n");
+	mApp->mStage = new Stage(mApp->mGameData.get(), mApp->mStageContainer.get());
 	mLoadProgress = 0.4f;
 
 	aFade = new FadeTransition(SHELL_FADE_SECONDS);
@@ -260,10 +258,15 @@ void SplashState::load()
 	mApp->mCredits = loadShellScreen("resource/shell/credits.xml", nullptr, aFade, aFade);
 	mLoadProgress = 0.84f;
 
-	// The stage's loader (Stage::StageLoader, 0x34 bytes, its constructor 0x495080 (feedingfrenzy2)) loading the
-	// first menu stage, or the stage the configuration names (the application's +0x338), on a thread the loader
-	// waits on, its progress the bar's last part: not yet translated
-	getEngine()->log("SplashState: the first stage's load not yet translated\n");
+	// The stage's loader (Stage::StageLoader, 0x34 bytes, its constructor 0x495080 and its run 0x48a810
+	// (feedingfrenzy2)) loading the first menu stage on a thread the loader waits on, its progress the bar's last
+	// part. port: loaded at once, as the rest. The run's other steps: the stage emptied first (its slot 0x08), the
+	// fish factory's file read again (read above), and once loaded the entry's time and canSuck kept on the
+	// application (+0x190 and +0x1d0, 0x48a910 and 0x4944f0 (feedingfrenzy2)): not yet translated. (The stage the
+	// configuration names, the application's +0x338, is not yet translated either)
+	const std::vector<StageManifest::Stage>& aMenuStages = mApp->mGameData->getMenuStages().getStages();
+	if (!aMenuStages.empty())
+		mApp->mStage->load(aMenuStages[0]);
 	mLoadProgress = 1.0f;
 	mPhase = SPLASH_LOADED;
 }

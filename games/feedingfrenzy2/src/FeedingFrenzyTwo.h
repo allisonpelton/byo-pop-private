@@ -14,6 +14,7 @@
 #include "MainMenu.h"
 #include "PlayerRanks.h"
 #include "Scene.h"
+#include "Stage.h"
 #include "StageScreenData.h"
 #include "State.h"
 #include "StringTable.h"
@@ -71,6 +72,7 @@ public:
 	// +0x2c: the debug level select (DebugSelectMenu, resource/shell/debugLevelSelect.xml, a list of the game's
 	// stages), made by the loader: not yet translated (only the main menu's debugSelect button, hidden and
 	// switched off, has been seen to lead to it)
+	engine::Ref<Stage> mStage;                         // +0x40: made by the splash's loader
 	engine::Ref<engine::Container> mContainerSlot;     // +0x44: "ContainerSlot", in the scene
 	engine::Ref<engine::Container> mStageContainer;    // +0x48: "StageContainer"
 	engine::Ref<StringTable> mStrings;                 // +0x4c: resource/baseStrings.xml, read by configure
