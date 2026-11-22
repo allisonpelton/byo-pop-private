@@ -9,7 +9,7 @@ F=build/screens-final
 rm -rf $F; mkdir -p $F/orig $F/port
 # tag case-dir original-run preset
 for c in "A build/sc/A scA -" "B build/sc/B scB P0" "CD build/sc/CD scCD P0" "C3 build/sc/C3 scC3 P0" "E build/sc/Eh scEh2 P2" \
-         "H build/sc/H scH -" "I0 build/sc/I0 scI0 P0" "I1 build/sc/I1 scI1 P1"; do
+         "H build/sc/H scH -" "I0 build/sc/I0 scI0 P0" "I1 build/sc/I1 scI1 P1" "RQ build/sc/RQ scRQ -" "L build/sc/L scL -"; do
 	set -- $c
 	until python tools/gamecount.py --limit 6 >/dev/null; do sleep 5; done
 	if [ "$4" = "-" ]; then unset PRESET; else export PRESET=$ROOT/build/sc/$4/user; fi

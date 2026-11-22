@@ -129,8 +129,8 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
   as the picture flies, alpha following the flight's progress); the shots in the middle of the fade still differ (the
   alpha slope of the original is a little steeper, and its picture is stretched with a blur the port does not draw), and
   the arrived screen differs by about 9% (the medal's size and the sign texts' places).
-- The completed picture's sweep: the tiles ahead of the sweep turn yellow in the original and stay blue in the port at the
-  same update; a difference of the sweep's timing, not of its colours.
+- The completed picture's sweep: the tiles ahead of the sweep turn yellow in the original and stayed blue in the port at the
+  same update. Fixed on 2026-11-22 (see "The screen coverage pass"): a finished puzzle's tiles go yellow while the delay runs down.
 - The story portraits' inner picture (the Cyclops' head in the frame, 3% of the screen at u1700) differs at the head's edges:
   the figure's outline matches pixel for pixel, so the stretch filter of the framework's `DrawImage` into the frame differs from the original's
   (0x458da0 draws with the application's own stretch mode). Not chased; the same stretch is used wherever the original scales an image.
@@ -321,3 +321,67 @@ no move to give until Undo was pressed once (then the same move worked): Bacchus
 position that two moves share, a test-tool fault and not the game's. Not shown by a human play, since a player picks the cell. The drivers press
 Undo (button id 9) and note it; the native run needed it 4 times, the web run 4 times. To chase it: the `history` test command prints the moves made
 beside the shipped solution (`HISTORY <made> SOLUTION <best>`).
+
+## The screen coverage pass (2026-11-22)
+
+`SCREENS.md` lists every screen and dialog with the shots that compare it; the scenarios behind it are the scripts in
+`tools/screens/scripts/` (A, B, CD, C3, E, H, I0, I1, RQ, L; the presets they start from are a fresh profile P0, `unlock all`
+P1 and `unlock all nomystery` P2, which leaves each temple's last puzzle unsolved as a player has it). `tools/screens/final.sh`
+reruns the port half of all of them with the current build and pools both sides' shots into the one shotdiff run `screens`
+that `tools/check.sh screens` reads. The originals' pictures come from the earlier runs (sandbox for A to H, the in-game
+frame reader on the host for the rest). The reader needs `--reader-surface "[[0x579e30]+0x33c]+0x64"` (the off-screen draw
+surface; +0x3c is no surface and +0x5c is the primary), `--reader-waits 49438a`, `--reg-map popcap`, and a fresh
+`HKCU\SOFTWARE\PopCap\Pixelus` before each run (an old key leaves the game under its update-check boxes, and the
+registered-game key under HKLM was deleted for it and not restored: it needs an administrator). Its pictures are the
+640x480 client area; the sandbox's are 646x509 and shotdiff cuts them.
+
+Found and fixed by this pass:
+- **Losing the focus pauses the board** (0x433320 pauses, 0x433330 lifts it; the port's `PixelusApp` had neither override).
+  The pause screen then differed in three ways, all from 0x405a15: the canvas slides in from 420 pixels above to y 60 with
+  no fade, the veil over the play area is 128 times the fade (the port had 160), and "PAUSED" and its line sit 230 and
+  275 down at the end of the slide (the port put them at the middle of the grid); the line is left out while the options or
+  the reset question are open. Shots E-u1950 and E-u2150 now differ by 0.2% and 0.9%.
+- **The reset question has Yes and No** (the port had OK and Cancel; the buttons sit where the original's do).
+- **The tree under the tutorial cave** moved to (239, 425); **the hint's OK button** is 27 high; **the medal's ribbon** hangs
+  over the row of thumbnails below it, as the medals are drawn after all the thumbnails (0x4119e0).
+- **A finished puzzle's tiles go yellow while the delay runs down**, as 0x42f4e7 draws them.
+
+Deviation, by the user's wish (2026-11-18: "Remove the 'Deluxe' text from the main screen of any game it may appear in, to
+avoid misleading people about whose game version they're playing"): the word on the ribbon under the logo is painted over
+from the picture's own pixels as the loading screen's picture is made (`ClearBannerText`, `LoadingScreen.cpp`). Shots L-u40,
+L-u100 and L-u140 differ in the ribbon (223, 123, 191 by 43) for that reason, and nowhere else but the bar below.
+
+Differences left, each judged:
+- **The options dialog** (A-u940, A-u1060, A-u1230, CD-u1800): the original has the Check for updates button and the
+  Hardware Acceleration box, both removed from the port on purpose (the first leads out of the game; the second is the
+  web build's business), so the dialog is shorter and the rows below move up.
+- **The credits dialog** (A-u1000): the frame of the original is 32 pixels taller (16 above, 16 below) with the text in
+  the same place; both read 0x18c as the dialog's height (0x4e4ce0, 0x402290), so the extra must come from how the base
+  dialog draws its frame. Not found within the hour.
+- **Hover when a screen is replaced** (E-u700, E-u900, C3-u2150, I1-u500, I1-u800, RQ-u1950): the port gives the widget
+  under a stationary pointer its hover at once; the original does it after the next mouse move (the island's panel shows
+  "Map of Pixelus" there instead of the temple under the pointer), though on the temple screen it hovered the thumbnail.
+  Origrun's scripted cursor may be part of it. Not found.
+- **The island's glow and arrows** (E-u500, E-u2550, C3-u2150): with every temple open but its last puzzle unsolved, or
+  after a puzzle was started, the port draws the divine light and the arrow on temples where the original draws none;
+  the first visit of a new player (I0-u500, u800, u1100) and a finished game (I1) match to 0.2%. 0x416950 draws them for
+  states 1 and 2 of a temple that is not locked (0x433570: the solved count of the profile less that of the *current*
+  temple, against the temple's price), and the port's `IsTempleLocked` subtracts the tutorial's count instead. A try at
+  that reading was not verified against the original, so it is not in. Open.
+- **The puzzle-completed tablet comes about 8 updates ahead in the original** (H-u1815 to H-u1870, 10 to 90% of the
+  picture): dense shots (every 2 to 6 updates, 1790 to 1884) match the port's frame 8 updates later all along, from the
+  first frame the tablet shows. The 60-update delay (0x409bd0), the tablet's step of 0.0125 (0x419a00), the sweep (0x422590,
+  0x424b30) and the finish test read the same in both. Not found.
+- **The tablet's picture and sheen** (H-u1900 to H-u2120): the picture's smoothing and the sheen's phase differ (the
+  documented tablet-picture oddity). **Tiles in flight** (H-u1500, u1570, u1640) differ by an update or two of the throw, from
+  how origrun delivers the click.
+- **Loading screen after the bar** (L-u40 to L-u140): the original shows only the link, the port keeps the bar behind it,
+  faded over 280 updates (0x4e6f70, delay 100 and 1.4 a step). Not found.
+- **Random draws that move things**: the god's greeting on the temple screen (E-u900 "Welcome back. How's the love life?"
+  against "Say, are you married?"), the chains' sway, the lock's place and the Tile Master's place at the first frame
+  (B-u300) come from draws of the application's generator that the two programs reach in a different order before these
+  screens; the generator's own count was compared for the puzzles (the first phase), not for the idle screens.
+
+Not reached (SCREENS.md says why in each row): the name-exists and rename errors, the story conversations and completion
+screens (they need a finished temple), the expert board, the mystery board, the sticky-spots hint and the scroll bars'
+buttons.
