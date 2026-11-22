@@ -81,3 +81,17 @@ Neither `all` nor a shared change runs Bejeweled's oracle (the user, 2026-11-11:
 causing a lot of slowdown for no benefit"): it compares Bejeweled's game logic with the original's, and a change outside
 `games/bejeweled` that leaves Bejeweled's frozen baseline and `verify` unchanged leaves that logic unchanged too. It runs
 when `games/bejeweled` changes, or when named (`tools/check.sh oracle`).
+
+## Trimming an exe
+
+The user (2026-11-13): "Let's stick to trimming the exes to only what the game uses then". It is not `-Os`, which costs speed:
+none of the steps below changes the code the compiler makes for the game. Two kinds of trimming, "both" in the user's answer
+to why not take unused code out of the source: the linker drops what a game does not reach, and what no game uses is left
+out of the build by configuration. Sizes are Bejeweled 2's and Venice's Release exes (32-bit, llvm-mingw).
+
+- **Sections and a static C++ runtime (the top-level `CMakeLists.txt`, MinGW builds).** `-ffunction-sections
+  -fdata-sections` and `-Wl,--gc-sections` let the linker drop every function and data item nothing reaches, and
+  `-static-libstdc++ -static-libgcc` link libc++ and libunwind into the exe, so only the parts used ship and no C++ runtime DLL
+  goes beside it (SDL2.dll is the only DLL left, and `PORT_RUNTIME_DLLS` is empty). A Release exe is also stripped (`-s`); a
+  build to be profiled by symbol (`cpuprof.py`'s sampling mode, `llvm-nm` on the exe) configures with
+  `-DBYOPOP_STRIP_EXE=OFF`. A derived repository's exe has been built this way since `594ad74a`.

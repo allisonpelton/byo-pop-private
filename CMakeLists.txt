@@ -15,6 +15,20 @@ set_property(GLOBAL APPEND PROPERTY JOB_POOLS byopop_compile=6 byopop_link=2)
 set(CMAKE_JOB_POOL_COMPILE byopop_compile)
 set(CMAKE_JOB_POOL_LINK byopop_link)
 
+# A native exe carries only the code its game uses (docs/BUILDS.md, "Trimming an exe"; the user, 2026-11-13: "Let's
+# stick to trimming the exes to only what the game uses"). Every function and data item is in a section of its own and the
+# linker drops the ones nothing reaches; libc++ and libunwind are linked in, so only the parts used ship and no C++ runtime
+# DLL goes beside the exe. The generated code is the same as without these options. A Release exe is also stripped of its
+# symbol table: a build that is to be profiled by symbol (cpuprof.py's sampling mode) passes -DBYOPOP_STRIP_EXE=OFF.
+option(BYOPOP_STRIP_EXE "Strip the symbol table of native Release exes" ON)
+if(MINGW)
+  add_compile_options(-ffunction-sections -fdata-sections)
+  add_link_options(-static-libstdc++ -static-libgcc -Wl,--gc-sections)
+  if(BYOPOP_STRIP_EXE)
+    add_link_options($<$<CONFIG:Release>:-s>)
+  endif()
+endif()
+
 if(EMSCRIPTEN)
   set(SDL2_LIBRARIES "")
   add_library(sdl2_port INTERFACE)
@@ -61,9 +75,9 @@ endif()
 add_subdirectory(framework)
 
 if(NOT EMSCRIPTEN)
-  # Native builds run from the build folder: SDL2.dll and the llvm-mingw runtime DLLs go next to the exe
-  get_filename_component(PORT_COMPILER_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
-  file(GLOB PORT_RUNTIME_DLLS "${PORT_COMPILER_DIR}/../i686-w64-mingw32/bin/*.dll")
+  # Native builds run from the build folder: SDL2.dll goes next to the exe. The C++ runtime (libc++, libunwind) is linked
+  # into each exe (above), so no llvm-mingw runtime DLL is copied: PORT_RUNTIME_DLLS stays empty for the copy steps below.
+  set(PORT_RUNTIME_DLLS "")
 endif()
 
 # Framework test app (tools/fwtest): loads Bejeweled's assets through the portable framework and draws a
