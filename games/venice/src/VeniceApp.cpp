@@ -3,6 +3,7 @@
 
 #include "VeniceApp.h"
 
+#include "Cursor.h"
 #include "DDInterface.h"
 #include "Graphics.h"
 #include "ImageRecord.h"
@@ -190,6 +191,9 @@ void VeniceApp::InitHook()
 // 0x43ffa0: the scenes go first, then the pictures and the sounds they used
 void VeniceApp::ShutdownHook()
 {
+#ifdef __EMSCRIPTEN__
+	TakeSiteCursor(); // port(site): the site's cursor set lets go of its picture first (Cursor.cpp)
+#endif
 	gScenes.Clear();
 	gImageRecords.Clear();
 	gSounds.Clear();

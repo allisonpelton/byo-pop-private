@@ -94,7 +94,9 @@ files, so their pages read it from those files instead (`web/flicursor.js`, `Byo
 with its mask and the shadow the game draws, the hot spot at the top left, and the frame time from the animation file, in
 the game's updates of 1 ms (the games step once for each millisecond passed): 50 ms and 30 ms, 10 frames each, looping.
 Sets kept before 2026-11-16 read the updates as 10 ms (500 and 300 ms, the user: "They animate extremely slowly"), and
-`web/cursors.js` puts them right once (`retime`). Ning Po's pointer sprite is empty, so it has no set. Bonnie's Bookstore
+`web/cursors.js` puts them right once (`retime`). Ning Po's pointer sprite is empty, so it has no set. Venice draws
+its cursor as a scene object, so its port reads that picture again and gives it as the set's pointer
+(`games/venice/src/Cursor.cpp`, `WebCursorSetKind`; the user, 2026-11-19: "Venice is missing its custom cursor"). Bonnie's Bookstore
 gave one from 2026-11-16 until the user had it taken out (2026-11-17: "they look just like the Windows default"); a set
 kept for it is dropped at load, with a choice of it, and never kept again (`withdraw`).
 

@@ -34,7 +34,7 @@ var ByopopCursors = (function () {
   // adds their files (web/gameimport.js, addGame). The Settings' choice names those whose files are here without their set.
   var GIVES = ["alchemy", "astropop", "atomica", "bejeweled", "bejeweled2", "bejeweledtwist", "bigmoney", "bookworm", "bookwormadv",
     "bookwormadv2", "cosmicbugs", "dynomite", "hammerheads", "heavyweapon", "mummymaze", "peggle", "pixelus", "rocketmania", "sevenseas",
-    "typershark", "waterbugs"];
+    "typershark", "venice", "waterbugs"];
   // The kinds the Settings' choice pictures and compares sets by: every game's text cursor is the same I-beam (only its canvas
   // differs), so it tells no set from another. A set's own text cursor still shows in text fields.
   var COMPARED = ["pointer", "hand", "drag", "notallowed", "wait"];
