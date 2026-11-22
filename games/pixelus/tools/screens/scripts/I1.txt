@@ -1,0 +1,3 @@
+152 click 320 453 #button
+220 click 431 124 #button
+400 click 560 448 #button

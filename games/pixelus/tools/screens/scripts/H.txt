@@ -1,0 +1,13 @@
+152 click 320 453 #button
+173 char B
+173 char o
+173 char t
+173 click 242 329 #button
+333 click 431 124 #button
+1103 click 560 448 #button
+1273 click 344 309 #button
+1413 click 232 96
+1434 click 428 215 #button
+1566 click 416 268
+1571 click 436 268
+2031 click 320 461 #button

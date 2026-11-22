@@ -25,6 +25,94 @@ using namespace Sexy;
 // ---------------------------------------------------------------------------------------------------------
 // TitleScreen
 
+// port (deviation from the original): the user, 2026-11-18: "Remove the "Deluxe" text from the main screen of any game it may
+// appear in, to avoid misleading people about whose game version they're playing". The title picture (title.jpg) has the word
+// DELUXE in yellow letters slanting up to the right under the last E of MAZE, over the right side of the explorer's pith helmet
+// and the dark wall behind it. It is covered when the picture is loaded, from the picture's own pixels (no edited picture is
+// kept): the letters and their shading (the yellow and orange-brown pixels of that corner, grown two pixels into whatever dark
+// is next to them) become the wall's near black; the part of them that lies over the helmet (left of a line running down the
+// helmet's right end) takes the pixel to its left in the same row, which carries the hatband and the brim on to the line, and
+// a black outline of two pixels draws the line.
+void Sexy::CoverDeluxe(Image* theTitlePicture)
+{
+	const int kLeft = 498, kTop = 66, kRight = 639, kBottom = 152;
+	MemoryImage* aPicture = dynamic_cast<MemoryImage*>(theTitlePicture);
+	if (aPicture == NULL || aPicture->GetWidth() != 640 || aPicture->GetHeight() < kBottom + 1)
+		return;
+	const int aWidth = aPicture->GetWidth();
+	ulong* aBits = aPicture->GetBits();
+	std::vector<ulong> aOriginal(aBits, aBits + aWidth * aPicture->GetHeight());
+
+	// the hue (degrees), saturation and value (0 to 1) of a pixel
+	struct Look { float mHue, mSaturation, mValue; };
+	auto aLookAt = [&](int x, int y) -> Look
+	{
+		ulong aPixel = aOriginal[y * aWidth + x];
+		float r = ((aPixel >> 16) & 0xff) / 255.0f, g = ((aPixel >> 8) & 0xff) / 255.0f, b = (aPixel & 0xff) / 255.0f;
+		float aMax = std::max(r, std::max(g, b)), aMin = std::min(r, std::min(g, b)), aSpan = aMax - aMin;
+		Look aLook = {0.0f, aMax > 0.0f ? aSpan / aMax : 0.0f, aMax};
+		if (aSpan > 0.0f)
+		{
+			if (aMax == r)
+				aLook.mHue = 60.0f * std::fmod((g - b) / aSpan, 6.0f);
+			else if (aMax == g)
+				aLook.mHue = 60.0f * ((b - r) / aSpan + 2.0f);
+			else
+				aLook.mHue = 60.0f * ((r - g) / aSpan + 4.0f);
+			if (aLook.mHue < 0.0f)
+				aLook.mHue += 360.0f;
+		}
+		return aLook;
+	};
+
+	std::vector<char> aCovered((kBottom - kTop) * (kRight - kLeft), 0);
+	auto aAt = [&](int x, int y) -> char& { return aCovered[(y - kTop) * (kRight - kLeft) + (x - kLeft)]; };
+	for (int y = kTop; y < kBottom; y++)
+		for (int x = kLeft; x < kRight; x++)
+		{
+			Look aLook = aLookAt(x, y);
+			if (aLook.mHue >= 18.0f && aLook.mHue <= 70.0f && aLook.mSaturation >= 0.5f && aLook.mValue >= 0.2f)
+				aAt(x, y) = 1;
+		}
+	for (int aGrow = 0; aGrow < 2; aGrow++)
+	{
+		std::vector<char> aBefore = aCovered;
+		for (int y = kTop + 1; y < kBottom - 1; y++)
+			for (int x = kLeft + 1; x < kRight - 1; x++)
+			{
+				if (aBefore[(y - kTop) * (kRight - kLeft) + (x - kLeft)])
+					continue;
+				bool aNext = aBefore[(y - 1 - kTop) * (kRight - kLeft) + (x - kLeft)] || aBefore[(y + 1 - kTop) * (kRight - kLeft) + (x - kLeft)] ||
+					aBefore[(y - kTop) * (kRight - kLeft) + (x - 1 - kLeft)] || aBefore[(y - kTop) * (kRight - kLeft) + (x + 1 - kLeft)];
+				if (aNext && aLookAt(x, y).mValue < 0.5f)
+					aAt(x, y) = 1;
+			}
+	}
+
+	for (int y = kTop; y < kBottom; y++)
+		for (int x = kLeft; x < kRight; x++)
+		{
+			if (!aAt(x, y))
+				continue;
+			// the helmet's right end: from (508, 100) to (518, 146)
+			int aEdge = y >= 100 ? 508 + (y - 100) * 10 / 46 : 0;
+			ulong aPixel;
+			if (x <= aEdge)
+			{
+				int aFrom = x;
+				while (aFrom > kLeft - 30 && aFrom >= kLeft && aAt(aFrom, y))
+					aFrom--;
+				aPixel = aOriginal[y * aWidth + aFrom];
+			}
+			else if (x <= aEdge + 2)
+				aPixel = 0xff000000;
+			else
+				aPixel = 0xff080303;
+			aBits[y * aWidth + x] = aPixel;
+		}
+	aPicture->BitsChanged();
+}
+
 // 0x42a5f0
 TitleScreen::TitleScreen(MMApp* theApp) :
 	mApp(theApp),

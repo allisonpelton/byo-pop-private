@@ -1,0 +1,11 @@
+# <address> <name> [-- note]. Names for functions and globals that the Mac build's pairs do not give, or give wrongly. Loaded by tools/decread.py.
+0040cea0 std::string::assign_literal -- (string, text, length)
+0059c159 operator_new
+0050f220 std::list_init
+00523c70 ModValInt -- (0, tag struct, default): the editor's tweakable constant; in the shipped game it returns the default
+00523ca0 ModValDouble -- same, a double
+00523d00 ModValString -- same, a string
+0040f1e0 std::string_concat_cstr_string -- (out, "text", string): text + string
+0040f290 std::string_concat_string_cstr -- (out, string, "text"): string + text
+0040d9b0 std::string_from_cstr -- (out, "text")
+0040cab0 std::string::append_char -- (this, count, char)

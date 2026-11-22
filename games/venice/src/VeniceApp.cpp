@@ -3,6 +3,7 @@
 
 #include "VeniceApp.h"
 
+#include "Cursor.h"
 #include "DDInterface.h"
 #include "Graphics.h"
 #include "ImageRecord.h"
@@ -18,6 +19,7 @@
 #include "VeniceInput.h"
 #include "VeniceMath.h"
 #include "VeniceSound.h"
+#include "WebSettings.h"
 #include "WidgetManager.h"
 
 #include <SDL.h>
@@ -190,6 +192,9 @@ void VeniceApp::InitHook()
 // 0x43ffa0: the scenes go first, then the pictures and the sounds they used
 void VeniceApp::ShutdownHook()
 {
+#ifdef __EMSCRIPTEN__
+	TakeSiteCursor(); // port(site): the site's cursor set lets go of its picture first (Cursor.cpp)
+#endif
 	gScenes.Clear();
 	gImageRecords.Clear();
 	gSounds.Clear();
@@ -358,20 +363,24 @@ static void MakeLogoScenes()
 	if (gLoadState != LoadStateLogosToMake)
 		return;
 	int aStartMilliseconds = 0;
-	MakeLogoScene(aStartMilliseconds, "gfx\\popcap.jpg");
-	aStartMilliseconds += LogoSpacingMilliseconds;
+	// port(site): the site's "Always skip start-up logos" (framework/WebSettings.h; natively -skiplogos) leaves out PopCap's logo and
+	// the partner's, which the original lets nothing skip; the loading screen's picture still fades in, then first, over black
+	if (!Byopop::SiteSkipLogos()) {
+		MakeLogoScene(aStartMilliseconds, "gfx\\popcap.jpg");
+		aStartMilliseconds += LogoSpacingMilliseconds;
 
-	std::string aPartnerText;
-	ReadGameFile(PartnerFileName, &aPartnerText);
-	SceneTag aTag;
-	const char* aText = ReadTag(aPartnerText.c_str(), &aTag);
-	while (aTag.mName != "/Properties" && !(aTag.mName.empty() && *aText == '\0')) {
-		if (aTag.Has("id") && strcmp(aTag.GetString("id"), "PartnerImage") == 0) {
-			std::string anImageName(aTag.mContent == nullptr ? "" : aTag.mContent, aTag.mContentLength);
-			MakeLogoScene(aStartMilliseconds, anImageName.c_str());
-			aStartMilliseconds += LogoSpacingMilliseconds;
+		std::string aPartnerText;
+		ReadGameFile(PartnerFileName, &aPartnerText);
+		SceneTag aTag;
+		const char* aText = ReadTag(aPartnerText.c_str(), &aTag);
+		while (aTag.mName != "/Properties" && !(aTag.mName.empty() && *aText == '\0')) {
+			if (aTag.Has("id") && strcmp(aTag.GetString("id"), "PartnerImage") == 0) {
+				std::string anImageName(aTag.mContent == nullptr ? "" : aTag.mContent, aTag.mContentLength);
+				MakeLogoScene(aStartMilliseconds, anImageName.c_str());
+				aStartMilliseconds += LogoSpacingMilliseconds;
+			}
+			aText = ReadTag(aText, &aTag);
 		}
-		aText = ReadTag(aText, &aTag);
 	}
 	MakeLogoScene(aStartMilliseconds, "gfx\\loading.jpg");
 	gLoadState = LoadStateLogosShowing;

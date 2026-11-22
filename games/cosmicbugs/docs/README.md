@@ -207,6 +207,14 @@ none is a wait that costs the player time for nothing, so none is a fix. The bug
   setting is saved in the eleventh player's slot and stays normal.
 - The power-ups "explode the floaters" and "explode the walkers" do nothing (their enemy ranges can never hold), and
   `Powerup_Init` never deals them.
+- The pointer after a life is lost (the user's note of 2026-11-18, "Cosmic Bugs' cursor starts in the same position after losing a
+  life and requires moving the mouse to fix it"): it is the original's own doing. While the ship fades in (`SHIP_COMING_IN`,
+  0x41b370) every update moves the system's pointer to the middle of the screen, through `Sys_SetMousePos` (0x428890:
+  `GetSystemMetrics` for the screen's size, then `SetCursorPos`), so the pointer starts each life in the middle and the player
+  moves it from there. The port does the same natively (`CosmicBugsApp::WarpMouse`). A page cannot move the pointer, so on
+  the web only the game's own pointer is moved: the ship waits in the middle until the real pointer moves, then jumps to it.
+  The fix for the mod (`Platform::FixOn`): do not move the pointer there, and take the ship from the pointer's real place
+  when it arrives, which on the web means reading the last pointer position the page saw; not done yet.
 - The cannon's look-ahead test has a reset that can never happen (`c < 0 && cols <= c ...`), so near an edge it keeps
   counting; whether that was meant is not clear from the code, so it is left as it is.
 

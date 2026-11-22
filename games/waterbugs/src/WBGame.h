@@ -13,7 +13,19 @@
 #include <type_traits>
 
 #include <cstddef>
+#include <cstring>
+#include <new>
 #include <cstdint>
+
+// A game object's memory starts zeroed. The original takes it from the C heap with whatever the block held, and some of its
+// constructors leave fields unset (a turtle's mPrevVx, read by its first update), so there a field starts as it happens to
+// lie; the port starts the same way every run (a run of the original has no fixed start of its own).
+inline void* NewZeroed(size_t theSize)
+{
+	void* aBlock = ::operator new(theSize);
+	std::memset(aBlock, 0, theSize);
+	return aBlock;
+}
 
 namespace wb
 {

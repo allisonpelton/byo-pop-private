@@ -115,6 +115,30 @@ Surface* Engine::getDiskImage(const std::string& thePath)
 	return anImage;
 }
 
+// An entry whose count is 1 is held by the map alone; erasing it releases it
+template <class T>
+static void releaseUnused(std::map<std::string, Ref<T>>& theMap)
+{
+	typename std::map<std::string, Ref<T>>::iterator anIt = theMap.begin();
+	while (anIt != theMap.end())
+	{
+		if (anIt->second->refCount() == 1)
+			anIt = theMap.erase(anIt);
+		else
+			++anIt;
+	}
+}
+
+void Engine::releaseUnusedImages()
+{
+	releaseUnused(mImages);
+}
+
+void Engine::releaseUnusedFonts()
+{
+	releaseUnused(mFonts);
+}
+
 Font* Engine::getFont(const std::string& thePath)
 {
 	std::map<std::string, Ref<Font>>::iterator anIt = mFonts.find(thePath);

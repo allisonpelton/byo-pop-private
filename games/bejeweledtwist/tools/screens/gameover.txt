@@ -1,0 +1,33 @@
+# Classic's end: TWISTBOT's saved game with every gem a counter at 1 (prep-gameover, made by the port's gem command and
+# shutdownsaves), the continue question, the saved board, one twist and the game's end (gen.py)
+400 click 400 300        # Play
+650 click 200 170        # Classic: a saved game, so the question
+900 shot g01_continue
+900 state
+905 click 200 360        # Continue
+1300 shot g02_zenjump
+1300 state
+1305 click 650 300        # Classic: the game goes on
+1600 shot g03_board
+1600 state
+1605 move 379 172
+1610 click 379 172        # the twist: every counter goes to 0
+1900 shot g04_lastchance
+1900 state
+1905 click 506 227        # OK
+2200 shot g05_wheel
+2700 shot g06_wheel_ready
+2800 click 400 537        # Click to Stop
+3200 shot g07_skulls
+3400 shot g08_explosion
+3600 shot g09_gameover
+4100 shot g10_endstats
+4100 state
+4105 click 534 196        # View Replay: the best move by gems
+4300 shot g11_replay
+4600 shot g12_replay_b
+5100 state
+5105 click 400 555        # Continue
+5500 shot g13_highscores
+5500 state
+5505 end

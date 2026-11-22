@@ -133,6 +133,18 @@
       "registry": { "key": "Pyrogon\\NingPo", "hives": ["hkcu"], "sets": [],
         "values": ["Layout=hex", "Tileset=hex", "Background=hex", "Autohint=hex", "Fullscreen=hex", "Sound Volume=hex", "Music Volume=hex", "HS:*=hex"] }
     },
+    "peggle": {
+      "folder": "Peggle Deluxe", "steam": "Peggle Deluxe",
+      "note": "Peggle keeps its players, their saved games, statistics and the high scores in userdata beside its exe; the registry holds the last player's name and the usual options.",
+      "registry": { "key": "PopCap\\Peggle", "hives": ["vs", "hklm", "hkcu"], "sets": ["base", "app"], "values": ["CurUser=sz"] },
+      "files": [
+        { "from": "userdata/users.dat", "to": "userdata/users.dat", "what": "the list of players" },
+        { "from": "userdata/user#.dat", "to": "userdata/user#.dat", "what": "a player" },
+        { "from": "userdata/*.sav", "to": "userdata/*.sav", "what": "a player's game in progress" },
+        { "from": "userdata/stat_*.dat", "to": "userdata/stat_*.dat", "what": "a player's statistics" },
+        { "from": "userdata/highscores.dat", "to": "userdata/highscores.dat", "what": "the high scores" }
+      ]
+    },
     "pixelus": {
       "folder": "Pixelus Deluxe",
       "registry": { "key": "PopCap\\Pixelus", "hives": ["vs", "hklm", "hkcu"], "sets": ["base", "app"], "values": ["HintsDisabled=dword"] },
@@ -249,6 +261,43 @@
         { "from": "SavedGames/General_Preferences.cfg", "to": "SavedGames/General_Preferences.cfg", "what": "the settings and the last player's name" },
         { "from": "SavedGames/*.GAM", "to": "SavedGames/*.GAM", "what": "a player's game in progress and record" },
         { "from": "Data/HighScores.dat", "to": "Data/HighScores.dat", "what": "the high scores" }
+      ]
+    },
+    "bejeweled3": {
+      "folder": "Bejeweled 3",
+      "steam": "Bejeweled 3",
+      "files": [
+        { "from": "users/users.dat", "to": "users/users.dat", "what": "the list of players" },
+        { "from": "users/hiscores.dat", "to": "users/hiscores.dat", "what": "the high scores" },
+        { "from": "users/*/profile.dat", "to": "users/*/profile.dat", "what": "a player" }
+      ]
+    },
+    "zumasrevenge": {
+      "folder": "Zuma's Revenge",
+      "steam": "Zuma's Revenge",
+      "appdata": "ZumasRevenge",
+      "registry": {
+        "key": "PopCap\\ZumasRevenge",
+        "hives": ["hkcu", "vs", "hklm"],
+        "sets": ["base", "app"],
+        "values": ["LastUser=sz", "Z2Cursor=dword", "Colorblind=dword", "HiRes=dword", "Is3D=dword"]
+      },
+      "files": [
+        { "from": "users/users.dat", "to": "users/users.dat", "what": "the list of players" },
+        { "from": "users/hs.dat", "to": "users/hs.dat", "what": "the high scores" },
+        { "from": "users/user#.dat", "to": "users/user#.dat", "what": "a player" },
+        { "from": "users/user#_*_stats.dat", "to": "users/user#_*_stats.dat", "what": "a player's statistics" },
+        { "from": "users/adv_in_game#.sav", "to": "users/adv_in_game#.sav", "what": "a player's adventure in progress" },
+        { "from": "users/heroic_in_game#.sav", "to": "users/heroic_in_game#.sav", "what": "a player's heroic adventure in progress" }
+      ]
+    },
+    "bananabugs": {
+      "folder": "Banana Bugs",
+      "appdata": "BananaBugs",
+      "registry": { "key": "PopCap\\BananaBugs", "hives": ["hkcu", "vs", "hklm"], "sets": ["base", "app"], "values": [] },
+      "files": [
+        { "from": "userdata/profiles.dat", "to": "profiles.dat", "what": "the players and their progress" },
+        { "from": "userdata/highscores.dat", "to": "highscores.dat", "what": "the high scores" }
       ]
     },
     "bejeweledtwist": {

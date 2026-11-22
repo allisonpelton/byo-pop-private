@@ -3,10 +3,13 @@
 #include "FeedingFrenzy2App.h"
 #include "DXDrawContext.h"
 #include "EngineImpl.h"
+#include "FeedingFrenzyTwo.h"
 #include "Graphics.h"
 #include "MemoryImage.h"
 #include "Surface.h"
 #include "WidgetManager.h"
+
+#include <cstring>
 
 using namespace Sexy;
 
@@ -18,13 +21,15 @@ namespace
 // The game's screen (FeedingFrenzyTwo's configuration, 0x48c080 (feedingfrenzy2))
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
-// And its frame rate
+// And its frame rate before the splash loads, the rate the game sets after loading (where the original sets its first
+// rate is not yet found)
 const int FRAME_RATE = 60;
 
 } // namespace
 
-FeedingFrenzy2Widget::FeedingFrenzy2Widget() : mNextFrame(0)
+FeedingFrenzy2Widget::FeedingFrenzy2Widget() : mNextFrame(0), mMouseX(0), mMouseY(0)
 {
+	ClearKeys();
 	mScreenImage = new MemoryImage(gApp);
 	mScreenImage->Create(SCREEN_WIDTH, SCREEN_HEIGHT);
 	mScreenImage->SetImageMode(false, false);
@@ -64,16 +69,137 @@ void FeedingFrenzy2Widget::Draw(Graphics* g)
 	g->DrawImage(mScreenImage, 0, 0);
 }
 
+namespace
+{
+
+// 0x424730 (feedingfrenzy2): a position kept inside the screen
+engine::Vector2<int> clampToScreen(int x, int y)
+{
+	if (x < 0)
+		x = 0;
+	else if (x > SCREEN_WIDTH - 1)
+		x = SCREEN_WIDTH - 1;
+	if (y < 0)
+		y = 0;
+	else if (y > SCREEN_HEIGHT - 1)
+		y = SCREEN_HEIGHT - 1;
+	return engine::Vector2<int>(x, y);
+}
+
+// The framework's mouse wheel turns in notches; WM_MOUSEWHEEL's delta is in WHEEL_DELTA steps
+const int WHEEL_DELTA_PER_NOTCH = 120;
+
+} // namespace
+
+void FeedingFrenzy2Widget::ClearKeys()
+{
+	std::memset(mKeyIsDown, 0, sizeof(mKeyIsDown));
+}
+
+// WM_KEYDOWN: the key-down signal for the first, the repeat signal (with a count of 1) for each after it while the key
+// is held, never both
+void FeedingFrenzy2Widget::KeyDown(KeyCode theKey)
+{
+	int aKey = (int)theKey;
+	bool aRepeat = false;
+	if (aKey >= 0 && aKey < 256)
+	{
+		aRepeat = mKeyIsDown[aKey];
+		mKeyIsDown[aKey] = true;
+	}
+	if (!gApp->mEngineRunning)
+		return;
+	if (!aRepeat)
+		gApp->mEngine->mKeyDownSignal.emit(aKey);
+	else
+		gApp->mEngine->mKeyRepeatSignal.emit(aKey, 1);
+}
+
+// WM_KEYUP
+void FeedingFrenzy2Widget::KeyUp(KeyCode theKey)
+{
+	int aKey = (int)theKey;
+	if (aKey >= 0 && aKey < 256)
+		mKeyIsDown[aKey] = false;
+	if (gApp->mEngineRunning)
+		gApp->mEngine->mKeyUpSignal.emit(aKey);
+}
+
+// WM_CHAR
+void FeedingFrenzy2Widget::KeyChar(SexyChar theChar)
+{
+	if (gApp->mEngineRunning)
+		gApp->mEngine->mCharSignal.emit((char)theChar);
+}
+
+// WM_MOUSEMOVE
+void FeedingFrenzy2Widget::MouseMove(int x, int y)
+{
+	if (!gApp->mEngineRunning)
+		return;
+	engine::Vector2<int> aPoint = clampToScreen(x, y);
+	mMouseX = aPoint.x;
+	mMouseY = aPoint.y;
+	gApp->mEngine->mMouseMoveSignal.emit(aPoint);
+}
+
+void FeedingFrenzy2Widget::MouseDrag(int x, int y)
+{
+	MouseMove(x, y);
+}
+
+// WM_LBUTTONDOWN and WM_RBUTTONDOWN (the framework's buttons: 0 left, 1 right; the original took no middle button,
+// and its window class has no double clicks, so a second click is another press). The original captures the mouse
+// for the window while a button is down; the framework does the same for its widgets
+void FeedingFrenzy2Widget::MouseDown(int x, int y, int theBtnNum, int theClickCount)
+{
+	if (!gApp->mEngineRunning)
+		return;
+	engine::Vector2<int> aPoint = clampToScreen(x, y);
+	mMouseX = aPoint.x;
+	mMouseY = aPoint.y;
+	if (theBtnNum == 0)
+		gApp->mEngine->mMouseDownSignal.emit(aPoint);
+	else if (theBtnNum == 1)
+		gApp->mEngine->mRightDownSignal.emit(aPoint);
+}
+
+// WM_LBUTTONUP and WM_RBUTTONUP
+void FeedingFrenzy2Widget::MouseUp(int x, int y, int theBtnNum, int theClickCount)
+{
+	if (!gApp->mEngineRunning)
+		return;
+	engine::Vector2<int> aPoint = clampToScreen(x, y);
+	mMouseX = aPoint.x;
+	mMouseY = aPoint.y;
+	if (theBtnNum == 0)
+		gApp->mEngine->mMouseUpSignal.emit(aPoint);
+	else if (theBtnNum == 1)
+		gApp->mEngine->mRightUpSignal.emit(aPoint);
+}
+
+// WM_MOUSEWHEEL: at the mouse's place (the original turns the message's screen position into the window's)
+void FeedingFrenzy2Widget::MouseWheel(int theDelta)
+{
+	if (!gApp->mEngineRunning)
+		return;
+	gApp->mEngine->mMouseWheelSignal.emit(clampToScreen(mMouseX, mMouseY), theDelta * WHEEL_DELTA_PER_NOTCH);
+}
+
 FeedingFrenzy2App::FeedingFrenzy2App()
 {
 	gApp = this;
 	mProdName = "FeedingFrenzy2";
 	mTitle = "Feeding Frenzy 2 - Shipwreck Showdown";
+	// The key the engine's registry keys are below (engines/sprout2/host/RegistryKey.h): Software\<vendor>\<appName> of
+	// HKEY_CURRENT_USER, the vendor and the name being the strings of resource/baseStrings.xml
+	mRegKey = "GameHouse\\Feeding Frenzy 2";
 	mWidth = SCREEN_WIDTH;
 	mHeight = SCREEN_HEIGHT;
 	mWidget = nullptr;
 	mEngine = nullptr;
 	mDisplay = nullptr;
+	mGame = nullptr;
 	mEngineRunning = false;
 	mFrames = 0;
 	mLastFrameTicks = 0;
@@ -86,14 +212,25 @@ FeedingFrenzy2App::~FeedingFrenzy2App()
 		mWidgetManager->RemoveWidget(mWidget);
 		delete mWidget;
 	}
+	if (mGame != nullptr)
+		mGame->release();
 	if (mDisplay != nullptr)
 		mDisplay->release();
 	delete mEngine;
 }
 
+void FeedingFrenzy2App::ReadFromRegistry()
+{
+	mReadFromRegistry = true;
+}
+
+void FeedingFrenzy2App::WriteToRegistry()
+{
+}
+
 uint64_t FeedingFrenzy2App::FramePeriod() const
 {
-	return mEngine->getTicksPerSecond() / FRAME_RATE;
+	return mEngine->getFramePeriod();
 }
 
 void FeedingFrenzy2App::Init()
@@ -107,11 +244,37 @@ void FeedingFrenzy2App::Init()
 	mWidgetManager->SetFocus(mWidget);
 	mEngine = new engine::EngineImpl(SCREEN_WIDTH, SCREEN_HEIGHT);
 	mEngine->setVirtualClock(mFastMode);
+	mEngine->setFrameRate(FRAME_RATE);
 	mDisplay = new engine::Surface();
 	mDisplay->addRef();
 	mDisplay->allocate(SCREEN_WIDTH, SCREEN_HEIGHT);
+	// The run (0x4383b0 (feedingfrenzy2)) has 0x49bc60 (feedingfrenzy2) make the application and ask for its
+	// configuration, then starts it (the screensaver's letters are not yet translated)
+	mGame = new FeedingFrenzyTwo();
+	mGame->addRef();
+	mGame->configure();
+	mGame->start(false);
 	mLastFrameTicks = mEngine->getTicks();
 	mEngineRunning = true;
+	// port: the original's window gets WM_ACTIVATE as it opens; the framework has the focus from the start and sends
+	// no first activation, so the state it has is passed on
+	mEngine->mActivateSignal.emit(mHasFocus);
+}
+
+void FeedingFrenzy2App::GotFocus()
+{
+	SexyAppBase::GotFocus();
+	if (mEngineRunning)
+		mEngine->mActivateSignal.emit(true);
+}
+
+void FeedingFrenzy2App::LostFocus()
+{
+	SexyAppBase::LostFocus();
+	if (mWidget != nullptr)
+		mWidget->ClearKeys();
+	if (mEngineRunning)
+		mEngine->mActivateSignal.emit(false);
 }
 
 void FeedingFrenzy2App::RunFrame()

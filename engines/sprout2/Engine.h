@@ -25,6 +25,7 @@ class DrawContext;
 class Font;
 class Image;
 class InputStream;
+class PersistKey;
 class RandomAccessInputStream;
 class Reader;
 class ResourceManager;
@@ -60,8 +61,20 @@ public:
 	// 0xe4 (0x4383a0 (feedingfrenzy2)) and 0xe8 (0x435ba0 (feedingfrenzy2)): the clock in ticks
 	virtual uint64_t getTicks() = 0;
 	virtual uint64_t getTicksPerSecond() = 0;
+	// 0xc8 (0x48da20 (feedingfrenzy2)): the run loop's frames per second, 0 for no wait between frames (EngineImpl's
+	// +0x58, with the frame's period in ticks at +0x160)
+	virtual void setFrameRate(int theFramesPerSecond) = 0;
 	// 0xf8 (0x4a4a00 (feedingfrenzy2)): the program ends (PostQuitMessage)
 	virtual void quit() = 0;
+	// 0xbc (0x48b200 (feedingfrenzy2)): the key below a key, made when it is not there; null when it cannot be opened
+	virtual PersistKey* openPersistKey(PersistKey* theParent, const std::string& theName) = 0;
+	// 0xc0 (0x492cf0 (feedingfrenzy2)): the key Software\<path> of HKEY_LOCAL_MACHINE (root 0) or HKEY_CURRENT_USER
+	// (root 1), made when it is not there; null when it cannot be opened
+	virtual PersistKey* openPersistKey(int theRoot, const std::string& thePath) = 0;
+	// port: what the edit box asks Windows for itself. GetAsyncKeyState's key down (a virtual key)
+	virtual bool isKeyDown(int theKey) = 0;
+	// port: the clipboard's text (CF_TEXT), false when it holds none
+	virtual bool getClipboardText(std::string& theText) = 0;
 
 	// --- The engine's own ---
 
@@ -109,6 +122,10 @@ public:
 	virtual bool addImage(Surface* theImage, const std::string& thePath);
 	// 0x94 (0x469650 (feedingfrenzy2)): the image kept under the path, null for none
 	virtual Surface* findImage(const std::string& thePath);
+	// 0x4719f0 and 0x418120 (feedingfrenzy2), from Theme::load: the kept images, and the kept fonts, that nothing but
+	// the engine holds let go
+	void releaseUnusedImages();
+	void releaseUnusedFonts();
 	// 0x110 (EngineImpl's 0x407760 (feedingfrenzy2)): a new font loaded from the archives
 	virtual Font* createFont(const std::string& thePath);
 

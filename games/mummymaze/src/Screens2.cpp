@@ -484,7 +484,7 @@ void HighScoreSlide::Update()
 void HighScoreSlide::Draw(Graphics* g)
 {
 	TombstoneWidget::Draw(g);
-	g->DrawImage(mApp->mImages[IMAGE_GAMEOVERTEXT], 100, mOffset - 0x71 + mY);
+	g->DrawImage(mApp->mImages[IMAGE_GAMEOVERTEXT], 100, mOffset - 0x71 + mHeight);	// the original adds the widget's height (+0x14), as the scroll does
 }
 
 // 0x415b40: the name for the score that the dialog asked for: the score takes its place and the others move down

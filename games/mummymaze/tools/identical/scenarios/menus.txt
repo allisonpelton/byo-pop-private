@@ -1,0 +1,108 @@
+# menus: no saves; the title, the menu, the dialogs of the menu, the adventure's name box and map, the board's dialogs, the focus
+30 tshot title 1450
+99 title
+105 tshot menu_t105 1506
+115 tshot menu_t115 1516
+130 tshot menu_t130 1531
+160 tshot menu_t160 1561
+200 tshot menu_t200 1601
+900 shot menu
+1000 click 455 426
+1060 shot quit_game
+1100 click 380 236
+1160 shot quit_game_no
+1200 click 185 426
+1260 shot name_entry
+1300 click 320 299
+1360 shot name_invalid
+1400 click 320 256
+1460 shot name_after_invalid
+1490 click 320 241
+1500 text Bob
+1520 shot name_typed
+1540 click 320 299
+1600 shot intro
+1640 click 320 352
+1700 shot map_new
+1740 click 445 30
+1800 shot map_stats
+1840 click 320 374
+1900 click 390 450
+1960 shot map_player
+2000 click 320 216
+2100 click 580 300
+2160 shot map_chest
+2200 click 320 256
+2300 click 86 291
+2360 shot map_closed
+2400 click 320 216
+2500 click 80 415
+2560 shot menu_after_quit
+2600 click 185 426
+2660 shot adv_list1
+2700 click 320 181
+2760 shot name_entry2
+2800 text Bob
+2840 click 320 299
+2900 shot name_in_use
+2940 click 320 256
+3000 shot name_after_in_use
+3050 click 320 241
+3060 text Zed
+3100 click 320 299
+3160 shot intro2
+3200 click 320 352
+3260 shot map_zed
+3300 click 80 415
+3400 click 185 426
+3460 shot adv_list2
+3500 click 320 137
+3560 shot map_bob
+3600 click 80 415
+3700 shot menu_again
+3800 click 185 376
+3920 shot classic_start
+4000 shot classic_700
+4100 click 74 451
+4130 shot quit_dialog
+4160 click 466 294
+4200 shot quit_no
+4240 click 74 194
+4270 shot reset
+4300 click 74 247
+4330 shot options
+4340 click 220 270
+4350 click 400 110
+4360 click 400 140
+4370 shot options_changed
+4400 click 290 314
+4440 shot options_tutorial
+4480 click 380 234
+4520 click 527 313
+4560 shot highscores
+4600 click 394 328
+4640 shot highscores_done
+4680 click 498 355
+4720 shot credits
+4760 click 320 376
+4800 click 394 402
+4860 shot after_options
+4900 click 74 451
+4960 click 320 294
+5100 shot menu_after_classic
+5200 click 185 376
+5260 shot continue_question
+5300 click 256 296
+5420 shot continued_board
+5500 focus lose
+5700 shot focus_lost1
+5900 shot focus_lost2
+5950 focus regain
+6100 shot focus_back1
+6300 shot focus_back2
+6310 focus lose
+6320 focus regain
+6330 click 74 245
+6400 shot focus_options
+6600 shot focus_options2
+6700 quit

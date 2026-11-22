@@ -91,6 +91,10 @@ void GameApp::Init()
 	SexyApp::Init();
 	if (mShutdown)
 		return;
+	// SexyAppBase::Init (0x558ef0) ends its seeding with srand(GetTickCount()): the C library's rand, which Lua's
+	// math.random, the board's shuffle and the conversation's typing sound draw from (poplua_rand here). -seed
+	// keeps it at 1, as origrun's patch list has the original's
+	poplua_srand(mHasSeedParam ? 1u : (unsigned int)GetTickCount());
 	RegistryWriteString("LastRanVersion", mProductVersion);
 	mLuaInterface->RegisterSexyFunctions();
 	RegisterGameAppMethods();

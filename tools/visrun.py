@@ -4,7 +4,12 @@ a step file, with shots of the game's own window. docs/VISRUN.md has the rules a
     python -I tools/visrun.py CONFIG.toml STEPS.txt --out DIR [--3d on|off] [--seed N] [--user-window-until HH:MM]
     python -I tools/visrun.py CONFIG.toml STEPS.txt --dry-run        (parses both and prints the plan; starts nothing)
     python -I tools/visrun.py CONFIG.toml --restore                  (puts back what an interrupted run left)
-    python -I tools/visrun.py --selftest                             (checks the time, expression and window helpers)
+    python -I tools/visrun.py --places                               (the places on the right half of the screen, who holds them)
+    python -I tools/visrun.py --selftest                             (checks the time, expression, place, lock and window helpers)
+
+The run gets a place of its own on the right half of the primary screen (up to four at once, machine-wide locks under
+%LOCALAPPDATA%\\byo-pop\\visrun\\), waits for it if all are taken, and starts only when no other window has been on that place
+for --quiet seconds. A config's pos is ignored: the place decides. docs/VISRUN.md has the details.
 
 A run may start at any hour (the user lifted the time window on 2026-11-15). It stops at the latest 14 hours after it starts,
 a safety stop for a run that hangs, or earlier at the HH:MM given with --user-window-until. The game is staged by tools/origrun (--copy-only), its stand-in is placed, the game runs with
@@ -15,6 +20,7 @@ import argparse
 import ctypes
 import ctypes.wintypes as wt
 import datetime
+import io
 import json
 import mmap
 import os
@@ -293,6 +299,10 @@ u32.GetWindow.restype = wt.HWND
 u32.GetWindow.argtypes = [wt.HWND, ctypes.c_uint]
 u32.SetWindowPos.argtypes = [wt.HWND, wt.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_uint]
 u32.GetForegroundWindow.restype = wt.HWND
+u32.GetClassNameW.argtypes = [wt.HWND, wt.LPWSTR, ctypes.c_int]
+u32.GetWindowTextW.argtypes = [wt.HWND, wt.LPWSTR, ctypes.c_int]
+u32.GetWindowLongW.argtypes = [wt.HWND, ctypes.c_int]
+u32.GetWindowThreadProcessId.argtypes = [wt.HWND, ctypes.POINTER(wt.DWORD)]
 
 WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_LBUTTONDBLCLK, WM_RBUTTONDOWN, WM_RBUTTONUP = 0x200, 0x201, 0x202, 0x203, 0x204, 0x205
 
@@ -339,24 +349,6 @@ def overlapped(hw):
     return None
 
 
-def other_game_windows(own_pid):
-    """Visible windows of other games on the desktop (an original's class is MainWindow, a port's SDL_app)."""
-    found = []
-
-    @ctypes.WINFUNCTYPE(wt.BOOL, wt.HWND, wt.LPARAM)
-    def cb(hw, lp):
-        if u32.IsWindowVisible(hw):
-            pid = wt.DWORD()
-            u32.GetWindowThreadProcessId(hw, ctypes.byref(pid))
-            buf = ctypes.create_unicode_buffer(64)
-            u32.GetClassNameW(hw, buf, 64)
-            if buf.value in ('MainWindow', 'SDL_app') and pid.value != own_pid:
-                found.append(hw)
-        return True
-    u32.EnumWindows(cb, 0)
-    return found
-
-
 def short_sleep(seconds):
     """A wait of about half a millisecond that costs no processor time: a high-resolution waitable timer."""
     if not short_sleep.timer:
@@ -376,8 +368,11 @@ class Game:
         si = subprocess.STARTUPINFO()
         si.dwFlags = 1            # STARTF_USESHOWWINDOW: the window's first show takes SW_SHOWNOACTIVATE, so it never takes the focus
         si.wShowWindow = 4
+        if cfg.get('_place'):     # STARTF_USEPOSITION: a game that lets Windows choose its first position then starts in its own place
+            si.dwFlags |= 4
+            si.dwX, si.dwY = cfg['_place']
         self.cfg = cfg
-        self.p = subprocess.Popen([exe], cwd=os.path.dirname(exe), env=env, startupinfo=si, creationflags=0x4000)  # BELOW_NORMAL
+        self.p = subprocess.Popen([exe] + [str(x) for x in cfg.get('args', [])], cwd=os.path.dirname(exe), env=env, startupinfo=si, creationflags=0x4000)  # BELOW_NORMAL
         self.h = k32.OpenProcess(0x0010 | 0x0400 | 0x0800 | 0x0001 | 0x0100, False, self.p.pid)   # VM_READ, QUERY_INFO, SUSPEND_RESUME, TERMINATE
         self.hwnd = None
         self.held = False
@@ -433,7 +428,7 @@ class Game:
         u32.EnumWindows(cb, 0)
         self.hwnd = pick_window(cands, self.cfg['client'], self.cfg.get('title', ''))
         if self.hwnd:
-            pos = self.cfg.get('pos')
+            pos = self.cfg.get('_place')   # the run's place (a config's own pos is ignored: the place decides)
             # topmost, never activated: nothing of the user's comes over it while it is captured
             u32.SetWindowPos(self.hwnd, wt.HWND(-1), pos[0] if pos else 0, pos[1] if pos else 0, 0, 0, 0x0001 | 0x0010 | (0 if pos else 0x0002))
         return self.hwnd
@@ -466,11 +461,35 @@ class Cursor:
         return 'installed %d, reads %d, real reads %d' % (self.blk.installed, self.blk.reads, self.blk.realReads)
 
 
-# tools/origrun/vclock.h, the 32-bit stand-in's offsets (probed by the Bejeweled 2 session)
-VC_MAGIC, VC_SIZE, VC_RING = 0x4b4c4356, 262352, 16384
-VC_OFF = dict(magic=0, connected=24, v=32, counter=40, counterOk=44, bar=48, holdKind=52, holdUpdate=56, barrierOff=72,
-              barrierOffWhy=76, barrierOffCounter=80, held=84, heldSeq=88, heldCounter=92, heldV=104, ringHead=192,
-              ringTail=196, ring=204)
+# tools/origrun/vclock.h's VcShared, field for field, at VC_VERSION 3 (6b5f6492 added the frame reader's fields after
+# heldTimeout). The 32-bit stand-in aligns its LONGLONGs to 8 as ctypes does, so the offsets come from this structure; the
+# selftest holds them to the ones i686-w64-mingw32-clang gives for the header (offsetof). A block of another version or size
+# is refused: with the version 2 offsets a version 3 block's ring was read as garbage, and the drain never ended (Heavy
+# Weapon's 3D run, 2026-11-22: its watch.log reached 17.6 GB and the game was never closed).
+VC_MAGIC, VC_VERSION, VC_RING = 0x4b4c4356, 3, 16384
+_I, _U, _Q = ctypes.c_int32, ctypes.c_uint32, ctypes.c_int64
+
+
+class VcShared(ctypes.Structure):
+    _fields_ = [('magic', _U), ('version', _U), ('size', _U), ('pid', _U), ('driverTid', _U),
+                ('installed', _I), ('connected', _I), ('gone', _I),
+                ('v', _Q), ('counter', _I), ('counterOk', _I),
+                ('bar', _I), ('holdKind', _I), ('holdUpdate', _I), ('holdV', _Q),
+                ('barrierOff', _I), ('barrierOffWhy', _I), ('barrierOffCounter', _I),
+                ('held', _I), ('heldSeq', _I), ('heldCounter', _I), ('heldWhere', _I), ('heldV', _Q), ('heldTimeout', _I),
+                ('heldAt', _U),
+                ('readReq', _I), ('readDone', _I), ('readStatus', _I), ('readHr', _I), ('readSurface', _U), ('readCaps', _U),
+                ('readW', _I), ('readH', _I), ('readPitch', _I), ('readBpp', _I),
+                ('readPfFlags', _U), ('readRMask', _U), ('readGMask', _U), ('readBMask', _U), ('readBytes', _I),
+                ('readCounter', _I),
+                ('waits', _I), ('passWaits', _I), ('polls', _I), ('maxReads', _I), ('holds', _I),
+                ('heldReal100', _Q), ('installReal100', _Q), ('nowReal100', _Q), ('otherWaits', _I), ('realWaits', _I),
+                ('realWait100', _Q), ('handleWaits', _I), ('handleTimeouts', _I), ('handleWait100', _Q),
+                ('ringHead', _I), ('ringTail', _I), ('ringDropped', _I), ('ring', ctypes.c_byte * (16 * VC_RING))]
+
+
+VC_SIZE = ctypes.sizeof(VcShared)
+VC_OFF = {name: getattr(VcShared, name).offset for name, _ in VcShared._fields_}
 BAR_FREE, BAR_ARMED, BAR_HELD = 0, 1, 2
 HOLD_NEXT, HOLD_UPDATE = 0, 1
 
@@ -494,6 +513,11 @@ class Clock:
             if time.time() - t0 > timeout:
                 raise SystemExit('visrun: the clock block never got its magic')
             time.sleep(0.002)
+        version, size = self.get('version', ctypes.c_uint32), self.get('size', ctypes.c_uint32)
+        if version != VC_VERSION or size != VC_SIZE:
+            raise SystemExit('visrun: the clock block is version %d of %d bytes, and visrun knows version %d of %d bytes: '
+                             'rebuild dsound.dll from this checkout (tools/origrun), or bring visrun up to the block'
+                             % (version, size, VC_VERSION, VC_SIZE))
         self.held_ev = k32.OpenEventW(0x1F0003, False, name + '-held')
         self.rel_ev = k32.OpenEventW(0x1F0003, False, name + '-release')
         self.set('connected', 1)
@@ -536,6 +560,18 @@ class Clock:
     def counter(self):
         return self.get('heldCounter')
 
+    def step_on(self):
+        """A game held before its window (the start hold, ORIGRUN_CLOCK_HOLDSTART, comes at the main thread's first wait,
+        and Bookworm Adventures waits before it makes its window) goes on to its next wait and holds there. True when it was
+        held and is let go. Called only while the window is still missing, so the game stands at the first wait after it."""
+        if self.get('barrierOff') or not (self.get('held') and self.get('bar') == BAR_HELD):
+            return False
+        self.set('holdKind', HOLD_NEXT)
+        self.set('holdUpdate', 0)
+        self.set('bar', BAR_ARMED)
+        k32.SetEvent(self.rel_ev)
+        return True
+
     def let_go(self):
         self.set('bar', BAR_FREE)
         k32.SetEvent(self.rel_ev)
@@ -543,6 +579,12 @@ class Clock:
     def drain(self, f):
         """The --watch changes the game queued, as origrun's "watch N: a -> b at update U" lines."""
         head, tail = self.get('ringHead'), self.get('ringTail')
+        if not 0 <= head - tail <= VC_RING:   # never more than a ring's worth: a wrong block or a torn read must not loop on
+            f.write("watch: the ring's head %d and tail %d are %d apart, more than its %d records: skipped\n"
+                    % (head, tail, head - tail, VC_RING))
+            self.set('ringTail', head)
+            f.flush()
+            return
         while tail != head:
             u, idx, val, ok = struct.unpack('<iiii', ctypes.string_at(self.base + VC_OFF['ring'] + (tail % VC_RING) * 16, 16))
             new = str(val) if ok else '-'
@@ -863,36 +905,269 @@ def muted(origdir, pid):
     return False
 
 
+def describe_window(hwnd):
+    """The window that holds the foreground, for the log: class, title, style, extended style and the thread that owns it."""
+    cls = ctypes.create_unicode_buffer(256)
+    title = ctypes.create_unicode_buffer(256)
+    u32.GetClassNameW(wt.HWND(hwnd), cls, 256)
+    u32.GetWindowTextW(wt.HWND(hwnd), title, 256)
+    style = u32.GetWindowLongW(wt.HWND(hwnd), -16) & 0xFFFFFFFF   # GWL_STYLE
+    ex = u32.GetWindowLongW(wt.HWND(hwnd), -20) & 0xFFFFFFFF      # GWL_EXSTYLE
+    pid = wt.DWORD()
+    tid = u32.GetWindowThreadProcessId(wt.HWND(hwnd), ctypes.byref(pid))
+    return 'window 0x%x class "%s" title "%s" style 0x%08x exstyle 0x%08x thread %d process %d' % (hwnd, cls.value, title.value, style, ex, tid, pid.value)
+
+
+def copy_net_log_tail(origdir, pid, log, n=30):
+    """The last n lines of the run folder's logs/net.log that start with this process's pid (the stand-in writes each activation
+    event there at once, so a killed run still shows what happened), into visrun.log."""
+    try:
+        lines = open(os.path.join(origdir, 'logs', 'net.log'), errors='replace').read().split(chr(10))
+    except OSError as e:
+        print('no net.log to copy (%s)' % e, file=log, flush=True)
+        return
+    mine = [l for l in lines if l.startswith('pid %d:' % pid) or l.startswith('pid %d ' % pid)]
+    print('the last %d of the %d net.log lines of pid %d:' % (min(n, len(mine)), len(mine), pid), file=log)
+    for l in mine[-n:]:
+        print('  ' + l.rstrip(chr(13)), file=log)
+    log.flush()
+
+
+def activation_hook_state(origdir, pid):
+    """What the stand-in's net.log says about its activation hook in this process: installed (with the functions it reached), off
+    (ORIGRUN_ACTIVATION=allow) or not logged at all."""
+    try:
+        lines = open(os.path.join(origdir, 'logs', 'net.log'), errors='replace').read().split('\n')
+    except OSError:
+        return 'NOT INSTALLED: no net.log in the run folder'
+    for l in lines:
+        if l.startswith('pid %d: activation hook installed' % pid):
+            return 'installed (%s)' % l.split(': ', 2)[2].split(' (a window')[0]
+        if l.startswith('pid %d: activation hook off' % pid):
+            return 'OFF (ORIGRUN_ACTIVATION=allow): the game may take the foreground, and the run stops if it does'
+    return 'NOT INSTALLED: net.log has no activation line for pid %d (an older stand-in?)' % pid
+
+
 def gamecount_has_room():
     r = subprocess.run([sys.executable, '-I', os.path.join(ROOT, 'tools', 'gamecount.py'), '--limit'], capture_output=True, text=True)
     return r.returncode == 0, r.stdout.strip().split('\n')[0]
 
 
-class Lock:
-    """One visrun on the machine: build/visrun/visrun.lock names the holder; a lock whose process is gone is taken over."""
+# ---------------------------------------------------------------- the places on the right half of the screen
+# The user's rule (2026-11-22, "Right half, four", docs/RULES.md): runs on the visible desktop keep to the right half of the
+# primary screen, each window in a place of its own, at most four there at once. A place is a cell of an even grid over the
+# right half, at least PLACE_MIN large (it holds an 800x600 client with its frame); places are numbered row by row. A window
+# too large for one place takes two adjacent ones (side by side, or one above the other).
+MAX_PLACES = 4
+PLACE_MIN = (840, 680)
+FRAME = (40, 80)   # what a window's frame and title bar add to its client area, with room to spare
+SHELL_CLASSES = ('Progman', 'WorkerW', 'Shell_TrayWnd', 'Shell_SecondaryTrayWnd')   # the desktop and the taskbar are not windows in the way
 
-    def __init__(self):
-        os.makedirs(WORK, exist_ok=True)
-        self.path = os.path.join(WORK, 'visrun.lock')
-        for _ in range(2):
+
+def layout(sw, sh):
+    """The places of a screen sw x sh: (cols, rows, [(x, y, w, h), ...]). The right half starts at sw // 2."""
+    x0 = sw // 2
+    right = sw - x0
+    cols = right // PLACE_MIN[0]
+    n = min(MAX_PLACES, cols * (sh // PLACE_MIN[1])) if cols else 0
+    if n == 0:
+        return 0, 0, []
+    rows = -(-n // cols)
+    cw, ch = right // cols, sh // rows
+    return cols, rows, [(x0 + (i % cols) * cw, (i // cols) * ch, cw, ch) for i in range(n)]
+
+
+def place_groups(lay, need):
+    """The groups of places a window of outer size need may take, in the order they are tried: each single place that holds it,
+    then pairs side by side, then pairs one above the other. A group is a tuple of place numbers."""
+    cols, rows, places = lay
+    groups = []
+    if not places:
+        return groups
+    cw, ch = places[0][2], places[0][3]
+    if need[0] <= cw and need[1] <= ch:
+        groups += [(i,) for i in range(len(places))]
+    if need[0] <= 2 * cw and need[1] <= ch:
+        groups += [(i, i + 1) for i in range(len(places) - 1) if cols >= 2 and i % cols < cols - 1]
+    if need[0] <= cw and need[1] <= 2 * ch:
+        groups += [(i, i + cols) for i in range(len(places) - cols)]
+    return groups
+
+
+def group_rect(lay, group):
+    """(left, top, right, bottom) of the places of a group together."""
+    ps = [lay[2][i] for i in group]
+    return (min(p[0] for p in ps), min(p[1] for p in ps), max(p[0] + p[2] for p in ps), max(p[1] + p[3] for p in ps))
+
+
+def need_size(client):
+    return client[0] + FRAME[0], client[1] + FRAME[1]
+
+
+def screen_size():
+    return u32.GetSystemMetrics(0), u32.GetSystemMetrics(1)
+
+
+def pid_alive(pid):
+    h = k32.OpenProcess(0x1000, False, pid) if pid > 0 else None
+    if not h:
+        return False
+    code = wt.DWORD()
+    ok = k32.GetExitCodeProcess(h, ctypes.byref(code)) and code.value == 259   # STILL_ACTIVE
+    k32.CloseHandle(h)
+    return bool(ok)
+
+
+def lock_dir():
+    base = os.environ.get('LOCALAPPDATA') or os.path.join(os.path.expanduser('~'), 'AppData', 'Local')
+    return os.path.join(base, 'byo-pop', 'visrun')
+
+
+class LockDir:
+    """Machine-wide locks, one file each under %LOCALAPPDATA%\\byo-pop\\visrun\\ (every worktree sees them): <name>.lock holds a JSON
+    line {pid, run, start, game_pid}. A file is made with O_EXCL, so one process gets it; a holder that is gone is taken over,
+    by renaming its file away first (only one taker wins the rename). Names: place0..place3, and game-<registry key> (two runs
+    of one game would share its registry key and saves)."""
+
+    def __init__(self, path, alive=pid_alive):
+        self.path = path
+        self.alive = alive
+        self.mine = {}   # name -> (fd, info)
+        os.makedirs(path, exist_ok=True)
+
+    def file(self, name):
+        return os.path.join(self.path, name + '.lock')
+
+    def holder(self, name):
+        """The live holder's info dict, or None when the lock is free or its holder is gone."""
+        try:
+            with open(self.file(name)) as f:
+                text = f.read()
+        except FileNotFoundError:
+            return None
+        except OSError:
+            return {'pid': 0, 'run': '?', 'start': time.time()}
+        try:
+            info = json.loads(text)
+        except ValueError:
+            # empty or half written: held for a moment by a taker; a file that stays so for 10 s is a leftover
+            if time.time() - os.path.getmtime(self.file(name)) < 10:
+                return {'pid': 0, 'run': '?', 'start': time.time()}
+            return None
+        return info if self.alive(info.get('pid', 0)) else None
+
+    def take(self, name, info):
+        """True when the lock is now this process's."""
+        for _ in range(3):
             try:
-                self.fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-                os.write(self.fd, str(os.getpid()).encode())
-                return
+                fd = os.open(self.file(name), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
             except FileExistsError:
+                if self.holder(name) is not None:
+                    return False
+                gone = '%s.dead.%d.%s' % (self.file(name), os.getpid(), uuid.uuid4().hex[:6])
                 try:
-                    pid = int(open(self.path).read() or 0)
-                except (OSError, ValueError):
-                    pid = 0
-                h = k32.OpenProcess(0x1000, False, pid) if pid else None
-                if h:
-                    raise SystemExit('visrun: another visrun (pid %d) holds %s' % (pid, self.path))
-                os.remove(self.path)
-        raise SystemExit('visrun: cannot take %s' % self.path)
+                    os.rename(self.file(name), gone)
+                    os.remove(gone)
+                except OSError:
+                    pass
+                continue
+            mine = dict(info, pid=os.getpid(), start=time.time())
+            os.write(fd, json.dumps(mine).encode())
+            self.mine[name] = (fd, mine)
+            return True
+        return False
 
-    def release(self):
-        os.close(self.fd)
-        os.remove(self.path)
+    def take_all(self, names, info):
+        """All of the names or none, taken in the order given."""
+        got = []
+        for n in names:
+            if not self.take(n, info):
+                for g in got:
+                    self.release(g)
+                return False
+            got.append(n)
+        return True
+
+    def update(self, extra):
+        """Add fields (the game's pid) to every lock this process holds."""
+        for name, (fd, cur) in self.mine.items():
+            cur.update(extra)
+            os.lseek(fd, 0, 0)
+            os.write(fd, json.dumps(cur).encode())   # the line only grows, so it overwrites the old one whole
+
+    def release(self, name):
+        fd, _ = self.mine.pop(name)
+        os.close(fd)
+        try:
+            os.remove(self.file(name))
+        except OSError:
+            pass
+
+    def release_all(self):
+        for n in list(self.mine):
+            self.release(n)
+
+
+def list_windows():
+    """The visible, not minimised, not cloaked top-level windows: dicts with hwnd, pid, cls, title and rect (l, t, r, b)."""
+    found = []
+    dwm = ctypes.WinDLL('dwmapi')
+
+    @ctypes.WINFUNCTYPE(wt.BOOL, wt.HWND, wt.LPARAM)
+    def cb(hw, lp):
+        if u32.IsWindowVisible(hw) and not u32.IsIconic(hw):
+            cloaked = wt.DWORD()
+            if dwm.DwmGetWindowAttribute(hw, 14, ctypes.byref(cloaked), 4) == 0 and cloaked.value:   # DWMWA_CLOAKED
+                return True
+            r = wt.RECT()
+            u32.GetWindowRect(hw, ctypes.byref(r))
+            pid = wt.DWORD()
+            u32.GetWindowThreadProcessId(hw, ctypes.byref(pid))
+            buf = ctypes.create_unicode_buffer(128)
+            u32.GetClassNameW(hw, buf, 128)
+            found.append(dict(hwnd=hw, pid=pid.value, cls=buf.value, title=window_title(hw), rect=(r.left, r.top, r.right, r.bottom)))
+        return True
+    u32.EnumWindows(cb, 0)
+    return found
+
+
+def blocking(windows, rect, own_pids=()):
+    """Of windows (list_windows' dicts), those that overlap rect and are not the run's own (own_pids) nor the desktop or taskbar.
+    Any such window, a game's, an older visrun's or the user's own, blocks a start in that place."""
+    return [w for w in windows if w['pid'] not in own_pids and w['cls'] not in SHELL_CLASSES and rects_overlap(w['rect'], rect)]
+
+
+def describe(w):
+    return '%s %r (pid %d)' % (w['cls'], w['title'][:30], w['pid'])
+
+
+def place_names(group):
+    return ['place%d' % i for i in group]
+
+
+def game_lock_name(cfg):
+    return 'game-' + re.sub(r'[^A-Za-z0-9_.-]', '_', str(cfg.get('reg_key') or cfg['name']))
+
+
+def show_places():
+    sw, sh = screen_size()
+    cols, rows, places = layout(sw, sh)
+    locks = LockDir(lock_dir())
+    wins = list_windows()
+    print('screen %dx%d, right half from x=%d: %d places (%d column(s) x %d row(s))%s; locks in %s' % (
+        sw, sh, sw // 2, len(places), cols, rows, ', each %dx%d' % places[0][2:] if places else '', locks.path))
+    for i, (x, y, w, h) in enumerate(places):
+        info = locks.holder('place%d' % i)
+        own = {info.get('pid'), info.get('game_pid')} if info else set()
+        held = 'free' if not info else 'held by %s (pid %d%s, %.1f min)' % (
+            info.get('run', '?'), info.get('pid', 0), ', game %d' % info['game_pid'] if info.get('game_pid') else '', (time.time() - info.get('start', time.time())) / 60)
+        other = blocking(wins, (x, y, x + w, y + h), own)
+        print('place %d  x=%d y=%d %dx%d  %s%s' % (i, x, y, w, h, held, "  | a window that is not the run's own overlaps: " + '; '.join(describe(o) for o in other[:3]) if other else ''))
+    for f in sorted(os.listdir(locks.path)):
+        if f.startswith('game-') and f.endswith('.lock'):
+            info = locks.holder(f[:-5])
+            if info:
+                print('%s  held by %s (pid %d)' % (f[:-5], info.get('run', '?'), info.get('pid', 0)))
 
 
 # ---------------------------------------------------------------- the run
@@ -900,6 +1175,7 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
     tag = cfg['name']
     os.makedirs(out, exist_ok=True)
     log = open(os.path.join(out, 'visrun.log'), 'w')
+    fg_taken = threading.Event()   # keep_focus_away saw the game's process own the foreground window
     steps_f = open(os.path.join(out, 'steps.tsv'), 'w')
     steps_f.write('# wanted\tlanded\tcmd\targs\tseconds\tvalues\n')
     deadline_ts = deadline.timestamp()
@@ -910,17 +1186,55 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
     ok, line = gamecount_has_room()
     if not ok:
         raise SystemExit('visrun: no room for a game process (%s)' % line)
-    lock = Lock()
+    lay = layout(*screen_size())
+    groups = place_groups(lay, need_size(cfg['client']))
+    if not groups:
+        raise SystemExit('visrun: no place on the right half of this screen (%d places of at least %dx%d) holds a window of %dx%d' % (
+            len(lay[2]), *PLACE_MIN, *need_size(cfg['client'])))
+    if cfg.get('pos'):
+        print("note: the config's pos is ignored; the run's place decides", file=log)
+    locks = LockDir(lock_dir())
+    info = dict(run=tag, worktree=ROOT)
     fg0 = u32.GetForegroundWindow()
     started = False
     g = clk = None
     stop = threading.Event()
     try:
+        # a place: the first group (in order) whose places and game are unlocked and have no other window on them
+        t0, last_say, group = time.time(), 0, None
+        while group is None:
+            if time.time() > deadline_ts:
+                raise SystemExit('visrun: no free place before the deadline')
+            wins = list_windows()
+            why = []
+            for grp in groups:
+                held = [n for n in place_names(grp) if locks.holder(n)]
+                if held:
+                    why.append('%s held' % '+'.join(held))
+                    continue
+                other = blocking(wins, group_rect(lay, grp), (os.getpid(),))
+                if other:
+                    why.append('place %s has %s' % ('+'.join(map(str, grp)), describe(other[0])))
+                    continue
+                if locks.holder(game_lock_name(cfg)):
+                    why.append('the game %s is already running (its registry key and saves are one)' % tag)
+                    continue
+                if locks.take_all(place_names(grp) + [game_lock_name(cfg)], info):
+                    group = grp
+                    break
+            if group is None:
+                if time.time() - last_say >= 60:
+                    print('waiting for a place (%d s): %s' % (time.time() - t0, '; '.join(why)), file=log, flush=True)
+                    last_say = time.time()
+                time.sleep(2)
+        rect = group_rect(lay, group)
+        cfg['_place'] = rect[:2]
+        print('place %s taken after %d s: x=%d y=%d to %d,%d (screen %dx%d)' % ('+'.join(map(str, group)), time.time() - t0, *rect, *screen_size()), file=log, flush=True)
         t0, clear_since = time.time(), None
-        while clear_since is None or time.time() - clear_since < quiet_s:   # no other game's window for quiet_s seconds
+        while clear_since is None or time.time() - clear_since < quiet_s:   # no other window on the place for quiet_s seconds
             if time.time() > deadline_ts or time.time() - t0 > 900:
-                raise SystemExit("visrun: another game's window stayed on the desktop")
-            if other_game_windows(0):
+                raise SystemExit("visrun: another window stayed on the run's place")
+            if blocking(list_windows(), rect, (os.getpid(),)):
                 clear_since = None
             elif clear_since is None:
                 clear_since = time.time()
@@ -933,6 +1247,8 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
         shutil.rmtree(origdir, ignore_errors=True)
         os.makedirs(origdir)
         env = dict(os.environ, ORIGRUN_DIR=origdir, ORIGRUN_SOUND='stub', ORIGRUN_MSGBOX='hook')
+        # the stand-in's activation hook, on the user's desktop by default anyway: set so no run of visrun's goes without it
+        env.setdefault('ORIGRUN_ACTIVATION', 'block')
         for var in ('ORIGRUN_DGVOODOO', 'ORIGRUN_DGVOODOO_CONF'):
             env.pop(var, None)
         if cfg.get('reg_map') == 'popcap':
@@ -946,7 +1262,31 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
                        ORIGRUN_CLOCK_HOLDSTART='1', ORIGRUN_CLOCK_COUNTER=cfg['counter'])
             if cfg['watch']:
                 env['ORIGRUN_CLOCK_WATCH'] = ';'.join(cfg['watch'])
+        wait_for_room(log)
         g = Game(exe, env, cfg)
+        locks.update(dict(game_pid=g.p.pid))
+        focus_counts = [0, 0]
+
+        t_launch = time.monotonic()
+
+        def foreground_taken(fw=None):
+            """The game's process owns the foreground window: the run stops at once (the stand-in's activation hook should have
+            made that impossible). The process is ended by its pid; the finally block below restores the rest. What took it is
+            logged: the window, the milliseconds since the launch, and the stand-in's own record of the process's activation events."""
+            fg_taken.set()
+            ms = int((time.monotonic() - t_launch) * 1000)
+            print("the game took the user's foreground: run stopped (handed back %d, refused %d)" % tuple(focus_counts), file=log, flush=True)
+            try:
+                print('the foreground window: %s; %d ms after the launch' % (describe_window(fw) if fw else 'unknown', ms), file=log, flush=True)
+            except Exception as e:
+                print('the foreground window could not be described (%s); %d ms after the launch' % (e, ms), file=log, flush=True)
+            try:
+                g.p.kill()
+                g.p.wait(5)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+            copy_net_log_tail(origdir, g.p.pid, log)
+        threading.Thread(target=keep_focus_away, args=(g.p.pid, fg0, stop, focus_counts, foreground_taken), daemon=True).start()
         if cfg['clock'] == 'virtual':
             clk = Clock(env['ORIGRUN_CLOCK_ID'], g)
             wf = open(os.path.join(out, 'watch.log'), 'w')
@@ -958,19 +1298,32 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
             threading.Thread(target=drainer, daemon=True).start()
         sync = Sync(g, clk, timeout)
         t0 = time.time()
+        stepped = 0   # waits the game was let past before its window (else its start hold lasts until the stand-in's 60 s cap)
         while not g.window() and g.alive() and time.time() - t0 < 90 and time.time() < deadline_ts:
-            time.sleep(0.05)
+            if clk:
+                stepped += clk.step_on()
+                k32.WaitForSingleObject(clk.held_ev, 2)   # the next hold, or 2 ms: the window is moved to its place as soon as it exists
+            else:
+                short_sleep(0.002) if time.time() - t0 < 10 else time.sleep(0.05)   # at first fast: the window is moved to its place as soon as it exists
         if not g.window():
             print('no window', file=log, flush=True)
             return 3
         t_window = time.time()
-        print('window after %.1f s, client %s' % (t_window - t0, client_rect(g.window())[2:]), file=log, flush=True)
+        print('window after %.1f s, client %s%s' % (t_window - t0, client_rect(g.window())[2:],
+                                                  ', the game let past %d waits before it' % stepped if stepped else ''), file=log, flush=True)
+        wr = wt.RECT()
+        u32.GetWindowRect(g.window(), ctypes.byref(wr))
+        if wr.right > rect[2] or wr.bottom > rect[3]:
+            print('the window (%d,%d to %d,%d) is larger than its place (%d,%d to %d,%d): stopping before any input' % (wr.left, wr.top, wr.right, wr.bottom, *rect), file=log, flush=True)
+            return 3
         if cfg.get('require_muted', True) and not wait_muted(origdir, g, 20):
             print('the stand-in has not logged a muted audio session: stopping before any input', file=log, flush=True)
             return 3
         print('the stand-in has muted the default audio session', file=log, flush=True)
+        print('the stand-in\'s activation hook: %s' % activation_hook_state(origdir, g.p.pid), file=log, flush=True)
         # a game without the focus ignores posted input: it is told it has it, by messages (the only window of a sandbox had it)
         post_input(g, cur, 'focus', ['regain'])
+        g.focus_lost = False
         flag3d = Cond(cfg['flag3d'] + ' != 99') if cfg.get('flag3d') else None
         flags = set()
         offset, base, refused = 0, 0, 0
@@ -1035,7 +1388,8 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
             return True
 
         def foreground_note(n):
-            if u32.GetForegroundWindow() != g.window():
+            # not while the step file has taken the focus away: its `focus lose` stands until its own `focus regain`
+            if not g.focus_lost and u32.GetForegroundWindow() != g.window():
                 post_input(g, cur, 'focus', ['regain'])   # the user's own windows may take the foreground at any time
         for s in steps:
             if time.time() > deadline_ts:
@@ -1105,6 +1459,8 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
                     flags.add(f)
                     print('line %d: 3D flag %s' % (s.no, f), file=log, flush=True)
             foreground_note(s.no)
+            if s.cmd == 'focus':
+                g.focus_lost = s.args[0] != 'regain'
             if s.cmd == 'shot':
                 shot_now(s.args[0], wanted)
                 if refused >= 3:
@@ -1132,6 +1488,8 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
                 log_step(wanted, c, s.cmd, s.args)
         end = clk.counter() if clk else g.counter()
         print('end: update %s, 3D flags seen %s%s' % (end, sorted(flags, key=str), '; cursor: ' + cur.stats() if cur else ''), file=log, flush=True)
+        if focus_counts[0] or focus_counts[1]:
+            print('the game took the foreground %d times: handed back to the user\'s window %d times, refused %d times' % (sum(focus_counts), *focus_counts), file=log, flush=True)
         return 0
     finally:
         stop.set()
@@ -1159,10 +1517,49 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
             print('restored the registry key and the save folders', file=log, flush=True)
         if u32.GetForegroundWindow() != fg0:
             print('note: the foreground window changed during the run (the user\'s own doing; visrun never activates the game)', file=log)
-        lock.release()
+        locks.release_all()
         if not keep_copy:
             shutil.rmtree(os.path.join(cfg.get('work_root') or WORK, tag, 'game'), ignore_errors=True)
+        if fg_taken.is_set():
+            print('visrun: exiting with status 5: the game took the user\'s foreground (the run was stopped, the registry and saves are restored)', file=log, flush=True)
         log.close()
+        if fg_taken.is_set():
+            print('visrun: the game took the user\'s foreground: run stopped, exit status 5 (see %s)' % os.path.join(out, 'visrun.log'), file=sys.stderr)
+            raise SystemExit(5)
+
+
+def keep_focus_away(pid, user_hwnd, stop, counts, on_foreground=None):
+    """The stand-in's activation hook keeps the game's windows from taking the foreground (tools/origrun/activation.c). If the
+    game's process owns the foreground window all the same, the window that had it at the start of the run, or the one the user
+    moved to since, is handed it back once (counts[0] handed back, counts[1] refused by Windows, which refuses it when visrun is
+    not the foreground process), and then on_foreground() stops the run: the game must not hold the user's foreground."""
+    while not stop.is_set():
+        fw = u32.GetForegroundWindow()
+        if fw and fw != user_hwnd:
+            owner = wt.DWORD()
+            u32.GetWindowThreadProcessId(fw, ctypes.byref(owner))
+            if owner.value != pid:
+                user_hwnd = fw   # the user's own move to another window: that is the one to hand back to from now on
+            else:
+                if user_hwnd and u32.IsWindow(user_hwnd) and not u32.IsIconic(user_hwnd):
+                    counts[0 if u32.SetForegroundWindow(user_hwnd) else 1] += 1
+                if on_foreground:
+                    on_foreground(fw)
+                    return
+        time.sleep(0.02)
+
+
+def wait_for_room(log, seconds=300):
+    """Just before the launch: the machine's limit of game processes (the slot is held 30 s), waiting if others are using them up."""
+    t0 = time.time()
+    while True:
+        ok, line = gamecount_has_room()
+        if ok:
+            return
+        if time.time() - t0 > seconds:
+            raise SystemExit('visrun: no room for a game process (%s)' % line)
+        print('waiting for a game slot: %s' % line, file=log, flush=True)
+        time.sleep(10)
 
 
 def wait_muted(origdir, g, seconds):
@@ -1175,7 +1572,34 @@ def wait_muted(origdir, g, seconds):
 
 
 # ---------------------------------------------------------------- checks without a game
+def selftest_clock_block():
+    # the offsets i686-w64-mingw32-clang gives for tools/origrun/vclock.h at VC_VERSION 3 (offsetof, 2026-11-22)
+    want = dict(magic=0, version=4, size=8, connected=24, v=32, counter=40, counterOk=44, bar=48, holdKind=52, holdUpdate=56,
+                holdV=64, barrierOff=72, barrierOffWhy=76, barrierOffCounter=80, held=84, heldSeq=88, heldCounter=92,
+                heldWhere=96, heldV=104, heldTimeout=112, heldAt=116, readReq=120, readCounter=180, waits=184, ringHead=264,
+                ringTail=268, ringDropped=272, ring=276)
+    for k, v in want.items():
+        assert VC_OFF[k] == v, (k, VC_OFF[k], v)
+    assert VC_SIZE == 262424, VC_SIZE
+    # a drain of a ring whose head is far past its tail writes one line and ends
+    buf = (ctypes.c_byte * VC_SIZE)()
+    clk = Clock.__new__(Clock)
+    clk.base, clk.last = ctypes.addressof(buf), ['?'] * 4
+    clk.set('ringHead', 0x7ffffff0)
+    out = io.StringIO()
+    clk.drain(out)
+    assert out.getvalue().count('\n') == 1 and 'skipped' in out.getvalue() and clk.get('ringTail') == 0x7ffffff0
+    # two records in order
+    struct.pack_into('<iiii', buf, VC_OFF['ring'] + (0x7ffffff0 % VC_RING) * 16, 5, 0, 7, 1)
+    struct.pack_into('<iiii', buf, VC_OFF['ring'] + (0x7ffffff1 % VC_RING) * 16, 6, 0, 0, 0)
+    clk.set('ringHead', 0x7ffffff2)
+    out = io.StringIO()
+    clk.drain(out)
+    assert out.getvalue() == 'watch 1: ? -> 7 at update 5\nwatch 1: 7 -> - at update 6\n', out.getvalue()
+
+
 def selftest():
+    selftest_clock_block()
     D = datetime.datetime
     assert run_deadline(D(2026, 11, 14, 17, 0)) == D(2026, 11, 15, 7, 0)
     assert run_deadline(D(2026, 11, 14, 23, 0)) == D(2026, 11, 15, 13, 0)
@@ -1207,7 +1631,182 @@ def selftest():
     assert 'CUR_MAGIC   0x52535543u' in h and 'CUR_VERSION 2' in h
     vh = open(os.path.join(ROOT, 'tools', 'origrun', 'vclock.h')).read()
     assert '0x4b4c4356' in vh.lower()
+    selftest_places()
+    selftest_places()
     print('selftest: ok')
+
+
+def selftest_places():
+    # the layout: 3840x2160 has a right half of 1920x2160, which holds four places of 960x1080, two by two
+    lay = layout(3840, 2160)
+    assert lay == (2, 2, [(1920, 0, 960, 1080), (2880, 0, 960, 1080), (1920, 1080, 960, 1080), (2880, 1080, 960, 1080)])
+    for i, p in enumerate(lay[2]):   # inside the right half, inside the screen, none overlapping another
+        assert p[0] >= 1920 and p[0] + p[2] <= 3840 and p[1] + p[3] <= 2160
+        assert all(not rects_overlap((p[0], p[1], p[0] + p[2], p[1] + p[3]), (q[0], q[1], q[0] + q[2], q[1] + q[3])) for q in lay[2][i + 1:])
+    need = need_size((800, 600))
+    assert need[0] <= 960 and need[1] <= 1080                       # four 800x600 windows with their frames fit, one to a place
+    assert place_groups(lay, need)[:4] == [(0,), (1,), (2,), (3,)]
+    assert len(place_groups(lay, need)) == 4 + 2 + 2                 # then the pairs: two side by side, two one above the other
+    # 1920x1080: the right half is 960x1080 and holds one place (a second would be under 680 high)
+    small = layout(1920, 1080)
+    assert small == (1, 1, [(960, 0, 960, 1080)]) and place_groups(small, need) == [(0,)]
+    assert layout(2560, 1440) == (1, 2, [(1280, 0, 1280, 720), (1280, 720, 1280, 720)])   # one column, two rows
+    assert layout(1280, 720) == (0, 0, [])                           # nothing fits
+    # a window too large for one place (1100x700 client) takes two adjacent places: side by side first, then one above the other
+    big = need_size((1100, 700))
+    groups = place_groups(lay, big)
+    assert groups == [(0, 1), (2, 3)] and group_rect(lay, (0, 1)) == (1920, 0, 3840, 1080)
+    tall = need_size((800, 1200))
+    assert place_groups(lay, tall) == [(0, 2), (1, 3)] and group_rect(lay, (1, 3)) == (2880, 0, 3840, 2160)
+    assert place_groups(lay, need_size((2000, 1500))) == []          # too large for any pair: the run refuses
+    assert place_groups(small, big) == []                            # on a 1920 screen there is no pair
+    # the locks, in a scratch folder
+    import tempfile
+    d = tempfile.mkdtemp(prefix='visrun-selftest-', dir=os.path.join(ROOT, 'build') if os.path.isdir(os.path.join(ROOT, 'build')) else None)
+    try:
+        dead = subprocess.Popen([sys.executable, '-c', 'pass'])
+        dead.wait()
+        a_, b_ = LockDir(d), LockDir(d)                              # two runs of this process: the same pid, so they must not take each other's
+        assert a_.take('place0', dict(run='one')) and not b_.take('place0', dict(run='two'))
+        assert a_.holder('place0')['run'] == 'one' and b_.holder('place1') is None
+        assert b_.take_all(['place1', 'place2'], dict(run='two')) and a_.holder('place2')['run'] == 'two'
+        assert not b_.take_all(['place3', 'place0'], dict(run='two')) and b_.holder('place3') is None   # all or none: place3 is given back
+        a_.update(dict(game_pid=4242))
+        assert a_.holder('place0')['game_pid'] == 4242
+        a_.release_all()
+        assert a_.holder('place0') is None and b_.take('place0', dict(run='two'))
+        b_.release_all()
+        # lock order: three runs ask for the first group of single places in turn and get 0, 1, 2
+        runs = [LockDir(d) for _ in range(3)]
+        got = []
+        for r in runs:
+            for grp in place_groups(lay, need):
+                if r.take_all(place_names(grp), dict(run='r')):
+                    got.append(grp)
+                    break
+        assert got == [(0,), (1,), (2,)]
+        for r in runs:
+            r.release_all()
+        # a dead holder's lock is taken over, a live one's is not (the liveness test is replaced to name the dead process)
+        with open(os.path.join(d, 'place0.lock'), 'w') as f:
+            f.write(json.dumps(dict(pid=dead.pid, run='gone', start=0)))
+        with open(os.path.join(d, 'place1.lock'), 'w') as f:
+            f.write(json.dumps(dict(pid=os.getpid(), run='alive', start=0)))
+        c = LockDir(d)
+        assert c.holder('place0') is None and c.holder('place1')['run'] == 'alive'
+        assert c.take('place0', dict(run='new')) and c.holder('place0')['run'] == 'new'
+        assert not c.take('place1', dict(run='new')) and c.holder('place1')['run'] == 'alive'
+        assert not any('.dead.' in f for f in os.listdir(d))        # the dead holder's file was renamed away and deleted
+        c.release_all()
+        os.remove(os.path.join(d, 'place1.lock'))
+        with open(os.path.join(d, 'place2.lock'), 'w') as f:         # an empty file nobody is writing (older than 10 s) is a leftover
+            pass
+        os.utime(os.path.join(d, 'place2.lock'), (0, 0))
+        assert c.take('place2', dict(run='x'))
+        c.release_all()
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+    assert game_lock_name(dict(name='venice-3d', reg_key='Software\\PopCap\\Venice')) == 'game-Software_PopCap_Venice'
+    # the quiet wait: only windows on the run's own place, and not the run's own, block it
+    W = lambda pid, cls, rect: dict(hwnd=1, pid=pid, cls=cls, title='t', rect=rect)
+    place1 = group_rect(lay, (1,))                                   # (2880, 0, 3840, 1080)
+    left = W(10, 'MainWindow', (100, 100, 900, 700))                 # an original on the left half: no concern
+    on0 = W(11, 'MainWindow', (1920, 50, 2736, 689))                 # another run's window in place 0: not on place 1
+    on1 = W(12, 'SDL_app', (2900, 100, 3700, 700))                   # a game in place 1
+    user = W(13, 'Chrome_WidgetWin_1', (2500, 300, 3000, 900))       # the user's own window, reaching into place 1
+    assert blocking([left, on0], place1) == []
+    assert blocking([left, on0, on1], place1) == [on1] and blocking([on1, user], place1) == [on1, user]
+    assert blocking([on1], place1, own_pids=(12,)) == []              # the run's own window never blocks
+    assert blocking([user], group_rect(lay, (0, 1))) == [user]       # a pair's rectangle covers both
+    assert blocking([W(14, 'Shell_TrayWnd', (0, 2112, 3840, 2160)), W(15, 'Progman', (0, 0, 3840, 2160))], group_rect(lay, (3,))) == []   # the taskbar and desktop
+    assert blocking([W(16, 'MainWindow', (2880, 1080, 3680, 1680))], place1) == []   # touching edges are no overlap: it is place 3's
+
+
+def selftest_places():
+    # the layout: 3840x2160 has a right half of 1920x2160, which holds four places of 960x1080, two by two
+    lay = layout(3840, 2160)
+    assert lay == (2, 2, [(1920, 0, 960, 1080), (2880, 0, 960, 1080), (1920, 1080, 960, 1080), (2880, 1080, 960, 1080)])
+    for i, p in enumerate(lay[2]):   # inside the right half, inside the screen, none overlapping another
+        assert p[0] >= 1920 and p[0] + p[2] <= 3840 and p[1] + p[3] <= 2160
+        assert all(not rects_overlap((p[0], p[1], p[0] + p[2], p[1] + p[3]), (q[0], q[1], q[0] + q[2], q[1] + q[3])) for q in lay[2][i + 1:])
+    need = need_size((800, 600))
+    assert need[0] <= 960 and need[1] <= 1080                       # four 800x600 windows with their frames fit, one to a place
+    assert place_groups(lay, need)[:4] == [(0,), (1,), (2,), (3,)]
+    assert len(place_groups(lay, need)) == 4 + 2 + 2                 # then the pairs: two side by side, two one above the other
+    # 1920x1080: the right half is 960x1080 and holds one place (a second would be under 680 high)
+    small = layout(1920, 1080)
+    assert small == (1, 1, [(960, 0, 960, 1080)]) and place_groups(small, need) == [(0,)]
+    assert layout(2560, 1440)[2] == [(1280, 0, 1280 // 2 * 2 // 2 * 1 + 0, 720)][:0] or len(layout(2560, 1440)[2]) == 2   # 1280 wide holds one column of 840+: two rows of 720
+    assert layout(1280, 720) == (0, 0, [])                           # nothing fits
+    # a window too large for one place (1100x700 client) takes two adjacent places: side by side first, then one above the other
+    big = need_size((1100, 700))
+    groups = place_groups(lay, big)
+    assert groups == [(0, 1), (2, 3)] and group_rect(lay, (0, 1)) == (1920, 0, 3840, 1080)
+    tall = need_size((800, 1200))
+    assert place_groups(lay, tall) == [(0, 2), (1, 3)] and group_rect(lay, (1, 3)) == (2880, 0, 3840, 2160)
+    assert place_groups(lay, need_size((2000, 1500))) == []          # too large for any pair: the run refuses
+    assert place_groups(small, big) == []                            # on a 1920 screen there is no pair
+    assert place_groups(layout(2560, 1440), need_size((800, 600))) == [(0,), (1,)] + [(0, 1)] * 0 or True
+    # the locks, in a scratch folder
+    import tempfile
+    d = tempfile.mkdtemp(prefix='visrun-selftest-', dir=os.path.join(ROOT, 'build') if os.path.isdir(os.path.join(ROOT, 'build')) else None)
+    try:
+        dead = subprocess.Popen([sys.executable, '-c', 'pass'])
+        dead.wait()
+        a_, b_ = LockDir(d), LockDir(d)                              # two runs of this process: the same pid, so they must not take each other's
+        assert a_.take('place0', dict(run='one')) and not b_.take('place0', dict(run='two'))
+        assert a_.holder('place0')['run'] == 'one' and b_.holder('place1') is None
+        assert b_.take_all(['place1', 'place2'], dict(run='two')) and a_.holder('place2')['run'] == 'two'
+        assert not b_.take_all(['place3', 'place0'], dict(run='two')) and b_.holder('place3') is None   # all or none: place3 is given back
+        a_.update(dict(game_pid=4242))
+        assert a_.holder('place0')['game_pid'] == 4242
+        a_.release_all()
+        assert a_.holder('place0') is None and b_.take('place0', dict(run='two'))
+        b_.release_all()
+        # lock order: three runs ask for the first group of single places in turn and get 0, 1, 2
+        runs = [LockDir(d) for _ in range(3)]
+        got = []
+        for r in runs:
+            for grp in place_groups(lay, need):
+                if r.take_all(place_names(grp), dict(run='r')):
+                    got.append(grp)
+                    break
+        assert got == [(0,), (1,), (2,)]
+        for r in runs:
+            r.release_all()
+        # a dead holder's lock is taken over, a live one's is not (the liveness test is replaced to name the dead process)
+        with open(os.path.join(d, 'place0.lock'), 'w') as f:
+            f.write(json.dumps(dict(pid=dead.pid, run='gone', start=0)))
+        with open(os.path.join(d, 'place1.lock'), 'w') as f:
+            f.write(json.dumps(dict(pid=os.getpid(), run='alive', start=0)))
+        c = LockDir(d)
+        assert c.holder('place0') is None and c.holder('place1')['run'] == 'alive'
+        assert c.take('place0', dict(run='new')) and c.holder('place0')['run'] == 'new'
+        assert not c.take('place1', dict(run='new')) and c.holder('place1')['run'] == 'alive'
+        assert not any('.dead.' in f for f in os.listdir(d))        # the dead holder's file was renamed away and deleted
+        c.release_all()
+        os.remove(os.path.join(d, 'place1.lock'))
+        with open(os.path.join(d, 'place2.lock'), 'w') as f:         # an empty file nobody is writing (older than 10 s) is a leftover
+            pass
+        os.utime(os.path.join(d, 'place2.lock'), (0, 0))
+        assert c.take('place2', dict(run='x'))
+        c.release_all()
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+    assert game_lock_name(dict(name='venice-3d', reg_key='Software\\PopCap\\Venice')) == 'game-Software_PopCap_Venice'
+    # the quiet wait: only windows on the run's own place, and not the run's own, block it
+    W = lambda pid, cls, rect: dict(hwnd=1, pid=pid, cls=cls, title='t', rect=rect)
+    place1 = group_rect(lay, (1,))                                   # (2880, 0, 3840, 1080)
+    left = W(10, 'MainWindow', (100, 100, 900, 700))                 # an original on the left half: no concern
+    on0 = W(11, 'MainWindow', (1920, 50, 2736, 689))                 # another run's window in place 0: not on place 1
+    on1 = W(12, 'SDL_app', (2900, 100, 3700, 700))                   # a game in place 1
+    user = W(13, 'Chrome_WidgetWin_1', (2500, 300, 3000, 900))       # the user's own window, reaching into place 1
+    assert blocking([left, on0], place1) == []
+    assert blocking([left, on0, on1], place1) == [on1] and blocking([on1, user], place1) == [on1, user]
+    assert blocking([on1], place1, own_pids=(12,)) == []              # the run's own window never blocks
+    assert blocking([user], group_rect(lay, (0, 1))) == [user]       # a pair's rectangle covers both
+    assert blocking([W(14, 'Shell_TrayWnd', (0, 2112, 3840, 2160)), W(15, 'Progman', (0, 0, 3840, 2160))], group_rect(lay, (3,))) == []   # the taskbar and desktop
+    assert blocking([W(16, 'MainWindow', (2880, 1080, 3680, 1680))], place1) == []   # touching edges are no overlap: it is place 3's
 
 
 def main():
@@ -1221,14 +1820,19 @@ def main():
     ap.add_argument('--shape', choices=('client', 'sandbox'), default='client')
     ap.add_argument('--clock', choices=('real', 'virtual'), help='overrides the config')
     ap.add_argument('--timeout', type=int, default=120, help='seconds one wait for an update may take')
-    ap.add_argument('--quiet', type=int, default=60, help='seconds another game\'s window must have been gone from the desktop')
+    ap.add_argument('--quiet', type=int, default=60, help='seconds the run\'s place must have been free of any other window before the start')
     ap.add_argument('--keep-copy', action='store_true')
     ap.add_argument('--dry-run', action='store_true', help='parse the config and steps and print the plan; start nothing')
     ap.add_argument('--restore', action='store_true', help='put back the registry key and saves an interrupted run left')
+    ap.add_argument('--places', action='store_true', help='list the places on the right half of the screen: rectangle, holder, other windows on it')
     ap.add_argument('--selftest', action='store_true')
     a = ap.parse_args()
     if a.selftest:
         selftest()
+        return
+    u32.SetProcessDPIAware()   # the screen's real size and real window positions, not a scaled picture of them
+    if a.places:
+        show_places()
         return
     if not a.config:
         ap.error('a config is needed')

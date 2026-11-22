@@ -1,0 +1,1 @@
+152 click 320 453 #button

@@ -46,6 +46,19 @@ web() {  # <build folder> [cmake options]
 	stale_cache "$dir"
 	"$EMSDK_ROOT/upstream/emscripten/emcmake.exe" cmake -S "$ROOT" -B "$dir" -G Ninja \
 		-DCMAKE_BUILD_TYPE="$BUILD_TYPE" "$@"
+	if [ -n "${TARGET:-}" ] && [ -n "${SKIP_UNKNOWN_TARGETS:-}" ]; then
+		# check.sh --changed names each changed game's web target, and a game whose web milestone has not come yet has
+		# none: such a target is skipped with a line saying so (check.sh's build-web reports them), the rest are built
+		local mp known kept="" t
+		mp="$(sed -n 's/^CMAKE_MAKE_PROGRAM:[A-Z]*=//p' "$dir/CMakeCache.txt")"
+		known="$("${mp:-ninja}" -C "$dir" -t targets all | sed 's/: .*//')"
+		for t in $TARGET; do
+			if grep -qxF "$t" <<< "$known"; then kept="$kept $t"
+			else echo "build.sh: $t: no web target (no web build yet), skipped"; fi
+		done
+		TARGET="${kept# }"
+		[ -n "$TARGET" ] || return 0
+	fi
 	# (TARGET unquoted: several targets, separated by spaces)
 	cmake --build "$dir" ${TARGET:+--target $TARGET}
 }

@@ -468,6 +468,17 @@ public:
 	bool mFastMode;
 	bool mTraceMode;
 	bool mDrawEvery;  // -drawevery
+	// port: -speed=<x> starts the run at game speed x (0: unlimited; SetGameSpeed) and the saved speed option is not read;
+	// -speedprobe=<ms> measures what the game does at that speed (tools/check.sh speed): once the game has loaded, it waits
+	// SPEED_PROBE_WARMUP_MS, counts updates and game clock over <ms> of real time, logs one "SPEEDPROBE ..." line and quits
+	bool mSpeedParam;
+	int mSpeedProbeMs;
+	DWORD mSpeedProbeStart;        // real time the counting began, 0 before
+	DWORD mSpeedProbeLoaded;       // real time the game was first seen loaded, 0 before
+	int mSpeedProbeUpdates;        // mUpdateCount when the counting began
+	DWORD mSpeedProbeClock;        // GetClockTime() when the counting began
+	enum { SPEED_PROBE_WARMUP_MS = 700 };
+	void SpeedProbeStep();
 	int mForcedRenderScale;  // -renderscale=N
 	int mForcedWindowScale;  // -windowscale=N
 	void LogDisplay(const char* theWhy);  // the display line (SDL_Log): the window's client size, render scale, mode and renderer
@@ -625,8 +636,38 @@ public:
 	// frame rather than what the widgets drew (SurfaceDisplay) draws it over that frame
 	Widget* OverlayWidget() const;
 
-	// port: the app clock: timeGetTime(), or the virtual clock with -fast (public for WidgetManager)
+	// port: the app clock the games read: GAME time (Sexy::GetTickCountMS, real time scaled by the game speed), or the
+	// virtual game clock with -fast (public for WidgetManager)
 	DWORD GetClockTime();
+	// port: the clock that paces the framework itself (the update accumulator): real time, or -fast's virtual clock
+	DWORD GetRealClockTime();
+
+	// port: the game speed (the mod menu's, the page's and the speed hotkeys'). theSpeed is how many times as fast as
+	// the original the game runs: any value above 0, held to SPEED_MAX; SPEED_UNLIMITED runs the updates flat out in real
+	// time and skips the draws it cannot show. The game clock (GetClockTime) follows the speed.
+	enum { SPEED_UNLIMITED_FRAME_MS = 16 };  // unlimited speed: a draw at most every this many real ms
+	static const double SPEED_UNLIMITED;     // 0
+	static const double SPEED_MIN;           // the slowest speed set: 0.01
+	static const double SPEED_MAX;           // 16
+	void SetGameSpeed(double theSpeed);
+	// port: music does not follow the game speed. What one update's worth of a music fade is in real time compared with at
+	// speed 1: 1 at speed 1 and under -fast, 1 / speed otherwise, and for unlimited the real time since the last call per
+	// frame time. Call once per update.
+	double MusicStepFactor();
+	// port: the native speed option and its hotkeys (docs/MOD_MENU.md, "Game speed"). The speed is saved in <user dir>/
+	// game-speed.json beside the mod menu's settings; the hotkeys are off until the menu turns them on.
+	enum { SPEED_KEY_SLOWER = 0x75, SPEED_KEY_FASTER = 0x76, SPEED_KEY_NORMAL = 0x77 };  // F6, F7, F8 (KeyCodes.h)
+	static const int NUM_SPEED_STEPS = 11;
+	static const double SPEED_STEPS[NUM_SPEED_STEPS];  // the ladder the menu and the hotkeys walk; the last is unlimited
+	bool mSpeedHotkeys;
+	void StepGameSpeed(int theDirection);    // -1 slower, +1 faster, 0 back to 1x; saved
+	std::string GameSpeedText() const;       // "1x", "0.5x", "Max"
+	void LoadSpeedOptions();
+	void SaveSpeedOptions();
+	double GameSpeed() const;                // what was set: SPEED_UNLIMITED for the unlimited mode
+	bool mSpeedUnlimited;
+	DWORD mUnlimitedClock;                   // unlimited speed: the game's virtual milliseconds, one frame time per update
+	DWORD mUnlimitedLastDraw;                // unlimited speed: the real time of the last draw
 
 	// Common overrides:
 	virtual MusicInterface* CreateMusicInterface();

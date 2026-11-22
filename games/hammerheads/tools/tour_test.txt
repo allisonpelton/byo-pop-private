@@ -61,5 +61,41 @@
 8200 lose
 9200 screenshot @DIR@/lost.png
 9201 state
-9300 memreport
-9400 quit
+# the screens pass (SCREENS.md): the game over box leads back to the menu, the player list, Quit's question, a Classic game's menu and
+# its leave question, then a Classic game over box (the next level's gnome under the turning light)
+9250 click 520 368
+9700 click 400 360
+9800 screenshot @DIR@/menu_after_over.png
+9801 state
+9900 click 400 326
+10000 screenshot @DIR@/players.png
+10100 click 490 466
+10300 move 480 480
+10305 click 480 480
+10600 screenshot @DIR@/quit_box.png
+10601 state
+10700 click 525 520
+11000 goto classic
+11100 level 4
+11500 move 400 438
+11505 click 400 438
+12000 screenshot @DIR@/board4.png
+12001 state
+12100 click 750 30
+12300 screenshot @DIR@/game_menu.png
+12301 state
+12400 click 400 235
+12600 screenshot @DIR@/leave_game.png
+12601 state
+12700 click 300 365
+13500 screenshot @DIR@/menu_after_leave.png
+13501 state
+13600 goto classic
+13700 level 4
+13750 move 400 438
+13755 click 400 438
+14000 lose
+15200 screenshot @DIR@/classic_over.png
+15201 state
+15300 memreport
+15400 quit

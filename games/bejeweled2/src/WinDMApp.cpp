@@ -83,7 +83,7 @@ WinDMApp::WinDMApp()
 	mProdName = "Bejeweled2";
 	// port: the original's SexyAppBase ctor reads this from the exe's version resource (ProductVersion)
 	mProductVersion = "1.1";
-	mTitle = "Bejeweled 2 Deluxe " + mProductVersion;
+	mTitle = "Bejeweled 2 " + mProductVersion;  // no "Deluxe" (the user, 2026-11-18, GAME_NOTES, "Deviations")
 	mRegKey = "PopCap\\Bejeweled2";
 
 	// the size of the screen: the original asks GetSystemMetrics for the client area of a full-screen window
@@ -699,7 +699,7 @@ void WinDMApp::PreDisplayHook()
 	}
 	mIsDiamondMine = GetBoolean("IsDiamondMine", false);
 	if (mIsDiamondMine)
-		mTitle = GetString("Title", "Diamond Mine 2 Deluxe") + " " + mProductVersion;
+		mTitle = GetString("Title", "Diamond Mine 2") + " " + mProductVersion;
 }
 
 // 0x5de7bb

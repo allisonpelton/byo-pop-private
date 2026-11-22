@@ -29,6 +29,22 @@ const BossInfo Sexy::BOSS_INFOS[HeavyWeaponApp::BOSS_FINAL + 1] =
 	{ 0, 110, 0.0, "Final" }
 };
 
+// The early-2005 framework's SexyTransform2D::RotateRad (0x4964c0): cos, -sin over sin, cos with the sine of the angle
+// itself. The shared framework's negates the sine first, so it turns the other way and the arrows of a boss at the
+// side would point away from it.
+static void RotateRad2005(SexyTransform2D& theTransform, float theAngle)
+{
+	SexyMatrix3 aRotation;
+	aRotation.LoadIdentity();
+	float aSin = (float)sin((double)theAngle);
+	float aCos = (float)cos((double)theAngle);
+	aRotation.m00 = aCos;
+	aRotation.m01 = -aSin;
+	aRotation.m10 = aSin;
+	aRotation.m11 = aCos;
+	theTransform = aRotation * theTransform;
+}
+
 // 0x40e730: turns each point by theAngle about the origin and moves it to (theX, theY), in the framework's float
 // matrices, truncating the result
 static void TurnPoints(Point* thePoints, int theCount, double theX, double theY, double theAngle)
@@ -41,7 +57,7 @@ static void TurnPoints(Point* thePoints, int theCount, double theX, double theY,
 			SexyTransform2D aTransform;
 			aTransform.LoadIdentity();
 			aTransform.Translate((float)thePoints[i].mX, (float)thePoints[i].mY);
-			aTransform.RotateRad((float)theAngle);
+			RotateRad2005(aTransform, (float)theAngle);
 			aTransform.Translate((float)theX, (float)theY);
 			thePoints[i].mX = (int)aTransform.m02;
 			thePoints[i].mY = (int)aTransform.m12;

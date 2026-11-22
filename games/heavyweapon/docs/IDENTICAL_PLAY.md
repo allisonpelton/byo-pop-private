@@ -336,6 +336,81 @@ No tour plays 37 of the 92 sounds (the supply helicopter's calls, the mega laser
 port plays one of them with a pan, the pan was checked against the original's code at the call: each scales its x by 3,
 as the port does.
 
+## The screen pass (2026-11-21)
+
+The screen audit of 2026-11-21 asked every game for a list of every screen and box it can show, each compared with the
+original. `docs/SCREENS.md` is that list for Heavy Weapon: 60 rows taken from our export and the port's source, from
+the title to the game-over box, each with the shots that compare it or the reason it has none. It is written by
+`tools/idplay/screensmd.py` from the merged shotdiff run `screens` (`idplay.py screens`, every tour's pairs in one run),
+and `tools/screencheck.py` passes it: 544 shots compared, none failing.
+
+**What was added.** Six tours joined the six of phase two, each played in both programs as before: `dialogs` (the quit
+box's ten quotes, survival locked, the player list with a new player, a taken name, a rename and a delete answered NO and
+YES, both lists of high scores and their reset questions), `boxes` (the campaign's continue box, the armory's box about
+points left, the status bar's MENU box and the short retreat question once the last tank is lost, the game-over box),
+`options3d` (the options' full screen and 3D boxes and the boxes they bring), `levels3` and `levels11` (every level of
+the campaign, from saved players before levels 3 and 11), and `fullscreen` (a first run started full screen). The menus
+tour gained the intro movie's first and a late frame, and the campaign tour a play tip shot the update before the bot's
+click on its OK (`SHOT_BEFORE_CLICKS`). The coverage check's `coverage_ui` was compared too, for the first time. In 3D,
+neither the sandbox nor rundesk can run the original, so `idplay.py shots3d` has `tools/visrun.py` play each tour's
+script for the original on the visible desktop, on the virtual clock, and replays the port in 3D at the updates those
+shots landed on. Each port shot now writes the game's state beside it (`port*/states.tsv`), which sorts the play tours'
+periodic shots into the rows by screen and level.
+
+| Tour | Frames compared | 2D shots | Equal | Faint | Differ | 3D shots kept | Equal | Faint | Differ |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| menus | 1251 | 23 | 20 | 0 | 3 | 23 | 17 | 3 | 3 |
+| dialogs | 1626 | 33 | 28 | 2 | 3 | 33 | 27 | 3 | 3 |
+| coverage_ui | 4001 | 22 | 21 | 0 | 1 | 15 | 13 | 0 | 2 |
+| options3d | 476 | 7 | 7 | 0 | 0 | 7 | 7 | 0 | 0 |
+| in-game | 1501 | 13 | 13 | 0 | 0 | 2 | 1 | 0 | 1 |
+| boxes | 3630 | 23 | 13 | 10 | 0 | 5 | 1 | 4 | 0 |
+| campaign | 12693 | 54 | 51 | 3 | 0 | 1 | 1 | 0 | 0 |
+| survival | 1973 | 11 | 11 | 0 | 0 | 1 | 1 | 0 | 0 |
+| levels3 | 18686 | 99 | 87 | 11 | 1 | 2 | 2 | 0 | 0 |
+| levels11 | 19126 | 102 | 89 | 11 | 2 | 3 | 1 | 2 | 0 |
+| fullscreen | 688 | 11 | 10 | 0 | 1 | | | | |
+
+The game's state agreed at every compared frame in every tour, but for a stretch in dialogs and coverage_ui (below). A 3D
+shot is kept only before the original's 3D game parts from its 2D one, and never inside a level ("Oddities"); the
+full-screen tour was not run in 3D, since the original in full screen on the visible desktop would change the user's
+display mode.
+
+**Changes.**
+
+| Difference | Cause in the original | The port now | Commit |
+| --- | --- | --- | --- |
+| The boss warning's arrows pointed away from a boss at the side: the battleship's, the rainer's, the wrecker's, the ape's and the head's (`BOSS_INFOS`' quarter turns; the worm's half turn comes out the same either way) | `TurnPoints` (0x40e730) turns them with the early-2005 framework's `SexyTransform2D::RotateRad` (0x4964c0): cos, -sin over sin, cos of the angle itself; the shared framework's negates the sine first, so it turns the other way | turns them with the 2005 matrix (`RotateRad2005`), the game's only rotation | 4509c816 |
+| The satellite's beam burned the ground 12 pixels low, its lines running past it (two shots of levels 9 and 19) | the beam (0x434ac0) ends its lines and draws its burn at y 0x1cc, 460, the ground's y | ends them at `CRAFT_GROUND_Y`, without the 12 the port had added | 4509c816 |
+
+The input of a tour is now read in update order (the boxes tour's late MENU clicks follow the bot's in input.txt); that
+was the tooling's, not the game's (b2defaec).
+
+**Differences explained, none of the game's.**
+
+- *A box that waits for its answer, opened by a scripted click.* The name box's refusals (an empty name, a taken one)
+  and the high scores' reset question wait in an update loop of their own (`Dialog::WaitForResult`). The port's test
+  script delivers a click inside an update, after the update's count and before the widgets update, so the update in
+  which the box opens has its widget update only after the box closes; the original, and the port with real input, take
+  the click between updates. In the trace, the main menu's flicker lights (0x423e50, a draw of `Rand()` each update and
+  more while they flicker) are an update's draws behind while the box is up and catch up when it closes: 42 frames of
+  dialogs and 49 of coverage_ui, nothing else differing and the generators agreeing again afterwards. In the pictures,
+  the fire over the high scores stands an update off around the reset question, the port's picture an update later
+  during it and an update earlier after it the nearest, the rest the fire's rounding. The shared fix would deliver a
+  script's input between updates; it is with the coordinator.
+- *The custom cursors ticked* (coverage_ui): the sandbox starts with the game's own cursors off, so the tour's click turns
+  them on; the original draws its hand into the frame and the port's `screenshot` never draws the cursor.
+- *The options in full screen* (fullscreen): on rundesk's headless desktop the original cannot open its full-screen
+  mode and falls back to a window, so its box is unticked; the ten other full-screen shots match.
+- *The title, the intro and the cutscenes* (menus, levels3): as in phase two, the click that ends the intro is taken an
+  update apart, and the movies play on the original's wall clock.
+- *The zoomed map in 3D* (in-game, coverage_ui): Direct3D 7 and SDL's renderer filter the stretched map apart, by at most
+  72 levels on a few hundred pixels; in 2D it matches.
+- *Translucent smoke over a fire* (two shots of levels 13 and 14, at most 97 levels): the translucent-pixel rounding
+  under "Oddities", in smoke as well as sparks and glows.
+
+The runs: the tours' shotdiff runs `shots_<tour>` and `coverage_ui`, their 3D runs `<tour>_3d`, and the merged `screens`.
+
 ## Oddities
 
 - **The robot's foot.** The robot's constructor (0x443210) never sets its foot's y, and its first update stamps if the
@@ -351,14 +426,32 @@ as the port does.
 - **Translucent pixels on the 2D screen.** Where the 2D screen blends a translucent or additive picture, the port's
   pixels can differ from the original's by a few levels: the orange hit sparks fading over a boss (at most 76 levels on
   a few edge pixels; the most pixels over the level 2 boss at frame 12500 of the campaign tour), an explosion's white
-  glow, and the fire bubbles over the high scores after a win (at most 12). Their places and counts agree; the
+  glow, the fire bubbles over the high scores after a win (at most 12), and smoke drawn over a fire (at most 97 levels,
+  over the level 14 boss in shot 14800 of the levels11 tour). Their places and counts agree; the
   original's 2D surface blends them with the 2005 framework's software blitters, the port with SDL's renderer. To see
   it: the review of `idplay.py shots shots_campaign`, shot 12500, or any shot of the final tour's high scores. To match
   it, the 2D screen would be drawn by the framework's software blitters (`SoftwareScreenDisplay`, as Dynomite's is),
   which cannot yet hand the screen back to the GPU for 3D (a shared change), and whose blitters would need checking
   against this game's; the web build would keep SDL's.
 
+- **The original's 3D game is not its 2D game.** With the same input and seed, the original in 3D (on the visible
+  desktop through visrun, on the virtual clock) parts from its sandbox run in 2D inside the first level it plays: the
+  shells, smoke and bullets stand elsewhere within a few hundred updates, then the tank's X differs in its last bits
+  (the last agreeing peek between updates 756 and 2456 of the play tours' 3D runs, 5256 in coverage_ui, whose level
+  starts late), then a hit lands or misses and the score parts. The menus,
+  dialogs and screens between levels agree. The port's 3D game is its 2D game, update for update. One candidate is the
+  x87's precision: the DDInterface's init (0x484dc0) sets the cooperative level with `DDSCL_NORMAL` alone, so its
+  Direct3D device runs the x87 at single precision. A test patch adding `DDSCL_FPUPRESERVE` to that call did not keep the
+  games together (that run parted at update 856, the unpatched one at 1256), and two runs on the same input parted at
+  different updates, so the cause is not found; visrun's runs leave a few real cursor reads too, which may matter. To
+  see it: `idplay.py shots3d shots_survival`, then the run's `orig3d/steps.tsv` beside the sandbox run's peeks. For the
+  screen pass every 3D shot inside a level, and every one after the last peek that agrees, is left out (the survival
+  tour's 3D original is the patched run, whose three shots kept are of the menus before the parting).
+
 ## Deviations that remain
 
 The deviations in `docs/GAME_NOTES.md` are unchanged but for the refresh rate, which this pass found and lists there;
-none shows in the compared state.
+none shows in the compared state. The screen pass adds the two the user asked for (GAME_NOTES, "Deviations the user asked
+for"): the site names the game "Heavy Weapon" without "Deluxe" (the user, 2026-11-18: "Remove the "Deluxe" text from the
+main screen of any game it may appear in, to avoid misleading people about whose game version they're playing"), the
+native window's caption drops the word too ("Heavy Weapon 1.0"), and no screen needed the word covered, since none shows it.
