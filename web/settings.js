@@ -54,8 +54,9 @@ var ByopopSettings = (function () {
     scheme: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.ids : ["standard"]), def: "standard" },
     // the desktop's pattern and wallpaper (web/schemes.js), site-wide
     pattern: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.patternIds : ["none"]), def: "none" },
-    wallpaper: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.wallpaperIds : ["none"]), def: "none" },
-    wallpaperFit: { values: ["centre", "tile", "stretch"], def: "centre" },
+    // (a game's background as "game:<id>", for each game in the themes' table)
+    wallpaper: { values: (typeof ByopopSchemes !== "undefined" ? (ByopopSchemes.wallpaperValues ? ByopopSchemes.wallpaperValues() : ByopopSchemes.wallpaperIds) : ["none"]), def: "none" },
+    wallpaperFit: { values: ["centre", "tile", "stretch", "pixel", "fit"], def: "centre" },
     // a desktop theme: one game's background, cursor and sounds (web/themes.js), site-wide
     theme: { values: (typeof ByopopThemes !== "undefined" ? ByopopThemes.ids : ["none"]), def: "none" },
     // the screen saver (web/saver.js), site-wide: a game with a bot, or none; the wait in minutes
@@ -266,10 +267,17 @@ var ByopopSettings = (function () {
       options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.ids : ["standard"]).map(function (id) { return [id, T("settings.scheme." + id)]; }) },
     { name: "pattern", label: T("settings.pattern.label"), hint: T("settings.pattern.hint"),
       options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.patternIds : ["none"]).map(function (id) { return [id, T("settings.pattern." + id)]; }) },
-    { name: "wallpaper", label: T("settings.wallpaper.label"), hint: T("settings.wallpaper.hint"),
-      options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.wallpaperIds : ["none"]).map(function (id) { return [id, T("settings.wallpaper." + id)]; }) },
+    // ours, the player's own picture, then the background of each game whose files are here, by the game's title (live, as the
+    // themes are)
+    { name: "wallpaper", label: T("settings.wallpaper.label"), hint: T("settings.wallpaper.hint"), live: true,
+      get options() {
+        var T2 = typeof ByopopThemes !== "undefined" ? ByopopThemes : null, D = typeof ByopopThemeData !== "undefined" ? ByopopThemeData : {};
+        return (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.wallpaperIds : ["none"]).map(function (id) { return [id, T("settings.wallpaper." + id)]; })
+          .concat(T2 ? T2.offered().filter(function (id) { return D[id] && D[id].wallpaper; }).map(function (id) { return ["game:" + id, T2.title(id)]; }) : []);
+      } },
     { name: "wallpaperFit", label: T("settings.wallpaperfit.label"), hint: T("settings.wallpaperfit.hint"),
-      options: [["centre", T("settings.wallpaperfit.centre")], ["tile", T("settings.wallpaperfit.tile")], ["stretch", T("settings.wallpaperfit.stretch")]] },
+      options: [["centre", T("settings.wallpaperfit.centre")], ["tile", T("settings.wallpaperfit.tile")], ["stretch", T("settings.wallpaperfit.stretch")],
+        ["pixel", T("settings.wallpaperfit.pixel")], ["fit", T("settings.wallpaperfit.fit")]] },
     // the themes of the games whose files are here, by the games' titles, read again whenever the list is shown or pressed (live)
     { name: "theme", label: T("settings.theme.label"), live: true,
       get options() {

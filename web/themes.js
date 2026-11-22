@@ -5,10 +5,15 @@
 // site ships none and sends nothing anywhere. A theme is offered for each game in THEMES whose files are here.
 //
 // The files can be read only where the game's folder is known, on the listing page (each tile's data-persist), so that page
-// prepares the theme when it is chosen or the page loads: the background drawn once into a JPEG data URL (at most WALL_MAX pixels
-// wide) and the event sounds' bytes (each at most SOUND_MAX bytes), kept in two localStorage items. Every Desktop 95 page then
-// shows and plays them: byopop-theme-wallpaper {id, url} and byopop-theme-sounds {id, sounds: {event: {rel, data}}} (data: the
-// file's bytes in base64). Choosing None, or forgetting the game's files, removes both.
+// prepares the theme when it is chosen or the page loads: the background drawn once into a data URL (at its own size up to
+// WALL_MAX pixels wide; a PNG for a picture without loss, a JPEG for a photograph) and the event sounds' bytes (each at most
+// SOUND_MAX bytes), kept in two localStorage items. Every Desktop 95 page then shows and plays them: byopop-theme-wallpaper
+// {id, url, w, h} and byopop-theme-sounds {id, sounds: {event: {rel, data}}} (data: the file's bytes in base64). Choosing None,
+// or forgetting the game's files, removes both.
+//
+// The same background is also a wallpaper of its own, without the rest of the theme (the setting wallpaper "game:<id>", web/
+// schemes.js; the user, 2026-11-18: "Still would like usable backgrounds from the games either as pixel perfect or fit to screen
+// (no stretching)"): prepared the same way into byopop-game-wallpaper {id, url, w, h} when it is chosen (prepareWall).
 //
 // The events (web/skins.js and web/deskapps.js send "byopop-desk-event"): open and close (a window to and from its icon), minimize,
 // restore, maximize, menu (a menu opens), ding (a message box), start (the desktop starting: the session's first press on the
@@ -28,7 +33,8 @@
 var ByopopThemes = (function () {
   "use strict";
   var THEMES = (typeof ByopopThemeData !== "undefined") ? ByopopThemeData : {};
-  var WALL_KEY = "byopop-theme-wallpaper", SOUND_KEY = "byopop-theme-sounds", WALL_MAX = 1280, SOUND_MAX = 98304;
+  var WALL_KEY = "byopop-theme-wallpaper", SOUND_KEY = "byopop-theme-sounds", WALL_MAX = 2048, SOUND_MAX = 98304;
+  var GAME_WALL_KEY = "byopop-game-wallpaper", WALL_CHARS = 1600000;
   var EVENTS = ["open", "close", "minimize", "restore", "maximize", "menu", "ding", "start", "exit", "empty", "error"];
   var SILENT = /[?&]silent=1(&|$)/.test(location.search);
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }
@@ -54,6 +60,16 @@ var ByopopThemes = (function () {
   function wallpaper() {
     var id = chosen(), w = readJson(WALL_KEY);
     return id !== "none" && w && w.id === id && typeof w.url === "string" && w.url.indexOf("data:image/") === 0 ? w.url : "";
+  }
+  // the game whose background is the wallpaper (the setting wallpaper "game:<id>"), or ""
+  function wallGame() {
+    try { var v = String(ByopopSettings.get("wallpaper") || ""), id = /^game:/.test(v) ? v.slice(5) : ""; return THEMES[id] && THEMES[id].wallpaper ? id : ""; }
+    catch (e) { return ""; }
+  }
+  // its prepared picture: {url, w, h}, or null
+  function gameWallpaper() {
+    var id = wallGame(), w = readJson(GAME_WALL_KEY);
+    return id && w && w.id === id && typeof w.url === "string" && w.url.indexOf("data:image/") === 0 ? { url: w.url, w: w.w || 0, h: w.h || 0 } : null;
   }
   // the chosen theme's cursor set: the game's id when its page kept one (web/cursors.js), else ""
   function cursor() {
@@ -328,23 +344,32 @@ var ByopopThemes = (function () {
     } else if (/\.jp2$/i.test(rel)) {
       picture = readFile(game, rel).then(function (b) { return G ? G.jp2(b) : null; });
     } else {
-      return readFile(game, rel).then(function (b) { return drawWallpaper(b, rel); });
+      return readFile(game, rel).then(function (b) { return drawWallpaper(b, rel, /\.(png|gif)$/i.test(rel)); });
     }
     return picture.then(function (pic) {
       if (!pic) throw new Error("no picture");
       var c = document.createElement("canvas");
       c.width = pic.width; c.height = pic.height;
       c.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(pic.rgba.buffer, pic.rgba.byteOffset, pic.rgba.length), pic.width, pic.height), 0, 0);
-      return drawWallpaper(c);
+      // a Retro64 bank's image is drawn art, kept without loss; a JPEG 2000 picture is a photograph's
+      return drawWallpaper(c, rel, bbk >= 0);
     });
   }
-  function drawWallpaper(bytes, rel) {
+  // The picture as a data URL with its size: at its own size up to WALL_MAX wide, so that it can be shown pixel-perfect; a PNG
+  // when the picture had no loss (drawn art), else a JPEG; and smaller (a JPEG, then a narrower one) when that is too long for
+  // the browser's storage, which the saves' records share
+  function drawWallpaper(bytes, rel, lossless) {
     var type = /\.png$/i.test(rel) ? "image/png" : /\.gif$/i.test(rel) ? "image/gif" : "image/jpeg";
     return (bytes instanceof HTMLCanvasElement ? Promise.resolve(bytes) : createImageBitmap(new Blob([bytes], { type: type }))).then(function (bmp) {
-      var k = Math.min(1, WALL_MAX / bmp.width), c = document.createElement("canvas");
-      c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
-      c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
-      return c.toDataURL("image/jpeg", 0.9);
+      var tries = [[WALL_MAX, lossless ? "png" : 0.92], [WALL_MAX, 0.85], [1280, 0.85]], out = null;
+      for (var i = 0; i < tries.length && !out; i++) {
+        var k = Math.min(1, tries[i][0] / bmp.width), c = document.createElement("canvas");
+        c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+        c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+        var url = tries[i][1] === "png" ? c.toDataURL("image/png") : c.toDataURL("image/jpeg", tries[i][1]);
+        if (url.length <= WALL_CHARS || i === tries.length - 1) out = { url: url, w: c.width, h: c.height };
+      }
+      return out;
     });
   }
   var preparing = "";
@@ -362,7 +387,7 @@ var ByopopThemes = (function () {
     var game = gameOf(id), t = THEMES[id];
     if (!game) return Promise.resolve(false);
     preparing = id;
-    var wall = t.wallpaper ? readWallpaper(game, t.wallpaper).catch(function () { return ""; }) : Promise.resolve("");
+    var wall = t.wallpaper ? readWallpaper(game, t.wallpaper).catch(function () { return null; }) : Promise.resolve(null);
     var sounds = {};
     var reads = Object.keys(t.sounds || {}).filter(function (e) { return EVENTS.indexOf(e) >= 0; }).map(function (e) {
       return readFile(game, t.sounds[e]).then(function (b) { if (b.length <= SOUND_MAX) sounds[e] = { rel: t.sounds[e], data: toBase64(b) }; }, function () {});
@@ -370,10 +395,34 @@ var ByopopThemes = (function () {
     return Promise.all([wall].concat(reads)).then(function (r) {
       preparing = "";
       if (chosen() !== id) return false;
-      writeJson(WALL_KEY, { id: id, url: r[0] || "" });
+      var pic = r[0];
+      if (!writeJson(WALL_KEY, { id: id, url: pic ? pic.url : "", w: pic ? pic.w : 0, h: pic ? pic.h : 0 })) writeJson(WALL_KEY, { id: id, url: "" });
       if (!writeJson(SOUND_KEY, { id: id, sounds: sounds })) writeJson(SOUND_KEY, { id: id, sounds: {} });
       changed();
       return true;
+    });
+  }
+  // Prepares the game's background chosen as the wallpaper, as prepare does the theme's; removes it when another (or none) is
+  // chosen or the game's files went
+  var preparingWall = "";
+  function prepareWall() {
+    var id = wallGame(), kept = readJson(GAME_WALL_KEY);
+    if (!id || offered().indexOf(id) < 0) {
+      if (kept) { writeJson(GAME_WALL_KEY, null); changed(); }
+      return Promise.resolve(false);
+    }
+    if (kept && kept.id === id) return Promise.resolve(true);
+    if (preparingWall === id || typeof ByopopMusic === "undefined" || !ByopopMusic.files) return Promise.resolve(false);
+    var game = gameOf(id);
+    if (!game) return Promise.resolve(false);
+    preparingWall = id;
+    return readWallpaper(game, THEMES[id].wallpaper).catch(function () { return null; }).then(function (pic) {
+      preparingWall = "";
+      if (wallGame() !== id) return false;
+      var ok = !!pic && writeJson(GAME_WALL_KEY, { id: id, url: pic.url, w: pic.w, h: pic.h });
+      if (!ok) writeJson(GAME_WALL_KEY, null);
+      changed();
+      return ok;
     });
   }
   // what the theme shows changed: the desktop's backdrop and the cursor
@@ -382,16 +431,21 @@ var ByopopThemes = (function () {
     try { ByopopCursors.apply(); } catch (e) {}
   }
   if (typeof window !== "undefined") {
-    window.addEventListener("byopop-setting", function (ev) { if (ev.detail && ev.detail.name === "theme") { changed(); prepare(); } });
-    if (document.readyState === "complete") setTimeout(prepare, 0); else window.addEventListener("load", function () { prepare(); });
+    window.addEventListener("byopop-setting", function (ev) {
+      if (ev.detail && ev.detail.name === "theme") { changed(); prepare(); }
+      if (ev.detail && ev.detail.name === "wallpaper") prepareWall();
+    });
+    if (document.readyState === "complete") setTimeout(function () { prepare(); prepareWall(); }, 0);
+    else window.addEventListener("load", function () { prepare(); prepareWall(); });
   }
   if (typeof window !== "undefined") window.addEventListener("storage", function (ev) {
-    if (ev.key === null || ev.key === WALL_KEY || ev.key === SOUND_KEY || ev.key === "byopop-settings") changed();
+    if (ev.key === null || ev.key === WALL_KEY || ev.key === SOUND_KEY || ev.key === GAME_WALL_KEY || ev.key === "byopop-settings") changed();
     if (ev.key === null || ev.key === OWN_AT) loadOwn().then(function () { try { window.dispatchEvent(new CustomEvent("byopop-own-sounds")); } catch (e) {} });
   });
   if (typeof window !== "undefined" && typeof indexedDB !== "undefined") loadOwn();
 
-  return { ids: ids, chosen: chosen, offered: offered, title: title, wallpaper: wallpaper, cursor: cursor, prepare: prepare, changed: changed,
+  return { ids: ids, chosen: chosen, offered: offered, title: title, wallpaper: wallpaper, gameWallpaper: gameWallpaper, prepareWall: prepareWall,
+    GAME_WALL_KEY: GAME_WALL_KEY, cursor: cursor, prepare: prepare, changed: changed,
     play: play, EVENTS: EVENTS, WALL_KEY: WALL_KEY, SOUND_KEY: SOUND_KEY, ownEvent: ownEvent, setOwn: setOwn, clearOwn: clearOwn,
     addOwnFiles: addOwnFiles, ownChooser: ownChooser, own: function () { return own; } };
 })();

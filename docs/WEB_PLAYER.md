@@ -521,6 +521,20 @@ laid on 1:1, so it is crisp at every scaling (the user, 2026-11-11: "The backgro
 DPI. I can hardly see any of them on my 4K, 27" display"); `--d95-dot` is the same size, for the skin's checkerboard
 fills.
 
+**A game's background as the wallpaper** (the user, 2026-11-18: "Still would like usable backgrounds from the games
+either as pixel perfect or fit to screen (no stretching)"). Before this, a game's background could be the wallpaper only
+through its desktop theme, which also changes the cursor and the sounds, and only centred, tiled or stretched. Now the
+Wallpaper list also has each game whose files are here, by its title (`game:<id>`): the background its theme names,
+prepared on the listing page like the theme's (`web/themes.js`, `prepareWall`) into `byopop-game-wallpaper`
+`{id, url, w, h}`. The picture is kept at its own size up to 2048 pixels wide, as a PNG when it had no loss (a PNG or GIF
+file, a Retro64 bank's image) and else as a JPEG, and it is made smaller only when it would not fit the browser's
+storage. Display has two more choices, for any picture (ours, the player's own, a game's, a theme's):
+**Pixel-perfect** draws the picture at the largest whole-number scale that fits the browser's window (its own size when
+even that does not fit), centred with its corner on a whole screen pixel and without smoothing, so that each of its
+pixels is a square of whole screen pixels at any `devicePixelRatio` and desktop zoom (`pictureLayer` in
+`web/schemes.js`, placed again when the window changes size). **Fit to screen** draws it as large as fits with its shape
+kept (`contain`), the desktop's colour around it.
+
 ### Desktop 95 in one page
 
 The whole site is one page, the listing's desktop (`web/deskapps.js`, `ByopopApps`). A game, its copyright page and
@@ -588,22 +602,23 @@ current player's id in `by` beside the totals, and the save backup keeps and mer
 
 ### Desktop themes
 
-Settings > Appearance > Theme (`web/themes.js`, its table `web/themedata.js`; the user, 2026-11-11) gives the desktop one
-game's look, as a 1995 Desktop Themes pack did: one of the game's own backgrounds as the wallpaper (in place of the pattern
-and wallpaper, at the wallpaper's Display), the game's own cursor set (`web/cursors.js`, once its page has kept it), and
-sounds from its soundboard for the window events that `web/skins.js` and `web/deskapps.js` send as `byopop-desk-event`
-(open, close, minimize, restore, maximize, menu, ding). A theme is listed for each game in the table whose files are in this
-browser, by the game's title. Everything comes from the player's own files at run time: the listing page, where they can be
-read, prepares the chosen theme into `byopop-theme-wallpaper` (a JPEG data URL) and `byopop-theme-sounds` (the files' bytes,
-each at most 96 KB) for every page; None, or the game's files forgotten, removes both. The sounds play at the Sounds
-window's volume and mute and never at `?silent=1`.
+Settings > Appearance > Theme (`web/themes.js`, its table `web/themedata.js`; the user, 2026-11-11) gives the desktop
+one game's look, as a 1995 Desktop Themes pack did: one of the game's own backgrounds as the wallpaper (in place of the
+pattern and wallpaper, at the wallpaper's Display, the new Pixel-perfect and Fit to screen too), the game's own cursor
+set (`web/cursors.js`, once its page has kept it), and sounds from its soundboard for the window events that
+`web/skins.js` and `web/deskapps.js` send as `byopop-desk-event` (open, close, minimize, restore, maximize, menu, ding).
+A theme is listed for each game in the table whose files are in this browser, by the game's title. Everything comes from
+the player's own files at run time: the listing page, where they can be read, prepares the chosen theme into
+`byopop-theme-wallpaper` (a data URL with its size) and `byopop-theme-sounds` (the files' bytes, each at most 96 KB) for
+every page; None, or the game's files forgotten, removes both. The sounds play at the Sounds window's volume and mute
+and never at `?silent=1`.
 
 A wallpaper the browser cannot decode as it is goes through `web/gamepics.js`: an image of a Retro64 bank (Cosmic Bugs,
 Water Bugs; the table's `"<bank>.dat|bbk:<name>"`), raw pixels that the `.bbk` index beside it places and gives a palette;
 and a JPEG 2000 picture (Bejeweled Twist's `.jp2`), by the framework's own decoder (`platform/openjpeg/JP2Decoder.cpp`) built
 on its own as `jp2.js` and `jp2.wasm` (`web/jp2/jp2_web.cpp`, about 250 KB), loaded only when such a theme is prepared.
-Both are tested by `tools/gamepicstest.js` (unit-web) on pictures made for it. The wallpaper becomes a JPEG, so a
-picture's alpha mask is not read: each wallpaper chosen has none.
+Both are tested by `tools/gamepicstest.js` (unit-web) on pictures made for it. A picture's alpha mask is not read: each
+wallpaper chosen has none.
 
 ### The screen saver
 
