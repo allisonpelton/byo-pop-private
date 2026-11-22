@@ -302,6 +302,69 @@ def puzzle_world(d, a, settle, secret=False):
         d.shot('w%d-after-warp' % world)
 
 
+def hints(d, a, settle):
+    """TOUR_HINTS=1 (puzzle tours, on the fresh board): the hint button's dialogs. "Still Solvable!" (answered by the key, as the
+    one-time boxes are), then a move that is no move of the solution (the first adjacent swap that the game takes and that the bot
+    would not make), then the hint button again: "No Longer Solvable" (or "No Hints" when the solution no longer fits the board),
+    each shot before and after the answer. The solution's own move is then played by the bot as usual."""
+    for _ in range(4000):  # the planet's intro puzzle by the bot's moves (it takes no hints), then the choice of a pod
+        m = d.bot_move()
+        if m is None:
+            d.idle(0.01)
+        else:
+            d.play_input(m['input'])
+            if m['kind'] == 'pod':
+                break
+    else:
+        raise SystemExit('no pod was chosen: ' + full.describe(d.state()))
+    settle(lambda s: s['screen'] == 'game' and s.get('phase') == 'idle' and not s['dialogs'], screens=True)
+    d.ok('wait 100')
+    m = d.bot_move()
+    while m is None or m.get('kind') != 'swap':  # the tutorial's buttons and the waits first, as the bot plays them
+        if m is None:
+            d.idle(0.01)
+        else:
+            d.play_input(m['input'])
+        m = d.bot_move()
+    (c0, r0), (c1, r1) = m['from'], m['to']  # the move's squares are [column, row]
+    pts = [st['move'] for st in m['input'] if 'move' in st]
+    (x0, y0), (x1, y1) = pts[0], pts[1]
+    cx, cy = (x1 - x0) // ((c1 - c0) or 1) if c1 != c0 else 0, (y1 - y0) // ((r1 - r0) or 1) if r1 != r0 else 0
+    cell = abs(cx) or abs(cy)
+    px = lambda r, c: [x0 + (c - c0) * cell, y0 + (r - r0) * cell]
+    settle(lambda s: s['screen'] == 'game' and s.get('phase') == 'idle' and not s['dialogs'], screens=True)
+    d.ok('wait 100')
+    hint = d.state()['widgets']['hint']
+    d.click(hint)  # a puzzle's first hint shows the solution's move at once (the hint is "accepted" while the solution fits)
+    d.ok('wait 60')
+    d.shot('hint-shown')
+    # real input only (the original has no test commands): a swap that takes nothing ("Illegal Move"; the first of the board's
+    # adjacent pairs that makes the game say so), then the hint again: the swap has withdrawn the hint's acceptance, so the game asks
+    # "Still Solvable!" (a board whose solution the player has left would say "No Longer Solvable" instead, but only a finished
+    # move can leave it; the shots of those are in the notes)
+    board = d.state()['board']
+    for r in range(7, 1, -1):
+        for c in range(7):
+            if d.state()['dialogs']:
+                break
+            d.play_input([{'move': px(r, c)}, {'click': px(r, c)}, {'move': px(r, c + 1)}, {'click': px(r, c + 1)}, {'wait': 4}])
+            d.ok('wait 60')
+        if d.state()['dialogs']:
+            break
+    d.shot('illegal-move')
+    while d.state()['dialogs']:
+        d.key('Escape')
+        d.ok('wait 60')
+    d.shot('illegal-move-closed')
+    d.click(hint)
+    d.ok('wait 60')
+    d.shot('hint-still')
+    while d.state()['dialogs']:
+        d.key('Escape')
+        d.ok('wait 60')
+    d.shot('hint-still-closed')
+
+
 def finale(d, a, settle):
     """TOUR_FINALE=1 (with TOUR_DOME=1, TOUR_WORLDS=1 and a player on the galaxy's last planet, make_gapprofile.py --puzzle 75): after the
     last warp the credits roll over the finale's scenery ("GALAXY COMPLETED", then the "Back to Main Menu" link at update 1700 of its
@@ -411,6 +474,8 @@ def tourmode(d, a):
             for k in range(int(os.environ.get('TOUR_LEVEL_SHOTS', '5'))):
                 d.ok('wait %d' % int(os.environ.get('TOUR_LEVEL_STEP', '40')))
                 d.shot('level%s-%d' % (level, k))
+    if mode in full.PUZZLE_MODES and os.environ.get('TOUR_HINTS'):
+        hints(d, a, settle)
     if mode in full.PUZZLE_MODES and os.environ.get('TOUR_DOME'):
         puzzle_world(d, a, settle, secret=(mode == 'cognito'))
         if os.environ.get('TOUR_FINALE'):
