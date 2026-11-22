@@ -32,8 +32,9 @@
 //   when    {"<file name>#<n>" ...: "<when>"}: exactly when the game's code plays it, as numbers (levels, orders, updates), the
 //           place's tooltip
 //   composer  who wrote the music, by the game's own credits (its credits screen, text or exe; a company where they name no
-//           person); none for a game whose credits name nobody for it, shown as Unknown. composers {"<id>": "<name>"} where
-//           the credits split the music by tune (Heavy Weapon's love theme)
+//           person), or where they name nobody by the user's word (2026-11-19, cited at the entry); none shown as Unknown. One
+//           form for a person across the site: "Peter Hajba (Skaven)". composers {"<id>": "<name>"} where the music is split by
+//           tune (Heavy Weapon's love theme)
 //   voices  true for a game that plays its tunes as sounds, not as the mixer's songs (Venice): Music follows the one playing
 //           among its voices (web/music.js, voiceTune)
 //   level   the level the game plays its modules at, where it is not the renderer's own (platform/MusicLevels.h):
@@ -44,6 +45,9 @@
 var ByopopSoundtracks = {
   // Places and unused tunes from each port's code (the coordinator's reading, 2026-11-11); a place only inferred is left blank
   alchemy: {
+    // the user, 2026-11-19: "Seven Seas credit goes to Peter Hajba as well as the original Bejeweled and Alchemy" (Alchemy's
+    // In-Game tune, "He Has No Face", is one of his own works from before the game: the user, 2026-11-16)
+    composer: "Peter Hajba (Skaven)",
     files: ["music/*.s3m"],
     where: { "alch_intro#0": "Title Screen", "1985-hehasnoface#0": "In-Game" },
     order: ["alch_intro#0", "1985-hehasnoface#0"],
@@ -89,6 +93,8 @@ var ByopopSoundtracks = {
     unused: ["atomica#1", "atomica#4", "atomica#6"]
   },
   bejeweled: {
+    // the user, 2026-11-16: "Bejeweled's composer is listed as unknown. It is rather famously Skaven."; and 2026-11-19
+    composer: "Peter Hajba (Skaven)",
     files: ["music/*.s3m"],
     where: { "1980-Autonomus#0": "Title Screen", "1984-Network#0": "Normal Mode", "1981-DataJack#0": "Timed Mode" },
     order: ["1980-Autonomus#0", "1984-Network#0", "1981-DataJack#0"],
@@ -102,7 +108,7 @@ var ByopopSoundtracks = {
   // one module, BeyondNetwork.mo3: the game plays it from a starting order for each screen (properties/music.xml), so its
   // subsongs are the tunes
   bejeweled2: {
-    composer: "Skaven",
+    composer: "Peter Hajba (Skaven)",
     files: ["music/*.mo3"],
     starts: { "BeyondNetwork#1": [122] },
     where: { "BeyondNetwork#1": "Classic Mode", "BeyondNetwork#1@122": "Action Mode", "BeyondNetwork#2": "Main Menu", "BeyondNetwork#5": "Title Screen",
@@ -158,7 +164,7 @@ var ByopopSoundtracks = {
       "bejewel twist 06.10#13", "bejeweledtwist24#8"]
   },
   bigmoney: {
-    composer: "Skaven",
+    composer: "Peter Hajba (Skaven)",
     files: ["music/*.it"],
     cuts: { "QualityTime_BigMoney#1": [24], "QualityTime_BigMoney#3": [41], "QualityTime_BigMoney#5": [64] },
     where: { "QualityTime_BigMoney#0": "Puzzle Mode", "QualityTime_BigMoney#1": "Puzzle Level Up", "QualityTime_BigMoney#1@24": "Puzzle Pause",
@@ -183,7 +189,7 @@ var ByopopSoundtracks = {
     },
   },
   bookworm: {
-    composer: "Skaven",
+    composer: "Peter Hajba (Skaven)",
     files: ["music/*.mo3"],
     where: { "bookworm1#0": "Classic Mode", "bookworm1#1": "Title Screen", "bookworm1#2": "Action Mode",
       "bookworm1#3": "Danger 1", "bookworm1#4": "Hall of Fame", "bookworm1#5": "Game Over 2", "bookworm1#6": "Game Over 1",
@@ -266,7 +272,7 @@ var ByopopSoundtracks = {
     },
   },
   dynomite: {
-    composer: "Skaven",
+    composer: "Peter Hajba (Skaven)",
     files: ["music/*.it"],
     cuts: { "amazonas#2": [64] },
     // the places from the Dynomite session (2026-11-11): #2@64 is where the won challenge starts, and the game over (#2) and
@@ -291,6 +297,7 @@ var ByopopSoundtracks = {
     unused: ["amazonas#3", "amazonas#9"]
   },
   sevenseas: {
+    composer: "Peter Hajba (Skaven)",  // the user, 2026-11-19 (Alchemy's entry)
     files: ["music/*.it"],
     where: { "game#0": "In-Game", "game#1": "Level Complete", "game#2": "Game Over", "game#3": "Treasure Bonus",
       "game#4": "Bonus End", "game#5": "Tutorial", "game#6": "Title Screen", "game#7": "Intro", "game#8": "High Scores",
@@ -357,6 +364,7 @@ var ByopopSoundtracks = {
   // Po its one music stream and three jingles in its Python archive; the layout select's tune turns with each visit (LayoutSelect's
   // gMusicTurn): China 338, 336, 337, Japan 337, 336, 337, numbered as the game reaches them
   mahjongchina: {
+    composer: "Lin Gardiner",  // the user, 2026-11-19: "Lin Gardiner was the composer for Mahjong Escape"
     inside: [{ file: "resource.dll", magic: "MO3" }],
     chains: { "Resource 339#0": ["Resource 339#1", "Resource 339#2", "Resource 339#3"] },
     where: { "Resource 335#0": "Main Menu", "Resource 338#0": "Layout Select 1", "Resource 336#0": "Layout Select 2",
@@ -371,6 +379,7 @@ var ByopopSoundtracks = {
     },
   },
   mahjongjapan: {
+    composer: "Lin Gardiner",  // the user, 2026-11-19: "Lin Gardiner was the composer for Mahjong Escape"
     inside: [{ file: "resource.dll", magic: "MO3" }],
     chains: { "Resource 339#0": ["Resource 339#1", "Resource 339#2", "Resource 339#3"] },
     where: { "Resource 335#0": "Main Menu", "Resource 337#0": "Layout Select 1", "Resource 336#0": "Layout Select 2",
@@ -402,7 +411,10 @@ var ByopopSoundtracks = {
       "intenseEnd": "The game-over results show (or the congratulations screen after mode 0's last level)"
     },
   },
-  ningpo: { inside: [{ file: "ningpo.pyz", zip: ["theme_np.ogg", "nm_splash.ogg", "nm_gameover.ogg", "nm_youwin.ogg"] }],
+  ningpo: {
+    // the user, 2026-11-19: "Ian Livingstone was the composer for Ning Po, Noah's Ark, Rocket Mania, Pixelus, and Hammer Heads"
+    composer: "Ian Livingstone",
+    inside: [{ file: "ningpo.pyz", zip: ["theme_np.ogg", "nm_splash.ogg", "nm_gameover.ogg", "nm_youwin.ogg"] }],
     where: { theme_np: "In-Game", nm_splash: "Splash Screen", nm_gameover: "Game Over", nm_youwin: "Victory" },
     order: ["nm_splash", "theme_np", "nm_youwin", "nm_gameover"],
     when: {
@@ -449,6 +461,7 @@ var ByopopSoundtracks = {
   },
   // Noah's Ark: mainintro plays once as play starts and runs on into mainloop, which loops: one tune, repeating from the loop
   noahsark: {
+    composer: "Ian Livingstone",  // the user, 2026-11-19 (Ning Po's entry)
     files: ["music/loading.ogg", "music/gameover.ogg"],
     joined: [{ id: "mainloop", pieces: ["music/mainintro.ogg", "music/mainloop.ogg"], loopFrom: 1 }],
     where: { mainloop: "In-Game", loading: "Title Screen", gameover: "Game Over" },
@@ -537,6 +550,7 @@ var ByopopSoundtracks = {
   },
   // Pixelus and Rocket Mania join their in-game (and Rocket Mania its menu) music from pieces by a playlist, as the games do
   pixelus: {
+    composer: "Ian Livingstone",  // the user, 2026-11-19 (Ning Po's entry)
     files: ["music/pixelus *.ogg"],
     joined: [{ playlist: "music/pixelus in-game playlist.txt", piece: "music/{}.ogg" }],
     where: { "pixelus main menu loop v02": "Main Menu", "pixelus story screen loop v01": "Story Screen",
@@ -551,6 +565,7 @@ var ByopopSoundtracks = {
     },
   },
   rocketmania: {
+    composer: "Ian Livingstone",  // the user, 2026-11-19 (Ning Po's entry)
     files: ["music/* loop *.ogg"],
     joined: [{ playlist: "music/tubetricks menu one v02 playlist.txt", piece: "music/tubetricks menu one v02 {}.ogg" },
       { playlist: "music/tubetricks in-game one v02 playlist.txt", piece: "music/tubetricks in-game one v02 {}.ogg" }],
@@ -566,8 +581,10 @@ var ByopopSoundtracks = {
     },
   },
   // Hammer Heads' four tracks, one a screen (Application::StartMusic, games/hammerheads/src/Application.cpp: a track fades in
-  // over the others, and one already playing goes on where it was). Its credits name its developers and nobody for the music
+  // over the others, and one already playing goes on where it was). Its credits name its developers and nobody for the music;
+  // the user named its composer
   hammerheads: {
+    composer: "Ian Livingstone",  // the user, 2026-11-19 (Ning Po's entry)
     files: ["sounds/Music - *.ogg"],
     where: { "Music - Loading and Menu": "Main Menu", "Music - In-Game": "In-Game", "Music - Bonus Game": "Bonus Round",
       "Music - High Score": "Trophy Room" },
