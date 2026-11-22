@@ -643,6 +643,9 @@ game.files.forget_ask = This removes the copied game files from the browser. Sav
 game.files.forget_ask_running = This removes the copied game files from the browser. Saves and mods stay. The
   game closes first; a game in progress is saved.
 game.files.remove = Remove files
+game.files.cancel = Cancel
+game.menu.reimport = Import game files again...
+game.menu.forget = Forget game files...
 
 game.settings.title = Settings
 game.settings.close = Close

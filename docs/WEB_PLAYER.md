@@ -371,7 +371,10 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
 
 The game
 window's menu bar spreads the game's commands over Game, View, Options and Help (the user, 2026-11-09: "don't hide
-everything under "Game""), and no menu shows Alt+F4 or Alt+Space, which the browser keeps. The game is always at a
+everything under "Game""), and no menu shows Alt+F4 or Alt+Space, which the browser keeps. Game holds the game's files' two actions
+itself, Import game files again... and Forget game files... (the user, 2026-11-21: ""Game files" under Game is just two
+buttons that could be moved directly into the tab"), and their questions come in the desktop's message box
+(`ByopopApps.ask`) with Cancel; the Game files window is in the menu only while files were missing, for their list. The game is always at a
 whole multiple of its size in device pixels (`sizeStage`). A multiple chosen in the View menu is drawn only while the desktop
 has room for its window; otherwise the game is drawn at the largest multiple that fits, or at 1x with the window scrolling
 when not even that fits, and the choice is kept, so the game goes back to it when there is room (`embedWidth`,

@@ -865,10 +865,17 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
       return { label: b ? b.textContent : (p.getAttribute("data-button") || p.querySelector("h2").textContent), fn: function () { ByopopSkin.desk.openWin(id); } };
     }
     var game = [], options = [], view = [];
-    // Game: the game's files, its controls and any window of the game's own (page.html)
+    // Game: the game's files, its controls and any window of the game's own (page.html). The files' two actions are the menu's
+    // own entries (the user, 2026-11-21: ""Game files" under Game is just two buttons that could be moved directly into the
+    // tab"), whose questions the desktop's message box asks (ask); the Game files window stays for its list of missing files
     PANELS.forEach(function (id) {
       if (id === "panel-mods" || id === "panel-settings") return;
       var e = panel(id);
+      if (e && id === "panel-files") {
+        game.push({ label: T("game.menu.reimport"), fn: function () { $("btn-reimport").click(); } });
+        game.push({ label: T("game.menu.forget"), fn: function () { $("btn-forget").click(); } });
+        if (!missingFiles.length) return;
+      }
       if (e) game.push(e);
     });
     ["panel-mods", "panel-settings"].forEach(function (id) { var e = panel(id); if (e) options.push(e); });
@@ -2086,9 +2093,15 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     }
     whenSaved(function () { then(null); });
   }
-  // A question under the panel's buttons, with the button that answers it (none: just the text)
+  // A question under the panel's buttons, with the button that answers it (none: just the text). Asked from the game window's
+  // Game menu on the one page, with the panel closed, it is the desktop's message box, with Cancel (web/deskapps.js, ask)
   var askAction = null;
   function ask(text, label, action) {
+    var P = desktopApps();
+    if ($("panel-files").hidden && P && P.ask) try {
+      P.ask(window, text, action ? [{ label: label, fn: action }, { label: ByopopStrings.t("game.files.cancel") }] : null);
+      return;
+    } catch (e) {}
     askAction = action;
     $("files-ask-text").textContent = text;
     $("btn-files-yes").textContent = label || "";
