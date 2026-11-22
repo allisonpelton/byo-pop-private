@@ -1,6 +1,7 @@
 #include "BugShared.h"
 
 #include "BugImg.h"
+#include "FillObj.h"
 #include "PipeObj.h"
 
 using namespace Sexy;
@@ -196,6 +197,14 @@ void Sexy::BugSharedImgSlot13(BugImg* theBody, AnimKey* theDanceKey, int theDanc
 		return;
 	}
 	theDanceKey->SetDuration(0);
+}
+
+FillGridCell* Sexy::BugFlatGridCell(int theColumn, int theRow)
+{
+	int anIndex = theColumn * FILL_GRID_ROWS + theRow;
+	if (anIndex < 0 || anIndex >= FILL_GRID_COLUMNS * FILL_GRID_ROWS)
+		return nullptr;
+	return &gFillGrid[0][0] + anIndex;
 }
 
 // The post's link in a heading (PipeObj keeps them in the order up, right, down, left; the original indexes them at +0x290)

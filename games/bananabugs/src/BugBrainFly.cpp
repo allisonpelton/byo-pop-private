@@ -74,17 +74,6 @@ static const float FADE_OUT_ALPHA = -1.0f;
 static const float FADE_OUT_SCALE_Y = -0.6f;
 static const double FADE_OUT_DROP = 20.0;              // the last key is 20 pixels lower than the tumble's (0x5e6ff0)
 
-// The original indexes the grid as one table (column times 32, plus row): a row up to 39 (the flies check against 0x27 and
-// 0x28, not the 32 rows there are) is a place of the next column. Reads that fall past the table's end are the original's
-// reading of memory beside the grid (port: none, the caller takes the place as blocked)
-static FillGridCell* FlatGridCell(int theColumn, int theRow)
-{
-	int anIndex = theColumn * FILL_GRID_ROWS + theRow;
-	if (anIndex < 0 || anIndex >= FILL_GRID_COLUMNS * FILL_GRID_ROWS)
-		return nullptr;
-	return &gFillGrid[0][0] + anIndex;
-}
-
 // 0x4198c0: SetKind (the kind, and the places its box covers each way), no body yet, nothing placed, flying, a heading at random
 BugBrainFly::BugBrainFly()
 {
@@ -169,7 +158,7 @@ bool BugBrainFly::Update()
 				int aRow = (int)(mState[STATE_Y] / GRID_CELL);
 				FillGridCell* aCell = nullptr;
 				if ((unsigned)aColumn <= 0x27u && (unsigned)aRow <= 0x27u)
-					aCell = FlatGridCell(aColumn, aRow);
+					aCell = BugFlatGridCell(aColumn, aRow);
 				if (aCell == nullptr || aCell->mCell->mCut || aCell->mPipe->IsActive())
 					Zap(true, true, false);
 			}
@@ -197,7 +186,7 @@ void BugBrainFly::Notify(ObjBase* theObj)
 		int aRow = (int)(mState[STATE_Y] / GRID_CELL);
 		FillGridCell* aCell = nullptr;
 		if ((unsigned)aColumn <= 0x27u && (unsigned)aRow <= 0x27u)
-			aCell = FlatGridCell(aColumn, aRow);
+			aCell = BugFlatGridCell(aColumn, aRow);
 		if (aCell == nullptr || aCell->mCell->mCut || aCell->mPipe->IsActive()) {
 			Zap(true, true, false);
 			return;
@@ -261,7 +250,7 @@ int BugBrainFly::TakeCommand()
 	int aRow = (int)(mState[STATE_Y] / GRID_CELL);
 	FillGridCell* aCell = nullptr;
 	if ((unsigned)aColumn <= 0x27u && (unsigned)aRow <= 0x27u)
-		aCell = FlatGridCell(aColumn, aRow);
+		aCell = BugFlatGridCell(aColumn, aRow);
 	if (aCell == nullptr || aCell->mCell->mCut || aCell->mPipe->IsActive())
 		Zap(true, true, false);
 	return aCommand;
@@ -420,7 +409,7 @@ bool BugBrainFly::IsBlockedAhead()
 		Zap(true, true, false);
 		return false;
 	}
-	FillGridCell* aCell = FlatGridCell(aColumn, aRow);
+	FillGridCell* aCell = BugFlatGridCell(aColumn, aRow);
 	// port (crash): the original reads the place the table's end gives for the 41st column; here it is taken as not blocked
 	if (aCell == nullptr || aCell->mPipe->IsActive())
 		return false;

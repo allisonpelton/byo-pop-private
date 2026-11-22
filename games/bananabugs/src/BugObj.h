@@ -1,5 +1,5 @@
 // BugObj: the base of every bug's brain (0x425150..0x426990 in the original; the kinds' brains, BugBrainAnt (0x413f90) to
-// BugBrainSkeeter (0x41def0), are translated one by one: the ant, the beetle, the caterpillar, the centipede, the skeeter, the roach and the roly-poly are; the rest stand in Pending.h). A bug is made, set up, then put on a place
+// BugBrainSkeeter (0x41def0), are translated one by one: all eleven are). A bug is made, set up, then put on a place
 // of the level's grid; from then on it is updated once a frame (every frame, or fewer while a bonus slows the bugs),
 // keeps its place in the grid's lists as it moves, and dies when the rope or a pea touches it, when the cell it stands
 // beside is cut, or when a bonus kills it. The brain owns a body (BugImg, 0x41f3d0, the thing drawn: mBody) whose kind

@@ -27,9 +27,6 @@ static Anim* sSlotSpinAnim;          // 0x67021c
 static Anim* sSlotNumbersAnim;       // 0x670220
 static Anim* sSlotShineAnim;         // 0x670224
 static Anim* sInGameButtonsAnim;     // 0x670188
-static Anim* sMothDanceAnim;         // 0x60e294
-static Anim* sMothAnim;              // 0x60e298
-static Anim* sWaspAnim;              // 0x60e268
 static Anim* sCocoBombAnim;          // 0x60e1a8
 static Anim* sMissileAnim;           // 0x60e1ac
 static Anim* sCannonAnim;            // 0x60e1b0
@@ -115,22 +112,6 @@ void Sexy::PreloadInGameButtons()
 	sInGameButtonsAnim = Load("images/menu/ingame_buttons", 0x167, 0x67, 3);
 }
 
-void Sexy::PreloadMoth()
-{
-	sMothDanceAnim = Load("images/moth_dance", 0x60, 0x60, 0x1e);
-	sMothAnim = Load("images/moth", 0x60, 0x60, 2);
-}
-
-void Sexy::PreloadWasp()
-{
-	sWaspAnim = Load("images/wasp", 0x5f, 0x5f, 0x1e);
-}
-
-// port: the moths' paths (two "images/path_moth" tables) are not translated yet
-void Sexy::PreloadMothPaths()
-{
-}
-
 void Sexy::PreloadBonusPictures()
 {
 	sCocoBombAnim = Load("images/cocobomb", 0, 0, 1, true);
@@ -167,18 +148,6 @@ void BonusCoin::Place(int theColumn, int theRow)
 
 void HiddenBonus::Uncover()
 {
-}
-
-// The kinds of bug: stand-ins (see Pending.h). The kind each sets is BugKind; the moth sets the fly's number 7 in the
-// original too (a bug of the original: nothing reads the difference in what is translated)
-BugBrainMoth::BugBrainMoth() // 0x41af60
-{
-	SetKind(7, 2, 1);
-}
-
-BugBrainBee::BugBrainBee() // 0x414fa0
-{
-	SetKind(10, 2, 1);
 }
 
 BoltObj::BoltObj(int theSegments)

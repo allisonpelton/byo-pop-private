@@ -5,7 +5,9 @@
 #include "BugBrainCaterpillar.h"
 #include "BugBrainCentipede.h"
 #include "BugBrainDragonfly.h"
+#include "BugBrainBee.h"
 #include "BugBrainFly.h"
+#include "BugBrainMoth.h"
 #include "BugBrainRoach.h"
 #include "BugBrainRolly.h"
 #include "BugBrainSkeeter.h"
@@ -1425,7 +1427,7 @@ void LevelObj::PickBugKinds()
 }
 
 // The bug of a kind, made by that kind's constructor (the switch of 0x43c600; 0x43acc0 makes three of the kinds by the same
-// constructors). The kinds are stand-ins (Pending.h) until they are translated
+// constructors)
 static BugObj* NewBugOfKind(int theKind)
 {
 	switch (theKind) {

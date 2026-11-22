@@ -8,6 +8,8 @@
 namespace Sexy
 {
 
+struct FillGridCell;
+
 // The headings (BugObj::mHeading), as PipeObj's links are numbered
 enum BugHeading
 {
@@ -60,6 +62,10 @@ void BugSharedImgNotify(BugImg* theBody, ObjBase* theObj, int theTrack); // 0x42
 
 // The helpers
 PipeObj* BugPostLink(PipeObj* thePost, int theHeading);            // the post's link in a heading (the original indexes them at +0x290)
+// The grid as the flies and the moths read it (their checks run to the 40th row, not the 32 there are): the original
+// indexes it as one table (column times 32, plus row), so a row up to 39 is a place of the next column. A place past the
+// table's end is the original's reading of memory beside the grid (port: none, the caller takes the place as blocked)
+FillGridCell* BugFlatGridCell(int theColumn, int theRow);
 float BugHeadingAngle(int theHeading);                             // 0x41d3b0
 float BugTurnAngle(int theHeading, int theNextHeading, float theBase); // 0x417b90
 

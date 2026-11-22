@@ -28,12 +28,6 @@ public:
 	void Uncover();                             // 0x409bf0
 };
 
-// The kinds of bug (the brains, BugBrain* in the original, derived from BugObj) not translated yet (the moth and the bee): each stand-in is made
-// by the kind's constructor address, sets what that constructor gives BugObj with SetKind (kind, half-width, half-height) and
-// does nothing else, so it has no body and never moves. Setup, Update and Zap are BugObj's
-class BugBrainMoth : public BugObj { public: BugBrainMoth(); };         // 0x41af60
-class BugBrainBee : public BugObj { public: BugBrainBee(); };           // 0x414fa0
-
 // The bolt of light that runs down a pipe (0x405fb0; 0x520 bytes in the original); the stand-in draws nothing
 class BoltObj : public ObjBase
 {
@@ -171,9 +165,6 @@ void PreloadNetFly();        // 0x42ad40
 void PreloadWalkThru();      // 0x4756d0
 void PreloadSlots();         // 0x46c710
 void PreloadInGameButtons(); // 0x4558f0
-void PreloadMoth();          // 0x423d10
-void PreloadWasp();          // 0x420b30
-void PreloadMothPaths();     // 0x41c470
 void PreloadBonusPictures(); // 0x406dd0
 void InitBonusTable();       // 0x40af90
 void PreloadSpinStars();     // 0x41f980
