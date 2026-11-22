@@ -96,6 +96,10 @@ public:
 	void ShowPlayMenu();
 	// port: the standard test commands (docs/TEST_COMMANDS.md): seed, state, goto classic
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port: test only (the `name` command). A name typed into the new user dialog and its OK pressed, as a player does: at once when the
+	// dialog is open, else when the welcome dialog opens (a game with a player already has no such dialog and the command does nothing)
+	std::string mScriptName;
+	void EnterScriptName();
 
 	// 0x76aaf0 (bejeweled3): plays a sound of the sound manager at a volume, pan and pitch (steps); nothing when muted
 	void PlaySoundEx(int theSoundId, double theVolume, int thePan, double thePitch);

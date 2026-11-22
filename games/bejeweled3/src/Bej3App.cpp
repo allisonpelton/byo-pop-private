@@ -206,6 +206,19 @@ void Bej3App::DoWelcomeDialog()
 		mArtRes * 400 / 0x4b0);
 	AddDialog(aDialog);
 	mWidgetManager->SetFocus(aDialog->mEdit);
+	EnterScriptName();
+}
+
+// port: test only. The new user dialog (id 1) gets the name a script gave, typed into its box, and its OK is pressed (the box's Enter,
+// 0x673b80, does the same), so the game goes on as for a player who has typed a name: the profile is made and the dialog fades out
+void Bej3App::EnterScriptName()
+{
+	NewUserDialog* aDialog = dynamic_cast<NewUserDialog*>(GetDialog(1));
+	if (mScriptName.empty() || aDialog == nullptr)
+		return;
+	aDialog->mEdit->mString = mScriptName;
+	mScriptName.clear();
+	aDialog->ButtonDepress(Dialog::ID_YES);
 }
 
 // 0x76cd70: the original makes its CustomBassMusicInterface when the framework asks for the music interface

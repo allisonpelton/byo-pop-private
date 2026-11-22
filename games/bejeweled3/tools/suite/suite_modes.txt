@@ -1,4 +1,5 @@
 10 seed 7
+11 name Tester
 1200 goto zen
 1600 bot 150
 6900 state

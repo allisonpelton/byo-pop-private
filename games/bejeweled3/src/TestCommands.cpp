@@ -3,11 +3,13 @@
 // it has done its work, ERROR <command>: <reason> when it cannot.
 #include "Bej3App.h"
 
+#include "Bej3Dialog.h"
 #include "Board.h"
 #include "Common.h"
 #include "LightningBoard.h"
 #include "MainMenu.h"
 #include "PlayMenu.h"
+#include "Profile.h"
 
 #include <SDL.h>
 
@@ -97,6 +99,19 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 			return true;
 		}
 		SRand((ulong)strtoul(theCommand.mArgs.c_str(), nullptr, 10));
+		ReplyOK(theCommand);
+		return true;
+	}
+	if (aCommand == "name") {
+		// the first player's name, as typed into the welcome dialog (a folder with a player already has none: nothing happens)
+		if (theCommand.mArgs.empty()) {
+			ReplyError(theCommand, "a name is needed");
+			return true;
+		}
+		if (mProfile != nullptr && mProfile->mName.empty()) {
+			mScriptName = theCommand.mArgs;
+			EnterScriptName();
+		}
 		ReplyOK(theCommand);
 		return true;
 	}

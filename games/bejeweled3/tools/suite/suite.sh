@@ -7,12 +7,14 @@
 # Hypercube is made), then a Lightning game played by the bot through two Last Hurrahs to its end. The two runs' state lines and
 # their screenshots (all but the menu's) must be the same, and the state lines must match the frozen hashes below (update one, with
 # the reason in the commit, when a translation changes the game's state).
+# Both scripts start with `name Tester` (the welcome dialog's own OK with a typed name), so the end dialogs can open; the hashes
+# changed once for that (the extra OK line and the endscreen key) and are frozen again.
 set -u
 OUT="$1"
 EXE="${2:-build/native/bejeweled3.exe}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
-FROZEN="bfe5c9c6bf24"
-FROZEN_MODES="1cea5002c0e6"
+FROZEN="51086c43ed2a"
+FROZEN_MODES="94f857c247d1"
 SHOTS="classic play specials gameover"  # compared; menu.png is only kept to look at: the menu opens after the
 # loading, which runs at the machine's speed, so its dialog and balls stand at a different point of their animation each run
 mkdir -p "$OUT"
@@ -32,6 +34,7 @@ e="$(run game)"; [ "$e" -eq 0 ] || fail="$fail exit($e)"
 grep -q '^ERROR' "$OUT/game/states.txt" && fail="$fail command($(grep -m1 '^ERROR' "$OUT/game/states.txt" | cut -c1-80))"
 [ "$(grep -c '^STATE ' "$OUT/game/states.txt")" = 3 ] || fail="$fail statelines"
 grep '^STATE ' "$OUT/game/states.txt" | tail -n 1 | grep -q '"gameover":1' || fail="$fail nogameover"
+grep '^STATE ' "$OUT/game/states.txt" | tail -n 1 | grep -q '"endscreen":1' || fail="$fail noendscreen"
 e="$(run rerun)"; [ "$e" -eq 0 ] || fail="$fail rerun-exit($e)"
 cmp -s "$OUT/game/states.txt" "$OUT/rerun/states.txt" || fail="$fail rerun-states"
 for s in $SHOTS; do
@@ -43,6 +46,7 @@ grep -q '^ERROR' "$OUT/modes/states.txt" && fail="$fail modes-command($(grep -m1
 [ "$(grep -c '^STATE ' "$OUT/modes/states.txt")" = 5 ] || fail="$fail modes-statelines"
 grep '^STATE ' "$OUT/modes/states.txt" | sed -n 2p | grep -q '"gameover":0' || fail="$fail zen-gameover"
 grep '^STATE ' "$OUT/modes/states.txt" | tail -n 1 | grep -q '"gameover":1' || fail="$fail lightning-nogameover"
+grep '^STATE ' "$OUT/modes/states.txt" | tail -n 1 | grep -q '"endscreen":1' || fail="$fail lightning-noendscreen"
 e="$(run modesrerun suite_modes.txt)"; [ "$e" -eq 0 ] || fail="$fail modesrerun-exit($e)"
 cmp -s "$OUT/modes/states.txt" "$OUT/modesrerun/states.txt" || fail="$fail modesrerun-states"
 for s in zen lightning; do
