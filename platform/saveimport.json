@@ -263,6 +263,15 @@
         { "from": "Data/HighScores.dat", "to": "Data/HighScores.dat", "what": "the high scores" }
       ]
     },
+    "bejeweled3": {
+      "folder": "Bejeweled 3",
+      "steam": "Bejeweled 3",
+      "files": [
+        { "from": "users/users.dat", "to": "users/users.dat", "what": "the list of players" },
+        { "from": "users/hiscores.dat", "to": "users/hiscores.dat", "what": "the high scores" },
+        { "from": "users/*/profile.dat", "to": "users/*/profile.dat", "what": "a player" }
+      ]
+    },
     "bejeweledtwist": {
       "folder": "Bejeweled Twist",
       "steam": "Bejeweled Twist",

@@ -51,6 +51,8 @@ the visible desktop, Windows Sandbox or sound may have them at any hour (the las
   that still refuses outside 22:00-08:00 is out of date: drop its guard. Everything else holds: 10 processes, no link
   clicks, a window opened without taking the focus, the user's cursor and keyboard never touched (input posted to the
   game's window), window, registry and saves put back, nothing left running. `ORACLE_VISIBLE=1` stays the user's.
+  Desktop runs keep to the right half of the screen, up to four windows at once, none overlapping (the user,
+  2026-11-22, "Right half, four"; `docs/RULES.md`).
 
 ## Token economy
 
