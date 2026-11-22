@@ -14,13 +14,15 @@
 // afresh. When a game ends the frame starts another.
 var ByopopSaver = (function () {
   "use strict";
-  // the games whose port answers `move` (docs/TEST_COMMANDS.md, "The bot behind move") and whose state names the mode that
-  // ?begin=mode starts (Pixelus's since dff4920a: before it named none, its frame stayed on the title; the user, 2026-11-13)
+  // the games whose port answers `move` (docs/TEST_COMMANDS.md, "The bot behind move") and which can be lost (the user, 2026-11-19:
+  // "Screen saver should only be for games with a losing condition"): a game its bot never loses would hold one game on the screen
+  // for good. So Pixelus (puzzles, nothing to lose), Mummy Maze (being caught only brings "try again", and its bot is a perfect
+  // solver) and both Mahjong Escapes (no board is ever lost) are not here.
   var BOTS = ["alchemy", "astropop", "atomica", "bejeweled", "bejeweled2", "bejeweledtwist", "bigmoney", "bookworm", "bookwormadv",
-    "bookwormadv2", "cosmicbugs", "dynomite", "mummymaze", "ningpo", "noahsark", "pixelus", "rocketmania", "sevenseas", "tiptop",
-    "typershark", "waterbugs", "wordharmony"];
+    "bookwormadv2", "cosmicbugs", "dynomite", "ningpo", "noahsark", "rocketmania", "sevenseas", "tiptop", "typershark", "waterbugs",
+    "wordharmony"];
   var WAITS = ["1", "2", "3", "5", "10", "15", "20", "30", "60"];
-  var ids = ["none"].concat(BOTS);
+  var ids = ["none", "random"].concat(BOTS);
   var PROFILE = "-saver";
   // deletes the saver's profile of the game whose database is persist (web/shell.html, PERSIST); a frame still open on it holds the
   // deletion back until it closes, and a frame opened after it gets the profile afresh
@@ -37,28 +39,41 @@ var ByopopSaver = (function () {
     if (!dev()) return [];
     return BOTS.filter(function (id) { try { return ByopopGameFiles.present(ByopopGameFiles.all()[id]); } catch (e) { return false; } });
   }
-  function chosen() { try { var v = ByopopSettings.get("saver"); return offered().indexOf(v) >= 0 ? v : "none"; } catch (e) { return "none"; } }
+  // "random" (the user, 2026-11-19: "Add an option for the screensaver to pick a random game each time and switch games upon losing
+  // (thus actually *saving* the screen from burn-in)"): a game drawn from those offered, and another drawn once it is lost or over.
+  // It is offered once there are two games to draw from.
+  function valid(v) { var o = offered(); return v === "random" ? o.length > 1 : o.indexOf(v) >= 0; }
+  function chosen() { try { var v = ByopopSettings.get("saver"); return valid(v) ? v : "none"; } catch (e) { return "none"; } }
   function waitMs() { var m = 5; try { m = parseInt(ByopopSettings.get("saverWait"), 10) || 5; } catch (e) {} return m * 60000; }
   function tileOf(id) { return document.querySelector('a.tile[data-game="' + String(id).replace(/[^a-z0-9_-]/g, "") + '"]'); }
   function pageOf(id) { var t = tileOf(id); return t ? t.getAttribute("href") : id + ".html"; }
   function persistOf(id) { var t = tileOf(id); return t ? t.getAttribute("data-persist") : null; }
+  function frameSrc(id) { return new URL(pageOf(id), location.href).pathname + "?player=1&silent=1&saver=1&driver=move&begin=mode&steps=100000"; }
 
-  var shade = null, frame = null, timer = null, startedAt = 0, playing = null;
-  // the games whose profile a run that went wrong has wiped while this page is open: each is wiped once, and a second such run is
-  // left on the screen it stopped at
-  var wiped = {};
+  // playing: the game in the frame; shuffled: drawn for "random"
+  var shade = null, frame = null, timer = null, startedAt = 0, playing = null, shuffled = false;
+  // the games whose profile a run that went wrong has wiped while this page is open: each is wiped once. A second such run is left
+  // on the screen it stopped at; with "random" the game is left out of the draw instead, until this page is opened again.
+  var wiped = {}, broken = {};
+  // a game for "random": any offered but the one just played (and those broken), or null when there is none
+  function draw(not) {
+    var o = offered().filter(function (id) { return id !== not && !broken[id]; });
+    return o.length ? o[Math.floor(Math.random() * o.length)] : null;
+  }
   function running() { return !!shade; }
-  function start(id) {
-    id = id || chosen();
-    if (shade || id === "none" || offered().indexOf(id) < 0) return false;
-    playing = id;
+  function start(choice) {
+    choice = choice || chosen();
+    if (shade || choice === "none" || !valid(choice)) return false;
+    shuffled = choice === "random";
+    playing = shuffled ? draw(null) : choice;
+    if (!playing) return false;
     shade = document.createElement("div");
     shade.className = "saver-shade";
     frame = document.createElement("iframe");
     frame.className = "saver-frame";
     frame.setAttribute("aria-hidden", "true");
     frame.tabIndex = -1;
-    frame.src = new URL(pageOf(id), location.href).pathname + "?player=1&silent=1&saver=1&driver=move&begin=mode&steps=100000";
+    frame.src = frameSrc(playing);
     shade.tabIndex = -1;
     shade.appendChild(frame);
     document.body.appendChild(shade);
@@ -84,14 +99,23 @@ var ByopopSaver = (function () {
           if (!(t.result && t.result.moves > 0)) {
             // a run that went wrong (an error, or no move at all): the game's profile is wiped and the game started afresh, once
             var persist = persistOf(playing);
-            if (!persist || wiped[playing]) return;
+            if (!persist || wiped[playing]) {
+              if (!shuffled) return;
+              broken[playing] = true;
+              if (!(playing = draw(playing))) return;
+              frame.src = frameSrc(playing);
+              watch();
+              return;
+            }
             wiped[playing] = true;
             var src = frame.src, f = frame;
             f.src = "about:blank";
             wipe(persist).then(function () { if (frame === f) { f.src = src; watch(); } });
             return;
           }
-          frame.src = frame.src;
+          // a game lost or over: the same again, or with "random" another
+          if (shuffled) playing = draw(playing) || playing;
+          frame.src = frameSrc(playing);
         }
       } catch (e) {}
       watch();
@@ -102,9 +126,14 @@ var ByopopSaver = (function () {
     if (!shade) return;
     if (shade.parentNode) shade.parentNode.removeChild(shade);
     shade = frame = playing = null;
+    shuffled = false;
   }
   // input ends a running saver (a movement within the first moment is the one that may have opened Preview) and restarts the wait
   function activity(ev) {
+    // the driver's moves in the saver's frame are events it makes (web/testkit.js), never the player's: taken for input, a bot's
+    // keys ended the saver as soon as a level began (the user, 2026-11-19: "Mummy Maze screensaver seems to just exit once it gets
+    // into a level; ditto with Noah's Ark")
+    if (ev && ev.isTrusted === false) return;
     if (shade) {
       if (Date.now() - startedAt < 600 && ev.type === "pointermove") return;
       stop();

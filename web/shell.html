@@ -1521,7 +1521,8 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     askToKeepStorage();
     setGameState("running");
     gameWindowLoading(true);
-    Module.callMain(run.args.concat(noMods ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
+    // the screen saver's games run unmodded (the user, 2026-11-19: "Screensavers shouldn't use whatever mods are installed")
+    Module.callMain(run.args.concat(noMods || SAVER ? ["-nomods"] : []).concat(pagePlaceholders() ? ["-placeholders"] : []));
     // on Desktop 95's desktop the chat is a window that starts closed and starts when the player opens it (below)
     if (!document.documentElement.classList.contains("d95-desk")) startChat();
     cursorTimer = setInterval(pollCursor, 100);
@@ -1750,8 +1751,8 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     // (the saver's frame keeps no record: the player's files are only read there)
     if (!pagePlaceholders() && !TEST_PROFILE && !SAVER) { try { ByopopGameFiles.mark(PAGE.id); } catch (e) {} }
     if (!TEST_PROFILE && !SAVER) ensureIcon();
-    // The fixes and lite mods go in before the game can start (it reads its mods as it starts)
-    installSiteMods();
+    // The fixes and lite mods go in before the game can start (it reads its mods as it starts); the saver's frame has none
+    if (SAVER) bootReady(); else installSiteMods();
   }
   function bootReady() {
     // After the game's own restart: straight back in, unless the start before did not finish (a mod may stop it)

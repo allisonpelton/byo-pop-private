@@ -508,8 +508,12 @@ picture's alpha mask is not read: each wallpaper chosen has none.
 
 ### The screen saver
 
-Settings > Screen Saver (`web/saver.js`; the user, 2026-11-11) has the game, None by default, then each game with a bot
-whose files are here; the Wait in minutes; and Preview. When the listing's desktop has had no key, mouse or touch for the
+Settings > Screen Saver (`web/saver.js`; the user, 2026-11-11) has the game, None by default, then (Random) once two games
+are offered, then each game with a bot whose files are here; the Wait in minutes; and Preview. Only games that can be lost are
+offered (the user, 2026-11-19: "Screen saver should only be for games with a losing condition"): a game its bot never loses
+would hold one game on the screen for good, so Pixelus, Mummy Maze and the Mahjong Escapes are not. (Random) draws a game at
+each start and another, not the same, each time a game ends (the user, 2026-11-19: "pick a random game each time and switch
+games upon losing (thus actually *saving* the screen from burn-in)"). When the listing's desktop has had no key, mouse or touch for the
 Wait, it goes dark and the game plays itself silently in a frame over it; any key or mouse movement ends it and leaves
 everything as it was. Input in the desktop's windows counts too: each window's frame keeps its events to itself, so the saver
 listens in every frame's page as it loads, and a game playing in the active window (`ByopopEmbed.running`) holds it off
@@ -528,8 +532,13 @@ import, the listing page's states and the Trophy Cabinet each open a game's own 
 or in the listing's bin, deletes its saver profile with them; and a run that goes wrong (an error, or no move at all) deletes
 it once, before the saver starts that game afresh. A second such run stays on the screen it stopped at.
 
+The saver's games run unmodded (the user, 2026-11-19: "Screensavers shouldn't use whatever mods are installed"): the
+frame puts in neither the fixes nor the lite mod and starts the game with `-nomods`.
+
 Its page centres the game on black (`html.saver`), and a key pressed while the game's canvas has the focus ends the saver
-too. The driver runs with `?begin=mode`, which starts a game still on its title or menus in the mode its state names.
+too. Only the player's own input counts: the driver's moves are events it makes itself (`isTrusted` false), and before they
+were ignored a bot that moves by keys ended the saver as soon as a level began (the user, 2026-11-19: "Mummy Maze
+screensaver seems to just exit once it gets into a level; ditto with Noah's Ark"). The driver runs with `?begin=mode`, which starts a game still on its title or menus in the mode its state names.
 
 **The bot's hook.** The game plays by one call that asks it for its next move. Today that is the test command `move`
 (`docs/TEST_COMMANDS.md`, "The bot behind move"), sent through `byopop_test_command` by the page's `?driver=move`; it exists

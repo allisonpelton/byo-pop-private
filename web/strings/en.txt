@@ -196,6 +196,7 @@ trophies.count = {n} game | {n} games
 settings.section.saver = Screen Saver
 settings.saver.label = Screen Saver
 settings.saver.none = (None)
+settings.saver.random = (Random)
 settings.saver.preview = Preview
 settings.saverwait.label = Wait
 settings.saverwait.minutes = {n} min
