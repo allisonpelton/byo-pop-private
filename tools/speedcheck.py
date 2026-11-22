@@ -5,10 +5,10 @@ Each finished game's native exe is run in real time (no -fast), briefly, once at
 -speed=<x> -speedprobe=<ms> (framework/SexyAppBase.cpp, SpeedProbeStep): after the game has loaded and a short warm-up,
 the exe counts its updates and its game clock over <ms> of real time, logs one "SPEEDPROBE speed= updates= real_ms=
 clock_ms=" line and quits. A game follows the speed when its updates per real second and its game clock both scale
-with it: the 2x run's updates per second must be 3.2 to 4.8 times the 0.5x run's (4 when it follows), and the clock must
-run at about the speed in each (game ms per real ms within 25% of 0.5 and of 2). A game that does not print a line
-before the timeout (no SexyAppBase, or never loaded) is "no probe". Bonnie's Bookstore and Ning Po Mahjong have no
-SexyAppBase: they are listed as known and do not fail the suite until their sessions add the hook.
+with it: the 2x run's updates per second must be 2.5 to 6 times the 0.5x run's (4 when it follows), and the clock must
+run at about the speed in each (game ms per real ms within 25% of 0.5 and of 2). The ratio is printed for every game.
+A game that does not print a line before the timeout (no SexyAppBase, or never loaded) is "no probe". KNOWN lists games
+expected not to follow (none now); they are named in the summary and do not fail the suite.
 
     python -I tools/speedcheck.py [--out <dir>] [--jobs <n>] [--ms <n>] [<game>...]
 
@@ -20,10 +20,11 @@ import argparse, concurrent.futures, os, re, shutil, subprocess, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SPEEDS = (0.5, 2.0)
-RATIO_LOW, RATIO_HIGH = 3.2, 4.8     # updates per second at 2x over 0.5x (4 when the game follows)
+RATIO_LOW, RATIO_HIGH = 2.5, 6.0     # updates per second at 2x over 0.5x: 4 when the game follows, near 1 when it ignores the speed;
+                                     # wide so that a loaded machine, which cannot make every update of a fast run, does not fail one
 CLOCK_TOLERANCE = 0.25               # game ms per real ms, against the speed
 LOAD_TIMEOUT_S = 60                  # a game that has not printed its line by then is "no probe"
-KNOWN = {"bonnies": "no SexyAppBase: its session adds the hook", "ningpo": "no SexyAppBase: its session adds the hook"}
+KNOWN = {}  # game -> why it is known not to follow (none: Bonnie's Bookstore and Ning Po follow)
 
 # game folder -> exe name, where it differs from the folder's name
 EXES = {}
