@@ -821,8 +821,10 @@ suite_unit() {
 	else
 		h="$h, segments skipped (no assets/rocketmania)"
 	fi
-	# tools/shotdiff: the screenshot comparison on synthetic pictures (statuses, boxes, alignment, pages, the marks server)
-	timeout 120 python tools/shotdiff/selftest.py > "$1.sdf" 2>&1 || fail sdf
+	# tools/shotdiff: the screenshot comparison on synthetic pictures (statuses, boxes, alignment, pages, the marks server).
+	# Its limits here and stretchcal's below only catch a hang: about 10 s and 30 s alone, they ran past 120 s and 300 s with
+	# many sessions building at once (2026-11-22), and a slow machine is no failure.
+	timeout 600 python tools/shotdiff/selftest.py > "$1.sdf" 2>&1 || fail sdf
 	i="$(lastof "$1.sdf" 'shotdiff: [0-9]+ checks, [0-9]+ failed')"
 	# framework/DisplayGeometry (letterbox, render scale, window mapping, cursor) against a table from DDInterface's code
 	(cd build/native && timeout 60 ./geomtest.exe) > "$1.geo" 2>&1 || fail geo
@@ -835,8 +837,8 @@ suite_unit() {
 	# calibration sizes, where this machine's card and the model agree to the byte (docs/MEMORY.md, "A smooth stretch on the processor")
 	# and its Draw (copies through a table, SSE2 blends) against DrawReference, the arithmetic pixel by pixel, at many sizes
 	local sc
-	(cd build/native && timeout 300 ./stretchcal.exe) > "$1.sc" 2>&1 || fail sc
-	(cd build/native && timeout 300 ./stretchcal.exe -selftest) >> "$1.sc" 2>&1 || fail sc
+	(cd build/native && timeout 900 ./stretchcal.exe) > "$1.sc" 2>&1 || fail sc
+	(cd build/native && timeout 900 ./stretchcal.exe -selftest) >> "$1.sc" 2>&1 || fail sc
 	sc="$(lastof "$1.sc" 'stretchcal: [0-9]+ cases differing from LinearStretch'), $(lastof "$1.sc" 'stretchcal selftest: [0-9]+ cases, [0-9]+ differing' | sed 's/^stretchcal //; s/ ([0-9.]* s)$//')"
 	# -realinput (docs/REAL_INPUT.md): real SDL events pushed into SDL's queue reach fwtest's board through HandleEvent,
 	# the window mapping and the widget manager, with -fast and in real time; a line it could not play fails it too
