@@ -412,8 +412,9 @@ var ByopopMusic = (function () {
   }
   // a format's name in full, its tooltip (the user, 2026-11-16: "I'd like tooltips on the formats in the music player. I don't
   // know what an IT is"), "" for one without a name of its own
-  var FORMATS = ["MO3", "IT", "S3M", "XM", "OXM", "MOD", "OGG", "WAV", "MID"];
-  function formatName(f) { var k = f === "MIDI" ? "MID" : f; return FORMATS.indexOf(k) >= 0 ? T("music.format_" + k.toLowerCase()) : ""; }
+  var FORMATS = { MO3: "music.format_mo3", IT: "music.format_it", S3M: "music.format_s3m", XM: "music.format_xm", OXM: "music.format_oxm",
+    MOD: "music.format_mod", OGG: "music.format_ogg", WAV: "music.format_wav", MID: "music.format_mid", MIDI: "music.format_mid" };
+  function formatName(f) { return Object.prototype.hasOwnProperty.call(FORMATS, f) ? T(FORMATS[f]) : ""; }
   function clock(seconds) {
     var s = Math.round(seconds), m = Math.floor(s / 60);
     return T("music.duration", { min: m, sec: (s % 60 < 10 ? "0" : "") + (s % 60) });
