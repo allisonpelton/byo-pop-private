@@ -32,9 +32,9 @@ var ByopopCursors = (function () {
   // an image for one of the set's kinds (SetCursorImage, WebCursorSetKind), whose page takes the set once the game has started,
   // and those whose page reads an animated pointer from their files (web/flicursor.js), which the listing page also does as it
   // adds their files (web/gameimport.js, addGame). The Settings' choice names those whose files are here without their set.
-  var GIVES = ["alchemy", "astropop", "atomica", "bejeweled", "bejeweled2", "bejeweledtwist", "bigmoney", "bonnies", "bookworm", "bookwormadv",
-    "bookwormadv2", "cosmicbugs", "dynomite", "hammerheads", "heavyweapon", "mummymaze", "pixelus", "rocketmania", "sevenseas",
-    "typershark", "waterbugs"];
+  var GIVES = ["alchemy", "astropop", "atomica", "bejeweled", "bejeweled2", "bejeweledtwist", "bigmoney", "bookworm", "bookwormadv",
+    "bookwormadv2", "cosmicbugs", "dynomite", "hammerheads", "heavyweapon", "mummymaze", "peggle", "pixelus", "rocketmania", "sevenseas",
+    "typershark", "venice", "waterbugs"];
   // The kinds the Settings' choice pictures and compares sets by: every game's text cursor is the same I-beam (only its canvas
   // differs), so it tells no set from another. A set's own text cursor still shows in text fields.
   var COMPARED = ["pointer", "hand", "drag", "notallowed", "wait"];
@@ -121,7 +121,7 @@ var ByopopCursors = (function () {
   // else in that game is left out); true when it was new or changed. Not kept (false) without a pointer; nor when the sets would
   // then take more than MAX_TOTAL or the browser will not store them, when the game is noted as unkept.
   function save(id, title, set) {
-    if (!validId(id) || !plain(set) || !validImage(set.pointer)) return false;
+    if (!validId(id) || WITHDRAWN.indexOf(id) >= 0 || !plain(set) || !validImage(set.pointer)) return false;
     var o = all(), entry = { title: String(title || id).slice(0, 120) }, other = OTHER_MEANING[id] || [];
     KINDS.forEach(function (k) { if (validImage(set[k]) && other.indexOf(k) < 0) entry[k] = copyImage(set[k]); });
     if (JSON.stringify(o[id]) === JSON.stringify(entry)) { noteUnkept(id, null); return false; }
@@ -275,6 +275,17 @@ var ByopopCursors = (function () {
       if (c && c.frames && c.ms === RETIMED[id][0]) { c.ms = RETIMED[id][1]; changed = true; }
     });
     if (changed) write(o);
+  }
+
+  // Bonnie's Bookstore gave a set from 2026-11-16 until the user had it taken out (2026-11-17: "they look just like the Windows
+  // default. Take them out"): a set kept for a game here is dropped, once, at load, and is never kept again, and a choice of it
+  // goes back to the browser's own cursor
+  var WITHDRAWN = ["bonnies"];
+  function withdraw() {
+    var o = all(), changed = false;
+    WITHDRAWN.forEach(function (id) { if (o.hasOwnProperty(id)) { delete o[id]; changed = true; } noteUnkept(id, null); });
+    if (changed) write(o);
+    try { var s = store(), v = s ? s.getItem(CHOICE) : null; if (WITHDRAWN.indexOf(v) >= 0) s.removeItem(CHOICE); } catch (e) {}
   }
 
   // ---------- showing it ----------
@@ -645,6 +656,7 @@ var ByopopCursors = (function () {
   }
 
   retime();
+  withdraw();
   apply();
   setTimeout(upgrade, 0);
   window.addEventListener("storage", function (ev) {
