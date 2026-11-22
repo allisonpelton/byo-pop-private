@@ -144,6 +144,16 @@ def tour(d, a):
     s = full.until(d, lambda s: 2 in s['dialogs'] and 'yes' in (s.get('buttons') or {}), 'the options dialog', 60)
     d.ok('wait 60')
     d.shot('options-menu')
+    # the options' questions (dialog 3), each answered No: a checkbox of the 640 by 480 layout, in game pixels
+    for name, spot in (('backdrops', [338, 250]), ('accel', [278, 208]), ('highres', [407, 208])):
+        d.click(spot)
+        # a question (dialog 3, answered No) or, where the display cannot do it, a message (dialog 37, its OK)
+        s = full.until(d, lambda s: max(s['dialogs'], default=0) in (3, 37) and (s.get('buttons') or {}).get('no' if 3 in s['dialogs'] else 'yes'), 'the question of ' + name, 60)
+        d.ok('wait 60')
+        d.shot('verify-' + name)
+        d.click(d.state()['buttons']['no' if 3 in d.state()['dialogs'] else 'yes'])
+        d.ok('wait 60')
+    d.shot('options-menu-after')
     d.click(d.state()['buttons']['yes'])
     s = settle(full.menu_ready, 'the menu')
     d.ok('wait 60')
@@ -244,6 +254,20 @@ def tourdialogs(d, a):
     answer_no()
     d.click(d.state()['buttons']['row0'])
     dialog(27, 'create')
+    # a name left empty ("Enter Name", dialog 41), then the name of the player there already ("Name Conflict", dialog 37)
+    d.click(d.state()['buttons']['yes'])
+    s = full.until(d, lambda s: 41 in s['dialogs'] and (s.get('buttons') or {}).get('yes'), 'the Enter Name message', 60)
+    d.ok('wait 60')
+    d.shot('enter-name')
+    d.click(d.state()['buttons']['yes'])
+    d.ok('wait 60')
+    d.type('Ali')
+    d.click(d.state()['buttons']['yes'])
+    s = full.until(d, lambda s: 37 in s['dialogs'] and (s.get('buttons') or {}).get('yes'), 'the Name Conflict message', 60)
+    d.ok('wait 60')
+    d.shot('name-conflict')
+    d.click(d.state()['buttons']['yes'])
+    d.ok('wait 60')
     answer_no()
     answer_no()  # the list's own Cancel
     s = menu()
@@ -363,6 +387,23 @@ def hints(d, a, settle):
         d.key('Escape')
         d.ok('wait 60')
     d.shot('hint-still-closed')
+    if os.environ.get('TOUR_GALAXY'):  # the galaxy map by its button on the dome, and a locked planet's message
+        d.click([int(v) for v in os.environ.get('TOUR_MAPBTN', '95,46').split(',')])
+        d.ok('wait 150')
+        d.shot('galaxy-map')
+        for k, spot in enumerate(os.environ.get('TOUR_PLANETS', '').split(';')):
+            if not spot:
+                continue
+            d.click([int(v) for v in spot.split(',')])
+            d.ok('wait 60')
+            d.shot('galaxy-planet%d' % k)
+            while d.state()['dialogs']:
+                d.key('Escape')
+                d.ok('wait 60')
+            d.shot('galaxy-planet%d-closed' % k)
+        d.click([int(v) for v in os.environ.get('TOUR_MAPCLOSE', '540,100').split(',')])  # CLOSE MAP
+        d.ok('wait 150')
+        d.shot('galaxy-closed')
 
 
 def finale(d, a, settle):
