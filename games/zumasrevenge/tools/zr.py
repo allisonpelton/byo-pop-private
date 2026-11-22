@@ -5,6 +5,8 @@
     python games/zumasrevenge/tools/zr.py raw <addr>...        the same, uncompacted
     python games/zumasrevenge/tools/zr.py calls <addr>...      callers and callees, named
     python games/zumasrevenge/tools/zr.py asm <addr> [n]       the disassembly (a function, or about n instructions)
+    python games/zumasrevenge/tools/zr.py flow <addr>...       a function's calls and the strings and names it loads, in
+                                                              order (link-time code generation passes them in registers)
     python games/zumasrevenge/tools/zr.py table <addr> <n>     n dwords from an address, named
     python games/zumasrevenge/tools/zr.py classes [substr]     each RTTI class placed by its own vtable slots
     python games/zumasrevenge/tools/zr.py vt <class>           a class's vtable slots, named
@@ -161,7 +163,7 @@ def label(v):
     return None
 
 
-def disasm(start, stop):
+def disasm(start, stop, flow=False):
     out = subprocess.run([OBJDUMP, '-d', '--no-show-raw-insn', '-M', 'intel', '--start-address=%#x' % start,
                           '--stop-address=%#x' % stop, EXE], capture_output=True, text=True).stdout
     for ln in out.splitlines():
@@ -170,6 +172,8 @@ def disasm(start, stop):
             continue
         text = m.group(2)
         notes = [lab for h in re.findall(r'0x([0-9a-f]{6,8})', text) for lab in [label(int(h, 16))] if lab]
+        if flow and not notes and not text.startswith(('call', 'ret')):
+            continue
         print('%s  %s%s' % (m.group(1), text, ('   ; ' + ', '.join(notes)) if notes else ''))
 
 
@@ -201,6 +205,11 @@ def main():
             disasm(a, a + funcs['%08x' % a]['size'])
         else:
             disasm(a, min(int(f, 16) for f in funcs if int(f, 16) > a))
+    elif cmd == 'flow':
+        for a in rest:
+            a = int(a, 16)
+            print('// %08x %s' % (a, fname('%08x' % a)))
+            disasm(a, a + funcs['%08x' % a]['size'], flow=True)
     elif cmd == 'table':
         d, secs = sections()
         va = int(rest[0], 16)
