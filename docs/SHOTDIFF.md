@@ -70,7 +70,7 @@ summary line; it exits 1 on any failure. A game with no SCREENS.md is reported a
 `LIST_REQUIRED_FROM` in `tools/screencheck.py` names a date. A shot cell holds shot names separated by commas or spaces,
 each optionally behind `2D:` or `3D:`; a row with no shots needs a Note starting `unreachable`, `rare` or `none:`. A shot
 passes when its pair matches, or differs and is marked `fine` in the run's `marks.json`, or the row's Note says
-"explained"; a pair with any other status (`faint`, `error`) fails. The newest run is the folder with the newest
+"explained". A `faint` pair passes too, since only visible boxes are for review; an `error` pair fails. The newest run is the folder with the newest
 `summary.json`. `tools/screenchecktest.py` tests the checker on fixture folders (part of the `unit` suite).
 
 ## The comparison, and what it never hides

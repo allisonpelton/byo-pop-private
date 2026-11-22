@@ -33,6 +33,7 @@ EXPLAINED_WORD = "explained"       # in a Note: the difference of a differing sh
 FINE_MARK = "fine"                 # marks.json: the user accepted the difference
 STATUS_MATCH = "match"
 STATUS_DIFFER = "differ"
+STATUS_FAINT = "faint"  # only invisible differences: SHOTDIFF.md, "Visible and faint"
 DIMENSION_PREFIX = re.compile(r"^(2D|3D):", re.IGNORECASE)
 SHOT_SEPARATORS = re.compile(r"[,\s]+")
 SHOT_EXTENSIONS = (".png", ".gif")
@@ -162,7 +163,7 @@ def check_game(root, game):
             status = statuses.get(stem(name))
             if status is None:
                 problems.append("shot %s (row '%s') is not a pair of the newest run" % (name, screen))
-            elif status == STATUS_MATCH:
+            elif status in (STATUS_MATCH, STATUS_FAINT):
                 continue
             elif status == STATUS_DIFFER and (stem(name) in fine or EXPLAINED_WORD in note.lower()):
                 continue

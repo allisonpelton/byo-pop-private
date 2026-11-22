@@ -88,6 +88,9 @@ with tempfile.TemporaryDirectory() as root:
     make_game(root, "expl", "| A | x | a | the shadow differs, explained in the notes |\n", {"a.png": "differ"})
     check("a differing shot whose Note says explained passes", not result(root, "expl")[1])
 
+    make_game(root, "faint", "| A | x | a | |\n", {"a.png": "faint"})
+    check("a faint pair passes", not result(root, "faint")[1])
+
     make_game(root, "err", "| A | x | a | explained |\n", {"a.png": "error"})
     line, failed = result(root, "err")
     check("an error pair fails even with explained", failed and "is error" in line, line)
