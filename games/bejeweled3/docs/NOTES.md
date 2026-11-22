@@ -583,7 +583,13 @@ as above.
 Oddities (not chased, `// port:` in the source): (1) how the exe keeps a gem whose pulse runs out of the next update's runs. 0x755ad0
 reads the swap curve (+0x198), not the scale curve; no write of +0x17e, +0x230 or the flags (0x2000) for a plain gem was found, and the
 sets of 0x75af60 (local to one call) cannot do it across updates. The port holds a gem whose scale curve is not the constant 1 out of the
-runs (Board::IsPulsing). (2) A gem that two runs share (a crossing) is met a second time at 0x75bbdb, where the exe sets its scale
+runs (Board::IsPulsing). Ruled out: the board's +0x38 that the matcher stamps into +0x210 (0x75bc8e) is the
+widget container's update count, which 0x475660 raises on every game tick and only 0x74aa5a (reset) and the saved-game reader (0x764b6b)
+write, so a gem matched in an earlier tick takes 0x75bcd0 again, not 0x75bbdb; slot 201 is 0x75af60 in both vtables, called at 0x768143
+with no wrapper; the per-piece loop at 0x768026 to 0x7680ec touches only pieces with bits 0x1800; the piece update 0x720a50 (run for every
+piece by 0x7674fe) steps the curves at +0x4b8 and +0x528, not +0x20; +0x1c is the fall speed, written only by the fill and by gravity
+(0x73dd70, which does not read +0x20), and neither the pulse start nor 0x437760 (it writes only the curve's own 0x70 bytes from +0x20)
+changes it; no writer of +0x17e, +0x230 or the flags (0x2000) reaches a plain matched gem. (2) A gem that two runs share (a crossing) is met a second time at 0x75bbdb, where the exe sets its scale
 curve to 1 (0x75bc70) unless a condition on the sets at 0x75b513 holds, which was not decoded; the port keeps the first pulse. With a
 crossing the exe's gem might therefore not be removed with the others; not seen. (3) The pulse is not drawn: the piece's draw does not
 read +0x20 yet.
