@@ -11,6 +11,7 @@
 
 #include "Container.h"
 #include "LayerSet.h"
+#include "Shape.h"
 #include "MasterDocHandler.h"
 #include "Spawn.h"
 #include "StageManifest.h"
@@ -21,8 +22,24 @@
 #include <string>
 #include <vector>
 
+class Actor;
+class AIFish;
+class Fish;
 class GameData;
 class Stage;
+
+// The play area's edges (shape::Edge, each 0x20 bytes, at +0xc4 and every 0x20 after), each keeping what is inside it
+// on the side its normal points to
+enum StageEdge
+{
+	STAGE_EDGE_SKY = 0,           // +0xc4: below the sky's ceiling
+	STAGE_EDGE_BOTTOM = 1,        // +0xe4: above the bottom
+	STAGE_EDGE_LEFT = 2,          // +0x104: right of the left side
+	STAGE_EDGE_RIGHT = 3,         // +0x124: left of the right side
+	STAGE_EDGE_BELOW_WATER = 4,   // +0x144: below the water's surface
+	STAGE_EDGE_ABOVE_WATER = 5,   // +0x164: above it
+	STAGE_EDGE_COUNT = 6
+};
 
 // A state of the stage's run (StageState, vtable 0x55870c for its AbstractState (feedingfrenzy2)); the stage's
 // machine (+0x3b8) runs one
@@ -90,6 +107,13 @@ public:
 	virtual void pause(bool thePaused);
 	// 0x34 (0x4146b0 (feedingfrenzy2)): the play bounds, the mask container and the layer set
 	virtual void setupLayers();
+	// 0x48 (0x4448e0 (feedingfrenzy2)): each actor's update, over a copy of the actors, one no longer among them
+	// logged (the mask's lights cleared first, not yet translated)
+	void updateActors(engine::UpdateContext* theContext);
+	// 0x68 (0x439c10 (feedingfrenzy2)): each fish's visual given the fish's velocity (the wanted one after a turn),
+	// the scroll rate, and its scales passed to the fish's shapes; at night the light's step after (not yet
+	// translated)
+	void updateFishVisuals(engine::UpdateContext* theContext);
 	// 0x58 (0x43a330 (feedingfrenzy2)): each spawn's update, the actors coming in once the script's waves (not yet
 	// translated) are through
 	virtual void updateSpawns(engine::UpdateContext* theContext);
@@ -109,6 +133,24 @@ public:
 	// 0x405ae0 (feedingfrenzy2)
 	void addFishSpawn(FishSpawn* theSpawn) { mFishSpawns.push_back(theSpawn); }
 
+	// 0x44c6f0 (feedingfrenzy2): the play area under the water, or between the sky's ceiling and the water
+	engine::RectF getArea(bool underwater) const;
+	// 0x24 (0x44fbf0 (feedingfrenzy2)): the actors' container of the layer, counted from the base layer
+	engine::Container* getLayerContainer(int theLayer);
+	// 0x515e4e (feedingfrenzy2): the layer's offset from the base layer
+	engine::Vector2f getLayerOffset(int theLayer) { return mLayerSet->getLayerOffset(theLayer); }
+	const shape::Box& getViewBox() const { return mViewBox; }
+	Shape* getEdge(int theEdge) { return &mEdges[theEdge]; }
+	engine::Theme* getTheme() { return mTheme.get(); }
+	// The lists the actors put themselves in and take themselves out of (0x41de40, 0x41d940, 0x41ea00, 0x4760b0,
+	// 0x476030 and 0x476170 (feedingfrenzy2): a push, and a remove of every match)
+	void addActor(Actor* theActor) { mActors.push_back(theActor); }
+	void removeActor(Actor* theActor);
+	void addFish(Fish* theFish) { mFish.push_back(theFish); }
+	void removeFish(Fish* theFish);
+	void addAIFish(AIFish* theFish) { mAIFish.push_back(theFish); }
+	void removeAIFish(AIFish* theFish);
+
 	LayerSet* getLayerSet() { return mLayerSet.get(); }
 	const engine::RectF& getBounds() const { return mBounds; }
 	float getSizeUnit() const { return mSizeUnit; }
@@ -120,6 +162,9 @@ private:
 
 	engine::Ref<GameData> mGameData;               // +0x68
 	engine::RectF mBounds;                         // +0x6c: the play bounds, the display's less the HUD's band
+	engine::RectF mPlayArea;                       // +0x88: the base layer's pan size, from the origin
+	shape::Box mViewBox;                           // +0xa0: the play area as a box
+	shape::Edge mEdges[STAGE_EDGE_COUNT];          // +0xc4
 	StageManifest::Stage mEntry;                   // +0x1c: the manifest's entry, its file at +0x38
 	float mScrollRate;                             // +0x184
 	float mSizeUnit;                               // +0x188
@@ -145,6 +190,9 @@ private:
 	float mLightTarget;                            // +0x2f8
 	float mMinLight;                               // +0x2fc
 	float mMaxLight;                               // +0x300
+	std::vector<Fish*> mFish;                      // +0x320
+	std::vector<AIFish*> mAIFish;                  // +0x330
+	std::vector<Actor*> mActors;                   // +0x370
 	bool mBoss;                                    // +0x392
 	bool mFinalBoss;                               // +0x393
 	std::string mBossLayout;                       // +0x394

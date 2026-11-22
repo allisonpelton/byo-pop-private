@@ -1,10 +1,15 @@
 #include "Stage.h"
 
+#include "Actor.h"
 #include "DrawContext.h"
 #include "Engine.h"
 #include "GameData.h"
 #include "Params.h"
 #include "Spawn.h"
+#include "Visual.h"
+
+#include <algorithm>
+#include <cstdint>
 
 using namespace engine;
 
@@ -20,6 +25,21 @@ const float DEFAULT_MAX_LIGHT = 0.9f;       // 0x566934 (feedingfrenzy2)
 const float STEP_SECONDS = 0.01f;           // 0x54dd9c (feedingfrenzy2): a step of the run, as a float
 const double STEP_SECONDS_DOUBLE = 0.01;    // 0x566d58 (feedingfrenzy2): the same as a double, taken off the time left
 const double CAMERA_CENTRE = 0.5;           // 0x566760 (feedingfrenzy2): the start's camera, half across the range
+const double HALF = 0.5;                    // 0x566760 (feedingfrenzy2)
+
+// An edge set to its normal and distance
+void setEdge(shape::Edge& theEdge, float theNormalX, float theNormalY, int theDistance)
+{
+	theEdge.mDistance = (float)theDistance;
+	theEdge.mNormal = Vector2f(theNormalX, theNormalY);
+}
+
+// Every match taken out of the list (std::remove and erase)
+template <class T>
+void removeFrom(std::vector<T*>& theList, T* theItem)
+{
+	theList.erase(std::remove(theList.begin(), theList.end(), theItem), theList.end());
+}
 
 } // namespace
 
@@ -114,11 +134,92 @@ void Stage::setupLayers()
 	mLayerSet->fit(LAYER_MARGIN_X, LAYER_MARGIN_Y, mBounds);
 	mLayerSet->setPosition(mBounds.left, mBounds.top);
 	mMaskContainer->addChild(mLayerSet.get());
-	// The camera's start from the base layer's (0x49ab50, 0x49ab30 and 0x4882a0 (feedingfrenzy2), with the set's
-	// night light), "PlayGroup" found on the first layer's actors, the camera (0x48cdf0, 0x475dd0, 0x49ab10 and
-	// 0x49aae0 (feedingfrenzy2)) and the six edges of the play area (+0x7c, 0x48f620 (feedingfrenzy2), from the
-	// water level and the sky's ceiling): not yet translated
-	getEngine()->log("Stage: the camera and the play area's edges not yet translated\n");
+	// The mask's light from the base layer's position and size (0x49ab50, 0x49ab30 and 0x4882a0 (feedingfrenzy2),
+	// with the set's night light): not yet translated, as the night's mask is not
+	getLayerContainer(0)->setName("PlayGroup");
+	// 0x48cdf0 (feedingfrenzy2): the base layer's pan size from the origin, through whole numbers (0x475dd0 and
+	// 0x49ab10 (feedingfrenzy2)), scaled by 1 (0x49aae0 (feedingfrenzy2))
+	const Vector2f& aPanSize = mLayerSet->getInfo(mLayerSet->getBaseLayer())->getPanSize();
+	int aLeft = 0;
+	int aTop = 0;
+	int aRight = (int)aPanSize.x;
+	int aBottom = (int)aPanSize.y;
+	mPlayArea = RectF((float)aLeft, (float)aTop, (float)aRight, (float)aBottom);
+	// 0x48f620 (feedingfrenzy2): the box of the area
+	float aHalfWidth = (float)(((double)mPlayArea.right - mPlayArea.left) * HALF);
+	mViewBox.mDiagonal.x = aHalfWidth;
+	float aHalfHeight = (float)(((double)mPlayArea.bottom - mPlayArea.top) * HALF);
+	mViewBox.mDiagonal.y = aHalfHeight;
+	mViewBox.mCenter.x = (float)((double)aHalfWidth + mPlayArea.left);
+	mViewBox.mCenter.y = (float)((double)mPlayArea.top + aHalfHeight);
+	int aWater = mLayerSet->getWaterLevel();
+	int aSky = mLayerSet->getSkyCeiling();
+	setEdge(mEdges[STAGE_EDGE_BELOW_WATER], 0.0f, 1.0f, -aWater);
+	setEdge(mEdges[STAGE_EDGE_SKY], 0.0f, 1.0f, -aSky);
+	setEdge(mEdges[STAGE_EDGE_ABOVE_WATER], 0.0f, -1.0f, aWater);
+	setEdge(mEdges[STAGE_EDGE_BOTTOM], 0.0f, -1.0f, aBottom);
+	setEdge(mEdges[STAGE_EDGE_LEFT], 1.0f, 0.0f, -aLeft);
+	setEdge(mEdges[STAGE_EDGE_RIGHT], -1.0f, 0.0f, aRight);
+}
+
+RectF Stage::getArea(bool underwater) const
+{
+	RectF anArea = mPlayArea;
+	if (underwater)
+		anArea.top = (float)mLayerSet->getWaterLevel();
+	else
+	{
+		anArea.top = (float)mLayerSet->getSkyCeiling();
+		anArea.bottom = (float)mLayerSet->getWaterLevel();
+	}
+	return anArea;
+}
+
+Container* Stage::getLayerContainer(int theLayer)
+{
+	return mLayerSet->getLayer(mLayerSet->getBaseLayer() + theLayer)->getActors();
+}
+
+void Stage::removeActor(Actor* theActor)
+{
+	removeFrom(mActors, theActor);
+}
+
+void Stage::removeFish(Fish* theFish)
+{
+	removeFrom(mFish, theFish);
+}
+
+void Stage::removeAIFish(AIFish* theFish)
+{
+	removeFrom(mAIFish, theFish);
+}
+
+void Stage::updateActors(UpdateContext* theContext)
+{
+	// The mask's lights (+0x190 of the mask container) cleared: not yet translated, as the night's mask is not
+	std::vector<Actor*> anActors = mActors;
+	for (Actor* anActor : anActors)
+	{
+		if (std::find(mActors.begin(), mActors.end(), anActor) == mActors.end())
+		{
+			getEngine()->log("Actor %08x has vanished from the list.\n", (unsigned int)(uintptr_t)anActor);
+			continue;
+		}
+		anActor->update(*theContext);
+	}
+}
+
+void Stage::updateFishVisuals(UpdateContext* theContext)
+{
+	for (Fish* aFish : mFish)
+	{
+		FishVisual* aVisual = aFish->getFishVisual();
+		aVisual->setVelocity(aFish->hasTurned() ? aFish->getDesiredVelocity() : aFish->getVelocity());
+		aVisual->setTurnBias(mScrollRate);
+		aFish->setShapeScale(aVisual->getMirrorScale(), aVisual->getPulseScale());
+	}
+	// At night, the light's step (the stage's 0x70): not yet translated, as the night's stages are not
 }
 
 void Stage::start()
@@ -216,8 +317,12 @@ void RunState::update(UpdateContext* theContext)
 	// The script (the stage's +0x31c) checked first (its slot 0xe4): not yet translated
 	// Without a boss in play (+0x270), the stage's slots 0x48, 0x4c, 0x50 and 0x54 (the actors' updates and their
 	// meetings), 0x58 (the spawns), 0x60 (the camera), 0x68 and 0x6c; with one, 0x68, 0x6c and the boss's 0xf0; then
-	// 0x5c (0x447ef0 (feedingfrenzy2)). Only the spawns are translated
+	// 0x5c (0x447ef0 (feedingfrenzy2)). Translated so far: the actors' updates, the spawns and the fish's visuals;
+	// the players' steps (0x4c, 0x54 and 0x60) have nothing to do without players; the fish's meetings (0x50,
+	// 0x440660 (feedingfrenzy2)), the ambient sounds (0x6c) and the clean-up (0x5c) are not yet
+	mStage->updateActors(theContext);
 	mStage->updateSpawns(theContext);
+	mStage->updateFishVisuals(theContext);
 }
 
 void StageDocHandler::begin(Params& theAttributes)

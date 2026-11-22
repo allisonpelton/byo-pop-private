@@ -195,3 +195,10 @@ void LayerSetDocHandler::startElement(const std::string& theName, Params& theAtt
 	aHandler->attach(mMaster, theName);
 	aHandler->begin(theAttributes);
 }
+
+Vector2f LayerSet::getLayerOffset(int theLayer)
+{
+	Vector2f aPosition = mLayers[mBaseLayer + theLayer]->getPosition();
+	Vector2f aBase = mLayers[mBaseLayer]->getPosition();
+	return Vector2f((float)((double)aPosition.x - aBase.x), (float)((double)aPosition.y - aBase.y));
+}

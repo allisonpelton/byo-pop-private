@@ -1,11 +1,13 @@
 #include "Spawn.h"
 
+#include "Actor.h"
 #include "FeedingFrenzyTwo.h"
 #include "FishFactory.h"
 #include "GameData.h"
 #include "Random.h"
 #include "Stage.h"
 
+#include <algorithm>
 #include <cstdio>
 
 using namespace engine;
@@ -18,10 +20,17 @@ struct RegisteredClass
 {
 	const char* mName;
 	SpawnKind mKind;
+	ActorMaker mMaker;
 };
 
+// 0x41d4b0 (feedingfrenzy2)
+Actor* makeAIFish()
+{
+	return new AIFish();
+}
+
 const RegisteredClass REGISTERED_CLASSES[] = {
-	{"AIFish", SPAWN_KIND_FISH},
+	{"AIFish", SPAWN_KIND_FISH, makeAIFish},
 	{"PufferFish", SPAWN_KIND_FISH},
 	{"Mine", SPAWN_KIND_NON_PLAYER},
 	{"Balloon", SPAWN_KIND_NON_PLAYER},
@@ -57,6 +66,16 @@ ActorClassRegistry* gActorClassRegistry = nullptr;  // 0x5ac610 (feedingfrenzy2)
 
 } // namespace
 
+Actor* ActorClassInfo::createActor()
+{
+	if (mMaker == nullptr)
+	{
+		getEngine()->log("ActorClassInfo: a %s not yet made (the class not yet translated)\n", mName.c_str());
+		return nullptr;
+	}
+	return mMaker();
+}
+
 NonPlayerSpawn* ActorClassInfo::createSpawn(Stage* theStage)
 {
 	if (mKind == SPAWN_KIND_FISH)
@@ -75,7 +94,7 @@ ActorClassRegistry::ActorClassRegistry()
 {
 	// Each class added under its name (0x485240 (feedingfrenzy2))
 	for (const RegisteredClass& aClass : REGISTERED_CLASSES)
-		mClasses[aClass.mName] = new ActorClassInfo(aClass.mName, aClass.mKind);
+		mClasses[aClass.mName] = new ActorClassInfo(aClass.mName, aClass.mKind, aClass.mMaker);
 }
 
 ActorClassInfo* ActorClassRegistry::find(const std::string& theName) const
@@ -98,12 +117,14 @@ void Spawner::read(Params& theAttributes)
 
 NonPlayerSpawn::NonPlayerSpawn(ActorClassInfo* theClass, Stage* theStage)
 	: Spawner(theStage), mSize(0.0f), mLayer(0), mLocation(SPAWN_LOCATION_SIDE), mPoolSize(0), mSupply(0),
-	  mSupplyLeft(0), mStart(SPAWN_START_OFF), mScheduled(false), mNextSpawn(0), mScheduleTime(0.0f)
+	  mSupplyLeft(0), mDeaths(0), mStart(SPAWN_START_OFF), mScheduled(false), mNextSpawn(0), mScheduleTime(0.0f)
 {
 	mClass = theClass;
 	for (int i = 0; i < 3; i++)
 		mDetailLayers[i] = 0;
 }
+
+NonPlayerSpawn::~NonPlayerSpawn() {}
 
 SubDocHandler* NonPlayerSpawn::createDocHandler()
 {
@@ -159,7 +180,7 @@ void NonPlayerSpawn::finish()
 void NonPlayerSpawn::setup(int& theProgress)
 {
 	fillPool();
-	// +0xb4, 0: read by nothing translated yet
+	mDeaths = 0;
 	mSupplyLeft = mSupply;
 	if (mPhases.empty())
 		addPhase(SpawnPhase());
@@ -168,12 +189,62 @@ void NonPlayerSpawn::setup(int& theProgress)
 	theProgress++;
 }
 
-void NonPlayerSpawn::spawn()
+Actor* NonPlayerSpawn::spawn()
 {
-	// An actor taken from the pool or made (0x475b30 (feedingfrenzy2)), set up for the spawn (its slot 0x58,
-	// 0x4224a0 (feedingfrenzy2)), placed at the location (the actor's slots 0x24 and 0x28) and added to the stage (its
-	// slot 0x18): not yet translated, as the actors are not
-	getEngine()->log("NonPlayerSpawn: a %s not yet spawned (the actors not yet translated)\n", mVisualName.c_str());
+	Actor* anActor = takeActor();
+	if (anActor == nullptr)
+		return nullptr;
+	prepareActor(anActor);
+	int aLocation = mLocation;
+	Vector2f aPoint = mLocationPoint;
+	Vector2f anEntry = anActor->getEntryPoint(mStage, aLocation, aPoint);
+	anActor->setPosition(anEntry.x, anEntry.y);
+	anActor->addToStage(mStage, aLocation);
+	return anActor;
+}
+
+void NonPlayerSpawn::onActorDied()
+{
+	if (mSupplyLeft > 0)
+		mSupplyLeft--;
+	mDeaths++;
+}
+
+void NonPlayerSpawn::setupActor(Actor* theActor)
+{
+	theActor->create(mStage);
+	theActor->mDied.connect(this, &NonPlayerSpawn::onActorDied);
+}
+
+void NonPlayerSpawn::prepareActor(Actor* theActor)
+{
+	// The original's array is indexed by the engine's detail level past the runtime's range check (0x4f2f34
+	// (feedingfrenzy2)); the levels are 0 to 2
+	mLayer = mDetailLayers[getEngine()->getDetailLevel()];
+	int* aLayers = theActor->getDetailLayers();
+	for (int i = 0; i < 3; i++)
+		aLayers[i] = mDetailLayers[i];
+	theActor->setLayer(mLayer);
+	theActor->setBehavior(mBehavior.get());
+	theActor->setVisualData(mVisual.get());
+	theActor->setBounds(mStage, false);
+}
+
+Actor* NonPlayerSpawn::takeActor()
+{
+	if (!mPool.empty())
+	{
+		Ref<Actor> anActor = mPool.back();
+		mLive.push_back(anActor);
+		mPool.pop_back();
+		return anActor.get();
+	}
+	Ref<Actor> anActor = mClass->createActor();
+	if (!anActor)
+		return nullptr;
+	setupActor(anActor.get());
+	mLive.push_back(anActor);
+	return anActor.get();
 }
 
 void NonPlayerSpawn::update(UpdateContext* theContext, bool canSpawn)
@@ -268,23 +339,50 @@ void NonPlayerSpawn::createVisual()
 
 void NonPlayerSpawn::fillPool()
 {
-	// poolSize actors made by the class (its slot 0x04), each set up for the spawn (the spawn's slot 0x54, 0x41da40
-	// (feedingfrenzy2)) and kept in the pool (+0x50c): not yet translated, as the actors are not
-	if (mPoolSize > 0)
-		getEngine()->log("NonPlayerSpawn: a pool of %d %s not yet made (the actors not yet translated)\n", mPoolSize,
-						 mVisualName.c_str());
+	// 0x4143b0 (feedingfrenzy2): the pool resized, each place given a new actor of the class
+	mPool.resize(mPoolSize < 0 ? 0 : mPoolSize);
+	for (size_t i = 0; i < mPool.size(); i++)
+	{
+		mPool[i] = mClass->createActor();
+		if (mPool[i])
+			setupActor(mPool[i].get());
+	}
 }
 
 void NonPlayerSpawn::removeDead()
 {
-	// The live actors (+0x4fc) that died (0x4c26e0 (feedingfrenzy2)) moved back into the pool: not yet translated,
-	// as the actors are not
-}
-
-int NonPlayerSpawn::getLiveCount() const
-{
-	// The live actors' count (+0x4fc): none until the actors are translated
-	return 0;
+	// The living put first and the dead last, as the original's partition does it (from both ends, a dead one from
+	// the front swapped with a living one from the back)
+	size_t aFirst = 0;
+	size_t aLast = mLive.size();
+	for (;;)
+	{
+		while (aFirst != aLast && !mLive[aFirst]->isDead())
+			aFirst++;
+		if (aFirst == aLast)
+			break;
+		bool isSwapped = false;
+		while (aFirst != --aLast)
+		{
+			if (!mLive[aLast]->isDead())
+			{
+				std::swap(mLive[aFirst], mLive[aLast]);
+				aFirst++;
+				isSwapped = true;
+				break;
+			}
+		}
+		if (!isSwapped)
+			break;
+	}
+	if (aFirst == mLive.size())
+		return;
+	for (size_t i = aFirst; i < mLive.size(); i++)
+		mLive[i]->remove();
+	for (size_t i = aFirst; i < mLive.size(); i++)
+		onActorRemoved(mLive[i].get());
+	mPool.insert(mPool.end(), mLive.begin() + aFirst, mLive.end());
+	mLive.erase(mLive.begin() + aFirst, mLive.end());
 }
 
 FishSpawn::FishSpawn(ActorClassInfo* theClass, Stage* theStage)
@@ -315,20 +413,30 @@ void FishSpawn::setup(int& theProgress)
 	// +0x538, 0: read by nothing translated yet
 }
 
-void FishSpawn::spawn()
+Actor* FishSpawn::spawn()
 {
 	if (mFishBehavior->mSchoolSize.mHigh < 2)
-	{
-		NonPlayerSpawn::spawn();
-		return;
-	}
+		return NonPlayerSpawn::spawn();
 	// A school (SchoolOfFish, 0xa8 bytes, its constructor 0x4101b0 (feedingfrenzy2)) of the behaviour's school size
 	// drawn (0x41ce50 (feedingfrenzy2)) less the room the phase and the supply leave, its leader brought in as one
 	// fish and the rest about it, each drawn in a square twice the separation distance: not yet translated, as the
 	// actors are not
 	mSpawnCount++;
-	getEngine()->log("FishSpawn: a school of %s not yet spawned (the actors not yet translated)\n",
+	getEngine()->log("FishSpawn: a school of %s not yet spawned (the schools not yet translated)\n",
 					 mVisualName.c_str());
+	return nullptr;
+}
+
+void FishSpawn::prepareActor(Actor* theActor)
+{
+	NonPlayerSpawn::prepareActor(theActor);
+	Fish* aFish = static_cast<Fish*>(theActor);
+	aFish->setFoodValue(mFoodValue);
+	aFish->setFishVisualData(mSize, mFishVisual.get());
+	aFish->setEaterRank(mRank);
+	aFish->setRank(mRank);
+	aFish->setFishBehavior(mFishBehavior.get());
+	aFish->setBounds(mStage, mFishBehavior->mInAir);
 }
 
 void FishSpawn::findBehavior()

@@ -99,6 +99,8 @@ public:
 	virtual engine::Container* getActors() = 0;
 	virtual engine::Container* getPlayers() = 0;
 	virtual engine::Container* getOverlays() = 0;
+	// 0x18: where it is
+	virtual engine::Vector2f getPosition() = 0;
 	// 0x1c: moved for the camera at the position
 	virtual void pan(const engine::Vector2f& theCameraPosition) = 0;
 
@@ -126,6 +128,8 @@ public:
 	engine::Container* getActors() override { return mActors.get(); }
 	engine::Container* getPlayers() override { return mPlayers.get(); }
 	engine::Container* getOverlays() override { return mOverlays.get(); }
+	// 0x18 (0x50a8b8 (feedingfrenzy2)): the layout's position
+	engine::Vector2f getPosition() override { return mLayout->getPosition(); }
 	// 0x1c (0x43c090 (feedingfrenzy2)): the layout at the camera's position times the factors, the other way
 	void pan(const engine::Vector2f& theCameraPosition) override;
 
@@ -156,6 +160,9 @@ public:
 	int getSkyCeiling() const { return mSkyCeiling; }
 	int getLayerCount() const { return (int)mLayers.size(); }
 	Layer* getLayer(int theIndex) { return mLayers[theIndex].get(); }
+	LayerInfo* getInfo(int theIndex) { return mInfos[theIndex].get(); }
+	// 0x50a65d (feedingfrenzy2): the layer's position, of those from the base layer on, less the base layer's
+	engine::Vector2f getLayerOffset(int theLayer);
 	float getNightColorLightPct() const { return mNightColorLightPct; }
 	const engine::Color& getNightColorLight() const { return mNightColorLight; }
 	const engine::Color& getNightColorDark() const { return mNightColorDark; }

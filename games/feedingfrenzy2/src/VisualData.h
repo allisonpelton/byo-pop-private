@@ -34,6 +34,7 @@ public:
 	// The shape of the role, null for none
 	Shape* getShape(const std::string& theRole) const;
 	float getScale() const { return mScale; }
+	VisualInfo* getInfo() const { return mInfo; }
 
 protected:
 	// 0x46f180 (feedingfrenzy2): the "visual" shape, the first frame's box around its anchor (a box of (1, 1) at
@@ -68,6 +69,7 @@ public:
 	void finish() override;
 
 	const engine::Vector2f& getMouth() const { return mMouth; }
+	FishVisualInfo* getFishInfo() const { return mFishInfo; }
 
 private:
 	// 0x484100 (feedingfrenzy2)

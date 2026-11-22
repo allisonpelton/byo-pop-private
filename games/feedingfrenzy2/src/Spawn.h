@@ -18,13 +18,18 @@
 #include "Object.h"
 #include "Params.h"
 #include "VisualData.h"
+#include "sigslot.h"
 
 #include <map>
 #include <string>
 #include <vector>
 
+class Actor;
 class NonPlayerSpawn;
 class Stage;
+
+// What makes an actor of a class (the template's actor class, ActorClassInfoImpl's 0x04)
+typedef Actor* (*ActorMaker)();
 
 // The kind of spawn a class of actor makes (the second argument of ActorClassInfoImpl's template)
 enum SpawnKind
@@ -38,7 +43,14 @@ enum SpawnKind
 class ActorClassInfo : public engine::Object
 {
 public:
-	ActorClassInfo(const char* theName, SpawnKind theKind) : mName(theName), mKind(theKind) {}
+	ActorClassInfo(const char* theName, SpawnKind theKind, ActorMaker theMaker)
+	    : mName(theName), mKind(theKind), mMaker(theMaker)
+	{
+	}
+
+	// 0x04: a new actor of the class (an AIFish's, 0x41d4b0 (feedingfrenzy2)); null, logged, for a class not yet
+	// translated
+	Actor* createActor();
 
 	// 0x08 (0x4a08d0 and 0x535445 for a fish, 0x535675 and 0x4a41e0 for the rest (feedingfrenzy2)): a spawn of the
 	// class for the stage
@@ -49,6 +61,7 @@ public:
 private:
 	std::string mName;  // +0x28
 	SpawnKind mKind;    // the template's spawn class
+	ActorMaker mMaker;  // the template's actor class, null for one not yet translated
 };
 
 // Every class of actor a stage can spawn, by name (made on first use, 0x405440 (feedingfrenzy2), at 0x5ac610; its
@@ -127,10 +140,11 @@ protected:
 
 // A spawn of an actor the computer moves (NonPlayerSpawn, 0x528 bytes with its virtual base, vtable 0x558024
 // (feedingfrenzy2); its constructor 0x41d2f0 (feedingfrenzy2))
-class NonPlayerSpawn : public Spawner
+class NonPlayerSpawn : public Spawner, public sigslot::HasSlots
 {
 public:
 	NonPlayerSpawn(ActorClassInfo* theClass, Stage* theStage);
+	~NonPlayerSpawn() override;
 
 	// 0x04 (0x403390 (feedingfrenzy2)): the handler that reads the spawn's element
 	engine::SubDocHandler* createDocHandler();
@@ -144,11 +158,14 @@ public:
 	void setup(int& theProgress) override;
 	// 0x14 (0x4033b0 (feedingfrenzy2))
 	int getLoadSteps() override { return 1; }
-	// 0x1c (0x474d50 (feedingfrenzy2)): one actor brought in
-	virtual void spawn();
+	// 0x1c (0x474d50 (feedingfrenzy2)): one actor taken from the pool (or made), set up, put at its entry point and
+	// added to the stage
+	virtual Actor* spawn();
 	// 0x20 (0x43a180 (feedingfrenzy2)): the dead taken out; while the stage lets them come and the phase has room,
 	// the next one's time drawn, and once it has passed, the actor brought in
 	void update(engine::UpdateContext* theContext, bool canSpawn) override;
+	// 0x2c (0x4a9080 (feedingfrenzy2)): an actor of the spawn died: one less of the supply left, one more dead
+	void onActorDied();
 	// 0x30 (0x406dd0 (feedingfrenzy2)): a <phase>, in the file's order
 	void addPhase(const SpawnPhase& thePhase) { mPhases.push_back(thePhase); }
 	// 0x44 (0x43a4b0 (feedingfrenzy2)): the phase of the number, the last for any past the end
@@ -159,10 +176,18 @@ public:
 	virtual void createVisual();
 	// 0x50 (0x47d580 (feedingfrenzy2)): the pool made, poolSize actors ready to come in
 	void fillPool();
+	// 0x54 (0x41da40 (feedingfrenzy2)): a new actor made ready for the stage and its death heard
+	void setupActor(Actor* theActor);
+	// 0x58 (0x4224a0 (feedingfrenzy2)): the actor given the layers, the behaviour, the visual and its bounds
+	virtual void prepareActor(Actor* theActor);
 	// 0x5c (0x439fa0 (feedingfrenzy2)): the actors that died taken out of the live ones, back into the pool
 	void removeDead();
 	// 0x68 (0x43a550 (feedingfrenzy2)): the actors of the spawn in the stage
-	int getLiveCount() const;
+	int getLiveCount() const { return (int)mLive.size(); }
+	// 0x6c: a dead actor taken out (a fish spawn's, 0x41d6d0 (feedingfrenzy2))
+	virtual void onActorRemoved(Actor* theActor) {}
+	// 0x475b30 (feedingfrenzy2): the pool's last actor, or a new one made ready, moved to the live ones
+	Actor* takeActor();
 
 	engine::Params& getTweaks() { return mTweaks; }
 	const std::string& getVisualName() const { return mVisualName; }
@@ -180,6 +205,7 @@ protected:
 	int mPoolSize;                          // +0xa8: the actors made ready as the stage loads
 	int mSupply;                            // +0xac: how many ever come in, none for no end
 	int mSupplyLeft;                        // +0xb0: from the supply at setup
+	int mDeaths;                            // +0xb4: the actors of the spawn that died
 	int mStart;                             // +0xb8: a SpawnStart
 	bool mScheduled;                        // +0xc0: the next actors' times drawn
 	std::vector<float> mSpawnTimes;         // +0xc4: the times drawn, from the scheduling
@@ -188,7 +214,8 @@ protected:
 	engine::Ref<VisualData> mVisual;        // +0x4d4: the actors' frames, at the spawn's size
 	engine::Ref<BehaviorInfo> mBehavior;    // +0x4d8: a fish spawn keeps its own (+0x534)
 	engine::Params mTweaks;                 // +0x4dc: the <tweaks> element's attributes, laid over the behaviour's
-	// The pool (+0x50c) and the live actors (+0x4fc): not yet translated, as the actors are not
+	std::vector<engine::Ref<Actor>> mLive;  // +0x4fc: in the stage, in the order they came in
+	std::vector<engine::Ref<Actor>> mPool;  // +0x50c: ready to come in, the last first
 };
 
 // A spawn of a fish (FishSpawn, 0x548 bytes with its virtual base, vtable 0x55785c (feedingfrenzy2); its
@@ -205,12 +232,17 @@ public:
 	// 0x10 (0x4061b0 (feedingfrenzy2))
 	void setup(int& theProgress) override;
 	// 0x1c (0x474dd0 (feedingfrenzy2)): a school of fish where the behaviour schools, else the spawn's one
-	void spawn() override;
+	Actor* spawn() override;
 	// 0x48 (0x410270 (feedingfrenzy2)): the fish behaviour of the name, or a new one from the tweaks alone
 	void findBehavior() override;
 	// 0x4c (0x40e310 (feedingfrenzy2)): the fish visual, in the stage's water colour unless the behaviour is in the
 	// air
 	void createVisual() override;
+	// 0x58 (0x4225a0 (feedingfrenzy2)): the spawn's, then the fish's food value, visual, ranks, behaviour and bounds
+	void prepareActor(Actor* theActor) override;
+	// 0x6c (0x41d6d0 (feedingfrenzy2)): a fish of a school taken out of it, one less school when it is empty: not
+	// yet translated, as the schools are not
+	void onActorRemoved(Actor* theActor) override {}
 
 private:
 	int mRank;                                   // +0x520: -1 when not given

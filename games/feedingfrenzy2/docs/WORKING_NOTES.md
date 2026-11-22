@@ -307,15 +307,17 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
     scaled path), until the looks pass; the colour effects other than rgbBlend (hsvAdd, rgbAdd, rgbMultiply,
     rainbow), the menu's and HUD's fish pictures (0x427490) and AnimationData's slots 0x08 and 0x14 are not yet
     translated.
+- The menu's fish: Actor, Fish and AIFish (set-up, entry point, move, keeping in the water, the stage's lists), the
+  spawn's pool and live list (taking, filling, removing the dead), FishState, SpawnAI, WanderAI and FlyByAI, the
+  stage's edges and areas, and the run state's actor and fish-visual steps. Checked under rundesk over 3000 updates
+  of the menu: the pompano and the queen triggerfish come in from the sides, swim and turn behind the plants and
+  signs, with no actor lost from the list. The schools still log and bring nothing in. See ACTORS.md.
 
 ## Next
 
-- The menu's fish: the actors (Actor 0x4226f0, 0xf0 bytes with a signal; Fish 0x481370 with its Eater and its
-  FishStateMgr; AIFish 0x41d550, 0x1ac bytes, vtables of 66, 73 and 80 slots), the spawn's bringing one in
-  (0x475b30 from the pool or the class, 0x4224a0 its set-up, the actor's slots 0x24, 0x28 and 0x18), the school
-  (SchoolOfFish 0x4101b0), the fish visual component (FishVisual, 71 slots, drawing a VisualData), the AI states
-  the fish behaviours name (WanderAI, FlyByAI, SchoolingAI and the rest), the run state's other slots (0x48 the actors, 0x60
-  the camera, 0x5c the stage's end), the spawn's live list and pool (+0x4fc, +0x50c).
+- The menu's fish, continued: the sight check (0x437ac0) and FleeAI, ChaseAI and AvoidAI; eating (the stage's
+  slot 0x50, 0x440660; the Eater's 0x43dee0; AIEatingState and EatenState; AIFish's slot 0x90, 0x419580); the schools
+  (SchoolOfFish 0x4101b0, SchoolingAI) for the herring; the stage's clean-up (0x5c, 0x447ef0); the camera (0x60).
 
 - The popup's other actions (pause, quit, save game, options); the duplicate name's and the full list's
   confirmations are wired but not yet seen.
