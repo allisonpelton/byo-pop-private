@@ -1,0 +1,32 @@
+// Sexy::QuestBoard (bejeweled3, vftable 0x866fbc, 266 slots, constructor 0x6d9000 over Sexy::Board): what the Quest-derived boards share. The exe
+// keeps a goal object at +0x3180 that most of its slots delegate to; the secret modes (Poker and Butterflies, started by 0x774060 with
+// the secret flag at +0x3184 set) have none or only a counter, and with the flag set the board is an endless game: it has no level bar and
+// no levels (slot 217, 0x6c5460, is false; slot 154, the level's size, is 0; slot 156, the level's end, does nothing). The port keeps what
+// ButterflyBoard and PokerBoard read: the flag, the settings from secret.cfg, the background of the quest and the fill that stops once the
+// game has ended. See docs/NOTES.md, "Butterflies and Poker".
+#pragma once
+
+#include "Board.h"
+
+namespace Sexy {
+
+class QuestBoard : public Board {
+public:
+	bool mIsSecretMode = false;   // +0x3184: set by 0x774060's fourth argument, which the play menu gives for Poker and Butterflies
+
+	bool HasLevels() const override { return !mIsSecretMode; }                       // slot 217 (0x6c5460, false in the secret modes)
+	int GetLevelMax() const override { return mIsSecretMode ? 0 : Board::GetLevelMax(); }   // slot 154: 0 in the secret modes
+	bool ShowsLevelNumber() const override { return !mIsSecretMode; }               // slot 249: a secret mode has no level to show
+	bool IsFillStopped() const override { return mGameOverTicks != 0; }               // slot 203 (0x6dd4d0): no fill once the end has begun (+0xd1c)
+	void ChooseBackground() override;                                                  // slot 100: the setting BackgroundIdx (0x74e410)
+
+	// the settings of the quest (+0xc8, copied from secret.cfg by 0x774060 before the game is reset); a missing one reads as 0 (the exe's
+	// atoi and wtof of the empty text)
+	int SettingInt(const char* theName) const;
+	double SettingDouble(const char* theName) const;
+	bool HasSetting(const char* theName) const { return mSettings.find(theName) != mSettings.end(); }
+
+	void UpdateGame() override;   // Board's step, then the finished moves' records go (0x759840)
+};
+
+}  // namespace Sexy

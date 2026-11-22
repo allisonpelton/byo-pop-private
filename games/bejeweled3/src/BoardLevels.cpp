@@ -181,6 +181,8 @@ void Board::ShowHint(bool theUser)
 // 0), the level change is asked for (slot 156, 0x74e190: nothing else is under way). port: the log line it writes is left out
 void Board::UpdateLevelBar()
 {
+	if (!HasLevels())
+		return;
 	int aMax = GetLevelMax();
 	float aTarget = GetBarTarget();   // 0x755940 calls slot 188
 	bool aSlowCurve = mBarRateCurve.GetOutVal() == 0.0;

@@ -90,7 +90,10 @@ public:
 	void StartClassic();
 	void StartZen();         // 0x773100 (bejeweled3)
 	void StartLightning();   // 0x773440 (bejeweled3)
-	void StartBoard(Board* theBoard);   // the shared end of the three starts
+	// 0x774060 (bejeweled3): starts a secret mode, the quest at the index of secret.cfg (0 Poker, 1 Butterflies; 2 and 3 are not made); false when
+	// that quest's mode is not made
+	bool StartSecretMode(int theIndex);
+	void StartBoard(Board* theBoard);   // the shared end of the starts
 
 	// 0x7716e0 (bejeweled3): the game screen is leaving: the play menu (the screen PLAY opens) comes back and the menu's song plays
 	void ShowPlayMenu();

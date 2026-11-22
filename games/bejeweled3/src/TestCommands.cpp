@@ -4,6 +4,7 @@
 #include "Bej3App.h"
 
 #include "Bej3Dialog.h"
+#include "ButterflyBoard.h"
 #include "Board.h"
 #include "Common.h"
 #include "LightningBoard.h"
@@ -29,6 +30,10 @@ const char* ModeKey(const Board* theBoard)
 		return "zen";
 	if (aName == "Speed")
 		return "lightning";
+	if (aName == "Butterflies")
+		return "butterflies";
+	if (aName == "Poker")
+		return "poker";
 	return "classic";
 }
 
@@ -73,6 +78,8 @@ char SpecialLetter(const Piece* thePiece)
 		return 's';
 	if ((thePiece->mFlags & Piece::FLAG_HYPERCUBE) != 0)
 		return 'c';
+	if ((thePiece->mFlags & Piece::FLAG_BUTTERFLY) != 0)
+		return 'b';
 	return '.';
 }
 
@@ -115,7 +122,35 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 		ReplyOK(theCommand);
 		return true;
 	}
+	if (aCommand == "unlock") {
+		// unlock all: every mode the play menu keeps shut is opened through the profile's own flags (+0x180: the four modes that start locked, Poker,
+		// Butterflies, Ice Storm and Diamond Mine, by the ball's number less 4)
+		if (theCommand.mArgs != "all" || mProfile == nullptr) {
+			ReplyError(theCommand, "unlock all, with a player");
+			return true;
+		}
+		for (int i = 0; i < 4; i++)
+			mProfile->mTutorialFlags[i] = 1;
+		ReplyOK(theCommand);
+		return true;
+	}
 	if (aCommand == "goto") {
+		if (theCommand.mArgs == "butterflies" || theCommand.mArgs == "poker") {
+			// as the play menu starts it: the ball of the mode must be open (unlock all), else the exe asks why it is shut instead
+			int aIndex = theCommand.mArgs == "poker" ? 0 : 1;
+			if (mProfile == nullptr || mProfile->mTutorialFlags[aIndex] == 0) {
+				ReplyError(theCommand, "that mode is locked: unlock all first");
+				return true;
+			}
+			if (mMainMenu != nullptr && mMainMenu->mPlayMenu != nullptr && !mMainMenu->mPlayMenu->IsActive())
+				mMainMenu->OpenPlayMenu();
+			if (!StartSecretMode(aIndex)) {
+				ReplyError(theCommand, "that mode is not made yet");
+				return true;
+			}
+			ReplyOK(theCommand);
+			return true;
+		}
 		if (theCommand.mArgs == "classic" || theCommand.mArgs == "zen" || theCommand.mArgs == "lightning") {
 			// the game is reached as from the screens: PLAY is pressed (the play menu opens) and then the mode's ball
 			if (mMainMenu != nullptr && mMainMenu->mPlayMenu != nullptr && !mMainMenu->mPlayMenu->IsActive())
@@ -129,7 +164,7 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 			ReplyOK(theCommand);
 		}
 		else
-			ReplyError(theCommand, "only classic, zen and lightning are made yet");
+			ReplyError(theCommand, "only classic, zen, lightning, butterflies and poker are made yet");
 		return true;
 	}
 	if (aCommand == "swap") {
@@ -339,6 +374,33 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 			aLine += ",\"update\":" + std::to_string(mBoard->mUpdateCnt) + ",\"moving\":" + std::to_string(aMoving) +
 				",\"landticks\":" + std::to_string(mBoard->mLandTicks) + ",\"ysum\":" + std::to_string(aYSum) +
 				",\"speedsum\":" + std::to_string(aSpeedSum);
+			if (const ButterflyBoard* aButterflies = dynamic_cast<const ButterflyBoard*>(mBoard)) {
+				// Butterflies: the moves each butterfly waits before it climbs (a digit, 9 for more; . where there is none), a caught one
+				// as its digit in capitals' place (a letter from A: its count), the spider's column in hundredths, where it goes, the
+				// drop's countdown, the credit and the count of a drop in thousandths, the chance of a side column in thousandths, and the
+				// butterflies freed and the best number freed by one move
+				aLine += ",\"butterflies\":[";
+				for (int aRow = 0; aRow < Board::ROWS; aRow++) {
+					aLine += aRow == 0 ? "\"" : ",\"";
+					for (int aCol = 0; aCol < Board::COLS; aCol++) {
+						const Piece* aPiece = aButterflies->mGrid[aRow][aCol];
+						if (aPiece == nullptr || (aPiece->mFlags & Piece::FLAG_BUTTERFLY) == 0)
+							aLine += '.';
+						else {
+							int aLeft = aPiece->mTimeGemSeconds < 0 ? 0 : aPiece->mTimeGemSeconds > 9 ? 9 : aPiece->mTimeGemSeconds;
+							aLine += aPiece->mSpecialState == -1 ? (char)('A' + aLeft) : (char)('0' + aLeft);
+						}
+					}
+					aLine += "\"";
+				}
+				aLine += "],\"spiderx\":" + std::to_string((int)(aButterflies->mSpiderX * 100.0f)) + ",\"spiderto\":" +
+					std::to_string((int)aButterflies->mSpiderTo) + ",\"dropcountdown\":" + std::to_string(aButterflies->mDropCountdown) +
+					",\"credit\":" + std::to_string((int)(aButterflies->mSpawnCredit * 1000.0f)) + ",\"spawncount\":" +
+					std::to_string((int)(aButterflies->mSpawnCount * 1000.0f)) + ",\"sidechance\":" +
+					std::to_string((int)(aButterflies->mSideSpawnChance * 1000.0f)) + ",\"freed\":" +
+					std::to_string(aButterflies->mCounters[ButterflyBoard::COUNTER_BUTTERFLIES_FREED]) + ",\"bestcombo\":" +
+					std::to_string(aButterflies->mCounters[ButterflyBoard::COUNTER_BEST_COMBO]);
+			}
 			if (const LightningBoard* aLightning = dynamic_cast<const LightningBoard*>(mBoard)) {
 				// Lightning: the game ticks left of the round, the clock, the seconds the matched time gems hold (this round's account and
 				// the game's), the multiplier, whether the time-up is shown, the chances' counters and the time gems on the board (each

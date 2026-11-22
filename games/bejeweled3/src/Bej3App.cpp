@@ -5,6 +5,7 @@
 #include "Bej3Music.h"
 #include "Board.h"
 #include "GemSilhouettes.h"
+#include "ButterflyBoard.h"
 #include "LightningBoard.h"
 #include "ZenBoard.h"
 #include "MemoryImage.h"
@@ -23,6 +24,7 @@
 #include "X86Math.h"
 
 #include <SDL.h>
+#include <cctype>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
@@ -476,7 +478,34 @@ void Bej3App::StartLightning()
 	StartBoard(aBoard);
 }
 
-// the common part of the three starts (0x7737d0, 0x773100, 0x773440)
+// 0x774060 (bejeweled3): a secret mode. The quest (secret.cfg's, by index: 0 Poker, 1 Butterflies, 2 Inferno, 3 Dig) says by its setting
+// Challenge which board is made: the exe compares it with the names in this order, ignoring case: TIME BOMB, TIME BOMB (REAL TIME), INFERNO,
+// BALANCE, BUTTERFLIES or BUTTERFLY (0x6dcdf0), FILLER, MOVE LIMIT, TIME LIMIT, NO LOSE, BAD MOVE LIMIT and POKER (0x6da1c0). The quest's settings
+// are copied into the board's map (0x404870) and the secret flag (+0x3184, the call's fourth argument) is set before the board is reset
+// (slot 85) and dealt (slot 135). port: only the two boards that are made
+bool Bej3App::StartSecretMode(int theIndex)
+{
+	if (mSecretQuestData == nullptr || theIndex < 0 || theIndex >= (int)mSecretQuestData->mQuests.size())
+		return false;
+	const std::map<std::string, std::string>& aSettings = mSecretQuestData->mQuests[theIndex].mSettings;
+	auto aChallengeIter = aSettings.find("Challenge");
+	std::string aChallenge = aChallengeIter == aSettings.end() ? std::string() : aChallengeIter->second;
+	if (aChallenge.size() >= 2 && aChallenge.front() == '"' && aChallenge.back() == '"')
+		aChallenge = aChallenge.substr(1, aChallenge.size() - 2);
+	for (char& aChar : aChallenge)
+		aChar = (char)toupper((unsigned char)aChar);
+	QuestBoard* aBoard = nullptr;
+	if (aChallenge == "BUTTERFLIES" || aChallenge == "BUTTERFLY")
+		aBoard = new ButterflyBoard();
+	if (aBoard == nullptr)
+		return false;
+	aBoard->mSettings = aSettings;
+	aBoard->mIsSecretMode = true;
+	StartBoard(aBoard);
+	return true;
+}
+
+// the common part of the starts (0x7737d0, 0x773100, 0x773440, 0x774060)
 void Bej3App::StartBoard(Board* theBoard)
 {
 	if (mGemFrames[0][7] == nullptr)

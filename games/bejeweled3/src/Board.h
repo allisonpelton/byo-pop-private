@@ -40,6 +40,7 @@ public:
 		FLAG_FLAME = 1,        // goes off as a 3 by 3 explosion (Explode, 0x73f8e0), which sets neighbours with this bit off in turn
 		FLAG_HYPERCUBE = 2,    // swapped with a neighbour it clears every gem of that one's colour (0x740f20, 0x74db70, 0x7870f0)
 		FLAG_STAR = 4,        // when matched it makes a match group whose rings run along its row and column (0x789a90, 0x75dee0)
+		FLAG_BUTTERFLY = 0x80,         // Butterflies' gem (0x7492c0 sets it): matched it is freed; it climbs a row when its mTimeGemSeconds (+0x244) counts out
 		FLAG_RANDOM_PICK = 0x60,
 		FLAG_TIME_GEM = 0x20000,        // Lightning's time gem (0x716c60 makes it, 0x715360 collects it): mTimeGemSeconds is its worth
 		FLAG_TIME_GEM_AGING = 0x40000,  // set on a gem 0x7173f0 counts down (+0x244) every 150 game ticks and clears with the time gem's bits when it is out; nothing translated sets it
@@ -87,7 +88,9 @@ public:
 	int mGroupId = -1;      // +0x190: the id of the run that matched it (the board's counter, +0xe1c)
 	int mRememberedColor = -1;   // +0x21c: its colour when it was matched (a hypercube has none, +0x220 is -1, so a run that holds it still
 	                        // counts it for the colour it had); the matcher reads it for a piece matched in this update
-	int mTimeGemSeconds = 0;     // +0x244: the seconds a Lightning time gem is worth (5 or 10); 0 for a plain gem (the fill sets it to 0 on every piece it makes)
+	int mTimeGemSeconds = 0;     // +0x244: the seconds a Lightning time gem is worth (5 or 10); 0 for a plain gem (the fill sets it to 0 on every piece it makes);
+	                        // Butterflies' gem: the moves left before it climbs a row (0x7492c0's maker, 0x6d7c70 and 0x6e82a0 set it, 0x73c710 counts it down)
+	float mMoveCountdownPerLevel = 0.0f;   // +0x254: a butterfly gem's copy of the board's MoveCountdownPerLevel (0x6d7c70), which 0x6e82a0 reads again
 	int mSpecialCountdown = 0;   // +0x184: 25 when a special was made on it (0x745ca0, 0x749570, 0x7494d0), counts down by one each update
 	                        // (UpdateGame); the 3 by 3 explosion and the busy-count branch leave a piece alone while it is above 0
 
@@ -138,6 +141,8 @@ struct SwapRecord {
 	CurvedVal mCurve;     // the swap's curve
 	bool mIsSwapBack;     // the swap made no match and the pieces are going back
 	bool mDone;           // +0xf8 (set while it is checked for matches: the pieces are no longer held)
+	bool mForced = false; // +0xf9: the 5th argument of slot 195 (0x75ee20): a swap that stays whether or not it makes a match and is not a move of the player
+	                      // (Butterflies' climb gives 1: 0x759ba0 does not send it back, 0x74c070 and 0x6d7f40 do not count it as a move)
 };
 
 // One cell of a match group's ring (the exe's 12-byte entry in the group's list at +0xa4, pushed by 0x75dee0)
@@ -178,6 +183,7 @@ struct PendingSwap {
 	int mPieceId;   // +4
 	int mRow;       // +8
 	int mCol;       // +0xc
+	bool mForced = false;   // +0x10: TrySwap's fourth argument (slot 194), which UpdateTick gives StartSwap as its fifth
 };
 
 class Board : public Widget, public ButtonListener, public DialogListener {
@@ -274,12 +280,30 @@ public:
 	void Update() override;
 	// slot 234, 0x767090 (bejeweled3): one step of the game
 	void UpdateTick();
-	// slot 231, 0x767e20 (bejeweled3): the game's part of a step: the fill, the fall and the idle shine
-	void UpdateGame();
+	// slot 231, 0x767e20 (bejeweled3): the game's part of a step: the fill, the fall and the idle shine (ButterflyBoard's 0x6e82a0 runs it first)
+	virtual void UpdateGame();
 	// slot 214, 0x73dd70 (bejeweled3): gravity: each column's pieces move by their speeds and land on the row or the piece below
 	void UpdateFalling();
 	// 0x75fca0 (bejeweled3): every piece is at rest in its cell, nothing is left to land, and there is no match
 	bool IsSettled();
+	// slot 140 (0x230): the first time IsSettled finds the board at rest (0x75fd15); Quest-derived boards start their play here (slot 256)
+	virtual void OnFirstSettled() {}
+	// slot 191 (0x2fc), 0x75a58a: a swap has found matches (the swap record is given); with the pieces' move counters of 0x73c7e0 first
+	virtual void OnSwapMatched(const SwapRecord& theSwap) { (void)theSwap; }
+	// 0x73c7e0 (bejeweled3) with slot 212 (0x73c710) for each piece without the bits 0x40 and 0x100: a butterfly gem (FLAG_BUTTERFLY) with
+	// moves left counts one down (the other branches of 0x73c710, for the bit 0x200, are the Quest boards' goals': not translated). Run
+	// by 0x75f85c, 0x75f8be (a hypercube's swap) and by 0x74c070 (a swap that found a match), before slots 179 and 191
+	void CountDownMoves();
+	// 0x759840 (bejeweled3), run in each step by 0x767e20: a move's record goes once no match group lives and the pieces that carry its id
+	// have all come to rest (their tag, +0x188, is put back to -1), and no column's tag holds it. port: Board::UpdateGame does not run it
+	// (Classic's frozen baseline keeps the tags a move gave); the Quest boards run it from QuestBoard::UpdateGame, since Butterflies' game
+	// over reads the tags. The exe's sounds and the hint's flags at its end are left out
+	void UpdateMoveRecords();
+	// 0x7492c0 (bejeweled3), slot 168's sibling: the piece becomes a butterfly gem (FLAG_BUTTERFLY and nothing else); 0x748ad0 makes its looks
+	void MakeButterflyGem(Piece* thePiece);
+	void MakeButterflyEffect(Piece* thePiece);
+	// the level bar (0x755940) and the level change exist: false on a board with no levels (the secret modes: slot 217 of QuestBoard, 0x6c5460, is false)
+	virtual bool HasLevels() const { return true; }
 	// 0x755ad0 (bejeweled3): the piece is still, in its cell and free to be played
 	static bool PieceIsSettled(const Piece* thePiece);
 	// slot 164, 0x749c20 (bejeweled3) with a step of 1 (the only one the translated code gives it): the next of the 19 backgrounds is
@@ -289,6 +313,11 @@ public:
 	void LeaveToMenu();
 	// slot 135, 0x74e410 (bejeweled3): a new game: its background is chosen and the first fill is made
 	virtual void NewGame();
+	// 0x74e410 (bejeweled3): the background of a new game: Classic's slot 100 (0x73afa0) says to start from the first of the game's order; the Quest-derived
+	// boards (slot 100 of Board) read the setting BackgroundIdx and keep it
+	virtual void ChooseBackground();
+	// slot 203 (0x6dd4d0, QuestBoard): the fill does nothing once the game's end has begun (+0xd1c or +0xd20 is not 0)
+	virtual bool IsFillStopped() const { return false; }
 	// slot 203, 0x763e90 (bejeweled3): makes the pieces that the empty cells need above the grid, lets them fall into
 	// place one row at a time and gives them colours that make no match and leave a move. theNoMatchCheck is the
 	// exe's second argument (set when it gave up). Classic's first fill is this with 0 for it.
@@ -311,7 +340,7 @@ public:
 	// port: the help tip, the glow of the gem (0x748480) and its sound are left out
 	void ShowHint(bool theUser);
 	// slot 98, 0x73d4f0 (bejeweled3): a hint may come now
-	bool HintAllowed() const;
+	virtual bool HintAllowed() const;
 
 	// slot 53, 0x73f140 (bejeweled3): picks a gem up, or swaps the one picked up with the one clicked
 	using Widget::MouseDown;
@@ -325,11 +354,11 @@ public:
 	Piece* GetSelectedPiece() const;
 	Piece* GetPieceAt(float theX, float theY) const;
 	// slot 194, 0x740e80 (bejeweled3): asks for a swap of the piece with the one at a cell. It starts in the next update
-	bool TrySwap(Piece* thePiece, int theRow, int theCol);
+	bool TrySwap(Piece* thePiece, int theRow, int theCol, bool theForced = false);
 	// slot 193, 0x75fae0 (bejeweled3): the swap is allowed
 	bool CanSwap(Piece* thePiece, unsigned theRow, unsigned theCol);
 	// slot 195, 0x75ee20 (bejeweled3): the swap begins
-	bool StartSwap(Piece* thePiece, int theRow, int theCol);
+	bool StartSwap(Piece* thePiece, int theRow, int theCol, bool theForced = false);
 	// 0x759ba0 (bejeweled3): the swaps move on, and are checked for matches when they come to an end
 	void UpdateSwaps();
 	// 0x73caa0 (bejeweled3): a swap holds the piece
@@ -368,7 +397,7 @@ public:
 	// slot 179, 0x740f20 (bejeweled3): a hypercube is swapped with a piece: it starts its group at once, and no swap is made
 	void StartHypercube(Piece* theCube, Piece* thePartner);
 	// slot 180, 0x74db70 (bejeweled3): the hypercube makes its group (type 7) for the colour (-1: every colour)
-	void MakeHypercubeGroup(Piece* theCube, int theColor);
+	virtual void MakeHypercubeGroup(Piece* theCube, int theColor);
 	// 0x7870f0 (bejeweled3), run by 0x78a390 for a group of type 7: picks the pieces of the colour one by one, makes a bolt to each,
 	// and clears the ones whose timers have come to 1
 	void UpdateHypercubeGroup(MatchGroup* theGroup);
@@ -387,7 +416,7 @@ public:
 	void DrawSparkRandoms();
 	void RemovePiece(Piece* thePiece);
 	// slot 152, 0x74df80 with 0x74a210 (bejeweled3): points are added to the score
-	void AddPoints(int thePoints, int theMoveId = -1, bool theCountsForProgress = true, bool theUsesMultiplier = true);
+	virtual void AddPoints(int thePoints, int theMoveId = -1, bool theCountsForProgress = true, bool theUsesMultiplier = true);
 	// 0x73d170 and 0x73cf10 (bejeweled3): a counter goes up (the game's, the move's), and a move's counter
 	void AddCounter(int theKey, int theValue, int theMoveId);
 	int GetMoveCounter(int theMoveId, int theKey);
@@ -464,6 +493,7 @@ public:
 	void DrawPanel(Graphics* g);                           // 0x751d50 (bejeweled3): the checkered squares behind the gems
 	// the three pieces of the left panel DrawScreenFrame draws (the exe's slots 249, 255 and 251), which Zen replaces
 	virtual void DrawTopWidget(Graphics* g);
+	virtual bool ShowsLevelNumber() const { return true; }   // the top widget (slot 249) writes the level over its picture; a board with no levels does not
 	virtual void DrawScoreText(Graphics* g);
 	virtual void DrawBottomWidget(Graphics* g);
 	// slot 237, 0x757df0 (bejeweled3): theScaleFactor is its third argument (1; the swap loop of 0x7568a0 gives 1 plus or minus the swap's lift)

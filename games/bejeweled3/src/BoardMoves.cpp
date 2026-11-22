@@ -6,6 +6,8 @@
 #include "Board.h"
 
 #include "Bej3App.h"
+#include "PIEffect.h"
+#include "Res.h"
 #include "X86Math.h"
 
 #include <algorithm>
@@ -247,7 +249,7 @@ void Board::MouseDrag(int x, int y)
 // for replays and the last move), which nothing translated reads. It is a request: the swap itself begins in the next
 // update (0x75ee20 is run by UpdateTick for the entries of the list at +0xc60, which the exe's live move reaches
 // the same way; whether the exe starts it in the very update of the click or the next one is not settled)
-bool Board::TrySwap(Piece* thePiece, int theRow, int theCol)
+bool Board::TrySwap(Piece* thePiece, int theRow, int theCol, bool theForced)
 {
 	if (!CanSwap(thePiece, (unsigned)theRow, (unsigned)theCol))
 		return false;
@@ -256,6 +258,7 @@ bool Board::TrySwap(Piece* thePiece, int theRow, int theCol)
 	aPending.mPieceId = thePiece->mId;
 	aPending.mRow = theRow;
 	aPending.mCol = theCol;
+	aPending.mForced = theForced;
 	mPendingSwaps.push_back(aPending);
 	mHintTimer = 0;   // port: a move asked for starts the hint's wait again (0x75f852 puts +0x26a4 to 0 in a function that reads the piece's +0x182)
 	// the piece has been spoken for: it is not picked up any more
@@ -301,6 +304,41 @@ MoveRecord* Board::NewMoveRecord()
 	return &mMoveRecords.back();
 }
 
+// 0x759840 (bejeweled3), see the header
+void Board::UpdateMoveRecords()
+{
+	for (size_t aIndex = 0; aIndex < mMoveRecords.size();) {
+		int anId = mMoveRecords[aIndex].mId;
+		if (!mMatchGroups.empty()) {
+			aIndex++;
+			continue;
+		}
+		bool aHeld = false;
+		for (int aRow = 0; aRow < ROWS; aRow++) {
+			for (int aCol = 0; aCol < COLS; aCol++) {
+				Piece* aPiece = mGrid[aRow][aCol];
+				if (aPiece == nullptr || aPiece->mColumnTag != anId)
+					continue;
+				if (!PieceIsSettled(aPiece)) {
+					aHeld = true;
+					continue;
+				}
+				aPiece->mColumnTag = -1;
+				aPiece->mMovedUpdate = 0;
+			}
+		}
+		for (int aCol = 0; aCol < COLS; aCol++) {
+			if (mColumnTag[aCol] == anId)
+				aHeld = true;
+		}
+		if (aHeld) {
+			aIndex++;
+			continue;
+		}
+		mMoveRecords.erase(mMoveRecords.begin() + aIndex);
+	}
+}
+
 MoveRecord* Board::FindMoveRecord(int theId)
 {
 	for (size_t i = 0; i < mMoveRecords.size(); i++) {
@@ -313,7 +351,7 @@ MoveRecord* Board::FindMoveRecord(int theId)
 // 0x75ee20 (bejeweled3), a plain gem moved by the player (the move's record is made, both pieces carry its id, the swap
 // begins). port: the counters of moves (+0x1374, +0x1370, +0x1371 at 0x75ee2f to 0x75ef10), the game's record, the
 // branches for the gems with the bits 0x1000 (the hypercube, which picks gems of its own) and the sounds are left out
-bool Board::StartSwap(Piece* thePiece, int theRow, int theCol)
+bool Board::StartSwap(Piece* thePiece, int theRow, int theCol, bool theForced)
 {
 	if (thePiece == nullptr || theRow < 0 || theRow >= ROWS || theCol < 0 || theCol >= COLS)
 		return false;
@@ -332,12 +370,14 @@ bool Board::StartSwap(Piece* thePiece, int theRow, int theCol)
 	if (aFirstIsCube && aOther != nullptr) {
 		if (!aOther->mClearable)
 			return false;
+		CountDownMoves();   // 0x75f85c
 		StartHypercube(thePiece, aOther);
 		return true;
 	}
 	if (aSecondIsCube) {
 		if (!thePiece->mClearable)
 			return false;
+		CountDownMoves();   // 0x75f8be
 		StartHypercube(aOther, thePiece);
 		return true;
 	}
@@ -352,6 +392,7 @@ bool Board::StartSwap(Piece* thePiece, int theRow, int theCol)
 	aSwap.mCurve.SetCurve(SWAP_CURVE);
 	aSwap.mIsSwapBack = false;
 	aSwap.mDone = false;
+	aSwap.mForced = theForced;
 	mSwaps.push_back(aSwap);
 	return true;
 }
@@ -427,8 +468,14 @@ void Board::UpdateSwaps()
 		int aMatches = FindMatches();
 		// FindMatches does not change the list of swaps
 		SwapRecord& aSame = mSwaps[i];
-		if (aMatches != 0) {
+		if (aMatches != 0 || aSame.mForced) {
+			// 0x75a49c: a forced swap (the exe's bVar2) is kept whether or not it made a match; 0x74c070, which starts with 0x73c7e0, is
+			// run for matches of a swap that is not forced (+0xf9), then slot 191 sees the swap in either case
+			SwapRecord aMatched = mSwaps[i];
 			mSwaps.erase(mSwaps.begin() + i);
+			if (aMatches != 0 && !aMatched.mForced)
+				CountDownMoves();   // 0x75a61e
+			OnSwapMatched(aMatched);
 			continue;
 		}
 		// nothing: back they go (the first one's place is now the second's, so its move is the other way)
@@ -1221,6 +1268,43 @@ void Board::DrawExplosionRandoms()
 	const int aDraws = 14 * 10 + 25 * 10 + 14 * 6;
 	for (int aDraw = 0; aDraw < aDraws; aDraw++)
 		Rand();
+}
+
+// 0x7492c0 (bejeweled3): a piece that is not a butterfly yet loses its flags and the effects that hold it, takes the bit 0x80, gets the effects of
+// its flags (0x749220: for the bit 0x80 the butterfly's own, 0x748ad0) and the creation burst (a copy of PIEFFECT_BUTTERFLY_CREATE that follows it
+// and updates twice in each update). port: the three tints of the colour's layers and the sound at +0x5d8 of the app are left out
+void Board::MakeButterflyGem(Piece* thePiece)
+{
+	if ((thePiece->mFlags & Piece::FLAG_BUTTERFLY) != 0)
+		return;
+	thePiece->mFlags = 0;
+	for (Effect* anEffect : thePiece->mEffects) {
+		anEffect->mPieceId = 0;   // 0x71ffd0: the piece lets go of the effects that held it
+		anEffect->mUsers--;
+	}
+	thePiece->mEffects.clear();
+	thePiece->mFlags |= Piece::FLAG_BUTTERFLY;
+	MakeButterflyEffect(thePiece);
+	if (PIEFFECT_BUTTERFLY_CREATE != nullptr) {
+		ParticleEffect* aCreate = new ParticleEffect(PIEFFECT_BUTTERFLY_CREATE);
+		aCreate->mPieceId = thePiece->mId;
+		aCreate->mUpdateTwice = true;
+		mEffectsOver->Add(aCreate);
+	}
+}
+
+// 0x73c7e0 (bejeweled3), see the header
+void Board::CountDownMoves()
+{
+	for (int aRow = 0; aRow < ROWS; aRow++) {
+		for (int aCol = 0; aCol < COLS; aCol++) {
+			Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece == nullptr || (aPiece->mFlags & 0x140) != 0 || aPiece->mTimeGemSeconds <= 0 || (aPiece->mFlags & 0x200) != 0)
+				continue;
+			if ((aPiece->mFlags & Piece::FLAG_BUTTERFLY) != 0)
+				aPiece->mTimeGemSeconds--;   // 0x73c710
+		}
+	}
 }
 
 // 0x740f20 (bejeweled3), for the player's swap of a hypercube and a gem: the cube's group takes the colour of the gem. port: the sound,

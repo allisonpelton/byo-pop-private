@@ -326,6 +326,33 @@ void ClassicEndLevelDialog::DrawSpecialGems(Graphics* g)
 	}
 }
 
+// 0x784c30 (bejeweled3): the dialog of 0x6a7c80 (the leaderboard of the mode's name "Butterflies")
+ButterflyEndLevelDialog::ButterflyEndLevelDialog(Board* theBoard) :
+	ClassicEndLevelDialog(theBoard)
+{
+}
+
+// 0x784400 (bejeweled3), slot 89: Butterflies Freed, Best Move, Best Butterfly Combo and Total Time (strings 0x9f to 0xa2), left
+void ButterflyEndLevelDialog::DrawStatisticsLabels(Graphics* g)
+{
+	static const char* const aDefaults[4] = {"Butterflies Freed", "Best Move", "Best Butterfly Combo", "Total Time"};
+	for (int i = 0; i < 4; i++)
+		g->WriteString(TextById(0x9f + i, aDefaults[i]), Scaled(0xe6), Scaled(0x1db + 0x30 * i), -1, -1, true, 0, -1, -1);
+}
+
+// 0x784880 (bejeweled3), slot 90: the values, right at 0x2ee: the butterflies freed (counter 0x1c), the best move (counter 25), the best combo of
+// butterflies (counter 0x1d) and the game's seconds (counter 0) as minutes and seconds (string 0xa3, "%d:%02d")
+void ButterflyEndLevelDialog::DrawStatisticsValues(Graphics* g)
+{
+	const int aX = Scaled(0x2ee);
+	g->WriteString(CommaSeperate(mCounters[0x1c]), aX, Scaled(0x1db), -1, 1, true, 0, -1, -1);
+	g->WriteString(CommaSeperate(mCounters[COUNTER_BEST_MOVE]), aX, Scaled(0x1db + 0x30), -1, 1, true, 0, -1, -1);
+	g->WriteString(CommaSeperate(mCounters[0x1d]), aX, Scaled(0x1db + 0x60), -1, 1, true, 0, -1, -1);
+	char aTime[32];
+	snprintf(aTime, sizeof(aTime), TextById(0xa3, "%d:%02d").c_str(), mCounters[COUNTER_SECONDS] / 60, mCounters[COUNTER_SECONDS] % 60);
+	g->WriteString(aTime, aX, Scaled(0x1db + 0x90), -1, 1, true, 0, -1, -1);
+}
+
 // 0x716ab0 (bejeweled3): the dialog of 0x6a7c80 (the leaderboard of the mode's name "Lightning") with the board's +0x30b0
 LightningEndLevelDialog::LightningEndLevelDialog(Board* theBoard, int theBonusSecondsTotal) :
 	ClassicEndLevelDialog(theBoard),

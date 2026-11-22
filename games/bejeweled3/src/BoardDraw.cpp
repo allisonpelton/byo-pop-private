@@ -300,7 +300,7 @@ void Board::DrawPanel(Graphics* g)
 void Board::DrawTopWidget(Graphics* g)
 {
 	DrawPanelPicture(g, IMAGE_INGAMEUI_TOP_WIDGET, IMAGE_INGAMEUI_TOP_WIDGET_ID);
-	{
+	if (ShowsLevelNumber()) {
 		g->SetFont(FONT_LEVEL);
 		Color anOld;
 		bool aSet = SetLayerColor(FONT_LEVEL, "GLOW", Color(128, 128, 128, 255), &anOld);

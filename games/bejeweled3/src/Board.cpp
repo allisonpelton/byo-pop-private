@@ -190,14 +190,19 @@ void Board::SetBackground(int theStep)
 	gApp->mWidgetManager->AddWidget(mBackground);
 }
 
+void Board::ChooseBackground()
+{
+	// 0x74e63b and 0x74e750: the index is set to -1 and 0x749c20 takes the next one, with no random number
+	mBackgroundIndex = -1;
+	SetBackground(1);
+}
+
 // 0x74e410 (bejeweled3): Classic has no seed override (0x73b4f0 returns 0), the saved game of the mode is not there, so the
 // background is the first of the game's order and the first fill is made. port: the board's camera setup (0x73e440) and the counters
 // the update reads (+0xc84 to +0xd18) come with their steps
 void Board::NewGame()
 {
-	// 0x74e63b and 0x74e750: the index is set to -1 and 0x749c20 takes the next one, with no random number
-	mBackgroundIndex = -1;
-	SetBackground(1);
+	ChooseBackground();
 	mSettledOnce = false;   // 0x74e775
 	// 0x74e1f0 would load a saved game here
 	FillInBlanks(false);
@@ -208,7 +213,7 @@ void Board::NewGame()
 // 0x763e90 (bejeweled3)
 void Board::FillInBlanks(bool theNoMatchCheck)
 {
-	if (mFillHeld != 0)
+	if (mFillHeld != 0 || IsFillStopped())
 		return;
 	// a piece that is still being worked on holds the whole fill
 	for (int aRow = mLastRow; aRow >= 0; aRow--) {
@@ -411,7 +416,7 @@ void Board::UpdateTick()
 	for (size_t i = 0; i < aPending.size(); i++) {
 		Piece* aPiece = FindPieceById(aPending[i].mPieceId);
 		if (aPiece != nullptr)
-			StartSwap(aPiece, aPending[i].mRow, aPending[i].mCol);
+			StartSwap(aPiece, aPending[i].mRow, aPending[i].mCol, aPending[i].mForced);
 	}
 	UpdateGame();
 	UpdateShownScore();
@@ -531,7 +536,10 @@ bool Board::IsSettled()
 		return false;
 	if (HasMatches())
 		return false;
-	mSettledOnce = true;
+	if (!mSettledOnce) {
+		mSettledOnce = true;
+		OnFirstSettled();   // 0x75fd15: slot 140
+	}
 	return true;
 }
 

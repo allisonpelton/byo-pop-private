@@ -322,7 +322,7 @@ void PlayMenu::ButtonDepress(int theId)
 		bool isLocked = theId >= FIRST_LOCKED_BALL && gApp->mProfile->mTutorialFlags[theId - FIRST_LOCKED_BALL] == 0;
 		SDL_Log("PlayMenu: mode %d (%s)%s", theId, mBalls[theId]->mText.c_str(), isLocked ? ", locked" : "");
 		// 0x69b360: the field at +0x3cc and the app's +0xc31 are cleared, then the mode's start runs. port: only
-		// Classic (0x7737d0), Zen (0x773100) and Lightning (0x773440) are made; the others log
+		// Classic (0x7737d0), Zen (0x773100), Lightning (0x773440) and the secret modes (0x774060) are made; the others log
 		gApp->mSavedGameChosen = false;
 		if (theId == 0)
 			gApp->StartClassic();
@@ -330,6 +330,8 @@ void PlayMenu::ButtonDepress(int theId)
 			gApp->StartZen();
 		else if (theId == 2)
 			gApp->StartLightning();
+		else if ((theId == 4 || theId == 5) && !isLocked)
+			gApp->StartSecretMode(theId - 4);   // 0x774060: the ball POKER is the secret quest 0, BUTTERFLIES the quest 1; a locked ball asks why instead (not made)
 	}
 }
 

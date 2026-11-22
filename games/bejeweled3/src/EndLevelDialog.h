@@ -71,4 +71,16 @@ private:
 	void DrawResults(Graphics* g);   // the second half of 0x780aa0: the graph, the icons with their counts, the chart's side labels
 };
 
+// Sexy::ButterflyEndLevelDialog (bejeweled3, vtable 0x86be7c, 0x390 bytes, made by 0x784c30 from the board's slot 257, 0x6d0590): the screen a Butterflies
+// game ends on, Classic's dialog (id 0x26, the same three buttons, 0x6a7c80) with its own statistics. Its update (0x784cc0) and content (0x784370)
+// do what Classic's do (0x784340, 0x7839f0), its Draw (0x784cb0) is a jump to Classic's 0x6a87a0. See EndLevelDialog.cpp.
+class ButterflyEndLevelDialog : public ClassicEndLevelDialog {
+public:
+	explicit ButterflyEndLevelDialog(Board* theBoard);   // 0x784c30 (bejeweled3)
+
+protected:
+	void DrawStatisticsLabels(Graphics* g) override;   // 0x784400 (bejeweled3), slot 89
+	void DrawStatisticsValues(Graphics* g) override;   // 0x784880 (bejeweled3), slot 90
+};
+
 }  // namespace Sexy
