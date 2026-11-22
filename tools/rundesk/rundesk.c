@@ -11,7 +11,12 @@
 // Test runs are silent too: the children always get SDL's "dummy" audio driver, which plays nothing but
 // still pulls audio at the device rate (the game does not depend on it). An SDL_AUDIODRIVER the caller
 // set is replaced, so a real driver chosen for other programs cannot make hidden runs audible.
-// And they run at below-normal priority (inherited by their children), so the machine stays responsive.
+// And they run at below-normal priority (inherited by their children), so the machine stays responsive. The
+// GPU's scheduling priority is not inherited, and Windows keeps a value set only once the process has made its
+// first graphics call, so every half second rundesk sets it to below normal for each process in the job: a -fast
+// run draws as often as it can, and without this a game on the invisible desktop competed on equal terms for the
+// GPU with what the user was doing (the user, 2026-11-22: "Now why is peggle.exe eating most of my GPU??"). The
+// game still takes the GPU time nothing else wants.
 // BYOPOP_TEST_RUN=1 marks the run: the framework then never opens a URL (a game's "more games" link is a
 // steam:// URL that would bring up the user's Steam client on their desktop).
 //
@@ -28,6 +33,37 @@
 #include <windows.h>
 #include <stdio.h>
 #include <wchar.h>
+
+// gdi32's D3DKMTSetProcessSchedulingPriorityClass (Windows 7 and later), found at run time; NULL if missing.
+typedef LONG (APIENTRY* SetGpuPriorityFn)(HANDLE theProcess, INT thePriorityClass);
+enum { GPU_PRIORITY_BELOW_NORMAL = 1 }; // D3DKMT_SCHEDULINGPRIORITYCLASS_BELOW_NORMAL
+enum { WAIT_STEP_MS = 50, GPU_PRIORITY_EVERY_STEPS = 10 };
+static SetGpuPriorityFn gSetGpuPriority = NULL;
+
+// Sets the GPU priority of every process in the job to below normal (a process with no graphics yet ignores it,
+// hence the repeats).
+static void LowerJobGpuPriority(HANDLE theJob)
+{
+	enum { MAX_PROCESSES = 64 };
+	struct
+	{
+		JOBOBJECT_BASIC_PROCESS_ID_LIST mList;
+		ULONG_PTR mMore[MAX_PROCESSES];
+	} anIds;
+	if ((gSetGpuPriority == NULL) ||
+		!QueryInformationJobObject(theJob, JobObjectBasicProcessIdList, &anIds, sizeof(anIds), NULL))
+		return;
+	for (DWORD i = 0; i < anIds.mList.NumberOfProcessIdsInList; i++)
+	{
+		HANDLE aProcess = OpenProcess(PROCESS_SET_INFORMATION | PROCESS_QUERY_LIMITED_INFORMATION, FALSE,
+			(DWORD) anIds.mList.ProcessIdList[i]);
+		if (aProcess != NULL)
+		{
+			gSetGpuPriority(aProcess, GPU_PRIORITY_BELOW_NORMAL);
+			CloseHandle(aProcess);
+		}
+	}
+}
 
 // The command line after the program name of this process, as typed (keeps the caller's quoting).
 static wchar_t* SkipArg0(wchar_t* theCmdLine)
@@ -83,6 +119,10 @@ int main(void)
 	aStartup.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
 	aStartup.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 
+	HMODULE aGdi = LoadLibraryW(L"gdi32.dll");
+	if (aGdi != NULL)
+		gSetGpuPriority = (SetGpuPriorityFn) (void*) GetProcAddress(aGdi, "D3DKMTSetProcessSchedulingPriorityClass");
+
 	HANDLE aJob = CreateJobObjectW(NULL, NULL);
 	if (aJob != NULL)
 	{
@@ -108,20 +148,29 @@ int main(void)
 	BOOL isInJob = (aJob != NULL) && AssignProcessToJobObject(aJob, aProcess.hProcess);
 	ResumeThread(aProcess.hThread);
 
-	WaitForSingleObject(aProcess.hProcess, INFINITE);
+	if (isInJob)
+	{
+		for (int aStep = 0; WaitForSingleObject(aProcess.hProcess, WAIT_STEP_MS) == WAIT_TIMEOUT; aStep++)
+			if ((aStep % GPU_PRIORITY_EVERY_STEPS) == 0)
+				LowerJobGpuPriority(aJob);
+	}
+	else
+		WaitForSingleObject(aProcess.hProcess, INFINITE);
 	DWORD anExitCode = 1;
 	GetExitCodeProcess(aProcess.hProcess, &anExitCode);
 	CloseHandle(aProcess.hThread);
 	CloseHandle(aProcess.hProcess);
 
 	// Then for the rest of the job: processes the child started and left running (a restarted game)
-	while (isInJob)
+	for (int aStep = 0; isInJob; aStep++)
 	{
 		JOBOBJECT_BASIC_ACCOUNTING_INFORMATION anInfo;
 		if (!QueryInformationJobObject(aJob, JobObjectBasicAccountingInformation, &anInfo, sizeof(anInfo), NULL) ||
 			(anInfo.ActiveProcesses == 0))
 			break;
-		Sleep(50);
+		if ((aStep % GPU_PRIORITY_EVERY_STEPS) == 0)
+			LowerJobGpuPriority(aJob);
+		Sleep(WAIT_STEP_MS);
 	}
 	if (aJob != NULL)
 		CloseHandle(aJob);

@@ -83,7 +83,7 @@ void splitPath(const std::string& thePath, std::string& theDirectory, std::strin
 
 } // namespace
 
-Surface::Surface() : mBlendMode(0), mBlendFlag(false), mAnchor(0, 0), mWidth(0), mHeight(0)
+Surface::Surface() : mBlendMode(0), mAlphaThreshold(0), mAnchor(0, 0), mWidth(0), mHeight(0)
 {
 }
 
@@ -129,7 +129,7 @@ void Surface::load(const std::string& thePath, bool theFromDisk)
 		std::vector<uint8_t> aPixels;
 		Platform::DecodeJPEG(aData.data(), aData.size(), aWidth, aHeight, aComponents, aPixels);
 		allocate(aWidth, aHeight);
-		setBlendMode(BLEND_OPAQUE, false);
+		setBlendMode(BLEND_OPAQUE, 0);
 		for (size_t anIndex = 0; anIndex < mPixels.size(); anIndex++)
 		{
 			const uint8_t* aSource = &aPixels[anIndex * aComponents];
@@ -151,7 +151,7 @@ void Surface::load(const std::string& thePath, bool theFromDisk)
 		if (!aHasMask)
 		{
 			// 0x41a690 (feedingfrenzy2): blended when the colour type has an alpha channel
-			setBlendMode((readPngHeader(aData).mColorType & 4) ? BLEND_ALPHA : BLEND_OPAQUE, false);
+			setBlendMode((readPngHeader(aData).mColorType & 4) ? BLEND_ALPHA : BLEND_OPAQUE, 0);
 			mPixels = aPixels;
 		}
 		else
@@ -215,7 +215,7 @@ void Surface::loadMask(const std::string& thePath, bool theFromDisk, bool thePre
 	}
 	if (thePremultiply)
 		premultiplyAlpha();
-	setBlendMode(BLEND_ALPHA, false);
+	setBlendMode(BLEND_ALPHA, 0);
 }
 
 void Surface::premultiplyAlpha()
@@ -233,6 +233,17 @@ void Surface::premultiplyAlpha()
 	}
 }
 
+Surface* Surface::clone() const
+{
+	Surface* aCopy = new Surface();
+	aCopy->allocate(mWidth, mHeight);
+	aCopy->mPixels = mPixels;
+	aCopy->setBlendMode(mBlendMode, mAlphaThreshold);
+	aCopy->setAnchor(mAnchor);
+	aCopy->setName(mName);
+	return aCopy;
+}
+
 void Surface::fill(const Color& theColor)
 {
 	// The x87 multiplies at double precision and truncates; a channel above 1 keeps its low byte
@@ -243,6 +254,19 @@ void Surface::fill(const Color& theColor)
 	uint32_t aPixel = anAlpha << 24 | aRed << 16 | aGreen << 8 | aBlue;
 	for (uint32_t& aTarget : mPixels)
 		aTarget = aPixel;
+}
+
+void Surface::setPivot(int thePivot)
+{
+	float aHalfWidth = (float)((double)getWidth() * 0.5f);
+	if (thePivot == PIVOT_CENTER)
+		setAnchor(Vector2f(aHalfWidth, (float)((double)getHeight() * 0.5f)));
+	else if (thePivot == PIVOT_BOTTOM)
+		setAnchor(Vector2f(aHalfWidth, (float)((double)getHeight() - 1.0f)));
+	else if (thePivot == PIVOT_TOP)
+		setAnchor(Vector2f(aHalfWidth, 0.0f));
+	else
+		setAnchor(Vector2f(0.0f, 0.0f));
 }
 
 } // namespace engine

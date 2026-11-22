@@ -1,0 +1,57 @@
+# fwtest -realinput=tools/fwtest/speed.txt -userdir=<fresh> (tools/check.sh unit): the native game speed option through real
+# input: the mod menu's two speed rows by the keyboard, and the speed hotkeys (F6 slower, F7 faster, F8 back to 1x). A second run
+# (speed2.txt) reads back what this one saved.
+50 expect speed 1
+50 expect speedkeys 0
+# the keys are off: F7 goes to the game and the speed stays
+52 key F7
+54 expect speed 1
+# F2 opens the menu with the focus on Close; Up reaches the Speed keys row and Up again the Game speed row
+54 key F2
+56 expect modmenu 1
+56 key Up
+58 key Up
+60 key Right
+62 expect speed 1.5
+62 key Right
+64 expect speed 2
+64 key Left
+66 expect speed 1.5
+# Down to the Speed keys row; Space turns the keys on
+66 key Down
+68 key Space
+70 expect speedkeys 1
+70 key F2
+72 expect modmenu 0
+# the hotkeys: 1.5 -> 2 -> 3, then slower twice (2, 1.5), then back to 1x, then faster
+72 key F7
+74 expect speed 2
+74 key F7
+76 expect speed 3
+76 key F6
+78 expect speed 2
+78 key F6
+80 expect speed 1.5
+80 key F8
+82 expect speed 1
+82 key F7
+84 expect speed 1.5
+# the keys off again from the menu: F7 no longer changes the speed
+84 key F2
+86 expect modmenu 1
+86 key Up
+88 key Space
+90 expect speedkeys 0
+90 key F2
+92 expect modmenu 0
+92 key F7
+94 expect speed 1.5
+# on again, and the file holds speed 1.5 and the keys on
+94 key F2
+96 key Up
+98 key Space
+100 expect speedkeys 1
+100 key F2
+102 expect modmenu 0
+102 expect speedfile 1.5 1
+104 report
