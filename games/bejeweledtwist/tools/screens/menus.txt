@@ -1,0 +1,105 @@
+# The menus from a first launch: a new player, the high scores, the options, the help's pages, the quit question, the
+# mode select with a locked mode's text, and the credits (gen.py; counts from the main menu's anchor)
+150 shot m01_newplayer
+200 text TB
+205 key RETURN
+400 shot m02_menu
+400 state
+405 click 125 440        # High Scores
+650 shot m03_scores_classic
+650 state
+655 click 640 540        # Blitz Scores
+800 shot m04_scores_blitz
+805 click 670 440        # Personal Stats
+950 shot m05_stats
+955 click 125 440        # Back
+1200 state
+1200 shot m06_menu_back
+1205 click 670 440       # Options
+1450 shot m07_options
+1450 state
+1455 click 670 440       # Back
+1700 state
+1705 click 160 540       # How to Play: page 1
+1950 shot m08_help01
+1950 state
+1955 click 670 440
+2055 shot m08_help02
+2060 click 670 440
+2160 shot m08_help03
+2165 click 670 440
+2265 shot m08_help04
+2270 click 670 440
+2370 shot m08_help05
+2375 click 670 440
+2475 shot m08_help06
+2480 click 670 440
+2580 shot m08_help07
+2585 click 670 440
+2685 shot m08_help08
+2690 click 670 440
+2790 shot m08_help09
+2795 click 670 440
+2895 shot m08_help10
+2900 click 670 440
+3000 shot m08_help11
+3005 click 670 440
+3105 shot m08_help12
+3110 click 670 440
+3210 shot m08_help13
+3215 click 670 440
+3315 shot m08_help14
+3320 click 670 440
+3420 shot m08_help15
+3425 click 670 440
+3525 shot m08_help16
+3530 click 670 440
+3635 state
+3735 state
+3740 click 160 540       # Back
+3990 state
+3995 click 640 540       # Quit Game: the question
+4150 shot m09_quit
+4150 state
+4155 click 500 336       # Cancel
+4300 state
+4305 click 400 300       # Play: the mode select
+4600 shot m10_modeselect
+4600 state
+4605 move 200 420        # the locked mode's text
+4700 shot m11_locked
+4705 move 400 300        # the hidden sequence to the credits: Classic, Zen, Blitz, Challenge, three times
+4710 move 200 170
+4715 move 400 300
+4720 move 600 170
+4725 move 400 300
+4730 move 600 420
+4735 move 400 300
+4740 move 200 420
+4745 move 400 300
+4750 move 200 170
+4755 move 400 300
+4760 move 600 170
+4765 move 400 300
+4770 move 600 420
+4775 move 400 300
+4780 move 200 420
+4785 move 400 300
+4790 move 200 170
+4795 move 400 300
+4800 move 600 170
+4805 move 400 300
+4810 move 600 420
+4815 move 400 300
+4820 move 200 420
+4825 move 400 300
+4900 state
+4900 shot m12_credits_a
+5200 shot m12_credits_b
+5600 shot m12_credits_c
+6200 shot m12_credits_d
+6200 state
+6205 click 400 543       # the credits' button
+6500 state
+6500 shot m13_after_credits
+6505 end

@@ -25,6 +25,7 @@ OPENING = [
     (1870, 'click 385 315'),                                    # its NO
 ]
 SHOTS = [
+    (-32, 'menus_intro_start'), (-4, 'menus_intro_late'),     # the intro movie, before the click that ends it
     (20, 'menus_title_early'), (100, 'menus_title'), (200, 'menus_namebox'), (230, 'menus_name_typed'),
     (300, 'menus_mainmenu'), (360, 'menus_mainmenu_hover'), (440, 'menus_options'), (520, 'menus_credits_start'),
     (800, 'menus_credits_scrolled'), (960, 'menus_options_again'), (1060, 'menus_options_help'), (1200, 'menus_mainmenu_back'),

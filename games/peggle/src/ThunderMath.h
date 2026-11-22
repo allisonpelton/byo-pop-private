@@ -24,6 +24,12 @@ SexyVector2 NormalizeVector(const SexyVector2& theVector);
 float GetCanonicalAngleDeg(float theAngle); // 0x4bc340: the same angle in [0, 360)
 float GetCanonicalAngleRad(float theAngle); // 0x4bc3b0: the same angle in [0, 2 pi)
 
+// 0x475310: how far to turn from one angle to another, the short way round, in (-pi, pi]
+float CalcAngleDiff(float theFrom, float theTo);
+// 0x475390: 1, -1 or 0
+inline int Sign(float theValue) { return theValue > 0 ? 1 : (theValue < 0 ? -1 : 0); }
+// 0x43de50: the distance between two points (the squares are rounded to floats first, as the original's code does)
+float Distance(float theX1, float theY1, float theX2, float theY2);
 // 0x406710
 template <typename T>
 T ClampRange(T theValue, T theLow, T theHigh)

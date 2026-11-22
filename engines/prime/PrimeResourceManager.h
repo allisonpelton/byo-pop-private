@@ -192,11 +192,14 @@ public:
 	int mCurCompositeSubGroupIndex;                          // +0x2a8: the part of mCurCompositeResGroup being loaded
 	int mBaseArtRes;                                         // +0x2ac: the art size the animations were made for
 	int mCurArtRes;                                          // +0x2b0: the app's art size
+	// port: the manifest's version check, which Bejeweled 3's parser makes and Zuma's Revenge's (0x625770 (zumasrevenge))
+	// leaves out, its ResourceMan2 manifest having no version; the game that has no check sets it false
+	bool mRequireVersion2 = true;
 
 	explicit PrimeResourceManager(SexyAppBase* theApp);   // 0x45c610 (bejeweled3)
 	virtual ~PrimeResourceManager();                        // 0x45c860 (bejeweled3)
 
-	bool ParseResourcesFile(const std::string& theFilename);  // 0x461a90 (bejeweled3)
+	bool ParseResourcesFile(const std::string& theFilename);  // 0x461a90 (bejeweled3), 0x625770 (zumasrevenge)
 	std::string GetErrorText() { return mError; }
 	bool HadError() { return mHasFailed; }                    // 0x45d170 (bejeweled3)
 	bool IsGroupLoaded(const std::string& theGroup);

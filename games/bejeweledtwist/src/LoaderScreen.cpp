@@ -103,7 +103,7 @@ void LoaderScreen::Update()
 			// alpha up. The port gets here a few updates in, so the loader's own clock is moved on to that update: the
 			// curves the constructor set that the hand-over does not set again, and the update count the glows and the
 			// bar's scroll follow. The menu, the title fading in and everything after are then as in the original, with
-			// nothing of the logo behind the menu and the menu's Play button drawn from the start. No random draw
+			// nothing of the logo behind the menu and the menu's Play button drawn from the start. No other random draw
 			// depends on them
 			const int aHandOver = 848;
 			if (mUpdateCnt < aHandOver) {
@@ -113,6 +113,13 @@ void LoaderScreen::Update()
 				for (CurvedVal* aCurve : aCurves)
 					aCurve->mInitAppUpdateCount -= aShift;
 				mUpdateCnt += aShift;
+				// The Play button, which the menu takes over, has run as many more updates in the original: its spiral
+				// has turned on, and its sparkles have come and gone, three RandSigned() each every 8th update, the only
+				// random draws of the loader's opening; so the menu's spiral comes out as in the original (the screen
+				// coverage pass, 2026-11-21). The global Rand still stands two draws apart from the original's at the
+				// menu (NOTES.md, Oddities), so the sparkles keep their own places
+				for (int i = 0; i < aShift; i++)
+					mPlayButton->Update();
 			}
 			mSmoothProgress = 1.0f;
 			mProgress = 1.0;

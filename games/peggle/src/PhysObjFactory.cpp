@@ -3,6 +3,7 @@
 #include "PhysObjFactory.h"
 
 #include "Ball.h"
+#include "Board.h"
 #include "Brick.h"
 #include "Gun.h"
 #include "Hole.h"
@@ -10,6 +11,7 @@
 #include "NotTranslated.h"
 #include "PhysObj.h"
 #include "Poly.h"
+#include "ThunderballApp.h"
 
 using namespace Sexy;
 
@@ -41,5 +43,5 @@ PhysObj* Sexy::MakePhysObj(int theClass)
 
 Board* Sexy::GetBoard()
 {
-	NOT_TRANSLATED("GetBoard (the Board is not translated yet)");
+	return static_cast<Board*>(gThunderballApp->mBoard); // the original's 0x404c80: the app's board, at +0x7b8
 }

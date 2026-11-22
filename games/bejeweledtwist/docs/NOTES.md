@@ -1159,6 +1159,18 @@ whose buffers origrun's stand-in logs only by their calls.
   velocity), so the turn has no visible effect, only the possible Rand draws. The port starts them at 0, so a spark
   dies (80 updates) before +0x9c reaches 1 and draws nothing. Matching it would mean copying uninitialised memory.
 
+- **The menu's global Rand is two draws apart at its start.** In the screen coverage routes (2026-11-21) origrun's
+  peek read the original's global MTRand index (mti, 0xe48aa0) and the Play button's update count ([[0xe0b698]+0x864]
+  +0x2e4, +0x28) at the menu's anchor and 400 updates later: 318 at count 847, then 170 at count 1246. The port, with
+  the same counts, stands at 316, then 170. On the port, nothing but the Play button's sparkles (three draws every 8th
+  update) draws from the global Rand between its count 600 and the anchor, so the original makes two draws there that
+  the port does not, and two fewer later. The draws place the Play button's and the title's sparkles, the credits'
+  sparks, and in a game the score trails, the explosions' debris and the fire's sparks, so those sit elsewhere in
+  every route; the boards, scores and timers do not use it. The source was not found within the hour; the original's
+  other draws that depend on the heap (the credits' sparks above, a coal gem's embers below) suggest where to look.
+  To see it, add `at +0 peek 0xe48aa0 [[[0xe0b698]+0x864]+0x2e4]+0x28` after the `mark` of a route's origrun script
+  (`tools/screens/gen.py` writes them).
+
 - **A one-move goal's colour comes from another list.** The challenge display's one-move branch (GoodTube::DrawBody,
   0x7095fd-0x709625) gives a colour stat (75 to 81) the icon of the tube's own stat list at the same index (+0x56c,
   which only the pattern and on-board displays fill, so it holds whatever the last of those left), not the goal's own

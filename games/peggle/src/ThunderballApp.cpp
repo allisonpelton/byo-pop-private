@@ -23,7 +23,7 @@ ThunderballApp::ThunderballApp()
 {
 	gThunderballApp = this;
 	mProdName = "Peggle";
-	mTitle = "Peggle Deluxe";
+	mTitle = "Peggle"; // the window's title (the original's is "Peggle Deluxe"; the user's rule of 2026-11-18 keeps Deluxe off the titles)
 	mRegKey = "PopCap\\Peggle";
 	mWidth = 800;
 	mHeight = 600;

@@ -20,7 +20,7 @@ if(NOT EMSCRIPTEN)
   add_executable(bwa_luarun tools/luarun/luarun.cpp)
   target_link_libraries(bwa_luarun PRIVATE poplua)
   add_custom_command(TARGET bwa_luarun POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bwa_luarun>
+    COMMAND ${PORT_RUNTIME_COPY} $<TARGET_FILE_DIR:bwa_luarun>
     VERBATIM)
 endif()
 
@@ -56,7 +56,7 @@ if(NOT EMSCRIPTEN)
   add_executable(bwa_pamtest tools/pamtest/pamtest.cpp)
   target_link_libraries(bwa_pamtest PRIVATE bwa_popanim)
   add_custom_command(TARGET bwa_pamtest POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bwa_pamtest>
+    COMMAND ${PORT_RUNTIME_COPY} $<TARGET_FILE_DIR:bwa_pamtest>
     VERBATIM)
 endif()
 
@@ -92,6 +92,6 @@ if(NOT EMSCRIPTEN)
   add_executable(bwa_swftest tools/swftest/swftest.cpp)
   target_link_libraries(bwa_swftest PRIVATE sexyswf)
   add_custom_command(TARGET bwa_swftest POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bwa_swftest>
+    COMMAND ${PORT_RUNTIME_COPY} $<TARGET_FILE_DIR:bwa_swftest>
     VERBATIM)
 endif()

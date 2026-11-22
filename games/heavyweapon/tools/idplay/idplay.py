@@ -17,6 +17,13 @@ Phase two (the looks) runs the same games again:
                                           soundcmp.py on the two
     idplay.py web <scenario>              the web build under Node plays the last shot run's script, and shotdiff compares
                                           its shots with the native port's
+    idplay.py shots3d <scenario> [--reuse]  the original in 3D on the visible desktop (tools/visrun.py) plays the sandbox
+                                          run's script and takes the same shots (<shot>_3d); the port replays in 3D on its
+                                          hardware renderer, then shotdiff as <scenario>_3d (after the sandbox run)
+    idplay.py preview <scenario> [--3d]   the port alone takes the scenario's shots at their frames, with a contact sheet,
+                                          for writing a scenario
+    idplay.py screens [<scenario>...]     every tour's pairs (2D and 3D) in one shotdiff run, `screens`, which
+                                          tools/screencheck.py reads; screensmd.py then writes docs/SCREENS.md from it
 
 --coverage <functions.txt> (with original, run or sound) has origrun record which of the listed functions the original's run
 reaches (docs/COVERAGE.md), into the scenario's folder as orig_coverage.txt.
@@ -45,7 +52,10 @@ HKLM settings mapped to HKCU.
 A scenario is a python file under scenarios/ with END (the last frame compared), OPENING (a list of (frame, port command):
 the title's play, the name typed, the menu's button, each moved on to the next frame the original reads input before),
 BOT_FROM (the frame the bot starts on) and optionally PROFILE (a players file the port makes first: unlocked or
-level<n>, see profile_users) and SEED (both games' seed, 1 when not given).
+level<n>, see profile_users) and SEED (both games' seed, 1 when not given). A shot scenario adds SHOTS ((frame, name)),
+SHOT_EVERY ((first, step): a shot named <scenario>_<frame> every step frames), SHOT_BEFORE_CLICKS ({'x y': tag}: a shot
+the frame before each recorded click at x y, for a box the bot clicks away), FULL_SCREEN (both games start in full
+screen) and PORT_ENVIRONMENT (the port's environment in the 2D runs, such as SDL's software renderer).
 """
 
 import argparse
@@ -384,26 +394,34 @@ def game_dir(scenario):
     return folder
 
 
-def make_user_folder(user_folder, users, shots):
+def make_user_folder(user_folder, users, shots, full_screen=False, three_d=False):
     """a port run's user folder, made afresh: the players file `users`, if any, and for a shot run the registry's settings
-    the original's sandbox.reg gives it"""
+    the original's sandbox.reg gives it (a FULL_SCREEN scenario's in full screen, its record run too; a 3D replay's in 3D)"""
     shutil.rmtree(user_folder, ignore_errors=True)
     os.makedirs(user_folder, exist_ok=True)
     if users:
         shutil.copy(users, os.path.join(user_folder, 'users.dat'))
-    if shots:
+    if shots or full_screen:
         with open(os.path.join(user_folder, 'registry.ini'), 'w', newline='\n') as f:
-            f.write('[SOFTWARE\\PopCap\\HeavyWeapon]\nScreenMode=dword:0\nIs3D=dword:0\nCustomCursors=dword:0\n' +
-                    ('LastUser=dword:0\n' if users else ''))
+            f.write('[SOFTWARE\\PopCap\\HeavyWeapon]\nScreenMode=dword:%d\nIs3D=dword:%d\nCustomCursors=dword:0\n' %
+                    (1 if full_screen else 0, 1 if three_d else 0) + ('LastUser=dword:0\n' if users else ''))
 
 
-def run_port(script_lines, folder, user_folder, users=None, timeout=900, seed=1, gamedir=GAMEDIR, shots=False, environment=None):
+def scenario_environment(scenario):
+    """the port's environment for a scenario: PORT_ENVIRONMENT, e.g. SDL's software renderer for a scenario that ticks the
+    options' hardware acceleration, so the port's answer is the sandbox's (no 3D: the "not supported" box). The 2D runs only:
+    a 3D replay (shots3d) keeps the hardware renderer"""
+    return dict(getattr(scenario, 'PORT_ENVIRONMENT', {}))
+
+
+def run_port(script_lines, folder, user_folder, users=None, timeout=900, seed=1, gamedir=GAMEDIR, shots=False, environment=None,
+             full_screen=False, three_d=False):
     """the port under rundesk with -fast and -seed=N, from an empty user folder (or one with the players file `users`); a
     shot run (`shots`) draws every update at the game's own size (-drawevery -renderscale=1, docs/SHOTDIFF.md), in a window and
     in software and without the drawn cursor, as the original in the sandbox"""
     script = os.path.join(folder, 'script.txt')
     open(script, 'w', newline='\n').write('\n'.join(script_lines) + '\n')
-    make_user_folder(user_folder, users, shots)
+    make_user_folder(user_folder, users, shots, full_screen, three_d)
     wait_for_room()
     command = '"%s" -gamedir="%s" -userdir="%s" -fast%s -seed=%d -script="%s" > "%s" 2>&1' % (
         PORT_EXE.replace('\\', '/'), gamedir.replace('\\', '/'), user_folder.replace('\\', '/'),
@@ -497,7 +515,8 @@ def record(name):
     lines += ['%d quit' % (anchor + scenario.END + MARGIN)]
     profile = getattr(scenario, 'PROFILE', None)
     run_port(lines, folder, os.path.join(folder, 'record-user'), profile_users(profile) if profile else None,
-             seed=getattr(scenario, 'SEED', 1), gamedir=game_dir(scenario))
+             seed=getattr(scenario, 'SEED', 1), gamedir=game_dir(scenario), environment=scenario_environment(scenario),
+             full_screen=getattr(scenario, 'FULL_SCREEN', False))
     # the game is over once no tank is left and the last one's wait has run out (the game-over box is up): the frames
     # compared end a little after that, or at the scenario's END
     end = scenario.END
@@ -532,7 +551,7 @@ def read_inputs(name):
     for line in open(os.path.join(out_dir(name), 'input.txt'), encoding='utf-8'):
         frame, command = line.split(' ', 1)
         inputs.append((int(frame), command.strip()))
-    return inputs
+    return sorted(inputs, key=lambda entry: entry[0])     # a scenario's late OPENING clicks come after the bot's in the file
 
 
 def shot_list(name, scenario):
@@ -543,15 +562,23 @@ def shot_list(name, scenario):
     if every:
         first, step = every
         shots += [(frame, '%s_%05d' % (name, frame)) for frame in range(first, scenario_end(name) + 1, step)]
+    # SHOT_BEFORE_CLICKS {'x y': tag}: a shot the frame before each recorded click at x y (a play tip's or a box's OK that the
+    # bot clicks), so a box that is up only a few updates is shot too
+    before = getattr(scenario, 'SHOT_BEFORE_CLICKS', {})
+    if before and os.path.exists(os.path.join(out_dir(name), 'input.txt')):
+        for frame, command in read_inputs(name):
+            verb, _, place = command.partition(' ')
+            if verb == 'click' and place in before:
+                shots.append((frame - 1, '%s_%s_%05d' % (name, before[place], frame)))
     return sorted(shots)
 
 
-def sandbox_presets(folder, profile):
-    """the registry the sandbox's copy starts from (docs/ORIGRUN.md, "Saves and the registry"): the window, software drawing,
-    the system's cursor (the cursor the game draws itself is in the original's capture but not in the port's screenshot) and,
-    with a players file, its first player; under HKCU, where --reg-map popcap sends the game's HKLM key"""
+def sandbox_presets(folder, profile, full_screen=False):
+    """the registry the sandbox's copy starts from (docs/ORIGRUN.md, "Saves and the registry"): the window (or full screen),
+    software drawing, the system's cursor (the cursor the game draws itself is in the original's capture but not in the port's
+    screenshot) and, with a players file, its first player; under HKCU, where --reg-map popcap sends the game's HKLM key"""
     lines = ['Windows Registry Editor Version 5.00', '', '[%s]' % REGISTRY_KEY.replace('HKCU', 'HKEY_CURRENT_USER'),
-             '"ScreenMode"=dword:00000000', '"Is3D"=dword:00000000', '"CustomCursors"=dword:00000000']
+             '"ScreenMode"=dword:%08x' % (1 if full_screen else 0), '"Is3D"=dword:00000000', '"CustomCursors"=dword:00000000']
     if profile:
         lines.append('"LastUser"=dword:00000000')
     path = os.path.join(folder, 'sandbox.reg')
@@ -568,6 +595,20 @@ def original(name, sandbox=False, sound=False):
     scenario = load_scenario(name)
     prepare()
     folder = out_dir(name)
+    script = original_script(name, scenario, sandbox)
+    profile = getattr(scenario, 'PROFILE', None)
+    overrides = data_overrides(scenario)
+    command = [ORIGRUN, '--game', RUN, '--run', RUN, '--exe', win_path(ORIGINAL_EXE), '--seed', str(getattr(scenario, 'SEED', 1)),
+               '--clock', 'virtual', '--cursor', 'scripted', '--keys', 'scripted', '--reg-map', 'popcap', '--counter', '0x56b5b4',
+               '--update-ms', '10', '--timeout', '3000' if sandbox else '1800', '--script', script]
+    return run_original(name, scenario, folder, command, profile, overrides, sandbox, sound)
+
+
+def original_script(name, scenario, sandbox, path=None):
+    """the original's script (original-script.txt): the intro's click, input.txt's input at the updates before which the
+    original is to read it, a peek after every update and, for a sandbox run, the shots; the 3D run (shots3d) writes it to a
+    `path` of its own, so a sandbox run waiting for the sandbox keeps its file"""
+    folder = out_dir(name)
     inputs = read_inputs(name)
     by_update = {}
     for frame, command in inputs:
@@ -576,8 +617,11 @@ def original(name, sandbox=False, sound=False):
     if sandbox:
         for frame, shot_name in shot_list(name, scenario):
             shots.setdefault(ORIGINAL_ANCHOR + frame, []).append(shot_name)
-    lines = ['focus regain', 'at %d move %d %d' % ((INTRO_CLICK_UPDATE,) + INTRO_POINT),
-             'at %d click %d %d' % ((INTRO_CLICK_UPDATE,) + INTRO_POINT)]
+    # shots of the intro, before the click that ends it (a SHOTS frame below INTRO_CLICK_UPDATE - ORIGINAL_ANCHOR)
+    lines = ['focus regain'] + ['at %d shot %s' % (update, shot_name) for update in sorted(shots)
+                                if update < INTRO_CLICK_UPDATE for shot_name in shots[update]]
+    lines += ['at %d move %d %d' % ((INTRO_CLICK_UPDATE,) + INTRO_POINT),
+              'at %d click %d %d' % ((INTRO_CLICK_UPDATE,) + INTRO_POINT)]
     for update in range(ORIGINAL_ANCHOR - 2, ORIGINAL_ANCHOR + scenario_end(name) + 1):
         lines.extend(peek_lines(update))
         for command in by_update.get(update, []):
@@ -585,20 +629,23 @@ def original(name, sandbox=False, sound=False):
         for shot_name in shots.get(update, []):
             lines.append('at %d shot %s' % (update, shot_name))
     lines.append('quit')
-    script = os.path.join(folder, 'original-script.txt')
+    script = path or os.path.join(folder, 'original-script.txt')
     open(script, 'w', newline='\n').write('\n'.join(lines) + '\n')
-    profile = getattr(scenario, 'PROFILE', None)
-    overrides = data_overrides(scenario)
-    command = [ORIGRUN, '--game', RUN, '--run', RUN, '--exe', win_path(ORIGINAL_EXE), '--seed', str(getattr(scenario, 'SEED', 1)),
-               '--clock', 'virtual', '--cursor', 'scripted', '--keys', 'scripted', '--reg-map', 'popcap', '--counter', '0x56b5b4',
-               '--update-ms', '10', '--timeout', '3000' if sandbox else '1800', '--script', script]
+    return script
+
+
+def run_original(name, scenario, folder, command, profile, overrides, sandbox, sound):
+    """origrun with the original's script (`original`), and its log, shots and landed updates gathered"""
     run_folder = os.path.join(ROOT, 'build', 'origrun', RUN)
     if COVERAGE:
         command += ['--coverage', win_path(COVERAGE)]
     if sandbox:
         # each shot shows exactly the update it is labelled with: the count of updates not yet drawn serves as both the
         # pending draw and the update state (zero once the update is drawn), as Typer Shark's does
-        command += ['--sandbox', '--reg', win_path(sandbox_presets(folder, profile)), '--pending-draw', UNDRAWN_UPDATES,
+        # the machine has one sandbox, which other sessions' runs take too: queue for it up to four hours
+        command += ['--sandbox', '--sandbox-wait', '14400',
+                    '--reg', win_path(sandbox_presets(folder, profile, getattr(scenario, 'FULL_SCREEN', False))),
+                    '--pending-draw', UNDRAWN_UPDATES,
                     '--update-state', UNDRAWN_UPDATES]
         shutil.rmtree(os.path.join(run_folder, 'shots'), ignore_errors=True)
     if sound:
@@ -706,11 +753,11 @@ def parse_original(name):
     return records, taken
 
 
-def read_landed(name):
+def read_landed(name, side='orig'):
     """{shot name: the update the original's shot landed on}, from the sandbox run's landed.tsv (its name, its update and how
-    sure that update is, docs/ORIGRUN.md, "Timing to the game's updates")"""
+    sure that update is, docs/ORIGRUN.md, "Timing to the game's updates"), or with side 'orig3d' the 3D run's (shots3d)"""
     landed = {}
-    path = os.path.join(out_dir(name), 'orig', 'landed.tsv')
+    path = os.path.join(out_dir(name), side, 'landed.tsv')
     for line in open(path, encoding='utf-8', errors='replace'):
         fields = line.rstrip('\n').split('\t')
         if len(fields) >= 2 and fields[1].isdigit():
@@ -718,10 +765,11 @@ def read_landed(name):
     return landed
 
 
-def port(name, shots=False, environment=None):
+def port(name, shots=False, environment=None, three_d=False):
     """the port replays the input at the updates the original read it before, with its trace; a shot run (`shots`) also takes
     each of the original's shots at the update it landed on, SHOT_LAG later (the port's `screenshot` draws the state the
-    update before it left), into port/"""
+    update before it left), into port/; with `three_d` in 3D, at the 3D run's updates (orig3d/landed.tsv), into port3d/,
+    its trace into trace3d.txt"""
     scenario = load_scenario(name)
     folder = out_dir(name)
     inputs = read_inputs(name)
@@ -734,28 +782,49 @@ def port(name, shots=False, environment=None):
     taken = holds[2:]                   # after the intro's move and click
     if [hold[0] for hold in taken] != expected[:len(taken)]:
         sys.exit('idplay: the original\'s log holds other input than input.txt')
-    trace = os.path.join(folder, 'trace.txt')
+    trace = os.path.join(folder, 'trace3d.txt' if three_d else 'trace.txt')
     lines = ['1 trace ' + trace.replace('\\', '/'), '%d click %d %d' % ((PORT_INTRO_CLICK_UPDATE,) + INTRO_POINT)]
+    # a 3D run (visrun) may end the intro an update or more later than the sandbox run, and every update after it with it:
+    # its input comes at the same updates, so the port's replay maps the updates from the 3D run's anchor instead
+    shift = anchor3d(name) - original_anchor if three_d else 0
+    if shift:
+        log('note: the 3D run\'s anchor is %d update(s) after the sandbox run\'s' % shift)
     late = 0
     for (frame, command), (_, _, read_before) in zip(inputs, taken):
         if read_before != original_anchor + frame:
             late += 1
-        lines.append('%d %s' % (anchor + read_before - original_anchor, command))
+        lines.append('%d %s' % (anchor + read_before - original_anchor - shift, command))
     if shots:
-        port_shots = os.path.join(folder, 'port')
+        port_shots = os.path.join(folder, 'port3d' if three_d else 'port')
         shutil.rmtree(port_shots, ignore_errors=True)
         os.makedirs(port_shots)
-        for shot_name, update in sorted(read_landed(name).items(), key=lambda item: item[1]):
-            lines.append('%d screenshot %s/%s.png' % (anchor + update - original_anchor + SHOT_LAG, port_shots.replace('\\', '/'),
-                                                      shot_name))
+        for shot_name, update in sorted(read_landed(name, 'orig3d' if three_d else 'orig').items(), key=lambda item: item[1]):
+            at = anchor + update - original_anchor - shift + SHOT_LAG
+            lines.append('%d screenshot %s/%s.png' % (at, port_shots.replace('\\', '/'), shot_name))
+            lines.append('%d state' % at)   # the screen it shows, for SCREENS.md
     lines.append('%d quit' % (anchor + scenario_end(name) + MARGIN))
     # an update's shot before its input: the original's shot at N is drawn before it reads the input it takes before
     # update N + 1, and the port's screenshot draws when its line is read, so an input read before it would show (a tip
     # closed, a letter typed)
-    lines.sort(key=lambda line: (int(line.split(' ', 1)[0]), 0 if line.split(' ', 2)[1] == 'screenshot' else 1))
+    lines.sort(key=lambda line: (int(line.split(' ', 1)[0]), 0 if line.split(' ', 2)[1] in ('screenshot', 'state') else 1))
     profile = getattr(scenario, 'PROFILE', None)
     run_port(lines, folder, os.path.join(folder, 'port-user'), profile_users(profile) if profile else None,
-             seed=getattr(scenario, 'SEED', 1), gamedir=game_dir(scenario), shots=shots, environment=environment)
+             seed=getattr(scenario, 'SEED', 1), gamedir=game_dir(scenario), shots=shots,
+             environment=dict({} if three_d else scenario_environment(scenario), **(environment or {})),
+             full_screen=getattr(scenario, 'FULL_SCREEN', False), three_d=three_d)
+    if shots:
+        # each shot's `state` into states.tsv beside the shots, which SCREENS.md sorts by: the script's only `state` lines are
+        # the shots', in the shots' order (the screenshot's own line goes to stderr, so the two streams are not paired)
+        shot_names = [os.path.splitext(os.path.basename(line.split(' ', 2)[2]))[0] for line in lines
+                      if line.split(' ', 2)[1] == 'screenshot']
+        states = [line[line.index('STATE {') + len('STATE '):].strip() for line in
+                  open(os.path.join(folder, 'stdout.txt'), encoding='utf-8', errors='replace') if 'STATE {' in line]
+        if len(states) != len(shot_names):
+            log('note: %d states for %d shots; no states.tsv' % (len(states), len(shot_names)))
+        else:
+            with open(os.path.join(port_shots, 'states.tsv'), 'w', newline='\n') as f:
+                for shot_name, state in zip(shot_names, states):
+                    f.write('%s\t%s\n' % (shot_name, state))
     log('%s: the port replayed %d inputs (%d taken an update later by the original)' % (name, len(taken), late))
 
 
@@ -873,6 +942,245 @@ def shots(name, reuse=False):
     return agree
 
 
+VISRUN_CONFIG = os.path.join(HERE, '..', 'visrun', 'heavyweapon.toml')
+STATE_PEEK_EVERY = 100                  # the 3D run's state is logged every this many updates (and at every shot)
+COPY3D = os.path.join(ROOT, 'build', 'origrun', RUN + '3d', 'game')   # the 3D runs' own copy: a sandbox run uses COPY live
+
+
+def shots3d(name, reuse=False):
+    """phase two in 3D: the original in its Direct3D mode on the visible desktop (tools/visrun.py, docs/VISRUN.md; neither the
+    sandbox nor rundesk runs it in 3D) plays the tour's script for the original (original-script.txt, written by its sandbox
+    run) without the peeks, on the virtual clock, from a copy of its own (COPY3D), and takes the same shots, each named
+    <shot>_3d, into orig3d/ with the updates they landed on (with `reuse`, the last such run's); the port replays the same
+    input in 3D, at the updates the sandbox run read it before, and shoots at the 3D run's updates into port3d/; the state at
+    each shot (score, level, lives) is compared with the port's trace; then tools/shotdiff on the two folders as the run
+    <tour>_3d. The port's part needs the tour's sandbox run to have ended"""
+    scenario = load_scenario(name)
+    folder = out_dir(name)
+    out = os.path.join(folder, 'orig3d')
+    if not reuse:
+        shots3d_original(name, scenario, folder, out)
+    if not os.path.exists(os.path.join(folder, 'orig', 'landed.tsv')):
+        log('%s: the 3D run is done; replay the port with `shots3d %s --reuse` once the sandbox run has ended' % (name, name))
+        return True
+    rows = [line.rstrip('\n').split('\t') for line in open(os.path.join(out, 'steps.tsv'), encoding='utf-8')]
+    port(name, shots=True, three_d=True)
+    # the state at each shot against the port's trace, at the update the shot shows
+    anchor = port_anchor()
+    trace = {record['u']: record for record in read_trace(os.path.join(folder, 'trace3d.txt'))}
+    differ = []
+    for row in rows:
+        if len(row) < 6 or row[2] != 'shot':
+            continue
+        values = dict(item.split('=', 1) for item in row[5].split() if '=' in item)
+        record = trace.get(anchor + int(row[1]) - anchor3d(name))
+        if record is None:
+            continue
+        for key in ('score', 'level', 'lives'):
+            if values.get(key, '-') != '-' and int(values[key]) != record.get(key, int(values[key])):
+                differ.append(row[3].split()[0])
+                log('%s: %s is %s in the original and %s in the port' % (row[3].split()[0], key, values[key], record.get(key)))
+                break
+    log('%s: %d shots in 3D, %d whose state differs' % (name, len(glob.glob(os.path.join(out, '*.png'))), len(differ)))
+    # The original's 3D game parts from its 2D one in a level, the tank's X first (IDENTICAL_PLAY.md, "Oddities"), before
+    # the score shows it: every shot after the last peek of the 3D run that agrees with the sandbox run (the tank's X to
+    # its last bit) is left out by `screens` too, with those whose state differs (port3d/state-differs.txt)
+    records, _ = parse_original(name)
+    original_anchor = min(update for update, record in records.items() if record['loaded'])
+    agreed = None
+    for row in rows:
+        if len(row) < 6 or row[2] != 'peek' or not row[1].isdigit():
+            continue
+        record = records.get(int(row[1]) - anchor3d(name) + original_anchor)
+        if record is None:
+            continue
+        values = dict(item.split('=', 1) for item in row[5].split() if '=' in item)
+        if any(values.get(key, '-') != '-' and key in record and
+               (int(values[key]) & 0xffffffff) != (record[key] & 0xffffffff)
+               for key in ('score', 'level', 'lives', 'killed', 'tankxh', 'ltime')):
+            log('%s: the 3D game parts from the sandbox run\'s after update %s' % (name, agreed))
+            for shot in rows:
+                if (len(shot) >= 6 and shot[2] == 'shot' and shot[1].isdigit() and int(shot[1]) > (agreed or 0) and
+                        shot[3].split()[0] not in differ):
+                    differ.append(shot[3].split()[0])
+            break
+        agreed = int(row[1])
+    with open(os.path.join(folder, 'port3d', 'state-differs.txt'), 'w', newline='\n') as listing:
+        listing.write(''.join(shot + '\n' for shot in differ))
+    subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'shotdiff', 'shotdiff.py'), '--game', 'heavyweapon', '--orig',
+                     out, '--port', os.path.join(folder, 'port3d'), '--run', name + '_3d'], cwd=ROOT)
+    return True     # a parted state is the original's 3D game, listed and left out; the shots are judged in `screens`
+
+
+def anchor3d(name):
+    """the 3D run's anchor: the first update its peeks find the loading done after (orig3d/anchor.txt)"""
+    path = os.path.join(out_dir(name), 'orig3d', 'anchor.txt')
+    return int(open(path).read()) if os.path.exists(path) else ORIGINAL_ANCHOR
+
+
+def shots3d_original(name, scenario, folder, out):
+    """the original's part of shots3d: visrun on the visible desktop, its shots and steps.tsv into `out`, landed.tsv beside"""
+    if not os.path.exists(os.path.join(folder, 'input.txt')):
+        record(name)
+    os.makedirs(out, exist_ok=True)
+    script = original_script(name, scenario, sandbox=True, path=os.path.join(out, 'original-script.txt'))   # as the sandbox's
+    steps = []
+    last_peek = -STATE_PEEK_EVERY
+    for line in open(script, encoding='utf-8'):
+        line = line.strip()
+        words = line.split()
+        if len(words) >= 3 and words[0] == 'at' and words[2] == 'peek':
+            update = int(words[1])
+            if update - last_peek >= STATE_PEEK_EVERY or update <= ORIGINAL_ANCHOR + 4:   # every one about the anchor
+                steps.append('at %d peek' % update)
+                last_peek = update
+            continue
+        if len(words) == 4 and words[0] == 'at' and words[2] == 'shot':
+            line = 'at %s shot %s_3d' % (words[1], words[3])
+        steps.append(line)
+    shutil.rmtree(out, ignore_errors=True)
+    os.makedirs(out)
+    steps_file = os.path.join(out, 'steps.txt')
+    open(steps_file, 'w', newline='\n').write('\n'.join(steps) + '\n')
+    profile = getattr(scenario, 'PROFILE', None)
+    # the 3D runs' copy: the prepared copy (its exe clean, beside origrun's patched one) without its saves, made once
+    prepare()
+    if not os.path.exists(os.path.join(COPY3D, 'HeavyWeaponGame.exe')):
+        shutil.copytree(COPY, COPY3D, ignore=shutil.ignore_patterns('userdata', 'logs', '*.log'))
+    shutil.rmtree(os.path.join(COPY3D, 'userdata'), ignore_errors=True)
+    if profile:
+        os.makedirs(os.path.join(COPY3D, 'userdata'))
+        shutil.copy(profile_users(profile), os.path.join(COPY3D, 'userdata', 'users.dat'))
+    config = open(VISRUN_CONFIG, encoding='utf-8').read()
+    exe3d = "source_exe = '%s'" % os.path.join(COPY3D, 'HeavyWeaponGame.exe')
+    config = re.sub(r'(?m)^source_exe = "[^"]*"', lambda match: exe3d, config)
+    if profile:
+        config = config.replace('CustomCursors = 0 }', 'CustomCursors = 0, LastUser = 0 }')
+    config_file = os.path.join(out, 'heavyweapon.toml')
+    open(config_file, 'w', encoding='utf-8', newline='\n').write(config)
+    overrides = data_overrides(scenario)
+    for leaf, text in overrides.items():
+        open(os.path.join(COPY3D, 'data', leaf), 'w', encoding='latin-1', newline='').write(text)
+    try:
+        with open(os.path.join(folder, 'original3d.log'), 'w') as f:
+            result = subprocess.run([sys.executable, '-I', os.path.join(ROOT, 'tools', 'visrun.py'), config_file, steps_file,
+                                     '--out', out, '--3d', 'on', '--seed', str(getattr(scenario, 'SEED', 1)), '--timeout', '1800',
+                                     '--quiet', '30'], stdout=f, stderr=subprocess.STDOUT, cwd=ROOT)
+    finally:
+        for leaf in overrides:
+            shutil.copy(os.path.join(GAMEDIR, 'data', leaf), os.path.join(COPY3D, 'data', leaf))
+    visrun_log = open(os.path.join(out, 'visrun.log'), encoding='utf-8', errors='replace').read() \
+        if os.path.exists(os.path.join(out, 'visrun.log')) else ''
+    flags = re.findall(r'3D flag (\S+)', visrun_log)
+    log('%s: the original ran in 3D on the desktop (visrun %d, 3D flags seen %s)' % (name, result.returncode, flags))
+    if result.returncode != 0 or not flags or any(flag != '1' for flag in flags):
+        sys.exit('idplay: the 3D run did not run in 3D to its end: %s' % os.path.join(out, 'visrun.log'))
+    rows = [line.rstrip('\n').split('\t') for line in open(os.path.join(out, 'steps.tsv'), encoding='utf-8')]
+    loaded = [int(row[1]) for row in rows if len(row) >= 6 and row[2] == 'peek' and
+              any(item.startswith('loaded=') and item[7:].lstrip('-').isdigit() and int(item[7:]) & 0xff
+                  for item in row[5].split())]
+    if not loaded:
+        sys.exit('idplay: the 3D run\'s peeks never found the loading done: %s' % os.path.join(out, 'steps.tsv'))
+    open(os.path.join(out, 'anchor.txt'), 'w').write('%d\n' % min(loaded))
+    log('%s: the 3D run\'s anchor is update %d (the sandbox run\'s is %d)' % (name, min(loaded), ORIGINAL_ANCHOR))
+    with open(os.path.join(out, 'landed.tsv'), 'w', newline='\n') as f:
+        for row in rows:
+            if len(row) >= 4 and row[2] == 'shot':
+                f.write('%s\t%s\n' % (row[3].split()[0], row[1]))
+    # inputs: posted after the update they were wanted at, as in the sandbox run (the virtual clock is the same)
+    late = [row for row in rows if len(row) >= 4 and row[2] in ('move', 'click', 'rclick', 'down', 'up', 'key', 'text')
+            and row[0] and row[0] != row[1]]
+    if late:
+        log('note: %d inputs of the 3D run were posted after another update than asked: %s' % (len(late), late[:3]))
+
+
+def preview(name, three_d=False):
+    """a tour's shots in the port alone, for writing a scenario: the recorded input at the frames it was given and each shot at
+    its frame (the original's landing is not known), each followed by a `state` line, into preview/ (with `three_d`, the
+    port in 3D on the hardware renderer, into preview3d/), and a contact sheet of them (sheet.png, the names in sheet.txt)"""
+    scenario = load_scenario(name)
+    folder = out_dir(name)
+    anchor = port_anchor()
+    shots_folder = os.path.join(folder, 'preview3d' if three_d else 'preview')
+    shutil.rmtree(shots_folder, ignore_errors=True)
+    os.makedirs(shots_folder)
+    lines = ['%d click %d %d' % ((PORT_INTRO_CLICK_UPDATE,) + INTRO_POINT)]
+    lines += ['%d %s' % (anchor + frame, command) for frame, command in read_inputs(name)]
+    names = []
+    for frame, shot_name in shot_list(name, scenario):
+        names.append(shot_name)
+        lines += ['%d screenshot %s/%s.png' % (anchor + frame + SHOT_LAG, shots_folder.replace('\\', '/'), shot_name),
+                  '%d state' % (anchor + frame + SHOT_LAG)]
+    lines.append('%d quit' % (anchor + scenario_end(name) + MARGIN))
+    lines.sort(key=lambda line: (int(line.split(' ', 1)[0]), 0 if line.split(' ', 2)[1] in ('screenshot', 'state') else 1))
+    profile = getattr(scenario, 'PROFILE', None)
+    run_port(lines, shots_folder, os.path.join(shots_folder, 'user'), profile_users(profile) if profile else None,
+             seed=getattr(scenario, 'SEED', 1), gamedir=game_dir(scenario), shots=True,
+             environment={} if three_d else scenario_environment(scenario), full_screen=getattr(scenario, 'FULL_SCREEN', False),
+             three_d=three_d)
+    states = [line.strip() for line in open(os.path.join(shots_folder, 'stdout.txt'), encoding='utf-8', errors='replace')
+              if line.startswith('STATE')]
+    from PIL import Image, ImageDraw
+    columns, width, height = 5, 256, 192
+    taken = [shot_name for shot_name in names if os.path.exists(os.path.join(shots_folder, shot_name + '.png'))]
+    sheet = Image.new('RGB', (columns * width, max(1, (len(taken) + columns - 1) // columns) * height))
+    draw = ImageDraw.Draw(sheet)
+    for index, shot_name in enumerate(taken):
+        picture = Image.open(os.path.join(shots_folder, shot_name + '.png')).convert('RGB').resize((width, height))
+        x, y = (index % columns) * width, (index // columns) * height
+        sheet.paste(picture, (x, y))
+        draw.rectangle((x, y, x + 7 * len(shot_name), y + 11), fill=(0, 0, 0))
+        draw.text((x + 1, y), shot_name, fill=(255, 255, 0))
+    sheet.save(os.path.join(shots_folder, 'sheet.png'))
+    with open(os.path.join(shots_folder, 'sheet.txt'), 'w', newline='\n') as f:
+        for shot_name, state in zip(names, states):
+            f.write('%s %s\n' % (shot_name, state))
+    log('%s: %d preview shots of %d, sheet in %s' % (name, len(taken), len(names), os.path.join(shots_folder, 'sheet.png')))
+
+
+def screens(names):
+    """every tour's pairs in one shotdiff run, `screens`, which tools/screencheck.py reads for SCREENS.md (docs/SHOTDIFF.md,
+    "Every screen, listed"): the named tours', or every tour's with both orig/ and port/ shots, and their 3D pairs
+    (orig3d/ and port3d/, each named <shot>_3d) where the tour has them, but for those whose state differs
+    (port3d/state-differs.txt). The shot names are the tours' own, which do not
+    repeat across tours"""
+    if not names:
+        names = sorted(entry for entry in os.listdir(OUT_ROOT) if not entry.startswith('_') and
+                       os.path.isdir(os.path.join(OUT_ROOT, entry, 'orig')) and os.path.isdir(os.path.join(OUT_ROOT, entry, 'port')))
+    merged = os.path.join(OUT_ROOT, '_screens')
+    shutil.rmtree(merged, ignore_errors=True)
+    for side in ('orig', 'port'):
+        os.makedirs(os.path.join(merged, side))
+    seen = {}
+    for name in names:
+        for side, source in (('orig', 'orig'), ('port', 'port'), ('orig', 'orig3d'), ('port', 'port3d')):
+            if source.endswith('3d') and not os.path.isdir(os.path.join(OUT_ROOT, name, 'port3d')):
+                continue
+            parted = set()
+            if source.endswith('3d') and os.path.exists(os.path.join(OUT_ROOT, name, 'port3d', 'state-differs.txt')):
+                parted = set(open(os.path.join(OUT_ROOT, name, 'port3d', 'state-differs.txt')).read().split())
+            # and every 3D shot inside a level: there the original's 3D game parts from the first shots fired, the shells,
+            # smoke and bullets standing elsewhere before its peeks show it (IDENTICAL_PLAY.md, "Oddities")
+            states = os.path.join(OUT_ROOT, name, 'port3d', 'states.tsv')
+            if source.endswith('3d') and os.path.exists(states):
+                for line in open(states, encoding='utf-8'):
+                    shot, _, state = line.rstrip('\n').partition('\t')
+                    if '"screen":"game"' in state:
+                        parted.add(shot)
+            for path in glob.glob(os.path.join(OUT_ROOT, name, source, '*.png')):
+                leaf = os.path.basename(path)
+                if os.path.splitext(leaf)[0] in parted:
+                    continue                # a 3D shot whose games parted compares nothing
+                if seen.setdefault((side, leaf), name) != name:
+                    sys.exit('idplay: %s is a shot of both %s and %s' % (leaf, seen[(side, leaf)], name))
+                shutil.copy(path, os.path.join(merged, side, leaf))
+    log('screens: %d tours, %d shots of the original, %d of the port' % (
+        len(names), len(os.listdir(os.path.join(merged, 'orig'))), len(os.listdir(os.path.join(merged, 'port')))))
+    return subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'shotdiff', 'shotdiff.py'), '--game', 'heavyweapon',
+                            '--orig', os.path.join(merged, 'orig'), '--port', os.path.join(merged, 'port'), '--run', 'screens'],
+                           cwd=ROOT)
+
+
 def web(name):
     """phase two's web build: the last shot run's script played by the web build under Node (wasmrun.js: the same switches as
     the native run, a copy of the run's folder as its file system) from the same user folder, its shots into web/shots/, and
@@ -928,10 +1236,13 @@ def sound(name, reuse=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('step', choices=['prepare', 'record', 'original', 'port', 'compare', 'run', 'shots', 'sound', 'web'])
+    parser.add_argument('step', choices=['prepare', 'record', 'original', 'port', 'compare', 'run', 'shots', 'sound', 'web',
+                                         'preview', 'screens', 'shots3d'])
     parser.add_argument('--reuse', action='store_true', help='with shots: the original\'s last sandbox run and its shots')
     parser.add_argument('scenario', nargs='?')
+    parser.add_argument('more', nargs='*', help='with screens: more tours')
     parser.add_argument('--record', action='store_true', help='with run: record the input again')
+    parser.add_argument('--3d', dest='three_d', action='store_true', help='with preview: the port in 3D')
     parser.add_argument('--coverage', help='with original, run or sound: the functions for origrun to watch (docs/COVERAGE.md)')
     args = parser.parse_args()
     global COVERAGE
@@ -939,9 +1250,11 @@ def main():
     if args.step == 'prepare':
         prepare()
         return
+    if args.step == 'screens':
+        sys.exit(screens(([args.scenario] if args.scenario else []) + args.more))
     if not args.scenario:
         sys.exit('idplay: which scenario?')
-    if args.step in ('record', 'run', 'shots', 'sound') and (args.record or args.step == 'record' or
+    if args.step in ('record', 'run', 'shots', 'sound', 'preview') and (args.record or args.step == 'record' or
                                                               not os.path.exists(os.path.join(out_dir(args.scenario), 'input.txt'))):
         record(args.scenario)
     if args.step == 'shots':
@@ -950,6 +1263,11 @@ def main():
         sys.exit(0 if sound(args.scenario, args.reuse) else 1)
     if args.step == 'web':
         sys.exit(0 if web(args.scenario) else 1)
+    if args.step == 'preview':
+        preview(args.scenario, args.three_d)
+        return
+    if args.step == 'shots3d':
+        sys.exit(0 if shots3d(args.scenario, args.reuse) else 1)
     if args.step in ('original', 'run'):
         original(args.scenario)
     if args.step in ('port', 'run'):

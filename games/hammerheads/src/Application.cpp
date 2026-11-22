@@ -3,6 +3,7 @@
 // check at 0x41e520) is left out: the full game is the only path.
 
 #include "Application.h"
+#include "DeluxeCover.h"
 #include "LiveSplitObserver.h"
 
 #include "ChallengeScreen.h"
@@ -219,6 +220,7 @@ void Application::Init()
 		ShowResourceError(true);
 		return;
 	}
+	CoverDeluxeOnLoadingTitle(IMAGE_LOADING_TITLE);
 
 	mMusicInterface->LoadMusic(MUSIC_MENU, kMusicFiles[MUSIC_MENU]);
 	CreateLoadingScreen();
@@ -263,7 +265,11 @@ void Application::LoadingThreadProc()
 			else if (aGroup == 1)
 				aOk = ExtractGuiResources(mResourceManager);
 			else
+			{
 				aOk = ExtractMainMenuResources(mResourceManager);
+				if (aOk)
+					CoverDeluxeOnMainMenu(IMAGE_MAINMENU_SCREEN);
+			}
 		}
 		if (!aOk)
 		{

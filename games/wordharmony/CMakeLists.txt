@@ -41,6 +41,6 @@ if(NOT EMSCRIPTEN)
   add_executable(wordharmony_enginetest ${CMAKE_CURRENT_SOURCE_DIR}/tools/enginetest.cpp)
   target_link_libraries(wordharmony_enginetest PRIVATE wordharmonygame)
   add_custom_command(TARGET wordharmony_enginetest POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:wordharmony_enginetest>
+    COMMAND ${PORT_RUNTIME_COPY} $<TARGET_FILE_DIR:wordharmony_enginetest>
     VERBATIM)
 endif()

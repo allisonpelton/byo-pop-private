@@ -65,6 +65,19 @@ a `click` and ten updates' wait, which is what a player's click does.
   fade-in; the port's mixer stops what plays as it plays the next. What is heard is the same (the music comparison, `musiccmp.py`,
   drops those stops).
 
+## Deviations with a visible effect
+
+- **The word "Deluxe" is not drawn** under the logo on the loading screen and the main menu (the user, 2026-11-18: "Remove the
+  "Deluxe" text from the main screen of any game it may appear in, to avoid misleading people about whose game version they're
+  playing"). `DeluxeCover` makes the cover as the screen is drawn; no edited picture is committed. The site's listing, the window's
+  title and the page's title say "Hammer Heads".
+- **The player's file is read in both forms and written in the original's** (the XML in pieces, each with its length in front), so
+  either game reads the other's files (`XmlLite`, `ProfileFile.cpp`).
+- **A High Scores page left for the menu stays under the zoom wipe's first frames** (the original's uncovered pixels are not cleared
+  between frames, the port's are), as the original shows it.
+- **Oddity (screens pass): an animation driven by a counter in a long sandbox scenario** is at another age than the port's (see
+  `IDENTICAL_PLAY.md`, "The screens pass", C).
+
 ## Left out (nothing in play can reach it)
 
 - The level **editor**: the original's GameScreen is a tool widget with the game on top; the port keeps the widget and none of the

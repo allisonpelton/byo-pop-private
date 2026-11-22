@@ -196,3 +196,15 @@ void ThunderballApp::ShowReplay(bool theKeepBoard)
 {
 	NOT_TRANSLATED("ThunderballApp::ShowReplay");
 }
+
+// 0x405bd0
+int ThunderballApp::GetMaxLevel() const
+{
+	return mCurrentPlayer != nullptr ? mCurrentPlayer->GetMaxLevel() : 0;
+}
+
+// 0x405c00
+bool ThunderballApp::OnMaxLevel() const
+{
+	return mCurrentPlayer != nullptr && mCurrentPlayer->GetMaxLevel() == GetCurLevel();
+}

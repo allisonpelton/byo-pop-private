@@ -21,6 +21,11 @@ float RandSigned();
 // 0x756ec2: one Rand() draw as a number from 0 to 1 in steps of 1/1000000
 float RandFloat();
 
+// StrFormat of a format with one %f (flags, width and precision allowed) and its number, as the original's C runtime
+// writes it: from the number's 17 significant digits, with the dropped digits rounded half up, so 1.25 at one decimal
+// is "1.3" where the port's C library gives "1.2" (an exact tie goes to even). End stats' average multiplier
+std::string CrtFormatFloat(const std::string& theFormat, double theValue);
+
 // 0xe03690, 0xe07690: sin and cos at 4096 steps round the circle, made once by the app's constructor (0x766ce7)
 extern float gSinTable[4096];
 extern float gCosTable[4096];
