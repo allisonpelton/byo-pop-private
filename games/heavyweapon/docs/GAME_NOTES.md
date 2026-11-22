@@ -206,8 +206,8 @@ recorded (`docs/COORDINATION.md`).
   files (the save import's folder names, `platform/saveimport.json`), in the game's own copyright notice and in the
   speedrun.com name the Splits window matches (`web/autosplit.js`).
 - **No "Deluxe" to cover on the screens** (the same instruction). No screen of the game shows the word: the intro
-  movie, the title with its loading bar, the name box and the main menu were looked at in the screen pass, in 2D and
-  3D, windowed and full screen (`docs/SCREENS.md`); the logo says "Heavy Weapon". Of the exe's texts only the window's
+  movie, the title with its loading bar, the name box and the main menu were looked at in the screen pass, windowed in
+  2D and 3D and full screen in 2D (`docs/SCREENS.md`); the logo says "Heavy Weapon". Of the exe's texts only the window's
   caption, the Windows box about a damaged players file, the registration's thanks (removed with the registration) and
   the crash report's questions hold the word. So nothing is cropped or covered. The native window's caption stays the
   original's ("Heavy Weapon Deluxe" and the version, `HeavyWeaponApp.cpp`); the web build has no caption.
