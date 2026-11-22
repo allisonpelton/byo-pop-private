@@ -193,6 +193,16 @@
   };
   // a click: down and up on separate frames, as a real click reaches the game
   test.click = function (x, y, button) { return test.down(x, y, button).then(function () { return test.up(x, y, button); }); };
+  // ?clickgap=1 (the screen saver, web/saver.js, for Bonnie's): a move's clicks spaced as a player's are: the pointer's move
+  // onto the point, the press and the release, each followed by two frames, where test.click sends the move with the press.
+  // Bonnie's misses some of a word's tile clicks sent the quick way, and its bot then plays the word again (its paneplay.js
+  // waits between them too).
+  var CLICK_GAP = params.get("clickgap") === "1";
+  function spacedClick(x, y, button) {
+    return test.move(x, y).then(test.frame)
+      .then(function () { return test.down(x, y, button); }).then(test.frame)
+      .then(function () { return test.up(x, y, button); }).then(test.frame);
+  }
   // a drag in steps (default 10), one frame each
   test.drag = function (x0, y0, x1, y1, steps, button) {
     steps = Math.max(1, steps | 0 || 10);
@@ -392,7 +402,7 @@
       p = p.then(function () {
         var pt, button = st.button || "left";
         if (st.move) { pt = movePoint(st.move); return test.move(pt.x, pt.y); }
-        if (st.click) { pt = movePoint(st.click); return test.click(pt.x, pt.y, st.button || pt.button || "left"); }
+        if (st.click) { pt = movePoint(st.click); return (CLICK_GAP ? spacedClick : test.click)(pt.x, pt.y, st.button || pt.button || "left"); }
         if (st.press) { pt = movePoint(st.press); return test.down(pt.x, pt.y, button); }
         if (st.release) { pt = movePoint(st.release); return test.up(pt.x, pt.y, button); }
         if (st.drag) return test.drag(st.drag.x0, st.drag.y0, st.drag.x1, st.drag.y1, st.drag.steps || 4);

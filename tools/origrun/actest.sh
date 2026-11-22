@@ -19,12 +19,13 @@ echo 'wait 100' > "$work/script.txt"   # a run on the host needs a script; actes
 scr="$(cygpath -aw "$work/script.txt")"
 st=0; checks=0; maxn=0
 
-for mode in block allow; do
+for mode in block allow default; do
 	game="$work/game-$mode"; mkdir -p "$game"
 	cp "$bin/actest.exe" "$bin/actdll.dll" "$game/"
 	exe="$(cygpath -aw "$game/actest.exe")"
 	run="actest-$mode-$$"; rd="$repo/build/origrun/$run"
-	if [ "$mode" = allow ]; then export ORIGRUN_ACTIVATION=allow; else unset ORIGRUN_ACTIVATION; fi
+	# block: forced, since rundesk's desktop is not the user's; default: no switch (any other value), so the hook stays off here
+	export ORIGRUN_ACTIVATION="$mode"
 	"$bin/origrun.exe" --exe "$exe" --run "$run" --script "$scr" --timeout 60 > "$work/run-$mode.txt" 2>&1
 	unset ORIGRUN_ACTIVATION
 	out="$game/actest.out"
@@ -37,13 +38,23 @@ for mode in block allow; do
 			|| { echo "FAIL (block): net.log lacks the install line naming all six functions"; grep -i 'activation' "$nl" | head -3; st=1; }
 		grep -q 'exits: activation hook answered SetForegroundWindow [1-9]' "$nl" 2>/dev/null || { echo "FAIL (block): net.log lacks the exit counts"; grep -i 'activation' "$nl" | head -3; st=1; }
 		grep -q 'SW_SHOWMAXIMIZED passed on 3 ' "$nl" 2>/dev/null || { echo "FAIL (block): net.log does not count the three SW_SHOWMAXIMIZED passes"; grep 'exits: activation' "$nl"; st=1; }
+		grep -q 'activation CBT block installed on [1-9][0-9]* threads (' "$nl" 2>/dev/null || { echo "FAIL (block): net.log lacks the CBT install line"; grep -i 'CBT' "$nl" | head -3; st=1; }
+		grep -q 'activation event [0-9]*: CBT activate window .* class "ActTest" refused .*called from ' "$nl" 2>/dev/null || { echo "FAIL (block): net.log has no CBT activate event with a window class and a caller"; grep -i 'activation event' "$nl" | head -3; st=1; }
+		grep -q 'activation event [0-9]*: SetForegroundWindow window .* class "ActTest" .*called from actest.exe+0x[0-9a-f]*; the foreground was owned by ' "$nl" 2>/dev/null || { echo "FAIL (block): net.log has no SetForegroundWindow event with class, caller and foreground owner"; grep -i 'activation event' "$nl" | head -3; st=1; }
+		ppid=$(grep -o 'pid [0-9]* exits: activation hook answered SetForegroundWindow [1-9]' "$nl" 2>/dev/null | head -1 | cut -d' ' -f2)
+		nev=$(grep -c "^pid $ppid: activation event" "$nl" 2>/dev/null); nfur=$(grep -c "^pid $ppid: activation: further events not logged" "$nl" 2>/dev/null)
+		{ [ "${nev:-0}" -eq 200 ] && [ "${nfur:-0}" -eq 1 ]; } || { echo "FAIL (block): the live record holds $nev event lines and $nfur 'further events' lines for pid $ppid, not 200 and 1"; st=1; }
 		maxn=$(grep -o 'exits: activation hook.*' "$nl" | head -1 | cut -c1-200)
+	elif [ "$mode" = default ]; then
+		grep -q "activation hook off (not the user's desktop: desktop " "$nl" 2>/dev/null || { echo "FAIL (default): net.log lacks the line saying the hook is off on a desktop not the user's"; grep -i 'activation' "$nl" | head -3; st=1; }
+		grep -q 'activation hook installed\|CBT block installed\|CBT activate' "$nl" 2>/dev/null && { echo "FAIL (default): the hook or the CBT block went in on rundesk's desktop"; st=1; }
 	else
 		grep -q 'activation hook off (ORIGRUN_ACTIVATION=allow)' "$nl" 2>/dev/null || { echo "FAIL (allow): net.log lacks the hook-off line"; grep -i 'activation' "$nl" | head -3; st=1; }
 		grep -q 'activation hook installed' "$nl" 2>/dev/null && { echo "FAIL (allow): the hook was installed"; st=1; }
+		grep -q 'CBT block installed\|CBT activate' "$nl" 2>/dev/null && { echo "FAIL (allow): the CBT block was installed or refused an activation"; st=1; }
 	fi
 	rm -rf "$rd"
 done
 rm -rf "$bin"
-[ $st -eq 0 ] && echo "activation hook: the window never took the foreground or became active through any of the nine functions (import table, GetProcAddress, second DLL), each mapped command left the window as its non-activating form does, SW_SHOWMAXIMIZED passed on and was counted, ORIGRUN_ACTIVATION=allow let the calls through ($checks checks)"
+[ $st -eq 0 ] && echo "activation hook: the window never took the foreground or became active through any of the nine functions (import table, GetProcAddress, second DLL) or through what they cannot catch (WS_VISIBLE, SetFocus, win32u's NtUserSetForegroundWindow, threads from before and after the load, the first ShowWindow with and without STARTF_USESHOWWINDOW: the CBT block), the live record kept its 200 lines, each mapped command left the window as its non-activating form does, SW_SHOWMAXIMIZED passed on and was counted, ORIGRUN_ACTIVATION=allow let the calls through, and with no switch the hook stayed off on rundesk's desktop ($checks checks)"
 exit $st

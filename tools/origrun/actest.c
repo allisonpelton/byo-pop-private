@@ -4,6 +4,13 @@
 // it, through its imports, through GetProcAddress and from a second DLL (actdll.dll). After each call neither
 // GetForegroundWindow() nor GetActiveWindow() may be the window, and the window must be in the state the mapped command gives.
 // With ORIGRUN_ACTIVATION=allow in the environment the calls must instead reach Windows: the window becomes the active one.
+// So must they with ORIGRUN_ACTIVATION=default (actest.sh's name for no switch): on rundesk's private desktop the hook is off.
+// Then the cases the nine hooks cannot catch and only the CBT block (activation.c) stops: a top-level window created with WS_VISIBLE,
+// SetFocus on the test's own top-level window, win32u.dll's NtUserSetForegroundWindow through GetProcAddress (the system call itself,
+// no user32 export in the way), and the same window creation on a thread that existed before the stand-in loaded and on one started
+// after it. Two child runs (this exe with "first" as its argument, started before the stand-in loads) make the process's first
+// ShowWindow(SW_SHOWNORMAL), once with the default startup information and once with STARTF_USESHOWWINDOW and SW_SHOWNORMAL: the first
+// ShowWindow call of a process takes its command from the startup information, which overrides the hook's mapped command.
 // actest.out beside the exe: one line per check, and "ACTTEST n of n as expected" last.
 #include "actcheck.h"
 #include <stdio.h>
@@ -123,15 +130,116 @@ static void run_allowed(HWND w, HWND other, const ActApi* a, const char* via)
 
 static LRESULT CALLBACK proc(HWND h, UINT m, WPARAM wp, LPARAM lp) { return DefWindowProcA(h, m, wp, lp); }
 
-int main(void)
+static int gAllow;
+static HMODULE gWin32u;
+static BOOL (WINAPI *gNtSetFg)(HWND);
+
+// A window made visible by its creation, and SetFocus on a window shown inactive: no function the hooks cover is called
+static void run_cbt(HINSTANCE inst, HWND other, const char* via)
 {
+	HWND v = CreateWindowExA(0, "ActTest", "visible", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 20, 200, 240, 160, NULL, NULL, inst, NULL);
+	pump();
+	CK(via, gAllow ? "allowed: a window created with WS_VISIBLE is active" : "a window created with WS_VISIBLE is not active or the foreground", v && (gAllow ? active(v) : notmine(v)));
+	if (v) DestroyWindow(v);
+	pump();
+
+	HWND f = CreateWindowExA(0, "ActTest", "focus", WS_OVERLAPPEDWINDOW, 40, 220, 240, 160, NULL, NULL, inst, NULL);
+	ShowWindow(f, SW_SHOWNOACTIVATE);
+	SetActiveWindow(other); pump();
+	SetFocus(f); pump();
+	CK(via, gAllow ? "allowed: SetFocus on a top-level window activates it" : "SetFocus on a top-level window does not activate it or make it the foreground", f && (gAllow ? active(f) : notmine(f)));
+	if (f) DestroyWindow(f);
+	pump();
+
+	if (!gNtSetFg) { fprintf(gOut, "skipped: win32u.dll!NtUserSetForegroundWindow is not exported on this Windows\n"); fflush(gOut); return; }
+	HWND n = CreateWindowExA(0, "ActTest", "nt", WS_OVERLAPPEDWINDOW, 60, 240, 240, 160, NULL, NULL, inst, NULL);
+	ShowWindow(n, SW_SHOWNOACTIVATE);
+	gNtSetFg(n); pump();
+	CK(via, gAllow ? "allowed: win32u.dll!NtUserSetForegroundWindow activates the window" : "win32u.dll!NtUserSetForegroundWindow (through GetProcAddress) does not activate the window or make it the foreground",
+		n && (gAllow ? (active(n) || GetForegroundWindow() == n) : notmine(n)));
+	if (n) DestroyWindow(n);
+	pump();
+}
+
+// A thread that owns a window created with WS_VISIBLE; gGo holds a thread that started before the stand-in loaded
+static HANDLE gGo, gReady;
+static DWORD WINAPI thread_window(LPVOID arg)
+{
+	const char* via = (const char*)arg;
+	if (gGo) { pump(); SetEvent(gReady); WaitForSingleObject(gGo, 30000); }   // pump: a thread with user32 state, the only kind a hook can be put on from outside
+	HWND v = CreateWindowExA(0, "ActTest", "thread", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 80, 260, 240, 160, NULL, NULL, GetModuleHandleA(NULL), NULL);
+	pump();
+	CK(via, gAllow ? "allowed: a window created with WS_VISIBLE on this thread is active" : "a window created with WS_VISIBLE on this thread is not active or the foreground", v && (gAllow ? active(v) : notmine(v)));
+	if (v) DestroyWindow(v);
+	pump();
+	return 0;
+}
+
+// The process's first ShowWindow call (the child runs of main): its command comes from the startup information
+static int first_main(const char* tag)
+{
+	char path[MAX_PATH], outp[MAX_PATH], tmp[40];
+	GetModuleFileNameA(NULL, path, MAX_PATH);
+	char* l = strrchr(path, '\\'); if (l) l[1] = 0;
+	lstrcpyA(outp, path); lstrcatA(outp, "actest-first-"); lstrcatA(outp, tag); lstrcatA(outp, ".out");
+	gOut = fopen(outp, "w");
+	if (!gOut) return 2;
+	gAllow = GetEnvironmentVariableA("ORIGRUN_ACTIVATION", tmp, sizeof(tmp)) && (!lstrcmpiA(tmp, "allow") || !lstrcmpiA(tmp, "default"));
+	LoadLibraryA("dsound.dll");
+	WNDCLASSA wc; memset(&wc, 0, sizeof(wc));
+	wc.lpfnWndProc = proc; wc.hInstance = GetModuleHandleA(NULL); wc.lpszClassName = "ActTest";
+	RegisterClassA(&wc);
+	HWND w = CreateWindowExA(0, "ActTest", "first", WS_OVERLAPPEDWINDOW, 10, 10, 240, 160, NULL, NULL, wc.hInstance, NULL);
+	ShowWindow(w, SW_SHOWNORMAL);   // the first call: SW_SHOWNORMAL here, whatever the hook makes of it
+	pump();
+	CK(tag, gAllow ? "allowed: the first ShowWindow(SW_SHOWNORMAL) activates the window" : "the first ShowWindow(SW_SHOWNORMAL) does not activate the window or make it the foreground", w && (gAllow ? active(w) : notmine(w)));
+	fprintf(gOut, "ACTTEST %d of %d as expected\n", gOk, gN);
+	fclose(gOut);
+	return gOk == gN ? 0 : 1;
+}
+
+// Runs this exe as a child with "first" and the tag, with the given startup information, before the stand-in is loaded here
+static void run_child(const char* tag, int useShow)
+{
+	char exe[MAX_PATH], cmd[MAX_PATH + 40], outp[MAX_PATH];
+	GetModuleFileNameA(NULL, exe, MAX_PATH);
+	_snprintf(cmd, sizeof(cmd), "\"%s\" first %s", exe, tag);
+	lstrcpyA(outp, exe); char* l = strrchr(outp, '\\'); if (l) l[1] = 0;
+	lstrcatA(outp, "actest-first-"); lstrcatA(outp, tag); lstrcatA(outp, ".out");
+	DeleteFileA(outp);
+	STARTUPINFOA si; memset(&si, 0, sizeof(si)); si.cb = sizeof(si);
+	if (useShow) { si.dwFlags = STARTF_USESHOWWINDOW; si.wShowWindow = SW_SHOWNORMAL; }
+	PROCESS_INFORMATION pi;
+	DWORD code = 99;
+	if (CreateProcessA(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+		if (WaitForSingleObject(pi.hProcess, 60000) == WAIT_OBJECT_0) GetExitCodeProcess(pi.hProcess, &code);
+		else TerminateProcess(pi.hProcess, 98);
+		CloseHandle(pi.hThread); CloseHandle(pi.hProcess);
+	}
+	char line[200] = "";
+	FILE* f = fopen(outp, "r");
+	int found = 0;
+	if (f) { while (fgets(line, sizeof(line), f)) if (!strncmp(line, "ok:", 3) || !strncmp(line, "FAIL", 4)) { found = 1; fputs(line, gOut); } fclose(f); }
+	CK(tag, "the child run made its check and passed", found && code == 0);
+}
+
+int main(int argc, char** argv)
+{
+	if (argc > 2 && !strcmp(argv[1], "first")) return first_main(argv[2]);
 	char path[MAX_PATH], outp[MAX_PATH], tmp[40];
 	GetModuleFileNameA(NULL, path, MAX_PATH);
 	char* l = strrchr(path, '\\'); if (l) l[1] = 0;
 	lstrcpyA(outp, path); lstrcatA(outp, "actest.out");
 	gOut = fopen(outp, "w");
 	if (!gOut) return 2;
-	int allow = GetEnvironmentVariableA("ORIGRUN_ACTIVATION", tmp, sizeof(tmp)) && !lstrcmpiA(tmp, "allow");
+	int allow = GetEnvironmentVariableA("ORIGRUN_ACTIVATION", tmp, sizeof(tmp)) && (!lstrcmpiA(tmp, "allow") || !lstrcmpiA(tmp, "default"));
+	gAllow = allow;
+	// before the stand-in loads: the two child runs (its launch guard would refuse CreateProcess), and a thread that exists when it loads
+	run_child("default-show", 0);
+	run_child("show-normal", 1);
+	gGo = CreateEventA(NULL, TRUE, FALSE, NULL); gReady = CreateEventA(NULL, TRUE, FALSE, NULL);
+	HANDLE early = CreateThread(NULL, 0, thread_window, (void*)"thread started before the stand-in loaded", 0, NULL);
+	WaitForSingleObject(gReady, 30000);
 
 	HMODULE standIn = LoadLibraryA("dsound.dll");   // the stand-in, from the exe's folder
 	{
@@ -171,6 +279,15 @@ int main(void)
 		else run_blocked(w, paths[i].a, paths[i].via);
 	}
 	if (!allow) for (int i = 0; i < 3; i++) run_maximized(w, paths[i].a, paths[i].via);
+	gWin32u = GetModuleHandleA("win32u.dll"); if (!gWin32u) gWin32u = LoadLibraryA("win32u.dll");
+	gNtSetFg = gWin32u ? (BOOL (WINAPI *)(HWND))(void*)GetProcAddress(gWin32u, "NtUserSetForegroundWindow") : NULL;
+	run_cbt(wc.hInstance, other, "cbt");
+	SetEvent(gGo);   // the early thread goes on now that the stand-in is loaded
+	if (early) { WaitForSingleObject(early, 30000); CloseHandle(early); }
+	HANDLE late = CreateThread(NULL, 0, thread_window, (void*)"thread started after the stand-in loaded", 0, NULL);
+	if (late) { WaitForSingleObject(late, 30000); CloseHandle(late); }
+	// the cap of the live record: far more calls than net.log holds lines for
+	if (!allow) for (int i = 0; i < 300; i++) SetForegroundWindow(w);
 	DestroyWindow(w);
 	fprintf(gOut, "ACTTEST %d of %d as expected\n", gOk, gN);
 	fclose(gOut);
