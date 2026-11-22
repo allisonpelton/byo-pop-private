@@ -47,6 +47,7 @@ public:
 	void CalcBoundingBox();							// 0x47bab0: the box round the lines
 	void CalcRotatedBoundingBox(float theAngle);	// 0x47a010: the box round the points turned by theAngle (the lines wait until EnsureLines)
 	void EnsureLines();								// 0x47d880: brings the lines up to date with a move or a turn that was only noted
+	void MakeRect(float theX, float theY, float theWidth, float theHeight); // 0x486d00: a rectangle of that box, as the points of its corners
 	void InitFromPoints();							// 0x484730: makes the lines from the points
 	void InitRotatedFromPoints(float theAngle);		// 0x47d5b0: the same with the points turned by theAngle
 	void CheckShape();								// 0x47d3a0: finds out if the points close up and if the shape is convex

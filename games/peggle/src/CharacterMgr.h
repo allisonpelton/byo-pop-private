@@ -15,6 +15,8 @@
 namespace Sexy
 {
 
+class Board;
+
 class ConfigParser;
 class DDImage;
 class Image;
@@ -90,6 +92,8 @@ public:
 	int GetCharacterIndex(const std::string& theName); // 0x43e3b0: -1 for none
 	int GetNumCharacters() const { return (int)mCharacters.size(); }
 	int SetCurCharacter(int theCharacter);	 // 0x43e320
+	void CalcLookPos(Board* theBoard, bool theForce); // 0x4410c0: where the master looks (the mouse, or the ball): the eyes' animation, with the drawing
+	void Resync();							 // 0x43e460: the eyes are placed again (CalcEyePos 0x438a10)
 
 	ImageMgr mImageMgr;						 // +4 (a pointer in the original)
 	MemoryImage* mBlankImage;				 // +8: a small black picture, the eyes' picture until the file gives one

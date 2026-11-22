@@ -329,7 +329,9 @@ var ByopopLibrary = (function () {
       '<rect x="5" y="12" width="4" height="3" fill="#c4b550"/><rect x="11" y="12" width="16" height="3" fill="#d8ded3"/>' +
       '<rect x="5" y="17" width="4" height="3" fill="#c4b550"/><rect x="11" y="17" width="12" height="3" fill="#d8ded3"/>' +
       '<rect x="5" y="22" width="4" height="3" fill="#c4b550"/><rect x="11" y="22" width="14" height="3" fill="#d8ded3"/>';
-    desk.add(lib.el, { id: "library", title: T("library.title"), closable: true, closed: true, pic: pic, at: at });
+    // never narrower than its six columns, nor shorter than five rows (the user, 2026-11-18: "Some windows should have a minimum
+    // size too, like the library")
+    desk.add(lib.el, { id: "library", title: T("library.title"), closable: true, closed: true, pic: pic, at: at, minWidth: 560, minHeight: 200 });
     lib.el.classList.add("lib-win");
     // fresh values each time it comes to the front (play time and files change while it is behind a game)
     var front = false;

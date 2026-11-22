@@ -640,3 +640,20 @@ void Poly::Draw(Graphics* g)
 {
 	NOT_TRANSLATED("Poly::Draw");
 }
+
+// 0x486d00
+void Poly::MakeRect(float theX, float theY, float theWidth, float theHeight)
+{
+	mPoints.clear();
+	float aHalfWidth = (theWidth - 1.0f) * 0.5f;
+	float aHalfHeight = (theHeight - 1.0f) * 0.5f;
+	mPoints.push_back(SexyVector2(-aHalfWidth, -aHalfHeight));
+	mPoints.push_back(SexyVector2(-aHalfWidth, aHalfHeight));
+	mPoints.push_back(SexyVector2(aHalfWidth, aHalfHeight));
+	mPoints.push_back(SexyVector2(aHalfWidth, -aHalfHeight));
+	mPoints.push_back(SexyVector2(-aHalfWidth, -aHalfHeight));
+	mIsRectangle = true;
+	mX = aHalfWidth + theX;
+	mY = aHalfHeight + theY;
+	InitFromPoints();
+}

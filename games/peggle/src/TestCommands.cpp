@@ -2,7 +2,11 @@
 // command that is never given changes nothing. Each answers on stdout with one line: STATE {...}, OK <command> or
 // ERROR <command>: <reason>. They act through the game's own code.
 
+#include "Board.h"
+#include "Gun.h"
 #include "LevelFile.h"
+#include "LogicMgr.h"
+#include "NotTranslated.h"
 #include "MainMenu.h"
 #include "PhysObj.h"
 #include "PlayerInfo.h"
@@ -154,6 +158,45 @@ bool ThunderballApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			}
 		}
 		Reply((aBad == 0 ? "OK " : "ERROR ") + Words(theCommand) + ": " + std::to_string(aFiles) + " files, " + std::to_string(aBad) + " bad");
+		return true;
+	}
+
+	if (theCommand.mCommand == "loadlevel")
+	{
+		// loadlevel <seed> <path>: puts a level on a board the way Board::Reset would (the reset count is 1) with the generator
+		// seeded, and tells what the rules made of it: the pegs by their serial number (kinds: 1 blue, 2 orange, 3 purple, 4 green),
+		// the cannon's aim and how many draws the level start took. Drawing the original does and the port has not reached is skipped.
+		size_t aSpace = theCommand.mArgs.find(' ');
+		if (aSpace == std::string::npos)
+		{
+			Reply("ERROR " + Words(theCommand) + ": needs a seed and a path");
+			return true;
+		}
+		unsigned long aSeed = std::stoul(theCommand.mArgs.substr(0, aSpace));
+		std::string aPath = theCommand.mArgs.substr(aSpace + 1);
+		gSkipUntranslatedDrawing = true;
+		if (mBoard == nullptr)
+			mBoard = new Board(this);
+		Board* aBoard = static_cast<Board*>(mBoard);
+		aBoard->mResetCount = 1;
+		SRand(aSeed);
+		uint aDrawsBefore = GetRandCount();
+		bool aLoaded = aBoard->LoadLevel(aPath);
+		LogicMgr* aLogic = aBoard->mLogicMgr.get();
+		std::string aState = "STATE {\"loaded\":" + std::string(aLoaded ? "true" : "false") + ",\"objects\":" +
+							 std::to_string(aBoard->mObjects.size()) + ",\"pegs\":" + std::to_string(aLogic->mPegs.size()) + ",\"goal\":" +
+							 std::to_string(aLogic->mGoalPegs.size()) + ",\"other\":" + std::to_string(aLogic->mOtherPegs.size()) +
+							 ",\"draws\":" + std::to_string(GetRandCount() - aDrawsBefore) + ",\"scoreMult\":" +
+							 std::to_string(aLogic->mScoreMult) + ",\"music\":" + std::to_string(aLogic->mMusicIntensity) + ",\"balls\":" +
+							 std::to_string(aLogic->mNumBalls[aLogic->mCurPlayer]);
+		char aDigits[32];
+		snprintf(aDigits, sizeof(aDigits), "%.9g", (double)aLogic->mGunAngle);
+		aState += ",\"gunAngle\":" + std::string(aDigits) + ",\"kinds\":\"";
+		for (std::list<SharedPtr<PhysObj> >::iterator anIter = aLogic->mPegs.begin(); anIter != aLogic->mPegs.end(); ++anIter)
+			aState += (char)('0' + (*anIter)->mPegInfo->mKind);
+		aState += "\"}";
+		Reply(aState);
+		Reply((aLoaded ? "OK " : "ERROR ") + Words(theCommand));
 		return true;
 	}
 
