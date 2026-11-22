@@ -14,6 +14,7 @@
 #include "ObjString.h"
 #include "Res.h"
 #include "SoundQueue.h"
+#include "WalkThru.h"
 
 #include <cstdio>
 #include <cstring>

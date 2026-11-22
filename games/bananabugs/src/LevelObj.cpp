@@ -21,6 +21,7 @@
 #include "Cursor.h"
 #include "GameApp.h"
 #include "HighScore.h"
+#include "Intro.h"
 #include "DDImage.h"
 #include "MenuButton.h"
 #include "GameWidget.h"
@@ -30,6 +31,7 @@
 #include "Res.h"
 #include "SoundQueue.h"
 #include "TextFade.h"
+#include "WalkThru.h"
 #include "Transition.h"
 
 #include <cstdio>

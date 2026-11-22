@@ -19,7 +19,6 @@ float Sexy::gBugBoxHeight = 0.0f;
 bool PauseWin::sEnabled = false;
 
 // The preloaded pictures, each in the global the original keeps it in; they move to their classes with them
-static Anim* sWalkThruTextAnims[9];  // 0x67022c
 static Anim* sSlotMachineAnim;       // 0x670210
 static Anim* sSlotSymbolsAnim;       // 0x670214
 static Anim* sSlotWinAnim;           // 0x670218
@@ -86,15 +85,6 @@ bool PauseWin::IsBlocking()
 
 void PauseWin::ResumeOnRelease()
 {
-}
-
-void Sexy::PreloadWalkThru()
-{
-	for (int i = 0; i < 9; i++) {
-		char aName[32];
-		snprintf(aName, sizeof(aName), "images/walkthru/text%02d", i + 1);
-		sWalkThruTextAnims[i] = Load(aName, 0, 0, 1);
-	}
 }
 
 void Sexy::PreloadSlots()
@@ -171,38 +161,6 @@ void BoltObj::UpdateBolt()
 {
 }
 
-void WalkThru::OnShoot()
-{
-}
-
-void WalkThru::OnLoseLife()
-{
-}
-
-void WalkThru::OnTurn()
-{
-}
-
-void WalkThru::OnAreaFilled()
-{
-}
-
-void WalkThru::Dismiss()
-{
-}
-
-void WalkThru::ShowFirstStep()
-{
-}
-
-void WalkThru::ShowSecondStep()
-{
-}
-
-void WalkThru::ShowThirdStep()
-{
-}
-
 // port: the stand-in has no bonus running; the original also ends what the running bonus changed, and lets go of what
 // the monkey holds
 void Bonus::Cancel()
@@ -219,23 +177,7 @@ void Bonus::ClearAll()
 	Player::Drop();
 }
 
-// port: the stand-ins of what a level makes. The intro is always ready and finished, the in-level menu resumes at
-// once, the victory is done
-bool Intro::IsReady()
-{
-	return true;
-}
-
-bool Intro::IsFinished()
-{
-	return true;
-}
-
-void Intro::Finish()
-{
-	Delete();
-}
-
+// port: the stand-ins of what a level makes. The in-level menu resumes at once, the victory is done
 int InGameMenu::GetResult()
 {
 	return 2;
@@ -262,11 +204,6 @@ void HeldObj::Rotate()
 bool HeldObj::Place()
 {
 	return false;
-}
-
-// port: the stand-in walk-through shows no hints
-void WalkThru::OnBugZapped()
-{
 }
 
 // port: the stand-in bonuses have none running

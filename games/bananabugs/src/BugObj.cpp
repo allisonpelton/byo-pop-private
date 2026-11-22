@@ -9,6 +9,7 @@
 #include "GameApp.h"
 #include "LevelObj.h"
 #include "Pending.h"
+#include "WalkThru.h"
 #include "PipeObj.h"
 #include "Player.h"
 #include "Res.h"

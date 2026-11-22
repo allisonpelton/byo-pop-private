@@ -38,21 +38,6 @@ public:
 	void UpdateBolt();                          // 0x4062e0
 };
 
-// The walk-through's hints (0x475610..0x475670); the stand-in shows none
-class WalkThru
-{
-public:
-	static void OnShoot();                      // 0x475610
-	static void OnLoseLife();                   // 0x475630
-	static void OnTurn();                       // 0x475670
-	static void OnAreaFilled();                 // 0x475650
-	static void Dismiss();                      // 0x4756b0
-	static void OnBugZapped();                  // 0x475690: a bug was zapped
-	static void ShowFirstStep();                // 0x4757d0 (the names of the three steps are guesses)
-	static void ShowSecondStep();               // 0x4759e0
-	static void ShowThirdStep();                // 0x475c40
-};
-
 // The bonuses (0x406cd0, 0x406d90); the stand-in has none running
 class Bonus
 {
@@ -64,14 +49,6 @@ public:
 };
 
 // The things a level makes that are not translated yet; each is an object that shows nothing
-class Intro : public ObjBase                    // 0x436460 (0x460 bytes): the first level's introduction
-{
-public:
-	static bool IsReady();                      // 0x4396e0: the intro is ready for the level to go on (the stand-in: always)
-	static bool IsFinished();                   // 0x4396f0
-	void Finish();                              // 0x436a20
-};
-
 class InGameMenu : public ObjBase               // 0x435c00 (0x36c bytes, a BBWindow in the original)
 {
 public:
@@ -136,7 +113,6 @@ public:
 
 // GameWidget's preloads (0x42f3b0): each class's pictures, loaded once and kept
 void PreloadNetFly();        // 0x42ad40
-void PreloadWalkThru();      // 0x4756d0
 void PreloadSlots();         // 0x46c710
 void PreloadInGameButtons(); // 0x4558f0
 void PreloadBonusPictures(); // 0x406dd0

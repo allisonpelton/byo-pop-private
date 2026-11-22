@@ -28,6 +28,7 @@
 #include "ObjBase.h"
 #include "LevelObj.h"
 #include "Pending.h"
+#include "WalkThru.h"
 #include "Player.h"
 #include "PopCap.h"
 #include "SoundQueue.h"
