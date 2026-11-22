@@ -55,7 +55,7 @@ static void net_open_log(void)
 }
 
 // One line, written in one WriteFile (an append is atomic, so threads and processes do not interleave).
-static void net_line(const char* fmt, ...)
+void net_line(const char* fmt, ...)
 {
 	char buf[1400];
 	va_list ap; va_start(ap, fmt);

@@ -272,8 +272,9 @@ box, Game Over). The Browser pane cannot enter full screen, so the page is check
 
 ### Open
 
-- Not yet shot: the hard modes' remaining boxes, the saved games' resume pages, the web
-  build against the native one is done (next section).
+- The 3D variant and full screen of every screen are not compared: the sandbox runs the original windowed in software 2D (the
+  address of its 3D flag is unknown, and it cannot run full screen there), so the screens pass is 2D and windowed, against the
+  port with `3d off`. Every other screen is in `SCREENS.md`.
 
 ### The web build against the native one
 
@@ -293,3 +294,92 @@ every shot shows the same screen, the same gnomes, scores, hearts and pieces at 
 
 Left as it is: a fractional-position snap in the software renderer is the framework's, shared by every game.
 
+## The screens pass (2026-11-21)
+
+`SCREENS.md` lists every screen and dialog of the game, one row each, with the shots that compare it, and `tools/check.sh screens`
+checks the list against the newest shotdiff run (`build/shotreview/hammerheads/screens`: the original in Windows Sandbox against
+the port, 800 by 600, about 760 pairs). The audit of 2026-11-21 named gaps; each is reached now.
+
+### What was added
+
+New scenarios (`tools/idplay/scenarios/`, run by `looks.py <scenario> 0 0 0 --shots`; the player each starts as is made by
+`mkprofile.py`, in the original's own file format, so both games read the same one):
+
+| scenario | screens |
+| --- | --- |
+| `scr_menu` | the name box empty and typed, the player list, the other name box, Rename, Delete's "Are You Sure?", Quit's question and its No |
+| `scr_errors` | the error boxes: a name is needed, a name is taken, a new name is taken |
+| `scr_rich`, `scr_trophy` | a player with a past: every mode open, the restart-point screen, the saved game's "Continue?" box, the Trophy Room with eleven trophies won and the close-up page of each |
+| `scr_lv1` to `scr_lv5` | the introduction, the board and the game over box of every Classic level from 2 to 25 (a player whose restart points start the game on each), and the trophy award pages of levels 6 and 11 |
+| `scr_over` | the game over box of Tough Cookie, of Classic Bash and of Marathon Bash, with Marathon's box, board and wave |
+| `scr_wipes`, `scr_wipes2` | every zoom wipe (the hammer, to and from the Trophy Room and the High Scores, the loading screen's, leaving a game, the level-up wipe, the shop's), a shot in each of its first frames |
+
+The earlier scenarios were run again so that one `summary.json` covers all of them (`classic1`, `classic_nd10`, `classic_nd22`,
+`classic_sp25`, `tough1`, `marathon1`, `classic_save1`, `classic_save22`, `menus`, `howto`; their shots are named by the update).
+The tour (`tools/tour_test.txt`) takes eight shots more (the menu after a lost Marathon game, the player list, Quit's question, a
+board, the game menu, the leave question, the menu after leaving, a Classic game over box); `HH_SHOTS_ALL` and `HH_FROZEN` in
+`tools/check.sh` are renewed, and the frozen baseline (`build/baseline-hammerheads`) is the port of this branch.
+
+### Differences found and fixed
+
+| difference | cause | what the port does now | commit |
+| --- | --- | --- | --- |
+| The original could not read a player's file the port wrote, nor the port one the original wrote | the original writes its XML in pieces, each with its length in front (a little-endian 16-bit number); the port wrote and read plain XML | `XmlNode::ToChunkedFileText` and `FileTextOf`: the port reads both forms and writes the original's | 30710ae9 |
+| The High Scores page was gone the moment the player left it: the first five frames of the zoom wipe showed the hammer on black, where the original's screen still shows the page behind the hammer (its uncovered pixels are not cleared) | the port killed the table's dialog before it started the wipe (the export does the same, but the original's screen is not cleared between frames); the wipe's callback, `HighScoresToMainMenu`, kills it again | the table stays until the callback | this branch |
+| `goto <mode>` (the site's screen saver) stayed on the loading screen | `StartTestGame` left the loading screen up | it drops a loading screen whose files are loaded | this branch |
+
+### The word "Deluxe" removed (the user, 2026-11-18)
+
+"Remove the "Deluxe" text from the main screen of any game it may appear in, to avoid misleading people about whose game version
+they're playing." The word under the logo, on the loading screen and on the main menu, is not drawn (`DeluxeCover`: the cover is
+made as the screen is drawn, no edited picture is committed), and the site's listing, the window's title and the page's title say
+"Hammer Heads" (`games/hammerheads/CMakeLists.txt`). Where "Deluxe" finds files (the short name, the import folder names) it
+stays. A deviation with a visible effect; its pairs are masked in `shotdiff.json` with this reason, and so are the removed
+"More Games" button's row and bubble, the other deviation that shows on the menu.
+
+### Judged, not changed (every flagged difference that is left)
+
+- **A. The removed "More Games" button and "Deluxe"**: masked, above.
+- **B. Edges of pictures the game stretches or turns.** The gnome's soft glow is a small copy drawn stretched (`GetGlowImage`), the
+  trophy medal's rays and the light behind a gnome are turned (`DrawImageRotated`), the zoom wipe's hammer is scaled and a few
+  captions are scaled: the original's blit and the framework's filter them differently, so a rim of pixels, a channel value or two
+  to some tens apart, runs along every such edge (the same as the "Edge pixels" above, for the larger pictures). A pair flagged for
+  this alone shows the same picture in the same place; the trophy pages, the middle frames of every wipe and the boards have it.
+- **C. An animation driven by a counter, seen at another age.** The light behind a gnome turns 0.0075 radian for each update of
+  the game over box and 0.0005 for each update of an introduction, the question mark over the next gnome pulses with
+  `cos(0.025 t)`, the shop sign lights on `age % 200`, the figures of a finished level count up, a floater slides in: where the
+  sandbox's original and the port are at another update of the same thing, they show another phase. Measured: the first
+  scenario's introductions (level 2) match the port's at the very update (the best of the port's shots every two updates around
+  it is the same update, for two shots); but the introduction of level 6 in `scr_lv1`, four cycles later, matches the port's at
+  age 1240 where the shot was taken at 1495 (the best of a hundred shots every five updates, a clear minimum), and the Marathon
+  clock of `scr_over` stands at 0:20 in the original where the port's, at the same scheduled update, is at 0:34. So a long
+  scenario's timeline in the sandbox slips against the port's. **The cause is the sandbox's, found afterwards (2026-11-22):** its
+  shots do not land on the update they are labelled with. `landed.tsv`, beside the sandbox shots, lists the counter each shot was
+  taken at, and in `scr_over` (shots asked for at the mark 6003 plus the script's update) `classic_over` was asked for at 28003
+  and landed at 25458, `marathon_over` at 42003 and landed at 37300 (4703 updates early), `marathon_wave_cleared` 36003 at
+  34623, `tough_over` 16503 at 14375; the shots that landed on their update (`tough_points`, `classic_board` and the like) match.
+  The game read through its own draw surface on the host (origrun's in-game frame reader with `reader_waits=hold`, `docs/ORIGRUN.md`)
+  holds every shot at its update: the menu's 15 shots and the wipes' 129 are identical to the sandbox's, a Classic game's 33 differ
+  only in the how-to-play movie, the loading screen and a particle, and `scr_over`'s eight differing pairs are exactly the shots
+  the sandbox landed early. So the pictures differ in age because the sandbox's shot was taken at another update, not because the
+  game counts differently: **not a difference of the port**. A sandbox shot is compared only where `landed.tsv` says it landed on
+  its update, or against the port's shot of the update it did land at. To see it: `scr_lv1`'s `intro_level06` against
+  `scr_phase6_port`'s shots (`looks.py scr_phase6_port 0 0 0 --shots --only port`).
+- **D. The how-to-play movie** runs on the original's wall clock: compared by its frames (above).
+- **E. Particles and sprites in motion** differ along their edges (above).
+
+### Found on the way
+
+- **The original crashes when a restart point holds a hammer of level 4 or 5.** The player files made for the scenarios first gave
+  a hammer level of up to 5 for the late levels; the original crashed on the board (an access violation) where the port played on.
+  No game gives a hammer above level 3, so it is a state no play reaches: nothing to fix, the files use at most 3.
+- **A list's hash is printed without its leading zeros** (`HashProfileText`, as the original does): a made file with the full
+  digest was dropped by both games as altered, which showed as a Marathon lock that came and went. `mkprofile.py` writes it the
+  game's way.
+- **The sandbox's lock** can be held by other sessions for more than ten minutes, and `looks.py` then gives up: a run whose
+  original has no shots is run again (`build/logs/scr/rerun*.sh`).
+
+### Left
+
+- The 3D variants and full screen (see "Open"), the options notices (they follow the machine's display) and the camera trophy's
+  photo (a screenshot of the board at its moment) are not compared beyond what the rows say.

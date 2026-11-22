@@ -1,6 +1,7 @@
 // CharacterMgr.cpp: reading characters/characters.cfg and cutting the masters' pictures into frames; see CharacterMgr.h.
 
 #include "CharacterMgr.h"
+#include "NotTranslated.h"
 
 #include "Color.h"
 #include "ConfigParser.h"
@@ -467,4 +468,16 @@ void CharacterMgr::InitDefault()
 	aCharacter.mPosY = DEFAULT_CHARACTER_Y;
 	mCharacters.push_back(aCharacter);
 	// 0x45ac90: the eyes' pictures are left to the first Load
+}
+
+// 0x4410c0 and 0x43e460 (CalcEyePos 0x438a10): the eyes follow the mouse or the ball, which is part of the drawing and is
+// translated with it; nothing of the rules reads where they look.
+void CharacterMgr::CalcLookPos(Board* theBoard, bool theForce)
+{
+	NOT_TRANSLATED_DRAWING("CharacterMgr::CalcLookPos");
+}
+
+void CharacterMgr::Resync()
+{
+	NOT_TRANSLATED_DRAWING("CharacterMgr::Resync");
 }

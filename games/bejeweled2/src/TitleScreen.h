@@ -48,7 +48,6 @@ public:
 	CurvedVal		mSlide;             // +0x2c0 the slide away: 0 to 400
 	HyperlinkWidget* mPlayLink;         // +0x2f0
 	Image*			mLogo2GlowImage;    // +0x2f4 the "2" as a grey image, drawn additively
-	Image*			mDeluxeGlowImage;   // +0x2f8
 	bool			mSettled;           // +0x318 the animation is over and the window had the focus: nothing animates
 	                                    // (the backdrop and this screen) while the focus is away
 

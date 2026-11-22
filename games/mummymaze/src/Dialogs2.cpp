@@ -45,11 +45,11 @@ OptionsDialog::OptionsDialog(MMApp* theApp) :
 	// (the original also makes a sixth button, id 5, "Reset Tips"; it is added but never given a place, so it can not be
 	// seen or clicked, and it is left out here)
 
-	mMusicSlider = new Slider(mApp->mImages[IMAGE_SLIDER], mApp->mImages[IMAGE_SLIDERANKH], 0, this);
+	mMusicSlider = new Slider2003(mApp->mImages[IMAGE_SLIDER], mApp->mImages[IMAGE_SLIDERANKH], 0, this);
 	mMusicSlider->SetValue(mApp->GetMusicVolume());
-	mSfxSlider = new Slider(mApp->mImages[IMAGE_SLIDER], mApp->mImages[IMAGE_SLIDERANKH], 1, this);
+	mSfxSlider = new Slider2003(mApp->mImages[IMAGE_SLIDER], mApp->mImages[IMAGE_SLIDERANKH], 1, this);
 	mSfxSlider->SetValue(mApp->GetSfxVolume());
-	mSpeedSlider = new Slider(mApp->mImages[IMAGE_SLIDER], mApp->mImages[IMAGE_SLIDERANKH], 2, this);
+	mSpeedSlider = new Slider2003(mApp->mImages[IMAGE_SLIDER], mApp->mImages[IMAGE_SLIDERANKH], 2, this);
 	mSpeedSlider->SetValue(mApp->mSpeed == 2 ? 0.5 : (mApp->mSpeed == 4 ? 1.0 : 0.0));
 
 	// the check box art: the unchecked picture is the left half of checked.gif, the checked one the right
@@ -193,6 +193,20 @@ void OptionsDialog::ButtonDepress(int theId)
 	case 4:
 		mApp->DoMessage(DIALOG_CREDITS, GT(0x00495158), GT(0x00495160), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 		break;
+	}
+}
+
+// 0x43dbd0: a drag starts on the thumb only
+void Slider2003::MouseDown(int x, int y, int theClickCount)
+{
+	(void) theClickCount;
+	(void) y;
+	int aThumbX = (int) (mVal * (mWidth - mThumbImage->GetWidth()));
+	if (x >= aThumbX && x < aThumbX + mThumbImage->GetWidth())
+	{
+		mWidgetManager->mApp->SetCursor(CURSOR_DRAGGING);
+		mDragging = true;
+		mRelX = x - aThumbX;
 	}
 }
 

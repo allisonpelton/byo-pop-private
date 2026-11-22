@@ -39,6 +39,9 @@ public:
 	void					SetData(const ByteVector& theBuffer);
 	void					SetData(uchar* thePtr, int theCount);
 
+	// the character a web string writes for the six-bit value 0: '.' in the released source, '+' in the 2003 framework (the digit
+	// table of a game built with it is "+-0123..."); a game whose files the original reads sets it
+	static char				sWebZeroChar;
 	std::string				ToWebString() const;
 	std::wstring			UTF8ToWideString() const;
 	uchar					ReadByte() const;

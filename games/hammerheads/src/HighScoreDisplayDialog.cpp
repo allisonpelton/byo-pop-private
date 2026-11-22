@@ -290,9 +290,13 @@ void HighScoreDisplayDialog::ButtonDepress(int theId)
 {
 	if (theId == Dialog::ID_FOOTER)
 	{
-		gApp->KillDialog(DIALOG_HIGH_SCORE_TABLE);
+		// port: the original kills the table here and its screen shows the table still under the first frames of the wipe (its
+		// uncovered pixels are not cleared); the port draws the whole screen each frame, so the table stays until the wipe's
+		// callback (HighScoresToMainMenu) kills it
 		if (mShown)
 			gApp->DoZoomWipe(WipeToMainMenu, WIPE_HAMMER);
+		else
+			gApp->KillDialog(DIALOG_HIGH_SCORE_TABLE);
 	}
 }
 

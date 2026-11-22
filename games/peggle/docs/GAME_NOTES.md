@@ -65,6 +65,15 @@ certificate (line 674). Each is a constant folded away.
 - The debug keys of the original (Ctrl, H, D, A in the loading screen's debug mode) are kept.
 - A brick makes its pictures when it is first drawn, not as it is read (the original makes them while it is read); the shape
   and everything a ball can hit are made when it is read, as in the original.
+- The sets of pegs (`LogicMgr::mGoalPegs`, `mOtherPegs`) are `std::set`s of pointers in the original, so they go in the order the
+  pieces are in memory; the port orders them by the pieces' serial number (`PegSerialLess`), the order they were made in. It
+  decides which peg `MakeScorePeg` and `MakePowerupPeg` pick for a random number, so a level start can differ from the original's
+  until the order of the original's heap is shown to match: the first thing `IDENTICAL_PLAY.md` checks.
+- `Board::mEasterEggKind` (+0x124) and `SoundMgr::mFadeTimer` (+0x20) are not set by the original's constructors; 0 here.
+- The window's title names "Peggle", not "Peggle Deluxe" (`Board::SetWindowTitle`, by the user's rule of 2026-11-18).
+- While the drawing is not translated, `gSkipUntranslatedDrawing` (set by the `loadlevel` test) lets the rules run past the
+  drawing calls that would stop the game (`NOT_TRANSLATED_DRAWING`): `Board::MakeThumbnail`, `InterfaceMgr::SyncStageNum`, the
+  masters' eyes (`CharacterMgr::CalcLookPos`, `Resync`) and a peg brick's picture. Each is translated in the looks phase.
 - Identical play is compared in 2D mode (x87 maths at 53 bits): the original's x87 code is translated as one `(float)` rounding
   of a double expression per stored value (`tools/fpu2c.py` writes the first draft of it).
 
@@ -96,6 +105,13 @@ a file: the version (with an `f` when the flag is set), the size, the number of 
 saved rotation for this test (see `LEVEL_PIECES.md`). Run it through `rundesk.exe` with a script `3 checklevels <folder>`,
 `6 quit`.
 
+`resetlevel <seed> <path> [hidden]` is the same through `Board::Reset` (the app's mode NONE; `hidden` keeps the board's music from playing); it gives the same state as `loadlevel`.
+
+`loadlevel <seed> <path>`: puts a level on a board the way `Board::Reset` would (reset count 1), with the random generator
+seeded, and answers `STATE {...}`: the number of pieces and pegs, the orange and other pegs, the draws the level start took, the
+score multiplier, the music's intensity, the balls, the cannon's aim and the pegs' kinds in serial order (1 blue, 2 orange,
+3 purple, 4 green). Run it as `peggle.exe -fast -script=<file>` (with an equals sign: `-script <file>` is silently ignored) with lines `3 loadlevel 1 levels/3d.dat`, `8 quit` (paths are the files', from `assets/peggle`).
+
 ## Not translated yet
 
 `grep NOT_TRANSLATED games/peggle/src` is the list. The order the next work takes:
@@ -109,3 +125,11 @@ saved rotation for this test (see `LEVEL_PIECES.md`). Run it through `rundesk.ex
    AdventureScreen, StoryScreen, TrophyScreen, HelpScreen, CharacterDialog, EndLevelDialog, SlotMachineDialog, the replay
    dialogs; `MainMenu::DrawTrophyEffect` (an x87 particle effect: 0x494b50).
 3. Replays and the bot (AIMgr, AIBall) for the Demo and the Masters, then the test commands and `move`.
+
+## Deviations and notes from Board::Reset
+
+- The original's music call after `Board::PlayMusic` (0x40d2c0: BASS pitch back to normal) is left out: the port's music is never pitch-shifted.
+- `Board::PlayMusic` draws its song order with the C runtime's `rand` (the framework's `CrtRand`), as the original's `random_shuffle` does; the order is drawn once per run.
+- The replay, end-of-level and slot-machine dialogs are made by the board's constructor; only their constructors are translated, the rest stops at `NOT_TRANSLATED`.
+- `Board::SyncModeOptions` stops at `NOT_TRANSLATED` for the challenge and demo level choice (`StageMgr::GetRandomLevel`), and `SyncCharacterOptions` for the challenge's computer opponent; the other modes pass (a registered game: `GetMaxUnlockedCharacter` is 20).
+- The original's `LoadLevel` takes the name by value (Reset passes the board's own `mLevelName`, which `Clear` erases); the port's does too.

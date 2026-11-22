@@ -354,51 +354,101 @@ bool XmlNode::Parse(const std::string& theText)
 	return aReader.ReadChildren(this);
 }
 
-void XmlNode::Print(std::string& theOut, int theDepth) const
+// The text a piece at a time: the pieces the original's writer wrote one by one (a tag's name, a space, an attribute, a run of
+// indent, a newline)
+void XmlNode::Print(std::vector<std::string>& thePieces, int theDepth) const
 {
 	if (mType == TYPE_TEXT)
 	{
-		theOut += EncodeText(mValue);
+		thePieces.push_back(EncodeText(mValue));
 		return;
 	}
 
 	for (int i = 0; i < theDepth; i++)
-		theOut += "    ";
-	theOut += "<" + mValue;
+		thePieces.push_back("    ");
+	thePieces.push_back("<" + mValue);
 	for (size_t i = 0; i < mAttributes.size(); i++)
-		theOut += " " + mAttributes[i].first + "=\"" + EncodeText(mAttributes[i].second) + "\"";
+	{
+		thePieces.push_back(" ");
+		thePieces.push_back(mAttributes[i].first + "=\"" + EncodeText(mAttributes[i].second) + "\"");
+	}
 
 	if (mChildren.empty())
-		theOut += " />";
+		thePieces.push_back(" />");
 	else if (mChildren.size() == 1 && mChildren[0]->mType == TYPE_TEXT)
 	{
-		theOut += ">";
-		mChildren[0]->Print(theOut, theDepth + 1);
-		theOut += "</" + mValue + ">";
+		thePieces.push_back(">");
+		mChildren[0]->Print(thePieces, theDepth + 1);
+		thePieces.push_back("</" + mValue + ">");
 	}
 	else
 	{
-		theOut += ">";
+		thePieces.push_back(">");
 		for (size_t i = 0; i < mChildren.size(); i++)
 		{
 			if (mChildren[i]->mType != TYPE_TEXT)
-				theOut += "\n";
-			mChildren[i]->Print(theOut, theDepth + 1);
+				thePieces.push_back("\n");
+			mChildren[i]->Print(thePieces, theDepth + 1);
 		}
-		theOut += "\n";
+		thePieces.push_back("\n");
 		for (int i = 0; i < theDepth; i++)
-			theOut += "    ";
-		theOut += "</" + mValue + ">";
+			thePieces.push_back("    ");
+		thePieces.push_back("</" + mValue + ">");
 	}
+}
+
+static std::vector<std::string> DocumentPieces(const std::vector<std::unique_ptr<XmlNode>>& theChildren)
+{
+	std::vector<std::string> aPieces;
+	aPieces.push_back("<?xml ");
+	aPieces.push_back("version=\"1.0\" ");
+	aPieces.push_back("encoding=\"UTF-8\" ");
+	aPieces.push_back("?>");
+	aPieces.push_back("\n");
+	for (size_t i = 0; i < theChildren.size(); i++)
+	{
+		theChildren[i]->PrintPieces(aPieces);
+		aPieces.push_back("\n");
+	}
+	return aPieces;
 }
 
 std::string XmlNode::ToFileText() const
 {
-	std::string aText = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
-	for (size_t i = 0; i < mChildren.size(); i++)
+	std::vector<std::string> aPieces = DocumentPieces(mChildren);
+	std::string aText;
+	for (size_t i = 0; i < aPieces.size(); i++)
+		aText += aPieces[i];
+	return aText;
+}
+
+std::string XmlNode::ToChunkedFileText() const
+{
+	std::vector<std::string> aPieces = DocumentPieces(mChildren);
+	std::string aData;
+	for (size_t i = 0; i < aPieces.size(); i++)
 	{
-		mChildren[i]->Print(aText, 0);
-		aText += "\n";
+		aData += (char) (aPieces[i].size() & 0xff);
+		aData += (char) ((aPieces[i].size() >> 8) & 0xff);
+		aData += aPieces[i];
 	}
+	return aData;
+}
+
+std::string XmlNode::FileTextOf(const std::string& theFileData)
+{
+	std::string aText;
+	size_t aPos = 0;
+	while (aPos + 2 <= theFileData.size())
+	{
+		size_t aLength = (unsigned char) theFileData[aPos] | ((size_t) (unsigned char) theFileData[aPos + 1] << 8);
+		if (aPos + 2 + aLength > theFileData.size())
+			return theFileData;
+		aText.append(theFileData, aPos + 2, aLength);
+		aPos += 2 + aLength;
+	}
+	// a stream of pieces ends exactly at the file's end and is text of the document; anything else is the text itself
+	if (aPos != theFileData.size() || aText.compare(0, 5, "<?xml") != 0)
+		return theFileData;
 	return aText;
 }

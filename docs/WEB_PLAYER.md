@@ -20,7 +20,12 @@ The page loads `<game>.js`, which compiles the wasm while `main()` waits (`INVOK
 IndexedDB at its persist folder and copies it into memory (`game/`, `userdata/`, `mods/`, `replays/`), first putting
 back saves that reached only the localStorage backup (`byopop_userdata_restore`). A Web Lock (`PAGE.lock`) lets one tab
 run a game. The fixes mod is put in place, the terms are asked, and without the game's files the import card copies
-only what `page.js` names, by the rules in `web/gameimport.js` (a pak named in `paks` is unpacked). The exe of a game
+only what `page.js` names, by the rules in `web/gameimport.js` (a pak named in `paks` is unpacked). The card takes the
+game's folder or a .zip of it from its two buttons, or dropped anywhere over it (the user, 2026-11-16: "I should be able
+to drag the folder into the load files screen"): a drop is read by `fromDrop`, as the listing reads one, with the folders
+and files found counted in the card's line, and the card shows a dotted line round its contents while files are over
+it. No other part of a game page drops files into the browser: a window listener cancels a file drag that nothing took
+(the no-entry pointer) and its drop, so a folder dropped anywhere else no longer opens the browser's listing of it. The exe of a game
 that `web/exetrim.js` lists is stored without its code sections, and a launcher's inner image alone, as the port reads
 only texts and tables from it (about 32 MB down to 7 MB over the listed games; `tools/exetrimtest.js` checks every table
 address reads the same; a game stored before keeps its whole exe until it is imported again). Files no port opens stay
@@ -87,7 +92,7 @@ the canvas (`.game-cursor` on `<html>`).
 The player can choose one game's cursors for the whole site (the user, 2026-11-03: "pull custom cursors out of the
 user's uploaded games so that they can select one to use across the whole site (except for inside other games)"). In
 `web/cursors.js` (checked by `tools/cursorstest.js`) a started game's page takes its cursors with
-`byopop_cursor_set_copy()` into `byopop-cursors`; the choice is `byopop-site-cursor`. A game's own cursor wins on its
+`byopop_cursor_set_copy()` and keeps them in IndexedDB (below); the choice is `byopop-site-cursor`. A game's own cursor wins on its
 page. A kind may carry animation `frames`, which the page plays itself (Banana Bugs will need them,
 `docs/POPCAP_GAMES_SURVEY.md`). Water Bugs and Cosmic Bugs draw their own pointer, the "pointer" animation of their
 files, so their pages read it from those files instead (`web/flicursor.js`, `ByopopFlicCursor`): every frame of the FLIC
@@ -109,12 +114,32 @@ two sets the same way as it adds their files (`web/gameimport.js`, `flicSet`), s
 game is first opened. The other games' sets come only from a running game: the framework holds their pictures once the
 game has loaded its images.
 
-The sets may take 1 MB of localStorage together (`MAX_TOTAL`). On 2026-11-16 every game's set came to 196 KB: the two
-animated ones 34 and 36 KB, the others 6 to 11 KB. A set that would go past the cap, or that the browser will not store,
-is not dropped unseen. Its game is kept in `byopop-cursors-unkept` until its set is kept or its files are forgotten, and
+The sets are kept in IndexedDB, in the database `byopop-cursors` (its store `sets`, by game id), their pictures as binary
+PNG Blobs (the user, 2026-11-16, of the three changes below: "Will want all three improvements applied"). Until 2026-11-22
+they were base64 in localStorage (`byopop-cursors`, 1 MB at most together, 196 KB for every game's set on 2026-11-16); a
+page that finds that item moves the sets across as it loads, cropped and retimed as before, and removes it once all are
+in. A picture with at most 256 colours is written again with a palette where that comes out smaller than the browser's
+own PNG: the site's own writer, colour type 3 at 1, 2, 4 or 8 bits a pixel, its rows unfiltered and deflated by the
+browser's `CompressionStream`. Every pixel that shows keeps its exact value, half-see-through ones included. An animated
+cursor's frames are one strip, in cells of one size side by side, each frame placed so that its hot spot sits at the
+same point of its cell; they are cut into frames again as the set is read. In the pane's profile on 2026-11-22, Heavy
+Weapon's and Bejeweled 2's pictures came out 14 to 38 percent smaller than the browser's PNGs of the same pixels, but
+for Bejeweled 2's pointer, which stays the browser's; ten drawn frames took 4,658 bytes as a strip against 6,552 as ten
+PNGs.
+
+localStorage keeps only small items: `byopop-cursors-kept`, each set's title and signature (a set given again with the
+same signature is not written again), and `byopop-cursor-shown`, the chosen set as the site shows it (5 KB for Heavy
+Weapon's), so that every page shows it from its first line and the browser's own cursor never shows while the database
+is read. A page reads the database only for what it needs: the chosen set when it has no copy of it, and every set when
+Settings' choice is drawn. The screen saver's frame keeps its sets in its memory (`ByopopInMemory`, set by the page's
+first script with its memory storage). A set the browser will not store, or whose pictures cannot be read, is not
+dropped unseen. Its game is kept in `byopop-cursors-unkept` until its set is kept or its files are forgotten, and
 Settings' choice names it (the user, 2026-11-16: "I'm missing some custom cursors"). `GIVES` lists the games that give a
 set, and `tools/cursorstest.js` checks it against their sources. On the listing page, Settings' choice names each of
-those games whose files are here and whose set is not, as needing to be opened once.
+those games whose files are here and whose set is not, as needing to be opened once. In the choice, an animated cursor's
+picture plays its frames at the cursor's pace while the mouse is over its row (the user, 2026-11-16: "Add mouse over
+for animated custom cursors to show the animation"), the frames laid on each other by their hot spots in a box of one
+size, and shows its first frame again when the mouse leaves.
 
 ### The terms
 
@@ -168,7 +193,10 @@ The user's rules for it:
 **Which games are yours** is `byopop-game-files` in localStorage (`ByopopGameFiles` in `web/settings.js`), never
 written with `?placeholders=1`; without an entry the listing looks in the game's database read-only, calling
 `indexedDB.databases()` first so that it never creates one. Forgetting a game's files (`ByopopImport.forgetGame`)
-keeps saves, mods and replays and holds the game's Web Lock.
+keeps saves, mods and replays and holds the game's Web Lock. A game whose files were loaded here once and are gone
+shows a small "?" button on its tile, which opens a message box titled with the game's name (`ByopopApps.tell` in
+`web/deskapps.js`, with the information sign): the day the files were last loaded and the day they were forgotten, the
+likely causes, whether saves are still here, and the buttons Open game and Close.
 
 ### Jungle Juice
 
@@ -271,12 +299,13 @@ The rule for every control surface on the site (the user, 2026-11-08: "It is ins
 out some way to make elements that don't look like that"):
 
 1. **No sentences inside a control surface.** A window shows values and standard labels. What needs explaining goes in
-   a tooltip, in About, or nowhere.
+   a tooltip, in About (System Information on the listing page), in a "?" message box beside its control, or nowhere.
 2. **A recognised icon, alone,** where a widely known one exists, drawn in our own pixels; its name is its tooltip and
    `aria-label`.
 3. **Status is data in a display,** not a sentence. A test mode such as `?silent=1` shows a small indicator there.
 4. **Views belong to the display.** Clicking it cycles them, with no check boxes.
-5. **Credits and explanations go to About** and the licences page.
+5. **Credits and explanations go to About** (System Information's General tab on the listing page) and the licences
+   page.
 6. **Density and hierarchy of real software:** small type, tight spacing, no uniform cards or pill buttons.
 7. **Evoke, don't copy.** No real program's artwork, logo, name or skin is copied.
 
@@ -321,8 +350,23 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   page). A drag on the empty desktop selects them with a dotted rectangle, and a drag of a selected icon moves them all.
 - **The empty desktop's right click:** Arrange Icons (back to the columns), Line up Icons (each to the nearest free
   place) and Properties (Settings' Appearance).
-- **The task bar's right click:** Cascade, Tile Horizontally, Tile Vertically and Minimize All Windows, which becomes
-  Undo Minimize All.
+- **The task bar's right click:** Cascade, Tile Horizontally, Tile Vertically and Minimize All Windows. Each of them first
+  keeps every window's place, size, state and order (`keepLayout`), and the menu then offers its Undo: Undo Cascade or
+  Undo Tile under the three, and Undo Minimize All in Minimize All's place (the user, 2026-11-18: "I accidentally
+  horizontally tiled my windows, losing my layout. It is frustrating to put it back. I should be able to restore how my
+  windows were previously laid out."). Undo puts each window back as it was, minimized or not, at its own size or its
+  style sheet's, in its old order, with the window that was in front in front again (`undoLayout`). A window closed in
+  the meantime stays closed, and a maximized window is never cascaded or tiled, so it stays as it was. One undo is kept,
+  the last arrangement's, until it is used. Undo Minimize All is offered while a window it minimized still is. A
+  window's least size stands in a tile, so on a small screen the tiles of large windows overlap, as 1995's did.
+- **Pictures** (the user, 2026-11-21: "The \"Pop\" menu is messed up, and could use icons"): a window has one picture at two
+  sizes, its desktop icon's (`picOf`). The Pop menu's first level shows it large, beside the band, and the lists beside it
+  show it small, as do the window's title bar and its task bar button; a game's list entry shows the small icon read from
+  its exe, else its cap. Entries that are no window draw their own (`drawnPic`: the games' folder, Setup's floppy disk,
+  full screen, the game's size, Music, Sounds, Shut Down's computer). A screen too short for the large pictures gets the
+  small ones on the first level too, and a list opens level with its entry, raised only as far as the task bar needs. The
+  Pop button's mark is a yellow burst of our own, and the active window's task bar button is pressed with bold text
+  (struck twice, as the desktop's one-weight font draws every bold).
 - **Tooltips:** drawn as 1995's, a pale yellow box with a black border half a second after the pointer rests. The
   browser draws its own for any title under the pointer, so the titles of the element and of its titled ancestors are held
   off them until the pointer leaves the element: moving onto a child of it (a Sounds button's label), a press, a key and
@@ -371,7 +415,10 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
 
 The game
 window's menu bar spreads the game's commands over Game, View, Options and Help (the user, 2026-11-09: "don't hide
-everything under "Game""), and no menu shows Alt+F4 or Alt+Space, which the browser keeps. The game is always at a
+everything under "Game""), and no menu shows Alt+F4 or Alt+Space, which the browser keeps. Game holds the game's files' two actions
+itself, Import game files again... and Forget game files... (the user, 2026-11-21: ""Game files" under Game is just two
+buttons that could be moved directly into the tab"), and their questions come in the desktop's message box
+(`ByopopApps.ask`) with Cancel; the Game files window is in the menu only while files were missing, for their list. The game is always at a
 whole multiple of its size in device pixels (`sizeStage`). A multiple chosen in the View menu is drawn only while the desktop
 has room for its window; otherwise the game is drawn at the largest multiple that fits, or at 1x with the window scrolling
 when not even that fits, and the choice is kept, so the game goes back to it when there is room (`embedWidth`,
@@ -393,6 +440,61 @@ again, so the page lagged and the sound crackled (the user, 2026-11-17: "The sit
 because it tries to resize repeatedly when Firefox enters full screen"). Now the first event of a run goes on at once and
 the rest are held, by a listener capturing at the window, until none has come for 120 ms; then one resize goes on for the
 size reached. The page's own resizes, which its scripts send so that SDL measures the stage again, go on at once.
+
+**Loading** (the user, 2026-11-20: "The site briefly shows the all games window while loading. Replace that load with
+something 95-themed"). A page that becomes a desktop, the listing or a game's own page, used to be drawn in stages: the
+games' list as a plain page, then the desktop, then each window in its saved place. Now, from the first line of
+`web/skins.js` until the desktop is whole, `html.d95-booting` covers the page with the desktop's colour and the hourglass,
+and in the middle a raised box says "Please wait while the desktop loads..." over a sunken strip of blue blocks, as
+1995's Setup showed its progress. The strip fills as the page's scripts and style sheets arrive, measured against those
+the page has named so far, and it never goes back. The cover is the root's two pseudo-elements, there before the body is,
+and it covers the page instead of hiding it, so the page's scripts lay it out and give the focus as they always did. It goes
+once the page has loaded with its fonts and, on the listing, every window the one page puts back has its page and a game's
+window its game's size (`bootHold("apps")` and `bootDone` from `web/deskapps.js` `start`; a game's size waits at most 3 s
+after its page). In any case it goes 15 s after the page's text was read, so that a file that never comes cannot keep the
+desktop away. A page in a window, the player-only page, the screen saver's page and a game page too narrow for windows
+never show it. Checked through a proxy that served one file at a time with a delay: on a cold first visit, a reload, a
+reload with a game window open and a game's own page, the cover held until the end of the load, and no window moved or
+changed size after it went.
+
+**Window sizes** (the user, 2026-11-18: "A lot of windows ought not to be resizable, like settings and anything accessed
+through it. Alternatively, a maximum height/width that ensures they display all their content without pointless
+whitespace. Some windows should have a minimum size too, like the library. Evaluate EVERY window to figure out
+minimum/maximum bounds for proper display."). Each window is either a dialog or sizable. A dialog (`fixed` in
+`ByopopSkin.desk.add`) is drawn at its contents' own size, as its style sheet lays it out. It has no edges to drag, and
+Size and Maximize are grey in its control menu. It keeps no size, and Cascade and Tile move it without sizing it. A
+sizable window is dragged by its edges between a least and a most. Its least is 200 by 120 pixels, or more where its
+layout needs it (`minWidth`, `minHeight`). Its most is the room above the task bar, and in height it is also its
+contents' own height at the width it has (`tallest`, measured with the height unset), so no size leaves empty space under
+them. The game's own window and the one page's frames are left out of that measure, since a frame has no height of its
+own. A most never goes under the least, and a least larger than the screen gives way to it. Each window's bounds were
+measured in the Browser pane at 800 by 600, from the narrowest width before a part spills out of the window or wraps
+badly:
+
+| Window | Kind | Least | Most | Why |
+|---|---|---|---|---|
+| All games | sizable | 500 × 440 | the room | its bar on two rows and one whole row of games |
+| Library | sizable | 560 × 200 | the room | its six columns, five rows |
+| Music | sizable | 360 × its player and three rows | the room | its controls on one row |
+| Sounds | sizable | 300 × 200 | the room | its bar on one row, four rows of sounds |
+| Splits | sizable | 240 × 180 | the room | its menu bar on one row, the timer and its two lines under it |
+| Trophy Cabinet | sizable | 300 × 200 | the room | its player list on one row (an empty cabinet was all there was to see) |
+| Fonts | sizable | 480 × 300 | the room | its game, font and Save As on one row, and a row of the sample sheet |
+| Venice Buildings | sizable | 420 × 260 | the room | its picture and Save As on one row, and a building's height of the well at 25% |
+| Guides | sizable | 320 × 240 | the room | its game list, the banner and a few lines of the guide |
+| Chat (both pages) | sizable | 260 × 320 | the room | its controls and five lines of messages |
+| A game in a window | sizable | its game at the multiple drawn, its status bar and frame | the room, and Maximize | `web/deskapps.js` |
+| A text in a window | sizable | 200 × 120 | the room | |
+| A game's own window (game page) | its sizes | each whole multiple that fits, from its grip and control menu | | `sizes` |
+| Settings (the listing's folder, the game page's panel) | dialog | 600 or 440 wide, its icons' height | | |
+| Each Settings section | dialog | 440 wide, its rows' height | | |
+| Setup (Add Games) | dialog | 560 × 400 | | a wizard, one size for every step; its list scrolls |
+| System Information (listing page) | dialog | 420 wide, its tallest tab's height | | the footer, `web/sysinfo.js` |
+| About (game page) | dialog | 520 wide, its text's height | | |
+| Mods, Game files, Controls | dialog | 440 wide, their rows' height | | |
+| Performance | dialog | its graphs' size | | |
+
+A dialog taller than the room is cut to it, and its contents scroll. A message box was a dialog already.
 
 **Its text** is Byopop Sans, `web/fonts/byopop-sans.woff`, built by `tools/web/pixelfont.py` from W95FA by Alina Sava
 (SIL OFL 1.1, as is ours); after a change to the script, run it and commit the file. The font is sharp only at 11
@@ -421,6 +523,20 @@ addresses, which cannot read a variable, are written again for each scheme (`uri
 laid on 1:1, so it is crisp at every scaling (the user, 2026-11-11: "The background patterns don't work well with high
 DPI. I can hardly see any of them on my 4K, 27" display"); `--d95-dot` is the same size, for the skin's checkerboard
 fills.
+
+**A game's background as the wallpaper** (the user, 2026-11-18: "Still would like usable backgrounds from the games
+either as pixel perfect or fit to screen (no stretching)"). Before this, a game's background could be the wallpaper only
+through its desktop theme, which also changes the cursor and the sounds, and only centred, tiled or stretched. Now the
+Wallpaper list also has each game whose files are here, by its title (`game:<id>`): the background its theme names,
+prepared on the listing page like the theme's (`web/themes.js`, `prepareWall`) into `byopop-game-wallpaper`
+`{id, url, w, h}`. The picture is kept at its own size up to 2048 pixels wide, as a PNG when it had no loss (a PNG or GIF
+file, a Retro64 bank's image) and else as a JPEG, and it is made smaller only when it would not fit the browser's
+storage. Display has two more choices, for any picture (ours, the player's own, a game's, a theme's):
+**Pixel-perfect** draws the picture at the largest whole-number scale that fits the browser's window (its own size when
+even that does not fit), centred with its corner on a whole screen pixel and without smoothing, so that each of its
+pixels is a square of whole screen pixels at any `devicePixelRatio` and desktop zoom (`pictureLayer` in
+`web/schemes.js`, placed again when the window changes size). **Fit to screen** draws it as large as fits with its shape
+kept (`contain`), the desktop's colour around it.
 
 ### Desktop 95 in one page
 
@@ -489,22 +605,23 @@ current player's id in `by` beside the totals, and the save backup keeps and mer
 
 ### Desktop themes
 
-Settings > Appearance > Theme (`web/themes.js`, its table `web/themedata.js`; the user, 2026-11-11) gives the desktop one
-game's look, as a 1995 Desktop Themes pack did: one of the game's own backgrounds as the wallpaper (in place of the pattern
-and wallpaper, at the wallpaper's Display), the game's own cursor set (`web/cursors.js`, once its page has kept it), and
-sounds from its soundboard for the window events that `web/skins.js` and `web/deskapps.js` send as `byopop-desk-event`
-(open, close, minimize, restore, maximize, menu, ding). A theme is listed for each game in the table whose files are in this
-browser, by the game's title. Everything comes from the player's own files at run time: the listing page, where they can be
-read, prepares the chosen theme into `byopop-theme-wallpaper` (a JPEG data URL) and `byopop-theme-sounds` (the files' bytes,
-each at most 96 KB) for every page; None, or the game's files forgotten, removes both. The sounds play at the Sounds
-window's volume and mute and never at `?silent=1`.
+Settings > Appearance > Theme (`web/themes.js`, its table `web/themedata.js`; the user, 2026-11-11) gives the desktop
+one game's look, as a 1995 Desktop Themes pack did: one of the game's own backgrounds as the wallpaper (in place of the
+pattern and wallpaper, at the wallpaper's Display, the new Pixel-perfect and Fit to screen too), the game's own cursor
+set (`web/cursors.js`, once its page has kept it), and sounds from its soundboard for the window events that
+`web/skins.js` and `web/deskapps.js` send as `byopop-desk-event` (open, close, minimize, restore, maximize, menu, ding).
+A theme is listed for each game in the table whose files are in this browser, by the game's title. Everything comes from
+the player's own files at run time: the listing page, where they can be read, prepares the chosen theme into
+`byopop-theme-wallpaper` (a data URL with its size) and `byopop-theme-sounds` (the files' bytes, each at most 96 KB) for
+every page; None, or the game's files forgotten, removes both. The sounds play at the Sounds window's volume and mute
+and never at `?silent=1`.
 
 A wallpaper the browser cannot decode as it is goes through `web/gamepics.js`: an image of a Retro64 bank (Cosmic Bugs,
 Water Bugs; the table's `"<bank>.dat|bbk:<name>"`), raw pixels that the `.bbk` index beside it places and gives a palette;
 and a JPEG 2000 picture (Bejeweled Twist's `.jp2`), by the framework's own decoder (`platform/openjpeg/JP2Decoder.cpp`) built
 on its own as `jp2.js` and `jp2.wasm` (`web/jp2/jp2_web.cpp`, about 250 KB), loaded only when such a theme is prepared.
-Both are tested by `tools/gamepicstest.js` (unit-web) on pictures made for it. The wallpaper becomes a JPEG, so a
-picture's alpha mask is not read: each wallpaper chosen has none.
+Both are tested by `tools/gamepicstest.js` (unit-web) on pictures made for it. A picture's alpha mask is not read: each
+wallpaper chosen has none.
 
 ### The screen saver
 
@@ -606,6 +723,91 @@ Left out on purpose: BookWorm Adventures' mini-game tables, which the game's scr
 challenge progress and per-player bests in `profile.dat`, and AstroPop's per-player bests, which are a player's record rather
 than a high-score list; Pixelus, which keeps no score list.
 
+### The Fonts window
+
+The Fonts window (`web/fontview.js`; the user, 2026-11-17: "Add a font viewer to the site with a text generator for the games'
+custom fonts") is a Desktop 95 window on the listing's desktop, in the manner of Windows 95's font viewer, closed at first, its
+icon after the Trophy Cabinet's. Its Game list holds the games whose files are in this browser, and its Font list that game's
+fonts. For the font chosen it shows the font viewer's facts (typeface name, file, point sizes, line height, layers, characters),
+then a sample sheet: every character the font draws, in rows that fit the sheet, and the Text box's text at each of its point
+sizes. Colour is the text's colour, as a game passes it when it draws; Background is the sheet's (None, a checkerboard, leaves
+the saved picture clear); Zoom draws every pixel as a square of whole screen pixels near 100% to 400%; and Layers has a check
+box for each tag the font's layers ask for, off at first, since a game turns a tag on only for the draws it is for (Bejeweled
+Twist's GLOW and OUTLINE layers, drawn in their own colours). Save As writes the text at the chosen size as a PNG, at the
+font's own pixels. The window reads the files as the Trophy Cabinet does (`ByopopMusic.files`), with a `main.pak`'s files
+(`Module.byopop.pak`) after the folder's own; it decodes the pictures in the page and keeps them only while it is open; it
+writes nothing.
+
+It reads the SexyAppFramework's ImageFonts as `framework/ImageFont.cpp` does. A descriptor is split into commands by
+DescParser's rules (a semicolon ends one outside quotes, a `#` at a line's start is a note) and each runs as
+`FontData::HandleCommand` runs it: Define, CreateHorzSpanRectList, SetDefaultPointSize, SetCharMap, CreateLayer and
+CreateLayerFrom, and every Layer command, with the framework's own messages where a game would fail to load the font. The older
+form, `FontData::LoadLegacy`, is the space's width, the ascent and each character's width, beside a strip picture of the same
+name. A layer is active at a point size within its range and with its tags (`GenerateActiveFontLayers`), and a string is laid
+out and drawn as `DrawStringEx` does it: each character's layers placed from the ascent and their offsets, the widest layer's
+advance taken with its spacing and kerning, and the pieces drawn in their order, colourized by the text's colour times the
+layer's multiplier plus its addition, additive where the layer's draw mode is 1. Two things differ from the games: a layer
+drawn at a point size other than its own is scaled by nearest pixels (the framework's stretch filters), and a picture with an
+alpha channel of its own comes through the browser's decoder, which can round the colour of nearly clear pixels.
+
+A game's fonts are found by their text: a `.txt` that holds CreateLayer, LayerSetImage or LayerSetImageMap is a descriptor,
+and one that starts as a width list, with a picture of its name (in `images/` first), is a legacy font. A descriptor whose
+picture the files lack is left out (Big Money's `new_bigmoneyfont1` and Typer Shark's `gillsansmtcondensed12`, which the games
+never load). A picture is found as `platform/ImageLoader.cpp` finds one: its name with any picture extension (`.jp2` too), its
+alpha from `_<name>` or `<name>_` (the mask's low byte), white where there is only a mask. `tools/fontviewtest.js` (unit-web)
+checks the reader on fonts made for it, then reads every font of the staged games: 319 fonts in 22 games, 301 descriptors and
+18 width lists, Bejeweled Twist's from its `main.pak` too. The other engines' fonts (Retro64's in Cosmic Bugs, Water Bugs and
+Venice; Bonnie's; Jolly Bear's in the Mahjong Escapes; Ning Po's, Tip Top's and Word Harmony's) are not read yet, so those
+games' Font lists are empty.
+
+### The Venice Buildings window
+
+The Venice Buildings window (`web/buildings.js`; the user, 2026-11-18: "I'd love to see a combined image of all of Venice's
+buildings as a continuous shot, if something like that is possible, and full images of the individual buildings of Venice")
+is a Desktop 95 window on the listing's desktop, closed at first, its icon after the Fonts window's, there only where the
+listing has Venice. It reads Venice's files as the Fonts window does, its status line "No game files" when they are not in this browser. Its
+Picture list holds All the buildings, Building 1 to Building 8 in the order Journey builds them, and the Trophy; Background
+puts the level select's scene behind them or leaves them on their own (None, clear in the saved picture); Zoom is 25% to
+200%; and Save As writes the picture shown at its own pixels as a PNG (`venice-buildings.png`, `venice-building-3.png`,
+`venice-trophy.png`). The whole row is 3280 by 600 pixels with its scene and 3255 by 434 without; a building is 400 by 600
+in its scene and its own 400 by 400 picture without.
+
+Each building is one picture in the files, the thumbnail its levels name (`gfx/levelselect/thumbnail1.png` to
+`thumbnail8.png`, the win sequence's `thumbnail9.png` the trophy), so a building whole is that picture. The level select
+shows them in a row that slides past, never all at once, and the window lays the row out as `LevelSelect::Load` does: down
+Journey's list of levels (`config.xml`'s `level_file_relaxed`), a picture at the levels 1, 10, 19 and so on of those with a
+thumbnail, each level moving the next place on by a ninth of its picture's width less four, the win sequence's picture 90
+further on, and each picture a little lower in depth than the one before, so the earlier building is drawn over the later
+where they overlap (36 pixels). The game's order is not the files' numbers: buildings 1, 3, 4, 5, 6, 2, 7 and 8 by file.
+Flood's list (`level_file_game` after the plain `level_file` entries, where the tutorial's second part names building 1)
+places the trophy one level, 40 pixels, further on; the window follows Journey's.
+
+The scene is `levels/levelselect.xml` read as the engine reads a scene (its tags, each object's stages, depth order as
+`SceneObject::InsertChildByZOrder` keeps it) and each object placed as `SceneObject::DrawSelf` and `DrawImageRecord` place it
+in 2D, as it stands at the end of its first stage: rounded where it is not bilinear, an unscaled picture's left its place
+less half its width and its top one pixel below its place less half its height, a scaled one centred there, tiles stepping
+by the scaled size, the water's clip, a sheet's first frame from `config.xml`'s `<image>` entries. Three things differ from
+any one screen of the game: both layers sit at their home places, where in play the near one slides twice as far as the
+distant city; the tiled rows (the quay and the water) are carried on to the row's ends where they stop short (the quay and the
+water's underlay lack 10 pixels at the left); and of the screen's own pictures, which stay put while the row slides (the sky, the birds and
+clouds, the scroll and its text), only the sky is kept, repeated along the row with every other copy mirrored so that the
+copies meet. `tools/buildingstest.js` (unit-web) checks the readers and the placing on scenes made for it, then lays out the
+staged Venice's row: the pictures in the game's order, building 1 at x -9 and y 161, each next 364 on (a place truncated
+toward zero), the trophy at 2976, and the quay and the water reaching both ends.
+
+### The Guides window
+
+The Guides window (`web/guides.js`, its texts in `web/guidetexts.js`) holds the site's AI-generated guides, the one exception
+to the rule of values, not sentences (the user, 2026-11-18: "I've decided I'm actually ok with AI-generated guides for the
+games that actually benefit from it on the site, as long as they are clearly marked as AI-generated"). It is a Desktop 95
+window on the listing's desktop in the manner of a help topic, closed at first, its icon after the Venice Buildings window's,
+with a guide for each game of the listing that has one; it needs none of the game's files. Its Game list chooses the guide,
+and the white page shows it under a banner the window draws for every guide, "AI-generated guide" with the date it was checked
+against the game's code, and the status line says AI-generated beside the count of tips. A guide is drawn as text only. How a
+guide is written, which games get one, where its facts may come from and the markup are in `docs/GUIDE_STYLE.md`, a draft for
+the user; `tools/guidestest.js` (unit-web) checks the markup and every guide against the rules there that a program can check.
+One guide so far, Mummy Maze's.
+
 ### The fixes and lite mods on the site
 
 Every game is served improved (`docs/MOD_ROADMAP.md`, "What a player gets", the user, 2026-11-12): its fixes mod on and
@@ -634,6 +836,37 @@ stay as they are. A removed fixes or lite mod stays removed whatever the switch 
 what is there. The record is kept in `site-fixes.json` for both mods, also in a game that has only a lite mod. Like
 the note, the switch belongs to one game's user dir and never changes another game. A change while a game runs waits for
 its restart, like any change in the mod menu.
+
+### System Information
+
+The listing page's About window became System Information (`web/sysinfo.js`; the user, 2026-11-18: ""About" section has
+accumulated cruft. It was originally a footer. I suggest a new window, System Information, that indicates how the site is
+performing overall (sort of like the performance panel) and also has that text, maybe in one of the window's tabs. Figure
+out a 95-related app to model the design on"). It takes the shape of Windows 95's System Properties, a property sheet of
+three tabs, and keeps About's place: the window id `about`, its icon after the others and its line in the Pop menu,
+which names it by its title. Its picture is a monitor with a chart on it.
+
+**General** is 1995's General tab: the site's mark at the left where Windows had its logo, and beside it the site
+("byo-pop" and its number of games) and the computer as the browser reports it (its processor threads and its screen
+in device pixels, read again each time the window comes up). Under an etched line is the page's old footer, cut down:
+what the site is, the trademarks, a list of what it is made with (each library or font with its licence and what it is
+for), who made it, and the desktop's keys. The tracker's explanation went to the Music window's "?" and the long
+sentence of credits became the list. The page's `footer` is this tab, so off the desktop (Desktop 95 turned off) the
+page ends with the same text and the window's other parts are not shown.
+
+**Performance** is 1995's "Performance status": the storage the site uses (`navigator.storage.estimate`), how many games
+have their files here out of the site's games, and how many game windows are open, then a details list of the running
+games with each one's frames a second, frame time and sound gaps (the times its sound queue ran dry, `byopopAudio.gaps`,
+since its page opened). Its "Advanced settings" group holds the performance panel's switch, the site setting `perf`.
+
+**Monitor** is Windows 95's System Monitor: four line charts of one running game, chosen in a list, a minute of
+readings each, with the scale's top at the left, a dotted line at its half and the last value beside the chart's name.
+The charts are frames a second, frame time, the game's share of the main thread and sound gaps a second.
+
+The readings are the game window's own: its performance panel's code (`web/perf.js`) reads them while System
+Information watches it (`ByopopPerf.watch`), without the panel and without wrapping WebGL. The window watches each
+running game once a second while it is open and not minimized, and stops when it is closed or minimized or the desktop
+goes; a hidden page takes no readings. The game windows open are `ByopopApps.running()` (`web/deskapps.js`).
 
 ### Site settings
 
@@ -708,7 +941,12 @@ merged.
 ### Save backup
 
 The Saves section of Settings (`web/saves.js`, checked by `tools/savestest.js`) makes one .zip of the player's saves in
-the page, nothing uploaded, and reads one back. It takes each game's `userdata/`, its `replays/` for games with
+the page, nothing uploaded, and reads one back. Its window has two group boxes: the saves in this browser as a details
+list (a game a row: its save files, its replays while some game keeps them, their size, and "Own backup" while some
+game's localStorage backup is there) with Back up saves and Restore from backup… under it, the second opening the
+browser's file dialog; and the import's wizard (below). The restore's question, each result and each error are message
+boxes of the desktop's (`ByopopApps.warn` and `ByopopApps.tell` in `web/deskapps.js`), and the status bar at the foot holds
+the last message beside where the saves are kept. It takes each game's `userdata/`, its `replays/` for games with
 `replays: true`, and the game's localStorage backup (`sexy-userdata-backup:<persist>/userdata`,
 `platform/WebPersist.cpp`), which can hold a save that never reached IndexedDB; never `game/`, the icons or the mods.
 The zip, `byo-pop saves <YYYY-MM-DD>.zip`, is store-only:
@@ -842,7 +1080,9 @@ notes:
   `byopop_music_mute`. Channels that play no note in the tune are hidden, keeping their numbers (the user, 2026-11-11:
   "Some songs seem to have totally empty channels the whole way through. Possible to hide from tracker on a per-song
   basis?"; `tuneUsed`). The FX button adds an effect column (the user, 2026-11-11: "add a brief English description of
-  tracker commands when they appear in the song as an optional column"), its words `music.fx.*` in `en.txt`.
+  tracker commands when they appear in the song as an optional column"), its words `music.fx.*` in `en.txt`. The "?"
+  beside it opens a message box on how to read the tracker (`music.tracker_help`), which was in About until System
+  Information took its place.
 - **The piano roll** (the user, 2026-11-09: "add the piano roll too") has rows at least 4 pixels (the user,
   2026-11-11: "way too zoomed out") and instrument names (the user, 2026-11-11: "If there is any way to get instrument
   names, let's do it"; `bm_names`, `byopop_music_names`).
@@ -1155,7 +1395,7 @@ front page look like a game's).
 **Desktop 95's windows** are what a screen reader meets on the front page, and its scripts build them. Each is a region
 named by its title bar, whose text is the window's `h2` under the page's one `h1`, so the heading keys go from window to
 window. A panel that the narrow page shows as a tab (Music, Settings, and the Settings sections) drops its `tabpanel`
-role while it is a window. A landmark of its own (the games' `main`, the About `footer`, the chat's `aside`) keeps its
+role while it is a window. A landmark of its own (the games' `main`, System Information's `footer`, the chat's `aside`) keeps its
 role and takes the title as its name. A heading inside the window that repeats the title goes quiet: a screen-reader-only
 one is hidden, and a visible one (the chat's collapser) loses its heading role. When the desktop goes, every attribute is
 put back (`web/skins.js`, `named`). **The desktop's check**, `tools/web/deskcheck.js`, opens every window in turn on a
@@ -1240,7 +1480,9 @@ It only reads, so the game plays the same with it on, and with it off nothing of
 since nothing but the game and its mod menu is drawn over the game (the user, 2026-11-10), and the game window's View
 menu shows and hides it (the user, 2026-11-11: "it's difficult to show/hide the performance panel on mobile"). The
 game's share of the main thread is never labelled as the computer's CPU use, and the panel never asks for a WebGL
-context before the game has made its own, since that would take the canvas from the game.
+context before the game has made its own, since that would take the canvas from the game. System Information on the
+listing page reads the same numbers from a game window with `ByopopPerf.watch(true)`: the readings run without the
+panel and without the WebGL counts, until `watch(false)` or the panel's own switch leaves nobody reading.
 
 ## The sound panel
 
@@ -1269,6 +1511,11 @@ that show the game as a 256-colour screen did (the user, 2026-11-09: "Is it poss
 windows to make them appear in 256 colors only?"): `pal256` makes each pixel the nearest colour of the palette Windows
 kept for programs that set none (its 20 static colours and the 6x6x6 cube), and `pal256d` first applies an 8x8 ordered
 dither. Both are drawn by a WebGL canvas over the game canvas, filled in the frame hook (`Module.byopopTestFrame`).
+Three more are for colour-blind players, standard mod 15's palettes made a site filter (the user, 2026-11-07: "Yes,
+move them"): `protan`, `deutan` and `tritan` recolour the picture by daltonization, an SVG colour matrix in linear RGB
+named by the canvas's CSS filter. Each matrix is worked out in `web/view.js` from the simulation of that deficiency
+(Machado, Oliveira and Fernandes 2009, severity 1) and a shift of what it loses into channels the player still tells
+apart; the comment there gives the shifts and how far apart they put colours the simulation confuses.
 The scanlines lie over the canvas's own box, not the whole stage (in full screen the canvas is centred in a larger
 stage), with one line a game row high every two of the game's rows: the rows come from the game's size (`--aspect`) and
 the height from the canvas's drawn box, never from the canvas's pixels, which SDL sizes on its own time (300 x 150 before

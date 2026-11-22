@@ -292,3 +292,69 @@ the original's full screen (a Direct3D exclusive mode change of the user's displ
 A Classic tour of 5008 updates ran in 1.5 seconds natively with `-fast` (about 3 300 updates a second, drawing after every update),
 and the web build under Node ran its 5006 updates in 31.5 seconds (160 a second: the software stretch and triangle paths in wasm).
 In the page (`?fast=1`) the eight modes' 60 moves each took 3 to 14 seconds. The performance pass itself comes later.
+
+
+## Screen coverage pass (2026-11-21 and 22)
+
+### Why the looks phase missed these screens
+
+Phase two compared the screens a tour visited, and no tour had reached the No Hints and Mode Unlocked messages, the credits
+roll or the galaxy's completion; coverage shows that code ran, never that a screen was compared. The audit of 2026-11-21
+named the gaps, and `docs/SCREENS.md` now lists every screen with the shots that compare it (`tools/check.sh screens`).
+
+### What was added
+
+The tours gained the finale (`tour:puzzle` with `TOUR_FINALE=1` on a player at the galaxy's last planet: the warp, the credits
+roll with a shot every 400 updates, GALAXY COMPLETED, MODE UNLOCKED, the Back to Main Menu link, the menu and a new Puzzle
+board after it), the puzzle's hint dialogs (Still Solvable, Illegal Move), the galaxy map and a locked planet, the user
+dialogs (Enter Name, Name Conflict), the mode help boxes and the one-time boxes. The original's side is origrun's sandbox lane
+(`run_tour_original.sh`, `screens_run.sh`) and, on the host with the in-game frame reader, `run_tour_reader.sh` and
+`screens_reader.sh` (the reader's surface is `[[app]+0x36c]+0x68`: +0x36c is the 2005 framework's application-to-DDInterface
+pointer, +0x68 its draw surface, +0x3c a critical section; the waits are 4bbf1f and 4bbedb). `record.py` records a `loaded`
+update, `to_origrun.py --gate` waits for it.
+
+### Differences found
+
+1. Dead controls after the Puzzle galaxy's credits link (the user's report): the stale `mBackLink` stayed in the widget
+   manager after the board went; removed with the board's buttons, and a game saved in the end screen's fade loads as an idle
+   board (46c05b33, 8707994d).
+2. The No Hints and Mode Unlocked messages showed blank buttons: their footer now reads OK, as the original's (46c05b33).
+3. The Deluxe text on the main screen is removed, at the user's request of 2026-11-18.
+4. The credits roll drew white wireframe lines the original does not. The lines are drawn additively with the colour's alpha
+   at zero until the face morphs; the framework's additive fill on the processor-drawn screen ignored the alpha, where the
+   original's fill (0x455820, reached by DDImage::FillRect 0x450630) scales each channel by it. Fixed in
+   `framework/DDImage.cpp` (e28cdbda, a `shared:` commit; every game's baseline is checked at the merge).
+5. The credits' Back to Main Menu link drew a hover underline: the port set `mUnderlineOffset` to 0; the original writes 0 to
+   the field at +0x140, the underline's row count (HyperlinkWidget::Draw 0x48f070), so it draws none (a81d4bb6).
+After the fixes the credits shots (fin00 to fin23) match the original, as do the host reader's.
+
+### Differences that stay
+
+- A new message box under a resting cursor is lit in the original (Enter Name, Name Conflict, the verify boxes) and not in
+  the port's recording: the cursor stays where the click that opened the box left it. Not found within the hour (the
+  framework's `RehupMouse` needs the widget manager's `mMouseIn`, which a posted click sets); real input in the page should
+  be checked before the merge (oddity).
+- The title's letters and progress bar differ by phase: the original's title loads on the wall clock (319 updates warm, 1259
+  cold in the sandbox), so a shot at one update count catches another frame. The tours wait for the load (a click at update
+  900, 2000 for a cold sandbox).
+- The warp's falling gems and sparkles, the shine of an Endless or Hyper board (level4-1) and the moon texture of the finale's
+  menu are other draws; a host or desktop run of Twilight, Hyper, Endless or Cognito boards is not comparable with the port at
+  all (the host original's boards and shine phases differ; the cause is not found, and the generator is main-thread and
+  update-aligned). The sandbox's Twilight shots match the port (20 of 23).
+- The High Resolution? / Full Screen? question depends on the desktop's width and is checked on the desktop only.
+- Not in this pass: the original's full screen and 3D for the new tours (the desktop lane), the packs selector (one pack in
+  the stock install), No Longer Solvable, No Hints, More Hints? and the secret puzzle's hint warning (no recorded input
+  reaches them: rows in SCREENS.md say why).
+
+### The desktop lane's 3D and full screen shots of the new tours: not taken
+
+`games/bejeweled2/tools/visrun/run3d.py` and `bejeweled2-3d.toml` (the original in 3D, 1024 by 768, from the port's 3D recording of the
+finale, `build/visrun/rec3d/finale`) are ready, and the port's 3D recording of the finale exists (40 shots). The original's run
+waited an hour for a place: visrun found the Claude window in the right half of the screen over all four places (`visrun.log`,
+"waiting for a place"), and does not move a window it does not own. It was stopped. To take them, run `run3d.py build/visrun/rec3d/finale
+<out> --profile <prof_p75b>` with the right half clear, then shotdiff the port's shots against `<out>`; the 3D forbidden region
+around the title's logo (`bejeweled2-3d.toml`) is the 2D one scaled and unconfirmed. Full screen has no script yet.
+
+### Runs
+
+`screens2d` (330 pairs; the last run, after the fixes, is named in the merge request).

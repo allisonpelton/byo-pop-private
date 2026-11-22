@@ -5,7 +5,11 @@ user, 2026-11-11: "Share engines"): Retro64 for Cosmic Bugs and Water Bugs, the 
 Adventures' libraries (PopLua, PopAnim, jefflib, its Lua app and SWF), Sprout's first generation for Word Harmony and
 Pizza Frenzy. Where two games' versions of a function behave
 differently, each game sets which at start (a flag the engine reads, which the game's own code sets); where they do not,
-there is one function.
+there is one function. A later generation of a library whose interface differs, not only its behaviour, is a library of
+its own: Zuma's Revenge's JeffLib (its SoundPlayer's Play, PlayCached, PlayDelayed, PlayChained, Loop and Fade family)
+against Bookworm Adventures' (PlaySampleMinTime, PlaySamplePan, LoopSample) would be two versions of nearly every
+function in one folder, so it stays in `games/zumasrevenge/src/jefflib` until a second game of its generation needs it
+(2026-11-22).
 
 ## What a shared engine is
 

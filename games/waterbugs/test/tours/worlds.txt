@@ -1,0 +1,380 @@
+# A saved profile that has reached every level (SAVE=build/wbs/save539.dat: scripts.py save 539 <file>): the world map with
+# each world hovered, a later world's level selection (its buttons, the level stepped up and down), then each world visited in
+# turn: its first boards skipped through with the original's '.' key (every board of the file is reached without playing it), and
+# on one world the original's test keys held (power-ups of every kind).
+20 move 5 5
+3500 shot x_menu
+4200 click 400 303
+5100 shot x_map
+5600 move 76 263
+6000 shot x_hover_world0
+6500 move 101 486
+6900 shot x_hover_world10
+7400 move 320 493
+7800 shot x_hover_world20
+8300 move 521 524
+8700 shot x_hover_world50
+9200 move 711 371
+9600 shot x_hover_world100
+10100 move 719 150
+10500 shot x_hover_world200
+11000 move 356 119
+11400 shot x_hover_world300
+11900 move 311 295
+12300 shot x_hover_world400
+12800 move 516 256
+13200 shot x_hover_world500
+13500 move 750 575
+13800 shot x_hover_back
+14300 move 719 150
+14700 click 719 150
+15600 shot x_select
+16300 shot x_select_later
+16700 move 688 312
+17100 click 688 312
+17500 shot x_step_up0
+17900 move 688 312
+18300 click 688 312
+18700 shot x_step_up1
+19100 move 688 312
+19500 click 688 312
+19900 shot x_step_up2
+20300 move 110 312
+20700 click 110 312
+21100 shot x_step_down
+21400 move 750 575
+21700 shot x_hover_back2
+22100 move 400 571
+22400 shot x_hover_start
+22800 click 400 571
+24300 shot x_started
+25800 shot x_started_later
+26300 key 32
+26600 shot x_space0
+27100 key 32
+27400 shot x_space1
+27900 key 32
+28200 shot x_space2
+29700 key 190
+30400 shot x_200_skip0_a
+32200 shot x_200_skip0_b
+33700 key 190
+34400 shot x_200_skip1_a
+36200 shot x_200_skip1_b
+37700 key 190
+38400 shot x_200_skip2_a
+40200 shot x_200_skip2_b
+41700 key 190
+42400 shot x_200_skip3_a
+44200 shot x_200_skip3_b
+45700 key 190
+46400 shot x_200_skip4_a
+48200 shot x_200_skip4_b
+49700 key 190
+50400 shot x_200_skip5_a
+52200 shot x_200_skip5_b
+53000 key 27
+53600 shot x_200_quit
+54300 click 340 330
+55800 shot x_200_left
+56500 click 400 303
+57400 shot x_0_resume
+58100 click 460 330
+59000 shot x_0_map
+59500 move 76 263
+59800 shot x_0_hover
+60200 click 76 263
+61100 shot x_0_select
+61500 move 400 571
+61900 click 400 571
+63400 shot x_0_started
+64900 shot x_0_started_later
+66400 key 190
+67100 shot x_0_skip0_a
+68900 shot x_0_skip0_b
+70400 key 190
+71100 shot x_0_skip1_a
+72900 shot x_0_skip1_b
+74400 key 190
+75100 shot x_0_skip2_a
+76900 shot x_0_skip2_b
+77700 key 27
+78300 shot x_0_quit
+79000 click 340 330
+80500 shot x_0_left
+81200 click 400 303
+82100 shot x_10_resume
+82800 click 460 330
+83700 shot x_10_map
+84200 move 101 486
+84500 shot x_10_hover
+84900 click 101 486
+85800 shot x_10_select
+86200 move 400 571
+86600 click 400 571
+88100 shot x_10_started
+89600 shot x_10_started_later
+91100 key 190
+91800 shot x_10_skip0_a
+93600 shot x_10_skip0_b
+95100 key 190
+95800 shot x_10_skip1_a
+97600 shot x_10_skip1_b
+99100 key 190
+99800 shot x_10_skip2_a
+101600 shot x_10_skip2_b
+102400 key 27
+103000 shot x_10_quit
+103700 click 340 330
+105200 shot x_10_left
+105900 click 400 303
+106800 shot x_20_resume
+107500 click 460 330
+108400 shot x_20_map
+108900 move 320 493
+109200 shot x_20_hover
+109600 click 320 493
+110500 shot x_20_select
+110900 move 400 571
+111300 click 400 571
+112800 shot x_20_started
+114300 shot x_20_started_later
+115800 key 190
+116500 shot x_20_skip0_a
+118300 shot x_20_skip0_b
+119800 key 190
+120500 shot x_20_skip1_a
+122300 shot x_20_skip1_b
+123800 key 190
+124500 shot x_20_skip2_a
+126300 shot x_20_skip2_b
+127100 key 27
+127700 shot x_20_quit
+128400 click 340 330
+129900 shot x_20_left
+130600 click 400 303
+131500 shot x_50_resume
+132200 click 460 330
+133100 shot x_50_map
+133600 move 521 524
+133900 shot x_50_hover
+134300 click 521 524
+135200 shot x_50_select
+135600 move 400 571
+136000 click 400 571
+137500 shot x_50_started
+139000 shot x_50_started_later
+140500 key 190
+141200 shot x_50_skip0_a
+143000 shot x_50_skip0_b
+144500 key 190
+145200 shot x_50_skip1_a
+147000 shot x_50_skip1_b
+148500 key 190
+149200 shot x_50_skip2_a
+151000 shot x_50_skip2_b
+151800 key 27
+152400 shot x_50_quit
+153100 click 340 330
+154600 shot x_50_left
+155300 click 400 303
+156200 shot x_300_resume
+156900 click 460 330
+157800 shot x_300_map
+158300 move 356 119
+158600 shot x_300_hover
+159000 click 356 119
+159900 shot x_300_select
+160300 move 400 571
+160700 click 400 571
+162200 shot x_300_started
+163700 shot x_300_started_later
+165200 key 190
+165900 shot x_300_skip0_a
+167700 shot x_300_skip0_b
+169200 key 190
+169900 shot x_300_skip1_a
+171700 shot x_300_skip1_b
+173200 key 190
+173900 shot x_300_skip2_a
+175700 shot x_300_skip2_b
+176500 key 27
+177100 shot x_300_quit
+177800 click 340 330
+179300 shot x_300_left
+180000 click 400 303
+180900 shot x_400_resume
+181600 click 460 330
+182500 shot x_400_map
+183000 move 311 295
+183300 shot x_400_hover
+183700 click 311 295
+184600 shot x_400_select
+185000 move 400 571
+185400 click 400 571
+186900 shot x_400_started
+188400 shot x_400_started_later
+189900 key 190
+190600 shot x_400_skip0_a
+192400 shot x_400_skip0_b
+193900 key 190
+194600 shot x_400_skip1_a
+196400 shot x_400_skip1_b
+197900 key 190
+198600 shot x_400_skip2_a
+200400 shot x_400_skip2_b
+201200 key 27
+201800 shot x_400_quit
+202500 click 340 330
+204000 shot x_400_left
+204700 click 400 303
+205600 shot x_500_resume
+206300 click 460 330
+207200 shot x_500_map
+207700 move 516 256
+208000 shot x_500_hover
+208400 click 516 256
+209300 shot x_500_select
+209700 move 400 571
+210100 click 400 571
+211600 shot x_500_started
+213100 shot x_500_started_later
+214600 key 190
+215300 shot x_500_skip0_a
+217100 shot x_500_skip0_b
+218600 key 190
+219300 shot x_500_skip1_a
+221100 shot x_500_skip1_b
+222600 key 190
+223300 shot x_500_skip2_a
+225100 shot x_500_skip2_b
+225900 key 27
+226500 shot x_500_quit
+227200 click 340 330
+228700 shot x_500_left
+229400 click 400 303
+230300 shot x_100_resume
+231000 click 460 330
+231900 shot x_100_map
+232400 move 711 371
+232700 shot x_100_hover
+233100 click 711 371
+234000 shot x_100_select
+234400 move 400 571
+234800 click 400 571
+236300 shot x_100_started
+237800 shot x_100_started_later
+238600 key 190
+239800 shot x_100_held_start
+240100 hold 48
+240400 move 160 140
+240800 click 160 140
+241500 shot x_100_held0_0
+242400 shot x_100_held0_1
+243300 shot x_100_held0_2
+243500 release 48
+243800 hold 49
+244100 move 257 201
+244500 click 257 201
+245200 shot x_100_held1_0
+246100 shot x_100_held1_1
+247000 shot x_100_held1_2
+247200 release 49
+247500 hold 50
+247800 move 354 262
+248200 click 354 262
+248900 shot x_100_held2_0
+249800 shot x_100_held2_1
+250700 shot x_100_held2_2
+250900 release 50
+251200 hold 51
+251500 move 451 323
+251900 click 451 323
+252600 shot x_100_held3_0
+253500 shot x_100_held3_1
+254400 shot x_100_held3_2
+254600 release 51
+254900 hold 52
+255200 move 548 384
+255600 click 548 384
+256300 shot x_100_held4_0
+257200 shot x_100_held4_1
+258100 shot x_100_held4_2
+258300 release 52
+258600 hold 53
+258900 move 165 445
+259300 click 165 445
+260000 shot x_100_held5_0
+260900 shot x_100_held5_1
+261800 shot x_100_held5_2
+262000 release 53
+262300 hold 54
+262600 move 262 176
+263000 click 262 176
+263700 shot x_100_held6_0
+264600 shot x_100_held6_1
+265500 shot x_100_held6_2
+265700 release 54
+266000 hold 55
+266300 move 359 237
+266700 click 359 237
+267400 shot x_100_held7_0
+268300 shot x_100_held7_1
+269200 shot x_100_held7_2
+269400 release 55
+269700 hold 56
+270000 move 456 298
+270400 click 456 298
+271100 shot x_100_held8_0
+272000 shot x_100_held8_1
+272900 shot x_100_held8_2
+273100 release 56
+273400 hold 57
+273700 move 553 359
+274100 click 553 359
+274800 shot x_100_held9_0
+275700 shot x_100_held9_1
+276600 shot x_100_held9_2
+276800 release 57
+277100 hold 65
+277400 move 170 420
+277800 click 170 420
+278500 shot x_100_heldA_0
+279400 shot x_100_heldA_1
+280300 shot x_100_heldA_2
+280500 release 65
+280800 hold 66
+281100 move 267 151
+281500 click 267 151
+282200 shot x_100_heldB_0
+283100 shot x_100_heldB_1
+284000 shot x_100_heldB_2
+284200 release 66
+284500 hold 67
+284800 move 364 212
+285200 click 364 212
+285900 shot x_100_heldC_0
+286800 shot x_100_heldC_1
+287700 shot x_100_heldC_2
+287900 release 67
+288200 hold 68
+288500 move 461 273
+288900 click 461 273
+289600 shot x_100_heldD_0
+290500 shot x_100_heldD_1
+291400 shot x_100_heldD_2
+291600 release 68
+293100 key 190
+293800 shot x_100_skip0_a
+295600 shot x_100_skip0_b
+297100 key 190
+297800 shot x_100_skip1_a
+299600 shot x_100_skip1_b
+301100 key 190
+301800 shot x_100_skip2_a
+303600 shot x_100_skip2_b
+304400 key 27
+305000 shot x_100_quit
+305700 click 340 330
+307200 shot x_100_left
+307700 end

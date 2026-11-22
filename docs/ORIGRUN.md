@@ -32,7 +32,11 @@ The rules a session follows:
   built yet); its network calls, so that a connection or download fails at once and nothing leaves the machine
   ("Yes, block them", 2026-11-11: "The network block"); and its program, file and link launches (`ShellExecute`,
   `WinExec`, `CreateProcess`), which fail at once ("allow blocking programs, files and links", 2026-11-11:
-  "The launch guard"). Any other hook needs the user's OK first.
+  "The launch guard"); and its window-activation calls (`SetForegroundWindow`, `SetActiveWindow`, `BringWindowToTop`,
+  `SwitchToThisWindow`, and `ShowWindow`, `ShowWindowAsync`, `SetWindowPos`, `DeferWindowPos` and `SetWindowPlacement`
+  made non-activating), so that a copy on the user's desktop never takes the focus ("Yes, hook window activation
+  calls", 2026-11-22, after Bejeweled Twist's 3D original held the user's foreground for a whole visrun run: "The
+  activation hook"). Any other hook needs the user's OK first.
 - **No keygens.** Patch the check in the copy, or set the registry values the game itself writes when registered;
   never generate a registration code. How a copy's protection is handled is written only in the private notes
   under "Per-game status", which a published snapshot strips (`docs/PUBLISHING.md`).
@@ -232,6 +236,20 @@ N; when the hold's wait is not one of those, it steps the game to its next wait,
 counter must still read N. With `pending_draw=` and `update_state=` configured, the wait must also leave no update
 waiting to be drawn.
 
+**A game that catches up (`reader_waits=hold`).** Hammer Heads' `Process` runs several updates in one call before its single draw and
+Sleep, and reads the clock about 300 times between waits, so no wait ever has the counter at N: the counter has moved on (7403 for
+an `at 7401`), and the step to the next hold lands on a clock poll, not a wait. For such a game `reader_waits=hold` takes the
+surface in the hold at update N itself, where it stands: the surface then holds the frame the game last presented, the same one a
+sandbox shot (PrintWindow of the held window) shows at N, and the counter still must read N before and after the copy. A hold at a
+clock poll records the return address of the clock call (as a wait does of its Sleep), and the reader's log line names it; the
+hold's site must be one outside the drawing code, so a run's first shots are checked by reading that address (Hammer Heads: all
+holds at 0x4D5FCA, the `timeGetTime` after `Process`'s update section and before its draw). `ORIGRUN_READER_TRACE=1` logs every
+hold the reader looks at (shot, number, address, counter). A wait list and `hold` can be given together. Measured on Hammer Heads
+(`reader_surface=[[0x5cea54]+0x330]+0x68`, counter `[0x5cea54]+0x44c`): the menu screens (15 shots), 129 zoom-wipe frames and a
+Classic game's 33 shots, each at its update, nothing ignored in `tools/shotdiff`: identical to the sandbox's wherever the sandbox
+landed on the update it was asked for (its `landed.tsv`), apart from the how-to-play movie and the loading screen, which run on
+the wall clock. In a long scenario the sandbox's shots landed up to 4700 updates before their label, and those pairs differ.
+
 Before a PNG is written every one of these holds, or the shot is refused. In the game: the expression reads a
 pointer to readable memory; that interface's vtable and every method called lie in the system's `ddraw.dll` (a
 wrapper's is refused, so a `--dgvoodoo` copy gets no reader shots); the surface's caps include
@@ -252,7 +270,7 @@ stand-in loaded (not `--sound real`); `reader_surface=` and `reader_waits=` in t
 no trial line is needed (a config's `reader_trial=passed <date> <commit>` is logged, and `--reader-trial` marks a run
 whose shots are for a comparison with the sandbox's). `--reader-surface` and `--reader-waits` override the config keys.
 
-**A comparison, when wanted.** No trial is required before a game uses the reader (dropped 2026-11-22: the user, "Drop it"). A session that doubts a reader shot can still run the same scripted screens through the reader on the host (`--reader-trial`, whose log marks its shots as for the comparison) and through the sandbox, and compare every pair with `tools/shotdiff` (`docs/SHOTDIFF.md`) with nothing ignored. Two games ran such a trial before it was dropped, both in windowed 2D: Bookworm Deluxe and Mummy Maze (its tutorial's 16 screens, all matching). The reader accepts only a DirectDraw off-screen surface: a game that draws with GDI or SDL needs a reader of its own, and a full-screen game's flipping chain is refused. The draw surface's place differs by framework: in Mummy Maze's older one it is `[[<app global>]+0x254]+0x14`, in Bejeweled 2's of 2005 `[[<app global>]+0x36c]+0x68` (its `+0x3c` is a critical section, which the reader refuses as no DirectDraw interface), and the 2003-2004 framework has `+0x3c`; take it from the game's own export. A comparison with the sandbox shows one more thing to know: a title's loading thread runs on the wall clock, so at a fixed update the menu's animations stand wherever that machine's load left them (Bejeweled 2's host and sandbox shots were an animation phase apart). Gate a script on the game's loaded flag (`waitfor`, `mark`, then `at +N`) to take the load's length out of a comparison.
+**A comparison, when wanted.** No trial is required before a game uses the reader (dropped 2026-11-22: the user, "Drop it"). A session that doubts a reader shot can still run the same scripted screens through the reader on the host (`--reader-trial`, whose log marks its shots as for the comparison) and through the sandbox, and compare every pair with `tools/shotdiff` (`docs/SHOTDIFF.md`) with nothing ignored. Two games ran such a trial before it was dropped, both in windowed 2D: Bookworm Deluxe and Mummy Maze (its tutorial's 16 screens, all matching). The reader accepts only a DirectDraw off-screen surface: a game that draws with GDI or SDL needs a reader of its own, and a full-screen game's flipping chain is refused. The draw surface's place differs by framework: in Mummy Maze's older one it is `[[<app global>]+0x254]+0x14`, in Bejeweled 2's of 2005 `[[<app global>]+0x36c]+0x68` (its `+0x3c` is a critical section, which the reader refuses as no DirectDraw interface), and the 2003-2004 framework has `+0x3c`; Pixelus has `[[<app global>]+0x33c]+0x64` (its `+0x5c` is the primary surface, which the reader refuses); take it from the game's own export. A comparison with the sandbox shows one more thing to know: a title's loading thread runs on the wall clock, so at a fixed update the menu's animations stand wherever that machine's load left them (Bejeweled 2's host and sandbox shots were an animation phase apart). Gate a script on the game's loaded flag (`waitfor`, `mark`, then `at +N`) to take the load's length out of a comparison. And a host run starts from the real registry where the sandbox starts from a fresh one plus its `--reg` preset, so a copy that asks questions at start only on the host is reading the user's values: Pixelus sat under its update-check boxes until it ran with `--reg-map popcap` and an empty HKCU key of its own, deleted before each run. Export a key before changing or deleting it, put it back afterwards, and delete nothing under HKLM (restoring it needs an elevated prompt).
 
 ### Setup
 
@@ -476,7 +494,9 @@ for `PrintWindow`. All addresses are hex.
 **Input in the sandbox.** `at <N> move x y` posts `WM_MOUSEMOVE`, and `down`/`up` post the button messages; a game
 that polls the cursor needs `--cursor scripted`, or a private patch that takes the position from the message
 (Water Bugs has one, the `mouse` lines of its patch list). `--input-eip` holds an input until the game thread is
-outside the listed ranges (Water Bugs: 41f467,41f511, between the message pump and the end of the update loop),
+outside the listed ranges (Water Bugs: 41f489,41f511, the update loop past its frame wait; the older 41f467,41f511
+took in the wait itself, which was harmless only with 1 ms frames: under the 10-step-frame patch it held every input
+for thousands of updates),
 and the log line `at <cmd>: input at counter N (k holds)` gives the update that read it, which is the number to
 replay in the port. The game's own `SetCursorPos` calls do nothing there, so a port run that replays such a game
 needs its cursor warps off (Water Bugs' runner: `WB_NOWARP=1`).
@@ -618,6 +638,52 @@ own clock. The framework finds the function with `GetProcAddress`, which no impo
 puts a jump to its own function at the start of user32's `GetLastInputInfo`, in the copy's process only. A copy
 that never loads the stand-in (`--sound real`, or a game that loads no DirectSound from its folder) is not
 hooked: run those while the user is at the machine.
+
+## The activation hook (always on)
+
+`tools/visrun.py` runs an original on the user's visible desktop, and the run must never take their focus. visrun
+launches the game with `SW_SHOWNOACTIVATE`, but that covers only the game's first `ShowWindow`; later calls
+activate the window, and Windows refuses visrun's `SetForegroundWindow` to hand the foreground back, because visrun
+is not the foreground process (a Bejeweled Twist 3D run held the user's foreground for its whole 26 s: 1268 takes,
+0 hand-backs, 1268 refusals). The user allowed the hook on 2026-11-22 ("Yes, hook window activation calls").
+
+The stand-in (`tools/origrun/activation.c`) therefore changes nine user32 functions in the copy's process, in every
+run that loads it. `SetForegroundWindow` and `BringWindowToTop` return TRUE and do nothing; `SetActiveWindow` returns
+`GetActiveWindow()` and changes nothing; `SwitchToThisWindow` does nothing. `ShowWindow` turns `SW_SHOWNORMAL`,
+`SW_SHOWDEFAULT` and `SW_RESTORE` into `SW_SHOWNOACTIVATE`, `SW_SHOW` into `SW_SHOWNA` and `SW_SHOWMINIMIZED` into
+`SW_SHOWMINNOACTIVE`, and passes the rest on; `SW_SHOWMAXIMIZED` has no form that does not activate, so it passes on
+and is counted on its own. `ShowWindowAsync` maps its command the same way, and `SetWindowPlacement` maps the `showCmd`
+of a copy of the `WINDOWPLACEMENT` and passes the copy on, so the caller's structure is not changed. `SetWindowPos` and
+`DeferWindowPos` get `SWP_NOACTIVATE` added. The last five still do their work: each hook calls the real function
+through a trampoline.
+
+The way in is the last-input hook's: five bytes at the start of user32's own function become a jump, so every caller
+in the process reaches the hook, ddraw.dll, the d3d DLLs and a function found with `GetProcAddress` included, which an
+import patch would miss. The trampoline copies the bytes the jump overwrote and knows the three starts the 32-bit
+user32 has (`mov edi,edi; push ebp; mov ebp,esp`, `jmp [address]`, `jmp`); another start leaves that function
+unhooked, and the install line says so. What it can miss: a caller that makes the system call itself (win32u's
+`NtUser*` functions or a stub of its own) and user32's own internal calls (a dialog or menu that activates its window).
+Left unhooked on purpose, because none of them makes a background window the foreground window here: `SetFocus` (it
+moves the keyboard focus within the calling thread's own queue; the foreground window of another process stays),
+`CreateWindowEx` (a window is shown through `ShowWindow` or `SetWindowPos`, which are hooked), `AnimateWindow`, the dialog
+functions (a dialog is shown through `ShowWindow`, and `MessageBox` is answered by the message-box hook) and input sent
+to a window (it activates a window only when something clicks it, and visrun's posted input is messages, not clicks).
+Hooking any other function needs the user's OK first.
+
+`logs/net.log` of the run folder holds the install line ("activation hook installed: reached ...") and, at exit, how
+many calls each function answered, with the `SW_SHOWMAXIMIZED` passes. `ORIGRUN_ACTIVATION=allow` in the
+environment turns the hook off (the log says "activation hook off"), for a run that needs the real behaviour. A copy
+that never loads the stand-in is not hooked.
+
+`tools/origrun/actest.sh` (in `tools/check.sh origrun`) tests it on `actest.exe`: a window shown inactive, then every
+function and `ShowWindow` command called on it through the import table, through `GetProcAddress` and from a second
+DLL, with neither the foreground nor the active window ever being it and the window in the state the mapped command
+gives; a second run with `ORIGRUN_ACTIVATION=allow` checks that the calls reach Windows.
+
+visrun logs at the start of a run whether the hook was installed (read from `net.log`), and its `keep_focus_away`
+thread still tries one hand-back, but stops the run at once if the game's process owns the foreground window all the
+same: it ends the game process by its pid, the `finally` block restores the window, registry and saves, the log says
+"the game took the user's foreground: run stopped (handed back H, refused R)" and visrun exits with status 5.
 
 ## The network block (always on)
 

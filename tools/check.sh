@@ -48,7 +48,7 @@
 #   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
-#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), gamepicstest (the themes' picture decoders, web/gamepics.js), saveimporttest (the import of saves from an installed game:
+#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), fontviewtest (the Fonts window's reader of the games' fonts, web/fontview.js, with the staged games'), buildingstest (the Venice Buildings window's layout, web/buildings.js, with the staged Venice's), guidestest (the guides' markup and style rules, web/guides.js and web/guidetexts.js), gamepicstest (the themes' picture decoders, web/gamepics.js), saveimporttest (the import of saves from an installed game:
 #                platform/saveimport.json, the .reg reader and the conversion, web/saveimport.js), chattest (the chat's username,
 #                text and rate rules, its stored history and local source, and that a message goes on the page as text only,
 #                web/chat.js), gameimporttest (the import rules for a game's files and the sorting of dropped folders into games,
@@ -143,7 +143,8 @@
 #   waterbugs    Water Bugs: the fonts and every animation the game ships loaded
 #                (waterbugs_banktest), a scripted game played headless (waterbugs_run: a beam across the first
 #                board, two state lines) and a rerun with the same screenshots, and the windowed exe twice with the
-#                same clicks: the runner's state, the same screen (under a minute)
+#                same clicks: the runner's state, the same screen, and the three screen tours (games/waterbugs/test/tours,
+#                362 screens) against the frozen shots of tours.frozen (a few minutes)
 #   rocketmania  Rocket Mania Deluxe: the loading screen, the menu, a hover hint, the difficulty dialog and a new game
 #                started from a script (games/rocketmania/tools/menu_test.txt), four screenshots that must differ (under a
 #                minute)
@@ -171,8 +172,9 @@
 #                a quit's, and resumed; every sound decoded as Tremor decodes it (about two minutes)
 #   bejeweled2   Bejeweled 2 Deluxe played by the port's own bot (tools/playbymove, -hold, seeded, a new player with every
 #                mode unlocked) in each of its nine modes: the transcript of every state and move, and the end screen, must be
-#                the frozen ones; an Action rerun is identical, and so are the games played by
-#                build/baseline-bejeweled2/bejeweled2.exe when there is one (two minutes, four with the baseline)
+#                the frozen ones, and so must the Puzzle finale's 40 shots (credits roll, link, Mode Unlocked box); an Action
+#                rerun is identical, and so are the games played by build/baseline-bejeweled2/bejeweled2.exe when there is one
+#                (about five minutes with the baseline, 275 s on main on 2026-11-22)
 #   astropop     AstroPop's bot through tools/playbymove (real input, -hold): a classic game from level 1, one from level 4 and a
 #                survival game, 120 moves each, and a rerun of the first with the same transcript, and
 #                build/baseline-astropop/astropop.exe's when there is one (about a minute)
@@ -199,6 +201,10 @@
 #                play and won, the shop and the challenge screen, Tough Cookie and Marathon (lost); a rerun with the same
 #                screens, states and player files, which are the frozen baseline's (and build/baseline-hammerheads/
 #                hammerheads.exe's, when there is one) (under a minute)
+#   peggle       Peggle: a script of loadlevel and resetlevel commands (games/peggle/tools/suite_test.txt) over six levels and
+#                the modes the rules reach (none, the adventure, the demo): the objects, pegs, the pegs' kinds, the draws of the
+#                random generator and the cannon's aim of each, which are frozen in the suite; a rerun with the same lines
+#                (a few seconds). Grows with the port: the frame's hash once Board::Draw runs, a played level with the mouse.
 #   pizzafrenzy  Pizza Frenzy: the bot plays by real input (games/pizzafrenzy/tools/suite/suite.sh): the speed mode from
 #                launch for 700 moves, then the memory and the concentration modes for 300 moves each, every run twice with
 #                the same transcript, and build/baseline-pizzafrenzy/pizzafrenzy.exe's runs the same when there is one (about
@@ -207,7 +213,7 @@
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs. Not in `all`: it
 #                compares Bejeweled's game logic with the original's, which a change outside games/bejeweled leaves as
 #                Bejeweled's frozen baseline (verify) already proves; merge mode runs it when games/bejeweled changes
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads pizzafrenzy; all = every suite but the oracle, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy; all = every suite but the oracle, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -331,6 +337,9 @@ BT_MENU="7c67600cf6a5 f8567ba2b37f"  # the start's screens at 60 (the loader han
 # does, which changes classic and finity; the other six transcripts are as before
 declare -A BJ2_PLAYS=([classic]="831f20f2c443:12cada91f4a8" [action]="90d63e45cf7f:7b659fc03b56" [puzzle]="5815000ef06d:a8b0773b7f3f" [endless]="defdb6ac04af:02483db1478b" [twilight]="de8c03468564:67d9f459fef4" [hyper]="58da52692f1f:83b1c28355ba" [cognito]="c44bde2956fb:b8dd13b43d05" [finity]="fa78c5a29691:34d5f50ca96c" [hidden]="c33e07c611ee:7afbbb32f140")
 declare -A BJ2_STEPS=([classic]=1200 [action]=400 [puzzle]=500 [endless]=400 [twilight]=400 [hyper]=400 [cognito]=300 [finity]=300 [hidden]=300)
+# the Puzzle finale's 40 shots (games/bejeweled2/tools/origcmp/finale_guard.sh): the credits roll without lines, the link without an
+# underline, the Mode Unlocked message with its OK button (the screen-coverage pass, IDENTICAL_PLAY.md)
+BJ2_FINALE="9795edf95170"
 BJ2_MODES="classic action puzzle endless twilight hyper cognito finity hidden"
 
 set -u
@@ -340,7 +349,7 @@ OUT="build/logs/check"
 QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 
 # The suites in the order `all` runs them (origrun is not in `all`), and the game suites among them
-GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads pizzafrenzy)
+GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy)
 # the oracle is left out of `all` and of shared code's "every suite" (the user, 2026-11-11: "Seems like the Bejeweled oracle
 # is causing a lot of slowdown for no benefit"); it runs when games/bejeweled changes, or when named
 ALL_SUITES=(build build-web build-nov unit unit-web gpu screens speed verify modmenu livesplit "${GAME_SUITES[@]}")
@@ -359,7 +368,7 @@ suite_weight() { WEIGHT=1; [ "$1" = speed ] && WEIGHT=3; [ "$1" = bonnies ] && [
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [pizzafrenzy]=180 [oracle]=1080)
+	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=560 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [peggle]=10 [pizzafrenzy]=180 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52 [typershark]=270)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
@@ -735,10 +744,12 @@ suite_build() { build_suite native "$1"; }
 suite_build-web() {  # <log> [<target>,<target>...]: the whole web build, or only those targets
 	local st t="${2//,/ }"
 	if [ -z "$t" ]; then build_suite web "$1"; return; fi
-	export TARGET="$t"
+	export TARGET="$t" SKIP_UNKNOWN_TARGETS=1  # a changed game with no web build yet is skipped (tools/build.sh web)
 	build_suite web "$1"; st=$?
-	unset TARGET
-	[ $st -ne 0 ] || SUMMARY="web build ok: $t only"
+	unset TARGET SKIP_UNKNOWN_TARGETS
+	local skipped
+	skipped="$(sed -n 's/^build.sh: \([^:]*\): no web target.*/\1/p' "$1" | tr '\n' ' ')"
+	[ $st -ne 0 ] || SUMMARY="web build ok: $t only${skipped:+; no web build yet: ${skipped% }}"
 	return $st
 }
 suite_build-nov() { build_suite novariants "$1"; }
@@ -929,6 +940,15 @@ suite_unit-web() {
 	# the trophy cabinet's reader of the games' high-score files (web/trophies.js)
 	"$NODE" tools/trophiestest.js > "$1.tr" 2>&1 || st=1
 	tr="$(lastof "$1.tr" 'trophiestest:')"
+	# the Fonts window's reader of the games' ImageFonts (web/fontview.js), with every staged game's fonts
+	"$NODE" tools/fontviewtest.js assets > "$1.fv" 2>&1 || st=1
+	tr="$tr; $(lastof "$1.fv" 'fontviewtest:')"
+	# the Venice Buildings window's layout of the level select's row (web/buildings.js), with the staged Venice's
+	"$NODE" tools/buildingstest.js assets > "$1.vb" 2>&1 || st=1
+	tr="$tr; $(lastof "$1.vb" 'buildingstest:')"
+	# the guides' markup and the rules of docs/GUIDE_STYLE.md that a program can check (web/guides.js, web/guidetexts.js)
+	"$NODE" tools/guidestest.js > "$1.gd" 2>&1 || st=1
+	tr="$tr; $(lastof "$1.gd" 'guidestest:')"
 	# the desktop themes' picture decoders (web/gamepics.js)
 	"$NODE" tools/gamepicstest.js "$web/jp2.js" > "$1.gp" 2>&1 || st=1
 	gp="$(lastof "$1.gp" 'gamepicstest:')"
@@ -1000,8 +1020,8 @@ suite_unit-web() {
 	# the JPEG decoder under wasm: the same checks as native, with the error paths through Emscripten's setjmp/longjmp
 	(cd "$web" && "$NODE" jpegtest.js) > "$1.jpg" 2>&1 || st=1
 	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
-	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
+	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
 	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $rz; $q; $r; $sf; $as; $u; $v; $w; $o"
 	return $st
 }
@@ -1037,6 +1057,9 @@ suite_origrun() {  # the host and its sound stand-in compile (into a folder of t
 		# the network block from end to end on nettest.exe (tools/origrun/nettest.sh): every hooked call fails at once and is logged
 		tools/origrun/nettest.sh "$W/$OUT/origrun-bin" "$W/$OUT/nettest" >> "$1" 2>&1 || st=1
 		net="; $(lastof "$1" 'network block and launch guard:')"
+		# the activation hook from end to end on actest.exe (tools/origrun/actest.sh): a window shown inactive stays inactive through every hooked call
+		tools/origrun/actest.sh "$W/$OUT/origrun-bin" "$W/$OUT/actest" >> "$1" 2>&1 || st=1
+		net="$net; $(lastof "$1" 'activation hook:')"
 		# --count from end to end on counttest.exe (tools/origrun/counttest.sh): the cycles of five functions, counted by their own time
 		tools/origrun/counttest.sh "$W/$OUT/origrun-bin" "$W/$OUT/counttest" >> "$1" 2>&1 || st=1
 		net="$net; $(lastof "$1" '^count:')"
@@ -1323,7 +1346,7 @@ suite_pixelus() {
 	sed "s#@OUT@#$W/$d/tour#g" games/pixelus/tests/menu_tour.txt.in > "$d/tour/script.txt"
 	timeout 300 "$W/build/native/pixelus.exe" -userdir="$W/$d/tour/user" -script="$W/$d/tour/script.txt" -seed=1 > "$d/tour/stdout.txt" 2> "$d/tour/stderr.txt"
 	t=$?
-	for f in options credits help menu; do [ -s "$d/tour/$f.png" ] || t="$t, $f.png missing"; done
+	for f in options credits help menu story island temple board; do [ -s "$d/tour/$f.png" ] || t="$t, $f.png missing"; done
 	[ "$t" = 0 ] && t="tour ok" || { t="TOUR FAILED ($t)"; st=1; }
 	a="$(pixelus_game start 25)"; r="$(pixelus_game start2 25)"
 	if [ "${CHECK_QUICK:-0}" = 1 ]; then  # the quick form leaves out the bot's whole game (87 of the 127 seconds)
@@ -1391,7 +1414,7 @@ suite_mummymaze() {
 	mummymaze_resume || st=1
 	if diff -rq "$OUT/mummymaze/classic/shots" "$OUT/mummymaze/classic2/shots" >> "$1" 2>&1 && cmp -s "$OUT/mummymaze/classic/log.txt" "$OUT/mummymaze/classic2/log.txt" && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	# the frozen baseline (build/baseline-mummymaze/mummymaze.exe, a copy of the port made when it was last checked against
-	# the original, 2026-11-03): the same games must give the same log lines and the same screenshots. Refreeze it only on purpose,
+	# the original, 2026-11-22, the end of the screen pass): the same games must give the same log lines and the same screenshots. Refreeze it only on purpose,
 	# with the reason in games/mummymaze/docs/IDENTICAL_PLAY.md.
 	local base="$W/build/baseline-mummymaze/mummymaze.exe" bl="" k
 	if [ -f "$base" ]; then
@@ -1402,6 +1425,10 @@ suite_mummymaze() {
 		for k in classic tips tutorial; do
 			cmp -s "$OUT/mummymaze/$k/log.txt" "$OUT/mummymaze/base-$k/log.txt" && diff -rq "$OUT/mummymaze/$k/shots" "$OUT/mummymaze/base-$k/shots" >> "$1" 2>&1 || { bl="BASELINE DIFFERS ($k)"; st=1; }
 		done
+		# the screen tour (games/mummymaze/docs/SCREENS.md): the scenarios' shots, port and baseline, must be identical
+		bash "$W/games/mummymaze/tools/identical/tour.sh" "$W/build/native/mummymaze.exe" "$OUT/mummymaze/tour-port" >> "$1" 2>&1
+		bash "$W/games/mummymaze/tools/identical/tour.sh" "$base" "$OUT/mummymaze/tour-base" >> "$1" 2>&1
+		if [ "$(find "$OUT/mummymaze/tour-port" -name "*.png" | wc -l)" -gt 350 ] && diff -rq --exclude='*.log' --exclude='*.txt' "$OUT/mummymaze/tour-port" "$OUT/mummymaze/tour-base" >> "$1" 2>&1; then bl="$bl, tour identical"; else bl="$bl, TOUR DIFFERS"; st=1; fi
 		r="$r; $bl"
 	fi
 	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; adventure ${v}; ${t}; $MM_RESUME; $r"
@@ -2001,6 +2028,23 @@ waterbugs_run() {  # <name>: the headless runner's scripted game; prints its sta
 	echo "$l"
 }
 
+waterbugs_tours() {  # the screen tours of games/waterbugs/test/tours played by the headless runner (fresh profile; end from a saved game on its last life, worlds from a profile that has reached every level, saves made by coverage/scripts.py), against games/waterbugs/test/tours.frozen (tools/play/tourcheck.py: the shots that were whole in six runs); prints tourcheck's line
+	local n d e=0
+	mkdir -p build/wbs
+	for n in fresh end worlds; do
+		d="$OUT/waterbugs/tour-$n"
+		fresh_dir "$d"; mkdir -p "$d"
+		case $n in
+		end) python games/waterbugs/tools/coverage/scripts.py save 14 "$d/cb.dat" 1 14 3000 > /dev/null ;;
+		worlds) python games/waterbugs/tools/coverage/scripts.py save 539 "$d/cb.dat" > /dev/null ;;
+		esac
+		python games/waterbugs/tools/play/tour.py games/waterbugs/test/tours/$n.txt "tour-$n" || e=1
+		WB_USER=SYSTEM WB_NOWARP=1 timeout 600 build/native/waterbugs_run.exe assets/waterbugs "$d" "build/wbs/tour-$n.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
+	done
+	if [ $e -ne 0 ]; then echo "TOURS FAILED (exit $e)"; return 0; fi
+	python -I games/waterbugs/tools/play/tourcheck.py check games/waterbugs/test/tours.frozen "$OUT/waterbugs" 2>&1 | tail -1
+}
+
 wb_hash() {  # <png>: the first 12 hex digits of the sha256 of the pixels; the loss screen's rising bubbles in x 560..690, y 240..520 are zeroed first, because one of them differs by a few pixels from run to run
 	python -I -c "import hashlib,sys;from PIL import Image;i=Image.open(sys.argv[1]).convert('RGB');i.paste((0,0,0),(560,240,690,520)) if 'scores' in sys.argv[1] else i.paste((0,0,0),(405,220,425,235)) if 'beam' in sys.argv[1] else 0;print(hashlib.sha256(i.tobytes()).hexdigest()[:12])" "$1" 2>/dev/null | tr -d '\r'
 }
@@ -2033,7 +2077,7 @@ waterbugs_window() {  # <name>: the windowed exe with the runner's left clicks; 
 }
 
 suite_waterbugs() {
-	local st=0 b g r w w2 l sh c="$OUT/waterbugs" ea=0 ef=0
+	local st=0 b g r w w2 l sh tr c="$OUT/waterbugs" ea=0 ef=0
 	need_assets waterbugs || return 1
 	mkdir -p "$c/banks"
 	# Every animation the game file names and every font, each listing kept (the game file names ten files the game does not ship)
@@ -2050,13 +2094,15 @@ suite_waterbugs() {
 	[ "$b" = "$WB_BANKS" ] || st=1
 	[ "$g" = "$WB_GAME" ] || st=1
 	[ "$l" = "$WB_LOSS" ] || st=1
+	tr="$(waterbugs_tours)"
+	case "$tr" in TOURS*) st=1 ;; esac
 	sh="$(for f in game/start game/beam loss/scores; do wb_hash "$c/$f.png"; done | paste -sd" " -)"
 	if [ "$sh" = "$WB_SHOTS" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED ($sh)"; st=1; fi
 	if [ "$(wb_hash "$c/game/start.png")" = "$(wb_hash "$c/game2/start.png")" ] && [ "$(wb_hash "$c/game/beam.png")" = "$(wb_hash "$c/game2/beam.png")" ] &&
 		[ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	if [ "$w" = "$(echo "${g##*; }" | sed 's/^[0-9]* ms: //')" ] && diff -q "$c/window/beam.png" "$c/window2/beam.png" >> "$1" 2>&1 &&
 		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
-	SUMMARY="$b; $g; $r; $w; loss: $l; $sh"
+	SUMMARY="$b; $g; $r; $w; loss: $l; $sh; tours: $tr"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$WB_BANKS', '$WB_GAME', '$WB_LOSS')"
 	return $st
 }
@@ -2177,8 +2223,8 @@ suite_bonnies() {
 	cmp -s "$d/game/tutorial.png" "$d/game/word.png" && { SUMMARY="the clicks chose no letters"; return 1; }
 	cmp -s "$d/game/word.png" "$d/game/played.png" && { SUMMARY="Submit played no word"; return 1; }
 	[ -s "$d/game/user/SavedGames/te.GAM" ] || { SUMMARY="the new player's te.GAM was not saved"; return 1; }
-	# the main menu's Quit ends the game before the script's own quit at update 70000
-	grep -q "Update Count = 6[0-9]\{4\}," "$1" || { SUMMARY="the main menu's Quit did not end the game"; return 1; }
+	# the main menu's Quit ends the game (after update 70000) before the script's own quit at update 80000
+	grep -q "Update Count = 7[0-9]\{4\}," "$1" || { SUMMARY="the main menu's Quit did not end the game"; return 1; }
 	# the rerun, and the frozen baseline (build/baseline-bonnies/bonnies.exe, a copy of the port made when it was last
 	# checked against the original) when there is one, at the same time
 	bonnies_run rerun > "$d/rerun.status" &
@@ -2412,9 +2458,15 @@ suite_bejeweled2() {
 	done
 	r="$(bej2_play action2 "$exe" action)"
 	echo "action rerun: $r" >> "$1"
+	fin="$(bash games/bejeweled2/tools/origcmp/finale_guard.sh "$exe" "$W/$OUT/bejeweled2/finale" 2>&1 | tail -n 1)"
+	echo "finale: $fin" >> "$1"
+	if [ "$fin" = "$BJ2_FINALE" ]; then fin="the Puzzle finale's 40 shots as frozen"; else fin="FINALE SHOTS CHANGED ($fin, expected $BJ2_FINALE)"; st=1; fi
 	# the frozen baseline (build/baseline-bejeweled2/, a copy of the port with its DLLs made when it was last checked against the
 	# original): the same games must give the same transcripts and screens
 	if [ -f "$base" ]; then
+		g="$(bash games/bejeweled2/tools/origcmp/finale_guard.sh "$base" "$W/$OUT/bejeweled2/base-finale" 2>&1 | tail -n 1)"
+		echo "baseline finale: $g" >> "$1"
+		[ "$g" = "$BJ2_FINALE" ] || badbase="$badbase finale"
 		for m in $BJ2_MODES; do
 			g="$(bej2_play "base-$m" "$base" "$m")"
 			echo "baseline $m: $g" >> "$1"
@@ -2424,7 +2476,7 @@ suite_bejeweled2() {
 	fi
 	if [ -z "$bad" ]; then g="games as frozen"; else g="GAMES CHANGED in$bad"; st=1; fi
 	if [ "$r" = "${got[action]}" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="the bot's games in the nine modes, $r; $g$bl"
+	SUMMARY="the bot's games in the nine modes, $r; $g; $fin$bl"
 	return $st
 }
 
@@ -2527,8 +2579,8 @@ suite_venice() {
 	return 0
 }
 
-HH_SHOTS_ALL="loaded name menu highscores trophies game play won shop challenge toughintro tough marathonintro marathon lost"
-HH_FROZEN="b0be3a484ad2 974f0929e354"  # the first 12 hex digits of the sha256 of the tour's screens' hashes and of its state lines (games/hammerheads/tools/tour_test.txt)
+HH_SHOTS_ALL="loaded name menu highscores trophies game play won shop challenge toughintro tough marathonintro marathon lost menu_after_over players quit_box board4 game_menu leave_game menu_after_leave classic_over"
+HH_FROZEN="43abb3150fd1 dc17142f2cdc"  # the first 12 hex digits of the sha256 of the tour's screens' hashes and of its state lines (games/hammerheads/tools/tour_test.txt)
 
 hammerheads_run() {  # <name> [<exe>]: games/hammerheads/tools/tour_test.txt into $OUT/hammerheads/<name>; prints the exit status
 	local d="$OUT/hammerheads/$1" e=0
@@ -2577,6 +2629,34 @@ suite_hammerheads() {
 		bl="; baseline identical"
 	fi
 	SUMMARY="the tour (the loading screen, a new player's name, the main menu, the high scores and trophy room, a Classic level in play and won, the shop and challenge screens, Tough Cookie, Marathon lost); rerun identical; screens and states as frozen$bl"
+	return 0
+}
+
+# Peggle: the level start's rules, from a script of test commands (games/peggle/tools/suite_test.txt)
+PEGGLE_FROZEN="f1eaa1b64c78"  # the first 12 hex digits of the sha256 of the script's state lines
+
+peggle_run() {  # <name>: the script into $OUT/peggle/<name>; prints the exit status
+	local d="$OUT/peggle/$1" e=0
+	fresh_dir "$d"; mkdir -p "$d/user"
+	timeout 120 "$W/build/native/peggle.exe" -gamedir=assets/peggle -userdir="$d/user" -fast -seed=1 		-script="$W/games/peggle/tools/suite_test.txt" > "$d/stdout.txt" 2>&1 || e=$?
+	grep -E '^(OK|ERROR|STATE) ' "$d/stdout.txt" > "$d/states.txt"
+	echo "$e"
+}
+
+suite_peggle() {
+	local d="$OUT/peggle" e sh
+	need_assets peggle || return 1
+	e="$(peggle_run game)"
+	cat "$d/game/stdout.txt" > "$1"
+	[ "$e" -eq 0 ] || { SUMMARY="the exe exited with status $e"; return 1; }
+	grep -q '^ERROR' "$d/game/states.txt" && { SUMMARY="a test command failed: $(grep -m1 '^ERROR' "$d/game/states.txt")"; return 1; }
+	[ "$(grep -c '^STATE ' "$d/game/states.txt")" = 11 ] || { SUMMARY="not every command gave a state line"; return 1; }
+	e="$(peggle_run rerun)"
+	[ "$e" -eq 0 ] || { SUMMARY="the rerun exited with status $e"; return 1; }
+	cmp -s "$d/game/states.txt" "$d/rerun/states.txt" || { SUMMARY="the rerun's state lines differ"; return 1; }
+	sh="$(sha256sum "$d/game/states.txt" | cut -c1-12)"
+	[ "$sh" = "$PEGGLE_FROZEN" ] || { SUMMARY="STATES CHANGED ($sh; frozen $PEGGLE_FROZEN)"; return 1; }
+	SUMMARY="the level start: 6 levels loaded, 5 through Board::Reset (modes none, adventure, demo); rerun identical; states as frozen"
 	return 0
 }
 
