@@ -198,6 +198,20 @@ recorded (`docs/COORDINATION.md`).
   update after the level's time is up, above the field; the tank's lightning (`StaticStrike`) never sets its own and
   keeps its path in its arrays. The port starts both at 0, so it never reads what the heap held.
 
+## Deviations the user asked for
+
+- **The name without "Deluxe"** (the user, 2026-11-18: "Remove the "Deluxe" text from the main screen of any game it
+  may appear in, to avoid misleading people about whose game version they're playing"). The site names the game "Heavy
+  Weapon" (`TITLE` in `games/heavyweapon/CMakeLists.txt`). "Heavy Weapon Deluxe" stays where it finds the original's
+  files (the save import's folder names, `platform/saveimport.json`), in the game's own copyright notice and in the
+  speedrun.com name the Splits window matches (`web/autosplit.js`).
+- **No "Deluxe" to cover on the screens** (the same instruction). No screen of the game shows the word: the intro
+  movie, the title with its loading bar, the name box and the main menu were looked at in the screen pass, in 2D and
+  3D, windowed and full screen (`docs/SCREENS.md`); the logo says "Heavy Weapon". Of the exe's texts only the window's
+  caption, the Windows box about a damaged players file, the registration's thanks (removed with the registration) and
+  the crash report's questions hold the word. So nothing is cropped or covered. The native window's caption stays the
+  original's ("Heavy Weapon Deluxe" and the version, `HeavyWeaponApp.cpp`); the web build has no caption.
+
 ## Memory the original leaks, freed in the port
 
 - **The app's resources.** The original's destructor (0x40b980) frees only its vectors and leaves the images, fonts and
