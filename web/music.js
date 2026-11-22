@@ -494,10 +494,29 @@ var ByopopMusic = (function () {
       var patterns = [];
       function unusedPatterns(m, rel, seq, fast, also) {
         if (typeof M._bm_solo !== "function") return;
-        var played = {};
+        var played = {}, texts = {}, listed = [];
         seq.forEach(function (p) { if (p >= 0 && !(p in also)) played[p] = true; });
+        // a pattern's cells, every row (to find copies: the user, "Unused pattern 61 of AtomicTank is a dupe of
+        // pattern 64"): a copy of a pattern an order plays is left out, and a copy of an unused one listed is named in its entry
+        function text(p) {
+          if (!(p in texts)) { var t = []; for (var r = 0, rows = M._bm_pattern_rows(m, p); r < rows; r++) t.push(M.UTF8ToString(M._bm_row_text(m, p, r))); texts[p] = t.join("\n"); }
+          return texts[p];
+        }
+        function copyOf(p, among) {
+          for (var i = 0; i < among.length; i++) if (among[i] !== p && M._bm_pattern_rows(m, among[i]) === M._bm_pattern_rows(m, p) && text(among[i]) === text(p)) return among[i];
+          return -1;
+        }
+        var heardPatterns = Object.keys(played).map(Number);
         for (var p = 0, n = M._bm_patterns(m); p < n; p++) {
           if (played[p] || !M._bm_pattern_rows(m, p) || !M._bm_pattern_notes(m, p)) continue;
+          if (!(p in also) && copyOf(p, heardPatterns) >= 0) continue;
+          var twin = copyOf(p, listed.map(function (k) { return k.solo; }));
+          if (twin >= 0) {
+            var first = listed.filter(function (k) { return k.solo === twin; })[0];
+            first.same = (first.same || []).concat([p]);
+            first.name = T("music.pattern_same", { file: baseName(rel), n: twin, same: first.same.join(", ") });
+            continue;
+          }
           var alone = soloSeconds(m, p, fast);
           var k = { kind: "module", keys: [prefix + rel], solo: p, seq: [p], subEntries: [0], entry: 0, id: baseName(rel) + "/" + p,
                     seconds: alone.seconds, level: entry.level, game: game, name: T("music.pattern_name", { file: baseName(rel), n: p }) };
@@ -505,6 +524,7 @@ var ByopopMusic = (function () {
           placeOf(k, rel);
           k.where = ""; k.when = also[p] ? byId(entry.when, also[p]) || "" : ""; k.unused = false;
           patterns.push(k);
+          listed.push(k);
         }
         M._bm_solo(m, -1);
       }

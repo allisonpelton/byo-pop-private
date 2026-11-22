@@ -793,6 +793,8 @@ roll and score read it as any tune: libopenmpt's order list is put aside for one
 (`web/music/openmpt_solo.cpp`, which reaches the module's sound file because libopenmpt's C interface cannot change that
 list), and libxmp-lite's first order plays it instead, ending where play leaves that order or goes back to an earlier row.
 A pattern's own commands still count (Bejeweled's Network pattern 10 sets speed 10 on its first row and lasts 33 seconds).
+An unused pattern that is a copy of one an order plays, cell for cell, is left out, and copies among the unused ones are
+one entry, "<file>, pattern <n> (same as <m>)" (the user: "Unused pattern 61 of AtomicTank is a dupe of pattern 64").
 A game whose code starts a module at a pattern outside its order lists would say so in `soundtracks.js`; none does yet.
 
 **The views**, cycled by a click on the display (spectrum, tracker, piano roll, score, nothing), follow the user's

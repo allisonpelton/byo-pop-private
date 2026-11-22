@@ -1520,6 +1520,7 @@ music.tune_titled = {name} "{title}"
 music.unused = Unused
 music.patterns = Unused patterns
 music.pattern_name = {file}, pattern {n}
+music.pattern_same = {file}, pattern {n} (same as {same})
 music.duration = {min}:{sec}
 music.album = Games on this site
 
