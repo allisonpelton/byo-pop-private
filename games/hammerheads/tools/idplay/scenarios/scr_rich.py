@@ -16,7 +16,7 @@ INPUTS = click(1000, 397, 532)                                  # the loading sc
 INPUTS += click(2500, 400, 360)                                 # OK on the Tough Cookie notice
 INPUTS += click(3500, 140, 320)                                 # Classic Bash: the restart-point screen
 
-INPUTS += click(5000, 400, 200)                                 # "Start on Level 10"
+INPUTS += click(5000, 650, 200)                                 # "Start on Level 10" (the third of five: New Game heads the list)
 INPUTS += click(6500, 300, 550)                                 # "Click here to play" on the how-to-play page
 INPUTS += click(8000, 400, 438)                                 # Go, on the introduction
 INPUTS += click(9000, 400, 344)                                 # Go, on the Ready box

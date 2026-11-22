@@ -20,13 +20,14 @@ import idplay                                   # noqa: E402
 SHOT_DELAY = int(os.environ.get('LOOKS_SHOT_DELAY', '0'))       # the update after the original's at which the port's shot is taken
 INPUT_DELAY = int(os.environ.get('LOOKS_INPUT_DELAY', '1'))     # the update after the original's at which the port's inputs go in
 ACCEL = os.environ.get('LOOKS_ACCEL', 'off')       # Hardware Acceleration on both sides: off (the 2D mode, the default of a plain run) or on (3D, in the sandbox with the host's GPU)
+PREFIX = ''                                     # put before the update in a shot's name (--prefix), to keep scenarios' shots apart in one run
 RUN = 'hhlooks'                                 # origrun's run for the sandbox copy
 LOOKS_DIR = os.path.join(idplay.ROOT, 'build', 'logs', 'looks')
 
 
 def shot_name(scenario, count):
     """u<update>, or the scenario's own name for the shot (NAMES: {update: name})."""
-    return getattr(scenario, 'NAMES', {}).get(count, 'u%d' % count)
+    return getattr(scenario, 'NAMES', {}).get(count, PREFIX + 'u%d' % count)
 
 
 def seed_profile(scenario, folder):
@@ -127,8 +128,11 @@ def main():
     parser.add_argument('step', type=int)
     parser.add_argument('--run')
     parser.add_argument('--shots', action='store_true', help="take the scenario's own SHOTS list (first, last and step are then ignored)")
+    parser.add_argument('--prefix', default='', help="a shot's name is this before u<update>")
     parser.add_argument('--only', choices=['original', 'port', 'diff'])
     arguments = parser.parse_args()
+    global PREFIX
+    PREFIX = arguments.prefix
     scenario = idplay.load_scenario(arguments.scenario)
     name = arguments.run or idplay.scenario_name(arguments.scenario)
     run_dir = os.path.join(LOOKS_DIR, name)

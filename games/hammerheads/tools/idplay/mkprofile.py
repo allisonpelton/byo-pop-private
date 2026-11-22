@@ -22,22 +22,30 @@ def point(mode, level, coins, health, capacity, hammer, fire, bonus):
     return ';'.join('%f' % v for v in values)
 
 
+def new_game(mode):
+    """The first of a list, which the original keeps in every list: the choice that starts a new game (level -1, nothing won)."""
+    return point(mode, -1, 0, 5, 5, 0, 0, 0)
+
+
 def levels(first, last, hammer_from=6):
     """Classic restart points that start the game on each level first..last (a point of level N-1 starts level N): one for each."""
-    return [point(0, n - 1, 20 * n, 5, 5 + n // 12, min(5, 1 + n // hammer_from), 0, 0) for n in range(first, last + 1)]
+    return [new_game(0)] + [point(0, n - 1, 20 * n, 1, 5 + n // 12, min(5, 1 + n // hammer_from), 0, 0) for n in range(first, last + 1)]
 
 
 PROFILES = {
+    'over': {'trophies': '0' * 21, 'help': False, 'notice': False,
+             'classic': [new_game(0), point(0, 4, 150, 1, 5, 1, 0, 0), point(0, 9, 320, 1, 6, 2, 0, 1)],
+             'tough': [new_game(1), point(1, 3, 90, 1, 5, 1, 0, 0), point(1, 8, 260, 1, 5, 2, 0, 1)]},
     'plain': {'trophies': '0' * 21, 'help': False, 'notice': False, 'classic': [], 'tough': []},
-    'lv1': {'trophies': '0' * 21, 'help': False, 'notice': False, 'classic': levels(2, 7), 'tough': []},
-    'lv2': {'trophies': '0' * 21, 'help': False, 'notice': False, 'classic': levels(8, 12), 'tough': []},
-    'lv3': {'trophies': '0' * 21, 'help': False, 'notice': False, 'classic': levels(13, 17), 'tough': []},
-    'lv4': {'trophies': '0' * 21, 'help': False, 'notice': False, 'classic': levels(18, 22), 'tough': []},
-    'lv5': {'trophies': '0' * 21, 'help': False, 'notice': False, 'classic': levels(23, 25), 'tough': []},
+    'lv1': {'trophies': '0' * 21, 'help': False, 'notice': False, 'classic': levels(2, 6), 'tough': []},
+    'lv2': {'trophies': '0' * 21, 'help': False, 'notice': False, 'classic': levels(7, 11), 'tough': []},
+    'lv3': {'trophies': '1' * 21, 'help': False, 'notice': False, 'classic': levels(12, 16), 'tough': []},
+    'lv4': {'trophies': '1' * 21, 'help': False, 'notice': False, 'classic': levels(17, 21), 'tough': []},
+    'lv5': {'trophies': '1' * 21, 'help': False, 'notice': False, 'classic': levels(22, 25), 'tough': []},
     'rich': {
         'trophies': '110101001011010100110',
-        'classic': [point(0, 4, 150, 5, 5, 1, 0, 0), point(0, 9, 320, 4, 6, 2, 0, 1), point(0, 14, 540, 3.5, 6, 2, 1, 2), point(0, 19, 880, 5, 7, 3, 0, 3)],
-        'tough': [point(1, 3, 90, 4, 5, 1, 0, 0), point(1, 8, 260, 3, 5, 2, 0, 1)],
+        'classic': [new_game(0), point(0, 4, 150, 5, 5, 1, 0, 0), point(0, 9, 320, 4, 6, 2, 0, 1), point(0, 14, 540, 3.5, 6, 2, 1, 2), point(0, 19, 880, 5, 7, 3, 0, 3)],
+        'tough': [new_game(1), point(1, 3, 90, 4, 5, 1, 0, 0), point(1, 8, 260, 3, 5, 2, 0, 1)],
     },
 }
 
