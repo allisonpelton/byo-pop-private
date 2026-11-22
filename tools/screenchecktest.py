@@ -105,7 +105,11 @@ with tempfile.TemporaryDirectory() as root:
 
     make_game(root, "norun", "| A | x | a | |\n")
     line, failed = result(root, "norun")
-    check("shots but no run fail as no run", failed and "no run" in line, line)
+    check("shots but no run: the list's form passes, the shots are named as not compared",
+          not failed and "1 shots named, not compared" in line, line)
+    make_game(root, "norun3", "| A | x | a | |\n| B | x | | |\n")
+    line, failed = result(root, "norun3")
+    check("no run still fails a row with neither shots nor a reason", failed and "no shots and no reason" in line, line)
 
     make_game(root, "norun2", "| A | x | | unreachable: never |\n")
     check("no shots, only reasons: no run needed", not result(root, "norun2")[1])

@@ -82,7 +82,7 @@ holds no place, so `--places` shows its window only as an overlapping window; a 
    (checked before each step).
    `SW_SHOWNOACTIVATE` only covers a program's first `ShowWindow` call, and the originals activate their window in a later one: in
    the first live check of the places, both games took the foreground as their window opened. So a thread watches the
-   foreground and, whenever the game's process owns it, hands it back to the window that had it at the start (within
+   foreground and, whenever the game's process owns it, hands it back to the window that had it at the start, or to the one the user has moved to since (within
    20 ms in the check; the log counts the hand-backs and refusals).
 4. **Input is posted to the game's window only** (`PostMessage`): never `SetCursorPos`, `SendInput` or the user's keyboard.
    With `cursor = "scripted"` the stand-in's `GetCursorPos` reads the point visrun writes into origrun's shared block, so the
@@ -143,6 +143,14 @@ area; `--shape sandbox` puts it at (3, 26) of a canvas 6 and 29 pixels larger, a
 clips with `clip.json`, `watch.log`. On the real clock the update a step lands at is only near the one asked for; replay
 the landed updates in the port. Exit 0 done, 3 the run stopped (no window, not muted, a cue or update never came), 4 shots
 refused three times.
+
+On the virtual clock visrun reads the stand-in's clock block, `tools/origrun/vclock.h`'s `VcShared`, through a copy of
+its layout in `tools/visrun.py`, and refuses a block whose version or size is not the one it knows: rebuild `dsound.dll`
+from the same checkout (`tools/origrun/build.sh`). The selftest holds the copy to the offsets the compiler gives for the
+header, and `tools/check.sh unit` runs it; a change to `VcShared` changes both. Before this check, visrun read a version 3
+block with the version 2 offsets: the watch ring's head and tail were garbage, its drain wrote without end (17.6 GB of
+`watch.log` in Heavy Weapon's 3D run, 2026-11-22) and the run never closed the game. A drain now takes at most one
+ring's worth and logs a gap larger than that once.
 
 ## Lessons from the first live runs
 
