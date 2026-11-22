@@ -86,6 +86,7 @@ MainMenu::~MainMenu()
 	RemoveAllWidgets(true, true);
 }
 
+// 0x6a0ca0 (bejeweled3)
 void MainMenu::Draw(Graphics* g)
 {
 	// 0x6a0ca0: a black cover while a logo shows and as it fades away
