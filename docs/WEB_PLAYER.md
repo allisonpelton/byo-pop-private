@@ -20,7 +20,12 @@ The page loads `<game>.js`, which compiles the wasm while `main()` waits (`INVOK
 IndexedDB at its persist folder and copies it into memory (`game/`, `userdata/`, `mods/`, `replays/`), first putting
 back saves that reached only the localStorage backup (`byopop_userdata_restore`). A Web Lock (`PAGE.lock`) lets one tab
 run a game. The fixes mod is put in place, the terms are asked, and without the game's files the import card copies
-only what `page.js` names, by the rules in `web/gameimport.js` (a pak named in `paks` is unpacked). The exe of a game
+only what `page.js` names, by the rules in `web/gameimport.js` (a pak named in `paks` is unpacked). The card takes the
+game's folder or a .zip of it from its two buttons, or dropped anywhere over it (the user, 2026-11-16: "I should be able
+to drag the folder into the load files screen"): a drop is read by `fromDrop`, as the listing reads one, with the folders
+and files found counted in the card's line, and the card shows a dotted line round its contents while files are over
+it. No other part of a game page drops files into the browser: a window listener cancels a file drag that nothing took
+(the no-entry pointer) and its drop, so a folder dropped anywhere else no longer opens the browser's listing of it. The exe of a game
 that `web/exetrim.js` lists is stored without its code sections, and a launcher's inner image alone, as the port reads
 only texts and tables from it (about 32 MB down to 7 MB over the listed games; `tools/exetrimtest.js` checks every table
 address reads the same; a game stored before keeps its whole exe until it is imported again). Files no port opens stay
@@ -321,8 +326,23 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   page). A drag on the empty desktop selects them with a dotted rectangle, and a drag of a selected icon moves them all.
 - **The empty desktop's right click:** Arrange Icons (back to the columns), Line up Icons (each to the nearest free
   place) and Properties (Settings' Appearance).
-- **The task bar's right click:** Cascade, Tile Horizontally, Tile Vertically and Minimize All Windows, which becomes
-  Undo Minimize All.
+- **The task bar's right click:** Cascade, Tile Horizontally, Tile Vertically and Minimize All Windows. Each of them first
+  keeps every window's place, size, state and order (`keepLayout`), and the menu then offers its Undo: Undo Cascade or
+  Undo Tile under the three, and Undo Minimize All in Minimize All's place (the user, 2026-11-18: "I accidentally
+  horizontally tiled my windows, losing my layout. It is frustrating to put it back. I should be able to restore how my
+  windows were previously laid out."). Undo puts each window back as it was, minimized or not, at its own size or its
+  style sheet's, in its old order, with the window that was in front in front again (`undoLayout`). A window closed in
+  the meantime stays closed, and a maximized window is never cascaded or tiled, so it stays as it was. One undo is kept,
+  the last arrangement's, until it is used. Undo Minimize All is offered while a window it minimized still is. A
+  window's least size stands in a tile, so on a small screen the tiles of large windows overlap, as 1995's did.
+- **Pictures** (the user, 2026-11-21: "The \"Pop\" menu is messed up, and could use icons"): a window has one picture at two
+  sizes, its desktop icon's (`picOf`). The Pop menu's first level shows it large, beside the band, and the lists beside it
+  show it small, as do the window's title bar and its task bar button; a game's list entry shows the small icon read from
+  its exe, else its cap. Entries that are no window draw their own (`drawnPic`: the games' folder, Setup's floppy disk,
+  full screen, the game's size, Music, Sounds, Shut Down's computer). A screen too short for the large pictures gets the
+  small ones on the first level too, and a list opens level with its entry, raised only as far as the task bar needs. The
+  Pop button's mark is a yellow burst of our own, and the active window's task bar button is pressed with bold text
+  (struck twice, as the desktop's one-weight font draws every bold).
 - **Tooltips:** drawn as 1995's, a pale yellow box with a black border half a second after the pointer rests. The
   browser draws its own for any title under the pointer, so the titles of the element and of its titled ancestors are held
   off them until the pointer leaves the element: moving onto a child of it (a Sounds button's label), a press, a key and
@@ -371,7 +391,10 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
 
 The game
 window's menu bar spreads the game's commands over Game, View, Options and Help (the user, 2026-11-09: "don't hide
-everything under "Game""), and no menu shows Alt+F4 or Alt+Space, which the browser keeps. The game is always at a
+everything under "Game""), and no menu shows Alt+F4 or Alt+Space, which the browser keeps. Game holds the game's files' two actions
+itself, Import game files again... and Forget game files... (the user, 2026-11-21: ""Game files" under Game is just two
+buttons that could be moved directly into the tab"), and their questions come in the desktop's message box
+(`ByopopApps.ask`) with Cancel; the Game files window is in the menu only while files were missing, for their list. The game is always at a
 whole multiple of its size in device pixels (`sizeStage`). A multiple chosen in the View menu is drawn only while the desktop
 has room for its window; otherwise the game is drawn at the largest multiple that fits, or at 1x with the window scrolling
 when not even that fits, and the choice is kept, so the game goes back to it when there is room (`embedWidth`,
@@ -393,6 +416,57 @@ again, so the page lagged and the sound crackled (the user, 2026-11-17: "The sit
 because it tries to resize repeatedly when Firefox enters full screen"). Now the first event of a run goes on at once and
 the rest are held, by a listener capturing at the window, until none has come for 120 ms; then one resize goes on for the
 size reached. The page's own resizes, which its scripts send so that SDL measures the stage again, go on at once.
+
+**Loading** (the user, 2026-11-20: "The site briefly shows the all games window while loading. Replace that load with
+something 95-themed"). A page that becomes a desktop, the listing or a game's own page, used to be drawn in stages: the
+games' list as a plain page, then the desktop, then each window in its saved place. Now, from the first line of
+`web/skins.js` until the desktop is whole, `html.d95-booting` covers the page with the desktop's colour and the hourglass,
+and in the middle a raised box says "Please wait while the desktop loads..." over a sunken strip of blue blocks, as
+1995's Setup showed its progress. The strip fills as the page's scripts and style sheets arrive, measured against those
+the page has named so far, and it never goes back. The cover is the root's two pseudo-elements, there before the body is,
+and it covers the page instead of hiding it, so the page's scripts lay it out and give the focus as they always did. It goes
+once the page has loaded with its fonts and, on the listing, every window the one page puts back has its page and a game's
+window its game's size (`bootHold("apps")` and `bootDone` from `web/deskapps.js` `start`; a game's size waits at most 3 s
+after its page). In any case it goes 15 s after the page's text was read, so that a file that never comes cannot keep the
+desktop away. A page in a window, the player-only page, the screen saver's page and a game page too narrow for windows
+never show it. Checked through a proxy that served one file at a time with a delay: on a cold first visit, a reload, a
+reload with a game window open and a game's own page, the cover held until the end of the load, and no window moved or
+changed size after it went.
+
+**Window sizes** (the user, 2026-11-18: "A lot of windows ought not to be resizable, like settings and anything accessed
+through it. Alternatively, a maximum height/width that ensures they display all their content without pointless
+whitespace. Some windows should have a minimum size too, like the library. Evaluate EVERY window to figure out
+minimum/maximum bounds for proper display."). Each window is either a dialog or sizable. A dialog (`fixed` in
+`ByopopSkin.desk.add`) is drawn at its contents' own size, as its style sheet lays it out. It has no edges to drag, and
+Size and Maximize are grey in its control menu. It keeps no size, and Cascade and Tile move it without sizing it. A
+sizable window is dragged by its edges between a least and a most. Its least is 200 by 120 pixels, or more where its
+layout needs it (`minWidth`, `minHeight`). Its most is the room above the task bar, and in height it is also its
+contents' own height at the width it has (`tallest`, measured with the height unset), so no size leaves empty space under
+them. The game's own window and the one page's frames are left out of that measure, since a frame has no height of its
+own. A most never goes under the least, and a least larger than the screen gives way to it. Each window's bounds were
+measured in the Browser pane at 800 by 600, from the narrowest width before a part spills out of the window or wraps
+badly:
+
+| Window | Kind | Least | Most | Why |
+|---|---|---|---|---|
+| All games | sizable | 500 × 440 | the room | its bar on two rows and one whole row of games |
+| Library | sizable | 560 × 200 | the room | its six columns, five rows |
+| Music | sizable | 360 × its player and three rows | the room | its controls on one row |
+| Sounds | sizable | 300 × 200 | the room | its bar on one row, four rows of sounds |
+| Splits | sizable | 240 × 180 | the room | its menu bar on one row, the timer and its two lines under it |
+| Trophy Cabinet | sizable | 300 × 200 | the room | its player list on one row (an empty cabinet was all there was to see) |
+| Chat (both pages) | sizable | 260 × 320 | the room | its controls and five lines of messages |
+| A game in a window | sizable | its game at the multiple drawn, its status bar and frame | the room, and Maximize | `web/deskapps.js` |
+| A text in a window | sizable | 200 × 120 | the room | |
+| A game's own window (game page) | its sizes | each whole multiple that fits, from its grip and control menu | | `sizes` |
+| Settings (the listing's folder, the game page's panel) | dialog | 600 or 440 wide, its icons' height | | |
+| Each Settings section | dialog | 440 wide, its rows' height | | |
+| Setup (Add Games) | dialog | 560 × 400 | | a wizard, one size for every step; its list scrolls |
+| About (both pages) | dialog | 640 or 520 wide, its text's height | | |
+| Mods, Game files, Controls | dialog | 440 wide, their rows' height | | |
+| Performance | dialog | its graphs' size | | |
+
+A dialog taller than the room is cut to it, and its contents scroll. A message box was a dialog already.
 
 **Its text** is Byopop Sans, `web/fonts/byopop-sans.woff`, built by `tools/web/pixelfont.py` from W95FA by Alina Sava
 (SIL OFL 1.1, as is ours); after a change to the script, run it and commit the file. The font is sharp only at 11
@@ -1144,7 +1218,7 @@ never colour alone; every animation stops under `prefers-reduced-motion: reduce`
 
 **How the game gets keys, and how to leave it.** The shell sets `SDL_EMSCRIPTEN_KEYBOARD_ELEMENT=#canvas`, so the game
 gets keys only while its canvas has the focus, and then every key, Tab included, except F11; **F6** and Shift+F6 move
-the focus out, and the game never sees them, nor Alt+\` (the window switch). Moving the focus to a control on the page is not the game losing the
+the focus out (with the speed keys on, Shift+F6 alone; "Game speed"), and the game never sees them, nor Alt+\` (the window switch). Moving the focus to a control on the page is not the game losing the
 focus: SDL and the framework (`EmscriptenFocusCallback`) take that from the window's `focus` and `blur` events.
 
 **The checker** is `tools/a11ycheck.js` (`unit-web`), which reads the built pages with no browser; markup that scripts
@@ -1299,15 +1373,26 @@ position" is `touchPlace`.
 
 `speed` (any value from 0.01 to 16; the user, 2026-11-10: "Allow game speed to be set to any arbitrary value") sets
 `SexyAppBase::SetGameSpeed` through the web-only `byopop_set_speed` (`framework/SexyAppBase.cpp`). 0 is "as fast as the machine
-allows": the updates run flat out in real time and the draws that cannot be shown are skipped (the site's range starts at
-0.01, so the page never sends it). At 1 nothing is called, so unmodded play is unchanged. The game clock follows the speed:
+allows": the updates run flat out in real time and the draws that cannot be shown are skipped; the list offers it as "Max", the
+native mod menu's word for it (the number field takes 0.01 to 16 and stands empty at 0). The list's other entries are the native speed
+keys' steps (`SexyAppBase::SPEED_STEPS`). At 1 nothing is called, so unmodded play is unchanged. The game clock follows the speed:
 `Sexy::GetTickCountMS` (what `timeGetTime` and `GetTickCount` are in the ports) and `SexyAppBase::GetClockTime` are game
 time, real time scaled by the speed and accumulated, so a change of speed mid-game leaves the clock continuous. The framework's
 own pacing (the update accumulator, draws, sleeps) reads `Sexy::GetRealTickCountMS`. A game whose own host runs its loop
-(Bonnie's Bookstore, Ning Po) has no hook yet. Music keeps its own time at every speed (tracker and Ogg alike; a fade the
+(Bonnie's Bookstore, Ning Po) has no hook yet, and on their pages both speed settings are greyed
+(`ByopopSettings.ownSpeed`), with a line under the speed that says the game keeps its own. Music keeps its own time at every speed (tracker and Ogg alike; a fade the
 framework steps per update is scaled back to real time, `SexyAppBase::MusicStepFactor`); sound effects keep their behaviour.
 The native build has the same speed in the mod menu and on F6/F7/F8 (`docs/MOD_MENU.md`), and `tools/check.sh speed` checks
 that every game follows it.
+
+**The speed keys** (`speedKeys`, off by default; the user, 2026-11-17: "Add optional hotkeys for game speed (probably using
+function keys)") are the native ones: F6 slower, F7 faster, F8 back to normal, without modifiers, while the canvas has the
+focus. They step along the same list from a speed between two steps to the next one in that direction, past 16 to unlimited
+(Max); below the lowest step, F6 leaves the speed where it is. The page
+takes the press and its release in a window capture listener (`web/controls.js`), so neither SDL nor the page's own F6 sees
+them, and the web build's mod menu has no speed rows, so nothing steps twice. The new speed is written as this game's own
+setting and shows over the game for a second and a half in a raised grey box. With the keys on, Shift+F6 still takes the
+focus out of the game, and the hint shown while the game has the keyboard says so.
 
 ### Clips
 

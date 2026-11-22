@@ -1,0 +1,19 @@
+# Classic by the seeded autoplay (-autoplay=1 on both sides): the mode select, the first board and its tutorial, the
+# level's end, the level-up and the jump, level 2 and level 3 (gen.py)
+0 offset 4                 # the autoplay starts its game an update sooner on the port
+300 shot c01_modeselect
+500 shot c02_board_start
+650 shot c03_tutorial
+1100 shot c04_level1
+2200 shot c05_level_done
+2350 shot c06_levelup
+2500 shot c07_levelup_b
+2650 shot c08_jump
+2800 shot c09_jump_b
+3000 shot c10_level2
+4300 offset -10             # the original's autoplay slipped 15 updates here in this run (NOTES.md, Oddities)
+4400 shot c11_level2_done
+5200 shot c12_level3
+5900 shot c13_level3_b
+5900 state
+5905 end

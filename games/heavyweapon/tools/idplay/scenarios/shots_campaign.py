@@ -9,3 +9,4 @@ OPENING = [
 ]
 BOT_FROM = 260
 SHOT_EVERY = (100, 400)
+SHOT_BEFORE_CLICKS = {'320 335': 'tip'}      # a play tip's OK, which the bot clicks a few updates after it opens (the screen pass)
