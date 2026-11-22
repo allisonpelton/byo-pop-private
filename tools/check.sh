@@ -2611,7 +2611,7 @@ suite_hammerheads() {
 }
 
 # Peggle: the level start's rules, from a script of test commands (games/peggle/tools/suite_test.txt)
-PEGGLE_FROZEN="f1eaa1b64c78"  # the first 12 hex digits of the sha256 of the script's state lines
+PEGGLE_FROZEN="756ac88b304e"  # the first 12 hex digits of the sha256 of the script's state lines
 
 peggle_run() {  # <name>: the script into $OUT/peggle/<name>; prints the exit status
 	local d="$OUT/peggle/$1" e=0
@@ -2628,13 +2628,13 @@ suite_peggle() {
 	cat "$d/game/stdout.txt" > "$1"
 	[ "$e" -eq 0 ] || { SUMMARY="the exe exited with status $e"; return 1; }
 	grep -q '^ERROR' "$d/game/states.txt" && { SUMMARY="a test command failed: $(grep -m1 '^ERROR' "$d/game/states.txt")"; return 1; }
-	[ "$(grep -c '^STATE ' "$d/game/states.txt")" = 11 ] || { SUMMARY="not every command gave a state line"; return 1; }
+	[ "$(grep -c '^STATE ' "$d/game/states.txt")" = 19 ] || { SUMMARY="not every command gave a state line"; return 1; }
 	e="$(peggle_run rerun)"
 	[ "$e" -eq 0 ] || { SUMMARY="the rerun exited with status $e"; return 1; }
 	cmp -s "$d/game/states.txt" "$d/rerun/states.txt" || { SUMMARY="the rerun's state lines differ"; return 1; }
 	sh="$(sha256sum "$d/game/states.txt" | cut -c1-12)"
 	[ "$sh" = "$PEGGLE_FROZEN" ] || { SUMMARY="STATES CHANGED ($sh; frozen $PEGGLE_FROZEN)"; return 1; }
-	SUMMARY="the level start: 6 levels loaded, 5 through Board::Reset (modes none, adventure, demo); rerun identical; states as frozen"
+	SUMMARY="the level start: 6 levels loaded, 5 through Board::Reset (modes none, adventure, demo), and the logic's first states stepped; rerun identical; states as frozen"
 	return 0
 }
 
