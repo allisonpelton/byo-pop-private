@@ -12,6 +12,7 @@ using namespace Sexy;
 
 Player* Player::sCurrent = nullptr;
 bool PauseWin::sEnabled = false;
+bool MetaGame::sFirstVisit = false;
 
 // The preloaded pictures, each in the global the original keeps it in; they move to their classes with them
 static Anim* sNetFlyAnim;            // 0x60e508
@@ -63,11 +64,6 @@ static Anim* sZumaBallAnim;          // 0x60e1e8
 static Anim* sSpinStarsAnim;         // 0x60e254
 static Anim* sMonkeyShockRingAnim;   // 0x60e258
 static Anim* sRolyPolyAnim;          // 0x60e2a0
-static Anim* sMapPlayAnim;           // 0x60e64c
-static Anim* sMapAnim;               // 0x60e650
-static Anim* sMapDotAnim;            // 0x60e654
-static Anim* sMapXAnim;              // 0x60e658
-static Anim* sMapIconAnims[13];      // 0x60e65c
 static Anim* sFireBallAnim;          // 0x60e50c
 static Anim* sPipesAnim;             // 0x670194
 static Anim* sRopeArrowAnims[4];     // 0x6701f4
@@ -98,18 +94,6 @@ Board::Board()
 	Activate(this, false);
 }
 
-MainMenu::MainMenu()
-{
-	SetParent(nullptr, nullptr);
-	mChoice = MENU_CHOICE_NONE;
-	mLeaveTrack = AddHoldTrack(this);
-	Activate(this, false);
-}
-
-MainMenu::~MainMenu()
-{
-}
-
 Board::~Board()
 {
 	delete mLevel;
@@ -117,6 +101,7 @@ Board::~Board()
 
 MetaGame::MetaGame()
 {
+	sFirstVisit = true;
 	SetParent(nullptr, nullptr);
 	mWantsMenu = false;
 	mLeaving = false;
@@ -135,6 +120,8 @@ bool MetaGame::TakeLevelChosen()
 
 Player::Player()
 {
+	mSavedProgress = 0;
+	mMapLevel = 0;
 	mMetaGameStarted = false;
 }
 
@@ -146,6 +133,46 @@ Player::~Player()
 void Player::BoardClick(int theButton)
 {
 	(void)theButton;
+}
+
+// port: the stand-in window opens nothing: it reports itself closed from the start
+Options::Options()
+{
+	mState = BBWINDOW_CLOSED;
+}
+
+// port: as Options
+HighScore::HighScore()
+{
+	mState = BBWINDOW_CLOSED;
+}
+
+// port: as Options
+UserSelect::UserSelect()
+{
+	mState = BBWINDOW_CLOSED;
+}
+
+// port: as Options; the flag the original keeps is not kept
+NewUser::NewUser(bool theFlag)
+{
+	(void)theFlag;
+	mState = BBWINDOW_CLOSED;
+}
+
+// port: the stand-in only takes its parent; the original also builds the window's texts and lines
+void NewUser::Open(ObjBase* theParent)
+{
+	SetParent(theParent, nullptr);
+}
+
+// port: the stand-in is never shown, and nothing frees it: the original's help screen deletes itself when done
+Help::Help()
+{
+}
+
+void Help::Start()
+{
 }
 
 // port: the stand-in never pauses
@@ -160,6 +187,22 @@ bool PauseWin::IsBlocking()
 
 void PauseWin::ResumeOnRelease()
 {
+}
+
+// port: the stand-in profile list has one player, called PLAYER, whose game is the stand-in Player's
+const char* Sexy::GetProfileName()
+{
+	return Player::sCurrent != nullptr ? "PLAYER" : nullptr;
+}
+
+// port: the stand-in resets only the fields the main menu reads
+void Sexy::ResetProfile()
+{
+	if (Player::sCurrent != nullptr) {
+		Player::sCurrent->mSavedProgress = 0;
+		Player::sCurrent->mMapLevel = 0;
+		Player::sCurrent->mMetaGameStarted = false;
+	}
 }
 
 // port: the stand-ins of GameApp's globals do nothing but make one player
@@ -306,19 +349,6 @@ void Sexy::PreloadSpinStars()
 void Sexy::PreloadRolyPoly()
 {
 	sRolyPolyAnim = Load("images/rolypoly", 0x60, 0x4f, 0x3c);
-}
-
-void Sexy::PreloadMap()
-{
-	sMapPlayAnim = Load("images/map/map_play", 0, 0, 1);
-	sMapDotAnim = Load("images/map/map_dot", 0x23, 0x23, 3);
-	sMapAnim = Load("images/map/map", 0, 0, 1);
-	sMapXAnim = Load("images/map/map_X", 0, 0, 1);
-	for (int i = 0; i < 13; i++) {
-		char aName[32];
-		snprintf(aName, sizeof(aName), "images/map/map_icon%02d", i + 1);
-		sMapIconAnims[i] = Load(aName, 0, 0, 1);
-	}
 }
 
 void Sexy::PreloadFireBall()

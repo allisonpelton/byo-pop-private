@@ -6,6 +6,8 @@
 #include "GameApp.h"
 #include "Graphics.h"
 #include "LoadGame.h"
+#include "MainMenu.h"
+#include "Map.h"
 #include "ObjBase.h"
 #include "Pending.h"
 #include "PopCap.h"

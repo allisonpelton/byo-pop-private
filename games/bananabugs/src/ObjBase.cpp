@@ -795,6 +795,7 @@ ObjBase::ObjBase()
 	mHitRadius = 16.0f;
 	mHitWidth = 16.0f;
 	mHitHeight = 16.0f;
+	mEmitters = nullptr;
 	mButtonId = 0;
 	mHoverState = 0;
 	mUnusedF0 = 0;

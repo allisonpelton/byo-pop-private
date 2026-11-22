@@ -11,6 +11,7 @@ namespace Sexy
 {
 
 class Anim;
+struct EmitterSet;
 class GameApp;
 class Graphics;
 class ObjBase;
@@ -217,6 +218,7 @@ enum ObjType
 	OBJ_TYPE_OWNED_ELSEWHERE = 7, // its owner is told when its parent goes
 	OBJ_TYPE_STRING = 8,          // an ObjString
 	OBJ_TYPE_STRING_GLYPH = 9,    // a shown character of one
+	OBJ_TYPE_MAP_PLAY = 15,       // the map's play button
 };
 
 class ObjBase
@@ -245,6 +247,7 @@ public:
 	AnimTrack* mCurrentTrack;
 	AnimKey* mCurrentKey;
 	int mTrackCount;
+	EmitterSet* mEmitters;    // the effects an object keeps for itself, if any (the original never frees them)
 	bool mHidden;
 	int mButtonId;           // a window's or menu's number for a button object; 0 for others
 	int mHoverState;         // a button's: 1 once its hover track has started, 0 after its leave track

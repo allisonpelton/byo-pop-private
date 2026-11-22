@@ -43,25 +43,42 @@ public:
 	int GetResult() { return LEVEL_RESULT_NONE; } // 0x43a9b0
 };
 
-// What the main menu chose (MainMenu::GetChoice)
-enum MenuChoice
-{
-	MENU_CHOICE_NONE = 0,
-	MENU_CHOICE_PLAY = 1,
-	MENU_CHOICE_QUIT = 5,
-};
-
-// The main menu (0x43fc90); the stand-in shows nothing and chooses nothing
-class MainMenu : public ObjBase
+// The options window (0x453e30): the stand-in has no controls and reports itself closed at once
+class Options : public BBWindow
 {
 public:
-	int mChoice;               // +0x27c: MenuChoice
-	int mLeaveTrack;           // +0x280
+	Options();
+};
 
-	MainMenu();
-	~MainMenu();
-	int GetChoice() { return mChoice; } // 0x440a50
-	void StartLeaving() { StartTrack(mLeaveTrack); } // 0x440a60
+// The high score window (0x4351b0): the stand-in lists no scores and reports itself closed at once
+class HighScore : public BBWindow
+{
+public:
+	HighScore();
+};
+
+// The window that asks who is playing (0x4721e0): the stand-in lists no players and reports itself closed at once
+class UserSelect : public BBWindow
+{
+public:
+	UserSelect();
+};
+
+// The window that asks for a new player's name (0x4504d0): the stand-in takes no name and reports itself closed at once
+class NewUser : public BBWindow
+{
+public:
+	NewUser(bool theFlag);
+	void Open(ObjBase* theParent); // 0x4505e0
+};
+
+// The help screen (0x434700): the stand-in shows nothing and is done at once
+class Help : public ObjBase
+{
+public:
+	Help();
+	void Start();                  // 0x434770
+	bool IsDone() { return true; } // 0x4348b0
 };
 
 // The map between levels (0x448e10)
@@ -71,15 +88,20 @@ public:
 	bool mWantsMenu;           // +0x27c
 	bool mLeaving;             // +0x27d
 
+	static bool sFirstVisit;   // 0x5ff082: set as a meta game starts, cleared by the main menu when it continues one
+
 	MetaGame();
 	~MetaGame();
 	bool TakeLevelChosen();    // 0x449b90
+	static void ClearFirstVisit() { sFirstVisit = false; } // 0x44f440
 };
 
 // A player's profile (0x459380), also the object that shows the player's state in a level
 class Player : public ObjBase
 {
 public:
+	int mSavedProgress;        // +0x2b4: above 0 once a game is in progress; the main menu then asks about continuing it
+	int mMapLevel;             // +0x2bc: the level the map moves to
 	bool mMetaGameStarted;     // +0x3b8
 
 	static Player* sCurrent;   // 0x670198
@@ -102,6 +124,10 @@ public:
 
 // Whether the level being played takes the mouse (the byte at +0x8ffd of the LevelObj sLevel points to)
 bool LevelAcceptsMouse();
+
+// The profiles the main menu reads and changes (0x459380)
+const char* GetProfileName(); // 0x45dde0: the current profile's name, or nullptr when no profile is in use
+void ResetProfile();         // 0x45e7d0: starts the current profile's game afresh
 
 // GameApp's globals (0x42d330)
 void InitHighScores();       // 0x435aa0
@@ -128,7 +154,6 @@ void PreloadBonusPictures(); // 0x406dd0
 void InitBonusTable();       // 0x40af90
 void PreloadSpinStars();     // 0x41f980
 void PreloadRolyPoly();      // 0x424c80
-void PreloadMap();           // 0x4463c0
 void PreloadFireBall();      // 0x42b3f0
 void PreloadPipes();         // 0x459360
 void PreloadRope();          // 0x464250
