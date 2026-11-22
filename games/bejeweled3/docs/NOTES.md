@@ -746,6 +746,16 @@ down. The listener is 0x74bc40: nothing while a dialog (+0xd20) or the game's en
 is 0); id 1 opens the menu dialog 0x15 (0x681370), which is not translated, so the Menu button does nothing yet. The other modes' buttons (the
 Replay and Reset ones, 0x70e880 for Zen) are not made. Seen in the port: a click at the Hint button resets the hint timer.
 
+The background (src/Background.cpp, 0x749c20 slot 164, class Sexy::Background vtable 0x863c0c, 0x310 bytes, ctor 0x77dbb0, Update 0x77f8e0, Draw 0x77eb50):
+a widget of the app's manager with z-order -1 (+0x60), not a child of the board (the board holds it at +0x2868), sized (-160, 0, 1920, 1200) in 1200ths of the art
+height. It owns a PopAnim (+0x12c) of imagesP0ackgrounds\<name>\<name>.pam, loaded by a worker thread (0x77f090) and started by Update once loaded:
+PlayFrame(0, true), sized 1920 by 1200, then each update UpdateF(speed) and, each time the sum of the speed (a curve, the constant 1) goes above 1, Update.
+Draw runs the PopAnim's Draw, or fills black while nothing is loaded. The index (+0x2864) goes up by the step 1 modulo 19 (NewGame: from -1, so 0) and the
+table at 0x8d2170 (10, 7, 5, 9, 14, 11, 8, 18, 12, 16, 2, 17, 4, 0, 15, 13, 1, 3, 6) names the animation in the list at 0x8d2118: the first game is
+Lion_tower_cascade. The level change (0x769c36 and 0x760bcd) calls the setter again with 1 and the old background's slot 82 (0x77dde0, a fade). Deviation:
+the PopAnim's generator is seeded with the constant 0 instead of the app's Rand() the exe draws at the first effect its animation makes (on the update its loader
+thread happens to be done by), so the hints' Rand() sequence is the board's alone; the state of the bot game is the same with and without the background.
+
 Oddities (not translated, each with a `port:` note in the source):
 - The level bar's fill. The exe's 0x7540c0 clips the resource PIEFFECT_LEVELBAR to the bar's rectangle (the back picture's size, centred at grid x + 0x200,
   y + 0x41e; slot 87, 0x73d5e0) by the drawn bar's fraction (+0xd68) and draws it. 0x755620 sets, in a second object (reached by 0x565f40, with 0x18-byte key

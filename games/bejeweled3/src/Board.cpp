@@ -1,8 +1,10 @@
 #include "Board.h"
 
+#include "Background.h"
 #include "Bej3App.h"
 #include "Color.h"
 #include "Common.h"
+#include "WidgetManager.h"
 #include "X86Math.h"
 #include "Font.h"
 #include "Graphics.h"
@@ -76,6 +78,11 @@ Board::Board()
 
 Board::~Board()
 {
+	if (mBackground != nullptr) {
+		if (mBackground->mParent != nullptr)
+			mBackground->mParent->RemoveWidget(mBackground);
+		delete mBackground;
+	}
 	delete mLevelBarEffect;
 	// the two buttons are the board's children
 	for (ButtonWidget* aButton : {mHintButton, mMenuButton}) {
@@ -141,13 +148,41 @@ void Board::ResetGame()
 	mCheckerFlash = 0.0f;   // 0x74aa8d: +0x1188
 }
 
+// slot 164, 0x749c20 (bejeweled3), with the step 1 (0x74e750, the level change at 0x769c36 and 0x760bcd: the index goes up by the step, modulo
+// 19, and the table at 0x8d2170 gives which of the 20 animation names at 0x8d2118 it is). The one before is taken off the manager and let
+// go; the new one is sized (-160, 0, 1920, 1200) in 1200ths of the art height, put behind everything (z-order -1) and added to the
+// app's widget manager. port: left out: the random pick (a step of 0 with no index yet) and the exe's check that backgrounds are on
+// (slot 99, 0x18c) and that the app has a manager
+void Board::SetBackground(int theStep)
+{
+	// 0x8d2118: the names (the 20th, "pointy_ice_path_purple", is not reached by the order)
+	static const char* const aNames[20] = {"canyon_wall_castle.pam", "crystal_mountain_peak.pam", "dark_cave_thing.pam",
+		"desert_pyramids_sunset.pam", "fairy_cave_village.pam", "floating_rock_city.pam", "flying_sail_boat.pam",
+		"horse_forest_tree.pam", "jungle_ruins_path.pam", "lantern_plants_world.pam", "Lion_tower_cascade.pam", "pointy_ice_path.pam",
+		"rock_city_lake.pam", "bridge_shroom_castles.pam", "snowy_cliffs_castle.pam", "treehouse_waterfall.pam", "tube_forest_night.pam",
+		"water_bubble_city.pam", "water_fall_cliff.pam", "pointy_ice_path_purple.pam"};
+	// 0x8d2170: the order of the 19 backgrounds, as indices of the names
+	static const int anOrder[BACKGROUND_COUNT] = {10, 7, 5, 9, 14, 11, 8, 18, 12, 16, 2, 17, 4, 0, 15, 13, 1, 3, 6};
+	if (mBackground != nullptr) {
+		if (mBackground->mParent != nullptr)
+			mBackground->mParent->RemoveWidget(mBackground);
+		gApp->SafeDeleteWidget(mBackground);
+		mBackground = nullptr;
+	}
+	mBackgroundIndex = (mBackgroundIndex + BACKGROUND_COUNT + theStep) % BACKGROUND_COUNT;
+	mBackground = new Background(aNames[anOrder[mBackgroundIndex]]);
+	mBackground->Resize(gApp->mArtRes * -160 / 1200, 0, gApp->mArtRes * 1920 / 1200, gApp->mArtRes * 1200 / 1200);
+	gApp->mWidgetManager->AddWidget(mBackground);
+}
+
 // 0x74e410 (bejeweled3): Classic has no seed override (0x73b4f0 returns 0), the saved game of the mode is not there, so the
-// background is the first of the game's order and the first fill is made. port: the background itself, the board's
-// camera setup (0x73e440) and the counters the update reads (+0xc84 to +0xd18) come with their steps
+// background is the first of the game's order and the first fill is made. port: the board's camera setup (0x73e440) and the counters
+// the update reads (+0xc84 to +0xd18) come with their steps
 void Board::NewGame()
 {
 	// 0x74e63b and 0x74e750: the index is set to -1 and 0x749c20 takes the next one, with no random number
-	mBackgroundIndex = (-1 + BACKGROUND_COUNT + 1) % BACKGROUND_COUNT;
+	mBackgroundIndex = -1;
+	SetBackground(1);
 	mSettledOnce = false;   // 0x74e775
 	// 0x74e1f0 would load a saved game here
 	FillInBlanks(false);
