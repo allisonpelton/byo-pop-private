@@ -321,8 +321,15 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   page). A drag on the empty desktop selects them with a dotted rectangle, and a drag of a selected icon moves them all.
 - **The empty desktop's right click:** Arrange Icons (back to the columns), Line up Icons (each to the nearest free
   place) and Properties (Settings' Appearance).
-- **The task bar's right click:** Cascade, Tile Horizontally, Tile Vertically and Minimize All Windows, which becomes
-  Undo Minimize All.
+- **The task bar's right click:** Cascade, Tile Horizontally, Tile Vertically and Minimize All Windows. Each of them first
+  keeps every window's place, size, state and order (`keepLayout`), and the menu then offers its Undo: Undo Cascade or
+  Undo Tile under the three, and Undo Minimize All in Minimize All's place (the user, 2026-11-18: "I accidentally
+  horizontally tiled my windows, losing my layout. It is frustrating to put it back. I should be able to restore how my
+  windows were previously laid out."). Undo puts each window back as it was, minimized or not, at its own size or its
+  style sheet's, in its old order, with the window that was in front in front again (`undoLayout`). A window closed in
+  the meantime stays closed, and a maximized window is never cascaded or tiled, so it stays as it was. One undo is kept,
+  the last arrangement's, until it is used. Undo Minimize All is offered while a window it minimized still is. A
+  window's least size stands in a tile, so on a small screen the tiles of large windows overlap, as 1995's did.
 - **Pictures** (the user, 2026-11-21: "The \"Pop\" menu is messed up, and could use icons"): a window has one picture at two
   sizes, its desktop icon's (`picOf`). The Pop menu's first level shows it large, beside the band, and the lists beside it
   show it small, as do the window's title bar and its task bar button; a game's list entry shows the small icon read from

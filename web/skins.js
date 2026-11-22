@@ -1614,6 +1614,7 @@ var ByopopSkin = (function () {
     }
     function cascade() {
       var list = openWins(), r = room();
+      if (list.length) keepLayout("cascade");
       list.forEach(function (w, i) {
         var k = i % 10, x = 8 + k * 24, y = 8 + k * 24;
         putAt(w, x, y, Math.min(w.el.offsetWidth, r.w - x - 8), Math.min(w.el.offsetHeight, r.h - y - 8));
@@ -1624,32 +1625,66 @@ var ByopopSkin = (function () {
     function tile(across) {
       var list = openWins(), r = room(), n = list.length;
       if (!n) return;
+      keepLayout("tile");
       list.forEach(function (w, i) {
         if (across) putAt(w, Math.floor(i * r.w / n), 0, Math.floor(r.w / n), r.h);
         else putAt(w, 0, Math.floor(i * r.h / n), r.w, Math.floor(r.h / n));
       });
       save();
     }
-    var minimizedAll = null;
     function minimizeAll() {
-      minimizedAll = wins.filter(function (w) { return present(w) && !w.min; });
-      minimizedAll.forEach(function (w) { setMin(w, true); });
+      keepLayout("minall");
+      wins.filter(function (w) { return present(w) && !w.min; }).forEach(function (w) { setMin(w, true); });
     }
-    function undoMinimizeAll() {
-      var list = minimizedAll || [];
-      minimizedAll = null;
-      list.forEach(function (w) { if (present(w) && w.min) setMin(w, false); });
+    // Undo (the user, 2026-11-18: "I accidentally horizontally tiled my windows, losing my layout. It is frustrating to put it
+    // back."): Cascade, either Tile and Minimize All first keep every window's place, size, state (minimized or not; a
+    // maximized window is neither cascaded nor tiled, so it stays so) and order (keepLayout), and the task bar's menu then offers
+    // the matching Undo Cascade, Undo Tile or Undo Minimize All, which puts them all back as they were (undoLayout). One undo is
+    // kept, the last arrangement's, until it is used. Undo Minimize All is offered while a window it minimized still is, and
+    // the others while a window they kept is still open; a window closed since is left closed.
+    var undo = null;
+    function keepLayout(kind) {
+      undo = { kind: kind, active: active, list: wins.filter(present).map(function (w) {
+        return { w: w, x: w.x, y: w.y, width: w.w || 0, height: w.h || 0, placed: w.placed, min: !!w.min, z: parseInt(w.el.style.zIndex, 10) || 0 };
+      }) };
+    }
+    function undoable() {
+      if (!undo) return "";
+      var some = undo.list.some(function (k) { return present(k.w) && (undo.kind !== "minall" || (k.w.min && !k.min)); });
+      return some ? undo.kind : "";
+    }
+    function undoLayout() {
+      var u = undo;
+      undo = null;
+      if (!u) return;
+      var back = u.list.filter(function (k) { return present(k.w); });
+      back.forEach(function (k) {
+        var w = k.w;
+        // its own size, or none (its style sheet's) if it had none; a dialog and the game's window have none to put back
+        if (!w.sizes && !w.fixed) {
+          if (k.width && k.height) sizeTo(w, k.width, k.height);
+          else { w.w = 0; w.h = 0; w.el.style.removeProperty("width"); w.el.style.removeProperty("height"); }
+        }
+        w.x = k.x; w.y = k.y; w.placed = k.placed;
+        if (k.min !== !!w.min) setMin(w, k.min);
+        place(w, true);
+      });
+      // and in their order, the one in front last
+      back.slice().sort(function (a, b) { return a.z - b.z; }).forEach(function (k) { if (!k.min) raise(k.w); });
+      if (u.active && present(u.active) && !u.active.min) activate(u.active);
+      save();
     }
     function barMenu(x, y) {
-      var undo = minimizedAll && minimizedAll.some(function (w) { return present(w) && w.min; });
+      var can = undoable();
       var some = openWins().length > 0;
-      popMenu(taskbar ? taskbar.el : document.body, [
+      var entries = [
         { label: T("skin.bar.cascade"), disabled: !some, fn: cascade },
         { label: T("skin.bar.tileh"), disabled: !some, fn: function () { tile(false); } },
         { label: T("skin.bar.tilev"), disabled: !some, fn: function () { tile(true); } },
-        { rule: true },
-        undo ? { label: T("skin.bar.undominall"), fn: undoMinimizeAll } : { label: T("skin.bar.minall"), fn: minimizeAll }
-      ], x, y, T("skin.taskbar"));
+        { rule: true }];
+      if (can === "cascade" || can === "tile") entries.push({ label: T(can === "tile" ? "skin.bar.undotile" : "skin.bar.undocascade"), fn: undoLayout });
+      entries.push(can === "minall" ? { label: T("skin.bar.undominall"), fn: undoLayout } : { label: T("skin.bar.minall"), fn: minimizeAll });
+      popMenu(taskbar ? taskbar.el : document.body, entries, x, y, T("skin.taskbar"));
     }
     // a game's page: its window on the one page (web/deskapps.js), else the page itself
     function openPage(page) {
