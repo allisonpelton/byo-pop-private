@@ -2,7 +2,7 @@
 """combine.py <out dir> [part ...]: the pilot's captures in one pair of folders for one shotdiff run, as
 docs/SCREENS.md wants them: <out>/orig and <out>/port, the 2D captures (build/scratch/pilot/{orig,port}) by their own
 names and the 3D ones ({orig3d,port3d}) with "_3d" added (a still x.png becomes x_3d.png, a clip's folder x becomes
-x_3d). Only the shots and clips the parts' step lists name are taken (every part in tools/pilot when none is given),
+x_3d; --2d leaves the 3D ones out). Only the shots and clips the parts' step lists name are taken (every part in tools/pilot when none is given),
 and a name missing on either side is listed instead of copied. Then:
 
     python tools/shotdiff/shotdiff.py --game bookwormadv --orig <out>/orig --port <out>/port --run <id>
@@ -41,15 +41,17 @@ def main():
     if len(sys.argv) < 2:
         print(__doc__)
         return 1
-    out = sys.argv[1]
-    parts = sys.argv[2:] or sorted(f[:-4] for f in os.listdir(HERE) if f.endswith('.txt'))
+    only2d = '--2d' in sys.argv
+    args = [a for a in sys.argv[1:] if a != '--2d']
+    out = args[0]
+    parts = args[1:] or sorted(f[:-4] for f in os.listdir(HERE) if f.endswith('.txt'))
     for side in ('orig', 'port'):
         shutil.rmtree(os.path.join(out, side), ignore_errors=True)
         os.makedirs(os.path.join(out, side))
     taken, missing = 0, []
     for part in parts:
         for name in names(part):
-            for suf in ('', '3d'):
+            for suf in ('',) if only2d else ('', '3d'):
                 got = [find(os.path.join(P, side + suf), name) for side in ('orig', 'port')]
                 if not all(got):
                     if suf == '' or any(got):

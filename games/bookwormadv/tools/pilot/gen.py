@@ -10,6 +10,7 @@ Steps, one per line ('#' starts a comment):
   at <ms>                        go on at this time (both games settled on a screen)
   wait <ms>
   port <command>                 a command for the port alone (state), when a list is checked on the port
+  orig <command>                 a command for the original alone (origrun's `peek <expr>...`, its state)
   click <x> <y>                  a move, then a click 50 ms later (both games see the hover first)
   move <x> <y>                   the mouse alone (a hover, a tooltip)
   text <chars>                   typed characters
@@ -108,6 +109,8 @@ def main():
             oat(t, "shot %s" % args[0]); pat(t, "screenshot %s/%s.png" % (shots, args[0]))
         elif op == "clip":
             frames(args[0], int(args[1]), int(args[2]))
+        elif op == "orig":
+            oat(t, " ".join(args))   # a command for the original alone (an origrun peek, to read its state)
         elif op == "port":
             pat(t, " ".join(args))   # a command for the port alone (state, to check a step list on the port)
         elif op == "loaded":

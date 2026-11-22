@@ -29,7 +29,8 @@
 # the startup load's two (a fourth stops them all), whose length then comes from the part's last run (0x85a938, the
 # generator's index, with the port's -randlog in PILOT_PORT_ARGS: the random draws side by side).
 # PILOT_PORT_ARGS: more options for the port. PILOT_FULL=on: both sides start in full screen (the registry's ScreenMode 1);
-# the part names its shots x_full itself.
+# the part names its shots x_full itself. In the sandbox the 2D original does not take full screen, with or without
+# --sandbox-vgpu (2026-11-22): it opens a window and writes ScreenMode 0 back, so its x_full shots are windowed.
 set -u
 W=$(cd "$(dirname "$0")/../../../.." && pwd)
 T=$W/games/bookwormadv/tools/pilot
@@ -185,7 +186,7 @@ if [ "$which" != orig ]; then
 			python "$T/anchors.py" fill "$PS" "$P/$N.portmarks" "$d/pass.txt" || exit 1
 			grep -v ' screenshot' "$d/pass.txt" > "$d/pass2.txt"
 			user "$d/passuser"; rm -f "$d/pass.log"
-			timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/passuser" -seed=$SEED -fast -drawevery $LOADS -popcaplogo $HOLD \
+			timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/passuser" -seed=$SEED -fast -drawevery $LOADS -popcaplogo $HOLD ${PILOT_PORT_ARGS:-} \
 				-script="$d/pass2.txt" -boardlog="$d/pass.log" > "$d/pass.out" 2>&1
 			python "$T/anchors.py" ends "$d/pass.log" $k "$P/$N.portmarks" "$PS" || exit 1
 		done
@@ -193,7 +194,7 @@ if [ "$which" != orig ]; then
 		python "$T/anchors.py" fill "$PS" "$P/$N.portmarks" "$SC/$name.portrun.txt" || exit 1
 		PS=$SC/$name.portrun.txt
 	fi
-	timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -renderscale=1 $LOADS -popcaplogo $HOLD \
+	timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -renderscale=1 $LOADS -popcaplogo $HOLD ${PILOT_PORT_ARGS:-} \
 		-script="$PS" > "$d/stdout.txt" 2>&1
 	echo "port exit $?"; grep "script\|FATAL" "$d/stdout.txt" | tail -5
 	python - "$PP" "$ST" <<'EOF'
