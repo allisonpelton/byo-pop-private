@@ -33,6 +33,8 @@ var ByopopSaver = (function () {
   //   views  2D or 3D drawn too (the `3d on`/`3d off` command, as the Options dialog's box)
   //   pace   updates waited after each move (a hundred are about a second), about a person's speed; none for a game whose bot plays
   //          in real time (aiming, dodging), where a pause would only lose
+  //   gap    a move's clicks spaced as a player's (?clickgap=1, web/testkit.js), for a game that misses them sent the quick way
+  //          (Bonnie's tile clicks)
   // A game left out has no modes to draw and plays as its bot starts it (?begin=mode). The modes come from each port's `goto`,
   // `set mode` and state (docs/TEST_COMMANDS.md and each game's notes).
   function counted(command, n) { var out = []; for (var i = 0; i < n; i++) out.push(command + i); return out; }
@@ -44,6 +46,8 @@ var ByopopSaver = (function () {
     bejeweled2: { begin: ["classic", "action"], views: true, pace: 120 },
     bejeweledtwist: { begin: ["classic", "blitz"], views: true, pace: 120 },
     bigmoney: { pace: 80 },
+    // (Bonnie's joins BOTS once its page reports its frames to web/testkit.js: until then the driver never makes a move)
+    bonnies: { gap: true, pace: 150 },
     bookworm: { pace: 150 },
     bookwormadv: { begin: ["adventure"], pace: 150 },
     bookwormadv2: { begin: ["adventure"], pace: 150 },
@@ -95,6 +99,7 @@ var ByopopSaver = (function () {
     if (play.views) prep.push(pick(["3d on", "3d off"]));
     if (prep.length) q += "&prep=" + encodeURIComponent(prep.join(";"));
     if (play.pace) q += "&pace=" + play.pace;
+    if (play.gap) q += "&clickgap=1";
     return new URL(pageOf(id), location.href).pathname + q;
   }
 
