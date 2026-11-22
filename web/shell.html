@@ -763,23 +763,48 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     }, 0);
   }
   function withSide(h) { return Math.max(h, sideHeight()); }
-  window.addEventListener("byopop-side", function () { embedFitted = ""; sizeStage(); });
+  // the window sized again for its game: a side panel shown or hidden, or the default size changed
+  function embedRefit() { embedFitted = embedSized = ""; sizeStage(); }
+  window.addEventListener("byopop-side", embedRefit);
+  // the room the desktop has changed (its browser window's size, full screen, the desktop's zoom, the task bar's height: web/deskapps.js
+  // roomChanged), which the page sees no resize of while its window keeps its size
+  if (EMBED) window.addEventListener("byopop-room", sizeStage);
+  function screenKey() { return gameScreen.w + "x" + gameScreen.h; }
+  // the largest whole multiple of the game's size that the desktop has room for in this window beside its side panels: 0 when not
+  // even 1x fits, 16 when the room is not known
+  function embedRoomScale() {
+    var dpr = window.devicePixelRatio || 1, r = embedRoom(), fits = 0;
+    if (!r) return 16;
+    var rw = r.w - sideWidth();
+    for (var n = 1; n <= 16; n++) if (gameScreen.w * n / dpr <= rw && gameScreen.h * n / dpr <= r.h) fits = n;
+    return fits;
+  }
+  // the multiple drawn for a chosen one: the choice while the desktop has room for it, else the largest that fits, and 1x when
+  // none does (the window then scrolls). The choice is kept, so the game goes back to it when there is room again (the user,
+  // 2026-11-20, of Ning Po and Bejeweled 2 cut off: "a game tried to open larger than the window had room for").
+  function scaleInUse(pick) { return Math.max(1, Math.min(pick, embedRoomScale())); }
   function embedWidth() {
     var dpr = window.devicePixelRatio || 1, pick = chosenScale();
-    if (pick) return gameScreen.w * pick / dpr;
+    if (pick) return gameScreen.w * scaleInUse(pick) / dpr;
     var area = $("stage").parentNode, aw = area.clientWidth, ah = area.clientHeight;
     if (PHONE && aw && ah) return Math.max(160, Math.floor(Math.min(aw, ah * gameScreen.w / gameScreen.h)));
     // the first time, the room the desktop has: the window takes that size (embedFit)
-    if (embedFitted !== gameScreen.w + "x" + gameScreen.h || !aw || !ah) { var r = embedRoom(); if (r) { aw = r.w - sideWidth(); ah = r.h; } }
+    if (embedSized !== screenKey() || !aw || !ah) { var r = embedRoom(); if (r) { aw = r.w - sideWidth(); ah = r.h; } }
     for (var n = 16; n >= 1; n--) if (gameScreen.w * n / dpr <= aw && gameScreen.h * n / dpr <= ah) return gameScreen.w * n / dpr;
     return gameScreen.w / dpr;
   }
+  // The window takes its game's size when the game first gives it or changes it and, for a chosen multiple, whenever the multiple
+  // drawn changes with the room; with "Fit window" the window then stays the size the player gives it. embedSized is the game's
+  // size the window was last fitted to, embedFitted that and the multiple drawn.
+  var embedSized = "";
   function embedFit(w) {
-    var key = gameScreen.w + "x" + gameScreen.h, h = w * gameScreen.h / gameScreen.w;
+    var pick = chosenScale(), n = Math.max(1, Math.round(w * (window.devicePixelRatio || 1) / gameScreen.w));
+    var key = screenKey() + (pick ? "@" + n : ""), h = w * gameScreen.h / gameScreen.w, first = embedSized !== screenKey();
+    embedSized = screenKey();
     if (embedFitted !== key) {
       embedFitted = key;
       var P = desktopApps();
-      if (P) try { P.fit(window, Math.ceil(w) + sideWidth(), withSide(Math.ceil(h) + statusBarHeight()), true); } catch (e) {}
+      if (P && (pick || first)) try { P.fit(window, Math.ceil(w) + sideWidth(), withSide(Math.ceil(h) + statusBarHeight()), true); } catch (e) {}
     }
     // the scale in the status bar, as a value
     if (statusBar) {
@@ -790,11 +815,10 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
   }
   function currentScale() { var s = $("stage"); return s && s.offsetWidth ? Math.max(1, Math.round(s.getBoundingClientRect().width * (window.devicePixelRatio || 1) / gameScreen.w)) : 1; }
   // the scales the View menu offers: each whole multiple, greyed when the desktop has no room for it, and two past the largest
-  // that fits (at least to 4x)
+  // that fits (at least to 4x, and to the chosen one)
   function embedScales() {
-    var dpr = window.devicePixelRatio || 1, r = embedRoom(), fits = 1, out = [];
-    for (var n = 1; n <= 16; n++) if (r && gameScreen.w * n / dpr <= r.w && gameScreen.h * n / dpr <= r.h) fits = n;
-    for (var k = 1; k <= Math.min(16, Math.max(4, fits + 2)); k++)
+    var fits = Math.max(1, embedRoomScale()), out = [];
+    for (var k = 1; k <= Math.min(16, Math.max(4, fits + 2, chosenScale())); k++)
       out.push({ n: k, fits: k <= fits, label: ByopopStrings.t("skin.desk.m.size", { n: k, w: gameScreen.w * k, h: gameScreen.h * k }) });
     return out;
   }
@@ -819,10 +843,11 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
       if (e) game.push(e);
     });
     ["panel-mods", "panel-settings"].forEach(function (id) { var e = panel(id); if (e) options.push(e); });
-    var pick = chosenScale(), cur = currentScale();
+    // the chosen multiple ticked, also while it is greyed for want of room (the status bar gives the one drawn)
+    var pick = chosenScale();
     view.push({ label: T("skin.apps.fit"), checked: !pick, fn: function () { chooseScale(0); } });
     embedScales().forEach(function (s) {
-      view.push({ label: s.label, checked: !!pick && s.n === cur, disabled: !s.fits, fn: function () { chooseScale(s.n); } });
+      view.push({ label: s.label, checked: !!pick && s.n === pick, disabled: !s.fits, fn: function () { chooseScale(s.n); } });
     });
     view.push({ rule: true });
     var scan = setting("scanlines") || "off";
@@ -2369,7 +2394,7 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     else if (name === "chatPlace") placeChat();
     else if (name === "pixelPerfect") sizeStage();
     // the default window size: a game with no size of its own chosen takes it now, its window sized to it
-    else if (name === "gameSize") { embedFitted = ""; sizeStage(); }
+    else if (name === "gameSize") embedRefit();
     // confirmLeave is read when the page is left
   }
 
@@ -2552,10 +2577,10 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
   sizeStage();
   if (PAGE.init) PAGE.init();
   // what the desktop around a game's window calls (web/deskapps.js): Close
-  // least: the smallest the frame may be, the game at its chosen multiple (1x with Fit window, which shrinks it to fit) and the
+  // least: the smallest the frame may be, the game at the multiple drawn for its chosen one (1x with Fit window, which shrinks it to fit) and the
   // status bar, in CSS pixels (web/deskapps.js keeps the window's resizing to it)
   function embedLeast() {
-    var dpr = window.devicePixelRatio || 1, n = chosenScale() || 1;
+    var dpr = window.devicePixelRatio || 1, pick = chosenScale(), n = pick ? scaleInUse(pick) : 1;
     return { w: gameScreen.w * n / dpr + sideWidth(), h: withSide(gameScreen.h * n / dpr + statusBarHeight()) };
   }
   if (EMBED) window.ByopopEmbed = { close: closeProgram, menus: embedMenus, about: embedAbout, readme: embedReadme, least: embedLeast };

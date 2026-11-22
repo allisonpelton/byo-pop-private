@@ -363,7 +363,15 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
 The game
 window's menu bar spreads the game's commands over Game, View, Options and Help (the user, 2026-11-09: "don't hide
 everything under "Game""), and no menu shows Alt+F4 or Alt+Space, which the browser keeps. The game is always at a
-whole multiple of its size in device pixels (`sizeStage`); the window takes the status bar's height rounded up
+whole multiple of its size in device pixels (`sizeStage`). A multiple chosen in the View menu is drawn only while the desktop
+has room for its window; otherwise the game is drawn at the largest multiple that fits, or at 1x with the window scrolling
+when not even that fits, and the choice is kept, so the game goes back to it when there is room (`embedWidth`,
+`scaleInUse`). The window is fitted again whenever the multiple drawn changes. The desktop tells each game's page when its
+room changes (`web/deskapps.js`, `roomChanged`: the browser window's size, full screen, the desktop's zoom, the task bar's
+height), since a window that keeps its size gives its page no resize. The status bar gives the multiple drawn; the View menu
+ticks the one chosen and greys those without room. The game is centred by its margins, so that a game larger than its
+window starts at the top left and scrolls instead of being cut off (the user, 2026-11-20: "Ning Po window is cut off"). The
+window takes the status bar's height rounded up
 (`statusBarHeight`), and the canvas is focused with `preventScroll` everywhere, so that the game's area is never a
 fraction short and a press on the game never scrolls it (the user's note of 2026-11-11). The framework offers the
 game's own full-screen request to the page (`sexyapp_page_fullscreen` in `framework/SexyAppBase.cpp`), because SDL's
@@ -1058,7 +1066,7 @@ pixels wide). For each window it checks that structure and runs the checker on t
 `window.byopopDeskCheck.result`, and the page's title ends with "deskcheck: PASS" or "FAIL". The chat's window is checked
 closed, because opening it starts the chat.
 
-Four more checks run the same way, each named in `driver=` and each reporting through the same result and title.
+Five more checks run the same way, each named in `driver=` and each reporting through the same result and title.
 `tools/web/closecheck.js` closes game windows whose page never answers the close: a page that is not there, a frame that
 could not load, and a page that takes the close but never hands the window back. The window must go at once, or, for the
 silent page, after its four-second wait, and at once on a second Close (`web/deskapps.js`, `closeApp`).
@@ -1083,7 +1091,13 @@ splits it stored. `tools/web/musicmutecheck.js` mutes a channel from
 Music's tracker, turns the view off and on, switches tunes and comes back, and compares the tracker's header with what the
 player itself has muted (`bm_mute_status`). It then sends the keyboard's media keys with Music open and closed and checks
 the player's state and its sound context, not its buttons (`web/music.js`, `syncMutes` and the media keys). It needs games
-added that have two module tunes.
+added that have two module tunes. `tools/web/fitcheck.js` loads the desktop in a frame of the page whose size it sets, as a
+browser window, and opens one game's window for each screen size (640 by 480, 800 by 600 and 1024 by 768, given through the
+page's `Module.onGameScreen`, so no files are needed) with 2x chosen. It then makes the frame small, smaller, large and small
+again. After each step the game's picture must start at its area's top left and scroll in full, be drawn at 2x where the
+desktop has room for that window and at 1x where it has not, and have its whole window on the desktop at 2x; the status bar
+must give the multiple drawn, and the View menu keep 2x ticked, greyed where it does not fit. It puts the choice of scale and
+the desktop's layout back at the end.
 
 ## The site's text
 

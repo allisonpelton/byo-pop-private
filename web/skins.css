@@ -748,8 +748,11 @@ html.d95-embed.d95-desk .stage-wrap.d95-win > .d95-tb, html.d95-embed.d95-desk .
    status bar along the window's bottom edge (the user, 2026-11-09: "Not what I expect to happen on resize") */
 html.d95-embed.d95-desk .stage-wrap.d95-win { display: grid !important; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr);
   padding: 0 !important; border: 0 !important; box-shadow: none !important; background: #000000; overflow: hidden; }
-html.d95-embed.d95-desk .stage-wrap.d95-win > .stage-area { grid-row: 1; overflow: auto; display: grid; place-items: center; min-height: 0; }
-html.d95-embed.d95-desk .stage-wrap.d95-win > .stage-area > .stage { margin: 0; }
+/* centred by its margins, not by place-items: a game larger than its window (under 1x of room, the window scrolls) then starts
+   at the area's top left and scrolls, where place-items' centring put its top and left edges out of reach (the user, 2026-11-20:
+   "Ning Po window is cut off") */
+html.d95-embed.d95-desk .stage-wrap.d95-win > .stage-area { grid-row: 1; overflow: auto; display: grid; place-items: start; min-height: 0; }
+html.d95-embed.d95-desk .stage-wrap.d95-win > .stage-area > .stage { margin: auto; }
 html.d95-embed.d95-desk .stage-wrap.d95-win > .d95-statusbar { grid-row: 2; margin: 0; padding: 2px; background: var(--panel); }
 html.d95-embed .byopop-footer, html.d95-embed body > header, html.d95-embed main > .back { display: none !important; }
 /* a narrow screen (under 760 px): one window at a time fills the screen above the task bar, maximized, the task bar switching */
