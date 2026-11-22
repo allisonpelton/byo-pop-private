@@ -670,20 +670,65 @@ functions (a dialog is shown through `ShowWindow`, and `MessageBox` is answered 
 to a window (it activates a window only when something clicks it, and visrun's posted input is messages, not clicks).
 Hooking any other function needs the user's OK first.
 
-`logs/net.log` of the run folder holds the install line ("activation hook installed: reached ...") and, at exit, how
-many calls each function answered, with the `SW_SHOWMAXIMIZED` passes. `ORIGRUN_ACTIVATION=allow` in the
-environment turns the hook off (the log says "activation hook off"), for a run that needs the real behaviour. A copy
-that never loads the stand-in is not hooked.
+`logs/net.log` of the run folder holds the install line ("activation hook installed: reached ..."), the CBT line
+("activation CBT block installed on N threads ...") and, at exit, how many calls each function answered, with the
+`SW_SHOWMAXIMIZED` passes and the CBT refusals. `ORIGRUN_ACTIVATION=allow` in the environment turns the hook and the CBT
+block off (the log says "activation hook off"), for a run that needs the real behaviour. A copy that never loads the
+stand-in is not hooked.
+
+**The CBT block.** The first real run of Bejeweled Twist's 3D original took the foreground once and visrun stopped it,
+before visrun had found the game's window, although the install line named all nine functions as reached and the
+stand-in had attached at process start. The log of that run (net.log, sound.log, cursor.log of its kept folder) holds
+only the install line: the game was killed before the exit counts were written, so it did not say which call activated
+the window. Whatever the path was (a window created with `WS_VISIBLE`, `SetFocus`, a Direct3D 9 `CreateDevice` or
+`Reset`, win32u's `NtUser*` entry points, user32's internal calls, or the process's first `ShowWindow`, whose command
+Windows takes from the startup information and not from the call, so the hook's mapped command never arrives), the
+function hooks cannot be the whole answer. The stand-in therefore also puts a thread-local `WH_CBT` hook on every thread
+of the copy that can own windows; its procedure answers 1 to `HCBT_ACTIVATE`, which makes the system not activate the
+window, and passes every other code to `CallNextHookEx`. It does not depend on which call asked for the activation. The
+hook has no DLL (`hMod` NULL, a thread id of this process), so `SetWindowsHookEx` loads nothing and is safe under the
+loader lock; it runs from DllMain on process attach for each thread a toolhelp snapshot lists, and from
+`DLL_THREAD_ATTACH` on each new thread (the stand-in no longer calls `DisableThreadLibraryCalls`). SetWindowsHookEx
+fails (error 87) for another thread that has no user32 state yet, which is every thread of a process that loads the stand-in
+late and has not made a window; a short-lived helper thread of the stand-in tries those again every 20 ms for 5 s and logs
+how many it reached. A game that imports dsound.dll has only its main thread when the stand-in loads, so nothing waits on
+it.
+
+**The live record.** Each activation event (a hooked function that changed or refused something, or an `HCBT_ACTIVATE`
+refused) writes one line to net.log at once, so a killed run still shows what happened: the function or "CBT activate",
+the window handle and class, the command or flags, the caller as module+offset (for the CBT block the first frames
+outside user32, win32u, ntdll and the stand-in, from a frame-pointer walk that can be short in code compiled without
+frame pointers), and the process that owned the foreground window just before. At most 200 lines per process, then one
+"further events not logged" line; the exit counts stay.
+
+What the two together still cannot catch: a thread that has no user32 state when the stand-in loads and creates its first
+window before the helper's next try; and the foreground right a new process inherits. Windows lets a process take the
+foreground when the process that started it holds it, and visrun's ancestors include the user's foreground app. The
+CBT block refuses the activation itself, so that right should not matter, but only a run on the user's desktop shows
+it: the private desktop actest runs on has no foreground process and no ancestor holding the foreground right, so a pass
+there cannot say whether the inherited right gives a copy's window the foreground by a path that sends no
+`HCBT_ACTIVATE` (nothing found so far does). A stop with status 5 on the user's desktop now names what happened in
+visrun.log. The block also refuses the user's own click on a copy's window, so a copy under visrun cannot be clicked into
+the foreground.
 
 `tools/origrun/actest.sh` (in `tools/check.sh origrun`) tests it on `actest.exe`: a window shown inactive, then every
 function and `ShowWindow` command called on it through the import table, through `GetProcAddress` and from a second
 DLL, with neither the foreground nor the active window ever being it and the window in the state the mapped command
-gives; a second run with `ORIGRUN_ACTIVATION=allow` checks that the calls reach Windows.
+gives; then what only the CBT block stops: a window created with `WS_VISIBLE`, `SetFocus` on a top-level window,
+win32u's `NtUserSetForegroundWindow` through `GetProcAddress` (the case is skipped, with a line saying so, when win32u
+does not export it), a window created on a thread that existed before the stand-in loaded and on one started after it,
+and the process's first `ShowWindow(SW_SHOWNORMAL)` in two child runs, one with the default startup information and
+one with `STARTF_USESHOWWINDOW` and `SW_SHOWNORMAL`. A second run with `ORIGRUN_ACTIVATION=allow` checks that each of
+them reaches Windows and activates the window, and that net.log holds no CBT line. The live record is checked for a
+CBT event with class and caller, a hooked-function event with its foreground owner, and its cap (200 lines and one
+"further events" line after 300 calls).
 
 visrun logs at the start of a run whether the hook was installed (read from `net.log`), and its `keep_focus_away`
 thread still tries one hand-back, but stops the run at once if the game's process owns the foreground window all the
 same: it ends the game process by its pid, the `finally` block restores the window, registry and saves, the log says
-"the game took the user's foreground: run stopped (handed back H, refused R)" and visrun exits with status 5.
+"the game took the user's foreground: run stopped (handed back H, refused R)" and visrun exits with status 5. visrun.log
+then also holds the foreground window's class, title, style, extended style, thread and process, the milliseconds since
+the launch, and the last 30 lines of net.log that start with the game's pid, so the cause is in one place.
 
 ## The network block (always on)
 

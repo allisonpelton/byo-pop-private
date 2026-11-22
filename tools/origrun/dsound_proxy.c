@@ -51,6 +51,7 @@ void net_install(HMODULE self);
 void net_detach(void);
 void act_install(void);   // activation.c
 void act_detach(void);
+void act_thread_attach(void);   // the CBT block on a new thread
 int  vclock_ms(double* out);
 
 static void log_init(void)
@@ -626,7 +627,8 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppv)
 
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r)
 {
-	if (reason == DLL_PROCESS_ATTACH) { DisableThreadLibraryCalls(h); coverage_install(); count_install(); log_init(); net_install(h); act_install(); vclock_install(h); mute_start(); }
+	if (reason == DLL_PROCESS_ATTACH) { coverage_install(); count_install(); log_init(); net_install(h); act_install(); vclock_install(h); mute_start(); }
+	else if (reason == DLL_THREAD_ATTACH) act_thread_attach();
 	else if (reason == DLL_PROCESS_DETACH) { log_status_summary(); net_detach(); act_detach(); vclock_detach(); coverage_detach(); count_detach(); }
 	return TRUE;
 }
