@@ -3,7 +3,9 @@
 #include "StageMgr.h"
 
 #include "ConfigParser.h"
+#include "PlayerInfo.h"
 #include "SexyAppBase.h"
+#include "MTRand.h"
 
 using namespace Sexy;
 
@@ -211,4 +213,50 @@ void StageMgr::ReadConfig(const std::string& theFileName)
 void StageMgr::Load(const char* theFileName)
 {
 	ReadConfig(theFileName == nullptr ? STAGES_FILE : theFileName);
+}
+
+// 0x459060 (the original first lowers the limits to what an unregistered game may play: a registered game, the only kind here,
+// is not held back)
+void StageMgr::GetRandomLevel(int theMaxStage, int theMaxLevel, int* theStage, int* theLevel, bool theSkipExcluded, int theMinGap,
+							  bool theRetry)
+{
+	std::vector<LevelInfo*> aChoices;
+	for (int aStage = 0; aStage < (int)mStages.size(); aStage++)
+	{
+		StageInfo& aStageInfo = *mStages[aStage];
+		for (int aLevel = 0; aLevel < (int)aStageInfo.mLevels.size(); aLevel++)
+		{
+			LevelInfo* aLevelInfo = aStageInfo.mLevels[aLevel].get();
+			if ((aStage == *theStage && aLevel == *theLevel) || theMaxStage < aStage || (aStage == theMaxStage && theMaxLevel < aLevel) ||
+				(theSkipExcluded && aLevelInfo->mExcludedFromRandom) || (0 < theMinGap && mUseCounter - aLevelInfo->mLastUseTime < theMinGap))
+				continue;
+			aChoices.push_back(aLevelInfo);
+		}
+	}
+	if (aChoices.empty())
+	{
+		if (theRetry)
+		{
+			ResetLastUseTimes();
+			GetRandomLevel(theMaxStage, theMaxLevel, theStage, theLevel, theSkipExcluded, theMinGap, false);
+		}
+		return;
+	}
+	LevelInfo* aPick = aChoices[Rand() % (int)aChoices.size()];
+	if (0 < theMinGap)
+		MarkLastUseTime(*aPick);
+	*theStage = aPick->mStageIndex;
+	*theLevel = aPick->mLevelIndex;
+}
+
+// 0x4592b0 and 0x4592e0
+LevelInfo* StageMgr::GetRandomLevel(const PlayerInfo* thePlayer, bool theSkipExcluded, int theMinGap)
+{
+	int aStage = -1;
+	int aLevel = -1;
+	GetRandomLevel(thePlayer->mMaxStage, thePlayer->mMaxLevel, &aStage, &aLevel, theSkipExcluded, theMinGap, true);
+	StageInfo* aStageInfo = GetStageInfo(aStage);
+	if (aStageInfo == nullptr)
+		return nullptr;
+	return aStageInfo->GetLevelInfo(aLevel);
 }

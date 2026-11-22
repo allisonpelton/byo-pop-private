@@ -226,7 +226,7 @@ void SoundSystem::playMusic(int theBegin, int theEnd, int theStartOrder, int the
 			host()->playSong(gMusic);
 			host()->setSongOrder(gMusic, theStartOrder);
 			host()->setSongVolume(gMusic, aVolume);
-			mMusicStart = host()->getTicks();
+			mMusicStart = host()->getMusicTicks();
 			mMusicLength = (theEnd - theBegin) * 1000 + 500;
 			mStopOrder = theStopOrder;
 			gMusicPlaying = true;
@@ -240,7 +240,7 @@ void SoundSystem::playStream(const Str& theName, float theFactor)
 	if (!gInitialized)
 		return;
 	Str aPath = soundDir(true) + theName;
-	mMusicStart = host()->getTicks();
+	mMusicStart = host()->getMusicTicks();
 	mMusicLength = 0;
 	mStopOrder = 0;
 	stopMusic();
@@ -274,13 +274,13 @@ void SoundSystem::update()
 	if (gStreamChannel != -1 && !host()->isPlaying(gStreamChannel))
 		stopMusic();
 	if (mStopOrder != 0 && gMusicPlaying && gMusic != nullptr && isMusicPlaying() &&
-		(int)(mMusicStart + 10000) < (int)host()->getTicks())
+		(int)(mMusicStart + 10000) < (int)host()->getMusicTicks())
 	{
 		int anOrder = host()->getSongOrder(gMusic);
 		if (anOrder != gLastOrder)
 		{
 			gLastOrder = anOrder;
-			gLastOrderTime = host()->getTicks();
+			gLastOrderTime = host()->getMusicTicks();
 		}
 		if (mStopOrder < anOrder)
 			stopMusic();

@@ -221,7 +221,7 @@ void MMApp::DoTutorial()
 // 0x41cc30
 void MMApp::ConfirmQuit()
 {
-	DoMessage(DIALOG_QUIT, "", GT(0x00494140), 1, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
+	DoMessage(DIALOG_QUIT, GT(0x00494138), GT(0x00494140), 1, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 }
 
 // 0x41cfb0: the way back to the menu, with the question that goes with the state of the game

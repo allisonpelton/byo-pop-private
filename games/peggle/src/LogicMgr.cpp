@@ -689,3 +689,11 @@ void LogicMgr::ReInitLevel()
 {
 	NOT_TRANSLATED("LogicMgr::ReInitLevel");
 }
+
+// 0x43f020
+void LogicMgr::SetCharacters(int theFirst, int theSecond)
+{
+	mCharacter[0] = theFirst;
+	mCharacter[1] = theSecond;
+	mBoard->mCharacterMgr->SetCurCharacter(mCharacter[mCurPlayer]);
+}

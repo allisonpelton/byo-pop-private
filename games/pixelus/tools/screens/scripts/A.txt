@@ -1,0 +1,25 @@
+152 click 320 453 #button
+215 click 242 329 #button
+275 click 374 264 #button
+300 click 234 280
+360 click 320 325 #button
+390 click 234 280
+410 click 320 236
+420 char B
+422 char o
+424 char t
+440 click 242 329 #button
+540 click 180 85 #button
+600 click 242 369 #button
+660 click 398 399 #button
+690 click 398 369 #button
+750 click 436 222 #button
+780 click 398 408 #button
+810 click 458 418 #button
+870 click 382 304 #button
+900 click 490 276 #button
+960 click 320 333 #button #o 320 366
+1040 click 320 386 #button
+1080 click 320 297 #button #o 320 293
+1200 click 550 455 #button
+1240 click 320 370 #button #o 320 402

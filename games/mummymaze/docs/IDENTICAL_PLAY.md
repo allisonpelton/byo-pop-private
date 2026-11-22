@@ -313,3 +313,53 @@ without the mod.
   explorer and the real-time command driver was too slow on the loaded machine, so the native side rests on the scripted runs above
   (a press of one update and up) and on the code, which is the page's code. The native window for a lost tap is an update (10 ms),
   the page's a frame (16.7 ms); the mod's `keyTaps` covers both the same way wherever the mod is loaded.
+
+# The screen pass (2026-11-22): every screen listed and compared
+
+## What was added
+
+`docs/SCREENS.md` lists every screen the game reaches, each with its shots; 503 shots are compared, port against original, 2D,
+windowed, 640x480 (full screen draws the same frame), in the shotdiff run `screens-mm` (125 match, 323 differ only faintly, 55
+differ and each of those is explained below). Eleven scenarios under `tools/identical/scenarios/` (`menus`, `advsaves`, `clsgo`,
+`late`, `pyr`, `tut`, `advplay`, `trapblock`, `trappit`, `badsave`, `ankhmsg`) reach what the earlier passes had not: the menu's slide
+in, the name entry with its invalid and used names, the world map for a new explorer and for five saved ones (made by
+`craft_saves.py` from a save the port wrote), every map message, the adventure list with Delete Game, the entry tip and first
+chambers of five pyramids, the Game Over slide with the score table, the tutorial's steps, the last chamber and treasure of a
+pyramid, the skull trap and pit deaths frame by frame, the Ankh message and a save of another format. The originals ran on the
+host with the in-game frame reader (`tools/origrun/mummymaze.cfg`, about 19 times the real speed), the port under rundesk. The
+tour (`tools/identical/tour.sh`, run by `tools/check.sh mummymaze`) plays the same scenarios again with the port and with the
+frozen baseline and compares every shot; the saves it needs are made by the port at check time.
+
+## Differences found, with their causes
+
+- **Slider bars jumped to the click.** The original's slider starts a drag only when the press is on the thumb; the framework's
+  jumped the bar to the click. `Slider2003` (Dialogs.h) overrides `MouseDown`.
+- **The "GAME OVER" text slid at the wrong height.** The original's high-score slide adds the widget's height (+0x14) to the
+  offset, as the scroll does; the port used its y. `HighScoreSlide::Draw` (Screens2.cpp) now adds `mHeight`.
+- **A saved adventure's progress was rejected by the original.** The web-string alphabet of the original starts "+-0123..."; the
+  framework wrote "." for a zero. `Buffer::sWebZeroChar` (shared, framework/Buffer.cpp) lets a game set it; Mummy Maze sets '+'.
+  Only the crafted saves showed it (the port reads both).
+- **The Quit dialog's header** read as the confirm text; it is "Quit" in the original (`ConfirmQuit`, MummyFlow.cpp).
+- **Hover on the original's buttons did not light under the harness** because the original checks the mouse is inside its window
+  in the timer handler; the git-ignored origrun patch (`test`, one compare at 0x437b89) answers that check, so the original's
+  hover is lit as with a real mouse. It is a harness patch only.
+- **Name entry lost its focus** after the invalid-name message in the original; the scenario clicks the edit field before typing.
+
+## Deviations (each from a decision, not a defect)
+
+- **"Deluxe" on the title.** The user's order of 2026-11-18: "Remove the "Deluxe" text from the main screen of any game it may
+  appear in, to avoid misleading people about whose game version they're playing". `CoverDeluxe` paints over it in the player's own
+  title image at load; no edited image is committed. The CMake TITLE stays "Mummy Maze"; "Deluxe" stays where the port finds its
+  files and in speedrun.com's game names. Title shots are explained: the registration texts are also gone.
+- **Registration and outbound buttons** (Register and Visit PopCap in Options, "Submit to Internet High Score List" on the
+  level-complete and Game Over screens) are removed; the shots of Options, High Scores, Credits, the late game and the classic
+  game's links differ there and are explained in `SCREENS.md`.
+
+## Oddities
+
+- **The Beach picture's fade-in** after the treasure's reward link: the original's picture is brighter and ahead early (late
+  a01570 to a01735), level with the port about 180 updates on. The fade code (`mFade += 1.0` per update) is the same in both and
+  the cause was not found within the hour; to see it, play `late.txt`. It would take tracing the original's fade start.
+- **A saved adventure whose format number is not 2:** the original reads it without a message (its map constructor calls its
+  helpers and keeps loading); the port shows "Bad Save Game File". Reached with `badsave.txt`; a save of another version is not
+  something a player has.

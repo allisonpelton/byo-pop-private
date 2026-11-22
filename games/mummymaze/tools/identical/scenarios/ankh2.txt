@@ -1,0 +1,8 @@
+# ankh2: one saved adventure whose explorer stands in the sixth pyramid: the board of its next chamber
+99 title
+900 click 185 426
+1000 click 320 137
+1100 click 80 466
+1260 click 395 317
+1700 shot b4
+1900 quit

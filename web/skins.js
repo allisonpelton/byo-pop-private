@@ -686,10 +686,15 @@ var ByopopSkin = (function () {
         el.classList.add("d95-has-body");
         scrollbar(box);
       }
-      // a part that scrolls on its own (a panel's body, the chat's messages) gets the drawn scroll bar too
-      // (one made later, as the chat's, once it is there)
+      // a part that scrolls on its own (a panel's body, the chat's messages and its people) gets the drawn scroll bar too
+      // (one made later, as the chat's, once it is there); o.scroll is an element or selectors, a comma between two parts
       if (o.scroll) {
-        var findArea = function () { var a = typeof o.scroll === "string" ? el.querySelector(o.scroll) : o.scroll; if (a) scrollbar(a); return !!a; };
+        var findArea = function () {
+          if (typeof o.scroll !== "string") { scrollbar(o.scroll); return true; }
+          var parts = o.scroll.split(","), found = 0;
+          parts.forEach(function (sel) { var a = el.querySelector(sel.trim()); if (a) { scrollbar(a); found++; } });
+          return found === parts.length;
+        };
         if (!findArea() && window.MutationObserver) { var mo = new MutationObserver(function () { if (findArea()) mo.disconnect(); }); mo.observe(el, { childList: true, subtree: true }); }
       }
       handle.classList.add("d95-handle");
@@ -1145,7 +1150,8 @@ var ByopopSkin = (function () {
           wins.forEach(function (w) { if (w.id !== "panel-settings" && w.id !== "about" && !/^set-/.test(w.id) && !(w.id === "chat" && w.el.hidden)) win(w.id); });
         }
         list.appendChild(rule());
-        win("about", T("skin.desk.about"));
+        // About, or System Information on the listing page (web/sysinfo.js): the window's own title
+        win("about");
         if (!listing) {
           list.appendChild(rule());
           var allPic = drawnPic("games"); allPic.classList.add("d95-icon-games");
@@ -2187,7 +2193,7 @@ var ByopopSkin = (function () {
       var ab = find("about"), keysLine = ab && ab.el.querySelector(".d95-keys");
       if (on && ab && !keysLine) {
         keysLine = document.createElement("p"); keysLine.className = "d95-keys"; keysLine.textContent = T("skin.desk.keys");
-        (ab.el.querySelector(".d95-body") || ab.el).appendChild(keysLine);
+        (ab.el.querySelector(".sy-general") || ab.el.querySelector(".d95-body") || ab.el).appendChild(keysLine);
       } else if (!on && keysLine) keysLine.parentNode.removeChild(keysLine);
       activate(on ? frontmost() : null);
     }

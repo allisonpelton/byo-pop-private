@@ -146,7 +146,7 @@ resume question; `worlds`: a profile that has reached every level, the map with 
 each world's boards, the power-ups) are played on the original (`tools/play/runall.sh`, origrun in Windows Sandbox, windowed,
 the virtual clock, the seed pinned, ten steps a frame as the port's runner) and on the port's runner, from the same events
 (`tools/play/tour.py` makes both scripts), 362 shots, compared by `tools/shotdiff` (`games/waterbugs/shotdiff.json` crops the
-original's window frame). `tools/check.sh screens` passes on the newest run (`r3`).
+original's window frame). `tools/check.sh screens` passes on the newest run (`r4`, below).
 
 **What was wrong with the first runs, and not with the port.** (1) The input gate `--input-eip 41f467,41f511` held every move
 and click for thousands of updates, because the ten-step frame's wait sits inside that range: the original's shots landed
@@ -158,7 +158,7 @@ play ends the saved game's lives and a Start with no lives begins a new game ins
 now goes last, with the story skipped and one line a key so the board outlasts the keys. Both sides did the same thing in
 every case; the tour was what was wrong.
 
-**Differences.** Of 362 pairs, 9 match, 236 differ only faintly, and 117 differ visibly. Every one of the 117 is a board, or a
+**Differences.** Of 362 pairs (the first run, `r3`), 9 match, 236 differ only faintly, and 117 differ visibly; after the changes below (run `r4`, the tours played on the original again and on the port) 9 match, 249 differ only faintly and 104 differ visibly, 652,000 visible pixels in all against 1.14 million between the first run's worlds pairs and the original's own second run. Every one of the 117 (and of the 104: 103 are `worlds` boards or the screens after a load, one is `e_shot1`, 70 pixels) is a board, or a
 screen after a board has been loaded, and in the pixel maps and crops that were looked at (the menus and maps after a load: bubbles
 only; boards: the place of a bug or a sprite's animation frame, a few dozen pixels) it is a bubble, a bug or a beam's piece at
 another place. The cause is not the port. Two runs of the original's `worlds` tour differ from each other in 84 of 194 pairs, with
@@ -171,8 +171,7 @@ have taken different turns, nothing in the port is to be fixed, and no code was 
 every row that has them (`SCREENS.md`).
 
 **The baseline.** Because the port's pictures vary from run to run, `games/waterbugs/test/tours.frozen` holds the pixel hash of
-each shot that was whole in six runs (202 of 362), and `tools/check.sh waterbugs` plays the three tours once and wants all 362 shots present and at most 8 of those 202 changed (one shot whole in six runs
-came out otherwise in the seventh; a change of the drawing changes nearly all) (`tools/play/tourcheck.py`; the suite takes about three minutes more).
+each of the 362 shots (all equal in eight runs), and `tools/check.sh waterbugs` plays the three tours once and wants all 362 shots present and unchanged (see the last paragraph) (`tools/play/tourcheck.py`; the suite takes about three minutes more).
 
 **Full screen.** The original cannot be played full screen in Windows Sandbox: with `fullscreen="1"` it stops with "Screen Setup
 Failed: 800x600 16bit screen could not be opened". Its picture is the same 800x600 surface in both modes; the port's full screen is
@@ -200,3 +199,23 @@ two entries of one depth by their addresses, as the original does, so a run's he
 above, `bb5ced7`), which was not re-proved here by making the order stable. A fixed update for the load would therefore not
 make the tour baseline exact; only an ordering by something other than an address would, and that would be a change from the
 original's order, with the original's own runs already differing the same way. So the baseline keeps its allowance (8 of 202).
+
+**Same-depth sprites in the order they were made (2026-11-22, the trunk check of the merge).** The exe trim (section GC, a static
+libc++) moved every allocation, and with it the draw list's tie-break by address, so eight menu shots of the baseline changed. The
+port now takes the tie-break from the order objects were made in (`Obj_DrawSeq`, a serial set in `Obj_Init`; WBObj.cpp, and the
+stars in WBShooter.cpp), which is what consecutive allocations give in the original; its own order varies from run to run, so this has no
+visible effect of its own (DEVIATIONS.md). Of the runs of the three tours, the shots that agree in every run went from 202 to 334 of
+362 (351 of 362 in three runs). What was left was not the order, and is found (next paragraph).
+
+**The rest of the spread: memory the original leaves unset (2026-11-22).** In about one run in three a board played out otherwise.
+A log of every random draw with its caller (a temporary change to `Rand`, not kept) over 24 runs of the first 31 s of the `worlds` tour
+showed where: the runs that differ draw two more numbers in `TurtleWalker_Move` (0x4772.. in the log's build) in the frame the
+`.` key makes a board. A turtle's first update compares the sign of `mPrevVx` (+0xf8) with the sign of its speed, and `Enemy_Init`
+never sets `mPrevVx`: a block from the C heap holds what was there, the sign differs or not, and the turtle's `mAge` is reset
+to 2000 or not, which decides whether it draws for a puff. The original has the same unset field (its heap decides), so its own
+runs differ the same way; that is the original's variation reported above. The port now takes a game object's memory zeroed
+(`NewZeroed`, WBGame.h, at every `operator new(sizeof(...))` of the game's code), so every run starts the same: 40 runs of those
+31 s drew the same numbers from the same callers in the same frames, and eight runs of the three tours gave 362 shots equal in
+every run. `games/waterbugs/test/tours.frozen` holds all 362 and `tools/check.sh waterbugs` wants all of them unchanged and present
+(`LOOSE = 0` in `tourcheck.py`). Zero is one of the starts the original can have (a fresh page of its heap is zero); the pictures
+against the original were taken again after this change (run `r4`: fewer visible differences than before, 104 against 117, none new in kind), so the zeroed start shows no visible change of its own.

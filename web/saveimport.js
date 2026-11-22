@@ -422,14 +422,17 @@ var ByopopSaveImport = (function () {
     // heading, the fields it needs, at most one short line), and Back, Next and Cancel. The pages: the game; its save folders
     // (when it keeps files); the registry commands and then the .reg files (when it keeps values there); what would be imported,
     // where Next is Import. A fact a field needs is its tooltip and its description.
-    root.appendChild(make("h3", "", ByopopStrings.t("saveimport.title")));
+    // in a group box of the Saves window's (web/saves.js)
+    var frame = make("fieldset", "sv-group si-group");
+    frame.appendChild(make("legend", "", ByopopStrings.t("saveimport.title")));
+    root.appendChild(frame);
     var wiz = make("div", "si-wiz");
     var art = make("div", "si-art");
     art.setAttribute("aria-hidden", "true");
     art.appendChild(make("i", "si-art-disk"));
     var pagesEl = make("div", "si-pages");
     wiz.appendChild(art); wiz.appendChild(pagesEl);
-    root.appendChild(wiz);
+    frame.appendChild(wiz);
 
     function page(title) {
       var pg = make("section", "si-page");
@@ -471,9 +474,7 @@ var ByopopSaveImport = (function () {
     var nav = make("div", "si-nav");
     function navButton(key) { var b = make("button", "", ByopopStrings.t(key)); b.type = "button"; nav.appendChild(b); return b; }
     var backBtn = navButton("saveimport.back"), nextBtn = navButton("saveimport.next"), cancelBtn = navButton("saveimport.cancel");
-    root.appendChild(nav);
-    var report = make("div", "si-report");
-    root.appendChild(report);
+    frame.appendChild(nav);
 
     function onReview() { return pages[at] === reviewPage; }
     function syncNav() {
@@ -501,7 +502,7 @@ var ByopopSaveImport = (function () {
     var copyStatus = make("p", "pl-sr");
     copyStatus.setAttribute("role", "status");
     copyStatus.setAttribute("aria-live", "polite");
-    root.appendChild(copyStatus);
+    frame.appendChild(copyStatus);
 
     // the box is a dialog only while its question is shown (its name and text are made with it)
     function resetPlan() {
@@ -514,7 +515,6 @@ var ByopopSaveImport = (function () {
       chosen = sel.value || null;
       picks = { folder1: [], folder2: [], regs: [] };
       resetPlan();
-      report.textContent = "";
       renderHelp();
       syncNav();
     });
@@ -651,7 +651,6 @@ var ByopopSaveImport = (function () {
     var token = 0;
     function refresh() {
       resetPlan();
-      report.textContent = "";
       if (!chosen) return;
       if (!picks.folder1.length && !picks.folder2.length && !picks.regs.length) {
         if (onReview()) { box.hidden = false; box.appendChild(make("p", "si-line", ByopopStrings.t("saveimport.choose_first"))); }
@@ -855,13 +854,9 @@ var ByopopSaveImport = (function () {
         });
       }).then(function (n) {
         resetPlan();
-        report.textContent = "";
-        report.appendChild(make("h3", "", ByopopStrings.t("saveimport.done.title")));
-        var ul = make("ul", "sv-list");
         var counts = {title: g.title, values: plural(n.reg, "saveimport.n.registry_value"), files: plural(n.files, "saveimport.n.file")};
-        ul.appendChild(make("li", "", ByopopStrings.t("saveimport.done.line", counts)));
-        report.appendChild(ul);
         ctx.say(ByopopStrings.t("saveimport.done.said", counts));
+        ctx.show(make("p", "", ByopopStrings.t("saveimport.done.said", counts)));   // in a message box (web/saves.js, show)
         picks = { folder1: [], folder2: [], regs: [] };
         renderHelp();
         syncNav();

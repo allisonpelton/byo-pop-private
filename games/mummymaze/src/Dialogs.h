@@ -110,6 +110,17 @@ public:
 
 // 0x4250f0: the options: music and sound volume, the speed of the game, four switches, and the way to the tutorial, the
 // registration, the high scores, the web site and the credits
+// The original's Slider (WinMM.exe 0x43dbd0) starts a drag only on the thumb; a click on the bar changes nothing. The later
+// framework's Slider moves the thumb to the click, which a script's click on the bar showed (the thumb moved in the port only).
+class Slider2003 : public Slider
+{
+public:
+	Slider2003(Image* theTrackImage, Image* theThumbImage, int theId, SliderListener* theListener) :
+		Slider(theTrackImage, theThumbImage, theId, theListener) {}
+
+	virtual void MouseDown(int x, int y, int theClickCount) override;
+};
+
 class OptionsDialog : public Dialog2004, public SliderListener, public CheckboxListener
 {
 public:
