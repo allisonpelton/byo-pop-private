@@ -1,0 +1,17 @@
+# The fruit award: TWISTBOT's saved Classic game (prep-fruit: a plain first game at update 1250 whose multiplier's steps,
+# bytes 727 to 730 of the save, are 151, and its bomb count 1 as gameover's), the continue question and the zen jump
+# answered Classic, then the bot's twist, whose match takes the steps past 151: the fruit's trail from the tube and the
+# fruit gem (gen.py)
+400 click 400 300        # Play
+650 click 200 170        # Classic: a saved game, so the question
+905 click 200 360        # Continue
+1305 click 650 300       # Classic: the game goes on
+1605 move 379 172
+1610 click 379 172       # the bot's twist (row 1, column 1)
+1660 shot f01_multiplier
+1720 shot f02_trail
+1760 shot f03_trail_b
+1800 shot f04_fruit
+1860 shot f05_fruit_gem
+1860 state
+1865 end

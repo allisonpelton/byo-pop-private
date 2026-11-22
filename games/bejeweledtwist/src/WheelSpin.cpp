@@ -1,6 +1,7 @@
 #include "WheelSpin.h"
 
 #include "Board.h"
+#include "DDImage.h"
 #include "EffectsManager.h"
 #include "GameText.h"
 #include "Graphics.h"
@@ -792,11 +793,16 @@ void WheelSpin::DrawHole(Graphics* g, int theX, int theY, float theDark, float t
 void WheelSpin::MakeCache()
 {
 	// The screen as it is (the board, its overlays and with them this wheel) with the hole, the alert ring and the
-	// arms, so the board need not be drawn while the wheel stands. The original's DDImage has no alpha.
-	MemoryImage* aCache = new MemoryImage(gApp);
+	// arms, so the board need not be drawn while the wheel stands. A DDImage, as the original's (0x404880): its
+	// stretches are the software screen's (DDImage::StretchBlt, 0x41a3e0), which draw the hole with its colour, where a
+	// MemoryImage's fast stretch draws nothing for a colour other than white. The original's is a DirectDraw surface,
+	// without alpha whatever its flags; the port's DDImage stretches so only into a picture without alpha or
+	// transparency, and Create sets both, so the mode is set again after it
+	DDImage* aCache = new DDImage(gApp->mDDInterface);
 	mCache = aCache;
 	aCache->SetImageMode(false, false);
 	aCache->Create(mWidth, mHeight);
+	aCache->SetImageMode(false, false);
 	Graphics aG(aCache);
 	aG.SetFastStretch(true);
 	aG.SetLinearBlend(false);
