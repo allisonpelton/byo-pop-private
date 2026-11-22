@@ -11,8 +11,14 @@ import re, sys
 ASK_NO = ("at 400 move 436 306", "at 410 click 436 306")
 
 src, delta = sys.argv[1], int(sys.argv[2])
+import os
 for line in ASK_NO:
-    print(line)
+    if not os.environ.get('NOASK'):
+        print(line)
+if os.environ.get('NOASK'):
+    # on the host the update check's "Up to Date" box (OK at 314,236) comes up over the loading screen instead of the first-run question
+    print('at 2500 move 314 236')
+    print('at 2510 click 314 236')
 out = []
 for line in open(src):
     button = '#button' in line
