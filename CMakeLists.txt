@@ -459,6 +459,10 @@ endif()
 if(BUILD_BEJEWELED3 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweled3/CMakeLists.txt)
   add_subdirectory(games/bejeweled3)
 endif()
+# Zuma's Revenge!: optional while it is new; the build skips it if its folder is missing
+if(BUILD_ZUMASREVENGE AND EXISTS ${PROJECT_SOURCE_DIR}/games/zumasrevenge/CMakeLists.txt)
+  add_subdirectory(games/zumasrevenge)
+endif()
 # Bejeweled 2 Deluxe: optional while it is new; the build skips it if its folder is missing
 option(BUILD_BEJEWELED2 "Build the Bejeweled 2 Deluxe port" ON)
 if(BUILD_BEJEWELED2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweled2/CMakeLists.txt)

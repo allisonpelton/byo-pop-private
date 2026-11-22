@@ -2239,7 +2239,7 @@ void EndStats::Draw(Graphics* g)
 	float aMult = 0;
 	if (mStats[33] != 0)
 		aMult = (float)((long double)mStats[57] / (long double)mStats[33]);
-	aStr = StrFormat(mApp->GetString(GTS(0x7e2260)).c_str(), (double)aMult);
+	aStr = CrtFormatFloat(mApp->GetString(GTS(0x7e2260)), (double)aMult);  // 5/4 shows as x1.3, as the original's
 	g->DrawString(aStr, Ftol((double)mApp->mScale * 950.0), aY);
 
 	// The replays' scores

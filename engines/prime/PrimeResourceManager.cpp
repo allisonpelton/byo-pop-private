@@ -763,7 +763,7 @@ bool PrimeResourceManager::ParseResourcesFile(const std::string& theFilename)
 			if (anElement.mValue != _S("ResourceManifest"))
 				break;
 			XMLParamMap::iterator aVersion = anElement.mAttributes.find(_S("version"));
-			if (aVersion == anElement.mAttributes.end() || sexyatoi(aVersion->second.c_str()) != 2)
+			if (mRequireVersion2 && (aVersion == anElement.mAttributes.end() || sexyatoi(aVersion->second.c_str()) != 2))
 				Fail("Expecting ResourceManifest tag with version 2; please make sure your version of ResourceGen3 is current");
 			return DoParseResources();
 		}
