@@ -108,7 +108,7 @@ void Table::layout()
 // nothing (every table of the game has a model before it is shown).
 void Table::draw(Graphics* g)
 {
-	g->setColor(mBackgroundColor.r, mBackgroundColor.g, mBackgroundColor.b);
+	g->setColor(mBackgroundColor.r, mBackgroundColor.g, mBackgroundColor.b, mBackgroundColor.a);
 	g->pushState();
 	g->fillRect(Rect(0, 0, mBounds.right - mBounds.left, mBounds.bottom - mBounds.top));
 	g->popState();
@@ -119,7 +119,7 @@ void Table::draw(Graphics* g)
 	if (!mModel->isReady())
 	{
 		std::string aStatus = mModel->getStatus();
-		g->setColor(mTextColor.r, mTextColor.g, mTextColor.b);
+		g->setColor(mTextColor.r, mTextColor.g, mTextColor.b, mTextColor.a);
 		g->setColorMode(2);
 		g->setHAlign(1);
 		g->setVAlign(1);
@@ -137,13 +137,13 @@ void Table::draw(Graphics* g)
 	{
 		if (aRow == mSelectedRow)
 		{
-			g->setColor(mSelectionBackgroundColor.r, mSelectionBackgroundColor.g, mSelectionBackgroundColor.b);
+			g->setColor(mSelectionBackgroundColor.r, mSelectionBackgroundColor.g, mSelectionBackgroundColor.b, mSelectionBackgroundColor.a);
 			g->setColorMode(0);
 			g->fillRect(Rect(0, aY, mBounds.right - mBounds.left, aY + aLineHeight));
-			g->setColor(mSelectionTextColor.r, mSelectionTextColor.g, mSelectionTextColor.b);
+			g->setColor(mSelectionTextColor.r, mSelectionTextColor.g, mSelectionTextColor.b, mSelectionTextColor.a);
 		}
 		else
-			g->setColor(mTextColor.r, mTextColor.g, mTextColor.b);
+			g->setColor(mTextColor.r, mTextColor.g, mTextColor.b, mTextColor.a);
 		g->setColorMode(2);
 		for (size_t i = 0; i < mColumns.size(); i++)
 		{

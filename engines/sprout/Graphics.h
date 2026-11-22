@@ -108,8 +108,11 @@ struct RenderState
 	int mColorMode;          // +0x40 bits 4-5 (pizzafrenzy): 0 none, 1 add the colour, 2 multiply by the colour
 	int mSmoothType;         // +0x40 bit 6 (pizzafrenzy): 1 draws without snapping the position to whole pixels
 	Ref<BltFx> mBltFx;       // +0x2c (pizzafrenzy)
+	float mColorAlpha;       // +0x24 (pizzafrenzy): the colour's alpha, set only with it (0x477ef0); the fill reads it
 
-	RenderState() : mScale(1, 1), mRotation(0), mOpacity(1), mFlags(0), mColorMode(0), mSmoothType(0) {}
+	RenderState() : mScale(1, 1), mRotation(0), mOpacity(1), mFlags(0), mColorMode(0), mSmoothType(0), mColorAlpha(1)
+	{
+	}
 };
 
 // The bit fields of RenderState::mFlags (masks and shifts at 0x497200..0x49721c (wordharmony))
@@ -176,10 +179,12 @@ public:
 
 	// The signal build's state (Pizza Frenzy's draw context, vtable 0x50ab0c (pizzafrenzy)
 	// and base 0x502b70 (pizzafrenzy))
-	// 0x477ef0 (pizzafrenzy): the colour with an alpha, which the port does not keep (the draw reads the three)
+	// 0x477ef0 (pizzafrenzy): the colour with an alpha (the three-value form, 0x477ec0 (pizzafrenzy), leaves the alpha
+	// as it was); of the draws only the fill reads the alpha
 	void setColor(float theRed, float theGreen, float theBlue, float theAlpha)
 	{
 		setColor(theRed, theGreen, theBlue);
+		state().mColorAlpha = theAlpha;
 	}
 	const Color& getColor() { return state().mColor; }                        // 0x477f20 (pizzafrenzy)
 	void setColorMode(int theMode);                                           // 0x477f50 (pizzafrenzy)

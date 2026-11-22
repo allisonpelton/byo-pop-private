@@ -154,7 +154,7 @@ public:
 	Signal<> mMinimizeSignal;             // +0xd4: SC_MINIMIZE
 	Signal<> mMaximizeSignal;             // +0xe4: SC_MAXIMIZE
 	Signal<> mRestoreSignal;              // +0xf4: SC_RESTORE
-	Signal<int> mTimerSignal;             // +0x104: WM_TIMER 1, every 100 ms: 100
+	Signal<int> mTimerSignal;             // +0x104: WM_TIMER 1, every 100 ms while the window is dragged or sized: 100
 	// The signal build's last mouse position in the screen's pixels (+0x264 (pizzafrenzy)), which the host keeps as
 	// the window procedure did (0x4bd050 (pizzafrenzy)); slot 0xc8 (pizzafrenzy) returns it
 	Point mMousePosition;
