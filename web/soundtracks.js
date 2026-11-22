@@ -57,6 +57,8 @@ var ByopopSoundtracks = {
     composer: "Peter Hajba (Skaven)",
     files: ["music/*.s3m"],
     where: { "alch_intro#0": "Title Screen", "1985-hehasnoface#0": "In-Game" },
+    // (each module's own title, read from the file as it plays)
+    titles: { "alch_intro#0": { own: true }, "1985-hehasnoface#0": { own: true } },
     order: ["alch_intro#0", "1985-hehasnoface#0"],
     when: {
       "alch_intro#0": "Order 0 from launch, over the loading title screen; fades out (0.004) when loading completes",
@@ -105,6 +107,8 @@ var ByopopSoundtracks = {
     composer: "Peter Hajba (Skaven)",
     files: ["music/*.s3m"],
     where: { "1980-Autonomus#0": "Title Screen", "1984-Network#0": "Normal Mode", "1981-DataJack#0": "Timed Mode" },
+    // (each module's own title, read from the file as it plays)
+    titles: { "1980-Autonomus#0": { own: true }, "1984-Network#0": { own: true }, "1981-DataJack#0": { own: true } },
     order: ["1980-Autonomus#0", "1984-Network#0", "1981-DataJack#0"],
     when: {
       "1980-Autonomus#0": "From launch on the title screen; fades out (0.004) when it finishes",
@@ -182,7 +186,10 @@ var ByopopSoundtracks = {
       "bejewel twist 06.10#3": "Game Over", "bejewel twist 06.10#4": "Victory", "bejewel twist 06.10#5": "Main Menu",
       "bejeweledtwist24#0": "Blitz", "bejeweledtwist24#0@24": "Blitz 3 Minutes", "bejeweledtwist24#1": "Blitz Results 1", "bejeweledtwist24#2": "Blitz Results 2",
       "bejeweledtwist24#3": "Blitz Results 3", "bejeweledtwist24#4": "Challenge Menu", "bejeweledtwist24#5": "Turn-Based Challenge",
-      "bejeweledtwist24#6": "Unlimited Challenge", "bejeweledtwist24#7": "Bonus" },
+      "bejeweledtwist24#6": "Untimed Challenge", "bejeweledtwist24#7": "Bonus" },
+    // the composer's own names for its parts, by their orders in the module's message (read from the file as it plays; order
+    // 63's, an untimed challenge, is the place of #6 as well)
+    titles: { "bejeweledtwist24#0@24": { line: "24" }, "bejeweledtwist24#4": { line: "48" }, "bejeweledtwist24#7": { line: "79" } },
     order: ["bejewel twist 06.10#7", "bejewel twist 06.10#5", "bejewel twist 06.10#0", "bejewel twist 06.10#1",
       "bejewel twist 06.10#2", "bejewel twist 06.10#6", "bejewel twist 06.10#7@73", "bejewel twist 06.10#8",
       "bejewel twist 06.10#4", "bejewel twist 06.10#3", "bejeweledtwist24#0", "bejeweledtwist24#7", "bejeweledtwist24#1",
@@ -240,6 +247,8 @@ var ByopopSoundtracks = {
   bookworm: {
     composer: "Peter Hajba (Skaven)",
     files: ["music/*.mo3"],
+    // (the song the module's message names in brackets for the Hall of Fame's orders, read from the file as it plays)
+    titles: { "bookworm1#4": { line: "5/9", inner: true } },
     where: { "bookworm1#0": "Classic Mode", "bookworm1#1": "Title Screen", "bookworm1#2": "Action Mode",
       "bookworm1#3": "Danger 1", "bookworm1#4": "Hall of Fame", "bookworm1#5": "Game Over 2", "bookworm1#6": "Game Over 1",
       "bookworm1#7": "Danger 2" },
@@ -329,6 +338,8 @@ var ByopopSoundtracks = {
     where: { "amazonas#0": "Fossil Challenge", "amazonas#1": "Title Screen", "amazonas#2": "Game Over", "amazonas#4": "Time Trial Clear",
       "amazonas#5": "Game Start", "amazonas#6": "Time Trial", "amazonas#2@64": "Challenge Won", "amazonas#7": "Endless", "amazonas#8": "Museum",
       "omniphilia#0": "Stomped" },
+    // (the song the module's message names at orders 00-20, and Omniphilia's own title, read from the files as they play)
+    titles: { "amazonas#0": { line: "00-20" }, "omniphilia#0": { own: true } },
     order: ["amazonas#1", "amazonas#5", "amazonas#0", "amazonas#8", "amazonas#2@64", "amazonas#6", "amazonas#4",
       "amazonas#7", "omniphilia#0", "amazonas#2"],
     when: {
@@ -392,6 +403,8 @@ var ByopopSoundtracks = {
     composer: "Hannu Salonen",
     files: ["music/*.it"],
     cuts: { "game#9": [67], "game#10": [77] },
+    // (the name the module's message gives the victory tune, read from the file as it plays)
+    titles: { "game#7": { line: "55" } },
     where: { "game#0": "Main Menu", "game#1": "Tutorial", "game#2": "In-Game", "game#3": "Stage Clear",
       "game#5": "Chamber End 1", "game#6": "Chamber End 2", "game#7": "Victory", "game#9@67": "Map", "game#10@77": "High Scores" },
     order: ["game#0", "game#1", "game#9@67", "game#2", "game#5", "game#6", "game#3", "game#7", "game#10@77"],

@@ -750,6 +750,9 @@ never with invented titles. A game's session sets these from its code:
   rip names, in quotes"): the user's word, cited at the entry, or a title the module's own text holds, read from the
   user's file as the list is read and never written in the table: `{own: true}` the module's title, `{line: "<order>"}`
   what the module's message says beside that order, up to a comma or a bracket (`inner` for the words in its brackets).
+  The decoder's `bm_meta` gives a module's title, artist, tracker, message and subsong names. Alchemy's, Bejeweled's,
+  Dynomite's, Bookworm's, Mummy Maze's and Twist's are taken from their files this way; the other modules' texts hold no
+  song titles (a working title, "untitled", the composer's name, or places).
 - `alone`: subsongs that are one pattern running on into the module's silence, listed with the unused patterns as that
   pattern played alone (Bejeweled 2's two, which music.xml names but the code never reads; the user, 2026-11-19: "really,
   they're only single patterns that we could just file with the others").
