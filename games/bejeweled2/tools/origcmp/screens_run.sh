@@ -11,7 +11,7 @@ mkdir -p "$OUT/port" "$OUT/orig"
 B=build/logs/bej2
 # name | record.py mode | moves | player folder | environment
 SPECS=(
-"tour|tour|6||"
+"tour|tour|6||TOUR_NOHIGHRES=1"
 "dialogs|tour:dialogs|1|$B/prof_p0|"
 "classic|tour:classic|60|$B/prof_hints|TOUR_HINTBOXES=1"
 "action|tour:action|60|$B/prof_hints|TOUR_HINTBOXES=1"
@@ -30,19 +30,22 @@ for spec in "${SPECS[@]}"; do
   rec=$OUT/rec-$name
   if [ ! -f "$rec/events.json" ]; then
     rm -rf "$rec"
-    env LOWRES=1 DRAWEVERY=1 PLAY_AT=500 ${prof:+PROFILE=$prof} $envs bash games/bejeweled2/tools/origcmp/record_port.sh "$mode" "$moves" "$rec" 909 > "$OUT/rec-$name.log" 2>&1
+    env LOWRES=1 DRAWEVERY=1 PLAY_AT=${PLAY_AT:-500} ${prof:+PROFILE=$prof} $envs bash games/bejeweled2/tools/origcmp/record_port.sh "$mode" "$moves" "$rec" 909 > "$OUT/rec-$name.log" 2>&1
     [ -f "$rec/events.json" ] || { echo "$name: the port's recording failed (see $OUT/rec-$name.log)"; continue; }
   fi
+  [ -n "$PORT_ONLY" ] && { echo "$name: $(ls $rec/*.png | wc -l) port shots"; continue; }  # PORT_ONLY=1: the recordings only (screens_reader.sh does the original's side)
   og=$OUT/og-$name
   if [ ! -d "$og" ] || [ -z "$(ls $og/*.png 2>/dev/null)" ]; then
     for try in $(seq 1 24); do
       PROFILE=$prof bash games/bejeweled2/tools/origcmp/run_tour_original.sh "$rec" "$og" 909 1200 > "$OUT/og-$name.log" 2>&1
-      [ -n "$(ls $og/*.png 2>/dev/null)" ] && break
+      # a run whose first two shots are the same picture never left the title (its Play click came before the load ended, which runs on the wall clock): again
+      [ -n "$(ls $og/*.png 2>/dev/null)" ] && python -I games/bejeweled2/tools/origcmp/left_title.py "$rec/events.json" "$og" && break
       sleep 30
     done
   fi
   echo "$name: $(ls $rec/*.png | wc -l) port shots, $(ls $og/*.png 2>/dev/null | wc -l) original shots"
 done
+[ -n "$PORT_ONLY" ] && exit 0
 # one folder each, a shot named <tour>__<shot>.png
 rm -rf "$OUT/port" "$OUT/orig"; mkdir -p "$OUT/port" "$OUT/orig"
 for rec in $OUT/rec-*/; do

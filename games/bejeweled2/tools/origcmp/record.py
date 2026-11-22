@@ -160,7 +160,9 @@ def tour(d, a):
     d.ok('wait 60')
     d.shot('options-menu')
     # the options' questions (dialog 3), each answered No: a checkbox of the 640 by 480 layout, in game pixels
-    for name, spot in (('backdrops', [338, 250]), ('accel', [278, 208]), ('highres', [407, 208])):
+    # TOUR_NOHIGHRES=1 leaves the High Resolution box out: the original asks "Full Screen?" instead of "High Resolution?" on a
+    # desktop of 1024 pixels or less (FUN_005cbbd0 tests the screen's width), as the sandbox's is, and the port follows the machine's
+    for name, spot in (('backdrops', [338, 250]), ('accel', [278, 208])) + (() if os.environ.get('TOUR_NOHIGHRES') else (('highres', [407, 208]),)):
         d.click(spot)
         # a question (dialog 3, answered No) or, where the display cannot do it, a message (dialog 37, its OK)
         s = full.until(d, lambda s: max(s['dialogs'], default=0) in (3, 37) and (s.get('buttons') or {}).get('no' if 3 in s['dialogs'] else 'yes'), 'the question of ' + name, 60)
@@ -623,6 +625,14 @@ def main():
         full.until(d, lambda s: s['screen'] in ('title', 'dialog', 'menu'), 'the title', 180)
         if a.nosparkle:
             d.ok('nosparkle')
+        # the update at which the title has loaded (its Play link shows): the original's load runs on the wall clock, so a comparison
+        # counts from this point on both sides (events.json "loaded"; to_origrun.py --gate)
+        loaded_at = d.state()['updates']
+        for _ in range(2000):
+            if 'play' in (d.state().get('widgets') or {}):
+                break
+            d.ok('wait 1')
+            loaded_at = d.state()['updates']
         s = d.state()
         if s['updates'] < a.play_at - 1:
             d.ok('wait %d' % (a.play_at - 1 - s['updates']))  # the original and the port then get every input at the same update
@@ -675,7 +685,7 @@ def main():
         last = d.state()['updates']
         print(a.mode, json.dumps(r), 'play click at', play, 'mode click at', start, 'ends at', last)
         with open(os.path.join(a.out, 'events.json'), 'w') as f:
-            json.dump({'play': play, 'start': start, 'last': last, 'mode': a.mode, 'events': d.events}, f)
+            json.dump({'play': play, 'start': start, 'last': last, 'loaded': loaded_at, 'mode': a.mode, 'events': d.events}, f)
         rc = 0
     finally:
         d.close()

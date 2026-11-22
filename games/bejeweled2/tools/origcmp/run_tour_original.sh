@@ -42,7 +42,7 @@ done
 "Is3D"=dword:00000000
 ' > build/origrun/bej2_sandbox.reg
 WATCHES='[[0x67ccd8]+0xe68]+0x15e20 [[0x67ccd8]+0xe68]+0x15e4 [[0x67ccd8]+0xe68]+0x170c [[0x67ccd8]+0xe68]+0x15e0' \
-ORIGRUN_ARGS="--sandbox --reg $PWD/build/origrun/bej2_sandbox.reg --pending-draw [0x67ccd8]+0x45a --update-state [0x67ccd8]+0x488 --draw-empty [0x67ccd8]+0x459 $ORIGRUN_EXTRA" \
+ORIGRUN_ARGS="--sandbox --reg $PWD/build/origrun/bej2_sandbox.reg --counter [0x67ccd8]+0x484 --pending-draw [0x67ccd8]+0x45a --update-state [0x67ccd8]+0x488 --draw-empty [0x67ccd8]+0x459 $ORIGRUN_EXTRA" \
   bash games/bejeweled2/tools/origcmp/run_original.sh "build/origrun/bej2_$tag.txt" "build/logs/bej2/og_$tag/origrun.log" "$seed" "$timeout"
 rc=$?
 rm -rf "$out"
