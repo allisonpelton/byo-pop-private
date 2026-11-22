@@ -69,13 +69,16 @@ public:
 	void FadeOutSound();								// 0x458ab0 (no name in the original): the sound that fades goes to the sound manager
 	int CalcScoreMult(int theNumPegsHit) const;			// 0x4370b0
 	static int CalcMusicIntensity(int theNumPegsLeft);	// 0x437110
-	void CalcGunAngle(bool theSetAtOnce);				// 0x43ece0
+	void CalcGunAngle(bool theSetAtOnce);				// 0x43ece0: aims the cannon where the mouse is, with the lead the ball's fall needs
+	void SetGunAngle(float theAngle);					// 0x436fd0: the angle in [0, 2 pi), held to the band the level allows
 	void BeginInitLevel();								// 0x440500
 	void ActivateFreeBallCover(bool theActive);			// 0x440700
 	void MakeGoalPegs();								// 0x457960: picks the orange pegs (and sets every other peg to its colour)
 	void MakePowerupPeg();								// 0x457dc0: picks the green pegs
 	void MakeScorePeg();								// 0x458110: picks the purple peg
-	void InitLevel(bool theNewGame, bool theKeepState, bool theRestart); // 0x45dda0
+	// 0x45dda0: theResetScores gives both players their balls and a score of 0; theRandomizeStart picks who shoots first of two;
+	// theKeepLists keeps the lists of pegs the board has (a level that is only started again)
+	void InitLevel(bool theResetScores, bool theRandomizeStart, bool theKeepLists);
 	void ReInitLevel();									// 0x4612d0
 
 	int mState;				 // +4: see LogicState
@@ -115,7 +118,7 @@ public:
 	float mUnknown70;		 // +0x70: the mouse wheel's base move when the state was cleared
 	int mUnknown74;			 // +0x74
 	int mUnknown78;			 // +0x78
-	std::string mSongFolder; // +0x7c: "pegsongs/"
+	std::string mSongFolder; // +0x7c: empty (Clear makes a "pegsongs/" string and never uses it)
 	int mUnknownA0;			 // +0xa0
 	int mUnknownA4;			 // +0xa4
 	bool mUnknownA8;		 // +0xa8
@@ -126,8 +129,8 @@ public:
 	std::vector<LogicRecord16> mUnknownB4; // +0xb4
 	std::list<int> mUnknownC4;			   // +0xc4
 	std::vector<ClickRecord> mClickRecords; // +0xd0: the clicks the replay keeps
-	int mUnknownE0;			 // +0xe0
-	int mUnknownE4;			 // +0xe4
+	float mGunAngle;		 // +0xe0: where CalcGunAngle aims the cannon (the player's mouse)
+	float mUnknownE4;		 // +0xe4
 	int mUnknownE8;			 // +0xe8
 	bool mUnknownEC;		 // +0xec
 	bool mUnknownED;		 // +0xed
@@ -194,7 +197,7 @@ public:
 	float mUnknown338;		 // +0x338
 	float mUnknown33C;		 // +0x33c
 	std::list<SharedPtr<PhysObj> > mPegs; // +0x340: every peg of the level
-	std::list<int> mUnknown34C;			  // +0x34c
+	std::list<SharedPtr<PhysObj> > mUnknown34C; // +0x34c
 	PegSet mGoalPegs;		 // +0x358: the orange pegs
 	PegSet mOtherPegs;		 // +0x364: the other pegs
 	int mUnknown370[11];	 // +0x370: zeroed with Clear

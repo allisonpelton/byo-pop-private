@@ -118,6 +118,9 @@ public:
 	void ShowHelpScreen(bool theFromMenu, bool theScrollOn); // 0x423540
 	void ShowBoard(bool theNewGame, bool theScrollOn);		 // 0x42f860
 	void ShowReplay(bool theKeepBoard);			  // 0x42fb00
+	int GetCurLevel() const { return mStartStage * 5 + mStartLevel; } // 0x405bf0: the level's number in the whole adventure
+	int GetMaxLevel() const;					  // 0x405bd0: the furthest level the player has reached (0 with no player)
+	bool OnMaxLevel() const;					  // 0x405c00: the level being played is the furthest one reached
 
 	// Dialogs. Each is a ThunderDialog that slides in; the buttons of all of them end up in DialogButtonDepress.
 	Dialog* NewDialog(int theDialogId, bool isModal, const std::string& theDialogHeader, const std::string& theDialogLines,

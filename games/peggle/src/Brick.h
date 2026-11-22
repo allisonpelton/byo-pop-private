@@ -34,6 +34,7 @@ public:
 
 	void SyncState(DataSync& theSync) override;	  // 2, 0x488030
 	int GetClass() const override { return CLASS_BRICK; } // 3, 0x481d00
+	void CreateImage(bool theRemake) override;	  // 20, 0x483b20 (0x4827d0)
 	void DeleteImage() override;				  // 21, 0x477ba0
 	void DrawShadow(Graphics* g) override;		  // 24, 0x483b30
 	void Draw(Graphics* g) override;			  // 25, 0x483d70
