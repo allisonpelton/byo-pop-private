@@ -1027,6 +1027,9 @@ suite_origrun() {  # the host and its sound stand-in compile (into a folder of t
 		# --count from end to end on counttest.exe (tools/origrun/counttest.sh): the cycles of five functions, counted by their own time
 		tools/origrun/counttest.sh "$W/$OUT/origrun-bin" "$W/$OUT/counttest" >> "$1" 2>&1 || st=1
 		net="$net; $(lastof "$1" '^count:')"
+		# the sandbox queue (tools/origrun/queuetest.sh): fake waiters, no sandbox and no game, get the lock in arrival order
+		tools/origrun/queuetest.sh "$W/$OUT/origrun-bin" "$W/$OUT/queuetest" >> "$1" 2>&1 || st=1
+		net="$net; $(lastof "$1" '^queue:')"
 	fi
 	if [ $st -eq 0 ]; then SUMMARY="origrun.exe and dsound.dll compile; $cov$net"; else SUMMARY="$(grep -m 1 -E 'error|not found|FAIL' "$1" | cut -c1-160)"; fi
 	return $st
