@@ -10,6 +10,11 @@ run at about the speed in each (game ms per real ms within 25% of 0.5 and of 2).
 A game that does not print a line before the timeout (no SexyAppBase, or never loaded) is "no probe". KNOWN lists games
 expected not to follow (none now); they are named in the summary and do not fail the suite.
 
+A game that fails gets a second try once the others are done, run alone. A machine busy with other work (sandboxes,
+other sessions' games) can hold a game below even its 0.5x rate, so that both runs make the same 30 or so updates a
+second, or slow its loading past the timeout; on 2026-11-22 Tip Top and Heavy Weapon failed so and passed on a rerun.
+A game that ignores the speed fails both tries. The second try's result is the one counted, and its line says so.
+
     python -I tools/speedcheck.py [--out <dir>] [--jobs <n>] [--ms <n>] [<game>...]
 
 Every exe runs from build/native with its assets in assets/<game>, a fresh user folder under <dir>, and
@@ -98,6 +103,11 @@ def main():
         for r in pool.map(lambda g: check_game(g, a.ms, out), games):
             results.append(r)
             print("%-15s %-16s %s" % r, flush=True)
+    for i, (game, state, detail) in enumerate(results):
+        if state in ("DOES NOT FOLLOW", "none") and game not in KNOWN:
+            g, again, again_detail = check_game(game, a.ms, out)
+            results[i] = (g, again, "%s (second try; the first: %s, %s)" % (again_detail, state, detail))
+            print("%-15s %-16s %s" % results[i], flush=True)
     bad = [g for g, s, d in results if s in ("DOES NOT FOLLOW", "none") and g not in KNOWN]
     known = [g for g, s, d in results if s in ("DOES NOT FOLLOW", "none") and g in KNOWN]
     ok = sum(1 for g, s, d in results if s == "follows")
