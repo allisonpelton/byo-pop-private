@@ -33,9 +33,10 @@ The rules a session follows:
   ("Yes, block them", 2026-11-11: "The network block"); and its program, file and link launches (`ShellExecute`,
   `WinExec`, `CreateProcess`), which fail at once ("allow blocking programs, files and links", 2026-11-11:
   "The launch guard"); and its window-activation calls (`SetForegroundWindow`, `SetActiveWindow`, `BringWindowToTop`,
-  and `ShowWindow` and `SetWindowPos` when they would activate), so that a copy on the user's desktop never takes
-  the focus ("Yes, hook window activation calls", 2026-11-22, after Bejeweled Twist's 3D original held the user's
-  foreground for a whole visrun run). Any other hook needs the user's OK first.
+  `SwitchToThisWindow`, and `ShowWindow`, `ShowWindowAsync`, `SetWindowPos`, `DeferWindowPos` and `SetWindowPlacement`
+  made non-activating), so that a copy on the user's desktop never takes the focus ("Yes, hook window activation
+  calls", 2026-11-22, after Bejeweled Twist's 3D original held the user's foreground for a whole visrun run: "The
+  activation hook"). Any other hook needs the user's OK first.
 - **No keygens.** Patch the check in the copy, or set the registry values the game itself writes when registered;
   never generate a registration code. How a copy's protection is handled is written only in the private notes
   under "Per-game status", which a published snapshot strips (`docs/PUBLISHING.md`).
@@ -637,6 +638,52 @@ own clock. The framework finds the function with `GetProcAddress`, which no impo
 puts a jump to its own function at the start of user32's `GetLastInputInfo`, in the copy's process only. A copy
 that never loads the stand-in (`--sound real`, or a game that loads no DirectSound from its folder) is not
 hooked: run those while the user is at the machine.
+
+## The activation hook (always on)
+
+`tools/visrun.py` runs an original on the user's visible desktop, and the run must never take their focus. visrun
+launches the game with `SW_SHOWNOACTIVATE`, but that covers only the game's first `ShowWindow`; later calls
+activate the window, and Windows refuses visrun's `SetForegroundWindow` to hand the foreground back, because visrun
+is not the foreground process (a Bejeweled Twist 3D run held the user's foreground for its whole 26 s: 1268 takes,
+0 hand-backs, 1268 refusals). The user allowed the hook on 2026-11-22 ("Yes, hook window activation calls").
+
+The stand-in (`tools/origrun/activation.c`) therefore changes nine user32 functions in the copy's process, in every
+run that loads it. `SetForegroundWindow` and `BringWindowToTop` return TRUE and do nothing; `SetActiveWindow` returns
+`GetActiveWindow()` and changes nothing; `SwitchToThisWindow` does nothing. `ShowWindow` turns `SW_SHOWNORMAL`,
+`SW_SHOWDEFAULT` and `SW_RESTORE` into `SW_SHOWNOACTIVATE`, `SW_SHOW` into `SW_SHOWNA` and `SW_SHOWMINIMIZED` into
+`SW_SHOWMINNOACTIVE`, and passes the rest on; `SW_SHOWMAXIMIZED` has no form that does not activate, so it passes on
+and is counted on its own. `ShowWindowAsync` maps its command the same way, and `SetWindowPlacement` maps the `showCmd`
+of a copy of the `WINDOWPLACEMENT` and passes the copy on, so the caller's structure is not changed. `SetWindowPos` and
+`DeferWindowPos` get `SWP_NOACTIVATE` added. The last five still do their work: each hook calls the real function
+through a trampoline.
+
+The way in is the last-input hook's: five bytes at the start of user32's own function become a jump, so every caller
+in the process reaches the hook, ddraw.dll, the d3d DLLs and a function found with `GetProcAddress` included, which an
+import patch would miss. The trampoline copies the bytes the jump overwrote and knows the three starts the 32-bit
+user32 has (`mov edi,edi; push ebp; mov ebp,esp`, `jmp [address]`, `jmp`); another start leaves that function
+unhooked, and the install line says so. What it can miss: a caller that makes the system call itself (win32u's
+`NtUser*` functions or a stub of its own) and user32's own internal calls (a dialog or menu that activates its window).
+Left unhooked on purpose, because none of them makes a background window the foreground window here: `SetFocus` (it
+moves the keyboard focus within the calling thread's own queue; the foreground window of another process stays),
+`CreateWindowEx` (a window is shown through `ShowWindow` or `SetWindowPos`, which are hooked), `AnimateWindow`, the dialog
+functions (a dialog is shown through `ShowWindow`, and `MessageBox` is answered by the message-box hook) and input sent
+to a window (it activates a window only when something clicks it, and visrun's posted input is messages, not clicks).
+Hooking any other function needs the user's OK first.
+
+`logs/net.log` of the run folder holds the install line ("activation hook installed: reached ...") and, at exit, how
+many calls each function answered, with the `SW_SHOWMAXIMIZED` passes. `ORIGRUN_ACTIVATION=allow` in the
+environment turns the hook off (the log says "activation hook off"), for a run that needs the real behaviour. A copy
+that never loads the stand-in is not hooked.
+
+`tools/origrun/actest.sh` (in `tools/check.sh origrun`) tests it on `actest.exe`: a window shown inactive, then every
+function and `ShowWindow` command called on it through the import table, through `GetProcAddress` and from a second
+DLL, with neither the foreground nor the active window ever being it and the window in the state the mapped command
+gives; a second run with `ORIGRUN_ACTIVATION=allow` checks that the calls reach Windows.
+
+visrun logs at the start of a run whether the hook was installed (read from `net.log`), and its `keep_focus_away`
+thread still tries one hand-back, but stops the run at once if the game's process owns the foreground window all the
+same: it ends the game process by its pid, the `finally` block restores the window, registry and saves, the log says
+"the game took the user's foreground: run stopped (handed back H, refused R)" and visrun exits with status 5.
 
 ## The network block (always on)
 
