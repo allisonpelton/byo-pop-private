@@ -6,12 +6,13 @@
 // (WanderAI) and swimming across (FlyByAI); each looks about now and then and reacts to what it sees. A fish whose
 // state says it has gone, out of view after being seen, loses its state, which is what makes it dead to its spawn.
 //
-// Translated so far: swimming in, wandering, flying by, and the reactions to what a fish sees (FleeAI, ChaseAI and
-// AvoidAI). Schooling, eating, being eaten, puking and leaving are not yet, and each place that calls one says so.
+// Translated so far: swimming in, wandering, flying by, the reactions to what a fish sees (FleeAI, ChaseAI and
+// AvoidAI), eating and being eaten. Schooling, puking and leaving are not yet, and each place that calls one says so.
 
 #include "Geometry.h"
 #include "Object.h"
 #include "State.h"
+#include "sigslot.h"
 
 #include <string>
 #include <vector>
@@ -75,7 +76,10 @@ public:
 	bool isInPlay() const { return mInPlay; }
 	// 0x24 (0x43d890 (feedingfrenzy2)): another fish may eat this one (the eater not looked at)
 	bool isEdible() const { return mEdible; }
-	// 0x54: the fish eats the prey (AIFishState's, 0x40ff50 (feedingfrenzy2), not yet translated)
+	// 0x54 (0x5014fa (feedingfrenzy2)): the fish has begun to eat the prey; nothing by default
+	virtual void eat(Fish* thePrey) {}
+	// 0x58 (0x502bee (feedingfrenzy2)): the eater may have the fish now; always by default
+	virtual bool canBeEatenBy(Fish* theEater) { return true; }
 
 protected:
 	Fish* mFish;    // +0x0c
@@ -92,6 +96,9 @@ class AIFishState : public FishState
 {
 public:
 	explicit AIFishState(AIFish* theFish);
+
+	// 0x54 (0x40ff50 (feedingfrenzy2)): the fish's state changed to eating (AIEatingState)
+	void eat(Fish* thePrey) override;
 
 protected:
 	AIFish* mAIFish;  // +0x20
@@ -253,6 +260,71 @@ private:
 
 	engine::Ref<Actor> mThreat;  // +0x50
 	// +0x58: a timetable the constructor makes, which nothing starts
+};
+
+// A fish eating (EatingState, 0x34 bytes and its virtual base, vtable 0x5500dc (feedingfrenzy2); its constructor
+// 0x482210 (feedingfrenzy2)): the visual plays its eat, and at its chomp the prey taken is swallowed
+class EatingState : public FishState, public sigslot::HasSlots
+{
+public:
+	// 0x482210 (feedingfrenzy2): in play and edible
+	explicit EatingState(Fish* theFish);
+
+	// 0x04 (0x418cb0 (feedingfrenzy2)): the visual's chomp connected and its eat started
+	void enter() override;
+	// 0x08 (0x41d210 (feedingfrenzy2)): the chomp let go; the prey swallowed now if the chomp never came
+	void exit() override;
+	// 0x74 (0x40e2f0 (feedingfrenzy2)): the chomp: the prey swallowed
+	virtual void onChomp();
+
+protected:
+	bool mChomped;  // +0x30
+};
+
+// A fish the computer moves eating (AIEatingState, 0x40 bytes, vtable 0x54e864 (feedingfrenzy2); its constructor
+// 0x40ff00 (feedingfrenzy2))
+class AIEatingState : public EatingState
+{
+public:
+	explicit AIEatingState(AIFish* theFish);
+
+	// 0x0c (0x435170 (feedingfrenzy2)): the fish moved
+	void update(engine::UpdateContext* theContext) override;
+	// 0x74 (0x40e2c0 (feedingfrenzy2)): the eater's chomp, then the fish's next state
+	void onChomp() override;
+
+private:
+	AIFish* mAIFish;  // +0x34
+};
+
+// A fish being eaten (EatenState, 0x40 bytes, vtable 0x54ff44 (feedingfrenzy2); its constructor 0x480130
+// (feedingfrenzy2)): drawn into the eater's mouth and shrunk to nothing over the seconds, then hidden. Neither in
+// play nor edible, it never goes by itself: the eater's swallow ends it.
+class EatenState : public FishState
+{
+public:
+	EatenState(Fish* theFish, Fish* theEater, float theSeconds)
+	    : FishState(theFish), mEater(theEater), mStartScale(0.0f), mElapsed(0.0f), mSeconds(theSeconds)
+	{
+	}
+
+	// 0x04 (0x47dfb0 (feedingfrenzy2)): where it starts and its scale kept; at once hidden when the seconds are none
+	void enter() override;
+	// 0x0c (0x457580 (feedingfrenzy2)): the time added; on the way to the mouth by its share of the seconds and shrunk
+	// by it, hidden at its end
+	void update(engine::UpdateContext* theContext) override;
+	// 0x1c (0x502bf3 (feedingfrenzy2))
+	bool isGone() override { return false; }
+
+private:
+	// The visual hidden at its full scale (0x47dfe9 and 0x4575aa (feedingfrenzy2))
+	void hide();
+
+	Fish* mEater;               // +0x20: its eater part
+	engine::Vector2f mStart;    // +0x24
+	float mStartScale;          // +0x2c: the visual's
+	float mElapsed;             // +0x30
+	float mSeconds;             // +0x34
 };
 
 #endif

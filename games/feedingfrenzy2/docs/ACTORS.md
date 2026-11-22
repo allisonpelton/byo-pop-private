@@ -107,8 +107,26 @@ swimShuttle is 1 or more, else 2); Stunned plays "swim" and stops it at once. Th
   the fish's wanted way (or its facing) is within a cosine of 0.85 of the line to it, either way, the wanted velocity
   turns 30 degrees from the threat's side; the next state once the threat is dead or out of sight.
 - Checked on the menu over 9000 updates: the pompano chases the queen triggerfish, which runs from it and from the
-  great white. Eating (the stage's 0x50, 0x440660: each pair of fish, the one ranked below the other's eater rank
-  offered to its eater, 0x43dee0) and the schools are the next pieces.
+  great white.
+
+## Eating
+
+- The stage's meeting step (0x50, 0x440660) takes each pair of fish once, in the list's order: the first ranked below
+  the second's eater rank is offered to the second's eater; else the second, ranked below the first's, to the first.
+  The player's meetings with the actors (the +0x340 list) come after, with the players.
+- The eater's consider (0x43dee0): the mouth's shape (shape 2), the fish able to start an eat (0x43df80: a state in
+  play, the visual's state allowing it, not held), the prey's state edible, its body (shape 1) meeting the mouth and
+  its state allowing this eater (slot 0x58, always so far). Then the eat (0x47a2b0, after AIFish's fishEaten sound):
+  the prey drawn in (EatenState) over the visual's time to its chomp, at most 0.2 s, kept in the eater's prey list
+  (+0xfc), and the eater's state told (slot 0x54: an AI fish's becomes AIEatingState).
+- EatingState (0x482210) connects the visual's chomp and starts its eat; at the chomp (or at its exit without one)
+  the eater swallows (0x477660): each prey's state ends, so its spawn takes it back. AIEatingState moves the fish and
+  picks its next state after the chomp.
+- EatenState (0x480130) slides the prey from where it was to the eater's mouth and shrinks its visual's pulse scale
+  to 0 over the seconds, then hides it at scale 1. It is neither in play nor edible and never goes by itself.
+- Checked on the menu over 9000 updates: the pompano eats the triggerfish 16 times, each drawn in over 0.11 s and
+  swallowed at the chomp.
+- The schools (SchoolOfFish, SchoolingAI) are the next piece.
 
 ## The stage's edges
 

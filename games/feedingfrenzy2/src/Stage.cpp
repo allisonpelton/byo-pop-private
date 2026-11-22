@@ -248,6 +248,26 @@ void Stage::updateActors(UpdateContext* theContext)
 	}
 }
 
+void Stage::updateMeetings(UpdateContext* theContext)
+{
+	for (size_t i = 0; i < mFish.size(); i++)
+	{
+		Fish* aFish = mFish[i];
+		int anEaterRank = aFish->getEaterRank();
+		int aRank = aFish->getRank();
+		for (size_t j = i + 1; j < mFish.size(); j++)
+		{
+			Fish* anOther = mFish[j];
+			int anOtherEaterRank = anOther->getEaterRank();
+			int anOtherRank = anOther->getRank();
+			if (aRank < anOtherEaterRank)
+				anOther->consider(aFish);
+			else if (anOtherRank < anEaterRank)
+				aFish->consider(anOther);
+		}
+	}
+}
+
 void Stage::updateFishVisuals(UpdateContext* theContext)
 {
 	for (Fish* aFish : mFish)
@@ -355,10 +375,11 @@ void RunState::update(UpdateContext* theContext)
 	// The script (the stage's +0x31c) checked first (its slot 0xe4): not yet translated
 	// Without a boss in play (+0x270), the stage's slots 0x48, 0x4c, 0x50 and 0x54 (the actors' updates and their
 	// meetings), 0x58 (the spawns), 0x60 (the camera), 0x68 and 0x6c; with one, 0x68, 0x6c and the boss's 0xf0; then
-	// 0x5c (0x447ef0 (feedingfrenzy2)). Translated so far: the actors' updates, the spawns and the fish's visuals;
-	// the players' steps (0x4c, 0x54 and 0x60) have nothing to do without players; the fish's meetings (0x50,
-	// 0x440660 (feedingfrenzy2)), the ambient sounds (0x6c) and the clean-up (0x5c) are not yet
+	// 0x5c (0x447ef0 (feedingfrenzy2)). Translated so far: the actors' updates, the fish's meetings, the spawns and
+	// the fish's visuals; the players' steps (0x4c, 0x54 and 0x60) have nothing to do without players; the ambient
+	// sounds (0x6c) and the clean-up (0x5c) are not yet
 	mStage->updateActors(theContext);
+	mStage->updateMeetings(theContext);
 	mStage->updateSpawns(theContext);
 	mStage->updateFishVisuals(theContext);
 }

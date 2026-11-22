@@ -462,3 +462,83 @@ void AvoidAI::turnAside()
 	float anAngle = aSide >= NOTHING ? AVOID_TURN_BACK : AVOID_TURN;
 	mAIFish->setDesiredVelocity(rotated(aWanted, anAngle));
 }
+
+void AIFishState::eat(Fish* thePrey)
+{
+	mAIFish->changeState(new AIEatingState(mAIFish));
+}
+
+EatingState::EatingState(Fish* theFish) : FishState(theFish), mChomped(false)
+{
+	mInPlay = true;
+	mEdible = true;
+}
+
+void EatingState::enter()
+{
+	FishVisual* aVisual = mFish->getFishVisual();
+	aVisual->mChomp.connect(this, &EatingState::onChomp);
+	// 0x418c90 (feedingfrenzy2): the visual's state's eat
+	aVisual->getState()->eat();
+	mChomped = false;
+}
+
+void EatingState::exit()
+{
+	mFish->getFishVisual()->mChomp.disconnect(this);
+	if (!mChomped)
+		mFish->swallow();
+}
+
+void EatingState::onChomp()
+{
+	mChomped = true;
+	mFish->swallow();
+}
+
+AIEatingState::AIEatingState(AIFish* theFish) : EatingState(theFish), mAIFish(theFish) {}
+
+void AIEatingState::update(UpdateContext* theContext)
+{
+	mAIFish->move(*theContext);
+}
+
+void AIEatingState::onChomp()
+{
+	EatingState::onChomp();
+	mAIFish->pickState();
+}
+
+void EatenState::enter()
+{
+	mStart = mFish->getPosition();
+	FishVisual* aVisual = mFish->getFishVisual();
+	mStartScale = aVisual->getPulseScale();
+	mElapsed = 0.0f;
+	if (0.0f == mSeconds)
+		hide();
+}
+
+void EatenState::update(UpdateContext* theContext)
+{
+	float anElapsed = (float)((double)theContext->mElapsed + mElapsed);
+	mElapsed = anElapsed;
+	if (!(mSeconds > anElapsed))
+	{
+		hide();
+		return;
+	}
+	Vector2f aMouth = mEater->getMouthPosition();
+	float aShare = (float)((double)mElapsed / mSeconds);
+	float aY = (float)(((double)aMouth.y - mStart.y) * aShare + mStart.y);
+	float anX = (float)(((double)aMouth.x - mStart.x) * aShare + mStart.x);
+	mFish->setPosition(anX, aY);
+	mFish->getFishVisual()->setPulseScale((float)((double)mStartScale - (double)aShare * mStartScale));
+}
+
+void EatenState::hide()
+{
+	FishVisual* aVisual = mFish->getFishVisual();
+	aVisual->setVisible(false);
+	aVisual->setPulseScale(1.0f);
+}

@@ -27,6 +27,7 @@ const float DEFAULT_CHASE_FREQUENCY = 0.5f;      // 0x54ddb0 (feedingfrenzy2)
 const float DEFAULT_FLYBY_FREQUENCY = 0.3f;      // 0x54ddac (feedingfrenzy2)
 const float NOT_SEEN = -1.0f;                    // 0x566850 (feedingfrenzy2): the distance to what is out of sight
 const double ZERO = 0.0;                         // 0x566828 (feedingfrenzy2)
+const float LONGEST_DRAW_IN = 0.2f;              // 0x54ddf8 (feedingfrenzy2): the most seconds a prey takes to the mouth
 
 // 0x422cb0 (feedingfrenzy2): a number drawn in the range
 float drawIn(const FloatRange& theRange)
@@ -323,6 +324,66 @@ bool Fish::isOfClass(const std::string& theClass, Actor* theViewer)
 	return false;
 }
 
+bool Fish::isEdibleBy(Fish* theEater)
+{
+	FishState* aState = mStateMgr.getState();
+	return aState != nullptr && aState->isEdible();
+}
+
+bool Fish::canBeEatenBy(Fish* theEater)
+{
+	FishState* aState = mStateMgr.getState();
+	return aState != nullptr && aState->canBeEatenBy(theEater);
+}
+
+void Fish::beginBeingEaten(Fish* theEater, float theSeconds)
+{
+	changeState(new EatenState(this, theEater, theSeconds));
+}
+
+bool Fish::canEatNow()
+{
+	FishState* aState = mStateMgr.getState();
+	if (aState == nullptr)
+		return false;
+	FishVisualState* aVisualState = mFishVisual->getState();
+	if (aVisualState != nullptr && !aVisualState->canEat())
+		return false;
+	return aState->isInPlay() && 0.0f == mHoldTime;
+}
+
+void Fish::consider(Fish* thePrey)
+{
+	Shape* aMouth = getMouthShape();
+	if (aMouth == nullptr || !canEatNow())
+		return;
+	if (!thePrey->isEdibleBy(this) || !aMouth->overlaps(*thePrey->getBodyShape()) || !thePrey->canBeEatenBy(this))
+		return;
+	// 0x47d610 (feedingfrenzy2): the visual's state's time to its chomp, none without a state
+	FishVisualState* aVisualState = mFishVisual->getState();
+	float aTimeToChomp = aVisualState != nullptr ? aVisualState->getTimeToChomp() : 0.0f;
+	// 0x46d360 (feedingfrenzy2): the lesser
+	float aSeconds = aTimeToChomp > LONGEST_DRAW_IN ? LONGEST_DRAW_IN : aTimeToChomp;
+	eat(thePrey, aSeconds);
+}
+
+void Fish::eat(Fish* thePrey, float theSeconds)
+{
+	// 0x4779e0 (feedingfrenzy2): the prey starts being drawn in and is kept until the chomp
+	thePrey->beginBeingEaten(this, theSeconds);
+	mPrey.push_back(thePrey);
+	FishState* aState = mStateMgr.getState();
+	if (aState != nullptr)
+		aState->eat(thePrey);
+}
+
+void Fish::swallow()
+{
+	for (const Ref<Fish>& aPrey : mPrey)
+		aPrey->beSwallowed(this);
+	mPrey.clear();
+}
+
 Vector2f Fish::getMouthPosition() const
 {
 	return transformed(mFishVisualData->getMouth(), mTransform);
@@ -364,7 +425,8 @@ void AIFish::addToStage(Stage* theStage, int theLocation)
 
 void AIFish::remove()
 {
-	// 0x4774f0 (feedingfrenzy2): the eater's prey (+0xfc) let go: not yet translated, as the eating is not
+	// 0x4774f0 (feedingfrenzy2): the eater's prey let go (and the meals puked, which an AI fish has none of)
+	mPrey.clear();
 	mStateMgr.changeState(nullptr);
 	mStage->removeAIFish(this);
 	Fish::remove();
@@ -445,6 +507,13 @@ void AIFish::setFishBehavior(FishBehaviorInfo* theBehavior)
 		return;
 	mChaseFrequency = mFishBehavior->getFloat("chaseFreq", DEFAULT_CHASE_FREQUENCY);
 	mFlybyFrequency = mFishBehavior->getFloat("flybyFreq", DEFAULT_FLYBY_FREQUENCY);
+}
+
+void AIFish::eat(Fish* thePrey, float theSeconds)
+{
+	// The stage's theme's sound fishEaten at full volume, pitch 0.6 (0x4747a0 (feedingfrenzy2)): not yet
+	// translated, as the sounds are not
+	Fish::eat(thePrey, theSeconds);
 }
 
 bool AIFish::react(FishReaction* theReaction, Actor* theOther)
@@ -528,7 +597,7 @@ FishReaction* AIFish::findReaction(Actor* theOther)
 	return nullptr;
 }
 
-void AIFish::changeState(FishState* theState)
+void Fish::changeState(FishState* theState)
 {
 	Ref<FishState> aState = theState;
 	if (mLeaving)

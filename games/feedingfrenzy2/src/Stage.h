@@ -111,6 +111,10 @@ public:
 	// after that one): in the same water or air, within its sight's distance of its mouth, and within its sight's
 	// angle of the way it faces. The list is the stage's, made again by each call
 	const std::vector<Actor*>& findSeenActors(AIFish* theViewer);
+	// 0x50 (0x440660 (feedingfrenzy2)): each pair of fish meets once, the one ranked below the other's eater rank
+	// offered to that one's eater (the other way only when the first is not); then each player's meetings with the
+	// actors (the +0x340 list), not yet translated, as the players are not
+	void updateMeetings(engine::UpdateContext* theContext);
 	// 0x48 (0x4448e0 (feedingfrenzy2)): each actor's update, over a copy of the actors, one no longer among them
 	// logged (the mask's lights cleared first, not yet translated)
 	void updateActors(engine::UpdateContext* theContext);
