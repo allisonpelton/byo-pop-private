@@ -39,7 +39,8 @@ EXE=$(cat "$P/exe.txt")
 SEED=12345
 SUF=; MODE3D=(--3d off)
 FULL=0; [ "${PILOT_FULL:-off}" = on ] && FULL=1
-WATCH23=(--watch "[0x8259e4]+0x4f9" --watch "[0x8259e4]+0x919")
+# --watch-max: a load on the host runs thousands of updates, the held screen's timer changing at each
+WATCH23=(--watch "[0x8259e4]+0x4f9" --watch "[0x8259e4]+0x919" --watch-max 100000)
 [ -n "${PILOT_WATCH:-}" ] && WATCH23=(--watch "$PILOT_WATCH" --watch-max 100000)
 if [ "${PILOT3D:-off}" = on ]; then
 	SUF=3d; MODE3D=(--3d on --sandbox-vgpu)
@@ -64,37 +65,66 @@ if [ "$which" != port ]; then
 	run=pilot-$N
 	R=$W/build/origrun/$run
 	rm -rf "${R:?}"
-	# a sandbox run's exe lies inside its run folder: the prepared copy (exe.txt) is copied there for each run
-	mkdir -p "$R"
-	cp -r "$(dirname "$(cygpath -u "$EXE")")" "$R/game"
-	GEXE=$R/game/$(basename "$(cygpath -u "$EXE")")
-	# the same seeds on both sides: the copy's clock reads in SexyAppBase::Init become constants (seedpatch.py)
-	python "$T/seedpatch.py" "$GEXE" $SEED $HOLDP | tee "$P/$name.seedpatch.log"
-	if [ "${PILOT_SOUND:-off}" = on ]; then
-		mv "$R/game/bass.dll" "$R/game/bass_real.dll" && cp "$W/build/bassproxy-bwa/bass.dll" "$R/game/bass.dll" || exit 1
+	if [ "${PILOT_HOST:-off}" = on ]; then
+		# On the host through origrun's in-game frame reader (docs/ORIGRUN.md), off the sandbox's queue: the copy staged
+		# from the install on a short path, the pilot's patches (origrun's list, which seedpatch.py's match; without the
+		# ChapterLoadScreen patch when the hints are drawn), the virtual clock, the script's stills only (hostscript.py).
+		# The game reads the user's own WinBAD key and users folder: backed up, set to the start state and put back
+		# (winbad.py), one run at a time, never beside a 3D run (the lock winbad.lock, which vis3d.sh takes too).
+		if [ -n "$HOLDP" ]; then cp "$W/tools/origrun/patches/bookwormadv.txt" "$P/patches-$N.txt"
+		else grep -v "va:0x42efa0" "$W/tools/origrun/patches/bookwormadv.txt" > "$P/patches-$N.txt"; fi
+		python "$T/hostscript.py" "$SC/$name.orig.txt" "$SC/$name.host.txt" || exit 1
+		sed "s/^ScreenMode=dword:0/ScreenMode=dword:${FULL}/" "$P/portuser0/registry.ini" > "$P/start.ini"
+		python "$T/inireg.py" "$P/start.ini" "$P/start.reg"
+		H=$P/hostsaves; rm -rf "$H"; mkdir -p "$H"
+		cp "$P/backup/users/Allison.bwa" "$P/portuser0/users/Tester.bwa" "$H/"
+		[ -n "${PILOT_PROFILE:-}" ] && cp "$PILOT_PROFILE" "$H/Tester.bwa"
+		for f in ${PILOT_USERS:-}; do cp "$f" "$H/"; done
+		until mkdir "$P/winbad.lock" 2> /dev/null; do sleep 15; done
+		python "$T/winbad.py" stage "$(cygpath -w "$P/hostbackup")" "$(cygpath -w "$P/start.reg")" $(for f in "$H"/*; do cygpath -w "$f"; done) || { rmdir "$P/winbad.lock"; exit 1; }
+		"$W/build/origrun-bin/origrun.exe" --game bookwormadv --stage-root 'E:\byo-og' --run "$run" --script "$(cygpath -w "$SC/$name.host.txt")" \
+			--patches "$(cygpath -w "$P/patches-$N.txt")" --seed $SEED --clock virtual --3d off --counter "[0x8259e4]+0x484" --pending-draw "[0x8259e4]+0x45a" --update-state "[0x8259e4]+0x488" --draw-empty "[0x8259e4]+0x459" --watch "[[0x8259e4]+0x83c]+0xb0" "${WATCH23[@]}" --update-ms 10 --timeout ${PILOT_TIMEOUT:-240} \
+			--reader-surface "[[0x8259e4]+0x36c]+0x68" --reader-waits 54a024 ${PILOT_READER_TRIAL:+--reader-trial} > "$P/$N.orig.log" 2>&1
+		python "$T/winbad.py" restore "$(cygpath -w "$P/hostbackup")"; rmdir "$P/winbad.lock"
+		grep -i "RESULT\|refused\|timeout\|error" "$P/$N.orig.log" | tail -6
+		OLOG=$R/logs/origrun.log
+	else
+		# a sandbox run's exe lies inside its run folder: the prepared copy (exe.txt) is copied there for each run
+		mkdir -p "$R"
+		cp -r "$(dirname "$(cygpath -u "$EXE")")" "$R/game"
+		GEXE=$R/game/$(basename "$(cygpath -u "$EXE")")
+		# the same seeds on both sides: the copy's clock reads in SexyAppBase::Init become constants (seedpatch.py)
+		python "$T/seedpatch.py" "$GEXE" $SEED $HOLDP | tee "$P/$name.seedpatch.log"
+		if [ "${PILOT_SOUND:-off}" = on ]; then
+			mv "$R/game/bass.dll" "$R/game/bass_real.dll" && cp "$W/build/bassproxy-bwa/bass.dll" "$R/game/bass.dll" || exit 1
+		fi
+		# The original runs inside Windows Sandbox (docs/ORIGRUN.md, "Windows Sandbox"), where every run is a first run, so
+		# the start state goes in as files and registry presets: Allison.bwa (the user's) and the pilot's Tester.bwa in
+		# the game's users folder on the sandbox's C:, and the port's start values (portuser0/registry.ini: LastUser
+		# Tester, Is3D 0) as a .reg file, which the game reads there as SYSTEM's HKCU.
+		U="$R/sandbox-files/C/ProgramData/PopCap Games/WinBAD/users"
+		mkdir -p "$U"
+		cp "$P/backup/users/Allison.bwa" "$P/portuser0/users/Tester.bwa" "$U/"
+		[ -n "${PILOT_PROFILE:-}" ] && cp "$PILOT_PROFILE" "$U/Tester.bwa"
+		for f in ${PILOT_USERS:-}; do cp "$f" "$U/"; done
+		sed "s/^ScreenMode=dword:0/ScreenMode=dword:${FULL}/" "$P/portuser0/registry.ini" > "$P/start.ini"
+		python "$T/inireg.py" "$P/start.ini" "$P/start.reg"
+		"$W/build/origrun-bin/origrun.exe" --sandbox --exe "$(cygpath -w "$GEXE")" --run "$run" --script "$(cygpath -w "$SC/$name.orig.txt")" \
+			--reg "$(cygpath -w "$P/start.reg")" "${MODE3D[@]}" --3d-key "Software\PopCap\WinBAD" --3d-flag "[[0x8259e4]+0x36c]+0x38" --counter "[0x8259e4]+0x484" --pending-draw "[0x8259e4]+0x45a" --update-state "[0x8259e4]+0x488" --draw-empty "[0x8259e4]+0x459" --watch "[[0x8259e4]+0x83c]+0xb0" "${WATCH23[@]}" --update-ms 10 --timeout ${PILOT_TIMEOUT:-240} > "$P/$N.orig.log" 2>&1
+		grep -i "RESULT\|timeout\|error\|msgbox\|dialog" "$P/$N.orig.log" | tail -5
+		OLOG=$R/logs/origrun-sandbox.log
 	fi
-	# The original runs inside Windows Sandbox (docs/ORIGRUN.md, "Windows Sandbox"), where every run is a first run, so
-	# the start state goes in as files and registry presets: Allison.bwa (the user's) and the pilot's Tester.bwa in
-	# the game's users folder on the sandbox's C:, and the port's start values (portuser0/registry.ini: LastUser
-	# Tester, Is3D 0) as a .reg file, which the game reads there as SYSTEM's HKCU.
-	U="$R/sandbox-files/C/ProgramData/PopCap Games/WinBAD/users"
-	mkdir -p "$U"
-	cp "$P/backup/users/Allison.bwa" "$P/portuser0/users/Tester.bwa" "$U/"
-	[ -n "${PILOT_PROFILE:-}" ] && cp "$PILOT_PROFILE" "$U/Tester.bwa"
-	for f in ${PILOT_USERS:-}; do cp "$f" "$U/"; done
-	sed "s/^ScreenMode=dword:0/ScreenMode=dword:${FULL}/" "$P/portuser0/registry.ini" > "$P/start.ini"
-	python "$T/inireg.py" "$P/start.ini" "$P/start.reg"
-	"$W/build/origrun-bin/origrun.exe" --sandbox --exe "$(cygpath -w "$GEXE")" --run "$run" --script "$(cygpath -w "$SC/$name.orig.txt")" \
-		--reg "$(cygpath -w "$P/start.reg")" "${MODE3D[@]}" --3d-key "Software\PopCap\WinBAD" --3d-flag "[[0x8259e4]+0x36c]+0x38" --counter "[0x8259e4]+0x484" --pending-draw "[0x8259e4]+0x45a" --update-state "[0x8259e4]+0x488" --draw-empty "[0x8259e4]+0x459" --watch "[[0x8259e4]+0x83c]+0xb0" "${WATCH23[@]}" --update-ms 10 --timeout ${PILOT_TIMEOUT:-240} > "$P/$N.orig.log" 2>&1
-	grep -i "RESULT\|timeout\|error\|msgbox\|dialog" "$P/$N.orig.log" | tail -5
 	# How many updates each chapter load's screen stayed up in the original, for the port's -chapterloadupdates: the
 	# original loads on a thread, so the load's length in updates, and with it the hint draws (one Rand() every 50
 	# updates), follow the machine's speed. origrun watches the screen's mTimer (app+0x83c, +0xb0); loads.py counts.
-	python "$T/loads.py" "$W/build/origrun/$run/logs/origrun-sandbox.log" > "$P/$N.loads"
+	python "$T/loads.py" "$OLOG" > "$P/$N.loads"
 	echo "chapter loads (updates): $(cat "$P/$N.loads")"
 	# and the startup load's, for -startloadupdates (the thread's start, app+0x4f9, to mLoadingDone, +0x919)
-	[ -z "${PILOT_WATCH:-}" ] && python "$T/loads.py" "$W/build/origrun/$run/logs/origrun-sandbox.log" --start > "$P/$N.startload"
+	[ -z "${PILOT_WATCH:-}" ] && python "$T/loads.py" "$OLOG" --start > "$P/$N.startload"
 	echo "startup load (updates): $(cat "$P/$N.startload")"
+	# the update at each of the script's marks (gen.py's `loaded` steps), from which the port's lines after a load count
+	python "$T/anchors.py" marks "$OLOG" > "$P/$N.marks"
+	[ -s "$P/$N.marks" ] && echo "marks: $(cat "$P/$N.marks")"
 	[ "${PILOT_SOUND:-off}" = on ] && [ -f "$R/logs/sound.log" ] && cp "$R/logs/sound.log" "$P/$N.sound.log"
 	[ -f "$R/game/basslog.txt" ] && cp "$R/game/basslog.txt" "$P/$N.basslog.txt" && echo "BASS calls: $(grep -vc '^#' "$P/$N.basslog.txt") lines"
 	S=$W/build/origrun/$run/shots
@@ -140,8 +170,14 @@ if [ "$which" != orig ]; then
 	[ -n "${PILOT_PROFILE:-}" ] && cp "$PILOT_PROFILE" "$d/user/users/Tester.bwa"
 	for f in ${PILOT_USERS:-}; do cp "$f" "$d/user/users/"; done
 	[ "${PILOT_SOUND:-off}" = on ] && export BYOPOP_SOUNDLOG="$(cygpath -w "$P/$N.portsound.log")"
+	# the lines after a load count from the original's mark there (anchors.py; its loads' lengths are the port's)
+	PS=$SC/$name.port.txt
+	if grep -q '^@' "$PS"; then
+		python "$T/anchors.py" fill "$PS" "$P/$N.marks" "$SC/$name.portrun.txt" || exit 1
+		PS=$SC/$name.portrun.txt
+	fi
 	timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -renderscale=1 -chapterloadupdates=$(cat "$P/$N.loads" 2>/dev/null) -startloadupdates=$(cat "$P/$N.startload" 2>/dev/null) -popcaplogo $HOLD \
-		-script="$SC/$name.port.txt" > "$d/stdout.txt" 2>&1
+		-script="$PS" > "$d/stdout.txt" 2>&1
 	echo "port exit $?"; grep "script\|FATAL" "$d/stdout.txt" | tail -5
 	python - "$PP" "$ST" <<'EOF'
 import os, sys, json

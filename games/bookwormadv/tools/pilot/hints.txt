@@ -8,6 +8,7 @@ click 230 300            # the library: Adventure
 wait 4000
 click 400 575            # Enter!
 clip load_hints 4000 100
+loaded 0                 # the load it starts: the steps after it count from its end (gen.py)
 wait 4500
 shot load_hints_battle
 quit

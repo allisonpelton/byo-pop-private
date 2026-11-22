@@ -44,10 +44,15 @@ watch = ["[[0x8259e4]+0x83c]+0xb0", "[0x8259e4]+0x4f9", "[0x8259e4]+0x919"]
 EOF
 until python "$W/tools/gamecount.py" --limit > /dev/null; do sleep 5; done
 rm -rf "$P/v3d/$name"
+# never beside a host run of the 2D original (run.sh with PILOT_HOST=on), which uses the same key and users folder
+until mkdir "$P/winbad.lock" 2> /dev/null; do sleep 15; done
 (cd "$W" && python -I tools/visrun.py "$(w "$P/visrun/$name.toml")" "$(w "$P/scripts3d/$name.orig.txt")" --out "$(w "$P/v3d/$name")" \
 	--3d on --seed 12345 --shape sandbox) > "$P/v3d/$name.out" 2>&1
-echo "visrun exit $?: $(tail -n 1 "$P/v3d/$name.out")"
+rc=$?
+rmdir "$P/winbad.lock"
+echo "visrun exit $rc: $(tail -n 1 "$P/v3d/$name.out")"
 python "$T/loads.py" "$P/v3d/$name/watch.log" > "$P/${name}3d.loads"
+python "$T/anchors.py" marks "$P/v3d/$name/visrun.log" > "$P/${name}3d.marks"
 python "$T/loads.py" "$P/v3d/$name/watch.log" --start > "$P/${name}3d.startload"
 echo "chapter loads (updates): $(cat "$P/${name}3d.loads"); startup load: $(cat "$P/${name}3d.startload")"
 # the shots and clips into orig3d (an earlier run's of the same names replaced)

@@ -11,7 +11,7 @@ NAME=$1; STEPS=$2; PROFILE=${3:-build/coverage/bookwormadv/backup/users/Tester.b
 D=build/coverage/bookwormadv/port/$NAME; rm -rf "$D"; mkdir -p "$D/user/users"
 printf '[SOFTWARE\\PopCap\\WinBAD]\nLastUser=sz:Tester\nTotalBooks=dword:3\nScreenMode=dword:0\n' > "$D/user/registry.ini"
 cp "$PROFILE" "$D/user/users/Tester.bwa"; [ -n "$EXTRA" ] && cp $EXTRA "$D/user/users/"
-python -I games/bookwormadv/tools/pilot/gen.py "$STEPS" "$D/orig.txt" "$D/port.txt" "$(cygpath -m "$PWD/$D")" > /dev/null || exit 1
+python -I games/bookwormadv/tools/pilot/gen.py "$STEPS" "$D/orig.txt" "$D/port.txt" "$(cygpath -m "$PWD/$D")" --nominal > /dev/null || exit 1
 until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 5; done
 w() { cygpath -w "$PWD/$1"; }
 timeout 300 build/native/rundesk.exe "$(w build/native/bookwormadv.exe)" -userdir="$(w "$D/user")" -fast -seed=12345 ${PORT_ARGS:-} \

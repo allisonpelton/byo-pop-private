@@ -1,4 +1,4 @@
-"""gen.py <steps.txt> <orig_script_out> <port_script_out> <port_shot_dir>
+"""gen.py <steps.txt> <orig_script_out> <port_script_out> <port_shot_dir> [--nominal]
 
 One list of steps for a screen-by-screen comparison, made into an origrun script for the original and a -script for
 the port (docs/ORIGRUN.md, docs/SHOTDIFF.md). Both run 100 updates a second, so a step at t ms is update t/10 on
@@ -17,25 +17,48 @@ Steps, one per line ('#' starts a comment):
   focus lose|regain
   shot <name>                    a still
   clip <name> <dur_ms> <interval_ms>   numbered frames (origrun's record; the port's screenshots)
+  loaded <ms>                    a chapter load (ChapterLoadScreen, app+0x83c) under way or about to start: the
+                                 original waits until its screen has come and gone (waitfor) and marks the counter,
+                                 and the steps after it count from there (`at +N`) as if the load ended <ms> after
+                                 this line, so its length on the machine drops out; the port's lines say @<k>+N
+                                 for the k-th mark, which run.sh fills in from the original's log (anchors.py), the
+                                 port's loads lasting as long as the original's (-chapterloadupdates)
   quit
 """
 import os
 import sys
 
+LOADSCREEN = "[0x8259e4]+0x83c"   # the app's ChapterLoadScreen, 0 while none is up
+
 
 def main():
-    steps, orig_out, port_out, shots = sys.argv[1:5]
+    # --nominal: a port run with no original (tools/coverage/port.sh): each mark taken as the load's end the step names
+    nominal = '--nominal' in sys.argv
+    steps, orig_out, port_out, shots = [a for a in sys.argv[1:] if a != '--nominal'][:4]
     orig, port = ["waitshot _window 60000"], []
     t = 0       # ms of game time: update t/10
+    k, base = 0, 0      # the marks so far; the game time the last one stands for
+
+    def rel(ms):
+        # after a mark: updates from it, at least 20 (origrun lets the game run free while it waits for the load)
+        return max((ms - base) // 10, 20)
 
     def oat(ms, cmd):
-        orig.append("at %d %s" % (max(ms // 10, 1), cmd))
+        if k:
+            orig.append("at +%d %s" % (rel(ms), cmd))
+        else:
+            orig.append("at %d %s" % (max(ms // 10, 1), cmd))
 
     def pat(ms, cmd):
         # one update later than the original's: the port runs a script line "N ..." at the start of update N, before
         # the widgets update (a screenshot shows update N-1, a click comes before update N), while origrun's `at N`
         # holds the original after update N (its shot shows update N, its click is handled before update N+1)
-        port.append("%d %s" % (max(ms // 10, 1) + 1, cmd))
+        if k and nominal:
+            port.append("%d %s" % (base // 10 + rel(ms) + 1, cmd))
+        elif k:
+            port.append("@%d+%d %s" % (k, rel(ms) + 1, cmd))
+        else:
+            port.append("%d %s" % (max(ms // 10, 1) + 1, cmd))
 
     def frames(name, dur, interval):
         nonlocal t
@@ -77,6 +100,11 @@ def main():
             frames(args[0], int(args[1]), int(args[2]))
         elif op == "port":
             pat(t, " ".join(args))   # a command for the port alone (state, to check a step list on the port)
+        elif op == "loaded":
+            orig.append("waitfor %s != 0 60000" % LOADSCREEN)
+            orig.append("waitfor %s == 0 120000" % LOADSCREEN)
+            orig.append("mark")
+            k, base = k + 1, t + int(args[0])
         elif op == "quit":
             t += 500
             oat(t, "move 0 0"); orig.append("quit"); pat(t, "quit")
