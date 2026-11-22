@@ -147,10 +147,10 @@ sometimes makes its moves 15 updates early or late in a real-time run), so an an
 that many updates away from the port's while the boards between the moves stay the same. The jumps were matched at
 their scenes, not pixel for pixel; a real-time run cannot line them up closer.
 
-The focus loss is still not compared in 3D. visrun keeps the original's window active with posted messages from its
+The focus loss was not compared in 3D then (it was on 2026-11-22: "The focus in 3D" below). visrun kept the original's window active with posted messages from its
 first update, since it may never take the focus from the user, so a posted focus loss does not pause the original:
 the port showed PAUSED and the original played on, and the two games parted there (Blitz's boards differ from 6000
-on). Comparing it would need the original's window to hold the focus, which the desktop rules forbid, and Windows
+on). Comparing it then seemed to need the original's window to hold the focus, which the desktop rules forbid, and Windows
 Sandbox gives the original no Direct3D. The bomb wheel in 3D is not compared either: it falls past update 10282,
 where the 3D original parts from the port anyway.
 
@@ -438,7 +438,7 @@ no screen of the port shows it.
 
 None added.
 
-## The focus in 3D (2026-11-22, not finished)
+## The focus in 3D (2026-11-22)
 
 Losing and regaining the focus had been compared only in 2D (phase two's set 5). In 3D the original runs only on the
 visible desktop, through visrun, and there a posted focus loss never paused it. The cause was visrun, not the game:
@@ -447,13 +447,27 @@ never lets it do, so a `focus lose` lasted only until the next step. visrun now 
 file's own regain (shared commit 5376dc42, with an `args` key that gives the game its command line). The original's
 3D window was then too wide for a place on the right half of the screen (976 pixels with its frame against 960), so
 the port took the original's `-4x3` and `-widescreen` switches (0x76350c, bab3c056): with `-4x3` both games open
-800 by 600 at the 600 art.
+800 by 600 at the 600 art. The first run showed the original taking the user's foreground; the runs below were made
+after the coordinator's activation block (main 562bb6f4), which refused all of the game's own activations, so the
+user's window kept the focus throughout.
 
-One run of the original's Blitz autoplay (`games/bejeweledtwist/tools/visrun/`, focus3d_blitz.txt) shows it pausing as
-the port does: its mHasFocus went from 1 to 0, its update counter stood at 2006 for the three seconds, and the scene
-blurred with the gems hidden; at the regain the flag came back and the game went on. The pictures are not compared
-yet. In that real-time run the original's round started about 200 updates after the port's, so at the loss it was
-still in its opening and showed the opening's timer where the port's paused round shows PAUSED. A run with the loss
-well into the round, lined up by board, and Classic's run are left. They wait for visrun's hand-back of the foreground:
-in this run Windows refused every one of its 1268 attempts, so the original held the user's foreground for the
-run's 26 seconds, and no original goes on the desktop again until that is fixed.
+The original played its own seeded autoplay in real time (`games/bejeweledtwist/tools/visrun/`, focus3d_blitz.txt
+and focus3d.txt): Blitz losing the focus at update 3000, half a minute into its round, and Classic at 2500, inside
+its first level, each for three seconds, then regaining it. The port played the same seed under rundesk with `-3d
+-4x3`, in real time. In these runs the original's game started about 840 updates later than the port's (its loading
+in real time), so the port's shots were lined up by board: a shot every 2 or 4 updates around the moment, the best
+match taken, and the port's loss and regain put at the matching update and 300 updates later.
+
+- **Before the loss** the games are the same: Blitz at a mean of 4 levels a channel, Classic's board at 7 (the nebula
+  behind it moves on its own clock in a real-time run, as in the earlier 3D passes).
+- **While unfocused**, both pause alike: the original's mHasFocus goes to 0 and the board stops; in Blitz the scene
+  blurs, the gems hide and PAUSED shows (2.5 levels from the port's pause screen); in Classic the board stands as it
+  was, gems showing, in both. The original then stops updating altogether, its counter standing still for the three
+  seconds, and its picture freezes a few updates' worth after the loss. The port keeps updating, so Blitz's "SPEED
+  BONUS" text, frozen in the original's, fades out in the port's while the board is paused. That is an oddity
+  (NOTES.md, "The unfocused original stops updating; the port goes on"): its cause was not found within the hour.
+- **After the regain** the boards, timers and scores go on from where they stopped in both. Blitz's first 50 updates
+  differ by 8 to 9 levels where the port's text had faded during the pause; 250 updates on they are the same again
+  (3.75). Classic's board matches throughout (about 7, the nebula).
+
+No change to the port came of it beyond the two switches. The sound at a focus loss (both mute) was compared in 2D.

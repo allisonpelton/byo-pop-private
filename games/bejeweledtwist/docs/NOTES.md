@@ -1226,6 +1226,16 @@ whose buffers origrun's stand-in logs only by their calls.
   opaque pixels, are all the same. The cause of the rest was not found (perhaps the wavelet's rounding or the colour
   transform); finding it would mean comparing the original decoder's coefficients with ours stage by stage. Too
   small to see.
+- **The unfocused original stops updating; the port goes on.** While the window has lost the focus, the original's
+  update counter stands still (under origrun in 2D, and in 3D under visrun, 2026-11-22) and it draws about once a
+  second, so a few updates' worth after the loss its picture freezes: in Blitz the pause text has faded in and a
+  "SPEED BONUS" being shown stays on screen. The port keeps updating, so that text fades out and the 3D scene moves on
+  behind the paused board; the board itself, the timers and the score stay still in both, and after the regain the
+  two are the same again. To see it: `games/bejeweledtwist/tools/visrun/focus3d_blitz.txt` against the port losing
+  the focus at the same moment. Found so far: 0x49c7a0 (the redraw) draws an inactive app only once a second;
+  DoUpdateFrames (0x49c6b0) skips only for the screensaver flag (0xe13b67, 0x49d250), and Process (0x4a2cb0) only
+  for mPaused (+0x4a0, the debug key P) or a zero update multiplier. What stops the updates was not found within the
+  hour; the message loop (0x4a3280) and its ProcessDeferredMessages-like 0x4a0ea0 are left to read.
 
 ## Performance (native)
 
