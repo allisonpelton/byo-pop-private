@@ -223,3 +223,32 @@ What the analysis has found about the exe, for reading the export. The plan is i
   [0x1c7] and [0x1c8] (the screen's offset and scale) and art size x 160/1200, scaled by 1 - a curve. Until this is
   translated the menu keeps the port's own placement (a "port:" note in src/MainMenu.cpp), and the foreground picture
   and logos are not drawn.
+
+## The menu's placement (Update 0x6a3530), translated
+
+The buttons' places are now the exe's (src/MainMenu.cpp, src/Math3D.{h,cpp}). Each update, both cameras (the objects at
++0xdc and +0x134, vtable 0x865ff8, constructor 0x419910) get SetFov(38.5 x aspect, aspect, 0.1, 1000) and are put at
+the eye (0, 0, 2c + 0.25) looking at (0, 10, 7c + 2.35), up (0, 0, 1), c being the curve +0x718 (1 at the start, so
+the cameras begin far back). Both transforms are then moved by (0, -0.4, 0); camera A is turned about z by curve
++0x190 x -0.78 and camera B (the one the balls go through) by curve +0x200. The ball points are PLAY (0, 2.0, 0.7),
+OPTIONS (-0.802, 1.93, 0.64) and RECORDS (0.802, 1.93, 0.64); the screen place is width x x + art size x 160/1200 and
+height x y (the PLAY point also blended to the menu's middle by the PLAY button's own +0x190 curve). Matrix helpers:
+0x419850 and 0x4198b0 copy a transform in and out, 0x428600 composes, 0x4197a0 is the turn about z, 0x4287e0 takes a
+world point into a camera's space, 0x419a50 projects it. The intro (curves started once the loading thread ends and the
+smoothed progress reaches 0.995) and the background fade (progress 0.2) are translated; the 0x59b0a0 "cache" branch
+(which sets some curves to constants instead) is not, the port never takes it.
+
+Settled: 0x59b0a0 is a flag the exe sets when it was started with an already filled resource cache; every use here
+takes its false branch.
+
+Oddities / not translated, each with a "port:" note in the source:
+- The menu's slot 0x7c on the three balls (called in the constructor with 0 and at the intro start) is not identified;
+  the port draws the plates only after the intro starts (MainMenuButton::mActive) and hides the side buttons before.
+- The Update's background widget (+0x6d8, its Resize at curve +0x190's first value), the logo phase, the widgets at
+  +0x6f0 to +0x6f8, the overlay widgets +0x700 and +0x704, the user dialogs, the loader's unloading and the stars
+  (0xdc particles of the constructor) are skipped.
+- The port loads neither partner.xml nor reads NumLogos, so the logo phase would not run anyway.
+- ResizeButtons (0x6a09e0, run when curve +0x190 is triggered) is not translated; the app's viewport offset ([0x1c5])
+  is taken as 0, and which of the ftol and sub-pixel assignments for PLAY comes first was read from the code, not
+  checked against a running original.
+- Draw: the alpha of the curve +0x2e8 (the background's fade), the foreground picture and the particles are still open.
