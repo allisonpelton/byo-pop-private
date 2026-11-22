@@ -81,12 +81,10 @@ const float STARTLE_MARGIN_PX = 40.0f;
 // How far a bug's box must be from the rope's line (design pixels): this much at least, and more the longer the rope is
 // (its flight takes shot-time * length frames, in which a bug walks on). The second tier drops the part for the length
 const float LINE_MARGIN_BASE_PX = 36.0f;
-const float LINE_MARGIN_PER_PX = 0.16f;
-// Whether the bot turns the rope with a right click. It does not: in the port the second button never turns the stretch
-// (GameWidget::MouseDown hands Player::BoardClick the button number, 1 for the right button, where the game tests for a
-// negative number, so a right click shoots), so the bot shoots only along the way the game aims by itself, the shorter
-// stretch. With that fixed this may be set and the steps below turn the rope when the best line lies the other way.
-const bool BOT_TURNS_ROPE = false;
+const float LINE_MARGIN_PER_PX = 0.3f; // 0.16 lost three lives in two levels on lines of 465 to 713 px with gaps of 124 to 195
+// Whether the bot turns the rope with a right click when the best line lies across the way the game aims by itself
+// (the shorter stretch); the second button turns it (GameWidget::MouseDown passes the click count, negative for it)
+const bool BOT_TURNS_ROPE = true;
 
 // The rope's own thickness and the reach of its arrows (RopeObj::HitBox: 4 by 6)
 const float ROPE_HALF_THICK_PX = 6.0f;
@@ -287,6 +285,16 @@ struct BugBox
 	float mHalfHeight;
 };
 
+// The kinds that fly in straight dashes across the open ground (the skeeter, the dragonfly, the fly and the moth, which
+// shares the fly's kind number, and the bee): their boxes grow by this much each way, as they cross a gap the walkers
+// cannot in a rope's flight (with only the length margin the bot lost two lives in two levels to skeeters 160 px away)
+const float FLIER_REACH_PX = 80.0f;
+
+bool IsFlier(int theKind)
+{
+	return theKind == BUG_SKEETER || theKind == BUG_DRAGONFLY || theKind == BUG_FLY || theKind == BUG_BEE;
+}
+
 std::vector<BugBox> AliveBugs()
 {
 	std::vector<BugBox> aBugs;
@@ -305,6 +313,10 @@ std::vector<BugBox> AliveBugs()
 			aBox.mY = aBug->mScreenY;
 			aBox.mHalfWidth = 27.0f;
 			aBox.mHalfHeight = 27.0f;
+		}
+		if (IsFlier(aBug->mKind)) {
+			aBox.mHalfWidth += FLIER_REACH_PX;
+			aBox.mHalfHeight += FLIER_REACH_PX;
 		}
 		aBugs.push_back(aBox);
 	}

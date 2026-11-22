@@ -180,3 +180,10 @@ The finished translations to copy the style from: `src/PopCap.cpp`, `src/Transit
   next bonus, the level's end) before keeping it as a fix of a soft lock; otherwise it belongs to the fixes mod.
 - BonusParrot reads the link of a null next pipe at a wall's end or on a cell with no wall (a crash in the port); the
   port ends the bonus there. To check what the original does at that place (it reads whatever lies at that address).
+
+## The bot's record (playbymove from level 5, 400 moves, -fast)
+
+- Margin 36 + 0.16 px a px of line: levels 5 and 6 won, three lives lost, all on lines of 465 to 713 px.
+- Margin 36 + 0.3: the same two levels, two lives lost, both to skeeters 160 px away.
+- With the fliers' boxes grown by 80 px: level 5 won and level 6 at 61%, one life lost. Slower, steadier; the bot pass
+  should weigh cut against risk rather than only reject.
