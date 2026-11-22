@@ -33,6 +33,14 @@ for i in $(seq 1 120); do
   python tools/gamecount.py --limit 6 > /dev/null && break
   sleep 15
 done
+# the 2D original in the sandbox: windowed, the 640 by 480 layout, no Direct3D (what the port's LOWRES=1 tours use)
+[ -f build/origrun/bej2_sandbox.reg ] || printf 'Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Software\Steam\Bejeweled2]
+"ScreenMode"=dword:00000000
+"HighResolution"=dword:00000000
+"Is3D"=dword:00000000
+' > build/origrun/bej2_sandbox.reg
 WATCHES='[[0x67ccd8]+0xe68]+0x15e20 [[0x67ccd8]+0xe68]+0x15e4 [[0x67ccd8]+0xe68]+0x170c [[0x67ccd8]+0xe68]+0x15e0' \
 ORIGRUN_ARGS="--sandbox --reg $PWD/build/origrun/bej2_sandbox.reg --pending-draw [0x67ccd8]+0x45a --update-state [0x67ccd8]+0x488 --draw-empty [0x67ccd8]+0x459 $ORIGRUN_EXTRA" \
   bash games/bejeweled2/tools/origcmp/run_original.sh "build/origrun/bej2_$tag.txt" "build/logs/bej2/og_$tag/origrun.log" "$seed" "$timeout"
