@@ -1,7 +1,7 @@
   // Peggle Deluxe's settings for the shared page (web/shell.html lists the fields; docs/WEB_PLAYER.md)
   var PAGE = {
     id: "peggle",
-    shortName: "Peggle Deluxe",
+    shortName: "Peggle",
     // Its own IndexedDB folder (IDBFS names the database after the mount point; src/main.cpp uses the same), so the
     // games served from the same site never share files or saves
     persist: "/peggledeluxepersist",
