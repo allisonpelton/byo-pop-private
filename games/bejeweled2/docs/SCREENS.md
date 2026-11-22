@@ -3,8 +3,9 @@
 One row per screen or dialog the game can show, from the export and `src/` (the audit of 2026-11-21 in
 `build/logs/screen-coverage/bejeweled2.md`, checked against both). The shots are pairs of the run `screens2d`
 (`games/bejeweled2/tools/origcmp/screens_run.sh`, `screens_reader.sh`): the port's recording of each tour against the
-original's shots of the same inputs, 2D 640x480 windowed, the original in Windows Sandbox. The 3D and full screen shots
-are not in this run (the desktop lane's tours, `docs/IDENTICAL_PLAY.md`). Shots are named `<tour>__<shot>`.
+original's shots of the same inputs, 2D 640x480 windowed, the original in Windows Sandbox. The 3D credits roll was compared on the
+desktop lane in run `v3d_finale` (40 pairs, credits all matching, `docs/IDENTICAL_PLAY.md`); the rest of 3D and full screen
+are not in this run. Shots are named `<tour>__<shot>`.
 
 "Explained" below means: the More Games button and the pill's text are gone from the main menu and from every screen
 that shows it (the user asked for it; box at 384,436), the title's letters and progress bar are at another phase (the

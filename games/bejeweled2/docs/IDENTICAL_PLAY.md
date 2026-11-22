@@ -346,14 +346,19 @@ After the fixes the credits shots (fin00 to fin23) match the original, as do the
   the stock install), No Longer Solvable, No Hints, More Hints? and the secret puzzle's hint warning (no recorded input
   reaches them: rows in SCREENS.md say why).
 
-### The desktop lane's 3D and full screen shots of the new tours: not taken
+### The desktop lane: the finale in 3D (1024 by 768), 2026-11-22
 
-`games/bejeweled2/tools/visrun/run3d.py` and `bejeweled2-3d.toml` (the original in 3D, 1024 by 768, from the port's 3D recording of the
-finale, `build/visrun/rec3d/finale`) are ready, and the port's 3D recording of the finale exists (40 shots). The original's run
-waited an hour for a place: visrun found the Claude window in the right half of the screen over all four places (`visrun.log`,
-"waiting for a place"), and does not move a window it does not own. It was stopped. To take them, run `run3d.py build/visrun/rec3d/finale
-<out> --profile <prof_p75b>` with the right half clear, then shotdiff the port's shots against `<out>`; the 3D forbidden region
-around the title's logo (`bejeweled2-3d.toml`) is the 2D one scaled and unconfirmed. Full screen has no script yet.
+`games/bejeweled2/tools/visrun/run3d.py` (config `bejeweled2-3d.toml`) played the port's 3D recording of the finale (40 shots,
+`build/visrun/rec3d/finale`, the player of `make_gapprofile.py --puzzle 75 --galaxy 0`) with the original on the visible desktop, the
+stand-in's activation hook installed and no "run stopped" line, then `tools/shotdiff` (run `v3d_finale`): 40 pairs, 28 match, 9
+faint, 3 differ. Every credits shot (fin00 to fin23, fin-dialog37 with the OK button, the link, the board after it) matches or is
+faint (fin01, fin02: 0.03 percent). The three that differ are the title (the load's phase), the menu and link-menu (the More
+Games pill, removed). The warp shots are faint (sparkle phases). The 3D credits roll therefore equals the original's, with the
+fixes of the 2D pass. The title's logo region the run forbids is the 2D one scaled by 1.6, unconfirmed.
+
+Not taken: the original's full screen (a full screen original changes the desktop's display mode; no script runs it yet) and the 3D
+shots of the other new tours (dialogs, hints, galaxy); `run3d.py <recording> <out> --profile <folder>` does any of them from a 3D
+recording (`record_3d_tours.sh`-style, `PLAY_AT=940`, the tour's environment from `screens_run.sh`).
 
 ### Runs
 
