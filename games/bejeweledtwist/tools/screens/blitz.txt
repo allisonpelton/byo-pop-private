@@ -1,0 +1,14 @@
+# Blitz by the seeded autoplay (-autoplay=blitz on both sides): the board, the last seconds, the end's explosion, the
+# end statistics and the high scores (gen.py)
+0 offset 4                 # the autoplay starts its game an update sooner on the port
+1000 shot b01_board
+2650 shot b02_board_b
+5150 shot b03_late
+6900 shot b04_last_seconds
+7150 shot b05_end
+7300 shot b06_end_b
+7600 shot b07_endstats
+7900 shot b08_endstats_b
+8150 shot b09_scores
+8150 state
+8155 end

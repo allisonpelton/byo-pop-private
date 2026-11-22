@@ -1,0 +1,32 @@
+# The player list: the list, a new player's name box, the same name's question, and deleting a player (gen.py)
+200 text TB
+205 key RETURN
+400 click 400 570        # Change User
+650 shot y01_players
+650 state
+655 click 325 459        # New User
+900 shot y02_newuser
+900 state
+905 text TB
+910 key RETURN
+1100 shot y03_samename
+1100 state
+1105 click 400 349       # OK
+1300 click 455 433       # Cancel
+1500 click 325 459       # New User
+1700 text AB
+1705 key RETURN
+1900 state
+1905 click 400 570       # Change User: both players
+2150 shot y04_two_players
+2150 state
+2155 click 472 459       # Delete
+2400 shot y05_delete
+2400 state
+2405 click 300 349       # OK: the player goes
+2650 shot y06_after_delete
+2650 state
+2655 click 400 567       # Continue
+2900 shot y07_menu
+2900 state
+2905 end

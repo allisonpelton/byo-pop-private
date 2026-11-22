@@ -3,6 +3,7 @@
 
 #include "Graphics.h"
 #include "Image.h"
+#include "Mandala.h"
 #include "Res.h"
 #include "SexyMatrix.h"
 #include "TwistD3D.h"
@@ -30,8 +31,11 @@ void PlayButton::Update()
 {
 	mUpdateCnt++;
 	mRotation = (float)(mRotation - 0.0010000000474974513);
-	// The main menu (app +0xf24) in its state 3 slows the sparkles to half: comes with the menu
+	// The sparkles go at half speed while the mode select (app +0xf24) has the mouse over its Zen button (+0x18c 3)
 	float aTarget = 1.0f;
+	Mandala* aModeSelect = static_cast<Mandala*>(gApp->mMandalaWidget);
+	if (aModeSelect != nullptr && aModeSelect->mOver == 3)
+		aTarget = 0.5f;
 	float aSpeed = aTarget;
 	if (mSpinSpeed <= aTarget) {
 		float aNext = (float)(mSpinSpeed + 0.009999999776482582);

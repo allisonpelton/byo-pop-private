@@ -83,6 +83,7 @@ skin.apps.fit = Fit window
 skin.apps.scale = {n}x
 skin.apps.scale_tip = Window size
 skin.apps.speed = Speed {n}
+skin.apps.speed_max = Max
 skin.apps.scan_off = No scanlines
 skin.apps.scan_light = Light scanlines
 skin.apps.scan_strong = Strong scanlines
@@ -251,6 +252,10 @@ settings.skiptutorials.hint = Turns off each game's own tutorial, as its options
 settings.speed.label = Game speed
 settings.speed.hint = Runs the game faster or slower. Music plays at its own speed. Bonnie's Bookstore and Ning Po Mahjong always run at their own.
 settings.speed.normal = Normal
+settings.speed.max = Max
+settings.speed.fixed = This game always runs at its own speed.
+settings.speedkeys.label = Speed keys
+settings.speedkeys.hint = While the game has the keyboard, F6 slows it down, F7 speeds it up and F8 puts it back to normal, in the same steps as the list. The new speed shows over the game for a moment and is kept for this game. With the keys on, Shift+F6 takes the keyboard out of the game.
 controls.title = Controls
 controls.none = This game's controls are not listed yet.
 controls.change = Change key
@@ -524,6 +529,7 @@ game.sound.off = Sound off
 game.mods.hint = Opens the in-game mod menu if the game is running; also accessed with F2.
 game.canvas_label = {title}, game
 game.canvas_hint = Keyboard captured by game. Use F6 to leave, Shift-F6 to re-enter.
+game.canvas_hint_speedkeys = Keyboard captured by game. Use Shift-F6 to leave. F6, F7 and F8 change the speed.
 game.chat.title = Chat
 
 # The status line in the bar. Test runs add " · silent" and the like, and the status line ends in "silent" (CLAUDE.md).
