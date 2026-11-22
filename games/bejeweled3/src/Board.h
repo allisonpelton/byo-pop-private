@@ -294,10 +294,9 @@ public:
 	// moves left counts one down (the other branches of 0x73c710, for the bit 0x200, are the Quest boards' goals': not translated). Run
 	// by 0x75f85c, 0x75f8be (a hypercube's swap) and by 0x74c070 (a swap that found a match), before slots 179 and 191
 	void CountDownMoves();
-	// 0x759840 (bejeweled3), run in each step by 0x767e20: a move's record goes once no match group lives and the pieces that carry its id
-	// have all come to rest (their tag, +0x188, is put back to -1), and no column's tag holds it. port: Board::UpdateGame does not run it
-	// (Classic's frozen baseline keeps the tags a move gave); the Quest boards run it from QuestBoard::UpdateGame, since Butterflies' game
-	// over reads the tags. The exe's sounds and the hint's flags at its end are left out
+	// 0x759840 (bejeweled3), run in each step by 0x767e20 (at 0x76818e, after the fill and before the swaps): a move's record goes once no match
+	// group lives and the pieces that carry its id have all come to rest (their tag, +0x188, is put back to -1), and no column's tag holds it. The
+	// exe's sounds and the hint's flags at its end are left out
 	void UpdateMoveRecords();
 	// 0x7492c0 (bejeweled3), slot 168's sibling: the piece becomes a butterfly gem (FLAG_BUTTERFLY and nothing else); 0x748ad0 makes its looks
 	void MakeButterflyGem(Piece* thePiece);

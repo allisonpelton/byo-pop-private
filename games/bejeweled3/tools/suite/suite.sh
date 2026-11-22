@@ -14,7 +14,7 @@ OUT="$1"
 EXE="${2:-build/native/bejeweled3.exe}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 FROZEN="51086c43ed2a"
-FROZEN_MODES="94f857c247d1"
+FROZEN_MODES="873d262bb577"
 SHOTS="classic play specials gameover"  # compared; menu.png is only kept to look at: the menu opens after the
 # loading, which runs at the machine's speed, so its dialog and balls stand at a different point of their animation each run
 mkdir -p "$OUT"

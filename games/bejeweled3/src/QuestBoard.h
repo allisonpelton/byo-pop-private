@@ -31,7 +31,6 @@ public:
 	std::vector<double> SettingList(const char* theName) const;
 	bool HasSetting(const char* theName) const { return mSettings.find(theName) != mSettings.end(); }
 
-	void UpdateGame() override;   // Board's step, then the finished moves' records go (0x759840)
 };
 
 }  // namespace Sexy

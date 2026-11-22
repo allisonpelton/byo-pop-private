@@ -1073,7 +1073,7 @@ PokerBoard (vftable 0x869364, constructor 0x6da1c0) both derive from QuestBoard 
 Board (0x864cb4). The port has a QuestBoard base class with what they share: the secret flag (+0x3184, mIsSecretMode, set by 0x774060's
 fourth argument), the quest's settings (+0xc8, copied from secret.cfg), no levels (HasLevels, GetLevelMax 0, no level number in the top
 widget, slot 156 does nothing), no fill once the end has begun (slot 203, 0x6dd4d0), the quest's background (slot 100: BackgroundIdx, step 0),
-the move records' clean-up (0x759840, run by QuestBoard::UpdateGame only: Classic's frozen baseline keeps its tags, see Oddities) and the level
+the move records' clean-up (0x759840, which Board::UpdateGame runs for every mode, as the exe does at 0x76818e) and the level
 factor 1 (slot 122, 0x73b600; Butterflies' 0x6c5340 gives 5). The secret quests are at secret.cfg indexes 0 (Poker) and 1 (Butterflies).
 
 How a mode starts: the play menu's balls 4 (POKER) and 5 (BUTTERFLIES) call Bej3App::StartSecretMode (0x774060): the quest's setting Challenge,
@@ -1174,8 +1174,6 @@ setting at +0x3968 (first read by 0x6dfa40) and Hands belong to the games that a
 - Poker's hands' names are the ones of secret.cfg's comment (the exe builds a table at 0x8d222c from strings the port has not located).
 - Poker's skull: a hand the skull takes is also paid first (0x6cb520 runs before the test of the skull's level); this is read from the order of
   the calls in 0x6dedd0 and is not confirmed by a game of the original.
-- Classic's pieces keep their tags (+0x188) because Board::UpdateGame does not run the move records' clean-up 0x759840 (Classic's frozen baseline
-  would change); only QuestBoard::UpdateGame runs it. A latent difference for the identical-play pass.
 
 ### The suite for the two modes
 

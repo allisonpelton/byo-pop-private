@@ -445,6 +445,7 @@ void Board::UpdateGame()
 		// 0x73c9xx: the fill waits while a match is alive (the list at +0x125c)
 		if (!HasLiveMatches())
 			FillInBlanks(false);
+		UpdateMoveRecords();   // 0x76818e: 0x759840, between the fill (slot 0x32c) and the swaps (0x759ba0)
 		UpdateSwaps();
 		UpdateFalling();
 	}

@@ -46,11 +46,4 @@ void QuestBoard::ChooseBackground()
 	SetBackground(0);
 }
 
-// slot 231 (0x767e20 for the Quest boards, whose own slots 231 run it first): the game's step, then 0x759840, which the exe runs inside it
-void QuestBoard::UpdateGame()
-{
-	Board::UpdateGame();
-	UpdateMoveRecords();
-}
-
 }  // namespace Sexy
