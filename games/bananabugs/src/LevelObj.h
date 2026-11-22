@@ -268,4 +268,7 @@ bool LevelAcceptsMouse();
 // 0x43f3e0: the game makes a cell and a pipe for every place of the grid as it starts
 void InitLevelTable();
 
+// 0x4733f0: theCount whole numbers, in a random order (the C library's rand)
+void ShuffleNumbers(int* theNumbers, int theCount);
+
 } // namespace Sexy

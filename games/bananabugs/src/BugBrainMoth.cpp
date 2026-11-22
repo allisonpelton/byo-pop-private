@@ -140,7 +140,7 @@ bool BugBrainMoth::Update()
 			int aState = mMothState;
 			if (aState != MOTH_STATE_FLEEING && mCommand == 0 && Player::GetSpeedAverage() >= FLEE_MIN_SPEED && Player::IsNear(this, FLEE_REACH)) {
 				mFlying = true;
-				mUnused310 = true;
+				mAirborne = true;
 				mMothState = MOTH_STATE_FLEEING;
 				BeginLeave();
 				return true;
@@ -151,7 +151,7 @@ bool BugBrainMoth::Update()
 					BeginFlight(true);
 				}
 			} else if (aState == MOTH_STATE_LANDED) {
-				mUnused310 = false;
+				mAirborne = false;
 				mMothState = MOTH_STATE_FLYING;
 			}
 			if (mCommand == COMMAND_FREEZE) {

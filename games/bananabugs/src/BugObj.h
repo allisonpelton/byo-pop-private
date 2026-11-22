@@ -89,7 +89,7 @@ public:
 	AnimKey* mSpinKey;                          // +0x304: the spin's first key, which FlyOff gives the bug's place and turn
 	AnimKey* mSpinEndKey;                       // +0x308: its last key, 1900 pixels further on
 	AnimKey* mHideKey;                          // +0x30c
-	bool mUnused310;                            // +0x310: set to 0 by the constructor, to 1 by the wasp, the dragonfly and the skeeter
+	bool mAirborne;                            // +0x310: set to 0 by the constructor, to 1 by the wasp, the dragonfly and the skeeter, and by a fly or moth that takes off; BonusEarthquake spares a bug that has it (a guessed name)
 	bool mFlying;                               // +0x311: FlyOff has started: the bug is on its way off the screen and takes no more hits
 	int mHalfWidth;                             // +0x314: the places its box covers each way from its own (set by each kind's constructor)
 	int mHalfHeight;                            // +0x318

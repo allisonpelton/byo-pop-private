@@ -65,7 +65,7 @@ BugBrainDragonfly::BugBrainDragonfly()
 	SetKind(BUG_DRAGONFLY, DRAGONFLY_HALF_WIDTH, DRAGONFLY_HALF_HEIGHT);
 	mUnused2A4 = 2;
 	mHoldFrames = 0;
-	mUnused310 = true;
+	mAirborne = true;
 	mHeading = (int)(GameRandomNext() & 3);
 	// port: the original leaves these as the memory had them until Setup and PlaceAt set them
 	mTargetCell = nullptr;

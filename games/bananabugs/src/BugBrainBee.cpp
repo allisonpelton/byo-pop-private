@@ -84,7 +84,7 @@ BugBrainBee::BugBrainBee()
 	mEmitters->MakeSwell(SWELL_DEPTH);
 	SetKind(BUG_BEE, BEE_HALF_WIDTH, BEE_HALF_HEIGHT);
 	mHoldFrames = 0;
-	mUnused310 = true;
+	mAirborne = true;
 	mBeeState = BEE_STATE_CRUISE;
 	mTilt = 0.0f;
 	mBoost = 0.0f;

@@ -235,7 +235,7 @@ void BonusBomb::BuildTracks()
 	aSwayBackKey->AddValue(STATE_ALPHA, 0.0f, MOD_HOLD);
 	aSwayBackKey->AddValue(STATE_SCALE_X, 0.0f, MOD_HOLD);
 	aSwayBackKey->AddValue(STATE_SCALE_Y, 0.0f, MOD_HOLD);
-	aSwayBackKey->AddValue(STATE_ROTATION, 0.0349066f, MOD_TOWARD_NEXT);
+	aSwayBackKey->AddValue(STATE_ROTATION, 0.0349065848f, MOD_TOWARD_NEXT);
 	aSwayBackKey->mEasing = EASE_COSINE;
 	AnimTrack* aHeldTrack = new AnimTrack();
 	aHeldTrack->AddKey(anAppearKey, nullptr);

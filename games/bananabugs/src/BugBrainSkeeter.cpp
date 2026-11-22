@@ -61,7 +61,7 @@ BugBrainSkeeter::BugBrainSkeeter()
 	SetKind(BUG_SKEETER, SKEETER_HALF_WIDTH, SKEETER_HALF_HEIGHT);
 	mUnused33C = 0.0f;
 	mHoldFrames = 0;
-	mUnused310 = true;
+	mAirborne = true;
 	mFacing = 1.0f;
 	mFacingFrames = 0;
 	mFacingScale = 1.0f;

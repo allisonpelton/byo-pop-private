@@ -138,7 +138,7 @@ bool BugBrainFly::Update()
 				mFlying = true;
 				mFlyState = FLY_STATE_FLEEING;
 				mUnused338 = 0;
-				mUnused310 = true;
+				mAirborne = true;
 				if (aTimer > FLEE_SOUND_AFTER_FRAMES) {
 					int aPitchRange = (int)(GameRandomNext() & 1);
 					sApp->mSoundQueue->Request(SOUND_FLYFLY, aPitchRange, false);
@@ -150,7 +150,7 @@ bool BugBrainFly::Update()
 				if (IsBlockedAhead())
 					BeginFlight(TURN_BACK_ANGLE);
 			} else if (aState == FLY_STATE_LANDED) {
-				mUnused310 = false;
+				mAirborne = false;
 				mFlyState = FLY_STATE_FLYING;
 			}
 			if (mCommand == COMMAND_FREEZE) {

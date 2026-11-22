@@ -1,4 +1,5 @@
 #include "LevelObj.h"
+#include "BonusCoin.h"
 #include "Board.h"
 #include "ScoreBoard.h"
 #include "BugBrainAnt.h"
@@ -82,8 +83,8 @@ static const int FILL_LAYER_Z = 1;
 static const int START_MARK_INSIDE = -1;           // FillObj::SetMark's value for a cell inside the field
 
 // 0x4733f0: theCount whole numbers in a row, then mixed twice by swapping each with one picked at random by the C
-// library's rand (CrtRand, the emulation of MSVC's), not the game's own generator
-static void ShuffleNumbers(int* theNumbers, int theCount)
+// library's rand (CrtRand, the emulation of MSVC's), not the game's own generator (BonusCoin shuffles its kinds with it too)
+void Sexy::ShuffleNumbers(int* theNumbers, int theCount)
 {
 	for (int i = 0; i < theCount; i++)
 		theNumbers[i] = i;

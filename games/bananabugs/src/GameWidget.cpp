@@ -1,4 +1,5 @@
 #include "GameWidget.h"
+#include "BonusCoin.h"
 #include "BananaBonus.h"
 #include "BugImg.h"
 #include "BugImgAnt.h"

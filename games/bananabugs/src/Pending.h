@@ -5,6 +5,7 @@
 
 #include "AskWin.h"
 #include "BBWindow.h"
+#include "Bonus.h"
 #include "BugObj.h"
 #include "FillObj.h"
 #include "MenuAnim.h"
@@ -20,20 +21,98 @@ class BBFont;
 class LevelObj;
 class PipeObj;
 
-// The bonus under a cell (0x408ed0, 0x498 bytes; the class is not translated): it lies hidden under a cell of the ground
-// and shows itself when the cell is cut (Uncover). The stand-in shows nothing and holds none of the 19 bonuses.
-class BonusCoin : public ObjBase
-{
-public:
-	FillObj* mCell;                             // +0x284: the cell that covers it
-	void Place(int theColumn, int theRow);      // 0x409970 (EAX the row, the column pushed): puts the bonus at that place
-	void Uncover();                             // 0x409bf0
-	static void ResetCurrent();                 // 0x40af00: puts the coin that is showing back under its cell
-};
-
 // The effect of a bonus on the monkey (0x40bfe0); the stand-in is an object that shows nothing
 class BonusEffect : public ObjBase
 {
+public:
+	void Play();                                // 0x40c040 (EBX the effect): starts its 18 pictures and shows it
+};
+
+// A bonus of the second half of the kinds, not translated yet: it holds its kind (Bonus::Setup) and nothing else, and
+// when it is won it is put away at once, so play goes on. Each stand-in is named after the class at the constructor's
+// address
+class PendingBonus : public Bonus
+{
+public:
+	void Start() override;                      // put away at once (the original's runs the bonus)
+};
+
+class BonusShotSpeed : public PendingBonus      // 0x410ca0 (0x2d8 bytes)
+{
+public:
+	BonusShotSpeed();
+};
+
+class BonusFlyPaper : public PendingBonus       // 0x40c700 (0x2e8 bytes)
+{
+public:
+	BonusFlyPaper();
+};
+
+class BonusZapper : public PendingBonus         // 0x4123e0 (0x2e4 bytes)
+{
+public:
+	BonusZapper();
+};
+
+class BonusSwat : public PendingBonus           // 0x410e10 (0x300 bytes)
+{
+public:
+	BonusSwat();
+};
+
+class BonusSpearCraft : public PendingBonus     // 0x410d60 (0x2d8 bytes)
+{
+public:
+	BonusSpearCraft();
+};
+
+class BonusMagicArrows : public PendingBonus    // 0x40d740 (0x2d8 bytes)
+{
+public:
+	BonusMagicArrows();
+};
+
+class BonusMissile : public PendingBonus        // 0x40e550 (0x318 bytes)
+{
+public:
+	BonusMissile();
+};
+
+class BonusRain : public PendingBonus           // 0x410660 (0x3bc bytes)
+{
+public:
+	BonusRain();
+};
+
+class BonusHurricane : public PendingBonus      // 0x40d090 (0x3c0 bytes)
+{
+public:
+	BonusHurricane();
+};
+
+class BonusParrot : public PendingBonus         // 0x40eff0 (0x328 bytes)
+{
+public:
+	BonusParrot();
+};
+
+class BonusTarzan : public PendingBonus         // 0x411c60 (0x32c bytes)
+{
+public:
+	BonusTarzan();
+};
+
+class BonusZuma : public PendingBonus           // 0x412f20 (0x304 bytes)
+{
+public:
+	BonusZuma();
+};
+
+class BonusMine : public PendingBonus           // 0x40d7c0 (0x380 bytes)
+{
+public:
+	BonusMine();
 };
 
 // The pictures PreloadBonusPictures (0x406dd0) loads, in the globals of the second half's bonuses (not translated yet)
@@ -72,6 +151,5 @@ public:
 // GameWidget's preloads (0x42f3b0): each class's pictures, loaded once and kept
 void PreloadNetFly();        // 0x42ad40
 void PreloadSlots();         // 0x46c710
-void InitBonusTable();       // 0x40af90
 
 } // namespace Sexy

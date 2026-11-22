@@ -78,23 +78,27 @@ void Sexy::PreloadSlots()
 	sSlotShineAnim = Load("images/slot/slot_shine", 0x100, 0xc0, 4);
 }
 
-// port: the bonuses' table (the "images/bonuses" picture and each bonus's kind) is not translated yet
-void Sexy::InitBonusTable()
+// The effect of a bonus on the monkey shows nothing
+void BonusEffect::Play()
 {
 }
 
-// port: the stand-in bonus is not drawn or kept anywhere (the original sets up its place and its looks)
-void BonusCoin::Place(int theColumn, int theRow)
+// port: the stand-in bonus does nothing when it is won: it is put away at once (Bonus::Reset)
+void PendingBonus::Start()
 {
-	(void)theColumn;
-	(void)theRow;
+	Reset();
 }
 
-void BonusCoin::Uncover()
-{
-}
-
-void BonusCoin::ResetCurrent()
-{
-}
-
+BonusShotSpeed::BonusShotSpeed() { mKind = BONUS_SHOT_SPEED; }
+BonusFlyPaper::BonusFlyPaper() { mKind = BONUS_FLY_PAPER; }
+BonusZapper::BonusZapper() { mKind = BONUS_ZAPPER; }
+BonusSwat::BonusSwat() { mKind = BONUS_SWAT; }
+BonusSpearCraft::BonusSpearCraft() { mKind = BONUS_SPEAR_CRAFT; }
+BonusMagicArrows::BonusMagicArrows() { mKind = BONUS_MAGIC_ARROWS; }
+BonusMissile::BonusMissile() { mKind = BONUS_MISSILE; }
+BonusRain::BonusRain() { mKind = BONUS_RAIN; }
+BonusHurricane::BonusHurricane() { mKind = BONUS_HURRICANE; }
+BonusParrot::BonusParrot() { mKind = BONUS_PARROT; }
+BonusTarzan::BonusTarzan() { mKind = BONUS_TARZAN; }
+BonusZuma::BonusZuma() { mKind = BONUS_ZUMA; }
+BonusMine::BonusMine() { mKind = BONUS_MINE; }

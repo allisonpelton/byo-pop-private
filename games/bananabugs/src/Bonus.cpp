@@ -1,5 +1,6 @@
 #include "Bonus.h"
 
+#include "BonusCoin.h"
 #include "Anim.h"
 #include "BananaBonus.h"
 #include "BonusBomb.h"
@@ -26,7 +27,7 @@ const int BONUS_FLIPPED_KIND = BONUS_MISSILE;
 // The sway of a bonus waiting: it settles on 0.6, a bit a frame, and is shaken harder while the monkey is near (within
 // 124 pixels), the monkey's speed a seventh of its pace
 const float SWAY_REST_DEGREES = 0.6f;
-const double SWAY_STEP = 0.02;
+const double SWAY_STEP = (double)0.02f; // the exe's constant is the float's value widened (0.01999999955)
 const float SWAY_NEAR_REACH = 124.0f;
 const double SWAY_SPEED_DIVISOR = 7.0;
 
@@ -113,19 +114,19 @@ bool Bonus::Update()
 		mSwayDegrees = aSway;
 		if (Player::IsNear(this, SWAY_NEAR_REACH))
 			mSwayDegrees = (float)(Player::GetSpeedAverage() / SWAY_SPEED_DIVISOR + (double)mSwayDegrees);
-		SetState(STATE_ROTATION, (float)((double)mSwayDegrees * PI_F / 180.0 + (double)mBase[STATE_ROTATION]));
+		SetState(STATE_ROTATION, (float)((double)mSwayDegrees * PI_F / 180.0 + (double)ObjBase::mState[STATE_ROTATION]));
 	}
 	return true;
 }
 
 // 0x40c760: the base's update, and then a bonus that is not waiting is made to stand upright (the turn it was given is
-// taken from its base value and from the drawn value)
+// taken from its animated value (+0x12c) and from the drawn value (+0x1bc))
 bool Bonus::UpdateUpright()
 {
 	if (!Bonus::Update())
 		return false;
 	if (mState != BONUS_WAITING) {
-		mBase[STATE_ROTATION] = 0.0f;
+		ObjBase::mState[STATE_ROTATION] = 0.0f;
 		mDrawn[STATE_ROTATION] = 0.0f;
 	}
 	return true;

@@ -216,7 +216,7 @@ BugObj::BugObj()
 	mPrev = nullptr;
 	mPeaTarget = false;
 	mWaitCounter = 0;
-	mUnused310 = false;
+	mAirborne = false;
 	mFlying = false;
 	mPeaHit = false;
 	mType = 3;

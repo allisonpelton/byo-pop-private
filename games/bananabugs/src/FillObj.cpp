@@ -1,4 +1,5 @@
 #include "FillObj.h"
+#include "BonusCoin.h"
 
 #include "Anim.h"
 #include "Emitter.h"
