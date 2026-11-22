@@ -14,7 +14,7 @@ window: origrun reads the game's own surface from its memory at an exact update 
 with a fresh profile each time (its saved profile makes it open the starting-level screen instead of the crash site, so
 `cb.dat` was removed before each run).
 
-Mouse input went in through origrun's input gate (`--input-eip 41f467,41f511`): the sandbox has no real cursor, so a
+Mouse input went in through origrun's input gate (`--input-eip 41f467,41f511` with 1 ms frames; with the ten-step frames of the later tours `41f489,41f511`, see "Screen coverage"): the sandbox has no real cursor, so a
 script's `at N move/down/up` commands are held until the game's own input read and the log says at which update each one
 was read. The port's test runner (`build/native/waterbugs_run.exe`) replayed every click at exactly that update. The
 original under origrun runs about one millisecond per drawn frame, so the runner was set to the same (`WB_FRAME_MS=1`);
@@ -188,3 +188,15 @@ the CMake `TITLE` is "Water Bugs": nothing to remove.
 
 **Oddities.** None new. The tours' state is compared by pixels, which the original's nondeterminism limits (above); a
 comparison by state (`move`, the bot's states) was not made for the later worlds.
+
+**Where the port's run-to-run spread comes from (2026-11-22, a follow-up of the merge review).** The coordinator asked whether the
+port's load finishes on a run-dependent update, so that a scripted run could wait for it at a fixed one. It does not: the
+runner's `state` line (frame, random draws, seed, score, lives, ship) printed every 250 ms through the whole `fresh` tour
+(60 s of it, three runs) and every 500 ms through the whole `worlds` tour (two runs) is the same in every run, and the
+random-draw count does not move in the menus. The shots still differ between two runs: 10 of the `fresh` tour's, 87 of the
+`worlds` tour's, but only in a few small sprites each (a 4 to 6 pixel bubble in most, one or two bugs or a spark
+in the held-keys world), never in the board, the texts or the layout. That fits the cause the first pass found (the draw list orders
+two entries of one depth by their addresses, as the original does, so a run's heap decides which is on top; see the table
+above, `bb5ced7`), which was not re-proved here by making the order stable. A fixed update for the load would therefore not
+make the tour baseline exact; only an ordering by something other than an address would, and that would be a change from the
+original's order, with the original's own runs already differing the same way. So the baseline keeps its allowance (8 of 202).
