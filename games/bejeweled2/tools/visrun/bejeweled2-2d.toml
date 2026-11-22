@@ -28,3 +28,8 @@ watch = ["[[0x67ccd8]+0xe68]+0x15e20", "[[0x67ccd8]+0xe68]+0x15e4", "[[0x67ccd8]
 [[forbid]]
 name = "title_popcap_logo"
 rect = [530, 390, 100, 80]
+
+[cues]
+# the title's "loaded" flag (TitleScreen +0xa0: the Play link shows); its loading runs on the wall clock, so a step file starts with
+# `gate loaded <the first input's update> 120` (run2d.py puts it in): the inputs wait for it and move on by the updates that took
+loaded = "[[0x67ccd8]+0xe78]+0xa0:1 == 1"

@@ -33,6 +33,8 @@ def main():
                     os.path.join(a.rec, 'events.json'), steps], check=True, stdout=subprocess.DEVNULL)
     # visrun's `mark` takes no time of its own: `at N peek` first, then the bare mark
     lines = []
+    first = next(l.split()[1] for l in open(steps).read().splitlines() if l.startswith('at '))
+    lines.append('gate loaded %s 120' % first)  # the title's loading runs on the wall clock
     for line in open(steps).read().splitlines():
         t = line.split()
         if len(t) == 3 and t[0] == 'at' and t[2] == 'mark':
