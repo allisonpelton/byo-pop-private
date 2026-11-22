@@ -185,6 +185,7 @@ public:
 	int mFillHeld = 0;               // +0x2ef8: while it is not 0 the fill does nothing
 	int mBackgroundIndex = -1;       // +0x2864: which of the game's backgrounds, in the order of 0x8d2170
 	Background* mBackground = nullptr;   // +0x2868: the animated picture behind the screen, a widget of the app's manager (z-order -1)
+	bool mLeaving = false;           // +0x2978: the Main Menu button was pressed: the game stands still while the screen fades, then goes
 	int mLevelIndex = 0;             // +0xe04: the level, from 0 (0 after a reset; the score's multiplier and the hint read it)
 	int mLevelNumber = 1;            // +0xe0c: 1 after a reset (0x74a880); the points a match is worth are multiplied by it
 	std::vector<int> mColorList;     // +0x105c: the colours a new piece may get: each of the seven twice
@@ -265,6 +266,8 @@ public:
 	// slot 164, 0x749c20 (bejeweled3) with a step of 1 (the only one the translated code gives it): the next of the 19 backgrounds is
 	// made and put behind the screen, the one before it goes
 	void SetBackground(int theStep);
+	// slot 232 (0x756730): the dialog's MAIN MENU button: the first screen comes back and this one fades out and goes
+	void LeaveToMenu();
 	// slot 135, 0x74e410 (bejeweled3): a new game: its background is chosen and the first fill is made
 	void NewGame();
 	// slot 203, 0x763e90 (bejeweled3): makes the pieces that the empty cells need above the grid, lets them fall into

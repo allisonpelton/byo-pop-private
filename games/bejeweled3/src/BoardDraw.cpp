@@ -3,6 +3,7 @@
 // translated and what is not. Every measure of the exe is in 1200ths of the art height in use: Scaled() is its
 // "art size * measure / 1200".
 #include "Board.h"
+#include "OptionsDialog.h"
 
 #include "Bej3App.h"
 #include "Color.h"
@@ -392,8 +393,14 @@ void Board::ButtonDepress(int theId)
 		ShowHint(true);   // slot 202 (0x75aeb0), when +0x120c (a fade) is 0
 		break;
 	case BUTTON_MENU:
-		// port: the in-game menu (dialog 0x15, made by 0x681370 with 1) is not translated yet
+	{
+		// 0x74bc40 case 1: the options dialog (0x681370 with 1) is added as dialog 0x15 and put 512 right of the grid's middle
+		// (1200ths) less half its width, 200 down
+		OptionsDialog* aDialog = new OptionsDialog(true);
+		gApp->AddDialog(OptionsDialog::DIALOG_ID, aDialog);
+		aDialog->Move(Scaled(GetGridX() + 0x200) - aDialog->mWidth / 2, Scaled(200));
 		break;
+	}
 	default:
 		break;
 	}

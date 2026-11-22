@@ -6,6 +6,7 @@
 #include "Board.h"
 #include "MemoryImage.h"
 #include "MainMenu.h"
+#include "PlayMenu.h"
 #include "WidgetManager.h"
 #include "DDInterface.h"
 #include "EncodingParser.h"
@@ -456,5 +457,20 @@ void Bej3App::StartClassic()
 	if (mBej3Music != nullptr) {
 		mBej3Music->QueueEvent("FadeOut", "", false);
 		mBej3Music->QueueEvent("Play", mBoard->GetModeName(), false);
+	}
+}
+
+// 0x7716e0 (bejeweled3): the play menu (+0x270 of the main menu) is made visible, its mode ball (+0x488) goes back from the middle
+// by the curve at +0x490 (0x689a10: 150 updates), and the music fades out and the menu's song plays. port: left out until their
+// step: the picture's fade (slot 82 of the board's background, 0x77dde0), the ball's own two curves and the labels' curves
+// (0x689a10, 0x684660) and the other screen at +0xba4, which is not made
+void Bej3App::ShowPlayMenu()
+{
+	PlayMenu* aPlayMenu = mMainMenu->mPlayMenu;
+	aPlayMenu->SetVisible(true);
+	aPlayMenu->mHideCurve.SetCurve("b;0,1,0.006667,1,~###         ~####");
+	if (mBej3Music != nullptr) {
+		mBej3Music->QueueEvent("FadeOut", "", false);
+		mBej3Music->QueueEvent("Play", "MainMenu", false);
 	}
 }

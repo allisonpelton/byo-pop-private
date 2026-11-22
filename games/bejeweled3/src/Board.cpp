@@ -343,6 +343,34 @@ void Board::Update()
 	mTickFraction = (float)((double)aSteps - (double)aWholeSteps);
 	for (; aWholeSteps > 0; aWholeSteps--)
 		UpdateTick();
+	// 0x759684: the screen that is leaving goes when it has faded out (the app's board is none again)
+	if (mLeaving && mCoverCurve.GetOutVal() == 0.0 && gApp->mBoard == this) {
+		if (mParent != nullptr)
+			mParent->RemoveWidget(this);
+		gApp->SafeDeleteWidget(this);
+		gApp->mBoard = nullptr;
+	}
+}
+
+// slot 232, 0x756730 (bejeweled3). The Main Menu button of the options dialog (dialog 0x15): the app shows the first screen's play
+// menu again (0x7716e0), the picture behind goes out of sight, this screen's cover fades from 1 to 0 over 50 updates (the exe also
+// zooms the screen from 1 to 1.2 by the curve at +0x2908, which the port does not make), the hint and menu buttons are disabled
+// (slot 253, 0x73b510), and the game stands still (UpdateGame, 0x767f85). port: the exe's other branch (a Quest game, +0x2b44 or
+// the app's +0xbd8 not 0: 0x76c500), the sound of the click (0x76aaf0) and the picture's fade (0x77dde0) are left out
+void Board::LeaveToMenu()
+{
+	if (mLeaving)
+		return;
+	gApp->ShowPlayMenu();
+	if (mBackground != nullptr)
+		mBackground->SetVisible(false);
+	if (mCoverCurve.GetOutVal() > 0.0)
+		mCoverCurve.SetCurve("b;0,1,0.02,1,~###         ~#EAC");
+	mLeaving = true;
+	if (mHintButton != nullptr)
+		mHintButton->SetDisabled(true);
+	if (mMenuButton != nullptr)
+		mMenuButton->SetDisabled(true);
 }
 
 // 0x767090 (bejeweled3). port: left out until its step: the dialogs that stop a step (ids 0x29, 0x2b and 0x27, and 0x17), the
@@ -382,6 +410,8 @@ void Board::UpdateGame()
 {
 	mShineCurve.IncInVal();
 	mCoverCurve.IncInVal();
+	if (mLeaving)
+		return;   // 0x767f85: nothing else steps once the screen is leaving
 	// slot 101 (0x73c330) is 0 when no dialog holds the game: the game's own tick goes on
 	mGameTicks++;
 	StepSlideCurves();   // 0x767ad0: the slide curve of every piece (+0x198), before the match search

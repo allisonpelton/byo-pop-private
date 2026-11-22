@@ -756,6 +756,22 @@ Lion_tower_cascade. The level change (0x769c36 and 0x760bcd) calls the setter ag
 the PopAnim's generator is seeded with the constant 0 instead of the app's Rand() the exe draws at the first effect its animation makes (on the update its loader
 thread happens to be done by), so the hints' Rand() sequence is the board's alone; the state of the bot game is the same with and without the background.
 
+The Menu button's dialog (src/OptionsDialog.cpp; 0x74bc40 case 1 makes it, 0x681370 is its constructor with 1, 0x697460 its button listener,
+vtable 0x86ebcc for the listener part): a Bej3Dialog with id 0x15 and the header of string 0x133, modal, 1000 by 704 (1200ths) at (350, 250) and then
+moved to x = (grid x 0x20b + 0x200) less half its width, y = 200. In the game it has BACK (id 0, string 0x135, 300 wide, at the middle + 10) and MAIN
+MENU (id 1, string 0x137, or QUEST MENU 0x136 when the app's +0xbd8 is not 0; at the middle - 310), on its lower edge; HOW TO PLAY (id 2, string 0x134)
+only while the board's +0x2b44 is not -1. The listener plays the click, then id 0 starts the dialog's fade out (0x76a670), and id 1 calls the board's
+slot 232 (0x756730) and does the same. Slot 232: the app's 0x7716e0 (the play menu at the main menu's +0x270 made visible, 0x689a10 sets its +0x490 curve
+"b;0,1,0.006667,..." and the ball's, the music's FadeOut and Play "MainMenu"), the background hidden, the cover curve (+0x2898) set to
+"b;0,1,0.02,1,~###..." (1 to 0 over 50 updates) and the zoom curve (+0x2908) to "b;1,1.2,0.02,..." , the board's +0x2978 set (UpdateGame, 0x767f85, then
+steps nothing else) and slot 253 (0x73b510) disables its buttons. When the cover reaches 0 the board's update (0x759684) removes the board from the
+manager and the app's +0xbe8 becomes 0. Not translated: HOW TO PLAY (the help dialog, 0x696100), the three sliders (ids 0 to 2, music, sound and
+voice) and the checkboxes (ids 4 to 10: the art size 600, 768 and 1200, 3D and the others) on the dialog's face, the zoom curve, the background's fade
+(0x77dde0), the Quest branch (0x76c500), the click sound of 0x76aaf0, the ball's curves and the labels' (0x689a10, 0x684660), the first screen's
+own version of the dialog (0x6a3830, made with 0) and the pause the exe's board takes from the dialog (+0xd20). The port's buttons are DialogButtons
+with the picture's three cels. The play menu comes back only when it was opened (a test that starts Classic with the goto command shows the main
+menu's background only).
+
 Oddities (not translated, each with a `port:` note in the source):
 - The level bar's fill. The exe's 0x7540c0 clips the resource PIEFFECT_LEVELBAR to the bar's rectangle (the back picture's size, centred at grid x + 0x200,
   y + 0x41e; slot 87, 0x73d5e0) by the drawn bar's fraction (+0xd68) and draws it. 0x755620 sets, in a second object (reached by 0x565f40, with 0x18-byte key

@@ -88,6 +88,9 @@ public:
 	// screen, put on it with the focus, its first game dealt, and the game's music starts. port: the saved game that
 	// 0x76cde0 asks about is none
 	void StartClassic();
+
+	// 0x7716e0 (bejeweled3): the game screen is leaving: the play menu (the screen PLAY opens) comes back and the menu's song plays
+	void ShowPlayMenu();
 	// port: the standard test commands (docs/TEST_COMMANDS.md): seed, state, goto classic
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
 
