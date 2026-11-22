@@ -1,0 +1,18 @@
+# The 3D focus check (IDENTICAL_PLAY.md, "The focus in 3D"): the seeded Blitz autoplay half a minute into its round, the focus lost
+# for three seconds and regained. Unfocused, the original counts no updates, so that stretch is timed by `wait`; the port's
+# side loses the focus at the same update and regains it 300 updates later.
+at 2900 shot o1_board
+at 3000 shot o2_before
+at 3000 focus lose
+wait 300
+shot o3_lost_03
+wait 700
+shot o4_lost_10
+wait 2000
+shot o5_lost_30
+focus regain
+at 3002 shot o6_back_02
+at 3010 shot o7_back_10
+at 3050 shot o8_back_50
+at 3250 shot o9_back_250
+quit

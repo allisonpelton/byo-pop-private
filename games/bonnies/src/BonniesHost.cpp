@@ -31,8 +31,17 @@
 #include <emscripten.h>
 
 // The game's sleep yields to the browser (ASYNCIFY). A page that runs hidden can set Module.bonniesSetTimeout to a
-// timer of its own: a hidden tab slows setTimeout down to once a second.
-EM_ASYNC_JS(void, bonnies_sleep, (int theMs), {
+// timer of its own: a hidden tab slows setTimeout down to once a second. On the player-only page (Module.byopopTestFrame,
+// web/testkit.js) the yield after a drawn frame is that page's frame, as SexyAppBase::EmscriptenMainLoop's is, and the
+// frame hook runs before it (theDrew: a frame was drawn since the last sleep; theFrameMs: what the frame's updates and
+// draw took), since this blocking loop never reaches the framework's. Every other page is as it was.
+EM_ASYNC_JS(void, bonnies_sleep, (int theMs, int theDrew, double theFrameMs), {
+	if (Module['byopopTestFrame'])
+		Module['byopopTestFrame'](theDrew != 0, theFrameMs);
+	if (Module['byopopTestFrame'] && theDrew && !Module['bonniesSetTimeout']) {
+		await new Promise(function(theResolve) { requestAnimationFrame(function() { theResolve(); }); });
+		return;
+	}
 	await new Promise(function(theResolve) { (Module['bonniesSetTimeout'] || setTimeout)(theResolve, theMs); });
 });
 #endif
@@ -1381,9 +1390,13 @@ void BonniesHostApp::RunFramework(int theMs)
 		uint32_t aHeldFrom = RawClock();
 		while (IsModMenuOpen() && !mShutdown)
 		{
+#ifdef __EMSCRIPTEN__
+			double aStepStart = emscripten_get_now();
+			int aMenuDrawCount = mDrawCount;
+#endif
 			UpdateAppStep(nullptr);
 #ifdef __EMSCRIPTEN__
-			bonnies_sleep(1);
+			bonnies_sleep(1, mDrawCount != aMenuDrawCount, emscripten_get_now() - aStepStart);
 #endif
 		}
 		gHeldTime += RawClock() - aHeldFrom;
@@ -1406,6 +1419,7 @@ void BonniesHostApp::RunFramework(int theMs)
 #ifdef __EMSCRIPTEN__
 		// as SexyAppBase::EmscriptenMainLoop: step until a frame was drawn or nothing is due, then yield
 		int aDrawCount = mDrawCount;
+		double aStepsStart = emscripten_get_now();
 		for (int aStep = 0; aStep < 1000 && !mShutdown; aStep++)
 		{
 			UpdateAppStep(nullptr);
@@ -1413,7 +1427,7 @@ void BonniesHostApp::RunFramework(int theMs)
 				break;
 		}
 		UpdateUserDataBackup(false);
-		bonnies_sleep(1);
+		bonnies_sleep(1, mDrawCount != aDrawCount, emscripten_get_now() - aStepsStart);
 #else
 		UpdateAppStep(nullptr);
 #endif

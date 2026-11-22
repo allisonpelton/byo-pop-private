@@ -115,6 +115,9 @@ public:
 	// or -noacceleration ask for 2D, or the display cannot do 3D (DisplayInitFailed)
 	bool mUse3D = true;
 	int mUse3DSwitch = -1;  // port: -3d (1), -nod3d9 or -noacceleration (0), which win over "Is3D"
+	// port: -widescreen or -4x3 gave the window's aspect, which the screen's then does not change (the original pins
+	// its narrowest and widest, +0x600 and +0x608, to it)
+	bool mWindowAspectSwitch = false;
 	float mAutoPlayDelay = 0;           // +0x1048: -autoplay starts its game when this falls to 0
 	bool mPlaySamples = true;           // +0xf74: PlaySample plays (always on so far)
 	Hyperspace* mHyperspace = nullptr;  // +0xf20: the space behind every screen

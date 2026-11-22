@@ -1,0 +1,20 @@
+# Bejeweled Twist's Blitz for tools/visrun.py: bejeweledtwist.toml with the Blitz autoplay, for the 3D focus check (a focus
+# loss hides a timed game's gems and fades in the pause text).
+name = "bejeweledtwist-blitz"
+source_exe = "build/bjt/v3d/game/BejeweledTwist.exe"   # the Steam copy's files, its exe unpatched (the patches come below)
+patches = "tools/origrun/patches/bejeweledtwist.txt"   # the full version, the hover check, the seeds ({seed})
+args = ["-autoplay=blitz", "-4x3"]          # the original's own autoplay, as the screen routes' Blitz
+title = "Bejeweled"
+client = [800, 600]                     # -4x3: a 4:3 window in 3D too, so it fits a place on the right half
+clock = "real"                          # unfocused, the original counts no updates, so the stretch is timed by `wait`
+update_ms = 10
+counter = "[0xe0b698]+0x48c"
+flag3d = "0xe13bc0:1"
+reg_key = 'Software\Steam\BejeweledTwist'
+reg_3d_value = "Is3D"
+reg_values = { ScreenMode = 0, ArtRes = 600 }   # windowed at the 600 art, as the port's 800 by 600
+save_dirs = ["C:/ProgramData/Steam/BejeweledTwist"]   # the user's players, put back after the run; the run starts with none
+cursor = "scripted"
+
+[values]
+focus = "[0xe0b698]+0x4da"              # its low byte: mHasFocus

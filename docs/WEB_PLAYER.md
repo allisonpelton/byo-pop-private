@@ -667,7 +667,9 @@ choice every player has from the start is drawn too (`choose`: Ning Po's layout,
 arrows answer; the user: "only plays one setup"), and a first run's screen no bot answers gets the test command that does its
 work (`setup`: Venice's name box, `player Saver`). A game left out plays as its bot starts it (`?begin=mode`). `pace` is the updates waited after each move, about a person's speed
 (a hundred are about a second), and none for a game whose bot plays in real time, aiming or dodging, where a pause would only
-lose. A saver's frame opened with `?assets=` (a test of the saver from a first run, with the staged files) keeps a test
+lose. `gap` spaces each move's clicks (`?clickgap=1`, above), for Bonnie's tile clicks. Bonnie's bot clicks through its title,
+menus, a new player's name (Saver) and the difficulty itself, so it has no modes drawn. Its game runs its own loop, so its
+page reports its frames to the test kit from its own sleep (`bonnies_sleep`), as Ning Po's does. A saver's frame opened with `?assets=` (a test of the saver from a first run, with the staged files) keeps a test
 profile of its own, the game's name with `-saver-test`, apart from the game's own tests' `-test`.
 
 **The bot's hook.** The game plays by one call that asks it for its next move. Today that is the test command `move`
@@ -1648,7 +1650,10 @@ mode off its board; a goto the game answers with an ERROR (its title not yet gon
 after the next two empty moves, up to 20 times, and one it takes gets about 24 seconds of empty moves for its board to
 load before the driver stops. `?prep=<command>;<command>` sends those test commands before the first move (`set mode
 action`, `3d on`), one the game refuses being sent again after each move, up to 20 times (Ning Po's start dialog), and
-`?pace=<n>` waits n updates after each move. The screen saver uses all three. The result is
+`?pace=<n>` waits n updates after each move. The screen saver uses all three. `?clickgap=1` spaces a move's clicks as a
+player's are, the pointer's move onto the point, the press and the release each followed by two frames, where a click
+otherwise sends the move with the press; the saver sets it for Bonnie's, which misses some tile clicks sent the quick way.
+The result is
 `{moves, stop, state, updates, errors}`, with `stop` one of "over", "limit", "no move", "busy" or "error: <message>".
 `playByMove({steps})` runs the same loop from a session's own driver.
 
