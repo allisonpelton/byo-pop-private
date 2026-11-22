@@ -5,6 +5,7 @@
 
 #include "Bej3Dialog.h"
 #include "ButterflyBoard.h"
+#include "PokerBoard.h"
 #include "Board.h"
 #include "Common.h"
 #include "LightningBoard.h"
@@ -400,6 +401,20 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 					std::to_string((int)(aButterflies->mSideSpawnChance * 1000.0f)) + ",\"freed\":" +
 					std::to_string(aButterflies->mCounters[ButterflyBoard::COUNTER_BUTTERFLIES_FREED]) + ",\"bestcombo\":" +
 					std::to_string(aButterflies->mCounters[ButterflyBoard::COUNTER_BEST_COMBO]);
+			}
+			if (const PokerBoard* aPoker = dynamic_cast<const PokerBoard*>(mBoard)) {
+				// Poker: the hand (each card's suit, "/" and its second suit, a letter for a wild (w), flame (f) or star (s) card; - for no card),
+				// the best hand's index (-1 none), the skull's level (-1 none) and its clock and the eliminator's bar in thousandths, the hands
+				// cleared, the skulls busted, the counts of each kind (the first the hands a skull took), the phase of the hand, the last hand's
+				// points and the coin flips
+				aLine += ",\"hand\":\"" + aPoker->DescribeCards() + "\",\"besthand\":" + std::to_string(aPoker->mBestHand) + ",\"skull\":" +
+					std::to_string(aPoker->mSkull) + ",\"skullclock\":" + std::to_string((int)(aPoker->mSkullClock * 1000.0f)) + ",\"buster\":" +
+					std::to_string((int)(aPoker->mBuster * 1000.0f)) + ",\"hands\":" + std::to_string(aPoker->mHands) + ",\"busted\":" +
+					std::to_string(aPoker->mSkullsBusted) + ",\"counts\":\"";
+				for (int i = 0; i <= PokerBoard::HAND_KINDS; i++)
+					aLine += (i > 0 ? "," : "") + std::to_string(aPoker->mHandCounts[i]);
+				aLine += "\",\"phase\":" + std::to_string((int)aPoker->mPhase) + ",\"handscore\":" + std::to_string(aPoker->mHandScore) +
+					",\"flips\":" + std::to_string(aPoker->mCounters[PokerBoard::COUNTER_COIN_FLIPS]);
 			}
 			if (const LightningBoard* aLightning = dynamic_cast<const LightningBoard*>(mBoard)) {
 				// Lightning: the game ticks left of the round, the clock, the seconds the matched time gems hold (this round's account and

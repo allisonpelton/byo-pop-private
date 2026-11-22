@@ -364,7 +364,7 @@ public:
 	// 0x73caa0 (bejeweled3): a swap holds the piece
 	bool IsHeldBySwap(const Piece* thePiece) const;
 	// slot 201, 0x75af60 (bejeweled3): looks for runs of three or more and makes a match of each; returns how many
-	int FindMatches();
+	virtual int FindMatches();
 	// 0x75dee0 (bejeweled3): the match groups run: their pieces' timers, their rings, their end
 	void UpdateMatchGroups();
 	// 0x767e20, 0x7690d0 to 0x769149: the gems that are picked up or turning turn further
@@ -378,9 +378,9 @@ public:
 	bool ClearPiece(Piece* thePiece, Piece* theBy);
 	// slots 166, 167 and 168 (0x745ca0, 0x749570, 0x7494d0, bejeweled3): the piece becomes a flame gem (FLAG_FLAME), a hypercube
 	// (FLAG_HYPERCUBE; theWithEffect is the exe's second argument) or a star gem (FLAG_STAR)
-	void MakeFlameGem(Piece* thePiece);
+	virtual void MakeFlameGem(Piece* thePiece);
 	void MakeHypercube(Piece* thePiece, bool theWithEffect);
-	void MakeStarGem(Piece* thePiece);
+	virtual void MakeStarGem(Piece* thePiece);
 	// BoardEffects.cpp: the persistent looks of the special gems, the flame gem's creation and the hint's flash
 	// 0x749220 (bejeweled3): makes the effect a gem's flags ask for (the Star Gem's and the Hypercube's here)
 	void MakeSpecialEffect(Piece* thePiece);
@@ -395,7 +395,7 @@ public:
 	// 0x73f8e0 (bejeweled3): the draws of the app's Rand() that the particles of the explosion make for one neighbour of the flame gem
 	void DrawExplosionRandoms();
 	// slot 179, 0x740f20 (bejeweled3): a hypercube is swapped with a piece: it starts its group at once, and no swap is made
-	void StartHypercube(Piece* theCube, Piece* thePartner);
+	virtual void StartHypercube(Piece* theCube, Piece* thePartner);
 	// slot 180, 0x74db70 (bejeweled3): the hypercube makes its group (type 7) for the colour (-1: every colour)
 	virtual void MakeHypercubeGroup(Piece* theCube, int theColor);
 	// 0x7870f0 (bejeweled3), run by 0x78a390 for a group of type 7: picks the pieces of the colour one by one, makes a bolt to each,

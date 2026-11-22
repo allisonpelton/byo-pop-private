@@ -1065,3 +1065,121 @@ Not translated (the `// port:` notes in the source), none of them changes what a
 - The flag 0x40000 (gems aging by +0x244 every 150 ticks) is translated, but nothing translated sets it.
 - The new-player dialog (id 1) stays open over a run with a fresh user folder, so a scripted game's end dialog does not come (as in Classic's
   suite, which checks "gameover" only).
+
+## Butterflies and Poker (QuestBoard.cpp, ButterflyBoard.cpp, PokerBoard.cpp)
+
+The two secret modes are Board subclasses in the exe's shape: ButterflyBoard (vftable 0x867d0c, constructor 0x6dcdf0, 0x3388 bytes) and
+PokerBoard (vftable 0x869364, constructor 0x6da1c0) both derive from QuestBoard (vftable 0x866fbc, constructor 0x6d9000, 266 slots) over
+Board (0x864cb4). The port has a QuestBoard base class with what they share: the secret flag (+0x3184, mIsSecretMode, set by 0x774060's
+fourth argument), the quest's settings (+0xc8, copied from secret.cfg), no levels (HasLevels, GetLevelMax 0, no level number in the top
+widget, slot 156 does nothing), no fill once the end has begun (slot 203, 0x6dd4d0), the quest's background (slot 100: BackgroundIdx, step 0),
+the move records' clean-up (0x759840, run by QuestBoard::UpdateGame only: Classic's frozen baseline keeps its tags, see Oddities) and the level
+factor 1 (slot 122, 0x73b600; Butterflies' 0x6c5340 gives 5). The secret quests are at secret.cfg indexes 0 (Poker) and 1 (Butterflies).
+
+How a mode starts: the play menu's balls 4 (POKER) and 5 (BUTTERFLIES) call Bej3App::StartSecretMode (0x774060): the quest's setting Challenge,
+compared without regard to case, picks the board (BUTTERFLIES or BUTTERFLY, POKER; the exe's other challenges are not made), the settings are
+copied in, the flag is set and the common start (StartBoard) runs. Unlock: the profile's tutorial flags 0 to 3 (+0x180) are the balls 4 to 7
+(Poker, Butterflies, Ice Storm, Diamond Mine). The test command `unlock all` sets all four; `goto butterflies` and `goto poker` need the mode
+unlocked (they say so) and go through the play menu. State keys: Butterflies has butterflies (eight strings of digits for the moves each
+butterfly waits, capitals for a caught one), spiderx (hundredths), spiderto, dropcountdown, credit, spawncount, sidechance (thousandths), freed and
+bestcombo; Poker has hand (each card's suit, "/" and a second suit, f, s or w for the card's type, "-" for no card), besthand (index, -1 none),
+skull (-1 none), skullclock and buster (thousandths), hands, busted, counts (the kinds' counts, the first the hands a skull took), phase,
+handscore and flips. `bot` and `move` work in both modes (the move search is Board's).
+
+### Butterflies
+
+Gems with the bit 0x80 (FLAG_BUTTERFLY) climb one row each move; the spider over the top row walks to the nearest one, a butterfly that reaches
+the top is caught (its +0x20c at -1) and the spider's arrival over a caught one ends the game. Matching a butterfly frees it.
+SpawnButterflies (0x6d7c70): the drop's countdown, the count of a drop (to SpawnCountMax) and the side chance (to SideSpawnChanceMax) are
+stepped; while the credit is 1 or more a butterfly is made in two passes of up to 100 tries, each from two draws of the board's own generator
+(+0x258): the first, over 100000 and kept as a double, against the side chance says whether the column is one of the six inner ones (a second
+draw, modulo 6, plus 1) or a side one (a second draw's low bit: 0 or 7); the bottom row's gem must be settled, not a butterfly and have no flags
+(in the second pass any flags but no colour). 1 is taken off the credit every try. The gem is made a butterfly by 0x7492c0 (the flags cleared,
+the effects of 0x748ad0, PIEFFECT_BUTTERFLY looping over the gems, and PIEFFECT_BUTTERFLY_CREATE) and gets its countdown (the larger of 1 and
+MoveCountdown less the whole part of level times MoveCountdownPerLevel). The climb is made of forced swaps (the fifth argument of StartSwap,
+SwapRecord +0xf9, PendingSwap +0x10): such a swap is neither sent back when it makes no match nor counted as a move (0x74c070 and slot 191 skip
+it); 0x73c7e0 counts the countdowns of all butterflies down on every matched swap that is not forced and before a hypercube's swap (0x75f85c,
+0x75f8be). Scoring (slot 143, 0x6d03d0): (the game's count of butterflies freed including this one + 10 + 20 times the move's own count) times
+5, then AddPoints (level factor 5). Game over (0x6e82a0): the spider over a caught butterfly's column, its walk not running, the game not over
+and no tagged gem that is not caught on the board call NoMoreMoves(true). The spider is POPANIM_ANIMS_SPIDER (labels IDLE, WALK and GRAB); its
+walk is the curve "b+0,1,0.005,1,####         ~~###" whose step is scaled by (row times -0.1 plus 1.8 less 0.1 times the distance); in the first 0x96
+game ticks it jumps and looks 8 rows down, afterwards 5.
+
+End dialog (ButterflyEndLevelDialog, vtable 0x86be7c, constructor 0x784c30): Classic's dialog with slot 89 (0x784400) the labels of strings 0x9f
+to 0xa2 (Butterflies Freed, Best Move, Best Butterfly Combo, Total Time) and slot 90 (0x784880) their values (counters 0x1c, 25, 0x1d and the seconds
+as "%d:%02d", string 0xa3); slots 22 (0x784cc0), 26 (0x784cb0, a jump to Classic's 0x6a87a0) and 94 (0x784370) do what Classic's do.
+
+Slots of ButterflyBoard that differ from QuestBoard's (the address of the Butterflies one): 0 (0x41ec80), 22 (0x6e3600), 43 (0x6dcd00, the spider
+and the HUD), 85 (0x6ceda0), 89 (0x6c78d0, the name), 98 (0x6c6bd0), 113 (0x6c5320), 122 (0x6c5340), 123 (0x6c5330), 135 (0x6e3660, NewGame), 138
+(0x6caf80), 139 (0x6cec10), 143 (0x6d03d0), 152 (0x6cff10), 156 (0x6ca7e0), 161 (0x6dcd50), 172 (0x6c52f0), 180 (0x6d0390), 191 (0x6d7f40), 194
+(0x6c8430, the forced climbing swaps), 218 (0x6c6b50), 220 (0x6c5300), 231 (0x6e82a0), 238 (0x6ca7f0), 256 (0x6dcce0) and 257 (0x6d0590, the end
+dialog). The ones with no translation of their own are the ones the port has no use for (the save and restore, the goal's text, the HUD's numbers).
+
+Butterflies, left out or uncertain: the exact place of the per-gem countdown (0x73c710) is the matched non-forced swaps and the hypercube swaps
+(read from 0x74c070 and its callers); the exe's list at +0x26b8 (0x68-byte entries) is taken as empty; the target's slide curve in the game-over
+test uses a leftover register of the exe (read as the target's own); the butterflies' colour tint, the spider's smoothed place (+0x3284, a look
+only), the sounds and the combo text (+0x3298) are not translated. The spider's x in the draw is by looking.
+
+### Poker
+
+Every swap that finds a match deals a card (slot 191, 0x6cfaa0, with a place left among the five; a hypercube swap deals the partner's suit by
+slot 179, 0x6cfa50). The suit is the gem's colour. When the two gems of the swap were matched by runs whose ids (+0x190) differ by exactly one
+(and neither is a hypercube) the card has two suits and is whichever of them makes the better hand; else the card is the one of the gem whose run
+has the larger id. A hypercube makes a wild card (type 1, any of the seven); a card whose gem's tag (+0x188) is the one slot 166 (0x6cab70) or
+slot 168 (0x6ce1d0) kept for the flame or star gem just made is a flame card or a star card (types 2, 3). The hand's kind (0x6c80a0 with
+0x6c7e20): the lists of suits each card may be are walked like an odometer (the first card turning fastest) and the first walk to reach the best
+kind is kept; with more than one card the suits are put back into the cards (a wild card takes the kept suit, a two-suit card swaps its suits when
+its second is the kept one). The kinds: 1 pair, 2 spectrum (no suit twice, which is also what fewer cards give), 3 two pair, 4 three of a kind,
+5 full house, 6 four of a kind, 7 flush. With five cards, the board running and no end begun the hand is scored (0x6cb520): HandValues of its kind
+into the score and counter 1 (0x6c7560), the eliminator's bar (+0x3984) up by HandBuster of the kind (only with a skull on the board, to at most
+1), counter 0x20 for a flush; then the flame and star cards pay FlameBonus (100) and StarBonus (250) straight into the score, one at a time
+(0x6dedd0); then, with the skull's level (+0x398c, -1 for none) below the hand's index, the hand is cleared (0x6cdce0) at once when the bar is 1
+and otherwise after the cards have gone; with the skull's level at or above the hand's index the skull takes the hand: 0x6cb430 flips the coin and
+after its curve the game ends when it was lost. The coin is never lost for a player whose profile has not flipped one before (profile +0xcc, the
+statistic 3), always when the count of hands a skull has taken is 2, and else when the app's Rand() modulo (that count + 2) is above 0; counter 3
+and the profile statistic go up. Clearing a hand (0x6cdce0, a secret mode): the skull's clock (+0x3994) goes up by HandCountdown of the kind times
+(hands cleared times CountdownMultPerHand plus 1); with the bar short of 1 a clock at 1 raises the skull's level by one (to SkullMax, 5) and starts
+the clock again; with the bar at 1 and a skull on the board the level goes down by one, a skull is counted as busted, and the clock and the bar
+start again; the hands cleared go up and the cards go. A game's first clear is made by slot 256 (0x6cf440) when the board first stands still. While
+a hand is being paid nothing is matched (slot 201, 0x6d90a0, asks slot 98, 0x6c6470, which is false then): a swap in that time finds no match and
+goes back. The grid is at y 0x5a (slot 172, 0x6c4d00). Matches are scored by Board (slot 143 is not changed), with level factor 1.
+
+End dialog (PokerEndLevelDialog, vtable 0x86c4c4, constructor 0x782cf0, made by slot 257, 0x6d1540, with the name "Poker"): slot 94 (0x782580)
+draws only the statistics table (slot 92) and the top scores (slot 88), slot 89 (0x782870) the labels of strings 0x191 to 0x194 (Best Hand,
+Number of Hands, Skulls Busted, Skull Coin Flips), slot 90 (0x7825b0) the four values at x 0x2f8, slot 26 (0x782e10) Classic's drawing and a chart
+of the seven kinds' counts (the dialog's +0x39c on, the board's +0x39e8 on); slot 22 (0x7839c0) is not read.
+
+Slots of PokerBoard that differ from QuestBoard's (the address of the Poker one): 0, 22 (0x6dedd0), 43 (0x6d90f0), 47 (0x6c5880), 85 (0x6ce510),
+86 (0x6c5900), 89 (0x6c7870), 95 (0x6dd540), 98 (0x6c6470), 101 (0x6c5a00), 102 (0x6c59f0), 123 (0x6c4d60, 1.3333334), 135 (0x6dfa40), 138
+(0x6cab90), 139 (0x6ce1f0), 152 (0x6c4d30, 0), 154 (0x6c4d70, 0 in a secret mode), 166 (0x6cab70), 168 (0x6ce1d0), 172 (0x6c4d00), 179 (0x6cfa50),
+190 (0x6c4d50, 0x14), 191 (0x6cfaa0), 201 (0x6d90a0), 203 (0x6dd570), 220 (0x6c4d20), 228 (0x6c90e0), 244 (0x6cb6d0), 249 (0x6d4300), 254
+(0x6c4d40, 300), 255 (0x6c8de0), 256 (0x6cf440), 257 (0x6d1540), 258 (0x6c4d10, 0x41) and 260 (0x6d1650).
+
+Deviations (Poker): the exe's update (0x6dedd0) waits on five animation curves of the board between the scoring, the bonuses, the cards' flight
+and the coin; the port counts those stretches in updates (PHASE_SCORE 66, bonuses from 23 every 10, PHASE_CLEAR 66, PHASE_FLIP 150, the rates of the
+curve strings that were read), so a hand's timing differs and with it how many matches a player gets in before a hand is paid. The eliminator's bar
+as drawn follows the bar on every update (the exe's step is under slot 98). The flip's safe end clears the hand at its end (the exe makes a small
+widget there, string 0x180, and clears after another curve). Not translated: the cards' flight (a PopAnimEffect of 0x1e8 bytes per card), the
+hand's name display and awards (FONT_POKER_AWARD), the skull's pictures and the coin, every sound, and the hand's own HUD (the port draws the five
+cards, the hand's name and a line of text for the skull's level and the bar, at places found by looking, in the strip left of the grid). The
+setting at +0x3968 (first read by 0x6dfa40) and Hands belong to the games that are not secret.
+
+### Oddities (Butterflies and Poker)
+
+- Poker's end dialog chart (0x782e10): the exe draws axis labels (step 1, or 5 times a count over 10 for larger counts, from x 0x1ae at y 0x2cb) and
+  bars scaled by 920 or 910 over the largest count; the port draws seven plain bars with the kinds' names and counts. Slot 22 (0x7839c0) was not
+  read.
+- What the exe passes to 0x43b2e0 in slot 90 of the Poker dialog (the values) is not in the export (they come in registers): the best hand is
+  shown by name, the others as counts of the board.
+- Poker's hands' names are the ones of secret.cfg's comment (the exe builds a table at 0x8d222c from strings the port has not located).
+- Poker's skull: a hand the skull takes is also paid first (0x6cb520 runs before the test of the skull's level); this is read from the order of
+  the calls in 0x6dedd0 and is not confirmed by a game of the original.
+- Classic's pieces keep their tags (+0x188) because Board::UpdateGame does not run the move records' clean-up 0x759840 (Classic's frozen baseline
+  would change); only QuestBoard::UpdateGame runs it. A latent difference for the identical-play pass.
+
+### The suite for the two modes
+
+suite_butterflies.txt and suite_poker.txt (seed 7, name Tester, `unlock all`, `goto`, `bot` to the game over, three state lines and two shots
+each, the end dialog on screen at the last), each run twice by suite.sh: the state lines and the shots must be the same on the rerun, the second
+state line must be in play and the last must have the game over and the end dialog. Their state lines have no hash of their own yet: the
+modes' logic is frozen by the rerun only, and the Classic (51086c43ed2a) and modes (94f857c247d1) hashes are unchanged.

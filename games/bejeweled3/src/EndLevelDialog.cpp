@@ -8,6 +8,7 @@
 #include "DialogButton.h"
 #include "Font.h"
 #include "Graphics.h"
+#include "PokerBoard.h"
 #include "Res.h"
 #include "X86Math.h"
 
@@ -448,6 +449,76 @@ void LightningEndLevelDialog::DrawResults(Graphics* g)
 		char aScale[16];
 		snprintf(aScale, sizeof(aScale), TextById(0x1f0, "%dk").c_str(), i + 1);
 		g->WriteString(aScale, Scaled(0x14a), Scaled(0x3cf) - Scaled(0x2e) * i, -1, 1, true, 0, -1, -1);
+	}
+}
+
+// 0x782cf0 (bejeweled3): the dialog of 0x6a7c80 (the leaderboard of the mode's name "Poker") with the board's hands' counts (+0x39e4)
+PokerEndLevelDialog::PokerEndLevelDialog(PokerBoard* theBoard) :
+	ClassicEndLevelDialog(theBoard)
+{
+	for (int i = 0; i <= PokerBoard::HAND_KINDS; i++) {
+		mHandCounts[i] = theBoard->mHandCounts[i];
+		if (i > 0) {
+			mHands += mHandCounts[i];
+			if (mHandCounts[i] > 0)
+				mBestHand = i;
+		}
+	}
+	mSkullsBusted = theBoard->mSkullsBusted;
+	mCoinFlips = theBoard->mCounters[PokerBoard::COUNTER_COIN_FLIPS];
+}
+
+// 0x782580 (bejeweled3), slot 94: the statistics table (slot 92) and the top scores (slot 88): no panel labels over them and no gems' row
+void PokerEndLevelDialog::DrawContent(Graphics* g)
+{
+	DrawStatisticsTable(g);
+	DrawTopScores(g);
+}
+
+// 0x782870 (bejeweled3), slot 89: Best Hand, Number of Hands, Skulls Busted and Skull Coin Flips (strings 0x191 to 0x194), left
+void PokerEndLevelDialog::DrawStatisticsLabels(Graphics* g)
+{
+	static const char* const aDefaults[4] = {"Best Hand", "Number of Hands", "Skulls Busted", "Skull Coin Flips"};
+	for (int i = 0; i < 4; i++)
+		g->WriteString(TextById(0x191 + i, aDefaults[i]), Scaled(0xe6), Scaled(0x1db + 0x30 * i), -1, -1, true, 0, -1, -1);
+}
+
+// 0x7825b0 (bejeweled3), slot 90: the four values, right at 0x2f8 (each a text made by 0x43b2e0). port: what the exe passes in its registers is not
+// in the export: the best hand is its name, the others are the counts above
+void PokerEndLevelDialog::DrawStatisticsValues(Graphics* g)
+{
+	static const char* const aNames[8] = {"", "Pair", "Spectrum", "2 Pair", "3 of a Kind", "Full House", "4 of a Kind", "Flush"};
+	const int aX = Scaled(0x2f8);
+	g->WriteString(aNames[mBestHand], aX, Scaled(0x1db), -1, 1, true, 0, -1, -1);
+	g->WriteString(CommaSeperate(mHands), aX, Scaled(0x1db + 0x30), -1, 1, true, 0, -1, -1);
+	g->WriteString(CommaSeperate(mSkullsBusted), aX, Scaled(0x1db + 0x60), -1, 1, true, 0, -1, -1);
+	g->WriteString(CommaSeperate(mCoinFlips), aX, Scaled(0x1db + 0x90), -1, 1, true, 0, -1, -1);
+}
+
+// 0x782e10 (bejeweled3), slot 26: Classic's drawing (0x6a87a0), then the chart of the seven kinds' counts where Classic has its row of special gems
+// (the exe's chart starts at y 0x29e and writes its labels at y 0x2cb, from x 0x1ae). port: seven bars with the kind's name over each and its count
+// under it, placed to fill that row; the exe's axis and bar drawing are not translated (see NOTES.md, Oddities)
+void PokerEndLevelDialog::Draw(Graphics* g)
+{
+	ClassicEndLevelDialog::Draw(g);
+	static const char* const aNames[8] = {"", "Pair", "Spec", "2 Pr", "3 Kd", "Full", "4 Kd", "Flush"};
+	int aLargest = 1;
+	for (int i = 1; i <= PokerBoard::HAND_KINDS; i++)
+		aLargest = mHandCounts[i] > aLargest ? mHandCounts[i] : aLargest;
+	const int aLeft = Scaled(0x118);
+	const int aSlot = Scaled(0x7c);
+	const int aBarWidth = Scaled(0x5c);
+	const int aBottom = Scaled(0x3a0);
+	const int aTall = Scaled(0xa0);
+	g->SetFont(FONT_CARD_COUNT_SMALL);
+	for (int i = 1; i <= PokerBoard::HAND_KINDS; i++) {
+		const int aX = aLeft + (i - 1) * aSlot;
+		const int aHeight = aTall * mHandCounts[i] / aLargest;
+		g->SetColor(Color(220, 190, 80, 255));
+		g->FillRect(aX, aBottom - aHeight, aBarWidth, aHeight);
+		g->SetColor(Color(255, 255, 255, 255));
+		g->WriteString(aNames[i], aX + aBarWidth / 2, Scaled(0x2c0), -1, 0, true, 0, -1, -1);
+		g->WriteString(CommaSeperate(mHandCounts[i]), aX + aBarWidth / 2, Scaled(0x3a8), -1, 0, true, 0, -1, -1);
 	}
 }
 

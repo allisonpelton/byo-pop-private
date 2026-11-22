@@ -53,12 +53,29 @@ for s in zen lightning; do
 	[ -s "$OUT/modes/$s.png" ] || { fail="$fail noshot-$s"; continue; }
 	cmp -s "$OUT/modes/$s.png" "$OUT/modesrerun/$s.png" || fail="$fail modesrerun-$s"
 done
+# The secret modes: a seeded bot game of Butterflies and one of Poker, each to its game over and the end dialog (suite_butterflies.txt,
+# suite_poker.txt), each run twice: the state lines (the board, the mode's own keys) and the shots must be the same. Their states are
+# not frozen by a hash of their own: the mode's logic is checked by the state lines' contents (a game over, the end dialog) and the rerun.
+for m in butterflies poker; do
+	e="$(run $m suite_$m.txt)"; [ "$e" -eq 0 ] || fail="$fail $m-exit($e)"
+	grep -q '^ERROR' "$OUT/$m/states.txt" && fail="$fail $m-command($(grep -m1 '^ERROR' "$OUT/$m/states.txt" | cut -c1-80))"
+	[ "$(grep -c '^STATE ' "$OUT/$m/states.txt")" = 3 ] || fail="$fail $m-statelines"
+	grep '^STATE ' "$OUT/$m/states.txt" | sed -n 2p | grep -q '"gameover":0' || fail="$fail $m-early-gameover"
+	grep '^STATE ' "$OUT/$m/states.txt" | tail -n 1 | grep -q '"gameover":1' || fail="$fail $m-nogameover"
+	grep '^STATE ' "$OUT/$m/states.txt" | tail -n 1 | grep -q '"endscreen":1' || fail="$fail $m-noendscreen"
+	e="$(run ${m}rerun suite_$m.txt)"; [ "$e" -eq 0 ] || fail="$fail ${m}rerun-exit($e)"
+	cmp -s "$OUT/$m/states.txt" "$OUT/${m}rerun/states.txt" || fail="$fail ${m}rerun-states"
+	for s in $m ${m}_end; do
+		[ -s "$OUT/$m/$s.png" ] || { fail="$fail noshot-$s"; continue; }
+		cmp -s "$OUT/$m/$s.png" "$OUT/${m}rerun/$s.png" || fail="$fail ${m}rerun-$s"
+	done
+done
 msh="$(sha256sum "$OUT/modes/states.txt" | cut -c1-12)"
 [ -z "$FROZEN_MODES" ] || [ "$msh" = "$FROZEN_MODES" ] || fail="$fail MODE STATES CHANGED($msh; frozen $FROZEN_MODES)"
 sh="$(sha256sum "$OUT/game/states.txt" | cut -c1-12)"
 [ -z "$FROZEN" ] || [ "$sh" = "$FROZEN" ] || fail="$fail STATES CHANGED($sh; frozen $FROZEN)"
 if [ -z "$fail" ]; then
-	echo "bejeweled3: menu, a seeded Classic game (bot, 150 moves), the specials and the game over; Zen and Lightning games (bot); rerun identical (states and 6 shots); states $sh, modes $msh"
+	echo "bejeweled3: menu, a seeded Classic game (bot, 150 moves), the specials and the game over; Zen and Lightning games (bot); rerun identical (states and 6 shots); Butterflies and Poker bot games to their game over (rerun identical, states and 4 shots); states $sh, modes $msh"
 	exit 0
 fi
 echo "bejeweled3: FAILED:$fail"

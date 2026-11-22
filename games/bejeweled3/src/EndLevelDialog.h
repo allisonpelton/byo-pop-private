@@ -14,6 +14,8 @@ namespace Sexy {
 class Board;
 class DialogButton;
 
+class PokerBoard;
+
 class ClassicEndLevelDialog : public Bej3Dialog {
 public:
 	enum { DIALOG_ID = 0x26 };
@@ -81,6 +83,27 @@ public:
 protected:
 	void DrawStatisticsLabels(Graphics* g) override;   // 0x784400 (bejeweled3), slot 89
 	void DrawStatisticsValues(Graphics* g) override;   // 0x784880 (bejeweled3), slot 90
+};
+
+// Sexy::PokerEndLevelDialog (bejeweled3, vtable 0x86c4c4, 0x3b8 bytes, made by 0x782cf0 from the board's slot 257, 0x6d1540): the screen a Poker game
+// ends on: Classic's dialog (id 0x26, the same three buttons, 0x6a7c80) with its own statistics (Best Hand, Number of Hands, Skulls Busted, Skull
+// Coin Flips: strings 0x191 to 0x194) and, in place of Classic's drawing, a chart of how many of each hand were made (0x782e10). See EndLevelDialog.cpp.
+class PokerEndLevelDialog : public ClassicEndLevelDialog {
+public:
+	int mHandCounts[8] = {};      // +0x39c: the board's +0x39e4 (the hands a skull took, then the seven kinds)
+	int mHands = 0;               // the hands the game scored
+	int mBestHand = 0;            // the highest kind it made (0: none)
+	int mSkullsBusted = 0;        // the board's +0x3974
+	int mCoinFlips = 0;           // the board's counter 3
+
+	explicit PokerEndLevelDialog(PokerBoard* theBoard);   // 0x782cf0 (bejeweled3)
+
+	void Draw(Graphics* g) override;   // 0x782e10 (bejeweled3), slot 26
+
+protected:
+	void DrawContent(Graphics* g) override;            // 0x782580 (bejeweled3), slot 94: the table and the top scores, as Lightning's
+	void DrawStatisticsLabels(Graphics* g) override;   // 0x782870 (bejeweled3), slot 89
+	void DrawStatisticsValues(Graphics* g) override;   // 0x7825b0 (bejeweled3), slot 90
 };
 
 }  // namespace Sexy

@@ -6,6 +6,7 @@
 #include "Board.h"
 #include "GemSilhouettes.h"
 #include "ButterflyBoard.h"
+#include "PokerBoard.h"
 #include "LightningBoard.h"
 #include "ZenBoard.h"
 #include "MemoryImage.h"
@@ -497,6 +498,8 @@ bool Bej3App::StartSecretMode(int theIndex)
 	QuestBoard* aBoard = nullptr;
 	if (aChallenge == "BUTTERFLIES" || aChallenge == "BUTTERFLY")
 		aBoard = new ButterflyBoard();
+	if (aChallenge == "POKER")
+		aBoard = new PokerBoard();
 	if (aBoard == nullptr)
 		return false;
 	aBoard->mSettings = aSettings;

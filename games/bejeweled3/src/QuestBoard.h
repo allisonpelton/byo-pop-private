@@ -8,6 +8,8 @@
 
 #include "Board.h"
 
+#include <vector>
+
 namespace Sexy {
 
 class QuestBoard : public Board {
@@ -18,12 +20,15 @@ public:
 	int GetLevelMax() const override { return mIsSecretMode ? 0 : Board::GetLevelMax(); }   // slot 154: 0 in the secret modes
 	bool ShowsLevelNumber() const override { return !mIsSecretMode; }               // slot 249: a secret mode has no level to show
 	bool IsFillStopped() const override { return mGameOverTicks != 0; }               // slot 203 (0x6dd4d0): no fill once the end has begun (+0xd1c)
+	float GetLevelFactor() const override { return 1.0f; }                            // slot 122 (0x73b600): the quest boards score at 1 (Butterflies, 0x6c5340, gives 5 in a secret mode)
 	void ChooseBackground() override;                                                  // slot 100: the setting BackgroundIdx (0x74e410)
 
 	// the settings of the quest (+0xc8, copied from secret.cfg by 0x774060 before the game is reset); a missing one reads as 0 (the exe's
 	// atoi and wtof of the empty text)
 	int SettingInt(const char* theName) const;
 	double SettingDouble(const char* theName) const;
+	// a setting that is a list of numbers ("2500, 5000, ..."): the exe parses it with commas (0x6dfa40 for Poker's HandValues, HandBuster and HandCountdown)
+	std::vector<double> SettingList(const char* theName) const;
 	bool HasSetting(const char* theName) const { return mSettings.find(theName) != mSettings.end(); }
 
 	void UpdateGame() override;   // Board's step, then the finished moves' records go (0x759840)
