@@ -261,6 +261,10 @@ The driver's clicks on the summaries, the trophy award and the shop are found by
 a screen where none changes the state stops the run (none did after the driver waited out the wipes). The king's defeat and the
 game-won screen are reached by the test commands (`set kings`, `win`) in the autosplit logs, not by the bot.
 
+Run again on 2026-11-22 for the screens pass's branch (seed 1, `--heal`, the current build): Classic from launch to the king, 3698 moves, lost there
+(434 s); Tough Cookie 4765 moves, lost to the king (529 s); Marathon 3000 moves, the limit (281 s); all exit 0 and no screen where the driver
+stopped. (A first Marathon run was left uncapped by mistake and ran to 25606 moves, level 159, before it was stopped; Marathon has no end.)
+
 ### Real input, on the page
 
 `games/hammerheads/tools/web/onegame.js` is the same driver as a page driver (the Browser pane, `hammerheads.html?player=1&assets=1&hold=1&fast=1&silent=1&driver=games/hammerheads/tools/web/onegame.js&mode=<m>&heal=1&moves=<n>`):
