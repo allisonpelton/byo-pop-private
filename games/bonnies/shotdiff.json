@@ -1,94 +1,1014 @@
 {
-  "ignore": [
-    {
-      "rect": [
-        2,
-        583,
-        140,
-        15
-      ],
-      "pairs": "menu.png,mainmenu.png,endmenu.png,z_*.png,l_menu.png,l_resume.png,l_choose0.png,l_t*.png,l_aftercancel.png,be_resume*.png,be_load*.png,pl_*.png",
-      "label": "the menu's version text: the user's request of 2026-11-18 removes the word \"Deluxe\" from the main screen, so the port says \"Version 1.01\" where the original says \"Deluxe Version 1.01\" (DEVIATIONS.md)"
-    },
-    {
-      "rect": [
-        0,
-        0,
-        800,
-        600
-      ],
-      "pairs": "logo.png",
-      "label": "the logos fade in on the game's clock; origrun's waitshot catches the original's first drawn frame, the port's shot a later one"
-    },
-    {
-      "rect": [
-        160,
-        0,
-        181,
-        215
-      ],
-      "pairs": "menu.png,mainmenu.png,endmenu.png,l_menu.png,l_aftercancel.png,l_t*.png,l_resume.png,l_choose0.png,be_resume*.png,be_load*.png,z_*.png",
-      "label": "the menu's hanging sign swings on the game's clock"
-    },
-    {
-      "rect": [
-        489,
-        184,
-        104,
-        152
-      ],
-      "pairs": "menu.png,mainmenu.png,endmenu.png,l_menu.png,l_aftercancel.png,l_t*.png,l_resume.png,l_choose0.png,be_resume*.png,be_load*.png,z_*.png",
-      "label": "Bonnie's waving hand, on the game's clock"
-    },
-    {
-      "rect": [
-        408,
-        110,
-        335,
-        310
-      ],
-      "pairs": "board.png,tutorial.png,word.png,played.png,cake.png,tale.png,gameoptions.png,action.png,actionword.png,resumed.png",
-      "label": "the board's random letters: sparkles draw from rand every frame, so the board depends on how many frames ran before it; the board itself is compared on a loaded save (run res1)"
-    },
-    {
-      "rect": [
-        390,
-        542,
-        123,
-        36
-      ],
-      "pairs": "word.png,cake.png",
-      "label": "the Submit button's frame cycles its colours on the game's clock while a word is ready"
-    },
-    {
-      "rect": [
-        432,
-        109,
-        42,
-        41
-      ],
-      "pairs": "help3.png",
-      "label": "help 3's star tile cycles its colours on the game's clock"
-    },
-    {
-      "rect": [
-        379,
-        386,
-        44,
-        25
-      ],
-      "pairs": "help3.png",
-      "label": "help 3's demonstration tiles light up on the game's clock"
-    },
-    {
-      "rect": [
-        636,
-        111,
-        34,
-        34
-      ],
-      "pairs": "help3.png",
-      "label": "help 3's demonstration tiles light up on the game's clock"
-    }
-  ]
+ "ignore": [
+  {
+   "rect": [
+    2,
+    583,
+    140,
+    15
+   ],
+   "pairs": "menu.png,mainmenu.png,endmenu.png,*_menu.png,zz_menu.png,lk_after.png,m_after.png,z_*.png,l_resume.png,l_choose0.png,l_t*.png,l_aftercancel.png,be_resume*.png,mw_resume*.png,aw_resume*.png,gx_*_resume.png,lk_resume.png,lk_c*.png,ae_dialog.png,st_*.png,pl_*.png,difficulty.png,name.png",
+   "label": "the menu's version text: the user's request of 2026-11-18 removes the word \"Deluxe\" from the main screen, so the port says \"Version 1.01\" where the original says \"Deluxe Version 1.01\" (DEVIATIONS.md)"
+  },
+  {
+   "rect": [
+    0,
+    0,
+    800,
+    600
+   ],
+   "pairs": "logo.png",
+   "label": "the logos fade in on the game's clock; origrun's waitshot catches the original's first drawn frame, the port's shot a later one"
+  },
+  {
+   "rect": [
+    160,
+    0,
+    181,
+    215
+   ],
+   "pairs": "menu.png,mainmenu.png,endmenu.png,*_menu.png,zz_menu.png,lk_after.png,m_after.png,z_*.png,l_resume.png,l_choose0.png,l_t*.png,l_aftercancel.png,be_resume*.png,mw_resume*.png,aw_resume*.png,gx_*_resume.png,lk_resume.png,lk_c*.png,ae_dialog.png,st_*.png,pl_*.png,difficulty.png,name.png",
+   "label": "the menu's hanging sign swings on the game's clock"
+  },
+  {
+   "rect": [
+    489,
+    184,
+    104,
+    152
+   ],
+   "pairs": "menu.png,mainmenu.png,endmenu.png,*_menu.png,zz_menu.png,lk_after.png,m_after.png,z_*.png,l_resume.png,l_choose0.png,l_t*.png,l_aftercancel.png,be_resume*.png,mw_resume*.png,aw_resume*.png,gx_*_resume.png,lk_resume.png,lk_c*.png,ae_dialog.png,st_*.png,pl_*.png,difficulty.png,name.png",
+   "label": "Bonnie's waving hand, on the game's clock"
+  },
+  {
+   "rect": [
+    408,
+    110,
+    335,
+    310
+   ],
+   "pairs": "board.png,tutorial.png,word.png,played.png,cake.png,tale.png,gameoptions.png,action.png,actionword.png,resumed.png",
+   "label": "the board's random letters: sparkles draw from rand every frame, so the board depends on how many frames ran before it; the board itself is compared on a loaded save (run res1)"
+  },
+  {
+   "rect": [
+    390,
+    542,
+    123,
+    36
+   ],
+   "pairs": "word.png,cake.png",
+   "label": "the Submit button's frame cycles its colours on the game's clock while a word is ready"
+  },
+  {
+   "rect": [
+    432,
+    109,
+    42,
+    41
+   ],
+   "pairs": "help3.png",
+   "label": "help 3's star tile cycles its colours on the game's clock"
+  },
+  {
+   "rect": [
+    379,
+    386,
+    44,
+    25
+   ],
+   "pairs": "help3.png",
+   "label": "help 3's demonstration tiles light up on the game's clock"
+  },
+  {
+   "rect": [
+    636,
+    111,
+    34,
+    34
+   ],
+   "pairs": "help3.png",
+   "label": "help 3's demonstration tiles light up on the game's clock"
+  },
+  {
+   "rect": [
+    534,
+    254,
+    172,
+    352
+   ],
+   "pairs": "aw_load05.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    434,
+    214,
+    252,
+    392
+   ],
+   "pairs": "aw_load20.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    334,
+    254,
+    372,
+    332
+   ],
+   "pairs": "aw_next05.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    114,
+    54,
+    652,
+    392
+   ],
+   "pairs": "aw_next20.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    414,
+    334,
+    92,
+    92
+   ],
+   "pairs": "be_load08.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    454,
+    134,
+    292,
+    272
+   ],
+   "pairs": "be_load12.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    54,
+    352,
+    172
+   ],
+   "pairs": "be_load16.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    434,
+    214,
+    252,
+    52
+   ],
+   "pairs": "be_load20.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    334,
+    132,
+    112
+   ],
+   "pairs": "be_load29.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    434,
+    94,
+    72,
+    72
+   ],
+   "pairs": "be_load33.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    494,
+    74,
+    112,
+    132
+   ],
+   "pairs": "be_load37.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    514,
+    194,
+    232,
+    172
+   ],
+   "pairs": "be_load45.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    454,
+    34,
+    252,
+    432
+   ],
+   "pairs": "be_load50.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    34,
+    352,
+    432
+   ],
+   "pairs": "be_next04.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    414,
+    94,
+    312,
+    392
+   ],
+   "pairs": "be_next08.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    134,
+    352,
+    252
+   ],
+   "pairs": "be_next12.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    34,
+    392,
+    452
+   ],
+   "pairs": "be_next16.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    374,
+    94,
+    392,
+    352
+   ],
+   "pairs": "be_next20.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    214,
+    432,
+    232
+   ],
+   "pairs": "be_next25.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    54,
+    432,
+    392
+   ],
+   "pairs": "be_next29.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    74,
+    34,
+    612,
+    432
+   ],
+   "pairs": "be_next33.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    54,
+    432,
+    392
+   ],
+   "pairs": "be_next37.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    34,
+    432,
+    412
+   ],
+   "pairs": "be_next41.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    114,
+    432,
+    312
+   ],
+   "pairs": "be_next45.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    334,
+    534,
+    52,
+    52
+   ],
+   "pairs": "be_next50.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    434,
+    134,
+    252,
+    452
+   ],
+   "pairs": "gx_gb_load.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    74,
+    392,
+    392
+   ],
+   "pairs": "l_b02.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    54,
+    352,
+    332
+   ],
+   "pairs": "l_b03.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    414,
+    54,
+    332,
+    232
+   ],
+   "pairs": "l_b04.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    414,
+    54,
+    332,
+    412
+   ],
+   "pairs": "l_b05.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    114,
+    432,
+    332
+   ],
+   "pairs": "l_b06.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    114,
+    432,
+    332
+   ],
+   "pairs": "l_b07.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    74,
+    192,
+    392
+   ],
+   "pairs": "l_b08.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    414,
+    94,
+    312,
+    392
+   ],
+   "pairs": "l_b09.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    414,
+    94,
+    312,
+    452
+   ],
+   "pairs": "l_b10.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    454,
+    34,
+    252,
+    192
+   ],
+   "pairs": "l_b11.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    134,
+    352,
+    292
+   ],
+   "pairs": "l_b12.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    134,
+    352,
+    292
+   ],
+   "pairs": "l_b13.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    54,
+    432,
+    372
+   ],
+   "pairs": "l_b14.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    374,
+    54,
+    392,
+    412
+   ],
+   "pairs": "l_b15.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    74,
+    332,
+    212
+   ],
+   "pairs": "l_b16.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    54,
+    352,
+    232
+   ],
+   "pairs": "l_b17.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    374,
+    94,
+    392,
+    392
+   ],
+   "pairs": "l_b18.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    554,
+    214,
+    212,
+    272
+   ],
+   "pairs": "l_b19.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    554,
+    214,
+    212,
+    272
+   ],
+   "pairs": "l_b20.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    554,
+    94,
+    212,
+    392
+   ],
+   "pairs": "l_b21.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    134,
+    232,
+    232
+   ],
+   "pairs": "l_b22.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    34,
+    432,
+    372
+   ],
+   "pairs": "l_b23.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    34,
+    432,
+    372
+   ],
+   "pairs": "l_b24.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    34,
+    432,
+    452
+   ],
+   "pairs": "l_b25.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    34,
+    432,
+    512
+   ],
+   "pairs": "l_b26.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    54,
+    352,
+    432
+   ],
+   "pairs": "l_b27.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    54,
+    352,
+    492
+   ],
+   "pairs": "l_b28.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    54,
+    352,
+    392
+   ],
+   "pairs": "l_b29.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    54,
+    352,
+    492
+   ],
+   "pairs": "l_b30.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    154,
+    432,
+    252
+   ],
+   "pairs": "l_b31.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    474,
+    54,
+    212,
+    412
+   ],
+   "pairs": "l_b32.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    474,
+    54,
+    192,
+    352
+   ],
+   "pairs": "l_b33.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    94,
+    432,
+    352
+   ],
+   "pairs": "l_b34.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    114,
+    432,
+    432
+   ],
+   "pairs": "l_b35.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    414,
+    74,
+    332,
+    392
+   ],
+   "pairs": "l_b36.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    454,
+    34,
+    252,
+    152
+   ],
+   "pairs": "l_b37.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    454,
+    34,
+    152,
+    112
+   ],
+   "pairs": "l_b38.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    454,
+    34,
+    152,
+    112
+   ],
+   "pairs": "l_b39.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    454,
+    34,
+    152,
+    192
+   ],
+   "pairs": "l_b40.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    414,
+    34,
+    152,
+    232
+   ],
+   "pairs": "l_b41.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    34,
+    432,
+    412
+   ],
+   "pairs": "l_b42.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    74,
+    392,
+    332
+   ],
+   "pairs": "l_b43.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    74,
+    432,
+    392
+   ],
+   "pairs": "l_b44.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    74,
+    432,
+    472
+   ],
+   "pairs": "l_b45.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    114,
+    432,
+    312
+   ],
+   "pairs": "l_b46.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    454,
+    114,
+    252,
+    332
+   ],
+   "pairs": "l_b47.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    454,
+    114,
+    252,
+    432
+   ],
+   "pairs": "l_b48.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    374,
+    114,
+    392,
+    312
+   ],
+   "pairs": "l_b49.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    414,
+    34,
+    332,
+    452
+   ],
+   "pairs": "l_b50.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    454,
+    94,
+    232,
+    372
+   ],
+   "pairs": "mw_board03.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    354,
+    114,
+    192,
+    352
+   ],
+   "pairs": "mw_board07.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    374,
+    54,
+    392,
+    412
+   ],
+   "pairs": "mw_board14.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    394,
+    34,
+    352,
+    272
+   ],
+   "pairs": "mw_board23.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    454,
+    134,
+    232,
+    192
+   ],
+   "pairs": "mw_board34.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    374,
+    74,
+    412,
+    392
+   ],
+   "pairs": "mw_board43.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    494,
+    94,
+    72,
+    72
+   ],
+   "pairs": "mw_load03.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    494,
+    154,
+    172,
+    152
+   ],
+   "pairs": "mw_load14.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    574,
+    94,
+    72,
+    92
+   ],
+   "pairs": "mw_load23.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    534,
+    114,
+    52,
+    332
+   ],
+   "pairs": "mw_load34.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    294,
+    174,
+    332,
+    412
+   ],
+   "pairs": "mw_next03.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    294,
+    254,
+    412,
+    332
+   ],
+   "pairs": "mw_next07.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    374,
+    174,
+    312,
+    412
+   ],
+   "pairs": "mw_next14.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    294,
+    374,
+    212,
+    212
+   ],
+   "pairs": "mw_next23.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    294,
+    174,
+    392,
+    412
+   ],
+   "pairs": "mw_next34.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    534,
+    94,
+    172,
+    292
+   ],
+   "pairs": "mw_next43.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  },
+  {
+   "rect": [
+    454,
+    114,
+    292,
+    272
+   ],
+   "pairs": "st_board.png",
+   "label": "the tiles of a board: they wobble and glow on the game's clock (kinds 1 and 2, Game::draw), and on a level begun by the clock the letters follow how many frames drew sparkles' random numbers before; the same boards are compared exactly on saved games' loaded boards where the tiles stand still"
+  }
+ ]
 }

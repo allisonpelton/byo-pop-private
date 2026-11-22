@@ -1,5 +1,7 @@
 # Bonnie's original, the port's tour (tools/tour_test.txt) by the clock: logos, menu, a new player,
 # difficulty, story, the tutorial's three words, the game's options, high scores, credits, help, main menu options.
+# Only the shots up to `tutorial` are paired with the port's: later the tile clicks assume the port's first board, whose
+# letters the clock changes (games/bonnies/docs/IDENTICAL_PLAY.md, "The screen coverage pass").
 waitshot logo 20000
 wait 30000
 shot menu
