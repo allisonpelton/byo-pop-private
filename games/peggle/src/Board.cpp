@@ -44,6 +44,9 @@ static const int BOARD_WIDTH = 650;
 static const int BOARD_HEIGHT = 560;
 static const int SONG_NOT_PLAYED = 4;			// the board never plays this one of the songs (PlayMusic leaves it out of its list)
 static const int SONG_STRIDE = 6;				// PlayMusic's music ids for the board are six apart (the level music ids)
+static const int RANDOM_CHARACTER = 10;			// a player's choice of master that means "any"; also the number of masters
+static const int MAX_UNLOCKED_CHARACTER = 20;	// GetMaxUnlockedCharacter, for a registered game (the only kind here)
+static const int MAX_CHARACTER_TRIES = 50;		// how often a master is drawn again to avoid the last game's
 static const int GUN_SCREEN_X = 400;			// the cannon is put at these less the origin (Board.cpp 2 and 3, 147: ModValInt 400 and 70)
 static const int GUN_SCREEN_Y = 70;
 static const int MENU_BUTTON_X = 12;			// Board.cpp 4 and 5, 153 (ModValInt 0xc and 0x21c)
@@ -322,7 +325,7 @@ void Board::SyncModeOptions()
 	mLogicMgr->mUnknown245 = false;
 	mLogicMgr->mUnknown244 = false;
 	mLogicMgr->mTwoPlayer = mGameMode == GAME_MODE_DUEL;
-	NOT_TRANSLATED("Board::SyncCharacterOptions");
+	SyncCharacterOptions(true);
 }
 
 // 0x422640: the board's music: the songs of the game in an order drawn once, the next of them each time
@@ -582,4 +585,100 @@ void Board::SetupLevel()
 			mUnknownC7 = true;
 	}
 	NOT_TRANSLATED_DRAWING("Board::MakeThumbnail"); // (draws the level once and keeps it in levels/cached_thumbnails/)
+}
+
+// 0x438760: the master of a number, counted round the ten (a number below the first goes back from the last)
+static Character* GetCharacterWrapped(CharacterMgr* theMgr, int theIndex)
+{
+	int aCount = theMgr->GetNumCharacters();
+	int aRemainder = theIndex < 0 ? -theIndex % aCount : theIndex % aCount;
+	int aIndex = theIndex < 0 ? (aRemainder == 0 ? 0 : aCount - aRemainder) : aRemainder;
+	return &theMgr->mCharacters[aIndex];
+}
+
+// 0x40f400: who plays: the masters each player has (the player's choice, the stage's master in the adventure, or one drawn
+// at random when the choice is "random" (10), never the one the player had last when it can be helped), the names of the
+// two players and the powers of the masters
+void Board::SyncCharacterOptions(bool theDrawAgain)
+{
+	static int sLastCharacter[2] = {0, 0};	// (the original's global at 0x649004)
+	PlayerInfo* aPlayer = mApp->mCurrentPlayer;
+	if (aPlayer == nullptr)
+		return;
+	LogicMgr* aLogic = mLogicMgr.get();
+	std::string aPlayer2Name = aPlayer->mUnknownB4;
+	if (aPlayer2Name.empty())
+		aPlayer2Name = "Player2";
+	int aCharacters[2];
+	int aMaxStage = aPlayer->mMaxStage;
+	for (int i = 0; i < 2; i++)
+	{
+		aCharacters[i] = i == 0 ? aPlayer->mSelCharacter : aPlayer->mSelCharacter2;
+		if (mGameMode == GAME_MODE_ADVENTURE)
+		{
+			if (aPlayer->mMaxStage < RANDOM_CHARACTER)
+				aCharacters[i] = mApp->mStartStage;
+		}
+		else if (mGameMode == GAME_MODE_CHALLENGE && i == 1 && mChallenge != nullptr)
+		{
+			NOT_TRANSLATED("Board::SyncCharacterOptions in the challenge mode (the computer's opponent)");
+		}
+		else if (mGameMode == GAME_MODE_DEMO)
+		{
+			if (mApp->IsScreenSaver())
+				aMaxStage = mApp->mMaxStage;
+			aLogic->mTwoPlayer = false;
+			aLogic->mUnknown244 = true;
+			aLogic->mUnknown74 = RANDOM_CHARACTER;
+			aCharacters[i] = RANDOM_CHARACTER;
+		}
+		if (aCharacters[i] == RANDOM_CHARACTER)
+		{
+			int aKept = aLogic->mCharacter[i];
+			if (!theDrawAgain && aKept >= 0 && aKept < RANDOM_CHARACTER)
+				aCharacters[i] = aKept;
+			else
+			{
+				// one of the masters met so far (all of them when the game is played through), drawn again up to fifty times
+				// when it is the one of the last game
+				int aNumChoices = aMaxStage + 1;
+				if (aNumChoices > MAX_UNLOCKED_CHARACTER + 1)
+					aNumChoices = MAX_UNLOCKED_CHARACTER + 1;
+				if (aNumChoices < 1)
+					aNumChoices = 1;
+				else if (aNumChoices > RANDOM_CHARACTER)
+					aNumChoices = RANDOM_CHARACTER;
+				int aTries = aNumChoices <= 1 ? 1 : MAX_CHARACTER_TRIES;
+				for (int aTry = 0; aTry < aTries;)
+				{
+					aCharacters[i] = Rand() % aNumChoices;
+					if (aCharacters[i] != sLastCharacter[i])
+						break;
+					aTry++;
+				}
+			}
+		}
+		sLastCharacter[i] = aCharacters[i];
+	}
+	aLogic->SetCharacters(aCharacters[0], aCharacters[1]);
+	Character* aFirst = GetCharacterWrapped(mCharacterMgr, aCharacters[0]);
+	Character* aSecond = GetCharacterWrapped(mCharacterMgr, aCharacters[1]);
+	// (the original also copies the masters' names into locals it does not use again)
+	aLogic->mPlayerName[0] = aPlayer->mName;
+	aLogic->mPlayerName[1] = aPlayer2Name;
+	if (mGameMode == GAME_MODE_DUEL)
+	{
+		if (!aPlayer->mUnknown98.empty())
+			aLogic->mPlayerName[0] = aPlayer->mUnknown98;
+		if (!aPlayer->mComputerPlayer)
+			aLogic->mUnknown245 = false;
+		else
+		{
+			aLogic->mUnknown245 = true;
+			int aSkill = aPlayer->mComputerSkill;
+			aLogic->mUnknown78 = aSkill == -1 ? -1 : aSkill == 1 ? 1 : aSkill == 2 ? 10 : 0;
+		}
+	}
+	aLogic->mUnknown1C4 = aFirst->mPowerup;
+	aLogic->mUnknown1C8 = aSecond->mPowerup;
 }

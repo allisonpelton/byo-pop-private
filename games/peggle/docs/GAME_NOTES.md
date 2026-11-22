@@ -131,5 +131,5 @@ score multiplier, the music's intensity, the balls, the cannon's aim and the peg
 - The original's music call after `Board::PlayMusic` (0x40d2c0: BASS pitch back to normal) is left out: the port's music is never pitch-shifted.
 - `Board::PlayMusic` draws its song order with the C runtime's `rand` (the framework's `CrtRand`), as the original's `random_shuffle` does; the order is drawn once per run.
 - The replay, end-of-level and slot-machine dialogs are made by the board's constructor; only their constructors are translated, the rest stops at `NOT_TRANSLATED`.
-- `Board::SyncModeOptions` stops at `NOT_TRANSLATED` for the challenge and demo modes and at `SyncCharacterOptions` (modes 1 to 3); mode NONE and replays pass.
+- `Board::SyncModeOptions` stops at `NOT_TRANSLATED` for the challenge and demo level choice (`StageMgr::GetRandomLevel`), and `SyncCharacterOptions` for the challenge's computer opponent; the other modes pass (a registered game: `GetMaxUnlockedCharacter` is 20).
 - The original's `LoadLevel` takes the name by value (Reset passes the board's own `mLevelName`, which `Clear` erases); the port's does too.

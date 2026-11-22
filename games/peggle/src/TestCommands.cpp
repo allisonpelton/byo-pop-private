@@ -167,7 +167,7 @@ bool ThunderballApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		// seeded, and tells what the rules made of it: the pegs by their serial number (kinds: 1 blue, 2 orange, 3 purple, 4 green),
 		// the cannon's aim and how many draws the level start took. Drawing the original does and the port has not reached is skipped.
 		// resetlevel <seed> <path> is the same through Board::Reset (the board's mode is the app's, the music is not played
-		// when the board is hidden: "hidden" as a third word hides it).
+		// when the board is hidden: "hidden" as a third word hides it; "mode=N" sets the app's game mode first).
 		size_t aSpace = theCommand.mArgs.find(' ');
 		if (aSpace == std::string::npos)
 		{
@@ -189,7 +189,11 @@ bool ThunderballApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			size_t aSecondSpace = aPath.find(' ');
 			if (aSecondSpace != std::string::npos)
 			{
-				aBoard->mVisible = aPath.substr(aSecondSpace + 1) != "hidden";
+				std::string aOptions = aPath.substr(aSecondSpace + 1);
+				aBoard->mVisible = aOptions.find("hidden") == std::string::npos;
+				size_t aModePlace = aOptions.find("mode=");
+				if (aModePlace != std::string::npos)
+					mGameMode = atoi(aOptions.c_str() + aModePlace + 5);
 				aPath = aPath.substr(0, aSecondSpace);
 			}
 			aBoard->mLevelName = aPath;

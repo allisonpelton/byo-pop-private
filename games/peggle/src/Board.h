@@ -64,6 +64,7 @@ public:
 	void CheckIncTip();						// 0x406c10
 	void RemoveSlotMachineDialog();			// 0x402480
 	void SyncModeOptions();					// 0x40f980: the options the game mode gives the board (the level it plays)
+	void SyncCharacterOptions(bool theDrawAgain); // 0x40f400: false keeps the masters the rules already chose
 	void PlayMusic();						// 0x422640
 	void AddObj(const SharedPtr<PhysObj>& theObj); // 0x422a90 (0x421070): a piece of the level joins the board's lists
 	void SetSlowMo(bool theSlowMo, int theRate); // 0x4026f0
