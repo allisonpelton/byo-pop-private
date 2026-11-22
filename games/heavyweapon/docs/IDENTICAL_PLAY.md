@@ -453,5 +453,5 @@ The runs: the tours' shotdiff runs `shots_<tour>` and `coverage_ui`, their 3D ru
 The deviations in `docs/GAME_NOTES.md` are unchanged but for the refresh rate, which this pass found and lists there;
 none shows in the compared state. The screen pass adds the two the user asked for (GAME_NOTES, "Deviations the user asked
 for"): the site names the game "Heavy Weapon" without "Deluxe" (the user, 2026-11-18: "Remove the "Deluxe" text from the
-main screen of any game it may appear in, to avoid misleading people about whose game version they're playing"), and
-no screen needed the word covered, since none shows it.
+main screen of any game it may appear in, to avoid misleading people about whose game version they're playing"), the
+native window's caption is "Heavy Weapon" too, and no screen needed the word covered, since none shows it.

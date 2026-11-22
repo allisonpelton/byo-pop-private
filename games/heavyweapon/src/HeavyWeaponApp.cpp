@@ -75,9 +75,9 @@ HeavyWeaponApp::HeavyWeaponApp()
 
 	mProdName = "HeavyWeapon";
 	mProductVersion = "1.0";
-	// port: the original reads the game's name from 0x52a548; the texts are read from the exe only in Init, after the
-	// window is made, so the name is written here as the other ports write theirs
-	mTitle = "Heavy Weapon Deluxe " + mProductVersion;
+	// port: the original reads the game's name from 0x52a548 ("Heavy Weapon Deluxe") and adds its version; the window is
+	// named "Heavy Weapon" without either, as the user asked (2026-11-18, GAME_NOTES "Deviations the user asked for")
+	mTitle = "Heavy Weapon";
 	mRegKey = "PopCap\\" + mProdName;
 	mCustomCursorsEnabled = true;
 	mAutoEnable3D = true;
