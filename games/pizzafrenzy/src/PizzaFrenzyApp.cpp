@@ -469,6 +469,9 @@ void PizzaFrenzyApp::Init()
 	if (mShutdown)
 		return;
 	engine::setHost(&gHost);
+	// -fast: a sound plays its length on the engine's clock (as on origrun's virtual clock), not the mixer's real time,
+	// which a run that does not wait outpaces: a sound with one voice was still playing when the game played it again
+	engine::HostSound::sGameClock = mFastMode;
 	mWidget = new PizzaFrenzyWidget();
 	mWidget->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mWidget);

@@ -220,6 +220,25 @@ The original also logs a stop of a press sound just before it plays again, after
 rewound for the play); the port's log shows no stop for a voice that is no longer playing, and nothing is heard either
 way.
 
+**The play cases' sounds** (look1, mem1 and conc1, from the original's logs of their shot runs). The original's
+updates are not evenly spaced on origrun's virtual clock: against a steady 33.83 ms its sounds wander up to about four
+updates either way and back over a run, so the starts are compared in order (each side's starts sorted by update
+and length, then lined up), which the clock does not touch. Two things were the port's:
+- **-fast ran the sounds on the mixer's time.** A sound's voice is free again when its length has passed: on the
+  engine's clock in a run that does not wait (`HostSound::sGameClock`, which Word Harmony sets and Pizza Frenzy did
+  not), else the mixer's real time. The port read the mixer's, which a fast run outpaces, so a sound with few voices
+  was still "playing" when the game played it again and the play was dropped: in look1 the wrong click (one voice)
+  sounded 39 times where the original's sounded 51, and the blimp's tips (three voices) 27 where it had 55. A fast run now plays them on the engine's clock;
+  a run in real time was not affected.
+- **The menu's music started again after the name dialog.** The music player marks itself stopping only when it
+  stops a voice (0x450670); the port marked it on every stop, also the first start's with no voice yet, so the mark
+  stayed. When the new player's menu asked for the music that already played, the player took the mark to mean the
+  clip was ending and started it again. It is marked as the original does now.
+
+With both, the starts are the same sounds in the same order: look1 878 on each side, mem1 501, conc1 516. The only
+places out of order are eight pick sounds (8 ms) in look1 and conc1, each sorted one place before or after a
+neighbour 2 to 4 updates away, which is the clock's wander and not a sound added or lost.
+
 **The menu's dialogs** (case dlg1, from a saved player, seed 3: the options and the replay box, the high scores of
 each mode with the clear question answered No, the player list with the delete question answered No, the quit
 question answered No; `shots/dlg1.txt`). Both sides run windowed (the case's registry preset sets `FullScreen` to 0:
