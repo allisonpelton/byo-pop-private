@@ -353,14 +353,19 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   shown for a stage's load (the stage named, those before it passed, it current) or for picking a stage reached (the
   menu's newGame once a stage of the mode is reached, and the menu's levelStart action, which drops the mode's saved
   game). The stage under the mouse is named in stageText. Checked under rundesk: Start Game shows the map with
-  "Now Loading", "1. Sandy Shoal" and the bar filling, then stage1 loaded, exit 0. Not yet translated: the pins' places
-  (each level set's spline, PathImpl<PathNodeSpline> read by PathDocHandler 0x48b9b0, and the pins spaced along it by
-  0x41ad50), so every pin sits at the map's corner; the level sets' buttons (imgOff, imgOn).
+  "Now Loading", "1. Sandy Shoal" and the bar filling, then stage1 loaded, exit 0. Not yet translated: the level sets'
+  buttons (imgOff, imgOn).
+- The map's pins (SplinePath.h, StageManifest::placePins): each level set's spline file read into a SplinePath
+  (0x552bf4: the curve at a parameter 0x436540 blends the four nodes around it, each node's sv moving its knots apart
+  when positive and pulling the curve to it when negative; each stretch measured in tenths, 0x434ed0 and 0x434e10, so
+  a place is asked for by the fraction of the path's length, 0x47c0c0), and each set's stages spaced evenly along it
+  (0x41ad50; the last set, an end marker with no stages, starts at the end of the spline before it). Translated from
+  the assembly, the x87 sums kept in doubles. Checked under rundesk: the load's map shows every pin along the paths,
+  one set's flowing into the next. Not compared with the original's map yet (the looks pass).
 
 ## Next
 
-- The map's pins: the splines (0x48b9b0, PathImpl<PathNodeSpline>) and the spacing (0x41ad50); then the picking path
-  checked with a player who has reached a stage. Then the restore-game popup's actions, StageIntroState (0x49d1b0) and
+- The map's picking path checked with a player who has reached a stage. Then the restore-game popup's actions, StageIntroState (0x49d1b0) and
   GamePlayState, the players' spawn and the HUD, toward a stage in play.
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's
   simplesound). The stage's slot 0x5c (0x447ef0) is not a clean-up but the stage's ending (player died, perfect, stage
