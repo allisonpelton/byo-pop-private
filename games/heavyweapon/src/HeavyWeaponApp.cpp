@@ -75,9 +75,9 @@ HeavyWeaponApp::HeavyWeaponApp()
 
 	mProdName = "HeavyWeapon";
 	mProductVersion = "1.0";
-	// port: the original reads the game's name from 0x52a548 ("Heavy Weapon Deluxe") and adds its version; the window is
-	// named "Heavy Weapon" without either, as the user asked (2026-11-18, GAME_NOTES "Deviations the user asked for")
-	mTitle = "Heavy Weapon";
+	// port: the original reads the game's name from 0x52a548 ("Heavy Weapon Deluxe") and adds its version; the port drops
+	// "Deluxe" alone, as the user asked (2026-11-18, GAME_NOTES "Deviations the user asked for")
+	mTitle = "Heavy Weapon " + mProductVersion;
 	mRegKey = "PopCap\\" + mProdName;
 	mCustomCursorsEnabled = true;
 	mAutoEnable3D = true;

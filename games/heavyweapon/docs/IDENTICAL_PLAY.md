@@ -454,4 +454,4 @@ The deviations in `docs/GAME_NOTES.md` are unchanged but for the refresh rate, w
 none shows in the compared state. The screen pass adds the two the user asked for (GAME_NOTES, "Deviations the user asked
 for"): the site names the game "Heavy Weapon" without "Deluxe" (the user, 2026-11-18: "Remove the "Deluxe" text from the
 main screen of any game it may appear in, to avoid misleading people about whose game version they're playing"), the
-native window's caption is "Heavy Weapon" too, and no screen needed the word covered, since none shows it.
+native window's caption drops the word too ("Heavy Weapon 1.0"), and no screen needed the word covered, since none shows it.
