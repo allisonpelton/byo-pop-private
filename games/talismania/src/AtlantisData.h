@@ -13,6 +13,7 @@
 #include "Geometry.h"
 
 #include "BoardData.h"
+#include "CellData.h"
 #include "LevelData.h"
 
 #include <map>
@@ -208,6 +209,7 @@ public:
 	std::map<std::string, GameModeClass> gameModes;
 	std::map<std::string, DataSetLoaderClass> dataSets;
 	std::map<std::string, BoardClass> boards;
+	std::map<std::string, CellClass> cellClasses;
 	std::map<std::string, ChapterClass> chapters;
 	std::map<std::string, GameLevelClass> gameLevels;
 

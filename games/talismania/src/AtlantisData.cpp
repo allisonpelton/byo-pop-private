@@ -3,6 +3,7 @@
 #include "AtlantisTheme.h"
 #include "Engine.h"
 #include "BoardDataReader.h"
+#include "CellDataReader.h"
 #include "LevelDataReader.h"
 #include "Random.h"
 
@@ -50,7 +51,7 @@ std::vector<std::string> getList(const engine::Params& theParams, const char* th
 class DataHandler : public engine::AbstractDocHandler
 {
 public:
-	explicit DataHandler(AtlantisData& theData) : mData(theData), mBoards(theData), mLevels(theData) {}
+	explicit DataHandler(AtlantisData& theData) : mData(theData), mBoards(theData), mCells(theData), mLevels(theData) {}
 
 	void startElement(const std::string& theName, engine::Params& theAttributes) override
 	{
@@ -58,6 +59,8 @@ public:
 		if (theName == "atlantisdata" || theName == "randomcoins")
 			return;
 		if (mBoards.startElement(theName, p))
+			return;
+		if (mCells.startElement(theName, p))
 			return;
 		if (mLevels.startElement(theName, p))
 			return;
@@ -205,6 +208,8 @@ public:
 	{
 		if (mBoards.endElement(theName))
 			return;
+		if (mCells.endElement(theName))
+			return;
 		if (mLevels.endElement(theName))
 			return;
 		if (theName == "scene")
@@ -309,6 +314,7 @@ private:
 
 	AtlantisData& mData;
 	BoardDataReader mBoards;
+	CellDataReader mCells;
 	LevelDataReader mLevels;
 	std::set<std::string> mReportedKinds;  // each kind not yet translated is reported once
 	SceneClass mScene;
