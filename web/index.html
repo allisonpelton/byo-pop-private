@@ -587,6 +587,7 @@ html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: 
 <script src="sounds.js"></script>
 <script src="trophies.js"></script>
 <script src="fontview.js"></script>
+<script src="buildings.js"></script>
 <script src="gamepics.js"></script>
 <!-- its auto splitters: each game's block read from the front game window and its start, split and reset rules (web/autosplit.js) -->
 <script src="autosplit.js"></script>
@@ -1330,6 +1331,9 @@ try {
     // the Fonts window (web/fontview.js): the games' own fonts and text drawn in them, Desktop 95 only, closed at first, its icon
     // after the trophy cabinet's
     if (window.ByopopFontView) ByopopFontView.attach(d, function (left, vw) { return [Math.max(left, vw - 640) - 60, top() + 56]; });
+    // the Venice Buildings window (web/buildings.js): Venice's buildings whole and in one row, from the player's files, Desktop 95
+    // only, closed at first, where the listing has Venice, its icon after the Fonts window's
+    if (window.ByopopBuildings) ByopopBuildings.attach(d, function (left, vw) { return [Math.max(left, vw - 680) - 40, top() + 72]; });
     if (window.ByopopSplits) ByopopSplits.attach(d, function (left, vw) { return [Math.max(left, vw - 330), top() + 24]; });
     // the Setup window (web/setup.js): closed at first, no icon; Add Games in the Pop menu and the Add games button open it
     if (window.ByopopSetup) ByopopSetup.attach(d, function (left, vw) { return [Math.max(left, Math.round((vw - 560) / 2)), top() + 40]; });

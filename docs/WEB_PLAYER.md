@@ -480,6 +480,7 @@ badly:
 | Splits | sizable | 240 × 180 | the room | its menu bar on one row, the timer and its two lines under it |
 | Trophy Cabinet | sizable | 300 × 200 | the room | its player list on one row (an empty cabinet was all there was to see) |
 | Fonts | sizable | 480 × 300 | the room | its game, font and Save As on one row, and a row of the sample sheet |
+| Venice Buildings | sizable | 420 × 260 | the room | its picture and Save As on one row, and a building's height of the well at 25% |
 | Chat (both pages) | sizable | 260 × 320 | the room | its controls and five lines of messages |
 | A game in a window | sizable | its game at the multiple drawn, its status bar and frame | the room, and Maximize | `web/deskapps.js` |
 | A text in a window | sizable | 200 × 120 | the room | |
@@ -757,6 +758,41 @@ checks the reader on fonts made for it, then reads every font of the staged game
 18 width lists, Bejeweled Twist's from its `main.pak` too. The other engines' fonts (Retro64's in Cosmic Bugs, Water Bugs and
 Venice; Bonnie's; Jolly Bear's in the Mahjong Escapes; Ning Po's, Tip Top's and Word Harmony's) are not read yet, so those
 games' Font lists are empty.
+
+### The Venice Buildings window
+
+The Venice Buildings window (`web/buildings.js`; the user, 2026-11-18: "I'd love to see a combined image of all of Venice's
+buildings as a continuous shot, if something like that is possible, and full images of the individual buildings of Venice")
+is a Desktop 95 window on the listing's desktop, closed at first, its icon after the Fonts window's, there only where the
+listing has Venice. It reads Venice's files as the Fonts window does, its status line "No game files" when they are not in this browser. Its
+Picture list holds All the buildings, Building 1 to Building 8 in the order Journey builds them, and the Trophy; Background
+puts the level select's scene behind them or leaves them on their own (None, clear in the saved picture); Zoom is 25% to
+200%; and Save As writes the picture shown at its own pixels as a PNG (`venice-buildings.png`, `venice-building-3.png`,
+`venice-trophy.png`). The whole row is 3280 by 600 pixels with its scene and 3255 by 434 without; a building is 400 by 600
+in its scene and its own 400 by 400 picture without.
+
+Each building is one picture in the files, the thumbnail its levels name (`gfx/levelselect/thumbnail1.png` to
+`thumbnail8.png`, the win sequence's `thumbnail9.png` the trophy), so a building whole is that picture. The level select
+shows them in a row that slides past, never all at once, and the window lays the row out as `LevelSelect::Load` does: down
+Journey's list of levels (`config.xml`'s `level_file_relaxed`), a picture at the levels 1, 10, 19 and so on of those with a
+thumbnail, each level moving the next place on by a ninth of its picture's width less four, the win sequence's picture 90
+further on, and each picture a little lower in depth than the one before, so the earlier building is drawn over the later
+where they overlap (36 pixels). The game's order is not the files' numbers: buildings 1, 3, 4, 5, 6, 2, 7 and 8 by file.
+Flood's list (`level_file_game` after the plain `level_file` entries, where the tutorial's second part names building 1)
+places the trophy one level, 40 pixels, further on; the window follows Journey's.
+
+The scene is `levels/levelselect.xml` read as the engine reads a scene (its tags, each object's stages, depth order as
+`SceneObject::InsertChildByZOrder` keeps it) and each object placed as `SceneObject::DrawSelf` and `DrawImageRecord` place it
+in 2D, as it stands at the end of its first stage: rounded where it is not bilinear, an unscaled picture's left its place
+less half its width and its top one pixel below its place less half its height, a scaled one centred there, tiles stepping
+by the scaled size, the water's clip, a sheet's first frame from `config.xml`'s `<image>` entries. Three things differ from
+any one screen of the game: both layers sit at their home places, where in play the near one slides twice as far as the
+distant city; the tiled rows (the quay and the water) are carried on to the row's ends where they stop short (the quay and the
+water's underlay lack 10 pixels at the left); and of the screen's own pictures, which stay put while the row slides (the sky, the birds and
+clouds, the scroll and its text), only the sky is kept, repeated along the row with every other copy mirrored so that the
+copies meet. `tools/buildingstest.js` (unit-web) checks the readers and the placing on scenes made for it, then lays out the
+staged Venice's row: the pictures in the game's order, building 1 at x -9 and y 161, each next 364 on (a place truncated
+toward zero), the trophy at 2976, and the quay and the water reaching both ends.
 
 ### The fixes and lite mods on the site
 
