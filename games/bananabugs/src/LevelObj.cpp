@@ -21,6 +21,7 @@
 #include "Cursor.h"
 #include "GameApp.h"
 #include "HighScore.h"
+#include "InGameMenu.h"
 #include "Intro.h"
 #include "DDImage.h"
 #include "MenuButton.h"
@@ -31,6 +32,7 @@
 #include "Res.h"
 #include "SoundQueue.h"
 #include "TextFade.h"
+#include "Victory.h"
 #include "WalkThru.h"
 #include "Transition.h"
 
@@ -291,7 +293,7 @@ void LevelObj::BuildMessages()
 void LevelObj::BuildMenuButton()
 {
 	mMenuButton = new MenuButton();
-	mMenuButton->SetParent(this, nullptr);
+	mMenuButton->SetParent(mParent, nullptr); // the level's own parent (0x43e69e reads +0x14), so it sits at the screen's corner
 	Deactivate(mMenuButton);
 }
 

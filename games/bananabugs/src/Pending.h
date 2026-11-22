@@ -48,21 +48,6 @@ public:
 	static void ClearAll();                     // 0x406c60: lets go of what is held and ends the bonuses (a guess at the name)
 };
 
-// The things a level makes that are not translated yet; each is an object that shows nothing
-class InGameMenu : public ObjBase               // 0x435c00 (0x36c bytes, a BBWindow in the original)
-{
-public:
-	int GetResult();                            // 0x436010: 2 for resume, 3 for quit (the stand-in resumes at once)
-	void Close();                               // 0x427340
-};
-
-class Victory : public ObjBase                  // 0x473460 (0x2d0 bytes): the scene after the last level
-{
-public:
-	void Show();                                // 0x473840
-	bool IsDone();                              // 0x4738a0
-};
-
 // The bonus under a cell (0x408ed0, 0x498 bytes); the stand-in is a hidden bonus that shows nothing
 class BonusCoin : public HiddenBonus
 {
@@ -100,21 +85,9 @@ public:
 	bool IsDone();                              // 0x469a30: true at once in the stand-in
 };
 
-// The pause window (0x454ef0)
-class PauseWin
-{
-public:
-	static bool sEnabled;      // 0x60e64b
-	static void PauseForFocusLoss(); // 0x455920
-	static bool IsBlocking();  // 0x455a10
-	static void ResumeOnRelease(); // 0x455a40
-	static void Enable() { sEnabled = true; } // 0x455a30
-};
-
 // GameWidget's preloads (0x42f3b0): each class's pictures, loaded once and kept
 void PreloadNetFly();        // 0x42ad40
 void PreloadSlots();         // 0x46c710
-void PreloadInGameButtons(); // 0x4558f0
 void PreloadBonusPictures(); // 0x406dd0
 void InitBonusTable();       // 0x40af90
 

@@ -5,6 +5,7 @@
 #include "Cursor.h"
 #include "Emitter.h"
 #include "GameApp.h"
+#include "InGameMenu.h"
 #include "HighScore.h"
 #include "Map.h"
 #include "MenuButton.h"
@@ -268,8 +269,8 @@ bool MetaGame::Update()
 		return true;
 	if (mGameMenu != nullptr) {
 		int aResult = mGameMenu->GetResult();
-		if (aResult == 2 || aResult == 3) {
-			if (aResult == 3)
+		if (aResult == IN_GAME_MENU_RESUME || aResult == IN_GAME_MENU_QUIT) {
+			if (aResult == IN_GAME_MENU_QUIT)
 				mWantsMenu = true;
 			mGameMenu->Close();
 			mGameMenu = nullptr;

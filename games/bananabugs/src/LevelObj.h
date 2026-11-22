@@ -59,14 +59,6 @@ enum LevelResult
 	LEVEL_RESULT_LOST = 3,                 // back to the main menu (game over, or the whole game won)
 };
 
-// What the in-level menu gives back (InGameMenu::GetResult)
-enum InGameMenuResult
-{
-	IN_GAME_MENU_OPEN = 0,
-	IN_GAME_MENU_RESUME = 2,
-	IN_GAME_MENU_QUIT = 3,
-};
-
 // What a place of the grid is (FillGridCell::mKind); a value of 10 or more has had its neighbours checked
 enum FillKind
 {

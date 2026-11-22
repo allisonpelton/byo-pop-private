@@ -72,7 +72,9 @@ fly at 37, the ant at 58, the centipede at 73, the moth at 101 and the bee at 12
 lists the kinds of the bugs in play. `win` sets the percent filled to the target, so the level ends through its own
 check and shows its tally. The tally (and the level's other clicks) read whether the button is down during an update
 (ObjBase::sMouseHeld), as the original does, so a script's `click`, which presses and releases within one update, is
-not seen: use `down` and `up` some updates apart, as real input is.
+not seen: use `down` and `up` some updates apart, as real input is. The level's MENU button is at the screen's top
+left, (25, 15) in an 800 by 600 window (`state` gives its centre in design space); its menu's Resume, Options and
+Main Menu are at (400, 236), (400, 300) and (400, 364), taking clicks after 50 updates.
 
 ## Translating a class (the register conventions, checked against the code)
 
@@ -120,8 +122,10 @@ The finished translations to copy the style from: `src/PopCap.cpp`, `src/Transit
 - BananaBonus (0x404b00): the last key of a bunch sets the alpha twice (0, then 0.1) and an orbit radius nothing reads.
 - LevelObj's shuffle (0x4733f0) takes the C library's rand (CrtRand); the original seeds it (GetTickCount in
   SexyApp's Init, to check), so the test hooks need `-seed=` reseeding it like the other ports.
-- PauseWin::PauseForFocusLoss (0x455920) calls LevelObj::CloseMenuForPause (0x43a4f0) at 0x455981: wire it when PauseWin
-  is translated.
+- PauseWin::PauseForFocusLoss (0x455920) calls LevelObj::CloseMenuForPause (0x43a4f0) at 0x455981: wired (PauseWin.cpp).
+- InGameMenu's second button opens Options (0x453e30) without a parent; the quit button's AskWin is a child of the menu.
+  PauseWin's picture (0x4550f0) has three tracks nothing starts (left from a button). Victory (0x473460) stores its
+  coronas at +0x288 (the decompile shows them as the trophy's fields: a misread of `this`).
 - LevelObj's morph table sums each pixel's channels on the x87 (port: doubles); a last-bit difference is possible.
 - BackDrop's table names backgrounds up to 18, but the game ships background01..14 (ground_01..14): check which map
   levels exist before a late level runs.

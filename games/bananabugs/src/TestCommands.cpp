@@ -3,7 +3,8 @@
 // OK <command>, ERROR <command>: <reason> or STATE {...}. The set so far:
 //
 //   state                 STATE {json}: player, level (levels finished), score, lives, bananas, bugs (in the list),
-//                         alive (the bugs alive), kinds (each bug's BugKind, in the list's order)
+//                         alive (the bugs alive), kinds (each bug's BugKind, in the list's order),
+//                         menuButton (its centre in the 1920x1200 design space, and whether it is active)
 //   set <name> <value>    on the current player: progress (levels finished, so Play starts level value + 1), tutorial and
 //                         walkthru (1 marks the tutorial or the walk-through done), kinds (the
 //                         bug kinds in play, 2 to 8), score, lives
@@ -11,6 +12,8 @@
 
 #include "GameApp.h"
 #include "BugObj.h"
+#include "LevelObj.h"
+#include "MenuButton.h"
 #include "Player.h"
 
 #include <cstdio>
@@ -56,7 +59,14 @@ void ReportState()
 		BugObj* aBug = BugObj::Get(i);
 		aJson << (i > 0 ? "," : "") << (aBug != nullptr ? aBug->mKind : -1);
 	}
-	aJson << "]}";
+	aJson << "]";
+	LevelObj* aLevel = static_cast<LevelObj*>(ObjBase::sLevel);
+	if (aLevel != nullptr && aLevel->mMenuButton != nullptr) {
+		MenuButton* aButton = aLevel->mMenuButton;
+		aJson << ",\"menuButton\":{\"x\":" << aButton->mScreenX << ",\"y\":" << aButton->mScreenY
+			<< ",\"active\":" << (aButton->IsActive() ? 1 : 0) << "}";
+	}
+	aJson << "}";
 	Reply("STATE " + aJson.str());
 }
 

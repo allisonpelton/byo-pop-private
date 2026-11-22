@@ -27,6 +27,7 @@
 #include "MetaGame.h"
 #include "ObjBase.h"
 #include "LevelObj.h"
+#include "PauseWin.h"
 #include "Pending.h"
 #include "WalkThru.h"
 #include "Player.h"

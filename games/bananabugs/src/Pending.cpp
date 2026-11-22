@@ -16,7 +16,6 @@ float Sexy::gBugBoxX = 0.0f;
 float Sexy::gBugBoxY = 0.0f;
 float Sexy::gBugBoxWidth = 0.0f;
 float Sexy::gBugBoxHeight = 0.0f;
-bool PauseWin::sEnabled = false;
 
 // The preloaded pictures, each in the global the original keeps it in; they move to their classes with them
 static Anim* sSlotMachineAnim;       // 0x670210
@@ -25,7 +24,6 @@ static Anim* sSlotWinAnim;           // 0x670218
 static Anim* sSlotSpinAnim;          // 0x67021c
 static Anim* sSlotNumbersAnim;       // 0x670220
 static Anim* sSlotShineAnim;         // 0x670224
-static Anim* sInGameButtonsAnim;     // 0x670188
 static Anim* sCocoBombAnim;          // 0x60e1a8
 static Anim* sMissileAnim;           // 0x60e1ac
 static Anim* sCannonAnim;            // 0x60e1b0
@@ -73,20 +71,6 @@ bool Slots::IsDone()
 	return true;
 }
 
-// port: the stand-in never pauses
-void PauseWin::PauseForFocusLoss()
-{
-}
-
-bool PauseWin::IsBlocking()
-{
-	return false;
-}
-
-void PauseWin::ResumeOnRelease()
-{
-}
-
 void Sexy::PreloadSlots()
 {
 	sSlotMachineAnim = Load("images/slot/slot_machine", 0, 0, 1);
@@ -95,11 +79,6 @@ void Sexy::PreloadSlots()
 	sSlotSpinAnim = Load("images/slot/slot_spin", 0x11b, 0x11b, 4);
 	sSlotNumbersAnim = Load("images/slot/slot_numbers", 0x3f, 0x49, 10);
 	sSlotShineAnim = Load("images/slot/slot_shine", 0x100, 0xc0, 4);
-}
-
-void Sexy::PreloadInGameButtons()
-{
-	sInGameButtonsAnim = Load("images/menu/ingame_buttons", 0x167, 0x67, 3);
 }
 
 void Sexy::PreloadBonusPictures()
@@ -177,26 +156,7 @@ void Bonus::ClearAll()
 	Player::Drop();
 }
 
-// port: the stand-ins of what a level makes. The in-level menu resumes at once, the victory is done
-int InGameMenu::GetResult()
-{
-	return 2;
-}
-
-void InGameMenu::Close()
-{
-	Delete();
-}
-
-void Victory::Show()
-{
-}
-
-bool Victory::IsDone()
-{
-	return true;
-}
-
+// port: the stand-in held thing
 void HeldObj::Rotate()
 {
 }

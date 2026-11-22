@@ -1,4 +1,5 @@
 #include "Player.h"
+#include "PauseWin.h"
 #include "Board.h"
 #include "ScoreBoard.h"
 
