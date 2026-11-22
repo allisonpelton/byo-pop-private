@@ -109,6 +109,21 @@ void Board::ResetGame()
 	mUpdateCnt = 0;
 	mFallFactorCurve.SetConstant(1.0);
 	mGravityHold = 0;
+	// 0x74a880: the level, the bars, the game's end and the hint timer are back to what a new board has (the counters by slot 153)
+	for (int aKey = 0; aKey < COUNTER_COUNT; aKey++)
+		mCounters[aKey] = 0;
+	mLevelProgress = 0;
+	mLevelBar = 0.0f;
+	mSecondBar = 0.0f;
+	mBarRateCurve.SetConstant(1.0);
+	mLevelUpPending = false;
+	mHyperspace.reset();
+	mLevelCounter = 0;
+	mGameOver = false;
+	mGameOverTicks = 0;
+	mEndScreenShown = false;
+	mHintTimer = 0;
+	mHintFlash = 0;
 }
 
 // 0x74e410 (bejeweled3): Classic has no seed override (0x73b4f0 returns 0), the saved game of the mode is not there, so the
@@ -289,6 +304,7 @@ void Board::UpdateTick()
 {
 	// 0x475660 is WidgetContainer::Update: the board's own update count goes up here, not in Update
 	WidgetContainer::Update();
+	UpdateHyperspace();   // the overlay is a child of the board: its update (0x725ef0) is part of the container's
 	// 0x75ee20 for the moves the player asked for since the last update (the list at +0xc60)
 	std::vector<PendingSwap> aPending;
 	aPending.swap(mPendingSwaps);
@@ -299,6 +315,7 @@ void Board::UpdateTick()
 	}
 	UpdateGame();
 	UpdateShownScore();
+	UpdateBot();   // port: test only
 }
 
 // 0x767e20 (bejeweled3). port: left out until its step: the other 19 curves it steps, the flag at +0x2978, the flagged
@@ -337,14 +354,32 @@ void Board::UpdateGame()
 		}
 	}
 	UpdateBusyPieces();
+	UpdatePiecePulses();   // 0x768f7b to 0x7690b8, before the call of 0x75dee0
+	UpdateSlidePositions();   // 0x769189: a piece that slides is drawn along its curve
 	if (!HasLiveMatches())
-		FillInBlanks(false);
+		FillInBlanks(false);   // 0x7691xx: slot 203
+	// 0x767e20: the board is at rest, no tutorial box is up (0x765d50), the game goes on (+0xd1c is 0), slot 97 is 0 and no level change is asked
+	// for: with no move left (0x75a8e0) the game ends (slot 161)
+	if (IsSettled() && mGameOverTicks == 0 && !FindMove(nullptr, 0, false, nullptr, false) && !mLevelUpPending)
+		NoMoreMoves(true);
+	UpdateMatchGroups();   // 0x75dee0
+	StartLevelChange();   // 0x767e20: the block for +0x288c, after the groups
+	// port: slot 178 (0x75fc10, which counts +0xe3c), the curves (0x743ff0, slot 208) and the bar stage (0x75a760: only the music
+	// and the look read it) are left out
+	UpdateLevelBar();   // 0x755940 (0x75a760 and 0x755620 are the look)
+	// the hint: with the board at rest and nothing fading (+0x12c8 is 0) the timer counts to 15 * 100 (slot 106 is 15)
+	if (IsSettled() && HintAllowed()) {
+		mHintTimer++;
+		if (mHintTimer == 15 * 100)
+			ShowHint(false);
+	}
+	UpdateGameOver();   // the hold block (+0xd1c)
 	if (!IsSettled()) {
 		mShineOn = false;
 	}
 	else {
 		// the idle shine: how soon it comes again (0.1 at least) follows from how much happens
-		double aRate = (double)mActivityCount / ((double)mGameTicks / 100.0);
+		double aRate = (double)mCounters[COUNTER_ACTIVITY] / ((double)mGameTicks / 100.0);
 		float aShineRate = aRate >= (double)0.10000000149011612f ? (float)aRate : 0.10000000149011612f;
 		float aFirst = (float)((double)(Rand() % 1000000) / 1000000.0);
 		bool aStart = false;
@@ -366,9 +401,8 @@ void Board::UpdateGame()
 			mShineUpdate = mUpdateCnt;
 		}
 	}
-	UpdatePiecePulses();   // 0x768f7b to 0x7690b8, before the call of 0x75dee0
-	UpdateSlidePositions();   // 0x769189: a piece that slides is drawn along its curve
-	UpdateMatchGroups();   // 0x75dee0
+	if (mHintFlash > 0)
+		mHintFlash--;   // +0x26a0
 	if (mLandTicks > 0)
 		mLandTicks--;
 }
@@ -525,58 +559,6 @@ bool Board::HasMatches() const
 			}
 			else if (++aRun > 2)
 				return true;
-		}
-	}
-	return false;
-}
-
-// 0x75a8e0 (bejeweled3) with the arguments the fill gives it (no piece to include, the first move wanted, rows from the
-// top). Every cell is tried against its right, lower, left and upper neighbour, in that order: the two pieces swap in
-// the grid and the colour that came to the cell is counted along its row and column. port: the tests of the pieces' curves,
-// busy counts and bits (0x2000, 0x2100) are all true for the pieces the fill makes
-bool Board::HasMove(bool theNeedBonus)
-{
-	static const int aDirections[4][2] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
-	for (int aRow = 0; aRow < ROWS; aRow++) {
-		for (int aCol = 0; aCol < COLS; aCol++) {
-			Piece* aPiece = mGrid[aRow][aCol];
-			if (aPiece == nullptr)
-				continue;
-			for (int aDirection = 0; aDirection < 4; aDirection++) {
-				int aNeighbourCol = aCol + aDirections[aDirection][0];
-				int aNeighbourRow = aRow + aDirections[aDirection][1];
-				if (aNeighbourCol < 0 || aNeighbourCol >= COLS || aNeighbourRow < 0 || aNeighbourRow >= ROWS)
-					continue;
-				Piece* aNeighbour = mGrid[aNeighbourRow][aNeighbourCol];
-				if (aNeighbour == nullptr || aNeighbour->mColor == -1)
-					continue;
-				mGrid[aRow][aCol] = aNeighbour;
-				mGrid[aNeighbourRow][aNeighbourCol] = aPiece;
-				int aColor = aNeighbour->mColor;
-				int aLeft = aCol;
-				while (aLeft > 0 && mGrid[aRow][aLeft - 1] != nullptr && mGrid[aRow][aLeft - 1]->mColor == aColor)
-					aLeft--;
-				int aRight = aCol;
-				while (aRight < COLS - 1 && mGrid[aRow][aRight + 1] != nullptr && mGrid[aRow][aRight + 1]->mColor == aColor)
-					aRight++;
-				int aUp = aRow;
-				while (aUp > 0 && mGrid[aUp - 1][aCol] != nullptr && mGrid[aUp - 1][aCol]->mColor == aColor)
-					aUp--;
-				int aDown = aRow;
-				while (aDown < ROWS - 1 && mGrid[aDown + 1][aCol] != nullptr && mGrid[aDown + 1][aCol]->mColor == aColor)
-					aDown++;
-				mGrid[aRow][aCol] = aPiece;
-				mGrid[aNeighbourRow][aNeighbourCol] = aNeighbour;
-				int aAcross = aRight - aLeft;
-				int aDownward = aDown - aUp;
-				bool aCounts;
-				if (theNeedBonus)
-					aCounts = (aAcross > 2 || aDownward > 2) || (aAcross > 1 && aDownward > 1);
-				else
-					aCounts = aAcross > 1 || aDownward > 1;
-				if (aCounts)
-					return true;
-			}
 		}
 	}
 	return false;

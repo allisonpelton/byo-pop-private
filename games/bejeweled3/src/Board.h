@@ -81,12 +81,36 @@ public:
 	explicit Piece(Board* theBoard);   // 0x7203b0 (bejeweled3), with 0x720120 (bejeweled3)
 };
 
+// The exe's counters (0x73d170): the board keeps one set for the game (+0xc84, 38 ints) and each move record one for the move
+// (+0x40, the same 38); the profile's statistics (Profile::mStats, +0xc0) are the same list. port: only the counters that
+// the translated code adds to are written (COUNTER_POINTS and COUNTER_MATCHES); the other callers of 0x73d170 (the match
+// search, the special gems, the swaps: 0x75bb00, 0x75c941 to 0x75cc4f, 0x75d2c8, 0x75dbf4, 0x759fcf, 0x74c6b5, 0x74dbb5 and
+// others) are left out
+enum { COUNTER_COUNT = 38, COUNTER_SECONDS = 0, COUNTER_POINTS = 1, COUNTER_ACTIVITY = 15, COUNTER_MATCHES = 0x1a };
+
 // The exe's 0xd8-byte record of one move (made by 0x744660, kept in the list at +0xc48): the id its pieces carry as their
-// tag (+0x188) and the counters of what the move has made. port: only counter 0x1a is kept, the number of matches the
-// move and its cascades have made (0x75af60 adds one for each match and reads it for the score)
+// tag (+0x188) and the counters of what the move has made (counter COUNTER_MATCHES is the number of matches the move and
+// its cascades have made: 0x75af60 adds one for each match and reads it for the score; COUNTER_POINTS is the points it has
+// made, which the level bar's gain reads: 0x74a210)
 struct MoveRecord {
-	int mId;            // +0x3c
-	int mMatchCount;    // +0x40 + 0x1a * 4
+	int mId;                            // +0x3c
+	int mCounters[COUNTER_COUNT];       // +0x40
+};
+
+// A move of two neighbouring gems, as the move search (0x75a8e0) gives it: the cell of the gem to move and the cell it goes to
+struct BoardMove {
+	int mFromCol;    // out[0]
+	int mFromRow;    // out[1]
+	int mToCol;      // out[2]
+	int mToRow;      // out[3]
+};
+
+// The level change's overlay (HyperspaceFallback, vtable 0x86616c, 0x1b8 bytes, made by 0x723320 and held at the board's
+// +0x2890; the 3D one is HyperspaceUltra, 0x726c40). Only what its update (0x725ef0) does to the board is kept; it is drawn
+// by 0x724110, which is left out
+struct Hyperspace {
+	int mAge = 0;              // +0x38: its update count (WidgetContainer::Update, before anything else)
+	CurvedVal mCurve;          // +0xc8: 0 to 1 at 0.0025 an update; when it runs out the level change ends
 };
 
 // One swap of two neighbours (the exe's 0x100-byte record in the list at +0xc30, made by 0x75ee20, run by 0x759ba0)
@@ -179,7 +203,23 @@ public:
 	int mGravityHold = 0;            // +0xe24: while above 0 the pieces stand still (counts down)
 	int mLastLandSoundUpdate = 0;    // +0xc20: the update a piece's landing was last heard in
 	bool mSettledOnce = false;       // +0x1190: set the first time the board stands settled (IsSettled)
-	int mActivityCount = 0;          // +0xcc0: scales how often the idle shine starts (0 until matches are made; they come with their step)
+	int mCounters[COUNTER_COUNT] = {};   // +0xc84: the game's counters (0x73d170); +0xcc0 (COUNTER_ACTIVITY) scales how often the idle shine starts
+	int mLevelProgress = 0;          // +0xe00: how far the level bar has come in this level (AddPoints adds to it); the level ends when it is the level's size
+	float mLevelBar = 0.0f;          // +0xd68: the level bar as drawn: it follows mLevelProgress over the level's size, and the level ends when it is 1
+	float mSecondBar = 0.0f;         // +0xd6c: a second bar (the timer's, 0x755620: 0 where there is no timer, as in Classic); nothing reads it
+	CurvedVal mBarRateCurve;         // +0x2258: 1 after a reset (0x74a880): the bar follows its target at 0.025 of the way (a curve at 0 makes it 0.0255)
+	bool mLevelUpPending = false;    // +0x288c: the level bar is full (LevelUp, 0x74e190): the change starts when the board is at rest
+	std::unique_ptr<Hyperspace> mHyperspace;    // +0x2890: the overlay of a level change that is running
+	int mLevelCounter = 0;           // +0xe34: put to 0 when a level ends (0x760ac0, event 2); nothing translated reads it
+	bool mGameOver = false;          // +0xd8c: no move is left (0x7602c0)
+	int mGameOverTicks = 0;          // +0xd1c: 0 while the game is played, 1 at the game's end and one more each update (the end screen comes at 400, and the leaderboard's wait after that)
+	int mEndDialogWait = 0;          // +0x307c: ClassicBoard's own counter (its leaderboard listener's): the end screen waits for it to run out (0x73b2d0, 0x73b100)
+	bool mEndScreenShown = false;    // port: the end-of-game dialog (id 0x26, ClassicEndLevelDialog, made by 0x73b100) has been asked for; the dialog itself is not made
+	int mHintTimer = 0;              // +0x26a4: updates the board has stood at rest with nothing to do; at 1500 the hint is given
+	int mHintFlash = 0;              // +0x26a0: counts down from 250 after a hint was asked for (the hint button's glow: drawn only)
+	bool mAutoHints = true;          // +0x1370: 1 from the constructor (0x74b49a): a hint comes by itself after the wait
+	int mBotMoves = 0;               // port: test only (the script's bot command): how many more moves the bot plays itself; -1 without a limit
+	int mBotMoveCount = 0;           // port: test only: the moves the bot has made
 	bool mShineOn = false;           // +0x27b0: the idle shine has started and the board has not been unsettled since
 	int mShineUpdate = 0;            // +0x27b4: the update the idle shine last started in
 	CurvedVal mShineCurve;           // +0x2740: the idle shine's curve, started by UpdateGame
@@ -218,7 +258,20 @@ public:
 	bool HasMatches() const;
 	// 0x75a8e0 (bejeweled3) with no piece to include: some swap of two neighbours makes a run of three. theNeedBonus is
 	// its last argument: only a run of four or more, or a crossing of two, counts
-	bool HasMove(bool theNeedBonus);
+	bool HasMove(bool theNeedBonus) { return FindMove(nullptr, 0, false, nullptr, theNeedBonus); }
+	// 0x75a8e0 (bejeweled3): the moves of two neighbours that make a run, in the exe's order (rows from the top, or from the bottom
+	// when theReverse; in a row from the left; for a gem the right, left, lower and upper neighbour). The theSkip'th is given in
+	// theOut (when it is not null) and true is returned; theMustInclude is a piece the run has to hold (null: any), theNeedBonus as
+	// in HasMove
+	bool FindMove(BoardMove* theOut, int theSkip, bool theReverse, const Piece* theMustInclude, bool theNeedBonus);
+	// 0x75ae10 (bejeweled3): a move for the hint: two draws of the app's Rand() (2 and 10) say from which end of the grid and how
+	// many moves to skip; it is tried down to 0 skips, then from the other end
+	bool FindHint(BoardMove* theOut);
+	// slot 202, 0x75aeb0 (bejeweled3): the hint is asked for (by the player with theUser, else by the wait); the timer starts again.
+	// port: the help tip, the glow of the gem (0x748480) and its sound are left out
+	void ShowHint(bool theUser);
+	// slot 98, 0x73d4f0 (bejeweled3): a hint may come now
+	bool HintAllowed() const;
 
 	// slot 53, 0x73f140 (bejeweled3): picks a gem up, or swaps the one picked up with the one clicked
 	using Widget::MouseDown;
@@ -283,7 +336,32 @@ public:
 	void DrawSparkRandoms();
 	void RemovePiece(Piece* thePiece);
 	// slot 152, 0x74df80 with 0x74a210 (bejeweled3): points are added to the score
-	void AddPoints(int thePoints);
+	void AddPoints(int thePoints, int theMoveId = -1, bool theCountsForProgress = true, bool theUsesMultiplier = true);
+	// 0x73d170 and 0x73cf10 (bejeweled3): a counter goes up (the game's, the move's), and a move's counter
+	void AddCounter(int theKey, int theValue, int theMoveId);
+	int GetMoveCounter(int theMoveId, int theKey);
+	// slot 154 (0x73bf70): how much the level bar needs in this level
+	int GetLevelMax() const;
+	// 0x755940 and slot 217, 0x73b810 (bejeweled3): the level bar follows its target, and when it and the progress are full the level
+	// change is asked for (slot 156, 0x74e190)
+	void UpdateLevelBar();
+	// 0x767e20 (bejeweled3), after the match groups: the level change starts when the board is at rest (the overlay is made)
+	void StartLevelChange();
+	// 0x725ef0 (bejeweled3): the overlay's update, at the start of every step while it runs
+	void UpdateHyperspace();
+	// slot 157, 0x760ac0 (bejeweled3): the level change's events (2: the level goes up; 5: the overlay goes)
+	void LevelEvent(int theEvent);
+	// 0x7604d0 (bejeweled3): the gems are put in a new order that has a move (the level change's middle)
+	void ReshuffleBoard();
+	// slot 161 (0x73b2d0 for Classic) and 0x7602c0 (bejeweled3): no move is left: the score is handed in and the game ends
+	void NoMoreMoves(bool theAnnounce);
+	// 0x767e20 (bejeweled3): the game's end goes on (the counter at +0xd1c) and the end screen comes (slot 233, 0x73b100)
+	void UpdateGameOver();
+	// port: the top scores of the mode (the exe's LocalLeaderboard, 0x6728b0), in the order of the leaderboard, kept for the game
+	std::vector<int> mHighScores;
+	void SubmitScore(int theScore);
+	// port: test only: the bot's move when the board is at rest (the exe has no bot; this is the move search's first move)
+	void UpdateBot();
 	// slot 230, 0x73b6d0 (bejeweled3): the shown score follows the score, every fourth update
 	void UpdateShownScore();
 	// 0x744660 (bejeweled3): a new move record, and 0x73cf10 and 0x73d170: its counter

@@ -185,13 +185,74 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 		ReplyOK(theCommand);
 		return true;
 	}
+	if (aCommand == "move") {
+		// move: the bot's move, the first the exe's move search (0x75a8e0, rows from the top) finds, as the two clicks of the player
+		// (the gem is picked up, then its neighbour is clicked); it changes nothing. MOVE null when no move is left or the board is not at rest
+		BoardMove aMove;
+		if (mBoard == nullptr || mBoard->mGameOver || !mBoard->IsSettled() || !mBoard->FindMove(&aMove, 0, false, nullptr, false)) {
+			Reply("MOVE null");
+			return true;
+		}
+		const int aCell = 128;
+		auto aPixel = [&](int theMeasure) { return mArtRes * theMeasure / 1200; };
+		int aFromX = aPixel(mBoard->GetGridX() + aMove.mFromCol * aCell + aCell / 2);
+		int aFromY = aPixel(mBoard->GetGridY() + aMove.mFromRow * aCell + aCell / 2);
+		int aToX = aPixel(mBoard->GetGridX() + aMove.mToCol * aCell + aCell / 2);
+		int aToY = aPixel(mBoard->GetGridY() + aMove.mToRow * aCell + aCell / 2);
+		Reply("MOVE {\"swap\":[" + std::to_string(aMove.mFromCol) + "," + std::to_string(aMove.mFromRow) + "," + std::to_string(aMove.mToCol) +
+			"," + std::to_string(aMove.mToRow) + "],\"input\":[{\"click\":[" + std::to_string(aFromX) + "," + std::to_string(aFromY) +
+			"]},{\"click\":[" + std::to_string(aToX) + "," + std::to_string(aToY) + "]}]}");
+		return true;
+	}
+	if (aCommand == "bot") {
+		// bot [n]: from now on the board plays the bot's move each time it is at rest, n moves (no n: until the game is over)
+		if (mBoard == nullptr) {
+			ReplyError(theCommand, "bot needs a board");
+			return true;
+		}
+		mBoard->mBotMoves = theCommand.mArgs.empty() ? -1 : atoi(theCommand.mArgs.c_str());
+		ReplyOK(theCommand);
+		return true;
+	}
+	if (aCommand == "hint") {
+		// hint: the hint button as the player presses it (draws the app's Rand() twice, as the exe's search does)
+		if (mBoard == nullptr || !mBoard->HintAllowed()) {
+			ReplyError(theCommand, "no hint now");
+			return true;
+		}
+		mBoard->ShowHint(true);
+		ReplyOK(theCommand);
+		return true;
+	}
+	if (aCommand == "set") {
+		// set <progress|points|index> <n>: the level bar's progress, the score and the level's index, to reach the states quickly
+		char aName[16] = "";
+		int aValue = 0;
+		if (mBoard == nullptr || sscanf(theCommand.mArgs.c_str(), "%15s %d", aName, &aValue) != 2) {
+			ReplyError(theCommand, "set <progress|points|index> <n> on a board");
+			return true;
+		}
+		std::string aWhat = aName;
+		if (aWhat == "progress")
+			mBoard->mLevelProgress = aValue;
+		else if (aWhat == "points")
+			mBoard->mScorePoints = aValue;
+		else if (aWhat == "index")
+			mBoard->mLevelIndex = aValue;
+		else {
+			ReplyError(theCommand, "set <progress|points|index> <n>");
+			return true;
+		}
+		ReplyOK(theCommand);
+		return true;
+	}
 	if (aCommand == "state") {
 		std::string aLine = "STATE {\"screen\":\"";
 		aLine += mBoard != nullptr ? "classic" : "menu";
 		aLine += "\"";
 		if (mBoard != nullptr) {
 			aLine += ",\"mode\":\"classic\",\"score\":" + std::to_string(mBoard->mScore) + ",\"points\":" + std::to_string(mBoard->mScorePoints) +
-				",\"movematches\":" + std::to_string(mBoard->mMoveRecords.empty() ? 0 : mBoard->mMoveRecords.back().mMatchCount) +
+				",\"movematches\":" + std::to_string(mBoard->mMoveRecords.empty() ? 0 : mBoard->mMoveRecords.back().mCounters[COUNTER_MATCHES]) +
 				",\"matches\":" + std::to_string(mBoard->mMatchGroups.size()) + ",\"swaps\":" + std::to_string(mBoard->mSwaps.size()) +
 				",\"board\":[";
 			for (int aRow = 0; aRow < Board::ROWS; aRow++) {
@@ -208,6 +269,16 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 				aLine += "\"";
 			}
 			aLine += "],\"matchcounter\":" + std::to_string(mBoard->mMatchCounter) + ",\"pieces\":" + std::to_string(mBoard->mPieceCounter);
+			aLine += ",\"level\":" + std::to_string(mBoard->mLevelIndex + 1) + ",\"levelnumber\":" + std::to_string(mBoard->mLevelNumber) +
+				",\"progress\":" + std::to_string(mBoard->mLevelProgress) + ",\"levelmax\":" + std::to_string(mBoard->GetLevelMax()) +
+				",\"bar\":" + std::to_string((int)(mBoard->mLevelBar * 10000.0f)) + ",\"levelchange\":" +
+				std::to_string(mBoard->mHyperspace != nullptr ? mBoard->mHyperspace->mAge : (mBoard->mLevelUpPending ? -1 : 0)) +
+				",\"gameover\":" + std::to_string(mBoard->mGameOver ? 1 : 0) + ",\"gameoverticks\":" + std::to_string(mBoard->mGameOverTicks) +
+				",\"endscreen\":" + std::to_string(mBoard->mEndScreenShown ? 1 : 0) + ",\"hinttimer\":" + std::to_string(mBoard->mHintTimer) +
+				",\"botmoves\":" + std::to_string(mBoard->mBotMoveCount) + ",\"highscores\":[";
+			for (size_t aIndex = 0; aIndex < mBoard->mHighScores.size(); aIndex++)
+				aLine += (aIndex == 0 ? "" : ",") + std::to_string(mBoard->mHighScores[aIndex]);
+			aLine += "]";
 			aLine += ",\"background\":" + std::to_string(mBoard->mBackgroundIndex);
 			// how far the fall has come: the update count, the pieces not at rest, the fill's landing estimate and the
 			// sums of the pieces' y and speeds (as whole thousandths, so a run can be compared with another)

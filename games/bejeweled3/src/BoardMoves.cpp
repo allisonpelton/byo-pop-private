@@ -257,6 +257,7 @@ bool Board::TrySwap(Piece* thePiece, int theRow, int theCol)
 	aPending.mRow = theRow;
 	aPending.mCol = theCol;
 	mPendingSwaps.push_back(aPending);
+	mHintTimer = 0;   // port: a move asked for starts the hint's wait again (0x75f852 puts +0x26a4 to 0 in a function that reads the piece's +0x182)
 	// the piece has been spoken for: it is not picked up any more
 	thePiece->mSelected = false;
 	return true;
@@ -294,7 +295,8 @@ MoveRecord* Board::NewMoveRecord()
 {
 	MoveRecord aRecord;
 	aRecord.mId = mMatchCounter++;
-	aRecord.mMatchCount = 0;
+	for (int aKey = 0; aKey < COUNTER_COUNT; aKey++)
+		aRecord.mCounters[aKey] = 0;
 	mMoveRecords.push_back(aRecord);
 	return &mMoveRecords.back();
 }
@@ -754,14 +756,14 @@ int Board::FindMatches()
 		int aPieceCount = (int)aCluster.mPieces.size();
 		MoveRecord* aRecord = FindMoveRecord(aCluster.mTag);
 		if (aRecord != nullptr)
-			aRecord->mMatchCount++;
-		int aMatchesInMove = aRecord != nullptr ? aRecord->mMatchCount : 0;
+			aRecord->mCounters[COUNTER_MATCHES]++;
+		int aMatchesInMove = aRecord != nullptr ? aRecord->mCounters[COUNTER_MATCHES] : 0;
 		if (aMatchesInMove < 1)
 			aMatchesInMove = 1;
 		int aPoints = (aMatchesInMove - 3 + aPieceCount) * 0x32;
 		if (aPieceCount >= 5)
 			aPoints += (aPieceCount - 4) * 0x15e;
-		AddPoints(aPoints);
+		AddPoints(aPoints, aCluster.mTag);
 	}
 	// 0x75cd40 to 0x75ce51: slot 0x238 (0x73d2b0) for each gem met, which only counts
 	return aMatchCount;
@@ -1182,7 +1184,7 @@ void Board::Explode(int theX, int theY)
 			if ((aFlameOnly || !ClearPiece(aPiece, aCentre)) && aPiece->mClearable) {
 				aPiece->mDestroyerId = aCentreId;
 				aPiece->mDestroyerFlags |= aCentreFlags;
-				AddPoints(20);
+				AddPoints(20, aPiece->mColumnTag);
 				RemovePiece(aPiece);
 			}
 		}
@@ -1330,7 +1332,7 @@ void Board::UpdateBusyPieces()
 				continue;
 			int aFlags = aPiece->mFlags;
 			if ((aFlags & Piece::FLAG_FLAME) != 0 || ((aFlags & Piece::FLAG_STAR) != 0 && aPiece->mSpecialCountdown > 0)) {
-				AddPoints(20);
+				AddPoints(20, aPiece->mColumnTag);
 				float aSumX = (float)((float)GetGridX() + aPiece->mX);
 				float aSumY = (float)((float)GetGridY() + aPiece->mY);
 				Explode(Ftol((double)(float)((double)aSumX + 64.0)), Ftol((double)(float)((double)aSumY + 64.0)));
@@ -1339,7 +1341,7 @@ void Board::UpdateBusyPieces()
 			if ((aFlags & (Piece::FLAG_HYPERCUBE | Piece::FLAG_STAR | 0x400 | 0x10)) != 0 && ClearPiece(aPiece, nullptr))
 				continue;
 			if ((aFlags & FLAGS_SPECIAL_SWAP) != 0)
-				AddPoints(300);
+				AddPoints(300, aPiece->mColumnTag);
 			DestroyPiece(aPiece);
 		}
 	}
@@ -1382,7 +1384,7 @@ void Board::UpdateSlidePositions()
 void Board::DestroyPiece(Piece* thePiece)
 {
 	if ((thePiece->mFlags & FLAGS_SPECIAL_SWAP) == 0)
-		AddPoints(0x32);
+		AddPoints(0x32, thePiece->mColumnTag);
 	DrawSparkRandoms();
 	RemovePiece(thePiece);
 }
@@ -1434,18 +1436,59 @@ void Board::RemovePiece(Piece* thePiece)
 	delete thePiece;
 }
 
-// 0x74df80 with 0x74a210 (bejeweled3): the points times the level number (+0xe0c) go up in steps of 10, each worth the
-// level's multiplier (+0xe04 + 1), to the score at +0xd24. port: the text of the points that rises from the place, the
-// bonus of +0xe00 and the counters of 0x73d170 (stat 1) are left out
-void Board::AddPoints(int thePoints)
+// 0x73d170 (bejeweled3): a counter goes up: the board's own (+0xc84), the profile's statistics (while the game is not a replay or
+// a demonstration: +0x1410 and +0x1412 are 0) and the move's record (when it has one: theMoveId is not -1). Each stops at 0x7fffffff
+void Board::AddCounter(int theKey, int theValue, int theMoveId)
+{
+	mCounters[theKey] += theValue;
+	if (mCounters[theKey] < 0)
+		mCounters[theKey] = 0x7fffffff;
+	// port: the profile's statistics (Profile::mStats) are kept by the profile itself and the board does not reach it yet
+	if (theMoveId != -1) {
+		MoveRecord* aRecord = FindMoveRecord(theMoveId);
+		if (aRecord != nullptr) {
+			aRecord->mCounters[theKey] += theValue;
+			if (aRecord->mCounters[theKey] < 0)
+				aRecord->mCounters[theKey] = 0x7fffffff;
+		}
+	}
+}
+
+// 0x73cf10 (bejeweled3): a counter of a move (0 when the record is gone)
+int Board::GetMoveCounter(int theMoveId, int theKey)
+{
+	MoveRecord* aRecord = FindMoveRecord(theMoveId);
+	return aRecord != nullptr ? aRecord->mCounters[theKey] : 0;
+}
+
+// slots 154 and 155 (0x73bf70, 0x73bf60): how much the level bar needs in this level, and how far it has come
+int Board::GetLevelMax() const
+{
+	return mLevelIndex * 0x2ee + 0x9c4;
+}
+
+// 0x74df80 with 0x74a210 (bejeweled3): the points times the level number (+0xe0c, when theUsesMultiplier) go up in steps of 10.
+// For each step, when theCountsForProgress: the level bar's progress (+0xe00) rises by the 0.8 power of what the move has made
+// (the move's points counter over the level's multiplier, +0xe04 + 1) with this step, less the same without it, times 3. Each step is
+// worth the level's multiplier (+0xe04 + 1) to the score at +0xd24 and to the points counters. port: the text of the points that
+// rises from the place (0x71f030) is left out, and so are its draws of the app's Rand()
+void Board::AddPoints(int thePoints, int theMoveId, bool theCountsForProgress, bool theUsesMultiplier)
 {
 	if (thePoints < 1)
 		return;
-	int aLeft = Ftol((double)((float)thePoints * (float)mLevelNumber));
+	float aMultiplier = theUsesMultiplier ? (float)mLevelNumber : 1.0f;
+	int aLeft = Ftol((double)((float)thePoints * aMultiplier));
+	float aLevelFactor = (float)mLevelIndex + 1.0f;   // slot 122 (0x73af50, Classic's: +0xe04 + 1)
 	while (aLeft > 0) {
 		int aChunk = aLeft < 10 ? aLeft : 10;
+		if (theCountsForProgress) {
+			int aBase = Ftol((double)GetMoveCounter(theMoveId, COUNTER_POINTS) / (double)aLevelFactor);
+			double aRise = std::pow((double)(aBase + aChunk), 0.8) - std::pow((double)aBase, 0.8);
+			mLevelProgress += Ftol(aRise * 3.0);
+		}
 		aLeft -= aChunk;
-		int aGain = Ftol((double)aChunk * (double)((float)mLevelIndex + 1.0f));
+		int aGain = Ftol((double)aLevelFactor * (double)aChunk);
+		AddCounter(COUNTER_POINTS, aGain, theMoveId);
 		mScorePoints += aGain;
 		if (mScorePoints < 0)
 			mScorePoints = 0x7fffffff;

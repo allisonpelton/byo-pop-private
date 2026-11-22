@@ -654,3 +654,57 @@ bits of the flags are unreachable in Classic (list above).
 Uncertain or left out, each marked `// port:` in BoardMoves.cpp: whether the exe begins a swap in the update of the click or
 the next; the level bar, the end of the game, the hint, sounds, the sparks and the counters of 0x73d170 (+0xcc0 and others), the
 speed bonus, the swap-list flag above, the bolt's and the explosion's drawing.
+
+## Levels, hints and the end of the game (BoardLevels.cpp, BoardMoves.cpp AddPoints, TestCommands.cpp)
+
+Counters (0x73d170, 0x73cf10): the board has 38 (+0xc84), each move record 38 (+0x40); `AddCounter` adds to both. Keys used: 1 points, 0x1a
+matches, 15 activity (the idle shine's rate). The profile's statistics (Profile::mStats) are not written, and the other 38 callers of
+0x73d170 (the match search, the specials, the swaps) are not translated (`// port:` on the enum).
+
+AddPoints (0x74a210, via slot 152 = 0x74df80): points times the level number (+0xe0c, 1 in Classic: 0x749650 is the only thing that raises it
+and nothing translated calls it), in chunks of 10. Each chunk, when the call counts for progress, raises the level bar's progress (+0xe00)
+by ftol((pow(base+chunk, 0.8) - pow(base, 0.8)) * 3) where base = the move's points counter over (level index + 1); then the chunk times
+(index + 1) goes to the points counters and the score (+0xd24). Every call passes the piece's tag (+0x188; a match its cluster's) as the move
+id. Not called yet: 0x73d380 (250), 0x74c070 and 0x749650 (1000 times the count), which are the special gems' own paths.
+
+The level bar: the level needs 750 * index + 2500 (slot 154). The drawn bar (+0xd68) follows progress over that (at most 1) up by 0.025 of the
+way plus 0.0005, down by 0.05 of the way less 0.0001 (0x755940; the curve at +0x2258 is the constant 1 after a reset, so the 0.0255 and 0.0012
+pair is not used). When the bar is 1 and the progress has reached the size, slot 156 (0x74e190) sets the pending flag (+0x288c) unless a game
+over, a level change or a hold is under way. With the board at rest (and no swap asked for) the overlay (HyperspaceFallback, 0x723320) is made.
+Its update (0x725ef0): its count goes up, event 2 at the 200th update (the level index goes up, the progress is 0), the gems are put in a new
+order at the 250th (0x7604d0, translated in full: the board's own generator, mirror, 2 by 2 turns, random swaps), and its curve (400 updates)
+ends the change at about the 401st (event 5: the overlay goes). Seen: progress 2556 at level 1 -> level change at the next rest, level 2 at count
+200, change over at 401. Not translated (`// port:`): the overlay's drawing, the events 0, 1, 3 and 4 (background, flame gems' look), event 5's
+saves and the "Level N" announcement, the bar stage (0x75a760, music and look only), the second bar (0x755620), +0x1188.
+
+No move: the exe, with the board at rest, no tutorial box, +0xd1c 0 and no change asked for, asks the move search (0x75a8e0, `FindMove`) and,
+when it finds none, runs slot 161 (Classic 0x73b2d0): the end screen's wait (+0x307c) goes down and, below 1, is set to 0x113 and the score is
+handed to the leaderboard (`SubmitScore`, 0x6728b0: in front of the first lower score, ten kept); then 0x7602c0 sets the game-over flag
+(+0xd8c) and the hold counter (+0xd1c) to 1. The counter goes up each update; at 400 the end screen's wait counts down from the 0x113 (slot
+233, 0x73b100), so the end dialog (id 0x26) comes 674 updates after the game over (`mEndScreenShown`, the dialog is not made). Left out
+(`// port:`): the announcement, sounds, music events ("Break", "Play"), the player's save, the leaderboard's flush. The file users\hiscores.dat
+(0x671b80) is not written and its format was not read (Oddity); the top list is kept in the board only.
+
+The hint (0x75ae10, 0x75aeb0): with the board at rest and slot 98 (0x73d4f0) true, the timer (+0x26a4) goes up; at 15 * 100 the hint is asked
+for. FindHint draws Rand(2) (which end first) and Rand(10) (moves to skip), and tries the skips down to 0 from that end, then from the other.
+The glow, tip and sound (0x748480, 0x72b180: draws of the app's Rand for a player's hint) are not made. Oddity: the timer is put to 0 here when a
+swap is asked for; the exe's function that does it (0x75f852) was not identified.
+
+FindMove (0x75a8e0): rows from the top (or bottom), columns left to right, neighbours right, left, below, above; a move counts when the swap
+makes a run of 3 (4 or a crossing with the bonus flag) or the gem is a hypercube with a gem at the other cell. The fill's boolean `HasMove` is
+this with no skip; the direction order matters only to which move is first.
+
+UpdateGame now runs in the exe's order: busy pieces, pulses, slide positions, the fill (when no group lives), the no-move check, the groups,
+the level change, the bar, the hint, the game-over hold, the idle shine (its Rand draws), the countdowns. Before, the second fill came before
+the pulses and the shine before the groups; the match groups' ring draws now come before the shine's.
+
+Test commands (docs/TEST_COMMANDS.md): `move` prints `MOVE {"swap":[c,r,c2,r2],"input":[{"click":[x,y]},{"click":[x,y]}]}` (the first move of
+the move search, from the top; two clicks in pixels, the gem is picked up and its neighbour clicked) or `MOVE null` (board not at rest or no
+move); `bot [n]` plays that move each time the board is at rest (n moves, none: until the game is over; a game the bot plays logs
+`BOT GAMEOVER update= points= level= moves=`); `hint`; `set progress|points|index <n>`; `state` adds level, levelnumber, progress, levelmax, bar
+(ten-thousandths), levelchange (the overlay's count, -1 pending), gameover, gameoverticks, endscreen, hinttimer, botmoves and highscores.
+
+Results (seed 7, -fast): a bot that plays the first move never runs out of moves on its own (100000 updates: level 12, 766 moves; 1.5 million
+updates: level 50, 30 million points, every level's reshuffle left a move), so a whole game is: `bot 150` from update 400 (level 4, 27720 points
+at update 30000), the board put to a pattern with no move at update 30001, game over at once, the end screen at 674 updates after. The run twice
+gives identical `state` output. Level-up: progress 2490 and one more move, level change started at 398 to 498, level 2 at count 200.
