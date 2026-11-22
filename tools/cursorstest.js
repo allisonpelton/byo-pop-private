@@ -252,6 +252,18 @@ function check(what, got, want) {
   q.C.save("cosmicbugs", "Cosmic Bugs", { pointer: Object.assign(img("p0"), { frames: [img("p1")], ms: 19 }) });
   check("frames of 20 ms are kept, of 19 not", [!!q.C.all().waterbugs, !!q.C.all().cosmicbugs], [true, false]);
 }
+// Bonnie's set, taken out at the user's word (2026-11-17), is dropped at load with a choice of it; others stay
+{
+  const set = (n) => ({ title: n, pointer: img(n) });
+  const p = page({ "byopop-cursors": JSON.stringify({ bonnies: set("b"), heavyweapon: set("h") }), "byopop-site-cursor": "bonnies",
+    "byopop-cursors-unkept": JSON.stringify({ bonnies: "Bonnie's Bookstore" }) });
+  check("Bonnie's set dropped, Heavy Weapon's kept", Object.keys(p.C.all()), ["heavyweapon"]);
+  check("and the choice of it gone: the browser's cursor", [p.C.chosen(), "byopop-site-cursor" in p.local], ["", false]);
+  check("and not noted as unkept", "byopop-cursors-unkept" in p.local, false);
+  check("and never kept again", p.C.save("bonnies", "Bonnie's Bookstore", { pointer: img("b2") }), false);
+  const q = page({ "byopop-cursors": JSON.stringify({ heavyweapon: set("h") }), "byopop-site-cursor": "heavyweapon" });
+  check("another choice stays", [q.C.chosen(), Object.keys(q.C.all())], ["heavyweapon", ["heavyweapon"]]);
+}
 
 // the Settings' choice: games with the same set share one entry
 {
