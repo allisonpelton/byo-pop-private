@@ -1320,7 +1320,7 @@ suite_pixelus() {
 	sed "s#@OUT@#$W/$d/tour#g" games/pixelus/tests/menu_tour.txt.in > "$d/tour/script.txt"
 	timeout 300 "$W/build/native/pixelus.exe" -userdir="$W/$d/tour/user" -script="$W/$d/tour/script.txt" -seed=1 > "$d/tour/stdout.txt" 2> "$d/tour/stderr.txt"
 	t=$?
-	for f in options credits help menu; do [ -s "$d/tour/$f.png" ] || t="$t, $f.png missing"; done
+	for f in options credits help menu story island temple board; do [ -s "$d/tour/$f.png" ] || t="$t, $f.png missing"; done
 	[ "$t" = 0 ] && t="tour ok" || { t="TOUR FAILED ($t)"; st=1; }
 	a="$(pixelus_game start 25)"; r="$(pixelus_game start2 25)"
 	if [ "${CHECK_QUICK:-0}" = 1 ]; then  # the quick form leaves out the bot's whole game (87 of the 127 seconds)
