@@ -205,14 +205,31 @@ What the analysis has found about the exe, for reading the export. The plan is i
   3x3 matrix and copies it into both effects at +0xba4) and slot 50 (0x78aaa0). Fields: +0x184 and +0x188 two
   effects made by PIEffect::Duplicate (0x567930) with +0xb86 set; +0x450 the highlight (Update: counter +0x47c plus
   one, both effects updated by 0x573290, highlight moves 0.05 toward 1 while +0x69 (mouse over) else toward 0);
-  +0x454 and +0x460 colours; +0x484 and +0x485 flags; +0x486 and +0x487 flags; +0x368 a fade. Its Draw has a 3D branch (a
-  10 by 30 mesh of the curved ribbon, taken when the graphics' flag at +0x80 is set) and a 2D branch (the 40-frame
-  picture sheet, frame = update counter / 4 mod 40, the effects drawn by PIEffect::Draw 0x575650 under a scale matrix,
-  then the text with the font layers GLOWOUTLINE and BOTTOMGLOW and a curve "CRYSTALBALL_TEXT_SCALE_FACTOR").
-  Translated: Update's highlight only (src/MainMenu.cpp). Not translated, because this generation's Graphics
-  (a transform stack, 0x432410 copy, 0x432590 SetColor, 0x432610 SetDrawMode, 0x432630 SetColorizeImages, 0x434330 and
-  0x434350 Translate, 0x713770 and 0x713850 scaled draws, 0x58f620 and 0x58f920 font-layer colours) is not mapped onto
-  the port's Graphics yet, and which resources the effects are made from was not found.
+  +0x454 and +0x460 colours; +0x484 and +0x485 flags; +0x486 and +0x487 flags; +0x368 a fade; +0x168 a shared image.
+  Translated: Update's highlight only (src/MainMenu.cpp).
+- CrystalBall Draw 0x78ae40, read in its instructions. Nothing is drawn when +0x24 is set and the width is 0. With 3D
+  (0x4322a0, Graphics' Get3D, returns an interface) a matrix moved by the sub-pixel doubles +0x270/+0x278 is pushed
+  (0x583210, 0x583490, 0x4358a0). A copy of the Graphics (0x432410) is translated to the ball's centre (0x434350,
+  width and height x 0.5), and, while +0x484 is clear and +0x485 set, by two curves x art size / 1200 x (1 - a curve).
+  The scale is a curve's value, times 0.00255 / +0x280 (the depth) when that is above 0; x 5.3, and x (1 + a curve x
+  0.5) across and (1 + a curve x 0.2) down. Three times, both effects' colour (+0xb74..+0xb80) is set from colour
+  curves. Without +0x484 the effects are drawn (PIEffect::Draw 0x575650 on +0x188, under the scale matrix 0x583570 x
+  art size / 1200). Then the colour (+0x458, with +0x484 the alpha from +0x464 x 0.5), colourising if it is not white
+  (0x436390 against 0x8e205c), the normal draw mode, and the picture: IMAGE_CRYSTALBALL_SHADOW (0x306, global
+  0x8d7f04) whole through the scale matrix (0x5835b0, 0x5836d0, 0x433fa0), then IMAGE_CRYSTALBALL (0x305, global
+  0x8d6db8) at cel (update counter +0x47c / 4) mod 40 of its columns and rows (0x434020), and again in the additive mode
+  while +0x68 (pressed or over) is set. With 3D and without +0x484 a refraction mesh of 10 rings of 30 is built from
+  the curves (+0x488, +0x4b0, +0x4d8, +0x4fc, +0x57c..+0x5f8) and drawn as triangle strips (0x435800, 0x1c4 vertices)
+  over the shared image +0x168; then the second effect (+0x184) is drawn as the first. Without 3D, while a curve is
+  not 0 and +0x168 has a picture, that picture is drawn colourised white at alpha curve x 255, at (-transX, -transY)
+  when it is 800 wide, else stretched to 960 by 600 at (art size x -160 / 1200 - transX, -transY): the screen behind
+  shows through the ball's rectangle. The text: the scale is (0x4378f0 of the highlight +0x450 x the property
+  CRYSTALBALL_TEXT_SCALE_FACTOR, default 4.0, + +0x478) x the ball's scale, with the curve "b+1,1.3,0,1,####
+  ~~###"; its alpha (1 - 2 x a curve) x +0x368. Below alpha 1, while one of two curves is above 0, a picture is drawn
+  through a scale matrix (mirrored, -scale across, for the first), moved art size x 200 / 1200 x (1 - that curve) to
+  one side (0x433fa0 at 0x78c0ab; which picture is still to read in the asm). FONT_PLAYBUTTONS (font id 3, global
+  0x8d8c80) draws the label +0xc0 at the middle, art size x 34 / 1200 below the centre, scaled about the centre
+  (0x713770), with the layers GLOWOUTLINE, BOTTOMGLOW and a third coloured (0x58f620) and restored after (0x58f920).
 - MainMenu: Draw 0x6a0ca0 and Update 0x6a3530 are driven by about fifteen CurvedVals (curve strings such as
   "b;0,1,0.005,1,####         ~~###" in the 2D-or-3D constructor), the logos ("Logo%dFile", "Logo%dHoldTime") and the
   tips line. The buttons' places come from Update 0x6a3530, in 2D as well: each crystal ball is a point in 3D, turned
