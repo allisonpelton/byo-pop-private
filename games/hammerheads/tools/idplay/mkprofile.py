@@ -28,8 +28,9 @@ def new_game(mode):
 
 
 def levels(first, last, hammer_from=6):
-    """Classic restart points that start the game on each level first..last (a point of level N-1 starts level N): one for each."""
-    return [new_game(0)] + [point(0, n - 1, 20 * n, 1, 5 + n // 12, min(5, 1 + n // hammer_from), 0, 0) for n in range(first, last + 1)]
+    """(The hammer's level is at most 3: a fourth makes the original crash when it draws the hammer.)
+    Classic restart points that start the game on each level first..last (a point of level N-1 starts level N): one for each."""
+    return [new_game(0)] + [point(0, n - 1, 20 * n, 1, 5 + n // 12, min(3, 1 + n // hammer_from), 0, 0) for n in range(first, last + 1)]
 
 
 PROFILES = {
@@ -51,7 +52,8 @@ PROFILES = {
 
 
 def hashed(states):
-    return hashlib.md5(''.join(states).encode()).hexdigest().upper()
+    # the game prints the digest as a number, without its leading zeros (ProfileFile.cpp, HashProfileText)
+    return hashlib.md5(''.join(states).encode()).hexdigest().upper().lstrip('0')
 
 
 def make(name, out):
