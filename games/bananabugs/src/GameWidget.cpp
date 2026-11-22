@@ -1,6 +1,7 @@
 #include "GameWidget.h"
 #include "BananaBonus.h"
 #include "BugImg.h"
+#include "BugImgAnt.h"
 #include "Board.h"
 #include "FireBall.h"
 

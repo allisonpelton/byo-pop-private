@@ -29,9 +29,6 @@ static Anim* sSlotShineAnim;         // 0x670224
 static Anim* sFlyDanceAnim;          // 0x60e28c
 static Anim* sFlyFlyAnim;            // 0x60e290
 static Anim* sInGameButtonsAnim;     // 0x670188
-static Anim* sAntWalkAnim;           // 0x60e25c
-static Anim* sAntTurnAnim;           // 0x60e260
-static Anim* sAntDanceAnim;          // 0x60e264
 static Anim* sMothDanceAnim;         // 0x60e294
 static Anim* sMothAnim;              // 0x60e298
 static Anim* sBeetleWalkAnim;        // 0x60e26c
@@ -152,13 +149,6 @@ void Sexy::PreloadInGameButtons()
 	sInGameButtonsAnim = Load("images/menu/ingame_buttons", 0x167, 0x67, 3);
 }
 
-void Sexy::PreloadAnt()
-{
-	sAntWalkAnim = Load("images/ant_walk", 0x60, 0x49, 0x1e);
-	sAntTurnAnim = Load("images/ant_turn", 0x60, 0x49, 0x1e);
-	sAntDanceAnim = Load("images/ant_dance", 0x60, 0x60, 0x1e);
-}
-
 void Sexy::PreloadMoth()
 {
 	sMothDanceAnim = Load("images/moth_dance", 0x60, 0x60, 0x1e);
@@ -274,11 +264,6 @@ BugBrainDragonfly::BugBrainDragonfly() // 0x418880
 BugBrainRolly::BugBrainRolly() // 0x41d0d0
 {
 	SetKind(3, 1, 1);
-}
-
-BugBrainAnt::BugBrainAnt() // 0x413f90
-{
-	SetKind(4, 2, 2);
 }
 
 BugBrainRoach::BugBrainRoach() // 0x41c4f0

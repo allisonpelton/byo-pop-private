@@ -35,7 +35,6 @@ class BugBrainSkeeter : public BugObj { public: BugBrainSkeeter(); };   // 0x41d
 class BugBrainBeetle : public BugObj { public: BugBrainBeetle(); };     // 0x416220
 class BugBrainDragonfly : public BugObj { public: BugBrainDragonfly(); }; // 0x418880
 class BugBrainRolly : public BugObj { public: BugBrainRolly(); };       // 0x41d0d0
-class BugBrainAnt : public BugObj { public: BugBrainAnt(); };           // 0x413f90
 class BugBrainRoach : public BugObj { public: BugBrainRoach(); };       // 0x41c4f0
 class BugBrainCaterpillar : public BugObj { public: BugBrainCaterpillar(); }; // 0x416ea0
 class BugBrainFly : public BugObj { public: BugBrainFly(); };           // 0x4198c0
@@ -193,7 +192,6 @@ void PreloadWalkThru();      // 0x4756d0
 void PreloadSlots();         // 0x46c710
 void PreloadFly();           // 0x423980
 void PreloadInGameButtons(); // 0x4558f0
-void PreloadAnt();           // 0x420650
 void PreloadMoth();          // 0x423d10
 void PreloadBeetle();        // 0x421750
 void PreloadCentipede();     // 0x422f10
