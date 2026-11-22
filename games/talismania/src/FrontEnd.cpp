@@ -11,7 +11,29 @@ namespace
 const float MENU_FADE_SECONDS = 0.4f;
 
 // The credits' layout (a string of 0x4039b0)
+const char* const SKY_BACKGROUND_LAYOUT = "config/screens/skybg.xml";
+
 const char* const CREDITS_LAYOUT = "config/screens/menus/storyCredits.xml";
+
+// A rectangle over the whole screen that tells its owner when either mouse button goes down in it. The credits screen has
+// no button, and the original's mouse handler (its strings "leftmousedown" and "rightmousedown") ends the credits
+class ClickCatcher : public engine::Component
+{
+public:
+	ClickCatcher()
+	{
+		addOwnState(engine::STATE_VISIBLE);
+		setTakesInput(true);
+		computeBounds();
+	}
+	std::string getClassName() override { return "ClickCatcher"; }
+	void paint(engine::DrawContext*) override {}
+	void computeBounds() override { mBounds = engine::RectF(0, 0, 800, 600); }
+	void mouseDown(engine::MouseEvent&) override { mClicked.emit(); }
+	void rightDown(engine::MouseEvent&) override { mClicked.emit(); }
+
+	sigslot::signal0 mClicked;
+};
 
 } // namespace
 
@@ -19,10 +41,22 @@ const char* const CREDITS_LAYOUT = "config/screens/menus/storyCredits.xml";
 FrontEnd::FrontEnd(AtlantisApp* theApp)
 	: mApp(theApp), mSkyStack(theApp->mScene.get(), "skymenu", "skymenupopup", "darken_sky", "darken_skypopup")
 {
+	// The sky's own background, in the scene's "skybg" layer under every screen (config/screens/skybg.xml)
+	engine::GenericScreen* aSkyBackground = new engine::GenericScreen();
+	aSkyBackground->load(SKY_BACKGROUND_LAYOUT, mApp->mTheme.get());
+	engine::Container* aSkyLayer = dynamic_cast<engine::Container*>(mApp->mScene->getLayer("skybg"));
+	if (aSkyLayer != nullptr)
+	{
+		aSkyLayer->addChild(aSkyBackground);
+		aSkyBackground->show();
+	}
 	mMainMenu = makeScreen(mApp->mOptions.mainMenuLayout);
 	mOptionsMenu = makeScreen(mApp->mOptions.optionsMenuLayout);
 	mHighScores = makeScreen(mApp->mOptions.highScoreMenuLayout);
 	mCredits = makeScreen(CREDITS_LAYOUT);
+	ClickCatcher* aCatcher = new ClickCatcher();
+	mCredits->addChild(aCatcher);
+	aCatcher->mClicked.connect(this, &FrontEnd::onCreditsClicked);
 	mQuitConfirm = makeScreen(mApp->mOptions.quitConfirmDialog);
 
 	// The registration badge and the buttons that lead out of the game (the trial badge, the page of reasons to buy and
@@ -38,7 +72,6 @@ FrontEnd::FrontEnd(AtlantisApp* theApp)
 	mMainMenu->mActionSignal.connect(this, &FrontEnd::onMainMenuAction);
 	mOptionsMenu->mActionSignal.connect(this, &FrontEnd::onOptionsAction);
 	mHighScores->mActionSignal.connect(this, &FrontEnd::onHighScoresAction);
-	mCredits->mActionSignal.connect(this, &FrontEnd::onCreditsAction);
 	mQuitConfirm->mActionSignal.connect(this, &FrontEnd::onQuitAction);
 }
 
@@ -63,7 +96,11 @@ void FrontEnd::onMainMenuAction(const std::string& theAction)
 	else if (theAction == "highscores")
 		mSkyStack.push(mHighScores.get(), true);
 	else if (theAction == "credits")
-		mSkyStack.push(mCredits.get(), true);
+	{
+		// 0x407ab4: the main menu leaves and the credits take its place
+		mSkyStack.pop(mMainMenu.get());
+		mSkyStack.push(mCredits.get());
+	}
 	else if (theAction == "quit")
 		mSkyStack.push(mQuitConfirm.get(), true);
 	else
@@ -86,12 +123,12 @@ void FrontEnd::onHighScoresAction(const std::string& theAction)
 		engine::getEngine()->log("High scores action \"%s\" not yet translated\n", theAction.c_str());
 }
 
-void FrontEnd::onCreditsAction(const std::string& theAction)
+void FrontEnd::onCreditsClicked()
 {
-	if (theAction == "creditsdone")
-		mSkyStack.pop(mCredits.get());
-	else
-		engine::getEngine()->log("Credits action \"%s\" not yet translated\n", theAction.c_str());
+	if (!mSkyStack.contains(mCredits.get()))
+		return;
+	mSkyStack.pop(mCredits.get());
+	mSkyStack.push(mMainMenu.get());
 }
 
 void FrontEnd::onQuitAction(const std::string& theAction)

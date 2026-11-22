@@ -28,7 +28,7 @@ private:
 	void onMainMenuAction(const std::string& theAction);
 	void onOptionsAction(const std::string& theAction);
 	void onHighScoresAction(const std::string& theAction);
-	void onCreditsAction(const std::string& theAction);
+	void onCreditsClicked();
 	void onQuitAction(const std::string& theAction);
 
 	AtlantisApp* mApp;
