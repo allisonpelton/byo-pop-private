@@ -161,9 +161,29 @@ html.d95-desk :is(.d95-pop, .d95-task[aria-pressed=true] > .d95-task-text, .d95-
 :root[data-skin="d95"] .si-pre:not(#\#) { border: 0; border-radius: 0; background: var(--sk-well);
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
 :root[data-skin="d95"] .pl-confirm.si-confirm:not(#\#) { border: 0; border-radius: 0; padding: 0; background: none; margin: 0 0 8px; }
-/* Saves' storage as its status bar: a sunken panel held at the window's foot */
-:root[data-skin="d95"] .sv-where:not(#\#) { position: sticky; bottom: -8px; margin: 12px -8px -8px; padding: 2px 6px; font-size: 12px; color: var(--fg);
-  background: var(--panel); box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), 0 -2px 0 var(--panel); }
+/* the Saves window (web/saves.js): its two group boxes, etched as the Sounds board's, and the saves as a details list, a white
+   well with raised column headings and the counts at the right */
+:root[data-skin="d95"] .sv-group:not(#\#) { margin: 0 0 10px; padding: 3px 8px 8px; min-width: 0; border: 1px solid; border-radius: 0;
+  border-color: var(--sk-lo) var(--sk-hi) var(--sk-hi) var(--sk-lo); box-shadow: inset 1px 1px var(--sk-hi), inset -1px -1px var(--sk-lo); }
+:root[data-skin="d95"] .sv-group > legend:not(#\#) { margin-left: 2px; padding: 0 3px; background: var(--panel); font-weight: normal; line-height: 14px; }
+:root[data-skin="d95"] .sv-well:not(#\#) { max-height: 132px; overflow: auto; margin-top: 4px; padding: 2px; background: var(--sk-well);
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+:root[data-skin="d95"] .sv-table:not(#\#) { font-size: 11px; }
+:root[data-skin="d95"] .sv-table :is(th, td):not(#\#) { padding: 1px 6px; border: 0; line-height: 14px; color: #000000; font-weight: normal;
+  text-shadow: none; letter-spacing: normal; }
+:root[data-skin="d95"] .sv-table thead th:not(#\#) { position: sticky; top: -2px; background: var(--panel);
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo); }
+:root[data-skin="d95"] .sv-table .pl-empty:not(#\#) { padding: 4px 6px; color: var(--sk-lo); }
+:root[data-skin="d95"] .sv-actions:not(#\#) { margin: 8px 0 0; gap: 6px; }
+/* its status bar, held at the window's foot: the last message, and where the saves are kept, each a sunken panel */
+:root[data-skin="d95"] .sv-bar:not(#\#) { position: sticky; bottom: -8px; display: flex; flex-wrap: nowrap; gap: 2px; margin: 12px -8px -8px; padding: 2px;
+  background: var(--panel); box-shadow: 0 -2px 0 var(--panel); }
+:root[data-skin="d95"] .sv-bar-text:not(#\#) { margin: 0; padding: 1px 4px; min-height: 16px; line-height: 16px; color: var(--fg); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi); }
+/* the message takes the room left and is cut short with an ellipsis (its title holds the whole line); its width of 0 keeps a long
+   one from widening the window, whose body is sized by what it holds */
+:root[data-skin="d95"] .sv-status:not(#\#) { flex: 1 1 0; width: 0; min-width: 0; }
+:root[data-skin="d95"] .sv-where:not(#\#) { flex: none; }
 /* the current player: its name in bold beside its checked button, as Windows 95 marked the one in use; the word stays for
    screen readers */
 :root[data-skin="d95"] .pl-current { font-weight: normal; }

@@ -805,7 +805,12 @@ merged.
 ### Save backup
 
 The Saves section of Settings (`web/saves.js`, checked by `tools/savestest.js`) makes one .zip of the player's saves in
-the page, nothing uploaded, and reads one back. It takes each game's `userdata/`, its `replays/` for games with
+the page, nothing uploaded, and reads one back. Its window has two group boxes: the saves in this browser as a details
+list (a game a row: its save files, its replays while some game keeps them, their size, and "Own backup" while some
+game's localStorage backup is there) with Back up saves and Restore from backup… under it, the second opening the
+browser's file dialog; and the import's wizard (below). The restore's question, each result and each error are message
+boxes of the desktop's (`ByopopApps.warn` and `ByopopApps.tell` in `web/deskapps.js`), and the status bar at the foot holds
+the last message beside where the saves are kept. It takes each game's `userdata/`, its `replays/` for games with
 `replays: true`, and the game's localStorage backup (`sexy-userdata-backup:<persist>/userdata`,
 `platform/WebPersist.cpp`), which can hold a save that never reached IndexedDB; never `game/`, the icons or the mods.
 The zip, `byo-pop saves <YYYY-MM-DD>.zip`, is store-only:

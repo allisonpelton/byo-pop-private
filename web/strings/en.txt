@@ -838,17 +838,19 @@ size.mb = {value} MB
 
 saves.about = Stored in: this browser
 saves.kept = The browser may clear the saves when the drive is low.
-saves.list.title = In the browser
-# One game in the list: {title} then this, where {parts} is its save files and replays, {backup} the next string or nothing
-saves.list.rest = : {parts}{backup}.
-saves.list.files = {n} save file ({size}) | {n} save files ({size})
-saves.list.no_files = no save files
-saves.list.replays = {n} replay ({size}) | {n} replays ({size})
-saves.list.no_replays = 0 replays
-saves.list.backup = ; the game’s own browser backup is there
+saves.list.title = Saves in this browser
+# The list's columns: a game, its number of save files and of replays, their size, and whether the game's own backup in
+# the browser (a save that may not have reached its folder yet) is there, saves.list.backup when it is
+saves.col.game = Game
+saves.col.files = Save files
+saves.col.replays = Replays
+saves.col.size = Size
+saves.col.backup = Own backup
+saves.list.backup = Yes
 saves.list.empty = No saves found
 saves.backup.button = Back up saves
-saves.restore.label = Restore saves from a backup .zip:
+# opens the browser's file dialog, for the .zip a backup made
+saves.restore.button = Restore from backup…
 
 # Counts, used in the lines below
 saves.n.save_file = {n} save file | {n} save files
@@ -858,7 +860,7 @@ saves.n.file = {n} file | {n} files
 # The name of the .zip the backup downloads; {date} is like 2026-10-27
 saves.backup_name = byo-pop saves {date}.zip
 saves.backup.reading = Reading the saves…
-saves.backup.took = Backup exported. Contents:
+saves.backup.took = Contents:
 # One game in the report of a backup: {title} then this, built from the three that follow it
 saves.report.line = : {files}{replays}{backup}.
 saves.report.files = {n} save file ({size}) | {n} save files ({size})
@@ -905,7 +907,7 @@ saves.restore.nothing = Nothing was restored.
 saves.restore.working = Restoring…
 saves.restore.no_locks = This browser cannot tell whether a game is open, so it does not restore.
 saves.restore.open = {games} is open in another tab or window. Close it and restore again.
-saves.restored.title = What was restored
+saves.restored.title = What was restored:
 # {count} is like "3 files"
 saves.restored.game = {title}: {count}.
 saves.restored.settings = The site’s settings.
@@ -1081,9 +1083,7 @@ saveimport.nothing = Nothing was imported.
 saveimport.importing = Importing…
 saveimport.err.no_locks = This browser cannot tell whether a game is open, so it does not import.
 saveimport.err.open = {title} is open in another tab or window. Close it and import again.
-saveimport.done.title = What was imported
 # {values} and {files} are counts like "3 registry values"
-saveimport.done.line = {title}: {values} and {files}.
 saveimport.done.said = Imported into {title}: {values} and {files}. The game reads them the next time it
   starts.
 saveimport.failed = Nothing more was imported: {error}
