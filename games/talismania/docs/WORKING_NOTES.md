@@ -101,3 +101,16 @@ highscoresDone, quityes, quitno close or quit. The click dispatcher's strings ru
 manageusers, creditsdone, ok, closejournal, unlocknow and unlocklater (not yet). The credits layout has no action of its
 own; what closes it is still to find. Dialog backgrounds are missing until the engine translates a screen image's
 scale (the "scaled by ... not yet translated" lines in the log, a shared gap).
+
+## Starting a game (read, not yet translated)
+
+The main menu's click handler (0x407510 to about 0x407c30) answers `startheromode` and `startstorymode` alike: it pops
+every screen the front end holds (the app's +0x3c, +0x74, +0x60, +0x30's +0x34, +0x4c and +0x44, through the menu
+interface's slot 0x18), looks the game mode up by name in the registry ("hero" or "story"; 0x40e330, then 0x40cc90 and
+0x408c10 store it in the app's current-mode reference) and then calls slot 0 of the object at the app's +0x19c, which the
+app's +0x1c0 points at: the "start game" step that enters the play state. What that object does, and the play state
+that follows, are the next things to read; the data the first board needs (chapters, levels, cells, paths, huds and the
+rest of the std set's kinds, listed in "Done") is still untranslated. The credits action pops the main menu and pushes
+the credits (0x407ab4, 0x406a90); nothing in the credits layout closes it, so a click does here.
+The options screen needs `checkBox` and a slider in the engine; the high scores screen draws no background of its own
+(the scroll images in its layout are commented out), so where the original gets one is not found.
