@@ -455,6 +455,10 @@ public:
 	// 0x73b250 (bejeweled3): the panel (0x751d50), then the gems and the rest of the screen (0x750320)
 	void Draw(Graphics* g) override;
 	void DrawPanel(Graphics* g);                           // 0x751d50 (bejeweled3): the checkered squares behind the gems
+	// the three pieces of the left panel DrawScreenFrame draws (the exe's slots 249, 255 and 251), which Zen replaces
+	virtual void DrawTopWidget(Graphics* g);
+	virtual void DrawScoreText(Graphics* g);
+	virtual void DrawBottomWidget(Graphics* g);
 	// slot 237, 0x757df0 (bejeweled3): theScaleFactor is its third argument (1; the swap loop of 0x7568a0 gives 1 plus or minus the swap's lift)
 	void DrawPiece(Graphics* g, const Piece* thePiece, float theScaleFactor = 1.0f);
 	void DrawHypercube(Graphics* g, const Piece* thePiece);       // slot 235, 0x73f630 (bejeweled3)

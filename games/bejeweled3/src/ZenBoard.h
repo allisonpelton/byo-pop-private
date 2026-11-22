@@ -23,6 +23,13 @@ public:
 	// slot 161 (0x284), 0x70e4a0: no game over. With no move left, the board's own generator is drawn twice (the column, then the row,
 	// each & 7) and the gem there, if any, becomes a hypercube (slot 167, 0x749570, with its effect)
 	void NoMoreMoves(bool theAnnounce) override;
+
+	// slot 249 (0x3e4), 0x70fdf0: the necklace's score plate in place of Classic's top widget with the level number (the necklace itself is not drawn)
+	void DrawTopWidget(Graphics* g) override;
+	// slot 255 (0x3fc), 0x70e5c0: the score in the middle of the panel, "MAX SCORE" once it is at the limit
+	void DrawScoreText(Graphics* g) override;
+	// slot 251 (0x3ec), 0x70e500: the Zen bottom widget
+	void DrawBottomWidget(Graphics* g) override;
 };
 
 }  // namespace Sexy

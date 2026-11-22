@@ -295,16 +295,9 @@ void Board::DrawPanel(Graphics* g)
 	g->PopState();
 }
 
-// The pictures of the screen round the grid, in the order the exe draws them. The left panel's two pictures are placed by their x= and y= in
-// resources.xml with the panel's 400 taken off (0x741440, 0x7423e0); the frame above the grid (0x745880) and the bar's frame and back below
-// it (0x745430, 0x7540c0) have their middle at the grid's middle (x + 0x200) and at y - 5, + 0x421 and + 0x41e.
-// port: the level bar's fill (the exe draws PIEFFECT_LEVELBAR, 0x575650, and its look is set by 0x75a760 and 0x755620), the glows of
-// the frames (while the bar's stage is on, 0x368), the pictures' draws under the board's alpha curves and the slide of the panel
-void Board::DrawScreenFrame(Graphics* g)
+// slot 249 (0x3e4), 0x7423e0 (bejeweled3): the top widget at its place and the level number over it
+void Board::DrawTopWidget(Graphics* g)
 {
-	g->SetColorizeImages(true);
-	g->SetColor(Color(255, 255, 255, Ftol(mCoverCurve.GetOutVal() * 255.0)));
-	// 0x7423e0: the top widget at its place and the level number (the level index + 1) over it, in FONT_LEVEL
 	DrawPanelPicture(g, IMAGE_INGAMEUI_TOP_WIDGET, IMAGE_INGAMEUI_TOP_WIDGET_ID);
 	{
 		g->SetFont(FONT_LEVEL);
@@ -315,12 +308,34 @@ void Board::DrawScreenFrame(Graphics* g)
 		if (aSet)
 			RestoreLayerColor(FONT_LEVEL, "GLOW", anOld);
 	}
-	// 0x746f20: the score, in the middle of x 250 at y 202
+}
+
+// slot 255 (0x3fc), 0x746f20 (bejeweled3): the score
+void Board::DrawScoreText(Graphics* g)
+{
 	g->SetFont(FONT_SCORE);
 	g->SetColor(Color(255, 255, 255, 255));
 	g->WriteString(CommaSeperate(mScore), Scaled(250), Scaled(202), 0, 0, true, 0, -1, -1);
-	// 0x741440: the bottom widget of the mode (Classic)
+}
+
+// slot 251 (0x3ec), 0x741440 (bejeweled3): the bottom widget of the mode (Classic)
+void Board::DrawBottomWidget(Graphics* g)
+{
 	DrawPanelPicture(g, IMAGE_INGAMEUI_BOTTOM_WIDGET_CLASSIC, IMAGE_INGAMEUI_BOTTOM_WIDGET_CLASSIC_ID);
+}
+
+// The pictures of the screen round the grid, in the order the exe draws them. The left panel's two pictures are placed by their x= and y= in
+// resources.xml with the panel's 400 taken off (0x741440, 0x7423e0); the frame above the grid (0x745880) and the bar's frame and back below
+// it (0x745430, 0x7540c0) have their middle at the grid's middle (x + 0x200) and at y - 5, + 0x421 and + 0x41e.
+// port: the level bar's fill (the exe draws PIEFFECT_LEVELBAR, 0x575650, and its look is set by 0x75a760 and 0x755620), the glows of
+// the frames (while the bar's stage is on, 0x368), the pictures' draws under the board's alpha curves and the slide of the panel
+void Board::DrawScreenFrame(Graphics* g)
+{
+	g->SetColorizeImages(true);
+	g->SetColor(Color(255, 255, 255, Ftol(mCoverCurve.GetOutVal() * 255.0)));
+	DrawTopWidget(g);
+	DrawScoreText(g);
+	DrawBottomWidget(g);
 	g->SetColor(Color(255, 255, 255, Ftol(mCoverCurve.GetOutVal() * 255.0)));
 	// 0x745880: the frame over the grid; 0x7540c0 and 0x745430: the bar's back and frame under it
 	DrawImageCentered(g, IMAGE_INGAMEUI_TOP_FRAME, (float)Scaled(GetGridX() + 0x200), (float)Scaled(GetGridY() - 5));
