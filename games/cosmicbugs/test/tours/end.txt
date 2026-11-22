@@ -1,19 +1,28 @@
-# The game's end, after the input of test/plays/c7 up to 9.7 s from a save (life1h.cbdat: a game in progress on
-# board 4 with one life and 15000 points; see IDENTICAL_PLAY.md). tour.py writes this part,
-# joined after c7's runner lines before 9700 (its origrun lines before "at 9681").
-11000 shot gameover
-12000 shot gameover2
-13000 click 400 300
-13500 shot hof_fade
-14500 shot hof
-15000 key 65
-16000 shot hof_key
-20500 click 400 543
-21500 shot title_after
-22500 shot title_after2
-24000 click 175 313
-25000 shot worlds
-26000 shot worlds2
-26500 move 400 300
-27000 shot worlds_hover
-27500 end
+# The end of a game: a save from the port's `unlock all` with board 4 in progress, one life left and 15000 points (the
+# fields of a profile, edited by hand: the original reads the same file), Start Game and OK to resume, random lines
+# (seed 7 of the generator) to the last life lost, the game over, the high-score entry with a key typed, "click here when
+# done", the title and the world picker. Replaces the old end tour, whose save came from the original and was lost.
+3000 click 175 313
+4500 click 336 328
+8000 click 451 207
+10308 click 169 167
+12905 click 216 317
+15598 click 179 389
+16500 shot over_death
+17000 shot over_fade
+18000 shot gameover
+19000 shot gameover2
+19500 click 400 300
+20500 shot hof_fade
+21500 shot hof
+22000 key 65
+23000 shot hof_key
+23500 click 400 543
+24500 shot title_after
+25500 shot title_after2
+26000 click 175 313
+27000 shot worlds
+28000 shot worlds2
+28500 move 400 300
+29000 shot worlds_hover
+29500 end

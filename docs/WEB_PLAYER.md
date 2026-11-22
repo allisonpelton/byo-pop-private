@@ -1388,7 +1388,7 @@ that every game follows it.
 **The speed keys** (`speedKeys`, off by default; the user, 2026-11-17: "Add optional hotkeys for game speed (probably using
 function keys)") are the native ones: F6 slower, F7 faster, F8 back to normal, without modifiers, while the canvas has the
 focus. They step along the same list from a speed between two steps to the next one in that direction, past 16 to unlimited
-(Max); below the lowest step, F6 leaves the speed where it is (the native `StepGameSpeed` goes up to 0.25 there). The page
+(Max); below the lowest step, F6 leaves the speed where it is. The page
 takes the press and its release in a window capture listener (`web/controls.js`), so neither SDL nor the page's own F6 sees
 them, and the web build's mod menu has no speed rows, so nothing steps twice. The new speed is written as this game's own
 setting and shows over the game for a second and a half in a raised grey box. With the keys on, Shift+F6 still takes the

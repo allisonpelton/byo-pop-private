@@ -13,7 +13,7 @@
 #include <windows.h>
 
 #define VC_MAGIC   0x4b4c4356u   // "VCLK"
-#define VC_VERSION 2
+#define VC_VERSION 3
 #define VC_RING    16384         // watch changes the game can hand over before origrun drains them
 
 // Virtual time is counted in 100 ns units (a FILETIME's), from the moment the clock was installed.
@@ -25,6 +25,10 @@ enum { VC_AT_NONE, VC_AT_SLEEP, VC_AT_WAIT, VC_AT_MSGWAIT, VC_AT_POLL };
 enum { VC_BAR_FREE, VC_BAR_ARMED, VC_BAR_HELD };
 enum { VC_HOLD_NEXT, VC_HOLD_UPDATE, VC_HOLD_TIME };
 enum { VC_OFF_NONE, VC_OFF_CAP, VC_OFF_HOST, VC_OFF_FAILED };
+
+// What a read came to (VcShared.readStatus)
+enum { RD_NONE, RD_OK, RD_NOEXPR, RD_NOPTR, RD_NOTDDRAW, RD_QI, RD_DESC, RD_CAPS, RD_FORMAT, RD_SIZE, RD_LOCK, RD_LOCKDESC, RD_NOBLOCK, RD_NOTHELD };
+#define RD_PIXMAX (16u << 20)    // the pixel block: 2048 x 2048 at 32 bpp
 
 typedef struct VcWatchRec {   // one change of a --watch value, as the game saw it
 	LONG update;               // the update counter when it was read (-1: the counter could not be read)
@@ -64,6 +68,22 @@ typedef struct VcShared {
 	volatile LONG heldWhere;        // VC_AT_*
 	volatile LONGLONG heldV;        // the clock at the hold
 	volatile LONG heldTimeout;      // the timeout (ms) of the wait the hold was taken in
+	volatile DWORD heldAt;          // the hold's return address into the game: where its wait was called (0 at a poll)
+
+	// The in-game frame reader (docs/ORIGRUN.md, "The in-game frame reader"; reader.c). origrun asks for a read only while
+	// the driver is held, by setting readReq to readDone+1 and the release event; the held driver reads the game's own
+	// draw surface through the surface's own methods, writes the pixels into the block Local\origrun-vclock-<id>-<pid>-pixels
+	// (RD_PIXMAX bytes, made at the first read) and sets readDone to readReq. It holds on afterwards.
+	volatile LONG readReq;
+	volatile LONG readDone;
+	volatile LONG readStatus;       // RD_*
+	volatile LONG readHr;           // the HRESULT of the call that failed (RD_QI, RD_DESC, RD_LOCK)
+	volatile DWORD readSurface;     // the pointer the expression read
+	volatile DWORD readCaps;        // the surface's DDSCAPS2.dwCaps
+	volatile LONG readW, readH, readPitch, readBpp;
+	volatile DWORD readPfFlags, readRMask, readGMask, readBMask;
+	volatile LONG readBytes;        // bytes in the pixel block: readH rows of readW*readBpp/8, packed
+	volatile LONG readCounter;      // the update counter read in the same hold, after the Unlock (-1 unreadable)
 
 	// Statistics
 	volatile LONG waits;            // the driver's timed waits the clock skipped

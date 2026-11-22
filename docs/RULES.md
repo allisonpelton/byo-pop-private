@@ -72,7 +72,12 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   (`python tools/gamecount.py --limit` lists them and exits 1 when there is no room; a wait loop waits on it; an older
   script's `--limit 6` is read as the same limit). One
   check, oracle or script takes at most 3 of them (check.sh's and the oracle's `--jobs`, at most 3), so that others
-  still get slots.
+  still get slots. A sandbox run waiting in origrun's queue is not one of them: it counts once it holds the sandbox,
+  as the running sandbox (the user, 2026-11-22, asked whether a waiting run keeps counting: "Count only once running",
+  after nine queued runs had held nine slots while ports waited). `gamecount` counted that way already; only the
+  sessions' own tally changes. The 30 s slot that `gamecount --limit` reserves stops counting once its game has
+  started, so a launch counts once (2026-11-22: reservations had held three or four of the ten slots while the
+  processor was two-thirds idle). Start the game from the shell or script that made the reservation.
 - Only one oracle runs on the machine at a time. To wait for another, look for processes that run the oracle script
   (a command line like `bash .../compare.sh ...`) and exclude your own process tree. Never put the wait loop in the
   same shell command that later starts compare.sh: that shell's own command line contains "compare.sh", so it waits
@@ -132,6 +137,15 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   compared its shots with sandbox shots of the same screens. Until a game passes that trial, the ban stands for it.
   Apart from that, origrun's ban holds as before. visrun's `PrintWindow` shots of a game's own window on the visible
   desktop (`docs/VISRUN.md`, the 3D route) are not part of that ban and go on unchanged.
+- **The visible desktop as a second lane, four windows at once (the user, 2026-11-22):** asked whether desktop runs may
+  use the right half of the screen with up to four windows at once, the user said "Right half, four". Runs on the
+  visible desktop, 2D as well as 3D, keep to the right half of the screen (x from half the screen's width), each
+  window in a place of its own so that none overlaps another, with at most four game windows there at once and the
+  machine's limit of 10 game processes over all. Everything else in "Desktop and Sandbox at any hour" holds: no
+  focus taken, the user's cursor and keyboard never touched, input posted to the game's window, windows, registry
+  and saves put back. A game's 2D shots from the desktop count only after one of its tours has been compared both
+  ways, desktop against sandbox. visrun gives each run its place (ae360bdd, `docs/VISRUN.md`, "The places"); an
+  older visrun in a worktree that has not merged it still takes one window at a time.
 
 ## Token economy (the user's rules, 2026-10-24)
 
