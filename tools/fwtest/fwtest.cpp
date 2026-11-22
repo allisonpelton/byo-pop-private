@@ -40,6 +40,8 @@
 #include "KeyCodes.h"
 #include "platform/ModManager.h"
 #include "platform/VFS.h"
+#include "platform/UserFiles.h"
+#include "platform/Json.h"
 
 #include <SDL.h>
 #include <stb_image_write.h>
@@ -421,6 +423,7 @@ public:
 		std::string aWhat;
 		anArgs >> aWhat;
 		int a = 0, b = 0, c = 0, d = 0;
+		double aSpeed = 0;
 		std::string aWord;
 		bool isOk = false;
 		if (aWhat == "board")
@@ -475,6 +478,18 @@ public:
 			isOk = (GetDialog(DIALOG_TEST) != NULL) == (a != 0);
 		else if ((aWhat == "modmenu") && (anArgs >> a))
 			isOk = IsModMenuOpen() == (a != 0);
+		else if ((aWhat == "speed") && (anArgs >> aSpeed))
+			isOk = fabs(GameSpeed() - aSpeed) < 1e-6;
+		else if ((aWhat == "speedkeys") && (anArgs >> a))
+			isOk = mSpeedHotkeys == (a != 0);
+		else if ((aWhat == "speedfile") && (anArgs >> aSpeed >> b))
+		{
+			// the saved option (game-speed.json in the user dir), as the next start reads it
+			std::string aText;
+			Platform::JsonValue aRoot;
+			isOk = Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/game-speed.json", &aText) && Platform::ParseJson(aText, aRoot) &&
+				(fabs(aRoot["speed"].AsNumber(-1) - aSpeed) < 1e-6) && (aRoot["hotkeys"].AsBool(false) == (b != 0));
+		}
 		else if ((aWhat == "windowsize") && (anArgs >> a >> b))
 		{
 			int aWidth = 0, aHeight = 0;

@@ -83,8 +83,19 @@ inline int sexy_wcsicmp(const wchar_t* a, const wchar_t* b)
 
 namespace Sexy
 {
-// Milliseconds since an arbitrary epoch (replacement for timeGetTime/GetTickCount).
+// Milliseconds since an arbitrary epoch (replacement for timeGetTime/GetTickCount). port: this is GAME time, the original's
+// clock as the game would have seen it at the chosen game speed (SetGameClock): real time scaled by the speed, or the -fast
+// virtual clock. At speed 1 without -fast it is real time, as before. Everything that paces the framework itself (draws,
+// the update accumulator, sleeps) reads GetRealTickCountMS() instead.
 DWORD GetTickCountMS();
+// The real (wall) clock in the same epoch; unaffected by speed and by -fast.
+DWORD GetRealTickCountMS();
+// The game clock without the epoch (what GetTickCountMS counts from): 0 at the start of a -fast run.
+DWORD GetGameTimeMS();
+// Sets what drives the game clock: theVirtualSource, a clock in milliseconds that the caller advances (-fast's and the
+// unlimited speed's), or NULL for the real clock; theSpeed is how many game ms pass per source ms. The elapsed game time is
+// settled at the old speed first, so the clock stays continuous when the speed changes mid-game. theRestart sets game time 0.
+void SetGameClock(const DWORD* theVirtualSource, double theSpeed, bool theRestart = false);
 }
 
 #define timeGetTime() Sexy::GetTickCountMS()

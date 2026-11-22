@@ -73,9 +73,9 @@ var ByopopSettings = (function () {
     clips: { values: SWITCH, def: "off" },           // on: a Record button on a game page's bar (web/clips.js)
     skipLogos: { values: SWITCH, def: "off" },       // on: the games skip their start-up logos (byopop_site_skiplogos, before the start)
     skipTutorials: { values: SWITCH, def: "off" },   // on: the game's own tutorial switch is turned off at each start (web/shell.html, byopop_site_tutorials)
-    // the game's update rate, times this (web/controls.js): any value the framework takes, 0.25 to 4 (the user, 2026-11-10: "Allow
+    // the game's update rate, times this (web/controls.js): any value the framework takes, 0.01 to 16 (the user, 2026-11-10: "Allow
     // game speed to be set to any arbitrary value instead of the limited options in the dropdown")
-    speed: { values: ["0.5", "0.75", "1", "1.25", "1.5", "2"], number: [0.25, 4], def: "1" }
+    speed: { values: ["0.5", "0.75", "1", "1.25", "1.5", "2"], number: [0.01, 16], def: "1" }
   };
 
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }
@@ -283,10 +283,11 @@ var ByopopSettings = (function () {
     // the games with a bot whose files are here (none on the live site yet), by the games' titles, read again as the theme's are
     { name: "saver", label: T("settings.saver.label"), live: true,
       get options() {
-        var S2 = typeof ByopopSaver !== "undefined" ? ByopopSaver : null, games = window.ByopopGames || [];
-        return [["none", T("settings.saver.none")]].concat(S2 ? S2.offered().map(function (id) {
+        var S2 = typeof ByopopSaver !== "undefined" ? ByopopSaver : null, games = window.ByopopGames || [], o = S2 ? S2.offered() : [];
+        // (Random) once there are two games to draw from
+        return [["none", T("settings.saver.none")]].concat(o.length > 1 ? [["random", T("settings.saver.random")]] : [], o.map(function (id) {
           var g = games.filter(function (x) { return x.id === id; })[0]; return [id, g ? g.title : id];
-        }) : []);
+        }));
       } },
     { name: "saverWait", label: T("settings.saverwait.label"),
       options: (typeof ByopopSaver !== "undefined" ? ByopopSaver.waits : ["5"]).map(function (m) { return [m, T("settings.saverwait.minutes", { n: m })]; }) },
@@ -873,7 +874,7 @@ var ByopopSettings = (function () {
         c.custom = make("option"); c.custom.hidden = c.custom.disabled = true;
         c.select.appendChild(c.custom);
         c.number = make("input", "bps-number");
-        c.number.type = "number"; c.number.min = String(num[0]); c.number.max = String(num[1]); c.number.step = "0.05";
+        c.number.type = "number"; c.number.min = String(num[0]); c.number.max = String(num[1]); c.number.step = "0.01";
         c.number.inputMode = "decimal";
         c.number.setAttribute("aria-label", f.label);
         c.number.setAttribute("data-setting", f.name);
