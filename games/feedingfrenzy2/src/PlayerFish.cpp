@@ -3,6 +3,7 @@
 #include "Draws.h"
 #include "Engine.h"
 #include "GameData.h"
+#include "GameHud.h"
 #include "Mouse.h"
 #include "Random.h"
 #include "Stage.h"
@@ -67,7 +68,7 @@ float getMouseSensitivity()
 
 PlayerFish::PlayerFish()
     : mSpawn(nullptr), mMotion(0, 0), mLastMotion(0, 0), mMouse(nullptr), mWaterShare(1.0f), mInWater(false),
-      mSucking(false), mCanSuck(false), mDashTime(0.0f), mPush(0.0f, 0.0f), mBiggestRankEaten(0), mBonusEat(false),
+      mSucking(false), mCanSuck(false), mDashTime(0.0f), mPush(0.0f, 0.0f), mSuckCharge(1.0f), mBiggestRankEaten(0), mBonusEat(false),
       mPointsScale(1), mSpeedScale(NORMAL_SPEED_SCALE), mFrenzyCount(0), mFrenzyTime(0.0f), mFrenzyHoldTime(0.0f),
       mFrenzyMultiplier(1), mJumpHeight(0.0f), mJumpPeakShown(false), mAirChain(0), mKeptBetweenSides(false)
 {
@@ -105,8 +106,8 @@ void PlayerFish::addToStage(Stage* theStage, int theLocation)
 	mFrenzyCount = 0;
 	mFrenzyMultiplier = 1;
 	mFrenzyTime = mFrenzyHoldTime;
-	// The HUD's frenzy (0x4605d0 (feedingfrenzy2)) and +0x20c at 1: not yet translated, as the HUD and the suck are
-	// not
+	showFrenzy();
+	mSuckCharge = 1.0f;
 	mAirChain = 0;
 	// +0x2ac, +0x1a0 and +0x2b4 at 0: read by code not yet translated
 	mKeptBetweenSides = true;
@@ -270,9 +271,14 @@ void PlayerFish::addFrenzy(int theCount, float theSeconds)
 	if (aMultiplier > aLast)
 	{
 		// The theme's sounds frenzy1 to frenzy5 by the step and frenzyChime, and the HUD's text of the step (0x40d970
-		// (feedingfrenzy2)): not yet translated, as the sounds and the HUD are not
+		// (feedingfrenzy2)): not yet translated, as the sounds and the texts are not
 	}
-	// The HUD's frenzy (0x4605d0 (feedingfrenzy2)): not yet translated
+	showFrenzy();
+}
+
+void PlayerFish::showFrenzy()
+{
+	mStage->getHud()->showFrenzy(getFrenzyCount(), getFrenzyMultiplier());
 }
 
 void PlayerFish::updatePlayTimers(UpdateContext& theContext)
@@ -294,7 +300,7 @@ void PlayerFish::updatePlayTimers(UpdateContext& theContext)
 	else
 		aTime /= FRENZY_LOW_DROP;
 	mFrenzyTime = (float)aTime;
-	// The HUD's frenzy (0x4605d0 (feedingfrenzy2)): not yet translated
+	showFrenzy();
 }
 
 void PlayerFish::keepInWater()

@@ -181,6 +181,12 @@ public:
 	// 0x41ea70 (feedingfrenzy2): the first component under the name, null for none
 	Component* findNamedComponent(const std::string& theName);
 
+	// 0xb8 (EngineImpl's 0x419820 (feedingfrenzy2)): the format with its inserts filled in, by FormatMessageA from a
+	// string in the user's language (%1 to %99 an insert, typed by a printf type between exclamation marks after it,
+	// %% a percent sign, %n a line break, %0 the end). port: not virtual, as the platform's part is Windows' own and
+	// done here, with whole numbers for the inserts, which is all the games pass
+	std::string formatMessage(const std::string& theFormat, int theInsert);
+
 protected:
 	std::map<std::string, Ref<Surface>> mImages;              // +0x134
 	std::map<std::string, Ref<Font>> mFonts;                  // +0x140

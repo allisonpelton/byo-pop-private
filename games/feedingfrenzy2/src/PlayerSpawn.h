@@ -51,6 +51,10 @@ public:
 	// A <phase>, in the file's order (0x48fe50 (feedingfrenzy2))
 	void addPhase(const PlayerPhase& thePhase) { mPhases.push_back(thePhase); }
 	int getPhaseIndex() const { return mPhaseIndex; }
+	PlayerFish* getFish() { return mFish.get(); }
+	bool isLive() const { return mLive; }
+	// 0x48c940 (feedingfrenzy2)
+	int getPhaseCount() const { return (int)mPhases.size(); }
 	// port: the fish taken out of the stage while it is in (Stage::unload's, until the play's ends are translated)
 	void takeOut();
 	const PlayerPhase& getPhase(int theIndex) const { return mPhases[theIndex]; }

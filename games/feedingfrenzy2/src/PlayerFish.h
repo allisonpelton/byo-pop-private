@@ -93,6 +93,8 @@ public:
 	// given or held at least for the hold (half again as long at each seventh), and its multiplier one more for each
 	// seven
 	void addFrenzy(int theCount, float theSeconds);
+	// 0x4605d0 (feedingfrenzy2) with the stage's HUD: the frenzy shown
+	void showFrenzy();
 	// 0x124 (0x49de90 (feedingfrenzy2))
 	void setFrenzyHoldTime(float theSeconds) { mFrenzyHoldTime = theSeconds; }
 
@@ -105,7 +107,10 @@ public:
 
 	void setSpawn(PlayerSpawn* theSpawn) { mSpawn = theSpawn; }
 	PlayerSpawn* getSpawn() const { return mSpawn; }
+	// 0x128 and 0x12c (feedingfrenzy2)
+	int getFrenzyCount() const { return mFrenzyCount; }
 	int getFrenzyMultiplier() const { return mFrenzyMultiplier; }
+	float getSuckCharge() const { return mSuckCharge; }
 	bool isInWater() const { return mInWater; }
 	void setInWater(bool inWater) { mInWater = inWater; }
 	void setJumpPeakShown(bool isShown) { mJumpPeakShown = isShown; }
@@ -148,6 +153,8 @@ private:
 	// +0x1dc, +0x1e0 and +0x1e4: timers counted down by the step, set by code not yet translated: left out
 	engine::Vector2f mPush;              // +0x1f4: a push the fish moves by, (0, 0) as it comes in
 	std::vector<ScoredPoints> mScored;   // +0x1fc: points scored since the last update
+	float mSuckCharge;                   // +0x20c: the suck's charge, 0 to 1 (1 as the fish comes in; the suck's
+	                                     // use and recharge not yet translated)
 	int mBiggestRankEaten;               // +0x22c: the highest rank in the bite, 0 after each swallow
 	bool mBonusEat;                      // +0x230: the bite gets the bonus's effect (set by code not yet translated)
 	int mPointsScale;                    // +0x234: 1 as it comes in (a bonus sets it, not yet translated)

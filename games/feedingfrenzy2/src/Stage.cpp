@@ -3,7 +3,9 @@
 #include "Actor.h"
 #include "DrawContext.h"
 #include "Engine.h"
+#include "FeedingFrenzyTwo.h"
 #include "GameData.h"
+#include "GameHud.h"
 #include "Params.h"
 #include "PlayerFish.h"
 #include "PlayerSpawn.h"
@@ -12,7 +14,9 @@
 #include "Visual.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
+#include <cstdio>
 
 using namespace engine;
 
@@ -32,6 +36,24 @@ const double CAMERA_CENTRE = 0.5;           // 0x566760 (feedingfrenzy2): the st
 const double HALF = 0.5;                    // 0x566760 (feedingfrenzy2)
 const double ZERO = 0.0;                    // 0x566828 (feedingfrenzy2)
 const float PLAYER_FLASH_SECONDS = 3.0f;    // 0x40400000 in 0x4f37cf (feedingfrenzy2)
+
+// 0x4050d0 (feedingfrenzy2): the stage's number and the title of its screen data ("%d. %s"), or its id in brackets
+// when it has none; empty before the first stage
+std::string stageNameOf(FeedingFrenzyTwo* theApp)
+{
+	GameData* aData = theApp->mGameData.get();
+	if (aData == nullptr || aData->getStage() < 0)
+		return "";
+	int aStage = aData->getStage();
+	const std::string& anId = aData->getStages().getStages()[aStage].mId;
+	ScreenDataEntry* aScreenData = theApp->getScreenData(anId);
+	char aName[512];
+	if (aScreenData == nullptr)
+		snprintf(aName, sizeof(aName), "(%s)", anId.c_str());
+	else
+		snprintf(aName, sizeof(aName), "%d. %s", aStage + 1, aScreenData->mTitle.c_str());
+	return aName;
+}
 
 // An edge set to its normal and distance
 void setEdge(shape::Edge& theEdge, float theNormalX, float theNormalY, int theDistance)
@@ -68,7 +90,7 @@ void MaskContainer::paint(DrawContext* theContext)
 }
 
 Stage::Stage(GameData* theGameData, Container* theContainer)
-	: mScrollRate(0.0f), mSizeUnit(DEFAULT_SIZE_UNIT), mBonus(false), mStageTime(0.0f), mStepTime(0.0f),
+	: mScrollRate(0.0f), mSizeUnit(DEFAULT_SIZE_UNIT), mBonus(false), mStageTime(0.0f), mTimeLeft(0.0f), mStepTime(0.0f),
 	  mWaterColor(0.0f, 0.0f, 0.0f, 0.0f), mCanSuck(false), mCameraFollows(false), mMaskFadeTime(0.0f), mNight(false), mLight(0.0f), mLightTarget(0.0f),
 	  mMinLight(DEFAULT_MIN_LIGHT), mMaxLight(DEFAULT_MAX_LIGHT), mCompleted(false), mBoss(false), mFinalBoss(false)
 {
@@ -77,10 +99,11 @@ Stage::Stage(GameData* theGameData, Container* theContainer)
 	// The init (0x4038d0 (feedingfrenzy2)): the stage's own theme
 	mTheme = new Theme();
 	mTheme->load("resource/themes/baseTheme.xml");
-	// The game's HUD (GameHud, 0x260 bytes, at +0x2e0, over the theme), the stun bubbles' effect (StunBubbleFx, 0xf8
-	// bytes, at +0x308) and the theme's splashFxBig, splashFxMedium and splashFxSmall (+0x30c to +0x314): not yet
-	// translated
-	getEngine()->log("Stage: the HUD, the stun bubbles and the splashes not yet translated\n");
+	mHud = new GameHud(this);
+	mHud->setup(mTheme.get());
+	// The stun bubbles' effect (StunBubbleFx, 0xf8 bytes, at +0x308) and the theme's splashFxBig, splashFxMedium and
+	// splashFxSmall (+0x30c to +0x314): not yet translated
+	getEngine()->log("Stage: the stun bubbles and the splashes not yet translated\n");
 }
 
 Stage::~Stage()
@@ -130,12 +153,75 @@ bool Stage::load(const StageManifest::Stage& theEntry)
 	int aProgress = 0;
 	for (size_t i = 0; i < mSpawners.size(); i++)
 		mSpawners[i]->setup(aProgress);
+	// The fish spawns' ranks from the first player spawn's (0x405590 (feedingfrenzy2)) and the bonus stage's counts
+	// reset (0x45ef40 (feedingfrenzy2)): not yet translated
+	setupOverlays();
+	// 0x416330 (feedingfrenzy2) and the slot 0x38: not yet translated
 	loadAmbientSounds();
-	// The rest (0x405590, 0x45ef40, the slot 0x38, 0x416330, the Orphanage at +0x2c0, the splashes'
-	// containers on the first layer's actors, the slots 0x40 and 0x44 for a stage with players, and 0x4719f0
-	// (feedingfrenzy2)): not yet translated
+	// The rest (the Orphanage at +0x2c0, the splashes' containers on the first layer's actors, the slots 0x40 and
+	// 0x44 for a stage with players, and 0x4719f0 (feedingfrenzy2)): not yet translated
 	getEngine()->log("Stage: the stage's actors not yet translated\n");
 	return true;
+}
+
+void Stage::updatePlay(UpdateContext* theContext)
+{
+	if (mPlayerSpawns.empty())
+		return;
+	// The jump's marks on the HUD (its +0x208 to +0x220, each passed shows the next with the jump's height effect):
+	// not yet translated, as the jump's height is not
+	PlayerSpawn* aSpawn = mPlayerSpawns.front().get();
+	if (!aSpawn->isLive())
+	{
+		// The player's death: a life taken (not in the timed mode), the HUD's lives, and the died state (or on a
+		// bonus stage the stage's end): not yet translated
+		return;
+	}
+	updateHud(theContext);
+	// The game data's phase (+0x24) brought up to the spawn's, its +0x38 and +0x3c added the frame's time, the
+	// stage's slot 0x64 when +0x2cc is set, and the stage's goal (its last phase's food, or its fish left on a bonus
+	// stage) ending the stage: not yet translated
+	if (0.0f < mStageTime)
+	{
+		// The stage's timer (+0x238, 0x45f040 (feedingfrenzy2)) stepped, which holds the clock while its marks run:
+		// not yet translated, as the script that sets it is not, so the clock always runs
+		if (0.0f < mTimeLeft)
+		{
+			mTimeLeft = mTimeLeft - theContext->mElapsed;
+			mHud->showTime((int)ceil((double)mTimeLeft));
+		}
+		// The time's end: not yet translated
+	}
+}
+
+void Stage::updateHud(UpdateContext* theContext)
+{
+	PlayerSpawn* aSpawn = mPlayerSpawns.front().get();
+	if (!aSpawn->isLive())
+		return;
+	if (!mBonus)
+		mHud->getGrowthMeter()->setValue((float)mGameData->getFood());
+	mHud->showTime((int)ceil((double)mTimeLeft));
+	mHud->showLives(mGameData->getLives());
+	mHud->showSuckCharge(aSpawn->getFish()->getSuckCharge());
+	// The bonuses' bubbles (0x455920 and 0x455850 (feedingfrenzy2), the 2X's and the speed's by their timers):
+	// not yet translated, as the bonuses are not
+}
+
+void Stage::setupOverlays()
+{
+	if (!mPlayerSpawns.empty())
+	{
+		mContainer->addChild(mHud.get());
+		mHud->reset();
+		if (!mBonus)
+			mHud->setGrowthGoals(mPlayerSpawns.front().get());
+		// On a bonus stage the HUD's count of its fish (0x4a3f70 (feedingfrenzy2) with +0x2c4): not yet translated
+		mHud->showCounter(mBonus);
+		mHud->showSuck(true);
+	}
+	// The overlays' container (+0x2e4, StageOverlays) on top of the stage's container, the info font's text drawn by
+	// a signal (0x433940 (feedingfrenzy2)) and the stun bubbles' effect in it: not yet translated
 }
 
 void Stage::setupLayers()
@@ -384,9 +470,20 @@ void Stage::start()
 	mCompleted = false;
 	// +0x270 (the boss, null) reset, and the stage's timer at +0x238 cleared (0x406fb0 (feedingfrenzy2)): read by
 	// nothing translated yet
-	// The stage's time (+0x190 and +0x198: in a bonus stage kept, else in the timed mode, the game data's +0x0c at 1,
-	// added to by its +0x2c, else 0) shown on the HUD with the lives and the player's name (0x44c910, 0x494620,
-	// 0x402550, 0x4050d0 and 0x44b4f0 (feedingfrenzy2)): not yet translated, as the HUD is not
+	// The stage's time: in a bonus stage kept, else in the timed mode the time carried in added, else none; shown on
+	// the HUD, rounded up, with the clock shown when there is a time, and the lives and the stage's name
+	if (!mBonus)
+	{
+		if (mGameData->getMode() == GAME_MODE_TIMED)
+			mStageTime = (float)mGameData->getTimeRollover() + mStageTime;
+		else
+			mStageTime = 0.0f;
+	}
+	mTimeLeft = mStageTime;
+	mHud->showTime((int)ceil((double)mTimeLeft));
+	mHud->showTimer(0.0f < mStageTime);
+	mHud->showLives(mGameData->getLives());
+	mHud->showStageName(stageNameOf(getApp()));
 	// The ambient sounds each given their first delay (a draw of the random numbers each), and played at once when
 	// it is none
 	if (mAmbientSounds)
@@ -517,6 +614,7 @@ void RunState::update(UpdateContext* theContext)
 	mStage->updateCamera(theContext);
 	mStage->updateFishVisuals(theContext);
 	mStage->updateAmbientSounds(theContext);
+	mStage->updatePlay(theContext);
 }
 
 void RunState::enter()

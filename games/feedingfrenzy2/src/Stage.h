@@ -27,6 +27,7 @@ class Actor;
 class AIFish;
 class Fish;
 class GameData;
+class GameHud;
 class PlayerFish;
 class PlayerSpawn;
 class Stage;
@@ -120,6 +121,10 @@ public:
 	virtual void pause(bool thePaused);
 	// 0x30 (0x4146b0 (feedingfrenzy2)): the play bounds, the mask container and the layer set
 	virtual void setupLayers();
+	// 0x34 (0x40d1f0 (feedingfrenzy2)): with player spawns, the HUD put on top of the stage's container and made
+	// ready, given the first spawn's growth (a bonus stage's count instead, 0x4a3f70 (feedingfrenzy2), not yet
+	// translated), the bonus's counter shown on a bonus stage and the suck shown; then the overlays (not yet)
+	virtual void setupOverlays();
 	// 0x43d0c0 (feedingfrenzy2): the actors the viewer sees, nearest its mouth first (one as near as one before it
 	// after that one): in the same water or air, within its sight's distance of its mouth, and within its sight's
 	// angle of the way it faces. The list is the stage's, made again by each call
@@ -142,6 +147,13 @@ public:
 	void loadAmbientSounds();
 	// 0x6c (0x439b80 (feedingfrenzy2)): the ambient sounds' update
 	void updateAmbientSounds(engine::UpdateContext* theContext);
+	// 0x5c (0x447ef0 (feedingfrenzy2)): with player spawns, while the first one's fish is in, the HUD's update and
+	// the stage's time counted down. Not yet translated: the jump's marks, the player's death, the phases' and the
+	// times' counts in the game data, the stage's goal and the time's end, which end the stage
+	void updatePlay(engine::UpdateContext* theContext);
+	// 0x44b9b0 (feedingfrenzy2): while the first spawn's fish is in, the growth meter at the food eaten (not on a
+	// bonus stage), the time, the lives and the suck's charge shown (the bonuses' bubbles not yet)
+	void updateHud(engine::UpdateContext* theContext);
 	// 0x58 (0x43a330 (feedingfrenzy2)): each spawn's update, the actors coming in once the script's waves (not yet
 	// translated) are through
 	virtual void updateSpawns(engine::UpdateContext* theContext);
@@ -194,6 +206,8 @@ public:
 	float getSizeUnit() const { return mSizeUnit; }
 	const engine::Color& getWaterColor() const { return mWaterColor; }
 	GameData* getGameData() { return mGameData.get(); }
+	GameHud* getHud() { return mHud.get(); }
+	bool isBoss() const { return mBoss; }
 	engine::Container* getContainer() { return mContainer.get(); }
 	// Set by the stage's loader from the manifest's entry (0x48a810 (feedingfrenzy2))
 	void setStageTime(float theStageTime) { mStageTime = theStageTime; }
@@ -222,7 +236,9 @@ private:
 	float mScrollRate;                             // +0x184
 	float mSizeUnit;                               // +0x188
 	bool mBonus;                                   // +0x18c
-	float mStageTime;                              // +0x190: the manifest's seconds for the stage
+	float mStageTime;                              // +0x190: the manifest's seconds for the stage (in the timed mode
+	                                               // with the time carried in added as it starts)
+	float mTimeLeft;                               // +0x198: the stage's time left, from +0x190 as it starts
 	float mStepTime;                               // +0x19c: the time not yet run in steps
 	engine::Color mWaterColor;                     // +0x1a0
 	std::string mSetPath;                          // +0x1b0: the backdrop's set file
@@ -239,6 +255,7 @@ private:
 	engine::Ref<engine::Theme> mTheme;             // +0x2d4: resource/themes/baseTheme.xml
 	engine::Ref<LayerSet> mLayerSet;               // +0x2d8
 	engine::Ref<engine::Container> mContainer;     // +0x2dc: the application's stage container
+	engine::Ref<GameHud> mHud;                     // +0x2e0
 	engine::Ref<MaskContainer> mMaskContainer;     // +0x2ec
 	bool mNight;                                   // +0x2f0
 	float mLight;                                  // +0x2f4: the night's light now, from minLight

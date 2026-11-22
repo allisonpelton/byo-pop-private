@@ -440,10 +440,34 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
     slot 0x8c, 0x48f270: the fish's for now, so a predator's bite ends its state and its spawn takes it out), the
     poison (the eater's 0x18), the suck and the frenzy bonus's timer (+0x1ec). The effects, texts and sounds left out
     may make draws of their own, so the draws' order is not yet the original's.
+- The HUD, first pass (GameHud.h: GameHud 0x4036d0, its setup 0x482f20 and reset 0x48b0e0; GrowMeter 0x48ce40; the
+  stage's slot 0x34, 0x40d1f0, and the HUD part of its slot 0x5c, 0x447ef0, with 0x44b9b0; the player's frenzy
+  meter 0x4605d0; the engine's slot 0xb8, FormatMessageA from a string). The stage makes the HUD with its theme and
+  reads resource/HUD/hudLayout.xml with the shell's theme; a load with players puts it on top of the stage's
+  container, shows the score, gives the growth meter the last phase's goal with an arrow (growthArrow, centred,
+  3 pixels above the bar's foot less half its height) at each goal before it, shows the bonus's counter only on a
+  bonus stage and the suck's meter, then the loader shows or hides the suck by the stage's canSuck. The start
+  shows the time (the timed mode's time with the time carried in; the clock hidden without one), the lives (at most
+  99) and the stage's number and title ("(id)" without screen data). Each frame of the run, while the first
+  player is in, the growth meter shows the food eaten, the time counts down, and the lives and the suck's charge
+  (red under a half) are shown. The frenzy's word (the string frenzyMeter) lights a letter for each fish of the
+  count's seven in the multiplier's colour, the rest in the step before's, and frenzyMult ("%1!d!x") shows the
+  multiplier from two; the six colours are the static initializer 0x4d7310's.
+  - Checked under rundesk over stage 1: the band, the growth meter filling with the food (its arrows at 225 and
+    500 of 900), the lives going from 3 to 4 at the extra life, the stage's name; exit 0.
+  - Deviations: the clock's separator is a colon (the original asks the locale, LOCALE_STIME, as the stage intro
+    does); the lives and counters are plain digits (0x44e580 groups them by the locale, which leaves under a
+    thousand alone); the engine's formatMessage takes whole numbers only (all the game passes).
+  - Not yet: the score shown rises only as each points bubble reaches it (0x427250 and its signal to 0x410740), so
+    until the bubbles are translated it stays at the stage's start; the fish ranks' four icons (menuImg0 to 3 in
+    selectors, filled by the stage's slot 0x38, 0x405c60, from the fish spawns' ranks of 0x405590, with the fish
+    visuals' HUD pictures, not yet made); the splats (SplatFactory, hudSplats.xml) and the time's warning; the
+    texts' queues (0x5acc20); the jump's height and marks, the medals, the bonuses' bubbles, the bonus stage's
+    counter; the stage's timer that holds the clock.
 
 ## Next
 
-- The HUD (GameHud, +0x2e0); the stage's ends (StageCompleteState, the
+- The HUD's points bubbles, then the fish ranks' icons; the stage's ends (StageCompleteState, the
   continue offer and the game over); the restore-game popup's actions; the quit popup's actions over the intro and
   the pause's End Game; the compositeGroup element (the intro's background group, now skipped).
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's

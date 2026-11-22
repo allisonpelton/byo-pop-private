@@ -2,6 +2,7 @@
 
 #include "Engine.h"
 #include "FishFactory.h"
+#include "GameHud.h"
 #include "GamePlayState.h"
 #include "Random.h"
 #include "ScreenMgr.h"
@@ -141,7 +142,8 @@ void LevelLoadState::load()
 	}
 	aStage->setStageTime((float)mEntry->mStageTime);
 	aStage->setCanSuck(mEntry->mCanSuck);
-	// The HUD's +0x180, +0x244 and +0x248 shown or hidden by canSuck (0x48a910 (feedingfrenzy2)), and the globals at 0x5ac61c and 0x5ac620 (feedingfrenzy2) cleared: not yet translated
+	aStage->getHud()->showSuck(aStage->getCanSuck());
+	// The globals at 0x5ac61c and 0x5ac620 (feedingfrenzy2) cleared: not yet translated
 	aStage->getContainer()->setVisible(true);
 	mLoadStatus = STAGE_LOAD_DONE;
 }

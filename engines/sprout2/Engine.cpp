@@ -7,6 +7,8 @@
 #include "Stream.h"
 #include "Surface.h"
 
+#include <cstdio>
+
 namespace engine
 {
 
@@ -247,6 +249,58 @@ void Engine::removeNamedComponent(Component* theComponent)
 			return;
 		}
 	}
+}
+
+std::string Engine::formatMessage(const std::string& theFormat, int theInsert)
+{
+	std::string aMessage;
+	size_t i = 0;
+	while (i < theFormat.size())
+	{
+		char aChar = theFormat[i];
+		if (aChar != '%' || i + 1 >= theFormat.size())
+		{
+			aMessage += aChar;
+			i++;
+			continue;
+		}
+		char aNext = theFormat[i + 1];
+		if (aNext == '0')
+			break;
+		if (aNext == 'n')
+		{
+			aMessage += "\r\n";
+			i += 2;
+			continue;
+		}
+		if (aNext < '1' || aNext > '9')
+		{
+			// %%, and a percent sign before any other character, give the character
+			aMessage += aNext;
+			i += 2;
+			continue;
+		}
+		i++;
+		int anInsert = 0;
+		while (i < theFormat.size() && theFormat[i] >= '0' && theFormat[i] <= '9' && anInsert < 10)
+			anInsert = anInsert * 10 + (theFormat[i++] - '0');
+		std::string aType = "d";
+		if (i < theFormat.size() && theFormat[i] == '!')
+		{
+			size_t anEnd = theFormat.find('!', i + 1);
+			if (anEnd != std::string::npos)
+			{
+				aType = theFormat.substr(i + 1, anEnd - i - 1);
+				i = anEnd + 1;
+			}
+		}
+		if (anInsert != 1)
+			continue;
+		char aText[64];
+		snprintf(aText, sizeof(aText), ("%" + aType).c_str(), theInsert);
+		aMessage += aText;
+	}
+	return aMessage;
 }
 
 Component* Engine::findNamedComponent(const std::string& theName)
