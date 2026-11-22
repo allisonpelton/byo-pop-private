@@ -25,6 +25,7 @@ namespace Sexy {
 class Board;
 class Background;
 class PIEffect;
+class ClassicEndLevelDialog;
 
 // One gem. Fields are named by what the code that reads them does with them; the ones that nothing translated reads
 // are left out (the fill also sets +0x182 to 1 and +0x244 to 0 on each piece it makes: nothing translated reads them).
@@ -398,6 +399,8 @@ public:
 	void ReshuffleBoard();
 	// slot 161 (0x73b2d0 for Classic) and 0x7602c0 (bejeweled3): no move is left: the score is handed in and the game ends
 	virtual void NoMoreMoves(bool theAnnounce);
+	// slot 233 (0x73b100, Lightning's 0x716ab0): the end-of-game dialog made for the board
+	virtual ClassicEndLevelDialog* MakeEndLevelDialog();
 	void EndGame();   // 0x7602c0 (bejeweled3): the game is over (the end of NoMoreMoves)
 	// 0x767e20 (bejeweled3): the game's end goes on (the counter at +0xd1c) and the end screen comes (slot 233, 0x73b100)
 	void UpdateGameOver();

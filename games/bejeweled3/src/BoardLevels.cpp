@@ -396,6 +396,12 @@ void Board::EndGame()
 	}
 }
 
+// slot 233 (0x73b100): Classic's end dialog (the other modes' boards make their own)
+ClassicEndLevelDialog* Board::MakeEndLevelDialog()
+{
+	return new ClassicEndLevelDialog(this);
+}
+
 // 0x767e20 (bejeweled3): while the game is over the counter goes up each update; at 400 the end screen is asked for (slot 233,
 // 0x73b100): it comes when the wait has run out and no other dialog is up (the exe's check of its dialog list, +0xe7 of the app).
 // port: app +0x39c is 0 and the curve at +0x2f18 is not running
@@ -408,7 +414,7 @@ void Board::UpdateGameOver()
 		mEndDialogWait--;
 		if (mEndDialogWait <= 0 && !mEndScreenShown && gApp->GetDialogCount() == 0) {
 			mEndScreenShown = true;
-			ClassicEndLevelDialog* aDialog = new ClassicEndLevelDialog(this);
+			ClassicEndLevelDialog* aDialog = MakeEndLevelDialog();
 			gApp->AddDialog(ClassicEndLevelDialog::DIALOG_ID, aDialog);
 			aDialog->Move(0, 0);
 		}

@@ -72,6 +72,7 @@ public:
 	bool OnFillAccepted(std::vector<Piece*>& theNewPieces) override;   // slot 185 (0x2e4), 0x716c60
 	void OnPieceCleared(Piece* thePiece) override;                  // slot 143 (0x23c), 0x715360
 	void NoMoreMoves(bool theAnnounce) override;                    // slot 161 (0x284), 0x719350
+	ClassicEndLevelDialog* MakeEndLevelDialog() override;          // slot 233 (0x3a4), 0x716ab0: the Lightning end dialog
 
 	// slot 187 (0x2ec), 0x713fa0: the game ticks left of the round (the Last Hurrah's, once it began), or -1 where the mode has no clock
 	int GetTimeLeft() const;

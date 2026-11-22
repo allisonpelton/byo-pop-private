@@ -2,6 +2,7 @@
 #include "LightningBoard.h"
 
 #include "Bej3App.h"
+#include "EndLevelDialog.h"
 
 #include <algorithm>
 #include <cmath>
@@ -357,6 +358,12 @@ void LightningBoard::NoMoreMoves(bool theAnnounce)
 	mGameTicks = aClock;
 	mClock = (float)aClock;
 	mClockScaleOverride = 0.0f;
+}
+
+// slot 233 (0x3a4), 0x716ab0 (bejeweled3): the Lightning end dialog (SpeedEndLevelDialog), given the seconds of all the time gems matched (+0x30b0)
+ClassicEndLevelDialog* LightningBoard::MakeEndLevelDialog()
+{
+	return new LightningEndLevelDialog(this, mBonusSecondsTotal);
 }
 
 }  // namespace Sexy

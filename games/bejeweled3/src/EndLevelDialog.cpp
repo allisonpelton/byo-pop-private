@@ -326,4 +326,102 @@ void ClassicEndLevelDialog::DrawSpecialGems(Graphics* g)
 	}
 }
 
+// 0x716ab0 (bejeweled3): the dialog of 0x6a7c80 (the leaderboard of the mode's name "Lightning") with the board's +0x30b0
+LightningEndLevelDialog::LightningEndLevelDialog(Board* theBoard, int theBonusSecondsTotal) :
+	ClassicEndLevelDialog(theBoard),
+	mBonusSecondsTotal(theBonusSecondsTotal)
+{
+}
+
+// 0x780130 (bejeweled3), slot 94: the statistics table (slot 92) and the top scores (slot 88), each where the dialog's own drawing leaves it:
+// no section labels over them and no shift down (Classic's 0x7839f0 has both)
+void LightningEndLevelDialog::DrawContent(Graphics* g)
+{
+	DrawStatisticsTable(g);
+	DrawTopScores(g);
+}
+
+// 0x780160 (bejeweled3), slot 89: Highest Multiplier, Best Move, Longest Cascade and Total Time (strings 0x1e3 to 0x1e6), left
+void LightningEndLevelDialog::DrawStatisticsLabels(Graphics* g)
+{
+	static const char* const aDefaults[4] = {"Highest Multiplier", "Best Move", "Longest Cascade", "Total Time"};
+	for (int i = 0; i < 4; i++)
+		g->WriteString(TextById(0x1e3 + i, aDefaults[i]), Scaled(0xe6), Scaled(0x1db + 0x30 * i), -1, -1, true, 0, -1, -1);
+}
+
+// 0x7805e0 (bejeweled3), slot 90: the values, right at 0x2ee: the multiplier (string 0x1e7, "x%d"; the board's +0xe0c), the best move and the
+// longest cascade (counters 25 and 24, as in Classic's) and the time, the 60 seconds and the time gems' as minutes and seconds ("%d:%02d")
+void LightningEndLevelDialog::DrawStatisticsValues(Graphics* g)
+{
+	const int aX = Scaled(0x2ee);
+	char aMultiplier[32];
+	snprintf(aMultiplier, sizeof(aMultiplier), TextById(0x1e7, "x%d").c_str(), mLevelNumber);
+	g->WriteString(aMultiplier, aX, Scaled(0x1db), -1, 1, true, 0, -1, -1);
+	g->WriteString(CommaSeperate(mCounters[COUNTER_BEST_MOVE]), aX, Scaled(0x1db + 0x30), -1, 1, true, 0, -1, -1);
+	g->WriteString(CommaSeperate(mCounters[COUNTER_LONGEST_CASCADE]), aX, Scaled(0x1db + 0x60), -1, 1, true, 0, -1, -1);
+	const int aSeconds = mBonusSecondsTotal + 0x3c;
+	char aTime[32];
+	snprintf(aTime, sizeof(aTime), "%d:%02d", aSeconds / 0x3c, aSeconds % 0x3c);
+	g->WriteString(aTime, aX, Scaled(0x1db + 0x90), -1, 1, true, 0, -1, -1);
+}
+
+// 0x780aa0 (bejeweled3), slot 26: Classic's drawing (0x6a87a0), then DrawResults
+void LightningEndLevelDialog::Draw(Graphics* g)
+{
+	ClassicEndLevelDialog::Draw(g);
+	DrawResults(g);
+}
+
+// 0x780aa0 (bejeweled3) after the dialog's own drawing: the graph's picture and its lines, then the four icons (the counts of the Flame Gems,
+// Star Gems and Hypercubes and the time gems' seconds) and the three coloured boxes (SPEED, SPECIAL, MATCHES), each with its text to the right of
+// it at y 0x2d3, and the chart's side labels "1k" to "5k" going up from y 0x3cf, 0x2e apart. Every picture sits where resources.xml puts it with
+// the setting LIGHTNING_GAMEOVER_DLG_*_OFFSET (all -160 in defaultUIConstants.xml) added to x.
+// port: the chart's bars (stacked, three colours, one for each record the board keeps of its rounds: the exe's +0x36c list, filled by code that
+// is not translated) are not drawn: the chart stays empty, its scale at 1k to 5k as the exe's own with no record
+void LightningEndLevelDialog::DrawResults(Graphics* g)
+{
+	g->DrawImage(IMAGE_GAMEOVER_SECTION_GRAPH, Scaled(GetImageOffsetX(IMAGE_GAMEOVER_SECTION_GRAPH_ID) - 0xa0),
+		Scaled(GetImageOffsetY(IMAGE_GAMEOVER_SECTION_GRAPH_ID)));
+	g->DrawImage(IMAGE_GAMEOVER_LINES, Scaled(GetImageOffsetX(IMAGE_GAMEOVER_LINES_ID) - 0xa0), Scaled(GetImageOffsetY(IMAGE_GAMEOVER_LINES_ID)));
+
+	struct ResultIcon {
+		Image* mImage;
+		int mImageId;
+		const char* mOffsetSetting;
+		std::string mText;
+	};
+	char aFlame[32], aStar[32], aHyper[32], aTime[32];
+	snprintf(aFlame, sizeof(aFlame), TextById(0x1e9, "FLAME x%d").c_str(), mCounters[COUNTER_FLAME_GEMS]);
+	snprintf(aStar, sizeof(aStar), TextById(0x1ea, "STAR x%d").c_str(), mCounters[COUNTER_STAR_GEMS]);
+	snprintf(aHyper, sizeof(aHyper), TextById(0x1eb, "HYPER x%d").c_str(), mCounters[COUNTER_HYPERCUBES]);
+	snprintf(aTime, sizeof(aTime), TextById(0x1ec, "TIME +%d:%02d").c_str(), mBonusSecondsTotal / 0x3c, mBonusSecondsTotal % 0x3c);
+	const ResultIcon aIcons[7] = {
+		{IMAGE_GAMEOVER_ICON_FLAME, IMAGE_GAMEOVER_ICON_FLAME_ID, "LIGHTNING_GAMEOVER_DLG_ICON_FLAME_OFFSET", aFlame},
+		{IMAGE_GAMEOVER_ICON_STAR, IMAGE_GAMEOVER_ICON_STAR_ID, "LIGHTNING_GAMEOVER_DLG_ICON_STAR_OFFSET", aStar},
+		{IMAGE_GAMEOVER_ICON_HYPERCUBE, IMAGE_GAMEOVER_ICON_HYPERCUBE_ID, "LIGHTNING_GAMEOVER_DLG_ICON_HYPERCUBE_OFFSET", aHyper},
+		{IMAGE_GAMEOVER_ICON_LIGHTNING, IMAGE_GAMEOVER_ICON_LIGHTNING_ID, "LIGHTNING_GAMEOVER_DLG_ICON_LIGHTNING_OFFSET", aTime},
+		{IMAGE_GAMEOVER_BOX_YELLOW, IMAGE_GAMEOVER_BOX_YELLOW_ID, "LIGHTNING_GAMEOVER_DLG_BOX_YELLOW_OFFSET", TextById(0x1ed, "SPEED")},
+		{IMAGE_GAMEOVER_BOX_ORANGE, IMAGE_GAMEOVER_BOX_ORANGE_ID, "LIGHTNING_GAMEOVER_DLG_BOX_ORANGE_OFFSET", TextById(0x1ee, "SPECIAL")},
+		{IMAGE_GAMEOVER_BOX_PINK, IMAGE_GAMEOVER_BOX_PINK_ID, "LIGHTNING_GAMEOVER_DLG_BOX_PINK_OFFSET", TextById(0x1ef, "MATCHES")},
+	};
+	const int aLabelSpacing = Scaled(gApp->GetInteger("LIGHTNING_GAMEOVER_DLG_ICON_LABEL_SPACING", 5));
+	g->SetFont(FONT_GAMEOVER_DIALOG_SMALL);   // 0x8d6dfc: the labels' font
+	{
+	LayerColors aLayers(FONT_GAMEOVER_DIALOG_SMALL);
+	aLayers.Set("OUTLINE", Color(255, 255, 255, 255));
+	for (const ResultIcon& anIcon : aIcons) {
+		const int aOffset = gApp->GetInteger(anIcon.mOffsetSetting, -160);
+		const int aX = Scaled(GetImageOffsetX(anIcon.mImageId) + aOffset);
+		g->DrawImage(anIcon.mImage, aX, Scaled(GetImageOffsetY(anIcon.mImageId)));
+		g->WriteString(anIcon.mText, aX + anIcon.mImage->GetCelWidth() + aLabelSpacing, Scaled(0x2d3), -1, -1, true, 0, -1, -1);
+	}
+	}
+	g->SetFont(FONT_GAMEOVER_DIALOG_MED);   // 0x8d7424: the scale's font
+	for (int i = 0; i < 5; i++) {
+		char aScale[16];
+		snprintf(aScale, sizeof(aScale), TextById(0x1f0, "%dk").c_str(), i + 1);
+		g->WriteString(aScale, Scaled(0x14a), Scaled(0x3cf) - Scaled(0x2e) * i, -1, 1, true, 0, -1, -1);
+	}
+}
+
 }  // namespace Sexy
