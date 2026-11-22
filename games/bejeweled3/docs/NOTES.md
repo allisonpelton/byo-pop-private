@@ -278,16 +278,17 @@ SetColorizeImages, 0x434350 and 0x434330 Translate, 0x5835c0 Transform::Reset, 0
 0x434020 DrawImageTransform without and with a source rect (the image's middle at the given point), 0x433040 DrawString,
 0x713770 PushState plus SetScale about a point in 2D, 0x583570 the scale matrix of a PIEffect (+0xba4), 0x58f620 and
 0x58f920 a font layer's colour set and put back). Images: the shadow is IMAGE_CRYSTALBALL_SHADOW (0x306), the ball
-IMAGE_CRYSTALBALL (0x305; the frame is (update count / 4) mod 40, taken as column cel / rows, row cel mod rows through
-0x45b1d0 and 0x45b1e0, the cell width and height), the additive pass while pressed (+0x68) is IMAGE_CRYSTALBALL_GLOW
+IMAGE_CRYSTALBALL (0x305; the frame is (update count / 4) mod 40, the column the cel modulo the columns at the image's
++0x38 and the row the cel over them, as Image::GetCelRect; 0x45b1d0 and 0x45b1e0 are the cell width and height), the additive pass while pressed (+0x68) is IMAGE_CRYSTALBALL_GLOW
 (0x78a, not the ball again), and the arrow at 0x78c0ab is IMAGE_MENU_ARROW (0x7b8), mirrored for curve +0x370. The effects
 are made by the constructor from PIEFFECT_CRYSTALBALL (+0x184, drawn after the ball) and PIEFFECT_CRYSTALRAYS (+0x188,
 drawn before the shadow), both looping, their colour a grey 255 x (1 - curve +0x190). The label colours its font
 layers GLOWOUTLINE white, BOTTOMGLOW (224, 64, 160) and MAIN from +0x468 (constructor: (128, 0, 64, 160)); +0x458 is white.
 
-Not verified: the cell arrangement of the ball sheet (the first run showed each ball as a pale square with the hexagon
-frame and no visible effects, which may be the picture's own look or a wrong cell or blend; it was not looked into
-because every later run waited out the process limit), the effects' visibility, and the colour of the shadow.
+The constructor clears +0x51, the widget's mClip, so the ball, its rays and its label reach past the button's
+rectangle; without that the port drew each ball as a pale square, its middle clipped to the rectangle. With it, the
+balls, their glow and the sparkles show at update 1500 as in the game. Not yet compared with the original: the shadow's
+colour and the effects' look, frame by frame.
 Not translated, each with a "port:" note: the 3D drawing (refraction mesh), the 3D-only curves (+0x288, +0x2f8 stay at
 their default), the hint drawn through 0x8d7a80 when +0x487 and the app's +0x687 are set, +0x486's picture (0x8d7054),
 and the call at the end of Draw to 0x584d60 with +0x20 and +0x480. The width-0 test at the start is "+0x24 set and

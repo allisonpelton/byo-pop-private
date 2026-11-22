@@ -71,6 +71,7 @@ CrystalBall::CrystalBall(const std::string& theText) : mText(theText)
 {
 	mBlendCurve.SetConstant(0.0);
 	mScaleCurve.SetConstant(0.17);
+	mClip = false;               // +0x51: the ball, its rays and its label reach past the button's rectangle
 	mHasTransparencies = true;   // +0x94
 	// the effects are copies of the resource manager's, made to loop
 	mBallEffect = PIEFFECT_CRYSTALBALL->Duplicate();
@@ -148,8 +149,8 @@ void CrystalBall::Draw(Graphics* g)
 	aTransform.Reset();
 	aTransform.Scale(aScaleX, aScaleY);
 	g->DrawImageTransform(IMAGE_CRYSTALBALL_SHADOW, aTransform, 0.0f, 0.0f);
-	int aRows = IMAGE_CRYSTALBALL->mNumRows;
-	Rect aCelRect = IMAGE_CRYSTALBALL->GetCelRect(aCel / aRows, aCel % aRows);
+	// 0x434020: the column is the cel modulo the columns (the image's +0x38), the row the cel over them
+	Rect aCelRect = IMAGE_CRYSTALBALL->GetCelRect(aCel);
 	g->DrawImageTransform(IMAGE_CRYSTALBALL, aTransform, aCelRect, 0.0f, 0.0f);
 	if (mIsDown) {
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
