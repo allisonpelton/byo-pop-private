@@ -302,6 +302,45 @@ def puzzle_world(d, a, settle, secret=False):
         d.shot('w%d-after-warp' % world)
 
 
+def finale(d, a, settle):
+    """TOUR_FINALE=1 (with TOUR_DOME=1, TOUR_WORLDS=1 and a player on the galaxy's last planet, make_gapprofile.py --puzzle 75): after the
+    last warp the credits roll over the finale's scenery ("GALAXY COMPLETED", then the "Back to Main Menu" link at update 1700 of its
+    timer and the MODE UNLOCKED message at 8500). A shot every TOUR_FINALE_STEP updates (400) until the message has been answered
+    and 600 updates more; then the link is clicked (TOUR_LINK, the link's centre in game pixels, 2D: 556,460), the menu and the
+    next Puzzle board are shot, a move is played and a gem clicked once more: the link must be gone and the board must play."""
+    step = int(os.environ.get('TOUR_FINALE_STEP', '400'))
+    link = [int(v) for v in os.environ.get('TOUR_LINK', '556,460').split(',')]
+    seen_dialog = False
+    after = 0
+    for k in range(int(os.environ.get('TOUR_FINALE_SHOTS', '40'))):
+        s = d.state()
+        if s['dialogs']:
+            top = max(s['dialogs'])
+            d.ok('wait 60')
+            d.shot('fin-dialog%d' % top)
+            full.handle_dialog(d, s)
+            seen_dialog = True
+            d.ok('wait 60')
+            continue
+        d.ok('wait %d' % step)
+        d.shot('fin%02d' % k)
+        if seen_dialog:
+            after += 1
+            if after >= 2:
+                break
+    d.click(link)
+    d.ok('wait 200')
+    d.shot('link-menu')
+    s = settle(full.menu_ready)
+    d.click(s['widgets']['puzzle'])
+    settle(lambda s: s['screen'] == 'game' and s.get('phase') == 'idle', screens=True)
+    d.ok('wait 200')
+    d.shot('link-board')
+    full.play(d, 'puzzle', 1, a.out)
+    d.ok('wait 100')
+    d.shot('link-played')
+
+
 def tourmode(d, a):
     """One game mode's screens (`--mode tour:<mode>`, the player of make_profile.py with every mode unlocked): the menu (the secret
     menu for a secret mode), every message and screen in front of the board, the board, the board after --moves moves with five
@@ -374,6 +413,8 @@ def tourmode(d, a):
                 d.shot('level%s-%d' % (level, k))
     if mode in full.PUZZLE_MODES and os.environ.get('TOUR_DOME'):
         puzzle_world(d, a, settle, secret=(mode == 'cognito'))
+        if os.environ.get('TOUR_FINALE'):
+            finale(d, a, settle)
     elif mode in full.PUZZLE_MODES:
         settle(lambda s: s['screen'] == 'game' and s.get('phase') in ('idle', 'puzzle solved'), screens=True)
     if mode in full.PUZZLE_MODES and not os.environ.get('TOUR_DOME') and d.state().get('phase') == 'puzzle solved':
