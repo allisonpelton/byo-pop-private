@@ -444,6 +444,34 @@ bool DescParser::ParseDescriptorLine(const std::string& theDescriptorLine)
 	return true;
 }
 
+// port: the next character of a descriptor. A file that starts with a UTF-8 byte order mark is UTF-8, as the later
+// framework's EncodingParser reads it (Bejeweled 3's flaregothic32.txt, the only such font among its 69): each
+// character comes back as the Latin-1 byte the narrow text uses, the euro sign as 0x80 (its place in Windows-1252,
+// which the fonts without a mark are written in), and any other character above U+00FF, or a malformed sequence, is
+// skipped. Other files are read byte by byte, as before.
+static int ReadDescriptorChar(PFILE* theStream, bool isUTF8)
+{
+	for (;;)
+	{
+		int aChar = p_fgetc(theStream);
+		if (aChar == EOF || !isUTF8 || aChar < 0x80)
+			return aChar;
+		int aTrailCount = aChar >= 0xF0 ? 3 : aChar >= 0xE0 ? 2 : aChar >= 0xC0 ? 1 : 0;
+		int aCodePoint = aChar & (0x3F >> aTrailCount);
+		for (int i = 0; i < aTrailCount; i++)
+		{
+			int aTrail = p_fgetc(theStream);
+			if (aTrail == EOF)
+				return EOF;
+			aCodePoint = (aCodePoint << 6) | (aTrail & 0x3F);
+		}
+		if (aTrailCount > 0 && aCodePoint <= 0xFF)
+			return aCodePoint;
+		if (aCodePoint == 0x20AC)
+			return 0x80;
+	}
+}
+
 bool DescParser::LoadDescriptor(const std::string& theFileName)
 {
 	mCurrentLineNum = 0;
@@ -457,7 +485,12 @@ bool DescParser::LoadDescriptor(const std::string& theFileName)
 
 	PFILE *aStream = p_fopen(theFileName.c_str(),"r");
 	if (aStream==NULL)
-		return false;	
+		return false;
+
+	// port: a UTF-8 byte order mark (ReadDescriptorChar)
+	bool isUTF8 = p_fgetc(aStream) == 0xEF && p_fgetc(aStream) == 0xBB && p_fgetc(aStream) == 0xBF;
+	if (!isUTF8)
+		p_fseek(aStream, 0, SEEK_SET);
 
 	char aBuffChar = 0;
 
@@ -481,7 +514,7 @@ bool DescParser::LoadDescriptor(const std::string& theFileName)
 			}
 			else
 			{
-				aChar = p_fgetc(aStream);
+				aChar = ReadDescriptorChar(aStream, isUTF8);
 				if (aChar==EOF)
 					break;
 			}

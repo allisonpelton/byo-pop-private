@@ -17,7 +17,7 @@ the same machine. A plain run opens a window, raises it over whatever the user i
 - Start every game exe (`bejeweled.exe`, `fwtest.exe`, `smoke.exe`, frozen exes under `build/baseline*`,
   scratch builds) through `build/native/rundesk.exe`, or run the script that starts them under it:
   `build/native/rundesk.exe bash my-loop.sh`. rundesk puts the command and all its children on a private
-  desktop, gives them SDL's silent audio driver (whatever `SDL_AUDIODRIVER` says) and below-normal priority. Build it
+  desktop, gives them SDL's silent audio driver (whatever `SDL_AUDIODRIVER` says) and below-normal processor and GPU priority. Build it
   with `cmake --build build/native --target rundesk`. `tools/check.sh`, `games/bejeweled/tools/oracle/compare.sh` and
   `games/bejeweled/tools/livesplit/run_tests.sh` re-run themselves under it; run `build/native/lsprobe.exe`, which
   starts the game it probes, under it too.
@@ -122,6 +122,24 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   processes, no link, "Buy" or "More Games" click, a window shown without taking the focus, the user's cursor and
   keyboard never touched (input posted to the game's own window), the window, registry and saves put back as
   `docs/ORIGRUN.md` says, nothing left running.
+- **Shots of an original outside the Sandbox, by an in-game reader only (the user, 2026-11-22):** Windows Sandbox runs
+  one instance at a time (a second `wsb start` is refused with CO_E_APPSINGLEUSE), so every original's shot queued
+  behind one sandbox. Asked whether to lift the host-capture ban (`docs/ORIGRUN.md`) for a reader inside the original
+  that copies the game's own off-screen frame, the user said "Yes, with safeguards". The safeguards: the reader
+  copies only surfaces or buffers the game itself created to draw into, never the primary surface, the screen or
+  anything another program drew; each shot is checked against the game's window size and the frame the game just
+  presented, and one that fails is deleted unopened and reported; and no session uses it for a game until a trial has
+  compared its shots with sandbox shots of the same screens. Until a game passes that trial, the ban stands for it.
+  Apart from that, origrun's ban holds as before. visrun's `PrintWindow` shots of a game's own window on the visible
+  desktop (`docs/VISRUN.md`, the 3D route) are not part of that ban and go on unchanged.
+- **The visible desktop as a second lane, four windows at once (the user, 2026-11-22):** asked whether desktop runs may
+  use the right half of the screen with up to four windows at once, the user said "Right half, four". Runs on the
+  visible desktop, 2D as well as 3D, keep to the right half of the screen (x from half the screen's width), each
+  window in a place of its own so that none overlaps another, with at most four game windows there at once and the
+  machine's limit of 10 game processes over all. Everything else in "Desktop and Sandbox at any hour" holds: no
+  focus taken, the user's cursor and keyboard never touched, input posted to the game's window, windows, registry
+  and saves put back. A game's 2D shots from the desktop count only after one of its tours has been compared both
+  ways, desktop against sandbox. Until visrun has the four places, it runs one window at a time, as before.
 
 ## Token economy (the user's rules, 2026-10-24)
 
