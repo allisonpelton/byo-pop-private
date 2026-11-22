@@ -11,6 +11,8 @@
 namespace Sexy {
 
 class Bej3Music;
+class Board;
+class MemoryImage;
 class MainMenu;
 class PrimeResourceManager;
 class Profile;
@@ -38,6 +40,12 @@ public:
 	Profile* mProfile = nullptr;            // +0xb80: the players and the one loaded
 	MainMenu* mMainMenu = nullptr;          // +0xba0: the first screen
 	Bej3Music* mBej3Music = nullptr;        // +0xa30: the same object as mMusicInterface, with the game's songs (null without sound)
+	Board* mBoard = nullptr;                // +0xbe8: the game screen (made by the mode's start, 0x7737d0 for Classic)
+	// +0xb5c: the gems' sprites, made by 0x76bfc0 from IMAGE_GEMS_SHADOWED: a row of 15 for each colour (the frame is picked by
+	// the gem's size). port: made when the first board is made, not at the end of loading
+	MemoryImage* mGemFrames[7][15] = {};
+	void MakeGemFrames();                   // 0x76bfc0 (bejeweled3)
+	bool mSavedGameChosen = false;          // +0xc31: set when a mode's start resumed a saved game; cleared before a mode starts
 	QuestDataParser* mDefaultQuestData = nullptr;  // +0xbc8: properties\defaultquest.cfg
 	QuestDataParser* mQuestData = nullptr;  // +0xbcc: properties\quest.cfg
 	QuestDataParser* mSecretQuestData = nullptr;   // +0xbd0: properties\secret.cfg
@@ -75,6 +83,16 @@ public:
 	void LoadTextFiles();
 	// 0x7748e0 (bejeweled3): the players, and the last one chosen (the registry's "LastUser") or the first that loads
 	void LoadProfile();
+
+	// 0x7737d0 (bejeweled3): starts Classic: the board of the last game goes, a new ClassicBoard is made as big as the
+	// screen, put on it with the focus, its first game dealt, and the game's music starts. port: the saved game that
+	// 0x76cde0 asks about is none
+	void StartClassic();
+
+	// 0x7716e0 (bejeweled3): the game screen is leaving: the play menu (the screen PLAY opens) comes back and the menu's song plays
+	void ShowPlayMenu();
+	// port: the standard test commands (docs/TEST_COMMANDS.md): seed, state, goto classic
+	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
 
 	// 0x76aaf0 (bejeweled3): plays a sound of the sound manager at a volume, pan and pitch (steps); nothing when muted
 	void PlaySoundEx(int theSoundId, double theVolume, int thePan, double thePitch);

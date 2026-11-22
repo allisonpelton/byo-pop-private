@@ -48,7 +48,7 @@
 #   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
-#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), gamepicstest (the themes' picture decoders, web/gamepics.js), saveimporttest (the import of saves from an installed game:
+#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), fontviewtest (the Fonts window's reader of the games' fonts, web/fontview.js, with the staged games'), buildingstest (the Venice Buildings window's layout, web/buildings.js, with the staged Venice's), guidestest (the guides' markup and style rules, web/guides.js and web/guidetexts.js), gamepicstest (the themes' picture decoders, web/gamepics.js), saveimporttest (the import of saves from an installed game:
 #                platform/saveimport.json, the .reg reader and the conversion, web/saveimport.js), chattest (the chat's username,
 #                text and rate rules, its stored history and local source, and that a message goes on the page as text only,
 #                web/chat.js), gameimporttest (the import rules for a game's files and the sorting of dropped folders into games,
@@ -174,7 +174,7 @@
 #                mode unlocked) in each of its nine modes: the transcript of every state and move, and the end screen, must be
 #                the frozen ones, and so must the Puzzle finale's 40 shots (credits roll, link, Mode Unlocked box); an Action
 #                rerun is identical, and so are the games played by build/baseline-bejeweled2/bejeweled2.exe when there is one
-#                (about five minutes, nine with the baseline)
+#                (about five minutes with the baseline, 275 s on main on 2026-11-22)
 #   astropop     AstroPop's bot through tools/playbymove (real input, -hold): a classic game from level 1, one from level 4 and a
 #                survival game, 120 moves each, and a rerun of the first with the same transcript, and
 #                build/baseline-astropop/astropop.exe's when there is one (about a minute)
@@ -940,6 +940,15 @@ suite_unit-web() {
 	# the trophy cabinet's reader of the games' high-score files (web/trophies.js)
 	"$NODE" tools/trophiestest.js > "$1.tr" 2>&1 || st=1
 	tr="$(lastof "$1.tr" 'trophiestest:')"
+	# the Fonts window's reader of the games' ImageFonts (web/fontview.js), with every staged game's fonts
+	"$NODE" tools/fontviewtest.js assets > "$1.fv" 2>&1 || st=1
+	tr="$tr; $(lastof "$1.fv" 'fontviewtest:')"
+	# the Venice Buildings window's layout of the level select's row (web/buildings.js), with the staged Venice's
+	"$NODE" tools/buildingstest.js assets > "$1.vb" 2>&1 || st=1
+	tr="$tr; $(lastof "$1.vb" 'buildingstest:')"
+	# the guides' markup and the rules of docs/GUIDE_STYLE.md that a program can check (web/guides.js, web/guidetexts.js)
+	"$NODE" tools/guidestest.js > "$1.gd" 2>&1 || st=1
+	tr="$tr; $(lastof "$1.gd" 'guidestest:')"
 	# the desktop themes' picture decoders (web/gamepics.js)
 	"$NODE" tools/gamepicstest.js "$web/jp2.js" > "$1.gp" 2>&1 || st=1
 	gp="$(lastof "$1.gp" 'gamepicstest:')"
@@ -1011,8 +1020,8 @@ suite_unit-web() {
 	# the JPEG decoder under wasm: the same checks as native, with the error paths through Emscripten's setjmp/longjmp
 	(cd "$web" && "$NODE" jpegtest.js) > "$1.jpg" 2>&1 || st=1
 	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
-	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
+	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
 	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $rz; $q; $r; $sf; $as; $u; $v; $w; $o"
 	return $st
 }
@@ -1048,6 +1057,9 @@ suite_origrun() {  # the host and its sound stand-in compile (into a folder of t
 		# the network block from end to end on nettest.exe (tools/origrun/nettest.sh): every hooked call fails at once and is logged
 		tools/origrun/nettest.sh "$W/$OUT/origrun-bin" "$W/$OUT/nettest" >> "$1" 2>&1 || st=1
 		net="; $(lastof "$1" 'network block and launch guard:')"
+		# the activation hook from end to end on actest.exe (tools/origrun/actest.sh): a window shown inactive stays inactive through every hooked call
+		tools/origrun/actest.sh "$W/$OUT/origrun-bin" "$W/$OUT/actest" >> "$1" 2>&1 || st=1
+		net="$net; $(lastof "$1" 'activation hook:')"
 		# --count from end to end on counttest.exe (tools/origrun/counttest.sh): the cycles of five functions, counted by their own time
 		tools/origrun/counttest.sh "$W/$OUT/origrun-bin" "$W/$OUT/counttest" >> "$1" 2>&1 || st=1
 		net="$net; $(lastof "$1" '^count:')"

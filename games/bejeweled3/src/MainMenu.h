@@ -67,6 +67,7 @@ public:
 
 	// The listener: slots 2 and 4 of the exe's second vtable (0x6a2de0 and 0x6a0860)
 	void ButtonDepress(int theId) override;
+	void OpenPlayMenu();
 	void ButtonMouseEnter(int theId) override;
 };
 

@@ -95,6 +95,10 @@ holds no place, so `--places` shows its window only as an overlapping window; a 
    the end (or by `visrun.py CONFIG --restore` after an interrupted run, which `build/visrun/<name>/backup` marks) all are
    put back, and a key or folder that did not exist is removed again. The game is asked to close, and only if it will not,
    ended by its own process handle. visrun stops no other process, and the working copy is deleted (`--keep-copy` keeps it).
+   A run that is stopped from outside (a stopped background task, a killed queue script) puts nothing back: whoever stops
+   it runs `--restore` for its config at once, since until then the user's own saves and key are the staged ones. The next
+   run refuses to start over the backup, but that may be hours later (Bookworm Adventures, 2026-11-22: a queue stopped at
+   08:12 left the user's own save out of their WinBAD users folder until 10:51).
 
 ## The config (TOML)
 
@@ -103,6 +107,7 @@ holds no place, so `--places` shows its window only as an overlapping window; a 
 | `name` | The run's tag, under `build/visrun/<name>/`. |
 | `game` or `source_exe` | A `games.tsv` name that origrun stages, or a ready copy's exe. |
 | `exe`, `carve_exe` | The exe's leaf name in the copy, and a carved exe to place as it. |
+| `args` | The game's command-line arguments, a list (Bejeweled Twist's Blitz: `["-autoplay=blitz", "-4x3"]`). |
 | `patches` | A patch list (origrun's format), applied with `--seed`. |
 | `title`, `client` | A text the window's title holds, and the least client size of the game window (`[w, h]`). |
 | `pos` | Ignored: the run's place decides where the window goes. |
@@ -127,6 +132,9 @@ comment. Coordinates are the game's client pixels.
 - `at N <cmd>`, `at +N <cmd>` (counting from the last `mark`), `t <seconds> <cmd>` (since the window came), or a bare
   `<cmd>` (at once). `<cmd>` is `shot <name>`, `burst <name> <count> update <k>`, `peek`, `move x y`, `click x y`, `rclick`,
   `dclick`, `down`, `up`, `rdown`, `rup`, `key <vk>`, `text <chars>`, `focus lose|regain`.
+  A `focus lose` stands until the file's own `focus regain`: visrun otherwise tells the game it has the focus again before
+  each step, since the game never holds the foreground. A game that stops counting updates while unfocused (Bejeweled
+  Twist) needs `t` or `wait` steps until the regain, not `at`.
 - `waitcue <cue> [seconds]`, `waitfor <expr> <op> <value> [ms]`, `mark`, `wait <ms>` (real time; ignored on the virtual
   clock), `quit`. `waitshot` is accepted and ignored (visrun always waits for the window).
 - `gate <cue> <wanted> [fade]`: wait for the cue (a title's "loaded" flag), then for the update `wanted` or the loaded update
@@ -151,6 +159,13 @@ header, and `tools/check.sh unit` runs it; a change to `VcShared` changes both. 
 block with the version 2 offsets: the watch ring's head and tail were garbage, its drain wrote without end (17.6 GB of
 `watch.log` in Heavy Weapon's 3D run, 2026-11-22) and the run never closed the game. A drain now takes at most one
 ring's worth and logs a gap larger than that once.
+
+The stand-in holds the game at its main thread's first wait (`ORIGRUN_CLOCK_HOLDSTART`), so the first step finds it
+where it started. That wait can come before the window: Bookworm Adventures waits before it makes its window. Until the
+window exists, visrun lets each such hold go on to the next wait, so the game stands at its first wait after the window
+(the log's "window after" line counts the waits). Without this, visrun waited for a window the held game could not make,
+the stand-in gave up the hold at its 60 s cap and turned holds off, and the counter never moved (Bookworm Adventures'
+runs from 2026-11-22, each with its window after about 62 s and the end at update 0).
 
 ## Lessons from the first live runs
 
