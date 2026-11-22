@@ -85,6 +85,10 @@ public:
 	// updates, the top one only to "death" or else to "unpowered"; the label is kept
 	void StartHudLabel(const char* theLabel, int theTime);
 
+	// slot 218 (0x714130) and 0x73d9f0 (bejeweled3): the red warning of the last seconds without an account, and its alpha
+	bool IsWarning() const;
+	int GetWarningAlpha(float theBoardAlpha) const;
+
 	// slot 187 (0x2ec), 0x713fa0: the game ticks left of the round (the Last Hurrah's, once it began), or -1 where the mode has no clock
 	int GetTimeLeft() const;
 

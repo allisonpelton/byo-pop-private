@@ -226,6 +226,20 @@ void LightningBoard::Update()
 		else
 			mGemSpacing = (int)((unsigned)mGemSpacing - mRand.Next() % 5);
 	}
+	// 0x717e45 (bejeweled3): the screen shakes in the first 99 updates of the ending (+0x30a4 above 0 and below 100) in every third update of
+	// the board: the board's own place (+0x40, +0x44) is moved by a draw of the app's Rand() each, as far as 12 of 1200 of the art size
+	// (a draw from -0.5 to 0.5 over 100 less the ending's age, the share of the 100 that is left)
+	if (mEndingAge > 0 && mEndingAge < 100 && mUpdateCnt % 3 == 0) {
+		const double anArtShare = (double)gApp->mArtRes * 12.0 / 1200.0;
+		int aShakeX = 0;
+		int aShakeY = 0;
+		for (int* aShake : {&aShakeX, &aShakeY}) {
+			float aDraw = (float)((double)(Rand() % 1000000 - 500000) / 500000.0);
+			*aShake = Ftol(anArtShare * (((double)(100 - mEndingAge) * (double)aDraw) / 100.0));
+		}
+		mX = aShakeX;
+		mY = aShakeY;
+	}
 	// the end of the update: a big explosion running slows the clock
 	if (mCheckerFlash > 0.0f) {
 		if (mClockScaleOverride != 0.0f)
@@ -406,8 +420,9 @@ const int PANEL_MIDDLE_X = 0xfa;
 const int PANEL_PICTURE_SHIFT = -400;
 // the HUD animations are drawn this far left of the board's own origin (1200ths: 0x714840, 0x715cb0)
 const int HUD_SHIFT_X = -0xa0;
-// slot 218 (0x714130): the clock warns in the last 1000 ticks (10 of the 60 seconds)
+// 0x73b7c0 (bejeweled3): the clock warns in the last 1000 ticks (10 of the 60 seconds), 1500 for a round of more than 60 seconds
 const int WARNING_TICKS = 1000;
+const int WARNING_TICKS_LONG = 1500;
 
 // 0x713850 (bejeweled3) at a scale of 1: the picture drawn with its middle at the point
 void DrawCentered(Graphics* g, Image* theImage, int theX, int theY)
@@ -460,6 +475,35 @@ void LightningBoard::DrawScoreText(Graphics* g)
 	g->WriteString(CommaSeperate(mScore), Scaled(0xf2), Scaled(0xd2), -1, 0, true, 0, -1, -1);
 }
 
+// slot 218 (0x714130): no warning with an account of seconds; else 0x73b7c0: a round with a length whose time left is under the warning's
+bool LightningBoard::IsWarning() const
+{
+	if (mBonusSeconds != 0)
+		return false;
+	const int aLimit = GetTimeLimit();
+	return aLimit > 0 && GetTimeLeft() < (aLimit <= 60 ? WARNING_TICKS : WARNING_TICKS_LONG);
+}
+
+// 0x73d9f0 (bejeweled3): the warning's colour is white and its alpha this: the board's alpha (slot 175) times 127 (1 + sin(0.15 of the
+// board's update count)) times how far into the warning the clock is, (window - time left) / window; once the time is out that fades
+// over 450 more game ticks of the round's length (a flag at +0x12f8 that would make it 0 is not translated: it is not set)
+int LightningBoard::GetWarningAlpha(float theBoardAlpha) const
+{
+	const int aLimit = GetTimeLimit();
+	const int aWindow = aLimit <= 60 ? WARNING_TICKS : WARNING_TICKS_LONG;
+	const int aLeft = GetTimeLeft();
+	float aFraction = (float)((double)(aWindow - aLeft) / (double)aWindow);
+	if (aLeft == 0) {
+		int aFade = aLimit * 100 - mGameTicks + 450;
+		if (aFade < 0)
+			aFade = 0;
+		aFraction = (float)((double)aFade / 200.0 * (double)aFraction);
+	}
+	const float aSine = (float)std::sin((double)(float)((double)mUpdateCnt * (double)0.15f));
+	const int anAlpha = Ftol((double)theBoardAlpha * (127.0 * (double)aSine + 127.0) * (double)aFraction);
+	return anAlpha < 0 ? 0 : (anAlpha > 255 ? 255 : anAlpha);
+}
+
 // slot 43 (0x2c), 0x716ef0 (bejeweled3): the mode's overlay 0x715cb0 (the order below is the exe's), then the top animation 0xa0 left
 // of the origin. port: not translated: the PIEffects of the mega gem's shard (PIEFFECT_LIGHTNING_POWERED_MEGASHARD), the side bolts
 // (..._LEFTRIGHT) and the countdown's glow (PIEFFECT_COUNTDOWNBAR), which the exe edits keyframe by keyframe in its update; the
@@ -483,6 +527,11 @@ void LightningBoard::DrawModeOverlay(Graphics* g)
 	double aLift = aShare > 0.0f ? std::pow((double)aShare, 0.5) : 0.0;
 	g->Translate(Scaled(0x38), Ftol((double)Scaled(0x118) * aLift) + Scaled(-0x16));
 	POPANIM_ANIMS_GEM_MEGA->Draw(g);
+	// 0x715cb0: after the gem (and the shard's effect, not translated) the red shard fades in with the warning, in the same translation
+	if (IsWarning() && IMAGE_INGAMEUI_MEGASHARD_RED_LIGHTNING != nullptr) {
+		g->SetColor(Color(255, 255, 255, GetWarningAlpha(aAlpha)));
+		g->DrawImage(IMAGE_INGAMEUI_MEGASHARD_RED_LIGHTNING, Scaled(0x2d), Scaled(0x22));
+	}
 	g->PopState();
 	if (mBonusSeconds > 0) {
 		g->PushState();
@@ -538,12 +587,9 @@ void LightningBoard::DrawModeOverlay(Graphics* g)
 	g->SetColor(Color(255, 255, 255, aAlphaByte));
 	DrawCentered(g, IMAGE_INGAMEUI_TIMER_LIGHTNING, aMarkerX, Scaled(0x4c));
 
-	// slot 218 (0x714130): in the last ten seconds without an account the screen's edge and the timer glow red
-	int aLeft = GetTimeLeft();
-	if (mBonusSeconds == 0 && !mTimeUpShown && aLeft >= 0 && aLeft < WARNING_TICKS) {
-		float aFraction = (float)(WARNING_TICKS - aLeft) / (float)WARNING_TICKS;
-		int aRed = Ftol((double)aAlpha * (std::sin((double)(float)mGameTicks * 0.15) * 128.0) * (double)aFraction);
-		aRed = aRed < 0 ? 0 : (aRed > 255 ? 255 : aRed);
+	// slot 218 (0x714130): without an account in the last ten seconds the screen's edge and the timer glow red
+	if (IsWarning()) {
+		const int aRed = GetWarningAlpha(aAlpha);
 		g->PushState();
 		g->SetColor(Color(255, 255, 255, aRed));
 		DrawCentered(g, IMAGE_INGAMEUI_TIMER_RED_LIGHTNING, aMarkerX, Scaled(0x4c));
