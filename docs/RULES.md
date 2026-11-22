@@ -75,7 +75,9 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   still get slots. A sandbox run waiting in origrun's queue is not one of them: it counts once it holds the sandbox,
   as the running sandbox (the user, 2026-11-22, asked whether a waiting run keeps counting: "Count only once running",
   after nine queued runs had held nine slots while ports waited). `gamecount` counted that way already; only the
-  sessions' own tally changes.
+  sessions' own tally changes. The 30 s slot that `gamecount --limit` reserves stops counting once its game has
+  started, so a launch counts once (2026-11-22: reservations had held three or four of the ten slots while the
+  processor was two-thirds idle). Start the game from the shell or script that made the reservation.
 - Only one oracle runs on the machine at a time. To wait for another, look for processes that run the oracle script
   (a command line like `bash .../compare.sh ...`) and exclude your own process tree. Never put the wait loop in the
   same shell command that later starts compare.sh: that shell's own command line contains "compare.sh", so it waits
