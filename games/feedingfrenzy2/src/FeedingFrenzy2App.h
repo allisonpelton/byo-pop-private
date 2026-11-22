@@ -79,6 +79,8 @@ public:
 	// WM_ACTIVATE: the engine's activate signal
 	void GotFocus() override;
 	void LostFocus() override;
+	// port: the test commands (docs/TEST_COMMANDS.md): unlock all
+	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
 
 	// A frame of the engine (0x438700 (feedingfrenzy2))
 	void RunFrame();

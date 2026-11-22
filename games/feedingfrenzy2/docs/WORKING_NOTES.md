@@ -362,10 +362,14 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   (0x41ad50; the last set, an end marker with no stages, starts at the end of the spline before it). Translated from
   the assembly, the x87 sums kept in doubles. Checked under rundesk: the load's map shows every pin along the paths,
   one set's flowing into the next. Not compared with the original's map yet (the looks pass).
+- The first test command, `unlock all` (FeedingFrenzy2App::HandleScriptCommand, answered OK or ERROR on SDL's log):
+  every mode's furthest stage set to the count of stages and the player saved. Checked under rundesk with it: Start
+  Game shows the map for picking (every pearl gold, "New Game", the instruction, Back To Menu), and a click on the
+  first pearl loads stage1, exit 0.
 
 ## Next
 
-- The map's picking path checked with a player who has reached a stage. Then the restore-game popup's actions, StageIntroState (0x49d1b0) and
+- Then the restore-game popup's actions, StageIntroState (0x49d1b0) and
   GamePlayState, the players' spawn and the HUD, toward a stage in play.
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's
   simplesound). The stage's slot 0x5c (0x447ef0) is not a clean-up but the stage's ending (player died, perfect, stage

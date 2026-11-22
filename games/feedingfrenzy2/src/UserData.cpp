@@ -182,3 +182,10 @@ void UserData::clearSavedGame(int theMode)
 	aRecord.mTimeRollover = 0;
 	save();
 }
+
+void UserData::unlockAll(int theStageCount)
+{
+	for (int aMode = 0; aMode < GAME_MODE_COUNT; aMode++)
+		mModes[aMode].mMaxStage = theStageCount;
+	save();
+}

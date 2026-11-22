@@ -10,6 +10,8 @@
 #include "Surface.h"
 #include "WidgetManager.h"
 
+#include <SDL.h>
+
 #include <cstring>
 
 using namespace Sexy;
@@ -260,6 +262,23 @@ void FeedingFrenzy2App::Init()
 	// port: the original's window gets WM_ACTIVATE as it opens; the framework has the focus from the start and sends
 	// no first activation, so the state it has is passed on
 	mEngine->mActivateSignal.emit(mHasFocus);
+}
+
+bool FeedingFrenzy2App::HandleScriptCommand(const ScriptCommand& theCommand)
+{
+	if (theCommand.mCommand != "unlock")
+		return false;
+	std::string aLine = theCommand.mCommand + " " + theCommand.mArgs;
+	if (theCommand.mArgs != "all")
+		SDL_Log("ERROR %s: only unlock all", aLine.c_str());
+	else if (mGame == nullptr || mGame->mUserData == nullptr || mGame->mUserData->getName().empty())
+		SDL_Log("ERROR %s: no player", aLine.c_str());
+	else
+	{
+		mGame->mUserData->unlockAll((int)mGame->mGameData->getStages().getStages().size());
+		SDL_Log("OK %s", aLine.c_str());
+	}
+	return true;
 }
 
 void FeedingFrenzy2App::GotFocus()

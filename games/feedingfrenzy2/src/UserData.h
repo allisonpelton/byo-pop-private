@@ -57,6 +57,9 @@ public:
 	// 0x402750 (feedingfrenzy2): empty for no player
 	const std::string& getName() const { return mName; }
 	const ModeRecord& getMode(int theMode) const { return mModes[theMode]; }
+	// port (the test command unlock all): every mode's furthest stage the count of stages, as a player who has
+	// finished both has, and the player saved
+	void unlockAll(int theStageCount);
 	// 0x49fa40 (feedingfrenzy2): the mode's record holds a game to go on with
 	bool hasSavedGame(int theMode) const { return mModes[theMode].mLastStage >= 0 && mModes[theMode].mLastScore >= 0; }
 	// 0x49ae90 (feedingfrenzy2): the game kept in its mode's record, the stages reached raised to its stage
