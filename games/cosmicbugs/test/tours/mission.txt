@@ -1,0 +1,100 @@
+# The last board and the mission-complete screen: a save with every board unlocked (the port's `unlock all`, build/cbw/unl:
+# cb.dat), Start Game, the world "Levels 500-577", the level slider up to 577 (80 clicks on its right arrow), the board, one
+# line, a win (the runner's `cmd win` fills to the quota at once; the original is patched to win at the first filled line:
+# mission.orig.txt), the texts clicked through, the mission-complete screen and its Continue.
+3000 click 175 313
+4500 click 188 208
+6000 shot m_slider0
+6500 click 690 312
+6800 click 690 312
+7100 click 690 312
+7400 click 690 312
+7700 click 690 312
+8000 click 690 312
+8300 click 690 312
+8600 click 690 312
+8900 click 690 312
+9200 click 690 312
+9500 click 690 312
+9800 click 690 312
+10100 click 690 312
+10400 click 690 312
+10700 click 690 312
+11000 click 690 312
+11300 click 690 312
+11600 click 690 312
+11900 click 690 312
+12200 click 690 312
+12500 click 690 312
+12800 click 690 312
+13100 click 690 312
+13400 click 690 312
+13700 click 690 312
+14000 click 690 312
+14300 click 690 312
+14600 click 690 312
+14900 click 690 312
+15200 click 690 312
+15500 click 690 312
+15800 click 690 312
+16100 click 690 312
+16400 click 690 312
+16700 click 690 312
+17000 click 690 312
+17300 click 690 312
+17600 click 690 312
+17900 click 690 312
+18200 click 690 312
+18500 click 690 312
+18800 click 690 312
+19100 click 690 312
+19400 click 690 312
+19700 click 690 312
+20000 click 690 312
+20300 click 690 312
+20600 click 690 312
+20900 click 690 312
+21200 click 690 312
+21500 click 690 312
+21800 click 690 312
+22100 click 690 312
+22400 click 690 312
+22700 click 690 312
+23000 click 690 312
+23300 click 690 312
+23600 click 690 312
+23900 click 690 312
+24200 click 690 312
+24500 click 690 312
+24800 click 690 312
+25100 click 690 312
+25400 click 690 312
+25700 click 690 312
+26000 click 690 312
+26300 click 690 312
+26600 click 690 312
+26900 click 690 312
+27200 click 690 312
+27500 click 690 312
+27800 click 690 312
+28100 click 690 312
+28400 click 690 312
+28700 click 690 312
+29000 click 690 312
+29300 click 690 312
+29600 click 690 312
+29900 click 690 312
+30200 click 690 312
+31000 shot m_slider
+31500 click 400 563
+35000 click 300 250
+36500 cmd win
+37500 click 400 300
+38500 click 400 300
+39500 click 400 300
+41600 shot mission_fade
+42800 shot mission
+43100 click 400 563
+44600 shot mission_after
+47600 shot mission_after2
+48500 end

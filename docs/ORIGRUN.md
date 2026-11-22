@@ -18,7 +18,8 @@ The rules a session follows:
   puts the link buttons next to Play.
 - Start `origrun.exe` directly, never under rundesk: it puts the game there itself, and wrapped it fails with
   "cannot start the command".
-- A run is one game process for the machine's limit, a sandbox run too, also while it waits in the queue. A run
+- A run is one game process for the machine's limit, a sandbox run once it holds the sandbox; a run waiting in the
+  queue is not (the user, 2026-11-22, "Count only once running"; `docs/RULES.md`). A run
   past about 4 minutes goes in the background of the session that owns it, never in a subagent.
 - Sound and saves: "You are welcome to run the originals with sound on and mess with my save data" (the user,
   2026-10-31; their saves are backed up). Silence and an untouched registry are therefore conveniences, not
@@ -73,7 +74,7 @@ placed yourself, such as a real exe carved out of a wrapper. Shots land in
 | `--counter <expr>`, `--flips <expr>`, `--update-ms <ms>` | The game's update counter, an optional per-frame counter and one update's length ("Timing to the game's updates"); with `flips` a held shot waits for the next present instead of the next update. Config keys `counter=`, `flips=`, `update_ms=`. |
 | `--pending-draw <expr>`, `--update-state <expr>`, `--draw-empty <expr>` | A SexyAppBase game's `mHasPendingDraw` (one byte), `mUpdateAppState` and optionally `mLastDrawWasEmpty` (one byte), so that a sandbox shot shows exactly the update it is labelled with. Config keys `pending_draw=`, `update_state=`, `draw_empty=`. |
 | `--surface-screen`, `--surface`, `--surface-screen-base`, `--surface-eip`, `--surface-gate`, `--sample` | Read a shot from the game's memory instead of its window ("Timing to the game's updates"). |
-| `--reader-trial` | A host run whose only shots are `at <N> shot` lines takes them through the in-game frame reader although the game's config has no `reader_trial=passed ...`: only for the reader's trial against sandbox shots ("The in-game frame reader"). Refused with `--sandbox` and for any other script. |
+| `--reader-trial` | Marks a host reader run whose shots are for a comparison with sandbox shots of the same screens ("The in-game frame reader"); its log says so. No longer needed for a game without a trial line, since none is required. Refused with `--sandbox` and for any other script. |
 | `--reader-surface <expr>`, `--reader-waits <hex,...>` | The game's draw surface and the waits that follow a present, for the reader (config keys `reader_surface=` and `reader_waits=`). |
 | `--input-eip lo,hi[,...]` | Hold an `at` input until the game thread is outside these address ranges (config key `inputeip`). |
 | `--arg <text>` | Added to the game's command line, e.g. `--arg -autoplay`. Repeatable, 255 characters in all; letters, digits and `- = _ . ,` only. Passed into the sandbox too. |
@@ -205,14 +206,14 @@ sandbox's own display. A shot that shows anything but the game's own window is d
 possible, and reported to the coordinator.
 
 One exception is approved (the user, 2026-11-22, `docs/RULES.md`): a reader inside the original that copies only
-the game's own off-screen frame, never the primary surface, with each shot checked and a trial against sandbox
-shots before any game uses it. It is built ("The in-game frame reader", next), and for a game that has not passed
-its trial the ban above holds unchanged.
+the game's own off-screen frame, never the primary surface, with each shot checked. It is built ("The in-game frame
+reader", next). The trial against sandbox shots that each game first had to pass was dropped the same day (the
+user: "Drop it"), so any game whose draw surface the reader accepts uses it.
 
 ### The in-game frame reader
 
-On the host, a script's `at <N> shot` lines are taken by a reader inside the original, for a game that passed the
-reader's trial. It lives in the sound stand-in beside the virtual clock (`tools/origrun/reader.c`) and hooks
+On the host, a script's `at <N> shot` lines are taken by a reader inside the original, for any game whose config
+says where its draw surface is. It lives in the sound stand-in beside the virtual clock (`tools/origrun/reader.c`) and hooks
 nothing. When the clock holds the game's main thread at the update an `at` waited for, origrun asks for a read
 through the clock's shared block, and the held thread itself calls the methods of the game's own draw surface:
 `QueryInterface` for `IDirectDrawSurface7`, `GetSurfaceDesc`, `Lock` read-only, `Unlock` and `Release`. The rows go
@@ -248,16 +249,10 @@ A run uses the reader only when all of this holds, and is refused before anythin
 any is missing: a host run whose only shots are `at <N> shot` lines (any other shot, `burst`, `record`,
 `waitshot` or hw* input still needs `--sandbox`); `--clock virtual` with the update counter configured; the
 stand-in loaded (not `--sound real`); `reader_surface=` and `reader_waits=` in the game's config; and
-`reader_trial=passed <date> <commit>` there too, or `--reader-trial` for the trial run itself, whose log says its
-shots are only for the comparison. `--reader-surface` and `--reader-waits` override the config keys.
+no trial line is needed (a config's `reader_trial=passed <date> <commit>` is logged, and `--reader-trial` marks a run
+whose shots are for a comparison with the sandbox's). `--reader-surface` and `--reader-waits` override the config keys.
 
-**The trial.** The same scripted screens through the reader on the host (`--reader-trial`) and through the sandbox,
-every pair compared with `tools/shotdiff` (`docs/SHOTDIFF.md`) with nothing ignored. A game passes only when every
-pair matches or differs only faintly, with nothing visible; its result goes under "Per-game status", and only then
-does its config get `reader_trial=passed <date> <commit>` (the configs are git-ignored: the coordinator writes the
-line into the main checkout's). A trial covers the mode it ran in; a game's 3D mode or full screen needs one of its
-own. A game whose draw surface is not a DirectDraw off-screen surface (GDI, SDL) needs a reader of its own and a
-trial of its own. Passed so far: Bookworm Deluxe, windowed 2D (2026-11-22, "Per-game status").
+**A comparison, when wanted.** No trial is required before a game uses the reader (dropped 2026-11-22: the user, "Drop it"). A session that doubts a reader shot can still run the same scripted screens through the reader on the host (`--reader-trial`, whose log marks its shots as for the comparison) and through the sandbox, and compare every pair with `tools/shotdiff` (`docs/SHOTDIFF.md`) with nothing ignored. Two games ran such a trial before it was dropped, both in windowed 2D: Bookworm Deluxe and Mummy Maze (its tutorial's 16 screens, all matching). The reader accepts only a DirectDraw off-screen surface: a game that draws with GDI or SDL needs a reader of its own, and a full-screen game's flipping chain is refused. The draw surface's place differs by framework: in Mummy Maze's older one it is `[[<app global>]+0x254]+0x14`, in Bejeweled 2's of 2005 `[[<app global>]+0x36c]+0x68` (its `+0x3c` is a critical section, which the reader refuses as no DirectDraw interface), and the 2003-2004 framework has `+0x3c`; Pixelus has `[[<app global>]+0x33c]+0x64` (its `+0x5c` is the primary surface, which the reader refuses); take it from the game's own export. A comparison with the sandbox shows one more thing to know: a title's loading thread runs on the wall clock, so at a fixed update the menu's animations stand wherever that machine's load left them (Bejeweled 2's host and sandbox shots were an animation phase apart). Gate a script on the game's loaded flag (`waitfor`, `mark`, then `at +N`) to take the load's length out of a comparison. And a host run starts from the real registry where the sandbox starts from a fresh one plus its `--reg` preset, so a copy that asks questions at start only on the host is reading the user's values: Pixelus sat under its update-check boxes until it ran with `--reg-map popcap` and an empty HKCU key of its own, deleted before each run. Export a key before changing or deleting it, put it back afterwards, and delete nothing under HKLM (restoring it needs an elevated prompt).
 
 ### Setup
 
@@ -314,9 +309,10 @@ origrun runs itself and the game again in that session.
   no sandbox, no game, about 8 s): one holds the lock, five arrive 300 ms apart, one of them is ended with
   `TerminateProcess` while it waits and a leftover ticket of a dead pid sits at the head; the lock must go to the
   live ones in arrival order, the logs must show their places changing, and `--queue` must list them in order.
-  Each waiting origrun counts as a game process, so **a session keeps at most one sandbox run queued** and
-  starts the next when it ends; put several scenarios in one run where the script allows (coordinator,
-  2026-11-22, when nine queued runs held the machine's slots).
+  **A session keeps at most one sandbox run queued** and starts the next when it ends, so that every session's
+  runs take turns: a session that queued five would put the others' behind all five. Put several scenarios in one
+  run where the script allows. A waiting run takes none of the machine's 10 game processes (the user, 2026-11-22,
+  "Count only once running"); the sandbox it runs in counts once it starts.
 - **No window on the user's desktop.** origrun never uses the `.wsb` file's `LogonCommand`, and runs
   `wsb connect`, which opens a window, only with `--sandbox-connect`. A guard thread looks every 100 ms for a
   visible window of a Windows Sandbox process, of the broker or of `vmconnect.exe` (exact names) and, on one,
@@ -480,7 +476,9 @@ for `PrintWindow`. All addresses are hex.
 **Input in the sandbox.** `at <N> move x y` posts `WM_MOUSEMOVE`, and `down`/`up` post the button messages; a game
 that polls the cursor needs `--cursor scripted`, or a private patch that takes the position from the message
 (Water Bugs has one, the `mouse` lines of its patch list). `--input-eip` holds an input until the game thread is
-outside the listed ranges (Water Bugs: 41f467,41f511, between the message pump and the end of the update loop),
+outside the listed ranges (Water Bugs: 41f489,41f511, the update loop past its frame wait; the older 41f467,41f511
+took in the wait itself, which was harmless only with 1 ms frames: under the 10-step-frame patch it held every input
+for thousands of updates),
 and the log line `at <cmd>: input at counter N (k holds)` gives the update that read it, which is the number to
 replay in the port. The game's own `SetCursorPos` calls do nothing there, so a port run that replays such a game
 needs its cursor warps off (Water Bugs' runner: `WB_NOWARP=1`).
@@ -962,7 +960,7 @@ game's registry key and 3D-flag address to games.tsv.
 | hammerheads | Steam copy (`HammerHeadsGame.exe`) | host, virtual clock, the seed pinned (`games/hammerheads/tools/origrun/patches.txt`); each scenario adds its jump, unlock and cheat patches through `PATCHES` (`games/hammerheads/tools/idplay`, recipe in `games/hammerheads/docs/WORKING_NOTES.md`, "Phase one's runs") | | |
 | mahjongchina | local install | sandbox: whole stages and the ending | has one; off (`HardwareAcceleration=0` by `--reg`) | as mahjongjapan; `games/mahjongchina/tools/sandbox_run.sh` does it all. Shots need `games/mahjongchina/tools/ddrawcap` beside the copy, or every one is black (its window class has a black background brush). Its players live in `%LOCALAPPDATA%\JollyBear\Mahjong Escape`. Never click the PopCap and SpinTop logos at the menu's bottom corners: they are links |
 | mahjongjapan | local install | sandbox: whole stages to the ending | has one; off (`HardwareAcceleration=0` by `--reg`) | JollyBear engine, windowed DirectDraw (`FullScreen=0` by `--reg`). Posted clicks need a `move` 150 ms before. Its players live in `%LOCALAPPDATA%\JollyBear\Mahjong Escape Ancient Japan`, which inside is SYSTEM's: stage them under `sandbox-files/C/Windows/System32/config/systemprofile/AppData/Local/...`, re-signed for `C:\run\game\` (a player's checksum covers the exe's folder). Its hover reads `GetCursorPos`; `--cursor scripted` would answer it only in a copy that loads the stand-in, which its packed `bass.dll` does not (a coverage run's exe does); untested |
-| mummymaze | local install | virtual clock, scripted cursor | none | in real time its window takes about 45 s to appear |
+| mummymaze | local install | virtual clock, scripted cursor; shots on the host by the in-game frame reader (trial passed 2026-11-22: the tutorial's 16 screens, 16 matching the sandbox's, nothing ignored; host runs at about 19 times game speed) | none | in real time its window takes about 45 s to appear. Reader: `reader_surface=[[0x4ad0cc]+0x254]+0x14`, `reader_waits=4383da` (the Sleep at 0x4383d4 in the Process loop, after its draw branch) |
 | ningpo | local install | `--sound nodriver`; shots in the sandbox, after its init | none | windowed DirectDraw. **With `--sound stub --clock virtual` it stops at 88.8 s of game time once a game is dealt**: the exe's Ogg music streamer, called by its software mixer (0x424fbd), spins in the stream read's end-of-stream branch (0x4253f7: the read gives 0, it seeks back to the loop point at stream+0x10 and reads again) holding the stream's lock, and the main thread waits on that lock in the stream's rewind (0x4253b4), so the clock stops. A lock longer than the buffer was ruled out. Not known: whether the wall clock does the same past 88.8 s of a dealt game, and why the read after the seek gives nothing |
 | noahsark | local install | virtual clock | none | update counter `[0x4d125c]+0x368` |
 | pixelus | local install | virtual clock, scripted cursor, seed patch | has one | BASS through COM. games.tsv's Pixelus.exe (about 256 KB) is a smaller build than the port's decompiled exe, and its counter offsets do not apply to it |

@@ -13,6 +13,15 @@ work, and what a server built only on Cloudflare could look like when the websit
 message fields, the keyboard and screen-reader behaviour, and the test data of the local source, and `tools/chattest.js`
 checks them. What the code does not say is the reasoning below.
 
+The panel has the general shape of a 1995 IRC client's channel window (the user, 2026-11-18: "Chat window needs minor
+remodeling to look like a real 95-era IRC client"), with no client's name, icons or branding. The topic line ("#all-games:
+One room for every game", the room's name made a channel's) is at the top. Under it are the messages, "<nick> text"
+after the time and the game tag, and beside them the people in the room. Until a server says who is in, those are the
+viewer and everyone who wrote in the messages shown. The list gives way to the messages when the panel is narrower than
+340 pixels. Under both is the one line to write in, where Enter sends, and then the username's row. The panel's own lines,
+"* Now talking in #all-games" on joining and "* You are now known as ..." after a name change, are drawn among the
+messages by their time but are never sent or kept. On Desktop 95 they are green, as a client drew a join.
+
 The site-wide setting **Show chat** (`showChat` in `web/settings.js`) is on until a player turns it off, and with it off nothing
 is drawn or opened, which is also the way for a player to have no chat connection at all. The chat never changes the size of the
 canvas: it goes beside the stage only when the window has room left after the stage at the width it has without the chat, and

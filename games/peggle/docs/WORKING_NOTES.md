@@ -81,3 +81,19 @@ what is translated, what is left out and the order of the rest. `decread.py` was
 translated (it dropped some arguments); the functions translated with the old tool are checked again in the identical-play
 pass. `disasm.py <addr> [<from> <to>] [--math]` shows the real arguments and x87 maths, `modvals.py` lists the ModVal numbers,
 `callctx.py <caller> <callee>` shows one call's arguments. How to translate a function: `TRANSLATION_GUIDE.md`.
+
+## Where work stopped (2026-11-16, the pause until Friday evening)
+
+Committed and verified (native build links): the shells of EffectMgr, FloatingTextMgr, SoundMgr, DebugMgr and AIMgr with their
+making and emptying, and the headers of `LogicMgr.h` and `InterfaceMgr.h`. Nothing of this has run yet, and the web build was
+not redone after the shells.
+
+Not written: `LogicMgr.cpp` and `InterfaceMgr.cpp` (the two headers have no source file, so nothing links to them), the Board,
+and the `loadlevel` test command. The next step is the level start chain: `LogicMgr::InitLevel` (0x45dda0) calls `Clear`
+(0x45d900), `BeginInitLevel` (0x440500), `MakeGoalPegs` (0x457960, where the first random draws happen), `MakePowerupPeg`
+(0x457dc0), `MakeScorePeg` (0x458110) and `CalcGunAngle` (0x43ece0). `CalcGunAngle` aims the cannon at the mouse with a
+ballistic correction (a search over 20 angles around `atan2`); it reads the mouse through `GetBoard()` (0x404c80: the window's
+mouse position less the board's offset at +0x1a8 and +0x1ac, which still has to be named), uses the ModVal 1.3e-06 at
+LogicMgr.cpp line 1056, and the gravity and the 6.0 constants at 0x649d78 and 0x649d80. The `fpu2c.py 0x43ece0 --this esi` output
+reads cleanly. Deviations to write down when these land: the original's sets of pegs are ordered by pointer and the port's by
+serial number; Board +0x124 and SoundMgr +0x20 are uninitialised in the original and set to 0 here.

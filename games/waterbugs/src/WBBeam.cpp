@@ -317,7 +317,7 @@ Beam* Beam_Init(Beam* theBeam)
 
 void Rider_Append(List<Rider>* theList)
 {
-	Rider* aRider = (Rider*)::operator new(sizeof(Rider));
+	Rider* aRider = (Rider*)NewZeroed(sizeof(Rider));
 	Obj_Init(aRider);
 	List_Append(theList, aRider);
 }

@@ -26,8 +26,6 @@ Gun::Gun(Board* theBoard)
 	mUnknown1C8 = 0;
 	mUnknown1CC = 0;
 	mUnknown1D0 = 0;
-	mUnknown1D8 = 0;
-	mUnknown1DC = 0;
 	mX = 0;
 	mY = 0;
 	mBoard = theBoard;
@@ -63,7 +61,7 @@ void Gun::Reset()
 {
 	mBall = nullptr;
 	mUnknown1CC = mUnknown1C8; // the vector of 0x1c8 is emptied
-	mUnknown1DC = 0;		   // and so is the list at 0x1d8
+	mTurns.clear();
 	mUpdateCount = 0;
 	mUnknown17C = 1000.0f;
 	mBouncyGuide = false;
@@ -220,7 +218,28 @@ void Gun::Draw(Graphics* g)
 // 0x4843a0
 bool Gun::SetAngle(float theAngle, bool theAtOnce)
 {
-	NOT_TRANSLATED("Gun::SetAngle");
+	if (mAngle == theAngle)
+		return false;
+	if (theAtOnce)
+	{
+		mTurns.clear();
+		mAngle = theAngle;
+		mTargetAngle = theAngle;
+		mStableTime = mUpdateCount - 1000;
+		CalcPoints();
+		return true;
+	}
+	if (mTargetAngle != theAngle)
+	{
+		float aDelta = CalcAngleDiff(mAngle, theAngle);
+		// a turn the other way than the one asked for last makes that one pointless: the list starts again
+		if (!mTurns.empty() && Sign(aDelta) == Sign(mTurns.back().mDelta))
+			mTurns.clear();
+		GunTurn aTurn = {aDelta, mUpdateCount};
+		mTurns.push_back(aTurn);
+		mTargetAngle = theAngle;
+	}
+	return true;
 }
 
 // 0x484530

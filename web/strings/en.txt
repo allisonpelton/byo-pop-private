@@ -83,6 +83,7 @@ skin.apps.fit = Fit window
 skin.apps.scale = {n}x
 skin.apps.scale_tip = Window size
 skin.apps.speed = Speed {n}
+skin.apps.speed_max = Max
 skin.apps.scan_off = No scanlines
 skin.apps.scan_light = Light scanlines
 skin.apps.scan_strong = Strong scanlines
@@ -127,6 +128,8 @@ skin.bar.tileh = Tile Horizontally
 skin.bar.tilev = Tile Vertically
 skin.bar.minall = Minimize All Windows
 skin.bar.undominall = Undo Minimize All
+skin.bar.undotile = Undo Tile
+skin.bar.undocascade = Undo Cascade
 skin.pop.shutdown = Shut Down...
 skin.copy.title = Copying...
 skin.copy.size = {kb} KB
@@ -144,6 +147,7 @@ skin.fav.remove = Remove from favourites
 skin.fav.menu = {game}
 skin.desk.games = All games
 skin.desk.about = About
+skin.boot = Please wait while the desktop loads...
 settings.scheme.label = Scheme
 settings.scheme.hint = The desktop's colours: its background, windows, title bars and selection.
 settings.scheme.standard = Standard
@@ -166,7 +170,7 @@ settings.pattern.zigzag = Zigzag
 settings.pattern.lattice = Lattice
 settings.pattern.blocks = Blocks
 settings.wallpaper.label = Wallpaper
-settings.wallpaper.hint = A picture on the desktop. A picture of your own stays in this browser and is never uploaded.
+settings.wallpaper.hint = A picture on the desktop: ours, one of your own, or a game's background from its files. A picture of your own stays in this browser and is never uploaded.
 settings.wallpaper.none = (None)
 settings.wallpaper.bubbles = Bubbles
 settings.wallpaper.gingham = Gingham
@@ -201,10 +205,12 @@ settings.saver.preview = Preview
 settings.saverwait.label = Wait
 settings.saverwait.minutes = {n} min
 settings.theme.none = (None)
-settings.wallpaperfit.hint = How a picture of your own sits on the desktop.
+settings.wallpaperfit.hint = How the wallpaper's picture sits on the desktop. Pixel-perfect: the largest whole-number scale that fits, centred. Fit to screen: as large as fits, its shape kept.
 settings.wallpaperfit.centre = Centre
 settings.wallpaperfit.tile = Tile
 settings.wallpaperfit.stretch = Stretch
+settings.wallpaperfit.pixel = Pixel-perfect
+settings.wallpaperfit.fit = Fit to screen
 settings.win95only.label = Windows 95 games only
 settings.win95only.hint = In Desktop 95, list only the games whose original ran on Windows 95, as its readme says. Games already open stay open. Other skins list every game.
 skin.win95.hidden = {count} hidden
@@ -225,6 +231,10 @@ settings.colorfilter.sepia = Sepia
 settings.colorfilter.warm = Warm (less blue light)
 settings.colorfilter.contrast = High contrast
 settings.colorfilter.vivid = Vivid
+# for colour-blind players: the picture recoloured so that the colours they confuse come apart (web/view.js)
+settings.colorfilter.protan = For protanopia (red)
+settings.colorfilter.deutan = For deuteranopia (green)
+settings.colorfilter.tritan = For tritanopia (blue)
 settings.colorfilter.pal256 = 256 colours
 settings.colorfilter.pal256d = 256 colours, dithered
 settings.inputdisplay.label = Input display
@@ -251,6 +261,10 @@ settings.skiptutorials.hint = Turns off each game's own tutorial, as its options
 settings.speed.label = Game speed
 settings.speed.hint = Runs the game faster or slower. Music plays at its own speed. Bonnie's Bookstore and Ning Po Mahjong always run at their own.
 settings.speed.normal = Normal
+settings.speed.max = Max
+settings.speed.fixed = This game always runs at its own speed.
+settings.speedkeys.label = Speed keys
+settings.speedkeys.hint = While the game has the keyboard, F6 slows it down, F7 speeds it up and F8 puts it back to normal, in the same steps as the list. The new speed shows over the game for a moment and is kept for this game. With the keys on, Shift+F6 takes the keyboard out of the game.
 controls.title = Controls
 controls.none = This game's controls are not listed yet.
 controls.change = Change key
@@ -389,7 +403,8 @@ index.counts.live = {n} playing now
 index.counts.both = {live} · {plays}
 index.played_today = today
 
-# The "?" on a game that was played here before but has no files now
+# The "?" on a game that was played here before but has no files now, and the message box it opens (titled with the
+# game's name)
 index.why.title = Why aren’t my files here?
 # {date} is the day the files were last loaded
 index.why.before = Your game files were loaded in this browser before, but they are not here now.
@@ -403,7 +418,9 @@ index.why.other_browser = This is a different browser, profile or device.
 index.why.never_uploads = Game files never leave your browser. You must store the game files in every browser
   you play on.
 index.why.saves = Your saves and settings for this game are still stored in this browser.
-index.why.back_html = To get them back, <a href="{href}">open the game</a> and load your files again.
+index.why.back = To get them back, open the game and load your files again.
+index.why.open = Open game
+index.why.close = Close
 
 index.footer.about = byo-pop is an unofficial, non-commercial project, not affiliated with, endorsed or
   sponsored by Electronic Arts or PopCap Games. This site does not distribute any game assets; you bring your
@@ -411,23 +428,50 @@ index.footer.about = byo-pop is an unofficial, non-commercial project, not affil
   website does not accept donations.
 index.footer.trademarks = PopCap, Bejeweled, Bejeweled Twist, BookWorm, Big Money, Alchemy and Dynomite! are
   registered trademarks of Electronic Arts Inc. in the United States.
-index.footer.music_html = The Music player plays the music from the game files you added, in this browser, with
-  <a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and
-  <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden newtab"> (opens in a new tab)</span></a>, and TipTop's MIDI music with
-  <a href="licenses/tinysoundfont.txt" target="_blank" rel="noopener">TinySoundFont<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and the
-  <a href="licenses/generaluser-gs.txt" target="_blank" rel="noopener">GeneralUser GS<span class="visually-hidden newtab"> (opens in a new tab)</span></a> bank by S. Christian Collins; its score view draws with
-  <a href="licenses/vexflow.txt" target="_blank" rel="noopener">VexFlow<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and its fonts
-  <a href="licenses/bravura.txt" target="_blank" rel="noopener">Bravura and Academico<span class="visually-hidden newtab"> (opens in a new tab)</span></a> by Steinberg.
-  Desktop themes decode JPEG 2000 pictures with
-  <a href="licenses/openjpeg.txt" target="_blank" rel="noopener">OpenJPEG<span class="visually-hidden newtab"> (opens in a new tab)</span></a>.
-  The desktop's text is set in
-  <a href="licenses/byopop-sans.txt" target="_blank" rel="noopener">Byopop Sans<span class="visually-hidden newtab"> (opens in a new tab)</span></a>,
-  made from W95FA by Alina Sava.
-index.footer.tracker = Reading the Music tracker: each line is a row, one step of time; the speed (ticks a row) and the
-  tempo set how fast the rows go. Each column is a channel, and each cell holds a note, the instrument that plays it, a
-  volume and an effect. A note sounds until the next note, an off or a cut in its channel. FX adds a column that says
-  what each effect does.
+# what the site is made with, a list (each line an <li>): the libraries and fonts with their licences, and what each is for
+index.footer.made_with = Made with:
+index.footer.credits_html = <li><a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and
+  <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden newtab"> (opens in a new tab)</span></a>: the Music player</li>
+  <li><a href="licenses/tinysoundfont.txt" target="_blank" rel="noopener">TinySoundFont<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and the
+  <a href="licenses/generaluser-gs.txt" target="_blank" rel="noopener">GeneralUser GS<span class="visually-hidden newtab"> (opens in a new tab)</span></a> bank by S. Christian Collins: TipTop's MIDI music</li>
+  <li><a href="licenses/vexflow.txt" target="_blank" rel="noopener">VexFlow<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and the fonts
+  <a href="licenses/bravura.txt" target="_blank" rel="noopener">Bravura and Academico<span class="visually-hidden newtab"> (opens in a new tab)</span></a> by Steinberg: the Music player's score</li>
+  <li><a href="licenses/openjpeg.txt" target="_blank" rel="noopener">OpenJPEG<span class="visually-hidden newtab"> (opens in a new tab)</span></a>: JPEG 2000 pictures in desktop themes</li>
+  <li><a href="licenses/byopop-sans.txt" target="_blank" rel="noopener">Byopop Sans<span class="visually-hidden newtab"> (opens in a new tab)</span></a>, made from W95FA by Alina Sava: the desktop's text</li>
 index.footer.credit_html = Project by <a href="https://technocra.cy/">technocra.cy</a>
+
+# System Information (web/sysinfo.js), the listing page's window about the site on Desktop 95's desktop, in the shape of
+# Windows 95's System Properties: its tabs; General's facts (a label, then its values under it); Performance's status (the
+# storage, the games whose files are here, those open) and its list of running games; the performance panel's switch; and
+# Monitor's charts of one running game, each named as System Monitor named its charts
+index.sysinfo.title = System Information
+index.sysinfo.tab.general = General
+index.sysinfo.tab.perf = Performance
+index.sysinfo.tab.monitor = Monitor
+index.sysinfo.system = Site:
+index.sysinfo.games = {n} games
+index.sysinfo.computer = Computer:
+index.sysinfo.threads = {n} processor threads
+index.sysinfo.screen = Screen {w} × {h}
+index.sysinfo.unknown = Not reported
+index.sysinfo.status = Performance status
+index.sysinfo.storage = Storage:
+index.sysinfo.storage_of = {used} used of {quota}
+index.sysinfo.installed = Games installed:
+index.sysinfo.of = {n} of {total}
+index.sysinfo.running = Games running:
+index.sysinfo.col.game = Game
+index.sysinfo.col.fps = Frames/s
+index.sysinfo.col.frame = Frame time
+index.sysinfo.col.gaps = Sound gaps
+index.sysinfo.none = No game is running.
+index.sysinfo.advanced = Advanced settings
+index.sysinfo.perf_panel = Performance panel beside each game
+index.sysinfo.game = Game:
+index.sysinfo.chart.fps = Frames a second
+index.sysinfo.chart.frame = Frame time (ms)
+index.sysinfo.chart.share = Game's share of the main thread (%)
+index.sysinfo.chart.gaps = Sound gaps a second
 
 # The link to Jungle Juice, after the games (the user, 2026-11-04)
 index.jungle.name = Jungle Juice
@@ -524,6 +568,7 @@ game.sound.off = Sound off
 game.mods.hint = Opens the in-game mod menu if the game is running; also accessed with F2.
 game.canvas_label = {title}, game
 game.canvas_hint = Keyboard captured by game. Use F6 to leave, Shift-F6 to re-enter.
+game.canvas_hint_speedkeys = Keyboard captured by game. Use Shift-F6 to leave. F6, F7 and F8 change the speed.
 game.chat.title = Chat
 
 # The status line in the bar. Test runs add " · silent" and the like, and the status line ends in "silent" (CLAUDE.md).
@@ -636,6 +681,9 @@ game.files.forget_ask = This removes the copied game files from the browser. Sav
 game.files.forget_ask_running = This removes the copied game files from the browser. Saves and mods stay. The
   game closes first; a game in progress is saved.
 game.files.remove = Remove files
+game.files.cancel = Cancel
+game.menu.reimport = Import game files again...
+game.menu.forget = Forget game files...
 
 game.settings.title = Settings
 game.settings.close = Close
@@ -823,17 +871,19 @@ size.mb = {value} MB
 
 saves.about = Stored in: this browser
 saves.kept = The browser may clear the saves when the drive is low.
-saves.list.title = In the browser
-# One game in the list: {title} then this, where {parts} is its save files and replays, {backup} the next string or nothing
-saves.list.rest = : {parts}{backup}.
-saves.list.files = {n} save file ({size}) | {n} save files ({size})
-saves.list.no_files = no save files
-saves.list.replays = {n} replay ({size}) | {n} replays ({size})
-saves.list.no_replays = 0 replays
-saves.list.backup = ; the game’s own browser backup is there
+saves.list.title = Saves in this browser
+# The list's columns: a game, its number of save files and of replays, their size, and whether the game's own backup in
+# the browser (a save that may not have reached its folder yet) is there, saves.list.backup when it is
+saves.col.game = Game
+saves.col.files = Save files
+saves.col.replays = Replays
+saves.col.size = Size
+saves.col.backup = Own backup
+saves.list.backup = Yes
 saves.list.empty = No saves found
 saves.backup.button = Back up saves
-saves.restore.label = Restore saves from a backup .zip:
+# opens the browser's file dialog, for the .zip a backup made
+saves.restore.button = Restore from backup…
 
 # Counts, used in the lines below
 saves.n.save_file = {n} save file | {n} save files
@@ -843,7 +893,7 @@ saves.n.file = {n} file | {n} files
 # The name of the .zip the backup downloads; {date} is like 2026-10-27
 saves.backup_name = byo-pop saves {date}.zip
 saves.backup.reading = Reading the saves…
-saves.backup.took = Backup exported. Contents:
+saves.backup.took = Contents:
 # One game in the report of a backup: {title} then this, built from the three that follow it
 saves.report.line = : {files}{replays}{backup}.
 saves.report.files = {n} save file ({size}) | {n} save files ({size})
@@ -890,7 +940,7 @@ saves.restore.nothing = Nothing was restored.
 saves.restore.working = Restoring…
 saves.restore.no_locks = This browser cannot tell whether a game is open, so it does not restore.
 saves.restore.open = {games} is open in another tab or window. Close it and restore again.
-saves.restored.title = What was restored
+saves.restored.title = What was restored:
 # {count} is like "3 files"
 saves.restored.game = {title}: {count}.
 saves.restored.settings = The site’s settings.
@@ -1066,9 +1116,7 @@ saveimport.nothing = Nothing was imported.
 saveimport.importing = Importing…
 saveimport.err.no_locks = This browser cannot tell whether a game is open, so it does not import.
 saveimport.err.open = {title} is open in another tab or window. Close it and import again.
-saveimport.done.title = What was imported
 # {values} and {files} are counts like "3 registry values"
-saveimport.done.line = {title}: {values} and {files}.
 saveimport.done.said = Imported into {title}: {values} and {files}. The game reads them the next time it
   starts.
 saveimport.failed = Nothing more was imported: {error}
@@ -1221,12 +1269,17 @@ chat.jump = New messages below
 chat.unread = {count} new
 chat.message = Message
 chat.placeholder = Say something
-chat.send = Send
 # Read out with the message field; {max} is the longest message
 chat.hint = Plain text, one line, up to {max} characters, one message a second. Links stay text.
 chat.left = {count} characters left
 chat.you = You are
-chat.you_are_now = You are {name}.
+# the panel's own lines in the log, after a "*" as an IRC client wrote them: on joining, {channel} like "#all-games"; on a
+# name change
+chat.joined = Now talking in {channel}
+chat.renamed = You are now known as {name}
+# the topic line at the top, after the room's name ("#all-games: ..."); the list of the people beside the messages
+chat.topic = One room for every game
+chat.people = In the room
 chat.change_name = Change name
 chat.username = Test username
 chat.username_hint = 2 to 32 characters: lowercase letters, digits, _ and . (never two periods in a row).
@@ -1436,6 +1489,11 @@ music.tracker_ch = CH {first}-{last}/{count}
 music.fx_button = FX
 music.fx_title = Effects column
 music.fx_head = Effects
+# the "?" beside FX, with the tracker view: a message box on how to read the tracker
+music.tracker_help_title = Reading the tracker
+music.tracker_help = Each line is a row, one step of time; the speed (ticks a row) and the tempo set how fast the rows go.
+  Each column is a channel, and each cell holds a note, the instrument that plays it, a volume and an effect. A note sounds
+  until the next note, an off or a cut in its channel. FX adds a column that says what each effect does.
 music.fx.noteoff = Note off
 music.fx.notecut = Note cut
 music.fx.notefade = Note fade
