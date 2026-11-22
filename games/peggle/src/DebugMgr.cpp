@@ -3,6 +3,7 @@
 #include "DebugMgr.h"
 
 #include "Ball.h"
+#include "Board.h"
 #include "NotTranslated.h"
 
 using namespace Sexy;
@@ -52,8 +53,14 @@ void DebugMgr::InitLevel()
 		NOT_TRANSLATED("DebugMgr::SyncFlipperState");
 }
 
-// 0x44dcd0
+// 0x44dcd0: the debug tools' step. They are off in the game as it is played (nothing sets the mouse's ball or the counter
+// but the debug mouse, which is on only after a typed cheat), so what they do when they are on stops at NOT_TRANSLATED.
 void DebugMgr::Update()
 {
-	NOT_TRANSLATED("DebugMgr::Update");
+	if (mBoard->mUnknownC2)
+		return;
+	if (mUnknown1C != 0)
+		NOT_TRANSLATED("DebugMgr::Update with the debug counter running (DeleteBalls)");
+	if (mUnknown08 != nullptr)
+		NOT_TRANSLATED("DebugMgr::UpdateMouseBall");
 }
