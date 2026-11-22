@@ -43,7 +43,7 @@ int Sexy::GetStyleShotPoints(int theStyleShot, bool theSecondTable)
 // 0x402da0
 void GameStats::Reset()
 {
-	mTotalScore = 0;
+	mTotalShots = 0;
 	mBestShot = 0;
 	mBestPegCount = 0;
 	for (int i = 0; i < NUM_FREE_BALL_KINDS; i++)
@@ -59,7 +59,7 @@ void GameStats::SyncState(DataSync& theSync)
 		Reset();
 	int aVersion = 1;
 	theSync.SyncByte(aVersion);
-	theSync.SyncLong(mTotalScore);
+	theSync.SyncLong(mTotalShots);
 	theSync.SyncLong(mBestShot);
 	theSync.SyncLong(mBestPegCount);
 	for (int i = 0; i < NUM_FREE_BALL_KINDS; i++)
@@ -83,7 +83,7 @@ void GameStats::CheckBestShot(int theScore)
 // 0x402ed0
 void GameStats::Add(const GameStats& theOther)
 {
-	mTotalScore += theOther.mTotalScore;
+	mTotalShots += theOther.mTotalShots;
 	if (mBestShot < theOther.mBestShot)
 		mBestShot = theOther.mBestShot;
 	if (mBestPegCount < theOther.mBestPegCount)

@@ -21,6 +21,7 @@ public:
 	virtual ~DebugMgr();				// 0x43e470
 
 	void Clear();	// 0x43e4a0
+	void Update();		// 0x44dcd0
 	void InitLevel(); // 0x464930
 	void SyncNumDebugPegs(); // 0x446670
 

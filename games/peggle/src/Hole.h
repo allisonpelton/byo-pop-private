@@ -10,6 +10,8 @@
 namespace Sexy
 {
 
+class Ball;
+
 class Hole : public PhysObj
 {
 public:
@@ -26,6 +28,7 @@ public:
 	float GetXPos() const override { return mX; }		   // 30, 0x47dfa0
 	float GetYPos() const override { return mY; }		   // 31, 0x481150
 
+	bool CheckBall(const Ball* theBall); // 0x4781c0: the ball is in the hole (and it lights up)
 	void SetSize(int theWidth, int theHeight); // the original's slot 34, 0x475580: the size, and the box round the position
 
 	SharedPtr<PhysObj> mExitPiece; // +0xe4: the piece a ball that fell in comes out at (none: it comes out of the hole itself)

@@ -28,7 +28,7 @@ struct GameStats
 	int GetTotalStyleShots() const;	 // 0x402f60
 	int GetTotalStylePoints() const; // 0x407460
 
-	int mTotalScore;					 // 0x0
+	int mTotalShots;					 // 0x0: the shots taken (LogicMgr::BeginShot counts it)
 	int mBestShot;						 // 0x4: the highest score of one shot
 	int mBestPegCount;					 // 0x8
 	int mFreeBalls[NUM_FREE_BALL_KINDS]; // 0xc
