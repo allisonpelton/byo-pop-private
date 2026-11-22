@@ -200,6 +200,10 @@
 #                play and won, the shop and the challenge screen, Tough Cookie and Marathon (lost); a rerun with the same
 #                screens, states and player files, which are the frozen baseline's (and build/baseline-hammerheads/
 #                hammerheads.exe's, when there is one) (under a minute)
+#   peggle       Peggle: a script of loadlevel and resetlevel commands (games/peggle/tools/suite_test.txt) over six levels and
+#                the modes the rules reach (none, the adventure, the demo): the objects, pegs, the pegs' kinds, the draws of the
+#                random generator and the cannon's aim of each, which are frozen in the suite; a rerun with the same lines
+#                (a few seconds). Grows with the port: the frame's hash once Board::Draw runs, a played level with the mouse.
 #   pizzafrenzy  Pizza Frenzy: the bot plays by real input (games/pizzafrenzy/tools/suite/suite.sh): the speed mode from
 #                launch for 700 moves, then the memory and the concentration modes for 300 moves each, every run twice with
 #                the same transcript, and build/baseline-pizzafrenzy/pizzafrenzy.exe's runs the same when there is one (about
@@ -208,7 +212,7 @@
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs. Not in `all`: it
 #                compares Bejeweled's game logic with the original's, which a change outside games/bejeweled leaves as
 #                Bejeweled's frozen baseline (verify) already proves; merge mode runs it when games/bejeweled changes
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads pizzafrenzy; all = every suite but the oracle, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy; all = every suite but the oracle, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -341,7 +345,7 @@ OUT="build/logs/check"
 QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 
 # The suites in the order `all` runs them (origrun is not in `all`), and the game suites among them
-GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads pizzafrenzy)
+GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy)
 # the oracle is left out of `all` and of shared code's "every suite" (the user, 2026-11-11: "Seems like the Bejeweled oracle
 # is causing a lot of slowdown for no benefit"); it runs when games/bejeweled changes, or when named
 ALL_SUITES=(build build-web build-nov unit unit-web gpu screens speed verify modmenu livesplit "${GAME_SUITES[@]}")
@@ -360,7 +364,7 @@ suite_weight() { WEIGHT=1; [ "$1" = speed ] && WEIGHT=3; [ "$1" = bonnies ] && [
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [pizzafrenzy]=180 [oracle]=1080)
+	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [peggle]=10 [pizzafrenzy]=180 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52 [typershark]=270)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
@@ -2597,6 +2601,34 @@ suite_hammerheads() {
 		bl="; baseline identical"
 	fi
 	SUMMARY="the tour (the loading screen, a new player's name, the main menu, the high scores and trophy room, a Classic level in play and won, the shop and challenge screens, Tough Cookie, Marathon lost); rerun identical; screens and states as frozen$bl"
+	return 0
+}
+
+# Peggle: the level start's rules, from a script of test commands (games/peggle/tools/suite_test.txt)
+PEGGLE_FROZEN="f1eaa1b64c78"  # the first 12 hex digits of the sha256 of the script's state lines
+
+peggle_run() {  # <name>: the script into $OUT/peggle/<name>; prints the exit status
+	local d="$OUT/peggle/$1" e=0
+	fresh_dir "$d"; mkdir -p "$d/user"
+	timeout 120 "$W/build/native/peggle.exe" -gamedir=assets/peggle -userdir="$d/user" -fast -seed=1 		-script="$W/games/peggle/tools/suite_test.txt" > "$d/stdout.txt" 2>&1 || e=$?
+	grep -E '^(OK|ERROR|STATE) ' "$d/stdout.txt" > "$d/states.txt"
+	echo "$e"
+}
+
+suite_peggle() {
+	local d="$OUT/peggle" e sh
+	need_assets peggle || return 1
+	e="$(peggle_run game)"
+	cat "$d/game/stdout.txt" > "$1"
+	[ "$e" -eq 0 ] || { SUMMARY="the exe exited with status $e"; return 1; }
+	grep -q '^ERROR' "$d/game/states.txt" && { SUMMARY="a test command failed: $(grep -m1 '^ERROR' "$d/game/states.txt")"; return 1; }
+	[ "$(grep -c '^STATE ' "$d/game/states.txt")" = 11 ] || { SUMMARY="not every command gave a state line"; return 1; }
+	e="$(peggle_run rerun)"
+	[ "$e" -eq 0 ] || { SUMMARY="the rerun exited with status $e"; return 1; }
+	cmp -s "$d/game/states.txt" "$d/rerun/states.txt" || { SUMMARY="the rerun's state lines differ"; return 1; }
+	sh="$(sha256sum "$d/game/states.txt" | cut -c1-12)"
+	[ "$sh" = "$PEGGLE_FROZEN" ] || { SUMMARY="STATES CHANGED ($sh; frozen $PEGGLE_FROZEN)"; return 1; }
+	SUMMARY="the level start: 6 levels loaded, 5 through Board::Reset (modes none, adventure, demo); rerun identical; states as frozen"
 	return 0
 }
 
