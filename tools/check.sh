@@ -174,7 +174,7 @@
 #                mode unlocked) in each of its nine modes: the transcript of every state and move, and the end screen, must be
 #                the frozen ones, and so must the Puzzle finale's 40 shots (credits roll, link, Mode Unlocked box); an Action
 #                rerun is identical, and so are the games played by build/baseline-bejeweled2/bejeweled2.exe when there is one
-#                (about five minutes, nine with the baseline)
+#                (about five minutes with the baseline, 275 s on main on 2026-11-22)
 #   astropop     AstroPop's bot through tools/playbymove (real input, -hold): a classic game from level 1, one from level 4 and a
 #                survival game, 120 moves each, and a rerun of the first with the same transcript, and
 #                build/baseline-astropop/astropop.exe's when there is one (about a minute)

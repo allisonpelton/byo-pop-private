@@ -32,7 +32,10 @@ The rules a session follows:
   built yet); its network calls, so that a connection or download fails at once and nothing leaves the machine
   ("Yes, block them", 2026-11-11: "The network block"); and its program, file and link launches (`ShellExecute`,
   `WinExec`, `CreateProcess`), which fail at once ("allow blocking programs, files and links", 2026-11-11:
-  "The launch guard"). Any other hook needs the user's OK first.
+  "The launch guard"); and its window-activation calls (`SetForegroundWindow`, `SetActiveWindow`, `BringWindowToTop`,
+  and `ShowWindow` and `SetWindowPos` when they would activate), so that a copy on the user's desktop never takes
+  the focus ("Yes, hook window activation calls", 2026-11-22, after Bejeweled Twist's 3D original held the user's
+  foreground for a whole visrun run). Any other hook needs the user's OK first.
 - **No keygens.** Patch the check in the copy, or set the registry values the game itself writes when registered;
   never generate a registration code. How a copy's protection is handled is written only in the private notes
   under "Per-game status", which a published snapshot strips (`docs/PUBLISHING.md`).
