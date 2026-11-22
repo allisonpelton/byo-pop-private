@@ -4,6 +4,7 @@
 #include "Color.h"
 #include "Emitter.h"
 #include "FireBall.h"
+#include "MonkeyLives.h"
 #include "GameApp.h"
 #include "Graphics.h"
 #include "HighScore.h"
@@ -919,17 +920,17 @@ void ScoreBoard::Notify(ObjBase* theObj)
 	}
 }
 
-// 0x468740: each monkey that is not shown yet and is idle wakes
+// 0x468740: each monkey whose pea is not in flight and that is dancing is to shoot (the bonus of the pea shooters calls it; the name is a guess)
 void ScoreBoard::WakeMonkeys()
 {
 	int aCount = Player::sCurrent->mSecondUpgradeValue;
 	for (int i = 0; i < aCount; i++)
-		mMonkeys[i]->Wake();
+		mMonkeys[i]->StartShooting();
 }
 
-// 0x4687b0: each monkey is dismissed
+// 0x4687b0: each monkey is sent aside (the name is a guess)
 void ScoreBoard::DismissMonkeys()
 {
 	for (int i = 0; i < Player::sCurrent->mSecondUpgradeValue; i++)
-		mMonkeys[i]->Dismiss();
+		mMonkeys[i]->StandDown();
 }

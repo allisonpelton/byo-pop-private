@@ -7,6 +7,7 @@
 //   set <name> <value>    on the current player: progress (levels finished, so Play starts level value + 1), tutorial and
 //                         walkthru (1 marks the tutorial or the walk-through done), kinds (the
 //                         bug kinds in play, 2 to 8), score, lives
+//   win                   the percent filled reaches the level's target, so the level ends through its own check
 
 #include "GameApp.h"
 #include "BugObj.h"
@@ -94,6 +95,17 @@ bool GameApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	std::string aFull = aName + (theCommand.mArgs.empty() ? "" : " " + theCommand.mArgs);
 	if (aName == "state") {
 		ReportState();
+		return true;
+	}
+	if (aName == "win") {
+		Player* aPlayer = Player::sCurrent;
+		if (aPlayer == nullptr || !aPlayer->mInLevel) {
+			Error(aFull, "not in a level");
+			return true;
+		}
+		// The level's own check (LevelObj's playing state) ends it once the fill reaches the target
+		aPlayer->mPercent = Player::GetTargetPercent();
+		Ok(aFull);
 		return true;
 	}
 	if (aName == "set") {

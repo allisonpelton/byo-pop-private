@@ -219,25 +219,8 @@ void Bonus::ClearAll()
 	Player::Drop();
 }
 
-// port: the stand-in monkey shows nothing
-MonkeyLives::MonkeyLives()
-{
-	mPhase = 0;
-}
-
-void MonkeyLives::Wake()
-{
-	if (!IsActive() && mPhase == 0)
-		mPhase = 1;
-}
-
-void MonkeyLives::Dismiss()
-{
-	mPhase = 2;
-}
-
 // port: the stand-ins of what a level makes. The intro is always ready and finished, the in-level menu resumes at
-// once, the stats are ready and the victory is done
+// once, the victory is done
 bool Intro::IsReady()
 {
 	return true;
@@ -261,22 +244,6 @@ int InGameMenu::GetResult()
 void InGameMenu::Close()
 {
 	Delete();
-}
-
-Stats::Stats(LevelObj* theLevel, int theFirst, int theSecond)
-{
-	(void)theLevel;
-	(void)theFirst;
-	(void)theSecond;
-}
-
-bool Stats::IsReady()
-{
-	return true;
-}
-
-void Stats::Continue()
-{
 }
 
 void Victory::Show()

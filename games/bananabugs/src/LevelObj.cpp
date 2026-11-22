@@ -26,6 +26,7 @@
 #include "GameWidget.h"
 #include "ObjString.h"
 #include "Player.h"
+#include "Stats.h"
 #include "Res.h"
 #include "SoundQueue.h"
 #include "TextFade.h"
@@ -926,7 +927,7 @@ bool LevelObj::Update()
 		if (mTimer < 1) {
 			mState = LEVEL_STATE_STATS_WAIT;
 			mTimer = STATS_PAUSE_FRAMES;
-			mStats = new Stats(this, (int)mCenterY, (int)mCenterX);
+			mStats = new Stats(this, (int)mCenterX, (int)mCenterY); // 0x43a26b pushes mCenterX (+0x8ff4) then mCenterY (+0x8ff8): the port had them swapped
 			ReloadLevel();
 			Bonus::ClearAll();
 			break;

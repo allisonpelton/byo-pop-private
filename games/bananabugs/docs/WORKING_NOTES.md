@@ -69,7 +69,10 @@ playing by about update 2600. Level 1 with the tutorial not done has no bugs of 
 first four levels use only the skeeter and the beetle. After them each kind comes in at its first level (the spawn
 table, LevelObj::InitSpawnTable): the dragonfly at 9, the roly-poly at 17, the caterpillar at 21, the roach at 25, the
 fly at 37, the ant at 58, the centipede at 73, the moth at 101 and the bee at 121 (levels counted from 1). `state`
-lists the kinds of the bugs in play.
+lists the kinds of the bugs in play. `win` sets the percent filled to the target, so the level ends through its own
+check and shows its tally. The tally (and the level's other clicks) read whether the button is down during an update
+(ObjBase::sMouseHeld), as the original does, so a script's `click`, which presses and releases within one update, is
+not seen: use `down` and `up` some updates apart, as real input is.
 
 ## Translating a class (the register conventions, checked against the code)
 
@@ -131,3 +134,6 @@ The finished translations to copy the style from: `src/PopCap.cpp`, `src/Transit
 - ScoreBoard::ShowScore (0x4684a0) blanks every leading '0' of the formatted score, so a score of 0 shows an empty
   field (seen in the port at a level's start); to check against the original's screen. ShowBananaTotal (0x4685a0)
   formats the banana total and never shows it (kept).
+- Float constants: the decompile prints short rounded literals; Stats uses the exe's exact values (12.566371f,
+  1.5707964f and so on). BananaBonus.cpp's 12.5664f, 6.37045f and 1.5708f are probably the same rounding: check them
+  against the hex in the disassembly in the logic pass.

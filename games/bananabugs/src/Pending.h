@@ -63,17 +63,6 @@ public:
 	static void ClearAll();                     // 0x406c60: lets go of what is held and ends the bonuses (a guess at the name)
 };
 
-// A monkey the second upgrade adds to the score board (0x44f450; 0x294 bytes in the original); the stand-in shows
-// nothing, and keeps the two states the board sets
-class MonkeyLives : public ObjBase
-{
-public:
-	int mPhase;                                 // +0x284: 0 idle, 1 woken, 2 dismissed
-	MonkeyLives();
-	void Wake();                                // 0x44f840: if hidden and idle, woken (a guess at the name)
-	void Dismiss();                             // 0x44f870 (a guess at the name)
-};
-
 // The things a level makes that are not translated yet; each is an object that shows nothing
 class Intro : public ObjBase                    // 0x436460 (0x460 bytes): the first level's introduction
 {
@@ -88,14 +77,6 @@ class InGameMenu : public ObjBase               // 0x435c00 (0x36c bytes, a BBWi
 public:
 	int GetResult();                            // 0x436010: 2 for resume, 3 for quit (the stand-in resumes at once)
 	void Close();                               // 0x427340
-};
-
-class Stats : public ObjBase                    // 0x46d2b0 (0x2ac bytes): the figures shown after a level
-{
-public:
-	Stats(LevelObj* theLevel, int theFirst, int theSecond);
-	bool IsReady();                             // 0x46da40
-	void Continue();                            // 0x46d9e0
 };
 
 class Victory : public ObjBase                  // 0x473460 (0x2d0 bytes): the scene after the last level
