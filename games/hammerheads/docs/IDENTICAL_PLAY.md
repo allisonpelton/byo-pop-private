@@ -326,7 +326,7 @@ board, the game menu, the leave question, the menu after leaving, a Classic game
 | --- | --- | --- | --- |
 | The original could not read a player's file the port wrote, nor the port one the original wrote | the original writes its XML in pieces, each with its length in front (a little-endian 16-bit number); the port wrote and read plain XML | `XmlNode::ToChunkedFileText` and `FileTextOf`: the port reads both forms and writes the original's | 30710ae9 |
 | The High Scores page was gone the moment the player left it: the first five frames of the zoom wipe showed the hammer on black, where the original's screen still shows the page behind the hammer (its uncovered pixels are not cleared) | the port killed the table's dialog before it started the wipe (the export does the same, but the original's screen is not cleared between frames); the wipe's callback, `HighScoresToMainMenu`, kills it again | the table stays until the callback | this branch |
-| `goto <mode>` (the site's screen saver) stayed on the loading screen | `StartTestGame` left the loading screen up | it drops a loading screen whose files are loaded | this branch |
+| `goto <mode>` (the site's screen saver) stayed on the loading screen | `StartTestGame` left the loading screen up | it drops a loading screen whose files are loaded (checked on the web build, 2026-11-22, `?silent=1` in the Browser pane: on the loading screen `goto classic` went to the Classic level 1 introduction) | this branch |
 
 ### The word "Deluxe" removed (the user, 2026-11-18)
 
