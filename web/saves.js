@@ -377,27 +377,50 @@ var ByopopSaves = (function () {
     var ids = games.map(function (g) { return g.id; }), byId = {};
     games.forEach(function (g) { byId[g.id] = g; });
     // A restore goes idle -> reading the zip (busy) -> asking (plan, the zip read, waiting for the player's yes, with the question
-    // shown) -> restoring (busy) -> idle; No, Esc or a new pick goes back to idle (endPlan). busy also holds while a backup is
+    // shown) -> restoring (busy) -> idle; Cancel, Esc or a new pick goes back to idle (endPlan). busy also holds while a backup is
     // made, and the import (web/saveimport.js) sets it through setBusy, so only one of them runs at a time.
     var plan = null;
     var busy = false;
-    function endPlan() { plan = null; confirmBox.hidden = true; }
+    function endPlan() { plan = null; }
     var errorControls = [];   // the controls that an error is read with (the import's, web/saveimport.js, join them)
     root.textContent = "";
-    // where the saves are kept, as a value: the window's status bar in Desktop 95 (web/skins.css), a line at the foot elsewhere
-    var where = make("p", "pl-about sv-where", ByopopStrings.t("saves.about"));
-    var status = make("p", "pl-status");
+    // The window as Windows 95 would have it (the user, 2026-11-17: "Saves menu is old and could use a redesign"): the saves in
+    // this browser as a details list in a group box with Back up saves and Restore from backup under it, the import's wizard in
+    // a group box of its own (web/saveimport.js), the restore's question, each result and each error in a message box of the
+    // desktop's (web/deskapps.js), and at the foot a status bar, the last message beside where the saves are kept
+    var TITLE = ByopopStrings.t("settings.section.saves");
+    var bar = make("div", "sv-bar");
+    var status = make("p", "sv-bar-text sv-status");
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
-    // an error is its own line, an alert (announced at once)
-    var alertEl = make("p", "pl-status pl-error pl-alert");
+    bar.appendChild(status);
+    bar.appendChild(make("p", "sv-bar-text sv-where", ByopopStrings.t("saves.about")));
+    // the last error, the description of the controls it can be about (the error itself is told in a message box)
+    var alertEl = make("p", "pl-sr");
     alertEl.id = "sv-alert";
-    alertEl.setAttribute("role", "alert");
-    root.appendChild(status);
     root.appendChild(alertEl);
-    // an error is read with the controls it can be about, until the next message
+    // A message box: kind "info" tells, "warn" warns or asks; content a line or nodes; buttons [{label, fn}], OK alone when
+    // none. Its closing puts the focus back where it was, or on home (else Back up saves) when that has gone or is disabled.
+    // False on a page without the desktop's boxes
+    function tell(kind, content, buttons, home) {
+      var apps = window.ByopopApps, back = document.activeElement;
+      if (!apps || !apps.tell || !apps.warn) return false;
+      function refocus() {
+        var to = back && back !== document.body && back.isConnected && !back.disabled ? back : home || backupButton;
+        try { to.focus(); } catch (e) {}
+      }
+      var answers = (buttons || [{ label: ByopopStrings.t("skin.apps.ok") }]).map(function (b) {
+        return { label: b.label, fn: function () { refocus(); if (b.fn) b.fn(); } };
+      });
+      try { (kind === "info" ? apps.tell : apps.warn)(TITLE, content, answers); return true; } catch (e) { return false; }
+    }
+    // a result in its message box, or in the window without one
+    function show(content) { report.textContent = ""; if (!tell("info", content)) report.appendChild(content); }
+    // the status bar's message; an error is told in a message box and read with the controls it can be about, until the next
+    // message
     function say(text, isError) {
       status.textContent = isError ? "" : text;
+      status.title = isError ? "" : text;   // the whole line, where the bar cuts it short
       alertEl.textContent = isError ? text : "";
       errorControls.forEach(function (c) {
         // a control's own description (the backup button's, while the browser may clear the saves) stays with the error
@@ -405,24 +428,31 @@ var ByopopSaves = (function () {
         var ids = (isError ? [alertEl.id, own] : [own]).filter(Boolean).join(" ");
         if (ids) c.setAttribute("aria-describedby", ids); else c.removeAttribute("aria-describedby");
       });
+      if (isError && !tell("warn", text)) status.textContent = text;
     }
 
-    var listTitle = make("h3", "", ByopopStrings.t("saves.list.title"));
-    var list = make("ul", "sv-list");
+    // the saves in this browser, in a group box: a details list (renderList) and the two buttons under it
+    var group = make("fieldset", "sv-group");
+    group.appendChild(make("legend", "", ByopopStrings.t("saves.list.title")));
+    var well = make("div", "sv-well");
+    var table = make("table", "sv-table");
+    table.setAttribute("aria-label", ByopopStrings.t("saves.list.title"));
+    var thead = make("thead"), list = make("tbody");
+    table.appendChild(thead); table.appendChild(list);
+    well.appendChild(table);
     var row = make("div", "pl-actions sv-actions");
     var backupButton = make("button", "", ByopopStrings.t("saves.backup.button"));
     backupButton.type = "button";
-    var pickId = "sv-pick";
-    var pickLabel = make("label", "", ByopopStrings.t("saves.restore.label"));
-    pickLabel.htmlFor = pickId;
+    // Restore from backup opens the browser's own file dialog, as Windows 95's Open did; the file field stays out of sight
+    var restoreButton = make("button", "", ByopopStrings.t("saves.restore.button"));
+    restoreButton.type = "button";
     var pick = make("input");
-    pick.type = "file"; pick.id = pickId; pick.accept = ".zip,application/zip";
-    row.appendChild(backupButton); row.appendChild(pickLabel); row.appendChild(pick);
+    pick.type = "file"; pick.accept = ".zip,application/zip"; pick.hidden = true;
+    restoreButton.addEventListener("click", function () { if (!busy) pick.click(); });
+    row.appendChild(backupButton); row.appendChild(restoreButton); row.appendChild(pick);
+    group.appendChild(well); group.appendChild(row);
     var report = make("div", "sv-report");
-    var confirmBox = make("div", "pl-confirm sv-confirm");
-    confirmBox.hidden = true;
-    root.appendChild(listTitle); root.appendChild(list); root.appendChild(row); root.appendChild(report); root.appendChild(confirmBox);
-    root.appendChild(where);
+    root.appendChild(group); root.appendChild(report);
     // whether the browser has agreed to keep the site's storage (a game page asks after an import, web/shell.html,
     // askToKeepStorage): until it has, a drive that runs low on space can make it clear the whole site, and then the backup
     // button says so, as its tooltip and its description
@@ -438,32 +468,49 @@ var ByopopSaves = (function () {
       }, function () {});
     } catch (e) {}
 
-    errorControls.push(backupButton, pick);
+    errorControls.push(backupButton, restoreButton);
     // the import (web/saveimport.js) is told to stand still too while anything runs
     var busyHooks = [];
     function setBusy(b) {
-      busy = b; backupButton.disabled = b; pick.disabled = b; busyHooks.forEach(function (h) { h(b); });
+      busy = b; backupButton.disabled = b; restoreButton.disabled = b; busyHooks.forEach(function (h) { h(b); });
       try { if (window.ByopopCursors) ByopopCursors.busy("saves", b); } catch (e) {}  // the site's wait cursor (web/cursors.js)
     }
 
+    // a game a row: its save files, its replays (a column while some game keeps them), their size, and whether the game's own
+    // browser backup is there (a column while some game has one)
     function renderList() {
       return databases().then(function (names) {
         return Promise.all(games.map(function (g) { return overview(g, names).catch(function () { return null; }); })).then(function (all) {
-          list.textContent = "";
-          var any = false;
+          var rows = [], anyReplays = games.some(function (g) { return g.replays; }), anyBackup = false;
           games.forEach(function (g, i) {
             var o = all[i];
             if (!o || (!o.files && !o.replays && !o.backup)) return;
-            any = true;
-            var li = make("li");
-            li.appendChild(make("strong", "", g.title));
-            var parts = [];
-            parts.push(o.files ? ByopopStrings.t("saves.list.files", {n: o.files, size: size(o.bytes)}) : ByopopStrings.t("saves.list.no_files"));
-            if (g.replays) parts.push(o.replays ? ByopopStrings.t("saves.list.replays", {n: o.replays, size: size(o.replayBytes)}) : ByopopStrings.t("saves.list.no_replays"));
-            li.appendChild(document.createTextNode(ByopopStrings.t("saves.list.rest", {parts: parts.join(", "), backup: o.backup ? ByopopStrings.t("saves.list.backup") : ""})));
-            list.appendChild(li);
+            rows.push({ g: g, o: o });
+            if (o.backup) anyBackup = true;
           });
-          if (!any) list.appendChild(make("li", "pl-empty", ByopopStrings.t("saves.list.empty")));
+          var cols = [["saves.col.game", ""], ["saves.col.files", "sv-num"]];
+          if (anyReplays) cols.push(["saves.col.replays", "sv-num"]);
+          cols.push(["saves.col.size", "sv-num"]);
+          if (anyBackup) cols.push(["saves.col.backup", ""]);
+          thead.textContent = ""; list.textContent = "";
+          var head = make("tr");
+          cols.forEach(function (c) { var th = make("th", c[1], ByopopStrings.t(c[0])); th.scope = "col"; head.appendChild(th); });
+          thead.appendChild(head);
+          rows.forEach(function (r) {
+            var tr = make("tr"), g = r.g, o = r.o, name = make("th", "", g.title);
+            name.scope = "row";
+            tr.appendChild(name);
+            tr.appendChild(make("td", "sv-num", String(o.files)));
+            if (anyReplays) tr.appendChild(make("td", "sv-num", g.replays ? String(o.replays) : ""));
+            tr.appendChild(make("td", "sv-num", size(o.bytes + o.replayBytes)));
+            if (anyBackup) tr.appendChild(make("td", "", o.backup ? ByopopStrings.t("saves.list.backup") : ""));
+            list.appendChild(tr);
+          });
+          if (!rows.length) {
+            var tr = make("tr"), td = make("td", "pl-empty", ByopopStrings.t("saves.list.empty"));
+            td.colSpan = cols.length;
+            tr.appendChild(td); list.appendChild(tr);
+          }
         });
       });
     }
@@ -512,8 +559,10 @@ var ByopopSaves = (function () {
           a.href = URL.createObjectURL(blob); a.download = backupName(made);
           document.body.appendChild(a); a.click(); a.remove();
           setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
-          report.textContent = "";
-          report.appendChild(make("h3", "", ByopopStrings.t("saves.backup.took")));
+          var done = ByopopStrings.t("saves.backup.done", {name: backupName(made), size: size(zip.length), count: plural(entries.length, "saves.n.file")});
+          var text = make("div");
+          text.appendChild(make("p", "", done));
+          text.appendChild(make("p", "", ByopopStrings.t("saves.backup.took")));
           var ul = make("ul", "sv-list");
           lines.forEach(function (l) {
             var li = make("li");
@@ -530,8 +579,9 @@ var ByopopSaves = (function () {
             settings: ByopopStrings.t(s !== null ? "saves.report.included" : "saves.report.none_set"),
             players: ByopopStrings.t(pr !== null ? "saves.report.included" : "saves.report.none"),
             play: ByopopStrings.t(play ? "saves.report.included" : "saves.report.none") })));
-          report.appendChild(ul);
-          say(ByopopStrings.t("saves.backup.done", {name: backupName(made), size: size(zip.length), count: plural(entries.length, "saves.n.file")}));
+          text.appendChild(ul);
+          say(done);
+          show(text);
         });
       }).catch(function (e) { say(ByopopStrings.t("saves.backup.failed", {error: e && e.message ? e.message : e}), true); }).then(function () { setBusy(false); });
     }
@@ -609,24 +659,16 @@ var ByopopSaves = (function () {
           });
         })).then(function (rows) {
           plan = { p: p, rows: rows, open: open };
-          showConfirm();
           say(p.man.made ? ByopopStrings.t("saves.restore.found_made", {name: p.file.name, date: new Date(p.man.made).toLocaleString()}) : ByopopStrings.t("saves.restore.found", {name: p.file.name}));
+          showConfirm();
         });
       });
     }
+    // The question, in a message box with the warning sign: what the zip holds and what it would replace, then Restore and
+    // Cancel; while a game it would write to is open, or the browser cannot tell, OK alone
     function showConfirm() {
-      confirmBox.textContent = "";
-      confirmBox.hidden = false;
-      // a dialog once its question is up: its name and text are made here (the box stays in the page, hidden, afterwards)
-      confirmBox.setAttribute("role", "alertdialog");
-      confirmBox.setAttribute("aria-labelledby", "sv-confirm-title");
-      confirmBox.setAttribute("aria-describedby", "sv-confirm-desc");
-      var h = make("h4", "", ByopopStrings.t("saves.confirm.title"));
-      h.id = "sv-confirm-title";
-      confirmBox.appendChild(h);
-      var desc = make("p", "", ByopopStrings.t("saves.confirm.desc"));
-      desc.id = "sv-confirm-desc";
-      confirmBox.appendChild(desc);
+      var text = make("div");
+      text.appendChild(make("p", "", ByopopStrings.t("saves.confirm.desc")));
       var ul = make("ul", "sv-list");
       plan.rows.forEach(function (r) {
         var g = byId[r.id], pg = plan.p.perGame[r.id], li = make("li");
@@ -642,25 +684,16 @@ var ByopopSaves = (function () {
       if (plan.p.texts.settings !== undefined) ul.appendChild(make("li", "", ByopopStrings.t("saves.confirm.settings")));
       if (plan.p.texts.profiles !== undefined) ul.appendChild(make("li", "", ByopopStrings.t("saves.confirm.players")));
       if (plan.p.texts["play times"] !== undefined) ul.appendChild(make("li", "", ByopopStrings.t("saves.confirm.play")));
-      confirmBox.appendChild(ul);
+      text.appendChild(ul);
       var openNow = plan.open === null ? ByopopStrings.t("saves.confirm.no_locks")
         : plan.open.length ? ByopopStrings.t("saves.confirm.close_first", {games: plan.open.map(function (id) { return byId[id].title; }).join(", ")}) : "";
-      if (openNow) confirmBox.appendChild(make("p", "pl-error", openNow));
-      var act = make("div", "pl-actions");
-      var yes = make("button", "pl-danger", ByopopStrings.t("saves.confirm.yes"));
-      yes.type = "button";
-      yes.disabled = !!openNow;
-      var no = make("button", "", ByopopStrings.t("saves.confirm.no"));
-      no.type = "button";
-      yes.addEventListener("click", function () { doRestore(); });
-      no.addEventListener("click", function () { endPlan(); say(ByopopStrings.t("saves.restore.nothing")); backupButton.focus(); });
-      act.appendChild(yes); act.appendChild(no);
-      confirmBox.appendChild(act);
-      yes.focus();
+      text.appendChild(make("p", "", openNow || ByopopStrings.t("saves.confirm.title")));
+      function no() { endPlan(); say(ByopopStrings.t("saves.restore.nothing")); }
+      var buttons = openNow ? [{ label: ByopopStrings.t("skin.apps.ok"), fn: no }]
+        : [{ label: ByopopStrings.t("saves.confirm.yes"), fn: doRestore }, { label: ByopopStrings.t("saves.confirm.no"), fn: no }];
+      // without the desktop's boxes, the browser's own question, once the reading has finished
+      if (!tell("warn", text, buttons, restoreButton)) setTimeout(function () { if (!openNow && window.confirm(text.textContent)) doRestore(); else no(); }, 0);
     }
-    confirmBox.addEventListener("keydown", function (ev) {
-      if (ev.key === "Escape" && !busy) { endPlan(); say(ByopopStrings.t("saves.restore.nothing")); backupButton.focus(); }
-    });
     function doRestore() {
       if (busy || !plan) return;
       var p = plan.p, targets = Object.keys(p.perGame).map(function (id) { return byId[id]; });
@@ -691,15 +724,17 @@ var ByopopSaves = (function () {
         });
       }).then(function (wrote) {
         endPlan();
-        report.textContent = "";
-        report.appendChild(make("h3", "", ByopopStrings.t("saves.restored.title")));
+        var text = make("div");
+        text.appendChild(make("p", "", ByopopStrings.t("saves.restore.done")));
+        text.appendChild(make("p", "", ByopopStrings.t("saves.restored.title")));
         var ul = make("ul", "sv-list");
         wrote.forEach(function (t) { ul.appendChild(make("li", "", t)); });
         if (p.texts.settings !== undefined) ul.appendChild(make("li", "", ByopopStrings.t("saves.restored.settings")));
         if (p.texts.profiles !== undefined) ul.appendChild(make("li", "", ByopopStrings.t("saves.restored.players")));
         if (p.texts["play times"] !== undefined) ul.appendChild(make("li", "", ByopopStrings.t("saves.restored.play")));
-        report.appendChild(ul);
+        text.appendChild(ul);
         say(ByopopStrings.t("saves.restore.done"));
+        show(text);
         try { window.dispatchEvent(new StorageEvent("storage", { key: null })); } catch (e) {}
         return renderList();
       }).catch(function (e) { say(ByopopStrings.t("saves.restore.failed", {error: e && e.message ? e.message : e}), true); renderList(); }).then(function () {
@@ -714,7 +749,7 @@ var ByopopSaves = (function () {
     if (typeof ByopopSaveImport !== "undefined" && ByopopSaveImport.init) {
       try {
         ByopopSaveImport.init(root, games, {
-          say: say, isBusy: function () { return busy; }, setBusy: setBusy, refresh: renderList, size: size,
+          say: say, show: show, isBusy: function () { return busy; }, setBusy: setBusy, refresh: renderList, size: size,
           databases: databases, openExisting: openExisting, readFolder: readFolder, writeFiles: writeFiles, merged: merged,
           lsGet: lsGet, lsSet: lsSet, backupKey: backupKey, withLocks: withLocks,
           openGames: function () { return openGames(games); },
@@ -723,7 +758,7 @@ var ByopopSaves = (function () {
         });
       } catch (e) { root.appendChild(make("p", "pl-error", ByopopStrings.t("saves.import_unavailable"))); }
     }
-    root.appendChild(where);  // last, under the import too: a status bar is the window's foot
+    root.appendChild(bar);  // last, under the import too: a status bar is the window's foot
     document.addEventListener("visibilitychange", function () { if (!document.hidden && !busy) renderList(); });
     window.addEventListener("pageshow", function () { if (!busy) renderList(); });
     window.addEventListener("storage", function (ev) { if (!busy && (ev.key === null || /^sexy-userdata-backup:/.test(ev.key || ""))) renderList(); });

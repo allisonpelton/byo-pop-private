@@ -26,8 +26,11 @@
 //      The panel draws the tag from the site's own table of games (build/web/chat-games.js, below) by the game id, so what a message
 //      says about its tag or title is never drawn, and a game the table does not know has no tag. The only source today is
 //      localSource(), made up and kept in this browser; it makes no network request.
-//   3. the panel: the log (a role="log" live region), the field to write in, the username control and the disabled "Sign in with
-//      Discord". Everything a message says goes in with textContent, never as markup, and a URL stays text.
+//   3. the panel, in the shape of a 1995 IRC client's channel window (the user, 2026-11-18: "Chat window needs minor remodeling to
+//      look like a real 95-era IRC client"): the topic line at the top, the log (a role="log" live region) with the list of the
+//      people in the room beside it, the one-line field under them (Enter sends), and a row with the username control and the
+//      disabled "Sign in with Discord". The panel's own lines ("* Now talking in #all-games", a name change) are in the log in a
+//      colour of their own. Everything a message says goes in with textContent, never as markup, and a URL stays text.
 //
 // The table of games is made by cmake/ByopopWeb.cmake (byopop_web_index) from BYOPOP_WEB_BADGES and the titles the listing page
 // shows, and written to chat-games.js beside the pages: var ByopopGames = [{ id, page, tag, title, colour }, ...]. shell.html passes
@@ -482,7 +485,21 @@ var ByopopChat = (function () {
   // ---------- the panel ----------
   // The panel's own styles (prefix bpc-), added once. The colours are the page's tokens (--panel, --fg, --muted, --line, --accent).
   var STYLE =
-    ".bpc { display: flex; flex-direction: column; flex: 1; min-height: 0; }\n" +
+    ".bpc { display: flex; flex-direction: column; flex: 1; min-height: 0; container-type: inline-size; }\n" +
+    // the topic line; the log and the people side by side; the panel's own lines
+    ".bpc-topic { display: flex; align-items: center; gap: 6px; min-width: 0; margin: 0 0 4px; padding: 2px 6px; background: var(--bg); border: 1px solid var(--line);\n" +
+    "  font-family: var(--font-mono, ui-monospace, monospace); font-size: 12.5px; }\n" +
+    ".bpc-topic-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n" +
+    ".bpc-panes { display: flex; flex: 1; min-height: 0; }\n" +
+    ".bpc-panes > * { min-width: 0; }\n" +
+    ".bpc-panes > :first-child { flex: 1 1 auto; }\n" +
+    ".bpc-nicks { flex: none; width: 96px; margin: 0; padding: 4px 6px; list-style: none; overflow-y: auto; overscroll-behavior: contain; background: var(--bg);\n" +
+    "  border-left: 1px solid var(--line); font-family: var(--font-mono, ui-monospace, monospace); font-size: 12.5px; line-height: 1.45; }\n" +
+    ".bpc-nicks li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n" +
+    // too narrow for both (a game's page beside a small stage, a window made small): the people's list gives way to the
+    // messages (the :not(#\#) outweighs the desktop's scroll-bar wrapper, web/skins.css)
+    "@container (max-width: 339px) { .bpc-panes > :last-child:not(#\\#) { display: none; } }\n" +
+    ".bpc-sys { color: var(--muted); }\n" +
     ".bpc [hidden] { display: none !important; }\n" +
     ".bpc-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }\n" +
     ".bpc-log { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 8px 10px; background: var(--bg);\n" +
@@ -499,8 +516,7 @@ var ByopopChat = (function () {
     ".bpc-game-icon:hover, .bpc-game-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }\n" +
     ".bpc-nick { font-weight: 700; color: hsl(var(--bpc-h, 260) 55% 25%); }\n" +
     ".bpc-me .bpc-nick { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }\n" +
-    ".bpc-day { display: flex; align-items: center; gap: 8px; text-indent: 0; padding: 10px 0 4px 0; color: var(--muted); font-size: 12px; }\n" +
-    ".bpc-day::before, .bpc-day::after { content: \"\"; flex: 1; border-top: 1px solid var(--line); }\n" +
+    ".bpc-day { text-indent: 0; padding: 6px 0 2px 0; color: var(--muted); }\n" +
     ".bpc-start, .bpc-older { display: block; margin: 0 auto 6px; font-size: 12px; color: var(--muted); text-align: center; }\n" +
     ".bpc-older { padding: 3px 10px; }\n" +
     ".bpc-jump { margin: 0; align-self: center; font-size: 12px; padding: 3px 12px; border-radius: 99px; background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }\n" +
@@ -508,12 +524,13 @@ var ByopopChat = (function () {
     ".bpc-foot p { margin: 0; }\n" +
     ".bpc-note, .bpc-hint, .bpc-status, .bpc-count { font-size: 12px; color: var(--muted); }\n" +
     ".bpc-status:empty, .bpc-count:empty, .bpc-note:empty { display: none; }\n" +
-    ".bpc-form { display: flex; gap: 6px; }\n" +
+    ".bpc-form { display: flex; }\n" +
     ".bpc-form input, .bpc-nameform input { flex: 1; min-width: 0; font: inherit; color: var(--fg); background: var(--bg);\n" +
     "  border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }\n" +
     ".bpc-form input:focus-visible, .bpc-nameform input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }\n" +
     ".bpc-form input[aria-invalid=true], .bpc-nameform input[aria-invalid=true] { border-color: var(--gem-ruby, #b3261e); }\n" +
     ".bpc-who { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 13px; }\n" +
+    ".bpc-signrow { margin-left: auto; }\n" +
     ".bpc-who strong { font-family: var(--font-mono, monospace); font-weight: 700; overflow-wrap: anywhere; }\n" +
     ".bpc-who button, .bpc-nameform button, .bpc-form button { font-size: 13px; padding: 4px 10px; }\n" +
     ".bpc-nameform { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; }\n" +
@@ -602,6 +619,13 @@ var ByopopChat = (function () {
     li.appendChild(span);
     return li;
   }
+  // One of the panel's own lines, "* Now talking in #all-games", as an IRC client wrote its notices: no time, no game, a "*"
+  function renderSys(doc, line) {
+    var li = doc.createElement("li");
+    li.className = "bpc-row bpc-sys";
+    li.textContent = "* " + line.text;
+    return li;
+  }
   function errorWords(err) {
     var code = err && err.code;
     if (code === "rate") return ByopopStrings.t("chat.words.rate");
@@ -628,9 +652,10 @@ var ByopopChat = (function () {
     var games = asGames(opts.games, opts.game, opts.iconOf);
     var source = opts.source || localSource({ game: opts.game, games: games });
     var toggle = root.querySelector("[data-chat-toggle]"), unreadEl = root.querySelector("[data-chat-unread]"), body = root.querySelector("[data-chat-body]");
-    var st = { built: false, visible: false, collapsed: false, me: "", hasMore: true, loading: false, ids: {}, list: [], unread: 0, sending: false, canRename: false };
+    // sys: the panel's own lines ({ id, t, text, sys }), drawn among the messages by their time and never sent or kept
+    var st = { built: false, visible: false, collapsed: false, me: "", hasMore: true, loading: false, ids: {}, list: [], sys: [], unread: 0, sending: false, canRename: false };
     var limiter = createRateLimiter(LIMITS.rateMs);
-    var log, listEl, older, startNote, jump, input, countEl, statusEl, meName, nameForm, nameInput, nameErr, changeBtn, note;
+    var log, listEl, older, startNote, jump, input, countEl, statusEl, meName, nameForm, nameInput, nameErr, changeBtn, note, topicText, nicksEl;
     var uid = ++idCount;
     try { st.collapsed = storage().getItem(KEY_COLLAPSED) === "1"; } catch (e) {}
 
@@ -644,31 +669,55 @@ var ByopopChat = (function () {
       fn();
       setTimeout(function () { log.setAttribute("aria-live", "polite"); }, 150);
     }
+    // the newest line in the log, a message or the panel's own
+    function newest() {
+      var m = st.list[st.list.length - 1], s = st.sys[st.sys.length - 1];
+      return !m ? s : !s ? m : byTime(m, s) < 0 ? s : m;
+    }
+    function renderLine(row, t) {
+      return !row.msg ? renderDay(document, row.t, t) : row.msg.sys ? renderSys(document, row.msg) : renderRow(document, row.msg, st.me, games);
+    }
     function renderAll() {
       listEl.textContent = "";
       var t = now();
-      withDays(st.list).forEach(function (row) {
-        listEl.appendChild(row.msg ? renderRow(document, row.msg, st.me, games) : renderDay(document, row.t, t));
-      });
+      withDays(st.list.concat(st.sys).sort(byTime)).forEach(function (row) { listEl.appendChild(renderLine(row, t)); });
+      renderNicks();
       older.hidden = !st.hasMore;
       startNote.hidden = st.hasMore || !st.list.length;
       older.disabled = false;
       older.textContent = ByopopStrings.t("chat.older");
     }
-    // a new message: after the last one, in place when it is the newest
+    // a new line at the foot: after the newest one, in place when it is not the newest (a message from another page of the site)
+    function place(line, list) {
+      var last = newest(), follow = nearBottom();
+      list.push(line);
+      if (last && byTime(line, last) < 0) { list.sort(byTime); renderAll(); return follow; }
+      if (!last || dayKey(last.t) !== dayKey(line.t)) listEl.appendChild(renderDay(document, line.t, now()));
+      listEl.appendChild(line.sys ? renderSys(document, line) : renderRow(document, line, st.me, games));
+      return follow;
+    }
+    // one of the panel's own lines, now
+    var sysCount = 0;
+    function addSys(text) {
+      if (place({ id: "~" + (++sysCount), t: now(), text: text, sys: true }, st.sys)) toBottom();
+    }
+    // The people in the room, beside the log, as an IRC client listed a channel's: the viewer and everyone who wrote in the
+    // messages shown, in the order of their names (the local source knows no more; a server's list of who is in would replace it)
+    function renderNicks() {
+      if (!nicksEl) return;
+      var seen = {}, names = [];
+      st.list.concat(st.me ? [{ user: st.me }] : []).forEach(function (m) { if (!seen[m.user]) { seen[m.user] = true; names.push(m.user); } });
+      names.sort(function (a, b) { var x = a.toLowerCase(), y = b.toLowerCase(); return x < y ? -1 : x > y ? 1 : a < b ? -1 : a > b ? 1 : 0; });
+      nicksEl.textContent = "";
+      names.forEach(function (n) { var li = make("li", n === st.me ? "bpc-me" : "", n); li.title = n; nicksEl.appendChild(li); });
+    }
     function addMessage(m, mine) {
       if (st.ids[m.id]) return;
       st.ids[m.id] = true;
-      var follow = nearBottom() || mine, last = st.list[st.list.length - 1];
-      if (last && byTime(m, last) < 0) {  // out of order (another page of the site): put in its place
-        st.list.push(m); st.list.sort(byTime);
-        renderAll();
-      } else {
-        st.list.push(m);
-        if (!last || dayKey(last.t) !== dayKey(m.t)) listEl.appendChild(renderDay(document, m.t, now()));
-        listEl.appendChild(renderRow(document, m, st.me, games));
-        startNote.hidden = st.hasMore;
-      }
+      var known = st.list.some(function (x) { return x.user === m.user; });
+      var follow = place(m, st.list) || mine;
+      if (!known) renderNicks();
+      startNote.hidden = st.hasMore;
       if (st.collapsed) { st.unread++; showUnread(); }
       if (follow) toBottom(); else if (!st.collapsed) jump.hidden = false;
     }
@@ -759,7 +808,8 @@ var ByopopChat = (function () {
         nameInput.removeAttribute("aria-invalid");
         nameErr.textContent = "";
         nameFormOpen(false);
-        say(ByopopStrings.t("chat.you_are_now", {name: kept}));
+        say("");
+        addSys(ByopopStrings.t("chat.renamed", {name: kept}));
       }, function (err) {
         nameInput.setAttribute("aria-invalid", "true");
         nameErr.textContent = (err && err.message) || ByopopStrings.t("chat.name_failed");
@@ -777,6 +827,11 @@ var ByopopChat = (function () {
       body.textContent = "";
       var wrap = make("div", "bpc");
       var id = "bpc-" + uid;
+      // the topic line: the room's name and its topic, the whole line its tooltip, and the test chat's tag at its end
+      var topic = make("div", "bpc-topic");
+      topicText = make("span", "bpc-topic-text");
+      note = make("span", "bpc-note");
+      topic.appendChild(topicText); topic.appendChild(note);
       log = make("div", "bpc-log");
       log.setAttribute("role", "log");
       log.setAttribute("aria-live", "polite");
@@ -793,10 +848,12 @@ var ByopopChat = (function () {
       jump = make("button", "bpc-jump", ByopopStrings.t("chat.jump"));
       jump.type = "button";
       jump.hidden = true;
+      nicksEl = make("ul", "bpc-nicks");
+      nicksEl.setAttribute("aria-label", ByopopStrings.t("chat.people"));
+      var panes = make("div", "bpc-panes");
+      panes.appendChild(log); panes.appendChild(nicksEl);
 
       var foot = make("div", "bpc-foot");
-      // a test chat says so with a tag, its sentence the tag's tooltip (the user's rule: values, not sentences)
-      note = make("p", "bpc-note");
       var form = make("form", "bpc-form");
       form.noValidate = true;
       var label = make("label", "bpc-sr", ByopopStrings.t("chat.message"));
@@ -811,9 +868,9 @@ var ByopopChat = (function () {
       input.setAttribute("enterkeyhint", "send");
       input.setAttribute("placeholder", ByopopStrings.t("chat.placeholder"));
       input.setAttribute("aria-describedby", id + "-hint");
-      var send = make("button", "primary", ByopopStrings.t("chat.send"));
-      send.type = "submit";
-      form.appendChild(label); form.appendChild(input); form.appendChild(send);
+      // the one line to write in, with no button beside it: Enter sends, as in an IRC client (the field is the form's only one,
+      // so Enter submits it)
+      form.appendChild(label); form.appendChild(input);
       // (read out with the field, not shown: the placeholder and the count say what matters)
       var hint = make("p", "bpc-sr", ByopopStrings.t("chat.hint", {max: LIMITS.textMax}));
       hint.id = id + "-hint";
@@ -857,13 +914,15 @@ var ByopopChat = (function () {
       signin.type = "button";
       signin.disabled = true;
       signin.title = ByopopStrings.t("chat.signin_note");
-      var signRow = make("div", "bpc-who");
+      // in the username's row, at its end
+      var signRow = make("span", "bpc-signrow");
       signRow.appendChild(signin);
+      who.appendChild(signRow);
 
       foot.appendChild(form); foot.appendChild(hint); foot.appendChild(countEl); foot.appendChild(statusEl);
       statusEl.setAttribute("aria-atomic", "true");
-      foot.appendChild(who); foot.appendChild(nameForm); foot.appendChild(signRow); foot.appendChild(note);
-      wrap.appendChild(log); wrap.appendChild(jump); wrap.appendChild(foot);
+      foot.appendChild(who); foot.appendChild(nameForm);
+      wrap.appendChild(topic); wrap.appendChild(panes); wrap.appendChild(jump); wrap.appendChild(foot);
       body.appendChild(wrap);
 
       form.addEventListener("submit", submit);
@@ -883,11 +942,17 @@ var ByopopChat = (function () {
       say(ByopopStrings.t("chat.connecting"));
       // (a message of this viewer's own that comes in while a send is under way is that send's)
       source.onMessage(function (m) { if (validMessage(m)) addMessage(m, st.sending && m.user === st.me); });
-      source.onError(function (e) { say((e && e.message) || ByopopStrings.t("chat.unreachable")); if (e && e.fatal) { input.disabled = true; send.disabled = true; } });
+      source.onError(function (e) { say((e && e.message) || ByopopStrings.t("chat.unreachable")); if (e && e.fatal) input.disabled = true; });
+      var channel = "#all-games";
       source.connect().then(function (info) {
         st.me = info.user && info.user.name || "";
         st.canRename = !!info.canRename;
         showMe();
+        // the room as a channel's name: "all games" is #all-games
+        channel = "#" + (String(info.room || "").trim().replace(/\s+/g, "-") || "chat");
+        topicText.textContent = channel + ": " + ByopopStrings.t("chat.topic");
+        topic.title = topicText.textContent;
+        // a test chat says so with a tag, its sentence the tag's tooltip (the user's rule: values, not sentences)
         note.textContent = "";
         if (info.note) {
           var tag = make("abbr", "bpc-tag", ByopopStrings.t("chat.test"));
@@ -901,12 +966,14 @@ var ByopopChat = (function () {
         st.hasMore = msgs.length >= LIMITS.page;
         msgs.forEach(function (m) { st.ids[m.id] = true; });
         st.list = msgs;
+        // the room's first line, after its history, as a client wrote it on joining
+        st.sys.push({ id: "~" + (++sysCount), t: now(), text: ByopopStrings.t("chat.joined", {channel: channel}), sys: true });
         quietly(function () { renderAll(); toBottom(); });
         say("");
         fill();
       }, function (err) {
         say((err && err.message) || ByopopStrings.t("chat.unreachable_start"));
-        input.disabled = true; send.disabled = true;
+        input.disabled = true;
       });
       st.built = true;
     }
