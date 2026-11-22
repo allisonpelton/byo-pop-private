@@ -18,19 +18,25 @@ Steps, one per line ('#' starts a comment):
   shot <name>                    a still
   clip <name> <dur_ms> <interval_ms>   numbered frames (origrun's record; the port's screenshots)
   loaded <ms>                    a chapter load (ChapterLoadScreen, app+0x83c) under way or about to start: the
-                                 original waits until its screen has come and gone (waitfor) and marks the counter,
-                                 and the steps after it count from there (`at +N`) as if the load ended <ms> after
-                                 this line, so its length on the machine drops out; the port's lines say @<k>+N
+                                 original waits until its screen has come and gone and the curtain over it has
+                                 opened (app+0x8ec, mTransitionState, back to 0) and marks the counter, and the steps
+                                 after it count from there (`at +N`) as if the curtain opened <ms> after this line,
+                                 so the load's length on the machine drops out (the curtain steps on its own count
+                                 of 5 from before the load); the port's lines say @<k>+N
                                  for the k-th mark, which run.sh fills in from the original's log (anchors.py), the
                                  port's loads lasting as long as the original's (-chapterloadupdates)
   loaded <ms> gone               the same for a load that may already be over at this line (it waits only for the
-                                 screen to be gone)
+                                 screen to be gone and the curtain open)
+  loaded <ms> load               the same, counting from the load's end instead (the screen gone): for the steps
+                                 that shoot the curtain as it opens, the steps after it waiting on the curtain's
+                                 count of 5 (up to 4 updates)
   quit
 """
 import os
 import sys
 
 LOADSCREEN = "[0x8259e4]+0x83c"   # the app's ChapterLoadScreen, 0 while none is up
+TRANSITION = "[0x8259e4]+0x8ec"   # the app's mTransitionState, 0 once the curtain is done
 
 
 def main():
@@ -40,7 +46,8 @@ def main():
     orig, port = ["waitshot _window 60000"], []
     t = 0       # ms of game time: update t/10
     k, base = 0, 0      # the marks so far; the game time the last one stands for
-    gone = False        # the last mark's load may have been over at its line: the port takes the original's mark
+    kind = ""           # the last mark's: "g" its load may have been over at its line (the port takes the original's
+                        # mark), "l" it counts from the load's end, not the curtain's opening
 
     def rel(ms):
         # after a mark: updates from it, at least 20 (origrun lets the game run free while it waits for the load)
@@ -59,7 +66,7 @@ def main():
         if k and nominal:
             port.append("%d %s" % (base // 10 + rel(ms) + 1, cmd))
         elif k:
-            port.append("@%d%s+%d %s" % (k, "g" if gone else "", rel(ms) + 1, cmd))
+            port.append("@%d%s+%d %s" % (k, kind, rel(ms) + 1, cmd))
         else:
             port.append("%d %s" % (max(ms // 10, 1) + 1, cmd))
 
@@ -107,8 +114,10 @@ def main():
             if args[1:] != ["gone"]:
                 orig.append("waitfor %s != 0 60000" % LOADSCREEN)
             orig.append("waitfor %s == 0 120000" % LOADSCREEN)
+            if args[1:] != ["load"]:
+                orig.append("waitfor %s == 0 60000" % TRANSITION)
             orig.append("mark")
-            k, base, gone = k + 1, t + int(args[0]), args[1:] == ["gone"]
+            k, base, kind = k + 1, t + int(args[0]), {"gone": "g", "load": "l"}.get((args[1:] or [""])[0], "")
         elif op == "quit":
             t += 500
             oat(t, "move 0 0"); orig.append("quit"); pat(t, "quit")
