@@ -1,5 +1,6 @@
 // Sexy::MainMenu: see the header.
 #include "MainMenu.h"
+#include "Board.h"
 
 #include "Bej3App.h"
 #include "DDImage.h"
@@ -186,6 +187,10 @@ void MainMenu::Update()
 	// 0x6a3530: the menu is hidden once the PlayMenu's +0x490 curve has reached 1 (the exe also hides it for the screen at
 	// +0xbe8 and while +0xba4 is set: the port has neither yet), and not "shown" once the PlayMenu's fade has reached 1
 	mVisible = !(mPlayMenu != nullptr && mPlayMenu->mHideCurve.GetOutVal() >= 1.0);
+	// 0x6a3530: also hidden while the game screen (app +0xbe8) is on the screen, visible, with its cover curve at 1
+	Board* aBoard = gApp->mBoard;
+	if (aBoard != nullptr && aBoard->mParent != nullptr && aBoard->mVisible && aBoard->mCoverCurve.GetOutVal() >= 1.0)
+		mVisible = false;
 	mShown = mVisible && !(mPlayMenu != nullptr && mPlayMenu->mFadeCurve.GetOutVal() >= 1.0);
 	mPlayButton->mVisible = mShown;
 	if (!mShown)

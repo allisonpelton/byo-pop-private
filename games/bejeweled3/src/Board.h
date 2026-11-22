@@ -9,6 +9,7 @@
 #pragma once
 
 #include "ButtonListener.h"
+#include "CurvedVal.h"
 #include "MTRand.h"
 #include "Widget.h"
 
@@ -65,6 +66,7 @@ public:
 	std::vector<int> mColorList;     // +0x105c: the colours a new piece may get: each of the seven twice
 	bool mNoSavedGame = true;        // port: the saved game of this mode (0x74e1f0) is not read: a new game starts
 	int mScore = 0;                  // +0xd64
+	CurvedVal mCoverCurve;           // +0x2898: 1 from the constructor (0x74b76c): while it is 1 the main menu behind is hidden (0x6a3530)
 
 	Board();                                   // 0x74ae30 (bejeweled3)
 	~Board() override;

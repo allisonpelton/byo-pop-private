@@ -54,6 +54,7 @@ Board::Board()
 	}
 	// 0x74b333 and 0x74b350: "Seed: %d" is written to the debug output and the board's generator seeded with the app's
 	// next number (0x439a90 is the app's Rand())
+	mCoverCurve.SetConstant(1.0);
 	int aSeed = Rand();
 	mRand.SRand(aSeed);
 	// 0x74b960: each colour twice, so that each is as likely as every other
