@@ -4,6 +4,7 @@
 # "at T-9" holds, so a shot at T is "at T-9 shot" and a move "at T-9 move"; a click at T (its move at T-10) is the
 # original's "at T-19 click x y 30", read by its message pump at the start of the frame, and a key the same, held 30
 # updates. A right click does not move the cursor: origrun's rclick is sent at the last click's or move's place.
+import os
 import sys
 
 run, orig = [], []
@@ -44,6 +45,8 @@ for line in open(sys.argv[1]):
 run.sort(key=lambda e: e[0])
 orig.sort(key=lambda e: e[0])
 name = sys.argv[2]
+os.makedirs('build/wbs', exist_ok=True)
+os.makedirs('build/origrun', exist_ok=True)
 with open('build/wbs/%s.txt' % name, 'w', newline='\n') as o:
     o.write("".join("%d %s\n" % e for e in run) + "%d end\n" % end)
 with open('build/origrun/%s.txt' % name, 'w', newline='\n') as o:
