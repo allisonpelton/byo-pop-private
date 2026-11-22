@@ -537,8 +537,9 @@ app's loaded flag, and `at 16777216`).
 
 **In step with origrun.** Through a shared block origrun holds the game's main thread at a wait: `at N` arms a
 barrier at which the thread stops as it enters its first wait once the counter has reached `N`, still answering
-sent messages. The game starts held once its window is up and stays held between script commands, so a script
-starts at the same point in every run, `wait <ms>` is game time, and the update an `at` lands on does not depend
+sent messages. The game starts held once its window is up (a window that goes again before the script starts, as a splash another
+thread closes, does not count: origrun lets the game on wait by wait until one is up again) and stays held between
+script commands, so a script starts at the same point in every run, `wait <ms>` is game time, and the update an `at` lands on does not depend
 on the machine. The counter and the `--watch` values are read inside the game at each of its waits, so no update
 is missed. The stand-in's play cursor and `GetStatus` follow the virtual clock.
 
