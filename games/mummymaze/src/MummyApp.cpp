@@ -143,6 +143,8 @@ Image* ImageTable::Load(int theId)
 		}
 		return aBlank;
 	}
+	if (theId == IMAGE_TITLE)
+		CoverDeluxe(anImage);
 	mImages[theId] = anImage;
 	return anImage;
 }
