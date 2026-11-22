@@ -213,12 +213,22 @@ original gives it that the port does not. The level summary's buttons are the sa
 shows its Save/Quit button at frame 2600, the port from 2601), and so is the memory bonus round's start (mem1's
 bonus_start matches the port's frame 4051).
 
-**Not yet judged: the price badges' text.** The order popups' "$" price (PizzaPopup's price text: centred, smooth
-type on, so drawn at a half pixel) differs faintly in every play shot: in each badge two columns of the digits' right
-edges are darker in the port, up to 123 in a channel over about 18 pixels (mem1's level2_300, boxes at 663,145 and
-663,470). Moving the port's picture by a pixel makes it worse, so the glyphs stand in the same place; the difference
-is in how a smooth draw at a fractional position is resampled, which is the renderer's to settle. mem1's play_300 has
-a faint difference of the same kind on the two trucks (up to 58 in a channel), not looked at yet.
+**Oddity: smooth draws are resampled differently.** Two faint differences in every play shot come from the pictures
+drawn with the smooth type on (not snapped to whole pixels). The order popups' "$" price (PizzaPopup's price text,
+centred, so at a half pixel) has two columns at the digits' right edges darker in the port, up to 123 in a channel
+over about 18 pixels (mem1's level2_300, boxes at 663,145 and 663,470). The order card that scales and fades in over a
+kitchen's truck differs by a few levels all over (up to 58 in a channel; mem1's play_300, boxes at 250,499 and
+425,499). Both are on their own frames (port frames 296 to 304 are all further off), and moving the port's picture by
+a pixel makes them worse, so the pictures stand in the same place. The cause is the resampling. The original sends a
+smooth, unrotated draw through its whole-pixel stretch (0x4cab60 and its siblings, one per pixel operation, chosen in
+0x4bf8e0). At a scale of 1 and a fractional position it widens the screen rectangle by a pixel and forward-splats each
+source pixel over the four screen pixels it overlaps, by the fractional weights, into a buffer (0x4c47c0 and its
+siblings), so the column past a glyph's edge gets only its share. At another scale it resamples in fixed point
+(0x4c2d30), screen column i reading source column i times (width − 1) over the screen's width in 1/256ths, so the first
+and last columns land on the source's. The port samples every smooth draw backwards, bilinear about each screen
+pixel's centre, repeating the edge pixels. Matching it means translating those MMX loops for each pixel operation
+(each a couple of hundred lines in the export) into the renderer, well over the hour; the differences are a few levels
+on small parts of moving or fading pictures.
 
 **Oddity: a taken tip's flight.** A tip the player takes flies to the tip jar as a picture splat, from the tip's
 place to the jar's count in a straight line over the distance divided by the splat's speed. In conc1's play_1500 the
