@@ -401,7 +401,11 @@ public:
 	// 0x73b250 (bejeweled3): the panel (0x751d50), then the gems and the rest of the screen (0x750320)
 	void Draw(Graphics* g) override;
 	void DrawPanel(Graphics* g);                           // 0x751d50 (bejeweled3): the checkered squares behind the gems
-	void DrawPiece(Graphics* g, const Piece* thePiece);   // slot 237, 0x757df0 (bejeweled3)
+	// slot 237, 0x757df0 (bejeweled3): theScaleFactor is its third argument (1; the swap loop of 0x7568a0 gives 1 plus or minus the swap's lift)
+	void DrawPiece(Graphics* g, const Piece* thePiece, float theScaleFactor = 1.0f);
+	void DrawHypercube(Graphics* g, const Piece* thePiece);       // slot 235, 0x73f630 (bejeweled3)
+	void DrawPieceShadow(Graphics* g, const Piece* thePiece);   // slot 236, 0x754670 (bejeweled3): the shadow sheet's cel under a gem that is drawn from its sheet
+	void DrawPieces(Graphics* g);                         // slot 246, 0x7568a0 (bejeweled3) with its second argument 0: the passes over the gems
 	void DrawScreenFrame(Graphics* g);                     // the pictures round the grid (slots 0x3bc, 0x3c0, 0x3c4, 0x3e4) and the left panel
 	void MakeButtons();                                    // 0x741840 (bejeweled3), Classic's two buttons
 };

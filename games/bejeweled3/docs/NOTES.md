@@ -762,7 +762,25 @@ Oddities (not translated, each with a `port:` note in the source):
   points at +0xc of 0x60-byte records: a PopAnim's, not the PIEffect's), the points (0, h / 2) and (w x bar, h / 2). The port draws a copy of the PIEffect at
   the bar's top-left, clipped to the fraction, updated each Board::Update: the glow is there but only as long as the effect is by itself (about 130 pixels at
   600), so a bar above a third does not show more. What 0x755620 and 0x75a760 drive has not been read.
-- The gems' other pictures: the Flame Gem's PIEffect (PIEFFECT_BLASTGEM), the Star Gem's and the Hypercube's pictures and effects (0x745a60, 0x755030,
+- The special gems (read this pass; the passes and the Hypercube's picture are translated, the effects are not). 0x7568a0 runs three passes
+  (DrawPieces): (1) the shadow (slot 236, 0x754670: IMAGE_GEMSSHADOW_<colour>, the cel from the turn) of each gem that is not a Flame Gem and is held
+  by a swap, turning, or has bits 1/4/0x10/0x800/0x1000, then the effects layer at +0x12bc is drawn; (2) every gem not held by a swap, slot 237; (3) each
+  swap's second gem then its first (scale 1 plus or minus a lift curve that the exe sets only in 3D, so 1). A gem drawn from its sheet is scaled round
+  its cell's middle by the scale curve times the third argument; the sprites of 0x76bfc0 are not (the exe resets the scale for them). The Hypercube
+  (flag 2) is slot 235, 0x73f630: IMAGE_HYPERCUBE_FRAME and then IMAGE_HYPERCUBE_COLORGLOW (additive), cel (update count / 5) mod 60. 0x755030 (the sun
+  light on gems near a Hypercube's bolts) and 0x754c60 (a shader's "Params") run only when the Graphics is in 3D (0x4322a0), not in this port's 2D; 0x745a60
+  draws lens rings for the effects of the layer at +0x12c0 that have a radius (+0x60: types 3 to 6, which Classic does not make).
+  The persistent looks are Effects (Sexy::EffectsManager, vtable 0x865df4, two layers: +0x12bc under the gems, +0x12c0 over them; Sexy::ParticleEffect
+  0x72b180, a PIEffect copy held at +0x1c0 that follows the piece with the id at +0x28 and is run by 0x732880: its first update is ResetAnim and its second
+  PIEffect::Update, which draws one Rand() for the seed; Sexy::PopAnimEffect 0x72af30, a PopAnim clone). 0x749220 picks by flag: 0x10 0x748c50, 4
+  (Star Gem) 0x749050 (two ParticleEffects of PIEFFECT_STARGEM, one in each layer, "Stars" layer off in the first), 0x80 0x748ad0, 2 (Hypercube) 0x748a00
+  (PIEFFECT_HYPERCUBE, under layer), 0x80000 0x748930 (PIEFFECT_BLASTGEM; the exe never sets 0x80000 in Classic: 0x75af60 treats it like bit 1). The
+  Flame Gem (0x745ca0) makes two PopAnimEffects of POPANIM_FLAMEGEMCREATION (labels with "Creation_Above Gem", in the two layers; the animation has no
+  "addparticleeffect"), and has no persistent effect in 2D: the gem is its sheet's cel. The hint's PIEFFECT_HINTFLASH (0x748480, for a player's hint) is a
+  ParticleEffect in the layer at +0x12c0. None of these is made yet. The Rand() draws they would make (one per ParticleEffect at its second update:
+  Star Gem two, Hypercube one, a player's hint one) are not in the logic either: the comments of MakeStarGem and MakeHypercube say "no Rand()", which holds
+  for the Effect constructor (0x729460, type 0x16/0x17) but not for the PIEffect's first real update (0x573290: Rand() for the seed).
+- (kept) the gems' other pictures: the Flame Gem's PIEffect (PIEFFECT_BLASTGEM), the Star Gem's and the Hypercube's pictures and effects (0x745a60, 0x755030,
   0x754c60, the flag bits 4 and 0x2000 at the end of 0x757df0), the selection and hint glows (+0x240, bit 0x200), the blend of two cels round a turn (a PIEffect
   "Params" when the board's alpha is 1), the pass order of 0x7568a0 (plain, special, flame gems with the effects between) and the piece's alpha curve
   (+0x90, constant 1). Gems are drawn in one pass in the grid's order.

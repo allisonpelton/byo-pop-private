@@ -89,12 +89,12 @@ void Bej3App::MakeGemFrames()
 // (a PIEffect "Params" when the board's alpha is 1), the Flame Gem's, the Star Gem's and the Hypercube's pictures and PIEffects
 // (0x745a60, 0x755030, 0x754c60, the bits 4 and 0x2000 at the end), the selection and hint glows (+0x240 and bit 0x200), and the
 // piece's own alpha curve (+0x90, the constant 1)
-void Board::DrawPiece(Graphics* g, const Piece* thePiece)
+void Board::DrawPiece(Graphics* g, const Piece* thePiece, float theScaleFactor)
 {
 	static Image** const aSheets[Piece::COLOR_COUNT] = {&IMAGE_GEMS_RED, &IMAGE_GEMS_WHITE, &IMAGE_GEMS_GREEN, &IMAGE_GEMS_YELLOW,
 		&IMAGE_GEMS_PURPLE, &IMAGE_GEMS_ORANGE, &IMAGE_GEMS_BLUE};
 	int aColor = thePiece->mColor;
-	if (aColor < 0 || aColor >= Piece::COLOR_COUNT)
+	if ((aColor < 0 || aColor >= Piece::COLOR_COUNT) && (thePiece->mFlags & Piece::FLAG_HYPERCUBE) == 0)
 		return;
 	// slot 175, 0x73bd10: the board's alpha, the cover curve (+0x2898) times 1 less +0x12c8 (0 here)
 	double anAlpha = mCoverCurve.GetOutVal();
@@ -111,6 +111,15 @@ void Board::DrawPiece(Graphics* g, const Piece* thePiece)
 	g->SetColorizeImages(true);
 	g->SetColor(Color(255, 255, 255, Ftol(anAlpha * 255.0)));
 	int aFlags = thePiece->mFlags;
+	if ((aFlags & Piece::FLAG_HYPERCUBE) != 0) {
+		// 0x757df0: bit 2 is slot 235 (0x73f630), under the same scale about the cell's middle as any gem drawn from a sheet
+		float aCubeScale = aScale * theScaleFactor;
+		if (aCubeScale != 1.0f)
+			g->SetScale(aCubeScale, aCubeScale, (float)Scaled(aX + 0x40), (float)Scaled(aY + 0x40));
+		DrawHypercube(g, thePiece);
+		g->PopState();
+		return;
+	}
 	bool aPlain = !IsHeldBySwap(thePiece) && thePiece->mSpinPhase == 0.0f && (aFlags & 0x15) == 0 && (aFlags & 0x1800) == 0;
 	if (aPlain) {
 		float aX2 = aScale;
@@ -129,6 +138,11 @@ void Board::DrawPiece(Graphics* g, const Piece* thePiece)
 	}
 	else {
 		Image* aSheet = *aSheets[aColor];
+		// 0x757df0: the whole drawing is scaled round the middle of the cell by the scale curve (+0x20) times the third argument; the
+		// sprites above have the scale in their size and the exe puts it back to 1 for them (0x434370 with 1, 1, 0, 0)
+		float aWholeScale = aScale * theScaleFactor;
+		if (aWholeScale != 1.0f)
+			g->SetScale(aWholeScale, aWholeScale, (float)Scaled(aX + 0x40), (float)Scaled(aY + 0x40));
 		if (aSheet != nullptr) {
 			int aCels = aSheet->mNumCols * aSheet->mNumRows;
 			float aTurn = (float)aCels * thePiece->mSpinPhase;
@@ -137,6 +151,96 @@ void Board::DrawPiece(Graphics* g, const Piece* thePiece)
 		}
 	}
 	g->PopState();
+}
+
+// slot 235, 0x73f630 (bejeweled3): the Hypercube. The picture IMAGE_HYPERCUBE_FRAME (60 cels, 10 by 6) and then IMAGE_HYPERCUBE_COLORGLOW
+// drawn additively, both at the cel (the app's update count / 5) mod 60, with the colour white at the board's alpha. The frame's
+// corner is the cell's less 16 (in 1200ths) plus the picture's own x= and y= (23 and 20 in resources.xml); the glow, which has
+// none, at the cell's less 16. port: the second cel of the exe's additive draw is read as the same cel; which of the two pictures
+// the exe's globals 0x8d8b3c and the one after it are was read from the offsets' order (0x8da700 non-null: the frame)
+void Board::DrawHypercube(Graphics* g, const Piece* thePiece)
+{
+	g->SetColor(Color(255, 255, 255, Ftol(mCoverCurve.GetOutVal() * 255.0)));
+	int aCel = (gApp->mUpdateCount / 5) % 60;
+	float aGridX = (float)GetGridX() + thePiece->mX - 16.0f;
+	float aGridY = (float)GetGridY() + thePiece->mY - 16.0f;
+	if (IMAGE_HYPERCUBE_FRAME != nullptr) {
+		int aX = Ftol((double)(aGridX * (float)gApp->mArtRes / 1200.0f) + (double)(gApp->mArtRes * GetImageOffsetX(IMAGE_HYPERCUBE_FRAME_ID) / 1200));
+		int aY = Ftol((double)(aGridY * (float)gApp->mArtRes / 1200.0f) + (double)(gApp->mArtRes * GetImageOffsetY(IMAGE_HYPERCUBE_FRAME_ID) / 1200));
+		g->DrawImageCel(IMAGE_HYPERCUBE_FRAME, aX, aY, aCel);
+	}
+	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+	if (IMAGE_HYPERCUBE_COLORGLOW != nullptr) {
+		int aX = Ftol((double)(aGridX * (float)gApp->mArtRes / 1200.0f));
+		int aY = Ftol((double)(aGridY * (float)gApp->mArtRes / 1200.0f));
+		g->DrawImageCel(IMAGE_HYPERCUBE_COLORGLOW, aX, aY, aCel);
+	}
+	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+}
+
+// slot 236, 0x754670 (bejeweled3): the shadow of a gem that is drawn from its sheet (held by a swap, turning, or special): the cel of
+// IMAGE_GEMSSHADOW_<colour> (the sheet's 20 cels, the same as the gem's) that matches how far the gem has turned, at the gem's place
+// (the scale curve scales it round the middle of the cell, as the gem). The exe draws it for a gem with a colour (0 to 6) or bit 4,
+// and not for bit 0x80 or bit 0x10 (which takes another cel count; neither is in Classic). port: the piece's alpha curve (+0x90, the
+// constant 1) and the shake offsets (+0x258 and +0x25c, 0) are left out
+void Board::DrawPieceShadow(Graphics* g, const Piece* thePiece)
+{
+	static Image** const aShadows[Piece::COLOR_COUNT] = {&IMAGE_GEMSSHADOW_RED, &IMAGE_GEMSSHADOW_WHITE, &IMAGE_GEMSSHADOW_GREEN,
+		&IMAGE_GEMSSHADOW_YELLOW, &IMAGE_GEMSSHADOW_PURPLE, &IMAGE_GEMSSHADOW_ORANGE, &IMAGE_GEMSSHADOW_BLUE};
+	if ((thePiece->mFlags & 0x80) != 0 || thePiece->mColor < 0 || thePiece->mColor >= Piece::COLOR_COUNT)
+		return;
+	Image* aShadow = *aShadows[thePiece->mColor];
+	if (aShadow == nullptr)
+		return;
+	Piece* aPiece = const_cast<Piece*>(thePiece);
+	float aScale = (float)aPiece->mScaleCurve.GetOutVal();
+	int aX = Ftol((double)((float)GetGridX() + thePiece->mX));
+	int aY = Ftol((double)((float)GetGridY() + thePiece->mY));
+	g->PushState();
+	if (aScale != 1.0f)
+		g->SetScale(aScale, aScale, (float)Scaled(aX + 0x40), (float)Scaled(aY + 0x40));
+	g->SetColorizeImages(true);
+	g->SetColor(Color(255, 255, 255, Ftol(mCoverCurve.GetOutVal() * 255.0)));
+	int aCels = aShadow->mNumCols * aShadow->mNumRows;
+	float aTurn = (float)aCels * thePiece->mSpinPhase;
+	int aCel = Ftol((double)((double)(aCels - 1) <= (double)aTurn ? (float)(aCels - 1) : aTurn));
+	g->DrawImageCel(aShadow, Scaled(aX), Scaled(aY), aCel);
+	g->PopState();
+}
+
+// slot 246, 0x7568a0 (bejeweled3) with its second argument 0. Three passes: (1) the shadow of every gem that is not a Flame Gem and is
+// held by a swap, turning (+0x170 not 0) or has the bits 1, 4, 0x10 (0x15) or 0x800 and 0x1000; then the effects' layer at +0x12bc;
+// (2) every gem that no swap holds, by slot 237; (3) each swap's gems: the second one (when the swap is not over and the second gem
+// exists) and the first, each with a scale factor of 1 plus or minus the swap's lift, which is the constant 0 in the 2D mode (the exe's
+// curve at +0x80 of the swap is set only in 3D, 0x75f8fc), and so 1; the order follows the swap's angle (+0x10), which is 0 in 2D too:
+// the second gem first. port: left out: the layer's effects (+0x12bc: the Star Gem's and Hypercube's particle effects, 0x748a00,
+// 0x749050), the exe's 3D-only gem shine (0x74f130) and the cursor at +0x2c44 (3D). The piece at +0x2ef8 (a piece pointer in the exe:
+// a gem the fill holds, which pass 2 skips) is none in Classic
+void Board::DrawPieces(Graphics* g)
+{
+	for (int aRow = 0; aRow < ROWS; aRow++) {
+		for (int aCol = 0; aCol < COLS; aCol++) {
+			const Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece == nullptr || (aPiece->mFlags & Piece::FLAG_FLAME) != 0)
+				continue;
+			if (IsHeldBySwap(aPiece) || aPiece->mSpinPhase != 0.0f || (aPiece->mFlags & 0x15) != 0 || (aPiece->mFlags & 0x1800) != 0)
+				DrawPieceShadow(g, aPiece);
+		}
+	}
+	for (int aRow = 0; aRow < ROWS; aRow++) {
+		for (int aCol = 0; aCol < COLS; aCol++) {
+			const Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece != nullptr && !IsHeldBySwap(aPiece))
+				DrawPiece(g, aPiece, 1.0f);
+		}
+	}
+	for (size_t aSwap = 0; aSwap < mSwaps.size(); aSwap++) {
+		const SwapRecord& aRecord = mSwaps[aSwap];
+		const float aLift = 0.0f;
+		if (!aRecord.mDone && aRecord.mSecond != nullptr)
+			DrawPiece(g, aRecord.mSecond, 1.0f - aLift);
+		DrawPiece(g, aRecord.mFirst, aLift + 1.0f);
+	}
 }
 
 // 0x751d50 (bejeweled3): the 8 by 8 squares of the grid, every other one in each of two colours (the board's +0xd2c, (6, 6, 6, 160), and
@@ -242,14 +346,7 @@ void Board::Draw(Graphics* g)
 {
 	DrawPanel(g);
 	DrawScreenFrame(g);
-	// slot 246, 0x7568a0: the gems. port: the exe draws the plain ones, the ones held by a swap or special and the flame gems in three
-	// passes, with the effects of the board's layer between them; here one pass in the grid's order
-	for (int aRow = 0; aRow < ROWS; aRow++) {
-		for (int aCol = 0; aCol < COLS; aCol++) {
-			if (mGrid[aRow][aCol] != nullptr)
-				DrawPiece(g, mGrid[aRow][aCol]);
-		}
-	}
+	DrawPieces(g);   // slot 246, 0x7568a0
 }
 
 // 0x741840 (bejeweled3), Classic's case: the Hint button (id 0, the Classic hint picture) and the Menu button (id 1, the Classic menu
