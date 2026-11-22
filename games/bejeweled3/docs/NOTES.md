@@ -510,7 +510,7 @@ prints points (+0xd24), matches (live match groups) and swaps (running swaps).
 
 Matches (0x75af60, run first in UpdateGame): two passes, the first down each column, the second along each row (the exe's outer
 loop is the first index of its grid expression). A cell takes part when its piece is at rest (0x755ad0: speed 0, in its cell,
-not held by a swap, can fall, busy count 0, the piece's own curve (the pulse of a matched gem) at 0, no bit 0x2000) or was
+not held by a swap, can fall, busy count 0, the piece's swap curve (+0x198) at 0, no bit 0x2000) or was
 matched earlier in the same search (its remembered colour, +0x21c, counts). A run of 3 or more of one colour takes the next id
 of the board's counter (+0xe1c) at once, kept or not, and is one match of its own: a crossing is two matches sharing a gem,
 each scored on its own. A run is held for a later update when, from any of its gems, the 7 cells on each side along the run
@@ -521,7 +521,7 @@ Match groups (0x789a90, 0x75dee0, 0x74c570; translated in BoardMoves.cpp as Matc
 ClearPiece). A group is an effect of 0x2e8 bytes in the list at +0x125c, kept for a piece (its id is the group's +0x34, found by
 0x73c9d0). It is NOT made for a plain match, which was first thought: the matcher (0x75af60) makes one only at 0x75bb0f, and the
 asm before it (0x75bac5, 0x75bace) takes that path only for a piece with bit 4 (a flame gem, set by 0x7494d0) that was not matched
-in this update; a plain piece goes to 0x75bbdb, where it gets the pulse curve instead. The other makers are 0x74c570 (slot 320: a
+in this update; a plain piece goes to 0x75bcd0 (first match) or 0x75bbdb (met again in the same update), where it gets the pulse curve instead. The other makers are 0x74c570 (slot 320: a
 bit 4 piece without a group gets type 2), 0x74db70 and two places at 0x762b37 and 0x762ba7. The type is 3, or 2 when the board's
 +0xe8 is not 0; a piece with bit 1 makes it 6. 0x789a90 draws no Rand(); it puts the first piece's id first in the group's list
 (+0x8c), sets the piece's +0x174 and puts its timer (+0x178) at 0.9, and makes two streak effects (0x789860).
@@ -550,14 +550,20 @@ streaks and their own update (0x786dd0, which draws Rand() every fifth update an
 missing for every group), the sounds, the curves, 0x73d170's counters, and the hypercube's type 7. No piece in this port has
 bit 4 (0x7494d0 is not translated), so no group exists in a Classic game yet: the group code runs only for a flame gem.
 
-What clears a plain gem is still not found. The exe sets a busy count (+0x230) of 1 only in 0x75dee0 (above), 0x7870f0 (type 7),
-0x74c570 (slot 320, which returns 0 for a plain gem), the special gems' paths in 0x75af60 (pieces with bit 1 or 0x80000, and
-the crossing and long-run gems) and 0x767e20 (around 0x7688cb, with its steps of 0x19), the loading of a saved game and 0x73f8e0. A plain
-matched gem gets a pulse curve in 0x75bcd0 (0x85f0a4: 30 updates at 0.033333; 0x85f0d0: 15 updates; 0x85f07c: 3 updates, chosen
-by slots 0x204 and the swap flag) that keeps 0x755ad0 false for it, and goes into lists that 0x75af60 builds after its passes;
-how the exe goes from that to the busy count was not found. The port keeps its earlier stand-in for this, and only for this:
-PlainClear and UpdatePlainClears (a timer from 0.9, 0.015 more each update, busy 1 when it is past 1, the clear ends with its
-last piece, the fill waits for it), made in FindMatches for each run of plain gems.
+What clears a plain gem (found by following 0x75bbdb and 0x75bcd0 in 0x75af60 to the end of 0x767e20): no match group and no busy
+count. A plain gem matched for the first time in an update (0x75bcd0) gets a pulse on its scale curve (+0x20; the curve is the
+constant 1 from the constructor 0x720120): 0x85f07c (3 updates, 1 to 1.2) when a gem of the run was swapped in this update (+0x214 is
+the update count), else 0x85f0a4 (30 updates, 1 to 1.22; slot 0x204 is 1, 0x85f0d0 with 15 updates would follow from a 0), and its
+step (+0x28) is multiplied by the fall factor (slot 0x1dc, GetFallFactor). Nothing else is set on it. In 0x767e20 (asm 0x768f7b to
+0x7690b8, after the busy-count loop and just before the call of 0x75dee0) every piece's scale curve is stepped (IncInVal); only when
+the curve is not running: above 1 it becomes 0x860574 (20 updates, 1.2 down to 0), at exactly 1 it is set to the constant 1 again, and at 0
+(the shrink has run out) with the piece's swap curve (+0x198) at rest slot 0x2c0 (0x755b80, RemovePiece) takes the piece from the
+board. So a plain match lasts 30 plus 20 updates (3 plus 20 after a swap), the gem stays on the board meanwhile (0x73ba40 still sees the
+run, so the board is not settled and the fill waits for the gap), and it gets no busy count and no 0x74c770: no 50 points for the gem
+(the match's own 50 from 0x75d86f is the whole score) and none of the 432 draws below. DestroyPiece now runs only for what has a busy count.
+Translated: Piece::mScaleCurve, the first-match pulse in FindMatches, UpdatePiecePulses. Slot 0x298 (0x745ca0) only sets bit 1 of a
+piece's flags (0x745ceb) and 0x7494d0 (slot 0x2a0) is the flame maker (it sets bit 4, with 0x749305's flags), as the match group
+paragraph says.
 
 Score: every call of AddPoints is slot 152 (0x260) of the board's vtable. For plain gems there are two: the match (below, 0x75d86f) and
 the destroy function (0x74c87e): 50 for each gem without the bits 0x1800. The others belong to the special gems (0x73d380 250,
@@ -567,16 +573,22 @@ and 350 * (n - 4) more from 5 gems (0x75d86f); AddPoints (0x74a210) takes it tim
 fifth of the distance, plus or minus 1 (0x73b6d0).
 
 Random draws, in order: the swap, the match search and the score draw nothing (AddPoints makes a points text, 0x71f030 with the
-effect 0x71e5f0, which draws 5 times in a loop; not translated, so those draws are missing). Destroying a plain gem (0x74c770,
-after its 50 points) draws the app's Rand() 432 times: 14 sparks of type 0xe (the constructor 0x729460 draws 2, the loop 5),
+effect 0x71e5f0, which draws 5 times in a loop; not translated, so those draws are missing). Destroying a piece that has a busy count (0x74c770, not a plain match: see above; after its 50 points) draws the app's Rand() 432 times: 14 sparks of type 0xe (the constructor 0x729460 draws 2, the loop 5),
 25 of type 0xb (constructor 2, loop 8), 14 of type 0xe (constructor 2, loop 4); a 0x712da0 draw is one Rand(). The count holds for
 a gem at rest (so its place equals the caller's and the 25 sparks take the branch without extra draws), slot 0x1c4 false and a
-match timer of 0; a gem with a timer above 0 makes 15 more sparks of type 10. DrawSparkRandoms makes these draws and drops the
+match timer of 0 (a flame gem's clear; a plain match does not reach it); a gem with a timer above 0 makes 15 more sparks of type 10. DrawSparkRandoms makes these draws and drops the
 values. The fill refills with the board's MTRand as before (Next(15) per new gem, Next(14) per colour); the idle shine draws
 as above.
 
+Oddities (not chased, `// port:` in the source): (1) how the exe keeps a gem whose pulse runs out of the next update's runs. 0x755ad0
+reads the swap curve (+0x198), not the scale curve; no write of +0x17e, +0x230 or the flags (0x2000) for a plain gem was found, and the
+sets of 0x75af60 (local to one call) cannot do it across updates. The port holds a gem whose scale curve is not the constant 1 out of the
+runs (Board::IsPulsing). (2) A gem that two runs share (a crossing) is met a second time at 0x75bbdb, where the exe sets its scale
+curve to 1 (0x75bc70) unless a condition on the sets at 0x75b513 holds, which was not decoded; the port keeps the first pulse. With a
+crossing the exe's gem might therefore not be removed with the others; not seen. (3) The pulse is not drawn: the piece's draw does not
+read +0x20 yet.
+
 Uncertain or left out, each marked `// port:` in BoardMoves.cpp: whether the exe begins a swap in the update of the click or
-the next; what clears a plain gem (see "Match groups": a group of the exe is made only for a flame gem, so the port's stand-in for the
-plain gem's clear ends with its last gem, about 7 updates after the match); the matcher's perpendicular-neighbour deferral;
+the next; the matcher's perpendicular-neighbour deferral;
 the flame, star and hypercube (runs of 4 and 5 and crossings make them), the level bar, the end of the game, the hint, the
 help boxes, sounds, the sparks and the counters of 0x73d170 (+0xcc0 and others).

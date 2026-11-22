@@ -365,8 +365,8 @@ void Board::UpdateSwaps()
 // through AddPoints. port: left out are the set of 0x75b0xx that holds a run back (local_224 of the exe, its meaning not
 // found) and the swap-list flag (+0xf9) of the same test, the flame, star and hypercube that a run of 4, 5 or a crossing
 // makes (the lists of 0x75c0xx to 0x75cdxx), the pieces with bits (0x1, 0x4, 0x10, 0x400, 0x80000), the speed bonus, the
-// sounds, the pulse curve of 0x85f0a4 and 0x85f0d0 on a matched gem (it keeps 0x755ad0 false for the gem: here the match
-// timer does) and the effect objects. The stats of 0x73d170 are only kept for the count of matches (stat 0x1a)
+// sounds, the second visit of a gem that two runs share and the effect objects (the pulse curve is set, as 0x75bcd0 does; the
+// exe's way to keep a pulsing gem out of the next update's runs was not found, IsPulsing stands in). The stats of 0x73d170 are only kept for the count of matches (stat 0x1a)
 int Board::FindMatches()
 {
 	struct Run {
@@ -383,7 +383,7 @@ int Board::FindMatches()
 				int aColor = -1;
 				if (aInner < 8) {
 					aPiece = aPass == 0 ? mGrid[aInner][aOuter] : mGrid[aOuter][aInner];
-					if (aPiece != nullptr && aPiece->mMatchTimer == 0.0f && PieceIsSettled(aPiece))
+					if (aPiece != nullptr && !IsPulsing(aPiece) && PieceIsSettled(aPiece))
 						aColor = aPiece->mColor;
 					else
 						aPiece = nullptr;
@@ -445,13 +445,13 @@ int Board::FindMatches()
 		if (aHold)
 			continue;
 		aCount++;
-		PlainClear aGroup;
-		aGroup.mOriginId = aRun.mPieces[0]->mId;
-		aGroup.mUpdate = mUpdateCnt;
+		// 0x6f of the exe: some piece of the run was swapped in this update (a pulse of 3 updates, not 30)
+		bool aSwapMade = false;
+		for (size_t k = 0; k < aRun.mPieces.size(); k++)
+			aSwapMade = aSwapMade || aRun.mPieces[k]->mSwapUpdate == mUpdateCnt;
 		int aChainId = -1;
 		for (size_t k = 0; k < aRun.mPieces.size(); k++)
 			aChainId = std::max(aChainId, aRun.mPieces[k]->mColumnTag);
-		aGroup.mChainId = aChainId;
 		for (size_t k = 0; k < aRun.mPieces.size(); k++) {
 			Piece* aPiece = aRun.mPieces[k];
 			aPiece->mColumnTag = aChainId;
@@ -465,13 +465,16 @@ int Board::FindMatches()
 					MakeMatchGroup(aPiece, 3 - (mGroupTypeSwitch != 0 ? 1 : 0));
 				continue;
 			}
-			aPiece->mMatchedUpdate = mUpdateCnt;
-			if (aPiece->mMatchTimer == 0.0f) {
-				// port: stands in for the pulse that holds the gem while it is cleared (see UpdatePlainClears)
-				aPiece->mMatchTimer = 0.89999998f;
-				aGroup.mPieces.push_back(aPiece);
-				aGroup.mPieceIds.push_back(aPiece->mId);
+			if (aPiece->mMatchedUpdate != mUpdateCnt) {
+				// 0x75bcd0 to 0x75be57, a plain gem matched for the first time in this update: the pulse starts on its scale
+				// curve (+0x20) and its step is scaled by the fall factor (slot 0x1dc). port: a gem that two runs share is met a
+				// second time (0x75bbdb), where the exe puts the curve back to 1 (0x75bc70) under a condition that was not
+				// found; the port leaves the pulse running (see Oddities in docs/NOTES.md); the speed (+0x170) that the exe
+				// zeroes there, the remembered colour (+0x21c) and the sets are not translated
+				aPiece->mScaleCurve.SetCurve(aSwapMade ? "b+1,1.2,0.333333,1,#+Ky         ~~###" : "b+1,1.22,0.033333,1,#+Kx      uw*7u   ,~###");
+				aPiece->mScaleCurve.mIncRate = (double)GetFallFactor() * aPiece->mScaleCurve.mIncRate;
 			}
+			aPiece->mMatchedUpdate = mUpdateCnt;
 		}
 		int aPieceCount = (int)aRun.mPieces.size();
 		MoveRecord* aRecord = FindMoveRecord(aChainId);
@@ -484,8 +487,6 @@ int Board::FindMatches()
 		if (aPieceCount >= 5)
 			aPoints += (aPieceCount - 4) * 0x15e;
 		AddPoints(aPoints);
-		if (!aGroup.mPieces.empty())
-			mPlainClears.push_back(aGroup);
 	}
 	return aCount;
 }
@@ -604,7 +605,6 @@ void Board::DrawRingParticleRandoms()
 // 0x78a390 and what 0x76aaf0 spawns for a type 6 group are not translated
 void Board::UpdateMatchGroups()
 {
-	UpdatePlainClears();
 	const bool aSlowMode = false;   // slot 0x1c4 (0x73c1f0): 0 in every board translated so far
 	const bool aReplayFlag = false;   // +0x12f8: the saved-game and replay mode, which Classic's new game does not start
 	float aGlow = (float)((double)mGroupGlow - 0.019999999552965164);
@@ -781,41 +781,34 @@ void Board::UpdateMatchGroups()
 	} while ((int)aIndex < (int)mMatchGroups.size());
 }
 
-// port: the stand-in for a plain match's clear (see PlainClear), which the exe does not make a group for. Each piece's timer
-// (+0x178, from 0.9) rises by 0.015 every update and, when it is past 1, the piece's busy count is set to 1 (UpdateGame
-// destroys it in the next update) and it leaves the list; the clear ends in the update its last piece is let go. A group lets
-// a piece go at 1 or more (UpdateMatchGroups); this keeps the port's earlier steps
-void Board::UpdatePlainClears()
+// 0x767e20 (bejeweled3), 0x768f7b to 0x7690b8, run just before 0x75dee0: every piece's scale curve is stepped. While it runs
+// nothing else is done. When it has ended: above 1 (a pulse that has run out) a shrink from 1.2 to 0 in 20 updates starts;
+// at 1 the curve is put back to the constant 1; at 0 (the shrink has run out) and with the piece's own swap curve at rest the
+// piece is taken from the board (slot 0x2c0, RemovePiece) with no busy count, so neither 0x74c770's 50 points and sparks nor
+// its draws of Rand() happen: a plain match is scored once, by 0x75af60
+void Board::UpdatePiecePulses()
 {
-	for (size_t i = 0; i < mPlainClears.size();) {
-		PlainClear& aGroup = mPlainClears[i];
-		for (size_t k = 0; k < aGroup.mPieceIds.size();) {
-			Piece* aPiece = FindPieceById(aGroup.mPieceIds[k]);
-			if (aPiece == nullptr) {
-				aGroup.mPieceIds.erase(aGroup.mPieceIds.begin() + k);
+	for (int aRow = 0; aRow < ROWS; aRow++) {
+		for (int aCol = 0; aCol < COLS; aCol++) {
+			Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece == nullptr || aPiece->mScaleCurve.IncInVal())
 				continue;
-			}
-			aPiece->mMatchTimer = (float)((double)aPiece->mMatchTimer + 0.014999999664723873);
-			if (aPiece->mMatchTimer > 1.0f) {
-				aPiece->mColumnTag = std::max(aPiece->mColumnTag, aGroup.mChainId);
-				aPiece->mBusyCount = 1;
-				aGroup.mPieceIds.erase(aGroup.mPieceIds.begin() + k);
-				continue;
-			}
-			k++;
+			double aScale = aPiece->mScaleCurve.GetOutVal();
+			if (aScale > 1.0)
+				aPiece->mScaleCurve.SetCurve("b+0,1.2,0.05,1,~###         ~#Blc");
+			else if (aScale == 1.0)
+				aPiece->mScaleCurve.SetConstant(1.0);
+			else if (aScale == 0.0 && !IsHeldBySwap(aPiece))   // port: the swap curve (+0x198) is the swap list's
+				RemovePiece(aPiece);
 		}
-		// the clear ends when its pieces are gone
-		if (aGroup.mPieceIds.empty()) {
-			bool aStillThere = false;
-			for (size_t k = 0; k < aGroup.mPieces.size() && !aStillThere; k++)
-				aStillThere = FindPieceById(aGroup.mPieces[k]->mId) == aGroup.mPieces[k] && aGroup.mPieces[k]->mBusyCount > 0;
-			if (!aStillThere) {
-				mPlainClears.erase(mPlainClears.begin() + i);
-				continue;
-			}
-		}
-		i++;
 	}
+}
+
+// port: the exe's matcher lets a gem whose pulse runs be found again; where it stops that was not found (see Oddities in
+// docs/NOTES.md), so a gem whose scale curve is not the constant 1 is held out of the runs here
+bool Board::IsPulsing(Piece* thePiece)
+{
+	return thePiece->mScaleCurve.IsDoingCurve() || thePiece->mScaleCurve.GetOutVal() != 1.0;
 }
 
 // 0x74c770 (bejeweled3), for a plain piece: 50 points for it (a piece without the bits 0x1800 calls slot 152, 0x74df80, at

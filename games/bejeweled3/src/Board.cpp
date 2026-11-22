@@ -42,6 +42,7 @@ Piece::Piece(Board* theBoard)
 	, mFlags(0)
 	, mBusyCount(0)
 {
+	mScaleCurve.SetConstant(1.0);   // 0x720120
 }
 
 // 0x74ae30 (bejeweled3): the part of the constructor that the first fill reads
@@ -97,7 +98,6 @@ void Board::ResetGame()
 	mMoveRecords.clear();
 	mSwaps.clear();
 	mMatchGroups.clear();
-	mPlainClears.clear();
 	mGroupGlow = 0.0f;   // 0x74a880: +0x27b8 and +0x1240
 	mRingFlash = 0.0f;
 	mPendingSwaps.clear();
@@ -367,6 +367,7 @@ void Board::UpdateGame()
 			mShineUpdate = mUpdateCnt;
 		}
 	}
+	UpdatePiecePulses();   // 0x768f7b to 0x7690b8, before the call of 0x75dee0
 	UpdateMatchGroups();   // 0x75dee0
 	if (mLandTicks > 0)
 		mLandTicks--;

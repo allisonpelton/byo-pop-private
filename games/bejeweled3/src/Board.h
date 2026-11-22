@@ -38,6 +38,8 @@ public:
 	float mFallSpeed;       // +0x1c: how far it moves down each update, in 1200ths: 0 at rest and until it first falls; the fill
 	                        // gives a new piece a negative start (it rises a little first, which staggers a column), gravity adds
 	int mColumnTag;         // +0x188: what the column's tag (board +0x218) held when it was made
+	CurvedVal mScaleCurve;  // +0x20: the piece's size, the constant 1 from the constructor (0x720120); 0x75af60 starts a pulse on it when
+	                        // the piece is matched, UpdatePiecePulses a shrink after it and then the piece's removal
 	bool mCanFall;          // +0x17e: set by every pass of the fill over it
 	bool mCanSwap;          // +0x17f: 1 at the start
 	int mSpecialState;      // +0x20c: -1 keeps it from falling
@@ -49,8 +51,8 @@ public:
 	bool mSelected = false; // +0x23c: the player has picked it up (a click on it, waiting for the next gem)
 	bool mIsGroupOrigin = false;   // +0x174: a match group was made for it (0x789a90)
 	float mMatchTimer = 0.0f;   // +0x178: how far its clear has come. A match group (0x789a90) puts its first piece at 0.9 and a piece
-	                        // that its ring reaches at 0.01; 0x75dee0 adds 0.015 each update and lets the piece go at 1. port: a
-	                        // plain gem's match makes no group in the exe, so the stand-in for its clear (PlainClear) uses it too
+	                        // that its ring reaches at 0.01; 0x75dee0 adds 0.015 each update and lets the piece go at 1. A plain
+	                        // gem's match makes no group, so a plain gem never uses it (its scale curve, mScaleCurve, clears it)
 	bool mClearHeld = false;    // +0x17c: set while another clear holds the piece (a flame gem found by 0x74c570); a match group
 	                        // skips it and its ring does not reach it
 	bool mClearable = true;     // +0x182: 1 from the constructor (0x720120): a match group's timer only runs for such pieces
@@ -113,17 +115,6 @@ struct MatchGroup {
 	std::vector<RingCell> mRingCells;    // +0xa4
 };
 
-// The stand-in for the clear of a plain match. port: the exe makes no group for a plain gem (0x75af60 does so only for a gem
-// with bit 4) and the code that clears it was not found (docs/NOTES.md, "Matches"); this keeps what the port had: a run's
-// pieces take a timer from 0.9 and are let go when it passes 1 (0.015 a step, as a group's pieces)
-struct PlainClear {
-	int mOriginId;           // the id of the run's first piece
-	int mChainId;            // the highest tag of the run's pieces
-	int mUpdate;             // the update it was made in
-	std::vector<Piece*> mPieces;
-	std::vector<int> mPieceIds;
-};
-
 // A swap the player asked for (the exe's 0x14-byte entry in the list at +0xc60, run by UpdateTick when its update comes)
 struct PendingSwap {
 	int mUpdate;    // +0
@@ -157,7 +148,6 @@ public:
 	std::vector<MoveRecord> mMoveRecords;    // +0xc48
 	std::vector<SwapRecord> mSwaps;          // +0xc30
 	std::vector<std::unique_ptr<MatchGroup>> mMatchGroups;    // +0x125c (the exe's list holds pointers too)
-	std::vector<PlainClear> mPlainClears;    // port: see PlainClear
 	int mGroupTypeSwitch = 0;        // +0xe8: not 0 makes the groups of matches type 2 instead of 3 (nothing translated sets it)
 	float mGroupGlow = 0.0f;         // +0x27b8: 0.02 less each update, 0.05 more while a group lives, up to 1 (drawn only)
 	float mRingFlash = 0.0f;         // +0x1240: 1 when a group has made its last ring (drawn only)
@@ -236,10 +226,10 @@ public:
 	bool IsHeldBySwap(const Piece* thePiece) const;
 	// slot 201, 0x75af60 (bejeweled3): looks for runs of three or more and makes a match of each; returns how many
 	int FindMatches();
-	// 0x75dee0 (bejeweled3): the match groups run: their pieces' timers, their rings, their end. The stand-ins for plain matches
-	// are run by UpdatePlainClears
+	// 0x75dee0 (bejeweled3): the match groups run: their pieces' timers, their rings, their end
 	void UpdateMatchGroups();
-	void UpdatePlainClears();
+	bool IsPulsing(Piece* thePiece);
+	void UpdatePiecePulses();   // the loop of 0x767e20 (0x768f7b to 0x7690b8) over the pieces' scale curves
 	// 0x789a90 (bejeweled3), for the types other than 7: a group is made for a piece and put at the end of the list
 	void MakeMatchGroup(Piece* thePiece, int theType);
 	// 0x73c9d0 (bejeweled3): the index of the group made for the piece (the group's +0x34 is its id), or -1
@@ -248,8 +238,8 @@ public:
 	bool ClearPiece(Piece* thePiece, Piece* theBy);
 	// 0x75dee0 and 0x74c770 (bejeweled3): the draws of the app's Rand() that the 20 particles of a ring make for one piece
 	void DrawRingParticleRandoms();
-	// true when any group or any stand-in for a plain clear lives (the fill waits for them)
-	bool HasLiveMatches() const { return !mMatchGroups.empty() || !mPlainClears.empty(); }
+	// true when any match group lives (the fill waits for them)
+	bool HasLiveMatches() const { return !mMatchGroups.empty(); }
 	// slot 200 (0x74c570) and 0x74c770 (bejeweled3): the piece is destroyed; slot 176, 0x755b80 (bejeweled3): it leaves the grid
 	void DestroyPiece(Piece* thePiece);
 	void DrawSparkRandoms();
