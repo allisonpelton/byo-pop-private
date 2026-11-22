@@ -1,0 +1,18 @@
+# The 3D focus check (IDENTICAL_PLAY.md, "The focus in 3D"): the seeded Classic autoplay's first board, the focus lost
+# for three seconds and regained. Unfocused, the original counts no updates, so that stretch is timed by `wait`; the port's
+# side loses the focus at the same update and regains it 300 updates later.
+at 1100 shot o1_board
+at 1150 shot o2_before
+at 1150 focus lose
+wait 300
+shot o3_lost_03
+wait 700
+shot o4_lost_10
+wait 2000
+shot o5_lost_30
+focus regain
+at 1152 shot o6_back_02
+at 1160 shot o7_back_10
+at 1200 shot o8_back_50
+at 1400 shot o9_back_250
+quit

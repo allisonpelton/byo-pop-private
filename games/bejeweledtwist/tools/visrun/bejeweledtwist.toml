@@ -1,0 +1,22 @@
+# Bejeweled Twist for tools/visrun.py (docs/VISRUN.md): the original in 3D on the visible desktop, which Windows Sandbox
+# cannot give it (no Direct3D there). Used for the 3D focus check (IDENTICAL_PLAY.md, "The focus in 3D"): the seeded
+# Classic autoplay, a posted focus loss and its regain. The app is the object at [0xe0b698]: its mUpdateCount (+0x48c)
+# and mHasFocus (+0x4da); 0xe13bc0 is the 3D flag origrun reads (games.tsv).
+name = "bejeweledtwist"
+source_exe = "build/bjt/v3d/game/BejeweledTwist.exe"   # the Steam copy's files, its exe unpatched (the patches come below)
+patches = "tools/origrun/patches/bejeweledtwist.txt"   # the full version, the hover check, the seeds ({seed})
+args = ["-autoplay=1"]                  # the original's own autoplay, as the screen routes' Classic
+title = "Bejeweled"
+client = [800, 600]
+clock = "real"                          # unfocused, the original counts no updates, so the stretch is timed by `wait`
+update_ms = 10
+counter = "[0xe0b698]+0x48c"
+flag3d = "0xe13bc0:1"
+reg_key = 'Software\Steam\BejeweledTwist'
+reg_3d_value = "Is3D"
+reg_values = { ScreenMode = 0, ArtRes = 600 }   # windowed at the 600 art, as the port's 800 by 600
+save_dirs = ["C:/ProgramData/Steam/BejeweledTwist"]   # the user's players, put back after the run; the run starts with none
+cursor = "scripted"
+
+[values]
+focus = "[0xe0b698]+0x4da"              # its low byte: mHasFocus
