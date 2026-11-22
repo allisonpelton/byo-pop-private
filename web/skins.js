@@ -310,7 +310,7 @@ var ByopopSkin = (function () {
       var entries = [
         { label: T("skin.desk.m.restore"), disabled: !mx && !w.min, fn: function () { if (w.min) setMin(w, false); else if (w.maximize) w.maximize(); } },
         { label: T("skin.desk.m.move"), disabled: mx, fn: function () { keyMove(w, false); } },
-        { label: T("skin.desk.m.resize"), disabled: mx || !!w.sizes, fn: function () { keyMove(w, true); } },
+        { label: T("skin.desk.m.resize"), disabled: mx || !!w.sizes || w.fixed, fn: function () { keyMove(w, true); } },
         { label: T("skin.desk.m.minimize"), fn: function () { setMin(w, true); } },
         { label: T("skin.desk.m.maximize"), disabled: mx || !w.maximize, fn: function () { w.maximize(); } },
         { rule: true }];
@@ -429,6 +429,31 @@ var ByopopSkin = (function () {
     // that keeps its controls usable (RZ_MIN) to the room above the task bar; its contents scroll or reflow in it. The size is
     // kept with the window's place (byopop-desk), and goes off with the desktop.
     var RZ_EDGES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"], RZ_MIN = { w: 200, h: 120 };
+    // ---- a window's bounds (the user, 2026-11-18: "Evaluate EVERY window to figure out minimum/maximum bounds for proper
+    // display"; each window's are in docs/WEB_PLAYER.md's table). A dialog (o.fixed: Settings and every window opened from it,
+    // Setup, About) is drawn at its contents' own size and never resized: no edges, no Size in its control menu, no size kept.
+    // Any other window goes from its least (RZ_MIN, or more: o.minWidth, o.minHeight) to its most: o.maxWidth where a wider
+    // window would only add empty space, and in height its contents' own at that width (tallest), so that no size leaves empty
+    // space under them; the room above the task bar caps both, and a least larger than the room gives way to it.
+    function bound(w, k) { var f = w[k]; if (!f) return 0; try { return (typeof f === "function" ? f() : f) || 0; } catch (e) { return 0; } }
+    // the window's height at this width with nothing scrolled (its contents' own height)
+    function tallest(w, width) {
+      var st = w.el.style, keep = [st.width, st.height, st.maxHeight];
+      st.width = width + "px"; st.height = "auto"; st.maxHeight = "none";
+      var h = w.el.offsetHeight;
+      st.width = keep[0]; st.height = keep[1]; st.maxHeight = keep[2];
+      return h;
+    }
+    // the bounds for a size this wide (b.w: that width within them)
+    function bounds(w, width) {
+      var r = room(), b = { minW: Math.max(RZ_MIN.w, bound(w, "minWidth")), minH: Math.max(RZ_MIN.h, bound(w, "minHeight")) };
+      b.maxW = Math.max(b.minW, bound(w, "maxWidth") || Infinity);
+      b.minW = Math.min(b.minW, r.w - 8); b.maxW = Math.min(b.maxW, r.w - 8);
+      b.w = Math.max(b.minW, Math.min(b.maxW, Math.round(width)));
+      b.maxH = Math.max(b.minH, w.natural ? tallest(w, b.w) : Infinity);
+      b.minH = Math.min(b.minH, r.h - 8); b.maxH = Math.min(b.maxH, r.h - 8);
+      return b;
+    }
     // ---- the outline (the user, 2026-11-14, by the coordinator's list): a window is moved and sized as in 1995, by a dotted
     // frame that follows the pointer or the arrow keys, and goes there when it is let go. Its place is clamped as place()
     // clamps a window's.
@@ -462,13 +487,11 @@ var ByopopSkin = (function () {
       if (edge.indexOf("w") >= 0) nw = st.w - dx;
       if (edge.indexOf("s") >= 0) nh = st.h + dy;
       if (edge.indexOf("n") >= 0) nh = st.h - dy;
-      // a window may ask for more than RZ_MIN (o.minHeight: Music keeps its player and three of its list's rows; o.minWidth
-      // and o.minHeight: a game's window is never smaller than its game, web/deskapps.js)
-      var leastW = RZ_MIN.w, least = RZ_MIN.h;
-      if (w.minWidth) try { leastW = Math.max(leastW, w.minWidth() || 0); } catch (err) {}
-      if (w.minHeight) try { least = Math.max(least, w.minHeight() || 0); } catch (err) {}
-      nw = Math.max(Math.min(leastW, r.w - 8), Math.min(r.w - 8, nw));
-      nh = Math.max(Math.min(least, r.h - 8), Math.min(r.h - 8, nh));
+      // within the window's bounds (a window may ask for more than RZ_MIN, o.minHeight: Music keeps its player and three of its
+      // list's rows; o.minWidth and o.minHeight: a game's window is never smaller than its game, web/deskapps.js)
+      var b = bounds(w, nw), leastW = b.minW, least = b.minH;
+      nw = b.w;
+      nh = Math.max(least, Math.min(b.maxH, nh));
       // and the edge dragged stays on the desktop: the bottom above the task bar, the right inside the screen, the top and the
       // left at 0 at most
       if (edge.indexOf("s") >= 0) nh = Math.max(Math.min(least, r.h - st.y), Math.min(nh, r.h - st.y));
@@ -601,7 +624,8 @@ var ByopopSkin = (function () {
       if (!el || wins.some(function (w) { return w.el === el; })) return null;
       var w = { focusIn: o.focusIn || null, el: el, id: o.id, keep: o.keep || o.id, snap: o.snap || null, x: 0, y: 0, placed: false, closed: !!(o.closed && o.closable), at: o.at, open: o.open,
                 button: o.button, pic: o.pic || null, home: null, onClose: o.onClose || null, afterClose: o.afterClose || null, maximize: o.maximize || null, noIcon: !!o.noIcon, sizes: o.sizes || null,
-                minHeight: o.minHeight || null, minWidth: o.minWidth || null, small: o.menuIcon || o.icon || null };
+                minHeight: o.minHeight || null, minWidth: o.minWidth || null, maxWidth: o.maxWidth || null, natural: !o.sizes && o.natural !== false,
+                fixed: !!o.fixed && !o.sizes, small: o.menuIcon || o.icon || null };
       if (o.lift) { w.home = document.createComment("desktop window " + o.id); el.parentNode.insertBefore(w.home, el); }
       el.classList.add("d95-win");
       el.setAttribute("data-d95-title", o.title);
@@ -700,7 +724,8 @@ var ByopopSkin = (function () {
         };
       }
       drag(w, handle);
-      if (!o.sizes) resizable(w);
+      if (w.fixed) el.classList.add("d95-fixed");
+      else if (!o.sizes) resizable(w);
       // the game's window: a resize corner at its bottom right, which snaps to its whole-multiple sizes (o.sizes) as it is dragged
       if (o.sizes) {
         var grip = document.createElement("span");
@@ -735,7 +760,7 @@ var ByopopSkin = (function () {
       var s = saved()[w.keep];
       if (s && isFinite(s.x) && isFinite(s.y)) { w.x = s.x; w.y = s.y; w.placed = s.placed !== false; w.closed = !!s.closed && !!o.closable; w.min = !!s.min && !w.closed; }
       else if (s && typeof s.closed === "boolean" && o.closable) w.closed = s.closed;
-      if (!o.sizes && s && s.w > 0 && s.h > 0) { w.w = Math.round(s.w); w.h = Math.round(s.h); if (on) sizeTo(w, w.w, w.h); }
+      if (!o.sizes && !w.fixed && s && s.w > 0 && s.h > 0) { w.w = Math.round(s.w); w.h = Math.round(s.h); if (on) sizeTo(w, w.w, w.h); }
       // a window its page opens with the focus in it (a panel's button) is the active one, and one it closes hands that to the
       // window in front
       if (window.MutationObserver) new MutationObserver(function () {
@@ -1250,7 +1275,7 @@ var ByopopSkin = (function () {
               var box = document.createElement("section");
               box.className = "d95-about";
               document.body.appendChild(box);
-              add(box, { id: "about", title: T("skin.desk.about"), closable: true, closed: true, body: true,
+              add(box, { id: "about", title: T("skin.desk.about"), closable: true, closed: true, body: true, fixed: true,
                 at: function (left, vw) { return [Math.max(left, vw - 560), 80]; } });
             }
           }
@@ -1580,11 +1605,9 @@ var ByopopSkin = (function () {
         .sort(function (a, b) { return (parseInt(a.el.style.zIndex, 10) || 0) - (parseInt(b.el.style.zIndex, 10) || 0); });
     }
     function putAt(w, x, y, width, height) {
-      if (!w.sizes && width) {
-        var lw = RZ_MIN.w, lh = RZ_MIN.h;
-        if (w.minWidth) try { lw = Math.max(lw, w.minWidth() || 0); } catch (e) {}
-        if (w.minHeight) try { lh = Math.max(lh, w.minHeight() || 0); } catch (e) {}
-        sizeTo(w, Math.max(lw, width), Math.max(lh, height));
+      if (!w.sizes && !w.fixed && width) {
+        var b = bounds(w, width);
+        sizeTo(w, b.w, Math.max(b.minH, Math.min(b.maxH, height)));
       }
       w.x = x; w.y = y; w.placed = true;
       place(w, true); commit(w);

@@ -2624,11 +2624,12 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
       // "Stop chat from opening on its own")
       if (!EMBED) window.addEventListener("byopop-desk-active", function (ev) { if (ev.detail && ev.detail.id === "chat") startChat(); });
       if (!EMBED) d.add($("chat"), { id: "chat", title: $("chat-title").textContent, handle: $("chat-title"), minimize: ".chat-chevron", scroll: ".bpc-log",
-        closable: true, closed: true,
+        closable: true, closed: true, minWidth: 260, minHeight: 320,
         at: function (left, vw) { var g = d.find("game"); return g ? [Math.min(g.x + g.el.offsetWidth + 12, vw - 312), g.y] : [left, 12]; } });
       PANELS.forEach(function (id) {
         var p = $(id), wid = id;
-        d.add(p, { id: wid, title: PANEL_BUTTONS[id] ? PANEL_BUTTONS[id].textContent : p.querySelector("h2").textContent, handle: p.querySelector("header"), scroll: ".body", button: PANEL_BUTTONS[id],
+        // (each panel is a dialog of switches and buttons, at its contents' own size: docs/WEB_PLAYER.md's table)
+        d.add(p, { id: wid, title: PANEL_BUTTONS[id] ? PANEL_BUTTONS[id].textContent : p.querySelector("h2").textContent, handle: p.querySelector("header"), scroll: ".body", button: PANEL_BUTTONS[id], fixed: true,
           // the bar's own button, which fills the panel as it opens it (Settings)
           open: function () { if (p.hidden) { if (PANEL_BUTTONS[id]) PANEL_BUTTONS[id].click(); else openPanel(id); } }, at: function (left, vw) { return [Math.max(left, vw - 470), 60]; } });
         // a panel that opens comes to the front, where it was left
@@ -2640,7 +2641,7 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
       ensureSettings();
       if (settingsView && settingsView.sections) settingsView.sections.forEach(function (r, i) {
         d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true, whatsThis: true,
-          at: function (left, vw) { return [Math.max(left, vw - 560) - (i % 5) * 24, 90 + (i % 5) * 24]; } });
+          fixed: true, at: function (left, vw) { return [Math.max(left, vw - 560) - (i % 5) * 24, 90 + (i % 5) * 24]; } });
       });
       window.addEventListener("byopop-desk", sizeStage);
       window.addEventListener("byopop-desk", deskParts);

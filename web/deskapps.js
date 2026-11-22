@@ -215,6 +215,8 @@ var ByopopApps = (function () {
       minHeight: kind === "game" ? function () { return least(app).h; } : null,
       at: function (left) { return [left + 40 + (n % 6) * 26, 20 + (n % 6) * 26]; },
       scroll: kind === "txt" ? app.text : null,
+      // a game's or a page's frame has no height of its own to measure: those windows go to the room; a text's to its length
+      natural: kind === "txt",
       focusIn: function (back) { focusApp(app, back); } });
     apps.push(app);
     if (kind === "game") watchBar();

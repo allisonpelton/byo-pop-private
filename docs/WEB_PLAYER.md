@@ -421,6 +421,41 @@ never show it. Checked through a proxy that served one file at a time with a del
 reload with a game window open and a game's own page, the cover held until the end of the load, and no window moved or
 changed size after it went.
 
+**Window sizes** (the user, 2026-11-18: "A lot of windows ought not to be resizable, like settings and anything accessed
+through it. Alternatively, a maximum height/width that ensures they display all their content without pointless
+whitespace. Some windows should have a minimum size too, like the library. Evaluate EVERY window to figure out
+minimum/maximum bounds for proper display."). Each window is either a dialog or sizable. A dialog (`fixed` in
+`ByopopSkin.desk.add`) is drawn at its contents' own size, as its style sheet lays it out. It has no edges to drag, and
+Size and Maximize are grey in its control menu. It keeps no size, and Cascade and Tile move it without sizing it. A
+sizable window is dragged by its edges between a least and a most. Its least is 200 by 120 pixels, or more where its
+layout needs it (`minWidth`, `minHeight`). Its most is the room above the task bar, and in height it is also its
+contents' own height at the width it has (`tallest`, measured with the height unset), so no size leaves empty space under
+them. The game's own window and the one page's frames are left out of that measure, since a frame has no height of its
+own. A most never goes under the least, and a least larger than the screen gives way to it. Each window's bounds were
+measured in the Browser pane at 800 by 600, from the narrowest width before a part spills out of the window or wraps
+badly:
+
+| Window | Kind | Least | Most | Why |
+|---|---|---|---|---|
+| All games | sizable | 500 × 440 | the room | its bar on two rows and one whole row of games |
+| Library | sizable | 560 × 200 | the room | its six columns, five rows |
+| Music | sizable | 360 × its player and three rows | the room | its controls on one row |
+| Sounds | sizable | 300 × 200 | the room | its bar on one row, four rows of sounds |
+| Splits | sizable | 240 × 180 | the room | its menu bar on one row, the timer and its two lines under it |
+| Trophy Cabinet | sizable | 300 × 200 | the room | its player list on one row (an empty cabinet was all there was to see) |
+| Chat (both pages) | sizable | 260 × 320 | the room | its controls and five lines of messages |
+| A game in a window | sizable | its game at the multiple drawn, its status bar and frame | the room, and Maximize | `web/deskapps.js` |
+| A text in a window | sizable | 200 × 120 | the room | |
+| A game's own window (game page) | its sizes | each whole multiple that fits, from its grip and control menu | | `sizes` |
+| Settings (the listing's folder, the game page's panel) | dialog | 600 or 440 wide, its icons' height | | |
+| Each Settings section | dialog | 440 wide, its rows' height | | |
+| Setup (Add Games) | dialog | 560 × 400 | | a wizard, one size for every step; its list scrolls |
+| About (both pages) | dialog | 640 or 520 wide, its text's height | | |
+| Mods, Game files, Controls | dialog | 440 wide, their rows' height | | |
+| Performance | dialog | its graphs' size | | |
+
+A dialog taller than the room is cut to it, and its contents scroll. A message box was a dialog already.
+
 **Its text** is Byopop Sans, `web/fonts/byopop-sans.woff`, built by `tools/web/pixelfont.py` from W95FA by Alina Sava
 (SIL OFL 1.1, as is ours); after a change to the script, run it and commit the file. The font is sharp only at 11
 pixels and its multiples, so every text is set at 11 (a few at 22), and a new part sets no size of its own. A glyph's
