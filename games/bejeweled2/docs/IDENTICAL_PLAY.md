@@ -346,14 +346,33 @@ After the fixes the credits shots (fin00 to fin23) match the original, as do the
   the stock install), No Longer Solvable, No Hints, More Hints? and the secret puzzle's hint warning (no recorded input
   reaches them: rows in SCREENS.md say why).
 
-### The desktop lane's 3D and full screen shots of the new tours: not taken
+### The desktop lane: the finale in 3D (1024 by 768), 2026-11-22
 
-`games/bejeweled2/tools/visrun/run3d.py` and `bejeweled2-3d.toml` (the original in 3D, 1024 by 768, from the port's 3D recording of the
-finale, `build/visrun/rec3d/finale`) are ready, and the port's 3D recording of the finale exists (40 shots). The original's run
-waited an hour for a place: visrun found the Claude window in the right half of the screen over all four places (`visrun.log`,
-"waiting for a place"), and does not move a window it does not own. It was stopped. To take them, run `run3d.py build/visrun/rec3d/finale
-<out> --profile <prof_p75b>` with the right half clear, then shotdiff the port's shots against `<out>`; the 3D forbidden region
-around the title's logo (`bejeweled2-3d.toml`) is the 2D one scaled and unconfirmed. Full screen has no script yet.
+`games/bejeweled2/tools/visrun/run3d.py` (config `bejeweled2-3d.toml`) played the port's 3D recording of the finale (40 shots,
+`build/visrun/rec3d/finale`, the player of `make_gapprofile.py --puzzle 75 --galaxy 0`) with the original on the visible desktop, the
+stand-in's activation hook installed and no "run stopped" line, then `tools/shotdiff` (run `v3d_finale`): 40 pairs, 28 match, 9
+faint, 3 differ. Every credits shot (fin00 to fin23, fin-dialog37 with the OK button, the link, the board after it) matches or is
+faint (fin01, fin02: 0.03 percent). The three that differ are the title (the load's phase), the menu and link-menu (the More
+Games pill, removed). The warp shots are faint (sparkle phases). The 3D credits roll therefore equals the original's, with the
+fixes of the 2D pass. The title's logo region the run forbids is the 2D one scaled by 1.6, unconfirmed.
+
+The other new tours in 3D (the same lane, one run each; `tools/shotdiff` runs `v3d_puzzle`, `v3d_dialogs`, `v3d_classic`):
+- Puzzle (hints, Illegal Move, Still Solvable, the galaxy map and a locked planet, the warp): 22 pairs, 2 match, 18 faint, 2 differ (the title's
+  load phase, the menu's More Games pill): every hint and galaxy shot is faint or identical.
+- Dialogs (the user list, Rename, Delete, Create, Enter Name, Name Conflict, Quit, the reset question): 10 pairs, all differ only in the menu
+  behind the dialog (the sky's stars and comet phase, the More Games pill) and the lit button of a box under a resting cursor; the dialogs' own
+  pixels are the original's.
+- Classic with the one-time boxes (the hint-boxes player): 11 pairs, the Help screen matches and every board differs, because the original
+  dealt another board (other gems from the first shot). Not chased (the board draws of the host and desktop lanes are listed above as not
+  comparable; this is the same, found here on the desktop lane in 3D with this player; the earlier 3D Classic tour with the other player
+  matched).
+
+**The original's full screen: not compared.** In Windows Sandbox (the user, via the coordinator, 2026-11-22: only where the mode change cannot
+reach other runs) the original was run twice from the Classic tour with `ScreenMode=1`: it stayed at the title with its window shown
+framed, and the posted Play click was never taken, which is what `run_original.sh` notes for a full screen original ("would otherwise be
+full screen and take no posted click"). The origrun sandbox lane cannot drive a full screen original, so no pair exists; the port's own
+full screen (borderless) was compared earlier with the windowed shots (phase two). The desktop is not used for it (a display mode change
+reaches every other run and covers all four places).
 
 ### Runs
 
