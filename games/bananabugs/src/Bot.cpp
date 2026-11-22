@@ -86,6 +86,9 @@ const float LINE_MARGIN_PER_PX = 0.3f; // 0.16 lost three lives in two levels on
 // (the shorter stretch); the second button turns it (GameWidget::MouseDown passes the click count, negative for it)
 const bool BOT_TURNS_ROPE = true;
 
+// The waits with no safe line (20 updates each) before the bot takes the least risky line there is
+const int BOT_WAITS_BEFORE_RISK = 15;
+
 // The rope's own thickness and the reach of its arrows (RopeObj::HitBox: 4 by 6)
 const float ROPE_HALF_THICK_PX = 6.0f;
 
@@ -577,8 +580,22 @@ std::string LevelMove(LevelObj* theLevel)
 				aBest = &aCandidate;
 		}
 	}
-	if (aBest == nullptr)
+	// the third, after waiting long enough for the bugs to move off: the line farthest from every bug, the shortest of
+	// equals (a last bug in a small area is never far enough for the others; a playbymove run waited 2,500 moves for one)
+	static int sWaitsWithoutLine = 0;
+	if (aBest == nullptr && sWaitsWithoutLine >= BOT_WAITS_BEFORE_RISK) {
+		for (size_t i = 0; i < aList.size(); i++) {
+			const Candidate& aCandidate = aList[i];
+			if (aBest == nullptr || aCandidate.mDistance > aBest->mDistance ||
+				(aCandidate.mDistance == aBest->mDistance && aCandidate.mLength < aBest->mLength))
+				aBest = &aCandidate;
+		}
+	}
+	if (aBest == nullptr) {
+		sWaitsWithoutLine++;
 		return Wait(20, "no safe line");
+	}
+	sWaitsWithoutLine = 0;
 
 	int aX;
 	int aY;
