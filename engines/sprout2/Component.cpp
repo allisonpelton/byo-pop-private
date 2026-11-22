@@ -1,5 +1,7 @@
 #include "Component.h"
 
+#include <algorithm>
+
 #include "Container.h"
 #include "DrawContext.h"
 #include "Font.h"
@@ -213,6 +215,20 @@ void Component::addOwnState(int theStates)
 {
 	mOwnStates |= theStates;
 	addState(theStates);
+}
+
+void Component::addModifier(Modifier* theModifier)
+{
+	if (std::find(mModifiers.begin(), mModifiers.end(), theModifier) == mModifiers.end())
+		mModifiers.push_back(theModifier);
+	addOwnState(STATE_ANIMATED);
+}
+
+void Component::removeModifier(Modifier* theModifier)
+{
+	std::vector<Ref<Modifier>>::iterator anIt = std::find(mModifiers.begin(), mModifiers.end(), theModifier);
+	if (anIt != mModifiers.end())
+		mModifiers.erase(anIt);
 }
 
 void Component::removeOwnState(int theStates)
