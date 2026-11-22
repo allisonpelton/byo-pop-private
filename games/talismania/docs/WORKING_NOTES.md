@@ -127,3 +127,21 @@ nothing, rotate, rotatesnap and (the data's only other word) animate. Not yet re
 (giveactions, prepareactions), the path length meter, the hud, the map, unlock processors, sparkles, the stats and the
 rest of the lines the log lists as "not yet translated". The pools keep their items in file order as sections (one
 `<random>` or `<selector>`, or a single item); how a section is drawn from is for the game manager's step.
+
+## The first board (reduced, drawn)
+
+Choosing Story or Hero runs `AtlantisGameMgr` (reduced; `GameMgr.cpp`): the mode's default difficulty names the game class,
+its data set is loaded, the "Level Container" goes in the scene's main layer (0x41ca20), the first chapter of the class's
+progression is found (the progression's lower-case names meet the chapters' upper-case ones; where the original makes them
+meet is not found, so they are compared without case), the chapter's pre-data set and data set are loaded at once (the
+original loads a file a frame behind a loading screen, states 0x414da0 and 0x415050) and the first level of its
+progression becomes a `GameLevel`, which loads its layout screen (levellayoutfile) and builds a `Gameboard` into the
+layout's "boardcells" group. Geometry read from the data and checked by eye: pots are 62 across and 72 up
+(`potprops size`), odd columns half a pot higher, row 0 at the bottom, the group's origin the middle of the bottom pot of
+column 0; the hexagon sprites are 83 by 83. The pots come from the column templates (vspan) and the layout's own pots
+laid over them (the original merges attribute by attribute; here only the initial cell, path class, path id and tooltip).
+A pot's first cell is its initialcellclass or a draw by weight from the board's "default" pool (one draw of
+`engine::randomFloat`; the original's draws, its order and the falling in from the spawning pots are not read), drawn
+from the layers of the cell class shown in the "normal" view mode. Not yet: paths on the cells, the side pots, the
+spawning pots, the level's states, the hud, the map, the journal, the camera's move from the sky to the land (here
+`setRegion("land")` at once, and nothing paints a land background, so the front end's last pixels show through).
