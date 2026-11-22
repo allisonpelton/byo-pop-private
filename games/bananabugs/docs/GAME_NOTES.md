@@ -78,3 +78,8 @@ rounding of the exe's values; both are for the logic pass.
 
 The first playable merge: every screen runs, natively and on the web, and the bot plays by real input through the
 menu, the name window, the introduction, the hints, the levels, the tally and the map.
+
+A whole game from a new player, natively under rundesk with `-fast`, ran 1,059 moves to the game over on level 4
+(23,770 points); on the web the bot ran from the menu into level 2 with no error. The bonuses, the slots, the victory
+screen and the pause window have been reached in scripted runs but not yet played through by the bot, and nothing has
+yet been compared with the original: both are for the identical-play passes.
