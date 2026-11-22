@@ -6,7 +6,7 @@
 # all of them unchanged, and every shot of the tours present.
 #   tourcheck.py freeze <frozen file> <run dir>...    each run dir holds tour-fresh, tour-end and tour-worlds (shot PNGs)
 #   tourcheck.py check <frozen file> <run dir>        prints one line; exit 1 when more than LOOSE frozen shots differ or a shot is
-# missing (a shot that was whole in six runs can still come out otherwise in the seventh: x_200_skip2_b did; a change of the
+# missing (a board now and then plays out otherwise (a run in eight differs in up to eleven shots after a restart of a board by the `.` key: 117 more random draws within one board's start, cause not found); a shot whole in eight runs can come out otherwise in the ninth; a change of the
 # drawing changes nearly all of them)
 import hashlib
 import os
@@ -15,7 +15,7 @@ import sys
 from PIL import Image
 
 TOURS = ('fresh', 'end', 'worlds')
-LOOSE = 8
+LOOSE = 16
 
 
 def hashes(run):
