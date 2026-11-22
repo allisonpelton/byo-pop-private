@@ -1,7 +1,10 @@
 #include "AtlantisData.h"
 
+#include "AtlantisTheme.h"
 #include "Engine.h"
 #include "Random.h"
+
+#include <set>
 
 std::vector<std::string> splitList(const std::string& theValue)
 {
@@ -295,6 +298,7 @@ private:
 	}
 
 	AtlantisData& mData;
+	std::set<std::string> mReportedKinds;  // each kind not yet translated is reported once
 	SceneClass mScene;
 	GameMgrClass mGameOptions;
 	AppClass mApp;
@@ -314,19 +318,44 @@ bool AtlantisData::loadFile(const std::string& thePath)
 
 bool AtlantisData::loadDataSet(const std::string& theName)
 {
+	if (!beginDataSet(theName))
+		return false;
+	while (!isDataSetDone())
+		if (!loadNextFile())
+			return false;
+	return true;
+}
+
+bool AtlantisData::beginDataSet(const std::string& theName)
+{
 	std::map<std::string, DataSetLoaderClass>::iterator aSet = dataSets.find(theName);
+	mLoadFiles.clear();
+	mLoadNext = 0;
 	if (aSet == dataSets.end())
 	{
 		engine::getEngine()->log("Cannot find data set \"%s\"\n", theName.c_str());
 		return false;
 	}
 	// Copied: a file of the set may itself add data sets
-	std::vector<DataSetFile> aFiles = aSet->second.files;
-	for (size_t i = 0; i < aFiles.size(); i++)
-	{
-		engine::getEngine()->log("Loading %s\n", aFiles[i].description.c_str());
-		if (!loadFile(aFiles[i].file))
-			return false;
-	}
+	mLoadFiles = aSet->second.files;
 	return true;
+}
+
+bool AtlantisData::loadNextFile()
+{
+	if (isDataSetDone())
+		return false;
+	const DataSetFile& aFile = mLoadFiles[mLoadNext++];
+	engine::getEngine()->log("Loading %s\n", aFile.description.c_str());
+	if (aFile.theme && theme != nullptr)
+	{
+		theme->addFile(aFile.file);
+		return true;
+	}
+	return loadFile(aFile.file);
+}
+
+float AtlantisData::getDataSetProgress() const
+{
+	return mLoadFiles.empty() ? 1.0f : (float)mLoadNext / (float)mLoadFiles.size();
 }

@@ -188,10 +188,14 @@ struct DataSetLoaderClass
 	std::vector<DataSetFile> files;
 };
 
+class AtlantisTheme;
+
 // Every kind's registry, by name
 class AtlantisData
 {
 public:
+	// The theme a data set's theme files (<load theme="true">) are added to
+	AtlantisTheme* theme = nullptr;
 	std::map<std::string, SceneClass> scenes;
 	std::map<std::string, GameMgrClass> gameOptions;
 	std::map<std::string, AppClass> appOptions;
@@ -205,6 +209,18 @@ public:
 	bool loadFile(const std::string& thePath);
 	// Reads every file of the data set, in order (the original loads them on a thread and the boot waits)
 	bool loadDataSet(const std::string& theName);
+
+	// The same a file at a time, for a loading screen to follow: begun, then each step reads the next file
+	bool beginDataSet(const std::string& theName);
+	// The next file read; false once there is none (or one fails)
+	bool loadNextFile();
+	bool isDataSetDone() const { return mLoadNext >= mLoadFiles.size(); }
+	// The share of the set's files read, 0 to 1
+	float getDataSetProgress() const;
+
+private:
+	std::vector<DataSetFile> mLoadFiles;
+	size_t mLoadNext = 0;
 };
 
 // Splits a list attribute at the commas outside brackets (the tokenizer at 0x437930)

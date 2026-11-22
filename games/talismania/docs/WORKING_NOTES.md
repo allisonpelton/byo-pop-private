@@ -69,6 +69,12 @@ loader's attributes with defaults; `tools/classstrings.py <class>` the strings o
   the initial data set's loading, the bar's progress, the layers' darkening and the camera's scrolling (0x5e6680), the sound
   engine and the two popup menu stacks (0x5e98e0), the signal connections. `ClipPane` and `RectangleItem`
   (`ScenePieces`) should move to engines/sprout2. `ScreenDocHandler` logs that `compositeGroup` is not translated.
+- `AtlantisTheme` (over the shared `engine::Theme`, `getImage` virtual): every theme file of a data set added to one theme;
+  images loaded when first asked for (pivots by Talismania's names; the alpha type `mask`, trim and scales other than 1 are
+  logged, not translated); fonts, colours and vectors; sounds, music, composites, animdata, animation and particleEffect
+  kept as raw attributes (`mRawEntries`) until their users are translated. The loading state reads the "std" set a file a
+  frame (the original: a thread) and scales "loadbar" by the progress; its exit to the title state is not yet translated.
+  About 40 data kinds of the set are still logged as not yet translated.
 - The host builds and runs (`build/native/talismania.exe`, a silent run under rundesk): the window opens, the archive is
   found, a black frame is shown. The boot's archive step.
 

@@ -28,6 +28,8 @@ AtlantisApp* AtlantisApp::boot()
 	}
 	// The data set list, then the base data set ("baseset": config/scenes.xml and config/gameoptions.xml)
 	AtlantisApp* anApp = new AtlantisApp();
+	anApp->mTheme = new AtlantisTheme();
+	anApp->mData.theme = anApp->mTheme.get();
 	anApp->mData.loadFile("config/datasets.xml");
 	anApp->mData.loadDataSet("baseset");
 	if (anApp->mData.appOptions.find("std") == anApp->mData.appOptions.end())

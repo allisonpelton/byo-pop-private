@@ -8,6 +8,7 @@
 
 #include "AtlantisData.h"
 #include "AtlantisScene.h"
+#include "AtlantisTheme.h"
 #include "LoadingState.h"
 #include "Object.h"
 #include "State.h"
@@ -31,6 +32,7 @@ public:
 	void start();
 
 	AtlantisData mData;
+	engine::Ref<AtlantisTheme> mTheme;  // the one theme every data set's theme files are added to
 	AppClass mOptions;  // the application options "std", read by the boot
 	engine::Ref<AtlantisScene> mScene;  // +0x38
 	engine::StateMgr<AppState> mStateMgr;  // +0x17c

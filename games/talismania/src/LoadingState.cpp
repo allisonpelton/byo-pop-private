@@ -39,5 +39,34 @@ void LoadingState::enter()
 	if (aLayer != nullptr)
 		aLayer->addChild(mScreen.get());
 	mScreen->show();
-	// Then the initial data set ("std") is started loading: not yet translated
+	// The initial data set is read a file a frame by the update; the original reads it on a thread. The kinds of data
+	// not yet translated are logged as they are met
+	mApp->mData.beginDataSet(mApp->mOptions.initialDataSet);
+}
+
+// 0x4064e0
+void LoadingState::update(engine::UpdateContext* theContext)
+{
+	AtlantisData& aData = mApp->mData;
+	if (aData.isDataSetDone())
+	{
+		if (!mInitializingShown)
+		{
+			// The screen's text (a component of the loading screen) is set to "Initializing Game": not yet translated
+			mInitializingShown = true;
+			return;
+		}
+		mScreen->hide();
+		return;
+	}
+	engine::Component* aBar = mScreen->findComponent("loadbar");
+	aData.loadNextFile();
+	if (aBar != nullptr)
+		aBar->setScale(aData.getDataSetProgress(), 1.0f);
+}
+
+// 0x4067d0
+void LoadingState::exit()
+{
+	mScreen = nullptr;
 }
