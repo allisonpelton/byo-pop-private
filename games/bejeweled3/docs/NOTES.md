@@ -190,3 +190,30 @@ What the analysis has found about the exe, for reading the export. The plan is i
   uses it in a comment); the exe looks one up by its number with the English text as the fallback (0x475e30, e.g.
   285 "OPTIONS", 286 "RECORDS", 287 "PLAY" for the main menu's buttons). The port can read them through the
   framework's string properties by the number's text.
+
+## Boot readings settled, and what the menu still needs
+
+- Settled: the quest files' command separator is the semicolon: DescParser's constructor (0x54d0b0) stores 1 at +0x28
+  and QuestDataParser's (0x404560) leaves it. The cursors: Init calls 0x46c420 with kinds 0, 1 and 2 and the images
+  0x304 (IMAGE_CURSOR_POINTER), 0x303 (HAND), 0x302 (DRAGGING), the framework's CURSOR_POINTER, CURSOR_HAND and
+  CURSOR_DRAGGING in that order; 0x46c420 forwards to slot 0x74 of the object at app+8.
+- Not settled: slots 31 and 32 of the app's vtable are one-line forwarders to slots 0x34 and 0x38 of the object at
+  app+8 (as SetCursorImage is to 0x74), so they are not shown to be Popup; ShowResourceError (0x46e190) calls slot 32
+  with the error text. The port shows that text through Popup, which has the same visible effect (an error box).
+- CrystalBall (vtable 0x865564, derives from ButtonWidget 0x49c490; ctor 0x78ab50): it overrides slot 22 (Update
+  0x78c730), slot 26 (Draw 0x78ae40, 583 lines), slot 40 (0x78c620: after the base's Resize 0x46aa00 it builds a
+  3x3 matrix and copies it into both effects at +0xba4) and slot 50 (0x78aaa0). Fields: +0x184 and +0x188 two
+  effects made by PIEffect::Duplicate (0x567930) with +0xb86 set; +0x450 the highlight (Update: counter +0x47c plus
+  one, both effects updated by 0x573290, highlight moves 0.05 toward 1 while +0x69 (mouse over) else toward 0);
+  +0x454 and +0x460 colours; +0x484 and +0x485 flags; +0x486 and +0x487 flags; +0x368 a fade. Its Draw has a 3D branch (a
+  10 by 30 mesh of the curved ribbon, taken when the graphics' flag at +0x80 is set) and a 2D branch (the 40-frame
+  picture sheet, frame = update counter / 4 mod 40, the effects drawn by PIEffect::Draw 0x575650 under a scale matrix,
+  then the text with the font layers GLOWOUTLINE and BOTTOMGLOW and a curve "CRYSTALBALL_TEXT_SCALE_FACTOR").
+  Translated: Update's highlight only (src/MainMenu.cpp). Not translated, because this generation's Graphics
+  (a transform stack, 0x432410 copy, 0x432590 SetColor, 0x432610 SetDrawMode, 0x432630 SetColorizeImages, 0x434330 and
+  0x434350 Translate, 0x713770 and 0x713850 scaled draws, 0x58f620 and 0x58f920 font-layer colours) is not mapped onto
+  the port's Graphics yet, and which resources the effects are made from was not found.
+- MainMenu: Draw 0x6a0ca0 and Update 0x6a3530 are driven by about fifteen CurvedVals (curve strings such as
+  "b;0,1,0.005,1,####         ~~###" in the 2D-or-3D constructor), the logos ("Logo%dFile", "Logo%dHoldTime") and the
+  tips line; none of their screen positions was found within the hour, so the menu keeps the port's own placement
+  (a "port:" note in src/MainMenu.cpp) and the foreground picture and logos are not drawn. Oddity: the buttons' places.

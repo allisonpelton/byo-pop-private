@@ -8,6 +8,8 @@
 #include "Profile.h"
 #include "Res.h"
 
+#include <algorithm>
+
 using namespace Sexy;
 
 namespace {
@@ -25,34 +27,34 @@ MainMenuButton::MainMenuButton(const std::string& theText) : mText(theText)
 {
 }
 
-// port: the button stands in for the crystal ball (see the header)
+// port: the picture and the effects of the crystal ball are not translated: a plate and the text, lit by the highlight
 void MainMenuButton::Draw(Graphics* g)
 {
-	// port: the crystal ball's picture is not translated: a plate and the text
-	g->SetColor(mHighlighted ? Color(255, 255, 255, 120) : Color(0, 0, 0, 120));
+	g->SetColor(Color((int)(255 * mHighlight), (int)(255 * mHighlight), (int)(255 * mHighlight), 120));
 	g->FillRect(0, 0, mWidth, mHeight);
 	if (FONT_PLAYBUTTONS != nullptr) {
 		g->SetFont(FONT_PLAYBUTTONS);
-		g->SetColor(mHighlighted ? Color(255, 255, 160) : Color(255, 255, 255));
+		g->SetColor(Color(255, 255, 255 - (int)(95 * mHighlight)));
 		g->DrawString(mText, (mWidth - FONT_PLAYBUTTONS->StringWidth(mText)) / 2,
 			(mHeight + FONT_PLAYBUTTONS->GetAscent()) / 2);
 	}
 }
 
-// port: the button stands in for the crystal ball (see the header)
-void MainMenuButton::MouseEnter()
+// 0x78c730 (bejeweled3): the highlight follows the mouse by 0.05 an update. port: the two effects' own updates
+// (0x573290 on +0x184 and +0x188) come with the effects
+void MainMenuButton::Update()
 {
-	mHighlighted = true;
+	Widget::Update();
+	mUpdateCount++;
+	if (!mIsOver)
+		mHighlight = std::max(mHighlight - 0.05f, 0.0f);
+	else
+		mHighlight = std::min(mHighlight + 0.05f, 1.0f);
 	MarkDirty();
 }
 
-// port: the button stands in for the crystal ball (see the header)
-void MainMenuButton::MouseLeave()
-{
-	mHighlighted = false;
-	MarkDirty();
-}
 
+// 0x6a54b0 (bejeweled3): see the header
 MainMenu::MainMenu()
 {
 	// 0x6a54b0: the buttons, made in the order OPTIONS, RECORDS, PLAY; the texts are string ids 0x11d, 0x11e, 0x11f

@@ -16,13 +16,13 @@ namespace Sexy {
 class MainMenuButton : public Widget {
 public:
 	std::string mText;                  // the button's text, from the properties' string ids 0x11d to 0x11f
-	bool mHighlighted = false;          // the mouse is over it
+	float mHighlight = 0.0f;            // +0x450: 0 to 1, up 0.05 an update while the mouse is over the button, else down
+	int mUpdateCount = 0;               // +0x47c: updates since it was made (the crystal ball's frame counts them)
 
 	explicit MainMenuButton(const std::string& theText);
 
 	void Draw(Graphics* g) override;
-	void MouseEnter() override;
-	void MouseLeave() override;
+	void Update() override;                // 0x78c730 (bejeweled3), slot 22
 };
 
 class MainMenu : public Widget {
