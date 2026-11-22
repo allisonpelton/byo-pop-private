@@ -40,6 +40,8 @@ public:
 	bool SetAngle(float theAngle, bool theAtOnce); // 0x4843a0
 	SharedPtr<Ball> Fire(bool theKeepAim);	 // 0x484530: lets the ball go; the cannon holds none afterwards
 	void UpdateBouncyGuide();				 // 0x482910
+	void SetBall(const SharedPtr<Ball>& theBall); // 0x4844c0: the ball the cannon holds from now
+	void SetBouncyGuide(bool theOn);				 // 0x47f6e0
 	void Reset();							 // 0x47f5f0: lets go of the ball and forgets the shot, as for a new level
 
 	Board* mBoard;			   // +0x148

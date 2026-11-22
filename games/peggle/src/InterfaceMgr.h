@@ -21,7 +21,7 @@ class ThunderballApp;
 struct ColumnBall
 {
 	float mY;
-	int mUnknown4;
+	float mSpeed;
 };
 
 class InterfaceMgr
@@ -32,6 +32,11 @@ public:
 
 	void Clear();				// 0x447260
 	void Update();		// 0x4518b0
+	void UpdateScoreDisp();		// 0x4481d0
+	void UpdateShotMeter();		// 0x436c90
+	void UpdateBalls();			// 0x443cf0
+	void AddBottomBall(int theDelay); // 0x4517c0
+	int GetNumVisibleBalls() const;	// 0x43c770
 	void InitLevel();			// 0x4725f0
 	void SettleDown();			// 0x4482d0: the score on show is the score
 	void UpdateHighScore();		// 0x4724e0: the best score and its name for the level
@@ -78,6 +83,7 @@ public:
 	int mUnknownF0;				   // +0xf0
 	int mStageImageIndex;		   // +0xf4: the stage the pictures were last made for (-1: none)
 	int mUnknownF8;				   // +0xf8
+	int mUnknownFC[25] = {};	   // +0xfc
 	bool mUnknown160;			   // +0x160: the column's balls are still
 	bool mUnknown161;			   // +0x161
 	std::vector<ColumnBall> mColumnBalls; // +0x168

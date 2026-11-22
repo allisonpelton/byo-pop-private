@@ -11,6 +11,7 @@
 #include "MainMenu.h"
 #include "PegInfo.h"
 #include "PhysObj.h"
+#include "InterfaceMgr.h"
 #include "SoundMgr.h"
 #include "PlayerInfo.h"
 #include "ThunderballApp.h"
@@ -242,6 +243,10 @@ bool ThunderballApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		Board* aBoard = static_cast<Board*>(mBoard);
 		LogicMgr* aLogic = aBoard->mLogicMgr.get();
+		// the board of a test is not on the widget manager, which the logic asks for the buttons: it is lent for the command
+		WidgetManager* aLentManager = aBoard->mWidgetManager == nullptr ? mWidgetManager : nullptr;
+		if (aLentManager != nullptr)
+			aBoard->mWidgetManager = aLentManager;
 		if (aWords >= 4)
 		{
 			mWidgetManager->mLastMouseX = aX;
@@ -254,7 +259,10 @@ bool ThunderballApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		{
 			aLogic->Update();
 			aBoard->mSoundMgr->Update();
+			aBoard->mInterfaceMgr->Update();
 		}
+		if (aLentManager != nullptr)
+			aBoard->mWidgetManager = nullptr;
 		int aFlashing = 0, aBlinking = 0, aShown = 0;
 		for (std::list<SharedPtr<PhysObj> >::iterator anItr = aLogic->mPegs.begin(); anItr != aLogic->mPegs.end(); ++anItr)
 		{
@@ -268,7 +276,7 @@ bool ThunderballApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		Reply("STATE {\"state\":" + std::to_string(aLogic->mState) + ",\"time\":" + std::to_string(aLogic->mStateTime) +
 			  ",\"gunAngle\":" + aDigits + ",\"turns\":" + std::to_string(aBoard->mGun->mTurns.size()) + ",\"shown\":" + std::to_string(aShown) + ",\"flashing\":" +
 			  std::to_string(aFlashing) + ",\"blinking\":" + std::to_string(aBlinking) + ",\"hint\":" +
-			  std::to_string(aLogic->mUnknown138) + ",\"maxLevel\":" + std::to_string(GetMaxLevel()) + ",\"onMax\":" + std::to_string(OnMaxLevel()) + ",\"sounds\":" + std::to_string(aBoard->mSoundMgr->mTime) + "}");
+			  std::to_string(aLogic->mUnknown138) + ",\"column\":" + std::to_string(aBoard->mInterfaceMgr->mColumnBalls.size()) + ",\"still\":" + std::to_string(aBoard->mInterfaceMgr->mUnknown160) + ",\"shownBalls\":" + std::to_string(aBoard->mInterfaceMgr->mNumBallsShown) + ",\"maxLevel\":" + std::to_string(GetMaxLevel()) + ",\"onMax\":" + std::to_string(OnMaxLevel()) + ",\"sounds\":" + std::to_string(aBoard->mSoundMgr->mTime) + "}");
 		Reply("OK " + Words(theCommand));
 		return true;
 	}

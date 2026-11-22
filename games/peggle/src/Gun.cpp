@@ -253,3 +253,20 @@ void Gun::UpdateBouncyGuide()
 {
 	NOT_TRANSLATED("Gun::UpdateBouncyGuide");
 }
+
+// 0x4844c0
+void Gun::SetBall(const SharedPtr<Ball>& theBall)
+{
+	mBall = theBall;
+	mBall->mIsPeg = true; // (+0x140: the flag the cannon sets on the ball it holds)
+	mUnknown1A1 = false;
+	CalcPoints();
+}
+
+// 0x47f6e0: the guide's list of points (the three words at +0x1c8) is emptied
+void Gun::SetBouncyGuide(bool theOn)
+{
+	mBouncyGuide = theOn;
+	if (mUnknown1C8 != mUnknown1CC)
+		NOT_TRANSLATED("Gun::SetBouncyGuide with a guide drawn");
+}

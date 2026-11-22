@@ -995,3 +995,12 @@ void Board::UpdateZoom()
 {
 	NOT_TRANSLATED("Board::UpdateZoom");
 }
+
+// 0x4090d0
+void Board::Reload()
+{
+	SharedPtr<Ball> aBall(new Ball(false));
+	if (mLogicMgr->mUnknown69)
+		aBall->SetHat(true, true);
+	mGun->SetBall(aBall);
+}

@@ -51,6 +51,14 @@ struct ClickRecord
 	bool mUsed; // +0x10: written already
 };
 
+// One click of the shot kept for the replay: when (the update of the state 2), pressed or let go, which button
+struct ClickEvent
+{
+	int mTime;
+	bool mIsUp;
+	bool mRight;
+};
+
 // 16 bytes at +0xb4
 struct LogicRecord16
 {
@@ -70,8 +78,12 @@ public:
 	bool ClearedLevel() const;							// 0x43d580: no orange peg is left (with mUnknownFB, no purple one either)
 	bool MouseMove();									// 0x43d5d0: the cannon follows the mouse again
 	bool MouseDrag(int theX, int theY);					// 0x43d620
-	void MouseDown(int theX, int theY, int theButton, int theClickCount, bool theReplayed); // 0x?: the shot
-	void MouseUp(int theX, int theY, int theButton, bool theReplayed);
+	bool MouseDown(int theX, int theY, int theButton, bool theReplayed, bool theForced); // 0x472810: theButton is below 0 for the right button
+	bool MouseUp(int theX, int theY, int theButton, bool theReplayed); // 0x45ebb0
+	void CalcCornerDisplay();						// 0x448370: what the corner of the board says
+	void SpeedTransition();
+	void DoTimeBomb();
+	void FlipperClick(bool theDown);				// 0x45ea70
 	bool CheckDoStealthHelperShot();					// 0x?
 	void UpdateGun();								// 0x46d630
 	void UpdateFreeBall();								// 0x440830
@@ -88,6 +100,12 @@ public:
 	void UpdateZenShot();
 	void CheckDoCharacterDialog();					// 0x437360
 	void BeginTurn(bool theNextPlayer);					// 0x46e880
+	void ActivatePowerups();						// 0x461560: the powers that are on this turn, for the player in turn
+	void ActivatePowerup(int thePower, bool theActive); // 0x4612e0
+	void ActivateFreeBall(bool theActive);			// 0x440580
+	void DoBeginTurnText();							// 0x469f30: '3 Balls Left' and the like
+	void DoBeginTurnTip(int theTip);				// 0x46a370: a tip for a new player
+	void SetWearHat(bool theWear);					// 0x43d4d0
 	void BeginTurn2();								// 0x44b5b0
 	void DoLevelDone();								// 0x46a9c0
 	void FinishInitLevelText();						// 0x46c220
@@ -138,6 +156,7 @@ public:
 	int mUnknown4C;			 // +0x4c
 	int mUnknown50;			 // +0x50
 	bool mUnknown54;		 // +0x54
+	bool mUnknown55;		 // +0x55
 	int mUnknown58;			 // +0x58: one for each player (the next is +0x5c)
 	int mUnknown5C;			 // +0x5c
 	int mUnknown60;			 // +0x60: and these two
@@ -147,7 +166,7 @@ public:
 	float mUnknown70;		 // +0x70: the mouse wheel's base move when the state was cleared
 	int mUnknown74;			 // +0x74
 	int mUnknown78;			 // +0x78
-	std::string mSongFolder; // +0x7c: empty (Clear makes a "pegsongs/" string and never uses it)
+	std::string mCornerText; // +0x7c: the corner's text ("Fast Forward", "Triple Score", "ZenBall", "Fireball", "Magic Hat" or none)
 	int mUnknown98;			 // +0x98: the place of the last drag (-10000 when it moved)
 	int mUnknown9C;			 // +0x9c
 	int mUnknownA0;			 // +0xa0
@@ -158,7 +177,7 @@ public:
 	SoundInstance* mSlowMoSound; // +0xac: the sound of the slow motion, while it plays
 	SoundInstance* mFadeSound;	 // +0xb0: the sound that fades when the level starts
 	std::vector<LogicRecord16> mUnknownB4; // +0xb4
-	std::list<int> mUnknownC4;			   // +0xc4
+	std::list<ClickEvent> mClickEvents;	   // +0xc4: the clicks the shot has had (a replay plays them again)
 	std::vector<ClickRecord> mClickRecords; // +0xd0: the clicks the replay keeps
 	float mGunAngle;		 // +0xe0: where CalcGunAngle aims the cannon (the player's mouse)
 	float mUnknownE4;		 // +0xe4

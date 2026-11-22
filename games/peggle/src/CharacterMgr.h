@@ -94,6 +94,7 @@ public:
 	void UpdateSlowMo();		// 0x439a60
 	int GetCharacterIndex(const std::string& theName); // 0x43e3b0: -1 for none
 	int GetNumCharacters() const { return (int)mCharacters.size(); }
+	void SetYinYangEye(bool theOn) { mUnknown45 = theOn; } // 0x432b30
 	int SetCurCharacter(int theCharacter);	 // 0x43e320
 	void CalcLookPos(Board* theBoard, bool theForce); // 0x4410c0: where the master looks (the mouse, or the ball): the eyes' animation, with the drawing
 	void Resync();							 // 0x43e460: the eyes are placed again (CalcEyePos 0x438a10)

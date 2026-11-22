@@ -28,3 +28,12 @@ void EffectMgr::UpdateSlowMo(float theSubFrame)
 {
 	NOT_TRANSLATED("EffectMgr::UpdateSlowMo");
 }
+
+// 0x443780
+int EffectMgr::EraseAllOfType(int theType)
+{
+	for (int aList = 0; aList < NUM_EFFECT_LISTS; aList++)
+		if (!mLists[aList].empty())
+			NOT_TRANSLATED("EffectMgr::EraseAllOfType with effects (Effect has no fields yet)");
+	return 0;
+}

@@ -70,6 +70,7 @@ public:
 	void UpdateSlowMo();					// 0x402ba0: the slow motion's counters of one step
 	void UpdateObjects(bool theMoreSteps);	// 0x410ae0
 	void UpdateZoom();						// 0x40ad10
+	void Reload();										// 0x4090d0: a new ball in the cannon
 	void PlayMusic();						// 0x422640
 	void AddObj(const SharedPtr<PhysObj>& theObj); // 0x422a90 (0x421070): a piece of the level joins the board's lists
 	void SetSlowMo(bool theSlowMo, int theRate); // 0x4026f0

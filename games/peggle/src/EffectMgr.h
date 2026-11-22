@@ -20,6 +20,7 @@ public:
 	virtual ~EffectMgr() {} // 0x44b550
 
 	void Clear(); // 0x443720: every effect of every list is deleted
+	int EraseAllOfType(int theType);	// 0x443780: how many it erased
 	void Update(bool theSlowMo);		// 0x45bf10
 	void UpdateSlowMo(float theSubFrame);		// 0x45bfb0
 

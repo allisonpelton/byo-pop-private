@@ -10,6 +10,8 @@
 #include "Board.h"
 #include "CharacterMgr.h"
 #include "Common.h"
+#include "DebugMgr.h"
+#include "EffectMgr.h"
 #include "EndLevelDialog.h"
 #include "Res.h"
 #include "WidgetManager.h"
@@ -18,9 +20,11 @@
 #include "InterfaceMgr.h"
 #include "NotTranslated.h"
 #include "PegInfo.h"
+#include "Poly.h"
 #include "PhysObj.h"
 #include "PlayerInfo.h"
 #include "SoundInstance.h"
+#include "ThunderButton.h"
 #include "SoundMgr.h"
 #include "ThunderMath.h"
 #include "ThunderballApp.h"
@@ -41,6 +45,23 @@ static const int PRESHOT_FEW_GOAL_PEGS = 6;		  // 'last' is this many or fewer (
 static const int COMPUTER_THINK_TIME = 100;		  // the update the computer starts to think at, 150 while a replay is kept
 static const int COMPUTER_THINK_TIME_REPLAY = 150;
 static const int POST_SHOT_WAIT = 0x95;			  // the updates a game of two waits after a ball (a mode of two checks the ball has been shot for this long)
+static const float BEGIN_TURN_X = 320.0f;		  // the middle of the board, where the turn's texts start
+static const float BEGIN_TURN_Y = 240.0f;
+static const int POWERUP_TURNS_GIVEN = 1000;	  // the turns a power-up that is given lasts
+static const int NUM_POWERUPS = 14;
+static const int EFFECT_TYPE_FEVER_SPARK = 0x16;	  // the effects of this type go when the power-up that shows them ends
+static const int FREE_BALL_COVER_TIME = 0x104;	  // (the original's mUnknown134, which counts the free-ball cover's time)
+static const int FREE_BALL_COVER_TIME_FEVER = 200;
+static const int FREE_BALL_COVER_TIME_FLIPPERS = 0x82;
+static const int TIP_FEW_GOAL_PEGS = 10;		  // the tip of the orange pegs comes for a level that has this many or fewer (ModValInt, LogicMgr.cpp 1105, 1748)
+static const int CHARACTER_DIALOG_TEXT_TIME = 200;	  // the update the start of a level's text goes at when the level has a picture (ModValInt, LogicMgr.cpp 1278, 4597)
+static const int FREE_BALL_UPDATE_DIVISOR = 2;	  // the catcher's pieces change on the updates that are not a multiple of this (ModValInt, LogicMgr.cpp 1261, 4256)
+static const int FEVER_ROW = 4;					  // the row of the fever power's turns left
+static const int BUMPER_HOLE_COUNTDOWN = 300;	  // (ModValInt, LogicMgr.cpp 1078, 1463)
+static const int FLIPPER_COUNTDOWN = 180;		  // (1079, 1559)
+static const int FLIPPER_ROW = 2;				  // the row of the flippers' turns left
+static const int TIME_BOMB_ROW = 11;			  // and the time bomb's
+static const int SHOT_BOOST_START = 1500;		  // the update of the shot a click speeds it from (the original's global at 0x649ac4)
 static const int FIREBALL_ROW = 12;				  // the rows of mUnknown1D4 (a count for each player) that are the fireball's turns left
 static const int ZEN_ROW = 7;					  // and the zen ball's
 static const int CANNON_COCK_DELAY = 8;			  // the updates a cocked cannon waits before it may fire (ModValInt, LogicMgr.cpp 1412, 6042)
@@ -69,7 +90,7 @@ bool PegSerialLess::operator()(const SharedPtr<PhysObj>& theLeft, const SharedPt
 // 0x4610d0
 LogicMgr::LogicMgr(Board* theBoard)
 {
-	mSongFolder = "";
+	mCornerText = "";
 	mBoard = theBoard;
 	mUnknown330 = 0;
 	mUnknown334 = 0;
@@ -148,7 +169,7 @@ int LogicMgr::CalcMusicIntensity(int theNumPegsLeft)
 // 0x45d900
 void LogicMgr::Clear(bool theNewGame, bool theKeepLists)
 {
-	mSongFolder = ""; // (the original makes a "pegsongs/" string here and does not use it)
+	mCornerText = ""; // (the original makes a "pegsongs/" string here and does not use it)
 	SetState(0);
 	mUnknown0C = 0;
 	mUnknown10 = 0;
@@ -246,7 +267,7 @@ void LogicMgr::Clear(bool theNewGame, bool theKeepLists)
 	mUnknown34C.clear();
 	for (int i = 0; i < 11; i++)
 		mUnknown370[i] = 0;
-	mUnknownC4.clear();
+	mClickEvents.clear();
 	mClickRecords.clear();
 	mClickRecords.reserve(NUM_CLICK_RECORDS_RESERVED);
 	mUnknownB4.clear();
@@ -759,8 +780,18 @@ bool LogicMgr::MouseDrag(int theX, int theY)
 // 0x4730d0
 void LogicMgr::Update()
 {
-	if (mUnknownF5 && mState == 2 && !mUnknownC4.empty())
-		NOT_TRANSLATED("LogicMgr::Update with replayed clicks");
+	if (mUnknownF5 && mState == 2)
+	{
+		while (!mClickEvents.empty() && mClickEvents.front().mTime <= mStateTime)
+		{
+			ClickEvent aClick = mClickEvents.front();
+			if (!aClick.mIsUp)
+				MouseDown(0, 0, aClick.mRight ? -1 : 1, true, false);
+			else
+				MouseUp(0, 0, aClick.mRight ? -1 : 1, false);
+			mClickEvents.pop_front();
+		}
+	}
 	if (mUnknownE8 != 0)
 		mUnknownE8--;
 	UpdateGun();
@@ -798,16 +829,150 @@ void LogicMgr::DoFeverMissed()
 	NOT_TRANSLATED("LogicMgr::DoFeverMissed");
 }
 
-// (address in the header)
-void LogicMgr::MouseDown(int theX, int theY, int theButton, int theClickCount, bool theReplayed)
+// 0x472810: a click. In the state 1 a click of a human player cocks the cannon; in the state 2 the clicks are kept for the replay
+bool LogicMgr::MouseDown(int theX, int theY, int theButton, bool theReplayed, bool theForced)
 {
-	NOT_TRANSLATED("LogicMgr::MouseDown");
+	mUnknown98 = theX;
+	mUnknown9C = theY;
+	if (theButton < 0 && mState != LOGIC_STATE_INIT_LEVEL)
+	{
+		CalcCornerDisplay();
+		return false;
+	}
+	if (mUnknownF5)
+	{
+		if (!theReplayed)
+			return true;
+		theForced = true;
+	}
+	if (mState == 5 && mUnknownFD && mStateTime < 100)
+		NOT_TRANSLATED("LogicMgr::MouseDown, the click that skips the level's end");
+	bool aRecorded = false;
+	if (!mUnknownF5 && mState == 2)
+	{
+		ClickEvent aClick = {mStateTime - (theForced ? 1 : 0), false, theButton < 0};
+		mClickEvents.push_back(aClick);
+		aRecorded = true;
+	}
+	if (0 < theButton)
+	{
+		if (mState == 1 && !IsComputerTurn())
+		{
+			if (mUnknown138 == 0)
+				mUnknownED = true;
+			return true;
+		}
+		if (mState != 2)
+		{
+			if (!mClickEvents.empty() && aRecorded)
+				mClickEvents.pop_back();
+			SpeedTransition();
+			return true;
+		}
+		if (mUnknown1D)
+		{
+			mUnknownF7 = true;
+			mUnknown1D = SHOT_BOOST_START < mUnknown38;
+			return true;
+		}
+		if (!mBoard->mSlowMo)
+		{
+			if (IsComputerTurn() && !theForced)
+			{
+				if (!mClickEvents.empty() && aRecorded)
+					mClickEvents.pop_back();
+				return true;
+			}
+		}
+		else if (!mUnknownF5)
+		{
+			mUnknownF9 = false;
+			if (mBoard->mUnknownC8 != 0)
+				mBoard->mUnknownC8 = 1;
+		}
+		if (mUnknown20)
+		{
+			mUnknown20 = false;
+			PlayerInfo* aPlayer = mBoard->mApp->mCurrentPlayer;
+			if (!mUnknownF5 && aPlayer != nullptr && aPlayer->mUnknown54 < 100)
+			{
+				aPlayer->mUnknown54++;
+				aPlayer->mDirty = true;
+			}
+		}
+		mUnknown1E = true;
+	}
+	if (mUnknown1D4[FLIPPER_ROW][mCurPlayer] < 1)
+	{
+		if (mState == 2)
+		{
+			if (mUnknown1D4[TIME_BOMB_ROW][mCurPlayer] < 1)
+			{
+				if (mBoard->mApp->GetMaxLevel() == 0 && 0 < theButton && !mUnknownF6 && !mBoard->mSlowMo)
+				{
+					NOT_TRANSLATED("LogicMgr::MouseDown, the text that says one ball is fired at a time (FloatingText)");
+				}
+			}
+			else
+				DoTimeBomb();
+		}
+	}
+	else
+		FlipperClick(true);
+	return true;
 }
 
-// (address in the header)
-void LogicMgr::MouseUp(int theX, int theY, int theButton, bool theReplayed)
+// 0x45ebb0
+bool LogicMgr::MouseUp(int theX, int theY, int theButton, bool theReplayed)
 {
-	NOT_TRANSLATED("LogicMgr::MouseUp");
+	if (mUnknownF5)
+		theReplayed = true;
+	bool aRecorded = false;
+	if (!mUnknownF5 && mState == 2)
+	{
+		ClickEvent aClick = {mStateTime, true, theButton < 0};
+		mClickEvents.push_back(aClick);
+		aRecorded = true;
+	}
+	bool aWasDown = mUnknown1E;
+	if (0 < theButton)
+		mUnknown1E = false;
+	if (!IsComputerTurn() || theReplayed)
+	{
+		if (0 < mUnknown1D4[FLIPPER_ROW][mCurPlayer] && 0 < theButton && aWasDown)
+			FlipperClick(false);
+		CalcCornerDisplay();
+	}
+	else if (aRecorded && !mClickEvents.empty())
+		mClickEvents.pop_back();
+	return true;
+}
+
+// 0x448370: the corner shows the strongest of what is on, as text in the one string
+void LogicMgr::CalcCornerDisplay()
+{
+	if (mBoard->mWidgetManager->IsRightButtonDown() && !mBoard->mInstantReplayButton->mIsOver && mState != 2)
+		mCornerText = "Fast Forward";
+	else if (mUnknown68)
+		mCornerText = "Triple Score";
+	else if (0 < mUnknown1D4[ZEN_ROW][mCurPlayer])
+		mCornerText = "ZenBall";
+	else if (0 < mUnknown1D4[FIREBALL_ROW][mCurPlayer])
+		mCornerText = "Fireball";
+	else if (mUnknown69)
+		mCornerText = "Magic Hat";
+	else
+		mCornerText = "";
+}
+
+void LogicMgr::SpeedTransition()
+{
+	NOT_TRANSLATED("LogicMgr::SpeedTransition");
+}
+
+void LogicMgr::DoTimeBomb()
+{
+	NOT_TRANSLATED("LogicMgr::DoTimeBomb");
 }
 
 // 0x46d630: the cannon follows the aim; a click cocks it, and a cocked cannon with a ball fires
@@ -851,10 +1016,41 @@ void LogicMgr::UpdateGun()
 		NOT_TRANSLATED("LogicMgr::UpdateGun, the shot (Gun::Fire, BeginShot) and the zen shot");
 }
 
-// (address in the header)
+// 0x440830: the free ball catcher's pieces grow or shrink (their movers' radius moves one a step, every other update) to the size mUnknown134 says;
+// when none has to move the size is forgotten
 void LogicMgr::UpdateFreeBall()
 {
-	NOT_TRANSLATED("LogicMgr::UpdateFreeBall");
+	if (mBoard->mUpdateCount % FREE_BALL_UPDATE_DIVISOR == 0)
+		return;
+	bool aMoved = false;
+	for (std::list<SharedPtr<PhysObj> >::iterator anItr = mBoard->mObjects.begin(); anItr != mBoard->mObjects.end(); ++anItr)
+	{
+		PhysObj* anObject = anItr->get();
+		if (!(anObject->mId == "freeballcover" || anObject->mId == "freeball" || anObject->mId == "bumperhole") || !anObject->mMover)
+			continue;
+		Mover* aMover = anObject->mMover.get();
+		float aSize = (float)aMover->mRadius;
+		float aGoal = (float)mUnknown134;
+		if (aGoal == aSize || aMover->mPeriod <= 0)
+			continue;
+		aMoved = true;
+		int aNewSize;
+		if (aGoal < aSize)
+		{
+			aNewSize = (int)(aSize - 1.0);
+			if (aNewSize < mUnknown134)
+				aNewSize = mUnknown134;
+		}
+		else
+		{
+			aNewSize = (int)(aSize + 1.0);
+			if (mUnknown134 < aNewSize)
+				aNewSize = mUnknown134;
+		}
+		aMover->mRadius = aNewSize;
+	}
+	if (!aMoved)
+		mUnknown134 = 0;
 }
 
 // (address in the header)
@@ -993,10 +1189,19 @@ void LogicMgr::UpdateInitLevel()
 }
 
 
-// (address in the header)
+// 0x4709f0: once the master and stage are chosen the first turn begins
 void LogicMgr::UpdateCharacterDialog()
 {
-	NOT_TRANSLATED("LogicMgr::UpdateCharacterDialog");
+	if (1 < mStateTime && mBoard->mInterfaceMgr->mUnknown160)
+	{
+		if (!mBoard->mUnknownEA)
+		{
+			FinishInitLevelText();
+			BeginTurn(false);
+		}
+		else if (CHARACTER_DIALOG_TEXT_TIME <= mStateTime && mUnknown34 != 0)
+			FinishInitLevelText();
+	}
 }
 
 // (address in the header)
@@ -1038,28 +1243,17 @@ bool LogicMgr::CheckDoStealthHelperShot()
 	return false;
 }
 
-// 0x46e880
-void LogicMgr::BeginTurn(bool theNextPlayer)
-{
-	NOT_TRANSLATED("LogicMgr::BeginTurn");
-}
-
-// 0x44b5b0
-void LogicMgr::BeginTurn2()
-{
-	NOT_TRANSLATED("LogicMgr::BeginTurn2");
-}
-
 // 0x46a9c0
 void LogicMgr::DoLevelDone()
 {
 	NOT_TRANSLATED("LogicMgr::DoLevelDone");
 }
 
-// 0x46c220
+// 0x46c220: the texts of the start of the level are made to go on their own way (they are the floating texts the level's start made)
 void LogicMgr::FinishInitLevelText()
 {
-	NOT_TRANSLATED("LogicMgr::FinishInitLevelText");
+	if (mUnknown34 != 0 || mUnknown3C != 0)
+		NOT_TRANSLATED("LogicMgr::FinishInitLevelText with a text (FloatingText)");
 }
 
 // 0x437360: asks for the stage (an adventure's first ten levels) or the master, and waits in the state 9
@@ -1081,4 +1275,308 @@ void LogicMgr::CheckDoCharacterDialog()
 	}
 	(void)aFirstTime;
 	SetState(9);
+}
+
+// 0x46e880: a turn begins: the player in turn (the other one when theNextPlayer), the texts, the powers, the pegs that change, a ball in the cannon
+void LogicMgr::BeginTurn(bool theNextPlayer)
+{
+	mBoard->mCharacterMgr->SetYinYangEye(false);
+	if (mUnknownF5)
+	{
+		SetState(5);
+		return;
+	}
+	int aBallsLeft = mNumBalls[0];
+	if (mTwoPlayer && 0 < mNumBalls[0])
+		aBallsLeft = 1;
+	else if (mTwoPlayer)
+		aBallsLeft = mNumBalls[1];
+	if (aBallsLeft < 1)
+	{
+		DoLevelDone();
+		return;
+	}
+	if (mUnknown1E)
+	{
+		if (0 < mUnknown1D4[FLIPPER_ROW][mCurPlayer])
+			FlipperClick(false);
+		mUnknown1E = false;
+	}
+	if (mTwoPlayer)
+	{
+		bool aWasComputer = IsComputerTurn();
+		if (theNextPlayer)
+		{
+			mCurPlayer = 1 - mCurPlayer;
+			if (mNumBalls[mCurPlayer] < 1)
+				mCurPlayer = 1 - mCurPlayer;
+		}
+		if (aWasComputer && !IsComputerTurn())
+			CalcGunAngle(true);
+		mBoard->mInterfaceMgr->SetNumBalls(mNumBalls[mCurPlayer]);
+	}
+	mBoard->mCharacterMgr->SetCurCharacter(mCharacter[mCurPlayer]);
+	DoBeginTurnText();
+	DoBeginTurnTip(-1);
+	if (!mTwoPlayer && -1 < mUnknown320)
+		mUnknown320 = -mUnknown320;
+	else
+		mUnknown320 = 0;
+	mUnknown138 = 0;
+	mUnknown108 = 0;
+	mUnknown10C = 0;
+	mUnknown110 = 0;
+	mUnknown11C = 0;
+	mUnknown0C = 0;
+	mUnknown10 = 0;
+	mUnknown14 = 0;
+	mUnknown50 = 0;
+	mUnknown18 = false;
+	mUnknown19 = false;
+	mUnknown1A = false;
+	mUnknownF8 = false;
+	mUnknown20 = false;
+	mUnknown68 = false;
+	mUnknown69 = false;
+	mUnknownFA = false;
+	mUnknown55 = false;
+	mBoard->mGun->mUnknown1A2 = false;
+	mUnknown330 = BEGIN_TURN_X;
+	mUnknown338 = BEGIN_TURN_X;
+	mUnknown334 = BEGIN_TURN_Y;
+	mUnknown33C = BEGIN_TURN_Y;
+	ActivatePowerups();
+	if (0 < mUnknown12C)
+	{
+		mUnknown12C = 0;
+		MakeScorePeg();
+	}
+	if (mUnknown1C)
+	{
+		mUnknown1C = false;
+		if (0 < mUnknown24)
+		{
+			mUnknown24--;
+			MakePowerupPeg();
+		}
+	}
+	if (0 < mUnknown1D4[ZEN_ROW][mCurPlayer])
+		mUnknown55 = true;
+	CalcCornerDisplay();
+	BeginTurn2();
+}
+
+// 0x44b5b0: the turn's counters are cleared, a ball is in the cannon, the state is 1 (before the shot)
+void LogicMgr::BeginTurn2()
+{
+	if (mUnknownF5)
+	{
+		SetState(0);
+		return;
+	}
+	mBoard->mAIMgr->Clear();
+	SetState(1);
+	if (!mBoard->mDebugMgr->mFeverOn)
+		ActivateFreeBall(true);
+	mUnknown158 = 0;
+	mUnknown154 = 0;
+	mUnknown3C = 0;
+	mUnknown40 = 0;
+	mUnknown38 = 0;
+	mUnknown44 = 0;
+	mUnknown48 = 0;
+	mUnknown4C = 0;
+	mUnknown138 = 1;
+	mUnknown144 = -1;
+	mUnknownF7 = false;
+	mUnknown1D = false;
+	mUnknown1E = false;
+	mUnknownF9 = true;
+	mBoard->Reload();
+	InterfaceMgr* anInterface = mBoard->mInterfaceMgr.get();
+	if (!anInterface->mColumnBalls.empty())
+	{
+		anInterface->mUnknown160 = false;
+		anInterface->mBallColumnSink = 1;
+	}
+	else
+		mUnknown138 = 2;
+	if (0 < mUnknown1D4[FIREBALL_ROW][mCurPlayer])
+		NOT_TRANSLATED("LogicMgr::BeginTurn2, the fireball in the cannon");
+	if (mUnknown54)
+		SetWearHat(true);
+}
+
+// 0x461560: the player in turn's counters of power-ups tick down and each power-up is switched on or off by its counter
+void LogicMgr::ActivatePowerups()
+{
+	int aGiven = mCurPlayer == 0 ? mUnknown1CC : mUnknown1D0;
+	if (aGiven != 0)
+		mUnknown1D4[aGiven][mCurPlayer] = POWERUP_TURNS_GIVEN;
+	for (int aPower = 0; aPower < NUM_POWERUPS; aPower++)
+	{
+		if (0 < mUnknown1D4[aPower][mCurPlayer])
+			mUnknown1D4[aPower][mCurPlayer]--;
+		ActivatePowerup(aPower, mUnknown1D4[aPower][mCurPlayer] != 0);
+	}
+	int& aTripleScore = mCurPlayer == 0 ? mUnknown58 : mUnknown5C;
+	if (aTripleScore != 0)
+	{
+		mUnknown68 = true;
+		aTripleScore--;
+	}
+	int& aMagicHat = mCurPlayer == 0 ? mUnknown60 : mUnknown64;
+	if (aMagicHat != 0)
+	{
+		mUnknown69 = true;
+		aMagicHat--;
+	}
+}
+
+// 0x4612e0
+void LogicMgr::ActivatePowerup(int thePower, bool theActive)
+{
+	switch (thePower)
+	{
+	case 1:
+		if (mState != 2)
+			mBoard->mGun->SetBouncyGuide(theActive);
+		break;
+	case 2:
+		if (!theActive)
+			FlipperClick(false);
+		else
+			NOT_TRANSLATED("LogicMgr::ClearFlipperSpace");
+		for (std::list<SharedPtr<PhysObj> >::iterator anItr = mBoard->mObjects.begin(); anItr != mBoard->mObjects.end(); ++anItr)
+		{
+			PhysObj* anObject = anItr->get();
+			if (anObject->mId == "flipper")
+			{
+				anObject->SetActiveWithGrowAnim(theActive);
+				if (theActive && mState == 2 && anObject->mKind == KIND_POLY)
+					static_cast<Poly*>(anObject)->mCountdown = FLIPPER_COUNTDOWN;
+				if (!anObject->mMover)
+					anObject->mCollidable = false;
+			}
+		}
+		break;
+	case 4:
+		if (!theActive)
+			mBoard->mEffectMgr->EraseAllOfType(EFFECT_TYPE_FEVER_SPARK);
+		else if (mState == 2)
+			ActivateFreeBall(true);
+		break;
+	case 7:
+		if (theActive && mState != 2)
+			mBoard->mCharacterMgr->SetYinYangEye(true);
+		break;
+	case 10:
+		mUnknown148 = theActive ? 100 : 0;
+		break;
+	case 12:
+		if (mState != 2)
+			ActivateFreeBallCover(theActive);
+		break;
+	}
+	if (thePower == 2 || thePower == 4)
+	{
+		if (mUnknown1D4[FLIPPER_ROW][mCurPlayer] != 0)
+			mUnknown134 = FREE_BALL_COVER_TIME_FLIPPERS;
+		else
+			mUnknown134 = mUnknown1D4[4][mCurPlayer] != 0 ? FREE_BALL_COVER_TIME_FEVER : FREE_BALL_COVER_TIME;
+	}
+}
+
+// 0x440580: the pieces named bumperhole (the bumper holes) and freeball (the ball catcher) are switched on or off. The bumper holes
+// grow in when the fever power is on.
+void LogicMgr::ActivateFreeBall(bool theActive)
+{
+	if (mUnknownF6 && theActive)
+		return;
+	bool aGrow = theActive && 0 < mUnknown1D4[FEVER_ROW][mCurPlayer];
+	for (std::list<SharedPtr<PhysObj> >::iterator anItr = mBoard->mObjects.begin(); anItr != mBoard->mObjects.end(); ++anItr)
+	{
+		PhysObj* anObject = anItr->get();
+		if (anObject->mId == "bumperhole")
+		{
+			anObject->SetActiveWithGrowAnim(aGrow);
+			if (anObject->mKind == KIND_POLY && anObject->mSubId == 1 && mState == 2)
+				static_cast<Poly*>(anObject)->mCountdown = BUMPER_HOLE_COUNTDOWN;
+			if (anObject->mSubId == 1)
+				anObject->mCollidable = false;
+			else
+				anObject->mVisible = false;
+		}
+		else if (anObject->mId == "freeball")
+		{
+			anObject->SetActive(theActive);
+			if (anObject->mKind != KIND_HOLE)
+			{
+				if (!anObject->mForeground)
+					anObject->mVisible = false;
+				else
+					anObject->mCollidable = false;
+			}
+		}
+	}
+}
+
+// 0x469f30: a turn with fewer than 4 balls left (or of two players) says how many are left
+void LogicMgr::DoBeginTurnText()
+{
+	if (mTwoPlayer || mNumBalls[mCurPlayer] < 4)
+		NOT_TRANSLATED("LogicMgr::DoBeginTurnText (FloatingText)");
+}
+
+// 0x46a370: the tips of a new player: which one comes, by what the player did and the level
+void LogicMgr::DoBeginTurnTip(int theTip)
+{
+	PlayerInfo* aPlayer = mBoard->mApp->mCurrentPlayer;
+	if (aPlayer == nullptr || mTwoPlayer || IsComputerTurn())
+		return;
+	int aMaxLevel = mBoard->mApp->GetMaxLevel();
+	if (theTip < 0)
+	{
+		if (mUnknown19 && aPlayer->SetTip(0))
+			theTip = 0;
+		else if (mUnknown1A && aPlayer->SetTip(1))
+			theTip = 1;
+		else if (mUnknown1B && aPlayer->SetTip(2))
+			theTip = 2;
+		else if (mNumBalls[0] == 4 && aPlayer->SetTip(3))
+			theTip = 3;
+		else if (mBoard->mGameMode == GAME_MODE_ADVENTURE && aMaxLevel == 0 && (int)mGoalPegs.size() <= TIP_FEW_GOAL_PEGS &&
+				 aPlayer->SetTip(4))
+			theTip = 4;
+		else if (2 <= mUnknown1D4[1][0] && aPlayer->SetTip(5))
+			theTip = 5;
+		else if (aMaxLevel <= 9 && ((mUnknown1B && aPlayer->SetTip(7)) || (mUnknownAA && aPlayer->SetTip(8))))
+			theTip = 8;
+	}
+	if (theTip >= 0)
+		NOT_TRANSLATED("LogicMgr::DoBeginTurnTip, the tip's text (FloatingText)");
+}
+
+// 0x43d4d0
+void LogicMgr::SetWearHat(bool theWear)
+{
+	mUnknown54 = theWear;
+	if (mBoard->mGun->mBall)
+		NOT_TRANSLATED("Ball::SetHat");
+}
+
+// 0x45ea70: the flippers' paddles go up or down; with none there is nothing
+void LogicMgr::FlipperClick(bool theDown)
+{
+	for (std::list<SharedPtr<PhysObj> >::iterator anItr = mBoard->mObjects.begin(); anItr != mBoard->mObjects.end(); ++anItr)
+	{
+		PhysObj* anObject = anItr->get();
+		if (anObject->mId == "flipper" && anObject->mMover && 0 < anObject->mMover->mPeriod)
+		{
+			// a flipper at the start of its cycle is not let go (down) and one that is let go moves on (the mover's own functions 0x479980, 0x4799a0)
+			if (!theDown && anObject->mMoverTime % anObject->mMover->mPeriod < 1)
+				continue;
+			NOT_TRANSLATED("LogicMgr::FlipperClick moving a flipper");
+		}
+	}
 }
