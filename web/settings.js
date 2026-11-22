@@ -74,8 +74,12 @@ var ByopopSettings = (function () {
     skipLogos: { values: SWITCH, def: "off" },       // on: the games skip their start-up logos (byopop_site_skiplogos, before the start)
     skipTutorials: { values: SWITCH, def: "off" },   // on: the game's own tutorial switch is turned off at each start (web/shell.html, byopop_site_tutorials)
     // the game's update rate, times this (web/controls.js): any value the framework takes, 0.01 to 16 (the user, 2026-11-10: "Allow
-    // game speed to be set to any arbitrary value instead of the limited options in the dropdown")
-    speed: { values: ["0.5", "0.75", "1", "1.25", "1.5", "2"], number: [0.01, 16], def: "1" }
+    // game speed to be set to any arbitrary value instead of the limited options in the dropdown"), and 0, unlimited (Max);
+    // the listed ones are the native speed keys' steps (SexyAppBase::SPEED_STEPS)
+    speed: { values: ["0.25", "0.5", "0.75", "1", "1.5", "2", "3", "4", "8", "16", "0"], number: [0.01, 16], def: "1" },
+    // on: F6, F7 and F8 in the game step the speed as the native speed keys do (web/controls.js; the user, 2026-11-17: "Add
+    // optional hotkeys for game speed (probably using function keys)")
+    speedKeys: { values: SWITCH, def: "off" }
   };
 
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }
@@ -220,6 +224,9 @@ var ByopopSettings = (function () {
   // The games that read "3D acceleration" (Byopop::SiteAccel3D, framework/WebSettings.h): a game page of another game does
   // not show it. Perhaps later, once their passes settle their 3D modes: Bookworm Adventures 1 and 2, Rocket Mania.
   var ACCEL3D_GAMES = ["bejeweledtwist", "bookwormadv2"];
+  // The games whose own host runs their loop, with no SexyAppBase for the speed to reach (byopop_set_speed): on their pages the
+  // speed settings are greyed, with a line that says so
+  var OWN_SPEED_GAMES = ["bonnies", "ningpo"];
   // What this browser gives the games for 3D, shown under that setting: "hardware", "software" or "none". Tested as the
   // games test it (Twist's Is3DAccelerationSupported asks a new canvas for "webgl2"), then once more with
   // failIfMajorPerformanceCaveat, which a browser refuses when its WebGL2 is drawn without the graphics card (Chrome's
@@ -283,10 +290,11 @@ var ByopopSettings = (function () {
     // the games with a bot whose files are here (none on the live site yet), by the games' titles, read again as the theme's are
     { name: "saver", label: T("settings.saver.label"), live: true,
       get options() {
-        var S2 = typeof ByopopSaver !== "undefined" ? ByopopSaver : null, games = window.ByopopGames || [];
-        return [["none", T("settings.saver.none")]].concat(S2 ? S2.offered().map(function (id) {
+        var S2 = typeof ByopopSaver !== "undefined" ? ByopopSaver : null, games = window.ByopopGames || [], o = S2 ? S2.offered() : [];
+        // (Random) once there are two games to draw from
+        return [["none", T("settings.saver.none")]].concat(o.length > 1 ? [["random", T("settings.saver.random")]] : [], o.map(function (id) {
           var g = games.filter(function (x) { return x.id === id; })[0]; return [id, g ? g.title : id];
-        }) : []);
+        }));
       } },
     { name: "saverWait", label: T("settings.saverwait.label"),
       options: (typeof ByopopSaver !== "undefined" ? ByopopSaver.waits : ["5"]).map(function (m) { return [m, T("settings.saverwait.minutes", { n: m })]; }) },
@@ -311,8 +319,10 @@ var ByopopSettings = (function () {
     { name: "fullscreen", label: T("settings.fullscreen.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.fullscreen.on")], ["off", T("settings.fullscreen.off")]], start: true,
       hint: T("settings.fullscreen.hint") },
     { section: "game" },
-    { name: "speed", label: T("settings.speed.label"), options: [["0.5", "½×"], ["0.75", "¾×"], ["1", T("settings.speed.normal")],
-      ["1.25", "1¼×"], ["1.5", "1½×"], ["2", "2×"]], hint: T("settings.speed.hint") },
+    { name: "speed", label: T("settings.speed.label"), options: [["0.25", "¼×"], ["0.5", "½×"], ["0.75", "¾×"], ["1", T("settings.speed.normal")],
+      ["1.5", "1½×"], ["2", "2×"], ["3", "3×"], ["4", "4×"], ["8", "8×"], ["16", "16×"], ["0", T("settings.speed.max")]],
+      fixed: OWN_SPEED_GAMES, hint: T("settings.speed.hint") },
+    { name: "speedKeys", label: T("settings.speedkeys.label"), fixed: OWN_SPEED_GAMES, hint: T("settings.speedkeys.hint") },
     { name: "accel3d", label: T("settings.accel3d.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.accel3d.on")], ["off", T("settings.accel3d.off")]], start: true,
       games: ACCEL3D_GAMES, hint: T("settings.accel3d.hint"), help: T("settings.accel3d.help") },
     { name: "pixelPerfect", label: T("settings.pixelperfect.label"),
@@ -673,7 +683,8 @@ var ByopopSettings = (function () {
         c.custom.textContent = listed ? "" : now + "×";
         c.custom.hidden = c.custom.disabled = listed;
         if (!listed && !(scope === "game" && own === null)) c.select.value = now;
-        if (document.activeElement !== c.number) c.number.value = now;
+        // Max (0, unlimited) is no number the field takes: it stands empty
+        if (document.activeElement !== c.number) c.number.value = now === "0" ? "" : now;
       }
       if (c.preview) c.preview();
       // in the all-games view, say that this game has a value of its own
@@ -900,6 +911,12 @@ var ByopopSettings = (function () {
       }
       if (f.start && opts.live) hint.appendChild(make("span", "bps-start", T("settings.applies_next")));
       if (gameId) { c.own = make("span", "bps-own"); hint.appendChild(c.own); }
+      // a game whose own host runs its loop (f.fixed): the setting greyed on its page, and under the speed a line that says why
+      if (f.fixed && gameId && f.fixed.indexOf(gameId) >= 0) {
+        [c.select, c.checkbox, c.number].forEach(function (e) { if (e) e.disabled = true; });
+        row.setAttribute("data-fixed", "1");
+        if (f.name === "speed") hint.insertBefore(make("span", "bps-fixed", T("settings.speed.fixed")), hint.firstChild);
+      }
       controls[f.name] = c;
       [c.select, c.checkbox].forEach(function (e) { if (e) e.setAttribute("aria-describedby", hint.id + (pop ? " " + pop.id : "")); });
       c.select.addEventListener("change", function () {
@@ -1004,7 +1021,7 @@ var ByopopSettings = (function () {
     return ok;
   }
   return { KEY: KEY, names: Object.keys(DEFS), get: get, set: set, all: all, override: override, overrides: overrides, render: render,
-           favourites: favourites, isFavourite: isFavourite, setFavourite: setFavourite };
+           favourites: favourites, isFavourite: isFavourite, setFavourite: setFavourite, ownSpeed: OWN_SPEED_GAMES };
 })();
 
 // Which games have their files loaded in this browser, as a sign that the player owns them (docs/WEB_PLAYER.md, "The

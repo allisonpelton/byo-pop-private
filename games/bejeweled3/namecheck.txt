@@ -1,0 +1,9 @@
+# tools/namecheck.py's exceptions and settings for Bejeweled 3 (docs/CODE_STANDARDS.md). One rule a line, each with its reason.
+
+engine prime -- PopCap's post-2008 framework layer, translated once for Bejeweled 3 and Zuma's Revenge (engines/prime) and part of the game's code
+folder tools/curvetest -- the port's headless test of the curves (b3_curvetest)
+folder tools/pieffecttest -- the port's headless test of the particle effects (b3_pieffecttest)
+folder tools/restest -- the port's headless test of the resource manager and the generated resource code (b3_restest)
+folder tools/pamtest -- the port's headless test of the animations (b3_pamtest)
+short-ok engines/prime/BSpline.cpp t -- a curve's parameter, t in the spline's own notation beside x(t) and y(t)
+short-ok engines/prime/CurvedVal.cpp t -- a curve's parameter, t in the curve's own notation as it runs from 0 to 1
