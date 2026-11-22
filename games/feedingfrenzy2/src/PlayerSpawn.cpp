@@ -14,6 +14,8 @@ namespace
 
 // The player whose fish is the alien (0x558158 (feedingfrenzy2))
 const char* const ALIEN_USER = "alienUser";
+// The time the frenzy holds after a bite (0x566988 (feedingfrenzy2))
+const float FRENZY_HOLD_SECONDS = 1.1f;
 
 } // namespace
 
@@ -84,8 +86,7 @@ void PlayerSpawn::start()
 		// The cold path 0x4f27be (feedingfrenzy2): not yet translated
 		return;
 	}
-	// The fish's slot 0x124 (0x49de90 (feedingfrenzy2)) given 1.1 (0x566988 (feedingfrenzy2)): its +0x298, read by
-	// code not yet translated
+	mFish->setFrenzyHoldTime(FRENZY_HOLD_SECONDS);
 	mFish->setFoodValue(0);
 	// The fish's slot 0x70 (0x496b40 (feedingfrenzy2)): the rank, and its list at +0x2b8 (not yet translated)
 	mFish->setRank(mPhaseIndex);

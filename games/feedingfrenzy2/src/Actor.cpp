@@ -2,6 +2,7 @@
 
 #include "Container.h"
 #include "Draws.h"
+#include "PlayerFish.h"
 #include "Random.h"
 #include "Stage.h"
 #include "VectorMath.h"
@@ -25,6 +26,7 @@ const float SIZE_PULSE_SECONDS = 0.25f;          // 0x5668b0 (feedingfrenzy2)
 const float SWIM_RATE_SCALE = 0.0025f;           // 0x566884 (feedingfrenzy2)
 const float SWIM_RATE_BASE = 0.05f;              // 0x566880 (feedingfrenzy2)
 const float DEFAULT_CHASE_FREQUENCY = 0.5f;      // 0x54ddb0 (feedingfrenzy2)
+const int SCHOOL_BONUS_POINTS = 500;             // 0x4f0ed6 (feedingfrenzy2): the last of a school eaten
 const float DEFAULT_FLYBY_FREQUENCY = 0.3f;      // 0x54ddac (feedingfrenzy2)
 const float NOT_SEEN = -1.0f;                    // 0x566850 (feedingfrenzy2): the distance to what is out of sight
 const double ZERO = 0.0;                         // 0x566828 (feedingfrenzy2)
@@ -549,6 +551,17 @@ bool AIFish::canReact(FishReaction* theReaction, Actor* theOther)
 void AIFish::joinSchool()
 {
 	changeState(new SchoolingAI(this));
+}
+
+void AIFish::eatenByPlayer(PlayerFish* thePlayer)
+{
+	if (mSchool && mSchool->loseOne() && getFoodValue() > 0)
+	{
+		// The HUD's text schoolBonus (swarmBonus in the air) at the fish, and the theme's sound schoolBonus (0x4f0e20
+		// to 0x4f0ed3 (feedingfrenzy2)): not yet translated, as the HUD and the sounds are not
+		thePlayer->addScore(SCHOOL_BONUS_POINTS);
+	}
+	Actor::eatenByPlayer(thePlayer);
 }
 
 void AIFish::avoid(Actor* theOther)

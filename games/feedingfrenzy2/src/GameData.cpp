@@ -1,5 +1,10 @@
 #include "GameData.h"
 
+#include "Geometry.h"
+#include "UserData.h"
+
+using engine::minOf;
+
 void GameData::newGame(int theMode)
 {
 	mMode = theMode;
@@ -10,6 +15,19 @@ void GameData::newGame(int theMode)
 	mTimeRollover = 0;
 	mFood = 0;
 	findNextLifeScore();
+}
+
+bool GameData::addScore(int thePoints)
+{
+	mScore += thePoints;
+	if (mScore < 0)
+		mScore = 0;
+	if (!(mScore > mNextLifeScore) || mMode == GAME_MODE_TIMED)
+		return false;
+	mLives++;
+	mNextLifeScore += mLifeScoreStep;
+	mLifeScoreStep = minOf(mLifeScoreStep + EXTRA_LIFE_SCORE_STEP, EXTRA_LIFE_SCORE_MOST);
+	return true;
 }
 
 void GameData::findNextLifeScore()

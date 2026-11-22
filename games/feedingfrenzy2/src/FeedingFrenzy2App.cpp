@@ -4,6 +4,10 @@
 #include "DXDrawContext.h"
 #include "EngineImpl.h"
 #include "FeedingFrenzyTwo.h"
+#include "GameData.h"
+#include "PlayerFish.h"
+#include "PlayerSpawn.h"
+#include "Stage.h"
 #include "Graphics.h"
 #include "MemoryImage.h"
 #include "SimpleSoundDX.h"
@@ -286,6 +290,16 @@ void FeedingFrenzy2App::Init()
 
 bool FeedingFrenzy2App::HandleScriptCommand(const ScriptCommand& theCommand)
 {
+	if (theCommand.mCommand == "state")
+	{
+		logState();
+		return true;
+	}
+	if (theCommand.mCommand == "set")
+	{
+		setState(theCommand.mArgs);
+		return true;
+	}
 	if (theCommand.mCommand != "unlock")
 		return false;
 	std::string aLine = theCommand.mCommand + " " + theCommand.mArgs;
@@ -299,6 +313,65 @@ bool FeedingFrenzy2App::HandleScriptCommand(const ScriptCommand& theCommand)
 		SDL_Log("OK %s", aLine.c_str());
 	}
 	return true;
+}
+
+void FeedingFrenzy2App::logState()
+{
+	if (mGame == nullptr || mGame->mGameData == nullptr)
+	{
+		SDL_Log("ERROR state: no game");
+		return;
+	}
+	GameData* aData = mGame->mGameData.get();
+	std::string aPlayer = "null";
+	int aPhase = -1;
+	int aMultiplier = 0;
+	PlayerFish* aFish = mGame->mStage ? mGame->mStage->getFirstPlayer() : nullptr;
+	if (aFish != nullptr)
+	{
+		char aPlace[64];
+		snprintf(aPlace, sizeof(aPlace), "[%.1f,%.1f]", aFish->getPosition().x, aFish->getPosition().y);
+		aPlayer = aPlace;
+		aPhase = aFish->getSpawn() ? aFish->getSpawn()->getPhaseIndex() : -1;
+		aMultiplier = aFish->getFrenzyMultiplier();
+	}
+	SDL_Log("STATE {\"mode\":%d,\"level\":%d,\"score\":%d,\"lives\":%d,\"food\":%d,\"phase\":%d,"
+	        "\"frenzy\":%d,\"player\":%s}",
+	        aData->getMode(), aData->getStage(), aData->getScore(), aData->getLives(), aData->getFood(), aPhase,
+	        aMultiplier, aPlayer.c_str());
+}
+
+void FeedingFrenzy2App::setState(const std::string& theArgs)
+{
+	char aName[32] = {};
+	int aValue = 0;
+	if (sscanf(theArgs.c_str(), "%31s %d", aName, &aValue) != 2)
+	{
+		SDL_Log("ERROR set %s: set <name> <value>", theArgs.c_str());
+		return;
+	}
+	if (mGame == nullptr || mGame->mGameData == nullptr)
+	{
+		SDL_Log("ERROR set %s: no game", theArgs.c_str());
+		return;
+	}
+	GameData* aData = mGame->mGameData.get();
+	std::string aKey = aName;
+	if (aKey == "score")
+	{
+		aData->setScore(aValue);
+		aData->findNextLifeScore();
+	}
+	else if (aKey == "lives")
+		aData->setLives(aValue);
+	else if (aKey == "food")
+		aData->setFood(aValue);
+	else
+	{
+		SDL_Log("ERROR set %s: only score, lives and food", theArgs.c_str());
+		return;
+	}
+	SDL_Log("OK set %s", theArgs.c_str());
 }
 
 void FeedingFrenzy2App::GotFocus()

@@ -365,6 +365,8 @@ public:
 	float getFleeFactor() const { return mFleeFactor; }
 	bool isFleeing() const { return mFleeing; }
 	uint64_t getLastFrame() const { return mLastFrame; }
+	// 0x4195d5 (feedingfrenzy2): one of the fish that joined eaten by the player; true when it was the last
+	bool loseOne() { return --mCount == 0; }
 
 private:
 	// 0x437f80 (feedingfrenzy2): the centre and the mean velocity of the fish

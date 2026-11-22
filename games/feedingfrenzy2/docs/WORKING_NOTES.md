@@ -414,10 +414,36 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
     it in the stage's players until the play's ends, not yet translated, take it out); the phase visual's tint, the
     eating, the dash, the suck, the tilt, the effects and the sounds are not yet translated, each marked where it
     would run.
+- The player's eating (PlayerFish.h: the eater part's eat 0x47a250 and swallow 0x42a6d0, the frenzy's add 0x47c550
+  and its timer in 0x4379f0, the points kept at +0x1fc and added by the update 0x44c3b0; PlayerEatingState, from
+  PlayState's eat; the prey's slot 0x90, 0x53c96f, and the AI fish's 0x419580 with the school's bonus; GameData's
+  addScore 0x4106f0 through the stage's 0x410710). When the player's mouth meets a fish it may eat, the fish is drawn
+  in and the player's visual plays its eat; at the chomp each fish swallowed gives its food to the game data's +0x40
+  (which grows the player through its phases) and its points times the frenzy's multiplier, the bonus's scale and,
+  for a fish eaten in the air, the count of fish eaten in the air since the player was last in the water. Points go
+  to the score at the next update; past the next extra life's score a life is given (not in the timed mode), the
+  step to the next growing by 5000 up to 25000. Each bite adds its fish to the frenzy's count (at most 35, the
+  multiplier one more each seven); the count drops by one when the frenzy's time runs out (the hold 1.1 seconds, half
+  again at each seventh; after a drop the hold times 1.4 at a seventh, a quarter above seven, a third below). The last
+  fish of a school eaten by the player gives 500 points. The swallow makes the original's draws in order: two for the
+  chomp text's place, one for the chance a small bite splats, and the splat image's when it does. SpawnState's enter
+  now also puts the visual in its swim state (0x4262e0 with the visual's +0x488), which the first pass mislabelled
+  and left out; the player's eat crashed without it.
+  - New test commands: `state` prints `STATE {"mode","level","score","lives","food","phase","frenzy","player"}`
+    (`level` the stage's place in the manifest, `phase` the player's phase, `frenzy` its multiplier, `player` its
+    place or null), and `set score|lives|food <n>` (`set score` finds the next extra life's score again).
+  - Checked under rundesk with posted sweeps across stage 1: the player eats the minnows (10 points and 10 food
+    each), grows at 225 food (stage 1's first goal) to the next phase's size, and a score set to 49990 gives one
+    extra life at 50000; exit 0.
+  - Not yet: the eat's and bonus's effects, the chomp's text and splat, the points' bubble texts, the frenzy's HUD,
+    texts and sounds, the school bonus's text and sound, the extra life's text and sound, the player eaten (its
+    slot 0x8c, 0x48f270: the fish's for now, so a predator's bite ends its state and its spawn takes it out), the
+    poison (the eater's 0x18), the suck and the frenzy bonus's timer (+0x1ec). The effects, texts and sounds left out
+    may make draws of their own, so the draws' order is not yet the original's.
 
 ## Next
 
-- The eating and the growth's effects, then the HUD (GameHud, +0x2e0); the stage's ends (StageCompleteState, the
+- The HUD (GameHud, +0x2e0); the stage's ends (StageCompleteState, the
   continue offer and the game over); the restore-game popup's actions; the quit popup's actions over the intro and
   the pause's End Game; the compositeGroup element (the intro's background group, now skipped).
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's

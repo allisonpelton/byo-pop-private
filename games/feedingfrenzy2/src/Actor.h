@@ -21,6 +21,7 @@
 #include "sigslot.h"
 
 class FishVisual;
+class PlayerFish;
 class Stage;
 class Visual;
 
@@ -113,6 +114,11 @@ public:
 	const engine::RectF& getBounds() const { return mBounds; }
 	// 0xa4 (0x502bd9 (feedingfrenzy2))
 	bool isUnderwater() const { return mUnderwater; }
+	// 0x80 and 0x84 (0x411210 and 0x411200 (feedingfrenzy2)): the food it is to its eater, and the points it is now
+	int getFoodValue() const { return mFoodValue; }
+	int getFoodValueNow() const { return mFoodValueNow; }
+	// 0x90 (0x53c96f (feedingfrenzy2)): swallowed by the player: its spawn told it died
+	virtual void eatenByPlayer(PlayerFish* thePlayer) { mDied.emit(); }
 	// 0xe0 (0x502c50 (feedingfrenzy2)): the actor is of the class a <react> names, to the viewer (a fish's,
 	// 0x43b230 (feedingfrenzy2))
 	virtual bool isOfClass(const std::string& theClass, Actor* theViewer) { return false; }
@@ -252,7 +258,7 @@ public:
 	// 0x10 (0x47a2b0 (feedingfrenzy2)): the prey taken, and the fish's state told of the eat
 	virtual void eat(Fish* thePrey, float theSeconds);
 	// 0x14 (0x477660 (feedingfrenzy2)): each prey taken swallowed, and the list emptied
-	void swallow();
+	virtual void swallow();
 	// 0x24 (0x43ded0 (feedingfrenzy2)): the mouth's shape where it is
 	Shape* getMouthShape() { return getTransformedShape(2); }
 	// 0x28 (0x43dc00 (feedingfrenzy2)): the visual data's mouth laid on the shapes' transform
@@ -315,6 +321,9 @@ public:
 	// 0x130 (0x473bd0 (feedingfrenzy2)): the fish may react so: run from or avoid an actor that eats it, chase one it
 	// eats, and any other reaction at all
 	bool canReact(FishReaction* theReaction, Actor* theOther);
+	// 0x90 (0x419580 (feedingfrenzy2)): swallowed by the player: the last of its school to go gives the player the
+	// school's bonus, then the actor's
+	void eatenByPlayer(PlayerFish* thePlayer) override;
 	// 0x13c (0x48f710 (feedingfrenzy2)): the fish turns aside from the other
 	void avoid(Actor* theOther);
 	// 0x138 (0x41ab30 (feedingfrenzy2)): the fish swims with its school (SchoolingAI)

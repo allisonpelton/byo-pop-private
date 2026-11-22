@@ -28,12 +28,19 @@ public:
 	void newGame(int theMode);
 	// 0x49c090 (feedingfrenzy2): the score of the next extra life, the first past the score, and the step after it
 	void findNextLifeScore();
+	// 0x4106f0 (feedingfrenzy2): the points added to the score (held at 0 when it falls below); past the next extra
+	// life's score, outside the timed mode, a life more and the next one's score a step on, the step growing by 5000
+	// up to 25000. True when a life was given
+	bool addScore(int thePoints);
 	// 0x49ab70 (feedingfrenzy2): the manifest's entry of the stage, null before the first
 	const StageManifest::Stage* getStageEntry() const;
 
 	int getMode() const { return mMode; }
 	int getLives() const { return mLives; }
 	int getScore() const { return mScore; }
+	// The test command set's (docs/TEST_COMMANDS.md)
+	void setScore(int theScore) { mScore = theScore; }
+	void setLives(int theLives) { mLives = theLives; }
 	int getContinues() const { return mContinues; }
 	int getStage() const { return mStage; }
 	void setStage(int theStage) { mStage = theStage; }
@@ -46,6 +53,7 @@ public:
 	void setSpawnPhase(int theSpawnPhase) { mSpawnPhase = theSpawnPhase; }
 	int getFood() const { return mFood; }
 	void setFood(int theFood) { mFood = theFood; }
+	void addFood(int theFood) { mFood += theFood; }
 
 private:
 	int mMode;                    // +0x0c: GameMode

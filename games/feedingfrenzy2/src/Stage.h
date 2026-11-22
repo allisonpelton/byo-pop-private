@@ -164,6 +164,11 @@ public:
 	void addPlayerSpawn(PlayerSpawn* theSpawn);
 	// 0x4972f0 and 0x497280 (feedingfrenzy2): a push, and a remove of every match
 	void addPlayer(PlayerFish* thePlayer);
+	// 0x410710 (feedingfrenzy2): the player's points added to the score; an extra life told by the HUD's text
+	// extraLife at the player and the theme's sound bonus1Up (not yet translated, as the HUD and the sounds are not)
+	void addPlayerScore(int thePoints, PlayerFish* thePlayer);
+	// The first player in the stage, null when none is
+	PlayerFish* getFirstPlayer() { return mPlayers.empty() ? nullptr : mPlayers.front().get(); }
 	void removePlayer(PlayerFish* thePlayer);
 
 	// 0x44c6f0 (feedingfrenzy2): the play area under the water, or between the sky's ceiling and the water

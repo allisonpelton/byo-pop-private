@@ -239,6 +239,14 @@ void Stage::addPlayer(PlayerFish* thePlayer)
 	mPlayers.push_back(thePlayer);
 }
 
+void Stage::addPlayerScore(int thePoints, PlayerFish* thePlayer)
+{
+	if (mGameData->addScore(thePoints))
+	{
+		// The HUD's text extraLife at the player, and the theme's sound bonus1Up: not yet translated
+	}
+}
+
 void Stage::removePlayer(PlayerFish* thePlayer)
 {
 	for (size_t i = mPlayers.size(); i > 0; i--)

@@ -1,7 +1,10 @@
 #include "PlayerFish.h"
 
+#include "Draws.h"
 #include "Engine.h"
+#include "GameData.h"
 #include "Mouse.h"
+#include "Random.h"
 #include "Stage.h"
 #include "VectorMath.h"
 #include "Visual.h"
@@ -28,6 +31,19 @@ const float AIR_STEER_SHARE = 0.2f;         // 0x5669c8 (feedingfrenzy2), likewi
 const double RISE_AT_SURFACE = 0.30000001192092896;  // 0x5668f0 (feedingfrenzy2): a rise slowed under the surface
 const double ENTRY_FALL_SHARE = 0.5;        // 0x566760 (feedingfrenzy2): the fall kept as the fish meets the water
 const double CENTRE = 0.5;                  // 0x566760 (feedingfrenzy2)
+const int FRENZY_MOST = 35;                 // 0x47c56d (feedingfrenzy2): the frenzy's count at most
+const int FRENZY_STEP = 7;                  // 0x47c58a (feedingfrenzy2): the fish of each step of the multiplier
+const double FRENZY_STEP_HOLD = 1.5;        // 0x566b68 (feedingfrenzy2): the hold's scale as a step is reached
+const double FRENZY_STEP_DROP = 1.399999976158142;  // 0x566b08 (feedingfrenzy2): the time's scale as the count drops
+                                            // to a step
+const double FRENZY_HIGH_DROP = 0.25;       // 0x566a80 (feedingfrenzy2): likewise above the first step
+const double FRENZY_LOW_DROP = 3.0;         // 0x566868 (feedingfrenzy2): the divisor of the time within the first
+const float CHOMP_SPREAD = 15.0f;           // 0x566858 and 0x566ce0 (feedingfrenzy2): the chomp's text's draws, either
+                                            // way
+const float SMALL_CHOMP_CHANCE = 0.5f;      // 0x54ddb0 (feedingfrenzy2): below it a bite of rank 0 splats
+const float MEDIUM_CHOMP_CHANCE = 0.65f;    // 0x566d20 (feedingfrenzy2): likewise of rank 1
+const int SPLATTING_BITE = 2;               // more prey than this always splats
+const int CHOMP_SPLAT_VARIANTS = 3;         // 0x41cdc7 (feedingfrenzy2): the splat's images of each size
 
 // The options' mouse sensitivity at each of their MouseSpeed's steps (0x54dd70 (feedingfrenzy2))
 const float MOUSE_SENSITIVITIES[4] = {0.8f, 1.0f, 1.15f, 1.3f};
@@ -51,8 +67,9 @@ float getMouseSensitivity()
 
 PlayerFish::PlayerFish()
     : mSpawn(nullptr), mMotion(0, 0), mLastMotion(0, 0), mMouse(nullptr), mWaterShare(1.0f), mInWater(false),
-      mSucking(false), mCanSuck(false), mDashTime(0.0f), mPush(0.0f, 0.0f), mSpeedScale(NORMAL_SPEED_SCALE),
-      mJumpHeight(0.0f), mJumpPeakShown(false), mKeptBetweenSides(false)
+      mSucking(false), mCanSuck(false), mDashTime(0.0f), mPush(0.0f, 0.0f), mBiggestRankEaten(0), mBonusEat(false),
+      mPointsScale(1), mSpeedScale(NORMAL_SPEED_SCALE), mFrenzyCount(0), mFrenzyTime(0.0f), mFrenzyHoldTime(0.0f),
+      mFrenzyMultiplier(1), mJumpHeight(0.0f), mJumpPeakShown(false), mAirChain(0), mKeptBetweenSides(false)
 {
 }
 
@@ -79,11 +96,19 @@ void PlayerFish::addToStage(Stage* theStage, int theLocation)
 	float aY = (float)(((double)anArea.top + anArea.bottom) * CENTRE);
 	setPosition(anX, aY);
 	mSpeedScale = NORMAL_SPEED_SCALE;
-	// +0x22c, +0x230 and +0x234 (0, false and 1) and the bonus timers (+0x238 and +0x268, 0x406fb0
-	// (feedingfrenzy2)) reset: read by code not yet translated
+	mBiggestRankEaten = 0;
+	mBonusEat = false;
+	mPointsScale = 1;
+	// The bonus timers (+0x238 and +0x268, 0x406fb0 (feedingfrenzy2)) reset: read by code not yet translated
 	mDashTime = 0.0f;
-	// +0x1e0 and +0x1e4 at 0, +0x290 at 0, +0x29c at 1 and +0x294 from +0x298, the HUD told (0x4605d0
-	// (feedingfrenzy2)), +0x20c at 1, and +0x2a8, +0x2ac, +0x1a0 and +0x2b4 at 0: read by code not yet translated
+	// +0x1e0 and +0x1e4 at 0: read by code not yet translated
+	mFrenzyCount = 0;
+	mFrenzyMultiplier = 1;
+	mFrenzyTime = mFrenzyHoldTime;
+	// The HUD's frenzy (0x4605d0 (feedingfrenzy2)) and +0x20c at 1: not yet translated, as the HUD and the suck are
+	// not
+	mAirChain = 0;
+	// +0x2ac, +0x1a0 and +0x2b4 at 0: read by code not yet translated
 	mKeptBetweenSides = true;
 	// The name at +0x30c cleared (0x4574c0 (feedingfrenzy2)): read by code not yet translated
 	changeState(new SpawnState(this));
@@ -149,11 +174,127 @@ void PlayerFish::update(UpdateContext& theContext)
 			mHoldTime = 0.0f;
 	}
 	// The swallowed list (0x455950 (feedingfrenzy2)), the bonuses' timers (+0x238 and +0x268, the bonus's speed's end
-	// putting the speed's scale back with the sound bonusSpeedEnd), +0x20c brought up towards 1 and the suck begun
-	// while the right button is held (0x472110 and 0x494c00 (feedingfrenzy2)) when the state allows it, the meals
-	// scored (+0x1fc), the tilt (0x44ebc0 (feedingfrenzy2)) and the puke (+0x110): not yet translated, as the eating,
-	// the bonuses and the tilt are not
+	// putting the speed's scale back with the sound bonusSpeedEnd), and +0x20c brought up towards 1 and the suck
+	// begun while the right button is held (0x472110 and 0x494c00 (feedingfrenzy2)) when the state allows it: not yet
+	// translated, as the swallowed list, the bonuses and the suck are not
+	// The points scored, oldest first, each added to the score (and shown at the mouth by its multiplier, 0x427250
+	// (feedingfrenzy2), not yet translated, as the HUD is not)
+	while (!mScored.empty())
+	{
+		ScoredPoints aScored = mScored.front();
+		mScored.erase(mScored.begin());
+		mStage->addPlayerScore(aScored.mPoints, this);
+	}
+	// The tilt (0x44ebc0 (feedingfrenzy2)) and the puke (+0x110): not yet translated
 	mStateMgr.update(&theContext);
+}
+
+void PlayerFish::eat(Fish* thePrey, float theSeconds)
+{
+	Fish::eat(thePrey, theSeconds);
+	mBiggestRankEaten = maxOf(mBiggestRankEaten, thePrey->getRank());
+	// The theme's sound fishEaten: not yet translated, as the sounds are not
+}
+
+void PlayerFish::swallow()
+{
+	if (!mPrey.empty())
+	{
+		// The eat effect (+0x214) at the mouth started, and played in the water; with the bonus's bite the bonus's
+		// effect (+0x218) too: not yet translated, as the effects are not
+		// Two draws place the chomp's text about the mouth (the text not yet translated), and a third is the chance
+		// a small bite splats
+		randomFloat(-CHOMP_SPREAD, CHOMP_SPREAD);
+		randomFloat(-CHOMP_SPREAD, CHOMP_SPREAD);
+		float aChance = (float)randomFloat(0.0f, 1.0f);
+		int aBite = (int)mPrey.size();
+		addFrenzy(aBite, 0.0f);
+		bool isSplat;
+		if (mBiggestRankEaten == 0)
+			isSplat = aBite > SPLATTING_BITE || aChance < SMALL_CHOMP_CHANCE;
+		else if (mBiggestRankEaten == 1)
+			isSplat = aBite > SPLATTING_BITE || aChance < MEDIUM_CHOMP_CHANCE;
+		else
+			isSplat = true;
+		if (isSplat)
+		{
+			// 0x41cdb0 (feedingfrenzy2): the splat's image drawn, then shown by the HUD at the text's place (the
+			// chompSplatMini, chompSplat or larger by the rank): only the draw, as the HUD is not yet translated
+			drawWhole(1, CHOMP_SPLAT_VARIANTS);
+		}
+		// The theme's sound fishChomp1 to fishChomp3 by the rank: not yet translated, as the sounds are not
+	}
+	for (const Ref<Fish>& aPrey : mPrey)
+	{
+		int aFood = aPrey->getFoodValue();
+		int aPoints = aPrey->getFoodValueNow() * mFrenzyMultiplier * mPointsScale;
+		if (!aPrey->isUnderwater())
+		{
+			mAirChain++;
+			aPoints *= mAirChain;
+		}
+		addScore(aPoints);
+		mStage->getGameData()->addFood(aFood);
+		aPrey->eatenByPlayer(this);
+	}
+	if (mInWater)
+		mAirChain = 0;
+	mBiggestRankEaten = 0;
+	mBonusEat = false;
+	Fish::swallow();
+}
+
+void PlayerFish::addScore(int thePoints)
+{
+	if (thePoints > 0)
+		mScored.push_back(ScoredPoints(thePoints, mFrenzyMultiplier));
+}
+
+void PlayerFish::addFrenzy(int theCount, float theSeconds)
+{
+	mFrenzyCount += theCount;
+	if (mFrenzyCount > FRENZY_MOST)
+		mFrenzyCount = FRENZY_MOST;
+	if (0.0f < theSeconds)
+		mFrenzyTime = theSeconds;
+	else
+	{
+		float aHold = mFrenzyHoldTime;
+		if (mFrenzyCount % FRENZY_STEP == 0)
+			aHold = (float)(mFrenzyHoldTime * FRENZY_STEP_HOLD);
+		mFrenzyTime = maxOf(mFrenzyTime, aHold);
+	}
+	int aMultiplier = mFrenzyCount / FRENZY_STEP + 1;
+	int aLast = mFrenzyMultiplier;
+	mFrenzyMultiplier = aMultiplier;
+	if (aMultiplier > aLast)
+	{
+		// The theme's sounds frenzy1 to frenzy5 by the step and frenzyChime, and the HUD's text of the step (0x40d970
+		// (feedingfrenzy2)): not yet translated, as the sounds and the HUD are not
+	}
+	// The HUD's frenzy (0x4605d0 (feedingfrenzy2)): not yet translated
+}
+
+void PlayerFish::updatePlayTimers(UpdateContext& theContext)
+{
+	// 0x437950 (feedingfrenzy2): while +0x1ec is above 0 (set by a bonus not yet translated), a fish added to the
+	// frenzy each tenth of a second: not yet translated
+	if (!(0.0f < mFrenzyTime))
+		return;
+	float aLeft = (float)((double)mFrenzyTime - theContext.mElapsed);
+	mFrenzyTime = aLeft;
+	if (!(0.0f > aLeft) || mFrenzyCount <= 0)
+		return;
+	mFrenzyCount--;
+	double aTime = mFrenzyHoldTime;
+	if (mFrenzyCount % FRENZY_STEP == 0)
+		aTime *= FRENZY_STEP_DROP;
+	else if (mFrenzyCount > FRENZY_STEP)
+		aTime *= FRENZY_HIGH_DROP;
+	else
+		aTime /= FRENZY_LOW_DROP;
+	mFrenzyTime = (float)aTime;
+	// The HUD's frenzy (0x4605d0 (feedingfrenzy2)): not yet translated
 }
 
 void PlayerFish::keepInWater()
@@ -357,9 +498,11 @@ void SpawnState::enter()
 	}
 	else
 		mPlayer->setInWater(true);
-	// +0x19d cleared, the visual's tint (0x48fac0), the fall effect stopped, the visual's state's 0x1c
-	// (0x4262e0), the visual's flash put on (0x494080) (feedingfrenzy2): not yet translated, as the effects and
-	// the visual's modifiers are not
+	// +0x19d cleared, the visual's tint (0x48fac0 (feedingfrenzy2)) and the fall effect stopped: not yet translated,
+	// as the visual's modifiers and the effects are not
+	FishVisual* aVisual = mPlayer->getFishVisual();
+	aVisual->changeState(aVisual->getSwimState());
+	// The visual's flash put on (0x494080 (feedingfrenzy2)): not yet translated, as the visual's modifiers are not
 	mPlayer->getSpawnFlash().mTimes.clear();
 	mPlayer->getSpawnFlash().mTimes.push_back(SPAWN_FLASH_SECONDS);
 	// The rank's name over the fish (0x405630 (feedingfrenzy2)): not yet translated
@@ -386,6 +529,23 @@ void SpawnState::update(UpdateContext* theContext)
 	mPlayer->setForce(Vector2f(0.0f, 0.0f));
 	// The fall effect stopped: not yet translated, as the effects are not
 	mPlayer->startPlay();
+}
+
+void PlayState::eat(Fish* thePrey)
+{
+	mPlayer->changeState(new PlayerEatingState(mPlayer));
+}
+
+void PlayerEatingState::update(UpdateContext* theContext)
+{
+	mPlayer->steer(*theContext);
+	mPlayer->move(*theContext);
+	mPlayer->updateTimers(*theContext);
+	mPlayer->updatePlayTimers(*theContext);
+	// With +0x19d set (by code not yet translated), the cold path 0x540579 (feedingfrenzy2) instead: not yet
+	// translated
+	if (mChomped)
+		mPlayer->startPlay();
 }
 
 void PlayState::update(UpdateContext* theContext)

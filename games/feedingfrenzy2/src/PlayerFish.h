@@ -7,12 +7,16 @@
 // The mouse's motion is a force each step, the water's drag slows it, and its speed is held in the behaviour's
 // ellipse; the play area's sides and bottom hold it in, and at the surface it leaves the water and falls back.
 //
-// Translated so far: the drop in, the steering, the move, the water's surface and the edges. The eating, the dash,
-// the suck, the tilt, the effects and the HUD are not yet, and each step that needs them says so where it would run.
+// Translated so far: the drop in, the steering, the move, the water's surface and the edges, and the eating: the
+// food and points of each fish swallowed, the frenzy that multiplies them and the score. The dash, the suck, the
+// tilt, the effects, the texts, the sounds and the HUD are not yet, and each step that needs them says so where it
+// would run.
 
 #include "Actor.h"
 #include "FishAI.h"
 #include "sigslot.h"
+
+#include <vector>
 
 namespace engine
 {
@@ -20,6 +24,15 @@ class Mouse;
 }
 
 class PlayerSpawn;
+
+// Points the player scored, kept until its next update adds them to the score (8 bytes, the player's +0x1fc)
+struct ScoredPoints
+{
+	ScoredPoints(int thePoints, int theMultiplier) : mPoints(thePoints), mMultiplier(theMultiplier) {}
+
+	int mPoints;      // +0x00
+	int mMultiplier;  // +0x04: the frenzy's multiplier they were scored at
+};
 
 class PlayerFish : public Fish, public sigslot::HasSlots
 {
@@ -64,8 +77,24 @@ public:
 	void steer(engine::UpdateContext& theContext);
 	// 0x437790 (feedingfrenzy2): the timers counted down by the step: the flash after coming in, and the dash
 	void updateTimers(engine::UpdateContext& theContext);
-	// 0x4379f0 (feedingfrenzy2): the timers of the play (not yet translated; each set by code not yet translated)
-	void updatePlayTimers(engine::UpdateContext& theContext) {}
+	// 0x4379f0 (feedingfrenzy2): the timers of the play: the frenzy's, whose end takes one from the frenzy's count
+	void updatePlayTimers(engine::UpdateContext& theContext);
+
+	// The eater part's 0x10 (0x47a250 (feedingfrenzy2)): the fish's, and the highest rank of the bite's prey kept
+	// (the theme's sound fishEaten not yet translated)
+	void eat(Fish* thePrey, float theSeconds) override;
+	// The eater part's 0x14 (0x42a6d0 (feedingfrenzy2)): with prey in the bite, its draws, the frenzy added to and the
+	// chomp's splat; then each prey's food and points (the frenzy's multiplier, the bonus's scale, and in the air the
+	// chain of fish eaten there), the chain ended in the water, and the fish's
+	void swallow() override;
+	// 0x411220 (feedingfrenzy2): points above none kept for the next update, at the frenzy's multiplier
+	void addScore(int thePoints);
+	// 0x130 (0x47c550 (feedingfrenzy2)): fish added to the frenzy's count (at most 35), its time set to the seconds
+	// given or held at least for the hold (half again as long at each seventh), and its multiplier one more for each
+	// seven
+	void addFrenzy(int theCount, float theSeconds);
+	// 0x124 (0x49de90 (feedingfrenzy2))
+	void setFrenzyHoldTime(float theSeconds) { mFrenzyHoldTime = theSeconds; }
 
 	// The water's surface (0x540651 (feedingfrenzy2)): the share of the body under it, the visual's tint by it, a
 	// rise under it slowed, and the fish leaving and entering the water
@@ -75,6 +104,8 @@ public:
 	engine::Vector2f getCameraTarget();
 
 	void setSpawn(PlayerSpawn* theSpawn) { mSpawn = theSpawn; }
+	PlayerSpawn* getSpawn() const { return mSpawn; }
+	int getFrenzyMultiplier() const { return mFrenzyMultiplier; }
 	bool isInWater() const { return mInWater; }
 	void setInWater(bool inWater) { mInWater = inWater; }
 	void setJumpPeakShown(bool isShown) { mJumpPeakShown = isShown; }
@@ -116,10 +147,19 @@ private:
 	float mDashTime;                     // +0x1d8: while above 0, the speed is not held
 	// +0x1dc, +0x1e0 and +0x1e4: timers counted down by the step, set by code not yet translated: left out
 	engine::Vector2f mPush;              // +0x1f4: a push the fish moves by, (0, 0) as it comes in
+	std::vector<ScoredPoints> mScored;   // +0x1fc: points scored since the last update
+	int mBiggestRankEaten;               // +0x22c: the highest rank in the bite, 0 after each swallow
+	bool mBonusEat;                      // +0x230: the bite gets the bonus's effect (set by code not yet translated)
+	int mPointsScale;                    // +0x234: 1 as it comes in (a bonus sets it, not yet translated)
 	float mSpeedScale;                   // +0x260: the speed's and the acceleration's scale, 1 as it comes in (a
 	                                     // bonus's speed sets it, not yet translated)
+	int mFrenzyCount;                    // +0x290: fish eaten in the frenzy, 0 to 35
+	float mFrenzyTime;                   // +0x294: until the count drops by one
+	float mFrenzyHoldTime;               // +0x298: the time the frenzy holds after a bite
+	int mFrenzyMultiplier;               // +0x29c: one more for each seven in the count
 	float mJumpHeight;                   // +0x2a0: the highest above the surface of the jump
 	bool mJumpPeakShown;                 // +0x2a4: the jump's height told, once a jump
+	int mAirChain;                       // +0x2a8: fish eaten in the air since the fish was last in the water
 	bool mKeptBetweenSides;              // +0x308: true as it comes in
 };
 
@@ -156,10 +196,27 @@ public:
 
 	// 0x0c (0x438fe0 (feedingfrenzy2)): steered, moved and its timers counted down
 	void update(engine::UpdateContext* theContext) override;
-	// 0x54 (0x417e10 (feedingfrenzy2)): eating (PlayerEatingState): not yet translated, as the player's eating is not
+	// 0x54 (0x417e10 (feedingfrenzy2)): eating (PlayerEatingState)
+	void eat(Fish* thePrey) override;
 
 private:
 	PlayerFish* mPlayer;  // +0x20
+};
+
+// The player fish eating (PlayerEatingState, 0x40 bytes, vtable 0x552f4c (feedingfrenzy2); its constructor 0x417db0
+// (feedingfrenzy2)): it swims on while the visual plays its eat, and goes back to swimming after the chomp
+class PlayerEatingState : public EatingState
+{
+public:
+	// 0x417db0 (feedingfrenzy2): the eating state's (the flags +0x12, +0x13, +0x15 and +0x1a, read by code not yet
+	// translated)
+	explicit PlayerEatingState(PlayerFish* thePlayer) : EatingState(thePlayer), mPlayer(thePlayer) {}
+
+	// 0x0c (0x437690 (feedingfrenzy2)): steered, moved and its timers counted down; after the chomp, swimming again
+	void update(engine::UpdateContext* theContext) override;
+
+private:
+	PlayerFish* mPlayer;  // +0x34
 };
 
 #endif
