@@ -139,6 +139,10 @@ post screen's stage as an empty frame, so the loading takes the original's frame
 the post's dialog (a state of its own, until the player closes it), where the port goes to the menu at once: the
 comparison of a case ends there, and the input after it lands on other screens on the two sides.
 
+The window's 100 ms sound timer, which the original runs only while its window is dragged or sized, is left out (the
+port is not told of the drag). A fade under way when a drag starts goes on when the port's frames go on, where the
+original's goes on through the drag; the music and sounds themselves keep playing.
+
 ## Looks identical
 
 **Pictures of the original.** The original draws partly into its back surface through locks and partly with
@@ -193,6 +197,55 @@ It is made as the original makes it (0x430d50: the text drawn once on a black pi
 through a clip window from 82 left of the blimp to 61 right of it, 17 above) and scrolled as 0x430b90 does, crossing
 the window every eight seconds; conc1's frame 5000 matches. (The original also makes a balloon tip there and lets it go
 at once; its constructor has no effect the port keeps, so it is left out.)
+
+**Sound by state.** origrun logs the original's DirectSound buffers in every mode (each buffer's create, data hash,
+volume, play and stop, on the virtual clock), and the port's `-soundlog=<file>` logs each voice's start and stop with
+its frame and the sound's length. `tools/identical/sndcmp.py` lines the starts up by length (Word Harmony's
+comparison, at the 33.83 ms an update the original's log shows here). Case edit2 (the editor from a saved player:
+its screens, each tool, saving and the menu again, seed 3) is the sound case.
+
+**The buttons made no sound** (a shared change of the engine). The original plays a short press sound at each button
+press (and the list boxes theirs); the port played none. The signal build's button and list box (0x491760) load their
+sounds through the application's slots (0x58, the archive's file, and 0x60, the voice), and the port's went to the
+sound system with a loose file's path, which a game in an archive does not have. Both now go through the slots, and
+edit2's 33 starts all match, none more than a third of an update off.
+
+**The music faded out too fast.** The original fades a clip in and out on the frame's sound update (0x401d90, with
+the frame's milliseconds). Its window also has a 100 ms timer that updates the sounds (0x4010b0), but it sets that
+only at WM_ENTERSIZEMOVE and kills it at WM_EXITSIZEMOVE (0x4bd3b0): it keeps the sounds going while the window is
+dragged, when the frames stop. The port ran the timer all the time, so every fade got an extra 100 ms each 100 ms and
+ended at twice the speed: edit2's menu music stopped at frame 131, where the original's 0.2 s fade-out ends at 134.
+The port has no modal loop to tell it of a drag, so it drops the timer; every stop now lands on the original's frame.
+The original also logs a stop of a press sound just before it plays again, after the sound has ended (its buffer
+rewound for the play); the port's log shows no stop for a voice that is no longer playing, and nothing is heard either
+way.
+
+**The menu's dialogs** (case dlg1, from a saved player, seed 3: the options and the replay box, the high scores of
+each mode with the clear question answered No, the player list with the delete question answered No, the quit
+question answered No; `shots/dlg1.txt`). Both sides run windowed (the case's registry preset sets `FullScreen` to 0:
+the original's first launch is full screen, and its options box then shows the box ticked). Three things were the
+port's:
+- The options box showed "Version" with no number. The original's setup (0x4669d0) shows "Version" and its
+  application's version text (slot 0, 0x4bdb20): the FileVersion of its exe's US English string table. The port
+  gives that text.
+- The score table drew a black background. The original's table (0x48f410) sets each colour with its alpha (0x477e80),
+  and its fill (0x4bfc20) blends by the colour's alpha and the opacity; the layout gives the background an alpha of 0,
+  so the original fills nothing. The signal build's draw state now keeps the colour's alpha (a shared change of the
+  engine), the table sets its colours with it, and the fill takes it as an opacity.
+- The sales had no commas. A score's text (0x418ab0) writes its numbers through 0x46dcb0, the user's locale's number
+  form with no decimals (GetNumberFormatA); the port writes US English's, the thousands with commas between them.
+
+12 of the 17 pictures now match. The other 5 are the high scores, where only the row of buttons under the board
+differs: the original's button to the online scores is gone and the other two close the gap (the registration and
+outbound rule). So the case's clicks on Done and Clear are at points both sides' buttons cover.
+
+**Losing and regaining the focus** (case focus1: look1's input to frame 1000, the focus lost there and regained at
+1100, seed 1, windowed; `shots/focus1.txt`). On both sides the play screen goes under its pause menu at the loss and
+stays there after the focus comes back (pictures at 1, 10, 50 and 99 frames after each). The pictures differ only by
+the toppings' order (the coupons, the kitchens' signs and an order card), explained above. Run full screen, the
+original's update counter stopped at the loss and never moved again; its loop skips the update while its window is
+minimized (0x4bdf20), which is the likely cause, not checked. The real-input pass covers full screen on the user's
+desktop.
 
 **Explained: the toppings' order.** The play shots show the two topping coupons in the other order from the original
 in some runs, each kitchen's sign with the other topping (the small boxes over the kitchens), and in the concentration

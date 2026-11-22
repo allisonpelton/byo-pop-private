@@ -292,7 +292,6 @@ PizzaFrenzyWidget::PizzaFrenzyWidget()
 	}
 	mGraphics = new engine::ScreenGraphics(const_cast<uint32_t*>(mPixels), engine::SCREEN_WIDTH, engine::SCREEN_HEIGHT);
 	mNextFrame = 0;
-	mLastTimer = gApp->GetClockTime();
 	ClearKeys();
 }
 
@@ -303,18 +302,14 @@ PizzaFrenzyWidget::~PizzaFrenzyWidget()
 }
 
 // The run loop (0x4bdf20): a frame runs once the clock reaches the time the last one set (its start and the frame
-// period, 0x4bd210), else the loop sleeps; the window's 100 ms timer (WM_TIMER 1) goes to the timer signal.
+// period, 0x4bd210), else the loop sleeps. The window's 100 ms timer (WM_TIMER 1, to the timer signal) runs only
+// while the window is dragged or sized (set at WM_ENTERSIZEMOVE, killed at WM_EXITSIZEMOVE, 0x4bd3b0), when the
+// original's frames stop: the port has no such modal loop to tell it, so the frame's own sound update is the only one.
 void PizzaFrenzyWidget::Update()
 {
 	Widget::Update();
 	if (!gApp->mEngineRunning)
 		return;
-	uint32_t aNow = gApp->GetClockTime();
-	if ((int)(aNow - mLastTimer) >= 100)
-	{
-		mLastTimer = aNow;
-		engine::App::instance()->mTimerSignal.emit(100);
-	}
 	if (gApp->mFastMode)
 	{
 		// port: -fast runs a frame each update, as the original does on origrun's virtual clock, which skips the wait
@@ -507,6 +502,7 @@ void PizzaFrenzyApp::RunFrame()
 		if (mStateLog != nullptr)
 			LogState();
 		mFrames++;
+		engine::HostSound::sLogFrame = mFrames;
 		engine::App::instance()->frameSignalled(mWidget->mGraphics);
 		if (mStateLog != nullptr)
 			LogState();
@@ -551,7 +547,8 @@ void PizzaFrenzyApp::EngineFailed(const char* theWhat)
 }
 
 // The run loop's end: the controller's shutdown (the settings saved)
-// port: -seed=N, for the identical-play runs
+// port: -seed=N, -statelog=<file> and -soundlog=<file> (each sound's start and stop with its frame), for the
+// identical-play runs
 void PizzaFrenzyApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
 	if (theParamName == "-seed")
@@ -561,6 +558,8 @@ void PizzaFrenzyApp::HandleCmdLineParam(const std::string& theParamName, const s
 	}
 	else if (theParamName == "-statelog")
 		mStateLog = fopen(theParamValue.c_str(), "w");
+	else if (theParamName == "-soundlog")
+		engine::HostSound::sLog = fopen(theParamValue.c_str(), "w");
 	SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
 }
 

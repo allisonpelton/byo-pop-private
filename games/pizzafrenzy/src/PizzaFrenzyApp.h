@@ -36,7 +36,6 @@ public:
 	const uint32_t* mPixels;  // the 800x600 screen, 0xffRRGGBB: the picture's pixels, or mSurfaceBits
 	engine::ScreenGraphics* mGraphics;
 	uint64_t mNextFrame;     // the run loop's time for the next frame, in the host's ticks
-	uint32_t mLastTimer;     // the window's 100 ms timer's last tick
 	bool mKeyIsDown[256];    // the keys that went down and not up yet: a repeat of one is no WM_KEYDOWN's first
 
 	PizzaFrenzyWidget();
