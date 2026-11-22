@@ -197,6 +197,10 @@ originals safe either. Every capture comes from inside Windows Sandbox, where a 
 sandbox's own display. A shot that shows anything but the game's own window is deleted at once, unopened where
 possible, and reported to the coordinator.
 
+One exception is approved but not built yet (the user, 2026-11-22, `docs/RULES.md`): a reader inside the original
+that copies only the game's own off-screen frame, never the primary surface, with each shot checked and a trial
+against sandbox shots before any game uses it. Until it lands and a game passes its trial, the ban above holds.
+
 ### Setup
 
 Windows Sandbox is an optional Windows feature (`Enable-WindowsOptionalFeature -Online -FeatureName

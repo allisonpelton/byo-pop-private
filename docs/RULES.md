@@ -122,6 +122,15 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   processes, no link, "Buy" or "More Games" click, a window shown without taking the focus, the user's cursor and
   keyboard never touched (input posted to the game's own window), the window, registry and saves put back as
   `docs/ORIGRUN.md` says, nothing left running.
+- **Shots of an original outside the Sandbox, by an in-game reader only (the user, 2026-11-22):** Windows Sandbox runs
+  one instance at a time (a second `wsb start` is refused with CO_E_APPSINGLEUSE), so every original's shot queued
+  behind one sandbox. Asked whether to lift the host-capture ban (`docs/ORIGRUN.md`) for a reader inside the original
+  that copies the game's own off-screen frame, the user said "Yes, with safeguards". The safeguards: the reader
+  copies only surfaces or buffers the game itself created to draw into, never the primary surface, the screen or
+  anything another program drew; each shot is checked against the game's window size and the frame the game just
+  presented, and one that fails is deleted unopened and reported; and no session uses it for a game until a trial has
+  compared its shots with sandbox shots of the same screens. Until a game passes that trial, the ban stands for it.
+  Every other capture on the host stays banned.
 
 ## Token economy (the user's rules, 2026-10-24)
 
