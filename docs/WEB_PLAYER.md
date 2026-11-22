@@ -481,6 +481,7 @@ badly:
 | Trophy Cabinet | sizable | 300 × 200 | the room | its player list on one row (an empty cabinet was all there was to see) |
 | Fonts | sizable | 480 × 300 | the room | its game, font and Save As on one row, and a row of the sample sheet |
 | Venice Buildings | sizable | 420 × 260 | the room | its picture and Save As on one row, and a building's height of the well at 25% |
+| Guides | sizable | 320 × 240 | the room | its game list, the banner and a few lines of the guide |
 | Chat (both pages) | sizable | 260 × 320 | the room | its controls and five lines of messages |
 | A game in a window | sizable | its game at the multiple drawn, its status bar and frame | the room, and Maximize | `web/deskapps.js` |
 | A text in a window | sizable | 200 × 120 | the room | |
@@ -793,6 +794,19 @@ clouds, the scroll and its text), only the sky is kept, repeated along the row w
 copies meet. `tools/buildingstest.js` (unit-web) checks the readers and the placing on scenes made for it, then lays out the
 staged Venice's row: the pictures in the game's order, building 1 at x -9 and y 161, each next 364 on (a place truncated
 toward zero), the trophy at 2976, and the quay and the water reaching both ends.
+
+### The Guides window
+
+The Guides window (`web/guides.js`, its texts in `web/guidetexts.js`) holds the site's AI-generated guides, the one exception
+to the rule of values, not sentences (the user, 2026-11-18: "I've decided I'm actually ok with AI-generated guides for the
+games that actually benefit from it on the site, as long as they are clearly marked as AI-generated"). It is a Desktop 95
+window on the listing's desktop in the manner of a help topic, closed at first, its icon after the Venice Buildings window's,
+with a guide for each game of the listing that has one; it needs none of the game's files. Its Game list chooses the guide,
+and the white page shows it under a banner the window draws for every guide, "AI-generated guide" with the date it was checked
+against the game's code, and the status line says AI-generated beside the count of tips. A guide is drawn as text only. How a
+guide is written, which games get one, where its facts may come from and the markup are in `docs/GUIDE_STYLE.md`, a draft for
+the user; `tools/guidestest.js` (unit-web) checks the markup and every guide against the rules there that a program can check.
+One guide so far, Mummy Maze's.
 
 ### The fixes and lite mods on the site
 
