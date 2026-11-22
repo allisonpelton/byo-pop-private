@@ -11,7 +11,7 @@
 //                  the game window's status bar or under the game
 //   game speed     (setting "speed", 1 by default) the framework's own update multiplier (byopop_set_speed): the game runs
 //                  its updates that much faster or slower in real time; never on the player-only test page (?player=1),
-//                  whose runs keep the game's own speed; 0 is as fast as it goes
+//                  whose runs keep the game's own speed; 0 is unlimited (Max)
 //   speed keys     (setting "speedKeys", off by default) F6, F7 and F8 in the game step the speed as the native keys do, and
 //                  the new speed shows over the game for a moment
 // The events go to the canvas as a player's own do (web/testkit.js does the same for tests), so Emscripten and SDL take them
@@ -159,7 +159,7 @@ var ByopopControls = (function () {
   var testPage = /[?&]player=1(&|$)/.test(location.search), speedSet = 1;
   // a game whose own host runs its loop has no speed to set (ByopopSettings.ownSpeed)
   function ownSpeed() { try { return (ByopopSettings.ownSpeed || []).indexOf(pageGame) >= 0; } catch (e) { return false; } }
-  // 0 is as fast as it goes (SexyAppBase::SPEED_UNLIMITED)
+  // 0 is unlimited, Max (SexyAppBase::SPEED_UNLIMITED)
   function speedWanted() {
     var v = (testPage || ownSpeed()) ? 1 : parseFloat(setting("speed"));
     return v >= 0 ? v : 1;
@@ -168,7 +168,7 @@ var ByopopControls = (function () {
     var want = speedWanted(), M = window.Module;
     if (want === speedSet || !M || typeof M._byopop_set_speed !== "function") return;
     try {
-      // byopop_speed is 0 until the game's application exists, and 0 again once it runs as fast as it goes: the application
+      // byopop_speed is 0 until the game's application exists, and 0 again once it runs unlimited: the application
       // is there when it reads a speed before the change, or after one to a number
       var was = M._byopop_speed();
       M._byopop_set_speed(want);
@@ -176,8 +176,8 @@ var ByopopControls = (function () {
     } catch (e) {}
   }
   // The speed keys (setting "speedKeys"): F6 slower, F7 faster, F8 back to normal, along the native keys' steps
-  // (SexyAppBase::SPEED_STEPS and StepGameSpeed), from a speed between two steps to the next one in that direction; past 16 is as
-  // fast as it goes, and below the lowest step the speed stays. The page takes the press and its release before SDL (the
+  // (SexyAppBase::SPEED_STEPS and StepGameSpeed), from a speed between two steps to the next one in that direction; past 16 is
+  // unlimited (Max), and below the lowest step the speed stays. The page takes the press and its release before SDL (the
   // game's own speed keys are not built into the web build's mod menu), and the new speed is this game's own setting.
   var SPEED_STEPS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 8, 16];
   var SPEED_KEYS = { F6: -1, F7: 1, F8: 0 };

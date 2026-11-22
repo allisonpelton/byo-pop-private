@@ -115,8 +115,8 @@ function same(name, a, b) { check(name, JSON.stringify(a) === JSON.stringify(b),
   // the game speed: its listed values, and any number from 0.01 to 16, kept to two places
   same("speed takes a number in its range", [S.set("speed", "1.337"), S.get("speed"), S.set("speed", 3), S.get("speed"), S.set("speed", "0.75"), S.get("speed")], [true, "1.34", true, "3", true, "0.75"]);
   same("speed refuses a number out of range, and text", [S.set("speed", "17"), S.set("speed", "-1"), S.set("speed", "0.001"), S.set("speed", "fast"), S.get("speed")], [false, false, false, false, "0.75"]);
-  // 0, as fast as it goes, is a listed value and not a number of the range
-  same("speed takes 0, as fast as it goes", [S.set("speed", "0"), S.get("speed"), S.set("speed", 0), S.get("speed")], [true, "0", false, "0"]);
+  // 0, unlimited (Max), is a listed value and not a number of the range
+  same("speed takes 0, unlimited (Max)", [S.set("speed", "0"), S.get("speed"), S.set("speed", 0), S.get("speed")], [true, "0", false, "0"]);
   S.set("speed", "1");
 }
 

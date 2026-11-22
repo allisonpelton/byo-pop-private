@@ -74,7 +74,7 @@ var ByopopSettings = (function () {
     skipLogos: { values: SWITCH, def: "off" },       // on: the games skip their start-up logos (byopop_site_skiplogos, before the start)
     skipTutorials: { values: SWITCH, def: "off" },   // on: the game's own tutorial switch is turned off at each start (web/shell.html, byopop_site_tutorials)
     // the game's update rate, times this (web/controls.js): any value the framework takes, 0.01 to 16 (the user, 2026-11-10: "Allow
-    // game speed to be set to any arbitrary value instead of the limited options in the dropdown"), and 0, as fast as it goes;
+    // game speed to be set to any arbitrary value instead of the limited options in the dropdown"), and 0, unlimited (Max);
     // the listed ones are the native speed keys' steps (SexyAppBase::SPEED_STEPS)
     speed: { values: ["0.25", "0.5", "0.75", "1", "1.5", "2", "3", "4", "8", "16", "0"], number: [0.01, 16], def: "1" },
     // on: F6, F7 and F8 in the game step the speed as the native speed keys do (web/controls.js; the user, 2026-11-17: "Add
@@ -683,7 +683,7 @@ var ByopopSettings = (function () {
         c.custom.textContent = listed ? "" : now + "×";
         c.custom.hidden = c.custom.disabled = listed;
         if (!listed && !(scope === "game" && own === null)) c.select.value = now;
-        // as fast as it goes (0) is no number the field takes: it stands empty
+        // Max (0, unlimited) is no number the field takes: it stands empty
         if (document.activeElement !== c.number) c.number.value = now === "0" ? "" : now;
       }
       if (c.preview) c.preview();
