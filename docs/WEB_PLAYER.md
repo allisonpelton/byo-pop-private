@@ -1194,6 +1194,12 @@ that show the game as a 256-colour screen did (the user, 2026-11-09: "Is it poss
 windows to make them appear in 256 colors only?"): `pal256` makes each pixel the nearest colour of the palette Windows
 kept for programs that set none (its 20 static colours and the 6x6x6 cube), and `pal256d` first applies an 8x8 ordered
 dither. Both are drawn by a WebGL canvas over the game canvas, filled in the frame hook (`Module.byopopTestFrame`).
+The scanlines lie over the canvas's own box, not the whole stage (in full screen the canvas is centred in a larger
+stage), with one line a game row high every two of the game's rows: the rows come from the game's size (`--aspect`) and
+the height from the canvas's drawn box, never from the canvas's pixels, which SDL sizes on its own time (300 x 150 before
+the game makes its window, the old size for a while after a resize) and which made the lines briefly too large (the user,
+2026-11-21). They are sized again whenever the canvas or the stage changes size, the stage's style changes, the window
+is resized or full screen begins or ends.
 
 ### Controls
 
