@@ -234,6 +234,12 @@ public:
 	// the id of the resource whose file is thePath (either slash, any case), or "" for none
 	std::string GetIdByPath(const std::string& thePath);                     // 0x4647a0 (bejeweled3)
 
+	// port: the loaded particle effect whose file is thePath (the manifest's path, any case; the exe's lookups in
+	// FrameHit, 0x445c00 (bejeweled3), through mResFromPathMap) or null when the path is not a loaded effect's
+	PIEffect* FindPIEffectByPath(const std::string& thePath);
+	// port: the loaded particle effect with the id, or null (GetPIEffectThrow without the error; FrameHit's lookup)
+	PIEffect* FindPIEffect(const std::string& theId);
+
 	void SetAllowMissingProgramImages(bool allow) { mAllowMissingProgramResources = allow; }
 
 protected:

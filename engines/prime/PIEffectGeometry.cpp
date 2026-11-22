@@ -53,9 +53,9 @@ PIPoint PIEffect::GetEmitterPos(PIEmitterInstance* theInstance, bool theUseInsta
 // repeats this code in each shape of 0x569f80 (bejeweled3))
 float PIEffect::GetShapeTurnSign(PIEmitterInstanceDef* theDef)
 {
-	if (!theDef->mFlagA)
+	if (!theDef->mFlipsTurn)
 		return 1.0f;
-	if (!theDef->mFlagB)
+	if (!theDef->mRandomTurn)
 		return -1.0f;
 	return GetRandSign();
 }
@@ -204,7 +204,7 @@ PIPoint PIEffect::GetGeomPos(PIEmitterInstance* theInstance, PIParticleInstance*
 				aPixelY = aMaskHeight - 1;
 			unsigned long* aBits = aMask->GetBits();
 			bool aTransparent = ((aBits[aPixelY * aMaskWidth + aPixelX] >> 31) & 1) == 0;
-			if (aTransparent != anInstanceDef->mFlagC)
+			if (aTransparent != anInstanceDef->mMaskInverted)
 				*theOutside = true;
 		}
 		break;

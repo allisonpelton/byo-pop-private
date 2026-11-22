@@ -313,7 +313,7 @@ void ReadEmitter(PPFReader& theReader, PIEmitter& theEmitter)
 		&theEmitter.mTintFactor, &theEmitter.mAngle, &theEmitter.mAngleVariation, &theEmitter.mLifeVariation,
 		&theEmitter.mValueC, &theEmitter.mSizeXVariation, &theEmitter.mSizeYVariation, &theEmitter.mVelocityVariation,
 		&theEmitter.mWeightVariation, &theEmitter.mSpinVariation, &theEmitter.mMotionRandomnessVariation,
-		&theEmitter.mBounceVariation, &theEmitter.mValueD, &theEmitter.mNumberOverLife, &theEmitter.mSizeOverLife,
+		&theEmitter.mBounceVariation, &theEmitter.mFreeEmitterNumberVariation, &theEmitter.mNumberOverLife, &theEmitter.mSizeOverLife,
 		&theEmitter.mValueE, &theEmitter.mVelocityOverLife, &theEmitter.mWeightOverLife, &theEmitter.mSpinOverLife,
 		&theEmitter.mMotionRandomnessOverLife, &theEmitter.mBounceOverLife, &theEmitter.mScaleOverLife};
 	for (int i = 0; i < 42; i++)
@@ -334,8 +334,8 @@ void ReadEmitterInstance(PPFReader& theReader, PIEmitterInstanceDef& theInstance
 	bool aCircleFlag = theReader.ReadBool();
 	if (aCircleFlag && theInstance.mShape == 2)
 		theInstance.mShape = 4;
-	theInstance.mFlagA = theReader.ReadBool();
-	theInstance.mFlagB = theReader.ReadBool();
+	theInstance.mFlipsTurn = theReader.ReadBool();
+	theInstance.mRandomTurn = theReader.ReadBool();
 
 	// the colour: three ints, of which only the low byte is used
 	int aRed = theReader.ReadByte();
@@ -377,7 +377,7 @@ void ReadEmitterInstance(PPFReader& theReader, PIEmitterInstanceDef& theInstance
 		theInstance.mMaskImageName = aMaskName;
 
 	theReader.Skip(8);
-	theInstance.mFlagC = theReader.ReadBool();
+	theInstance.mMaskInverted = theReader.ReadBool();
 	theReader.Skip(8);
 	theInstance.mHasFreeEmitters = theReader.ReadBool();
 
@@ -393,7 +393,7 @@ void ReadDeflector(PPFReader& theReader, PIDeflector& theDeflector)
 	theDeflector.mBounce = theReader.ReadFloat();
 	theDeflector.mHits = theReader.ReadFloat();
 	theDeflector.mAllowedDirection = theReader.ReadFloat();
-	theDeflector.mFlagA = theReader.ReadBool();
+	theDeflector.mShown = theReader.ReadBool();
 	theReader.ReadValue2D(theDeflector.mPosition);
 	theReader.ReadPointList(theDeflector.mPoints);
 	theReader.ReadValue(theDeflector.mActive);
@@ -413,7 +413,7 @@ void ReadBlocker(PPFReader& theReader, PIBlocker& theBlocker)
 void ReadForce(PPFReader& theReader, PIForce& theForce)
 {
 	theForce.mName = theReader.ReadString();
-	theForce.mFlagA = theReader.ReadBool();
+	theForce.mShown = theReader.ReadBool();
 	theReader.ReadValue2D(theForce.mPosition);
 	for (int i = 0; i < 7; i++)
 		theReader.ReadValue(theForce.mCurves[i]);
@@ -459,6 +459,55 @@ void PIEffect::CreateLayers()
 		}
 		mLayers.push_back(aLayer);
 	}
+}
+
+// 0x567930 (bejeweled3), with the copy constructor 0x5670b0 (bejeweled3): a new effect from this one for an animation
+// to play, which has its own layers, emitter instances and particles and starts over (ResetAnim). It takes the
+// definition (the exe shares it by a reference count; here it is copied, which is the same while nobody changes it),
+// the size, the settings, the colors, the seeds and the two matrices, each emitter instance's color and its
+// definitions' counters (which ResetAnim then clears); it does not take the cached starting state (the exe's copy
+// makes a fresh empty buffer for it), an instance's mask picture, the time or the error, which stay at the new
+// effect's own
+PIEffect* PIEffect::Duplicate() const
+{
+	PIEffect* aCopy = new PIEffect();
+	aCopy->mVersion = mVersion;
+	aCopy->mFileName = mFileName;
+	aCopy->mHeaderText = mHeaderText;
+	aCopy->mWidth = mWidth;
+	aCopy->mHeight = mHeight;
+	aCopy->mBackgroundColor = mBackgroundColor;
+	aCopy->mFramerate = mFramerate;
+	aCopy->mFirstFrameNum = mFirstFrameNum;
+	aCopy->mLastFrameNum = mLastFrameNum;
+	aCopy->mError = mError;
+	aCopy->mLoaded = mLoaded;
+	aCopy->mAnimSpeed = mAnimSpeed;
+	aCopy->mColor = mColor;
+	aCopy->mDebugDraw = mDebugDraw;
+	aCopy->mUnreadFlag = mUnreadFlag;
+	aCopy->mLoop = mLoop;
+	aCopy->mSeeds = mSeeds;
+	aCopy->mNeedsSeed = mNeedsSeed;
+	aCopy->mDrawTransform = mDrawTransform;
+	aCopy->mDrawTransform2 = mDrawTransform2;
+	aCopy->mDef = mDef;
+	aCopy->CreateLayers();
+	for (size_t aLayerIndex = 0; aLayerIndex < mLayers.size() && aLayerIndex < aCopy->mLayers.size(); aLayerIndex++) {
+		PILayer* aSourceLayer = mLayers[aLayerIndex];
+		PILayer* aCopyLayer = aCopy->mLayers[aLayerIndex];
+		for (size_t anInstanceIndex = 0; anInstanceIndex < aSourceLayer->mEmitterInstances.size() &&
+		                                 anInstanceIndex < aCopyLayer->mEmitterInstances.size();
+		     anInstanceIndex++) {
+			PIEmitterInstance* aSourceInstance = aSourceLayer->mEmitterInstances[anInstanceIndex];
+			PIEmitterInstance* aCopyInstance = aCopyLayer->mEmitterInstances[anInstanceIndex];
+			aCopyInstance->mColor = aSourceInstance->mColor;
+			aCopyInstance->mFreeDefInstances = aSourceInstance->mFreeDefInstances;
+			aCopyInstance->mDefInstances = aSourceInstance->mDefInstances;
+		}
+	}
+	aCopy->ResetAnim();
+	return aCopy;
 }
 
 // 0x5679b0 (bejeweled3)

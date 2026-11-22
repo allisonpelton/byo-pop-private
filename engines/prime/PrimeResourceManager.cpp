@@ -1373,6 +1373,23 @@ void PrimeResourceManager::RegisterGlobalPtr(const std::string& theId, void** th
 	}
 }
 
+// port: the exe's lookup in FrameHit (0x445c00 (bejeweled3)) of a path in mResFromPathMap, and the test of the resource
+// handle (0x45bfa0 (bejeweled3): a particle effect resource that has its effect)
+PIEffect* PrimeResourceManager::FindPIEffectByPath(const std::string& thePath)
+{
+	std::map<std::string, BaseRes*>::const_iterator anItr = mResFromPathMap.find(StringToLower(thePath));
+	if (anItr == mResFromPathMap.end() || anItr->second->mType != ResType_PIEffect)
+		return nullptr;
+	return ((PIEffectRes*)anItr->second)->mPIEffect;
+}
+
+// port: see FindPIEffectByPath; the lookup is GetBaseRes (0x45cfb0 (bejeweled3))
+PIEffect* PrimeResourceManager::FindPIEffect(const std::string& theId)
+{
+	BaseRes* aRes = GetBaseRes(ResType_PIEffect, theId);
+	return aRes != nullptr ? ((PIEffectRes*)aRes)->mPIEffect : nullptr;
+}
+
 std::string PrimeResourceManager::GetIdByPath(const std::string& thePath)
 {
 	std::string aPath = StringToLower(thePath);

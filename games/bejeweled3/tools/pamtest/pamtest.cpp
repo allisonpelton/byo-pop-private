@@ -22,9 +22,11 @@
 #include "DDInterface.h"
 #include "Graphics.h"
 #include "MemoryImage.h"
+#include "PIEffect.h"
 #include "PopAnim.h"
 #include "SDLSoundManager.h"
 #include "SexyAppBase.h"
+#include "SWTri.h"
 #include "platform/VFS.h"
 #include "platform/openjpeg/JP2Decoder.h"
 
@@ -90,11 +92,14 @@ public:
 	int mStops = 0;
 	int mCommands = 0;
 	int mSamples = 0;
+	int mEffectCommands = 0;   // "addparticleeffect" commands the animation was told of
 
 	void PopAnimStopped(int) override { mStops++; }
-	bool PopAnimCommand(int, PASpriteInst*, const std::string&, const std::string&) override
+	bool PopAnimCommand(int, PASpriteInst*, const std::string& theCommand, const std::string&) override
 	{
 		mCommands++;
+		if (_stricmp(theCommand.c_str(), "addparticleeffect") == 0)
+			mEffectCommands++;
 		return false;
 	}
 	void PopAnimPlaySample(int, const std::string&, double, double) override { mSamples++; }
@@ -155,6 +160,23 @@ unsigned int HashLoaded(unsigned int theHash, const PopAnim& theAnim)
 	return theHash;
 }
 
+long long gEffectParticles = 0, gEffectArea = 0;
+long long gEffectLayerUpdates = 0;   // over every update, the particle effects the animations had on their sprites
+
+int CountEffects(const PASpriteInst* theInst)
+{
+	int aCount = (int)theInst->mEffects.size();
+	for (size_t i = 0; i < theInst->mEffects.size(); i++) {
+		gEffectParticles += theInst->mEffects[i].mEffect->mParticleCount;
+		gEffectArea += theInst->mEffects[i].mEffect->mDrawArea;
+	}
+	for (size_t i = 0; i < theInst->mSlots.size(); i++) {
+		if (theInst->mSlots[i].mChild != NULL)
+			aCount += CountEffects(theInst->mSlots[i].mChild);
+	}
+	return aCount;
+}
+
 unsigned int HashInstance(unsigned int theHash, const PASpriteInst* theInst)
 {
 	theHash = HashInt(HashFloat(theHash, theInst->mFrameNum), theInst->mRepeatCount);
@@ -191,6 +213,7 @@ unsigned int Play(PopAnim* theAnim, const std::string& theSprite, bool theByName
 		theAnim->Update();
 		theHash = HashInstance(theHash, theAnim->mMainInst);
 		theHash = HashInt(theHash, theAnim->mPlaying ? 1 : 0);
+		gEffectLayerUpdates += CountEffects(theAnim->mMainInst);
 		if (theCanvas != NULL && anUpdate % kDrawEvery == 0) {
 			g->SetColor(Color(0, 0, 0, 255));
 			g->FillRect(0, 0, theCanvas->mWidth, theCanvas->mHeight);
@@ -236,6 +259,7 @@ int main(int argc, char** argv)
 	SexyAppBase* anApp = new TestApp();
 	anApp->mDDInterface = new DDInterface(anApp);
 	anApp->mSoundManager = new SDLSoundManager();
+	SWTri_AddAllDrawTriFuncs();
 
 	// every .pam under the game folder, in a fixed order
 	std::vector<std::string> aFiles;
@@ -292,6 +316,8 @@ int main(int argc, char** argv)
 	printf("files %d, loaded %d, failed %d, hash %08x (stops %d, commands %d, samples %d, lit pixels %lld)\n",
 	       (int)aFiles.size(), aLoaded, aFailed, aHash, gListener.mStops, gListener.mCommands, gListener.mSamples,
 	       gLitPixels);
+	printf("effects: %d commands, %lld effect layers over the updates, %lld particles, %lld drawn area\n", gListener.mEffectCommands,
+	       gEffectLayerUpdates, gEffectParticles, gEffectArea);
 	fflush(stdout);
 	_exit(aFailed == 0 ? 0 : 1);
 }

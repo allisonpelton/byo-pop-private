@@ -307,7 +307,7 @@ void PIEffect::UpdateParticleDef(PIEmitter* theEmitter, PIEmitterInstance* theIn
 				aParticle->mBounceVariation = (float)((double)GetVariationScalar() * aVariation);
 			}
 			{
-				double aVariation = (double)theEmitter->mValueD.GetValueAt(mFrameNum, 0.0f);
+				double aVariation = (double)theEmitter->mFreeEmitterNumberVariation.GetValueAt(mFrameNum, 0.0f);
 				aParticle->mFreeEmitterNumberVariation = (float)((double)GetVariationScalar() * aVariation);
 			}
 		}

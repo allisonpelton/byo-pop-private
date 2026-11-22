@@ -100,6 +100,10 @@ public:
 	// right to its end); SaveState (0x56eed0 (bejeweled3)) is not translated
 	bool LoadCachedState();
 
+	// 0x567930 (bejeweled3): a new effect made from this one, starting over (what PopAnim makes of the resource
+	// manager's effect); the caller owns it
+	PIEffect* Duplicate() const;
+
 	// port: makes the layers and emitter instances from the definition (the exe makes them while it reads the file)
 	void CreateLayers();
 

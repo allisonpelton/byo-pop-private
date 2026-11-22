@@ -145,7 +145,7 @@ struct PIEmitter {
 	PIValue mSpinVariation;              // +0xa88
 	PIValue mMotionRandomnessVariation;  // +0xae4
 	PIValue mBounceVariation;            // +0xb40
-	PIValue mValueD;                     // +0xb9c
+	PIValue mFreeEmitterNumberVariation;   // +0xb9c: the variation of the number of free emitters a particle makes
 	PIValue mNumberOverLife;             // +0xbf8
 	PIValue mSizeOverLife;               // +0xc54
 	PIValue mValueE;                     // +0xcb0
@@ -168,13 +168,13 @@ struct PIEmitterInstanceDef {
 	int mStartOffset;                    // +0x01c
 	int mEmitterIndex;                   // +0x020: which of the effect's emitters
 	int mShape;                          // +0x024: 1 line, 2 ellipse, 3 grid, 4 circle
-	bool mFlagA;                         // +0x028
-	bool mFlagB;                         // +0x029
+	bool mFlipsTurn;                    // +0x028: the shape turns the particles the other way (false: the first way; GetShapeTurnSign)
+	bool mRandomTurn;                   // +0x029: with mFlipsTurn, the way is chosen at random for each particle (else the second way)
 	int mShapeCount;                     // +0x02c: the points a line, circle or grid has (0 for the whole shape)
 	int mShapeRows;                      // +0x030
 	bool mHasFreeEmitters;               // +0x034
 	std::vector<int> mFreeEmitterIndices;   // +0x038: emitters spawned by this one's particles
-	bool mFlagC;                         // +0x050
+	bool mMaskInverted;                 // +0x050: the points the mask picture allows are its transparent ones (else the opaque ones)
 	PIValue2D mPosition;                 // +0x058
 	Color mColor;                        // +0x080: 0 to 255 for each of red, green, blue; alpha 255
 	std::string mMaskImageName;          // +0x090 (the image itself is a SharedImageRef in the original)
@@ -198,8 +198,8 @@ struct PIEmitterInstanceDef {
 	PIValue mSizeYScale;                 // +0x6d4
 	PIValue mValueH;                     // +0x730
 	std::vector<PIValue2D> mPoints;      // +0x798: the points a line (or the polygon of a shape) goes through
-	PIEmitterInstanceDef() : mStartOffset(0), mEmitterIndex(0), mShape(0), mFlagA(false), mFlagB(false), mShapeCount(0),
-		mShapeRows(0), mHasFreeEmitters(false), mFlagC(false) {}
+	PIEmitterInstanceDef() : mStartOffset(0), mEmitterIndex(0), mShape(0), mFlipsTurn(false), mRandomTurn(false), mShapeCount(0),
+		mShapeRows(0), mHasFreeEmitters(false), mMaskInverted(false) {}
 };
 
 // 0x178 bytes: a force field that bends the particles passing through its polygon
@@ -208,13 +208,13 @@ struct PIDeflector {
 	float mBounce;                       // +0x1c
 	float mHits;                         // +0x20
 	float mAllowedDirection;             // +0x24
-	bool mFlagA;                         // +0x28
+	bool mShown;                        // +0x28: the editor draws it (the draw does not; nothing in the game's files sets it)
 	PIValue2D mPosition;                 // +0x30
 	PIValue mActive;                     // +0x90
 	PIValue mAngle;                      // +0xec
 	std::vector<PIValue2D> mPoints;      // +0x154
 	std::vector<PIPoint> mTransformedPoints;   // +0x16c: where the points are now (Update)
-	PIDeflector() : mBounce(0.0f), mHits(0.0f), mAllowedDirection(0.0f), mFlagA(false) {}
+	PIDeflector() : mBounce(0.0f), mHits(0.0f), mAllowedDirection(0.0f), mShown(false) {}
 };
 
 // 0x150 bytes: a polygon that hides what is behind it (DrawLayer fills it, with the layer's picture when it has one)
@@ -229,14 +229,14 @@ struct PIBlocker {
 // 0x2f8 bytes: a force that pushes the particles inside its rectangle
 struct PIForce {
 	std::string mName;                   // +0x04
-	bool mFlagA;
+	bool mShown;                        // the editor draws it (nothing in the game's files sets it)
 	PIValue2D mPosition;                 // +0x20
 	// +0x80 how strong, +0xdc the direction (degrees), +0x138 (nothing reads it), +0x194 the rectangle's angle,
 	// +0x1f0 its width, +0x24c its height; the file has a seventh curve that the exe's size leaves no room for (see
 	// the report)
 	PIValue mCurves[7];
 	PIPoint mCorners[5];                 // +0x2a8: the rectangle's four corners and its middle now (Update)
-	PIForce() : mFlagA(false) { for (int i = 0; i < 5; i++) { mCorners[i].mX = 0.0; mCorners[i].mY = 0.0; } }
+	PIForce() : mShown(false) { for (int i = 0; i < 5; i++) { mCorners[i].mX = 0.0; mCorners[i].mY = 0.0; } }
 };
 
 // 0x150 bytes: a layer of an effect, with its emitters, deflectors, blockers and forces

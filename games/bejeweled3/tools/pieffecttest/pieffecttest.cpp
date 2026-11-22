@@ -304,6 +304,7 @@ int main(int argc, char** argv)
 	int aPeakParticles = 0;
 	Hasher aTotalHash;
 	Hasher aPlayHash;
+	int aDuplicates = 0, aCopyDiffers = 0;   // duplicates played, and the ones that played differently from the original
 	Hasher aDrawHash;
 	int aDrawFailed = 0;
 	int aDrawCount = 0;
@@ -341,9 +342,9 @@ int main(int argc, char** argv)
 			const PILayerDef& aLayerDef = anEffect.mDef.mLayers[i];
 			aBlockerCount += aLayerDef.mBlockers.size();
 			for (size_t j = 0; j < aLayerDef.mDeflectors.size(); j++)
-				aShownDeflectors += aLayerDef.mDeflectors[j].mFlagA ? 1 : 0;
+				aShownDeflectors += aLayerDef.mDeflectors[j].mShown ? 1 : 0;
 			for (size_t j = 0; j < aLayerDef.mForces.size(); j++)
-				aShownForces += aLayerDef.mForces[j].mFlagA ? 1 : 0;
+				aShownForces += aLayerDef.mForces[j].mShown ? 1 : 0;
 		}
 		anEmitterCount += anEffect.mDef.mEmitters.size();
 		aLayerCount += anEffect.mDef.mLayers.size();
@@ -364,9 +365,22 @@ int main(int argc, char** argv)
 		anEffect.ResetAnim();
 		anEffect.mSeeds.assign(1, 1234);
 		int aFilePeak = 0;
+		// a duplicate (what an animation plays) is played beside it and must do the same (an effect with a cached
+		// state is left out: the duplicate does not take that)
+		PIEffect* aCopy = anEffect.mCachedState.empty() ? anEffect.Duplicate() : NULL;
+		Hasher aCopyOriginalHash, aCopyHash;
 		for (int anUpdate = 0; anUpdate < kPlayUpdates; anUpdate++) {
 			anEffect.Update();
 			aUpdateCount++;
+			if (aCopy != NULL) {
+				aCopy->Update();
+				if (anUpdate % kHashEvery == kHashEvery - 1) {
+					HashParticles(aCopyOriginalHash, anEffect);
+					HashParticles(aCopyHash, *aCopy);
+				}
+				if (aCopy->mParticleCount != anEffect.mParticleCount || aCopy->mEmitterCount != anEffect.mEmitterCount)
+					aCopyDiffers++;
+			}
 			int aCounts[2] = {anEffect.mParticleCount, anEffect.mEmitterCount};
 			aPlayHash.Add(aCounts, sizeof(aCounts));
 			if (anEffect.mParticleCount > aFilePeak)
@@ -376,6 +390,12 @@ int main(int argc, char** argv)
 		}
 		if (aFilePeak > aPeakParticles)
 			aPeakParticles = aFilePeak;
+		if (aCopy != NULL) {
+			aDuplicates++;
+			if (aCopyOriginalHash.mHash != aCopyHash.mHash)
+				aCopyDiffers++;
+			delete aCopy;
+		}
 
 		if (aVerbose) {
 			std::printf("%s: v%d %zu/%zu bytes, %zu textures, %zu emitters (%zu particle defs), %zu layers (%zu emitter instances), "
@@ -449,7 +469,8 @@ int main(int argc, char** argv)
 	            aShownForces);
 	std::printf("played: %lld updates, %d cached states not read to their end, at most %d particles; hash %016llx\n",
 	            aUpdateCount, aBadState, aPeakParticles, (unsigned long long)aPlayHash.mHash);
+	std::printf("duplicates: %d played beside their originals, %d differed\n", aDuplicates, aCopyDiffers);
 	std::printf("drawn: %d frames, %d effects not loaded with pictures, %lld lit pixels, %d with an area; hash %016llx\n", aDrawCount, aDrawFailed,
 	            aLitPixels, aAreaFrames, (unsigned long long)aDrawHash.mHash);
-	return aFailed == 0 && anInexact == 0 && aBadState == 0 && aDrawFailed == 0 ? 0 : 1;
+	return aFailed == 0 && anInexact == 0 && aBadState == 0 && aDrawFailed == 0 && aCopyDiffers == 0 ? 0 : 1;
 }

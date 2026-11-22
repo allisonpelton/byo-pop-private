@@ -11,8 +11,11 @@
 #include "Image.h"
 #include "MemoryImage.h"
 #include "PIEffect.h"
+#include "PIEffectMath.h"
 #include "PopAnimModParser.h"
 #include "PopAnimNames.h"
+#include "PrimeResourceManager.h"
+#include "X86Math.h"
 #include "SexyAppBase.h"
 
 using namespace Sexy;
@@ -133,6 +136,8 @@ PopAnim::PopAnim(int theId, PopAnimListener* theListener) : mAnimColor(Color::Wh
 	mTransitionElapsed = 0;
 	mStartDelay = 0;
 	mRandSeeded = false;
+	mEffectOffsetX = 0.0;
+	mEffectOffsetY = 0.0;
 	mTransform.LoadIdentity();
 	mDrawAdditive = false;
 	mTransformsStale = true;
@@ -226,6 +231,8 @@ void PopAnim::CopyFrom(const PopAnim* theOther)
 	mImages = theOther->mImages;
 	mData = theOther->mData;
 	mDataUsers = theOther->mData != nullptr ? theOther->mDataUsers + 1 : 0;
+	mEffectOffsetX = theOther->mEffectOffsetX;
+	mEffectOffsetY = theOther->mEffectOffsetY;
 	mTransform = theOther->mTransform;
 	mAnimColor = theOther->mAnimColor;
 	mDrawAdditive = theOther->mDrawAdditive;
@@ -1070,7 +1077,7 @@ static std::string WithoutSpaces(const std::string& theText)
 // (frames to wait, or "from,to" for a random number of them), "playsample" (the sample, then "volume=" and "pan="
 // as the listener's ones), "addparticleeffect" (the effect, then "x=", "y=", "attachemitter", "once", "behind" and
 // "transform").
-void PopAnim::FrameHit(PASpriteInst* theInst, PAFrame& theFrame, PAObjectPos* /*theObject*/)
+void PopAnim::FrameHit(PASpriteInst* theInst, PAFrame& theFrame, PAObjectPos* theObject)
 {
 	theInst->mFrameChanged = false;
 	for (size_t i = 0; i < theFrame.mObjectPosVector.size(); i++) {
@@ -1156,9 +1163,9 @@ void PopAnim::FrameHit(PASpriteInst* theInst, PAFrame& theFrame, PAObjectPos* /*
 				if (aHasIt)
 					continue;
 			}
-			// port: the exe makes the effect itself when the listener does not (0x567930 (bejeweled3) duplicates the resource
-			// manager's, 0x566e40 (bejeweled3) and LoadEffect read a .ppf and seed its generator); that waits for PIEffect's update
 			PIEffect* anEffect = mListener != nullptr ? mListener->PopAnimCreateEffect(mId, anEffectName) : nullptr;
+			if (anEffect == nullptr)
+				anEffect = MakeEffect(anEffectName);
 			if (anEffect != nullptr) {
 				PAEffectLayer aLayer;
 				aLayer.mEffect = anEffect;
@@ -1169,22 +1176,106 @@ void PopAnim::FrameHit(PASpriteInst* theInst, PAFrame& theFrame, PAObjectPos* /*
 				aLayer.mFollowsSprite = aFollows;
 				aLayer.mX = aX;
 				aLayer.mY = aY;
-				theInst->mEffects.push_back(aLayer);
+				AddEffect(theInst, anEffect, aLayer, theObject);
 			}
 		}
 	}
 }
 
+// port: the part of FrameHit (0x445c00 (bejeweled3)) that makes the effect when the listener does not. The resource
+// manager's effect for the path of "<name>\<name>.ppf" beside the .pam (then the same one folder up) or for the id
+// "PIEFFECT_<NAME>" is duplicated (0x567930 (bejeweled3)); without one, a new effect reads that .ppf, the one a folder up,
+// the ".ip3" beside the .pam and the ".ip3" in each of the image folders (PIEffect::Load reads only ".ppf" files). Null when
+// there is none (the effect is not made and the command does nothing)
+PIEffect* PopAnim::MakeEffect(const std::string& theEffectName)
+{
+	std::string aPamDir = GetFileDir(mPamFileName);
+	std::string aPath = GetPathFrom(theEffectName + "\\" + theEffectName, aPamDir);
+	std::string aParentPath = GetPathFrom("..\\" + theEffectName + "\\" + theEffectName, aPamDir);
+
+	PrimeResourceManager* aResourceManager =
+		gSexyAppBase != nullptr ? dynamic_cast<PrimeResourceManager*>(gSexyAppBase->mResourceManager) : nullptr;
+	if (aResourceManager != nullptr) {
+		PIEffect* aResourceEffect = aResourceManager->FindPIEffectByPath(aPath + ".ppf");
+		if (aResourceEffect == nullptr)
+			aResourceEffect = aResourceManager->FindPIEffectByPath(aParentPath + ".ppf");
+		if (aResourceEffect == nullptr)
+			aResourceEffect = aResourceManager->FindPIEffect("PIEFFECT_" + StringToUpper(theEffectName));
+		if (aResourceEffect != nullptr)
+			return aResourceEffect->Duplicate();
+	}
+
+	PIEffect* anEffect = new PIEffect();
+	anEffect->LoadEffect(aPath + ".ppf");
+	if (anEffect->mError.empty())
+		return anEffect;
+	anEffect->LoadEffect(aParentPath + ".ppf");
+	if (anEffect->mError.empty())
+		return anEffect;
+	anEffect->LoadEffect(aPath + ".ip3");
+	if (anEffect->mError.empty())
+		return anEffect;
+	for (size_t i = 0; i < mImageFolders.size(); i++) {
+		anEffect->LoadEffect(mImageFolders[i] + theEffectName + ".ip3");
+		if (anEffect->mError.empty())
+			return anEffect;
+	}
+	delete anEffect;
+	return nullptr;
+}
+
+// port: the rest of FrameHit's "addparticleeffect" (0x445c00 (bejeweled3)): the first effect seeds the animation's own
+// generator from the game's, and each effect is seeded from it (one of the effect's own seeds when it has some); an
+// effect for an object that plays ahead is run as many updates as that is long (the frames, over the object's time
+// scale and the sprite's frame rate, as hundredths); then it is put on the sprite
+void PopAnim::AddEffect(PASpriteInst* theInst, PIEffect* theEffect, const PAEffectLayer& theLayer, PAObjectPos* theObject)
+{
+	if (!mRandSeeded) {
+		mRandSeeded = true;
+		mRand.SRand((unsigned long)Rand());
+	}
+	unsigned long aSeed;
+	if (theEffect->mSeeds.empty())
+		aSeed = mRand.NextNoAssert();
+	else
+		aSeed = (unsigned long)theEffect->mSeeds[mRand.NextNoAssert() % (unsigned long)theEffect->mSeeds.size()];
+	theEffect->mRand.SRand(aSeed);
+	theEffect->mNeedsSeed = false;
+	if (theObject != nullptr && theInst->mDef->mFrameRate != 0.0f) {
+		int anUpdateCount = Ftol((double)theObject->mPreloadFrames / (double)theObject->mTimeScale /
+		                         (double)theInst->mDef->mFrameRate * 100.0 + 0.5);
+		for (; anUpdateCount > 0; anUpdateCount--)
+			theEffect->Update();
+	}
+	theInst->mEffects.push_back(theLayer);
+}
+
 // 0x4482a0 (bejeweled3): runs the effects of a sprite and of what is below it; one that has finished is taken off.
-// The effect's matrix (where the sprite is, the draw scale, the mirror) is not set: it waits for PIEffect's drawing.
+// Before each update the effect gets its matrix: where its layer is on the object (or at the origin when the object
+// is not given, or the effect is attached to an emitter), turned over across the animation's middle when mirrored, and
+// scaled by the draw scale; an effect that follows its sprite also runs at the speed of the object's time scale
 void PopAnim::UpdateEffects(PASpriteInst* theInst, PAObjectPos* theObject)
 {
 	if (theInst == nullptr)
 		return;
 	for (size_t i = 0; i < theInst->mEffects.size(); i++) {
 		PAEffectLayer& aLayer = theInst->mEffects[i];
-		(void)theObject;
-		aLayer.mEffect->Update();
+		PIEffect* anEffect = aLayer.mEffect;
+		PIPoint aPosition = {0.0, 0.0};
+		// port: the exe reads the object without looking, which fails for the main sprite; here that is the origin
+		if (!aLayer.mAttachToEmitter && theObject != nullptr)
+			aPosition = PIMath::TransformPoint(theObject->mTransform, (float)aLayer.mX, (float)aLayer.mY);
+		anEffect->mDrawTransform.LoadIdentity();
+		PIMath::Translate(anEffect->mDrawTransform, (float)aPosition.mX, (float)aPosition.mY);
+		if (mMirror) {
+			PIMath::Translate(anEffect->mDrawTransform, (float)-(mPamWidth / 2), 0.0f);
+			PIMath::Scale(anEffect->mDrawTransform, -1.0f, 1.0f);
+			PIMath::Translate(anEffect->mDrawTransform, (float)(mPamWidth / 2), 0.0f);
+		}
+		PIMath::Scale(anEffect->mDrawTransform, mDrawScale, mDrawScale);
+		if (aLayer.mFollowsSprite && theObject != nullptr)
+			anEffect->mAnimSpeed = (float)(1.0 / (double)theObject->mTimeScale);
+		anEffect->Update();
 		aLayer.mUpdateStamp = mUpdateCnt;
 		if (!aLayer.mEffect->IsActive()) {
 			delete aLayer.mEffect;
@@ -1321,7 +1412,8 @@ void PopAnim::BlendObject(PASpriteInst* theInst, int theObjectIndex, bool theFor
 
 // 0x447f70 (bejeweled3): works out where each sprite of the animation is, in the main sprite's space: a sprite's
 // own transform and color are those of its object in the frame its parent is at (mTransform and the animation's
-// color for the main sprite). The effects' matrices are not set (see UpdateEffects).
+// color for the main sprite). Then the matrix of each effect attached to an emitter of this sprite: its own place on
+// the sprite, or the middle of the effect when it follows the sprite's transform, put through the sprite's transform
 void PopAnim::UpdateTransforms(PASpriteInst* theInst, const SexyMatrix3* theParentTransform, const Color* theParentColor,
                                bool theForceStill)
 {
@@ -1342,16 +1434,54 @@ void PopAnim::UpdateTransforms(PASpriteInst* theInst, const SexyMatrix3* thePare
 		if (aChild != nullptr)
 			UpdateTransforms(aChild, &aMatrix, &aColor, aStill);
 	}
+	for (size_t i = 0; i < theInst->mEffects.size(); i++) {
+		PAEffectLayer& aLayer = theInst->mEffects[i];
+		if (!aLayer.mAttachToEmitter)
+			continue;
+		PIEffect* anEffect = aLayer.mEffect;
+		SexyMatrix3 aPlace;
+		aPlace.LoadIdentity();
+		if (aLayer.mFollowsSprite) {
+			PIMath::Translate(aPlace, (float)(0.5 * (double)anEffect->mWidth), (float)(0.5 * (double)anEffect->mHeight));
+			aPlace = PIMath::Multiply(theInst->mTransform, aPlace);
+		}
+		else {
+			PIPoint aPosition = PIMath::TransformPoint(theInst->mTransform, (float)aLayer.mX, (float)aLayer.mY);
+			PIMath::Translate(aPlace, (float)aPosition.mX, (float)aPosition.mY);
+		}
+		anEffect->mDrawTransform2 = aPlace;
+		PIMath::Translate(anEffect->mDrawTransform2, (float)mEffectOffsetX, (float)mEffectOffsetY);
+	}
 }
 
 // 0x444410 (bejeweled3): draws the effects of a sprite that are behind its objects (theInFront false) or in front.
-// The effect's matrix and color are not set (see UpdateEffects).
-void PopAnim::DrawEffects(Graphics* g, PASpriteInst* theInst, bool theInFront)
+// An effect that follows its sprite is put where the sprite is (the middle of the effect on the parent's transform, or
+// at the origin, offset, when it is attached to an emitter) and takes the parent's color
+void PopAnim::DrawEffects(Graphics* g, PASpriteInst* theInst, const SexyMatrix3* theParentTransform,
+                          const Color* theParentColor, bool theInFront)
 {
 	for (size_t i = 0; i < theInst->mEffects.size(); i++) {
 		PAEffectLayer& aLayer = theInst->mEffects[i];
+		PIEffect* anEffect = aLayer.mEffect;
+		if (aLayer.mFollowsSprite) {
+			if (!aLayer.mAttachToEmitter) {
+				SexyMatrix3 aPlace;
+				aPlace.LoadIdentity();
+				PIMath::Translate(aPlace, (float)(0.5 * (double)anEffect->mWidth), (float)(0.5 * (double)anEffect->mHeight));
+				// port: the exe reads the parent's matrix without looking, which fails for the main sprite
+				if (theParentTransform != nullptr)
+					anEffect->mDrawTransform = PIMath::Multiply(*theParentTransform, aPlace);
+				else
+					anEffect->mDrawTransform = aPlace;
+			}
+			else {
+				anEffect->mDrawTransform.LoadIdentity();
+				PIMath::Translate(anEffect->mDrawTransform, (float)-mEffectOffsetX, (float)-mEffectOffsetY);
+			}
+			anEffect->mColor = *theParentColor;
+		}
 		if (aLayer.mBehind == !theInFront)
-			aLayer.mEffect->Draw(g);
+			anEffect->Draw(g);
 	}
 }
 
@@ -1375,7 +1505,7 @@ void PopAnim::Draw(Graphics* g)
 void PopAnim::DrawSprite(Graphics* g, PASpriteInst* theInst, const SexyMatrix3* theParentTransform,
                          const Color* theParentColor, bool theAdditive, bool theForceStill)
 {
-	DrawEffects(g, theInst, false);
+	DrawEffects(g, theInst, theParentTransform, theParentColor, false);
 	PAFrame& aFrame = theInst->mDef->mFrames[(int)theInst->mFrameNum];
 	bool aStill = theForceStill || theInst->mDelayFrames > 0 || aFrame.mHasStop;
 
@@ -1511,7 +1641,7 @@ void PopAnim::DrawSprite(Graphics* g, PASpriteInst* theInst, const SexyMatrix3* 
 			aSlot.mWantsPostDraw = mListener->PopAnimPostDraw(mId, g, theInst, &aSlot);
 	}
 
-	DrawEffects(g, theInst, true);
+	DrawEffects(g, theInst, theParentTransform, theParentColor, true);
 	g->SetColorizeImages(false);
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 }

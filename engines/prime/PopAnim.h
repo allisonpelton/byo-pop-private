@@ -14,10 +14,8 @@
 // Not translated: the mirrored drawing (DrawSpriteMirrored 0x448da0 (bejeweled3); mMirror is set by nothing in the
 // game), saving and loading the animation's state (0x445540 (bejeweled3), 0x4453b0 (bejeweled3), 0x445760 (bejeweled3),
 // 0x445a00 (bejeweled3), used by saved games only), the transition between two animations (0x444910 (bejeweled3): the
-// game never starts one, so mTransitionTime stays 0), the debugging outlines (+0xbfb), and what the exe does with a
-// particle effect: its creation from the resource manager and from files (inside FrameHit, 0x445c00 (bejeweled3)), its
-// matrix and color (0x447f70 (bejeweled3), 0x444410 (bejeweled3)), which wait for PIEffect's update and drawing
-// (games/bejeweled3/docs/NOTES.md, "Particles").
+// game never starts one, so mTransitionTime stays 0), the debugging outlines (+0xbfb), and the particle effect formats
+// the exe reads besides .ppf (the ".ip3" names FrameHit tries, which PIEffect::Load does not read, so those tries fail).
 //
 // The older player, Bejeweled Twist's copy (games/bejeweledtwist/popanim), is the same idea in a simpler form.
 #pragma once
@@ -28,6 +26,7 @@
 #include <vector>
 
 #include "Color.h"
+#include "MTRand.h"
 #include "PopAnimData.h"
 #include "SexyMatrix.h"
 #include "Widget.h"
@@ -93,7 +92,11 @@ public:
 	float mTransitionTime;        // +0x1d8, nothing starts a transition: always 0
 	float mTransitionElapsed;     // +0x1dc
 	float mStartDelay;            // +0x1e0, time before the animation starts moving (nothing sets it)
-	bool mRandSeeded;             // +0xba8
+	bool mRandSeeded;             // +0xba8: mRand has been seeded (by the first effect made)
+	MTRand mRand;                 // +0x1e4: seeds the effects the animation makes
+	// +0xbb0, +0xbb8: where the effects that are attached to an emitter or follow a sprite are put off from their
+	// place; nothing in the exe sets them, so they stay 0
+	double mEffectOffsetX, mEffectOffsetY;
 	SexyMatrix3 mTransform;       // +0xbc0, where the animation is, put on every object (identity unless the game moves it)
 	Color mAnimColor;             // +0xbe4, multiplies every color in the animation
 	bool mDrawAdditive;           // +0xbf4, the whole animation is drawn with the additive blend
@@ -175,7 +178,13 @@ private:
 	void UpdateEffects(PASpriteInst* theInst, PAObjectPos* theObject);                 // 0x4482a0 (bejeweled3)
 	void RemoveStaleEffects(PASpriteInst* theInst, bool theAll);                       // 0x4485e0 (bejeweled3)
 	void ResetSprite(PASpriteInst* theInst);                   // 0x444310 (bejeweled3)
-	void DrawEffects(Graphics* g, PASpriteInst* theInst, bool theInFront);             // 0x444410 (bejeweled3)
+	void DrawEffects(Graphics* g, PASpriteInst* theInst, const SexyMatrix3* theParentTransform,
+	                 const Color* theParentColor, bool theInFront);   // 0x444410 (bejeweled3)
+	// port: the part of FrameHit (0x445c00 (bejeweled3)) that makes the effect an "addparticleeffect" command names
+	// when the listener does not: the resource manager's (duplicated), or a file. Null when there is none
+	PIEffect* MakeEffect(const std::string& theEffectName);
+	// port: the part of FrameHit that seeds a new effect, runs it ahead and puts it on the sprite
+	void AddEffect(PASpriteInst* theInst, PIEffect* theEffect, const PAEffectLayer& theLayer, PAObjectPos* theObject);
 	void ResetPlayback();                                      // 0x4445a0 (bejeweled3)
 	void RunToWorkRange();                                     // 0x4445f0 (bejeweled3)
 
