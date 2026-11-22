@@ -40,7 +40,8 @@
 #                (the live -commands channel driven as a driver drives it, with -script's dispatch and with -realinput's);
 #                and tools/playbymove on fwtest (the shared driver loop plays its small task by its "move" answers under
 #                -hold, twice, with the same transcript); and tools/modtextcheck.py (every mod's labels, helps and
-#                units within the limits platform/ModSettings.cpp cuts them to: games/*/mods and the menu's fixtures)
+#                units within the limits platform/ModSettings.cpp cuts them to: games/*/mods and the menu's fixtures); and
+#                tools/screenchecktest.py (the `screens` suite's checker on fixture folders)
 #   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
@@ -71,6 +72,9 @@
 #   gpu          the GL GPUInterface's Direct3D 9 conventions on the real GPU (tools/gputest: clears, pixel centres,
 #                depth, culling, matrices, textures, render targets, blending, alpha test, texture stages, scissor,
 #                lighting, game shaders, buffers, precompiled programs, the null device), exact pixels (seconds)
+#   screens      every game's games/<game>/docs/SCREENS.md against its newest shotdiff run (tools/screencheck.py, docs/SHOTDIFF.md,
+#                "Every screen, listed"): each row has shots or a reason, each shot a matching pair, or a differing one marked fine or
+#                explained; a game with no list is reported as "no list yet" and does not fail yet (seconds; needs no game files)
 #   origrun      tools/origrun/build.sh into build/logs/check/origrun-bin (not into build/origrun-bin, whose origrun.exe
 #                may be running): that the host and its sound stand-in still compile, and --coverage on covtest.exe
 #                (tools/origrun/covtest.sh; seconds), and the network block and launch guard on nettest.exe (tools/origrun/nettest.sh; seconds);
@@ -229,7 +233,7 @@
 #                  web/shell.html or a link option relinks every game's wasm: about 6 minutes)
 #   tools/<x>/**   shotdiff: unit. gputest: build gpu. modmenutest: modmenu. origrun: origrun. The web test scripts
 #                  (tools/*.js, paktest): unit-web. fwtest, geomtest, wraptest, stretchcal, jp2test, songpostest, soundtest, spectrumtest, build.sh,
-#                  check.sh, rundesk, modtextcheck.py: build unit. modsettingstest, jpegtest and fixtures: build unit, build-web:<test> and
+#                  check.sh, rundesk, modtextcheck.py: build unit. screencheck.py and screenchecktest.py: unit screens. games/*/docs/SCREENS.md: screens (the rest of a game's docs: no suite). modsettingstest, jpegtest and fixtures: build unit, build-web:<test> and
 #                  unit-web. Anything else under tools/, and any file not named here: build
 #   framework/**, platform/**, third_party/**, CMakeLists.txt, the other cmake/**: without --inert, every suite, as `all`.
 #                  With --inert (the review found every shared change off unless a game opts in, or reached only from the
@@ -328,8 +332,8 @@ QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads pizzafrenzy)
 # the oracle is left out of `all` and of shared code's "every suite" (the user, 2026-11-11: "Seems like the Bejeweled oracle
 # is causing a lot of slowdown for no benefit"); it runs when games/bejeweled changes, or when named
-ALL_SUITES=(build build-web build-nov unit unit-web gpu verify modmenu livesplit "${GAME_SUITES[@]}")
-ORDER=(build build-web build-nov unit gpu origrun modmenu livesplit "${GAME_SUITES[@]}" unit-web verify oracle)
+ALL_SUITES=(build build-web build-nov unit unit-web gpu screens verify modmenu livesplit "${GAME_SUITES[@]}")
+ORDER=(build build-web build-nov unit gpu screens origrun modmenu livesplit "${GAME_SUITES[@]}" unit-web verify oracle)
 # the suites that read build/web, and so wait for a build-web running in the background (below)
 needs_web() { case "$1" in unit-web|verify|oracle) return 0 ;; esac; return 1; }
 known_suite() { case " ${ORDER[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
@@ -341,7 +345,7 @@ suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bon
 # ---- merge mode (--changed): the suites a change can affect ----
 
 # Rough seconds on this machine (the last `all` run, 2026-11-02); the plan adds them up, no more
-declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [origrun]=5 [verify]=42 [modmenu]=50
+declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
 	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [pizzafrenzy]=180 [oracle]=1080)
@@ -407,6 +411,9 @@ classify() {  # <path>: chooses the suites a changed file needs
 	local p="$1" g rest x s
 	area_of "$p"
 	case "$p" in
+		games/*/docs/SCREENS.md) pick screens "$AREA" "$p"; return ;;  # a game's list of its screens (docs only otherwise)
+	esac
+	case "$p" in
 		*.md|docs/*|testnotes/*|.publishignore|.gitignore|.gitattributes|.claude/*) NOTHING=$((NOTHING + 1)); return ;;
 	esac
 	case "$p" in
@@ -451,6 +458,7 @@ classify() {  # <path>: chooses the suites a changed file needs
 					note build-web "$AREA" "$p"; web_add jpegtest ;;
 				fwtest/*|geomtest/*|wraptest/*|stretchcal/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh|modtextcheck.py)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
+				screencheck.py|screenchecktest.py) pick unit "$AREA" "$p"; pick screens "$AREA" "$p" ;;
 				*/*) pick build "$AREA" "$p" ;;  # smoke, ghidra_scripts and the rest: nothing runs them, but a build shows a broken tree
 				*.js|*.mjs) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
 				*) pick build "$AREA" "$p" ;;
@@ -850,11 +858,15 @@ suite_unit() {
 	local mt
 	timeout 60 python -I tools/modtextcheck.py > "$1.mtc" 2>&1 || st=1
 	mt="$(tail -1 "$1.mtc")"
+	# the screens checker on fixture folders
+	local sct
+	timeout 60 python -I tools/screenchecktest.py > "$1.sct" 2>&1 || st=1
+	sct="$(tail -1 "$1.sct")"
 	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" \
-		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" >> "$1"
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" "$1.sct" >> "$1"
 	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" \
-		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $sc; $k; $fl; $l; $pm; $jp; $mt"
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" "$1.sct"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $sc; $k; $fl; $l; $pm; $jp; $mt; $sct"
 	return $st
 }
 
@@ -963,6 +975,13 @@ suite_gpu() {
 	(cd build/native && timeout 120 ./gputest.exe) > "$1" 2>&1
 	local st=$?
 	SUMMARY="$(lastof "$1" '^gpu:')"
+	return $st
+}
+
+suite_screens() {  # every game's SCREENS.md against its newest shotdiff run
+	python -I tools/screencheck.py > "$1" 2>&1
+	local st=$?
+	SUMMARY="$(lastof "$1" '^screens:')"
 	return $st
 }
 
