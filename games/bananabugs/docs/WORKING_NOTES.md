@@ -141,3 +141,9 @@ The finished translations to copy the style from: `src/PopCap.cpp`, `src/Transit
 - Float constants: the decompile prints short rounded literals; Stats uses the exe's exact values (12.566371f,
   1.5707964f and so on). BananaBonus.cpp's 12.5664f, 6.37045f and 1.5708f are probably the same rounding: check them
   against the hex in the disassembly in the logic pass.
+- BonusZuma's Update (0x412f20..) starts its end fade every frame the frog's cell stays cut, restarting the track each
+  frame, so the bonus never ends while that lasts. The port's mEnding makes End run once. That changes what the
+  original does: check in the original whether the frog ever goes on a cut cell and whether anything is blocked (a
+  next bonus, the level's end) before keeping it as a fix of a soft lock; otherwise it belongs to the fixes mod.
+- BonusParrot reads the link of a null next pipe at a wall's end or on a cell with no wall (a crash in the port); the
+  port ends the bonus there. To check what the original does at that place (it reads whatever lies at that address).

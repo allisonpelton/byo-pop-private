@@ -11,10 +11,9 @@ namespace Sexy
 
 class Anim;
 
-class BonusFlyPaper : public BonusDropper
+class BonusFlyPaper : public BonusFadingDropper
 {
 public:
-	int mEndTrack;           // +0x2e0: the paper fades out; its last key's event 7 puts the bonus away
 	int mUnused2e4;          // +0x2e4: nothing sets or reads it
 
 	static Anim* sPaperAnim; // 0x60e1d4: "images/bonus_paper"
@@ -24,7 +23,6 @@ public:
 	bool Update() override;                   // 0x40c760 (the same as BonusBomb's)
 	void Notify(ObjBase* theObj) override;    // 0x40c790
 	void Reset() override;                    // 0x40c840
-	void End() override;                      // 0x40c860
 	bool EndWhenBugsGone() override;          // 0x412570 (the base's EndOnLastBug)
 	void Start() override;                    // 0x40c870
 

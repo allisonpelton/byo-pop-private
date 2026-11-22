@@ -21,6 +21,7 @@ public:
 	ObjBase* mDrops[BOMB_DROPS]; // +0x2e4: the spray, each a child of the bomb
 
 	static Anim* sCocoBombAnim; // 0x60e1a8
+	static Anim* sMilkDropAnim; // 0x60e1c8: "images/bonus_milkdrop", the picture of the bomb's drops and of the rain's (BonusRain reads it too)
 
 	BonusBomb();                              // 0x4080c0
 	void Setup(int theKind) override;         // 0x408100

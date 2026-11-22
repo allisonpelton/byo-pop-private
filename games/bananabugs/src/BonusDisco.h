@@ -9,6 +9,8 @@
 namespace Sexy
 {
 
+class Anim;
+
 class BonusDisco : public Bonus
 {
 public:
@@ -21,6 +23,8 @@ public:
 	bool mLanded;            // +0x2ed: the ball has landed (event 4); only then may the last bug's death end the bonus
 	bool mMusicOn;           // +0x2ee: the disco song is playing (sound 90, looped)
 	bool mEndRequested;      // +0x2ef: the last bug was gone before the ball landed: End as soon as an event comes in
+
+	static Anim* sDiscoBallAnim; // 0x60e1c4: "images/bonus_discoball"
 
 	BonusDisco();                             // 0x40b0d0
 	void Setup(int theKind) override;         // 0x40b0f0

@@ -14,6 +14,7 @@
 using namespace Sexy;
 
 Anim* BonusBomb::sCocoBombAnim = nullptr;
+Anim* BonusBomb::sMilkDropAnim = nullptr;
 
 // The key events of the bomb's drop track (the base's events 1 and 2 are not used by the bomb)
 enum BombEvent
@@ -180,8 +181,8 @@ void BonusBomb::BuildDrops()
 		float anAngle = (float)((double)(int)(GameRandomNext() % BOMB_ANGLE_DEGREES) * PI_F / 180.0);
 		ObjBase* aDrop = new ObjBase();
 		mDrops[i] = aDrop;
-		gMilkDropAnim->AddRef();
-		aDrop->mAnim = gMilkDropAnim;
+		sMilkDropAnim->AddRef();
+		aDrop->mAnim = sMilkDropAnim;
 		aDrop->SetParent(this, nullptr);
 		aDrop->SetStateInt(STATE_ALPHA, 0);
 		aDrop->SetStateInt(STATE_SCALE_X, 0);

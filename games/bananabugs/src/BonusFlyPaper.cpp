@@ -85,12 +85,6 @@ void BonusFlyPaper::Reset()
 	Bonus::Reset();
 }
 
-// 0x40c860: the paper fades out
-void BonusFlyPaper::End()
-{
-	StartTrack(mEndTrack);
-}
-
 // 0x412570
 bool BonusFlyPaper::EndWhenBugsGone()
 {

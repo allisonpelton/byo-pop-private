@@ -5,9 +5,15 @@
 #include "BananaBonus.h"
 #include "BonusBomb.h"
 #include "BonusCannon.h"
+#include "BonusDisco.h"
 #include "BonusFlyPaper.h"
 #include "BonusMine.h"
 #include "BonusMissile.h"
+#include "BonusParrot.h"
+#include "BonusSwat.h"
+#include "BonusTarzan.h"
+#include "BonusZapper.h"
+#include "BonusZuma.h"
 #include "BugObj.h"
 #include "Emitter.h"
 #include "GameApp.h"
@@ -70,8 +76,8 @@ Bonus::Bonus()
 	mKeyEventOneSeen = false;
 	memset(mName, 0, sizeof(mName));
 	mHeldCall = false;
-	mUnused280 = 0;
-	mUnused284 = 0;
+	mGridColumn = 0;
+	mGridRow = 0;
 	mKind = 0;
 	for (int i = 0; i < 4; i++)
 		mUnused2c8[i] = 0;
@@ -206,6 +212,51 @@ bool Bonus::EndOnLastBug()
 	return true;
 }
 
+// 0x412530
+void Bonus::DropAndReset()
+{
+	Player::Drop();
+	Bonus::Reset();
+}
+
+// The depth a bonus that is put down is drawn at (design pixels' own units, 0x4151999a)
+const float DROPPED_Z = 13.1f;
+
+// The angle of the orbit for each way the bonus was turned (Bonus::mRotation 1 to 4), in radians (the same four as
+// BonusBomb's)
+const float DROPPED_ANGLE_UP = 0.0f;
+const float DROPPED_ANGLE_RIGHT = 4.71238899f; // 0x4096cbe4
+const float DROPPED_ANGLE_DOWN = 3.14159274f;  // 0x40490fdb
+const float DROPPED_ANGLE_LEFT = 1.57079637f;  // 0x3fc90fdb
+
+// The rest of the dropper's Place (0x40db20), all of the zapper's (0x412670) and the rest of Zuma's (0x413460): they differ
+// in the sound and in the track they start. The bonus goes to the level's object layer without moving on the screen,
+// takes the angle of the way it was turned and starts its drop track. (The bomb's Place, 0x4082c0, is the same without
+// the depth.)
+bool Bonus::PutDown(int theDropTrack)
+{
+	Player::Drop();
+	SetParent(static_cast<LevelObj*>(sLevel)->mObjectLayer, nullptr);
+	SetState(STATE_Z, DROPPED_Z);
+	float aY = (float)(((double)mDrawn[STATE_Y] - (double)mParent->mDrawn[STATE_Y]) * (double)sApp->mWindowToDesignY);
+	float aX = (float)(((double)mDrawn[STATE_X] - (double)mParent->mDrawn[STATE_X]) * (double)sApp->mWindowToDesignX);
+	SetState(STATE_X, aX);
+	SetState(STATE_Y, aY);
+	float anAngle;
+	if (mRotation == 1)
+		anAngle = DROPPED_ANGLE_UP;
+	else if (mRotation == 2)
+		anAngle = DROPPED_ANGLE_RIGHT;
+	else if (mRotation == 3)
+		anAngle = DROPPED_ANGLE_DOWN;
+	else
+		anAngle = DROPPED_ANGLE_LEFT;
+	SetState(STATE_ORBIT_ANGLE, anAngle);
+	ComputeDrawn();
+	StartTrack(theDropTrack);
+	return true;
+}
+
 // 0x406ad0: the bonus is won: its sound, and its message. When the level has already reached its target or has no bug
 // left, there is nothing for the bonus to do and it pays out a bunch of bananas at its own place and is put away
 void Bonus::Start()
@@ -322,17 +373,18 @@ void Sexy::PreloadBonusPictures()
 	BonusMissile::sMissileAnim = Anim::Get("images/missile", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
 	BonusCannon::sCannonBallAnim = Anim::Get("images/cannonball", ANIM_SCALE_SMOOTH, false, 0, 0, 1, true);
 	BonusCannon::sCannonAnim = Anim::Get("images/cannon", ANIM_SCALE_SMOOTH, false, 0, 0, 1, true);
-	gParrotFlyAnim = Anim::Get("images/parrot_fly", ANIM_SCALE_SMOOTH, false, 0x60, 0x60, 0xb, false);
-	gParrotWalkAnim = Anim::Get("images/parrot_walk", ANIM_SCALE_SMOOTH, false, 0x60, 0x60, 0x14, false);
-	gParrotPeckAnim = Anim::Get("images/parrot_peck", ANIM_SCALE_SMOOTH, false, 0x60, 0x60, 0x11, false);
-	gDiscoBallAnim = Anim::Get("images/bonus_discoball", ANIM_SCALE_SMOOTH, false, 0x60, 0x60, 6, true);
-	gMilkDropAnim = Anim::Get("images/bonus_milkdrop", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
-	gDropAnim = Anim::Get("images/drop", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
-	gTarzanAnim = Anim::Get("images/bonus_tarzan", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
+	BonusParrot::sFlyAnim = Anim::Get("images/parrot_fly", ANIM_SCALE_SMOOTH, false, 0x60, 0x60, 0xb, false);
+	BonusParrot::sWalkAnim = Anim::Get("images/parrot_walk", ANIM_SCALE_SMOOTH, false, 0x60, 0x60, 0x14, false);
+	BonusParrot::sPeckAnim = Anim::Get("images/parrot_peck", ANIM_SCALE_SMOOTH, false, 0x60, 0x60, 0x11, false);
+	BonusDisco::sDiscoBallAnim = Anim::Get("images/bonus_discoball", ANIM_SCALE_SMOOTH, false, 0x60, 0x60, 6, true);
+	BonusBomb::sMilkDropAnim = Anim::Get("images/bonus_milkdrop", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
+	// 0x60e1cc: "images/drop" is loaded and kept in a global that no function of the exe reads, so the port keeps no pointer
+	Anim::Get("images/drop", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
+	BonusTarzan::sTarzanAnim = Anim::Get("images/bonus_tarzan", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
 	BonusFlyPaper::sPaperAnim = Anim::Get("images/bonus_paper", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
-	gZapperAnim = Anim::Get("images/bonus_zapper", ANIM_SCALE_SMOOTH, false, 0x3f, 0x55, 2, false);
-	gSwatterAnim = Anim::Get("images/bonus_swatter", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
+	BonusZapper::sZapperAnim = Anim::Get("images/bonus_zapper", ANIM_SCALE_SMOOTH, false, 0x3f, 0x55, 2, false);
+	BonusSwat::sSwatterAnim = Anim::Get("images/bonus_swatter", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
 	BonusMine::sMineAnim = Anim::Get("images/bonus_mine", ANIM_SCALE_SMOOTH, false, 0, 0, 1, true);
-	gZumaAnim = Anim::Get("images/bonus_zuma", ANIM_SCALE_SMOOTH, false, 0x3f, 0x4b, 2, false);
-	gZumaBallAnim = Anim::Get("images/bonus_zuma_ball", ANIM_SCALE_SMOOTH, false, 0, 0, 1, true);
+	BonusZuma::sZumaAnim = Anim::Get("images/bonus_zuma", ANIM_SCALE_SMOOTH, false, 0x3f, 0x4b, 2, false);
+	BonusZuma::sZumaBallAnim = Anim::Get("images/bonus_zuma_ball", ANIM_SCALE_SMOOTH, false, 0, 0, 1, true);
 }

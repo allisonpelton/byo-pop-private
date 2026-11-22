@@ -16,6 +16,8 @@
 
 using namespace Sexy;
 
+Anim* BonusDisco::sDiscoBallAnim = nullptr;
+
 // The key events of the ball's tracks (the base's events 1 and 2 are not used by the disco)
 enum DiscoEvent
 {
@@ -169,8 +171,8 @@ void BonusDisco::Start()
 	Bonus::Start();
 	sApp->mSoundQueue->Request(SOUND_DISCOSONG, 0, true);
 	mMusicOn = true;
-	gDiscoBallAnim->AddRef();
-	mAnim = gDiscoBallAnim;
+	sDiscoBallAnim->AddRef();
+	mAnim = sDiscoBallAnim;
 	SetParent(static_cast<LevelObj*>(sLevel)->mObjectLayer, nullptr);
 	SetStateInt(STATE_X, 0);
 	SetStateInt(STATE_Y, 0);

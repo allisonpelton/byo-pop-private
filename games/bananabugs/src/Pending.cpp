@@ -24,17 +24,6 @@ static Anim* sSlotWinAnim;           // 0x670218
 static Anim* sSlotSpinAnim;          // 0x67021c
 static Anim* sSlotNumbersAnim;       // 0x670220
 static Anim* sSlotShineAnim;         // 0x670224
-Anim* Sexy::gParrotFlyAnim = nullptr;         // 0x60e1b8
-Anim* Sexy::gParrotWalkAnim = nullptr;        // 0x60e1bc
-Anim* Sexy::gParrotPeckAnim = nullptr;        // 0x60e1c0
-Anim* Sexy::gDiscoBallAnim = nullptr;         // 0x60e1c4
-Anim* Sexy::gMilkDropAnim = nullptr;          // 0x60e1c8
-Anim* Sexy::gDropAnim = nullptr;              // 0x60e1cc
-Anim* Sexy::gTarzanAnim = nullptr;            // 0x60e1d0
-Anim* Sexy::gZapperAnim = nullptr;            // 0x60e1d8
-Anim* Sexy::gSwatterAnim = nullptr;           // 0x60e1dc
-Anim* Sexy::gZumaAnim = nullptr;              // 0x60e1e4
-Anim* Sexy::gZumaBallAnim = nullptr;          // 0x60e1e8
 
 static Anim* Load(const char* theName, int theCelWidth, int theCelHeight, int theNumCels, bool uniform = false)
 {
@@ -74,18 +63,3 @@ void Sexy::PreloadSlots()
 	sSlotNumbersAnim = Load("images/slot/slot_numbers", 0x3f, 0x49, 10);
 	sSlotShineAnim = Load("images/slot/slot_shine", 0x100, 0xc0, 4);
 }
-
-// port: the stand-in bonus does nothing when it is won: it is put away at once (Bonus::Reset)
-void PendingBonus::Start()
-{
-	Reset();
-}
-
-BonusShotSpeed::BonusShotSpeed() { mKind = BONUS_SHOT_SPEED; }
-BonusZapper::BonusZapper() { mKind = BONUS_ZAPPER; }
-BonusSwat::BonusSwat() { mKind = BONUS_SWAT; }
-BonusSpearCraft::BonusSpearCraft() { mKind = BONUS_SPEAR_CRAFT; }
-BonusRain::BonusRain() { mKind = BONUS_RAIN; }
-BonusParrot::BonusParrot() { mKind = BONUS_PARROT; }
-BonusTarzan::BonusTarzan() { mKind = BONUS_TARZAN; }
-BonusZuma::BonusZuma() { mKind = BONUS_ZUMA; }

@@ -17,4 +17,14 @@ public:
 	bool Place() override;   // 0x40db20: the bonus is put down where it is, at the angle it was turned to
 };
 
+// A dropper that has a third track, which it starts when the bonus ends (the fly paper, 0x40c700, and the swatter,
+// 0x410e10): they share the one End (0x40c860, which lies in the fly paper's range)
+class BonusFadingDropper : public BonusDropper
+{
+public:
+	int mEndTrack;           // +0x2e0: the fade out that ends in the event that puts the bonus away
+
+	void End() override;     // 0x40c860: the bonus fades out
+};
+
 } // namespace Sexy

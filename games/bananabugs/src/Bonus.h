@@ -58,8 +58,8 @@ class Bonus : public ObjBase
 public:
 	bool mEndsWhenDone;      // +0x27c: kinds 0, 5 and 12: CancelIfDone ends it once it is running
 	bool mHeldCall;          // +0x27d: set by BecomeHeld's argument; nothing in the first half reads it
-	int mUnused280;          // +0x280: nothing sets or reads it
-	int mUnused284;          // +0x284: nothing sets or reads it
+	int mGridColumn;         // +0x280: the place of the grid BonusZuma's Update last found itself over; nothing reads it
+	int mGridRow;            // +0x284
 	int mState;              // +0x288: BonusState
 	int mKind;               // +0x28c: BonusKind
 	int mRotation;           // +0x290: how the held thing lies (RotateHeld's or FlipHeld's result); 1 to start with
@@ -90,6 +90,8 @@ public:
 
 	bool EndOnLastBug();                      // 0x412570: End, and yes (the EndWhenBugsGone of the kinds 2, 3, 10, 12 and 17; it lies in BonusZapper's range)
 	bool UpdateUpright();                     // 0x40c760: the Update of BonusBomb and BonusFlyPaper (it lies in the second half's range)
+	void DropAndReset();                      // 0x412530: lets go of what is held, then the base's Reset (the Reset of the kinds 3 and 4, which lie in BonusZapper's range)
+	bool PutDown(int theDropTrack);           // the body of Place of the droppers (0x40db20), the zapper (0x412670) and Zuma (0x413460) after the sound: the held bonus goes to the object layer where it is and starts its drop track
 	void BecomeHeld(bool theFlag);            // 0x406c30 (AL): held, not turned, in the state 2
 
 	static void Cancel();                     // 0x406cd0: lets go of what is held and ends the running bonus
