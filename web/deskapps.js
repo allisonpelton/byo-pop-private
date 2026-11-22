@@ -3,8 +3,9 @@
 // window?"). On the listing in Desktop 95 the player never leaves the desktop: every page of ours a link, an icon or a menu
 // leads to opens as a window on it.
 //   - a game: its page in a frame (?embed=1: the game, its setup cards and its own windows, no desktop of its own), with a
-//     menu bar for those windows; at most three at once (one on a narrow screen), each with its own heap, files, sound and
-//     keys. Only the active window's game has the focus, so the others get the focus loss they get when a page loses it.
+//     menu bar for those windows, each with its own heap, files, sound and keys. Only the active window's game has the
+//     focus, so the others get the focus loss they get when a page loses it. Every game shares this page's memory, so one
+//     that would take the open games past a memory budget asks first (the user, 2026-11-16: "Make it a warning"; below).
 //   - another page of ours (a game's copyright and licences, the terms): its page in a frame, scrolling with the skin's bars.
 //   - a licence text (licenses/*.txt): the text itself in the window.
 // Links to other sites still open a tab. The address is always the site's root (the user, 2026-11-09: "What we're developing
@@ -17,10 +18,13 @@ var ByopopApps = (function () {
   "use strict";
   var SKIN = window.ByopopSkin, desk = SKIN && SKIN.desk, SITE = SKIN && SKIN.SITE;
   var Q = new URLSearchParams(location.search), SILENT = Q.get("silent") === "1";
-  var MAX_GAMES = 3, NARROW = 760;
+  var NARROW = 760;
   var apps = [], seq = 0, restoring = false;
   function T(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
   function on() { return !!(desk && desk.isOn()); }
+  // the desktop's loading (web/skins.js) waits for the windows start() puts back, with their pages
+  try { SKIN.bootHold("apps"); } catch (e) {}
+  function bootDone() { try { SKIN.bootDone("apps"); } catch (e) {} }
   // the desktop's zoom (web/skins.js): the window's sizes are the screen's CSS pixels, a style's the page's
   function zf() { try { return ByopopSkin.zoom(); } catch (e) { return 1; } }
   function narrow() { return (document.documentElement.clientWidth || window.innerWidth) / zf() < NARROW; }
@@ -73,6 +77,27 @@ var ByopopApps = (function () {
   function byWin(win) { for (var i = 0; i < apps.length; i++) if (apps[i].frame && apps[i].frame.contentWindow === win) return apps[i]; return null; }
   function gameCount() { return apps.filter(function (a) { return a.kind === "game"; }).length; }
 
+  // ---- how many games at once (docs/WEB_PLAYER.md, "Desktop 95 in one page"; the user, 2026-11-16: "Make it a warning") ----
+  // Every game window is a frame of this one page, so they all share one browser process. When it runs out of memory the
+  // browser shows its error in place of the whole page (an iPad reloads it), and every open game closes at once. So each
+  // game has a weight and the browser a budget, and a game that would take the open games' total past the budget asks
+  // first. A weight is the game's own memory at a first board in 100 MB, rounded, at least 1: docs/MEMORY.md, "The web
+  // builds", "At a first board", its renderer private bytes less about 60 MB for the page itself. Bejeweled Twist (about
+  // 400 MB) is 4 and Bookworm Adventures 2 (about 190 MB) is 2; every other game measured comes to 1, and a game not
+  // measured counts 1.
+  var WEIGHTS = { bejeweledtwist: 4, bookwormadv2: 2 };
+  function weightOf(id) { return WEIGHTS[id] || 1; }
+  function gamesWeight() {
+    return apps.reduce(function (n, a) { return n + (a.kind === "game" ? weightOf(a.game) : 0); }, 0);
+  }
+  // 6, or less where the browser says how much memory the device has (navigator.deviceMemory, only Chromium's, which says 8
+  // for "8 GB or more", or in newer ones up to 32): 3 at 4 GB, 1 at 2 GB or less. Safari and Firefox say nothing, so 6.
+  function budget() {
+    var gb = navigator.deviceMemory;
+    if (typeof gb !== "number" || !(gb > 0) || gb >= 8) return 6;
+    return gb >= 4 ? 3 : 1;
+  }
+
   // ---- the address ----
   function state() {
     var act = desk.active(), a = act && byId(act);
@@ -84,8 +109,11 @@ var ByopopApps = (function () {
     try { history[push ? "pushState" : "replaceState"](st, "", rootAddress()); } catch (e) {}
   }
 
-  // ---- a Windows 95 message box (the fourth game) ----
-  function messageBox(title, text, plain) {
+  // ---- a Windows 95 message box (a game past the memory budget, an About box) ----
+  // A message box: title, text (a line of text, or nodes: paragraphs and a list), plain (true for an About box, "info" for the
+  // information sign, else the warning sign) and buttons ({label, fn}, the last one focused and taken by Escape; OK alone
+  // when none)
+  function messageBox(title, text, plain, buttons) {
     var d = document.createElement("dialog");
     d.className = "d95-msgbox";
     d.setAttribute("aria-labelledby", "d95-msgbox-title"); d.setAttribute("aria-describedby", "d95-msgbox-text");
@@ -94,21 +122,39 @@ var ByopopApps = (function () {
     tb.appendChild(tt);
     var body = document.createElement("div"); body.className = "d95-msgbox-body";
     var icon = document.createElement("i"); icon.className = "d95-msgbox-icon"; icon.setAttribute("aria-hidden", "true");
-    var p = document.createElement("p"); p.id = "d95-msgbox-text"; p.textContent = text;
+    var p;
+    if (typeof text === "string") { p = document.createElement("p"); p.textContent = text; }
+    else { p = document.createElement("div"); p.className = "d95-msgbox-text"; p.appendChild(text); d.classList.add("d95-msgbox-long"); }
+    p.id = "d95-msgbox-text";
     // an About box: the game's lines as they are, without the warning sign
-    if (plain) { p.style.whiteSpace = "pre-line"; d.classList.add("d95-msgbox-about"); } else body.appendChild(icon);
+    if (plain === true) { p.style.whiteSpace = "pre-line"; d.classList.add("d95-msgbox-about"); }
+    else { if (plain === "info") d.classList.add("d95-msgbox-info"); body.appendChild(icon); }
     body.appendChild(p);
-    var ok = document.createElement("button"); ok.type = "button"; ok.textContent = T("skin.apps.ok");
-    var row = document.createElement("div"); row.className = "d95-msgbox-row"; row.appendChild(ok);
+    var row = document.createElement("div"); row.className = "d95-msgbox-row";
+    var last = null;
+    // (a game's page that finishes loading behind the box focuses its own card, which takes the focus into its frame: it
+    // comes back to the box)
+    function keep() { setTimeout(function () { if (d.open && document.activeElement && document.activeElement.tagName === "IFRAME") last.el.focus(); }, 0); }
+    window.addEventListener("blur", keep);
+    function done(fn) {
+      window.removeEventListener("blur", keep);
+      try { d.close(); } catch (e) {}
+      if (d.parentNode) d.parentNode.removeChild(d);
+      if (fn) fn();
+    }
+    (buttons || [{ label: T("skin.apps.ok") }]).forEach(function (b) {
+      var btn = document.createElement("button"); btn.type = "button"; btn.textContent = b.label;
+      btn.addEventListener("click", function () { done(b.fn); });
+      row.appendChild(btn);
+      last = { el: btn, fn: b.fn };
+    });
     d.appendChild(tb); d.appendChild(body); d.appendChild(row);
     document.body.appendChild(d);
-    function done() { try { d.close(); } catch (e) {} if (d.parentNode) d.parentNode.removeChild(d); }
-    ok.addEventListener("click", done);
-    d.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); done(); } });
-    d.addEventListener("cancel", function (ev) { ev.preventDefault(); done(); });
+    d.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); done(last.fn); } });
+    d.addEventListener("cancel", function (ev) { ev.preventDefault(); done(last.fn); });
     d.showModal();
     try { desk.event("ding"); } catch (e) {}
-    ok.focus();
+    last.el.focus();
   }
 
   // ---- a window ----
@@ -153,6 +199,7 @@ var ByopopApps = (function () {
       f.setAttribute("allow", "fullscreen; autoplay; clipboard-write");
       client.appendChild(f);
       app.frame = f;
+      f.addEventListener("load", function () { app.loaded = true; }, { once: true });
       // a page's own title, once it has loaded
       if (kind === "page") f.addEventListener("load", function () {
         try { var t = f.contentDocument && f.contentDocument.title; if (t) { desk.setTitle(id, t); f.title = t; } } catch (e) {}
@@ -174,8 +221,11 @@ var ByopopApps = (function () {
       minHeight: kind === "game" ? function () { return least(app).h; } : null,
       at: function (left) { return [left + 40 + (n % 6) * 26, 20 + (n % 6) * 26]; },
       scroll: kind === "txt" ? app.text : null,
+      // a game's or a page's frame has no height of its own to measure: those windows go to the room; a text's to its length
+      natural: kind === "txt",
       focusIn: function (back) { focusApp(app, back); } });
     apps.push(app);
+    if (kind === "game") watchBar();
     return app;
   }
   function inner(app) { try { return app.frame && app.frame.contentWindow; } catch (e) { return null; } }
@@ -314,8 +364,9 @@ var ByopopApps = (function () {
   }
 
   // ---- opening ----
-  // how: "push" (the player opened it: a new address), "replace" (this address), "none" (Back or Forward is putting it back)
-  function open(href, how) {
+  // how: "push" (the player opened it: a new address), "replace" (this address), "none" (Back or Forward is putting it back);
+  // anyway: the player answered Open anyway to the memory warning
+  function open(href, how, anyway) {
     if (!on()) return false;
     var key = relOf(href);
     if (key === null) return false;
@@ -325,9 +376,14 @@ var ByopopApps = (function () {
     if (kind === "index") { desk.openWin("games"); return true; }
     var app = byKey(key);
     if (!app) {
-      var limit = narrow() ? 1 : MAX_GAMES;
-      if (kind === "game" && gameCount() >= limit) {
-        messageBox(T("skin.apps.limit_title"), T(limit === 1 ? "skin.apps.limit_one" : "skin.apps.limit", { n: limit }));
+      // past the budget, the player is asked each time, unless no other game is open (nothing else to lose) or windows are
+      // being put back (a reload, Back or Forward: they were open before)
+      var g = kind === "game" ? games()[pathOf(key)] : null;
+      if (g && !anyway && !restoring && gameCount() > 0 && gamesWeight() + weightOf(g.id) > budget()) {
+        messageBox(T("skin.apps.limit_title"), T("skin.apps.limit"), false, [
+          { label: T("skin.apps.limit_open"), fn: function () { open(href, how, true); } },
+          { label: T("skin.apps.limit_cancel") }
+        ]);
         return true;
       }
       app = make(key, kind);
@@ -360,6 +416,34 @@ var ByopopApps = (function () {
     var bar = document.querySelector(".d95-taskbar");
     return { w: (document.documentElement.clientWidth || window.innerWidth) / zf() - 16 - cw, h: window.innerHeight / zf() - (bar ? bar.offsetHeight : 28) - 8 - ch };
   }
+  // The room changed: the browser window's size (full screen too), the desktop's zoom or the task bar's height. Each game's page
+  // sizes its game again (web/shell.html, byopop-room), since its window, keeping its size, gives it no resize of its own: a
+  // multiple chosen for a game that the room had no space for comes back once it has (the user, 2026-11-20, of a game that "tried
+  // to open larger than the window had room for"). Once, at the next frame (or 200 ms on, where a hidden page draws none), after
+  // the desktop has laid its windows out again.
+  var roomQueued = false, barWatch = null;
+  function roomChanged() {
+    if (roomQueued) return;
+    roomQueued = true;
+    var timer = 0, frame = 0;
+    function run() {
+      if (!roomQueued) return;
+      roomQueued = false;
+      clearTimeout(timer);
+      try { cancelAnimationFrame(frame); } catch (e) {}
+      apps.forEach(function (a) { var w = a.kind === "game" && inner(a); if (w) try { w.dispatchEvent(new Event("byopop-room")); } catch (e) {} });
+    }
+    timer = setTimeout(run, 200);
+    try { frame = requestAnimationFrame(run); } catch (e) {}
+  }
+  window.addEventListener("resize", roomChanged);
+  window.addEventListener("byopop-zoom", roomChanged);
+  function watchBar() {
+    var bar = document.querySelector(".d95-taskbar");
+    if (barWatch || !bar || !window.ResizeObserver) return;
+    barWatch = new ResizeObserver(roomChanged);
+    barWatch.observe(bar);
+  }
   // the size a game wants (its screen at one pixel for each of the device's, and its window's frame and status bar): the window
   // takes it the first time, as far as the desktop has room
   // (force: size the window again even to a size it had before; chosen: the player chose the scale, which restores a
@@ -367,6 +451,11 @@ var ByopopApps = (function () {
   function fit(win, w, h, force, chosen) {
     var a = byWin(win);
     if (!a || narrow()) return;
+    fitWindow(a, w, h, force, chosen);
+    // (the desktop's loading waits for it, start)
+    if (a.onFit) { var told = a.onFit; a.onFit = null; told(); }
+  }
+  function fitWindow(a, w, h, force, chosen) {
     // a size the player chose restores a maximized window first (its place comes back), as Windows did
     if (chosen && a.el.classList.contains("d95-maxed")) maximize(a);
     if (a.el.classList.contains("d95-maxed") || (!force && a.fitted && a.fitted[0] === w && a.fitted[1] === h)) return;
@@ -418,7 +507,7 @@ var ByopopApps = (function () {
   // web/skins.js onePage); then the root's address
   function start() {
     var want = Q.get("open"), st = history.state;
-    if (!on()) return;
+    if (!on()) { bootDone(); return; }
     if (st && st.d95 && st.open && st.open.length) {
       restoring = true;
       try {
@@ -432,6 +521,18 @@ var ByopopApps = (function () {
       open(SITE + want, "replace");
     }
     write(false);
+    // the desktop shows once each window put back has its page, and a game's window its game's size (fit), which its page
+    // gives once it knows it: until then, or for 3 s after its page has loaded
+    var left = 0;
+    apps.forEach(function (a) {
+      if (!a.frame) return;
+      left++;
+      var done = false;
+      function finish() { if (done) return; done = true; if (--left === 0) bootDone(); }
+      function loaded() { if (a.kind !== "game" || a.fitted) finish(); else { a.onFit = finish; setTimeout(finish, 3000); } }
+      if (a.loaded) loaded(); else a.frame.addEventListener("load", loaded, { once: true });
+    });
+    if (!left) bootDone();
   }
   if (document.readyState === "complete") setTimeout(start, 0); else window.addEventListener("load", function () { setTimeout(start, 0); });
 
@@ -443,12 +544,12 @@ var ByopopApps = (function () {
     return "";
   }
   // the game window in front, for the Music window's views (web/music.js, "Following a game"): the game window last made active,
-  // while it is open and not minimized; its page and its game's title, or null
+  // while it is open and not minimized; its page, its game's title and its game's id, or null
   function frontFrame() {
     var a = lastGame && apps.indexOf(lastGame) >= 0 ? lastGame : null;
     if (!a || !a.el || a.el.classList.contains("d95-min") || a.el.classList.contains("d95-closed")) return null;
     var w = inner(a);
-    return w ? { win: w, title: a.title || "" } : null;
+    return w ? { win: w, title: a.title || "", game: a.game || "" } : null;
   }
   // ---- one window heard at a time (the user, 2026-11-10: "keep in mind the need to prevent multiple windows from playing audio at
   // once") ----
@@ -456,6 +557,10 @@ var ByopopApps = (function () {
   // Of those that would sound, only one is let through: the game in front; with no game in front, none while Music plays a tune of
   // its own, else the game that was last in front. The others' output node is taken off their speakers (not their page's mute,
   // which is the player's own switch) and put back when their turn comes; the game itself runs on and is told nothing.
+  // the game windows open, for System Information (web/sysinfo.js): each one's window id, its game's title, its page
+  function running() {
+    return apps.filter(function (a) { return a.kind === "game" && !a.note; }).map(function (a) { return { id: a.id, title: a.title || "", game: a.game || "", win: inner(a) }; });
+  }
   function musicPlaying() { try { return !!(window.ByopopMusicPanel && ByopopMusicPanel.playing && ByopopMusicPanel.playing()); } catch (e) { return false; } }
   function heardApp() {
     var act = desk.active(), a = act && byId(act);
@@ -484,8 +589,15 @@ var ByopopApps = (function () {
   setInterval(function () { if (gameCount()) hush(); }, 1000);
   function hushed(win) { var a = byWin(win); return !!(a && a.hushedNode); }
 
-  return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, activated: activated, f6: f6, altTab: altTab, closeFront: closeFront, shutDown: shutDown, rehush: rehush, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
-    menuKey: menuKey, fullScreen: function (win) { var a = byWin(win); if (a) fullScreen(a); },
+  // a question from a window's page (a game's Game menu, web/shell.html ask): the desktop's message box, titled by the window
+  function ask(win, text, buttons) { var a = byWin(win); messageBox(a ? a.title : "", text, false, buttons); }
+  // a message that tells rather than warns (the listing's "Why aren't my files here?"): the information sign
+  function tell(title, content, buttons) { messageBox(title, content, "info", buttons); }
+  // and one that warns or asks (the Saves window's question before a restore, web/saves.js): the warning sign
+  function warn(title, content, buttons) { messageBox(title, content, false, buttons); }
+
+  return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, ask: ask, tell: tell, warn: warn, activated: activated, f6: f6, altTab: altTab, closeFront: closeFront, shutDown: shutDown, rehush: rehush, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
+    running: running, menuKey: menuKey, fullScreen: function (win) { var a = byWin(win); if (a) fullScreen(a); },
     count: function () { return apps.length; },
     // the address back to the root (a link to #settings and the like, web/index.html)
     settle: function () { if (on()) write(false); } };

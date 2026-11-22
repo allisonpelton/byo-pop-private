@@ -59,12 +59,25 @@ def main():
     ap.add_argument('--tail', type=int, default=None, help="updates the original runs on after the last input (default: until the update at which the port's recording ended, so the endings are compared too)")
     ap.add_argument('--remap', action='append', default=[], metavar='X,Y=X2,Y2', help="a move or click at X,Y goes to the original at X2,Y2: a dialog's button where the port's 640 by 480 layout is not the original's (the yes of \"Load Game?\": 257,222 in the port, 257,203 in the original)")
     ap.add_argument('--until', type=int, default=None, help='only the inputs up to this port update')
+    ap.add_argument('--gate', default=None, metavar='EXPR', help="count from the update at which the title has loaded: the script holds until the memory expression EXPR reads 1 (the title's loaded flag), marks the counter there, and every `at N` becomes `at +(N - L)` with L the update at which the port's title loaded (events.json \"loaded\"); the load runs on the wall clock, so on a machine that loads faster or slower nothing after it shifts")
     a = ap.parse_args()
     ev = json.load(open(a.events))
     delta = a.delta if a.delta is not None else 0
     tail = a.tail if a.tail is not None else None
     lines = ['# from %s, delta %d' % (a.events, delta)] + convert(ev, delta, tail, a.until, dict((int(x.split('=')[0]), int(x.split('=')[1])) for x in a.shift), after=(int(a.after.split('=')[0]), int(a.after.split('=')[1])) if a.after else None, dialog_shift=a.dialog_shift,
         remap=dict((tuple(int(v) for v in x.split('=')[0].split(',')), tuple(int(v) for v in x.split('=')[1].split(','))) for x in a.remap))
+    if a.gate:
+        if 'loaded' not in ev:
+            raise SystemExit('--gate: the recording has no "loaded" update (record it again)')
+        rel = []
+        for l in lines:
+            w = l.split()
+            if len(w) > 2 and w[0] == 'at' and w[1].isdigit():
+                if int(w[1]) < ev['loaded']:
+                    raise SystemExit('--gate: an input before the load: ' + l)
+                l = 'at +%d %s' % (int(w[1]) - ev['loaded'], ' '.join(w[2:]))
+            rel.append(l)
+        lines = [rel[0], 'waitfor %s == 1 120000' % a.gate, 'mark'] + rel[1:]
     with open(a.script, 'w') as f:
         f.write('\n'.join(lines) + '\n')
     print('%d lines, delta %d, last update %s' % (len(lines), delta, lines[-2].split()[1]))

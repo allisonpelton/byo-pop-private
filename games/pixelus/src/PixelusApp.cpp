@@ -391,6 +391,9 @@ void PixelusApp::ShowOptionsDialog(bool theInGame)
 	int aHeight = aDialog->GetPreferredHeight(0x1a4);
 	aDialog->Resize(0x6e, 0xf0 - aHeight / 2, 0x1a4, aHeight);
 	AddDialog(OptionsDialog::DIALOG_ID, aDialog);
+	// 0x409160 (case 0xb) then centres it over the play area, right of the sidebar (0x432f40)
+	if (theInGame)
+		aDialog->Move(((mWidth - 173) - aDialog->mWidth) / 2 + 173, (mHeight - aDialog->mHeight) / 2);
 }
 
 // 0x432a00 (0x402290): over the options dialog
@@ -700,7 +703,7 @@ void PixelusApp::LeaveBoard()
 void PixelusApp::ShowResetDialog()
 {
 	KillDialog(24);
-	Dialog* aDialog = DoDialog(24, true, GT(0x512644), GT(0x512654), "", Dialog::BUTTONS_OK_CANCEL);
+	Dialog* aDialog = DoDialog(24, true, GT(0x512644), GT(0x512654), "", Dialog::BUTTONS_YES_NO);
 	aDialog->Move(((mWidth - 173) - aDialog->mWidth) / 2 + 173, (mHeight - aDialog->mHeight) / 2);
 }
 
@@ -910,6 +913,18 @@ void PixelusApp::UpdateFrames()
 }
 
 // 0x4333a0 (slot 84)
+// 0x433330: regaining the focus lifts the pause that losing it made
+void PixelusApp::GotFocus()
+{
+	Pause(false);
+}
+
+// 0x433320
+void PixelusApp::LostFocus()
+{
+	Pause(true);
+}
+
 // 0x403010
 void PixelusApp::HandlePaused(bool theWasPaused, bool theIsPaused, int theCount)
 {
@@ -967,8 +982,8 @@ void PixelusApp::ShowHint(int theWidth, int theHeight, const SexyString& theHead
 	aDialog->mContentInsets.mTop = 10;
 	aDialog->mContentInsets.mBottom = 10;
 	aDialog->Resize(theXOffset - theWidth / 2 + 0x196, theYOffset - aHeight / 2 + 0xf0, theWidth, aHeight);
-	// the button as the original's screen shows it: 24 pixels in from both sides, 25 high, 10 above the bottom
-	aDialog->mYesButton->Resize(aDialog->mX + 24, aDialog->mY + aHeight - 10 - 25, theWidth - 48, 25);
+	// the button as the original's screen shows it (scenario CD): 24 pixels in from both sides, 27 high, 10 above the bottom
+	aDialog->mYesButton->Resize(aDialog->mX + 24, aDialog->mY + aHeight - 10 - 27, theWidth - 48, 27);
 	AddDialog(0x1f, aDialog);
 }
 

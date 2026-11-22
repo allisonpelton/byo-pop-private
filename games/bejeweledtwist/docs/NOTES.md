@@ -1159,6 +1159,18 @@ whose buffers origrun's stand-in logs only by their calls.
   velocity), so the turn has no visible effect, only the possible Rand draws. The port starts them at 0, so a spark
   dies (80 updates) before +0x9c reaches 1 and draws nothing. Matching it would mean copying uninitialised memory.
 
+- **The menu's global Rand is two draws apart at its start.** In the screen coverage routes (2026-11-21) origrun's
+  peek read the original's global MTRand index (mti, 0xe48aa0) and the Play button's update count ([[0xe0b698]+0x864]
+  +0x2e4, +0x28) at the menu's anchor and 400 updates later: 318 at count 847, then 170 at count 1246. The port, with
+  the same counts, stands at 316, then 170. On the port, nothing but the Play button's sparkles (three draws every 8th
+  update) draws from the global Rand between its count 600 and the anchor, so the original makes two draws there that
+  the port does not, and two fewer later. The draws place the Play button's and the title's sparkles, the credits'
+  sparks, and in a game the score trails, the explosions' debris and the fire's sparks, so those sit elsewhere in
+  every route; the boards, scores and timers do not use it. The source was not found within the hour; the original's
+  other draws that depend on the heap (the credits' sparks above, a coal gem's embers below) suggest where to look.
+  To see it, add `at +0 peek 0xe48aa0 [[[0xe0b698]+0x864]+0x2e4]+0x28` after the `mark` of a route's origrun script
+  (`tools/screens/gen.py` writes them).
+
 - **A one-move goal's colour comes from another list.** The challenge display's one-move branch (GoodTube::DrawBody,
   0x7095fd-0x709625) gives a colour stat (75 to 81) the icon of the tube's own stat list at the same index (+0x56c,
   which only the pattern and on-board displays fill, so it holds whatever the last of those left), not the goal's own
@@ -1214,6 +1226,16 @@ whose buffers origrun's stand-in logs only by their calls.
   opaque pixels, are all the same. The cause of the rest was not found (perhaps the wavelet's rounding or the colour
   transform); finding it would mean comparing the original decoder's coefficients with ours stage by stage. Too
   small to see.
+- **The unfocused original stops updating; the port goes on.** While the window has lost the focus, the original's
+  update counter stands still (under origrun in 2D, and in 3D under visrun, 2026-11-22) and it draws about once a
+  second, so a few updates' worth after the loss its picture freezes: in Blitz the pause text has faded in and a
+  "SPEED BONUS" being shown stays on screen. The port keeps updating, so that text fades out and the 3D scene moves on
+  behind the paused board; the board itself, the timers and the score stay still in both, and after the regain the
+  two are the same again. To see it: `games/bejeweledtwist/tools/visrun/focus3d_blitz.txt` against the port losing
+  the focus at the same moment. Found so far: 0x49c7a0 (the redraw) draws an inactive app only once a second;
+  DoUpdateFrames (0x49c6b0) skips only for the screensaver flag (0xe13b67, 0x49d250), and Process (0x4a2cb0) only
+  for mPaused (+0x4a0, the debug key P) or a zero update multiplier. What stops the updates was not found within the
+  hour; the message loop (0x4a3280) and its ProcessDeferredMessages-like 0x4a0ea0 are left to read.
 
 ## Performance (native)
 

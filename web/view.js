@@ -1,8 +1,9 @@
 // A game page's view settings (docs/WEB_PLAYER.md, "View settings"; web/settings.js): what the page draws over or does to the
 // game's picture, never what the game draws or how it plays.
 //   scanlines    off, light or strong: a dark line along every second row of the game's own pixels, over the picture
-//   colorFilter  none, greyscale, sepia, warm (less blue light), contrast or vivid: a CSS filter on the game's canvas; or
-//                256 colours, plain or dithered: a WebGL canvas over the game's (below)
+//   colorFilter  none, greyscale, sepia, warm (less blue light), contrast, vivid, or one for each of protanopia, deuteranopia
+//                and tritanopia: a CSS filter on the game's canvas (the last three an SVG colour matrix, below); or 256
+//                colours, plain or dithered: a WebGL canvas over the game's (below)
 // Both are off by default, and only the 256 colours run anything in a frame.
 var ByopopView = (function () {
   "use strict";
@@ -13,36 +14,110 @@ var ByopopView = (function () {
     sepia: "sepia(0.85)",
     warm: "sepia(0.35) saturate(1.1) hue-rotate(-12deg) brightness(0.97)",
     contrast: "contrast(1.35) saturate(1.15)",
-    vivid: "saturate(1.6)"
+    vivid: "saturate(1.6)",
+    protan: "url(#bv-protan)",
+    deutan: "url(#bv-deutan)",
+    tritan: "url(#bv-tritan)"
   };
   var SCAN = { light: 0.22, strong: 0.45 };
-  var pageGame = null, stage = null, canvas = null, scan = null, resizeObs = null;
+  var pageGame = null, stage = null, canvas = null, scan = null, scanBox = "", resizeObs = null, styleObs = null;
 
   function setting(name) { try { return ByopopSettings.get(name, pageGame || undefined); } catch (e) { return null; } }
 
-  // the scanlines: one dark line a game row high every two game rows, as many as the canvas has rows
+  // the game's own rows, from the shape the page gave the stage (web/shell.html, onGameScreen: "--aspect: w / h"); 480 until
+  // a game gives one
+  function gameRows() {
+    var m = /\/\s*([0-9.]+)/.exec(stage.style.getPropertyValue("--aspect"));
+    return (m && parseFloat(m[1])) || 480;
+  }
+  // the scanlines: one dark line a game row high every two game rows, over the canvas's own box (centred in a larger stage in
+  // full screen). The rows are the game's and the height the canvas's drawn one, never the canvas's pixels: SDL sizes those
+  // to the stage on its own time (300 x 150 before the game makes its window, the old size for a while after a resize, the
+  // device's pixels on a high-density screen), and lines sized from them were drawn too large (the user, 2026-11-21:
+  // "Somehow, the size of the scanlines briefly became much larger than they should be").
   function sizeScan() {
     if (!scan || !canvas) return;
-    var rows = canvas.height || 480, h = stage.clientHeight || 1, px = h / rows;
-    scan.style.backgroundSize = "100% " + (2 * px) + "px";
+    var rows = gameRows(), h = canvas.offsetHeight;
+    var box = canvas.offsetLeft + "," + canvas.offsetTop + "," + canvas.offsetWidth + "," + h + "," + rows;
+    if (box === scanBox) return;
+    scanBox = box;
+    var st = scan.style;
+    st.left = canvas.offsetLeft + "px"; st.top = canvas.offsetTop + "px"; st.width = canvas.offsetWidth + "px"; st.height = h + "px";
+    st.backgroundSize = "100% " + (2 * h / rows) + "px";
   }
   function syncScan() {
     var v = setting("scanlines");
     if (!SCAN[v]) {
       if (scan) { scan.remove(); scan = null; }
       if (resizeObs) { resizeObs.disconnect(); resizeObs = null; }
+      if (styleObs) { styleObs.disconnect(); styleObs = null; }
       return;
     }
     if (!scan) {
       scan = document.createElement("div");
       scan.className = "bv-scan";
       scan.setAttribute("aria-hidden", "true");
+      scanBox = "";
       stage.insertBefore(scan, (pal ? pal.cv : canvas).nextSibling);   // over the 256-colour picture, if there is one
+      // every change of the canvas's box, its place in the stage (the stage's size) or the game's shape (the stage's style)
       if (window.ResizeObserver) { resizeObs = new ResizeObserver(sizeScan); resizeObs.observe(stage); resizeObs.observe(canvas); }
+      if (window.MutationObserver) { styleObs = new MutationObserver(sizeScan); styleObs.observe(stage, { attributes: true, attributeFilter: ["style"] }); }
     }
     scan.style.setProperty("--bv-scan", String(SCAN[v]));
     sizeScan();
   }
+  // ---------- for colour-blind players ----------
+  // Standard mod 15's palettes, made a site filter (the user, 2026-11-07, of moving them to the site: "Yes, move them"): the
+  // picture recoloured so that colours a colour-blind player confuses come apart, by daltonization. What the player would see
+  // is simulated (Machado, Oliveira and Fernandes 2009, each matrix at severity 1, in linear RGB); the difference from the
+  // real colour, which that player loses, is moved into channels that player still tells apart (shift); and the colour
+  // becomes colour + shift x (colour - simulated), one matrix for each kind. Greys stay as they are (each row of a simulation
+  // sums to 1). Red and green lost (protanopia, deuteranopia) go into green and blue (Fidaner, Lin and Ozguven 2005); blue and
+  // yellow lost (tritanopia) go into red and green against each other, the opposition a tritanope keeps. Checked against
+  // random colour pairs that the simulation puts within 10 of each other in CIELAB but are 25 or more apart: half of them
+  // end at least 4.0 to 4.4 times further apart for protanopia, 3.2 to 3.4 for deuteranopia and 2.0 to 2.2 for tritanopia
+  // (where the usual shift into red and green alike gave 1.5 to 1.6). The filter is the browser's (an SVG feColorMatrix
+  // in linear RGB, as the matrices are), with nothing run in a frame.
+  var SIMULATED = {
+    protan: [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]],
+    deutan: [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.011820, 0.042940, 0.968881]],
+    tritan: [[1.255528, -0.076749, -0.178779], [-0.078411, 0.930809, 0.147602], [0.004733, 0.691367, 0.303900]]
+  };
+  var RED_GREEN_SHIFT = [[0, 0, 0], [0.7, 1, 0], [0.7, 0, 1]], BLUE_YELLOW_SHIFT = [[1, 0, 0.7], [0, 1, -0.7], [0, 0, 0]];
+  var SHIFT = { protan: RED_GREEN_SHIFT, deutan: RED_GREEN_SHIFT, tritan: BLUE_YELLOW_SHIFT };
+  // colour + shift x (colour - simulated), as one matrix: identity + shift x (identity - simulated)
+  function daltonized(kind) {
+    var sim = SIMULATED[kind], shift = SHIFT[kind], out = [];
+    for (var row = 0; row < 3; row++) {
+      out.push([]);
+      for (var col = 0; col < 3; col++) {
+        var lost = 0;
+        for (var k = 0; k < 3; k++) lost += shift[row][k] * ((k === col ? 1 : 0) - sim[k][col]);
+        out[row].push((row === col ? 1 : 0) + lost);
+      }
+    }
+    return out;
+  }
+  // the three filters, put once into the page in a hidden SVG that the canvas's filter names
+  function colourBlindFilters() {
+    if (document.getElementById("bv-filters")) return;
+    var NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
+    svg.id = "bv-filters";
+    svg.setAttribute("width", "0"); svg.setAttribute("height", "0"); svg.setAttribute("aria-hidden", "true"); svg.setAttribute("focusable", "false");
+    svg.style.position = "absolute";
+    Object.keys(SIMULATED).forEach(function (kind) {
+      var f = document.createElementNS(NS, "filter"), m = document.createElementNS(NS, "feColorMatrix"), d = daltonized(kind), values = [];
+      f.id = "bv-" + kind;
+      f.setAttribute("color-interpolation-filters", "linearRGB");
+      d.forEach(function (r) { values.push(r[0].toFixed(6), r[1].toFixed(6), r[2].toFixed(6), "0", "0"); });
+      values.push("0", "0", "0", "1", "0");
+      m.setAttribute("type", "matrix");
+      m.setAttribute("values", values.join(" "));
+      f.appendChild(m); svg.appendChild(f);
+    });
+    document.body.appendChild(svg);
+  }
+
   // ---------- 256 colours ----------
   // The game's picture as a 256-colour screen showed it (the user, 2026-11-09: "Is it possible to make a filter for the game
   // windows to make them appear in 256 colors only?"): each pixel the nearest colour of the palette Windows kept for programs
@@ -161,11 +236,12 @@ var ByopopView = (function () {
 
   function syncFilter() {
     var v = setting("colorFilter");
+    if (v in SIMULATED) colourBlindFilters();
     canvas.style.filter = FILTERS[v] || "";
     syncPal(v);
   }
 
-  var STYLE = ".bv-scan { position: absolute; inset: 0; pointer-events: none; z-index: 1;" +
+  var STYLE = ".bv-scan { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;" +
     " background-image: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, var(--bv-scan, 0.22)) 50%); background-repeat: repeat; }" +
     ".bv-pal { position: absolute; pointer-events: none; z-index: 1; display: block; }";
   function sync() {
@@ -187,5 +263,8 @@ var ByopopView = (function () {
     if (n === "scanlines" || n === "colorFilter") sync();
   });
   window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) sync(); });
+  // a change no observer above sees: the canvas moved in a stage of the same size, or the page's zoom
+  window.addEventListener("resize", sizeScan);
+  document.addEventListener("fullscreenchange", sizeScan);
   return { setGame: setGame, sync: sync };
 })();

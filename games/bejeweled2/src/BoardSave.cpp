@@ -288,6 +288,12 @@ bool Board::LoadGame()
 	GET(aBuffer, mState);
 	if (mState == STATE_SWAPPING || mState == STATE_COMMIT_SWAP || mState == STATE_SWAP_BACK)
 		mState = STATE_IDLE;
+	// port: a game saved in the end screen's fade (STATE_FADE, which only the credits' "Back to Main Menu" link sets and which nothing
+	// leaves) never plays again: the original loads it and the board stays in the fade for good. A game gets there when the link,
+	// left behind on screen by the finale (the original never removed it), is clicked in a later game; the board is then saved as it is
+	// (GAME_NOTES, "Deviations": the user's Endless game of 2026-11-21 that could not be played).
+	if (mState == STATE_FADE)
+		mState = STATE_IDLE;
 	GET(aBuffer, mIsAction);
 	GET(aBuffer, mIsPuzzle);
 	GET(aBuffer, mInUndoPreview);

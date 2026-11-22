@@ -45,6 +45,37 @@ a real difference, fix it; `fine`: accept it; `unsure`: the user could not tell,
 time of the mark. A mark carries over to a newer run of the game for as long as the pair still differs; a mark whose
 `sig` differs from the pair's current boxes was made against other differences, and the page says so.
 
+## Every screen, listed
+
+A tour compares only the screens it visits, and coverage shows only that code ran. So Bejeweled 2's No Hints and Mode
+Unlocked dialogs reached the user with blank buttons, and no game's credits roll had been compared (the screen audit of
+2026-11-21, `build/logs/screen-coverage/`). Every game therefore keeps `games/<game>/docs/SCREENS.md`: one table row per
+screen or dialog the game can show, taken from its export and its source. That covers title and loading screens, menus,
+every dialog, popup and message box, help pages, high scores, credits, level intros, summaries and completions, game over,
+mode unlocks, tutorials and hint boxes, pause, in-game popups, and transitions that draw on their own. The columns are:
+- `Screen`: the class or dialog id, with a few words.
+- `Reached by`: the test commands or the play that brings it up.
+- `Shots`: the names of the shots its comparison takes, in 2D and 3D, windowed and full screen, where the game has them.
+- `Note`.
+
+A row without shots says why, such as "unreachable: nothing calls it in the export". A game's audit file is its starting
+list, to be checked against the export. The looks phase is done only when every row's shots compare: each is a pair in
+the game's newest run (`build/shotreview/<game>/<run>/summary.json`) that matches, or whose difference is explained in the
+notes. `tools/check.sh`'s `screens` suite fails a game whose SCREENS.md is missing, has a row with neither shots nor a
+reason, or names a shot that is not such a pair. The runs are in the game's own checkout (`build/` is never committed),
+so on the trunk, which has none, the suite checks only each list's form and says the shots were not compared: a game's
+merge request gives its `screens` line from its own worktree, where they were (Cosmic Bugs', 2026-11-22, was the first
+list to reach the trunk).
+
+To run it: `python -I tools/screencheck.py [--game <game>]...` (or `tools/check.sh screens`) reads each finished game's
+list (the games in `cmake/ByopopWeb.cmake`'s `BYOPOP_WEB_FINISHED`, or the games named) and prints one line per game and a
+summary line; it exits 1 on any failure. A game with no SCREENS.md is reported as "no list yet", which does not fail until
+`LIST_REQUIRED_FROM` in `tools/screencheck.py` names a date. A shot cell holds shot names separated by commas or spaces,
+each optionally behind `2D:` or `3D:`; a row with no shots needs a Note starting `unreachable`, `rare` or `none:`. A shot
+passes when its pair matches, or differs and is marked `fine` in the run's `marks.json`, or the row's Note says
+"explained". A `faint` pair passes too, since only visible boxes are for review; an `error` pair fails. The newest run is the folder with the newest
+`summary.json`. `tools/screenchecktest.py` tests the checker on fixture folders (part of the `unit` suite).
+
 ## The comparison, and what it never hides
 
 Each picture is first cut to the game's client area: origrun's window captures include the window frame (646x509 for a 640x480

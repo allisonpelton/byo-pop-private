@@ -24,6 +24,21 @@ import full  # noqa: E402
 from driver_base import Driver  # noqa: E402
 
 full.KEY_HINTS = True  # the port's 640 by 480 layout of the hint dialogs is not the original's: close them with the key, which no layout changes
+_hint_boxes_seen = set()
+_answer_dialog = full.handle_dialog
+
+
+def _shoot_hint_box(d, s):
+    """TOUR_HINTBOXES=1: the one-time boxes (the power gem's, the hyper cube's) in the middle of play, each shot once as it stands."""
+    top = max(s['dialogs'])
+    if os.environ.get('TOUR_HINTBOXES') and top in full.HINT_DIALOGS and top not in _hint_boxes_seen:
+        _hint_boxes_seen.add(top)
+        d.ok('wait 40')
+        d.shot('hintbox%d' % top)
+    _answer_dialog(d, s)
+
+
+full.handle_dialog = _shoot_hint_box
 INPUT_VERBS = ('move', 'click', 'down', 'up', 'key', 'type')
 
 
@@ -144,6 +159,18 @@ def tour(d, a):
     s = full.until(d, lambda s: 2 in s['dialogs'] and 'yes' in (s.get('buttons') or {}), 'the options dialog', 60)
     d.ok('wait 60')
     d.shot('options-menu')
+    # the options' questions (dialog 3), each answered No: a checkbox of the 640 by 480 layout, in game pixels
+    # TOUR_NOHIGHRES=1 leaves the High Resolution box out: the original asks "Full Screen?" instead of "High Resolution?" on a
+    # desktop of 1024 pixels or less (FUN_005cbbd0 tests the screen's width), as the sandbox's is, and the port follows the machine's
+    for name, spot in (('backdrops', [338, 250]), ('accel', [278, 208])) + (() if os.environ.get('TOUR_NOHIGHRES') else (('highres', [407, 208]),)):
+        d.click(spot)
+        # a question (dialog 3, answered No) or, where the display cannot do it, a message (dialog 37, its OK)
+        s = full.until(d, lambda s: max(s['dialogs'], default=0) in (3, 37) and (s.get('buttons') or {}).get('no' if 3 in s['dialogs'] else 'yes'), 'the question of ' + name, 60)
+        d.ok('wait 60')
+        d.shot('verify-' + name)
+        d.click(d.state()['buttons']['no' if 3 in d.state()['dialogs'] else 'yes'])
+        d.ok('wait 60')
+    d.shot('options-menu-after')
     d.click(d.state()['buttons']['yes'])
     s = settle(full.menu_ready, 'the menu')
     d.ok('wait 60')
@@ -244,6 +271,20 @@ def tourdialogs(d, a):
     answer_no()
     d.click(d.state()['buttons']['row0'])
     dialog(27, 'create')
+    # a name left empty ("Enter Name", dialog 41), then the name of the player there already ("Name Conflict", dialog 37)
+    d.click(d.state()['buttons']['yes'])
+    s = full.until(d, lambda s: 41 in s['dialogs'] and (s.get('buttons') or {}).get('yes'), 'the Enter Name message', 60)
+    d.ok('wait 60')
+    d.shot('enter-name')
+    d.click(d.state()['buttons']['yes'])
+    d.ok('wait 60')
+    d.type('Ali')
+    d.click(d.state()['buttons']['yes'])
+    s = full.until(d, lambda s: 37 in s['dialogs'] and (s.get('buttons') or {}).get('yes'), 'the Name Conflict message', 60)
+    d.ok('wait 60')
+    d.shot('name-conflict')
+    d.click(d.state()['buttons']['yes'])
+    d.ok('wait 60')
     answer_no()
     answer_no()  # the list's own Cancel
     s = menu()
@@ -300,6 +341,125 @@ def puzzle_world(d, a, settle, secret=False):
                 break
         d.ok('wait 200')
         d.shot('w%d-after-warp' % world)
+
+
+def hints(d, a, settle):
+    """TOUR_HINTS=1 (puzzle tours, on the fresh board): the hint button's dialogs. "Still Solvable!" (answered by the key, as the
+    one-time boxes are), then a move that is no move of the solution (the first adjacent swap that the game takes and that the bot
+    would not make), then the hint button again: "No Longer Solvable" (or "No Hints" when the solution no longer fits the board),
+    each shot before and after the answer. The solution's own move is then played by the bot as usual."""
+    for _ in range(4000):  # the planet's intro puzzle by the bot's moves (it takes no hints), then the choice of a pod
+        m = d.bot_move()
+        if m is None:
+            d.idle(0.01)
+        else:
+            d.play_input(m['input'])
+            if m['kind'] == 'pod':
+                break
+    else:
+        raise SystemExit('no pod was chosen: ' + full.describe(d.state()))
+    settle(lambda s: s['screen'] == 'game' and s.get('phase') == 'idle' and not s['dialogs'], screens=True)
+    d.ok('wait 100')
+    m = d.bot_move()
+    while m is None or m.get('kind') != 'swap':  # the tutorial's buttons and the waits first, as the bot plays them
+        if m is None:
+            d.idle(0.01)
+        else:
+            d.play_input(m['input'])
+        m = d.bot_move()
+    (c0, r0), (c1, r1) = m['from'], m['to']  # the move's squares are [column, row]
+    pts = [st['move'] for st in m['input'] if 'move' in st]
+    (x0, y0), (x1, y1) = pts[0], pts[1]
+    cx, cy = (x1 - x0) // ((c1 - c0) or 1) if c1 != c0 else 0, (y1 - y0) // ((r1 - r0) or 1) if r1 != r0 else 0
+    cell = abs(cx) or abs(cy)
+    px = lambda r, c: [x0 + (c - c0) * cell, y0 + (r - r0) * cell]
+    settle(lambda s: s['screen'] == 'game' and s.get('phase') == 'idle' and not s['dialogs'], screens=True)
+    d.ok('wait 100')
+    hint = d.state()['widgets']['hint']
+    d.click(hint)  # a puzzle's first hint shows the solution's move at once (the hint is "accepted" while the solution fits)
+    d.ok('wait 60')
+    d.shot('hint-shown')
+    # real input only (the original has no test commands): a swap that takes nothing ("Illegal Move"; the first of the board's
+    # adjacent pairs that makes the game say so), then the hint again: the swap has withdrawn the hint's acceptance, so the game asks
+    # "Still Solvable!" (a board whose solution the player has left would say "No Longer Solvable" instead, but only a finished
+    # move can leave it; the shots of those are in the notes)
+    board = d.state()['board']
+    for r in range(7, 1, -1):
+        for c in range(7):
+            if d.state()['dialogs']:
+                break
+            d.play_input([{'move': px(r, c)}, {'click': px(r, c)}, {'move': px(r, c + 1)}, {'click': px(r, c + 1)}, {'wait': 4}])
+            d.ok('wait 60')
+        if d.state()['dialogs']:
+            break
+    d.shot('illegal-move')
+    while d.state()['dialogs']:
+        d.key('Escape')
+        d.ok('wait 60')
+    d.shot('illegal-move-closed')
+    d.click(hint)
+    d.ok('wait 60')
+    d.shot('hint-still')
+    while d.state()['dialogs']:
+        d.key('Escape')
+        d.ok('wait 60')
+    d.shot('hint-still-closed')
+    if os.environ.get('TOUR_GALAXY'):  # the galaxy map by its button on the dome, and a locked planet's message
+        d.click([int(v) for v in os.environ.get('TOUR_MAPBTN', '95,46').split(',')])
+        d.ok('wait 150')
+        d.shot('galaxy-map')
+        for k, spot in enumerate(os.environ.get('TOUR_PLANETS', '').split(';')):
+            if not spot:
+                continue
+            d.click([int(v) for v in spot.split(',')])
+            d.ok('wait 60')
+            d.shot('galaxy-planet%d' % k)
+            while d.state()['dialogs']:
+                d.key('Escape')
+                d.ok('wait 60')
+            d.shot('galaxy-planet%d-closed' % k)
+        d.click([int(v) for v in os.environ.get('TOUR_MAPCLOSE', '540,100').split(',')])  # CLOSE MAP
+        d.ok('wait 150')
+        d.shot('galaxy-closed')
+
+
+def finale(d, a, settle):
+    """TOUR_FINALE=1 (with TOUR_DOME=1, TOUR_WORLDS=1 and a player on the galaxy's last planet, make_gapprofile.py --puzzle 75): after the
+    last warp the credits roll over the finale's scenery ("GALAXY COMPLETED", then the "Back to Main Menu" link at update 1700 of its
+    timer and the MODE UNLOCKED message at 8500). A shot every TOUR_FINALE_STEP updates (400) until the message has been answered
+    and 600 updates more; then the link is clicked (TOUR_LINK, the link's centre in game pixels, 2D: 556,460), the menu and the
+    next Puzzle board are shot, a move is played and a gem clicked once more: the link must be gone and the board must play."""
+    step = int(os.environ.get('TOUR_FINALE_STEP', '400'))
+    link = [int(v) for v in os.environ.get('TOUR_LINK', '556,460').split(',')]
+    seen_dialog = False
+    after = 0
+    for k in range(int(os.environ.get('TOUR_FINALE_SHOTS', '40'))):
+        s = d.state()
+        if s['dialogs']:
+            top = max(s['dialogs'])
+            d.ok('wait 60')
+            d.shot('fin-dialog%d' % top)
+            full.handle_dialog(d, s)
+            seen_dialog = True
+            d.ok('wait 60')
+            continue
+        d.ok('wait %d' % step)
+        d.shot('fin%02d' % k)
+        if seen_dialog:
+            after += 1
+            if after >= 2:
+                break
+    d.click(link)
+    d.ok('wait 200')
+    d.shot('link-menu')
+    s = settle(full.menu_ready)
+    d.click(s['widgets']['puzzle'])
+    settle(lambda s: s['screen'] == 'game' and s.get('phase') == 'idle', screens=True)
+    d.ok('wait 200')
+    d.shot('link-board')
+    full.play(d, 'puzzle', 1, a.out)
+    d.ok('wait 100')
+    d.shot('link-played')
 
 
 def tourmode(d, a):
@@ -372,8 +532,12 @@ def tourmode(d, a):
             for k in range(int(os.environ.get('TOUR_LEVEL_SHOTS', '5'))):
                 d.ok('wait %d' % int(os.environ.get('TOUR_LEVEL_STEP', '40')))
                 d.shot('level%s-%d' % (level, k))
+    if mode in full.PUZZLE_MODES and os.environ.get('TOUR_HINTS'):
+        hints(d, a, settle)
     if mode in full.PUZZLE_MODES and os.environ.get('TOUR_DOME'):
         puzzle_world(d, a, settle, secret=(mode == 'cognito'))
+        if os.environ.get('TOUR_FINALE'):
+            finale(d, a, settle)
     elif mode in full.PUZZLE_MODES:
         settle(lambda s: s['screen'] == 'game' and s.get('phase') in ('idle', 'puzzle solved'), screens=True)
     if mode in full.PUZZLE_MODES and not os.environ.get('TOUR_DOME') and d.state().get('phase') == 'puzzle solved':
@@ -461,6 +625,14 @@ def main():
         full.until(d, lambda s: s['screen'] in ('title', 'dialog', 'menu'), 'the title', 180)
         if a.nosparkle:
             d.ok('nosparkle')
+        # the update at which the title has loaded (its Play link shows): the original's load runs on the wall clock, so a comparison
+        # counts from this point on both sides (events.json "loaded"; to_origrun.py --gate)
+        loaded_at = d.state()['updates']
+        for _ in range(2000):
+            if 'play' in (d.state().get('widgets') or {}):
+                break
+            d.ok('wait 1')
+            loaded_at = d.state()['updates']
         s = d.state()
         if s['updates'] < a.play_at - 1:
             d.ok('wait %d' % (a.play_at - 1 - s['updates']))  # the original and the port then get every input at the same update
@@ -513,7 +685,7 @@ def main():
         last = d.state()['updates']
         print(a.mode, json.dumps(r), 'play click at', play, 'mode click at', start, 'ends at', last)
         with open(os.path.join(a.out, 'events.json'), 'w') as f:
-            json.dump({'play': play, 'start': start, 'last': last, 'mode': a.mode, 'events': d.events}, f)
+            json.dump({'play': play, 'start': start, 'last': last, 'loaded': loaded_at, 'mode': a.mode, 'events': d.events}, f)
         rc = 0
     finally:
         d.close()

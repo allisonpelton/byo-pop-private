@@ -15,6 +15,30 @@ set_property(GLOBAL APPEND PROPERTY JOB_POOLS byopop_compile=6 byopop_link=2)
 set(CMAKE_JOB_POOL_COMPILE byopop_compile)
 set(CMAKE_JOB_POOL_LINK byopop_link)
 
+# A native exe carries only the code its game uses (docs/BUILDS.md, "Trimming an exe"; the user, 2026-11-13: "Let's
+# stick to trimming the exes to only what the game uses"). Every function and data item is in a section of its own and the
+# linker drops the ones nothing reaches; libc++ and libunwind are linked in, so only the parts used ship and no C++ runtime
+# DLL goes beside the exe. The generated code is the same as without these options. -DBYOPOP_STRIP_EXE=ON also strips a
+# Release exe's symbol table; it is off here because the sessions' crash logs (llvm-symbolizer), leak tools and
+# profilers read the symbols, and a derived repository's release build strips its own exe.
+option(BYOPOP_STRIP_EXE "Strip the symbol table of native Release exes" OFF)
+set(BYOPOP_LTO "OFF" CACHE STRING "Link-time optimisation of native Release builds: OFF (default), thin or full; docs/BUILDS.md, \"Trimming an exe\"")
+if(MINGW)
+  add_compile_options(-ffunction-sections -fdata-sections)
+  add_link_options(-static-libstdc++ -static-libgcc -Wl,--gc-sections)
+  if(BYOPOP_LTO STREQUAL "thin" OR BYOPOP_LTO STREQUAL "full")
+    set(byopop_lto_flag -flto)
+    if(BYOPOP_LTO STREQUAL "thin")
+      set(byopop_lto_flag -flto=thin)
+    endif()
+    add_compile_options($<$<CONFIG:Release>:${byopop_lto_flag}>)
+    add_link_options($<$<CONFIG:Release>:${byopop_lto_flag}>)
+  endif()
+  if(BYOPOP_STRIP_EXE)
+    add_link_options($<$<CONFIG:Release>:-s>)
+  endif()
+endif()
+
 if(EMSCRIPTEN)
   set(SDL2_LIBRARIES "")
   add_library(sdl2_port INTERFACE)
@@ -26,6 +50,11 @@ else()
     set(SDL2_DIR "$ENV{SDL2_DIR}")
   endif()
   find_package(SDL2 REQUIRED CONFIG)
+  # SDL2_DIR may name the small static build instead (third_party/sdl-small/build.py; docs/BUILDS.md, "Trimming an exe"): SDL is
+  # then linked into each exe, and the copy steps' $<TARGET_FILE:SDL2::SDL2> copies its libSDL2.a beside the exes, harmlessly
+  if(NOT TARGET SDL2::SDL2 AND TARGET SDL2::SDL2-static)
+    add_library(SDL2::SDL2 ALIAS SDL2::SDL2-static)
+  endif()
   set(PORT_SDL SDL2::SDL2 SDL2::SDL2main)
 endif()
 
@@ -61,9 +90,21 @@ endif()
 add_subdirectory(framework)
 
 if(NOT EMSCRIPTEN)
-  # Native builds run from the build folder: SDL2.dll and the llvm-mingw runtime DLLs go next to the exe
-  get_filename_component(PORT_COMPILER_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
-  file(GLOB PORT_RUNTIME_DLLS "${PORT_COMPILER_DIR}/../i686-w64-mingw32/bin/*.dll")
+  # Native builds run from the build folder: SDL2.dll goes next to the exe. The C++ runtime (libc++, libunwind) is linked
+  # into each exe (above), so no llvm-mingw runtime DLL is copied, except AddressSanitizer's runtime in a build whose flags
+  # ask for it (the sessions build with -fsanitize=address to hunt a bad write; its exe loads that DLL at start).
+  set(PORT_RUNTIME_DLLS "")
+  if("${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} ${CMAKE_EXE_LINKER_FLAGS}" MATCHES "fsanitize")
+    get_filename_component(PORT_COMPILER_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    file(GLOB PORT_RUNTIME_DLLS "${PORT_COMPILER_DIR}/../i686-w64-mingw32/bin/libclang_rt.*.dll")
+  endif()
+  # A tool with no SDL copies only that list: `COMMAND ${PORT_RUNTIME_COPY} <dir>`. When the list is empty this does
+  # nothing (make_directory on the exe's own folder), since `cmake -E copy_if_different <dir>` with no files is an error.
+  if(PORT_RUNTIME_DLLS)
+    set(PORT_RUNTIME_COPY ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS})
+  else()
+    set(PORT_RUNTIME_COPY ${CMAKE_COMMAND} -E make_directory)
+  endif()
 endif()
 
 # Framework test app (tools/fwtest): loads Bejeweled's assets through the portable framework and draws a
@@ -366,12 +407,14 @@ option(BUILD_NINGPO "Build the Ning Po Mahjong Deluxe port" ON)
 if(BUILD_NINGPO AND EXISTS ${PROJECT_SOURCE_DIR}/games/ningpo/CMakeLists.txt)
   add_subdirectory(games/ningpo)
 endif()
-# Sprout's first-generation engine (engines/sprout), one copy for Word Harmony and Pizza Frenzy: built when either game
-# is
+# Sprout's first-generation engine (engines/sprout), one copy for Word Harmony, Pizza Frenzy and Feeding Frenzy: built
+# when any of them is
 option(BUILD_WORDHARMONY "Build the Word Harmony port" ON)
 option(BUILD_PIZZAFRENZY "Build the Pizza Frenzy port" ON)
+option(BUILD_FEEDINGFRENZY "Build the Feeding Frenzy port" ON)
 if((BUILD_WORDHARMONY AND EXISTS ${PROJECT_SOURCE_DIR}/games/wordharmony/CMakeLists.txt) OR
-   (BUILD_PIZZAFRENZY AND EXISTS ${PROJECT_SOURCE_DIR}/games/pizzafrenzy/CMakeLists.txt))
+   (BUILD_PIZZAFRENZY AND EXISTS ${PROJECT_SOURCE_DIR}/games/pizzafrenzy/CMakeLists.txt) OR
+   (BUILD_FEEDINGFRENZY AND EXISTS ${PROJECT_SOURCE_DIR}/games/feedingfrenzy/CMakeLists.txt))
   add_subdirectory(engines/sprout)
 endif()
 # Word Harmony: Sprout's engine under the framework's app host; optional while it is new
@@ -381,6 +424,10 @@ endif()
 # Pizza Frenzy: the second game on Sprout's engine; optional while it is new
 if(BUILD_PIZZAFRENZY AND EXISTS ${PROJECT_SOURCE_DIR}/games/pizzafrenzy/CMakeLists.txt)
   add_subdirectory(games/pizzafrenzy)
+endif()
+# Feeding Frenzy: the third game on Sprout's engine, in an older build of it; optional while it is new
+if(BUILD_FEEDINGFRENZY AND EXISTS ${PROJECT_SOURCE_DIR}/games/feedingfrenzy/CMakeLists.txt)
+  add_subdirectory(games/feedingfrenzy)
 endif()
 # Sprout's second-generation engine (engines/sprout2), one copy for Feeding Frenzy 2 and Talismania: built when either
 # game is
@@ -441,10 +488,36 @@ option(BUILD_BEJEWELEDTWIST "Build the Bejeweled Twist port" ON)
 if(BUILD_BEJEWELEDTWIST AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweledtwist/CMakeLists.txt)
   add_subdirectory(games/bejeweledtwist)
 endif()
+# PopCap's post-2008 framework layer (engines/prime: CurvedVal, PopAnim, PIEffect, the manifest-2 resources), one copy
+# for Bejeweled 3 and Zuma's Revenge: built when either game is
+option(BUILD_BEJEWELED3 "Build the Bejeweled 3 port" ON)
+option(BUILD_ZUMASREVENGE "Build the Zuma's Revenge port" ON)
+if((BUILD_BEJEWELED3 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweled3/CMakeLists.txt) OR
+   (BUILD_ZUMASREVENGE AND EXISTS ${PROJECT_SOURCE_DIR}/games/zumasrevenge/CMakeLists.txt))
+  add_subdirectory(engines/prime)
+endif()
+# Bejeweled 3: optional while it is new; the build skips it if its folder is missing
+if(BUILD_BEJEWELED3 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweled3/CMakeLists.txt)
+  add_subdirectory(games/bejeweled3)
+endif()
+# Zuma's Revenge!: optional while it is new; the build skips it if its folder is missing
+if(BUILD_ZUMASREVENGE AND EXISTS ${PROJECT_SOURCE_DIR}/games/zumasrevenge/CMakeLists.txt)
+  add_subdirectory(games/zumasrevenge)
+endif()
 # Bejeweled 2 Deluxe: optional while it is new; the build skips it if its folder is missing
 option(BUILD_BEJEWELED2 "Build the Bejeweled 2 Deluxe port" ON)
 if(BUILD_BEJEWELED2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweled2/CMakeLists.txt)
   add_subdirectory(games/bejeweled2)
+endif()
+# Peggle Deluxe (PopCap, 2007; unpublished): optional while it is new; the build skips it if its folder is missing
+option(BUILD_PEGGLE "Build the Peggle Deluxe port" ON)
+if(BUILD_PEGGLE AND EXISTS ${PROJECT_SOURCE_DIR}/games/peggle/CMakeLists.txt)
+  add_subdirectory(games/peggle)
+endif()
+# Banana Bugs (PopCap, 2010): optional while it is new; the build skips it if its folder is missing
+option(BUILD_BANANABUGS "Build the Banana Bugs port" ON)
+if(BUILD_BANANABUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/bananabugs/CMakeLists.txt)
+  add_subdirectory(games/bananabugs)
 endif()
 # Heavy Weapon Deluxe (the Popgun decompilation): optional while it is new; the build skips it if its folder is missing
 if(BUILD_HEAVYWEAPON AND EXISTS ${PROJECT_SOURCE_DIR}/games/heavyweapon/CMakeLists.txt)

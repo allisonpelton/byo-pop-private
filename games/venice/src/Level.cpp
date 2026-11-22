@@ -6,6 +6,7 @@
 #include "SceneLoader.h"
 #include "TextFixes.h"
 #include "Shooter.h"
+#include "VeniceApp.h"
 #include "VeniceDraw.h"
 #include "VeniceGlobals.h"
 #include "VeniceInput.h"
@@ -165,12 +166,20 @@ bool Level::Update()
 }
 
 // 0x40f5e0
+// port: the music's fades keep real time at every game speed (the game speed changes how often updates run, not how fast
+// music plays): a step of the two crossfades runs once per update's worth of real time (SexyAppBase::MusicStepFactor, 1 at
+// speed 1, where every update runs both as the original does)
 void Level::FadeMusic()
 {
-	if (CrossFade(mIntroMusic, mMainMusic, &mIntroTicksLeft, 1000.0f))
-		mIntroMusic.mSound = nullptr;
-	if (CrossFade(mMainMusic, mWinMusic, &mWinFadeTicks, 80.0f))
-		mMainMusic.mSound = nullptr;
+	static double sFadeStepsOwed = 0;
+	sFadeStepsOwed += gApp->MusicStepFactor();
+	while (sFadeStepsOwed >= 1.0) {
+		sFadeStepsOwed -= 1.0;
+		if (CrossFade(mIntroMusic, mMainMusic, &mIntroTicksLeft, 1000.0f))
+			mIntroMusic.mSound = nullptr;
+		if (CrossFade(mMainMusic, mWinMusic, &mWinFadeTicks, 80.0f))
+			mMainMusic.mSound = nullptr;
+	}
 }
 
 // 0x422fd0 (the fade actions): the volume of each of the level's pieces of music, on the channel this level started it on

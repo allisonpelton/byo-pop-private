@@ -12,6 +12,9 @@
     gameDirs: ["audio", "gfx", "levels", "objects", "properties"],
     gameFiles: ["config.xml", "developer_logo.png"],
     paks: ["main.pak"],
+    // The folders' names are common ones and config.xml is too, so an unpacked copy is known by two of main.pak's own files,
+    // not by any file in those folders (another game's config.xml beside a gfx folder was taken as Venice)
+    unpacked: ["levels/background01_01.xml", "objects/block_bumper_moving.xml"],
     markers: ["main.pak", "config.xml"],
     markerText: "main.pak and config.xml",
     // the game stores no exe: the import reads its icon out of the install's exe (web/shell.html, importIcon)

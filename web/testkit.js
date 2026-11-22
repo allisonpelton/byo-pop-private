@@ -193,6 +193,16 @@
   };
   // a click: down and up on separate frames, as a real click reaches the game
   test.click = function (x, y, button) { return test.down(x, y, button).then(function () { return test.up(x, y, button); }); };
+  // ?clickgap=1 (the screen saver, web/saver.js, for Bonnie's): a move's clicks spaced as a player's are: the pointer's move
+  // onto the point, the press and the release, each followed by two frames, where test.click sends the move with the press.
+  // Bonnie's misses some of a word's tile clicks sent the quick way, and its bot then plays the word again (its paneplay.js
+  // waits between them too).
+  var CLICK_GAP = params.get("clickgap") === "1";
+  function spacedClick(x, y, button) {
+    return test.move(x, y).then(test.frame)
+      .then(function () { return test.down(x, y, button); }).then(test.frame)
+      .then(function () { return test.up(x, y, button); }).then(test.frame);
+  }
   // a drag in steps (default 10), one frame each
   test.drag = function (x0, y0, x1, y1, steps, button) {
     steps = Math.max(1, steps | 0 || 10);
@@ -392,7 +402,7 @@
       p = p.then(function () {
         var pt, button = st.button || "left";
         if (st.move) { pt = movePoint(st.move); return test.move(pt.x, pt.y); }
-        if (st.click) { pt = movePoint(st.click); return test.click(pt.x, pt.y, st.button || pt.button || "left"); }
+        if (st.click) { pt = movePoint(st.click); return (CLICK_GAP ? spacedClick : test.click)(pt.x, pt.y, st.button || pt.button || "left"); }
         if (st.press) { pt = movePoint(st.press); return test.down(pt.x, pt.y, button); }
         if (st.release) { pt = movePoint(st.release); return test.up(pt.x, pt.y, button); }
         if (st.drag) return test.drag(st.drag.x0, st.drag.y0, st.drag.x1, st.drag.y1, st.drag.steps || 4);
@@ -406,10 +416,25 @@
   // step asks for the state and the move and sends the move as real input. It stops when the state says "over", on MOVE null twice
   // running while the state is not busy (a busy game, state.busy, is waited for), an ERROR, or after ?steps= moves (2000 by default). Returns { moves, stop, state, updates, errors }.
   // ?begin=mode (the screen saver, web/saver.js): a game still on its title or menus, which has no move there, is started once in
-  // the mode its state names (goto <mode>, docs/TEST_COMMANDS.md), as the native loop's --first does
+  // the mode its state names (goto <mode>, docs/TEST_COMMANDS.md), as the native loop's --first does. ?begin=<name> names the mode
+  // itself, for a game whose state names none off its board (the saver's pick among the game's modes). A goto the game refuses (its
+  // title not yet gone, still loading, a dialog in the way) is sent again after the next two empty moves, up to 20 times; one it
+  // takes is given 40 more pairs of empty moves (about 24 seconds) for its board to load before the driver stops.
+  // ?prep=<command>[;<command>...]: test commands sent once before the first move (Noah's Ark's `set mode action`, the mode its bot
+  // clicks at the menu); one the game refuses (an ERROR: Ning Po's start dialog still up) is sent again after each move, up to 20,
+  // until it takes. ?pace=<n>: n updates waited after each move, so that the saver plays about as fast as a person would.
   test.playByMove = function (opts) {
     var limit = (opts && opts.steps) || Number(params.get("steps")) || 2000;
-    var moves = 0, nulls = 0, busy = 0, st = null, begun = params.get("begin") !== "mode";
+    var begin = params.get("begin"), pace = Math.max(0, Math.floor(Number(params.get("pace")) || 0));
+    var moves = 0, nulls = 0, busy = 0, st = null, begun = !begin, refused = 0, settle = 0;
+    var prep = (params.get("prep") || "").split(";").map(function (c) { return c.trim(); }).filter(Boolean);
+    var prepTries = 0;
+    function prepare() {
+      var left = [];
+      return prep.reduce(function (p, c) {
+        return p.then(function () { return test.command(c); }).then(function (lines) { if (/^ERROR/.test(lines[lines.length - 1] || "")) left.push(c); });
+      }, Promise.resolve()).then(function () { prep = ++prepTries < 20 ? left : []; });
+    }
     function step() {
       return test.state().then(function (s) {
         st = s;
@@ -420,20 +445,27 @@
             // a game that is busy (a board clearing, a piece falling: state.busy) has no move until it is done
             if (s && (s.busy || (s.board && s.board.busy))) { if (++busy > 20000) return "busy"; return test.wait(5).then(step); }
             if (++nulls >= 2) {
-              if (begun || !s || !s.mode) return "no move";
-              begun = true; nulls = 0;
-              return test.command("goto " + s.mode).then(function () { return test.wait(30); }).then(step);
+              var mode = begin === "mode" ? s && s.mode : begin;
+              // (a game the goto started may still be loading its board: some time without a move before giving up)
+              if (begun && settle > 0) { settle--; nulls = 0; return test.wait(30).then(step); }
+              if (begun || mode === undefined || mode === null || mode === "") return "no move";
+              nulls = 0;
+              return test.command("goto " + mode).then(function (lines) {
+                if (!/^ERROR/.test(lines[lines.length - 1] || "")) { begun = true; settle = 40; return test.wait(30); }
+                if (++refused >= 20) begun = true;
+                return test.wait(100);
+              }).then(step);
             }
             return test.wait(30).then(step);
           }
           nulls = 0;
           busy = 0;
           moves++;
-          return test.playMove(m).then(step);
+          return test.playMove(m).then(function () { return pace ? test.wait(pace) : null; }).then(function () { return prep.length ? prepare() : null; }).then(step);
         });
       });
     }
-    return step().catch(function (e) { return "error: " + String(e && e.message || e); }).then(function (stop) {
+    return prepare().then(step).catch(function (e) { return "error: " + String(e && e.message || e); }).then(function (stop) {
       return { moves: moves, stop: stop, state: st, updates: test.updates(), errors: test.errors.length };
     });
   };

@@ -129,15 +129,18 @@ var ByopopAddGames = (function () {
   // ---------- the panel ----------
   // live: the panel's one live region, which reads out how each folder ended (the rows' own state lines are not live, so a big
   // folder does not read "Waiting…" for every game)
-  var panel, list, rejectedEl, othersEl, closeBtn, live;
+  var panel, list, rejectedEl, othersEl, closeBtn, live, rejectedNames, panelWalk = null;
   function announce(text) { if (live) live.textContent = text; }
   function openPanel() {
     panel.hidden = false;
   }
   function clearPanel() {
+    // a reading under way for the panel stops: what it read would go into a cleared panel
+    if (panelWalk) { panelWalk.cancel(); panelWalk = null; }
     list.textContent = "";
     rejectedEl.textContent = "";
     rejectedEl.hidden = true;
+    if (rejectedNames) { rejectedNames.remove(); rejectedNames = null; }
     othersEl.textContent = "";
     othersEl.hidden = true;
     leftOut = [];
@@ -203,31 +206,77 @@ var ByopopAddGames = (function () {
       othersEl.appendChild(p);
     });
     othersEl.hidden = !othersEl.firstChild;
-    if (sorted.rejected.length) {
+    // a game's installer dropped in place of its folder: what to do instead, before the folders with no game
+    var lead = sorted.installer ? sorted.installer.text + " " : "";
+    if (sorted.rejected.length >= ByopopImport.MANY_REJECTED) {
+      // many: one line, their names behind Details
       rejectedEl.hidden = false;
-      rejectedEl.textContent = ByopopStrings.t("add.rejected", {folders: sorted.rejected.join(", ")});
+      rejectedEl.textContent = lead + ByopopStrings.t("import.rejected_many", {n: sorted.rejected.length});
+      rejectedNames = make("details", "adding-rejected-names");
+      rejectedNames.appendChild(make("summary", null, ByopopStrings.t("import.rejected_details")));
+      rejectedNames.appendChild(make("p", null, sorted.rejected.join(", ")));
+      rejectedEl.parentNode.insertBefore(rejectedNames, rejectedEl.nextSibling);
+    } else if (sorted.rejected.length || lead) {
+      rejectedEl.hidden = false;
+      rejectedEl.textContent = lead + (sorted.rejected.length ? ByopopStrings.t("add.rejected", {folders: sorted.rejected.join(", ")}) : "");
     }
-    if (!sorted.found.length && !sorted.rejected.length && !(sorted.others || []).length) {
+    if (!sorted.found.length && !sorted.rejected.length && !(sorted.others || []).length && !lead) {
       rejectedEl.hidden = false;
       rejectedEl.textContent = ByopopStrings.t("add.nothing");
     }
   }
-  function fromFiles(promise) {
+  // watch: a drop's (ByopopImport.watch): the reading row counts the folders and files found so far, and its Cancel stops it
+  function fromFiles(promise, watch) {
     clearPanel();
     openPanel();
-    var reading = make("li", "ag-row", ByopopStrings.t("add.reading_files"));
+    var reading = make("li", "ag-row"), text = make("span", null, ByopopStrings.t("add.reading_files"));
+    reading.appendChild(text);
+    if (watch) {
+      panelWalk = watch;
+      var stop = make("button", null, ByopopStrings.t("setup.cancel"));
+      stop.type = "button";
+      text.id = "ag-reading-" + Math.random().toString(36).slice(2);
+      stop.setAttribute("aria-describedby", text.id);
+      stop.addEventListener("click", function () { watch.cancel(); stop.disabled = true; });
+      reading.appendChild(stop);
+      watch.listen(function (folders, files) { text.textContent = ByopopImport.readingText(folders, files); });
+    }
     list.appendChild(reading);
-    promise.then(function (entries) {
+    function over() { if (watch) watch.listen(null); if (panelWalk === watch) panelWalk = null; }
+    var mine = watch;
+    promise.then(function (entries) { return ByopopImport.sortDrop(entries); }).then(function (sorted) {
+      over();
       reading.remove();
-      showSorted(ByopopImport.sort(entries));
+      if (mine && mine.stopped()) return;  // (stopped, or the panel cleared, while the files were sorted)
+      showSorted(sorted);
     }, function (e) {
+      over();
       reading.remove();
+      if (e && e.cancelled) return;
       rejectedEl.hidden = false;
       rejectedEl.textContent = (e && e.message) || ByopopStrings.t("add.read_failed");
     });
   }
 
   // ---------- drop targets ----------
+  // the drop target over the desktop while files are dragged onto it (init): the desktop dimmed, and a box under the pointer with
+  // an installer's floppy disk, our own drawing in 32 x 32 in the 1995 palette, an arrow going into it, and what a drop does; the
+  // pointer goes through it to what is under it
+  function dropZone() {
+    var el = make("div", "d95-dropzone"), box = make("div", "d95-dropzone-box");
+    el.setAttribute("aria-hidden", "true");
+    el.hidden = true;
+    var pic = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    pic.setAttribute("viewBox", "0 0 32 32"); pic.setAttribute("shape-rendering", "crispEdges");
+    pic.innerHTML = '<path d="M6 13h18l2 2v16H6z" fill="#000080" stroke="#000"/><path d="M11 13h10v6H11z" fill="#c0c0c0" stroke="#000"/>' +
+      '<path d="M17 14h2v4h-2z" fill="#000080"/><path d="M9 22h14v8H9z" fill="#fff" stroke="#000"/><path d="M11 24h10v1H11zM11 27h10v1H11z" fill="#808080"/>' +
+      '<path d="M14 0h4v6h4l-6 6-6-6h4z" fill="#00ff00" stroke="#000"/>';
+    box.appendChild(pic);
+    box.appendChild(make("span", "", ByopopStrings.t("skin.drop.install")));
+    el.appendChild(box);
+    document.body.appendChild(el);
+    return el;
+  }
   function dropTarget(el, onDrop) {
     var depth = 0;
     el.addEventListener("dragenter", function (ev) {
@@ -248,7 +297,8 @@ var ByopopAddGames = (function () {
       if (!ByopopImport.hasFiles(ev.dataTransfer)) return;
       ev.preventDefault();
       ev.stopPropagation();
-      onDrop(ByopopImport.fromDrop(ev.dataTransfer, W().zip));
+      var watch = ByopopImport.watch();
+      onDrop(ByopopImport.fromDrop(ev.dataTransfer, W().zip, watch), watch);
     });
   }
   // A folder dropped on a game's card is that game's, as on its own page: its files are looked for there and nowhere else
@@ -258,11 +308,18 @@ var ByopopAddGames = (function () {
     promise.then(function (entries) {
       var root = ByopopImport.findRoot(game.spec, entries, false);
       if (root === null) {
-        rejectedEl.hidden = false;
-        rejectedEl.textContent = ByopopStrings.t("add.wrong_folder", {title: game.title, markers: ByopopImport.missingMarkers(game.spec, entries)});
-        var other = ByopopImport.otherGame(entries);
-        if (other) { rejectedEl.appendChild(document.createTextNode(" ")); rejectedEl.appendChild(ByopopImport.otherNote(document, other)); }
-        return;
+        // the game's installer, dropped on its card: what to do instead (the card's game, where its name names none)
+        return ByopopImport.installerIn(entries, { found: [], others: [], rejected: [] }).then(null, function () { return null; }).then(function (inst) {
+          rejectedEl.hidden = false;
+          if (inst && !inst.other) {
+            if (!inst.game) { inst.game = game; inst.folder = ByopopImport.usualFolder(game.spec); }
+            rejectedEl.textContent = ByopopImport.installerText(inst);
+            return;
+          }
+          rejectedEl.textContent = ByopopStrings.t("add.wrong_folder", {title: game.title, markers: ByopopImport.missingMarkers(game.spec, entries)});
+          var other = ByopopImport.otherGame(entries);
+          if (other) { rejectedEl.appendChild(document.createTextNode(" ")); rejectedEl.appendChild(ByopopImport.otherNote(document, other)); }
+        });
       }
       var top = (entries[0] && entries[0].path.split("/")[0]) || game.title;
       row({ folder: top, entries: entries, root: root, game: game, choices: [game] });
@@ -291,7 +348,7 @@ var ByopopAddGames = (function () {
   // The Setup window (web/setup.js) takes the folders added from the button, the logo and the desktop while the desktop is on;
   // a drop on a game's card stays that game's (onCardDrop), and on a screen with no desktop the panel above does all of it
   function setup() { try { return window.ByopopSetup && ByopopSetup.ready() ? ByopopSetup : null; } catch (e) { return null; } }
-  function fromDropOrSetup(promise) { var s = setup(); if (s) s.openWith(promise); else fromFiles(promise); }
+  function fromDropOrSetup(promise, watch) { var s = setup(); if (s) s.openWith(promise, null, watch); else fromFiles(promise, watch); }
 
   function init() {
     panel = $("adding");
@@ -325,17 +382,51 @@ var ByopopAddGames = (function () {
     var logo = $("logo-drop");
     if (logo) dropTarget(logo, fromDropOrSetup);
     // a drop anywhere else on the desktop opens the Setup window with it (a game's window is a page of its own, which takes its
-    // own drops); with no desktop it does nothing, rather than the browser opening the file in place of the page
+    // own drops); with no desktop it does nothing, rather than the browser opening the file in place of the page.
+    // While files are dragged over the desktop's own area (no window, the task bar or the logo), it dims behind a drop target
+    // that says they will be installed, and the games a drop there installs get their shortcuts where it fell (web/setup.js;
+    // the user, 2026-11-16: "Can the site detect when a folder is being dragged into the desktop and show an icon indicating
+    // it will install it? Design I have in mind is like reverse image search on Google"). A drag tells only that files are
+    // coming, not whether they are a folder or a .zip, so its words fit any, and the drop sorts them as before.
+    var zone = null, zoneTimer = 0, zoneDepth = 0;
+    function onDesk(t) {
+      return !!setup() && !!t && !!t.closest && !t.closest(".d95-win, .d95-taskbar, .d95-menu, .d95-ctx, #logo-drop, [role=dialog]");
+    }
+    function showZone(on, ev) {
+      if (on && !zone) zone = dropZone();
+      if (zone) zone.hidden = !on;
+      // its box under the pointer, inside the window
+      if (on && ev) {
+        var box = zone.firstChild, S = window.ByopopSkin, x = S ? S.unzoom(ev.clientX) : ev.clientX, y = S ? S.unzoom(ev.clientY) : ev.clientY;
+        box.style.left = Math.max(8, Math.min(x - box.offsetWidth / 2, zone.clientWidth - box.offsetWidth - 8)) + "px";
+        box.style.top = Math.max(8, Math.min(y + 18, zone.clientHeight - box.offsetHeight - 8)) + "px";
+      }
+      clearTimeout(zoneTimer);
+      // a drag the browser ends without a word (Escape, or the pointer gone out of the window): dragover comes every 50 ms or so
+      // while it lasts
+      if (on) zoneTimer = setTimeout(function () { zoneDepth = 0; showZone(false); }, 350);
+    }
+    document.addEventListener("dragenter", function (ev) { if (ByopopImport.hasFiles(ev.dataTransfer)) zoneDepth++; });
+    document.addEventListener("dragleave", function (ev) {
+      if (ByopopImport.hasFiles(ev.dataTransfer) && --zoneDepth <= 0) { zoneDepth = 0; showZone(false); }
+    });
+    document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && zone && !zone.hidden) showZone(false); });
     document.addEventListener("dragover", function (ev) {
       if (!ByopopImport.hasFiles(ev.dataTransfer)) return;
       ev.preventDefault();
       if (setup()) ev.dataTransfer.dropEffect = "copy";
+      showZone(onDesk(ev.target), ev);
     });
     document.addEventListener("drop", function (ev) {
+      zoneDepth = 0;
+      showZone(false);
       if (!ByopopImport.hasFiles(ev.dataTransfer)) return;
       ev.preventDefault();
-      var s = setup();
-      if (s) s.openWith(ByopopImport.fromDrop(ev.dataTransfer, W().zip));
+      var s = setup(), place = null;
+      if (s && onDesk(ev.target)) { try { place = ByopopSkin.desk.iconPlaceAt(ev.clientX, ev.clientY); } catch (e) {} }
+      if (!s) return;
+      var watch = ByopopImport.watch();
+      s.openWith(ByopopImport.fromDrop(ev.dataTransfer, W().zip, watch), place, watch);
     });
     initBin();
   }

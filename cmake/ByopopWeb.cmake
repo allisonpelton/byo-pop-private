@@ -58,12 +58,13 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg cap.s
 # development host (docs/WEB_PLAYER.md, "The player-only page"). web/skins.js and web/skins.css are the site's skins ("Skins").
 # web/settingsicons.js holds the Settings sections' icons, drawn by tools/settingsicons.py.
 set(BYOPOP_WEB_SHARED_JS logo.js cursors.js saver.js settingsicons.js settings.js profiles.js exeicon.js exeprobes.js exetrim.js flicursor.js gameimport.js chat.js testkit.js skins.js schemes.js themedata.js themes.js skins.css perf.js soundpanel.js view.js controldata.js controls.js clips.js)
-# the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
-# saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
-# adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
-# game's page.js, which byopop_web_index() writes), and Desktop 95's soundboard (web/sounds.js, with its table web/soundboards.js),
-# copied next to index.html only
-set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js saveimport.js modpanel.js addgames.js setup.js music.js soundtracks.js sounds.js soundboards.js trophies.js gamepics.js autosplit.js splits.js deskapps.js phase.js library.js)
+# the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js), System Information
+# (web/sysinfo.js) and the import of saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as
+# saveimport-table.js), and the adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and
+# import-games.js, each listed game's page.js, which byopop_web_index() writes), and Desktop 95's soundboard (web/sounds.js,
+# with its table web/soundboards.js), the Fonts window (web/fontview.js), the Venice Buildings window (web/buildings.js) and
+# the Guides window (web/guides.js, with its texts web/guidetexts.js), copied next to index.html only
+set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js sysinfo.js saveimport.js modpanel.js addgames.js setup.js music.js soundtracks.js sounds.js soundboards.js trophies.js fontview.js buildings.js guidetexts.js guides.js gamepics.js autosplit.js splits.js deskapps.js phase.js library.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order; the page can sort by
 # release date instead), with a badge and the year of its release. The list is the coordinator's: the coordinator adds a
@@ -72,7 +73,7 @@ set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js saveimport.js modpanel.
 # list with no web page is a configure error.
 set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica mummymaze tiptop bookwormadv ningpo
   pixelus alchemy wordharmony cosmicbugs waterbugs rocketmania dynomite bookwormadv2 mahjongjapan mahjongchina
-  bonnies bejeweledtwist bejeweled2 venice heavyweapon astropop typershark)
+  bonnies bejeweledtwist bejeweled2 venice heavyweapon astropop typershark hammerheads)
 # The games still to come, <target>|<title>, each shown on the listing page as a "Coming soon" tile among the finished ones
 # (the user, 2026-11-02: "Add tiles for the upcoming games to the site and have them display disabled and say coming soon"):
 # the badge, the title and the year, sorted with the rest, not a link, and where to buy the game, so that a visitor can get
@@ -84,7 +85,6 @@ set(BYOPOP_WEB_FINISHED bejeweled bigmoney bookworm noahsark sevenseas atomica m
 # games here are "The ports still to make" in docs/COORDINATION.md. Zuma Deluxe, Insaniquarium and Plants vs.
 # Zombies are left out: nobody ports them (the user, 2026-10-26).
 set(BYOPOP_WEB_UPCOMING
-  "hammerheads|Hammer Heads"
   "pizzafrenzy|Pizza Frenzy" "igglepop|Iggle Pop"
   "feedingfrenzy|Feeding Frenzy" "chuzzle|Chuzzle" "feedingfrenzy2|Feeding Frenzy 2"
   "peggle|Peggle" "pegglenights|Peggle Nights" "bejeweled3|Bejeweled 3" "bananabugs|Banana Bugs"

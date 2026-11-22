@@ -1,0 +1,14 @@
+# badsave: a saved adventure of another format number: the game answers with its message and the menu comes back
+99 title
+900 click 185 426
+960 shot list_one
+1000 click 320 137
+1010 shot m010
+1030 shot m030
+1060 shot m060
+1100 shot m100
+1160 shot m160
+1240 shot m240
+1340 shot m340
+1500 shot m500
+1600 quit

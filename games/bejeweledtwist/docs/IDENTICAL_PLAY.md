@@ -147,10 +147,10 @@ sometimes makes its moves 15 updates early or late in a real-time run), so an an
 that many updates away from the port's while the boards between the moves stay the same. The jumps were matched at
 their scenes, not pixel for pixel; a real-time run cannot line them up closer.
 
-The focus loss is still not compared in 3D. visrun keeps the original's window active with posted messages from its
+The focus loss was not compared in 3D then (it was on 2026-11-22: "The focus in 3D" below). visrun kept the original's window active with posted messages from its
 first update, since it may never take the focus from the user, so a posted focus loss does not pause the original:
 the port showed PAUSED and the original played on, and the two games parted there (Blitz's boards differ from 6000
-on). Comparing it would need the original's window to hold the focus, which the desktop rules forbid, and Windows
+on). Comparing it then seemed to need the original's window to hold the focus, which the desktop rules forbid, and Windows
 Sandbox gives the original no Direct3D. The bomb wheel in 3D is not compared either: it falls past update 10282,
 where the 3D original parts from the port anyway.
 
@@ -374,3 +374,100 @@ pictures, pixel for pixel.
 ### Deviations that remain
 
 None added.
+
+## Screen coverage (2026-11-21)
+
+### What was compared and how
+
+Every screen and dialog the export and the source show is listed in SCREENS.md, with the shots that compare it. The
+screens earlier passes had not shot were reached by eight routes in `tools/screens/`. Each route is one spec that
+gen.py turns into the original's origrun script and the port's `-script`. The routes cover the menus, help and credits
+(menus), the player list (players), Classic and Blitz by the seeded autoplay (classic, blitz), Classic's end through
+the bomb wheel (gameover), the zen jump (zenjump), a rank-up (rankup) and a fruit award (fruit). The saved games and
+profiles they start from are made by the port itself, through its `gem` and `shutdownsaves` commands, with a few bytes
+set: the bomb count, the multiplier's steps and the rank points. The repository keeps no save. The original ran in
+Windows Sandbox on origrun's virtual clock, one route at a time; it used the scripted cursor where it twists, since
+its board takes a twist only from a cursor it can see. The port ran under rundesk with `-fast`. A route's shots are
+lined up on the menu's first update in both programs: the port's update is the original's plus 5 from the menu, and plus 4 under
+the autoplay. All the pairs were compared in one shotdiff run, `screens` (90 pairs, generated 2026-11-21T23:42:25 on the merged trunk at 1c24bc70: 11 matching, 11 only faintly, and 68 differing, each explained in its row). The tour (`tools/check.sh
+bejeweledtwist`) replays the eight routes on the port and freezes a hash of each route's shots, so the frozen baseline
+covers them. Phase two's sets V3 and V4 and the challenge pass had already compared 3D and full screen, and full screen
+draws the same picture scaled, so the routes are 2D and windowed.
+
+The frozen baseline and the tour's hashes were refrozen with this pass. The Play button's catch-up through the
+loader's updates draws from the global Rand as the original's does, so every later draw of that Rand moves: the
+boards, moves and scores of Classic, Blitz and the take-off are the ones before, but the autoplay's pace and the
+sparkles differ, and their shots with them.
+
+The "Deluxe" request (the user, in their words: "Remove the "Deluxe" text from the main screen of any game it may
+appear in, to avoid misleading people about whose game version they're playing") needs nothing in Twist. The only
+place "Deluxe" appears in the export's strings is the original's crash reporter, which the port does not have, and
+no screen of the port shows it.
+
+### Changes this part made
+
+| Difference | Cause in the original | The port now | Commit |
+| --- | --- | --- | --- |
+| The main menu's Play button spiral stood a few degrees behind, and its sparkles started later | the original's Play button runs through the loader's whole opening; the port's loader reaches the hand-over a few updates in and moved only its own clock on | the loader updates the Play button for the same updates | this pass |
+| The Play button's sparkles kept full speed while the mode select had the mouse over Zen | PlayButton::Update aims the spin speed at 0.5 while the mode select's hovered button (+0x18c) is Zen's | the same as the original | this pass |
+| In 2D the bomb wheel's dark hole was missing once the wheel stood, so the board showed bright through its glass | the screen behind the standing wheel is kept in a DDImage (0x404880), whose stretches are the software screen's and draw the hole with its colour; the port kept it in a MemoryImage, whose fast stretch draws nothing for a colour other than white | the cache is a DDImage without alpha, as the original's | this pass |
+| EndStats' average multiplier read x1.2 for 5 / 4 | the original's C runtime writes %.1f from 17 significant digits with the tie rounded up (x1.3); the port's C library rounds a tie to even | Twist's float formats (the average multiplier, the saved game's play time) are written as the original's runtime writes them (CrtFormatFloat) | this pass |
+| (test kit) The autoplay's routes were one update off | under the autoplay the shots line up at the original's update plus 4, not the menu's plus 5 (found by shooting the port at offsets around each shot); the cause was not traced | gen.py's `offset` line; the rank-up route needs 4 more, since its autoplay reached the level's end 4 updates later in that run | this pass |
+
+### Oddities left alone
+
+- **The menu's global Rand is two draws apart at its start** (NOTES.md, "Oddities"). At the same Play button count
+  the original's Rand had made 318 draws and the port's 316. The cause was not found within the hour. Every effect
+  placed by it (the logo's and the Play button's sparkles, the counters' smoke, debris, the flying gems of a level's
+  end, the replay's stars) has the same shapes, colours, counts and timing, and sits elsewhere.
+- **The original's autoplay slips** 15 updates early or late at times; the board, scores and timers agree.
+- **The unfocused original's update counter stands still** under origrun, so the pause screen at a focus loss cannot
+  be lined up by update. Phase two's set 5 compared it.
+- **A shot can land a few updates early** when the original's counter jumps while it loads (the high scores after a
+  game's end, 14 updates); the port's shot of the same moment matches.
+
+### Differences that remain
+
+- The screens no route reaches are listed in SCREENS.md with their reasons. The mode-unlock banner never shows in
+  this copy: it is Steam's, and its mode select unlocks Blitz the first time it opens. The options' graphics dialogs
+  show only on a card or display that refuses. The original's crash reporter is not ported.
+- Every pair that still differs is explained in its row of SCREENS.md: effects placed by the global Rand, the
+  autoplay's slip, or a shot that landed early.
+
+### Deviations that remain
+
+None added.
+
+## The focus in 3D (2026-11-22)
+
+Losing and regaining the focus had been compared only in 2D (phase two's set 5). In 3D the original runs only on the
+visible desktop, through visrun, and there a posted focus loss never paused it. The cause was visrun, not the game:
+before every step it told the game it had the focus again whenever the game did not hold the foreground, which visrun
+never lets it do, so a `focus lose` lasted only until the next step. visrun now keeps a scripted loss until the step
+file's own regain (shared commit 5376dc42, with an `args` key that gives the game its command line). The original's
+3D window was then too wide for a place on the right half of the screen (976 pixels with its frame against 960), so
+the port took the original's `-4x3` and `-widescreen` switches (0x76350c, bab3c056): with `-4x3` both games open
+800 by 600 at the 600 art. The first run showed the original taking the user's foreground; the runs below were made
+after the coordinator's activation block (main 562bb6f4), which refused all of the game's own activations, so the
+user's window kept the focus throughout.
+
+The original played its own seeded autoplay in real time (`games/bejeweledtwist/tools/visrun/`, focus3d_blitz.txt
+and focus3d.txt): Blitz losing the focus at update 3000, half a minute into its round, and Classic at 2500, inside
+its first level, each for three seconds, then regaining it. The port played the same seed under rundesk with `-3d
+-4x3`, in real time. In these runs the original's game started about 840 updates later than the port's (its loading
+in real time), so the port's shots were lined up by board: a shot every 2 or 4 updates around the moment, the best
+match taken, and the port's loss and regain put at the matching update and 300 updates later.
+
+- **Before the loss** the games are the same: Blitz at a mean of 4 levels a channel, Classic's board at 7 (the nebula
+  behind it moves on its own clock in a real-time run, as in the earlier 3D passes).
+- **While unfocused**, both pause alike: the original's mHasFocus goes to 0 and the board stops; in Blitz the scene
+  blurs, the gems hide and PAUSED shows (2.5 levels from the port's pause screen); in Classic the board stands as it
+  was, gems showing, in both. The original then stops updating altogether, its counter standing still for the three
+  seconds, and its picture freezes a few updates' worth after the loss. The port keeps updating, so Blitz's "SPEED
+  BONUS" text, frozen in the original's, fades out in the port's while the board is paused. That is an oddity
+  (NOTES.md, "The unfocused original stops updating; the port goes on"): its cause was not found within the hour.
+- **After the regain** the boards, timers and scores go on from where they stopped in both. Blitz's first 50 updates
+  differ by 8 to 9 levels where the port's text had faded during the pause; 250 updates on they are the same again
+  (3.75). Classic's board matches throughout (about 7, the nebula).
+
+No change to the port came of it beyond the two switches. The sound at a focus loss (both mute) was compared in 2D.

@@ -54,8 +54,9 @@ var ByopopSettings = (function () {
     scheme: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.ids : ["standard"]), def: "standard" },
     // the desktop's pattern and wallpaper (web/schemes.js), site-wide
     pattern: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.patternIds : ["none"]), def: "none" },
-    wallpaper: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.wallpaperIds : ["none"]), def: "none" },
-    wallpaperFit: { values: ["centre", "tile", "stretch"], def: "centre" },
+    // (a game's background as "game:<id>", for each game in the themes' table)
+    wallpaper: { values: (typeof ByopopSchemes !== "undefined" ? (ByopopSchemes.wallpaperValues ? ByopopSchemes.wallpaperValues() : ByopopSchemes.wallpaperIds) : ["none"]), def: "none" },
+    wallpaperFit: { values: ["centre", "tile", "stretch", "pixel", "fit"], def: "centre" },
     // a desktop theme: one game's background, cursor and sounds (web/themes.js), site-wide
     theme: { values: (typeof ByopopThemes !== "undefined" ? ByopopThemes.ids : ["none"]), def: "none" },
     // the screen saver (web/saver.js), site-wide: a game with a bot, or none; the wait in minutes
@@ -64,7 +65,7 @@ var ByopopSettings = (function () {
     gameSize: { values: ["one", "fit"], def: "one" },  // Desktop 95: a game window's size with none chosen in its View menu (web/shell.html)       // on: Desktop 95 lists only the games whose original ran on Windows 95 (web/skins.js)
     // the view settings (web/view.js): drawn over the game's picture or done to it, never to the game
     scanlines: { values: ["off", "light", "strong"], def: "off" },
-    colorFilter: { values: ["none", "grey", "sepia", "warm", "contrast", "vivid", "pal256", "pal256d"], def: "none" },
+    colorFilter: { values: ["none", "grey", "sepia", "warm", "contrast", "vivid", "protan", "deutan", "tritan", "pal256", "pal256d"], def: "none" },
     // the input settings (web/controls.js): what the page adds to the game's input
     inputDisplay: { values: SWITCH, def: "off" },
     touchKeys: { values: ["auto", "on", "off"], def: "auto" },
@@ -73,9 +74,13 @@ var ByopopSettings = (function () {
     clips: { values: SWITCH, def: "off" },           // on: a Record button on a game page's bar (web/clips.js)
     skipLogos: { values: SWITCH, def: "off" },       // on: the games skip their start-up logos (byopop_site_skiplogos, before the start)
     skipTutorials: { values: SWITCH, def: "off" },   // on: the game's own tutorial switch is turned off at each start (web/shell.html, byopop_site_tutorials)
-    // the game's update rate, times this (web/controls.js): any value the framework takes, 0.25 to 4 (the user, 2026-11-10: "Allow
-    // game speed to be set to any arbitrary value instead of the limited options in the dropdown")
-    speed: { values: ["0.5", "0.75", "1", "1.25", "1.5", "2"], number: [0.25, 4], def: "1" }
+    // the game's update rate, times this (web/controls.js): any value the framework takes, 0.01 to 16 (the user, 2026-11-10: "Allow
+    // game speed to be set to any arbitrary value instead of the limited options in the dropdown"), and 0, unlimited (Max);
+    // the listed ones are the native speed keys' steps (SexyAppBase::SPEED_STEPS)
+    speed: { values: ["0.25", "0.5", "0.75", "1", "1.5", "2", "3", "4", "8", "16", "0"], number: [0.01, 16], def: "1" },
+    // on: F6, F7 and F8 in the game step the speed as the native speed keys do (web/controls.js; the user, 2026-11-17: "Add
+    // optional hotkeys for game speed (probably using function keys)")
+    speedKeys: { values: SWITCH, def: "off" }
   };
 
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }
@@ -220,6 +225,9 @@ var ByopopSettings = (function () {
   // The games that read "3D acceleration" (Byopop::SiteAccel3D, framework/WebSettings.h): a game page of another game does
   // not show it. Perhaps later, once their passes settle their 3D modes: Bookworm Adventures 1 and 2, Rocket Mania.
   var ACCEL3D_GAMES = ["bejeweledtwist", "bookwormadv2"];
+  // The games whose own host runs their loop, with no SexyAppBase for the speed to reach (byopop_set_speed): on their pages the
+  // speed settings are greyed, with a line that says so
+  var OWN_SPEED_GAMES = ["bonnies", "ningpo"];
   // What this browser gives the games for 3D, shown under that setting: "hardware", "software" or "none". Tested as the
   // games test it (Twist's Is3DAccelerationSupported asks a new canvas for "webgl2"), then once more with
   // failIfMajorPerformanceCaveat, which a browser refuses when its WebGL2 is drawn without the graphics card (Chrome's
@@ -259,10 +267,17 @@ var ByopopSettings = (function () {
       options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.ids : ["standard"]).map(function (id) { return [id, T("settings.scheme." + id)]; }) },
     { name: "pattern", label: T("settings.pattern.label"), hint: T("settings.pattern.hint"),
       options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.patternIds : ["none"]).map(function (id) { return [id, T("settings.pattern." + id)]; }) },
-    { name: "wallpaper", label: T("settings.wallpaper.label"), hint: T("settings.wallpaper.hint"),
-      options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.wallpaperIds : ["none"]).map(function (id) { return [id, T("settings.wallpaper." + id)]; }) },
+    // ours, the player's own picture, then the background of each game whose files are here, by the game's title (live, as the
+    // themes are)
+    { name: "wallpaper", label: T("settings.wallpaper.label"), hint: T("settings.wallpaper.hint"), live: true,
+      get options() {
+        var T2 = typeof ByopopThemes !== "undefined" ? ByopopThemes : null, D = typeof ByopopThemeData !== "undefined" ? ByopopThemeData : {};
+        return (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.wallpaperIds : ["none"]).map(function (id) { return [id, T("settings.wallpaper." + id)]; })
+          .concat(T2 ? T2.offered().filter(function (id) { return D[id] && D[id].wallpaper; }).map(function (id) { return ["game:" + id, T2.title(id)]; }) : []);
+      } },
     { name: "wallpaperFit", label: T("settings.wallpaperfit.label"), hint: T("settings.wallpaperfit.hint"),
-      options: [["centre", T("settings.wallpaperfit.centre")], ["tile", T("settings.wallpaperfit.tile")], ["stretch", T("settings.wallpaperfit.stretch")]] },
+      options: [["centre", T("settings.wallpaperfit.centre")], ["tile", T("settings.wallpaperfit.tile")], ["stretch", T("settings.wallpaperfit.stretch")],
+        ["pixel", T("settings.wallpaperfit.pixel")], ["fit", T("settings.wallpaperfit.fit")]] },
     // the themes of the games whose files are here, by the games' titles, read again whenever the list is shown or pressed (live)
     { name: "theme", label: T("settings.theme.label"), live: true,
       get options() {
@@ -277,16 +292,18 @@ var ByopopSettings = (function () {
     { name: "scanlines", label: T("settings.scanlines.label"), options: [["off", T("settings.off")], ["light", T("settings.scanlines.light")], ["strong", T("settings.scanlines.strong")]],
       hint: T("settings.scanlines.hint") },
     { name: "colorFilter", label: T("settings.colorfilter.label"), options: [["none", T("settings.colorfilter.none")], ["grey", T("settings.colorfilter.grey")],
-      ["sepia", T("settings.colorfilter.sepia")], ["warm", T("settings.colorfilter.warm")], ["contrast", T("settings.colorfilter.contrast")], ["vivid", T("settings.colorfilter.vivid")], ["pal256", T("settings.colorfilter.pal256")], ["pal256d", T("settings.colorfilter.pal256d")]],
+      ["sepia", T("settings.colorfilter.sepia")], ["warm", T("settings.colorfilter.warm")], ["contrast", T("settings.colorfilter.contrast")], ["vivid", T("settings.colorfilter.vivid")],
+      ["protan", T("settings.colorfilter.protan")], ["deutan", T("settings.colorfilter.deutan")], ["tritan", T("settings.colorfilter.tritan")], ["pal256", T("settings.colorfilter.pal256")], ["pal256d", T("settings.colorfilter.pal256d")]],
       hint: T("settings.colorfilter.hint") },
     { section: "saver" },
     // the games with a bot whose files are here (none on the live site yet), by the games' titles, read again as the theme's are
     { name: "saver", label: T("settings.saver.label"), live: true,
       get options() {
-        var S2 = typeof ByopopSaver !== "undefined" ? ByopopSaver : null, games = window.ByopopGames || [];
-        return [["none", T("settings.saver.none")]].concat(S2 ? S2.offered().map(function (id) {
+        var S2 = typeof ByopopSaver !== "undefined" ? ByopopSaver : null, games = window.ByopopGames || [], o = S2 ? S2.offered() : [];
+        // (Random) once there are two games to draw from
+        return [["none", T("settings.saver.none")]].concat(o.length > 1 ? [["random", T("settings.saver.random")]] : [], o.map(function (id) {
           var g = games.filter(function (x) { return x.id === id; })[0]; return [id, g ? g.title : id];
-        }) : []);
+        }));
       } },
     { name: "saverWait", label: T("settings.saverwait.label"),
       options: (typeof ByopopSaver !== "undefined" ? ByopopSaver.waits : ["5"]).map(function (m) { return [m, T("settings.saverwait.minutes", { n: m })]; }) },
@@ -311,8 +328,10 @@ var ByopopSettings = (function () {
     { name: "fullscreen", label: T("settings.fullscreen.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.fullscreen.on")], ["off", T("settings.fullscreen.off")]], start: true,
       hint: T("settings.fullscreen.hint") },
     { section: "game" },
-    { name: "speed", label: T("settings.speed.label"), options: [["0.5", "½×"], ["0.75", "¾×"], ["1", T("settings.speed.normal")],
-      ["1.25", "1¼×"], ["1.5", "1½×"], ["2", "2×"]], hint: T("settings.speed.hint") },
+    { name: "speed", label: T("settings.speed.label"), options: [["0.25", "¼×"], ["0.5", "½×"], ["0.75", "¾×"], ["1", T("settings.speed.normal")],
+      ["1.5", "1½×"], ["2", "2×"], ["3", "3×"], ["4", "4×"], ["8", "8×"], ["16", "16×"], ["0", T("settings.speed.max")]],
+      fixed: OWN_SPEED_GAMES, hint: T("settings.speed.hint") },
+    { name: "speedKeys", label: T("settings.speedkeys.label"), fixed: OWN_SPEED_GAMES, hint: T("settings.speedkeys.hint") },
     { name: "accel3d", label: T("settings.accel3d.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.accel3d.on")], ["off", T("settings.accel3d.off")]], start: true,
       games: ACCEL3D_GAMES, hint: T("settings.accel3d.hint"), help: T("settings.accel3d.help") },
     { name: "pixelPerfect", label: T("settings.pixelperfect.label"),
@@ -673,7 +692,8 @@ var ByopopSettings = (function () {
         c.custom.textContent = listed ? "" : now + "×";
         c.custom.hidden = c.custom.disabled = listed;
         if (!listed && !(scope === "game" && own === null)) c.select.value = now;
-        if (document.activeElement !== c.number) c.number.value = now;
+        // Max (0, unlimited) is no number the field takes: it stands empty
+        if (document.activeElement !== c.number) c.number.value = now === "0" ? "" : now;
       }
       if (c.preview) c.preview();
       // in the all-games view, say that this game has a value of its own
@@ -873,7 +893,7 @@ var ByopopSettings = (function () {
         c.custom = make("option"); c.custom.hidden = c.custom.disabled = true;
         c.select.appendChild(c.custom);
         c.number = make("input", "bps-number");
-        c.number.type = "number"; c.number.min = String(num[0]); c.number.max = String(num[1]); c.number.step = "0.05";
+        c.number.type = "number"; c.number.min = String(num[0]); c.number.max = String(num[1]); c.number.step = "0.01";
         c.number.inputMode = "decimal";
         c.number.setAttribute("aria-label", f.label);
         c.number.setAttribute("data-setting", f.name);
@@ -900,6 +920,12 @@ var ByopopSettings = (function () {
       }
       if (f.start && opts.live) hint.appendChild(make("span", "bps-start", T("settings.applies_next")));
       if (gameId) { c.own = make("span", "bps-own"); hint.appendChild(c.own); }
+      // a game whose own host runs its loop (f.fixed): the setting greyed on its page, and under the speed a line that says why
+      if (f.fixed && gameId && f.fixed.indexOf(gameId) >= 0) {
+        [c.select, c.checkbox, c.number].forEach(function (e) { if (e) e.disabled = true; });
+        row.setAttribute("data-fixed", "1");
+        if (f.name === "speed") hint.insertBefore(make("span", "bps-fixed", T("settings.speed.fixed")), hint.firstChild);
+      }
       controls[f.name] = c;
       [c.select, c.checkbox].forEach(function (e) { if (e) e.setAttribute("aria-describedby", hint.id + (pop ? " " + pop.id : "")); });
       c.select.addEventListener("change", function () {
@@ -1004,7 +1030,7 @@ var ByopopSettings = (function () {
     return ok;
   }
   return { KEY: KEY, names: Object.keys(DEFS), get: get, set: set, all: all, override: override, overrides: overrides, render: render,
-           favourites: favourites, isFavourite: isFavourite, setFavourite: setFavourite };
+           favourites: favourites, isFavourite: isFavourite, setFavourite: setFavourite, ownSpeed: OWN_SPEED_GAMES };
 })();
 
 // Which games have their files loaded in this browser, as a sign that the player owns them (docs/WEB_PLAYER.md, "The
@@ -1037,10 +1063,21 @@ var ByopopGameFiles = (function () {
     } catch (e) {}
     return out;
   }
+  // Each write is told on this page as byopop-game-files (another page, a game's window or another tab, hears it as the storage
+  // event of KEY), so that what lists the games' files follows while it is open (the Sounds and Music windows, web/sounds.js and
+  // web/music.js; the user, 2026-11-16: "I had to close and reopen each of the sounds and music windows to get it to appear")
   function write(o) {
     try {
       var s = store();
       if (s) s.setItem(KEY, JSON.stringify(o));
+    } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("byopop-game-files")); } catch (e) {}
+  }
+  // what to listen to for a change of the games' files, on this page and from the others: fn() at each
+  function watch(fn) {
+    try {
+      window.addEventListener("byopop-game-files", function () { fn(); });
+      window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) fn(); });
     } catch (e) {}
   }
   // The files are there (found at a start, or just imported)
@@ -1107,7 +1144,7 @@ var ByopopGameFiles = (function () {
   // Whether a record says the files were ever loaded in this browser, whether they are there now or were forgotten or lost
   // since. The listing page hides a game's buy links for such a game (docs/WEB_PLAYER.md, "The listing page").
   function everLoaded(r) { return !!(r && r.loaded); }
-  return { KEY: KEY, all: all, mark: mark, forget: forget, lost: lost, replacing: replacing, present: present, everLoaded: everLoaded, setIcon: setIcon };
+  return { KEY: KEY, all: all, mark: mark, forget: forget, lost: lost, replacing: replacing, present: present, everLoaded: everLoaded, setIcon: setIcon, watch: watch };
 })();
 
 // How much each game was played in this browser (docs/WEB_PLAYER.md, "The listing page"): one localStorage item for the whole

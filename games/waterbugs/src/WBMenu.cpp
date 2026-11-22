@@ -45,7 +45,7 @@ void AddValue(char* theShown, char* theDrawn, int theHot, const char* theValue)
 // 0x415cb0: a requester at the front of the list, made current
 void Requester_Push(List<Menu>* theList)
 {
-	Menu* aMenu = (Menu*)::operator new(sizeof(Menu));
+	Menu* aMenu = (Menu*)NewZeroed(sizeof(Menu));
 	Menu_Init(aMenu);
 	if (theList->mCurrent == nullptr)
 	{
@@ -66,7 +66,7 @@ void Requester_Push(List<Menu>* theList)
 // 0x4156b0
 void MenuItem_Append(List<MenuItem>* theList)
 {
-	MenuItem* anItem = (MenuItem*)::operator new(sizeof(MenuItem));
+	MenuItem* anItem = (MenuItem*)NewZeroed(sizeof(MenuItem));
 	Obj_Init(anItem);
 	anItem->mAutoClick = 0;
 	anItem->mImage = nullptr;
@@ -823,7 +823,7 @@ int MenuItem_Update(MenuItem* theItem)
 // 0x4155f0
 void MenuItem_Insert(List<MenuItem>* theList)
 {
-	MenuItem* anItem = (MenuItem*)::operator new(sizeof(MenuItem));
+	MenuItem* anItem = (MenuItem*)NewZeroed(sizeof(MenuItem));
 	Obj_Init(anItem);
 	anItem->mAutoClick = 0;
 	anItem->mImage = nullptr;

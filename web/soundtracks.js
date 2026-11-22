@@ -7,7 +7,8 @@
 //   joined  tunes the game joins from pieces by a playlist: [{playlist: "<path>", piece: "<path with {} for the playlist's word>"}],
 //           or from files in order: [{id: "<name>", pieces: ["<path>", ...], loopFrom: <the piece its loop goes back to>}]
 //   cuts    {"<file name>#<n>": [order, ...]}: a subsong split where the game's code starts a different tune partway
-//           through; each later piece is "<file name>#<n>@<order>" (an order the subsong never reaches: from it to the end)
+//           through, or where one song of a medley ends and the next begins; each later piece is "<file name>#<n>@<order>"
+//           (an order the subsong never reaches: from it to the end)
 //   starts  {"<file name>#<n>": [order, ...]}: orders the game also starts a subsong at, where the tune before plays on
 //           through them in the game (no seam: a long game's music runs into the next part); each is a piece
 //           "<file name>#<n>@<order>" from there to the end, and the subsong stays whole
@@ -15,6 +16,12 @@
 //   skip    ["<file name>#<n>", ...]: tunes that are not tunes (n counts from 0 in the file's subsongs or parts)
 //   names   {"<file name>#<n>" or "<playlist name>": "<name>"}: plain names, never invented titles and never the game's own text
 //           at length; without one a tune is named after its file
+//   titles  {"<file name>#<n>": <title>}: a tune's own title, shown in quotes beside its name: "<title>" by the user's word
+//           (cited at the entry), or one the module's own text holds, read from the game's file as it plays and never written
+//           here: {own: true} the module's title, {line: "<order>"} what its message says beside that order (as the message
+//           writes it), up to a comma or a bracket, {line: "<order>", inner: true} the words in that line's brackets
+//   alone   ["<file name>#<n>", ...]: subsongs that are one pattern running on into the module's silence: listed with the unused
+//           patterns as that pattern, played alone (its when still its tooltip)
 //   inside  tunes kept inside a game's file: [{file: "<path>", magic: "<first bytes>"}] its resources (a Windows module's)
 //           that start with those bytes, the magic naming their format, or [{file: "<path>", zip: ["<entry>", ...]}] those
 //           entries of a zip archive, or [{file: "<path>", tiptop: ["<entry>", ...]}] those of TipTop's archive; each is then a
@@ -26,14 +33,21 @@
 //           tunes of one place numbered as the game reaches them), from the game's code (its session's answer) or, for an Ogg
 //           game, its file's name; shown beside the tune and in the display
 //   unused  ["<file name>#<n>", ...]: tunes the game's code never plays (left in its files), shown as such
+//   shuffle {out: [ids], groups: [[ids in order], ...]}: the player's shuffle (the user, 2026-11-19): out the tunes that make no
+//           sense on shuffle (an intro, a loading or logo tune) beyond what it leaves out by itself (unused tunes and patterns,
+//           and tunes under 20 seconds: stings, fanfares, jingles), groups the tunes the game only ever plays one straight
+//           after the other, drawn as one and played in that order
 //   order   ["<file name>#<n>" ...]: the tunes in the order a player hears them, from launch through a game to its end (modes,
 //           levels and books in the order the game reaches them), as the list shows them (the user, 2026-11-13: "more closely
 //           follow what you might hear instead of having the parts in order"); tunes it leaves out follow, then the unused ones
 //   when    {"<file name>#<n>" ...: "<when>"}: exactly when the game's code plays it, as numbers (levels, orders, updates), the
 //           place's tooltip
 //   composer  who wrote the music, by the game's own credits (its credits screen, text or exe; a company where they name no
-//           person); none for a game whose credits name nobody for it, shown as Unknown. composers {"<id>": "<name>"} where
-//           the credits split the music by tune (Heavy Weapon's love theme)
+//           person), or where they name nobody by the user's word (2026-11-19, cited at the entry); none shown as Unknown. One
+//           form for a person across the site: "Peter Hajba (Skaven)", "Philippe Charron". composers {"<id>": "<name>"} where
+//           the music is split by tune (Heavy Weapon's love theme); an id without "#<n>" takes every tune of that file
+//   voices  true for a game that plays its tunes as sounds, not as the mixer's songs (Venice): Music follows the one playing
+//           among its voices (web/music.js, voiceTune)
 //   level   the level the game plays its modules at, where it is not the renderer's own (platform/MusicLevels.h):
 //           {bassAmplify: n} the BASS amplify it sets (0 to 100), {fmod3XM: true} FMOD 3's XM pre-amp. The renderer is the
 //           game's own (libopenmpt for MO3 and OXM, libxmp-lite for the rest: web/music/openmpt_web.c)
@@ -42,8 +56,13 @@
 var ByopopSoundtracks = {
   // Places and unused tunes from each port's code (the coordinator's reading, 2026-11-11); a place only inferred is left blank
   alchemy: {
+    // the user, 2026-11-19: "Seven Seas credit goes to Peter Hajba as well as the original Bejeweled and Alchemy" (Alchemy's
+    // In-Game tune, "He Has No Face", is one of his own works from before the game: the user, 2026-11-16)
+    composer: "Peter Hajba (Skaven)",
     files: ["music/*.s3m"],
     where: { "alch_intro#0": "Title Screen", "1985-hehasnoface#0": "In-Game" },
+    // (each module's own title, read from the file as it plays)
+    titles: { "alch_intro#0": { own: true }, "1985-hehasnoface#0": { own: true } },
     order: ["alch_intro#0", "1985-hehasnoface#0"],
     when: {
       "alch_intro#0": "Order 0 from launch, over the loading title screen; fades out (0.004) when loading completes",
@@ -55,8 +74,10 @@ var ByopopSoundtracks = {
   // each starting at one of the orders the game plays (0 loading, 5 the menus, 9 a level, 35 the danger siren, 39 the game's
   // end, 41 a level's tally and level-up: games/astropop/src, checked 2026-11-11 once its music played)
   astropop: {
-    composer: "Phillipe Charon",
+    // its credits spell it "Phillipe Charon"; the site has one form for him, the user's (2026-11-19, Twist's entry)
+    composer: "Philippe Charron",
     files: ["music/*.mo3"],
+    shuffle: { out: ["music#0"] },   // (the loading tune)
     where: { "music#0": "Loading", "music#1": "Main Menu", "music#2": "In-Game", "music#3": "Danger", "music#4": "Game Over",
       "music#5": "Level Complete" },
     order: ["music#0", "music#1", "music#2", "music#3", "music#5", "music#4"],
@@ -72,6 +93,7 @@ var ByopopSoundtracks = {
   atomica: {
     composer: "Hannu Salonen",
     files: ["music/*.it"],
+    shuffle: { out: ["atomica#2"] },   // (the title screen's intro, which its message names one)
     where: { "atomica#2": "Title Screen", "atomica#3": "Level Theme 1", "atomica#5": "Level Theme 2", "atomica#7": "Main Menu", "atomica#9": "Level Theme 3",
       "atomica#8": "Game Over 1", "atomica#10": "Game Over 2" },
     order: ["atomica#2", "atomica#7", "atomica#3", "atomica#5", "atomica#9", "atomica#8", "atomica#10"],
@@ -87,8 +109,12 @@ var ByopopSoundtracks = {
     unused: ["atomica#1", "atomica#4", "atomica#6"]
   },
   bejeweled: {
+    // the user, 2026-11-16: "Bejeweled's composer is listed as unknown. It is rather famously Skaven."; and 2026-11-19
+    composer: "Peter Hajba (Skaven)",
     files: ["music/*.s3m"],
     where: { "1980-Autonomus#0": "Title Screen", "1984-Network#0": "Normal Mode", "1981-DataJack#0": "Timed Mode" },
+    // (each module's own title, read from the file as it plays)
+    titles: { "1980-Autonomus#0": { own: true }, "1984-Network#0": { own: true }, "1981-DataJack#0": { own: true } },
     order: ["1980-Autonomus#0", "1984-Network#0", "1981-DataJack#0"],
     when: {
       "1980-Autonomus#0": "From launch on the title screen; fades out (0.004) when it finishes",
@@ -98,34 +124,95 @@ var ByopopSoundtracks = {
     unused: ["1981-DataJack#1", "1981-DataJack#2", "1981-DataJack#3"]
   },
   // one module, BeyondNetwork.mo3: the game plays it from a starting order for each screen (properties/music.xml), so its
-  // subsongs are the tunes
+  // subsongs are the tunes. A game's music is subsong 1, a medley of fourteen songs that plays straight through and back to
+  // its start (order 181 jumps to order 2): the board starts it at order 2 (MUSICOFFSET_MAIN) unless the mode is an Action or
+  // a Puzzle one (modes 1, 2, 5, 6 and 7: Action, Puzzle, Hyper, Cognito and Finity), which start at order 122
+  // (MUSICOFFSET_ACTION; BoardUpdate.cpp at board update 2, BoardCtor.cpp's mode flags), and nothing else moves it, at a
+  // level or anywhere. It is cut at the composer's own markers between its songs (the "+++" orders 10, 21, 29, ... 168,
+  // which play skips), so a piece ends where its song does. The titles are the user's (2026-11-19), in their order, and the
+  // composer's album, which the user pointed to (2026-11-22: "I'd look up the track names on Skaven's Bandcamp"), names
+  // the first piece, before the marker at order 10, Beyond the Network: the album's lengths agree with the pieces' (The
+  // Journey Begins 1:44 there and 1:45 from order 11 here, and nine more within a second; the rest differ by 3 to 18
+  // seconds, Beyond the Network by 7). Both of the first two are Classic Mode 1, the start of a game. They are not a
+  // shuffle group: each is a song of its own on the album, ended at a marker as every other is, and only the second
+  // intro, which runs into its song, is grouped. Subsongs 3 and 4 are one pattern each (127 at order 199, 128 at
+  // 201, music.xml's GET_READY and LEVEL_CLEAR, which the code never reads), then the module's silent pattern 0 looping:
+  // listed with the unused patterns (the user: "really, they're only single patterns that we could just file with the others")
   bejeweled2: {
-    composer: "Skaven",
+    composer: "Peter Hajba (Skaven)",
     files: ["music/*.mo3"],
-    starts: { "BeyondNetwork#1": [122] },
-    where: { "BeyondNetwork#1": "Classic Mode", "BeyondNetwork#1@122": "Action Mode", "BeyondNetwork#2": "Main Menu", "BeyondNetwork#5": "Title Screen",
-      "BeyondNetwork#6": "Finale" },
-    order: ["BeyondNetwork#5", "BeyondNetwork#2", "BeyondNetwork#1", "BeyondNetwork#1@122", "BeyondNetwork#6"],
+    cuts: { "BeyondNetwork#1": [11, 22, 30, 42, 54, 70, 91, 122, 126, 141, 151, 160, 169] },
+    alone: ["BeyondNetwork#3", "BeyondNetwork#4"],
+    // (the second intro leads straight into the song after it)
+    shuffle: { groups: [["BeyondNetwork#1@122", "BeyondNetwork#1@126"]] },
+    titles: {
+      "BeyondNetwork#1": "Beyond the Network", "BeyondNetwork#1@11": "The Journey Begins", "BeyondNetwork#1@22": "Rain of Lights", "BeyondNetwork#1@30": "LightStorm",
+      "BeyondNetwork#1@42": "Sea of Amorphity", "BeyondNetwork#1@54": "Masked Intentions", "BeyondNetwork#1@70": "Routinoid",
+      "BeyondNetwork#1@91": "Tunnel Society V2", "BeyondNetwork#1@122": "A New Beginning (Intro 2)", "BeyondNetwork#1@126": "Silent Conquest",
+      "BeyondNetwork#1@141": "Schein", "BeyondNetwork#1@151": "Choose and Contemplate", "BeyondNetwork#1@160": "Breathing Love",
+      "BeyondNetwork#1@169": "Jewels of Denial", "BeyondNetwork#2": "Bejeweled 2 Theme", "BeyondNetwork#5": "Autonomus V2",
+      "BeyondNetwork#6": "Final Destination"
+    },
+    where: {
+      "BeyondNetwork#1": "Classic Mode 1", "BeyondNetwork#1@11": "Classic Mode 1", "BeyondNetwork#1@22": "Classic Mode 2", "BeyondNetwork#1@30": "Classic Mode 3",
+      "BeyondNetwork#1@42": "Classic Mode 4", "BeyondNetwork#1@54": "Classic Mode 5", "BeyondNetwork#1@70": "Classic Mode 6",
+      "BeyondNetwork#1@91": "Classic Mode 7", "BeyondNetwork#1@122": "Action Mode 1", "BeyondNetwork#1@126": "Action Mode 2",
+      "BeyondNetwork#1@141": "Action Mode 3", "BeyondNetwork#1@151": "Action Mode 4", "BeyondNetwork#1@160": "Action Mode 5",
+      "BeyondNetwork#1@169": "Action Mode 6", "BeyondNetwork#2": "Main Menu", "BeyondNetwork#5": "Title Screen", "BeyondNetwork#6": "Finale"
+    },
+    order: ["BeyondNetwork#5", "BeyondNetwork#2", "BeyondNetwork#1", "BeyondNetwork#1@11", "BeyondNetwork#1@22", "BeyondNetwork#1@30", "BeyondNetwork#1@42",
+      "BeyondNetwork#1@54", "BeyondNetwork#1@70", "BeyondNetwork#1@91", "BeyondNetwork#1@122", "BeyondNetwork#1@126", "BeyondNetwork#1@141",
+      "BeyondNetwork#1@151", "BeyondNetwork#1@160", "BeyondNetwork#1@169", "BeyondNetwork#6"],
     when: {
-      "BeyondNetwork#1": "Order 2; a Classic game's start (board update 2), neither Action nor Puzzle",
-      "BeyondNetwork#1@122": "Order 122; an Action or a Puzzle game's start (board update 2)",
+      "BeyondNetwork#1": "Order 2; a game's start (board update 2) in Classic, Endless, Twilight or the hidden Classic mode; the songs then play on in turn, whatever the level, and after the last one back to this (12:31 into an Action or Puzzle game)",
+      "BeyondNetwork#1@11": "Order 11; played on into, 1:05 after a Classic, Endless or Twilight game's start",
+      "BeyondNetwork#1@22": "Order 22; played on into, 2:50 after a Classic, Endless or Twilight game's start",
+      "BeyondNetwork#1@30": "Order 30; played on into, 4:18 after a Classic, Endless or Twilight game's start",
+      "BeyondNetwork#1@42": "Order 42; played on into, 6:22 after a Classic, Endless or Twilight game's start",
+      "BeyondNetwork#1@54": "Order 54; played on into, 8:46 after a Classic, Endless or Twilight game's start",
+      "BeyondNetwork#1@70": "Order 70; played on into, 11:54 after a Classic, Endless or Twilight game's start",
+      "BeyondNetwork#1@91": "Order 91; played on into, 14:23 after a Classic, Endless or Twilight game's start",
+      "BeyondNetwork#1@122": "Order 122; a game's start (board update 2) in Action, Puzzle, Hyper, Cognito or Finity; played on into 18:23 after a Classic game's start",
+      "BeyondNetwork#1@126": "Order 126; played on into, 0:31 after an Action or Puzzle game's start (18:54 after a Classic one's)",
+      "BeyondNetwork#1@141": "Order 141; played on into, 3:06 after an Action or Puzzle game's start (21:29 after a Classic one's)",
+      "BeyondNetwork#1@151": "Order 151; played on into, 5:21 after an Action or Puzzle game's start (23:43 after a Classic one's)",
+      "BeyondNetwork#1@160": "Order 160; played on into, 7:21 after an Action or Puzzle game's start (25:44 after a Classic one's)",
+      "BeyondNetwork#1@169": "Order 169; played on into, 10:01 after an Action or Puzzle game's start (28:24 after a Classic one's); then back to order 2",
       "BeyondNetwork#2": "Order 184; main menu: after the title show, after a game over, quitting from options, high scores",
+      "BeyondNetwork#3": "Order 199, music.xml's GET_READY, which the game's code never reads",
+      "BeyondNetwork#4": "Order 201, music.xml's LEVEL_CLEAR, which the game's code never reads",
       "BeyondNetwork#5": "Order 203; at launch, on the loading title screen until it completes",
       "BeyondNetwork#6": "Order 217; 500 updates after the hyperspace jump to the last planet of a non-secret Puzzle galaxy"
     },
-    unused: ["BeyondNetwork#3", "BeyondNetwork#4", "BeyondNetwork#7"]
+    unused: ["BeyondNetwork#7"]
   },
   bejeweledtwist: {
-    composer: "Phillipe Charon & Peter Hajba",
+    // the user, 2026-11-19: "bejewel twist 06.10 is the part composed by Philippe Charron, while BejeweledTwist24 is by Peter
+    // Hajba; update the composers accordingly"
+    composer: "Philippe Charron & Peter Hajba (Skaven)",
+    // (its unused 1981-DataJack is Bejeweled's Timed tune, his too)
+    composers: { "bejewel twist 06.10": "Philippe Charron", "bejeweledtwist24": "Peter Hajba (Skaven)", "1981-DataJack": "Peter Hajba (Skaven)" },
     files: ["music/*.mo3"],
     cuts: { "bejewel twist 06.10#3": [72], "bejewel twist 06.10#7": [73], "bejeweledtwist24#0": [24] },
     skip: ["bejewel twist 06.10#3@72"],
+    shuffle: { out: ["bejewel twist 06.10#7"] },   // (the loading tune)
+    // The challenge tunes are named from the game's data (the user, 2026-11-22: "I think a 3-minute challenge refers to Eclipse
+    // mode after beating all seven levels on a planet", then "I'll leave naming them to the session then"). Order 24 plays for
+    // a challenge with a 3-minute limit, and in properties/challenges.xml those are each planet's eighth, its eclipse challenge
+    // (night mode, open once its seven are done), on 11 of the 13 planets; Stratamax's and Survivor's count moves instead and
+    // play #5. The split is the game's (Board::PlayChallengeMusic): a time limit plays Blitz's tune, or order 24's at 3 minutes;
+    // without one, a challenge with a Moves rule plays #5 and any other #6, the one-move challenges among them. #5 keeps the
+    // user's first name, which the game's own properties use for its tempo (MUSIC_CHALLENGE_TURNBASED_MIN_TEMPO and
+    // _MAX_TEMPO) and the module's message for order 52; #6 is the message's untimed one
     where: { "bejewel twist 06.10#0": "In-Game 1", "bejewel twist 06.10#1": "In-Game 2", "bejewel twist 06.10#2": "In-Game 3",
       "bejewel twist 06.10#6": "In-Game 4", "bejewel twist 06.10#7@73": "In-Game 5", "bejewel twist 06.10#8": "In-Game 6", "bejewel twist 06.10#7": "Loading",
       "bejewel twist 06.10#3": "Game Over", "bejewel twist 06.10#4": "Victory", "bejewel twist 06.10#5": "Main Menu",
-      "bejeweledtwist24#0": "Blitz", "bejeweledtwist24#0@24": "Blitz 3 Minutes", "bejeweledtwist24#1": "Blitz Results 1", "bejeweledtwist24#2": "Blitz Results 2",
-      "bejeweledtwist24#3": "Blitz Results 3", "bejeweledtwist24#4": "Challenge Menu", "bejeweledtwist24#5": "Challenge 1",
-      "bejeweledtwist24#6": "Challenge 2", "bejeweledtwist24#7": "Bonus" },
+      "bejeweledtwist24#0": "Blitz", "bejeweledtwist24#0@24": "Eclipse Challenge", "bejeweledtwist24#1": "Blitz Results 1", "bejeweledtwist24#2": "Blitz Results 2",
+      "bejeweledtwist24#3": "Blitz Results 3", "bejeweledtwist24#4": "Challenge Menu", "bejeweledtwist24#5": "Turn-Based Challenge",
+      "bejeweledtwist24#6": "Untimed Challenge", "bejeweledtwist24#7": "Bonus" },
+    // the composer's own names for its parts, by their orders in the module's message (read from the file as it plays; order
+    // 63's, an untimed challenge, is the place of #6 as well)
+    titles: { "bejeweledtwist24#0@24": { line: "24" }, "bejeweledtwist24#4": { line: "48" }, "bejeweledtwist24#7": { line: "79" } },
     order: ["bejewel twist 06.10#7", "bejewel twist 06.10#5", "bejewel twist 06.10#0", "bejewel twist 06.10#1",
       "bejewel twist 06.10#2", "bejewel twist 06.10#6", "bejewel twist 06.10#7@73", "bejewel twist 06.10#8",
       "bejewel twist 06.10#4", "bejewel twist 06.10#3", "bejeweledtwist24#0", "bejeweledtwist24#7", "bejeweledtwist24#1",
@@ -142,23 +229,26 @@ var ByopopSoundtracks = {
       "bejewel twist 06.10#3": "Order 52; a non-Blitz game ends by the nuke",
       "bejewel twist 06.10#4": "Order 53; a non-Blitz game ends, not by the nuke (EndGame)",
       "bejewel twist 06.10#5": "Order 54; main menu, and back from the Challenge menu",
-      "bejeweledtwist24#0": "Order 0; Blitz: at each level's Go, and after the bonus fruit dance; timed challenges not of 180 s",
-      "bejeweledtwist24#0@24": "Order 24; a timed challenge with a 180 s goal, at its start",
+      "bejeweledtwist24#0": "Order 0; Blitz: at each level's Go, and after the bonus fruit dance; a challenge with a 5-minute limit (Bonanza's, Firestorm's and Voltage's seven, Chain Reaction's last four)",
+      "bejeweledtwist24#0@24": "Order 24; a challenge with a 3-minute limit, at its start: a planet's eclipse challenge, its eighth, open once its seven are done (11 of the 13 planets: all but Stratamax and Survivor)",
       "bejeweledtwist24#1": "Order 42; Blitz ends with a score under 40000, after the board clears out",
       "bejeweledtwist24#2": "Order 44; Blitz ends with a score of 40000-79999",
       "bejeweledtwist24#3": "Order 46; Blitz ends with a score of 80000 or more",
       "bejeweledtwist24#4": "Order 48; the Challenge menu opens",
-      "bejeweledtwist24#5": "Order 52; an untimed challenge with a Moves goal, at its Go; layers follow the moves made",
-      "bejeweledtwist24#6": "Order 63; an untimed challenge without a Moves goal, at its Go",
+      "bejeweledtwist24#5": "Order 52; a challenge that counts moves, at its Go: Survivor's eight (last so many moves) and Stratamax's eclipse (50 moves); its layers and tempo follow the moves made",
+      "bejeweledtwist24#6": "Order 63; a challenge with neither a time limit nor a move count (one-move challenges included), at its Go: the seven of Arsenal, Coal Mine, Detonator, Enigma, Gem Fall, Preserver, Spectrum and Stratamax, and Chain Reaction's first three",
       "bejeweledtwist24#7": "Order 79; the bonus fruit dance, until it ends after 2200 updates"
     },
     unused: ["bejewel twist 06.10#9", "bejewel twist 06.10#10", "bejewel twist 06.10#11", "bejewel twist 06.10#12",
       "bejewel twist 06.10#13", "bejeweledtwist24#8"]
   },
   bigmoney: {
-    composer: "Skaven",
+    composer: "Peter Hajba (Skaven)",
     files: ["music/*.it"],
     cuts: { "QualityTime_BigMoney#1": [24], "QualityTime_BigMoney#3": [41], "QualityTime_BigMoney#5": [64] },
+    // (each level-up fanfare runs straight on into its mode's pause tune)
+    shuffle: { groups: [["QualityTime_BigMoney#1", "QualityTime_BigMoney#1@24"], ["QualityTime_BigMoney#3", "QualityTime_BigMoney#3@41"],
+      ["QualityTime_BigMoney#5", "QualityTime_BigMoney#5@64"]] },
     where: { "QualityTime_BigMoney#0": "Puzzle Mode", "QualityTime_BigMoney#1": "Puzzle Level Up", "QualityTime_BigMoney#1@24": "Puzzle Pause",
       "QualityTime_BigMoney#2": "Action Mode", "QualityTime_BigMoney#3": "Action Level Up", "QualityTime_BigMoney#3@41": "Action Pause",
       "QualityTime_BigMoney#4": "Strategy Mode", "QualityTime_BigMoney#5": "Strategy Level Up", "QualityTime_BigMoney#5@64": "Strategy Pause",
@@ -181,8 +271,10 @@ var ByopopSoundtracks = {
     },
   },
   bookworm: {
-    composer: "Skaven",
+    composer: "Peter Hajba (Skaven)",
     files: ["music/*.mo3"],
+    // (the song the module's message names in brackets for the Hall of Fame's orders, read from the file as it plays)
+    titles: { "bookworm1#4": { line: "5/9", inner: true } },
     where: { "bookworm1#0": "Classic Mode", "bookworm1#1": "Title Screen", "bookworm1#2": "Action Mode",
       "bookworm1#3": "Danger 1", "bookworm1#4": "Hall of Fame", "bookworm1#5": "Game Over 2", "bookworm1#6": "Game Over 1",
       "bookworm1#7": "Danger 2" },
@@ -264,14 +356,17 @@ var ByopopSoundtracks = {
     },
   },
   dynomite: {
-    composer: "Skaven",
+    composer: "Peter Hajba (Skaven)",
     files: ["music/*.it"],
     cuts: { "amazonas#2": [64] },
+    shuffle: { out: ["amazonas#5"] },   // (the game's get-ready start)
     // the places from the Dynomite session (2026-11-11): #2@64 is where the won challenge starts, and the game over (#2) and
     // Time Trial's clear (#4) jump into it; #7 is Endless (the port's DynomitePanic); #9, two seconds, nothing starts or jumps to
     where: { "amazonas#0": "Fossil Challenge", "amazonas#1": "Title Screen", "amazonas#2": "Game Over", "amazonas#4": "Time Trial Clear",
       "amazonas#5": "Game Start", "amazonas#6": "Time Trial", "amazonas#2@64": "Challenge Won", "amazonas#7": "Endless", "amazonas#8": "Museum",
       "omniphilia#0": "Stomped" },
+    // (the song the module's message names at orders 00-20, and Omniphilia's own title, read from the files as they play)
+    titles: { "amazonas#0": { line: "00-20" }, "omniphilia#0": { own: true } },
     order: ["amazonas#1", "amazonas#5", "amazonas#0", "amazonas#8", "amazonas#2@64", "amazonas#6", "amazonas#4",
       "amazonas#7", "omniphilia#0", "amazonas#2"],
     when: {
@@ -289,6 +384,7 @@ var ByopopSoundtracks = {
     unused: ["amazonas#3", "amazonas#9"]
   },
   sevenseas: {
+    composer: "Peter Hajba (Skaven)",  // the user, 2026-11-19 (Alchemy's entry)
     files: ["music/*.it"],
     where: { "game#0": "In-Game", "game#1": "Level Complete", "game#2": "Game Over", "game#3": "Treasure Bonus",
       "game#4": "Bonus End", "game#5": "Tutorial", "game#6": "Title Screen", "game#7": "Intro", "game#8": "High Scores",
@@ -334,6 +430,8 @@ var ByopopSoundtracks = {
     composer: "Hannu Salonen",
     files: ["music/*.it"],
     cuts: { "game#9": [67], "game#10": [77] },
+    // (the name the module's message gives the victory tune, read from the file as it plays)
+    titles: { "game#7": { line: "55" } },
     where: { "game#0": "Main Menu", "game#1": "Tutorial", "game#2": "In-Game", "game#3": "Stage Clear",
       "game#5": "Chamber End 1", "game#6": "Chamber End 2", "game#7": "Victory", "game#9@67": "Map", "game#10@77": "High Scores" },
     order: ["game#0", "game#1", "game#9@67", "game#2", "game#5", "game#6", "game#3", "game#7", "game#10@77"],
@@ -355,6 +453,7 @@ var ByopopSoundtracks = {
   // Po its one music stream and three jingles in its Python archive; the layout select's tune turns with each visit (LayoutSelect's
   // gMusicTurn): China 338, 336, 337, Japan 337, 336, 337, numbered as the game reaches them
   mahjongchina: {
+    composer: "Lin Gardiner",  // the user, 2026-11-19: "Lin Gardiner was the composer for Mahjong Escape"
     inside: [{ file: "resource.dll", magic: "MO3" }],
     chains: { "Resource 339#0": ["Resource 339#1", "Resource 339#2", "Resource 339#3"] },
     where: { "Resource 335#0": "Main Menu", "Resource 338#0": "Layout Select 1", "Resource 336#0": "Layout Select 2",
@@ -369,6 +468,7 @@ var ByopopSoundtracks = {
     },
   },
   mahjongjapan: {
+    composer: "Lin Gardiner",  // the user, 2026-11-19: "Lin Gardiner was the composer for Mahjong Escape"
     inside: [{ file: "resource.dll", magic: "MO3" }],
     chains: { "Resource 339#0": ["Resource 339#1", "Resource 339#2", "Resource 339#3"] },
     where: { "Resource 335#0": "Main Menu", "Resource 337#0": "Layout Select 1", "Resource 336#0": "Layout Select 2",
@@ -400,7 +500,11 @@ var ByopopSoundtracks = {
       "intenseEnd": "The game-over results show (or the congratulations screen after mode 0's last level)"
     },
   },
-  ningpo: { inside: [{ file: "ningpo.pyz", zip: ["theme_np.ogg", "nm_splash.ogg", "nm_gameover.ogg", "nm_youwin.ogg"] }],
+  ningpo: {
+    shuffle: { out: ["nm_splash"] },   // (the splash screen's, before the assets load)
+    // the user, 2026-11-19: "Ian Livingstone was the composer for Ning Po, Noah's Ark, Rocket Mania, Pixelus, and Hammer Heads"
+    composer: "Ian Livingstone",
+    inside: [{ file: "ningpo.pyz", zip: ["theme_np.ogg", "nm_splash.ogg", "nm_gameover.ogg", "nm_youwin.ogg"] }],
     where: { theme_np: "In-Game", nm_splash: "Splash Screen", nm_gameover: "Game Over", nm_youwin: "Victory" },
     order: ["nm_splash", "theme_np", "nm_youwin", "nm_gameover"],
     when: {
@@ -447,6 +551,7 @@ var ByopopSoundtracks = {
   },
   // Noah's Ark: mainintro plays once as play starts and runs on into mainloop, which loops: one tune, repeating from the loop
   noahsark: {
+    composer: "Ian Livingstone",  // the user, 2026-11-19 (Ning Po's entry)
     files: ["music/loading.ogg", "music/gameover.ogg"],
     joined: [{ id: "mainloop", pieces: ["music/mainintro.ogg", "music/mainloop.ogg"], loopFrom: 1 }],
     where: { mainloop: "In-Game", loading: "Title Screen", gameover: "Game Over" },
@@ -467,6 +572,8 @@ var ByopopSoundtracks = {
   venice: {
     composer: "Guillaume Bastard & Staffan Melin",
     files: ["audio/title_music.ogg", "audio/ingame_*.ogg", "audio/final_victory.ogg"],
+    // its music is a looped sound (games/venice/src/VeniceSound.cpp), not a song
+    voices: true,
     where: { title_music: "Main Menu", ingame_1_intro: "World Map", ingame_1_body: "Welcome to Venice",
       ingame_1_win: "Level Complete", ingame_3_body: "Lunar Lanes", ingame_4_body: "Cupid's Cove",
       ingame_5_body: "Venetian Villa", ingame_2_body: "San Marco Square", final_victory: "Final Victory" },
@@ -493,6 +600,7 @@ var ByopopSoundtracks = {
   // (HeavyWeaponApp.cpp, IsPlaying), so only the first main menu fades its tune in and the armory never changes the music.
   // The credits give the music to Yannis Brown of Groovy Audio and the love theme to MegaLazer (data/credits.xml)
   heavyweapon: {
+    shuffle: { out: ["atomictank#8"] },   // (the intro under the PopCap and title pictures)
     composer: "Yannis Brown",
     composers: { lovetheme: "MegaLazer" },
     files: ["music/*.mo3", "music/lovetheme.ogg"],
@@ -512,6 +620,7 @@ var ByopopSoundtracks = {
   // Bonnie's Bookstore plays its one module as tracks, each a range of orders (its track table, games/bonnies/game/Music.cpp:
   // the first for the menu, the rest in a game), and a logo tune
   bonnies: {
+    shuffle: { out: ["logo"] },   // (the logo's)
     composer: "Barry Leitch",
     files: ["sound/logo.ogg", "sound/music.oxm"],
     level: { fmod3XM: true },
@@ -533,6 +642,7 @@ var ByopopSoundtracks = {
   },
   // Pixelus and Rocket Mania join their in-game (and Rocket Mania its menu) music from pieces by a playlist, as the games do
   pixelus: {
+    composer: "Ian Livingstone",  // the user, 2026-11-19 (Ning Po's entry)
     files: ["music/pixelus *.ogg"],
     joined: [{ playlist: "music/pixelus in-game playlist.txt", piece: "music/{}.ogg" }],
     where: { "pixelus main menu loop v02": "Main Menu", "pixelus story screen loop v01": "Story Screen",
@@ -547,6 +657,7 @@ var ByopopSoundtracks = {
     },
   },
   rocketmania: {
+    composer: "Ian Livingstone",  // the user, 2026-11-19 (Ning Po's entry)
     files: ["music/* loop *.ogg"],
     joined: [{ playlist: "music/tubetricks menu one v02 playlist.txt", piece: "music/tubetricks menu one v02 {}.ogg" },
       { playlist: "music/tubetricks in-game one v02 playlist.txt", piece: "music/tubetricks in-game one v02 {}.ogg" }],
@@ -562,8 +673,10 @@ var ByopopSoundtracks = {
     },
   },
   // Hammer Heads' four tracks, one a screen (Application::StartMusic, games/hammerheads/src/Application.cpp: a track fades in
-  // over the others, and one already playing goes on where it was). Its credits name its developers and nobody for the music
+  // over the others, and one already playing goes on where it was). Its credits name its developers and nobody for the music;
+  // the user named its composer
   hammerheads: {
+    composer: "Ian Livingstone",  // the user, 2026-11-19 (Ning Po's entry)
     files: ["sounds/Music - *.ogg"],
     where: { "Music - Loading and Menu": "Main Menu", "Music - In-Game": "In-Game", "Music - Bonus Game": "Bonus Round",
       "Music - High Score": "Trophy Room" },
