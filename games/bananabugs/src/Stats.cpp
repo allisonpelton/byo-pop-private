@@ -1,6 +1,7 @@
 #include "Stats.h"
 
 #include "Anim.h"
+#include "BBFont.h"
 #include "GameApp.h"
 #include "LevelObj.h"
 #include "ObjString.h"

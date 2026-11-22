@@ -1,11 +1,12 @@
 #include "FillObj.h"
+
 #include "BonusCoin.h"
+#include "PipeObj.h"
 
 #include "Anim.h"
 #include "Emitter.h"
 #include "GameApp.h"
 #include "LevelObj.h"
-#include "Pending.h"
 #include "Player.h"
 #include "Res.h"
 #include "SoundQueue.h"
@@ -38,7 +39,7 @@ static const double NET_FLY_SHRINK = 2.700000047683716;
 // The depth step between cells (0.0005 as a float widened to a double)
 static const double DEPTH_STEP = 0.0005000000237487257;
 
-// A pipe that may be missing as the port's stand-in grid has none; the original reads the grid unchecked
+// A pipe that may be missing (the grid is filled as the level builds); the original reads the grid unchecked
 static bool IsActivePipe(PipeObj* thePipe)
 {
 	return thePipe != nullptr && thePipe->IsActive();
@@ -732,7 +733,7 @@ void FillObj::ClearBonuses()
 	sCellsSettled = 0;
 	for (int aRow = 0; aRow < FILL_GRID_ROWS; aRow++) {
 		for (int aColumn = 0; aColumn < FILL_GRID_COLUMNS; aColumn++) {
-			// the original reads the grid unchecked; the port's stand-in grid may hold no cell
+			// the original reads the grid unchecked; the grid may hold no cell yet
 			FillObj* aCell = (FillObj*)gFillGrid[aColumn][aRow].mCell;
 			if (aCell != nullptr)
 				aCell->SetBonus(nullptr);

@@ -145,7 +145,7 @@ bool MonkeyLives::Update()
 }
 
 // 0x44f840: with its pea not in flight and nothing asked of it, it is to shoot (the original reads the pea's active
-// flag, not the monkey's: the old stand-in read the monkey's own)
+// flag, not the monkey's)
 void MonkeyLives::StartShooting()
 {
 	if (!mPea->IsActive() && mPhase == MONKEY_PHASE_DANCE)

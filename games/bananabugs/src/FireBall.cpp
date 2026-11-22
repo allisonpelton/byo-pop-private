@@ -1,8 +1,8 @@
 #include "FireBall.h"
 
 #include "Anim.h"
+#include "BugObj.h"
 #include "Emitter.h"
-#include "Pending.h"
 #include "GameApp.h"
 #include "Player.h"
 #include "Res.h"

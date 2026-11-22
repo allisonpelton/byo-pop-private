@@ -146,4 +146,6 @@ private:
 	void BuildPictureTracks(int theColumn);            // 0x428ee0
 };
 
+void PreloadNetFly(); // 0x42ad40: the net fly's picture (FillObj::sNetFlyAnim), loaded once
+
 } // namespace Sexy

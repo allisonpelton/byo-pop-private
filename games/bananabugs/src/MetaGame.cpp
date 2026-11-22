@@ -10,9 +10,9 @@
 #include "Map.h"
 #include "MenuButton.h"
 #include "ObjString.h"
-#include "Pending.h"
 #include "Player.h"
 #include "Res.h"
+#include "Slots.h"
 #include "SoundQueue.h"
 #include "Transition.h"
 

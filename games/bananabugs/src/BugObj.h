@@ -56,7 +56,7 @@ class BugObj : public ObjBase
 {
 public:
 	// The offsets in the comments are the original's, from the object (the port's ObjBase is smaller, so they differ here)
-	BugImg* mBody;                              // +0x288: the body the kind makes, or null until then (the stand-ins never make one); the bug's place on the screen is the body's
+	BugImg* mBody;                              // +0x288: the body the kind makes, or null until then; the bug's place on the screen is the body's
 	bool mDead;                                 // +0x28c: Zap has killed it (it is not counted alive any more)
 	int mWaitCounter;                           // +0x290: updates skipped since the last one run (see sSlowFrames)
 	bool mPlaced;                               // +0x294: the bug has a place on the grid
@@ -160,13 +160,19 @@ public:
 	static float sZapBottom;                    // 0x60e2d0
 	static int sZapMode;                        // 0x60e2d4: 0 nothing, 1 the bugs in the area are held ten frames more each frame, 2 they die
 	static bool sAlwaysPeaHit;                  // 0x60e17e: every death counts as hit by a pea
+	// The box of the bug Update last looked at, which Player::HitBugBox asks the rope about. Update also keeps the bug's
+	// place and drawn place in them for a few lines, to put a held bug back where it was.
+	static float sBoxX;                         // 0x6a6778
+	static float sBoxY;                         // 0x6a677c
+	static float sBoxWidth;                     // 0x6a6780
+	static float sBoxHeight;                    // 0x6a6784
 
 	static void SetZapArea(int theMode, float theLeft, float theTop, float theRight, float theBottom); // 0x426950 (EAX the mode; the box pushed)
 	static void SetSlowFrames(int theFrames);   // 0x426980 (EAX)
 	static void SetAlwaysPeaHit(bool theValue); // 0x426940 (AL)
 
 	static int GetComboSound();                 // 0x426040: the sound of the next kill of the streak: bugkill 1 to 9, the ninth from the ninth kill on
-	static void ResetKillStreak();              // 0x426060 (the stand-in called it OnShot): a shot has been fired, so the streak ends
+	static void ResetKillStreak();              // 0x426060: a shot has been fired, so the streak ends
 	static void ResetCounters();                // 0x426070
 	static void SortList();                     // 0x4260c0: puts the list of bugs in order (the C library's qsort by the area of the box, the biggest first) and numbers each bug by its place
 	static void AddToList(BugObj* theBug);      // 0x426110 (ECX the bug)
@@ -177,7 +183,7 @@ public:
 	// 0x426250 (ECX the column, EAX the row, theBug pushed): a bug that has been placed, other than theBug, whose box (its
 	// half-width and half-height each way from its place) meets theBug's box set at that place
 	static bool Overlaps(int theColumn, int theRow, BugObj* theBug);
-	static BugObj* FindNear(float theX, float theY, float theReach);   // 0x426300 (the stand-in called it AnyNear): the first bug in play, not already a pea's target, within theReach of the place; or none
+	static BugObj* FindNear(float theX, float theY, float theReach);   // 0x426300: the first bug in play, not already a pea's target, within theReach of the place; or none
 	static bool ZapNear(float theX, float theY, float theReach);       // 0x4263d0: every bug within theReach dies, counted as hit by a pea; whether any did
 	static BugObj* FindNearest(float theX, float theY, float* theDistance); // 0x4264a0: the nearest bug in play; its distance (0 when none, or 1920 or more) is written to theDistance
 	static BugObj* ZapFirstNear(float theX, float theY, float theReach); // 0x4265a0: the first bug in play within theReach dies, counted as hit by a pea; it is returned

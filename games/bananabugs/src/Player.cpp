@@ -1,6 +1,9 @@
 #include "Player.h"
-#include "PauseWin.h"
 #include "Board.h"
+#include "BugObj.h"
+#include "PauseWin.h"
+#include "PipeObj.h"
+#include "RopeObj.h"
 #include "ScoreBoard.h"
 
 #include "Anim.h"
@@ -98,7 +101,7 @@ static void PlaySound(int theSound)
 	gApp->mSoundQueue->Request(theSound, 0, false);
 }
 
-// An object that may be missing, as a ground cell's may in the port's stand-in
+// An object that may be missing, as a ground cell's may before the level has built the grid
 static bool IsActiveObject(ObjBase* theObj)
 {
 	return theObj != nullptr && theObj->IsActive();
@@ -1965,7 +1968,7 @@ int Player::HitBugBox()
 {
 	RopeObj* aRope = RopeObj::Current();
 	if (aRope != nullptr)
-		return aRope->HitBox(gBugBoxX, gBugBoxY, gBugBoxWidth, gBugBoxHeight);
+		return aRope->HitBox(BugObj::sBoxX, BugObj::sBoxY, BugObj::sBoxWidth, BugObj::sBoxHeight);
 	return 0;
 }
 

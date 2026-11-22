@@ -3,7 +3,6 @@
 #include "Anim.h"
 #include "MenuAnim.h"
 #include "ObjString.h"
-#include "Pending.h"
 
 #include <cstdlib>
 #include <cstring>

@@ -1,8 +1,8 @@
 #include "Pea.h"
 
 #include "Anim.h"
+#include "BugObj.h"
 #include "Emitter.h"
-#include "Pending.h"
 #include "GameApp.h"
 #include "Res.h"
 #include "SoundQueue.h"

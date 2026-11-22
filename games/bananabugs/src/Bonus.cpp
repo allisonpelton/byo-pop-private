@@ -18,7 +18,6 @@
 #include "Emitter.h"
 #include "GameApp.h"
 #include "LevelObj.h"
-#include "Pending.h"
 #include "Player.h"
 #include "Res.h"
 #include "SoundQueue.h"
@@ -365,8 +364,7 @@ void Bonus::CancelIfDone()
 	}
 }
 
-// 0x406dd0: the pictures the bonuses use, loaded once and kept (each is in the global of its class or, until the
-// class is translated, in Pending)
+// 0x406dd0: the pictures the bonuses use, loaded once and kept (each is in the global of its class)
 void Sexy::PreloadBonusPictures()
 {
 	BonusBomb::sCocoBombAnim = Anim::Get("images/cocobomb", ANIM_SCALE_SMOOTH, false, 0, 0, 1, true);

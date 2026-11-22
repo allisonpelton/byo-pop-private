@@ -1,8 +1,7 @@
 // MetaGame: the base the player spends bananas on between levels, "monkeytown" (0x448e10..0x44f450 in the original; 0x918
 // bytes there). The player buys one of up to three offers (the next level of a building), the lives they have earned
 // float in from the left, and the done button moves on: to the map when the level has changed, and then to the level.
-// The range holds only this class; the ones it uses and the port has not translated are stand-ins (Slots, PathTrace,
-// InGameMenu, see Pending.h).
+// The range holds only this class.
 #pragma once
 
 #include "MenuObj.h"
@@ -62,6 +61,8 @@ struct MetaOffer
 
 class MetaGame : public ObjBase
 {
+	friend class Slots;    // asks for the bananas to be shown again (UpdateBananasText)
+
 public:
 	bool mWantsMenu;                       // +0x27c: the player quit from the game menu
 	bool mLeaving;                         // +0x27d: the player is done: TakeLevelChosen takes it

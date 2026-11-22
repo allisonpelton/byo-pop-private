@@ -16,7 +16,7 @@ class BoltObj
 public:
 	bool mShown;                      // +0x0: the bolt has been drawn since it was last stopped
 	int mCountdown;                   // +0x4: frames left before the shape is made again
-	int mRedrawFrames;                // +0x8: frames between two shapes (the constructor's argument; the stand-in's name for it, theSegments, was wrong)
+	int mRedrawFrames;                // +0x8: frames between two shapes (the constructor's argument)
 	float mFromX;                     // +0xc: the two ends
 	float mFromY;                     // +0x10
 	float mToX;                       // +0x14

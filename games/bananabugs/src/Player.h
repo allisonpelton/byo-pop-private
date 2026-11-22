@@ -6,7 +6,6 @@
 // The profiles are saved to profiles.dat in the user's folder: 8 records of 0x90 bytes (see SaveProfiles).
 #pragma once
 
-#include "Pending.h"
 #include "Bonus.h"
 
 namespace Sexy

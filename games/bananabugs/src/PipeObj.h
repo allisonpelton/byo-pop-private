@@ -100,7 +100,7 @@ public:
 	void Retire();                              // 0x4562d0 (EAX the pipe): the pipe flies off
 	void Rebuild();                             // 0x4564c0 (EAX the pipe): flies back from the second picture's cell to its place
 	void RandomizeDuration();                   // 0x4565f0 (EAX the pipe): the drift's wait is 300 to 332 frames
-	void SetupMorph();                          // 0x458b00 (EAX the pipe; the stand-in called it BuildFlames): the picked cells and the keys that go to them
+	void SetupMorph();                          // 0x458b00 (EAX the pipe): the picked cells and the keys that go to them
 	static PipeObj* Create(int theColumn, int theRow); // 0x459120 (ECX the column, the row pushed)
 
 private:

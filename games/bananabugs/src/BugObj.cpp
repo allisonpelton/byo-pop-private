@@ -8,13 +8,13 @@
 #include "FillObj.h"
 #include "GameApp.h"
 #include "LevelObj.h"
-#include "Pending.h"
-#include "WalkThru.h"
 #include "PipeObj.h"
+#include "platform/crt/CrtQsort.h"
 #include "Player.h"
 #include "Res.h"
+#include "RopeObj.h"
 #include "SoundQueue.h"
-#include "platform/crt/CrtQsort.h"
+#include "WalkThru.h"
 
 #include <cstring>
 
@@ -32,6 +32,10 @@ float BugObj::sZapRight = 0.0f;
 float BugObj::sZapBottom = 0.0f;
 int BugObj::sZapMode = 0;
 bool BugObj::sAlwaysPeaHit = false;
+float BugObj::sBoxX = 0.0f;
+float BugObj::sBoxY = 0.0f;
+float BugObj::sBoxWidth = 0.0f;
+float BugObj::sBoxHeight = 0.0f;
 
 // The list of bugs, 0x60e2d8
 static BugObj* sList[BUG_LIST_MAX];
@@ -432,7 +436,7 @@ void BugObj::Notify(ObjBase* theObj)
 // 0x425410: one frame. Waiting bugs (a bonus slows them) skip frames. The place and drawn place are kept before the base
 // moves the bug along its track: a held bug is put back where it was. The cell it is over is worked out and the bug
 // moved in the grid's lists when it changed; the bonuses' area holds or kills it; a cut cell beside it (the bug is in
-// the 3 by 3 round its place) kills it. The rope is asked whether it touches the bug's box (see gBugBox)
+// the 3 by 3 round its place) kills it. The rope is asked whether it touches the bug's box (see sBoxX)
 bool BugObj::Update()
 {
 	if (mAlive) {
@@ -443,20 +447,20 @@ bool BugObj::Update()
 		mWaitCounter = 0;
 	}
 	// the original keeps these in the globals it later gives the rope the box in
-	gBugBoxX = mState[STATE_X];
-	gBugBoxY = mState[STATE_Y];
-	gBugBoxWidth = mDrawn[STATE_X];
-	gBugBoxHeight = mDrawn[STATE_Y];
+	sBoxX = mState[STATE_X];
+	sBoxY = mState[STATE_Y];
+	sBoxWidth = mDrawn[STATE_X];
+	sBoxHeight = mDrawn[STATE_Y];
 	if (!ObjBase::Update())
 		return false;
 	if (!mAlive)
 		return true;
 	if (!mFlying) {
 		if (mHoldFrames > 0) {
-			mState[STATE_X] = gBugBoxX;
-			mState[STATE_Y] = gBugBoxY;
-			mDrawn[STATE_X] = gBugBoxWidth;
-			mDrawn[STATE_Y] = gBugBoxHeight;
+			mState[STATE_X] = sBoxX;
+			mState[STATE_Y] = sBoxY;
+			mDrawn[STATE_X] = sBoxWidth;
+			mDrawn[STATE_Y] = sBoxHeight;
 			if (mHoldFrames == 1)
 				TakeCommand();
 			mHoldFrames--;
@@ -520,15 +524,15 @@ bool BugObj::Update()
 	if (mAlive) {
 		// the box the rope is asked about: the body's place and size, or 54 square at the bug's own place
 		if (mBody != nullptr) {
-			gBugBoxX = mBody->mScreenX;
-			gBugBoxY = mBody->mScreenY;
-			gBugBoxWidth = mBody->mHitWidth;
-			gBugBoxHeight = mBody->mHitHeight;
+			sBoxX = mBody->mScreenX;
+			sBoxY = mBody->mScreenY;
+			sBoxWidth = mBody->mHitWidth;
+			sBoxHeight = mBody->mHitHeight;
 		} else {
-			gBugBoxX = mScreenX;
-			gBugBoxY = mScreenY;
-			gBugBoxWidth = BOX_SIZE_WITHOUT_BODY;
-			gBugBoxHeight = BOX_SIZE_WITHOUT_BODY;
+			sBoxX = mScreenX;
+			sBoxY = mScreenY;
+			sBoxWidth = BOX_SIZE_WITHOUT_BODY;
+			sBoxHeight = BOX_SIZE_WITHOUT_BODY;
 		}
 		if (!mFlying) {
 			// the original's rope answer 1 (RopeObj::HitBox never gives it) holds the bug like the answer 3 does, for 250 frames
@@ -541,7 +545,7 @@ bool BugObj::Update()
 				Zap(true, true, false);
 				return true;
 			} else if (aHit == ROPE_HIT_TOUCH) {
-				// port (crash): a stand-in bug has no body to ask
+				// port (crash): a bug may have no body yet; the original reads it unchecked
 				if (mBody == nullptr || !mBody->mFrozen)
 					SetCommand(COMMAND_DAZE, DAZE_FRAMES_TOUCH);
 				return true;
@@ -565,7 +569,7 @@ bool BugObj::Zap(bool theFollowers, bool theStartTrack, bool thePeaHit)
 	BugImg* aBody = mBody;
 	mHoldFrames = 0;
 	mAlive = false;
-	// port (crash): a stand-in bug has no body to take the dust's place from
+	// port (crash): a bug may have no body yet to take the dust's place from
 	if (aBody != nullptr) {
 		mDust->Burst(aBody->mState[STATE_SCALE_X] * aBody->mState[STATE_X],
 			aBody->mState[STATE_SCALE_Y] * aBody->mState[STATE_Y]);
@@ -610,7 +614,7 @@ void BugObj::LeaveCopy(ObjBase* theCopy)
 {
 	MarkPeaHit();
 	Zap(false, false, false);
-	// port (crash): a stand-in bug has no body to copy
+	// port (crash): a bug may have no body yet to copy
 	if (mBody != nullptr) {
 		mBody->mAnim->AddRef();
 		theCopy->mAnim = mBody->mAnim;

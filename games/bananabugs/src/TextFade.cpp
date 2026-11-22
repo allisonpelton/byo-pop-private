@@ -1,5 +1,6 @@
 #include "TextFade.h"
 
+#include "BBFont.h"
 #include "GameApp.h"
 
 using namespace Sexy;

@@ -3,20 +3,18 @@
 // level's states: the intro, the cells settling in, play, the stats after a win, the game over and the victory. A Board
 // makes one; ObjBase::sLevel points to it while it lives, and the other classes reach it through the statics below.
 //
-// The class is complete. What it makes and calls but is not translated yet stands in Pending.h: the bugs (BugObj, one
-// stand-in for every kind, and BugObj's list, which the stand-ins leave empty so the placing of bugs finds none), the
-// pipes, the intro, the in-level menu, the stats and the victory scene.
+// The class is complete.
 #pragma once
 
 #include "FillObj.h"
 #include "ObjBase.h"
-#include "Pending.h"
 
 namespace Sexy
 {
 
 class DDImage;
 class ObjString;
+class RopeObj;
 class TextFade;
 
 const int LEVEL_SPAWN_KINDS = 11;          // the bug kinds the level places (Skeeter to Bee)
@@ -187,7 +185,7 @@ public:
 
 	// What the other classes call on the level sLevel points to
 	static bool IsPlaying();                            // 0x43aad0: the level is in the state that takes play
-	static void HideMenuButton();                       // 0x43aa30 (the stand-in's name was HideMessage)
+	static void HideMenuButton();                       // 0x43aa30
 	static void ShowGameOver();                         // 0x43aa60
 	// 0x43aae0: theSlot -1 is the next of the four texts that take turns; theExtraHold goes to TextFade::SetExtraHold (the
 	// original passes it in ECX: 0 at every call seen here)

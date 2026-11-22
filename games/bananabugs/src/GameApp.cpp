@@ -7,7 +7,6 @@
 #include "HighScore.h"
 #include "MusicInterface.h"
 #include "ObjBase.h"
-#include "Pending.h"
 #include "Player.h"
 #include "Res.h"
 #include "ResourceManager.h"
