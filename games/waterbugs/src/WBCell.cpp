@@ -13,7 +13,7 @@ namespace wb
 // columns have a 38th cell there, a solid one, where the original reads whatever the heap holds
 Cell* Cells_New()
 {
-	Cell* aCells = (Cell*)::operator new(sizeof(Cell) * 38);
+	Cell* aCells = (Cell*)NewZeroed(sizeof(Cell) * 38);
 	for (int i = 0; i < 38; i++)
 		Cell_Init(&aCells[i]);
 	return aCells;

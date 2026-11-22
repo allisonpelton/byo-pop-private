@@ -299,7 +299,8 @@ IslandMap::IslandMap(PixelusApp* theApp)
 				}
 			}
 			else
-				mState[i] = STATE_OPEN;
+				// 0x4176a0: a temple already seen (+0x12) is drawn into the map at once, with no light and no arrow
+				mState[i] = STATE_SEEN;
 		}
 		else
 			mState[i] = aMaxed < aCount ? STATE_DONE : STATE_MAXED;
@@ -539,7 +540,7 @@ void IslandMap::Draw(Graphics* g)
 			continue;
 		Image* anArrow = mApp->mImages[IMAGE_TEMPLEARROW];
 		int aBounce = (int) (fabs(sin(mPhase * 3.0)) * 24.0);
-		g->DrawImage(anArrow, gTemples[i].mLightX - aBounce - anArrow->GetWidth() / 2 - 0x14, gTemples[i].mLightY - aBounce - 0x50);
+		g->DrawImage(anArrow, gTemples[i].mLightX - aBounce - anArrow->GetWidth() - 0x14, gTemples[i].mLightY - aBounce - 0x50);
 	}
 	for (size_t i = 0; i < mEffects.size(); i++)
 		mEffects[i]->Draw(g, mApp->Is3DAccelerated());

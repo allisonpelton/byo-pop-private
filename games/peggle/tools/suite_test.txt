@@ -1,0 +1,12 @@
+2 loadlevel 1 levels/3d.dat
+3 loadlevel 7 levels/blocks.dat
+4 loadlevel 2 levels/aim.dat
+5 loadlevel 3 levels/baseball.dat
+6 loadlevel 4 levels/bunches.dat
+7 loadlevel 5 levels/car.dat
+8 resetlevel 1 levels/3d.dat hidden
+9 resetlevel 3 levels/blocks.dat hidden
+10 resetlevel 1 levels/3d.dat hidden,mode=1
+11 resetlevel 2 levels/3d.dat hidden,mode=6
+12 resetlevel 5 levels/car.dat
+14 quit

@@ -711,6 +711,8 @@ void TempleScreen::DrawThumbs(Graphics* g)
 	// 0x4119e0: gliding up the row above the first shows, gliding down the row below the ninth, each moved by the fraction
 	int aFirstRow = mScrollFrac < 0.0f && mFirst > 0 ? -1 : 0;
 	int aLastRow = mScrollFrac > 0.0f ? ROWS : ROWS - 1;
+	// the thumbnails first, then the medals and locks over all of them: a medal's ribbon hangs over the row below
+	for (int aPass = 0; aPass < 2; aPass++)
 	for (int aRow = aFirstRow; aRow <= aLastRow; aRow++)
 		for (int aCol = 0; aCol < COLUMNS; aCol++)
 		{
@@ -721,6 +723,8 @@ void TempleScreen::DrawThumbs(Graphics* g)
 			int aX = LEFT + PITCH * aCol;
 			int aY = TOP + (int) ((aRow - mScrollFrac) * PITCH);
 
+			if (aPass == 0)
+			{
 			if (!aTutorial)
 				g->DrawImage(mApp->mImages[IMAGE_PUZZLEPATTERN], aX - 10, aY - 10);
 
@@ -789,6 +793,10 @@ void TempleScreen::DrawThumbs(Graphics* g)
 					g->DrawString(aLines[i], aX + 0x30 - g->StringWidth(aLines[i]) / 2, aY + aLineY[i]);
 			}
 
+			}
+			if (aPass == 0)
+				continue;
+
 			// the medal, the chains of the mystery puzzle, the question mark of a tutorial puzzle that is not yet open
 			// 0x4127f6: the tutorial temple (index 0) has no medals
 			if (aThumb.mSolved && aThumb.mMedal > 0 && !aTutorial)
@@ -817,7 +825,7 @@ void TempleScreen::Draw(Graphics* g)
 	g->SetColorizeImages(false);
 
 	if (aTutorial && aUser != NULL && !aUser->mTutorialDone)
-		g->DrawImage(mApp->mImages[IMAGE_TREE], 244, 424);
+		g->DrawImage(mApp->mImages[IMAGE_TREE], 239, 425);	// 0x412a13: x 0xef, y 0x1a9
 
 	if (!aTutorial)
 	{

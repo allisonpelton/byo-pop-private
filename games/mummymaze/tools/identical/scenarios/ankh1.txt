@@ -1,0 +1,13 @@
+# ankh1: one saved adventure whose explorer stands in the sixth pyramid; its chamber's board and the time before it settles
+99 title
+900 click 185 426
+1000 click 320 137
+1100 shot map
+1140 click 80 466
+1200 shot enter
+1260 click 395 317
+1320 shot b1
+1400 shot b2
+1500 shot b3
+1700 shot b4
+1900 quit
