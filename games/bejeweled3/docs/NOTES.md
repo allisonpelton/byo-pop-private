@@ -984,10 +984,7 @@ gems the fill makes; the account of their seconds is what the Last Hurrah plays.
 Not translated (the `// port:` notes in the source), none of them changes what a game does except where said:
 - The Lightning screen is drawn (the HUD pass of this entry's commit); what is still not translated, none of it changes what a game does
   (the app's generator is drawn less often than the exe's in Lightning, which only the sparks and effects read):
-  (1) The time gem's look (the class Sexy::TimeBonusEffect, vftable 0x865f84: made per time gem by 0x741130 through MakeSpecialEffect
-  0x749220 with flag 0x20000, Update 0x730de0 of about 1300 lines with 49 draws of the app's generator, Draw 0x72ec70: an arc simulation
-  of 0x5c-byte bolt records at +0x1cc, the seconds number at the gem, a blink under 0x1f5 ticks, arcs drawn by 0x729da0 with the images at
-  0x8d6d84 and 0x8d7628). Time gems are plain gems here. (2) The burst when one is cleared (Sexy::SpeedCollectEffect, vftable 0x866a08,
+  (1) The time gem's look is done (see "Done since", the TimeBonusEffect commit). (2) The burst when one is cleared (Sexy::SpeedCollectEffect, vftable 0x866a08,
   ctor 0x714520, size 0x3d0, Update 0x719ec0, Draw 0x713f80; made by 0x715360 with an image from the table at 0x8cf5c8[Rand() % 9 + 0x566])
   and the "+N sec" text (0x71e5f0, FONT_DIALOG_HEADER, string 0x1df); every draw of the app's generator of them belongs in the update.
   (3) The banners (Sexy::SpeedText, vftable 0x866a1c; Sexy::LightningBarFillEffect 0x865f94; Sexy::TextNotifyEffect;
@@ -1009,17 +1006,24 @@ Not translated (the `// port:` notes in the source), none of them changes what a
   flag at +0x12f8 is not translated); the Reset button (id 2, +0x2878, made by 0x745240 for modes 1 to 3, placed by 0x741840; it is shown, the
   black disc seen earlier was the empty socket of the bottom widget's art; it opens a Yes/No dialog, id 0x16, strings 155 to 156, and Yes
   starts the game over through slots 85 and 135; the exe also deletes the saved game, which the port does not keep).
+  Done since (the TimeBonusEffect commit): the time gem's look. TimeBonusEffect (type 0x15; TimeBonusEffect.cpp) is made for each time gem by
+  LightningBoard::OnFillAccepted (0x741130: place 64 and 64, added to the layer over the gems, not held by the piece) with the update 0x730de0
+  (every draw of the app's Rand() in the exe's order: the spark chance and its SparkEffect, the bolt chances, the bolt's kind and points, the
+  random walk of the points and the bolts' ends, and the flash's four draws) and the draw 0x72ec70 (the glow outline while the gem is not
+  turning, each bolt as two ribbons by 0x729da0, the seconds number cel (seconds / 5 - 1) of IMAGE_LIGHTNING_GEMNUMS_<colour> with the white one
+  over it that blinks in the last 500 ticks). The spark (type 5, SparkEffect, additive IMAGE_SPARKLET at the layer under the gems) needed the
+  manager's velocity, damping, gravity and angle change and its draw of an effect that follows a piece (the piece's corner added, restored
+  after). The gem silhouette table (0x83a548: 20 frames x 7 colours x 256 floats) is game data: GemSilhouettes reads it once at start-up from the
+  game folder's bejeweled3.exe through the exe's section table (the web bundle keeps the whole exe in its import: web/exetrim.js has no entry
+  for bejeweled3, and the table is outside .text anyway); when the exe or the table is missing one line goes to the log and every radius is 52.
+  Deviations: the effect's scale on the draw while the gem's scale curve is not 1 (the gem as it is cleared: 0x71fcf0, 0x71fd20, 0x713770), the
+  early return on the graphics byte +8 (0x8e171c), the 3D draws (two numbers for a bolt's points, the 0.15 bolt chance still drawn but unused),
+  the layer pushes (0x58f620) and the type-0x11 flash's object (only its draws), the effect's two curves (+0x1e0 = 0, +0x250 = 1, nothing
+  starts them). The bolts that jump to a neighbour (the targeted kind) are made, but the exe's test of their reach (0x731f2b) compares a
+  distance that includes the grid's x (the neighbour's x is board-relative, the effect's is not), so they should last one update; the port
+  repeats it. The suite's state hashes (Classic, Zen, Lightning) did not change: the effects draw from the app's generator, which no game
+  logic reads.
   Oddities, read but not translated (about an hour was not enough for each; the first needs data that cannot be copied):
-  - TimeBonusEffect (type 0x15, 0x2c0 bytes; ctor 0x72a3b0, Update 0x730de0, Draw 0x72ec70). The update's draws in order: a spark (type 5)
-    when a draw is under seconds-based 0.04 steps (angle, radius, speed and the spark's own ctor draws), one draw for the bolt chance
-    (0.15 of min(secs-1,4)/4, or 0.001 in 2D), the bolt's kind and its 3 or 4 segments (two draws each: +-10 and +-0.2), then per bolt and
-    segment the random walk of the arc heights (A += V; limits at 25 and 18; averaging draws at 0.1 and 0.2), the bolt's death draws (0.001,
-    0.005, 0.0075 by kind), and last Rand() % 25 == 0 makes an invisible type-0x11 effect (two draws for its place, one for a flag). The arcs'
-    start radius per angle is a 256-entry table of the gem silhouette (exe data 0x83a548, indexed by (frame*7+colour)*0x400, values 47 to 56):
-    game data, so it cannot go in the repo; the glow colour tables (0x8e1e98 set A, 0x8e1e18 set B) are built at run time by 0x7bcba0 and
-    0x7bcc40, set A in the port's colour order R W G Y P O B being (255,96,96), (255,255,255), (128,255,64), (225,225,128), (225,128,225),
-    (255,160,64), (48,160,255). To do it: port the update with every draw, draw the arcs from a constant radius (a deviation), and then the
-    seconds number with its blink (under 0x1f5 ticks, board +0xe38 / 0x12 even).
   - SpeedCollectEffect (0x866a08, ctor 0x714520, size 0x3d0, Update 0x719ec0 with 0x714980; its Draw 0x713f80 is empty, so it is a controller):
     it needs the exe's Bezier path class (0x59a380, 0x59a400, 0x59ad90, 0x59aef0), CurvedVal strings, a PIEffect trail (image DAT_008d735c),
     the lookup of the type-0x15 effect and the "+N sec" text effect 0x71e5f0.
