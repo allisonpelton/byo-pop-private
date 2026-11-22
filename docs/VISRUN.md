@@ -15,6 +15,10 @@ after it starts, and it ends 2 minutes before that. `--user-window-until HH:MM` 
 visrun on the machine), and waits until no other game window (class `MainWindow` or `SDL_app`) has been on the desktop
 for `--quiet` seconds (default 60).
 
+The user has allowed four windows at once on the right half of the screen, none overlapping, 2D runs as well as 3D
+("Right half, four", 2026-11-22, `docs/RULES.md`). Until visrun gives each run a place of its own there, it keeps its one
+lock and runs one window at a time.
+
 ## What it does
 
 1. **Stages through origrun.** `origrun --game <name> --run visrun-<name> --copy-only` puts the install into
