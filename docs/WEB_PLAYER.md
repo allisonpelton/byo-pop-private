@@ -754,9 +754,10 @@ never with invented titles. A game's session sets these from its code:
   medley ends and the next begins, the later pieces being `"<file>#<n>@<order>"`; `chains` makes one track of parts the
   game only ever plays as jumps inside one tune. `starts` is for an order the game also starts a subsong at while the tune
   before plays on through it: the piece from there is a track, and the subsong stays whole. No game uses it now:
-  Bejeweled 2's long subsong, which it once served, is a medley of thirteen songs that plays straight through and back to
+  Bejeweled 2's long subsong, which it once served, is a medley of fourteen songs that plays straight through and back to
   its start, and is cut at the composer's own markers between them instead (the user, 2026-11-19: "I am hearing some very
-  mild seams that make me think the track breaks aren't correct here"). Its places are "Classic Mode 1" to "7" and "Action Mode 1" to "6": the game starts
+  mild seams that make me think the track breaks aren't correct here"), each piece named as the composer's album names it
+  and checked against its lengths. Its places are "Classic Mode 1" to "7" (the first two songs both 1) and "Action Mode 1" to "6": the game starts
   it at order 2 for Classic, Endless, Twilight and the hidden Classic mode, at order 122 for Action, Puzzle, Hyper,
   Cognito and Finity, and nothing else moves it, at a level or anywhere.
 - `titles`: a tune's own title, shown in quotes beside its rip name (the user, 2026-11-19: "add these titles beside the

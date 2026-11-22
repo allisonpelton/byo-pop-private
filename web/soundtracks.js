@@ -124,24 +124,29 @@ var ByopopSoundtracks = {
     unused: ["1981-DataJack#1", "1981-DataJack#2", "1981-DataJack#3"]
   },
   // one module, BeyondNetwork.mo3: the game plays it from a starting order for each screen (properties/music.xml), so its
-  // subsongs are the tunes. A game's music is subsong 1, a medley of thirteen songs that plays straight through and back to
+  // subsongs are the tunes. A game's music is subsong 1, a medley of fourteen songs that plays straight through and back to
   // its start (order 181 jumps to order 2): the board starts it at order 2 (MUSICOFFSET_MAIN) unless the mode is an Action or
   // a Puzzle one (modes 1, 2, 5, 6 and 7: Action, Puzzle, Hyper, Cognito and Finity), which start at order 122
   // (MUSICOFFSET_ACTION; BoardUpdate.cpp at board update 2, BoardCtor.cpp's mode flags), and nothing else moves it, at a
-  // level or anywhere. It is cut at the composer's own markers between its songs (the "+++" orders 21, 29, ... 168), so a
-  // piece ends where its song does; one marker, order 10, falls inside the first song, between an intro and the rest. The
-  // titles are the user's (2026-11-19), in their order. Subsongs 3 and 4 are one pattern each (127 at order 199, 128 at
+  // level or anywhere. It is cut at the composer's own markers between its songs (the "+++" orders 10, 21, 29, ... 168,
+  // which play skips), so a piece ends where its song does. The titles are the user's (2026-11-19), in their order, and the
+  // composer's album, which the user pointed to (2026-11-22: "I'd look up the track names on Skaven's Bandcamp"), names
+  // the first piece, before the marker at order 10, Beyond the Network: the album's lengths agree with the pieces' (The
+  // Journey Begins 1:44 there and 1:45 from order 11 here, and nine more within a second; the rest differ by 3 to 18
+  // seconds, Beyond the Network by 7). Both of the first two are Classic Mode 1, the start of a game. They are not a
+  // shuffle group: each is a song of its own on the album, ended at a marker as every other is, and only the second
+  // intro, which runs into its song, is grouped. Subsongs 3 and 4 are one pattern each (127 at order 199, 128 at
   // 201, music.xml's GET_READY and LEVEL_CLEAR, which the code never reads), then the module's silent pattern 0 looping:
   // listed with the unused patterns (the user: "really, they're only single patterns that we could just file with the others")
   bejeweled2: {
     composer: "Peter Hajba (Skaven)",
     files: ["music/*.mo3"],
-    cuts: { "BeyondNetwork#1": [22, 30, 42, 54, 70, 91, 122, 126, 141, 151, 160, 169] },
+    cuts: { "BeyondNetwork#1": [11, 22, 30, 42, 54, 70, 91, 122, 126, 141, 151, 160, 169] },
     alone: ["BeyondNetwork#3", "BeyondNetwork#4"],
     // (the second intro leads straight into the song after it)
     shuffle: { groups: [["BeyondNetwork#1@122", "BeyondNetwork#1@126"]] },
     titles: {
-      "BeyondNetwork#1": "The Journey Begins", "BeyondNetwork#1@22": "Rain of Lights", "BeyondNetwork#1@30": "LightStorm",
+      "BeyondNetwork#1": "Beyond the Network", "BeyondNetwork#1@11": "The Journey Begins", "BeyondNetwork#1@22": "Rain of Lights", "BeyondNetwork#1@30": "LightStorm",
       "BeyondNetwork#1@42": "Sea of Amorphity", "BeyondNetwork#1@54": "Masked Intentions", "BeyondNetwork#1@70": "Routinoid",
       "BeyondNetwork#1@91": "Tunnel Society V2", "BeyondNetwork#1@122": "A New Beginning (Intro 2)", "BeyondNetwork#1@126": "Silent Conquest",
       "BeyondNetwork#1@141": "Schein", "BeyondNetwork#1@151": "Choose and Contemplate", "BeyondNetwork#1@160": "Breathing Love",
@@ -149,18 +154,19 @@ var ByopopSoundtracks = {
       "BeyondNetwork#6": "Final Destination"
     },
     where: {
-      "BeyondNetwork#1": "Classic Mode 1", "BeyondNetwork#1@22": "Classic Mode 2", "BeyondNetwork#1@30": "Classic Mode 3",
+      "BeyondNetwork#1": "Classic Mode 1", "BeyondNetwork#1@11": "Classic Mode 1", "BeyondNetwork#1@22": "Classic Mode 2", "BeyondNetwork#1@30": "Classic Mode 3",
       "BeyondNetwork#1@42": "Classic Mode 4", "BeyondNetwork#1@54": "Classic Mode 5", "BeyondNetwork#1@70": "Classic Mode 6",
       "BeyondNetwork#1@91": "Classic Mode 7", "BeyondNetwork#1@122": "Action Mode 1", "BeyondNetwork#1@126": "Action Mode 2",
       "BeyondNetwork#1@141": "Action Mode 3", "BeyondNetwork#1@151": "Action Mode 4", "BeyondNetwork#1@160": "Action Mode 5",
       "BeyondNetwork#1@169": "Action Mode 6", "BeyondNetwork#2": "Main Menu", "BeyondNetwork#5": "Title Screen", "BeyondNetwork#6": "Finale"
     },
-    order: ["BeyondNetwork#5", "BeyondNetwork#2", "BeyondNetwork#1", "BeyondNetwork#1@22", "BeyondNetwork#1@30", "BeyondNetwork#1@42",
+    order: ["BeyondNetwork#5", "BeyondNetwork#2", "BeyondNetwork#1", "BeyondNetwork#1@11", "BeyondNetwork#1@22", "BeyondNetwork#1@30", "BeyondNetwork#1@42",
       "BeyondNetwork#1@54", "BeyondNetwork#1@70", "BeyondNetwork#1@91", "BeyondNetwork#1@122", "BeyondNetwork#1@126", "BeyondNetwork#1@141",
       "BeyondNetwork#1@151", "BeyondNetwork#1@160", "BeyondNetwork#1@169", "BeyondNetwork#6"],
     when: {
-      "BeyondNetwork#1": "Order 2; a game's start (board update 2) in Classic, Endless, Twilight or the hidden Classic mode; the songs then play on in turn, whatever the level, and after the last one back to this",
-      "BeyondNetwork#1@22": "Order 22; played on into, 2:50 after a Classic, Endless or Twilight game's start (12:31 after the end of the last song)",
+      "BeyondNetwork#1": "Order 2; a game's start (board update 2) in Classic, Endless, Twilight or the hidden Classic mode; the songs then play on in turn, whatever the level, and after the last one back to this (12:31 into an Action or Puzzle game)",
+      "BeyondNetwork#1@11": "Order 11; played on into, 1:05 after a Classic, Endless or Twilight game's start",
+      "BeyondNetwork#1@22": "Order 22; played on into, 2:50 after a Classic, Endless or Twilight game's start",
       "BeyondNetwork#1@30": "Order 30; played on into, 4:18 after a Classic, Endless or Twilight game's start",
       "BeyondNetwork#1@42": "Order 42; played on into, 6:22 after a Classic, Endless or Twilight game's start",
       "BeyondNetwork#1@54": "Order 54; played on into, 8:46 after a Classic, Endless or Twilight game's start",
