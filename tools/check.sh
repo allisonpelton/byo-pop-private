@@ -56,7 +56,8 @@
 #                playcountpagetest (its pages' side, web/playcount.js: when it may contact the counter) and termstest (web/terms.js:
 #                when a page skips the terms card, the development hosts, ?terms=1 and the test key) and cursorstest (web/cursors.js:
 #                the site's cursor, which of a game's cursors it keeps, its rules for each context, busy() and animated
-#                cursors) and linkstest (tools/linkstest.js: every link to the site's own licence, terms and copyright pages
+#                cursors) and resizetest (web/skins.js: a run of the browser's resize events, as Firefox's full-screen
+#                transition sends, reaches the page as its first and one more once it settles) and linkstest (tools/linkstest.js: every link to the site's own licence, terms and copyright pages
 #                opens in a new tab) and musictest (tools/musictest.js: the music player's decoder, its tracker view's rows and
 #                its seek, on a module the test makes and a staged MO3 when there is one) and soundfilestest
 #                (tools/soundfilestest.js: every sound the Sounds boards name is staged and in a format every browser plays, by
@@ -922,6 +923,10 @@ suite_unit-web() {
 	local n o
 	"$NODE" tools/cursorstest.js > "$1.cur" 2>&1 || st=1
 	n="$(lastof "$1.cur" 'cursorstest:')"
+	# a run of the browser's resizes reaches the page as its first and one more once it settles (tools/resizetest.js)
+	local rz
+	"$NODE" tools/resizetest.js > "$1.rz" 2>&1 || st=1
+	rz="$(lastof "$1.rz" 'resizetest:')"
 	# every link to the site's own licence, terms and copyright pages opens in a new tab (tools/linkstest.js)
 	local q
 	"$NODE" tools/linkstest.js > "$1.lk" 2>&1 || st=1
@@ -955,7 +960,7 @@ suite_unit-web() {
 	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
 	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
 	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $q; $r; $sf; $as; $u; $v; $w; $o"
+	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $rz; $q; $r; $sf; $as; $u; $v; $w; $o"
 	return $st
 }
 

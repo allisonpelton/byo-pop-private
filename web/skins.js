@@ -4,6 +4,24 @@
 //
 // This file is loaded in each page's <head>, so the page is drawn in its look from the start: it sets <html data-skin="d95">
 // (nothing on the player-only page, ?player=1, which keeps the page's own plain styles for the sessions' tests).
+// A window that changes size step by step sends a resize event for every step: Firefox's full-screen transition, F11 in it,
+// a browser window dragged larger. Each one had SDL size the canvas's pixels again and the page and the desktop lay themselves
+// out again, so the page lagged and the sound crackled (the user, 2026-11-17: "The site lags a lot and causes audio crackling
+// because it tries to resize repeatedly when Firefox enters full screen"). So the browser's own resize events are settled here,
+// on every page, before any other listener sees them (a listener capturing at the window runs before those that do not, SDL's
+// among them, and no other script captures the resize): the first of a run goes on at once, the rest are held until none has come for
+// SETTLE_MS, and then one resize goes on for the size reached. A page's own resizes (its scripts', untrusted) go on at once.
+(function () {
+  var SETTLE_MS = 120, timer = 0, held = false;
+  window.addEventListener("resize", function (ev) {
+    if (!ev.isTrusted) return;
+    if (timer) { ev.stopImmediatePropagation(); held = true; clearTimeout(timer); }
+    timer = setTimeout(function () {
+      timer = 0;
+      if (held) { held = false; window.dispatchEvent(new Event("resize")); }
+    }, SETTLE_MS);
+  }, true);
+})();
 var ByopopSkin = (function () {
   "use strict";
   var KEY = "byopop-settings";

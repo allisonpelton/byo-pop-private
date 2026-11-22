@@ -377,6 +377,14 @@ fraction short and a press on the game never scrolls it (the user's note of 2026
 game's own full-screen request to the page (`sexyapp_page_fullscreen` in `framework/SexyAppBase.cpp`), because SDL's
 full screen would stretch the canvas.
 
+**Resizes** are settled on every page, in the first lines of `web/skins.js` (checked by `tools/resizetest.js`). A window
+that changes size step by step sends a resize event for each step: Firefox's full-screen transition, F11 in it, a browser
+window dragged larger. Each step had SDL size the canvas's pixels again and the page and the desktop lay themselves out
+again, so the page lagged and the sound crackled (the user, 2026-11-17: "The site lags a lot and causes audio crackling
+because it tries to resize repeatedly when Firefox enters full screen"). Now the first event of a run goes on at once and
+the rest are held, by a listener capturing at the window, until none has come for 120 ms; then one resize goes on for the
+size reached. The page's own resizes, which its scripts send so that SDL measures the stage again, go on at once.
+
 **Its text** is Byopop Sans, `web/fonts/byopop-sans.woff`, built by `tools/web/pixelfont.py` from W95FA by Alina Sava
 (SIL OFL 1.1, as is ours); after a change to the script, run it and commit the file. The font is sharp only at 11
 pixels and its multiples, so every text is set at 11 (a few at 22), and a new part sets no size of its own. A glyph's
