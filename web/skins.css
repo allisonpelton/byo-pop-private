@@ -394,7 +394,8 @@ html.d95-desk .d95-x::after { transform: rotate(-45deg); }
 html.d95-desk .bar.d95-win { width: min(760px, calc(calc(100vw / var(--d95-z, 1)) - 150px)); gap: 8px; }
 html.d95-desk .bar.d95-win:not(#\#) { padding: 2px 8px 8px; }
 html.d95-desk .bar.d95-win:not(#\#) > .d95-tb { flex: 1 0 100%; margin: 0 -6px 0; }
-/* the game: its stage exactly the size sizeStage gives it, no margin, no shadow */
+/* the game: its stage exactly the size sizeStage gives it, no margin, no shadow, and no focus ring (its window's title bar shows
+   the focus; web/shell.html) */
 html.d95-desk .stage-wrap.d95-win { display: block; place-items: normal; width: max-content; }
 html.d95-desk .stage-wrap .stage { box-shadow: none; max-width: none; }
 /* the chat: a fixed size, whatever room the page has beside the game (chat.js's chat-below has no part here) */
