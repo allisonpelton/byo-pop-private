@@ -10,19 +10,23 @@
 //                                           SW_SHOWNA, SW_SHOWMINIMIZED becomes SW_SHOWMINNOACTIVE; the others pass through.
 //                                           SW_SHOWMAXIMIZED has no form that does not activate: it passes through and is counted
 //                                           on its own, so the log names it.
+//   ShowWindowAsync, SetWindowPlacement     the same command mapping (SetWindowPlacement: on a copy of the WINDOWPLACEMENT's showCmd).
+//   SwitchToThisWindow                      does nothing.
 //   SetWindowPos, DeferWindowPos            get SWP_NOACTIVATE added.
 //
 // How the calls are caught: the way the last-input hook and the network block do it (vclock.c, lastinput_detour; net.c): five
 // bytes at the start of user32's own function become a jump to the hook, so every caller in the process reaches it, ddraw.dll,
 // the d3d DLLs and a function found with GetProcAddress included; an import patch would reach only the modules it scans. The
-// hooks of ShowWindow, SetWindowPos and DeferWindowPos must still do the work, so each has a trampoline: the bytes the jump
+// hooks of ShowWindow, ShowWindowAsync, SetWindowPlacement, SetWindowPos and DeferWindowPos must still do the work, so each has a trampoline: the bytes the jump
 // overwrote, copied to a small executable block, followed by the way on into the function. The copy is made for the prologues
 // the 32-bit user32 starts these functions with (mov edi,edi / push ebp / mov ebp,esp: five bytes; an indirect jump
 // through a pointer, FF 25: six; a jump E9 already there: five); another start makes the function "not reached" in the
 // install line, and the log says so. What this can miss: a caller that makes the system call itself (win32u's NtUser*
 // functions, or a syscall stub of its own); user32's own internal calls, which do not go through its exports (a dialog or a menu
-// that activates its window); other ways to activate a window that are not on the list (SetFocus, SwitchToThisWindow, a window
-// created active, SetWindowPlacement, ShowWindowAsync, AnimateWindow, a click or key sent as input).
+// that activates its window). Left alone on purpose, because they do not make a background window the foreground window here: SetFocus (it
+// moves the focus inside the calling thread's own queue, and the foreground window of another process stays), CreateWindowEx (a window
+// created without WS_VISIBLE is shown by ShowWindow, which is hooked), AnimateWindow, the dialog functions (a dialog is shown by
+// ShowWindow and a MessageBox is answered by msgbox.c) and input sent to a window; and what is not on the list at all.
 // Written from the public Win32 documentation.
 
 #include <windows.h>
@@ -34,6 +38,7 @@ void net_line(const char* fmt, ...);   // net.c's log (logs/net.log of the run f
 static LONG gOn;                  // the hook is installed
 static LONG gFg, gActive, gTop;   // calls answered with no activation
 static LONG gShowMapped, gShowMax, gShowPassed;   // ShowWindow: made non-activating, SW_SHOWMAXIMIZED passed on, others passed on
+static LONG gSwitch, gAsyncMapped, gAsyncMax, gPlaceMapped, gPlaceMax;   // SwitchToThisWindow answered; ShowWindowAsync and SetWindowPlacement commands changed / SW_SHOWMAXIMIZED passed on
 static LONG gPosMapped, gDeferMapped;   // SetWindowPos and DeferWindowPos calls that got SWP_NOACTIVATE added
 
 typedef BOOL (WINAPI *ShowWindowFn)(HWND, int);
@@ -42,24 +47,48 @@ typedef HDWP (WINAPI *DeferWindowPosFn)(HDWP, HWND, HWND, int, int, int, int, UI
 static ShowWindowFn      gRealShow;
 static SetWindowPosFn    gRealPos;
 static DeferWindowPosFn  gRealDefer;
+static ShowWindowFn      gRealShowAsync;
+static BOOL (WINAPI *gRealPlace)(HWND, const WINDOWPLACEMENT*);
 
 static BOOL WINAPI act_SetForegroundWindow(HWND h) { InterlockedIncrement(&gFg); return TRUE; }
 static HWND WINAPI act_SetActiveWindow(HWND h) { InterlockedIncrement(&gActive); return GetActiveWindow(); }
 static BOOL WINAPI act_BringWindowToTop(HWND h) { InterlockedIncrement(&gTop); return TRUE; }
 
-static BOOL WINAPI act_ShowWindow(HWND h, int cmd)
+// The command mapping of ShowWindow, ShowWindowAsync and SetWindowPlacement's showCmd; `mapped` counts the commands changed, `max`
+// the SW_SHOWMAXIMIZED passes, `passed` the others (NULL: not counted).
+static int map_show(int cmd, LONG* mapped, LONG* max, LONG* passed)
 {
 	int to = cmd;
 	switch (cmd) {
 	case SW_SHOWNORMAL: case SW_SHOWDEFAULT: case SW_RESTORE: to = SW_SHOWNOACTIVATE; break;   // SW_SHOWNORMAL = SW_NORMAL = 1
 	case SW_SHOW:         to = SW_SHOWNA; break;
 	case SW_SHOWMINIMIZED: to = SW_SHOWMINNOACTIVE; break;
-	case SW_SHOWMAXIMIZED: InterlockedIncrement(&gShowMax); break;
-	default: InterlockedIncrement(&gShowPassed); break;
+	case SW_SHOWMAXIMIZED: if (max) InterlockedIncrement(max); break;
+	default: if (passed) InterlockedIncrement(passed); break;
 	}
-	if (to != cmd) InterlockedIncrement(&gShowMapped);
-	return gRealShow(h, to);
+	if (to != cmd && mapped) InterlockedIncrement(mapped);
+	return to;
 }
+
+static BOOL WINAPI act_ShowWindow(HWND h, int cmd)
+{
+	return gRealShow(h, map_show(cmd, &gShowMapped, &gShowMax, &gShowPassed));
+}
+
+static BOOL WINAPI act_ShowWindowAsync(HWND h, int cmd)
+{
+	return gRealShowAsync(h, map_show(cmd, &gAsyncMapped, &gAsyncMax, NULL));
+}
+
+static BOOL WINAPI act_SetWindowPlacement(HWND h, const WINDOWPLACEMENT* p)
+{
+	if (!p || p->length != sizeof(WINDOWPLACEMENT)) return gRealPlace(h, p);   // the real function refuses it
+	WINDOWPLACEMENT c = *p;
+	c.showCmd = map_show((int)p->showCmd, &gPlaceMapped, &gPlaceMax, NULL);
+	return gRealPlace(h, &c);
+}
+
+static void WINAPI act_SwitchToThisWindow(HWND h, BOOL altTab) { InterlockedIncrement(&gSwitch); }
 
 static BOOL WINAPI act_SetWindowPos(HWND h, HWND after, int x, int y, int cx, int cy, UINT flags)
 {
@@ -124,6 +153,9 @@ void act_install(void)
 		{ "ShowWindow",          (void*)act_ShowWindow,          (void**)&gRealShow },
 		{ "SetWindowPos",        (void*)act_SetWindowPos,        (void**)&gRealPos },
 		{ "DeferWindowPos",      (void*)act_DeferWindowPos,      (void**)&gRealDefer },
+		{ "ShowWindowAsync",     (void*)act_ShowWindowAsync,     (void**)&gRealShowAsync },
+		{ "SetWindowPlacement",  (void*)act_SetWindowPlacement,  (void**)&gRealPlace },
+		{ "SwitchToThisWindow",  (void*)act_SwitchToThisWindow,  NULL },
 	};
 	char reached[200] = "", missed[200] = "";
 	for (int i = 0; i < (int)(sizeof(fns) / sizeof(fns[0])); i++) {
@@ -141,6 +173,8 @@ void act_detach(void)
 {
 	if (!gOn) return;
 	net_line("pid %lu exits: activation hook answered SetForegroundWindow %ld, SetActiveWindow %ld, BringWindowToTop %ld; made non-activating "
-		"ShowWindow %ld, SetWindowPos %ld, DeferWindowPos %ld; ShowWindow with SW_SHOWMAXIMIZED passed on %ld (it activates), other ShowWindow commands passed on %ld",
-		GetCurrentProcessId(), (long)gFg, (long)gActive, (long)gTop, (long)gShowMapped, (long)gPosMapped, (long)gDeferMapped, (long)gShowMax, (long)gShowPassed);
+		"ShowWindow %ld, SetWindowPos %ld, DeferWindowPos %ld; ShowWindow with SW_SHOWMAXIMIZED passed on %ld (it activates), other ShowWindow commands passed on %ld; "
+		"SwitchToThisWindow answered %ld; ShowWindowAsync commands changed %ld (SW_SHOWMAXIMIZED passed on %ld); SetWindowPlacement commands changed %ld (SW_SHOWMAXIMIZED passed on %ld)",
+		GetCurrentProcessId(), (long)gFg, (long)gActive, (long)gTop, (long)gShowMapped, (long)gPosMapped, (long)gDeferMapped, (long)gShowMax, (long)gShowPassed,
+		(long)gSwitch, (long)gAsyncMapped, (long)gAsyncMax, (long)gPlaceMapped, (long)gPlaceMax);
 }

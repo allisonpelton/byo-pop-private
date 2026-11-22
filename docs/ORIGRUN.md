@@ -32,7 +32,10 @@ The rules a session follows:
   built yet); its network calls, so that a connection or download fails at once and nothing leaves the machine
   ("Yes, block them", 2026-11-11: "The network block"); and its program, file and link launches (`ShellExecute`,
   `WinExec`, `CreateProcess`), which fail at once ("allow blocking programs, files and links", 2026-11-11:
-  "The launch guard"). Any other hook needs the user's OK first.
+  "The launch guard"); and its window activation calls, so that no window of a copy takes the user's foreground
+  (`SetForegroundWindow`, `SetActiveWindow`, `BringWindowToTop`, `ShowWindow`, `SetWindowPos`, `SwitchToThisWindow`,
+  `ShowWindowAsync`, `SetWindowPlacement`; "Yes, hook window activation calls", 2026-11-22: "The activation hook").
+  Any other hook needs the user's OK first.
 - **No keygens.** Patch the check in the copy, or set the registry values the game itself writes when registered;
   never generate a registration code. How a copy's protection is handled is written only in the private notes
   under "Per-game status", which a published snapshot strips (`docs/PUBLISHING.md`).
@@ -643,12 +646,14 @@ activate the window, and Windows refuses visrun's `SetForegroundWindow` to hand 
 is not the foreground process (a Bejeweled Twist 3D run held the user's foreground for its whole 26 s: 1268 takes,
 0 hand-backs, 1268 refusals). The user allowed the hook on 2026-11-22 ("Yes, hook window activation calls").
 
-The stand-in (`tools/origrun/activation.c`) therefore changes six user32 functions in the copy's process, in every
+The stand-in (`tools/origrun/activation.c`) therefore changes nine user32 functions in the copy's process, in every
 run that loads it. `SetForegroundWindow` and `BringWindowToTop` return TRUE and do nothing; `SetActiveWindow` returns
-`GetActiveWindow()` and changes nothing. `ShowWindow` turns `SW_SHOWNORMAL`, `SW_SHOWDEFAULT` and `SW_RESTORE` into
-`SW_SHOWNOACTIVATE`, `SW_SHOW` into `SW_SHOWNA` and `SW_SHOWMINIMIZED` into `SW_SHOWMINNOACTIVE`, and passes the rest
-on; `SW_SHOWMAXIMIZED` has no form that does not activate, so it passes on and is counted on its own. `SetWindowPos`
-and `DeferWindowPos` get `SWP_NOACTIVATE` added. The last three still do their work: each hook calls the real function
+`GetActiveWindow()` and changes nothing; `SwitchToThisWindow` does nothing. `ShowWindow` turns `SW_SHOWNORMAL`,
+`SW_SHOWDEFAULT` and `SW_RESTORE` into `SW_SHOWNOACTIVATE`, `SW_SHOW` into `SW_SHOWNA` and `SW_SHOWMINIMIZED` into
+`SW_SHOWMINNOACTIVE`, and passes the rest on; `SW_SHOWMAXIMIZED` has no form that does not activate, so it passes on
+and is counted on its own. `ShowWindowAsync` maps its command the same way, and `SetWindowPlacement` maps the `showCmd`
+of a copy of the `WINDOWPLACEMENT` and passes the copy on, so the caller's structure is not changed. `SetWindowPos` and
+`DeferWindowPos` get `SWP_NOACTIVATE` added. The last five still do their work: each hook calls the real function
 through a trampoline.
 
 The way in is the last-input hook's: five bytes at the start of user32's own function become a jump, so every caller
@@ -656,10 +661,13 @@ in the process reaches the hook, ddraw.dll, the d3d DLLs and a function found wi
 import patch would miss. The trampoline copies the bytes the jump overwrote and knows the three starts the 32-bit
 user32 has (`mov edi,edi; push ebp; mov ebp,esp`, `jmp [address]`, `jmp`); another start leaves that function
 unhooked, and the install line says so. What it can miss: a caller that makes the system call itself (win32u's
-`NtUser*` functions or a stub of its own), user32's own internal calls (a dialog or menu that activates its window),
-and the ways to activate that are not on the list: `SetFocus`, `SwitchToThisWindow`, `SetWindowPlacement`,
-`ShowWindowAsync`, `AnimateWindow`, a window created active and input sent to a window. Hooking any of them needs the
-user's OK first.
+`NtUser*` functions or a stub of its own) and user32's own internal calls (a dialog or menu that activates its window).
+Left unhooked on purpose, because none of them makes a background window the foreground window here: `SetFocus` (it
+moves the keyboard focus within the calling thread's own queue; the foreground window of another process stays),
+`CreateWindowEx` (a window is shown through `ShowWindow` or `SetWindowPos`, which are hooked), `AnimateWindow`, the dialog
+functions (a dialog is shown through `ShowWindow`, and `MessageBox` is answered by the message-box hook) and input sent
+to a window (it activates a window only when something clicks it, and visrun's posted input is messages, not clicks).
+Hooking any other function needs the user's OK first.
 
 `logs/net.log` of the run folder holds the install line ("activation hook installed: reached ...") and, at exit, how
 many calls each function answered, with the `SW_SHOWMAXIMIZED` passes. `ORIGRUN_ACTIVATION=allow` in the

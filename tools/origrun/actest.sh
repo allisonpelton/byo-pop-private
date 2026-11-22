@@ -33,7 +33,7 @@ for mode in block allow; do
 	n=$(grep -c '^ok\|^FAIL' "$out"); checks=$((checks + n))
 	nl="$rd/logs/net.log"
 	if [ "$mode" = block ]; then
-		grep -q 'activation hook installed: reached SetForegroundWindow, SetActiveWindow, BringWindowToTop, ShowWindow, SetWindowPos, DeferWindowPos (' "$nl" 2>/dev/null \
+		grep -q 'activation hook installed: reached SetForegroundWindow, SetActiveWindow, BringWindowToTop, ShowWindow, SetWindowPos, DeferWindowPos, ShowWindowAsync, SetWindowPlacement, SwitchToThisWindow (' "$nl" 2>/dev/null \
 			|| { echo "FAIL (block): net.log lacks the install line naming all six functions"; grep -i 'activation' "$nl" | head -3; st=1; }
 		grep -q 'exits: activation hook answered SetForegroundWindow [1-9]' "$nl" 2>/dev/null || { echo "FAIL (block): net.log lacks the exit counts"; grep -i 'activation' "$nl" | head -3; st=1; }
 		grep -q 'SW_SHOWMAXIMIZED passed on 3 ' "$nl" 2>/dev/null || { echo "FAIL (block): net.log does not count the three SW_SHOWMAXIMIZED passes"; grep 'exits: activation' "$nl"; st=1; }
@@ -45,5 +45,5 @@ for mode in block allow; do
 	rm -rf "$rd"
 done
 rm -rf "$bin"
-[ $st -eq 0 ] && echo "activation hook: the window never took the foreground or became active through any of the six functions (import table, GetProcAddress, second DLL), each mapped command left the window as its non-activating form does, SW_SHOWMAXIMIZED passed on and was counted, ORIGRUN_ACTIVATION=allow let the calls through ($checks checks)"
+[ $st -eq 0 ] && echo "activation hook: the window never took the foreground or became active through any of the nine functions (import table, GetProcAddress, second DLL), each mapped command left the window as its non-activating form does, SW_SHOWMAXIMIZED passed on and was counted, ORIGRUN_ACTIVATION=allow let the calls through ($checks checks)"
 exit $st

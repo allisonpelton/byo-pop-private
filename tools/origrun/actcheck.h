@@ -10,7 +10,12 @@ typedef struct {
 	HDWP (WINAPI *BeginDeferWindowPos)(int);
 	HDWP (WINAPI *DeferWindowPos)(HDWP, HWND, HWND, int, int, int, int, UINT);
 	BOOL (WINAPI *EndDeferWindowPos)(HDWP);
+	BOOL (WINAPI *ShowWindowAsync)(HWND, int);
+	BOOL (WINAPI *SetWindowPlacement)(HWND, const WINDOWPLACEMENT*);
+	BOOL (WINAPI *GetWindowPlacement)(HWND, WINDOWPLACEMENT*);
+	void (WINAPI *SwitchToThisWindow)(HWND, BOOL);
 } ActApi;
 #define ACT_FILL_FROM_IMPORTS(a) do { (a)->SetForegroundWindow = SetForegroundWindow; (a)->SetActiveWindow = SetActiveWindow; \
 	(a)->BringWindowToTop = BringWindowToTop; (a)->ShowWindow = ShowWindow; (a)->SetWindowPos = SetWindowPos; \
-	(a)->BeginDeferWindowPos = BeginDeferWindowPos; (a)->DeferWindowPos = DeferWindowPos; (a)->EndDeferWindowPos = EndDeferWindowPos; } while (0)
+	(a)->BeginDeferWindowPos = BeginDeferWindowPos; (a)->DeferWindowPos = DeferWindowPos; (a)->EndDeferWindowPos = EndDeferWindowPos; \
+	(a)->ShowWindowAsync = ShowWindowAsync; (a)->SetWindowPlacement = SetWindowPlacement; (a)->GetWindowPlacement = GetWindowPlacement; (a)->SwitchToThisWindow = SwitchToThisWindow; } while (0)

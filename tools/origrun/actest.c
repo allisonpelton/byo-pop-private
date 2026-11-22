@@ -59,6 +59,27 @@ static void run_blocked(HWND w, const ActApi* a, const char* via)
 	BOOL ended = d ? a->EndDeferWindowPos(d) : FALSE;
 	GetWindowRect(w, &r);
 	CK(via, "DeferWindowPos shows and moves without activating", ended && IsWindowVisible(w) && r.left == 50 && r.top == 60 && notmine(w));
+
+	a->ShowWindowAsync(w, SW_SHOWMINIMIZED); pump();
+	CK(via, "ShowWindowAsync SW_SHOWMINIMIZED minimizes without activating", IsIconic(w) && notmine(w));
+	a->ShowWindowAsync(w, SW_RESTORE); pump();
+	CK(via, "ShowWindowAsync SW_RESTORE restores without activating", !IsIconic(w) && IsWindowVisible(w) && notmine(w));
+	a->ShowWindow(w, SW_HIDE);
+	a->ShowWindowAsync(w, SW_SHOWNORMAL); pump();
+	CK(via, "ShowWindowAsync SW_SHOWNORMAL shows without activating", IsWindowVisible(w) && notmine(w));
+
+	WINDOWPLACEMENT wp; memset(&wp, 0, sizeof(wp)); wp.length = sizeof(wp);
+	a->GetWindowPlacement(w, &wp);
+	wp.showCmd = SW_SHOWMINIMIZED;
+	CK(via, "SetWindowPlacement returns TRUE", a->SetWindowPlacement(w, &wp) == TRUE);
+	CK(via, "SetWindowPlacement SW_SHOWMINIMIZED minimizes without activating", IsIconic(w) && notmine(w));
+	CK(via, "SetWindowPlacement leaves the caller's structure alone", wp.showCmd == SW_SHOWMINIMIZED);
+	wp.showCmd = SW_SHOWNORMAL; wp.rcNormalPosition.left = 70; wp.rcNormalPosition.right = 300;
+	a->SetWindowPlacement(w, &wp);
+	GetWindowRect(w, &r);
+	CK(via, "SetWindowPlacement SW_SHOWNORMAL restores and places without activating", !IsIconic(w) && IsWindowVisible(w) && r.left == 70 && notmine(w));
+
+	CK(via, "SwitchToThisWindow does nothing", (a->SwitchToThisWindow(w, TRUE), a->SwitchToThisWindow(w, FALSE), notmine(w)));
 }
 
 // SW_SHOWMAXIMIZED has no form that does not activate: it passes through (and the stand-in counts it on its own)
@@ -66,6 +87,13 @@ static void run_maximized(HWND w, const ActApi* a, const char* via)
 {
 	a->ShowWindow(w, SW_SHOWMAXIMIZED);
 	CK(via, "SW_SHOWMAXIMIZED passes through: the window is maximized", IsZoomed(w) && IsWindowVisible(w));
+	a->ShowWindow(w, SW_SHOWNORMAL);
+	a->ShowWindowAsync(w, SW_SHOWMAXIMIZED); pump();
+	CK(via, "ShowWindowAsync SW_SHOWMAXIMIZED passes through: the window is maximized", IsZoomed(w));
+	a->ShowWindow(w, SW_SHOWNORMAL);
+	WINDOWPLACEMENT wp; memset(&wp, 0, sizeof(wp)); wp.length = sizeof(wp);
+	a->GetWindowPlacement(w, &wp); wp.showCmd = SW_SHOWMAXIMIZED; a->SetWindowPlacement(w, &wp);
+	CK(via, "SetWindowPlacement SW_SHOWMAXIMIZED passes through: the window is maximized", IsZoomed(w));
 	a->ShowWindow(w, SW_SHOWNORMAL);
 	pump();
 }
@@ -82,6 +110,15 @@ static void run_allowed(HWND w, HWND other, const ActApi* a, const char* via)
 	CK(via, "allowed: SetActiveWindow moves the activation away again", active(other));
 	a->SetActiveWindow(w);
 	CK(via, "allowed: SetActiveWindow activates the window", active(w));
+	a->SetActiveWindow(other);
+	a->ShowWindow(w, SW_HIDE);
+	a->ShowWindowAsync(w, SW_SHOWNORMAL); pump();
+	CK(via, "allowed: ShowWindowAsync SW_SHOWNORMAL activates the window", active(w));
+	a->SetActiveWindow(other);
+	a->ShowWindow(w, SW_HIDE);
+	WINDOWPLACEMENT wp; memset(&wp, 0, sizeof(wp)); wp.length = sizeof(wp);
+	a->GetWindowPlacement(w, &wp); wp.showCmd = SW_SHOWNORMAL; a->SetWindowPlacement(w, &wp);
+	CK(via, "allowed: SetWindowPlacement SW_SHOWNORMAL activates the window", active(w));
 }
 
 static LRESULT CALLBACK proc(HWND h, UINT m, WPARAM wp, LPARAM lp) { return DefWindowProcA(h, m, wp, lp); }
@@ -124,6 +161,8 @@ int main(void)
 	gpa.BringWindowToTop = (void*)GetProcAddress(u, "BringWindowToTop"); gpa.ShowWindow = (void*)GetProcAddress(u, "ShowWindow");
 	gpa.SetWindowPos = (void*)GetProcAddress(u, "SetWindowPos"); gpa.BeginDeferWindowPos = (void*)GetProcAddress(u, "BeginDeferWindowPos");
 	gpa.DeferWindowPos = (void*)GetProcAddress(u, "DeferWindowPos"); gpa.EndDeferWindowPos = (void*)GetProcAddress(u, "EndDeferWindowPos");
+	gpa.ShowWindowAsync = (void*)GetProcAddress(u, "ShowWindowAsync"); gpa.SetWindowPlacement = (void*)GetProcAddress(u, "SetWindowPlacement");
+	gpa.GetWindowPlacement = (void*)GetProcAddress(u, "GetWindowPlacement"); gpa.SwitchToThisWindow = (void*)GetProcAddress(u, "SwitchToThisWindow");
 	ActApi dl; dllapi(&dl);
 
 	const struct { const ActApi* a; const char* via; } paths[] = { { &imp, "import table" }, { &gpa, "GetProcAddress" }, { &dl, "second DLL" } };
