@@ -33,7 +33,7 @@ var ByopopCursors = (function () {
   // and those whose page reads an animated pointer from their files (web/flicursor.js), which the listing page also does as it
   // adds their files (web/gameimport.js, addGame). The Settings' choice names those whose files are here without their set.
   var GIVES = ["alchemy", "astropop", "atomica", "bejeweled", "bejeweled2", "bejeweledtwist", "bigmoney", "bonnies", "bookworm", "bookwormadv",
-    "bookwormadv2", "cosmicbugs", "dynomite", "hammerheads", "heavyweapon", "mummymaze", "pixelus", "rocketmania", "sevenseas",
+    "bookwormadv2", "cosmicbugs", "dynomite", "hammerheads", "heavyweapon", "mummymaze", "peggle", "pixelus", "rocketmania", "sevenseas",
     "typershark", "waterbugs"];
   // The kinds the Settings' choice pictures and compares sets by: every game's text cursor is the same I-beam (only its canvas
   // differs), so it tells no set from another. A set's own text cursor still shows in text fields.
