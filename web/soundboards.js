@@ -610,8 +610,8 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Game selector", sounds: [
-      ["sounds/welcome.ogg", "\"Welcome!\"", "1 s (100 updates) after the game selector opens, the first time it opens since the game started"],
-      ["sounds/loveit.ogg", "\"Love it!\"", "1 s (100 updates) after the game selector opens, with a 1 in 10 chance, on every opening after the first"],
+      ["sounds/welcome.ogg", "\"Welcome to Big Money!\"", "1 s (100 updates) after the game selector opens, the first time it opens since the game started"],
+      ["sounds/loveit.ogg", "\"Big Money, I love it!\"", "1 s (100 updates) after the game selector opens, with a 1 in 10 chance, on every opening after the first"],
       ["sounds/buttonclick.ogg", "Button click", "A button goes down on the game selector, the board, the high scores, Help or Options, or in a dialog. Made from the same sound as BookWorm's Click (sounds/buttonclick.ogg), little changed."],
       ["sounds/action.ogg", "\"Action!\"", "The Action game button is clicked to select it (a second click starts the game), unless Mr. Money is still saying a greeting"],
       ["sounds/strategy.ogg", "\"Strategy!\"", "The Strategy game button is clicked to select it (a second click starts the game), unless Mr. Money is still saying a greeting"],

@@ -213,6 +213,7 @@ var ByopopApps = (function () {
       scroll: kind === "txt" ? app.text : null,
       focusIn: function (back) { focusApp(app, back); } });
     apps.push(app);
+    if (kind === "game") watchBar();
     return app;
   }
   function inner(app) { try { return app.frame && app.frame.contentWindow; } catch (e) { return null; } }
@@ -403,6 +404,34 @@ var ByopopApps = (function () {
     var bar = document.querySelector(".d95-taskbar");
     return { w: (document.documentElement.clientWidth || window.innerWidth) / zf() - 16 - cw, h: window.innerHeight / zf() - (bar ? bar.offsetHeight : 28) - 8 - ch };
   }
+  // The room changed: the browser window's size (full screen too), the desktop's zoom or the task bar's height. Each game's page
+  // sizes its game again (web/shell.html, byopop-room), since its window, keeping its size, gives it no resize of its own: a
+  // multiple chosen for a game that the room had no space for comes back once it has (the user, 2026-11-20, of a game that "tried
+  // to open larger than the window had room for"). Once, at the next frame (or 200 ms on, where a hidden page draws none), after
+  // the desktop has laid its windows out again.
+  var roomQueued = false, barWatch = null;
+  function roomChanged() {
+    if (roomQueued) return;
+    roomQueued = true;
+    var timer = 0, frame = 0;
+    function run() {
+      if (!roomQueued) return;
+      roomQueued = false;
+      clearTimeout(timer);
+      try { cancelAnimationFrame(frame); } catch (e) {}
+      apps.forEach(function (a) { var w = a.kind === "game" && inner(a); if (w) try { w.dispatchEvent(new Event("byopop-room")); } catch (e) {} });
+    }
+    timer = setTimeout(run, 200);
+    try { frame = requestAnimationFrame(run); } catch (e) {}
+  }
+  window.addEventListener("resize", roomChanged);
+  window.addEventListener("byopop-zoom", roomChanged);
+  function watchBar() {
+    var bar = document.querySelector(".d95-taskbar");
+    if (barWatch || !bar || !window.ResizeObserver) return;
+    barWatch = new ResizeObserver(roomChanged);
+    barWatch.observe(bar);
+  }
   // the size a game wants (its screen at one pixel for each of the device's, and its window's frame and status bar): the window
   // takes it the first time, as far as the desktop has room
   // (force: size the window again even to a size it had before; chosen: the player chose the scale, which restores a
@@ -486,12 +515,12 @@ var ByopopApps = (function () {
     return "";
   }
   // the game window in front, for the Music window's views (web/music.js, "Following a game"): the game window last made active,
-  // while it is open and not minimized; its page and its game's title, or null
+  // while it is open and not minimized; its page, its game's title and its game's id, or null
   function frontFrame() {
     var a = lastGame && apps.indexOf(lastGame) >= 0 ? lastGame : null;
     if (!a || !a.el || a.el.classList.contains("d95-min") || a.el.classList.contains("d95-closed")) return null;
     var w = inner(a);
-    return w ? { win: w, title: a.title || "" } : null;
+    return w ? { win: w, title: a.title || "", game: a.game || "" } : null;
   }
   // ---- one window heard at a time (the user, 2026-11-10: "keep in mind the need to prevent multiple windows from playing audio at
   // once") ----
