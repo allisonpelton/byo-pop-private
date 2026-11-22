@@ -1166,11 +1166,17 @@ static void dump_desktop(void)
 static int gNoWindowSec=0;   // seconds waited in vain for the game's window (0: it appeared); the final RESULT line says so
 static DWORD find_game_pid(int timeout_ms)
 {
-	int waited=0;
-	while (waited < timeout_ms && !gStop) {
+	ULONGLONG t0=GetTickCount64();
+	while (GetTickCount64()-t0 < (ULONGLONG)timeout_ms && !gStop) {
 		DWORD pid=0;
 		if (resolve_window(0,&pid) && pid) return pid;
-		Sleep(100); waited+=100;
+		// On the virtual clock a game held at a wait with no window up cannot make one: its first window can go again
+		// (a window another of its threads closes) after the driver's start loop found it and left the game held there,
+		// and the hold then lasted until the stand-in's 60 s cap (Bookworm Adventures Volume 2, 2026-11-22: "the game's
+		// window is up", then "no window in the first 20s" and the window first seen after 71 to 89 s). Let it on to its
+		// next wait instead, so the script still starts at the first wait after a window is up.
+		if (gClockVirtual && vc_get() && vc_is_held()) { vc_step(timeout_ms-(int)(GetTickCount64()-t0)); continue; }
+		Sleep(100);
 	}
 	return 0;
 }
