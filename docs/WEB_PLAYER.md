@@ -92,7 +92,7 @@ the canvas (`.game-cursor` on `<html>`).
 The player can choose one game's cursors for the whole site (the user, 2026-11-03: "pull custom cursors out of the
 user's uploaded games so that they can select one to use across the whole site (except for inside other games)"). In
 `web/cursors.js` (checked by `tools/cursorstest.js`) a started game's page takes its cursors with
-`byopop_cursor_set_copy()` into `byopop-cursors`; the choice is `byopop-site-cursor`. A game's own cursor wins on its
+`byopop_cursor_set_copy()` and keeps them in IndexedDB (below); the choice is `byopop-site-cursor`. A game's own cursor wins on its
 page. A kind may carry animation `frames`, which the page plays itself (Banana Bugs will need them,
 `docs/POPCAP_GAMES_SURVEY.md`). Water Bugs and Cosmic Bugs draw their own pointer, the "pointer" animation of their
 files, so their pages read it from those files instead (`web/flicursor.js`, `ByopopFlicCursor`): every frame of the FLIC
@@ -114,12 +114,32 @@ two sets the same way as it adds their files (`web/gameimport.js`, `flicSet`), s
 game is first opened. The other games' sets come only from a running game: the framework holds their pictures once the
 game has loaded its images.
 
-The sets may take 1 MB of localStorage together (`MAX_TOTAL`). On 2026-11-16 every game's set came to 196 KB: the two
-animated ones 34 and 36 KB, the others 6 to 11 KB. A set that would go past the cap, or that the browser will not store,
-is not dropped unseen. Its game is kept in `byopop-cursors-unkept` until its set is kept or its files are forgotten, and
+The sets are kept in IndexedDB, in the database `byopop-cursors` (its store `sets`, by game id), their pictures as binary
+PNG Blobs (the user, 2026-11-16, of the three changes below: "Will want all three improvements applied"). Until 2026-11-22
+they were base64 in localStorage (`byopop-cursors`, 1 MB at most together, 196 KB for every game's set on 2026-11-16); a
+page that finds that item moves the sets across as it loads, cropped and retimed as before, and removes it once all are
+in. A picture with at most 256 colours is written again with a palette where that comes out smaller than the browser's
+own PNG: the site's own writer, colour type 3 at 1, 2, 4 or 8 bits a pixel, its rows unfiltered and deflated by the
+browser's `CompressionStream`. Every pixel that shows keeps its exact value, half-see-through ones included. An animated
+cursor's frames are one strip, in cells of one size side by side, each frame placed so that its hot spot sits at the
+same point of its cell; they are cut into frames again as the set is read. In the pane's profile on 2026-11-22, Heavy
+Weapon's and Bejeweled 2's pictures came out 14 to 38 percent smaller than the browser's PNGs of the same pixels, but
+for Bejeweled 2's pointer, which stays the browser's; ten drawn frames took 4,658 bytes as a strip against 6,552 as ten
+PNGs.
+
+localStorage keeps only small items: `byopop-cursors-kept`, each set's title and signature (a set given again with the
+same signature is not written again), and `byopop-cursor-shown`, the chosen set as the site shows it (5 KB for Heavy
+Weapon's), so that every page shows it from its first line and the browser's own cursor never shows while the database
+is read. A page reads the database only for what it needs: the chosen set when it has no copy of it, and every set when
+Settings' choice is drawn. The screen saver's frame keeps its sets in its memory (`ByopopInMemory`, set by the page's
+first script with its memory storage). A set the browser will not store, or whose pictures cannot be read, is not
+dropped unseen. Its game is kept in `byopop-cursors-unkept` until its set is kept or its files are forgotten, and
 Settings' choice names it (the user, 2026-11-16: "I'm missing some custom cursors"). `GIVES` lists the games that give a
 set, and `tools/cursorstest.js` checks it against their sources. On the listing page, Settings' choice names each of
-those games whose files are here and whose set is not, as needing to be opened once.
+those games whose files are here and whose set is not, as needing to be opened once. In the choice, an animated cursor's
+picture plays its frames at the cursor's pace while the mouse is over its row (the user, 2026-11-16: "Add mouse over
+for animated custom cursors to show the animation"), the frames laid on each other by their hot spots in a box of one
+size, and shows its first frame again when the mouse leaves.
 
 ### The terms
 

@@ -59,7 +59,7 @@ var ByopopThemes = (function () {
   function cursor() {
     var id = chosen();
     if (id === "none") return "";
-    try { var sets = ByopopCursors.all(); return sets[id] ? id : ""; } catch (e) { return ""; }
+    try { return ByopopCursors.has(id) ? id : ""; } catch (e) { return ""; }
   }
   var ctx = null, buffers = {}, buffersOf = "";
   function level() {
