@@ -27,7 +27,11 @@ if [ -z "$ORIG_ONLY" ]; then
 	  echo "$SHOTS" | while read -r n name; do echo "$n 0 $n screenshot $(win "$S/port/$name.png")"; done
 	} | sort -s -n -k1,1 -k2,2 | cut -d" " -f3- > "$S/port_input.txt"
 	tail -1 "$D/input.txt" >> "$S/port_input.txt"
-	[ -n "$REG" ] && [ -d "$D/port/user" ] && export KEEP_USER=1
+	# a case that starts from a saved player (REG=) starts the port from a fresh copy of the case's player folder
+	if [ -n "$REG" ] && [ -d "$D/port/user" ]; then
+		rm -rf "$S/portrun/user"; mkdir -p "$S/portrun"; cp -r "$D/port/user" "$S/portrun/user"
+		export KEEP_USER=1
+	fi
 	"$TOOLS/port.sh" "$S/portrun" -seed="$SEED" -renderscale=1 -drawevery -realinput="$(win "$S/port_input.txt")"
 	echo "port: $(ls "$S/port" | wc -l) pictures"
 fi
