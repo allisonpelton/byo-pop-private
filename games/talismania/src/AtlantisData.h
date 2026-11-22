@@ -12,6 +12,8 @@
 #include "DocHandler.h"
 #include "Geometry.h"
 
+#include "LevelData.h"
+
 #include <map>
 #include <string>
 #include <vector>
@@ -204,6 +206,8 @@ public:
 	std::map<std::string, HighScoreScreenClass> highScoreScreens;
 	std::map<std::string, GameModeClass> gameModes;
 	std::map<std::string, DataSetLoaderClass> dataSets;
+	std::map<std::string, ChapterClass> chapters;
+	std::map<std::string, GameLevelClass> gameLevels;
 
 	// Reads one config file into the registries; false when it cannot be opened or parsed
 	bool loadFile(const std::string& thePath);

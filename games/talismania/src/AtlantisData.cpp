@@ -2,6 +2,7 @@
 
 #include "AtlantisTheme.h"
 #include "Engine.h"
+#include "LevelDataReader.h"
 #include "Random.h"
 
 #include <set>
@@ -48,12 +49,14 @@ std::vector<std::string> getList(const engine::Params& theParams, const char* th
 class DataHandler : public engine::AbstractDocHandler
 {
 public:
-	explicit DataHandler(AtlantisData& theData) : mData(theData) {}
+	explicit DataHandler(AtlantisData& theData) : mData(theData), mLevels(theData) {}
 
 	void startElement(const std::string& theName, engine::Params& theAttributes) override
 	{
 		const engine::Params& p = theAttributes;
 		if (theName == "atlantisdata" || theName == "randomcoins")
+			return;
+		if (mLevels.startElement(theName, p))
 			return;
 		if (theName == "scene")
 		{
@@ -197,6 +200,8 @@ public:
 
 	void endElement(const std::string& theName) override
 	{
+		if (mLevels.endElement(theName))
+			return;
 		if (theName == "scene")
 			mData.scenes[mScene.name] = mScene;
 		else if (theName == "gameoptions")
@@ -298,6 +303,7 @@ private:
 	}
 
 	AtlantisData& mData;
+	LevelDataReader mLevels;
 	std::set<std::string> mReportedKinds;  // each kind not yet translated is reported once
 	SceneClass mScene;
 	GameMgrClass mGameOptions;
