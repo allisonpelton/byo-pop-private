@@ -283,10 +283,11 @@ var ByopopSettings = (function () {
     // the games with a bot whose files are here (none on the live site yet), by the games' titles, read again as the theme's are
     { name: "saver", label: T("settings.saver.label"), live: true,
       get options() {
-        var S2 = typeof ByopopSaver !== "undefined" ? ByopopSaver : null, games = window.ByopopGames || [];
-        return [["none", T("settings.saver.none")]].concat(S2 ? S2.offered().map(function (id) {
+        var S2 = typeof ByopopSaver !== "undefined" ? ByopopSaver : null, games = window.ByopopGames || [], o = S2 ? S2.offered() : [];
+        // (Random) once there are two games to draw from
+        return [["none", T("settings.saver.none")]].concat(o.length > 1 ? [["random", T("settings.saver.random")]] : [], o.map(function (id) {
           var g = games.filter(function (x) { return x.id === id; })[0]; return [id, g ? g.title : id];
-        }) : []);
+        }));
       } },
     { name: "saverWait", label: T("settings.saverwait.label"),
       options: (typeof ByopopSaver !== "undefined" ? ByopopSaver.waits : ["5"]).map(function (m) { return [m, T("settings.saverwait.minutes", { n: m })]; }) },
