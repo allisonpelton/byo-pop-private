@@ -1,6 +1,8 @@
 #include "LevelObj.h"
 #include "Board.h"
 #include "BugBrainAnt.h"
+#include "BugBrainBeetle.h"
+#include "BugBrainSkeeter.h"
 
 #include "BananaBonus.h"
 #include "BugScore.h"

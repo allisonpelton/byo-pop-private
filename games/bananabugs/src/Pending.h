@@ -31,8 +31,6 @@ public:
 // The kinds of bug (the brains, BugBrain* in the original, derived from BugObj). None is translated: each stand-in is made
 // by the kind's constructor address, sets what that constructor gives BugObj with SetKind (kind, half-width, half-height) and
 // does nothing else, so it has no body and never moves. Setup, Update and Zap are BugObj's
-class BugBrainSkeeter : public BugObj { public: BugBrainSkeeter(); };   // 0x41def0
-class BugBrainBeetle : public BugObj { public: BugBrainBeetle(); };     // 0x416220
 class BugBrainDragonfly : public BugObj { public: BugBrainDragonfly(); }; // 0x418880
 class BugBrainRolly : public BugObj { public: BugBrainRolly(); };       // 0x41d0d0
 class BugBrainRoach : public BugObj { public: BugBrainRoach(); };       // 0x41c4f0
@@ -193,13 +191,11 @@ void PreloadSlots();         // 0x46c710
 void PreloadFly();           // 0x423980
 void PreloadInGameButtons(); // 0x4558f0
 void PreloadMoth();          // 0x423d10
-void PreloadBeetle();        // 0x421750
 void PreloadCentipede();     // 0x422f10
 void PreloadWasp();          // 0x420b30
 void PreloadCaterpillar();   // 0x422220
 void PreloadFlyPaths();      // 0x41aee0
 void PreloadMothPaths();     // 0x41c470
-void PreloadSkeeter();       // 0x425110
 void PreloadBonusPictures(); // 0x406dd0
 void InitBonusTable();       // 0x40af90
 void PreloadSpinStars();     // 0x41f980

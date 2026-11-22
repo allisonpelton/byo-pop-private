@@ -2,32 +2,15 @@
 
 #include "BugImg.h"
 #include "BugImgAnt.h"
+#include "BugShared.h"
 #include "FillObj.h"
 #include "LevelObj.h"
 #include "PipeObj.h"
 
 using namespace Sexy;
 
-// The headings (BugObj::mHeading), as PipeObj's links are numbered
-enum AntHeading
-{
-	HEADING_UP = 0,
-	HEADING_RIGHT = 1,
-	HEADING_DOWN = 2,
-	HEADING_LEFT = 3,
-	HEADING_COUNT = 4,
-};
-
 // The places the ant's box covers each way from its own (SetKind's half-width and half-height)
 static const int ANT_HALF_SIZE = 2;
-
-// The kind of command the brain holds (BugObj::mCommand)
-enum AntCommand
-{
-	COMMAND_FREEZE = 1,
-	COMMAND_DAZE = 2,
-	COMMAND_SHOCK = 3,
-};
 
 // A leg is walked at this many frames a pixel, and the turn at its end takes this many frames; a rope hurries the ant,
 // which walks the leg in half the time (a frame and a half a pixel) and turns in less
@@ -50,58 +33,6 @@ static const int FADE_OUT_FRAMES = 1;
 static const double TUMBLE_TURN = 50.26548385620117;   // eight turns (0x5e74f8): the tumble spins this far either way
 static const float FADE_OUT_ALPHA = -1.0f;
 static const double FADE_OUT_DROP = 20.0;              // the last key is 20 pixels lower than the tumble's
-// The fade track: the ant shrinks away over this many frames
-static const int FADE_FRAMES = 45;
-
-// 0x41d3b0 (EAX the heading; the code is shared with other kinds): the angle a heading faces, in radians: up is a quarter
-// turn, left a half turn, down a quarter turn the other way, right none
-static float HeadingAngle(int theHeading)
-{
-	switch (theHeading) {
-	case HEADING_UP:
-		return 1.5707963705062866f;
-	case HEADING_DOWN:
-		return -1.5707963705062866f;
-	case HEADING_LEFT:
-		return 3.1415927410125732f;
-	}
-	return 0.0f;
-}
-
-// 0x417b90 (EAX the heading, EDX the next heading, theBase pushed; shared with other kinds): theBase turned a quarter
-// turn to the next heading from the one it faces: a quarter turn less when the next is the one after the heading, a
-// quarter turn more when it is the one before, and as it was when it is the same or straight back
-static float TurnAngle(int theHeading, int theNextHeading, float theBase)
-{
-	int aTurn = 0;
-	if ((theHeading + 1) % HEADING_COUNT == theNextHeading)
-		aTurn = -1;
-	else {
-		int aBefore = theHeading - 1;
-		if (aBefore < 0)
-			aBefore = HEADING_COUNT - 1;
-		if (aBefore == theNextHeading)
-			aTurn = 1;
-	}
-	return (float)((double)(aTurn * 90) * PI_F / 180.0 + (double)theBase);
-}
-
-// The post's link in a heading (PipeObj keeps them in the order up, right, down, left; the original indexes them at +0x290)
-static PipeObj* GetLink(PipeObj* thePost, int theHeading)
-{
-	switch (theHeading) {
-	case HEADING_UP:
-		return thePost->mUpLink;
-	case HEADING_RIGHT:
-		return thePost->mRightLink;
-	case HEADING_DOWN:
-		return thePost->mDownLink;
-	case HEADING_LEFT:
-		return thePost->mLeftLink;
-	}
-	// port (crash): the original reads the memory beside the links for a heading outside 0 to 3, which none ever is
-	return nullptr;
-}
 
 // 0x413f90: SetKind (the kind, and the places its box covers each way), no body yet
 BugBrainAnt::BugBrainAnt()
@@ -168,19 +99,16 @@ void BugBrainAnt::Notify(ObjBase* theObj)
 	}
 }
 
-// 0x41c640 (slot 5; one function with the other kinds): the base's update
+// 0x41c640 (slot 5; shared, see BugShared): the base's update
 bool BugBrainAnt::Update()
 {
-	return BugObj::Update();
+	return BugSharedUpdate(this);
 }
 
 // 0x41c620 (slot 15; shared): the bug is updated, then its body
 void BugBrainAnt::StepSegment()
 {
-	Update();
-	// port (crash): the original does not look whether the bug has a body
-	if (mBody != nullptr)
-		mBody->Update();
+	BugSharedStepSegment(this);
 }
 
 // 0x4141a0 (slot 16): a rope has been shot along a line near the ant. It acts only when it is in play, not in the middle
@@ -224,51 +152,19 @@ void BugBrainAnt::AvoidRope(int theVertical, float theX, float theY)
 // 0x415810 (slot 17; shared): leaves play, and the fade track starts
 void BugBrainAnt::Vanish()
 {
-	BugObj::Vanish();
-	StartTrack(mFadeTrack);
+	BugSharedVanish(this);
 }
 
-// 0x417aa0 (slot 18; shared): the bug and its column are held and the body is told what for: freezing is a dance,
-// dazing shows the stars, shock the ring. The original returns false always, whatever the base said
+// 0x417aa0 (slot 18; shared): see BugSharedSetCommand
 bool BugBrainAnt::SetCommand(int theCommand, int theFrames)
 {
-	if (BugObj::SetCommand(theCommand, theFrames) && mBody != nullptr) {
-		switch (mCommand) {
-		case COMMAND_FREEZE:
-			mBody->Slot13(BUG_CMD_FREEZE_ON, theFrames, 0);
-			break;
-		case COMMAND_DAZE:
-			mBody->Slot13(BUG_CMD_STARS_ON, theFrames, 0);
-			break;
-		case COMMAND_SHOCK:
-			mBody->Slot13(BUG_CMD_RING_ON, theFrames, 0);
-			break;
-		}
-	}
-	return false;
+	return BugSharedSetCommand(this, theCommand, theFrames);
 }
 
-// 0x41e1f0 (slot 19; shared): the hold ends and the body is told to stop what it was doing. The original returns 0 always,
-// whatever command was waiting
+// 0x41e1f0 (slot 19; shared): see BugSharedTakeCommand
 int BugBrainAnt::TakeCommand()
 {
-	if (mAlive) {
-		int aCommand = BugObj::TakeCommand();
-		if (aCommand != 0 && mBody != nullptr) {
-			switch (aCommand) {
-			case COMMAND_FREEZE:
-				mBody->Slot13(BUG_CMD_FREEZE_OFF, 0, 0);
-				break;
-			case COMMAND_DAZE:
-				mBody->Slot13(BUG_CMD_STARS_OFF, 0, 0);
-				break;
-			case COMMAND_SHOCK:
-				mBody->Slot13(BUG_CMD_RING_OFF, 0, 0);
-				break;
-			}
-		}
-	}
-	return 0;
+	return BugSharedTakeCommand(this);
 }
 
 // 0x414850 (slot 20): the bug dies (by the base). The ant is flung off: the death track's first key throws it at an
@@ -318,26 +214,10 @@ void BugBrainAnt::PlaceAt(int theColumn, int theRow)
 	Activate(this, false);
 }
 
-// 0x415b60 (slot 22; shared): the fade track: 45 frames shrinking and fading away, then a key that ends with event 5
+// 0x415b60 (slot 22; shared): the fade track, ending with event 5
 void BugBrainAnt::BuildFadeTrack()
 {
-	AnimKey* aShrink = new AnimKey();
-	aShrink->SetDuration(FADE_FRAMES);
-	aShrink->AddValue(STATE_ALPHA, 0.0f, MOD_TOWARD_NEXT);
-	aShrink->AddValue(STATE_SCALE_X, 0.0f, MOD_TOWARD_NEXT);
-	aShrink->AddValue(STATE_SCALE_Y, 0.0f, MOD_TOWARD_NEXT);
-
-	AnimKey* aEnd = new AnimKey();
-	aEnd->mEventId = ANT_BRAIN_EVENT_GONE;
-	aEnd->SetDuration(1);
-	aEnd->AddValue(STATE_ALPHA, -1.0f, MOD_TOWARD_NEXT);
-	aEnd->AddValue(STATE_SCALE_X, -1.0f, MOD_TOWARD_NEXT);
-	aEnd->AddValue(STATE_SCALE_Y, -1.0f, MOD_TOWARD_NEXT);
-
-	AnimTrack* aTrack = new AnimTrack();
-	aTrack->AddKey(aShrink, nullptr);
-	aTrack->AddKey(aEnd, nullptr);
-	mFadeTrack = AddTrack(aTrack, nullptr);
+	BugSharedBuildFadeTrack(this, ANT_BRAIN_EVENT_GONE);
 }
 
 // 0x414c30 (slot 23): the death track: flung off and falling (its decays start from where the bug is when it is built,
@@ -426,7 +306,7 @@ PipeObj* BugBrainAnt::GetNextPost()
 	PipeObj* aPipe = gFillGrid[mColumn][mRow].mPipe;
 	if (aPipe == nullptr)
 		return nullptr;
-	return GetLink(aPipe, mHeading);
+	return BugPostLink(aPipe, mHeading);
 }
 
 // The keys of a leg to thePost (the code of 0x414630 and of the two copies in 0x4141a0): the leg key starts where the
@@ -439,16 +319,16 @@ void BugBrainAnt::SetLegKeys(PipeObj* thePost, double theFramesPerPixel, int the
 	float aTargetY = (float)(thePost->mRow * BUG_GRID_CELL);
 	mLegKey->mValue[STATE_X] = mState[STATE_X];
 	mLegKey->mValue[STATE_Y] = mState[STATE_Y];
-	mLegKey->mValue[STATE_ROTATION] = HeadingAngle(mHeading);
+	mLegKey->mValue[STATE_ROTATION] = BugHeadingAngle(mHeading);
 	mLegKey->mEasing = EASE_LINEAR_CLAMPED;
 	mTurnKey->mValue[STATE_X] = aTargetX;
 	mTurnKey->mValue[STATE_Y] = aTargetY;
-	mTurnKey->mValue[STATE_ROTATION] = HeadingAngle(mHeading);
+	mTurnKey->mValue[STATE_ROTATION] = BugHeadingAngle(mHeading);
 	mTurnKey->mEasing = EASE_LINEAR_CLAMPED;
 	mTurnEndKey->SetDuration(1);
 	mTurnEndKey->mValue[STATE_X] = aTargetX;
 	mTurnEndKey->mValue[STATE_Y] = aTargetY;
-	mTurnEndKey->mValue[STATE_ROTATION] = TurnAngle(mHeading, mNextHeading, mTurnKey->mValue[STATE_ROTATION]);
+	mTurnEndKey->mValue[STATE_ROTATION] = BugTurnAngle(mHeading, mNextHeading, mTurnKey->mValue[STATE_ROTATION]);
 	mTurnEndKey->mEasing = EASE_LINEAR_CLAMPED;
 	// The original squares and adds on the FPU stack, rounding only the sum
 	double aDeltaY = (double)mLegKey->mValue[STATE_Y] - (double)mTurnKey->mValue[STATE_Y];

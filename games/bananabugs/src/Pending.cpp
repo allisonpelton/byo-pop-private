@@ -31,17 +31,12 @@ static Anim* sFlyFlyAnim;            // 0x60e290
 static Anim* sInGameButtonsAnim;     // 0x670188
 static Anim* sMothDanceAnim;         // 0x60e294
 static Anim* sMothAnim;              // 0x60e298
-static Anim* sBeetleWalkAnim;        // 0x60e26c
-static Anim* sBeetleTurnAnim;        // 0x60e270
-static Anim* sBeetleDanceAnim;       // 0x60e274
 static Anim* sCentipedeHeadAnim;     // 0x60e280
 static Anim* sCentipedeBodyAnim;     // 0x60e284
 static Anim* sCentipedeTailAnim;     // 0x60e288
 static Anim* sWaspAnim;              // 0x60e268
 static Anim* sCaterpillarHeadAnim;   // 0x60e278
 static Anim* sCaterpillarBodyAnim;   // 0x60e27c
-static Anim* sSkeeterFlyAnim;        // 0x60e2a4
-static Anim* sSkeeterDanceAnim;      // 0x60e2a8
 static Anim* sCocoBombAnim;          // 0x60e1a8
 static Anim* sMissileAnim;           // 0x60e1ac
 static Anim* sCannonAnim;            // 0x60e1b0
@@ -155,13 +150,6 @@ void Sexy::PreloadMoth()
 	sMothAnim = Load("images/moth", 0x60, 0x60, 2);
 }
 
-void Sexy::PreloadBeetle()
-{
-	sBeetleWalkAnim = Load("images/beetle_walk", 0x60, 0x4f, 0x1e);
-	sBeetleTurnAnim = Load("images/beetle_turn", 0x60, 0x57, 0x1e);
-	sBeetleDanceAnim = Load("images/beetle_dance", 0x60, 0x60, 0x1e);
-}
-
 void Sexy::PreloadCentipede()
 {
 	sCentipedeHeadAnim = Load("images/centipede_head", 0x41, 0x3f, 0x5a);
@@ -188,12 +176,6 @@ void Sexy::PreloadFlyPaths()
 // port: the moths' paths (two "images/path_moth" tables) are not translated yet
 void Sexy::PreloadMothPaths()
 {
-}
-
-void Sexy::PreloadSkeeter()
-{
-	sSkeeterFlyAnim = Load("images/skeeter_fly", 0x60, 0x60, 0x1e);
-	sSkeeterDanceAnim = Load("images/skeeter_dance", 0x60, 0x60, 0x1e);
 }
 
 void Sexy::PreloadBonusPictures()
@@ -246,16 +228,6 @@ void HiddenBonus::Uncover()
 
 // The kinds of bug: stand-ins (see Pending.h). The kind each sets is BugKind; the moth sets the fly's number 7 in the
 // original too (a bug of the original: nothing reads the difference in what is translated)
-BugBrainSkeeter::BugBrainSkeeter() // 0x41def0
-{
-	SetKind(0, 2, 1);
-}
-
-BugBrainBeetle::BugBrainBeetle() // 0x416220
-{
-	SetKind(1, 2, 2);
-}
-
 BugBrainDragonfly::BugBrainDragonfly() // 0x418880
 {
 	SetKind(2, 4, 2);

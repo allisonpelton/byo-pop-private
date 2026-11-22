@@ -59,6 +59,15 @@ Transition (0x470a60) then the MainMenu (+0x98, 0x43fc90), 4 the Board (+0x94, 0
 0x448e10) by the profile (global 0x670198, field 0xee*4), 5 the board, 7 the meta game. Mouse and keys: slots 47 KeyChar
 0x42fd60, 48 KeyDown 0x42fd70, 52 MouseMove 0x42fcc0, 54 MouseDown 0x42fd00, 57 MouseUp 0x42fd30, 58 MouseDrag 0x42fce0.
 
+## Reaching a level in a run
+
+The test commands so far (src/TestCommands.cpp) are `state` and `set progress|tutorial|walkthru|score|lives <n>`. A
+script reaches level n + 1 with bugs this way: at update 1000 type a name (`char` T, E, S, T; earlier, the New Player
+window is not open yet), `1100 key RETURN`, then `set progress n`, `set tutorial 1`, `set walkthru 1`; Play at
+(418, 207); the game asks to continue the last game: YES at (310, 320); the map's continue at (600, 555). The level is
+playing by about update 2600. Level 1 with the tutorial not done has no bugs of its own (the intro brings them); the
+first four levels use only the skeeter and the beetle.
+
 ## Translating a class (the register conventions, checked against the code)
 
 Read each function three ways: `decread.py <addr>` for the shape, `callargs.py <addr>` for the registers and pushes at

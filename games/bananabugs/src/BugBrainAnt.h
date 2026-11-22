@@ -8,7 +8,7 @@
 // Slots this class overrides: Notify (4), Update (5), Setup (14), StepSegment (15), AvoidRope (16), Vanish (17),
 // SetCommand (18), TakeCommand (19), Zap (20), PlaceAt (21), BuildFadeTrack (22) and BuildDeathTrack (23). The shared
 // ones (Update, StepSegment, Vanish, SetCommand, TakeCommand and BuildFadeTrack) are one function in the original that
-// several kinds' vtables name: each kind's translation takes its own copy here.
+// several kinds' vtables name: they are in BugShared, and each override here calls the shared copy.
 #pragma once
 
 #include "BugObj.h"

@@ -64,6 +64,7 @@ public:
 	using SexyApp::SwitchScreenMode;
 	void GotFocus() override;
 	void LostFocus() override;
+	bool HandleScriptCommand(const ScriptCommand& theCommand) override; // port: the standard test commands (TestCommands.cpp)
 
 	bool ReadPartnerFile();
 	static bool DesktopIsWidescreen();
