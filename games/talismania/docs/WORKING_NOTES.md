@@ -63,6 +63,12 @@ loader's attributes with defaults; `tools/classstrings.py <class>` the strings o
 - `src/AtlantisData`: the base data set's kinds (scene, gameoptions, appoptions, debugmanager, mousecursormgr,
   highscorescreen, gamemode) and the data set list, read by one dispatching handler; the boot loads
   `config/datasets.xml` and "baseset" without errors.
+- `AtlantisApp::start` makes the scene (`AtlantisScene`: camera, shake and screen containers, the layers as plain, clipping
+  or darkening containers, the camera put at the region "sky") and enters `LoadingState` (0x4060a0), which shows
+  `splash/loadingscreen.xml` in the "skymenu" layer: the loading screen is on screen (the logos, the bar's frame). Not yet:
+  the initial data set's loading, the bar's progress, the layers' darkening and the camera's scrolling (0x5e6680), the sound
+  engine and the two popup menu stacks (0x5e98e0), the signal connections. `ClipPane` and `RectangleItem`
+  (`ScenePieces`) should move to engines/sprout2. `ScreenDocHandler` logs that `compositeGroup` is not translated.
 - The host builds and runs (`build/native/talismania.exe`, a silent run under rundesk): the window opens, the archive is
   found, a black frame is shown. The boot's archive step.
 

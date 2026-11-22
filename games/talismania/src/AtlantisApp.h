@@ -8,7 +8,9 @@
 
 #include "AtlantisData.h"
 #include "AtlantisScene.h"
+#include "LoadingState.h"
 #include "Object.h"
+#include "State.h"
 #include "sigslot.h"
 
 class AtlantisApp : public engine::Object, public sigslot::HasSlots
@@ -31,6 +33,10 @@ public:
 	AtlantisData mData;
 	AppClass mOptions;  // the application options "std", read by the boot
 	engine::Ref<AtlantisScene> mScene;  // +0x38
+	engine::StateMgr<AppState> mStateMgr;  // +0x17c
+
+	// 0x40ecc0: each frame, the current state's update
+	void updateSlot(engine::UpdateContext* theContext) { mStateMgr.update(theContext); }
 };
 
 // 0x813aa2: set by the boot when the archive is used. The loading screen reads its few loose files with loose files

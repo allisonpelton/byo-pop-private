@@ -55,4 +55,7 @@ void AtlantisApp::start()
 	}
 	mScene = new AtlantisScene(aSceneClass->second);
 	mScene->enable();
+	mScene->setRegion("sky");
+	anEngine->mUpdateSignal.connect(this, &AtlantisApp::updateSlot);
+	mStateMgr.changeState(new LoadingState(this));
 }
