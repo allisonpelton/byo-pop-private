@@ -42,19 +42,19 @@ char ColorLetter(const Piece* thePiece)
 	return aLetters[thePiece->mColor < Piece::COLOR_COUNT ? thePiece->mColor : Piece::COLOR_COUNT];
 }
 
-// What a gem is, as a letter: b blast, c hypercube, l lines, x lines and blast, . plain (Piece::FLAG_*)
+// What a gem is, as a letter: f flame, c hypercube, s star, x star and flame, . plain (Piece::FLAG_*)
 char SpecialLetter(const Piece* thePiece)
 {
 	if (thePiece == nullptr)
 		return '.';
-	bool aBlast = (thePiece->mFlags & Piece::FLAG_BLAST) != 0;
-	bool aLines = (thePiece->mFlags & Piece::FLAG_LINES) != 0;
-	if (aBlast && aLines)
+	bool aFlame = (thePiece->mFlags & Piece::FLAG_FLAME) != 0;
+	bool aStar = (thePiece->mFlags & Piece::FLAG_STAR) != 0;
+	if (aFlame && aStar)
 		return 'x';
-	if (aBlast)
-		return 'b';
-	if (aLines)
-		return 'l';
+	if (aFlame)
+		return 'f';
+	if (aStar)
+		return 's';
 	if ((thePiece->mFlags & Piece::FLAG_HYPERCUBE) != 0)
 		return 'c';
 	return '.';
@@ -155,7 +155,7 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 		return true;
 	}
 	if (aCommand == "put") {
-		// put <col> <row> <letter> [blast|cube|lines]: gives the gem at that cell a colour and, when named, makes it that special
+		// put <col> <row> <letter> [flame|cube|star]: gives the gem at that cell a colour and, when named, makes it that special
 		// through the same makers a run uses, then lets it go off at once (its countdown, +0x184, is put to 0)
 		int aCol = -1;
 		int aRow = -1;
@@ -164,21 +164,21 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 		int aRead = mBoard == nullptr ? 0 : sscanf(theCommand.mArgs.c_str(), "%d %d %7s %15s", &aCol, &aRow, aLetter, aKind);
 		if (aRead < 3 || aCol < 0 || aCol >= Board::COLS || aRow < 0 || aRow >= Board::ROWS || mBoard->mGrid[aRow][aCol] == nullptr ||
 			LetterColor(aLetter[0]) < 0) {
-			ReplyError(theCommand, "put <col> <row> <RWGYPOB> [blast|cube|lines] on a board");
+			ReplyError(theCommand, "put <col> <row> <RWGYPOB> [flame|cube|star] on a board");
 			return true;
 		}
 		Piece* aPiece = mBoard->mGrid[aRow][aCol];
 		aPiece->mColor = LetterColor(aLetter[0]);
 		aPiece->mFlags = 0;
 		std::string aWhat = aKind;
-		if (aWhat == "blast")
-			mBoard->MakeBlastGem(aPiece);
-		else if (aWhat == "lines")
-			mBoard->MakeLinesGem(aPiece);
+		if (aWhat == "flame")
+			mBoard->MakeFlameGem(aPiece);
+		else if (aWhat == "star")
+			mBoard->MakeStarGem(aPiece);
 		else if (aWhat == "cube")
 			mBoard->MakeHypercube(aPiece, true);
 		else if (!aWhat.empty()) {
-			ReplyError(theCommand, "the kind is blast, cube or lines");
+			ReplyError(theCommand, "the kind is flame, cube or star");
 			return true;
 		}
 		aPiece->mSpecialCountdown = 0;

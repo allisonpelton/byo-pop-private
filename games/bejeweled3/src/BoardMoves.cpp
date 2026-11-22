@@ -41,7 +41,7 @@ struct MatchCluster {
 };
 
 // One entry of the map at local_198 (the key is the centre piece): the piece at the middle of a run of 4 or more, how long the
-// run is, and the piece next to it that is made the special instead when the centre is already a lines gem
+// run is, and the piece next to it that is made the special instead when the centre is already a star gem
 struct SpecialCandidate {
 	Piece* mCentre;
 	int mCount;
@@ -460,14 +460,14 @@ void Board::UpdateSwaps()
 // The gem at the middle of the run (the one moved last, the middle one of those when more than one was; or, of the plain gems, the
 // last with a gem of its colour on both sides of it across the run) and a plain gem next to it (up to two cells from it towards the
 // longer side of the run) go into the map of special candidates with the run's length when it is 4 or more (the exe asks for 6 or
-// more, 5 or more with a centre that is not a lines gem, and 4 or more: the same record each time; the help boxes (0x745bf0) of each
+// more, 5 or more with a centre that is not a star gem, and 4 or more: the same record each time; the help boxes (0x745bf0) of each
 // kind are left out, see below), and both take the run's tag.
 // When both passes are over: the listed gems with bit 1 have the flags that clear them noted, busy count 1 + their place in the
 // list, themselves as the destroyer and a scale curve 1; each gem met twice with bit 1 goes off at once (busy count 1, flags 0) and
-// then, as a crossing, becomes a lines gem (slot 0x2a0: the exe's slot 0x174 is true in Classic, where slot 0x298 would do the
+// then, as a crossing, becomes a star gem (slot 0x2a0: the exe's slot 0x174 is true in Classic, where slot 0x298 would do the
 // same for a board where it is not); each candidate makes its special on the gem it is for (the centre, or its neighbour when the
-// centre is a lines gem), if that has no bits: a run of 4 a blast gem (slot 0x298), a run of 5 a hypercube (slot 0x29c), a run of
-// 6 or more a lines gem and a blast gem; the gem is then matched in this update, remembers its colour (if it has one) and has the
+// centre is a star gem), if that has no bits: a run of 4 a flame gem (slot 0x298), a run of 5 a hypercube (slot 0x29c), a run of
+// 6 or more a star gem and a flame gem; the gem is then matched in this update, remembers its colour (if it has one) and has the
 // scale curve 1. Each cluster then
 //  - freezes (scale 1, cannot fall) when a gem of it has bit 4 and was not matched in this update;
 //  - else, when a gem of it is a target, sends the others to that one (the plain ones and the ones with bit 0x80: a scale curve
@@ -530,10 +530,10 @@ int Board::FindMatches()
 			Piece* aPiece = thePieces[k];
 			aPiece->mGroupId = aRunId;
 			aPiece->mColumnTag = aRunTag;
-			if ((aPiece->mFlags & Piece::FLAG_BLAST) != 0)
+			if ((aPiece->mFlags & Piece::FLAG_FLAME) != 0)
 				aGoingOff.push_back(aPiece);
-			if ((aPiece->mFlags & Piece::FLAG_LINES) != 0 && aPiece->mMatchedUpdate != aUpdate) {
-				// 0x75bac5 to 0x75bb0f: a lines gem that was not matched in this update gets a group of its own, unless it has
+			if ((aPiece->mFlags & Piece::FLAG_STAR) != 0 && aPiece->mMatchedUpdate != aUpdate) {
+				// 0x75bac5 to 0x75bb0f: a star gem that was not matched in this update gets a group of its own, unless it has
 				// one; it takes no part in the plain gems' clear. The group is type 3, or 2 when the board's +0xe8 is set; a piece
 				// with bit 1 makes it type 6 (0x789a90). port: the counter of 0x73d170 (stat 1, the move's tag) and the box that
 				// 0x742d00 shows for a type 2 or 7 group are left out
@@ -544,7 +544,7 @@ int Board::FindMatches()
 			if (aPiece->mMatchedUpdate == aUpdate) {
 				// 0x75bbdb to 0x75bcc3, the second visit: the gem is in two runs
 				if (aPiece->mColor > -1 && aPiece->mColor < Piece::COLOR_COUNT &&
-					(aPiece->mFlags == 0 || (aPiece->mFlags & Piece::FLAG_BLAST) != 0)) {
+					(aPiece->mFlags == 0 || (aPiece->mFlags & Piece::FLAG_FLAME) != 0)) {
 					aPiece->mScaleCurve.SetConstant(1.0);   // 0x437760 with 0x7cd048
 					aPiece->mMatchedUpdate = aUpdate;
 					aTargets.insert(aPiece);
@@ -686,25 +686,25 @@ int Board::FindMatches()
 	// 0x75c8b0 to 0x75c9d9: the gems that two runs share
 	for (PieceSet::iterator aIt = aMetTwice.begin(); aIt != aMetTwice.end(); ++aIt) {
 		Piece* aPiece = *aIt;
-		if ((aPiece->mFlags & Piece::FLAG_BLAST) != 0) {
+		if ((aPiece->mFlags & Piece::FLAG_FLAME) != 0) {
 			aPiece->mBusyCount = 1;
 			aPiece->mDestroyerId = aPiece->mId;
 			aPiece->mDestroyerFlags = aPiece->mFlags;
 			aPiece->mFlags = 0;
 		}
-		MakeLinesGem(aPiece);   // slot 0x174 is true in Classic (slot 0x298, MakeBlastGem, where it is not)
+		MakeStarGem(aPiece);   // slot 0x174 is true in Classic (slot 0x298, MakeFlameGem, where it is not)
 	}
 	// 0x75ca00 to 0x75cc9c: the specials are made
 	for (std::map<int, SpecialCandidate>::iterator aIt = aCandidates.begin(); aIt != aCandidates.end(); ++aIt) {
 		const SpecialCandidate& aCandidate = aIt->second;
-		Piece* aTarget = (aCandidate.mCentre->mFlags & Piece::FLAG_LINES) != 0 ? aCandidate.mNeighbour : aCandidate.mCentre;
+		Piece* aTarget = (aCandidate.mCentre->mFlags & Piece::FLAG_STAR) != 0 ? aCandidate.mNeighbour : aCandidate.mCentre;
 		if (aTarget == nullptr || aTarget->mFlags != 0)
 			continue;   // the exe reads the flags of a null neighbour here
 		// the set of blocked gems (local_244) is empty in Classic
 		aTargets.insert(aTarget);
 		if (aCandidate.mCount > 5) {
-			MakeLinesGem(aTarget);
-			MakeBlastGem(aTarget);
+			MakeStarGem(aTarget);
+			MakeFlameGem(aTarget);
 			aTarget->mScaleCurve.SetConstant(1.0);
 		}
 		else if (aCandidate.mCount > 4) {
@@ -712,7 +712,7 @@ int Board::FindMatches()
 			aTarget->mScaleCurve.SetConstant(1.0);
 		}
 		else
-			MakeBlastGem(aTarget);
+			MakeFlameGem(aTarget);
 		aTarget->mMatchedUpdate = aUpdate;
 		if (aTarget->mColor != Piece::NO_COLOR)
 			aTarget->mRememberedColor = aTarget->mColor;
@@ -727,7 +727,7 @@ int Board::FindMatches()
 			Piece* aPiece = aCluster.mPieces[k];
 			if (aTargets.count(aPiece) != 0)
 				aTarget = aPiece;
-			if ((aPiece->mFlags & Piece::FLAG_LINES) != 0 && aPiece->mMatchedUpdate != aUpdate)
+			if ((aPiece->mFlags & Piece::FLAG_STAR) != 0 && aPiece->mMatchedUpdate != aUpdate)
 				aFrozen = true;
 		}
 		// slot 0x148 (recording) is false and the cluster holds no blocked gem in Classic
@@ -738,7 +738,7 @@ int Board::FindMatches()
 			}
 		}
 		else if (aTarget != nullptr) {
-			// 0x75d4f8 to 0x75d837. port: the curve of +0x90 and the effect for a blast gem are drawn only
+			// 0x75d4f8 to 0x75d837. port: the curve of +0x90 and the effect for a flame gem are drawn only
 			for (size_t k = 0; k < aCluster.mPieces.size(); k++) {
 				Piece* aPiece = aCluster.mPieces[k];
 				if (aPiece == aTarget || (aPiece->mFlags != 0 && (aPiece->mFlags & 0x80) == 0))
@@ -1105,25 +1105,25 @@ void Board::UpdatePiecePulses()
 	}
 }
 
-// 0x745ca0 (bejeweled3), slot 0x298: a run of 4 (or the second part of a run of 6 or more) makes the gem a blast gem. It needs a colour; it sets
+// 0x745ca0 (bejeweled3), slot 0x298: a run of 4 (or the second part of a run of 6 or more) makes the gem a flame gem. It needs a colour; it sets
 // bit 1, clears the bits that 0x2e0 names and starts the countdown (+0x184) at 25, during which a clear leaves it standing. Its
 // effect (type 0x16) draws no Rand(). port: the effect and the sound
-void Board::MakeBlastGem(Piece* thePiece)
+void Board::MakeFlameGem(Piece* thePiece)
 {
 	if (thePiece->mColor == Piece::NO_COLOR)
 		return;
-	thePiece->mFlags |= Piece::FLAG_BLAST;
+	thePiece->mFlags |= Piece::FLAG_FLAME;
 	thePiece->mFlags &= ~Piece::FLAGS_SPECIAL_MADE;
 	thePiece->mSpecialCountdown = 25;
 }
 
-// 0x7494d0 (bejeweled3), slot 0x2a0: a crossing (or a run of 6 or more) makes the gem a lines gem; the same as 0x745ca0 with bit 4 (its
+// 0x7494d0 (bejeweled3), slot 0x2a0: a crossing (or a run of 6 or more) makes the gem a star gem; the same as 0x745ca0 with bit 4 (its
 // effect is type 0x17, which draws no Rand() either)
-void Board::MakeLinesGem(Piece* thePiece)
+void Board::MakeStarGem(Piece* thePiece)
 {
 	if (thePiece->mColor == Piece::NO_COLOR)
 		return;
-	thePiece->mFlags |= Piece::FLAG_LINES;
+	thePiece->mFlags |= Piece::FLAG_STAR;
 	thePiece->mFlags &= ~Piece::FLAGS_SPECIAL_MADE;
 	thePiece->mSpecialCountdown = 25;
 }
@@ -1140,12 +1140,12 @@ void Board::MakeHypercube(Piece* thePiece, bool theWithEffect)
 	thePiece->mSpecialCountdown = 25;
 }
 
-// 0x73f8e0 (bejeweled3), with its wrapper 0x74d940: a blast gem at (theX, theY), in 1200ths from the window's corner, goes off. The nine cells
+// 0x73f8e0 (bejeweled3), with its wrapper 0x74d940: a flame gem at (theX, theY), in 1200ths from the window's corner, goes off. The nine cells
 // around that point (the centre last, which is slot 8) are looked at in this order. A cell with no piece, or a piece that is busy (not
 // the centre), is left alone. For a neighbour the 474 Rand() draws of its sparks are made (DrawExplosionRandoms). A piece whose countdown
 // (+0x184) has run out then takes the centre's tag and run id (the centre takes the board's next id when it has none), and: a
 // neighbour with bit 1 gets busy count 15 (it goes off in a chain); any other piece without bit 0x10 is cleared by 0x74c570 or, when that
-// does not take it (or the piece is a blast gem only), removed at once for 20 points. port: the types 0 and 1 of the exe's group removal
+// does not take it (or the piece is a flame gem only), removed at once for 20 points. port: the types 0 and 1 of the exe's group removal
 // (a different mode), the sounds and the effects
 void Board::Explode(int theX, int theY)
 {
@@ -1157,10 +1157,10 @@ void Board::Explode(int theX, int theY)
 		Piece* aPiece = GetPieceAt((float)(aDeltaX * 128 + theX - GetGridX()), (float)(aDeltaY * 128 + theY - GetGridY()));
 		if (aPiece == nullptr || (aPiece->mBusyCount != 0 && aIndex != 8))
 			continue;
-		bool aIsBlast = false;
+		bool aIsFlame = false;
 		if (aDeltaX != 0 || aDeltaY != 0) {
 			DrawExplosionRandoms();
-			aIsBlast = (aPiece->mFlags & Piece::FLAG_BLAST) != 0;
+			aIsFlame = (aPiece->mFlags & Piece::FLAG_FLAME) != 0;
 		}
 		if (aPiece->mSpecialCountdown != 0)
 			continue;
@@ -1172,14 +1172,14 @@ void Board::Explode(int theX, int theY)
 		}
 		int aCentreId = aCentre != nullptr ? aCentre->mId : -1;
 		int aCentreFlags = aCentre != nullptr ? aCentre->mFlags : 0;
-		if (aIsBlast) {
+		if (aIsFlame) {
 			aPiece->mBusyCount = 15;
 			aPiece->mDestroyerId = aCentreId;
 			aPiece->mDestroyerFlags |= aCentreFlags;
 		}
 		else if ((aPiece->mFlags & 0x10) == 0) {
-			bool aBlastOnly = (aPiece->mFlags & Piece::FLAG_BLAST) != 0 && (aPiece->mFlags & Piece::FLAG_LINES) == 0;
-			if ((aBlastOnly || !ClearPiece(aPiece, aCentre)) && aPiece->mClearable) {
+			bool aFlameOnly = (aPiece->mFlags & Piece::FLAG_FLAME) != 0 && (aPiece->mFlags & Piece::FLAG_STAR) == 0;
+			if ((aFlameOnly || !ClearPiece(aPiece, aCentre)) && aPiece->mClearable) {
 				aPiece->mDestroyerId = aCentreId;
 				aPiece->mDestroyerFlags |= aCentreFlags;
 				AddPoints(20);
@@ -1314,8 +1314,8 @@ void Board::UpdateHypercubeGroup(MatchGroup* theGroup)
 	}
 }
 
-// 0x767e20 (bejeweled3), the busy counts (+0x230), after the countdowns: a piece whose count goes from 1 to 0 goes off. A blast gem, or a
-// lines gem whose countdown (+0x184) still runs, explodes at its middle for 20 points (Explode); a piece with bit 2, 4, 0x400 or 0x10 is
+// 0x767e20 (bejeweled3), the busy counts (+0x230), after the countdowns: a piece whose count goes from 1 to 0 goes off. A flame gem, or a
+// star gem whose countdown (+0x184) still runs, explodes at its middle for 20 points (Explode); a piece with bit 2, 4, 0x400 or 0x10 is
 // cleared by 0x74c570 (with no one as the clearer) and is left when that takes it; any other is destroyed (0x74c770; 300 points
 // more for a piece with a bit of 0x1800)
 void Board::UpdateBusyPieces()
@@ -1329,14 +1329,14 @@ void Board::UpdateBusyPieces()
 			if (aPiece->mBusyCount != 0)
 				continue;
 			int aFlags = aPiece->mFlags;
-			if ((aFlags & Piece::FLAG_BLAST) != 0 || ((aFlags & Piece::FLAG_LINES) != 0 && aPiece->mSpecialCountdown > 0)) {
+			if ((aFlags & Piece::FLAG_FLAME) != 0 || ((aFlags & Piece::FLAG_STAR) != 0 && aPiece->mSpecialCountdown > 0)) {
 				AddPoints(20);
 				float aSumX = (float)((float)GetGridX() + aPiece->mX);
 				float aSumY = (float)((float)GetGridY() + aPiece->mY);
 				Explode(Ftol((double)(float)((double)aSumX + 64.0)), Ftol((double)(float)((double)aSumY + 64.0)));
 				continue;
 			}
-			if ((aFlags & (Piece::FLAG_HYPERCUBE | Piece::FLAG_LINES | 0x400 | 0x10)) != 0 && ClearPiece(aPiece, nullptr))
+			if ((aFlags & (Piece::FLAG_HYPERCUBE | Piece::FLAG_STAR | 0x400 | 0x10)) != 0 && ClearPiece(aPiece, nullptr))
 				continue;
 			if ((aFlags & FLAGS_SPECIAL_SWAP) != 0)
 				AddPoints(300);

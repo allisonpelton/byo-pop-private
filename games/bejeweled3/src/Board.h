@@ -26,12 +26,12 @@ class Piece {
 public:
 	enum { NO_COLOR = -1, COLOR_COUNT = 7 };
 	// +0x228: what the gem is. Named by what the exe does with the bit (0x745ca0, 0x749570, 0x7494d0 set them): a 4-run makes
-	// FLAG_BLAST, a run of 5 FLAG_HYPERCUBE, a crossing FLAG_LINES, a run of 6 or more both FLAG_LINES and FLAG_BLAST. The other bits
+	// FLAG_FLAME, a run of 5 FLAG_HYPERCUBE, a crossing FLAG_STAR, a run of 6 or more both FLAG_STAR and FLAG_FLAME. The other bits
 	// (0x10, 0x80, 0x400, 0x800, 0x1000, 0x2000, 0x8000, 0x20000, 0x80000) belong to other modes: nothing in Classic sets them
 	enum {
-		FLAG_BLAST = 1,        // goes off as a 3 by 3 explosion (Explode, 0x73f8e0), which sets neighbours with this bit off in turn
+		FLAG_FLAME = 1,        // goes off as a 3 by 3 explosion (Explode, 0x73f8e0), which sets neighbours with this bit off in turn
 		FLAG_HYPERCUBE = 2,    // swapped with a neighbour it clears every gem of that one's colour (0x740f20, 0x74db70, 0x7870f0)
-		FLAG_LINES = 4,        // when matched it makes a match group whose rings run along its row and column (0x789a90, 0x75dee0)
+		FLAG_STAR = 4,        // when matched it makes a match group whose rings run along its row and column (0x789a90, 0x75dee0)
 		FLAG_RANDOM_PICK = 0x60,
 		FLAGS_SPECIAL_MADE = 0x2e0   // the bits 0x745ca0, 0x749570 and 0x7494d0 clear from the flags (the mask 0xfffffd1f)
 	};
@@ -252,14 +252,14 @@ public:
 	int FindMatchGroup(const Piece* thePiece) const;
 	// slot 200, 0x74c570 (bejeweled3): the piece is to be cleared by another piece; true when it took it
 	bool ClearPiece(Piece* thePiece, Piece* theBy);
-	// slots 166, 167 and 168 (0x745ca0, 0x749570, 0x7494d0, bejeweled3): the piece becomes a blast gem (FLAG_BLAST), a hypercube
-	// (FLAG_HYPERCUBE; theWithEffect is the exe's second argument) or a lines gem (FLAG_LINES)
-	void MakeBlastGem(Piece* thePiece);
+	// slots 166, 167 and 168 (0x745ca0, 0x749570, 0x7494d0, bejeweled3): the piece becomes a flame gem (FLAG_FLAME), a hypercube
+	// (FLAG_HYPERCUBE; theWithEffect is the exe's second argument) or a star gem (FLAG_STAR)
+	void MakeFlameGem(Piece* thePiece);
 	void MakeHypercube(Piece* thePiece, bool theWithEffect);
-	void MakeLinesGem(Piece* thePiece);
-	// slot 198, 0x74d940 with 0x73f8e0 (bejeweled3): a blast gem at a place (in pixels, the middle of its cell) goes off
+	void MakeStarGem(Piece* thePiece);
+	// slot 198, 0x74d940 with 0x73f8e0 (bejeweled3): a flame gem at a place (in pixels, the middle of its cell) goes off
 	void Explode(int theX, int theY);
-	// 0x73f8e0 (bejeweled3): the draws of the app's Rand() that the particles of the explosion make for one neighbour of the blast
+	// 0x73f8e0 (bejeweled3): the draws of the app's Rand() that the particles of the explosion make for one neighbour of the flame gem
 	void DrawExplosionRandoms();
 	// slot 179, 0x740f20 (bejeweled3): a hypercube is swapped with a piece: it starts its group at once, and no swap is made
 	void StartHypercube(Piece* theCube, Piece* thePartner);
