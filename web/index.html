@@ -1352,7 +1352,7 @@ try {
       chatPic.setAttribute("viewBox", "0 0 24 24"); chatPic.setAttribute("class", "tab-icon");
       chatPic.innerHTML = '<path d="M4 5h16v11H9l-4 4v-4H4z"/>';
       d.add(chatEl, { id: "chat", title: ByopopStrings.t("game.chat.title"), closable: true, closed: true, lift: true, pic: chatPic,
-        minWidth: 260, minHeight: 320, scroll: ".bpc-log", at: function (left, vw) { return [Math.max(left, vw - 312), top()]; } });
+        minWidth: 260, minHeight: 320, scroll: ".bpc-log, .bpc-nicks", at: function (left, vw) { return [Math.max(left, vw - 432), top()]; } });
       // it starts when the player first brings its window up, and only then: it never opens by itself (the user, 2026-11-11:
       // "Stop chat from opening on its own")
       window.addEventListener("byopop-desk-active", function (ev) {

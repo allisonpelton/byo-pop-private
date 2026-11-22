@@ -686,10 +686,15 @@ var ByopopSkin = (function () {
         el.classList.add("d95-has-body");
         scrollbar(box);
       }
-      // a part that scrolls on its own (a panel's body, the chat's messages) gets the drawn scroll bar too
-      // (one made later, as the chat's, once it is there)
+      // a part that scrolls on its own (a panel's body, the chat's messages and its people) gets the drawn scroll bar too
+      // (one made later, as the chat's, once it is there); o.scroll is an element or selectors, a comma between two parts
       if (o.scroll) {
-        var findArea = function () { var a = typeof o.scroll === "string" ? el.querySelector(o.scroll) : o.scroll; if (a) scrollbar(a); return !!a; };
+        var findArea = function () {
+          if (typeof o.scroll !== "string") { scrollbar(o.scroll); return true; }
+          var parts = o.scroll.split(","), found = 0;
+          parts.forEach(function (sel) { var a = el.querySelector(sel.trim()); if (a) { scrollbar(a); found++; } });
+          return found === parts.length;
+        };
         if (!findArea() && window.MutationObserver) { var mo = new MutationObserver(function () { if (findArea()) mo.disconnect(); }); mo.observe(el, { childList: true, subtree: true }); }
       }
       handle.classList.add("d95-handle");

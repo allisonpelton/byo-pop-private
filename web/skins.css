@@ -250,6 +250,20 @@ html.d95-booting::after { content: attr(data-d95-boot); position: fixed; left: 5
 :root[data-skin="d95"] .chat .bpc-log { background: var(--sk-well); margin: 2px 6px 4px;
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
 :root[data-skin="d95"] .chat .bpc-foot { border-top: 0; background: var(--panel); }
+/* the chat as a 1995 IRC client's channel window (web/chat.js): the topic line a sunken field, the messages and the people
+   two white wells side by side, the panel's own lines green as a client drew a join, the line to write in under them */
+:root[data-skin="d95"] .chat .bpc-topic:not(#\#) { margin: 4px 6px 2px; padding: 2px 4px; border: 0; background: var(--sk-well); color: #000000;
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+:root[data-skin="d95"] .chat .bpc-panes { margin: 2px 6px 4px; gap: 2px; }
+:root[data-skin="d95"] .chat .bpc-panes > .bpc-log:not(#\#) { margin: 0; }
+:root[data-skin="d95"] .chat .bpc-nicks:not(#\#) { border: 0; background: var(--sk-well); color: #000000;
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+html.d95-desk .chat .bpc-panes > .d95-client:not(#\#) { margin: 0; }
+html.d95-desk .chat .bpc-panes > .d95-client:last-child:not(#\#) { flex: none; width: 112px; }
+html.d95-desk .chat .d95-client > .bpc-nicks:not(#\#) { width: auto; box-shadow: none; }
+:root[data-skin="d95"] .chat :is(.bpc-sys, .bpc-day):not(#\#) { color: #007a00; }
+:root[data-skin="d95"] .chat .bpc-foot:not(#\#) { padding: 0 6px 6px; gap: 4px; }
+:root[data-skin="d95"] .chat .bpc-who:not(#\#) { gap: 4px 6px; }
 :root[data-skin="d95"] .chat .bpc-jump { border-radius: 0; background: var(--panel); color: var(--fg); font-weight: normal; }
 /* Its collapser is the 1995 desktop's minimize button (the user, 2026-11-08: "Change chat collapser to be like the Windows
    minimize button"): a small raised grey button at the title bar's right with the underscore glyph, pressed in while clicked.
@@ -436,7 +450,8 @@ html.d95-desk .bar.d95-win:not(#\#) > .d95-tb { flex: 1 0 100%; margin: 0 -6px 0
 html.d95-desk .stage-wrap.d95-win { display: block; place-items: normal; width: max-content; }
 html.d95-desk .stage-wrap .stage { box-shadow: none; max-width: none; }
 /* the chat: a fixed size, whatever room the page has beside the game (chat.js's chat-below has no part here) */
-html.d95-desk .chat.d95-win { width: 300px; height: 480px; max-height: calc(calc(100vh / var(--d95-z, 1)) - 60px); }
+/* wide enough for the messages beside the people in the room (web/chat.js) */
+html.d95-desk .chat.d95-win { width: 420px; height: 480px; max-width: calc(calc(100vw / var(--d95-z, 1)) - 24px); max-height: calc(calc(100vh / var(--d95-z, 1)) - 60px); }
 html.d95-desk .chat.d95-win.chat-collapsed { height: auto; }
 html.d95-desk .chat.d95-win h2 button { margin: 0; }
 /* the panels: windows at the right, as high as their contents */

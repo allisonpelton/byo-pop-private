@@ -1240,12 +1240,17 @@ chat.jump = New messages below
 chat.unread = {count} new
 chat.message = Message
 chat.placeholder = Say something
-chat.send = Send
 # Read out with the message field; {max} is the longest message
 chat.hint = Plain text, one line, up to {max} characters, one message a second. Links stay text.
 chat.left = {count} characters left
 chat.you = You are
-chat.you_are_now = You are {name}.
+# the panel's own lines in the log, after a "*" as an IRC client wrote them: on joining, {channel} like "#all-games"; on a
+# name change
+chat.joined = Now talking in {channel}
+chat.renamed = You are now known as {name}
+# the topic line at the top, after the room's name ("#all-games: ..."); the list of the people beside the messages
+chat.topic = One room for every game
+chat.people = In the room
 chat.change_name = Change name
 chat.username = Test username
 chat.username_hint = 2 to 32 characters: lowercase letters, digits, _ and . (never two periods in a row).
