@@ -95,7 +95,10 @@ public:
 	              // the row)
 		T_SWITCH,     // a checkbox, a mod's on the list or a bool's on its page: only a click on it switches (mouse only)
 		T_SCROLL,     // the scroll bar (mouse only)
-		T_FILES       // web: "Add or remove mods", the page's Mods panel (Module.onModPanel)
+		T_FILES,      // web: "Add or remove mods", the page's Mods panel (Module.onModPanel)
+		T_SPEED_DOWN, // native, list: the game speed's "slower" button (item SPEED_ITEM_VALUE)
+		T_SPEED_UP,   // native, list: its "faster" button
+		T_SPEED_KEYS  // native, list: the checkbox that turns the speed hotkeys on (item SPEED_ITEM_KEYS)
 	};
 
 	struct Target
@@ -193,6 +196,7 @@ private:
 	void					DrawMessages(Graphics* g);
 	void					DrawListRow(Graphics* g, const Item& theItem);
 	void					DrawSettingRow(Graphics* g, const Item& theItem);
+	void					DrawSpeedRow(Graphics* g, const Item& theItem);
 
 public:
 	SexyAppBase*			mApp;

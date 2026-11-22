@@ -1227,10 +1227,17 @@ position" is `touchPlace`.
 
 ### Game speed
 
-`speed` (0.25 to 4; the user, 2026-11-10: "Allow game speed to be set to any arbitrary value") sets
-`SexyAppBase::mUpdateMultiplier` through the web-only `byopop_set_speed` (`framework/SexyAppBase.cpp`). At 1 nothing is
-called, so unmodded play is unchanged. It does not reach games whose own host runs their loop (Bonnie's Bookstore, Ning
-Po), nor a timer a game reads from the wall clock. Music and sounds keep their own speed.
+`speed` (any value from 0.01 to 16; the user, 2026-11-10: "Allow game speed to be set to any arbitrary value") sets
+`SexyAppBase::SetGameSpeed` through the web-only `byopop_set_speed` (`framework/SexyAppBase.cpp`). 0 is "as fast as the machine
+allows": the updates run flat out in real time and the draws that cannot be shown are skipped (the site's range starts at
+0.01, so the page never sends it). At 1 nothing is called, so unmodded play is unchanged. The game clock follows the speed:
+`Sexy::GetTickCountMS` (what `timeGetTime` and `GetTickCount` are in the ports) and `SexyAppBase::GetClockTime` are game
+time, real time scaled by the speed and accumulated, so a change of speed mid-game leaves the clock continuous. The framework's
+own pacing (the update accumulator, draws, sleeps) reads `Sexy::GetRealTickCountMS`. A game whose own host runs its loop
+(Bonnie's Bookstore, Ning Po) has no hook yet. Music keeps its own time at every speed (tracker and Ogg alike; a fade the
+framework steps per update is scaled back to real time, `SexyAppBase::MusicStepFactor`); sound effects keep their behaviour.
+The native build has the same speed in the mod menu and on F6/F7/F8 (`docs/MOD_MENU.md`), and `tools/check.sh speed` checks
+that every game follows it.
 
 ### Clips
 

@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <SDL.h>
 #include <chrono>
+#include <mutex>
 #ifdef _WIN32
 #include <direct.h>
 #else
@@ -20,11 +21,63 @@ static Sexy::MTRand gMTRand;
 // port: replaces timeGetTime()/GetTickCount() (see PortCompat.h). SexyAppBase::Init seeds Rand() with
 // the tick count, so like the Windows tick count (time since boot) it must start from a different value
 // in every run; SDL_GetTicks() alone starts near 0. The start is below 1e9, far from the 2^31 wrap.
-DWORD Sexy::GetTickCountMS()
+static DWORD GetEpoch()
 {
 	static const DWORD sEpoch = (DWORD) (std::chrono::duration_cast<std::chrono::milliseconds>(
 		std::chrono::system_clock::now().time_since_epoch()).count() % 1000000000);
-	return sEpoch + (DWORD)SDL_GetTicks();
+	return sEpoch;
+}
+
+DWORD Sexy::GetRealTickCountMS()
+{
+	return GetEpoch() + (DWORD)SDL_GetTicks();
+}
+
+// port: the game clock. mGameTime accumulates the source's elapsed milliseconds times the speed in force while they passed
+// (never the whole elapsed time rescaled), so a change of speed leaves it continuous. The source is SDL's tick count (0 at
+// start, so at speed 1 the clock is the real clock, as it was) unless a virtual source is set.
+namespace
+{
+struct GameClock
+{
+	std::mutex mLock;
+	double mGameTime;            // game milliseconds, fractions kept
+	DWORD mLastSource;           // the source's reading at the last settle
+	const DWORD* mVirtualSource; // NULL: the real clock
+	double mSpeed;               // game ms per source ms
+	GameClock() : mGameTime(0), mLastSource(0), mVirtualSource(NULL), mSpeed(1) {}
+	DWORD ReadSource() const { return (mVirtualSource != NULL) ? *mVirtualSource : (DWORD)SDL_GetTicks(); }
+	void Settle()
+	{
+		DWORD aSource = ReadSource();
+		mGameTime += (double)(DWORD)(aSource - mLastSource) * mSpeed;
+		mLastSource = aSource;
+	}
+};
+GameClock gGameClock;
+}
+
+void Sexy::SetGameClock(const DWORD* theVirtualSource, double theSpeed, bool theRestart)
+{
+	std::lock_guard<std::mutex> aLock(gGameClock.mLock);
+	gGameClock.Settle();
+	gGameClock.mVirtualSource = theVirtualSource;
+	gGameClock.mSpeed = theSpeed;
+	gGameClock.mLastSource = gGameClock.ReadSource();
+	if (theRestart)
+		gGameClock.mGameTime = 0;
+}
+
+DWORD Sexy::GetGameTimeMS()
+{
+	std::lock_guard<std::mutex> aLock(gGameClock.mLock);
+	gGameClock.Settle();
+	return (DWORD)(uint64_t)gGameClock.mGameTime;
+}
+
+DWORD Sexy::GetTickCountMS()
+{
+	return GetEpoch() + GetGameTimeMS();
 }
 
 void SexyTraceFmt(const SexyChar* fmt ...)

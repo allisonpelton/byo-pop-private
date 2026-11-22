@@ -12,7 +12,7 @@ The user works on this machine, so a routine test run of a game is invisible, si
 the visible desktop, Windows Sandbox or sound may have them at any hour (the last item below).
 - Start every game exe (ports, `fwtest`, `smoke`, `lsprobe`, frozen baselines, scratch builds) through
   `build/native/rundesk.exe`, or a script under it: `build/native/rundesk.exe bash my-loop.sh` (a private desktop,
-  SDL's silent audio driver, below-normal priority; build it with `cmake --build build/native --target rundesk`).
+  SDL's silent audio driver, below-normal processor and GPU priority; build it with `cmake --build build/native --target rundesk`).
   `tools/check.sh` and the oracle and LiveSplit scripts re-run themselves under it. Headless runs (Bejeweled's
   verifier, a web build under Node) need no rundesk but still count as game processes.
 - **Originals** run only through `tools/origrun` (`docs/ORIGRUN.md`), from a copy under build/, never in an install
