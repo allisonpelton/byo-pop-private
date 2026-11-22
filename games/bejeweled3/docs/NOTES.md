@@ -816,9 +816,14 @@ Oddities (not translated, each with a `port:` note in the source):
   checked (seed 7, bot 150, state at 11999: identical before and after). Left out, each noted at its place: the sounds (0x76aaf0), the hint piece's pulse curves
   (+0x440, +0x280, +0x2f0), the effects' own curves (+0xa0, +0x110), the manager's list at +0xf8, the 3D-only 0x745a60, 0x755030, 0x754c60, and the level change's
   effect (event 1 of 0x760ac0, 0x749130, flag 8, released at event 4). BLASTGEM is made only for flag 0x80000, which Classic never sets, so the Flame Gem has no
-  BLASTGEM effect here. Oddity: the Flame creation animation (POPANIM_FLAMEGEMCREATION) is updated and drawn (its main sprite shows one small image rising near the
-  animation's top-left corner; no effect layer or other object is drawn), but it does not look like a flame burst over the gem; the cause was not found (the
-  transform, scale and label were checked against 0x7325d0). It would take comparing its frames with the exe's.
+  BLASTGEM effect here. The Flame creation animation (POPANIM_FLAMEGEMCREATION) plays the label the exe gives each of its two effects: the one under the gems "Creation_Below Gem_Horizontal" (string
+  0x85eea8, which 0x745ca0 pushes for the first PopAnimEffect; before, the port played its empty label and only the animation's first small sprite showed) and
+  the one over them "Creation_Above Gem" (0x85eec8). It now shows the flash, the ring and the ring of flame round the new gem for about 40 updates. The
+  animation's other labels ("Creation_Below Gem_Vertical") are used by no code that was read. The Flame Gem's own picture was read through
+  0x7568a0 and 0x757df0 and has nothing of its own in 2D: flag 1 leaves the first (shadow) pass, takes the second pass's branch of a gem with a flag in 0x15
+  (FUN_0073e330 false: IMAGE_GEMS_<colour>'s cel Ftol(cels x +0x170) at the cell's corner, cel 0 for a gem that is not turning, no shadow), and the
+  things 0x74f130 draws are for flag 0x200 (set by 0x73ccc0, whose only caller 0x6c60b0 is another mode's) and by 0x745a60, 0x755030 and 0x754c60 only
+  in 3D. A Flame Gem therefore has no burning look in this port's 2D beyond its creation animation; the exe's 3D renderer was not read for one.
 - (kept) the gems' other pictures: the Flame Gem's PIEffect (PIEFFECT_BLASTGEM), the Star Gem's and the Hypercube's pictures and effects (0x745a60, 0x755030,
   0x754c60, the flag bits 4 and 0x2000 at the end of 0x757df0), the selection and hint glows (+0x240, bit 0x200), the blend of two cels round a turn (a PIEffect
   "Params" when the board's alpha is 1), the pass order of 0x7568a0 (plain, special, flame gems with the effects between) and the piece's alpha curve

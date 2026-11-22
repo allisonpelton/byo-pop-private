@@ -145,7 +145,7 @@ void Board::MakeFlameCreationEffects(Piece* thePiece)
 		if (aPass == 1)
 			anEffect->mOverlay = true;
 		anEffect->mManager = aPass == 0 ? mEffectsUnder : mEffectsOver;
-		anEffect->PlayLabel(aPass == 0 ? "" : "Creation_Above Gem");
+		anEffect->PlayLabel(aPass == 0 ? "Creation_Below Gem_Horizontal" : "Creation_Above Gem");   // 0x85eea8 and 0x85eec8
 		anEffect->Update();
 		(aPass == 0 ? mEffectsUnder : mEffectsOver)->Add(anEffect);
 	}

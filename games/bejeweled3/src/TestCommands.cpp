@@ -161,12 +161,14 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	if (aCommand == "put") {
 		// put <col> <row> <letter> [flame|cube|star]: gives the gem at that cell a colour and, when named, makes it that special
-		// through the same makers a run uses, then lets it go off at once (its countdown, +0x184, is put to 0)
+		// through the same makers a run uses, then lets it go off at once (its countdown, +0x184, is put to 0); a fifth word "hold" leaves the
+		// countdown as the maker set it, so the special stays until a match or a swap uses it
 		int aCol = -1;
 		int aRow = -1;
 		char aLetter[8] = "";
 		char aKind[16] = "";
-		int aRead = mBoard == nullptr ? 0 : sscanf(theCommand.mArgs.c_str(), "%d %d %7s %15s", &aCol, &aRow, aLetter, aKind);
+		char aHold[16] = "";
+		int aRead = mBoard == nullptr ? 0 : sscanf(theCommand.mArgs.c_str(), "%d %d %7s %15s %15s", &aCol, &aRow, aLetter, aKind, aHold);
 		if (aRead < 3 || aCol < 0 || aCol >= Board::COLS || aRow < 0 || aRow >= Board::ROWS || mBoard->mGrid[aRow][aCol] == nullptr ||
 			LetterColor(aLetter[0]) < 0) {
 			ReplyError(theCommand, "put <col> <row> <RWGYPOB> [flame|cube|star] on a board");
@@ -186,7 +188,8 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 			ReplyError(theCommand, "the kind is flame, cube or star");
 			return true;
 		}
-		aPiece->mSpecialCountdown = 0;
+		if (strcmp(aHold, "hold") != 0)
+			aPiece->mSpecialCountdown = 0;
 		ReplyOK(theCommand);
 		return true;
 	}
