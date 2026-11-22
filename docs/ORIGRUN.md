@@ -9,7 +9,8 @@ faster than real time on a virtual clock.
 The rules a session follows:
 
 - **Captures come only from inside Windows Sandbox** (`--sandbox`). On the host origrun takes no shot of any kind
-  ("The host-capture ban").
+  ("The host-capture ban"), with one exception: for a game that passed the in-game frame reader's trial, a host
+  run's `at <N> shot` lines are read from the game's own off-screen draw surface ("The in-game frame reader").
 - **A script never clicks a link button**: "Buy", "Buy Now", "Register", "More Games", a store or web address.
   They open a browser or bring up the user's Steam client. The stand-in's launch guard fails the launches it
   knows ("The launch guard"), but a script does not lean on it: a link opened some other way (a COM call, a game
@@ -72,6 +73,8 @@ placed yourself, such as a real exe carved out of a wrapper. Shots land in
 | `--counter <expr>`, `--flips <expr>`, `--update-ms <ms>` | The game's update counter, an optional per-frame counter and one update's length ("Timing to the game's updates"); with `flips` a held shot waits for the next present instead of the next update. Config keys `counter=`, `flips=`, `update_ms=`. |
 | `--pending-draw <expr>`, `--update-state <expr>`, `--draw-empty <expr>` | A SexyAppBase game's `mHasPendingDraw` (one byte), `mUpdateAppState` and optionally `mLastDrawWasEmpty` (one byte), so that a sandbox shot shows exactly the update it is labelled with. Config keys `pending_draw=`, `update_state=`, `draw_empty=`. |
 | `--surface-screen`, `--surface`, `--surface-screen-base`, `--surface-eip`, `--surface-gate`, `--sample` | Read a shot from the game's memory instead of its window ("Timing to the game's updates"). |
+| `--reader-trial` | A host run whose only shots are `at <N> shot` lines takes them through the in-game frame reader although the game's config has no `reader_trial=passed ...`: only for the reader's trial against sandbox shots ("The in-game frame reader"). Refused with `--sandbox` and for any other script. |
+| `--reader-surface <expr>`, `--reader-waits <hex,...>` | The game's draw surface and the waits that follow a present, for the reader (config keys `reader_surface=` and `reader_waits=`). |
 | `--input-eip lo,hi[,...]` | Hold an `at` input until the game thread is outside these address ranges (config key `inputeip`). |
 | `--arg <text>` | Added to the game's command line, e.g. `--arg -autoplay`. Repeatable, 255 characters in all; letters, digits and `- = _ . ,` only. Passed into the sandbox too. |
 | `--watch <expr>` | Log a 32-bit value of the game's memory at each change, with the update counter: "watch 1: 48 -> 47 at update 2150" ("-" while unreadable). Up to four, each polled every millisecond; at most 4000 changes each, or `--watch-max <n>` (a watch that reaches the cap logs "watch N: 4000 changes logged; no more": nothing after it was recorded, which is no sign that the value stopped changing; until 2026-11-10 the option did not reach a `--sandbox` run, which kept the 4000). Measure by the update numbers, not by counting changes: a real-time poll can miss one. |
@@ -90,7 +93,9 @@ placed yourself, such as a real exe carved out of a wrapper. Shots land in
 
 A host run that would take a shot is refused before anything is copied: a script with `shot`, `waitshot`,
 `record`, `burst` or `at <N> shot|burst`, a script origrun cannot read, or no script at all (such a run takes a
-title shot). `--copy-only` is not refused.
+title shot). `--copy-only` is not refused. The exception is a script whose only shots are `at <N> shot` lines, for a
+game that passed the in-game frame reader's trial: those run on the host through the reader, and are refused with
+the reason when the game's config or the run does not meet the reader's terms ("The in-game frame reader").
 
 ## Script commands
 
@@ -159,7 +164,8 @@ without a sign: gate the first click on the game's own state (`at`, `waitfor`), 
    window, written as a PNG; nothing ever reads the screen. Inside the sandbox only `PrintWindow` sees a game: a
    blit of the window or screen DC copies no pixels there, and DXGI desktop duplication finds no output in
    session 0. On the host every capture is refused, when it starts, before any window-DC read and once more
-   before the pixels are saved. A game that takes the screen full-screen through DirectDraw cannot open its mode
+   before the pixels are saved; the one host shot is the in-game frame reader's, which reads no window, DC or
+   screen. A game that takes the screen full-screen through DirectDraw cannot open its mode
    on rundesk's headless desktop and never draws; `--dgvoodoo` gives it a window.
 5. **Scripted input and focus** register in the original as real input does (clicks, typed text, focus changes),
    apart from the cursor position and key state a game polls, for which there are `--cursor scripted` and
@@ -198,9 +204,60 @@ originals safe either. Every capture comes from inside Windows Sandbox, where a 
 sandbox's own display. A shot that shows anything but the game's own window is deleted at once, unopened where
 possible, and reported to the coordinator.
 
-One exception is approved but not built yet (the user, 2026-11-22, `docs/RULES.md`): a reader inside the original
-that copies only the game's own off-screen frame, never the primary surface, with each shot checked and a trial
-against sandbox shots before any game uses it. Until it lands and a game passes its trial, the ban above holds.
+One exception is approved (the user, 2026-11-22, `docs/RULES.md`): a reader inside the original that copies only
+the game's own off-screen frame, never the primary surface, with each shot checked and a trial against sandbox
+shots before any game uses it. It is built ("The in-game frame reader", next), and for a game that has not passed
+its trial the ban above holds unchanged.
+
+### The in-game frame reader
+
+On the host, a script's `at <N> shot` lines are taken by a reader inside the original, for a game that passed the
+reader's trial. It lives in the sound stand-in beside the virtual clock (`tools/origrun/reader.c`) and hooks
+nothing. When the clock holds the game's main thread at the update an `at` waited for, origrun asks for a read
+through the clock's shared block, and the held thread itself calls the methods of the game's own draw surface:
+`QueryInterface` for `IDirectDrawSurface7`, `GetSurfaceDesc`, `Lock` read-only, `Unlock` and `Release`. The rows go
+into a pixel block (`Local\origrun-vclock-<id>-<pid>-pixels`) that origrun opens read-only, converts with the
+surface's own masks and writes as a PNG of the client area (640x480 for a 640x480 game, where a sandbox shot is the
+646x509 window; shotdiff cuts the frame away itself). Nothing reads the window, its DC, the screen or the primary
+surface.
+
+Two config keys say where to read. `reader_surface=` is a pointer expression in the counter's grammar for the
+off-screen surface the game draws its frames into, a SexyAppFramework game's DDInterface `mDrawSurface`
+(`[[<app global>]+<mDDInterface>]+0x3c` in the 2003-2004 framework). `reader_waits=` lists the return addresses (hex)
+of the main thread's waits at which that surface holds the frame the game last presented: in SexyAppFramework's
+`Process`, the `Sleep` of the branch that drew, never the one after an update nor a pacing sleep inside
+`DrawDirtyStuff`, which comes before the present. At an `at <N> shot` origrun checks that the game is held at update
+N; when the hold's wait is not one of those, it steps the game to its next wait, up to 64 waits or 3 s, and the
+counter must still read N. With `pending_draw=` and `update_state=` configured, the wait must also leave no update
+waiting to be drawn.
+
+Before a PNG is written every one of these holds, or the shot is refused. In the game: the expression reads a
+pointer to readable memory; that interface's vtable and every method called lie in the system's `ddraw.dll` (a
+wrapper's is refused, so a `--dgvoodoo` copy gets no reader shots); the surface's caps include
+`DDSCAPS_OFFSCREENPLAIN` and none of `PRIMARYSURFACE`, `FRONTBUFFER`, `BACKBUFFER`, `FLIP`, `COMPLEX`, `OVERLAY` or
+`VISIBLE`; the pixel format is RGB at 16, 24 or 32 bits with three disjoint masks; and the `Lock` gives the same
+size and format. In origrun, again: the caps; the surface's size equals the game window's client size; the update
+counter, read in the game right after the copy, is N; and the byte count is the size's. A refused shot writes
+nothing (a file of its name from an earlier run is deleted unopened) and is logged as
+`shot <name> refused [reader (host)]: <reason>`. Each taken shot's log line names its method, `reader (host)`
+(`reader (host, trial)` in a trial run), with the update, the wait it was read at, the surface's address and caps,
+its size, depth and masks, and the counter read. The run ends with `RESULT: reader (host): <n> shots taken, <m>
+refused`.
+
+A run uses the reader only when all of this holds, and is refused before anything is copied, with the reason, when
+any is missing: a host run whose only shots are `at <N> shot` lines (any other shot, `burst`, `record`,
+`waitshot` or hw* input still needs `--sandbox`); `--clock virtual` with the update counter configured; the
+stand-in loaded (not `--sound real`); `reader_surface=` and `reader_waits=` in the game's config; and
+`reader_trial=passed <date> <commit>` there too, or `--reader-trial` for the trial run itself, whose log says its
+shots are only for the comparison. `--reader-surface` and `--reader-waits` override the config keys.
+
+**The trial.** The same scripted screens through the reader on the host (`--reader-trial`) and through the sandbox,
+every pair compared with `tools/shotdiff` (`docs/SHOTDIFF.md`) with nothing ignored. A game passes only when every
+pair matches or differs only faintly, with nothing visible; its result goes under "Per-game status", and only then
+does its config get `reader_trial=passed <date> <commit>` (the configs are git-ignored: the coordinator writes the
+line into the main checkout's). A trial covers the mode it ran in; a game's 3D mode or full screen needs one of its
+own. A game whose draw surface is not a DirectDraw off-screen surface (GDI, SDL) needs a reader of its own and a
+trial of its own. Passed so far: Bookworm Deluxe, windowed 2D (2026-11-22, "Per-game status").
 
 ### Setup
 
@@ -897,7 +954,7 @@ game's registry key and 3D-flag address to games.tsv.
 | bejeweledtwist | Steam copy, prepared by its session | host: autoplay games on the virtual clock, menus by posted clicks, the 2D board's twists with `--cursor scripted`. Shots in the sandbox (an 800×600 client) | see its session's notes | an audio session opens and is muted. The board reads the cursor only while the window has the focus. The main menu's Play is at 400,300 and Classic at 200,170 in the mode select |
 | bigmoney | wrapped launcher | host, virtual clock (about 11 times real time): whole games, every screen and mode, a saved game continued | has one | prepared as Bejeweled (`games/bigmoney/tools/origcmp/orig.sh --prepare`). The carved exe runs without registry virtualization: it reads the real `HKLM\SOFTWARE\WOW6432Node\PopCap\BigMoney` and cannot write it, so every run starts from the same settings. Run one copy at a time (a second exits at once). Give it `focus regain` first |
 | bonnies | installer copy | sandbox: menus, the classic and action games, help, options | none (SDL 1.2) | FMOD 3 makes no DirectSound buffer in the sandbox, so `--sound wav` records nothing. SDL 1.2 windowed, GDI; `focus lose`/`regain` pause and resume it; the seed is pinned by `games/bonnies/tools/origrun/patches.txt` (`--patches`, `--seed 1`); no registry, the saves beside the exe |
-| bookworm | wrapped Steam exe | host (the retail 1.03 exe), virtual clock, short `--stage-root` | has one | prepared as Bejeweled |
+| bookworm | wrapped Steam exe | host (the retail 1.03 exe), virtual clock, short `--stage-root`; shots on the host through the in-game frame reader (trial passed, below the table) | has one | prepared as Bejeweled |
 | bookwormadv | local install | sandbox: the pilot's menus and battle. Its 806×629 window has the client at (3,26); update-timed shots are exact with `--pending-draw [0x8259e4]+0x45a --update-state [0x8259e4]+0x488 --draw-empty [0x8259e4]+0x459` | off and on proven (on with `--dgvoodoo`) | its sound is not through DirectSound (its session is muted); it needs a short `--stage-root` |
 | bookwormadv2 | Steam copy | virtual clock, scripted cursor, seed patch; its saves and registry values in the sandbox | has one; the sandbox has none (`Is3D=0`) | not wrapped; `Steam.dll` is copied in |
 | cosmicbugs | local install | host, windowed, virtual clock, scripted cursor, two test patches (the seed, and a frame wait of exactly 10 ms). Sandbox shots by `--surface-screen` (5-5-5) | none | full screen it stops at "Screen Setup Failed" on the headless desktop, which cannot open its 800×600 mode; `--dgvoodoo` gives it a desktop-sized window and the title menu |
@@ -915,6 +972,24 @@ game's registry key and 3D-flag address to games.tsv.
 | typershark | local install | from a copy under `build/origrun/typershark/game` (`games/typershark/docs/GAME_NOTES.md`, section 8) | | its loading thread runs on the wall clock: gate the first input with `waitfor` |
 | waterbugs | local install | sandbox, a fresh profile each run; shots by `--surface-screen` with `--surface-eip`; update counter 0x460a1c | none | full-screen DirectDraw, as Cosmic Bugs; `--input-eip` and a `mouse` patch for its input |
 | wordharmony | local install | host, virtual clock, scripted cursor, short `--stage-root`; its registry key is cleared before each run | none | trial (60 min) |
+
+**The in-game frame reader's trials.** Bookworm Deluxe (the carved 1.03 `BookwormGame.exe`, windowed, 2D) passed on
+2026-11-22, with `reader_surface=[[0x5347d4]+0x334]+0x3c` (the app at 0x5347d4, its DDInterface at +0x334,
+`mDrawSurface` at +0x3c: caps 0x840, an off-screen plain surface in system memory, 640x480 at 32 bits) and
+`reader_waits=480927` (the return from the `Sleep` at 0x480921 in `Process`'s branch that drew). The sandbox side
+was the Bookworm session's run `bwsb-menus` of 2026-11-08, with its script, seed 1 and 23-patch list; its shots were
+copied, not taken again. Its 37 screens are the title, a new user, the mode selector and its hovers, the hall of fame,
+the users dialog, the quit question, the help pages, the board, the options, the credits, the leave question
+and a new game. The host run through the reader took all 37 at the same updates (3008 to 5158), refused none, and
+every pair is identical pixel for pixel at the client offset (3,26); shotdiff gave 37 matching, 0 differing, 0 faint.
+A first try on the session's earlier run `bwsb` (the loading screen, updates 10 to 260) is not a trial of the
+reader: its first two screens matched, and the other six differed only in the loading bar and the "click here to
+play" line, because the loader thread runs on the wall clock (the virtual clock lets the main thread's waits take
+real time only while it works), so how far it has loaded at a given update differs from run to run. Every other
+pixel of those six was identical. In the same game the primary surface given as `reader_surface` was refused
+(caps 0x8A00), and a `reader_waits` that is never reached refused both shots (the counter had moved past their
+update); neither wrote a PNG. Not tried: 3D mode, whose draw surface is a Direct3D device surface in video memory,
+and full screen. A session that needs either runs a trial of that mode first.
 
 <!-- private: Preparing a wrapped or Steam copy to run under origrun is recorded on this machine only. -->
 Preparing a wrapped or Steam copy to run under origrun:

@@ -1473,6 +1473,146 @@ static int wait_counter(uint32_t target, int timeout_ms)
 	return everRead?(int)v:-1;
 }
 
+// ------------------------------------------------------------------------------ the in-game frame reader (host)
+//
+// The one way origrun takes a shot on the host (docs/ORIGRUN.md, "The in-game frame reader"; the user, 2026-11-22, "Yes,
+// with safeguards"). The game's own off-screen draw surface is read by the stand-in inside the game, in the game's own
+// thread while the virtual clock holds it (reader.c), through the surface's own methods: no hook, no screen, no window DC,
+// no primary surface. Only `at <N> shot` is read so. A game gets it only once its config says it passed the trial against
+// sandbox shots of the same screens (reader_trial=passed <date> <commit>); --reader-trial runs that trial.
+// The checks, every one of which refuses the shot: the game is held at update N exactly, in one of the waits its config
+// names as following a present (reader_waits=), with no update waiting to be drawn where the config gives the flags; the
+// stand-in's own checks (reader.c: the system's DirectDraw, an off-screen plain surface, never the primary or any surface
+// of its flipping chain, an RGB format); and here again the caps, the size against the game's client area, the update
+// counter read after the copy, and the byte count. A refused shot is never written, and a file of its name left by an
+// earlier run is deleted unopened.
+static int gReaderOn = 0;          // this host run's `at N shot` lines go to the reader
+static int gReaderTrial = 0;       // --reader-trial
+static int gReaderTaken = 0, gReaderRefused = 0;
+static char gReaderSurface[256] = "", gReaderPassed[200] = "";
+static uint32_t gReaderWaits[16]; static int gReaderWaitN = 0;
+static uint32_t gAtTarget = 0; static int gAtTargetSet = 0;   // the update the running "at" waited for
+static HANDLE gRdMap = NULL; static const unsigned char* gRdPix = NULL; static DWORD gRdPid = 0;
+#define RD_CAPS_REFUSED (DDSCAPS_PRIMARYSURFACE|DDSCAPS_FRONTBUFFER|DDSCAPS_BACKBUFFER|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_OVERLAY|DDSCAPS_VISIBLE)
+
+static const char* rd_status_text(LONG st)
+{
+	switch (st) {
+	case RD_OK: return "read";
+	case RD_NOEXPR: return "the stand-in has no reader_surface expression";
+	case RD_NOPTR: return "the reader_surface expression reads no pointer";
+	case RD_NOTDDRAW: return "the pointer is not an interface of the system's ddraw.dll (a wrapper's, a shim's, or no interface at all)";
+	case RD_QI: return "the interface gives no IDirectDrawSurface7";
+	case RD_DESC: return "GetSurfaceDesc failed";
+	case RD_CAPS: return "the surface is not an off-screen plain surface, or is the primary or part of its flipping chain";
+	case RD_FORMAT: return "the pixel format is not RGB at 16, 24 or 32 bits with three masks";
+	case RD_SIZE: return "the surface's size does not fit the pixel block";
+	case RD_LOCK: return "Lock (read-only) failed";
+	case RD_LOCKDESC: return "the Lock gave another size, format or no pixels";
+	case RD_NOBLOCK: return "the stand-in could not make the pixel block";
+	default: return "no answer";
+	}
+}
+static void reader_refuse(const char* name, const char* fmt, ...)
+{
+	char why[600]; va_list ap; va_start(ap,fmt); _vsnprintf(why,sizeof(why)-1,fmt,ap); va_end(ap); why[sizeof(why)-1]=0;
+	char path[MAX_PATH]; wsprintfA(path,"%s\\%s.png",gShotDir,name);
+	int had = DeleteFileA(path);
+	logline("shot %s refused [%s]: %s%s", name, gReaderTrial?"reader (host, trial)":"reader (host)", why,
+		had?"; a file of that name from an earlier run was deleted unopened":"");
+	gReaderRefused++;
+}
+static int mask_shift(uint32_t m) { int s=0; if (!m) return 0; while (!(m&1)) { m>>=1; s++; } return s; }
+static int mask_width(uint32_t m) { int n=0; for (; m; m&=m-1) n++; return n; }
+
+static int reader_shot(HWND hw, const char* name)
+{
+	const char* how = gReaderTrial ? "reader (host, trial)" : "reader (host)";
+	if (!gAtTargetSet) { reader_refuse(name,"the reader takes only `at <N> shot`"); return 0; }
+	uint32_t N=gAtTarget;
+	double t0=qpc_ms(); int holds=0; uint32_t lastAt=0; int exact = gPendingExpr[0] && gStateExpr[0];
+	VcShared* s=NULL; HANDLE rel=NULL, proc=NULL; DWORD pid=0; int dead=0;
+	for (;;) {
+		if (gStop) { reader_refuse(name,"the run is stopping"); return 0; }
+		if (!vc_is_held()) { reader_refuse(name,"the game is not held on the virtual clock at update %u", N); return 0; }
+		s=vc_cur(NULL,&rel,&proc,&pid,&dead);
+		if (!s || dead || !rel) { reader_refuse(name,"no live clock to read through"); return 0; }
+		holds++;
+		LONG c=s->heldCounter; lastAt=s->heldAt;
+		if (c==-1) { reader_refuse(name,"the update counter could not be read in the hold"); return 0; }
+		if ((uint32_t)c!=N) { reader_refuse(name,"the update counter reads %ld, not the shot's update %u (%d holds)", (long)c, N, holds); return 0; }
+		int safe=0; for (int i=0;i<gReaderWaitN;i++) if (lastAt==gReaderWaits[i]) safe=1;
+		if (safe && exact) {
+			int rf=0; safe=drawn_now(&rf);
+			if (rf) { reader_refuse(name,"the pending-draw flag or the update step could not be read in the hold"); return 0; }
+		}
+		if (safe) break;
+		if (holds>=64 || qpc_ms()-t0>3000) { reader_refuse(name,"the game was not held in one of its reader_waits at update %u within %d holds (the last at 0x%08lX)", N, holds, (unsigned long)lastAt); return 0; }
+		if (!vc_step(2000)) { reader_refuse(name,"the game did not come to its next wait"); return 0; }
+	}
+	// Ask the held game for the read, and wait for its answer.
+	LONG req = (s->readReq>s->readDone ? s->readReq : s->readDone) + 1;
+	InterlockedExchange(&s->readReq, req);
+	SetEvent(rel);
+	double r0=qpc_ms();
+	while (s->readDone!=req) {
+		if (qpc_ms()-r0>3000) { reader_refuse(name,"the game did not answer the read within 3 s"); return 0; }
+		if (proc && WaitForSingleObject(proc,0)==WAIT_OBJECT_0) { reader_refuse(name,"the game ended during the read"); return 0; }
+		Sleep(0);
+	}
+	MemoryBarrier();
+	LONG st=s->readStatus;
+	uint32_t caps=s->readCaps, w=(uint32_t)s->readW, h=(uint32_t)s->readH, bpp=(uint32_t)s->readBpp;
+	uint32_t rm=s->readRMask, gm=s->readGMask, bm=s->readBMask, surf=s->readSurface; LONG rc=s->readCounter, bytes=s->readBytes, hr=s->readHr;
+	if (st!=RD_OK) { reader_refuse(name,"%s (surface 0x%08lX, caps 0x%08lX, hr 0x%08lX)", rd_status_text(st), (unsigned long)surf, (unsigned long)caps, (unsigned long)hr); return 0; }
+	// Every check again on this side, before a pixel is converted.
+	if (!(caps & DDSCAPS_OFFSCREENPLAIN) || (caps & RD_CAPS_REFUSED)) { reader_refuse(name,"the surface's caps 0x%08lX are not an off-screen plain surface's", (unsigned long)caps); return 0; }
+	RECT cr; if (!GetClientRect(hw,&cr)) { reader_refuse(name,"the game's client area could not be read"); return 0; }
+	if ((LONG)w!=cr.right-cr.left || (LONG)h!=cr.bottom-cr.top) { reader_refuse(name,"the surface is %lux%lu, the game's client area %ldx%ld", (unsigned long)w, (unsigned long)h, (long)(cr.right-cr.left), (long)(cr.bottom-cr.top)); return 0; }
+	if (rc!=(LONG)N) { reader_refuse(name,"the update counter read %ld after the copy, not the shot's update %u", (long)rc, N); return 0; }
+	if ((bpp!=16 && bpp!=24 && bpp!=32) || !rm || !gm || !bm || mask_width(rm)>8 || mask_width(gm)>8 || mask_width(bm)>8 || (rm&gm) || (rm&bm) || (gm&bm)) { reader_refuse(name,"the pixel format (%lu bpp, masks 0x%lX 0x%lX 0x%lX) is not one the reader converts", (unsigned long)bpp, (unsigned long)rm, (unsigned long)gm, (unsigned long)bm); return 0; }
+	if (bytes!=(LONG)(w*h*(bpp/8))) { reader_refuse(name,"the pixel block holds %ld bytes, not %lu", (long)bytes, (unsigned long)(w*h*(bpp/8))); return 0; }
+	if (!gRdPix || gRdPid!=pid) {
+		if (gRdPix) { UnmapViewOfFile((void*)gRdPix); gRdPix=NULL; }
+		if (gRdMap) { CloseHandle(gRdMap); gRdMap=NULL; }
+		char mn[200]; wsprintfA(mn,"Local\\origrun-vclock-%s-%lu-pixels",gClockId,pid);
+		gRdMap=OpenFileMappingA(FILE_MAP_READ,FALSE,mn);
+		gRdPix=gRdMap?(const unsigned char*)MapViewOfFile(gRdMap,FILE_MAP_READ,0,0,RD_PIXMAX):NULL;
+		if (!gRdPix) { reader_refuse(name,"the pixel block %s could not be opened (err %lu)", mn, GetLastError()); return 0; }
+		gRdPid=pid;
+	}
+	// The pixels: copied now, while the game is still held, so a later read cannot overwrite them; the game goes on when
+	// the script's next step arms the clock.
+	size_t n=(size_t)w*h*(bpp/8);
+	unsigned char* raw=(unsigned char*)malloc(n), *rgb=(unsigned char*)malloc((size_t)w*h*3);
+	if (!raw || !rgb) { free(raw); free(rgb); reader_refuse(name,"out of memory"); return 0; }
+	memcpy(raw,gRdPix,n);
+	int rs=mask_shift(rm), gs=mask_shift(gm), bs=mask_shift(bm), rb=mask_width(rm), gb=mask_width(gm), bb=mask_width(bm), B=(int)bpp/8;
+	for (uint32_t y=0;y<h;y++) for (uint32_t x=0;x<w;x++) {
+		const unsigned char* q=raw+((size_t)y*w+x)*B;
+		uint32_t v = B==2 ? (uint32_t)(q[0]|(q[1]<<8)) : B==3 ? (uint32_t)(q[0]|(q[1]<<8)|(q[2]<<16)) : (uint32_t)(q[0]|(q[1]<<8)|(q[2]<<16)|((uint32_t)q[3]<<24));
+		unsigned char* o=rgb+((size_t)y*w+x)*3;
+		o[0]=widen((v&rm)>>rs,rb); o[1]=widen((v&gm)>>gs,gb); o[2]=widen((v&bm)>>bs,bb);
+	}
+	free(raw);
+	char path[MAX_PATH]; wsprintfA(path,"%s\\%s.png",gShotDir,name);
+	int ok=png_write(path,rgb,(int)w,(int)h); free(rgb);
+	if (!ok) { reader_refuse(name,"the PNG could not be written"); return 0; }
+	const char* sure = !exact ? "drawn-unless-skipped" : draw_was_empty()==1 ? "or-earlier" : draw_was_empty()==0 ? "drawn" : "drawn-unless-skipped";
+	logline("shot %s: %s: update %u (%s), held at its wait 0x%08lX (%d holds); surface 0x%08lX, caps 0x%08lX, %lux%lu at %lu bpp (masks 0x%lX 0x%lX 0x%lX) = the client area; the counter read %ld after the copy",
+		name, how, N, sure, (unsigned long)lastAt, holds, (unsigned long)surf, (unsigned long)caps, (unsigned long)w, (unsigned long)h, (unsigned long)bpp, (unsigned long)rm, (unsigned long)gm, (unsigned long)bm, (long)rc);
+	logline("shot %s -> %s (%lux%lu) [%s]", name, path, (unsigned long)w, (unsigned long)h, how);
+	note_landed(name,N,sure);
+	gReaderTaken++;
+	return 1;
+}
+static void reader_result(void)
+{
+	if (!gReaderOn) return;
+	logline("RESULT: %s: %d shots taken, %d refused%s", gReaderTrial?"reader (host, trial)":"reader (host)", gReaderTaken, gReaderRefused,
+		gReaderRefused?" (each refusal is logged above with its reason; no PNG of a refused shot was written)":"");
+}
+
 // Capture the game while its window thread is held, so the frame cannot change under the grab. If gFlipsExpr is
 // set, first let the game present the frame that reflects the current update (wait for one more flip), so the
 // shot is update N rather than possibly N-1.
@@ -1480,7 +1620,8 @@ static int wait_counter(uint32_t target, int timeout_ms)
 static int capture_held(const char* name)
 {
 	gLastHeldMs=0; gHeldAt=0; gLandedAt=0;   // a shot that is not held, or not taken, reports no hold of an earlier one
-	HWND hw=resolve_window(0,NULL); if(!hw){ logline("at: no window for '%s'",name); return 0; }
+	HWND hw=resolve_window(0,NULL); if(!hw){ logline("at: no window for '%s'",name); if (gReaderOn) reader_refuse(name,"no game window"); return 0; }
+	if (gReaderOn && !gInSandbox) return reader_shot(hw,name);   // the in-game frame reader: the host's one way to a shot
 	if (capture_refused(hw,name)) return 0;
 	// Inside Windows Sandbox nothing reads a held game: BitBlt from the window DC and from the screen DC return TRUE
 	// but copy no pixels, held or not; DXGI finds no output to duplicate; and PrintWindow, the one thing that sees the
@@ -1843,19 +1984,22 @@ static void load_msgbox_rules(const char* scriptPath)
 // shot|burst") or send desktop-wide input (hwmove, hwclick, hwrclick, hwkey)? A script that cannot be read counts as
 // one that does; a run without a script takes a title shot.
 static int is_hw_cmd(const char* c){ return ieq(c,"hwmove")||ieq(c,"hwclick")||ieq(c,"hwrclick")||ieq(c,"hwkey"); }
+// 1: the script takes a shot the host never takes or sends hw* input (or cannot be read); 2: its only shots are
+// "at <N> shot" lines, which the in-game frame reader may take on the host; 0: no shot and no hw* input.
 static int script_needs_sandbox(const char* scriptPath)
 {
 	if (!scriptPath || !scriptPath[0]) return 1;
 	FILE* f=fopen(scriptPath,"r"); if(!f) return 1;
-	char line[1024]; int shots=0;
+	char line[1024]; int shots=0, atShots=0;
 	while (!shots && fgets(line,sizeof(line),f)) {
 		char c1[32]={0}, c2[32]={0}, c3[32]={0};
 		int n=sscanf(line,"%31s %31s %31s",c1,c2,c3);
 		if (n>=1 && (ieq(c1,"shot")||ieq(c1,"waitshot")||ieq(c1,"record")||ieq(c1,"burst")||is_hw_cmd(c1))) shots=1;
-		if (n>=3 && ieq(c1,"at") && (ieq(c3,"shot")||ieq(c3,"burst")||is_hw_cmd(c3))) shots=1;
+		if (n>=3 && ieq(c1,"at") && (ieq(c3,"burst")||is_hw_cmd(c3))) shots=1;
+		if (n>=3 && ieq(c1,"at") && ieq(c3,"shot")) atShots=1;
 	}
 	fclose(f);
-	return shots;
+	return shots ? 1 : atShots ? 2 : 0;
 }
 
 static void run_script(DWORD pid, const char* scriptPath)
@@ -1971,7 +2115,9 @@ static void run_script(DWORD pid, const char* scriptPath)
 				wsprintfA(a,"keyup %s",kv); exec_at(a);
 				continue;
 			}
+			gAtTarget=(uint32_t)N; gAtTargetSet=1;   // for the reader: the update this "at" waited for
 			exec_at(inner);
+			gAtTargetSet=0;
 			continue;
 		}
 		if (ieq(cmd,"count")){ char n[64]="count"; sscanf(rest,"%63s",n); count_command(n); continue; }   // count <label>: a --count snapshot now
@@ -3476,6 +3622,7 @@ static int watch_run(Launched* L, const char* script, int timeout, const char* k
 
 	logline("done. captures in %s, logs in %s", gShotDir, logs);
 	audio_result();
+	reader_result();
 	if (gNoWindowSec) logline("RESULT: NO WINDOW %ds: the game's window did not appear in the first %d s, so the script's first commands may have been lost; the run is not a valid measurement.", gNoWindowSec, gNoWindowSec);
 	int rc=0;
 	if (gMode3dExpr[0]) {
@@ -4746,7 +4893,7 @@ static void clock_env(void)
 {
 	net_baseline();   // the network block's log: where this run's lines start
 	static const char* const names[]={"ORIGRUN_CLOCK","ORIGRUN_CLOCK_ID","ORIGRUN_CLOCK_HOST","ORIGRUN_CLOCK_HOLDSTART","ORIGRUN_CLOCK_COUNTER","ORIGRUN_CLOCK_WATCH",
-		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_KEYS","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID","ORIGRUN_LASTINPUT","ORIGRUN_REGMAP",NULL};
+		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_KEYS","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID","ORIGRUN_LASTINPUT","ORIGRUN_REGMAP","ORIGRUN_READER_SURFACE",NULL};
 	for (int i=0;names[i];i++) SetEnvironmentVariableA(names[i],NULL);
 	// Always: the stand-in's GetLastInputInfo says the last input is now, so an original that stops drawing once the
 	// machine is idle for the screensaver's timeout keeps drawing (docs/ORIGRUN.md, "The last-input hook")
@@ -4770,6 +4917,7 @@ static void clock_env(void)
 	SetEnvironmentVariableA("ORIGRUN_CLOCK_HOLDSTART","1");
 	if (gCounterExpr[0]) SetEnvironmentVariableA("ORIGRUN_CLOCK_COUNTER",gCounterExpr);
 	if (w[0]) SetEnvironmentVariableA("ORIGRUN_CLOCK_WATCH",w);
+	if (gReaderOn && !gInSandbox) SetEnvironmentVariableA("ORIGRUN_READER_SURFACE",gReaderSurface);
 	logline("--clock virtual: the game's time functions run on origrun's virtual clock (in the stand-in; its log is logs/clock.log)");
 }
 
@@ -4963,6 +5111,7 @@ int main(int argc, char** argv)
 	int sandboxHost=0, sandboxVgpu=0, sandboxWait=600, inSession=0, sandboxProbe=0, probe=0; const char* inSandboxDir=NULL;
 	const char* regArg=NULL;
 	int queueShow=0; const char* queueWaiter=NULL;
+	const char* readerSurface=NULL; const char* readerWaits=NULL;
 
 	for (int i=1;i<argc;i++) {
 		if (ieq(argv[i],"--game")&&i+1<argc) game=argv[++i];
@@ -5043,6 +5192,9 @@ int main(int argc, char** argv)
 		else if (ieq(argv[i],"--probe")) probe=1;
 		else if (ieq(argv[i],"--sandbox-probe")) { sandboxProbe=1; sandboxHost=1; }
 		else if (ieq(argv[i],"--queue")) queueShow=1;
+		else if (ieq(argv[i],"--reader-trial")) gReaderTrial=1;
+		else if (ieq(argv[i],"--reader-surface")&&i+1<argc) readerSurface=argv[++i];
+		else if (ieq(argv[i],"--reader-waits")&&i+1<argc) readerWaits=argv[++i];
 		else if (ieq(argv[i],"--queue-waiter")&&i+1<argc) queueWaiter=argv[++i];
 		else if (ieq(argv[i],"--queue-dir")&&i+1<argc) {
 			WCHAR w[MAX_PATH]; MultiByteToWideChar(CP_ACP,0,argv[++i],-1,w,MAX_PATH); w[MAX_PATH-1]=0;
@@ -5078,12 +5230,15 @@ int main(int argc, char** argv)
 	if (gCountList[0] && !file_exists(gCountList)) { fprintf(stderr, "origrun: --count: no function list %s\n", gCountList); return 2; }
 	if (!game && !exe && !sandboxProbe) die("need --game <name> or --exe <path>");
 	if (timeout>3600) timeout=3600;   // an hour; a run past about 4 minutes goes in its session's background, never in a subagent
-	if (!sandboxHost && !copyOnly && script_needs_sandbox(script)) {
+	int needsSandbox = (!sandboxHost && !copyOnly) ? script_needs_sandbox(script) : 0;
+	if (needsSandbox==1) {
 		fprintf(stderr, "origrun: refusing to start: this run takes shots or sends hw* input, and origrun does neither on the "
 			"host (a capture there can show the user's own screen, and hw* input reaches the user's desktop). Run it with "
-			"--sandbox, or with a script that does neither.\n");
+			"--sandbox, or with a script that does neither (on the host only `at <N> shot`, through the in-game frame reader, "
+			"for a game that passed its trial).\n");
 		return 2;
 	}
+	if (gReaderTrial && (sandboxHost || needsSandbox!=2)) { fprintf(stderr, "origrun: --reader-trial is for a host run whose script takes `at <N> shot` shots\n"); return 2; }
 	if (regArg && (!sandboxHost || sandboxProbe)) {
 		fprintf(stderr, "origrun: --reg imports registry presets inside Windows Sandbox, for a game run there (--sandbox); on the "
 			"host origrun writes no registry from a file\n");
@@ -5152,6 +5307,7 @@ int main(int argc, char** argv)
 	// "patches=". CLI options override it. It records a game's update-counter address and patch-list path so a
 	// session need not repeat them on every run.
 	static char cfgCounter[256]="", cfgFlips[256]="", cfgPending[256]="", cfgState[256]="", cfgEmpty[256]="", cfgPatches[MAX_PATH]="";
+	static char cfgReaderSurface[256]="", cfgReaderWaits[256]="";
 	int cfgUpdateMs=0, cfgHaveSeed=0, cfgRegMap=0; uint32_t cfgSeed=0;
 	if (game) {
 		char cfg[MAX_PATH]; wsprintfA(cfg,"%s\\tools\\origrun\\%s.cfg",repo,game);
@@ -5171,6 +5327,9 @@ int main(int argc, char** argv)
 				else if (ieq(p,"seed")) { cfgHaveSeed=1; cfgSeed=(uint32_t)strtoul(v,NULL,0); }
 				else if (ieq(p,"patches")) lstrcpynA(cfgPatches,v,MAX_PATH);
 				else if (ieq(p,"reg_map")) cfgRegMap = ieq(v,"popcap");
+				else if (ieq(p,"reader_surface")) lstrcpynA(cfgReaderSurface,v,256);
+				else if (ieq(p,"reader_waits")) lstrcpynA(cfgReaderWaits,v,256);
+				else if (ieq(p,"reader_trial")) lstrcpynA(gReaderPassed,v,sizeof(gReaderPassed));
 			}
 			fclose(cf);
 			logline("read per-game config %s", cfg);
@@ -5193,6 +5352,32 @@ int main(int argc, char** argv)
 	}
 	if (gCounterExpr[0]) logline("update counter: %s (one update = %d ms)%s%s%s%s%s%s%s%s", gCounterExpr, gUpdateMs, gFlipsExpr[0]?", flips=":"", gFlipsExpr, gPendingExpr[0]?", pending draw=":"", gPendingExpr, gStateExpr[0]?", update step=":"", gStateExpr, gEmptyExpr[0]?", draw empty=":"", gEmptyExpr);
 	if (haveSeed) logline("RNG seed to pin: %u (0x%08X)", seed, seed);
+
+	// The in-game frame reader: a host run's `at <N> shot` lines, for a game that passed the reader's trial.
+	if (readerSurface) lstrcpynA(gReaderSurface,readerSurface,256); else lstrcpynA(gReaderSurface,cfgReaderSurface,256);
+	{
+		char wl[256]; lstrcpynA(wl,readerWaits?readerWaits:cfgReaderWaits,256);
+		for (char* t=strtok(wl,", "); t && gReaderWaitN<16; t=strtok(NULL,", ")) gReaderWaits[gReaderWaitN++]=(uint32_t)strtoul(t,NULL,16);
+	}
+	if (needsSandbox==2) {
+		int passed = !strncmp(gReaderPassed,"passed ",7);
+		const char* no = NULL;
+		if (!gReaderSurface[0] || !gReaderWaitN) no = "the in-game frame reader is not set up for this game (reader_surface= and reader_waits= in its config)";
+		else if (!gClockVirtual) no = "the in-game frame reader needs --clock virtual (it reads in the game's own thread while the clock holds it)";
+		else if (!gCounterExpr[0]) no = "the in-game frame reader needs the game's update counter";
+		else if (ieq(sound,"real")) no = "the in-game frame reader lives in the sound stand-in, which --sound real leaves out";
+		else if (!passed && !gReaderTrial) no = "the in-game frame reader has not passed its trial for this game (its config has no reader_trial=passed ...; docs/ORIGRUN.md, \"The in-game frame reader\")";
+		if (no) {
+			logline("refusing to start: this run takes `at <N> shot` shots on the host, and %s. Run it with --sandbox.", no);
+			fprintf(stderr, "origrun: refusing to start: this run takes `at <N> shot` shots on the host, and %s. Run it with --sandbox.\n", no);
+			return 2;
+		}
+		gReaderOn=1;
+		logline("the in-game frame reader takes this run's `at <N> shot` shots on the host: the draw surface %s, read in the waits at %s%s%s",
+			gReaderSurface, readerWaits?readerWaits:cfgReaderWaits,
+			gReaderTrial ? "; --reader-trial: a trial run, whose shots are only for the comparison with the sandbox's" : "; the game passed its trial: ",
+			gReaderTrial ? "" : gReaderPassed);
+	}
 
 	// --3d: the game's registry key and where it keeps its 3D flag (games.tsv's columns 4 and 5, or the options).
 	// The flag is polled whenever it is known, so every run logs the mode the game used; --3d also sets the mode.
