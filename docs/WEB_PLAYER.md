@@ -776,7 +776,8 @@ short tracks have a bunch of dead air at the end, where the tracker slows to a c
 too (`soloSeconds`: Bejeweled 2's two, whose rows slow to about five seconds each after their last note), the first piece of a cut subsong too (Twist's Game Over: a 3.5-second jingle,
 then the module's own 13 seconds of silence before the cut); only the playlist
 scrolls (2026-11-09); closing the window stops the music and frees what it held (2026-11-09;
-`ByopopMusicPanel.held()` tells a test what is still held).
+`ByopopMusicPanel.held()` tells a test what is still held). Each format in the list names itself in full as a tooltip
+(the user, 2026-11-16: "I don't know what an IT is, Show what the extension stands for").
 
 **Shuffle** (the user, 2026-11-19: "make the shuffle group together tracks that are only ever played in direct sequence,
 never play unused tracks, and skip tracks that would not make sense to have on shuffle (for instance, no intros, short

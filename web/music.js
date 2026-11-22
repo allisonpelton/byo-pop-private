@@ -410,6 +410,10 @@ var ByopopMusic = (function () {
   function subLine(t) {
     return [t.game.title, t.unused ? T("music.unused") : t.where, t.format].filter(function (s) { return s; }).join(" · ");
   }
+  // a format's name in full, its tooltip (the user, 2026-11-16: "I'd like tooltips on the formats in the music player. I don't
+  // know what an IT is"), "" for one without a name of its own
+  var FORMATS = ["MO3", "IT", "S3M", "XM", "OXM", "MOD", "OGG", "WAV", "MID"];
+  function formatName(f) { var k = f === "MIDI" ? "MID" : f; return FORMATS.indexOf(k) >= 0 ? T("music.format_" + k.toLowerCase()) : ""; }
   function clock(seconds) {
     var s = Math.round(seconds), m = Math.floor(s / 60);
     return T("music.duration", { min: m, sec: (s % 60 < 10 ? "0" : "") + (s % 60) });
@@ -3343,7 +3347,9 @@ var ByopopMusic = (function () {
           var by = make("span", "mu-composer", t.composer || T("music.composer_unknown"));
           by.title = by.textContent;
           b.appendChild(by);
-          b.appendChild(make("span", "mu-format", t.format || ""));
+          var fm = make("span", "mu-format", t.format || "");
+          if (formatName(t.format)) fm.title = formatName(t.format);
+          b.appendChild(fm);
           b.appendChild(make("span", "mu-time", clock(t.seconds)));
           b.addEventListener("click", function () { play(i); });
           li.appendChild(b);

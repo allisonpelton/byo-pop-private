@@ -1523,6 +1523,15 @@ music.patterns = Unused patterns
 music.pattern_name = {file}, pattern {n}
 music.pattern_same = {file}, pattern {n} (same as {same})
 music.duration = {min}:{sec}
+music.format_mo3 = MO3: a tracker module compressed by Un4seen's MO3
+music.format_it = IT: Impulse Tracker module
+music.format_s3m = S3M: Scream Tracker 3 module
+music.format_xm = XM: FastTracker 2 Extended Module
+music.format_oxm = OXM: FastTracker 2 module with Ogg Vorbis samples
+music.format_mod = MOD: ProTracker module
+music.format_ogg = OGG: Ogg Vorbis audio
+music.format_wav = WAV: Waveform audio
+music.format_mid = MID: Standard MIDI File
 music.album = Games on this site
 
 # The soundboard (web/sounds.js): Desktop 95's Sounds window; the buttons' names are in web/soundboards.js
