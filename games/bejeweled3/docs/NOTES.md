@@ -517,15 +517,47 @@ each scored on its own. A run is held for a later update when, from any of its g
 (of the gem's colour, contiguous) hold a free gem that is not yet at rest, or when across the run both sides together hold 2 or
 more such same-colour cells and one is such a gem. A kept run's gems take the highest tag (+0x188) and the run's id (+0x190).
 
-What clears a plain gem is not found: the exe sets a busy count (+0x230) of 1 (which UpdateGame counts down and then destroys
-the gem, 0x74c770) only in 0x75dee0 (the ring of a match group), 0x7870f0 (the group object's own update), 0x74c570 (slot
-320, which does nothing for a plain gem) and for the special gems in 0x75af60 and 0x767e20. The groups (0x2e8 bytes, made by
-0x789a90, in the list at +0x125c) are made only for gems with bit 4 (a flame gem, set by 0x7494d0), bit 2 (0x74c570) and the
-hypercube (0x74db70, type 7); 0x789a90 puts its first gem's timer (+0x178) at 0.9, and 0x75dee0 adds 0.015 to the others' each
-update and gives a gem busy 1 when it is at 1, then its ring (radius 3, or 7 for type 3, every 10 updates, 0.1 / 0.01 steps)
-hits the gems around. So the 0.9 timer and the group of this port are a stand-in for the plain gem's pulse (0x85f0a4: 30
-updates at 0.033333; 0x85f0d0: 15 updates; 0x85f07c: 3 updates, chosen by slots 0x204 and the swap flag), which keeps 0x755ad0
-false for a matched gem. How the exe goes from that pulse to the busy count was not found.
+Match groups (0x789a90, 0x75dee0, 0x74c570; translated in BoardMoves.cpp as MatchGroup, UpdateMatchGroups, MakeMatchGroup and
+ClearPiece). A group is an effect of 0x2e8 bytes in the list at +0x125c, kept for a piece (its id is the group's +0x34, found by
+0x73c9d0). It is NOT made for a plain match, which was first thought: the matcher (0x75af60) makes one only at 0x75bb0f, and the
+asm before it (0x75bac5, 0x75bace) takes that path only for a piece with bit 4 (a flame gem, set by 0x7494d0) that was not matched
+in this update; a plain piece goes to 0x75bbdb, where it gets the pulse curve instead. The other makers are 0x74c570 (slot 320: a
+bit 4 piece without a group gets type 2), 0x74db70 and two places at 0x762b37 and 0x762ba7. The type is 3, or 2 when the board's
++0xe8 is not 0; a piece with bit 1 makes it 6. 0x789a90 draws no Rand(); it puts the first piece's id first in the group's list
+(+0x8c), sets the piece's +0x174 and puts its timer (+0x178) at 0.9, and makes two streak effects (0x789860).
+
+0x75dee0 (every update, at the end of 0x767e20): the glow at +0x27b8 falls by 0.02 and rises by 0.05 while a group lives; then
+for each group (the loop stops at a group whose age, +0xc, is below 25 times the groups before it): 0x78a390 adds one to the age,
+steps the group's curves and its streaks and takes 0.01 off the fade at +0x2e0. Below type 7 (0x7870f0, the hypercube's own
+update, is only run for type 7; it sets busy 1 at 0x78721d on pieces whose timer passed 1, as 0x75dee0 does, and is not
+translated), the group's pieces from the second on take 0.015 on their timers (0.01 when slot 0x1c4 is true: 0x73c1f0 returns 0,
+Zen's and Butterflies' boards return 1) when their +0x182 is set. At 1 or more (the exe's test is >=, not >) a piece is let go
+and leaves the list: unless +0x17c holds it, it takes the larger tag (+0x188), the group's run id (+0x190), the first piece's id
+(+0x234) and the group's flags (+0x238), and gets busy 1 (UpdateGame destroys it in the next update) unless slot 320 takes it,
+or 5 with bit 0x10. The group's ring timer (+0x4c) falls by 0.01 and at 0 makes a ring (0.1 later; 0.15 for slot 0x1c4):
+for the directions of the type (0 along the row, 1 along the column, 4 all eight, 5 the border of a square, the rest the four
+sides, type 6 three wide) the cell at the ring's distance (+0x48, from 0) from the first piece is looked at. Its cell goes to the
+group's cell list (+0xa4) with timer 0.01 (entries leave at 1; slot 0x314, 0x73bb40, returns at once), and the piece there, if
+no clear holds it and no group's list has it, keeps the group from finishing and, with a timer of 0, joins the list with 0.01 and
+makes 20 particles (0x729c20 type 0xd: 3 draws in its constructor, 4 in the ring, 7 each, 140 per piece; DrawRingParticleRandoms).
+The ring's distance counts up to the group's farthest (+0x14: 3 for type 3, else 7: the asm is (type != 3) * 4 + 3, so the other
+way round from what was first read). From then on, each ring with every piece in the list already let go clears the first piece's
+bit 4 and makes it busy 1 (slot 320 takes it when it has bit 2), sets the board's +0x1240 to 1, takes 0.25 off the group's life
+(+0x30) and sets the speed of EVERY piece on the board to 0; at life 0 the group ends (so about 50 updates for type 3, about 90
+for the others), as it does when its countdown (+0x2e4, which nothing translated sets) runs out. When the last group ends,
+0x75dee0 asks for the fill (slot 203 with 1, unless +0x12f8 is set). Left out, each marked `// port:` in BoardMoves.cpp: the
+streaks and their own update (0x786dd0, which draws Rand() every fifth update and more with the streak's length: the draws are
+missing for every group), the sounds, the curves, 0x73d170's counters, and the hypercube's type 7. No piece in this port has
+bit 4 (0x7494d0 is not translated), so no group exists in a Classic game yet: the group code runs only for a flame gem.
+
+What clears a plain gem is still not found. The exe sets a busy count (+0x230) of 1 only in 0x75dee0 (above), 0x7870f0 (type 7),
+0x74c570 (slot 320, which returns 0 for a plain gem), the special gems' paths in 0x75af60 (pieces with bit 1 or 0x80000, and
+the crossing and long-run gems) and 0x767e20 (around 0x7688cb, with its steps of 0x19), the loading of a saved game and 0x73f8e0. A plain
+matched gem gets a pulse curve in 0x75bcd0 (0x85f0a4: 30 updates at 0.033333; 0x85f0d0: 15 updates; 0x85f07c: 3 updates, chosen
+by slots 0x204 and the swap flag) that keeps 0x755ad0 false for it, and goes into lists that 0x75af60 builds after its passes;
+how the exe goes from that to the busy count was not found. The port keeps its earlier stand-in for this, and only for this:
+PlainClear and UpdatePlainClears (a timer from 0.9, 0.015 more each update, busy 1 when it is past 1, the clear ends with its
+last piece, the fill waits for it), made in FindMatches for each run of plain gems.
 
 Score: every call of AddPoints is slot 152 (0x260) of the board's vtable. For plain gems there are two: the match (below, 0x75d86f) and
 the destroy function (0x74c87e): 50 for each gem without the bits 0x1800. The others belong to the special gems (0x73d380 250,
@@ -544,7 +576,7 @@ values. The fill refills with the board's MTRand as before (Next(15) per new gem
 as above.
 
 Uncertain or left out, each marked `// port:` in BoardMoves.cpp: whether the exe begins a swap in the update of the click or
-the next; the group's life (the exe keeps it about 50 updates as an expanding ring that zeroes the speed of gems it passes;
-here it ends with its last gem, about 7 updates after the match); the matcher's perpendicular-neighbour deferral;
+the next; what clears a plain gem (see "Match groups": a group of the exe is made only for a flame gem, so the port's stand-in for the
+plain gem's clear ends with its last gem, about 7 updates after the match); the matcher's perpendicular-neighbour deferral;
 the flame, star and hypercube (runs of 4 and 5 and crossings make them), the level bar, the end of the game, the hint, the
 help boxes, sounds, the sparks and the counters of 0x73d170 (+0xcc0 and others).

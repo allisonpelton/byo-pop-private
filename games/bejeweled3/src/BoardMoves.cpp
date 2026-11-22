@@ -108,7 +108,7 @@ void Board::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 		return;
 	}
 	// a gem is in hand: the effects list must be empty (as for every swap)
-	if (!mMatchGroups.empty())
+	if (HasLiveMatches())
 		return;
 	if (TrySwap(aSelected, aClicked->mRow, aClicked->mCol))
 		return;
@@ -196,7 +196,7 @@ bool Board::TrySwap(Piece* thePiece, int theRow, int theCol)
 // 0x75fae0 (bejeweled3). port: the list at +0x26b8 (0x68 bytes each) is empty in a plain game
 bool Board::CanSwap(Piece* thePiece, unsigned theRow, unsigned theCol)
 {
-	if (!mMatchGroups.empty())
+	if (HasLiveMatches())
 		return false;
 	if (!thePiece->mCanSwap)
 		return false;
@@ -445,7 +445,7 @@ int Board::FindMatches()
 		if (aHold)
 			continue;
 		aCount++;
-		MatchGroup aGroup;
+		PlainClear aGroup;
 		aGroup.mOriginId = aRun.mPieces[0]->mId;
 		aGroup.mUpdate = mUpdateCnt;
 		int aChainId = -1;
@@ -456,9 +456,18 @@ int Board::FindMatches()
 			Piece* aPiece = aRun.mPieces[k];
 			aPiece->mColumnTag = aChainId;
 			aPiece->mGroupId = aRunId;
+			if ((aPiece->mFlags & 4) != 0 && aPiece->mMatchedUpdate != mUpdateCnt) {
+				// 0x75bac5 to 0x75bb0f: a flame gem (bit 4) that was not matched in this update gets a group of its own, unless it has
+				// one; it takes no part in the plain gems' clear. The group is type 3, or 2 when the board's +0xe8 is set; a piece with
+				// bit 1 makes it type 6 (0x789a90). port: the counter of 0x73d170 (stat 1, the move's tag) and the box that 0x742d00
+				// shows for a type 2 or 7 group are left out; nothing translated makes a flame gem
+				if (FindMatchGroup(aPiece) == -1)
+					MakeMatchGroup(aPiece, 3 - (mGroupTypeSwitch != 0 ? 1 : 0));
+				continue;
+			}
 			aPiece->mMatchedUpdate = mUpdateCnt;
 			if (aPiece->mMatchTimer == 0.0f) {
-				// port: stands in for the pulse that holds the gem while it is cleared (see UpdateMatchGroups)
+				// port: stands in for the pulse that holds the gem while it is cleared (see UpdatePlainClears)
 				aPiece->mMatchTimer = 0.89999998f;
 				aGroup.mPieces.push_back(aPiece);
 				aGroup.mPieceIds.push_back(aPiece->mId);
@@ -476,21 +485,310 @@ int Board::FindMatches()
 			aPoints += (aPieceCount - 4) * 0x15e;
 		AddPoints(aPoints);
 		if (!aGroup.mPieces.empty())
-			mMatchGroups.push_back(aGroup);
+			mPlainClears.push_back(aGroup);
 	}
 	return aCount;
 }
 
-// 0x75dee0 (bejeweled3). port: what a match does here is only the part that frees its pieces: the exe lets each one's timer
-// (+0x178, from 0.9) rise by 0.015 every update and, when it is past 1, sets the piece's busy count to 1 (UpdateGame
-// destroys it in the next update) and takes it off the match's list. The match itself lives on in the exe as an effect for
-// about 50 updates (rings out of its first piece that hit the pieces up to 3 away at every tenth update, a +0x30 that
-// goes down by 0.25 at each ring from the third), which is not translated: here the match ends in the update its last
-// piece is let go. The rings, the particles (the app's Rand() is drawn some 150 times for them) and the sounds are left out
+// 0x789a90 (bejeweled3), for every type but 7 (the hypercube's, which 0x7870f0 runs: not translated): a group for a piece, made
+// by 0x75af60 (a flame gem, bit 4, in a match) and by 0x74c570, and pushed at the end of the list at +0x125c. It takes the piece's
+// place at the middle of the cell, its flags, tag (+0x188) and run id (+0x190), puts the piece's id first in its list, sets the
+// piece's +0x174 and puts its timer (+0x178) at 0.9. A piece with bit 1 makes it type 6. No Rand() is drawn here (the two
+// streaks it makes, 0x789860, take their places from the cell and draw only when they run). port: the streaks (their own
+// update, 0x786dd0, draws the app's Rand() every fifth update, 0x78a390 runs it for each), the curves that the group sets
+// ("b+0,1.5,..." for a type 6 group) and the fields that only they read (+0x10, +0x18, +0x20, +0x24, +0x40, +0x44, +0x50 to
+// +0x270) are not translated
+void Board::MakeMatchGroup(Piece* thePiece, int theType)
+{
+	std::unique_ptr<MatchGroup> aGroup(new MatchGroup());
+	aGroup->mType = (thePiece->mFlags & 1) == 0 ? theType : 6;
+	aGroup->mAge = 0;
+	aGroup->mFade = 1.0f;
+	aGroup->mLifeCountdown = 0;
+	aGroup->mFlags = thePiece->mFlags;
+	aGroup->mTag = thePiece->mColumnTag;
+	aGroup->mRunId = thePiece->mGroupId;
+	aGroup->mOriginId = thePiece->mId;
+	aGroup->mPieceIds.push_back(thePiece->mId);
+	// the piece's place and 64, less the grid's corner, which slots 171 and 172 (0x73bd80 and 0x73bd70) also add
+	float aSumX = (float)((float)GetGridX() + thePiece->mX);
+	float aMiddleX = (float)((double)aSumX + 64.0);
+	aGroup->mPixelX = Ftol((double)aMiddleX - (double)GetGridX());
+	float aSumY = (float)((float)GetGridY() + thePiece->mY);
+	float aMiddleY = (float)((double)aSumY + 64.0);
+	aGroup->mPixelY = Ftol((double)aMiddleY - (double)GetGridY());
+	thePiece->mIsGroupOrigin = true;
+	thePiece->mMatchTimer = 0.89999998f;
+	aGroup->mRingTimer = 0.0f;
+	aGroup->mLife = 1.0f;
+	aGroup->mRing = 0;
+	aGroup->mMaxDistance = (aGroup->mType != 3 ? 4 : 0) + 3;
+	mMatchGroups.push_back(std::move(aGroup));
+}
+
+// 0x73c9d0 (bejeweled3)
+int Board::FindMatchGroup(const Piece* thePiece) const
+{
+	for (size_t i = 0; i < mMatchGroups.size(); i++) {
+		if (mMatchGroups[i]->mOriginId == thePiece->mId)
+			return (int)i;
+	}
+	return -1;
+}
+
+// slot 200, 0x74c570 (bejeweled3): theBy (the exe's third argument; 0x75dee0 passes the piece itself) takes the piece out. A piece
+// that another clear holds is not touched. A flame gem (bit 4) without a group gets one of type 2 and the clear waits for it; a
+// piece with bit 0x10, bit 0x80000, or bit 1 without bit 4 gets busy count 1; a plain piece is not taken (false). The piece then
+// notes what cleared it. port: a piece with bit 2 and no group goes to slot 0x2d0 (0x745bf0's kind of effect), which is not
+// translated, and the counter of 0x73d170 (stat 1) that a flame gem's group adds is left out: nothing translated gives a piece
+// bit 1, 2 or 0x10
+bool Board::ClearPiece(Piece* thePiece, Piece* theBy)
+{
+	if (thePiece->mClearHeld)
+		return false;
+	int aFlags = thePiece->mFlags;
+	if ((aFlags & 1) == 0 || (aFlags & 4) != 0) {
+		if ((aFlags & 0x80000) == 0) {
+			if ((thePiece->mFlags & 4) != 0 && FindMatchGroup(thePiece) == -1) {
+				thePiece->mClearHeld = true;
+				MakeMatchGroup(thePiece, 2);
+				return true;
+			}
+			if ((thePiece->mFlags & 0x10) == 0)
+				return false;
+			thePiece->mClearHeld = true;
+			thePiece->mBusyCount = 1;
+		}
+		else
+			thePiece->mBusyCount = 1;
+	}
+	else
+		thePiece->mBusyCount = 1;
+	thePiece->mDestroyerId = theBy != nullptr ? theBy->mId : -1;
+	if (theBy == nullptr)
+		thePiece->mDestroyerFlags = -1;
+	else
+		thePiece->mDestroyerFlags |= theBy->mFlags;
+	return true;
+}
+
+// 0x75dee0 (bejeweled3), the draws of the app's Rand() that the 20 particles one of its rings makes for a piece it finds: each is
+// made by 0x729c20 with type 0xd, whose constructor (0x729460) draws 3 (a count, two angles), and then the ring sets its place
+// and speed with 4 more. The values are dropped
+void Board::DrawRingParticleRandoms()
+{
+	for (int aParticle = 0; aParticle < 20; aParticle++) {
+		for (int aDraw = 0; aDraw < 3 + 4; aDraw++)
+			Rand();
+	}
+}
+
+// 0x75dee0 (bejeweled3), run by 0x767e20 at its end: the glow, then each match group in the list (see MatchGroup). In its own
+// update (0x78a390) a group counts its age, steps its curves and runs its streaks. Then, for a group below type 7:
+//  - the pieces of its list from the second on, the ones with +0x182 set, take 0.015 (0.01 when slot 0x1c4, 0x73c1f0, is true:
+//    the Zen and Butterflies boards) on their timers (+0x178); a piece at 1 or more is let go (that is, it leaves the list):
+//    unless another clear holds it, it takes the group's tag as a minimum, the group's run id, the group's first piece's id and
+//    the group's flags, and gets busy count 1 (UpdateGame destroys it in the next update; slot 320, 0x74c570, may take it
+//    instead), or 5 with bit 0x10; a piece below 1 keeps the group from its last ring
+//  - the ring cells go on by the same step and leave at 1
+//  - the ring timer goes down by 0.01 and at 0 or below makes a ring: the cells at the group's ring distance from its first piece in
+//    the directions its type gives (0: along the row, 1: along the column, 4: all eight, 5: the border of a square, the others
+//    the four sides) are looked at; each cell on the board but the first piece's adds a ring cell, and the piece there (unless
+//    a clear holds it or any group's list has it) keeps the group from its last ring and, when its timer is 0, joins the group's
+//    list with timer 0.01 and 20 particles. The ring's distance counts up; once it is at the group's farthest (3 for a type 3
+//    group, else 7) and every piece found was already in a group, each ring clears the first piece's bit 4, sets it busy (or has
+//    slot 320 take it), takes 0.25 off the group's life and stops all the pieces on the board; at life 0 the group ends
+//  - it also ends when its countdown (+0x2e4) runs out, and then the fill is asked for if no group is left
+// A group's age gives the others a turn: the loop stops at a group whose age is below 25 times the number of groups before it.
+// port: the sound that the first ring starts, the particles themselves (their draws are DrawRingParticleRandoms), the children of
+// 0x78a390 and what 0x76aaf0 spawns for a type 6 group are not translated
 void Board::UpdateMatchGroups()
 {
-	for (size_t i = 0; i < mMatchGroups.size();) {
-		MatchGroup& aGroup = mMatchGroups[i];
+	UpdatePlainClears();
+	const bool aSlowMode = false;   // slot 0x1c4 (0x73c1f0): 0 in every board translated so far
+	const bool aReplayFlag = false;   // +0x12f8: the saved-game and replay mode, which Classic's new game does not start
+	float aGlow = (float)((double)mGroupGlow - 0.019999999552965164);
+	if (aGlow <= 0.0f)
+		aGlow = 0.0f;
+	mGroupGlow = aGlow;
+	if (mMatchGroups.empty())
+		return;
+	double aSum = (double)aGlow + 0.05000000074505806;
+	mGroupGlow = 1.0 <= aSum ? 1.0f : (float)aSum;
+	int aTurnLimit = 0;
+	size_t aIndex = 0;
+	do {
+		MatchGroup* aGroup = mMatchGroups[aIndex].get();
+		// 0x78a390
+		aGroup->mAge++;
+		float aFade = (float)((double)aGroup->mFade - 0.009999999776482582);
+		aGroup->mFade = aFade < 0.0f ? 0.0f : aFade;
+		bool aEnded = false;
+		if ((unsigned)aGroup->mType < 7) {
+			int aSweep = aGroup->mType == 6 ? 1 : 0;
+			bool aAllLetGo = true;
+			for (size_t k = 1; k < aGroup->mPieceIds.size(); k++) {
+				Piece* aPiece = FindPieceById(aGroup->mPieceIds[k]);
+				if (aPiece != nullptr && aPiece->mClearable) {
+					aPiece->mMatchTimer = (float)((double)aPiece->mMatchTimer + (aSlowMode ? 0.009999999776482582 : 0.014999999664723873));
+					if (aPiece->mMatchTimer >= 1.0f) {
+						if (!aPiece->mClearHeld) {
+							aPiece->mColumnTag = std::max(aPiece->mColumnTag, aGroup->mTag);
+							aPiece->mGroupId = aGroup->mRunId;
+							aPiece->mDestroyerId = aGroup->mOriginId;
+							aPiece->mDestroyerFlags |= aGroup->mFlags;
+							if ((aPiece->mFlags & 0x10) == 0) {
+								if (!ClearPiece(aPiece, aPiece) && !aPiece->mClearHeld)
+									aPiece->mBusyCount = 1;
+							}
+							else
+								aPiece->mBusyCount = 5;
+						}
+						aGroup->mPieceIds.erase(aGroup->mPieceIds.begin() + k);
+						k--;
+					}
+					else
+						aAllLetGo = false;
+				}
+			}
+			for (size_t k = 0; k < aGroup->mRingCells.size(); k++) {
+				RingCell& aCell = aGroup->mRingCells[k];
+				aCell.mTimer = (float)((double)aCell.mTimer + (aSlowMode ? 0.009999999776482582 : 0.014999999664723873));
+				if (aCell.mTimer >= 1.0f) {
+					// slot 0x314 (0x73bb40) is called with the cell and returns at once
+					aGroup->mRingCells.erase(aGroup->mRingCells.begin() + k);
+					k--;
+				}
+			}
+			float aRingTimer = (float)((double)aGroup->mRingTimer - 0.009999999776482582);
+			aGroup->mRingTimer = aRingTimer;
+			if (aRingTimer <= 0.0f) {
+				aGroup->mRingTimer = aSlowMode ? 0.15000000596046448f : 0.10000000149011612f;
+				// the eight directions, as x and y; each type uses a run of them (type 5 builds its own list)
+				int aDirections[2 * 64] = { 1, 0, -1, 0, 0, 1, 0, -1, -1, -1, -1, 1, 1, -1, 1, 1 };
+				int aFirstDirection = 0;
+				int aDirectionCount = 4;
+				if (aGroup->mType == 0)
+					aDirectionCount = 2;
+				if (aGroup->mType == 1)
+					aFirstDirection = 2;
+				if (aGroup->mType == 4)
+					aDirectionCount = 8;
+				if (aGroup->mType == 5) {
+					int aRadius = aGroup->mRing;
+					if (aRadius > 6)
+						aRadius = 7;
+					int aNegative = -aRadius;
+					aDirectionCount = 0;
+					for (int aStep = aNegative; aStep <= aRadius; aStep++) {
+						aDirections[aDirectionCount * 2] = aStep;
+						aDirections[aDirectionCount * 2 + 1] = aNegative;
+						aDirections[(aDirectionCount + 1) * 2] = aStep;
+						aDirections[(aDirectionCount + 1) * 2 + 1] = aRadius;
+						aDirectionCount += 2;
+					}
+					for (int aStep = aNegative + 1; aStep <= aRadius - 1; aStep++) {
+						aDirections[aDirectionCount * 2 + 1] = aStep;
+						aDirections[aDirectionCount * 2] = aNegative;
+						aDirections[(aDirectionCount + 1) * 2 + 1] = aStep;
+						aDirections[(aDirectionCount + 1) * 2] = aRadius;
+						aDirectionCount += 2;
+					}
+				}
+				for (int aDirection = aFirstDirection; aDirection < aDirectionCount; aDirection++) {
+					int aDeltaX = aDirections[aDirection * 2];
+					int aDeltaY = aDirections[aDirection * 2 + 1];
+					for (int aSide = -aSweep; aSide <= aSweep; aSide++) {
+						int aDistance = aGroup->mType == 5 ? 1 : aGroup->mRing;
+						unsigned aX = (unsigned)((aDeltaX * aDistance + aDeltaY * aSide) * 0x80 + aGroup->mPixelX);
+						unsigned aY = (unsigned)((aDeltaY * aDistance + aDeltaX * aSide) * 0x80 + aGroup->mPixelY);
+						Piece* aFound = GetPieceAt((float)(int)aX, (float)(int)aY);   // 0x73bc50
+						if (aDistance <= aGroup->mMaxDistance && aX < 0x400 && aY < 0x400) {
+							if (aX != (unsigned)aGroup->mPixelX || aY != (unsigned)aGroup->mPixelY) {
+								RingCell aCell;
+								aCell.mCol = (int)(aX >> 7);
+								aCell.mRow = (int)(aY >> 7);
+								aCell.mTimer = 0.0099999998f;
+								aGroup->mRingCells.push_back(aCell);
+							}
+							if (aFound != nullptr && !aFound->mClearHeld) {
+								bool aClaimed = false;
+								for (size_t g = 0; g < mMatchGroups.size(); g++) {
+									for (size_t m = 0; m < mMatchGroups[g]->mPieceIds.size(); m++) {
+										if (aFound->mId == mMatchGroups[g]->mPieceIds[m])
+											aClaimed = true;
+									}
+								}
+								if (!aClaimed) {
+									aAllLetGo = false;
+									if (aFound->mMatchTimer == 0.0f) {
+										aGroup->mPieceIds.push_back(aFound->mId);
+										aFound->mMatchTimer = 0.0099999998f;
+										DrawRingParticleRandoms();
+									}
+									float aHighest = aFound->mRingMark <= aFound->mMatchTimer ? aFound->mMatchTimer : aFound->mRingMark;
+									aFound->mRingMark = aHighest <= 1.0f ? aHighest : 1.0f;
+								}
+							}
+						}
+					}
+				}
+				// port: with no ring made yet (+0x48 is 0) the exe starts a sound through the app here
+				aGroup->mRing++;
+				if (aGroup->mMaxDistance <= aGroup->mRing && aAllLetGo) {
+					mRingFlash = 1.0f;
+					Piece* aFirst = aGroup->mPieceIds.empty() ? nullptr : FindPieceById(aGroup->mPieceIds[0]);
+					if (aFirst != nullptr) {
+						aFirst->mFlags &= ~4;
+						if ((aFirst->mFlags & 2) == 0) {
+							// slot 0x314 with the piece's cell, which returns at once
+							aFirst->mDestroyerFlags |= aFirst->mFlags;
+							aFirst->mBusyCount = 1;
+							aFirst->mDestroyerId = aFirst->mId;
+						}
+						else
+							ClearPiece(aFirst, aFirst);
+					}
+					aGroup->mLife = (float)((double)aGroup->mLife - 0.25);
+					for (int aRow = 0; aRow < ROWS; aRow++) {
+						for (int aCol = 0; aCol < COLS; aCol++) {
+							if (mGrid[aRow][aCol] != nullptr)
+								mGrid[aRow][aCol]->mFallSpeed = 0.0f;
+						}
+					}
+					if (aGroup->mLife <= 0.0f)
+						aEnded = true;
+				}
+			}
+		}
+		bool aCountdownEnded = false;
+		if (aGroup->mLifeCountdown > 0) {
+			aGroup->mLifeCountdown--;
+			aCountdownEnded = aGroup->mLifeCountdown == 0;
+		}
+		if (aCountdownEnded || aEnded) {
+			mMatchGroups.erase(mMatchGroups.begin() + aIndex);
+			if (mMatchGroups.empty() && !aReplayFlag)
+				FillInBlanks(true);   // slot 203 with 1, as the asm pushes
+			aIndex--;
+		}
+		else {
+			if (aGroup->mAge < aTurnLimit)
+				break;
+			aTurnLimit += 0x19;
+		}
+		aIndex++;
+	} while ((int)aIndex < (int)mMatchGroups.size());
+}
+
+// port: the stand-in for a plain match's clear (see PlainClear), which the exe does not make a group for. Each piece's timer
+// (+0x178, from 0.9) rises by 0.015 every update and, when it is past 1, the piece's busy count is set to 1 (UpdateGame
+// destroys it in the next update) and it leaves the list; the clear ends in the update its last piece is let go. A group lets
+// a piece go at 1 or more (UpdateMatchGroups); this keeps the port's earlier steps
+void Board::UpdatePlainClears()
+{
+	for (size_t i = 0; i < mPlainClears.size();) {
+		PlainClear& aGroup = mPlainClears[i];
 		for (size_t k = 0; k < aGroup.mPieceIds.size();) {
 			Piece* aPiece = FindPieceById(aGroup.mPieceIds[k]);
 			if (aPiece == nullptr) {
@@ -506,13 +804,13 @@ void Board::UpdateMatchGroups()
 			}
 			k++;
 		}
-		// the match ends when its pieces are gone
+		// the clear ends when its pieces are gone
 		if (aGroup.mPieceIds.empty()) {
 			bool aStillThere = false;
 			for (size_t k = 0; k < aGroup.mPieces.size() && !aStillThere; k++)
 				aStillThere = FindPieceById(aGroup.mPieces[k]->mId) == aGroup.mPieces[k] && aGroup.mPieces[k]->mBusyCount > 0;
 			if (!aStillThere) {
-				mMatchGroups.erase(mMatchGroups.begin() + i);
+				mPlainClears.erase(mPlainClears.begin() + i);
 				continue;
 			}
 		}

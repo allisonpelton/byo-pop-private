@@ -13,6 +13,7 @@
 #include "MTRand.h"
 #include "Widget.h"
 
+#include <memory>
 #include <vector>
 
 namespace Sexy {
@@ -46,7 +47,16 @@ public:
 	int mBusyCount;         // +0x230: above 0 while something is done to it: the fill waits for it; a piece whose count
 	                        // reaches 0 from 1 is destroyed (UpdateGame)
 	bool mSelected = false; // +0x23c: the player has picked it up (a click on it, waiting for the next gem)
-	float mMatchTimer = 0.0f;   // +0x178: 0.9 once it is part of a match, then 0.015 more each update; at 1 it is let go
+	bool mIsGroupOrigin = false;   // +0x174: a match group was made for it (0x789a90)
+	float mMatchTimer = 0.0f;   // +0x178: how far its clear has come. A match group (0x789a90) puts its first piece at 0.9 and a piece
+	                        // that its ring reaches at 0.01; 0x75dee0 adds 0.015 each update and lets the piece go at 1. port: a
+	                        // plain gem's match makes no group in the exe, so the stand-in for its clear (PlainClear) uses it too
+	bool mClearHeld = false;    // +0x17c: set while another clear holds the piece (a flame gem found by 0x74c570); a match group
+	                        // skips it and its ring does not reach it
+	bool mClearable = true;     // +0x182: 1 from the constructor (0x720120): a match group's timer only runs for such pieces
+	float mRingMark = 0.0f;     // +0x264: the highest timer (up to 1) a ring of a match group has seen on the piece (drawn only)
+	int mDestroyerId = -1;      // +0x234: the id of the piece that cleared it (0x75dee0, 0x74c570); nothing translated reads it
+	int mDestroyerFlags = 0;    // +0x238: the flags of what cleared it; nothing translated reads it
 	int mSwapUpdate = -1;   // +0x214: the update it was last swapped in
 	int mMatchedUpdate = -1;   // +0x210: the update it was matched in
 	int mGroupId = -1;      // +0x190: the id of the run that matched it (the board's counter, +0xe1c)
@@ -73,10 +83,42 @@ struct SwapRecord {
 	bool mDone;           // +0xf8 (set while it is checked for matches: the pieces are no longer held)
 };
 
-// A match (the exe's effect of 0x2e8 bytes made by 0x789a90, kept in the list at +0x125c): the pieces of the runs that cross
+// One cell of a match group's ring (the exe's 12-byte entry in the group's list at +0xa4, pushed by 0x75dee0)
+struct RingCell {
+	int mCol;         // +0
+	int mRow;         // +4
+	float mTimer;     // +8: 0.01 when pushed, 0.015 more each update; at 1 the entry goes
+};
+
+// A match group (the exe's effect of 0x2e8 bytes made by 0x789a90 for a gem with bit 4, a flame gem, or by 0x74c570, kept in
+// the list at +0x125c): rings that go out from its first piece and hit the cells around it, and the pieces that they find.
+// port: its child effects (the streaks of 0x789860, which draw the app's Rand() when they run), its curves and its sounds
+// are not translated; the fields that only they and the hypercube's update (0x7870f0, type 7) read are left out
 struct MatchGroup {
-	int mOriginId;           // +0x34
-	int mChainId;            // +0x1c
+	int mPixelX;               // +4: where the piece is, in 1200ths from the grid's corner, at its middle
+	int mPixelY;               // +8
+	int mAge;                  // +0xc: how many updates 0x78a390 has run for it
+	int mMaxDistance;          // +0x14: how far a ring goes: 3 for type 3, else 7
+	int mFlags;                // +0x1c: the first piece's flags (+0x228), which the pieces it clears take over
+	int mType;                 // +0x28: 2 or 3 (a match; 3, or 2 when the board's +0xe8 is set), 6 when the piece has bit 1
+	float mLife;               // +0x30: 1, and 0.25 less for each ring after the last distance has been reached; at 0 the group ends
+	int mOriginId;             // +0x34: the id of the first piece
+	int mTag;                  // +0x38: the first piece's tag (+0x188), the lowest tag its pieces take
+	int mRunId;                // +0x3c: the first piece's run id (+0x190)
+	int mRing;                 // +0x48: the rings made, which is also the distance of the next one from the first piece
+	float mRingTimer;          // +0x4c: counts down by 0.01 each update, a ring at 0 or below
+	float mFade;               // +0x2e0: 1, 0.01 less each update down to 0 (drawn only)
+	int mLifeCountdown;        // +0x2e4: updates left before it ends; 0 is off (nothing translated sets it)
+	std::vector<int> mPieceIds;    // +0x8c: the first piece's id, then the ids of the pieces its rings found
+	std::vector<RingCell> mRingCells;    // +0xa4
+};
+
+// The stand-in for the clear of a plain match. port: the exe makes no group for a plain gem (0x75af60 does so only for a gem
+// with bit 4) and the code that clears it was not found (docs/NOTES.md, "Matches"); this keeps what the port had: a run's
+// pieces take a timer from 0.9 and are let go when it passes 1 (0.015 a step, as a group's pieces)
+struct PlainClear {
+	int mOriginId;           // the id of the run's first piece
+	int mChainId;            // the highest tag of the run's pieces
 	int mUpdate;             // the update it was made in
 	std::vector<Piece*> mPieces;
 	std::vector<int> mPieceIds;
@@ -114,7 +156,11 @@ public:
 	int mMatchCounter = 0;           // +0xe1c: the next id of a move or a match
 	std::vector<MoveRecord> mMoveRecords;    // +0xc48
 	std::vector<SwapRecord> mSwaps;          // +0xc30
-	std::vector<MatchGroup> mMatchGroups;    // +0x125c
+	std::vector<std::unique_ptr<MatchGroup>> mMatchGroups;    // +0x125c (the exe's list holds pointers too)
+	std::vector<PlainClear> mPlainClears;    // port: see PlainClear
+	int mGroupTypeSwitch = 0;        // +0xe8: not 0 makes the groups of matches type 2 instead of 3 (nothing translated sets it)
+	float mGroupGlow = 0.0f;         // +0x27b8: 0.02 less each update, 0.05 more while a group lives, up to 1 (drawn only)
+	float mRingFlash = 0.0f;         // +0x1240: 1 when a group has made its last ring (drawn only)
 	std::vector<PendingSwap> mPendingSwaps;  // +0xc60
 	bool mMouseDown = false;         // +0x27d4: the button is held down since the last MouseDown
 	int mMouseDownX = 0;             // +0x27d8: where it went down, in pixels
@@ -190,8 +236,20 @@ public:
 	bool IsHeldBySwap(const Piece* thePiece) const;
 	// slot 201, 0x75af60 (bejeweled3): looks for runs of three or more and makes a match of each; returns how many
 	int FindMatches();
-	// 0x75dee0 (bejeweled3): the matches run, and let their pieces go
+	// 0x75dee0 (bejeweled3): the match groups run: their pieces' timers, their rings, their end. The stand-ins for plain matches
+	// are run by UpdatePlainClears
 	void UpdateMatchGroups();
+	void UpdatePlainClears();
+	// 0x789a90 (bejeweled3), for the types other than 7: a group is made for a piece and put at the end of the list
+	void MakeMatchGroup(Piece* thePiece, int theType);
+	// 0x73c9d0 (bejeweled3): the index of the group made for the piece (the group's +0x34 is its id), or -1
+	int FindMatchGroup(const Piece* thePiece) const;
+	// slot 200, 0x74c570 (bejeweled3): the piece is to be cleared by another piece; true when it took it
+	bool ClearPiece(Piece* thePiece, Piece* theBy);
+	// 0x75dee0 and 0x74c770 (bejeweled3): the draws of the app's Rand() that the 20 particles of a ring make for one piece
+	void DrawRingParticleRandoms();
+	// true when any group or any stand-in for a plain clear lives (the fill waits for them)
+	bool HasLiveMatches() const { return !mMatchGroups.empty() || !mPlainClears.empty(); }
 	// slot 200 (0x74c570) and 0x74c770 (bejeweled3): the piece is destroyed; slot 176, 0x755b80 (bejeweled3): it leaves the grid
 	void DestroyPiece(Piece* thePiece);
 	void DrawSparkRandoms();

@@ -97,6 +97,9 @@ void Board::ResetGame()
 	mMoveRecords.clear();
 	mSwaps.clear();
 	mMatchGroups.clear();
+	mPlainClears.clear();
+	mGroupGlow = 0.0f;   // 0x74a880: +0x27b8 and +0x1240
+	mRingFlash = 0.0f;
 	mPendingSwaps.clear();
 	mMouseDown = false;
 	mSelectedAtMouseUp = nullptr;
@@ -315,7 +318,7 @@ void Board::UpdateGame()
 	FindMatches();   // slot 201 (0x75af60)
 	if (mFillHeld == 0) {
 		// 0x73c9xx: the fill waits while a match is alive (the list at +0x125c)
-		if (mMatchGroups.empty())
+		if (!HasLiveMatches())
 			FillInBlanks(false);
 		UpdateSwaps();
 		UpdateFalling();
@@ -335,7 +338,7 @@ void Board::UpdateGame()
 			}
 		}
 	}
-	if (mMatchGroups.empty())
+	if (!HasLiveMatches())
 		FillInBlanks(false);
 	if (!IsSettled()) {
 		mShineOn = false;
@@ -380,7 +383,7 @@ bool Board::IsSettled()
 				return false;
 		}
 	}
-	if (!mMatchGroups.empty())
+	if (HasLiveMatches())
 		return false;
 	if (HasMatches())
 		return false;
