@@ -9,7 +9,9 @@
 #include "LogicMgr.h"
 #include "NotTranslated.h"
 #include "MainMenu.h"
+#include "PegInfo.h"
 #include "PhysObj.h"
+#include "SoundMgr.h"
 #include "PlayerInfo.h"
 #include "ThunderballApp.h"
 
@@ -223,6 +225,51 @@ bool ThunderballApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		aState += "\"}";
 		Reply(aState);
 		Reply((aLoaded ? "OK " : "ERROR ") + Words(theCommand));
+		return true;
+	}
+
+	if (theCommand.mCommand == "logic")
+	{
+		// logic <state> <steps> [<mouse x> <mouse y>] (-1: the state stays): on the level a loadlevel or resetlevel made, puts the turn in that state (1 is
+		// before the shot), moves the mouse there if told (the cannon follows it) and runs the logic's update that many times (not the
+		// board's: the pieces do not move). It tells the state, the aim, the cannon's, the pegs that flash and the counters.
+		int aState = 1, aSteps = 0, aX = -1, aY = -1;
+		int aWords = sscanf(theCommand.mArgs.c_str(), "%d %d %d %d", &aState, &aSteps, &aX, &aY);
+		if (aWords < 2 || mBoard == nullptr)
+		{
+			Reply("ERROR " + Words(theCommand) + ": needs a state and a number of steps, and a level");
+			return true;
+		}
+		Board* aBoard = static_cast<Board*>(mBoard);
+		LogicMgr* aLogic = aBoard->mLogicMgr.get();
+		if (aWords >= 4)
+		{
+			mWidgetManager->mLastMouseX = aX;
+			mWidgetManager->mLastMouseY = aY;
+			aLogic->MouseMove();
+		}
+		if (0 <= aState)
+			aLogic->SetState(aState);
+		for (int aStep = 0; aStep < aSteps; aStep++)
+		{
+			aLogic->Update();
+			aBoard->mSoundMgr->Update();
+		}
+		int aFlashing = 0, aBlinking = 0, aShown = 0;
+		for (std::list<SharedPtr<PhysObj> >::iterator anItr = aLogic->mPegs.begin(); anItr != aLogic->mPegs.end(); ++anItr)
+		{
+			PegInfo* anInfo = (*anItr)->mPegInfo.get();
+			aShown += (*anItr)->mVisible;
+			if (anInfo != nullptr && anInfo->mFlashTime > 0)
+				(anInfo->mFlashType == 10 ? aBlinking : aFlashing)++;
+		}
+		char aDigits[64];
+		snprintf(aDigits, sizeof(aDigits), "%.9g,\"cannon\":%.9g", (double)aLogic->mGunAngle, (double)aBoard->mGun->mAngle);
+		Reply("STATE {\"state\":" + std::to_string(aLogic->mState) + ",\"time\":" + std::to_string(aLogic->mStateTime) +
+			  ",\"gunAngle\":" + aDigits + ",\"turns\":" + std::to_string(aBoard->mGun->mTurns.size()) + ",\"shown\":" + std::to_string(aShown) + ",\"flashing\":" +
+			  std::to_string(aFlashing) + ",\"blinking\":" + std::to_string(aBlinking) + ",\"hint\":" +
+			  std::to_string(aLogic->mUnknown138) + ",\"maxLevel\":" + std::to_string(GetMaxLevel()) + ",\"onMax\":" + std::to_string(OnMaxLevel()) + ",\"sounds\":" + std::to_string(aBoard->mSoundMgr->mTime) + "}");
+		Reply("OK " + Words(theCommand));
 		return true;
 	}
 

@@ -72,7 +72,8 @@ public:
 	bool MouseDrag(int theX, int theY);					// 0x43d620
 	void MouseDown(int theX, int theY, int theButton, int theClickCount, bool theReplayed); // 0x?: the shot
 	void MouseUp(int theX, int theY, int theButton, bool theReplayed);
-	void UpdateGun();
+	bool CheckDoStealthHelperShot();					// 0x?
+	void UpdateGun();								// 0x46d630
 	void UpdateFreeBall();								// 0x440830
 	void RemoveHitPegs();
 	void UpdatePreShot();								// 0x466f10
@@ -85,6 +86,11 @@ public:
 	void UpdateInitLevel();								// 0x4484a0
 	void UpdateCharacterDialog();						// 0x4709f0
 	void UpdateZenShot();
+	void CheckDoCharacterDialog();					// 0x437360
+	void BeginTurn(bool theNextPlayer);					// 0x46e880
+	void BeginTurn2();								// 0x44b5b0
+	void DoLevelDone();								// 0x46a9c0
+	void FinishInitLevelText();						// 0x46c220
 	void MouseWheel(int theDelta);		// 0x43d6a0
 	void DoFeverMissed();		// 0x4372e0
 	void KillSlowMoSound();								// 0x4372c0
@@ -159,6 +165,7 @@ public:
 	int mUnknownE8;			 // +0xe8
 	bool mUnknownEC;		 // +0xec
 	bool mUnknownED;		 // +0xed
+	bool mUnknownEE;		 // +0xee: CheckDoStealthHelperShot's answer
 	int mUnknownF0;			 // +0xf0
 	bool mUnknownF4;		 // +0xf4
 	bool mUnknownF5;		 // +0xf5

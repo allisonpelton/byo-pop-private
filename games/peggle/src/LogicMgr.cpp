@@ -10,11 +10,15 @@
 #include "Board.h"
 #include "CharacterMgr.h"
 #include "Common.h"
+#include "EndLevelDialog.h"
+#include "Res.h"
+#include "WidgetManager.h"
 #include "Gun.h"
 #include "Hole.h"
 #include "InterfaceMgr.h"
 #include "NotTranslated.h"
 #include "PegInfo.h"
+#include "PhysObj.h"
 #include "PlayerInfo.h"
 #include "SoundInstance.h"
 #include "SoundMgr.h"
@@ -26,6 +30,20 @@
 
 using namespace Sexy;
 
+static const int INIT_LEVEL_PICTURE_WAIT = 30;	  // the updates a level with a full-size picture waits before its pegs come on (ModValInt, LogicMgr.cpp 1272, 4522)
+static const int PRESHOT_HINT_TIME_NEW = 50;	  // the update the first hint comes at in the first game (ModValInt, LogicMgr.cpp 1279, 4608)
+static const int PRESHOT_HINT_TIME = 140;		  // and later (1280, 4609)
+static const int PRESHOT_DEFAULT_BLINKS = 2;	  // the blinks of a hint when the rank says nothing of them (1281, 4614)
+static const int PRESHOT_BLINKS = 5;			  // the blinks of a hint (1282 to 1285)
+static const int PRESHOT_MANY_GOAL_PEGS = 10;	  // a level with more orange pegs than this blinks none of them (1286, 4636)
+static const int PRESHOT_LAST_PEGS_TIME = 75;	  // the update the last orange pegs flash at (1287, 4648)
+static const int PRESHOT_FEW_GOAL_PEGS = 6;		  // 'last' is this many or fewer (1288, 4654)
+static const int COMPUTER_THINK_TIME = 100;		  // the update the computer starts to think at, 150 while a replay is kept
+static const int COMPUTER_THINK_TIME_REPLAY = 150;
+static const int POST_SHOT_WAIT = 0x95;			  // the updates a game of two waits after a ball (a mode of two checks the ball has been shot for this long)
+static const int FIREBALL_ROW = 12;				  // the rows of mUnknown1D4 (a count for each player) that are the fireball's turns left
+static const int ZEN_ROW = 7;					  // and the zen ball's
+static const int CANNON_COCK_DELAY = 8;			  // the updates a cocked cannon waits before it may fire (ModValInt, LogicMgr.cpp 1412, 6042)
 static const float MOUSE_WHEEL_MOVE = 0.1f;			  // the base move of the mouse wheel (ModValFloat, LogicMgr.cpp 1053, 67)
 static const int TWO_PLAYER_BALLS = 6;				  // the balls each of two players starts with (ModValInt, LogicMgr.cpp 1058, 1150)
 static const int ONE_PLAYER_BALLS = 10;
@@ -792,10 +810,45 @@ void LogicMgr::MouseUp(int theX, int theY, int theButton, bool theReplayed)
 	NOT_TRANSLATED("LogicMgr::MouseUp");
 }
 
-// (address in the header)
+// 0x46d630: the cannon follows the aim; a click cocks it, and a cocked cannon with a ball fires
 void LogicMgr::UpdateGun()
 {
-	NOT_TRANSLATED("LogicMgr::UpdateGun");
+	Gun* aGun = mBoard->mGun.get();
+	if (aGun == nullptr)
+		return;
+	if (mUnknown1F && !mUnknownF5)
+	{
+		mUnknown1F = false;
+		EndLevelDialog* aDialog = mBoard->mEndLevelDialog;
+		if ((aDialog->mWidgetManager == nullptr || !aDialog->mVisible) && !mBoard->mUnknownEA)
+			CalcGunAngle(false);
+	}
+	if (aGun->SetAngle(mGunAngle, false) && aGun->mBall && 0 < mUnknown1D4[FIREBALL_ROW][mCurPlayer] && mState == 1)
+		NOT_TRANSLATED("LogicMgr::UpdateGun, the fireball's sparks");
+	if (mUnknownF0 < 1)
+	{
+		if (mUnknownED)
+		{
+			mUnknownED = false;
+			mUnknownEC = true;
+			mUnknownA0 = mBoard->mWidgetManager->mLastMouseX;
+			mUnknownA4 = mBoard->mWidgetManager->mLastMouseY;
+			mBoard->mSoundMgr->AddSound(SOUND_CANNONCOCK, 0, 0, 0, 1, -1.0f);
+			if (mUnknown1D4[ZEN_ROW][mCurPlayer] < 1)
+			{
+				mUnknownF0 = CANNON_COCK_DELAY;
+				mUnknownEE = CheckDoStealthHelperShot();
+				return;
+			}
+		}
+	}
+	else
+	{
+		mUnknownF0--;
+		mUnknownED = false;
+	}
+	if (mUnknownF0 == 0 && mUnknownEC && aGun->mBall && !mBoard->mUnknownC2 && mState != LOGIC_STATE_UNKNOWN10)
+		NOT_TRANSLATED("LogicMgr::UpdateGun, the shot (Gun::Fire, BeginShot) and the zen shot");
 }
 
 // (address in the header)
@@ -810,10 +863,56 @@ void LogicMgr::RemoveHitPegs()
 	NOT_TRANSLATED("LogicMgr::RemoveHitPegs");
 }
 
-// (address in the header)
+// 0x466f10: the hints of a level the player has not started: at the update 50 (a first game's first shot) or 140 (otherwise)
+// the pegs the level's rank points at blink, at 75 the last few orange pegs flash, and a computer player starts thinking
 void LogicMgr::UpdatePreShot()
 {
-	NOT_TRANSLATED("LogicMgr::UpdatePreShot");
+	int aMaxLevel = mBoard->mApp->GetMaxLevel();
+	int aScore = mPlayerStats[0].mTotalScore;
+	if ((mStateTime == PRESHOT_HINT_TIME_NEW && aScore == 0) || (mStateTime == PRESHOT_HINT_TIME && 1 <= aScore))
+	{
+		int aKind = 2;
+		int aBlinks = PRESHOT_DEFAULT_BLINKS;
+		if (!mBoard->mApp->OnMaxLevel() || aScore != 0)
+		{
+			if (aMaxLevel == 0 || aMaxLevel == 1)
+				aBlinks = PRESHOT_BLINKS;
+		}
+		else if (aMaxLevel == 0 || aMaxLevel == 1)
+			aBlinks = PRESHOT_BLINKS;
+		else if (aMaxLevel == 2 || (aMaxLevel == (aMaxLevel / 5) * 5 && 0 < aMaxLevel && aMaxLevel < 26))
+		{
+			aKind = 4;
+			aBlinks = PRESHOT_BLINKS;
+		}
+		else if (aMaxLevel == 3)
+		{
+			aKind = 3;
+			aBlinks = PRESHOT_BLINKS;
+		}
+		if (PRESHOT_MANY_GOAL_PEGS < (int)mGoalPegs.size() && ((aMaxLevel != 0 && aMaxLevel != 1) || 0 < aScore))
+			aKind = 0;
+		for (std::list<SharedPtr<PhysObj> >::iterator anItr = mPegs.begin(); anItr != mPegs.end(); ++anItr)
+		{
+			PhysObj* aPeg = anItr->get();
+			if (aPeg->mPegInfo && aPeg->mPegInfo->mKind == aKind && aPeg->mVisible)
+				aPeg->mPegInfo->DoFlashBlink(aBlinks);
+		}
+	}
+	if (mStateTime == PRESHOT_LAST_PEGS_TIME && (int)mGoalPegs.size() <= PRESHOT_FEW_GOAL_PEGS)
+	{
+		for (PegSet::iterator anItr = mGoalPegs.begin(); anItr != mGoalPegs.end(); ++anItr)
+		{
+			PegInfo* aInfo = (*anItr)->mPegInfo.get();
+			if (aInfo != nullptr && !aInfo->mHit)
+				aInfo->DoFlash(1);
+		}
+	}
+	if (1 < mUnknown138 && ++mUnknown138 == 30)
+		mUnknown138 = 0;
+	int aThinkTime = mBoard->mReplayCount == 0 ? COMPUTER_THINK_TIME : COMPUTER_THINK_TIME_REPLAY;
+	if (IsComputerTurn() && aThinkTime <= mStateTime && !mBoard->mAIMgr->mUnknown4D)
+		NOT_TRANSLATED("LogicMgr::UpdatePreShot, the computer starts thinking (AIMgr::BeginThinking)");
 }
 
 // (address in the header)
@@ -840,23 +939,59 @@ void LogicMgr::UpdateLevelDone()
 	NOT_TRANSLATED("LogicMgr::UpdateLevelDone");
 }
 
-// (address in the header)
+// 0x471600
 void LogicMgr::UpdatePostPostShot()
 {
-	NOT_TRANSLATED("LogicMgr::UpdatePostPostShot");
+	if ((!mTwoPlayer || POST_SHOT_WAIT < mStateTime) && mBoard->mInterfaceMgr->mUnknown160)
+	{
+		if (ClearedLevel())
+			DoLevelDone();
+		else
+			BeginTurn(true);
+	}
 }
 
-// (address in the header)
+// 0x44b690
 void LogicMgr::UpdateShotExtender()
 {
-	NOT_TRANSLATED("LogicMgr::UpdateShotExtender");
+	if (mBoard->mInterfaceMgr->mUnknown160)
+		BeginTurn2();
 }
 
-// (address in the header)
+// 0x4484a0: the level's pegs come on one to an update (once the picture is in, 30 updates after the start), then the player is
+// asked for the master and the stage
 void LogicMgr::UpdateInitLevel()
 {
-	NOT_TRANSLATED("LogicMgr::UpdateInitLevel");
+	if (mBoard->mUnknownE8 && mStateTime < INIT_LEVEL_PICTURE_WAIT)
+		return;
+	bool aShown = false;
+	for (std::list<SharedPtr<PhysObj> >::iterator anItr = mPegs.begin(); anItr != mPegs.end() && !aShown; ++anItr)
+	{
+		PhysObj* aPeg = anItr->get();
+		if (!aPeg->mVisible && aPeg->mCollidable)
+		{
+			aPeg->mVisible = true;
+			if (aPeg->mPegInfo->mKind != 1)
+				aPeg->mPegInfo->DoFlash(1);
+			aShown = true;
+		}
+	}
+	if (aShown)
+		return;
+	PlayerInfo* aPlayer = mBoard->mApp->mCurrentPlayer;
+	if (mTwoPlayer && !mUnknown21 && aPlayer != nullptr && aPlayer->mUnknownEE)
+		NOT_TRANSLATED("LogicMgr::UpdateInitLevel, the Duel Rules dialog");
+	if (mBoard->mApp->GetDialogCount() == 0)
+	{
+		if (0 < mUnknown28)
+		{
+			mUnknown28--;
+			return;
+		}
+		CheckDoCharacterDialog();
+	}
 }
+
 
 // (address in the header)
 void LogicMgr::UpdateCharacterDialog()
@@ -868,4 +1003,82 @@ void LogicMgr::UpdateCharacterDialog()
 void LogicMgr::UpdateZenShot()
 {
 	NOT_TRANSLATED("LogicMgr::UpdateZenShot");
+}
+
+// 0x467ca0: in the adventure, a player who has beaten no adventure yet is given a helper shot when the balls left are as few as
+// the level's rank says (the first levels, with no starting level asked for, get the most)
+bool LogicMgr::CheckDoStealthHelperShot()
+{
+	PlayerInfo* aPlayer = mBoard->mApp->mCurrentPlayer;
+	if (mBoard->mGameMode != GAME_MODE_ADVENTURE || aPlayer == nullptr || 1 <= aPlayer->mAdventuresBeaten)
+		return false;
+	ThunderballApp* anApp = mBoard->mApp;
+	int aRank = mLevelType - 1;
+	int aBalls = 0;
+	if (anApp->mStartStage == 0)
+	{
+		aRank = mLevelType;
+		if (anApp->mStartLevel == 0)
+			aBalls = 6;
+	}
+	if (aRank < 4 || 2 < aBalls)
+	{
+		if (aRank < 3 || 1 < aBalls)
+		{
+			if (1 < aRank && aBalls == 0)
+				aBalls = 1;
+		}
+		else
+			aBalls = 2;
+	}
+	else
+		aBalls = 3;
+	if (mNumBalls[mCurPlayer] <= aBalls)
+		NOT_TRANSLATED("LogicMgr::DoHelperShot");
+	return false;
+}
+
+// 0x46e880
+void LogicMgr::BeginTurn(bool theNextPlayer)
+{
+	NOT_TRANSLATED("LogicMgr::BeginTurn");
+}
+
+// 0x44b5b0
+void LogicMgr::BeginTurn2()
+{
+	NOT_TRANSLATED("LogicMgr::BeginTurn2");
+}
+
+// 0x46a9c0
+void LogicMgr::DoLevelDone()
+{
+	NOT_TRANSLATED("LogicMgr::DoLevelDone");
+}
+
+// 0x46c220
+void LogicMgr::FinishInitLevelText()
+{
+	NOT_TRANSLATED("LogicMgr::FinishInitLevelText");
+}
+
+// 0x437360: asks for the stage (an adventure's first ten levels) or the master, and waits in the state 9
+void LogicMgr::CheckDoCharacterDialog()
+{
+	bool aFirstTime = mUnknown100 == false;
+	mUnknown100 = false;
+	if (mBoard->mApp->mCurrentPlayer != nullptr)
+	{
+		int aMode = mBoard->mGameMode;
+		if (aMode == GAME_MODE_ADVENTURE)
+		{
+			if (mUnknown15C < 10 /* the player's stage */)
+				NOT_TRANSLATED("Board::DoStageDialog");
+			NOT_TRANSLATED("Board::DoCharacterDialog");
+		}
+		else if (aMode == GAME_MODE_QUICK_PLAY || aMode == GAME_MODE_DUEL || aMode == GAME_MODE_CHALLENGE)
+			NOT_TRANSLATED("Board::DoCharacterDialog");
+	}
+	(void)aFirstTime;
+	SetState(9);
 }

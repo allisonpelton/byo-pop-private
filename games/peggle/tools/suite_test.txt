@@ -9,4 +9,13 @@
 10 resetlevel 1 levels/3d.dat hidden,mode=1
 11 resetlevel 2 levels/3d.dat hidden,mode=6
 12 resetlevel 5 levels/car.dat
-14 quit
+13 profile suitehint
+14 resetlevel 7 levels/car.dat hidden,mode=0
+15 logic 8 40
+16 logic -1 70
+17 logic -1 1
+18 logic 1 49 300 200
+19 logic -1 1
+20 logic -1 25 600 100
+21 logic -1 120
+22 quit
