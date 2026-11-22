@@ -25,8 +25,16 @@ class Board;
 class Piece {
 public:
 	enum { NO_COLOR = -1, COLOR_COUNT = 7 };
-	// +0x228: what the gem is (the bits the fill reads; the specials come with their steps)
-	enum { FLAG_RANDOM_PICK = 0x60 };
+	// +0x228: what the gem is. Named by what the exe does with the bit (0x745ca0, 0x749570, 0x7494d0 set them): a 4-run makes
+	// FLAG_BLAST, a run of 5 FLAG_HYPERCUBE, a crossing FLAG_LINES, a run of 6 or more both FLAG_LINES and FLAG_BLAST. The other bits
+	// (0x10, 0x80, 0x400, 0x800, 0x1000, 0x2000, 0x8000, 0x20000, 0x80000) belong to other modes: nothing in Classic sets them
+	enum {
+		FLAG_BLAST = 1,        // goes off as a 3 by 3 explosion (Explode, 0x73f8e0), which sets neighbours with this bit off in turn
+		FLAG_HYPERCUBE = 2,    // swapped with a neighbour it clears every gem of that one's colour (0x740f20, 0x74db70, 0x7870f0)
+		FLAG_LINES = 4,        // when matched it makes a match group whose rings run along its row and column (0x789a90, 0x75dee0)
+		FLAG_RANDOM_PICK = 0x60,
+		FLAGS_SPECIAL_MADE = 0x2e0   // the bits 0x745ca0, 0x749570 and 0x7494d0 clear from the flags (the mask 0xfffffd1f)
+	};
 
 	Board* mBoard;          // +0
 	int mId;                // +4: the board's piece counter (+0xf4) when it was made
@@ -42,14 +50,17 @@ public:
 	                        // the piece is matched, UpdatePiecePulses a shrink after it and then the piece's removal
 	bool mCanFall;          // +0x17e: set by every pass of the fill over it
 	bool mCanSwap;          // +0x17f: 1 at the start
-	int mSpecialState;      // +0x20c: -1 keeps it from falling
+	CurvedVal mSlideCurve;  // +0x198: the piece's slide towards mSlideCol and mSpecialState (the cluster of a special that is made: 0x75cd40 to 0x75d851;
+	                        // idle at the start); while it is not at 0 the piece is drawn that far along (0x769189) and is not removed
+	int mSlideCol = 0;          // +0x208: the column a slide goes to
+	int mSpecialState;      // +0x20c: the row a slide goes to; -1 keeps it from falling
 	int mMovedUpdate;       // +0x218: the board's update count when it was made and when it last moved (set while its speed is not 0)
 	int mColor;             // +0x220: -1 for none, else 0 to 6 (red, white, green, yellow, purple, orange, blue)
 	int mFlags;             // +0x228: 0 for a plain gem
 	int mBusyCount;         // +0x230: above 0 while something is done to it: the fill waits for it; a piece whose count
 	                        // reaches 0 from 1 is destroyed (UpdateGame)
 	bool mSelected = false; // +0x23c: the player has picked it up (a click on it, waiting for the next gem)
-	bool mIsGroupOrigin = false;   // +0x174: a match group was made for it (0x789a90)
+	bool mIsGroupOrigin = false;   // +0x174: a match group was made for it (0x789a90), or a hypercube's group has picked it (0x7870f0)
 	float mMatchTimer = 0.0f;   // +0x178: how far its clear has come. A match group (0x789a90) puts its first piece at 0.9 and a piece
 	                        // that its ring reaches at 0.01; 0x75dee0 adds 0.015 each update and lets the piece go at 1. A plain
 	                        // gem's match makes no group, so a plain gem never uses it (its scale curve, mScaleCurve, clears it)
@@ -62,6 +73,10 @@ public:
 	int mSwapUpdate = -1;   // +0x214: the update it was last swapped in
 	int mMatchedUpdate = -1;   // +0x210: the update it was matched in
 	int mGroupId = -1;      // +0x190: the id of the run that matched it (the board's counter, +0xe1c)
+	int mRememberedColor = -1;   // +0x21c: its colour when it was matched (a hypercube has none, +0x220 is -1, so a run that holds it still
+	                        // counts it for the colour it had); the matcher reads it for a piece matched in this update
+	int mSpecialCountdown = 0;   // +0x184: 25 when a special was made on it (0x745ca0, 0x749570, 0x7494d0), counts down by one each update
+	                        // (UpdateGame); the 3 by 3 explosion and the busy-count branch leave a piece alone while it is above 0
 
 	explicit Piece(Board* theBoard);   // 0x7203b0 (bejeweled3), with 0x720120 (bejeweled3)
 };
@@ -102,7 +117,9 @@ struct MatchGroup {
 	int mAge;                  // +0xc: how many updates 0x78a390 has run for it
 	int mMaxDistance;          // +0x14: how far a ring goes: 3 for type 3, else 7
 	int mFlags;                // +0x1c: the first piece's flags (+0x228), which the pieces it clears take over
-	int mType;                 // +0x28: 2 or 3 (a match; 3, or 2 when the board's +0xe8 is set), 6 when the piece has bit 1
+	int mType;                 // +0x28: 2 or 3 (a match; 3, or 2 when the board's +0xe8 is set), 6 when the piece has bit 1, 7 a hypercube's
+	int mColor;                // +0x10: for type 7, the colour it clears (-1: every colour)
+	std::vector<float> mBoltLives;   // +0x74: the bolts of lightning (0x786be0, 0x8c bytes each; 0 at the start); only each one's life (+0x80) is kept
 	float mLife;               // +0x30: 1, and 0.25 less for each ring after the last distance has been reached; at 0 the group ends
 	int mOriginId;             // +0x34: the id of the first piece
 	int mTag;                  // +0x38: the first piece's tag (+0x188), the lowest tag its pieces take
@@ -228,14 +245,35 @@ public:
 	int FindMatches();
 	// 0x75dee0 (bejeweled3): the match groups run: their pieces' timers, their rings, their end
 	void UpdateMatchGroups();
-	bool IsPulsing(Piece* thePiece);
 	void UpdatePiecePulses();   // the loop of 0x767e20 (0x768f7b to 0x7690b8) over the pieces' scale curves
 	// 0x789a90 (bejeweled3), for the types other than 7: a group is made for a piece and put at the end of the list
-	void MakeMatchGroup(Piece* thePiece, int theType);
+	MatchGroup* MakeMatchGroup(Piece* thePiece, int theType);
 	// 0x73c9d0 (bejeweled3): the index of the group made for the piece (the group's +0x34 is its id), or -1
 	int FindMatchGroup(const Piece* thePiece) const;
 	// slot 200, 0x74c570 (bejeweled3): the piece is to be cleared by another piece; true when it took it
 	bool ClearPiece(Piece* thePiece, Piece* theBy);
+	// slots 166, 167 and 168 (0x745ca0, 0x749570, 0x7494d0, bejeweled3): the piece becomes a blast gem (FLAG_BLAST), a hypercube
+	// (FLAG_HYPERCUBE; theWithEffect is the exe's second argument) or a lines gem (FLAG_LINES)
+	void MakeBlastGem(Piece* thePiece);
+	void MakeHypercube(Piece* thePiece, bool theWithEffect);
+	void MakeLinesGem(Piece* thePiece);
+	// slot 198, 0x74d940 with 0x73f8e0 (bejeweled3): a blast gem at a place (in pixels, the middle of its cell) goes off
+	void Explode(int theX, int theY);
+	// 0x73f8e0 (bejeweled3): the draws of the app's Rand() that the particles of the explosion make for one neighbour of the blast
+	void DrawExplosionRandoms();
+	// slot 179, 0x740f20 (bejeweled3): a hypercube is swapped with a piece: it starts its group at once, and no swap is made
+	void StartHypercube(Piece* theCube, Piece* thePartner);
+	// slot 180, 0x74db70 (bejeweled3): the hypercube makes its group (type 7) for the colour (-1: every colour)
+	void MakeHypercubeGroup(Piece* theCube, int theColor);
+	// 0x7870f0 (bejeweled3), run by 0x78a390 for a group of type 7: picks the pieces of the colour one by one, makes a bolt to each,
+	// and clears the ones whose timers have come to 1
+	void UpdateHypercubeGroup(MatchGroup* theGroup);
+	// 0x767e20 (bejeweled3), from 0x7682b0 to 0x768b3f: the countdowns of the specials (+0x184) and the busy counts (+0x230): a piece
+	// whose count comes to 0 goes off, is cleared by another or is destroyed
+	void UpdateBusyPieces();
+	// 0x767e20 (bejeweled3), 0x767ad0 and 0x769155 to 0x769281: the pieces' slide curves step and put the pieces along their slides
+	void StepSlideCurves();
+	void UpdateSlidePositions();
 	// 0x75dee0 and 0x74c770 (bejeweled3): the draws of the app's Rand() that the 20 particles of a ring make for one piece
 	void DrawRingParticleRandoms();
 	// true when any match group lives (the fill waits for them)

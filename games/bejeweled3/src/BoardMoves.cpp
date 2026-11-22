@@ -10,7 +10,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <climits>
 #include <cstdlib>
+#include <map>
+#include <set>
 
 namespace Sexy {
 
@@ -23,6 +26,72 @@ const int FLAGS_NO_SWAP = 0x100;
 // What the exe's curves of the swaps are: the 0x85efb0 string for the swap and the 0x85fe00 one for the swap back
 const char* const SWAP_CURVE = "b+-1,1,0.033333,1,~x:*    }Ppt+     $#LPR";
 const char* const SWAP_BACK_CURVE = "b+-1,1,0.022222,1,#$)h B####    cObb4   z~LPQ";
+
+// The exe's sets of pieces (local_27c, local_224, local_244, local_1fc, local_1dc of 0x75af60) are std::sets ordered by the
+// pieces' addresses; here they are ordered by id, which every run of the game keeps the same
+struct PieceIdLess {
+	bool operator()(const Piece* theFirst, const Piece* theSecond) const { return theFirst->mId < theSecond->mId; }
+};
+typedef std::set<Piece*, PieceIdLess> PieceSet;
+
+// One run that was kept (the exe's 0x24-byte entry in the vector at local_25c): its pieces and the tag they carry
+struct MatchCluster {
+	std::vector<Piece*> mPieces;   // +0xc
+	int mTag;                      // +0x1c
+};
+
+// One entry of the map at local_198 (the key is the centre piece): the piece at the middle of a run of 4 or more, how long the
+// run is, and the piece next to it that is made the special instead when the centre is already a lines gem
+struct SpecialCandidate {
+	Piece* mCentre;
+	int mCount;
+	Piece* mNeighbour;
+};
+
+// What 0x75cd40 gives the other pieces of a cluster that merges into a special: the scale curve (0x85f138) and the slide curve (0x85f164)
+const char* const MERGE_SCALE_CURVE = "b+0,1,0.033333,1,~zL>         %]Bt(|#:M@";
+const char* const MERGE_SLIDE_CURVE = "b+0,1,0.033333,1,#.ht         ~~W[d";
+
+// 0x75b6xx to 0x75b78a, the second test that holds a run back (the exe's local_3b3 + 0x6d): from any of its gems, in the direction of the run
+// up to 7 cells of the gem's colour in a row hold a gem that could still settle there (a bVar5 of the exe: not at rest, but free: not
+// held by a swap, able to fall, no busy count, no pulse and no slide running, no bit 0x2000), or, across the run, the same-colour cells on both
+// sides of the gem number 2 or more and one of them could still settle
+bool RunIsHeldBack(Board* theBoard, const std::vector<Piece*>& theRun, bool theAlongRow)
+{
+	static const int DIRECTIONS[4][2] = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
+	for (size_t k = 0; k < theRun.size(); k++) {
+		Piece* aGem = theRun[k];
+		bool aAlongCouldSettle = false;
+		bool aAcrossCouldSettle = false;
+		int aAcrossCount = 0;
+		for (int aDirection = 0; aDirection < 4; aDirection++) {
+			// directions 0 and 1 go down and up a column, 2 and 3 along a row; the run's own direction is the first pair
+			// in the first pass (down a column) and the second pair in the second
+			bool aInRunDirection = (aDirection / 2 == (theAlongRow ? 1 : 0));
+			for (int aStep = 1; aStep < 8; aStep++) {
+				int aRow = aGem->mRow + DIRECTIONS[aDirection][0] * aStep;
+				int aCol = aGem->mCol + DIRECTIONS[aDirection][1] * aStep;
+				if (aRow < 0 || aRow >= Board::ROWS || aCol < 0 || aCol >= Board::COLS)
+					break;
+				Piece* aNeighbour = theBoard->mGrid[aRow][aCol];
+				if (aNeighbour == nullptr || aNeighbour->mColor != aGem->mColor)
+					break;
+				bool aCouldSettle = !Board::PieceIsSettled(aNeighbour) && aNeighbour->mScaleCurve.mRamp != CurvedVal::RAMP_CURVEDATA &&
+					!theBoard->IsHeldBySwap(aNeighbour) && aNeighbour->mCanFall && aNeighbour->mBusyCount == 0 &&
+					aNeighbour->mSlideCurve.GetOutVal() == 0.0 && (aNeighbour->mFlags & 0x2000) == 0;
+				if (aInRunDirection)
+					aAlongCouldSettle = aAlongCouldSettle || aCouldSettle;
+				else {
+					aAcrossCount++;
+					aAcrossCouldSettle = aAcrossCouldSettle || aCouldSettle;
+				}
+			}
+		}
+		if (aAlongCouldSettle || (aAcrossCount >= 2 && aAcrossCouldSettle))
+			return true;
+	}
+	return false;
+}
 
 // 0x73bc50 (bejeweled3): the piece whose cell (as it is drawn, in 1200ths from the grid's corner) holds the place
 }  // namespace
@@ -254,6 +323,25 @@ bool Board::StartSwap(Piece* thePiece, int theRow, int theCol)
 	thePiece->mColumnTag = aMoveId;
 	if (aOther != nullptr)
 		aOther->mColumnTag = aMoveId;
+	// 0x75f0xx: a hypercube swapped with a gem does not swap: it clears the colour of that gem (0x740f20); one next to a gem that cannot
+	// be cleared stays; one with no gem beside it takes the swap below
+	bool aFirstIsCube = (thePiece->mFlags & Piece::FLAG_HYPERCUBE) != 0;
+	bool aSecondIsCube = aOther != nullptr && (aOther->mFlags & Piece::FLAG_HYPERCUBE) != 0;
+	if (aFirstIsCube && aOther != nullptr) {
+		if (!aOther->mClearable)
+			return false;
+		StartHypercube(thePiece, aOther);
+		return true;
+	}
+	if (aSecondIsCube) {
+		if (!thePiece->mClearable)
+			return false;
+		StartHypercube(aOther, thePiece);
+		return true;
+	}
+	thePiece->mMovedUpdate = mUpdateCnt;   // 0x75f8fc
+	if (aOther != nullptr)
+		aOther->mMovedUpdate = mUpdateCnt - 1;
 	SwapRecord aSwap;
 	aSwap.mFirst = thePiece;
 	aSwap.mSecond = aOther;
@@ -351,133 +439,320 @@ void Board::UpdateSwaps()
 	}
 }
 
-// 0x75af60 (bejeweled3), for plain gems. The board is read twice: first down each column and then along each row
-// (the exe's outer loop runs over the first index of its grid expression, which is the column in the first pass). A cell
-// takes part when its piece is at rest (0x755ad0) or was already matched in this update (then its remembered colour counts,
-// +0x21c); a run is such cells of one colour, and a run of 3 or more is one match of its own: a crossing is two matches that
-// share a gem, not one. Every run of 3 or more takes the next id of the board's counter (+0xe1c) before it is judged, whether
-// it is kept or not. A run is held back (the board is searched again in the next update) when, from any of its gems, in
-// the direction of the run up to 7 cells of the gem's colour in a row hold a gem that could still settle there (a bVar5 of
-// the exe: not at rest, but free: not held by a swap, able to fall, no busy count, no curve running, no bit 0x2000), or
-// when, across the run, the same-colour cells on both sides of the gem number 2 or more and one of them could still settle.
-// A kept run's gems take the highest tag (+0x188) among them and the run's id (+0x190), and the run scores
-// (X - 3 + n) * 50 (X: how many matches the move has made, this one counted, at least 1) and (n - 4) * 350 more from 5 gems,
-// through AddPoints. port: left out are the set of 0x75b0xx that holds a run back (local_224 of the exe, its meaning not
-// found) and the swap-list flag (+0xf9) of the same test, the flame, star and hypercube that a run of 4, 5 or a crossing
-// makes (the lists of 0x75c0xx to 0x75cdxx), the pieces with bits (0x1, 0x4, 0x10, 0x400, 0x80000), the speed bonus, the
-// sounds, the second visit of a gem that two runs share and the effect objects (the pulse curve is set, as 0x75bcd0 does; the
-// exe's way to keep a pulsing gem out of the next update's runs was not found, IsPulsing stands in). The stats of 0x73d170 are only kept for the count of matches (stat 0x1a)
+// 0x75af60 (bejeweled3), slot 201, called with three zeros (0x767e20 at 0x768143; 0x759ba0 for a swap that has come to its end).
+// The board is read twice: first down each column and then along each row (the exe's outer loop runs over the first index of its grid
+// expression, which is the column in the first pass). A cell goes on with the run of the cell before it when its piece is free (its
+// scale curve (+0x20) does not run a pulse (type 6), no swap holds it, it can fall, has no busy count, no slide (+0x198) and no
+// bit 0x2000) or was already met in this call, and its colour is the run's colour: the piece's colour (+0x220), or the remembered
+// one (+0x21c) when it was matched in this update. A cell whose piece is not at rest (0x755ad0) and was not met in this call, or
+// sits in a held run, holds the run back (the board is searched again in the next update). A run of 3 or more takes the next id
+// of the board's counter (+0xe1c) before it is judged, whether it is held or not. A held run's gems take the run's tag, which is
+// the highest tag (+0x188) among them, and go into the set of held runs, so a run that crosses it is held too. A run is also held
+// back when RunIsHeldBack says so.
+// A run that is kept takes the run's id (+0x190) and tag for its gems and makes a cluster. In it:
+//  - a gem with bit 1 is listed to go off (the list of 0x110, below);
+//  - a gem with bit 4 that was not matched in this update gets a match group (0x789a90) if it has none, and goes no further;
+//  - a gem matched in this update, with a colour, and with no bits or bit 1 (the second visit: it is in two runs, a crossing)
+//    gets the scale curve 1 back, goes into the set of targets and the set of gems met twice;
+//  - any other gem is met for the first time: its scale curve starts a pulse (0x85f07c when a gem of the run was swapped in this
+//    update, else 0x85f0a4), as quick as gravity (slot 0x1dc), it is matched in this update (+0x210), remembers its colour (+0x21c)
+//    and goes into the set of gems met; one with no bits is also listed by its last move (+0x218) and by its place.
+// The gem at the middle of the run (the one moved last, the middle one of those when more than one was; or, of the plain gems, the
+// last with a gem of its colour on both sides of it across the run) and a plain gem next to it (up to two cells from it towards the
+// longer side of the run) go into the map of special candidates with the run's length when it is 4 or more (the exe asks for 6 or
+// more, 5 or more with a centre that is not a lines gem, and 4 or more: the same record each time; the help boxes (0x745bf0) of each
+// kind are left out, see below), and both take the run's tag.
+// When both passes are over: the listed gems with bit 1 have the flags that clear them noted, busy count 1 + their place in the
+// list, themselves as the destroyer and a scale curve 1; each gem met twice with bit 1 goes off at once (busy count 1, flags 0) and
+// then, as a crossing, becomes a lines gem (slot 0x2a0: the exe's slot 0x174 is true in Classic, where slot 0x298 would do the
+// same for a board where it is not); each candidate makes its special on the gem it is for (the centre, or its neighbour when the
+// centre is a lines gem), if that has no bits: a run of 4 a blast gem (slot 0x298), a run of 5 a hypercube (slot 0x29c), a run of
+// 6 or more a lines gem and a blast gem; the gem is then matched in this update, remembers its colour (if it has one) and has the
+// scale curve 1. Each cluster then
+//  - freezes (scale 1, cannot fall) when a gem of it has bit 4 and was not matched in this update;
+//  - else, when a gem of it is a target, sends the others to that one (the plain ones and the ones with bit 0x80: a scale curve
+//    0x85f138 and a slide curve 0x85f164, each as quick as gravity, and the cell to go to);
+//  - scores: (X - 3 + n) * 50 and (n - 4) * 350 more from 5 gems, through AddPoints (X: how many matches the move and its cascades
+//    have made, this one counted, at least 1; n: the gems of the cluster).
+// The exe returns whether a match was made; here it is how many.
+// port: the swap-list flag (+0xf9) of 0x75b02b to 0x75b08b (it holds every run while a swap of that kind is going; where the exe
+// sets it was not found), the colour test of slot 0x24c and the second argument (which 0x759ba0 and 0x767e20 never set), the help
+// boxes of slot 0x20c (0x73c4c0: true while the player has not seen the help of that special; here every help is seen, see Oddities
+// in docs/NOTES.md), the sets that only those boxes and the other modes fill (local_244 and local_13c, the bits 0x10, 0x80, 0x400,
+// 0x800, 0x1000, 0x2000, 0x8000, 0x80000 of the flags), the speed bonus (+0x1371), the stats of 0x73d170 (only the count of matches,
+// stat 0x1a, is kept), the sounds, the effects and the pulse's speed (+0x170, which the exe sets to 0 for a piece that is at rest
+// anyway). The map of candidates is ordered by the pieces' addresses in the exe, here by id
 int Board::FindMatches()
 {
-	struct Run {
-		std::vector<Piece*> mPieces;
-		bool mAlongRow;
+	PieceSet aMatchedHere;      // local_27c: the gems met for the first time in this call
+	PieceSet aHeldRunGems;      // local_224: the gems of the runs that were held
+	PieceSet aTargets;          // local_1fc: where the specials are made, and the gems met twice
+	PieceSet aMetTwice;         // local_1dc: the gems that two runs share
+	std::map<int, SpecialCandidate> aCandidates;   // local_198
+	std::vector<MatchCluster> aClusters;           // local_25c
+	std::vector<Piece*> aGoingOff;                 // the list at 0x110
+	int aMatchCount = 0;
+	const int aUpdate = mUpdateCnt;
+
+	// one run of 3 or more is over: the cells it covers are (mFirstCol, mFirstRow) to (mLastCol, mLastRow)
+	struct RunEnd {
+		int mPass;
+		int mLastCol;
+		int mLastRow;
+		int mFirstCol;
+		int mFirstRow;
+		bool mHeld;
 	};
-	std::vector<Run> aRuns;
-	for (int aPass = 0; aPass < 2; aPass++) {
-		for (int aOuter = 0; aOuter < 8; aOuter++) {
-			int aRunColor = -1;
-			std::vector<Piece*> aRun;
-			for (int aInner = 0; aInner <= 8; aInner++) {
-				Piece* aPiece = nullptr;
-				int aColor = -1;
-				if (aInner < 8) {
-					aPiece = aPass == 0 ? mGrid[aInner][aOuter] : mGrid[aOuter][aInner];
-					if (aPiece != nullptr && !IsPulsing(aPiece) && PieceIsSettled(aPiece))
-						aColor = aPiece->mColor;
-					else
-						aPiece = nullptr;
-				}
-				if (aColor != -1 && aColor == aRunColor) {
-					aRun.push_back(aPiece);
-					continue;
-				}
-				if (aRun.size() >= 3) {
-					Run aFound;
-					aFound.mPieces = aRun;
-					aFound.mAlongRow = aPass == 1;
-					aRuns.push_back(aFound);
-				}
-				aRun.clear();
-				aRunColor = aColor;
-				if (aColor != -1)
-					aRun.push_back(aPiece);
-			}
-		}
-	}
-	int aCount = 0;
-	for (size_t aRunIndex = 0; aRunIndex < aRuns.size(); aRunIndex++) {
-		Run& aRun = aRuns[aRunIndex];
+	auto aEndRun = [&](const RunEnd& theRun, const std::vector<Piece*>& thePieces) {
 		int aRunId = mMatchCounter++;
-		// the gems that were taken by an earlier run of this search are still there for this one, as in the exe
-		bool aHold = false;
-		static const int DIRECTIONS[4][2] = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
-		for (size_t k = 0; k < aRun.mPieces.size() && !aHold; k++) {
-			Piece* aGem = aRun.mPieces[k];
-			bool aAlongCouldSettle = false;
-			bool aAcrossCouldSettle = false;
-			int aAcrossCount = 0;
-			for (int aDirection = 0; aDirection < 4; aDirection++) {
-				// directions 0 and 1 go down and up a column, 2 and 3 along a row; the run's own direction is the first pair
-				// in the first pass (down a column) and the second pair in the second
-				bool aInRunDirection = (aDirection / 2 == (aRun.mAlongRow ? 1 : 0));
-				for (int aStep = 1; aStep < 8; aStep++) {
-					int aRow = aGem->mRow + DIRECTIONS[aDirection][0] * aStep;
-					int aCol = aGem->mCol + DIRECTIONS[aDirection][1] * aStep;
-					if (aRow < 0 || aRow >= ROWS || aCol < 0 || aCol >= COLS)
-						break;
-					Piece* aNeighbour = mGrid[aRow][aCol];
-					if (aNeighbour == nullptr || aNeighbour->mColor != aGem->mColor)
-						break;
-					bool aCouldSettle = !PieceIsSettled(aNeighbour) && !IsHeldBySwap(aNeighbour) && aNeighbour->mCanFall &&
-						aNeighbour->mBusyCount == 0 && (aNeighbour->mFlags & 0x2000) == 0;
-					if (aInRunDirection)
-						aAlongCouldSettle = aAlongCouldSettle || aCouldSettle;
-					else {
-						aAcrossCount++;
-						aAcrossCouldSettle = aAcrossCouldSettle || aCouldSettle;
-					}
-				}
+		int aRunTag = -1;
+		for (size_t k = 0; k < thePieces.size(); k++)
+			aRunTag = std::max(aRunTag, thePieces[k]->mColumnTag);
+		if (theRun.mHeld || RunIsHeldBack(this, thePieces, theRun.mPass == 1)) {
+			for (size_t k = 0; k < thePieces.size(); k++) {
+				thePieces[k]->mColumnTag = aRunTag;
+				aHeldRunGems.insert(thePieces[k]);
 			}
-			if (aAlongCouldSettle || (aAcrossCount >= 2 && aAcrossCouldSettle))
-				aHold = true;
+			return;
 		}
-		if (aHold)
-			continue;
-		aCount++;
+		aMatchCount++;
 		// 0x6f of the exe: some piece of the run was swapped in this update (a pulse of 3 updates, not 30)
 		bool aSwapMade = false;
-		for (size_t k = 0; k < aRun.mPieces.size(); k++)
-			aSwapMade = aSwapMade || aRun.mPieces[k]->mSwapUpdate == mUpdateCnt;
-		int aChainId = -1;
-		for (size_t k = 0; k < aRun.mPieces.size(); k++)
-			aChainId = std::max(aChainId, aRun.mPieces[k]->mColumnTag);
-		for (size_t k = 0; k < aRun.mPieces.size(); k++) {
-			Piece* aPiece = aRun.mPieces[k];
-			aPiece->mColumnTag = aChainId;
+		for (size_t k = 0; k < thePieces.size(); k++)
+			aSwapMade = aSwapMade || thePieces[k]->mSwapUpdate == aUpdate;
+		MatchCluster aCluster;
+		aCluster.mPieces = thePieces;
+		aCluster.mTag = aRunTag;
+		std::vector<Piece*> aRecent;   // the plain gems met for the first time that moved last
+		std::vector<Piece*> aPlain;    // the plain gems met for the first time
+		int aRecentUpdate = INT_MIN;
+		for (size_t k = 0; k < thePieces.size(); k++) {
+			Piece* aPiece = thePieces[k];
 			aPiece->mGroupId = aRunId;
-			if ((aPiece->mFlags & 4) != 0 && aPiece->mMatchedUpdate != mUpdateCnt) {
-				// 0x75bac5 to 0x75bb0f: a flame gem (bit 4) that was not matched in this update gets a group of its own, unless it has
-				// one; it takes no part in the plain gems' clear. The group is type 3, or 2 when the board's +0xe8 is set; a piece with
-				// bit 1 makes it type 6 (0x789a90). port: the counter of 0x73d170 (stat 1, the move's tag) and the box that 0x742d00
-				// shows for a type 2 or 7 group are left out; nothing translated makes a flame gem
+			aPiece->mColumnTag = aRunTag;
+			if ((aPiece->mFlags & Piece::FLAG_BLAST) != 0)
+				aGoingOff.push_back(aPiece);
+			if ((aPiece->mFlags & Piece::FLAG_LINES) != 0 && aPiece->mMatchedUpdate != aUpdate) {
+				// 0x75bac5 to 0x75bb0f: a lines gem that was not matched in this update gets a group of its own, unless it has
+				// one; it takes no part in the plain gems' clear. The group is type 3, or 2 when the board's +0xe8 is set; a piece
+				// with bit 1 makes it type 6 (0x789a90). port: the counter of 0x73d170 (stat 1, the move's tag) and the box that
+				// 0x742d00 shows for a type 2 or 7 group are left out
 				if (FindMatchGroup(aPiece) == -1)
 					MakeMatchGroup(aPiece, 3 - (mGroupTypeSwitch != 0 ? 1 : 0));
 				continue;
 			}
-			if (aPiece->mMatchedUpdate != mUpdateCnt) {
-				// 0x75bcd0 to 0x75be57, a plain gem matched for the first time in this update: the pulse starts on its scale
-				// curve (+0x20) and its step is scaled by the fall factor (slot 0x1dc). port: a gem that two runs share is met a
-				// second time (0x75bbdb), where the exe puts the curve back to 1 (0x75bc70) under a condition that was not
-				// found; the port leaves the pulse running (see Oddities in docs/NOTES.md); the speed (+0x170) that the exe
-				// zeroes there, the remembered colour (+0x21c) and the sets are not translated
-				aPiece->mScaleCurve.SetCurve(aSwapMade ? "b+1,1.2,0.333333,1,#+Ky         ~~###" : "b+1,1.22,0.033333,1,#+Kx      uw*7u   ,~###");
-				aPiece->mScaleCurve.mIncRate = (double)GetFallFactor() * aPiece->mScaleCurve.mIncRate;
+			if (aPiece->mMatchedUpdate == aUpdate) {
+				// 0x75bbdb to 0x75bcc3, the second visit: the gem is in two runs
+				if (aPiece->mColor > -1 && aPiece->mColor < Piece::COLOR_COUNT &&
+					(aPiece->mFlags == 0 || (aPiece->mFlags & Piece::FLAG_BLAST) != 0)) {
+					aPiece->mScaleCurve.SetConstant(1.0);   // 0x437760 with 0x7cd048
+					aPiece->mMatchedUpdate = aUpdate;
+					aTargets.insert(aPiece);
+					aPiece->mColumnTag = aRunTag;
+					aMetTwice.insert(aPiece);
+				}
+				continue;
 			}
-			aPiece->mMatchedUpdate = mUpdateCnt;
+			// 0x75bcd0 to 0x75bf8b, a gem matched for the first time in this update: the pulse starts on its scale curve (+0x20) and
+			// its step is scaled by the fall factor (slot 0x1dc)
+			aPiece->mScaleCurve.SetCurve(aSwapMade ? "b+1,1.2,0.333333,1,#+Ky         ~~###" : "b+1,1.22,0.033333,1,#+Kx      uw*7u   ,~###");
+			aPiece->mScaleCurve.mIncRate = (double)GetFallFactor() * aPiece->mScaleCurve.mIncRate;
+			aPiece->mMatchedUpdate = aUpdate;
+			aPiece->mRememberedColor = aPiece->mColor;
+			aMatchedHere.insert(aPiece);
+			if (aPiece->mFlags == 0) {
+				if (aPiece->mMovedUpdate > aRecentUpdate) {
+					aRecentUpdate = aPiece->mMovedUpdate;
+					aRecent.clear();
+				}
+				if (aPiece->mMovedUpdate == aRecentUpdate)
+					aRecent.push_back(aPiece);
+				aPlain.push_back(aPiece);
+			}
 		}
-		int aPieceCount = (int)aRun.mPieces.size();
-		MoveRecord* aRecord = FindMoveRecord(aChainId);
+		if (!aPlain.empty()) {
+			// 0x75bffd to 0x75c273: the centre
+			Piece* aCentre = aRecent[aRecent.size() / 2];
+			for (size_t k = 0; k < aPlain.size(); k++) {
+				Piece* aGem = aPlain[k];
+				Piece* aBefore = nullptr;
+				Piece* aAfter = nullptr;
+				if (theRun.mPass == 0) {
+					aBefore = aGem->mCol - 1 >= 0 ? mGrid[aGem->mRow][aGem->mCol - 1] : nullptr;
+					aAfter = aGem->mCol + 1 < COLS ? mGrid[aGem->mRow][aGem->mCol + 1] : nullptr;
+				}
+				else {
+					aBefore = aGem->mRow - 1 >= 0 ? mGrid[aGem->mRow - 1][aGem->mCol] : nullptr;
+					aAfter = aGem->mRow + 1 < ROWS ? mGrid[aGem->mRow + 1][aGem->mCol] : nullptr;
+				}
+				if (aBefore != nullptr && aBefore->mColor == aGem->mColor && aAfter != nullptr && aAfter->mColor == aGem->mColor)
+					aCentre = aGem;
+			}
+			// the plain gem next to it: up to two cells from it, towards the longer side of the run
+			int aToFirst = std::max(std::abs(theRun.mFirstCol - aCentre->mCol), std::abs(theRun.mFirstRow - aCentre->mRow));
+			int aToLast = std::max(std::abs(theRun.mLastCol - aCentre->mCol), std::abs(theRun.mLastRow - aCentre->mRow));
+			Piece* aNeighbour = nullptr;
+			for (int aStep = 1; aStep <= 2; aStep++) {
+				int aCol = aCentre->mCol;
+				int aRow = aCentre->mRow;
+				if (aToFirst > aToLast) {
+					if (theRun.mPass == 0)
+						aRow = std::max(theRun.mFirstRow, aCentre->mRow - aStep);
+					else
+						aCol = std::max(theRun.mFirstCol, aCentre->mCol - aStep);
+				}
+				else {
+					if (theRun.mPass == 0)
+						aRow = std::min(theRun.mLastRow, aCentre->mRow + aStep);
+					else
+						aCol = std::min(theRun.mLastCol, aCentre->mCol + aStep);
+				}
+				aNeighbour = (aCol >= 0 && aCol < COLS && aRow >= 0 && aRow < ROWS) ? mGrid[aRow][aCol] : nullptr;
+				if (aNeighbour != nullptr && aNeighbour->mFlags == 0)
+					break;
+			}
+			// slot 0x170 is true in Classic; 0x75c27f to 0x75c4d7
+			int aLength = (int)thePieces.size();
+			if (aLength >= 4) {
+				aCentre->mColumnTag = aRunTag;
+				if (aNeighbour != nullptr)
+					aNeighbour->mColumnTag = aRunTag;
+				SpecialCandidate aCandidate;
+				aCandidate.mCentre = aCentre;
+				aCandidate.mCount = aLength;
+				aCandidate.mNeighbour = aNeighbour;
+				aCandidates.insert(std::make_pair(aCentre->mId, aCandidate));
+			}
+			// slot 0x334 (0x73ba20) is false in Classic: no scale curve 1 for the gem here
+		}
+		aClusters.push_back(aCluster);
+	};
+
+	for (int aPass = 0; aPass < 2; aPass++) {
+		for (int aOuter = 0; aOuter < COLS; aOuter++) {
+			int aRunColor = -1;
+			int aRunCount = 0;
+			RunEnd aRun;
+			aRun.mPass = aPass;
+			aRun.mLastCol = aRun.mLastRow = aRun.mFirstCol = aRun.mFirstRow = 0;
+			aRun.mHeld = false;
+			std::vector<Piece*> aRunPieces;
+			for (int aInner = 0; aInner < ROWS; aInner++) {
+				int aCol = aPass == 0 ? aOuter : aInner;
+				int aRow = aPass == 0 ? aInner : aOuter;
+				Piece* aPiece = mGrid[aRow][aCol];
+				bool aMet = aPiece != nullptr && aMatchedHere.count(aPiece) != 0;
+				bool aEligible = aPiece != nullptr && (PieceIsSettled(aPiece) || aMet) && aHeldRunGems.count(aPiece) == 0;
+				int aColor = -1;
+				if (aPiece != nullptr) {
+					bool aFree = aPiece->mScaleCurve.mRamp != CurvedVal::RAMP_CURVEDATA && !IsHeldBySwap(aPiece) && aPiece->mCanFall &&
+						aPiece->mBusyCount == 0 && aPiece->mSlideCurve.GetOutVal() == 0.0 && (aPiece->mFlags & 0x2000) == 0;
+					if (aFree || aMet)
+						aColor = aPiece->mMatchedUpdate == aUpdate ? aPiece->mRememberedColor : aPiece->mColor;
+				}
+				if (aColor != -1 && aColor == aRunColor) {
+					aRunCount++;
+					aRun.mHeld = aRun.mHeld || !aEligible;
+					aRun.mLastCol = aCol;
+					aRun.mLastRow = aRow;
+					aRunPieces.push_back(aPiece);
+					continue;
+				}
+				if (aRunCount >= 3)
+					aEndRun(aRun, aRunPieces);
+				// 0x75c794: a run starts at this cell
+				aRunColor = aColor;
+				aRunCount = 1;
+				aRun.mHeld = !aEligible;
+				aRun.mFirstCol = aRun.mLastCol = aCol;
+				aRun.mFirstRow = aRun.mLastRow = aRow;
+				aRunPieces.clear();
+				if (aColor != -1)
+					aRunPieces.push_back(aPiece);
+			}
+			if (aRunCount >= 3)
+				aEndRun(aRun, aRunPieces);
+		}
+	}
+
+	// 0x75c831 to 0x75c88d: the gems with bit 1 that were in a run go off one after the other
+	for (size_t k = 0; k < aGoingOff.size(); k++) {
+		Piece* aPiece = aGoingOff[k];
+		aPiece->mDestroyerFlags |= aPiece->mFlags;
+		aPiece->mBusyCount = (int)k + 1;
+		aPiece->mDestroyerId = aPiece->mId;
+		aPiece->mScaleCurve.SetConstant(1.0);
+	}
+	// 0x75c8b0 to 0x75c9d9: the gems that two runs share
+	for (PieceSet::iterator aIt = aMetTwice.begin(); aIt != aMetTwice.end(); ++aIt) {
+		Piece* aPiece = *aIt;
+		if ((aPiece->mFlags & Piece::FLAG_BLAST) != 0) {
+			aPiece->mBusyCount = 1;
+			aPiece->mDestroyerId = aPiece->mId;
+			aPiece->mDestroyerFlags = aPiece->mFlags;
+			aPiece->mFlags = 0;
+		}
+		MakeLinesGem(aPiece);   // slot 0x174 is true in Classic (slot 0x298, MakeBlastGem, where it is not)
+	}
+	// 0x75ca00 to 0x75cc9c: the specials are made
+	for (std::map<int, SpecialCandidate>::iterator aIt = aCandidates.begin(); aIt != aCandidates.end(); ++aIt) {
+		const SpecialCandidate& aCandidate = aIt->second;
+		Piece* aTarget = (aCandidate.mCentre->mFlags & Piece::FLAG_LINES) != 0 ? aCandidate.mNeighbour : aCandidate.mCentre;
+		if (aTarget == nullptr || aTarget->mFlags != 0)
+			continue;   // the exe reads the flags of a null neighbour here
+		// the set of blocked gems (local_244) is empty in Classic
+		aTargets.insert(aTarget);
+		if (aCandidate.mCount > 5) {
+			MakeLinesGem(aTarget);
+			MakeBlastGem(aTarget);
+			aTarget->mScaleCurve.SetConstant(1.0);
+		}
+		else if (aCandidate.mCount > 4) {
+			MakeHypercube(aTarget, true);
+			aTarget->mScaleCurve.SetConstant(1.0);
+		}
+		else
+			MakeBlastGem(aTarget);
+		aTarget->mMatchedUpdate = aUpdate;
+		if (aTarget->mColor != Piece::NO_COLOR)
+			aTarget->mRememberedColor = aTarget->mColor;
+		aTarget->mScaleCurve.SetConstant(1.0);
+	}
+	// slot 0x34c (0x73ba10) returns at once
+	for (size_t aClusterIndex = 0; aClusterIndex < aClusters.size(); aClusterIndex++) {
+		MatchCluster& aCluster = aClusters[aClusterIndex];
+		Piece* aTarget = nullptr;
+		bool aFrozen = false;
+		for (size_t k = 0; k < aCluster.mPieces.size(); k++) {
+			Piece* aPiece = aCluster.mPieces[k];
+			if (aTargets.count(aPiece) != 0)
+				aTarget = aPiece;
+			if ((aPiece->mFlags & Piece::FLAG_LINES) != 0 && aPiece->mMatchedUpdate != aUpdate)
+				aFrozen = true;
+		}
+		// slot 0x148 (recording) is false and the cluster holds no blocked gem in Classic
+		if (aFrozen) {
+			for (size_t k = 0; k < aCluster.mPieces.size(); k++) {
+				aCluster.mPieces[k]->mScaleCurve.SetConstant(1.0);
+				aCluster.mPieces[k]->mCanFall = false;
+			}
+		}
+		else if (aTarget != nullptr) {
+			// 0x75d4f8 to 0x75d837. port: the curve of +0x90 and the effect for a blast gem are drawn only
+			for (size_t k = 0; k < aCluster.mPieces.size(); k++) {
+				Piece* aPiece = aCluster.mPieces[k];
+				if (aPiece == aTarget || (aPiece->mFlags != 0 && (aPiece->mFlags & 0x80) == 0))
+					continue;
+				aPiece->mScaleCurve.SetCurve(MERGE_SCALE_CURVE);
+				aPiece->mScaleCurve.mIncRate = (double)GetFallFactor() * aPiece->mScaleCurve.mIncRate;
+				aPiece->mSlideCurve.SetCurve(MERGE_SLIDE_CURVE);
+				aPiece->mSlideCurve.mIncRate = (double)GetFallFactor() * aPiece->mSlideCurve.mIncRate;
+				aPiece->mSlideCol = aTarget->mCol;
+				aPiece->mSpecialState = aTarget->mRow;
+			}
+		}
+		int aPieceCount = (int)aCluster.mPieces.size();
+		MoveRecord* aRecord = FindMoveRecord(aCluster.mTag);
 		if (aRecord != nullptr)
 			aRecord->mMatchCount++;
 		int aMatchesInMove = aRecord != nullptr ? aRecord->mMatchCount : 0;
@@ -488,24 +763,27 @@ int Board::FindMatches()
 			aPoints += (aPieceCount - 4) * 0x15e;
 		AddPoints(aPoints);
 	}
-	return aCount;
+	// 0x75cd40 to 0x75ce51: slot 0x238 (0x73d2b0) for each gem met, which only counts
+	return aMatchCount;
 }
 
-// 0x789a90 (bejeweled3), for every type but 7 (the hypercube's, which 0x7870f0 runs: not translated): a group for a piece, made
+// 0x789a90 (bejeweled3): a group for a piece, made
 // by 0x75af60 (a flame gem, bit 4, in a match) and by 0x74c570, and pushed at the end of the list at +0x125c. It takes the piece's
 // place at the middle of the cell, its flags, tag (+0x188) and run id (+0x190), puts the piece's id first in its list, sets the
-// piece's +0x174 and puts its timer (+0x178) at 0.9. A piece with bit 1 makes it type 6. No Rand() is drawn here (the two
+// piece's +0x174 and puts its timer (+0x178) at 0.9 (not for type 7). A piece with bit 1 makes it type 6. A group of type 7 (the
+// hypercube's, 0x7870f0) starts with the colour -1, and one for a piece with no colour holds that piece (+0x17c). No Rand() is drawn here (the two
 // streaks it makes, 0x789860, take their places from the cell and draw only when they run). port: the streaks (their own
 // update, 0x786dd0, draws the app's Rand() every fifth update, 0x78a390 runs it for each), the curves that the group sets
 // ("b+0,1.5,..." for a type 6 group) and the fields that only they read (+0x10, +0x18, +0x20, +0x24, +0x40, +0x44, +0x50 to
 // +0x270) are not translated
-void Board::MakeMatchGroup(Piece* thePiece, int theType)
+MatchGroup* Board::MakeMatchGroup(Piece* thePiece, int theType)
 {
 	std::unique_ptr<MatchGroup> aGroup(new MatchGroup());
 	aGroup->mType = (thePiece->mFlags & 1) == 0 ? theType : 6;
 	aGroup->mAge = 0;
 	aGroup->mFade = 1.0f;
 	aGroup->mLifeCountdown = 0;
+	aGroup->mColor = -1;
 	aGroup->mFlags = thePiece->mFlags;
 	aGroup->mTag = thePiece->mColumnTag;
 	aGroup->mRunId = thePiece->mGroupId;
@@ -519,12 +797,17 @@ void Board::MakeMatchGroup(Piece* thePiece, int theType)
 	float aMiddleY = (float)((double)aSumY + 64.0);
 	aGroup->mPixelY = Ftol((double)aMiddleY - (double)GetGridY());
 	thePiece->mIsGroupOrigin = true;
-	thePiece->mMatchTimer = 0.89999998f;
+	if (aGroup->mType != 7)
+		thePiece->mMatchTimer = 0.89999998f;
+	if (thePiece->mColor == Piece::NO_COLOR)
+		thePiece->mClearHeld = true;
 	aGroup->mRingTimer = 0.0f;
 	aGroup->mLife = 1.0f;
 	aGroup->mRing = 0;
 	aGroup->mMaxDistance = (aGroup->mType != 3 ? 4 : 0) + 3;
+	MatchGroup* aMade = aGroup.get();
 	mMatchGroups.push_back(std::move(aGroup));
+	return aMade;
 }
 
 // 0x73c9d0 (bejeweled3)
@@ -540,8 +823,7 @@ int Board::FindMatchGroup(const Piece* thePiece) const
 // slot 200, 0x74c570 (bejeweled3): theBy (the exe's third argument; 0x75dee0 passes the piece itself) takes the piece out. A piece
 // that another clear holds is not touched. A flame gem (bit 4) without a group gets one of type 2 and the clear waits for it; a
 // piece with bit 0x10, bit 0x80000, or bit 1 without bit 4 gets busy count 1; a plain piece is not taken (false). The piece then
-// notes what cleared it. port: a piece with bit 2 and no group goes to slot 0x2d0 (0x745bf0's kind of effect), which is not
-// translated, and the counter of 0x73d170 (stat 1) that a flame gem's group adds is left out: nothing translated gives a piece
+// notes what cleared it. port: the counter of 0x73d170 (stat 1) that a flame gem's group adds is left out: nothing translated gives a piece
 // bit 1, 2 or 0x10
 bool Board::ClearPiece(Piece* thePiece, Piece* theBy)
 {
@@ -550,6 +832,23 @@ bool Board::ClearPiece(Piece* thePiece, Piece* theBy)
 	int aFlags = thePiece->mFlags;
 	if ((aFlags & 1) == 0 || (aFlags & 4) != 0) {
 		if ((aFlags & 0x80000) == 0) {
+			if ((thePiece->mFlags & 2) != 0 && FindMatchGroup(thePiece) == -1) {
+				// a hypercube that goes off: the colour it clears is the clearer's (its remembered one when it has none), or
+				// its own remembered colour with no clearer (a random one, from the board's generator, when it has none)
+				int aColor;
+				if (theBy == nullptr) {
+					aColor = thePiece->mRememberedColor;
+					if (aColor == -1)
+						aColor = (int)((unsigned)mRand.Next() % 7);
+				}
+				else {
+					aColor = theBy->mColor;
+					if (aColor == -1)
+						aColor = theBy->mRememberedColor;
+				}
+				MakeHypercubeGroup(thePiece, aColor);
+				return true;
+			}
 			if ((thePiece->mFlags & 4) != 0 && FindMatchGroup(thePiece) == -1) {
 				thePiece->mClearHeld = true;
 				MakeMatchGroup(thePiece, 2);
@@ -761,6 +1060,8 @@ void Board::UpdateMatchGroups()
 				}
 			}
 		}
+		else if (aGroup->mType == 7)
+			UpdateHypercubeGroup(aGroup);
 		bool aCountdownEnded = false;
 		if (aGroup->mLifeCountdown > 0) {
 			aGroup->mLifeCountdown--;
@@ -798,17 +1099,278 @@ void Board::UpdatePiecePulses()
 				aPiece->mScaleCurve.SetCurve("b+0,1.2,0.05,1,~###         ~#Blc");
 			else if (aScale == 1.0)
 				aPiece->mScaleCurve.SetConstant(1.0);
-			else if (aScale == 0.0 && !IsHeldBySwap(aPiece))   // port: the swap curve (+0x198) is the swap list's
+			else if (aScale == 0.0 && !IsHeldBySwap(aPiece) && !aPiece->mSlideCurve.IsDoingCurve())
 				RemovePiece(aPiece);
 		}
 	}
 }
 
-// port: the exe's matcher lets a gem whose pulse runs be found again; where it stops that was not found (see Oddities in
-// docs/NOTES.md), so a gem whose scale curve is not the constant 1 is held out of the runs here
-bool Board::IsPulsing(Piece* thePiece)
+// 0x745ca0 (bejeweled3), slot 0x298: a run of 4 (or the second part of a run of 6 or more) makes the gem a blast gem. It needs a colour; it sets
+// bit 1, clears the bits that 0x2e0 names and starts the countdown (+0x184) at 25, during which a clear leaves it standing. Its
+// effect (type 0x16) draws no Rand(). port: the effect and the sound
+void Board::MakeBlastGem(Piece* thePiece)
 {
-	return thePiece->mScaleCurve.IsDoingCurve() || thePiece->mScaleCurve.GetOutVal() != 1.0;
+	if (thePiece->mColor == Piece::NO_COLOR)
+		return;
+	thePiece->mFlags |= Piece::FLAG_BLAST;
+	thePiece->mFlags &= ~Piece::FLAGS_SPECIAL_MADE;
+	thePiece->mSpecialCountdown = 25;
+}
+
+// 0x7494d0 (bejeweled3), slot 0x2a0: a crossing (or a run of 6 or more) makes the gem a lines gem; the same as 0x745ca0 with bit 4 (its
+// effect is type 0x17, which draws no Rand() either)
+void Board::MakeLinesGem(Piece* thePiece)
+{
+	if (thePiece->mColor == Piece::NO_COLOR)
+		return;
+	thePiece->mFlags |= Piece::FLAG_LINES;
+	thePiece->mFlags &= ~Piece::FLAGS_SPECIAL_MADE;
+	thePiece->mSpecialCountdown = 25;
+}
+
+// 0x749570 (bejeweled3), slot 0x29c: a run of 5 makes the gem a hypercube: bit 2 and nothing else, no colour (it remembers the old one,
+// +0x21c) and the countdown at 25. theWithEffect (1 from 0x75af60) starts its effect, which draws no Rand(). port: the effect and sound
+void Board::MakeHypercube(Piece* thePiece, bool theWithEffect)
+{
+	(void)theWithEffect;
+	thePiece->mFlags = Piece::FLAG_HYPERCUBE;
+	thePiece->mMatchedUpdate = mUpdateCnt;
+	thePiece->mRememberedColor = thePiece->mColor;
+	thePiece->mColor = Piece::NO_COLOR;
+	thePiece->mSpecialCountdown = 25;
+}
+
+// 0x73f8e0 (bejeweled3), with its wrapper 0x74d940: a blast gem at (theX, theY), in 1200ths from the window's corner, goes off. The nine cells
+// around that point (the centre last, which is slot 8) are looked at in this order. A cell with no piece, or a piece that is busy (not
+// the centre), is left alone. For a neighbour the 474 Rand() draws of its sparks are made (DrawExplosionRandoms). A piece whose countdown
+// (+0x184) has run out then takes the centre's tag and run id (the centre takes the board's next id when it has none), and: a
+// neighbour with bit 1 gets busy count 15 (it goes off in a chain); any other piece without bit 0x10 is cleared by 0x74c570 or, when that
+// does not take it (or the piece is a blast gem only), removed at once for 20 points. port: the types 0 and 1 of the exe's group removal
+// (a different mode), the sounds and the effects
+void Board::Explode(int theX, int theY)
+{
+	static const int OFFSETS[9][2] = { { -1, -1 }, { 0, -1 }, { 1, -1 }, { -1, 0 }, { 1, 0 }, { -1, 1 }, { 0, 1 }, { 1, 1 }, { 0, 0 } };
+	Piece* aCentre = GetPieceAt((float)(theX - GetGridX()), (float)(theY - GetGridY()));
+	for (int aIndex = 0; aIndex < 9; aIndex++) {
+		int aDeltaX = OFFSETS[aIndex][0];
+		int aDeltaY = OFFSETS[aIndex][1];
+		Piece* aPiece = GetPieceAt((float)(aDeltaX * 128 + theX - GetGridX()), (float)(aDeltaY * 128 + theY - GetGridY()));
+		if (aPiece == nullptr || (aPiece->mBusyCount != 0 && aIndex != 8))
+			continue;
+		bool aIsBlast = false;
+		if (aDeltaX != 0 || aDeltaY != 0) {
+			DrawExplosionRandoms();
+			aIsBlast = (aPiece->mFlags & Piece::FLAG_BLAST) != 0;
+		}
+		if (aPiece->mSpecialCountdown != 0)
+			continue;
+		if (aCentre != nullptr) {
+			aPiece->mColumnTag = std::max(aCentre->mColumnTag, aPiece->mColumnTag);
+			if (aCentre->mGroupId == -1)
+				aCentre->mGroupId = mMatchCounter++;
+			aPiece->mGroupId = aCentre->mGroupId;
+		}
+		int aCentreId = aCentre != nullptr ? aCentre->mId : -1;
+		int aCentreFlags = aCentre != nullptr ? aCentre->mFlags : 0;
+		if (aIsBlast) {
+			aPiece->mBusyCount = 15;
+			aPiece->mDestroyerId = aCentreId;
+			aPiece->mDestroyerFlags |= aCentreFlags;
+		}
+		else if ((aPiece->mFlags & 0x10) == 0) {
+			bool aBlastOnly = (aPiece->mFlags & Piece::FLAG_BLAST) != 0 && (aPiece->mFlags & Piece::FLAG_LINES) == 0;
+			if ((aBlastOnly || !ClearPiece(aPiece, aCentre)) && aPiece->mClearable) {
+				aPiece->mDestroyerId = aCentreId;
+				aPiece->mDestroyerFlags |= aCentreFlags;
+				AddPoints(20);
+				RemovePiece(aPiece);
+			}
+		}
+	}
+}
+
+// 0x73f8e0 (bejeweled3), for each neighbour of the explosion: the draws of the app's Rand() of its sparks. 0x729c20 makes particles of
+// two kinds in rings and their constructors draw: 14 particles of 10 draws, 25 of 10 and 14 of 6, all with the speed 0 (so the
+// branch that moves them draws nothing more). The values are dropped
+void Board::DrawExplosionRandoms()
+{
+	const int aDraws = 14 * 10 + 25 * 10 + 14 * 6;
+	for (int aDraw = 0; aDraw < aDraws; aDraw++)
+		Rand();
+}
+
+// 0x740f20 (bejeweled3), for the player's swap of a hypercube and a gem: the cube's group takes the colour of the gem. port: the sound,
+// the lightning bolt and the effect 0x14 draw no Rand() and are left out
+void Board::StartHypercube(Piece* theCube, Piece* thePartner)
+{
+	MakeHypercubeGroup(theCube, thePartner->mColor);
+}
+
+// 0x74c570 and 0x740f20 (bejeweled3): a group of type 7 for the cube, which holds the cube (+0x17c) and clears theColor
+void Board::MakeHypercubeGroup(Piece* theCube, int theColor)
+{
+	theCube->mClearHeld = true;
+	MatchGroup* aGroup = MakeMatchGroup(theCube, 7);
+	aGroup->mColor = theColor;
+}
+
+// 0x7870f0 (bejeweled3), run by 0x75dee0 for a group of type 7 after its age and fade: the hypercube picks the gems of its colour one by
+// one. While its life countdown (+0x2e4) runs it does nothing. Every piece is looked at in rows: a busy one is noted; a piece that no
+// pick has marked (+0x174) is a candidate when it has the group's colour (or the group has none), is not above the board and has
+// none of the bits 0x1800; a piece that was picked has its timer (+0x178) raised by 0.01 (the cube) or 0.015, and above 1 it is cleared by
+// 0x74c570 (busy count 1 when that does not take it), else it is listed, and listed as new when under 0.04. A pick is made when there is a
+// candidate and either no bolt is on or the board's generator (the +0x258 one, not the app's Rand()) gives 0 modulo
+// 0x14 / (listed + 1) + 5 (half of it for a group without a colour). It takes a new gem (or else a listed one) at random as the
+// source of a bolt: the target is then the last candidate and a bolt of life 0 begins; with no source the target is a random candidate.
+// Each bolt's life goes up by 0.012; up to 1 it draws 40 Rand() of the app every fourth update of the group (its points), above 1 it is gone. When nothing is busy,
+// listed or left to pick and no bolt was on, every piece's speed is put to 0 and the group's countdown to 0x32. port: the bolt's drawing
+void Board::UpdateHypercubeGroup(MatchGroup* theGroup)
+{
+	if (theGroup->mLifeCountdown > 0)
+		return;
+	std::vector<Piece*> aCandidates;
+	std::vector<Piece*> aListed;
+	std::vector<Piece*> aNew;
+	bool aAnyBusy = false;
+	for (int aRow = 0; aRow < ROWS; aRow++) {
+		for (int aCol = 0; aCol < COLS; aCol++) {
+			Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece == nullptr)
+				continue;
+			if (aPiece->mBusyCount > 0)
+				aAnyBusy = true;
+			if (!aPiece->mIsGroupOrigin) {
+				if ((aPiece->mColor == theGroup->mColor || theGroup->mColor == -1) && (float)GetGridY() + aPiece->mY > -128.0f &&
+					(aPiece->mFlags & 0x1800) == 0)
+					aCandidates.push_back(aPiece);
+			}
+			else {
+				aPiece->mMatchTimer = (float)((double)aPiece->mMatchTimer +
+					((aPiece->mFlags & Piece::FLAG_HYPERCUBE) != 0 ? 0.009999999776482582 : 0.014999999664723873));
+				if (aPiece->mMatchTimer > 1.0f) {
+					aPiece->mColumnTag = std::max(theGroup->mTag, aPiece->mColumnTag);
+					aPiece->mDestroyerId = theGroup->mOriginId;
+					aPiece->mDestroyerFlags |= theGroup->mFlags;
+					if (!ClearPiece(aPiece, FindPieceById(theGroup->mOriginId)))
+						aPiece->mBusyCount = 1;
+				}
+				else {
+					aListed.push_back(aPiece);
+					if (aPiece->mMatchTimer < 0.04f)
+						aNew.push_back(aPiece);
+				}
+			}
+		}
+	}
+	const bool aNoBoltsAtStart = theGroup->mBoltLives.empty();
+	int aNeed = 0x14 / ((int)aListed.size() + 1) + 5;
+	if (theGroup->mColor == -1)
+		aNeed /= 2;
+	bool aPick = false;
+	if (!aCandidates.empty()) {
+		if (aNoBoltsAtStart)
+			aPick = true;
+		else
+			aPick = (unsigned)mRand.Next() % (unsigned)aNeed == 0;
+	}
+	if (aPick) {
+		Piece* aSource = nullptr;
+		if (!aNew.empty())
+			aSource = aNew[(unsigned)mRand.Next() % (unsigned)aNew.size()];
+		else if (!aListed.empty())
+			aSource = aListed[(unsigned)mRand.Next() % (unsigned)aListed.size()];
+		Piece* aTarget = nullptr;
+		if (aSource == nullptr)
+			aTarget = aCandidates[(unsigned)mRand.Next() % (unsigned)aCandidates.size()];
+		else {
+			aTarget = aCandidates.back();
+			theGroup->mBoltLives.push_back(0.0f);   // 0x786be0 makes the bolt with life 0
+		}
+		aTarget->mIsGroupOrigin = true;
+	}
+	for (size_t aBolt = 0; aBolt < theGroup->mBoltLives.size(); aBolt++) {
+		float aLife = (float)((double)theGroup->mBoltLives[aBolt] + 0.012000000104308128);
+		theGroup->mBoltLives[aBolt] = aLife;
+		if (aLife <= 1.0f) {
+			if ((theGroup->mAge & 3) == 0) {
+				// 8 points of 2 draws and 6 middle points of 4 draws
+				for (int aDraw = 0; aDraw < 8 * 2 + 6 * 4; aDraw++)
+					Rand();
+			}
+		}
+		else {
+			theGroup->mBoltLives.erase(theGroup->mBoltLives.begin() + aBolt);
+			aBolt--;
+		}
+	}
+	if (!aAnyBusy && aListed.empty() && aCandidates.empty() && aNoBoltsAtStart) {
+		for (int aRow = 0; aRow < ROWS; aRow++) {
+			for (int aCol = 0; aCol < COLS; aCol++) {
+				if (mGrid[aRow][aCol] != nullptr)
+					mGrid[aRow][aCol]->mFallSpeed = 0.0f;
+			}
+		}
+		theGroup->mLifeCountdown = 0x32;
+	}
+}
+
+// 0x767e20 (bejeweled3), the busy counts (+0x230), after the countdowns: a piece whose count goes from 1 to 0 goes off. A blast gem, or a
+// lines gem whose countdown (+0x184) still runs, explodes at its middle for 20 points (Explode); a piece with bit 2, 4, 0x400 or 0x10 is
+// cleared by 0x74c570 (with no one as the clearer) and is left when that takes it; any other is destroyed (0x74c770; 300 points
+// more for a piece with a bit of 0x1800)
+void Board::UpdateBusyPieces()
+{
+	for (int aRow = 0; aRow < ROWS; aRow++) {
+		for (int aCol = 0; aCol < COLS; aCol++) {
+			Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece == nullptr || aPiece->mBusyCount <= 0)
+				continue;
+			aPiece->mBusyCount--;
+			if (aPiece->mBusyCount != 0)
+				continue;
+			int aFlags = aPiece->mFlags;
+			if ((aFlags & Piece::FLAG_BLAST) != 0 || ((aFlags & Piece::FLAG_LINES) != 0 && aPiece->mSpecialCountdown > 0)) {
+				AddPoints(20);
+				float aSumX = (float)((float)GetGridX() + aPiece->mX);
+				float aSumY = (float)((float)GetGridY() + aPiece->mY);
+				Explode(Ftol((double)(float)((double)aSumX + 64.0)), Ftol((double)(float)((double)aSumY + 64.0)));
+				continue;
+			}
+			if ((aFlags & (Piece::FLAG_HYPERCUBE | Piece::FLAG_LINES | 0x400 | 0x10)) != 0 && ClearPiece(aPiece, nullptr))
+				continue;
+			if ((aFlags & FLAGS_SPECIAL_SWAP) != 0)
+				AddPoints(300);
+			DestroyPiece(aPiece);
+		}
+	}
+}
+
+// 0x767ad0 (bejeweled3), run by 0x767e20 before the match search: the slide curve (+0x198) of every piece goes on
+void Board::StepSlideCurves()
+{
+	for (int aRow = 0; aRow < ROWS; aRow++) {
+		for (int aCol = 0; aCol < COLS; aCol++) {
+			if (mGrid[aRow][aCol] != nullptr)
+				mGrid[aRow][aCol]->mSlideCurve.IncInVal();
+		}
+	}
+}
+
+// 0x767e20 (bejeweled3), 0x769189: a piece whose slide curve is off 0 is put on the line from its cell to the cell it slides to
+void Board::UpdateSlidePositions()
+{
+	for (int aRow = 0; aRow < ROWS; aRow++) {
+		for (int aCol = 0; aCol < COLS; aCol++) {
+			Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece == nullptr)
+				continue;
+			double aOut = aPiece->mSlideCurve.GetOutVal();
+			if (aOut == 0.0)
+				continue;
+			aPiece->mX = (float)((1.0 - aOut) * (double)(aPiece->mCol << 7) + aOut * (double)(aPiece->mSlideCol << 7));
+			aPiece->mY = (float)((1.0 - aOut) * (double)(aPiece->mRow << 7) + aOut * (double)(aPiece->mSpecialState << 7));
+		}
+	}
 }
 
 // 0x74c770 (bejeweled3), for a plain piece: 50 points for it (a piece without the bits 0x1800 calls slot 152, 0x74df80, at

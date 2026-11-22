@@ -548,7 +548,7 @@ for the others), as it does when its countdown (+0x2e4, which nothing translated
 0x75dee0 asks for the fill (slot 203 with 1, unless +0x12f8 is set). Left out, each marked `// port:` in BoardMoves.cpp: the
 streaks and their own update (0x786dd0, which draws Rand() every fifth update and more with the streak's length: the draws are
 missing for every group), the sounds, the curves, 0x73d170's counters, and the hypercube's type 7. No piece in this port has
-bit 4 (0x7494d0 is not translated), so no group exists in a Classic game yet: the group code runs only for a flame gem.
+bit 4 (0x7494d0 makes it for a crossing: see "Special gems" below).
 
 What clears a plain gem (found by following 0x75bbdb and 0x75bcd0 in 0x75af60 to the end of 0x767e20): no match group and no busy
 count. A plain gem matched for the first time in an update (0x75bcd0) gets a pulse on its scale curve (+0x20; the curve is the
@@ -580,21 +580,77 @@ match timer of 0 (a flame gem's clear; a plain match does not reach it); a gem w
 values. The fill refills with the board's MTRand as before (Next(15) per new gem, Next(14) per colour); the idle shine draws
 as above.
 
-Oddities (not chased, `// port:` in the source): (1) how the exe keeps a gem whose pulse runs out of the next update's runs. 0x755ad0
-reads the swap curve (+0x198), not the scale curve; no write of +0x17e, +0x230 or the flags (0x2000) for a plain gem was found, and the
-sets of 0x75af60 (local to one call) cannot do it across updates. The port holds a gem whose scale curve is not the constant 1 out of the
-runs (Board::IsPulsing). Ruled out: the board's +0x38 that the matcher stamps into +0x210 (0x75bc8e) is the
-widget container's update count, which 0x475660 raises on every game tick and only 0x74aa5a (reset) and the saved-game reader (0x764b6b)
-write, so a gem matched in an earlier tick takes 0x75bcd0 again, not 0x75bbdb; slot 201 is 0x75af60 in both vtables, called at 0x768143
-with no wrapper; the per-piece loop at 0x768026 to 0x7680ec touches only pieces with bits 0x1800; the piece update 0x720a50 (run for every
-piece by 0x7674fe) steps the curves at +0x4b8 and +0x528, not +0x20; +0x1c is the fall speed, written only by the fill and by gravity
-(0x73dd70, which does not read +0x20), and neither the pulse start nor 0x437760 (it writes only the curve's own 0x70 bytes from +0x20)
-changes it; no writer of +0x17e, +0x230 or the flags (0x2000) reaches a plain matched gem. (2) A gem that two runs share (a crossing) is met a second time at 0x75bbdb, where the exe sets its scale
-curve to 1 (0x75bc70) unless a condition on the sets at 0x75b513 holds, which was not decoded; the port keeps the first pulse. With a
-crossing the exe's gem might therefore not be removed with the others; not seen. (3) The pulse is not drawn: the piece's draw does not
-read +0x20 yet.
+Special gems (BoardMoves.cpp: FindMatches, MakeBlastGem, MakeLinesGem, MakeHypercube, Explode, MakeHypercubeGroup,
+UpdateHypercubeGroup, UpdateBusyPieces, StepSlideCurves, UpdateSlidePositions). Naming correction: the paragraphs above call bit 4
+"a flame gem" and say the exe makes a flame, a star and a hypercube; that was a guess before the makers were read. By what the exe
+does with the bits in Classic: FLAG_BLAST (1) goes off as a 3 by 3 explosion (0x73f8e0) and is made by slot 0x298 = 0x745ca0 for a run
+of 4; FLAG_HYPERCUBE (2) clears a colour and is made by slot 0x29c = 0x749570 for a run of 5; FLAG_LINES (4) makes the match group with
+rings along its row and column (the group paragraph above) and is made by slot 0x2a0 = 0x7494d0 for a crossing (slot 0x174 is true in Classic, so a crossing makes a lines gem; where it is false the exe calls slot 0x298). A run of 6 or more makes both
+FLAG_LINES and FLAG_BLAST. The other bits (0x10, 0x80, 0x400, 0x800, 0x1000, 0x2000, 0x8000, 0x80000) are made only in other modes and
+no Classic path sets them; the code that tests them is kept in the exe's shape with a `// port:` note.
+
+The makers (0x745ca0 and 0x7494d0 need a colour, set the bit, clear the bits of the mask 0x2e0 and start the countdown +0x184 at 25;
+0x749570 sets the flags to 2, stamps +0x210 with the update, copies the colour to +0x21c, sets the colour to -1 and starts the
+countdown at 25). Their effects (types 0x16, 0x17, 0x14) draw no Rand(). The countdown (+0x184) is lowered by one per update
+(UpdateGame, after the column speeds) and while it is above 0 a clear of a blast or lines gem leaves it standing (Explode and the
+busy loop test it).
+
+The matcher (0x75af60), rewritten in the exe's shape: the scan is per cell. A cell's colour counts when the piece is "free" (its scale
+curve is not a pulse, ramp 6; no swap holds it; mCanFall; busy 0; the slide curve (+0x198) at 0; no 0x2000) or was met earlier in this
+call; the colour is the remembered one (+0x21c) when +0x210 holds this update. A run that ends with 3 or more takes an id
+(mMatchCounter++) even when it is held; a run is held when any gem of it is not at rest (0x755ad0) and was not met in this call, or sits
+in a held run (set local_224), or the neighbour test of 0x75b4d0 to 0x75b6f1 (RunIsHeldBack: a same-colour neighbour in the 7 cells that
+could still settle, which excludes a gem whose scale curve is a pulse and a gem that slides). A kept run: the id and tag go on its gems;
+a gem with bit 1 is listed to go off; a gem with bit 4 not matched in this update gets a match group (0x789a90) and takes no more
+part; a gem matched earlier in this update (the second visit of a crossing) is put in the sets of targets and of gems met twice and
+gets the scale constant 1; any other gem pulses as above, is stamped, and a plain one is listed by its last move (+0x218) and by place.
+The centre of a run (the plain gem that moved last, the middle one of those, or the last plain gem with the colour on both sides across
+the run) and the plain gem two steps from it towards the longer side are noted for a run of 4 or more with the tag; the exe has the
+same record for its branches of 6 or more, 5 or more and 4 or more. After both passes: the listed bit 1 gems get busy count index + 1,
+themselves as destroyer and the scale constant 1; each gem met twice goes off at once when it has bit 1 and then becomes a lines gem; each
+candidate makes its special on the centre (the neighbour when the centre is a lines gem) if that has no flags: a run of 4 a blast gem, 5
+a hypercube, 6 or more a lines gem and a blast gem; each cluster freezes (scale 1, mCanFall off) when a gem of it has bit 4 and was not
+matched in this update, else sends its plain gems to the special's cell (scale curve 0x85f138 and slide curve 0x85f164, both times
+the fall factor; target cell in +0x208 and +0x20c) and scores (X - 3 + n) * 50 plus (n - 4) * 350 from 5 gems. UpdatePiecePulses now
+removes a gem only when its slide curve is not running either, and UpdateSlidePositions (0x769189) puts a gem that slides on the line
+to its target. 0x755ad0 (PieceIsSettled) got its full test.
+
+The busy loop (0x767e20, row by row): a gem whose count goes 1 to 0 explodes (20 points) when it has bit 1 or has bit 4 with the
+countdown above 0; else a gem with bit 2, 4, 0x400 or 0x10 goes to slot 320 (ClearPiece, no clearer) and is left when that takes it;
+else 300 points for a bit of 0x1800 and DestroyPiece. Explode (0x74d940 with 0x73f8e0): the gem's middle, then the 8 neighbours
+and the centre last. For each neighbour that is not busy the app's Rand() is drawn 474 times (14*10 + 25*10 + 14*6, all with speed 0;
+DrawExplosionRandoms). A gem whose countdown is 0 takes the larger tag and the centre's run id; a neighbour with bit 1 gets busy 15 and a
+chain; any other without bit 0x10 is cleared by 0x74c570 or, when that does not take it (or it is a blast gem only), removed at once for
+20 points.
+
+The hypercube: swapping it with a gem that can be cleared does not swap (0x75ee20 ends in StartHypercube, 0x740f20): it makes a match
+group of type 7 (MakeMatchGroup; no 0.9 timer, colour -1, then the partner's colour). When it is cleared by a match, 0x74c570 makes the
+group with the clearer's colour, or the remembered one, or the board's MTRand % 7 (not the app's Rand()). 0x7870f0 (UpdateHypercubeGroup)
+picks the gems of the colour one at a time: with the draws from the board's generator (a pick when no bolt is on, or 1 in 0x14 /
+(picked + 1) + 5 (half for no colour)), the source of a bolt from the newest picked gems, else from the picked ones, else a random
+candidate; a bolt lives about 84 updates (0.012 a step) and draws 40 app Rand() every fourth update of the group. The group ends 50
+updates after nothing is busy, picked or left, and the fill follows. The normal swap now sets +0x218 (0x75f8fc) as the exe does:
+the gem moved by the player gets the update count, the other one the count less 1; the centre of a run follows it.
+
+Test commands for these (TestCommands.cpp; `docs/TEST_COMMANDS.md` is the coordinator's): `board <8 words of 8 letters RWGYPOBR>` puts
+those colours on a settled board and takes the specials off; `put <col> <row> <letter> [blast|cube|lines]` colours a gem and makes it
+that special through the real maker, then lets it go off at once (countdown 0); `state` also prints `specials` (per cell b blast,
+c hypercube, l lines, x lines and blast), `matchcounter` and `pieces`. A script file is `<update count> <command> [args]` lines, the
+update count the app's (the board's is 2 less); end it with `quit`.
+
+Oddities (not chased, `// port:` in the source): (1) RESOLVED: how the exe keeps a gem whose pulse runs out of the next update's runs.
+The matcher's test is "the scale curve's ramp (+0x24) is not 6" (a running pulse, RAMP_CURVEDATA), in the free test and in 0x755ad0,
+and 0x755ad0 also reads the slide curve. IsPulsing is gone. (The earlier text, which looked at +0x198 only, and the reading of
+0x75bbdb that led to a stand-in, are replaced by this.) (2) The help boxes of slot 0x20c (0x73c4c0, and 0x745bf0 for each special) show
+a tutorial box the first time a special is made; they are left out and the help is treated as seen. (3) The exe's sets are ordered by
+address, the port's by id; this matters only where the order of the sets changes what is done (the order the candidates are made and the
+clusters' targets), which it does not for the cases tried. (4) IsHeldBySwap (0x73caa0) takes a second argument in the exe (1 in the
+matcher, 0 in 0x755ad0); the port has one version and the swap record's flag (+0xf9, set from that argument) is not translated. The
+swap-list flag at 0x75b02b to 0x75b08b (a run is held while a swap of that kind is going) is left out too: where the exe sets it
+was not found. (5) The effect objects (particles of the specials, the bolt, the explosion's text) run without their own Rand() draws
+except the ones listed above; the lines gem's rings draw as before. (6) The pulse and the specials are not drawn. (7) The other
+bits of the flags are unreachable in Classic (list above).
 
 Uncertain or left out, each marked `// port:` in BoardMoves.cpp: whether the exe begins a swap in the update of the click or
-the next; the matcher's perpendicular-neighbour deferral;
-the flame, star and hypercube (runs of 4 and 5 and crossings make them), the level bar, the end of the game, the hint, the
-help boxes, sounds, the sparks and the counters of 0x73d170 (+0xcc0 and others).
+the next; the level bar, the end of the game, the hint, sounds, the sparks and the counters of 0x73d170 (+0xcc0 and others), the
+speed bonus, the swap-list flag above, the bolt's and the explosion's drawing.

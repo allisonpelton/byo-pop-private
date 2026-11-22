@@ -315,6 +315,7 @@ void Board::UpdateGame()
 	mCoverCurve.IncInVal();
 	// slot 101 (0x73c330) is 0 when no dialog holds the game: the game's own tick goes on
 	mGameTicks++;
+	StepSlideCurves();   // 0x767ad0: the slide curve of every piece (+0x198), before the match search
 	FindMatches();   // slot 201 (0x75af60)
 	if (mFillHeld == 0) {
 		// 0x73c9xx: the fill waits while a match is alive (the list at +0x125c)
@@ -327,17 +328,15 @@ void Board::UpdateGame()
 		float aSum = (float)((double)mColumnSpeed[aCol] + 0.27500000596046448);
 		mColumnSpeed[aCol] = aSum > 0.0f ? 0.0f : aSum;
 	}
-	// the busy counts (+0x230): a piece whose count goes from 1 to 0 is destroyed (0x74c770)
+	// 0x7685xx: the special gems' countdowns (+0x184) go down, then the busy counts (+0x230) are run
 	for (int aRow = 0; aRow < ROWS; aRow++) {
 		for (int aCol = 0; aCol < COLS; aCol++) {
 			Piece* aPiece = mGrid[aRow][aCol];
-			if (aPiece != nullptr && aPiece->mBusyCount > 0) {
-				aPiece->mBusyCount--;
-				if (aPiece->mBusyCount == 0)
-					DestroyPiece(aPiece);
-			}
+			if (aPiece != nullptr && aPiece->mSpecialCountdown != 0)
+				aPiece->mSpecialCountdown--;
 		}
 	}
+	UpdateBusyPieces();
 	if (!HasLiveMatches())
 		FillInBlanks(false);
 	if (!IsSettled()) {
@@ -368,6 +367,7 @@ void Board::UpdateGame()
 		}
 	}
 	UpdatePiecePulses();   // 0x768f7b to 0x7690b8, before the call of 0x75dee0
+	UpdateSlidePositions();   // 0x769189: a piece that slides is drawn along its curve
 	UpdateMatchGroups();   // 0x75dee0
 	if (mLandTicks > 0)
 		mLandTicks--;
@@ -392,14 +392,16 @@ bool Board::IsSettled()
 	return true;
 }
 
-// 0x755ad0 (bejeweled3): no speed, in its cell, free (a bit 0x10000 would count too: no plain piece has it) and not busy.
-// port: the piece's swap curve (+0x198) is idle, nothing holds it (0x73caa0) and its type (+0x24) is not 6
+// 0x755ad0 (bejeweled3): no speed, its slide curve (+0x198) not running, in its cell, its scale curve not a pulse (type 6),
+// nothing holds it (0x73caa0, with 0 as the second argument), free (can fall, or bit 0x10000), not busy, no slide shown and
+// no bit 0x2000
 bool Board::PieceIsSettled(const Piece* thePiece)
 {
-	if (thePiece->mBoard->IsHeldBySwap(thePiece))
-		return false;
-	return thePiece->mFallSpeed == 0.0f && thePiece->mY == (float)(thePiece->mRow << 7) && thePiece->mCanFall &&
-		thePiece->mBusyCount == 0 && (thePiece->mFlags & 0x2000) == 0;
+	Piece* aPiece = const_cast<Piece*>(thePiece);   // the exe's curves are read through GetOutVal, which keeps the value
+	return thePiece->mFallSpeed == 0.0f && !aPiece->mSlideCurve.IsDoingCurve() && thePiece->mY == (float)(thePiece->mRow << 7) &&
+		aPiece->mScaleCurve.mRamp != CurvedVal::RAMP_CURVEDATA && !thePiece->mBoard->IsHeldBySwap(thePiece) &&
+		(thePiece->mCanFall || (thePiece->mFlags & 0x10000) != 0) && thePiece->mBusyCount == 0 &&
+		aPiece->mSlideCurve.GetOutVal() == 0.0 && (thePiece->mFlags & 0x2000) == 0;
 }
 
 // 0x73dd70 (bejeweled3), slot 214: gravity, column by column from the last row up. Each piece moves down by its speed;

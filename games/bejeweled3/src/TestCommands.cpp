@@ -9,6 +9,7 @@
 #include <SDL.h>
 
 #include <cstdlib>
+#include <cstring>
 #include <string>
 
 using namespace Sexy;
@@ -39,6 +40,35 @@ char ColorLetter(const Piece* thePiece)
 	if (thePiece == nullptr || thePiece->mColor < 0)
 		return '.';
 	return aLetters[thePiece->mColor < Piece::COLOR_COUNT ? thePiece->mColor : Piece::COLOR_COUNT];
+}
+
+// What a gem is, as a letter: b blast, c hypercube, l lines, x lines and blast, . plain (Piece::FLAG_*)
+char SpecialLetter(const Piece* thePiece)
+{
+	if (thePiece == nullptr)
+		return '.';
+	bool aBlast = (thePiece->mFlags & Piece::FLAG_BLAST) != 0;
+	bool aLines = (thePiece->mFlags & Piece::FLAG_LINES) != 0;
+	if (aBlast && aLines)
+		return 'x';
+	if (aBlast)
+		return 'b';
+	if (aLines)
+		return 'l';
+	if ((thePiece->mFlags & Piece::FLAG_HYPERCUBE) != 0)
+		return 'c';
+	return '.';
+}
+
+// The colour a letter names (see ColorLetter), or -1
+int LetterColor(char theLetter)
+{
+	static const char aLetters[] = "RWGYPOB";
+	for (int aColor = 0; aColor < Piece::COLOR_COUNT; aColor++) {
+		if (aLetters[aColor] == theLetter)
+			return aColor;
+	}
+	return -1;
 }
 
 }  // namespace
@@ -94,6 +124,67 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 		ReplyOK(theCommand);
 		return true;
 	}
+	if (aCommand == "board") {
+		// board <8 words of 8 colour letters, R W G Y P O B, top row first>: puts those colours on the gems of a board that has
+		// settled, takes the specials off them and leaves the rest alone (the way a test makes a run). A test command of its own
+		char aRows[Board::ROWS][32];
+		bool aOk = mBoard != nullptr;
+		if (aOk) {
+			int aRead = sscanf(theCommand.mArgs.c_str(), "%31s %31s %31s %31s %31s %31s %31s %31s", aRows[0], aRows[1], aRows[2], aRows[3],
+				aRows[4], aRows[5], aRows[6], aRows[7]);
+			aOk = aRead == Board::ROWS;
+			for (int aRow = 0; aOk && aRow < Board::ROWS; aRow++) {
+				aOk = strlen(aRows[aRow]) == (size_t)Board::COLS;
+				for (int aCol = 0; aOk && aCol < Board::COLS; aCol++)
+					aOk = LetterColor(aRows[aRow][aCol]) >= 0 && mBoard->mGrid[aRow][aCol] != nullptr;
+			}
+		}
+		if (!aOk) {
+			ReplyError(theCommand, "board <8 words of 8 colour letters RWGYPOB> on a full board");
+			return true;
+		}
+		for (int aRow = 0; aRow < Board::ROWS; aRow++) {
+			for (int aCol = 0; aCol < Board::COLS; aCol++) {
+				Piece* aPiece = mBoard->mGrid[aRow][aCol];
+				aPiece->mColor = LetterColor(aRows[aRow][aCol]);
+				aPiece->mFlags = 0;
+				aPiece->mSpecialCountdown = 0;
+			}
+		}
+		ReplyOK(theCommand);
+		return true;
+	}
+	if (aCommand == "put") {
+		// put <col> <row> <letter> [blast|cube|lines]: gives the gem at that cell a colour and, when named, makes it that special
+		// through the same makers a run uses, then lets it go off at once (its countdown, +0x184, is put to 0)
+		int aCol = -1;
+		int aRow = -1;
+		char aLetter[8] = "";
+		char aKind[16] = "";
+		int aRead = mBoard == nullptr ? 0 : sscanf(theCommand.mArgs.c_str(), "%d %d %7s %15s", &aCol, &aRow, aLetter, aKind);
+		if (aRead < 3 || aCol < 0 || aCol >= Board::COLS || aRow < 0 || aRow >= Board::ROWS || mBoard->mGrid[aRow][aCol] == nullptr ||
+			LetterColor(aLetter[0]) < 0) {
+			ReplyError(theCommand, "put <col> <row> <RWGYPOB> [blast|cube|lines] on a board");
+			return true;
+		}
+		Piece* aPiece = mBoard->mGrid[aRow][aCol];
+		aPiece->mColor = LetterColor(aLetter[0]);
+		aPiece->mFlags = 0;
+		std::string aWhat = aKind;
+		if (aWhat == "blast")
+			mBoard->MakeBlastGem(aPiece);
+		else if (aWhat == "lines")
+			mBoard->MakeLinesGem(aPiece);
+		else if (aWhat == "cube")
+			mBoard->MakeHypercube(aPiece, true);
+		else if (!aWhat.empty()) {
+			ReplyError(theCommand, "the kind is blast, cube or lines");
+			return true;
+		}
+		aPiece->mSpecialCountdown = 0;
+		ReplyOK(theCommand);
+		return true;
+	}
 	if (aCommand == "state") {
 		std::string aLine = "STATE {\"screen\":\"";
 		aLine += mBoard != nullptr ? "classic" : "menu";
@@ -109,7 +200,15 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 					aLine += ColorLetter(mBoard->mGrid[aRow][aCol]);
 				aLine += "\"";
 			}
-			aLine += "],\"background\":" + std::to_string(mBoard->mBackgroundIndex);
+			aLine += "],\"specials\":[";
+			for (int aRow = 0; aRow < Board::ROWS; aRow++) {
+				aLine += aRow == 0 ? "\"" : ",\"";
+				for (int aCol = 0; aCol < Board::COLS; aCol++)
+					aLine += SpecialLetter(mBoard->mGrid[aRow][aCol]);
+				aLine += "\"";
+			}
+			aLine += "],\"matchcounter\":" + std::to_string(mBoard->mMatchCounter) + ",\"pieces\":" + std::to_string(mBoard->mPieceCounter);
+			aLine += ",\"background\":" + std::to_string(mBoard->mBackgroundIndex);
 			// how far the fall has come: the update count, the pieces not at rest, the fill's landing estimate and the
 			// sums of the pieces' y and speeds (as whole thousandths, so a run can be compared with another)
 			int aMoving = 0;
