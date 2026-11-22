@@ -1048,6 +1048,9 @@ suite_origrun() {  # the host and its sound stand-in compile (into a folder of t
 		# the network block from end to end on nettest.exe (tools/origrun/nettest.sh): every hooked call fails at once and is logged
 		tools/origrun/nettest.sh "$W/$OUT/origrun-bin" "$W/$OUT/nettest" >> "$1" 2>&1 || st=1
 		net="; $(lastof "$1" 'network block and launch guard:')"
+		# the activation hook from end to end on actest.exe (tools/origrun/actest.sh): a window shown inactive stays inactive through every hooked call
+		tools/origrun/actest.sh "$W/$OUT/origrun-bin" "$W/$OUT/actest" >> "$1" 2>&1 || st=1
+		net="$net; $(lastof "$1" 'activation hook:')"
 		# --count from end to end on counttest.exe (tools/origrun/counttest.sh): the cycles of five functions, counted by their own time
 		tools/origrun/counttest.sh "$W/$OUT/origrun-bin" "$W/$OUT/counttest" >> "$1" 2>&1 || st=1
 		net="$net; $(lastof "$1" '^count:')"

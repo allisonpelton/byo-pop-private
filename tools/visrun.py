@@ -889,6 +889,21 @@ def muted(origdir, pid):
     return False
 
 
+def activation_hook_state(origdir, pid):
+    """What the stand-in's net.log says about its activation hook in this process: installed (with the functions it reached), off
+    (ORIGRUN_ACTIVATION=allow) or not logged at all."""
+    try:
+        lines = open(os.path.join(origdir, 'logs', 'net.log'), errors='replace').read().split('\n')
+    except OSError:
+        return 'NOT INSTALLED: no net.log in the run folder'
+    for l in lines:
+        if l.startswith('pid %d: activation hook installed' % pid):
+            return 'installed (%s)' % l.split(': ', 2)[2].split(' (a window')[0]
+        if l.startswith('pid %d: activation hook off' % pid):
+            return 'OFF (ORIGRUN_ACTIVATION=allow): the game may take the foreground, and the run stops if it does'
+    return 'NOT INSTALLED: net.log has no activation line for pid %d (an older stand-in?)' % pid
+
+
 def gamecount_has_room():
     r = subprocess.run([sys.executable, '-I', os.path.join(ROOT, 'tools', 'gamecount.py'), '--limit'], capture_output=True, text=True)
     return r.returncode == 0, r.stdout.strip().split('\n')[0]
@@ -1116,6 +1131,7 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
     tag = cfg['name']
     os.makedirs(out, exist_ok=True)
     log = open(os.path.join(out, 'visrun.log'), 'w')
+    fg_taken = threading.Event()   # keep_focus_away saw the game's process own the foreground window
     steps_f = open(os.path.join(out, 'steps.tsv'), 'w')
     steps_f.write('# wanted\tlanded\tcmd\targs\tseconds\tvalues\n')
     deadline_ts = deadline.timestamp()
@@ -1204,7 +1220,17 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
         g = Game(exe, env, cfg)
         locks.update(dict(game_pid=g.p.pid))
         focus_counts = [0, 0]
-        threading.Thread(target=keep_focus_away, args=(g.p.pid, fg0, stop, focus_counts), daemon=True).start()
+
+        def foreground_taken():
+            """The game's process owns the foreground window: the run stops at once (the stand-in's activation hook should have
+            made that impossible). The process is ended by its pid; the finally block below restores the rest."""
+            fg_taken.set()
+            print('the game took the user\'s foreground: run stopped (handed back %d, refused %d)' % tuple(focus_counts), file=log, flush=True)
+            try:
+                g.p.kill()
+            except OSError:
+                pass
+        threading.Thread(target=keep_focus_away, args=(g.p.pid, fg0, stop, focus_counts, foreground_taken), daemon=True).start()
         if cfg['clock'] == 'virtual':
             clk = Clock(env['ORIGRUN_CLOCK_ID'], g)
             wf = open(os.path.join(out, 'watch.log'), 'w')
@@ -1232,6 +1258,7 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
             print('the stand-in has not logged a muted audio session: stopping before any input', file=log, flush=True)
             return 3
         print('the stand-in has muted the default audio session', file=log, flush=True)
+        print('the stand-in\'s activation hook: %s' % activation_hook_state(origdir, g.p.pid), file=log, flush=True)
         # a game without the focus ignores posted input: it is told it has it, by messages (the only window of a sandbox had it)
         post_input(g, cur, 'focus', ['regain'])
         flag3d = Cond(cfg['flag3d'] + ' != 99') if cfg.get('flag3d') else None
@@ -1427,14 +1454,19 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
         locks.release_all()
         if not keep_copy:
             shutil.rmtree(os.path.join(cfg.get('work_root') or WORK, tag, 'game'), ignore_errors=True)
+        if fg_taken.is_set():
+            print('visrun: exiting with status 5: the game took the user\'s foreground (the run was stopped, the registry and saves are restored)', file=log, flush=True)
         log.close()
+        if fg_taken.is_set():
+            print('visrun: the game took the user\'s foreground: run stopped, exit status 5 (see %s)' % os.path.join(out, 'visrun.log'), file=sys.stderr)
+            raise SystemExit(5)
 
 
-def keep_focus_away(pid, user_hwnd, stop, counts):
-    """The originals activate their own window as it opens (SW_SHOWNOACTIVATE only covers a first ShowWindow call, and the
-    game's later one takes the foreground). Whenever the game's process owns the foreground window, the window that had it at the
-    start of the run, or the one the user moved to since, gets it back (counts[0] handed back, counts[1] refused by Windows);
-    it is within a few tenths of a second."""
+def keep_focus_away(pid, user_hwnd, stop, counts, on_foreground=None):
+    """The stand-in's activation hook keeps the game's windows from taking the foreground (tools/origrun/activation.c). If the
+    game's process owns the foreground window all the same, the window that had it at the start of the run, or the one the user
+    moved to since, is handed it back once (counts[0] handed back, counts[1] refused by Windows, which refuses it when visrun is
+    not the foreground process), and then on_foreground() stops the run: the game must not hold the user's foreground."""
     while not stop.is_set():
         fw = u32.GetForegroundWindow()
         if fw and fw != user_hwnd:
@@ -1442,8 +1474,12 @@ def keep_focus_away(pid, user_hwnd, stop, counts):
             u32.GetWindowThreadProcessId(fw, ctypes.byref(owner))
             if owner.value != pid:
                 user_hwnd = fw   # the user's own move to another window: that is the one to hand back to from now on
-            elif user_hwnd and u32.IsWindow(user_hwnd) and not u32.IsIconic(user_hwnd):
-                counts[0 if u32.SetForegroundWindow(user_hwnd) else 1] += 1
+            else:
+                if user_hwnd and u32.IsWindow(user_hwnd) and not u32.IsIconic(user_hwnd):
+                    counts[0 if u32.SetForegroundWindow(user_hwnd) else 1] += 1
+                if on_foreground:
+                    on_foreground()
+                    return
         time.sleep(0.02)
 
 
