@@ -19,6 +19,7 @@ var ByopopMusic = (function () {
   var MIN_TUNE = 2;          // seconds: a shorter subsong is a silence or a sting between tunes, not a tune
   var CHUNK = 4096;          // frames a message to the worklet carries
   var AHEAD = 12;            // chunks kept queued in the worklet: about a second
+  var TRIM_LEVEL = 0.001, TRIM_LONG = 3, TRIM_KEEP = 1;   // a long silent ending (trimEnd, soloSeconds): -60 dB, 3 s of it, 1 s kept
   var VOLUME_KEY = "byopop-music-volume", LOOP_KEY = "byopop-music-loop", FX_KEY = "byopop-music-fx";
   function T(key, vars) { return ByopopStrings.t(key, vars); }
   function silentPage() { try { return new URLSearchParams(location.search).get("silent") === "1"; } catch (e) { return false; } }
@@ -449,38 +450,83 @@ var ByopopMusic = (function () {
       function add(rel, list) {
         var kept = list.filter(function (k) { return k.seconds >= MIN_TUNE && !(entry.skip || []).some(function (x) { return x.toLowerCase() === k.id.toLowerCase(); }); });
         kept.forEach(function (k, j) {
-          var named = entry.names && entry.names[k.id];
+          var named = entry.names && entry.names[k.id], title = ownTitle(byId(entry.titles, k.id), k.text);
+          delete k.text;
           k.game = game;
           k.name = named || (kept.length > 1 ? T("music.tune_part", { file: baseName(rel), n: j + 1 }) : baseName(rel));
+          // its own title, in quotes beside the rip name (the user, 2026-11-19: "add these titles beside the rip names, in quotes")
+          if (title) k.name = T("music.tune_titled", { name: k.name, title: title });
           placeOf(k, rel);
           tunes.push(k);
         });
       }
+      // A module's own text (bm_meta): {title, artist, tracker, message, sub<n>}, {} without it
+      function moduleText(m) {
+        var o = {};
+        if (typeof M._bm_meta !== "function") return o;
+        M.UTF8ToString(M._bm_meta(m)).split("\n").forEach(function (l) {
+          var tab = l.indexOf("\t");
+          if (tab > 0) o[l.slice(0, tab)] = l.slice(tab + 1).replace(/\\(n|\\)/g, function (x, c) { return c === "n" ? "\n" : "\\"; });
+        });
+        return o;
+      }
+      // A tune's title from the table (its "titles"): the text given, or one the module's own text holds, read from the game's
+      // file as it plays (the user: "Check the tracker files to see if there's more metadata that could give us
+      // official song names"): {own: true} the module's title; {line: "<order>"} what its message's line for that order (as the
+      // message writes it) says after the orders, up to a comma or a bracket, or with inner the words in its brackets
+      function ownTitle(t, text) {
+        if (typeof t === "string") return t;
+        if (!t || !text) return "";
+        if (t.own) return (text.title || "").replace(/\s+/g, " ").trim();
+        var lines = t.line ? (text.message || "").split("\n") : [];
+        for (var i = 0; i < lines.length; i++) {
+          var l = lines[i].trim();
+          if (l.slice(0, t.line.length) !== t.line || /[0-9A-Za-z]/.test(l.charAt(t.line.length))) continue;
+          var rest = l.slice(t.line.length).replace(/^[\s:\-]*(\([^)]*\))?[\s:\-]*((0x[0-9A-Fa-f]+|[0-9]+)\b)?[\s:\-]*/, "");
+          if (t.inner) { var b = /\(([^)]*)\)\s*$/.exec(rest); return b ? b[1].trim() : ""; }
+          return rest.split(/,\s|\s\(/)[0].trim();
+        }
+        return "";
+      }
       // The patterns no order of the module plays, which have notes (the user, 2026-11-15: "Add unused tracker patterns to their
       // own section in the music player"): each its own entry, played alone once (bm_solo), listed after every game's tunes
+      // (also: the patterns of the table's "alone", subsongs of one pattern, listed here though an order plays them)
       var patterns = [];
-      function unusedPatterns(m, rel, seq, fast) {
+      function unusedPatterns(m, rel, seq, fast, also) {
         if (typeof M._bm_solo !== "function") return;
         var played = {};
-        seq.forEach(function (p) { if (p >= 0) played[p] = true; });
+        seq.forEach(function (p) { if (p >= 0 && !(p in also)) played[p] = true; });
         for (var p = 0, n = M._bm_patterns(m); p < n; p++) {
           if (played[p] || !M._bm_pattern_rows(m, p) || !M._bm_pattern_notes(m, p)) continue;
+          var alone = soloSeconds(m, p, fast);
           var k = { kind: "module", keys: [prefix + rel], solo: p, seq: [p], subEntries: [0], entry: 0, id: baseName(rel) + "/" + p,
-                    seconds: soloSeconds(m, p, fast), level: entry.level, game: game, name: T("music.pattern_name", { file: baseName(rel), n: p }) };
+                    seconds: alone.seconds, level: entry.level, game: game, name: T("music.pattern_name", { file: baseName(rel), n: p }) };
+          if (alone.cut) k.cut = alone.seconds;
           placeOf(k, rel);
-          k.where = ""; k.when = ""; k.unused = false;
+          k.where = ""; k.when = also[p] ? byId(entry.when, also[p]) || "" : ""; k.unused = false;
           patterns.push(k);
         }
         M._bm_solo(m, -1);
       }
-      // a pattern's length alone, rendered unheard (libopenmpt at 8000 Hz; libxmp-lite at its own 48000, as a rate change restarts it)
+      // a pattern's length alone, rendered unheard (libopenmpt at 8000 Hz; libxmp-lite at its own 48000, as a rate change restarts
+      // it). With libopenmpt a long silent ending is cut as a tune's is (trimEnd's levels; Bejeweled 2's two patterns of one
+      // subsong each slow to a crawl after their last note): the pattern then lists and plays until TRIM_KEEP seconds after it
       function soloSeconds(m, p, fast) {
-        var rate = fast ? 8000 : 48000, buf = M._malloc(1024 * 8), frames = 0;
+        var rate = fast ? 8000 : 48000, buf = M._malloc(1024 * 8), frames = 0, last = -1;
         M._bm_solo(m, p);
         try {
-          for (var guard = 0; guard < rate * 600 / 1024; guard++) { var g = M._bm_render(m, rate, 1024, buf); frames += g; if (g < 1024) break; }
+          for (var guard = 0; guard < rate * 600 / 1024; guard++) {
+            var g = M._bm_render(m, rate, 1024, buf);
+            if (fast && g > 0) {
+              var a = M.HEAPF32.subarray(buf >> 2, (buf >> 2) + g * 2);
+              for (var i = a.length - 1; i >= 0; i--) if (a[i] > TRIM_LEVEL || a[i] < -TRIM_LEVEL) { last = frames + (i >> 1); break; }
+            }
+            frames += g;
+            if (g < 1024) break;
+          }
         } finally { M._free(buf); }
-        return frames / rate;
+        var seconds = frames / rate, heard = last / rate;
+        return last >= 0 && seconds - heard > TRIM_LONG ? { seconds: Math.round((heard + TRIM_KEEP) * 100) / 100, cut: true } : { seconds: seconds };
       }
       return gameFiles(db, game.persist).then(function (rels) {
         var steps = matching(rels, entry.files).map(fileStep);
@@ -572,7 +618,7 @@ var ByopopMusic = (function () {
               var id = baseName(rel);
               if (isStream(rel)) { add(rel, [{ kind: "stream", keys: [prefix + rel], id: id, seconds: isOgg(rel) ? oggSeconds(bytes) : wavSeconds(bytes) }]); return; }
               if (isMidi(rel)) { add(rel, [{ kind: "midi", keys: [prefix + rel], id: id, seconds: midiSeconds(M, bytes), bank: entry.bank }]); return; }
-              var m = loadModule(M, bytes), list = [];
+              var m = loadModule(M, bytes), list = [], alone = {};
               if (!m) return;
               // the pattern each order plays (a marker below 0), which a game's song is known by (Music's "Following a game")
               var seq = [];
@@ -592,6 +638,9 @@ var ByopopMusic = (function () {
                   var base = { kind: "module", keys: [prefix + rel], sub: i, entry: M._bm_order(m), seq: seq, id: id + "#" + i, seconds: secs, level: entry.level };
                   subEntries[i] = base.entry;
                   var cuts = byId(entry.cuts, base.id), starts = byId(entry.starts, base.id);
+                  // (a subsong of one pattern that runs on into the module's silence, the table's "alone": that pattern, with
+                  // the unused patterns)
+                  if ((entry.alone || []).some(function (a) { return a.toLowerCase() === base.id.toLowerCase(); })) { alone[M._bm_order_pattern(m, base.entry)] = base.id; continue; }
                   if (cuts) cutTune(m, base, cuts, fast).forEach(function (k) { list.push(k); });
                   else list.push(base);
                   // (the table's "starts": orders the game also starts the subsong at, its first tune playing on through
@@ -603,7 +652,9 @@ var ByopopMusic = (function () {
                 list.forEach(function (k) { k.subEntries = subEntries; });
                 chainTunes(list);
               }
-              unusedPatterns(m, rel, seq, fast);
+              unusedPatterns(m, rel, seq, fast, alone);
+              var text = moduleText(m);
+              list.forEach(function (k) { k.text = text; });
               M._bm_free(m);
               add(rel, list);
             });
@@ -1376,7 +1427,7 @@ var ByopopMusic = (function () {
     // it plays on and in the length shown (the list's, the clock's and the seek bar's), and with repeat on it starts again
     // there. A tune's length is known this way once it has been played; trims holds them by tune for the page's life. Returns
     // the new end in seconds into the tune, or 0 to keep its own.
-    var TRIM_SCAN = 60, TRIM_RATE = 11025, TRIM_LEVEL = 0.001, TRIM_LONG = 3, TRIM_KEEP = 1, trims = {};
+    var TRIM_SCAN = 60, TRIM_RATE = 11025, trims = {};
     function trimEnd(t, bytes) {
       var key = t.keys[0] + "#" + (t.range ? t.range.join("-") : t.segs ? t.id : t.sub);
       if (!(key in trims)) trims[key] = scanEnd(t, bytes);
@@ -1433,6 +1484,7 @@ var ByopopMusic = (function () {
           if (!M._bm_solo(m, t.solo)) { M._bm_free(m); throw new Error("module"); }
           var alone = moduleSource(m, null, levelGain(M, t.level), 0);
           alone.repeat = function () {};
+          if (t.cut) alone.stop(t.cut);
           return Promise.resolve(alone);
         }
         if (t.segs) {

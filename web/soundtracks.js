@@ -7,7 +7,8 @@
 //   joined  tunes the game joins from pieces by a playlist: [{playlist: "<path>", piece: "<path with {} for the playlist's word>"}],
 //           or from files in order: [{id: "<name>", pieces: ["<path>", ...], loopFrom: <the piece its loop goes back to>}]
 //   cuts    {"<file name>#<n>": [order, ...]}: a subsong split where the game's code starts a different tune partway
-//           through; each later piece is "<file name>#<n>@<order>" (an order the subsong never reaches: from it to the end)
+//           through, or where one song of a medley ends and the next begins; each later piece is "<file name>#<n>@<order>"
+//           (an order the subsong never reaches: from it to the end)
 //   starts  {"<file name>#<n>": [order, ...]}: orders the game also starts a subsong at, where the tune before plays on
 //           through them in the game (no seam: a long game's music runs into the next part); each is a piece
 //           "<file name>#<n>@<order>" from there to the end, and the subsong stays whole
@@ -15,6 +16,12 @@
 //   skip    ["<file name>#<n>", ...]: tunes that are not tunes (n counts from 0 in the file's subsongs or parts)
 //   names   {"<file name>#<n>" or "<playlist name>": "<name>"}: plain names, never invented titles and never the game's own text
 //           at length; without one a tune is named after its file
+//   titles  {"<file name>#<n>": <title>}: a tune's own title, shown in quotes beside its name: "<title>" by the user's word
+//           (cited at the entry), or one the module's own text holds, read from the game's file as it plays and never written
+//           here: {own: true} the module's title, {line: "<order>"} what its message says beside that order (as the message
+//           writes it), up to a comma or a bracket, {line: "<order>", inner: true} the words in that line's brackets
+//   alone   ["<file name>#<n>", ...]: subsongs that are one pattern running on into the module's silence: listed with the unused
+//           patterns as that pattern, played alone (its when still its tooltip)
 //   inside  tunes kept inside a game's file: [{file: "<path>", magic: "<first bytes>"}] its resources (a Windows module's)
 //           that start with those bytes, the magic naming their format, or [{file: "<path>", zip: ["<entry>", ...]}] those
 //           entries of a zip archive, or [{file: "<path>", tiptop: ["<entry>", ...]}] those of TipTop's archive; each is then a
@@ -107,22 +114,59 @@ var ByopopSoundtracks = {
     unused: ["1981-DataJack#1", "1981-DataJack#2", "1981-DataJack#3"]
   },
   // one module, BeyondNetwork.mo3: the game plays it from a starting order for each screen (properties/music.xml), so its
-  // subsongs are the tunes
+  // subsongs are the tunes. A game's music is subsong 1, a medley of thirteen songs that plays straight through and back to
+  // its start (order 181 jumps to order 2): the board starts it at order 2 (MUSICOFFSET_MAIN) unless the mode is an Action or
+  // a Puzzle one (modes 1, 2, 5, 6 and 7: Action, Puzzle, Hyper, Cognito and Finity), which start at order 122
+  // (MUSICOFFSET_ACTION; BoardUpdate.cpp at board update 2, BoardCtor.cpp's mode flags), and nothing else moves it, at a
+  // level or anywhere. It is cut at the composer's own markers between its songs (the "+++" orders 21, 29, ... 168), so a
+  // piece ends where its song does; one marker, order 10, falls inside the first song, between an intro and the rest. The
+  // titles are the user's (2026-11-19), in their order. Subsongs 3 and 4 are one pattern each (127 at order 199, 128 at
+  // 201, music.xml's GET_READY and LEVEL_CLEAR, which the code never reads), then the module's silent pattern 0 looping:
+  // listed with the unused patterns (the user: "really, they're only single patterns that we could just file with the others")
   bejeweled2: {
     composer: "Peter Hajba (Skaven)",
     files: ["music/*.mo3"],
-    starts: { "BeyondNetwork#1": [122] },
-    where: { "BeyondNetwork#1": "Classic Mode", "BeyondNetwork#1@122": "Action Mode", "BeyondNetwork#2": "Main Menu", "BeyondNetwork#5": "Title Screen",
-      "BeyondNetwork#6": "Finale" },
-    order: ["BeyondNetwork#5", "BeyondNetwork#2", "BeyondNetwork#1", "BeyondNetwork#1@122", "BeyondNetwork#6"],
+    cuts: { "BeyondNetwork#1": [22, 30, 42, 54, 70, 91, 122, 126, 141, 151, 160, 169] },
+    alone: ["BeyondNetwork#3", "BeyondNetwork#4"],
+    titles: {
+      "BeyondNetwork#1": "The Journey Begins", "BeyondNetwork#1@22": "Rain of Lights", "BeyondNetwork#1@30": "LightStorm",
+      "BeyondNetwork#1@42": "Sea of Amorphity", "BeyondNetwork#1@54": "Masked Intentions", "BeyondNetwork#1@70": "Routinoid",
+      "BeyondNetwork#1@91": "Tunnel Society V2", "BeyondNetwork#1@122": "A New Beginning (Intro 2)", "BeyondNetwork#1@126": "Silent Conquest",
+      "BeyondNetwork#1@141": "Schein", "BeyondNetwork#1@151": "Choose and Contemplate", "BeyondNetwork#1@160": "Breathing Love",
+      "BeyondNetwork#1@169": "Jewels of Denial", "BeyondNetwork#2": "Bejeweled 2 Theme", "BeyondNetwork#5": "Autonomus V2",
+      "BeyondNetwork#6": "Final Destination"
+    },
+    where: {
+      "BeyondNetwork#1": "Classic Mode 1", "BeyondNetwork#1@22": "Classic Mode 2", "BeyondNetwork#1@30": "Classic Mode 3",
+      "BeyondNetwork#1@42": "Classic Mode 4", "BeyondNetwork#1@54": "Classic Mode 5", "BeyondNetwork#1@70": "Classic Mode 6",
+      "BeyondNetwork#1@91": "Classic Mode 7", "BeyondNetwork#1@122": "Action Mode 1", "BeyondNetwork#1@126": "Action Mode 2",
+      "BeyondNetwork#1@141": "Action Mode 3", "BeyondNetwork#1@151": "Action Mode 4", "BeyondNetwork#1@160": "Action Mode 5",
+      "BeyondNetwork#1@169": "Action Mode 6", "BeyondNetwork#2": "Main Menu", "BeyondNetwork#5": "Title Screen", "BeyondNetwork#6": "Finale"
+    },
+    order: ["BeyondNetwork#5", "BeyondNetwork#2", "BeyondNetwork#1", "BeyondNetwork#1@22", "BeyondNetwork#1@30", "BeyondNetwork#1@42",
+      "BeyondNetwork#1@54", "BeyondNetwork#1@70", "BeyondNetwork#1@91", "BeyondNetwork#1@122", "BeyondNetwork#1@126", "BeyondNetwork#1@141",
+      "BeyondNetwork#1@151", "BeyondNetwork#1@160", "BeyondNetwork#1@169", "BeyondNetwork#6"],
     when: {
-      "BeyondNetwork#1": "Order 2; a Classic game's start (board update 2), neither Action nor Puzzle",
-      "BeyondNetwork#1@122": "Order 122; an Action or a Puzzle game's start (board update 2)",
+      "BeyondNetwork#1": "Order 2; a game's start (board update 2) in Classic, Endless, Twilight or the hidden Classic mode; the songs then play on in turn, whatever the level, and after the last one back to this",
+      "BeyondNetwork#1@22": "Order 22; played on into, 2:50 after a Classic, Endless or Twilight game's start (12:31 after the end of the last song)",
+      "BeyondNetwork#1@30": "Order 30; played on into, 4:18 after a Classic, Endless or Twilight game's start",
+      "BeyondNetwork#1@42": "Order 42; played on into, 6:22 after a Classic, Endless or Twilight game's start",
+      "BeyondNetwork#1@54": "Order 54; played on into, 8:46 after a Classic, Endless or Twilight game's start",
+      "BeyondNetwork#1@70": "Order 70; played on into, 11:54 after a Classic, Endless or Twilight game's start",
+      "BeyondNetwork#1@91": "Order 91; played on into, 14:23 after a Classic, Endless or Twilight game's start",
+      "BeyondNetwork#1@122": "Order 122; a game's start (board update 2) in Action, Puzzle, Hyper, Cognito or Finity; played on into 18:23 after a Classic game's start",
+      "BeyondNetwork#1@126": "Order 126; played on into, 0:31 after an Action or Puzzle game's start (18:54 after a Classic one's)",
+      "BeyondNetwork#1@141": "Order 141; played on into, 3:06 after an Action or Puzzle game's start (21:29 after a Classic one's)",
+      "BeyondNetwork#1@151": "Order 151; played on into, 5:21 after an Action or Puzzle game's start (23:43 after a Classic one's)",
+      "BeyondNetwork#1@160": "Order 160; played on into, 7:21 after an Action or Puzzle game's start (25:44 after a Classic one's)",
+      "BeyondNetwork#1@169": "Order 169; played on into, 10:01 after an Action or Puzzle game's start (28:24 after a Classic one's); then back to order 2",
       "BeyondNetwork#2": "Order 184; main menu: after the title show, after a game over, quitting from options, high scores",
+      "BeyondNetwork#3": "Order 199, music.xml's GET_READY, which the game's code never reads",
+      "BeyondNetwork#4": "Order 201, music.xml's LEVEL_CLEAR, which the game's code never reads",
       "BeyondNetwork#5": "Order 203; at launch, on the loading title screen until it completes",
       "BeyondNetwork#6": "Order 217; 500 updates after the hyperspace jump to the last planet of a non-secret Puzzle galaxy"
     },
-    unused: ["BeyondNetwork#3", "BeyondNetwork#4", "BeyondNetwork#7"]
+    unused: ["BeyondNetwork#7"]
   },
   bejeweledtwist: {
     // the user, 2026-11-19: "bejewel twist 06.10 is the part composed by Philippe Charron, while BejeweledTwist24 is by Peter

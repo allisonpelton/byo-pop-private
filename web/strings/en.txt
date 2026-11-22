@@ -1516,6 +1516,7 @@ music.volume = Volume
 music.split = Display height
 music.split_rows = {n} rows
 music.tune_part = {file}, part {n}
+music.tune_titled = {name} "{title}"
 music.unused = Unused
 music.patterns = Unused patterns
 music.pattern_name = {file}, pattern {n}

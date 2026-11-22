@@ -737,11 +737,22 @@ never with invented titles. A game's session sets these from its code:
   books as the game reaches them, unused tunes last (the user, 2026-11-13: "more closely follow what you might hear instead
   of having the parts in order, and put unused tracks at the end").
 - `cuts` and `chains`: tracks split and grouped as the game plays them (the user, 2026-11-11: "Group and split").
-  `cuts` splits a subsong where the game's code starts a different tune partway through it, the second piece being
-  `"<file>#<n>@<order>"`; `chains` makes one track of parts the game only ever plays as jumps inside one tune. `starts`
-  is for an order the game also starts a subsong at while the tune before plays on through it in a long game (no seam:
-  Bejeweled 2's Action Mode starts at order 122, which Classic Mode reaches after about 18 minutes): the piece from there
-  is a track, and the subsong stays whole (the user's seam review, 2026-11-12: "I hear no seam").
+  `cuts` splits a subsong where the game's code starts a different tune partway through it, or where one song of a
+  medley ends and the next begins, the later pieces being `"<file>#<n>@<order>"`; `chains` makes one track of parts the
+  game only ever plays as jumps inside one tune. `starts` is for an order the game also starts a subsong at while the tune
+  before plays on through it: the piece from there is a track, and the subsong stays whole. No game uses it now:
+  Bejeweled 2's long subsong, which it once served, is a medley of thirteen songs that plays straight through and back to
+  its start, and is cut at the composer's own markers between them instead (the user, 2026-11-19: "I am hearing some very
+  mild seams that make me think the track breaks aren't correct here"). Its places are "Classic Mode 1" to "7" and "Action Mode 1" to "6": the game starts
+  it at order 2 for Classic, Endless, Twilight and the hidden Classic mode, at order 122 for Action, Puzzle, Hyper,
+  Cognito and Finity, and nothing else moves it, at a level or anywhere.
+- `titles`: a tune's own title, shown in quotes beside its rip name (the user, 2026-11-19: "add these titles beside the
+  rip names, in quotes"): the user's word, cited at the entry, or a title the module's own text holds, read from the
+  user's file as the list is read and never written in the table: `{own: true}` the module's title, `{line: "<order>"}`
+  what the module's message says beside that order, up to a comma or a bracket (`inner` for the words in its brackets).
+- `alone`: subsongs that are one pattern running on into the module's silence, listed with the unused patterns as that
+  pattern played alone (Bejeweled 2's two, which music.xml names but the code never reads; the user, 2026-11-19: "really,
+  they're only single patterns that we could just file with the others").
 - `level`: "Music levels".
 
 **The decoder** is the games' own two module renderers, built for the web as `openmpt.js` and `openmpt.wasm` (target
@@ -757,7 +768,8 @@ silently to the place, setting its programs and controllers but playing no notes
 or score.
 
 **The player's rules**, from the user: long silent endings are skipped (the user's notes, 2026-11-10: "Some of the
-short tracks have a bunch of dead air at the end, where the tracker slows to a crawl"; `trimEnd`), the first piece of a cut subsong too (Twist's Game Over: a 3.5-second jingle,
+short tracks have a bunch of dead air at the end, where the tracker slows to a crawl"; `trimEnd`), a pattern played alone
+too (`soloSeconds`: Bejeweled 2's two, whose rows slow to about five seconds each after their last note), the first piece of a cut subsong too (Twist's Game Over: a 3.5-second jingle,
 then the module's own 13 seconds of silence before the cut); only the playlist
 scrolls (2026-11-09); closing the window stops the music and frees what it held (2026-11-09;
 `ByopopMusicPanel.held()` tells a test what is still held).
