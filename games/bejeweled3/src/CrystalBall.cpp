@@ -67,7 +67,8 @@ void SetScaleMatrix(SexyMatrix3& theMatrix, float theScaleX, float theScaleY)
 }  // namespace
 
 // 0x78ab50 (bejeweled3)
-CrystalBall::CrystalBall(const std::string& theText) : mText(theText)
+CrystalBall::CrystalBall(int theId, ButtonListener* theListener, const std::string& theText) :
+	ButtonWidget(theId, theListener), mText(theText)
 {
 	mBlendCurve.SetConstant(0.0);
 	mScaleCurve.SetConstant(0.17);

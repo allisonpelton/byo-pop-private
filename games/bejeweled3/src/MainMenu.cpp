@@ -8,9 +8,12 @@
 #include "Bej3Music.h"
 #include "Graphics.h"
 #include "X86Math.h"
+#include "PlayMenu.h"
 #include "Profile.h"
+#include "WidgetManager.h"
 #include "Res.h"
 
+#include <SDL.h>
 #include <algorithm>
 
 using namespace Sexy;
@@ -30,12 +33,17 @@ MainMenu::MainMenu()
 {
 	// 0x6a54b0: the buttons, made in the order OPTIONS, RECORDS, PLAY; the texts are string ids 0x11d, 0x11e, 0x11f
 	// with the English words as their default
-	mOptionsButton = new CrystalBall(GetTextById(0x11d, "OPTIONS"));
-	mRecordsButton = new CrystalBall(GetTextById(0x11e, "RECORDS"));
-	mPlayButton = new CrystalBall(GetTextById(0x11f, "PLAY"));
+	// with the ids 0, 1 and 2 and the menu as their listener
+	mOptionsButton = new CrystalBall(0, this, GetTextById(0x11d, "OPTIONS"));
+	mRecordsButton = new CrystalBall(1, this, GetTextById(0x11e, "RECORDS"));
+	mPlayButton = new CrystalBall(2, this, GetTextById(0x11f, "PLAY"));
 	AddWidget(mOptionsButton);
 	AddWidget(mRecordsButton);
 	AddWidget(mPlayButton);
+	// the PlayMenu (0x680760), the app's art size 1200 by 1920 scaled, a child of the menu (made after PLAY)
+	mPlayMenu = new PlayMenu(this);
+	mPlayMenu->Resize(0, 0, gApp->mArtRes * 0x4b0 / 0x4b0, gApp->mArtRes * 0x780 / 0x4b0);
+	AddWidget(mPlayMenu);
 
 	// 0x6a54b0: the menu's curves; +0x190 is a constant 0. This is the branch of 0x59b0a0 being false (the cache message
 	// the port never has); the other branch sets +0x2e8, +0x518, +0x588 and +0x5f8 to 1 and leaves the rest
@@ -132,14 +140,55 @@ void MainMenu::Draw(Graphics* g)
 	}
 }
 
+// 0x6a2de0 (bejeweled3): a ball was pressed and let go over itself. Nothing works before the intro has started, nor
+// while the PlayMenu is up. PLAY (id 2) plays the click, makes the PLAY ball grow to cover the screen and the PlayMenu
+// fade in, and gives the PlayMenu the focus. OPTIONS (0) and RECORDS (1) turn the camera to one side
+// (curve +0x190 to -1 or 1 and back), fade the side balls (+0x588) and the name (+0x5f8) and disable every ball while
+// it turns: they show the widgets at +0x6f0 to +0x6f8, which are not translated, so here they only log. Ids 3, 4 and 7
+// (those widgets' quit, user and help buttons) are not made.
+void MainMenu::ButtonDepress(int theId)
+{
+	if (!mIntroStarted)
+		return;
+	if (mPlayMenu != nullptr && mPlayMenu->IsActive())
+		return;
+	switch (theId) {
+	case 0:
+	case 1:
+		SDL_Log("MainMenu: ball %d pressed (the side screens are not translated)", theId);
+		break;
+	case 2:
+		if (!mPlayButton->mScaleCurve.IsDoingCurve()) {
+			gApp->PlaySoundEx(SOUND_CLICKFLYIN, 1.0, 0, 0.0);
+			// port: the PopAnim background's curve (+0x6e0 object's +0x1a8: "b;0,1,0.002,1,####         ~~###") is left out
+			mPlayMenu->mFadeCurve.SetCurve("b?0,1,0.01,1,####    C#.Z[    r~###j~###");
+			mPlayButton->mBlendCurve.SetCurve("b;0,1,0.01,1,####         ~~###");
+			mPlayButton->mScaleCurve.SetCurve("b;0.17,0.93,0.01,1,####         ~~Q(j");
+			mWidgetManager->SetFocus(mPlayMenu);
+		}
+		break;
+	}
+}
+
+// 0x6a0860 (bejeweled3): the mouse comes over a ball: SOUND_BUTTON_MOUSEOVER
+void MainMenu::ButtonMouseEnter(int theId)
+{
+	gApp->PlaySoundEx(SOUND_BUTTON_MOUSEOVER, 1.0, 0, 0.0);
+}
+
 // 0x6a3530 (bejeweled3). port: left out: the logo phase, the widgets +0x6f0 to +0x6f8, the overlay widgets +0x700 and
 // +0x704 (made when the intro starts), the user dialogs, the loader's unloading, the stars, the background widget
 // (+0x6d8) and its Resize, ResizeButtons (0x6a09e0) when curve +0x190 is triggered.
 void MainMenu::Update()
 {
 	Widget::Update();
-	mShown = true;
+	// 0x6a3530: the menu is hidden once the PlayMenu's +0x490 curve has reached 1 (the exe also hides it for the screen at
+	// +0xbe8 and while +0xba4 is set: the port has neither yet), and not "shown" once the PlayMenu's fade has reached 1
+	mVisible = !(mPlayMenu != nullptr && mPlayMenu->mHideCurve.GetOutVal() >= 1.0);
+	mShown = mVisible && !(mPlayMenu != nullptr && mPlayMenu->mFadeCurve.GetOutVal() >= 1.0);
 	mPlayButton->mVisible = mShown;
+	if (!mShown)
+		mPlayButton->mCover = SharedImageRef();   // 0x46a420 on +0x168
 	if (mIntroStarted) {
 		mOptionsButton->mVisible = mShown;
 		mRecordsButton->mVisible = mShown;

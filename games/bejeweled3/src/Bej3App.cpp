@@ -10,6 +10,8 @@
 #include "PrimeResourceManager.h"
 #include "Profile.h"
 #include "QuestData.h"
+#include "SoundInstance.h"
+#include "SoundManager.h"
 #include "Res.h"
 #include "X86Math.h"
 
@@ -117,6 +119,21 @@ void Bej3App::Init()
 	mWidgetManager->AddWidget(mMainMenu);
 	// port: the TooltipManager at +0xbf0 (0x67c540), the windowed button, the resize widget, the sound volumes and the
 	// Zen file lists come with the next steps of Init
+}
+
+// 0x76aaf0: the volume goes through SetVolume, the pan through SetPan and the pitch through AdjustPitch, then the
+// instance plays once and frees itself
+void Bej3App::PlaySoundEx(int theSoundId, double theVolume, int thePan, double thePitch)
+{
+	if (IsMuted() || mSoundManager == nullptr)
+		return;
+	SoundInstance* aSound = mSoundManager->GetSoundInstance(theSoundId);
+	if (aSound == nullptr)
+		return;
+	aSound->SetVolume(theVolume);
+	aSound->SetPan(thePan);
+	aSound->AdjustPitch(thePitch);
+	aSound->Play(false, true);
 }
 
 // 0x76cd70: the original makes its CustomBassMusicInterface when the framework asks for the music interface

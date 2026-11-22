@@ -5,6 +5,7 @@
 // (CrystalBall.h).
 #pragma once
 
+#include "ButtonListener.h"
 #include "CrystalBall.h"
 #include "CurvedVal.h"
 #include "Math3D.h"
@@ -16,6 +17,7 @@
 namespace Sexy {
 
 class DDImage;
+class PlayMenu;
 
 // One partner logo shown before the menu (16 bytes in the exe's list at +0xcc)
 struct MenuLogo {
@@ -25,11 +27,13 @@ struct MenuLogo {
 	int mAlpha;      // 0 to 255
 };
 
-class MainMenu : public Widget {
+// The menu is also its balls' listener (the exe's second vtable, 0x86c4a4, at +0xbc)
+class MainMenu : public Widget, public ButtonListener {
 public:
 	CrystalBall* mPlayButton = nullptr;      // +0x6e4 (param_1[0x1b9]): string id 0x11f
 	CrystalBall* mOptionsButton = nullptr;   // +0x6e8 (param_1[0x1ba]): string id 0x11d
 	CrystalBall* mRecordsButton = nullptr;   // +0x6ec (param_1[0x1bb]): string id 0x11e
+	PlayMenu* mPlayMenu = nullptr;           // +0x270: the screen PLAY opens (made by the constructor, hidden)
 
 	// The menu's curves, named by their offsets: the constructor sets them (and the intro in Update starts them)
 	PerspectiveCamera mCameraA;                 // +0xdc: turned by mTurnACurve * -0.78 (nothing projects through it in 2D)
@@ -60,6 +64,10 @@ public:
 
 	void Draw(Graphics* g) override;            // 0x6a0ca0 (bejeweled3)
 	void Update() override;                     // 0x6a3530 (bejeweled3)
+
+	// The listener: slots 2 and 4 of the exe's second vtable (0x6a2de0 and 0x6a0860)
+	void ButtonDepress(int theId) override;
+	void ButtonMouseEnter(int theId) override;
 };
 
 }  // namespace Sexy

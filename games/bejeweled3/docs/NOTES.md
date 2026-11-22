@@ -300,3 +300,20 @@ Not translated, each with a "port:" note: the 3D drawing (refraction mesh), the 
 their default), the hint drawn through 0x8d7a80 when +0x487 and the app's +0x687 are set, +0x486's picture (0x8d7054),
 and the call at the end of Draw to 0x584d60 with +0x20 and +0x480. The width-0 test at the start is "+0x24 set and
 width 0" in the exe; the port tests the width only (+0x24 not mapped).
+
+## The menu's buttons (ButtonDepress 0x6a2de0)
+
+The balls are ButtonWidgets (0x49c490) with ids 0 (OPTIONS), 1 (RECORDS) and 2 (PLAY) and the menu as listener: its
+second vtable, at +0xbc, is 0x86c4a4 (slot 2 ButtonDepress 0x6a2de0, slot 4 ButtonMouseEnter 0x6a0860, which plays
+SOUND_BUTTON_MOUSEOVER; 0x76aaf0 is the app's sound call: id, volume, pan, pitch). Nothing runs until the intro has
+started, nor while the PlayMenu (+0x270, made by 0x680760 in the menu's constructor, hidden at first) is active (fade
+curve +0xe8 not 0, or its end value 1: 0x6899c0). PLAY (2): when its ball's +0x200 curve is not running, it plays
+SOUND_CLICKFLYIN, sets the PopAnim background's curve (+0x6e0 object's +0x1a8, not translated), the PlayMenu's fade
++0xe8 ("b?0,1,0.01,1,####    C#.Z[    r~###j~###"), the ball's +0x190 and +0x200 (the ball grows from 0.17 to 0.93) and
+gives the PlayMenu the focus (slot 8 of the widget manager, which is SetFocus). The PlayMenu is shown (Update
+0x696ad0) while its fade is above 0 and its +0x490 curve is not 1; the menu's Update hides the menu at +0x490 = 1 and
+stops "showing" it (balls hidden, cover dropped) at fade = 1.
+OPTIONS and RECORDS (0, 1): when the camera turn (+0x190) is already at -1 or 1 they turn it back to 0, else to -1 or 1
+(a "b=-1,0,..." curve), starting the side-fade (+0x588) and name (+0x5f8) curves and disabling all five buttons
+(SetDisabled, slot 37); the screens they show (+0x6f0 to +0x6f8 widgets, ids 3 quit, 4 user list, 7 help) are not
+translated, so the port only logs the press. The first-run name dialog is not in this handler: Update opens it (below).

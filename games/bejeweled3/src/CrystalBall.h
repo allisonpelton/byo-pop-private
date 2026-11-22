@@ -1,11 +1,13 @@
 // Sexy::CrystalBall (vtable 0x865564 (bejeweled3), 0x678 bytes, made by 0x78ab50): the main menu's buttons, each a glass
 // ball with a label. The menu (MainMenu::Update, 0x6a3530) puts a ball where its 3D point lands on the screen and sets the
 // curves and values it draws from; the ball itself updates its highlight (0x78c730) and draws (0x78ae40).
+// The ball is a ButtonWidget (0x49c490): the menu is its listener, and its id is 0 (OPTIONS), 1 (RECORDS) or 2 (PLAY).
 // port: the 3D drawing of the ball (the refraction mesh of 10 rings of 30 points over the picture behind it, drawn as
 // triangle strips under the exe's Graphics3D, and the 3D forms of the transforms) is not translated: the ball is always
 // drawn on the exe's 2D path. The fields only that part reads (+0x488 to +0x5f8 and the curves' 3D set-up) are left out.
 #pragma once
 
+#include "ButtonWidget.h"
 #include "CurvedVal.h"
 #include "PIEffect.h"
 #include "SharedImage.h"
@@ -15,7 +17,7 @@
 
 namespace Sexy {
 
-class CrystalBall : public Widget {
+class CrystalBall : public ButtonWidget {
 public:
 	std::string mText;                  // +0xc0: the label, from the properties' string ids 0x11d to 0x11f
 	SharedImageRef mCover;              // +0x168: a picture the ball shows over its rectangle while mBlendCurve is not 0
@@ -41,7 +43,7 @@ public:
 	bool mDrawPicture = false;          // +0x486: a picture in place of the label (set elsewhere; not translated)
 	bool mArrowShown = false;           // +0x487: the menu arrow's hint (set elsewhere; its drawing is not translated)
 
-	explicit CrystalBall(const std::string& theText);   // 0x78ab50 (bejeweled3)
+	CrystalBall(int theId, ButtonListener* theListener, const std::string& theText);   // 0x78ab50 (bejeweled3)
 	~CrystalBall() override;
 
 	void Draw(Graphics* g) override;       // 0x78ae40 (bejeweled3), slot 21

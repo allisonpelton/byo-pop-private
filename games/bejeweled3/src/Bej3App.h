@@ -76,6 +76,9 @@ public:
 	// 0x7748e0 (bejeweled3): the players, and the last one chosen (the registry's "LastUser") or the first that loads
 	void LoadProfile();
 
+	// 0x76aaf0 (bejeweled3): plays a sound of the sound manager at a volume, pan and pitch (steps); nothing when muted
+	void PlaySoundEx(int theSoundId, double theVolume, int thePan, double thePitch);
+
 	// The framework's two, on this generation's manager
 	void LoadResourceManifest();            // 0x46e0e0 (bejeweled3)
 	void ShowResourceError(bool doExit = false);  // 0x46e190 (bejeweled3)
