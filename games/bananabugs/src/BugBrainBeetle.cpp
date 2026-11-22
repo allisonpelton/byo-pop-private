@@ -70,7 +70,7 @@ void BugBrainBeetle::Setup(int theRole, int theWaitFrames, BugObj* theHead, BugO
 	mBody = aBody;
 	aBody->SetParent(this, nullptr);
 	SetSetupBody(aBody);
-	BuildMoveTrack();
+	mMoveTrack = BugSharedBuildMoveTrack(this, mLegKey, mTurnKey, mTurnEndKey);   // 0x4168e0 (shared with the caterpillar)
 	Activate(this, false);
 }
 
@@ -227,37 +227,6 @@ void BugBrainBeetle::BuildDeathTrack()
 	aTrack->AddKey(mTumbleKey, nullptr);
 	aTrack->AddKey(mFadeOutKey, nullptr);
 	mDeathTrack = AddTrack(aTrack, nullptr);
-}
-
-// 0x4168e0: the step's track: three keys that move the beetle's place, its turn (a quarter turn for a corner) and nothing
-// else; where they go is set by each step (BeginStep). The keys' own values are all 0, easing toward the next key
-void BugBrainBeetle::BuildMoveTrack()
-{
-	mLegKey = new AnimKey();
-	mLegKey->mEventId = BEETLE_BRAIN_EVENT_LEG_DONE;
-	mLegKey->AddValue(STATE_X, 0.0f, MOD_TOWARD_NEXT);
-	mLegKey->AddValue(STATE_Y, 0.0f, MOD_TOWARD_NEXT);
-	mLegKey->AddValue(STATE_ROTATION, 0.0f, MOD_TOWARD_NEXT);
-
-	mTurnKey = new AnimKey();
-	mTurnKey->mEventId = BEETLE_BRAIN_EVENT_TURN_DONE;
-	mTurnKey->SetDuration(1);
-	mTurnKey->AddValue(STATE_X, 0.0f, MOD_TOWARD_NEXT);
-	mTurnKey->AddValue(STATE_Y, 0.0f, MOD_TOWARD_NEXT);
-	mTurnKey->AddValue(STATE_ROTATION, 0.0f, MOD_TOWARD_NEXT);
-
-	mTurnEndKey = new AnimKey();
-	mTurnEndKey->mEventId = BEETLE_BRAIN_EVENT_TURN_END;
-	mTurnEndKey->SetDuration(1);
-	mTurnEndKey->AddValue(STATE_X, 0.0f, MOD_TOWARD_NEXT);
-	mTurnEndKey->AddValue(STATE_Y, 0.0f, MOD_TOWARD_NEXT);
-	mTurnEndKey->AddValue(STATE_ROTATION, 0.0f, MOD_TOWARD_NEXT);
-
-	AnimTrack* aTrack = new AnimTrack();
-	aTrack->AddKey(mLegKey, nullptr);
-	aTrack->AddKey(mTurnKey, nullptr);
-	aTrack->AddKey(mTurnEndKey, nullptr);
-	mMoveTrack = AddTrack(aTrack, nullptr);
 }
 
 // The post the heading leads to from the place the beetle is on: the grid's pipe of the place has a link in each heading

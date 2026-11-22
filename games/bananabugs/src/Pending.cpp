@@ -31,12 +31,7 @@ static Anim* sFlyFlyAnim;            // 0x60e290
 static Anim* sInGameButtonsAnim;     // 0x670188
 static Anim* sMothDanceAnim;         // 0x60e294
 static Anim* sMothAnim;              // 0x60e298
-static Anim* sCentipedeHeadAnim;     // 0x60e280
-static Anim* sCentipedeBodyAnim;     // 0x60e284
-static Anim* sCentipedeTailAnim;     // 0x60e288
 static Anim* sWaspAnim;              // 0x60e268
-static Anim* sCaterpillarHeadAnim;   // 0x60e278
-static Anim* sCaterpillarBodyAnim;   // 0x60e27c
 static Anim* sCocoBombAnim;          // 0x60e1a8
 static Anim* sMissileAnim;           // 0x60e1ac
 static Anim* sCannonAnim;            // 0x60e1b0
@@ -148,22 +143,9 @@ void Sexy::PreloadMoth()
 	sMothAnim = Load("images/moth", 0x60, 0x60, 2);
 }
 
-void Sexy::PreloadCentipede()
-{
-	sCentipedeHeadAnim = Load("images/centipede_head", 0x41, 0x3f, 0x5a);
-	sCentipedeBodyAnim = Load("images/centipede_body", 0x2b, 0x31, 0x5a);
-	sCentipedeTailAnim = Load("images/centipede_tail", 0x25, 0x21, 0x5a);
-}
-
 void Sexy::PreloadWasp()
 {
 	sWaspAnim = Load("images/wasp", 0x5f, 0x5f, 0x1e);
-}
-
-void Sexy::PreloadCaterpillar()
-{
-	sCaterpillarHeadAnim = Load("images/caterpillar_head", 0x24, 0x2d, 0x1e);
-	sCaterpillarBodyAnim = Load("images/caterpillar_body", 0x24, 0x24, 0x1e);
 }
 
 // port: the flies' paths (two "images/path_fly" tables) are not translated yet
@@ -221,19 +203,9 @@ BugBrainDragonfly::BugBrainDragonfly() // 0x418880
 	SetKind(2, 4, 2);
 }
 
-BugBrainCaterpillar::BugBrainCaterpillar() // 0x416ea0
-{
-	SetKind(6, 3, 3);
-}
-
 BugBrainFly::BugBrainFly() // 0x4198c0
 {
 	SetKind(7, 2, 2);
-}
-
-BugBrainCentipede::BugBrainCentipede() // 0x417840
-{
-	SetKind(8, 4, 4);
 }
 
 BugBrainMoth::BugBrainMoth() // 0x41af60

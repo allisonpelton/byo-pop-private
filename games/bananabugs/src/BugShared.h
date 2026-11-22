@@ -42,6 +42,12 @@ int BugSharedTakeCommandNoRing(BugObj* theBug);
 // centipede) is the same code with the event 6: those kinds call this with 6
 void BugSharedBuildFadeTrack(BugObj* theBug, int theEndEvent);
 
+// 0x4168e0 (EBX the bug; the beetle and the caterpillar, whose brains keep the three keys at the same places): the step's
+// track, three keys that move the bug's place, its turn and nothing else (the keys' values are set by each step): the
+// leg to the next post (event 2), the turn in place (event 3, one frame) and the turn's last frame (event 4, one frame).
+// The keys are given back, and the track's number (AddTrack's) is returned
+int BugSharedBuildMoveTrack(BugObj* theBug, AnimKey*& theLegKey, AnimKey*& theTurnKey, AnimKey*& theTurnEndKey);
+
 // The shared slots of the bodies (the original's code reads the track at +0x2a4 of its own body, which the kinds that name
 // it keep at that place; here the track is passed)
 bool BugSharedImgUpdate(BugImg* theBody);                          // 0x4219c0 (slot 5): ObjBase's update

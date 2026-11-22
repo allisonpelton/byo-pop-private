@@ -55,7 +55,6 @@ public:
 	void BuildDeathTrack() override;         // 0x416b30 (slot 23)
 
 private:
-	void BuildMoveTrack();         // 0x4168e0 (EBX the bug)
 	void BeginStep(bool theRandom);// 0x416500 (EAX the bug, theRandom pushed)
 	PipeObj* GetNextPost();        // the post the heading leads to from the place the beetle is on (the start of 0x416500), or none
 };

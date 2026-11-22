@@ -8,6 +8,11 @@ using namespace Sexy;
 // The fade track: the bug shrinks away over this many frames
 static const int FADE_FRAMES = 45;
 
+// The events the step's track's keys end with (BugSharedBuildMoveTrack): the kinds' brains name them as they use them
+static const int MOVE_EVENT_LEG_DONE = 2;
+static const int MOVE_EVENT_TURN_DONE = 3;
+static const int MOVE_EVENT_TURN_END = 4;
+
 // 0x41c640 (slot 5; one function for the kinds that name it): the base's update
 bool Sexy::BugSharedUpdate(BugObj* theBug)
 {
@@ -132,6 +137,36 @@ void Sexy::BugSharedBuildFadeTrack(BugObj* theBug, int theEndEvent)
 	aTrack->AddKey(aShrink, nullptr);
 	aTrack->AddKey(aEnd, nullptr);
 	theBug->mFadeTrack = theBug->AddTrack(aTrack, nullptr);
+}
+
+// 0x4168e0: the step's track (the beetle's and the caterpillar's): the keys' own values are all 0, easing toward the next key
+int Sexy::BugSharedBuildMoveTrack(BugObj* theBug, AnimKey*& theLegKey, AnimKey*& theTurnKey, AnimKey*& theTurnEndKey)
+{
+	theLegKey = new AnimKey();
+	theLegKey->mEventId = MOVE_EVENT_LEG_DONE;
+	theLegKey->AddValue(STATE_X, 0.0f, MOD_TOWARD_NEXT);
+	theLegKey->AddValue(STATE_Y, 0.0f, MOD_TOWARD_NEXT);
+	theLegKey->AddValue(STATE_ROTATION, 0.0f, MOD_TOWARD_NEXT);
+
+	theTurnKey = new AnimKey();
+	theTurnKey->mEventId = MOVE_EVENT_TURN_DONE;
+	theTurnKey->SetDuration(1);
+	theTurnKey->AddValue(STATE_X, 0.0f, MOD_TOWARD_NEXT);
+	theTurnKey->AddValue(STATE_Y, 0.0f, MOD_TOWARD_NEXT);
+	theTurnKey->AddValue(STATE_ROTATION, 0.0f, MOD_TOWARD_NEXT);
+
+	theTurnEndKey = new AnimKey();
+	theTurnEndKey->mEventId = MOVE_EVENT_TURN_END;
+	theTurnEndKey->SetDuration(1);
+	theTurnEndKey->AddValue(STATE_X, 0.0f, MOD_TOWARD_NEXT);
+	theTurnEndKey->AddValue(STATE_Y, 0.0f, MOD_TOWARD_NEXT);
+	theTurnEndKey->AddValue(STATE_ROTATION, 0.0f, MOD_TOWARD_NEXT);
+
+	AnimTrack* aTrack = new AnimTrack();
+	aTrack->AddKey(theLegKey, nullptr);
+	aTrack->AddKey(theTurnKey, nullptr);
+	aTrack->AddKey(theTurnEndKey, nullptr);
+	return theBug->AddTrack(aTrack, nullptr);
 }
 
 // 0x4219c0 (slot 5; the bodies of the skeeter and the bee): ObjBase's update

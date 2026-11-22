@@ -32,9 +32,7 @@ public:
 // by the kind's constructor address, sets what that constructor gives BugObj with SetKind (kind, half-width, half-height) and
 // does nothing else, so it has no body and never moves. Setup, Update and Zap are BugObj's
 class BugBrainDragonfly : public BugObj { public: BugBrainDragonfly(); }; // 0x418880
-class BugBrainCaterpillar : public BugObj { public: BugBrainCaterpillar(); }; // 0x416ea0
 class BugBrainFly : public BugObj { public: BugBrainFly(); };           // 0x4198c0
-class BugBrainCentipede : public BugObj { public: BugBrainCentipede(); }; // 0x417840
 class BugBrainMoth : public BugObj { public: BugBrainMoth(); };         // 0x41af60
 class BugBrainBee : public BugObj { public: BugBrainBee(); };           // 0x414fa0
 
@@ -189,9 +187,7 @@ void PreloadSlots();         // 0x46c710
 void PreloadFly();           // 0x423980
 void PreloadInGameButtons(); // 0x4558f0
 void PreloadMoth();          // 0x423d10
-void PreloadCentipede();     // 0x422f10
 void PreloadWasp();          // 0x420b30
-void PreloadCaterpillar();   // 0x422220
 void PreloadFlyPaths();      // 0x41aee0
 void PreloadMothPaths();     // 0x41c470
 void PreloadBonusPictures(); // 0x406dd0

@@ -3,6 +3,8 @@
 #include "BugImg.h"
 #include "BugImgAnt.h"
 #include "BugImgBeetle.h"
+#include "BugImgCaterpillar.h"
+#include "BugImgCentipede.h"
 #include "BugImgRoach.h"
 #include "BugImgRolly.h"
 #include "BugImgSkeeter.h"
