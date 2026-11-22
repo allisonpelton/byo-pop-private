@@ -130,7 +130,8 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   anything another program drew; each shot is checked against the game's window size and the frame the game just
   presented, and one that fails is deleted unopened and reported; and no session uses it for a game until a trial has
   compared its shots with sandbox shots of the same screens. Until a game passes that trial, the ban stands for it.
-  Every other capture on the host stays banned.
+  Apart from that, origrun's ban holds as before. visrun's `PrintWindow` shots of a game's own window on the visible
+  desktop (`docs/VISRUN.md`, the 3D route) are not part of that ban and go on unchanged.
 
 ## Token economy (the user's rules, 2026-10-24)
 
