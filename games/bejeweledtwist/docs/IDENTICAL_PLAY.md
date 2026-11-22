@@ -437,3 +437,23 @@ no screen of the port shows it.
 ### Deviations that remain
 
 None added.
+
+## The focus in 3D (2026-11-22, not finished)
+
+Losing and regaining the focus had been compared only in 2D (phase two's set 5). In 3D the original runs only on the
+visible desktop, through visrun, and there a posted focus loss never paused it. The cause was visrun, not the game:
+before every step it told the game it had the focus again whenever the game did not hold the foreground, which visrun
+never lets it do, so a `focus lose` lasted only until the next step. visrun now keeps a scripted loss until the step
+file's own regain (shared commit 5376dc42, with an `args` key that gives the game its command line). The original's
+3D window was then too wide for a place on the right half of the screen (976 pixels with its frame against 960), so
+the port took the original's `-4x3` and `-widescreen` switches (0x76350c, bab3c056): with `-4x3` both games open
+800 by 600 at the 600 art.
+
+One run of the original's Blitz autoplay (`games/bejeweledtwist/tools/visrun/`, focus3d_blitz.txt) shows it pausing as
+the port does: its mHasFocus went from 1 to 0, its update counter stood at 2006 for the three seconds, and the scene
+blurred with the gems hidden; at the regain the flag came back and the game went on. The pictures are not compared
+yet. In that real-time run the original's round started about 200 updates after the port's, so at the loss it was
+still in its opening and showed the opening's timer where the port's paused round shows PAUSED. A run with the loss
+well into the round, lined up by board, and Classic's run are left. They wait for visrun's hand-back of the foreground:
+in this run Windows refused every one of its 1268 attempts, so the original held the user's foreground for the
+run's 26 seconds, and no original goes on the desktop again until that is fixed.
