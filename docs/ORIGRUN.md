@@ -232,7 +232,10 @@ origrun runs itself and the game again in that session.
 - **One sandbox on the machine.** Every origrun opens `byo-pop\sandbox.lock` under `%LOCALAPPDATA%` with no
   sharing and queues behind its holder (logged, up to `--sandbox-wait`). Windows releases it however origrun
   ends. Its text names the holder (`pid`, `run`, `since`, `dir`) and, while its sandbox may be up,
-  `sandbox=<id>`.
+  `sandbox=<id>`. The queue is not first come, first served: a waiting run retries, and any of them may win.
+  Each waiting origrun counts as a game process, so **a session keeps at most one sandbox run queued** and
+  starts the next when it ends; put several scenarios in one run where the script allows (coordinator,
+  2026-11-22, when nine queued runs held the machine's slots).
 - **No window on the user's desktop.** origrun never uses the `.wsb` file's `LogonCommand`, and runs
   `wsb connect`, which opens a window, only with `--sandbox-connect`. A guard thread looks every 100 ms for a
   visible window of a Windows Sandbox process, of the broker or of `vmconnect.exe` (exact names) and, on one,
