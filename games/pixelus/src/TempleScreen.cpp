@@ -817,7 +817,7 @@ void TempleScreen::Draw(Graphics* g)
 	g->SetColorizeImages(false);
 
 	if (aTutorial && aUser != NULL && !aUser->mTutorialDone)
-		g->DrawImage(mApp->mImages[IMAGE_TREE], 244, 424);
+		g->DrawImage(mApp->mImages[IMAGE_TREE], 239, 425);	// 0x412a13: x 0xef, y 0x1a9
 
 	if (!aTutorial)
 	{

@@ -970,8 +970,8 @@ void PixelusApp::ShowHint(int theWidth, int theHeight, const SexyString& theHead
 	aDialog->mContentInsets.mTop = 10;
 	aDialog->mContentInsets.mBottom = 10;
 	aDialog->Resize(theXOffset - theWidth / 2 + 0x196, theYOffset - aHeight / 2 + 0xf0, theWidth, aHeight);
-	// the button as the original's screen shows it: 24 pixels in from both sides, 25 high, 10 above the bottom
-	aDialog->mYesButton->Resize(aDialog->mX + 24, aDialog->mY + aHeight - 10 - 25, theWidth - 48, 25);
+	// the button as the original's screen shows it (scenario CD): 24 pixels in from both sides, 27 high, 10 above the bottom
+	aDialog->mYesButton->Resize(aDialog->mX + 24, aDialog->mY + aHeight - 10 - 27, theWidth - 48, 27);
 	AddDialog(0x1f, aDialog);
 }
 
