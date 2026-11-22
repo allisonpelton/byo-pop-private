@@ -1978,6 +1978,10 @@ var ByopopSkin = (function () {
     });
     document.addEventListener("pointerdown", function (ev) {
       if (!on) return;
+      // a press in an open menu (a window's menu bar, its control menu, a context menu: popMenu) leaves the window it belongs to
+      // active: an entry that is greyed does nothing, and the window kept losing its focus to it (the user, 2026-11-21:
+      // "Clicking a greyed out resolution causes the window to lose focus")
+      if (ev.target && ev.target.closest && ev.target.closest(".d95-ctx")) return;
       var pane = paneOf(ev.target), w = pane && winOf(pane);
       activate(w || null);
     }, true);
