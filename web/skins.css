@@ -35,6 +35,9 @@
 :root[data-skin="d95"] :is(#players-body, #saves-body) button:not(#\#) { background: var(--panel); color: var(--fg); }
 /* bold: one weight struck twice (the font's file answers every weight with the same glyphs) */
 :root[data-skin="d95"] :is(b, strong, th, h1, h2, h3, h4, dt, summary, .d95-tb, .d95-tb-text) { text-shadow: 1px 0 0 currentColor; letter-spacing: 1px; }
+/* and the desktop's own bold: the Pop button's word, the active window's task bar button (the user, 2026-11-21: "the active
+   window lacks bold text") and a menu's default entry */
+html.d95-desk :is(.d95-pop, .d95-task[aria-pressed=true] > .d95-task-text, .d95-default) { text-shadow: 1px 0 0 currentColor; letter-spacing: 1px; }
 /* the raised bevel of a window or a button, and the sunken one of a field */
 :root[data-skin="d95"] .games > li, :root[data-skin="d95"] main:not(.stage-wrap), :root[data-skin="d95"] .bar, :root[data-skin="d95"] .panel,
 :root[data-skin="d95"] .chat, :root[data-skin="d95"] button, :root[data-skin="d95"] .button {
@@ -322,10 +325,10 @@ html.d95-desk .d95-win > .d95-rz-se { bottom: -2px; right: -2px; width: 12px; he
 /* the resize cursors of 1995 (the user, 2026-11-09: "The windows should use a resize cursor on the edges"): a black double arrow
    edged in white, up and down, across or diagonal, drawn here as the skin's busy and What's This? cursors are; they win over a
    site cursor set (web/cursors.js), which has no resize cursor, and none shows on a maximized window, which no edge resizes */
-html.d95-desk .d95-win > .d95-rz-n, html.d95-desk .d95-win > .d95-rz-s, :root[data-skin="d95"] .mu-split { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(0 16.5 16.5)' fill='#000' stroke='#fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, ns-resize !important; }
-html.d95-desk .d95-win > .d95-rz-e, html.d95-desk .d95-win > .d95-rz-w { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(90 16.5 16.5)' fill='#000' stroke='#fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, ew-resize !important; }
-html.d95-desk .d95-win > .d95-rz-nw, html.d95-desk .d95-win > .d95-rz-se, html.d95-desk .stage-wrap.d95-win > .d95-grip { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(-45 16.5 16.5)' fill='#000' stroke='#fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, nwse-resize !important; }
-html.d95-desk .d95-win > .d95-rz-ne, html.d95-desk .d95-win > .d95-rz-sw { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(45 16.5 16.5)' fill='#000' stroke='#fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, nesw-resize !important; }
+html.d95-desk .d95-win > .d95-rz-n, html.d95-desk .d95-win > .d95-rz-s, :root[data-skin="d95"] .mu-split { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(0 16.5 16.5)' fill='%23000' stroke='%23fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, ns-resize !important; }
+html.d95-desk .d95-win > .d95-rz-e, html.d95-desk .d95-win > .d95-rz-w { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(90 16.5 16.5)' fill='%23000' stroke='%23fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, ew-resize !important; }
+html.d95-desk .d95-win > .d95-rz-nw, html.d95-desk .d95-win > .d95-rz-se, html.d95-desk .stage-wrap.d95-win > .d95-grip { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(-45 16.5 16.5)' fill='%23000' stroke='%23fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, nwse-resize !important; }
+html.d95-desk .d95-win > .d95-rz-ne, html.d95-desk .d95-win > .d95-rz-sw { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(45 16.5 16.5)' fill='%23000' stroke='%23fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, nesw-resize !important; }
 html.d95-desk .d95-win.d95-maxed > .d95-rz { display: none; }
 /* a window given a size keeps it: its contents scroll in it (a sized window's own min and max come from web/skins.js) */
 html.d95-desk .d95-win[style*="height"]:not(.stage-wrap) { min-height: 0; }
@@ -458,14 +461,15 @@ html.d95-desk .d95-taskbar { display: flex; align-items: center; gap: 4px; posit
 html.d95-desk .d95-taskbar[hidden] { display: none; }
 html.d95-desk .d95-taskbar button { height: 24px; padding: 0 6px; min-height: 0; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 html.d95-desk .d95-popwrap { position: relative; flex: none; }
-html.d95-desk .d95-pop { font-weight: bold; padding: 0 6px 0 4px; }
-html.d95-desk .d95-pop-cap { display: block; width: 16px; height: 16px; background: #c8102e;
-  -webkit-mask: url(cap.svg) center / contain no-repeat; mask: url(cap.svg) center / contain no-repeat; }
+html.d95-desk .d95-pop { padding: 0 6px 0 4px; }
+/* the Pop button's mark (the user, 2026-11-21: "The red circle should be replaced with something that "pops" more"): a yellow
+   burst with an orange heart and a red edge, our own drawing at 16 x 16 */
+html.d95-desk .d95-pop-cap { display: block; width: 16px; height: 16px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpolygon points='8.0,0.4 9.3,3.3 11.8,1.4 11.5,4.5 14.6,4.2 12.7,6.7 15.6,8.0 12.7,9.3 14.6,11.8 11.5,11.5 11.8,14.6 9.3,12.7 8.0,15.6 6.7,12.7 4.2,14.6 4.5,11.5 1.4,11.8 3.3,9.3 0.4,8.0 3.3,6.7 1.4,4.2 4.5,4.5 4.2,1.4 6.7,3.3' fill='%23ffd21f' stroke='%23b4121e' stroke-width='0.9'/%3E%3Cpolygon points='8.6,3.4 9.2,5.0 10.8,4.4 10.5,6.1 12.2,6.2 11.2,7.6 12.6,8.6 11.0,9.2 11.6,10.8 9.9,10.5 9.8,12.2 8.4,11.2 7.4,12.6 6.8,11.0 5.2,11.6 5.5,9.9 3.8,9.8 4.8,8.4 3.4,7.4 5.0,6.8 4.4,5.2 6.1,5.5 6.2,3.8 7.6,4.8' fill='%23ff7a00'/%3E%3Crect x='6' y='5' width='2' height='1' fill='%23ffffff'/%3E%3Crect x='5' y='6' width='1' height='2' fill='%23ffffff'/%3E%3C/svg%3E") center / 16px 16px no-repeat; }
 html.d95-desk .d95-pop[aria-expanded=true] > * { transform: translate(1px, 1px); }
 html.d95-desk .d95-tasks { display: flex; gap: 3px; flex: 1 1 auto; min-width: 0; overflow: hidden; padding-left: 4px; }
 html.d95-desk .d95-task { flex: 0 1 160px; min-width: 40px; justify-content: flex-start; }
 html.d95-desk .d95-task > span { overflow: hidden; text-overflow: ellipsis; }
-html.d95-desk .d95-task[aria-pressed=true] { font-weight: bold;
+html.d95-desk .d95-task[aria-pressed=true] {
   background: repeating-conic-gradient(var(--panel) 0 25%, var(--sk-hi) 0 50%) 0 0 / calc(var(--d95-dot, 1px) * 2) calc(var(--d95-dot, 1px) * 2); }
 html.d95-desk .d95-task[aria-pressed=true] > span { background: var(--panel); }
 html.d95-desk .d95-tray { display: flex; align-items: center; gap: 6px; flex: none; height: 24px; padding: 0 8px 0 4px; box-sizing: border-box;
@@ -493,6 +497,44 @@ html.d95-desk .d95-item[aria-disabled=true]:focus { background: var(--accent); c
 html.d95-desk .d95-has-sub::after { content: ""; position: absolute; right: 8px; top: 50%; margin-top: -4px;
   border: 4px solid transparent; border-left-color: currentColor; border-right: 0; }
 html.d95-desk .d95-rule { height: 0; margin: 3px 2px; border-top: 1px solid var(--sk-lo); border-bottom: 1px solid var(--sk-hi); }
+/* A window's picture outside the desktop (web/skins.js, picOf and drawnPic): its desktop icon's, drawn by the same rules, at
+   32 x 26 in the Pop menu's first level and at half that (d95-pic-sm) as the window's small icon, in its title bar, on its
+   task bar button and in the Pop menu's lists. A game's own small icon from its exe (d95-pic-exe) is drawn pixel for pixel */
+html.d95-desk .d95-pic { display: block; flex: none; position: relative; width: 32px; height: 26px; }
+html.d95-desk .d95-pic.d95-pic-sm { width: 16px; height: 13px; margin: 1px 0 2px; }
+html.d95-desk .d95-pic.d95-pic-sm > i { transform: scale(.5); transform-origin: 0 0; }
+html.d95-desk .d95-pic-exe { display: block; flex: none; width: 16px; height: 16px; }
+html.d95-desk .d95-pic-exe > img { display: block; width: 16px; height: 16px; image-rendering: pixelated; }
+/* the entries that are no window: the games' folder, Setup's floppy disk, the computer that shuts down, full screen (the
+   maximize button's window), the game's size (a size grip), and on a game's page Music's note and the Sounds' speaker */
+html.d95-desk .d95-pic-folder > i { background: transparent; box-shadow: none; }
+html.d95-desk .d95-pic-folder > i::before { left: 1px; right: auto; top: 2px; width: 12px; height: 5px; background: #c9a227; box-shadow: inset 1px 1px #f4dc78; }
+html.d95-desk .d95-pic-folder > i::after { left: 1px; right: 1px; top: 6px; bottom: 1px; background: #e6c35a;
+  box-shadow: inset 1px 1px #fff1a8, inset -1px -1px #8a6d10, 1px 1px 0 rgba(0, 0, 0, .4); }
+html.d95-desk .d95-icon-setup > i { width: 24px; height: 24px; margin: 1px 4px; background: #1d3f8f;
+  box-shadow: inset -1px -1px #000000, inset 1px 1px #5a7fd0, 1px 1px 0 rgba(0, 0, 0, .4); }
+html.d95-desk .d95-icon-setup > i::before { left: 7px; right: 5px; top: 1px; height: 8px; background: linear-gradient(90deg, #c0c0c0 0 60%, #1d3f8f 60% 80%, #c0c0c0 80%); }
+html.d95-desk .d95-icon-setup > i::after { left: 4px; right: 4px; top: 13px; bottom: 1px; background: repeating-linear-gradient(#ffffff 0 2px, #9aa8c8 2px 3px); }
+html.d95-desk .d95-pic-shutdown > i { width: 28px; height: 20px; margin-left: 2px; }
+html.d95-desk .d95-pic-shutdown > i::before { left: 3px; right: 3px; top: 3px; height: 13px; background: #000080; box-shadow: inset 1px 1px var(--sk-lo); }
+html.d95-desk .d95-pic-shutdown > i::after { left: 8px; right: 8px; top: 21px; bottom: auto; height: 4px; background: var(--panel);
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi); }
+html.d95-desk .d95-pic-full > i::after { left: 9px; right: 9px; top: 10px; bottom: 4px; box-shadow: inset 0 2px var(--sk-dk), inset 0 0 0 1px var(--sk-dk); }
+html.d95-desk .d95-pic-size > i::after { left: auto; right: 3px; top: auto; bottom: 3px; width: 10px; height: 10px;
+  background: linear-gradient(135deg, transparent 0 45%, var(--sk-lo) 45% 55%, transparent 55% 65%, var(--sk-lo) 65% 75%, transparent 75% 85%, var(--sk-lo) 85% 95%, transparent 95%); }
+html.d95-desk .d95-pic-music > i::after { left: 9px; right: 9px; top: 9px; bottom: 3px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5.5l11-2.5v12.5'/%3E%3Ccircle cx='6.5' cy='18' r='2.5'/%3E%3Ccircle cx='17.5' cy='15.5' r='2.5'/%3E%3C/svg%3E") center / 14px 14px no-repeat; }
+html.d95-desk .d95-pic-sounds > i::after { left: 9px; right: 9px; top: 9px; bottom: 3px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' shape-rendering='crispEdges'%3E%3Cpath d='M3 11h7l8-7v24l-8-7H3z' fill='%23c0c0c0' stroke='%23000'/%3E%3Cpath d='M4 12h5v8H4z' fill='%23808080'/%3E%3Cpath d='M11 12l6-5v18l-6-5z' fill='%23ffffff'/%3E%3Cpath d='M21 12c2 2 2 6 0 8M24 9c4 4 4 10 0 14M27 6c5 6 5 14 0 20' fill='none' stroke='%23000080' stroke-width='2' shape-rendering='auto'/%3E%3C/svg%3E") center / 14px 14px no-repeat; }
+/* The Pop menu's entries, as 1995's Start menu: a large picture on the first level, a small one in the lists beside it, each in
+   a column of its own so that the names line up; a choice of several (the game's sizes) keeps its dot instead */
+html.d95-desk .d95-item-pic { flex: none; display: flex; align-items: center; justify-content: center; }
+html.d95-desk .d95-items > .d95-item { min-height: 36px; padding: 2px 22px 2px 4px; gap: 6px; }
+html.d95-desk .d95-items > .d95-item > .d95-item-pic { width: 34px; height: 32px; }
+html.d95-desk .d95-sub > .d95-item { min-height: 22px; padding: 1px 22px 1px 4px; gap: 5px; }
+html.d95-desk .d95-sub > .d95-item > .d95-item-pic { width: 18px; height: 16px; }
+html.d95-desk .d95-menu-small > .d95-items > .d95-item { min-height: 22px; padding: 1px 22px 1px 4px; gap: 5px; }
+html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic { width: 18px; height: 16px; }
+html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic > .d95-pic { width: 16px; height: 13px; margin: 1px 0 2px; }
+html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic > .d95-pic > i { transform: scale(.5); transform-origin: 0 0; }
 /* the desktop icons: a picture drawn here (a little window, its title bar the window's own colour) and a name under it */
 /* in columns down the left, a new column when one is full (the favourites' icons follow the windows') */
 html.d95-desk .d95-icons { display: grid; grid-auto-flow: column; grid-template-rows: repeat(auto-fill, 64px); grid-auto-columns: 84px; gap: 0 4px;
@@ -503,12 +545,12 @@ html.d95-desk .d95-icon { display: grid; justify-items: center; gap: 4px; paddin
 html.d95-desk .d95-icon[hidden] { display: none; }
 html.d95-desk .d95-icon:hover, html.d95-desk .d95-icon:focus-visible { background: rgba(0, 0, 128, .45); }
 html.d95-desk .d95-icon[aria-pressed=true] { box-shadow: none; }
-html.d95-desk .d95-icon > i { display: block; width: 32px; height: 26px; background: var(--panel); position: relative;
+html.d95-desk :is(.d95-icon, .d95-pic) > i { display: block; width: 32px; height: 26px; background: var(--panel); position: relative;
   box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), 1px 1px 0 rgba(0, 0, 0, .4); }
-html.d95-desk .d95-icon > i::before { content: ""; position: absolute; left: 2px; right: 2px; top: 2px; height: 6px; background: var(--sk-title); }
-html.d95-desk .d95-icon > i::after { content: ""; position: absolute; left: 6px; right: 6px; top: 11px; bottom: 5px; }
+html.d95-desk :is(.d95-icon, .d95-pic) > i::before { content: ""; position: absolute; left: 2px; right: 2px; top: 2px; height: 6px; background: var(--sk-title); }
+html.d95-desk :is(.d95-icon, .d95-pic) > i::after { content: ""; position: absolute; left: 6px; right: 6px; top: 11px; bottom: 5px; }
 html.d95-desk .d95-icon-game > i::after { background: #000000; }
-html.d95-desk .d95-icon-controls > i::after { bottom: auto; height: 4px; box-shadow: 0 6px 0 var(--sk-lo); background: var(--sk-lo); }
+html.d95-desk .d95-icon-panel-controls > i::after { bottom: auto; height: 4px; box-shadow: 0 6px 0 var(--sk-lo); background: var(--sk-lo); }
 html.d95-desk .d95-icon-chat > i::after { background: var(--sk-well); border-radius: 0 0 0 0; box-shadow: inset 0 0 0 1px var(--sk-lo); }
 html.d95-desk .d95-icon-panel-settings > i::after { border-radius: 50%; border: 3px dotted var(--sk-lo); left: 10px; right: 10px; }
 html.d95-desk .d95-icon-panel-files > i::after { background: #e6c35a; clip-path: polygon(0 0, 40% 0, 50% 25%, 100% 25%, 100% 100%, 0 100%); }
@@ -597,7 +639,6 @@ html.d95-desk .d95-fav-cap { width: 32px !important; height: 32px !important; ba
   -webkit-mask: url(cap.svg) center / contain no-repeat; mask: url(cap.svg) center / contain no-repeat; }
 html.d95-desk .d95-fav:focus > span:last-child { background: var(--accent); color: var(--accent-fg); outline: 1px dotted #ffff00; }
 html.d95-desk .d95-ctx { position: fixed; bottom: auto; flex-direction: column; min-width: 180px; z-index: 2147483001; }
-html.d95-desk .d95-default { font-weight: bold; }
 
 /* ======================= Settings' sections (web/settings.js) ======================= */
 /* Desktop 95 off the desktop: the tabs as the 1995 property sheet's, raised, the shown one joined to the page under it */
@@ -1021,7 +1062,7 @@ html.d95-desk .d95-dropzone-box { position: absolute; display: grid; justify-ite
   padding: 14px 12px; background: var(--panel); color: var(--fg); font-size: 12px; text-align: center; border: 2px dashed var(--sk-dk);
   box-shadow: 0 0 0 3px var(--panel), 3px 3px 0 3px rgba(0, 0, 0, .5); }
 html.d95-desk .d95-dropzone-box > svg { width: 64px; height: 64px; }
-html.d95-desk .d95-band { position: absolute; z-index: 2; pointer-events: none; box-sizing: border-box; border: 1px dotted #ffffff;
+html.d95-desk .d95-lasso { position: absolute; z-index: 2; pointer-events: none; box-sizing: border-box; border: 1px dotted #ffffff;
   mix-blend-mode: difference; }
 /* 1995's tooltip: a title's own line breaks kept (the Sounds board's name, when it plays and its file; the user, 2026-11-16:
    "the soundboard tooltips are hard to read due to lacking line breaks"), long lines wrapped, a long file name broken, and

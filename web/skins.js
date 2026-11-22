@@ -601,7 +601,7 @@ var ByopopSkin = (function () {
       if (!el || wins.some(function (w) { return w.el === el; })) return null;
       var w = { focusIn: o.focusIn || null, el: el, id: o.id, keep: o.keep || o.id, snap: o.snap || null, x: 0, y: 0, placed: false, closed: !!(o.closed && o.closable), at: o.at, open: o.open,
                 button: o.button, pic: o.pic || null, home: null, onClose: o.onClose || null, afterClose: o.afterClose || null, maximize: o.maximize || null, noIcon: !!o.noIcon, sizes: o.sizes || null,
-                minHeight: o.minHeight || null, minWidth: o.minWidth || null };
+                minHeight: o.minHeight || null, minWidth: o.minWidth || null, small: o.menuIcon || o.icon || null };
       if (o.lift) { w.home = document.createComment("desktop window " + o.id); el.parentNode.insertBefore(w.home, el); }
       el.classList.add("d95-win");
       el.setAttribute("data-d95-title", o.title);
@@ -610,8 +610,6 @@ var ByopopSkin = (function () {
       if (!handle) {
         handle = document.createElement("div");
         handle.className = "d95-tb";
-        // a window's small icon at the title's left (o.icon, SVG markup: a Settings section's)
-        if (o.icon) { var ti = document.createElement("i"); ti.className = "d95-tb-icon"; ti.setAttribute("aria-hidden", "true"); ti.innerHTML = o.icon; handle.appendChild(ti); }
         // the title is the window's heading, under the page's one h1, so that a screen reader's heading keys go from window to
         // window, and its name (named(), below)
         var t = document.createElement("h2");
@@ -678,8 +676,8 @@ var ByopopSkin = (function () {
         var sys = document.createElement("button");
         sys.type = "button"; sys.className = "d95-sys";
         sys.setAttribute("aria-label", TW("skin.desk.menu", o.title)); sys.setAttribute("aria-haspopup", "menu");
-        var mi = o.menuIcon;
-        if (!mi) { mi = document.createElement("i"); mi.className = "d95-sys-doc"; mi.setAttribute("aria-hidden", "true"); }
+        // (the window's small icon: its own, o.menuIcon or o.icon, SVG markup: a Settings section's; else its desktop picture, smallPic)
+        var mi = o.menuIcon || smallPic(w);
         sys.appendChild(mi);
         handle.insertBefore(sys, handle.firstChild);
         sys.addEventListener("click", function () { var r = sys.getBoundingClientRect(); controlMenu(w, sys, r.left, r.bottom); });
@@ -833,6 +831,46 @@ var ByopopSkin = (function () {
       update();
       return box;
     }
+    // ---- a window's pictures (the user, 2026-11-21: "The "Pop" menu is messed up, and could use icons ... the taskbar is missing
+    // icons") ----
+    // A window's picture is its desktop icon's, drawn by the same rules (d95-icon-<id> in web/skins.css): at its own size in the
+    // Pop menu's first level, and at half size (d95-pic-sm) as the window's small icon, which its title bar, its task bar button
+    // and the Pop menu's lists show, as a 1995 program had one picture at two sizes. A window with a small icon of its own (a
+    // game's cap, a Settings section's picture) shows that one. An entry that is no window draws its own by name (drawnPic).
+    function picOf(w, small) {
+      var s = document.createElement("span");
+      s.className = "d95-pic d95-icon-" + w.id + (w.pic ? " d95-icon-pic" : "") + (small ? " d95-pic-sm" : "");
+      s.setAttribute("aria-hidden", "true");
+      var i = document.createElement("i");
+      if (w.pic) { var c = w.pic.cloneNode(true); c.removeAttribute("id"); i.appendChild(c); }
+      s.appendChild(i);
+      return s;
+    }
+    function drawnPic(name, small) {
+      var s = document.createElement("span");
+      s.className = "d95-pic d95-pic-" + name + (small ? " d95-pic-sm" : "");
+      s.setAttribute("aria-hidden", "true");
+      s.appendChild(document.createElement("i"));
+      return s;
+    }
+    function smallPic(w) {
+      if (typeof w.small === "string") {
+        var t = document.createElement("i"); t.className = "d95-tb-icon"; t.setAttribute("aria-hidden", "true"); t.innerHTML = w.small;
+        return t;
+      }
+      if (w.small) { var c = w.small.cloneNode(true); c.removeAttribute("id"); return c; }
+      return picOf(w, true);
+    }
+    // a game's small icon in a list: its own, read out of the player's exe (web/exeicon.js), else its cap in its colour
+    function gamePic(id) {
+      var rec = null, g = null, url = "";
+      try { rec = ByopopGameFiles.all()[id]; url = rec && ByopopGameFiles.present(rec) ? (rec.small || rec.icon || "") : ""; } catch (e) {}
+      (window.ByopopGames || []).forEach(function (x) { if (x.id === id) g = x; });
+      var s = document.createElement("i"); s.setAttribute("aria-hidden", "true");
+      if (url) { s.className = "d95-pic-exe"; var im = document.createElement("img"); im.alt = ""; im.draggable = false; im.src = url; s.appendChild(im); }
+      else { s.className = "d95-sys-cap"; if (g && g.colour) s.style.background = g.colour; }
+      return s;
+    }
     function addIcon(w, title) {
       if (!icons) return;
       var b = document.createElement("button");
@@ -971,6 +1009,8 @@ var ByopopSkin = (function () {
         if (o && o.href) b.href = o.href; else b.type = "button";
         b.className = "d95-item" + (o && o.cls ? " " + o.cls : "");
         b.setAttribute("role", "menuitem"); b.tabIndex = -1;
+        // its picture (o.pic), in a column of its own so that the names line up (none for a choice of several, o.noPic)
+        if (!(o && o.noPic)) { var ps = document.createElement("span"); ps.className = "d95-item-pic"; if (o && o.pic) ps.appendChild(o.pic); b.appendChild(ps); }
         var t = document.createElement("span"); t.textContent = label; b.appendChild(t);
         if (o && o.sub) { b.setAttribute("aria-haspopup", "menu"); b.setAttribute("aria-expanded", "false"); b.setAttribute("aria-controls", sub.id); b.subFill = o.fill || null; }
         if (act) b.addEventListener("click", function (ev) { act(ev, b); });
@@ -1007,13 +1047,13 @@ var ByopopSkin = (function () {
         // the games' window the setting "Games open in" names (All games or the Library, web/library.js): on the listing, first
         var gw = document.getElementById("games-title") && find(gamesWindow());
         if (gw) {
-          sub.appendChild(item(gw.el.getAttribute("data-d95-title") || gw.id, closeThen(function () { if (gw.min) setMin(gw, false); show(gw); })));
+          sub.appendChild(item(gw.el.getAttribute("data-d95-title") || gw.id, closeThen(function () { if (gw.min) setMin(gw, false); show(gw); }), { pic: smallPic(gw) }));
           sub.appendChild(rule());
         }
         var games = playable();
         if (!games.length) { var none = item(T("skin.pop.nogames"), null); none.setAttribute("aria-disabled", "true"); sub.appendChild(none); }
         var shown = games.filter(function (g) { return !win95Hides(g.id); });
-        shown.forEach(function (g) { sub.appendChild(item(g.title, null, { href: g.page })); });
+        shown.forEach(function (g) { sub.appendChild(item(g.title, null, { href: g.page, pic: gamePic(g.id) })); });
         if (games.length > shown.length) {
           var n = games.length - shown.length;
           var hid = item(Tv("skin.win95.hidden", { count: n }), null);
@@ -1026,7 +1066,7 @@ var ByopopSkin = (function () {
       function fill() {
         list.textContent = "";
         var listing = !!document.getElementById("games-title");
-        var games = item(T("skin.pop.games"), function (ev, b) { openSub(b, true); }, { sub: true, cls: "d95-has-sub" });
+        var games = item(T("skin.pop.games"), function (ev, b) { openSub(b, true); }, { sub: true, cls: "d95-has-sub", pic: drawnPic("folder") });
         list.appendChild(games);
         list.appendChild(rule());
         function openWin(w) {
@@ -1036,18 +1076,18 @@ var ByopopSkin = (function () {
         function win(id, label) {
           var w = find(id);
           if (!w || (w.button && w.button.hidden)) return;
-          list.appendChild(item(label || w.el.getAttribute("data-d95-title") || id, closeThen(function () { openWin(w); })));
+          list.appendChild(item(label || w.el.getAttribute("data-d95-title") || id, closeThen(function () { openWin(w); }), { pic: picOf(w, false) }));
         }
         // Settings, with its sections in a list beside it: the folder itself first, then each section's window
         function settings(id) {
           var w = find(id), secs = wins.filter(function (x) { return /^set-/.test(x.id); });
           if (!w) return;
           if (!secs.length) { win(id); return; }
-          list.appendChild(item(w.el.getAttribute("data-d95-title") || id, function (ev, b) { openSub(b, true); }, { sub: true, cls: "d95-has-sub", fill: function () {
+          list.appendChild(item(w.el.getAttribute("data-d95-title") || id, function (ev, b) { openSub(b, true); }, { sub: true, cls: "d95-has-sub", pic: picOf(w, false), fill: function () {
             sub.textContent = "";
-            sub.appendChild(item(T("skin.pop.allsettings"), closeThen(function () { openWin(w); })));
+            sub.appendChild(item(T("skin.pop.allsettings"), closeThen(function () { openWin(w); }), { pic: smallPic(w) }));
             sub.appendChild(rule());
-            secs.forEach(function (s) { sub.appendChild(item(s.el.getAttribute("data-d95-title"), closeThen(function () { openWin(s); }))); });
+            secs.forEach(function (s) { sub.appendChild(item(s.el.getAttribute("data-d95-title"), closeThen(function () { openWin(s); }), { pic: smallPic(s) })); });
           } }));
         }
         if (listing) {
@@ -1058,19 +1098,19 @@ var ByopopSkin = (function () {
         } else {
           settings("panel-settings");
           [["music", "index.tabs.music"], ["sounds", "sounds.title"]].forEach(function (m) {
-            list.appendChild(item(T(m[1]), null, { href: "./#" + m[0] }));
+            list.appendChild(item(T(m[1]), null, { href: "./#" + m[0], pic: drawnPic(m[0]) }));
           });
           list.appendChild(rule());
           // the game's full screen, as its window's maximize button
           var gw = find("game");
-          if (gw && gw.maximize) list.appendChild(item(T("skin.pop.full"), closeThen(gw.maximize)));
+          if (gw && gw.maximize) list.appendChild(item(T("skin.pop.full"), closeThen(gw.maximize), { pic: drawnPic("full") }));
           if (gw && gw.sizes) {
             var sz = gw.sizes();
-            if (sz && sz.list.length) list.appendChild(item(T("skin.pop.size"), function (ev, b) { openSub(b, true); }, { sub: true, cls: "d95-has-sub", fill: function () {
+            if (sz && sz.list.length) list.appendChild(item(T("skin.pop.size"), function (ev, b) { openSub(b, true); }, { sub: true, cls: "d95-has-sub", pic: drawnPic("size"), fill: function () {
               sub.textContent = "";
               var now = gw.sizes();
               now.list.forEach(function (s) {
-                var it = item(s.label, closeThen(function () { now.set(s.n); }));
+                var it = item(s.label, closeThen(function () { now.set(s.n); }), { noPic: true });
                 it.setAttribute("role", "menuitemradio"); it.setAttribute("aria-checked", s.n === now.current ? "true" : "false"); it.classList.add("d95-radio");
                 sub.appendChild(it);
               });
@@ -1083,11 +1123,12 @@ var ByopopSkin = (function () {
         win("about", T("skin.desk.about"));
         if (!listing) {
           list.appendChild(rule());
-          list.appendChild(item(T("skin.pop.listing"), null, { href: "./", cls: "d95-leave" }));
+          var allPic = drawnPic("games"); allPic.classList.add("d95-icon-games");
+          list.appendChild(item(T("skin.pop.listing"), null, { href: "./", cls: "d95-leave", pic: allPic }));
         }
         // Shut Down, last (the user, 2026-11-14, by the coordinator's list): every window closes, then the last screen
         list.appendChild(rule());
-        list.appendChild(item(T("skin.pop.shutdown"), closeThen(shutDown), { cls: "d95-shutdown" }));
+        list.appendChild(item(T("skin.pop.shutdown"), closeThen(shutDown), { cls: "d95-shutdown", pic: drawnPic("shutdown") }));
       }
       function items(m) { return Array.prototype.filter.call(m.querySelectorAll(".d95-item"), function (b) { return b.getClientRects().length > 0; }); }
       function focusIn(m, i) { var a = items(m); if (!a.length) return; a[(i + a.length) % a.length].focus(); }
@@ -1101,9 +1142,9 @@ var ByopopSkin = (function () {
         sub.style.left = (unzoom(r.right - wr.left) - 3) + "px";
         sub.style.bottom = "auto";
         sub.style.top = "0px";
-        var h = sub.offsetHeight, topAt = unzoom(r.top - wr.top) - 3;
-        // kept above the task bar: its bottom no lower than the item's
-        sub.style.top = Math.min(topAt, unzoom(r.bottom - wr.top) - h + 3) + "px";
+        var h = sub.offsetHeight, topAt = unzoom(r.top - wr.top) - 3, bar = (wrap.closest(".d95-taskbar") || wrap).getBoundingClientRect();
+        // level with its entry, as 1995's lists opened, and raised only as far as keeps it above the task bar and on the screen
+        sub.style.top = Math.max(unzoom(-wr.top), Math.min(topAt, unzoom(bar.top - wr.top) - h)) + "px";
         if (focus) focusIn(sub, 0);
       }
       function closeSub(focusBack) {
@@ -1114,7 +1155,10 @@ var ByopopSkin = (function () {
       }
       function open() {
         fill();
+        menu.classList.remove("d95-menu-small");
         menu.hidden = false;
+        // a screen too short for the large pictures takes the small ones, as 1995's Start menu offered
+        if (menu.getBoundingClientRect().top < 0) menu.classList.add("d95-menu-small");
         pop.setAttribute("aria-expanded", "true");
         focusIn(menu, 0);
       }
@@ -1167,7 +1211,9 @@ var ByopopSkin = (function () {
             b = buttons[w.id] = document.createElement("button");
             b.type = "button"; b.className = "d95-task";
             b.addEventListener("contextmenu", function (ev) { ev.preventDefault(); ev.stopPropagation(); controlMenu(w, b, ev.clientX, ev.clientY); });
-            var t = document.createElement("span"); b.appendChild(t);
+            // the window's small icon, then its title (the front window's pressed in, its title bold, as 1995's)
+            b.appendChild(smallPic(w));
+            var t = document.createElement("span"); t.className = "d95-task-text"; b.appendChild(t); b.text = t;
             b.addEventListener("click", function () {
               if (w.min) setMin(w, false);
               else if (frontmost() === w) { setMin(w, true); return; }
@@ -1177,7 +1223,7 @@ var ByopopSkin = (function () {
             });
           }
           var title = w.el.getAttribute("data-d95-title") || w.id;
-          if (b.firstChild.textContent !== title) b.firstChild.textContent = title;
+          if (b.text.textContent !== title) b.text.textContent = title;
           b.title = title;
           b.setAttribute("aria-pressed", w === fr ? "true" : "false");
           strip.appendChild(b);  // in the windows' order
@@ -1463,7 +1509,7 @@ var ByopopSkin = (function () {
         var x0 = Math.min(band.px, ev.clientX), y0 = Math.min(band.py, ev.clientY), x1 = Math.max(band.px, ev.clientX), y1 = Math.max(band.py, ev.clientY);
         if (!band.el) {
           if (x1 - x0 + y1 - y0 < 5) return;
-          band.el = document.createElement("div"); band.el.className = "d95-band"; band.el.setAttribute("aria-hidden", "true");
+          band.el = document.createElement("div"); band.el.className = "d95-lasso"; band.el.setAttribute("aria-hidden", "true");
           document.body.appendChild(band.el);
           document.documentElement.classList.add("d95-dragging");
         }

@@ -323,6 +323,14 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   place) and Properties (Settings' Appearance).
 - **The task bar's right click:** Cascade, Tile Horizontally, Tile Vertically and Minimize All Windows, which becomes
   Undo Minimize All.
+- **Pictures** (the user, 2026-11-21: "The \"Pop\" menu is messed up, and could use icons"): a window has one picture at two
+  sizes, its desktop icon's (`picOf`). The Pop menu's first level shows it large, beside the band, and the lists beside it
+  show it small, as do the window's title bar and its task bar button; a game's list entry shows the small icon read from
+  its exe, else its cap. Entries that are no window draw their own (`drawnPic`: the games' folder, Setup's floppy disk,
+  full screen, the game's size, Music, Sounds, Shut Down's computer). A screen too short for the large pictures gets the
+  small ones on the first level too, and a list opens level with its entry, raised only as far as the task bar needs. The
+  Pop button's mark is a yellow burst of our own, and the active window's task bar button is pressed with bold text
+  (struck twice, as the desktop's one-weight font draws every bold).
 - **Tooltips:** drawn as 1995's, a pale yellow box with a black border half a second after the pointer rests. The
   browser draws its own for any title under the pointer, so the titles of the element and of its titled ancestors are held
   off them until the pointer leaves the element: moving onto a child of it (a Sounds button's label), a press, a key and
