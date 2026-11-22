@@ -210,12 +210,12 @@ void Board::DrawPieceShadow(Graphics* g, const Piece* thePiece)
 }
 
 // slot 246, 0x7568a0 (bejeweled3) with its second argument 0. Three passes: (1) the shadow of every gem that is not a Flame Gem and is
-// held by a swap, turning (+0x170 not 0) or has the bits 1, 4, 0x10 (0x15) or 0x800 and 0x1000; then the effects' layer at +0x12bc;
+// held by a swap, turning (+0x170 not 0) or has the bits 1, 4, 0x10 (0x15) or 0x800 and 0x1000; then the effects' layer at +0x12bc
+// (EffectsManager::Draw: the Star Gem's and Hypercube's effects and the flame gem's creation animation under the gems);
 // (2) every gem that no swap holds, by slot 237; (3) each swap's gems: the second one (when the swap is not over and the second gem
 // exists) and the first, each with a scale factor of 1 plus or minus the swap's lift, which is the constant 0 in the 2D mode (the exe's
 // curve at +0x80 of the swap is set only in 3D, 0x75f8fc), and so 1; the order follows the swap's angle (+0x10), which is 0 in 2D too:
-// the second gem first. port: left out: the layer's effects (+0x12bc: the Star Gem's and Hypercube's particle effects, 0x748a00,
-// 0x749050), the exe's 3D-only gem shine (0x74f130) and the cursor at +0x2c44 (3D). The piece at +0x2ef8 (a piece pointer in the exe:
+// the second gem first. port: left out: the exe's 3D-only gem shine (0x74f130) and the cursor at +0x2c44 (3D). The piece at +0x2ef8 (a piece pointer in the exe:
 // a gem the fill holds, which pass 2 skips) is none in Classic
 void Board::DrawPieces(Graphics* g)
 {
@@ -228,6 +228,9 @@ void Board::DrawPieces(Graphics* g)
 				DrawPieceShadow(g, aPiece);
 		}
 	}
+	g->PushState();
+	mEffectsUnder->Draw(g, false);   // 0x7568a0: slot 26 of +0x12bc between PushState (0x432410) and PopState (0x432520)
+	g->PopState();
 	for (int aRow = 0; aRow < ROWS; aRow++) {
 		for (int aCol = 0; aCol < COLS; aCol++) {
 			const Piece* aPiece = mGrid[aRow][aCol];
@@ -348,6 +351,7 @@ void Board::Draw(Graphics* g)
 	DrawPanel(g);
 	DrawScreenFrame(g);
 	DrawPieces(g);   // slot 246, 0x7568a0
+	mEffectsOver->Draw(g, false);   // the +0x12c0 layer is a child of the board: its draw (slot 26) comes after the board's
 }
 
 // 0x741840 (bejeweled3), Classic's case: the Hint button (id 0, the Classic hint picture) and the Menu button (id 1, the Classic menu

@@ -142,6 +142,20 @@ void MainMenu::Draw(Graphics* g)
 	}
 }
 
+// the PLAY ball's press (0x6a2de0 case 2, bejeweled3): the play menu fades in over the main menu. Also what the test command `goto classic`
+// does first, so that the game it starts leaves for the same menu as one started from the screens
+void MainMenu::OpenPlayMenu()
+{
+	if (!mPlayButton->mScaleCurve.IsDoingCurve()) {
+		gApp->PlaySoundEx(SOUND_CLICKFLYIN, 1.0, 0, 0.0);
+		// port: the PopAnim background's curve (+0x6e0 object's +0x1a8: "b;0,1,0.002,1,####         ~~###") is left out
+		mPlayMenu->mFadeCurve.SetCurve("b?0,1,0.01,1,####    C#.Z[    r~###j~###");
+		mPlayButton->mBlendCurve.SetCurve("b;0,1,0.01,1,####         ~~###");
+		mPlayButton->mScaleCurve.SetCurve("b;0.17,0.93,0.01,1,####         ~~Q(j");
+		mWidgetManager->SetFocus(mPlayMenu);
+	}
+}
+
 // 0x6a2de0 (bejeweled3): a ball was pressed and let go over itself. Nothing works before the intro has started, nor
 // while the PlayMenu is up. PLAY (id 2) plays the click, makes the PLAY ball grow to cover the screen and the PlayMenu
 // fade in, and gives the PlayMenu the focus. OPTIONS (0) and RECORDS (1) turn the camera to one side
@@ -160,14 +174,7 @@ void MainMenu::ButtonDepress(int theId)
 		SDL_Log("MainMenu: ball %d pressed (the side screens are not translated)", theId);
 		break;
 	case 2:
-		if (!mPlayButton->mScaleCurve.IsDoingCurve()) {
-			gApp->PlaySoundEx(SOUND_CLICKFLYIN, 1.0, 0, 0.0);
-			// port: the PopAnim background's curve (+0x6e0 object's +0x1a8: "b;0,1,0.002,1,####         ~~###") is left out
-			mPlayMenu->mFadeCurve.SetCurve("b?0,1,0.01,1,####    C#.Z[    r~###j~###");
-			mPlayButton->mBlendCurve.SetCurve("b;0,1,0.01,1,####         ~~###");
-			mPlayButton->mScaleCurve.SetCurve("b;0.17,0.93,0.01,1,####         ~~Q(j");
-			mWidgetManager->SetFocus(mPlayMenu);
-		}
+		OpenPlayMenu();
 		break;
 	}
 }

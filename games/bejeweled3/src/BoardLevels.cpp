@@ -153,8 +153,9 @@ bool Board::HintAllowed() const
 	return true;
 }
 
-// slot 202, 0x75aeb0 (bejeweled3). port: the hint's glow on the gem (0x748480), the help tip and the sound are not made, and so the
-// draws of the app's Rand() that the glow of a hint the player asked for makes (0x72b180) are missing
+// slot 202, 0x75aeb0 (bejeweled3): the piece the hint is for is the one at the move's second cell, or the first when that is a Hypercube; the
+// player's hint makes its flash (0x748480: MakeHintEffect, which draws one Rand() of the app at its first update, after the two of
+// FindHint). port: the help tip (0x742cd0, slot 0x148 with 0x10) and the sound are not made
 void Board::ShowHint(bool theUser)
 {
 	if (theUser)
@@ -162,7 +163,14 @@ void Board::ShowHint(bool theUser)
 	mHintTimer = 0;
 	if (theUser || mAutoHints) {
 		BoardMove aMove;
-		FindHint(&aMove);
+		if (FindHint(&aMove)) {
+			Piece* aPiece = mGrid[aMove.mToRow][aMove.mToCol];
+			Piece* aFrom = mGrid[aMove.mFromRow][aMove.mFromCol];
+			if (aFrom != nullptr && (aFrom->mFlags & Piece::FLAG_HYPERCUBE) != 0)
+				aPiece = aFrom;
+			if (aPiece != nullptr)
+				MakeHintEffect(aPiece, theUser);
+		}
 	}
 }
 

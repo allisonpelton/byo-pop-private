@@ -769,8 +769,8 @@ manager and the app's +0xbe8 becomes 0. Not translated: HOW TO PLAY (the help di
 voice) and the checkboxes (ids 4 to 10: the art size 600, 768 and 1200, 3D and the others) on the dialog's face, the zoom curve, the background's fade
 (0x77dde0), the Quest branch (0x76c500), the click sound of 0x76aaf0, the ball's curves and the labels' (0x689a10, 0x684660), the first screen's
 own version of the dialog (0x6a3830, made with 0) and the pause the exe's board takes from the dialog (+0xd20). The port's buttons are DialogButtons
-with the picture's three cels. The play menu comes back only when it was opened (a test that starts Classic with the goto command shows the main
-menu's background only).
+with the picture's three cels. The play menu comes back from both starts: the goto command first presses PLAY (MainMenu::OpenPlayMenu, the body of 0x6a2de0 case 2, which sets the play
+menu's fade curve) as a player would, and then starts Classic. The mode balls on the play menu are not drawn (their curves are not translated).
 
 The rest of the Classic screen's drawing, what was read and not made (each as a `port:` note at its place):
 - The level bar's length. 0x755620 (slot 189, 0x2f4, gives the target, the progress over the level's size) keeps a second smoothed fraction (+0xd6c)
@@ -808,9 +808,17 @@ Oddities (not translated, each with a `port:` note in the source):
   (PIEFFECT_HYPERCUBE, under layer), 0x80000 0x748930 (PIEFFECT_BLASTGEM; the exe never sets 0x80000 in Classic: 0x75af60 treats it like bit 1). The
   Flame Gem (0x745ca0) makes two PopAnimEffects of POPANIM_FLAMEGEMCREATION (labels with "Creation_Above Gem", in the two layers; the animation has no
   "addparticleeffect"), and has no persistent effect in 2D: the gem is its sheet's cel. The hint's PIEFFECT_HINTFLASH (0x748480, for a player's hint) is a
-  ParticleEffect in the layer at +0x12c0. None of these is made yet. The Rand() draws they would make (one per ParticleEffect at its second update:
-  Star Gem two, Hypercube one, a player's hint one) are not in the logic either: the comments of MakeStarGem and MakeHypercube say "no Rand()", which holds
-  for the Effect constructor (0x729460, type 0x16/0x17) but not for the PIEffect's first real update (0x573290: Rand() for the seed).
+  ParticleEffect in the layer at +0x12c0.
+  Made (src/Effects.cpp, src/BoardEffects.cpp): the Star Gem's two effects (0x749050), the Hypercube's (0x748a00), the Flame Gem's two creation PopAnimEffects
+  (0x745ca0) and a player's hint flash (0x748480), updated at 0x767293 / with the board's children and drawn in the passes above. The Rand() draws they make are
+  PIEffect::Update's seed (0x573290), one at each ParticleEffect's second real update, inside Update and never Draw: Star Gem two, Hypercube one, hint one. They
+  feed only the effects' own particles; the board's seed and FindHint draw from the same app Rand(), so a game's state is unchanged by them in the bot run
+  checked (seed 7, bot 150, state at 11999: identical before and after). Left out, each noted at its place: the sounds (0x76aaf0), the hint piece's pulse curves
+  (+0x440, +0x280, +0x2f0), the effects' own curves (+0xa0, +0x110), the manager's list at +0xf8, the 3D-only 0x745a60, 0x755030, 0x754c60, and the level change's
+  effect (event 1 of 0x760ac0, 0x749130, flag 8, released at event 4). BLASTGEM is made only for flag 0x80000, which Classic never sets, so the Flame Gem has no
+  BLASTGEM effect here. Oddity: the Flame creation animation (POPANIM_FLAMEGEMCREATION) is updated and drawn (its main sprite shows one small image rising near the
+  animation's top-left corner; no effect layer or other object is drawn), but it does not look like a flame burst over the gem; the cause was not found (the
+  transform, scale and label were checked against 0x7325d0). It would take comparing its frames with the exe's.
 - (kept) the gems' other pictures: the Flame Gem's PIEffect (PIEFFECT_BLASTGEM), the Star Gem's and the Hypercube's pictures and effects (0x745a60, 0x755030,
   0x754c60, the flag bits 4 and 0x2000 at the end of 0x757df0), the selection and hint glows (+0x240, bit 0x200), the blend of two cels round a turn (a PIEffect
   "Params" when the board's alpha is 1), the pass order of 0x7568a0 (plain, special, flame gems with the effects between) and the piece's alpha curve

@@ -11,6 +11,7 @@
 #include "ButtonListener.h"
 #include "ButtonWidget.h"
 #include "CurvedVal.h"
+#include "Effects.h"
 #include "MTRand.h"
 #include "Widget.h"
 
@@ -83,7 +84,10 @@ public:
 	int mSpecialCountdown = 0;   // +0x184: 25 when a special was made on it (0x745ca0, 0x749570, 0x7494d0), counts down by one each update
 	                        // (UpdateGame); the 3 by 3 explosion and the busy-count branch leave a piece alone while it is above 0
 
+	std::vector<Effect*> mEffects;   // +0x620: the effects that hold the piece (their users count, +0x1b4, counts it)
+
 	explicit Piece(Board* theBoard);   // 0x7203b0 (bejeweled3), with 0x720120 (bejeweled3)
+	~Piece();                          // 0x720040 (bejeweled3): the effects let go (0x71ffd0)
 };
 
 // The exe's counters (0x73d170): the board keeps one set for the game (+0xc84, 38 ints) and each move record one for the move
@@ -200,6 +204,8 @@ public:
 	float mCheckerFlash = 0.0f;      // +0x1188: 0 after a reset (0x74aa8d); 0x74a590 (run by 0x74c291 and 0x762986, in the special gems' going off: not
 	                                 // translated, so it stays 0) makes it 1; 0.00125 less each update while no match group lives (0x769e01):
 	                                 // the checkered squares of the panel are lit by it (0x751d50)
+	EffectsManager* mEffectsUnder = nullptr;   // +0x12bc: the effects under the gems (drawn in the gem passes, 0x7568a0; updated by 0x767090)
+	EffectsManager* mEffectsOver = nullptr;    // +0x12c0: the effects over them (a child of the board)
 	PIEffect* mLevelBarEffect = nullptr;   // a copy of PIEFFECT_LEVELBAR (the exe draws the resource itself, 0x7540c0), drawn over the bar's back
 	ButtonWidget* mHintButton = nullptr;   // +0x286c: made by the layout 0x741840 (id 0, IMAGE_INGAMEUI_HINT_BUTTON_CLASSIC)
 	ButtonWidget* mMenuButton = nullptr;   // +0x2870: (id 1, IMAGE_INGAMEUI_MENU_BUTTON_CLASSIC)
@@ -333,6 +339,15 @@ public:
 	void MakeFlameGem(Piece* thePiece);
 	void MakeHypercube(Piece* thePiece, bool theWithEffect);
 	void MakeStarGem(Piece* thePiece);
+	// BoardEffects.cpp: the persistent looks of the special gems, the flame gem's creation and the hint's flash
+	// 0x749220 (bejeweled3): makes the effect a gem's flags ask for (the Star Gem's and the Hypercube's here)
+	void MakeSpecialEffect(Piece* thePiece);
+	void MakeStarEffects(Piece* thePiece);        // 0x749050, with 0x748dc0 and 0x748f30: a Star Gem's two effects, one in each layer
+	void MakeHypercubeEffect(Piece* thePiece);    // 0x748a00: PIEFFECT_HYPERCUBE under the gems
+	void MakeFlameCreationEffects(Piece* thePiece);   // 0x745ca0: the two PopAnimEffects of POPANIM_FLAMEGEMCREATION
+	void MakeHintEffect(Piece* thePiece, bool theUser);   // 0x748480: PIEFFECT_HINTFLASH over the gem the hint is for
+	void ClearEffects();                          // 0x729ca0 for both layers: every effect goes (pieces let go first)
+	void DrawOverlay(Graphics* g) override;       // slot 44: the over layer's overlay pass (0x72e3c0)
 	// slot 198, 0x74d940 with 0x73f8e0 (bejeweled3): a flame gem at a place (in pixels, the middle of its cell) goes off
 	void Explode(int theX, int theY);
 	// 0x73f8e0 (bejeweled3): the draws of the app's Rand() that the particles of the explosion make for one neighbour of the flame gem

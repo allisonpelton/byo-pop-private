@@ -5,6 +5,8 @@
 
 #include "Board.h"
 #include "Common.h"
+#include "MainMenu.h"
+#include "PlayMenu.h"
 
 #include <SDL.h>
 
@@ -88,6 +90,9 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	if (aCommand == "goto") {
 		if (theCommand.mArgs == "classic") {
+			// the game is reached as from the screens: PLAY is pressed (the play menu opens) and then the Classic ball
+			if (mMainMenu != nullptr && mMainMenu->mPlayMenu != nullptr && !mMainMenu->mPlayMenu->IsActive())
+				mMainMenu->OpenPlayMenu();
 			StartClassic();
 			ReplyOK(theCommand);
 		}

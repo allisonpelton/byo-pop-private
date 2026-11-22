@@ -73,17 +73,31 @@ Board::Board()
 		mLevelBarEffect = PIEFFECT_LEVELBAR->Duplicate();
 		mLevelBarEffect->mLoop = true;
 	}
+	mEffectsUnder = new EffectsManager(this);   // 0x74b653 and 0x74b6a0: 0x72a510 twice, the second added as a child
+	mEffectsOver = new EffectsManager(this);
 	MakeButtons();   // 0x741840: the layout puts the buttons where the pictures say
+}
+
+// 0x720040 (bejeweled3), with 0x71ffd0: each effect that holds the piece is told it has none (its piece id is 0) and loses a user
+Piece::~Piece()
+{
+	for (Effect* anEffect : mEffects) {
+		anEffect->mPieceId = 0;
+		anEffect->mUsers--;
+	}
 }
 
 Board::~Board()
 {
+	ClearEffects();
 	if (mBackground != nullptr) {
 		if (mBackground->mParent != nullptr)
 			mBackground->mParent->RemoveWidget(mBackground);
 		delete mBackground;
 	}
 	delete mLevelBarEffect;
+	delete mEffectsUnder;
+	delete mEffectsOver;
 	// the two buttons are the board's children
 	for (ButtonWidget* aButton : {mHintButton, mMenuButton}) {
 		if (aButton != nullptr) {
@@ -105,6 +119,7 @@ ClassicBoard::ClassicBoard()
 // 0x74a880 (bejeweled3): the pieces go and the counters the fill reads are back to what a new board has
 void Board::ResetGame()
 {
+	ClearEffects();   // 0x74ad6f: 0x729ca0 for +0x12bc and +0x12c0
 	for (int aRow = 0; aRow < ROWS; aRow++) {
 		for (int aCol = 0; aCol < COLS; aCol++) {
 			delete mGrid[aRow][aCol];
@@ -374,7 +389,7 @@ void Board::LeaveToMenu()
 }
 
 // 0x767090 (bejeweled3). port: left out until its step: the dialogs that stop a step (ids 0x29, 0x2b and 0x27, and 0x17), the
-// saved-game and replay branches (+0x306c, +0x306d, +0x12f8), the effects widget's update (+0x12bc), the intro's slot 228
+// saved-game and replay branches (+0x306c, +0x306d, +0x12f8), the intro's slot 228
 // (0x7428a0, after 200 updates), the fades of +0x12c8 and +0x12cc, the hold of +0x2b40, the pieces' own update (0x720a50:
 // for a plain piece it steps two idle curves and clears its shake offsets), the clock records of 0x763a30 and the panel
 // of 0x7596e0 (slot 111 is true), the timed events of +0xc60, the idle curves of the pieces (+0x198, +0x90, +0x280 ...),
@@ -384,7 +399,9 @@ void Board::UpdateTick()
 {
 	// 0x475660 is WidgetContainer::Update: the board's own update count goes up here, not in Update
 	WidgetContainer::Update();
+	mEffectsOver->Update();   // the +0x12c0 layer is a child of the board, added before the overlay: its update (0x7303f0) is part of the container's
 	UpdateHyperspace();   // the overlay is a child of the board: its update (0x725ef0) is part of the container's
+	mEffectsUnder->Update();   // 0x767293: slot 22 of +0x12bc, which is not a child
 	// 0x75ee20 for the moves the player asked for since the last update (the list at +0xc60)
 	std::vector<PendingSwap> aPending;
 	aPending.swap(mPendingSwaps);

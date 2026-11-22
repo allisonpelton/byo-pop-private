@@ -1126,8 +1126,8 @@ void Board::UpdatePiecePulses()
 }
 
 // 0x745ca0 (bejeweled3), slot 0x298: a run of 4 (or the second part of a run of 6 or more) makes the gem a flame gem. It needs a colour; it sets
-// bit 1, clears the bits that 0x2e0 names and starts the countdown (+0x184) at 25, during which a clear leaves it standing. Its
-// effect (type 0x16) draws no Rand(). port: the effect and the sound
+// bit 1, clears the bits that 0x2e0 names and starts the countdown (+0x184) at 25, during which a clear leaves it standing. It makes the
+// creation effects (two PopAnimEffects, type 0x17, which draw no Rand(): MakeFlameCreationEffects). port: the sound (0x76aaf0) is left out
 void Board::MakeFlameGem(Piece* thePiece)
 {
 	if (thePiece->mColor == Piece::NO_COLOR)
@@ -1135,10 +1135,11 @@ void Board::MakeFlameGem(Piece* thePiece)
 	thePiece->mFlags |= Piece::FLAG_FLAME;
 	thePiece->mFlags &= ~Piece::FLAGS_SPECIAL_MADE;
 	thePiece->mSpecialCountdown = 25;
+	MakeFlameCreationEffects(thePiece);
 }
 
-// 0x7494d0 (bejeweled3), slot 0x2a0: a crossing (or a run of 6 or more) makes the gem a star gem; the same as 0x745ca0 with bit 4 (its
-// effect is type 0x17, which draws no Rand() either)
+// 0x7494d0 (bejeweled3), slot 0x2a0: a crossing (or a run of 6 or more) makes the gem a star gem; the same as 0x745ca0 with bit 4 and, at the end, 0x749050: its two effects
+// (MakeStarEffects), whose Rand() draws come at their second updates. port: the sound (0x76aaf0) is left out
 void Board::MakeStarGem(Piece* thePiece)
 {
 	if (thePiece->mColor == Piece::NO_COLOR)
@@ -1146,18 +1147,21 @@ void Board::MakeStarGem(Piece* thePiece)
 	thePiece->mFlags |= Piece::FLAG_STAR;
 	thePiece->mFlags &= ~Piece::FLAGS_SPECIAL_MADE;
 	thePiece->mSpecialCountdown = 25;
+	MakeStarEffects(thePiece);
 }
 
 // 0x749570 (bejeweled3), slot 0x29c: a run of 5 makes the gem a hypercube: bit 2 and nothing else, no colour (it remembers the old one,
-// +0x21c) and the countdown at 25. theWithEffect (1 from 0x75af60) starts its effect, which draws no Rand(). port: the effect and sound
+// +0x21c) and the countdown at 25. theWithEffect (1 from 0x75af60) starts its effect (MakeHypercubeEffect: it draws its Rand() at its
+// second update). port: the sound (0x76aaf0) is left out
 void Board::MakeHypercube(Piece* thePiece, bool theWithEffect)
 {
-	(void)theWithEffect;
 	thePiece->mFlags = Piece::FLAG_HYPERCUBE;
 	thePiece->mMatchedUpdate = mUpdateCnt;
 	thePiece->mRememberedColor = thePiece->mColor;
 	thePiece->mColor = Piece::NO_COLOR;
 	thePiece->mSpecialCountdown = 25;
+	if (theWithEffect)
+		MakeHypercubeEffect(thePiece);
 }
 
 // 0x73f8e0 (bejeweled3), with its wrapper 0x74d940: a flame gem at (theX, theY), in 1200ths from the window's corner, goes off. The nine cells
