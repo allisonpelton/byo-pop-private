@@ -47,7 +47,9 @@ public:
 	// developers); the port's debugger is SDL's log, at the info level (the console, or stderr)
 	void log(const char* theFormat, ...) override;
 	// 0x4383a0 and 0x435ba0 (feedingfrenzy2): the original reads QueryPerformanceCounter, then the processor's time
-	// stamp once it is calibrated; the port reads SDL's performance counter, or the frames' own clock under -fast
+	// stamp once it is calibrated; port: the game's time (docs/MOD_MENU.md, "Game speed"): SDL's performance counter's
+	// steps times the game speed, the framework's game clock at the unlimited speed, the frames' own clock under -fast.
+	// At speed 1 each step is the counter's own, so the original's pacing is unchanged
 	uint64_t getTicks() override;
 	uint64_t getTicksPerSecond() override;
 	// 0x48da20 (feedingfrenzy2)
@@ -79,6 +81,11 @@ private:
 	int mFrameRate;   // +0x58
 	bool mVirtualClock;
 	uint64_t mVirtualTicks;
+	// port: the game's time in the counter's ticks, and what it was last moved on from
+	uint64_t mGameTicks;
+	double mGameTicksPart;     // the fraction of a tick the speed has left over
+	uint64_t mLastCounter;     // SDL's performance counter
+	uint32_t mLastGameTimeMS;  // the framework's game clock (Sexy::GetGameTimeMS)
 };
 
 } // namespace engine

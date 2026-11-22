@@ -1,4 +1,5 @@
 #include "EngineImpl.h"
+#include "PortCompat.h"
 #include "RegistryKey.h"
 #include "SexyAppBase.h"
 #include "WidgetManager.h"
@@ -41,7 +42,8 @@ int FileInputStream::tell()
 
 EngineImpl::EngineImpl(int theWidth, int theHeight)
 	: mQuitRequested(false), mWidth(theWidth), mHeight(theHeight), mFrameRate(0), mVirtualClock(false),
-	  mVirtualTicks(0)
+	  mVirtualTicks(0), mGameTicks(SDL_GetPerformanceCounter()), mGameTicksPart(0.0), mLastCounter(mGameTicks),
+	  mLastGameTimeMS(Sexy::GetGameTimeMS())
 {
 }
 
@@ -106,7 +108,20 @@ uint64_t EngineImpl::getTicks()
 {
 	if (mVirtualClock)
 		return mVirtualTicks;
-	return SDL_GetPerformanceCounter();
+	uint64_t aCounter = SDL_GetPerformanceCounter();
+	uint32_t aGameTimeMS = Sexy::GetGameTimeMS();
+	double aSpeed = Sexy::gSexyAppBase->GameSpeed();
+	if (aSpeed == Sexy::SexyAppBase::SPEED_UNLIMITED)
+		// The framework moves its game clock a frame's time each update, run back to back
+		mGameTicksPart += (double)(uint32_t)(aGameTimeMS - mLastGameTimeMS) * (double)getTicksPerSecond() / 1000.0;
+	else
+		mGameTicksPart += (double)(aCounter - mLastCounter) * aSpeed;
+	mLastCounter = aCounter;
+	mLastGameTimeMS = aGameTimeMS;
+	uint64_t aWholeTicks = (uint64_t)mGameTicksPart;
+	mGameTicks += aWholeTicks;
+	mGameTicksPart -= (double)aWholeTicks;
+	return mGameTicks;
 }
 
 uint64_t EngineImpl::getTicksPerSecond()

@@ -247,6 +247,10 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
     leaves the selection on the next player, not the current one; while the list is up after a new player, the
     menu's Welcome still names the one before (the original may refresh it only when the popup closes); the selected
     row's text is drawn in its colour multiplied over the band, white on the layout's cyan.
+- The game speed: the engine's clock is the game's time, SDL's performance counter's steps times the speed (the
+  framework's game clock at the unlimited speed), so at speed 1 the frames are paced as before. Checked in real time:
+  at speed 4 the splash is further on at the same update, and at the unlimited speed 600 updates reach the menu in
+  a second.
 
 ## Next
 
