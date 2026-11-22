@@ -1,0 +1,30 @@
+# Bejeweled 2 Deluxe (2D, 640 by 480) for tools/visrun.py: the original on the right half of the visible desktop (the user, 2026-11-22,
+# "Right half, four"), driven by the steps of origcmp/to_origrun.py. run2d.py makes the run's copy of this file, with the profile to seed
+# in place of the SAVE_SEED line below and the window's place in `pos`. Addresses are from origcmp/run_tour_original.sh and the game-local
+# visrun.py: the app global 0x67ccd8, its update counter +0x484, mHasPendingDraw +0x45a, mUpdateAppState +0x488.
+name = "bej2-2d"
+game = "bejeweled2"                   # tools/origrun/games.tsv row: WinBej2.exe in the Steam install; origrun stages it
+exe = "Bejeweled2Game.exe"            # the real exe, carved out of the install's WinBej2.exe wrapper
+carve_exe = "re/bejeweled2/bin/Bejeweled2Game.exe"
+patches = "tools/origrun/patches/bejeweled2.txt"   # the seeds ({seed}); run with --seed 909 as the tours are recorded
+title = "Bejeweled 2"                 # a text the original's window title holds
+client = [640, 480]
+pos = [1920, 20]                      # @POS@ (run2d.py sets it: x 1920 or more, a place of its own among the four)
+clock = "virtual"                     # update for update, as the sandbox runs (origrun's clock)
+update_ms = 10
+counter = "[0x67ccd8]+0x484"
+drawn = ["[0x67ccd8]+0x45a:1 == 0", "[0x67ccd8]+0x488:4 in 0,3"]   # nothing left to draw; the update state is 0 or 3
+reg_key = 'Software\Steam\Bejeweled2'
+reg_3d_value = "Is3D"
+reg_values = { ScreenMode = 0, HighResolution = 0 }   # windowed, 640 by 480 (the run is made with --3d off: Is3D = 0)
+save_dirs = ['C:\ProgramData\Steam\Bejeweled2\users']  # the players: backed up, emptied for the run, put back
+@SAVE_SEED@
+
+watch = ["[[0x67ccd8]+0xe68]+0x15e20", "[[0x67ccd8]+0xe68]+0x15e4", "[[0x67ccd8]+0xe68]+0x170c", "[[0x67ccd8]+0xe68]+0x15e0"]   # the board's score, level, state, generator index
+
+# Every tour's screens have a link or More Games button in no place the steps click: the originals' outbound buttons are out of
+# the tours' paths (CLAUDE.md: no run clicks a link, Buy or More Games). The main menu's More Games pill (the 2D game has none)
+# and the title's PopCap logo (bottom right of the title) are what a click must never reach.
+[[forbid]]
+name = "title_popcap_logo"
+rect = [530, 390, 100, 80]
