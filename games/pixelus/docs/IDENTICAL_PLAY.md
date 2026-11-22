@@ -376,14 +376,17 @@ Differences left, each judged:
 - **Loading screen after the bar** (L-u40 to L-u140): the original shows only the link, the port keeps the bar behind it,
   faded over 280 updates (0x4e6f70, delay 100 and 1.4 a step). Not found.
 - **Random draws that move things**, watched on the host (2026-11-22, scenario E with preset P2: the original's Mersenne index at
-  0x579d20 against the port's `apprand` count, per update, `build/sc/R`): the two make the same draws, update for update,
-  to the island's construction (port update 400: 81 draws each, 2500 updates apart). There the port makes 52 draws in
-  one update and about 11,000 over the next hundred (the particle bursts Rumble, PauseBloom and PauseBloomUp of each temple it
-  takes for new), and the original makes none until the next click. So the greeting, the chains' sway, the lock's place and
-  the Tile Master's place after that follow from the island oddity above: the port has drawn thousands of numbers the original
-  has not. A first visit of a new player (I0) has no such bursts and matches. The fix is the flag (above): the disassembly shows `FUN_00439300` takes the temple's own index, so the island reads each
-  temple's record as the port does, and what differed was the +0x12 flag the original's loader sets for every record read
-  (`UserProfile::Read` now does, and `IslandMap` draws a seen temple with a new state, 3, that has no light and no arrow).
+  0x579d20 against the port's `apprand` count, per update, `build/sc/R`, the port half rerun after 5f2b864d). The first finding
+  was that the port drew about 11,000 numbers over the hundred updates after the island's construction (the bursts Rumble,
+  PauseBloom and PauseBloomUp of each temple it took for new) where the original drew none; that is fixed (the island oddity
+  above: the loader marks every temple with a record as seen). Now the two make the same draws, update for update, from the
+  start to port update 399 (81 draws each, 2500 updates apart), and the first difference is at port update 400, the island's
+  construction: the port draws 3 numbers there and the original none until its update 3100 (port 600, the click on a temple),
+  where the original's index moves by 502 (mod 624) and the port draws 206. After that the temple screen differs again: from
+  port update 649 the port draws about 106 numbers an update (particles on the temple screen, the chains and the god) where the
+  original draws 1. Not chased further: a gap that starts at the click that builds the island, where the original's own
+  draws come 200 updates later than the port's; the greeting, the chains' sway, the lock's place and the Tile Master's place
+  follow from it. A first visit of a new player (I0) matches.
 
 Not reached (SCREENS.md says why in each row): the name-exists and rename errors, the story conversations and completion
 screens (they need a finished temple), the expert board, the mystery board, the sticky-spots hint and the scroll bars'
