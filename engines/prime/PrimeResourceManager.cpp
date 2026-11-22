@@ -289,13 +289,16 @@ PrimeResourceManager::PrimeResourceManager(SexyAppBase* theApp)
 	mCurArtRes = 0;
 }
 
+// port: every resource lets its picture, font or sound go before any is deleted, since a resource that refers to another
+// (mRefRes) lets that one go too, and it may come earlier in the maps; DeleteResource does nothing a second time
 PrimeResourceManager::~PrimeResourceManager()
 {
-	for (int aType = 0; aType < NUM_RES_TYPES; aType++) {
-		for (ResMap::iterator anItr = mResMaps[aType].begin(); anItr != mResMaps[aType].end(); ++anItr) {
+	for (int aType = 0; aType < NUM_RES_TYPES; aType++)
+		for (ResMap::iterator anItr = mResMaps[aType].begin(); anItr != mResMaps[aType].end(); ++anItr)
 			anItr->second->DeleteResource();
+	for (int aType = 0; aType < NUM_RES_TYPES; aType++) {
+		for (ResMap::iterator anItr = mResMaps[aType].begin(); anItr != mResMaps[aType].end(); ++anItr)
 			delete anItr->second;
-		}
 		mResMaps[aType].clear();
 	}
 	delete mXMLParser;
