@@ -455,15 +455,22 @@ var ByopopSounds = (function () {
       render(board);
     }
     pick.addEventListener("change", function () { choose(pick.value); });
-    // the games, read each time the window opens (a game's files may have come or gone while it was closed)
-    var scanned = false, generation = 0;
+    // the games, read each time the window opens (a game's files may have come or gone while it was closed), and again while it
+    // is open when the games whose files are here change (rescan)
+    var scanned = false, generation = 0, scannedFor = "";
+    function mineNow() {
+      var table = typeof ByopopSoundboards !== "undefined" ? ByopopSoundboards : {}, files = {};
+      try { files = ByopopGameFiles.all(); } catch (e) {}
+      return games.filter(function (g) { return table[g.id] && ByopopGameFiles.present(files[g.id]); });
+    }
+    function idsOf(list) { return list.map(function (g) { return g.id; }).join(" "); }
     function scan() {
       if (scanned) return;
       scanned = true;
       var gen = ++generation, found = [];
-      var table = typeof ByopopSoundboards !== "undefined" ? ByopopSoundboards : {}, files = {};
-      try { files = ByopopGameFiles.all(); } catch (e) {}
-      var mine = games.filter(function (g) { return table[g.id] && ByopopGameFiles.present(files[g.id]); });
+      var table = typeof ByopopSoundboards !== "undefined" ? ByopopSoundboards : {};
+      var mine = mineNow();
+      scannedFor = idsOf(mine);
       if (!mine.length) { say(T("sounds.st_none"), T("sounds.none")); return; }
       say(T("sounds.st_reading"), T("sounds.reading"));
       mine.reduce(function (p, g) {
@@ -488,7 +495,15 @@ var ByopopSounds = (function () {
       grid.textContent = ""; buttons = []; current = null;
       say("");
     }
-    return { el: el, scan: scan, release: release, refresh: refresh,
+    // A game's files came or went while the window is open (added on its page, in its window, in another tab or by Add Games,
+    // or forgotten): its games are read again, the board chosen kept (the user, 2026-11-16: "I had to close and reopen each of
+    // the sounds and music windows to get it to appear")
+    function rescan() {
+      if (!scanned || idsOf(mineNow()) === scannedFor) return;
+      refresh();
+      scan();
+    }
+    return { el: el, scan: scan, release: release, refresh: refresh, rescan: rescan,
       // for tests: the buttons, what has played and what failed
       buttons: function () { return buttons.slice(); }, stats: function () { return stats; }, playing: function () { return live.length; } };
   }
@@ -525,6 +540,7 @@ var ByopopSounds = (function () {
       new MutationObserver(watch).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     }
     watch();
+    try { ByopopGameFiles.watch(function () { if (open) board.rescan(); }); } catch (e) {}
     return board;
   }
   return { attach: attach, panel: function () { return board; }, decode: decode };

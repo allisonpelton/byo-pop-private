@@ -94,7 +94,11 @@ files, so their pages read it from those files instead (`web/flicursor.js`, `Byo
 with its mask and the shadow the game draws, the hot spot at the top left, and the frame time from the animation file, in
 the game's updates of 1 ms (the games step once for each millisecond passed): 50 ms and 30 ms, 10 frames each, looping.
 Sets kept before 2026-11-16 read the updates as 10 ms (500 and 300 ms, the user: "They animate extremely slowly"), and
-`web/cursors.js` puts them right once (`retime`). Ning Po's pointer sprite is empty, so it has no set.
+`web/cursors.js` puts them right once (`retime`). Ning Po's pointer sprite is empty, so it has no set. Venice draws
+its cursor as a scene object, so its port reads that picture again and gives it as the set's pointer
+(`games/venice/src/Cursor.cpp`, `WebCursorSetKind`; the user, 2026-11-19: "Venice is missing its custom cursor"). Bonnie's Bookstore
+gave one from 2026-11-16 until the user had it taken out (2026-11-17: "they look just like the Windows default"); a set
+kept for it is dropped at load, with a choice of it, and never kept again (`withdraw`).
 
 The page swaps an animated cursor's frames itself, as the inline cursor of the element under the mouse, keeping that
 element's own inline cursor aside and putting it back after. Each frame first looks again at what applies, so the swap
@@ -319,8 +323,13 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   place) and Properties (Settings' Appearance).
 - **The task bar's right click:** Cascade, Tile Horizontally, Tile Vertically and Minimize All Windows, which becomes
   Undo Minimize All.
-- **Tooltips:** drawn as 1995's, a pale yellow box with a black border half a second after the pointer rests. The title
-  is taken off while the box may show, so the browser draws none, and an element named only by it keeps that name.
+- **Tooltips:** drawn as 1995's, a pale yellow box with a black border half a second after the pointer rests. The
+  browser draws its own for any title under the pointer, so the titles of the element and of its titled ancestors are held
+  off them until the pointer leaves the element: moving onto a child of it (a Sounds button's label), a press, a key and
+  the box's six seconds take only the box away. A title the page gives a held element (Music's Play becoming Pause) is
+  held and shown too, and one given to the element under the pointer starts its box. An element named only by its title
+  keeps that name. A game window's frame has none, since the pointer's movements in it never reach the desktop's page (the
+  user, 2026-11-16, of native tooltips mixed in with Desktop 95's, and of a stray "Bejeweled 2" over a game's board).
 - **The tray's speaker:** it opens a Volume slider with Mute (`ByopopVolume`: `byopop-master-volume`,
   `byopop-master-mute`). Everything the site plays follows it, each sound at its own level times this one: the games,
   through a gain the game's page puts after its output node (`siteVolume` in `web/shell.html`, which the hush in
@@ -363,11 +372,27 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
 The game
 window's menu bar spreads the game's commands over Game, View, Options and Help (the user, 2026-11-09: "don't hide
 everything under "Game""), and no menu shows Alt+F4 or Alt+Space, which the browser keeps. The game is always at a
-whole multiple of its size in device pixels (`sizeStage`); the window takes the status bar's height rounded up
+whole multiple of its size in device pixels (`sizeStage`). A multiple chosen in the View menu is drawn only while the desktop
+has room for its window; otherwise the game is drawn at the largest multiple that fits, or at 1x with the window scrolling
+when not even that fits, and the choice is kept, so the game goes back to it when there is room (`embedWidth`,
+`scaleInUse`). The window is fitted again whenever the multiple drawn changes. The desktop tells each game's page when its
+room changes (`web/deskapps.js`, `roomChanged`: the browser window's size, full screen, the desktop's zoom, the task bar's
+height), since a window that keeps its size gives its page no resize. The status bar gives the multiple drawn; the View menu
+ticks the one chosen and greys those without room. The game is centred by its margins, so that a game larger than its
+window starts at the top left and scrolls instead of being cut off (the user, 2026-11-20: "Ning Po window is cut off"). The
+window takes the status bar's height rounded up
 (`statusBarHeight`), and the canvas is focused with `preventScroll` everywhere, so that the game's area is never a
 fraction short and a press on the game never scrolls it (the user's note of 2026-11-11). The framework offers the
 game's own full-screen request to the page (`sexyapp_page_fullscreen` in `framework/SexyAppBase.cpp`), because SDL's
 full screen would stretch the canvas.
+
+**Resizes** are settled on every page, in the first lines of `web/skins.js` (checked by `tools/resizetest.js`). A window
+that changes size step by step sends a resize event for each step: Firefox's full-screen transition, F11 in it, a browser
+window dragged larger. Each step had SDL size the canvas's pixels again and the page and the desktop lay themselves out
+again, so the page lagged and the sound crackled (the user, 2026-11-17: "The site lags a lot and causes audio crackling
+because it tries to resize repeatedly when Firefox enters full screen"). Now the first event of a run goes on at once and
+the rest are held, by a listener capturing at the window, until none has come for 120 ms; then one resize goes on for the
+size reached. The page's own resizes, which its scripts send so that SDL measures the stage again, go on at once.
 
 **Its text** is Byopop Sans, `web/fonts/byopop-sans.woff`, built by `tools/web/pixelfont.py` from W95FA by Alina Sava
 (SIL OFL 1.1, as is ours); after a change to the script, run it and commit the file. The font is sharp only at 11
@@ -483,13 +508,50 @@ picture's alpha mask is not read: each wallpaper chosen has none.
 
 ### The screen saver
 
-Settings > Screen Saver (`web/saver.js`; the user, 2026-11-11) has the game, None by default, then each game with a bot
-whose files are here; the Wait in minutes; and Preview. When the listing's desktop has had no key, mouse or touch for the
+Settings > Screen Saver (`web/saver.js`; the user, 2026-11-11) has the game, None by default, then (Random) once two games
+are offered, then each game with a bot whose files are here; the Wait in minutes; and Preview. Only games that can be lost are
+offered (the user, 2026-11-19: "Screen saver should only be for games with a losing condition"): a game its bot never loses
+would hold one game on the screen for good, so Pixelus, Mummy Maze and the Mahjong Escapes are not. (Random) draws a game at
+each start and another, not the same, each time a game ends (the user, 2026-11-19: "pick a random game each time and switch
+games upon losing (thus actually *saving* the screen from burn-in)"). When the listing's desktop has had no key, mouse or touch for the
 Wait, it goes dark and the game plays itself silently in a frame over it; any key or mouse movement ends it and leaves
-everything as it was. The frame is the game's player-only page at `?saver=1`, which reads the player's own files and writes
-nothing back (its `Storage` writes and IDBFS syncs do nothing), so a saver's games touch no save, high score or record.
+everything as it was. Input in the desktop's windows counts too: each window's frame keeps its events to itself, so the saver
+listens in every frame's page as it loads, and a game playing in the active window (`ByopopEmbed.running`) holds it off
+with no input at all (the user, 2026-11-17: "Screensaver activated while I was playing Typer Shark"). The frame is the game's player-only page at `?saver=1`.
+
+**The saver's own profile** (the user, 2026-11-18: "Allow the screensaver to have its own profile totally separate from the
+user's saves and not made directly accessible to the player"). Of the player's, the frame reads the game's files alone: it
+opens the game's database only to read the entries under its `game` folder, into the page's memory. Its saves, mod folder and
+replays are in a database of its own, the game's with `-saver` after its name (`ByopopSaver.PROFILE`), which IDBFS loads and
+writes back as it does a game's, so the saver's progress lasts from one run to the next. The frame's Web Lock has the same
+ending, so it never waits for the player's own page of the game. Its `localStorage` and `sessionStorage` are stores in
+memory, empty at each start (an inline script after `terms.js`, before any script reads them): nothing of the player's
+settings, players, records, terms or cursor sets is read, and nothing is written there, the user dir's localStorage backup
+included, which the saver's games do without. No listing opens the saver's databases: the Saves window, its export and
+import, the listing page's states and the Trophy Cabinet each open a game's own name. Forgetting a game's files, on its page
+or in the listing's bin, deletes its saver profile with them; and a run that goes wrong (an error, or no move at all) deletes
+it once, before the saver starts that game afresh. A second such run stays on the screen it stopped at.
+
+The saver's games run unmodded (the user, 2026-11-19: "Screensavers shouldn't use whatever mods are installed"): the
+frame puts in neither the fixes nor the lite mod and starts the game with `-nomods`.
+
 Its page centres the game on black (`html.saver`), and a key pressed while the game's canvas has the focus ends the saver
-too. The driver runs with `?begin=mode`, which starts a game still on its title or menus in the mode its state names.
+too. Only the player's own input counts: the driver's moves are events it makes itself (`isTrusted` false), and before they
+were ignored a bot that moves by keys ended the saver as soon as a level began (the user, 2026-11-19: "Mummy Maze
+screensaver seems to just exit once it gets into a level; ditto with Noah's Ark").
+
+**Modes and pace** (the user, 2026-11-17: "Screensavers should choose between different modes if applicable to the game",
+"Let the bot unlock them", and bots that "play nicer"). `PLAY` in `web/saver.js` gives each game its modes: those its bot
+can play, that can be lost, and that a new profile has open, so a locked mode comes into the saver only once the bot's own
+play has opened it in the saver's profile, never by a test command. One is drawn at each start: by its `goto` name
+(`?begin=<name>`), for a game whose bot has no move on its title or menus, or by the `set mode` its bot reads (`?prep=`), for
+one whose bot clicks through its menus itself; a game with a 3D view has 2D or 3D drawn as well (`3d on` or `3d off`). A
+choice every player has from the start is drawn too (`choose`: Ning Po's layout, tile set and table, by the `set` its title's
+arrows answer; the user: "only plays one setup"), and a first run's screen no bot answers gets the test command that does its
+work (`setup`: Venice's name box, `player Saver`). A game left out plays as its bot starts it (`?begin=mode`). `pace` is the updates waited after each move, about a person's speed
+(a hundred are about a second), and none for a game whose bot plays in real time, aiming or dodging, where a pause would only
+lose. A saver's frame opened with `?assets=` (a test of the saver from a first run, with the staged files) keeps a test
+profile of its own, the game's name with `-saver-test`, apart from the game's own tests' `-test`.
 
 **The bot's hook.** The game plays by one call that asks it for its next move. Today that is the test command `move`
 (`docs/TEST_COMMANDS.md`, "The bot behind move"), sent through `byopop_test_command` by the page's `?driver=move`; it exists
@@ -669,7 +731,13 @@ writes, so it never runs while a game page is open.
 ### The music player
 
 The Music window (`web/music.js`, checked by `tools/musictest.js`) plays the music of the games the player added, from
-their own files in this browser; the site ships no music and sends nothing anywhere.
+their own files in this browser; the site ships no music and sends nothing anywhere. Its list follows the games' files
+while the page is up: `ByopopGameFiles` (`web/settings.js`) tells each change of its record on the page
+(`byopop-game-files`), and another page (a game's window, another tab) is heard by the storage event of the record. When the
+games with music change, the list is read again while the window is shown, or at its next showing: a game that came gets
+its tunes read, the tunes of the games still there are kept, and a game whose files went loses its own, the tune playing
+stopping with them (the user, 2026-11-16: "Music required reloading the page"). The Sounds window does the same while it
+is open.
 
 **Music's data** is `web/soundtracks.js`, by game id, whose header gives an entry's fields; tunes are named plainly,
 never with invented titles. A game's session sets these from its code:
@@ -682,11 +750,27 @@ never with invented titles. A game's session sets these from its code:
   books as the game reaches them, unused tunes last (the user, 2026-11-13: "more closely follow what you might hear instead
   of having the parts in order, and put unused tracks at the end").
 - `cuts` and `chains`: tracks split and grouped as the game plays them (the user, 2026-11-11: "Group and split").
-  `cuts` splits a subsong where the game's code starts a different tune partway through it, the second piece being
-  `"<file>#<n>@<order>"`; `chains` makes one track of parts the game only ever plays as jumps inside one tune. `starts`
-  is for an order the game also starts a subsong at while the tune before plays on through it in a long game (no seam:
-  Bejeweled 2's Action Mode starts at order 122, which Classic Mode reaches after about 18 minutes): the piece from there
-  is a track, and the subsong stays whole (the user's seam review, 2026-11-12: "I hear no seam").
+  `cuts` splits a subsong where the game's code starts a different tune partway through it, or where one song of a
+  medley ends and the next begins, the later pieces being `"<file>#<n>@<order>"`; `chains` makes one track of parts the
+  game only ever plays as jumps inside one tune. `starts` is for an order the game also starts a subsong at while the tune
+  before plays on through it: the piece from there is a track, and the subsong stays whole. No game uses it now:
+  Bejeweled 2's long subsong, which it once served, is a medley of fourteen songs that plays straight through and back to
+  its start, and is cut at the composer's own markers between them instead (the user, 2026-11-19: "I am hearing some very
+  mild seams that make me think the track breaks aren't correct here"), each piece named as the composer's album names it
+  and checked against its lengths. Its places are "Classic Mode 1" to "7" (the first two songs both 1) and "Action Mode 1" to "6": the game starts
+  it at order 2 for Classic, Endless, Twilight and the hidden Classic mode, at order 122 for Action, Puzzle, Hyper,
+  Cognito and Finity, and nothing else moves it, at a level or anywhere.
+- `titles`: a tune's own title, shown in quotes beside its rip name (the user, 2026-11-19: "add these titles beside the
+  rip names, in quotes"): the user's word, cited at the entry, or a title the module's own text holds, read from the
+  user's file as the list is read and never written in the table: `{own: true}` the module's title, `{line: "<order>"}`
+  what the module's message says beside that order, up to a comma or a bracket (`inner` for the words in its brackets).
+  The decoder's `bm_meta` gives a module's title, artist, tracker, message and subsong names. Alchemy's, Bejeweled's,
+  Dynomite's, Bookworm's, Mummy Maze's and Twist's are taken from their files this way; the other modules' texts hold no
+  song titles (a working title, "untitled", the composer's name, or places).
+- `alone`: subsongs that are one pattern running on into the module's silence, listed with the unused patterns as that
+  pattern played alone (Bejeweled 2's two, which music.xml names but the code never reads; the user, 2026-11-19: "really,
+  they're only single patterns that we could just file with the others").
+- `shuffle`: what the player's shuffle leaves out beyond what it leaves out by itself, and the tunes it plays together.
 - `level`: "Music levels".
 
 **The decoder** is the games' own two module renderers, built for the web as `openmpt.js` and `openmpt.wasm` (target
@@ -702,10 +786,22 @@ silently to the place, setting its programs and controllers but playing no notes
 or score.
 
 **The player's rules**, from the user: long silent endings are skipped (the user's notes, 2026-11-10: "Some of the
-short tracks have a bunch of dead air at the end, where the tracker slows to a crawl"; `trimEnd`), the first piece of a cut subsong too (Twist's Game Over: a 3.5-second jingle,
+short tracks have a bunch of dead air at the end, where the tracker slows to a crawl"; `trimEnd`), a pattern played alone
+too (`soloSeconds`: Bejeweled 2's two, whose rows slow to about five seconds each after their last note), the first piece of a cut subsong too (Twist's Game Over: a 3.5-second jingle,
 then the module's own 13 seconds of silence before the cut); only the playlist
 scrolls (2026-11-09); closing the window stops the music and frees what it held (2026-11-09;
-`ByopopMusicPanel.held()` tells a test what is still held).
+`ByopopMusicPanel.held()` tells a test what is still held). Each format in the list names itself in full as a tooltip
+(the user, 2026-11-16: "I don't know what an IT is, Show what the extension stands for").
+
+**Shuffle** (the user, 2026-11-19: "make the shuffle group together tracks that are only ever played in direct sequence,
+never play unused tracks, and skip tracks that would not make sense to have on shuffle (for instance, no intros, short
+themes that could just as well be sound effects, or stings)") is a toggle beside Repeat, kept in `byopop-music-shuffle`.
+On, the tune after one that ends, and Next, is drawn from every game's tunes, each once before any comes again (the last of
+a round never first of the next); a group (`shuffle.groups`: Bejeweled 2's second intro and the song it leads into, Big
+Money's level-up fanfares and the pause tunes they run into) is drawn as one and plays in its order. Never drawn: unused
+tunes, unused patterns, a tune under 20 seconds outside a group (a sting, fanfare or jingle), and those `shuffle.out`
+names (intros, loading, splash and logo tunes). Previous goes back the way it came; picking a tune goes on shuffling
+from it.
 
 **Nothing drawn unseen** (the user, 2026-11-15: lower the web builds' processor time; the site's animated parts do no work
 while nobody can see them). Music's views and the Splits window's running timer draw a frame at a time only while their
@@ -726,12 +822,19 @@ roll and score read it as any tune: libopenmpt's order list is put aside for one
 (`web/music/openmpt_solo.cpp`, which reaches the module's sound file because libopenmpt's C interface cannot change that
 list), and libxmp-lite's first order plays it instead, ending where play leaves that order or goes back to an earlier row.
 A pattern's own commands still count (Bejeweled's Network pattern 10 sets speed 10 on its first row and lasts 33 seconds).
+An unused pattern that is a copy of one an order plays, cell for cell, is left out, and copies among the unused ones are
+one entry, "<file>, pattern <n> (same as <m>)" (the user: "Unused pattern 61 of AtomicTank is a dupe of pattern 64").
 A game whose code starts a module at a pattern outside its order lists would say so in `soundtracks.js`; none does yet.
 
 **The views**, cycled by a click on the display (spectrum, tracker, piano roll, score, nothing), follow the user's
 notes:
 
-- **The spectrum** is steadied (the user, 2026-11-10: "a little too jittery").
+- **The spectrum** is steadied (the user, 2026-11-10: "a little too jittery"). Its bars are green, then yellow, then red
+  up the display's height, so a bar's top shows its level (the user, 2026-11-18: "The spectral analyzer would benefit
+  from a gradient for the volume"; Desktop 95's `--mu-bar`, `--mu-bar-mid`, `--mu-bar-high`). It reads the player's own
+  tune before the player's volume, and a followed game's music with the game's own music volume undone, from the `gain`
+  its view gives (the music volume times the song's own; "It should also be independent of in-game volume when synced
+  with that"). A game whose build gives no gain is drawn as heard.
 - **The tracker** names the instrument over each channel (the user, 2026-11-11: labels on the columns). A channel's
   whole head toggles its mute (the user, 2026-11-11: "It's too hard to click on the channel to toggle the mute"), and a
   Ctrl-click or a double-click solos it (the user's notes, 2026-11-10: "tracker labels and mute"; the user, 2026-11-11:
@@ -772,7 +875,10 @@ The game's side is a site hook in the platform layer: no game's code changes, an
 `Platform::Mixer` exports the `byopop_music_*` calls (`platform/Audio.cpp`), reading a libopenmpt module through
 `ModulePlayer`'s web-only `GetView` and its neighbours (`platform/openmpt/OpenMPTPlayer.cpp`); a stream, or TipTop's
 MIDI synthesizer, gives the spectrum only, tapped from the game's own AudioContext so that what is heard does not
-change. `ByopopMusicPanel.following()` tells a test the game followed and its view.
+change. A game that plays its tunes as sounds (Venice: `voices` in `web/soundtracks.js`) has no song while its music
+plays; its tune is the loudest of its voices playing one of the files its tunes list (`byopop_sounds_view`, the Sounds
+window's call; `frontFrame` gives the game's id), followed as a stream is (the user, 2026-11-18: "Venice's audio doesn't
+sync with the spectral analyzer"). `ByopopMusicPanel.following()` tells a test the game followed and its view.
 
 ### The soundboard
 
@@ -1058,7 +1164,7 @@ pixels wide). For each window it checks that structure and runs the checker on t
 `window.byopopDeskCheck.result`, and the page's title ends with "deskcheck: PASS" or "FAIL". The chat's window is checked
 closed, because opening it starts the chat.
 
-Four more checks run the same way, each named in `driver=` and each reporting through the same result and title.
+Five more checks run the same way, each named in `driver=` and each reporting through the same result and title.
 `tools/web/closecheck.js` closes game windows whose page never answers the close: a page that is not there, a frame that
 could not load, and a page that takes the close but never hands the window back. The window must go at once, or, for the
 silent page, after its four-second wait, and at once on a second Close (`web/deskapps.js`, `closeApp`).
@@ -1083,7 +1189,13 @@ splits it stored. `tools/web/musicmutecheck.js` mutes a channel from
 Music's tracker, turns the view off and on, switches tunes and comes back, and compares the tracker's header with what the
 player itself has muted (`bm_mute_status`). It then sends the keyboard's media keys with Music open and closed and checks
 the player's state and its sound context, not its buttons (`web/music.js`, `syncMutes` and the media keys). It needs games
-added that have two module tunes.
+added that have two module tunes. `tools/web/fitcheck.js` loads the desktop in a frame of the page whose size it sets, as a
+browser window, and opens one game's window for each screen size (640 by 480, 800 by 600 and 1024 by 768, given through the
+page's `Module.onGameScreen`, so no files are needed) with 2x chosen. It then makes the frame small, smaller, large and small
+again. After each step the game's picture must start at its area's top left and scroll in full, be drawn at 2x where the
+desktop has room for that window and at 1x where it has not, and have its whole window on the desktop at 2x; the status bar
+must give the multiple drawn, and the View menu keep 2x ticked, greyed where it does not fit. It puts the choice of scale and
+the desktop's layout back at the end.
 
 ## The site's text
 
@@ -1157,6 +1269,12 @@ that show the game as a 256-colour screen did (the user, 2026-11-09: "Is it poss
 windows to make them appear in 256 colors only?"): `pal256` makes each pixel the nearest colour of the palette Windows
 kept for programs that set none (its 20 static colours and the 6x6x6 cube), and `pal256d` first applies an 8x8 ordered
 dither. Both are drawn by a WebGL canvas over the game canvas, filled in the frame hook (`Module.byopopTestFrame`).
+The scanlines lie over the canvas's own box, not the whole stage (in full screen the canvas is centred in a larger
+stage), with one line a game row high every two of the game's rows: the rows come from the game's size (`--aspect`) and
+the height from the canvas's drawn box, never from the canvas's pixels, which SDL sizes on its own time (300 x 150 before
+the game makes its window, the old size for a while after a resize) and which made the lines briefly too large (the user,
+2026-11-21). They are sized again whenever the canvas or the stage changes size, the stage's style changes, the window
+is resized or full screen begins or ends.
 
 ### Controls
 
@@ -1179,10 +1297,17 @@ position" is `touchPlace`.
 
 ### Game speed
 
-`speed` (0.25 to 4; the user, 2026-11-10: "Allow game speed to be set to any arbitrary value") sets
-`SexyAppBase::mUpdateMultiplier` through the web-only `byopop_set_speed` (`framework/SexyAppBase.cpp`). At 1 nothing is
-called, so unmodded play is unchanged. It does not reach games whose own host runs their loop (Bonnie's Bookstore, Ning
-Po), nor a timer a game reads from the wall clock. Music and sounds keep their own speed.
+`speed` (any value from 0.01 to 16; the user, 2026-11-10: "Allow game speed to be set to any arbitrary value") sets
+`SexyAppBase::SetGameSpeed` through the web-only `byopop_set_speed` (`framework/SexyAppBase.cpp`). 0 is "as fast as the machine
+allows": the updates run flat out in real time and the draws that cannot be shown are skipped (the site's range starts at
+0.01, so the page never sends it). At 1 nothing is called, so unmodded play is unchanged. The game clock follows the speed:
+`Sexy::GetTickCountMS` (what `timeGetTime` and `GetTickCount` are in the ports) and `SexyAppBase::GetClockTime` are game
+time, real time scaled by the speed and accumulated, so a change of speed mid-game leaves the clock continuous. The framework's
+own pacing (the update accumulator, draws, sleeps) reads `Sexy::GetRealTickCountMS`. A game whose own host runs its loop
+(Bonnie's Bookstore, Ning Po) has no hook yet. Music keeps its own time at every speed (tracker and Ogg alike; a fade the
+framework steps per update is scaled back to real time, `SexyAppBase::MusicStepFactor`); sound effects keep their behaviour.
+The native build has the same speed in the mod menu and on F6/F7/F8 (`docs/MOD_MENU.md`), and `tools/check.sh speed` checks
+that every game follows it.
 
 ### Clips
 
@@ -1260,7 +1385,12 @@ async function of `t` (`byopop.test`); what it returns becomes `byopop.test.resu
 `"over": true`, on `MOVE null` twice running while the game is not busy, on an ERROR, or after `?steps=` moves (2000 by
 default); while the state says `busy`, `MOVE null` means "not yet" and it waits 5 updates. With `?begin=mode`, the first
 `MOVE null` twice running while the state names a `mode` (the game on its title or menus) sends `goto <mode>` once and
-goes on, as the native loop's `--first` does (the screen saver uses it). The result is
+goes on, as the native loop's `--first` does. `?begin=<name>` sends `goto <name>` instead, for a game whose state names no
+mode off its board; a goto the game answers with an ERROR (its title not yet gone, a dialog in the way) is sent again
+after the next two empty moves, up to 20 times, and one it takes gets about 24 seconds of empty moves for its board to
+load before the driver stops. `?prep=<command>;<command>` sends those test commands before the first move (`set mode
+action`, `3d on`), one the game refuses being sent again after each move, up to 20 times (Ning Po's start dialog), and
+`?pace=<n>` waits n updates after each move. The screen saver uses all three. The result is
 `{moves, stop, state, updates, errors}`, with `stop` one of "over", "limit", "no move", "busy" or "error: <message>".
 `playByMove({steps})` runs the same loop from a session's own driver.
 

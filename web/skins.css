@@ -326,7 +326,7 @@ html.d95-win95only .games > li[data-win95]:not([data-win95="yes"]), html.d95-win
 /* the music player in 1995's manner: a black display with green figures in a sunken edge (the spectrum's peaks yellow, the tracker's
    row in the selection's navy), raised square buttons whose toggles stay pressed in, and the playlist a white list box */
 :root[data-skin="d95"] .mu-lcd { background: #000; color: #00ff00; border: 0; border-radius: 0; padding: 5px 7px 6px; box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
-:root[data-skin="d95"] .mu-spectrum { --mu-bar: #00c000; --mu-peak: #ffff00; }
+:root[data-skin="d95"] .mu-spectrum { --mu-bar: #00c000; --mu-bar-mid: #e0e000; --mu-bar-high: #e00000; --mu-peak: #ffffff; }
 :root[data-skin="d95"] .mu-follow { background: #00ff00; color: #000; }
 :root[data-skin="d95"] .mu-follow.mu-muted { background: var(--sk-lo); }
 /* the tracker's scroll bar is Windows 95's, 16 px high (its arrows the skin's own, below), and the display grows by it: the
@@ -394,7 +394,8 @@ html.d95-desk .d95-x::after { transform: rotate(-45deg); }
 html.d95-desk .bar.d95-win { width: min(760px, calc(calc(100vw / var(--d95-z, 1)) - 150px)); gap: 8px; }
 html.d95-desk .bar.d95-win:not(#\#) { padding: 2px 8px 8px; }
 html.d95-desk .bar.d95-win:not(#\#) > .d95-tb { flex: 1 0 100%; margin: 0 -6px 0; }
-/* the game: its stage exactly the size sizeStage gives it, no margin, no shadow */
+/* the game: its stage exactly the size sizeStage gives it, no margin, no shadow, and no focus ring (its window's title bar shows
+   the focus; web/shell.html) */
 html.d95-desk .stage-wrap.d95-win { display: block; place-items: normal; width: max-content; }
 html.d95-desk .stage-wrap .stage { box-shadow: none; max-width: none; }
 /* the chat: a fixed size, whatever room the page has beside the game (chat.js's chat-below has no part here) */
@@ -748,8 +749,11 @@ html.d95-embed.d95-desk .stage-wrap.d95-win > .d95-tb, html.d95-embed.d95-desk .
    status bar along the window's bottom edge (the user, 2026-11-09: "Not what I expect to happen on resize") */
 html.d95-embed.d95-desk .stage-wrap.d95-win { display: grid !important; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr);
   padding: 0 !important; border: 0 !important; box-shadow: none !important; background: #000000; overflow: hidden; }
-html.d95-embed.d95-desk .stage-wrap.d95-win > .stage-area { grid-row: 1; overflow: auto; display: grid; place-items: center; min-height: 0; }
-html.d95-embed.d95-desk .stage-wrap.d95-win > .stage-area > .stage { margin: 0; }
+/* centred by its margins, not by place-items: a game larger than its window (under 1x of room, the window scrolls) then starts
+   at the area's top left and scrolls, where place-items' centring put its top and left edges out of reach (the user, 2026-11-20:
+   "Ning Po window is cut off") */
+html.d95-embed.d95-desk .stage-wrap.d95-win > .stage-area { grid-row: 1; overflow: auto; display: grid; place-items: start; min-height: 0; }
+html.d95-embed.d95-desk .stage-wrap.d95-win > .stage-area > .stage { margin: auto; }
 html.d95-embed.d95-desk .stage-wrap.d95-win > .d95-statusbar { grid-row: 2; margin: 0; padding: 2px; background: var(--panel); }
 html.d95-embed .byopop-footer, html.d95-embed body > header, html.d95-embed main > .back { display: none !important; }
 /* a narrow screen (under 760 px): one window at a time fills the screen above the task bar, maximized, the task bar switching */

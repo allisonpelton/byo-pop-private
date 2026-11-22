@@ -33,6 +33,7 @@
 #                (framework/TriangleWrap: DrawTrianglesTex's texture wrap, triangles cut at whole-number u and v); and stretchcal
 #                (framework/LinearStretch against the renderer's linear present on this machine's card, four sizes, and its
 #                Draw against DrawReference at many sizes, -selftest); and
+#                the native game speed (fwtest -realinput=tools/fwtest/speed.txt: the mod menu's speed rows by the keyboard, F6/F7/F8, game-speed.json, read back by speed2.txt); and
 #                fwtest -realinput=tools/fwtest/realinput.txt with -fast and in real time, with no game files (real SDL
 #                events through HandleEvent and the widget manager, docs/REAL_INPUT.md); and fwtest -corner
 #                -realinput=tools/fwtest/flags.txt on DDInterface and on the software screen (the fast stretch's
@@ -57,7 +58,8 @@
 #                playcountpagetest (its pages' side, web/playcount.js: when it may contact the counter) and termstest (web/terms.js:
 #                when a page skips the terms card, the development hosts, ?terms=1 and the test key) and cursorstest (web/cursors.js:
 #                the site's cursor, which of a game's cursors it keeps, its rules for each context, busy() and animated
-#                cursors) and linkstest (tools/linkstest.js: every link to the site's own licence, terms and copyright pages
+#                cursors) and resizetest (web/skins.js: a run of the browser's resize events, as Firefox's full-screen
+#                transition sends, reaches the page as its first and one more once it settles) and linkstest (tools/linkstest.js: every link to the site's own licence, terms and copyright pages
 #                opens in a new tab) and musictest (tools/musictest.js: the music player's decoder, its tracker view's rows and
 #                its seek, on a module the test makes and a staged MO3 when there is one) and soundfilestest
 #                (tools/soundfilestest.js: every sound the Sounds boards name is staged and in a format every browser plays, by
@@ -79,6 +81,10 @@
 #                may be running): that the host and its sound stand-in still compile, and --coverage on covtest.exe
 #                (tools/origrun/covtest.sh; seconds), and the network block and launch guard on nettest.exe (tools/origrun/nettest.sh; seconds);
 #                not in `all`
+#   speed        every finished game follows the game speed (tools/speedcheck.py): each game's exe run natively in real time, 3 at
+#                a time, for a few seconds at 0.5x and at 2x with -speed and -speedprobe; its updates per real second and its game
+#                clock must scale with the speed. Lists the games that do not; Bonnie's Bookstore and Ning Po Mahjong (no
+#                SexyAppBase) are known not to, until their sessions add the hook (about 2 minutes; needs assets)
 #   verify      Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
@@ -332,20 +338,20 @@ QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads pizzafrenzy)
 # the oracle is left out of `all` and of shared code's "every suite" (the user, 2026-11-11: "Seems like the Bejeweled oracle
 # is causing a lot of slowdown for no benefit"); it runs when games/bejeweled changes, or when named
-ALL_SUITES=(build build-web build-nov unit unit-web gpu screens verify modmenu livesplit "${GAME_SUITES[@]}")
-ORDER=(build build-web build-nov unit gpu screens origrun modmenu livesplit "${GAME_SUITES[@]}" unit-web verify oracle)
+ALL_SUITES=(build build-web build-nov unit unit-web gpu screens speed verify modmenu livesplit "${GAME_SUITES[@]}")
+ORDER=(build build-web build-nov unit gpu screens speed origrun modmenu livesplit "${GAME_SUITES[@]}" unit-web verify oracle)
 # the suites that read build/web, and so wait for a build-web running in the background (below)
 needs_web() { case "$1" in unit-web|verify|oracle) return 0 ;; esac; return 1; }
 known_suite() { case " ${ORDER[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
 is_game_suite() { case " ${GAME_SUITES[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
 # suite_weight <suite>: sets WEIGHT to the game processes the suite has at once (bonnies runs its rerun and the frozen baseline's together;
 # heavyweapon three of its games)
-suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bonnies.exe ] && WEIGHT=2; [ "$1" = venice ] && [ -f build/baseline-venice/venice.exe ] && WEIGHT=2; [ "$1" = hammerheads ] && [ -f build/baseline-hammerheads/hammerheads.exe ] && WEIGHT=2; [ "$1" = heavyweapon ] && WEIGHT=3; return 0; }
+suite_weight() { WEIGHT=1; [ "$1" = speed ] && WEIGHT=3; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bonnies.exe ] && WEIGHT=2; [ "$1" = venice ] && [ -f build/baseline-venice/venice.exe ] && WEIGHT=2; [ "$1" = hammerheads ] && [ -f build/baseline-hammerheads/hammerheads.exe ] && WEIGHT=2; [ "$1" = heavyweapon ] && WEIGHT=3; return 0; }
 
 # ---- merge mode (--changed): the suites a change can affect ----
 
 # Rough seconds on this machine (the last `all` run, 2026-11-02); the plan adds them up, no more
-declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [verify]=42 [modmenu]=50
+declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
 	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [pizzafrenzy]=180 [oracle]=1080)
@@ -459,6 +465,7 @@ classify() {  # <path>: chooses the suites a changed file needs
 				fwtest/*|geomtest/*|wraptest/*|stretchcal/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh|modtextcheck.py)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
 				screencheck.py|screenchecktest.py) pick unit "$AREA" "$p"; pick screens "$AREA" "$p" ;;
+				speedcheck.py) pick build "$AREA" "$p"; pick speed "$AREA" "$p" ;;
 				*/*) pick build "$AREA" "$p" ;;  # smoke, ghidra_scripts and the rest: nothing runs them, but a build shows a broken tree
 				*.js|*.mjs) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
 				*) pick build "$AREA" "$p" ;;
@@ -733,13 +740,14 @@ suite_build-nov() { build_suite novariants "$1"; }
 
 suite_unit() {
 	local st=0 a b c d e f g h i j k
-	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || st=1
+	local FAILED=""; fail() { st=1; FAILED="$FAILED $1"; }  # fail <step>: the suite fails and its summary names the step
+	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || fail rulestest
 	a="$(lastof "$1" 'checks')"
-	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
+	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || fail mst
 	b="$(lastof "$1.mst" 'checks')"
 	# fwtest draws with Bejeweled's files: without them (a worktree before tools/setup_worktree.sh) it is skipped
 	if [ -d assets/bejeweled ]; then
-		timeout 120 "build/native/fwtest.exe" -hotkeytest > "$1.fw" 2>&1 || st=1
+		timeout 120 "build/native/fwtest.exe" -hotkeytest > "$1.fw" 2>&1 || fail fw
 		c="fwtest $(lastof "$1.fw" 'hotkey: [0-9]+ failed')"
 	else
 		echo "fwtest -hotkeytest skipped: no assets/bejeweled (tools/setup_worktree.sh)" > "$1.fw"
@@ -747,15 +755,15 @@ suite_unit() {
 	fi
 	# -placeholders with no game files at all: every image, font, sound and song a stand-in (platform/Placeholders.h)
 	mkdir -p "$OUT/no-game-files"
-	timeout 120 "build/native/fwtest.exe" -hotkeytest -placeholders -gamedir="$OUT/no-game-files" > "$1.ph" 2>&1 || st=1
+	timeout 120 "build/native/fwtest.exe" -hotkeytest -placeholders -gamedir="$OUT/no-game-files" > "$1.ph" 2>&1 || fail ph
 	d="placeholders: $(lastof "$1.ph" 'placeholders: [0-9]+ game files? missing' | sed 's/^placeholders: //'), $(lastof "$1.ph" 'hotkey: [0-9]+ failed')"
-	grep -q -E 'placeholders: [1-9][0-9]* game files? missing' "$1.ph" || st=1
+	grep -q -E 'placeholders: [1-9][0-9]* game files? missing' "$1.ph" || fail placeholders-count
 	# jp2test decodes Bookworm Adventures' .jp2 images against reference PNGs: the decoder's own output in
 	# re/bookwormadv/jp2ref (tools/jp2test/write_refs.sh), a regression check; skipped without the staged folder
 	if [ -d assets/bookwormadv/images ]; then
 		local ref=()
 		[ -d re/bookwormadv/jp2ref/images ] && ref=("-ref=$W/re/bookwormadv/jp2ref/images")
-		(cd build/native && timeout 120 ./jp2test.exe "$W/assets/bookwormadv/images" "${ref[@]}") > "$1.jp2" 2>&1 || st=1
+		(cd build/native && timeout 120 ./jp2test.exe "$W/assets/bookwormadv/images" "${ref[@]}") > "$1.jp2" 2>&1 || fail jp2
 		e="$(lastof "$1.jp2" 'jp2: [0-9]+ files, max channel difference')"
 	else
 		echo "jp2test skipped: no assets/bookwormadv/images (tools/setup_worktree.sh)" > "$1.jp2"
@@ -765,12 +773,12 @@ suite_unit() {
 	f="songpos skipped (no assets/bejeweled or assets/bookworm)"
 	if [ -d assets/bejeweled ] && [ -d assets/bookworm ]; then
 		{ timeout 120 build/native/songpostest.exe assets/bejeweled music/1980-autonomus.s3m music/1984-network.s3m &&
-		  timeout 120 build/native/songpostest.exe assets/bookworm music/bookworm1.mo3; } > "$1.sp" 2>&1 || st=1
+		  timeout 120 build/native/songpostest.exe assets/bookworm music/bookworm1.mo3; } > "$1.sp" 2>&1 || fail sp
 		n=3
 		# Bejeweled Twist's MO3s: also their tempo and channel volumes
 		if [ -d assets/bejeweledtwist ]; then
 			timeout 120 build/native/songpostest.exe assets/bejeweledtwist "music/bejewel twist 06.10.mo3" \
-				music/bejeweledtwist24.mo3 >> "$1.sp" 2>&1 || st=1
+				music/bejeweledtwist24.mo3 >> "$1.sp" 2>&1 || fail sp
 			n=5
 		fi
 		# a song is ok when every check of it passed (songpostest's own count, "songpos: N of M songs ok", one line a run);
@@ -783,59 +791,68 @@ suite_unit() {
 		echo "$f" > "$1.sp"
 	fi
 	# Mixer::GetSongFFT (MusicInterface::GetMusicFFT, BASS_ChannelGetData's FFT) on tones; needs no game files
-	(cd build/native && timeout 60 ./spectrumtest.exe) > "$1.fft" 2>&1 || st=1
+	(cd build/native && timeout 60 ./spectrumtest.exe) > "$1.fft" 2>&1 || fail fft
 	g="$(lastof "$1.fft" 'spectrum: [0-9]+ checks, [0-9]+ failed')"
 	# Mixer's sounds: 16-bit at their own rate, resampled by the voices; needs no game files
-	(cd build/native && timeout 60 ./soundtest.exe) > "$1.snd" 2>&1 || st=1
+	(cd build/native && timeout 60 ./soundtest.exe) > "$1.snd" 2>&1 || fail snd
 	h="$(lastof "$1.snd" 'sound: [0-9]+ checks, [0-9]+ failed')"
 	# Mixer::LoadSongSegments: Rocket Mania's two pieces streamed from their segments against the WAV the game joins from them,
 	# to the bit, where they are staged
 	if [ -d assets/rocketmania/music ]; then
 		(cd build/native && timeout 120 ./soundtest.exe -segments ../../assets/rocketmania "music/Tubetricks In-Game One v02" I \
-			"music/Tubetricks Menu One v02" C) > "$1.seg" 2>&1 || st=1
+			"music/Tubetricks Menu One v02" C) > "$1.seg" 2>&1 || fail seg
 		h="$h, $(lastof "$1.seg" 'sound segments: [0-9]+ checks, [0-9]+ failed')"
 	else
 		h="$h, segments skipped (no assets/rocketmania)"
 	fi
 	# tools/shotdiff: the screenshot comparison on synthetic pictures (statuses, boxes, alignment, pages, the marks server)
-	timeout 120 python tools/shotdiff/selftest.py > "$1.sdf" 2>&1 || st=1
+	timeout 120 python tools/shotdiff/selftest.py > "$1.sdf" 2>&1 || fail sdf
 	i="$(lastof "$1.sdf" 'shotdiff: [0-9]+ checks, [0-9]+ failed')"
 	# framework/DisplayGeometry (letterbox, render scale, window mapping, cursor) against a table from DDInterface's code
-	(cd build/native && timeout 60 ./geomtest.exe) > "$1.geo" 2>&1 || st=1
+	(cd build/native && timeout 60 ./geomtest.exe) > "$1.geo" 2>&1 || fail geo
 	j="$(lastof "$1.geo" 'geometry: [0-9]+ cases, [0-9]+ checks, [0-9]+ failed')"
 	# framework/TriangleWrap (DrawTrianglesTex's texture wrap): every piece in one cell, the pieces cover the triangle once, u and v kept modulo 1
 	local wr
-	(cd build/native && timeout 60 ./wraptest.exe) > "$1.wrp" 2>&1 || st=1
+	(cd build/native && timeout 60 ./wraptest.exe) > "$1.wrp" 2>&1 || fail wrp
 	wr="$(lastof "$1.wrp" 'wraptest: [0-9]+ checks, [0-9]+ failed')"
 	# framework/LinearStretch (stretch mode's smooth flavour) against the renderer's own present of test pictures at the four
 	# calibration sizes, where this machine's card and the model agree to the byte (docs/MEMORY.md, "A smooth stretch on the processor")
 	# and its Draw (copies through a table, SSE2 blends) against DrawReference, the arithmetic pixel by pixel, at many sizes
 	local sc
-	(cd build/native && timeout 120 ./stretchcal.exe) > "$1.sc" 2>&1 || st=1
-	(cd build/native && timeout 120 ./stretchcal.exe -selftest) >> "$1.sc" 2>&1 || st=1
+	(cd build/native && timeout 300 ./stretchcal.exe) > "$1.sc" 2>&1 || fail sc
+	(cd build/native && timeout 300 ./stretchcal.exe -selftest) >> "$1.sc" 2>&1 || fail sc
 	sc="$(lastof "$1.sc" 'stretchcal: [0-9]+ cases differing from LinearStretch'), $(lastof "$1.sc" 'stretchcal selftest: [0-9]+ cases, [0-9]+ differing' | sed 's/^stretchcal //; s/ ([0-9.]* s)$//')"
 	# -realinput (docs/REAL_INPUT.md): real SDL events pushed into SDL's queue reach fwtest's board through HandleEvent,
 	# the window mapping and the widget manager, with -fast and in real time; a line it could not play fails it too
 	local k r
 	for r in fast real; do
 		timeout 120 "build/native/fwtest.exe" -realinput=tools/fwtest/realinput.txt $([ $r = fast ] && echo -fast) \
-			-placeholders -gamedir="$OUT/no-game-files" > "$1.ri$r" 2>&1 || st=1
-		grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.ri$r" && st=1
+			-placeholders -gamedir="$OUT/no-game-files" > "$1.ri$r" 2>&1 || fail ri-$r
+		grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.ri$r" && fail realinput-$r
 	done
 	k="realinput: -fast $(lastof "$1.rifast" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //'), real time $(lastof "$1.rireal" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //')"
+	# the native game speed option (tools/fwtest/speed.txt): the mod menu's speed rows by the keyboard, the F6/F7/F8 hotkeys and the
+	# saved game-speed.json, then a second run that reads it back; fwtest's user folder holds the file, so it is removed before and after
+	local sp=build/native/userdata/game-speed.json
+	rm -f "$sp"
+	timeout 120 "build/native/fwtest.exe" -realinput=tools/fwtest/speed.txt -placeholders -gamedir="$OUT/no-game-files" > "$1.sp1" 2>&1 || fail speedkeys
+	timeout 120 "build/native/fwtest.exe" -realinput=tools/fwtest/speed2.txt -placeholders -gamedir="$OUT/no-game-files" > "$1.sp2" 2>&1 || fail speedkeys-readback
+	rm -f "$sp"
+	grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.sp1" "$1.sp2" && fail speedkeys
+	k="$k, speed keys: $(lastof "$1.sp1" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //'), read back $(lastof "$1.sp2" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //')"
 	# tools/fwtest/flags.txt: the fast stretch's sampling a game set (-corner) and the player's 3D choice hold through every
 	# change of size and mode, on DDInterface and on the software screen (whose full screen goes to the GPU: SURFACE_STRETCH=0,
 	# since the smooth stretch would keep it in software there)
 	local fl
-	timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast -placeholders 		-gamedir="$OUT/no-game-files" > "$1.flplain" 2>&1 || st=1
-	SOFTWARE_SCREEN=on SOFTSCREEN_SCALED=1 SURFACE_STRETCH=0 timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast 		-placeholders -gamedir="$OUT/no-game-files" > "$1.flsoft" 2>&1 || st=1
-	grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.flplain" "$1.flsoft" && st=1
+	timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast -placeholders 		-gamedir="$OUT/no-game-files" > "$1.flplain" 2>&1 || fail flplain
+	SOFTWARE_SCREEN=on SOFTSCREEN_SCALED=1 SURFACE_STRETCH=0 timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast 		-placeholders -gamedir="$OUT/no-game-files" > "$1.flsoft" 2>&1 || fail flsoft
+	grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.flplain" "$1.flsoft" && fail flags
 	fl="flags: DDInterface $(lastof "$1.flplain" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //'), software screen $(lastof "$1.flsoft" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //')"
 	# -commands (docs/TEST_COMMANDS.md, "Sending them"): lines appended to a file while fwtest runs, each answered on
 	# its log, through -script's dispatch and through -realinput's
 	local l m
 	for m in script realinput; do
-		timeout 200 bash tools/fwtest/commands.sh "$1.cm$m.log" "$OUT/commands-$m.txt" $m "$OUT/no-game-files" > "$1.cm$m" 2>&1 || st=1
+		timeout 200 bash tools/fwtest/commands.sh "$1.cm$m.log" "$OUT/commands-$m.txt" $m "$OUT/no-game-files" > "$1.cm$m" 2>&1 || fail cm-$m
 	done
 	l="commands: $(tail -1 "$1.cmscript" | sed 's/^commands //'), $(tail -1 "$1.cmrealinput" | sed 's/^commands //')"
 	# tools/playbymove: the shared driver loop plays fwtest's small task by its "move" answers, under -hold; twice, and
@@ -843,30 +860,31 @@ suite_unit() {
 	local pm pb='playbymove fwtest: 7 moves, stop over; STATE {"screen":"board","typed":"Hi","rightdowns":1,"drags":4,"dialogs":2,"over":true}'
 	for m in 1 2; do
 		timeout 120 python tools/playbymove/playbymove.py --dir "$OUT/playbymove$m" --timeout 30 build/native/fwtest.exe \
-			-placeholders -gamedir="$OUT/no-game-files" > "$1.pm$m" 2>&1 || st=1
+			-placeholders -gamedir="$OUT/no-game-files" > "$1.pm$m" 2>&1 || fail pm-$m
 	done
-	if [ "$(tail -1 "$1.pm1")" != "$pb" ]; then pm="playbymove: $(tail -1 "$1.pm1")"; st=1
-	elif ! cmp -s "$OUT/playbymove1/driver.txt" "$OUT/playbymove2/driver.txt"; then pm="playbymove: 7 moves, over, RERUN DIFFERS"; st=1
+	if [ "$(tail -1 "$1.pm1")" != "$pb" ]; then pm="playbymove: $(tail -1 "$1.pm1")"; fail playbymove
+	elif ! cmp -s "$OUT/playbymove1/driver.txt" "$OUT/playbymove2/driver.txt"; then pm="playbymove: 7 moves, over, RERUN DIFFERS"; fail playbymove-rerun
 	else pm="playbymove: 7 moves, over, rerun identical"; fi
 	# JPEG decoding through IJG libjpeg 6b (platform/JPEGDecoder.cpp): IJG's own test files against its reference output,
 	# synthetic pictures against the hashes of PopCap's copy of the library, the loader's routing; needs no game files
 	local jp
-	(cd build/native && timeout 60 ./jpegtest.exe) > "$1.jpg" 2>&1 || st=1
+	(cd build/native && timeout 60 ./jpegtest.exe) > "$1.jpg" 2>&1 || fail jpg
 	jp="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
 	# every mod text within its limit: platform/ModSettings.cpp cuts a longer one, and the menu shows the warning (the
 	# user, 2026-11-13: the fixes mods' helps)
 	local mt
-	timeout 60 python -I tools/modtextcheck.py > "$1.mtc" 2>&1 || st=1
+	timeout 60 python -I tools/modtextcheck.py > "$1.mtc" 2>&1 || fail mtc
 	mt="$(tail -1 "$1.mtc")"
 	# the screens checker on fixture folders
 	local sct
-	timeout 60 python -I tools/screenchecktest.py > "$1.sct" 2>&1 || st=1
+	timeout 60 python -I tools/screenchecktest.py > "$1.sct" 2>&1 || fail sct
 	sct="$(tail -1 "$1.sct")"
-	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" \
+	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" "$1.sp1" "$1.sp2" \
 		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" "$1.sct" >> "$1"
-	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" \
+	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" "$1.sp1" "$1.sp2" \
 		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" "$1.sct"
 	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $sc; $k; $fl; $l; $pm; $jp; $mt; $sct"
+	[ -z "$FAILED" ] || SUMMARY="FAILED STEPS:$FAILED; $SUMMARY"
 	return $st
 }
 
@@ -934,6 +952,10 @@ suite_unit-web() {
 	local n o
 	"$NODE" tools/cursorstest.js > "$1.cur" 2>&1 || st=1
 	n="$(lastof "$1.cur" 'cursorstest:')"
+	# a run of the browser's resizes reaches the page as its first and one more once it settles (tools/resizetest.js)
+	local rz
+	"$NODE" tools/resizetest.js > "$1.rz" 2>&1 || st=1
+	rz="$(lastof "$1.rz" 'resizetest:')"
 	# every link to the site's own licence, terms and copyright pages opens in a new tab (tools/linkstest.js)
 	local q
 	"$NODE" tools/linkstest.js > "$1.lk" 2>&1 || st=1
@@ -967,7 +989,7 @@ suite_unit-web() {
 	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
 	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
 	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $q; $r; $sf; $as; $u; $v; $w; $o"
+	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $rz; $q; $r; $sf; $as; $u; $v; $w; $o"
 	return $st
 }
 
@@ -982,6 +1004,13 @@ suite_screens() {  # every game's SCREENS.md against its newest shotdiff run
 	python -I tools/screencheck.py > "$1" 2>&1
 	local st=$?
 	SUMMARY="$(lastof "$1" '^screens:')"
+	return $st
+}
+
+suite_speed() {  # every game follows the game speed
+	python -I tools/speedcheck.py --out "$W/$OUT/speed" > "$1" 2>&1
+	local st=$?
+	SUMMARY="$(lastof "$1" '^speed:')"
 	return $st
 }
 

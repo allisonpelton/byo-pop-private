@@ -16,29 +16,48 @@ var ByopopView = (function () {
     vivid: "saturate(1.6)"
   };
   var SCAN = { light: 0.22, strong: 0.45 };
-  var pageGame = null, stage = null, canvas = null, scan = null, resizeObs = null;
+  var pageGame = null, stage = null, canvas = null, scan = null, scanBox = "", resizeObs = null, styleObs = null;
 
   function setting(name) { try { return ByopopSettings.get(name, pageGame || undefined); } catch (e) { return null; } }
 
-  // the scanlines: one dark line a game row high every two game rows, as many as the canvas has rows
+  // the game's own rows, from the shape the page gave the stage (web/shell.html, onGameScreen: "--aspect: w / h"); 480 until
+  // a game gives one
+  function gameRows() {
+    var m = /\/\s*([0-9.]+)/.exec(stage.style.getPropertyValue("--aspect"));
+    return (m && parseFloat(m[1])) || 480;
+  }
+  // the scanlines: one dark line a game row high every two game rows, over the canvas's own box (centred in a larger stage in
+  // full screen). The rows are the game's and the height the canvas's drawn one, never the canvas's pixels: SDL sizes those
+  // to the stage on its own time (300 x 150 before the game makes its window, the old size for a while after a resize, the
+  // device's pixels on a high-density screen), and lines sized from them were drawn too large (the user, 2026-11-21:
+  // "Somehow, the size of the scanlines briefly became much larger than they should be").
   function sizeScan() {
     if (!scan || !canvas) return;
-    var rows = canvas.height || 480, h = stage.clientHeight || 1, px = h / rows;
-    scan.style.backgroundSize = "100% " + (2 * px) + "px";
+    var rows = gameRows(), h = canvas.offsetHeight;
+    var box = canvas.offsetLeft + "," + canvas.offsetTop + "," + canvas.offsetWidth + "," + h + "," + rows;
+    if (box === scanBox) return;
+    scanBox = box;
+    var st = scan.style;
+    st.left = canvas.offsetLeft + "px"; st.top = canvas.offsetTop + "px"; st.width = canvas.offsetWidth + "px"; st.height = h + "px";
+    st.backgroundSize = "100% " + (2 * h / rows) + "px";
   }
   function syncScan() {
     var v = setting("scanlines");
     if (!SCAN[v]) {
       if (scan) { scan.remove(); scan = null; }
       if (resizeObs) { resizeObs.disconnect(); resizeObs = null; }
+      if (styleObs) { styleObs.disconnect(); styleObs = null; }
       return;
     }
     if (!scan) {
       scan = document.createElement("div");
       scan.className = "bv-scan";
       scan.setAttribute("aria-hidden", "true");
+      scanBox = "";
       stage.insertBefore(scan, (pal ? pal.cv : canvas).nextSibling);   // over the 256-colour picture, if there is one
+      // every change of the canvas's box, its place in the stage (the stage's size) or the game's shape (the stage's style)
       if (window.ResizeObserver) { resizeObs = new ResizeObserver(sizeScan); resizeObs.observe(stage); resizeObs.observe(canvas); }
+      if (window.MutationObserver) { styleObs = new MutationObserver(sizeScan); styleObs.observe(stage, { attributes: true, attributeFilter: ["style"] }); }
     }
     scan.style.setProperty("--bv-scan", String(SCAN[v]));
     sizeScan();
@@ -165,7 +184,7 @@ var ByopopView = (function () {
     syncPal(v);
   }
 
-  var STYLE = ".bv-scan { position: absolute; inset: 0; pointer-events: none; z-index: 1;" +
+  var STYLE = ".bv-scan { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;" +
     " background-image: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, var(--bv-scan, 0.22)) 50%); background-repeat: repeat; }" +
     ".bv-pal { position: absolute; pointer-events: none; z-index: 1; display: block; }";
   function sync() {
@@ -187,5 +206,8 @@ var ByopopView = (function () {
     if (n === "scanlines" || n === "colorFilter") sync();
   });
   window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) sync(); });
+  // a change no observer above sees: the canvas moved in a stage of the same size, or the page's zoom
+  window.addEventListener("resize", sizeScan);
+  document.addEventListener("fullscreenchange", sizeScan);
   return { setGame: setGame, sync: sync };
 })();

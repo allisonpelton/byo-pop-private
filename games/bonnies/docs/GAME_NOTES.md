@@ -52,12 +52,9 @@ The logos draw no random numbers, and the timers and flags they set (`gLogoSkip`
 the logo screen only, so the menu starts as it does after the logos. With the setting off nothing changes: the frozen
 baseline runs without it.
 
-## The site's cursor set (2026-11-16, the site session, with the coordinator's OK)
-
-On the web the host gives the arrow and the hand to the site's cursor set as its pointer and hand (`BonniesHost.cpp`,
-`giveCursorKinds`, `WebCursorSetKind`), each drawn from its art into an image of its own at the first cursor the game sets,
-because the game shows every cursor as the one `CURSOR_CUSTOM` image and so gave the site no set (the user: "I'm missing
-some custom cursors"). What the game shows is unchanged, and none of it is built natively.
+The game gives the site no cursor set. One was added on 2026-11-16 (00c462ac, the arrow and the hand) and taken out on
+2026-11-21 at the user's word, since they look like the browser's own cursors (the user, 2026-11-17: "they look just like
+the Windows default. Take them out").
 
 ## The sound log (2026-11-11)
 

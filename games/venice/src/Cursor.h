@@ -17,4 +17,9 @@ public:
 	void DrawSelf() override; // 0x421b20
 };
 
+#ifdef __EMSCRIPTEN__
+// port(site): takes back the cursor's picture given to the site's cursor set (Cursor.cpp), before the pictures are freed
+void TakeSiteCursor();
+#endif
+
 #endif

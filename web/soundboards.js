@@ -610,8 +610,8 @@ var ByopopSoundboards = {
     ],
     groups: [
     { name: "Game selector", sounds: [
-      ["sounds/welcome.ogg", "\"Welcome!\"", "1 s (100 updates) after the game selector opens, the first time it opens since the game started"],
-      ["sounds/loveit.ogg", "\"Love it!\"", "1 s (100 updates) after the game selector opens, with a 1 in 10 chance, on every opening after the first"],
+      ["sounds/welcome.ogg", "\"Welcome to Big Money!\"", "1 s (100 updates) after the game selector opens, the first time it opens since the game started"],
+      ["sounds/loveit.ogg", "\"Big Money, I love it!\"", "1 s (100 updates) after the game selector opens, with a 1 in 10 chance, on every opening after the first"],
       ["sounds/buttonclick.ogg", "Button click", "A button goes down on the game selector, the board, the high scores, Help or Options, or in a dialog. Made from the same sound as BookWorm's Click (sounds/buttonclick.ogg), little changed."],
       ["sounds/action.ogg", "\"Action!\"", "The Action game button is clicked to select it (a second click starts the game), unless Mr. Money is still saying a greeting"],
       ["sounds/strategy.ogg", "\"Strategy!\"", "The Strategy game button is clicked to select it (a second click starts the game), unless Mr. Money is still saying a greeting"],
@@ -658,6 +658,7 @@ var ByopopSoundboards = {
       ["sounds/bonus.ogg", "Bonus", "3 or more bags left on the board at a level's end; a bag collected within 5 s (500 updates) of the last; a tower toppled; and, if the click has no voice, 4 clicks in a row of one colour or 3 to 5 columns emptied"],
       ["sounds/superbonus.ogg", "\"Super bonus!\"", "When the click has no other voice: 6 clicks in a row of one colour, or 6 or more columns emptied by one click"],
       ["sounds/speedbonus.ogg", "\"Speed bonus!\"", "Action only: each click adds 0.16 to a gauge that falls 0.0025 per update; when it reaches 1 (about 7 quick clicks) this plays and 40 points are added"],
+      // (the user settled its words as "Mega money!", as its file names it, over the transcript's "Make'em money")
       ["sounds/megamoney.ogg", "\"Mega money!\" (unused)", "Never played: it is loaded, but no code plays it, in the port or in the original"]
     ] },
     { name: "Countdowns and warnings", sounds: [

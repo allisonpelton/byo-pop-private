@@ -73,9 +73,9 @@ var ByopopSettings = (function () {
     clips: { values: SWITCH, def: "off" },           // on: a Record button on a game page's bar (web/clips.js)
     skipLogos: { values: SWITCH, def: "off" },       // on: the games skip their start-up logos (byopop_site_skiplogos, before the start)
     skipTutorials: { values: SWITCH, def: "off" },   // on: the game's own tutorial switch is turned off at each start (web/shell.html, byopop_site_tutorials)
-    // the game's update rate, times this (web/controls.js): any value the framework takes, 0.25 to 4 (the user, 2026-11-10: "Allow
+    // the game's update rate, times this (web/controls.js): any value the framework takes, 0.01 to 16 (the user, 2026-11-10: "Allow
     // game speed to be set to any arbitrary value instead of the limited options in the dropdown")
-    speed: { values: ["0.5", "0.75", "1", "1.25", "1.5", "2"], number: [0.25, 4], def: "1" }
+    speed: { values: ["0.5", "0.75", "1", "1.25", "1.5", "2"], number: [0.01, 16], def: "1" }
   };
 
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }
@@ -283,10 +283,11 @@ var ByopopSettings = (function () {
     // the games with a bot whose files are here (none on the live site yet), by the games' titles, read again as the theme's are
     { name: "saver", label: T("settings.saver.label"), live: true,
       get options() {
-        var S2 = typeof ByopopSaver !== "undefined" ? ByopopSaver : null, games = window.ByopopGames || [];
-        return [["none", T("settings.saver.none")]].concat(S2 ? S2.offered().map(function (id) {
+        var S2 = typeof ByopopSaver !== "undefined" ? ByopopSaver : null, games = window.ByopopGames || [], o = S2 ? S2.offered() : [];
+        // (Random) once there are two games to draw from
+        return [["none", T("settings.saver.none")]].concat(o.length > 1 ? [["random", T("settings.saver.random")]] : [], o.map(function (id) {
           var g = games.filter(function (x) { return x.id === id; })[0]; return [id, g ? g.title : id];
-        }) : []);
+        }));
       } },
     { name: "saverWait", label: T("settings.saverwait.label"),
       options: (typeof ByopopSaver !== "undefined" ? ByopopSaver.waits : ["5"]).map(function (m) { return [m, T("settings.saverwait.minutes", { n: m })]; }) },
@@ -873,7 +874,7 @@ var ByopopSettings = (function () {
         c.custom = make("option"); c.custom.hidden = c.custom.disabled = true;
         c.select.appendChild(c.custom);
         c.number = make("input", "bps-number");
-        c.number.type = "number"; c.number.min = String(num[0]); c.number.max = String(num[1]); c.number.step = "0.05";
+        c.number.type = "number"; c.number.min = String(num[0]); c.number.max = String(num[1]); c.number.step = "0.01";
         c.number.inputMode = "decimal";
         c.number.setAttribute("aria-label", f.label);
         c.number.setAttribute("data-setting", f.name);
@@ -1037,10 +1038,21 @@ var ByopopGameFiles = (function () {
     } catch (e) {}
     return out;
   }
+  // Each write is told on this page as byopop-game-files (another page, a game's window or another tab, hears it as the storage
+  // event of KEY), so that what lists the games' files follows while it is open (the Sounds and Music windows, web/sounds.js and
+  // web/music.js; the user, 2026-11-16: "I had to close and reopen each of the sounds and music windows to get it to appear")
   function write(o) {
     try {
       var s = store();
       if (s) s.setItem(KEY, JSON.stringify(o));
+    } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("byopop-game-files")); } catch (e) {}
+  }
+  // what to listen to for a change of the games' files, on this page and from the others: fn() at each
+  function watch(fn) {
+    try {
+      window.addEventListener("byopop-game-files", function () { fn(); });
+      window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) fn(); });
     } catch (e) {}
   }
   // The files are there (found at a start, or just imported)
@@ -1107,7 +1119,7 @@ var ByopopGameFiles = (function () {
   // Whether a record says the files were ever loaded in this browser, whether they are there now or were forgotten or lost
   // since. The listing page hides a game's buy links for such a game (docs/WEB_PLAYER.md, "The listing page").
   function everLoaded(r) { return !!(r && r.loaded); }
-  return { KEY: KEY, all: all, mark: mark, forget: forget, lost: lost, replacing: replacing, present: present, everLoaded: everLoaded, setIcon: setIcon };
+  return { KEY: KEY, all: all, mark: mark, forget: forget, lost: lost, replacing: replacing, present: present, everLoaded: everLoaded, setIcon: setIcon, watch: watch };
 })();
 
 // How much each game was played in this browser (docs/WEB_PLAYER.md, "The listing page"): one localStorage item for the whole

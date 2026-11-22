@@ -502,3 +502,26 @@ answered a step name the loop did not know. `tools/playbymove/playbymove.py` now
 so that a game whose `over` is also a screen the bot goes on from passes its own end of play (the loop's default is unchanged).
 
 **Full screen (night of 2026-11-12, 22:00 to 22:14).** `play.sh <mode> full2d` and `full3d` ran all four modes with the registry's `ScreenMode=1` (the game's log says `client 1600x1200 px, logical 800x600, render scale 2, full screen, renderer direct3d11`, no error or warning line): each run's moves, end and last state are the same as the windowed run of the same display (Journey 2D 1844 moves, Journey 3D 1387, Flood 2D 4122, Flood 3D 8038, Survival 7702 in both, Trick Shot 6000 in both), as they should be: the game's logic does not read the window mode. The folders were deleted with their lines here.
+
+## The site's hooks (2026-11-21, the site session with the coordinator's OK)
+
+**Its name on the site** is "Venice" (`TITLE` in `games/venice/CMakeLists.txt`; the user, 2026-11-18: "I asked for Deluxe to be removed
+from every game's name, but Venice kept it"). "Venice Deluxe" stays where it finds the original's files (`shortName` and the import's folder
+names in `web/page.js`), in the game's own copyright notice and in the speedrun.com name the Splits window matches (`web/autosplit.js`).
+
+**The site's cursor set** (the user, 2026-11-19: "Venice is missing its custom cursor"). The game hides the system's cursor and draws its own
+as a scene object, so the framework held no picture of it. On the web the first cursor object loaded (`Cursor::Load`) reads its picture's first
+frame again from its file (`gfx\cursor.png`) into an image of its own, the picture in the bottom right quarter of an image twice its size since
+the framework puts the mouse at an image's middle and the game draws the picture's top left at the pointer (`top_left`), and gives it as the
+pointer through `WebCursorSetKind`; `ShutdownHook` takes it back before the pictures are freed. Natively nothing of it is built, and what the
+game draws is unchanged. `web/cursors.js` lists "venice" in `GIVES`.
+
+**"Always skip start-up logos"** (the user, 2026-11-19: "its logos aren't skipped despite the setting"). With `Byopop::SiteSkipLogos()`
+(the page's setting, or `-skiplogos` natively) `MakeLogoScenes` leaves out PopCap's logo and the partner's (Retro64's, from
+`properties/partner.xml`), which the original lets nothing skip; the loading screen's picture still fades in, then first and over black. The
+menu comes about 4 seconds sooner (in the Browser pane: the loading picture at 1.5 s and the menu by 6.5 s, where the PopCap logo shows at 1.5 s
+and the Retro64 logo at 3.5 s without it). Without the setting nothing changes, so the frozen baseline does not.
+
+**The Music window's spectrum** follows the game's music (the user, 2026-11-18: "Venice's audio doesn't sync with the spectral analyzer"):
+the game plays its tunes as looped sounds, not as the mixer's songs, so the page finds the tune among its voices (`web/music.js`, `voiceTune`;
+`web/soundtracks.js`, `voices`). Nothing in the port changed for it.
