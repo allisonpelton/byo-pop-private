@@ -94,8 +94,9 @@ def shot_names(cell):
 
 
 def stem(name):
-    """A shot's name without its folder and picture extension, so "a/b.png" and "b" are the same shot."""
-    base = name.replace("\\", "/").rsplit("/", 1)[-1]
+    """A shot's name without its folder and picture extension, so "a/b.png" and "b" are the same shot; a clip's pair is
+    named by its folder with a slash ("title/"), which is the clip "title"."""
+    base = name.replace("\\", "/").rstrip("/").rsplit("/", 1)[-1]
     for ext in SHOT_EXTENSIONS:
         if base.lower().endswith(ext):
             return base[:-len(ext)]
