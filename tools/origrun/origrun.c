@@ -4929,6 +4929,10 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 {
 	char why[300];
 	gInSandbox = detect_windows_sandbox(why,sizeof(why));
+	// The stand-in's activation hook stays off in the sandbox: its desktop is "Default" too and the game need not run with
+	// the sandbox user's name in its environment, so the stand-in's own test cannot tell (Bookworm Adventures' full-screen
+	// window never activated there, 2026-11-22). Nothing from the host's environment reaches here.
+	if (gInSandbox) SetEnvironmentVariableA("ORIGRUN_ACTIVATION","allow");
 	if (probe) {   // the values go to probe.txt either way; the display test runs only inside
 		char pp[MAX_PATH]; joinp(pp,dir,"probe.txt"); FILE* o=fopen(pp,"w");
 		if (o) {
