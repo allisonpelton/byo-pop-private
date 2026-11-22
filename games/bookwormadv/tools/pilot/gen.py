@@ -11,6 +11,7 @@ Steps, one per line ('#' starts a comment):
   wait <ms>
   port <command>                 a command for the port alone (state), when a list is checked on the port
   click <x> <y>                  a move, then a click 50 ms later (both games see the hover first)
+  move <x> <y>                   the mouse alone (a hover, a tooltip)
   text <chars>                   typed characters
   key <vk> <name>                a key: the original's virtual-key code, the port's key name
   focus lose|regain
@@ -60,6 +61,8 @@ def main():
             oat(t, "move %s %s" % (x, y)); pat(t, "move %s %s" % (x, y))
             t += 50
             oat(t, "click %s %s" % (x, y)); pat(t, "click %s %s" % (x, y))
+        elif op == "move":
+            oat(t, "move %s %s" % tuple(args)); pat(t, "move %s %s" % tuple(args))
         elif op == "text":
             for c in args[0]:
                 oat(t, "text %s" % c); pat(t, "char %s" % c)

@@ -22,6 +22,14 @@
 # it to build/bassproxy-bwa/bass.dll; it gives BASS the "no sound" device, the sandbox having none), its sounds by
 # origrun's stand-in to <steps>.sound.log, and the port's to <steps>.portsound.log (BYOPOP_SOUNDLOG); compare them
 # with soundcmp.py.
+# PILOT_PROFILE=<x.bwa>: a save played as Tester's on both sides, in place of the pilot's Tester.bwa (the screen
+# coverage pass's parts start from the port's own saves, tools/coverage/advance.sh, some changed with
+# tools/coverage/bwa.py). PILOT_USERS="<a.bwa> ...": more players' files in both users folders. PILOT_TIMEOUT=<s>:
+# the original's wall-clock cap (240 by default; the port gets 60 s more). PILOT_WATCH=<expr>: an origrun --watch in place of
+# the startup load's two (a fourth stops them all), whose length then comes from the part's last run (0x85a938, the
+# generator's index, with the port's -randlog in PILOT_PORT_ARGS: the random draws side by side).
+# PILOT_PORT_ARGS: more options for the port. PILOT_FULL=on: both sides start in full screen (the registry's ScreenMode 1);
+# the part names its shots x_full itself.
 set -u
 W=$(cd "$(dirname "$0")/../../../.." && pwd)
 T=$W/games/bookwormadv/tools/pilot
@@ -30,6 +38,9 @@ name=$1; which=${2:-both}
 EXE=$(cat "$P/exe.txt")
 SEED=12345
 SUF=; MODE3D=(--3d off)
+FULL=0; [ "${PILOT_FULL:-off}" = on ] && FULL=1
+WATCH23=(--watch "[0x8259e4]+0x4f9" --watch "[0x8259e4]+0x919")
+[ -n "${PILOT_WATCH:-}" ] && WATCH23=(--watch "$PILOT_WATCH" --watch-max 100000)
 if [ "${PILOT3D:-off}" = on ]; then
 	SUF=3d; MODE3D=(--3d on --sandbox-vgpu)
 	[ -n "${PILOT_DGVOODOO:-}" ] && MODE3D+=(--dgvoodoo "$(cygpath -w "$PILOT_DGVOODOO")")
@@ -63,9 +74,12 @@ if [ "$which" != port ]; then
 	U="$R/sandbox-files/C/ProgramData/PopCap Games/WinBAD/users"
 	mkdir -p "$U"
 	cp "$P/backup/users/Allison.bwa" "$P/portuser0/users/Tester.bwa" "$U/"
-	python "$T/inireg.py" "$P/portuser0/registry.ini" "$P/start.reg"
-	"$W/build/native/rundesk.exe" "$W/build/origrun-bin/origrun.exe" --sandbox --exe "$(cygpath -w "$GEXE")" --run "$run" --script "$(cygpath -w "$P/scripts/$name.orig.txt")" \
-		--reg "$(cygpath -w "$P/start.reg")" "${MODE3D[@]}" --3d-key "Software\PopCap\WinBAD" --3d-flag "[[0x8259e4]+0x36c]+0x38" --counter "[0x8259e4]+0x484" --pending-draw "[0x8259e4]+0x45a" --update-state "[0x8259e4]+0x488" --draw-empty "[0x8259e4]+0x459" --watch "[[0x8259e4]+0x83c]+0xb0" --watch "[0x8259e4]+0x4f9" --watch "[0x8259e4]+0x919" --update-ms 10 --timeout 240 > "$P/$N.orig.log" 2>&1
+	[ -n "${PILOT_PROFILE:-}" ] && cp "$PILOT_PROFILE" "$U/Tester.bwa"
+	for f in ${PILOT_USERS:-}; do cp "$f" "$U/"; done
+	sed "s/^ScreenMode=dword:0/ScreenMode=dword:${FULL}/" "$P/portuser0/registry.ini" > "$P/start.ini"
+	python "$T/inireg.py" "$P/start.ini" "$P/start.reg"
+	"$W/build/origrun-bin/origrun.exe" --sandbox --exe "$(cygpath -w "$GEXE")" --run "$run" --script "$(cygpath -w "$P/scripts/$name.orig.txt")" \
+		--reg "$(cygpath -w "$P/start.reg")" "${MODE3D[@]}" --3d-key "Software\PopCap\WinBAD" --3d-flag "[[0x8259e4]+0x36c]+0x38" --counter "[0x8259e4]+0x484" --pending-draw "[0x8259e4]+0x45a" --update-state "[0x8259e4]+0x488" --draw-empty "[0x8259e4]+0x459" --watch "[[0x8259e4]+0x83c]+0xb0" "${WATCH23[@]}" --update-ms 10 --timeout ${PILOT_TIMEOUT:-240} > "$P/$N.orig.log" 2>&1
 	grep -i "RESULT\|timeout\|error\|msgbox\|dialog" "$P/$N.orig.log" | tail -5
 	# How many updates each chapter load's screen stayed up in the original, for the port's -chapterloadupdates: the
 	# original loads on a thread, so the load's length in updates, and with it the hint draws (one Rand() every 50
@@ -73,7 +87,7 @@ if [ "$which" != port ]; then
 	python "$T/loads.py" "$W/build/origrun/$run/logs/origrun-sandbox.log" > "$P/$N.loads"
 	echo "chapter loads (updates): $(cat "$P/$N.loads")"
 	# and the startup load's, for -startloadupdates (the thread's start, app+0x4f9, to mLoadingDone, +0x919)
-	python "$T/loads.py" "$W/build/origrun/$run/logs/origrun-sandbox.log" --start > "$P/$N.startload"
+	[ -z "${PILOT_WATCH:-}" ] && python "$T/loads.py" "$W/build/origrun/$run/logs/origrun-sandbox.log" --start > "$P/$N.startload"
 	echo "startup load (updates): $(cat "$P/$N.startload")"
 	[ "${PILOT_SOUND:-off}" = on ] && [ -f "$R/logs/sound.log" ] && cp "$R/logs/sound.log" "$P/$N.sound.log"
 	[ -f "$R/game/basslog.txt" ] && cp "$R/game/basslog.txt" "$P/$N.basslog.txt" && echo "BASS calls: $(grep -vc '^#' "$P/$N.basslog.txt") lines"
@@ -88,7 +102,7 @@ for line in open(steps):
     if w and w[0] == "clip": clips[w[1]] = int(w[3])
 # an earlier run's pictures of these steps go first, so a run that took none leaves none behind
 names = [l.split()[1] for l in open(steps) if l.split()[:1] in (["shot"], ["clip"])]
-names += ["title", os.path.basename(steps)[:-4] + "_focus"]
+names += list(clips) + [os.path.basename(steps)[:-4] + "_focus"]
 for f in os.listdir(dst):
     stem = f[:-4] if f.endswith(".png") else f
     if any(stem == n or stem.startswith(n + "_") for n in names):
@@ -116,8 +130,11 @@ if [ "$which" != orig ]; then
 	d=$P/portrun/$N; mkdir -p "$d"
 	bash "$T/reset.sh" "$d/user"
 	[ -n "$SUF" ] && sed -i 's/^Is3D=dword:0/Is3D=dword:1/' "$d/user/registry.ini"
+	sed -i "s/^ScreenMode=dword:0/ScreenMode=dword:${FULL}/" "$d/user/registry.ini"
+	[ -n "${PILOT_PROFILE:-}" ] && cp "$PILOT_PROFILE" "$d/user/users/Tester.bwa"
+	for f in ${PILOT_USERS:-}; do cp "$f" "$d/user/users/"; done
 	[ "${PILOT_SOUND:-off}" = on ] && export BYOPOP_SOUNDLOG="$(cygpath -w "$P/$N.portsound.log")"
-	timeout 280 "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -chapterloadupdates=$(cat "$P/$N.loads" 2>/dev/null) -startloadupdates=$(cat "$P/$N.startload" 2>/dev/null) -popcaplogo \
+	timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -renderscale=1 -chapterloadupdates=$(cat "$P/$N.loads" 2>/dev/null) -startloadupdates=$(cat "$P/$N.startload" 2>/dev/null) -popcaplogo \
 		-script="$P/scripts/$name.port.txt" > "$d/stdout.txt" 2>&1
 	echo "port exit $?"; grep "script\|FATAL" "$d/stdout.txt" | tail -5
 	python - "$PP" "$T/$name.txt" <<'EOF'

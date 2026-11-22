@@ -1,0 +1,24 @@
+# Lex's talks on the main menu when the tome and the mini-games open (NeedsBestiaryDialog, NeedsMiniGamesDialog), each
+# page clicked on. Start state: PILOT_PROFILE=build/coverage/bookwormadv/profiles/adv/3.10.6.bwa (the bot's save at
+# book 3's last chapter, as advance.sh left it).
+at 16000
+shot unlock_talk_1
+click 400 300
+wait 3000
+shot unlock_talk_2
+click 400 300
+wait 3000
+shot unlock_talk_3
+click 400 300
+wait 3000
+shot unlock_talk_4
+click 400 300
+wait 3000
+shot unlock_talk_5
+click 400 300
+wait 3000
+shot unlock_talk_6
+click 400 300
+wait 3000
+shot unlock_menu
+quit

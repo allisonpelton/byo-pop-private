@@ -11,6 +11,8 @@ and WindowFromPoint, 0x548635 to 0x5486bc) and, if not, sends the widgets a mous
 cursor (GetCursorPos fails), so the original never showed a hover. The patch makes that test always answer "inside":
 origrun's mouse never leaves the window, and the cursor's own position is read only on the "outside" path. A test-harness
 change to the original, not to the port.
+The third is the trial's end of the adventure (0x451c80), which past the first book's seventh chapter ends a trial; it
+answers "not over", as the registered game's does (tools/origrun/patches/bookwormadv.txt has the same patch).
 The expected bytes are checked first; the patch is logged to stdout.
 """
 import struct
@@ -40,6 +42,9 @@ def main():
         (0x54c4bc, bytes.fromhex("ffd750"), bytes.fromhex("6a0190")),
         # mov byte [esp+0xf], 0 (the cursor is outside the window)  ->  mov byte [esp+0xf], 1
         (0x5486b7, bytes.fromhex("c644240f00"), bytes.fromhex("c644240f01")),
+        # push ebp; mov ebp, esp  ->  xor eax, eax; ret: the trial's end of the adventure (0x451c80, book 1 past
+        # chapter 7) answers "not over", as the registered game the port plays does
+        (0x451c80, bytes.fromhex("558bec"), bytes.fromhex("31c0c3")),
     ]
     for va, old, new in patches:
         off = file_offset(data, va)

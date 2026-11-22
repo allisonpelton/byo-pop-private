@@ -1,0 +1,262 @@
+# A new player: the intro movie (a click on it, No, then Yes to skip it), the first battle's talks, its tutorial
+# tiles and hints and five words, as the port's bot played them (tools/coverage/play.py from the steps up to the
+# skip, then addshots.py). Profile Tester (the pilot start state); the new player is Newbie.
+at 16000
+click 400 209            # change users
+wait 1500
+click 314 416            # New
+wait 1500
+text Newbie
+wait 500
+key 13 Return            # the new player: the intro movie starts
+wait 3000
+shot intro_1
+wait 3000
+shot intro_2
+click 400 300            # a click on the movie: skip it?
+wait 1500
+shot skip_movie
+click 468 388            # No: the movie goes on
+wait 3000
+shot intro_3
+click 400 300
+wait 1500
+click 332 388            # Yes: skip it
+wait 1000
+shot new_skipped_1
+wait 1500
+shot new_skipped_2
+wait 3500
+shot new_battle_talk
+wait 500
+shot newgame_01_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot newgame_02_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot newgame_03_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot newgame_04_tutorial
+click 326 385   # tutorial
+wait 1000
+wait 500
+shot newgame_05_tutorial
+click 376 487   # tutorial
+wait 1000
+wait 500
+shot newgame_06_tutorial
+click 426 334   # tutorial
+wait 1000
+wait 500
+shot newgame_07_tutorial
+click 476 436   # tutorial
+wait 1000
+wait 500
+shot newgame_08_hint
+click 400 300   # hint
+wait 1000
+wait 500
+shot newgame_09_tutorial
+click 401 570   # tutorial
+wait 1000
+wait 1500
+wait 500
+shot newgame_10_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot newgame_11_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot newgame_12_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot newgame_13_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot newgame_14_idle
+click 400 150
+wait 3000
+wait 500
+shot newgame_15_hint
+click 400 300   # hint
+wait 1000
+wait 500
+click 376 385
+wait 300
+click 476 385
+wait 300
+click 426 436
+wait 300
+click 326 334
+wait 300
+click 326 436
+wait 300
+click 476 334
+wait 300
+click 326 487
+wait 300
+click 426 487
+wait 300
+click 426 334
+wait 300
+click 476 436
+wait 300
+click 326 385
+wait 300
+wait 400
+click 401 570   # Attack: FEDERATIONS
+wait 2500
+wait 1500
+wait 500
+shot newgame_16_idle
+click 400 150
+wait 3000
+wait 500
+click 426 436
+wait 300
+click 326 436
+wait 300
+click 476 385
+wait 300
+click 326 385
+wait 300
+click 476 436
+wait 300
+click 376 334
+wait 300
+click 426 385
+wait 300
+click 376 436
+wait 300
+click 476 487
+wait 300
+wait 400
+click 401 570   # Attack: AIRPROOFS
+wait 2000
+shot newgame_17_attack
+wait 500
+wait 1500
+wait 500
+shot newgame_18_idle
+click 400 150
+wait 3000
+wait 500
+click 426 334
+wait 300
+click 426 436
+wait 300
+click 326 334
+wait 300
+click 326 487
+wait 300
+click 476 436
+wait 300
+click 426 487
+wait 300
+click 426 385
+wait 300
+click 326 385
+wait 300
+click 376 436
+wait 300
+click 476 385
+wait 300
+wait 400
+click 401 570   # Attack: THOROUGHER
+wait 2500
+wait 1500
+wait 500
+shot newgame_19_idle
+click 400 150
+wait 3000
+wait 500
+click 326 385
+wait 300
+click 326 487
+wait 300
+click 426 385
+wait 300
+click 326 436
+wait 300
+click 476 487
+wait 300
+click 326 334
+wait 300
+click 376 436
+wait 300
+click 426 436
+wait 300
+click 376 385
+wait 300
+click 476 436
+wait 300
+wait 400
+click 401 570   # Attack: DEUTERATES
+wait 2000
+shot newgame_20_attack
+wait 500
+wait 1500
+wait 500
+shot newgame_21_idle
+click 400 150
+wait 3000
+wait 500
+shot newgame_22_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot newgame_23_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot newgame_24_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot newgame_25_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot newgame_26_talk
+click 400 150   # the conversation on
+wait 3000
+wait 1500
+wait 500
+shot newgame_27_idle
+click 400 150
+wait 3000
+wait 500
+click 376 334
+wait 300
+click 426 436
+wait 300
+click 326 334
+wait 300
+click 376 436
+wait 300
+click 326 436
+wait 300
+click 476 487
+wait 300
+click 476 436
+wait 300
+click 476 334
+wait 300
+click 376 385
+wait 300
+click 476 385
+wait 300
+wait 400
+click 401 570   # Attack: OVERPRAISE
+wait 2500
+wait 2000
+quit

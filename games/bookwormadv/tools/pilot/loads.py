@@ -21,6 +21,8 @@ for line in open(sys.argv[1], errors="replace"):
             if w == "3" and done is None:
                 done = int(at)
         continue
+    if w != "1":
+        continue  # (a fourth watch, run.sh's PILOT_WATCH)
     if at is None:
         continue
     if new == "-":
