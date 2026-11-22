@@ -145,6 +145,7 @@ skin.fav.remove = Remove from favourites
 skin.fav.menu = {game}
 skin.desk.games = All games
 skin.desk.about = About
+skin.boot = Please wait while the desktop loads...
 settings.scheme.label = Scheme
 settings.scheme.hint = The desktop's colours: its background, windows, title bars and selection.
 settings.scheme.standard = Standard

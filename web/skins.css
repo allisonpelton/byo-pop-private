@@ -190,6 +190,20 @@ html.d95-desk.game-loading .stage-wrap.d95-win { visibility: hidden; }
 html.d95-desk.game-unmade .stage-wrap.d95-win { visibility: hidden; }
 html.d95-desk.game-unmade:not(.game-loading) .stage-wrap.d95-win .overlay:not([hidden]) > .card { visibility: visible; }
 html.d95-desk.game-loading, html.d95-desk.game-loading * { cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20x%3D%228%22%20y%3D%223%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%2226%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M10%206h12v4l-4%205v2l4%205v4H10v-4l4-5v-2l-4-5z%22%20fill%3D%22%23fff%22%20stroke%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M12%208h8v1.5l-4%204.5-4-4.5z%22%20fill%3D%22%23000080%22%2F%3E%3Cpath%20d%3D%22M15.5%2018h1l3.5%204v2h-8v-2z%22%20fill%3D%22%23000080%22%2F%3E%3C%2Fsvg%3E") 16 16, wait !important; }
+/* The desktop's loading (web/skins.js, bootStart; the user, 2026-11-20: "Replace that load with something 95-themed"): until the
+   desktop is whole, the root's two pseudo-elements cover the page: the desktop's colour with the hourglass, and in the middle a
+   raised box with a line of text and a sunken strip of blue blocks that fills (--d95-boot-w, whole blocks of 9 pixels and a
+   gap of 2), as 1995's Setup showed its progress */
+html.d95-booting, html.d95-booting * { cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20x%3D%228%22%20y%3D%223%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%2226%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M10%206h12v4l-4%205v2l4%205v4H10v-4l4-5v-2l-4-5z%22%20fill%3D%22%23fff%22%20stroke%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M12%208h8v1.5l-4%204.5-4-4.5z%22%20fill%3D%22%23000080%22%2F%3E%3Cpath%20d%3D%22M15.5%2018h1l3.5%204v2h-8v-2z%22%20fill%3D%22%23000080%22%2F%3E%3C%2Fsvg%3E") 16 16, wait !important; }
+html.d95-booting::before { content: ""; position: fixed; inset: 0; z-index: 2147483646; background: var(--bg); }
+html.d95-booting::after { content: attr(data-d95-boot); position: fixed; left: 50%; top: 50%; z-index: 2147483647; box-sizing: border-box;
+  width: 250px; height: 62px; margin: -31px 0 0 -125px; padding: 10px 12px 0; overflow: hidden; white-space: nowrap;
+  font: 11px/13px var(--font-ui); color: var(--fg); -webkit-font-smoothing: none;
+  background: repeating-linear-gradient(90deg, var(--accent) 0 9px, transparent 9px 11px) 16px 36px / var(--d95-boot-w, 0px) 12px no-repeat,
+    linear-gradient(var(--sk-well), var(--sk-well)) 14px 34px / 223px 15px no-repeat, linear-gradient(var(--sk-dk), var(--sk-dk)) 13px 33px / 224px 16px no-repeat,
+    linear-gradient(var(--sk-lo), var(--sk-lo)) 12px 32px / 225px 17px no-repeat, linear-gradient(var(--sk-hi), var(--sk-hi)) 12px 32px / 226px 18px no-repeat,
+    var(--panel);
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid); }
 /* The games have no caps (the user, 2026-11-08: "The animated bottle caps clash with the Windows 95 skin. I'd prefer bare initials
    for missing games, and the plain favicon otherwise."): a game whose files are here shows its exe's own icon at its size, plainly;
    any other its initials on a plain white square icon, black-edged with a grey shadow, in the 16-colour palette; no cap, no

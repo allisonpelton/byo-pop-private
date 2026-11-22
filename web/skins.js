@@ -2196,7 +2196,75 @@ var ByopopSkin = (function () {
   window.addEventListener("byopop-skin", deskSync);
   window.addEventListener("resize", deskSync);
 
+  // ---------- the desktop's loading (the user, 2026-11-20: "The site briefly shows the all games window while loading. Replace
+  // that load with something 95-themed") ----------
+  // A page that becomes a desktop (the listing, a game page of its own) used to be drawn in stages as it loaded: the games'
+  // list as a plain page, then the desktop, then each window in its saved place. Now, until the desktop is whole, the page shows
+  // only the desktop's colour and the hourglass, with a small box in the middle whose strip fills as the page's scripts and
+  // style sheets arrive, as 1995's Setup showed its progress (html.d95-booting, web/skins.css: the root's own pseudo-elements,
+  // there before the body is). They cover the page rather than hide it, so that the page's scripts lay it out and focus it as
+  // they always did. The desktop shows once the page has loaded with its fonts and the one page's own windows are back with
+  // their pages (web/deskapps.js holds "apps" until then, bootHold and bootDone), and BOOT_MAX_MS after the page's text was
+  // read at the latest, so that a file that never comes cannot keep the desktop away. A page that is no desktop (a page in a
+  // window, the player-only page, the screen saver's, a screen too narrow) never shows it.
+  var BOOT_MAX_MS = 15000, BOOT_BLOCKS = 20, BOOT_PITCH = 11, boot = null;
+  function bootStart() {
+    if (EMBED || window.top !== window || current() !== "d95" || Q.get("player") === "1" || Q.get("saver") === "1") return;
+    // (the listing is a desktop at any width; a game page only from DESK_MIN, deskWanted)
+    if (root.classList.contains("game-unmade") && (root.clientWidth || window.innerWidth) / zoomFor() < DESK_MIN) return;
+    boot = { wait: { load: true }, got: 0, shown: 0, timer: 0 };
+    root.classList.add("d95-booting");
+    root.setAttribute("data-d95-boot", T("skin.boot"));
+    document.addEventListener("load", bootFile, true);
+    document.addEventListener("error", bootFile, true);
+    document.addEventListener("DOMContentLoaded", function () {
+      if (!boot) return;
+      if (!deskWanted()) { bootEnd(); return; }
+      bootFill();
+      boot.timer = setTimeout(bootEnd, BOOT_MAX_MS);
+    });
+    window.addEventListener("load", function () {
+      var fonts = null;
+      try { fonts = document.fonts && document.fonts.ready; } catch (e) {}
+      // after the load's other listeners and the timers they set (the one page's windows, web/deskapps.js, start)
+      Promise.resolve(fonts).then(function () { setTimeout(function () { bootDone("load"); }, 0); }, function () { bootDone("load"); });
+    });
+  }
+  // a script or a style sheet of the page arrived (or failed): the strip fills by the share of those the page has named so far
+  function bootFile(ev) {
+    var t = ev.target;
+    if (!boot || !t || (t.tagName !== "SCRIPT" && t.tagName !== "LINK")) return;
+    boot.got++;
+    bootFill();
+  }
+  function bootFill() {
+    if (!boot) return;
+    var named = document.querySelectorAll("script[src], link[rel=stylesheet][href]").length;
+    // while the page is still being read more are to come
+    var share = boot.got / Math.max(1, named + (document.readyState === "loading" ? 4 : 0));
+    boot.shown = Math.max(boot.shown, Math.min(BOOT_BLOCKS - 1, Math.floor(share * BOOT_BLOCKS)));
+    root.style.setProperty("--d95-boot-w", (boot.shown * BOOT_PITCH) + "px");
+  }
+  // a part the desktop waits for (name), and that part done
+  function bootHold(name) { if (boot) boot.wait[name] = true; }
+  function bootDone(name) {
+    if (!boot) return;
+    delete boot.wait[name];
+    if (!Object.keys(boot.wait).length) bootEnd();
+  }
+  function bootEnd() {
+    if (!boot) return;
+    clearTimeout(boot.timer);
+    document.removeEventListener("load", bootFile, true);
+    document.removeEventListener("error", bootFile, true);
+    boot = null;
+    root.classList.remove("d95-booting");
+    root.removeAttribute("data-d95-boot");
+    root.style.removeProperty("--d95-boot-w");
+  }
+
   apply();
+  bootStart();
   // On every page (the user, 2026-11-08: "A lot of elements on Windows 95 need to be made unselectable so that I'm not dragging
   // around the canvas contents as if it were an image"): the game's canvas and its stage start no selection and no drag, and no
   // image of the page's own (caps, icons, logos) is picked up; a card over the stage (the terms, the import) keeps its text.
@@ -2219,7 +2287,8 @@ var ByopopSkin = (function () {
     });
   }
   document.addEventListener("selectstart", function (ev) { var t = ev.target; if (t && t.nodeType !== 1) t = t.parentNode; if (t && t.closest && t.closest(".stage") && !t.closest(".overlay")) ev.preventDefault(); }, true);
-  return { zoom: zoom, unzoom: unzoom, ratio: ratio, viewW: viewW, viewH: viewH, gamesWindow: gamesWindow, EMBED: EMBED, SITE: SITE, testQuery: testQuery, current: current, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync };
+  return { zoom: zoom, unzoom: unzoom, ratio: ratio, viewW: viewW, viewH: viewH, gamesWindow: gamesWindow, EMBED: EMBED, SITE: SITE, testQuery: testQuery, current: current, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync,
+           bootHold: bootHold, bootDone: bootDone, booting: function () { return !!boot; } };
 })();
 // The volume of everything the site plays (the tray's speaker; the user, 2026-11-14, by the coordinator's list): the games, Music,
 // Sounds and a theme's sounds, each at its own level times this one. Kept in localStorage (byopop-master-volume, 0 to 100, and

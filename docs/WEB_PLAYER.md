@@ -394,6 +394,22 @@ because it tries to resize repeatedly when Firefox enters full screen"). Now the
 the rest are held, by a listener capturing at the window, until none has come for 120 ms; then one resize goes on for the
 size reached. The page's own resizes, which its scripts send so that SDL measures the stage again, go on at once.
 
+**Loading** (the user, 2026-11-20: "The site briefly shows the all games window while loading. Replace that load with
+something 95-themed"). A page that becomes a desktop, the listing or a game's own page, used to be drawn in stages: the
+games' list as a plain page, then the desktop, then each window in its saved place. Now, from the first line of
+`web/skins.js` until the desktop is whole, `html.d95-booting` covers the page with the desktop's colour and the hourglass,
+and in the middle a raised box says "Please wait while the desktop loads..." over a sunken strip of blue blocks, as
+1995's Setup showed its progress. The strip fills as the page's scripts and style sheets arrive, measured against those
+the page has named so far, and it never goes back. The cover is the root's two pseudo-elements, there before the body is,
+and it covers the page instead of hiding it, so the page's scripts lay it out and give the focus as they always did. It goes
+once the page has loaded with its fonts and, on the listing, every window the one page puts back has its page and a game's
+window its game's size (`bootHold("apps")` and `bootDone` from `web/deskapps.js` `start`; a game's size waits at most 3 s
+after its page). In any case it goes 15 s after the page's text was read, so that a file that never comes cannot keep the
+desktop away. A page in a window, the player-only page, the screen saver's page and a game page too narrow for windows
+never show it. Checked through a proxy that served one file at a time with a delay: on a cold first visit, a reload, a
+reload with a game window open and a game's own page, the cover held until the end of the load, and no window moved or
+changed size after it went.
+
 **Its text** is Byopop Sans, `web/fonts/byopop-sans.woff`, built by `tools/web/pixelfont.py` from W95FA by Alina Sava
 (SIL OFL 1.1, as is ours); after a change to the script, run it and commit the file. The font is sharp only at 11
 pixels and its multiples, so every text is set at 11 (a few at 22), and a new part sets no size of its own. A glyph's
