@@ -9,6 +9,7 @@
 
 #include "GameApp.h"
 #include "platform/VFS.h"
+#include "platform/openjpeg/JP2Decoder.h"
 #include "platform/WebPersist.h"
 
 #include <SDL.h>
@@ -101,6 +102,9 @@ int main(int argc, char** argv)
 	Platform::RestoreUserDataBackup(userDir);
 	Platform::VFS::Get().SetBaseDir(gameDir);
 	Platform::VFS::Get().SetUserDir(userDir);
+
+	// The backdrops are JPEG 2000 (.jp2), which the original decodes with j2k-codec.dll and the port with OpenJPEG
+	Platform::RegisterOpenJPEGImages();
 	SDL_Log("game: %s | user: %s", gameDir.c_str(), userDir.c_str());
 
 	static GameApp* anApp = new GameApp();

@@ -8,6 +8,7 @@
 #include "Help.h"
 #include "HighScore.h"
 #include "Map.h"
+#include "MetaGame.h"
 #include "NewUser.h"
 #include "ObjString.h"
 #include "Options.h"

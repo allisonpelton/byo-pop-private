@@ -108,3 +108,5 @@ The finished translations to copy the style from: `src/PopCap.cpp`, `src/Transit
 - PauseWin::PauseForFocusLoss (0x455920) calls LevelObj::CloseMenuForPause (0x43a4f0) at 0x455981: wire it when PauseWin
   is translated.
 - LevelObj's morph table sums each pixel's channels on the x87 (port: doubles); a last-bit difference is possible.
+- BackDrop's table names backgrounds up to 18, but the game ships background01..14 (ground_01..14): check which map
+  levels exist before a late level runs.

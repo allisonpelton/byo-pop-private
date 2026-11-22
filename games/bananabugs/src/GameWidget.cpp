@@ -11,6 +11,7 @@
 #include "LoadGame.h"
 #include "MainMenu.h"
 #include "Map.h"
+#include "MetaGame.h"
 #include "ObjBase.h"
 #include "LevelObj.h"
 #include "Pending.h"

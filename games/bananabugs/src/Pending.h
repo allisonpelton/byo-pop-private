@@ -203,19 +203,27 @@ extern float gBugBoxY;
 extern float gBugBoxWidth;
 extern float gBugBoxHeight;
 
-// The map between levels (0x448e10)
-class MetaGame : public ObjBase
+// The casino's game of slots (0x4687e0, 0x4e4 bytes), played from the base (MetaGame); the stand-in is over as soon as
+// it starts, so the casino button pays nothing and ends at once
+class MetaGame;
+class Slots : public ObjBase
 {
 public:
-	bool mWantsMenu;           // +0x27c
-	bool mLeaving;             // +0x27d
+	explicit Slots(MetaGame* theMetaGame);      // 0x4687e0
+	void Start();                               // 0x468b10
+	bool IsDone();                              // 0x469a30: true at once in the stand-in
+};
 
-	static bool sFirstVisit;   // 0x5ff082: set as a meta game starts, cleared by the main menu when it continues one
-
-	MetaGame();
-	~MetaGame();
-	bool TakeLevelChosen();    // 0x449b90
-	static void ClearFirstVisit() { sFirstVisit = false; } // 0x44f440
+// The way a life icon of the base flies (0x454a30, 0x22750 bytes): a path of points, read from a picture. The
+// stand-in has none (a count of 0, its tables zeros).
+class PathTrace
+{
+public:
+	int mCount;                                 // +0xec40: points on the path
+	float mX[5008];                             // +0xec44
+	float mY[15155];                            // +0x13a84
+	PathTrace();                                // 0x454a30
+	void Load(const char* theName);             // 0x454ab0
 };
 
 // The pause window (0x454ef0)

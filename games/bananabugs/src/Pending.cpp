@@ -17,7 +17,6 @@ float Sexy::gBugBoxY = 0.0f;
 float Sexy::gBugBoxWidth = 0.0f;
 float Sexy::gBugBoxHeight = 0.0f;
 bool PauseWin::sEnabled = false;
-bool MetaGame::sFirstVisit = false;
 
 // The preloaded pictures, each in the global the original keeps it in; they move to their classes with them
 static Anim* sWalkThruTextAnims[9];  // 0x67022c
@@ -73,23 +72,42 @@ static Anim* Load(const char* theName, int theCelWidth, int theCelHeight, int th
 	return Anim::Get(theName, ANIM_SCALE_SMOOTH, false, theCelWidth, theCelHeight, theNumCels, uniform);
 }
 
-MetaGame::MetaGame()
+// port: three one-frame tracks stand for the original's, the last of which (the end of the game) removes it
+Slots::Slots(MetaGame* theMetaGame)
 {
-	sFirstVisit = true;
-	SetParent(nullptr, nullptr);
-	mWantsMenu = false;
-	mLeaving = false;
-	Activate(this, false);
+	(void)theMetaGame;
+	for (int i = 0; i < 3; i++) {
+		AnimKey* aKey = new AnimKey();
+		aKey->SetDuration(1);
+		aKey->SetRemoveAtEnd();
+		AnimTrack* aTrack = new AnimTrack();
+		aTrack->AddKey(aKey, aKey);
+		AddTrack(aTrack, nullptr);
+	}
 }
 
-MetaGame::~MetaGame()
+void Slots::Start()
 {
 }
 
-// port: the stand-in never chooses a level
-bool MetaGame::TakeLevelChosen()
+// port: the stand-in is done at once
+bool Slots::IsDone()
 {
-	return false;
+	return true;
+}
+
+PathTrace::PathTrace()
+{
+	mCount = 0;
+	for (int i = 0; i < 5008; i++)
+		mX[i] = 0.0f;
+	for (int i = 0; i < 15155; i++)
+		mY[i] = 0.0f;
+}
+
+void PathTrace::Load(const char* theName)
+{
+	(void)theName;
 }
 
 // port: the stand-in never pauses
