@@ -1167,6 +1167,8 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
         wait_for_room(log)
         g = Game(exe, env, cfg)
         locks.update(dict(game_pid=g.p.pid))
+        focus_counts = [0, 0]
+        threading.Thread(target=keep_focus_away, args=(g.p.pid, fg0, stop, focus_counts), daemon=True).start()
         if cfg['clock'] == 'virtual':
             clk = Clock(env['ORIGRUN_CLOCK_ID'], g)
             wf = open(os.path.join(out, 'watch.log'), 'w')
@@ -1357,6 +1359,8 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
                 log_step(wanted, c, s.cmd, s.args)
         end = clk.counter() if clk else g.counter()
         print('end: update %s, 3D flags seen %s%s' % (end, sorted(flags, key=str), '; cursor: ' + cur.stats() if cur else ''), file=log, flush=True)
+        if focus_counts[0] or focus_counts[1]:
+            print('the game took the foreground %d times: handed back to the user\'s window %d times, refused %d times' % (sum(focus_counts), *focus_counts), file=log, flush=True)
         return 0
     finally:
         stop.set()
@@ -1388,6 +1392,20 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
         if not keep_copy:
             shutil.rmtree(os.path.join(cfg.get('work_root') or WORK, tag, 'game'), ignore_errors=True)
         log.close()
+
+
+def keep_focus_away(pid, user_hwnd, stop, counts):
+    """The originals activate their own window as it opens (SW_SHOWNOACTIVATE only covers a first ShowWindow call, and the
+    game's later one takes the foreground). Whenever the game's process owns the foreground window, the window that had it at the
+    start of the run gets it back (counts[0] handed back, counts[1] refused by Windows); it is within a few tenths of a second."""
+    while not stop.is_set():
+        fw = u32.GetForegroundWindow()
+        if fw and fw != user_hwnd:
+            owner = wt.DWORD()
+            u32.GetWindowThreadProcessId(fw, ctypes.byref(owner))
+            if owner.value == pid and user_hwnd and u32.IsWindow(user_hwnd) and not u32.IsIconic(user_hwnd):
+                counts[0 if u32.SetForegroundWindow(user_hwnd) else 1] += 1
+        time.sleep(0.02)
 
 
 def wait_for_room(log, seconds=300):

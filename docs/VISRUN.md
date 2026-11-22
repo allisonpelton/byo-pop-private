@@ -80,6 +80,10 @@ holds no place, so `--places` shows its window only as an overlapping window; a 
 3. **Starts without the focus** (`SW_SHOWNOACTIVATE`, below-normal priority, in a job object that ends the game if
    visrun dies). The window is kept topmost and never activated; it is told it has the focus by the messages Windows sends
    (checked before each step).
+   `SW_SHOWNOACTIVATE` only covers a program's first `ShowWindow` call, and the originals activate their window in a later one: in
+   the first live check of the places, both games took the foreground as their window opened. So a thread watches the
+   foreground and, whenever the game's process owns it, hands it back to the window that had it at the start (within
+   20 ms in the check; the log counts the hand-backs and refusals).
 4. **Input is posted to the game's window only** (`PostMessage`): never `SetCursorPos`, `SendInput` or the user's keyboard.
    With `cursor = "scripted"` the stand-in's `GetCursorPos` reads the point visrun writes into origrun's shared block, so the
    user's real cursor does not matter to the game.
@@ -158,3 +162,14 @@ Venice's 3D tour (2026-11-15) was the first long run, and it taught four things:
 of origrun's cursor block, the places at 3840x2160 and 1920x1080, a window that needs two places, lock order and a dead holder's
 lock, the quiet wait with fake windows in and out of a place; it starts no game) and `--dry-run` (a step file's plan; also checks the forbidden regions). The rest needs a first
 run on the desktop.
+
+## The live check of the places (2026-11-22)
+
+Two originals ran at once from two visrun processes started four seconds apart, Venice (800x600, `tools/visrun/venice.toml`,
+`--3d off`) and Bejeweled 2 (640x480, the game's own `bejeweled2-2d.toml` without its two placeholder lines), short step files
+(a cue, then two shots), `--quiet 3`. The user's Claude window overlapped places 0 and 2 and an older visrun's Bookworm window
+was on the right half too, so the runs took place 1 and place 3 without waiting; `--places` showed both held (run, pid, game
+pid) with their game locks, and showed nothing held afterwards. Both windows were muted (the stand-in's log), both shot twice
+without a refusal, the two games' registry keys and save folders were identical before and after, and no process or lock
+file was left. A foreground poll every 0.2 s showed the user's window throughout; the hand-back thread above came from the
+first attempt of this check, where the poll saw each game's window take the foreground for a while.
