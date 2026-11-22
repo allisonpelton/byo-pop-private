@@ -447,6 +447,22 @@ option(BUILD_BEJEWELEDTWIST "Build the Bejeweled Twist port" ON)
 if(BUILD_BEJEWELEDTWIST AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweledtwist/CMakeLists.txt)
   add_subdirectory(games/bejeweledtwist)
 endif()
+# PopCap's post-2008 framework layer (engines/prime: CurvedVal, PopAnim, PIEffect, the manifest-2 resources), one copy
+# for Bejeweled 3 and Zuma's Revenge: built when either game is
+option(BUILD_BEJEWELED3 "Build the Bejeweled 3 port" ON)
+option(BUILD_ZUMASREVENGE "Build the Zuma's Revenge port" ON)
+if((BUILD_BEJEWELED3 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweled3/CMakeLists.txt) OR
+   (BUILD_ZUMASREVENGE AND EXISTS ${PROJECT_SOURCE_DIR}/games/zumasrevenge/CMakeLists.txt))
+  add_subdirectory(engines/prime)
+endif()
+# Bejeweled 3: optional while it is new; the build skips it if its folder is missing
+if(BUILD_BEJEWELED3 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweled3/CMakeLists.txt)
+  add_subdirectory(games/bejeweled3)
+endif()
+# Zuma's Revenge!: optional while it is new; the build skips it if its folder is missing
+if(BUILD_ZUMASREVENGE AND EXISTS ${PROJECT_SOURCE_DIR}/games/zumasrevenge/CMakeLists.txt)
+  add_subdirectory(games/zumasrevenge)
+endif()
 # Bejeweled 2 Deluxe: optional while it is new; the build skips it if its folder is missing
 option(BUILD_BEJEWELED2 "Build the Bejeweled 2 Deluxe port" ON)
 if(BUILD_BEJEWELED2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweled2/CMakeLists.txt)

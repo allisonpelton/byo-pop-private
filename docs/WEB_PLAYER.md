@@ -1144,7 +1144,7 @@ never colour alone; every animation stops under `prefers-reduced-motion: reduce`
 
 **How the game gets keys, and how to leave it.** The shell sets `SDL_EMSCRIPTEN_KEYBOARD_ELEMENT=#canvas`, so the game
 gets keys only while its canvas has the focus, and then every key, Tab included, except F11; **F6** and Shift+F6 move
-the focus out, and the game never sees them, nor Alt+\` (the window switch). Moving the focus to a control on the page is not the game losing the
+the focus out (with the speed keys on, Shift+F6 alone; "Game speed"), and the game never sees them, nor Alt+\` (the window switch). Moving the focus to a control on the page is not the game losing the
 focus: SDL and the framework (`EmscriptenFocusCallback`) take that from the window's `focus` and `blur` events.
 
 **The checker** is `tools/a11ycheck.js` (`unit-web`), which reads the built pages with no browser; markup that scripts
@@ -1299,15 +1299,26 @@ position" is `touchPlace`.
 
 `speed` (any value from 0.01 to 16; the user, 2026-11-10: "Allow game speed to be set to any arbitrary value") sets
 `SexyAppBase::SetGameSpeed` through the web-only `byopop_set_speed` (`framework/SexyAppBase.cpp`). 0 is "as fast as the machine
-allows": the updates run flat out in real time and the draws that cannot be shown are skipped (the site's range starts at
-0.01, so the page never sends it). At 1 nothing is called, so unmodded play is unchanged. The game clock follows the speed:
+allows": the updates run flat out in real time and the draws that cannot be shown are skipped; the list offers it as "Max", the
+native mod menu's word for it (the number field takes 0.01 to 16 and stands empty at 0). The list's other entries are the native speed
+keys' steps (`SexyAppBase::SPEED_STEPS`). At 1 nothing is called, so unmodded play is unchanged. The game clock follows the speed:
 `Sexy::GetTickCountMS` (what `timeGetTime` and `GetTickCount` are in the ports) and `SexyAppBase::GetClockTime` are game
 time, real time scaled by the speed and accumulated, so a change of speed mid-game leaves the clock continuous. The framework's
 own pacing (the update accumulator, draws, sleeps) reads `Sexy::GetRealTickCountMS`. A game whose own host runs its loop
-(Bonnie's Bookstore, Ning Po) has no hook yet. Music keeps its own time at every speed (tracker and Ogg alike; a fade the
+(Bonnie's Bookstore, Ning Po) has no hook yet, and on their pages both speed settings are greyed
+(`ByopopSettings.ownSpeed`), with a line under the speed that says the game keeps its own. Music keeps its own time at every speed (tracker and Ogg alike; a fade the
 framework steps per update is scaled back to real time, `SexyAppBase::MusicStepFactor`); sound effects keep their behaviour.
 The native build has the same speed in the mod menu and on F6/F7/F8 (`docs/MOD_MENU.md`), and `tools/check.sh speed` checks
 that every game follows it.
+
+**The speed keys** (`speedKeys`, off by default; the user, 2026-11-17: "Add optional hotkeys for game speed (probably using
+function keys)") are the native ones: F6 slower, F7 faster, F8 back to normal, without modifiers, while the canvas has the
+focus. They step along the same list from a speed between two steps to the next one in that direction, past 16 to unlimited
+(Max); below the lowest step, F6 leaves the speed where it is. The page
+takes the press and its release in a window capture listener (`web/controls.js`), so neither SDL nor the page's own F6 sees
+them, and the web build's mod menu has no speed rows, so nothing steps twice. The new speed is written as this game's own
+setting and shows over the game for a second and a half in a raised grey box. With the keys on, Shift+F6 still takes the
+focus out of the game, and the hint shown while the game has the keyboard says so.
 
 ### Clips
 
