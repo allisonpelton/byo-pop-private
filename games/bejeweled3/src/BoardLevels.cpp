@@ -206,6 +206,9 @@ void Board::StartLevelChange()
 	mHyperspace.reset(new Hyperspace());
 	mHyperspace->mCurve.SetCurve("b+0,1,0.0025,1,~###  .~###   4####    b####");
 	mLevelUpPending = false;
+	// 0x769c36 (and 0x760bcd): the next background (slot 164 with 1). port: the exe first starts the old one's fade (slot 82, 0x77dde0) and
+	// hides the new one until the overlay's last event (the overlay's drawing, 0x724110, is not made, so the new one shows at once)
+	SetBackground(1);
 }
 
 // 0x725ef0 (bejeweled3): one update of the overlay. Its count goes up first; the curve runs 400 updates and the update after it ends

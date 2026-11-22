@@ -772,6 +772,21 @@ own version of the dialog (0x6a3830, made with 0) and the pause the exe's board 
 with the picture's three cels. The play menu comes back only when it was opened (a test that starts Classic with the goto command shows the main
 menu's background only).
 
+The rest of the Classic screen's drawing, what was read and not made (each as a `port:` note at its place):
+- The level bar's length. 0x755620 (slot 189, 0x2f4, gives the target, the progress over the level's size) keeps a second smoothed fraction (+0xd6c)
+that follows the target by 0.025 of the way and 0.0005 when rising (0.0275 and 0.00125 while the +0x?? curve that 0x755620 tests is 0), and
+by 0.05 and 0.0001 when falling, and puts two key points of the PopAnim-like object's emitter layers at (0, half the height) and (width x +0xd6c, half the
+height); the particles the effect emits between them are the visible bar. The port clips the copy of PIEFFECT_LEVELBAR by mLevelBar (+0xd68, the
+logic's own, 0x755940) instead; the two differ only by the easing constants. Making the key points needs the effect's layers (engines/prime PIEffect) to expose them.
+- The selection. A click picks a gem up by setting the piece's +0x23c and the curve at +0x100 to the constant 1 (0x73f140; 0 again when it is let go);
+what reads the curve at +0x100 was not found in the draw functions read, and the gem's turn (+0x170, 0x7690d0) is what shows. The 0x240 float and the
+bit 0x200 (0x757df0, 0x750320, 0x74f130) were not found written in Classic; the glow rectangle they draw is left out. The hint's glow is
+0x748480 (PIEFFECT_HINTFLASH in the +0x12c0 layer), listed with the missing Rand() draws above.
+- The level change. SetBackground(1) now runs when the change starts (the exe's 0x769c36); the exe hides the new picture until the change's last
+event and fades the old one (0x77dde0), and the overlay it draws meanwhile (0x724110) is not made, so the new picture shows at once and the overlay
+is not drawn. The end-of-game dialog (id 0x26, made by 0x73b100) is not made. The bot game's state gains one field change: "background" is 2 where it
+was 0 (the level went up twice); nothing else changes.
+
 Oddities (not translated, each with a `port:` note in the source):
 - The level bar's fill. The exe's 0x7540c0 clips the resource PIEFFECT_LEVELBAR to the bar's rectangle (the back picture's size, centred at grid x + 0x200,
   y + 0x41e; slot 87, 0x73d5e0) by the drawn bar's fraction (+0xd68) and draws it. 0x755620 sets, in a second object (reached by 0x565f40, with 0x18-byte key
