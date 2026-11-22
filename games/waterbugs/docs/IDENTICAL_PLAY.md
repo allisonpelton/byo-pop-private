@@ -171,8 +171,8 @@ have taken different turns, nothing in the port is to be fixed, and no code was 
 every row that has them (`SCREENS.md`).
 
 **The baseline.** Because the port's pictures vary from run to run, `games/waterbugs/test/tours.frozen` holds the pixel hash of
-each shot that was whole in six runs (202 of 362), and `tools/check.sh waterbugs` plays the three tours once and wants those
-unchanged and all 362 shots present (`tools/play/tourcheck.py`; the suite takes about three minutes more).
+each shot that was whole in six runs (202 of 362), and `tools/check.sh waterbugs` plays the three tours once and wants all 362 shots present and at most 8 of those 202 changed (one shot whole in six runs
+came out otherwise in the seventh; a change of the drawing changes nearly all) (`tools/play/tourcheck.py`; the suite takes about three minutes more).
 
 **Full screen.** The original cannot be played full screen in Windows Sandbox: with `fullscreen="1"` it stops with "Screen Setup
 Failed: 800x600 16bit screen could not be opened". Its picture is the same 800x600 surface in both modes; the port's full screen is
