@@ -67,7 +67,7 @@ void MaskContainer::paint(DrawContext* theContext)
 Stage::Stage(GameData* theGameData, Container* theContainer)
 	: mScrollRate(0.0f), mSizeUnit(DEFAULT_SIZE_UNIT), mBonus(false), mStageTime(0.0f), mStepTime(0.0f),
 	  mWaterColor(0.0f, 0.0f, 0.0f, 0.0f), mCanSuck(false), mCameraFollows(false), mMaskFadeTime(0.0f), mNight(false), mLight(0.0f), mLightTarget(0.0f),
-	  mMinLight(DEFAULT_MIN_LIGHT), mMaxLight(DEFAULT_MAX_LIGHT), mBoss(false), mFinalBoss(false)
+	  mMinLight(DEFAULT_MIN_LIGHT), mMaxLight(DEFAULT_MAX_LIGHT), mCompleted(false), mBoss(false), mFinalBoss(false)
 {
 	mGameData = theGameData;
 	mContainer = theContainer;
@@ -329,8 +329,9 @@ void Stage::start()
 	mGameData->setSpawnPhase(0);
 	mMaskFadeTime = 0.0f;
 	mCameraFollows = true;
-	// +0x270 (the boss, null) and +0x391 (false) reset, and the stage's timer at +0x238 cleared (0x406fb0
-	// (feedingfrenzy2)): read by nothing translated yet
+	mCompleted = false;
+	// +0x270 (the boss, null) reset, and the stage's timer at +0x238 cleared (0x406fb0 (feedingfrenzy2)): read by
+	// nothing translated yet
 	// The stage's time (+0x190 and +0x198: in a bonus stage kept, else in the timed mode, the game data's +0x0c at 1,
 	// added to by its +0x2c, else 0) shown on the HUD with the lives and the player's name (0x44c910, 0x494620,
 	// 0x402550, 0x4050d0 and 0x44b4f0 (feedingfrenzy2)): not yet translated, as the HUD is not

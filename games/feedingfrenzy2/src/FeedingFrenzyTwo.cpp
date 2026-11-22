@@ -32,7 +32,8 @@ FeedingFrenzyTwo* getApp()
 	return gTheApp;
 }
 
-FeedingFrenzyTwo::FeedingFrenzyTwo() : mMenuRunning(false), mFreshGame(false), mMenuScreen(MENU_SCREEN_MAIN)
+FeedingFrenzyTwo::FeedingFrenzyTwo()
+	: mMenuRunning(false), mActive(true), mStageInPlay(false), mFreshGame(false), mMenuScreen(MENU_SCREEN_MAIN)
 {
 	// The state manager is a member, not counted by anyone: the port holds a reference so its count never reaches 0
 	mStateMgr.addRef();
@@ -91,6 +92,9 @@ void FeedingFrenzyTwo::start(bool theSaverMode)
 	// (the application's slots 0x18 and 0x1c, 0x494970 and 0x500fbe (feedingfrenzy2)): not yet translated, as the
 	// options are not, so both stay at 1, as when enabled
 	anEngine->mUpdateSignal.connect(this, &FeedingFrenzyTwo::updateSlot);
+	anEngine->mKeyDownSignal.connect(this, &FeedingFrenzyTwo::keyDownSlot);
+	// (The key-up, minimize and restore slots between them: not yet translated)
+	anEngine->mActivateSignal.connect(this, &FeedingFrenzyTwo::activateSlot);
 
 	mScene = new Scene();
 	mScene->enable();
@@ -111,6 +115,20 @@ void FeedingFrenzyTwo::start(bool theSaverMode)
 	// translated
 
 	mStateMgr.changeState(new SplashState(this, theSaverMode));
+}
+
+void FeedingFrenzyTwo::keyDownSlot(int theKey)
+{
+	if (mStateMgr.getState() != nullptr)
+		mStateMgr.getState()->keyDown(theKey);
+	// F11's screenshot: not yet translated
+}
+
+void FeedingFrenzyTwo::activateSlot(bool theActive)
+{
+	if (!theActive)
+		mStateMgr.action("pause");
+	mActive = theActive;
 }
 
 void FeedingFrenzyTwo::updateSlot(UpdateContext* theContext)

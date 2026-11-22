@@ -51,7 +51,9 @@ private:
 	engine::Ref<AppState> mPreviousState;           // +0x14
 	engine::Ref<AppState> mNextState;               // +0x18
 	bool mClosing;                                  // +0x1c
-	// +0x1d: cleared by enter; read by the pause's resume (pauseResume), not yet translated
+	bool mOptionsFromPause;                         // +0x1d: the options shown from the pause (pauseOptions, not yet
+	                                                // translated), so pauseResume goes back to the pause; cleared by
+	                                                // enter
 	engine::ColorKeyInterpolator mDarken;           // +0x20: from white at 0 to the darkening colour at 1
 	engine::TimeDriver mDarkenTime;                 // +0x6c
 };

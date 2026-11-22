@@ -52,7 +52,6 @@ private:
 	engine::GenericScreen* mScreen;        // +0x24: the load screen
 	engine::Image* mLoadBar;               // +0x28: the screen's "loadBar", null for none
 	engine::Ref<AppState> mNextState;      // +0x2c
-	bool mNextStateLogged;                 // port: the states that follow not yet translated, logged once
 };
 
 #endif

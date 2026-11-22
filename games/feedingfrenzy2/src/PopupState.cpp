@@ -36,7 +36,7 @@ bool hasAlienUser(FeedingFrenzyTwo* theApp)
 } // namespace
 
 PopupState::PopupState(FeedingFrenzyTwo* theApp, GenericScreen* theScreen, AppState* thePreviousState)
-	: AppState(theApp), mClosing(false)
+	: AppState(theApp), mClosing(false), mOptionsFromPause(false)
 {
 	if (gPopupScreenMgr == nullptr)
 		gPopupScreenMgr = new ScreenMgr();
@@ -66,6 +66,7 @@ void PopupState::enter()
 	mDarkenTime.start(mScreen->getInDuration(), 1.0f);
 	show(mScreen.get());
 	mScreen = nullptr;
+	mOptionsFromPause = false;
 }
 
 void PopupState::exit()
@@ -119,7 +120,17 @@ void PopupState::show(GenericScreen* theScreen)
 void PopupState::action(const std::string& theAction)
 {
 	UserManager* aUsers = UserManager::instance();
-	if (theAction == "appQuitNo" || theAction == "saveGameCancel" || theAction == "userSelectCancel")
+	if (theAction == "pauseResume")
+	{
+		if (mOptionsFromPause)
+		{
+			mOptionsFromPause = false;
+			show(mApp->mPauseScreen.get());
+		}
+		else
+			close();
+	}
+	else if (theAction == "appQuitNo" || theAction == "saveGameCancel" || theAction == "userSelectCancel")
 		close();
 	else if (theAction == "userEntryDone")
 	{
@@ -185,9 +196,11 @@ void PopupState::action(const std::string& theAction)
 		show(mApp->mUserSelect.get());
 	}
 	else
-		// pauseResume, appQuitYes, saveGameContinue, saveGameNoContinue, pauseOptions, optionsDone, pauseQuit,
-		// gameExitSave and the rest: not yet translated
-		getEngine()->log("PopupState: the action %s not yet translated\n", theAction.c_str());
+		// appQuitYes, saveGameContinue, saveGameNoContinue, pauseOptions, optionsDone, pauseQuit,
+		// gameExitSave and the rest: not yet translated. (The play's pause, sent by the focus lost, is none of the
+		// popups' actions and does nothing.)
+		if (theAction != "pause")
+			getEngine()->log("PopupState: the action %s not yet translated\n", theAction.c_str());
 }
 
 void PopupState::showUserEntry()

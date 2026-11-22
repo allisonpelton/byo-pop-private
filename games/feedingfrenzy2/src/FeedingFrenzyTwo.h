@@ -34,6 +34,9 @@ class AppState : public engine::State
 public:
 	explicit AppState(FeedingFrenzyTwo* theApp) : mApp(theApp) {}
 
+	// 0x1c: a key pressed, passed on by the application's key slot; AppState's own does nothing
+	virtual void keyDown(int theKey) {}
+
 protected:
 	FeedingFrenzyTwo* mApp;  // +0x0c
 };
@@ -57,8 +60,9 @@ public:
 	// sets the window)
 	void configure();
 	// Slot 8 (0x408050 (feedingfrenzy2)): the frame's update connected, the scene made and enabled, the screen
-	// manager and the containers made, and the splash state begun. The options read first, the key, minimize, restore
-	// and activate slots, the music, the popups, the debug display and the screensaver are not yet translated
+	// manager and the containers made, the key-down and activate slots connected, and the splash state begun. The
+	// options read first, the key-up, minimize and restore slots, the music, the popups, the debug display and the
+	// screensaver are not yet translated
 	void start(bool theSaverMode);
 	// 0x4a1a70 (feedingfrenzy2), from the start: the sound system made over the window and given to the engine (its
 	// slot 0xfc), and a line logged on whether it started
@@ -69,6 +73,13 @@ public:
 	void updateSlot(engine::UpdateContext* theContext);
 	// 0x48b740 (feedingfrenzy2), connected to the shell's screens' action signals: passed to the current state
 	void actionSlot(const std::string& theAction) { mStateMgr.action(theAction); }
+	// 0x4932a0 (feedingfrenzy2), connected to the engine's key-down signal: passed to the current state; F11 then
+	// saves a screenshot (the engine's slot 0xe0, "ff2snap"), not yet translated
+	void keyDownSlot(int theKey);
+	// 0x48b520 (feedingfrenzy2), connected to the engine's activate signal: the focus lost pauses the play (the
+	// application's sound at +0x38 paused, and resumed when it comes back, the options' +0xb8 told and the engine's
+	// global 0x5ac648's slot 0x34 called: not yet translated), and whether the window has it is kept
+	void activateSlot(bool theActive);
 	// 0x40c0b0 (feedingfrenzy2): the stage's intro screen's data, the timed mode's own ("<id>_timed") first in that
 	// mode; null for none
 	ScreenDataEntry* getScreenData(const std::string& theStageId);
@@ -115,6 +126,10 @@ public:
 	std::string mAppName;                              // +0xe4: the string table's appName
 	bool mMenuRunning;                                 // +0x320: while the menu is the current state, so its stage
 	                                                   // goes on under a popup
+	bool mActive;                                      // +0x321: the window has the focus (true until told)
+	bool mStageInPlay;                                 // +0x323: set as the play begins and comes back from a popup,
+	                                                   // cleared as the stage ends: the quit popup's gameExitSave
+	                                                   // reads it (not yet translated)
 	bool mFreshGame;                                   // +0x324: a game started anew (not one restored), until its
 	                                                   // first stage is complete: the stage intro shows the clock's
 	                                                   // starting total

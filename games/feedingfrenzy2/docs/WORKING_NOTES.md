@@ -378,11 +378,24 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   Talismania's scaled images change the same way.) Checked under rundesk: stage1's intro with its art, Quit's popup
   over it, exit 0. Not compared with the original's yet; the paragraphs keep the file's line breaks and indents as
   the text item has them.
+- The play (GamePlayState.h, 0x1c bytes, vtable 0x55a8c8): the intro's Continue, or a loaded stage without screen
+  data, starts it. Its enter starts the stage at speed 1, takes the screens away and sets the application's +0x323
+  (mStageInPlay, for the quit popup's gameExitSave); each frame divides the frame's time by the speed (the slowmo
+  action steps it 1, 2, 4, 8, 16, 1) and runs the stage, and once the stage's machine is empty logs which end follows
+  (complete or bonus: StageCompleteState; lost: the continue offer 0x543631 or the game over 0x543747), none yet
+  translated. Its suspend and resume pause the stage. The application now connects its key-down slot (0x4932a0: the
+  key passed to the state's new slot 0x1c, AppState::keyDown) and its activate slot (0x48b520: the pause action on
+  losing the focus, and +0x321, mActive, kept; the play's update shows the pause while it is false). The play's keys:
+  P, Esc and Space pause; F pauses and would switch the full screen (not yet translated). The pause popup's
+  pauseResume closes it (or, after the options from the pause, +0x1d, shows the pause again). The stage's +0x391 is
+  now Stage::mCompleted, cleared by its start. Checked under rundesk: Continue starts stage1 with its fish moving,
+  Esc shows the pause popup, Resume Game closes it and the play goes on, the focus lost shows it again, exit 0.
 
 ## Next
 
-- The play (GamePlayState, 0x1c bytes, its constructor 0x49b390), the players' spawn and the HUD, toward a stage in
-  play; the restore-game popup's actions; the quit popup's actions over the intro; the compositeGroup element (the
+- The players' spawn and the HUD, toward a stage in play; the stage's ends (StageCompleteState, the continue offer
+  and the game over); the restore-game popup's actions; the quit popup's actions over the intro and the pause's End
+  Game; the engine's object at +0x100 (slots 4 and 8, the play's enter and exit); the compositeGroup element (the
   intro's background group, now skipped).
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's
   simplesound). The stage's slot 0x5c (0x447ef0) is not a clean-up but the stage's ending (player died, perfect, stage

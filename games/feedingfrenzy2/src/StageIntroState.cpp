@@ -1,6 +1,7 @@
 #include "StageIntroState.h"
 
 #include "Engine.h"
+#include "GamePlayState.h"
 #include "PopupState.h"
 #include "ScreenMgr.h"
 
@@ -16,9 +17,7 @@ void StageIntroState::enter()
 void StageIntroState::action(const std::string& theAction)
 {
 	if (theAction == "stageStartContinue")
-		// The play (GamePlayState, 0x1c bytes, its constructor 0x49b390 (feedingfrenzy2)) in its place: not yet
-		// translated
-		getEngine()->log("StageIntroState: the play not yet translated\n");
+		mApp->mStateMgr.changeState(new GamePlayState(mApp));
 	else if (theAction == "stageStartOptions")
 		// The options (+0xa4, their 0x50ab13 (feedingfrenzy2) given false first) as a popup over the intro: not yet
 		// translated

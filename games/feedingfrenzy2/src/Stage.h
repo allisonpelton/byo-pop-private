@@ -179,6 +179,9 @@ public:
 	void setStageTime(float theStageTime) { mStageTime = theStageTime; }
 	void setCanSuck(bool canSuck) { mCanSuck = canSuck; }
 	bool isBonus() const { return mBonus; }
+	bool isCompleted() const { return mCompleted; }
+	// The run's current state, null once the run is over
+	StageState* getRunState() { return mStateMgr.getState(); }
 
 private:
 	friend class StageDocHandler;
@@ -220,6 +223,9 @@ private:
 	std::vector<AIFish*> mAIFish;                  // +0x330
 	std::vector<Actor*> mActors;                   // +0x370
 	std::vector<Actor*> mSeen;                     // +0x380: what the last look about saw, nearest first
+	// +0x391: the stage's goal reached, cleared as it starts (set at 0x4f1f19, 0x4f2029, 0x4f218f and 0x541f09
+	// (feedingfrenzy2), not yet translated); the play's end reads it
+	bool mCompleted;
 	bool mBoss;                                    // +0x392
 	bool mFinalBoss;                               // +0x393
 	std::string mBossLayout;                       // +0x394

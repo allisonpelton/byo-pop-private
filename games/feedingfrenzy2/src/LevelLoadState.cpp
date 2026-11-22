@@ -2,6 +2,7 @@
 
 #include "Engine.h"
 #include "FishFactory.h"
+#include "GamePlayState.h"
 #include "Random.h"
 #include "ScreenMgr.h"
 #include "SimpleSound.h"
@@ -30,7 +31,7 @@ void stopAllSounds()
 
 LevelLoadState::LevelLoadState(FeedingFrenzyTwo* theApp, const StageManifest::Stage* theEntry, AppState* theNextState)
     : AppState(theApp), mLoading(false), mEntry(theEntry), mShownProgress(0.0f), mLoadStatus(STAGE_LOAD_NOT_STARTED),
-      mScreen(nullptr), mLoadBar(nullptr), mNextStateLogged(false)
+      mScreen(nullptr), mLoadBar(nullptr)
 {
 	mNextState = theNextState;
 }
@@ -102,16 +103,11 @@ void LevelLoadState::update(UpdateContext* theContext)
 		mApp->mStateMgr.changeState(mNextState.get());
 		return;
 	}
-	// The stage's intro when it has intro data, else the play (GamePlayState, 0x1c bytes): not yet translated
+	// The stage's intro when it has intro data, else the play
 	if (mApp->getScreenData(mEntry->mId) != nullptr)
-	{
 		mApp->mStateMgr.changeState(new StageIntroState(mApp));
-		return;
-	}
-	if (mNextStateLogged)
-		return;
-	getEngine()->log("LevelLoadState: %s loaded; the play not yet translated\n", mEntry->mId.c_str());
-	mNextStateLogged = true;
+	else
+		mApp->mStateMgr.changeState(new GamePlayState(mApp));
 }
 
 void LevelLoadState::startLoading()
