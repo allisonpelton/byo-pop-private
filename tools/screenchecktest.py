@@ -61,6 +61,10 @@ with tempfile.TemporaryDirectory() as root:
     line, failed = result(root, "ok")
     check("matching shots (with and without extension) and a reasoned row pass", not failed, line)
 
+    make_game(root, "clip", "| Title | launch | title, 3D: title_3d | |\n", {"title/": "match", "title_3d/": "faint"})
+    line, failed = result(root, "clip")
+    check("a clip's pair, named by its folder with a slash", not failed and "2 shots" in line, line)
+
     make_game(root, "prefix", "| A | x | 2D: a1 a2, 3D: b1 | |\n| B | x | 2D:a3 | |\n",
               {"a1.png": "match", "a2.png": "match", "b1.png": "match", "a3.png": "match"})
     line, failed = result(root, "prefix")
