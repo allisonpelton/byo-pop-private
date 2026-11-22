@@ -193,7 +193,10 @@ The user's rules for it:
 **Which games are yours** is `byopop-game-files` in localStorage (`ByopopGameFiles` in `web/settings.js`), never
 written with `?placeholders=1`; without an entry the listing looks in the game's database read-only, calling
 `indexedDB.databases()` first so that it never creates one. Forgetting a game's files (`ByopopImport.forgetGame`)
-keeps saves, mods and replays and holds the game's Web Lock.
+keeps saves, mods and replays and holds the game's Web Lock. A game whose files were loaded here once and are gone
+shows a small "?" button on its tile, which opens a message box titled with the game's name (`ByopopApps.tell` in
+`web/deskapps.js`, with the information sign): the day the files were last loaded and the day they were forgotten, the
+likely causes, whether saves are still here, and the buttons Open game and Close.
 
 ### Jungle Juice
 

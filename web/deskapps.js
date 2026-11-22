@@ -110,7 +110,9 @@ var ByopopApps = (function () {
   }
 
   // ---- a Windows 95 message box (a game past the memory budget, an About box) ----
-  // buttons: [{label, fn}], the last one also the answer to Escape and the one with the focus; OK alone without them
+  // A message box: title, text (a line of text, or nodes: paragraphs and a list), plain (true for an About box, "info" for the
+  // information sign, else the warning sign) and buttons ({label, fn}, the last one focused and taken by Escape; OK alone
+  // when none)
   function messageBox(title, text, plain, buttons) {
     var d = document.createElement("dialog");
     d.className = "d95-msgbox";
@@ -120,9 +122,13 @@ var ByopopApps = (function () {
     tb.appendChild(tt);
     var body = document.createElement("div"); body.className = "d95-msgbox-body";
     var icon = document.createElement("i"); icon.className = "d95-msgbox-icon"; icon.setAttribute("aria-hidden", "true");
-    var p = document.createElement("p"); p.id = "d95-msgbox-text"; p.textContent = text;
+    var p;
+    if (typeof text === "string") { p = document.createElement("p"); p.textContent = text; }
+    else { p = document.createElement("div"); p.className = "d95-msgbox-text"; p.appendChild(text); d.classList.add("d95-msgbox-long"); }
+    p.id = "d95-msgbox-text";
     // an About box: the game's lines as they are, without the warning sign
-    if (plain) { p.style.whiteSpace = "pre-line"; d.classList.add("d95-msgbox-about"); } else body.appendChild(icon);
+    if (plain === true) { p.style.whiteSpace = "pre-line"; d.classList.add("d95-msgbox-about"); }
+    else { if (plain === "info") d.classList.add("d95-msgbox-info"); body.appendChild(icon); }
     body.appendChild(p);
     var row = document.createElement("div"); row.className = "d95-msgbox-row";
     var last = null;
@@ -581,8 +587,10 @@ var ByopopApps = (function () {
 
   // a question from a window's page (a game's Game menu, web/shell.html ask): the desktop's message box, titled by the window
   function ask(win, text, buttons) { var a = byWin(win); messageBox(a ? a.title : "", text, false, buttons); }
+  // a message that tells rather than warns (the listing's "Why aren't my files here?"): the information sign
+  function tell(title, content, buttons) { messageBox(title, content, "info", buttons); }
 
-  return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, ask: ask, activated: activated, f6: f6, altTab: altTab, closeFront: closeFront, shutDown: shutDown, rehush: rehush, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
+  return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, ask: ask, tell: tell, activated: activated, f6: f6, altTab: altTab, closeFront: closeFront, shutDown: shutDown, rehush: rehush, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
     menuKey: menuKey, fullScreen: function (win) { var a = byWin(win); if (a) fullScreen(a); },
     count: function () { return apps.length; },
     // the address back to the root (a link to #settings and the like, web/index.html)

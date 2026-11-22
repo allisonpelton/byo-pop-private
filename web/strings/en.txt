@@ -397,7 +397,8 @@ index.counts.live = {n} playing now
 index.counts.both = {live} · {plays}
 index.played_today = today
 
-# The "?" on a game that was played here before but has no files now
+# The "?" on a game that was played here before but has no files now, and the message box it opens (titled with the
+# game's name)
 index.why.title = Why aren’t my files here?
 # {date} is the day the files were last loaded
 index.why.before = Your game files were loaded in this browser before, but they are not here now.
@@ -411,7 +412,9 @@ index.why.other_browser = This is a different browser, profile or device.
 index.why.never_uploads = Game files never leave your browser. You must store the game files in every browser
   you play on.
 index.why.saves = Your saves and settings for this game are still stored in this browser.
-index.why.back_html = To get them back, <a href="{href}">open the game</a> and load your files again.
+index.why.back = To get them back, open the game and load your files again.
+index.why.open = Open game
+index.why.close = Close
 
 index.footer.about = byo-pop is an unofficial, non-commercial project, not affiliated with, endorsed or
   sponsored by Electronic Arts or PopCap Games. This site does not distribute any game assets; you bring your
