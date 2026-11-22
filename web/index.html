@@ -449,6 +449,9 @@ footer {
 }
 footer p { margin: 0 0 8px; }
 footer a { color: var(--accent); }
+.sy-credits { margin: 0 0 8px; padding-left: 20px; }
+/* System Information's own parts (web/sysinfo.js) are the desktop's only: off it the footer is its General tab's text */
+html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: none; }
 </style>
 <!-- the site's look, Desktop 95 (web/skins.js sets <html data-skin="d95">; docs/WEB_PLAYER.md, "Desktop 95") -->
 <link rel="stylesheet" href="skins.css"><script src="skins.js"></script><script src="schemes.js"></script><script src="themedata.js"></script><script src="themes.js"></script>
@@ -557,12 +560,15 @@ footer a { color: var(--accent); }
   <h2 id="chat-title"><button type="button" data-chat-toggle aria-expanded="true" aria-controls="chat-body"><span class="chat-chevron" aria-hidden="true"></span>{{game.chat.title}}<span class="chat-unread" data-chat-unread hidden></span></button></h2>
   <div class="chat-body" id="chat-body" data-chat-body></div>
 </aside>
-<footer>
-  <p>{{index.footer.about}}</p>
-  <p>{{index.footer.trademarks}}</p>
-  <p>{{index.footer.music_html}}</p>
-  <p>{{index.footer.tracker}}</p>
-  <p>{{index.footer.credit_html}}</p>
+<!-- The page's footer, and on Desktop 95's desktop its System Information window (web/sysinfo.js), whose General tab it is -->
+<footer id="sysinfo">
+  <div class="sy-general">
+    <p>{{index.footer.about}}</p>
+    <p>{{index.footer.trademarks}}</p>
+    <p class="sy-made">{{index.footer.made_with}}</p>
+    <ul class="sy-credits">{{index.footer.credits_html}}</ul>
+    <p>{{index.footer.credit_html}}</p>
+  </div>
 </footer>
 <script src="saver.js"></script>
 <script src="settingsicons.js"></script>
@@ -573,6 +579,7 @@ footer a { color: var(--accent); }
 <script src="saveimport-table.js"></script>
 <script src="saveimport.js"></script>
 <script src="saves.js"></script>
+<script src="sysinfo.js"></script>
 <script src="soundtracks.js"></script>
 <script src="music.js"></script>
 <!-- the soundboard: Desktop 95's Sounds window (web/sounds.js) and its table of the games' sounds (web/soundboards.js) -->
@@ -1359,8 +1366,11 @@ try {
         if (ev.detail && ev.detail.id === "chat") startChat();
       });
     }
-    d.add(document.querySelector("body > footer"), { id: "about", title: ByopopStrings.t("skin.desk.about"), closable: true, body: true,
-      fixed: true, at: function (left, vw) { return [Math.max(left, vw - 500), top() + 220]; } });
+    // System Information (web/sysinfo.js), in About's place: the footer is its General tab
+    var sysEl = document.getElementById("sysinfo");
+    if (window.ByopopSysInfo) ByopopSysInfo.mount(sysEl);
+    d.add(sysEl, { id: "about", title: ByopopStrings.t("index.sysinfo.title"), closable: true, body: true, pic: window.ByopopSysInfo ? ByopopSysInfo.picture() : null,
+      fixed: true, at: function (left, vw) { return [Math.max(left, vw - 440), top() + 120]; } });
     ByopopSkin.deskSync();
     // the page opened at #settings and the like: that tab's window (the tabs' script ran before these windows were added)
     if (/^#(settings|music)$/.test(location.hash)) d.show("tab-" + location.hash.slice(1));

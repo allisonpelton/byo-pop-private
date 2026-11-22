@@ -557,6 +557,10 @@ var ByopopApps = (function () {
   // Of those that would sound, only one is let through: the game in front; with no game in front, none while Music plays a tune of
   // its own, else the game that was last in front. The others' output node is taken off their speakers (not their page's mute,
   // which is the player's own switch) and put back when their turn comes; the game itself runs on and is told nothing.
+  // the game windows open, for System Information (web/sysinfo.js): each one's window id, its game's title, its page
+  function running() {
+    return apps.filter(function (a) { return a.kind === "game" && !a.note; }).map(function (a) { return { id: a.id, title: a.title || "", game: a.game || "", win: inner(a) }; });
+  }
   function musicPlaying() { try { return !!(window.ByopopMusicPanel && ByopopMusicPanel.playing && ByopopMusicPanel.playing()); } catch (e) { return false; } }
   function heardApp() {
     var act = desk.active(), a = act && byId(act);
@@ -593,7 +597,7 @@ var ByopopApps = (function () {
   function warn(title, content, buttons) { messageBox(title, content, false, buttons); }
 
   return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, ask: ask, tell: tell, warn: warn, activated: activated, f6: f6, altTab: altTab, closeFront: closeFront, shutDown: shutDown, rehush: rehush, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
-    menuKey: menuKey, fullScreen: function (win) { var a = byWin(win); if (a) fullScreen(a); },
+    running: running, menuKey: menuKey, fullScreen: function (win) { var a = byWin(win); if (a) fullScreen(a); },
     count: function () { return apps.length; },
     // the address back to the root (a link to #settings and the like, web/index.html)
     settle: function () { if (on()) write(false); } };

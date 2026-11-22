@@ -478,6 +478,59 @@ html.d95-desk main.d95-win .d95-body > :not(.d95-client) { flex: none; }
 html.d95-desk main.d95-win .d95-body > .d95-client { flex: 1 1 auto; min-height: 80px; margin-bottom: 8px; }
 html.d95-desk body > footer.d95-win { width: min(640px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); color: var(--fg); }
 html.d95-desk body > footer.d95-win .d95-body { padding: 4px 9px 6px; }
+/* System Information (web/sysinfo.js, in the listing page's footer): Windows 95's System Properties, a property sheet of three
+   tabs as Settings' were off the desktop, the shown one joined to the raised page under it. The pages share one cell, the
+   hidden ones kept in it unseen, so the window keeps the size of the largest as the tabs change. */
+html.d95-desk body > footer#sysinfo.d95-win { width: min(420px, calc(calc(100vw / var(--d95-z, 1)) - 24px)); font-size: 11px; }
+html.d95-desk body > footer#sysinfo.d95-win .d95-body { padding: 8px 8px 10px; }
+html.d95-desk .sy-tabs { display: flex; padding-left: 2px; }
+html.d95-desk .sy-tab:not(#\#) { min-width: 0; min-height: 0; margin: 2px 0 0; padding: 3px 9px; border: 0; border-radius: 0; background: var(--panel); color: var(--fg);
+  font: inherit; box-shadow: inset 1px 1px var(--sk-hi), inset -1px 0 var(--sk-dk), inset -2px 0 var(--sk-lo), inset 0 -1px var(--sk-hi); }
+html.d95-desk .sy-tab[aria-selected=true]:not(#\#) { margin: 0 -2px 0; padding: 3px 11px 6px; position: relative; z-index: 1;
+  box-shadow: inset 1px 1px var(--sk-hi), inset -1px 0 var(--sk-dk), inset -2px 0 var(--sk-lo); }
+html.d95-desk .sy-tab:focus-visible:not(#\#) { outline: 1px dotted var(--sk-dk); outline-offset: -4px; }
+html.d95-desk .sy-sheet { display: grid; margin-top: -1px; padding: 10px 10px 8px;
+  box-shadow: inset 1px 1px var(--sk-hi), inset -1px -1px var(--sk-dk), inset -2px -2px var(--sk-lo); }
+html.d95-desk .sy-sheet > * { grid-area: 1 / 1; min-width: 0; }
+html.d95-desk .sy-off { visibility: hidden; }
+/* General: the site's mark at the left and the facts beside it, as 1995's logo and "System:", an etched line, then the text */
+html.d95-desk .sy-system { display: flex; gap: 18px; align-items: flex-start; margin: 0 0 8px; padding: 0 0 8px; border-bottom: 1px solid var(--sk-lo);
+  box-shadow: 0 1px var(--sk-hi); }
+html.d95-desk .sy-logo { flex: none; width: 64px; height: 64px; margin: 2px 8px 0 6px; }
+html.d95-desk .sy-facts { margin: 0; }
+html.d95-desk .sy-facts dt:not(#\#) { font-weight: normal; text-shadow: none; letter-spacing: normal; }
+html.d95-desk .sy-facts dd { display: flex; flex-direction: column; margin: 0 0 6px 24px; }
+html.d95-desk .sy-general p { margin: 0 0 6px; }
+html.d95-desk .sy-general .sy-made { margin-bottom: 2px; }
+html.d95-desk .sy-credits { margin: 0 0 6px; padding-left: 18px; }
+html.d95-desk .sy-general .d95-keys { margin: 0; }
+/* Performance: the status as label and value, the running games as a details list, the switch in its own group box */
+html.d95-desk .sy-group { margin: 0 0 10px; padding: 3px 8px 8px; min-width: 0; border: 1px solid; border-color: var(--sk-lo) var(--sk-hi) var(--sk-hi) var(--sk-lo);
+  box-shadow: inset 1px 1px var(--sk-hi), inset -1px -1px var(--sk-lo); }
+html.d95-desk .sy-group > legend { margin-left: 2px; padding: 0 3px; background: var(--panel); line-height: 14px; }
+html.d95-desk .sy-facts.sy-status { display: grid; grid-template-columns: max-content 1fr; gap: 3px 18px; margin: 4px 4px 8px; }
+html.d95-desk .sy-facts.sy-status dd { margin: 0; }
+html.d95-desk .sy-well { max-height: 96px; overflow: auto; padding: 2px; background: var(--sk-well);
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+html.d95-desk .sy-table { width: 100%; border-collapse: collapse; }
+html.d95-desk .sy-table :is(th, td):not(#\#) { padding: 1px 6px; text-align: left; font-weight: normal; line-height: 14px; color: #000000; white-space: nowrap;
+  text-shadow: none; letter-spacing: normal; }
+html.d95-desk .sy-table thead th { position: sticky; top: -2px; background: var(--panel);
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo); }
+html.d95-desk .sy-table .sy-num:not(#\#) { text-align: right; }
+html.d95-desk .sy-table .sy-empty:not(#\#) { color: var(--sk-lo); }
+html.d95-desk .sy-check { display: flex; gap: 6px; align-items: center; margin: 4px 2px 0; }
+/* Monitor: the game chosen, and System Monitor's charts, each named above a white well with its last value at the right */
+html.d95-desk .sy-pick { display: flex; gap: 6px; align-items: center; margin: 0 0 8px; }
+html.d95-desk .sy-pick select { min-width: 0; flex: 1 1 auto; }
+html.d95-desk .sy-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 8px; }
+html.d95-desk .sy-chart { margin: 0; min-width: 0; }
+html.d95-desk .sy-chart-cap { display: flex; gap: 6px; justify-content: space-between; margin: 0 0 2px; white-space: nowrap; }
+html.d95-desk .sy-chart-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+html.d95-desk .sy-chart-now { flex: none; }
+html.d95-desk .sy-plot { padding: 2px; background: var(--sk-well);
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+html.d95-desk .sy-chart-plot { display: block; width: 100%; height: 92px; }
 /* the listing's tabs as windows of their own: no tab strip, every tab's window drawn however the tabs stood */
 html.d95-desk .tabs { display: none; }
 html.d95-desk .tabpanel.d95-win { width: min(600px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); }

@@ -426,23 +426,50 @@ index.footer.about = byo-pop is an unofficial, non-commercial project, not affil
   website does not accept donations.
 index.footer.trademarks = PopCap, Bejeweled, Bejeweled Twist, BookWorm, Big Money, Alchemy and Dynomite! are
   registered trademarks of Electronic Arts Inc. in the United States.
-index.footer.music_html = The Music player plays the music from the game files you added, in this browser, with
-  <a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and
-  <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden newtab"> (opens in a new tab)</span></a>, and TipTop's MIDI music with
-  <a href="licenses/tinysoundfont.txt" target="_blank" rel="noopener">TinySoundFont<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and the
-  <a href="licenses/generaluser-gs.txt" target="_blank" rel="noopener">GeneralUser GS<span class="visually-hidden newtab"> (opens in a new tab)</span></a> bank by S. Christian Collins; its score view draws with
-  <a href="licenses/vexflow.txt" target="_blank" rel="noopener">VexFlow<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and its fonts
-  <a href="licenses/bravura.txt" target="_blank" rel="noopener">Bravura and Academico<span class="visually-hidden newtab"> (opens in a new tab)</span></a> by Steinberg.
-  Desktop themes decode JPEG 2000 pictures with
-  <a href="licenses/openjpeg.txt" target="_blank" rel="noopener">OpenJPEG<span class="visually-hidden newtab"> (opens in a new tab)</span></a>.
-  The desktop's text is set in
-  <a href="licenses/byopop-sans.txt" target="_blank" rel="noopener">Byopop Sans<span class="visually-hidden newtab"> (opens in a new tab)</span></a>,
-  made from W95FA by Alina Sava.
-index.footer.tracker = Reading the Music tracker: each line is a row, one step of time; the speed (ticks a row) and the
-  tempo set how fast the rows go. Each column is a channel, and each cell holds a note, the instrument that plays it, a
-  volume and an effect. A note sounds until the next note, an off or a cut in its channel. FX adds a column that says
-  what each effect does.
+# what the site is made with, a list (each line an <li>): the libraries and fonts with their licences, and what each is for
+index.footer.made_with = Made with:
+index.footer.credits_html = <li><a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and
+  <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden newtab"> (opens in a new tab)</span></a>: the Music player</li>
+  <li><a href="licenses/tinysoundfont.txt" target="_blank" rel="noopener">TinySoundFont<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and the
+  <a href="licenses/generaluser-gs.txt" target="_blank" rel="noopener">GeneralUser GS<span class="visually-hidden newtab"> (opens in a new tab)</span></a> bank by S. Christian Collins: TipTop's MIDI music</li>
+  <li><a href="licenses/vexflow.txt" target="_blank" rel="noopener">VexFlow<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and the fonts
+  <a href="licenses/bravura.txt" target="_blank" rel="noopener">Bravura and Academico<span class="visually-hidden newtab"> (opens in a new tab)</span></a> by Steinberg: the Music player's score</li>
+  <li><a href="licenses/openjpeg.txt" target="_blank" rel="noopener">OpenJPEG<span class="visually-hidden newtab"> (opens in a new tab)</span></a>: JPEG 2000 pictures in desktop themes</li>
+  <li><a href="licenses/byopop-sans.txt" target="_blank" rel="noopener">Byopop Sans<span class="visually-hidden newtab"> (opens in a new tab)</span></a>, made from W95FA by Alina Sava: the desktop's text</li>
 index.footer.credit_html = Project by <a href="https://technocra.cy/">technocra.cy</a>
+
+# System Information (web/sysinfo.js), the listing page's window about the site on Desktop 95's desktop, in the shape of
+# Windows 95's System Properties: its tabs; General's facts (a label, then its values under it); Performance's status (the
+# storage, the games whose files are here, those open) and its list of running games; the performance panel's switch; and
+# Monitor's charts of one running game, each named as System Monitor named its charts
+index.sysinfo.title = System Information
+index.sysinfo.tab.general = General
+index.sysinfo.tab.perf = Performance
+index.sysinfo.tab.monitor = Monitor
+index.sysinfo.system = Site:
+index.sysinfo.games = {n} games
+index.sysinfo.computer = Computer:
+index.sysinfo.threads = {n} processor threads
+index.sysinfo.screen = Screen {w} × {h}
+index.sysinfo.unknown = Not reported
+index.sysinfo.status = Performance status
+index.sysinfo.storage = Storage:
+index.sysinfo.storage_of = {used} used of {quota}
+index.sysinfo.installed = Games installed:
+index.sysinfo.of = {n} of {total}
+index.sysinfo.running = Games running:
+index.sysinfo.col.game = Game
+index.sysinfo.col.fps = Frames/s
+index.sysinfo.col.frame = Frame time
+index.sysinfo.col.gaps = Sound gaps
+index.sysinfo.none = No game is running.
+index.sysinfo.advanced = Advanced settings
+index.sysinfo.perf_panel = Performance panel beside each game
+index.sysinfo.game = Game:
+index.sysinfo.chart.fps = Frames a second
+index.sysinfo.chart.frame = Frame time (ms)
+index.sysinfo.chart.share = Game's share of the main thread (%)
+index.sysinfo.chart.gaps = Sound gaps a second
 
 # The link to Jungle Juice, after the games (the user, 2026-11-04)
 index.jungle.name = Jungle Juice
@@ -1460,6 +1487,11 @@ music.tracker_ch = CH {first}-{last}/{count}
 music.fx_button = FX
 music.fx_title = Effects column
 music.fx_head = Effects
+# the "?" beside FX, with the tracker view: a message box on how to read the tracker
+music.tracker_help_title = Reading the tracker
+music.tracker_help = Each line is a row, one step of time; the speed (ticks a row) and the tempo set how fast the rows go.
+  Each column is a channel, and each cell holds a note, the instrument that plays it, a volume and an effect. A note sounds
+  until the next note, an off or a cut in its channel. FX adds a column that says what each effect does.
 music.fx.noteoff = Note off
 music.fx.notecut = Note cut
 music.fx.notefade = Note fade

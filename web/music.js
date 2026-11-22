@@ -914,6 +914,13 @@ var ByopopMusic = (function () {
     fxBtn.setAttribute("aria-pressed", String(fxOn));
     fxBtn.hidden = true;
     row.appendChild(fxBtn);
+    // how to read the tracker, a message box from the "?" beside FX (it was in the listing page's About until System Information)
+    var helpBtn = make("button", "mu-btn mu-help", "?");
+    helpBtn.type = "button";
+    helpBtn.title = T("music.tracker_help_title");
+    helpBtn.setAttribute("aria-label", T("music.tracker_help_title"));
+    helpBtn.hidden = true;
+    row.appendChild(helpBtn);
     row.appendChild(make("span", "mu-gap"));
     var muteBtn = control(muted ? "muted" : "speaker", T("music.mute"), "mute");
     muteBtn.setAttribute("aria-pressed", String(muted));
@@ -1062,6 +1069,7 @@ var ByopopMusic = (function () {
       spectrumOn = vis === "spectrum" || ((vis === "tracker" || vis === "piano" || vis === "score") && !patterned);
       tracker.hidden = !trackerOn;
       fxBtn.hidden = !trackerOn;
+      helpBtn.hidden = !trackerOn;
       piano.hidden = !pianoOn;
       score.hidden = !scoreOn;
       if (scoreOn) loadScore();
@@ -3179,6 +3187,12 @@ var ByopopMusic = (function () {
       shuffleBtn.setAttribute("aria-pressed", String(shuffle));
       keep(SHUFFLE_KEY, shuffle);
       shuffleBag = []; shuffleBack = [];
+    });
+    helpBtn.addEventListener("click", function () {
+      var p = make("p", "", T("music.tracker_help"));
+      if (window.ByopopApps && ByopopApps.tell) {
+        ByopopApps.tell(T("music.tracker_help_title"), p, [{ label: T("index.why.close"), fn: function () { helpBtn.focus(); } }]);
+      } else window.alert(T("music.tracker_help"));
     });
     fxBtn.addEventListener("click", function () {
       fxOn = !fxOn;

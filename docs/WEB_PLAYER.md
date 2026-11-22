@@ -299,12 +299,13 @@ The rule for every control surface on the site (the user, 2026-11-08: "It is ins
 out some way to make elements that don't look like that"):
 
 1. **No sentences inside a control surface.** A window shows values and standard labels. What needs explaining goes in
-   a tooltip, in About, or nowhere.
+   a tooltip, in About (System Information on the listing page), in a "?" message box beside its control, or nowhere.
 2. **A recognised icon, alone,** where a widely known one exists, drawn in our own pixels; its name is its tooltip and
    `aria-label`.
 3. **Status is data in a display,** not a sentence. A test mode such as `?silent=1` shows a small indicator there.
 4. **Views belong to the display.** Clicking it cycles them, with no check boxes.
-5. **Credits and explanations go to About** and the licences page.
+5. **Credits and explanations go to About** (System Information's General tab on the listing page) and the licences
+   page.
 6. **Density and hierarchy of real software:** small type, tight spacing, no uniform cards or pill buttons.
 7. **Evoke, don't copy.** No real program's artwork, logo, name or skin is copied.
 
@@ -485,7 +486,8 @@ badly:
 | Settings (the listing's folder, the game page's panel) | dialog | 600 or 440 wide, its icons' height | | |
 | Each Settings section | dialog | 440 wide, its rows' height | | |
 | Setup (Add Games) | dialog | 560 × 400 | | a wizard, one size for every step; its list scrolls |
-| About (both pages) | dialog | 640 or 520 wide, its text's height | | |
+| System Information (listing page) | dialog | 420 wide, its tallest tab's height | | the footer, `web/sysinfo.js` |
+| About (game page) | dialog | 520 wide, its text's height | | |
 | Mods, Game files, Controls | dialog | 440 wide, their rows' height | | |
 | Performance | dialog | its graphs' size | | |
 
@@ -732,6 +734,37 @@ what is there. The record is kept in `site-fixes.json` for both mods, also in a 
 the note, the switch belongs to one game's user dir and never changes another game. A change while a game runs waits for
 its restart, like any change in the mod menu.
 
+### System Information
+
+The listing page's About window became System Information (`web/sysinfo.js`; the user, 2026-11-18: ""About" section has
+accumulated cruft. It was originally a footer. I suggest a new window, System Information, that indicates how the site is
+performing overall (sort of like the performance panel) and also has that text, maybe in one of the window's tabs. Figure
+out a 95-related app to model the design on"). It takes the shape of Windows 95's System Properties, a property sheet of
+three tabs, and keeps About's place: the window id `about`, its icon after the others and its line in the Pop menu,
+which names it by its title. Its picture is a monitor with a chart on it.
+
+**General** is 1995's General tab: the site's mark at the left where Windows had its logo, and beside it the site
+("byo-pop" and its number of games) and the computer as the browser reports it (its processor threads and its screen
+in device pixels, read again each time the window comes up). Under an etched line is the page's old footer, cut down:
+what the site is, the trademarks, a list of what it is made with (each library or font with its licence and what it is
+for), who made it, and the desktop's keys. The tracker's explanation went to the Music window's "?" and the long
+sentence of credits became the list. The page's `footer` is this tab, so off the desktop (Desktop 95 turned off) the
+page ends with the same text and the window's other parts are not shown.
+
+**Performance** is 1995's "Performance status": the storage the site uses (`navigator.storage.estimate`), how many games
+have their files here out of the site's games, and how many game windows are open, then a details list of the running
+games with each one's frames a second, frame time and sound gaps (the times its sound queue ran dry, `byopopAudio.gaps`,
+since its page opened). Its "Advanced settings" group holds the performance panel's switch, the site setting `perf`.
+
+**Monitor** is Windows 95's System Monitor: four line charts of one running game, chosen in a list, a minute of
+readings each, with the scale's top at the left, a dotted line at its half and the last value beside the chart's name.
+The charts are frames a second, frame time, the game's share of the main thread and sound gaps a second.
+
+The readings are the game window's own: its performance panel's code (`web/perf.js`) reads them while System
+Information watches it (`ByopopPerf.watch`), without the panel and without wrapping WebGL. The window watches each
+running game once a second while it is open and not minimized, and stops when it is closed or minimized or the desktop
+goes; a hidden page takes no readings. The game windows open are `ByopopApps.running()` (`web/deskapps.js`).
+
 ### Site settings
 
 Site-wide overrides of the games' own options, applied when a game starts, in `web/settings.js`. **The default always
@@ -944,7 +977,9 @@ notes:
   `byopop_music_mute`. Channels that play no note in the tune are hidden, keeping their numbers (the user, 2026-11-11:
   "Some songs seem to have totally empty channels the whole way through. Possible to hide from tracker on a per-song
   basis?"; `tuneUsed`). The FX button adds an effect column (the user, 2026-11-11: "add a brief English description of
-  tracker commands when they appear in the song as an optional column"), its words `music.fx.*` in `en.txt`.
+  tracker commands when they appear in the song as an optional column"), its words `music.fx.*` in `en.txt`. The "?"
+  beside it opens a message box on how to read the tracker (`music.tracker_help`), which was in About until System
+  Information took its place.
 - **The piano roll** (the user, 2026-11-09: "add the piano roll too") has rows at least 4 pixels (the user,
   2026-11-11: "way too zoomed out") and instrument names (the user, 2026-11-11: "If there is any way to get instrument
   names, let's do it"; `bm_names`, `byopop_music_names`).
@@ -1257,7 +1292,7 @@ front page look like a game's).
 **Desktop 95's windows** are what a screen reader meets on the front page, and its scripts build them. Each is a region
 named by its title bar, whose text is the window's `h2` under the page's one `h1`, so the heading keys go from window to
 window. A panel that the narrow page shows as a tab (Music, Settings, and the Settings sections) drops its `tabpanel`
-role while it is a window. A landmark of its own (the games' `main`, the About `footer`, the chat's `aside`) keeps its
+role while it is a window. A landmark of its own (the games' `main`, System Information's `footer`, the chat's `aside`) keeps its
 role and takes the title as its name. A heading inside the window that repeats the title goes quiet: a screen-reader-only
 one is hidden, and a visible one (the chat's collapser) loses its heading role. When the desktop goes, every attribute is
 put back (`web/skins.js`, `named`). **The desktop's check**, `tools/web/deskcheck.js`, opens every window in turn on a
@@ -1342,7 +1377,9 @@ It only reads, so the game plays the same with it on, and with it off nothing of
 since nothing but the game and its mod menu is drawn over the game (the user, 2026-11-10), and the game window's View
 menu shows and hides it (the user, 2026-11-11: "it's difficult to show/hide the performance panel on mobile"). The
 game's share of the main thread is never labelled as the computer's CPU use, and the panel never asks for a WebGL
-context before the game has made its own, since that would take the canvas from the game.
+context before the game has made its own, since that would take the canvas from the game. System Information on the
+listing page reads the same numbers from a game window with `ByopopPerf.watch(true)`: the readings run without the
+panel and without the WebGL counts, until `watch(false)` or the panel's own switch leaves nobody reading.
 
 ## The sound panel
 

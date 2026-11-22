@@ -1150,7 +1150,8 @@ var ByopopSkin = (function () {
           wins.forEach(function (w) { if (w.id !== "panel-settings" && w.id !== "about" && !/^set-/.test(w.id) && !(w.id === "chat" && w.el.hidden)) win(w.id); });
         }
         list.appendChild(rule());
-        win("about", T("skin.desk.about"));
+        // About, or System Information on the listing page (web/sysinfo.js): the window's own title
+        win("about");
         if (!listing) {
           list.appendChild(rule());
           var allPic = drawnPic("games"); allPic.classList.add("d95-icon-games");
@@ -2192,7 +2193,7 @@ var ByopopSkin = (function () {
       var ab = find("about"), keysLine = ab && ab.el.querySelector(".d95-keys");
       if (on && ab && !keysLine) {
         keysLine = document.createElement("p"); keysLine.className = "d95-keys"; keysLine.textContent = T("skin.desk.keys");
-        (ab.el.querySelector(".d95-body") || ab.el).appendChild(keysLine);
+        (ab.el.querySelector(".sy-general") || ab.el.querySelector(".d95-body") || ab.el).appendChild(keysLine);
       } else if (!on && keysLine) keysLine.parentNode.removeChild(keysLine);
       activate(on ? frontmost() : null);
     }
