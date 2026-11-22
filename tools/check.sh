@@ -42,7 +42,8 @@
 #                and tools/playbymove on fwtest (the shared driver loop plays its small task by its "move" answers under
 #                -hold, twice, with the same transcript); and tools/modtextcheck.py (every mod's labels, helps and
 #                units within the limits platform/ModSettings.cpp cuts them to: games/*/mods and the menu's fixtures); and
-#                tools/screenchecktest.py (the `screens` suite's checker on fixture folders)
+#                tools/screenchecktest.py (the `screens` suite's checker on fixture folders); and tools/visrun.py --selftest
+#                (its places, locks, quiet wait and origrun's clock block layout; it starts no game)
 #   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
@@ -239,7 +240,7 @@
 #                  web/shell.html or a link option relinks every game's wasm: about 6 minutes)
 #   tools/<x>/**   shotdiff: unit. gputest: build gpu. modmenutest: modmenu. origrun: origrun. The web test scripts
 #                  (tools/*.js, paktest): unit-web. fwtest, geomtest, wraptest, stretchcal, jp2test, songpostest, soundtest, spectrumtest, build.sh,
-#                  check.sh, rundesk, modtextcheck.py: build unit. screencheck.py and screenchecktest.py: unit screens. games/*/docs/SCREENS.md: screens (the rest of a game's docs: no suite). modsettingstest, jpegtest and fixtures: build unit, build-web:<test> and
+#                  check.sh, rundesk, modtextcheck.py, visrun.py: build unit. screencheck.py and screenchecktest.py: unit screens. games/*/docs/SCREENS.md: screens (the rest of a game's docs: no suite). modsettingstest, jpegtest and fixtures: build unit, build-web:<test> and
 #                  unit-web. Anything else under tools/, and any file not named here: build
 #   framework/**, platform/**, third_party/**, CMakeLists.txt, the other cmake/**: without --inert, every suite, as `all`.
 #                  With --inert (the review found every shared change off unless a game opts in, or reached only from the
@@ -462,7 +463,7 @@ classify() {  # <path>: chooses the suites a changed file needs
 				jpegtest/*)  # also built for the web, where unit-web runs it under Node (the error paths are longjmp there)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p"; pick unit-web "$AREA" "$p"
 					note build-web "$AREA" "$p"; web_add jpegtest ;;
-				fwtest/*|geomtest/*|wraptest/*|stretchcal/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh|modtextcheck.py)
+				fwtest/*|geomtest/*|wraptest/*|stretchcal/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh|modtextcheck.py|visrun.py)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
 				screencheck.py|screenchecktest.py) pick unit "$AREA" "$p"; pick screens "$AREA" "$p" ;;
 				speedcheck.py) pick build "$AREA" "$p"; pick speed "$AREA" "$p" ;;
@@ -879,11 +880,15 @@ suite_unit() {
 	local sct
 	timeout 60 python -I tools/screenchecktest.py > "$1.sct" 2>&1 || fail sct
 	sct="$(tail -1 "$1.sct")"
+	# visrun's helpers and the clock block's layout, which must match tools/origrun/vclock.h (starts no game)
+	local vrs
+	timeout 60 python -I tools/visrun.py --selftest > "$1.vrs" 2>&1 || fail vrs
+	vrs="visrun $(tail -1 "$1.vrs")"
 	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" "$1.sp1" "$1.sp2" \
-		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" "$1.sct" >> "$1"
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" "$1.sct" "$1.vrs" >> "$1"
 	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" "$1.sp1" "$1.sp2" \
-		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" "$1.sct"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $sc; $k; $fl; $l; $pm; $jp; $mt; $sct"
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" "$1.sct" "$1.vrs"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $sc; $k; $fl; $l; $pm; $jp; $mt; $sct; $vrs"
 	[ -z "$FAILED" ] || SUMMARY="FAILED STEPS:$FAILED; $SUMMARY"
 	return $st
 }

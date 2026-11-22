@@ -20,6 +20,7 @@ import argparse
 import ctypes
 import ctypes.wintypes as wt
 import datetime
+import io
 import json
 import mmap
 import os
@@ -456,11 +457,35 @@ class Cursor:
         return 'installed %d, reads %d, real reads %d' % (self.blk.installed, self.blk.reads, self.blk.realReads)
 
 
-# tools/origrun/vclock.h, the 32-bit stand-in's offsets (probed by the Bejeweled 2 session)
-VC_MAGIC, VC_SIZE, VC_RING = 0x4b4c4356, 262352, 16384
-VC_OFF = dict(magic=0, connected=24, v=32, counter=40, counterOk=44, bar=48, holdKind=52, holdUpdate=56, barrierOff=72,
-              barrierOffWhy=76, barrierOffCounter=80, held=84, heldSeq=88, heldCounter=92, heldV=104, ringHead=192,
-              ringTail=196, ring=204)
+# tools/origrun/vclock.h's VcShared, field for field, at VC_VERSION 3 (6b5f6492 added the frame reader's fields after
+# heldTimeout). The 32-bit stand-in aligns its LONGLONGs to 8 as ctypes does, so the offsets come from this structure; the
+# selftest holds them to the ones i686-w64-mingw32-clang gives for the header (offsetof). A block of another version or size
+# is refused: with the version 2 offsets a version 3 block's ring was read as garbage, and the drain never ended (Heavy
+# Weapon's 3D run, 2026-11-22: its watch.log reached 17.6 GB and the game was never closed).
+VC_MAGIC, VC_VERSION, VC_RING = 0x4b4c4356, 3, 16384
+_I, _U, _Q = ctypes.c_int32, ctypes.c_uint32, ctypes.c_int64
+
+
+class VcShared(ctypes.Structure):
+    _fields_ = [('magic', _U), ('version', _U), ('size', _U), ('pid', _U), ('driverTid', _U),
+                ('installed', _I), ('connected', _I), ('gone', _I),
+                ('v', _Q), ('counter', _I), ('counterOk', _I),
+                ('bar', _I), ('holdKind', _I), ('holdUpdate', _I), ('holdV', _Q),
+                ('barrierOff', _I), ('barrierOffWhy', _I), ('barrierOffCounter', _I),
+                ('held', _I), ('heldSeq', _I), ('heldCounter', _I), ('heldWhere', _I), ('heldV', _Q), ('heldTimeout', _I),
+                ('heldAt', _U),
+                ('readReq', _I), ('readDone', _I), ('readStatus', _I), ('readHr', _I), ('readSurface', _U), ('readCaps', _U),
+                ('readW', _I), ('readH', _I), ('readPitch', _I), ('readBpp', _I),
+                ('readPfFlags', _U), ('readRMask', _U), ('readGMask', _U), ('readBMask', _U), ('readBytes', _I),
+                ('readCounter', _I),
+                ('waits', _I), ('passWaits', _I), ('polls', _I), ('maxReads', _I), ('holds', _I),
+                ('heldReal100', _Q), ('installReal100', _Q), ('nowReal100', _Q), ('otherWaits', _I), ('realWaits', _I),
+                ('realWait100', _Q), ('handleWaits', _I), ('handleTimeouts', _I), ('handleWait100', _Q),
+                ('ringHead', _I), ('ringTail', _I), ('ringDropped', _I), ('ring', ctypes.c_byte * (16 * VC_RING))]
+
+
+VC_SIZE = ctypes.sizeof(VcShared)
+VC_OFF = {name: getattr(VcShared, name).offset for name, _ in VcShared._fields_}
 BAR_FREE, BAR_ARMED, BAR_HELD = 0, 1, 2
 HOLD_NEXT, HOLD_UPDATE = 0, 1
 
@@ -484,6 +509,11 @@ class Clock:
             if time.time() - t0 > timeout:
                 raise SystemExit('visrun: the clock block never got its magic')
             time.sleep(0.002)
+        version, size = self.get('version', ctypes.c_uint32), self.get('size', ctypes.c_uint32)
+        if version != VC_VERSION or size != VC_SIZE:
+            raise SystemExit('visrun: the clock block is version %d of %d bytes, and visrun knows version %d of %d bytes: '
+                             'rebuild dsound.dll from this checkout (tools/origrun), or bring visrun up to the block'
+                             % (version, size, VC_VERSION, VC_SIZE))
         self.held_ev = k32.OpenEventW(0x1F0003, False, name + '-held')
         self.rel_ev = k32.OpenEventW(0x1F0003, False, name + '-release')
         self.set('connected', 1)
@@ -533,6 +563,12 @@ class Clock:
     def drain(self, f):
         """The --watch changes the game queued, as origrun's "watch N: a -> b at update U" lines."""
         head, tail = self.get('ringHead'), self.get('ringTail')
+        if not 0 <= head - tail <= VC_RING:   # never more than a ring's worth: a wrong block or a torn read must not loop on
+            f.write("watch: the ring's head %d and tail %d are %d apart, more than its %d records: skipped\n"
+                    % (head, tail, head - tail, VC_RING))
+            self.set('ringTail', head)
+            f.flush()
+            return
         while tail != head:
             u, idx, val, ok = struct.unpack('<iiii', ctypes.string_at(self.base + VC_OFF['ring'] + (tail % VC_RING) * 16, 16))
             new = str(val) if ok else '-'
@@ -1397,13 +1433,16 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
 def keep_focus_away(pid, user_hwnd, stop, counts):
     """The originals activate their own window as it opens (SW_SHOWNOACTIVATE only covers a first ShowWindow call, and the
     game's later one takes the foreground). Whenever the game's process owns the foreground window, the window that had it at the
-    start of the run gets it back (counts[0] handed back, counts[1] refused by Windows); it is within a few tenths of a second."""
+    start of the run, or the one the user moved to since, gets it back (counts[0] handed back, counts[1] refused by Windows);
+    it is within a few tenths of a second."""
     while not stop.is_set():
         fw = u32.GetForegroundWindow()
         if fw and fw != user_hwnd:
             owner = wt.DWORD()
             u32.GetWindowThreadProcessId(fw, ctypes.byref(owner))
-            if owner.value == pid and user_hwnd and u32.IsWindow(user_hwnd) and not u32.IsIconic(user_hwnd):
+            if owner.value != pid:
+                user_hwnd = fw   # the user's own move to another window: that is the one to hand back to from now on
+            elif user_hwnd and u32.IsWindow(user_hwnd) and not u32.IsIconic(user_hwnd):
                 counts[0 if u32.SetForegroundWindow(user_hwnd) else 1] += 1
         time.sleep(0.02)
 
@@ -1431,7 +1470,34 @@ def wait_muted(origdir, g, seconds):
 
 
 # ---------------------------------------------------------------- checks without a game
+def selftest_clock_block():
+    # the offsets i686-w64-mingw32-clang gives for tools/origrun/vclock.h at VC_VERSION 3 (offsetof, 2026-11-22)
+    want = dict(magic=0, version=4, size=8, connected=24, v=32, counter=40, counterOk=44, bar=48, holdKind=52, holdUpdate=56,
+                holdV=64, barrierOff=72, barrierOffWhy=76, barrierOffCounter=80, held=84, heldSeq=88, heldCounter=92,
+                heldWhere=96, heldV=104, heldTimeout=112, heldAt=116, readReq=120, readCounter=180, waits=184, ringHead=264,
+                ringTail=268, ringDropped=272, ring=276)
+    for k, v in want.items():
+        assert VC_OFF[k] == v, (k, VC_OFF[k], v)
+    assert VC_SIZE == 262424, VC_SIZE
+    # a drain of a ring whose head is far past its tail writes one line and ends
+    buf = (ctypes.c_byte * VC_SIZE)()
+    clk = Clock.__new__(Clock)
+    clk.base, clk.last = ctypes.addressof(buf), ['?'] * 4
+    clk.set('ringHead', 0x7ffffff0)
+    out = io.StringIO()
+    clk.drain(out)
+    assert out.getvalue().count('\n') == 1 and 'skipped' in out.getvalue() and clk.get('ringTail') == 0x7ffffff0
+    # two records in order
+    struct.pack_into('<iiii', buf, VC_OFF['ring'] + (0x7ffffff0 % VC_RING) * 16, 5, 0, 7, 1)
+    struct.pack_into('<iiii', buf, VC_OFF['ring'] + (0x7ffffff1 % VC_RING) * 16, 6, 0, 0, 0)
+    clk.set('ringHead', 0x7ffffff2)
+    out = io.StringIO()
+    clk.drain(out)
+    assert out.getvalue() == 'watch 1: ? -> 7 at update 5\nwatch 1: 7 -> - at update 6\n', out.getvalue()
+
+
 def selftest():
+    selftest_clock_block()
     D = datetime.datetime
     assert run_deadline(D(2026, 11, 14, 17, 0)) == D(2026, 11, 15, 7, 0)
     assert run_deadline(D(2026, 11, 14, 23, 0)) == D(2026, 11, 15, 13, 0)

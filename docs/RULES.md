@@ -139,7 +139,8 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   machine's limit of 10 game processes over all. Everything else in "Desktop and Sandbox at any hour" holds: no
   focus taken, the user's cursor and keyboard never touched, input posted to the game's window, windows, registry
   and saves put back. A game's 2D shots from the desktop count only after one of its tours has been compared both
-  ways, desktop against sandbox. Until visrun has the four places, it runs one window at a time, as before.
+  ways, desktop against sandbox. visrun gives each run its place (ae360bdd, `docs/VISRUN.md`, "The places"); an
+  older visrun in a worktree that has not merged it still takes one window at a time.
 
 ## Token economy (the user's rules, 2026-10-24)
 
