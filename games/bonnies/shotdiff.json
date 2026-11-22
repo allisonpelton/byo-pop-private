@@ -2,6 +2,16 @@
   "ignore": [
     {
       "rect": [
+        2,
+        583,
+        140,
+        15
+      ],
+      "pairs": "menu.png,mainmenu.png,endmenu.png,z_*.png,l_menu.png,l_resume.png,l_choose0.png,l_t*.png,l_aftercancel.png,be_resume*.png,be_load*.png,pl_*.png",
+      "label": "the menu's version text: the user's request of 2026-11-18 removes the word \"Deluxe\" from the main screen, so the port says \"Version 1.01\" where the original says \"Deluxe Version 1.01\" (DEVIATIONS.md)"
+    },
+    {
+      "rect": [
         0,
         0,
         800,
@@ -17,7 +27,7 @@
         181,
         215
       ],
-      "pairs": "menu.png,mainmenu.png,endmenu.png",
+      "pairs": "menu.png,mainmenu.png,endmenu.png,l_menu.png,l_aftercancel.png,l_t*.png,l_resume.png,l_choose0.png,be_resume*.png,be_load*.png,z_*.png",
       "label": "the menu's hanging sign swings on the game's clock"
     },
     {
@@ -27,7 +37,7 @@
         104,
         152
       ],
-      "pairs": "menu.png,mainmenu.png,endmenu.png",
+      "pairs": "menu.png,mainmenu.png,endmenu.png,l_menu.png,l_aftercancel.png,l_t*.png,l_resume.png,l_choose0.png,be_resume*.png,be_load*.png,z_*.png",
       "label": "Bonnie's waving hand, on the game's clock"
     },
     {
