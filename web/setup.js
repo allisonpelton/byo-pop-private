@@ -489,7 +489,8 @@ var ByopopSetup = (function () {
     var foot = document.querySelector("body > footer");
     if (foot && foot.parentNode) foot.parentNode.insertBefore(ui.el, foot); else document.body.appendChild(ui.el);
     deskApi = desk;
-    desk.add(ui.el, { id: "setup", title: T("setup.title"), closable: true, closed: true, noIcon: true, at: at_,
+    // a wizard, one size for every step (docs/WEB_PLAYER.md's table)
+    desk.add(ui.el, { id: "setup", title: T("setup.title"), closable: true, closed: true, noIcon: true, fixed: true, at: at_,
       afterClose: function () { var p = page_(); if (p === "copying") { try { A().cancel(function (job) { return job.setup === run; }); } catch (e) {} } reset(); } });
     reset();
   }

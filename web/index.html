@@ -1331,8 +1331,9 @@ try {
   (function () {
     var d = ByopopSkin.desk, head = document.querySelector(".site-header");
     function top() { return head ? head.offsetTop + head.offsetHeight + 4 : 12; }
+    // (its bounds, as every window's, in docs/WEB_PLAYER.md's table: All games keeps its bar on two rows and one whole row of games)
     d.add(document.querySelector("main"), { id: "games", title: ByopopStrings.t("skin.desk.games"), closable: true, body: true,
-      scroll: ".games", at: function (left) { return [left, top()]; } });
+      minWidth: 500, minHeight: 440, scroll: ".games", at: function (left) { return [left, top()]; } });
     // the Library (web/library.js): the games as a grid, closed at first, its icon beside All games'
     if (window.ByopopLibrary) ByopopLibrary.attach(d, function (left, vw) { return [Math.max(left, Math.min(left + 60, vw - 640)), top() + 40]; });
     ["settings", "music"].forEach(function (id, i) {
@@ -1341,6 +1342,8 @@ try {
       // the music's playlist scrolls on its own, under the player, and takes what a taller window gives
       d.add(sec, { id: "tab-" + id, title: tab.getAttribute("aria-label"), closable: true, closed: true, body: true, lift: true,
         scroll: id === "music" ? ".mu-list" : null,
+        // Settings' folder is a dialog, at its icons' own size; Music is as wide as its controls at least
+        fixed: id === "settings", minWidth: id === "music" ? 360 : null,
         minHeight: id === "music" ? function () { return window.ByopopMusicPanel && ByopopMusicPanel.minHeight ? ByopopMusicPanel.minHeight() : 0; } : null,
         // closing Music stops it and lets its sound go (web/music.js, shutdown); minimizing keeps it playing
         afterClose: id === "music" ? function () { if (window.ByopopMusicPanel && ByopopMusicPanel.shutdown) ByopopMusicPanel.shutdown(); } : null,
@@ -1357,7 +1360,7 @@ try {
     // each of Settings' sections, a window of its own opened from the Settings folder's icons, the Pop menu or #settings-<section>
     if (siteSettingsView) siteSettingsView.sections.forEach(function (r, i) {
       d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true, whatsThis: true,
-        at: function (left, vw) { return [Math.max(left, vw - 560) - (i % 5) * 24, top() + 60 + (i % 5) * 24]; } });
+        fixed: true, at: function (left, vw) { return [Math.max(left, vw - 560) - (i % 5) * 24, top() + 60 + (i % 5) * 24]; } });
     });
     // The chat: one window for every game (the user, 2026-11-09: "Let's just have a single chat window instead of waiting for
     // it to load with each game"), built when it first opens and kept running while games open and close. It sits at the
@@ -1384,7 +1387,7 @@ try {
       chatPic.setAttribute("viewBox", "0 0 24 24"); chatPic.setAttribute("class", "tab-icon");
       chatPic.innerHTML = '<path d="M4 5h16v11H9l-4 4v-4H4z"/>';
       d.add(chatEl, { id: "chat", title: ByopopStrings.t("game.chat.title"), closable: true, closed: true, lift: true, pic: chatPic,
-        scroll: ".bpc-log", at: function (left, vw) { return [Math.max(left, vw - 312), top()]; } });
+        minWidth: 260, minHeight: 320, scroll: ".bpc-log", at: function (left, vw) { return [Math.max(left, vw - 312), top()]; } });
       // it starts when the player first brings its window up, and only then: it never opens by itself (the user, 2026-11-11:
       // "Stop chat from opening on its own")
       window.addEventListener("byopop-desk-active", function (ev) {
@@ -1392,7 +1395,7 @@ try {
       });
     }
     d.add(document.querySelector("body > footer"), { id: "about", title: ByopopStrings.t("skin.desk.about"), closable: true, body: true,
-      at: function (left, vw) { return [Math.max(left, vw - 500), top() + 220]; } });
+      fixed: true, at: function (left, vw) { return [Math.max(left, vw - 500), top() + 220]; } });
     ByopopSkin.deskSync();
     // the page opened at #settings and the like: that tab's window (the tabs' script ran before these windows were added)
     if (/^#(settings|music)$/.test(location.hash)) d.show("tab-" + location.hash.slice(1));
