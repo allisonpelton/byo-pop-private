@@ -10,6 +10,8 @@
 #include "PlayerFish.h"
 #include "PlayerSpawn.h"
 #include "Spawn.h"
+#include "StringTable.h"
+#include "UserData.h"
 #include "VectorMath.h"
 #include "Visual.h"
 
@@ -34,6 +36,16 @@ const float STEP_SECONDS = 0.01f;           // 0x54dd9c (feedingfrenzy2): a step
 const double STEP_SECONDS_DOUBLE = 0.01;    // 0x566d58 (feedingfrenzy2): the same as a double, taken off the time left
 const double CAMERA_CENTRE = 0.5;           // 0x566760 (feedingfrenzy2): the start's camera, half across the range
 const double HALF = 0.5;                    // 0x566760 (feedingfrenzy2)
+// The word at the stage's end (0x416330 (feedingfrenzy2): 0x566b4c, 0x566a18 and 0x54dd6c)
+const float MESSAGE_X = 400.0f;
+const float MESSAGE_Y = 200.0f;
+const float MESSAGE_SPACING = 8.0f;
+// The completion's marks and the word's bubbling in (0x4994b0 and 0x4334b0 (feedingfrenzy2): 0x54de28, 0x566c44
+// and 0x54a334)
+const int COMPLETION_MARK_COUNT = 3;
+const float COMPLETION_BURST_TIME = 2.5f;
+const float COMPLETION_END_TIME = 3.5f;
+const float COMPLETION_APPEAR_TIME = 2.0f;
 const double ZERO = 0.0;                    // 0x566828 (feedingfrenzy2)
 const float PLAYER_FLASH_SECONDS = 3.0f;    // 0x40400000 in 0x4f37cf (feedingfrenzy2)
 
@@ -156,7 +168,8 @@ bool Stage::load(const StageManifest::Stage& theEntry)
 	// The fish spawns' ranks from the first player spawn's (0x405590 (feedingfrenzy2)) and the bonus stage's counts
 	// reset (0x45ef40 (feedingfrenzy2)): not yet translated
 	setupOverlays();
-	// 0x416330 (feedingfrenzy2) and the slot 0x38: not yet translated
+	setupMessage();
+	// The slot 0x38 (the HUD's fish ranks' icons, 0x405c60 (feedingfrenzy2)): not yet translated
 	loadAmbientSounds();
 	// The rest (the Orphanage at +0x2c0, the splashes' containers on the first layer's actors, the slots 0x40 and
 	// 0x44 for a stage with players, and 0x4719f0 (feedingfrenzy2)): not yet translated
@@ -171,26 +184,66 @@ void Stage::updatePlay(UpdateContext* theContext)
 	// The jump's marks on the HUD (its +0x208 to +0x220, each passed shows the next with the jump's height effect):
 	// not yet translated, as the jump's height is not
 	PlayerSpawn* aSpawn = mPlayerSpawns.front().get();
+	PlayerFish* aFish = aSpawn->getFish();
 	if (!aSpawn->isLive())
 	{
-		// The player's death: a life taken (not in the timed mode), the HUD's lives, and the died state (or on a
-		// bonus stage the stage's end): not yet translated
+		// The player's death: the player's bonuses dropped (0x4a2120 (feedingfrenzy2)), a life taken (not in the
+		// timed mode), the HUD's lives, and the died state; on a bonus stage the word playerDied and the stage's end
+		// with the sound playerDie: not yet translated
 		return;
 	}
 	updateHud(theContext);
-	// The game data's phase (+0x24) brought up to the spawn's, its +0x38 and +0x3c added the frame's time, the
-	// stage's slot 0x64 when +0x2cc is set, and the stage's goal (its last phase's food, or its fish left on a bonus
-	// stage) ending the stage: not yet translated
+	if (mGameData->getSpawnPhase() < aSpawn->getPhaseIndex())
+		mGameData->setSpawnPhase(mGameData->getSpawnPhase() + 1);
+	// The game data's +0x38 and +0x3c added the frame's time, and the stage's slot 0x64 when +0x2cc is set: not yet
+	// translated
+	if (!mBonus)
+	{
+		// 0x50a507 (feedingfrenzy2): the last phase's goal reached
+		int aPhase = aSpawn->getPhaseIndex();
+		bool isDone = aSpawn->getPhase(aPhase).mFoodGoal <= mGameData->getFood() &&
+			aPhase + 1 == aSpawn->getPhaseCount();
+		// Not with a boss in play (+0x270, not yet translated) or on a boss's stage
+		if (isDone && !mBoss)
+		{
+			mCompleted = true;
+			stopSpawns();
+			if (aSpawn->getDeaths() == 0)
+			{
+				setMessage("stagePerfect");
+				// The spawn "mermaid" given the spawn type mermaidStars and started, and the mermaid's state
+				// (MermaidState, 0x51cc00 (feedingfrenzy2)), which ends in the completion with stageClear once she has
+				// swum through: not yet translated. port: until it is, the completion follows at once
+				mStateMgr.changeState(new CompletionState(this, "stageClear"));
+				return;
+			}
+			setMessage("stageClear");
+			mStateMgr.changeState(new CompletionState(this, "stageClear"));
+			return;
+		}
+	}
+	else
+	{
+		// The bonus stage's counts (0x45ef40 (feedingfrenzy2)) on the HUD, and its end once its fish are gone: not
+		// yet translated
+	}
 	if (0.0f < mStageTime)
 	{
 		// The stage's timer (+0x238, 0x45f040 (feedingfrenzy2)) stepped, which holds the clock while its marks run:
 		// not yet translated, as the script that sets it is not, so the clock always runs
-		if (0.0f < mTimeLeft)
+		if (mTimeLeft <= 0.0f)
 		{
-			mTimeLeft = mTimeLeft - theContext->mElapsed;
-			mHud->showTime((int)ceil((double)mTimeLeft));
+			// 0x4a49a0 (feedingfrenzy2): the time's end waits while the fish is busy
+			FishState* aState = aFish->getStateMgr().getState();
+			if (aState != nullptr && aState->isBusy())
+				return;
+			// On a bonus stage its counts shown as "%d/%d" first: not yet translated
+			setMessage("stageTimeUp");
+			mStateMgr.changeState(new CompletionState(this, "gameOver"));
+			return;
 		}
-		// The time's end: not yet translated
+		mTimeLeft = mTimeLeft - theContext->mElapsed;
+		mHud->showTime((int)ceil((double)mTimeLeft));
 	}
 }
 
@@ -220,8 +273,60 @@ void Stage::setupOverlays()
 		mHud->showCounter(mBonus);
 		mHud->showSuck(true);
 	}
-	// The overlays' container (+0x2e4, StageOverlays) on top of the stage's container, the info font's text drawn by
-	// a signal (0x433940 (feedingfrenzy2)) and the stun bubbles' effect in it: not yet translated
+	mOverlays = new Container();
+	mOverlays->setName("StageOverlays");
+	mContainer->addChild(mOverlays.get());
+	// The info font's text drawn by a signal (0x433940 (feedingfrenzy2)) into a component over the screen, and the
+	// stun bubbles' effect (+0x308) in the overlays: not yet translated
+}
+
+void Stage::setupMessage()
+{
+	Font* aFont = mTheme->getFont("bubbleTextFont");
+	Surface* aBubble = mTheme->getImage("bubbleTextBubble");
+	ParticleSystemDef* anEffect = mTheme->getParticleDef("bubbleTextFx");
+	mMessage = new BubbleText();
+	mMessage->setPosition(MESSAGE_X, MESSAGE_Y);
+	mMessage->setFont(aFont);
+	mMessage->setBubble(aBubble);
+	mMessage->setEffect(anEffect);
+	mMessage->setSpacing(MESSAGE_SPACING);
+	StringTable* aStrings = getApp()->mStrings.get();
+	size_t aLongest = 0;
+	const char* const MESSAGE_IDS[] = {"stageTimeUp", "stageClear", "stagePerfect", "playerDied"};
+	for (const char* anId : MESSAGE_IDS)
+		aLongest = maxOf(aLongest, aStrings->getString(anId).size());
+	mMessage->addFreeGlyphs((int)aLongest);
+}
+
+void Stage::setMessage(const std::string& theStringId)
+{
+	mMessage->setText(getApp()->mStrings->getString(theStringId));
+}
+
+void Stage::showMessage(float theStart, float theDuration)
+{
+	mOverlays->addChild(mMessage.get());
+	mMessage->appear(theStart, theDuration);
+}
+
+void Stage::burstMessage()
+{
+	mMessage->burst();
+	// The theme's sound bubbleTextBurst at full volume: not yet translated, as the sounds are not
+}
+
+void Stage::hideMessage()
+{
+	mOverlays->removeChild(mMessage.get());
+}
+
+void Stage::stopSpawns()
+{
+	for (size_t i = 0; i < mNonPlayerSpawns.size(); i++)
+		mNonPlayerSpawns[i]->setStart(SPAWN_START_LEAVE);
+	// The orphanage's actors sent away too (+0x2c0, its slot 0x2c, 0x4a2420 (feedingfrenzy2)): not yet translated,
+	// as the orphanage is not
 }
 
 void Stage::setupLayers()
@@ -615,6 +720,63 @@ void RunState::update(UpdateContext* theContext)
 	mStage->updateFishVisuals(theContext);
 	mStage->updateAmbientSounds(theContext);
 	mStage->updatePlay(theContext);
+}
+
+CompletionState::CompletionState(Stage* theStage, const std::string& theSound)
+    : StageState(theStage), mMarks(COMPLETION_MARK_COUNT), mSound(theSound)
+{
+}
+
+void CompletionState::enter()
+{
+	mMarks.mTimes[0] = 0.0f;
+	mMarks.mTimes[1] = COMPLETION_BURST_TIME;
+	mMarks.mTimes[2] = COMPLETION_END_TIME;
+	mMarks.mOn = true;
+	GameData* aGameData = getApp()->mGameData.get();
+	int aSecondsLeft = (int)ceil((double)mStage->getTimeLeft());
+	if (aSecondsLeft < 1)
+		aSecondsLeft = 0;
+	if (!mStage->isBonus())
+		aGameData->setTimeRollover(aSecondsLeft);
+	else if (mStage->isCompleted())
+		aGameData->setTimeRollover(aGameData->getTimeRollover() + aSecondsLeft);
+	// The script (+0x31c), when the stage has one, ended (its slot 0xe8) and let go (0x4a3c50 (feedingfrenzy2)), and
+	// the theme's sound of mSound played on the application's sound (0x489670 and 0x48d420 (feedingfrenzy2)): not
+	// yet translated, as the scripts and the sounds are not
+	getApp()->mUserData->recordGame(*aGameData);
+	getApp()->mUserData->save();
+}
+
+void CompletionState::exit()
+{
+	mStage->hideMessage();
+	// The application's sound stopped (0x490370 (feedingfrenzy2)): not yet translated, as the sounds are not
+}
+
+void CompletionState::update(UpdateContext* theContext)
+{
+	mStage->updateActors(theContext);
+	mStage->updateSpawns(theContext);
+	mStage->updateCamera(theContext);
+	mStage->updateFishVisuals(theContext);
+	mStage->updateHud(theContext);
+	mStage->updateAmbientSounds(theContext);
+	if (!mMarks.step(theContext->mElapsed))
+		return;
+	if (mMarks.mNext == 1)
+		mStage->showMessage(0.0f, COMPLETION_APPEAR_TIME);
+	else if (mMarks.mNext == 2)
+	{
+		mStage->burstMessage();
+		mStage->getAmbientSounds()->stop();
+	}
+	else if (mMarks.mNext == 3)
+	{
+		// After a stage whose goal was reached, with the spawn "mystery" in it, the epilog (EpilogState, 0x98 bytes):
+		// not yet translated, as the mystery stage's spawn is not
+		mStage->getStateMgr().changeState(nullptr);
+	}
 }
 
 void RunState::enter()

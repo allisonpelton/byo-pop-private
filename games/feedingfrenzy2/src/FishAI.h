@@ -13,6 +13,7 @@
 #include "Geometry.h"
 #include "Object.h"
 #include "State.h"
+#include "Timetable.h"
 #include "sigslot.h"
 
 #include <cstdint>
@@ -24,53 +25,12 @@ class AIFish;
 class Fish;
 class FishBehaviorInfo;
 
-// A list of times to wait for, one after another (0x28 bytes inside the states; made by 0x421c00 (feedingfrenzy2)):
-// each step adds the frame's time, and once the time reaches the next of the list, that one is passed. The states use
-// it with one time at a time, starting it over when it passes.
-struct Timetable
-{
-	Timetable() : mOn(false), mNext(0), mTime(0.0f) {}
-
-	// 0x473150 (feedingfrenzy2) with the clock cleared and the timetable on, as each state does after it: the one time
-	// waited for, from now
-	void start(float theSeconds)
-	{
-		mTimes.clear();
-		mTimes.push_back(theSeconds);
-		mNext = 0;
-		mTime = 0.0f;
-		mOn = true;
-	}
-	// The same time waited for again, from now
-	void restart()
-	{
-		mNext = 0;
-		mTime = 0.0f;
-		mOn = true;
-	}
-	// The frame's time added while it has a time left to wait for; true when the time has reached it, which the
-	// caller then passes
-	bool advance(float theElapsed)
-	{
-		if (!mOn || mNext >= mTimes.size())
-			return false;
-		mTime = (float)((double)mTime + theElapsed);
-		return mTimes[mNext] <= mTime;
-	}
-
-	bool mOn;                    // +0x00
-	std::vector<float> mTimes;   // +0x08
-	unsigned int mNext;          // +0x14: the first time not yet passed
-	float mTime;                 // +0x18: the seconds since the start
-	// +0x20 and +0x24: zeroed by the constructor, read by nothing translated yet
-};
-
 // What every state of a fish is (FishState, vtable 0x54fe8c (feedingfrenzy2); its constructor 0x41fed0
 // (feedingfrenzy2))
 class FishState : public engine::State
 {
 public:
-	explicit FishState(Fish* theFish) : mFish(theFish), mInPlay(false), mEdible(false) {}
+	explicit FishState(Fish* theFish) : mFish(theFish), mInPlay(false), mEdible(false), mBusy(false) {}
 
 	// 0x1c (0x4448a0 (feedingfrenzy2)): the fish has gone, out of view after it was in view; until then its being in
 	// view is kept
@@ -83,14 +43,18 @@ public:
 	virtual void eat(Fish* thePrey) {}
 	// 0x58 (0x502bee (feedingfrenzy2)): the eater may have the fish now; always by default
 	virtual bool canBeEatenBy(Fish* theEater) { return true; }
+	// 0x50 (0x4a49d0 (feedingfrenzy2)): the state is not to be cut short (the player eating or sucking): the stage's
+	// time running out waits for it
+	bool isBusy() const { return mBusy; }
 
 protected:
 	Fish* mFish;    // +0x0c
 	bool mInPlay;   // +0x10
 	bool mEdible;   // +0x11
-	// +0x12 to +0x1c: the flags read through the slots 0x28 to 0x50 (0x43aa00, 0x50295d, 0x502955, 0x502959,
-	// 0x502951, 0x40af90, 0x50294d, 0x44ee40, 0x4a49d0, 0x4a1fd0 and 0x502949 (feedingfrenzy2)) by code not yet
-	// translated: left out until it is
+	bool mBusy;     // +0x1a
+	// +0x12 to +0x19 and +0x1b to +0x1c: the flags read through the slots 0x28 to 0x4c (0x43aa00, 0x50295d,
+	// 0x502955, 0x502959, 0x502951, 0x40af90, 0x50294d, 0x44ee40, 0x4a1fd0 and 0x502949 (feedingfrenzy2)) by code
+	// not yet translated: left out until it is
 };
 
 // A state of a fish the computer moves (AIFishState, vtable 0x54e994 (feedingfrenzy2); its constructor 0x41fe60
@@ -106,6 +70,22 @@ public:
 protected:
 	AIFish* mAIFish;  // +0x20
 	// +0x28 (a byte) and +0x30 to +0x4c: zeroed by the constructor, read by nothing translated yet
+};
+
+// The fish leaving as the stage ends (EvacuateAI, 0x60 bytes, vtable 0x54eb34 (feedingfrenzy2); its constructor
+// 0x4a02c0 (feedingfrenzy2)): out the nearer side of the play area at two and a half times its top speed across, and
+// with no state once out of the view. It clears two of the flags AIFishState sets (+0x1b and +0x1c, not yet
+// translated).
+class EvacuateAI : public AIFishState
+{
+public:
+	explicit EvacuateAI(AIFish* theFish) : AIFishState(theFish) {}
+
+	// 0x04 (0x494870 (feedingfrenzy2)): the fish leaving, and wanting to swim out across the side of the play area
+	// nearer it (the left one from the middle)
+	void enter() override;
+	// 0x0c (0x4282b0 (feedingfrenzy2)): the fish moved; out of the view, no state left
+	void update(engine::UpdateContext* theContext) override;
 };
 
 // The fish swimming in from where it came in until it is in the play area (SpawnAI, 0x68 bytes, vtable 0x54ea1c

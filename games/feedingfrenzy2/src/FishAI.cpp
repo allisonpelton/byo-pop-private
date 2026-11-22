@@ -18,6 +18,7 @@ const float SPAWN_MARGIN = 80.0f;          // 0x566888 (feedingfrenzy2): the bou
 const float WANDER_MARGIN_X = 30.0f;       // 0x5667c8 (feedingfrenzy2)
 const float WANDER_MARGIN_Y = 40.0f;       // 0x566ab8 (feedingfrenzy2)
 const double HALF = 0.5;                   // 0x566760 (feedingfrenzy2)
+const double EVACUATE_SPEED = 2.5;         // 0x566958 (feedingfrenzy2): the top speed's share leaving the stage
 const float MINUS_ONE = -1.0f;             // 0x566850 (feedingfrenzy2)
 const double MINUS_ONE_DOUBLE = -1.0;      // 0x566938 (feedingfrenzy2)
 const double FAR_CENTER_BOOST = 1.4;       // 0x566b08 (feedingfrenzy2): the speed back to a far centre
@@ -79,6 +80,29 @@ SpawnAI::SpawnAI(AIFish* theFish) : AIFishState(theFish)
 {
 	mEdible = true;
 	mInPlay = false;
+}
+
+void EvacuateAI::enter()
+{
+	mAIFish->setLeaving(true);
+	RectF anArea = mAIFish->getStage()->getArea(mFish->isUnderwater());
+	const Vector2f& aPosition = mAIFish->getPosition();
+	Vector2f aVelocity(0.0f, 0.0f);
+	// 0x459e00 (feedingfrenzy2): the width, kept at the x87's precision
+	float aMiddle = (float)(((double)anArea.right - anArea.left) * HALF + anArea.left);
+	if (aPosition.x <= aMiddle)
+		aVelocity.x = -mAIFish->getMaxSpeed().x;
+	else
+		aVelocity.x = mAIFish->getMaxSpeed().x;
+	aVelocity.x = (float)(aVelocity.x * EVACUATE_SPEED);
+	mAIFish->setDesiredVelocity(aVelocity);
+}
+
+void EvacuateAI::update(UpdateContext* theContext)
+{
+	mAIFish->move(*theContext);
+	if (!mAIFish->isInView())
+		mAIFish->getStateMgr().changeState(nullptr);
 }
 
 void SpawnAI::enter()

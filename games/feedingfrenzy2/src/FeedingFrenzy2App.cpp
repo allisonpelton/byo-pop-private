@@ -328,6 +328,8 @@ void FeedingFrenzy2App::logState()
 	int aPhase = -1;
 	int aMultiplier = 0;
 	int aShownScore = mGame->mStage ? mGame->mStage->getHud()->getShownScore() : -1;
+	float aTimeLeft = mGame->mStage ? mGame->mStage->getTimeLeft() : 0.0f;
+	const char* aRun = mGame->mStage == nullptr ? "none" : mGame->mStage->getRunState() == nullptr ? "ended" : "on";
 	PlayerFish* aFish = mGame->mStage ? mGame->mStage->getFirstPlayer() : nullptr;
 	if (aFish != nullptr)
 	{
@@ -338,9 +340,9 @@ void FeedingFrenzy2App::logState()
 		aMultiplier = aFish->getFrenzyMultiplier();
 	}
 	SDL_Log("STATE {\"mode\":%d,\"level\":%d,\"score\":%d,\"lives\":%d,\"food\":%d,\"phase\":%d,"
-	        "\"frenzy\":%d,\"shown\":%d,\"player\":%s}",
+	        "\"frenzy\":%d,\"shown\":%d,\"time\":%.2f,\"run\":\"%s\",\"player\":%s}",
 	        aData->getMode(), aData->getStage(), aData->getScore(), aData->getLives(), aData->getFood(), aPhase,
-	        aMultiplier, aShownScore, aPlayer.c_str());
+	        aMultiplier, aShownScore, aTimeLeft, aRun, aPlayer.c_str());
 }
 
 void FeedingFrenzy2App::setState(const std::string& theArgs)
@@ -368,9 +370,11 @@ void FeedingFrenzy2App::setState(const std::string& theArgs)
 		aData->setLives(aValue);
 	else if (aKey == "food")
 		aData->setFood(aValue);
+	else if (aKey == "time" && mGame->mStage != nullptr)
+		mGame->mStage->setTimeLeft((float)aValue);
 	else
 	{
-		SDL_Log("ERROR set %s: only score, lives and food", theArgs.c_str());
+		SDL_Log("ERROR set %s: only score, lives, food and time (in a stage)", theArgs.c_str());
 		return;
 	}
 	SDL_Log("OK set %s", theArgs.c_str());

@@ -217,7 +217,8 @@ class PlayerEatingState : public EatingState
 public:
 	// 0x417db0 (feedingfrenzy2): the eating state's (the flags +0x12, +0x13, +0x15 and +0x1a, read by code not yet
 	// translated)
-	explicit PlayerEatingState(PlayerFish* thePlayer) : EatingState(thePlayer), mPlayer(thePlayer) {}
+	// 0x417db0 (feedingfrenzy2): busy
+	explicit PlayerEatingState(PlayerFish* thePlayer) : EatingState(thePlayer), mPlayer(thePlayer) { mBusy = true; }
 
 	// 0x0c (0x437690 (feedingfrenzy2)): steered, moved and its timers counted down; after the chomp, swimming again
 	void update(engine::UpdateContext* theContext) override;

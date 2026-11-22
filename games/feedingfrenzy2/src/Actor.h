@@ -124,6 +124,9 @@ public:
 	virtual bool isOfClass(const std::string& theClass, Actor* theViewer) { return false; }
 	// 0xe4: the actor is dead, for its spawn to take back (a fish's, 0x4447c0 (feedingfrenzy2))
 	virtual bool isDead() = 0;
+	// 0xe8: the actor leaves as the stage ends (the actor's pure; a fish's, 0x5021f5 (feedingfrenzy2), does nothing;
+	// an AI fish's 0x4a0260 (feedingfrenzy2))
+	virtual void evacuate() {}
 	// 0xf0: each step of the stage's run
 	virtual void update(engine::UpdateContext& theContext) = 0;
 	// 0xf8 (0x425fb0 (feedingfrenzy2)): the visual put in its layer's actors
@@ -150,6 +153,7 @@ public:
 	bool wasSeen() const { return mSeen; }
 	void setSeen(bool theSeen) { mSeen = theSeen; }
 	bool isLeaving() const { return mLeaving; }
+	void setLeaving(bool isLeaving) { mLeaving = isLeaving; }
 	BehaviorInfo* getBehavior() const { return mBehavior.get(); }
 	int* getDetailLayers() { return mDetailLayers; }
 	void setLayer(int theLayer) { mLayer = theLayer; }
@@ -176,8 +180,7 @@ protected:
 	int mDetailLayers[3];                   // +0x7c: the layer at each detail level
 	int mLayer;                             // +0x88: the layer it is on
 	bool mSeen;                             // +0x8c: it has been in view
-	bool mLeaving;                          // +0x8d: it leaves the stage, no new state taken (set by EvacuateAI, not
-	                                        // yet translated)
+	bool mLeaving;                          // +0x8d: it leaves the stage, no new state taken (set by EvacuateAI)
 	int mFoodValue;                         // +0x90
 	int mFoodValueNow;                      // +0x94
 	engine::Vector2f mPosition;             // +0x98
@@ -310,6 +313,9 @@ public:
 	void update(engine::UpdateContext& theContext) override;
 	// 0x104 (0x43d070 (feedingfrenzy2)): under the water kept under it, in the air kept above it
 	void keepInWater() override;
+	// 0xe8 (0x4a0260 (feedingfrenzy2)): with a state, leaving (EvacuateAI); not when its +0x150, false from the
+	// constructor, is set (0x502941 (feedingfrenzy2), not yet translated)
+	void evacuate() override;
 	// 0x110 (0x4288b0 (feedingfrenzy2)): the next state by a draw: schooling in a school, chasing the player, flying
 	// by or wandering
 	void pickState();

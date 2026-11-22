@@ -9,6 +9,7 @@
 // over the layers and the layer set), the start, and the run in hundredth-second steps with the spawns' timing. Each
 // untranslated step says so where it would run.
 
+#include "BubbleText.h"
 #include "Container.h"
 #include "LayerSet.h"
 #include "Shape.h"
@@ -18,6 +19,7 @@
 #include "StageManifest.h"
 #include "State.h"
 #include "Theme.h"
+#include "Timetable.h"
 
 #include <map>
 #include <string>
@@ -68,6 +70,31 @@ public:
 	void enter() override;
 	// 0x0c (0x43acb0 (feedingfrenzy2)): each hundredth of a second, the stage's steps in their order
 	void update(engine::UpdateContext* theContext) override;
+};
+
+// The stage's goal reached, or its time up (CompletionState, 0x54 bytes, vtables 0x55874c and 0x55876c
+// (feedingfrenzy2); its constructor 0x49f3d0 (feedingfrenzy2)): the stage plays on without the player's part while
+// its word bubbles in at once, bursts at 2.5 seconds, and at 3.5 the run ends
+class CompletionState : public StageState
+{
+public:
+	// 0x49f3d0 (feedingfrenzy2): three marks, and the theme's sound to play
+	CompletionState(Stage* theStage, const std::string& theSound);
+
+	// 0x04 (0x4994b0 (feedingfrenzy2)): the marks at 0, 2.5 and 3.5 seconds started; the time left kept in the game
+	// data for the timed mode (added on a bonus stage whose goal was reached), the sound played and the game kept
+	// in the player's record and saved
+	void enter() override;
+	// 0x08 (0x4a3ae0 (feedingfrenzy2)): the word taken off, the sounds stopped
+	void exit() override;
+	// 0x0c (0x4334b0 (feedingfrenzy2)): the actors, the spawns, the camera, the fish's visuals, the HUD and the
+	// ambient sounds updated; at the first mark the word bubbling in over 2 seconds, at the second burst, at the
+	// third the run ended (the mystery stage's epilog after one whose goal was reached, not yet translated)
+	void update(engine::UpdateContext* theContext) override;
+
+private:
+	Timetable mMarks;     // +0x10
+	std::string mSound;   // +0x38: the theme's sound
 };
 
 // The container the stage's layers are drawn in, darkened through a mask on a night stage (MaskContainer, 0x1a8
@@ -151,6 +178,20 @@ public:
 	// the stage's time counted down. Not yet translated: the jump's marks, the player's death, the phases' and the
 	// times' counts in the game data, the stage's goal and the time's end, which end the stage
 	void updatePlay(engine::UpdateContext* theContext);
+	// 0x416330 (feedingfrenzy2): the word the stage bubbles at its end (+0x2e8), in the theme's bubbleTextFont,
+	// bubbleTextBubble and bubbleTextFx at (400, 200), 8 pixels apart, with glyphs ready for the longest of its words
+	void setupMessage();
+	// 0x498d20 (feedingfrenzy2): the word set to the string of the id
+	void setMessage(const std::string& theStringId);
+	// 0x4990f0 (feedingfrenzy2): the word put over the stage and bubbling in from the start over the duration
+	void showMessage(float theStart, float theDuration);
+	// 0x4959a0 (feedingfrenzy2): the word burst, with the theme's sound bubbleTextBurst (not yet translated)
+	void burstMessage();
+	// 0x4a3b00 (feedingfrenzy2): the word taken off
+	void hideMessage();
+	// 0x4a2390 (feedingfrenzy2): every non-player spawn's actors sent away and the spawn turned off once they are
+	// gone; the orphans' too (+0x2c0's slot 0x2c, not yet translated, as the orphanage is not)
+	void stopSpawns();
 	// 0x44b9b0 (feedingfrenzy2): while the first spawn's fish is in, the growth meter at the food eaten (not on a
 	// bonus stage), the time, the lives and the suck's charge shown (the bonuses' bubbles not yet)
 	void updateHud(engine::UpdateContext* theContext);
@@ -215,6 +256,11 @@ public:
 	bool getCanSuck() const { return mCanSuck; }
 	bool isBonus() const { return mBonus; }
 	bool isCompleted() const { return mCompleted; }
+	float getTimeLeft() const { return mTimeLeft; }
+	// port (the test command set time): the stage's seconds left
+	void setTimeLeft(float theSeconds) { mTimeLeft = theSeconds; }
+	MusicSystem* getAmbientSounds() { return mAmbientSounds.get(); }
+	engine::StateMgr<StageState>& getStateMgr() { return mStateMgr; }
 	// The run's current state, null once the run is over
 	StageState* getRunState() { return mStateMgr.getState(); }
 	// RunState's enter: with player spawns, the first player hears the mouse
@@ -256,6 +302,8 @@ private:
 	engine::Ref<LayerSet> mLayerSet;               // +0x2d8
 	engine::Ref<engine::Container> mContainer;     // +0x2dc: the application's stage container
 	engine::Ref<GameHud> mHud;                     // +0x2e0
+	engine::Ref<engine::Container> mOverlays;      // +0x2e4: "StageOverlays", over the stage's container
+	engine::Ref<BubbleText> mMessage;              // +0x2e8: the word at the stage's end
 	engine::Ref<MaskContainer> mMaskContainer;     // +0x2ec
 	bool mNight;                                   // +0x2f0
 	float mLight;                                  // +0x2f4: the night's light now, from minLight
@@ -268,8 +316,9 @@ private:
 	std::vector<engine::Ref<PlayerFish>> mPlayers;  // +0x340: the player fish in the stage
 	std::vector<Actor*> mActors;                   // +0x370
 	std::vector<Actor*> mSeen;                     // +0x380: what the last look about saw, nearest first
-	// +0x391: the stage's goal reached, cleared as it starts (set at 0x4f1f19, 0x4f2029, 0x4f218f and 0x541f09
-	// (feedingfrenzy2), not yet translated); the play's end reads it
+	// +0x391: the stage's goal reached, cleared as it starts (set at 0x4f2029 and 0x4f218f (feedingfrenzy2) as the
+	// player reaches it; at 0x4f1f19 and 0x541f09 (feedingfrenzy2), on a bonus stage and after a boss, not yet
+	// translated); the play's end reads it
 	bool mCompleted;
 	bool mBoss;                                    // +0x392
 	bool mFinalBoss;                               // +0x393

@@ -53,6 +53,7 @@ public:
 	int getPhaseIndex() const { return mPhaseIndex; }
 	PlayerFish* getFish() { return mFish.get(); }
 	bool isLive() const { return mLive; }
+	int getDeaths() const { return mDeaths; }
 	// 0x48c940 (feedingfrenzy2)
 	int getPhaseCount() const { return (int)mPhases.size(); }
 	// port: the fish taken out of the stage while it is in (Stage::unload's, until the play's ends are translated)

@@ -211,6 +211,21 @@ Actor* NonPlayerSpawn::spawn()
 	return anActor;
 }
 
+void NonPlayerSpawn::setStart(int theStart)
+{
+	if (theStart == mStart)
+		return;
+	mStart = theStart;
+	if (theStart == SPAWN_START_LEAVE)
+		evacuate();
+}
+
+void NonPlayerSpawn::evacuate()
+{
+	for (size_t i = 0; i < mLive.size(); i++)
+		mLive[i]->evacuate();
+}
+
 void NonPlayerSpawn::onActorDied()
 {
 	if (mSupplyLeft > 0)
@@ -289,8 +304,8 @@ void NonPlayerSpawn::update(UpdateContext* theContext, bool canSpawn)
 		mNextSpawn = 0;
 		mScheduled = true;
 	}
-	// A spawn whose start is 2 (set by nothing translated yet) calls its slot 0x34 with 0 once it has no actor left
-	// (0x495540 (feedingfrenzy2))
+	else if (mStart == SPAWN_START_LEAVE && mLive.empty())
+		setStart(SPAWN_START_OFF);
 }
 
 const SpawnPhase& NonPlayerSpawn::getPhase(int thePhaseIndex) const

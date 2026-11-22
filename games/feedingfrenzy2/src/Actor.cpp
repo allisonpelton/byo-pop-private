@@ -404,6 +404,12 @@ void Fish::setFishBehavior(FishBehaviorInfo* theBehavior)
 
 AIFish::AIFish() : mHome(0.0f, 0.0f), mChaseFrequency(0.0f), mFlybyFrequency(0.0f) {}
 
+void AIFish::evacuate()
+{
+	if (mStateMgr.getState() != nullptr)
+		changeState(new EvacuateAI(this));
+}
+
 void AIFish::create(Stage* theStage)
 {
 	Fish::create(theStage);

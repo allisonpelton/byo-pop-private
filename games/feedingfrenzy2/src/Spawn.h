@@ -109,9 +109,9 @@ enum SpawnLocation
 enum SpawnStart
 {
 	SPAWN_START_OFF = 0,  // the start attribute anything but "on"
-	SPAWN_START_ON = 1    // "on", any case
-	// 2: set by something not yet translated; such a spawn, once it has no actor left, calls its slot 0x34 with 0
-	// (0x495540 (feedingfrenzy2))
+	SPAWN_START_ON = 1,   // "on", any case
+	SPAWN_START_LEAVE = 2 // the stage's end (0x4a2390 (feedingfrenzy2)): its actors sent away; once it has no actor
+	                      // left it turns itself off
 };
 
 // What every spawn is (Spawner, 0x2c bytes and its virtual base, vtables 0x558278 and 0x5582a8 (feedingfrenzy2); its
@@ -169,6 +169,8 @@ public:
 	void onActorDied();
 	// 0x30 (0x406dd0 (feedingfrenzy2)): a <phase>, in the file's order
 	void addPhase(const SpawnPhase& thePhase) { mPhases.push_back(thePhase); }
+	// 0x34 (0x495540 (feedingfrenzy2)): the start changed; to SPAWN_START_LEAVE, the actors sent away
+	void setStart(int theStart);
 	// 0x44 (0x43a4b0 (feedingfrenzy2)): the phase of the number, the last for any past the end
 	const SpawnPhase& getPhase(int thePhaseIndex) const;
 	// 0x48 (0x40e400 (feedingfrenzy2)): the behaviour of the behavior attribute's name, with the tweaks laid over
@@ -186,6 +188,8 @@ public:
 	// 0x60 (0x477520 (feedingfrenzy2)): every live actor taken out of the stage, each then passed to slot 0x6c, and
 	// all put back into the pool
 	void removeAll();
+	// 0x64 (0x48fcc0 (feedingfrenzy2)): each live actor leaving (its slot 0xe8)
+	void evacuate();
 	// 0x68 (0x43a550 (feedingfrenzy2)): the actors of the spawn in the stage
 	int getLiveCount() const { return (int)mLive.size(); }
 	// 0x6c: a dead actor taken out (a fish spawn's, 0x41d6d0 (feedingfrenzy2))

@@ -476,9 +476,32 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
     a "+10" seen in flight; exit 0. The state line now gives the score shown ("shown").
   - Not yet: the other texts that use the second queue (every 0.3 seconds).
 
+- The stage's goal and its time's end (Stage.h: the play's slot 0x5c, 0x447ef0, its goal and time parts;
+  CompletionState 0x49f3d0 with 0x4994b0, 0x4a3ae0 and 0x4334b0; the word 0x416330, 0x498d20, 0x4990f0, 0x4959a0
+  and 0x4a3b00; the spawns' stop 0x4a2390 with the spawn's slots 0x34 and 0x64; EvacuateAI 0x4a02c0 with 0x494870
+  and 0x4282b0, from the AI fish's slot 0xe8, 0x4a0260; the timetable's 0x47ae00, 0x45f040 and 0x420090, now in
+  Timetable.h). The game data's phase follows the spawn's. With the last phase's food eaten (not on a boss's
+  stage) the stage is complete: every spawn's fish swim out of the nearer side at 2.5 times their top speed and the
+  spawns stop once they are gone; the word is stagePerfect when the player has not died, else stageClear. With a
+  time, once it is out (and the player is not eating) the word is stageTimeUp. Then the completion: the stage plays
+  on without the player's part, the time left kept in the game data (the timed mode's carried seconds), the game
+  kept in the player's record and saved; the word bubbles in at once over 2 seconds (the theme's bubbleTextFont,
+  bubbleTextBubble and bubbleTextFx at (400, 200), 8 apart, in the stage's overlays "StageOverlays"), bursts at
+  2.5 seconds (the ambient sounds stopped), and at 3.5 the run ends. The test commands: set time, and the state
+  line's time and run.
+  - Checked under rundesk over stage 1 with the food set to 880: the goal reached at 900 in the last phase,
+    "PERFECT!" bubbled in with the fish gone, the run ended and the play state saw the stage complete; exit 0. The
+    time's end is not checked yet (stage 1 of the normal mode has no time).
+  - Deviation (for now): after a perfect stage the mermaid's swim (the spawn "mermaid" with the spawn type
+    mermaidStars, and MermaidState 0x51cc00) is not yet translated, so the completion follows at once.
+  - Not yet: the player's death and its state; the bonus stage's counts and end; the boss's; the sounds played
+    (the theme's stageClear, gameOver, playerDie, bubbleTextBurst; the application's sound stopped); the script's
+    end; the orphanage's fish; the epilog after the mystery stage; the play state's next stage and game over.
+
 ## Next
 
-- The stage's ends; later the fish ranks' icons (StageCompleteState, the
+- The mermaid after a perfect stage; the player's death (PlayerDiedState); the play state's end of a stage (the next
+  stage, the continue, the game over); later the fish ranks' icons (StageCompleteState, the
   continue offer and the game over); the restore-game popup's actions; the quit popup's actions over the intro and
   the pause's End Game; the compositeGroup element (the intro's background group, now skipped).
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's
