@@ -6,6 +6,7 @@
 #include "GameHud.h"
 #include "Mouse.h"
 #include "Random.h"
+#include "ScoreSplat.h"
 #include "Stage.h"
 #include "VectorMath.h"
 #include "Visual.h"
@@ -178,13 +179,17 @@ void PlayerFish::update(UpdateContext& theContext)
 	// putting the speed's scale back with the sound bonusSpeedEnd), and +0x20c brought up towards 1 and the suck
 	// begun while the right button is held (0x472110 and 0x494c00 (feedingfrenzy2)) when the state allows it: not yet
 	// translated, as the swallowed list, the bonuses and the suck are not
-	// The points scored, oldest first, each added to the score (and shown at the mouth by its multiplier, 0x427250
-	// (feedingfrenzy2), not yet translated, as the HUD is not)
+	// The points scored, oldest first, each added to the score and its bubble sent from the mouth, in the stage's
+	// space from the fish's layer, by its multiplier
 	while (!mScored.empty())
 	{
 		ScoredPoints aScored = mScored.front();
 		mScored.erase(mScored.begin());
 		mStage->addPlayerScore(aScored.mPoints, this);
+		Vector2f aMouth = getTransformedShape(ACTOR_SHAPE_MOUTH)->getCenter();
+		Vector2f aLayer = mStage->getLayerContainer(mLayer)->getAbsolutePosition();
+		Vector2f aFrom((float)((double)aMouth.x + aLayer.x), (float)((double)aLayer.y + aMouth.y));
+		addPointsBubble(aFrom, mStage->getHud(), aScored.mPoints, aScored.mMultiplier);
 	}
 	// The tilt (0x44ebc0 (feedingfrenzy2)) and the puke (+0x110): not yet translated
 	mStateMgr.update(&theContext);

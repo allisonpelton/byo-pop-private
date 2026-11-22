@@ -6,6 +6,7 @@
 #include "Image.h"
 #include "Params.h"
 #include "PlayerSpawn.h"
+#include "ScoreSplat.h"
 #include "Stage.h"
 #include "StringTable.h"
 
@@ -143,8 +144,7 @@ GameHud::GameHud(Stage* theStage)
 void GameHud::update(UpdateContext& theContext)
 {
 	ScreenLayout::update(theContext);
-	// The queues of texts at the global 0x5acc20 (feedingfrenzy2), each shown one after another (0x4301d0
-	// (feedingfrenzy2)): not yet translated, as the texts are not
+	scoreSplatQueue().update(theContext.mElapsed);
 }
 
 void GameHud::setup(Theme* theStageTheme)
@@ -211,8 +211,8 @@ void GameHud::reset()
 	showScore(getApp()->mGameData->getScore());
 	mShownSeconds = 0;
 	mJumpHeightGroup->setVisible(false);
-	// The jump's height effect (+0x230) hidden, and the queues of texts at the global 0x5acc20 emptied (0x498bf0
-	// (feedingfrenzy2)): not yet translated, as the jump and the texts are not
+	// The jump's height effect (+0x230) hidden: not yet translated, as the jump is not
+	scoreSplatQueue().clear();
 	mPointsBubbles->removeAllChildren();
 	bool isBoss = mStage->isBoss();
 	mGrowthText->setVisible(!isBoss);
@@ -255,10 +255,9 @@ void GameHud::showScore(int theScore)
 void GameHud::addShownScore(int thePoints)
 {
 	int aScore = mShownScore + thePoints;
-	// A score at or below 0: the cold path 0x4edfc3 (feedingfrenzy2), not yet translated, as the points' bubbles,
-	// which alone call this, are not
+	// The cold path 0x4edfc3 (feedingfrenzy2)
 	if (aScore <= 0)
-		return;
+		aScore = 0;
 	mShownScore = aScore;
 	mScoreText->setText(groupedNumber(aScore));
 }

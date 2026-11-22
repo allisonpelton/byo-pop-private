@@ -5,6 +5,7 @@
 #include "EngineImpl.h"
 #include "FeedingFrenzyTwo.h"
 #include "GameData.h"
+#include "GameHud.h"
 #include "PlayerFish.h"
 #include "PlayerSpawn.h"
 #include "Stage.h"
@@ -326,6 +327,7 @@ void FeedingFrenzy2App::logState()
 	std::string aPlayer = "null";
 	int aPhase = -1;
 	int aMultiplier = 0;
+	int aShownScore = mGame->mStage ? mGame->mStage->getHud()->getShownScore() : -1;
 	PlayerFish* aFish = mGame->mStage ? mGame->mStage->getFirstPlayer() : nullptr;
 	if (aFish != nullptr)
 	{
@@ -336,9 +338,9 @@ void FeedingFrenzy2App::logState()
 		aMultiplier = aFish->getFrenzyMultiplier();
 	}
 	SDL_Log("STATE {\"mode\":%d,\"level\":%d,\"score\":%d,\"lives\":%d,\"food\":%d,\"phase\":%d,"
-	        "\"frenzy\":%d,\"player\":%s}",
+	        "\"frenzy\":%d,\"shown\":%d,\"player\":%s}",
 	        aData->getMode(), aData->getStage(), aData->getScore(), aData->getLives(), aData->getFood(), aPhase,
-	        aMultiplier, aPlayer.c_str());
+	        aMultiplier, aShownScore, aPlayer.c_str());
 }
 
 void FeedingFrenzy2App::setState(const std::string& theArgs)

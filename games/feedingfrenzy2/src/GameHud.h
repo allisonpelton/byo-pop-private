@@ -54,7 +54,7 @@ public:
 
 	// 0xa4 (0x434a20 (feedingfrenzy2)): the layout's update, then the queues of texts shown one after another
 	// (0x4301d0 over the global 0x5acc20 (feedingfrenzy2): the points' bubbles every 0.09 seconds and the others'
-	// every 0.3; not yet translated, as the texts are not)
+	// every 0.3)
 	void update(engine::UpdateContext& theContext) override;
 
 	// 0x482f20 (feedingfrenzy2): the layout read and its parts found; the growth's and the suck's meters made in their
@@ -93,6 +93,9 @@ public:
 	void showFrenzy(int theCount, int theMultiplier);
 
 	GrowMeter* getGrowthMeter() { return mGrowthMeter.get(); }
+	engine::TextItem* getScoreText() { return mScoreText.get(); }
+	int getShownScore() const { return mShownScore; }
+	engine::Container* getPointsBubbles() { return mPointsBubbles.get(); }
 	GrowMeter* getSuckMeter() { return mSuckMeter.get(); }
 
 private:

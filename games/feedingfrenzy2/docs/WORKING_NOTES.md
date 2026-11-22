@@ -458,16 +458,27 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   - Deviations: the clock's separator is a colon (the original asks the locale, LOCALE_STIME, as the stage intro
     does); the lives and counters are plain digits (0x44e580 groups them by the locale, which leaves under a
     thousand alone); the engine's formatMessage takes whole numbers only (all the game passes).
-  - Not yet: the score shown rises only as each points bubble reaches it (0x427250 and its signal to 0x410740), so
-    until the bubbles are translated it stays at the stage's start; the fish ranks' four icons (menuImg0 to 3 in
+  - Not yet: the fish ranks' four icons (menuImg0 to 3 in
     selectors, filled by the stage's slot 0x38, 0x405c60, from the fish spawns' ranks of 0x405590, with the fish
     visuals' HUD pictures, not yet made); the splats (SplatFactory, hudSplats.xml) and the time's warning; the
-    texts' queues (0x5acc20); the jump's height and marks, the medals, the bonuses' bubbles, the bonus stage's
+    jump's height and marks, the medals, the bonuses' bubbles, the bonus stage's
     counter; the stage's timer that holds the clock.
+
+- The HUD's points bubbles (ScoreSplat.h: ScoreSplat 0x47a3c0, its setup 0x4302f0 and update 0x433b30; the queues at
+  0x5acc20, 0x4194c0, 0x4301d0 and 0x498bf0; the maker 0x427250 from the player's update 0x44c3b0; the engine's
+  KeyInterpolator<Vector2f> and the keys' ease 0x4280c0 and 0x4283f0). Each points scored sends a "+n" from the
+  mouth (the fish's layer's place added) to the score's text at 400 pixels a second: a jump of up to 60 aside and 80
+  up over the first 0.15 of the flight, slowing to its top, then on to the score, half of it straight and slowing at
+  the end, the scale 0.5 to 1 and back; small font to 50 points, large from 1000, measured in the middle one to keep
+  it on the screen; coloured by the multiplier (the static initializer 0x4d73c0). A bubble is shown at most every
+  0.09 seconds, the others queued; on landing it adds its points to the score shown (not below 0).
+  - Checked under rundesk over stage 1: the shown score rises by 10 as each bubble lands, behind the game's score,
+    a "+10" seen in flight; exit 0. The state line now gives the score shown ("shown").
+  - Not yet: the other texts that use the second queue (every 0.3 seconds).
 
 ## Next
 
-- The HUD's points bubbles, then the fish ranks' icons; the stage's ends (StageCompleteState, the
+- The stage's ends; later the fish ranks' icons (StageCompleteState, the
   continue offer and the game over); the restore-game popup's actions; the quit popup's actions over the intro and
   the pause's End Game; the compositeGroup element (the intro's background group, now skipped).
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's
