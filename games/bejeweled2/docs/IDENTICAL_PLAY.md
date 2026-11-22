@@ -368,11 +368,15 @@ The other new tours in 3D (the same lane, one run each; `tools/shotdiff` runs `v
   matched).
 
 **The original's full screen: not compared.** In Windows Sandbox (the user, via the coordinator, 2026-11-22: only where the mode change cannot
-reach other runs) the original was run twice from the Classic tour with `ScreenMode=1`: it stayed at the title with its window shown
-framed, and the posted Play click was never taken, which is what `run_original.sh` notes for a full screen original ("would otherwise be
-full screen and take no posted click"). The origrun sandbox lane cannot drive a full screen original, so no pair exists; the port's own
-full screen (borderless) was compared earlier with the windowed shots (phase two). The desktop is not used for it (a display mode change
-reaches every other run and covers all four places).
+reach other runs) the 2D Classic tour was played by the original four times with the registry's `ScreenMode=1` (staged: the sandbox's
+`registry.reg` holds it): with the sandbox's activation hook wrongly on (562bb6f4 to 170e7497) and without the player it stayed at the title
+and then at the New User box; with main at cf1798fb (hook off in the sandbox), the player and the title's cold load waited out, the tour
+played through, 14 of 16 pairs match the port's windowed shots (title phase, More Games), with and without `--sandbox-vgpu`. But the
+game was windowed in both (its caption bar in every shot) and wrote `ScreenMode=0` back: with this setting the original does not stay in full
+screen in the sandbox (a failed exclusive mode, then the windowed fallback), so the pairs are windowed ones and no full screen shot exists.
+The desktop is not used for it (a display mode change reaches every other run and covers all four places); the port's own full screen
+(borderless) was compared earlier with the windowed shots (phase two). To try again: an exclusive hold on the desktop (the coordinator's
+plan) or finding what the sandbox's display refuses.
 
 ### Runs
 
