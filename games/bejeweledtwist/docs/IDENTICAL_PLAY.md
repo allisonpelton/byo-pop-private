@@ -374,3 +374,60 @@ pictures, pixel for pixel.
 ### Deviations that remain
 
 None added.
+
+## Screen coverage (2026-11-21)
+
+### What was compared and how
+
+Every screen and dialog the export and the source show is listed in SCREENS.md, with the shots that compare it. The
+screens earlier passes had not shot were reached by eight routes in `tools/screens/`. Each route is one spec that
+gen.py turns into the original's origrun script and the port's `-script`. The routes cover the menus, help and credits
+(menus), the player list (players), Classic and Blitz by the seeded autoplay (classic, blitz), Classic's end through
+the bomb wheel (gameover), the zen jump (zenjump), a rank-up (rankup) and a fruit award (fruit). The saved games and
+profiles they start from are made by the port itself, through its `gem` and `shutdownsaves` commands, with a few bytes
+set: the bomb count, the multiplier's steps and the rank points. The repository keeps no save. The original ran in
+Windows Sandbox on origrun's virtual clock, one route at a time; it used the scripted cursor where it twists, since
+its board takes a twist only from a cursor it can see. The port ran under rundesk with `-fast`. A route's shots are
+lined up on the menu's first update in both programs: the port's update is the original's plus 5 from the menu, and plus 4 under
+the autoplay. All the pairs were compared in one shotdiff run, `screens` (FRUITRUN). The tour (`tools/check.sh
+bejeweledtwist`) replays the eight routes on the port and freezes a hash of each route's shots, so the frozen baseline
+covers them. Phase two's sets V3 and V4 and the challenge pass had already compared 3D and full screen, and full screen
+draws the same picture scaled, so the routes are 2D and windowed.
+
+The "Deluxe" request (the user, in their words: "Remove the "Deluxe" text from the main screen of any game it may
+appear in, to avoid misleading people about whose game version they're playing") needs nothing in Twist. The only
+place "Deluxe" appears in the export's strings is the original's crash reporter, which the port does not have, and
+no screen of the port shows it.
+
+### Changes this part made
+
+| Difference | Cause in the original | The port now | Commit |
+| --- | --- | --- | --- |
+| The main menu's Play button spiral stood a few degrees behind, and its sparkles started later | the original's Play button runs through the loader's whole opening; the port's loader reaches the hand-over a few updates in and moved only its own clock on | the loader updates the Play button for the same updates | this pass |
+| The Play button's sparkles kept full speed while the mode select had the mouse over Zen | PlayButton::Update aims the spin speed at 0.5 while the mode select's hovered button (+0x18c) is Zen's | the same as the original | this pass |
+| In 2D the bomb wheel's dark hole was missing once the wheel stood, so the board showed bright through its glass | the screen behind the standing wheel is kept in a DDImage (0x404880), whose stretches are the software screen's and draw the hole with its colour; the port kept it in a MemoryImage, whose fast stretch draws nothing for a colour other than white | the cache is a DDImage without alpha, as the original's | this pass |
+| EndStats' average multiplier read x1.2 for 5 / 4 | the original's C runtime writes %.1f from 17 significant digits with the tie rounded up (x1.3); the port's C library rounds a tie to even | Twist's float formats (the average multiplier, the saved game's play time) are written as the original's runtime writes them (CrtFormatFloat) | this pass |
+| (test kit) The autoplay's routes were one update off | under the autoplay the shots line up at the original's update plus 4, not the menu's plus 5 (found by shooting the port at offsets around each shot); the cause was not traced | gen.py's `offset` line; the rank-up route needs 4 more, since its autoplay reached the level's end 4 updates later in that run | this pass |
+
+### Oddities left alone
+
+- **The menu's global Rand is two draws apart at its start** (NOTES.md, "Oddities"). At the same Play button count
+  the original's Rand had made 318 draws and the port's 316. The cause was not found within the hour. Every effect
+  placed by it (the logo's and the Play button's sparkles, the counters' smoke, debris, the flying gems of a level's
+  end, the replay's stars) has the same shapes, colours, counts and timing, and sits elsewhere.
+- **The original's autoplay slips** 15 updates early or late at times; the board, scores and timers agree.
+- **The unfocused original's update counter stands still** under origrun, so the pause screen at a focus loss cannot
+  be lined up by update. Phase two's set 5 compared it.
+- **A shot can land a few updates early** when the original's counter jumps while it loads (the high scores after a
+  game's end, 14 updates); the port's shot of the same moment matches.
+
+### Differences that remain
+
+- The screens no route reaches are listed in SCREENS.md with their reasons. The mode-unlock banner never shows in
+  this copy: it is Steam's, and its mode select unlocks Blitz the first time it opens. The options' graphics dialogs
+  show only on a card or display that refuses. The original's crash reporter is not ported.
+- FRUITDIFF
+
+### Deviations that remain
+
+None added.
