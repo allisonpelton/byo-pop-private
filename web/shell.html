@@ -2583,7 +2583,8 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     var dpr = window.devicePixelRatio || 1, pick = chosenScale(), n = pick ? scaleInUse(pick) : 1;
     return { w: gameScreen.w * n / dpr + sideWidth(), h: withSide(gameScreen.h * n / dpr + statusBarHeight()) };
   }
-  if (EMBED) window.ByopopEmbed = { close: closeProgram, menus: embedMenus, about: embedAbout, readme: embedReadme, least: embedLeast };
+  // running: whether the game is playing, which holds the screen saver off while its window is in front (web/saver.js)
+  if (EMBED) window.ByopopEmbed = { close: closeProgram, menus: embedMenus, about: embedAbout, readme: embedReadme, least: embedLeast, running: gameRunning };
   // what web/testkit.js reads and calls on the player-only page; nothing on any other page
   if (PLAYER_ONLY) window.ByopopShell = {
     hooks: testHooks, PAGE: PAGE, PERSIST: PERSIST, GAME: GAME, USER: USER, testProfile: TEST_PROFILE,

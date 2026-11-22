@@ -494,7 +494,9 @@ picture's alpha mask is not read: each wallpaper chosen has none.
 Settings > Screen Saver (`web/saver.js`; the user, 2026-11-11) has the game, None by default, then each game with a bot
 whose files are here; the Wait in minutes; and Preview. When the listing's desktop has had no key, mouse or touch for the
 Wait, it goes dark and the game plays itself silently in a frame over it; any key or mouse movement ends it and leaves
-everything as it was. The frame is the game's player-only page at `?saver=1`, which reads the player's own files and writes
+everything as it was. Input in the desktop's windows counts too: each window's frame keeps its events to itself, so the saver
+listens in every frame's page as it loads, and a game playing in the active window (`ByopopEmbed.running`) holds it off
+with no input at all (the user, 2026-11-17: "Screensaver activated while I was playing Typer Shark"). The frame is the game's player-only page at `?saver=1`, which reads the player's own files and writes
 nothing back (its `Storage` writes and IDBFS syncs do nothing), so a saver's games touch no save, high score or record.
 Its page centres the game on black (`html.saver`), and a key pressed while the game's canvas has the focus ends the saver
 too. The driver runs with `?begin=mode`, which starts a game still on its title or menus in the mode its state names.
