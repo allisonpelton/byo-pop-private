@@ -103,6 +103,7 @@ holds no place, so `--places` shows its window only as an overlapping window; a 
 | `name` | The run's tag, under `build/visrun/<name>/`. |
 | `game` or `source_exe` | A `games.tsv` name that origrun stages, or a ready copy's exe. |
 | `exe`, `carve_exe` | The exe's leaf name in the copy, and a carved exe to place as it. |
+| `args` | The game's command-line arguments, a list (Bejeweled Twist's `["-autoplay=classic"]`). |
 | `patches` | A patch list (origrun's format), applied with `--seed`. |
 | `title`, `client` | A text the window's title holds, and the least client size of the game window (`[w, h]`). |
 | `pos` | Ignored: the run's place decides where the window goes. |
@@ -127,6 +128,9 @@ comment. Coordinates are the game's client pixels.
 - `at N <cmd>`, `at +N <cmd>` (counting from the last `mark`), `t <seconds> <cmd>` (since the window came), or a bare
   `<cmd>` (at once). `<cmd>` is `shot <name>`, `burst <name> <count> update <k>`, `peek`, `move x y`, `click x y`, `rclick`,
   `dclick`, `down`, `up`, `rdown`, `rup`, `key <vk>`, `text <chars>`, `focus lose|regain`.
+  A `focus lose` stands until the file's own `focus regain`: visrun otherwise tells the game it has the focus again before
+  each step, since the game never holds the foreground. A game that stops counting updates while unfocused (Bejeweled
+  Twist) needs `t` or `wait` steps until the regain, not `at`.
 - `waitcue <cue> [seconds]`, `waitfor <expr> <op> <value> [ms]`, `mark`, `wait <ms>` (real time; ignored on the virtual
   clock), `quit`. `waitshot` is accepted and ignored (visrun always waits for the window).
 - `gate <cue> <wanted> [fade]`: wait for the cue (a title's "loaded" flag), then for the update `wanted` or the loaded update

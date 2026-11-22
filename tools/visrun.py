@@ -368,7 +368,7 @@ class Game:
             si.dwFlags |= 4
             si.dwX, si.dwY = cfg['_place']
         self.cfg = cfg
-        self.p = subprocess.Popen([exe], cwd=os.path.dirname(exe), env=env, startupinfo=si, creationflags=0x4000)  # BELOW_NORMAL
+        self.p = subprocess.Popen([exe] + [str(x) for x in cfg.get('args', [])], cwd=os.path.dirname(exe), env=env, startupinfo=si, creationflags=0x4000)  # BELOW_NORMAL
         self.h = k32.OpenProcess(0x0010 | 0x0400 | 0x0800 | 0x0001 | 0x0100, False, self.p.pid)   # VM_READ, QUERY_INFO, SUSPEND_RESUME, TERMINATE
         self.hwnd = None
         self.held = False
@@ -1234,6 +1234,7 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
         print('the stand-in has muted the default audio session', file=log, flush=True)
         # a game without the focus ignores posted input: it is told it has it, by messages (the only window of a sandbox had it)
         post_input(g, cur, 'focus', ['regain'])
+        g.focus_lost = False
         flag3d = Cond(cfg['flag3d'] + ' != 99') if cfg.get('flag3d') else None
         flags = set()
         offset, base, refused = 0, 0, 0
@@ -1298,7 +1299,8 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
             return True
 
         def foreground_note(n):
-            if u32.GetForegroundWindow() != g.window():
+            # not while the step file has taken the focus away: its `focus lose` stands until its own `focus regain`
+            if not g.focus_lost and u32.GetForegroundWindow() != g.window():
                 post_input(g, cur, 'focus', ['regain'])   # the user's own windows may take the foreground at any time
         for s in steps:
             if time.time() > deadline_ts:
@@ -1368,6 +1370,8 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
                     flags.add(f)
                     print('line %d: 3D flag %s' % (s.no, f), file=log, flush=True)
             foreground_note(s.no)
+            if s.cmd == 'focus':
+                g.focus_lost = s.args[0] != 'regain'
             if s.cmd == 'shot':
                 shot_now(s.args[0], wanted)
                 if refused >= 3:
