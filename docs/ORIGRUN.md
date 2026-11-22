@@ -18,7 +18,8 @@ The rules a session follows:
   puts the link buttons next to Play.
 - Start `origrun.exe` directly, never under rundesk: it puts the game there itself, and wrapped it fails with
   "cannot start the command".
-- A run is one game process for the machine's limit, a sandbox run too, also while it waits in the queue. A run
+- A run is one game process for the machine's limit, a sandbox run once it holds the sandbox; a run waiting in the
+  queue is not (the user, 2026-11-22, "Count only once running"; `docs/RULES.md`). A run
   past about 4 minutes goes in the background of the session that owns it, never in a subagent.
 - Sound and saves: "You are welcome to run the originals with sound on and mess with my save data" (the user,
   2026-10-31; their saves are backed up). Silence and an untouched registry are therefore conveniences, not
@@ -314,9 +315,10 @@ origrun runs itself and the game again in that session.
   no sandbox, no game, about 8 s): one holds the lock, five arrive 300 ms apart, one of them is ended with
   `TerminateProcess` while it waits and a leftover ticket of a dead pid sits at the head; the lock must go to the
   live ones in arrival order, the logs must show their places changing, and `--queue` must list them in order.
-  Each waiting origrun counts as a game process, so **a session keeps at most one sandbox run queued** and
-  starts the next when it ends; put several scenarios in one run where the script allows (coordinator,
-  2026-11-22, when nine queued runs held the machine's slots).
+  **A session keeps at most one sandbox run queued** and starts the next when it ends, so that every session's
+  runs take turns: a session that queued five would put the others' behind all five. Put several scenarios in one
+  run where the script allows. A waiting run takes none of the machine's 10 game processes (the user, 2026-11-22,
+  "Count only once running"); the sandbox it runs in counts once it starts.
 - **No window on the user's desktop.** origrun never uses the `.wsb` file's `LogonCommand`, and runs
   `wsb connect`, which opens a window, only with `--sandbox-connect`. A guard thread looks every 100 ms for a
   visible window of a Windows Sandbox process, of the broker or of `vmconnect.exe` (exact names) and, on one,

@@ -72,7 +72,10 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   (`python tools/gamecount.py --limit` lists them and exits 1 when there is no room; a wait loop waits on it; an older
   script's `--limit 6` is read as the same limit). One
   check, oracle or script takes at most 3 of them (check.sh's and the oracle's `--jobs`, at most 3), so that others
-  still get slots.
+  still get slots. A sandbox run waiting in origrun's queue is not one of them: it counts once it holds the sandbox,
+  as the running sandbox (the user, 2026-11-22, asked whether a waiting run keeps counting: "Count only once running",
+  after nine queued runs had held nine slots while ports waited). `gamecount` counted that way already; only the
+  sessions' own tally changes.
 - Only one oracle runs on the machine at a time. To wait for another, look for processes that run the oracle script
   (a command line like `bash .../compare.sh ...`) and exclude your own process tree. Never put the wait loop in the
   same shell command that later starts compare.sh: that shell's own command line contains "compare.sh", so it waits
