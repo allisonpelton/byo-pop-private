@@ -18,9 +18,10 @@ set(CMAKE_JOB_POOL_LINK byopop_link)
 # A native exe carries only the code its game uses (docs/BUILDS.md, "Trimming an exe"; the user, 2026-11-13: "Let's
 # stick to trimming the exes to only what the game uses"). Every function and data item is in a section of its own and the
 # linker drops the ones nothing reaches; libc++ and libunwind are linked in, so only the parts used ship and no C++ runtime
-# DLL goes beside the exe. The generated code is the same as without these options. A Release exe is also stripped of its
-# symbol table: a build that is to be profiled by symbol (cpuprof.py's sampling mode) passes -DBYOPOP_STRIP_EXE=OFF.
-option(BYOPOP_STRIP_EXE "Strip the symbol table of native Release exes" ON)
+# DLL goes beside the exe. The generated code is the same as without these options. -DBYOPOP_STRIP_EXE=ON also strips a
+# Release exe's symbol table; it is off here because the sessions' crash logs (llvm-symbolizer), leak tools and
+# profilers read the symbols, and a derived repository's release build strips its own exe.
+option(BYOPOP_STRIP_EXE "Strip the symbol table of native Release exes" OFF)
 set(BYOPOP_LTO "OFF" CACHE STRING "Link-time optimisation of native Release builds: OFF (default), thin or full; docs/BUILDS.md, \"Trimming an exe\"")
 if(MINGW)
   add_compile_options(-ffunction-sections -fdata-sections)
@@ -90,8 +91,13 @@ add_subdirectory(framework)
 
 if(NOT EMSCRIPTEN)
   # Native builds run from the build folder: SDL2.dll goes next to the exe. The C++ runtime (libc++, libunwind) is linked
-  # into each exe (above), so no llvm-mingw runtime DLL is copied: PORT_RUNTIME_DLLS stays empty for the copy steps below.
+  # into each exe (above), so no llvm-mingw runtime DLL is copied, except AddressSanitizer's runtime in a build whose flags
+  # ask for it (the sessions build with -fsanitize=address to hunt a bad write; its exe loads that DLL at start).
   set(PORT_RUNTIME_DLLS "")
+  if("${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} ${CMAKE_EXE_LINKER_FLAGS}" MATCHES "fsanitize")
+    get_filename_component(PORT_COMPILER_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    file(GLOB PORT_RUNTIME_DLLS "${PORT_COMPILER_DIR}/../i686-w64-mingw32/bin/libclang_rt.*.dll")
+  endif()
 endif()
 
 # Framework test app (tools/fwtest): loads Bejeweled's assets through the portable framework and draws a

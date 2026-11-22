@@ -92,9 +92,10 @@ out of the build by configuration. Sizes are Bejeweled 2's and Venice's Release 
 - **Sections and a static C++ runtime (the top-level `CMakeLists.txt`, MinGW builds).** `-ffunction-sections
   -fdata-sections` and `-Wl,--gc-sections` let the linker drop every function and data item nothing reaches, and
   `-static-libstdc++ -static-libgcc` link libc++ and libunwind into the exe, so only the parts used ship and no C++ runtime DLL
-  goes beside it (SDL2.dll is the only DLL left, and `PORT_RUNTIME_DLLS` is empty). A Release exe is also stripped (`-s`); a
-  build to be profiled by symbol (`cpuprof.py`'s sampling mode, `llvm-nm` on the exe) configures with
-  `-DBYOPOP_STRIP_EXE=OFF`. A derived repository's exe has been built this way since `594ad74a`.
+  goes beside it (SDL2.dll is the only DLL left, and `PORT_RUNTIME_DLLS` is empty but for AddressSanitizer's runtime in a
+  build whose flags have `-fsanitize`). `-DBYOPOP_STRIP_EXE=ON` also strips a Release exe (`-s`); it is off in this
+  repository's builds, whose crash logs (`llvm-symbolizer`), leak tools and profilers (`cpuprof.py`'s sampling mode,
+  `llvm-nm`) read the symbols. A derived repository's exe has been built this way since `594ad74a`.
 - **libopenmpt reads MO3 only (`third_party/CMakeLists.txt`, `third_party/openmpt-mo3/`; native builds).** Every module the
   games hand to libopenmpt is an MO3 (`platform/openmpt/OpenMPTPlayer.cpp` passes it files that start with "MO3"; the games'
   IT and S3M tunes go through libxmp-lite), and `ReadMO3` builds the module itself. libopenmpt's format table
