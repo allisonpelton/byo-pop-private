@@ -369,8 +369,8 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
 
 ## Next
 
-- Then the restore-game popup's actions, StageIntroState (0x49d1b0) and
-  GamePlayState, the players' spawn and the HUD, toward a stage in play.
+- The restore-game popup's actions, StageIntroState (0x49d1b0) and GamePlayState, the players' spawn and the HUD,
+  toward a stage in play.
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's
   simplesound). The stage's slot 0x5c (0x447ef0) is not a clean-up but the stage's ending (player died, perfect, stage
   clear, time up) and slot 0x60 (0x43a950) the camera on the first player (+0x344): both return at once without players,
