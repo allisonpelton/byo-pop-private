@@ -82,7 +82,7 @@ inline float DegreesToRadians(float theDegrees)
 	return (float)((double)theDegrees * 3.141590118408203 / 180.0);
 }
 
-// 0x409130, 0x409150 and 0x409170 (bejeweled3): cosine, sine and square root, each rounded to a float
+// 0x409130 (bejeweled3), 0x409150 (bejeweled3) and 0x409170 (bejeweled3): cosine, sine and square root, each rounded to a float
 inline float Cos(float theValue) { return (float)cos((double)theValue); }
 inline float Sin(float theValue) { return (float)sin((double)theValue); }
 inline float Sqrt(float theValue) { return (float)sqrt((double)theValue); }

@@ -89,6 +89,10 @@ public:
 	SexyMatrix3 mDrawTransform2;         // +0xbc8: the second one, applied to positions only (GetEmitterPos)
 	std::vector<unsigned char> mCachedState;   // the bytes the file ends with (LoadState)
 
+	// 0x56e4f0 (bejeweled3): puts the effect into the state its file ends with (false when that state does not read
+	// right to its end); SaveState (0x56eed0 (bejeweled3)) is not translated
+	bool LoadCachedState();
+
 	// port: makes the layers and emitter instances from the definition (the exe makes them while it reads the file)
 	void CreateLayers();
 

@@ -434,8 +434,8 @@ PIEffect::~PIEffect()
 		delete mLayers[i];
 }
 
-// port: the exe makes the layers and their emitter instances while it reads the file (0x56aac0 (bejeweled3), the loops that call 0x565710
-// and 0x565630); here they are made from the finished definition, which cannot move any more
+// port: the exe makes the layers and their emitter instances while it reads the file (0x56aac0 (bejeweled3), the loops that call 0x565710 (bejeweled3)
+// and 0x565630 (bejeweled3)); here they are made from the finished definition, which cannot move any more
 void PIEffect::CreateLayers()
 {
 	for (size_t i = 0; i < mLayers.size(); i++)

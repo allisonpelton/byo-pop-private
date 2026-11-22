@@ -4,8 +4,9 @@
 //
 //   b3_pieffecttest [-v] [path ...]
 //
-// The update and draw of the effect are not translated yet, so no particles run here; the test draws the effect's
-// random numbers with a fixed seed instead, to check the generator.
+// It then plays each effect with a fixed seed (a cached state first, for the files that have one, which must read to
+// its last byte), hashing the particle counts every update and the particles' places every few. The draw is not
+// translated yet, so nothing is drawn here.
 #include "PIEffect.h"
 
 #include <cstdint>
@@ -198,6 +199,39 @@ void CollectFiles(const fs::path& thePath, std::vector<fs::path>& theFiles)
 	}
 }
 
+// the particles of one group, in order: where each is, how old, and which of the definition's it is
+void HashGroup(Hasher& theHasher, const PIParticleGroup& theGroup)
+{
+	theHasher.Add(&theGroup.mCount, sizeof(theGroup.mCount));
+	for (const PIParticleInstance* aParticle = theGroup.mHead; aParticle != NULL; aParticle = aParticle->mNext) {
+		theHasher.Add(&aParticle->mPositionX, sizeof(double));
+		theHasher.Add(&aParticle->mPositionY, sizeof(double));
+		theHasher.Add(&aParticle->mAge, sizeof(float));
+		theHasher.Add(&aParticle->mAngle, sizeof(float));
+		theHasher.Add(&aParticle->mIndex, sizeof(int));
+		theHasher.Add(&aParticle->mTransform.m02, sizeof(float));
+		theHasher.Add(&aParticle->mTransform.m12, sizeof(float));
+		const PIFreeEmitterInstance* aFreeEmitter = dynamic_cast<const PIFreeEmitterInstance*>(aParticle);
+		if (aFreeEmitter != NULL && theGroup.mIsFreeEmitterList)
+			HashGroup(theHasher, aFreeEmitter->mParticles);
+	}
+}
+
+// every particle the effect has now
+void HashParticles(Hasher& theHasher, PIEffect& theEffect)
+{
+	for (size_t i = 0; i < theEffect.mLayers.size(); i++) {
+		PILayer* aLayer = theEffect.mLayers[i];
+		for (size_t j = 0; j < aLayer->mEmitterInstances.size(); j++) {
+			HashGroup(theHasher, aLayer->mEmitterInstances[j]->mFreeEmitters);
+			HashGroup(theHasher, aLayer->mEmitterInstances[j]->mParticles);
+		}
+	}
+}
+
+const int kPlayUpdates = 300;     // how many updates each effect is played for
+const int kHashEvery = 10;        // the particles' places are hashed this often
+
 }   // namespace
 
 // port: the test's entry point
@@ -222,7 +256,11 @@ int main(int argc, char** argv)
 	size_t aLayerCount = 0;
 	size_t anInstanceCount = 0;
 	size_t aParticleDefCount = 0;
+	int aBadState = 0;
+	long long aUpdateCount = 0;
+	int aPeakParticles = 0;
 	Hasher aTotalHash;
+	Hasher aPlayHash;
 
 	for (size_t aFileIndex = 0; aFileIndex < aFiles.size(); aFileIndex++) {
 		std::ifstream aStream(aFiles[aFileIndex], std::ios::binary);
@@ -263,13 +301,33 @@ int main(int argc, char** argv)
 		aTotalHash.Add(&aCurveHash, sizeof(aCurveHash));
 		aTotalHash.Add(aDraws, sizeof(aDraws));
 
+		if (!anEffect.mCachedState.empty() && !anEffect.LoadCachedState()) {
+			aBadState++;
+			std::printf("BADSTATE %s: the cached state does not read to its end\n", aFiles[aFileIndex].string().c_str());
+		}
+		anEffect.ResetAnim();
+		anEffect.mSeeds.assign(1, 1234);
+		int aFilePeak = 0;
+		for (int anUpdate = 0; anUpdate < kPlayUpdates; anUpdate++) {
+			anEffect.Update();
+			aUpdateCount++;
+			int aCounts[2] = {anEffect.mParticleCount, anEffect.mEmitterCount};
+			aPlayHash.Add(aCounts, sizeof(aCounts));
+			if (anEffect.mParticleCount > aFilePeak)
+				aFilePeak = anEffect.mParticleCount;
+			if (anUpdate % kHashEvery == kHashEvery - 1)
+				HashParticles(aPlayHash, anEffect);
+		}
+		if (aFilePeak > aPeakParticles)
+			aPeakParticles = aFilePeak;
+
 		if (aVerbose) {
 			std::printf("%s: v%d %zu/%zu bytes, %zu textures, %zu emitters (%zu particle defs), %zu layers (%zu emitter instances), "
-			            "%dx%d, %d fps, frames %d..%d, hash %016llx curves %016llx\n",
+			            "%dx%d, %d fps, frames %d..%d, hash %016llx curves %016llx, at most %d particles\n",
 			            aFiles[aFileIndex].string().c_str(), anEffect.mVersion, anEffect.mBytesRead, aData.size(),
 			            anEffect.mDef.mTextures.size(), anEffect.mDef.mEmitters.size(), aParticleDefs, anEffect.mDef.mLayers.size(),
 			            anInstances, anEffect.mWidth, anEffect.mHeight, anEffect.mFramerate, anEffect.mFirstFrameNum,
-			            anEffect.mLastFrameNum, (unsigned long long)aDefinitionHash, (unsigned long long)aCurveHash);
+			            anEffect.mLastFrameNum, (unsigned long long)aDefinitionHash, (unsigned long long)aCurveHash, aFilePeak);
 		}
 	}
 
@@ -277,5 +335,7 @@ int main(int argc, char** argv)
 	            "%zu particle defs, %zu layers, %zu emitter instances; hash %016llx\n",
 	            aFiles.size(), aLoaded, aFailed, anInexact, aCached, anEmitterCount, aParticleDefCount, aLayerCount,
 	            anInstanceCount, (unsigned long long)aTotalHash.mHash);
-	return aFailed == 0 && anInexact == 0 ? 0 : 1;
+	std::printf("played: %lld updates, %d cached states not read to their end, at most %d particles; hash %016llx\n",
+	            aUpdateCount, aBadState, aPeakParticles, (unsigned long long)aPlayHash.mHash);
+	return aFailed == 0 && anInexact == 0 && aBadState == 0 ? 0 : 1;
 }

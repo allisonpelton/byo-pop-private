@@ -37,6 +37,12 @@ void PIEffect::Update()
 		mNeedsSeed = false;
 	}
 
+	if (anAtStart && !mCachedState.empty()) {
+		LoadCachedState();
+		mNeedsSeed = false;
+		return;
+	}
+
 	bool aFirstPass = true;
 	while (mFrameNum < (float)mFirstFrameNum || aFirstPass) {
 		float aStepDivisor = (float)(100.0 / (double)mAnimSpeed);
