@@ -319,8 +319,22 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
 
 ## Next
 
-- The menu's fish, continued: the stunned effect; the stage's clean-up (0x5c, 0x447ef0); the camera (0x60); the
-  fish's sounds.
+- The menu's fish, continued: the stunned effect and the fish's sounds. The stage's slot 0x5c (0x447ef0) is not a
+  clean-up but the stage's ending (player died, perfect, stage clear, time up) and slot 0x60 (0x43a950) the camera on
+  the first player (+0x344): both return at once without players, so they wait for the players.
+- Sound, next, as the menu's random draws depend on it: the stage's ambient sounds (+0x318) are a MusicSystem read
+  from the stage's ambientSound (resource/sounds/ambience1.xml on the menu: a looped water layer and three layers
+  "random-not-last" of two clips each, with initialDelay and delay ranges). Each layer's delay is drawn with the C
+  library's rand (0x422cb0) and its clip picked with it (0x41ce70, the sequences 0 to 3 of MusicLayer's +0x1c), so
+  those draws are in the same order as the fish's. Pieces: MusicSystemDocHandler (0x426470 for musicSystem, clip
+  and its "special" start, final and bridge; 0x425bb0 for musicLayer: sequence, initialDelay, volume, fadeInTime,
+  fadeOutTime, immediate, delay, Layer), MusicLayer (0x40c360, 0x84 bytes), MusicSystem (vtable 0x55d228), the
+  start's 0x486810 and 0x486860, the update's 0x439b80 and 0x439ac0, and the clip's set-up 0x4142c0. The clips are
+  handles of the global SimpleSound (0x5ab9e4: slot 0x80 registers a stream, 0x84 gives its handle; the handle's
+  0x00, 0x08, 0x24, 0x2c, 0x34, 0x38, 0x3c), simplesounddx's SimpleSoundDX and (Static)SoundHandleDX, all of it
+  engine (engines/sprout2), none translated yet, over platform/Audio.h's Mixer on the game's clock under -fast. A
+  clip's end decides when the next delay is drawn, so the original's draws follow how long each clip plays: compare
+  under origrun's virtual clock before taking any order as the original's.
 
 - The popup's other actions (pause, quit, save game, options); the duplicate name's and the full list's
   confirmations are wired but not yet seen.
