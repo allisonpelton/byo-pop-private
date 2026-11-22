@@ -1,11 +1,11 @@
 # menus: no saves; the title, the menu, the dialogs of the menu, the adventure's name box and map, the board's dialogs, the focus
 30 tshot title 1450
 99 title
-105 shot menu_t105
-115 shot menu_t115
-130 shot menu_t130
-160 shot menu_t160
-200 shot menu_t200
+105 tshot menu_t105 1506
+115 tshot menu_t115 1516
+130 tshot menu_t130 1531
+160 tshot menu_t160 1561
+200 tshot menu_t200 1601
 900 shot menu
 1000 click 455 426
 1060 shot quit_game
@@ -17,6 +17,7 @@
 1360 shot name_invalid
 1400 click 320 256
 1460 shot name_after_invalid
+1490 click 320 241
 1500 text Bob
 1520 shot name_typed
 1540 click 320 299
@@ -46,6 +47,7 @@
 2900 shot name_in_use
 2940 click 320 256
 3000 shot name_after_in_use
+3050 click 320 241
 3060 text Zed
 3100 click 320 299
 3160 shot intro2

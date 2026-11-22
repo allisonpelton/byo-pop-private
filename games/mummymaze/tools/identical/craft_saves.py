@@ -9,7 +9,7 @@ Only the name, the progress, the marker, the seconds and the catches change; the
 import struct
 import sys
 
-MAP = ".-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+MAP = "+-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 
 def web_string(values):

@@ -62,6 +62,7 @@ MMApp::MMApp() :
 	mSidePanel = NULL;
 	// port: the 2003 framework's DrawImageBox (0x432210) for the dialog buttons (Button2003.h)
 	Graphics::mDrawImageBox2003 = true;
+	Buffer::sWebZeroChar = '+';	// the original's digit table (0x496164) starts with '+', where the later framework's starts with '.'
 	mGameMode = MODE_CLASSIC;
 	mCurrentSlot = 0;
 	mSpeed = 1;
