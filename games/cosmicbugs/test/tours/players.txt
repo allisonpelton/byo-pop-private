@@ -1,0 +1,45 @@
+# The player list: Change User from the title, Delete with only one player (the message), a name typed into an empty slot,
+# a second player, the name box cancelled, Delete with two players (its confirmation), Rename, another player chosen, the
+# current one again (back to the title). Times follow the coverage script tools/coverage/scripts/users.txt.
+3000 click 175 590
+4000 shot players_list
+4500 click 400 444
+5500 shot players_message
+6000 click 400 330
+7000 shot players_list2
+7500 click 400 185
+8500 shot players_name
+9000 key 65
+9300 key 66
+9600 key 13
+10600 shot players_ab
+11100 click 400 210
+12000 shot players_name2
+12600 key 68
+12900 key 69
+13200 key 13
+14200 shot players_ab_de
+14700 click 400 235
+15700 shot players_name3
+16200 click 460 330
+17200 shot players_cancelled
+17700 click 400 444
+18700 shot players_delete
+19200 click 340 330
+20200 shot players_deleted
+20700 click 330 444
+21700 shot players_rename
+22200 key 71
+22500 key 8
+22800 key 72
+23100 key 13
+24100 shot players_renamed
+24600 click 400 160
+25600 shot players_pick1
+26100 click 400 185
+27100 shot players_pick2
+27600 click 400 210
+28600 shot players_pick3
+29100 click 400 210
+30100 shot players_back
+31000 end
