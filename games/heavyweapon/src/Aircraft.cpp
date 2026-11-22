@@ -1230,13 +1230,13 @@ void Satellite::Draw(Graphics* g)
 		for (int i = 0; aGreen >= 0; i++)
 		{
 			g->SetColor(Color(aRed, aGreen, aRed));
-			g->DrawLine((int)((double)i + mX), (int)(mY + 48.0), (int)((double)i + mX), CRAFT_GROUND_Y + 12);
-			g->DrawLine((int)(mX - (double)i), (int)(mY + 48.0), (int)(mX - (double)i), CRAFT_GROUND_Y + 12);
+			g->DrawLine((int)((double)i + mX), (int)(mY + 48.0), (int)((double)i + mX), CRAFT_GROUND_Y);
+			g->DrawLine((int)(mX - (double)i), (int)(mY + 48.0), (int)(mX - (double)i), CRAFT_GROUND_Y);
 			aGreen -= 0x40;
 			aRed -= 0x20;
 		}
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-		mApp->mSprites[IMAGE_LASERBURN]->Draw(g, (int)mX, CRAFT_GROUND_Y + 12, true, (mApp->mUpdateCount % 40) / 4, 0, false);
+		mApp->mSprites[IMAGE_LASERBURN]->Draw(g, (int)mX, CRAFT_GROUND_Y, true, (mApp->mUpdateCount % 40) / 4, 0, false);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}
 	if (mBeamTime != 0)

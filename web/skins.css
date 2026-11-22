@@ -35,6 +35,9 @@
 :root[data-skin="d95"] :is(#players-body, #saves-body) button:not(#\#) { background: var(--panel); color: var(--fg); }
 /* bold: one weight struck twice (the font's file answers every weight with the same glyphs) */
 :root[data-skin="d95"] :is(b, strong, th, h1, h2, h3, h4, dt, summary, .d95-tb, .d95-tb-text) { text-shadow: 1px 0 0 currentColor; letter-spacing: 1px; }
+/* and the desktop's own bold: the Pop button's word, the active window's task bar button (the user, 2026-11-21: "the active
+   window lacks bold text") and a menu's default entry */
+html.d95-desk :is(.d95-pop, .d95-task[aria-pressed=true] > .d95-task-text, .d95-default) { text-shadow: 1px 0 0 currentColor; letter-spacing: 1px; }
 /* the raised bevel of a window or a button, and the sunken one of a field */
 :root[data-skin="d95"] .games > li, :root[data-skin="d95"] main:not(.stage-wrap), :root[data-skin="d95"] .bar, :root[data-skin="d95"] .panel,
 :root[data-skin="d95"] .chat, :root[data-skin="d95"] button, :root[data-skin="d95"] .button {
@@ -158,9 +161,29 @@
 :root[data-skin="d95"] .si-pre:not(#\#) { border: 0; border-radius: 0; background: var(--sk-well);
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
 :root[data-skin="d95"] .pl-confirm.si-confirm:not(#\#) { border: 0; border-radius: 0; padding: 0; background: none; margin: 0 0 8px; }
-/* Saves' storage as its status bar: a sunken panel held at the window's foot */
-:root[data-skin="d95"] .sv-where:not(#\#) { position: sticky; bottom: -8px; margin: 12px -8px -8px; padding: 2px 6px; font-size: 12px; color: var(--fg);
-  background: var(--panel); box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), 0 -2px 0 var(--panel); }
+/* the Saves window (web/saves.js): its two group boxes, etched as the Sounds board's, and the saves as a details list, a white
+   well with raised column headings and the counts at the right */
+:root[data-skin="d95"] .sv-group:not(#\#) { margin: 0 0 10px; padding: 3px 8px 8px; min-width: 0; border: 1px solid; border-radius: 0;
+  border-color: var(--sk-lo) var(--sk-hi) var(--sk-hi) var(--sk-lo); box-shadow: inset 1px 1px var(--sk-hi), inset -1px -1px var(--sk-lo); }
+:root[data-skin="d95"] .sv-group > legend:not(#\#) { margin-left: 2px; padding: 0 3px; background: var(--panel); font-weight: normal; line-height: 14px; }
+:root[data-skin="d95"] .sv-well:not(#\#) { max-height: 132px; overflow: auto; margin-top: 4px; padding: 2px; background: var(--sk-well);
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+:root[data-skin="d95"] .sv-table:not(#\#) { font-size: 11px; }
+:root[data-skin="d95"] .sv-table :is(th, td):not(#\#) { padding: 1px 6px; border: 0; line-height: 14px; color: #000000; font-weight: normal;
+  text-shadow: none; letter-spacing: normal; }
+:root[data-skin="d95"] .sv-table thead th:not(#\#) { position: sticky; top: -2px; background: var(--panel);
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo); }
+:root[data-skin="d95"] .sv-table .pl-empty:not(#\#) { padding: 4px 6px; color: var(--sk-lo); }
+:root[data-skin="d95"] .sv-actions:not(#\#) { margin: 8px 0 0; gap: 6px; }
+/* its status bar, held at the window's foot: the last message, and where the saves are kept, each a sunken panel */
+:root[data-skin="d95"] .sv-bar:not(#\#) { position: sticky; bottom: -8px; display: flex; flex-wrap: nowrap; gap: 2px; margin: 12px -8px -8px; padding: 2px;
+  background: var(--panel); box-shadow: 0 -2px 0 var(--panel); }
+:root[data-skin="d95"] .sv-bar-text:not(#\#) { margin: 0; padding: 1px 4px; min-height: 16px; line-height: 16px; color: var(--fg); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi); }
+/* the message takes the room left and is cut short with an ellipsis (its title holds the whole line); its width of 0 keeps a long
+   one from widening the window, whose body is sized by what it holds */
+:root[data-skin="d95"] .sv-status:not(#\#) { flex: 1 1 0; width: 0; min-width: 0; }
+:root[data-skin="d95"] .sv-where:not(#\#) { flex: none; }
 /* the current player: its name in bold beside its checked button, as Windows 95 marked the one in use; the word stays for
    screen readers */
 :root[data-skin="d95"] .pl-current { font-weight: normal; }
@@ -190,6 +213,20 @@ html.d95-desk.game-loading .stage-wrap.d95-win { visibility: hidden; }
 html.d95-desk.game-unmade .stage-wrap.d95-win { visibility: hidden; }
 html.d95-desk.game-unmade:not(.game-loading) .stage-wrap.d95-win .overlay:not([hidden]) > .card { visibility: visible; }
 html.d95-desk.game-loading, html.d95-desk.game-loading * { cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20x%3D%228%22%20y%3D%223%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%2226%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M10%206h12v4l-4%205v2l4%205v4H10v-4l4-5v-2l-4-5z%22%20fill%3D%22%23fff%22%20stroke%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M12%208h8v1.5l-4%204.5-4-4.5z%22%20fill%3D%22%23000080%22%2F%3E%3Cpath%20d%3D%22M15.5%2018h1l3.5%204v2h-8v-2z%22%20fill%3D%22%23000080%22%2F%3E%3C%2Fsvg%3E") 16 16, wait !important; }
+/* The desktop's loading (web/skins.js, bootStart; the user, 2026-11-20: "Replace that load with something 95-themed"): until the
+   desktop is whole, the root's two pseudo-elements cover the page: the desktop's colour with the hourglass, and in the middle a
+   raised box with a line of text and a sunken strip of blue blocks that fills (--d95-boot-w, whole blocks of 9 pixels and a
+   gap of 2), as 1995's Setup showed its progress */
+html.d95-booting, html.d95-booting * { cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20x%3D%228%22%20y%3D%223%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%2226%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M10%206h12v4l-4%205v2l4%205v4H10v-4l4-5v-2l-4-5z%22%20fill%3D%22%23fff%22%20stroke%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M12%208h8v1.5l-4%204.5-4-4.5z%22%20fill%3D%22%23000080%22%2F%3E%3Cpath%20d%3D%22M15.5%2018h1l3.5%204v2h-8v-2z%22%20fill%3D%22%23000080%22%2F%3E%3C%2Fsvg%3E") 16 16, wait !important; }
+html.d95-booting::before { content: ""; position: fixed; inset: 0; z-index: 2147483646; background: var(--bg); }
+html.d95-booting::after { content: attr(data-d95-boot); position: fixed; left: 50%; top: 50%; z-index: 2147483647; box-sizing: border-box;
+  width: 250px; height: 62px; margin: -31px 0 0 -125px; padding: 10px 12px 0; overflow: hidden; white-space: nowrap;
+  font: 11px/13px var(--font-ui); color: var(--fg); -webkit-font-smoothing: none;
+  background: repeating-linear-gradient(90deg, var(--accent) 0 9px, transparent 9px 11px) 16px 36px / var(--d95-boot-w, 0px) 12px no-repeat,
+    linear-gradient(var(--sk-well), var(--sk-well)) 14px 34px / 223px 15px no-repeat, linear-gradient(var(--sk-dk), var(--sk-dk)) 13px 33px / 224px 16px no-repeat,
+    linear-gradient(var(--sk-lo), var(--sk-lo)) 12px 32px / 225px 17px no-repeat, linear-gradient(var(--sk-hi), var(--sk-hi)) 12px 32px / 226px 18px no-repeat,
+    var(--panel);
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid); }
 /* The games have no caps (the user, 2026-11-08: "The animated bottle caps clash with the Windows 95 skin. I'd prefer bare initials
    for missing games, and the plain favicon otherwise."): a game whose files are here shows its exe's own icon at its size, plainly;
    any other its initials on a plain white square icon, black-edged with a grey shadow, in the 16-colour palette; no cap, no
@@ -213,6 +250,20 @@ html.d95-desk.game-loading, html.d95-desk.game-loading * { cursor: url("data:ima
 :root[data-skin="d95"] .chat .bpc-log { background: var(--sk-well); margin: 2px 6px 4px;
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
 :root[data-skin="d95"] .chat .bpc-foot { border-top: 0; background: var(--panel); }
+/* the chat as a 1995 IRC client's channel window (web/chat.js): the topic line a sunken field, the messages and the people
+   two white wells side by side, the panel's own lines green as a client drew a join, the line to write in under them */
+:root[data-skin="d95"] .chat .bpc-topic:not(#\#) { margin: 4px 6px 2px; padding: 2px 4px; border: 0; background: var(--sk-well); color: #000000;
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+:root[data-skin="d95"] .chat .bpc-panes { margin: 2px 6px 4px; gap: 2px; }
+:root[data-skin="d95"] .chat .bpc-panes > .bpc-log:not(#\#) { margin: 0; }
+:root[data-skin="d95"] .chat .bpc-nicks:not(#\#) { border: 0; background: var(--sk-well); color: #000000;
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+html.d95-desk .chat .bpc-panes > .d95-client:not(#\#) { margin: 0; }
+html.d95-desk .chat .bpc-panes > .d95-client:last-child:not(#\#) { flex: none; width: 112px; }
+html.d95-desk .chat .d95-client > .bpc-nicks:not(#\#) { width: auto; box-shadow: none; }
+:root[data-skin="d95"] .chat :is(.bpc-sys, .bpc-day):not(#\#) { color: #007a00; }
+:root[data-skin="d95"] .chat .bpc-foot:not(#\#) { padding: 0 6px 6px; gap: 4px; }
+:root[data-skin="d95"] .chat .bpc-who:not(#\#) { gap: 4px 6px; }
 :root[data-skin="d95"] .chat .bpc-jump { border-radius: 0; background: var(--panel); color: var(--fg); font-weight: normal; }
 /* Its collapser is the 1995 desktop's minimize button (the user, 2026-11-08: "Change chat collapser to be like the Windows
    minimize button"): a small raised grey button at the title bar's right with the underscore glyph, pressed in while clicked.
@@ -308,10 +359,10 @@ html.d95-desk .d95-win > .d95-rz-se { bottom: -2px; right: -2px; width: 12px; he
 /* the resize cursors of 1995 (the user, 2026-11-09: "The windows should use a resize cursor on the edges"): a black double arrow
    edged in white, up and down, across or diagonal, drawn here as the skin's busy and What's This? cursors are; they win over a
    site cursor set (web/cursors.js), which has no resize cursor, and none shows on a maximized window, which no edge resizes */
-html.d95-desk .d95-win > .d95-rz-n, html.d95-desk .d95-win > .d95-rz-s, :root[data-skin="d95"] .mu-split { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(0 16.5 16.5)' fill='#000' stroke='#fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, ns-resize !important; }
-html.d95-desk .d95-win > .d95-rz-e, html.d95-desk .d95-win > .d95-rz-w { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(90 16.5 16.5)' fill='#000' stroke='#fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, ew-resize !important; }
-html.d95-desk .d95-win > .d95-rz-nw, html.d95-desk .d95-win > .d95-rz-se, html.d95-desk .stage-wrap.d95-win > .d95-grip { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(-45 16.5 16.5)' fill='#000' stroke='#fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, nwse-resize !important; }
-html.d95-desk .d95-win > .d95-rz-ne, html.d95-desk .d95-win > .d95-rz-sw { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(45 16.5 16.5)' fill='#000' stroke='#fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, nesw-resize !important; }
+html.d95-desk .d95-win > .d95-rz-n, html.d95-desk .d95-win > .d95-rz-s, :root[data-skin="d95"] .mu-split { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(0 16.5 16.5)' fill='%23000' stroke='%23fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, ns-resize !important; }
+html.d95-desk .d95-win > .d95-rz-e, html.d95-desk .d95-win > .d95-rz-w { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(90 16.5 16.5)' fill='%23000' stroke='%23fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, ew-resize !important; }
+html.d95-desk .d95-win > .d95-rz-nw, html.d95-desk .d95-win > .d95-rz-se, html.d95-desk .stage-wrap.d95-win > .d95-grip { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(-45 16.5 16.5)' fill='%23000' stroke='%23fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, nwse-resize !important; }
+html.d95-desk .d95-win > .d95-rz-ne, html.d95-desk .d95-win > .d95-rz-sw { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(45 16.5 16.5)' fill='%23000' stroke='%23fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, nesw-resize !important; }
 html.d95-desk .d95-win.d95-maxed > .d95-rz { display: none; }
 /* a window given a size keeps it: its contents scroll in it (a sized window's own min and max come from web/skins.js) */
 html.d95-desk .d95-win[style*="height"]:not(.stage-wrap) { min-height: 0; }
@@ -399,7 +450,8 @@ html.d95-desk .bar.d95-win:not(#\#) > .d95-tb { flex: 1 0 100%; margin: 0 -6px 0
 html.d95-desk .stage-wrap.d95-win { display: block; place-items: normal; width: max-content; }
 html.d95-desk .stage-wrap .stage { box-shadow: none; max-width: none; }
 /* the chat: a fixed size, whatever room the page has beside the game (chat.js's chat-below has no part here) */
-html.d95-desk .chat.d95-win { width: 300px; height: 480px; max-height: calc(calc(100vh / var(--d95-z, 1)) - 60px); }
+/* wide enough for the messages beside the people in the room (web/chat.js) */
+html.d95-desk .chat.d95-win { width: 420px; height: 480px; max-width: calc(calc(100vw / var(--d95-z, 1)) - 24px); max-height: calc(calc(100vh / var(--d95-z, 1)) - 60px); }
 html.d95-desk .chat.d95-win.chat-collapsed { height: auto; }
 html.d95-desk .chat.d95-win h2 button { margin: 0; }
 /* the panels: windows at the right, as high as their contents */
@@ -426,6 +478,59 @@ html.d95-desk main.d95-win .d95-body > :not(.d95-client) { flex: none; }
 html.d95-desk main.d95-win .d95-body > .d95-client { flex: 1 1 auto; min-height: 80px; margin-bottom: 8px; }
 html.d95-desk body > footer.d95-win { width: min(640px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); color: var(--fg); }
 html.d95-desk body > footer.d95-win .d95-body { padding: 4px 9px 6px; }
+/* System Information (web/sysinfo.js, in the listing page's footer): Windows 95's System Properties, a property sheet of three
+   tabs as Settings' were off the desktop, the shown one joined to the raised page under it. The pages share one cell, the
+   hidden ones kept in it unseen, so the window keeps the size of the largest as the tabs change. */
+html.d95-desk body > footer#sysinfo.d95-win { width: min(420px, calc(calc(100vw / var(--d95-z, 1)) - 24px)); font-size: 11px; }
+html.d95-desk body > footer#sysinfo.d95-win .d95-body { padding: 8px 8px 10px; }
+html.d95-desk .sy-tabs { display: flex; padding-left: 2px; }
+html.d95-desk .sy-tab:not(#\#) { min-width: 0; min-height: 0; margin: 2px 0 0; padding: 3px 9px; border: 0; border-radius: 0; background: var(--panel); color: var(--fg);
+  font: inherit; box-shadow: inset 1px 1px var(--sk-hi), inset -1px 0 var(--sk-dk), inset -2px 0 var(--sk-lo), inset 0 -1px var(--sk-hi); }
+html.d95-desk .sy-tab[aria-selected=true]:not(#\#) { margin: 0 -2px 0; padding: 3px 11px 6px; position: relative; z-index: 1;
+  box-shadow: inset 1px 1px var(--sk-hi), inset -1px 0 var(--sk-dk), inset -2px 0 var(--sk-lo); }
+html.d95-desk .sy-tab:focus-visible:not(#\#) { outline: 1px dotted var(--sk-dk); outline-offset: -4px; }
+html.d95-desk .sy-sheet { display: grid; margin-top: -1px; padding: 10px 10px 8px;
+  box-shadow: inset 1px 1px var(--sk-hi), inset -1px -1px var(--sk-dk), inset -2px -2px var(--sk-lo); }
+html.d95-desk .sy-sheet > * { grid-area: 1 / 1; min-width: 0; }
+html.d95-desk .sy-off { visibility: hidden; }
+/* General: the site's mark at the left and the facts beside it, as 1995's logo and "System:", an etched line, then the text */
+html.d95-desk .sy-system { display: flex; gap: 18px; align-items: flex-start; margin: 0 0 8px; padding: 0 0 8px; border-bottom: 1px solid var(--sk-lo);
+  box-shadow: 0 1px var(--sk-hi); }
+html.d95-desk .sy-logo { flex: none; width: 64px; height: 64px; margin: 2px 8px 0 6px; }
+html.d95-desk .sy-facts { margin: 0; }
+html.d95-desk .sy-facts dt:not(#\#) { font-weight: normal; text-shadow: none; letter-spacing: normal; }
+html.d95-desk .sy-facts dd { display: flex; flex-direction: column; margin: 0 0 6px 24px; }
+html.d95-desk .sy-general p { margin: 0 0 6px; }
+html.d95-desk .sy-general .sy-made { margin-bottom: 2px; }
+html.d95-desk .sy-credits { margin: 0 0 6px; padding-left: 18px; }
+html.d95-desk .sy-general .d95-keys { margin: 0; }
+/* Performance: the status as label and value, the running games as a details list, the switch in its own group box */
+html.d95-desk .sy-group { margin: 0 0 10px; padding: 3px 8px 8px; min-width: 0; border: 1px solid; border-color: var(--sk-lo) var(--sk-hi) var(--sk-hi) var(--sk-lo);
+  box-shadow: inset 1px 1px var(--sk-hi), inset -1px -1px var(--sk-lo); }
+html.d95-desk .sy-group > legend { margin-left: 2px; padding: 0 3px; background: var(--panel); line-height: 14px; }
+html.d95-desk .sy-facts.sy-status { display: grid; grid-template-columns: max-content 1fr; gap: 3px 18px; margin: 4px 4px 8px; }
+html.d95-desk .sy-facts.sy-status dd { margin: 0; }
+html.d95-desk .sy-well { max-height: 96px; overflow: auto; padding: 2px; background: var(--sk-well);
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+html.d95-desk .sy-table { width: 100%; border-collapse: collapse; }
+html.d95-desk .sy-table :is(th, td):not(#\#) { padding: 1px 6px; text-align: left; font-weight: normal; line-height: 14px; color: #000000; white-space: nowrap;
+  text-shadow: none; letter-spacing: normal; }
+html.d95-desk .sy-table thead th { position: sticky; top: -2px; background: var(--panel);
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo); }
+html.d95-desk .sy-table .sy-num:not(#\#) { text-align: right; }
+html.d95-desk .sy-table .sy-empty:not(#\#) { color: var(--sk-lo); }
+html.d95-desk .sy-check { display: flex; gap: 6px; align-items: center; margin: 4px 2px 0; }
+/* Monitor: the game chosen, and System Monitor's charts, each named above a white well with its last value at the right */
+html.d95-desk .sy-pick { display: flex; gap: 6px; align-items: center; margin: 0 0 8px; }
+html.d95-desk .sy-pick select { min-width: 0; flex: 1 1 auto; }
+html.d95-desk .sy-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 8px; }
+html.d95-desk .sy-chart { margin: 0; min-width: 0; }
+html.d95-desk .sy-chart-cap { display: flex; gap: 6px; justify-content: space-between; margin: 0 0 2px; white-space: nowrap; }
+html.d95-desk .sy-chart-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+html.d95-desk .sy-chart-now { flex: none; }
+html.d95-desk .sy-plot { padding: 2px; background: var(--sk-well);
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+html.d95-desk .sy-chart-plot { display: block; width: 100%; height: 92px; }
 /* the listing's tabs as windows of their own: no tab strip, every tab's window drawn however the tabs stood */
 html.d95-desk .tabs { display: none; }
 html.d95-desk .tabpanel.d95-win { width: min(600px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); }
@@ -444,14 +549,15 @@ html.d95-desk .d95-taskbar { display: flex; align-items: center; gap: 4px; posit
 html.d95-desk .d95-taskbar[hidden] { display: none; }
 html.d95-desk .d95-taskbar button { height: 24px; padding: 0 6px; min-height: 0; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 html.d95-desk .d95-popwrap { position: relative; flex: none; }
-html.d95-desk .d95-pop { font-weight: bold; padding: 0 6px 0 4px; }
-html.d95-desk .d95-pop-cap { display: block; width: 16px; height: 16px; background: #c8102e;
-  -webkit-mask: url(cap.svg) center / contain no-repeat; mask: url(cap.svg) center / contain no-repeat; }
+html.d95-desk .d95-pop { padding: 0 6px 0 4px; }
+/* the Pop button's mark (the user, 2026-11-21: "The red circle should be replaced with something that "pops" more"): a yellow
+   burst with an orange heart and a red edge, our own drawing at 16 x 16 */
+html.d95-desk .d95-pop-cap { display: block; width: 16px; height: 16px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpolygon points='8.0,0.4 9.3,3.3 11.8,1.4 11.5,4.5 14.6,4.2 12.7,6.7 15.6,8.0 12.7,9.3 14.6,11.8 11.5,11.5 11.8,14.6 9.3,12.7 8.0,15.6 6.7,12.7 4.2,14.6 4.5,11.5 1.4,11.8 3.3,9.3 0.4,8.0 3.3,6.7 1.4,4.2 4.5,4.5 4.2,1.4 6.7,3.3' fill='%23ffd21f' stroke='%23b4121e' stroke-width='0.9'/%3E%3Cpolygon points='8.6,3.4 9.2,5.0 10.8,4.4 10.5,6.1 12.2,6.2 11.2,7.6 12.6,8.6 11.0,9.2 11.6,10.8 9.9,10.5 9.8,12.2 8.4,11.2 7.4,12.6 6.8,11.0 5.2,11.6 5.5,9.9 3.8,9.8 4.8,8.4 3.4,7.4 5.0,6.8 4.4,5.2 6.1,5.5 6.2,3.8 7.6,4.8' fill='%23ff7a00'/%3E%3Crect x='6' y='5' width='2' height='1' fill='%23ffffff'/%3E%3Crect x='5' y='6' width='1' height='2' fill='%23ffffff'/%3E%3C/svg%3E") center / 16px 16px no-repeat; }
 html.d95-desk .d95-pop[aria-expanded=true] > * { transform: translate(1px, 1px); }
 html.d95-desk .d95-tasks { display: flex; gap: 3px; flex: 1 1 auto; min-width: 0; overflow: hidden; padding-left: 4px; }
 html.d95-desk .d95-task { flex: 0 1 160px; min-width: 40px; justify-content: flex-start; }
 html.d95-desk .d95-task > span { overflow: hidden; text-overflow: ellipsis; }
-html.d95-desk .d95-task[aria-pressed=true] { font-weight: bold;
+html.d95-desk .d95-task[aria-pressed=true] {
   background: repeating-conic-gradient(var(--panel) 0 25%, var(--sk-hi) 0 50%) 0 0 / calc(var(--d95-dot, 1px) * 2) calc(var(--d95-dot, 1px) * 2); }
 html.d95-desk .d95-task[aria-pressed=true] > span { background: var(--panel); }
 html.d95-desk .d95-tray { display: flex; align-items: center; gap: 6px; flex: none; height: 24px; padding: 0 8px 0 4px; box-sizing: border-box;
@@ -479,6 +585,44 @@ html.d95-desk .d95-item[aria-disabled=true]:focus { background: var(--accent); c
 html.d95-desk .d95-has-sub::after { content: ""; position: absolute; right: 8px; top: 50%; margin-top: -4px;
   border: 4px solid transparent; border-left-color: currentColor; border-right: 0; }
 html.d95-desk .d95-rule { height: 0; margin: 3px 2px; border-top: 1px solid var(--sk-lo); border-bottom: 1px solid var(--sk-hi); }
+/* A window's picture outside the desktop (web/skins.js, picOf and drawnPic): its desktop icon's, drawn by the same rules, at
+   32 x 26 in the Pop menu's first level and at half that (d95-pic-sm) as the window's small icon, in its title bar, on its
+   task bar button and in the Pop menu's lists. A game's own small icon from its exe (d95-pic-exe) is drawn pixel for pixel */
+html.d95-desk .d95-pic { display: block; flex: none; position: relative; width: 32px; height: 26px; }
+html.d95-desk .d95-pic.d95-pic-sm { width: 16px; height: 13px; margin: 1px 0 2px; }
+html.d95-desk .d95-pic.d95-pic-sm > i { transform: scale(.5); transform-origin: 0 0; }
+html.d95-desk .d95-pic-exe { display: block; flex: none; width: 16px; height: 16px; }
+html.d95-desk .d95-pic-exe > img { display: block; width: 16px; height: 16px; image-rendering: pixelated; }
+/* the entries that are no window: the games' folder, Setup's floppy disk, the computer that shuts down, full screen (the
+   maximize button's window), the game's size (a size grip), and on a game's page Music's note and the Sounds' speaker */
+html.d95-desk .d95-pic-folder > i { background: transparent; box-shadow: none; }
+html.d95-desk .d95-pic-folder > i::before { left: 1px; right: auto; top: 2px; width: 12px; height: 5px; background: #c9a227; box-shadow: inset 1px 1px #f4dc78; }
+html.d95-desk .d95-pic-folder > i::after { left: 1px; right: 1px; top: 6px; bottom: 1px; background: #e6c35a;
+  box-shadow: inset 1px 1px #fff1a8, inset -1px -1px #8a6d10, 1px 1px 0 rgba(0, 0, 0, .4); }
+html.d95-desk .d95-icon-setup > i { width: 24px; height: 24px; margin: 1px 4px; background: #1d3f8f;
+  box-shadow: inset -1px -1px #000000, inset 1px 1px #5a7fd0, 1px 1px 0 rgba(0, 0, 0, .4); }
+html.d95-desk .d95-icon-setup > i::before { left: 7px; right: 5px; top: 1px; height: 8px; background: linear-gradient(90deg, #c0c0c0 0 60%, #1d3f8f 60% 80%, #c0c0c0 80%); }
+html.d95-desk .d95-icon-setup > i::after { left: 4px; right: 4px; top: 13px; bottom: 1px; background: repeating-linear-gradient(#ffffff 0 2px, #9aa8c8 2px 3px); }
+html.d95-desk .d95-pic-shutdown > i { width: 28px; height: 20px; margin-left: 2px; }
+html.d95-desk .d95-pic-shutdown > i::before { left: 3px; right: 3px; top: 3px; height: 13px; background: #000080; box-shadow: inset 1px 1px var(--sk-lo); }
+html.d95-desk .d95-pic-shutdown > i::after { left: 8px; right: 8px; top: 21px; bottom: auto; height: 4px; background: var(--panel);
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi); }
+html.d95-desk .d95-pic-full > i::after { left: 9px; right: 9px; top: 10px; bottom: 4px; box-shadow: inset 0 2px var(--sk-dk), inset 0 0 0 1px var(--sk-dk); }
+html.d95-desk .d95-pic-size > i::after { left: auto; right: 3px; top: auto; bottom: 3px; width: 10px; height: 10px;
+  background: linear-gradient(135deg, transparent 0 45%, var(--sk-lo) 45% 55%, transparent 55% 65%, var(--sk-lo) 65% 75%, transparent 75% 85%, var(--sk-lo) 85% 95%, transparent 95%); }
+html.d95-desk .d95-pic-music > i::after { left: 9px; right: 9px; top: 9px; bottom: 3px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5.5l11-2.5v12.5'/%3E%3Ccircle cx='6.5' cy='18' r='2.5'/%3E%3Ccircle cx='17.5' cy='15.5' r='2.5'/%3E%3C/svg%3E") center / 14px 14px no-repeat; }
+html.d95-desk .d95-pic-sounds > i::after { left: 9px; right: 9px; top: 9px; bottom: 3px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' shape-rendering='crispEdges'%3E%3Cpath d='M3 11h7l8-7v24l-8-7H3z' fill='%23c0c0c0' stroke='%23000'/%3E%3Cpath d='M4 12h5v8H4z' fill='%23808080'/%3E%3Cpath d='M11 12l6-5v18l-6-5z' fill='%23ffffff'/%3E%3Cpath d='M21 12c2 2 2 6 0 8M24 9c4 4 4 10 0 14M27 6c5 6 5 14 0 20' fill='none' stroke='%23000080' stroke-width='2' shape-rendering='auto'/%3E%3C/svg%3E") center / 14px 14px no-repeat; }
+/* The Pop menu's entries, as 1995's Start menu: a large picture on the first level, a small one in the lists beside it, each in
+   a column of its own so that the names line up; a choice of several (the game's sizes) keeps its dot instead */
+html.d95-desk .d95-item-pic { flex: none; display: flex; align-items: center; justify-content: center; }
+html.d95-desk .d95-items > .d95-item { min-height: 36px; padding: 2px 22px 2px 4px; gap: 6px; }
+html.d95-desk .d95-items > .d95-item > .d95-item-pic { width: 34px; height: 32px; }
+html.d95-desk .d95-sub > .d95-item { min-height: 22px; padding: 1px 22px 1px 4px; gap: 5px; }
+html.d95-desk .d95-sub > .d95-item > .d95-item-pic { width: 18px; height: 16px; }
+html.d95-desk .d95-menu-small > .d95-items > .d95-item { min-height: 22px; padding: 1px 22px 1px 4px; gap: 5px; }
+html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic { width: 18px; height: 16px; }
+html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic > .d95-pic { width: 16px; height: 13px; margin: 1px 0 2px; }
+html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic > .d95-pic > i { transform: scale(.5); transform-origin: 0 0; }
 /* the desktop icons: a picture drawn here (a little window, its title bar the window's own colour) and a name under it */
 /* in columns down the left, a new column when one is full (the favourites' icons follow the windows') */
 html.d95-desk .d95-icons { display: grid; grid-auto-flow: column; grid-template-rows: repeat(auto-fill, 64px); grid-auto-columns: 84px; gap: 0 4px;
@@ -489,12 +633,12 @@ html.d95-desk .d95-icon { display: grid; justify-items: center; gap: 4px; paddin
 html.d95-desk .d95-icon[hidden] { display: none; }
 html.d95-desk .d95-icon:hover, html.d95-desk .d95-icon:focus-visible { background: rgba(0, 0, 128, .45); }
 html.d95-desk .d95-icon[aria-pressed=true] { box-shadow: none; }
-html.d95-desk .d95-icon > i { display: block; width: 32px; height: 26px; background: var(--panel); position: relative;
+html.d95-desk :is(.d95-icon, .d95-pic) > i { display: block; width: 32px; height: 26px; background: var(--panel); position: relative;
   box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), 1px 1px 0 rgba(0, 0, 0, .4); }
-html.d95-desk .d95-icon > i::before { content: ""; position: absolute; left: 2px; right: 2px; top: 2px; height: 6px; background: var(--sk-title); }
-html.d95-desk .d95-icon > i::after { content: ""; position: absolute; left: 6px; right: 6px; top: 11px; bottom: 5px; }
+html.d95-desk :is(.d95-icon, .d95-pic) > i::before { content: ""; position: absolute; left: 2px; right: 2px; top: 2px; height: 6px; background: var(--sk-title); }
+html.d95-desk :is(.d95-icon, .d95-pic) > i::after { content: ""; position: absolute; left: 6px; right: 6px; top: 11px; bottom: 5px; }
 html.d95-desk .d95-icon-game > i::after { background: #000000; }
-html.d95-desk .d95-icon-controls > i::after { bottom: auto; height: 4px; box-shadow: 0 6px 0 var(--sk-lo); background: var(--sk-lo); }
+html.d95-desk .d95-icon-panel-controls > i::after { bottom: auto; height: 4px; box-shadow: 0 6px 0 var(--sk-lo); background: var(--sk-lo); }
 html.d95-desk .d95-icon-chat > i::after { background: var(--sk-well); border-radius: 0 0 0 0; box-shadow: inset 0 0 0 1px var(--sk-lo); }
 html.d95-desk .d95-icon-panel-settings > i::after { border-radius: 50%; border: 3px dotted var(--sk-lo); left: 10px; right: 10px; }
 html.d95-desk .d95-icon-panel-files > i::after { background: #e6c35a; clip-path: polygon(0 0, 40% 0, 50% 25%, 100% 25%, 100% 100%, 0 100%); }
@@ -583,7 +727,6 @@ html.d95-desk .d95-fav-cap { width: 32px !important; height: 32px !important; ba
   -webkit-mask: url(cap.svg) center / contain no-repeat; mask: url(cap.svg) center / contain no-repeat; }
 html.d95-desk .d95-fav:focus > span:last-child { background: var(--accent); color: var(--accent-fg); outline: 1px dotted #ffff00; }
 html.d95-desk .d95-ctx { position: fixed; bottom: auto; flex-direction: column; min-width: 180px; z-index: 2147483001; }
-html.d95-desk .d95-default { font-weight: bold; }
 
 /* ======================= Settings' sections (web/settings.js) ======================= */
 /* Desktop 95 off the desktop: the tabs as the 1995 property sheet's, raised, the shown one joined to the page under it */
@@ -726,7 +869,7 @@ html.d95-desk .d95-app.d95-maxed:not(.d95-closed):not(.d95-min) { left: 0 !impor
 html.d95-desk .d95-menubar-item:not(#\#):focus-visible { outline: 1px dotted #000000; outline-offset: -2px; }
 /* a message box: a small window in the middle, its icon, its text and OK */
 .d95-msgbox { padding: 3px; border: 0; background: var(--panel); color: #000000; min-width: 260px; max-width: min(420px, calc(calc(100vw / var(--d95-z, 1)) - 32px));
-  box-shadow: inset -1px -1px #000000, inset 1px 1px var(--sk-mid), inset -2px -2px var(--sk-lo), inset 2px 2px #ffffff; font: 13px "MS Sans Serif", Tahoma, sans-serif; }
+  box-shadow: inset -1px -1px #000000, inset 1px 1px var(--sk-mid), inset -2px -2px var(--sk-lo), inset 2px 2px #ffffff; font: 11px var(--font-ui); }
 .d95-msgbox::backdrop { background: transparent; }
 .d95-msgbox-tb { display: flex; align-items: center; padding: 2px 4px; background: var(--sk-title); color: #ffffff; font-weight: bold; }
 .d95-msgbox-body { display: flex; align-items: center; gap: 14px; padding: 16px 14px 8px; }
@@ -734,6 +877,14 @@ html.d95-desk .d95-menubar-item:not(#\#):focus-visible { outline: 1px dotted #00
 .d95-msgbox-icon { flex: none; width: 32px; height: 32px; position: relative; }
 .d95-msgbox-icon::before { content: ""; position: absolute; inset: 1px 0 0; background: #ffff00; clip-path: polygon(50% 0, 100% 96%, 0 96%); }
 .d95-msgbox-icon::after { content: "!"; position: absolute; inset: 9px 0 0; text-align: center; font: bold 18px/1 Arial, sans-serif; color: #000000; }
+/* the information sign, for a message that tells rather than warns (web/deskapps.js, tell): a white balloon with a blue "i" */
+.d95-msgbox-info .d95-msgbox-icon::before { inset: 0; clip-path: none; background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M18 4C9 4 4 8.5 4 14c0 4 2.5 7 6.5 8.8L8 30l8-6c.7.1 1.3 0 2 0 9 0 14-4.5 14-10S27 4 18 4z' fill='%23808080'/><path d='M16 2C7 2 2 6.5 2 12c0 4 2.5 7 6.5 8.8L6 28l8-6c.7.1 1.3 0 2 0 9 0 14-4.5 14-10S25 2 16 2z' fill='%23ffffff' stroke='%23000000'/><rect x='14' y='5' width='4' height='3' fill='%230000ff'/><path d='M12 10h6v8h2v2h-8v-2h2v-6h-2z' fill='%230000ff'/></svg>") no-repeat; }
+.d95-msgbox-info .d95-msgbox-icon::after { content: none; }
+/* a longer message, in paragraphs and a list: its sign beside the first line */
+.d95-msgbox-long .d95-msgbox-body { align-items: flex-start; }
+.d95-msgbox-text p, .d95-msgbox-text ul { margin: 0 0 8px; }
+.d95-msgbox-text > :last-child { margin-bottom: 0; }
+.d95-msgbox-text ul { padding-left: 16px; }
 .d95-msgbox-row { display: flex; justify-content: center; gap: 6px; padding: 6px 0 10px; }
 .d95-msgbox-row button { min-width: 75px; padding: 3px 10px; background: var(--panel); color: #000000; border: 0; border-radius: 0;
   box-shadow: inset -1px -1px #000000, inset 1px 1px #ffffff, inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid); outline: 1px solid #000000; }
@@ -861,6 +1012,11 @@ html.d95-desk .su-title:focus { outline: none; }
 html.d95-desk .su-drop { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 10px; background: var(--sk-well);
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
 html.d95-desk .su-drop.drop-on { outline: 1px dotted #000; outline-offset: -5px; }
+/* the game page's load-files card with files over it (web/shell.html): a dotted line round its text and buttons, beside the
+   picture and under the title bar, as Setup's drop area has */
+:root[data-skin="d95"] #import-card.drop-on { outline: 0; }
+:root[data-skin="d95"] #import-card.drop-on::after { content: ""; position: absolute; left: 121px; top: 29px; right: 6px; bottom: 11px;
+  border: 1px dotted #000; pointer-events: none; }
 html.d95-desk .su-rows { flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0; padding: 2px; list-style: none; background: #fff;
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
 html.d95-desk .su-row { display: flex; align-items: center; gap: 6px; min-height: 24px; padding: 1px 4px; }
@@ -1007,7 +1163,7 @@ html.d95-desk .d95-dropzone-box { position: absolute; display: grid; justify-ite
   padding: 14px 12px; background: var(--panel); color: var(--fg); font-size: 12px; text-align: center; border: 2px dashed var(--sk-dk);
   box-shadow: 0 0 0 3px var(--panel), 3px 3px 0 3px rgba(0, 0, 0, .5); }
 html.d95-desk .d95-dropzone-box > svg { width: 64px; height: 64px; }
-html.d95-desk .d95-band { position: absolute; z-index: 2; pointer-events: none; box-sizing: border-box; border: 1px dotted #ffffff;
+html.d95-desk .d95-lasso { position: absolute; z-index: 2; pointer-events: none; box-sizing: border-box; border: 1px dotted #ffffff;
   mix-blend-mode: difference; }
 /* 1995's tooltip: a title's own line breaks kept (the Sounds board's name, when it plays and its file; the user, 2026-11-16:
    "the soundboard tooltips are hard to read due to lacking line breaks"), long lines wrapped, a long file name broken, and

@@ -45,10 +45,10 @@ if(NOT EMSCRIPTEN)
   target_link_libraries(cosmicbugs_run PRIVATE cosmicbugsgame retro64 stb)
   if(WIN32)
     add_custom_command(TARGET cosmicbugs_banktest POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:cosmicbugs_banktest>
+      COMMAND ${PORT_RUNTIME_COPY} $<TARGET_FILE_DIR:cosmicbugs_banktest>
       VERBATIM)
     add_custom_command(TARGET cosmicbugs_run POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:cosmicbugs_run>
+      COMMAND ${PORT_RUNTIME_COPY} $<TARGET_FILE_DIR:cosmicbugs_run>
       VERBATIM)
   endif()
 endif()

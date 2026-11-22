@@ -11,6 +11,12 @@ namespace Sexy
 
 } // namespace Sexy
 
+// Set by a test that looks at the rules only: a drawing function the port has not reached then does nothing (see NOT_TRANSLATED_DRAWING).
+namespace Sexy
+{
+extern bool gSkipUntranslatedDrawing;
+}
+#define NOT_TRANSLATED_DRAWING(what) 	do { if (!::Sexy::gSkipUntranslatedDrawing) ::Sexy::NotTranslated(what, __FILE__, __LINE__); } while (0)
 #define NOT_TRANSLATED(what) ::Sexy::NotTranslated(what, __FILE__, __LINE__)
 
 #endif

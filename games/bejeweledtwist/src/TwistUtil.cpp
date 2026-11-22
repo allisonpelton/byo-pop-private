@@ -11,7 +11,11 @@
 
 #include <SDL.h>
 
+#include <cctype>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <set>
 
 using namespace Sexy;
@@ -178,3 +182,103 @@ void Sexy::SetFontLayerColor(Font* theFont, const std::string& theName, const Co
 	}
 }
 
+
+std::string Sexy::CrtFormatFloat(const std::string& theFormat, double theValue)
+{
+	// the spec: '%', flags, width, '.' precision, 'f' ("%%" is skipped)
+	size_t aStart = std::string::npos;
+	size_t anEnd = 0;
+	bool aLeft = false, aPlus = false, aSpace = false, aZero = false;
+	int aWidth = 0, aPrecision = 6;
+	for (size_t i = 0; i < theFormat.size(); i++) {
+		if (theFormat[i] != '%')
+			continue;
+		if (i + 1 < theFormat.size() && theFormat[i + 1] == '%') {
+			i++;
+			continue;
+		}
+		size_t j = i + 1;
+		for (; j < theFormat.size() && std::strchr("-+ #0", theFormat[j]) != nullptr; j++) {
+			aLeft |= theFormat[j] == '-';
+			aPlus |= theFormat[j] == '+';
+			aSpace |= theFormat[j] == ' ';
+			aZero |= theFormat[j] == '0';
+		}
+		for (; j < theFormat.size() && std::isdigit((unsigned char)theFormat[j]); j++)
+			aWidth = aWidth * 10 + (theFormat[j] - '0');
+		if (j < theFormat.size() && theFormat[j] == '.') {
+			aPrecision = 0;
+			for (j++; j < theFormat.size() && std::isdigit((unsigned char)theFormat[j]); j++)
+				aPrecision = aPrecision * 10 + (theFormat[j] - '0');
+		}
+		if (j < theFormat.size() && theFormat[j] == 'f') {
+			aStart = i;
+			anEnd = j + 1;
+		}
+		break;
+	}
+	if (aStart == std::string::npos || !std::isfinite(theValue))
+		return StrFormat(theFormat.c_str(), theValue);
+
+	// 17 significant digits, correctly rounded, then rounded half up at the precision
+	bool aNegative = std::signbit(theValue);
+	char aBuf[40];
+	std::snprintf(aBuf, sizeof(aBuf), "%.16e", std::fabs(theValue));
+	std::string aDigits;
+	const char* p = aBuf;
+	for (; *p != 'e'; p++)
+		if (std::isdigit((unsigned char)*p))
+			aDigits += *p;
+	int aPoint = std::atoi(p + 1) + 1;  // digits before the point
+	if (theValue == 0)
+		aPoint = 1;
+	int aKeep = aPoint + aPrecision;
+	if (aKeep < 0) {
+		aDigits = "0";
+		aPoint = 1;
+	} else {
+		bool anUp = aKeep < (int)aDigits.size() && aDigits[aKeep] >= '5';
+		aDigits.resize(aKeep < (int)aDigits.size() ? aKeep : aDigits.size());
+		while ((int)aDigits.size() < aKeep)
+			aDigits += '0';
+		if (anUp) {
+			int k = (int)aDigits.size() - 1;
+			for (; k >= 0 && aDigits[k] == '9'; k--)
+				aDigits[k] = '0';
+			if (k >= 0)
+				aDigits[k]++;
+			else {
+				aDigits.insert(aDigits.begin(), '1');
+				aPoint++;
+			}
+		}
+	}
+	// the digits about the point
+	std::string aNumber;
+	if (aPoint <= 0)
+		aNumber = "0";
+	else
+		aNumber = aDigits.substr(0, aPoint);
+	if (aPrecision > 0) {
+		aNumber += '.';
+		for (int k = 0; k < aPrecision; k++) {
+			int anIndex = aPoint + k;
+			aNumber += (anIndex >= 0 && anIndex < (int)aDigits.size()) ? aDigits[anIndex] : '0';
+		}
+	}
+	std::string aSign = aNegative ? "-" : aPlus ? "+" : aSpace ? " " : "";
+	int aPad = aWidth - (int)(aSign.size() + aNumber.size());
+	std::string aField;
+	if (aPad <= 0)
+		aField = aSign + aNumber;
+	else if (aLeft)
+		aField = aSign + aNumber + std::string(aPad, ' ');
+	else if (aZero)
+		aField = aSign + std::string(aPad, '0') + aNumber;
+	else
+		aField = std::string(aPad, ' ') + aSign + aNumber;
+	std::string aPrefix = theFormat.substr(0, aStart);
+	std::string aSuffix = theFormat.substr(anEnd);
+	// the text about the spec keeps StrFormat's handling of "%%"
+	return StrFormat(aPrefix.c_str()) + aField + StrFormat(aSuffix.c_str());
+}

@@ -56,6 +56,7 @@ public:
 	virtual void SetPos(float theX, float theY) {}	// 17
 	virtual void Translate(float theDeltaX, float theDeltaY); // 18, 0x476b00
 	virtual void SetVelocity(float theDeltaX, float theDeltaY) {} // 19
+	virtual void CreateImage(bool theRemake) {}		// 20: makes the picture a peg of this kind has (a Brick's is made from its triangles)
 	virtual void DeleteImage();						// 21, 0x4769c0
 	virtual void Update();							// 22, 0x479a30
 	virtual void UpdateSlowMo(float theSubFrame);	// 23, 0x479b00
@@ -70,6 +71,7 @@ public:
 	virtual bool IsCollidableWith(const PhysObj* theOther) const { return mCollidable; } // 32, 0x47d390
 	virtual void SetActiveWithGrowAnim(bool theActive) { SetActive(theActive); } // 33, 0x454790
 
+	void SetPegKind(int theKind);	// 0x479870: a peg becomes a blue, orange, green or purple one (and its picture is made again)
 	void SetActive(bool theActive); // 0x4769f0: a piece that is not active is neither hit nor drawn
 	void Reset();					// 0x47f740: everything a level file may set goes back to its default
 	bool LoadImage();				// 0x47f830: gets the picture named mImageName; false when there is none
@@ -95,6 +97,7 @@ public:
 	bool mDrawSorted;		   // +0x2c (physobj_drawsort)
 	bool mDrawFloating;		   // +0x2d (physobj_drawfloat)
 	bool mDrawFloatingCopy;	   // +0x2e: set from mDrawFloating when a level is read (and always for the movers of shape 8, 9 and 13)
+	bool mImageCached;		   // +0x2f: the picture was in the level pictures' cache already when the level's background was loaded
 	bool mUnknown30;		   // +0x30: one more flag of the version 15 run
 	float mBounciness;		   // +0x34 (physobj_bouncy)
 	float mRolliness;		   // +0x38 (physobj_rolly)

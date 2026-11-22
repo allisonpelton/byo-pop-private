@@ -362,7 +362,7 @@ void User::SaveProfile()
 	}
 	while (aMode < NUM_SAVED_GAMES);
 
-	std::string aFileText = aDocument.ToFileText();
+	std::string aFileText = aDocument.ToChunkedFileText();
 	gApp->WriteBytesToFile(StrFormat("users\\%d.xml", mId), aFileText.data(), (unsigned long)aFileText.size());
 }
 
@@ -383,7 +383,7 @@ void User::Load()
 	Buffer aBuffer;
 	if (!gApp->ReadBufferFromFile(StrFormat("users\\%d.xml", mId), &aBuffer))
 		return;
-	std::string aFileText((const char*)aBuffer.GetDataPtr(), (size_t)aBuffer.GetDataLen());
+	std::string aFileText = XmlNode::FileTextOf(std::string((const char*)aBuffer.GetDataPtr(), (size_t)aBuffer.GetDataLen()));
 	XmlNode aDocument;
 	if (!aDocument.Parse(aFileText))
 		return;

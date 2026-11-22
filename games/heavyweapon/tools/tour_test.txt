@@ -1,8 +1,12 @@
 # The check suite's tour of Heavy Weapon Deluxe (tools/check.sh heavyweapon): the intro ended by a click, the title, the
 # main menu, the high scores, the credits, the help, a campaign from the map through the first game's help screen and play
 # tip to level 1 (fired on, the waves ended and the boss beaten with `win`), the results and the armory, then level 5 lost
-# to the game-over box, its QUIT, survival lost the same way, and the options. @DIR@ is the run's folder (check.sh
-# replaces it). Run with -fast -seed=1: the updates are the game's own, so every run gives the same screens.
+# to the game-over box, its QUIT, survival lost the same way, and the options. Then the boxes of the screen pass
+# (docs/SCREENS.md): the main menu's quit box, the player list with a new player's name box, the delete question and the
+# rename box, the high scores' reset question, the campaign's continue box, the armory with a point left and its "not
+# yet" box, and in level 2 the status bar's menu box, its "retreat to main menu?" question, the pause and the game
+# resumed. @DIR@ is the run's folder (check.sh replaces it). Run with -fast -seed=1: the updates are the game's own, so
+# every run gives the same screens.
 5 click 320 240
 10 click 320 240
 200 screenshot @DIR@/title.png
@@ -65,4 +69,65 @@
 8100 goto options
 8200 screenshot @DIR@/options.png
 8201 state
-8300 quit
+8210 click 320 375
+8300 click 535 425
+8400 screenshot @DIR@/quitbox.png
+8401 state
+8410 click 385 315
+8500 click 490 90
+8600 screenshot @DIR@/userlist.png
+8601 state
+8610 click 320 112
+8700 screenshot @DIR@/newplayer.png
+8701 state
+8710 char B
+8713 char o
+8716 char b
+8730 key RETURN
+8800 click 490 90
+8900 screenshot @DIR@/userlist2.png
+8901 state
+8910 click 320 132
+8920 click 385 360
+9000 screenshot @DIR@/deleteplayer.png
+9001 state
+9010 click 385 295
+9100 click 255 360
+9200 screenshot @DIR@/rename.png
+9201 state
+9210 click 385 295
+9300 click 255 395
+9400 screenshot @DIR@/playerback.png
+9401 state
+9410 click 535 215
+9500 click 415 455
+9600 screenshot @DIR@/resetscores.png
+9601 state
+9610 click 385 325
+9700 click 535 455
+9800 click 100 250
+9900 screenshot @DIR@/continue.png
+9901 state
+9910 click 170 315
+10000 screenshot @DIR@/armory2.png
+10001 state
+10010 click 565 445
+10100 screenshot @DIR@/armorypoints.png
+10101 state
+10110 click 295 310
+10200 level 2
+10500 click 585 15
+10600 screenshot @DIR@/menubox.png
+10601 state
+10610 click 320 240
+10700 screenshot @DIR@/retreat.png
+10701 state
+10710 click 380 317
+10800 click 320 280
+10900 key SPACE
+11000 screenshot @DIR@/paused.png
+11001 state
+11010 key SPACE
+11100 screenshot @DIR@/unpaused.png
+11101 state
+11200 quit

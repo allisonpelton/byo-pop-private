@@ -36,7 +36,7 @@ endif()
 if(EMSCRIPTEN)
   # A float or double out of the int range converts as on x86 (cvttsd2si: INT_MIN), not as wasm's saturating conversion
   target_compile_options(hammerheads PRIVATE -mno-nontrapping-fptoint)
-  byopop_web_game(hammerheads EXPORTS _byopop_livesplit_block TITLE "Hammer Heads Deluxe"
+  byopop_web_game(hammerheads EXPORTS _byopop_livesplit_block TITLE "Hammer Heads"
     COPYRIGHT "Hammer Heads Deluxe © 2006 Nuclide Interactive and PopCap Games, Inc. All rights reserved.")
 else()
   add_custom_command(TARGET hammerheads POST_BUILD

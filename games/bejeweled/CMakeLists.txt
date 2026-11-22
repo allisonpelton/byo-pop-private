@@ -100,7 +100,7 @@ if(BUILD_VERIFY)
       "-sALLOW_MEMORY_GROWTH=1" "-sSTACK_SIZE=1048576")
   else()
     add_custom_command(TARGET bejeweled_verify POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bejeweled_verify>
+      COMMAND ${PORT_RUNTIME_COPY} $<TARGET_FILE_DIR:bejeweled_verify>
       VERBATIM)
   endif()
 endif()

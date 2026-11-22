@@ -1,0 +1,61 @@
+# A saved game with one life left (SAVE=build/wbs/save14.dat: games/waterbugs/tools/coverage/scripts.py save 14 <file> 1 14 3000),
+# resumed from Start's question, played at fixed shots until the life is lost: the game over, the name entry (keys clicked, a key
+# typed, rubbed out), the hall of fame with the new score, and back to the main menu.
+20 move 5 5
+3500 shot e_menu
+4200 click 400 303
+5100 shot e_resume_question
+5400 move 340 330
+5700 shot e_resume_hover
+6400 click 340 330
+7900 shot e_resumed
+11200 move 150 120
+11600 click 150 120
+12300 shot e_shot0
+12550 shot e_shot0_b
+12600 move 287 209
+13000 click 287 209
+13700 shot e_shot1
+13950 shot e_shot1_b
+14000 move 424 298
+14400 click 424 298
+15100 shot e_shot2
+15350 shot e_shot2_b
+15400 shot e_over0
+15700 shot e_over1
+16000 shot e_over2
+16300 shot e_over3
+16600 shot e_over4
+16900 shot e_over5
+17200 shot e_over6
+17500 shot e_over7
+17800 shot e_over8
+18100 shot e_over9
+18400 shot e_over10
+18700 shot e_over11
+19400 click 400 300
+19700 shot e_hof0
+20000 shot e_hof1
+20300 shot e_hof2
+20600 shot e_hof3
+20900 shot e_hof4
+21200 shot e_hof5
+21500 shot e_hof6
+21800 shot e_hof7
+22100 shot e_hof8
+22600 key 87
+23100 shot e_typed_w
+23600 key 8
+24100 shot e_typed_back
+24600 key 65
+25100 key 78
+25600 key 78
+26100 shot e_typed_ann
+26600 key 13
+27400 shot e_entered
+28900 shot e_entered_later
+29200 move 400 552
+29500 shot e_scores_back_hover
+30200 click 400 552
+31400 shot e_after_scores
+31900 end

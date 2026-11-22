@@ -272,6 +272,25 @@
         { "from": "users/*/profile.dat", "to": "users/*/profile.dat", "what": "a player" }
       ]
     },
+    "zumasrevenge": {
+      "folder": "Zuma's Revenge",
+      "steam": "Zuma's Revenge",
+      "appdata": "ZumasRevenge",
+      "registry": {
+        "key": "PopCap\\ZumasRevenge",
+        "hives": ["hkcu", "vs", "hklm"],
+        "sets": ["base", "app"],
+        "values": ["LastUser=sz", "Z2Cursor=dword", "Colorblind=dword", "HiRes=dword", "Is3D=dword"]
+      },
+      "files": [
+        { "from": "users/users.dat", "to": "users/users.dat", "what": "the list of players" },
+        { "from": "users/hs.dat", "to": "users/hs.dat", "what": "the high scores" },
+        { "from": "users/user#.dat", "to": "users/user#.dat", "what": "a player" },
+        { "from": "users/user#_*_stats.dat", "to": "users/user#_*_stats.dat", "what": "a player's statistics" },
+        { "from": "users/adv_in_game#.sav", "to": "users/adv_in_game#.sav", "what": "a player's adventure in progress" },
+        { "from": "users/heroic_in_game#.sav", "to": "users/heroic_in_game#.sav", "what": "a player's heroic adventure in progress" }
+      ]
+    },
     "bejeweledtwist": {
       "folder": "Bejeweled Twist",
       "steam": "Bejeweled Twist",
