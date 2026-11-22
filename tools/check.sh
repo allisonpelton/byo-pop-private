@@ -2633,7 +2633,7 @@ suite_hammerheads() {
 }
 
 # Peggle: the level start's rules, from a script of test commands (games/peggle/tools/suite_test.txt)
-PEGGLE_FROZEN="f1e6ed21fc19"  # the first 12 hex digits of the sha256 of the script's state lines
+PEGGLE_FROZEN="9951e18c63dd"  # the first 12 hex digits of the sha256 of the script's state lines
 
 peggle_run() {  # <name>: the script into $OUT/peggle/<name>; prints the exit status
 	local d="$OUT/peggle/$1" e=0

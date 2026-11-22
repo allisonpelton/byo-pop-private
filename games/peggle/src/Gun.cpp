@@ -2,10 +2,13 @@
 
 #include "Gun.h"
 
+#include "Ball.h"
 #include "DataSync.h"
 #include "Line.h"
 #include "NotTranslated.h"
 #include "ThunderMath.h"
+
+#include <cmath>
 
 using namespace Sexy;
 
@@ -242,10 +245,40 @@ bool Gun::SetAngle(float theAngle, bool theAtOnce)
 	return true;
 }
 
-// 0x484530
+static const int GUN_AIM_SETTLE_UPDATES = 10; // an aim younger than this is not yet the one the player settled on (ModValInt-less constant of Gun::Fire)
+
+// 0x484530: lets the ball go along the aim; the ball it returns is the cannon's no longer
 SharedPtr<Ball> Gun::Fire(bool theKeepAim)
 {
-	NOT_TRANSLATED("Gun::Fire");
+	if (!mBall)
+		return SharedPtr<Ball>();
+	float aSavedAngle = mAngle;
+	// an aim that has stayed for under 10 updates is taken as the one it was before the hand moved
+	if (theKeepAim && mUpdateCount - mStableTime < GUN_AIM_SETTLE_UPDATES)
+	{
+		mAngle = mStableAngle;
+		CalcPoints();
+		if (mBouncyGuide)
+			UpdateBouncyGuide();
+	}
+	SharedPtr<Ball> aBall = mBall;
+	mBall = nullptr;
+	mLastAngle = mAngle;
+	mLastBallX = mBallX;
+	mLastBallY = mBallY;
+	mLastSpeed = mLaunchSpeed;
+	aBall->mIsPeg = false;
+	float aSin = (float)std::sin((double)mAngle);
+	float aCos = (float)std::cos((double)mAngle);
+	float aVelocityY = (float)(-(double)mLaunchSpeed * aSin);
+	float aVelocityX = (float)((double)mLaunchSpeed * aCos);
+	aBall->SetVelocity(aVelocityX, aVelocityY);
+	if (mAngle != aSavedAngle)
+	{
+		mAngle = aSavedAngle;
+		CalcPoints();
+	}
+	return aBall;
 }
 
 // 0x482910

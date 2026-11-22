@@ -280,7 +280,7 @@ void Board::SubmitTotalStats()
 	{
 		int aMode = mApp->mGameMode;
 		if ((aMode == GAME_MODE_ADVENTURE || aMode == GAME_MODE_QUICK_PLAY || aMode == GAME_MODE_CHALLENGE) &&
-			mLogicMgr->mPlayerStats[0].mTotalScore > 0)
+			mLogicMgr->mPlayerStats[0].mTotalShots > 0)
 		{
 			mUnknown11F = true;
 			mApp->mCurrentPlayer->AddTotalStats(mLogicMgr->mPlayerStats[0]);
@@ -449,6 +449,19 @@ void Board::SetSlowMo(bool theSlowMo, int theRate)
 
 // 0x40cf70: lets go of what the replay recorded. The board does not record any replay data yet.
 void Board::DeleteReplays(bool theKeep)
+{
+}
+
+// 0x402760
+void Board::BeginShot()
+{
+	if (!mDebugMgr->mUnknown04 && !mApp->IsScreenSaver())
+		mApp->SetCursor(CURSOR_POINTER);
+}
+
+// 0x424be0: the original keeps a snapshot of the board for each of the last 50 shots (GetSyncPoint writes the whole board with
+// SyncState) for the instant replay. The board does not record any replay data yet (see DeleteReplays).
+void Board::GetReplayPoint()
 {
 }
 

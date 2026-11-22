@@ -37,6 +37,8 @@ typedef std::set<SharedPtr<PhysObj>, PegSerialLess> PegSet;
 enum LogicState
 {
 	LOGIC_STATE_UNKNOWN0 = 0,
+	LOGIC_STATE_PRE_SHOT = 1,
+	LOGIC_STATE_SHOT = 2,
 	LOGIC_STATE_INIT_LEVEL = 8, // BeginInitLevel
 	LOGIC_STATE_UNKNOWN10 = 10
 };
@@ -106,6 +108,8 @@ public:
 	void DoBeginTurnText();							// 0x469f30: '3 Balls Left' and the like
 	void DoBeginTurnTip(int theTip);				// 0x46a370: a tip for a new player
 	void SetWearHat(bool theWear);					// 0x43d4d0
+	void BeginShot(bool theRecord);						// 0x46ac70: the ball leaves the cannon
+	void IncNumBalls(int theBalls, int theDelay, bool theAtBottom); // 0x45d880
 	void BeginTurn2();								// 0x44b5b0
 	void DoLevelDone();								// 0x46a9c0
 	void FinishInitLevelText();						// 0x46c220
@@ -163,6 +167,7 @@ public:
 	int mUnknown64;			 // +0x64
 	bool mUnknown68;		 // +0x68
 	bool mUnknown69;		 // +0x69
+	int mUnknown6C = 0;		 // +0x6c: -1000 when a shot starts (Clear leaves it)
 	float mUnknown70;		 // +0x70: the mouse wheel's base move when the state was cleared
 	int mUnknown74;			 // +0x74
 	int mUnknown78;			 // +0x78

@@ -13,6 +13,7 @@
 #include "DebugMgr.h"
 #include "EffectMgr.h"
 #include "EndLevelDialog.h"
+#include "FloatingTextMgr.h"
 #include "Res.h"
 #include "WidgetManager.h"
 #include "Gun.h"
@@ -59,6 +60,9 @@ static const int FREE_BALL_UPDATE_DIVISOR = 2;	  // the catcher's pieces change 
 static const int FEVER_ROW = 4;					  // the row of the fever power's turns left
 static const int BUMPER_HOLE_COUNTDOWN = 300;	  // (ModValInt, LogicMgr.cpp 1078, 1463)
 static const int FLIPPER_COUNTDOWN = 180;		  // (1079, 1559)
+static const int SHOT_NOT_YET = -1000;			  // the "time" of a shot that has not started
+static const int SHOT_METER_PEGS = 25;			  // the shot meter counts the orange pegs against the usual 25
+static const int PEG_FLASH_BLINK = 10;			  // a peg that blinks (the hint)
 static const int FLIPPER_ROW = 2;				  // the row of the flippers' turns left
 static const int TIME_BOMB_ROW = 11;			  // and the time bomb's
 static const int SHOT_BOOST_START = 1500;		  // the update of the shot a click speeds it from (the original's global at 0x649ac4)
@@ -1013,7 +1017,91 @@ void LogicMgr::UpdateGun()
 		mUnknownED = false;
 	}
 	if (mUnknownF0 == 0 && mUnknownEC && aGun->mBall && !mBoard->mUnknownC2 && mState != LOGIC_STATE_UNKNOWN10)
-		NOT_TRANSLATED("LogicMgr::UpdateGun, the shot (Gun::Fire, BeginShot) and the zen shot");
+	{
+		mUnknownA9 = aGun->NeedDrawMouseClick();
+		if (mUnknown1D4[ZEN_ROW][mCurPlayer] < 1)
+		{
+			mUnknownEC = false;
+			mUnknownED = false;
+			mUnknownF0 = 0;
+			SharedPtr<Ball> aBall = aGun->Fire(true);
+			mBoard->AddObj(SharedPtr<PhysObj>(aBall.get()));
+			BeginShot(true);
+			if (mUnknownEE)
+				aGun->SetAngle(mGunAngle, true);
+			mUnknownE4 = 0;
+			mBoard->mSoundMgr->AddSound(aBall->mFireball ? SOUND_FIREBALLSHOT : SOUND_CANNONSHOT, 1);
+			AddShotBurst(aBall->mX, aBall->mY, mGunAngle);
+		}
+		else
+		{
+			SetState(LOGIC_STATE_UNKNOWN10);
+			aGun->SetBouncyGuide(true);
+			aGun->mUnknown1A2 = true;
+			aGun->SetAngle(mGunAngle, true);
+			aGun->UpdateBouncyGuide();
+		}
+		mUnknownF4 = false;
+	}
+}
+
+// 0x46ac70: the ball is out: the shot's counters start again, the orange pegs stop blinking, a ball is taken from the column
+void LogicMgr::BeginShot(bool theRecord)
+{
+	mUnknownA8 = false;
+	mUnknownAA = false;
+	mUnknownFE = false;
+	mUnknownF7 = false;
+	mUnknown6C = SHOT_NOT_YET;
+	SetState(LOGIC_STATE_SHOT);
+	mUnknownB4.clear();
+	mBoard->BeginShot();
+	mPlayerStats[mCurPlayer].mTotalShots++;
+	for (PegSet::iterator anItr = mGoalPegs.begin(); anItr != mGoalPegs.end(); ++anItr)
+	{
+		PegInfo* aPegInfo = (*anItr)->mPegInfo.get();
+		if (aPegInfo != nullptr && aPegInfo->mFlashType == PEG_FLASH_BLINK)
+		{
+			aPegInfo->mFlashType = 0;
+			aPegInfo->mFlashTime = 0;
+		}
+	}
+	if (mUnknown34 != 0)
+	{
+		mBoard->mFloatingTextMgr->EraseText(mUnknown34);
+		mUnknown34 = 0;
+	}
+	IncNumBalls(-1, 0, true);
+	mUnknown13C = SHOT_NOT_YET;
+	mUnknown140 = -1;
+	mUnknown14C = -1;
+	mUnknown150 = -1;
+	mUnknown2C = Rand();
+	mUnknown30 = Rand();
+	InterfaceMgr* anInterface = mBoard->mInterfaceMgr.get();
+	anInterface->mUnknown38 = -1;
+	anInterface->mUnknown30 = SHOT_METER_PEGS - (int)mGoalPegs.size();
+	anInterface->mUnknown54 = 0;
+	anInterface->mUnknown161 = false;
+	mClickEvents.clear();
+	mClickRecords.clear();
+	if (theRecord)
+		mBoard->GetReplayPoint();
+}
+
+// 0x45d880: the player in turn has that many balls more (fewer when negative; never below none); the column shows the new ones
+void LogicMgr::IncNumBalls(int theBalls, int theDelay, bool theAtBottom)
+{
+	mNumBalls[mCurPlayer] += theBalls;
+	if (0 < theBalls)
+	{
+		if (!theAtBottom)
+			mBoard->mInterfaceMgr->AddTopBalls(theBalls);
+		else
+			mBoard->mInterfaceMgr->AddBottomBall(theDelay);
+	}
+	if (mNumBalls[mCurPlayer] < 0)
+		mNumBalls[mCurPlayer] = 0;
 }
 
 // 0x440830: the free ball catcher's pieces grow or shrink (their movers' radius moves one a step, every other update) to the size mUnknown134 says;
@@ -1064,12 +1152,12 @@ void LogicMgr::RemoveHitPegs()
 void LogicMgr::UpdatePreShot()
 {
 	int aMaxLevel = mBoard->mApp->GetMaxLevel();
-	int aScore = mPlayerStats[0].mTotalScore;
-	if ((mStateTime == PRESHOT_HINT_TIME_NEW && aScore == 0) || (mStateTime == PRESHOT_HINT_TIME && 1 <= aScore))
+	int aShots = mPlayerStats[0].mTotalShots;
+	if ((mStateTime == PRESHOT_HINT_TIME_NEW && aShots == 0) || (mStateTime == PRESHOT_HINT_TIME && 1 <= aShots))
 	{
 		int aKind = 2;
 		int aBlinks = PRESHOT_DEFAULT_BLINKS;
-		if (!mBoard->mApp->OnMaxLevel() || aScore != 0)
+		if (!mBoard->mApp->OnMaxLevel() || aShots != 0)
 		{
 			if (aMaxLevel == 0 || aMaxLevel == 1)
 				aBlinks = PRESHOT_BLINKS;
@@ -1086,7 +1174,7 @@ void LogicMgr::UpdatePreShot()
 			aKind = 3;
 			aBlinks = PRESHOT_BLINKS;
 		}
-		if (PRESHOT_MANY_GOAL_PEGS < (int)mGoalPegs.size() && ((aMaxLevel != 0 && aMaxLevel != 1) || 0 < aScore))
+		if (PRESHOT_MANY_GOAL_PEGS < (int)mGoalPegs.size() && ((aMaxLevel != 0 && aMaxLevel != 1) || 0 < aShots))
 			aKind = 0;
 		for (std::list<SharedPtr<PhysObj> >::iterator anItr = mPegs.begin(); anItr != mPegs.end(); ++anItr)
 		{

@@ -72,6 +72,8 @@ public:
 	void UpdateZoom();						// 0x40ad10
 	void Reload();										// 0x4090d0: a new ball in the cannon
 	void PlayMusic();						// 0x422640
+	void BeginShot();								// 0x402760: the pointer is hidden while the ball is in play
+	void GetReplayPoint();							// 0x424be0: keeps the board's state for the instant replay (none is kept yet)
 	void AddObj(const SharedPtr<PhysObj>& theObj); // 0x422a90 (0x421070): a piece of the level joins the board's lists
 	void SetSlowMo(bool theSlowMo, int theRate); // 0x4026f0
 	void DeleteReplays(bool theKeep);		// 0x40cf70

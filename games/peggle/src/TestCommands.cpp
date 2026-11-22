@@ -3,6 +3,7 @@
 // ERROR <command>: <reason>. They act through the game's own code.
 
 #include "Board.h"
+#include "EffectMgr.h"
 #include "WidgetManager.h"
 #include "Gun.h"
 #include "LevelFile.h"
@@ -231,11 +232,11 @@ bool ThunderballApp::HandleScriptCommand(const ScriptCommand& theCommand)
 
 	if (theCommand.mCommand == "logic")
 	{
-		// logic <state> <steps> [<mouse x> <mouse y>] (-1: the state stays): on the level a loadlevel or resetlevel made, puts the turn in that state (1 is
+		// logic <state> <steps> [<mouse x> <mouse y> [<click>]] (-1: the state stays; a click other than 0 presses the left button at the mouse): on the level a loadlevel or resetlevel made, puts the turn in that state (1 is
 		// before the shot), moves the mouse there if told (the cannon follows it) and runs the logic's update that many times (not the
 		// board's: the pieces do not move). It tells the state, the aim, the cannon's, the pegs that flash and the counters.
-		int aState = 1, aSteps = 0, aX = -1, aY = -1;
-		int aWords = sscanf(theCommand.mArgs.c_str(), "%d %d %d %d", &aState, &aSteps, &aX, &aY);
+		int aState = 1, aSteps = 0, aX = -1, aY = -1, aClick = 0;
+		int aWords = sscanf(theCommand.mArgs.c_str(), "%d %d %d %d %d", &aState, &aSteps, &aX, &aY, &aClick);
 		if (aWords < 2 || mBoard == nullptr)
 		{
 			Reply("ERROR " + Words(theCommand) + ": needs a state and a number of steps, and a level");
@@ -255,6 +256,8 @@ bool ThunderballApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		if (0 <= aState)
 			aLogic->SetState(aState);
+		if (aWords >= 5 && aClick != 0)
+			aLogic->MouseDown(aX, aY, 1, false, false);
 		for (int aStep = 0; aStep < aSteps; aStep++)
 		{
 			aLogic->Update();
@@ -276,7 +279,7 @@ bool ThunderballApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		Reply("STATE {\"state\":" + std::to_string(aLogic->mState) + ",\"time\":" + std::to_string(aLogic->mStateTime) +
 			  ",\"gunAngle\":" + aDigits + ",\"turns\":" + std::to_string(aBoard->mGun->mTurns.size()) + ",\"shown\":" + std::to_string(aShown) + ",\"flashing\":" +
 			  std::to_string(aFlashing) + ",\"blinking\":" + std::to_string(aBlinking) + ",\"hint\":" +
-			  std::to_string(aLogic->mUnknown138) + ",\"column\":" + std::to_string(aBoard->mInterfaceMgr->mColumnBalls.size()) + ",\"still\":" + std::to_string(aBoard->mInterfaceMgr->mUnknown160) + ",\"shownBalls\":" + std::to_string(aBoard->mInterfaceMgr->mNumBallsShown) + ",\"maxLevel\":" + std::to_string(GetMaxLevel()) + ",\"onMax\":" + std::to_string(OnMaxLevel()) + ",\"sounds\":" + std::to_string(aBoard->mSoundMgr->mTime) + "}");
+			  std::to_string(aLogic->mUnknown138) + ",\"column\":" + std::to_string(aBoard->mInterfaceMgr->mColumnBalls.size()) + ",\"still\":" + std::to_string(aBoard->mInterfaceMgr->mUnknown160) + ",\"shownBalls\":" + std::to_string(aBoard->mInterfaceMgr->mNumBallsShown) + ",\"maxLevel\":" + std::to_string(GetMaxLevel()) + ",\"onMax\":" + std::to_string(OnMaxLevel()) + ",\"sounds\":" + std::to_string(aBoard->mSoundMgr->mTime) + ",\"balls\":" + std::to_string(aBoard->mBalls.size()) + ",\"effects\":" + std::to_string(aBoard->mEffectMgr->mLists[0].size() + aBoard->mEffectMgr->mLists[1].size() + aBoard->mEffectMgr->mLists[2].size() + aBoard->mEffectMgr->mLists[3].size() + aBoard->mEffectMgr->mLists[4].size()) + ",\"numBalls\":" + std::to_string(aLogic->mNumBalls[0]) + ",\"shots\":" + std::to_string(aLogic->mPlayerStats[0].mTotalShots) + "}");
 		Reply("OK " + Words(theCommand));
 		return true;
 	}
