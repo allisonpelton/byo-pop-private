@@ -95,6 +95,10 @@ holds no place, so `--places` shows its window only as an overlapping window; a 
    the end (or by `visrun.py CONFIG --restore` after an interrupted run, which `build/visrun/<name>/backup` marks) all are
    put back, and a key or folder that did not exist is removed again. The game is asked to close, and only if it will not,
    ended by its own process handle. visrun stops no other process, and the working copy is deleted (`--keep-copy` keeps it).
+   A run that is stopped from outside (a stopped background task, a killed queue script) puts nothing back: whoever stops
+   it runs `--restore` for its config at once, since until then the user's own saves and key are the staged ones. The next
+   run refuses to start over the backup, but that may be hours later (Bookworm Adventures, 2026-11-22: a queue stopped at
+   08:12 left the user's own save out of their WinBAD users folder until 10:51).
 
 ## The config (TOML)
 
