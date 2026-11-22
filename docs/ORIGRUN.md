@@ -476,7 +476,9 @@ for `PrintWindow`. All addresses are hex.
 **Input in the sandbox.** `at <N> move x y` posts `WM_MOUSEMOVE`, and `down`/`up` post the button messages; a game
 that polls the cursor needs `--cursor scripted`, or a private patch that takes the position from the message
 (Water Bugs has one, the `mouse` lines of its patch list). `--input-eip` holds an input until the game thread is
-outside the listed ranges (Water Bugs: 41f467,41f511, between the message pump and the end of the update loop),
+outside the listed ranges (Water Bugs: 41f489,41f511, the update loop past its frame wait; the older 41f467,41f511
+took in the wait itself, which was harmless only with 1 ms frames: under the 10-step-frame patch it held every input
+for thousands of updates),
 and the log line `at <cmd>: input at counter N (k holds)` gives the update that read it, which is the number to
 replay in the port. The game's own `SetCursorPos` calls do nothing there, so a port run that replays such a game
 needs its cursor warps off (Water Bugs' runner: `WB_NOWARP=1`).
