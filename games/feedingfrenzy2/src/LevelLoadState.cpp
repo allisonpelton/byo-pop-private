@@ -25,19 +25,6 @@ void stopAllSounds()
 		aSound->stopAll();
 }
 
-// 0x40c0b0 (feedingfrenzy2): the stage's intro screen's data, the timed mode's own ("<id>_timed") first in that mode;
-// null for none
-ScreenDataEntry* findIntroData(FeedingFrenzyTwo* theApp, const StageManifest::Stage& theEntry)
-{
-	if (theApp->mGameData->getMode() == GAME_MODE_TIMED)
-	{
-		ScreenDataEntry* aData = theApp->mStageScreenData->getEntry(theEntry.mId + "_timed");
-		if (aData != nullptr)
-			return aData;
-	}
-	return theApp->mStageScreenData->getEntry(theEntry.mId);
-}
-
 } // namespace
 
 LevelLoadState::LevelLoadState(FeedingFrenzyTwo* theApp, const StageManifest::Stage* theEntry, AppState* theNextState)
@@ -62,22 +49,19 @@ void LevelLoadState::enter()
 		if (mApp->mGameData)
 			mApp->mUserData->recordGame(*mApp->mGameData);
 		mApp->mUserData->save();
-		// The map (+0x84) as the load screen, set up for the mode without its buttons (0x478d90 (feedingfrenzy2)):
-		// not yet translated, so the stage loads with no screen
-		getEngine()->log("LevelLoadState: the map not yet translated\n");
-		mScreen = nullptr;
+		mScreen = mApp->mGameMap.get();
+		mApp->mGameMap->showFor(false, mApp->mGameData->getMode());
 	}
 	else
 		mScreen = mApp->mGenericLoadScreen.get();
-	mLoadBar = mScreen != nullptr ? dynamic_cast<Image*>(mScreen->findComponent("loadBar")) : nullptr;
+	mLoadBar = dynamic_cast<Image*>(mScreen->findComponent("loadBar"));
 	if (mLoadBar != nullptr)
 	{
 		mLoadBar->computeBounds();
 		mLoadBar->setSource(RectI(0, 0, 0, mLoadBar->getHeight()));
 	}
 	mShownProgress = 0.0f;
-	if (mScreen != nullptr)
-		mApp->mScreenMgr->showScreen(mScreen, 0.0f);
+	mApp->mScreenMgr->showScreen(mScreen, 0.0f);
 	stopAllSounds();
 }
 
@@ -92,8 +76,7 @@ void LevelLoadState::update(UpdateContext* theContext)
 {
 	if (!mLoading)
 	{
-		// port: with no screen (the map is not yet translated) the load starts at once
-		if (mScreen == nullptr || mScreen->getPhase() == SCREEN_SHOWN)
+		if (mScreen->getPhase() == SCREEN_SHOWN)
 			startLoading();
 		return;
 	}
@@ -122,7 +105,7 @@ void LevelLoadState::update(UpdateContext* theContext)
 		return;
 	// The stage's intro (StageIntroState, 0x18 bytes, 0x49d1b0 (feedingfrenzy2)) when it has intro data, else the
 	// play (GamePlayState, 0x1c bytes): not yet translated
-	if (findIntroData(mApp, *mEntry) != nullptr)
+	if (mApp->getScreenData(mEntry->mId) != nullptr)
 		getEngine()->log("LevelLoadState: %s loaded; the stage's intro not yet translated\n", mEntry->mId.c_str());
 	else
 		getEngine()->log("LevelLoadState: %s loaded; the play not yet translated\n", mEntry->mId.c_str());

@@ -249,9 +249,19 @@ void SplashState::load()
 		loadShellScreen("resource/shell/genericLoadScreen.xml", mApp->mShellTheme.get(), aFade, aFade);
 	mLoadProgress = 0.7f;
 
-	// The options (+0xa4), the map (+0x84), the stage's start (+0x98) and ends (+0x9c and +0xa0), the game overs
-	// (+0x90 and +0x94) and the high scores (+0x8c), each its own kind of screen: not yet translated
-	getEngine()->log("SplashState: the options, map, stage, game over and high score screens not yet translated\n");
+	// The options (+0xa4, FeedingFrenzyTwoOptionScreen): not yet translated
+	mLoadProgress = 0.75f;
+	// The map: read with the shell's theme, given one fade for both ways, set up from the game's stages
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mGameMap = new GameMapScreen();
+	mApp->mGameMap->load("resource/shell/gameMapBase.xml", mApp->mShellTheme.get());
+	mApp->mGameMap->setTransitions(aFade, aFade);
+	mApp->mGameMap->setup(&mApp->mGameData->getStages());
+	mApp->mGameMap->mActionSignal.connect(mApp, &FeedingFrenzyTwo::actionSlot);
+	mLoadProgress = 0.75f;
+	// The stage's start (+0x98) and ends (+0x9c and +0xa0), the game overs (+0x90 and +0x94) and the high scores
+	// (+0x8c), each its own kind of screen: not yet translated
+	getEngine()->log("SplashState: the options, stage, game over and high score screens not yet translated\n");
 	mLoadProgress = 0.82f;
 	// (Read without a theme)
 	aFade = new FadeTransition(SHELL_FADE_SECONDS);

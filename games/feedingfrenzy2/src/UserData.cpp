@@ -170,3 +170,15 @@ void UserData::recordGame(const GameData& theGameData)
 	aRecord.mLastLifeCount = theGameData.getLives();
 	aRecord.mTimeRollover = theGameData.getTimeRollover();
 }
+
+void UserData::clearSavedGame(int theMode)
+{
+	ModeRecord& aRecord = mModes[theMode];
+	aRecord.mLastStage = -1;
+	aRecord.mLastScore = -1;
+	aRecord.mMode = theMode;
+	aRecord.mLastContinues = 0;
+	aRecord.mLastLifeCount = 0;
+	aRecord.mTimeRollover = 0;
+	save();
+}

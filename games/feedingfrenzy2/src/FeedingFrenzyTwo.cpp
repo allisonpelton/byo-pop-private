@@ -16,6 +16,17 @@ FeedingFrenzyTwo* gTheApp = nullptr;
 
 } // namespace
 
+ScreenDataEntry* FeedingFrenzyTwo::getScreenData(const std::string& theStageId)
+{
+	if (mGameData->getMode() == GAME_MODE_TIMED)
+	{
+		ScreenDataEntry* aData = mStageScreenData->getEntry(theStageId + "_timed");
+		if (aData != nullptr)
+			return aData;
+	}
+	return mStageScreenData->getEntry(theStageId);
+}
+
 FeedingFrenzyTwo* getApp()
 {
 	return gTheApp;

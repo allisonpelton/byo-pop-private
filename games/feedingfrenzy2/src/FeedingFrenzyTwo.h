@@ -9,6 +9,7 @@
 #include "Container.h"
 #include "FunFacts.h"
 #include "GameData.h"
+#include "GameMapScreen.h"
 #include "GenericScreen.h"
 #include "GenericUserSelectScreen.h"
 #include "MainMenu.h"
@@ -67,6 +68,9 @@ public:
 	void updateSlot(engine::UpdateContext* theContext);
 	// 0x48b740 (feedingfrenzy2), connected to the shell's screens' action signals: passed to the current state
 	void actionSlot(const std::string& theAction) { mStateMgr.action(theAction); }
+	// 0x40c0b0 (feedingfrenzy2): the stage's intro screen's data, the timed mode's own ("<id>_timed") first in that
+	// mode; null for none
+	ScreenDataEntry* getScreenData(const std::string& theStageId);
 
 	engine::Ref<engine::Scene> mScene;                 // +0x20
 	engine::Ref<ScreenMgr> mScreenMgr;                 // +0x24
@@ -92,7 +96,7 @@ public:
 	engine::Ref<engine::GenericScreen> mGameExitConfirm;         // +0x78
 	engine::Ref<engine::GenericScreen> mRestoreGameScreen;       // +0x7c
 	engine::Ref<engine::GenericScreen> mGenericLoadScreen;       // +0x80
-	// +0x84: the map (GameMapScreen): not yet translated
+	engine::Ref<GameMapScreen> mGameMap;                         // +0x84
 	engine::Ref<engine::GenericScreen> mCredits;                 // +0x88
 	// +0x8c to +0xa4: the high scores (HighScoreScreen), the two game overs (StageCompleteScreenBonus), the stage's
 	// start (StageIntroScreen), its two ends (StageCompleteScreenNormal and StageCompleteScreenBonus) and the options

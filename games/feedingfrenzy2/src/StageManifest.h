@@ -51,6 +51,8 @@ public:
 	void load(const std::string& thePath);
 
 	const std::vector<Stage>& getStages() const { return mStages; }
+	// 0x483b90 (feedingfrenzy2): the place of the stage of the id, -1 for none
+	int findStage(const std::string& theId) const;
 	const std::vector<LevelSet>& getLevelSets() const { return mLevelSets; }
 
 private:

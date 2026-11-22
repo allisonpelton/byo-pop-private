@@ -5,6 +5,16 @@
 
 using namespace engine;
 
+int StageManifest::findStage(const std::string& theId) const
+{
+	for (int i = 0; i < (int)mStages.size(); i++)
+	{
+		if (mStages[i].mId == theId)
+			return i;
+	}
+	return -1;
+}
+
 void StageManifest::load(const std::string& thePath)
 {
 	MasterDocHandler aMaster;

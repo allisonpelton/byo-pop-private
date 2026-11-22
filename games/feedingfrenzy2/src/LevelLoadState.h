@@ -5,8 +5,8 @@
 // (feedingfrenzy2); its constructor 0x492920 (feedingfrenzy2)): a load screen shown (the map for a game's stage, the
 // plain load screen for a menu's), then the stage loaded by its loader (Stage::StageLoader, a thread of its own in the
 // original; the port loads at once, as the splash does) while the screen's bar follows, then the stage's intro or the
-// play. Translated so far: the screens, the load, the bar and the stage put back under the screens; the map, the
-// music, the pause screen's title and the states that follow are not yet translated.
+// play. Translated so far: the screens, the load, the bar and the stage put back under the screens; the music, the
+// pause screen's title and the states that follow are not yet translated.
 
 #include "FeedingFrenzyTwo.h"
 #include "Image.h"

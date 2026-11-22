@@ -347,11 +347,20 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   translated: the map (a game's stage loads with no screen, and so without waiting for one), the music, the pause
   screen's stage title, the HUD's canSuck parts, and the states that follow (StageIntroState for a stage with intro
   data, else GamePlayState).
+- The map (GameMapScreen.h, the application's +0x84, read by the splash's loader from resource/shell/gameMapBase.xml
+  and set up from the stages): a GameMapCheckpoint for each stage (four images of the shell theme's, the high one
+  pulsing through the engine's new OpacityModifier, and a hidden hit-box button whose action is "levelStart:<id>"),
+  shown for a stage's load (the stage named, those before it passed, it current) or for picking a stage reached (the
+  menu's newGame once a stage of the mode is reached, and the menu's levelStart action, which drops the mode's saved
+  game). The stage under the mouse is named in stageText. Checked under rundesk: Start Game shows the map with
+  "Now Loading", "1. Sandy Shoal" and the bar filling, then stage1 loaded, exit 0. Not yet translated: the pins' places
+  (each level set's spline, PathImpl<PathNodeSpline> read by PathDocHandler 0x48b9b0, and the pins spaced along it by
+  0x41ad50), so every pin sits at the map's corner; the level sets' buttons (imgOff, imgOn).
 
 ## Next
 
-- The map (GameMapScreen, the application's +0x84): the load screen of every game's stage, and the menu's screen once
-  a stage of the mode has been reached. Then the restore-game popup's actions, StageIntroState (0x49d1b0) and
+- The map's pins: the splines (0x48b9b0, PathImpl<PathNodeSpline>) and the spacing (0x41ad50); then the picking path
+  checked with a player who has reached a stage. Then the restore-game popup's actions, StageIntroState (0x49d1b0) and
   GamePlayState, the players' spawn and the HUD, toward a stage in play.
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's
   simplesound). The stage's slot 0x5c (0x447ef0) is not a clean-up but the stage's ending (player died, perfect, stage

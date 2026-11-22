@@ -62,6 +62,8 @@ public:
 	// 0x49ae90 (feedingfrenzy2): the game kept in its mode's record, the stages reached raised to its stage
 	// (0x49aed0 (feedingfrenzy2))
 	void recordGame(const GameData& theGameData);
+	// 0x4980c0 (feedingfrenzy2): the mode's record holds no game to go on with, and the player is saved
+	void clearSavedGame(int theMode);
 
 private:
 	// 0x49a9d0 (feedingfrenzy2): the players' list's slot, which only jumps to load

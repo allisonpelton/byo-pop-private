@@ -38,6 +38,9 @@ private:
 	// question whether to go on with the saved one, the map once a stage of the mode has been reached, or else the
 	// first stage's load
 	void startGame(int theMode);
+	// An action holding levelStart (inlined in 0x4112f0 (feedingfrenzy2)), the map's: a new game of the mode from
+	// the stage of the id after the ':', its record's saved game dropped
+	void startStage(const std::string& theStageId);
 
 	bool mPlayerChecked;  // +0x10
 };
