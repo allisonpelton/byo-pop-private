@@ -3,6 +3,7 @@
 #include "Anim.h"
 #include "Emitter.h"
 #include "GameApp.h"
+#include "LevelObj.h"
 #include "Pending.h"
 #include "Player.h"
 #include "Res.h"
@@ -208,7 +209,7 @@ void FillObj::QueuePipe(PipeObj* thePipe, float theX, float theY)
 // 2: up, 3: left); the other three move 8 pixels to the right, down or both, away from it
 void FillObj::QueueCornerPipes()
 {
-	PipeObj* aPipe = (PipeObj*)gFillGrid[mColumn][mRow].mSlot[FILL_SLOT_PIPE];
+	PipeObj* aPipe = (PipeObj*)gFillGrid[mColumn][mRow].mPipe;
 	if (IsActivePipe(aPipe)) {
 		int aKind = aPipe->mKind;
 		if (aKind == 1)
@@ -219,17 +220,17 @@ void FillObj::QueueCornerPipes()
 			QueuePipe(aPipe, -8.0f, 0.0f);
 	}
 	if (mColumn < FILL_GRID_COLUMNS - 1) {
-		aPipe = (PipeObj*)gFillGrid[mColumn + 1][mRow].mSlot[FILL_SLOT_PIPE];
+		aPipe = (PipeObj*)gFillGrid[mColumn + 1][mRow].mPipe;
 		if (IsActivePipe(aPipe))
 			QueuePipe(aPipe, 8.0f, 0.0f);
 	}
 	if (mRow < FILL_GRID_ROWS - 1) {
-		aPipe = (PipeObj*)gFillGrid[mColumn][mRow + 1].mSlot[FILL_SLOT_PIPE];
+		aPipe = (PipeObj*)gFillGrid[mColumn][mRow + 1].mPipe;
 		if (IsActivePipe(aPipe))
 			QueuePipe(aPipe, 0.0f, 8.0f);
 	}
 	if (mColumn < FILL_GRID_COLUMNS - 1 && mRow < FILL_GRID_ROWS - 1) {
-		aPipe = (PipeObj*)gFillGrid[mColumn + 1][mRow + 1].mSlot[FILL_SLOT_PIPE];
+		aPipe = (PipeObj*)gFillGrid[mColumn + 1][mRow + 1].mPipe;
 		if (IsActivePipe(aPipe))
 			QueuePipe(aPipe, 8.0f, 8.0f);
 	}
@@ -731,7 +732,7 @@ void FillObj::ClearBonuses()
 	for (int aRow = 0; aRow < FILL_GRID_ROWS; aRow++) {
 		for (int aColumn = 0; aColumn < FILL_GRID_COLUMNS; aColumn++) {
 			// the original reads the grid unchecked; the port's stand-in grid may hold no cell
-			FillObj* aCell = (FillObj*)gFillGrid[aColumn][aRow].mSlot[FILL_SLOT_CELL];
+			FillObj* aCell = (FillObj*)gFillGrid[aColumn][aRow].mCell;
 			if (aCell != nullptr)
 				aCell->SetBonus(nullptr);
 		}
@@ -787,13 +788,13 @@ void FillObj::FreeSheet()
 // the grid's pipe at a place (the original reads the table with no check of the place)
 PipeObj* FillObj::GetWall(int theColumn, int theRow)
 {
-	return (PipeObj*)gFillGrid[theColumn][theRow].mSlot[FILL_SLOT_PIPE];
+	return (PipeObj*)gFillGrid[theColumn][theRow].mPipe;
 }
 
 // the grid's cell at a place
 FillObj* FillObj::GetTile(int theColumn, int theRow)
 {
-	return (FillObj*)gFillGrid[theColumn][theRow].mSlot[FILL_SLOT_CELL];
+	return (FillObj*)gFillGrid[theColumn][theRow].mCell;
 }
 
 // 0x42ad40: the net fly's picture, two cels of 33 by 33

@@ -5,6 +5,7 @@
 #include "Pending.h"
 
 #include "Anim.h"
+#include "LevelObj.h"
 #include "Player.h"
 
 #include <cstdio>
@@ -19,8 +20,6 @@ bool PauseWin::sEnabled = false;
 bool MetaGame::sFirstVisit = false;
 
 // The preloaded pictures, each in the global the original keeps it in; they move to their classes with them
-static Anim* sBananaBunchAnim;       // 0x60e1a0
-static Anim* sCoronaAnim;            // 0x60e1a4
 static Anim* sWalkThruTextAnims[9];  // 0x67022c
 static Anim* sSlotMachineAnim;       // 0x670210
 static Anim* sSlotSymbolsAnim;       // 0x670214
@@ -67,35 +66,12 @@ static Anim* sZumaBallAnim;          // 0x60e1e8
 static Anim* sSpinStarsAnim;         // 0x60e254
 static Anim* sMonkeyShockRingAnim;   // 0x60e258
 static Anim* sRolyPolyAnim;          // 0x60e2a0
-static Anim* sFireBallAnim;          // 0x60e50c
 static Anim* sPipesAnim;             // 0x670194
 static Anim* sCockroachWalkAnim;     // 0x60e29c
 
 static Anim* Load(const char* theName, int theCelWidth, int theCelHeight, int theNumCels, bool uniform = false)
 {
 	return Anim::Get(theName, ANIM_SCALE_SMOOTH, false, theCelWidth, theCelHeight, theNumCels, uniform);
-}
-
-// a track that holds, for StartLeaving
-static int AddHoldTrack(ObjBase* theObj)
-{
-	AnimKey* aKey = new AnimKey();
-	AnimTrack* aTrack = new AnimTrack();
-	aTrack->AddKey(aKey, aKey);
-	return theObj->AddTrack(aTrack, nullptr);
-}
-
-Board::Board()
-{
-	SetParent(nullptr, nullptr);
-	mLevel = new LevelObj();
-	mLeaveTrack = AddHoldTrack(this);
-	Activate(this, false);
-}
-
-Board::~Board()
-{
-	delete mLevel;
 }
 
 MetaGame::MetaGame()
@@ -129,12 +105,6 @@ bool PauseWin::IsBlocking()
 
 void PauseWin::ResumeOnRelease()
 {
-}
-
-void Sexy::PreloadBananas()
-{
-	sBananaBunchAnim = Load("images/bananabunch01", 0, 0, 1);
-	sCoronaAnim = Load("images/corona1", 0, 0, 1);
 }
 
 void Sexy::PreloadWalkThru()
@@ -258,98 +228,14 @@ void Sexy::PreloadRolyPoly()
 	sRolyPolyAnim = Load("images/rolypoly", 0x60, 0x4f, 0x3c);
 }
 
-void Sexy::PreloadFireBall()
-{
-	sFireBallAnim = Load("images/fireball", 0, 0, 1);
-}
-
 void Sexy::PreloadPipes()
 {
 	sPipesAnim = Load("images/pipes01", 0x21, 0x21, 0x10);
 }
 
-// port: the levels' table is not translated yet
-void Sexy::InitLevelTable()
-{
-}
-
 void Sexy::PreloadCockroach()
 {
 	sCockroachWalkAnim = Load("images/cockroach_walk", 0x60, 0x40, 0x1c);
-}
-
-// port: the stand-in has no level taking the mouse
-bool Sexy::LevelAcceptsMouse()
-{
-	return true;
-}
-
-// port: the stand-in level makes no rope (the original reads the object at +0x9000 of the level)
-RopeObj* RopeObj::Current()
-{
-	return nullptr;
-}
-
-// port: the stand-in level is never playing and shows no texts
-bool LevelObj::IsPlaying()
-{
-	return false;
-}
-
-void LevelObj::HideMessage()
-{
-}
-
-void LevelObj::ShowGameOver()
-{
-}
-
-void LevelObj::ShowMessage(const char* theText, float theX, float theY, int theDelay, float theScale, float theRed,
-	float theGreen, float theBlue)
-{
-	(void)theText;
-	(void)theX;
-	(void)theY;
-	(void)theDelay;
-	(void)theScale;
-	(void)theRed;
-	(void)theGreen;
-	(void)theBlue;
-}
-
-void LevelObj::ShowLives(int theLives)
-{
-	(void)theLives;
-}
-
-void LevelObj::ShowRopePreview(int theCellX, int theCellY, int theVertical, int theFrom, int theTo)
-{
-	(void)theCellX;
-	(void)theCellY;
-	(void)theVertical;
-	(void)theFrom;
-	(void)theTo;
-}
-
-void LevelObj::ClearRopePreview()
-{
-}
-
-void LevelObj::OnCellCut()
-{
-}
-
-void LevelObj::OnFillDone()
-{
-}
-
-void LevelObj::CutGround(int theCellX, int theCellY, int theVertical, int theFrom, int theTo)
-{
-	(void)theCellX;
-	(void)theCellY;
-	(void)theVertical;
-	(void)theFrom;
-	(void)theTo;
 }
 
 // port: the stand-in level has no bugs, ground or hints
@@ -361,7 +247,26 @@ bool BugObj::AnyNear(float theX, float theY, float theReach)
 	return false;
 }
 
+int BugObj::sCount = 0;
+int BugObj::sAlive = 0;
+
 void BugObj::OnShot()
+{
+}
+
+void BugObj::Reset()
+{
+}
+
+void BugObj::Shuffle()
+{
+}
+
+void BugObj::KillAll()
+{
+}
+
+void BugObj::ResetCounters()
 {
 }
 
@@ -381,6 +286,59 @@ void PipeObj::SetShiftTarget(float theX, float theY)
 
 void PipeObj::StartShift()
 {
+}
+
+bool PipeObj::sSoundPlayed = false;
+
+void PipeObj::SetKind(int theKind)
+{
+	mKind = theKind;
+}
+
+bool PipeObj::IsSettledA()
+{
+	return true;
+}
+
+bool PipeObj::IsSettledB()
+{
+	return true;
+}
+
+void PipeObj::Refresh()
+{
+}
+
+void PipeObj::Retire()
+{
+}
+
+void PipeObj::Rebuild()
+{
+}
+
+void PipeObj::RandomizeDuration()
+{
+}
+
+void PipeObj::BuildFlames()
+{
+}
+
+// port: the stand-in pipe is an object of the right place that shows nothing
+PipeObj* PipeObj::Create(int theColumn, int theRow)
+{
+	PipeObj* aPipe = new PipeObj();
+	aPipe->SetParent(nullptr, nullptr);
+	aPipe->mKind = 0;
+	aPipe->mVariant = 0;
+	aPipe->mColumn = theColumn;
+	aPipe->mRow = theRow;
+	aPipe->mUpLink = nullptr;
+	aPipe->mRightLink = nullptr;
+	aPipe->mDownLink = nullptr;
+	aPipe->mLeftLink = nullptr;
+	return aPipe;
 }
 
 void HiddenBonus::Uncover()
@@ -427,6 +385,26 @@ void WalkThru::OnTurn()
 {
 }
 
+void WalkThru::OnAreaFilled()
+{
+}
+
+void WalkThru::Dismiss()
+{
+}
+
+void WalkThru::ShowFirstStep()
+{
+}
+
+void WalkThru::ShowSecondStep()
+{
+}
+
+void WalkThru::ShowThirdStep()
+{
+}
+
 // port: the stand-in has no bonus running; the original also ends what the running bonus changed, and lets go of what
 // the monkey holds
 void Bonus::Cancel()
@@ -436,6 +414,11 @@ void Bonus::Cancel()
 
 void Bonus::CancelIfDone()
 {
+}
+
+void Bonus::ClearAll()
+{
+	Player::Drop();
 }
 
 // port: the stand-in board shows nothing
@@ -465,6 +448,81 @@ void ScoreBoard::DeactivateHud()
 {
 }
 
+void ScoreBoard::LaunchFireBall(int theIndex)
+{
+	(void)theIndex;
+}
+
+void ScoreBoard::ShowLevel(int theLevel)
+{
+	(void)theLevel;
+}
+
+void ScoreBoard::Show()
+{
+}
+
+void ScoreBoard::ClearBananaIcons()
+{
+}
+
+bool ScoreBoard::IsDone()
+{
+	return true;
+}
+
+// port: the stand-ins of what a level makes. The intro is always ready and finished, the in-level menu resumes at
+// once, the stats are ready and the victory is done
+bool Intro::IsReady()
+{
+	return true;
+}
+
+bool Intro::IsFinished()
+{
+	return true;
+}
+
+void Intro::Finish()
+{
+	Delete();
+}
+
+int InGameMenu::GetResult()
+{
+	return 2;
+}
+
+void InGameMenu::Close()
+{
+	Delete();
+}
+
+Stats::Stats(LevelObj* theLevel, int theFirst, int theSecond)
+{
+	(void)theLevel;
+	(void)theFirst;
+	(void)theSecond;
+}
+
+bool Stats::IsReady()
+{
+	return true;
+}
+
+void Stats::Continue()
+{
+}
+
+void Victory::Show()
+{
+}
+
+bool Victory::IsDone()
+{
+	return true;
+}
+
 void HeldObj::Rotate()
 {
 }
@@ -474,3 +532,12 @@ bool HeldObj::Place()
 	return false;
 }
 
+
+GridBug* BugObj::PickPeaTarget()
+{
+	return nullptr;
+}
+
+void GridBug::MarkPeaHit()
+{
+}

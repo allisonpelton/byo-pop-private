@@ -4,6 +4,7 @@
 #include "Emitter.h"
 #include "FillObj.h"
 #include "GameApp.h"
+#include "LevelObj.h"
 #include "Pending.h"
 #include "Player.h"
 #include "Res.h"
@@ -261,7 +262,7 @@ void RopeObj::LayBolt(int theEnd)
 			aRowLast = aWall->mRow;
 		}
 		for (int aRow = aRowFirst; aRow <= aRowLast; aRow++) {
-			GridBug* aBug = (GridBug*)gFillGrid[aColumnFirst][aRow].mSlot[FILL_SLOT_BUGS];
+			GridBug* aBug = (GridBug*)gFillGrid[aColumnFirst][aRow].mFirstBug;
 			while (aBug != nullptr) {
 				aBug->Zap(0, 1, 0);
 				aBug = aBug->mNextInCell;
@@ -282,7 +283,7 @@ void RopeObj::LayBolt(int theEnd)
 			aRowLast = aWall->mRow;
 		}
 		for (int aColumn = aColumnFirst; aColumn <= aColumnLast; aColumn++) {
-			GridBug* aBug = (GridBug*)gFillGrid[aColumn][aRowFirst].mSlot[FILL_SLOT_BUGS];
+			GridBug* aBug = (GridBug*)gFillGrid[aColumn][aRowFirst].mFirstBug;
 			while (aBug != nullptr) {
 				aBug->Zap(0, 1, 0);
 				aBug = aBug->mNextInCell;
@@ -474,11 +475,11 @@ void RopeObj::Start(int theVertical, int theCellX, int theCellY, int theFrom, in
 	mFrom = theFrom;
 	mTo = theTo;
 	if (theVertical == 0) {
-		mStartWall = (PipeObj*)gFillGrid[theFrom][theCellY].mSlot[FILL_SLOT_PIPE];
-		mEndWall = (PipeObj*)gFillGrid[theTo][theCellY].mSlot[FILL_SLOT_PIPE];
+		mStartWall = (PipeObj*)gFillGrid[theFrom][theCellY].mPipe;
+		mEndWall = (PipeObj*)gFillGrid[theTo][theCellY].mPipe;
 	} else {
-		mStartWall = (PipeObj*)gFillGrid[theCellX][theFrom].mSlot[FILL_SLOT_PIPE];
-		mEndWall = (PipeObj*)gFillGrid[theCellX][theTo].mSlot[FILL_SLOT_PIPE];
+		mStartWall = (PipeObj*)gFillGrid[theCellX][theFrom].mPipe;
+		mEndWall = (PipeObj*)gFillGrid[theCellX][theTo].mPipe;
 	}
 	SetArrowTarget(0, theVertical, theCellX, theCellY, theFrom);
 	SetArrowTarget(1, theVertical, theCellX, theCellY, theTo);
@@ -511,11 +512,11 @@ void RopeObj::SetAim(int theVertical, int theCellX, int theCellY, int theFrom, i
 	mFrom = theFrom;
 	mTo = theTo;
 	if (theVertical == 0) {
-		mStartWall = (PipeObj*)gFillGrid[theFrom][theCellY].mSlot[FILL_SLOT_PIPE];
-		mEndWall = (PipeObj*)gFillGrid[theTo][theCellY].mSlot[FILL_SLOT_PIPE];
+		mStartWall = (PipeObj*)gFillGrid[theFrom][theCellY].mPipe;
+		mEndWall = (PipeObj*)gFillGrid[theTo][theCellY].mPipe;
 	} else {
-		mStartWall = (PipeObj*)gFillGrid[theCellX][theFrom].mSlot[FILL_SLOT_PIPE];
-		mEndWall = (PipeObj*)gFillGrid[theCellX][theTo].mSlot[FILL_SLOT_PIPE];
+		mStartWall = (PipeObj*)gFillGrid[theCellX][theFrom].mPipe;
+		mEndWall = (PipeObj*)gFillGrid[theCellX][theTo].mPipe;
 	}
 	// the arrows' pictures are swapped with no references taken or let go, as in the original
 	mArrows[0]->mAnim = sArrowAnims[Player::GetRopeMode()];

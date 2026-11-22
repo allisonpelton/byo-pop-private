@@ -3,6 +3,7 @@
 #include "Anim.h"
 #include "Cursor.h"
 #include "GameApp.h"
+#include "LevelObj.h"
 #include "Pending.h"
 #include "Res.h"
 #include "SoundQueue.h"

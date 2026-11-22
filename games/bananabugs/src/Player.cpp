@@ -1,4 +1,5 @@
 #include "Player.h"
+#include "Board.h"
 
 #include "Anim.h"
 #include "BBWindow.h"
@@ -7,6 +8,7 @@
 #include "Emitter.h"
 #include "GameApp.h"
 #include "HighScore.h"
+#include "LevelObj.h"
 #include "Graphics.h"
 #include "ObjString.h"
 #include "Res.h"
@@ -1676,13 +1678,13 @@ void Player::LoseLife()
 	int aLives = aPlayer->mLives;
 	if (aLives < 1) {
 		snprintf(aText, sizeof(aText), "NO LIVES LEFT");
-		LevelObj::HideMessage();
+		LevelObj::HideMenuButton();
 	} else if (aLives == 1) {
 		snprintf(aText, sizeof(aText), "1 LIFE LEFT");
 	} else {
 		snprintf(aText, sizeof(aText), "%d LIVES LEFT", aLives);
 	}
-	LevelObj::ShowMessage(aText, MESSAGE_X, 496.0f, 60, 1.5f, 1.0f, 0.35f, 0.0f);
+	LevelObj::ShowMessage(aText, MESSAGE_X, 496.0f, 60, 1.5f, 1.0f, 0.35f, 0.0f, -1, 100);
 }
 
 // 0x45d460

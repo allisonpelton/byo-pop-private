@@ -100,3 +100,8 @@ The finished translations to copy the style from: `src/PopCap.cpp`, `src/Transit
   SortProfiles sets the current index to the old slot; Update reads the level's rope unchecked (the port checks).
 - Player guesses to check when the level is in: mBugKinds (+0x2c8), mRopeMode, the bonus-blocked array, the upgrade
   field names, and which object three SetState calls act on (UpdateLook FRAME, Notify case 10 X/Y, spazz-done FRAME).
+- FireBall (0x42ae80): a ball that lands once the level has reached its target, or with no bugs alive, is never put
+  away; it stays where it landed, still trailing.
+- BananaBonus (0x404b00): the last key of a bunch sets the alpha twice (0, then 0.1) and an orbit radius nothing reads.
+- LevelObj's shuffle (0x4733f0) takes the C library's rand (CrtRand); the original seeds it (GetTickCount in
+  SexyApp's Init, to check), so the test hooks need `-seed=` reseeding it like the other ports.

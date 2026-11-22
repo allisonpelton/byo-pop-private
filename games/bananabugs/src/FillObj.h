@@ -13,6 +13,8 @@ namespace Sexy
 {
 
 class Anim;
+class FillObj;
+class GridBug;
 class HiddenBonus;
 class PipeObj;
 
@@ -24,19 +26,18 @@ const int FILL_WAVE_FIRST = 100;       // the cut's wave numbers run from 100 to
 const int FILL_WAVE_LAST = 110;
 const int OBJ_TYPE_FILL_CELL = 12;     // the type the cells mark themselves with
 
-// What a grid cell's eight slots hold, as far as the cells and pipes show
-enum FillGridSlot
-{
-	FILL_SLOT_PIPE = 2,                // the pipe (wall) at this corner, if any (PipeObj)
-	FILL_SLOT_CELL = 3,                // the FillObj of this cell
-	FILL_SLOT_BUGS = 6,                // the first of the bugs standing on this place (GridBug), each pointing on to the next
-	FILL_GRID_SLOTS = 8,
-};
-
-// One place of the level's grid (0x20 bytes); the slots not named here are the level's own
+// One place of the level's grid (0x20 bytes; the original's eight slots, in this order). The level lays it out
+// (LevelObj); the cells, pipes and bugs find each other through it
 struct FillGridCell
 {
-	ObjBase* mSlot[FILL_GRID_SLOTS];
+	int mColumn;                       // slot 0: its column
+	int mRow;                          // slot 1: its row
+	PipeObj* mPipe;                    // slot 2: the pipe (wall) at this corner, if any
+	FillObj* mCell;                    // slot 3: the FillObj of this place
+	int mKind;                         // slot 4: what the level's layout makes of the place (LevelObj's FillKind, +10 once checked)
+	int mUnused5;                      // slot 5: set to 0 by the level and never read
+	GridBug* mFirstBug;                // slot 6: the first of the bugs standing on this place, each pointing on to the next
+	GridBug* mLastBug;                 // slot 7: the last of them
 };
 
 // The level's grid, columns first: the original's table at 0x602eb0 (32 bytes a cell, 32 cells a column)

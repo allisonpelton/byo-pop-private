@@ -17,46 +17,7 @@ class Anim;
 class BBFont;
 class LevelObj;
 class PipeObj;
-
-// The level being played (0x405770); a stand-in shows nothing and never ends
-class Board : public ObjBase
-{
-public:
-	int mLeaveTrack;           // +0x280: the track MainMenu's StartLeaving (0x440a60) starts, also on a board
-	LevelObj* mLevel;          // +0x788
-
-	Board();
-	~Board();
-	void StartLeaving() { StartTrack(mLeaveTrack); } // 0x440a60
-};
-
-// What a level ended with (LevelObj::GetResult); the names are to be checked as LevelObj is translated
-enum LevelResult
-{
-	LEVEL_RESULT_NONE = 0,
-	LEVEL_RESULT_WON = 1,      // on to the map
-	LEVEL_RESULT_QUIT = 2,     // back to the main menu
-	LEVEL_RESULT_LOST = 3,     // back to the main menu
-};
-
-// The rules of a level (0x439700); the stand-in's never end, and the statics are those of the level sLevel points to,
-// which the stand-in never makes: each does nothing and says there is no level
-class LevelObj
-{
-public:
-	int GetResult() { return LEVEL_RESULT_NONE; } // 0x43a9b0
-	static bool IsPlaying();                    // 0x43aad0: the level is in the state that takes play (+0x53c0 is 2)
-	static void HideMessage();                  // 0x43aa30
-	static void ShowGameOver();                 // 0x43aa60
-	static void ShowMessage(const char* theText, float theX, float theY, int theDelay, float theScale, float theRed,
-		float theGreen, float theBlue);         // 0x43aae0
-	static void ShowLives(int theLives);        // 0x43ac60
-	static void ShowRopePreview(int theCellX, int theCellY, int theVertical, int theFrom, int theTo); // 0x43e060
-	static void ClearRopePreview();             // 0x43e020
-	static void OnCellCut();                    // 0x43dc40: a cell of the ground has gone
-	static void OnFillDone();                   // 0x43a990: the cut's last cell has gone
-	static void CutGround(int theCellX, int theCellY, int theVertical, int theFrom, int theTo); // 0x43e3a0: the rope has reached its ends
-};
+class GridBug;
 
 // The bugs (0x425410 and the kinds before it); the stand-in has none
 class BugObj
@@ -65,6 +26,13 @@ public:
 	static bool AnyNear(float theX, float theY, float theReach); // 0x426300
 	static void OnShot();                       // 0x426060: tells the bugs a rope was shot
 	static void AlertAlongRope(PipeObj* theStart, PipeObj* theEnd, int theVertical); // 0x4267c0 (EAX start, ECX end): the bugs near the rope's line are told
+	static int sCount;                          // 0x60e2ac: the bugs made (alive or not)
+	static int sAlive;                          // 0x60e2b0: the bugs alive
+	static void Reset();                        // 0x426180: no bugs
+	static void Shuffle();                      // 0x4261e0: the bugs' order is mixed
+	static void KillAll();                      // 0x4268a0
+	static void ResetCounters();                // 0x426070
+	static GridBug* PickPeaTarget();            // 0x426680: a bug at random for a pea or a fireball, or none
 };
 
 // The pipes of the level, the walls the rope runs between (0x455f50..; the class is not translated): a stand-in with the
@@ -83,6 +51,19 @@ public:
 
 	void SetShiftTarget(float theX, float theY); // 0x4560c0: where the pipe moves to when a cut reaches it
 	void StartShift();                          // 0x4560e0: the pipe starts to move
+
+	int mVariant;                               // +0x288: which picture of its kind it shows
+	static bool sSoundPlayed;                   // 0x670191: the settling sound has played
+
+	void SetKind(int theKind);                  // 0x456070
+	bool IsSettledA();                          // 0x456080 (the byte at +0x28c)
+	bool IsSettledB();                          // 0x456090 (the byte at +0x28d)
+	void Refresh();                             // 0x4561c0
+	void Retire();                              // 0x4562d0
+	void Rebuild();                             // 0x4564c0
+	void RandomizeDuration();                   // 0x4565f0
+	void BuildFlames();                         // 0x458b00
+	static PipeObj* Create(int theColumn, int theRow); // 0x459120 (the order of the two is a guess: the first call has both 0)
 };
 
 // A bonus hidden under a cell of the ground (0x409b00..; the class is not translated)
@@ -98,6 +79,7 @@ class GridBug : public ObjBase
 {
 public:
 	GridBug* mNextInCell;                       // +0x2e0
+	void MarkPeaHit();                          // 0x425af0: sets the byte at +0x2f1
 	virtual void Zap(int theFirst, int theSecond, int theThird); // slot 20 (+0x50): a bolt runs through the bug's place
 };
 
@@ -118,6 +100,11 @@ public:
 	static void OnShoot();                      // 0x475610
 	static void OnLoseLife();                   // 0x475630
 	static void OnTurn();                       // 0x475670
+	static void OnAreaFilled();                 // 0x475650
+	static void Dismiss();                      // 0x4756b0
+	static void ShowFirstStep();                // 0x4757d0 (the names of the three steps are guesses)
+	static void ShowSecondStep();               // 0x4759e0
+	static void ShowThirdStep();                // 0x475c40
 };
 
 // The bonuses (0x406cd0, 0x406d90); the stand-in has none running
@@ -126,11 +113,12 @@ class Bonus
 public:
 	static void Cancel();                       // 0x406cd0
 	static void CancelIfDone();                 // 0x406d90
+	static void ClearAll();                     // 0x406c60: lets go of what is held and ends the bonuses (a guess at the name)
 };
 
 // The board of figures in a level (0x464320): the stand-in shows nothing. A Player's board is nullptr until a level
 // gives it one, and these never read the object they are called on
-class ScoreBoard
+class ScoreBoard : public ObjBase
 {
 public:
 	void ShowScore(int theScore);               // 0x4684a0
@@ -139,7 +127,45 @@ public:
 	void MarkLastIcon();                        // 0x4650f0: the last icon shown is marked with the id 0x43 and started
 	void ActivateHud();                         // 0x4676e0
 	void DeactivateHud();                       // 0x467750
+	void LaunchFireBall(int theIndex);          // 0x4651a0: the monkey's fire ball of that number leaves the board
+	void ShowLevel(int theLevel);               // 0x468550: the level's number ("%02d")
+	void Show();                                // 0x465080
+	void ClearBananaIcons();                    // 0x468780 (the original's name is not known)
+	bool IsDone();                              // 0x468770 (the byte at +0x2ec): the board has stopped counting
 };
+
+// The things a level makes that are not translated yet; each is an object that shows nothing
+class Intro : public ObjBase                    // 0x436460 (0x460 bytes): the first level's introduction
+{
+public:
+	static bool IsReady();                      // 0x4396e0: the intro is ready for the level to go on (the stand-in: always)
+	static bool IsFinished();                   // 0x4396f0
+	void Finish();                              // 0x436a20
+};
+
+class InGameMenu : public ObjBase               // 0x435c00 (0x36c bytes, a BBWindow in the original)
+{
+public:
+	int GetResult();                            // 0x436010: 2 for resume, 3 for quit (the stand-in resumes at once)
+	void Close();                               // 0x427340
+};
+
+class Stats : public ObjBase                    // 0x46d2b0 (0x2ac bytes): the figures shown after a level
+{
+public:
+	Stats(LevelObj* theLevel, int theFirst, int theSecond);
+	bool IsReady();                             // 0x46da40
+	void Continue();                            // 0x46d9e0
+};
+
+class Victory : public ObjBase                  // 0x473460 (0x2d0 bytes): the scene after the last level
+{
+public:
+	void Show();                                // 0x473840
+	bool IsDone();                              // 0x4738a0
+};
+
+class BonusCoin : public ObjBase {};            // 0x408ed0 (0x498 bytes): the bonus under a cell; placed by 0x409970
 
 // The effect of a bonus on the monkey (0x40bfe0); the stand-in is an object that shows nothing
 class BonusEffect : public ObjBase
@@ -186,12 +212,8 @@ public:
 	static void Enable() { sEnabled = true; } // 0x455a30
 };
 
-// Whether the level being played takes the mouse (the byte at +0x8ffd of the LevelObj sLevel points to)
-bool LevelAcceptsMouse();
-
 // GameWidget's preloads (0x42f3b0): each class's pictures, loaded once and kept
 void PreloadNetFly();        // 0x42ad40
-void PreloadBananas();       // 0x405730
 void PreloadWalkThru();      // 0x4756d0
 void PreloadSlots();         // 0x46c710
 void PreloadFly();           // 0x423980
@@ -209,10 +231,8 @@ void PreloadBonusPictures(); // 0x406dd0
 void InitBonusTable();       // 0x40af90
 void PreloadSpinStars();     // 0x41f980
 void PreloadRolyPoly();      // 0x424c80
-void PreloadFireBall();      // 0x42b3f0
 void PreloadPipes();         // 0x459360
 void PreloadRope();          // 0x464250
-void InitLevelTable();       // 0x43f3e0
 void PreloadCockroach();     // 0x4242e0
 
 } // namespace Sexy

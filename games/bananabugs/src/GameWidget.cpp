@@ -1,4 +1,7 @@
 #include "GameWidget.h"
+#include "BananaBonus.h"
+#include "Board.h"
+#include "FireBall.h"
 
 #include "Anim.h"
 #include "Color.h"
@@ -9,6 +12,7 @@
 #include "MainMenu.h"
 #include "Map.h"
 #include "ObjBase.h"
+#include "LevelObj.h"
 #include "Pending.h"
 #include "Player.h"
 #include "PopCap.h"
