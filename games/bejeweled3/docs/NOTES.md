@@ -1026,7 +1026,14 @@ Not translated (the `// port:` notes in the source), none of them changes what a
   Oddities, read but not translated (about an hour was not enough for each; the first needs data that cannot be copied):
   - SpeedCollectEffect (0x866a08, ctor 0x714520, size 0x3d0, Update 0x719ec0 with 0x714980; its Draw 0x713f80 is empty, so it is a controller):
     it needs the exe's Bezier path class (0x59a380, 0x59a400, 0x59ad90, 0x59aef0), CurvedVal strings, a PIEffect trail (image DAT_008d735c),
-    the lookup of the type-0x15 effect and the "+N sec" text effect 0x71e5f0.
+    the lookup of the type-0x15 effect and the "+N sec" text effect 0x71e5f0. Read again after the TimeBonusEffect pass: the Ghidra export of
+    0x715360, 0x714980 and 0x719ec0 has lost the x87 arguments of its calls (the places, the curve strings), so each needs the asm read
+    call by call, and the path class and the text effect (45 calls) are not in the port; the app's generator is called directly only by
+    0x715360 (one Rand() % 9 for the image of the table at 0x8cf5c8[0x566 + n]) and by 0x71e5f0 (one call at 0x71e707, in the loop of 5);
+    the rest of its draws are in the callees (0x729460, the base constructor, by the effect's type; the trail's PIEffect). Not translated
+    here: no partial set of draws was added, since a count that is still short of the exe's is no nearer. The sibling text of AddPoints
+    (0x71f030, which makes the same 0x71e5f0 effect: 5 draws in every mode, Classic included) would change nothing in a state hash (the
+    app's generator is read by no game logic), only the effects' own seeds.
   - The SpeedText banners, the curves +0x3290, +0x3300, +0x3370, +0x33e0, +0x3450 and the keyframe edits of the HUD's particle effects in
     0x7173f0 (DAT_008d8f1c, DAT_008d86f0, DAT_008d6d4c, DAT_008d6e5c): not started.
   What is drawn, in the exe's order: slot 238/250 (0x714840, 0x713f90): the bottom widget and the LIGHTNINGUIBOTTOM PopAnim translated
