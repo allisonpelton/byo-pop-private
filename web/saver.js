@@ -6,8 +6,12 @@
 // The game plays by its bot's moves through the hook every bot gives (docs/WEB_PLAYER.md, "The screen saver"): today the port's
 // test command `move` on the player-only page (?player=1&driver=move, web/testkit.js), which exists only on a development host,
 // so on the live site the list holds None alone until a game's bot mod (made in its modding phase) answers the same hook there.
-// The frame's page runs at ?saver=1 (web/shell.html): it reads the player's own files of the game and writes nothing back, not
-// its saves, not the site's records, so a saver's games leave no trace. When a game ends the frame starts another.
+// The frame's page runs at ?saver=1 (web/shell.html) with a profile of its own (the user, 2026-11-18: "Screensavers need to be
+// reworked to not use your save data"): of the player's it reads the game's files alone, never their saves, settings, players or
+// the site's records, and it writes nothing of theirs. The saver's games keep their own saves in a database of their own, the
+// game's with "-saver" after its name (PROFILE), which no listing, the Saves window, an export or import or the Trophy Cabinet
+// opens. Forgetting the game's files deletes it (wipe), and so does a run that goes wrong, once, before the saver starts that game
+// afresh. When a game ends the frame starts another.
 var ByopopSaver = (function () {
   "use strict";
   // the games whose port answers `move` (docs/TEST_COMMANDS.md, "The bot behind move") and whose state names the mode that
@@ -17,6 +21,16 @@ var ByopopSaver = (function () {
     "typershark", "waterbugs", "wordharmony"];
   var WAITS = ["1", "2", "3", "5", "10", "15", "20", "30", "60"];
   var ids = ["none"].concat(BOTS);
+  var PROFILE = "-saver";
+  // deletes the saver's profile of the game whose database is persist (web/shell.html, PERSIST); a frame still open on it holds the
+  // deletion back until it closes, and a frame opened after it gets the profile afresh
+  function wipe(persist) {
+    return new Promise(function (resolve) {
+      var r;
+      try { r = indexedDB.deleteDatabase(persist + PROFILE); } catch (e) { resolve(); return; }
+      r.onsuccess = r.onerror = r.onblocked = function () { resolve(); };
+    });
+  }
   function dev() { try { return ByopopTerms.devHost(location); } catch (e) { return false; } }
   // the games offered: on a development host, those with a bot whose files are here; elsewhere none yet
   function offered() {
@@ -25,16 +39,19 @@ var ByopopSaver = (function () {
   }
   function chosen() { try { var v = ByopopSettings.get("saver"); return offered().indexOf(v) >= 0 ? v : "none"; } catch (e) { return "none"; } }
   function waitMs() { var m = 5; try { m = parseInt(ByopopSettings.get("saverWait"), 10) || 5; } catch (e) {} return m * 60000; }
-  function pageOf(id) {
-    var t = document.querySelector('a.tile[data-game="' + String(id).replace(/[^a-z0-9_-]/g, "") + '"]');
-    return t ? t.getAttribute("href") : id + ".html";
-  }
+  function tileOf(id) { return document.querySelector('a.tile[data-game="' + String(id).replace(/[^a-z0-9_-]/g, "") + '"]'); }
+  function pageOf(id) { var t = tileOf(id); return t ? t.getAttribute("href") : id + ".html"; }
+  function persistOf(id) { var t = tileOf(id); return t ? t.getAttribute("data-persist") : null; }
 
-  var shade = null, frame = null, timer = null, startedAt = 0;
+  var shade = null, frame = null, timer = null, startedAt = 0, playing = null;
+  // the games whose profile a run that went wrong has wiped while this page is open: each is wiped once, and a second such run is
+  // left on the screen it stopped at
+  var wiped = {};
   function running() { return !!shade; }
   function start(id) {
     id = id || chosen();
     if (shade || id === "none" || offered().indexOf(id) < 0) return false;
+    playing = id;
     shade = document.createElement("div");
     shade.className = "saver-shade";
     frame = document.createElement("iframe");
@@ -64,7 +81,16 @@ var ByopopSaver = (function () {
       try {
         var t = frame.contentWindow.byopop && frame.contentWindow.byopop.test;
         if (t && t.result !== undefined) {
-          if (!(t.result && t.result.moves > 0)) return;
+          if (!(t.result && t.result.moves > 0)) {
+            // a run that went wrong (an error, or no move at all): the game's profile is wiped and the game started afresh, once
+            var persist = persistOf(playing);
+            if (!persist || wiped[playing]) return;
+            wiped[playing] = true;
+            var src = frame.src, f = frame;
+            f.src = "about:blank";
+            wipe(persist).then(function () { if (frame === f) { f.src = src; watch(); } });
+            return;
+          }
           frame.src = frame.src;
         }
       } catch (e) {}
@@ -75,7 +101,7 @@ var ByopopSaver = (function () {
     clearTimeout(watchTimer);
     if (!shade) return;
     if (shade.parentNode) shade.parentNode.removeChild(shade);
-    shade = frame = null;
+    shade = frame = playing = null;
   }
   // input ends a running saver (a movement within the first moment is the one that may have opened Preview) and restarts the wait
   function activity(ev) {
@@ -118,6 +144,6 @@ var ByopopSaver = (function () {
     window.addEventListener("byopop-setting", function (ev) { var n = ev.detail && ev.detail.name; if (n === "saver" || n === "saverWait") arm(); });
     arm();
   }
-  return { ids: ids, waits: WAITS, offered: offered, chosen: chosen, start: start, stop: stop, running: running,
+  return { ids: ids, waits: WAITS, PROFILE: PROFILE, wipe: wipe, offered: offered, chosen: chosen, start: start, stop: stop, running: running,
     preview: function (id) { stop(); return start(id); } };
 })();

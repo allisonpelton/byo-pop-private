@@ -10,6 +10,29 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <!-- the site's text for the scripts (web/strings/en.txt, web/i18n.js) and its logo drawn inline (web/logo.js) -->
 <script src="strings.js"></script><script src="logo.js"></script><script src="terms.js"></script>
+<script>
+  // The screen saver's frame (web/saver.js: ?player=1&saver=1, on a development host only, as SAVER below) has a profile of its
+  // own (the user, 2026-11-18: "Allow the screensaver to have its own profile totally separate from the user's saves and not made
+  // directly accessible to the player"). Before any script reads them, this page's localStorage and sessionStorage become stores
+  // in memory, empty at each start: the frame reads none of the player's settings, players, records, terms or cursor sets, and
+  // writes nothing there. The game's saves last in a database of the saver's own instead (PERSIST, below), so the one thing a
+  // game keeps in localStorage, the backup of its user dir (platform/WebPersist.cpp), is not kept: a run cut short loses at most
+  // its last moments.
+  (function () {
+    try {
+      var q = new URLSearchParams(location.search);
+      if (!(q.get("player") === "1" && q.get("saver") === "1" && ByopopTerms.devHost(location))) return;
+      var stores = new WeakMap(), SP = Storage.prototype;
+      var items = function (s) { var m = stores.get(s); if (!m) stores.set(s, m = new Map()); return m; };
+      SP.getItem = function (k) { var m = items(this); k = String(k); return m.has(k) ? m.get(k) : null; };
+      SP.setItem = function (k, v) { items(this).set(String(k), String(v)); };
+      SP.removeItem = function (k) { items(this).delete(String(k)); };
+      SP.clear = function () { items(this).clear(); };
+      SP.key = function (i) { var keys = Array.from(items(this).keys()); return i >= 0 && i < keys.length ? keys[i] : null; };
+      Object.defineProperty(SP, "length", { configurable: true, get: function () { return items(this).size; } });
+    } catch (e) {}
+  })();
+</script>
 <!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
 <script src="cursors.js"></script>
 <style>
@@ -466,11 +489,11 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
   // staged assets and keeps everything in a test profile of its own (PERSIST and the Web Lock end in "-test"), apart from the
   // player's; without it, the page's own files and saves, as on the full page. Plays are not counted and the chat never starts.
   var PLAYER_ONLY = new URLSearchParams(location.search).get("player") === "1" && ByopopTerms.devHost(location);
-  // the screen saver's frame (web/saver.js): the player's own files of the game, and nothing written back, neither the game's
-  // saves (IDBFS, below) nor anything in this browser's storage, so its games leave no trace
+  // the screen saver's frame (web/saver.js), with a profile of its own: its browser storage in memory (the script after terms.js,
+  // above), its saves, mods and replays in a database of its own (PERSIST ends in "-saver", ByopopSaver.PROFILE), which its runs
+  // keep from one to the next, and of the player's database the game's files alone (savedGameFiles, below), only read
   var SAVER = PLAYER_ONLY && new URLSearchParams(location.search).get("saver") === "1";
   if (SAVER) document.documentElement.classList.add("saver");
-  if (SAVER) try { var SP = Storage.prototype; SP.setItem = SP.removeItem = SP.clear = function () {}; } catch (e) {}
   // the page in a game's window on Desktop 95's one page (web/deskapps.js, ?embed=1): the game and its own windows, the
   // desktop's window frame around them
   var EMBED = !!(window.ByopopSkin && ByopopSkin.EMBED);
@@ -511,9 +534,11 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
   try { document.addEventListener("DOMContentLoaded", function () { ByopopControls.setGame(PAGE.id); }); } catch (e) {}
   // clip recording (web/clips.js), when the site setting is on: a Record button on the bar
   try { document.addEventListener("DOMContentLoaded", function () { ByopopClips.setGame(PAGE.id); }); } catch (e) {}
-  var PERSIST = PAGE.persist + (TEST_PROFILE ? "-test" : "");
-  var LOCK = PAGE.lock + (TEST_PROFILE ? "-test" : "");
-  var GAME = PERSIST + "/game";
+  var PROFILE = TEST_PROFILE ? "-test" : SAVER ? ByopopSaver.PROFILE : "";
+  var PERSIST = PAGE.persist + PROFILE;
+  var LOCK = PAGE.lock + PROFILE;
+  // the saver's frame has the player's game files outside its own database (savedGameFiles), so that they are never copied into it
+  var GAME = (SAVER && !TEST_PROFILE ? PAGE.persist : PERSIST) + "/game";
   var USER = PERSIST + "/userdata";
   var MODS = PERSIST + "/mods";
   // A mod added while the game runs over a mod it uses waits here for the next start (web/modpanel.js)
@@ -1143,13 +1168,44 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     return new Promise(function (resolve, reject) {
       fs.syncfs(true, function (err) { err ? reject(err) : resolve(); });
     }).then(function () {
-      // the screen saver writes nothing back: a sync to the database does nothing (SAVER, above)
-      if (SAVER) { var load = fs.syncfs; fs.syncfs = function (pop, cb) { if (typeof pop === "function") { cb = pop; pop = false; } if (pop) return load.call(fs, pop, cb); if (cb) cb(null); }; }
+      return SAVER && !TEST_PROFILE ? savedGameFiles() : null;
+    }).then(function () {
       [GAME, USER, MODS].concat(PAGE.replays ? [REPLAYS] : []).forEach(function (d) { try { fs.mkdirTree(d); } catch (e) {} });
       // Files written as the page was closed may only have reached the game's localStorage backup: bring them
       // back before this page reads the user dir (main() restores it again, which then changes nothing)
       try { Module.ccall("byopop_userdata_restore", null, ["string"], [USER]); }
       catch (e) { console.warn("restoring the user data backup failed", e); }
+    });
+  }
+
+  // The screen saver's frame reads the game's files from the player's database, as IDBFS would load them, and nothing else there:
+  // not the saves, mods or replays beside them. The database is opened only to read (never made, when there is none), and the files
+  // go into this page's memory at GAME, outside the saver's own database, which therefore never holds a copy of them.
+  function savedGameFiles() {
+    var fs = Module.FS, inside = GAME + "/";
+    return new Promise(function (resolve) {
+      var r;
+      try { r = indexedDB.open(PAGE.persist); } catch (e) { resolve(); return; }
+      r.onerror = function () { resolve(); };
+      r.onupgradeneeded = function (ev) { try { ev.target.transaction.abort(); } catch (e) {} };
+      r.onsuccess = function () {
+        var db = r.result;
+        if (!db.objectStoreNames.contains("FILE_DATA")) { db.close(); resolve(); return; }
+        var tx = db.transaction("FILE_DATA", "readonly");
+        var c = tx.objectStore("FILE_DATA").openCursor(IDBKeyRange.bound(GAME, GAME + "/￿"));
+        c.onsuccess = function () {
+          var at = c.result;
+          if (!at) return;
+          var path = String(at.key), e = at.value;
+          if (e && (path === GAME || path.indexOf(inside) === 0)) try {
+            if (fs.isDir(e.mode)) fs.mkdirTree(path, e.mode);
+            else if (fs.isFile(e.mode)) { fs.mkdirTree(path.substring(0, path.lastIndexOf("/"))); fs.writeFile(path, e.contents, { canOwn: true }); }
+            fs.chmod(path, e.mode); fs.utime(path, e.timestamp, e.timestamp);
+          } catch (x) {}
+          at.continue();
+        };
+        tx.oncomplete = tx.onerror = tx.onabort = function () { db.close(); resolve(); };
+      };
     });
   }
 
@@ -1686,13 +1742,14 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
       // the player-only page with ?assets=: the staged files, through the import (web/testkit.js), then boot again
       var fetching = testHooks && testHooks.needFiles && testHooks.needFiles();
       if (fetching) { fetching.then(function (ok) { if (ok) boot(); else showImport(); }); return; }
-      if (!pagePlaceholders() && !TEST_PROFILE) { try { ByopopGameFiles.lost(PAGE.id); } catch (e) {} }
+      if (!pagePlaceholders() && !TEST_PROFILE && !SAVER) { try { ByopopGameFiles.lost(PAGE.id); } catch (e) {} }
       setStatus(ByopopStrings.t("game.status.need_files"));
       showImport();
       return;
     }
-    if (!pagePlaceholders() && !TEST_PROFILE) { try { ByopopGameFiles.mark(PAGE.id); } catch (e) {} }
-    if (!TEST_PROFILE) ensureIcon();
+    // (the saver's frame keeps no record: the player's files are only read there)
+    if (!pagePlaceholders() && !TEST_PROFILE && !SAVER) { try { ByopopGameFiles.mark(PAGE.id); } catch (e) {} }
+    if (!TEST_PROFILE && !SAVER) ensureIcon();
     // The fixes and lite mods go in before the game can start (it reads its mods as it starts)
     installSiteMods();
   }
@@ -2051,6 +2108,7 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     closeGameThen(function (info) {
       web().fs.rmTree(GAME);
       try { ByopopGameFiles.forget(PAGE.id); } catch (e) {}
+      try { ByopopSaver.wipe(PAGE.persist); } catch (e) {}  // the saver's profile of the game goes with its files
       web().sync().then(function () { session.reload(info); });
     });
   }

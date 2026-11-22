@@ -513,8 +513,21 @@ whose files are here; the Wait in minutes; and Preview. When the listing's deskt
 Wait, it goes dark and the game plays itself silently in a frame over it; any key or mouse movement ends it and leaves
 everything as it was. Input in the desktop's windows counts too: each window's frame keeps its events to itself, so the saver
 listens in every frame's page as it loads, and a game playing in the active window (`ByopopEmbed.running`) holds it off
-with no input at all (the user, 2026-11-17: "Screensaver activated while I was playing Typer Shark"). The frame is the game's player-only page at `?saver=1`, which reads the player's own files and writes
-nothing back (its `Storage` writes and IDBFS syncs do nothing), so a saver's games touch no save, high score or record.
+with no input at all (the user, 2026-11-17: "Screensaver activated while I was playing Typer Shark"). The frame is the game's player-only page at `?saver=1`.
+
+**The saver's own profile** (the user, 2026-11-18: "Allow the screensaver to have its own profile totally separate from the
+user's saves and not made directly accessible to the player"). Of the player's, the frame reads the game's files alone: it
+opens the game's database only to read the entries under its `game` folder, into the page's memory. Its saves, mod folder and
+replays are in a database of its own, the game's with `-saver` after its name (`ByopopSaver.PROFILE`), which IDBFS loads and
+writes back as it does a game's, so the saver's progress lasts from one run to the next. The frame's Web Lock has the same
+ending, so it never waits for the player's own page of the game. Its `localStorage` and `sessionStorage` are stores in
+memory, empty at each start (an inline script after `terms.js`, before any script reads them): nothing of the player's
+settings, players, records, terms or cursor sets is read, and nothing is written there, the user dir's localStorage backup
+included, which the saver's games do without. No listing opens the saver's databases: the Saves window, its export and
+import, the listing page's states and the Trophy Cabinet each open a game's own name. Forgetting a game's files, on its page
+or in the listing's bin, deletes its saver profile with them; and a run that goes wrong (an error, or no move at all) deletes
+it once, before the saver starts that game afresh. A second such run stays on the screen it stopped at.
+
 Its page centres the game on black (`html.saver`), and a key pressed while the game's canvas has the focus ends the saver
 too. The driver runs with `?begin=mode`, which starts a game still on its title or menus in the mode its state names.
 
