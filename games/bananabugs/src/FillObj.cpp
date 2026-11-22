@@ -771,7 +771,7 @@ void FillObj::LoadSheet()
 		char aName[92];
 		snprintf(aName, sizeof(aName), "images/fills/fill_%02d", Player::sCurrent->mMapLevel + 1);
 		sFillSheet = new Anim();
-		sFillSheet->LoadFontSheet(aName);
+		sFillSheet->LoadFillSheet(aName);
 	}
 }
 

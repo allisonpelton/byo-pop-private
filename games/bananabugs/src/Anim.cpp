@@ -115,9 +115,9 @@ void Anim::Load(bool noScale, const char* theName, int theMode, int theCelWidth,
 	sAnims.push_back(this);
 }
 
-// 0x4013f0: a font's sheet of 31-pixel cels, scaled smoothly by the window's own scale; the Anim is the font's
-// (BBFont's global sheet, 0x60e504)
-void Anim::LoadFontSheet(const char* theName)
+// 0x4013f0: the fill cells' sheet of 31-pixel cels, scaled smoothly by the window's own scale; its one caller loads
+// FillObj::sFillSheet
+void Anim::LoadFillSheet(const char* theName)
 {
 	float aScaleY = gScreenScaleY;
 	float aScaleX = gScreenScaleX;
@@ -126,11 +126,11 @@ void Anim::LoadFontSheet(const char* theName)
 	mScaleMode = ANIM_SCALE_SMOOTH;
 	mUniformScale = false;
 	mNoScale = false;
-	const int FONT_CEL_SIZE = 31;
-	int aCelsAcross = anImage->GetWidth() / FONT_CEL_SIZE;
-	int aCelsDown = anImage->GetHeight() / FONT_CEL_SIZE;
+	const int FILL_CEL_SIZE = 31;
+	int aCelsAcross = anImage->GetWidth() / FILL_CEL_SIZE;
+	int aCelsDown = anImage->GetHeight() / FILL_CEL_SIZE;
 	mNumCels = aCelsAcross * aCelsDown;
-	Scale(anImage, ANIM_SCALE_SMOOTH, aScaleX, aScaleY, FONT_CEL_SIZE, FONT_CEL_SIZE, mNumCels);
+	Scale(anImage, ANIM_SCALE_SMOOTH, aScaleX, aScaleY, FILL_CEL_SIZE, FILL_CEL_SIZE, mNumCels);
 	sAnims.push_back(this);
 }
 

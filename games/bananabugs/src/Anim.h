@@ -71,7 +71,7 @@ public:
 
 	void Load(bool noScale, const char* theName, int theMode, int theCelWidth, int theCelHeight, int theNumCels,
 		bool uniformScale);
-	void LoadFontSheet(const char* theName);
+	void LoadFillSheet(const char* theName);
 	void Scale(Image* theImage, int theMode, float theScaleX, float theScaleY, int theCelWidth, int theCelHeight,
 		int theNumCels);
 	void DrawCel(int theCel, Graphics* g, float x, float y, const SexyMatrix3& theMatrix, float theExtraWidth,
