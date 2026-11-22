@@ -97,11 +97,22 @@ What the analysis has found about the exe, for reading the export. The plan is i
 - Readings checked against the exe's instructions: a deflector's bounce mirrors the particle's step about the edge,
   makes it the new velocity times 100 and softens the vertical part toward the bounce strength's square root by the
   steepness (0x5728cb-0x5729ed).
-- Not yet translated: the drawing (Draw 0x575650, DrawLayer 0x574700, DrawParticleGroup 0x574060) and the textures'
-  images (0x5679b0, through the app's shared images; a texture without one gets a 64x64 cell so that a test can run
-  without images), duplicating an effect for PopAnim, SaveState 0x56eed0 and the path for a state a game saved.
-- Names left to check against the draw code: the placeholders mFlagA to mFlagC and mValueA to mValueH
-  (`PIEffectDef.h`) and mUnreadFlag (`PIEffect.h`).
+- Translated since: the textures' images (0x5679b0, through the app's shared images; a texture without one gets a
+  64x64 cell so that a test can run without images), the drawing (Draw 0x575650, DrawLayer 0x574700,
+  DrawParticleGroup 0x574060) and Duplicate (0x567930 with the copy constructor 0x5670b0, which copies neither the
+  cached state, the instance mask pictures nor the time). `b3_pieffecttest` draws every effect into a software image
+  (hash the same twice) and plays 107 duplicates beside their originals, none differing.
+- PopAnim's effects: made in FrameHit's "addparticleeffect" (0x445c00), from the resource by path, then by id,
+  duplicated, else read from the .ppf. The first effect seeds the animation's own generator (PopAnim+0x1e4) from
+  Rand(), and each effect is seeded from it. An object that plays ahead runs its effect frames / time scale / frame
+  rate x 100 + 0.5 updates first (checked in the asm, 0x4473d4-0x447420). Their matrix and speed (0x4482a0, 0x447f70)
+  and colour and draw (0x444410) are translated; `b3_pamtest -play -draw` plays them, the same twice.
+- Not translated: SaveState 0x56eed0 (nothing reaches it), the editor's drawing, the ".ip3" tries (PIEffect::Load reads
+  only .ppf, so they fail), and the instance mask picture, which is never loaded. The exe upper-cases the resource
+  path it looks up (0x43c210); the port looks up in lower case, which its own keys use. For the main sprite, which has
+  no object, the exe would read through a null pointer; the port takes the origin and leaves the speed alone.
+- Names left: mValueA, B, C, E and H and mUnreadFlag, which nothing reads; three words at +0xa58 to +0xa60 of the
+  copy constructor.
 
 ## Boot
 
