@@ -1369,7 +1369,7 @@ void Player::UpdateAim()
 	int aTargetPercent = GetTargetPercent();
 	if (aCurrent->mPercent >= aTargetPercent)
 		return;
-	TileObj* aTile = FillObj::GetTile(aCellX, aCellY);
+	FillObj* aTile = FillObj::GetTile(aCellX, aCellY);
 	if (!LevelObj::IsPlaying() || aTile == nullptr || aTile->mCut || !aTile->IsActive())
 		return;
 	if (IsActiveObject(FillObj::GetWall(aCellX, aCellY)))

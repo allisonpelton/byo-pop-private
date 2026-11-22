@@ -19,7 +19,6 @@ bool PauseWin::sEnabled = false;
 bool MetaGame::sFirstVisit = false;
 
 // The preloaded pictures, each in the global the original keeps it in; they move to their classes with them
-static Anim* sNetFlyAnim;            // 0x60e508
 static Anim* sBananaBunchAnim;       // 0x60e1a0
 static Anim* sCoronaAnim;            // 0x60e1a4
 static Anim* sWalkThruTextAnims[9];  // 0x67022c
@@ -70,10 +69,6 @@ static Anim* sMonkeyShockRingAnim;   // 0x60e258
 static Anim* sRolyPolyAnim;          // 0x60e2a0
 static Anim* sFireBallAnim;          // 0x60e50c
 static Anim* sPipesAnim;             // 0x670194
-static Anim* sRopeArrowAnims[4];     // 0x6701f4
-static Anim* sRopePartAnim;          // 0x670204
-static Anim* sArrowAuraAnim;         // 0x670208
-static Anim* sRopeSnapAnim;          // 0x67020c
 static Anim* sCockroachWalkAnim;     // 0x60e29c
 
 static Anim* Load(const char* theName, int theCelWidth, int theCelHeight, int theNumCels, bool uniform = false)
@@ -134,11 +129,6 @@ bool PauseWin::IsBlocking()
 
 void PauseWin::ResumeOnRelease()
 {
-}
-
-void Sexy::PreloadNetFly()
-{
-	sNetFlyAnim = Load("images/netfly", 0x21, 0x21, 2);
 }
 
 void Sexy::PreloadBananas()
@@ -278,17 +268,6 @@ void Sexy::PreloadPipes()
 	sPipesAnim = Load("images/pipes01", 0x21, 0x21, 0x10);
 }
 
-void Sexy::PreloadRope()
-{
-	sRopeArrowAnims[0] = Load("images/rope_arrow_0", 0x40, 0x40, 0x10);
-	sRopeArrowAnims[1] = Load("images/rope_arrow_1", 0x40, 0x40, 0x10);
-	sRopeArrowAnims[2] = Load("images/rope_arrow_2", 0x40, 0x40, 0x10);
-	sRopeArrowAnims[3] = Load("images/rope_arrow_3", 0x40, 0x40, 0x10);
-	sArrowAuraAnim = Load("images/arrow_aura", 0, 0, 1);
-	sRopePartAnim = Load("images/rope_part", 0x19, 0x19, 2);
-	sRopeSnapAnim = Load("images/rope_snap", 0, 0, 1);
-}
-
 // port: the levels' table is not translated yet
 void Sexy::InitLevelTable()
 {
@@ -305,50 +284,10 @@ bool Sexy::LevelAcceptsMouse()
 	return true;
 }
 
-// port: the stand-in level makes no rope
+// port: the stand-in level makes no rope (the original reads the object at +0x9000 of the level)
 RopeObj* RopeObj::Current()
 {
 	return nullptr;
-}
-
-bool RopeObj::IsAimReady()
-{
-	return false;
-}
-
-int RopeObj::GetState()
-{
-	return 0;
-}
-
-void RopeObj::SetAim(int theVertical, int theCellX, int theCellY, int theFrom, int theTo)
-{
-	(void)theVertical;
-	(void)theCellX;
-	(void)theCellY;
-	(void)theFrom;
-	(void)theTo;
-}
-
-void RopeObj::Start(int theVertical, int theCellX, int theCellY, int theFrom, int theTo)
-{
-	(void)theVertical;
-	(void)theCellX;
-	(void)theCellY;
-	(void)theFrom;
-	(void)theTo;
-}
-
-void RopeObj::ResetIfFinished()
-{
-}
-
-void RopeObj::HitBox(float theX, float theY, float theWidth, float theHeight)
-{
-	(void)theX;
-	(void)theY;
-	(void)theWidth;
-	(void)theHeight;
 }
 
 // port: the stand-in level is never playing and shows no texts
@@ -396,6 +335,23 @@ void LevelObj::ClearRopePreview()
 {
 }
 
+void LevelObj::OnCellCut()
+{
+}
+
+void LevelObj::OnFillDone()
+{
+}
+
+void LevelObj::CutGround(int theCellX, int theCellY, int theVertical, int theFrom, int theTo)
+{
+	(void)theCellX;
+	(void)theCellY;
+	(void)theVertical;
+	(void)theFrom;
+	(void)theTo;
+}
+
 // port: the stand-in level has no bugs, ground or hints
 bool BugObj::AnyNear(float theX, float theY, float theReach)
 {
@@ -409,23 +365,54 @@ void BugObj::OnShot()
 {
 }
 
-bool FillObj::IsReady()
+void BugObj::AlertAlongRope(PipeObj* theStart, PipeObj* theEnd, int theVertical)
 {
-	return false;
+	(void)theStart;
+	(void)theEnd;
+	(void)theVertical;
 }
 
-ObjBase* FillObj::GetWall(int theColumn, int theRow)
+// port: the stand-in pipes, bonuses, bugs and bolts do nothing
+void PipeObj::SetShiftTarget(float theX, float theY)
 {
-	(void)theColumn;
-	(void)theRow;
-	return nullptr;
+	(void)theX;
+	(void)theY;
 }
 
-TileObj* FillObj::GetTile(int theColumn, int theRow)
+void PipeObj::StartShift()
 {
-	(void)theColumn;
-	(void)theRow;
-	return nullptr;
+}
+
+void HiddenBonus::Uncover()
+{
+}
+
+void GridBug::Zap(int theFirst, int theSecond, int theThird)
+{
+	(void)theFirst;
+	(void)theSecond;
+	(void)theThird;
+}
+
+BoltObj::BoltObj(int theSegments)
+{
+	(void)theSegments;
+}
+
+void BoltObj::Stop()
+{
+}
+
+void BoltObj::SetEnds(int theFromX, int theFromY, int theToX, int theToY)
+{
+	(void)theFromX;
+	(void)theFromY;
+	(void)theToX;
+	(void)theToY;
+}
+
+void BoltObj::UpdateBolt()
+{
 }
 
 void WalkThru::OnShoot()

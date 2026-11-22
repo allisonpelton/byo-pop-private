@@ -5,8 +5,10 @@
 
 #include "AskWin.h"
 #include "BBWindow.h"
+#include "FillObj.h"
 #include "MenuAnim.h"
 #include "ObjBase.h"
+#include "RopeObj.h"
 
 namespace Sexy
 {
@@ -14,6 +16,7 @@ namespace Sexy
 class Anim;
 class BBFont;
 class LevelObj;
+class PipeObj;
 
 // The level being played (0x405770); a stand-in shows nothing and never ends
 class Board : public ObjBase
@@ -36,20 +39,6 @@ enum LevelResult
 	LEVEL_RESULT_LOST = 3,     // back to the main menu
 };
 
-// The rope the monkey shoots (0x461320; the level's rope is the object at +0x9000 of the LevelObj); the stand-in never
-// exists, so Current is always nullptr and nothing calls the others
-class RopeObj
-{
-public:
-	static RopeObj* Current();                  // the level's rope, or nullptr when there is none
-	bool IsAimReady();                          // 0x462620
-	int GetState();                             // 0x462630: 1 while the rope runs
-	void SetAim(int theVertical, int theCellX, int theCellY, int theFrom, int theTo); // 0x462360
-	void Start(int theVertical, int theCellX, int theCellY, int theFrom, int theTo);  // 0x462270
-	void ResetIfFinished();                     // 0x462600
-	void HitBox(float theX, float theY, float theWidth, float theHeight);             // 0x462950
-};
-
 // The rules of a level (0x439700); the stand-in's never end, and the statics are those of the level sLevel points to,
 // which the stand-in never makes: each does nothing and says there is no level
 class LevelObj
@@ -64,6 +53,9 @@ public:
 	static void ShowLives(int theLives);        // 0x43ac60
 	static void ShowRopePreview(int theCellX, int theCellY, int theVertical, int theFrom, int theTo); // 0x43e060
 	static void ClearRopePreview();             // 0x43e020
+	static void OnCellCut();                    // 0x43dc40: a cell of the ground has gone
+	static void OnFillDone();                   // 0x43a990: the cut's last cell has gone
+	static void CutGround(int theCellX, int theCellY, int theVertical, int theFrom, int theTo); // 0x43e3a0: the rope has reached its ends
 };
 
 // The bugs (0x425410 and the kinds before it); the stand-in has none
@@ -72,22 +64,51 @@ class BugObj
 public:
 	static bool AnyNear(float theX, float theY, float theReach); // 0x426300
 	static void OnShot();                       // 0x426060: tells the bugs a rope was shot
+	static void AlertAlongRope(PipeObj* theStart, PipeObj* theEnd, int theVertical); // 0x4267c0 (EAX start, ECX end): the bugs near the rope's line are told
 };
 
-// One cell of the ground the monkey cuts; the stand-in has none
-class TileObj : public ObjBase
+// The pipes of the level, the walls the rope runs between (0x455f50..; the class is not translated): a stand-in with the
+// fields the cells and the rope read. A pipe is at a corner of the grid; a wall that runs on links to the pipe at each
+// of its ends
+class PipeObj : public ObjBase
 {
 public:
-	bool mCut;                                  // +0x291: the tile has been cut away
+	int mKind;                                  // +0x27c: which of the pipe's shapes it is
+	int mColumn;                                // +0x280: its place in the grid
+	int mRow;                                   // +0x284
+	PipeObj* mUpLink;                           // +0x290: the pipe at the upper end of the wall it is part of, or none
+	PipeObj* mRightLink;                        // +0x294: ... at the right end
+	PipeObj* mDownLink;                         // +0x298: ... at the lower end
+	PipeObj* mLeftLink;                         // +0x29c: ... at the left end
+
+	void SetShiftTarget(float theX, float theY); // 0x4560c0: where the pipe moves to when a cut reaches it
+	void StartShift();                          // 0x4560e0: the pipe starts to move
 };
 
-// The ground the monkey cuts (0x42ac70); the stand-in is never ready
-class FillObj
+// A bonus hidden under a cell of the ground (0x409b00..; the class is not translated)
+class HiddenBonus : public ObjBase
 {
 public:
-	static bool IsReady();                      // 0x42ac70
-	static ObjBase* GetWall(int theColumn, int theRow); // the grid at 0x602eb0, 40 columns of 32 rows of 8 objects: slot 2
-	static TileObj* GetTile(int theColumn, int theRow); // slot 3
+	FillObj* mCell;                             // +0x284: the cell that covers it
+	void Uncover();                             // 0x409bf0
+};
+
+// A bug on the grid (the kinds before 0x425410): the bugs on one place are a list through mNextInCell
+class GridBug : public ObjBase
+{
+public:
+	GridBug* mNextInCell;                       // +0x2e0
+	virtual void Zap(int theFirst, int theSecond, int theThird); // slot 20 (+0x50): a bolt runs through the bug's place
+};
+
+// The bolt of light that runs down a pipe (0x405fb0; 0x520 bytes in the original); the stand-in draws nothing
+class BoltObj : public ObjBase
+{
+public:
+	BoltObj(int theSegments);                   // 0x405fb0
+	void Stop();                                // 0x406280
+	void SetEnds(int theFromX, int theFromY, int theToX, int theToY); // 0x4062b0
+	void UpdateBolt();                          // 0x4062e0
 };
 
 // The walk-through's hints (0x475610..0x475670); the stand-in shows none
