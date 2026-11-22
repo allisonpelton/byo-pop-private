@@ -5,6 +5,7 @@
 // hands them to a document handler, read as strings, numbers, points, rectangles or colours. Each getter is added here
 // as the code that calls it is translated.
 
+#include "Geometry.h"
 #include "Object.h"
 
 #include <map>
@@ -12,6 +13,9 @@
 
 namespace engine
 {
+
+// 0x4762b0 (feedingfrenzy2): a byte value, 0 to 255, as a colour channel
+float channelOf(int theValue);
 
 class Params : public Object
 {
@@ -22,10 +26,46 @@ public:
 	std::string getString(const std::string& theName, const std::string& theDefault) const;
 	// 0x4547c0 (feedingfrenzy2): atol of the value
 	int getInt(const std::string& theName, int theDefault) const;
+	// 0x469540 (feedingfrenzy2): "true" or "false"; anything else, and no value, the default
+	bool getBool(const std::string& theName, bool theDefault) const;
+	// 0x453a50 (feedingfrenzy2): atof of the value, rounded to a float
+	float getFloat(const std::string& theName, float theDefault) const;
+	// 0x46d910 (feedingfrenzy2): two numbers, " %d , %d "; one the value does not hold keeps the default's
+	Vector2<int> getIntPair(const std::string& theName, const Vector2<int>& theDefault) const;
+	// 0x4572a0 (feedingfrenzy2): two numbers, " %f , %f "; one the value does not hold keeps the default's
+	Vector2f getFloatPair(const std::string& theName, const Vector2f& theDefault) const;
+	// 0x455d50 (feedingfrenzy2): a range, "( %f , %f )" when the value starts with a bracket, else one number for
+	// both ends; a number the value does not hold keeps the default's (with one number, both ends take the low one)
+	FloatRange getRange(const std::string& theName, const FloatRange& theDefault) const;
+	// 0x46c1e0 (feedingfrenzy2), its parse 0x40dbc0 (feedingfrenzy2): the same of whole numbers, "( %d , %d )" or
+	// one "%d" for both ends; a value that does not hold them all keeps the default
+	IntRange getIntRange(const std::string& theName, const IntRange& theDefault) const;
+	// 0x472210 (feedingfrenzy2): " %d , %d , %d , %d " (left, top, right, bottom); one the value does not hold keeps
+	// the default's
+	RectI getRect(const std::string& theName, const RectI& theDefault) const;
+	// 0x473180 (feedingfrenzy2): upperleft, topcenter, bottomcenter or center, any case (Pivot); anything else, and
+	// no value, the centre
+	int getPivot(const std::string& theName) const;
+	// 0x472870 (feedingfrenzy2): " %d , %d , %d , %d ", each 0 to 255: with three, the default's alpha kept; with
+	// fewer, the default
+	Color getColor(const std::string& theName, const Color& theDefault) const;
 
-	// The parser's: a value set, replacing one of the same name
+	// The parser's, and 0x47cc50 (feedingfrenzy2): a value set, replacing one of the same name
 	void set(const std::string& theName, const std::string& theValue) { mValues[theName] = theValue; }
 	void clear() { mValues.clear(); }
+	// 0x433bf0 (feedingfrenzy2): the value written "%d"
+	void setInt(const std::string& theName, int theValue);
+	// 0x40c960 (feedingfrenzy2): the value written "%f"
+	void setFloat(const std::string& theName, float theValue);
+	// The values in the order of their names (a player's are saved so, 0x473c50 (feedingfrenzy2))
+	const std::map<std::string, std::string>& getValues() const { return mValues; }
+	// 0x457f10 (feedingfrenzy2): each of the other's values set here, replacing one of the same name
+	void merge(const Params& theOther)
+	{
+		for (std::map<std::string, std::string>::const_iterator anIt = theOther.mValues.begin();
+			 anIt != theOther.mValues.end(); ++anIt)
+			mValues[anIt->first] = anIt->second;
+	}
 
 private:
 	std::map<std::string, std::string> mValues;  // +0x0c

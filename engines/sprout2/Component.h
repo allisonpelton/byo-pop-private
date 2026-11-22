@@ -33,7 +33,7 @@ enum ComponentState
 {
 	STATE_VISIBLE = 0x01,          // drawn (a component that paints sets it; setVisible switches it off)
 	STATE_INPUT = 0x02,            // takes the mouse (setTakesInput; a disabled button switches it off)
-	STATE_ANIMATED = 0x04,         // has a pixel effect to update every frame
+	STATE_ANIMATED = 0x04,         // has a pixel effect or modifiers to update every frame
 	STATE_BOUNDS_DIRTY = 0x08,     // its bounds are to be recomputed
 	STATE_DELETE = 0x10,           // to be taken out of its parent at the next update
 	STATE_CHILDREN_CHANGED = 0x20  // its children changed since the last update
@@ -54,7 +54,7 @@ struct MouseEvent
 	class Component* mTarget;   // +0x00
 	Vector2f mPosition;         // +0x04: in the target's space
 	int mButtons;               // +0x0c: bit 0 the left button down, bit 1 the right
-	// +0x10: never read
+	class Scene* mScene;         // +0x10: the scene it comes from (a button takes and gives back its mouse)
 	int mWheelDelta;            // +0x14: the wheel's turn, for a wheel event
 };
 
@@ -173,10 +173,20 @@ public:
 	bool hasOwnState(int theStates) const { return (~mOffStates & mOwnStates & theStates) != 0; }
 	// 0x4059b0 and 0x407ea0 (feedingfrenzy2)
 	void addOwnState(int theStates);
+	// 0x4350d0 (feedingfrenzy2): a modifier added unless the component has it; the component is then updated every
+	// frame
+	void addModifier(Modifier* theModifier);
+	// 0x484530 (feedingfrenzy2): the modifier taken out, if the component has it
+	void removeModifier(Modifier* theModifier);
+	// 0x457760 (feedingfrenzy2): every modifier taken out
+	void removeAllModifiers() { mModifiers.clear(); }
 	void removeOwnState(int theStates);
 	int getOwnStates() const { return mOwnStates; }
 	int getTreeStates() const { return mTreeStates; }
 	int getOffStates() const { return mOffStates; }
+	// Bits switched off and back on (inlined where the original uses them: transitions, the screen manager)
+	void addOffState(int theStates) { mOffStates |= theStates; }
+	void removeOffState(int theStates) { mOffStates &= ~theStates; }
 
 protected:
 	Container* mParent;              // +0x0c
