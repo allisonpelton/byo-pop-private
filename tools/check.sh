@@ -33,6 +33,7 @@
 #                (framework/TriangleWrap: DrawTrianglesTex's texture wrap, triangles cut at whole-number u and v); and stretchcal
 #                (framework/LinearStretch against the renderer's linear present on this machine's card, four sizes, and its
 #                Draw against DrawReference at many sizes, -selftest); and
+#                the native game speed (fwtest -realinput=tools/fwtest/speed.txt: the mod menu's speed rows by the keyboard, F6/F7/F8, game-speed.json, read back by speed2.txt); and
 #                fwtest -realinput=tools/fwtest/realinput.txt with -fast and in real time, with no game files (real SDL
 #                events through HandleEvent and the widget manager, docs/REAL_INPUT.md); and fwtest -corner
 #                -realinput=tools/fwtest/flags.txt on DDInterface and on the software screen (the fast stretch's
@@ -41,7 +42,9 @@
 #                and tools/playbymove on fwtest (the shared driver loop plays its small task by its "move" answers under
 #                -hold, twice, with the same transcript); and tools/modtextcheck.py (every mod's labels, helps and
 #                units within the limits platform/ModSettings.cpp cuts them to: games/*/mods and the menu's fixtures); and
-#                tools/screenchecktest.py (the `screens` suite's checker on fixture folders)
+#                tools/screenchecktest.py (the `screens` suite's checker on fixture folders); tools/visrun.py --selftest
+#                (its places, locks, quiet wait and origrun's clock block layout; it starts no game); and tools/gamecount.py
+#                --selftest (the slot reservations on a made-up process list)
 #   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
@@ -80,6 +83,10 @@
 #                may be running): that the host and its sound stand-in still compile, and --coverage on covtest.exe
 #                (tools/origrun/covtest.sh; seconds), and the network block and launch guard on nettest.exe (tools/origrun/nettest.sh; seconds);
 #                not in `all`
+#   speed        every finished game follows the game speed (tools/speedcheck.py): each game's exe run natively in real time, 3 at
+#                a time, for a few seconds at 0.5x and at 2x with -speed and -speedprobe; its updates per real second and its game
+#                clock must scale with the speed. Lists the games that do not; Bonnie's Bookstore and Ning Po Mahjong (no
+#                SexyAppBase) are known not to, until their sessions add the hook (about 2 minutes; needs assets)
 #   verify      Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
@@ -136,7 +143,8 @@
 #   waterbugs    Water Bugs: the fonts and every animation the game ships loaded
 #                (waterbugs_banktest), a scripted game played headless (waterbugs_run: a beam across the first
 #                board, two state lines) and a rerun with the same screenshots, and the windowed exe twice with the
-#                same clicks: the runner's state, the same screen (under a minute)
+#                same clicks: the runner's state, the same screen, and the three screen tours (games/waterbugs/test/tours,
+#                362 screens) against the frozen shots of tours.frozen (a few minutes)
 #   rocketmania  Rocket Mania Deluxe: the loading screen, the menu, a hover hint, the difficulty dialog and a new game
 #                started from a script (games/rocketmania/tools/menu_test.txt), four screenshots that must differ (under a
 #                minute)
@@ -181,7 +189,8 @@
 #                one) (under a minute)
 #   heavyweapon  Heavy Weapon Deluxe: a tour from a script (games/heavyweapon/tools/tour_test.txt: the title, the menu's
 #                screens, a campaign from the map through level 1 with the standard test commands to its boss, results
-#                and armory, level 5 and survival lost, the options) and its rerun, whose screens, states and player files
+#                and armory, level 5 and survival lost, the options, the menus' boxes, the continue box, the armory's
+#                "not yet" box, and level 2's menu box, retreat question and pause) and its rerun, whose screens, states and player files
 #                must match and be the frozen baseline's; then the port's bot through tools/playbymove (real input, -hold):
 #                a campaign from the title through level 1 into level 2 (3400 moves), level 9 and survival to their game
 #                overs, a rerun of level 9 with the same transcript, and build/baseline-heavyweapon/heavyweapon.exe's tour
@@ -234,7 +243,7 @@
 #                  web/shell.html or a link option relinks every game's wasm: about 6 minutes)
 #   tools/<x>/**   shotdiff: unit. gputest: build gpu. modmenutest: modmenu. origrun: origrun. The web test scripts
 #                  (tools/*.js, paktest): unit-web. fwtest, geomtest, wraptest, stretchcal, jp2test, songpostest, soundtest, spectrumtest, build.sh,
-#                  check.sh, rundesk, modtextcheck.py: build unit. screencheck.py and screenchecktest.py: unit screens. games/*/docs/SCREENS.md: screens (the rest of a game's docs: no suite). modsettingstest, jpegtest and fixtures: build unit, build-web:<test> and
+#                  check.sh, rundesk, modtextcheck.py, visrun.py, gamecount.py: build unit. screencheck.py and screenchecktest.py: unit screens. games/*/docs/SCREENS.md: screens (the rest of a game's docs: no suite). modsettingstest, jpegtest and fixtures: build unit, build-web:<test> and
 #                  unit-web. Anything else under tools/, and any file not named here: build
 #   framework/**, platform/**, third_party/**, CMakeLists.txt, the other cmake/**: without --inert, every suite, as `all`.
 #                  With --inert (the review found every shared change off unless a game opts in, or reached only from the
@@ -289,7 +298,7 @@ WB_SHOTS="2a54908cecb8 42df2d86a04f 983a569fb1b6"  # the first 12 hex digits of 
 MJ_DEAL="222 layouts, 0 failed"
 BB_SHOTS="99a302e2a141 fbf6b1061117 8b26c14dac8a"  # the first 12 hex digits of the sha256 of played.png, highscores.png and timeup.png (games/bonnies/tools/tour_test.txt): the frozen baseline
 VN_FROZEN="91fa05746617 6de40abf8b88"  # the first 12 hex digits of the sha256 of the tour's 15 screens' hashes and of its state lines (games/venice/tools/tour_test.txt): the frozen baseline (screens refrozen 2026-11-15: the 3D display puts a transformed picture half a pixel over, as the 3D original does, so the pictures are sharper; the states are the same)
-HW_FROZEN="0f9a91bb0a10 61398f211445"  # the first 12 hex digits of the sha256 of the tour's 19 screens' hashes and of its state lines (games/heavyweapon/tools/tour_test.txt): the frozen baseline
+HW_FROZEN="4f5cbc9782ab 26859a958266"  # the first 12 hex digits of the sha256 of the tour's 34 screens' hashes and of its state lines (games/heavyweapon/tools/tour_test.txt): the frozen baseline
 # Heavy Weapon Deluxe: the bot's summary lines (tools/playbymove's last line) for its campaign from the title, level 9 and survival: the frozen baseline
 HW_CAMPAIGN='playbymove heavyweapon: 3400 moves, stop limit; STATE {"screen":"game","dialog":-1,"mode":"campaign","level":2,"maxlevel":1,"score":49620,"lives":1,"nukes":1,"timer":3950,"length":15000,"boss":-1,"bosshealth":0,"bossup":0,"enemies":0,"tankx":-161.522,"tankdead":0,"fire":0,"paused":0,"suspended":0,"updates":4648,"over":false,"appupdates":17894}'
 HW_LATER='playbymove heavyweapon: 610 moves, stop over; STATE {"screen":"gameover","dialog":40,"mode":"campaign","level":9,"maxlevel":19,"score":2580,"lives":0,"nukes":0,"timer":1587,"length":30000,"boss":-1,"bosshealth":0,"bossup":0,"enemies":0,"tankx":-380,"tankdead":1,"fire":0,"paused":0,"suspended":1,"updates":3093,"over":true,"appupdates":3121}'
@@ -298,10 +307,12 @@ MJ_SHOTS="d3dc711a471a a9b14c961f99 98ff52c3eea2"  # the first 12 hex digits of 
 MJC_DEAL="178 layouts, 0 failed"
 MJC_SHOTS="f2b7b7dc8d4e bd92440741aa 93e5cc9037c3"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline (refrozen with the libjpeg 6b loader: the old shots differ from these by at most 3 levels in a channel, in the JPEG backgrounds only)
 DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
-BT_CLASSIC="88e59f1eea61 291f70580d89 dd8e6206d1bf 0bc138035904"  # the first 12 hex digits of the sha256 of the Classic game's screens at 656, 2156, 3656 and 5156: the frozen baseline
-BT_BLITZ="8ef83c337f3e 9c9ceb17343f e69ac2a54d49 cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 2656, 5156, 7156 (the explosion), 7606 (space, on the way to the scores) and 8156 (the high scores)
-BT_TAKEOFF="47403df7d011 ad4911ad47f5 8897f35d0a74 663d148b1243 0248d7e39673"  # the 3D Classic game's level-up take-off at 2780, 2900, 2940, 2980 and 3020: the tube becoming the ship and the old board's cube leaving to the right and away (checked against the original on the user's desktop, 2026-11-08)
-BT_MENU="02beec06fa7d da8353fcb954"  # the start's screens at 60 (the loader handing over, the menu's Play drawn) and 160 (the menu, the loader gone;
+BT_CLASSIC="88e59f1eea61 169ca8434fb4 d8838b5020bd b7ed20996a11"  # the first 12 hex digits of the sha256 of the Classic game's screens at 656, 2156, 3656 and 5156: the frozen baseline
+BT_BLITZ="46b62bff531d 1119ecae8d58 4606ebe6c124 cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 2656, 5156, 7156 (the explosion), 7606 (space, on the way to the scores) and 8156 (the high scores)
+BT_TAKEOFF="efea01e22936 5fe62c051026 c780089dd6de c1e2d77f873a 853855c3d9c0"  # the 3D Classic game's level-up take-off at 2780, 2900, 2940, 2980 and 3020: the tube becoming the ship and the old board's cube leaving to the right and away (checked against the original on the user's desktop, 2026-11-08)
+BT_ROUTES="menus 93dcbdf8b5f3 players fb9011a53307 classic dccd71c8616e blitz 5d9c3acc6fa5 gameover e8bbed29210e zenjump 507524d77312 fruit d0c8c4564a20 rankup 244bfc1a98fd"  # "<route> <hash>" for each screen coverage route (twist_routes; games/bejeweledtwist/docs/SCREENS.md): the
+# first 12 hex digits of the sha256 of its shots' hashes, as compared with the original (2026-11-21)
+BT_MENU="7c67600cf6a5 f8567ba2b37f"  # the start's screens at 60 (the loader handing over, the menu's Play drawn) and 160 (the menu, the loader gone;
 # the screen at 60 changed with 952429de, a script's shot drawn with its update's count, which moves the loader's fades):
 # the port only (its loader moved on to the original's hand-over, 2026-11-08), so not against the older baseline
 # Bejeweled 2 Deluxe: per mode, the first 12 hex digits of the sha256 of the bot's transcript (every state and move, tools/playbymove's
@@ -333,23 +344,23 @@ QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads pizzafrenzy)
 # the oracle is left out of `all` and of shared code's "every suite" (the user, 2026-11-11: "Seems like the Bejeweled oracle
 # is causing a lot of slowdown for no benefit"); it runs when games/bejeweled changes, or when named
-ALL_SUITES=(build build-web build-nov unit unit-web gpu screens verify modmenu livesplit "${GAME_SUITES[@]}")
-ORDER=(build build-web build-nov unit gpu screens origrun modmenu livesplit "${GAME_SUITES[@]}" unit-web verify oracle)
+ALL_SUITES=(build build-web build-nov unit unit-web gpu screens speed verify modmenu livesplit "${GAME_SUITES[@]}")
+ORDER=(build build-web build-nov unit gpu screens speed origrun modmenu livesplit "${GAME_SUITES[@]}" unit-web verify oracle)
 # the suites that read build/web, and so wait for a build-web running in the background (below)
 needs_web() { case "$1" in unit-web|verify|oracle) return 0 ;; esac; return 1; }
 known_suite() { case " ${ORDER[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
 is_game_suite() { case " ${GAME_SUITES[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
 # suite_weight <suite>: sets WEIGHT to the game processes the suite has at once (bonnies runs its rerun and the frozen baseline's together;
 # heavyweapon three of its games)
-suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bonnies.exe ] && WEIGHT=2; [ "$1" = venice ] && [ -f build/baseline-venice/venice.exe ] && WEIGHT=2; [ "$1" = hammerheads ] && [ -f build/baseline-hammerheads/hammerheads.exe ] && WEIGHT=2; [ "$1" = heavyweapon ] && WEIGHT=3; return 0; }
+suite_weight() { WEIGHT=1; [ "$1" = speed ] && WEIGHT=3; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bonnies.exe ] && WEIGHT=2; [ "$1" = venice ] && [ -f build/baseline-venice/venice.exe ] && WEIGHT=2; [ "$1" = hammerheads ] && [ -f build/baseline-hammerheads/hammerheads.exe ] && WEIGHT=2; [ "$1" = heavyweapon ] && WEIGHT=3; return 0; }
 
 # ---- merge mode (--changed): the suites a change can affect ----
 
 # Rough seconds on this machine (the last `all` run, 2026-11-02); the plan adds them up, no more
-declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [verify]=42 [modmenu]=50
+declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [pizzafrenzy]=180 [oracle]=1080)
+	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [pizzafrenzy]=180 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52 [typershark]=270)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
@@ -457,9 +468,10 @@ classify() {  # <path>: chooses the suites a changed file needs
 				jpegtest/*)  # also built for the web, where unit-web runs it under Node (the error paths are longjmp there)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p"; pick unit-web "$AREA" "$p"
 					note build-web "$AREA" "$p"; web_add jpegtest ;;
-				fwtest/*|geomtest/*|wraptest/*|stretchcal/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh|modtextcheck.py)
+				fwtest/*|geomtest/*|wraptest/*|stretchcal/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh|modtextcheck.py|visrun.py|gamecount.py)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
 				screencheck.py|screenchecktest.py) pick unit "$AREA" "$p"; pick screens "$AREA" "$p" ;;
+				speedcheck.py) pick build "$AREA" "$p"; pick speed "$AREA" "$p" ;;
 				*/*) pick build "$AREA" "$p" ;;  # smoke, ghidra_scripts and the rest: nothing runs them, but a build shows a broken tree
 				*.js|*.mjs) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
 				*) pick build "$AREA" "$p" ;;
@@ -734,13 +746,14 @@ suite_build-nov() { build_suite novariants "$1"; }
 
 suite_unit() {
 	local st=0 a b c d e f g h i j k
-	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || st=1
+	local FAILED=""; fail() { st=1; FAILED="$FAILED $1"; }  # fail <step>: the suite fails and its summary names the step
+	(cd build/native && timeout 120 ./rulestest.exe) > "$1" 2>&1 || fail rulestest
 	a="$(lastof "$1" 'checks')"
-	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || st=1
+	(cd build/native && timeout 120 ./modsettingstest.exe) > "$1.mst" 2>&1 || fail mst
 	b="$(lastof "$1.mst" 'checks')"
 	# fwtest draws with Bejeweled's files: without them (a worktree before tools/setup_worktree.sh) it is skipped
 	if [ -d assets/bejeweled ]; then
-		timeout 120 "build/native/fwtest.exe" -hotkeytest > "$1.fw" 2>&1 || st=1
+		timeout 120 "build/native/fwtest.exe" -hotkeytest > "$1.fw" 2>&1 || fail fw
 		c="fwtest $(lastof "$1.fw" 'hotkey: [0-9]+ failed')"
 	else
 		echo "fwtest -hotkeytest skipped: no assets/bejeweled (tools/setup_worktree.sh)" > "$1.fw"
@@ -748,15 +761,15 @@ suite_unit() {
 	fi
 	# -placeholders with no game files at all: every image, font, sound and song a stand-in (platform/Placeholders.h)
 	mkdir -p "$OUT/no-game-files"
-	timeout 120 "build/native/fwtest.exe" -hotkeytest -placeholders -gamedir="$OUT/no-game-files" > "$1.ph" 2>&1 || st=1
+	timeout 120 "build/native/fwtest.exe" -hotkeytest -placeholders -gamedir="$OUT/no-game-files" > "$1.ph" 2>&1 || fail ph
 	d="placeholders: $(lastof "$1.ph" 'placeholders: [0-9]+ game files? missing' | sed 's/^placeholders: //'), $(lastof "$1.ph" 'hotkey: [0-9]+ failed')"
-	grep -q -E 'placeholders: [1-9][0-9]* game files? missing' "$1.ph" || st=1
+	grep -q -E 'placeholders: [1-9][0-9]* game files? missing' "$1.ph" || fail placeholders-count
 	# jp2test decodes Bookworm Adventures' .jp2 images against reference PNGs: the decoder's own output in
 	# re/bookwormadv/jp2ref (tools/jp2test/write_refs.sh), a regression check; skipped without the staged folder
 	if [ -d assets/bookwormadv/images ]; then
 		local ref=()
 		[ -d re/bookwormadv/jp2ref/images ] && ref=("-ref=$W/re/bookwormadv/jp2ref/images")
-		(cd build/native && timeout 120 ./jp2test.exe "$W/assets/bookwormadv/images" "${ref[@]}") > "$1.jp2" 2>&1 || st=1
+		(cd build/native && timeout 120 ./jp2test.exe "$W/assets/bookwormadv/images" "${ref[@]}") > "$1.jp2" 2>&1 || fail jp2
 		e="$(lastof "$1.jp2" 'jp2: [0-9]+ files, max channel difference')"
 	else
 		echo "jp2test skipped: no assets/bookwormadv/images (tools/setup_worktree.sh)" > "$1.jp2"
@@ -766,12 +779,12 @@ suite_unit() {
 	f="songpos skipped (no assets/bejeweled or assets/bookworm)"
 	if [ -d assets/bejeweled ] && [ -d assets/bookworm ]; then
 		{ timeout 120 build/native/songpostest.exe assets/bejeweled music/1980-autonomus.s3m music/1984-network.s3m &&
-		  timeout 120 build/native/songpostest.exe assets/bookworm music/bookworm1.mo3; } > "$1.sp" 2>&1 || st=1
+		  timeout 120 build/native/songpostest.exe assets/bookworm music/bookworm1.mo3; } > "$1.sp" 2>&1 || fail sp
 		n=3
 		# Bejeweled Twist's MO3s: also their tempo and channel volumes
 		if [ -d assets/bejeweledtwist ]; then
 			timeout 120 build/native/songpostest.exe assets/bejeweledtwist "music/bejewel twist 06.10.mo3" \
-				music/bejeweledtwist24.mo3 >> "$1.sp" 2>&1 || st=1
+				music/bejeweledtwist24.mo3 >> "$1.sp" 2>&1 || fail sp
 			n=5
 		fi
 		# a song is ok when every check of it passed (songpostest's own count, "songpos: N of M songs ok", one line a run);
@@ -784,59 +797,68 @@ suite_unit() {
 		echo "$f" > "$1.sp"
 	fi
 	# Mixer::GetSongFFT (MusicInterface::GetMusicFFT, BASS_ChannelGetData's FFT) on tones; needs no game files
-	(cd build/native && timeout 60 ./spectrumtest.exe) > "$1.fft" 2>&1 || st=1
+	(cd build/native && timeout 60 ./spectrumtest.exe) > "$1.fft" 2>&1 || fail fft
 	g="$(lastof "$1.fft" 'spectrum: [0-9]+ checks, [0-9]+ failed')"
 	# Mixer's sounds: 16-bit at their own rate, resampled by the voices; needs no game files
-	(cd build/native && timeout 60 ./soundtest.exe) > "$1.snd" 2>&1 || st=1
+	(cd build/native && timeout 60 ./soundtest.exe) > "$1.snd" 2>&1 || fail snd
 	h="$(lastof "$1.snd" 'sound: [0-9]+ checks, [0-9]+ failed')"
 	# Mixer::LoadSongSegments: Rocket Mania's two pieces streamed from their segments against the WAV the game joins from them,
 	# to the bit, where they are staged
 	if [ -d assets/rocketmania/music ]; then
 		(cd build/native && timeout 120 ./soundtest.exe -segments ../../assets/rocketmania "music/Tubetricks In-Game One v02" I \
-			"music/Tubetricks Menu One v02" C) > "$1.seg" 2>&1 || st=1
+			"music/Tubetricks Menu One v02" C) > "$1.seg" 2>&1 || fail seg
 		h="$h, $(lastof "$1.seg" 'sound segments: [0-9]+ checks, [0-9]+ failed')"
 	else
 		h="$h, segments skipped (no assets/rocketmania)"
 	fi
 	# tools/shotdiff: the screenshot comparison on synthetic pictures (statuses, boxes, alignment, pages, the marks server)
-	timeout 120 python tools/shotdiff/selftest.py > "$1.sdf" 2>&1 || st=1
+	timeout 120 python tools/shotdiff/selftest.py > "$1.sdf" 2>&1 || fail sdf
 	i="$(lastof "$1.sdf" 'shotdiff: [0-9]+ checks, [0-9]+ failed')"
 	# framework/DisplayGeometry (letterbox, render scale, window mapping, cursor) against a table from DDInterface's code
-	(cd build/native && timeout 60 ./geomtest.exe) > "$1.geo" 2>&1 || st=1
+	(cd build/native && timeout 60 ./geomtest.exe) > "$1.geo" 2>&1 || fail geo
 	j="$(lastof "$1.geo" 'geometry: [0-9]+ cases, [0-9]+ checks, [0-9]+ failed')"
 	# framework/TriangleWrap (DrawTrianglesTex's texture wrap): every piece in one cell, the pieces cover the triangle once, u and v kept modulo 1
 	local wr
-	(cd build/native && timeout 60 ./wraptest.exe) > "$1.wrp" 2>&1 || st=1
+	(cd build/native && timeout 60 ./wraptest.exe) > "$1.wrp" 2>&1 || fail wrp
 	wr="$(lastof "$1.wrp" 'wraptest: [0-9]+ checks, [0-9]+ failed')"
 	# framework/LinearStretch (stretch mode's smooth flavour) against the renderer's own present of test pictures at the four
 	# calibration sizes, where this machine's card and the model agree to the byte (docs/MEMORY.md, "A smooth stretch on the processor")
 	# and its Draw (copies through a table, SSE2 blends) against DrawReference, the arithmetic pixel by pixel, at many sizes
 	local sc
-	(cd build/native && timeout 120 ./stretchcal.exe) > "$1.sc" 2>&1 || st=1
-	(cd build/native && timeout 120 ./stretchcal.exe -selftest) >> "$1.sc" 2>&1 || st=1
+	(cd build/native && timeout 300 ./stretchcal.exe) > "$1.sc" 2>&1 || fail sc
+	(cd build/native && timeout 300 ./stretchcal.exe -selftest) >> "$1.sc" 2>&1 || fail sc
 	sc="$(lastof "$1.sc" 'stretchcal: [0-9]+ cases differing from LinearStretch'), $(lastof "$1.sc" 'stretchcal selftest: [0-9]+ cases, [0-9]+ differing' | sed 's/^stretchcal //; s/ ([0-9.]* s)$//')"
 	# -realinput (docs/REAL_INPUT.md): real SDL events pushed into SDL's queue reach fwtest's board through HandleEvent,
 	# the window mapping and the widget manager, with -fast and in real time; a line it could not play fails it too
 	local k r
 	for r in fast real; do
 		timeout 120 "build/native/fwtest.exe" -realinput=tools/fwtest/realinput.txt $([ $r = fast ] && echo -fast) \
-			-placeholders -gamedir="$OUT/no-game-files" > "$1.ri$r" 2>&1 || st=1
-		grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.ri$r" && st=1
+			-placeholders -gamedir="$OUT/no-game-files" > "$1.ri$r" 2>&1 || fail ri-$r
+		grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.ri$r" && fail realinput-$r
 	done
 	k="realinput: -fast $(lastof "$1.rifast" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //'), real time $(lastof "$1.rireal" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //')"
+	# the native game speed option (tools/fwtest/speed.txt): the mod menu's speed rows by the keyboard, the F6/F7/F8 hotkeys and the
+	# saved game-speed.json, then a second run that reads it back; fwtest's user folder holds the file, so it is removed before and after
+	local sp=build/native/userdata/game-speed.json
+	rm -f "$sp"
+	timeout 120 "build/native/fwtest.exe" -realinput=tools/fwtest/speed.txt -placeholders -gamedir="$OUT/no-game-files" > "$1.sp1" 2>&1 || fail speedkeys
+	timeout 120 "build/native/fwtest.exe" -realinput=tools/fwtest/speed2.txt -placeholders -gamedir="$OUT/no-game-files" > "$1.sp2" 2>&1 || fail speedkeys-readback
+	rm -f "$sp"
+	grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.sp1" "$1.sp2" && fail speedkeys
+	k="$k, speed keys: $(lastof "$1.sp1" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //'), read back $(lastof "$1.sp2" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //')"
 	# tools/fwtest/flags.txt: the fast stretch's sampling a game set (-corner) and the player's 3D choice hold through every
 	# change of size and mode, on DDInterface and on the software screen (whose full screen goes to the GPU: SURFACE_STRETCH=0,
 	# since the smooth stretch would keep it in software there)
 	local fl
-	timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast -placeholders 		-gamedir="$OUT/no-game-files" > "$1.flplain" 2>&1 || st=1
-	SOFTWARE_SCREEN=on SOFTSCREEN_SCALED=1 SURFACE_STRETCH=0 timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast 		-placeholders -gamedir="$OUT/no-game-files" > "$1.flsoft" 2>&1 || st=1
-	grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.flplain" "$1.flsoft" && st=1
+	timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast -placeholders 		-gamedir="$OUT/no-game-files" > "$1.flplain" 2>&1 || fail flplain
+	SOFTWARE_SCREEN=on SOFTSCREEN_SCALED=1 SURFACE_STRETCH=0 timeout 120 "build/native/fwtest.exe" -corner -realinput=tools/fwtest/flags.txt -fast 		-placeholders -gamedir="$OUT/no-game-files" > "$1.flsoft" 2>&1 || fail flsoft
+	grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.flplain" "$1.flsoft" && fail flags
 	fl="flags: DDInterface $(lastof "$1.flplain" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //'), software screen $(lastof "$1.flsoft" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //')"
 	# -commands (docs/TEST_COMMANDS.md, "Sending them"): lines appended to a file while fwtest runs, each answered on
 	# its log, through -script's dispatch and through -realinput's
 	local l m
 	for m in script realinput; do
-		timeout 200 bash tools/fwtest/commands.sh "$1.cm$m.log" "$OUT/commands-$m.txt" $m "$OUT/no-game-files" > "$1.cm$m" 2>&1 || st=1
+		timeout 200 bash tools/fwtest/commands.sh "$1.cm$m.log" "$OUT/commands-$m.txt" $m "$OUT/no-game-files" > "$1.cm$m" 2>&1 || fail cm-$m
 	done
 	l="commands: $(tail -1 "$1.cmscript" | sed 's/^commands //'), $(tail -1 "$1.cmrealinput" | sed 's/^commands //')"
 	# tools/playbymove: the shared driver loop plays fwtest's small task by its "move" answers, under -hold; twice, and
@@ -844,30 +866,39 @@ suite_unit() {
 	local pm pb='playbymove fwtest: 7 moves, stop over; STATE {"screen":"board","typed":"Hi","rightdowns":1,"drags":4,"dialogs":2,"over":true}'
 	for m in 1 2; do
 		timeout 120 python tools/playbymove/playbymove.py --dir "$OUT/playbymove$m" --timeout 30 build/native/fwtest.exe \
-			-placeholders -gamedir="$OUT/no-game-files" > "$1.pm$m" 2>&1 || st=1
+			-placeholders -gamedir="$OUT/no-game-files" > "$1.pm$m" 2>&1 || fail pm-$m
 	done
-	if [ "$(tail -1 "$1.pm1")" != "$pb" ]; then pm="playbymove: $(tail -1 "$1.pm1")"; st=1
-	elif ! cmp -s "$OUT/playbymove1/driver.txt" "$OUT/playbymove2/driver.txt"; then pm="playbymove: 7 moves, over, RERUN DIFFERS"; st=1
+	if [ "$(tail -1 "$1.pm1")" != "$pb" ]; then pm="playbymove: $(tail -1 "$1.pm1")"; fail playbymove
+	elif ! cmp -s "$OUT/playbymove1/driver.txt" "$OUT/playbymove2/driver.txt"; then pm="playbymove: 7 moves, over, RERUN DIFFERS"; fail playbymove-rerun
 	else pm="playbymove: 7 moves, over, rerun identical"; fi
 	# JPEG decoding through IJG libjpeg 6b (platform/JPEGDecoder.cpp): IJG's own test files against its reference output,
 	# synthetic pictures against the hashes of PopCap's copy of the library, the loader's routing; needs no game files
 	local jp
-	(cd build/native && timeout 60 ./jpegtest.exe) > "$1.jpg" 2>&1 || st=1
+	(cd build/native && timeout 60 ./jpegtest.exe) > "$1.jpg" 2>&1 || fail jpg
 	jp="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
 	# every mod text within its limit: platform/ModSettings.cpp cuts a longer one, and the menu shows the warning (the
 	# user, 2026-11-13: the fixes mods' helps)
 	local mt
-	timeout 60 python -I tools/modtextcheck.py > "$1.mtc" 2>&1 || st=1
+	timeout 60 python -I tools/modtextcheck.py > "$1.mtc" 2>&1 || fail mtc
 	mt="$(tail -1 "$1.mtc")"
 	# the screens checker on fixture folders
 	local sct
-	timeout 60 python -I tools/screenchecktest.py > "$1.sct" 2>&1 || st=1
+	timeout 60 python -I tools/screenchecktest.py > "$1.sct" 2>&1 || fail sct
 	sct="$(tail -1 "$1.sct")"
-	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" \
-		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" "$1.sct" >> "$1"
-	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" \
-		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" "$1.sct"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $sc; $k; $fl; $l; $pm; $jp; $mt; $sct"
+	# visrun's helpers and the clock block's layout, which must match tools/origrun/vclock.h (starts no game)
+	local vrs
+	timeout 60 python -I tools/visrun.py --selftest > "$1.vrs" 2>&1 || fail vrs
+	vrs="visrun $(tail -1 "$1.vrs")"
+	# gamecount's reservation rules on a made-up process list (starts nothing, touches no real reservation)
+	local gct
+	timeout 60 python -I tools/gamecount.py --selftest > "$1.gct" 2>&1 || fail gct
+	gct="$(tail -1 "$1.gct")"
+	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" "$1.sp1" "$1.sp2" \
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" "$1.sct" "$1.vrs" "$1.gct" >> "$1"
+	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" "$1.sp1" "$1.sp2" \
+		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" "$1.sct" "$1.vrs" "$1.gct"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $sc; $k; $fl; $l; $pm; $jp; $mt; $sct; $vrs; $gct"
+	[ -z "$FAILED" ] || SUMMARY="FAILED STEPS:$FAILED; $SUMMARY"
 	return $st
 }
 
@@ -990,6 +1021,13 @@ suite_screens() {  # every game's SCREENS.md against its newest shotdiff run
 	return $st
 }
 
+suite_speed() {  # every game follows the game speed
+	python -I tools/speedcheck.py --out "$W/$OUT/speed" > "$1" 2>&1
+	local st=$?
+	SUMMARY="$(lastof "$1" '^speed:')"
+	return $st
+}
+
 suite_origrun() {  # the host and its sound stand-in compile (into a folder of this run: origrun.exe may be running)
 	ORIGRUN_OUT="$W/$OUT/origrun-bin" tools/origrun/build.sh > "$1" 2>&1
 	local st=$? cov="the coverage test needs build/native/rundesk.exe" net=""
@@ -1003,6 +1041,9 @@ suite_origrun() {  # the host and its sound stand-in compile (into a folder of t
 		# --count from end to end on counttest.exe (tools/origrun/counttest.sh): the cycles of five functions, counted by their own time
 		tools/origrun/counttest.sh "$W/$OUT/origrun-bin" "$W/$OUT/counttest" >> "$1" 2>&1 || st=1
 		net="$net; $(lastof "$1" '^count:')"
+		# the sandbox queue (tools/origrun/queuetest.sh): fake waiters, no sandbox and no game, get the lock in arrival order
+		tools/origrun/queuetest.sh "$W/$OUT/origrun-bin" "$W/$OUT/queuetest" >> "$1" 2>&1 || st=1
+		net="$net; $(lastof "$1" '^queue:')"
 	fi
 	if [ $st -eq 0 ]; then SUMMARY="origrun.exe and dsound.dll compile; $cov$net"; else SUMMARY="$(grep -m 1 -E 'error|not found|FAIL' "$1" | cut -c1-160)"; fi
 	return $st
@@ -1961,6 +2002,23 @@ waterbugs_run() {  # <name>: the headless runner's scripted game; prints its sta
 	echo "$l"
 }
 
+waterbugs_tours() {  # the screen tours of games/waterbugs/test/tours played by the headless runner (fresh profile; end from a saved game on its last life, worlds from a profile that has reached every level, saves made by coverage/scripts.py), against games/waterbugs/test/tours.frozen (tools/play/tourcheck.py: the shots that were whole in six runs); prints tourcheck's line
+	local n d e=0
+	mkdir -p build/wbs
+	for n in fresh end worlds; do
+		d="$OUT/waterbugs/tour-$n"
+		fresh_dir "$d"; mkdir -p "$d"
+		case $n in
+		end) python games/waterbugs/tools/coverage/scripts.py save 14 "$d/cb.dat" 1 14 3000 > /dev/null ;;
+		worlds) python games/waterbugs/tools/coverage/scripts.py save 539 "$d/cb.dat" > /dev/null ;;
+		esac
+		python games/waterbugs/tools/play/tour.py games/waterbugs/test/tours/$n.txt "tour-$n" || e=1
+		WB_USER=SYSTEM WB_NOWARP=1 timeout 600 build/native/waterbugs_run.exe assets/waterbugs "$d" "build/wbs/tour-$n.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
+	done
+	if [ $e -ne 0 ]; then echo "TOURS FAILED (exit $e)"; return 0; fi
+	python -I games/waterbugs/tools/play/tourcheck.py check games/waterbugs/test/tours.frozen "$OUT/waterbugs" 2>&1 | tail -1
+}
+
 wb_hash() {  # <png>: the first 12 hex digits of the sha256 of the pixels; the loss screen's rising bubbles in x 560..690, y 240..520 are zeroed first, because one of them differs by a few pixels from run to run
 	python -I -c "import hashlib,sys;from PIL import Image;i=Image.open(sys.argv[1]).convert('RGB');i.paste((0,0,0),(560,240,690,520)) if 'scores' in sys.argv[1] else i.paste((0,0,0),(405,220,425,235)) if 'beam' in sys.argv[1] else 0;print(hashlib.sha256(i.tobytes()).hexdigest()[:12])" "$1" 2>/dev/null | tr -d '\r'
 }
@@ -1993,7 +2051,7 @@ waterbugs_window() {  # <name>: the windowed exe with the runner's left clicks; 
 }
 
 suite_waterbugs() {
-	local st=0 b g r w w2 l sh c="$OUT/waterbugs" ea=0 ef=0
+	local st=0 b g r w w2 l sh tr c="$OUT/waterbugs" ea=0 ef=0
 	need_assets waterbugs || return 1
 	mkdir -p "$c/banks"
 	# Every animation the game file names and every font, each listing kept (the game file names ten files the game does not ship)
@@ -2010,13 +2068,15 @@ suite_waterbugs() {
 	[ "$b" = "$WB_BANKS" ] || st=1
 	[ "$g" = "$WB_GAME" ] || st=1
 	[ "$l" = "$WB_LOSS" ] || st=1
+	tr="$(waterbugs_tours)"
+	case "$tr" in TOURS*) st=1 ;; esac
 	sh="$(for f in game/start game/beam loss/scores; do wb_hash "$c/$f.png"; done | paste -sd" " -)"
 	if [ "$sh" = "$WB_SHOTS" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED ($sh)"; st=1; fi
 	if [ "$(wb_hash "$c/game/start.png")" = "$(wb_hash "$c/game2/start.png")" ] && [ "$(wb_hash "$c/game/beam.png")" = "$(wb_hash "$c/game2/beam.png")" ] &&
 		[ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	if [ "$w" = "$(echo "${g##*; }" | sed 's/^[0-9]* ms: //')" ] && diff -q "$c/window/beam.png" "$c/window2/beam.png" >> "$1" 2>&1 &&
 		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
-	SUMMARY="$b; $g; $r; $w; loss: $l; $sh"
+	SUMMARY="$b; $g; $r; $w; loss: $l; $sh; tours: $tr"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$WB_BANKS', '$WB_GAME', '$WB_LOSS')"
 	return $st
 }
@@ -2262,22 +2322,78 @@ twist_save() {  # <exe>: a seeded Classic game left at level 3, mid-twist (1777)
 	echo "${r:-ok}"
 }
 
+twist_route() {  # <route> <players folder or -> <port args...>: a screen coverage route (games/bejeweledtwist/tools/screens/
+	# <route>.txt, turned into a -script by gen.py; games/bejeweledtwist/docs/SCREENS.md) on the port, seeded, 2D, windowed at
+	# the 600 art, as it was compared with the original; prints the first 12 hex digits of the sha256 of its shots' hashes
+	local route="$1" prep="$2" d="$OUT/bejeweledtwist/route-$1" s=games/bejeweledtwist/tools/screens
+	shift 2
+	fresh_dir "$d"; mkdir -p "$d/shots" "$d/user"
+	printf '[SOFTWARE\\Steam\\BejeweledTwist]\nScreenMode=dword:0\nArtRes=dword:600\n' > "$d/user/registry.ini"
+	[ "$prep" = - ] || cp -r "$prep" "$d/user/users"
+	python -I "$s/gen.py" "$s/$route.txt" "$d" "$W/$d/shots" > /dev/null || return
+	# the routes click the menus, the player list, the mode select, the dialogs and the board, never a link
+	timeout 300 "$W/build/native/bejeweledtwist.exe" -gamedir=assets/bejeweledtwist -userdir="$W/$d/user" -nod3d9 -renderscale=1 \
+		-fast -drawevery -seed=1234 "$@" -script="$d/$route.port.txt" > "$d/stdout.txt" 2>&1
+	(cd "$d/shots" && sha256sum *.png) | sha256sum | cut -c1-12
+}
+
+twist_route_players() {  # the players folders the routes start from, made here by the port (no save is kept in the repository):
+	# bombs/ for game-over and zenjump, a first Classic game at update 1250 with every gem a bomb on its last count and its
+	# bomb count (board +0x21e0, byte 4925 of the save) 1, so its wheel loses and its load offers the zen jump; fruit/, the
+	# same game without the bombs and with its multiplier's steps (bytes 727 to 730) at 151, so its first match awards a
+	# fruit; and, after the classic route, rankup/, that route's player with its rank points (byte 246 of profile.dat) one
+	# short of rank 2
+	local d="$OUT/bejeweledtwist/route-preps" r c
+	fresh_dir "$d"; mkdir -p "$d/make/user" "$d/make/kept" "$d/bombs/TWISTBOT" "$d/plain/user" "$d/plain/kept" "$d/fruit/TWISTBOT"
+	printf '[SOFTWARE\\Steam\\BejeweledTwist]\nScreenMode=dword:0\nArtRes=dword:600\n' > "$d/make/user/registry.ini"
+	{ echo "1250 autoplayoff"; for r in 0 1 2 3 4 5 6 7; do for c in 0 1 2 3 4 5 6 7; do echo "1510 gem $r $c counter 1"; done; done
+		echo "1540 shutdownsaves $W/$d/make/kept"; echo "1545 quit"; } > "$d/make/script.txt"
+	timeout 120 "$W/build/native/bejeweledtwist.exe" -gamedir=assets/bejeweledtwist -userdir="$W/$d/make/user" -nod3d9 -fast -seed=1234 \
+		-autoplay=1 -script="$d/make/script.txt" > "$d/make/stdout.txt" 2>&1
+	cp "$d/make/kept/profile.dat" "$d/make/kept/savegame_classic.dat" "$d/bombs/TWISTBOT/"
+	cp "$d/make/user/users/users.dat" "$d/make/user/users/scores.dat" "$d/bombs/"
+	printf '\001' | dd of="$d/bombs/TWISTBOT/savegame_classic.dat" bs=1 seek=4925 conv=notrunc 2> /dev/null
+	cp "$d/make/user/registry.ini" "$d/plain/user/"
+	printf '1250 autoplayoff\n1540 shutdownsaves %s\n1545 quit\n' "$W/$d/plain/kept" > "$d/plain/script.txt"
+	timeout 120 "$W/build/native/bejeweledtwist.exe" -gamedir=assets/bejeweledtwist -userdir="$W/$d/plain/user" -nod3d9 -fast -seed=1234 \
+		-autoplay=1 -script="$d/plain/script.txt" > "$d/plain/stdout.txt" 2>&1
+	cp "$d/plain/kept/profile.dat" "$d/plain/kept/savegame_classic.dat" "$d/fruit/TWISTBOT/"
+	cp "$d/plain/user/users/users.dat" "$d/plain/user/users/scores.dat" "$d/fruit/"
+	printf '\001' | dd of="$d/fruit/TWISTBOT/savegame_classic.dat" bs=1 seek=4925 conv=notrunc 2> /dev/null
+	printf '\227\000\000\000' | dd of="$d/fruit/TWISTBOT/savegame_classic.dat" bs=1 seek=727 conv=notrunc 2> /dev/null
+}
+
+twist_routes() {  # every screen coverage route on the port; prints "<route> <hash>" lines
+	local p="$OUT/bejeweledtwist/route-preps" n
+	twist_route_players
+	for n in menus players; do echo "$n $(twist_route $n -)"; done
+	echo "classic $(twist_route classic - -autoplay=1)"
+	echo "blitz $(twist_route blitz - -autoplay=blitz)"
+	for n in gameover zenjump; do echo "$n $(twist_route $n "$p/bombs")"; done
+	echo "fruit $(twist_route fruit "$p/fruit")"
+	mkdir -p "$p/rankup"; cp -r "$OUT/bejeweledtwist/route-classic/user/users/." "$p/rankup/"
+	rm -f "$p/rankup/TWISTBOT/savegame_classic.dat"
+	printf '\016' | dd of="$p/rankup/TWISTBOT/profile.dat" bs=1 seek=246 conv=notrunc 2> /dev/null
+	echo "rankup $(twist_route rankup "$p/rankup" -autoplay=1)"
+}
+
 suite_bejeweledtwist() {
-	local st=0 c b r m t sh sv bl="" exe="$W/build/native/bejeweledtwist.exe" base="$W/build/baseline-bejeweledtwist/bejeweledtwist.exe"
+	local st=0 c b r m t sh sv rt bl="" exe="$W/build/native/bejeweledtwist.exe" base="$W/build/baseline-bejeweledtwist/bejeweledtwist.exe"
 	need_assets bejeweledtwist || return 1
 	c="$(twist_game classic "$exe" 1 5166 656 2156 3656 5156)"
 	b="$(twist_game blitz "$exe" blitz 8166 2656 5156 7156 7606 8156)"
 	r="$(twist_game classic2 "$exe" 1 5166 656 2156 3656 5156)"
 	m="$(twist_game menu "$exe" 1 170 60 160)"
 	t="$(TWIST_MODE=-3d twist_game takeoff "$exe" 1 3021 2780 2900 2940 2980 3020)"
+	rt="$(twist_routes | paste -sd" " -)"
 	local dec="sounds decode as Tremor's"
 	# the decode tool links the framework's stb_vorbis: build it here, since a session that builds only its game's target
 	# keeps a copy from before a change to the decoder (seconds when it is up to date)
 	if ! TARGET=bjt_sounddecode tools/build.sh native > "$1.decbuild" 2>&1; then dec="BJT_SOUNDDECODE DOES NOT BUILD"; st=1
 	elif ! "$W/build/native/bjt_sounddecode.exe" --compare "$W"/assets/bejeweledtwist/sounds/*.ogg > "$1.decode" 2>&1; then dec="SOUNDS DECODE DIFFERENTLY"; st=1; fi
 	sv="$(twist_save "$exe")"
-	{ echo "classic: $c"; echo "blitz: $b"; echo "classic rerun: $r"; echo "menu: $m"; echo "3D take-off: $t"; echo "save: $sv"; } > "$1"
-	if [ "$c" = "$BT_CLASSIC" ] && [ "$b" = "$BT_BLITZ" ] && [ "$m" = "$BT_MENU" ] && [ "$t" = "$BT_TAKEOFF" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED"; st=1; fi
+	{ echo "classic: $c"; echo "blitz: $b"; echo "classic rerun: $r"; echo "menu: $m"; echo "3D take-off: $t"; echo "routes: $rt"; echo "save: $sv"; } > "$1"
+	if [ "$c" = "$BT_CLASSIC" ] && [ "$b" = "$BT_BLITZ" ] && [ "$m" = "$BT_MENU" ] && [ "$t" = "$BT_TAKEOFF" ] && [ "$rt" = "$BT_ROUTES" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED"; st=1; fi
 	if [ -n "$c" ] && [ "$c" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	# the frozen baseline (build/baseline-bejeweledtwist/, a copy of the port with its DLLs made when it was last
 	# checked against the original): the same games must give the same screens
@@ -2290,8 +2406,8 @@ suite_bejeweledtwist() {
 		fi
 	fi
 	if [ "$sv" = ok ]; then sv="a page's save as a quit's, resumed"; else sv="SAVE DIFFERS ($sv)"; st=1; fi
-	SUMMARY="the start's menu, Classic to 5156, Blitz to its high scores and the 3D level-up's take-off, 16 screens; $r; $sh$bl; $sv; $dec"
-	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$BT_CLASSIC', blitz '$BT_BLITZ', menu '$BT_MENU', 3D take-off '$BT_TAKEOFF')"
+	SUMMARY="the start's menu, Classic to 5156, Blitz to its high scores, the 3D level-up's take-off and the eight screen routes, 106 screens; $r; $sh$bl; $sv; $dec"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$BT_CLASSIC', blitz '$BT_BLITZ', menu '$BT_MENU', 3D take-off '$BT_TAKEOFF', routes '$BT_ROUTES')"
 	return $st
 }
 
@@ -2431,8 +2547,8 @@ suite_venice() {
 	return 0
 }
 
-HH_SHOTS_ALL="loaded name menu highscores trophies game play won shop challenge toughintro tough marathonintro marathon lost"
-HH_FROZEN="b0be3a484ad2 974f0929e354"  # the first 12 hex digits of the sha256 of the tour's screens' hashes and of its state lines (games/hammerheads/tools/tour_test.txt)
+HH_SHOTS_ALL="loaded name menu highscores trophies game play won shop challenge toughintro tough marathonintro marathon lost menu_after_over players quit_box board4 game_menu leave_game menu_after_leave classic_over"
+HH_FROZEN="43abb3150fd1 dc17142f2cdc"  # the first 12 hex digits of the sha256 of the tour's screens' hashes and of its state lines (games/hammerheads/tools/tour_test.txt)
 
 hammerheads_run() {  # <name> [<exe>]: games/hammerheads/tools/tour_test.txt into $OUT/hammerheads/<name>; prints the exit status
 	local d="$OUT/hammerheads/$1" e=0
@@ -2493,7 +2609,7 @@ suite_pizzafrenzy() {
 	return $e
 }
 
-HW_SHOTS_ALL="title menu highscores credits help map firsthelp game tip boss results armory level5 gameover afterquit survival survivalover aftersurvival options"
+HW_SHOTS_ALL="title menu highscores credits help map firsthelp game tip boss results armory level5 gameover afterquit survival survivalover aftersurvival options quitbox userlist newplayer userlist2 deleteplayer rename playerback resetscores continue armory2 armorypoints menubox retreat paused unpaused"
 
 heavyweapon_tour() {  # <name> [<exe>]: games/heavyweapon/tools/tour_test.txt into $OUT/heavyweapon/<name>; prints the exit status
 	local d="$OUT/heavyweapon/$1" e=0
@@ -2573,7 +2689,7 @@ suite_heavyweapon() {
 			cmp -s "$d/$k/driver.txt" "$d/base-$k/driver.txt" || { bl="; BASELINE DIFFERS ($k)"; st=1; }
 		done
 	fi
-	SUMMARY="the tour (the title, the menu's screens, level 1 to its results and the armory, level 5 and survival lost, the options; rerun identical, $sh); campaign ${a#playbymove heavyweapon: }; level 9 ${b#playbymove heavyweapon: }; survival ${c#playbymove heavyweapon: }; $r$bl"
+	SUMMARY="the tour (the title, the menu's screens, level 1 to its results and the armory, level 5 and survival lost, the options, the boxes; rerun identical, $sh); campaign ${a#playbymove heavyweapon: }; level 9 ${b#playbymove heavyweapon: }; survival ${c#playbymove heavyweapon: }; $r$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected tour $HW_FROZEN, campaign '$HW_CAMPAIGN', level 9 '$HW_LATER', survival '$HW_SURVIVAL')"
 	return $st
 }

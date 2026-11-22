@@ -18,11 +18,22 @@
 namespace engine
 {
 
-// How a surface is drawn by default (its +0x14), as the loaders set it
+// How a surface is drawn by default (its +0x14), as the loaders and a screen's alphaType set it
 enum BlendMode
 {
-	BLEND_OPAQUE = 0,  // a JPEG, or a PNG without an alpha channel
-	BLEND_ALPHA = 2,   // the alpha of a mask or of the PNG, the colours multiplied by it
+	BLEND_OPAQUE = 0,  // a JPEG, or a PNG without an alpha channel; alphaType "none"
+	BLEND_TEST = 1,    // alphaType "alphaTest": a pixel drawn whole where its alpha passes the surface's threshold
+	BLEND_ALPHA = 2,   // the alpha of a mask or of the PNG, the colours multiplied by it; alphaType "alphaBlend"
+	BLEND_ADD = 3,     // alphaType "alphaAdd"
+};
+
+// Where a surface's anchor goes (0x18, 0x45f290 (feedingfrenzy2)), in pixels from its top left corner
+enum Pivot
+{
+	PIVOT_UPPER_LEFT = 0,  // (0, 0), also for any other value
+	PIVOT_CENTER = 1,      // half the width and half the height
+	PIVOT_BOTTOM = 2,      // half the width, the last row
+	PIVOT_TOP = 3,         // half the width, the first row
 };
 
 class Surface : public Object
@@ -54,17 +65,23 @@ public:
 	// 0x08 (0x443760) and 0x0c (0x4437d0) (feedingfrenzy2)
 	int getWidth() const { return mWidth; }
 	int getHeight() const { return mHeight; }
+	// 0x18 (0x45f290 (feedingfrenzy2)): the anchor put at a pivot
+	void setPivot(int thePivot);
 	// 0x1c (0x45f300) and 0x20 (0x443610) (feedingfrenzy2)
 	void setAnchor(const Vector2f& theAnchor) { mAnchor = theAnchor; }
 	const Vector2f& getAnchor() const { return mAnchor; }
-	// 0x24 (0x462510) and 0x28 (0x440650) (feedingfrenzy2)
-	void setBlendMode(int theBlendMode, bool theBlendFlag)
+	// 0x24 (0x462510) and 0x28 (0x440650) (feedingfrenzy2): the mode, and the alpha threshold of BLEND_TEST (kept as
+	// a byte)
+	void setBlendMode(int theBlendMode, int theAlphaThreshold)
 	{
 		mBlendMode = theBlendMode;
-		mBlendFlag = theBlendFlag;
+		mAlphaThreshold = (uint8_t)theAlphaThreshold;
 	}
 	int getBlendMode() const { return mBlendMode; }
+	int getAlphaThreshold() const { return mAlphaThreshold; }
 	// 0x30 (0x427110 (feedingfrenzy2)): every pixel set to the colour, each channel times 255 truncated
+	// 0x44 (0x45f320 (feedingfrenzy2)): a new surface with the pixels, blend mode, anchor and name of this one
+	Surface* clone() const;
 	void fill(const Color& theColor);
 
 	// The pixels, ARGB, row after row (the object's +0x60 (feedingfrenzy2))
@@ -73,7 +90,7 @@ public:
 
 private:
 	int mBlendMode;           // +0x14
-	bool mBlendFlag;          // +0x18
+	uint8_t mAlphaThreshold;  // +0x18
 	Vector2f mAnchor;         // +0x1c
 	std::string mName;        // +0x3c
 	int mWidth;               // +0x58

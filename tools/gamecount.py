@@ -20,13 +20,16 @@ Reservations (so two sessions cannot both pass the check before either has start
 the check is "running + live reservations + --need > limit" (--need N, default 1, is the number of processes you are
 about to start; N=1 is the plain rule above). When the check passes, it records a reservation of N slots that expires
 after --hold S seconds (default 30), long enough for the processes to start and show in the count. Every count adds
-the live reservations to its total and prints each as "reserved: N by pid P, Ts left". Start your processes within
-the hold. A pair run (an original and its port) says --need 2.
+the live reservations to its total and prints each as "reserved: N by pid P, Ts left". A slot stops counting once its
+game has started (a game process started after the reservation, under the same running shell as the reserving
+gamecount), so a launch counts once. Start your processes within the hold, from the shell or script that reserved
+them. A pair run (an original and its port) says --need 2.
 
     python tools/gamecount.py --limit --need 2            check for two slots and reserve them for 30 s
     python tools/gamecount.py --limit --no-reserve        check only, as before reservations existed
     python tools/gamecount.py                             count only (never reserves)
     python tools/gamecount.py --limit 99                  a count for a log: a limit above 10 never reserves
+    python tools/gamecount.py --selftest                  the reservation rules on a made-up process list
 
 The reservations are files under %LOCALAPPDATA%/byo-pop/gamecount/ (machine-wide: every worktree sees them). The
 check and the reservation are one step under a lock directory taken by mkdir (as tools/ghidra_import.sh takes its
@@ -41,9 +44,13 @@ TOOLS = {"rundesk.exe", "origrun.exe", "cmake.exe", "ninja.exe", "clang.exe", "c
          "python.exe", "python3.exe", "bash.exe", "sh.exe", "git.exe", "claude.exe", "conhost.exe", "node.exe",
          "llvm-objdump.exe", "llvm-readobj.exe", "java.exe", "javaw.exe", "cygpath.exe", "timeout.exe", "sleep.exe",
          "grep.exe", "sed.exe", "awk.exe", "cat.exe", "cp.exe", "tee.exe", "make.exe", "emcc.exe", "wasm-ld.exe"}
+# processes a reservation's chain passes through on the way up to the session (see run)
+SHELLS = {"bash.exe", "sh.exe", "dash.exe", "python.exe", "python3.exe", "py.exe", "rundesk.exe", "cmd.exe",
+          "powershell.exe", "pwsh.exe", "timeout.exe", "env.exe", "xargs.exe", "make.exe"}
 NODE_GAME = ("wasmrun", "onegame", "play.js", "tour.js", "bejeweled_verify", "driver")
 
-PS = ("Get-CimInstance Win32_Process | Select-Object ProcessId,Name,ExecutablePath,CommandLine,ThreadCount | "
+PS = ("Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,ExecutablePath,CommandLine,"
+      "ThreadCount,@{n='Created';e={[long](($_.CreationDate.ToUniversalTime() - [datetime]'1970-01-01').TotalSeconds)}} | "
       "ConvertTo-Json -Compress")
 
 
@@ -75,26 +82,47 @@ def take_lock(d):
 
 
 def live_reservations(d):
-    """[(slots, pid, seconds left)] of the reservations not yet expired; expired files are deleted."""
+    """[(slots, pid, seconds left, made at, chain)] of the reservations not yet expired; expired files are deleted.
+
+    A reservation file holds "slots pid expires", the form every gamecount reads (an older one deletes a file of any
+    other form as unreadable). It was made at its file's own time. Its chain (the reserving process's shell ancestors,
+    nearest first) is in a .chain file beside it; without one the chain is the pid alone."""
     out = []
     now = time.time()
-    for name in os.listdir(d):
+    names = set(os.listdir(d))
+    for name in names:
+        path = os.path.join(d, name)
+        if name.endswith(".chain"):
+            # a chain outlives its reservation only by accident (it is written first): drop it once it is a minute old
+            try:
+                if name[:-6] + ".res" not in names and now - os.path.getmtime(path) > 60:
+                    os.remove(path)
+            except OSError:
+                pass
+            continue
         if not name.endswith(".res"):
             continue
-        path = os.path.join(d, name)
         try:
             with open(path) as f:
                 slots, pid, expires = f.read().split()
+            made = os.path.getmtime(path)
             left = float(expires) - now
             if left > 0:
-                out.append((int(slots), int(pid), left))
+                chain = [int(pid)]
+                try:
+                    with open(path[:-4] + ".chain") as f:
+                        chain = [int(x) for x in f.read().split()] or chain
+                except (OSError, ValueError):
+                    pass
+                out.append((int(slots), int(pid), left, made, chain))
                 continue
         except (OSError, ValueError):
             pass
-        try:
-            os.remove(path)
-        except OSError:
-            pass
+        for gone in (path, path[:-4] + ".chain"):
+            try:
+                os.remove(gone)
+            except OSError:
+                pass
     return out
 
 
@@ -153,20 +181,140 @@ def run(args, d, reserving):
                 continue
             seen_sandbox = True
         counted.append(p)
-    res = live_reservations(d)
-    held = sum(r[0] for r in res)
+    # A reservation stops counting a slot once its game has started. Before this, each launch counted twice for up to
+    # 30 s, and a script starting short runs one after another held a slot for nothing all the time (the user,
+    # 2026-11-22, saw the processor mostly idle while sessions waited for slots: 7 games and 3 reservations made the
+    # 10). Its game is a counted process started after the reservation that descends from the nearest of the reserving
+    # process's shell ancestors still running (the pid itself is usually Git Bash's stub for the command, gone at once).
+    # Each started process stands for one slot of one reservation; a reservation whose shells have all exited counts
+    # in full until it expires, as before.
+    alive = {p.get("ProcessId"): p for p in procs if p.get("ThreadCount") != 0}
+    parent = {p.get("ProcessId"): p.get("ParentProcessId") for p in procs}
+
+    def descends(pid, ancestor):
+        for _ in range(64):
+            pid = parent.get(pid)
+            if not pid:
+                return False
+            if pid == ancestor:
+                return True
+        return False
+
+    res = sorted(live_reservations(d), key=lambda r: r[3])
+    taken = set()
+    held, notes = 0, []
+    for slots, pid, left, made, chain in res:
+        anchor = next((a for a in chain if a in alive and (alive[a].get("Created") or 0) <= made + 1), None)
+        started = 0
+        if anchor is not None:
+            for p in sorted(counted, key=lambda p: p.get("Created") or 0):
+                if started == slots:
+                    break
+                q = p.get("ProcessId")
+                if q not in taken and (p.get("Created") or 0) >= made - 1 and descends(q, anchor):
+                    taken.add(q)
+                    started += 1
+        held += slots - started
+        notes.append((slots, pid, left, started))
     print(f"game processes: {len(counted) + held}")
     for p in counted:
         print(f"  {p['ProcessId']:>6}  {p['Name']}  {(p.get('ExecutablePath') or '')[:110]}")
-    for slots, pid, left in res:
-        print(f"  reserved: {slots} by pid {pid}, {left:.0f}s left")
+    for slots, pid, left, started in notes:
+        print(f"  reserved: {slots} by pid {pid}, {left:.0f}s left" + (f", {started} started (counted above)" if started else ""))
     if args.limit is not None and len(counted) + held + args.need > args.limit:
         sys.exit(1)
     if reserving:
-        path = os.path.join(d, uuid.uuid4().hex + ".res")
-        with open(path, "w") as f:
+        # the chain: this process's shell ancestors, nearest first, up to the first that is not a shell (the session)
+        chain, q = [], parent.get(os.getpid())
+        while q and q in alive and (alive[q].get("Name") or "").lower() in SHELLS and len(chain) < 16:
+            chain.append(q)
+            q = parent.get(q)
+        stem = os.path.join(d, uuid.uuid4().hex)
+        with open(stem + ".chain", "w") as f:
+            f.write(" ".join(str(c) for c in chain))
+        with open(stem + ".res", "w") as f:
             f.write(f"{args.need} {os.getppid() or os.getpid()} {time.time() + args.hold}")
 
 
+def selftest():
+    """The reservation rules on a made-up process list in a temporary state folder (tools/check.sh unit)."""
+    import contextlib
+    import io
+    import tempfile
+    t0 = time.time()
+
+    def proc(pid, ppid, name, created, path=None):
+        return {"ProcessId": pid, "ParentProcessId": ppid, "Name": name, "ThreadCount": 1, "Created": created,
+                "ExecutablePath": path or ("C:/byo-pop/build/native/" + name), "CommandLine": name}
+
+    def count(procs, d):
+        fake = type("R", (), {"stdout": json.dumps(procs)})
+        real = subprocess.run
+        subprocess.run = lambda *a, **k: fake
+        buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf):
+                run(argparse.Namespace(limit=None, need=1, hold=30), d, False)
+        finally:
+            subprocess.run = real
+        return int(buf.getvalue().splitlines()[0].split(": ")[1])
+
+    def reserve(d, name, slots, pid, chain, made):
+        with open(os.path.join(d, name + ".res"), "w") as f:
+            f.write(f"{slots} {pid} {made + 30}")
+        os.utime(os.path.join(d, name + ".res"), (made, made))
+        if chain is not None:
+            with open(os.path.join(d, name + ".chain"), "w") as f:
+                f.write(" ".join(map(str, chain)))
+
+    session = proc(10, 1, "claude.exe", t0 - 999, "C:/x/claude.exe")
+    script = proc(20, 10, "bash.exe", t0 - 100)
+    failures = []
+    with tempfile.TemporaryDirectory() as d:
+        # a reservation whose stub (30) is gone, its script (20) running: its game (40, started after) takes its slot
+        reserve(d, "a", 1, 30, [30, 20], t0 - 5)
+        procs = [session, script, proc(35, 20, "rundesk.exe", t0 - 4), proc(40, 35, "alchemy.exe", t0 - 4)]
+        if count(procs, d) != 1:
+            failures.append("a started game counts once, not once more for its reservation")
+        # before the game starts, the reservation holds its slot
+        if count(procs[:2], d) != 1:
+            failures.append("a reservation whose game has not started holds its slot")
+        # a game of the same script started before the reservation is not its game
+        procs_old = [session, script, proc(41, 20, "atomica.exe", t0 - 50)]
+        if count(procs_old, d) != 2:
+            failures.append("a game older than the reservation does not take its slot")
+    with tempfile.TemporaryDirectory() as d:
+        # an older gamecount's reservation (no chain) by a stub that is gone counts in full, as before
+        reserve(d, "b", 1, 30, None, t0 - 5)
+        procs = [session, script, proc(40, 20, "alchemy.exe", t0 - 4)]
+        if count(procs, d) != 2:
+            failures.append("a reservation with no chain and its pid gone counts in full")
+        # two reservations by one script, one game started: one slot left held
+        reserve(d, "c", 1, 30, [31, 20], t0 - 6)
+        reserve(d, "e", 1, 30, [32, 20], t0 - 5.5)
+        if count(procs, d) != 3:
+            failures.append("one game takes one slot of one reservation (of three: two held, one game)")
+        # a pair: two slots, both games started
+        for f in os.listdir(d):
+            os.remove(os.path.join(d, f))
+        reserve(d, "f", 2, 33, [33, 20], t0 - 5)
+        procs = [session, script, proc(40, 20, "alchemy.exe", t0 - 4), proc(42, 20, "alchemy_orig.exe", t0 - 4)]
+        if count(procs, d) != 2:
+            failures.append("a pair's two games take both its slots")
+        # a recycled pid: a process with the chain's pid that started after the reservation is not its shell
+        for f in os.listdir(d):
+            os.remove(os.path.join(d, f))
+        reserve(d, "g", 1, 34, [34], t0 - 5)
+        procs = [session, proc(34, 10, "bash.exe", t0 - 2), proc(43, 34, "alchemy.exe", t0 - 1)]
+        if count(procs, d) != 2:
+            failures.append("a shell started after the reservation (a recycled pid) is not its anchor")
+    for f in failures:
+        print("FAIL: " + f)
+    print("gamecount selftest: %d failed" % len(failures))
+    return 1 if failures else 0
+
+
 if __name__ == "__main__":
+    if sys.argv[1:] == ["--selftest"]:
+        sys.exit(selftest())
     main()

@@ -1,0 +1,101 @@
+# origrun's side of mission.txt (see its header): waits on the game's own state after the first line
+at 2981 click 175 313 30
+at 4481 click 188 208 30
+at 5991 shot m_slider0
+at 6481 click 690 312 30
+at 6781 click 690 312 30
+at 7081 click 690 312 30
+at 7381 click 690 312 30
+at 7681 click 690 312 30
+at 7981 click 690 312 30
+at 8281 click 690 312 30
+at 8581 click 690 312 30
+at 8881 click 690 312 30
+at 9181 click 690 312 30
+at 9481 click 690 312 30
+at 9781 click 690 312 30
+at 10081 click 690 312 30
+at 10381 click 690 312 30
+at 10681 click 690 312 30
+at 10981 click 690 312 30
+at 11281 click 690 312 30
+at 11581 click 690 312 30
+at 11881 click 690 312 30
+at 12181 click 690 312 30
+at 12481 click 690 312 30
+at 12781 click 690 312 30
+at 13081 click 690 312 30
+at 13381 click 690 312 30
+at 13681 click 690 312 30
+at 13981 click 690 312 30
+at 14281 click 690 312 30
+at 14581 click 690 312 30
+at 14881 click 690 312 30
+at 15181 click 690 312 30
+at 15481 click 690 312 30
+at 15781 click 690 312 30
+at 16081 click 690 312 30
+at 16381 click 690 312 30
+at 16681 click 690 312 30
+at 16981 click 690 312 30
+at 17281 click 690 312 30
+at 17581 click 690 312 30
+at 17881 click 690 312 30
+at 18181 click 690 312 30
+at 18481 click 690 312 30
+at 18781 click 690 312 30
+at 19081 click 690 312 30
+at 19381 click 690 312 30
+at 19681 click 690 312 30
+at 19981 click 690 312 30
+at 20281 click 690 312 30
+at 20581 click 690 312 30
+at 20881 click 690 312 30
+at 21181 click 690 312 30
+at 21481 click 690 312 30
+at 21781 click 690 312 30
+at 22081 click 690 312 30
+at 22381 click 690 312 30
+at 22681 click 690 312 30
+at 22981 click 690 312 30
+at 23281 click 690 312 30
+at 23581 click 690 312 30
+at 23881 click 690 312 30
+at 24181 click 690 312 30
+at 24481 click 690 312 30
+at 24781 click 690 312 30
+at 25081 click 690 312 30
+at 25381 click 690 312 30
+at 25681 click 690 312 30
+at 25981 click 690 312 30
+at 26281 click 690 312 30
+at 26581 click 690 312 30
+at 26881 click 690 312 30
+at 27181 click 690 312 30
+at 27481 click 690 312 30
+at 27781 click 690 312 30
+at 28081 click 690 312 30
+at 28381 click 690 312 30
+at 28681 click 690 312 30
+at 28981 click 690 312 30
+at 29281 click 690 312 30
+at 29581 click 690 312 30
+at 29881 click 690 312 30
+at 30181 click 690 312 30
+at 30991 shot m_slider
+at 31481 click 400 563 30
+at 34981 click 300 250 30
+waitfor [0x473138]+0xc == 3 90000
+mark
+at +1000 click 400 300 30
+at +2000 click 400 300 30
+at +3000 click 400 300 30
+waitfor [0x473138]+0x8 == 0xb 90000
+mark
+at +291 shot mission_fade
+at +1485 shot mission
+at +1775 click 400 563 30
+at +3285 shot mission_after
+at +6285 shot mission_after2
+at +7285 move 0 0
+quit

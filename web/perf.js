@@ -334,7 +334,7 @@ var ByopopPerf = (function () {
     // a window of Desktop 95's desktop (web/skins.js), whose icon is there while the panel is
     try {
       if (window.ByopopSkin && ByopopSkin.desk)
-        ByopopSkin.desk.add(panel, { id: "perf", title: T("perf.title"), handle: h, button: panel,
+        ByopopSkin.desk.add(panel, { id: "perf", title: T("perf.title"), handle: h, button: panel, fixed: true,
           open: function () {}, at: function (left, vw) { return [Math.max(left, vw - 310), 12]; } });
     } catch (e) {}
   }

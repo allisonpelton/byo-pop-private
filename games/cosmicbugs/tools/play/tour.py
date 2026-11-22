@@ -1,6 +1,6 @@
 # tour.py <tour.txt> <name>: a tour of timed events (runner time in ms) as a runner script (build/cbw/<name>.txt) and an
 # origrun script (build/origrun/<name>.txt). Lines: "T click x y", "T rclick", "T move x y", "T key vk", "T shot name",
-# "T end" ('#' starts a comment). The runner's frame ending at T ms has run the updates up to T-9, which origrun's
+# "T cmd <test command>" (the runner's side only), "T end" ('#' starts a comment). The runner's frame ending at T ms has run the updates up to T-9, which origrun's
 # "at T-9" holds, so a shot at T is "at T-9 shot" and a move "at T-9 move"; a click at T (its move at T-10) is the
 # original's "at T-19 click x y 30", read by its message pump at the start of the frame, and a key the same, held 30
 # updates. A right click does not move the cursor: origrun's rclick is sent at the last click's or move's place.
@@ -31,6 +31,9 @@ for line in open(sys.argv[1]):
     elif what == 'shot':
         run.append((t, "shot %s" % args[0]))
         orig.append((t - 9, "shot %s" % args[0]))
+    elif what == 'cmd':
+        # a standard test command, for the runner only (the original is patched for what it does: see mission.txt)
+        run.append((t, "cmd " + " ".join(args)))
     elif what == 'end':
         end = t
     else:

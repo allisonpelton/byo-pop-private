@@ -1,0 +1,6 @@
+# the second run of tools/fwtest/speed.txt, in the same user dir: the saved speed and hotkeys are read at start
+50 expect speed 1.5
+50 expect speedkeys 1
+52 key F6
+54 expect speed 1
+56 report

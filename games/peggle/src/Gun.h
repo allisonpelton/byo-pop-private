@@ -6,6 +6,7 @@
 #ifndef __GUN_H__
 #define __GUN_H__
 
+#include <list>
 #include "Ball.h"
 #include "Poly.h"
 
@@ -13,6 +14,13 @@ namespace Sexy
 {
 
 class Board;
+
+// One turn of the cannon that SetAngle asked for: how far to turn (radians, signed) and the update it was asked at
+struct GunTurn
+{
+	float mDelta;
+	int mTime;
+};
 
 class Gun : public Poly
 {
@@ -70,8 +78,7 @@ public:
 	int mUnknown1C8;		   // +0x1c8: three words that start as 0
 	int mUnknown1CC;		   // +0x1cc
 	int mUnknown1D0;		   // +0x1d0
-	int mUnknown1D8;		   // +0x1d8: the head of a list (made by 0x43f0d0) whose size is at 0x1dc
-	int mUnknown1DC;		   // +0x1dc
+	std::list<GunTurn> mTurns; // +0x1d4: the turns asked for and not yet made (SetAngle adds one)
 };
 
 } // namespace Sexy

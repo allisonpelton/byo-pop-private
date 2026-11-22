@@ -19,8 +19,23 @@ import idplay                                   # noqa: E402
 
 SHOT_DELAY = int(os.environ.get('LOOKS_SHOT_DELAY', '0'))       # the update after the original's at which the port's shot is taken
 INPUT_DELAY = int(os.environ.get('LOOKS_INPUT_DELAY', '1'))     # the update after the original's at which the port's inputs go in
+ACCEL = os.environ.get('LOOKS_ACCEL', 'off')       # Hardware Acceleration on both sides: off (the 2D mode, the default of a plain run) or on (3D, in the sandbox with the host's GPU)
+PREFIX = ''                                     # put before the update in a shot's name (--prefix), to keep scenarios' shots apart in one run
 RUN = 'hhlooks'                                 # origrun's run for the sandbox copy
 LOOKS_DIR = os.path.join(idplay.ROOT, 'build', 'logs', 'looks')
+
+
+def shot_name(scenario, count):
+    """u<update>, or the scenario's own name for the shot (NAMES: {update: name})."""
+    return getattr(scenario, 'NAMES', {}).get(count, PREFIX + 'u%d' % count)
+
+
+def seed_profile(scenario, folder):
+    """A scenario's PROFILE (a name in mkprofile.py) is the player's file both sides start from: <folder>/users."""
+    name = getattr(scenario, 'PROFILE', None)
+    if name:
+        import mkprofile
+        mkprofile.make(name, folder)
 
 
 def original_shots(scenario, updates, run_dir):
@@ -36,7 +51,7 @@ def original_shots(scenario, updates, run_dir):
         for command in inputs.get(count, []):
             lines.append('at +%d %s' % (count, command))
         if count in updates:
-            lines.append('at +%d shot u%d' % (count, count))
+            lines.append('at +%d shot %s' % (count, shot_name(scenario, count)))
     lines.append('quit')
     script = os.path.join(run_dir, 'original.txt')
     open(script, 'w').write('\n'.join(lines) + '\n')
@@ -50,6 +65,7 @@ def run_original(name, scenario, updates, run_dir):
     shutil.rmtree(run_root, ignore_errors=True)
     shutil.copytree(os.path.dirname(idplay.ORIGINAL_EXE), os.path.join(run_root, 'game'))
     shutil.rmtree(os.path.join(run_root, 'game', 'users'), ignore_errors=True)
+    seed_profile(scenario, os.path.join(run_root, 'game'))
     shots = os.path.join(run_root, 'shots')
     # the sandbox's registry starts empty, and the game's default is full screen, which it cannot make there: windowed, as the
     # host runs have it (WORKING_NOTES.md, "Phase one's runs")
@@ -60,6 +76,8 @@ def run_original(name, scenario, updates, run_dir):
                '--sandbox', '--reg', reg, '--reg-map', 'popcap', '--cursor', 'scripted', '--counter', idplay.COUNTER,
                '--patches', idplay.patches_file(run_dir, scenario), '--seed', str(getattr(scenario, 'SEED', 1)),
                '--timeout', str(900 + updates[-1] // 20)]
+    if ACCEL == 'on':           # the sandbox's own software display is the 2D mode, so `off` needs nothing
+        command += ['--3d', 'on', '--3d-key', r'SOFTWARE\PopCap\HammerHeads', '--sandbox-vgpu']
     log = os.path.join(run_dir, 'original.log')
     with open(log, 'w') as out:
         status = subprocess.call(command, stdout=out, stderr=subprocess.STDOUT, cwd=idplay.ROOT)
@@ -81,12 +99,12 @@ def run_port(name, scenario, updates, run_dir):
     # the original waited at its loading screen until the counter was `mark` (the loading screen's own particles draw from the
     # generator the debris uses later, so the port waits as long and its draws come in the same order)
     mark = int(open(os.path.join(run_dir, 'mark.txt')).read()) if os.path.exists(os.path.join(run_dir, 'mark.txt')) else 0
-    lines = []
+    lines = [(mark + 1, '3d %s' % ACCEL)]
     for count, _, port_command in scenario.INPUTS:
         if port_command and count <= updates[-1]:
             lines.append((count + INPUT_DELAY + mark, port_command))
     for count in updates:
-        lines.append((count + SHOT_DELAY + mark, 'screenshot %s' % os.path.join(target, 'u%d.png' % count).replace('\\', '/')))
+        lines.append((count + SHOT_DELAY + mark, 'screenshot %s' % os.path.join(target, shot_name(scenario, count) + '.png').replace('\\', '/')))
     lines.sort(key=lambda item: item[0])
     lines.append((updates[-1] + 20 + mark, 'quit'))
     script = os.path.join(run_dir, 'port.txt')
@@ -94,6 +112,7 @@ def run_port(name, scenario, updates, run_dir):
     user_dir = os.path.join(run_dir, 'portuser')
     shutil.rmtree(user_dir, ignore_errors=True)
     os.makedirs(user_dir)
+    seed_profile(scenario, user_dir)
     command = [idplay.RUNDESK, idplay.PORT_EXE, '-fast', '-drawevery', '-renderscale=1', '-seed=%s' % getattr(scenario, 'SEED', 1),
                '-userdir=' + user_dir, '-script=' + script]
     with open(os.path.join(run_dir, 'port.log'), 'w') as out:
@@ -108,13 +127,17 @@ def main():
     parser.add_argument('last', type=int)
     parser.add_argument('step', type=int)
     parser.add_argument('--run')
+    parser.add_argument('--shots', action='store_true', help="take the scenario's own SHOTS list (first, last and step are then ignored)")
+    parser.add_argument('--prefix', default='', help="a shot's name is this before u<update>")
     parser.add_argument('--only', choices=['original', 'port', 'diff'])
     arguments = parser.parse_args()
+    global PREFIX
+    PREFIX = arguments.prefix
     scenario = idplay.load_scenario(arguments.scenario)
     name = arguments.run or idplay.scenario_name(arguments.scenario)
     run_dir = os.path.join(LOOKS_DIR, name)
     os.makedirs(run_dir, exist_ok=True)
-    updates = list(range(arguments.first, arguments.last + 1, arguments.step))
+    updates = list(scenario.SHOTS) if arguments.shots else list(range(arguments.first, arguments.last + 1, arguments.step))
     if arguments.only in (None, 'original'):
         run_original(name, scenario, updates, run_dir)
     if arguments.only in (None, 'port'):
