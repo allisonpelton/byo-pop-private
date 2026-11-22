@@ -1,8 +1,10 @@
 // Classic's level bar, the level change, the move search, the hint and the end of the game (bejeweled3, docs/NOTES.md,
 // "Levels, hints and the end of the game"). Addresses are of the exe.
 #include "Board.h"
+#include "EndLevelDialog.h"
 
 #include "Bej3App.h"
+#include "Profile.h"
 #include "X86Math.h"
 
 #include <SDL.h>
@@ -349,11 +351,21 @@ void Board::SubmitScore(int theScore)
 	size_t aAt = 0;
 	while (aAt < mHighScores.size() && mHighScores[aAt] >= theScore)
 		aAt++;
-	if (aAt >= 10)
+	if (aAt >= 10) {
+		mLastScoreRank = -1;
 		return;
+	}
+	std::string aName;
+	if (gApp->mProfile != nullptr)
+		aName = WStringToString(gApp->mProfile->mName);
 	mHighScores.insert(mHighScores.begin() + aAt, theScore);
-	if (mHighScores.size() > 10)
+	mHighScoreNames.resize(mHighScores.size() - 1);
+	mHighScoreNames.insert(mHighScoreNames.begin() + aAt, aName);
+	if (mHighScores.size() > 10) {
 		mHighScores.resize(10);
+		mHighScoreNames.resize(10);
+	}
+	mLastScoreRank = (int)aAt;
 }
 
 // 0x73b2d0 (Classic's slot 161, run when the exe finds no move) with 0x7602c0 (bejeweled3): the end screen's wait is counted down
@@ -377,8 +389,8 @@ void Board::NoMoreMoves(bool theAnnounce)
 }
 
 // 0x767e20 (bejeweled3): while the game is over the counter goes up each update; at 400 the end screen is asked for (slot 233,
-// 0x73b100): it comes when the wait has run out. port: the dialog (id 0x26, ClassicEndLevelDialog) is not made, only noted; app
-// +0x39c is 0 and the curve at +0x2f18 is not running
+// 0x73b100): it comes when the wait has run out and no other dialog is up (the exe's check of its dialog list, +0xe7 of the app).
+// port: app +0x39c is 0 and the curve at +0x2f18 is not running
 void Board::UpdateGameOver()
 {
 	if (mGameOverTicks <= 0)
@@ -386,8 +398,12 @@ void Board::UpdateGameOver()
 	mGameOverTicks++;
 	if (mGameOverTicks >= 400) {
 		mEndDialogWait--;
-		if (mEndDialogWait <= 0)
+		if (mEndDialogWait <= 0 && !mEndScreenShown && gApp->GetDialogCount() == 0) {
 			mEndScreenShown = true;
+			ClassicEndLevelDialog* aDialog = new ClassicEndLevelDialog(this);
+			gApp->AddDialog(ClassicEndLevelDialog::DIALOG_ID, aDialog);
+			aDialog->Move(0, 0);
+		}
 	}
 }
 

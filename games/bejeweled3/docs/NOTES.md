@@ -682,7 +682,7 @@ No move: the exe, with the board at rest, no tutorial box, +0xd1c 0 and no chang
 when it finds none, runs slot 161 (Classic 0x73b2d0): the end screen's wait (+0x307c) goes down and, below 1, is set to 0x113 and the score is
 handed to the leaderboard (`SubmitScore`, 0x6728b0: in front of the first lower score, ten kept); then 0x7602c0 sets the game-over flag
 (+0xd8c) and the hold counter (+0xd1c) to 1. The counter goes up each update; at 400 the end screen's wait counts down from the 0x113 (slot
-233, 0x73b100), so the end dialog (id 0x26) comes 674 updates after the game over (`mEndScreenShown`, the dialog is not made). Left out
+233, 0x73b100), so the end dialog (id 0x26) comes 674 updates after the game over (`mEndScreenShown`; `ClassicEndLevelDialog` is made then, see "The end-of-game dialog"). Left out
 (`// port:`): the announcement, sounds, music events ("Break", "Play"), the player's save, the leaderboard's flush. The file users\hiscores.dat
 (0x671b80) is not written and its format was not read (Oddity); the top list is kept in the board only.
 
@@ -784,7 +784,7 @@ bit 0x200 (0x757df0, 0x750320, 0x74f130) were not found written in Classic; the 
 0x748480 (PIEFFECT_HINTFLASH in the +0x12c0 layer), listed with the missing Rand() draws above.
 - The level change. SetBackground(1) now runs when the change starts (the exe's 0x769c36); the exe hides the new picture until the change's last
 event and fades the old one (0x77dde0), and the overlay it draws meanwhile (0x724110) is not made, so the new picture shows at once and the overlay
-is not drawn. The end-of-game dialog (id 0x26, made by 0x73b100) is not made. The bot game's state gains one field change: "background" is 2 where it
+is not drawn. The end-of-game dialog (id 0x26) is made (see "The end-of-game dialog"). The bot game's state gains one field change: "background" is 2 where it
 was 0 (the level went up twice); nothing else changes.
 
 Oddities (not translated, each with a `port:` note in the source):
@@ -833,3 +833,20 @@ Oddities (not translated, each with a `port:` note in the source):
   the hover curves of the buttons (+0x150, +0x158).
 - The level change's overlay (HyperspaceFallback, 0x724110) and the game over screen (the end dialog, 0x26) are not drawn: only their state is translated.
 - The Menu button (above), the click sound (0x76aaf0) of the buttons, and 0x742db0 (run when +0x1188 comes to 0).
+
+## The end-of-game dialog (src/EndLevelDialog.cpp, ClassicEndLevelDialog 0x7842b0 over EndLevelDialog 0x6a7c80, vtable 0x86c01c)
+
+Made by `Board::UpdateGameOver` (slot 233, 0x73b100) once the wait has run out and the app has no other dialog; the board's counters,
+score (+0xd24), level index and the rank of the score just submitted are copied into it (+0x2c8, +0x2c4, +0x378, +0x380). It is a modal
+Bej3Dialog, id 0x26, 1600 by 1200 (1200ths) at (0, 0), `mMouseDownAllowed` false, bottom inset 0x3c; its Update (0x784340) runs only while
+no dialog 0x27 is up, and steps the score's count-up curve (+0x250). Buttons (Classic lifts all by 0x28): MAIN MENU (id 0, string 0xe3, the
+small button picture, 0x118 wide, right of the middle) closes the dialog and runs the board's slot 232 (`LeaveToMenu`); PLAY AGAIN (id 2,
+string 0xe5, the large picture, 0x168 wide, in the middle) closes it and runs slots 85 and 135 (`ResetGame`, `NewGame`); BADGES (id 3,
+string 0xe4, left) opens the badges dialog 0x2a, which is not made, so it does nothing. Draw (0x6a87a0): the dialog picture, the stamp,
+"Final Score:" (string 0xec) and the counting score in the huge font with layer colours, then 0x7839f0: Statistics (0x6a6470, 0x6a60d0,
+0x783a80, 0x783f00: level, best move, longest cascade, time as "%d:%02d"), Top Scores (0x6a7840, 0x6a68b0: five rows, the new score's row white
+with a glow of alpha 215 + 40 sin(0.07 n)) and the three special gem pictures with "x %d" (0x6a70f0). Left out: NEW QUEST (id 1, Quest
+only), the rank bar widget (0x682f90), the music queue of PLAY AGAIN, the font's character filter on names (0x712fa0). Counters 0
+(seconds), 17 to 19 (special gems made) and 24, 25 (longest cascade, best move) are written by code that is not translated, so they show 0.
+The leaderboard (`mHighScores`, `mHighScoreNames`, `mLastScoreRank`) is the port's own list of ten; the name is the player's.
+Shown by script: `set points`, `board` with no move, a wait of about 1000 updates, then `click 401 531` (PLAY AGAIN) or `click 563 531`.

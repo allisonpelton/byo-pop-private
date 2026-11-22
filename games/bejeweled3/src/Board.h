@@ -233,7 +233,7 @@ public:
 	bool mGameOver = false;          // +0xd8c: no move is left (0x7602c0)
 	int mGameOverTicks = 0;          // +0xd1c: 0 while the game is played, 1 at the game's end and one more each update (the end screen comes at 400, and the leaderboard's wait after that)
 	int mEndDialogWait = 0;          // +0x307c: ClassicBoard's own counter (its leaderboard listener's): the end screen waits for it to run out (0x73b2d0, 0x73b100)
-	bool mEndScreenShown = false;    // port: the end-of-game dialog (id 0x26, ClassicEndLevelDialog, made by 0x73b100) has been asked for; the dialog itself is not made
+	bool mEndScreenShown = false;    // the end-of-game dialog (id 0x26, ClassicEndLevelDialog, made by 0x73b100) has been made
 	int mHintTimer = 0;              // +0x26a4: updates the board has stood at rest with nothing to do; at 1500 the hint is given
 	int mHintFlash = 0;              // +0x26a0: counts down from 250 after a hint was asked for (the hint button's glow: drawn only)
 	bool mAutoHints = true;          // +0x1370: 1 from the constructor (0x74b49a): a hint comes by itself after the wait
@@ -397,6 +397,8 @@ public:
 	void UpdateGameOver();
 	// port: the top scores of the mode (the exe's LocalLeaderboard, 0x6728b0), in the order of the leaderboard, kept for the game
 	std::vector<int> mHighScores;
+	std::vector<std::string> mHighScoreNames;   // port: the name (UTF-8) each score was made under, parallel to mHighScores
+	int mLastScoreRank = -1;                    // port: where the last SubmitScore put its score (index), -1 when it got no place (the exe's end dialog +0x380)
 	void SubmitScore(int theScore);
 	// port: test only: the bot's move when the board is at rest (the exe has no bot; this is the move search's first move)
 	void UpdateBot();
