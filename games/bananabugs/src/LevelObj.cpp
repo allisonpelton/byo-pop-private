@@ -11,6 +11,7 @@
 #include "HighScore.h"
 #include "DDImage.h"
 #include "MenuButton.h"
+#include "GameWidget.h"
 #include "ObjString.h"
 #include "Player.h"
 #include "Res.h"
@@ -807,11 +808,8 @@ void LevelObj::ShowBugScore(int theScore, float theX, float theY)
 // 0x43ac00: the banana figure shows the player's bananas, with the money sound when asked
 void LevelObj::ShowBananas(bool thePlaySound)
 {
-	// port: the stand-in HUD (BuildHud) makes no figure
-	if (mBananasText != nullptr) {
-		mBananasText->SetText(FormatScore((unsigned int)Player::sCurrent->mBananas));
-		mBananasText->StartTrack(0);
-	}
+	mBananasText->SetText(FormatScore((unsigned int)Player::sCurrent->mBananas));
+	mBananasText->StartTrack(0);
 	if (thePlaySound)
 		sApp->mSoundQueue->Request(SOUND_MONEY, 0, false);
 }
@@ -822,11 +820,8 @@ void LevelObj::ShowLives(int theLives)
 	LevelObj* aLevel = static_cast<LevelObj*>(sLevel);
 	char aText[16];
 	sprintf(aText, "%d", theLives);
-	// port: the stand-in HUD (BuildHud) makes no figure
-	if (aLevel->mScoreText != nullptr) {
-		aLevel->mScoreText->SetText(aText);
-		aLevel->mScoreText->StartTrack(0);
-	}
+	aLevel->mScoreText->SetText(aText);
+	aLevel->mScoreText->StartTrack(0);
 }
 
 // 0x439f00
@@ -1003,59 +998,748 @@ RopeObj* RopeObj::Current()
 	return static_cast<LevelObj*>(sLevel)->mRope;
 }
 
-// The stand-ins ----------------------------------------------------------------------------------------------------
+// The HUD, the "you win" picture and the morph tables -----------------------------------------------------------------
 
-// port: the stand-in HUD has no banana panel or figures; the original (0x43e6d0) makes the panel "images/panel_bananas", the
-// banana and lives figures (each with a track that pops it when the figure changes) and their keys
+static const float PANEL_X_WIDE = 664.0f;          // the banana panel, in the design space from its centre (further in on a wide screen)
+static const float PANEL_X = 710.0f;
+static const int PANEL_Y = -510;
+static const int PANEL_Z = 190;
+static const float PANEL_MOUSE_SIZE = 32.0f;
+static const int BANANAS_TEXT_X = 24;              // the figures, in the panel
+static const int BANANAS_TEXT_Y = -32;
+static const int BANANAS_TEXT_Z = 1;
+static const int LIVES_TEXT_X = 24;
+static const int LIVES_TEXT_Y = 48;
+static const int LIVES_TEXT_Z = 1;
+static const int POP_UP_FRAMES = 20;               // a figure that changes grows for 20 frames, shrinks for 20, then holds for 10
+static const int POP_DOWN_FRAMES = 20;
+static const int POP_HOLD_FRAMES = 10;
+static const float POP_SCALE_UP = 0.2f;
+static const int YOU_WIN_Z = 210;
+static const int MORPH_AREA_COLUMNS = 40;          // the area a morph picture is centred in
+static const int MORPH_AREA_ROWS = 32;
+static const int MORPH_USED_LIMIT = 999;           // a cell used this often is never picked
+
+// 0x43e6d0 (the same keys for each of the two figures): the figure pops up, a fifth bigger, and settles back
+static void BuildFigureTrack(ObjString* theText)
+{
+	AnimKey* aGrowKey = new AnimKey();
+	aGrowKey->SetDuration(POP_UP_FRAMES);
+	aGrowKey->AddValue(STATE_SCALE_X, 0.0f, MOD_TOWARD_NEXT);
+	aGrowKey->AddValue(STATE_SCALE_Y, 0.0f, MOD_TOWARD_NEXT);
+
+	AnimKey* aShrinkKey = new AnimKey();
+	aShrinkKey->SetDuration(POP_DOWN_FRAMES);
+	aShrinkKey->AddValue(STATE_SCALE_X, POP_SCALE_UP, MOD_TOWARD_NEXT);
+	aShrinkKey->AddValue(STATE_SCALE_Y, POP_SCALE_UP, MOD_TOWARD_NEXT);
+
+	AnimKey* aHoldKey = new AnimKey();
+	aHoldKey->SetDuration(POP_HOLD_FRAMES);
+	aHoldKey->AddValue(STATE_SCALE_X, 0.0f, MOD_HOLD);
+	aHoldKey->AddValue(STATE_SCALE_Y, 0.0f, MOD_HOLD);
+
+	AnimTrack* aTrack = new AnimTrack();
+	aTrack->AddKey(aGrowKey, nullptr);
+	aTrack->AddKey(aShrinkKey, nullptr);
+	aTrack->AddKey(aHoldKey, aHoldKey);  // the last key is its own next, so the track holds there
+	theText->AddTrack(aTrack, nullptr);
+}
+
+// 0x43e6d0: the panel at the top right, which the level's parent holds, and in it the figures for the bananas (green, "000000"
+// to size it, then the player's count) and the lives (red, "000"). Each has a track that pops it when it changes
 void LevelObj::BuildHud()
 {
 	mBananaPanel = new ObjBase();
-	mBananaPanel->SetParent(this, nullptr);
-	mBananasText = nullptr;
-	mScoreText = nullptr;
+	mBananaPanel->SetParent(mParent, nullptr);
+	mBananaPanel->mAnim = Anim::Get("images/panel_bananas", ANIM_SCALE_SMOOTH, false, 0, 0, 1, false);
+	mBananaPanel->SetState(STATE_X, sApp->mWidescreen ? PANEL_X_WIDE : PANEL_X);
+	mBananaPanel->SetStateInt(STATE_Y, PANEL_Y);
+	mBananaPanel->SetStateInt(STATE_Z, PANEL_Z);
+	mBananaPanel->SetStateInt(STATE_ALPHA, 1);
+	mBananaPanel->SetMouseable(PANEL_MOUSE_SIZE, PANEL_MOUSE_SIZE);
+	Activate(mBananaPanel, false);
+
+	char aText[16];
+	mBananasText = new ObjString();
+	mBananasText->SetParent(mBananaPanel, nullptr);
+	mBananasText->SetFont(sApp->mFont);
+	sprintf(aText, "000000");
+	mBananasText->Create(aText, false, 0);
+	sprintf(aText, "%d", Player::sCurrent->mBananas);
+	mBananasText->SetText(aText);
+	mBananasText->SetStateInt(STATE_X, BANANAS_TEXT_X);
+	mBananasText->SetStateInt(STATE_Y, BANANAS_TEXT_Y);
+	mBananasText->SetStateInt(STATE_Z, BANANAS_TEXT_Z);
+	mBananasText->SetState(STATE_RED, 0.2f);
+	mBananasText->SetState(STATE_GREEN, 1.0f);
+	mBananasText->SetState(STATE_BLUE, 0.1f);
+	mBananasText->SetStateInt(STATE_ALPHA, 1);
+	mBananasText->SetState(STATE_SCALE_X, 0.9f);
+	mBananasText->SetState(STATE_SCALE_Y, 0.8f);
+	mBananasText->Activate(mBananasText, true);
+	BuildFigureTrack(mBananasText);
+
+	mScoreText = new ObjString();
+	mScoreText->SetParent(mBananaPanel, nullptr);
+	mScoreText->SetFont(sApp->mFont);
+	sprintf(aText, "000");
+	mScoreText->Create(aText, false, 0);
+	sprintf(aText, "%d", Player::sCurrent->mLives);
+	mScoreText->SetText(aText);
+	mScoreText->SetStateInt(STATE_X, LIVES_TEXT_X);
+	mScoreText->SetStateInt(STATE_Y, LIVES_TEXT_Y);
+	mScoreText->SetStateInt(STATE_Z, LIVES_TEXT_Z);
+	mScoreText->SetStateInt(STATE_RED, 1);
+	mScoreText->SetState(STATE_GREEN, 0.2f);
+	mScoreText->SetState(STATE_BLUE, 0.1f);
+	mScoreText->SetStateInt(STATE_ALPHA, 1);
+	mScoreText->SetState(STATE_SCALE_X, 0.9f);
+	mScoreText->SetState(STATE_SCALE_Y, 0.9f);
+	mScoreText->Activate(mScoreText, true);
+	BuildFigureTrack(mScoreText);
 }
 
-// port: the stand-in has no "you win" picture beyond an empty object with one track (0x43edd0 builds its keys)
+// 0x43edd0: "you win", from nothing: a 60-frame key that grows it with a wobble and turns it three half turns, then a swell
+// to 1.3, a rest, a second swell to 1.2, a rest, a third and, in a last key of no length, a sudden shrink. Something else
+// starts the track
 void LevelObj::BuildYouWin()
 {
 	mYouWin = new ObjBase();
+	mYouWin->mAnim = Anim::Get("images/youwin", ANIM_SCALE_SMOOTH, false, 0x3cb, 0x5f, 2, false);
 	mYouWin->SetParent(this, nullptr);
-	AnimKey* aKey = new AnimKey();
+	mYouWin->SetStateInt(STATE_Z, YOU_WIN_Z);
+	mYouWin->SetStateInt(STATE_SCALE_X, 0);
+	mYouWin->SetStateInt(STATE_SCALE_Y, 0);
+
+	AnimKey* aGrowKey = new AnimKey();
+	aGrowKey->SetDuration(60);
+	aGrowKey->AddValue(STATE_ALPHA, 0.0f, MOD_TOWARD_NEXT);
+	aGrowKey->AddValue(STATE_SCALE_X, 0.3f, MOD_TOWARD_NEXT);
+	aGrowKey->AddModifier(STATE_SCALE_X, false, 0.0f, MOD_SINE, 1.0f, 1.3f, 0.0f, nullptr);
+	aGrowKey->AddValue(STATE_SCALE_Y, 0.3f, MOD_TOWARD_NEXT);
+	aGrowKey->AddModifier(STATE_SCALE_Y, false, 0.0f, MOD_SINE, 1.0f, 1.3f, 0.0f, nullptr);
+	aGrowKey->AddValue(STATE_ROTATION, 9.42478f, MOD_TOWARD_NEXT);
+	aGrowKey->mEasing = EASE_IN_CUBE;
+
+	AnimKey* aSwellKey = new AnimKey();
+	aSwellKey->SetDuration(30);
+	aSwellKey->AddValue(STATE_ALPHA, 1.0f, MOD_TOWARD_NEXT);
+	aSwellKey->AddValue(STATE_SCALE_X, 1.3f, MOD_TOWARD_NEXT);
+	aSwellKey->AddValue(STATE_SCALE_Y, 1.3f, MOD_TOWARD_NEXT);
+	aSwellKey->AddValue(STATE_ROTATION, 0.0f, MOD_HOLD);
+
+	AnimKey* aRestKey = new AnimKey();
+	aRestKey->SetDuration(20);
+	aRestKey->AddValue(STATE_ALPHA, 1.0f, MOD_TOWARD_NEXT);
+	aRestKey->AddValue(STATE_SCALE_X, 1.0f, MOD_TOWARD_NEXT);
+	aRestKey->AddValue(STATE_SCALE_Y, 1.0f, MOD_TOWARD_NEXT);
+
+	AnimKey* aSecondSwellKey = new AnimKey();
+	aSecondSwellKey->SetDuration(30);
+	aSecondSwellKey->AddValue(STATE_ALPHA, 1.0f, MOD_TOWARD_NEXT);
+	aSecondSwellKey->AddValue(STATE_SCALE_X, 1.2f, MOD_TOWARD_NEXT);
+	aSecondSwellKey->AddValue(STATE_SCALE_Y, 1.2f, MOD_TOWARD_NEXT);
+
+	AnimKey* aSecondRestKey = new AnimKey();
+	aSecondRestKey->SetDuration(20);
+	aSecondRestKey->AddValue(STATE_ALPHA, 1.0f, MOD_TOWARD_NEXT);
+	aSecondRestKey->AddValue(STATE_SCALE_X, 1.0f, MOD_TOWARD_NEXT);
+	aSecondRestKey->AddValue(STATE_SCALE_Y, 1.0f, MOD_TOWARD_NEXT);
+
+	AnimKey* aThirdSwellKey = new AnimKey();
+	aThirdSwellKey->SetDuration(25);
+	aThirdSwellKey->AddValue(STATE_ALPHA, 1.0f, MOD_TOWARD_NEXT);
+	aThirdSwellKey->AddValue(STATE_SCALE_X, 1.2f, MOD_TOWARD_NEXT);
+	aThirdSwellKey->AddValue(STATE_SCALE_Y, 1.2f, MOD_TOWARD_NEXT);
+
+	AnimKey* aShrinkKey = new AnimKey();
+	aShrinkKey->SetDuration(0);
+	aShrinkKey->AddValue(STATE_ALPHA, 0.0f, MOD_TOWARD_NEXT);
+	aShrinkKey->AddValue(STATE_SCALE_X, 0.1f, MOD_TOWARD_NEXT);
+	aShrinkKey->AddValue(STATE_SCALE_Y, 0.1f, MOD_TOWARD_NEXT);
+
 	AnimTrack* aTrack = new AnimTrack();
-	aTrack->AddKey(aKey, aKey);
+	aTrack->AddKey(aGrowKey, nullptr);
+	aTrack->AddKey(aSwellKey, nullptr);
+	aTrack->AddKey(aRestKey, nullptr);
+	aTrack->AddKey(aSecondSwellKey, nullptr);
+	aTrack->AddKey(aSecondRestKey, nullptr);
+	aTrack->AddKey(aThirdSwellKey, nullptr);
+	aTrack->AddKey(aShrinkKey, nullptr);
 	mYouWin->AddTrack(aTrack, nullptr);
 }
 
-// port: 0x43d2b0 builds the two morph tables from the pictures; the stand-in leaves them unused
+// 0x43d2b0: each of the two pictures (if it has its pixels and is smaller than 29 in both ways) becomes a table of cells,
+// one for each pixel: where it lies in a 40 by 32 area with the picture in the middle, its colour as shares of 255 and
+// the mean of the three as its brightness. The original asks the image for its pixels again at every pixel; the same
+// pointer comes back each time
 void LevelObj::BuildMorphTable()
 {
+	memset(mMorph, 0, sizeof(mMorph));
 	for (int anImage = 0; anImage < LEVEL_MORPH_IMAGES; anImage++) {
-		mMorphWidth[anImage] = 0;
-		mMorphHeight[anImage] = 0;
-		for (int aRow = 0; aRow < LEVEL_MORPH_SIZE; aRow++) {
-			for (int aColumn = 0; aColumn < LEVEL_MORPH_SIZE; aColumn++)
-				mMorph[anImage][aColumn][aRow] = MorphCell();
+		DDImage* aPicture = (anImage == 0) ? mMorphImage : mMorphStatsImage;
+		if (aPicture == nullptr)
+			continue;
+		const ulong* aPixels = aPicture->GetBits();
+		if (aPixels == nullptr || aPicture->mHeight >= LEVEL_MORPH_SIZE || aPicture->mWidth >= LEVEL_MORPH_SIZE)
+			continue;
+		mMorphWidth[anImage] = aPicture->mWidth;
+		mMorphHeight[anImage] = aPicture->mHeight;
+		for (int aRow = 0; aRow < aPicture->mHeight; aRow++) {
+			for (int aColumn = 0; aColumn < aPicture->mWidth; aColumn++) {
+				unsigned int aPixel = (unsigned int)aPixels[aRow * aPicture->mWidth + aColumn];
+				int aRed = (int)((aPixel >> 16) & 0xff);
+				int aGreen = (int)((aPixel >> 8) & 0xff);
+				int aBlue = (int)(aPixel & 0xff);
+				MorphCell& aCell = mMorph[anImage][aColumn][aRow];
+				aCell.mUsed = 0;
+				aCell.mX = (float)((MORPH_AREA_COLUMNS - mMorphWidth[anImage]) / 2) + (float)aColumn;
+				aCell.mY = (float)((MORPH_AREA_ROWS - mMorphHeight[anImage]) / 2) + (float)aRow;
+				aCell.mRed = (float)((double)aRed / 255.0);
+				aCell.mGreen = (float)((double)aGreen / 255.0);
+				aCell.mBlue = (float)((double)aBlue / 255.0);
+				aCell.mBrightness = (float)(((double)aCell.mGreen + (double)aCell.mRed + (double)aCell.mBlue) / 3.0);
+			}
 		}
 	}
 }
 
-// port: 0x43cb00 (with the budgets of 0x43c900) picks the bug kinds the level will have; the stand-in picks none
+// 0x43cf20: from a start picked at random, in the columns and in the rows, every cell that is not black and has the wanted
+// brightness is looked at and the one used the fewest times is kept (the first of equals): it is counted and given back.
+// The wanted brightness is up to 0.3 or from 0.7 (theMiddleTones false) or between them. The original goes by four
+// columns at a time; the order is the same as one by one
+MorphCell* LevelObj::PickMorphCell(bool theMiddleTones, int theImage)
+{
+	LevelObj* aLevel = static_cast<LevelObj*>(sLevel);
+	int aWidth = aLevel->mMorphWidth[theImage];
+	int aHeight = aLevel->mMorphHeight[theImage];
+	// port (crash): the original divides by the picture's size, which is 0 when it was not loaded or was too big
+	if (aWidth == 0 || aHeight == 0)
+		return nullptr;
+	int aLeastUsed = MORPH_USED_LIMIT;
+	MorphCell* aPicked = nullptr;
+	unsigned int aColumnStart = GameRandomNext() % (unsigned int)aWidth;
+	unsigned int aRowStart = GameRandomNext() % (unsigned int)aHeight;
+	for (int aPass = 0; aPass < aHeight; aPass++) {
+		int aRow = ((int)aRowStart + aPass) % aHeight;
+		for (int aStep = 0; aStep < aWidth; aStep++) {
+			int aColumn = ((int)aColumnStart + aStep) % aWidth;
+			MorphCell* aCell = &aLevel->mMorph[theImage][aColumn][aRow];
+			float aBrightness = aCell->mBrightness;
+			if (0.0f < aBrightness) {
+				bool aAboveLow = 0.3f < aBrightness;
+				bool aWanted;
+				if (!theMiddleTones)
+					aWanted = !aAboveLow || 0.7 <= (double)aBrightness;
+				else
+					aWanted = aAboveLow && (double)aBrightness < 0.7;
+				if (aWanted && aCell->mUsed < aLeastUsed) {
+					aLeastUsed = aCell->mUsed;
+					aPicked = aCell;
+				}
+			}
+		}
+	}
+	if (aPicked != nullptr)
+		aPicked->mUsed = aPicked->mUsed + 1;
+	return aPicked;
+}
+
+// 0x43a4f0 (the focus was lost: PauseWin::PauseForFocusLoss calls it at 0x455981 when a level is on): the level is updated
+// once more; an open in-level menu is deleted, its button shown as at the start again, the player brought back and the
+// scene updated at the widget's frame
+void LevelObj::CloseMenuForPause()
+{
+	LevelObj* aLevel = static_cast<LevelObj*>(sLevel);
+	aLevel->Update();
+	if (aLevel->mMenu != nullptr) {
+		aLevel->mMenu->Delete();
+		aLevel->mMenu = nullptr;
+		if (aLevel->mMenuButton != nullptr)
+			aLevel->mMenuButton->Reset();
+		aLevel->Activate(Player::sCurrent, false);
+		ObjBase::UpdateAll(sApp->mGameWidget->mFrame);
+	}
+}
+
+// The bugs -------------------------------------------------------------------------------------------------------------
+
+static const int EDGE_ATTEMPTS = 4;                // the passes FindEdgeCell makes over the side it chose
+static const int OPEN_BORDER = 1;                  // FindOpenCell leaves the outermost place of each side alone
+static const int PLACE_GROUP_MAX = 34;             // the most bugs the original's list of a column holds
+static const int ANT_WAIT_FRAMES = 240;            // the figures Setup is given (what each means is in the bug kinds' code)
+static const int SEGMENT_WAIT_FRAMES = 60;
+static const int SEGMENT_WAIT_FRAMES_SHORT = 28;   // a caterpillar's body
+static const int ANT_COLUMN_SIZE = 6;
+static const int CATERPILLAR_COLUMN_SIZE = 18;
+static const int CENTIPEDE_COLUMN_SIZE = 16;
+static const int SEGMENT_ROLE_BODY = 1;            // Setup's role for a bug of a column that is not the first
+static const int SEGMENT_ROLE_LAST = 2;            // ... and for a centipede's last
+
+// 0x43c900: how much weight of bug kinds the level takes for the kinds placed in the open (theOpenBudget, the original's
+// ESI) and for the others (theOtherBudget, EDI), by the levels the player has finished. The first twenty levels have a
+// fixed table; from the 81st on the open kinds' share is random, and the other kinds get the upgrade's value (the
+// player's tenth upgrade, 0 to 3) and a little at random
+void LevelObj::GetKindBudgets(int* theOpenBudget, int* theOtherBudget)
+{
+	Player* aPlayer = Player::sCurrent;
+	int aProgress = aPlayer->mSavedProgress;
+	if (aProgress == 1) {
+		*theOtherBudget = 0;
+		*theOpenBudget = 1;
+		return;
+	}
+	if (aProgress == 2) {
+		*theOtherBudget = 0;
+		*theOpenBudget = 2;
+		return;
+	}
+	if (aProgress == 3 || aProgress == 4) {
+		*theOtherBudget = 4;
+		*theOpenBudget = 2;
+		return;
+	}
+	if (aProgress == 5) {
+		*theOtherBudget = 5;
+		*theOpenBudget = 2;
+		return;
+	}
+	if (aProgress > 5 && aProgress < 10) {
+		*theOtherBudget = 6;
+		*theOpenBudget = 3;
+		return;
+	}
+	if (aProgress > 9 && aProgress < 15) {
+		*theOtherBudget = 6;
+		*theOpenBudget = 5;
+		return;
+	}
+	if (aProgress == 19) {
+		*theOtherBudget = 8;
+		*theOpenBudget = 3;
+		return;
+	}
+	if (aProgress > 14 && aProgress < 20) {
+		*theOtherBudget = 8;
+		*theOpenBudget = 4;
+		return;
+	}
+	if (aProgress >= 20) {
+		if (aProgress < 31) {
+			*theOtherBudget = 8;
+			*theOpenBudget = 5;
+			return;
+		}
+		if (aProgress < 41) {
+			*theOtherBudget = 8;
+			*theOpenBudget = 6;
+			return;
+		}
+		if (aProgress < 81) {
+			// (the original checks 51, 61 and 81 in turn, with the same figures)
+			*theOtherBudget = 9;
+			*theOpenBudget = 6;
+			return;
+		}
+		if (aProgress < 201) {
+			*theOpenBudget = (int)(GameRandomNext() % 6) + 4;
+			*theOtherBudget = aPlayer->mTenthUpgradeValue + 6 + (int)(GameRandomNext() % 5);
+			return;
+		}
+		if (aProgress < 301) {
+			*theOpenBudget = (int)(GameRandomNext() % 6) + 9;
+			*theOtherBudget = aPlayer->mTenthUpgradeValue + 6 + (int)(GameRandomNext() & 3);
+			return;
+		}
+		if (aProgress < 401) {
+			*theOpenBudget = (int)(GameRandomNext() % 6) + 10;
+			*theOtherBudget = aPlayer->mTenthUpgradeValue + 6 + (int)(GameRandomNext() & 3);
+			return;
+		}
+	}
+	// 401 levels and more, and (as the original's checks fall) 0 or fewer
+	*theOpenBudget = (int)(GameRandomNext() % 6) + 11;
+	*theOtherBudget = aPlayer->mTenthUpgradeValue + 8 + (int)(GameRandomNext() & 1);
+}
+
+// 0x43cb00: the kinds of bug of a level that is not one of the first four: those whose first level has come are sorted
+// into the ones placed in the open and the others, and from each group kinds are drawn at random (twice the budget of
+// draws at most) until their weights add to the budget. A kind that has reached its most is skipped, its draw lost
 void LevelObj::PickBugKinds()
 {
+	int aOpenCandidates[LEVEL_SPAWN_KINDS];
+	int aOtherCandidates[LEVEL_SPAWN_KINDS];
 	InitSpawnTable();
+	int aOpenBudget;
+	int aOtherBudget;
+	GetKindBudgets(&aOpenBudget, &aOtherBudget);
+	int aProgress = Player::sCurrent->mSavedProgress;
+	int aOpenCandidateCount = 0;
+	int aOtherCandidateCount = 0;
+	for (int aKind = 0; aKind < LEVEL_SPAWN_KINDS; aKind++) {
+		if (mSpawn[aKind].mMinLevel <= aProgress) {
+			if (mSpawn[aKind].mClass == SPAWN_IN_OPEN) {
+				aOpenCandidates[aOpenCandidateCount] = aKind;
+				aOpenCandidateCount++;
+			} else {
+				aOtherCandidates[aOtherCandidateCount] = aKind;
+				aOtherCandidateCount++;
+			}
+		}
+	}
 	mOpenKindCount = 0;
 	mOtherKindCount = 0;
+	int aWeight = 0;
+	for (int aDraw = 0; aDraw < aOpenBudget * 2; aDraw++) {
+		if (aWeight >= aOpenBudget)
+			break;
+		int aKind = aOpenCandidates[GameRandomNext() % (unsigned int)aOpenCandidateCount];
+		if (mSpawn[aKind].mCount < mSpawn[aKind].mMax) {
+			mOpenKinds[mOpenKindCount] = aKind;
+			mOpenKindCount++;
+			mSpawn[aKind].mCount++;
+			aWeight += mSpawn[aKind].mWeight;
+		}
+	}
+	aWeight = 0;
+	for (int aDraw = 0; aDraw < aOtherBudget * 2; aDraw++) {
+		if (aWeight >= aOtherBudget)
+			break;
+		int aKind = aOtherCandidates[GameRandomNext() % (unsigned int)aOtherCandidateCount];
+		if (mSpawn[aKind].mCount < mSpawn[aKind].mMax) {
+			mOtherKinds[mOtherKindCount] = aKind;
+			mOtherKindCount++;
+			mSpawn[aKind].mCount++;
+			aWeight += mSpawn[aKind].mWeight;
+		}
+	}
 }
 
-// port: 0x43c600 makes a bug of the kind (a jump table over the eleven bug classes, none translated yet)
+// 0x43c600: a bug of that kind, made but not placed. A column's leader knows how long the column is (an ant's six, a
+// caterpillar's eighteen, a centipede's sixteen); the others stand alone. A kind past the last makes nothing
 void LevelObj::SpawnBug(int theKind)
 {
-	(void)theKind;
+	if ((unsigned int)theKind > (unsigned int)BUG_BEE)
+		return;
+	GridBug* aBug = new GridBug(theKind);
+	int aGroupSize = 0;
+	switch (theKind) {
+	case BUG_ANT:
+		aBug->Setup(0, ANT_WAIT_FRAMES, nullptr, nullptr);
+		aGroupSize = ANT_COLUMN_SIZE;
+		break;
+	case BUG_CENTIPEDE:
+		aBug->Setup(0, SEGMENT_WAIT_FRAMES, aBug, nullptr);
+		aGroupSize = CENTIPEDE_COLUMN_SIZE;
+		aBug->mIsGroupLeader = true;
+		break;
+	case BUG_CATERPILLAR:
+		aBug->Setup(0, SEGMENT_WAIT_FRAMES, aBug, nullptr);
+		aGroupSize = CATERPILLAR_COLUMN_SIZE;
+		aBug->mIsGroupLeader = true;
+		break;
+	default:
+		aBug->Setup(0, 0, nullptr, nullptr);
+		break;
+	}
+	aBug->mGroupSize = aGroupSize;
 }
 
-// port: 0x43b370 puts the bugs made onto the field (with 0x43acc0, 0x43ae10, 0x43b170 and 0x43b2b0)
+// 0x43acc0 (the bug made just before, thePrevious, comes through the caller's EBX): the next bug of a column that starts
+// at theHead, of the leader's kind; theIndex is its place in the column (1 on) and theGroupSize the column's length. An
+// ant stands apart; the body of a caterpillar or centipede follows the one made before it, and a centipede's last bug is
+// told so. A kind that does not come in a column makes nothing
+GridBug* LevelObj::MakeGroupSegment(int theKind, int theIndex, int theGroupSize, GridBug* theHead, GridBug* thePrevious)
+{
+	GridBug* aSegment;
+	switch (theKind) {
+	case BUG_ANT:
+		aSegment = new GridBug(BUG_ANT);
+		aSegment->Setup(0, ANT_WAIT_FRAMES, nullptr, nullptr);
+		return aSegment;
+	case BUG_CATERPILLAR:
+		aSegment = new GridBug(BUG_CATERPILLAR);
+		aSegment->Setup(SEGMENT_ROLE_BODY, SEGMENT_WAIT_FRAMES_SHORT, theHead, thePrevious);
+		break;
+	case BUG_CENTIPEDE: {
+		int aRole = (theGroupSize - 1 <= theIndex) ? SEGMENT_ROLE_LAST : SEGMENT_ROLE_BODY;
+		aSegment = new GridBug(BUG_CENTIPEDE);
+		aSegment->Setup(aRole, SEGMENT_WAIT_FRAMES, theHead, thePrevious);
+		break;
+	}
+	default:
+		return nullptr;
+	}
+	aSegment->mIsGroupLeader = false;
+	return aSegment;
+}
+
+// 0x43c3a0: the bug is added last to the list of the bugs on its place (the places are in the grid)
+void LevelObj::LinkBug(GridBug* theBug)
+{
+	int aColumn = theBug->mColumn;
+	int aRow = theBug->mRow;
+	if (aColumn < 0 || aColumn >= FILL_GRID_COLUMNS || aRow < 0 || aRow >= FILL_GRID_ROWS)
+		return;
+	FillGridCell& aPlace = gFillGrid[aColumn][aRow];
+	if (aPlace.mFirstBug == nullptr) {
+		aPlace.mFirstBug = theBug;
+		theBug->mPrevInCell = nullptr;
+		theBug->mNextInCell = nullptr;
+		aPlace.mLastBug = theBug;
+		return;
+	}
+	aPlace.mLastBug->mNextInCell = theBug;
+	theBug->mPrevInCell = aPlace.mLastBug;
+	theBug->mNextInCell = nullptr;
+	aPlace.mLastBug = theBug;
+}
+
+// 0x43c410: the bug is taken out of the list of the bugs on its place (the place it has now, which the caller keeps the
+// same as when it was linked)
+void LevelObj::UnlinkBug(GridBug* theBug)
+{
+	int aColumn = theBug->mColumn;
+	int aRow = theBug->mRow;
+	if (aColumn < 0 || aColumn >= FILL_GRID_COLUMNS || aRow < 0 || aRow >= FILL_GRID_ROWS)
+		return;
+	FillGridCell& aPlace = gFillGrid[aColumn][aRow];
+	if (aPlace.mFirstBug == theBug)
+		aPlace.mFirstBug = theBug->mNextInCell;
+	if (aPlace.mLastBug == theBug)
+		aPlace.mLastBug = theBug->mPrevInCell;
+	if (theBug->mPrevInCell != nullptr)
+		theBug->mPrevInCell->mNextInCell = theBug->mNextInCell;
+	if (theBug->mNextInCell != nullptr)
+		theBug->mNextInCell->mPrevInCell = theBug->mPrevInCell;
+	theBug->mNextInCell = nullptr;
+	theBug->mPrevInCell = nullptr;
+}
+
+// 0x43b2b0: a place along the walls, from where the random draw starts in the list and on round it, that no placed bug's
+// box meets. false (with the place 0, 0) when every one is taken
+bool LevelObj::FindWallCell(GridBug* theBug, int* theColumn, int* theRow)
+{
+	// port (crash): the original divides by the count of places, which is 0 when the level has no wall
+	if (mWallCellCount == 0) {
+		*theColumn = 0;
+		*theRow = 0;
+		return false;
+	}
+	int aIndex = (int)(GameRandomNext() % (unsigned int)mWallCellCount);
+	for (int aStep = 0; aStep <= mWallCellCount; aStep++) {
+		int aPlace = mWallCells[aIndex];
+		int aRow = aPlace / FILL_GRID_COLUMNS;
+		int aColumn = aPlace % FILL_GRID_COLUMNS;
+		if (!BugObj::Overlaps(aColumn, aRow, theBug)) {
+			*theRow = aRow;
+			*theColumn = aColumn;
+			return true;
+		}
+		aIndex = (aIndex + 1) % mWallCellCount;
+	}
+	*theColumn = 0;
+	*theRow = 0;
+	return false;
+}
+
+// 0x43b170: a place in the open ground (not the outermost place of the grid), none of whose eight neighbours or itself holds
+// a pipe on the field, that no placed bug's box meets. The same walk as FindWallCell (it also tries the list's length plus
+// one places)
+bool LevelObj::FindOpenCell(GridBug* theBug, int* theColumn, int* theRow)
+{
+	// port (crash): the original divides by the count of places, which is 0 when the level has no open ground
+	if (mOpenCellCount == 0) {
+		*theColumn = 0;
+		*theRow = 0;
+		return false;
+	}
+	int aStart = (int)(GameRandomNext() % (unsigned int)mOpenCellCount);
+	for (int aStep = 0; aStep <= mOpenCellCount; aStep++) {
+		int aPlace = mOpenCells[(aStep + aStart) % mOpenCellCount];
+		int aRow = aPlace / FILL_GRID_COLUMNS;
+		int aColumn = aPlace % FILL_GRID_COLUMNS;
+		if ((unsigned int)(aColumn - OPEN_BORDER) < (unsigned int)(FILL_GRID_COLUMNS - 2 * OPEN_BORDER) &&
+			(unsigned int)(aRow - OPEN_BORDER) < (unsigned int)(FILL_GRID_ROWS - 2 * OPEN_BORDER)) {
+			bool aPipeNear = false;
+			for (int aNearRow = aRow - 1; aNearRow <= aRow + 1 && !aPipeNear; aNearRow++) {
+				for (int aNearColumn = aColumn - 1; aNearColumn <= aColumn + 1; aNearColumn++) {
+					if (gFillGrid[aNearColumn][aNearRow].mPipe->IsActive()) {
+						aPipeNear = true;
+						break;
+					}
+				}
+			}
+			if (!aPipeNear && !BugObj::Overlaps(aColumn, aRow, theBug)) {
+				*theRow = aRow;
+				*theColumn = aColumn;
+				return true;
+			}
+		}
+	}
+	*theColumn = 0;
+	*theRow = 0;
+	return false;
+}
+
+// 0x43ae10: a place at the edge of the field: the first pipe on the field met that is a wall or more (its kind 2 or
+// more), going in from one side of the grid along a column or a row, no placed bug's box meeting its place. The lines
+// are taken in the shuffled order of the columns and rows from a random start. The side (top, right, bottom or left)
+// and the starts for each side are drawn first. The original walks the side it drew four times over (the later walks
+// find nothing the first did not). A pipe on the field of the kind 0 or 1 ends the walk along that line. false (with the
+// place 0, 0) when no place is free
+bool LevelObj::FindEdgeCell(GridBug* theBug, int* theColumn, int* theRow)
+{
+	int aColumnStartFromTop = (int)(GameRandomNext() % FILL_GRID_COLUMNS);
+	int aRowStartFromRight = (int)(GameRandomNext() & (FILL_GRID_ROWS - 1));
+	int aColumnStartFromBottom = (int)(GameRandomNext() % FILL_GRID_COLUMNS);
+	int aRowStartFromLeft = (int)(GameRandomNext() & (FILL_GRID_ROWS - 1));
+	unsigned int aSide = GameRandomNext() & 3;
+	for (int anAttempt = 0; anAttempt < EDGE_ATTEMPTS; anAttempt++) {
+		switch (aSide) {
+		case 0:
+			// down a column from its top
+			for (int aLine = 0; aLine < FILL_GRID_COLUMNS; aLine++) {
+				int aColumn = mColumnOrder[aColumnStartFromTop];
+				for (int aRow = 0; aRow < FILL_GRID_ROWS; aRow++) {
+					PipeObj* aPipe = gFillGrid[aColumn][aRow].mPipe;
+					if (aPipe->IsActive()) {
+						if (aPipe->mKind < FILL_KIND_WALL_ACROSS)
+							break;
+						if (!BugObj::Overlaps(aColumn, aRow, theBug)) {
+							*theRow = aRow;
+							*theColumn = aColumn;
+							return true;
+						}
+					}
+				}
+				aColumnStartFromTop = (aColumnStartFromTop + 1) % FILL_GRID_COLUMNS;
+			}
+			break;
+		case 1:
+			// along a row from its right end
+			for (int aLine = 0; aLine < FILL_GRID_ROWS; aLine++) {
+				int aRow = mRowOrder[aRowStartFromRight];
+				int aColumn = FILL_GRID_COLUMNS - 1;
+				for (int aStep = 0; aStep < FILL_GRID_COLUMNS; aStep++) {
+					PipeObj* aPipe = gFillGrid[aColumn][aRow].mPipe;
+					if (aPipe->IsActive()) {
+						if (aPipe->mKind < FILL_KIND_WALL_ACROSS)
+							break;
+						if (!BugObj::Overlaps(aColumn, aRow, theBug)) {
+							*theColumn = aColumn;
+							*theRow = aRow;
+							return true;
+						}
+					}
+					aColumn--;
+				}
+				aRowStartFromRight = (aRowStartFromRight + 1) % FILL_GRID_ROWS;
+			}
+			break;
+		case 2:
+			// up a column from its bottom
+			for (int aLine = 0; aLine < FILL_GRID_COLUMNS; aLine++) {
+				int aColumn = mColumnOrder[aColumnStartFromBottom];
+				int aRow = FILL_GRID_ROWS - 1;
+				for (int aStep = 0; aStep < FILL_GRID_ROWS; aStep++) {
+					PipeObj* aPipe = gFillGrid[aColumn][aRow].mPipe;
+					if (aPipe->IsActive()) {
+						if (aPipe->mKind < FILL_KIND_WALL_ACROSS)
+							break;
+						if (!BugObj::Overlaps(aColumn, aRow, theBug)) {
+							*theRow = aRow;
+							*theColumn = aColumn;
+							return true;
+						}
+					}
+					aRow--;
+				}
+				aColumnStartFromBottom = (aColumnStartFromBottom + 1) % FILL_GRID_COLUMNS;
+			}
+			break;
+		case 3:
+			// along a row from its left end
+			for (int aLine = 0; aLine < FILL_GRID_ROWS; aLine++) {
+				int aRow = mRowOrder[aRowStartFromLeft];
+				for (int aColumn = 0; aColumn < FILL_GRID_COLUMNS; aColumn++) {
+					PipeObj* aPipe = gFillGrid[aColumn][aRow].mPipe;
+					if (aPipe->IsActive()) {
+						if (aPipe->mKind < FILL_KIND_WALL_ACROSS)
+							break;
+						if (!BugObj::Overlaps(aColumn, aRow, theBug)) {
+							*theColumn = aColumn;
+							*theRow = aRow;
+							return true;
+						}
+					}
+				}
+				aRowStartFromLeft = (aRowStartFromLeft + 1) % FILL_GRID_ROWS;
+			}
+			break;
+		}
+	}
+	*theColumn = 0;
+	*theRow = 0;
+	return false;
+}
+
+// 0x43b370: every bug made gets a place by the class of its kind in the spawn table (along the walls, at the field's edge
+// or in the open) and is told it; one with no place to go is deleted. A bug that leads a column makes the rest of the
+// column at once, each following the one before and put on the same place. The place the walks start from in the cell
+// order (mOrderPos) is drawn with the C library's rand
 void LevelObj::PlaceBugs()
 {
+	int aBugNumber = 0;
+	BugObj::SortList();
+	GridBug* aBug = BugObj::Get(0);
+	mOrderPos = CrtRand() % LEVEL_CELL_LIST_MAX;
+	while (aBug != nullptr) {
+		if (!aBug->mPlaced) {
+			// (a class other than the three would leave the place as it was in the original: the table has none)
+			int aColumn = 0;
+			int aRow = 0;
+			bool aFound = true;
+			switch (mSpawn[aBug->mKind].mClass) {
+			case SPAWN_ON_WALLS:
+				aFound = FindWallCell(aBug, &aColumn, &aRow);
+				break;
+			case SPAWN_ON_EDGES:
+				aFound = FindEdgeCell(aBug, &aColumn, &aRow);
+				break;
+			case SPAWN_IN_OPEN:
+				aFound = FindOpenCell(aBug, &aColumn, &aRow);
+				break;
+			}
+			if (!aFound) {
+				aBug->Delete();
+			} else {
+				aBug->PlaceAt(aColumn, aRow);
+				if (aBug->mGroupSize > 0) {
+					GridBug* aColumnBugs[PLACE_GROUP_MAX];
+					int aGroupSize = aBug->mGroupSize;
+					int aMade = 1;
+					GridBug* aPrevious = aBug;
+					aColumnBugs[0] = aBug;
+					for (int aLeft = aGroupSize - 1; aLeft > 0; aLeft--) {
+						GridBug* aSegment = MakeGroupSegment(aBug->mKind, aMade, aGroupSize, aBug, aPrevious);
+						aPrevious = aSegment;
+						if (aSegment != nullptr) {
+							for (int aStepNumber = 0; aStepNumber < aSegment->mSegmentSteps; aStepNumber++) {
+								for (int aEarlier = 0; aEarlier < aMade; aEarlier++)
+									aColumnBugs[aEarlier]->StepSegment();
+							}
+							aSegment->PlaceAt(aColumn, aRow);
+							aColumnBugs[aMade] = aSegment;
+							aMade++;
+						}
+					}
+				}
+			}
+		}
+		aBugNumber++;
+		aBug = BugObj::Get(aBugNumber);
+	}
 }
 
 // The layout -----------------------------------------------------------------------------------------------------------

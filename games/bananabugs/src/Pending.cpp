@@ -270,6 +270,24 @@ void BugObj::ResetCounters()
 {
 }
 
+void BugObj::SortList()
+{
+}
+
+GridBug* BugObj::Get(int theIndex)
+{
+	(void)theIndex;
+	return nullptr;
+}
+
+bool BugObj::Overlaps(int theColumn, int theRow, GridBug* theBug)
+{
+	(void)theColumn;
+	(void)theRow;
+	(void)theBug;
+	return false;
+}
+
 void BugObj::AlertAlongRope(PipeObj* theStart, PipeObj* theEnd, int theVertical)
 {
 	(void)theStart;
@@ -357,6 +375,44 @@ void BonusCoin::Place(int theColumn, int theRow)
 
 void HiddenBonus::Uncover()
 {
+}
+
+// port: the stand-in bug is an object that shows nothing; the original's BugObj constructor (0x425150) also puts the bug in
+// the list (sCount) and counts it alive (sAlive); the stand-in does neither, so no level waits on one
+GridBug::GridBug(int theKind)
+{
+	mPlaced = false;
+	mKind = theKind;
+	mGroupSize = 0;
+	mSegmentSteps = 0;
+	mIsGroupLeader = true;
+	mColumn = 0;
+	mRow = 0;
+	mNextInCell = nullptr;
+	mPrevInCell = nullptr;
+	mHalfWidth = 0;
+	mHalfHeight = 0;
+	SetParent(nullptr, nullptr);
+}
+
+void GridBug::Setup(int theRole, int theWaitFrames, GridBug* theHead, GridBug* thePrevious)
+{
+	(void)theRole;
+	(void)theWaitFrames;
+	(void)theHead;
+	(void)thePrevious;
+}
+
+void GridBug::StepSegment()
+{
+}
+
+// port: the original also sets the object's position to the place times 31 (0x100 and 0x104)
+void GridBug::PlaceAt(int theColumn, int theRow)
+{
+	mColumn = theColumn;
+	mRow = theRow;
+	mPlaced = true;
 }
 
 void GridBug::Zap(int theFirst, int theSecond, int theThird)

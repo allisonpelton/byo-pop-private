@@ -105,3 +105,6 @@ The finished translations to copy the style from: `src/PopCap.cpp`, `src/Transit
 - BananaBonus (0x404b00): the last key of a bunch sets the alpha twice (0, then 0.1) and an orbit radius nothing reads.
 - LevelObj's shuffle (0x4733f0) takes the C library's rand (CrtRand); the original seeds it (GetTickCount in
   SexyApp's Init, to check), so the test hooks need `-seed=` reseeding it like the other ports.
+- PauseWin::PauseForFocusLoss (0x455920) calls LevelObj::CloseMenuForPause (0x43a4f0) at 0x455981: wire it when PauseWin
+  is translated.
+- LevelObj's morph table sums each pixel's channels on the x87 (port: doubles); a last-bit difference is possible.
