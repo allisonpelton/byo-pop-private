@@ -196,6 +196,7 @@ trophies.count = {n} game | {n} games
 settings.section.saver = Screen Saver
 settings.saver.label = Screen Saver
 settings.saver.none = (None)
+settings.saver.random = (Random)
 settings.saver.preview = Preview
 settings.saverwait.label = Wait
 settings.saverwait.minutes = {n} min
@@ -1509,16 +1510,28 @@ music.lcd_reading = Reading…
 music.lcd_none = No music
 music.lcd_error = Error
 music.loop = Repeat
+music.shuffle = Shuffle
 music.volume = Volume
 # The splitter under the Music player (a separator): its name, as a tooltip and for screen readers, and its value, the rows the
 # display shows
 music.split = Display height
 music.split_rows = {n} rows
 music.tune_part = {file}, part {n}
+music.tune_titled = {name} "{title}"
 music.unused = Unused
 music.patterns = Unused patterns
 music.pattern_name = {file}, pattern {n}
+music.pattern_same = {file}, pattern {n} (same as {same})
 music.duration = {min}:{sec}
+music.format_mo3 = MO3: a tracker module compressed by Un4seen's MO3
+music.format_it = IT: Impulse Tracker module
+music.format_s3m = S3M: Scream Tracker 3 module
+music.format_xm = XM: FastTracker 2 Extended Module
+music.format_oxm = OXM: FastTracker 2 module with Ogg Vorbis samples
+music.format_mod = MOD: ProTracker module
+music.format_ogg = OGG: Ogg Vorbis audio
+music.format_wav = WAV: Waveform audio
+music.format_mid = MID: Standard MIDI File
 music.album = Games on this site
 
 # The soundboard (web/sounds.js): Desktop 95's Sounds window; the buttons' names are in web/soundboards.js

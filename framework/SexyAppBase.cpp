@@ -411,22 +411,19 @@ EMSCRIPTEN_KEEPALIVE void byopop_set_frame_budget(double theMs)
 
 // port: the site's game speed setting (web/controls.js; docs/WEB_PLAYER.md, "Game speed"), web only: SexyAppFramework's own
 // update multiplier, which runs mFrameTime's updates theSpeed times as often in real time (Process). 1, the default, and every
-// run but a player's choice, leaves the game as it was. Held to 0.25 to 4. A game whose own host runs its loop (Bonnie's
+// run but a player's choice, leaves the game as it was. Any speed above 0 up to 16; 0 is "as fast as the machine allows"
+// (SetGameSpeed). The game clock follows the speed (Sexy::GetTickCountMS), so timers read from it run at it. A game whose own host runs its loop (Bonnie's
 // Bookstore, Ning Po Mahjong) has no SexyAppBase and is not reached; nor is a timer a game reads from the wall clock itself.
 EMSCRIPTEN_KEEPALIVE void byopop_set_speed(double theSpeed)
 {
 	if (gSexyAppBase == NULL)
 		return;
-	if (!(theSpeed >= 0.25))
-		theSpeed = (theSpeed > 0) ? 0.25 : 1;
-	if (theSpeed > 4)
-		theSpeed = 4;
-	gSexyAppBase->mUpdateMultiplier = theSpeed;
+	gSexyAppBase->SetGameSpeed(theSpeed);
 }
 
 EMSCRIPTEN_KEEPALIVE double byopop_speed()
 {
-	return (gSexyAppBase != NULL) ? gSexyAppBase->mUpdateMultiplier : 0;
+	return (gSexyAppBase != NULL) ? gSexyAppBase->GameSpeed() : 0;
 }
 
 // port: the site's performance panel (web/perf.js; docs/WEB_PLAYER.md, "The performance panel"), web only and read only: the
@@ -620,6 +617,16 @@ SexyAppBase::SexyAppBase()
 	mLastTime = 0;
 	mLastUserInputTick = 0;
 	mUpdateMultiplier = 1;
+	mSpeedUnlimited = false;
+	mSpeedHotkeys = false;
+	mSpeedParam = false;
+	mSpeedProbeMs = 0;
+	mSpeedProbeStart = 0;
+	mSpeedProbeLoaded = 0;
+	mSpeedProbeUpdates = 0;
+	mSpeedProbeClock = 0;
+	mUnlimitedClock = 0;
+	mUnlimitedLastDraw = 0;
 	mPaused = false;
 	mFastForwardToUpdateNum = 0;
 	mFastForwardToMarker = false;
@@ -641,8 +648,8 @@ SexyAppBase::SexyAppBase()
 	mLoadingThreadCompleted = false;
 	mNumLoadingThreadTasks = 0;
 	mCompletedLoadingThreadTasks = 0;
-	mLastDrawTick = timeGetTime();
-	mNextDrawTick = timeGetTime();
+	mLastDrawTick = Sexy::GetRealTickCountMS();
+	mNextDrawTick = Sexy::GetRealTickCountMS();
 	mSysCursor = true;
 	mForceFullscreen = false;
 	mForceWindowed = false;
@@ -680,7 +687,7 @@ SexyAppBase::SexyAppBase()
 	mDemoMute = false;
 	mMuteOnLostFocus = true;
 	mFPSTime = 0;
-	mFPSStartTick = GetTickCount();
+	mFPSStartTick = Sexy::GetRealTickCountMS();
 	mFPSFlipCount = 0;
 	mFPSCount = 0;
 	mFPSDirtyCount = 0;
@@ -868,7 +875,7 @@ SexyAppBase::~SexyAppBase()
 
 void SexyAppBase::ClearUpdateBacklog(bool relaxForASecond)
 {
-	mLastTimeCheck = GetClockTime();
+	mLastTimeCheck = GetRealClockTime();
 	mUpdateFTimeAcc = 0.0;
 
 	if (relaxForASecond)
@@ -1546,7 +1553,7 @@ static std::string UserDirRelativePath(const std::string& theFileName)
 void SexyAppBase::UpdateUserDataBackup(bool force)
 {
 #ifdef __EMSCRIPTEN__
-	DWORD aTime = timeGetTime();
+	DWORD aTime = Sexy::GetRealTickCountMS();
 	if ((!force) && (!mBackupDirty) && (aTime - mLastBackupCheck < 250))
 		return;
 	mLastBackupCheck = aTime;
@@ -1825,7 +1832,7 @@ bool SexyAppBase::DrawDirtyStuff()
 
 	MTAutoDisallowRand aDisallowRand;
 
-	DWORD aStartTime = timeGetTime();
+	DWORD aStartTime = Sexy::GetRealTickCountMS();
 
 	// port: the GPU back buffer isn't persistent, so a frame is either skipped or redrawn completely (a software screen
 	// keeps its pixels and draws only the dirty widgets, below).
@@ -1870,14 +1877,14 @@ bool SexyAppBase::DrawDirtyStuff()
 
 	mDrawCount++;
 
-	DWORD aMidTime = timeGetTime();
+	DWORD aMidTime = Sexy::GetRealTickCountMS();
 
 	mFPSCount++;
 	mFPSTime += aMidTime - aStartTime;
 
 	mDrawTime += aMidTime - aStartTime;
 
-	DWORD aPreScreenBltTime = timeGetTime();
+	DWORD aPreScreenBltTime = Sexy::GetRealTickCountMS();
 	mLastDrawTick = aPreScreenBltTime;
 
 	// Presents the frame; DDInterface draws the custom cursor on top
@@ -1887,7 +1894,7 @@ bool SexyAppBase::DrawDirtyStuff()
 	// This is our one UpdateFTimeAcc if we are vsynched
 	UpdateFTimeAcc();
 
-	DWORD aEndTime = timeGetTime();
+	DWORD aEndTime = Sexy::GetRealTickCountMS();
 
 	mScreenBltTime = aEndTime - aPreScreenBltTime;
 
@@ -2392,6 +2399,15 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 			// port: F2 opens and closes the mod menu (docs/MOD_MENU_DESIGN.md 5.1): a press without modifiers
 			// that is not a key repeat. The game sees neither that press nor its release. (A -script run never
 			// gets here: its real input is dropped above.)
+			// port: the speed hotkeys, when the mod menu turned them on (F6 slower, F7 faster, F8 back to 1x): without
+			// modifiers, neither the press nor its release reaches the game
+			if (mSpeedHotkeys && (mInitialized) && (!mShutdown) && (aKeyCode >= SPEED_KEY_SLOWER) && (aKeyCode <= SPEED_KEY_NORMAL) &&
+				((theEvent.key.keysym.mod & (KMOD_CTRL | KMOD_SHIFT | KMOD_ALT | KMOD_GUI)) == 0))
+			{
+				if ((keyDown) && (!theEvent.key.repeat))
+					StepGameSpeed((aKeyCode == SPEED_KEY_SLOWER) ? -1 : ((aKeyCode == SPEED_KEY_FASTER) ? 1 : 0));
+				break;
+			}
 			if ((aKeyCode == KEYCODE_F2) && (mInitialized) && (!mShutdown))
 			{
 				if ((keyDown) && (!theEvent.key.repeat) &&
@@ -2821,7 +2837,7 @@ void SexyAppBase::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 		mWidgetManager->MarkAllDirty();
 	}
 
-	mLastTime = timeGetTime();
+	mLastTime = Sexy::GetRealTickCountMS();
 }
 
 void SexyAppBase::SwitchScreenMode(bool wantWindowed)
@@ -2901,7 +2917,7 @@ void SexyAppBase::ProcessSafeDeleteList()
 
 void SexyAppBase::UpdateFTimeAcc()
 {
-	DWORD aCurTime = GetClockTime();
+	DWORD aCurTime = GetRealClockTime();
 
 	if (mLastTimeCheck != 0)
 	{
@@ -2923,7 +2939,34 @@ static bool DrawHeldByPace(SexyAppBase* theApp)
 {
 	if ((!theApp->mLoaded) || (theApp->mDDInterface == NULL) || (theApp->mFastMode) || (theApp->mDrawEvery) || (theApp->mCommandsHold))
 		return false;
-	return theApp->mDDInterface->FrameHeldByPace((unsigned int) timeGetTime());
+	return theApp->mDDInterface->FrameHeldByPace((unsigned int) Sexy::GetRealTickCountMS());
+}
+
+// port: -speedprobe's measurement (tools/check.sh speed): see mSpeedProbeMs. Real time throughout, whatever the speed.
+void SexyAppBase::SpeedProbeStep()
+{
+	if (!mLoaded)
+		return;
+	DWORD aNow = Sexy::GetRealTickCountMS();
+	if (mSpeedProbeLoaded == 0)
+		mSpeedProbeLoaded = aNow;
+	if (mSpeedProbeStart == 0)
+	{
+		if ((DWORD)(aNow - mSpeedProbeLoaded) >= (DWORD) SPEED_PROBE_WARMUP_MS)
+		{
+			mSpeedProbeStart = aNow;
+			mSpeedProbeUpdates = mUpdateCount;
+			mSpeedProbeClock = GetClockTime();
+		}
+		return;
+	}
+	DWORD aRealMs = aNow - mSpeedProbeStart;
+	if (aRealMs < (DWORD) mSpeedProbeMs)
+		return;
+	SDL_Log("SPEEDPROBE speed=%g updates=%d real_ms=%u clock_ms=%u", GameSpeed(), mUpdateCount - mSpeedProbeUpdates, (unsigned) aRealMs,
+		(unsigned) (GetClockTime() - mSpeedProbeClock));
+	mSpeedProbeMs = 0;
+	Shutdown();
 }
 
 // One step of 1.3's update state machine: an update when one is due (every mFrameTime ms of game
@@ -2935,6 +2978,8 @@ bool SexyAppBase::Process(bool allowSleep)
 {
 	if (mLoadingFailed)
 		Shutdown();
+	if (mSpeedProbeMs > 0)
+		SpeedProbeStep();
 
 	double aFrameFTime;
 	double anUpdatesPerUpdateF;
@@ -2954,10 +2999,16 @@ bool SexyAppBase::Process(bool allowSleep)
 		anUpdatesPerUpdateF = 1.0;
 	}
 
+	// port: the unlimited speed (SetGameSpeed): an update is always due, and a draw is due every SPEED_UNLIMITED_FRAME_MS of real
+	// time (the updates in between run back to back); never with -fast, whose clock has no wait to skip
+	const bool isUnlimited = mSpeedUnlimited && (!mFastMode);
+
 	// Make sure we're not paused
 	if ((!mPaused) && (mUpdateMultiplier > 0))
 	{
 		UpdateFTimeAcc();
+		if (isUnlimited)
+			mUpdateFTimeAcc = std::max(mUpdateFTimeAcc, aFrameFTime);
 
 		// mNonDrawCount is used to make sure we draw the screen at least
 		// 10 times per second, even if it means we have to slow down
@@ -2969,7 +3020,15 @@ bool SexyAppBase::Process(bool allowSleep)
 		if (mUpdateAppState == UPDATESTATE_PROCESS_1)
 		{
 			// port: with -drawevery an update that has not been drawn yet is drawn before the next one
-			if (((++mNonDrawCount < (int) ceil(10*mUpdateMultiplier)) || (!mLoaded)) && ((!mDrawEvery) || (!mHasPendingDraw)))
+			bool noDrawDue = isUnlimited ? ((Sexy::GetRealTickCountMS() - mUnlimitedLastDraw) < (DWORD) SPEED_UNLIMITED_FRAME_MS) :
+				(++mNonDrawCount < (int) ceil(10*mUpdateMultiplier));
+			if (isUnlimited && (!noDrawDue) && (!mHasPendingDraw))
+			{
+				// nothing to draw yet: the next frame's time starts now
+				mUnlimitedLastDraw = Sexy::GetRealTickCountMS();
+				noDrawDue = true;
+			}
+			if ((noDrawDue || (!mLoaded)) && ((!mDrawEvery) || (!mHasPendingDraw)))
 			{
 #ifndef BYOPOP_DERIVED
 				// port: a test may hold the updates (byopop_hold_updates_at on the web, -hold natively): the frame is still
@@ -3015,6 +3074,8 @@ bool SexyAppBase::Process(bool allowSleep)
 			ProcessSafeDeleteList();
 
 			mUpdateFTimeAcc -= aFrameFTime;
+			if (isUnlimited)
+				mUnlimitedClock += mFrameTime;
 
 			if (mRelaxUpdateBacklogCount > 0)
 				mUpdateFTimeAcc = 0;
@@ -3034,8 +3095,9 @@ bool SexyAppBase::Process(bool allowSleep)
 			{
 				DrawDirtyStuff();
 				mLastFastDrawUpdate = mUpdateCount;
+				mUnlimitedLastDraw = Sexy::GetRealTickCountMS();
 			}
-			else
+			else if (!isUnlimited)
 			{
 				// Let us take into account the time it took to draw dirty stuff
 				int aTimeToNextFrame = (int) (aFrameFTime - mUpdateFTimeAcc);
@@ -3307,7 +3369,7 @@ void SexyAppBase::Start()
 	emscripten_set_blur_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, this, EM_FALSE, EmscriptenFocusCallback);
 #endif
 
-	DWORD aStartTime = timeGetTime();
+	DWORD aStartTime = Sexy::GetRealTickCountMS();
 
 	mRunning = true;
 #ifndef BYOPOP_DERIVED
@@ -3627,6 +3689,19 @@ void SexyAppBase::SetCmdLine(int argc, char** argv)
 	}
 }
 
+// port: the framework's own options that take a value, which it reads only as -name=value. Written -name value, the value
+// would be lost and the run would go on without it (a -script run without its script ran flat out until its timeout,
+// 2026-11-22), so DoParseCmdLine stops the program instead. Players pass none of these.
+static bool IsFrameworkValueOption(const std::string& theName)
+{
+	static const char* const kNames[] = { "-changedir", "-seed", "-script", "-realinput", "-commands", "-recordlive",
+		"-cyclesplit", "-presentlog", "-speed", "-speedprobe", "-renderscale", "-windowscale" };
+	for (const char* aName : kNames)
+		if (theName == aName)
+			return true;
+	return false;
+}
+
 void SexyAppBase::DoParseCmdLine()
 {
 	// port: the arguments come from main() (SetCmdLine) instead of GetCommandLine(), already split
@@ -3639,6 +3714,15 @@ void SexyAppBase::DoParseCmdLine()
 		std::string aValue = (anEqualsPos == std::string::npos) ? "" : anArg.substr(anEqualsPos + 1);
 		if ((aValue.length() >= 2) && (aValue[0] == '"') && (aValue[aValue.length() - 1] == '"'))
 			aValue = aValue.substr(1, aValue.length() - 2);
+
+		if ((anEqualsPos == std::string::npos) && IsFrameworkValueOption(aName))
+		{
+			const bool hasNext = (i + 1 < (int) mCmdLineArgs.size()) && (mCmdLineArgs[i + 1].compare(0, 1, "-") != 0);
+			fprintf(stderr, "%s needs its value after an equals sign: write %s=%s\n", aName.c_str(), aName.c_str(),
+				hasNext ? mCmdLineArgs[i + 1].c_str() : "<value>");
+			fflush(stderr);
+			exit(2);
+		}
 
 		if (!aName.empty())
 			HandleCmdLineParam(aName, aValue);
@@ -3726,7 +3810,11 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 			SDL_Log("-recordlive: cannot open %s", theParamValue.c_str());
 	}
 	else if (theParamName == "-fast")
+	{
 		mFastMode = true;
+		// port: the game clock runs on the virtual clock from 0 (SetGameSpeed keeps it there)
+		Sexy::SetGameClock(&mFastClock, mUpdateMultiplier, true);
+	}
 	// port: where the processor time goes, by part and thread, at the boundaries origrun --count uses in the original
 	// (platform/CycleSplit.h)
 	else if (theParamName == "-cyclesplit")
@@ -3743,6 +3831,13 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 		mTraceMode = true;
 	else if (theParamName == "-drawevery")
 		mDrawEvery = true;
+	else if (theParamName == "-speed")
+	{
+		mSpeedParam = true;
+		SetGameSpeed(atof(theParamValue.c_str()));
+	}
+	else if (theParamName == "-speedprobe")
+		mSpeedProbeMs = atoi(theParamValue.c_str());
 	else if (theParamName == "-renderscale")
 		mForcedRenderScale = atoi(theParamValue.c_str());
 	else if (theParamName == "-windowscale")
@@ -3763,9 +3858,144 @@ void SexyAppBase::HandleCmdLineParam(const std::string& theParamName, const std:
 //////////////////////////////////////////////////////////////////////////
 // Test hooks (-seed, -script, -fast, -trace; see SexyAppBase.h)
 
+// port: what the games read. The original read the system clock (timeGetTime); here that is game time, which runs at the game
+// speed (Common.cpp's game clock). Under -fast it is the virtual clock itself, with no epoch.
 DWORD SexyAppBase::GetClockTime()
 {
-	return mFastMode ? mFastClock : timeGetTime();
+	return mFastMode ? Sexy::GetGameTimeMS() : Sexy::GetTickCountMS();
+}
+
+// port: the clock that decides when an update is due: real time, or -fast's virtual clock. Not scaled by the speed (the
+// speed shortens the frame time instead, Process).
+DWORD SexyAppBase::GetRealClockTime()
+{
+	return mFastMode ? mFastClock : Sexy::GetRealTickCountMS();
+}
+
+const double SexyAppBase::SPEED_UNLIMITED = 0;
+const double SexyAppBase::SPEED_MIN = 0.01;
+const double SexyAppBase::SPEED_MAX = 16;
+const double SexyAppBase::SPEED_STEPS[SexyAppBase::NUM_SPEED_STEPS] = { 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 8, 16, SexyAppBase::SPEED_UNLIMITED };
+
+// port: moves the game speed one step along SPEED_STEPS (from a speed between two steps, to the next one in that direction),
+// or back to 1x for theDirection 0; at or below the lowest step, a step slower changes nothing
+void SexyAppBase::StepGameSpeed(int theDirection)
+{
+	const int aNumSteps = NUM_SPEED_STEPS - 1;  // the numeric ones; unlimited follows the last
+	double aNew = 1;
+	if (theDirection != 0)
+	{
+		if (mSpeedUnlimited)
+			aNew = (theDirection > 0) ? SPEED_UNLIMITED : SPEED_STEPS[aNumSteps - 1];
+		else if (theDirection > 0)
+		{
+			aNew = SPEED_UNLIMITED;
+			for (int i = 0; i < aNumSteps; i++)
+				if (SPEED_STEPS[i] > mUpdateMultiplier * 1.0001)
+				{
+					aNew = SPEED_STEPS[i];
+					break;
+				}
+		}
+		else
+		{
+			aNew = mUpdateMultiplier;  // below the lowest step, slower leaves the speed where it is (never faster)
+			for (int i = aNumSteps - 1; i >= 0; i--)
+				if (SPEED_STEPS[i] < mUpdateMultiplier * 0.9999)
+				{
+					aNew = SPEED_STEPS[i];
+					break;
+				}
+		}
+	}
+	SetGameSpeed(aNew);
+	SaveSpeedOptions();
+}
+
+std::string SexyAppBase::GameSpeedText() const
+{
+	if (mSpeedUnlimited)
+		return "Max";
+	char aText[32];
+	snprintf(aText, sizeof(aText), "%gx", mUpdateMultiplier);
+	return aText;
+}
+
+// port: the saved speed option; a test run (-fast, -script, -seed) and the web page (which has its own setting) keep 1x
+void SexyAppBase::LoadSpeedOptions()
+{
+#if (!defined(BYOPOP_DERIVED)) && (!defined(__EMSCRIPTEN__))
+	if (mFastMode || (!mScriptFileName.empty()) || mHasSeedParam || mSpeedParam)
+		return;
+	std::string aText;
+	Platform::JsonValue aRoot;
+	if ((!Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/game-speed.json", &aText)) || (!Platform::ParseJson(aText, aRoot)) || (!aRoot.IsObject()))
+		return;
+	mSpeedHotkeys = aRoot["hotkeys"].AsBool(false);
+	if (aRoot["speed"].IsNumber())
+		SetGameSpeed(aRoot["speed"].AsNumber(1));
+#endif
+}
+
+void SexyAppBase::SaveSpeedOptions()
+{
+#if (!defined(BYOPOP_DERIVED)) && (!defined(__EMSCRIPTEN__))
+	Platform::JsonValue aRoot = Platform::JsonValue::MakeObject();
+	aRoot.Set("speed", Platform::JsonValue(GameSpeed()));
+	aRoot.Set("hotkeys", Platform::JsonValue(mSpeedHotkeys));
+	Platform::WriteUserFileAtomic("game-speed.json", aRoot.Dump(2) + "\n");
+#endif
+}
+
+double SexyAppBase::GameSpeed() const
+{
+	return mSpeedUnlimited ? SPEED_UNLIMITED : mUpdateMultiplier;
+}
+
+double SexyAppBase::MusicStepFactor()
+{
+	if (!(mSpeedUnlimited && (!mFastMode)))
+		return 1.0 / mUpdateMultiplier;
+	static DWORD sLastCall = 0;
+	DWORD aNow = Sexy::GetRealTickCountMS();
+	DWORD aElapsed = std::min<DWORD>(aNow - sLastCall, 200);
+	sLastCall = aNow;
+	return (double)aElapsed / mFrameTime;
+}
+
+// port: sets the game speed. The multiplier shortens the frame time (Process) and scales the game clock. Unlimited
+// (SPEED_UNLIMITED) runs the updates back to back and moves the game clock by one frame time per update, whatever the machine
+// does; the speed is then "as fast as the machine allows" and the draws it has no time for are skipped. The game clock
+// carries on from where it stood when the source changes.
+void SexyAppBase::SetGameSpeed(double theSpeed)
+{
+	if (!(theSpeed >= 0))
+		theSpeed = 1;
+	bool wasUnlimited = mSpeedUnlimited;
+	mSpeedUnlimited = (theSpeed == SPEED_UNLIMITED);
+	if (mSpeedUnlimited)
+		theSpeed = 1;
+	else if (theSpeed < SPEED_MIN)
+		theSpeed = SPEED_MIN;
+	else if (theSpeed > SPEED_MAX)
+		theSpeed = SPEED_MAX;
+	mUpdateMultiplier = theSpeed;
+	if (mSpeedUnlimited)
+	{
+		if (!mFastMode)
+		{
+			// the clock follows the updates (Process); -fast's own virtual clock already does
+			mUnlimitedClock = Sexy::GetRealTickCountMS();
+			Sexy::SetGameClock(&mUnlimitedClock, 1);
+		}
+		mUnlimitedLastDraw = Sexy::GetRealTickCountMS();
+	}
+	else if (mFastMode)
+		Sexy::SetGameClock(&mFastClock, theSpeed);
+	else
+		Sexy::SetGameClock(NULL, theSpeed);
+	if (wasUnlimited != mSpeedUnlimited)
+		ClearUpdateBacklog(false);
 }
 
 bool SexyAppBase::LoadScript(const std::string& theFileName)
@@ -5241,6 +5471,8 @@ void SexyAppBase::Init()
 	Platform::NoteStartMemory();
 
 	InitHook();
+
+	LoadSpeedOptions();
 
 	mInitialized = true;
 }
