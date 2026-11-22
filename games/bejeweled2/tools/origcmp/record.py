@@ -24,6 +24,21 @@ import full  # noqa: E402
 from driver_base import Driver  # noqa: E402
 
 full.KEY_HINTS = True  # the port's 640 by 480 layout of the hint dialogs is not the original's: close them with the key, which no layout changes
+_hint_boxes_seen = set()
+_answer_dialog = full.handle_dialog
+
+
+def _shoot_hint_box(d, s):
+    """TOUR_HINTBOXES=1: the one-time boxes (the power gem's, the hyper cube's) in the middle of play, each shot once as it stands."""
+    top = max(s['dialogs'])
+    if os.environ.get('TOUR_HINTBOXES') and top in full.HINT_DIALOGS and top not in _hint_boxes_seen:
+        _hint_boxes_seen.add(top)
+        d.ok('wait 40')
+        d.shot('hintbox%d' % top)
+    _answer_dialog(d, s)
+
+
+full.handle_dialog = _shoot_hint_box
 INPUT_VERBS = ('move', 'click', 'down', 'up', 'key', 'type')
 
 
