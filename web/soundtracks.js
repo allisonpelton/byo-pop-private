@@ -190,10 +190,16 @@ var ByopopSoundtracks = {
     cuts: { "bejewel twist 06.10#3": [72], "bejewel twist 06.10#7": [73], "bejeweledtwist24#0": [24] },
     skip: ["bejewel twist 06.10#3@72"],
     shuffle: { out: ["bejewel twist 06.10#7"] },   // (the loading tune)
+    // The challenge tunes are named from the game's data (the user, 2026-11-22: "I think a 3-minute challenge refers to Eclipse
+    // mode after beating all seven levels on a planet", then "I'll leave naming them to the session then"). Order 24 plays for
+    // a challenge with a 3-minute limit, and in properties/challenges.xml those are each planet's eighth, its eclipse challenge
+    // (night mode, open once its seven are done), on 11 of the 13 planets; Stratamax's and Survivor's count moves instead and
+    // play #5. #5 keeps the user's first name, the one the game's own properties use for its tempo
+    // (MUSIC_CHALLENGE_TURNBASED_MIN_TEMPO and _MAX_TEMPO) and the module's message for order 52; #6 is the message's untimed one
     where: { "bejewel twist 06.10#0": "In-Game 1", "bejewel twist 06.10#1": "In-Game 2", "bejewel twist 06.10#2": "In-Game 3",
       "bejewel twist 06.10#6": "In-Game 4", "bejewel twist 06.10#7@73": "In-Game 5", "bejewel twist 06.10#8": "In-Game 6", "bejewel twist 06.10#7": "Loading",
       "bejewel twist 06.10#3": "Game Over", "bejewel twist 06.10#4": "Victory", "bejewel twist 06.10#5": "Main Menu",
-      "bejeweledtwist24#0": "Blitz", "bejeweledtwist24#0@24": "Blitz 3 Minutes", "bejeweledtwist24#1": "Blitz Results 1", "bejeweledtwist24#2": "Blitz Results 2",
+      "bejeweledtwist24#0": "Blitz", "bejeweledtwist24#0@24": "Eclipse Challenge", "bejeweledtwist24#1": "Blitz Results 1", "bejeweledtwist24#2": "Blitz Results 2",
       "bejeweledtwist24#3": "Blitz Results 3", "bejeweledtwist24#4": "Challenge Menu", "bejeweledtwist24#5": "Turn-Based Challenge",
       "bejeweledtwist24#6": "Untimed Challenge", "bejeweledtwist24#7": "Bonus" },
     // the composer's own names for its parts, by their orders in the module's message (read from the file as it plays; order
@@ -216,12 +222,12 @@ var ByopopSoundtracks = {
       "bejewel twist 06.10#4": "Order 53; a non-Blitz game ends, not by the nuke (EndGame)",
       "bejewel twist 06.10#5": "Order 54; main menu, and back from the Challenge menu",
       "bejeweledtwist24#0": "Order 0; Blitz: at each level's Go, and after the bonus fruit dance; timed challenges not of 180 s",
-      "bejeweledtwist24#0@24": "Order 24; a timed challenge with a 180 s goal, at its start",
+      "bejeweledtwist24#0@24": "Order 24; a challenge with a 3-minute limit, at its start: a planet's eclipse challenge, its eighth, open once its seven are done (11 of the 13 planets)",
       "bejeweledtwist24#1": "Order 42; Blitz ends with a score under 40000, after the board clears out",
       "bejeweledtwist24#2": "Order 44; Blitz ends with a score of 40000-79999",
       "bejeweledtwist24#3": "Order 46; Blitz ends with a score of 80000 or more",
       "bejeweledtwist24#4": "Order 48; the Challenge menu opens",
-      "bejeweledtwist24#5": "Order 52; an untimed challenge with a Moves goal, at its Go; layers follow the moves made",
+      "bejeweledtwist24#5": "Order 52; an untimed challenge with a Moves goal (Stratamax's and Survivor's eclipse challenges among them), at its Go; layers follow the moves made",
       "bejeweledtwist24#6": "Order 63; a challenge with neither a time limit nor a Moves goal, at its Go",
       "bejeweledtwist24#7": "Order 79; the bonus fruit dance, until it ends after 2200 updates"
     },
