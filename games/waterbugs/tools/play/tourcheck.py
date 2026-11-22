@@ -1,13 +1,9 @@
 # tourcheck.py: the frozen baseline of the screen tours (games/waterbugs/test/tours; docs/SCREENS.md lists what they show).
-# The port's pictures are not the same from one run to the next: the menu's bubbles, a loss's fade and the loading thread's
-# share of the updates differ in a few pixels or a few updates between two runs of the same script (the same of the original,
-# which differs from itself the same way). So the baseline holds only the shots that were whole in every one of several
-# reference runs, each by the first 12 hex digits of the sha256 of its pixels, and the check runs the tours once and wants
-# all of them unchanged, and every shot of the tours present.
+# The baseline holds every shot of the tours by the first 12 hex digits of the sha256 of its pixels; the port draws the same
+# pictures in every run (eight runs: all 362 shots equal), and the check plays the tours once and wants every one unchanged.
 #   tourcheck.py freeze <frozen file> <run dir>...    each run dir holds tour-fresh, tour-end and tour-worlds (shot PNGs)
-#   tourcheck.py check <frozen file> <run dir>        prints one line; exit 1 when more than LOOSE frozen shots differ or a shot is
-# missing (a shot that was whole in six runs can still come out otherwise in the seventh: x_200_skip2_b did; a change of the
-# drawing changes nearly all of them)
+#   tourcheck.py check <frozen file> <run dir>        prints one line; exit 1 when a shot differs or one is missing (LOOSE of them may)
+
 import hashlib
 import os
 import sys
@@ -15,7 +11,7 @@ import sys
 from PIL import Image
 
 TOURS = ('fresh', 'end', 'worlds')
-LOOSE = 8
+LOOSE = 0
 
 
 def hashes(run):

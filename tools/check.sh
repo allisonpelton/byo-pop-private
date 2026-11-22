@@ -740,10 +740,12 @@ suite_build() { build_suite native "$1"; }
 suite_build-web() {  # <log> [<target>,<target>...]: the whole web build, or only those targets
 	local st t="${2//,/ }"
 	if [ -z "$t" ]; then build_suite web "$1"; return; fi
-	export TARGET="$t"
+	export TARGET="$t" SKIP_UNKNOWN_TARGETS=1  # a changed game with no web build yet is skipped (tools/build.sh web)
 	build_suite web "$1"; st=$?
-	unset TARGET
-	[ $st -ne 0 ] || SUMMARY="web build ok: $t only"
+	unset TARGET SKIP_UNKNOWN_TARGETS
+	local skipped
+	skipped="$(sed -n 's/^build.sh: \([^:]*\): no web target.*/\1/p' "$1" | tr '\n' ' ')"
+	[ $st -ne 0 ] || SUMMARY="web build ok: $t only${skipped:+; no web build yet: ${skipped% }}"
 	return $st
 }
 suite_build-nov() { build_suite novariants "$1"; }
@@ -1328,7 +1330,7 @@ suite_pixelus() {
 	sed "s#@OUT@#$W/$d/tour#g" games/pixelus/tests/menu_tour.txt.in > "$d/tour/script.txt"
 	timeout 300 "$W/build/native/pixelus.exe" -userdir="$W/$d/tour/user" -script="$W/$d/tour/script.txt" -seed=1 > "$d/tour/stdout.txt" 2> "$d/tour/stderr.txt"
 	t=$?
-	for f in options credits help menu; do [ -s "$d/tour/$f.png" ] || t="$t, $f.png missing"; done
+	for f in options credits help menu story island temple board; do [ -s "$d/tour/$f.png" ] || t="$t, $f.png missing"; done
 	[ "$t" = 0 ] && t="tour ok" || { t="TOUR FAILED ($t)"; st=1; }
 	a="$(pixelus_game start 25)"; r="$(pixelus_game start2 25)"
 	if [ "${CHECK_QUICK:-0}" = 1 ]; then  # the quick form leaves out the bot's whole game (87 of the 127 seconds)
@@ -1396,7 +1398,7 @@ suite_mummymaze() {
 	mummymaze_resume || st=1
 	if diff -rq "$OUT/mummymaze/classic/shots" "$OUT/mummymaze/classic2/shots" >> "$1" 2>&1 && cmp -s "$OUT/mummymaze/classic/log.txt" "$OUT/mummymaze/classic2/log.txt" && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	# the frozen baseline (build/baseline-mummymaze/mummymaze.exe, a copy of the port made when it was last checked against
-	# the original, 2026-11-03): the same games must give the same log lines and the same screenshots. Refreeze it only on purpose,
+	# the original, 2026-11-22, the end of the screen pass): the same games must give the same log lines and the same screenshots. Refreeze it only on purpose,
 	# with the reason in games/mummymaze/docs/IDENTICAL_PLAY.md.
 	local base="$W/build/baseline-mummymaze/mummymaze.exe" bl="" k
 	if [ -f "$base" ]; then
@@ -1407,6 +1409,10 @@ suite_mummymaze() {
 		for k in classic tips tutorial; do
 			cmp -s "$OUT/mummymaze/$k/log.txt" "$OUT/mummymaze/base-$k/log.txt" && diff -rq "$OUT/mummymaze/$k/shots" "$OUT/mummymaze/base-$k/shots" >> "$1" 2>&1 || { bl="BASELINE DIFFERS ($k)"; st=1; }
 		done
+		# the screen tour (games/mummymaze/docs/SCREENS.md): the scenarios' shots, port and baseline, must be identical
+		bash "$W/games/mummymaze/tools/identical/tour.sh" "$W/build/native/mummymaze.exe" "$OUT/mummymaze/tour-port" >> "$1" 2>&1
+		bash "$W/games/mummymaze/tools/identical/tour.sh" "$base" "$OUT/mummymaze/tour-base" >> "$1" 2>&1
+		if [ "$(find "$OUT/mummymaze/tour-port" -name "*.png" | wc -l)" -gt 350 ] && diff -rq --exclude='*.log' --exclude='*.txt' "$OUT/mummymaze/tour-port" "$OUT/mummymaze/tour-base" >> "$1" 2>&1; then bl="$bl, tour identical"; else bl="$bl, TOUR DIFFERS"; st=1; fi
 		r="$r; $bl"
 	fi
 	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; adventure ${v}; ${t}; $MM_RESUME; $r"

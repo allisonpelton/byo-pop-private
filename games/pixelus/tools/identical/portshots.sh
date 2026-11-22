@@ -15,5 +15,6 @@ done < "$S/landed.tsv"
 echo "$((LASTU + 5)) quit" >> "$D/script-shots.txt"
 sort -n -s -k1,1 "$D/script-shots.txt" -o "$D/script-shots.txt"
 rm -rf "$D/portshots/user"; mkdir -p "$D/portshots"
+[ -z "$PRESET" ] || cp -r "$PRESET" "$D/portshots/user"
 timeout 300 "$RUNDESK" "$(win build/native/pixelus.exe)" -userdir="$(win "$D/portshots/user")" -fast -seed="${SEED:-1}" -script="$(win "$D/script-shots.txt")" > "$D/portshots/out.txt" 2>&1
 echo "port exit $?"; ls "$D/shots-port" | wc -l

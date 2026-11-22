@@ -437,7 +437,7 @@ void Shooter_Dying(Shooter* theShooter)
 // 0x41e070: a new beam before the current one, made current
 void Beam_Insert(List<Beam>* theList)
 {
-	Beam* aBeam = (Beam*)::operator new(sizeof(Beam));
+	Beam* aBeam = (Beam*)NewZeroed(sizeof(Beam));
 	List_InsertBefore(theList, Beam_Init(aBeam));
 }
 
@@ -898,7 +898,7 @@ void Star_Draw(Obj* theStar)
 	const int* aDirtyClip;
 	if (aLevel->mPanels.mCurrent == nullptr)
 	{
-		DrawList_Add(anImage, (uint32_t)(uintptr_t)theStar, (int)((double)theStar->mX + (double)aSwayX),
+		DrawList_Add(anImage, Obj_DrawSeq(theStar), (int)((double)theStar->mX + (double)aSwayX),
 			(int)theStar->mY, theStar->mDepth, theStar->mDrawKind, gScreenBits, gScreenPitch, theStar->mR, theStar->mG,
 			theStar->mB, theStar->mAlpha, &theStar->mAnim->mPalette, nullptr);
 		anImage = theStar->mImage;
@@ -906,7 +906,7 @@ void Star_Draw(Obj* theStar)
 	}
 	else
 	{
-		DrawList_Add(anImage, (uint32_t)(uintptr_t)theStar, (int)((double)theStar->mX + (double)aSwayX),
+		DrawList_Add(anImage, Obj_DrawSeq(theStar), (int)((double)theStar->mX + (double)aSwayX),
 			(int)theStar->mY, theStar->mDepth, theStar->mDrawKind, gScreenBits, gScreenPitch, theStar->mR, theStar->mG,
 			theStar->mB, theStar->mAlpha, &theStar->mAnim->mPalette, aClip);
 		anImage = theStar->mImage;

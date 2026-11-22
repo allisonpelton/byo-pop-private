@@ -1,0 +1,89 @@
+# advsaves: five saved adventures and a saved classic game; the list, its Delete Game, the maps and the tips of boards in adventure
+99 title
+900 click 185 426
+960 shot list5
+1000 click 320 343
+1060 shot delete_list
+1100 click 320 378
+1160 shot list5_again
+1140 click 185 426
+1200 click 320 111
+1300 shot map_red
+1340 click 80 466
+1360 shot red_enter
+1440 shot red_tip
+1480 click 395 317
+1580 shot red_board
+1840 shot red_board2
+1900 click 74 290
+2040 shot red_worldmap
+2140 click 80 415
+2240 click 185 426
+2300 click 320 156
+2400 shot map_two
+2440 click 80 466
+2460 shot two_enter
+2540 shot two_tip
+2580 click 395 317
+2680 shot two_board
+2940 shot two_board2
+3000 click 74 290
+3140 shot two_worldmap
+3240 click 80 415
+3340 click 185 426
+3400 click 320 201
+3500 shot map_scorp
+3540 click 434 394
+3600 shot map_solved_msg
+3640 click 320 216
+3700 click 445 30
+3760 shot map_stats_played
+3800 click 320 374
+3860 click 80 466
+3880 shot scorp_enter
+3960 shot scorp_tip
+4000 click 395 317
+4100 shot scorp_board
+4360 shot scorp_board2
+4420 click 74 290
+4560 shot scorp_worldmap
+4660 click 80 415
+4760 click 185 426
+4820 click 320 246
+4920 shot map_trap
+4960 click 80 466
+4980 shot trap_enter
+5060 shot trap_tip
+5100 click 395 317
+5200 shot trap_board
+5460 shot trap_board2
+5520 click 74 290
+5660 shot trap_worldmap
+5760 click 80 415
+5860 click 185 426
+5920 click 320 291
+6020 shot map_ankh
+6060 click 207 144
+6120 shot map_tomb_msg
+6160 click 320 216
+6220 click 80 466
+6240 shot ankh_enter
+6320 shot ankh_tip
+6360 click 395 317
+6460 shot ankh_board
+6720 shot ankh_board2
+6780 click 74 290
+6920 shot ankh_worldmap
+7020 click 80 415
+7120 click 185 426
+7180 click 320 343
+7240 click 320 316
+7300 shot list4_deleted
+7360 click 320 378
+7420 click 185 376
+7480 shot continue_q
+7520 click 256 296
+7620 shot gate_tip
+7660 click 395 317
+7760 shot gate_board
+7820 quit

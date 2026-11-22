@@ -7,11 +7,13 @@
 
 A scenario is one command per line, `<port update> <command> [args]` in the port's script syntax, plus
   shot <name>          a screenshot of both, at that update
+  tshot <name> <orig>  a shot of the title screen at the port's update U and the original's update <orig> (before its click)
   title                a click on the title's play link (the original's is always at update 1500: its load takes longer)
 Updates are the port's; the original's are those plus OFFSET (2301: the original's first menu link click at 2400 is the
 port's at 99). Commands: click x y, move x y, down x y, up x y (a drag), key N, keydown N, keyup N, char C, focus lose|regain, quit.
 A `key N` is held for one update (down at U, up at U+1, as the port's bot does; the original gets `kdown` and `kup` then).
 """
+import re
 import sys
 
 OFFSET = 2301
@@ -35,6 +37,10 @@ def make(scn, name, outdir):
         if c == 'shot':
             port.append((u, 'screenshot %s/%s/port/%s.png' % (outdir, name, a)))
             orig.append((u + OFFSET, 'shot %s' % a))
+        elif c == 'tshot':                 # tshot <name> <original update>: a shot of the title before its click (the original's
+            shot, ou = a.split()           # updates there are not the port's plus OFFSET: its load takes longer)
+            port.append((u, 'screenshot %s/%s/port/%s.png' % (outdir, name, shot)))
+            orig.append((int(ou), 'shot %s' % shot))
         elif c == 'title':
             port.append((u, 'click 323 470'))
             orig.append((1500, 'click 323 470'))
@@ -100,8 +106,81 @@ def fromlog(log, out, step, last):
     lines.sort(key=lambda l: int(l.split()[0]))
     open(out, 'w', newline=chr(10)).write(chr(10).join(lines) + chr(10))
 
+def fromlog3(log, out, last, delay, offsets, maxev, step):
+    """fromlog, but a screen that the bot clicks away at once is kept for a while: the first input after each of the first MAXEV
+    "chamber done" lines (the click on the level-complete screen's link) comes DELAY updates later, as does every input after
+    it, and shots are taken OFFSETS updates after each such line; STEP > 0 also takes a shot every STEP updates"""
+    ev, ins, lastT, pend, shift, shifts = [], [], 0, False, 0, []
+    absolute = [int(o[1:]) for o in offsets if isinstance(o, str)]       # 'a<update>': a shot at that update of the bot's log
+    offsets = [o for o in offsets if not isinstance(o, str)]
+    for line in open(log):
+        m = re.match(r'T (\d+) ', line)
+        if m:
+            lastT = int(m.group(1))
+        if line.startswith('chamber done') and len(ev) < maxev:
+            ev.append(lastT + shift)
+            pend = True
+        m = re.match(r'\s+(key|click|menuclick|text) (\S+)(?: (\d+))? at app update (\d+)', line)
+        if m:
+            kind, a, b, u = m.group(1), m.group(2), m.group(3), int(m.group(4))
+            if pend and kind == 'click':
+                shifts.append((u, delay))
+                shift += delay
+                pend = False
+            cmd = '%s %s%s' % (kind, a, (' ' + b) if b else '')
+            ins.append((u + shift, cmd))
+    menu = [i for i, (u, c) in enumerate(ins) if c.startswith('menuclick')]
+    mi, mu, mc = (menu[0], ins[menu[0]][0], ins[menu[0]][1].split(' ', 1)[1]) if menu else (-1, 99, '185 376')
+    at = 1000
+    lines = ['99 title', '%d click %s' % (at, mc)]
+    for u, c in ins[mi + 1:]:
+        if u - mu > last:
+            break
+        lines.append('%d %s' % (u - mu + at, c))
+    for e in ev:
+        for o in offsets:
+            if e - mu + o <= last:
+                lines.append('%d shot e%05d' % (e - mu + at + o, e - mu + o))
+    for a in absolute:
+        r = a + sum(d for u, d in shifts if u <= a) - mu
+        if r <= last:
+            lines.append('%d shot a%05d' % (r + at, a))
+    if step:
+        for u in range(step, last + 1, step):
+            lines.append('%d shot t%05d' % (u + at, u))
+    lines.append('%d quit' % (last + at + 20))
+    lines.sort(key=lambda l: int(l.split()[0]))
+    open(out, 'w', newline=chr(10)).write(chr(10).join(lines) + chr(10))
+
+
+def fromlog2(log, out, last, shots):
+    """fromlog with shots at the given updates (the bot's, counted from the menu click) instead of every STEP, and the shots'
+    names being t<update>"""
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from identical import port_inputs
+    ins = port_inputs(log)
+    menu = [i for i, (u, c) in enumerate(ins) if c.startswith('menuclick')]
+    mi, mu, mc = (menu[0], ins[menu[0]][0], ins[menu[0]][1].split(' ', 1)[1]) if menu else (-1, 99, '185 376')
+    at = 1000
+    lines = ['99 title', '%d click %s' % (at, mc)]
+    for u, c in ins[mi + 1:]:
+        if u - mu > last:
+            break
+        lines.append('%d %s' % (u - mu + at, c))
+    for u in shots:
+        lines.append('%d shot t%05d' % (u + at, u))
+    lines.append('%d quit' % (last + at + 20))
+    lines.sort(key=lambda l: int(l.split()[0]))
+    open(out, 'w', newline=chr(10)).write(chr(10).join(lines) + chr(10))
+
+
 if __name__ == '__main__':
     if sys.argv[1] == 'make':
         make(*sys.argv[2:5])
+    elif sys.argv[1] == 'fromlog3':   # fromlog3 <log> <out> <last> <delay> <maxev> <step> <offsets...>
+        fromlog3(sys.argv[2], sys.argv[3], int(sys.argv[4]), int(sys.argv[5]), [(x if x[0] == 'a' else int(x)) for x in sys.argv[8:]], int(sys.argv[6]), int(sys.argv[7]))
+    elif sys.argv[1] == 'fromlog2':
+        fromlog2(sys.argv[2], sys.argv[3], int(sys.argv[4]), [int(x) for x in sys.argv[5:]])
     elif sys.argv[1] == 'fromlog':
         fromlog(sys.argv[2], sys.argv[3], int(sys.argv[4]), int(sys.argv[5]))
