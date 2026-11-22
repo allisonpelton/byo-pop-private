@@ -303,12 +303,12 @@ MJ_SHOTS="d3dc711a471a a9b14c961f99 98ff52c3eea2"  # the first 12 hex digits of 
 MJC_DEAL="178 layouts, 0 failed"
 MJC_SHOTS="f2b7b7dc8d4e bd92440741aa 93e5cc9037c3"  # the first 12 hex digits of the sha256 of board.png, won.png and map.png: the frozen baseline (refrozen with the libjpeg 6b loader: the old shots differ from these by at most 3 levels in a channel, in the JPEG backgrounds only)
 DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
-BT_CLASSIC="88e59f1eea61 291f70580d89 dd8e6206d1bf 0bc138035904"  # the first 12 hex digits of the sha256 of the Classic game's screens at 656, 2156, 3656 and 5156: the frozen baseline
-BT_BLITZ="8ef83c337f3e 9c9ceb17343f e69ac2a54d49 cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 2656, 5156, 7156 (the explosion), 7606 (space, on the way to the scores) and 8156 (the high scores)
-BT_TAKEOFF="47403df7d011 ad4911ad47f5 8897f35d0a74 663d148b1243 0248d7e39673"  # the 3D Classic game's level-up take-off at 2780, 2900, 2940, 2980 and 3020: the tube becoming the ship and the old board's cube leaving to the right and away (checked against the original on the user's desktop, 2026-11-08)
-BT_ROUTES="FREEZE"  # "<route> <hash>" for each screen coverage route (twist_routes; games/bejeweledtwist/docs/SCREENS.md): the
+BT_CLASSIC="88e59f1eea61 169ca8434fb4 d8838b5020bd b7ed20996a11"  # the first 12 hex digits of the sha256 of the Classic game's screens at 656, 2156, 3656 and 5156: the frozen baseline
+BT_BLITZ="46b62bff531d 1119ecae8d58 4606ebe6c124 cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 2656, 5156, 7156 (the explosion), 7606 (space, on the way to the scores) and 8156 (the high scores)
+BT_TAKEOFF="efea01e22936 5fe62c051026 c780089dd6de c1e2d77f873a 853855c3d9c0"  # the 3D Classic game's level-up take-off at 2780, 2900, 2940, 2980 and 3020: the tube becoming the ship and the old board's cube leaving to the right and away (checked against the original on the user's desktop, 2026-11-08)
+BT_ROUTES="menus 93dcbdf8b5f3 players fb9011a53307 classic dccd71c8616e blitz 5d9c3acc6fa5 gameover e8bbed29210e zenjump 507524d77312 fruit d0c8c4564a20 rankup 244bfc1a98fd"  # "<route> <hash>" for each screen coverage route (twist_routes; games/bejeweledtwist/docs/SCREENS.md): the
 # first 12 hex digits of the sha256 of its shots' hashes, as compared with the original (2026-11-21)
-BT_MENU="02beec06fa7d da8353fcb954"  # the start's screens at 60 (the loader handing over, the menu's Play drawn) and 160 (the menu, the loader gone;
+BT_MENU="7c67600cf6a5 f8567ba2b37f"  # the start's screens at 60 (the loader handing over, the menu's Play drawn) and 160 (the menu, the loader gone;
 # the screen at 60 changed with 952429de, a script's shot drawn with its update's count, which moves the loader's fades):
 # the port only (its loader moved on to the original's hand-over, 2026-11-08), so not against the older baseline
 # Bejeweled 2 Deluxe: per mode, the first 12 hex digits of the sha256 of the bot's transcript (every state and move, tools/playbymove's
@@ -2312,7 +2312,7 @@ twist_route_players() {  # the players folders the routes start from, made here 
 	# same game without the bombs and with its multiplier's steps (bytes 727 to 730) at 151, so its first match awards a
 	# fruit; and, after the classic route, rankup/, that route's player with its rank points (byte 246 of profile.dat) one
 	# short of rank 2
-	local d="$OUT/bejeweledtwist/route-players" r c
+	local d="$OUT/bejeweledtwist/route-preps" r c
 	fresh_dir "$d"; mkdir -p "$d/make/user" "$d/make/kept" "$d/bombs/TWISTBOT" "$d/plain/user" "$d/plain/kept" "$d/fruit/TWISTBOT"
 	printf '[SOFTWARE\\Steam\\BejeweledTwist]\nScreenMode=dword:0\nArtRes=dword:600\n' > "$d/make/user/registry.ini"
 	{ echo "1250 autoplayoff"; for r in 0 1 2 3 4 5 6 7; do for c in 0 1 2 3 4 5 6 7; do echo "1510 gem $r $c counter 1"; done; done
@@ -2333,7 +2333,7 @@ twist_route_players() {  # the players folders the routes start from, made here 
 }
 
 twist_routes() {  # every screen coverage route on the port; prints "<route> <hash>" lines
-	local p="$OUT/bejeweledtwist/route-players" n
+	local p="$OUT/bejeweledtwist/route-preps" n
 	twist_route_players
 	for n in menus players; do echo "$n $(twist_route $n -)"; done
 	echo "classic $(twist_route classic - -autoplay=1)"
