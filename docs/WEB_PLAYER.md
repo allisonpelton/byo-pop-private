@@ -805,7 +805,10 @@ The game's side is a site hook in the platform layer: no game's code changes, an
 `Platform::Mixer` exports the `byopop_music_*` calls (`platform/Audio.cpp`), reading a libopenmpt module through
 `ModulePlayer`'s web-only `GetView` and its neighbours (`platform/openmpt/OpenMPTPlayer.cpp`); a stream, or TipTop's
 MIDI synthesizer, gives the spectrum only, tapped from the game's own AudioContext so that what is heard does not
-change. `ByopopMusicPanel.following()` tells a test the game followed and its view.
+change. A game that plays its tunes as sounds (Venice: `voices` in `web/soundtracks.js`) has no song while its music
+plays; its tune is the loudest of its voices playing one of the files its tunes list (`byopop_sounds_view`, the Sounds
+window's call; `frontFrame` gives the game's id), followed as a stream is (the user, 2026-11-18: "Venice's audio doesn't
+sync with the spectral analyzer"). `ByopopMusicPanel.following()` tells a test the game followed and its view.
 
 ### The soundboard
 

@@ -515,12 +515,12 @@ var ByopopApps = (function () {
     return "";
   }
   // the game window in front, for the Music window's views (web/music.js, "Following a game"): the game window last made active,
-  // while it is open and not minimized; its page and its game's title, or null
+  // while it is open and not minimized; its page, its game's title and its game's id, or null
   function frontFrame() {
     var a = lastGame && apps.indexOf(lastGame) >= 0 ? lastGame : null;
     if (!a || !a.el || a.el.classList.contains("d95-min") || a.el.classList.contains("d95-closed")) return null;
     var w = inner(a);
-    return w ? { win: w, title: a.title || "" } : null;
+    return w ? { win: w, title: a.title || "", game: a.game || "" } : null;
   }
   // ---- one window heard at a time (the user, 2026-11-10: "keep in mind the need to prevent multiple windows from playing audio at
   // once") ----

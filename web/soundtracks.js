@@ -34,6 +34,8 @@
 //   composer  who wrote the music, by the game's own credits (its credits screen, text or exe; a company where they name no
 //           person); none for a game whose credits name nobody for it, shown as Unknown. composers {"<id>": "<name>"} where
 //           the credits split the music by tune (Heavy Weapon's love theme)
+//   voices  true for a game that plays its tunes as sounds, not as the mixer's songs (Venice): Music follows the one playing
+//           among its voices (web/music.js, voiceTune)
 //   level   the level the game plays its modules at, where it is not the renderer's own (platform/MusicLevels.h):
 //           {bassAmplify: n} the BASS amplify it sets (0 to 100), {fmod3XM: true} FMOD 3's XM pre-amp. The renderer is the
 //           game's own (libopenmpt for MO3 and OXM, libxmp-lite for the rest: web/music/openmpt_web.c)
@@ -467,6 +469,8 @@ var ByopopSoundtracks = {
   venice: {
     composer: "Guillaume Bastard & Staffan Melin",
     files: ["audio/title_music.ogg", "audio/ingame_*.ogg", "audio/final_victory.ogg"],
+    // its music is a looped sound (games/venice/src/VeniceSound.cpp), not a song
+    voices: true,
     where: { title_music: "Main Menu", ingame_1_intro: "World Map", ingame_1_body: "Welcome to Venice",
       ingame_1_win: "Level Complete", ingame_3_body: "Lunar Lanes", ingame_4_body: "Cupid's Cove",
       ingame_5_body: "Venetian Villa", ingame_2_body: "San Marco Square", final_victory: "Final Victory" },

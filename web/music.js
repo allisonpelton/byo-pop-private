@@ -2755,11 +2755,28 @@ var ByopopMusic = (function () {
     function frontGame() { try { return window.ByopopApps && ByopopApps.frontFrame ? ByopopApps.frontFrame() : null; } catch (e) { return null; } }
     // the game's module, once its runtime is up and if its build has the calls
     function gameModule(win) { try { var m = win && win.Module; return m && typeof m._byopop_music_song === "function" && typeof m.ccall === "function" ? m : null; } catch (e) { return null; } }
+    // A game that plays its tunes as sounds (web/soundtracks.js, "voices": Venice, games/venice/src/VeniceSound.cpp) has no song
+    // while its music plays: its tune is the loudest of its voices playing one of the files its tunes list (the Sounds window's
+    // byopop_sounds_view), followed as a stream is, the spectrum only, under the voice's number made negative (the user,
+    // 2026-11-18: "Venice's audio doesn't sync with the spectral analyzer"). Only such a game is looked at.
+    function voiceTune(front, m) {
+      var table = typeof ByopopSoundtracks !== "undefined" ? ByopopSoundtracks : {}, spec = front.game ? table[front.game] : null;
+      if (!spec || !spec.voices || typeof m._byopop_sounds_view !== "function") return null;
+      var all = JSON.parse(m.ccall("byopop_sounds_view", "string", ["number"], [0x7fffffff]) || "null");
+      if (!all || !all.voices) return null;
+      var res = (spec.files || []).map(patternRe), best = null;
+      all.voices.forEach(function (v) {
+        var name = String(v.name || "").replace(/\\/g, "/").replace(/^\.\//, ""), g = Math.max(v.l || 0, v.r || 0);
+        if (res.some(function (re) { return re.test(name); }) && (!best || g > best.g)) best = { id: v.id, g: g };
+      });
+      return best ? { song: -best.id, kind: "stream", heard: best.g > 0 && all.sfx > 0 ? 1 : 0 } : null;
+    }
     function followGame(front) {
       var m = front ? gameModule(front.win) : null, song = 0, view = null;
       if (m) try {
         song = m._byopop_music_song();
         if (song) view = JSON.parse(m.ccall("byopop_music_view", "string", ["number"], [song]) || "null");
+        else if ((view = voiceTune(front, m))) song = view.song;
       } catch (e) { view = null; }
       if (!view) { unfollow(); return; }
       if (!follow || follow.win !== front.win || follow.song !== song) {
