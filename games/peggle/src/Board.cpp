@@ -10,8 +10,10 @@
 #include "CharacterMgr.h"
 #include "CollisionMgr.h"
 #include "Common.h"
+#include "compat2004/Compat2004.h"
 #include "DebugMgr.h"
 #include "EffectMgr.h"
+#include "EndLevelDialog.h"
 #include "FloatingTextMgr.h"
 #include "GameMode.h"
 #include "ImageMgr.h"
@@ -22,8 +24,11 @@
 #include "NotTranslated.h"
 #include "PlayerInfo.h"
 #include "Poly.h"
+#include "ReplayDialog.h"
 #include "Res.h"
+#include <algorithm>
 #include "SDL.h"
+#include "SlotMachineDialog.h"
 #include "SoundMgr.h"
 #include "ThunderButton.h"
 #include "ThunderCommon.h"
@@ -37,6 +42,8 @@ static const int ORIGIN_X = 75;					// where the level's own places start in the
 static const int ORIGIN_Y = 40;
 static const int BOARD_WIDTH = 650;
 static const int BOARD_HEIGHT = 560;
+static const int SONG_NOT_PLAYED = 4;			// the board never plays this one of the songs (PlayMusic leaves it out of its list)
+static const int SONG_STRIDE = 6;				// PlayMusic's music ids for the board are six apart (the level music ids)
 static const int GUN_SCREEN_X = 400;			// the cannon is put at these less the origin (Board.cpp 2 and 3, 147: ModValInt 400 and 70)
 static const int GUN_SCREEN_Y = 70;
 static const int MENU_BUTTON_X = 12;			// Board.cpp 4 and 5, 153 (ModValInt 0xc and 0x21c)
@@ -89,7 +96,13 @@ Board::Board(ThunderballApp* theApp)
 	mUnknownF0 = 0;
 	mUnknownF4 = 0;
 	mUnknownF8 = 0;
-	mUnknown104 = false;
+	mUnknown104 = 0;
+	mUnknown108 = 0;
+	mUnknown10C = 0;
+	mUnknown110 = false;
+	mUnknown12C = false;
+	mReplayCount = 0;
+	mUnknown1C0 = 0;
 	mUnknown11C = false;
 	mUnknown11D = true;
 	mUnknown11E = false;
@@ -116,7 +129,10 @@ Board::Board(ThunderballApp* theApp)
 	mInterfaceMgr.reset(new InterfaceMgr(this));
 	mLogicMgr.reset(new LogicMgr(this));
 	mSoundMgr.reset(new SoundMgr());
-	// (the original makes the level editor, the replay dialog, the end of level dialog and the slot machine here)
+	// (the original makes the level editor here)
+	mReplayDialog = new ReplayDialog(this);
+	mEndLevelDialog = new EndLevelDialog(this);
+	mSlotMachineDialog = new SlotMachineDialog(this);
 
 	mGun = SharedPtr<Gun>(new Gun(this));
 	mGun->SetPos((float)(GUN_SCREEN_X - mOriginX), (float)(GUN_SCREEN_Y - mOriginY));
@@ -146,6 +162,12 @@ Board::Board(ThunderballApp* theApp)
 // 0x4277f0
 Board::~Board()
 {
+	// a dialog the manager holds is the manager's to let go of
+	for (ThunderDialog* aDialog : {(ThunderDialog*)mReplayDialog, (ThunderDialog*)mEndLevelDialog, (ThunderDialog*)mSlotMachineDialog})
+	{
+		if (aDialog->mWidgetManager == nullptr)
+			delete aDialog;
+	}
 }
 
 // 0x40d7d0
@@ -176,10 +198,158 @@ void Board::Clear(bool theNewGame)
 	DeleteReplays(false);
 }
 
-// 0x42da00
+// 0x42da00: a level (re)starts: what the last one did is settled, the mode's options are looked at, the music plays, and the
+// level (when one was named) is read again; with none the board is emptied and set up as it is
 void Board::Reset()
 {
-	NOT_TRANSLATED("Board::Reset");
+	SubmitTotalStats();
+	CheckIncTip();
+	PlayerInfo* aPlayer = mApp->mCurrentPlayer;
+	mUnknownF8 = 0;
+	mResetCount++;
+	mUnknownF4++;
+	mGameMode = mApp->mGameMode;
+	mUnknown104 = 0;
+	mUnknown108 = 0;
+	mUnknown10C = 0;
+	mUnknown110 = false;
+	mUnknown11C = false;
+	mUnknown120 = true;
+	mUnknown12C = false;
+	if (aPlayer != nullptr && mApp->mGameMode == GAME_MODE_ADVENTURE)
+	{
+		// (another try at a level of the adventure)
+		aPlayer->mUnknown208++;
+		if (aPlayer->mUnknown208 > 1)
+			aPlayer->mAdventureLostBalls++;
+		aPlayer->mDirty = true;
+	}
+	mUnknownEA = false;
+	mUnknownC7 = false;
+	mUnknown11F = false;
+	mApp->KillDialog(1);
+	if (mWidgetManager != nullptr)
+	{
+		mWidgetManager->RemoveWidget(mReplayDialog);
+	}
+	RemoveSlotMachineDialog();
+	if (mEndLevelDialog->mWidgetManager == nullptr || !mEndLevelDialog->mVisible)
+	{
+		if (mWidgetManager != nullptr)
+			mWidgetManager->RemoveWidget(mEndLevelDialog);
+	}
+	else
+		mEndLevelDialog->DoScrollOff(false);
+	SyncModeOptions();
+	mApp->mMusicInterface->StopMusic(0);
+	if (!mLogicMgr->mUnknownF5)
+		PlayMusic();
+	if (!mLevelName.empty())
+	{
+		LoadLevel(mLevelName);
+		return;
+	}
+	Clear(false);
+	SetupLevel();
+}
+
+// 0x406a20: the statistics of a finished level join the player's totals, once (a game of one player in the adventure,
+// quick play or the challenges)
+void Board::SubmitTotalStats()
+{
+	if (!mUnknown11F && !mLogicMgr->mTwoPlayer)
+	{
+		int aMode = mApp->mGameMode;
+		if ((aMode == GAME_MODE_ADVENTURE || aMode == GAME_MODE_QUICK_PLAY || aMode == GAME_MODE_CHALLENGE) &&
+			mLogicMgr->mPlayerStats[0].mTotalScore > 0)
+		{
+			mUnknown11F = true;
+			mApp->mCurrentPlayer->AddTotalStats(mLogicMgr->mPlayerStats[0]);
+		}
+	}
+}
+
+// 0x406c10: a tip that was shown counts as seen
+void Board::CheckIncTip()
+{
+	if (mUnknown122)
+	{
+		if (mApp->mCurrentPlayer != nullptr)
+			mApp->mCurrentPlayer->IncTip(mEndLevelDialog->mTipNumber);
+		mUnknown122 = false;
+	}
+}
+
+// 0x402480: the slot machine goes off the board, the music plays again and the mouse is looked for again
+void Board::RemoveSlotMachineDialog()
+{
+	if (mSlotMachineDialog->mWidgetManager != nullptr)
+	{
+		mWidgetManager->RemoveWidget(mSlotMachineDialog);
+		mSoundMgr->PauseMusic(false);
+		mUnknown1C0 = 0;
+		mIsOver = Contains(mWidgetManager->mLastMouseX, mWidgetManager->mLastMouseY);
+	}
+}
+
+// 0x40f980: what the game mode gives the board: the level it plays and who plays
+void Board::SyncModeOptions()
+{
+	switch (mGameMode)
+	{
+	case GAME_MODE_NONE:
+		return;
+	case GAME_MODE_REPLAY:
+		mUnknownC5 = true;
+		mLogicMgr->mUnknownF5 = true;
+		mReplayDialog->SetMode(true, false, true);
+		return;
+	case GAME_MODE_DEMO:
+		NOT_TRANSLATED("Board::SyncModeOptions in the demo mode (StageMgr::GetRandomLevel)");
+		return;
+	case GAME_MODE_CHALLENGE:
+		NOT_TRANSLATED("Board::SyncModeOptions in the challenge mode");
+		return;
+	default:
+		break;
+	}
+	LevelInfo* aLevel = mApp->GetCurLevelInfo();
+	if (aLevel == nullptr)
+		return;
+	if (!mEasterEgg)
+		mLevelName = "levels/" + aLevel->mFileName + ".dat";
+	mLogicMgr->mTwoPlayer = false;
+	mLogicMgr->mUnknown245 = false;
+	mLogicMgr->mUnknown244 = false;
+	mLogicMgr->mTwoPlayer = mGameMode == GAME_MODE_DUEL;
+	NOT_TRANSLATED("Board::SyncCharacterOptions");
+}
+
+// 0x422640: the board's music: the songs of the game in an order drawn once, the next of them each time
+void Board::PlayMusic()
+{
+	if (!mVisible)
+		return;
+	static std::vector<int> sSongs;		// (the original's static, 0x6508ec)
+	static int sSongCounter = 0;		// (0x6508e4)
+	if (sSongs.empty())
+	{
+		for (int aSong = 0; aSong < mApp->mLevelMusicParam; aSong++)
+		{
+			if (aSong != SONG_NOT_PLAYED)
+				sSongs.push_back(aSong);
+		}
+		// the library's random_shuffle, drawing with the C runtime's rand
+		for (size_t i = 1; i < sSongs.size(); i++)
+			std::swap(sSongs[i], sSongs[(size_t)CrtRand() % (i + 1)]);
+	}
+	if (!sSongs.empty())
+	{
+		sSongCounter++;
+		int aSong = sSongs[sSongCounter % (int)sSongs.size()];
+		mApp->PlayMusic(aSong * SONG_STRIDE + 1, true);
+		// (the original then sets the music's pitch back to normal through the BASS library, which the port does not use)
+	}
 }
 
 // 0x4026f0
@@ -258,7 +428,7 @@ void Board::SetWindowTitle(const std::string& theLevelName)
 }
 
 // 0x42aae0
-bool Board::LoadLevel(const std::string& theName)
+bool Board::LoadLevel(std::string theName)
 {
 	gLoadingLevel = false;
 	bool aLoaded = LoadLevel2(theName);
@@ -268,7 +438,7 @@ bool Board::LoadLevel(const std::string& theName)
 
 // 0x429d10: puts a level on the board: the pieces of its file, the base pieces every level shares (unless the file's name starts
 // with an underscore), and the picture behind them, which is the level's file name's in the levels folder
-bool Board::LoadLevel2(const std::string& thePath)
+bool Board::LoadLevel2(std::string thePath)
 {
 	mLevelName = thePath;
 	Clear(false);

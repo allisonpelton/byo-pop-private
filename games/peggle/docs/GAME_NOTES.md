@@ -105,6 +105,8 @@ a file: the version (with an `f` when the flag is set), the size, the number of 
 saved rotation for this test (see `LEVEL_PIECES.md`). Run it through `rundesk.exe` with a script `3 checklevels <folder>`,
 `6 quit`.
 
+`resetlevel <seed> <path> [hidden]` is the same through `Board::Reset` (the app's mode NONE; `hidden` keeps the board's music from playing); it gives the same state as `loadlevel`.
+
 `loadlevel <seed> <path>`: puts a level on a board the way `Board::Reset` would (reset count 1), with the random generator
 seeded, and answers `STATE {...}`: the number of pieces and pegs, the orange and other pegs, the draws the level start took, the
 score multiplier, the music's intensity, the balls, the cannon's aim and the pegs' kinds in serial order (1 blue, 2 orange,
@@ -123,3 +125,11 @@ score multiplier, the music's intensity, the balls, the cannon's aim and the peg
    AdventureScreen, StoryScreen, TrophyScreen, HelpScreen, CharacterDialog, EndLevelDialog, SlotMachineDialog, the replay
    dialogs; `MainMenu::DrawTrophyEffect` (an x87 particle effect: 0x494b50).
 3. Replays and the bot (AIMgr, AIBall) for the Demo and the Masters, then the test commands and `move`.
+
+## Deviations and notes from Board::Reset
+
+- The original's music call after `Board::PlayMusic` (0x40d2c0: BASS pitch back to normal) is left out: the port's music is never pitch-shifted.
+- `Board::PlayMusic` draws its song order with the C runtime's `rand` (the framework's `CrtRand`), as the original's `random_shuffle` does; the order is drawn once per run.
+- The replay, end-of-level and slot-machine dialogs are made by the board's constructor; only their constructors are translated, the rest stops at `NOT_TRANSLATED`.
+- `Board::SyncModeOptions` stops at `NOT_TRANSLATED` for the challenge and demo modes and at `SyncCharacterOptions` (modes 1 to 3); mode NONE and replays pass.
+- The original's `LoadLevel` takes the name by value (Reset passes the board's own `mLevelName`, which `Clear` erases); the port's does too.

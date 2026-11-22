@@ -161,11 +161,13 @@ bool ThunderballApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		return true;
 	}
 
-	if (theCommand.mCommand == "loadlevel")
+	if (theCommand.mCommand == "loadlevel" || theCommand.mCommand == "resetlevel")
 	{
 		// loadlevel <seed> <path>: puts a level on a board the way Board::Reset would (the reset count is 1) with the generator
 		// seeded, and tells what the rules made of it: the pegs by their serial number (kinds: 1 blue, 2 orange, 3 purple, 4 green),
 		// the cannon's aim and how many draws the level start took. Drawing the original does and the port has not reached is skipped.
+		// resetlevel <seed> <path> is the same through Board::Reset (the board's mode is the app's, the music is not played
+		// when the board is hidden: "hidden" as a third word hides it).
 		size_t aSpace = theCommand.mArgs.find(' ');
 		if (aSpace == std::string::npos)
 		{
@@ -181,7 +183,20 @@ bool ThunderballApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		aBoard->mResetCount = 1;
 		SRand(aSeed);
 		uint aDrawsBefore = GetRandCount();
-		bool aLoaded = aBoard->LoadLevel(aPath);
+		bool aLoaded = true;
+		if (theCommand.mCommand == "resetlevel")
+		{
+			size_t aSecondSpace = aPath.find(' ');
+			if (aSecondSpace != std::string::npos)
+			{
+				aBoard->mVisible = aPath.substr(aSecondSpace + 1) != "hidden";
+				aPath = aPath.substr(0, aSecondSpace);
+			}
+			aBoard->mLevelName = aPath;
+			aBoard->Reset();
+		}
+		else
+			aLoaded = aBoard->LoadLevel(aPath);
 		LogicMgr* aLogic = aBoard->mLogicMgr.get();
 		std::string aState = "STATE {\"loaded\":" + std::string(aLoaded ? "true" : "false") + ",\"objects\":" +
 							 std::to_string(aBoard->mObjects.size()) + ",\"pegs\":" + std::to_string(aLogic->mPegs.size()) + ",\"goal\":" +
