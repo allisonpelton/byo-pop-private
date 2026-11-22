@@ -7,7 +7,9 @@ listed") against the game's newest shotdiff run.
 A SCREENS.md is a markdown table with the columns Screen | Reached by | Shots | Note. A row fails when its Shots cell is
 empty and its Note gives no reason, or when a shot it names is not a pair of the newest run (build/shotreview/<game>/
 <run>/summary.json, the run with the newest summary.json) that matches, or that differs and is marked "fine" in the
-run's marks.json or explained in the row's Note. One line per game, then a summary line; exit 1 on any failure.
+run's marks.json or explained in the row's Note. A game with no run in this checkout (the trunk, which has none of the
+games' runs) has only its list's form checked, and its line says the shots were not compared. One line per game, then a
+summary line; exit 1 on any failure.
 """
 import argparse
 import json
@@ -94,8 +96,9 @@ def shot_names(cell):
 
 
 def stem(name):
-    """A shot's name without its folder and picture extension, so "a/b.png" and "b" are the same shot."""
-    base = name.replace("\\", "/").rsplit("/", 1)[-1]
+    """A shot's name without its folder and picture extension, so "a/b.png" and "b" are the same shot; a clip's pair is
+    named by its folder with a slash ("title/"), which is the clip "title"."""
+    base = name.replace("\\", "/").rstrip("/").rsplit("/", 1)[-1]
     for ext in SHOT_EXTENSIONS:
         if base.lower().endswith(ext):
             return base[:-len(ext)]
@@ -148,15 +151,15 @@ def check_game(root, game):
     run = newest_run(root, game)
     statuses, fine = run_statuses_and_marks(run) if run else ({}, set())
     problems = []
-    shots_checked = 0
+    shots_checked = shots_named = 0
     for screen, cell, note in rows:
         names = shot_names(cell)
         if not names:
             if not has_reason(note):
                 problems.append("row '%s' has no shots and no reason" % screen)
             continue
-        if not run:
-            problems.append("no run (row '%s' names shots, %s/%s has no summary.json)" % (screen, REVIEW_DIR, game))
+        if not run:   # the shots are compared where the game's runs are (its worktree); here only the list's form
+            shots_named += len(names)
             continue
         for name in names:
             shots_checked += 1
@@ -171,8 +174,10 @@ def check_game(root, game):
                 problems.append("shot %s (row '%s') is %s" % (name, screen, status))
     if problems:
         return "%s: FAIL %d problems: %s" % (game, len(problems), "; ".join(problems)), True
-    return "%s: ok, %d rows, %d shots compared (run %s)" % (
-        game, len(rows), shots_checked, os.path.basename(run) if run else "none"), False
+    if not run:
+        return "%s: list ok, %d rows, %d shots named, not compared (no run in %s/%s: the game's own checkout has them)" % (
+            game, len(rows), shots_named, REVIEW_DIR, game), False
+    return "%s: ok, %d rows, %d shots compared (run %s)" % (game, len(rows), shots_checked, os.path.basename(run)), False
 
 
 def main(argv):

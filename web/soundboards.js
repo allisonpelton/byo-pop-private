@@ -658,6 +658,7 @@ var ByopopSoundboards = {
       ["sounds/bonus.ogg", "Bonus", "3 or more bags left on the board at a level's end; a bag collected within 5 s (500 updates) of the last; a tower toppled; and, if the click has no voice, 4 clicks in a row of one colour or 3 to 5 columns emptied"],
       ["sounds/superbonus.ogg", "\"Super bonus!\"", "When the click has no other voice: 6 clicks in a row of one colour, or 6 or more columns emptied by one click"],
       ["sounds/speedbonus.ogg", "\"Speed bonus!\"", "Action only: each click adds 0.16 to a gauge that falls 0.0025 per update; when it reaches 1 (about 7 quick clicks) this plays and 40 points are added"],
+      // (the user settled its words as "Mega money!", as its file names it, over the transcript's "Make'em money")
       ["sounds/megamoney.ogg", "\"Mega money!\" (unused)", "Never played: it is loaded, but no code plays it, in the port or in the original"]
     ] },
     { name: "Countdowns and warnings", sounds: [

@@ -933,7 +933,10 @@ var ByopopImport = (function () {
         store.delete(game);
         store.delete(IDBKeyRange.bound(game + "/", game + "/\uffff"));
         return done(tx).then(function () { db.close(); }, function (e) { try { db.close(); } catch (x) {} throw e; });
-      }).then(function () { try { ByopopGameFiles.forget(spec.id); } catch (e) {} });
+      }).then(function () {
+        try { ByopopGameFiles.forget(spec.id); } catch (e) {}
+        try { ByopopSaver.wipe(spec.persist); } catch (e) {}  // the screen saver's profile of the game goes with its files
+      });
     });
   }
   // The game's icon for the record: from the install's exe (importIcon), or from the exe it stores (the largest of its .exe files)

@@ -12,7 +12,7 @@ The user works on this machine, so a routine test run of a game is invisible, si
 the visible desktop, Windows Sandbox or sound may have them at any hour (the last item below).
 - Start every game exe (ports, `fwtest`, `smoke`, `lsprobe`, frozen baselines, scratch builds) through
   `build/native/rundesk.exe`, or a script under it: `build/native/rundesk.exe bash my-loop.sh` (a private desktop,
-  SDL's silent audio driver, below-normal priority; build it with `cmake --build build/native --target rundesk`).
+  SDL's silent audio driver, below-normal processor and GPU priority; build it with `cmake --build build/native --target rundesk`).
   `tools/check.sh` and the oracle and LiveSplit scripts re-run themselves under it. Headless runs (Bejeweled's
   verifier, a web build under Node) need no rundesk but still count as game processes.
 - **Originals** run only through `tools/origrun` (`docs/ORIGRUN.md`), from a copy under build/, never in an install
@@ -51,6 +51,8 @@ the visible desktop, Windows Sandbox or sound may have them at any hour (the las
   that still refuses outside 22:00-08:00 is out of date: drop its guard. Everything else holds: 10 processes, no link
   clicks, a window opened without taking the focus, the user's cursor and keyboard never touched (input posted to the
   game's window), window, registry and saves put back, nothing left running. `ORACLE_VISIBLE=1` stays the user's.
+  Desktop runs keep to the right half of the screen, up to four windows at once, none overlapping (the user,
+  2026-11-22, "Right half, four"; `docs/RULES.md`).
 
 ## Token economy
 
