@@ -247,4 +247,15 @@ void EditBox::updateCursor()
 	mCursor->setPosition(aPosition);
 }
 
+
+void EditBox::setText(const std::string& theText)
+{
+	mText = theText.substr(0, mMaxLength);
+	mCursorIndex = (int)mText.size();
+	textChanged();
+	if ((int)theText.size() < mCursorIndex)
+		mCursorIndex = (int)theText.size();
+	updateCursor();
+}
+
 } // namespace engine

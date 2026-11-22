@@ -221,9 +221,14 @@ void SplashState::load()
 
 	mApp->mUserData = new UserData();
 	mApp->mUserData->init();
-	// The players' screen (+0x60, GenericUserSelectScreen, 0x1b4 bytes, its constructor 0x49fc30 (feedingfrenzy2),
-	// resource/shell/userSelect.xml): not yet translated
-	getEngine()->log("SplashState: the players' screen not yet translated\n");
+	// The players' list, read like the other shell screens but of its own kind (its list is filled by its init,
+	// called each time the menu shows it)
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	GenericUserSelectScreen* aUserSelect = new GenericUserSelectScreen();
+	mApp->mUserSelect = aUserSelect;
+	aUserSelect->load("resource/shell/userSelect.xml", mApp->mShellTheme.get());
+	aUserSelect->setTransitions(aFade, aFade);
+	aUserSelect->mActionSignal.connect(mApp, &FeedingFrenzyTwo::actionSlot);
 	mLoadProgress = 0.5f;
 	aFade = new FadeTransition(SHELL_FADE_SECONDS);
 	mApp->mUserDeleteConfirm =

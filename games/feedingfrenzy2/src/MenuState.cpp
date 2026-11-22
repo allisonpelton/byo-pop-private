@@ -56,8 +56,14 @@ void MenuState::action(const std::string& theAction)
 		mApp->mScreenMgr->showScreen(mApp->mCredits.get(), 0.0f);
 	else if (theAction == "gameMapCancel" || theAction == "creditsDone" || theAction == "highScoreDone")
 		mApp->mScreenMgr->showScreen(mApp->mMainMenu.get(), 0.0f);
+	else if (theAction == "switchUser")
+	{
+		mApp->mUserSelect->init();
+		mApp->mMenuScreen = MENU_SCREEN_MAIN;
+		mApp->mStateMgr.pushState(new PopupState(mApp, mApp->mUserSelect.get(), this));
+	}
 	else
-		// newGame, newTimedGame, quit, switchUser, mainMenuOptions, debugSelectLevel, highScores, scoreModeRight,
+		// newGame, newTimedGame, quit, mainMenuOptions, debugSelectLevel, highScores, scoreModeRight,
 		// scoreModeLeft, highScoreReset and an action holding levelStart: not yet translated. (The original's
 		// gameLinkClick opened the distributor's link; it goes with its button)
 		getEngine()->log("MenuState: the action %s not yet translated\n", theAction.c_str());

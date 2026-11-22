@@ -27,6 +27,12 @@ ColorKey makeKey(float theTime, const Color& theColor)
 	return aKey;
 }
 
+// 0x49b880 (feedingfrenzy2): whether a player other than the first has the strings' alienUser name
+bool hasAlienUser(FeedingFrenzyTwo* theApp)
+{
+	return UserManager::instance()->findUser(theApp->mStrings->getString("alienUser")) > 0;
+}
+
 } // namespace
 
 PopupState::PopupState(FeedingFrenzyTwo* theApp, GenericScreen* theScreen, AppState* thePreviousState)
@@ -132,20 +138,71 @@ void PopupState::action(const std::string& theAction)
 		aUser->setName(aName);
 		aUsers->addUser(aUser.get());
 		if (aUsers->getUserCount() > 1)
-			// The players' list (+0x60) shown: not yet translated
-			getEngine()->log("PopupState: the players' screen not yet translated\n");
+			show(mApp->mUserSelect.get());
 		else
 			close();
 	}
 	else if (theAction == "userEntryCancel")
 	{
 		if (aUsers->getUserCount() > 0)
-			// The players' list (+0x60) shown: not yet translated
-			getEngine()->log("PopupState: the players' screen not yet translated\n");
+			show(mApp->mUserSelect.get());
+	}
+	else if (theAction == "userSelectDone")
+	{
+		mApp->mUserSelect->selectUser();
+		close();
+	}
+	else if (theAction == "userSelectNew")
+	{
+		// A row fewer while no player has the strings' alienUser name
+		int aRoom = mApp->mUserSelect->getRows();
+		if (!hasAlienUser(mApp))
+			aRoom--;
+		if (aUsers->getUserCount() < aRoom)
+			showUserEntry();
+		else
+			show(mApp->mUserListFullConfirm.get());
+	}
+	else if (theAction == "userSelectDelete")
+	{
+		mApp->mUserSelect->selectUser();
+		TextItem* aNameText = static_cast<TextItem*>(mApp->mUserDeleteConfirm->findComponent("userName"));
+		aNameText->setText(mApp->mUserData->getName());
+		show(mApp->mUserDeleteConfirm.get());
+	}
+	else if (theAction == "deleteUserYes")
+	{
+		mApp->mUserSelect->deleteUser();
+		mApp->mUserSelect->selectUser();
+		if (aUsers->getUserCount() == 0)
+			showUserEntry();
+		else
+			show(mApp->mUserSelect.get());
+	}
+	else if (theAction == "deleteUserNo")
+	{
+		mApp->mUserSelect->selectUser();
+		show(mApp->mUserSelect.get());
 	}
 	else
-		// pauseResume, appQuitYes, saveGameContinue, saveGameNoContinue, userSelectDone, userSelectNew,
-		// userSelectDelete, deleteUserYes, deleteUserNo, pauseOptions, optionsDone, pauseQuit, gameExitSave and the
-		// rest: not yet translated
+		// pauseResume, appQuitYes, saveGameContinue, saveGameNoContinue, pauseOptions, optionsDone, pauseQuit,
+		// gameExitSave and the rest: not yet translated
 		getEngine()->log("PopupState: the action %s not yet translated\n", theAction.c_str());
+}
+
+void PopupState::showUserEntry()
+{
+	static_cast<EditBox*>(mApp->mUserEntry->findComponent("nameEntry"))->setText("");
+	Component* aCancel = mApp->mUserEntry->findComponent("cancelBtn");
+	if (UserManager::instance()->getUserCount() != 0)
+	{
+		aCancel->setVisible(true);
+		aCancel->addOwnState(STATE_INPUT);
+	}
+	else
+	{
+		aCancel->setVisible(false);
+		aCancel->removeOwnState(STATE_INPUT);
+	}
+	show(mApp->mUserEntry.get());
 }

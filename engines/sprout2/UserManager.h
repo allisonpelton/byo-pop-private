@@ -31,8 +31,10 @@ public:
 
 	// 0x4921e0 (feedingfrenzy2): the key opened, and the players read from it when it is
 	void open(const std::string& theAppName, const std::string& theVendor);
-	// 0x481990 (feedingfrenzy2): the current player, null when there is none
-	UserInfo* getCurrentUser();
+	// The current player, null when there is none (0x481990 (feedingfrenzy2) with the current index)
+	UserInfo* getCurrentUser() { return getUser(mCurrentIndex); }
+	// 0x481990 (feedingfrenzy2): the player at the index, null for an index out of range
+	UserInfo* getUser(int theIndex);
 	int getCurrentIndex() const { return mCurrentIndex; }
 	// 0x409cd0 (feedingfrenzy2)
 	int getUserCount() const { return (int)mUsers.size(); }
@@ -47,6 +49,10 @@ public:
 	// 0x473c50 (feedingfrenzy2): the player's parameters written to the player's key, stopping at the first that
 	// cannot be; false then
 	bool saveUser(UserInfo* theUser);
+	// 0x53ca4f (feedingfrenzy2): the player at the index taken out of the key and the list; the current index kept on
+	// the same player, or on the last when the current one was last; the signal's slots told. False for an index out
+	// of range or a key that could not be deleted
+	bool removeUser(int theIndex);
 
 	sigslot::signal0 mCurrentUserSignal;  // +0x00
 

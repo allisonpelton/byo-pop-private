@@ -232,14 +232,29 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
     made (to do through origrun).
   - The popup's soft shadow piles up into a black frame, and the popup's ghost stays after it closes: nothing
     repaints the background until the stage is translated (see the looks item below).
+- The players' select screen: the engine's list box (rows of a list model, the mouse's highlight and click, the
+  selected row's band) and its reader, the players' list model, the select screen (GenericUserSelectScreen: its init
+  from the menu's switchUser, New greyed when the list is full, Delete and Select when it is empty), the players'
+  removal from the key and the list, the edit box's setText, and the popup's actions userSelectDone, userSelectNew,
+  userSelectDelete, deleteUserYes and deleteUserNo with the name entry's reset (Cancel there only while there are
+  players). Checked under rundesk with posted clicks on a copy of the Alye folder: Switch User shows Alye selected;
+  New, "Bob" and Return add Bob, selected, and the list comes back; a click on Alye and Select make Alye the active
+  player in the registry; a second run deletes Bob through the confirmation (which names him) and leaves Alye alone
+  and active.
+  - Not yet translated: the list box's over and click sounds (with the sounds).
+  - Possible oddities, to compare with the original: New counts one row fewer unless a player after the first has
+    the strings' alienUser name, so the alien at the first row does not count; deleting a player who is not the last
+    leaves the selection on the next player, not the current one; while the list is up after a new player, the
+    menu's Welcome still names the one before (the original may refresh it only when the popup closes); the selected
+    row's text is drawn in its colour multiplied over the band, white on the layout's cyan.
 
 ## Next
 
-- The players' select screen (+0x60, GenericUserSelectScreen, 0x49fc30) and the popup's other actions; the
-  duplicate name's confirmation is wired but not yet seen.
+- The popup's other actions (pause, quit, save game, options); the duplicate name's and the full list's
+  confirmations are wired but not yet seen.
 - The stage (0x403aa0) and its loader, for the menu's background; the menu's music and sounds; the menu's other
   actions (new game, the map, options, high scores, quit's confirmation).
-- The layouts' textButton, checkBox, include, radioGroup, listBox, table and compositeGroup's caching; the burst's
+- The layouts' textButton, checkBox, include, radioGroup, table and compositeGroup's caching; the burst's
   sound, the sound system's and the game's updates in the splash's bursting phase.
 - The configuration's options, the start's options, key, activate and music connections, the popups and the debug
   display.

@@ -141,11 +141,11 @@ size_t UserManager::upperBound(const std::string& theName)
 	return aFirst;
 }
 
-UserInfo* UserManager::getCurrentUser()
+UserInfo* UserManager::getUser(int theIndex)
 {
-	if (mCurrentIndex < 0 || mCurrentIndex >= getUserCount())
+	if (theIndex < 0 || theIndex >= getUserCount())
 		return nullptr;
-	return mUsers[mCurrentIndex].get();
+	return mUsers[theIndex].get();
 }
 
 int UserManager::findUser(const std::string& theName)
@@ -195,5 +195,22 @@ bool UserManager::saveUser(UserInfo* theUser)
 		if (!aKey->writeString(anIt->first, anIt->second))
 			return false;
 	}
+	return true;
+}
+
+bool UserManager::removeUser(int theIndex)
+{
+	if (theIndex < 0 || theIndex >= getUserCount())
+		return false;
+	Ref<UserInfo> aUser = mUsers[theIndex];
+	if (!mKey->deleteSubKey(aUser->getName()))
+		return false;
+	mUsers.erase(mUsers.begin() + theIndex);
+	if (mCurrentIndex > theIndex)
+		setCurrentUser(mCurrentIndex - 1);
+	else if (mCurrentIndex == getUserCount())
+		// The last player was the current one: the one before, or none
+		setCurrentUser(getUserCount() - 1 > 0 ? getUserCount() - 1 : 0);
+	mCurrentUserSignal.emit();
 	return true;
 }

@@ -59,6 +59,8 @@ public:
 	// 0x49fb60 (feedingfrenzy2): the text item's position
 	void setTextOffset(const Vector2f& theOffset);
 	void setMaxLength(int theLength) { mMaxLength = theLength; }
+	// 0x49d5e0 (feedingfrenzy2): the text cut to the longest allowed, the cursor put after it
+	void setText(const std::string& theText);
 	// The action named by the screen's file (+0x110; nothing the export shows reads it)
 	void setAction(const std::string& theAction) { mAction = theAction; }
 	void setFilter(CharFilter theFilter) { mFilter = theFilter; }

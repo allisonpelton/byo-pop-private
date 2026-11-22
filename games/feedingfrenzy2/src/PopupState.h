@@ -37,6 +37,8 @@ public:
 	virtual void close();
 	// 0x2c (0x48d830 (feedingfrenzy2)): the screen shown in the popups' manager, in place of the one there
 	virtual void show(engine::GenericScreen* theScreen);
+	// 0x494340 (feedingfrenzy2): the name entry shown empty, its Cancel button there only while there are players
+	void showUserEntry();
 
 	// The shutdown's (0x495650 (feedingfrenzy2)) release of the popups' manager
 	static void releaseScreenMgr();

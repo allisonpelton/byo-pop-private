@@ -10,6 +10,7 @@
 #include "FunFacts.h"
 #include "GameData.h"
 #include "GenericScreen.h"
+#include "GenericUserSelectScreen.h"
 #include "MainMenu.h"
 #include "PlayerRanks.h"
 #include "Scene.h"
@@ -77,8 +78,7 @@ public:
 	// The shell's plain screens, made by the splash's loader
 	engine::Ref<engine::GenericScreen> mPauseScreen;             // +0x58
 	engine::Ref<engine::GenericScreen> mUserEntry;               // +0x5c: a new player's name
-	// +0x60: the players' list (GenericUserSelectScreen, 0x1b4 bytes, its constructor 0x49fc30 (feedingfrenzy2),
-	// resource/shell/userSelect.xml): not yet translated
+	engine::Ref<engine::GenericUserSelectScreen> mUserSelect;   // +0x60: the players' list
 	engine::Ref<engine::GenericScreen> mUserDeleteConfirm;       // +0x64
 	engine::Ref<engine::GenericScreen> mAppQuitConfirm;          // +0x68
 	engine::Ref<engine::GenericScreen> mUserDuplicateConfirm;    // +0x6c
