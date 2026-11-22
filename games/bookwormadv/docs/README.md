@@ -173,6 +173,17 @@ logo's end does, so a player reaches the title loaded in 1.7 s rather than 5.25 
 number (the suite's first chapter plays as before). `-popcaplogo` keeps it, for comparisons with the original: the pilot's
 `run.sh` and `lag.py` pass it.
 
+### "Deluxe" taken out of the title and the window's name (2026-11-21)
+
+The user's note of 2026-11-18: "Remove the "Deluxe" text from the main screen of any game it may appear in, to avoid
+misleading people about whose game version they're playing". In this game the word is a sprite of its own,
+`IMAGE_TS_DELUXE`, which `TitleScreen::Draw` puts under the logo while the game loads and until the main menu takes over
+(the main menu's logo, `IMAGE_MM_LOGO`, has no "Deluxe"), and it is in the window's name. The port draws the title without
+the sprite (the logo, Lex and the tiles are as before) and names its window "Bookworm Adventures". No image is edited:
+the sprite is still loaded with its group and is simply not drawn. The folder of the port's saves keeps its name, so no
+player's saves move. The title clip's shots (`title`, `title_3d`) show the logo without the word; the boxes around the word
+in their frames are this deviation, left unmasked.
+
 ### Registration code taken out (2026-11-07)
 
 The port plays as the registered original does, and the trial code that only an unregistered copy reached is gone (the
@@ -693,10 +704,52 @@ main.lua lines 37 to 49 define five empty tables for an expansion, and they are 
 - The arena is the code's "timed mode": `MainMenu::StartArena` (0x47c290) calls `main.SetTimedMode(true)`, and the app's
   `mTimedMode`, the scripts' `gTimedMode` and the profile's `TM_` keys all belong to it.
 
+## The autosplit block (2026-11-21)
+
+The port writes the shared autosplit block that the site's Splits window and LiveSplit read (`platform/AutosplitBlock.h`,
+layout 2; `docs/WEB_PLAYER.md`, "One design for every port"), with the game id `BWAD`. The observer is
+`src/LiveSplitObserver.cpp`, in the Windows and web builds. `GameApp::UpdateFrames` calls `LiveSplitObserver::AfterUpdate`
+after each update, and the app's destructor calls `AppDestroyed` for the last write. The observer only reads the game: no
+random draw, no game state, no save and no call into the scripts. Until something asks for the block, it only tests two
+flags. On the web the page asks by calling `byopop_livesplit_block` (exported, `byopop_web_game(... EXPORTS
+_byopop_livesplit_block)`); natively the `livesplit` feature of an enabled mod asks (`mods/livesplit/mod.json`, a manifest
+only). `-livesplitlog=<file>` writes a line for each event.
+
+**What it reads.** The rules live in the scripts, so the observer reads what they leave on the C++ side. That is the
+player's profile (the values the scripts set: `CompletedChapters`, `Farthest*`, `Current*`, `InGame`, `BeatRegularGame`,
+the arena's `TM_` keys), the game screen (`mBookManager`, with `mTimedMode` for the arena), and the battle's state
+(`gBattleEngine->mState`, which `BattleEngine::SetState` mirrors from the scripts). A board is a session of one mode, from the
+main menu and back to it. `mode` is 0 for the adventure and 1 for the arena; 2, 3 and 4 are Word Master, Letter Rip and Link
+n' Spell when started from the main menu's tent (a mini-game played from the adventure's map belongs to the adventure).
+`skill` is 0: the game has no difficulty. `progress` is the books completed (0 to 3, -1 in a mini-game). `level` is the
+chapters completed, or the arena's enemies beaten. `displayLevel` is the chapter in play, `state` is the battle's state (-1
+with no battle), and `tick` is the app's update count. The game's own four words are the book, chapter and stage in play,
+and the session's falls. A paused board has `AUTOSPLIT_FLAG_PAUSED`, a session that continues a game has
+`AUTOSPLIT_FLAG_RESUMED`, and `AUTOSPLIT_FLAG_VANILLA` is on while the mods' score key is empty (no enabled mod changes the
+play).
+
+**Events.**
+- *GO*: a session's first update, when it starts a new game. In the adventure that means a player who has completed no
+  chapter, got no farther than the first battle and has no battle saved. In the arena it means a new run (`TM_CurrentStage`
+  -1, as `Profile::ResetTimedMode` leaves it). Every mini-game started from the tent counts. Any other session is RESUMED
+  and raises no GO.
+- *Level clear*: a chapter completed in the adventure (the count of `CompletedChapters` rises), or an enemy beaten in the
+  arena (`TM_LastEnemyIndex` rises).
+- *Game over*: kind 0 when Lex falls in the adventure (the battle enters `BE_DYING`). The adventure goes on with the
+  battle again, so the session stays in play and counts the fall. Kind 1 when Lex falls in the arena, which ends the run.
+  Kind 2 at a mini-game's end, when its hall of fame comes up. A mini-game left from its menu ends no game.
+- *Win*: the adventure's `BeatRegularGame` becomes true (the third book's end), or the arena's win dialog comes up
+  (`DIALOG_ARENA_WIN`).
+
+The bot's run through the whole adventure with the block on (`tools/coverage/advance.sh` with the mod and the log) gave one
+GO, 30 level clears and the win, with Lex's falls counted on the way. A Word Master game from the tent gave GO in mode 2
+and its end. The arena's events were checked with the screen pass's arena steps (`IDENTICAL_PLAY.md`, "Every screen").
+
 ## Mods
 
-None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
-making.
+`mods/livesplit` (a manifest only) turns the autosplit block on natively ("The autosplit block" above). No mod changes
+the game yet (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones
+worth making.
 
 ## Status (2026-10-26)
 

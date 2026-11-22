@@ -178,6 +178,8 @@ public:
 	                             size_t theCount = 0);
 	void LogBoardForTests();
 	std::string mBoardLogForTests;
+	void LogRandForTests();
+	std::string mRandLogForTests;  // port: -randlog, the framework's random draws by update (TestHooks.cpp)
 	bool mPopCapLogo = false;  // port: -popcaplogo keeps the startup's PopCap logo (TitleScreen::Update)
 	std::string ScreenForTests();
 	std::string MoveForTests();
