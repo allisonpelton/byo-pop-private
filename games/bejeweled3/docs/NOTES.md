@@ -168,6 +168,13 @@ What the analysis has found about the exe, for reading the export. The plan is i
   logos from the properties ("Logo%dFile", "Logo%dHoldTime") and makes the PLAY, RECORDS and OPTIONS buttons.
   LoaderScreen (vtable 0x86db74) is only a progress bar (its Draw 0x6761f0); its constructor is inline and was not
   found yet.
+- Translated in Init's second half (checked by a -fast run to the 300th update, no popups): the high-score manager and
+  its local server (src/HighScores.*), the four quest files (src/QuestData.*, the .cfg format read by the port's own
+  reading of 0x791c80), tips, ranks and badges through EncodingParser (src/EncodingParser.*), the Profile with users.dat
+  and profile.dat at version 0x47 (src/Profile.*; several fields are named by position because their roles are not known),
+  "LastUser" in Init and WriteToRegistry, the music (src/Bej3Music.*: music.xml read, "Play" of "LoadingScreen" started by
+  order; curves, row syncs and tracks not translated), the three cursors. Left out: the Steam object at +0xbac, temple.p3d,
+  the tooltip manager, the +0x218 start value, the temporary-player folder move (0x71b940) and 0x71ba40's folder delete.
 - Translated so far (src/Bej3App.cpp): the constructor's names, manager and art size; ReadFromRegistry and
   WriteToRegistry without GameData (registration, removed), RegCodeNotNeeded (to check what +0xa78 gates), LastUser
   (comes with the Profile) and ClientId; the art-size switches; the 2D mode (0x76b020); Init's properties, manifest and

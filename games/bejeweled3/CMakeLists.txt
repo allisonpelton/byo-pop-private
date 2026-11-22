@@ -28,7 +28,7 @@ endif()
 # [-600|-768|-1200] (src/main.cpp); it finds assets/bejeweled3/ by itself. The web build comes with its milestone
 # (docs/PORT_PLAN.md).
 if(NOT EMSCRIPTEN)
-  set(B3_SOURCES src/main.cpp src/Bej3App.cpp src/Res.cpp)
+  set(B3_SOURCES src/main.cpp src/Bej3App.cpp src/Res.cpp src/Bej3Music.cpp src/EncodingParser.cpp src/HighScores.cpp src/Profile.cpp src/QuestData.cpp)
   add_executable(bejeweled3 ${B3_SOURCES})
   target_include_directories(bejeweled3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
   target_link_libraries(bejeweled3 PRIVATE prime sexyframework sexyopenmpt sexyopenjpeg)
