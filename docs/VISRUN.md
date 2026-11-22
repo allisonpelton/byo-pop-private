@@ -1,7 +1,7 @@
 # visrun: an original in 3D on the visible desktop
 
-`tools/visrun.py` runs one PopCap original on the user's visible desktop, for what neither Windows Sandbox nor rundesk
-gives it: its Direct3D mode (`docs/ORIGRUN.md`, "Hardware acceleration"). It replaces the five game-local drivers
+`tools/visrun.py` runs a PopCap original on the user's visible desktop, in a place of its own on the right half of the screen
+(up to four runs at once, "The places" below), for what neither Windows Sandbox nor rundesk gives it: its Direct3D mode (`docs/ORIGRUN.md`, "Hardware acceleration"). It replaces the five game-local drivers
 (Astro Pop, Bejeweled 2, Bookworm Adventures, Rocket Mania, Typer Shark) with one that reads a small per-game config and a
 step file. Run it with `python -I`.
 
@@ -11,13 +11,57 @@ A run may start at any hour. The user lifted the time window on 2026-11-15: "Get
 visible desktop. Do what you want forever now". A run still has a deadline, as a safety stop for one that hangs: 14 hours
 after it starts, and it ends 2 minutes before that. `--user-window-until HH:MM` on the command line sets an earlier stop
 (the next HH:MM, at most 14 hours ahead; never a default, never in a config). `--dry-run`, `--selftest` and
-`--help` run at any hour. Before starting it checks `tools/gamecount.py --limit`, takes `build/visrun/visrun.lock` (one
-visrun on the machine), and waits until no other game window (class `MainWindow` or `SDL_app`) has been on the desktop
-for `--quiet` seconds (default 60).
+`--help`, `--places` run at any hour. Before starting it checks `tools/gamecount.py --limit` (again just before the launch,
+which can come minutes later), takes a place and its game lock (below), and waits until no other window has been on its
+place for `--quiet` seconds (default 60).
 
 The user has allowed four windows at once on the right half of the screen, none overlapping, 2D runs as well as 3D
-("Right half, four", 2026-11-22, `docs/RULES.md`). Until visrun gives each run a place of its own there, it keeps its one
-lock and runs one window at a time.
+("Right half, four", 2026-11-22, `docs/RULES.md`). That is what the places are.
+
+## The places
+
+**The layout.** The right half is the primary screen's, from x = width / 2, and its size is read from the screen (the process
+is DPI aware, so the numbers are real pixels). It is cut into an even grid of places, each at least 840x680 (an 800x600 client
+with its frame and title bar, 40x80 on top of the client), at most four, numbered row by row. A 3840x2160 screen has a right
+half of 1920x2160 and **four places of 960x1080**, two by two: place 0 at (1920, 0), 1 at (2880, 0), 2 at (1920, 1080), 3 at
+(2880, 1080). A 1920x1080 screen has a right half of 960x1080 and **one place** (960x1080; a second would be shorter than
+680). A 2560x1440 screen has two, 1280x720 one above the other; a 1280x720 screen has none, and a run refuses.
+
+**What a run takes.** A window whose client plus frame fits a place takes one place. A larger one takes two adjacent places
+(side by side first, then one above the other; the pair's rectangle is its place); one that fits no pair refuses to start.
+The window goes to the place's top left as soon as it exists and stays there, topmost and never activated; a config's `pos`
+is ignored on the right half (the log says so) and can be dropped from older configs. The game is also started with that
+position as its startup position, for games that let Windows choose theirs. If the window's frame turns out larger than the
+place, the run stops before any input (exit 3).
+
+**The locks.** Each place has a lock file `place<N>.lock` under `%LOCALAPPDATA%\byo-pop\visrun\`, next to origrun's sandbox lock
+under `%LOCALAPPDATA%\byo-pop\`; every worktree sees them, which a lock under a worktree's `build/` would not give. A file
+holds {pid, run, start, game_pid} and lives for the whole run. A run takes the first group of places (in order: single
+places 0 to 3, then pairs) whose files are free (or whose holder's process is gone: the file is renamed away, which only one
+taker wins, and deleted) and that no other window overlaps right now, so a place with the user's window on it is skipped for the
+next. It takes all the places of its group or none. A second lock, `game-<registry key>.lock`, keeps two runs of one game
+apart, since they would share its registry key and saves (two configs of one game, or the same game from two worktrees):
+the later one waits. With no free place a run waits and says so in `visrun.log` ("waiting for a place (N s): ..." with the
+reason for each group, every minute); it gives up at its deadline.
+
+**The quiet wait.** With its place taken, the run waits until no window has overlapped the place's rectangle for `--quiet`
+seconds. Any visible, not minimised, not cloaked window there blocks it, except the desktop and the taskbar: another game, an
+older visrun's, a port's, the user's own (a browser, a terminal). It looks at nothing outside its place, so runs in other places
+go on. The run's own windows never block it; the game's window is moved only into a place no other window overlapped for
+that time, so it is never put over a game window it does not own. Its first moments are the one gap: from creation to the move
+(a poll every 2 ms) the window is where the game made it, usually the screen's centre, which can reach into the left column.
+
+**Shots.** A shot is still refused while any other visible window overlaps the game's window, and three refusals in a row end
+the run (exit 4).
+
+**`python -I tools/visrun.py --places`** lists each place with its rectangle, who holds it (run, pid, game pid, minutes), and
+the windows that are not the holder's own and overlap it (class, title, pid), then the game locks held. It starts nothing.
+
+**An older visrun** (another worktree that has not merged this) still takes its own `build/visrun/visrun.lock` and waits until no
+game window (`MainWindow` or `SDL_app`) has been on the whole desktop for its `--quiet` seconds. That is safe: while new runs
+hold the right half it waits, and it knows nothing of the places. The one gap is the race at its start: a run that begins
+in the instant after the older one's last check can have its window put wherever the older config's `pos` says. The older one
+holds no place, so `--places` shows its window only as an overlapping window; a new run never starts on a place it overlaps.
 
 ## What it does
 
@@ -57,7 +101,7 @@ lock and runs one window at a time.
 | `exe`, `carve_exe` | The exe's leaf name in the copy, and a carved exe to place as it. |
 | `patches` | A patch list (origrun's format), applied with `--seed`. |
 | `title`, `client` | A text the window's title holds, and the least client size of the game window (`[w, h]`). |
-| `pos` | Optional `[x, y]` to put the window at. |
+| `pos` | Ignored: the run's place decides where the window goes. |
 | `counter` | The update counter, origrun's expression: `0xA`, `[0xA]+0xB`, `[[0xA]+0xB]+0xC`. |
 | `clock` | `"real"` (the process is suspended at each step; the update a step lands at is logged) or `"virtual"` (origrun's clock: update for update). `--clock` overrides it. |
 | `update_ms` | One update's length, for `clip.json`. |
@@ -99,8 +143,8 @@ refused three times.
 ## Lessons from the first live runs
 
 Venice's 3D tour (2026-11-15) was the first long run, and it taught four things:
-- **Give every config a `pos`.** Windows that were centred overlapped another game's window, every shot was refused,
-  and the run ended with exit 4.
+- **Windows that were centred overlapped another game's window** (every shot was refused, exit 4): the first runs gave every
+  config a `pos`; now the place does it.
 - **A long tour needs `--timeout 600`.**
 - **`values` print unsigned.** A negative number shows as its 32-bit pattern: -2 is 4294967294.
 - **Peek every update while an update number matters.** The loading thread moves the first running update, which was
@@ -111,5 +155,6 @@ Venice's 3D tour (2026-11-15) was the first long run, and it taught four things:
 ## Checked without a desktop
 
 `python -I tools/visrun.py --selftest` (the time window, expressions, window picking, overlap, forbidden regions, the layout
-of origrun's cursor block) and `--dry-run` (a step file's plan; also checks the forbidden regions). The rest needs a first
+of origrun's cursor block, the places at 3840x2160 and 1920x1080, a window that needs two places, lock order and a dead holder's
+lock, the quiet wait with fake windows in and out of a place; it starts no game) and `--dry-run` (a step file's plan; also checks the forbidden regions). The rest needs a first
 run on the desktop.
