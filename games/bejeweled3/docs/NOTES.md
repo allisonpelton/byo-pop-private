@@ -175,6 +175,12 @@ What the analysis has found about the exe, for reading the export. The plan is i
   "LastUser" in Init and WriteToRegistry, the music (src/Bej3Music.*: music.xml read, "Play" of "LoadingScreen" started by
   order; curves, row syncs and tracks not translated), the three cursors. Left out: the Steam object at +0xbac, temple.p3d,
   the tooltip manager, the +0x218 start value, the temporary-player folder move (0x71b940) and 0x71ba40's folder delete.
+- The MainMenu (src/MainMenu.*) is made at the end of Init and shown: the 2D background (the 2DOnly group's mainmenu background,
+  stretched over the menu: the Background widget 0x77dbb0 made by 0x6a2a20), the PLAY, RECORDS and OPTIONS buttons
+  (string ids 0x11f, 0x11e, 0x11d; they are CrystalBall objects, 0x78ab50, 0x678 bytes, with particle effects, and are plain
+  plates here, lit under the mouse), "Loading..." (id 0x122) while the loading thread runs and the player's name. Positions, the
+  curves of the logos and buttons, the foreground picture, the tips and the 3D branch are not translated; the buttons'
+  places are the port's own guess. The LoaderScreen (0x6761f0) is not translated.
 - Translated so far (src/Bej3App.cpp): the constructor's names, manager and art size; ReadFromRegistry and
   WriteToRegistry without GameData (registration, removed), RegCodeNotNeeded (to check what +0xa78 gates), LastUser
   (comes with the Profile) and ClientId; the art-size switches; the 2D mode (0x76b020); Init's properties, manifest and
