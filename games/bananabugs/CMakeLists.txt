@@ -5,7 +5,7 @@
 file(GLOB BANANABUGS_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_executable(bananabugs ${BANANABUGS_SOURCES})
 target_include_directories(bananabugs PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(bananabugs PRIVATE sexyframework sexyopenjpeg)
+target_link_libraries(bananabugs PRIVATE sexyframework sexycompat2004 sexyopenjpeg)
 if(NOT MSVC)
   target_compile_options(bananabugs PRIVATE -Wall -Wno-overloaded-virtual -Wno-unused-private-field)
   # The original's int arithmetic wraps (x86 imul and add), and the game depends on it
