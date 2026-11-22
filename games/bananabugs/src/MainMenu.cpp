@@ -5,12 +5,18 @@
 #include "Cursor.h"
 #include "Emitter.h"
 #include "GameApp.h"
+#include "Help.h"
+#include "HighScore.h"
 #include "Map.h"
+#include "NewUser.h"
 #include "ObjString.h"
+#include "Options.h"
 #include "Pending.h"
+#include "Player.h"
 #include "Res.h"
 #include "SoundQueue.h"
 #include "Transition.h"
+#include "UserSelect.h"
 
 using namespace Sexy;
 

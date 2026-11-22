@@ -5,12 +5,16 @@
 #include "Pending.h"
 
 #include "Anim.h"
+#include "Player.h"
 
 #include <cstdio>
 
 using namespace Sexy;
 
-Player* Player::sCurrent = nullptr;
+float Sexy::gBugBoxX = 0.0f;
+float Sexy::gBugBoxY = 0.0f;
+float Sexy::gBugBoxWidth = 0.0f;
+float Sexy::gBugBoxHeight = 0.0f;
 bool PauseWin::sEnabled = false;
 bool MetaGame::sFirstVisit = false;
 
@@ -118,63 +122,6 @@ bool MetaGame::TakeLevelChosen()
 	return false;
 }
 
-Player::Player()
-{
-	mSavedProgress = 0;
-	mMapLevel = 0;
-	mMetaGameStarted = false;
-}
-
-Player::~Player()
-{
-}
-
-// port: the stand-in has no board to click
-void Player::BoardClick(int theButton)
-{
-	(void)theButton;
-}
-
-// port: the stand-in window opens nothing: it reports itself closed from the start
-Options::Options()
-{
-	mState = BBWINDOW_CLOSED;
-}
-
-// port: as Options
-HighScore::HighScore()
-{
-	mState = BBWINDOW_CLOSED;
-}
-
-// port: as Options
-UserSelect::UserSelect()
-{
-	mState = BBWINDOW_CLOSED;
-}
-
-// port: as Options; the flag the original keeps is not kept
-NewUser::NewUser(bool theFlag)
-{
-	(void)theFlag;
-	mState = BBWINDOW_CLOSED;
-}
-
-// port: the stand-in only takes its parent; the original also builds the window's texts and lines
-void NewUser::Open(ObjBase* theParent)
-{
-	SetParent(theParent, nullptr);
-}
-
-// port: the stand-in is never shown, and nothing frees it: the original's help screen deletes itself when done
-Help::Help()
-{
-}
-
-void Help::Start()
-{
-}
-
 // port: the stand-in never pauses
 void PauseWin::PauseForFocusLoss()
 {
@@ -186,36 +133,6 @@ bool PauseWin::IsBlocking()
 }
 
 void PauseWin::ResumeOnRelease()
-{
-}
-
-// port: the stand-in profile list has one player, called PLAYER, whose game is the stand-in Player's
-const char* Sexy::GetProfileName()
-{
-	return Player::sCurrent != nullptr ? "PLAYER" : nullptr;
-}
-
-// port: the stand-in resets only the fields the main menu reads
-void Sexy::ResetProfile()
-{
-	if (Player::sCurrent != nullptr) {
-		Player::sCurrent->mSavedProgress = 0;
-		Player::sCurrent->mMapLevel = 0;
-		Player::sCurrent->mMetaGameStarted = false;
-	}
-}
-
-// port: the stand-ins of GameApp's globals do nothing but make one player
-void Sexy::InitHighScores()
-{
-}
-
-void Sexy::LoadProfiles()
-{
-	Player::sCurrent = new Player();
-}
-
-void Sexy::SaveProfiles()
 {
 }
 
@@ -387,3 +304,186 @@ bool Sexy::LevelAcceptsMouse()
 {
 	return true;
 }
+
+// port: the stand-in level makes no rope
+RopeObj* RopeObj::Current()
+{
+	return nullptr;
+}
+
+bool RopeObj::IsAimReady()
+{
+	return false;
+}
+
+int RopeObj::GetState()
+{
+	return 0;
+}
+
+void RopeObj::SetAim(int theVertical, int theCellX, int theCellY, int theFrom, int theTo)
+{
+	(void)theVertical;
+	(void)theCellX;
+	(void)theCellY;
+	(void)theFrom;
+	(void)theTo;
+}
+
+void RopeObj::Start(int theVertical, int theCellX, int theCellY, int theFrom, int theTo)
+{
+	(void)theVertical;
+	(void)theCellX;
+	(void)theCellY;
+	(void)theFrom;
+	(void)theTo;
+}
+
+void RopeObj::ResetIfFinished()
+{
+}
+
+void RopeObj::HitBox(float theX, float theY, float theWidth, float theHeight)
+{
+	(void)theX;
+	(void)theY;
+	(void)theWidth;
+	(void)theHeight;
+}
+
+// port: the stand-in level is never playing and shows no texts
+bool LevelObj::IsPlaying()
+{
+	return false;
+}
+
+void LevelObj::HideMessage()
+{
+}
+
+void LevelObj::ShowGameOver()
+{
+}
+
+void LevelObj::ShowMessage(const char* theText, float theX, float theY, int theDelay, float theScale, float theRed,
+	float theGreen, float theBlue)
+{
+	(void)theText;
+	(void)theX;
+	(void)theY;
+	(void)theDelay;
+	(void)theScale;
+	(void)theRed;
+	(void)theGreen;
+	(void)theBlue;
+}
+
+void LevelObj::ShowLives(int theLives)
+{
+	(void)theLives;
+}
+
+void LevelObj::ShowRopePreview(int theCellX, int theCellY, int theVertical, int theFrom, int theTo)
+{
+	(void)theCellX;
+	(void)theCellY;
+	(void)theVertical;
+	(void)theFrom;
+	(void)theTo;
+}
+
+void LevelObj::ClearRopePreview()
+{
+}
+
+// port: the stand-in level has no bugs, ground or hints
+bool BugObj::AnyNear(float theX, float theY, float theReach)
+{
+	(void)theX;
+	(void)theY;
+	(void)theReach;
+	return false;
+}
+
+void BugObj::OnShot()
+{
+}
+
+bool FillObj::IsReady()
+{
+	return false;
+}
+
+ObjBase* FillObj::GetWall(int theColumn, int theRow)
+{
+	(void)theColumn;
+	(void)theRow;
+	return nullptr;
+}
+
+TileObj* FillObj::GetTile(int theColumn, int theRow)
+{
+	(void)theColumn;
+	(void)theRow;
+	return nullptr;
+}
+
+void WalkThru::OnShoot()
+{
+}
+
+void WalkThru::OnLoseLife()
+{
+}
+
+void WalkThru::OnTurn()
+{
+}
+
+// port: the stand-in has no bonus running; the original also ends what the running bonus changed, and lets go of what
+// the monkey holds
+void Bonus::Cancel()
+{
+	Player::Drop();
+}
+
+void Bonus::CancelIfDone()
+{
+}
+
+// port: the stand-in board shows nothing
+void ScoreBoard::ShowScore(int theScore)
+{
+	(void)theScore;
+}
+
+void ScoreBoard::ShowPercent(int thePercent)
+{
+	(void)thePercent;
+}
+
+void ScoreBoard::ShowBananaIcon()
+{
+}
+
+void ScoreBoard::MarkLastIcon()
+{
+}
+
+void ScoreBoard::ActivateHud()
+{
+}
+
+void ScoreBoard::DeactivateHud()
+{
+}
+
+void HeldObj::Rotate()
+{
+}
+
+bool HeldObj::Place()
+{
+	return false;
+}
+

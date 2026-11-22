@@ -9,6 +9,15 @@
 namespace Sexy
 {
 
+// The keys a name being typed takes besides the typed characters (ObjBase::sKeyPressed and sKeyHeld)
+enum EditKey
+{
+	KEY_BACKSPACE = 0x08,
+	KEY_ENTER = 0x0d,
+	KEY_LEFT = 0x25,
+	KEY_RIGHT = 0x27,
+	KEY_DELETE = 0x2e,
+};
 
 class ObjString : public ObjBase
 {

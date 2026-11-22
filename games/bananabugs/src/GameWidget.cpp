@@ -10,6 +10,7 @@
 #include "Map.h"
 #include "ObjBase.h"
 #include "Pending.h"
+#include "Player.h"
 #include "PopCap.h"
 #include "SoundQueue.h"
 #include "Transition.h"

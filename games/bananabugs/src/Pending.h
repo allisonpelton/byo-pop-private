@@ -36,50 +36,108 @@ enum LevelResult
 	LEVEL_RESULT_LOST = 3,     // back to the main menu
 };
 
-// The rules of a level (0x439700); the stand-in's never end
+// The rope the monkey shoots (0x461320; the level's rope is the object at +0x9000 of the LevelObj); the stand-in never
+// exists, so Current is always nullptr and nothing calls the others
+class RopeObj
+{
+public:
+	static RopeObj* Current();                  // the level's rope, or nullptr when there is none
+	bool IsAimReady();                          // 0x462620
+	int GetState();                             // 0x462630: 1 while the rope runs
+	void SetAim(int theVertical, int theCellX, int theCellY, int theFrom, int theTo); // 0x462360
+	void Start(int theVertical, int theCellX, int theCellY, int theFrom, int theTo);  // 0x462270
+	void ResetIfFinished();                     // 0x462600
+	void HitBox(float theX, float theY, float theWidth, float theHeight);             // 0x462950
+};
+
+// The rules of a level (0x439700); the stand-in's never end, and the statics are those of the level sLevel points to,
+// which the stand-in never makes: each does nothing and says there is no level
 class LevelObj
 {
 public:
 	int GetResult() { return LEVEL_RESULT_NONE; } // 0x43a9b0
+	static bool IsPlaying();                    // 0x43aad0: the level is in the state that takes play (+0x53c0 is 2)
+	static void HideMessage();                  // 0x43aa30
+	static void ShowGameOver();                 // 0x43aa60
+	static void ShowMessage(const char* theText, float theX, float theY, int theDelay, float theScale, float theRed,
+		float theGreen, float theBlue);         // 0x43aae0
+	static void ShowLives(int theLives);        // 0x43ac60
+	static void ShowRopePreview(int theCellX, int theCellY, int theVertical, int theFrom, int theTo); // 0x43e060
+	static void ClearRopePreview();             // 0x43e020
 };
 
-// The options window (0x453e30): the stand-in has no controls and reports itself closed at once
-class Options : public BBWindow
+// The bugs (0x425410 and the kinds before it); the stand-in has none
+class BugObj
 {
 public:
-	Options();
+	static bool AnyNear(float theX, float theY, float theReach); // 0x426300
+	static void OnShot();                       // 0x426060: tells the bugs a rope was shot
 };
 
-// The high score window (0x4351b0): the stand-in lists no scores and reports itself closed at once
-class HighScore : public BBWindow
+// One cell of the ground the monkey cuts; the stand-in has none
+class TileObj : public ObjBase
 {
 public:
-	HighScore();
+	bool mCut;                                  // +0x291: the tile has been cut away
 };
 
-// The window that asks who is playing (0x4721e0): the stand-in lists no players and reports itself closed at once
-class UserSelect : public BBWindow
+// The ground the monkey cuts (0x42ac70); the stand-in is never ready
+class FillObj
 {
 public:
-	UserSelect();
+	static bool IsReady();                      // 0x42ac70
+	static ObjBase* GetWall(int theColumn, int theRow); // the grid at 0x602eb0, 40 columns of 32 rows of 8 objects: slot 2
+	static TileObj* GetTile(int theColumn, int theRow); // slot 3
 };
 
-// The window that asks for a new player's name (0x4504d0): the stand-in takes no name and reports itself closed at once
-class NewUser : public BBWindow
+// The walk-through's hints (0x475610..0x475670); the stand-in shows none
+class WalkThru
 {
 public:
-	NewUser(bool theFlag);
-	void Open(ObjBase* theParent); // 0x4505e0
+	static void OnShoot();                      // 0x475610
+	static void OnLoseLife();                   // 0x475630
+	static void OnTurn();                       // 0x475670
 };
 
-// The help screen (0x434700): the stand-in shows nothing and is done at once
-class Help : public ObjBase
+// The bonuses (0x406cd0, 0x406d90); the stand-in has none running
+class Bonus
 {
 public:
-	Help();
-	void Start();                  // 0x434770
-	bool IsDone() { return true; } // 0x4348b0
+	static void Cancel();                       // 0x406cd0
+	static void CancelIfDone();                 // 0x406d90
 };
+
+// The board of figures in a level (0x464320): the stand-in shows nothing. A Player's board is nullptr until a level
+// gives it one, and these never read the object they are called on
+class ScoreBoard
+{
+public:
+	void ShowScore(int theScore);               // 0x4684a0
+	void ShowPercent(int thePercent);           // 0x468500
+	void ShowBananaIcon();                      // 0x465140: the next banana's icon appears
+	void MarkLastIcon();                        // 0x4650f0: the last icon shown is marked with the id 0x43 and started
+	void ActivateHud();                         // 0x4676e0
+	void DeactivateHud();                       // 0x467750
+};
+
+// The effect of a bonus on the monkey (0x40bfe0); the stand-in is an object that shows nothing
+class BonusEffect : public ObjBase
+{
+};
+
+// A thing the monkey holds, a bonus on its way to be put down; the stand-in turns and lets go of nothing
+class HeldObj : public ObjBase
+{
+public:
+	virtual void Rotate();                      // slot 20 (+0x50)
+	virtual bool Place();                       // slot 21 (+0x54): false when it may not go there
+};
+
+// The box of the bug the rope last asked about (0x6a6778..0x6a6784), written by the bugs (0x425410)
+extern float gBugBoxX;
+extern float gBugBoxY;
+extern float gBugBoxWidth;
+extern float gBugBoxHeight;
 
 // The map between levels (0x448e10)
 class MetaGame : public ObjBase
@@ -96,21 +154,6 @@ public:
 	static void ClearFirstVisit() { sFirstVisit = false; } // 0x44f440
 };
 
-// A player's profile (0x459380), also the object that shows the player's state in a level
-class Player : public ObjBase
-{
-public:
-	int mSavedProgress;        // +0x2b4: above 0 once a game is in progress; the main menu then asks about continuing it
-	int mMapLevel;             // +0x2bc: the level the map moves to
-	bool mMetaGameStarted;     // +0x3b8
-
-	static Player* sCurrent;   // 0x670198
-
-	Player();
-	~Player();
-	static void BoardClick(int theButton); // 0x45d8e0
-};
-
 // The pause window (0x454ef0)
 class PauseWin
 {
@@ -124,15 +167,6 @@ public:
 
 // Whether the level being played takes the mouse (the byte at +0x8ffd of the LevelObj sLevel points to)
 bool LevelAcceptsMouse();
-
-// The profiles the main menu reads and changes (0x459380)
-const char* GetProfileName(); // 0x45dde0: the current profile's name, or nullptr when no profile is in use
-void ResetProfile();         // 0x45e7d0: starts the current profile's game afresh
-
-// GameApp's globals (0x42d330)
-void InitHighScores();       // 0x435aa0
-void LoadProfiles();         // 0x45e7f0
-void SaveProfiles();         // 0x45e110
 
 // GameWidget's preloads (0x42f3b0): each class's pictures, loaded once and kept
 void PreloadNetFly();        // 0x42ad40
