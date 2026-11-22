@@ -20,6 +20,8 @@ public:
 
 	// The main menu pushed on the sky stack (the title state's entering)
 	void showMainMenu();
+	// 0x443690: the main menu taken off the stack when a game begins
+	void hideMainMenu() { mSkyStack.pop(mMainMenu.get()); }
 	// Called each frame with the seconds elapsed
 	void update(double theElapsed) { mSkyStack.update(theElapsed); }
 
@@ -29,6 +31,7 @@ private:
 	void onOptionsAction(const std::string& theAction);
 	void onHighScoresAction(const std::string& theAction);
 	void onCreditsClicked();
+	void startGame(const std::string& theModeName);
 	void onQuitAction(const std::string& theAction);
 
 	AtlantisApp* mApp;

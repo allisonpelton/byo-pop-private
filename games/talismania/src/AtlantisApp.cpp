@@ -1,5 +1,6 @@
 #include "AtlantisApp.h"
 #include "FrontEnd.h"
+#include "GameMode.h"
 
 #include "AtlantisData.h"
 #include "Engine.h"

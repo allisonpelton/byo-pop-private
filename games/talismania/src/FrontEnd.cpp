@@ -2,6 +2,8 @@
 
 #include "AtlantisApp.h"
 #include "Engine.h"
+#include "GameMode.h"
+#include "PlayState.h"
 #include "Transition.h"
 
 namespace
@@ -101,6 +103,10 @@ void FrontEnd::onMainMenuAction(const std::string& theAction)
 		mSkyStack.pop(mMainMenu.get());
 		mSkyStack.push(mCredits.get());
 	}
+	else if (theAction == "startstorymode")
+		startGame("story");
+	else if (theAction == "startheromode")
+		startGame("hero");
 	else if (theAction == "quit")
 		mSkyStack.push(mQuitConfirm.get(), true);
 	else
@@ -139,4 +145,21 @@ void FrontEnd::onQuitAction(const std::string& theAction)
 		mSkyStack.pop(mQuitConfirm.get());
 	else
 		engine::getEngine()->log("Quit action \"%s\" not yet translated\n", theAction.c_str());
+}
+
+// 0x407742: the game mode by its name, taken as the app's current one and begun, and the app's state changed to the play
+// state. A second press while a mode is set does nothing (0x407532)
+void FrontEnd::startGame(const std::string& theModeName)
+{
+	if (mApp->mGameMode != nullptr)
+		return;
+	std::map<std::string, GameModeClass>::const_iterator aMode = mApp->mData.gameModes.find(theModeName);
+	if (aMode == mApp->mData.gameModes.end())
+	{
+		engine::getEngine()->log("NO GAME MODE NAMED %s\n", theModeName.c_str());
+		return;
+	}
+	mApp->mGameMode.reset(new GameMode(mApp, aMode->second));
+	mApp->mGameMode->begin();
+	mApp->mStateMgr.changeState(new PlayState(mApp));
 }

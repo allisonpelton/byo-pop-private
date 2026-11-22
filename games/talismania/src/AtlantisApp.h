@@ -17,6 +17,7 @@
 #include <memory>
 
 class FrontEnd;
+class GameMode;
 
 class AtlantisApp : public engine::Object, public sigslot::HasSlots
 {
@@ -46,6 +47,8 @@ public:
 
 	// The front-end screens (0x4039b0), made when the title state is entered
 	std::unique_ptr<FrontEnd> mFrontEnd;
+	// +0x78: the game mode chosen at the main menu (0x40cc90 stores it), null before one is
+	std::unique_ptr<GameMode> mGameMode;
 };
 
 // 0x813aa2: set by the boot when the archive is used. The loading screen reads its few loose files with loose files
