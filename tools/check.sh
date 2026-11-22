@@ -33,6 +33,7 @@
 #                (framework/TriangleWrap: DrawTrianglesTex's texture wrap, triangles cut at whole-number u and v); and stretchcal
 #                (framework/LinearStretch against the renderer's linear present on this machine's card, four sizes, and its
 #                Draw against DrawReference at many sizes, -selftest); and
+#                the native game speed (fwtest -realinput=tools/fwtest/speed.txt: the mod menu's speed rows by the keyboard, F6/F7/F8, game-speed.json, read back by speed2.txt); and
 #                fwtest -realinput=tools/fwtest/realinput.txt with -fast and in real time, with no game files (real SDL
 #                events through HandleEvent and the widget manager, docs/REAL_INPUT.md); and fwtest -corner
 #                -realinput=tools/fwtest/flags.txt on DDInterface and on the software screen (the fast stretch's
@@ -830,6 +831,15 @@ suite_unit() {
 		grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.ri$r" && fail realinput-$r
 	done
 	k="realinput: -fast $(lastof "$1.rifast" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //'), real time $(lastof "$1.rireal" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //')"
+	# the native game speed option (tools/fwtest/speed.txt): the mod menu's speed rows by the keyboard, the F6/F7/F8 hotkeys and the
+	# saved game-speed.json, then a second run that reads it back; fwtest's user folder holds the file, so it is removed before and after
+	local sp=build/native/userdata/game-speed.json
+	rm -f "$sp"
+	timeout 120 "build/native/fwtest.exe" -realinput=tools/fwtest/speed.txt -placeholders -gamedir="$OUT/no-game-files" > "$1.sp1" 2>&1 || fail speedkeys
+	timeout 120 "build/native/fwtest.exe" -realinput=tools/fwtest/speed2.txt -placeholders -gamedir="$OUT/no-game-files" > "$1.sp2" 2>&1 || fail speedkeys-readback
+	rm -f "$sp"
+	grep -q -E 'realinput: line|SDL_PushEvent failed' "$1.sp1" "$1.sp2" && fail speedkeys
+	k="$k, speed keys: $(lastof "$1.sp1" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //'), read back $(lastof "$1.sp2" 'realinput: [0-9]+ checks, [0-9]+ failed' | sed 's/^realinput: //')"
 	# tools/fwtest/flags.txt: the fast stretch's sampling a game set (-corner) and the player's 3D choice hold through every
 	# change of size and mode, on DDInterface and on the software screen (whose full screen goes to the GPU: SURFACE_STRETCH=0,
 	# since the smooth stretch would keep it in software there)
@@ -869,9 +879,9 @@ suite_unit() {
 	local sct
 	timeout 60 python -I tools/screenchecktest.py > "$1.sct" 2>&1 || fail sct
 	sct="$(tail -1 "$1.sct")"
-	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" \
+	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" "$1.sp1" "$1.sp2" \
 		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" "$1.sct" >> "$1"
-	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" \
+	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" "$1.sp1" "$1.sp2" \
 		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" "$1.mtc" "$1.sct"
 	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $sc; $k; $fl; $l; $pm; $jp; $mt; $sct"
 	[ -z "$FAILED" ] || SUMMARY="FAILED STEPS:$FAILED; $SUMMARY"

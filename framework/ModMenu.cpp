@@ -916,21 +916,28 @@ void ModMenu::ScrollBy(int theDelta)
 // Up and Down: the previous or next row (a mod, a setting)
 void ModMenu::MoveFocusRow(int theDelta)
 {
+	// a control's row: the row's own target (a mod's buttons are on its T_ROW, the speed's faster button is on its slower one's)
+	auto rowKind = [](int theKind) {
+		if ((theKind == T_UP) || (theKind == T_DOWN) || (theKind == T_OPEN))
+			return (int) T_ROW;
+		return (theKind == T_SPEED_UP) ? (int) T_SPEED_DOWN : theKind;
+	};
 	std::vector<std::pair<int, int> > aRows;
 	for (const Target& aTarget : mTargets)
-		if ((aTarget.mKind == T_ROW) || (aTarget.mKind == T_VALUE))
+		if ((aTarget.mKind == T_ROW) || (aTarget.mKind == T_VALUE) || (aTarget.mKind == T_SPEED_DOWN) || (aTarget.mKind == T_SPEED_KEYS))
 			aRows.push_back(std::make_pair(aTarget.mKind, aTarget.mItem));
 	if (aRows.empty())
 		return;
 	int aCurrent = -1;
 	for (size_t i = 0; i < aRows.size(); i++)
-		if (aRows[i].second == mFocusItem)
+		if ((aRows[i].first == rowKind(mFocusKind)) && (aRows[i].second == mFocusItem))
 			aCurrent = (int) i;
-	bool isInRow = (mFocusKind == T_ROW) || (mFocusKind == T_VALUE) || (mFocusKind == T_UP) || (mFocusKind == T_DOWN) || (mFocusKind == T_OPEN);
+	// (a kind that is not a row's leaves aCurrent at -1: the header, the footer)
+	bool isInRow = aCurrent >= 0;
 	int aNext;
 	if ((theDelta <= -100000) || (theDelta >= 100000))
 		aNext = (theDelta < 0) ? 0 : (int) aRows.size() - 1;  // Home, End
-	else if (!isInRow || (aCurrent < 0))
+	else if (!isInRow)
 	{
 		// from the header or the footer
 		if ((mFocusKind == T_BACK) && (mFocusItem == -2))
@@ -1368,7 +1375,9 @@ void ModMenu::KeyDown(KeyCode theKey)
 	{
 		int aDelta = (theKey == KEYCODE_LEFT) ? -1 : 1;
 		const SettingView* aSetting = (mFocusKind == T_VALUE) ? PageSetting(mFocusItem) : NULL;
-		if (aSetting != NULL)
+		if ((mFocusKind == T_SPEED_DOWN) || (mFocusKind == T_SPEED_UP))
+			mApp->StepGameSpeed(aDelta);  // the speed row: Left and Right change the speed, as on a setting
+		else if (aSetting != NULL)
 		{
 			bool isNumber = (aSetting->mDef.mType == Platform::MOD_SETTING_INT) || (aSetting->mDef.mType == Platform::MOD_SETTING_FLOAT);
 			ChangeValue(mFocusItem, aDelta * ((isShift && isNumber) ? 10 : 1));
