@@ -128,3 +128,6 @@ The finished translations to copy the style from: `src/PopCap.cpp`, `src/Transit
   whether the wild start ever shows, StartTrack may simply ignore an index past its tracks).
 - PathTrace::Load (0x454ab0) loops for ever on a path picture with a pixel that has no neighbour and has no bound on its
   points; the port stops at both (neither happens with the shipped pictures, to be checked).
+- ScoreBoard::ShowScore (0x4684a0) blanks every leading '0' of the formatted score, so a score of 0 shows an empty
+  field (seen in the port at a level's start); to check against the original's screen. ShowBananaTotal (0x4685a0)
+  formats the banana total and never shows it (kept).

@@ -15,6 +15,7 @@ class Anim;
 struct AnimKey;
 class Emitter;
 class ObjString;
+class ScoreBoard;
 
 const int PLAYER_PROFILES = 8;
 const int PLAYER_NAME_SIZE = 32;      // the name's room; at most 31 characters and the end mark

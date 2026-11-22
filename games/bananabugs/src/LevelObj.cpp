@@ -1,5 +1,6 @@
 #include "LevelObj.h"
 #include "Board.h"
+#include "ScoreBoard.h"
 #include "BugBrainAnt.h"
 #include "BugBrainBeetle.h"
 #include "BugBrainCaterpillar.h"
@@ -712,7 +713,7 @@ void LevelObj::Leave(bool addScore, bool clearCells)
 		mMenuButtonLive = false;
 		Deactivate(mMenuButton);
 	}
-	Player::sCurrent->mScoreBoard->ClearBananaIcons();
+	Player::sCurrent->mScoreBoard->Leave();
 	Player::EndLevelPlay();
 	if (clearCells)
 		ClearCells();
@@ -738,19 +739,19 @@ void LevelObj::OnCellCut()
 	Player::AddScore(10);
 }
 
-// 0x43a9b0: what the level has ended with, once the board's figures have stopped counting
+// 0x43a9b0: what the level has ended with, once the score board is away (before it comes in and after it has left)
 int LevelObj::GetResult()
 {
 	ScoreBoard* aBoard = Player::sCurrent->mScoreBoard;
 	if (mState == LEVEL_STATE_DONE) {
-		if (aBoard->IsDone() && BugObj::sCount == 0)
+		if (aBoard->IsAway() && BugObj::sCount == 0)
 			return mVictoryShown ? LEVEL_RESULT_LOST : LEVEL_RESULT_WON;
 	} else if (mState == LEVEL_STATE_LEAVING) {
 		if (!mQuitConfirmed) {
-			if (aBoard->IsDone())
+			if (aBoard->IsAway())
 				return LEVEL_RESULT_LOST;
 		} else {
-			if (aBoard->IsDone())
+			if (aBoard->IsAway())
 				return LEVEL_RESULT_QUIT;
 		}
 	}

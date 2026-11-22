@@ -219,54 +219,21 @@ void Bonus::ClearAll()
 	Player::Drop();
 }
 
-// port: the stand-in board shows nothing
-void ScoreBoard::ShowScore(int theScore)
+// port: the stand-in monkey shows nothing
+MonkeyLives::MonkeyLives()
 {
-	(void)theScore;
+	mPhase = 0;
 }
 
-void ScoreBoard::ShowPercent(int thePercent)
+void MonkeyLives::Wake()
 {
-	(void)thePercent;
+	if (!IsActive() && mPhase == 0)
+		mPhase = 1;
 }
 
-void ScoreBoard::ShowBananaIcon()
+void MonkeyLives::Dismiss()
 {
-}
-
-void ScoreBoard::MarkLastIcon()
-{
-}
-
-void ScoreBoard::ActivateHud()
-{
-}
-
-void ScoreBoard::DeactivateHud()
-{
-}
-
-void ScoreBoard::LaunchFireBall(int theIndex)
-{
-	(void)theIndex;
-}
-
-void ScoreBoard::ShowLevel(int theLevel)
-{
-	(void)theLevel;
-}
-
-void ScoreBoard::Show()
-{
-}
-
-void ScoreBoard::ClearBananaIcons()
-{
-}
-
-bool ScoreBoard::IsDone()
-{
-	return true;
+	mPhase = 2;
 }
 
 // port: the stand-ins of what a level makes. The intro is always ready and finished, the in-level menu resumes at

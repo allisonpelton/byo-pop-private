@@ -1,5 +1,6 @@
 #include "Player.h"
 #include "Board.h"
+#include "ScoreBoard.h"
 
 #include "Anim.h"
 #include "BBWindow.h"

@@ -63,22 +63,15 @@ public:
 	static void ClearAll();                     // 0x406c60: lets go of what is held and ends the bonuses (a guess at the name)
 };
 
-// The board of figures in a level (0x464320): the stand-in shows nothing. A Player's board is nullptr until a level
-// gives it one, and these never read the object they are called on
-class ScoreBoard : public ObjBase
+// A monkey the second upgrade adds to the score board (0x44f450; 0x294 bytes in the original); the stand-in shows
+// nothing, and keeps the two states the board sets
+class MonkeyLives : public ObjBase
 {
 public:
-	void ShowScore(int theScore);               // 0x4684a0
-	void ShowPercent(int thePercent);           // 0x468500
-	void ShowBananaIcon();                      // 0x465140: the next banana's icon appears
-	void MarkLastIcon();                        // 0x4650f0: the last icon shown is marked with the id 0x43 and started
-	void ActivateHud();                         // 0x4676e0
-	void DeactivateHud();                       // 0x467750
-	void LaunchFireBall(int theIndex);          // 0x4651a0: the monkey's fire ball of that number leaves the board
-	void ShowLevel(int theLevel);               // 0x468550: the level's number ("%02d")
-	void Show();                                // 0x465080
-	void ClearBananaIcons();                    // 0x468780 (the original's name is not known)
-	bool IsDone();                              // 0x468770 (the byte at +0x2ec): the board has stopped counting
+	int mPhase;                                 // +0x284: 0 idle, 1 woken, 2 dismissed
+	MonkeyLives();
+	void Wake();                                // 0x44f840: if hidden and idle, woken (a guess at the name)
+	void Dismiss();                             // 0x44f870 (a guess at the name)
 };
 
 // The things a level makes that are not translated yet; each is an object that shows nothing
@@ -167,7 +160,5 @@ void PreloadSlots();         // 0x46c710
 void PreloadInGameButtons(); // 0x4558f0
 void PreloadBonusPictures(); // 0x406dd0
 void InitBonusTable();       // 0x40af90
-void PreloadSpinStars();     // 0x41f980
-void PreloadRope();          // 0x464250
 
 } // namespace Sexy

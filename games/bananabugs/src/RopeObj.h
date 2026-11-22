@@ -138,4 +138,6 @@ private:
 	void BuildSnapFlash();                             // 0x463f40
 };
 
+void PreloadRope(); // 0x464250: the pictures the rope uses, loaded once
+
 } // namespace Sexy
