@@ -146,7 +146,7 @@ resume question; `worlds`: a profile that has reached every level, the map with 
 each world's boards, the power-ups) are played on the original (`tools/play/runall.sh`, origrun in Windows Sandbox, windowed,
 the virtual clock, the seed pinned, ten steps a frame as the port's runner) and on the port's runner, from the same events
 (`tools/play/tour.py` makes both scripts), 362 shots, compared by `tools/shotdiff` (`games/waterbugs/shotdiff.json` crops the
-original's window frame). `tools/check.sh screens` passes on the newest run (`r3`).
+original's window frame). `tools/check.sh screens` passes on the newest run (`r4`, below).
 
 **What was wrong with the first runs, and not with the port.** (1) The input gate `--input-eip 41f467,41f511` held every move
 and click for thousands of updates, because the ten-step frame's wait sits inside that range: the original's shots landed
@@ -158,7 +158,7 @@ play ends the saved game's lives and a Start with no lives begins a new game ins
 now goes last, with the story skipped and one line a key so the board outlasts the keys. Both sides did the same thing in
 every case; the tour was what was wrong.
 
-**Differences.** Of 362 pairs, 9 match, 236 differ only faintly, and 117 differ visibly. Every one of the 117 is a board, or a
+**Differences.** Of 362 pairs (the first run, `r3`), 9 match, 236 differ only faintly, and 117 differ visibly; after the changes below (run `r4`, the tours played on the original again and on the port) 9 match, 249 differ only faintly and 104 differ visibly, 652,000 visible pixels in all against 1.14 million between the first run's worlds pairs and the original's own second run. Every one of the 117 (and of the 104: 103 are `worlds` boards or the screens after a load, one is `e_shot1`, 70 pixels) is a board, or a
 screen after a board has been loaded, and in the pixel maps and crops that were looked at (the menus and maps after a load: bubbles
 only; boards: the place of a bug or a sprite's animation frame, a few dozen pixels) it is a bubble, a bug or a beam's piece at
 another place. The cause is not the port. Two runs of the original's `worlds` tour differ from each other in 84 of 194 pairs, with
@@ -218,4 +218,4 @@ runs differ the same way; that is the original's variation reported above. The p
 31 s drew the same numbers from the same callers in the same frames, and eight runs of the three tours gave 362 shots equal in
 every run. `games/waterbugs/test/tours.frozen` holds all 362 and `tools/check.sh waterbugs` wants all of them unchanged and present
 (`LOOSE = 0` in `tourcheck.py`). Zero is one of the starts the original can have (a fresh page of its heap is zero); the pictures
-of the pass against the original (run `r3`) were taken before this change, with the port's own heap, and were not taken again.
+against the original were taken again after this change (run `r4`: fewer visible differences than before, 104 against 117, none new in kind), so the zeroed start shows no visible change of its own.
