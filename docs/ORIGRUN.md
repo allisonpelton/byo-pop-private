@@ -673,11 +673,15 @@ Hooking any other function needs the user's OK first.
 `logs/net.log` of the run folder holds the install line ("activation hook installed: reached ..."), the CBT line
 ("activation CBT block installed on N threads ...") and, at exit, how many calls each function answered, with the
 `SW_SHOWMAXIMIZED` passes and the CBT refusals. The hook goes in only where a copy's window could take the user's
-focus: on the user's own desktop (the interactive `Default` desktop, not under Windows Sandbox's `WDAGUtilityAccount`),
-or anywhere with `ORIGRUN_ACTIVATION=block`, which visrun sets for every run it starts and actest uses under rundesk. On
-rundesk's private desktop and in the sandbox a copy's window is activated as in a plain run, so a game that waits for
-the focus runs there as it always has (the log says "activation hook off (not the user's desktop ...)"; the first
-version, f0a447c0, had it on everywhere). `ORIGRUN_ACTIVATION=allow` turns the hook and the CBT block off everywhere
+focus: on the user's own desktop (the interactive `Default` desktop), or anywhere with `ORIGRUN_ACTIVATION=block`,
+which visrun sets for every run it starts and actest uses under rundesk. On rundesk's private desktop and in the
+sandbox a copy's window is activated as in a plain run, so a game that waits for the focus runs there as it always has
+(the log says "activation hook off (not the user's desktop ...)" or, in the sandbox, "activation hook off
+(ORIGRUN_ACTIVATION=allow)"; the first version, f0a447c0, had it on everywhere). The sandbox's desktop is `Default` too,
+and the stand-in's own test of the user name did not tell it apart (Bookworm Adventures' full-screen runs, 2026-11-22:
+the game never activated and a click on Options' Credits did not take), so origrun, which knows it is in the sandbox
+from what the machine reports, sets `ORIGRUN_ACTIVATION=allow` there itself. Nothing from the host's environment
+reaches the sandbox side, so a run cannot ask for the hook there. `ORIGRUN_ACTIVATION=allow` turns the hook and the CBT block off everywhere
 (the log says "activation hook off"), for a run that needs the real behaviour. A copy that never loads the
 stand-in is not hooked.
 
