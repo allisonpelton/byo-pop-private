@@ -94,19 +94,7 @@ void VisualInfo::load(Params& theAttributes)
 
 void VisualInfo::setModel(const std::string& theName)
 {
-	// 0x4100d0 (feedingfrenzy2)
-	FishFactory* aFactory = FishFactory::get();
-	ModelInfo* aModel = aFactory->findModel(theName);
-	if (aModel == nullptr)
-	{
-		aModel = aFactory->findFishModel(theName);
-		if (aModel == nullptr)
-		{
-			// The original shows a message box (the engine's slot 0xd8); the game's file names no missing model
-			getEngine()->log("Bad Name: There is no such model as %s.\n", theName.c_str());
-		}
-	}
-	mModel = aModel;
+	mModel = FishFactory::get()->findAnyModel(theName);
 }
 
 void VisualInfo::addToFactory()

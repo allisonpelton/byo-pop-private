@@ -1,10 +1,14 @@
 #include "Surface.h"
 
+#include "DXDrawContext.h"
 #include "Engine.h"
+#include "PixelFx.h"
 #include "Stream.h"
 
 #include "platform/ImageLoader.h"
 
+#include <cmath>
+#include <cstdio>
 #include <cstring>
 
 namespace engine
@@ -242,6 +246,79 @@ Surface* Surface::clone() const
 	aCopy->setAnchor(mAnchor);
 	aCopy->setName(mName);
 	return aCopy;
+}
+
+Surface* Surface::scaledCopy(float theScaleX, float theScaleY) const
+{
+	Surface* aCopy = clone();
+	aCopy->scale(theScaleX, theScaleY);
+	char aName[600];
+	snprintf(aName, sizeof(aName), "%s(%.2f,%.2f)", getName().c_str(), (double)theScaleX, (double)theScaleY);
+	aCopy->setName(aName);
+	return aCopy;
+}
+
+void Surface::scale(float theScaleX, float theScaleY)
+{
+	// 0x439120 (feedingfrenzy2): fabs
+	float aScaleX = fabsf(theScaleX);
+	float aScaleY = fabsf(theScaleY);
+	int aWidth = getWidth();
+	int aHeight = getHeight();
+	// 0x4c3ae0 (feedingfrenzy2), _ftol2: truncated
+	int aNewWidth = (int)((double)aWidth * (double)aScaleX);
+	int aNewHeight = (int)((double)aHeight * (double)aScaleY);
+	Ref<Surface> aScaled = new Surface();
+	aScaled->allocate(aNewWidth, aNewHeight);
+	aScaled->fill(Color(0.0f, 0.0f, 0.0f, 0.0f));
+	Vector2f anAnchor = getAnchor();
+	setAnchor(Vector2f(0.0f, 0.0f));
+	// 0x441810 (feedingfrenzy2), the alpha blitter, filtered (0xf), from the top left corner at the scales
+	// port: drawn through the draw context, which picks the blitter by the surface's blend mode, and samples a scaled
+	// image (its scaled blitters are for the looks pass)
+	{
+		Ref<DXDrawContext> aContext = new DXDrawContext(aScaled);
+		DrawState aState;
+		aState.mScale = Vector2f(aScaleX, aScaleY);
+		aState.mFilterMode = FILTER_MODE_SMOOTH;
+		aContext->pushState(aState);
+		aContext->drawImage(this, RectI(0, 0, aWidth, aHeight), 0.0f, 0.0f);
+	}
+	mPixels.swap(aScaled->mPixels);
+	mWidth = aNewWidth;
+	mHeight = aNewHeight;
+	// The anchor as the x87 has it: x times the new width over the old, y times the new width over the new height
+	double aNewWidthValue = (double)aNewWidth;
+	float anAnchorY = (float)((double)anAnchor.y / (double)aNewHeight * aNewWidthValue);
+	float anAnchorX = (float)((double)anAnchor.x / (double)aWidth * aNewWidthValue);
+	setAnchor(Vector2f(anAnchorX, anAnchorY));
+}
+
+void Surface::applyColorFx(const ColorFx& theFx)
+{
+	// The colour's sums at the x87's double precision, truncated into each byte
+	double aKeep = 1.0 - (double)theFx.mColor.a;
+	for (size_t i = 0; i < mPixels.size(); i++)
+	{
+		uint32_t aPixel = mPixels[i];
+		int anAlpha = (int)(aPixel >> 24);
+		int aRed = (int)((aPixel >> 16) & 0xff);
+		int aGreen = (int)((aPixel >> 8) & 0xff);
+		int aBlue = (int)(aPixel & 0xff);
+		if (theFx.mMode == COLOR_FX_BLEND)
+		{
+			aRed = (int)((double)theFx.mColor.r * (double)theFx.mColor.a * anAlpha + aRed * aKeep);
+			aGreen = (int)((double)theFx.mColor.g * (double)theFx.mColor.a * anAlpha + aGreen * aKeep);
+			aBlue = (int)((double)theFx.mColor.b * (double)theFx.mColor.a * anAlpha + aBlue * aKeep);
+		}
+		else if (theFx.mMode == COLOR_FX_MULTIPLY || theFx.mMode == COLOR_FX_HSV)
+		{
+			// port: not yet translated; the pixel left as it is
+			continue;
+		}
+		mPixels[i] = ((uint32_t)(anAlpha & 0xff) << 24) | ((uint32_t)(aRed & 0xff) << 16) |
+		             ((uint32_t)(aGreen & 0xff) << 8) | (uint32_t)(aBlue & 0xff);
+	}
 }
 
 void Surface::fill(const Color& theColor)

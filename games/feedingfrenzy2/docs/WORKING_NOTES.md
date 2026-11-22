@@ -74,6 +74,28 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   palette with tRNS (`_infoframe`) and RGBA ones, whose alpha is the mask's alpha. libpng's rgb_to_gray weights
   (6968, 23434, 2366) give a grey pixel its own value, so its gamma tables never matter for the game's masks.
 
+## Animations
+
+- An actor's animation is `resource/actors/<anim>/animation.xml` (its root <animations fileName="...">, each
+  <animation name startFrame endFrame frameRate>, the end the last frame shown) and the Theora file it names. That file
+  is no Ogg stream: each packet stands behind a 28-byte little-endian header (length, first and last flags, granule
+  position, number), the first three the stream's headers. The original links libtheora's old API (theora_decode_header
+  0x47ba10, theora_decode_init 0x4873f0, packetin 0x46baf0, YUVout 0x4727e0); the port decodes with libtheora 1.1.1,
+  Theora's decoding being exact.
+- Each frame a run takes becomes a surface of the picture's size (0x45fd90): the luma from the coded frame's top left,
+  the chroma interpolated between its four nearest samples in 256ths, stepping (n * 256 - 256) / (n * 2) per pixel
+  over a plane n samples wide or high, and converted with the integer BT.601 weights (298, 409, -100, -208, 516, +128,
+  >> 8, clamped). Its alpha is `_alpha.<frame>.png` beside the file, where there is one; an image the engine keeps
+  under `<folder><frame>.png` replaces the frame (and its packet is then not decoded). The frames no run takes are
+  decoded and dropped, and the runs after them moved down.
+- A visual's data (0x47b650) scales each frame to its size over the model's (a scaled copy through the alpha
+  blitter, filtered, truncated to whole pixels), lays the water's colour over it by its alpha (ColorFx mode 3,
+  truncated) where the colour's alpha is above 0, and anchors it at its centre. Its shapes and points are the model's
+  scaled and moved round that anchor, with "visual" the first frame's box; a fish's adds "halo" and "idea" from the
+  body's box (0.15 and 0.57, 0.45 and 0.55 of its width and height up and left of its centre) and "tail". A fish out
+  of the air drops its "idle" run before the frames load (the spawns always set fish up so); its "eat" run gives
+  SuckIntro and SuckOutro at the model's suckFrame, and swimShuttle and idleShuttle cut the swim and idle runs.
+
 ## Drawing
 
 - A frame (0x438700) builds the update context (elapsed seconds at most 0.33, the frame number, the detail level),
@@ -274,14 +296,25 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   the herring's school every 5.5 come due (logged, as the actors are not yet translated).
   - The stage's start gives each ambient sound its first delay, a draw of the random numbers each (0x486860); not
     yet translated, so every draw after it is off by those until the sounds are.
+- The spawns' visuals (see "Animations"): the Theora frames and AnimationData in the engine (TheoraReader,
+  AnimationData, its handler), VisualData and FishVisualData (setup, the frames' scale and tint, the shapes and
+  points, the runs fitted), the shapes' slots (Box and Circle: clone, ends, centre, size, scale, move), the factory's
+  lookups (0x4100d0, 0x40c550 and 0x40add0 with their messages), the surface's scaled copy (0x3c, 0x40, 0x48) and the
+  in-place colour effect (0x54, mode 3). Checked under rundesk on the menu: the pompano's 28 frames at 0.94, the queen
+  triggerfish's at 0.6, the herring's 21 at 0.2 (swim cut to 7 by its shuttle), the great white's 30 at 0.875, each
+  frame's colours and mask as the original's art.
+  - The surface's scale goes through the draw context's sampler, not the original's scaled alpha blitter (0x441810's
+    scaled path), until the looks pass; the colour effects other than rgbBlend (hsvAdd, rgbAdd, rgbMultiply,
+    rainbow), the menu's and HUD's fish pictures (0x427490) and AnimationData's slots 0x08 and 0x14 are not yet
+    translated.
 
 ## Next
 
 - The menu's fish: the actors (Actor 0x4226f0, 0xf0 bytes with a signal; Fish 0x481370 with its Eater and its
   FishStateMgr; AIFish 0x41d550, 0x1ac bytes, vtables of 66, 73 and 80 slots), the spawn's bringing one in
   (0x475b30 from the pool or the class, 0x4224a0 its set-up, the actor's slots 0x24, 0x28 and 0x18), the school
-  (SchoolOfFish 0x4101b0), the fish visual (FishVisual, 71 slots; the spawn's 0x40e250), the AI states the fish
-  behaviours name (WanderAI, FlyByAI, SchoolingAI and the rest), the run state's other slots (0x48 the actors, 0x60
+  (SchoolOfFish 0x4101b0), the fish visual component (FishVisual, 71 slots, drawing a VisualData), the AI states
+  the fish behaviours name (WanderAI, FlyByAI, SchoolingAI and the rest), the run state's other slots (0x48 the actors, 0x60
   the camera, 0x5c the stage's end), the spawn's live list and pool (+0x4fc, +0x50c).
 
 - The popup's other actions (pause, quit, save game, options); the duplicate name's and the full list's

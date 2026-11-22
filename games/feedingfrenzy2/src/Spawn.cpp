@@ -253,8 +253,17 @@ void NonPlayerSpawn::findBehavior()
 
 void NonPlayerSpawn::createVisual()
 {
-	// The visual of the name from the fish factory, at the size times the stage's size unit (0x408a50
-	// (feedingfrenzy2)), kept at +0x4d4: not yet translated, as the visuals are not
+	// 0x408a50 (feedingfrenzy2): the visual of the name from the fish factory, at the size times the stage's size unit
+	FishFactory* aFactory = FishFactory::get();
+	float aSize = (float)((double)mSize * (double)mStage->getSizeUnit());
+	VisualInfo* anInfo = aFactory->findVisual(mVisualName);
+	VisualData* aData = nullptr;
+	if (anInfo)
+	{
+		aData = new VisualData();
+		aData->setup(anInfo, aFactory->mAnimBase, aSize);
+	}
+	mVisual = aData;
 }
 
 void NonPlayerSpawn::fillPool()
@@ -356,8 +365,21 @@ void FishSpawn::findBehavior()
 void FishSpawn::createVisual()
 {
 	// The fish visual of the name from the fish factory, at the size times the stage's size unit, in the stage's
-	// water colour (+0x1a0), or none ((0, 0, 0, 0)) when the behaviour is in the air (0x40e250 (feedingfrenzy2)),
-	// kept at +0x4d4: not yet translated, as the visuals are not
+	// water colour, or none ((0, 0, 0, 0)) when the behaviour is in the air; never set up as in the air
+	FishFactory* aFactory = FishFactory::get();
+	float aUnit = mStage->getSizeUnit();
+	Color aTint = mFishBehavior->mInAir ? Color(0.0f, 0.0f, 0.0f, 0.0f) : mStage->getWaterColor();
+	float aSize = (float)((double)mSize * (double)aUnit);
+	// 0x40e250 (feedingfrenzy2)
+	FishVisualInfo* anInfo = aFactory->findFishVisual(mVisualName);
+	FishVisualData* aData = nullptr;
+	if (anInfo)
+	{
+		aData = new FishVisualData();
+		aData->setup(anInfo, aFactory->mAnimBase, aSize, aTint, false);
+	}
+	mFishVisual = aData;
+	mVisual = mFishVisual.get();
 }
 
 void NonPlayerSpawnDocHandler::startElement(const std::string& theName, Params& theAttributes)

@@ -17,6 +17,7 @@
 #include "MasterDocHandler.h"
 #include "Object.h"
 #include "Params.h"
+#include "VisualData.h"
 
 #include <map>
 #include <string>
@@ -184,6 +185,7 @@ protected:
 	std::vector<float> mSpawnTimes;         // +0xc4: the times drawn, from the scheduling
 	unsigned int mNextSpawn;                // +0xd4: the first of them not yet passed
 	float mScheduleTime;                    // +0xd8: the seconds since the scheduling
+	engine::Ref<VisualData> mVisual;        // +0x4d4: the actors' frames, at the spawn's size
 	engine::Ref<BehaviorInfo> mBehavior;    // +0x4d8: a fish spawn keeps its own (+0x534)
 	engine::Params mTweaks;                 // +0x4dc: the <tweaks> element's attributes, laid over the behaviour's
 	// The pool (+0x50c) and the live actors (+0x4fc): not yet translated, as the actors are not
@@ -216,6 +218,7 @@ private:
 	bool mShowMenu;                              // +0x528: shown on the menus' fish lists
 	bool mShowStageComplete;                     // +0x529: shown on the stage's end
 	int mSpawnCount;                             // +0x52c: the spawns made, each school one
+	engine::Ref<FishVisualData> mFishVisual;     // +0x530: the same as the spawn's visual
 	engine::Ref<FishBehaviorInfo> mFishBehavior; // +0x534
 	// +0x538: set to 0 by setup, read by nothing translated yet: left out
 };

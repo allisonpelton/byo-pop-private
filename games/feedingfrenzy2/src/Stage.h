@@ -112,6 +112,7 @@ public:
 	LayerSet* getLayerSet() { return mLayerSet.get(); }
 	const engine::RectF& getBounds() const { return mBounds; }
 	float getSizeUnit() const { return mSizeUnit; }
+	const engine::Color& getWaterColor() const { return mWaterColor; }
 	GameData* getGameData() { return mGameData.get(); }
 
 private:
