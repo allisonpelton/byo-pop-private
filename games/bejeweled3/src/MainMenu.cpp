@@ -254,6 +254,12 @@ void MainMenu::Update()
 		mPlayButton->SetVisible(true);
 	}
 
+	// 0x6a3530: with the camera at rest and no player, the welcome dialog asks for a name. port: the exe first selects a
+	// name given on the command line (app+0xc14) and does nothing when app+0x380 is set: the port has neither
+	if (mIntroStarted && mDistanceCurve.GetOutVal() == 0.0 && mTurnACurve.GetOutVal() == 0.0 && gApp->mProfile != nullptr &&
+		gApp->mProfile->mName.empty() && gApp->GetDialog(1) == nullptr)
+		gApp->DoWelcomeDialog();
+
 	// the background's fade in starts at a fifth of the loading
 	if (!mBackgroundAdded && aProgress >= 0.2) {
 		mBackgroundAdded = true;

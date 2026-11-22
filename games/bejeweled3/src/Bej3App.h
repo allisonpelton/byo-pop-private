@@ -79,6 +79,15 @@ public:
 	// 0x76aaf0 (bejeweled3): plays a sound of the sound manager at a volume, pan and pitch (steps); nothing when muted
 	void PlaySoundEx(int theSoundId, double theVolume, int thePan, double thePitch);
 
+	// 0x76e4a0 (bejeweled3): the game's dialogs are Bej3Dialogs
+	Dialog* NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines,
+		const SexyString& theDialogFooter, int theButtonMode) override;
+	// 0x771a70 (bejeweled3): what a dialog's button does. port: only the new user dialog (id 1) and the closing every
+	// dialog ends with are made; the user list, rename, delete and the other screens' dialogs come with their screens
+	void DialogButtonDepress(int theDialogId, int theButtonId) override;
+	// 0x771040 (bejeweled3): the welcome dialog, asking the first player's name
+	void DoWelcomeDialog();
+
 	// The framework's two, on this generation's manager
 	void LoadResourceManifest();            // 0x46e0e0 (bejeweled3)
 	void ShowResourceError(bool doExit = false);  // 0x46e190 (bejeweled3)

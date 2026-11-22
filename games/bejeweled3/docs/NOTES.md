@@ -317,3 +317,35 @@ OPTIONS and RECORDS (0, 1): when the camera turn (+0x190) is already at -1 or 1 
 (a "b=-1,0,..." curve), starting the side-fade (+0x588) and name (+0x5f8) curves and disabling all five buttons
 (SetDisabled, slot 37); the screens they show (+0x6f0 to +0x6f8 widgets, ids 3 quit, 4 user list, 7 help) are not
 translated, so the port only logs the press. The first-run name dialog is not in this handler: Update opens it (below).
+
+## The first player's name (WelcomeDialog, NewUserDialog, Bej3Dialog)
+
+The menu's Update (0x6a3530) opens the welcome dialog (0x771040, "Bej3App::DoWelcomeDialog()") once the intro has
+started, the distance and turn curves (+0x718, +0x190) are 0, the profile's name is empty (Profile+0x74 is the size of
+the std::wstring that starts at +0x60) and no dialog with id 1 is open. The exe first selects a name given in the
+string at app+0xc14 (a command-line user) and does nothing when app+0x380 is set: the port has neither (what sets
+them is not read). The WelcomeDialog (0x683600) is the NewUserDialog (0x6824b0, dialog id 1, no buttons) with the title
+string 0x1fd; the same class with `(1, 1)` (0x76fdb0, from the user list) has OK and Cancel and id 1, with `(1, x)` as
+a rename it is id 2. The dialog is 900 by 400 (1200ths of the art size), 450 left of the middle and 420 down; its
+name box (an EditWidget, id 1, listener the dialog, colours transparent, transparent, white, white, black, at most
+500 wide) is focused. Enter in the box (EditListener slot 0, 0x673b80) is the dialog's OK (1000); AllowText
+(0x675db0) takes a first typed letter's capital (only when the box already has text) and lets letters, digits, spaces
+and what the font has through.
+Bej3Dialog (0x76a2c0) is the framework's Dialog (its Draw 0x584320 and the label's picture 0x4343b0 are
+DrawImageBox calls) with: header colour white, lines black, space after the header 45, content insets
+(90, 22, 90, 45), button spacing 10, side padding 25, line spacing -6 (all x art size / 1200), the dialog fonts, and a
+fade curve at +0x190, "b+0,2,0.033333,1,####        cY### >P###", that Update (0x76a8a0) steps: at its end value 1
+the children take the mouse (0x76a060), at 0 the dialog is killed. Closing (0x76a670) starts "b+0,1,0.05,1,~###
+~#A5t" from the value now. While a dialog grows the exe also scales its picture about its middle (0x76a760), but only
+when the graphics have a 3D device: the 2D mode does not. The exe's dialog buttons (0x76a190, Bej3Button) are not
+translated: the framework's DialogButton stands in (only the welcome dialog is shown so far, which has none).
+DialogButtonDepress (0x771a70) for id 1 and OK (1000): the name is the box's text with the white space at both ends
+cut off; empty gives the "ENTER NAME" message (strings 0x53 to 0x55, a dialog with id 0 and a footer button) and
+stays open; else Profile::CreateProfile (0x71c820) adds the name (the same name in any case shows "SAME NAME", strings
+0x19c to 0x19e, and stays open), saves the player that was loaded, resets the player, takes the name and writes
+users.dat and the registry's "LastUser" (checked in a run: users/users.dat and LastUser=Zed). Every dialog that has
+not returned early is then closed (the end of the function). The Steam object's calls (0x78a4e0, 0x78a460) and the
+user list dialog's rows (0x6774e0, 0x6779c0) are left out. The other ids (0x21, 0x2d, 0x13, 4, 2, 3, 0x14, 0x18) belong to
+dialogs not made yet. The exe's second FUN_0043b3b0 (before the profile is saved) and the folder-making call 0x43b460
+go through the file driver's slots 0x68 and 0x60 (0x5d3d30, 0x5d3c10: not read); the port's file writing makes the
+folder. Not read: the password-less "param_3 == 0" branch of id 1 (a button id 0 sets the name to "" and creates it).

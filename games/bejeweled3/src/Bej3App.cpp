@@ -1,6 +1,7 @@
 // Sexy::Bej3App: see the header.
 #include "Bej3App.h"
 
+#include "Bej3Dialog.h"
 #include "Bej3Music.h"
 #include "MainMenu.h"
 #include "WidgetManager.h"
@@ -134,6 +135,63 @@ void Bej3App::PlaySoundEx(int theSoundId, double theVolume, int thePan, double t
 	aSound->SetPan(thePan);
 	aSound->AdjustPitch(thePitch);
 	aSound->Play(false, true);
+}
+
+Dialog* Bej3App::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+	const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
+{
+	return new Bej3Dialog(theDialogId, isModal, theDialogHeader, theDialogLines, theDialogFooter, theButtonMode);
+}
+
+namespace {
+
+// 0x43acd0: the spaces and other white space at both ends cut off
+std::wstring TrimmedName(const std::wstring& theName)
+{
+	size_t aStart = 0;
+	while (aStart < theName.size() && iswspace(theName[aStart]))
+		aStart++;
+	size_t anEnd = theName.size();
+	while (anEnd > aStart && iswspace(theName[anEnd - 1]))
+		anEnd--;
+	return theName.substr(aStart, anEnd - aStart);
+}
+
+}  // namespace
+
+void Bej3App::DialogButtonDepress(int theDialogId, int theButtonId)
+{
+	if (theDialogId == 1) {
+		// the new user dialog: OK takes the box's text without the spaces round it; an empty name is refused with a
+		// message, a name already there with CreateProfile's, and neither closes the dialog
+		NewUserDialog* aDialog = dynamic_cast<NewUserDialog*>(GetDialog(1));
+		if (theButtonId == Dialog::ID_YES && aDialog != nullptr) {
+			std::wstring aName = TrimmedName(StringToWString(aDialog->mEdit->mString));
+			if (aName.empty()) {
+				DoDialog(0, true, GetString("83", "ENTER NAME"), GetString("84", "You must enter your name!"),
+					GetString("85", "OK"), Dialog::BUTTONS_FOOTER);
+				return;
+			}
+			if (!mProfile->CreateProfile(aName))
+				return;
+			// port: the exe also updates the Steam statistics object (0x78a4e0, 0x78a460) and the user list dialog's
+			// rows (id 4, 0x6774e0 and 0x6779c0): neither exists yet
+		}
+	}
+	// every dialog that has not returned is closed: it fades out and goes (0x76a670)
+	Bej3Dialog* aClosing = dynamic_cast<Bej3Dialog*>(GetDialog(theDialogId));
+	if (aClosing != nullptr)
+		aClosing->StartClose();
+}
+
+void Bej3App::DoWelcomeDialog()
+{
+	SDL_Log("Bej3App::DoWelcomeDialog()");
+	WelcomeDialog* aDialog = new WelcomeDialog();
+	aDialog->Resize(mWidth / 2 - mArtRes * 0x1c2 / 0x4b0, mArtRes * 0x1a4 / 0x4b0, mArtRes * 900 / 0x4b0,
+		mArtRes * 400 / 0x4b0);
+	AddDialog(aDialog);
+	mWidgetManager->SetFocus(aDialog->mEdit);
 }
 
 // 0x76cd70: the original makes its CustomBassMusicInterface when the framework asks for the music interface

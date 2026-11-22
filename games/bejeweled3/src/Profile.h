@@ -89,6 +89,10 @@ public:
 	bool SelectUser(const std::wstring& theName);
 	// 0x71d800: the first player of the list who can be loaded
 	bool SelectFirstLoadableUser();
+	// 0x71c820: makes theName a new player and the one loaded (the one loaded is saved first, a player's file kept as it
+	// is); false, with the "SAME NAME" message shown, when a player of that name is already there. Writes users.dat
+	// (with "LastUser" in the registry) and makes the player's folder
+	bool CreateProfile(const std::wstring& theName);
 	// 0x71a460: takes theName out of the list; true when it was there
 	bool RemoveUserName(const std::wstring& theName);
 	// 0x71b880: puts theName at the end of the list unless a name equal to it, in any case, is there

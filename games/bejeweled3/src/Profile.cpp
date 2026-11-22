@@ -4,6 +4,7 @@
 #include "Bej3App.h"
 #include "Buffer.h"
 #include "Common.h"
+#include "Dialog.h"
 
 #include <cwctype>
 
@@ -186,6 +187,30 @@ void Profile::LoadUsers()
 	}
 	if (isListChanged)
 		SaveUsers();
+}
+
+// 0x71c820 (bejeweled3). port: the exe's temporary-folder move (0x71b940, when +0x80 is set) is not made: nothing sets it
+bool Profile::CreateProfile(const std::wstring& theName)
+{
+	if (theName.empty() || AddUserName(theName)) {
+		SavePlayer();
+		ResetPlayer();
+		mName = theName;
+		SaveUsers();
+		return true;
+	}
+	// the name matches a player already there: its text is the one the list has
+	std::wstring aShownName = theName;
+	for (const std::wstring& aUserName : mUserNames) {
+		if (SameName(aUserName, theName)) {
+			aShownName = aUserName;
+			break;
+		}
+	}
+	std::string aLines = StrFormat(gApp->GetString("412", "There is already a user named %s").c_str(),
+		WStringToString(aShownName).c_str());
+	gApp->DoDialog(0, true, gApp->GetString("413", "SAME NAME"), aLines, gApp->GetString("414", "OK"), Dialog::BUTTONS_FOOTER);
+	return false;
 }
 
 void Profile::SaveUsers()
