@@ -10,8 +10,10 @@
 #include "CharacterMgr.h"
 #include "CollisionMgr.h"
 #include "Common.h"
+#include "compat2004/Compat2004.h"
 #include "DebugMgr.h"
 #include "EffectMgr.h"
+#include "EndLevelDialog.h"
 #include "FloatingTextMgr.h"
 #include "GameMode.h"
 #include "ImageMgr.h"
@@ -22,8 +24,11 @@
 #include "NotTranslated.h"
 #include "PlayerInfo.h"
 #include "Poly.h"
+#include "ReplayDialog.h"
 #include "Res.h"
+#include <algorithm>
 #include "SDL.h"
+#include "SlotMachineDialog.h"
 #include "SoundMgr.h"
 #include "ThunderButton.h"
 #include "ThunderCommon.h"
@@ -37,6 +42,12 @@ static const int ORIGIN_X = 75;					// where the level's own places start in the
 static const int ORIGIN_Y = 40;
 static const int BOARD_WIDTH = 650;
 static const int BOARD_HEIGHT = 560;
+static const int SONG_NOT_PLAYED = 4;			// the board never plays this one of the songs (PlayMusic leaves it out of its list)
+static const int SONG_STRIDE = 6;				// PlayMusic's music ids for the board are six apart (the level music ids)
+static const int RANDOM_CHARACTER = 10;			// a player's choice of master that means "any"; also the number of masters
+static const int MAX_UNLOCKED_CHARACTER = 20;	// GetMaxUnlockedCharacter, for a registered game (the only kind here)
+static const int DEMO_LEVEL_MIN_GAP = 10;		// a level drawn at random is not one that was drawn in the last ten picks
+static const int MAX_CHARACTER_TRIES = 50;		// how often a master is drawn again to avoid the last game's
 static const int GUN_SCREEN_X = 400;			// the cannon is put at these less the origin (Board.cpp 2 and 3, 147: ModValInt 400 and 70)
 static const int GUN_SCREEN_Y = 70;
 static const int MENU_BUTTON_X = 12;			// Board.cpp 4 and 5, 153 (ModValInt 0xc and 0x21c)
@@ -89,7 +100,13 @@ Board::Board(ThunderballApp* theApp)
 	mUnknownF0 = 0;
 	mUnknownF4 = 0;
 	mUnknownF8 = 0;
-	mUnknown104 = false;
+	mUnknown104 = 0;
+	mUnknown108 = 0;
+	mUnknown10C = 0;
+	mUnknown110 = false;
+	mUnknown12C = false;
+	mReplayCount = 0;
+	mUnknown1C0 = 0;
 	mUnknown11C = false;
 	mUnknown11D = true;
 	mUnknown11E = false;
@@ -116,7 +133,10 @@ Board::Board(ThunderballApp* theApp)
 	mInterfaceMgr.reset(new InterfaceMgr(this));
 	mLogicMgr.reset(new LogicMgr(this));
 	mSoundMgr.reset(new SoundMgr());
-	// (the original makes the level editor, the replay dialog, the end of level dialog and the slot machine here)
+	// (the original makes the level editor here)
+	mReplayDialog = new ReplayDialog(this);
+	mEndLevelDialog = new EndLevelDialog(this);
+	mSlotMachineDialog = new SlotMachineDialog(this);
 
 	mGun = SharedPtr<Gun>(new Gun(this));
 	mGun->SetPos((float)(GUN_SCREEN_X - mOriginX), (float)(GUN_SCREEN_Y - mOriginY));
@@ -146,6 +166,12 @@ Board::Board(ThunderballApp* theApp)
 // 0x4277f0
 Board::~Board()
 {
+	// a dialog the manager holds is the manager's to let go of
+	for (ThunderDialog* aDialog : {(ThunderDialog*)mReplayDialog, (ThunderDialog*)mEndLevelDialog, (ThunderDialog*)mSlotMachineDialog})
+	{
+		if (aDialog->mWidgetManager == nullptr)
+			delete aDialog;
+	}
 }
 
 // 0x40d7d0
@@ -176,10 +202,213 @@ void Board::Clear(bool theNewGame)
 	DeleteReplays(false);
 }
 
-// 0x42da00
+// 0x42da00: a level (re)starts: what the last one did is settled, the mode's options are looked at, the music plays, and the
+// level (when one was named) is read again; with none the board is emptied and set up as it is
 void Board::Reset()
 {
-	NOT_TRANSLATED("Board::Reset");
+	SubmitTotalStats();
+	CheckIncTip();
+	PlayerInfo* aPlayer = mApp->mCurrentPlayer;
+	mUnknownF8 = 0;
+	mResetCount++;
+	mUnknownF4++;
+	mGameMode = mApp->mGameMode;
+	mUnknown104 = 0;
+	mUnknown108 = 0;
+	mUnknown10C = 0;
+	mUnknown110 = false;
+	mUnknown11C = false;
+	mUnknown120 = true;
+	mUnknown12C = false;
+	if (aPlayer != nullptr && mApp->mGameMode == GAME_MODE_ADVENTURE)
+	{
+		// (another try at a level of the adventure)
+		aPlayer->mUnknown208++;
+		if (aPlayer->mUnknown208 > 1)
+			aPlayer->mAdventureLostBalls++;
+		aPlayer->mDirty = true;
+	}
+	mUnknownEA = false;
+	mUnknownC7 = false;
+	mUnknown11F = false;
+	mApp->KillDialog(1);
+	if (mWidgetManager != nullptr)
+	{
+		mWidgetManager->RemoveWidget(mReplayDialog);
+	}
+	RemoveSlotMachineDialog();
+	if (mEndLevelDialog->mWidgetManager == nullptr || !mEndLevelDialog->mVisible)
+	{
+		if (mWidgetManager != nullptr)
+			mWidgetManager->RemoveWidget(mEndLevelDialog);
+	}
+	else
+		mEndLevelDialog->DoScrollOff(false);
+	SyncModeOptions();
+	mApp->mMusicInterface->StopMusic(0);
+	if (!mLogicMgr->mUnknownF5)
+		PlayMusic();
+	if (!mLevelName.empty())
+	{
+		LoadLevel(mLevelName);
+		return;
+	}
+	Clear(false);
+	SetupLevel();
+}
+
+// 0x406a20: the statistics of a finished level join the player's totals, once (a game of one player in the adventure,
+// quick play or the challenges)
+void Board::SubmitTotalStats()
+{
+	if (!mUnknown11F && !mLogicMgr->mTwoPlayer)
+	{
+		int aMode = mApp->mGameMode;
+		if ((aMode == GAME_MODE_ADVENTURE || aMode == GAME_MODE_QUICK_PLAY || aMode == GAME_MODE_CHALLENGE) &&
+			mLogicMgr->mPlayerStats[0].mTotalScore > 0)
+		{
+			mUnknown11F = true;
+			mApp->mCurrentPlayer->AddTotalStats(mLogicMgr->mPlayerStats[0]);
+		}
+	}
+}
+
+// 0x406c10: a tip that was shown counts as seen
+void Board::CheckIncTip()
+{
+	if (mUnknown122)
+	{
+		if (mApp->mCurrentPlayer != nullptr)
+			mApp->mCurrentPlayer->IncTip(mEndLevelDialog->mTipNumber);
+		mUnknown122 = false;
+	}
+}
+
+// 0x402480: the slot machine goes off the board, the music plays again and the mouse is looked for again
+void Board::RemoveSlotMachineDialog()
+{
+	if (mSlotMachineDialog->mWidgetManager != nullptr)
+	{
+		mWidgetManager->RemoveWidget(mSlotMachineDialog);
+		mSoundMgr->PauseMusic(false);
+		mUnknown1C0 = 0;
+		mIsOver = Contains(mWidgetManager->mLastMouseX, mWidgetManager->mLastMouseY);
+	}
+}
+
+// 0x40f980: what the game mode gives the board: the level it plays and who plays
+void Board::SyncModeOptions()
+{
+	switch (mGameMode)
+	{
+	case GAME_MODE_NONE:
+		return;
+	case GAME_MODE_REPLAY:
+		mUnknownC5 = true;
+		mLogicMgr->mUnknownF5 = true;
+		mReplayDialog->SetMode(true, false, true);
+		return;
+	case GAME_MODE_DEMO:
+	{
+		// a level drawn from those the player (or the screen saver, any player) has reached, not the one drawn last
+		int aStage = -1;
+		int aLevel = -1;
+		int aMaxStage = mApp->mMaxStage;
+		int aMaxLevel = mApp->mMaxLevel;
+		if (!mApp->IsScreenSaver() && mApp->mCurrentPlayer != nullptr)
+		{
+			aMaxStage = mApp->mCurrentPlayer->mMaxStage;
+			aMaxLevel = mApp->mCurrentPlayer->mMaxLevel;
+		}
+		mApp->mStageMgr.GetRandomLevel(aMaxStage, aMaxLevel, &aStage, &aLevel, false, DEMO_LEVEL_MIN_GAP, true);
+		StageInfo* aStageInfo = mApp->mStageMgr.GetStageInfo(aStage);
+		if (aStageInfo == nullptr)
+			return;
+		LevelInfo* aLevelInfo = aStageInfo->GetLevelInfo(aLevel);
+		if (aLevelInfo == nullptr)
+			return;
+		mLevelName = "levels/" + aLevelInfo->mFileName + ".dat";
+		SyncCharacterOptions(true);
+		return;
+	}
+	case GAME_MODE_CHALLENGE:
+	{
+		mChallenge = mApp->mTrophyMgr.GetTrophyInfoById(mApp->mChallengeId);
+		if (mChallenge == nullptr || mUnknownF0 < 0 || (int)mChallenge->mLevels.size() <= mUnknownF0)
+		{
+			mApp->mGameMode = GAME_MODE_NONE;
+			mGameMode = GAME_MODE_NONE;
+			return;
+		}
+		mLogicMgr->mTwoPlayer = false;
+		mLogicMgr->mUnknown245 = false;
+		mLogicMgr->mUnknown244 = false;
+		// the challenge's level: a file, "rand" or "rand2" (a level drawn, the next of the challenge never the same as an earlier
+		// one when it can be helped), or "pick" (the level the player picked)
+		std::string aSpec = mChallenge->mLevels[mUnknownF0];
+		if (StrPrefixNoCase(aSpec.c_str(), "rand"))
+		{
+			if (mUnknownF0 == 0)
+				mApp->mStageMgr.ResetLastUseTimes();
+			bool aSkipExcluded = sexy_stricmp(aSpec.c_str(), "rand2") == 0;
+			if (mApp->mCurrentPlayer != nullptr)
+			{
+				LevelInfo* aLevelInfo = mApp->mStageMgr.GetRandomLevel(mApp->mCurrentPlayer, aSkipExcluded, DEMO_LEVEL_MIN_GAP);
+				if (aLevelInfo != nullptr)
+					aSpec = aLevelInfo->mFileName;
+			}
+		}
+		else if (sexy_stricmp(aSpec.c_str(), "pick") == 0)
+		{
+			LevelInfo* aLevelInfo = mApp->GetCurLevelInfo();
+			if (aLevelInfo == nullptr)
+				return;
+			aSpec = aLevelInfo->mFileName;
+		}
+		mLevelName = "levels/" + aSpec + ".dat";
+		SyncCharacterOptions(true);
+		return;
+	}
+	default:
+		break;
+	}
+	LevelInfo* aLevel = mApp->GetCurLevelInfo();
+	if (aLevel == nullptr)
+		return;
+	if (!mEasterEgg)
+		mLevelName = "levels/" + aLevel->mFileName + ".dat";
+	mLogicMgr->mTwoPlayer = false;
+	mLogicMgr->mUnknown245 = false;
+	mLogicMgr->mUnknown244 = false;
+	mLogicMgr->mTwoPlayer = mGameMode == GAME_MODE_DUEL;
+	SyncCharacterOptions(true);
+}
+
+// 0x422640: the board's music: the songs of the game in an order drawn once, the next of them each time
+void Board::PlayMusic()
+{
+	if (!mVisible)
+		return;
+	static std::vector<int> sSongs;		// (the original's static, 0x6508ec)
+	static int sSongCounter = 0;		// (0x6508e4)
+	if (sSongs.empty())
+	{
+		for (int aSong = 0; aSong < mApp->mLevelMusicParam; aSong++)
+		{
+			if (aSong != SONG_NOT_PLAYED)
+				sSongs.push_back(aSong);
+		}
+		// the library's random_shuffle, drawing with the C runtime's rand
+		for (size_t i = 1; i < sSongs.size(); i++)
+			std::swap(sSongs[i], sSongs[(size_t)CrtRand() % (i + 1)]);
+	}
+	if (!sSongs.empty())
+	{
+		sSongCounter++;
+		int aSong = sSongs[sSongCounter % (int)sSongs.size()];
+		mApp->PlayMusic(aSong * SONG_STRIDE + 1, true);
+		// (the original then sets the music's pitch back to normal through the BASS library, which the port does not use)
+	}
 }
 
 // 0x4026f0
@@ -258,7 +487,7 @@ void Board::SetWindowTitle(const std::string& theLevelName)
 }
 
 // 0x42aae0
-bool Board::LoadLevel(const std::string& theName)
+bool Board::LoadLevel(std::string theName)
 {
 	gLoadingLevel = false;
 	bool aLoaded = LoadLevel2(theName);
@@ -268,7 +497,7 @@ bool Board::LoadLevel(const std::string& theName)
 
 // 0x429d10: puts a level on the board: the pieces of its file, the base pieces every level shares (unless the file's name starts
 // with an underscore), and the picture behind them, which is the level's file name's in the levels folder
-bool Board::LoadLevel2(const std::string& thePath)
+bool Board::LoadLevel2(std::string thePath)
 {
 	mLevelName = thePath;
 	Clear(false);
@@ -412,4 +641,115 @@ void Board::SetupLevel()
 			mUnknownC7 = true;
 	}
 	NOT_TRANSLATED_DRAWING("Board::MakeThumbnail"); // (draws the level once and keeps it in levels/cached_thumbnails/)
+}
+
+// 0x438760: the master of a number, counted round the ten (a number below the first goes back from the last)
+static Character* GetCharacterWrapped(CharacterMgr* theMgr, int theIndex)
+{
+	int aCount = theMgr->GetNumCharacters();
+	int aRemainder = theIndex < 0 ? -theIndex % aCount : theIndex % aCount;
+	int aIndex = theIndex < 0 ? (aRemainder == 0 ? 0 : aCount - aRemainder) : aRemainder;
+	return &theMgr->mCharacters[aIndex];
+}
+
+// 0x40f400: who plays: the masters each player has (the player's choice, the stage's master in the adventure, or one drawn
+// at random when the choice is "random" (10), never the one the player had last when it can be helped), the names of the
+// two players and the powers of the masters
+void Board::SyncCharacterOptions(bool theDrawAgain)
+{
+	static int sLastCharacter[2] = {0, 0};	// (the original's global at 0x649004)
+	PlayerInfo* aPlayer = mApp->mCurrentPlayer;
+	if (aPlayer == nullptr)
+		return;
+	LogicMgr* aLogic = mLogicMgr.get();
+	std::string aPlayer2Name = aPlayer->mUnknownB4;
+	if (aPlayer2Name.empty())
+		aPlayer2Name = "Player2";
+	int aCharacters[2];
+	int aMaxStage = aPlayer->mMaxStage;
+	for (int i = 0; i < 2; i++)
+	{
+		aCharacters[i] = i == 0 ? aPlayer->mSelCharacter : aPlayer->mSelCharacter2;
+		if (mGameMode == GAME_MODE_ADVENTURE)
+		{
+			if (aPlayer->mMaxStage < RANDOM_CHARACTER)
+				aCharacters[i] = mApp->mStartStage;
+		}
+		else if (mGameMode == GAME_MODE_CHALLENGE && i == 1 && mChallenge != nullptr)
+		{
+			// the computer's opponent of this round of the challenge (the last one when there are fewer than rounds)
+			const std::vector<std::pair<int, int> >& anOpponents = mChallenge->mOpponents;
+			const std::pair<int, int>* anOpponent = nullptr;
+			if (!anOpponents.empty() && mUnknownF0 >= 0)
+				anOpponent = mUnknownF0 >= (int)anOpponents.size() ? &anOpponents.back() : &anOpponents[mUnknownF0];
+			if (anOpponent == nullptr || anOpponent->first < 0)
+				aLogic->mTwoPlayer = false;
+			else
+			{
+				aLogic->mTwoPlayer = true;
+				aLogic->mUnknown245 = true;
+				aPlayer2Name = "Computer";
+				aCharacters[1] = anOpponent->first;
+				int aSkill = anOpponent->second;
+				aLogic->mUnknown78 = aSkill == -1 ? -1 : aSkill == 1 ? 1 : aSkill == 2 ? 10 : 0;
+			}
+		}
+		else if (mGameMode == GAME_MODE_DEMO)
+		{
+			if (mApp->IsScreenSaver())
+				aMaxStage = mApp->mMaxStage;
+			aLogic->mTwoPlayer = false;
+			aLogic->mUnknown244 = true;
+			aLogic->mUnknown74 = RANDOM_CHARACTER;
+			aCharacters[i] = RANDOM_CHARACTER;
+		}
+		if (aCharacters[i] == RANDOM_CHARACTER)
+		{
+			int aKept = aLogic->mCharacter[i];
+			if (!theDrawAgain && aKept >= 0 && aKept < RANDOM_CHARACTER)
+				aCharacters[i] = aKept;
+			else
+			{
+				// one of the masters met so far (all of them when the game is played through), drawn again up to fifty times
+				// when it is the one of the last game
+				int aNumChoices = aMaxStage + 1;
+				if (aNumChoices > MAX_UNLOCKED_CHARACTER + 1)
+					aNumChoices = MAX_UNLOCKED_CHARACTER + 1;
+				if (aNumChoices < 1)
+					aNumChoices = 1;
+				else if (aNumChoices > RANDOM_CHARACTER)
+					aNumChoices = RANDOM_CHARACTER;
+				int aTries = aNumChoices <= 1 ? 1 : MAX_CHARACTER_TRIES;
+				for (int aTry = 0; aTry < aTries;)
+				{
+					aCharacters[i] = Rand() % aNumChoices;
+					if (aCharacters[i] != sLastCharacter[i])
+						break;
+					aTry++;
+				}
+			}
+		}
+		sLastCharacter[i] = aCharacters[i];
+	}
+	aLogic->SetCharacters(aCharacters[0], aCharacters[1]);
+	Character* aFirst = GetCharacterWrapped(mCharacterMgr, aCharacters[0]);
+	Character* aSecond = GetCharacterWrapped(mCharacterMgr, aCharacters[1]);
+	// (the original also copies the masters' names into locals it does not use again)
+	aLogic->mPlayerName[0] = aPlayer->mName;
+	aLogic->mPlayerName[1] = aPlayer2Name;
+	if (mGameMode == GAME_MODE_DUEL)
+	{
+		if (!aPlayer->mUnknown98.empty())
+			aLogic->mPlayerName[0] = aPlayer->mUnknown98;
+		if (!aPlayer->mComputerPlayer)
+			aLogic->mUnknown245 = false;
+		else
+		{
+			aLogic->mUnknown245 = true;
+			int aSkill = aPlayer->mComputerSkill;
+			aLogic->mUnknown78 = aSkill == -1 ? -1 : aSkill == 1 ? 1 : aSkill == 2 ? 10 : 0;
+		}
+	}
+	aLogic->mUnknown1C4 = aFirst->mPowerup;
+	aLogic->mUnknown1C8 = aSecond->mPowerup;
 }
