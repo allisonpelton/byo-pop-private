@@ -299,7 +299,8 @@ IslandMap::IslandMap(PixelusApp* theApp)
 				}
 			}
 			else
-				mState[i] = STATE_OPEN;
+				// 0x4176a0: a temple already seen (+0x12) is drawn into the map at once, with no light and no arrow
+				mState[i] = STATE_SEEN;
 		}
 		else
 			mState[i] = aMaxed < aCount ? STATE_DONE : STATE_MAXED;

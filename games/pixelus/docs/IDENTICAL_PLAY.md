@@ -362,12 +362,10 @@ Differences left, each judged:
   under a stationary pointer its hover at once; the original does it after the next mouse move (the island's panel shows
   "Map of Pixelus" there instead of the temple under the pointer), though on the temple screen it hovered the thumbnail.
   Origrun's scripted cursor may be part of it. Not found.
-- **The island's glow and arrows** (E-u500, E-u2550, C3-u2150): with every temple open but its last puzzle unsolved, or
-  after a puzzle was started, the port draws the divine light and the arrow on temples where the original draws none;
-  the first visit of a new player (I0-u500, u800, u1100) and a finished game (I1) match to 0.2%. 0x416950 draws them for
-  states 1 and 2 of a temple that is not locked (0x433570: the solved count of the profile less that of the *current*
-  temple, against the temple's price), and the port's `IsTempleLocked` subtracts the tutorial's count instead. A try at
-  that reading was not verified against the original, so it is not in. Open.
+- **The island's glow and arrows, and the new-temple bursts** (E-u500, E-u2550, C3-u2150): fixed, see the next paragraph. The cause
+  was a flag the port never set: 0x439fb0 calls 0x439dc0 (+0x12, "seen") for every record it reads, so a temple with any saved
+  puzzle is never new and 0x4176a0 draws it into the map at once with no light, no arrow and no bursts. The port set the flag only
+  on entering the temple, so a profile loaded from a file had every temple new (E-u500 from 62% to 0.7%, the rest gulls and surf).
 - **The puzzle-completed tablet comes about 8 updates ahead in the original** (H-u1815 to H-u1870, 10 to 90% of the
   picture): dense shots (every 2 to 6 updates, 1790 to 1884) match the port's frame 8 updates later all along, from the
   first frame the tablet shows. The 60-update delay (0x409bd0), the tablet's step of 0.0125 (0x419a00), the sweep (0x422590,
@@ -383,10 +381,9 @@ Differences left, each judged:
   one update and about 11,000 over the next hundred (the particle bursts Rumble, PauseBloom and PauseBloomUp of each temple it
   takes for new), and the original makes none until the next click. So the greeting, the chains' sway, the lock's place and
   the Tile Master's place after that follow from the island oddity above: the port has drawn thousands of numbers the original
-  has not. A first visit of a new player (I0) has no such bursts and matches. The disassembly of 0x4176a0 refutes the guess that the island reads one temple's record for every temple: `FUN_00439300` is a
-  fastcall on the profile with the temple index as its stack argument (`push edi`, the loop index, then `call 0x43b310`, a plain
-  getter), so the original reads each temple's own record, as the port does, and counts the record's uuids found in the level
-  data (0x4383a0 through 0x427d00). Not found: why the original makes no new-temple bursts for this profile (kept as an oddity).
+  has not. A first visit of a new player (I0) has no such bursts and matches. The fix is the flag (above): the disassembly shows `FUN_00439300` takes the temple's own index, so the island reads each
+  temple's record as the port does, and what differed was the +0x12 flag the original's loader sets for every record read
+  (`UserProfile::Read` now does, and `IslandMap` draws a seen temple with a new state, 3, that has no light and no arrow).
 
 Not reached (SCREENS.md says why in each row): the name-exists and rename errors, the story conversations and completion
 screens (they need a finished temple), the expert board, the mystery board, the sticky-spots hint and the scroll bars'
