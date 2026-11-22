@@ -17,7 +17,7 @@ the same machine. A plain run opens a window, raises it over whatever the user i
 - Start every game exe (`bejeweled.exe`, `fwtest.exe`, `smoke.exe`, frozen exes under `build/baseline*`,
   scratch builds) through `build/native/rundesk.exe`, or run the script that starts them under it:
   `build/native/rundesk.exe bash my-loop.sh`. rundesk puts the command and all its children on a private
-  desktop, gives them SDL's silent audio driver (whatever `SDL_AUDIODRIVER` says) and below-normal priority. Build it
+  desktop, gives them SDL's silent audio driver (whatever `SDL_AUDIODRIVER` says) and below-normal processor and GPU priority. Build it
   with `cmake --build build/native --target rundesk`. `tools/check.sh`, `games/bejeweled/tools/oracle/compare.sh` and
   `games/bejeweled/tools/livesplit/run_tests.sh` re-run themselves under it; run `build/native/lsprobe.exe`, which
   starts the game it probes, under it too.
