@@ -172,7 +172,7 @@
 #                a quit's, and resumed; every sound decoded as Tremor decodes it (about two minutes)
 #   bejeweled2   Bejeweled 2 Deluxe played by the port's own bot (tools/playbymove, -hold, seeded, a new player with every
 #                mode unlocked) in each of its nine modes: the transcript of every state and move, and the end screen, must be
-#                the frozen ones; an Action rerun is identical, and so are the games played by
+#                the frozen ones; the Puzzle finale's 40 shots (credits roll, link, Mode Unlocked box) are the frozen hash; an Action rerun is identical, and so are the games played by
 #                build/baseline-bejeweled2/bejeweled2.exe when there is one (two minutes, four with the baseline)
 #   astropop     AstroPop's bot through tools/playbymove (real input, -hold): a classic game from level 1, one from level 4 and a
 #                survival game, 120 moves each, and a rerun of the first with the same transcript, and
@@ -332,6 +332,9 @@ BT_MENU="7c67600cf6a5 f8567ba2b37f"  # the start's screens at 60 (the loader han
 # does, which changes classic and finity; the other six transcripts are as before
 declare -A BJ2_PLAYS=([classic]="831f20f2c443:12cada91f4a8" [action]="90d63e45cf7f:7b659fc03b56" [puzzle]="5815000ef06d:a8b0773b7f3f" [endless]="defdb6ac04af:02483db1478b" [twilight]="de8c03468564:67d9f459fef4" [hyper]="58da52692f1f:83b1c28355ba" [cognito]="c44bde2956fb:b8dd13b43d05" [finity]="fa78c5a29691:34d5f50ca96c" [hidden]="c33e07c611ee:7afbbb32f140")
 declare -A BJ2_STEPS=([classic]=1200 [action]=400 [puzzle]=500 [endless]=400 [twilight]=400 [hyper]=400 [cognito]=300 [finity]=300 [hidden]=300)
+# the Puzzle finale's 40 shots (games/bejeweled2/tools/origcmp/finale_guard.sh): the credits roll without lines, the link without an
+# underline, the Mode Unlocked message with its OK button (the screen-coverage pass, IDENTICAL_PLAY.md)
+BJ2_FINALE="9795edf95170"
 BJ2_MODES="classic action puzzle endless twilight hyper cognito finity hidden"
 
 set -u
@@ -360,7 +363,7 @@ suite_weight() { WEIGHT=1; [ "$1" = speed ] && WEIGHT=3; [ "$1" = bonnies ] && [
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [pizzafrenzy]=180 [oracle]=1080)
+	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=560 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [pizzafrenzy]=180 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52 [typershark]=270)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
@@ -2432,9 +2435,15 @@ suite_bejeweled2() {
 	done
 	r="$(bej2_play action2 "$exe" action)"
 	echo "action rerun: $r" >> "$1"
+	fin="$(bash games/bejeweled2/tools/origcmp/finale_guard.sh "$exe" "$W/$OUT/bejeweled2/finale" 2>&1 | tail -n 1)"
+	echo "finale: $fin" >> "$1"
+	if [ "$fin" = "$BJ2_FINALE" ]; then fin="the Puzzle finale's 40 shots as frozen"; else fin="FINALE SHOTS CHANGED ($fin, expected $BJ2_FINALE)"; st=1; fi
 	# the frozen baseline (build/baseline-bejeweled2/, a copy of the port with its DLLs made when it was last checked against the
 	# original): the same games must give the same transcripts and screens
 	if [ -f "$base" ]; then
+		g="$(bash games/bejeweled2/tools/origcmp/finale_guard.sh "$base" "$W/$OUT/bejeweled2/base-finale" 2>&1 | tail -n 1)"
+		echo "baseline finale: $g" >> "$1"
+		[ "$g" = "$BJ2_FINALE" ] || badbase="$badbase finale"
 		for m in $BJ2_MODES; do
 			g="$(bej2_play "base-$m" "$base" "$m")"
 			echo "baseline $m: $g" >> "$1"
@@ -2444,7 +2453,7 @@ suite_bejeweled2() {
 	fi
 	if [ -z "$bad" ]; then g="games as frozen"; else g="GAMES CHANGED in$bad"; st=1; fi
 	if [ "$r" = "${got[action]}" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="the bot's games in the nine modes, $r; $g$bl"
+	SUMMARY="the bot's games in the nine modes, $r; $g; $fin$bl"
 	return $st
 }
 
