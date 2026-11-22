@@ -336,7 +336,7 @@ void LevelObj::SetupCells()
 			aPlace.mCell->SetMark(IsGroundKind(aColumn, aRow) ? START_MARK_INSIDE : 0);
 			aPlace.mPipe->SetParent(mObjectLayer, nullptr);
 			ChoosePipeLook(aPlace.mPipe);
-			aPlace.mPipe->BuildFlames();
+			aPlace.mPipe->SetupMorph();
 			aPlace.mPipe->RandomizeDuration();
 			aPlace.mPipe->Activate(aPlace.mPipe, false);
 		}

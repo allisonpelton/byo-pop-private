@@ -66,7 +66,6 @@ static Anim* sZumaBallAnim;          // 0x60e1e8
 static Anim* sSpinStarsAnim;         // 0x60e254
 static Anim* sMonkeyShockRingAnim;   // 0x60e258
 static Anim* sRolyPolyAnim;          // 0x60e2a0
-static Anim* sPipesAnim;             // 0x670194
 static Anim* sCockroachWalkAnim;     // 0x60e29c
 
 static Anim* Load(const char* theName, int theCelWidth, int theCelHeight, int theNumCels, bool uniform = false)
@@ -228,11 +227,6 @@ void Sexy::PreloadRolyPoly()
 	sRolyPolyAnim = Load("images/rolypoly", 0x60, 0x4f, 0x3c);
 }
 
-void Sexy::PreloadPipes()
-{
-	sPipesAnim = Load("images/pipes01", 0x21, 0x21, 0x10);
-}
-
 void Sexy::PreloadCockroach()
 {
 	sCockroachWalkAnim = Load("images/cockroach_walk", 0x60, 0x40, 0x1c);
@@ -295,77 +289,7 @@ void BugObj::AlertAlongRope(PipeObj* theStart, PipeObj* theEnd, int theVertical)
 	(void)theVertical;
 }
 
-// port: the stand-in pipes, bonuses, bugs and bolts do nothing
-void PipeObj::SetShiftTarget(float theX, float theY)
-{
-	(void)theX;
-	(void)theY;
-}
-
-void PipeObj::StartShift()
-{
-}
-
-bool PipeObj::sSoundPlayed = false;
-
-void PipeObj::SetKind(int theKind)
-{
-	mKind = theKind;
-}
-
-bool PipeObj::IsSettledA()
-{
-	return true;
-}
-
-bool PipeObj::IsSettledB()
-{
-	return true;
-}
-
-void PipeObj::Refresh()
-{
-}
-
-void PipeObj::Retire()
-{
-}
-
-void PipeObj::Rebuild()
-{
-}
-
-void PipeObj::RandomizeDuration()
-{
-}
-
-void PipeObj::BuildFlames()
-{
-}
-
-// port: the stand-in pipe is an object of the right place that shows nothing
-PipeObj* PipeObj::Create(int theColumn, int theRow)
-{
-	PipeObj* aPipe = new PipeObj();
-	aPipe->SetParent(nullptr, nullptr);
-	aPipe->mKind = 0;
-	aPipe->mVariant = 0;
-	aPipe->mColumn = theColumn;
-	aPipe->mRow = theRow;
-	aPipe->mUpLink = nullptr;
-	aPipe->mRightLink = nullptr;
-	aPipe->mDownLink = nullptr;
-	aPipe->mLeftLink = nullptr;
-	// the original's pipe has a track of two keys that grow it in (the level's cut sets them up and starts it)
-	aPipe->mAppearKey = new AnimKey();
-	aPipe->mSettleKey = new AnimKey();
-	aPipe->mAppearTrack = new AnimTrack();
-	aPipe->mAppearTrack->AddKey(aPipe->mAppearKey, aPipe->mSettleKey);
-	aPipe->mAppearTrack->AddKey(aPipe->mSettleKey, aPipe->mSettleKey);
-	aPipe->mAppearTrackIndex = aPipe->AddTrack(aPipe->mAppearTrack, nullptr);
-	return aPipe;
-}
-
+// port: the stand-in bonuses, bugs and bolts do nothing
 // port: the stand-in bonus is not drawn or kept anywhere (the original sets up its place and its looks)
 void BonusCoin::Place(int theColumn, int theRow)
 {

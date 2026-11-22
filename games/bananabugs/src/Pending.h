@@ -8,6 +8,7 @@
 #include "FillObj.h"
 #include "MenuAnim.h"
 #include "ObjBase.h"
+#include "PipeObj.h"
 #include "RopeObj.h"
 
 namespace Sexy
@@ -55,41 +56,6 @@ public:
 	// 0x426250 (ECX the column, EAX the row, theBug pushed): a bug that has been placed, other than theBug, whose box (its
 	// half-width and half-height each way from its place) meets theBug's box set at that place. The stand-in has none
 	static bool Overlaps(int theColumn, int theRow, GridBug* theBug);
-};
-
-// The pipes of the level, the walls the rope runs between (0x455f50..; the class is not translated): a stand-in with the
-// fields the cells and the rope read. A pipe is at a corner of the grid; a wall that runs on links to the pipe at each
-// of its ends
-class PipeObj : public ObjBase
-{
-public:
-	int mKind;                                  // +0x27c: which of the pipe's shapes it is
-	int mColumn;                                // +0x280: its place in the grid
-	int mRow;                                   // +0x284
-	PipeObj* mUpLink;                           // +0x290: the pipe at the upper end of the wall it is part of, or none
-	PipeObj* mRightLink;                        // +0x294: ... at the right end
-	PipeObj* mDownLink;                         // +0x298: ... at the lower end
-	PipeObj* mLeftLink;                         // +0x29c: ... at the left end
-
-	void SetShiftTarget(float theX, float theY); // 0x4560c0: where the pipe moves to when a cut reaches it
-	void StartShift();                          // 0x4560e0: the pipe starts to move
-
-	int mVariant;                               // +0x288: which picture of its kind it shows
-	int mAppearTrackIndex;                      // +0x2b0: the track (by AddTrack's number) a cut starts the pipe on
-	AnimKey* mAppearKey;                        // +0x2b4: that track's first key (grows in)
-	AnimKey* mSettleKey;                        // +0x2b8: its second
-	AnimTrack* mAppearTrack;                    // +0x2bc: the track itself
-	static bool sSoundPlayed;                   // 0x670191: the settling sound has played
-
-	void SetKind(int theKind);                  // 0x456070
-	bool IsSettledA();                          // 0x456080 (the byte at +0x28c)
-	bool IsSettledB();                          // 0x456090 (the byte at +0x28d)
-	void Refresh();                             // 0x4561c0
-	void Retire();                              // 0x4562d0
-	void Rebuild();                             // 0x4564c0
-	void RandomizeDuration();                   // 0x4565f0
-	void BuildFlames();                         // 0x458b00
-	static PipeObj* Create(int theColumn, int theRow); // 0x459120 (the order of the two is a guess: the first call has both 0)
 };
 
 // A bonus hidden under a cell of the ground (0x409b00..; the class is not translated)
@@ -282,7 +248,6 @@ void PreloadBonusPictures(); // 0x406dd0
 void InitBonusTable();       // 0x40af90
 void PreloadSpinStars();     // 0x41f980
 void PreloadRolyPoly();      // 0x424c80
-void PreloadPipes();         // 0x459360
 void PreloadRope();          // 0x464250
 void PreloadCockroach();     // 0x4242e0
 

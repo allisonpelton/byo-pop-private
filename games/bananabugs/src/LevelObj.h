@@ -217,6 +217,7 @@ public:
 	// random from where the scan starts and kept to the least used. theMiddleTones false takes the dark and light cells
 	// (brightness up to 0.3 or from 0.7), true the ones between; none for a picture with no table
 	static MorphCell* PickMorphCell(bool theMiddleTones, int theImage);
+	static void ChoosePipeLook(PipeObj* thePipe);       // 0x43c0f0 (ESI the pipe; it never reads the level): the pipe's look from its place's kind
 
 	void ShowBananas(bool thePlaySound);                // 0x43ac00: the banana figure
 
@@ -230,7 +231,6 @@ private:
 	void InitSpawnTable();                              // 0x43c4a0
 	void BuildMessages();                               // 0x43e530
 	void BuildMenuButton();                             // 0x43e650
-	void ChoosePipeLook(PipeObj* thePipe);              // 0x43c0f0
 	void ShowOrHideCell(FillObj* theCell);              // 0x43c1d0: the cell is on the field when its place has ground
 	bool IsGroundKind(int theColumn, int theRow);       // 0x43c200: the place has ground (kind 10 or more)
 	void LinkPipes();                                   // 0x43d660
