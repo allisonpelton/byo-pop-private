@@ -514,6 +514,11 @@ option(BUILD_PEGGLE "Build the Peggle Deluxe port" ON)
 if(BUILD_PEGGLE AND EXISTS ${PROJECT_SOURCE_DIR}/games/peggle/CMakeLists.txt)
   add_subdirectory(games/peggle)
 endif()
+# Banana Bugs (PopCap, 2010): optional while it is new; the build skips it if its folder is missing
+option(BUILD_BANANABUGS "Build the Banana Bugs port" ON)
+if(BUILD_BANANABUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/bananabugs/CMakeLists.txt)
+  add_subdirectory(games/bananabugs)
+endif()
 # Heavy Weapon Deluxe (the Popgun decompilation): optional while it is new; the build skips it if its folder is missing
 if(BUILD_HEAVYWEAPON AND EXISTS ${PROJECT_SOURCE_DIR}/games/heavyweapon/CMakeLists.txt)
   add_subdirectory(games/heavyweapon)
