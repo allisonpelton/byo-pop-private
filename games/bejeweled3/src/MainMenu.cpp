@@ -24,50 +24,14 @@ std::string GetTextById(int theId, const std::string& theDefault)
 
 }  // namespace
 
-// port: the button stands in for the crystal ball (see the header). 0x78ab50 gives it its curves: +0x190 is a constant
-// 0 here and +0x200 the constant 0.17
-MainMenuButton::MainMenuButton(const std::string& theText) : mText(theText)
-{
-	mBlendCurve.SetConstant(0.0);
-	mScaleCurve.SetConstant(0.17);
-}
-
-// port: the picture and the effects of the crystal ball are not translated: a plate and the text, lit by the highlight
-void MainMenuButton::Draw(Graphics* g)
-{
-	if (!mActive)
-		return;
-	g->SetColor(Color((int)(255 * mHighlight), (int)(255 * mHighlight), (int)(255 * mHighlight), (int)(120 * mFade)));
-	g->FillRect(0, 0, mWidth, mHeight);
-	if (FONT_PLAYBUTTONS != nullptr) {
-		g->SetFont(FONT_PLAYBUTTONS);
-		g->SetColor(Color(255, 255, 255 - (int)(95 * mHighlight), (int)(255 * mFade)));
-		g->DrawString(mText, (mWidth - FONT_PLAYBUTTONS->StringWidth(mText)) / 2,
-			(mHeight + FONT_PLAYBUTTONS->GetAscent()) / 2);
-	}
-}
-
-// 0x78c730 (bejeweled3): the highlight follows the mouse by 0.05 an update. port: the two effects' own updates
-// (0x573290 on +0x184 and +0x188) come with the effects
-void MainMenuButton::Update()
-{
-	Widget::Update();
-	mUpdateCount++;
-	if (!mIsOver)
-		mHighlight = std::max(mHighlight - 0.05f, 0.0f);
-	else
-		mHighlight = std::min(mHighlight + 0.05f, 1.0f);
-	MarkDirty();
-}
-
 // 0x6a54b0 (bejeweled3): see the header
 MainMenu::MainMenu()
 {
 	// 0x6a54b0: the buttons, made in the order OPTIONS, RECORDS, PLAY; the texts are string ids 0x11d, 0x11e, 0x11f
 	// with the English words as their default
-	mOptionsButton = new MainMenuButton(GetTextById(0x11d, "OPTIONS"));
-	mRecordsButton = new MainMenuButton(GetTextById(0x11e, "RECORDS"));
-	mPlayButton = new MainMenuButton(GetTextById(0x11f, "PLAY"));
+	mOptionsButton = new CrystalBall(GetTextById(0x11d, "OPTIONS"));
+	mRecordsButton = new CrystalBall(GetTextById(0x11e, "RECORDS"));
+	mPlayButton = new CrystalBall(GetTextById(0x11f, "PLAY"));
 	AddWidget(mOptionsButton);
 	AddWidget(mRecordsButton);
 	AddWidget(mPlayButton);
@@ -87,7 +51,7 @@ MainMenu::MainMenu()
 	mSideFadeCurve.SetConstant(0.0);
 	mNameCurve.SetConstant(0.0);
 	// port: the original calls slot 0x7c on each button here (unidentified): the plates stay undrawn until the intro
-	// starts (MainMenuButton::mActive); the side buttons are hidden
+	// starts (CrystalBall::mActive); the side buttons are hidden
 	mOptionsButton->mVisible = false;
 	mRecordsButton->mVisible = false;
 }

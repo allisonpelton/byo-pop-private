@@ -1,10 +1,11 @@
 // Sexy::MainMenu (vtable 0x86c35c (bejeweled3), 0x7a0 bytes, made by 0x6a54b0): the first screen. It is the
 // loading screen too: until the loading thread ends it shows "Loading...", and the player's name under the picture.
 // This is the 2D mode's menu: the flat background, the PLAY, RECORDS and OPTIONS buttons and the texts.
-// port: the original's curves (the logos' fade, the buttons' arrival), the particles, the tips, the 3D branch and the
-// buttons' crystal balls (CrystalBall, 0x78ab50, with their effects) are not translated yet: the buttons are plain.
+// port: the logos, the particles, the tips and the 3D branch are not translated yet. The buttons are CrystalBalls
+// (CrystalBall.h).
 #pragma once
 
+#include "CrystalBall.h"
 #include "CurvedVal.h"
 #include "Math3D.h"
 #include "Widget.h"
@@ -13,32 +14,11 @@
 
 namespace Sexy {
 
-// One of the three menu buttons. port: stands in for the original's CrystalBall (vtable 0x86e2c4?, 0x678 bytes,
-// 0x78ab50), whose drawing is not translated: it shows its text, lit while the mouse is over it.
-class MainMenuButton : public Widget {
-public:
-	std::string mText;                  // the button's text, from the properties' string ids 0x11d to 0x11f
-	float mHighlight = 0.0f;            // +0x450: 0 to 1, up 0.05 an update while the mouse is over the button, else down
-	int mUpdateCount = 0;               // +0x47c: updates since it was made (the crystal ball's frame counts them)
-	CurvedVal mBlendCurve;              // +0x190: PLAY's blend from its place to the menu's middle (0 until something sets it)
-	CurvedVal mScaleCurve;              // +0x200: a constant 0.17 from the constructor on; the menu's curves set it
-	double mSubpixelX = 0.0;            // +0x270: how far the place the menu worked out is from the whole pixel it put the ball on
-	double mSubpixelY = 0.0;            // +0x278
-	float mDepth = 0.0f;                // +0x280: the depth of the ball's point in the camera (0 to 1)
-	float mFade = 1.0f;                 // +0x368: a curve's value that fades the ball (the menu sets it)
-	bool mActive = false;               // port: stands in for what the menu's calls to slot 0x7c switch on: the plate is drawn once set
-
-	explicit MainMenuButton(const std::string& theText);
-
-	void Draw(Graphics* g) override;
-	void Update() override;                // 0x78c730 (bejeweled3), slot 22
-};
-
 class MainMenu : public Widget {
 public:
-	MainMenuButton* mPlayButton = nullptr;      // +0x6e4 (param_1[0x1b9]): string id 0x11f
-	MainMenuButton* mOptionsButton = nullptr;   // +0x6e8 (param_1[0x1ba]): string id 0x11d
-	MainMenuButton* mRecordsButton = nullptr;   // +0x6ec (param_1[0x1bb]): string id 0x11e
+	CrystalBall* mPlayButton = nullptr;      // +0x6e4 (param_1[0x1b9]): string id 0x11f
+	CrystalBall* mOptionsButton = nullptr;   // +0x6e8 (param_1[0x1ba]): string id 0x11d
+	CrystalBall* mRecordsButton = nullptr;   // +0x6ec (param_1[0x1bb]): string id 0x11e
 
 	// The menu's curves, named by their offsets: the constructor sets them (and the intro in Update starts them)
 	PerspectiveCamera mCameraA;                 // +0xdc: turned by mTurnACurve * -0.78 (nothing projects through it in 2D)
