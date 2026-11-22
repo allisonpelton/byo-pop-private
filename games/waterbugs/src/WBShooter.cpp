@@ -437,7 +437,7 @@ void Shooter_Dying(Shooter* theShooter)
 // 0x41e070: a new beam before the current one, made current
 void Beam_Insert(List<Beam>* theList)
 {
-	Beam* aBeam = (Beam*)::operator new(sizeof(Beam));
+	Beam* aBeam = (Beam*)NewZeroed(sizeof(Beam));
 	List_InsertBefore(theList, Beam_Init(aBeam));
 }
 
