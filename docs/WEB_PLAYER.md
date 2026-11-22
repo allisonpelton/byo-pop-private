@@ -479,6 +479,7 @@ badly:
 | Sounds | sizable | 300 × 200 | the room | its bar on one row, four rows of sounds |
 | Splits | sizable | 240 × 180 | the room | its menu bar on one row, the timer and its two lines under it |
 | Trophy Cabinet | sizable | 300 × 200 | the room | its player list on one row (an empty cabinet was all there was to see) |
+| Fonts | sizable | 480 × 300 | the room | its game, font and Save As on one row, and a row of the sample sheet |
 | Chat (both pages) | sizable | 260 × 320 | the room | its controls and five lines of messages |
 | A game in a window | sizable | its game at the multiple drawn, its status bar and frame | the room, and Maximize | `web/deskapps.js` |
 | A text in a window | sizable | 200 × 120 | the room | |
@@ -719,6 +720,43 @@ number (Ning Po's layouts, "Layout n"; the Mahjong Escapes' escape levels).
 Left out on purpose: BookWorm Adventures' mini-game tables, which the game's scripts name and format; Bejeweled Twist's
 challenge progress and per-player bests in `profile.dat`, and AstroPop's per-player bests, which are a player's record rather
 than a high-score list; Pixelus, which keeps no score list.
+
+### The Fonts window
+
+The Fonts window (`web/fontview.js`; the user, 2026-11-17: "Add a font viewer to the site with a text generator for the games'
+custom fonts") is a Desktop 95 window on the listing's desktop, in the manner of Windows 95's font viewer, closed at first, its
+icon after the Trophy Cabinet's. Its Game list holds the games whose files are in this browser, and its Font list that game's
+fonts. For the font chosen it shows the font viewer's facts (typeface name, file, point sizes, line height, layers, characters),
+then a sample sheet: every character the font draws, in rows that fit the sheet, and the Text box's text at each of its point
+sizes. Colour is the text's colour, as a game passes it when it draws; Background is the sheet's (None, a checkerboard, leaves
+the saved picture clear); Zoom draws every pixel as a square of whole screen pixels near 100% to 400%; and Layers has a check
+box for each tag the font's layers ask for, off at first, since a game turns a tag on only for the draws it is for (Bejeweled
+Twist's GLOW and OUTLINE layers, drawn in their own colours). Save As writes the text at the chosen size as a PNG, at the
+font's own pixels. The window reads the files as the Trophy Cabinet does (`ByopopMusic.files`), with a `main.pak`'s files
+(`Module.byopop.pak`) after the folder's own; it decodes the pictures in the page and keeps them only while it is open; it
+writes nothing.
+
+It reads the SexyAppFramework's ImageFonts as `framework/ImageFont.cpp` does. A descriptor is split into commands by
+DescParser's rules (a semicolon ends one outside quotes, a `#` at a line's start is a note) and each runs as
+`FontData::HandleCommand` runs it: Define, CreateHorzSpanRectList, SetDefaultPointSize, SetCharMap, CreateLayer and
+CreateLayerFrom, and every Layer command, with the framework's own messages where a game would fail to load the font. The older
+form, `FontData::LoadLegacy`, is the space's width, the ascent and each character's width, beside a strip picture of the same
+name. A layer is active at a point size within its range and with its tags (`GenerateActiveFontLayers`), and a string is laid
+out and drawn as `DrawStringEx` does it: each character's layers placed from the ascent and their offsets, the widest layer's
+advance taken with its spacing and kerning, and the pieces drawn in their order, colourized by the text's colour times the
+layer's multiplier plus its addition, additive where the layer's draw mode is 1. Two things differ from the games: a layer
+drawn at a point size other than its own is scaled by nearest pixels (the framework's stretch filters), and a picture with an
+alpha channel of its own comes through the browser's decoder, which can round the colour of nearly clear pixels.
+
+A game's fonts are found by their text: a `.txt` that holds CreateLayer, LayerSetImage or LayerSetImageMap is a descriptor,
+and one that starts as a width list, with a picture of its name (in `images/` first), is a legacy font. A descriptor whose
+picture the files lack is left out (Big Money's `new_bigmoneyfont1` and Typer Shark's `gillsansmtcondensed12`, which the games
+never load). A picture is found as `platform/ImageLoader.cpp` finds one: its name with any picture extension (`.jp2` too), its
+alpha from `_<name>` or `<name>_` (the mask's low byte), white where there is only a mask. `tools/fontviewtest.js` (unit-web)
+checks the reader on fonts made for it, then reads every font of the staged games: 299 fonts in 20 games, 281 descriptors and
+18 width lists, Bejeweled Twist's from its `main.pak` too. The other engines' fonts (Retro64's in Cosmic Bugs, Water Bugs and
+Venice; Bonnie's; Jolly Bear's in the Mahjong Escapes; Ning Po's, Tip Top's and Word Harmony's) are not read yet, so those
+games' Font lists are empty.
 
 ### The fixes and lite mods on the site
 
