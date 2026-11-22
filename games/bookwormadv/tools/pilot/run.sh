@@ -185,7 +185,7 @@ if [ "$which" != orig ]; then
 			python "$T/anchors.py" fill "$PS" "$P/$N.portmarks" "$d/pass.txt" || exit 1
 			grep -v ' screenshot' "$d/pass.txt" > "$d/pass2.txt"
 			user "$d/passuser"; rm -f "$d/pass.log"
-			timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/passuser" -seed=$SEED -fast $LOADS -popcaplogo $HOLD \
+			timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/passuser" -seed=$SEED -fast -drawevery $LOADS -popcaplogo $HOLD \
 				-script="$d/pass2.txt" -boardlog="$d/pass.log" > "$d/pass.out" 2>&1
 			python "$T/anchors.py" ends "$d/pass.log" $k "$P/$N.portmarks" "$PS" || exit 1
 		done

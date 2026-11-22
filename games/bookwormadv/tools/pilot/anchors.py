@@ -11,7 +11,7 @@ one update of the port's lead). run.sh fills the port's script with the port's o
 side counts from the end of its own load. A script with more marks than the file fails.
 
 ends: the port's own load ends, from its -boardlog's "opened: <n> <update>" lines, each the update the curtain over a
-load has opened (the update after the one the original's mark reads), or for a @<k>l mark its "loadend:" line,, put in place of the first k marks of <marks>: run.sh's passes, each a -fast port run whose k-th
+load has opened (the update after the one the original's mark reads), or for a @<k>l mark its "loadend:" line, put in place of the first k marks of <marks>: run.sh's passes, each a -fast port run whose k-th
 load starts where the real run's will, so that each side counts from the end of its own load (the two start a load a
 few updates apart after some screens, the arena's treasure room)."""
 import re
