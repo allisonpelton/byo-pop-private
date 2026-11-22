@@ -33,8 +33,8 @@ private:
 class RectangleItem : public Component
 {
 public:
-	// 0x61f0d0: the rectangle left, top, right and bottom
-	explicit RectangleItem(const RectF& theRect) : mRect(theRect) {}
+	// 0x61f0d0: the rectangle left, top, right and bottom; a component that paints is drawn (STATE_VISIBLE)
+	explicit RectangleItem(const RectF& theRect) : mRect(theRect) { addOwnState(STATE_VISIBLE); }
 
 	// 0x61f070
 	std::string getClassName() override { return "RectangleItem"; }

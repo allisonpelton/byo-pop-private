@@ -1,4 +1,5 @@
 #include "AtlantisApp.h"
+#include "FrontEnd.h"
 
 #include "AtlantisData.h"
 #include "Engine.h"
@@ -63,4 +64,11 @@ void AtlantisApp::start()
 	mScene->setRegion("sky");
 	anEngine->mUpdateSignal.connect(this, &AtlantisApp::updateSlot);
 	mStateMgr.changeState(new LoadingState(this));
+}
+
+void AtlantisApp::updateSlot(engine::UpdateContext* theContext)
+{
+	mStateMgr.update(theContext);
+	if (mFrontEnd != nullptr)
+		mFrontEnd->update(theContext->mElapsed);
 }

@@ -14,6 +14,10 @@
 #include "State.h"
 #include "sigslot.h"
 
+#include <memory>
+
+class FrontEnd;
+
 class AtlantisApp : public engine::Object, public sigslot::HasSlots
 {
 public:
@@ -38,7 +42,10 @@ public:
 	engine::StateMgr<AppState> mStateMgr;  // +0x17c
 
 	// 0x40ecc0: each frame, the current state's update
-	void updateSlot(engine::UpdateContext* theContext) { mStateMgr.update(theContext); }
+	void updateSlot(engine::UpdateContext* theContext);
+
+	// The front-end screens (0x4039b0), made when the title state is entered
+	std::unique_ptr<FrontEnd> mFrontEnd;
 };
 
 // 0x813aa2: set by the boot when the archive is used. The loading screen reads its few loose files with loose files

@@ -15,9 +15,6 @@ public:
 
 	// 0x406e00
 	void enter() override;
-
-private:
-	engine::Ref<engine::GenericScreen> mMainMenu;  // 0x4039b0's mainmenulayout screen (the app's +0x48)
 };
 
 #endif

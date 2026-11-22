@@ -89,3 +89,15 @@ loader's attributes with defaults; `tools/classstrings.py <class>` the strings o
 
 - The data framework: the XML class loaders, `baseset`, the application options, the application made from them.
 - The configuration (0x402aa0) and the start (0x402d60), the loading state (0x4060a0) and its screen.
+
+## Front-end screens (menu stack)
+
+`MenuStack` (0x5e98e0, push 0x5ea050, darkening 0x5e9d40) is translated in a reduced form: the sky stack puts a screen in
+"skymenu" or, as a popup, "skymenupopup", and the dark layers fade to their opacity over their time while any normal
+or popup screen is up (the original's two dark levels and the modal list are read only in outline; assumption noted in
+MenuStack.h). `FrontEnd` makes the main menu, options, high scores, credits and quit confirmation (0x4039b0) and
+answers their actions as 0x407510 does: optionsmenu, highscores, credits, quit open their screens; optionsDone,
+highscoresDone, quityes, quitno close or quit. The click dispatcher's strings run on to startstorymode, startheromode,
+manageusers, creditsdone, ok, closejournal, unlocknow and unlocklater (not yet). The credits layout has no action of its
+own; what closes it is still to find. Dialog backgrounds are missing until the engine translates a screen image's
+scale (the "scaled by ... not yet translated" lines in the log, a shared gap).
