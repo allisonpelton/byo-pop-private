@@ -256,8 +256,14 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
 
 - The popup's other actions (pause, quit, save game, options); the duplicate name's and the full list's
   confirmations are wired but not yet seen.
-- The stage (0x403aa0) and its loader, for the menu's background; the menu's music and sounds; the menu's other
-  actions (new game, the map, options, high scores, quit's confirmation).
+- The stage (Stage, 0x3e0 bytes, its constructor 0x403aa0, vtable 0x5585c4 with 29 slots of about 1,800 lines in
+  all, no Mac build to name them): a boundary, a box and six edges (the shapes), four and five colour ranges
+  (0x4998c0) at +0x280 and +0x320, and its init 0x4038d0: its own theme read from resource/themes/baseTheme.xml
+  (+0x2d4, not a music player), the game's HUD (GameHud, 0x260 bytes, +0x2e0, over that theme), the stun bubbles'
+  effect (StunBubbleFx, 0xf8 bytes, +0x308) and the theme's splashFxBig, Medium and Small. Slot 1 (0x410980) reads a
+  stage's file through a MasterDocHandler. The menu needs the stage loaded with its menu level as its background;
+  the fish, their AI and the HUD come after. Then the menu's music and sounds and its other actions (new game, the
+  map, options, high scores, quit's confirmation).
 - The layouts' textButton, checkBox, include, radioGroup, table and compositeGroup's caching; the burst's
   sound, the sound system's and the game's updates in the splash's bursting phase.
 - The configuration's options, the start's options, key, activate and music connections, the popups and the debug
