@@ -4,6 +4,7 @@
 #include "Bej3Dialog.h"
 #include "Bej3Music.h"
 #include "Board.h"
+#include "GemSilhouettes.h"
 #include "LightningBoard.h"
 #include "ZenBoard.h"
 #include "MemoryImage.h"
@@ -99,6 +100,7 @@ void Bej3App::Init()
 	mPrimeResourceManager->mCurArtRes = mArtRes;
 
 	LoadQuestData();
+	GemSilhouettes::Load();   // port: the time gems' bolts follow the gems' edge (0x83a548), which is read from the exe
 	// port: the Steam statistics object at +0xbac (0x78a740, 0x78a8c0) is left out
 	LoadTextFiles();
 	LoadProfile();

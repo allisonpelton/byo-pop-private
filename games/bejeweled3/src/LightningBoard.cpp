@@ -1,5 +1,6 @@
 // Sexy::SpeedBoard (the port's LightningBoard): see the header. Every function says its slot and address in the exe.
 #include "LightningBoard.h"
+#include "TimeBonusEffect.h"
 
 #include "Bej3App.h"
 #include "EndLevelDialog.h"
@@ -260,7 +261,7 @@ void LightningBoard::Update()
 // or of 5 (the first is not, and the second is under the 5-second chance); then one new piece of the batch, drawn, becomes it if it is a plain gem.
 // Every draw is of the board's own generator, the draws of one piece in the order of the code: the 10-second one, then the 5-second one
 // when needed. port: the time gem's help box (the exe's slot 131 with 9, which says the help of the gem has not been seen: every help is
-// seen here), its glow (0x741130) and sound are left out
+// seen here) and the sound are left out
 bool LightningBoard::OnFillAccepted(std::vector<Piece*>& theNewPieces)
 {
 	const int aLift = (gApp->mArtRes * 0x78) / 0x4b0;
@@ -291,6 +292,7 @@ bool LightningBoard::OnFillAccepted(std::vector<Piece*>& theNewPieces)
 			if (aGem->mFlags == 0) {
 				aGem->mFlags = Piece::FLAG_TIME_GEM;
 				aGem->mTimeGemSeconds = aSeconds;
+				TimeBonusEffect::MakeFor(this, aGem);   // 0x741130: its glow, bolts and number
 			}
 		}
 	}

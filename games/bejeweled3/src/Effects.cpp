@@ -4,9 +4,12 @@
 #include "Bej3App.h"
 #include "Board.h"
 #include "Color.h"
+#include "Common.h"
 #include "Graphics.h"
 #include "PIEffect.h"
 #include "PopAnim.h"
+#include "Res.h"
+#include "SexyMatrix.h"
 #include "X86Math.h"
 
 #include <algorithm>
@@ -35,6 +38,49 @@ void Effect::FollowPiece()
 	mX = (float)((double)aGridX + 64.0);
 	float aGridY = (float)mManager->mBoard->GetGridY() + aPiece->mY;
 	mY = (float)((double)aGridY + 64.0);
+}
+
+// 0x729460 (bejeweled3), the case of types 5 and 6: the constructor draws 3 times from the app's generator, the first two for the colour's
+// green and blue amounts (the exe puts them in a Color whose amounts its maker replaces, so the values are dropped here) and the third,
+// by 0x712da0 (a draw taken as (Rand() % 1000000 - 500000) / 500000), for the turn, times pi
+SparkEffect::SparkEffect() : Effect(TYPE_SPARK)
+{
+	Rand();   // & 0x1f, plus 0x1e
+	Rand();   // the second amount
+	mGravity = -0.0f;   // +0x38
+	mScale = 0.75f;     // +0x58
+	mScaleChange = 0.0049999998f;   // +0x5c: 0x3ba3d70a
+	float aSignedUnit = (float)((double)(Rand() % 1000000 - 500000) / 500000.0);
+	mAngle = (float)((double)aSignedUnit * 3.1415927410125732);   // +0x90
+	mAngleChange = 0.0099999998f;   // +0x94: 0x3c23d70a
+}
+
+// the manager's case 5 of 0x7303f0 (bejeweled3): the scale and the turn go on by their changes. port: for a spark of black (the red and
+// green amounts of its colour 0) the case also ages it faster; the time gems' colours are never black
+void SparkEffect::KindUpdate()
+{
+	mScale = mScaleChange + mScale;
+	mAngle = mAngleChange + mAngle;
+}
+
+// the manager's case 5 of 0x72ce60 (bejeweled3), at 0x72d9e5: the colour of the effect with the alpha of the effect (at most 1) times the
+// layer's alpha times 200, additive, the picture drawn about its middle at the place (in pixels, the art size over 1200) at the scale
+// and turn. port: the manager's own fade of its layer's alpha (the board's +0x12c8, 0 here) is left out
+void SparkEffect::Draw(Graphics* g)
+{
+	if (mImage == nullptr)
+		return;
+	g->SetColorizeImages(true);
+	float aAlpha = mAlpha > 1.0f ? 1.0f : mAlpha;
+	aAlpha = aAlpha * mManager->mAlpha;
+	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+	g->SetColor(Color(mColor.mRed, mColor.mGreen, mColor.mBlue, Ftol((double)aAlpha * 200.0)));
+	float anArtScale = (float)gApp->mArtRes / ART_RES_BASE;
+	Transform aTransform;
+	aTransform.Scale(mScale, mScale);
+	aTransform.RotateRad(mAngle);
+	g->DrawImageTransformF(mImage, aTransform, anArtScale * mX, anArtScale * mY);
+	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 }
 
 ParticleEffect::ParticleEffect(const PIEffect* theResource) : Effect(TYPE_PARTICLE)
@@ -180,11 +226,12 @@ void EffectsManager::Clear()
 }
 
 // slot 22, 0x7303f0 (bejeweled3): the manager's count goes up, and each effect is updated (twice when it asks for that), moved by its
-// velocity (0 for the kinds made here: their velocity, gravity and damping fields are the constructor's 0 and 1) and given its alpha
-// and scale changes in each update whose count its step divides; an effect whose alpha or scale has run out is done. One that is done
-// and held by no piece is deleted.
-// port: it does nothing while the board's +0x12c8 is 1 (0 in Classic); the second list at +0xe0 and the cases of the switch over the
-// other types are not made; the effect's two curves (+0xa0, +0x110) that 0x437ef0 tests are constants here
+// velocity over its step, its velocity damped (and the gravity added to the vertical one) and given its alpha and scale changes in each
+// update whose count its step divides, then given its kind's own step (KindUpdate); an effect whose alpha or scale has run out is done.
+// One that is done and held by no piece is deleted.
+// port: it does nothing while the board's +0x12c8 is 1 (0 in Classic); the second list at +0xe0, the depth (+0x18, with its velocity and
+// damping) and the cases of the switch over the types not made are left out; the effect's two curves (+0xa0, +0x110) that 0x437ef0
+// tests are constants here
 void EffectsManager::Update()
 {
 	mUpdateCount++;
@@ -194,12 +241,18 @@ void EffectsManager::Update()
 		if (anEffect->mUpdateTwice)
 			anEffect->Update();
 		int aStep = anEffect->mStep == 0 ? 1 : anEffect->mStep;
+		float aStepAsFloat = (float)aStep;
+		anEffect->mX = anEffect->mX + anEffect->mVelocityX / aStepAsFloat;
+		anEffect->mY = anEffect->mVelocityY / aStepAsFloat + anEffect->mY;
 		if (mUpdateCount % aStep == 0) {
+			anEffect->mVelocityX = anEffect->mDampingX * anEffect->mVelocityX;
+			anEffect->mVelocityY = (anEffect->mGravity + anEffect->mVelocityY) * anEffect->mDampingY;
 			if ((anEffect->mFlags & 4) == 0) {
 				anEffect->mAlpha = anEffect->mAlphaChange + anEffect->mAlpha;
 				anEffect->mScale = anEffect->mScaleChange + anEffect->mScale;
 			}
 		}
+		anEffect->KindUpdate();
 		if (anEffect->mScale >= anEffect->mScaleMin) {
 			if (anEffect->mScaleMax < anEffect->mScale)
 				anEffect->mScale = anEffect->mScaleMax;
@@ -225,6 +278,30 @@ void EffectsManager::Update()
 	}
 }
 
+// 0x72ce60 (bejeweled3), for one effect: one that follows a piece (a type other than 1, 0x15, 0x16 and 0x17) is drawn with its place
+// moved to the piece's corner (the grid's place and the piece's) for the draw, and put back after; while the piece is gone it is not drawn.
+// The sums are the exe's, in floats, so the put-back leaves the place as the exe leaves it. port: the board's slide curve at +0x2a60 (for
+// the +0x12c0 layer) is its rest value 0
+void EffectsManager::DrawEffect(Effect* theEffect, Graphics* g)
+{
+	int aType = theEffect->mType;
+	bool aFollows = theEffect->mPieceId != -1 && aType != 1 && aType != Effect::TYPE_TIME_BONUS && aType != Effect::TYPE_PARTICLE && aType != Effect::TYPE_POPANIM;
+	if (!aFollows) {
+		theEffect->Draw(g);
+		return;
+	}
+	Piece* aPiece = mBoard != nullptr ? mBoard->FindPieceById(theEffect->mPieceId) : nullptr;
+	if (aPiece == nullptr)
+		return;
+	float aCornerX = (float)mBoard->GetGridX() + aPiece->mX;
+	float aCornerY = (float)mBoard->GetGridY() + aPiece->mY;
+	theEffect->mX = aCornerX + theEffect->mX;
+	theEffect->mY = aCornerY + theEffect->mY;
+	theEffect->Draw(g);
+	theEffect->mX = theEffect->mX - aCornerX;
+	theEffect->mY = theEffect->mY - aCornerY;
+}
+
 // slot 26 (0x7303c0) and slot 44 (0x72e3c0), both 0x72ce60 (bejeweled3): the effects of the manager's pass that are not done, in order. An
 // effect that follows a piece is drawn while the piece's alpha curve (+0x90, the constant 1) is above 0 or the piece is gone.
 // port: the overlay pass's own work before it (0x72c4f0 and 0x72a460, about the list at +0xf8) and its test of the board's +0x2978
@@ -239,7 +316,7 @@ void EffectsManager::Draw(Graphics* g, bool theOverlay)
 		Effect* anEffect = mEffects[anIndex];
 		if (anEffect->mOverlay != theOverlay || anEffect->mDone)
 			continue;
-		anEffect->Draw(g);
+		DrawEffect(anEffect, g);
 	}
 }
 
