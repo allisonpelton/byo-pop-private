@@ -58,6 +58,9 @@ public:
 	// manager and the containers made, and the splash state begun. The options read first, the key, minimize, restore
 	// and activate slots, the music, the popups, the debug display and the screensaver are not yet translated
 	void start(bool theSaverMode);
+	// 0x4a1a70 (feedingfrenzy2), from the start: the sound system made over the window and given to the engine (its
+	// slot 0xfc), and a line logged on whether it started
+	void startSound();
 
 	// 0x45dbe0 (feedingfrenzy2): each frame, before the scene's update: the application's state updated (the
 	// playing time and the sound's update are not yet translated)

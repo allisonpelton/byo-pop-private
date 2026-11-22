@@ -2,6 +2,7 @@
 #include "Component.h"
 #include "Font.h"
 #include "QDParser.h"
+#include "SimpleSound.h"
 #include "ResourceManager.h"
 #include "Stream.h"
 #include "Surface.h"
@@ -77,6 +78,47 @@ Reader* Engine::openDiskReader(const std::string& thePath)
 void Engine::setCheckDigests(bool theCheckDigests)
 {
 	mResourceManager->mCheckDigests = theCheckDigests;
+}
+
+void Engine::setSoundSystem(simplesound::SimpleSound* theSoundSystem)
+{
+	simplesound::setSimpleSound(theSoundSystem);
+}
+
+bool Engine::registerSound(const std::string& theName, const std::string& thePath)
+{
+	simplesound::SimpleSound* aSound = simplesound::getSimpleSound();
+	if (aSound == nullptr)
+		return false;
+	if (aSound->isRegistered(theName))
+		return true;
+	// The file passed on through a SoundInputStreamAdapter (vtable 0x560d54 (feedingfrenzy2)), the sound system's
+	// reader of an engine's stream; port: the stream itself
+	Ref<InputStream> aStream = openFile(thePath);
+	if (!aStream)
+		return false;
+	return aSound->registerSound(theName, aStream.get());
+}
+
+bool Engine::registerSoundStream(const std::string& theName, const std::string& thePath)
+{
+	simplesound::SimpleSound* aSound = simplesound::getSimpleSound();
+	if (aSound == nullptr)
+		return false;
+	if (aSound->isRegistered(theName))
+		return true;
+	Ref<InputStream> aStream = openFile(thePath);
+	if (!aStream)
+		return false;
+	return aSound->registerStream(theName, aStream.get());
+}
+
+simplesound::SoundHandle* Engine::getSoundHandle(const std::string& theName, int theSetupValue, int theCategory)
+{
+	simplesound::SimpleSound* aSound = simplesound::getSimpleSound();
+	if (aSound == nullptr)
+		return nullptr;
+	return aSound->getHandle(theName, theSetupValue, theCategory);
 }
 
 bool Engine::parseXml(const std::string& thePath, DocHandler* theHandler)

@@ -1,6 +1,7 @@
 #include "Spawn.h"
 
 #include "Actor.h"
+#include "Draws.h"
 #include "FeedingFrenzyTwo.h"
 #include "FishFactory.h"
 #include "GameData.h"
@@ -18,16 +19,6 @@ namespace
 
 const float MINUS_ONE = -1.0f;      // 0x566850 (feedingfrenzy2)
 const float SCHOOL_OFFSET = -0.5f;  // 0x566a0c (feedingfrenzy2): a school's box set back by half its size
-
-// 0x41ce50 (feedingfrenzy2): a whole number drawn from the low end to the high one (to the low from the high when
-// they are turned about)
-int drawWhole(const IntRange& theRange)
-{
-	int aDraw = crtRand();
-	if (theRange.mLow > theRange.mHigh)
-		return aDraw % (theRange.mLow - theRange.mHigh + 1) + theRange.mLow;
-	return aDraw % (theRange.mHigh - theRange.mLow + 1) + theRange.mLow;
-}
 
 // The registry's classes, in the order its constructor adds them, and the spawn each makes
 struct RegisteredClass

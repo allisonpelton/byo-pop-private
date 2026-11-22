@@ -6,6 +6,7 @@
 #include "FeedingFrenzyTwo.h"
 #include "Graphics.h"
 #include "MemoryImage.h"
+#include "SimpleSoundDX.h"
 #include "Surface.h"
 #include "WidgetManager.h"
 
@@ -286,7 +287,15 @@ void FeedingFrenzy2App::RunFrame()
 	aContext.mFrame = (uint64_t)mFrames;
 	aContext.mDetailLevel = mEngine->getDetailLevel();
 	mFrames++;
-	// (the sound's update, 0x42b8c0 (feedingfrenzy2), comes here with the sound)
+	// (0x42b8c0 (feedingfrenzy2), the cursor moved to where the game put the mouse, comes here: not yet translated)
+	// port: the sound's update runs from the window's timer every 100 ms (WM_TIMER 1, 0x424780 (feedingfrenzy2)),
+	// here on the game's clock; the only sound system is the host's
+	simplesound::SimpleSound* aSound = simplesound::getSimpleSound();
+	if (aSound != nullptr)
+	{
+		double aMilliseconds = aTicks * 1000.0 / (double)mEngine->getTicksPerSecond();
+		static_cast<simplesounddx::SimpleSoundDX*>(aSound)->advanceTimer(aMilliseconds);
+	}
 	mEngine->mUpdateSignal.emit(&aContext);
 
 	// The frame drawn into the display through a context whose first state is at the origin, unscaled and opaque;

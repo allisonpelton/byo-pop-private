@@ -1,6 +1,7 @@
 #include "Actor.h"
 
 #include "Container.h"
+#include "Draws.h"
 #include "Random.h"
 #include "Stage.h"
 #include "VectorMath.h"
@@ -28,12 +29,6 @@ const float DEFAULT_FLYBY_FREQUENCY = 0.3f;      // 0x54ddac (feedingfrenzy2)
 const float NOT_SEEN = -1.0f;                    // 0x566850 (feedingfrenzy2): the distance to what is out of sight
 const double ZERO = 0.0;                         // 0x566828 (feedingfrenzy2)
 const float LONGEST_DRAW_IN = 0.2f;              // 0x54ddf8 (feedingfrenzy2): the most seconds a prey takes to the mouth
-
-// 0x422cb0 (feedingfrenzy2): a number drawn in the range
-float drawIn(const FloatRange& theRange)
-{
-	return (float)randomFloat(theRange.mLow, theRange.mHigh);
-}
 
 // The sign of a number, 0 for 0 (as the move compares the force's with the wanted one's)
 int signOf(float theValue)

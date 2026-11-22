@@ -21,6 +21,7 @@ const float HUD_BAND_HEIGHT = 75.0f;        // 0x42960000 in 0x4146b0 (feedingfr
 const float LAYER_MARGIN_X = 200.0f;        // 0x4858d0's arguments in 0x4146b0 (feedingfrenzy2)
 const float LAYER_MARGIN_Y = 160.0f;
 const float DEFAULT_SIZE_UNIT = 16.0f;      // 0x5667b8 (feedingfrenzy2)
+const float AMBIENT_VOLUME = 0.7f;          // 0x3f333333 in 0x48f900 (feedingfrenzy2): the ambient sounds' layers
 const float DEFAULT_MIN_LIGHT = 0.3f;       // 0x54ddac (feedingfrenzy2)
 const float DEFAULT_MAX_LIGHT = 0.9f;       // 0x566934 (feedingfrenzy2)
 const float STEP_SECONDS = 0.01f;           // 0x54dd9c (feedingfrenzy2): a step of the run, as a float
@@ -94,7 +95,8 @@ bool Stage::load(const StageManifest::Stage& theEntry)
 	for (size_t i = 0; i < mSpawners.size(); i++)
 		mSpawners[i]->setup(aProgress);
 	setupLayers();
-	// The rest (0x405590, 0x45ef40, the slots 0x38 and 0x3c, 0x416330, the Orphanage at +0x2c0, the splashes'
+	loadAmbientSounds();
+	// The rest (0x405590, 0x45ef40, the slot 0x38, 0x416330, the Orphanage at +0x2c0, the splashes'
 	// containers on the first layer's actors, the slots 0x40 and 0x44 for a stage with players, and 0x4719f0
 	// (feedingfrenzy2)): not yet translated
 	getEngine()->log("Stage: the stage's actors not yet translated\n");
@@ -280,6 +282,19 @@ void Stage::updateFishVisuals(UpdateContext* theContext)
 	// At night, the light's step (the stage's 0x70): not yet translated, as the night's stages are not
 }
 
+void Stage::loadAmbientSounds()
+{
+	mAmbientSounds = new MusicSystem();
+	mAmbientSounds->load(mAmbientSound);
+	mAmbientSounds->setVolume(AMBIENT_VOLUME);
+}
+
+void Stage::updateAmbientSounds(UpdateContext* theContext)
+{
+	if (mAmbientSounds)
+		mAmbientSounds->update(theContext);
+}
+
 void Stage::start()
 {
 	pause(false);
@@ -293,8 +308,10 @@ void Stage::start()
 	// The stage's time (+0x190 and +0x198: in a bonus stage kept, else in the timed mode, the game data's +0x0c at 1,
 	// added to by its +0x2c, else 0) shown on the HUD with the lives and the player's name (0x44c910, 0x494620,
 	// 0x402550, 0x4050d0 and 0x44b4f0 (feedingfrenzy2)): not yet translated, as the HUD is not
-	// The ambient sounds (+0x318) each given its first delay (0x486810 and 0x486860 (feedingfrenzy2), a draw of the
-	// random numbers each): not yet translated, as the sounds are not, so the draws after them are off by theirs
+	// The ambient sounds each given their first delay (a draw of the random numbers each), and played at once when
+	// it is none
+	if (mAmbientSounds)
+		mAmbientSounds->start();
 	// +0x3b0, 0: read by nothing translated yet
 	// A stage with players (+0x340) starts them and puts the camera on them: not yet translated, as the players are
 	// not, so every stage starts as one without
@@ -376,12 +393,13 @@ void RunState::update(UpdateContext* theContext)
 	// Without a boss in play (+0x270), the stage's slots 0x48, 0x4c, 0x50 and 0x54 (the actors' updates and their
 	// meetings), 0x58 (the spawns), 0x60 (the camera), 0x68 and 0x6c; with one, 0x68, 0x6c and the boss's 0xf0; then
 	// 0x5c (0x447ef0 (feedingfrenzy2)). Translated so far: the actors' updates, the fish's meetings, the spawns and
-	// the fish's visuals; the players' steps (0x4c, 0x54 and 0x60) have nothing to do without players; the ambient
-	// sounds (0x6c) and the clean-up (0x5c) are not yet
+	// the fish's visuals and the ambient sounds; the players' steps (0x4c, 0x54 and 0x60) and the stage's ending
+	// (0x5c) have nothing to do without players
 	mStage->updateActors(theContext);
 	mStage->updateMeetings(theContext);
 	mStage->updateSpawns(theContext);
 	mStage->updateFishVisuals(theContext);
+	mStage->updateAmbientSounds(theContext);
 }
 
 void StageDocHandler::begin(Params& theAttributes)

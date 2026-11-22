@@ -1,9 +1,11 @@
 #include "EngineImpl.h"
 #include "PortCompat.h"
 #include "RegistryKey.h"
+#include "SimpleSoundDX.h"
 #include "SexyAppBase.h"
 #include "WidgetManager.h"
 
+#include "platform/Audio.h"
 #include "platform/VFS.h"
 
 #include <SDL.h>
@@ -49,6 +51,15 @@ EngineImpl::EngineImpl(int theWidth, int theHeight)
 
 EngineImpl::~EngineImpl()
 {
+}
+
+simplesound::SimpleSound* EngineImpl::makeSoundSystem()
+{
+	// The original starts DirectSound on the window (0x4a2870 (feedingfrenzy2)) and gives none when it cannot; the
+	// port's mixer is the platform's, started by the framework
+	if (!Platform::Mixer::Get().IsInitialized())
+		return nullptr;
+	return new simplesounddx::SimpleSoundDX();
 }
 
 bool EngineImpl::diskFileExists(const std::string& thePath)

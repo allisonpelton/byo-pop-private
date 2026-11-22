@@ -316,25 +316,33 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   eater part, EatingState, AIEatingState, EatenState) and the schools (SchoolOfFish, SchoolingAI, the school spawn
   0x474dd0). Checked under rundesk on the menu: the pompano chases and eats the triggerfish, which runs, and the
   herring cross as a school.
+- Sound: the engine's simplesound (engines/sprout2/SimpleSound.h: the handle's slots the music calls, the system's
+  categories, the engine's slots 0x7c, 0x80, 0x84 and 0xfc) and the port's simplesounddx over the platform's mixer
+  (host/SimpleSoundDX.h: sources registered under a name, one handle per stream, the fades and the end seen in the
+  handle's update every 100 ms of the window's timer, here on the game's clock from the frame loop), started from the
+  application's start (0x4a1a70) at the master volume 0.65. The music system (MusicSystem.h: MusicLayer, MusicSystem
+  and its file's reader) and the stage's ambient sounds: made at the stage's load (slot 0x3c, at 0.7), started with
+  the stage (each layer's first delay drawn) and updated each step (slot 0x6c). Checked under rundesk on the menu
+  over 9000 updates: the water loop plays from the start, the waves, water and bubble layers each start after their
+  first delay with their second clip (random-not-last's first pick) and then alternate, a delay drawn as each clip
+  ends. The order of those draws against the fish's is not yet compared with the original's.
+  - Volume: DirectSound's volume is 2000 times the volume's natural logarithm, in hundredths of a decibel, so the
+    mixer's gain is the volume to the power ln 10.
+  - Deviations: a "random-not-last" layer of one clip keeps to it (the original's draw of 0 to -1 can pick the clip
+    past the list's end); the start, final and bridge clips left off the list are let go of with their layer (the
+    original never lets go of them).
+  - Not yet translated: the options' SoundEnabled and MusicEnabled (both categories stay at 1, as when enabled),
+    a handle's fade-out at a sound's end (no translated caller sets one on a sound that plays out), the listeners, the
+    sound effects (the themes' sounds, SoundMgr) and the game's music.
 
 ## Next
 
-- The menu's fish, continued: the stunned effect and the fish's sounds. The stage's slot 0x5c (0x447ef0) is not a
-  clean-up but the stage's ending (player died, perfect, stage clear, time up) and slot 0x60 (0x43a950) the camera on
-  the first player (+0x344): both return at once without players, so they wait for the players.
-- Sound, next, as the menu's random draws depend on it: the stage's ambient sounds (+0x318) are a MusicSystem read
-  from the stage's ambientSound (resource/sounds/ambience1.xml on the menu: a looped water layer and three layers
-  "random-not-last" of two clips each, with initialDelay and delay ranges). Each layer's delay is drawn with the C
-  library's rand (0x422cb0) and its clip picked with it (0x41ce70, the sequences 0 to 3 of MusicLayer's +0x1c), so
-  those draws are in the same order as the fish's. Pieces: MusicSystemDocHandler (0x426470 for musicSystem, clip
-  and its "special" start, final and bridge; 0x425bb0 for musicLayer: sequence, initialDelay, volume, fadeInTime,
-  fadeOutTime, immediate, delay, Layer), MusicLayer (0x40c360, 0x84 bytes), MusicSystem (vtable 0x55d228), the
-  start's 0x486810 and 0x486860, the update's 0x439b80 and 0x439ac0, and the clip's set-up 0x4142c0. The clips are
-  handles of the global SimpleSound (0x5ab9e4: slot 0x80 registers a stream, 0x84 gives its handle; the handle's
-  0x00, 0x08, 0x24, 0x2c, 0x34, 0x38, 0x3c), simplesounddx's SimpleSoundDX and (Static)SoundHandleDX, all of it
-  engine (engines/sprout2), none translated yet, over platform/Audio.h's Mixer on the game's clock under -fast. A
-  clip's end decides when the next delay is drawn, so the original's draws follow how long each clip plays: compare
-  under origrun's virtual clock before taking any order as the original's.
+- The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's
+  simplesound). The stage's slot 0x5c (0x447ef0) is not a clean-up but the stage's ending (player died, perfect, stage
+  clear, time up) and slot 0x60 (0x43a950) the camera on the first player (+0x344): both return at once without players,
+  so they wait for the players.
+- Compare the ambient sounds' draws with the original's under origrun's virtual clock: when its window's timer runs
+  there, and how long each clip plays, decide where the layers' draws fall among the fish's.
 
 - The popup's other actions (pause, quit, save game, options); the duplicate name's and the full list's
   confirmations are wired but not yet seen.

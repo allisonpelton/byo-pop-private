@@ -1,6 +1,7 @@
 #include "FishAI.h"
 
 #include "Actor.h"
+#include "Draws.h"
 #include "Random.h"
 #include "Stage.h"
 #include "VectorMath.h"
@@ -46,12 +47,6 @@ const float FLEE_GOAL_SHARE = 0.2f;          // 0x54ddf8 (feedingfrenzy2): the g
 const double SEPARATION_LEAST_SQUARED = 1.0; // 0x566768 (feedingfrenzy2): nearer than its root counts as 1 away
 const double NEAREST_THREAT = 0.1;           // 0x5667c0 (feedingfrenzy2): a threat nearer counts as this far
 const float NEAREST_THREAT_DISTANCE = 0.1f;  // 0x54ddd4 (feedingfrenzy2)
-
-// 0x422cb0 (feedingfrenzy2): a number drawn in the range
-float drawIn(const FloatRange& theRange)
-{
-	return (float)randomFloat(theRange.mLow, theRange.mHigh);
-}
 
 // A speed brought up to the least one, by its sign (0x4626e1 to 0x462755 (feedingfrenzy2)); 0 stays 0
 float atLeast(float theSpeed, float theLeast)

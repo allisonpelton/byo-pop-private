@@ -69,6 +69,9 @@ public:
 	// The framework's clipboard (its text in Latin-1), false when it is empty
 	bool getClipboardText(std::string& theText) override;
 
+	// 0x4a2790 (feedingfrenzy2): the sound system, over the platform's mixer (SimpleSoundDX.h)
+	simplesound::SimpleSound* makeSoundSystem() override;
+
 	// port: -fast: the clock is the app's, moved on by a frame's period each frame, as on origrun's virtual clock
 	void setVirtualClock(bool theVirtualClock) { mVirtualClock = theVirtualClock; }
 	void advanceClock(uint64_t theTicks) { mVirtualTicks += theTicks; }

@@ -13,6 +13,7 @@
 #include "LayerSet.h"
 #include "Shape.h"
 #include "MasterDocHandler.h"
+#include "MusicSystem.h"
 #include "Spawn.h"
 #include "StageManifest.h"
 #include "State.h"
@@ -122,6 +123,10 @@ public:
 	// the scroll rate, and its scales passed to the fish's shapes; at night the light's step after (not yet
 	// translated)
 	void updateFishVisuals(engine::UpdateContext* theContext);
+	// 0x3c (0x48f900 (feedingfrenzy2)): the ambient sounds made, read from the stage's ambientSound file, at 0.7
+	void loadAmbientSounds();
+	// 0x6c (0x439b80 (feedingfrenzy2)): the ambient sounds' update
+	void updateAmbientSounds(engine::UpdateContext* theContext);
 	// 0x58 (0x43a330 (feedingfrenzy2)): each spawn's update, the actors coming in once the script's waves (not yet
 	// translated) are through
 	virtual void updateSpawns(engine::UpdateContext* theContext);
@@ -198,6 +203,7 @@ private:
 	float mLightTarget;                            // +0x2f8
 	float mMinLight;                               // +0x2fc
 	float mMaxLight;                               // +0x300
+	engine::Ref<MusicSystem> mAmbientSounds;       // +0x318
 	std::vector<Fish*> mFish;                      // +0x320
 	std::vector<AIFish*> mAIFish;                  // +0x330
 	std::vector<Actor*> mActors;                   // +0x370
