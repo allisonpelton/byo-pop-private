@@ -3,6 +3,7 @@
 //
 //   origrun --game <name> --script <file.txt> [options]
 //   origrun --exe "<path to a copied exe>" --script <file.txt> [options]
+//   origrun --queue     who holds the machine's sandbox lock and who waits for it, in order
 //
 // What it does, in order:
 //   1. Copies the game's folder into build/origrun/<run>/game (the install is never written to or run in
@@ -3580,39 +3581,261 @@ static int is_guid36(const char* s)
 	}
 	return s[36]==0 || s[36]=='\r' || s[36]=='\n';
 }
-static void release_sandbox_lock(void){ if (gSbLock!=INVALID_HANDLE_VALUE) { CloseHandle(gSbLock); gSbLock=INVALID_HANDLE_VALUE; } }
+// The queue in front of the lock: first come, first served (2026-11-22). Retrying the lock once a second let any waiting
+// run win. Now a run that wants the lock first takes a ticket, a file in byo-pop\sandbox-queue named by its arrival
+// time and pid (16 hex digits of the FILETIME, a dash, 8 of the pid, ".ticket", so the names sort in arrival order),
+// and only the run whose ticket is the oldest live one tries the lock; the lock and its stale-sandbox handling are as
+// before. A ticket is opened with no delete sharing and deleted on close, so Windows removes it however origrun ends,
+// and while its run lives no other run can delete it. One left behind all the same (Windows itself stopped) names a
+// process that no longer runs, or a pid now used by a process that started later than the ticket says: the next run
+// that lists the queue deletes it. A run keeps its ticket while it holds the lock (its text then has held=), so the
+// holder heads the queue and --queue can name it: the lock is opened with no sharing, and no one can read it while
+// it is held. An origrun built before the queue takes no ticket and still retries the lock, so it can jump the queue.
+#define QUEUE_MAX 64
+typedef struct { WCHAR file[40]; ULONGLONG arrived; DWORD pid; char run[80]; char since[32]; char held[32]; } QTicket;
+static HANDLE gTicket = INVALID_HANDLE_VALUE;
+static WCHAR gTicketName[40] = L"";
+static WCHAR gQueueDirTest[MAX_PATH] = L"";   // --queue-dir: the self-test's own folder, in place of %LOCALAPPDATA%\byo-pop; never for a sandbox run
+static char gTicketText[1024];
+static int gTicketN = 0;
+
+static int sandbox_lock_dir(WCHAR dir[MAX_PATH])
+{
+	if (gQueueDirTest[0]) lstrcpynW(dir,gQueueDirTest,MAX_PATH);
+	else {
+		PWSTR la=NULL;
+		if (SHGetKnownFolderPath(&FOLDERID_LocalAppData,0,NULL,&la)!=S_OK || !la) return 0;
+		_snwprintf(dir,MAX_PATH-1,L"%s\\byo-pop",la); dir[MAX_PATH-1]=0;
+		CoTaskMemFree(la);
+	}
+	CreateDirectoryW(dir,NULL);
+	return 1;
+}
+static ULONGLONG ft64(FILETIME f) { return ((ULONGLONG)f.dwHighDateTime<<32)|f.dwLowDateTime; }
+static ULONGLONG ft_now(void) { FILETIME f; GetSystemTimeAsFileTime(&f); return ft64(f); }
+static ULONGLONG process_created(HANDLE p) { FILETIME c,e,k,u; return GetProcessTimes(p,&c,&e,&k,&u) ? ft64(c) : 0; }
+static void hex_w(WCHAR* out, ULONGLONG v, int digits) { for (int i=digits-1;i>=0;i--) { int d=(int)(v&15); out[i]=(WCHAR)(d<10?'0'+d:'A'+d-10); v>>=4; } out[digits]=0; }
+static int hex_parse_w(const WCHAR* s, int digits, ULONGLONG* v)
+{
+	*v=0;
+	for (int i=0;i<digits;i++) {
+		WCHAR c=s[i]; int d=c>='0'&&c<='9'?c-'0':c>='A'&&c<='F'?c-'A'+10:-1;
+		if (d<0) return 0;
+		*v=(*v<<4)|(ULONGLONG)d;
+	}
+	return 1;
+}
+// key=value lines: the value of key, or "".
+static void kv_get(const char* text, const char* key, char* out, int cap)
+{
+	size_t kl=strlen(key); out[0]=0;
+	for (const char* p=text; p && *p; ) {
+		if (!strncmp(p,key,kl) && p[kl]=='=') { int i=0; p+=kl+1; while (*p && *p!='\r' && *p!='\n' && i<cap-1) out[i++]=*p++; out[i]=0; return; }
+		p=strchr(p,'\n'); if (p) p++;
+	}
+}
+// 1 while a ticket's run lives: its pid runs, and that process started when the ticket says (a reused pid does not count).
+static int ticket_owner_alive(DWORD pid, ULONGLONG created)
+{
+	HANDLE p=OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION,FALSE,pid);
+	if (!p) return GetLastError()==ERROR_ACCESS_DENIED;   // it runs but may not be opened: live
+	DWORD code=0; int alive=GetExitCodeProcess(p,&code) && code==STILL_ACTIVE;
+	if (alive && created && process_created(p)!=created) alive=0;
+	CloseHandle(p);
+	return alive;
+}
+// The live tickets in arrival order (the holder's first), at most cap. The ticket of a run that has ended is skipped and
+// deleted; one that cannot be deleted because it is still open belongs to a live run after all and counts.
+static int queue_list(const WCHAR* qdir, QTicket* t, int cap)
+{
+	WCHAR pat[MAX_PATH]; _snwprintf(pat,MAX_PATH-1,L"%s\\*.ticket",qdir); pat[MAX_PATH-1]=0;
+	WIN32_FIND_DATAW fd; HANDLE f=FindFirstFileW(pat,&fd);
+	if (f==INVALID_HANDLE_VALUE) return 0;
+	int n=0;
+	do {
+		ULONGLONG arr=0, pid=0;
+		if (lstrlenW(fd.cFileName)!=32 || fd.cFileName[16]!='-' || lstrcmpiW(fd.cFileName+25,L".ticket")
+			|| !hex_parse_w(fd.cFileName,16,&arr) || !hex_parse_w(fd.cFileName+17,8,&pid)) continue;
+		WCHAR path[MAX_PATH]; _snwprintf(path,MAX_PATH-1,L"%s\\%s",qdir,fd.cFileName); path[MAX_PATH-1]=0;
+		char text[1024]; DWORD rd=0;
+		HANDLE h=CreateFileW(path,GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,NULL,OPEN_EXISTING,0,NULL);
+		if (h==INVALID_HANDLE_VALUE) continue;   // gone since the listing, or being deleted as its run ends
+		if (!ReadFile(h,text,sizeof(text)-1,&rd,NULL)) rd=0;
+		text[rd]=0; CloseHandle(h);
+		QTicket q; memset(&q,0,sizeof(q));
+		lstrcpynW(q.file,fd.cFileName,40); q.arrived=arr; q.pid=(DWORD)pid;
+		kv_get(text,"run",q.run,sizeof(q.run)); kv_get(text,"since",q.since,sizeof(q.since)); kv_get(text,"held",q.held,sizeof(q.held));
+		char cr[24]; kv_get(text,"created",cr,sizeof(cr));
+		if (!ticket_owner_alive(q.pid,_strtoui64(cr,NULL,16))) {
+			if (DeleteFileW(path)) { logline("sandbox queue: removed the ticket of run %s (pid %lu), which has ended", q.run[0]?q.run:"?", q.pid); continue; }
+			if (GetLastError()!=ERROR_SHARING_VIOLATION) continue;   // gone already
+		}
+		// insertion by name (arrival time, then pid), keeping the oldest cap
+		int i=n<cap?n++:cap;
+		if (i==cap && lstrcmpW(t[cap-1].file,q.file)<0) continue;
+		if (i==cap) i=cap-1;
+		while (i>0 && lstrcmpW(t[i-1].file,q.file)>0) { t[i]=t[i-1]; i--; }
+		t[i]=q;
+	} while (FindNextFileW(f,&fd));
+	FindClose(f);
+	return n;
+}
+static void ticket_write(void)
+{
+	if (gTicket==INVALID_HANDLE_VALUE) return;
+	DWORD wr=0; SetFilePointer(gTicket,0,NULL,FILE_BEGIN); SetEndOfFile(gTicket);
+	WriteFile(gTicket,gTicketText,(DWORD)gTicketN,&wr,NULL);
+	FlushFileBuffers(gTicket);
+}
+static int take_ticket(const WCHAR* qdir, const char* run, int waitSec)
+{
+	SYSTEMTIME st; GetLocalTime(&st);
+	char since[32]; wsprintfA(since,"%04d-%02d-%02d %02d:%02d:%02d",st.wYear,st.wMonth,st.wDay,st.wHour,st.wMinute,st.wSecond);
+	char cr[24]; ULONGLONG c=process_created(GetCurrentProcess()); _snprintf(cr,sizeof(cr)-1,"%08lX%08lX",(unsigned long)(c>>32),(unsigned long)c); cr[sizeof(cr)-1]=0;
+	gTicketN=_snprintf(gTicketText,sizeof(gTicketText)-1,"pid=%lu\r\nrun=%s\r\nsince=%s\r\ndir=%s\r\ncreated=%s\r\nwait=%d\r\n",
+		GetCurrentProcessId(),run,since,gRunDir,cr,waitSec);
+	if (gTicketN<0) gTicketN=0;
+	for (int tries=0; tries<16; tries++) {   // two runs of one pid cannot arrive at once; a name taken is a clock that stepped back
+		WCHAR path[MAX_PATH];
+		hex_w(gTicketName,ft_now()+tries,16); gTicketName[16]='-'; hex_w(gTicketName+17,GetCurrentProcessId(),8); lstrcatW(gTicketName,L".ticket");
+		_snwprintf(path,MAX_PATH-1,L"%s\\%s",qdir,gTicketName); path[MAX_PATH-1]=0;
+		gTicket=CreateFileW(path,GENERIC_READ|GENERIC_WRITE|DELETE,FILE_SHARE_READ,NULL,CREATE_NEW,FILE_ATTRIBUTE_NORMAL|FILE_FLAG_DELETE_ON_CLOSE,NULL);
+		if (gTicket!=INVALID_HANDLE_VALUE) { ticket_write(); return 1; }
+		if (GetLastError()!=ERROR_FILE_EXISTS) return 0;
+	}
+	return 0;
+}
+static void drop_ticket(void) { if (gTicket!=INVALID_HANDLE_VALUE) { CloseHandle(gTicket); gTicket=INVALID_HANDLE_VALUE; } }   // deleted on close
+static int minutes_since(ULONGLONG ft) { ULONGLONG now=ft_now(); return now>ft ? (int)((now-ft)/600000000ULL) : 0; }
+
+static void release_sandbox_lock(void)
+{
+	if (gSbLock!=INVALID_HANDLE_VALUE) { CloseHandle(gSbLock); gSbLock=INVALID_HANDLE_VALUE; }
+	drop_ticket();   // after the lock, so that the next in line finds it free when it heads the queue
+}
+// One try at the lock: 1 taken, 0 held by another run, -1 an error (logged).
+static int try_sandbox_lock(const WCHAR* path, const char* run, int waited)
+{
+	HANDLE h=CreateFileW(path,GENERIC_READ|GENERIC_WRITE,0,NULL,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+	if (h!=INVALID_HANDLE_VALUE) {
+		char old[1024]; DWORD rd=0; if (!ReadFile(h,old,sizeof(old)-1,&rd,NULL)) rd=0; old[rd]=0;
+		const char* q=strstr(old,"sandbox=");
+		gStaleId[0]=0; gStalePid=0;
+		if (q && is_guid36(q+8)) { lstrcpynA(gStaleId,q+8,37); const char* pp=strstr(old,"pid="); if (pp) gStalePid=strtoul(pp+4,NULL,10); }
+		SYSTEMTIME st; GetLocalTime(&st);
+		wsprintfA(gSbLockSince,"%04d-%02d-%02d %02d:%02d:%02d",st.wYear,st.wMonth,st.wDay,st.wHour,st.wMinute,st.wSecond);
+		lstrcpynA(gSbLockRun,run,sizeof(gSbLockRun));
+		gSbLock=h;
+		lock_write(gStaleId);   // an earlier run's sandbox stays named until it is confirmed gone
+		logline("holding the Windows Sandbox lock %ls%s", path, waited?" (after waiting)":"");
+		if (gStaleId[0]) logline("the lock names the sandbox %s, which the run of pid %lu started and never confirmed stopped", gStaleId, gStalePid);
+		return 1;
+	}
+	DWORD e=GetLastError();
+	if (e!=ERROR_SHARING_VIOLATION && e!=ERROR_LOCK_VIOLATION) { logline("--sandbox: cannot open the lock %ls (err %lu)", path, e); return -1; }
+	return 0;
+}
 static int acquire_sandbox_lock(int waitSec, const char* run)
 {
-	PWSTR la=NULL;
-	if (SHGetKnownFolderPath(&FOLDERID_LocalAppData,0,NULL,&la)!=S_OK || !la) { logline("--sandbox: no local application data folder"); return 0; }
-	WCHAR dir[MAX_PATH], path[MAX_PATH];
-	_snwprintf(dir,MAX_PATH-1,L"%s\\byo-pop",la); dir[MAX_PATH-1]=0;
-	CoTaskMemFree(la);
-	CreateDirectoryW(dir,NULL);
+	WCHAR dir[MAX_PATH], path[MAX_PATH], qdir[MAX_PATH];
+	if (!sandbox_lock_dir(dir)) { logline("--sandbox: no local application data folder"); return 0; }
 	_snwprintf(path,MAX_PATH-1,L"%s\\sandbox.lock",dir); path[MAX_PATH-1]=0;
-	for (int waited=0;; waited++) {
-		HANDLE h=CreateFileW(path,GENERIC_READ|GENERIC_WRITE,0,NULL,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
-		if (h!=INVALID_HANDLE_VALUE) {
-			char old[1024]; DWORD rd=0; if (!ReadFile(h,old,sizeof(old)-1,&rd,NULL)) rd=0; old[rd]=0;
-			const char* q=strstr(old,"sandbox=");
-			gStaleId[0]=0; gStalePid=0;
-			if (q && is_guid36(q+8)) { lstrcpynA(gStaleId,q+8,37); const char* pp=strstr(old,"pid="); if (pp) gStalePid=strtoul(pp+4,NULL,10); }
-			SYSTEMTIME st; GetLocalTime(&st);
-			wsprintfA(gSbLockSince,"%04d-%02d-%02d %02d:%02d:%02d",st.wYear,st.wMonth,st.wDay,st.wHour,st.wMinute,st.wSecond);
-			lstrcpynA(gSbLockRun,run,sizeof(gSbLockRun));
-			gSbLock=h;
-			lock_write(gStaleId);   // an earlier run's sandbox stays named until it is confirmed gone
-			logline("holding the Windows Sandbox lock %ls%s", path, waited?" (after waiting)":"");
-			if (gStaleId[0]) logline("the lock names the sandbox %s, which the run of pid %lu started and never confirmed stopped", gStaleId, gStalePid);
-			return 1;
+	_snwprintf(qdir,MAX_PATH-1,L"%s\\sandbox-queue",dir); qdir[MAX_PATH-1]=0;
+	CreateDirectoryW(qdir,NULL);
+	if (!take_ticket(qdir,run,waitSec)) { logline("--sandbox: cannot take a ticket in the queue %ls (err %lu)", qdir, GetLastError()); return 0; }
+	static QTicket q[QUEUE_MAX];
+	ULONGLONG t0=GetTickCount64(); int lastPos=-1, lastN=-1, waited=0, toldBusy=0, nextMinute=60;
+	for (;;) {
+		int n=queue_list(qdir,q,QUEUE_MAX), pos=0;
+		for (int i=0;i<n;i++) if (!lstrcmpW(q[i].file,gTicketName)) { pos=i+1; break; }
+		if (!pos) { logline("--sandbox: this run's ticket %ls is not in the queue %ls; giving up", gTicketName, qdir); drop_ticket(); return 0; }
+		if (pos!=lastPos || n!=lastN) {
+			char ahead[1024]; int m=0; ahead[0]=0;
+			for (int i=0;i<pos-1 && m<(int)sizeof(ahead)-200;i++) {
+				int k=_snprintf(ahead+m,sizeof(ahead)-1-m,"%s%s (pid %lu, %s %d min)", i?(i==pos-2?" and ":", "):"",
+					q[i].run[0]?q[i].run:"?", q[i].pid, q[i].held[0]?"holding the lock, queued":"waiting", minutes_since(q[i].arrived));
+				if (k>0) m+=k;
+			}
+			if (pos==1) logline("sandbox queue: position 1 of %d, first in line", n);
+			else logline("sandbox queue: position %d of %d; ahead: %s", pos, n, ahead);
+			lastPos=pos; lastN=n;
 		}
-		DWORD e=GetLastError();
-		if (e!=ERROR_SHARING_VIOLATION && e!=ERROR_LOCK_VIOLATION) { logline("--sandbox: cannot open the lock %ls (err %lu)", path, e); return 0; }
-		if (waited==0) logline("another run holds the Windows Sandbox lock %ls; queued, waiting up to %d s", path, waitSec);
-		else if (waited%60==0) logline("  still waiting for the sandbox lock (%d s)", waited);
-		if (waited>=waitSec) { logline("--sandbox: the lock was not free within %d s; giving up", waitSec); return 0; }
-		Sleep(1000);
+		if (pos==1) {
+			int r=try_sandbox_lock(path,run,waited);
+			if (r>0) {
+				SYSTEMTIME st; GetLocalTime(&st);
+				int k=_snprintf(gTicketText+gTicketN,sizeof(gTicketText)-1-gTicketN,"held=%04d-%02d-%02d %02d:%02d:%02d\r\n",st.wYear,st.wMonth,st.wDay,st.wHour,st.wMinute,st.wSecond);
+				if (k>0) gTicketN+=k;
+				ticket_write();
+				return 1;
+			}
+			if (r<0) { drop_ticket(); return 0; }
+			if (!toldBusy) { logline("sandbox queue: first in line, but a run with no ticket holds the lock (an origrun built before the queue); waiting for it"); toldBusy=1; }
+		}
+		if (!waited) logline("another run holds the Windows Sandbox lock %ls or is ahead in its queue; queued, waiting up to %d s", path, waitSec);
+		int secs=(int)((GetTickCount64()-t0)/1000);
+		if (secs>=nextMinute) { logline("  still waiting for the sandbox lock (%d s, position %d of %d)", secs, pos, n); nextMinute+=60; }
+		if (secs>=waitSec) { logline("--sandbox: the lock was not free within %d s; giving up", waitSec); drop_ticket(); return 0; }
+		waited=1;
+		Sleep(pos==1?250:1000);
 	}
+}
+
+// origrun --queue: who holds the lock and who waits, in order. Opening the lock to see whether it is held keeps a run
+// that tries it at that instant out for one try (a quarter of a second).
+static int queue_show(void)
+{
+	WCHAR dir[MAX_PATH], path[MAX_PATH], qdir[MAX_PATH];
+	if (!sandbox_lock_dir(dir)) { fprintf(stderr,"origrun --queue: no local application data folder\n"); return 2; }
+	_snwprintf(path,MAX_PATH-1,L"%s\\sandbox.lock",dir); path[MAX_PATH-1]=0;
+	_snwprintf(qdir,MAX_PATH-1,L"%s\\sandbox-queue",dir); qdir[MAX_PATH-1]=0;
+	static QTicket q[QUEUE_MAX];
+	int n=queue_list(qdir,q,QUEUE_MAX);
+	HANDLE h=CreateFileW(path,GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,NULL,OPEN_EXISTING,0,NULL);
+	int held=0; char text[1024]; text[0]=0;
+	if (h==INVALID_HANDLE_VALUE) held=GetLastError()==ERROR_SHARING_VIOLATION;
+	else { DWORD rd=0; if (!ReadFile(h,text,sizeof(text)-1,&rd,NULL)) rd=0; text[rd]=0; CloseHandle(h); }
+	int first=0;
+	printf("queue: %ls\n", qdir);
+	if (n && q[0].held[0]) {
+		printf("sandbox lock: %s by run %s (pid %lu) since %s, after %d min in the queue and the lock\n", held?"held":"being released",
+			q[0].run[0]?q[0].run:"?", q[0].pid, q[0].held, minutes_since(q[0].arrived));
+		first=1;
+	}
+	else if (held) printf("sandbox lock: held by a run with no ticket (an origrun built before the queue)\n");
+	else {
+		char sb[64]; kv_get(text,"sandbox",sb,sizeof(sb));
+		printf("sandbox lock: free%s%s\n", sb[0]?"; it still names the sandbox ":"", sb);
+	}
+	if (n<=first) printf("waiting: none\n");
+	else {
+		printf("waiting, in order (%d):\n", n-first);
+		for (int i=first;i<n;i++) printf("  %d. run %s  pid %lu  waited %d min  (since %s)\n", i-first+1, q[i].run[0]?q[i].run:"?", q[i].pid, minutes_since(q[i].arrived), q[i].since);
+	}
+	return 0;
+}
+
+// The queue's self-test (tools/origrun/queuetest.sh): a fake waiter that runs no sandbox and no game, in its own queue
+// folder (--queue-dir, required). It takes a ticket after <arrive> ms, appends its name to <dir>\order.txt when it gets
+// the lock, holds it <hold> ms and releases it; with <die> it ends itself with TerminateProcess after that many ms, as a
+// kill would, wherever it is by then.
+static DWORD WINAPI queue_waiter_die(LPVOID ms) { Sleep((DWORD)(UINT_PTR)ms); TerminateProcess(GetCurrentProcess(),9); return 0; }
+static int queue_waiter(const char* spec)
+{
+	char name[64]; int arrive=0, hold=0, die=0;
+	if (!gQueueDirTest[0]) { fprintf(stderr,"origrun --queue-waiter: needs --queue-dir (the self-test never uses the machine's queue)\n"); return 2; }
+	if (sscanf(spec,"%63[^,],%d,%d,%d",name,&arrive,&hold,&die)<3) { fprintf(stderr,"origrun --queue-waiter <name>,<arrive ms>,<hold ms>[,<die ms>]\n"); return 2; }
+	if (die>0) CloseHandle(CreateThread(NULL,0,queue_waiter_die,(LPVOID)(UINT_PTR)die,0,NULL));
+	Sleep(arrive);
+	if (!acquire_sandbox_lock(60,name)) return 1;
+	WCHAR order[MAX_PATH]; _snwprintf(order,MAX_PATH-1,L"%s\\order.txt",gQueueDirTest); order[MAX_PATH-1]=0;
+	HANDLE f=INVALID_HANDLE_VALUE;
+	for (int i=0;i<50 && f==INVALID_HANDLE_VALUE;i++) { f=CreateFileW(order,FILE_APPEND_DATA,FILE_SHARE_READ,NULL,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL); if (f==INVALID_HANDLE_VALUE) Sleep(20); }
+	if (f!=INVALID_HANDLE_VALUE) { char ln[80]; int k=wsprintfA(ln,"%s\r\n",name); DWORD wr=0; WriteFile(f,ln,(DWORD)k,&wr,NULL); CloseHandle(f); }
+	Sleep(hold);
+	release_sandbox_lock();
+	logline("released the Windows Sandbox lock");
+	return 0;
 }
 
 static char gWsbPath[MAX_PATH] = "";
@@ -4739,6 +4962,7 @@ int main(int argc, char** argv)
 	const char* key3dArg=NULL; const char* flag3dArg=NULL; const char* dgvArg=NULL;
 	int sandboxHost=0, sandboxVgpu=0, sandboxWait=600, inSession=0, sandboxProbe=0, probe=0; const char* inSandboxDir=NULL;
 	const char* regArg=NULL;
+	int queueShow=0; const char* queueWaiter=NULL;
 
 	for (int i=1;i<argc;i++) {
 		if (ieq(argv[i],"--game")&&i+1<argc) game=argv[++i];
@@ -4818,8 +5042,17 @@ int main(int argc, char** argv)
 		else if (ieq(argv[i],"--in-session")) inSession=1;
 		else if (ieq(argv[i],"--probe")) probe=1;
 		else if (ieq(argv[i],"--sandbox-probe")) { sandboxProbe=1; sandboxHost=1; }
+		else if (ieq(argv[i],"--queue")) queueShow=1;
+		else if (ieq(argv[i],"--queue-waiter")&&i+1<argc) queueWaiter=argv[++i];
+		else if (ieq(argv[i],"--queue-dir")&&i+1<argc) {
+			WCHAR w[MAX_PATH]; MultiByteToWideChar(CP_ACP,0,argv[++i],-1,w,MAX_PATH); w[MAX_PATH-1]=0;
+			if (!w[0] || !GetFullPathNameW(w,MAX_PATH,gQueueDirTest,NULL)) { fprintf(stderr,"origrun: --queue-dir needs a folder\n"); return 2; }
+		}
 		else { fprintf(stderr,"unknown or incomplete option: %s\n",argv[i]); return 2; }
 	}
+	if (gQueueDirTest[0] && !queueShow && !queueWaiter) { fprintf(stderr, "origrun: --queue-dir is for --queue and --queue-waiter (the queue's self-test); a sandbox run always uses the machine's queue\n"); return 2; }
+	if (queueWaiter) return queue_waiter(queueWaiter);
+	if (queueShow) return queue_show();
 	if (inSandboxDir) return main_in_sandbox(inSandboxDir, inSession, probe);   // everything else comes from the run folder
 	if (gClockVirtual && ieq(sound,"real")) {
 		fprintf(stderr, "origrun: --clock virtual lives in the sound stand-in, which --sound real leaves out; use --sound stub, wav or nodriver\n");

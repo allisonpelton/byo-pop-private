@@ -47,6 +47,7 @@ beside the copy, which holds the silent DirectSound, the virtual clock and every
 
     origrun --game <name> --script <file.txt> [options]
     origrun --exe "<absolute path to a copy already placed>" --script <file.txt> [options]
+    origrun --queue      who holds the machine's sandbox lock and who waits for it, in order
 
 `--game` looks the install up in `tools/origrun/games.tsv` (name, install folder, exe leaf, and optionally the
 game's registry key and 3D-flag address for `--3d`; the repository's table is read first, one beside `origrun.exe`
@@ -66,7 +67,7 @@ placed yourself, such as a real exe carved out of a wrapper. Shots land in
 | `--fresh` | Only a note to re-copy: delete `build/origrun/<run>` first to force a clean copy. |
 | `--copy-only` | Stage the copy and print its folder and exe without launching, to prepare it by hand before `--exe`. |
 | `--stage-root <dir>` | Put the game copy under `<dir>\<run>\game`; shots and logs stay under `build/origrun/<run>`. For a game that fails under a worktree's long path (Bookworm Adventures), e.g. `--stage-root E:\byo-og`. Not with `--sandbox`, where the copy is at `C:\run\game`. |
-| `--sandbox` | Run inside a fresh Windows Sandbox instead of under rundesk ("Windows Sandbox"). `--sandbox-vgpu` gives it the host's GPU; `--sandbox-connect` opens its window (only for runs the user has allowed onto their desktop); `--sandbox-wait <sec>` is how long to queue behind another run's sandbox (default 600); `--sandbox-probe` starts a sandbox with no game and writes what origrun finds there to `build/origrun/sandbox-probe/probe.txt`. |
+| `--sandbox` | Run inside a fresh Windows Sandbox instead of under rundesk ("Windows Sandbox"). `--sandbox-vgpu` gives it the host's GPU; `--sandbox-connect` opens its window (only for runs the user has allowed onto their desktop); `--sandbox-wait <sec>` is how long to queue behind another run's sandbox (default 600; the queue is first come, first served, and `origrun --queue` shows it: "Safeguards", "One sandbox on the machine"); `--sandbox-probe` starts a sandbox with no game and writes what origrun finds there to `build/origrun/sandbox-probe/probe.txt`. |
 | `--reg <file.reg>` | Registry presets for a `--sandbox` run ("Saves and the registry"). Refused on the host. |
 | `--counter <expr>`, `--flips <expr>`, `--update-ms <ms>` | The game's update counter, an optional per-frame counter and one update's length ("Timing to the game's updates"); with `flips` a held shot waits for the next present instead of the next update. Config keys `counter=`, `flips=`, `update_ms=`. |
 | `--pending-draw <expr>`, `--update-state <expr>`, `--draw-empty <expr>` | A SexyAppBase game's `mHasPendingDraw` (one byte), `mUpdateAppState` and optionally `mLastDrawWasEmpty` (one byte), so that a sandbox shot shows exactly the update it is labelled with. Config keys `pending_draw=`, `update_state=`, `draw_empty=`. |
@@ -214,7 +215,7 @@ sandbox, ends by itself, and is left alone.
 
 On the host origrun stages the run under `build/origrun/<run>/` (the copy in `game/`, patched, with the stand-in
 and any wrapper; `script.txt`; the settings in `sandbox-run.txt`; the configuration in `sandbox.wsb`), takes the
-machine's sandbox lock, starts a sandbox with `wsb start --id <guid> --config ...` and runs
+machine's sandbox lock (after its turn in the queue), starts a sandbox with `wsb start --id <guid> --config ...` and runs
 `C:\origrun\origrun.exe --in-sandbox C:\run` inside with `wsb exec -r System`. It waits for `sandbox-done.txt`
 (the inside run's exit code) for the timeout plus 60 s, stops the sandbox, checks with `wsb list` that it is gone,
 releases the lock and copies the inside run's RESULT lines into its own log. Ctrl+C and a crash stop the sandbox
@@ -236,7 +237,26 @@ origrun runs itself and the game again in that session.
 - **One sandbox on the machine.** Every origrun opens `byo-pop\sandbox.lock` under `%LOCALAPPDATA%` with no
   sharing and queues behind its holder (logged, up to `--sandbox-wait`). Windows releases it however origrun
   ends. Its text names the holder (`pid`, `run`, `since`, `dir`) and, while its sandbox may be up,
-  `sandbox=<id>`. The queue is not first come, first served: a waiting run retries, and any of them may win.
+  `sandbox=<id>`.
+  **The queue is first come, first served** (since 2026-11-22). A run first takes a ticket, a file in
+  `byo-pop\sandbox-queue\` named by its arrival time and pid (`<16 hex digits of the time>-<8 of the pid>.ticket`,
+  so the names sort in arrival order), and only the run whose ticket is the oldest live one tries the lock. The
+  ticket's text gives `pid`, `run`, `since`, `dir`, the process's creation time (`created`, so a reused pid is
+  not taken for the run) and `wait`, and `held=<time>` once its run has the lock: the holder keeps its ticket
+  until it releases the lock, so it heads the queue. A ticket is deleted when its handle closes, so Windows
+  removes it however origrun ends; one left all the same (Windows itself stopped) names a process that no longer
+  runs, and the next run that lists the queue skips it, deletes it and logs "removed the ticket of run ...". A
+  waiting run's log gives its place when it queues and whenever it changes ("sandbox queue: position 3 of 4;
+  ahead: ..." with each run ahead, its pid and its minutes), and once a minute the seconds waited.
+  `origrun --queue` prints who holds the lock (run, pid, since when) and who waits, in order, with run, pid and
+  minutes waited. To see whether the lock is held it opens it for reading, which keeps a run that tries it at
+  that instant out for one try (a quarter of a second). An origrun built before the queue takes no ticket and
+  still retries the lock, so it can still jump the queue, and `--queue` then says the lock is "held by a run
+  with no ticket": rebuild origrun after merging the trunk. `tools/origrun/queuetest.sh` tests the order with
+  six fake waiters (`--queue-waiter`, in a folder of its own given by `--queue-dir`, never the machine's queue;
+  no sandbox, no game, about 8 s): one holds the lock, five arrive 300 ms apart, one of them is ended with
+  `TerminateProcess` while it waits and a leftover ticket of a dead pid sits at the head; the lock must go to the
+  live ones in arrival order, the logs must show their places changing, and `--queue` must list them in order.
   Each waiting origrun counts as a game process, so **a session keeps at most one sandbox run queued** and
   starts the next when it ends; put several scenarios in one run where the script allows (coordinator,
   2026-11-22, when nine queued runs held the machine's slots).
