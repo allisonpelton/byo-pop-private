@@ -188,7 +188,8 @@
 #                one) (under a minute)
 #   heavyweapon  Heavy Weapon Deluxe: a tour from a script (games/heavyweapon/tools/tour_test.txt: the title, the menu's
 #                screens, a campaign from the map through level 1 with the standard test commands to its boss, results
-#                and armory, level 5 and survival lost, the options) and its rerun, whose screens, states and player files
+#                and armory, level 5 and survival lost, the options, the menus' boxes, the continue box, the armory's
+#                "not yet" box, and level 2's menu box, retreat question and pause) and its rerun, whose screens, states and player files
 #                must match and be the frozen baseline's; then the port's bot through tools/playbymove (real input, -hold):
 #                a campaign from the title through level 1 into level 2 (3400 moves), level 9 and survival to their game
 #                overs, a rerun of level 9 with the same transcript, and build/baseline-heavyweapon/heavyweapon.exe's tour
@@ -296,7 +297,7 @@ WB_SHOTS="2a54908cecb8 42df2d86a04f 983a569fb1b6"  # the first 12 hex digits of 
 MJ_DEAL="222 layouts, 0 failed"
 BB_SHOTS="99a302e2a141 fbf6b1061117 8b26c14dac8a"  # the first 12 hex digits of the sha256 of played.png, highscores.png and timeup.png (games/bonnies/tools/tour_test.txt): the frozen baseline
 VN_FROZEN="91fa05746617 6de40abf8b88"  # the first 12 hex digits of the sha256 of the tour's 15 screens' hashes and of its state lines (games/venice/tools/tour_test.txt): the frozen baseline (screens refrozen 2026-11-15: the 3D display puts a transformed picture half a pixel over, as the 3D original does, so the pictures are sharper; the states are the same)
-HW_FROZEN="0f9a91bb0a10 61398f211445"  # the first 12 hex digits of the sha256 of the tour's 19 screens' hashes and of its state lines (games/heavyweapon/tools/tour_test.txt): the frozen baseline
+HW_FROZEN="4f5cbc9782ab 26859a958266"  # the first 12 hex digits of the sha256 of the tour's 34 screens' hashes and of its state lines (games/heavyweapon/tools/tour_test.txt): the frozen baseline
 # Heavy Weapon Deluxe: the bot's summary lines (tools/playbymove's last line) for its campaign from the title, level 9 and survival: the frozen baseline
 HW_CAMPAIGN='playbymove heavyweapon: 3400 moves, stop limit; STATE {"screen":"game","dialog":-1,"mode":"campaign","level":2,"maxlevel":1,"score":49620,"lives":1,"nukes":1,"timer":3950,"length":15000,"boss":-1,"bosshealth":0,"bossup":0,"enemies":0,"tankx":-161.522,"tankdead":0,"fire":0,"paused":0,"suspended":0,"updates":4648,"over":false,"appupdates":17894}'
 HW_LATER='playbymove heavyweapon: 610 moves, stop over; STATE {"screen":"gameover","dialog":40,"mode":"campaign","level":9,"maxlevel":19,"score":2580,"lives":0,"nukes":0,"timer":1587,"length":30000,"boss":-1,"bosshealth":0,"bossup":0,"enemies":0,"tankx":-380,"tankdead":1,"fire":0,"paused":0,"suspended":1,"updates":3093,"over":true,"appupdates":3121}'
@@ -2588,7 +2589,7 @@ suite_pizzafrenzy() {
 	return $e
 }
 
-HW_SHOTS_ALL="title menu highscores credits help map firsthelp game tip boss results armory level5 gameover afterquit survival survivalover aftersurvival options"
+HW_SHOTS_ALL="title menu highscores credits help map firsthelp game tip boss results armory level5 gameover afterquit survival survivalover aftersurvival options quitbox userlist newplayer userlist2 deleteplayer rename playerback resetscores continue armory2 armorypoints menubox retreat paused unpaused"
 
 heavyweapon_tour() {  # <name> [<exe>]: games/heavyweapon/tools/tour_test.txt into $OUT/heavyweapon/<name>; prints the exit status
 	local d="$OUT/heavyweapon/$1" e=0
@@ -2668,7 +2669,7 @@ suite_heavyweapon() {
 			cmp -s "$d/$k/driver.txt" "$d/base-$k/driver.txt" || { bl="; BASELINE DIFFERS ($k)"; st=1; }
 		done
 	fi
-	SUMMARY="the tour (the title, the menu's screens, level 1 to its results and the armory, level 5 and survival lost, the options; rerun identical, $sh); campaign ${a#playbymove heavyweapon: }; level 9 ${b#playbymove heavyweapon: }; survival ${c#playbymove heavyweapon: }; $r$bl"
+	SUMMARY="the tour (the title, the menu's screens, level 1 to its results and the armory, level 5 and survival lost, the options, the boxes; rerun identical, $sh); campaign ${a#playbymove heavyweapon: }; level 9 ${b#playbymove heavyweapon: }; survival ${c#playbymove heavyweapon: }; $r$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected tour $HW_FROZEN, campaign '$HW_CAMPAIGN', level 9 '$HW_LATER', survival '$HW_SURVIVAL')"
 	return $st
 }
