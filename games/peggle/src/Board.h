@@ -65,6 +65,11 @@ public:
 	void RemoveSlotMachineDialog();			// 0x402480
 	void SyncModeOptions();					// 0x40f980: the options the game mode gives the board (the level it plays)
 	void SyncCharacterOptions(bool theDrawAgain); // 0x40f400: false keeps the masters the rules already chose
+	void Update() override;					// 0x410e10
+	void UpdateMgrs();						// 0x402ad0: the managers' updates of one step
+	void UpdateSlowMo();					// 0x402ba0: the slow motion's counters of one step
+	void UpdateObjects(bool theMoreSteps);	// 0x410ae0
+	void UpdateZoom();						// 0x40ad10
 	void PlayMusic();						// 0x422640
 	void AddObj(const SharedPtr<PhysObj>& theObj); // 0x422a90 (0x421070): a piece of the level joins the board's lists
 	void SetSlowMo(bool theSlowMo, int theRate); // 0x4026f0
@@ -142,7 +147,12 @@ public:
 	int mUnknown1B0;						// +0x1b0: 650
 	int mUnknown1B4;						// +0x1b4: 560
 	int mUnknown1C0;						// +0x1c0: RemoveSlotMachineDialog sets it to 0
-	bool mUnknown1C4;						// +0x1c4
+	int mUpdateCount;						// +0x1c4: updates of the level that were not skipped by the slow motion
+	int mUnknown1D0;						// +0x1d0: updates to run on top of the next one's
+	int mUnknown1CC;						// +0x1cc: counts down
+	int mUnknown1C8;						// +0x1c8: counts down in the demo mode (the update stops while it does)
+	int mUnknown1BC;						// +0x1bc: 0 to 10, grows while mUnknown1B8 is set and falls when not
+	int mUnknown1B8;						// +0x1b8
 	std::string mLevelName;					// +0x1d4: the level's path as the file is read (with "levels/" and ".dat")
 };
 

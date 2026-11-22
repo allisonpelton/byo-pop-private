@@ -1,5 +1,6 @@
 // FloatingTextMgr.cpp: see FloatingTextMgr.h.
 
+#include "NotTranslated.h"
 #include "FloatingTextMgr.h"
 
 using namespace Sexy;
@@ -14,4 +15,10 @@ FloatingTextMgr::FloatingTextMgr()
 void FloatingTextMgr::Clear()
 {
 	mTexts.clear();
+}
+
+// 0x469e40
+void FloatingTextMgr::Update()
+{
+	NOT_TRANSLATED("FloatingTextMgr::Update");
 }

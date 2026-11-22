@@ -25,6 +25,7 @@ public:
 	virtual ~FloatingTextMgr() {} // 0x471e10
 
 	void Clear(); // 0x469d10: every text is gone
+	void Update();		// 0x469e40
 
 	int mLastTextId;				 // +4: the number of the text made last (AddText counts up from 1, skipping 0 when it wraps)
 	std::list<FloatingText> mTexts; // +8

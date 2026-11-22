@@ -217,3 +217,9 @@ void InterfaceMgr::SyncStageNum()
 {
 	NOT_TRANSLATED_DRAWING("InterfaceMgr::SyncStageNum");
 }
+
+// 0x4518b0
+void InterfaceMgr::Update()
+{
+	NOT_TRANSLATED("InterfaceMgr::Update");
+}

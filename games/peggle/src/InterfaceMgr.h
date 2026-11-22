@@ -31,6 +31,7 @@ public:
 	virtual ~InterfaceMgr();				// the original's deleting destructor
 
 	void Clear();				// 0x447260
+	void Update();		// 0x4518b0
 	void InitLevel();			// 0x4725f0
 	void SettleDown();			// 0x4482d0: the score on show is the score
 	void UpdateHighScore();		// 0x4724e0: the best score and its name for the level

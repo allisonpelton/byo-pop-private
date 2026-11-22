@@ -44,6 +44,16 @@ static const int BOARD_WIDTH = 650;
 static const int BOARD_HEIGHT = 560;
 static const int SONG_NOT_PLAYED = 4;			// the board never plays this one of the songs (PlayMusic leaves it out of its list)
 static const int SONG_STRIDE = 6;				// PlayMusic's music ids for the board are six apart (the level music ids)
+static const int PAUSE_FADE_MAX = 10;			// mUnknown1BC's top
+static const int FAST_FORWARD_STEPS = 8;		// the steps of an update while the right button is held (Board.cpp 105, line 3863)
+static const int FAST_FORWARD_STEPS_STATE_2 = 4; // ... in the state 2 of the turn (106, 3868)
+static const int REPLAY_FAST_STEPS = 4;			// ... while a replay is held fast (104, 3844)
+static const int ARROW_KEY_STEP = 5;			// how far an arrow key turns the cannon in a step (107 and 108, 3911 and 3913)
+static const int FEVER_MISSED_FIRST = 900;		// the slow motion's rate between these two, in the fever, the fever is missed (102, 103, 3739)
+static const int FEVER_MISSED_LAST = 0x398;
+static const int SLOW_MO_REPLAY_RATE = 250;		// the rate SetSlowMo(false, ...) is told
+static const int SLOW_MO_RATE_STEP = 0x14;		// the rate grows by this each step once the slow motion is going back
+static const int MOUSE_BUTTON_MARGIN = 10;		// the mouse is this far above the buttons' tops and still counts as over them
 static const int RANDOM_CHARACTER = 10;			// a player's choice of master that means "any"; also the number of masters
 static const int MAX_UNLOCKED_CHARACTER = 20;	// GetMaxUnlockedCharacter, for a registered game (the only kind here)
 static const int DEMO_LEVEL_MIN_GAP = 10;		// a level drawn at random is not one that was drawn in the last ten picks
@@ -121,7 +131,12 @@ Board::Board(ThunderballApp* theApp)
 	mOriginY = ORIGIN_Y;
 	mUnknown1B0 = BOARD_WIDTH;
 	mUnknown1B4 = BOARD_HEIGHT;
-	mUnknown1C4 = false;
+	mUpdateCount = 0;
+	mUnknown1B8 = 0;
+	mUnknown1BC = 0;
+	mUnknown1C8 = 0;
+	mUnknown1CC = 0;
+	mUnknown1D0 = 0;
 	mBackgroundImage = nullptr;
 
 	mAIMgr.reset(new AIMgr(this));
@@ -601,7 +616,12 @@ void Board::CheckForBackground()
 // 0x41ea50: the rules' start of the level: the challenge's balls, lives and scores, then LogicMgr::InitLevel
 void Board::SetupLevel()
 {
-	mUnknown1C4 = false;
+	mUpdateCount = 0;
+	mUnknown1B8 = 0;
+	mUnknown1BC = 0;
+	mUnknown1C8 = 0;
+	mUnknown1CC = 0;
+	mUnknown1D0 = 0;
 	LogicMgr* aLogic = mLogicMgr.get();
 	if (mChallenge != nullptr)
 	{
@@ -752,4 +772,226 @@ void Board::SyncCharacterOptions(bool theDrawAgain)
 	}
 	aLogic->mUnknown1C4 = aFirst->mPowerup;
 	aLogic->mUnknown1C8 = aSecond->mPowerup;
+}
+
+// 0x410e10: one update of the board: the fade of the pause, the mouse's place, the steps to run (more than one while the right
+// button is held or a replay is fast), each of them the managers' and the pieces'
+void Board::Update()
+{
+	Widget::Update();
+	if (EditingLevel())
+		return;
+	if (mUnknown1BC != 0 || mUnknown1B8 != 0)
+	{
+		if (mApp->GetDialogCount() == 0)
+		{
+			if (mUnknown1B8 == 0)
+			{
+				if (0 < mUnknown1BC)
+				{
+					mUnknown1BC--;
+					MarkDirty();
+				}
+			}
+			else if (mUnknown1BC < PAUSE_FADE_MAX)
+			{
+				mUnknown1BC++;
+				MarkDirty();
+			}
+		}
+		else if (mUnknown1BC != 0)
+		{
+			mUnknown1BC = 0;
+			MarkDirty();
+		}
+	}
+	if (mUnknown1C8 != 0 && mGameMode == GAME_MODE_DEMO)
+	{
+		mUnknown1C8--;
+		MarkDirty();
+		return;
+	}
+	if (mUnknown1CC != 0)
+		mUnknown1CC--;
+	if (!mIsOver || mUnknown1B8 != 0)
+		mUnknown12C = false;
+	else
+	{
+		int aMouseX = mWidgetManager->mLastMouseX;
+		int aMouseY = mWidgetManager->mLastMouseY;
+		ThunderButton* aReplayButton = mInstantReplayButton;
+		ThunderButton* aMenuButton = mMenuButton;
+		if ((!aReplayButton->mDisabled && aReplayButton->mX <= aMouseX && aReplayButton->mY - MOUSE_BUTTON_MARGIN <= aMouseY) ||
+			(aMouseX <= aMenuButton->mX + aMenuButton->mWidth && aMenuButton->mY - MOUSE_BUTTON_MARGIN <= aMouseY))
+			mUnknown12C = false;
+		else
+			mUnknown12C = mSlotMachineDialog->mWidgetManager == nullptr;
+	}
+	int aNumSteps = 1;
+	if (mLogicMgr->mUnknownF5 && mReplayDialog->IsFast())
+	{
+		SetSlowMo(false, SLOW_MO_REPLAY_RATE);
+		mUnknownE4 = 0;
+		aNumSteps = REPLAY_FAST_STEPS;
+	}
+	else if (mWidgetManager->IsRightButtonDown() && !mInstantReplayButton->mIsOver)
+	{
+		if (mLogicMgr->mState == 2)
+		{
+			if (mUnknown11E)
+			{
+				SetSlowMo(false, SLOW_MO_REPLAY_RATE);
+				aNumSteps = FAST_FORWARD_STEPS_STATE_2;
+			}
+		}
+		else
+		{
+			SetSlowMo(false, SLOW_MO_REPLAY_RATE);
+			aNumSteps = FAST_FORWARD_STEPS;
+		}
+	}
+	if (0 < mUnknown1D0)
+	{
+		aNumSteps += mUnknown1D0;
+		mUnknown1D0 = 0;
+	}
+	for (int aStep = 0; aStep < aNumSteps; aStep++)
+	{
+		if (mUnknown1B8 != 0 || mSlotMachineDialog->mWidgetManager != nullptr)
+		{
+			mCharacterMgr->UpdatePaused();
+			break;
+		}
+		if (mWidgetManager->mKeyDown[KEYCODE_LEFT])
+			mLogicMgr->MouseWheel(-ARROW_KEY_STEP);
+		if (mWidgetManager->mKeyDown[KEYCODE_RIGHT])
+			mLogicMgr->MouseWheel(ARROW_KEY_STEP);
+		if (0 < mUnknownE4)
+		{
+			if (!mLogicMgr->mUnknownF5)
+				mUnknownE4 = 0;
+			else
+			{
+				mCharacterMgr->UpdatePaused();
+				mUnknownE4--;
+				continue;
+			}
+		}
+		UpdateSlowMo();
+		if (!mUnknownC2)
+			mUpdateCount++;
+		if (mUnknown10C != 0)
+			mUnknown10C--;
+		UpdateMgrs();
+		if (mLogicMgr->mState != LOGIC_STATE_UNKNOWN10)
+			UpdateObjects(aStep != aNumSteps - 1);
+		UpdateZoom();
+		MarkDirty();
+	}
+	if (mUnknown121)
+	{
+		mUnknown121 = false;
+		mMenuButton->mMouseVisible = true;
+		mInstantReplayButton->mMouseVisible = true;
+		mReplayDialog->SetMouseVisibility(true);
+	}
+	int aState = mLogicMgr->mState;
+	bool aReplayButtonShown = (aState == 1 || aState == 5) && mReplayCount != 0;
+	if (mInstantReplayButton->mMouseVisible != aReplayButtonShown && mUnknown1B8 == 0)
+	{
+		mInstantReplayButton->SetDisabled(!aReplayButtonShown);
+		mInstantReplayButton->mMouseVisible = aReplayButtonShown;
+		MarkDirty();
+	}
+}
+
+// 0x402ad0
+void Board::UpdateMgrs()
+{
+	if (!mLogicMgr->mUnknownF5)
+		mAIMgr->Update();
+	mDebugMgr->Update();
+	mLogicMgr->Update();
+	if (!mUnknownC2)
+	{
+		mCharacterMgr->CalcLookPos(this, false);
+		mCharacterMgr->Update();
+		mEffectMgr->Update(mSlowMo);
+		mSoundMgr->Update();
+	}
+	else
+	{
+		mCharacterMgr->UpdateSlowMo();
+		mSoundMgr->UpdateSounds();
+	}
+	if (mSlowMo)
+		mEffectMgr->UpdateSlowMo((float)mSlowMoRate / 1000.0f);
+	mFloatingTextMgr->Update();
+	mInterfaceMgr->Update();
+}
+
+// 0x402ba0: the slow motion lets a step through when its counter (adding the rate each time) passes 1000; once it is on its way
+// out the rate grows until it is 1000; an easing moves the rate to a goal; a fever's last shot that the slow motion ends is missed
+void Board::UpdateSlowMo()
+{
+	if (!mSlowMo)
+		return;
+	mUnknownCC += mSlowMoRate;
+	if (mUnknownCC < 1000)
+		mUnknownC2 = true;
+	else
+	{
+		mUnknownC2 = false;
+		mUnknownCC = mUnknownCC % 1000;
+	}
+	if (!mUnknownC3)
+	{
+		if (0 < mUnknownC8 && --mUnknownC8 == 0)
+			mUnknownC3 = true;
+	}
+	else
+	{
+		mSlowMoRate += SLOW_MO_RATE_STEP;
+		if (FEVER_MISSED_FIRST <= mSlowMoRate && mSlowMoRate < FEVER_MISSED_LAST && mLogicMgr->mUnknownF9)
+			mLogicMgr->DoFeverMissed();
+		if (999 < mSlowMoRate)
+			SetSlowMo(false, SLOW_MO_REPLAY_RATE);
+	}
+	int aGoal = mUnknownD4;
+	if (aGoal != 0)
+	{
+		if (aGoal < mSlowMoRate)
+		{
+			mSlowMoRate -= mUnknownD8;
+			if (mSlowMoRate <= aGoal)
+			{
+				mSlowMoRate = aGoal;
+				mUnknownD4 = 0;
+				return;
+			}
+		}
+		else
+		{
+			mSlowMoRate += mUnknownD8;
+			if (aGoal <= mSlowMoRate)
+			{
+				mSlowMoRate = aGoal;
+				mUnknownD4 = 0;
+			}
+			if (999 < mSlowMoRate)
+				SetSlowMo(false, SLOW_MO_REPLAY_RATE);
+		}
+	}
+}
+
+// 0x410ae0
+void Board::UpdateObjects(bool theMoreSteps)
+{
+	NOT_TRANSLATED("Board::UpdateObjects");
+}
+
+// 0x40ad10
+void Board::UpdateZoom()
+{
+	NOT_TRANSLATED("Board::UpdateZoom");
 }

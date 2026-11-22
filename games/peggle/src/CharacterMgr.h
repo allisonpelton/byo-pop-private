@@ -89,6 +89,9 @@ public:
 	void Load();							 // 0x474cb0: characters/characters.cfg
 	void InitDefault();						 // 0x4747b0: one master without a file, for the level editor and tests
 	void Clear(bool theClearCharacters);	 // 0x473d90
+	void Update();		// 0x439830
+	void UpdatePaused();		// 0x439990
+	void UpdateSlowMo();		// 0x439a60
 	int GetCharacterIndex(const std::string& theName); // 0x43e3b0: -1 for none
 	int GetNumCharacters() const { return (int)mCharacters.size(); }
 	int SetCurCharacter(int theCharacter);	 // 0x43e320

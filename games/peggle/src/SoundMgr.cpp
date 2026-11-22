@@ -60,3 +60,15 @@ void SoundMgr::FadeMusic(int theTime)
 {
 	NOT_TRANSLATED("SoundMgr::FadeMusic");
 }
+
+// 0x458fc0
+void SoundMgr::Update()
+{
+	NOT_TRANSLATED("SoundMgr::Update");
+}
+
+// 0x441d50
+void SoundMgr::UpdateSounds()
+{
+	NOT_TRANSLATED("SoundMgr::UpdateSounds");
+}

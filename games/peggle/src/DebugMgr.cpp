@@ -51,3 +51,9 @@ void DebugMgr::InitLevel()
 	if (mFlippersOn)
 		NOT_TRANSLATED("DebugMgr::SyncFlipperState");
 }
+
+// 0x44dcd0
+void DebugMgr::Update()
+{
+	NOT_TRANSLATED("DebugMgr::Update");
+}

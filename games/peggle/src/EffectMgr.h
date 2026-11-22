@@ -20,6 +20,8 @@ public:
 	virtual ~EffectMgr() {} // 0x44b550
 
 	void Clear(); // 0x443720: every effect of every list is deleted
+	void Update(bool theSlowMo);		// 0x45bf10
+	void UpdateSlowMo(float theSubFrame);		// 0x45bfb0
 
 	std::list<Effect> mLists[NUM_EFFECT_LISTS]; // +4, 12 bytes each in the original
 };

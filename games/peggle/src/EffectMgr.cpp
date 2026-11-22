@@ -1,5 +1,6 @@
 // EffectMgr.cpp: see EffectMgr.h.
 
+#include "NotTranslated.h"
 #include "EffectMgr.h"
 
 using namespace Sexy;
@@ -14,4 +15,16 @@ void EffectMgr::Clear()
 {
 	for (int i = 0; i < NUM_EFFECT_LISTS; i++)
 		mLists[i].clear();
+}
+
+// 0x45bf10
+void EffectMgr::Update(bool theSlowMo)
+{
+	NOT_TRANSLATED("EffectMgr::Update");
+}
+
+// 0x45bfb0
+void EffectMgr::UpdateSlowMo(float theSubFrame)
+{
+	NOT_TRANSLATED("EffectMgr::UpdateSlowMo");
 }

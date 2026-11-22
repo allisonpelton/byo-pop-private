@@ -20,6 +20,8 @@ public:
 	virtual ~SoundMgr() {} // 0x437560's neighbour in the vtable; the original's deleting destructor
 
 	void Clear();					   // 0x442e90
+	void Update();		// 0x458fc0
+	void UpdateSounds();		// 0x441d50
 	void CancelFade();				   // 0x437600: the music's volume goes back to full
 	void AddFadeSound(SoundInstance* theSound); // 0x452810: the sound fades out and is let go of when it is silent
 	void PauseMusic(bool thePause);	   // 0x437560

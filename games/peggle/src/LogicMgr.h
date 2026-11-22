@@ -65,6 +65,9 @@ public:
 
 	void SetState(int theState);						// 0x436fb0
 	void Clear(bool theNewGame, bool theKeepLists = false); // 0x45d900: the state of a level (a new game: the players' too)
+	void Update();		// 0x4730d0
+	void MouseWheel(int theDelta);		// 0x43d6a0
+	void DoFeverMissed();		// 0x4372e0
 	void KillSlowMoSound();								// 0x4372c0
 	void FadeOutSound();								// 0x458ab0 (no name in the original): the sound that fades goes to the sound manager
 	int CalcScoreMult(int theNumPegsHit) const;			// 0x4370b0

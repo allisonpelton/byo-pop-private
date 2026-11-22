@@ -697,3 +697,21 @@ void LogicMgr::SetCharacters(int theFirst, int theSecond)
 	mCharacter[1] = theSecond;
 	mBoard->mCharacterMgr->SetCurCharacter(mCharacter[mCurPlayer]);
 }
+
+// 0x4730d0
+void LogicMgr::Update()
+{
+	NOT_TRANSLATED("LogicMgr::Update");
+}
+
+// 0x43d6a0
+void LogicMgr::MouseWheel(int theDelta)
+{
+	NOT_TRANSLATED("LogicMgr::MouseWheel");
+}
+
+// 0x4372e0
+void LogicMgr::DoFeverMissed()
+{
+	NOT_TRANSLATED("LogicMgr::DoFeverMissed");
+}
