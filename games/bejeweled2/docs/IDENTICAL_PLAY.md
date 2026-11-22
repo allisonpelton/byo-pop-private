@@ -356,9 +356,23 @@ faint (fin01, fin02: 0.03 percent). The three that differ are the title (the loa
 Games pill, removed). The warp shots are faint (sparkle phases). The 3D credits roll therefore equals the original's, with the
 fixes of the 2D pass. The title's logo region the run forbids is the 2D one scaled by 1.6, unconfirmed.
 
-Not taken: the original's full screen (a full screen original changes the desktop's display mode; no script runs it yet) and the 3D
-shots of the other new tours (dialogs, hints, galaxy); `run3d.py <recording> <out> --profile <folder>` does any of them from a 3D
-recording (`record_3d_tours.sh`-style, `PLAY_AT=940`, the tour's environment from `screens_run.sh`).
+The other new tours in 3D (the same lane, one run each; `tools/shotdiff` runs `v3d_puzzle`, `v3d_dialogs`, `v3d_classic`):
+- Puzzle (hints, Illegal Move, Still Solvable, the galaxy map and a locked planet, the warp): 22 pairs, 2 match, 18 faint, 2 differ (the title's
+  load phase, the menu's More Games pill): every hint and galaxy shot is faint or identical.
+- Dialogs (the user list, Rename, Delete, Create, Enter Name, Name Conflict, Quit, the reset question): 10 pairs, all differ only in the menu
+  behind the dialog (the sky's stars and comet phase, the More Games pill) and the lit button of a box under a resting cursor; the dialogs' own
+  pixels are the original's.
+- Classic with the one-time boxes (the hint-boxes player): 11 pairs, the Help screen matches and every board differs, because the original
+  dealt another board (other gems from the first shot). Not chased (the board draws of the host and desktop lanes are listed above as not
+  comparable; this is the same, found here on the desktop lane in 3D with this player; the earlier 3D Classic tour with the other player
+  matched).
+
+**The original's full screen: not compared.** In Windows Sandbox (the user, via the coordinator, 2026-11-22: only where the mode change cannot
+reach other runs) the original was run twice from the Classic tour with `ScreenMode=1`: it stayed at the title with its window shown
+framed, and the posted Play click was never taken, which is what `run_original.sh` notes for a full screen original ("would otherwise be
+full screen and take no posted click"). The origrun sandbox lane cannot drive a full screen original, so no pair exists; the port's own
+full screen (borderless) was compared earlier with the windowed shots (phase two). The desktop is not used for it (a display mode change
+reaches every other run and covers all four places).
 
 ### Runs
 
