@@ -391,6 +391,9 @@ void PixelusApp::ShowOptionsDialog(bool theInGame)
 	int aHeight = aDialog->GetPreferredHeight(0x1a4);
 	aDialog->Resize(0x6e, 0xf0 - aHeight / 2, 0x1a4, aHeight);
 	AddDialog(OptionsDialog::DIALOG_ID, aDialog);
+	// 0x409160 (case 0xb) then centres it over the play area, right of the sidebar (0x432f40)
+	if (theInGame)
+		aDialog->Move(((mWidth - 173) - aDialog->mWidth) / 2 + 173, (mHeight - aDialog->mHeight) / 2);
 }
 
 // 0x432a00 (0x402290): over the options dialog
