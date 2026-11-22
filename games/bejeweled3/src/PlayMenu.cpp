@@ -362,9 +362,10 @@ void PlayMenu::ButtonMouseEnter(int theId)
 			break;
 		case 6:
 			if (gApp->mProfile->mTutorialFlags[2] == 0) {
-				// port: 0x43b2e0 writes the number 100000 (0x186a0); with a comma between the thousands is how it is read
+				// 0x43b2e0 (through 0x5a8f10 and 0x5a8fb0) writes 100000 (0x186a0) with its thousands grouped by the
+				// locale's separator: CommaSeperate, as the English game shows it
 				aText = FormatText(TextById(0x176, "Score %s points in ^%S^Lightning Mode^oldclr^ to unlock"),
-					{"100,000", aColor});
+					{CommaSeperate(100000), aColor});
 				isLocked = true;
 				aRedBall = 2;
 			}
