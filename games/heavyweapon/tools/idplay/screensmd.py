@@ -53,6 +53,11 @@ def in_level(level):
 
 # (screen, reached by, shots, note): shots are patterns (a shot's _3d twin matches too unless the pattern ends in "!2D",
 # which takes the 2D shot alone) or selectors of periodic shots; a row with no shots says why in its note
+SMOKE = ("explained: translucent smoke drawn over a fire, whose blend the 2005 framework's software blitters and SDL "
+         'round apart (IDENTICAL_PLAY.md, "Oddities": translucent pixels on the 2D screen)')
+LEVEL_NOTES = {13: SMOKE + ', at most 72 levels in shot shots_levels11_09100',
+               14: SMOKE + ', at most 97 levels over the boss in shot shots_levels11_14800'}
+
 ROWS = [
     ('TitleScreen: the intro movie (intro.swf, played by the shared SWF player in the port, by the Flash control in the '
      'original), ended by a click', 'launch', ['menus_intro_*'],
@@ -60,15 +65,20 @@ ROWS = [
      'frame-rate updates (a listed deviation), so a shot catches another frame of it; the first frame and one late frame '
      'are shot'),
     ('TitleScreen: the title with its loading bar full and "click here to play"', 'the intro\'s end',
-     ['menus_title_early', 'menus_title', 'fs_title'], ''),
+     ['menus_title_early', 'menus_title', 'fs_title'],
+     'explained: the click that ends the intro is taken by the port in the update it is given and read by the original '
+     'before the next, so the title\'s fade and the glow of "click here to play" run an update ahead in the port (its '
+     'picture after update 151 is the original\'s after 152; IDENTICAL_PLAY.md, "Tours and results")'),
     ('TitleScreen: the loading bar while it fills', 'launch', [],
      'none: both games load before the update every run starts from (the original\'s loading on the main thread in the '
      'comparison, the port\'s in one go, a listed deviation), so no update draws the bar part full'),
     ('UserNameDialog (0x1b): the first run\'s name box, empty and typed', 'the title\'s click with no player',
-     ['menus_namebox', 'menus_name_typed', 'fs_namebox'], ''),
+     ['menus_namebox', 'menus_name_typed', 'fs_namebox',
+      state_is('menu', mode=None, test=lambda state: state.get('dialog') == 0x1b)], ''),
     ('MessageDialog (0x1f): an empty name refused', 'the name box\'s OK with no name', ['cov_refused'], ''),
     ('MainMenu: the main menu, the button descriptions under the pointer and the player\'s welcome', 'the name box; '
-     'every screen\'s way back', ['menus_mainmenu*', 'cov_mainmenu*', 'dlg_mainmenu_*', 'fs_mainmenu*', 'opt_mainmenu'], ''),
+     'every screen\'s way back', ['menus_mainmenu*', 'cov_mainmenu*', 'dlg_mainmenu_*', 'fs_mainmenu*', 'opt_mainmenu',
+                                       state_is('menu', mode=None, test=lambda state: state.get('dialog', -1) == -1)], ''),
     ('YesNoDialog (0x20): the main menu\'s quit question, one of ten quotes at random', 'QUIT',
      ['menus_quitbox', 'dlg_quit*'], 'ten in a row, five quotes among them'),
     ('MessageDialog: survival locked', 'SURVIVAL before three levels are passed', ['cov_locked', 'dlg_locked'], ''),
@@ -116,7 +126,10 @@ ROWS = [
     ('ContinueDialog (0x3b): continue the campaign or begin a new one', 'CAMPAIGN with a campaign saved',
      ['boxes_continue'], ''),
     ('MapScreen: the map, its zoom and the briefing', 'a campaign\'s start; ADVANCE after a level\'s armory',
-     ['ingame_map', 'ingame_into_level', 'fs_map', 'fs_zoom', 'cov_into_level', state_is('map')], ''),
+     ['ingame_map', 'ingame_into_level', 'fs_map', 'fs_zoom', 'cov_into_level', state_is('map')],
+     "explained: in 3D the zoom's stretched map is filtered by each program's renderer (Direct3D 7 in the original, "
+     "SDL's in the port), which round its blurred edges apart by up to 72 levels on a few hundred pixels; in 2D it "
+     'matches'),
     ('Armory: the weapons and their upgrades', 'a level\'s results; CONTINUE in the continue box',
      ['boxes_armory*', state_is('armory')], ''),
     ('MessageDialog: points left to spend', 'the armory\'s GO with points left', ['boxes_points'], ''),
@@ -126,12 +139,12 @@ ROWS = [
     ('Board: level %d, its enemies, pickups and boss, the status bar' % level,
      'the campaign; `level %d`' % level,
      (['ingame_level1', 'ingame_resumed', 'ingame_continued', 'ingame_after_no', 'cov_resumed', 'cov_end', 'fs_level1',
-       'fs_resumed', 'boxes_resumed'] if level == 1 else []) + [in_level(level)], '')
+       'fs_resumed', 'boxes_resumed'] if level == 1 else []) + [in_level(level)], LEVEL_NOTES.get(level, ''))
     for level in range(1, 20)
 ] + [
     ('NukeBlast: the nuke', 'the right button in a level', ['cov_nuke'], ''),
     ('PlayTipDialog (0x2c): the auto-fire, nuke, friendly and mega laser tips', 'the first time each comes up in a game',
-     ['cov_tip*', tip], 'each shot the update before the bot\'s click on its OK'),
+     ['cov_tip*', tip, state_is('game', mode=None, test=lambda state: state.get('dialog') == 0x2c)], 'each shot the update before the bot\'s click on its OK'),
     ('QuitDialog (3): the status bar\'s MENU box', 'MENU in a level', ['ingame_menubox*', 'boxes_menubox*', 'fs_menubox'], ''),
     ('YesNoDialog: retreat to the main menu? (a tank left to lose: the tall box)', 'the MENU box\'s MAIN MENU',
      ['ingame_confirm'], ''),

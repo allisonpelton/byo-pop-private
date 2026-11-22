@@ -968,7 +968,7 @@ def shots3d(name, reuse=False):
     # the state at each shot against the port's trace, at the update the shot shows
     anchor = port_anchor()
     trace = {record['u']: record for record in read_trace(os.path.join(folder, 'trace3d.txt'))}
-    differ = 0
+    differ = []
     for row in rows:
         if len(row) < 6 or row[2] != 'shot':
             continue
@@ -978,13 +978,38 @@ def shots3d(name, reuse=False):
             continue
         for key in ('score', 'level', 'lives'):
             if values.get(key, '-') != '-' and int(values[key]) != record.get(key, int(values[key])):
-                differ += 1
+                differ.append(row[3].split()[0])
                 log('%s: %s is %s in the original and %s in the port' % (row[3].split()[0], key, values[key], record.get(key)))
                 break
-    log('%s: %d shots in 3D, %d whose state differs' % (name, len(glob.glob(os.path.join(out, '*.png'))), differ))
+    log('%s: %d shots in 3D, %d whose state differs' % (name, len(glob.glob(os.path.join(out, '*.png'))), len(differ)))
+    # The original's 3D game parts from its 2D one in a level, the tank's X first (IDENTICAL_PLAY.md, "Oddities"), before
+    # the score shows it: every shot after the last peek of the 3D run that agrees with the sandbox run (the tank's X to
+    # its last bit) is left out by `screens` too, with those whose state differs (port3d/state-differs.txt)
+    records, _ = parse_original(name)
+    original_anchor = min(update for update, record in records.items() if record['loaded'])
+    agreed = None
+    for row in rows:
+        if len(row) < 6 or row[2] != 'peek' or not row[1].isdigit():
+            continue
+        record = records.get(int(row[1]) - anchor3d(name) + original_anchor)
+        if record is None:
+            continue
+        values = dict(item.split('=', 1) for item in row[5].split() if '=' in item)
+        if any(values.get(key, '-') != '-' and key in record and
+               (int(values[key]) & 0xffffffff) != (record[key] & 0xffffffff)
+               for key in ('score', 'level', 'lives', 'killed', 'tankxh', 'ltime')):
+            log('%s: the 3D game parts from the sandbox run\'s after update %s' % (name, agreed))
+            for shot in rows:
+                if (len(shot) >= 6 and shot[2] == 'shot' and shot[1].isdigit() and int(shot[1]) > (agreed or 0) and
+                        shot[3].split()[0] not in differ):
+                    differ.append(shot[3].split()[0])
+            break
+        agreed = int(row[1])
+    with open(os.path.join(folder, 'port3d', 'state-differs.txt'), 'w', newline='\n') as listing:
+        listing.write(''.join(shot + '\n' for shot in differ))
     subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'shotdiff', 'shotdiff.py'), '--game', 'heavyweapon', '--orig',
                      out, '--port', os.path.join(folder, 'port3d'), '--run', name + '_3d'], cwd=ROOT)
-    return differ == 0
+    return True     # a parted state is the original's 3D game, listed and left out; the shots are judged in `screens`
 
 
 def anchor3d(name):
@@ -1116,7 +1141,8 @@ def preview(name, three_d=False):
 def screens(names):
     """every tour's pairs in one shotdiff run, `screens`, which tools/screencheck.py reads for SCREENS.md (docs/SHOTDIFF.md,
     "Every screen, listed"): the named tours', or every tour's with both orig/ and port/ shots, and their 3D pairs
-    (orig3d/ and port3d/, each named <shot>_3d) where the tour has them. The shot names are the tours' own, which do not
+    (orig3d/ and port3d/, each named <shot>_3d) where the tour has them, but for those whose state differs
+    (port3d/state-differs.txt). The shot names are the tours' own, which do not
     repeat across tours"""
     if not names:
         names = sorted(entry for entry in os.listdir(OUT_ROOT) if not entry.startswith('_') and
@@ -1130,8 +1156,21 @@ def screens(names):
         for side, source in (('orig', 'orig'), ('port', 'port'), ('orig', 'orig3d'), ('port', 'port3d')):
             if source.endswith('3d') and not os.path.isdir(os.path.join(OUT_ROOT, name, 'port3d')):
                 continue
+            parted = set()
+            if source.endswith('3d') and os.path.exists(os.path.join(OUT_ROOT, name, 'port3d', 'state-differs.txt')):
+                parted = set(open(os.path.join(OUT_ROOT, name, 'port3d', 'state-differs.txt')).read().split())
+            # and every 3D shot inside a level: there the original's 3D game parts from the first shots fired, the shells,
+            # smoke and bullets standing elsewhere before its peeks show it (IDENTICAL_PLAY.md, "Oddities")
+            states = os.path.join(OUT_ROOT, name, 'port3d', 'states.tsv')
+            if source.endswith('3d') and os.path.exists(states):
+                for line in open(states, encoding='utf-8'):
+                    shot, _, state = line.rstrip('\n').partition('\t')
+                    if '"screen":"game"' in state:
+                        parted.add(shot)
             for path in glob.glob(os.path.join(OUT_ROOT, name, source, '*.png')):
                 leaf = os.path.basename(path)
+                if os.path.splitext(leaf)[0] in parted:
+                    continue                # a 3D shot whose games parted compares nothing
                 if seen.setdefault((side, leaf), name) != name:
                     sys.exit('idplay: %s is a shot of both %s and %s' % (leaf, seen[(side, leaf)], name))
                 shutil.copy(path, os.path.join(merged, side, leaf))
