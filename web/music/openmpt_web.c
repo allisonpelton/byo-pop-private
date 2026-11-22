@@ -394,6 +394,52 @@ EMSCRIPTEN_KEEPALIVE const char* bm_names(bm_module* b) {
   return name_text;
 }
 
+/* The module's own text, for its titles (the user: "Check the tracker files to see if there's more metadata that
+   could give us official song names"): a line each, "<key>\t<value>", the value's line breaks written \n (and a backslash
+   \\), empty values left out. Keys: title, artist, tracker and message (libopenmpt's raw message, without the sample names
+   it would put in its place) and sub<n> for each subsong's name; libxmp-lite's title and comment (as message). The text lives
+   until the next call. */
+static char meta_text[64 * 1024];
+static int meta_line(int at, const char* key, const char* value) {
+  int room = (int)sizeof meta_text - 1;
+  if (!value || !*value) return at;
+  for (const char* k = key; *k && at < room; k++) meta_text[at++] = *k;
+  if (at < room) meta_text[at++] = '\t';
+  for (const char* v = value; *v && at + 2 < room; v++) {
+    if (*v == '\r' && v[1] == '\n') continue;
+    if (*v == '\n' || *v == '\r') { meta_text[at++] = '\\'; meta_text[at++] = 'n'; }
+    else if (*v == '\\') { meta_text[at++] = '\\'; meta_text[at++] = '\\'; }
+    else meta_text[at++] = *v;
+  }
+  if (at < room) meta_text[at++] = '\n';
+  meta_text[at] = 0;
+  return at;
+}
+EMSCRIPTEN_KEEPALIVE const char* bm_meta(bm_module* b) {
+  int at = 0;
+  meta_text[0] = 0;
+  if (b->mpt) {
+    static const char* const keys[] = {"title", "artist", "tracker", "message_raw"};
+    for (int i = 0; i < 4; i++) {
+      const char* v = openmpt_module_get_metadata(b->mpt, keys[i]);
+      at = meta_line(at, i == 3 ? "message" : keys[i], v);
+      if (v) openmpt_free_string(v);
+    }
+    for (int i = 0, n = openmpt_module_get_num_subsongs(b->mpt); i < n; i++) {
+      char key[16];
+      snprintf(key, sizeof key, "sub%d", i);
+      const char* v = openmpt_module_get_subsong_name(b->mpt, i);
+      at = meta_line(at, key, v);
+      if (v) openmpt_free_string(v);
+    }
+    return meta_text;
+  }
+  struct xmp_module_info mi = info(b);
+  at = meta_line(at, "title", mi.mod->name);
+  at = meta_line(at, "message", mi.comment);
+  return meta_text;
+}
+
 /* A pattern's rows per beat and per bar as the file stores them (beat << 16 | bar), 0 for none: libopenmpt's (an MO3's PRHI
    chunk), except its own default 4 and 16, which it gives as well for a file that stores none; an IT's header for
    libxmp-lite (ModuleText.h's byopop_it_meter). */

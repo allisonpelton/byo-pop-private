@@ -349,6 +349,18 @@ void Brick::InitFromParams()
 	// editor or the level is being loaded without pictures. They are made when first drawn instead.
 }
 
+// 0x483b20 (0x4827d0): a brick that is not a peg gets its picture by name; a peg's is built from the triangles of its shape for
+// its kind (1 to 4) and whether it is hit (CreateImage(int) 0x481db0, which is part of the drawing)
+void Brick::CreateImage(bool theRemake)
+{
+	if (mPegInfo == nullptr)
+	{
+		LoadImage();
+		return;
+	}
+	NOT_TRANSLATED_DRAWING("Brick::CreateImage(int) for a peg");
+}
+
 // 0x483b30
 void Brick::DrawShadow(Graphics* g)
 {

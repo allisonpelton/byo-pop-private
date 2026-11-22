@@ -1,15 +1,15 @@
 # The menu by mouse alone (the text is typed), on the title screen of any game, from an empty user dir. The
-# coordinates are the menu's layout at 640x480 (the same in every game). run_tests.sh compares the files with
+# coordinates are the menu's layout at 640x480 (the same in every game); the list's first mod row is at y 140, under the two native speed rows. run_tests.sh compares the files with
 # expect/clicks-*.json.
 250 modmenu open
 # plain-demo: a click on its name only focuses the row; one on its checkbox switches it off; its Down button moves
 # it below settings-demo
-260 click 200 80
-265 click 64 73
-270 click 492 80
+260 click 200 140
+265 click 64 133
+270 click 492 140
 280 screenshot shots/c01_list.png
 # settings-demo is first now: its Settings button
-290 click 548 80
+290 click 548 140
 300 screenshot shots/c02_page.png
 # Shortest match +: 4; Undo on; Board >: Diamond
 310 click 386 131

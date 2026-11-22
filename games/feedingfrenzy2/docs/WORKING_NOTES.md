@@ -102,6 +102,50 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   pointer (the top row's into the lock structure's width), so a translucent outline at full opacity would corrupt
   memory; the game is not seen drawing one. The circle may write one pixel past the target's right or bottom edge.
 
+## Particles
+
+- An effect's file (`<particleSystem>` of `<particleStream>`s) is read by ParticleSystemDocHandler into definitions;
+  each stream's images are `path0.png` (or `.jpg`), `path1`, ... up to the first missing number. A stream fills a pool
+  when the effect is made: `ftol(longest life * rate * min(1.5, auto-stop) + 1)` particles, at most its maximum. A
+  free particle is one whose only reference is the pool's; an emission tries 25 at random (`rand() % size`) and gives
+  up if none is free.
+- Every emission draws, in order: acceleration, x, y, start scale, end scale (unless constant), life, velocity x and
+  y, rotation, start opacity, end opacity (unless constant), jitter amplitude x and y, and when either is not 0 the
+  jitter period y then x. Each is `rand() * (1/32767) * (high - low) + low`, so the splash's bubbles take draws from
+  the game's sequence from the first frame; their count depends on the frame times (the rate times the elapsed time,
+  with the fraction carried).
+- Oddities kept: the rotation's "degrees" go to cos and sin as radians; jitter's `rate`, scale's `constantScale` and
+  opacity's `constantOpacity` are not read (the files that give them get the defaults); a stream's computeBounds
+  empties its particles' kill rectangle rather than its own bounds (nothing reaches it: the effect's computeBounds
+  does not recurse); a group-relative stream passes an unset base to its emissions, which do not read it; opacity
+  keys out of order leave the ease curve of the last pair used.
+- A theme's `<particleEffect>` loads the effect's images at once and keeps a pool of copies (made `count` at a time,
+  0 by default); a screen with a theme takes its effects from the pool. A copy is free again when only the pool holds
+  it, and is then stopped and emptied before it is handed out.
+- Not yet translated: animated particles (`sequence="anim"`, AnimImage; the particle is kept without its animation so
+  the draws stay the same).
+
+## Bubble text
+
+- The splash's "LOADING" (BubbleText, a game class): a glyph for each letter that is not a space, each a bubble image,
+  a TextItem letter centred on it in the theme's colour (multiplied) and an effect. Each new glyph gets a wave of its
+  own (5 pixels up and down, a period of 2.5 to 3.5 s, run once for 0 to 2 s), which takes two draws from `rand()`
+  per glyph before the first particle's. The glyphs grow in from scale 0 over 0.2 s one after another, the last
+  starting 0.2 s before the duration ends; at the end each bursts into its effect.
+- TextItem's wrap drops the character on which a word longer than the width breaks (kept; nothing in the splash
+  wraps).
+
+## The splash's phases
+
+- Waiting (until the screen has settled and the timer, 0 at the start, is below 0), loading (30 frames a second; the
+  bar follows the loader's progress by at most a hundredth a frame, and fills at once when the progress reaches 1),
+  failed (the thread did not start: the program ends), loaded (the bar full, 60 frames a second, the bubbles burst,
+  the stage container shown, the burst's sound), bursting (until every glyph's effect is done, then the next state).
+- The original loads on a thread while the splash goes on drawing; the port loads at once (at the machine's speed),
+  so the bar fills in a frame. A glyph still waiting to grow does not burst: with the loader empty, the burst comes
+  about 0.3 s in, after "LOA", and "DING" grows in afterwards and stays. How long the original's loader takes (and
+  so how much of "LOADING" has grown when it bursts) is to be measured once the loader is translated.
+
 ## Done
 
 - `engines/sprout2`: objects and references, sigslot, streams, the archive and resource manager, the engine's
@@ -111,4 +155,95 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
 - `engines/sprout2`: the draw context's clip stack and region; DXDrawContext with its fills, outlines, lines, circles
   and images (the first-draft sampler where noted).
 - `games/feedingfrenzy2/src`: the app skeleton (a window, the engine made, frames run on the clock, each drawn into
-  the display and shown; nothing connected to the draw signal yet).
+  the display and shown).
+- `engines/sprout2` (shared with Talismania, whose exe has the same classes by RTTI): themes (images, fonts, colours,
+  vectors; particle effects, sounds, music and animations logged), screen layouts read by ScreenDocHandler (images,
+  groups, modifiers, wave effects, particle systems; Theora frames, scaled copies and composites logged), Image,
+  FadeContainer, the wave modifier and effect, GenericScreen with its phases, Transition and FadeTransition, the
+  Scene's update and draw (its mouse and activation not yet), State and StateMgr.
+- `games/feedingfrenzy2/src`: FeedingFrenzyTwo (the archive of its configuration; of its start the scene, the two
+  named containers, the screen manager and the splash state), ScreenMgr, SplashState's screen, load bar and theme.
+  The splash screen fades in and shows its background, logos and empty load bar (`-fast`, a shot at update 60).
+- `engines/sprout2`: particle effects (their files, ParticleSystem, ParticleStream, Particle) and the float key
+  interpolator with its ease curve. The splash's three bubble effects run (`-fast`, a shot at update 180).
+- `engines/sprout2`: the theme's particle effects and their pools, TextItem. `games/feedingfrenzy2/src`: BubbleText
+  and BubbleGlyph. The splash's "LOADING" grows in letter by letter and rocks (`-fast`, shots at updates 20 and 90).
+- The splash's phases and the engine's frame rate (the loader empty, the sounds and the next state not yet).
+- The loader's first part: GameData with the game's and the menu's stage manifests (stages and level sets; the
+  level sets' splines and the map pins not yet, being the game map's). The engine's log is now SDL's info level, so
+  it shows on the console.
+- The loader's next parts: the stages' screen data (the intro screens' texts and layouts by stage id), the shell's
+  theme (a theme now falls back on another for its images, fonts and particle systems, not its colours, vectors or
+  particle definitions), the fun facts and the player ranks (kept sorted by points). Checked by a temporary log: 100
+  facts, 34 ranks, stage1's entry with its layouts and objective.
+- The actors' file (resource/actors/fishes.xml) read into the fish factory: models with their shapes and anchors,
+  fish models, visuals with their colour effects, behaviours (each keeping all its attributes) and fish behaviours
+  with their reactions. Checked by a temporary log: every element counted as in the file, and the values of a few
+  (Herring's speeds, sight cosine and default turn rate, the lure fish's anchors, queenTrigger's older mouth). A
+  model a visual names that does not exist shows a message box in the original; the port logs it (the file has
+  none). The shapes' tests are the game's, not yet translated.
+- The main menu made by the loader (MainMenu, its actions passed to the application's state), with the engine's
+  buttons (ButtonBase, ImageButton, Selector) and the layout's image buttons, texts and key actions. Checked by a
+  temporary dump: the menu's eight image buttons and two texts at the high detail level, as the file has them. The
+  button's mouse is written but not reached until the scene's mouse is translated; its sounds keep their names.
+  - The text element compares its colour, read from 0 to 1, with 255, so every text gets the multiply mode with its
+    colour (white without one): kept as the original's.
+  - The link button (gameLinkBtn) is hidden and switched off, as the original does when the options name no link of
+    a distributor's; it leads out of the game, so it is to be taken out with the registration pass.
+  - The debug level select (the application's +0x2c, DebugSelectMenu) is left out: only the main menu's debugSelect
+    text button, hidden and switched off, has been seen to lead to it. To be checked again with MenuState's actions
+    and keys.
+- The scene's mouse and activation (the target under the mouse or the capture, enter and leave, the press's cancel
+  when the window goes inactive) and the port's widget turning the framework's mouse, keys and focus into the
+  engine's signals, as the window procedure does (no double clicks: the original's window class has none). Not yet
+  exercised: no screen with buttons is shown until the menu state is translated.
+- The loader's plain shell screens (pause, name entry, the four confirmations of the players' list, the quit's,
+  the game exit's and the high scores' reset, restore, generic load, credits), each with its fades and its actions
+  passed to the application, in the original's order with its progress steps; the engine's combo button (an image
+  button with a text in a font and colour for each state).
+  - The combo button's setFonts sets the three colours to the byte value 1 (nearly black) before the reader sets
+    them: kept.
+  - The application's sound manager (+0x34) is made by the loader and read by nothing the export shows: left out.
+- The configuration's string table (resource/baseStrings.xml), the vendor and the name; the players' data as made
+  (no player); the menu state: the main menu shown with the player's name, the welcome for a new player and the
+  trophies hidden, its credits and back actions, suspend and resume for popups; the state machine's push and pop.
+  Checked by screenshots: the splash hides and the main menu fades in over it.
+  - The loader finishes in a frame, so the splash's burst comes while the last letters of its LOADING still wait to
+    appear: a waiting letter does not burst and the bubble text counts as done, so they grow in as the splash fades
+    out, as the original's would on a machine that loads that fast. With no menu stage yet, the frame is not
+    painted over and the splash's last frame stays under the menu.
+- The players: the engine's players' list (UserManager, UserInfo) over the engine's persistent keys, which the
+  port's host keeps in the framework's emulated registry under Software, GameHouse, Feeding Frenzy 2, users; the
+  players' data's load and save with their MD5 signatures (the game's own starting words, base64); the popup state
+  (darkening the game's screens to the theme's popupDarkenColor over the screen's transition, its own screen manager)
+  with the name entry's actions; the engine's edit box (typing, the filter, glyphs, Backspace, Delete, Home, End,
+  the arrows, Ctrl+V) and its reader; the time driver and the colour key interpolator. Checked on a fresh folder: the
+  name entry comes up over the darkened menu, "A l x Backspace / e Left y" gives Alye (the slash refused), Return
+  adds the player, the popup fades out and the menu welcomes Alye; the saved signatures match an independent MD5
+  with the game's starting words; a second run loads Alye with no reset and no popup.
+  - Deviations: the players are sorted by an ASCII case-blind compare, not CompareStringA; the registry's root is
+    ignored (one tree); the framework's own settings are not written to the registry; a key with nothing below it is
+    kept by an empty default value; the edit box's paste uses the framework's clipboard and key state (the original
+    asks Windows for Ctrl's state now; posted input reaches neither); characters from 0x80 are refused, as the
+    original's _ismbcprint refuses them on a single-byte code page.
+  - Fix candidates: the paste leaves the clipboard open when the box is full, and never frees its copy of the text
+    (the port frees it, a leak).
+  - Not yet compared with the original: the popup's look and timing, and the signatures of a player the original
+    made (to do through origrun).
+  - The popup's soft shadow piles up into a black frame, and the popup's ghost stays after it closes: nothing
+    repaints the background until the stage is translated (see the looks item below).
+
+## Next
+
+- The players' select screen (+0x60, GenericUserSelectScreen, 0x49fc30) and the popup's other actions; the
+  duplicate name's confirmation is wired but not yet seen.
+- The stage (0x403aa0) and its loader, for the menu's background; the menu's music and sounds; the menu's other
+  actions (new game, the map, options, high scores, quit's confirmation).
+- The layouts' textButton, checkBox, include, radioGroup, listBox, table and compositeGroup's caching; the burst's
+  sound, the sound system's and the game's updates in the splash's bursting phase.
+- The configuration's options, the start's options, key, activate and music connections, the popups and the debug
+  display.
+- The looks: the frame does not clear the display, so the splash's quarter-second fade builds up over the last frame
+  (the background at 6, 17, 33, 50, 66% of its brightness in the first frames where the fade's progress is 7, 13, 20,
+  27, 33%). Compare with the original windowed (its back buffer blitted, so kept) and full screen (a flip chain, so
+  the buffer two frames back).

@@ -45,10 +45,10 @@ if(NOT EMSCRIPTEN)
   target_link_libraries(waterbugs_run PRIVATE waterbugsgame retro64 stb)
   if(WIN32)
     add_custom_command(TARGET waterbugs_banktest POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:waterbugs_banktest>
+      COMMAND ${PORT_RUNTIME_COPY} $<TARGET_FILE_DIR:waterbugs_banktest>
       VERBATIM)
     add_custom_command(TARGET waterbugs_run POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:waterbugs_run>
+      COMMAND ${PORT_RUNTIME_COPY} $<TARGET_FILE_DIR:waterbugs_run>
       VERBATIM)
   endif()
 endif()

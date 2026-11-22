@@ -1,0 +1,251 @@
+# The menus of a fresh profile, the player list, a new game quit from its board, the resume question, and a first board played to its end (SAVE: none).
+20 move 5 5
+100 shot m_logo0
+350 shot m_logo1
+600 shot m_logo2
+850 shot m_logo3
+1100 shot m_logo4
+1350 shot m_logo5
+1600 shot m_logo6
+1850 shot m_logo7
+2100 shot m_logo8
+2350 shot m_logo9
+2600 shot m_logo10
+3100 shot m_menu
+3400 move 400 303
+3700 shot m_hover_start
+4000 move 400 350
+4300 shot m_hover_help
+4600 move 400 397
+4900 shot m_hover_options
+5200 move 400 444
+5500 shot m_hover_scores
+5800 move 400 491
+6100 shot m_hover_user
+6400 move 400 537
+6700 shot m_hover_quit
+7000 move 234 363
+7300 shot m_hover_sign
+7600 move 100 100
+8300 click 400 350
+8800 shot m_help1
+9500 click 400 576
+10000 shot m_help2
+10700 click 400 576
+11200 shot m_help_back
+11900 click 400 397
+12400 shot m_options
+12700 move 400 137
+13000 shot m_options_hover
+13700 click 400 137
+14200 shot m_options_lcd_on
+14900 click 400 137
+15400 shot m_options_lcd_off
+16100 click 400 197
+16600 shot m_options_sound_on
+17300 click 400 197
+17800 shot m_options_sound_off
+18500 click 400 257
+19000 shot m_options_music_on
+19700 click 400 257
+20200 shot m_options_music_off
+20900 click 400 317
+21400 shot m_options_shooter_on
+22100 click 400 317
+22600 shot m_options_shooter_off
+23300 click 400 377
+23800 shot m_options_diff0
+24500 click 400 377
+25000 shot m_options_diff1
+25700 click 400 377
+26200 shot m_options_diff2
+26900 click 400 377
+27400 shot m_options_diff_back
+28100 click 400 537
+28600 shot m_options_back
+29300 click 400 397
+29800 shot m_options_again
+30500 click 400 437
+31300 shot m_credits0
+34300 shot m_credits1
+37300 shot m_credits2
+40300 shot m_credits3
+41000 click 400 527
+41500 shot m_credits_back
+42200 click 400 444
+42700 shot m_scores
+43400 click 400 552
+43900 shot m_scores_back
+44600 click 400 491
+45100 shot u_users
+45400 move 400 202
+45700 shot u_slot_hover
+46400 click 400 202
+46900 shot u_newname_box
+47150 key 65
+47400 key 78
+47650 key 78
+47950 shot u_newname_typed
+48250 move 460 330
+48550 shot u_newname_cancel_hover
+49250 click 460 330
+49750 shot u_newname_cancelled
+50450 click 400 202
+50950 shot u_newname_box2
+51200 key 65
+51450 key 78
+51700 key 78
+52400 click 340 330
+52900 shot u_newname_done
+53600 click 316 452
+54100 shot u_rename_box
+54350 key 66
+54600 key 79
+54850 key 66
+55150 shot u_rename_typed
+55850 click 340 330
+56350 shot u_rename_done
+57050 click 400 177
+57550 shot u_pick_first
+58250 click 400 452
+58750 shot u_delete_question
+59450 click 460 330
+59950 shot u_delete_no
+60650 click 400 452
+61150 shot u_delete_question2
+61850 click 340 330
+62350 shot u_delete_yes
+63050 click 400 452
+63550 shot u_delete_only
+64250 click 400 330
+64750 shot u_delete_only_ok
+65450 click 484 452
+65950 shot u_users_done
+66650 click 484 452
+67150 shot u_users_left
+67850 click 400 303
+68750 shot p_map
+69450 click 76 263
+70350 shot p_story
+71050 click 400 467
+71350 shot p_board0
+71850 shot p_board1
+72350 shot p_board2
+72850 shot p_board3
+73350 shot p_board4
+73850 shot p_board5
+74350 shot p_board6
+74850 shot p_board7
+75150 move 200 200
+75550 click 200 200
+76450 shot p_shot0
+76750 move 600 400
+77150 click 600 400
+78050 shot p_shot1
+78350 move 300 450
+78750 click 300 450
+79650 shot p_shot2
+79950 move 500 150
+80350 click 500 150
+81250 shot p_shot3
+81550 move 700 300
+81950 click 700 300
+82850 shot p_shot4
+83150 move 150 400
+83550 click 150 400
+84450 shot p_shot5
+84750 move 420 260
+85150 click 420 260
+86050 shot p_shot6
+86350 move 260 130
+86750 click 260 130
+87650 shot p_shot7
+87950 move 640 220
+88350 click 640 220
+89250 shot p_shot8
+89550 move 380 480
+89950 click 380 480
+90850 shot p_shot9
+91350 key 27
+91850 shot p_quit_box
+93350 shot p_quit_box_later
+93650 move 460 330
+93950 shot p_quit_hover
+94650 click 460 330
+95150 shot p_quit_cancelled
+97150 shot p_board_later
+97650 key 27
+98150 shot p_quit_box2
+98850 click 340 330
+100350 shot p_left_to_menu
+101050 click 400 303
+101950 shot w_map
+102650 click 76 263
+103550 shot w_story
+104250 click 400 467
+104550 shot w_board0
+109350 move 200 200
+109750 click 200 200
+110650 shot w_shot0
+110950 move 600 400
+111350 click 600 400
+112250 shot w_shot1
+112550 move 300 450
+112950 click 300 450
+113850 shot w_shot2
+114150 move 500 150
+114550 click 500 150
+115450 shot w_shot3
+115750 move 700 300
+116150 click 700 300
+117050 shot w_shot4
+117350 move 150 400
+117750 click 150 400
+118650 shot w_shot5
+118950 move 420 260
+119350 click 420 260
+120250 shot w_shot6
+120550 move 260 130
+120950 click 260 130
+121850 shot w_shot7
+122150 move 640 220
+122550 click 640 220
+123450 shot w_shot8
+123750 move 380 480
+124150 click 380 480
+125050 shot w_shot9
+125350 move 590 340
+125750 click 590 340
+126050 shot w_shot10
+126350 move 510 400
+126750 click 510 400
+127050 shot w_shot11
+127350 move 680 300
+127750 click 680 300
+128050 shot w_shot12
+128350 move 500 260
+128750 click 500 260
+129050 shot w_shot13
+129450 shot w_won0
+129850 shot w_won1
+130250 shot w_won2
+130650 shot w_won3
+131050 shot w_won4
+131450 shot w_won5
+131850 shot w_won6
+132250 shot w_won7
+132650 shot w_won8
+133050 shot w_won9
+133450 shot w_won10
+133850 shot w_won11
+134250 shot w_won12
+134650 shot w_won13
+135050 shot w_won14
+135450 shot w_won15
+136150 click 400 425
+136950 shot w_after_results
+137650 shot w_next0
+138350 shot w_next1
+139050 shot w_next2
+139750 shot w_next3
+140250 end

@@ -62,7 +62,10 @@ A row without shots says why, such as "unreachable: nothing calls it in the expo
 list, to be checked against the export. The looks phase is done only when every row's shots compare: each is a pair in
 the game's newest run (`build/shotreview/<game>/<run>/summary.json`) that matches, or whose difference is explained in the
 notes. `tools/check.sh`'s `screens` suite fails a game whose SCREENS.md is missing, has a row with neither shots nor a
-reason, or names a shot that is not such a pair.
+reason, or names a shot that is not such a pair. The runs are in the game's own checkout (`build/` is never committed),
+so on the trunk, which has none, the suite checks only each list's form and says the shots were not compared: a game's
+merge request gives its `screens` line from its own worktree, where they were (Cosmic Bugs', 2026-11-22, was the first
+list to reach the trunk).
 
 To run it: `python -I tools/screencheck.py [--game <game>]...` (or `tools/check.sh screens`) reads each finished game's
 list (the games in `cmake/ByopopWeb.cmake`'s `BYOPOP_WEB_FINISHED`, or the games named) and prints one line per game and a
