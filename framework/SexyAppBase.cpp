@@ -3689,6 +3689,19 @@ void SexyAppBase::SetCmdLine(int argc, char** argv)
 	}
 }
 
+// port: the framework's own options that take a value, which it reads only as -name=value. Written -name value, the value
+// would be lost and the run would go on without it (a -script run without its script ran flat out until its timeout,
+// 2026-11-22), so DoParseCmdLine stops the program instead. Players pass none of these.
+static bool IsFrameworkValueOption(const std::string& theName)
+{
+	static const char* const kNames[] = { "-changedir", "-seed", "-script", "-realinput", "-commands", "-recordlive",
+		"-cyclesplit", "-presentlog", "-speed", "-speedprobe", "-renderscale", "-windowscale" };
+	for (const char* aName : kNames)
+		if (theName == aName)
+			return true;
+	return false;
+}
+
 void SexyAppBase::DoParseCmdLine()
 {
 	// port: the arguments come from main() (SetCmdLine) instead of GetCommandLine(), already split
@@ -3701,6 +3714,15 @@ void SexyAppBase::DoParseCmdLine()
 		std::string aValue = (anEqualsPos == std::string::npos) ? "" : anArg.substr(anEqualsPos + 1);
 		if ((aValue.length() >= 2) && (aValue[0] == '"') && (aValue[aValue.length() - 1] == '"'))
 			aValue = aValue.substr(1, aValue.length() - 2);
+
+		if ((anEqualsPos == std::string::npos) && IsFrameworkValueOption(aName))
+		{
+			const bool hasNext = (i + 1 < (int) mCmdLineArgs.size()) && (mCmdLineArgs[i + 1].compare(0, 1, "-") != 0);
+			fprintf(stderr, "%s needs its value after an equals sign: write %s=%s\n", aName.c_str(), aName.c_str(),
+				hasNext ? mCmdLineArgs[i + 1].c_str() : "<value>");
+			fflush(stderr);
+			exit(2);
+		}
 
 		if (!aName.empty())
 			HandleCmdLineParam(aName, aValue);
@@ -3856,7 +3878,7 @@ const double SexyAppBase::SPEED_MAX = 16;
 const double SexyAppBase::SPEED_STEPS[SexyAppBase::NUM_SPEED_STEPS] = { 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 8, 16, SexyAppBase::SPEED_UNLIMITED };
 
 // port: moves the game speed one step along SPEED_STEPS (from a speed between two steps, to the next one in that direction),
-// or back to 1x for theDirection 0
+// or back to 1x for theDirection 0; at or below the lowest step, a step slower changes nothing
 void SexyAppBase::StepGameSpeed(int theDirection)
 {
 	const int aNumSteps = NUM_SPEED_STEPS - 1;  // the numeric ones; unlimited follows the last
@@ -3877,7 +3899,7 @@ void SexyAppBase::StepGameSpeed(int theDirection)
 		}
 		else
 		{
-			aNew = SPEED_STEPS[0];
+			aNew = mUpdateMultiplier;  // below the lowest step, slower leaves the speed where it is (never faster)
 			for (int i = aNumSteps - 1; i >= 0; i--)
 				if (SPEED_STEPS[i] < mUpdateMultiplier * 0.9999)
 				{

@@ -132,6 +132,14 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   compared its shots with sandbox shots of the same screens. Until a game passes that trial, the ban stands for it.
   Apart from that, origrun's ban holds as before. visrun's `PrintWindow` shots of a game's own window on the visible
   desktop (`docs/VISRUN.md`, the 3D route) are not part of that ban and go on unchanged.
+- **The visible desktop as a second lane, four windows at once (the user, 2026-11-22):** asked whether desktop runs may
+  use the right half of the screen with up to four windows at once, the user said "Right half, four". Runs on the
+  visible desktop, 2D as well as 3D, keep to the right half of the screen (x from half the screen's width), each
+  window in a place of its own so that none overlaps another, with at most four game windows there at once and the
+  machine's limit of 10 game processes over all. Everything else in "Desktop and Sandbox at any hour" holds: no
+  focus taken, the user's cursor and keyboard never touched, input posted to the game's window, windows, registry
+  and saves put back. A game's 2D shots from the desktop count only after one of its tours has been compared both
+  ways, desktop against sandbox. Until visrun has the four places, it runs one window at a time, as before.
 
 ## Token economy (the user's rules, 2026-10-24)
 
