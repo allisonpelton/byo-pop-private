@@ -96,12 +96,14 @@ out of the build by configuration. Sizes are Bejeweled 2's and Venice's Release 
   build whose flags have `-fsanitize`). `-DBYOPOP_STRIP_EXE=ON` also strips a Release exe (`-s`); it is off in this
   repository's builds, whose crash logs (`llvm-symbolizer`), leak tools and profilers (`cpuprof.py`'s sampling mode,
   `llvm-nm`) read the symbols. A derived repository's exe has been built this way since `594ad74a`.
-- **libopenmpt reads MO3 only (`third_party/CMakeLists.txt`, `third_party/openmpt-mo3/`; native builds).** Every module the
-  games hand to libopenmpt is an MO3 (`platform/openmpt/OpenMPTPlayer.cpp` passes it files that start with "MO3"; the games'
-  IT and S3M tunes go through libxmp-lite), and `ReadMO3` builds the module itself. libopenmpt's format table
+- **libopenmpt reads MO3 and OXM only (`third_party/CMakeLists.txt`, `third_party/openmpt-mo3/`; native builds).** Every module
+  the games hand to libopenmpt is an MO3 or an OXM (`platform/openmpt/OpenMPTPlayer.cpp`'s `IsMO3` and `IsOXM`; the OXM is
+  Bonnie's Bookstore's music, an XM with Ogg Vorbis samples; the games' IT and S3M tunes go through libxmp-lite). `ReadMO3`
+  builds the module itself and the OXM needs the XM loader. libopenmpt's format table
   (`ModuleFormatLoaders` in `Sndfile.cpp`) names all 59 loaders, which kept every one of them in the exe. The build now
   leaves out the `Load_*.cpp` files of the formats no game uses and `openmpt-mo3/loader_stubs.cpp` gives the table their
-  names as loaders that find nothing; libopenmpt's source is not edited. Load_it, Load_dmf, Load_ams and Load_s3m stay,
+  names as loaders that find nothing; libopenmpt's source is not edited. Load_xm stays for the OXM (the first trim left it
+  out and Bonnie's music stopped loading, caught by its screen check), and Load_it, Load_dmf, Load_ams and Load_s3m stay,
   because `ReadMO3` calls code in them (the plugin-chunk and extended-property readers, the DMF and AMS sample unpackers,
   the S3M effect converter). Bejeweled 2's exe goes from 4.96 to 4.16 MB. The web build keeps every loader: its music player
   plays every format libopenmpt reads. A game that wants another format takes its file out of the removed list and its name

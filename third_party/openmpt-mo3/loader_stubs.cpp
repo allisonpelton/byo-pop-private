@@ -1,10 +1,11 @@
 // The module loaders libopenmpt's format table (soundlib/Sndfile.cpp, ModuleFormatLoaders) lists but no game uses.
 //
-// Every music file the games play through libopenmpt is an MO3 (platform/openmpt/OpenMPTPlayer.cpp hands it files that
-// start with "MO3"; the IT and S3M tunes go through libxmp-lite). An MO3 is read whole by ReadMO3, which builds the XM, IT,
+// Every music file the games play through libopenmpt is an MO3 or an OXM (platform/openmpt/OpenMPTPlayer.cpp's IsMO3 and IsOXM;
+// the OXM is Bonnie's Bookstore's, an XM with Ogg Vorbis samples, read by the XM loader; the IT and S3M tunes go through
+// libxmp-lite). An MO3 is read whole by ReadMO3, which builds the XM, IT,
 // S3M, MOD or MTM module itself and calls no other format's loader. The table names every loader, so the linker could drop
-// none of them; this file gives 53 of them their symbols as loaders that find nothing, and the build leaves their source
-// files out (third_party/CMakeLists.txt, "openmpt-mo3"). Load_it.cpp, Load_dmf.cpp, Load_ams.cpp and Load_s3m.cpp stay: ReadMO3 reaches
+// none of them; this file gives 52 of them their symbols as loaders that find nothing, and the build leaves their source
+// files out (third_party/CMakeLists.txt, "openmpt-mo3"). Load_xm.cpp stays for the OXM, and Load_it.cpp, Load_dmf.cpp, Load_ams.cpp and Load_s3m.cpp stay because ReadMO3 reaches
 // the IT loader's plugin-chunk and extended-property readers and the sample unpackers of DMF and AMS and the S3M
 // effect converter, so the IT, DMF, AMS, AMS2 and S3M loaders come with them. libopenmpt's own source is not edited. A game that wants one of
 // these formats takes its Load_*.cpp back out of that list and its name out of this file. The web music player, which plays
@@ -13,9 +14,6 @@
 #include "soundlib/Loaders.h"
 
 OPENMPT_NAMESPACE_BEGIN
-
-CSoundFile::ProbeResult CSoundFile::ProbeFileHeaderXM(MemoryFileReader, const uint64 *) { return ProbeFailure; }
-bool CSoundFile::ReadXM(FileReader &, ModLoadingFlags) { return false; }
 
 CSoundFile::ProbeResult CSoundFile::ProbeFileHeaderSTM(MemoryFileReader, const uint64 *) { return ProbeFailure; }
 bool CSoundFile::ReadSTM(FileReader &, ModLoadingFlags) { return false; }
