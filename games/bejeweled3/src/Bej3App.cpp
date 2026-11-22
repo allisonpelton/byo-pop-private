@@ -64,6 +64,9 @@ Bej3App::Bej3App()
 // port: the original's app is a global object that lives until the process ends
 Bej3App::~Bej3App()
 {
+	// the loaded player is saved as the profile goes (0x71c4b0)
+	delete mProfile;
+	mProfile = nullptr;
 	delete mPrimeResourceManager;
 	gApp = nullptr;
 }

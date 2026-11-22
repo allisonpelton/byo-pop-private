@@ -73,6 +73,7 @@ public:
 	std::map<std::wstring, std::wstring> mSettings;  // +0x2d4: name and value pairs
 
 	Profile();                              // 0x71b530
+	~Profile();                             // 0x71c4b0 (bejeweled3): the loaded player is saved
 	// 0x71b1e0: every field of a player back to the state of a new one
 	void ResetPlayer();
 	// 0x71d410: reads users\users.dat and the files of the players it lists (a player whose file cannot be read is

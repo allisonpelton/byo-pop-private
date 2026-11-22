@@ -15,10 +15,7 @@
 
 using namespace Sexy;
 
-namespace {
-
-// 0x8d3370 (bejeweled3): one half
-const double kHalf = 0.5;
+namespace Sexy {
 
 // 0x58f620 (bejeweled3): the colour of the font layer with that name (the layers' own tags are the keys of the font's
 // map); the old colour is returned so that 0x58f920 (RestoreLayerColor) can put it back. port: the exe keeps a stack of
@@ -63,6 +60,13 @@ void SetScaleMatrix(SexyMatrix3& theMatrix, float theScaleX, float theScaleY)
 	theMatrix.m00 = theScaleX;
 	theMatrix.m11 = theScaleY;
 }
+
+}  // namespace Sexy
+
+namespace {
+
+// 0x8d3370 (bejeweled3): one half
+const double kHalf = 0.5;
 
 }  // namespace
 
@@ -229,7 +233,15 @@ void CrystalBall::Draw(Graphics* g)
 			g->PopState();
 		}
 	}
-	// port: +0x486 draws the picture at 0x8d7054 instead of the label (0x713850); the flag is set by other code
+	else {
+		// a locked mode: the question mark, centred on the ball, scaled as the label would be (0x713770, 0x713850)
+		g->SetColor(Color(255, 255, 255, Ftol(aTextAlpha * 255.0)));
+		g->PushState();
+		g->SetScale(aTextScale, aTextScale, (float)(mWidth / 2), (float)(mHeight / 2));
+		g->DrawImage(IMAGE_OVERWORLD_QUESTIONMARK, mWidth / 2 - IMAGE_OVERWORLD_QUESTIONMARK->GetWidth() / 2,
+			mHeight / 2 - IMAGE_OVERWORLD_QUESTIONMARK->GetHeight() / 2);
+		g->PopState();
+	}
 }
 
 // 0x78c730 (bejeweled3): the highlight follows the mouse by 0.05 an update

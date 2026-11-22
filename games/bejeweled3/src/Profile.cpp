@@ -52,6 +52,12 @@ int ReadLongOrZero(const Buffer& theBuffer)
 
 }  // namespace
 
+// 0x71c4b0 (bejeweled3). port: the exe's temporary-folder move (0x71b940, when +0x80 is set) is not made: nothing sets it
+Profile::~Profile()
+{
+	SavePlayer();
+}
+
 Profile::Profile()
 {
 	ResetPlayer();

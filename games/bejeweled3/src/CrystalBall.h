@@ -8,6 +8,7 @@
 #pragma once
 
 #include "ButtonWidget.h"
+#include "Font.h"
 #include "CurvedVal.h"
 #include "PIEffect.h"
 #include "SharedImage.h"
@@ -16,6 +17,10 @@
 #include <string>
 
 namespace Sexy {
+
+// 0x58f620 and 0x58f920 (bejeweled3): the colour of a font's layer, set by its tag and put back
+bool SetLayerColor(Font* theFont, const char* theName, const Color& theColor, Color* theOldColor);
+void RestoreLayerColor(Font* theFont, const char* theName, const Color& theOldColor);
 
 class CrystalBall : public ButtonWidget {
 public:
@@ -40,7 +45,7 @@ public:
 	int mUpdateCount = 0;               // +0x47c: updates since it was made (the ball's frame counts them)
 	bool mFlat = false;                 // +0x484: drawn flat: no moves, no effect under it, the first frame, a half alpha
 	bool mMoves = true;                 // +0x485: the offset curves move the ball
-	bool mDrawPicture = false;          // +0x486: a picture in place of the label (set elsewhere; not translated)
+	bool mDrawPicture = false;          // +0x486: the question mark in place of the label (a locked mode; the PlayMenu sets it)
 	bool mArrowShown = false;           // +0x487: the menu arrow's hint (set elsewhere; its drawing is not translated)
 
 	CrystalBall(int theId, ButtonListener* theListener, const std::string& theText);   // 0x78ab50 (bejeweled3)

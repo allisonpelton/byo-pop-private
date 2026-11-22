@@ -42,7 +42,7 @@ MainMenu::MainMenu()
 	AddWidget(mPlayButton);
 	// the PlayMenu (0x680760), the app's art size 1200 by 1920 scaled, a child of the menu (made after PLAY)
 	mPlayMenu = new PlayMenu(this);
-	mPlayMenu->Resize(0, 0, gApp->mArtRes * 0x4b0 / 0x4b0, gApp->mArtRes * 0x780 / 0x4b0);
+	mPlayMenu->Resize(0, 0, gApp->mArtRes * 0x780 / 0x4b0, gApp->mArtRes * 0x4b0 / 0x4b0);
 	AddWidget(mPlayMenu);
 
 	// 0x6a54b0: the menu's curves; +0x190 is a constant 0. This is the branch of 0x59b0a0 being false (the cache message

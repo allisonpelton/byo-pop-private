@@ -349,3 +349,51 @@ user list dialog's rows (0x6774e0, 0x6779c0) are left out. The other ids (0x21, 
 dialogs not made yet. The exe's second FUN_0043b3b0 (before the profile is saved) and the folder-making call 0x43b460
 go through the file driver's slots 0x68 and 0x60 (0x5d3d30, 0x5d3c10: not read); the port's file writing makes the
 folder. Not read: the password-less "param_3 == 0" branch of id 1 (a button id 0 sets the name to "" and creates it).
+
+## The PlayMenu (0x680760, Update 0x696ad0, Draw 0x689d20, listener at +0xbc, vtable 0x86e4d4)
+
+The screen PLAY opens: a child of the main menu (art size 1920/1200 wide, the art size high, at 0,0 of the menu, so the
+menu's -160 offset puts it in the window), the listener of eight CrystalBalls (ids 0 to 7, texts from string ids 0x158 to
+0x15f: CLASSIC, ZEN, LIGHTNING, QUEST, POKER, BUTTERFLIES, ICE STORM, DIAMOND MINE) and of two Bej3Buttons, BACK (id 100,
+IMAGE_OVERWORLD_BACK_BUTTON) and QUIT (id 0x65, IMAGE_MAIN_MENU_QUIT_BUTTON), each put where the resources' x= and y= put
+its picture (159, 1100 and 1567, 1100 in 1200ths), cel 1 at rest and cel 0 over and down. Balls 0 to 3 are drawn at scale
+0.2, 4 to 7 at 0.1 (their mScaleCurve constants).
+
+Update (only after the menu's intro has started): visible while the fade (+0xe8) is above 0 and the hide curve (+0x490) is
+not 1; the balls and buttons take the mouse only while no ball's scale curve is running; with the fade up and its target 1
+it is brought to the front, and with its target 0 the label is hidden. Ball placement in 1200ths: balls 0 to 3 at x 460
+(mirrored across the width for odd ids), y 250 (+650 for ids 2 and 3), then pushed out from the middle by (1 - fade) x 1.25;
+balls 4 to 7 at x 711 (mirrored, +4), y 420 (+295 for the lower pair), pushed out by (1 - fade) x 3 across and x 3 or 4
+down. The ball that the +0x488 index names (0) is drawn towards the middle by the hide curve. Balls 4 to 7 get colour
+(255, 119, 255), text colour (34, 34, 34, 160), then (170, 170, 170); they are flat, drawn with the question mark
+(IMAGE_OVERWORLD_QUESTIONMARK, which CrystalBall now draws) and do not move while the profile's flag at +0x180 + n is 0
+(the port's mTutorialFlags[n], so the one array of flags holds the four modes' unlocks). With the fade at 1, nothing said
+of a mode (label curve +0x1e8 at 0) and no game played (profile stat +0xc0 is 0), the hint curve (+0x418) fades in; with
+the label up it is stepped down (SetCurveMult).
+
+Draw: the first four balls' text colours blend from their colour at construction (kept at +0x50c) towards (255, 0, 85) by
+the four aux curves (+0x258...), the first one pulsing towards (255, 96, 144) by (0.5 + cos(update count x 0.075) x 0.5) x
+the hint curve; each ball's text scale add is its curve. While the label curve is above 0 or the hint is up, the label
+(+0x1c8) is written centred under the middle in the hover font with black glow and outline, and for a locked mode
+"SECRET GAME" (string 0x160) above it in the locked font (MAIN 0xff6666, GLOW and OUTLINE black), the label then 12/1200
+lower; the hint (string 0x236) is written at the label's place with the hint curve as alpha.
+
+Mouse over a ball (0x68e0e0): the sound SECRETMOUSEOVER1 to 4 by id mod 4 at volume 0.5, pitch -4 for balls 0 to 3 and 0 for
+the rest (BACK and QUIT: MOUSEOVER at 1), then the label, strings 0x16d to 0x170 for the first four. For the four locked
+modes the open text is 0x171, 0x173, 0x175, 0x177 and the locked 0x172, 0x174, 0x176, 0x178, each filled in with 5 (levels
+of Classic for POKER, of Zen for BUTTERFLIES), 100,000 (points in Lightning for ICE STORM; the number's own formatter,
+0x43b2e0, is read as a thousands separator) and the colour text "ff93c0" for %S; a locked mode also fades its own ball's
+aux curve in and the others out. Mouse leave (0x6847b0): the label and the red are faded out (0x684660).
+
+Click (0x69b360): ignored while the fade's target is 0; BACK takes the screen away, QUIT asks to quit, a locked mode shows a
+dialog (strings 0x161 to 0x16c) and an open one starts the game. Here every click logs "PlayMenu: mode n (NAME)[, locked]",
+"PlayMenu: BACK" or "PlayMenu: QUIT".
+
+Left out, and listed in PlayMenu.h: the background widget the exe draws behind the balls when the menu's cover widget (+0x6e4)
+is hidden, the music start in Update, the balls' cover pictures, the Bej3Buttons' own class (the alpha at +0x168 that
+fades BACK and QUIT with the first aux curve), the exe's list of buttons (0x474fc0), and the screens at app +0xbd8 and
++0xbe8.
+
+Fixes found on the way: the PlayMenu's size was written transposed (the menu's constructor passes the rectangle 0, 0,
+art size x 1920/1200, art size); the Profile is saved when it is deleted (0x71c4b0), which the app's destructor now does,
+so the first player's profile.dat exists after a run and the next run loads the player instead of asking again.
