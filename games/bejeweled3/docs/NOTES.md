@@ -80,7 +80,7 @@ What the analysis has found about the exe, for reading the export. The plan is i
 - `b3_pamtest` (tools/pamtest) loads every .pam of the game (64: 47 of version 4, 17 of version 5), plays each for a
   few hundred updates and draws it onto a picture: all 64 load, play and draw at 600 (`-play -draw`).
 - Not translated: the mirrored drawing (nothing in the game sets it), the debugging outlines, the transition between
-  two animations (the game never starts one), saving and loading an animation's state (0x445540, 0x4453b0, 0x445760,
+  two animations (0x444910; Lightning starts one, see "Zen and Lightning"), saving and loading an animation's state (0x445540, 0x4453b0, 0x445760,
   0x445a00: needed when the saved games are), and its particle effects (their creation in FrameHit 0x445c00, their
   matrix and colour at 0x447f70 and 0x444410), which wait for PIEffect's update and drawing.
 
@@ -319,6 +319,12 @@ OPTIONS and RECORDS (0, 1): when the camera turn (+0x190) is already at -1 or 1 
 translated, so the port only logs the press. The first-run name dialog is not in this handler: Update opens it (below).
 
 ## The first player's name (WelcomeDialog, NewUserDialog, Bej3Dialog)
+
+Test path (port: test only): in a fresh user folder the welcome dialog stays open, and the end dialog waits for no other dialog to be up
+(UpdateGameOver asks GetDialogCount() == 0). The test command `name <text>` types the name into the welcome dialog's edit and presses its
+own OK (Bej3App::EnterScriptName, from DoWelcomeDialog and from the command), so the profile is made as the game makes it; with no welcome
+dialog up it does nothing. Real play is unchanged. The suite scripts start with it and check `endscreen` at the end of the Classic and the
+Lightning game (Zen has no game over); the frozen hashes were renewed once for the extra OK line and the endscreen key.
 
 The menu's Update (0x6a3530) opens the welcome dialog (0x771040, "Bej3App::DoWelcomeDialog()") once the intro has
 started, the distance and turn curves (+0x718, +0x190) are 0, the profile's name is empty (Profile+0x74 is the size of
@@ -851,6 +857,24 @@ only), the rank bar widget (0x682f90), the music queue of PLAY AGAIN, the font's
 The leaderboard (`mHighScores`, `mHighScoreNames`, `mLastScoreRank`) is the port's own list of ten; the name is the player's.
 Shown by script: `set points`, `board` with no move, a wait of about 1000 updates, then `click 401 531` (PLAY AGAIN) or `click 563 531`.
 
+### The Lightning end dialog (EndLevelDialog.cpp, LightningEndLevelDialog; the exe's SpeedEndLevelDialog, vtable 0x86d034)
+
+Made by the board's slot 233 (0x716ab0, in the port Board::MakeEndLevelDialog): the same dialog as Classic's (0x6a7c80 builds it: id 0x26,
+the same three real widget buttons Main Menu id 0, Play Again id 2, Badges id 3 (a stub: the badges dialog is not made), none that leads out of
+the game), with the board's +0x30b0 (the seconds of all the time gems) at +0x38c and its multiplier (+0xe0c) at +0x37c. Update (0x782550)
+is Classic's. Slot 26 (0x780aa0) draws Classic's 0x6a87a0 (the box, the stamp, Final Score) with the content of slot 94 (0x780130): the
+statistics table and the top scores, no section labels and no shift; labels Highest Multiplier, Best Move, Longest Cascade, Total Time (strings
+0x1e3 to 0x1e6; slot 89, 0x780160), values "x%d" (0x1e7) of the multiplier, the best move and longest cascade (counters 25 and 24) and the
+seconds + 60 as "%d:%02d" (slot 90, 0x7805e0; right at 0x2ee). Then 0x780aa0 draws SECTION_GRAPH and LINES (x - 0xa0), the icons FLAME,
+STAR, HYPERCUBE and LIGHTNING and the boxes YELLOW, ORANGE and PINK at their x= and y= plus the setting LIGHTNING_GAMEOVER_DLG_*_OFFSET (all
+-160 in defaultUIConstants.xml), each with a label right of it at y 0x2d3 spaced by LIGHTNING_GAMEOVER_DLG_ICON_LABEL_SPACING (5): "FLAME
+x%d", "STAR x%d", "HYPER x%d" (counters 17, 18, 19; strings 0x1e9 to 0x1eb), "TIME +%d:%02d" (0x1ec; the seconds), SPEED, SPECIAL, MATCHES
+(0x1ed to 0x1ef), in FONT_GAMEOVER_DIALOG_SMALL; then the chart's scale "%dk" (0x1f0, 1k to 5k, 0x2e apart up from y 0x3cf, right at 0x14a)
+in FONT_GAMEOVER_DIALOG_MED. Oddity: the chart's bars (one stacked bar of three coloured pieces, IMAGE_GAMEOVER_BAR_YELLOW, PINK and
+ORANGE, for each entry of the round's record at +0x36c, and the "Last" / "x%d" labels under them; the scale grows past 5000 by 5000s) are
+not drawn: the record is written by code that is not translated, so the chart stays empty with the scale of an empty record (1k to 5k).
+The labels' OUTLINE layer is the current colour (white), as read.
+
 ### Oddities: not done in this pass (each is a read of the export started, not a translation)
 
 - **Level-change overlay (0x724110).** Read: it is a Draw (slot 26) of the board's overlay widget: the picture's own origin is moved by
@@ -906,9 +930,24 @@ generator twice (the column, then the row, each & 7) and the gem there, if any, 
 the board then has a move again. Slot 154: the level's size is 2500 + 750 for each level index up to index 29 (the same as Classic's up to
 there; Classic's has no cap). Slot 122 is 1: a match's points are not multiplied by the level, and the bar's progress is of the plain score.
 Slot 113 (true) puts the match groups on the "slow" branch (0.01 a step instead of 0.015) and the sparks on their own draws.
-Left as `// port:` notes: the mantras (the affirmations' texts, 0x712c60), the breathing exercise, the ambient and binaural sound and the
-Zen HUD (slots 26, 43, 88, 90 to 92, 117 to 119, 234 and the state at +0x3170 to +0x33c0 with the pause at +0x33b0): all presentation, and
-nothing in it changes what the board does. Test: `goto zen`, `state` (mode "zen"), `bot`.
+Left as `// port:` notes: the mantras (the affirmations' texts, 0x712c60), the breathing exercise (slot 43, 0x711e70: the pictures
+IMAGE_ZENUI_BREATHE_IN_TEXT and BREATHE_OUT_TEXT faded by the curve at +0x3168; slot 26, 0x710e80 draws the mantra's text and the pause),
+the ambient and binaural sound and slots 88, 90 to 92, 117 to 119 and 234 (the state at +0x3170 to +0x33c0 with the pause at +0x33b0): all
+presentation, and nothing in it changes what the board does; none of it is part of the HUD's own state. Test: `goto zen`, `state` (mode
+"zen"), `bot`.
+
+The Zen panel (ZenBoard.cpp, drawn through the three virtual pieces of Board::DrawScreenFrame): slot 249 (0x70fdf0) draws the necklace's score
+plate (IMAGE_ZENNECKLACE_SCORE at the panel's middle - 0xfc plus its x= and y=, in the board's alpha) where Classic has its top widget and the
+level number; slot 251 (0x70e500) the Zen bottom widget (IMAGE_INGAMEUI_BOTTOM_WIDGET_ZEN, the panel's 400 off); slot 255 (0x70e5c0) the shown
+score in the middle of the panel at y 0x7d, or "MAX SCORE" (string 0x200) at 0x7fffffff. The level bar and the frames are Classic's: the
+ZenBoard does not override them, so Zen has the level bar.
+Oddities (Zen): (1) the necklace itself (the rest of 0x70fdf0, about 270 lines: the pictures ZENNECKLACE_JEWEL1 to 4 (at 0x8da3a8) and
+STRING1 to 4 (0x8da3c0) placed along the necklace by the level index (+0xe04), a pattern table of 4096 entries built at the first draw
+(0xd25bd8) from a run of 2 to 8 counted down, and for each jewel a scale and a fade by CurvedVals (0x437c60); the position tables are the
+constants at the start of the function) is not drawn: it was read as far as its structure and not worked out. (2) The Zen buttons: the exe
+makes the hint, menu and options buttons from IMAGE_INGAMEUI_HINT_BUTTON_ZEN, MENU_BUTTON_ZEN and OPTIONS_BUTTON_ZEN; 0x741840 has no case
+for Zen (mode 0 is Classic, 1 and 2 the Lightning buttons), so the code that makes them was not found and the port's Zen board has Classic's
+hint and menu buttons. (3) The score's font: the exe draws it with whatever font the screen frame left; FONT_SCORE is used.
 
 ### Lightning
 
@@ -945,11 +984,26 @@ gems the fill makes; the account of their seconds is what the Last Hurrah plays.
 Not translated (the `// port:` notes in the source), none of them changes what a game does except where said:
 - The look: the timer bar and the time-up and Last Hurrah banners (+0x309c, +0x33e0 and the objects 0x729d60 and 0x72a510 make), the time
   gem's look and the burst of 0x714520 (its draws of the app's generator, and the one 0x715360 makes: Rand() % 9 + 0x566 picks an image),
-  the shake of the screen in the last 100 ticks of the end (two draws of the app's generator every third update, 0x7173f0), the sounds,
-  and the end dialog's Lightning variant (slot 233, 0x716ab0): the game ends on Classic's dialog (the statistics and the leaderboard are the
-  board's own). The app's generator is therefore drawn less often than the exe's in Lightning, which only the sparks and effects read.
-  The time gems are drawn as plain gems: no screen of Lightning's own is made yet.
-- The round's record (slot 153, 0x745f10: a list at +0xd58 of 0x18-byte entries that only the end dialog's statistics read).
+  the shake of the screen in the last 100 ticks of the end (two draws of the app's generator every third update, 0x7173f0) and the sounds.
+  The app's generator is therefore drawn less often than the exe's in Lightning, which only the sparks and effects read. The time gems are
+  drawn as plain gems and the screen is Classic's HUD. What was read for the screen, for whoever takes it up (measures in 1200ths): the
+  constructor (0x718090) sets the mode value +0xc1c to 1, makes the PopAnims POPANIM_ANIMS_LIGHTNINGUI, LIGHTNINGUIBOTTOM and
+  LIGHTNINGUITOP (labels unpowered, powered1 to 5, pulse1 to 5, energize, death, dead) with a transform of artRes / 1200 and the
+  COUNTDOWNBAR effect; the overlay (slot 43, 0x716ef0) is 0x715cb0 (a clip from y 300, the mega gem PopAnim GEM_MEGA translated by
+  (0x38, a curve), the shard effect clipped to (0x44, 0, 0xec, 0x18c) at (0xaa, 300), "+m:ss" (string 0x1e1) at (0xba, 0x1ba) while
+  the Last Hurrah's account runs, IMAGE_INGAMEUI_TOP_BACK_LIGHTNING at its x= and y= plus (grid x - 0x2ab, grid y - 0x82), the Last
+  Hurrah text (string 0x1e2) at (grid x + 0x200, 0x62) scaled by 1.25 + 0.15 sin(0.06 t)), then the +0x309c object's draw, the board's
+  own overlay and a PopAnim translated by -0xa0; the bar (slot 241, 0x715940) draws the COUNTDOWNBAR effect with a scaled and rotated
+  transform; the score (slot 255, 0x714660) is drawn at (0xf2, 0xd2); the buttons (0x741840, modes 1 and 2) are HINT_BUTTON_LIGHTNING,
+  MENU_BUTTON_LIGHTNING and RESET_BUTTON_LIGHTNING. An experiment drew clones of the three LIGHTNINGUI PopAnims after PlayLabel("unpowered")
+  at a translation of 0 or -0xa0: they draw (the first a bar with end caps across the top, the second a thin line) but not where the
+  board's grid is (the exe puts a translation on them that was not found; 0x713770 and 0x583490 are its scale and move helpers), so nothing
+  was kept. Oddity: the whole Lightning screen; and the label transition (0x444910: Lightning plays labels with transition frames 0, 12
+  and 15; the port's PopAnim has none, and the PopAnim notes' claim that the game never starts one is wrong for Lightning). Also one
+  finding for the port's Board: the widget manager draws a widget's DrawOverlay only when the widget asked for it in its Draw, so the
+  exe's slot-43 overlay needs a call from Board::Draw (a first try with a virtual hook there worked).
+- The round's record (slot 153, 0x745f10: a list at +0xd58 of 0x18-byte entries that only the end dialog's chart reads: three points
+  figures a record, summed to size the chart).
 - The form with a points goal (PointsGoalStart above 0 with a TimeStart: +0x3095): the shipped speed.cfg has none. GetBarTarget has its
   branch (half the bar by the progress over the goal); the goal's bookkeeping in 0x7173f0 is left out.
 - The exact value the bar's target returns (0x716f70 leaves it in ST0; its decompile does not show it): it is the share of the time left
