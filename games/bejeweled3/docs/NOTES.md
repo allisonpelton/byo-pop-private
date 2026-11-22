@@ -259,16 +259,23 @@ Settled: 0x59b0a0 is a flag the exe sets when it was started with an already fil
 takes its false branch.
 
 Oddities / not translated, each with a "port:" note in the source:
-- The menu's slot 0x7c on the three balls (called in the constructor with 0 and at the intro start) is not identified;
-  the port draws the plates only after the intro starts (MainMenuButton::mActive) and hides the side buttons before.
-- The Update's background widget (+0x6d8, its Resize at curve +0x190's first value), the logo phase, the widgets at
-  +0x6f0 to +0x6f8, the overlay widgets +0x700 and +0x704, the user dialogs, the loader's unloading and the stars
-  (0xdc particles of the constructor) are skipped.
-- The port loads neither partner.xml nor reads NumLogos, so the logo phase would not run anyway.
+- Slot 0x7c on the balls is Widget::SetVisible (framework virtual order); the constructor calls it with 0 and the
+  intro start with 1, and the port does the same (the old mActive stand-in is gone).
+- The Update's background widget (+0x6d8, its Resize at curve +0x190's first value), the widgets at +0x6f0 to +0x6f8,
+  the overlay widgets +0x700 and +0x704, the user dialogs, the loader's unloading and the stars (0xdc particles of the
+  constructor, with their grey backdrop fade, progress * 3 - 1.6 clamped) are skipped.
+- Logo phase: partner.xml is loaded by SexyApp::Init (an earlier note said it was not), NumLogos is read, and the
+  constructor loads "Logo%dFile" and the Update runs "Logo%dHoldTime" (about 350 updates in all) with a black cover
+  over the menu. The logo file is not in assets/, so its image is null and its draw is skipped: the shot at update
+  300 is plain black. Not known whether the user's install has the file.
+- Foreground picture (images/NonResize/2donly/mainmenu/foreground) is drawn with its curve as the exe's formula.
+- The crystal ball's cover (+0x168) is a capture of the PopAnim background taken through slot 0x148 at the end of
+  Draw; it is not translated, so the cover has no picture. Which object draws IMAGE_2DONLY_MAINMENU_BACKGROUND in the
+  exe is not settled (the port draws it first in MainMenu::Draw), nor the draw order against the child widgets.
 - ResizeButtons (0x6a09e0, run when curve +0x190 is triggered) is not translated; the app's viewport offset ([0x1c5])
   is taken as 0, and which of the ftol and sub-pixel assignments for PLAY comes first was read from the code, not
   checked against a running original.
-- Draw: the alpha of the curve +0x2e8 (the background's fade), the foreground picture and the particles are still open.
+- Draw: the alpha of the curve +0x2e8 (its block draws nothing) and the particles are still open.
 
 ## The crystal ball, 2D path (CrystalBall 0x78ab50, Draw 0x78ae40, Update 0x78c730)
 
@@ -292,4 +299,4 @@ colour and the effects' look, frame by frame.
 Not translated, each with a "port:" note: the 3D drawing (refraction mesh), the 3D-only curves (+0x288, +0x2f8 stay at
 their default), the hint drawn through 0x8d7a80 when +0x487 and the app's +0x687 are set, +0x486's picture (0x8d7054),
 and the call at the end of Draw to 0x584d60 with +0x20 and +0x480. The width-0 test at the start is "+0x24 set and
-width 0" in the exe; the port tests the width only (+0x24 not mapped). Slot 0x7c is still unidentified (mActive).
+width 0" in the exe; the port tests the width only (+0x24 not mapped).

@@ -11,8 +11,19 @@
 #include "Widget.h"
 
 #include <string>
+#include <vector>
 
 namespace Sexy {
+
+class DDImage;
+
+// One partner logo shown before the menu (16 bytes in the exe's list at +0xcc)
+struct MenuLogo {
+	DDImage* mImage;   // the file named by "Logo<n>File", loaded by the app's slot 0x3c (null when the file is missing)
+	int mHoldLeft;   // updates still to hold the logo at full strength (counts down from mHold)
+	int mHold;       // "Logo<n>HoldTime"
+	int mAlpha;      // 0 to 255
+};
 
 class MainMenu : public Widget {
 public:
@@ -41,6 +52,8 @@ public:
 	bool mBackgroundAdded = false;              // port: stands for the background widget (+0x6d8) having a parent: its fade started
 	bool mMusicSwitched = false;                // +0x70e
 	float mLoadProgress = 0.0f;                 // +0x708: the loading progress, smoothed
+	std::vector<MenuLogo> mLogos;               // +0xcc: the logos still to show, one at a time
+	float mBlackFade = 0.0f;                    // +0xd8: the black cover's strength: 1 while a logo shows, then down by 0.05
 
 	MainMenu();                                 // 0x6a54b0 (bejeweled3)
 	~MainMenu() override;

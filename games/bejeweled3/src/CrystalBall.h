@@ -40,7 +40,6 @@ public:
 	bool mMoves = true;                 // +0x485: the offset curves move the ball
 	bool mDrawPicture = false;          // +0x486: a picture in place of the label (set elsewhere; not translated)
 	bool mArrowShown = false;           // +0x487: the menu arrow's hint (set elsewhere; its drawing is not translated)
-	bool mActive = false;               // port: stands in for what the menu's calls to slot 0x7c switch on: drawn once set
 
 	explicit CrystalBall(const std::string& theText);   // 0x78ab50 (bejeweled3)
 	~CrystalBall() override;

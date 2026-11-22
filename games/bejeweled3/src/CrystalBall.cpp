@@ -93,7 +93,7 @@ CrystalBall::~CrystalBall()
 // 0x584d60 with +0x20 and +0x480, and the arrow's drawing through the object at 0x8d7a80, are not either
 void CrystalBall::Draw(Graphics* g)
 {
-	if (!mActive || mWidth == 0)
+	if (mWidth == 0)
 		return;
 
 	g->PushState();   // 0x432410: a copy of the Graphics' state, dropped at the end (0x432520)
@@ -181,13 +181,10 @@ void CrystalBall::Draw(Graphics* g)
 	// port: the hint drawn when +0x487 and the app's flag at +0x687 are set (0x6a0ca0's tips) is not translated
 
 	// the label's scale: the highlight through a curve, times the property, plus the added scale, times the ball's
-	static CurvedVal* aTextCurve = nullptr;
-	if (aTextCurve == nullptr) {
-		aTextCurve = new CurvedVal();
-		aTextCurve->SetCurve("b+1,1.3,0,1,####         ~~###");
-	}
+	CurvedVal aTextCurve;   // 0x436940: a new one on each Draw, as the exe makes it
+	aTextCurve.SetCurve("b+1,1.3,0,1,####         ~~###");
 	double aTextFactor = gApp->GetDouble("CRYSTALBALL_TEXT_SCALE_FACTOR", 4.0);
-	float aTextScale = (float)(aTextCurve->GetOutVal((double)mHighlight) * (double)(float)aTextFactor + mTextScaleAdd) * aScale;
+	float aTextScale = (float)(aTextCurve.GetOutVal((double)mHighlight) * (double)(float)aTextFactor + mTextScaleAdd) * aScale;
 	float aTextAlpha = (float)((1.0 - (mBlendCurve.GetOutVal() + mBlendCurve.GetOutVal())) * mFade);
 
 	// the menu arrow, while the label has faded: the right-hand one mirrored, else the left-hand one

@@ -2,6 +2,7 @@
 #include "MainMenu.h"
 
 #include "Bej3App.h"
+#include "DDImage.h"
 #include "EncodingParser.h"
 #include "Font.h"
 #include "Bej3Music.h"
@@ -50,10 +51,22 @@ MainMenu::MainMenu()
 	mIntroCurve6.SetConstant(0.0);
 	mSideFadeCurve.SetConstant(0.0);
 	mNameCurve.SetConstant(0.0);
-	// port: the original calls slot 0x7c on each button here (unidentified): the plates stay undrawn until the intro
-	// starts (CrystalBall::mActive); the side buttons are hidden
-	mOptionsButton->mVisible = false;
-	mRecordsButton->mVisible = false;
+	// 0x6a54b0: the logos of partner.xml (NumLogos, Logo<n>File and Logo<n>HoldTime; SexyApp::Init has read the file)
+	int aNumLogos = gApp->GetInteger("NumLogos", 0);
+	for (int aLogoNum = 1; aLogoNum <= aNumLogos; aLogoNum++) {
+		mBlackFade = 1.0f;
+		MenuLogo aLogo;
+		aLogo.mImage = gApp->GetImage(gApp->GetString(StrFormat("Logo%dFile", aLogoNum), ""));
+		aLogo.mHold = gApp->GetInteger(StrFormat("Logo%dHoldTime", aLogoNum), 0);
+		aLogo.mHoldLeft = aLogo.mHold;
+		aLogo.mAlpha = 0;
+		mLogos.push_back(aLogo);
+	}
+
+	// slot 0x7c (0x46a780) is Widget::SetVisible: all three are hidden here, and the intro shows them
+	mPlayButton->SetVisible(false);
+	mOptionsButton->SetVisible(false);
+	mRecordsButton->SetVisible(false);
 }
 
 // port: the button stands in for the crystal ball (see the header)
@@ -64,11 +77,39 @@ MainMenu::~MainMenu()
 
 void MainMenu::Draw(Graphics* g)
 {
+	// 0x6a0ca0: a black cover while a logo shows and as it fades away
+	if (mBlackFade > 0.0f) {
+		g->SetColor(Color(0, 0, 0, Ftol(mBlackFade * 255.0f)));
+		g->FillRect(0, 0, mWidth, mHeight);
+	}
+	// the logo, stretched over the screen (the menu starts art size x 160 / 1200 left of it), and nothing else
+	if (!mLogos.empty()) {
+		int anArtRes = gApp->mArtRes;
+		g->PushState();
+		if (mLogos.front().mAlpha != 255)
+			g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, mLogos.front().mAlpha));
+		if (mLogos.front().mImage != nullptr)
+			g->DrawImage(mLogos.front().mImage, anArtRes * 160 / 1200, 0, anArtRes * 1600 / 1200, anArtRes);
+		g->PopState();
+		return;
+	}
 	// 0x6a2a20 makes the 2D mode's background (images\NonResize\2donly\mainmenu\background) 1920 wide at 1200,
 	// stretched over the menu; 0x6a0ca0 draws it first
 	if (IMAGE_2DONLY_MAINMENU_BACKGROUND != nullptr)
 		g->DrawImage(IMAGE_2DONLY_MAINMENU_BACKGROUND, 0, 0, mWidth, mHeight);
-	// port: the foreground picture (images\NonResize\2donly\mainmenu\foreground), the logos, the particles and the tips
+	// 0x6a0ca0: the foreground picture (the 2donly mainmenu foreground) rises from below while the cameras pull in
+	// (curve +0x718) and slides with the turn (curve +0x190); it is drawn at its own size
+	if (IMAGE_2DONLY_MAINMENU_FOREGROUND != nullptr) {
+		int aBelow = gApp->mArtRes * 1500 / 1200;
+		int aTop = Ftol((double)aBelow * mDistanceCurve.GetOutVal());
+		int aLeft = Ftol(-600.0 - mTurnACurve.GetOutVal() * 600.0);
+		g->SetColorizeImages(true);
+		g->SetColor(Color(255, 255, 255, 255));
+		g->DrawImage(IMAGE_2DONLY_MAINMENU_FOREGROUND, aLeft, aTop);
+		g->SetColorizeImages(false);
+	}
+	// port: the stars, the stars' backdrop, the particles and the tips
 
 	// 0x6a0ca0: the loading line at y = art size * 0x352 / 1200 (string id 0x122, "Loading..."), while the loading thread runs
 	if (!gApp->mLoadingThreadCompleted && FONT_PLAYBUTTONS != nullptr) {
@@ -90,7 +131,7 @@ void MainMenu::Draw(Graphics* g)
 
 // 0x6a3530 (bejeweled3). port: left out: the logo phase, the widgets +0x6f0 to +0x6f8, the overlay widgets +0x700 and
 // +0x704 (made when the intro starts), the user dialogs, the loader's unloading, the stars, the background widget
-// (+0x6d8) and its Resize, ResizeButtons (0x6a09e0) when curve +0x190 is triggered, and the calls of slot 0x7c
+// (+0x6d8) and its Resize, ResizeButtons (0x6a09e0) when curve +0x190 is triggered.
 void MainMenu::Update()
 {
 	Widget::Update();
@@ -102,6 +143,33 @@ void MainMenu::Update()
 	}
 	if (!mShown)
 		return;
+
+	// 0x6a3530: while a logo shows nothing else runs: it fades in by 5 an update, holds, and fades out
+	if (!mLogos.empty()) {
+		mBlackFade = 1.0f;
+		MenuLogo& aLogo = mLogos.front();
+		if (aLogo.mAlpha < 255 && aLogo.mHoldLeft == aLogo.mHold) {
+			aLogo.mAlpha += 5;
+			if (aLogo.mAlpha > 254) {
+				aLogo.mAlpha = 255;
+				MarkDirty();
+				return;
+			}
+		}
+		else {
+			aLogo.mHoldLeft--;
+			if (aLogo.mHoldLeft < 1) {
+				aLogo.mAlpha -= 5;
+				if (aLogo.mAlpha < 1) {
+					delete aLogo.mImage;
+					mLogos.erase(mLogos.begin());
+				}
+			}
+		}
+		MarkDirty();
+		return;
+	}
+	mBlackFade = std::max(mBlackFade - 0.05f, 0.0f);
 
 	mDistanceCurve.IncInVal();
 
@@ -128,9 +196,9 @@ void MainMenu::Update()
 				gApp->mBej3Music->QueueEvent("Switch", "", false);
 		}
 		mIntroStarted = true;
-		mPlayButton->mActive = true;
-		mOptionsButton->mActive = true;
-		mRecordsButton->mActive = true;
+		mOptionsButton->SetVisible(true);
+		mRecordsButton->SetVisible(true);
+		mPlayButton->SetVisible(true);
 	}
 
 	// the background's fade in starts at a fifth of the loading
