@@ -134,6 +134,10 @@
 :root[data-skin="d95"] .adding button.bin-yes:not(#\#) { color: #000000; }
 :root[data-skin="d95"] :is(#players, #saves, #music) button:not(#\#):disabled { opacity: 1; color: var(--sk-lo); text-shadow: 1px 1px 0 var(--sk-hi); }
 :root[data-skin="d95"] :is(#players, #saves, #music) :is(.d95-mn, .d95-mx, .d95-x):not(#\#) { padding: 0; }
+/* the title bar's icon, the control menu's button (later than the rules above), is no button face: Music's title bar is the
+   window's own (#music), and its icon took the page's padding and grey face, its page clipped into the corner (the user,
+   2026-11-16: "Music icon is messed up") */
+:root[data-skin="d95"] :is(#players, #saves, #music) button.d95-sys:not(#\#) { padding: 0; background: transparent; }
 /* no empty band at the top of Players or Saves: the status line (a live region, kept in the page) takes no room while it says
    nothing, and the first heading sits at the window's top */
 :root[data-skin="d95"] .pl-status:empty:not(#\#) { min-height: 0; margin: 0; }
@@ -390,7 +394,8 @@ html.d95-desk .d95-x::after { transform: rotate(-45deg); }
 html.d95-desk .bar.d95-win { width: min(760px, calc(calc(100vw / var(--d95-z, 1)) - 150px)); gap: 8px; }
 html.d95-desk .bar.d95-win:not(#\#) { padding: 2px 8px 8px; }
 html.d95-desk .bar.d95-win:not(#\#) > .d95-tb { flex: 1 0 100%; margin: 0 -6px 0; }
-/* the game: its stage exactly the size sizeStage gives it, no margin, no shadow */
+/* the game: its stage exactly the size sizeStage gives it, no margin, no shadow, and no focus ring (its window's title bar shows
+   the focus; web/shell.html) */
 html.d95-desk .stage-wrap.d95-win { display: block; place-items: normal; width: max-content; }
 html.d95-desk .stage-wrap .stage { box-shadow: none; max-width: none; }
 /* the chat: a fixed size, whatever room the page has beside the game (chat.js's chat-below has no part here) */
@@ -744,8 +749,11 @@ html.d95-embed.d95-desk .stage-wrap.d95-win > .d95-tb, html.d95-embed.d95-desk .
    status bar along the window's bottom edge (the user, 2026-11-09: "Not what I expect to happen on resize") */
 html.d95-embed.d95-desk .stage-wrap.d95-win { display: grid !important; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr);
   padding: 0 !important; border: 0 !important; box-shadow: none !important; background: #000000; overflow: hidden; }
-html.d95-embed.d95-desk .stage-wrap.d95-win > .stage-area { grid-row: 1; overflow: auto; display: grid; place-items: center; min-height: 0; }
-html.d95-embed.d95-desk .stage-wrap.d95-win > .stage-area > .stage { margin: 0; }
+/* centred by its margins, not by place-items: a game larger than its window (under 1x of room, the window scrolls) then starts
+   at the area's top left and scrolls, where place-items' centring put its top and left edges out of reach (the user, 2026-11-20:
+   "Ning Po window is cut off") */
+html.d95-embed.d95-desk .stage-wrap.d95-win > .stage-area { grid-row: 1; overflow: auto; display: grid; place-items: start; min-height: 0; }
+html.d95-embed.d95-desk .stage-wrap.d95-win > .stage-area > .stage { margin: auto; }
 html.d95-embed.d95-desk .stage-wrap.d95-win > .d95-statusbar { grid-row: 2; margin: 0; padding: 2px; background: var(--panel); }
 html.d95-embed .byopop-footer, html.d95-embed body > header, html.d95-embed main > .back { display: none !important; }
 /* a narrow screen (under 760 px): one window at a time fills the screen above the task bar, maximized, the task bar switching */
@@ -856,7 +864,9 @@ html.d95-desk .su-drop.drop-on { outline: 1px dotted #000; outline-offset: -5px;
 html.d95-desk .su-rows { flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0; padding: 2px; list-style: none; background: #fff;
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
 html.d95-desk .su-row { display: flex; align-items: center; gap: 6px; min-height: 24px; padding: 1px 4px; }
-html.d95-desk .su-icon:not(#\#) { flex: none; width: 20px; height: 20px; min-width: 0; margin: 0; padding: 0; font-size: 8px; line-height: 20px; overflow: hidden;
+/* (.su-rows and .badge: above the plain icons' badge rule, :root[data-skin="d95"] .badge:not(.has-icon), which gave each row a
+   32 px badge with 20 px margins) */
+html.d95-desk .su-rows .su-icon.badge:not(#\#) { flex: none; width: 20px; height: 20px; min-width: 0; margin: 0; padding: 0; font-size: 8px; line-height: 20px; overflow: hidden;
   display: inline-flex; align-items: center; justify-content: center; box-shadow: none; transform: none; }
 html.d95-desk .su-icon img:not(#\#) { max-width: 20px; max-height: 20px; width: auto !important; height: auto !important; }
 html.d95-desk .su-icon .badge-initials { display: none; }
@@ -865,6 +875,12 @@ html.d95-desk .su-icon-none::before { content: ""; display: block; width: 16px; 
 html.d95-desk .su-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html.d95-desk .su-value { flex: none; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html.d95-desk .su-error { color: #800000; }
+/* a reading under way: its count and its Cancel; many folders with no game: one row, the names under it behind Details */
+html.d95-desk .su-reading .su-name { white-space: normal; }
+html.d95-desk .su-stop, html.d95-desk .su-details { flex: none; min-height: 21px; padding: 0 8px; }
+html.d95-desk .su-many, html.d95-desk .su-installer { flex-wrap: wrap; }
+html.d95-desk .su-names, html.d95-desk .su-note { flex: 1 0 100%; box-sizing: border-box; margin: 2px 0 4px; padding-left: 26px; overflow-wrap: anywhere; }
+html.d95-desk .su-names[hidden] { display: none; }
 html.d95-desk .su-agree-row { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 html.d95-desk .su-terms { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 4px 6px; background: #fff;
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
@@ -889,8 +905,8 @@ html.d95-desk .lib-win.d95-win:not(#\#) > .d95-tb { background: var(--lib-title)
   border-bottom: 1px solid var(--lib-lo); margin: 0 0 4px; }
 html.d95-desk .lib-win.d95-active:not(#\#) > .d95-tb { background: linear-gradient(var(--lib-title), #586843); }
 html.d95-desk .lib-win:not(.d95-active):not(#\#) > .d95-tb { color: var(--lib-dim); background: var(--lib-head); }
-/* its buttons: square, flat, a 1-pixel bevel */
-html.d95-desk .lib-win .d95-tb button:not(#\#), html.d95-desk .lib-win .lib-btn:not(#\#), html.d95-desk .lib-win .lib-hb:not(#\#) {
+/* its buttons: square, flat, a 1-pixel bevel (the title bar's icon, the control menu's button, is none: as on every window) */
+html.d95-desk .lib-win .d95-tb button:not(.d95-sys):not(#\#), html.d95-desk .lib-win .lib-btn:not(#\#), html.d95-desk .lib-win .lib-hb:not(#\#) {
   background: var(--lib-bg); color: var(--lib-fg); border: 1px solid; border-color: var(--lib-hi) var(--lib-lo) var(--lib-lo) var(--lib-hi);
   border-radius: 0; box-shadow: none; font: inherit; }
 html.d95-desk .lib-win .d95-tb .d95-x:not(#\#) { color: var(--lib-fg); }
@@ -936,8 +952,13 @@ html.d95-desk #trophies.tc-win:not(.d95-closed):not(.d95-min) { display: flex; }
 .tc-bar label { display: flex; gap: 6px; align-items: center; }
 .tc-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 0 8px 8px; }
 .tc-game { margin: 0 0 8px; padding: 4px 8px 8px; border: 1px solid #808080; box-shadow: 1px 1px 0 #ffffff inset, 1px 1px 0 #ffffff; }
+/* a game's name in its frame's top edge, as a Windows 95 group box's: the window's grey behind it, so the etched frame's white
+   line (the inset shadow) stops at it as the grey one does, instead of crossing the letters (the user, 2026-11-16: "Trophy
+   cabinet game labels seem to be in the wrong place"), and a whole-pixel line height, as the Sounds board's legends */
+.tc-game > legend { padding: 0 2px; background: var(--panel); line-height: 14px; }
 .tc-table { width: 100%; border-collapse: collapse; background: #ffffff; border: 1px solid #808080; }
-.tc-table th, .tc-table td { padding: 1px 6px; text-align: left; font-weight: normal; white-space: nowrap; }
+/* whole-pixel rows, so that every group after the first, and its name, starts on a whole pixel too */
+.tc-table th, .tc-table td { padding: 1px 6px; text-align: left; font-weight: normal; white-space: nowrap; line-height: 14px; }
 .tc-table th { background: var(--panel); border: 1px solid; border-color: #ffffff #808080 #808080 #ffffff; }
 .tc-table tr.tc-first td { border-top: 1px solid #c0c0c0; }
 .tc-table .tc-num { text-align: right; }
@@ -967,11 +988,33 @@ html.d95-desk .d95-icons.d95-icons-free { display: block; }
 html.d95-desk .d95-icons.d95-icons-free > .d95-icon { position: absolute; width: 84px; box-sizing: border-box; }
 html.d95-desk .d95-icon.d95-icon-sel { background: rgba(0, 0, 128, .45); }
 html.d95-desk .d95-icon.d95-icon-sel > span { outline: 1px dotted var(--sk-desk-fg); outline-offset: 0; }
+/* an icon's name as Windows 95 draws it: two lines at most, cut with an ellipsis, so that it stays in its place of the grid,
+   which has room for two (the user, 2026-11-16: "Line up icons causes this overlap on a long name"); the whole name only on the
+   icon with the focus, or the one icon selected, drawn over its neighbours (several selected by a drag keep theirs cut, as
+   Windows shows only the focused one's). Clipped, not hidden: a hidden overflow would let the name shrink to the cell's
+   20 px left under the picture, a line and a half */
+html.d95-desk .d95-icon > span:last-child { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: clip; }
+html.d95-desk .d95-icon:focus > span:last-child,
+html.d95-desk .d95-icons:not(:has(> .d95-icon-sel ~ .d95-icon-sel)) > .d95-icon-sel > span:last-child { display: block; -webkit-line-clamp: none; overflow: visible; }
+html.d95-desk .d95-icon:focus, html.d95-desk .d95-icons:not(:has(> .d95-icon-sel ~ .d95-icon-sel)) > .d95-icon-sel { z-index: 3; }
+/* the drop target while files are dragged over the desktop (web/addgames.js, dropZone): the desktop dimmed under the windows and
+   the task bar inside a dashed edge, and under the pointer, where a drop puts the shortcut, a box with an installer's disk and what
+   a drop does (the windows over the middle of the desktop would hide one there); the pointer goes through to the desktop */
+html.d95-desk .d95-dropzone { position: fixed; inset: 0; z-index: 5; pointer-events: none; background: rgba(0, 0, 0, .4); }
+html.d95-desk .d95-dropzone::before { content: ""; position: absolute; inset: 6px; border: 2px dashed #ffffff; }
+html.d95-desk .d95-dropzone[hidden] { display: none; }
+html.d95-desk .d95-dropzone-box { position: absolute; display: grid; justify-items: center; gap: 8px; box-sizing: border-box; width: 200px;
+  padding: 14px 12px; background: var(--panel); color: var(--fg); font-size: 12px; text-align: center; border: 2px dashed var(--sk-dk);
+  box-shadow: 0 0 0 3px var(--panel), 3px 3px 0 3px rgba(0, 0, 0, .5); }
+html.d95-desk .d95-dropzone-box > svg { width: 64px; height: 64px; }
 html.d95-desk .d95-band { position: absolute; z-index: 2; pointer-events: none; box-sizing: border-box; border: 1px dotted #ffffff;
   mix-blend-mode: difference; }
-/* 1995's tooltip */
-html.d95-desk .d95-tip { position: absolute; z-index: 2147483500; pointer-events: none; max-width: 320px; padding: 1px 4px;
-  background: #ffffe1; color: #000000; border: 1px solid #000000; font-size: 11px; line-height: 15px; white-space: normal; }
+/* 1995's tooltip: a title's own line breaks kept (the Sounds board's name, when it plays and its file; the user, 2026-11-16:
+   "the soundboard tooltips are hard to read due to lacking line breaks"), long lines wrapped, a long file name broken, and
+   never wider than a narrow screen */
+html.d95-desk .d95-tip { position: absolute; z-index: 2147483500; pointer-events: none; max-width: min(320px, calc(calc(100vw / var(--d95-z, 1)) - 8px));
+  box-sizing: border-box; padding: 1px 4px; background: #ffffe1; color: #000000; border: 1px solid #000000; font-size: 11px; line-height: 15px;
+  white-space: pre-line; overflow-wrap: anywhere; }
 /* the tray's speaker, and the volume's slider above it */
 html.d95-desk .d95-spk { width: 18px; height: 18px; padding: 0; margin: 0 4px 0 0; flex: none; background: transparent; box-shadow: none; border: 0; }
 html.d95-desk .d95-spk > i { display: block; width: 16px; height: 16px; margin: 1px; background: #000000;

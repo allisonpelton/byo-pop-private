@@ -114,6 +114,7 @@ skin.bin.label_empty = Recycle Bin, empty
 skin.bin.label_full = Recycle Bin, holding the names of games whose files were forgotten
 skin.bin.open = Open
 skin.bin.empty = Empty Recycle Bin
+skin.drop.install = Drop a game's folder or .zip file here to install it
 skin.vol.button = Volume
 skin.vol.title = Volume
 skin.vol.mute = Mute
@@ -191,7 +192,7 @@ trophies.col.time = Time
 trophies.col.word = Word
 trophies.layout = Layout {n}
 trophies.escape = Escape {n}
-trophies.count = {n} games
+trophies.count = {n} game | {n} games
 settings.section.saver = Screen Saver
 settings.saver.label = Screen Saver
 settings.saver.none = (None)
@@ -764,6 +765,11 @@ cursors.legend = Site cursor
 cursors.browser = Default
 cursors.hint = Play a game to add its custom cursors here.
 cursors.hint_none = Play a game to use its custom cursors sitewide, even in other games!
+# {games}: the titles of the games whose files are here and whose cursors are not yet, as a list ("Hammer Heads and Pixelus"); n:
+# how many
+cursors.hint_open = Open {games} once to add its custom cursors here. | Open {games} once each to add their custom cursors here.
+# {games}: the titles of the games whose cursors could not be kept, as a list; n: how many
+cursors.unkept = The custom cursors of {games} could not be kept: this browser's storage for them is full.
 
 
 # ---- Adding and forgetting a game's files from the listing page (web/gameimport.js)
@@ -785,6 +791,23 @@ import.say.copying = Copying {count} files…
 import.say.progress = Copying… {percent}%
 # The name for dropped files that are not in a folder, where the adding names a folder
 import.dropped_files = (the dropped files)
+# While a dropped folder is read: the folders and the files found so far ({folders} and {files} are the two count strings
+# below; their {count} is the number with its thousands marked)
+import.reading_count = Reading… {folders}, {files}
+import.count.folders = {count} folder | {count} folders
+import.count.files = {count} file | {count} files
+# The reading stopped with its Cancel button (its row then goes)
+import.cancelled = The reading was stopped.
+# Many dropped folders with no game in them, as one line, their names behind a Details button
+import.rejected_many = {n} folder holds no game this site plays | {n} folders hold no game this site plays
+import.rejected_details = Details
+# A game's installer dropped in place of the folder it installs to (web/gameimport.js, installerIn): what it is and what to do
+# instead. {file} is its name, {title} the game its name names, {folder} where that game's copy usually is (C:\Program Files
+# (x86)\PopCap Games\..., or steamapps\common\... in Steam's folder)
+import.installer = {file} is an installer. This site can't install a game from it: install the game on this computer with it first, then drop the folder it installs to.
+import.installer_game = {file} is {title}'s installer. This site can't install the game from it: install {title} on this computer with it first, then drop the folder it installs to, usually {folder}.
+import.installer_game_any = {file} is {title}'s installer. This site can't install the game from it: install {title} on this computer with it first, then drop the folder it installs to.
+import.installer_steam = {file} is {title}'s installer. This site can't install the game from it: install {title} on this computer first, then drop its folder. Steam's copy is in {folder}, in Steam's own folder.
 
 
 # ---- Sizes, shown by the saves and the import (web/saves.js)
@@ -1365,6 +1388,8 @@ setup.browse = Browse…
 setup.found = Found
 setup.reading = Reading…
 setup.ready = Ready
+# the row of a dropped installer (its direction is under it)
+setup.result.installer = Installer
 # the row of a drop that could not be read at all
 setup.dropped = Dropped files
 setup.back = < Back

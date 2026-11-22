@@ -1037,10 +1037,21 @@ var ByopopGameFiles = (function () {
     } catch (e) {}
     return out;
   }
+  // Each write is told on this page as byopop-game-files (another page, a game's window or another tab, hears it as the storage
+  // event of KEY), so that what lists the games' files follows while it is open (the Sounds and Music windows, web/sounds.js and
+  // web/music.js; the user, 2026-11-16: "I had to close and reopen each of the sounds and music windows to get it to appear")
   function write(o) {
     try {
       var s = store();
       if (s) s.setItem(KEY, JSON.stringify(o));
+    } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("byopop-game-files")); } catch (e) {}
+  }
+  // what to listen to for a change of the games' files, on this page and from the others: fn() at each
+  function watch(fn) {
+    try {
+      window.addEventListener("byopop-game-files", function () { fn(); });
+      window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) fn(); });
     } catch (e) {}
   }
   // The files are there (found at a start, or just imported)
@@ -1107,7 +1118,7 @@ var ByopopGameFiles = (function () {
   // Whether a record says the files were ever loaded in this browser, whether they are there now or were forgotten or lost
   // since. The listing page hides a game's buy links for such a game (docs/WEB_PLAYER.md, "The listing page").
   function everLoaded(r) { return !!(r && r.loaded); }
-  return { KEY: KEY, all: all, mark: mark, forget: forget, lost: lost, replacing: replacing, present: present, everLoaded: everLoaded, setIcon: setIcon };
+  return { KEY: KEY, all: all, mark: mark, forget: forget, lost: lost, replacing: replacing, present: present, everLoaded: everLoaded, setIcon: setIcon, watch: watch };
 })();
 
 // How much each game was played in this browser (docs/WEB_PLAYER.md, "The listing page"): one localStorage item for the whole

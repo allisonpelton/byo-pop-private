@@ -2755,11 +2755,28 @@ var ByopopMusic = (function () {
     function frontGame() { try { return window.ByopopApps && ByopopApps.frontFrame ? ByopopApps.frontFrame() : null; } catch (e) { return null; } }
     // the game's module, once its runtime is up and if its build has the calls
     function gameModule(win) { try { var m = win && win.Module; return m && typeof m._byopop_music_song === "function" && typeof m.ccall === "function" ? m : null; } catch (e) { return null; } }
+    // A game that plays its tunes as sounds (web/soundtracks.js, "voices": Venice, games/venice/src/VeniceSound.cpp) has no song
+    // while its music plays: its tune is the loudest of its voices playing one of the files its tunes list (the Sounds window's
+    // byopop_sounds_view), followed as a stream is, the spectrum only, under the voice's number made negative (the user,
+    // 2026-11-18: "Venice's audio doesn't sync with the spectral analyzer"). Only such a game is looked at.
+    function voiceTune(front, m) {
+      var table = typeof ByopopSoundtracks !== "undefined" ? ByopopSoundtracks : {}, spec = front.game ? table[front.game] : null;
+      if (!spec || !spec.voices || typeof m._byopop_sounds_view !== "function") return null;
+      var all = JSON.parse(m.ccall("byopop_sounds_view", "string", ["number"], [0x7fffffff]) || "null");
+      if (!all || !all.voices) return null;
+      var res = (spec.files || []).map(patternRe), best = null;
+      all.voices.forEach(function (v) {
+        var name = String(v.name || "").replace(/\\/g, "/").replace(/^\.\//, ""), g = Math.max(v.l || 0, v.r || 0);
+        if (res.some(function (re) { return re.test(name); }) && (!best || g > best.g)) best = { id: v.id, g: g };
+      });
+      return best ? { song: -best.id, kind: "stream", heard: best.g > 0 && all.sfx > 0 ? 1 : 0 } : null;
+    }
     function followGame(front) {
       var m = front ? gameModule(front.win) : null, song = 0, view = null;
       if (m) try {
         song = m._byopop_music_song();
         if (song) view = JSON.parse(m.ccall("byopop_music_view", "string", ["number"], [song]) || "null");
+        else if ((view = voiceTune(front, m))) song = view.song;
       } catch (e) { view = null; }
       if (!view) { unfollow(); return; }
       if (!follow || follow.win !== front.win || follow.song !== song) {
@@ -3212,15 +3229,24 @@ var ByopopMusic = (function () {
         .map(function (b) { return b.getAttribute("data-game"); });
       try { localStorage.setItem(FOLD_KEY, ids.join(" ")); } catch (e) {}
     }
-    // The games the player has, with music in the table, read once, the first time the tab is shown
+    // The games the player has, with music in the table, read the first time the tab is shown, and again when they change
+    // (rescan)
+    var scannedFor = "", reading = false, readAgain = false;
+    function mineNow() {
+      var table = typeof ByopopSoundtracks !== "undefined" ? ByopopSoundtracks : {}, files = {};
+      try { files = ByopopGameFiles.all(); } catch (e) {}
+      return games.filter(function (g) { return table[g.id] && ByopopGameFiles.present(files[g.id]); });
+    }
+    function idsOf(list) { return list.map(function (g) { return g.id; }).join(" "); }
     function scan() {
       if (scanned) return;
       scanned = true;
-      var table = typeof ByopopSoundtracks !== "undefined" ? ByopopSoundtracks : {}, files = {};
-      try { files = ByopopGameFiles.all(); } catch (e) {}
-      var mine = games.filter(function (g) { return table[g.id] && ByopopGameFiles.present(files[g.id]); });
+      var table = typeof ByopopSoundtracks !== "undefined" ? ByopopSoundtracks : {};
+      var mine = mineNow();
+      scannedFor = idsOf(mine);
       if (!mine.length) { say(T("music.lcd_none"), T("music.none")); return; }
       say(T("music.lcd_reading"), T("music.reading"));
+      reading = true;
       decoder().then(function (m) {
         M = m;
         return mine.reduce(function (p, g) {
@@ -3234,7 +3260,11 @@ var ByopopMusic = (function () {
         wired = true;
         wireMedia();
         setState("idle");
-      }, function () { scanned = false; say(T("music.lcd_error"), T("music.failed")); });
+      }, function () { scanned = false; say(T("music.lcd_error"), T("music.failed")); }).then(function () {
+        // a change of the games' files while they were first read is read now
+        reading = false;
+        if (readAgain) { readAgain = false; rescan(); }
+      });
     }
     // the player shown: read the games' music then (the user, 2026-11-09: "Music seems to have vanished in my browser"). The
     // tab's panel is hidden until its tab is chosen (a narrow screen); Desktop 95 lifts the panel into a window whatever its
@@ -3250,6 +3280,43 @@ var ByopopMusic = (function () {
       var seen = window.ResizeObserver ? new ResizeObserver(function () { if (shown()) { seen.disconnect(); watch.disconnect(); scan(); } }) : null;
       if (seen) seen.observe(root);
     }
+    // A game's files came or went (added on its page, in its window, in another tab or by Add Games, or forgotten): the list is
+    // read again for the games there now while the player is shown, or when it is shown next (the user, 2026-11-16: "Music
+    // required reloading the page"). The tunes of the games still there are kept as read, a new game's are read, and a gone
+    // game's go; the tune chosen stays chosen (and playing) while its game is there, and stops when its files went.
+    var rescanning = null;
+    function rescan() {
+      if (reading) { readAgain = true; return; }
+      if (!scanned || !shown()) return;
+      var mine = mineNow(), ids = idsOf(mine);
+      if (ids === scannedFor) return;
+      if (rescanning) { rescanning.again = true; return; }
+      var job = rescanning = { again: false };
+      var table = typeof ByopopSoundtracks !== "undefined" ? ByopopSoundtracks : {};
+      var had = scannedFor.split(" "), was = tunes[current] || null, found = [];
+      scannedFor = ids;
+      (M ? Promise.resolve(M) : decoder().then(function (m) { M = m; return m; })).then(function (m) {
+        return mine.reduce(function (p, g) {
+          return p.then(function () {
+            if (had.indexOf(g.id) >= 0) { found = found.concat(tunes.filter(function (t) { return t.game.id === g.id; })); return; }
+            return tunesOf(m, g, table[g.id]).then(function (t) { found = found.concat(t); }, function () {});
+          });
+        }, Promise.resolve());
+      }).then(function () {
+        found = found.filter(function (t) { return t.solo === undefined; }).concat(found.filter(function (t) { return t.solo !== undefined; }));
+        var at = was ? found.indexOf(was) : -1;
+        if (was && at < 0 && state !== "idle") stop();
+        tunes = found;
+        current = at;
+        render();
+        setState(state);
+        if (!tunes.length) say(T("music.lcd_none"), T("music.none"));
+        else if (!was) say("");
+      }).then(finish, finish);
+      function finish() { rescanning = null; if (job.again) rescan(); }
+    }
+    try { ByopopGameFiles.watch(rescan); } catch (e) {}
+    if (window.MutationObserver) new MutationObserver(function () { if (scanned && shown()) rescan(); }).observe(panel, { attributes: true, attributeFilter: ["hidden", "class"] });
     // for tests: the state, the tunes, and how far the decoder has rendered the tune (it moves only as the worklet plays)
     return { state: function () { return state; }, tunes: function () { return tunes.slice(); },
       position: function () { return source ? source.position() : 0; }, elapsed: function () { return elapsed(); },

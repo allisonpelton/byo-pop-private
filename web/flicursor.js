@@ -2,8 +2,11 @@
 // Water Bugs' and Cosmic Bugs' pointers for the site's cursor and the desktop themes, every frame with its time). These games
 // hide the system's pointer and draw the "pointer" animation of their own files at the mouse, with a shadow, wherever no board is
 // in play (games/waterbugs/src/WBLevel.cpp, Level_AddPointer and Pointer_Update). The animation is a FLIC with a mask FLIC beside
-// it (mouse_.flc and mask_mouse_.flc), named in the game's animation file with its frame time in the game's updates, 10 ms each.
-// The game's page reads them from its own files and keeps them as its set (web/shell.html, takeCursorSet; web/cursors.js).
+// it (mouse_.flc and mask_mouse_.flc), named in the game's animation file with its frame time in the game's updates. The games
+// step once for each millisecond passed (WBStart.cpp and CBStart.cpp, GameFrame), and a frame shows for frame_time steps
+// (WBObj.cpp, Obj_Update), looping: Water Bugs' 50 ms a frame, Cosmic Bugs' 30 (the user, 2026-11-16: "They animate smoothly
+// in game", where 10 ms an update had made them 500 and 300). The game's page reads them from its own files and keeps them as
+// its set (web/shell.html, takeCursorSet; web/cursors.js), and the listing page as it adds the files (web/gameimport.js).
 //
 // The FLIC reading is engines/retro64/R64Flic.cpp's, line for line: palette chunks taken as they are (no scaling), BYTE_RUN,
 // DELTA_FLI and DELTA_FLC, the palette fixed at the first frame (WBAnim.cpp, Animation_Load), and a mask frame's value the red of
@@ -17,7 +20,7 @@ var ByopopFlicCursor = (function () {
     waterbugs: { xml: ["wanims/water_bugs.xml"], dir: "wanims/" },
     cosmicbugs: { xml: ["animations/main.xml", "animations/bugs.xml"], dir: "animations/" }
   };
-  var UPDATE_MS = 10, SHADOW = 5;
+  var UPDATE_MS = 1, SHADOW = 5;
 
   function u16(b, o) { return b[o] | (b[o + 1] << 8); }
   function u32(b, o) { return (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0; }
@@ -182,7 +185,7 @@ var ByopopFlicCursor = (function () {
     var pointer = pics[0];
     if (pics.length > 1) {
       pointer.frames = pics.slice(1);
-      pointer.ms = Math.max(40, Math.min(2000, anim.frameTime * UPDATE_MS));
+      pointer.ms = Math.max(20, Math.min(2000, anim.frameTime * UPDATE_MS));
     }
     return { pointer: pointer };
   }
