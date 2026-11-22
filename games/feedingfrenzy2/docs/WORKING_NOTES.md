@@ -334,9 +334,25 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   - Not yet translated: the options' SoundEnabled and MusicEnabled (both categories stay at 1, as when enabled),
     a handle's fade-out at a sound's end (no translated caller sets one on a sound that plays out), the listeners, the
     sound effects (the themes' sounds, SoundMgr) and the game's music.
+- A stage's load from the menu: the main menu's newGame and newTimedGame (MenuState::startGame: a new game in the
+  game data, then the restore-game popup when the mode's record holds a saved game, the map once a stage of the mode
+  has been reached, or else LevelLoadState for the first stage, the timed mode carrying the stage's newGameTime), and
+  LevelLoadState (its screen, its bar, the stage's loader run at once on its own random numbers, since the original's
+  is a new thread each time and so starts from the C library's 1, then the stage back under the screens). The loader
+  unloads the stage first (Stage slot 0x08, also the destructor's first step: the spawns, whose destructors now take
+  their live actors out of the stage through NonPlayerSpawn's slot 0x60, the container, the mask, the layers and the
+  ambient sounds), empties and reads again the actors' library, loads the stage and sets its time and canSuck. A
+  game's stage is kept in the player's record (UserData::recordGame) and saved as its load starts. Checked under
+  rundesk from the menu: Start Game, stage1 loaded and its backdrop shown, the player's file saved, exit 0. Not yet
+  translated: the map (a game's stage loads with no screen, and so without waiting for one), the music, the pause
+  screen's stage title, the HUD's canSuck parts, and the states that follow (StageIntroState for a stage with intro
+  data, else GamePlayState).
 
 ## Next
 
+- The map (GameMapScreen, the application's +0x84): the load screen of every game's stage, and the menu's screen once
+  a stage of the mode has been reached. Then the restore-game popup's actions, StageIntroState (0x49d1b0) and
+  GamePlayState, the players' spawn and the HUD, toward a stage in play.
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's
   simplesound). The stage's slot 0x5c (0x447ef0) is not a clean-up but the stage's ending (player died, perfect, stage
   clear, time up) and slot 0x60 (0x43a950) the camera on the first player (+0x344): both return at once without players,

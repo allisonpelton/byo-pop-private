@@ -65,8 +65,8 @@ void MaskContainer::paint(DrawContext* theContext)
 }
 
 Stage::Stage(GameData* theGameData, Container* theContainer)
-	: mScrollRate(0.0f), mSizeUnit(DEFAULT_SIZE_UNIT), mBonus(false), mStepTime(0.0f), mWaterColor(0.0f, 0.0f, 0.0f, 0.0f),
-	  mCameraFollows(false), mMaskFadeTime(0.0f), mNight(false), mLight(0.0f), mLightTarget(0.0f),
+	: mScrollRate(0.0f), mSizeUnit(DEFAULT_SIZE_UNIT), mBonus(false), mStageTime(0.0f), mStepTime(0.0f),
+	  mWaterColor(0.0f, 0.0f, 0.0f, 0.0f), mCanSuck(false), mCameraFollows(false), mMaskFadeTime(0.0f), mNight(false), mLight(0.0f), mLightTarget(0.0f),
 	  mMinLight(DEFAULT_MIN_LIGHT), mMaxLight(DEFAULT_MAX_LIGHT), mBoss(false), mFinalBoss(false)
 {
 	mGameData = theGameData;
@@ -78,6 +78,32 @@ Stage::Stage(GameData* theGameData, Container* theContainer)
 	// bytes, at +0x308) and the theme's splashFxBig, splashFxMedium and splashFxSmall (+0x30c to +0x314): not yet
 	// translated
 	getEngine()->log("Stage: the HUD, the stun bubbles and the splashes not yet translated\n");
+}
+
+Stage::~Stage()
+{
+	unload();
+}
+
+void Stage::unload()
+{
+	// The players' spawns (+0x290) first: not yet translated, as the players are not
+	mFishSpawns.clear();
+	mSpawners.clear();
+	mNonPlayerSpawns.clear();
+	mSpawnsByName.clear();
+	// The Orphanage (+0x2c0) let go of: not yet translated
+	mContainer->removeAllChildren();
+	mMaskContainer = nullptr;
+	mLayerSet = nullptr;
+	// The script's waves (+0x210, their times at +0x218, the next at +0x224 and the time at +0x228) and the stage's
+	// timer (+0x238, likewise) emptied (0x406fb0 (feedingfrenzy2)): not yet translated, as the script is not
+	// The game's music (+0x31c), its slot 0xec and its release (0x4a3c50 (feedingfrenzy2)): not yet translated
+	if (mAmbientSounds)
+		mAmbientSounds->stop();
+	mAmbientSounds = nullptr;
+	// The stun bubbles' effect (+0x308, 0x4049c0 (feedingfrenzy2)) and the three splashes (+0x30c to +0x314, 0x4322f0
+	// and 0x42a650 (feedingfrenzy2)): not yet translated
 }
 
 bool Stage::load(const StageManifest::Stage& theEntry)

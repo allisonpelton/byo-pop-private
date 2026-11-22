@@ -1,6 +1,7 @@
 #include "MenuState.h"
 
 #include "Engine.h"
+#include "LevelLoadState.h"
 #include "PopupState.h"
 #include "ScreenMgr.h"
 #include "TextItem.h"
@@ -54,7 +55,11 @@ void MenuState::update(UpdateContext* theContext)
 
 void MenuState::action(const std::string& theAction)
 {
-	if (theAction == "credits")
+	if (theAction == "newGame")
+		startGame(GAME_MODE_NORMAL);
+	else if (theAction == "newTimedGame")
+		startGame(GAME_MODE_TIMED);
+	else if (theAction == "credits")
 		mApp->mScreenMgr->showScreen(mApp->mCredits.get(), 0.0f);
 	else if (theAction == "gameMapCancel" || theAction == "creditsDone" || theAction == "highScoreDone")
 		mApp->mScreenMgr->showScreen(mApp->mMainMenu.get(), 0.0f);
@@ -65,10 +70,33 @@ void MenuState::action(const std::string& theAction)
 		mApp->mStateMgr.pushState(new PopupState(mApp, mApp->mUserSelect.get(), this));
 	}
 	else
-		// newGame, newTimedGame, quit, mainMenuOptions, debugSelectLevel, highScores, scoreModeRight,
+		// quit, mainMenuOptions, debugSelectLevel, highScores, scoreModeRight,
 		// scoreModeLeft, highScoreReset and an action holding levelStart: not yet translated. (The original's
 		// gameLinkClick opened the distributor's link; it goes with its button)
 		getEngine()->log("MenuState: the action %s not yet translated\n", theAction.c_str());
+}
+
+void MenuState::startGame(int theMode)
+{
+	mApp->mGameData->newGame(theMode);
+	if (mApp->mUserData->hasSavedGame(theMode))
+	{
+		mApp->mStateMgr.pushState(new PopupState(mApp, mApp->mRestoreGameScreen.get(), this));
+		return;
+	}
+	// The application's +0x324 set (its readers not yet found)
+	// 0x49fa20 (feedingfrenzy2): a stage of the mode reached
+	if (mApp->mUserData->getMode(mApp->mGameData->getMode()).mMaxStage > 0)
+	{
+		// The map (+0x84) set up for the mode with its buttons (0x478d90 (feedingfrenzy2)) and shown: not yet
+		// translated
+		getEngine()->log("MenuState: the map not yet translated\n");
+		return;
+	}
+	const StageManifest::Stage* anEntry = mApp->mGameData->getStageEntry();
+	if (theMode == GAME_MODE_TIMED)
+		mApp->mGameData->setTimeRollover(anEntry->mNewGameTime);
+	mApp->mStateMgr.changeState(new LevelLoadState(mApp, anEntry, nullptr));
 }
 
 void MenuState::suspend()

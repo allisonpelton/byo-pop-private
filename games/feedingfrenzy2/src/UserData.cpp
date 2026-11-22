@@ -1,6 +1,7 @@
 #include "UserData.h"
 
 #include "Engine.h"
+#include "GameData.h"
 #include "Signature.h"
 #include "UserManager.h"
 
@@ -156,4 +157,16 @@ void UserData::saveMode(const ModeRecord& theRecord, Params& theParams)
 	aDigest.update(&theRecord.mTimeRollover, sizeof(int));
 	// (the original sets the signature twice, the same both times)
 	theParams.set(modeParam("mode%dSign", theRecord.mMode), encodeBase64(aDigest.finish()));
+}
+
+void UserData::recordGame(const GameData& theGameData)
+{
+	ModeRecord& aRecord = mModes[theGameData.getMode()];
+	aRecord.mLastContinues = theGameData.getContinues();
+	aRecord.mLastStage = theGameData.getStage();
+	if (aRecord.mMaxStage <= theGameData.getStage())
+		aRecord.mMaxStage = theGameData.getStage();
+	aRecord.mLastScore = theGameData.getScore();
+	aRecord.mLastLifeCount = theGameData.getLives();
+	aRecord.mTimeRollover = theGameData.getTimeRollover();
 }

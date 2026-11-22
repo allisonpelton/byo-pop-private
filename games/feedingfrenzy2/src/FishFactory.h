@@ -21,6 +21,8 @@ public:
 
 	// 0x407f00 (feedingfrenzy2): the file read into the library; whether it parsed (the loader does not look)
 	bool load(const std::string& thePath);
+	// 0x4897f0 (feedingfrenzy2): the library emptied, each map in turn (the folder kept)
+	void clear();
 
 	// 0x4112a0 (feedingfrenzy2): null for none
 	ModelInfo* findModel(const std::string& theName) const { return find(mModels, theName); }

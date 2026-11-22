@@ -91,10 +91,15 @@ public:
 	// 0x403aa0 (feedingfrenzy2): the game data and the container the stage goes in kept, and its init (0x4038d0
 	// (feedingfrenzy2))
 	Stage(GameData* theGameData, engine::Container* theContainer);
+	// 0x48bcd0 (feedingfrenzy2): the stage unloaded first (slot 0x08)
+	~Stage() override;
 
 	// 0x04 (0x410980 (feedingfrenzy2)): the entry's file read and the stage set up from it; false when it cannot be
 	// read
 	virtual bool load(const StageManifest::Stage& theEntry);
+	// 0x08 (0x409a90 (feedingfrenzy2)): what the last load made let go of: the spawns (their actors taken out of
+	// the stage), the container emptied, the mask and the layers, and the ambient sounds stopped
+	virtual void unload();
 
 	// 0x14 (0x486950 (feedingfrenzy2)): the stage started: the play's counters reset, the camera centred and the
 	// run begun (a stage with players starts them first, not yet translated)
@@ -169,6 +174,10 @@ public:
 	float getSizeUnit() const { return mSizeUnit; }
 	const engine::Color& getWaterColor() const { return mWaterColor; }
 	GameData* getGameData() { return mGameData.get(); }
+	engine::Container* getContainer() { return mContainer.get(); }
+	// Set by the stage's loader from the manifest's entry (0x48a810 (feedingfrenzy2))
+	void setStageTime(float theStageTime) { mStageTime = theStageTime; }
+	void setCanSuck(bool canSuck) { mCanSuck = canSuck; }
 
 private:
 	friend class StageDocHandler;
@@ -182,9 +191,11 @@ private:
 	float mScrollRate;                             // +0x184
 	float mSizeUnit;                               // +0x188
 	bool mBonus;                                   // +0x18c
+	float mStageTime;                              // +0x190: the manifest's seconds for the stage
 	float mStepTime;                               // +0x19c: the time not yet run in steps
 	engine::Color mWaterColor;                     // +0x1a0
 	std::string mSetPath;                          // +0x1b0: the backdrop's set file
+	bool mCanSuck;                                 // +0x1d0: the manifest's canSuck, false from the constructor
 	std::string mAmbientSound;                     // +0x1d4
 	std::string mGameMusic;                        // +0x1f0
 	bool mCameraFollows;                           // +0x260: the camera follows the players (set as the stage starts)

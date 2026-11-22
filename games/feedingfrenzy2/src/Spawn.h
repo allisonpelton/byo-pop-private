@@ -144,6 +144,7 @@ class NonPlayerSpawn : public Spawner, public sigslot::HasSlots
 {
 public:
 	NonPlayerSpawn(ActorClassInfo* theClass, Stage* theStage);
+	// 0x41d420 (feedingfrenzy2): the live actors taken out first (slot 0x60)
 	~NonPlayerSpawn() override;
 
 	// 0x04 (0x403390 (feedingfrenzy2)): the handler that reads the spawn's element
@@ -182,6 +183,9 @@ public:
 	virtual void prepareActor(Actor* theActor);
 	// 0x5c (0x439fa0 (feedingfrenzy2)): the actors that died taken out of the live ones, back into the pool
 	void removeDead();
+	// 0x60 (0x477520 (feedingfrenzy2)): every live actor taken out of the stage, each then passed to slot 0x6c, and
+	// all put back into the pool
+	void removeAll();
 	// 0x68 (0x43a550 (feedingfrenzy2)): the actors of the spawn in the stage
 	int getLiveCount() const { return (int)mLive.size(); }
 	// 0x6c: a dead actor taken out (a fish spawn's, 0x41d6d0 (feedingfrenzy2))
@@ -224,6 +228,8 @@ class FishSpawn : public NonPlayerSpawn
 {
 public:
 	FishSpawn(ActorClassInfo* theClass, Stage* theStage);
+	// 0x40eb60 (feedingfrenzy2): the live fish taken out first (slot 0x60), each passed to the fish spawn's slot 0x6c
+	~FishSpawn() override { removeAll(); }
 
 	// 0x08 (0x4802e0 (feedingfrenzy2)): the spawn's, and the fish's rank, food value and where it shows
 	void read(engine::Params& theAttributes) override;

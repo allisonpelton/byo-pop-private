@@ -7,7 +7,7 @@ namespace engine
 static const float RAND_SCALE = 3.051851e-05f;
 
 // Each thread's state (the CRT's _holdrand), 1 when the thread starts
-static unsigned int gHoldRand[RANDOM_THREAD_COUNT] = {1, 1};
+static unsigned int gHoldRand[RANDOM_THREAD_COUNT] = {1, 1, 1};
 static RandomThread gRandomThread = RANDOM_THREAD_GAME;
 
 int crtRand()
@@ -25,6 +25,11 @@ void setRandomThread(RandomThread theThread)
 RandomThread getRandomThread()
 {
 	return gRandomThread;
+}
+
+void resetRandomThread(RandomThread theThread)
+{
+	gHoldRand[theThread] = 1;
 }
 
 unsigned int getRandomState()

@@ -277,6 +277,12 @@ void SimpleSoundDX::setMasterVolume(float theVolume)
 	applyVolumes();
 }
 
+void SimpleSoundDX::stopAll()
+{
+	for (SoundHandleDX* aHandle : mHandles)
+		aHandle->stop();
+}
+
 void SimpleSoundDX::update(int theMilliseconds)
 {
 	// A copy, as an update may end a handle's sound and so let a caller delete another

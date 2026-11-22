@@ -129,7 +129,10 @@ NonPlayerSpawn::NonPlayerSpawn(ActorClassInfo* theClass, Stage* theStage)
 		mDetailLayers[i] = 0;
 }
 
-NonPlayerSpawn::~NonPlayerSpawn() {}
+NonPlayerSpawn::~NonPlayerSpawn()
+{
+	removeAll();
+}
 
 SubDocHandler* NonPlayerSpawn::createDocHandler()
 {
@@ -388,6 +391,16 @@ void NonPlayerSpawn::removeDead()
 		onActorRemoved(mLive[i].get());
 	mPool.insert(mPool.end(), mLive.begin() + aFirst, mLive.end());
 	mLive.erase(mLive.begin() + aFirst, mLive.end());
+}
+
+void NonPlayerSpawn::removeAll()
+{
+	for (size_t i = 0; i < mLive.size(); i++)
+		mLive[i]->remove();
+	for (size_t i = 0; i < mLive.size(); i++)
+		onActorRemoved(mLive[i].get());
+	mPool.insert(mPool.end(), mLive.begin(), mLive.end());
+	mLive.clear();
 }
 
 FishSpawn::FishSpawn(ActorClassInfo* theClass, Stage* theStage)

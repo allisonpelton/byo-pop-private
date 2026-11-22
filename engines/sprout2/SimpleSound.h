@@ -83,6 +83,8 @@ public:
 	virtual void setCategoryVolume(int theCategory, float theVolume);
 	// 0x28 (0x435f40 (feedingfrenzy2)): a category's volume, 1 past the last
 	virtual float getCategoryVolume(int theCategory);
+	// 0x2c (SimpleSoundDX's 0x477ce0 (feedingfrenzy2)): every handle stopped (its slot 0x08)
+	virtual void stopAll() = 0;
 	// 0x30 (SimpleSoundDX's 0x437400 (feedingfrenzy2)): every handle's update, from the window's timer every 100 ms
 	virtual void update(int theMilliseconds) = 0;
 	// 0x34 (SimpleSoundDX's 0x4360d0 (feedingfrenzy2)): every handle's volume set again and its update run for no

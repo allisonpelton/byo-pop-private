@@ -34,6 +34,10 @@ private:
 	// 0x419fc0 (feedingfrenzy2): the main menu's player name and welcome, and its trophies shown once a mode's every
 	// stage is reached
 	void showPlayer();
+	// The newGame and newTimedGame actions (inlined in 0x4112f0 (feedingfrenzy2)): a new game of the mode, then the
+	// question whether to go on with the saved one, the map once a stage of the mode has been reached, or else the
+	// first stage's load
+	void startGame(int theMode);
 
 	bool mPlayerChecked;  // +0x10
 };

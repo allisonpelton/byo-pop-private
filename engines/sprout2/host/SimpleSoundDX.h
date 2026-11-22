@@ -100,6 +100,7 @@ public:
 	simplesound::SoundHandle* getHandle(const std::string& theName, int theSetupValue, int theCategory) override;
 	void setMasterVolume(float theVolume) override;
 	float getMasterVolume() override { return mMasterVolume; }
+	void stopAll() override;
 	void update(int theMilliseconds) override;
 	void applyVolumes() override;
 

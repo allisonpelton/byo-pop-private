@@ -62,6 +62,16 @@ bool FishFactory::load(const std::string& thePath)
 	return getEngine()->parseXml(thePath, &aMaster);
 }
 
+void FishFactory::clear()
+{
+	mModels.clear();
+	mVisuals.clear();
+	mBehaviors.clear();
+	mFishModels.clear();
+	mFishVisuals.clear();
+	mFishBehaviors.clear();
+}
+
 void FishFactoryDocHandler::begin(Params& theAttributes)
 {
 	mFactory->mAnimBase = theAttributes.getString("animBase", "");
