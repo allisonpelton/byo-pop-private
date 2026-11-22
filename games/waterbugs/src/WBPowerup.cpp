@@ -138,7 +138,7 @@ void Powerup_Invincibubble()
 // 0x40ad50 (a weapon's constructor, which only calls Obj_Init, is inlined here)
 void Weapon_Append(List<Weapon>* theList)
 {
-	Weapon* aWeapon = (Weapon*)::operator new(sizeof(Weapon));
+	Weapon* aWeapon = (Weapon*)NewZeroed(sizeof(Weapon));
 	Obj_Init(aWeapon); // 0x40ad50
 	List_Append(theList, aWeapon);
 }
@@ -645,7 +645,7 @@ void Weapon_Orbit(Weapon* theWeapon)
 // 0x418170: a new item at the tail, made current
 void Panel_AppendItem(List<Obj>* theList)
 {
-	Obj* anItem = (Obj*)::operator new(sizeof(Obj));
+	Obj* anItem = (Obj*)NewZeroed(sizeof(Obj));
 	Obj_Init(anItem);
 	List_Append(theList, anItem);
 }

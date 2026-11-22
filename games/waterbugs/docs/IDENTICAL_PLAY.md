@@ -171,7 +171,7 @@ have taken different turns, nothing in the port is to be fixed, and no code was 
 every row that has them (`SCREENS.md`).
 
 **The baseline.** Because the port's pictures vary from run to run, `games/waterbugs/test/tours.frozen` holds the pixel hash of
-each shot that was whole in eight runs (334 of 362), and `tools/check.sh waterbugs` plays the three tours once and wants all 362 shots present and at most 16 of those 334 changed (a change of the drawing changes nearly all; see the next paragraph) (`tools/play/tourcheck.py`; the suite takes about three minutes more).
+each of the 362 shots (all equal in eight runs), and `tools/check.sh waterbugs` plays the three tours once and wants all 362 shots present and unchanged (see the last paragraph) (`tools/play/tourcheck.py`; the suite takes about three minutes more).
 
 **Full screen.** The original cannot be played full screen in Windows Sandbox: with `fullscreen="1"` it stops with "Screen Setup
 Failed: 800x600 16bit screen could not be opened". Its picture is the same 800x600 surface in both modes; the port's full screen is
@@ -205,9 +205,17 @@ libc++) moved every allocation, and with it the draw list's tie-break by address
 port now takes the tie-break from the order objects were made in (`Obj_DrawSeq`, a serial set in `Obj_Init`; WBObj.cpp, and the
 stars in WBShooter.cpp), which is what consecutive allocations give in the original; its own order varies from run to run, so this has no
 visible effect of its own (DEVIATIONS.md). Of the runs of the three tours, the shots that agree in every run went from 202 to 334 of
-362 (351 of 362 in three runs). What is left is not the order: in about one run in three a board plays out otherwise, and the
-state trace shows where it begins: in one of eight traced runs of the `worlds` tour the random-draw count differs by 117 within the
-250 ms in which the `.` key (a held key of 30 ms) restarts a board, the other seven agree to the last draw. It is a rare
-difference in the number of draws while a board is made (the cause is not found: the runner's clock and frames are exact), and it
-persists only until the next board is made, so up to eleven shots follow it. The check therefore wants all 362 shots present and at
-most 16 of the 334 frozen ones changed; renewing the baseline and cutting the allowance to nothing wait for that cause.
+362 (351 of 362 in three runs). What was left was not the order, and is found (next paragraph).
+
+**The rest of the spread: memory the original leaves unset (2026-11-22).** In about one run in three a board played out otherwise.
+A log of every random draw with its caller (a temporary change to `Rand`, not kept) over 24 runs of the first 31 s of the `worlds` tour
+showed where: the runs that differ draw two more numbers in `TurtleWalker_Move` (0x4772.. in the log's build) in the frame the
+`.` key makes a board. A turtle's first update compares the sign of `mPrevVx` (+0xf8) with the sign of its speed, and `Enemy_Init`
+never sets `mPrevVx`: a block from the C heap holds what was there, the sign differs or not, and the turtle's `mAge` is reset
+to 2000 or not, which decides whether it draws for a puff. The original has the same unset field (its heap decides), so its own
+runs differ the same way; that is the original's variation reported above. The port now takes a game object's memory zeroed
+(`NewZeroed`, WBGame.h, at every `operator new(sizeof(...))` of the game's code), so every run starts the same: 40 runs of those
+31 s drew the same numbers from the same callers in the same frames, and eight runs of the three tours gave 362 shots equal in
+every run. `games/waterbugs/test/tours.frozen` holds all 362 and `tools/check.sh waterbugs` wants all of them unchanged and present
+(`LOOSE = 0` in `tourcheck.py`). Zero is one of the starts the original can have (a fresh page of its heap is zero); the pictures
+of the pass against the original (run `r3`) were taken before this change, with the port's own heap, and were not taken again.
