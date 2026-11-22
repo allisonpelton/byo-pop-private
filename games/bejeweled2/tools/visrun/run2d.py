@@ -58,7 +58,7 @@ def main():
     cfgpath = os.path.join(out, 'run.toml')
     open(cfgpath, 'w').write(cfg)
     cmd = [sys.executable, '-I', os.path.join(ROOT, 'tools/visrun.py'), cfgpath, steps, '--out', out, '--3d', 'off', '--seed', str(a.seed),
-           '--clock', 'virtual', '--shape', 'sandbox', '--timeout', '600'] + (['--dry-run'] if a.dry_run else [])
+           '--clock', 'virtual', '--shape', 'sandbox', '--timeout', '600'] + (['--keep-copy'] if os.environ.get('KEEP_COPY') else []) + (['--dry-run'] if a.dry_run else [])
     return subprocess.run(cmd, cwd=ROOT).returncode
 
 
