@@ -106,8 +106,10 @@ struct PAImage {
 struct PASlot {
 	std::string mName;                  // +0 (a char pointer in the exe)
 	PASpriteInst* mChild = nullptr;     // +4: null for an object that is an image
-	// +8 to +0x3c: what the slot was drawn with before a transition (nothing in the game starts one)
-	bool mHasPrevious = false;          // +0x3c
+	// +8: what the slot was drawn with when a transition (PopAnim::TransitionToLabel) started: its transform ...
+	SexyMatrix3 mPreviousTransform;
+	Color mPreviousColor;               // +0x2c: ... and its color
+	bool mHasPrevious = false;          // +0x3c: the old animation had an object of this slot's name
 	SexyMatrix3 mTransform;             // +0x40: multiplies the object's own transform
 	Color mColor;                       // +0x64: multiplies the object's color
 	bool mWantsPreDraw = true;          // +0x74: the listener is asked before the object is drawn while this is set
