@@ -4,6 +4,7 @@
 // BoardInput.cpp (mouse and keys), BoardSave.cpp (the saved game and the undo states) and BoardDraw.cpp.
 
 #include "Board.h"
+#include "HyperlinkWidget.h"
 #include "WinDMApp.h"
 #include "Profile.h"
 #include "Res.h"
@@ -117,6 +118,8 @@ void Board::RemovedFromManager(WidgetManager* theManager)
 		theManager->RemoveWidget(mTutorialButton2);
 	if (mTutorialWidget != NULL)
 		theManager->RemoveWidget(mTutorialWidget);
+	if (mBackLink != NULL)
+		theManager->RemoveWidget(mBackLink);
 }
 
 // 0x594b3b
@@ -529,6 +532,15 @@ void Board::KillTutorialButtons()
 			mParent->RemoveWidget(mTutorialWidget);
 		mApp->SafeDeleteWidget(mTutorialWidget);
 		mTutorialWidget = NULL;
+	}
+	// the credits' "Back to Main Menu" link goes with them (0x59562e's last block, which the port left out: the link stayed on the
+	// screen and took the mouse in the next game)
+	if (mBackLink != NULL)
+	{
+		if (mParent != NULL)
+			mParent->RemoveWidget(mBackLink);
+		mApp->SafeDeleteWidget(mBackLink);
+		mBackLink = NULL;
 	}
 }
 

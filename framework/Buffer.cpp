@@ -9,6 +9,8 @@ static unsigned long crc_table[256];
 using namespace Sexy;
 using namespace std;
 
+char Buffer::sWebZeroChar = '.';
+
 static const char* gWebEncodeMap = ".-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 static int gWebDecodeMap[256] = 
@@ -179,7 +181,10 @@ std::string Buffer::ToWebString() const
 
 	int aNumChars = (aSizeBits + 5) / 6;
 	for (int aCharNum = 0; aCharNum < aNumChars; aCharNum++)
-		aString += gWebEncodeMap[ReadNumBits(6, false)];
+	{
+		int aValue = ReadNumBits(6, false);
+		aString += (aValue == 0) ? sWebZeroChar : gWebEncodeMap[aValue];
+	}
 	
 	mReadBitPos = anOldReadBitPos;
 	

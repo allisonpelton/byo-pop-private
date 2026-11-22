@@ -839,7 +839,7 @@ void Board::DoUpdate()
 			mBackLink = new HyperlinkWidget(500, this);
 			mBackLink->SetFont(FONT_CONTINUUM_MED_14);
 			mBackLink->mLabel = "Back to Main Menu";
-			mBackLink->mUnderlineOffset = 0;
+			mBackLink->mUnderlineSize = 0;  // no underline: the export writes 0 to the field at +0x140, the underline's row count (HyperlinkWidget::Draw 0x48f070)
 			mWidgetManager->AddWidget(mBackLink);
 		}
 		if (mEffectOverlay->mEndTimer == 0x2134)

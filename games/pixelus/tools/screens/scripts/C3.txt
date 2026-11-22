@@ -1,0 +1,13 @@
+152 click 320 453 #button
+220 click 431 124 #button
+400 click 560 448 #button
+600 click 344 309 #button
+800 click 385 143 #button
+950 click 320 336 #button
+1050 click 400 455 #button
+1200 click 382 367 #button
+1400 click 279 143 #button
+1550 click 428 215 #button
+1700 click 82 447 #button
+1850 click 325 297 #button #o 325 292
+2000 click 431 124 #button

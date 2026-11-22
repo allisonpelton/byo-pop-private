@@ -2044,7 +2044,9 @@ blinked:
 	if (aStill != 0)
 		aStep = 2;
 	drawFrame(&mSign->mFrames[aStep], 0.19374999f, 0.0f, 1.0f, 0);
-	Str aVersion = getText(0x4d8);
+	// The user's request (2026-11-18): the main screen does not say "Deluxe", so nobody takes this for the original game's
+	// version (the text is "Deluxe Version ")
+	Str aVersion = replace(getText(0x4d8), "Deluxe ", "", true, false);
 	aVersion += floatToStr(1.01f, 2);
 	mVersionFont->drawText(aVersion, 0.005f, 0.91500002f, 0.25f, 0.083333336f, 0xffafafaf, 0x4f000000, 0x114, 1.0f, 0.0f);
 	Str aGreeting = getText(0x4d9);

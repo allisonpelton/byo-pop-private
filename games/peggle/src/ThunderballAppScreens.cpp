@@ -208,3 +208,12 @@ bool ThunderballApp::OnMaxLevel() const
 {
 	return mCurrentPlayer != nullptr && mCurrentPlayer->GetMaxLevel() == GetCurLevel();
 }
+
+// 0x405ba0
+LevelInfo* ThunderballApp::GetCurLevelInfo()
+{
+	StageInfo* aStage = mStageMgr.GetStageInfo(mStartStage);
+	if (aStage == nullptr)
+		return nullptr;
+	return aStage->GetLevelInfo(mStartLevel);
+}

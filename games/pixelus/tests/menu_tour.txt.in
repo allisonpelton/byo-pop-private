@@ -19,4 +19,16 @@
 1980 move 320 384
 2000 click 320 384
 2060 screenshot @OUT@/menu.png
-2070 quit
+2070 move 431 124
+2080 click 431 124
+2200 screenshot @OUT@/story.png
+2210 move 560 448
+2220 click 560 448
+2400 screenshot @OUT@/island.png
+2410 move 344 309
+2420 click 344 309
+2600 screenshot @OUT@/temple.png
+2610 move 232 96
+2620 click 232 96
+2800 screenshot @OUT@/board.png
+2810 quit

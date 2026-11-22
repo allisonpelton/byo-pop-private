@@ -29,7 +29,6 @@ TitleScreen::TitleScreen(WinDMApp* theApp)
 	mPlayLink->mColor = Color(32, 255, 32);
 
 	mLogo2GlowImage = MakeGlowImage(IMAGE_LOGO_2);
-	mDeluxeGlowImage = MakeGlowImage(IMAGE_LOGO_DELUXE);
 	SetupVals();
 	mLoadingCompleted = false;
 	mSlide.SetRamp(CurvedVal::RAMP_SLOW_TO_FAST);
@@ -43,7 +42,6 @@ TitleScreen::~TitleScreen()
 {
 	delete mPlayLink;
 	delete mLogo2GlowImage;
-	delete mDeluxeGlowImage;
 }
 
 // 0x5d98a5: a copy of the image with the red of each pixel in all three colors, the alpha kept
@@ -129,8 +127,6 @@ void TitleScreen::Draw(Graphics* g)
 	int aLogoX = isDM ? 0x32 : 0x28;
 	int aLogo2X = isDM ? 0x19c : 0x1c2;
 	int aLogo2Y = (isDM ? 0xda : 0x82) - anOfs;
-	int aDeluxeX = isDM ? 0x70 : 0x66;
-	int aDeluxeY = (isDM ? 0x172 : 0xdc) - anOfs;
 
 	g->SetColorizeImages(true);
 	g->SetColor(Color(255, 255, 255, (int)(mLogoAlpha.GetOutVal() * 255.0)));
@@ -144,15 +140,9 @@ void TitleScreen::Draw(Graphics* g)
 		g->DrawImage(mLogo2GlowImage, mApp->ScaleNum(aLogo2X, 0), mApp->ScaleNum(aLogo2Y, 0));
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}
-	g->SetColor(Color(255, 255, 255, (int)(mDeluxeAlpha.GetOutVal() * 255.0)));
-	g->DrawImage(IMAGE_LOGO_DELUXE, mApp->ScaleNum(aDeluxeX, 0), mApp->ScaleNum(aDeluxeY, 0));
-	if (mDeluxeGlow.mInVal < 0.98 && mDeluxeGlow.GetOutVal() > 0.001)
-	{
-		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-		g->SetColor(Color(255, 255, 255, (int)(mDeluxeGlow.GetOutVal() * 255.0)));
-		g->DrawImage(mDeluxeGlowImage, mApp->ScaleNum(aDeluxeX, 0), mApp->ScaleNum(aDeluxeY, 0));
-		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
-	}
+	// the user, 2026-11-18: "Remove the "Deluxe" text from the main screen of any game it may appear in, to avoid misleading people about whose
+	// game version they're playing": the retail logo's DELUXE picture (IMAGE_LOGO_DELUXE, and its glow) is not drawn; the logo's own
+	// animation (mDeluxeAlpha, mDeluxeGlow) still runs, so the title's timing is the original's
 
 	g->SetColorizeImages(false);
 	mApp->mFancyBackdrop->DrawTop(g);

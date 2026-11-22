@@ -1,0 +1,9 @@
+# ankhmsg: the first classic board, the Ankh icon of the side panel clicked, its message and the board after it
+99 title
+1000 click 185 376
+1200 shot board
+1300 click 115 347
+1400 shot ankh_message
+1440 click 320 216
+1540 shot after_ok
+1600 quit

@@ -66,8 +66,8 @@ MainMenu::MainMenu(PixelusApp* theApp)
 
 	mUserLink = new ShadowLink(ID_USER_LINK, this);
 	mUserLink->SetFont(mApp->mFonts[FONT_PRAITOR24]);
-	mUserLink->mColor = Color(255, 255, 255);
-	mUserLink->mOverColor = Color(0xff, 0xf2, 0x5c);
+	mUserLink->mColor = Color(0xff, 0xf2, 0x5c);	// 0x40ac30: the plain colour is the yellow, the hovered one white
+	mUserLink->mOverColor = Color(255, 255, 255);
 	mUserLink->mUnderlineSize = 0;
 	mUserLink->mLabel = GT(0x50c7a8);
 	int aWidth = mApp->mFonts[FONT_PRAITOR24]->StringWidth(mUserLink->mLabel) + 10;
@@ -117,11 +117,10 @@ void MainMenu::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mUserLink);
 }
 
-// the link only makes sense when a player is signed in
+// the original never hides the link (its menu draws it behind the first run's new-user dialog too)
 // port: a helper of the port (MainMenu::UserChanged)
 void MainMenu::UserChanged()
 {
-	mUserLink->SetVisible(mApp->mUserDirectory->GetCurrent() != NULL);
 	MarkDirty();
 }
 

@@ -240,9 +240,10 @@ static int on_driver(void) { return gOn && GetCurrentThreadId() == gDriver && !g
 
 void hooks_rescan(void);
 
+#define RA __builtin_return_address(0)
 // A clock read. On the driver, past kPollFree reads with no wait the read moves the clock (a busy loop), and then it is
 // also where a barrier can hold the game.
-static void vc_read(void)
+static void vc_read(void* at)
 {
 	if (!on_driver()) { if (gOn && GetCurrentThreadId() != gDriver) no_wait_check(); return; }
 	// The watches are read here too once the counter has moved, so a game that runs several updates between two waits
@@ -256,7 +257,9 @@ static void vc_read(void)
 	vadd(kPollStep);
 	InterlockedIncrement(&gSh->polls);
 	vc_sample(0);
+	gWaitAt = (DWORD)(DWORD_PTR)at;   // a hold at a poll records the clock call's return address (a catch-up game is read there)
 	vc_barrier(VC_AT_POLL, vget(), 0);
+	gWaitAt = 0;
 }
 
 // The driver enters a timed wait that is not ready at once: sample, then a barrier may hold it here.
@@ -288,23 +291,23 @@ static void vc_wait_skip(DWORD ms, void* at, const char* fn)
 
 // ------------------------------------------------------------------------------------------------ the clock reads
 
-static DWORD WINAPI H_timeGetTime(void) { vc_read(); return gTgt0 + (DWORD)(vget() / VC_UNITS_PER_MS); }
-static DWORD WINAPI H_GetTickCount(void) { vc_read(); return gGtc0 + (DWORD)(vget() / VC_UNITS_PER_MS); }
-static ULONGLONG WINAPI H_GetTickCount64(void) { vc_read(); return gGtc64_0 + (ULONGLONG)(vget() / VC_UNITS_PER_MS); }
+static DWORD WINAPI H_timeGetTime(void) { vc_read(RA); return gTgt0 + (DWORD)(vget() / VC_UNITS_PER_MS); }
+static DWORD WINAPI H_GetTickCount(void) { vc_read(RA); return gGtc0 + (DWORD)(vget() / VC_UNITS_PER_MS); }
+static ULONGLONG WINAPI H_GetTickCount64(void) { vc_read(RA); return gGtc64_0 + (ULONGLONG)(vget() / VC_UNITS_PER_MS); }
 static BOOL WINAPI H_QueryPerformanceCounter(LARGE_INTEGER* p)
 {
 	if (!p) return FALSE;
-	vc_read();
+	vc_read(RA);
 	LONGLONG v = vget();
 	p->QuadPart = gQpc0 + (v / 10000000LL) * gQpf + ((v % 10000000LL) * gQpf) / 10000000LL;
 	return TRUE;
 }
 static BOOL WINAPI H_QueryPerformanceFrequency(LARGE_INTEGER* p) { if (!p) return FALSE; p->QuadPart = gQpf; return TRUE; }
 static void ft_put(LONGLONG t, FILETIME* f) { f->dwLowDateTime = (DWORD)t; f->dwHighDateTime = (DWORD)(t >> 32); }
-static VOID WINAPI H_GetSystemTimeAsFileTime(LPFILETIME f) { vc_read(); if (f) ft_put(gFt0 + vget(), f); }
-static VOID WINAPI H_GetSystemTimePreciseAsFileTime(LPFILETIME f) { vc_read(); if (f) ft_put(gFt0 + vget(), f); }
-static VOID WINAPI H_GetSystemTime(LPSYSTEMTIME st) { vc_read(); FILETIME f; ft_put(gFt0 + vget(), &f); if (st) FileTimeToSystemTime(&f, st); }
-static VOID WINAPI H_GetLocalTime(LPSYSTEMTIME st) { vc_read(); FILETIME f; ft_put(gLft0 + vget(), &f); if (st) FileTimeToSystemTime(&f, st); }
+static VOID WINAPI H_GetSystemTimeAsFileTime(LPFILETIME f) { vc_read(RA); if (f) ft_put(gFt0 + vget(), f); }
+static VOID WINAPI H_GetSystemTimePreciseAsFileTime(LPFILETIME f) { vc_read(RA); if (f) ft_put(gFt0 + vget(), f); }
+static VOID WINAPI H_GetSystemTime(LPSYSTEMTIME st) { vc_read(RA); FILETIME f; ft_put(gFt0 + vget(), &f); if (st) FileTimeToSystemTime(&f, st); }
+static VOID WINAPI H_GetLocalTime(LPSYSTEMTIME st) { vc_read(RA); FILETIME f; ft_put(gLft0 + vget(), &f); if (st) FileTimeToSystemTime(&f, st); }
 static MMRESULT WINAPI H_timeGetSystemTime(LPMMTIME t, UINT cb)
 {
 	if (!t || cb < sizeof(MMTIME)) return TIMERR_STRUCT;
@@ -450,7 +453,6 @@ static DWORD vwait(const WaitCall* c, DWORD ms, int where, void* at)
 	return c->kind == W_SLEEP || c->kind == W_SLEEPEX ? 0 : WAIT_TIMEOUT;
 }
 
-#define RA __builtin_return_address(0)
 static VOID WINAPI H_Sleep(DWORD ms) { WaitCall c = { W_SLEEP }; vwait(&c, ms, VC_AT_SLEEP, RA); }
 static DWORD WINAPI H_SleepEx(DWORD ms, BOOL alertable) { WaitCall c = { W_SLEEPEX }; c.alertable = alertable; return vwait(&c, ms, VC_AT_SLEEP, RA); }
 static DWORD WINAPI H_WaitForSingleObject(HANDLE h, DWORD ms) { WaitCall c = { W_WFSO }; c.h = h; return vwait(&c, ms, VC_AT_WAIT, RA); }
