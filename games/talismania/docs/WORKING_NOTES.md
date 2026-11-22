@@ -114,3 +114,16 @@ rest of the std set's kinds, listed in "Done") is still untranslated. The credit
 the credits (0x407ab4, 0x406a90); nothing in the credits layout closes it, so a click does here.
 The options screen needs `checkBox` and a slider in the engine; the high scores screen draws no background of its own
 (the scroll images in its layout are commented out), so where the original gets one is not found.
+
+## Data kinds translated for a board (chapters, levels, boards, cells, paths, pools)
+
+`LevelData` (chapter 0x5a2350 and game level 0x5b2b00), `BoardData` (board 0x5b0e00, pots, column templates), `CellData`
+(cell class 0x5a9a10, layers 0x5ac1c0, sounds, energize map) and `PathData` (path class 0x5dcfb0, path image class
+0x5b8030 with its endpoint and connection pictures, path id pools, cell spawning pools) each have a struct header and a
+reader the data handler offers every element to first. Notes: a `<layers clearbaselayers="true">` drops the base class's
+layers (0x5abf10; the data's `clearoldla` is a typo nothing reads); a layer named path, sparkle or reward, or marked
+`container`, holds the path or the reward and defaults to the view mode `__codecontrolled`; a layer's onclick values are
+nothing, rotate, rotatesnap and (the data's only other word) animate. Not yet read: cell rewards and their actions
+(giveactions, prepareactions), the path length meter, the hud, the map, unlock processors, sparkles, the stats and the
+rest of the lines the log lists as "not yet translated". The pools keep their items in file order as sections (one
+`<random>` or `<selector>`, or a single item); how a section is drawn from is for the game manager's step.
