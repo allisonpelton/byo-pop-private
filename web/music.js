@@ -2817,8 +2817,21 @@ var ByopopMusic = (function () {
       if (spectrum.width !== Math.round(w * dpr) || spectrum.height !== Math.round(hgt * dpr)) { spectrum.width = Math.round(w * dpr); spectrum.height = Math.round(hgt * dpr); }
       if (!bins || bins.length !== an.frequencyBinCount) bins = new Uint8Array(an.frequencyBinCount);
       if (live) an.getByteFrequencyData(bins); else bins.fill(0);
+      // (a followed game's music at the level the game plays it, its own volume undone (the user, 2026-11-18: "It should also be
+      // independent of in-game volume when synced with that"): its view's gain, the game's music volume times the song's, as
+      // decibels added back to every bin, over the analyser's 70 dB of bytes; a game whose build gives no gain is drawn as heard)
+      var undo = tap && follow.view && follow.view.gain > 0 && follow.view.gain < 1 ? -20 * Math.log(follow.view.gain) / Math.LN10 / (an.maxDecibels - an.minDecibels) * 255 : 0;
+      if (undo) for (var u = 0; u < bins.length; u++) if (bins[u]) bins[u] = Math.min(255, bins[u] + undo);
       var g = spectrum.getContext("2d"), cs = getComputedStyle(spectrum);
       var barColour = cs.getPropertyValue("--mu-bar").trim() || cs.color, peakColour = cs.getPropertyValue("--mu-peak").trim() || barColour;
+      // the bars' colour by height (the user, 2026-11-18: "The spectral analyzer would benefit from a gradient for the volume"):
+      // green over the lower part, yellow, then red at the top, fixed to the display's height so a bar's top shows its level
+      var mid = cs.getPropertyValue("--mu-bar-mid").trim(), high = cs.getPropertyValue("--mu-bar-high").trim();
+      if (mid && high) {
+        var ramp = g.createLinearGradient(0, hgt, 0, 2);
+        ramp.addColorStop(0, barColour); ramp.addColorStop(0.55, barColour); ramp.addColorStop(0.75, mid); ramp.addColorStop(0.92, high); ramp.addColorStop(1, high);
+        barColour = ramp;
+      }
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, w, hgt);
       var now = performance.now(), dt = lastSpectrum ? Math.min(0.1, (now - lastSpectrum) / 1000) : 0;

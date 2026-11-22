@@ -814,7 +814,12 @@ A game whose code starts a module at a pattern outside its order lists would say
 **The views**, cycled by a click on the display (spectrum, tracker, piano roll, score, nothing), follow the user's
 notes:
 
-- **The spectrum** is steadied (the user, 2026-11-10: "a little too jittery").
+- **The spectrum** is steadied (the user, 2026-11-10: "a little too jittery"). Its bars are green, then yellow, then red
+  up the display's height, so a bar's top shows its level (the user, 2026-11-18: "The spectral analyzer would benefit
+  from a gradient for the volume"; Desktop 95's `--mu-bar`, `--mu-bar-mid`, `--mu-bar-high`). It reads the player's own
+  tune before the player's volume, and a followed game's music with the game's own music volume undone, from the `gain`
+  its view gives (the music volume times the song's own; "It should also be independent of in-game volume when synced
+  with that"). A game whose build gives no gain is drawn as heard.
 - **The tracker** names the instrument over each channel (the user, 2026-11-11: labels on the columns). A channel's
   whole head toggles its mute (the user, 2026-11-11: "It's too hard to click on the channel to toggle the mute"), and a
   Ctrl-click or a double-click solos it (the user's notes, 2026-11-10: "tracker labels and mute"; the user, 2026-11-11:
