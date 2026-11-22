@@ -14,6 +14,7 @@
 
 #include "BoardData.h"
 #include "CellData.h"
+#include "PathData.h"
 #include "LevelData.h"
 
 #include <map>
@@ -210,6 +211,10 @@ public:
 	std::map<std::string, DataSetLoaderClass> dataSets;
 	std::map<std::string, BoardClass> boards;
 	std::map<std::string, CellClass> cellClasses;
+	std::map<std::string, PathClass> pathClasses;
+	std::map<std::string, PathImageClass> pathImageClasses;
+	std::map<std::string, PathIdPoolClass> pathIdPools;
+	std::map<std::string, CellSpawningPoolClass> cellSpawningPools;
 	std::map<std::string, ChapterClass> chapters;
 	std::map<std::string, GameLevelClass> gameLevels;
 
