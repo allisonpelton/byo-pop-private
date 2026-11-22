@@ -10,6 +10,7 @@
 
 #include "ButtonListener.h"
 #include "ButtonWidget.h"
+#include "DialogListener.h"
 #include "CurvedVal.h"
 #include "Effects.h"
 #include "MTRand.h"
@@ -179,7 +180,7 @@ struct PendingSwap {
 	int mCol;       // +0xc
 };
 
-class Board : public Widget, public ButtonListener {
+class Board : public Widget, public ButtonListener, public DialogListener {
 public:
 	enum { COLS = 8, ROWS = 8, CELL = 128 };
 	// 0x73bd80 and 0x73bd70 (bejeweled3): where the grid is, in 1200ths of the art height
@@ -215,6 +216,7 @@ public:
 	PIEffect* mLevelBarEffect = nullptr;   // a copy of PIEFFECT_LEVELBAR (the exe draws the resource itself, 0x7540c0), drawn over the bar's back
 	ButtonWidget* mHintButton = nullptr;   // +0x286c: made by the layout 0x741840 (id 0, IMAGE_INGAMEUI_HINT_BUTTON_CLASSIC)
 	ButtonWidget* mMenuButton = nullptr;   // +0x2870: (id 1, IMAGE_INGAMEUI_MENU_BUTTON_CLASSIC)
+	ButtonWidget* mResetButton = nullptr;  // +0x2878: (id 2, IMAGE_INGAMEUI_RESET_BUTTON_LIGHTNING) in the Lightning modes (0x745240 makes it, 0x741840 places it)
 	float mGroupGlow = 0.0f;         // +0x27b8: 0.02 less each update, 0.05 more while a group lives, up to 1 (drawn only)
 	float mRingFlash = 0.0f;         // +0x1240: 1 when a group has made its last ring (drawn only)
 	std::vector<PendingSwap> mPendingSwaps;  // +0xc60
@@ -256,7 +258,12 @@ public:
 	// 0x74bc40 (bejeweled3), the listener at +0xbc: the Hint button (id 0) asks for a hint (slot 202); the Menu button (id 1) is not
 	// translated yet (the in-game menu dialog, 0x681370)
 	void ButtonDepress(int theId) override;
-	enum { BUTTON_HINT = 0, BUTTON_MENU = 1 };   // the ids 0x741840 gives the Classic board's two buttons
+	enum { BUTTON_HINT = 0, BUTTON_MENU = 1, BUTTON_RESET = 2 };   // the ids 0x741840 gives the buttons (3 is the replay button, not made)
+	enum { DIALOG_RESET = 0x16 };   // the dialog that asks whether to abandon the game (0x74bc40, case 2)
+	// 0x7563c0 (bejeweled3), the board's dialog listener (the subobject at +0xc0): the reset dialog (id 0x16) answered Yes (1000)
+	// abandons the game (the saved game's file, which 0x743120 deletes, is not kept in the port; slots 85 and 135 start the new one);
+	// either answer closes the dialog (0x76a670). The listener's case for the id 0x12 (the tutorial dialogs) is not translated
+	void DialogButtonDepress(int theDialogId, int theButtonId) override;
 
 	// slot 85, 0x74a880 (bejeweled3): the board is emptied for a new game
 	virtual void ResetGame();
@@ -469,7 +476,9 @@ public:
 	// HUD); nothing in the modes that have none
 	virtual void DrawModeOverlay(Graphics* g) { (void)g; }
 	// 0x741840 (bejeweled3): the Hint and Menu buttons with the pictures of the mode (Classic's by default)
-	void MakeButtons(Image* theHintImage, int theHintImageId, Image* theMenuImage, int theMenuImageId);
+	// theResetImage (the Lightning modes') adds the Reset button (id 2)
+	void MakeButtons(Image* theHintImage, int theHintImageId, Image* theMenuImage, int theMenuImageId,
+		Image* theResetImage = nullptr, int theResetImageId = 0);
 	void MakeClassicButtons();
 };
 

@@ -3,6 +3,7 @@
 // translated and what is not. Every measure of the exe is in 1200ths of the art height in use: Scaled() is its
 // "art size * measure / 1200".
 #include "Board.h"
+#include "Bej3Dialog.h"
 #include "OptionsDialog.h"
 
 #include "Bej3App.h"
@@ -380,7 +381,8 @@ void Board::MakeClassicButtons()
 		IMAGE_INGAMEUI_MENU_BUTTON_CLASSIC_ID);
 }
 
-void Board::MakeButtons(Image* theHintImage, int theHintImageId, Image* theMenuImage, int theMenuImageId)
+void Board::MakeButtons(Image* theHintImage, int theHintImageId, Image* theMenuImage, int theMenuImageId, Image* theResetImage,
+	int theResetImageId)
 {
 	struct ButtonSpec {
 		int mId;
@@ -391,6 +393,7 @@ void Board::MakeButtons(Image* theHintImage, int theHintImageId, Image* theMenuI
 	const ButtonSpec aSpecs[] = {
 		{BUTTON_HINT, theHintImage, theHintImageId, &mHintButton},
 		{BUTTON_MENU, theMenuImage, theMenuImageId, &mMenuButton},
+		{BUTTON_RESET, theResetImage, theResetImageId, &mResetButton},
 	};
 	for (const ButtonSpec& aSpec : aSpecs) {
 		if (aSpec.mImage == nullptr)
@@ -427,8 +430,33 @@ void Board::ButtonDepress(int theId)
 		aDialog->Move(Scaled(GetGridX() + 0x200) - aDialog->mWidth / 2, Scaled(200));
 		break;
 	}
+	case BUTTON_RESET:
+	{
+		// 0x74bc40 case 2 (only while the game is being played, which the test above gives): the Bej3Dialog with id 0x16, the header
+		// "RESET" (string 0x9b), the line "Abandon the current game and start over?" (0x9c), Yes and No buttons (mode 1), 850 wide (1200ths),
+		// 350 down and put 512 right of the grid's middle less half its width; the board is its listener
+		Dialog* aDialog = gApp->DoDialog(DIALOG_RESET, true, gApp->GetString("155", "RESET"),
+			gApp->GetString("156", "Abandon the current game and start over?"), "", Dialog::BUTTONS_YES_NO);
+		const int aWidth = Scaled(0x352);
+		aDialog->Resize(Scaled(GetGridX() + 0x200) - aWidth / 2, Scaled(0x15e), aWidth, aDialog->GetPreferredHeight(aWidth));
+		aDialog->mDialogListener = this;
+		break;
+	}
 	default:
 		break;
+	}
+}
+
+// 0x7563c0 (bejeweled3). port: the Yes of the reset dialog also writes the mode's name and "Play" to the app's event log and deletes the
+// saved game's file (0x743120); the port keeps no saved game
+void Board::DialogButtonDepress(int theDialogId, int theButtonId)
+{
+	Bej3Dialog* aClosing = dynamic_cast<Bej3Dialog*>(gApp->GetDialog(theDialogId));
+	if (aClosing != nullptr)
+		aClosing->StartClose();
+	if (theDialogId == DIALOG_RESET && theButtonId == Dialog::ID_YES) {
+		ResetGame();   // slot 85
+		NewGame();     // slot 135
 	}
 }
 

@@ -99,7 +99,7 @@ Board::~Board()
 	delete mEffectsUnder;
 	delete mEffectsOver;
 	// the two buttons are the board's children
-	for (ButtonWidget* aButton : {mHintButton, mMenuButton}) {
+	for (ButtonWidget* aButton : {mHintButton, mMenuButton, mResetButton}) {
 		if (aButton != nullptr) {
 			RemoveWidget(aButton);
 			delete aButton;
@@ -387,6 +387,8 @@ void Board::LeaveToMenu()
 		mHintButton->SetDisabled(true);
 	if (mMenuButton != nullptr)
 		mMenuButton->SetDisabled(true);
+	if (mResetButton != nullptr)
+		mResetButton->SetDisabled(true);
 }
 
 // 0x767090 (bejeweled3). port: left out until its step: the dialogs that stop a step (ids 0x29, 0x2b and 0x27, and 0x17), the

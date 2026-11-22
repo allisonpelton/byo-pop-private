@@ -50,14 +50,15 @@ LightningBoard::LightningBoard()
 {
 	mSettings["Title"] = "Lightning";
 	// 0x741840, the case of the Lightning modes: the Lightning pictures in place of Classic's
-	for (ButtonWidget* aButton : {mHintButton, mMenuButton}) {
+	for (ButtonWidget* aButton : {mHintButton, mMenuButton, mResetButton}) {
 		RemoveWidget(aButton);
 		delete aButton;
 	}
 	mHintButton = nullptr;
 	mMenuButton = nullptr;
+	mResetButton = nullptr;
 	MakeButtons(IMAGE_INGAMEUI_HINT_BUTTON_LIGHTNING, IMAGE_INGAMEUI_HINT_BUTTON_LIGHTNING_ID, IMAGE_INGAMEUI_MENU_BUTTON_LIGHTNING,
-		IMAGE_INGAMEUI_MENU_BUTTON_LIGHTNING_ID);
+		IMAGE_INGAMEUI_MENU_BUTTON_LIGHTNING_ID, IMAGE_INGAMEUI_RESET_BUTTON_LIGHTNING, IMAGE_INGAMEUI_RESET_BUTTON_LIGHTNING_ID);
 }
 
 // slot 85 (0x154), 0x718500 (bejeweled3): Board's reset (0x74a880), then the mode's state and the quest's settings are read. port: the
