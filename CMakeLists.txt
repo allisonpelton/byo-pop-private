@@ -452,6 +452,11 @@ option(BUILD_BEJEWELED2 "Build the Bejeweled 2 Deluxe port" ON)
 if(BUILD_BEJEWELED2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweled2/CMakeLists.txt)
   add_subdirectory(games/bejeweled2)
 endif()
+# Peggle Deluxe (PopCap, 2007; unpublished): optional while it is new; the build skips it if its folder is missing
+option(BUILD_PEGGLE "Build the Peggle Deluxe port" ON)
+if(BUILD_PEGGLE AND EXISTS ${PROJECT_SOURCE_DIR}/games/peggle/CMakeLists.txt)
+  add_subdirectory(games/peggle)
+endif()
 # Heavy Weapon Deluxe (the Popgun decompilation): optional while it is new; the build skips it if its folder is missing
 if(BUILD_HEAVYWEAPON AND EXISTS ${PROJECT_SOURCE_DIR}/games/heavyweapon/CMakeLists.txt)
   add_subdirectory(games/heavyweapon)

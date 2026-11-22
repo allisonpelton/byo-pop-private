@@ -639,6 +639,13 @@
       "na": [],
       "now": "port",
       "note": "port in progress: Sprout's second-generation engine (engines/sprout2) in main early for Talismania: its core, the draw context and the frame loop"
+    },
+    "peggle": {
+      "title": "Peggle Deluxe",
+      "done": [],
+      "na": [],
+      "now": "port",
+      "note": "port in progress (session from 2026-11-16): the level files, the pieces and the web page's settings merged (452c200f); not yet playable"
     }
   }
 }
