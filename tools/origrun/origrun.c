@@ -1488,10 +1488,12 @@ static int wait_counter(uint32_t target, int timeout_ms)
 // counter read after the copy, and the byte count. A refused shot is never written, and a file of its name left by an
 // earlier run is deleted unopened.
 static int gReaderOn = 0;          // this host run's `at N shot` lines go to the reader
+static int gReaderTrace = 0;       // ORIGRUN_READER_TRACE=1: each hold the reader looks at is logged
 static int gReaderTrial = 0;       // --reader-trial
 static int gReaderTaken = 0, gReaderRefused = 0;
 static char gReaderSurface[256] = "", gReaderPassed[200] = "";
 static uint32_t gReaderWaits[16]; static int gReaderWaitN = 0;
+static int gReaderAtHold = 0;      // reader_waits=hold: the surface is read in the hold at the shot's own update, wherever it is (a catch-up game)
 static uint32_t gAtTarget = 0; static int gAtTargetSet = 0;   // the update the running "at" waited for
 static HANDLE gRdMap = NULL; static const unsigned char* gRdPix = NULL; static DWORD gRdPid = 0;
 #define RD_CAPS_REFUSED (DDSCAPS_PRIMARYSURFACE|DDSCAPS_FRONTBUFFER|DDSCAPS_BACKBUFFER|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_OVERLAY|DDSCAPS_VISIBLE)
@@ -1540,9 +1542,10 @@ static int reader_shot(HWND hw, const char* name)
 		if (!s || dead || !rel) { reader_refuse(name,"no live clock to read through"); return 0; }
 		holds++;
 		LONG c=s->heldCounter; lastAt=s->heldAt;
+		if (gReaderTrace) logline("reader: %s hold %d at 0x%08lX, counter %ld", name, holds, (unsigned long)lastAt, (long)c);
 		if (c==-1) { reader_refuse(name,"the update counter could not be read in the hold"); return 0; }
 		if ((uint32_t)c!=N) { reader_refuse(name,"the update counter reads %ld, not the shot's update %u (%d holds)", (long)c, N, holds); return 0; }
-		int safe=0; for (int i=0;i<gReaderWaitN;i++) if (lastAt==gReaderWaits[i]) safe=1;
+		int safe=gReaderAtHold; for (int i=0;i<gReaderWaitN;i++) if (lastAt==gReaderWaits[i]) safe=1;
 		if (safe && exact) {
 			int rf=0; safe=drawn_now(&rf);
 			if (rf) { reader_refuse(name,"the pending-draw flag or the update step could not be read in the hold"); return 0; }
@@ -5358,12 +5361,12 @@ int main(int argc, char** argv)
 	if (readerSurface) lstrcpynA(gReaderSurface,readerSurface,256); else lstrcpynA(gReaderSurface,cfgReaderSurface,256);
 	{
 		char wl[256]; lstrcpynA(wl,readerWaits?readerWaits:cfgReaderWaits,256);
-		for (char* t=strtok(wl,", "); t && gReaderWaitN<16; t=strtok(NULL,", ")) gReaderWaits[gReaderWaitN++]=(uint32_t)strtoul(t,NULL,16);
+		for (char* t=strtok(wl,", "); t && gReaderWaitN<16; t=strtok(NULL,", ")) { if (ieq(t,"hold")) gReaderAtHold=1; else gReaderWaits[gReaderWaitN++]=(uint32_t)strtoul(t,NULL,16); }
 	}
 	if (needsSandbox==2) {
 		int passed = !strncmp(gReaderPassed,"passed ",7);
 		const char* no = NULL;
-		if (!gReaderSurface[0] || !gReaderWaitN) no = "the in-game frame reader is not set up for this game (reader_surface= and reader_waits= in its config)";
+		if (!gReaderSurface[0] || (!gReaderWaitN && !gReaderAtHold)) no = "the in-game frame reader is not set up for this game (reader_surface= and reader_waits= in its config)";
 		else if (!gClockVirtual) no = "the in-game frame reader needs --clock virtual (it reads in the game's own thread while the clock holds it)";
 		else if (!gCounterExpr[0]) no = "the in-game frame reader needs the game's update counter";
 		else if (ieq(sound,"real")) no = "the in-game frame reader lives in the sound stand-in, which --sound real leaves out";
@@ -5374,7 +5377,7 @@ int main(int argc, char** argv)
 			fprintf(stderr, "origrun: refusing to start: this run takes `at <N> shot` shots on the host, and %s. Run it with --sandbox.\n", no);
 			return 2;
 		}
-		gReaderOn=1;
+		gReaderOn=1; { char t[8]; if (GetEnvironmentVariableA("ORIGRUN_READER_TRACE",t,sizeof t) && t[0]=='1') gReaderTrace=1; }
 		logline("the in-game frame reader takes this run's `at <N> shot` shots on the host: the draw surface %s, read in the waits at %s%s%s",
 			gReaderSurface, readerWaits?readerWaits:cfgReaderWaits,
 			gReaderTrial ? "; --reader-trial: a trial run, whose shots are only for the comparison with the sandbox's" :

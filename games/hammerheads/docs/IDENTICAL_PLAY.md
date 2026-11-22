@@ -353,11 +353,18 @@ stays. A deviation with a visible effect; its pairs are masked in `shotdiff.json
   it is the same update, for two shots); but the introduction of level 6 in `scr_lv1`, four cycles later, matches the port's at
   age 1240 where the shot was taken at 1495 (the best of a hundred shots every five updates, a clear minimum), and the Marathon
   clock of `scr_over` stands at 0:20 in the original where the port's, at the same scheduled update, is at 0:34. So a long
-  scenario's timeline in the sandbox slips against the port's (the loading thread runs on the wall clock, and the original's
-  loads between levels take their own time). The cause of the slip was not found within the hour, so **it is an oddity**: the
-  pictures are the same at the same age, the age is not. A real difference of a counter's rate or start would show the same way;
-  the first cycles' match and phase one's identity of the logic, state by state, say there is none. To see it: `scr_lv1`'s
-  `intro_level06` against `scr_phase6_port`'s shots (`looks.py scr_phase6_port 0 0 0 --shots --only port`).
+  scenario's timeline in the sandbox slips against the port's. **The cause is the sandbox's, found afterwards (2026-11-22):** its
+  shots do not land on the update they are labelled with. `landed.tsv`, beside the sandbox shots, lists the counter each shot was
+  taken at, and in `scr_over` (shots asked for at the mark 6003 plus the script's update) `classic_over` was asked for at 28003
+  and landed at 25458, `marathon_over` at 42003 and landed at 37300 (4703 updates early), `marathon_wave_cleared` 36003 at
+  34623, `tough_over` 16503 at 14375; the shots that landed on their update (`tough_points`, `classic_board` and the like) match.
+  The game read through its own draw surface on the host (origrun's in-game frame reader with `reader_waits=hold`, `docs/ORIGRUN.md`)
+  holds every shot at its update: the menu's 15 shots and the wipes' 129 are identical to the sandbox's, a Classic game's 33 differ
+  only in the how-to-play movie, the loading screen and a particle, and `scr_over`'s eight differing pairs are exactly the shots
+  the sandbox landed early. So the pictures differ in age because the sandbox's shot was taken at another update, not because the
+  game counts differently: **not a difference of the port**. A sandbox shot is compared only where `landed.tsv` says it landed on
+  its update, or against the port's shot of the update it did land at. To see it: `scr_lv1`'s `intro_level06` against
+  `scr_phase6_port`'s shots (`looks.py scr_phase6_port 0 0 0 --shots --only port`).
 - **D. The how-to-play movie** runs on the original's wall clock: compared by its frames (above).
 - **E. Particles and sprites in motion** differ along their edges (above).
 

@@ -232,6 +232,20 @@ N; when the hold's wait is not one of those, it steps the game to its next wait,
 counter must still read N. With `pending_draw=` and `update_state=` configured, the wait must also leave no update
 waiting to be drawn.
 
+**A game that catches up (`reader_waits=hold`).** Hammer Heads' `Process` runs several updates in one call before its single draw and
+Sleep, and reads the clock about 300 times between waits, so no wait ever has the counter at N: the counter has moved on (7403 for
+an `at 7401`), and the step to the next hold lands on a clock poll, not a wait. For such a game `reader_waits=hold` takes the
+surface in the hold at update N itself, where it stands: the surface then holds the frame the game last presented, the same one a
+sandbox shot (PrintWindow of the held window) shows at N, and the counter still must read N before and after the copy. A hold at a
+clock poll records the return address of the clock call (as a wait does of its Sleep), and the reader's log line names it; the
+hold's site must be one outside the drawing code, so a run's first shots are checked by reading that address (Hammer Heads: all
+holds at 0x4D5FCA, the `timeGetTime` after `Process`'s update section and before its draw). `ORIGRUN_READER_TRACE=1` logs every
+hold the reader looks at (shot, number, address, counter). A wait list and `hold` can be given together. Measured on Hammer Heads
+(`reader_surface=[[0x5cea54]+0x330]+0x68`, counter `[0x5cea54]+0x44c`): the menu screens (15 shots), 129 zoom-wipe frames and a
+Classic game's 33 shots, each at its update, nothing ignored in `tools/shotdiff`: identical to the sandbox's wherever the sandbox
+landed on the update it was asked for (its `landed.tsv`), apart from the how-to-play movie and the loading screen, which run on
+the wall clock. In a long scenario the sandbox's shots landed up to 4700 updates before their label, and those pairs differ.
+
 Before a PNG is written every one of these holds, or the shot is refused. In the game: the expression reads a
 pointer to readable memory; that interface's vtable and every method called lie in the system's `ddraw.dll` (a
 wrapper's is refused, so a `--dgvoodoo` copy gets no reader shots); the surface's caps include
