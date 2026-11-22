@@ -79,6 +79,10 @@
 #                may be running): that the host and its sound stand-in still compile, and --coverage on covtest.exe
 #                (tools/origrun/covtest.sh; seconds), and the network block and launch guard on nettest.exe (tools/origrun/nettest.sh; seconds);
 #                not in `all`
+#   speed        every finished game follows the game speed (tools/speedcheck.py): each game's exe run natively in real time, 3 at
+#                a time, for a few seconds at 0.5x and at 2x with -speed and -speedprobe; its updates per real second and its game
+#                clock must scale with the speed. Lists the games that do not; Bonnie's Bookstore and Ning Po Mahjong (no
+#                SexyAppBase) are known not to, until their sessions add the hook (about 2 minutes; needs assets)
 #   verify      Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
@@ -332,20 +336,20 @@ QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads pizzafrenzy)
 # the oracle is left out of `all` and of shared code's "every suite" (the user, 2026-11-11: "Seems like the Bejeweled oracle
 # is causing a lot of slowdown for no benefit"); it runs when games/bejeweled changes, or when named
-ALL_SUITES=(build build-web build-nov unit unit-web gpu screens verify modmenu livesplit "${GAME_SUITES[@]}")
-ORDER=(build build-web build-nov unit gpu screens origrun modmenu livesplit "${GAME_SUITES[@]}" unit-web verify oracle)
+ALL_SUITES=(build build-web build-nov unit unit-web gpu screens speed verify modmenu livesplit "${GAME_SUITES[@]}")
+ORDER=(build build-web build-nov unit gpu screens speed origrun modmenu livesplit "${GAME_SUITES[@]}" unit-web verify oracle)
 # the suites that read build/web, and so wait for a build-web running in the background (below)
 needs_web() { case "$1" in unit-web|verify|oracle) return 0 ;; esac; return 1; }
 known_suite() { case " ${ORDER[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
 is_game_suite() { case " ${GAME_SUITES[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
 # suite_weight <suite>: sets WEIGHT to the game processes the suite has at once (bonnies runs its rerun and the frozen baseline's together;
 # heavyweapon three of its games)
-suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bonnies.exe ] && WEIGHT=2; [ "$1" = venice ] && [ -f build/baseline-venice/venice.exe ] && WEIGHT=2; [ "$1" = hammerheads ] && [ -f build/baseline-hammerheads/hammerheads.exe ] && WEIGHT=2; [ "$1" = heavyweapon ] && WEIGHT=3; return 0; }
+suite_weight() { WEIGHT=1; [ "$1" = speed ] && WEIGHT=3; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bonnies.exe ] && WEIGHT=2; [ "$1" = venice ] && [ -f build/baseline-venice/venice.exe ] && WEIGHT=2; [ "$1" = hammerheads ] && [ -f build/baseline-hammerheads/hammerheads.exe ] && WEIGHT=2; [ "$1" = heavyweapon ] && WEIGHT=3; return 0; }
 
 # ---- merge mode (--changed): the suites a change can affect ----
 
 # Rough seconds on this machine (the last `all` run, 2026-11-02); the plan adds them up, no more
-declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [verify]=42 [modmenu]=50
+declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
 	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [pizzafrenzy]=180 [oracle]=1080)
@@ -459,6 +463,7 @@ classify() {  # <path>: chooses the suites a changed file needs
 				fwtest/*|geomtest/*|wraptest/*|stretchcal/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh|modtextcheck.py)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
 				screencheck.py|screenchecktest.py) pick unit "$AREA" "$p"; pick screens "$AREA" "$p" ;;
+				speedcheck.py) pick build "$AREA" "$p"; pick speed "$AREA" "$p" ;;
 				*/*) pick build "$AREA" "$p" ;;  # smoke, ghidra_scripts and the rest: nothing runs them, but a build shows a broken tree
 				*.js|*.mjs) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
 				*) pick build "$AREA" "$p" ;;
@@ -982,6 +987,13 @@ suite_screens() {  # every game's SCREENS.md against its newest shotdiff run
 	python -I tools/screencheck.py > "$1" 2>&1
 	local st=$?
 	SUMMARY="$(lastof "$1" '^screens:')"
+	return $st
+}
+
+suite_speed() {  # every game follows the game speed
+	python -I tools/speedcheck.py --out "$W/$OUT/speed" > "$1" 2>&1
+	local st=$?
+	SUMMARY="$(lastof "$1" '^speed:')"
 	return $st
 }
 

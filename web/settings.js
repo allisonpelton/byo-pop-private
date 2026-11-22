@@ -73,9 +73,9 @@ var ByopopSettings = (function () {
     clips: { values: SWITCH, def: "off" },           // on: a Record button on a game page's bar (web/clips.js)
     skipLogos: { values: SWITCH, def: "off" },       // on: the games skip their start-up logos (byopop_site_skiplogos, before the start)
     skipTutorials: { values: SWITCH, def: "off" },   // on: the game's own tutorial switch is turned off at each start (web/shell.html, byopop_site_tutorials)
-    // the game's update rate, times this (web/controls.js): any value the framework takes, 0.25 to 4 (the user, 2026-11-10: "Allow
+    // the game's update rate, times this (web/controls.js): any value the framework takes, 0.05 to 16 (the user, 2026-11-10: "Allow
     // game speed to be set to any arbitrary value instead of the limited options in the dropdown")
-    speed: { values: ["0.5", "0.75", "1", "1.25", "1.5", "2"], number: [0.25, 4], def: "1" }
+    speed: { values: ["0.5", "0.75", "1", "1.25", "1.5", "2"], number: [0.05, 16], def: "1" }
   };
 
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }

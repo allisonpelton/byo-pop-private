@@ -94,7 +94,16 @@ enum
 	ITEM_TEXT,
 	ITEM_SECTION,
 	ITEM_SETTING,
-	ITEM_HELP       // a setting's help too long for the footer, in full under its row (HelpUnderRow)
+	ITEM_HELP,      // a setting's help too long for the footer, in full under its row (HelpUnderRow)
+	ITEM_SPEED      // native, list: the game speed row (SPEED_ITEM_VALUE) and the speed hotkeys row (SPEED_ITEM_KEYS)
+};
+
+// port: the two rows of the native game speed option at the top of the list (SexyAppBase::SetGameSpeed). The page has its
+// own speed setting, so the web build has neither.
+enum
+{
+	SPEED_ITEM_VALUE,
+	SPEED_ITEM_KEYS
 };
 
 enum
@@ -603,6 +612,10 @@ void ModMenu::Layout()
 				addText(ITEM_BANNER, -1, Str(mApp, "MODMENU_SETTINGS_UNREADABLE", "mod-settings.json could not be read: every value is at its default."), TEXT_WARN, 2);
 			else if (isReadOnly)
 				addText(ITEM_BANNER, -1, Str(mApp, "MODMENU_SETTINGS_NEWER", "mod-settings.json was made by a newer version of the game: values cannot be changed here."), TEXT_WARN, 2);
+#ifndef __EMSCRIPTEN__
+			addRow(ITEM_SPEED, SPEED_ITEM_VALUE, SETTING_ROW);
+			addRow(ITEM_SPEED, SPEED_ITEM_KEYS, SETTING_ROW);
+#endif
 			if (mMods.empty())
 			{
 #ifdef __EMSCRIPTEN__
@@ -669,6 +682,18 @@ void ModMenu::Layout()
 			AddTarget(T_UP, anItem.mIndex, Rect(anUpX, aButtonY, 24, BUTTON_HEIGHT), !aView.mCanUp, true);
 			AddTarget(T_DOWN, anItem.mIndex, Rect(aDownX, aButtonY, 24, BUTTON_HEIGHT), !aView.mCanDown, true);
 			AddTarget(T_OPEN, anItem.mIndex, Rect(anOpenX, aButtonY, 72, BUTTON_HEIGHT), aView.mDuplicate, true);
+		}
+		else if (anItem.mKind == ITEM_SPEED)
+		{
+			int x = aRow.mX + LABEL_WIDTH + 4;
+			int y = aRow.mY + (aRow.mHeight - BUTTON_HEIGHT) / 2;
+			if (anItem.mIndex == SPEED_ITEM_VALUE)
+			{
+				AddTarget(T_SPEED_DOWN, anItem.mIndex, Rect(x, y, 24, BUTTON_HEIGHT), false, true);
+				AddTarget(T_SPEED_UP, anItem.mIndex, Rect(x + 92, y, 24, BUTTON_HEIGHT), false, true);
+			}
+			else
+				AddTarget(T_SPEED_KEYS, anItem.mIndex, Rect(aRow.mX, aRow.mY, LABEL_WIDTH + 4 + 24 + 60, aRow.mHeight), false, true);
 		}
 		else if (anItem.mKind == ITEM_SETTING)
 		{
@@ -809,6 +834,9 @@ bool ModMenu::IsFocusable(const Target& theTarget) const
 	case T_YES:
 	case T_NO:
 	case T_FILES:
+	case T_SPEED_DOWN:
+	case T_SPEED_UP:
+	case T_SPEED_KEYS:
 		return !theTarget.mDisabled;
 	default:
 		return false;
@@ -963,6 +991,10 @@ void ModMenu::AnnounceFocus()
 		case T_CLOSE: aText = Str(mApp, "MODMENU_CLOSE", "Close"); break;
 		case T_RESET: aText = Str(mApp, "MODMENU_RESET", "Reset to defaults"); break;
 		case T_FILES: aText = Str(mApp, "MODMENU_ADD_REMOVE", "Add or remove mods"); break;
+		case T_SPEED_DOWN: aText = Str(mApp, "MODMENU_SPEED_SLOWER", "Slower game speed"); break;
+		case T_SPEED_UP: aText = Str(mApp, "MODMENU_SPEED_FASTER", "Faster game speed"); break;
+		case T_SPEED_KEYS: aText = Str(mApp, "MODMENU_SPEED_KEYS", "Speed keys") + ": " +
+			(mApp->mSpeedHotkeys ? Str(mApp, "MODMENU_ON", "On") : Str(mApp, "MODMENU_OFF", "Off")); break;
 		case T_YES: aText = mConfirmText; break;
 		case T_NO: aText = Str(mApp, "MODMENU_CANCEL", "Cancel"); break;
 		}
@@ -1128,6 +1160,17 @@ void ModMenu::Activate(int theKind, int theItem, bool isSpace)
 	case T_OPEN:
 		if ((theItem >= 0) && (theItem < (int) mMods.size()))
 			ShowMod(mMods[(size_t) theItem].mId);
+		break;
+	case T_SPEED_DOWN:
+		mApp->StepGameSpeed(-1);
+		break;
+	case T_SPEED_UP:
+		mApp->StepGameSpeed(1);
+		break;
+	case T_SPEED_KEYS:
+		mApp->mSpeedHotkeys = !mApp->mSpeedHotkeys;
+		mApp->SaveSpeedOptions();
+		AnnounceFocus();
 		break;
 	case T_BACK:
 		ShowList();
@@ -1757,6 +1800,8 @@ void ModMenu::DrawButton(Graphics* g, const Rect& theRect, const std::string& th
 	case T_DOWN: Arrow(g, cx, cy, 1, aColor); return;
 	case T_PREV: Arrow(g, cx, cy, 2, aColor); return;
 	case T_NEXT: Arrow(g, cx, cy, 3, aColor); return;
+	case T_SPEED_DOWN: Arrow(g, cx, cy, 2, aColor); return;
+	case T_SPEED_UP: Arrow(g, cx, cy, 3, aColor); return;
 	case T_MINUS:
 		g->SetColor(aColor);
 		g->FillRect(cx - 4, cy - 1, 8, 2);
@@ -1849,6 +1894,37 @@ void ModMenu::DrawListRow(Graphics* g, const Item& theItem)
 			aLine += (aLine.empty() ? "" : " - ") + aView.mDescription;
 	}
 	Text(g, mFont, Fit(mFont, aLine, aWidth), x, aRow.mY + 36, *aColor);
+}
+
+// port: the native game speed rows: "Game speed" with its slower and faster buttons around the speed, and the checkbox
+// that turns the speed hotkeys on
+void ModMenu::DrawSpeedRow(Graphics* g, const Item& theItem)
+{
+	Rect aContent = ContentRect();
+	int aRowX = aContent.mX;
+	int aRowY = aContent.mY + theItem.mY - mScroll;
+	int x = aRowX + LABEL_WIDTH + 4;
+	int y = aRowY + (SETTING_ROW - BUTTON_HEIGHT) / 2;
+	Rect aBox(x, y, 116, BUTTON_HEIGHT);
+	if (theItem.mIndex == SPEED_ITEM_VALUE)
+	{
+		Text(g, mFont, Str(mApp, "MODMENU_SPEED", "Game speed"), aRowX + 8, aRowY + 19, kText);
+		if (const Target* aTarget = FindTarget(T_SPEED_DOWN, theItem.mIndex))
+			DrawButton(g, aTarget->mRect, "", T_SPEED_DOWN, theItem.mIndex, false);
+		if (const Target* aTarget = FindTarget(T_SPEED_UP, theItem.mIndex))
+			DrawButton(g, aTarget->mRect, "", T_SPEED_UP, theItem.mIndex, false);
+		std::string aText = mApp->GameSpeedText();
+		Text(g, mFont, aText, x + 58 - mFont->StringWidth(aText) / 2, CenterBaseline(aBox), kText);
+	}
+	else
+	{
+		if ((mFocusKind == T_SPEED_KEYS) && (mFocusItem == theItem.mIndex))
+			Fill(g, Rect(aRowX, aRowY + 1, aContent.mWidth, SETTING_ROW - 2), kRowFocus);
+		Text(g, mFont, Str(mApp, "MODMENU_SPEED_KEYS_LABEL", "Speed keys (F6, F7, F8)"), aRowX + 8, aRowY + 19, kText);
+		bool isOn = mApp->mSpeedHotkeys;
+		Checkbox(g, Rect(x + 4, y + 4, 16, 16), isOn, false, (mHoverKind == T_SPEED_KEYS) && (mHoverItem == theItem.mIndex));
+		Text(g, mFont, isOn ? Str(mApp, "MODMENU_ON", "On") : Str(mApp, "MODMENU_OFF", "Off"), x + 28, CenterBaseline(aBox), kText);
+	}
 }
 
 void ModMenu::DrawSettingRow(Graphics* g, const Item& theItem)
@@ -2025,6 +2101,9 @@ void ModMenu::Draw(Graphics* g)
 		case ITEM_SETTING:
 			DrawSettingRow(g, anItem);
 			break;
+		case ITEM_SPEED:
+			DrawSpeedRow(g, anItem);
+			break;
 		case ITEM_SECTION:
 			if (const SettingView* aSection = PageSetting(anItem.mIndex))
 			{
@@ -2140,7 +2219,8 @@ void ModMenu::Draw(Graphics* g)
 std::string ModMenu::TargetsJson()
 {
 	static const char* const kKindNames[] = { "none", "row", "up", "down", "open", "back", "restart", "close", "reset",
-		"yes", "no", "value", "minus", "plus", "slider", "prev", "next", "field", "label", "switch", "scroll", "files" };
+		"yes", "no", "value", "minus", "plus", "slider", "prev", "next", "field", "label", "switch", "scroll", "files",
+		"speeddown", "speedup", "speedkeys" };
 	if (mLayoutDirty)
 		Layout();
 	Rect aContent = ContentRect();
