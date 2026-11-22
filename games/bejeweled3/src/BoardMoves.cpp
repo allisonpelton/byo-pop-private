@@ -351,144 +351,120 @@ void Board::UpdateSwaps()
 	}
 }
 
-// 0x75af60 (bejeweled3), for plain gems. The board is read twice, row by row and then column by column: a run is gems
-// of one colour that are all at rest in their cells (0x755ad0) and none has no colour. A run of 3 or more is a match;
-// runs that share a gem make one match. A run waits (nothing is made) while a gem of its colour that is not at rest, but
-// could be, lies in line with it. The match's pieces carry the highest move id among them, and the match scores
-// (X - 3 + n) * 50 points, X being how many matches the move has made counting this one (at least 1), n the pieces, with
-// (n - 4) * 350 more from 5 pieces. port: left out are the runs' neighbours across the run (their own test of 0x75b5xx
-// that two of them in a row may hold a match back), the flame, star and hypercube that a run of 4, 5 or a crossing makes,
-// the pieces with bits (0x1, 0x4, 0x10, 0x400, 0x80000), the speed bonus, the lists of 0x75bxxx for the sounds, the
-// text of the points (it is shown by the exe where it is made) and the effect objects (their pictures and the rings that
-// hit gems around the match). The stats 0xc84 + idx * 4 of 0x73d170 are only kept for the counter of matches
+// 0x75af60 (bejeweled3), for plain gems. The board is read twice: first down each column and then along each row
+// (the exe's outer loop runs over the first index of its grid expression, which is the column in the first pass). A cell
+// takes part when its piece is at rest (0x755ad0) or was already matched in this update (then its remembered colour counts,
+// +0x21c); a run is such cells of one colour, and a run of 3 or more is one match of its own: a crossing is two matches that
+// share a gem, not one. Every run of 3 or more takes the next id of the board's counter (+0xe1c) before it is judged, whether
+// it is kept or not. A run is held back (the board is searched again in the next update) when, from any of its gems, in
+// the direction of the run up to 7 cells of the gem's colour in a row hold a gem that could still settle there (a bVar5 of
+// the exe: not at rest, but free: not held by a swap, able to fall, no busy count, no curve running, no bit 0x2000), or
+// when, across the run, the same-colour cells on both sides of the gem number 2 or more and one of them could still settle.
+// A kept run's gems take the highest tag (+0x188) among them and the run's id (+0x190), and the run scores
+// (X - 3 + n) * 50 (X: how many matches the move has made, this one counted, at least 1) and (n - 4) * 350 more from 5 gems,
+// through AddPoints. port: left out are the set of 0x75b0xx that holds a run back (local_224 of the exe, its meaning not
+// found) and the swap-list flag (+0xf9) of the same test, the flame, star and hypercube that a run of 4, 5 or a crossing
+// makes (the lists of 0x75c0xx to 0x75cdxx), the pieces with bits (0x1, 0x4, 0x10, 0x400, 0x80000), the speed bonus, the
+// sounds, the pulse curve of 0x85f0a4 and 0x85f0d0 on a matched gem (it keeps 0x755ad0 false for the gem: here the match
+// timer does) and the effect objects. The stats of 0x73d170 are only kept for the count of matches (stat 0x1a)
 int Board::FindMatches()
 {
 	struct Run {
-		int mStartRow;
-		int mStartCol;
-		int mLength;
-		bool mAcross;
 		std::vector<Piece*> mPieces;
+		bool mAlongRow;
 	};
 	std::vector<Run> aRuns;
 	for (int aPass = 0; aPass < 2; aPass++) {
-		for (int aLine = 0; aLine < 8; aLine++) {
+		for (int aOuter = 0; aOuter < 8; aOuter++) {
 			int aRunColor = -1;
-			int aRunLength = 0;
-			int aRunStart = 0;
-			for (int aPosition = 0; aPosition <= 8; aPosition++) {
+			std::vector<Piece*> aRun;
+			for (int aInner = 0; aInner <= 8; aInner++) {
 				Piece* aPiece = nullptr;
 				int aColor = -1;
-				if (aPosition < 8) {
-					aPiece = aPass == 0 ? mGrid[aLine][aPosition] : mGrid[aPosition][aLine];
-					if (aPiece != nullptr && PieceIsSettled(aPiece) && aPiece->mMatchTimer == 0.0f)   // a piece already matched is not matched again
+				if (aInner < 8) {
+					aPiece = aPass == 0 ? mGrid[aInner][aOuter] : mGrid[aOuter][aInner];
+					if (aPiece != nullptr && aPiece->mMatchTimer == 0.0f && PieceIsSettled(aPiece))
 						aColor = aPiece->mColor;
 					else
 						aPiece = nullptr;
 				}
-				if (aPosition < 8 && aColor != -1 && aColor == aRunColor) {
-					aRunLength++;
+				if (aColor != -1 && aColor == aRunColor) {
+					aRun.push_back(aPiece);
 					continue;
 				}
-				if (aRunLength >= 3) {
-					Run aRun;
-					aRun.mAcross = aPass == 0;
-					aRun.mStartRow = aPass == 0 ? aLine : aRunStart;
-					aRun.mStartCol = aPass == 0 ? aRunStart : aLine;
-					aRun.mLength = aRunLength;
-					for (int k = 0; k < aRunLength; k++)
-						aRun.mPieces.push_back(aPass == 0 ? mGrid[aLine][aRunStart + k] : mGrid[aRunStart + k][aLine]);
-					aRuns.push_back(aRun);
+				if (aRun.size() >= 3) {
+					Run aFound;
+					aFound.mPieces = aRun;
+					aFound.mAlongRow = aPass == 1;
+					aRuns.push_back(aFound);
 				}
+				aRun.clear();
 				aRunColor = aColor;
-				aRunLength = aColor == -1 ? 0 : 1;
-				aRunStart = aPosition;
+				if (aColor != -1)
+					aRun.push_back(aPiece);
 			}
 		}
 	}
-	// the runs that share a piece are one match
-	std::vector<std::vector<Piece*>> aMatches;
-	std::vector<bool> aWaiting;
+	int aCount = 0;
 	for (size_t aRunIndex = 0; aRunIndex < aRuns.size(); aRunIndex++) {
 		Run& aRun = aRuns[aRunIndex];
+		int aRunId = mMatchCounter++;
+		// the gems that were taken by an earlier run of this search are still there for this one, as in the exe
 		bool aHold = false;
-		// a gem of the colour in line with the run (either end, up to 7 away) that is moving but free to settle holds it back
-		int aStepCol = aRun.mAcross ? 1 : 0;
-		int aStepRow = aRun.mAcross ? 0 : 1;
-		for (int aEnd = 0; aEnd < 2 && !aHold; aEnd++) {
-			int aRow = aEnd == 0 ? aRun.mStartRow - aStepRow : aRun.mStartRow + aStepRow * aRun.mLength;
-			int aCol = aEnd == 0 ? aRun.mStartCol - aStepCol : aRun.mStartCol + aStepCol * aRun.mLength;
-			for (int aStep = 0; aStep < 7; aStep++) {
-				if (aRow < 0 || aRow >= ROWS || aCol < 0 || aCol >= COLS)
-					break;
-				Piece* aNeighbour = mGrid[aRow][aCol];
-				if (aNeighbour == nullptr || aNeighbour->mColor != aRun.mPieces[0]->mColor)
-					break;
-				if (!PieceIsSettled(aNeighbour) && aNeighbour->mCanFall && aNeighbour->mBusyCount == 0 &&
-					(aNeighbour->mFlags & 0x2000) == 0 && !IsHeldBySwap(aNeighbour)) {
-					aHold = true;
-					break;
+		static const int DIRECTIONS[4][2] = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
+		for (size_t k = 0; k < aRun.mPieces.size() && !aHold; k++) {
+			Piece* aGem = aRun.mPieces[k];
+			bool aAlongCouldSettle = false;
+			bool aAcrossCouldSettle = false;
+			int aAcrossCount = 0;
+			for (int aDirection = 0; aDirection < 4; aDirection++) {
+				// directions 0 and 1 go down and up a column, 2 and 3 along a row; the run's own direction is the first pair
+				// in the first pass (down a column) and the second pair in the second
+				bool aInRunDirection = (aDirection / 2 == (aRun.mAlongRow ? 1 : 0));
+				for (int aStep = 1; aStep < 8; aStep++) {
+					int aRow = aGem->mRow + DIRECTIONS[aDirection][0] * aStep;
+					int aCol = aGem->mCol + DIRECTIONS[aDirection][1] * aStep;
+					if (aRow < 0 || aRow >= ROWS || aCol < 0 || aCol >= COLS)
+						break;
+					Piece* aNeighbour = mGrid[aRow][aCol];
+					if (aNeighbour == nullptr || aNeighbour->mColor != aGem->mColor)
+						break;
+					bool aCouldSettle = !PieceIsSettled(aNeighbour) && !IsHeldBySwap(aNeighbour) && aNeighbour->mCanFall &&
+						aNeighbour->mBusyCount == 0 && (aNeighbour->mFlags & 0x2000) == 0;
+					if (aInRunDirection)
+						aAlongCouldSettle = aAlongCouldSettle || aCouldSettle;
+					else {
+						aAcrossCount++;
+						aAcrossCouldSettle = aAcrossCouldSettle || aCouldSettle;
+					}
 				}
-				aRow += aEnd == 0 ? -aStepRow : aStepRow;
-				aCol += aEnd == 0 ? -aStepCol : aStepCol;
 			}
+			if (aAlongCouldSettle || (aAcrossCount >= 2 && aAcrossCouldSettle))
+				aHold = true;
 		}
 		if (aHold)
 			continue;
-		// join it to a match that has one of its pieces, or begin one
-		int aJoined = -1;
-		for (size_t aMatchIndex = 0; aMatchIndex < aMatches.size(); aMatchIndex++) {
-			std::vector<Piece*>& aMatch = aMatches[aMatchIndex];
-			bool aShares = false;
-			for (size_t k = 0; k < aRun.mPieces.size() && !aShares; k++)
-				aShares = std::find(aMatch.begin(), aMatch.end(), aRun.mPieces[k]) != aMatch.end();
-			if (!aShares)
-				continue;
-			if (aJoined == -1) {
-				aJoined = (int)aMatchIndex;
-				for (size_t k = 0; k < aRun.mPieces.size(); k++) {
-					if (std::find(aMatch.begin(), aMatch.end(), aRun.mPieces[k]) == aMatch.end())
-						aMatch.push_back(aRun.mPieces[k]);
-				}
-			}
-			else {
-				// the run joins two matches: they are one
-				std::vector<Piece*>& aFirstMatch = aMatches[aJoined];
-				for (size_t k = 0; k < aMatch.size(); k++) {
-					if (std::find(aFirstMatch.begin(), aFirstMatch.end(), aMatch[k]) == aFirstMatch.end())
-						aFirstMatch.push_back(aMatch[k]);
-				}
-				aMatch.clear();
-			}
-		}
-		if (aJoined == -1)
-			aMatches.push_back(aRun.mPieces);
-	}
-	int aCount = 0;
-	for (size_t aMatchIndex = 0; aMatchIndex < aMatches.size(); aMatchIndex++) {
-		std::vector<Piece*>& aMatch = aMatches[aMatchIndex];
-		if (aMatch.empty())
-			continue;
 		aCount++;
 		MatchGroup aGroup;
-		aGroup.mOriginId = aMatch[0]->mId;
+		aGroup.mOriginId = aRun.mPieces[0]->mId;
 		aGroup.mUpdate = mUpdateCnt;
 		int aChainId = -1;
-		for (size_t k = 0; k < aMatch.size(); k++)
-			aChainId = std::max(aChainId, aMatch[k]->mColumnTag);
+		for (size_t k = 0; k < aRun.mPieces.size(); k++)
+			aChainId = std::max(aChainId, aRun.mPieces[k]->mColumnTag);
 		aGroup.mChainId = aChainId;
-		mMatchCounter++;   // 0x75b3e9: the match takes an id of its own
-		for (size_t k = 0; k < aMatch.size(); k++) {
-			Piece* aPiece = aMatch[k];
+		for (size_t k = 0; k < aRun.mPieces.size(); k++) {
+			Piece* aPiece = aRun.mPieces[k];
 			aPiece->mColumnTag = aChainId;
+			aPiece->mGroupId = aRunId;
 			aPiece->mMatchedUpdate = mUpdateCnt;
-			// 0x789a90: the match's piece is marked at 0.9 and the match lets it go when it passes 1
-			aPiece->mMatchTimer = 0.89999998f;
-			aGroup.mPieces.push_back(aPiece);
-			aGroup.mPieceIds.push_back(aPiece->mId);
+			if (aPiece->mMatchTimer == 0.0f) {
+				// port: stands in for the pulse that holds the gem while it is cleared (see UpdateMatchGroups)
+				aPiece->mMatchTimer = 0.89999998f;
+				aGroup.mPieces.push_back(aPiece);
+				aGroup.mPieceIds.push_back(aPiece->mId);
+			}
 		}
-		// the score: 0x75d86f to 0x75d965
-		int aPieceCount = (int)aMatch.size();
+		int aPieceCount = (int)aRun.mPieces.size();
 		MoveRecord* aRecord = FindMoveRecord(aChainId);
 		if (aRecord != nullptr)
 			aRecord->mMatchCount++;
@@ -499,7 +475,8 @@ int Board::FindMatches()
 		if (aPieceCount >= 5)
 			aPoints += (aPieceCount - 4) * 0x15e;
 		AddPoints(aPoints);
-		mMatchGroups.push_back(aGroup);
+		if (!aGroup.mPieces.empty())
+			mMatchGroups.push_back(aGroup);
 	}
 	return aCount;
 }
@@ -543,17 +520,35 @@ void Board::UpdateMatchGroups()
 	}
 }
 
-// 0x74c770 (bejeweled3), for a plain piece: 50 points for it (a piece without the bits 0x1800 calls slot 152, 0x74df80, at 0x74c87e with 0x32 as the
-// points; ClassicBoard's vtable 0x86511c holds AddPoints at 0x260, and its other callers are the special gems' own: 0x73d380,
-// 0x73f8e0, 0x749650, 0x74c070 and three in 0x767e20), then it goes from the grid. port: the pieces' sparks (the
-// app's Rand() is drawn for them: 14 times 5 for the first ring, 25 times about 13, 14 times 6, and more) and the sounds,
-// the pictures of the destruction and the bits of the flags are not translated, so the app's random numbers are not drawn
-// as the exe draws them
+// 0x74c770 (bejeweled3), for a plain piece: 50 points for it (a piece without the bits 0x1800 calls slot 152, 0x74df80, at
+// 0x74c87e with 0x32 as the points; ClassicBoard's vtable 0x86511c holds AddPoints at 0x260, and its other callers are the
+// special gems' own: 0x73d380, 0x73f8e0, 0x749650, 0x74c070 and three in 0x767e20); then the sparks are made, which draw
+// from the app's generator (DrawSparkRandoms); then it goes from the grid. port: the sparks themselves, the sounds and the
+// bits of the flags are not translated. The points text that AddPoints makes (0x71f030, its effect 0x71e5f0 draws 5 times
+// in a loop) is not translated either, so its draws are missing too
 void Board::DestroyPiece(Piece* thePiece)
 {
 	if ((thePiece->mFlags & FLAGS_SPECIAL_SWAP) == 0)
 		AddPoints(0x32);
+	DrawSparkRandoms();
 	RemovePiece(thePiece);
+}
+
+// 0x74c770 (bejeweled3), the draws of the app's Rand() (0x439a90, the Mersenne twister at 0x5865b0) that the sparks of a
+// plain gem make, in the exe's order and count, for a gem at rest (so its place equals the place the caller passes: the
+// speed 0x74c770 reads from their difference is 0, and the 25 sparks of the middle ring take their short branch) in a
+// board whose slot 0x1c4 (0x73c1f0) is 0, with no bit 0x400, and a match timer (+0x178) of 0. Each spark is made by
+// 0x729c20, whose constructor 0x729460 draws first (a draw by 0x712da0 is one Rand()):
+//   14 sparks of type 0xe: the constructor draws 2, the loop 5 (angle, radius, x, y, size)         = 7 each
+//   25 sparks of type 0xb: the constructor draws 2 (0xb: one Rand() and one 0x712da0), the loop 8                      = 10 each
+//   14 sparks of type 0xe: the constructor draws 2, the loop 4                                                        = 6 each
+// = 432 draws. port: a gem with a match timer above 0 makes 15 more sparks of type 10 (3 draws and the constructor's), a
+// zero speed is not checked, and the draws' values are dropped
+void Board::DrawSparkRandoms()
+{
+	const int SPARK_DRAWS = 14 * 7 + 25 * 10 + 14 * 6;
+	for (int i = 0; i < SPARK_DRAWS; i++)
+		Rand();
 }
 
 // 0x755b80 (bejeweled3): any swap of the piece is dropped; every piece above in its column takes the piece's move id when

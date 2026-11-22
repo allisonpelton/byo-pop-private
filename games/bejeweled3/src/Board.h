@@ -49,6 +49,7 @@ public:
 	float mMatchTimer = 0.0f;   // +0x178: 0.9 once it is part of a match, then 0.015 more each update; at 1 it is let go
 	int mSwapUpdate = -1;   // +0x214: the update it was last swapped in
 	int mMatchedUpdate = -1;   // +0x210: the update it was matched in
+	int mGroupId = -1;      // +0x190: the id of the run that matched it (the board's counter, +0xe1c)
 
 	explicit Piece(Board* theBoard);   // 0x7203b0 (bejeweled3), with 0x720120 (bejeweled3)
 };
@@ -193,6 +194,7 @@ public:
 	void UpdateMatchGroups();
 	// slot 200 (0x74c570) and 0x74c770 (bejeweled3): the piece is destroyed; slot 176, 0x755b80 (bejeweled3): it leaves the grid
 	void DestroyPiece(Piece* thePiece);
+	void DrawSparkRandoms();
 	void RemovePiece(Piece* thePiece);
 	// slot 152, 0x74df80 with 0x74a210 (bejeweled3): points are added to the score
 	void AddPoints(int thePoints);

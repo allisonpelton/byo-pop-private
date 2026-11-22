@@ -508,11 +508,24 @@ end they change cells and the board is searched; with no match the swap goes bac
 change cells again. A script's `swap <col> <row> <up|down|left|right>` asks for the move the player would make; `state` also
 prints points (+0xd24), matches (live match groups) and swaps (running swaps).
 
-Matches (0x75af60, run first in UpdateGame): rows then columns, runs of 3 or more of settled gems of one colour; runs that
-share a gem are one match (so a 4, 5, an L or a cross is one). The match's gems take the highest move id among them and a
-timer (+0x178) of 0.9; the group (+0x125c) adds 0.015 to each gem's timer every update (0x75dee0) and at 1 gives the gem a
-busy count of 1; the next update's busy countdown destroys it (0x74c770, 0x755b80: gems above take the id; the fill then
-refills the column). The fill and the next match search wait while a group is alive.
+Matches (0x75af60, run first in UpdateGame): two passes, the first down each column, the second along each row (the exe's outer
+loop is the first index of its grid expression). A cell takes part when its piece is at rest (0x755ad0: speed 0, in its cell,
+not held by a swap, can fall, busy count 0, the piece's own curve (the pulse of a matched gem) at 0, no bit 0x2000) or was
+matched earlier in the same search (its remembered colour, +0x21c, counts). A run of 3 or more of one colour takes the next id
+of the board's counter (+0xe1c) at once, kept or not, and is one match of its own: a crossing is two matches sharing a gem,
+each scored on its own. A run is held for a later update when, from any of its gems, the 7 cells on each side along the run
+(of the gem's colour, contiguous) hold a free gem that is not yet at rest, or when across the run both sides together hold 2 or
+more such same-colour cells and one is such a gem. A kept run's gems take the highest tag (+0x188) and the run's id (+0x190).
+
+What clears a plain gem is not found: the exe sets a busy count (+0x230) of 1 (which UpdateGame counts down and then destroys
+the gem, 0x74c770) only in 0x75dee0 (the ring of a match group), 0x7870f0 (the group object's own update), 0x74c570 (slot
+320, which does nothing for a plain gem) and for the special gems in 0x75af60 and 0x767e20. The groups (0x2e8 bytes, made by
+0x789a90, in the list at +0x125c) are made only for gems with bit 4 (a flame gem, set by 0x7494d0), bit 2 (0x74c570) and the
+hypercube (0x74db70, type 7); 0x789a90 puts its first gem's timer (+0x178) at 0.9, and 0x75dee0 adds 0.015 to the others' each
+update and gives a gem busy 1 when it is at 1, then its ring (radius 3, or 7 for type 3, every 10 updates, 0.1 / 0.01 steps)
+hits the gems around. So the 0.9 timer and the group of this port are a stand-in for the plain gem's pulse (0x85f0a4: 30
+updates at 0.033333; 0x85f0d0: 15 updates; 0x85f07c: 3 updates, chosen by slots 0x204 and the swap flag), which keeps 0x755ad0
+false for a matched gem. How the exe goes from that pulse to the busy count was not found.
 
 Score: every call of AddPoints is slot 152 (0x260) of the board's vtable. For plain gems there are two: the match (below, 0x75d86f) and
 the destroy function (0x74c87e): 50 for each gem without the bits 0x1800. The others belong to the special gems (0x73d380 250,
@@ -521,10 +534,14 @@ and 350 * (n - 4) more from 5 gems (0x75d86f); AddPoints (0x74a210) takes it tim
 10, each times the level index + 1 (+0xe04, 0), into +0xd24. The shown score (+0xd64) follows it every fourth update by a
 fifth of the distance, plus or minus 1 (0x73b6d0).
 
-Random draws, in order: the swap, the match search and the score draw none. Destroying a gem draws the app's Rand() many times
-for its sparks (not translated: those draws are missing, so the idle shine's later draws differ from the exe's after the
-first match). The fill refills with the board's MTRand as before (Next(15) per new gem, Next(14) per colour); the idle shine
-draws as above.
+Random draws, in order: the swap, the match search and the score draw nothing (AddPoints makes a points text, 0x71f030 with the
+effect 0x71e5f0, which draws 5 times in a loop; not translated, so those draws are missing). Destroying a plain gem (0x74c770,
+after its 50 points) draws the app's Rand() 432 times: 14 sparks of type 0xe (the constructor 0x729460 draws 2, the loop 5),
+25 of type 0xb (constructor 2, loop 8), 14 of type 0xe (constructor 2, loop 4); a 0x712da0 draw is one Rand(). The count holds for
+a gem at rest (so its place equals the caller's and the 25 sparks take the branch without extra draws), slot 0x1c4 false and a
+match timer of 0; a gem with a timer above 0 makes 15 more sparks of type 10. DrawSparkRandoms makes these draws and drops the
+values. The fill refills with the board's MTRand as before (Next(15) per new gem, Next(14) per colour); the idle shine draws
+as above.
 
 Uncertain or left out, each marked `// port:` in BoardMoves.cpp: whether the exe begins a swap in the update of the click or
 the next; the group's life (the exe keeps it about 50 updates as an expanding ring that zeroes the speed of gems it passes;

@@ -100,6 +100,7 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 		aLine += "\"";
 		if (mBoard != nullptr) {
 			aLine += ",\"mode\":\"classic\",\"score\":" + std::to_string(mBoard->mScore) + ",\"points\":" + std::to_string(mBoard->mScorePoints) +
+				",\"movematches\":" + std::to_string(mBoard->mMoveRecords.empty() ? 0 : mBoard->mMoveRecords.back().mMatchCount) +
 				",\"matches\":" + std::to_string(mBoard->mMatchGroups.size()) + ",\"swaps\":" + std::to_string(mBoard->mSwaps.size()) +
 				",\"board\":[";
 			for (int aRow = 0; aRow < Board::ROWS; aRow++) {
