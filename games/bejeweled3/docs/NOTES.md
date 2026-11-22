@@ -850,3 +850,19 @@ only), the rank bar widget (0x682f90), the music queue of PLAY AGAIN, the font's
 (seconds), 17 to 19 (special gems made) and 24, 25 (longest cascade, best move) are written by code that is not translated, so they show 0.
 The leaderboard (`mHighScores`, `mHighScoreNames`, `mLastScoreRank`) is the port's own list of ten; the name is the player's.
 Shown by script: `set points`, `board` with no move, a wait of about 1000 updates, then `click 401 531` (PLAY AGAIN) or `click 563 531`.
+
+### Oddities: not done in this pass (each is a read of the export started, not a translation)
+
+- **Level-change overlay (0x724110).** Read: it is a Draw (slot 26) of the board's overlay widget: the picture's own origin is moved by
+  (ArtRes x 0x780 / 0x4b0 less the widget's width) / 2, then the widget at +0xc4 is placed between its own centre (w/2, h/2 of this
+  widget, +0x48 and +0x4c) and the point (0x3c0, 600) scaled, by the curve value (FUN_00437c60, `1 - t` weighting), shifted by the
+  Ftol'd whole pixels and drawn through its slot 26 under a Translate. Not translated: what the +0xc4 widget is (the 3D level-up
+  banner) was not traced, and the port draws no 3D.
+- **Background fade at a level change (0x77dde0).** Read: it keeps two backgrounds (+0x12c and +0x138: the shown one and the next) and, while
+  `+0x133` (a fade runs) is set, draws the old one onto a render target (FUN_00459c50 over the app's +0x71c, +0x720 size), shifts by
+  0xa0 scaled less the app's +0x714, and the new one over it; it ends by deleting the old one (param_4). The 2D port's `SetBackground`
+  swaps at once. A copy of this fade needs a render-to-image path the port's Graphics has not been checked for; not chased.
+- **Menu dialog's face (sliders ids 0 to 2, checkboxes ids 4 to 10, the board's pause while it is open, +0xd20).** Not started: 0x5a26a0 (the
+  slider maker) is 23 lines, but the sliders' listener (the volume, music and sound set-ups), the checkboxes' options and the places that
+  read +0xd20 (0x6c4ac0, 0x6c4fb0, 0x6c56c0, 0x6d8c60 are other modes'; 0x73b640 and 0x73c330 are Classic's) were not read. The dialog is
+  still the BACK and MAIN MENU buttons only.
