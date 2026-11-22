@@ -7,6 +7,7 @@
 #include "Font.h"
 #include "Graphics.h"
 #include "Image.h"
+#include "PIEffect.h"
 #include "Res.h"
 
 #include <cmath>
@@ -66,10 +67,23 @@ Board::Board()
 		mColorList.push_back(aColor);
 		mColorList.push_back(aColor);
 	}
+	if (PIEFFECT_LEVELBAR != nullptr) {
+		mLevelBarEffect = PIEFFECT_LEVELBAR->Duplicate();
+		mLevelBarEffect->mLoop = true;
+	}
+	MakeButtons();   // 0x741840: the layout puts the buttons where the pictures say
 }
 
 Board::~Board()
 {
+	delete mLevelBarEffect;
+	// the two buttons are the board's children
+	for (ButtonWidget* aButton : {mHintButton, mMenuButton}) {
+		if (aButton != nullptr) {
+			RemoveWidget(aButton);
+			delete aButton;
+		}
+	}
 	for (int aRow = 0; aRow < ROWS; aRow++) {
 		for (int aCol = 0; aCol < COLS; aCol++)
 			delete mGrid[aRow][aCol];
@@ -124,6 +138,7 @@ void Board::ResetGame()
 	mEndScreenShown = false;
 	mHintTimer = 0;
 	mHintFlash = 0;
+	mCheckerFlash = 0.0f;   // 0x74aa8d: +0x1188
 }
 
 // 0x74e410 (bejeweled3): Classic has no seed override (0x73b4f0 returns 0), the saved game of the mode is not there, so the
@@ -278,6 +293,8 @@ static float sGameSpeed = 1.0f;
 // on a plain game
 void Board::Update()
 {
+	if (mLevelBarEffect != nullptr)
+		mLevelBarEffect->Update();   // port: the exe's own update of the bar's effect (set from 0x755620) is not read
 	// +0x1414 and +0x1410 are 0 while a game is played: the speed is asked to be 1 (0.95 is how fast it follows)
 	const float aWantedSpeed = 1.0f;
 	const float aFollow = 0.95f;
@@ -355,6 +372,7 @@ void Board::UpdateGame()
 	}
 	UpdateBusyPieces();
 	UpdatePiecePulses();   // 0x768f7b to 0x7690b8, before the call of 0x75dee0
+	UpdatePieceSpins();    // 0x7690d0 to 0x769149
 	UpdateSlidePositions();   // 0x769189: a piece that slides is drawn along its curve
 	if (!HasLiveMatches())
 		FillInBlanks(false);   // 0x7691xx: slot 203
@@ -403,6 +421,12 @@ void Board::UpdateGame()
 	}
 	if (mHintFlash > 0)
 		mHintFlash--;   // +0x26a0
+	// 0x769df4 to 0x769e46: with no match group alive the checkered squares' light (+0x1188) goes down. port: when it comes to 0 the exe
+	// calls 0x742db0 (and puts 0 in +0x1078), which is not translated
+	if (!HasLiveMatches() && mCheckerFlash > 0.0f) {
+		float aLeft = (float)((double)mCheckerFlash - 0.00125);
+		mCheckerFlash = aLeft > 0.0f ? aLeft : 0.0f;
+	}
 	if (mLandTicks > 0)
 		mLandTicks--;
 }
@@ -562,46 +586,6 @@ bool Board::HasMatches() const
 		}
 	}
 	return false;
-}
-
-// 0x73b250 (bejeweled3), the Classic board's Draw: the panel (0x751d50), then the gems and the score (0x750320). The exe's
-// measures are in 1200ths of the art size in use
-static int Scaled(int theMeasure)
-{
-	return gApp->mArtRes * theMeasure / 1200;
-}
-
-// 0x757df0 (bejeweled3), the plain gem's branch: the gem's sheet of the colour drawn at the piece's own place, which is its
-// x and y (they are its cell's, or above it while it falls) added to the grid's corner, each cut to a whole number and
-// scaled. port: at the sheet's first cel. The exe draws a sprite of its own table (the app's +0xb5c, a row of 15 for each
-// colour, made at start up): frame 7 at rest, picked by (2 - the scale curve at +0x20) * 8 - 1, and that curve is the
-// constant 1 for a plain piece, so nothing spins it; which cel of IMAGE_GEMS_* the table's frame 7 is has not been
-// looked for yet
-void Board::DrawPiece(Graphics* g, const Piece* thePiece)
-{
-	Image* aSheets[Piece::COLOR_COUNT] = {IMAGE_GEMS_RED, IMAGE_GEMS_WHITE, IMAGE_GEMS_GREEN, IMAGE_GEMS_YELLOW,
-		IMAGE_GEMS_PURPLE, IMAGE_GEMS_ORANGE, IMAGE_GEMS_BLUE};
-	if (thePiece->mColor < 0 || thePiece->mColor >= Piece::COLOR_COUNT || aSheets[thePiece->mColor] == nullptr)
-		return;
-	int aX = Ftol((double)((float)GetGridX() + thePiece->mX));
-	int aY = Ftol((double)((float)GetGridY() + thePiece->mY));
-	g->DrawImageCel(aSheets[thePiece->mColor], Scaled(aX), Scaled(aY), 0);
-}
-
-// 0x751d50 and 0x750320 (bejeweled3). port: the checkered panel behind the gems, the side glows, the level bar and the
-// buttons of the screen are not translated yet
-void Board::Draw(Graphics* g)
-{
-	for (int aRow = 0; aRow < ROWS; aRow++) {
-		for (int aCol = 0; aCol < COLS; aCol++) {
-			if (mGrid[aRow][aCol] != nullptr)
-				DrawPiece(g, mGrid[aRow][aCol]);
-		}
-	}
-	// 0x746f20: the score, in FONT_SCORE, in the middle of x 250 at y 202
-	g->SetFont(FONT_SCORE);
-	g->SetColor(Color(255, 255, 255, 255));
-	g->WriteString(CommaSeperate(mScore), Scaled(250), Scaled(202), 0, 0, true, 0, -1, -1);
 }
 
 }  // namespace Sexy

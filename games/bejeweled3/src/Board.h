@@ -9,6 +9,7 @@
 #pragma once
 
 #include "ButtonListener.h"
+#include "ButtonWidget.h"
 #include "CurvedVal.h"
 #include "MTRand.h"
 #include "Widget.h"
@@ -19,6 +20,7 @@
 namespace Sexy {
 
 class Board;
+class PIEffect;
 
 // One gem. Fields are named by what the code that reads them does with them; the ones that nothing translated reads
 // are left out (the fill also sets +0x182 to 1 and +0x244 to 0 on each piece it makes: nothing translated reads them).
@@ -70,6 +72,8 @@ public:
 	float mRingMark = 0.0f;     // +0x264: the highest timer (up to 1) a ring of a match group has seen on the piece (drawn only)
 	int mDestroyerId = -1;      // +0x234: the id of the piece that cleared it (0x75dee0, 0x74c570); nothing translated reads it
 	int mDestroyerFlags = 0;    // +0x238: the flags of what cleared it; nothing translated reads it
+	float mSpinPhase = 0.0f;    // +0x170: how far through its turn (0 to 1) the gem is while it is picked up or already turning; 0.02 more each
+	                        // update (UpdatePieceSpins) and 0 again at 1; the picture is cel (20 x the phase) of the gem's sheet (0x757df0)
 	int mSwapUpdate = -1;   // +0x214: the update it was last swapped in
 	int mMatchedUpdate = -1;   // +0x210: the update it was matched in
 	int mGroupId = -1;      // +0x190: the id of the run that matched it (the board's counter, +0xe1c)
@@ -190,6 +194,12 @@ public:
 	std::vector<SwapRecord> mSwaps;          // +0xc30
 	std::vector<std::unique_ptr<MatchGroup>> mMatchGroups;    // +0x125c (the exe's list holds pointers too)
 	int mGroupTypeSwitch = 0;        // +0xe8: not 0 makes the groups of matches type 2 instead of 3 (nothing translated sets it)
+	float mCheckerFlash = 0.0f;      // +0x1188: 0 after a reset (0x74aa8d); 0x74a590 (run by 0x74c291 and 0x762986, in the special gems' going off: not
+	                                 // translated, so it stays 0) makes it 1; 0.00125 less each update while no match group lives (0x769e01):
+	                                 // the checkered squares of the panel are lit by it (0x751d50)
+	PIEffect* mLevelBarEffect = nullptr;   // a copy of PIEFFECT_LEVELBAR (the exe draws the resource itself, 0x7540c0), drawn over the bar's back
+	ButtonWidget* mHintButton = nullptr;   // +0x286c: made by the layout 0x741840 (id 0, IMAGE_INGAMEUI_HINT_BUTTON_CLASSIC)
+	ButtonWidget* mMenuButton = nullptr;   // +0x2870: (id 1, IMAGE_INGAMEUI_MENU_BUTTON_CLASSIC)
 	float mGroupGlow = 0.0f;         // +0x27b8: 0.02 less each update, 0.05 more while a group lives, up to 1 (drawn only)
 	float mRingFlash = 0.0f;         // +0x1240: 1 when a group has made its last ring (drawn only)
 	std::vector<PendingSwap> mPendingSwaps;  // +0xc60
@@ -228,7 +238,10 @@ public:
 
 	Board();                                   // 0x74ae30 (bejeweled3)
 	~Board() override;
-	void ButtonDepress(int theId) override {}  // 0x741130 and the others' buttons come with their steps
+	// 0x74bc40 (bejeweled3), the listener at +0xbc: the Hint button (id 0) asks for a hint (slot 202); the Menu button (id 1) is not
+	// translated yet (the in-game menu dialog, 0x681370)
+	void ButtonDepress(int theId) override;
+	enum { BUTTON_HINT = 0, BUTTON_MENU = 1 };   // the ids 0x741840 gives the Classic board's two buttons
 
 	// slot 85, 0x74a880 (bejeweled3): the board is emptied for a new game
 	void ResetGame();
@@ -298,6 +311,8 @@ public:
 	int FindMatches();
 	// 0x75dee0 (bejeweled3): the match groups run: their pieces' timers, their rings, their end
 	void UpdateMatchGroups();
+	// 0x767e20, 0x7690d0 to 0x769149: the gems that are picked up or turning turn further
+	void UpdatePieceSpins();
 	void UpdatePiecePulses();   // the loop of 0x767e20 (0x768f7b to 0x7690b8) over the pieces' scale curves
 	// 0x789a90 (bejeweled3), for the types other than 7: a group is made for a piece and put at the end of the list
 	MatchGroup* MakeMatchGroup(Piece* thePiece, int theType);
@@ -378,9 +393,12 @@ public:
 
 	// slot 89, 0x7413e0 (bejeweled3)
 	virtual const char* GetModeName() const { return "Classic"; }
-	// 0x751d50 and 0x750320 (bejeweled3): the board's panel and gems
+	// 0x73b250 (bejeweled3): the panel (0x751d50), then the gems and the rest of the screen (0x750320)
 	void Draw(Graphics* g) override;
+	void DrawPanel(Graphics* g);                           // 0x751d50 (bejeweled3): the checkered squares behind the gems
 	void DrawPiece(Graphics* g, const Piece* thePiece);   // slot 237, 0x757df0 (bejeweled3)
+	void DrawScreenFrame(Graphics* g);                     // the pictures round the grid (slots 0x3bc, 0x3c0, 0x3c4, 0x3e4) and the left panel
+	void MakeButtons();                                    // 0x741840 (bejeweled3), Classic's two buttons
 };
 
 class ClassicBoard : public Board {

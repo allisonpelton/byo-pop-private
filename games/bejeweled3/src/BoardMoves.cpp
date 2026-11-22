@@ -1089,6 +1089,24 @@ void Board::UpdateMatchGroups()
 // at 1 the curve is put back to the constant 1; at 0 (the shrink has run out) and with the piece's own swap curve at rest the
 // piece is taken from the board (slot 0x2c0, RemovePiece) with no busy count, so neither 0x74c770's 50 points and sparks nor
 // its draws of Rand() happen: a plain match is scored once, by 0x75af60
+// 0x7690d0 to 0x769149 (and the same loop at 0x767bbf in UpdateTick, whose condition 0x75a6e0 is not translated): a gem that is picked up
+// or already turning turns 0.02 of its way further; at a whole turn it is at rest again
+void Board::UpdatePieceSpins()
+{
+	for (int aRow = 0; aRow < ROWS; aRow++) {
+		for (int aCol = 0; aCol < COLS; aCol++) {
+			Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece == nullptr)
+				continue;
+			if (aPiece->mSpinPhase != 0.0f || aPiece->mSelected) {
+				aPiece->mSpinPhase = (float)((double)aPiece->mSpinPhase + 0.019999999552965164);
+				if (aPiece->mSpinPhase >= 1.0f)
+					aPiece->mSpinPhase = 0.0f;
+			}
+		}
+	}
+}
+
 void Board::UpdatePiecePulses()
 {
 	for (int aRow = 0; aRow < ROWS; aRow++) {

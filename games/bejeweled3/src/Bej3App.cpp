@@ -4,6 +4,7 @@
 #include "Bej3Dialog.h"
 #include "Bej3Music.h"
 #include "Board.h"
+#include "MemoryImage.h"
 #include "MainMenu.h"
 #include "WidgetManager.h"
 #include "DDInterface.h"
@@ -68,6 +69,12 @@ Bej3App::~Bej3App()
 	// the loaded player is saved as the profile goes (0x71c4b0)
 	delete mProfile;
 	mProfile = nullptr;
+	for (auto& aRow : mGemFrames) {
+		for (MemoryImage*& aFrame : aRow) {
+			delete aFrame;
+			aFrame = nullptr;
+		}
+	}
 	delete mPrimeResourceManager;
 	gApp = nullptr;
 }
@@ -430,6 +437,8 @@ void Bej3App::ShowResourceError(bool doExit)
 // 0x7737d0 (bejeweled3)
 void Bej3App::StartClassic()
 {
+	if (mGemFrames[0][7] == nullptr)
+		MakeGemFrames();
 	// the board of the game before goes (the exe also lets go of another screen at +0xba4: nothing there is made yet)
 	if (mBoard != nullptr) {
 		mWidgetManager->RemoveWidget(mBoard);

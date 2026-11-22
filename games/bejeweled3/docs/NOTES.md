@@ -452,6 +452,7 @@ runs of two processes): OOROOGBW BOYRPWYB OWBWRRYW GOYBGBOG OGBYRYYB YBOOWPOG GP
 Test commands (TestCommands.cpp): `seed <n>`, `goto classic` (the start above, as the PLAY menu's ball makes it), `state`
 (`STATE {"screen","mode","score","board":[8 strings],"background"}`).
 
+(The next two paragraphs are the first reading of the drawing; "The Classic screen's drawing", at the end, replaces them.)
 Draw: the Classic board's Draw (slot 26, 0x73b250) runs 0x751d50 (the panel) and then Board::DrawGameElements (0x750320),
 which draws, among much else, each piece by slot 237 (0x757df0). A plain piece (no flags, nothing running on it) is
 IMAGE_GEMS_<colour> (resource ids 0x310 to 0x316: red, white, green, yellow, purple, orange, blue; 5 by 4 cels of 128 at
@@ -708,3 +709,55 @@ Results (seed 7, -fast): a bot that plays the first move never runs out of moves
 updates: level 50, 30 million points, every level's reshuffle left a move), so a whole game is: `bot 150` from update 400 (level 4, 27720 points
 at update 30000), the board put to a pattern with no move at update 30001, game over at once, the end screen at 674 updates after. The run twice
 gives identical `state` output. Level-up: progress 2490 and one more move, level change started at 398 to 498, level 2 at count 200.
+
+## The Classic screen's drawing (src/BoardDraw.cpp)
+
+Draw order of the exe: ClassicBoard::Draw (0x73b250) runs the panel (0x751d50) and 0x750320. The panel calls slot 250 (0x751c20 at its end), which
+draws the HUD: slot 249 (0x7423e0: the top widget and the level number), slot 255 (0x746f20: the score) and slot 251 (0x741440: the bottom
+widget). 0x750320 then draws the frames (slot 238, 0x743ad0: slot 239 0x745880 the frame over the grid, slot 240 0x745430 the bar's frame under
+it and, through slot 241 0x7540c0, the bar's back and fill) and the gems (slot 246, 0x7568a0, in passes). The "N MATCH CHAIN" and "SPEED +N" block
+of 0x750320 is behind slot 91, which is 0 for Classic. The pictures of the left panel are put where resources.xml puts them (the x= and y= of the
+image; the exe keeps them in globals 0x8da624 to 0x8da6a4, in the order of the images) with the panel's 400 taken off x and 250 (slot 248,
+0x73b6c0) added: the top widget (IMAGE_INGAMEUI_TOP_WIDGET), the level number (level index + 1 through CommaSeperate, FONT_LEVEL, "GLOW"
+layer (128, 128, 128), the middle of x 250 at y 250), the score (FONT_SCORE at y 202) and IMAGE_INGAMEUI_BOTTOM_WIDGET_CLASSIC. The frames round the grid
+are centred on x = grid + 0x200: IMAGE_INGAMEUI_TOP_FRAME at y = grid - 5, BOTTOM_FRAME_BACK at + 0x41e and THIN_BOTTOM_FRAME at + 0x421
+(0x713850 draws a picture by its middle).
+
+The gems. 0x76bfc0 (run at the end of loading) makes the table at app +0xb5c: for each colour 15 MemoryImages, frame k being the colour's cel of
+IMAGE_GEMS_SHADOWED (7 cels, one a colour) stretched to the scale 2 - (k + 1) / 8 (above 1 its excess is halved) in a square of the gem's size
+(128 x art / 1200), or 1.5 times that for the frames above 1. The exe makes only frame 7 when 0x46f830 (3D on) is true; this port runs the 2D
+mode and makes all 15 (Bej3App::MakeGemFrames, when the first board is made). 0x757df0 (DrawPiece): a gem that is not held by a swap, not turning
+(+0x170 = 0) and has none of the flag bits 1, 4, 0x10, 0x800 and 0x1000 is frame Ftol((2 - x) * 8 - 1) (0 to 14) of its row, x being the scale
+curve (+0x20), or 2s - 1 when it is above 1 (the inverse of the table's halving), drawn with the sprite's middle on the cell's middle. Any other gem
+is cel Ftol(20 x +0x170) of IMAGE_GEMS_<colour> (5 by 4 cels) at the cell's corner, with no shadow. +0x170 (Piece::mSpinPhase) goes up by 0.02
+each update while it is not 0 or the gem is picked up (0x7690d0, UpdatePieceSpins; the same loop at 0x767bbf in UpdateTick has a condition,
+0x75a6e0, that is not translated) and is 0 again at 1. Seen: the pulse and shrink of a match are the table's frames, a swap shows the sheet's cel 0.
+
+The panel. 0x751d50 fills the 8 by 8 squares of the grid with two colours alternating ((column + row) even: the board's +0xd2c (6, 6, 6, 160);
+odd: +0xd3c (24, 24, 24, 160); both made by 0x74a880), lit towards two glow colours by +0x1188 ("the flash": min(1, 5 x it) is the blend by
+0x712c90, a plain lerp; the glows are (180, 14u + 100, 8u + 48) and (160, 12u + 90, 7u + 40) with u = 60 x it, alpha 200 x the board's alpha, which
+for u above about 10 go past 255). +0x1188 is 0 after a reset and 0x74a590 sets it to 1; the two callers (0x74c291, 0x762986) are in the special gems'
+going off and are not translated, so it stays 0 and the squares are the board's two colours. It goes down by 0.00125 each update with no match
+group alive (0x769e01, in UpdateGame).
+
+The buttons (0x741840, Classic's mode 0): Bej3Button (vtable 0x86498c, ctor 0x49c490) with id 0 (Hint, IMAGE_INGAMEUI_HINT_BUTTON_CLASSIC, +0x286c) and id 1 (Menu,
+IMAGE_INGAMEUI_MENU_BUTTON_CLASSIC, +0x2870), each at its picture's x= and y= with the panel's shift, a cel in size, cel 0 normal, cel 1 over and
+down. The listener is 0x74bc40: nothing while a dialog (+0xd20) or the game's end (+0xd1c) holds the board; id 0 asks for a hint (slot 202 when +0x120c
+is 0); id 1 opens the menu dialog 0x15 (0x681370), which is not translated, so the Menu button does nothing yet. The other modes' buttons (the
+Replay and Reset ones, 0x70e880 for Zen) are not made. Seen in the port: a click at the Hint button resets the hint timer.
+
+Oddities (not translated, each with a `port:` note in the source):
+- The level bar's fill. The exe's 0x7540c0 clips the resource PIEFFECT_LEVELBAR to the bar's rectangle (the back picture's size, centred at grid x + 0x200,
+  y + 0x41e; slot 87, 0x73d5e0) by the drawn bar's fraction (+0xd68) and draws it. 0x755620 sets, in a second object (reached by 0x565f40, with 0x18-byte key
+  points at +0xc of 0x60-byte records: a PopAnim's, not the PIEffect's), the points (0, h / 2) and (w x bar, h / 2). The port draws a copy of the PIEffect at
+  the bar's top-left, clipped to the fraction, updated each Board::Update: the glow is there but only as long as the effect is by itself (about 130 pixels at
+  600), so a bar above a third does not show more. What 0x755620 and 0x75a760 drive has not been read.
+- The gems' other pictures: the Flame Gem's PIEffect (PIEFFECT_BLASTGEM), the Star Gem's and the Hypercube's pictures and effects (0x745a60, 0x755030,
+  0x754c60, the flag bits 4 and 0x2000 at the end of 0x757df0), the selection and hint glows (+0x240, bit 0x200), the blend of two cels round a turn (a PIEffect
+  "Params" when the board's alpha is 1), the pass order of 0x7568a0 (plain, special, flame gems with the effects between) and the piece's alpha curve
+  (+0x90, constant 1). Gems are drawn in one pass in the grid's order.
+- The panel's slide in and out (curves +0x2980 and +0x2a60, the whole panel and its HUD move by them), the picture behind it while +0x2bb8 is not 0, the glow while +0x27d0 is
+  above 0, the y shift +0x1194, the glows of the frames while the bar's stage is on (slot 218), the overlays 0x7501c0 and 0x751500 (the buttons drawn by hand), and
+  the hover curves of the buttons (+0x150, +0x158).
+- The level change's overlay (HyperspaceFallback, 0x724110) and the game over screen (the end dialog, 0x26) are not drawn: only their state is translated.
+- The Menu button (above), the click sound (0x76aaf0) of the buttons, and 0x742db0 (run when +0x1188 comes to 0).
