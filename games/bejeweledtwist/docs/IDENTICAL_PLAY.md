@@ -389,10 +389,15 @@ set: the bomb count, the multiplier's steps and the rank points. The repository 
 Windows Sandbox on origrun's virtual clock, one route at a time; it used the scripted cursor where it twists, since
 its board takes a twist only from a cursor it can see. The port ran under rundesk with `-fast`. A route's shots are
 lined up on the menu's first update in both programs: the port's update is the original's plus 5 from the menu, and plus 4 under
-the autoplay. All the pairs were compared in one shotdiff run, `screens` (FRUITRUN). The tour (`tools/check.sh
+the autoplay. All the pairs were compared in one shotdiff run, `screens` (90 pairs, generated 2026-11-21T23:42:25 on the merged trunk at 1c24bc70: 11 matching, 11 only faintly, and 68 differing, each explained in its row). The tour (`tools/check.sh
 bejeweledtwist`) replays the eight routes on the port and freezes a hash of each route's shots, so the frozen baseline
 covers them. Phase two's sets V3 and V4 and the challenge pass had already compared 3D and full screen, and full screen
 draws the same picture scaled, so the routes are 2D and windowed.
+
+The frozen baseline and the tour's hashes were refrozen with this pass. The Play button's catch-up through the
+loader's updates draws from the global Rand as the original's does, so every later draw of that Rand moves: the
+boards, moves and scores of Classic, Blitz and the take-off are the ones before, but the autoplay's pace and the
+sparkles differ, and their shots with them.
 
 The "Deluxe" request (the user, in their words: "Remove the "Deluxe" text from the main screen of any game it may
 appear in, to avoid misleading people about whose game version they're playing") needs nothing in Twist. The only
@@ -426,7 +431,8 @@ no screen of the port shows it.
 - The screens no route reaches are listed in SCREENS.md with their reasons. The mode-unlock banner never shows in
   this copy: it is Steam's, and its mode select unlocks Blitz the first time it opens. The options' graphics dialogs
   show only on a card or display that refuses. The original's crash reporter is not ported.
-- FRUITDIFF
+- Every pair that still differs is explained in its row of SCREENS.md: effects placed by the global Rand, the
+  autoplay's slip, or a shot that landed early.
 
 ### Deviations that remain
 
