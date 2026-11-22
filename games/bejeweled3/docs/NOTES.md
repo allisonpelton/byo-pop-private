@@ -88,14 +88,20 @@ What the analysis has found about the exe, for reading the export. The plan is i
 
 - `engines/prime/PIEffect` reads every `.ppf` file of the game to its last byte (`b3_pieffecttest`: 118 files, 276
   emitters, 298 particle definitions, 253 layers). The random generator is framework/MTRand at PIEffect+0x78.
-- Not yet translated: the update and the drawing (Update 0x573290, UpdateParticleDef 0x5707d0, UpdateParticleGroup
-  0x571ad0, CalcParticleTransform 0x56fe50, GetGeomPos 0x569f80, GetEmitterPos 0x56fda0, DrawParticleGroup 0x574060,
-  DrawLayer 0x574700, Draw 0x575650, ResetAnim 0x56f730, Clear 0x56fab0, LoadState 0x56e4f0, SaveState 0x56eed0) and
-  the run-time classes (layers, emitter instances, particles, groups, free emitters); the textures' images (0x5679b0,
-  through the app's shared images); the seeding of the generator. Eleven files end with a cached starting state that
-  LoadState reads.
-- Names left to check against the update and draw code: several flags and values of the particle definitions, the
-  emitters and the emitter instances, and the placeholders mFlagA to mFlagC and mValueA to mValueH (`PIEffectDef.h`).
+- Translated: the update (Update 0x573290, UpdateParticleDef 0x5707d0, UpdateParticleGroup 0x571ad0,
+  CalcParticleTransform 0x56fe50, GetGeomPos 0x569f80, GetEmitterPos 0x56fda0, ResetAnim 0x56f730, Clear 0x56fab0,
+  IsActive 0x575790), the run-time classes (layers, emitter instances, particles, groups, free emitters), the
+  generator's seeding (from the effect's seed list, else Rand, on the first update after it is made or reset) and the cached starting state that
+  eleven files end with (0x56e4f0, which the first update loads in place of running those frames). `b3_pieffecttest`
+  plays every effect for 300 updates with a fixed seed, the same twice; every cached state reads to its last byte.
+- Readings checked against the exe's instructions: a deflector's bounce mirrors the particle's step about the edge,
+  makes it the new velocity times 100 and softens the vertical part toward the bounce strength's square root by the
+  steepness (0x5728cb-0x5729ed).
+- Not yet translated: the drawing (Draw 0x575650, DrawLayer 0x574700, DrawParticleGroup 0x574060) and the textures'
+  images (0x5679b0, through the app's shared images; a texture without one gets a 64x64 cell so that a test can run
+  without images), duplicating an effect for PopAnim, SaveState 0x56eed0 and the path for a state a game saved.
+- Names left to check against the draw code: the placeholders mFlagA to mFlagC and mValueA to mValueH
+  (`PIEffectDef.h`) and mUnreadFlag (`PIEffect.h`).
 
 ## Boot
 
