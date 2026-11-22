@@ -22,8 +22,8 @@ echo "toolchain: $tc"
 
 CFLAGS="-O2 -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function"
 
-echo "building dsound.dll (the sound stand-in, which also carries the virtual clock, the scripted cursor, the message-box hook, the registry map, the network block, the launch guard, the coverage recorder and the cycle counters) ..."
-"$CC" $CFLAGS -shared -o "$out/dsound.dll" "$here/dsound_proxy.c" "$here/vclock.c" "$here/cursor.c" "$here/msgbox.c" "$here/regmap.c" "$here/net.c" "$here/coverage.c" "$here/count.c" "$here/dsound_proxy.def" \
+echo "building dsound.dll (the sound stand-in, which also carries the virtual clock, the scripted cursor, the message-box hook, the registry map, the network block, the launch guard, the coverage recorder, the cycle counters and the in-game frame reader) ..."
+"$CC" $CFLAGS -shared -o "$out/dsound.dll" "$here/dsound_proxy.c" "$here/vclock.c" "$here/cursor.c" "$here/msgbox.c" "$here/regmap.c" "$here/net.c" "$here/coverage.c" "$here/count.c" "$here/reader.c" "$here/dsound_proxy.def" \
   -Wl,--enable-stdcall-fixup -lole32 -lwinmm -luser32 -ladvapi32
 
 echo "building origrun.exe ..."
