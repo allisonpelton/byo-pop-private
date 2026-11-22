@@ -1083,8 +1083,8 @@ copied in, the flag is set and the common start (StartBoard) runs. Unlock: the p
 unlocked (they say so) and go through the play menu. State keys: Butterflies has butterflies (eight strings of digits for the moves each
 butterfly waits, capitals for a caught one), spiderx (hundredths), spiderto, dropcountdown, credit, spawncount, sidechance (thousandths), freed and
 bestcombo; Poker has hand (each card's suit, "/" and a second suit, f, s or w for the card's type, "-" for no card), besthand (index, -1 none),
-skull (-1 none), skullclock and buster (thousandths), hands, busted, counts (the kinds' counts, the first the hands a skull took), phase,
-handscore and flips. `bot` and `move` work in both modes (the move search is Board's).
+skull (-1 none), skullclock and buster (thousandths), hands, busted, counts (the kinds' counts, the first the hands a skull took), handcurve,
+flipcurve and flycurve (the curves' values in thousandths), handscore and flips. `bot` and `move` work in both modes (the move search is Board's).
 
 ### Butterflies
 
@@ -1155,11 +1155,13 @@ Slots of PokerBoard that differ from QuestBoard's (the address of the Poker one)
 190 (0x6c4d50, 0x14), 191 (0x6cfaa0), 201 (0x6d90a0), 203 (0x6dd570), 220 (0x6c4d20), 228 (0x6c90e0), 244 (0x6cb6d0), 249 (0x6d4300), 254
 (0x6c4d40, 300), 255 (0x6c8de0), 256 (0x6cf440), 257 (0x6d1540), 258 (0x6c4d10, 0x41) and 260 (0x6d1650).
 
-Deviations (Poker): the exe's update (0x6dedd0) waits on five animation curves of the board between the scoring, the bonuses, the cards' flight
-and the coin; the port counts those stretches in updates (PHASE_SCORE 66, bonuses from 23 every 10, PHASE_CLEAR 66, PHASE_FLIP 150, the rates of the
-curve strings that were read), so a hand's timing differs and with it how many matches a player gets in before a hand is paid. The eliminator's bar
-as drawn follows the bar on every update (the exe's step is under slot 98). The flip's safe end clears the hand at its end (the exe makes a small
-widget there, string 0x180, and clears after another curve). Not translated: the cards' flight (a PopAnimEffect of 0x1e8 bytes per card), the
+Timing (Poker): the exe's update (0x6dedd0) waits on animation curves, and the port steps the same curves (CurvedVal) from the exe's strings: the
+hand's display (+0x3728; 0x7d7c4c, 450 updates, for a flush and 0x7d7c70, 350, for the others, set by 0x6cb520), the skull's fly-away (+0x3888, 0x7d7b44,
+about 75 updates, started when the bar is full and ends with the clear), the coin (+0x3ab0, 0x7d8298, 150, set by 0x6cb430) and the wait after a won coin
+(+0x3b20, 0x7d7c10, 250), and the bonus throttle (+0x37a0, 0x7d7bb0, 20, one flame or star card paid per run of it, once the display is past 0.35).
+Slot 98 (0x6c6470) is false while the fly-away, the display, the coin or the wait runs, so a match is only found at rest, as in the exe. The
+exe's list at +0x26b8 (which the exe also asks before scoring) is taken as empty. Deviations (Poker): The flip's safe end clears the hand when the wait after it ends (the exe makes a small
+widget there, string 0x180, which the port leaves out). Not translated: the cards' flight (a PopAnimEffect of 0x1e8 bytes per card), the
 hand's name display and awards (FONT_POKER_AWARD), the skull's pictures and the coin, every sound, and the hand's own HUD (the port draws the five
 cards, the hand's name and a line of text for the skull's level and the bar, at places found by looking, in the strip left of the grid). The
 setting at +0x3968 (first read by 0x6dfa40) and Hands belong to the games that are not secret.

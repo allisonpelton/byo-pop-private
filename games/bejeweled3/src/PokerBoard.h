@@ -6,6 +6,7 @@
 // update waits on, are replaced by counted updates.
 #pragma once
 
+#include "CurvedVal.h"
 #include "QuestBoard.h"
 
 #include <string>
@@ -25,10 +26,14 @@ struct PokerCard {
 class PokerBoard : public QuestBoard {
 public:
 	enum { CARD_COUNT = 5, HAND_KINDS = 7 };
-	// what the hand is doing. port: the exe asks five of the board's animation curves (0x437c60, 0x437f30) at each update of 0x6dedd0; these are the
-	// stretches those curves make, counted in updates (the curves' rates: 0.015152 an update is 66, 0.006667 is 150)
-	enum Phase { PHASE_IDLE, PHASE_SCORE, PHASE_CLEAR, PHASE_FLIP };
-	enum { SCORE_TICKS = 66, BONUS_FROM_TICK = 23, BONUS_EVERY_TICKS = 10, CLEAR_TICKS = 66, FLIP_TICKS = 150 };
+	// the curves the exe's update (0x6dedd0) waits on, from the strings of the exe's data (each says its address where it is set)
+	static const char* const HAND_CURVE_FLUSH;        // 0x7d7c4c (0x6cb520): the display of a flush
+	static const char* const HAND_CURVE;              // 0x7d7c70 (0x6cb520): the display of any other hand
+	static const char* const FLY_CURVE;               // 0x7d7b44 (0x6dedd0): the cards leave while the eliminator takes a skull
+	static const char* const FLIP_CURVE;              // 0x7d8298 (0x6cb430): the coin in the air
+	static const char* const AFTER_FLIP_CURVE;        // 0x7d7c10 (0x6dedd0): the coin's result stays on show
+	static const char* const BONUS_CURVE;             // 0x7d7bb0 (0x6dedd0): the wait after each flame or star card's bonus
+
 	// the counter 0x6cb430 adds the coin flips to (73d170 with 3), and the one the flush adds to (0x6cb520: 0x20)
 	enum { COUNTER_COIN_FLIPS = 3, COUNTER_FLUSHES = 0x20 };
 
@@ -61,9 +66,12 @@ public:
 	int mHandCounts[HAND_KINDS + 1] = {}; // +0x39e4: how many of each hand were made (0 the ones a skull took, 1 to 7 as the hands rank)
 	bool mCoinLost = false;               // +0x3b90: the coin flip started by 0x6cb430 ends the game
 
-	// the stretch the hand is in and its update count
-	Phase mPhase = PHASE_IDLE;
-	int mPhaseTicks = 0;
+	// the curves (members of the exe's board)
+	mutable CurvedVal mHandCurve;         // +0x3728: the hand's display, which the scoring starts and the clear stops (0 at rest)
+	mutable CurvedVal mFlyCurve;          // +0x3888: the cards' leaving with a skull eliminated (0 at rest)
+	mutable CurvedVal mFlipCurve;         // +0x3ab0: the coin flip (0 at rest)
+	mutable CurvedVal mAfterFlipCurve;    // +0x3b20: the result of a coin flip that was won (0 at rest)
+	mutable CurvedVal mBonusCurve;        // +0x37a0: the wait between two bonuses (never set until the first flame or star card pays)
 
 	PokerBoard();   // 0x6da1c0 (bejeweled3)
 

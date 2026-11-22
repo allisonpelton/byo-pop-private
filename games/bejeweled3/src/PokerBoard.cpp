@@ -30,6 +30,15 @@ const int CARD_TOP = 0x190;
 
 }  // namespace
 
+// the curves of Poker, from the exe's data: the hand's display (0x7d7c4c for a flush, 0x7d7c70 for the others), the fly-away of an eliminated
+// skull (0x7d7b44), the coin flip (0x7d8298), the wait after a won flip (0x7d7c10) and the throttle between two bonuses (0x7d7bb0)
+const char* const PokerBoard::HAND_CURVE_FLUSH = "b+0,1,0.002222,1,####         ~~###";
+const char* const PokerBoard::HAND_CURVE = "b+0,1,0.002857,1,####         ~~###";
+const char* const PokerBoard::FLY_CURVE = "b30,1,0.013333,1,#         ~~";
+const char* const PokerBoard::FLIP_CURVE = "b#0,1,0.006667,1,#         ~~";
+const char* const PokerBoard::AFTER_FLIP_CURVE = "b#0,1,0.004,1,#         ~~";
+const char* const PokerBoard::BONUS_CURVE = "b+0,1,0.05,1,#5T8     $~###    }#=Pd";
+
 // 0x6da1c0 (bejeweled3): QuestBoard's constructor (0x6d9000), the vftable 0x869364 and the hand's fields at +0x3248 to +0x3b98
 PokerBoard::PokerBoard()
 {
@@ -77,8 +86,10 @@ void PokerBoard::NewGame()
 	mBusterShown = 0.0f;
 	mSkullClock = 0.0f;
 	mCoinLost = false;
-	mPhase = PHASE_IDLE;
-	mPhaseTicks = 0;
+	mHandCurve.SetConstant(0.0);   // 0x6dfa40: the four curves the update waits on start at 0
+	mFlyCurve.SetConstant(0.0);
+	mFlipCurve.SetConstant(0.0);
+	mAfterFlipCurve.SetConstant(0.0);
 	Board::NewGame();
 }
 
@@ -90,11 +101,11 @@ void PokerBoard::OnFirstSettled()
 		ClearHand();
 }
 
-// slot 98 (0x188), 0x6c6470 (bejeweled3): a hint (and a match, which slot 201 asks it about) only while the hand's animations stand still, and then
-// as QuestBoard's (0x6c6310, which is Board's 0x73d4f0 for a secret mode). port: the stretches of PHASE_* are the animations
+// slot 98 (0x188), 0x6c6470 (bejeweled3): a hint (and a match, which slot 201 asks it about) only while none of the curves 0x3888, 0x3728,
+// 0x3638 (never set by Poker), 0x3ab0 and 0x3b20 is running, and then as QuestBoard's (0x6c6310, which is Board's 0x73d4f0 for a secret mode)
 bool PokerBoard::HintAllowed() const
 {
-	if (mPhase != PHASE_IDLE)
+	if (mFlyCurve.IsDoingCurve() || mHandCurve.IsDoingCurve() || mFlipCurve.IsDoingCurve() || mAfterFlipCurve.IsDoingCurve())
 		return false;
 	return Board::HintAllowed();
 }
@@ -296,6 +307,7 @@ void PokerBoard::AddHandPoints(int thePoints)
 void PokerBoard::ScoreHand()
 {
 	int aRank = BestHandRank();
+	mHandCurve.SetCurve(aRank == 7 ? HAND_CURVE_FLUSH : HAND_CURVE);   // 450 updates for a flush, 350 for the others
 	if (aRank == 7)
 		AddCounter(COUNTER_FLUSHES, 1, -1);
 	int aPoints = 0;
@@ -317,6 +329,8 @@ void PokerBoard::FlipCoin()
 		mCoinLost = true;
 	else
 		mCoinLost = (unsigned int)Rand() % (unsigned int)(mHandCounts[0] + 2) > 0;
+	mFlipCurve.SetCurve(FLIP_CURVE);
+	mFlipCurve.SetMode(0);
 	AddCounter(COUNTER_COIN_FLIPS, 1, -1);
 	if (aProfile != nullptr)
 		aProfile->mStats[STAT_COIN_FLIPS]++;
@@ -344,6 +358,7 @@ void PokerBoard::ClearHand()
 		mSkullClock = 0.0f;
 		mBuster = 0.0f;
 		mBusterShown = 0.0f;
+		mFlyCurve.SetConstant(0.0);
 	}
 	mHands++;
 	mCardCount = 0;
@@ -355,20 +370,21 @@ void PokerBoard::ClearHand()
 		aCard.mColor = -2;
 		aCard.mSecondColor = -2;
 	}
-	mPhase = PHASE_IDLE;
-	mPhaseTicks = 0;
+	mHandCurve.SetConstant(0.0);
 }
 
-// 0x6dedd0 (bejeweled3): the next flame or star card after the cursor pays its bonus (FlameBonus, StarBonus), which goes straight to the score,
-// the level bar's number and the counter of points, and into the hand's points. Returns false when no card is left to pay
+// 0x6dedd0 (bejeweled3): while the hand's display is past 0.35, with a card left and no throttle running, the cursor goes on to the next card
+// that is not a normal or a wild one; that starts the throttle (BONUS_CURVE), and a flame or star card pays its bonus (FlameBonus, StarBonus), which
+// goes straight to the score, the level bar's number and the counter of points, and into the hand's points; a card of another type pays nothing
 void PokerBoard::PayBonus()
 {
-	if (mBonusCursor >= CARD_COUNT)
+	if (!(mHandCurve.GetOutVal() > 0.35) || mBonusCursor >= CARD_COUNT || mBonusCurve.IsDoingCurve())
 		return;
 	mBonusCursor++;
 	while (mBonusCursor < CARD_COUNT) {
 		int aType = mCards[mBonusCursor].mType;
 		if (aType != PokerCard::TYPE_NORMAL && aType != PokerCard::TYPE_WILD) {
+			mBonusCurve.SetCurve(BONUS_CURVE);
 			int aBonus;
 			if (aType == PokerCard::TYPE_FLAME)
 				aBonus = mFlameBonus;
@@ -386,61 +402,61 @@ void PokerBoard::PayBonus()
 	}
 }
 
-// slot 22 (0x58), 0x6dedd0 (bejeweled3): Board's step first, then the eliminator's bar as drawn goes a twentieth of the way to the bar (and onto
-// it when under 0.01 away). With the hand full and the game running, it is scored; then the bonuses of the flame and star cards are paid one
-// at a time; then, with a skull of a level under the hand's kind the hand is cleared at once when the bar is 1 (the skull is eliminated) or after
-// the cards have left; with a skull of the hand's level or above the coin is flipped and, after its curve, the game ends when it is lost (slot
-// 161) and the hand is cleared when it is not. port: the exe waits on its animation curves between these; PHASE_* count them in updates
+// slot 22 (0x58), 0x6dedd0 (bejeweled3): Board's step first. The curves of the throttle, of the wait after a won flip and of the flip are stepped
+// (the others follow the app's updates by themselves). With the fly-away curve at 1 and the bar caught up, the hand is cleared. With five cards
+// and the game running: with the hand's curve at rest at 0 the hand is scored (starting the curve); with it at rest at 1 and both flip curves at 0,
+// a hand at or under the skull's level has its coin flipped, and a hand over it is cleared at once when the bar (once caught up) is short of 1 and
+// else starts the fly-away. While the hand's curve runs it is stepped and the bonuses are paid. The end of the wait after a won flip clears the
+// hand (the skull's clock put back to 0 first); the end of the flip itself ends the game (slot 161) when it is lost and else starts that wait. The
+// eliminator's bar as drawn goes a twentieth of the way to the bar while slot 98 allows. port: the card list at +0x26b8 is taken as empty
 void PokerBoard::UpdateGame()
 {
 	QuestBoard::UpdateGame();
-	if (mGameOverTicks != 0)
+	if (mLeaving)
 		return;
-	mBusterShown = (mBuster - mBusterShown) / 20.0f + mBusterShown;
-	if (std::fabs(mBuster - mBusterShown) < 0.01f)
-		mBusterShown = mBuster;
-	switch (mPhase) {
-	case PHASE_IDLE:
-		if (mCardCount == CARD_COUNT && mHands > 0) {
-			ScoreHand();
-			mPhase = PHASE_SCORE;
-			mPhaseTicks = 0;
-		}
-		break;
-	case PHASE_SCORE:
-		mPhaseTicks++;
-		if (mPhaseTicks >= BONUS_FROM_TICK && (mPhaseTicks - BONUS_FROM_TICK) % BONUS_EVERY_TICKS == 0)
-			PayBonus();
-		if (mPhaseTicks >= SCORE_TICKS && mBonusCursor >= CARD_COUNT && mBusterShown == mBuster) {
-			mPhaseTicks = 0;
-			if (mSkull < mBestHand) {
-				if (mBuster >= 1.0f)
-					ClearHand();
-				else
-					mPhase = PHASE_CLEAR;
-			}
-			else {
-				FlipCoin();
-				mPhase = PHASE_FLIP;
+	mBonusCurve.IncInVal();
+	mAfterFlipCurve.IncInVal();
+	mFlipCurve.IncInVal();
+	if (mFlyCurve.GetOutVal() == 1.0 && mBusterShown == mBuster && 0.0f < mBuster)
+		ClearHand();
+	if (mCardCount == CARD_COUNT && mGameOverTicks == 0) {
+		if (!mHandCurve.IsDoingCurve()) {
+			if (mHandCurve.GetOutVal() == 0.0 && mHands > 0)
+				ScoreHand();
+			if (mHandCurve.GetOutVal() == 1.0 && mFlipCurve.GetOutVal() == 0.0 && mAfterFlipCurve.GetOutVal() == 0.0) {
+				if (mSkull >= mBestHand)
+					FlipCoin();
+				else if (mBusterShown == mBuster) {
+					if (mBuster < 1.0f)
+						ClearHand();
+					else if (mFlyCurve.GetOutVal() == 0.0)
+						mFlyCurve.SetCurve(FLY_CURVE);
+				}
 			}
 		}
-		break;
-	case PHASE_CLEAR:
-		mPhaseTicks++;
-		if (mPhaseTicks >= CLEAR_TICKS)
-			ClearHand();
-		break;
-	case PHASE_FLIP:
-		mPhaseTicks++;
-		if (mPhaseTicks >= FLIP_TICKS) {
-			if (mCoinLost) {
-				mPhaseTicks = FLIP_TICKS;
-				NoMoreMoves(true);
-			}
-			else
-				ClearHand();
+	}
+	if (mHandCurve.IsDoingCurve()) {
+		mHandCurve.IncInVal();
+		PayBonus();
+	}
+	if (mAfterFlipCurve.GetOutVal() == 1.0) {
+		mFlipCurve.SetConstant(0.0);
+		mAfterFlipCurve.SetConstant(0.0);
+		mSkullClock = 0.0f;
+		ClearHand();
+	}
+	if (mFlipCurve.GetOutVal() == 1.0 && mGameOverTicks == 0) {
+		if (mCoinLost)
+			NoMoreMoves(true);
+		else if (!mAfterFlipCurve.IsDoingCurve()) {
+			mAfterFlipCurve.SetCurve(AFTER_FLIP_CURVE);
+			mAfterFlipCurve.SetMode(0);
 		}
-		break;
+	}
+	if (HintAllowed()) {
+		mBusterShown = (mBuster - mBusterShown) / 20.0f + mBusterShown;
+		if (std::fabs(mBuster - mBusterShown) < 0.01f)
+			mBusterShown = mBuster;
 	}
 }
 

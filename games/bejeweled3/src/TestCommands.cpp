@@ -405,7 +405,7 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 			if (const PokerBoard* aPoker = dynamic_cast<const PokerBoard*>(mBoard)) {
 				// Poker: the hand (each card's suit, "/" and its second suit, a letter for a wild (w), flame (f) or star (s) card; - for no card),
 				// the best hand's index (-1 none), the skull's level (-1 none) and its clock and the eliminator's bar in thousandths, the hands
-				// cleared, the skulls busted, the counts of each kind (the first the hands a skull took), the phase of the hand, the last hand's
+				// cleared, the skulls busted, the counts of each kind (the first the hands a skull took), the curves of the hand, the flip and the fly-away in thousandths, the last hand's
 				// points and the coin flips
 				aLine += ",\"hand\":\"" + aPoker->DescribeCards() + "\",\"besthand\":" + std::to_string(aPoker->mBestHand) + ",\"skull\":" +
 					std::to_string(aPoker->mSkull) + ",\"skullclock\":" + std::to_string((int)(aPoker->mSkullClock * 1000.0f)) + ",\"buster\":" +
@@ -413,7 +413,7 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 					std::to_string(aPoker->mSkullsBusted) + ",\"counts\":\"";
 				for (int i = 0; i <= PokerBoard::HAND_KINDS; i++)
 					aLine += (i > 0 ? "," : "") + std::to_string(aPoker->mHandCounts[i]);
-				aLine += "\",\"phase\":" + std::to_string((int)aPoker->mPhase) + ",\"handscore\":" + std::to_string(aPoker->mHandScore) +
+				aLine += "\",\"handcurve\":" + std::to_string((int)(aPoker->mHandCurve.GetOutVal() * 1000.0)) + ",\"flipcurve\":" + std::to_string((int)(aPoker->mFlipCurve.GetOutVal() * 1000.0)) + ",\"flycurve\":" + std::to_string((int)(aPoker->mFlyCurve.GetOutVal() * 1000.0)) + ",\"handscore\":" + std::to_string(aPoker->mHandScore) +
 					",\"flips\":" + std::to_string(aPoker->mCounters[PokerBoard::COUNTER_COIN_FLIPS]);
 			}
 			if (const LightningBoard* aLightning = dynamic_cast<const LightningBoard*>(mBoard)) {
