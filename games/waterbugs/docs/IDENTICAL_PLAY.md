@@ -171,8 +171,7 @@ have taken different turns, nothing in the port is to be fixed, and no code was 
 every row that has them (`SCREENS.md`).
 
 **The baseline.** Because the port's pictures vary from run to run, `games/waterbugs/test/tours.frozen` holds the pixel hash of
-each shot that was whole in six runs (202 of 362), and `tools/check.sh waterbugs` plays the three tours once and wants all 362 shots present and at most 8 of those 202 changed (one shot whole in six runs
-came out otherwise in the seventh; a change of the drawing changes nearly all) (`tools/play/tourcheck.py`; the suite takes about three minutes more).
+each shot that was whole in eight runs (334 of 362), and `tools/check.sh waterbugs` plays the three tours once and wants all 362 shots present and at most 16 of those 334 changed (a change of the drawing changes nearly all; see the next paragraph) (`tools/play/tourcheck.py`; the suite takes about three minutes more).
 
 **Full screen.** The original cannot be played full screen in Windows Sandbox: with `fullscreen="1"` it stops with "Screen Setup
 Failed: 800x600 16bit screen could not be opened". Its picture is the same 800x600 surface in both modes; the port's full screen is
@@ -200,3 +199,15 @@ two entries of one depth by their addresses, as the original does, so a run's he
 above, `bb5ced7`), which was not re-proved here by making the order stable. A fixed update for the load would therefore not
 make the tour baseline exact; only an ordering by something other than an address would, and that would be a change from the
 original's order, with the original's own runs already differing the same way. So the baseline keeps its allowance (8 of 202).
+
+**Same-depth sprites in the order they were made (2026-11-22, the trunk check of the merge).** The exe trim (section GC, a static
+libc++) moved every allocation, and with it the draw list's tie-break by address, so eight menu shots of the baseline changed. The
+port now takes the tie-break from the order objects were made in (`Obj_DrawSeq`, a serial set in `Obj_Init`; WBObj.cpp, and the
+stars in WBShooter.cpp), which is what consecutive allocations give in the original; its own order varies from run to run, so this has no
+visible effect of its own (DEVIATIONS.md). Of the runs of the three tours, the shots that agree in every run went from 202 to 334 of
+362 (351 of 362 in three runs). What is left is not the order: in about one run in three a board plays out otherwise, and the
+state trace shows where it begins: in one of eight traced runs of the `worlds` tour the random-draw count differs by 117 within the
+250 ms in which the `.` key (a held key of 30 ms) restarts a board, the other seven agree to the last draw. It is a rare
+difference in the number of draws while a board is made (the cause is not found: the runner's clock and frames are exact), and it
+persists only until the next board is made, so up to eleven shots follow it. The check therefore wants all 362 shots present and at
+most 16 of the 334 frozen ones changed; renewing the baseline and cutting the allowance to nothing wait for that cause.
