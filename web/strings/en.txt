@@ -1510,6 +1510,7 @@ music.lcd_reading = Reading…
 music.lcd_none = No music
 music.lcd_error = Error
 music.loop = Repeat
+music.shuffle = Shuffle
 music.volume = Volume
 # The splitter under the Music player (a separator): its name, as a tooltip and for screen readers, and its value, the rows the
 # display shows

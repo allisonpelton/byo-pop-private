@@ -17,10 +17,11 @@ var ByopopMusic = (function () {
   function zoomOf() { try { return ByopopSkin.zoom(); } catch (e) { return 1; } }
   var DB_STORE = "FILE_DATA";
   var MIN_TUNE = 2;          // seconds: a shorter subsong is a silence or a sting between tunes, not a tune
+  var SHUFFLE_LEAST = 20;    // seconds: a shorter tune (a fanfare, a jingle, a sting) is left out of shuffle, unless in a group
   var CHUNK = 4096;          // frames a message to the worklet carries
   var AHEAD = 12;            // chunks kept queued in the worklet: about a second
   var TRIM_LEVEL = 0.001, TRIM_LONG = 3, TRIM_KEEP = 1;   // a long silent ending (trimEnd, soloSeconds): -60 dB, 3 s of it, 1 s kept
-  var VOLUME_KEY = "byopop-music-volume", LOOP_KEY = "byopop-music-loop", FX_KEY = "byopop-music-fx";
+  var VOLUME_KEY = "byopop-music-volume", LOOP_KEY = "byopop-music-loop", FX_KEY = "byopop-music-fx", SHUFFLE_KEY = "byopop-music-shuffle";
   function T(key, vars) { return ByopopStrings.t(key, vars); }
   function silentPage() { try { return new URLSearchParams(location.search).get("silent") === "1"; } catch (e) { return false; } }
   function make(tag, cls, text) {
@@ -446,6 +447,12 @@ var ByopopMusic = (function () {
         // who wrote it, from the game's own credits: the tune's own where they split the music (or its file's), else the game's
         k.composer = byId(entry.composers, k.id) || byId(entry.composers, k.id.replace(/#.*$/, "")) || entry.composer || "";
         k.unused = (entry.unused || []).some(function (u) { return u.toLowerCase() === low; });
+        // what shuffle leaves out, and the groups it plays together in order (the table's shuffle)
+        var sh = entry.shuffle || {};
+        k.noShuffle = (sh.out || []).some(function (u) { return u.toLowerCase() === low; });
+        (sh.groups || []).forEach(function (g, gi) {
+          g.forEach(function (id, at) { if (id.toLowerCase() === low) { k.group = game.id + "/" + gi; k.groupAt = at; } });
+        });
       }
       function add(rel, list) {
         var kept = list.filter(function (k) { return k.seconds >= MIN_TUNE && !(entry.skip || []).some(function (x) { return x.toLowerCase() === k.id.toLowerCase(); }); });
@@ -768,6 +775,7 @@ var ByopopMusic = (function () {
     stop: "M3 3h10v10H3z",
     next: "M11 3h2v10h-2zM3 3v10l7-5z",
     repeat: "M3 7V5h8V3l3 3-3 3V7H5v1H3zM13 9v2H5v2l-3-3 3-3v2h6V9h2z",
+    shuffle: "M1 11h3l5-6h3V3l3 3-3 3V7h-2l-5 6H1zM1 5h4l1.6 1.9-1.3 1.5L4 7H1zM9.4 9.6l.6.4h2V8l3 3-3 3v-2H9l-.9-1z",
     speaker: "M2 6h3l4-3v10l-4-3H2zM11 5.5c1.2 1.2 1.2 3.8 0 5l-.8-.7c.8-.8.8-2.8 0-3.6zM12.8 3.8c2.2 2.2 2.2 6.2 0 8.4l-.8-.7c1.8-1.8 1.8-5.2 0-7z",
     muted: "M2 6h3l4-3v10l-4-3H2zM10.5 5.8l.7-.7 1.8 1.8 1.8-1.8.7.7-1.8 1.8 1.8 1.8-.7.7-1.8-1.8-1.8 1.8-.7-.7 1.8-1.8z"
   };
@@ -798,8 +806,8 @@ var ByopopMusic = (function () {
     // the decoder was in its patterns every SLICE frames; shifted as the worklet uses a chunk up, at the context's time then
     var heads = [], shiftedAt = 0;
     var state = "idle";  // idle | loading | playing | paused
-    var scanned = false, loop = false, volume = 80, muted = false, vis = "spectrum", trackerOn = false, pianoOn = false, scoreOn = false, spectrumOn = false;
-    try { loop = localStorage.getItem(LOOP_KEY) === "1"; muted = localStorage.getItem(MUTE_KEY) === "1"; } catch (e) {}
+    var scanned = false, loop = false, shuffle = false, volume = 80, muted = false, vis = "spectrum", trackerOn = false, pianoOn = false, scoreOn = false, spectrumOn = false;
+    try { loop = localStorage.getItem(LOOP_KEY) === "1"; muted = localStorage.getItem(MUTE_KEY) === "1"; shuffle = localStorage.getItem(SHUFFLE_KEY) === "1"; } catch (e) {}
     try { var v = parseInt(localStorage.getItem(VOLUME_KEY), 10); if (v >= 0 && v <= 100) volume = v; } catch (e) {}
     try { var kept = localStorage.getItem(VIS_KEY); if (VIS.indexOf(kept) >= 0) vis = kept; } catch (e) {}
 
@@ -889,6 +897,8 @@ var ByopopMusic = (function () {
     row.appendChild(make("span", "mu-gap"));
     var loopBtn = control("repeat", T("music.loop"), "loop");
     loopBtn.setAttribute("aria-pressed", String(loop));
+    var shuffleBtn = control("shuffle", T("music.shuffle"), "shuffle");
+    shuffleBtn.setAttribute("aria-pressed", String(shuffle));
     // the tracker's effect column on or off (fxText; the user, 2026-11-11: "add a brief English description of tracker commands
     // ... as an optional column"), off by default, shown with the tracker view only
     var fxOn = false;
@@ -1562,7 +1572,7 @@ var ByopopMusic = (function () {
     }
     // A tune that ended (repeat off): the next one, after the last the first again
     // (an unused pattern plays once and stops, chosen still; playing on never goes into them: after the last tune, the first)
-    function afterEnd() { if (isPattern(current)) { stop(); return; } play(stepped(1)); }
+    function afterEnd() { if (isPattern(current)) { stop(); return; } play(shuffle ? shuffled() : stepped(1)); }
     function isPattern(i) { return !!(tunes[i] && tunes[i].solo !== undefined); }
     // the tune n steps on from the one chosen, among the game's tunes, or among the unused patterns when one is chosen
     function stepped(n) {
@@ -1644,12 +1654,50 @@ var ByopopMusic = (function () {
       if (wired) { wired = false; unwireMedia(); }
       setState("idle");
     }
-    function next() { if (follow && follow.track >= 0) { stepGame(1); return; } if (tunes.length) play(stepped(1)); }
+    function next() { if (follow && follow.track >= 0) { stepGame(1); return; } if (tunes.length) play(shuffle && !isPattern(current) ? shuffled() : stepped(1)); }
+    // Shuffle (the user, 2026-11-19: "make the shuffle group together tracks that are only ever played in direct sequence,
+    // never play unused tracks, and skip tracks that would not make sense to have on shuffle"): every tune of every game in a
+    // drawn order, a group (the table's shuffle groups) drawn as one and played in its order, never an unused tune, an unused
+    // pattern, one the table leaves out or one under SHUFFLE_LEAST seconds; each drawn once before any again, the last never
+    // first of the next round. Previous goes back the way it came.
+    var shuffleBag = [], shuffleBack = [];
+    function shuffleUnits() {
+      var units = [], byGroup = {};
+      tunes.forEach(function (t, i) {
+        if (t.solo !== undefined || t.unused || t.noShuffle || (t.seconds < SHUFFLE_LEAST && !t.group)) return;
+        if (!t.group) { units.push([i]); return; }
+        if (!byGroup[t.group]) units.push(byGroup[t.group] = []);
+        byGroup[t.group].push(i);
+      });
+      units.forEach(function (u) { u.sort(function (a, b) { return tunes[a].groupAt - tunes[b].groupAt; }); });
+      return units;
+    }
+    function shuffled() {
+      var t = tunes[current];
+      if (current >= 0) shuffleBack.push(current);
+      if (shuffleBack.length > 200) shuffleBack.shift();
+      // the rest of the group the tune playing is in
+      if (t && t.group) {
+        var mates = tunes.map(function (k, i) { return k.group === t.group ? i : -1; }).filter(function (i) { return i >= 0; })
+          .sort(function (a, b) { return tunes[a].groupAt - tunes[b].groupAt; });
+        var at = mates.indexOf(current);
+        if (at >= 0 && at + 1 < mates.length) return mates[at + 1];
+      }
+      if (!shuffleBag.length) {
+        var units = shuffleUnits();
+        if (!units.length) return stepped(1);
+        for (var i = units.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), x = units[i]; units[i] = units[j]; units[j] = x; }
+        if (units.length > 1 && units[0].indexOf(current) >= 0) units.push(units.shift());
+        shuffleBag = units;
+      }
+      return shuffleBag.shift()[0];
+    }
     // Previous, as players do: the tune's own start once it has played a few seconds, else the tune before
     function previous() {
       if (follow && follow.track >= 0) { stepGame(-1); return; }
       if (!tunes.length) return;
       if (source && current >= 0 && elapsed() > 3) { seekTo(0); return; }
+      if (shuffle && !isPattern(current) && shuffleBack.length) { play(shuffleBack.pop()); return; }
       play(stepped(-1));
     }
     function seekTo(s) {
@@ -3107,6 +3155,12 @@ var ByopopMusic = (function () {
       loopBtn.setAttribute("aria-pressed", String(loop));
       keep(LOOP_KEY, loop);
       if (source) source.repeat(loop);
+    });
+    shuffleBtn.addEventListener("click", function () {
+      shuffle = !shuffle;
+      shuffleBtn.setAttribute("aria-pressed", String(shuffle));
+      keep(SHUFFLE_KEY, shuffle);
+      shuffleBag = []; shuffleBack = [];
     });
     fxBtn.addEventListener("click", function () {
       fxOn = !fxOn;

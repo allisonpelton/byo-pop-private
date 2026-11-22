@@ -756,6 +756,7 @@ never with invented titles. A game's session sets these from its code:
 - `alone`: subsongs that are one pattern running on into the module's silence, listed with the unused patterns as that
   pattern played alone (Bejeweled 2's two, which music.xml names but the code never reads; the user, 2026-11-19: "really,
   they're only single patterns that we could just file with the others").
+- `shuffle`: what the player's shuffle leaves out beyond what it leaves out by itself, and the tunes it plays together.
 - `level`: "Music levels".
 
 **The decoder** is the games' own two module renderers, built for the web as `openmpt.js` and `openmpt.wasm` (target
@@ -776,6 +777,16 @@ too (`soloSeconds`: Bejeweled 2's two, whose rows slow to about five seconds eac
 then the module's own 13 seconds of silence before the cut); only the playlist
 scrolls (2026-11-09); closing the window stops the music and frees what it held (2026-11-09;
 `ByopopMusicPanel.held()` tells a test what is still held).
+
+**Shuffle** (the user, 2026-11-19: "make the shuffle group together tracks that are only ever played in direct sequence,
+never play unused tracks, and skip tracks that would not make sense to have on shuffle (for instance, no intros, short
+themes that could just as well be sound effects, or stings)") is a toggle beside Repeat, kept in `byopop-music-shuffle`.
+On, the tune after one that ends, and Next, is drawn from every game's tunes, each once before any comes again (the last of
+a round never first of the next); a group (`shuffle.groups`: Bejeweled 2's second intro and the song it leads into, Big
+Money's level-up fanfares and the pause tunes they run into) is drawn as one and plays in its order. Never drawn: unused
+tunes, unused patterns, a tune under 20 seconds outside a group (a sting, fanfare or jingle), and those `shuffle.out`
+names (intros, loading, splash and logo tunes). Previous goes back the way it came; picking a tune goes on shuffling
+from it.
 
 **Nothing drawn unseen** (the user, 2026-11-15: lower the web builds' processor time; the site's animated parts do no work
 while nobody can see them). Music's views and the Splits window's running timer draw a frame at a time only while their

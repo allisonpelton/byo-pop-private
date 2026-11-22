@@ -33,6 +33,10 @@
 //           tunes of one place numbered as the game reaches them), from the game's code (its session's answer) or, for an Ogg
 //           game, its file's name; shown beside the tune and in the display
 //   unused  ["<file name>#<n>", ...]: tunes the game's code never plays (left in its files), shown as such
+//   shuffle {out: [ids], groups: [[ids in order], ...]}: the player's shuffle (the user, 2026-11-19): out the tunes that make no
+//           sense on shuffle (an intro, a loading or logo tune) beyond what it leaves out by itself (unused tunes and patterns,
+//           and tunes under 20 seconds: stings, fanfares, jingles), groups the tunes the game only ever plays one straight
+//           after the other, drawn as one and played in that order
 //   order   ["<file name>#<n>" ...]: the tunes in the order a player hears them, from launch through a game to its end (modes,
 //           levels and books in the order the game reaches them), as the list shows them (the user, 2026-11-13: "more closely
 //           follow what you might hear instead of having the parts in order"); tunes it leaves out follow, then the unused ones
@@ -73,6 +77,7 @@ var ByopopSoundtracks = {
     // its credits spell it "Phillipe Charon"; the site has one form for him, the user's (2026-11-19, Twist's entry)
     composer: "Philippe Charron",
     files: ["music/*.mo3"],
+    shuffle: { out: ["music#0"] },   // (the loading tune)
     where: { "music#0": "Loading", "music#1": "Main Menu", "music#2": "In-Game", "music#3": "Danger", "music#4": "Game Over",
       "music#5": "Level Complete" },
     order: ["music#0", "music#1", "music#2", "music#3", "music#5", "music#4"],
@@ -88,6 +93,7 @@ var ByopopSoundtracks = {
   atomica: {
     composer: "Hannu Salonen",
     files: ["music/*.it"],
+    shuffle: { out: ["atomica#2"] },   // (the title screen's intro, which its message names one)
     where: { "atomica#2": "Title Screen", "atomica#3": "Level Theme 1", "atomica#5": "Level Theme 2", "atomica#7": "Main Menu", "atomica#9": "Level Theme 3",
       "atomica#8": "Game Over 1", "atomica#10": "Game Over 2" },
     order: ["atomica#2", "atomica#7", "atomica#3", "atomica#5", "atomica#9", "atomica#8", "atomica#10"],
@@ -132,6 +138,8 @@ var ByopopSoundtracks = {
     files: ["music/*.mo3"],
     cuts: { "BeyondNetwork#1": [22, 30, 42, 54, 70, 91, 122, 126, 141, 151, 160, 169] },
     alone: ["BeyondNetwork#3", "BeyondNetwork#4"],
+    // (the second intro leads straight into the song after it)
+    shuffle: { groups: [["BeyondNetwork#1@122", "BeyondNetwork#1@126"]] },
     titles: {
       "BeyondNetwork#1": "The Journey Begins", "BeyondNetwork#1@22": "Rain of Lights", "BeyondNetwork#1@30": "LightStorm",
       "BeyondNetwork#1@42": "Sea of Amorphity", "BeyondNetwork#1@54": "Masked Intentions", "BeyondNetwork#1@70": "Routinoid",
@@ -181,6 +189,7 @@ var ByopopSoundtracks = {
     files: ["music/*.mo3"],
     cuts: { "bejewel twist 06.10#3": [72], "bejewel twist 06.10#7": [73], "bejeweledtwist24#0": [24] },
     skip: ["bejewel twist 06.10#3@72"],
+    shuffle: { out: ["bejewel twist 06.10#7"] },   // (the loading tune)
     where: { "bejewel twist 06.10#0": "In-Game 1", "bejewel twist 06.10#1": "In-Game 2", "bejewel twist 06.10#2": "In-Game 3",
       "bejewel twist 06.10#6": "In-Game 4", "bejewel twist 06.10#7@73": "In-Game 5", "bejewel twist 06.10#8": "In-Game 6", "bejewel twist 06.10#7": "Loading",
       "bejewel twist 06.10#3": "Game Over", "bejewel twist 06.10#4": "Victory", "bejewel twist 06.10#5": "Main Menu",
@@ -223,6 +232,9 @@ var ByopopSoundtracks = {
     composer: "Peter Hajba (Skaven)",
     files: ["music/*.it"],
     cuts: { "QualityTime_BigMoney#1": [24], "QualityTime_BigMoney#3": [41], "QualityTime_BigMoney#5": [64] },
+    // (each level-up fanfare runs straight on into its mode's pause tune)
+    shuffle: { groups: [["QualityTime_BigMoney#1", "QualityTime_BigMoney#1@24"], ["QualityTime_BigMoney#3", "QualityTime_BigMoney#3@41"],
+      ["QualityTime_BigMoney#5", "QualityTime_BigMoney#5@64"]] },
     where: { "QualityTime_BigMoney#0": "Puzzle Mode", "QualityTime_BigMoney#1": "Puzzle Level Up", "QualityTime_BigMoney#1@24": "Puzzle Pause",
       "QualityTime_BigMoney#2": "Action Mode", "QualityTime_BigMoney#3": "Action Level Up", "QualityTime_BigMoney#3@41": "Action Pause",
       "QualityTime_BigMoney#4": "Strategy Mode", "QualityTime_BigMoney#5": "Strategy Level Up", "QualityTime_BigMoney#5@64": "Strategy Pause",
@@ -333,6 +345,7 @@ var ByopopSoundtracks = {
     composer: "Peter Hajba (Skaven)",
     files: ["music/*.it"],
     cuts: { "amazonas#2": [64] },
+    shuffle: { out: ["amazonas#5"] },   // (the game's get-ready start)
     // the places from the Dynomite session (2026-11-11): #2@64 is where the won challenge starts, and the game over (#2) and
     // Time Trial's clear (#4) jump into it; #7 is Endless (the port's DynomitePanic); #9, two seconds, nothing starts or jumps to
     where: { "amazonas#0": "Fossil Challenge", "amazonas#1": "Title Screen", "amazonas#2": "Game Over", "amazonas#4": "Time Trial Clear",
@@ -474,6 +487,7 @@ var ByopopSoundtracks = {
     },
   },
   ningpo: {
+    shuffle: { out: ["nm_splash"] },   // (the splash screen's, before the assets load)
     // the user, 2026-11-19: "Ian Livingstone was the composer for Ning Po, Noah's Ark, Rocket Mania, Pixelus, and Hammer Heads"
     composer: "Ian Livingstone",
     inside: [{ file: "ningpo.pyz", zip: ["theme_np.ogg", "nm_splash.ogg", "nm_gameover.ogg", "nm_youwin.ogg"] }],
@@ -572,6 +586,7 @@ var ByopopSoundtracks = {
   // (HeavyWeaponApp.cpp, IsPlaying), so only the first main menu fades its tune in and the armory never changes the music.
   // The credits give the music to Yannis Brown of Groovy Audio and the love theme to MegaLazer (data/credits.xml)
   heavyweapon: {
+    shuffle: { out: ["atomictank#8"] },   // (the intro under the PopCap and title pictures)
     composer: "Yannis Brown",
     composers: { lovetheme: "MegaLazer" },
     files: ["music/*.mo3", "music/lovetheme.ogg"],
@@ -591,6 +606,7 @@ var ByopopSoundtracks = {
   // Bonnie's Bookstore plays its one module as tracks, each a range of orders (its track table, games/bonnies/game/Music.cpp:
   // the first for the menu, the rest in a game), and a logo tune
   bonnies: {
+    shuffle: { out: ["logo"] },   // (the logo's)
     composer: "Barry Leitch",
     files: ["sound/logo.ogg", "sound/music.oxm"],
     level: { fmod3XM: true },
