@@ -22,6 +22,9 @@
 #include <string>
 #include <vector>
 
+// 0x46e340 (feedingfrenzy2): the string in lower case (CharLowerA)
+std::string toLower(const std::string& theString);
+
 // A <model> (0x6c bytes, vtable 0x5521b0 (feedingfrenzy2); its constructor 0x477b70 (feedingfrenzy2))
 class ModelInfo : public engine::Object
 {

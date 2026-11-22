@@ -26,6 +26,10 @@ public:
 	ModelInfo* findModel(const std::string& theName) const { return find(mModels, theName); }
 	// 0x424d70 (feedingfrenzy2): null for none
 	FishModelInfo* findFishModel(const std::string& theName) const { return find(mFishModels, theName); }
+	// 0x517e6d (feedingfrenzy2): null for none
+	BehaviorInfo* findBehavior(const std::string& theName) const { return find(mBehaviors, theName); }
+	// 0x40c9d0 (feedingfrenzy2): null for none
+	FishBehaviorInfo* findFishBehavior(const std::string& theName) const { return find(mFishBehaviors, theName); }
 
 	std::string mAnimBase;                                                 // +0x00: the animations' folder
 	std::map<std::string, engine::Ref<ModelInfo>> mModels;                 // +0x1c

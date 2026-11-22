@@ -4,6 +4,7 @@
 #include "Engine.h"
 #include "GameData.h"
 #include "Params.h"
+#include "Spawn.h"
 
 using namespace engine;
 
@@ -16,6 +17,9 @@ const float LAYER_MARGIN_Y = 160.0f;
 const float DEFAULT_SIZE_UNIT = 16.0f;      // 0x5667b8 (feedingfrenzy2)
 const float DEFAULT_MIN_LIGHT = 0.3f;       // 0x54ddac (feedingfrenzy2)
 const float DEFAULT_MAX_LIGHT = 0.9f;       // 0x566934 (feedingfrenzy2)
+const float STEP_SECONDS = 0.01f;           // 0x54dd9c (feedingfrenzy2): a step of the run, as a float
+const double STEP_SECONDS_DOUBLE = 0.01;    // 0x566d58 (feedingfrenzy2): the same as a double, taken off the time left
+const double CAMERA_CENTRE = 0.5;           // 0x566760 (feedingfrenzy2): the start's camera, half across the range
 
 } // namespace
 
@@ -38,9 +42,9 @@ void MaskContainer::paint(DrawContext* theContext)
 }
 
 Stage::Stage(GameData* theGameData, Container* theContainer)
-	: mScrollRate(0.0f), mSizeUnit(DEFAULT_SIZE_UNIT), mBonus(false), mWaterColor(0.0f, 0.0f, 0.0f, 0.0f), mNight(false),
-	  mLight(0.0f), mLightTarget(0.0f), mMinLight(DEFAULT_MIN_LIGHT), mMaxLight(DEFAULT_MAX_LIGHT), mBoss(false),
-	  mFinalBoss(false)
+	: mScrollRate(0.0f), mSizeUnit(DEFAULT_SIZE_UNIT), mBonus(false), mStepTime(0.0f), mWaterColor(0.0f, 0.0f, 0.0f, 0.0f),
+	  mCameraFollows(false), mMaskFadeTime(0.0f), mNight(false), mLight(0.0f), mLightTarget(0.0f),
+	  mMinLight(DEFAULT_MIN_LIGHT), mMaxLight(DEFAULT_MAX_LIGHT), mBoss(false), mFinalBoss(false)
 {
 	mGameData = theGameData;
 	mContainer = theContainer;
@@ -62,8 +66,11 @@ bool Stage::load(const StageManifest::Stage& theEntry)
 	aHandler->attach(&aMaster, "stage");
 	if (!getEngine()->parseXml(mEntry.mResource, &aMaster))
 		return false;
-	// The spawns' counts (each spawn list's slot 0x14 over +0x280, the players' four more when +0x290 has any) and
-	// their setup (slot 0x10 over +0x280): not yet translated, as the spawns are not
+	// The spawns' steps (each one's slot 0x14 over +0x280, four more when the stage has players) are the loader's
+	// progress bar's; the port loads at once and shows none
+	int aProgress = 0;
+	for (size_t i = 0; i < mSpawners.size(); i++)
+		mSpawners[i]->setup(aProgress);
 	setupLayers();
 	// The rest (0x405590, 0x45ef40, the slots 0x38 and 0x3c, 0x416330, the Orphanage at +0x2c0, the splashes'
 	// containers on the first layer's actors, the slots 0x40 and 0x44 for a stage with players, and 0x4719f0
@@ -114,6 +121,105 @@ void Stage::setupLayers()
 	getEngine()->log("Stage: the camera and the play area's edges not yet translated\n");
 }
 
+void Stage::start()
+{
+	pause(false);
+	// The game data's +0x30, +0x34, +0x38 and +0x40 set from its +0x10 and +0x14 and to 0, for the HUD: not yet
+	// translated
+	mGameData->setSpawnPhase(0);
+	mMaskFadeTime = 0.0f;
+	mCameraFollows = true;
+	// +0x270 (the boss, null) and +0x391 (false) reset, and the stage's timer at +0x238 cleared (0x406fb0
+	// (feedingfrenzy2)): read by nothing translated yet
+	// The stage's time (+0x190 and +0x198: in a bonus stage kept, else in the timed mode, the game data's +0x0c at 1,
+	// added to by its +0x2c, else 0) shown on the HUD with the lives and the player's name (0x44c910, 0x494620,
+	// 0x402550, 0x4050d0 and 0x44b4f0 (feedingfrenzy2)): not yet translated, as the HUD is not
+	// The ambient sounds (+0x318) each given its first delay (0x486810 and 0x486860 (feedingfrenzy2), a draw of the
+	// random numbers each): not yet translated, as the sounds are not, so the draws after them are off by theirs
+	// +0x3b0, 0: read by nothing translated yet
+	// A stage with players (+0x340) starts them and puts the camera on them: not yet translated, as the players are
+	// not, so every stage starts as one without
+	startPlayers();
+	const RectF& aRange = mLayerSet->getPanRange();
+	float aTop = aRange.top;
+	// 0x459e00 (feedingfrenzy2): the range's width
+	float aWidth = (float)((double)aRange.right - aRange.left);
+	float aCentre = (float)(aWidth * CAMERA_CENTRE);
+	mLayerSet->setCamera(Vector2f(aCentre, aTop));
+}
+
+void Stage::startPlayers()
+{
+	// With players (+0x290), the game data's +0x10 at more than 0: the game data's +0x40 from the first player's
+	// (or the boss's, 0x5ac620), the player's slot 0x1c, and the run; at 0 or less, the machine emptied: not yet
+	// translated, as the players are not
+	startRun();
+}
+
+void Stage::startRun()
+{
+	mStateMgr.changeState(new RunState(this));
+}
+
+void Stage::pause(bool thePaused)
+{
+	if (thePaused)
+		mContainer->addOffState(STATE_ANIMATED);
+	else
+		mContainer->removeOffState(STATE_ANIMATED);
+	// The players (+0x340) paused or resumed with the stage when it has some (+0x290; 0x49d4a0 and 0x497040
+	// (feedingfrenzy2)), and the script (+0x31c, 0x502648 (feedingfrenzy2)): not yet translated
+}
+
+void Stage::updateSpawns(UpdateContext* theContext)
+{
+	// A stage's script with waves (+0x210, the waves' times at +0x218, the next at +0x224 and the time at +0x228)
+	// holds the spawns until they are through: not yet translated, so the spawns are never held
+	bool canSpawn = true;
+	for (size_t i = 0; i < mSpawners.size(); i++)
+		mSpawners[i]->update(theContext, canSpawn);
+}
+
+void Stage::update(UpdateContext* theContext)
+{
+	if (0.0f < mMaskFadeTime)
+	{
+		// A night's mask fading (its time down by the frame's, the mask's slot 0x18 given two draws from +0x268, or
+		// (0, 0) once it is out): not yet translated, as the night's stages are not
+	}
+	float aStepTime = theContext->mElapsed + mStepTime;
+	mStepTime = aStepTime;
+	float anElapsed = theContext->mElapsed;
+	int aSteps = 0;
+	while (STEP_SECONDS <= mStepTime)
+	{
+		aSteps++;
+		mStepTime = (float)(mStepTime - STEP_SECONDS_DOUBLE);
+		theContext->mElapsed = STEP_SECONDS;
+		StageState* aState = mStateMgr.getState();
+		if (aState != nullptr)
+			aState->update(theContext);
+	}
+	if (aSteps == 0)
+	{
+		theContext->mElapsed = mStepTime;
+		StageState* aState = mStateMgr.getState();
+		if (aState != nullptr)
+			aState->update(theContext);
+		mStepTime = 0.0f;
+	}
+	theContext->mElapsed = anElapsed;
+}
+
+void RunState::update(UpdateContext* theContext)
+{
+	// The script (the stage's +0x31c) checked first (its slot 0xe4): not yet translated
+	// Without a boss in play (+0x270), the stage's slots 0x48, 0x4c, 0x50 and 0x54 (the actors' updates and their
+	// meetings), 0x58 (the spawns), 0x60 (the camera), 0x68 and 0x6c; with one, 0x68, 0x6c and the boss's 0xf0; then
+	// 0x5c (0x447ef0 (feedingfrenzy2)). Only the spawns are translated
+	mStage->updateSpawns(theContext);
+}
+
 void StageDocHandler::begin(Params& theAttributes)
 {
 	mStage->mSizeUnit = theAttributes.getFloat("sizeUnit", DEFAULT_SIZE_UNIT);
@@ -134,6 +240,34 @@ void StageDocHandler::begin(Params& theAttributes)
 
 void StageDocHandler::startElement(const std::string& theName, Params& theAttributes)
 {
-	// <spawn> (PlayerSpawn and NonPlayerSpawn, 0x408710 and 0x469960 (feedingfrenzy2)) and its <phase>s: not yet
-	// translated
+	// The engine's clock read twice (its slots 0xe4 and 0xe8), for nothing kept
+	if (theName == "player")
+	{
+		// A player's spawn (PlayerSpawn, 0xa4 bytes, its constructor 0x493fc0 (feedingfrenzy2)) read by its own
+		// handler: not yet translated
+		getEngine()->log("Stage: the player's spawn not yet translated\n");
+		return;
+	}
+	if (theName == "spawn")
+	{
+		// 0x482e30 (feedingfrenzy2)
+		std::string aClassName = theAttributes.getString("class", "");
+		// 0x40a670 (feedingfrenzy2): in the timed mode (the game data's +0x0c at 1) the star and the extra life come
+		// as the bonus of time; the mode is not yet translated
+		ActorClassInfo* aClass = ActorClassRegistry::get()->find(aClassName);
+		if (aClass == nullptr)
+		{
+			getEngine()->log("Dude, I don't know how to spawn '%s'.  Capitalization counts.\n", aClassName.c_str());
+			return;
+		}
+		NonPlayerSpawn* aSpawn = aClass->createSpawn(mStage);
+		SubDocHandler* aHandler = aSpawn->createDocHandler();
+		aHandler->attach(mMaster, theName);
+		aHandler->begin(theAttributes);
+		return;
+	}
+	if (theName == "script" || theName == "epilog")
+		// The stage's script (Script, 0x44 bytes, at +0x2cc) and its epilog (Epilog, 0x24 bytes, at +0x2d0), each
+		// read by its own handler: not yet translated
+		getEngine()->log("Stage: the %s not yet translated\n", theName.c_str());
 }

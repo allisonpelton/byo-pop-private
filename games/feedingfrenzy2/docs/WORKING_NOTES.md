@@ -261,8 +261,28 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   start and update, the layers' colour, the panelScroll and propScroll layers.
   - The base theme names fx/playerShieldGlow.xml, whose images (resource/FX/shieldFish) the archive lacks, so the
     effect is not loaded (a warning in the log); the original's data is the same.
+- The stage's spawns and run: the actor classes' registry (0x485a60, 30 classes, each making a FishSpawn or a
+  NonPlayerSpawn); the stage file's <spawn> (0x41a300 and 0x482e30) read by its spawn's handler (0x469960 and
+  0x4802e0: name, size, visual, behavior, poolSize, supply, layer, detailLayers, start, location; a fish's rank,
+  foodValue, showMenu, showStageComplete; <phase> max and delay, <tweaks>), registered with the stage (+0x274,
+  +0x280, +0x2a0, +0x2b0); each spawn's setup as the stage loads (the supply, a default phase, the behaviour found
+  and the tweaks laid over it); the stage's start (slot 5, 0x486950, as far as a stage without players goes: the
+  pause lifted, the spawn phase 0, the camera half across the pan range), the run state (0x43acb0, only its spawns'
+  step), the stage's update in hundredth-second steps (0x43a570), from the splash's bursting on, and each spawn's
+  timing (0x43a180: the next one's delay drawn once the phase has room, the actor brought in once it passes).
+  Checked under rundesk over 3000 updates of the menu: the pompano every 5 seconds, the queen triggerfish every 3 and
+  the herring's school every 5.5 come due (logged, as the actors are not yet translated).
+  - The stage's start gives each ambient sound its first delay, a draw of the random numbers each (0x486860); not
+    yet translated, so every draw after it is off by those until the sounds are.
 
 ## Next
+
+- The menu's fish: the actors (Actor 0x4226f0, 0xf0 bytes with a signal; Fish 0x481370 with its Eater and its
+  FishStateMgr; AIFish 0x41d550, 0x1ac bytes, vtables of 66, 73 and 80 slots), the spawn's bringing one in
+  (0x475b30 from the pool or the class, 0x4224a0 its set-up, the actor's slots 0x24, 0x28 and 0x18), the school
+  (SchoolOfFish 0x4101b0), the fish visual (FishVisual, 71 slots; the spawn's 0x40e250), the AI states the fish
+  behaviours name (WanderAI, FlyByAI, SchoolingAI and the rest), the run state's other slots (0x48 the actors, 0x60
+  the camera, 0x5c the stage's end), the spawn's live list and pool (+0x4fc, +0x50c).
 
 - The popup's other actions (pause, quit, save game, options); the duplicate name's and the full list's
   confirmations are wired but not yet seen.

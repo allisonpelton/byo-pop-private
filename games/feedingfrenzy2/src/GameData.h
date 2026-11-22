@@ -10,13 +10,17 @@
 class GameData : public engine::Object
 {
 public:
-	GameData() {}
+	GameData() : mSpawnPhase(0) {}
 
 	StageManifest& getStages() { return mStages; }
 	StageManifest& getMenuStages() { return mMenuStages; }
+	int getSpawnPhase() const { return mSpawnPhase; }
+	void setSpawnPhase(int theSpawnPhase) { mSpawnPhase = theSpawnPhase; }
 
 private:
 	// +0x0c (0) and +0x28 (-1): set by the constructor, their readers not yet found
+	int mSpawnPhase;              // +0x24: the phase every spawn uses; 0 when a stage starts (the constructor
+	                              // leaves it, and nothing reads it before)
 	StageManifest mStages;        // +0x44
 	StageManifest mMenuStages;    // +0x78: the menu's backgrounds (the screensaver's in saver mode)
 };

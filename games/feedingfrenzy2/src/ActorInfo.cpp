@@ -16,7 +16,8 @@ namespace
 // (feedingfrenzy2) over 180)
 const float DEGREES_TO_RADIANS = (float)(3.141592653589793 / 180.0);
 
-// 0x46e340 (feedingfrenzy2): the string in lower case (CharLowerA)
+} // namespace
+
 std::string toLower(const std::string& theString)
 {
 	std::string aLower = theString;
@@ -27,8 +28,6 @@ std::string toLower(const std::string& theString)
 	}
 	return aLower;
 }
-
-} // namespace
 
 void ModelInfo::load(Params& theAttributes)
 {

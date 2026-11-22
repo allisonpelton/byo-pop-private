@@ -94,7 +94,7 @@ void LayoutPan::pan(const Vector2f& theCameraPosition)
 }
 
 LayerSet::LayerSet()
-	: mBaseLayer(0), mWaterLevel(0), mSkyCeiling(0), mCameraPosition(0.0f, 0.0f),
+	: mBaseLayer(0), mWaterLevel(0), mSkyCeiling(0), mCameraPosition(0.0f, 0.0f), mPanPosition(0.0f, 0.0f),
 	  mNightColorLight(colorOfBytes(0xff, 0xff, 0xff, 0xff)), mNightColorDark(colorOfBytes(0xff, 0xff, 0xff, 0xff)),
 	  mNightColorLightPct(1.0f)
 {
@@ -137,6 +137,24 @@ void LayerSet::fit(float theMarginX, float theMarginY, const RectF& theBounds)
 		float aFactorY = aRangeY == 0.0f ? 1.0f : (float)(((double)aSize.y - aViewHeight) / aRangeY);
 		mLayers[i]->setPanFactor(Vector2f(aFactorX, aFactorY));
 	}
+}
+
+void LayerSet::setCamera(const Vector2f& thePosition)
+{
+	// 0x42b890 (feedingfrenzy2): each coordinate held between the range's ends, the low end first
+	float aY = thePosition.y;
+	if (mPanRange.top > aY)
+		aY = mPanRange.top;
+	else if (mPanRange.bottom < aY)
+		aY = mPanRange.bottom;
+	float aX = thePosition.x;
+	if (mPanRange.left > aX)
+		aX = mPanRange.left;
+	else if (mPanRange.right < aX)
+		aX = mPanRange.right;
+	mPanPosition = Vector2f(aX, aY);
+	for (size_t i = 0; i < mLayers.size(); i++)
+		mLayers[i]->pan(mPanPosition);
 }
 
 void LayerSetDocHandler::begin(Params& theAttributes)

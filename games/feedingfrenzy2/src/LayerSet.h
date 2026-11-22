@@ -148,6 +148,8 @@ public:
 	// 0x4858d0 (feedingfrenzy2): the camera's limits (the bounds less the margins) and the base layer's range, and
 	// each layer's share of it from its pan size (all of it where the range is none)
 	void fit(float theMarginX, float theMarginY, const engine::RectF& theBounds);
+	// 0x434b30 (feedingfrenzy2): the camera at the point, kept in the pan range, and each layer panned for it
+	void setCamera(const engine::Vector2f& thePosition);
 
 	int getBaseLayer() const { return mBaseLayer; }
 	int getWaterLevel() const { return mWaterLevel; }
@@ -171,8 +173,8 @@ private:
 	engine::RectF mCameraLimits;                   // +0xe4
 	engine::Vector2f mCameraPosition;              // +0xf4: (0, 0) once fitted
 	engine::RectF mPanRange;                       // +0x104: from (0, 0) to the base layer's pan size less the view
-	// +0xfc, a point at (0, 0), and +0x114, a float at 0: from the constructor, and read by nothing translated yet
-	// (the camera's): left out
+	engine::Vector2f mPanPosition;                 // +0xfc: the camera's position the layers are panned for
+	// +0x114, a float at 0: from the constructor, and read by nothing translated yet: left out
 	engine::Color mNightColorLight;                // +0x118
 	engine::Color mNightColorDark;                 // +0x128
 	float mNightColorLightPct;                     // +0x138

@@ -24,9 +24,10 @@ void MenuState::enter()
 	showPlayer();
 	mApp->mMenuRunning = true;
 	// The stage's music player (its +0x2d4) playing menuMusic, unless it already is (0x489670 and 0x48d420
-	// (feedingfrenzy2)), the application's sound at +0x38 started unless its +0x321 is set (0x4929a0
-	// (feedingfrenzy2)), and the stage started (its slot 0x14): not yet translated, as the stage and the sounds are not
-	getEngine()->log("MenuState: the menu's stage and music not yet translated\n");
+	// (feedingfrenzy2)), and the application's sound at +0x38 started unless its +0x321 is set (0x4929a0
+	// (feedingfrenzy2)): not yet translated, as the sounds are not
+	getEngine()->log("MenuState: the menu's music not yet translated\n");
+	mApp->mStage->start();
 }
 
 void MenuState::exit()
@@ -40,7 +41,8 @@ void MenuState::exit()
 
 void MenuState::update(UpdateContext* theContext)
 {
-	// The sounds' update (0x434c80 (feedingfrenzy2)) and the stage's (0x43a570 (feedingfrenzy2)): not yet translated
+	// The sounds' update (0x434c80 (feedingfrenzy2)): not yet translated
+	mApp->mStage->update(theContext);
 	if (mPlayerChecked)
 		return;
 	if (mApp->mMainMenu->getPhase() != SCREEN_SHOWN)

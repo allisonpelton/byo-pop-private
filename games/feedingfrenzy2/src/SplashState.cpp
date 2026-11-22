@@ -134,8 +134,8 @@ void SplashState::update(UpdateContext* theContext)
 		mPhase = SPLASH_BURSTING;
 		// (on into the bursting phase in the same update)
 	case SPLASH_BURSTING:
-		// The sound system's update by the frame's milliseconds (0x434c80 (feedingfrenzy2)) and the game's in
-		// hundredth-second steps (0x43a570 (feedingfrenzy2)): not yet translated
+		// The sound system's update by the frame's milliseconds (0x434c80 (feedingfrenzy2)): not yet translated
+		mApp->mStage->update(theContext);
 		if (!mBubbleText->isDone())
 			return;
 		// The next state: the menu. The screensaver's (SaverState, 0x18 bytes) in saver mode, and the game's
