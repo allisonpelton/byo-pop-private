@@ -377,10 +377,16 @@ Differences left, each judged:
   how origrun delivers the click.
 - **Loading screen after the bar** (L-u40 to L-u140): the original shows only the link, the port keeps the bar behind it,
   faded over 280 updates (0x4e6f70, delay 100 and 1.4 a step). Not found.
-- **Random draws that move things**: the god's greeting on the temple screen (E-u900 "Welcome back. How's the love life?"
-  against "Say, are you married?"), the chains' sway, the lock's place and the Tile Master's place at the first frame
-  (B-u300) come from draws of the application's generator that the two programs reach in a different order before these
-  screens; the generator's own count was compared for the puzzles (the first phase), not for the idle screens.
+- **Random draws that move things**, watched on the host (2026-11-22, scenario E with preset P2: the original's Mersenne index at
+  0x579d20 against the port's `apprand` count, per update, `build/sc/R`): the two make the same draws, update for update,
+  to the island's construction (port update 400: 81 draws each, 2500 updates apart). There the port makes 52 draws in
+  one update and about 11,000 over the next hundred (the particle bursts Rumble, PauseBloom and PauseBloomUp of each temple it
+  takes for new), and the original makes none until the next click. So the greeting, the chains' sway, the lock's place and
+  the Tile Master's place after that follow from the island oddity above: the port has drawn thousands of numbers the original
+  has not. A first visit of a new player (I0) has no such bursts and matches. Reading 0x4176a0 again, `FUN_00439300(profile)`
+  (the record the solved count and the flags at +0x11 and +0x12 come from) takes no temple in the decompile, and the
+  profile's current temple (+0x34) is what 0x439f80 uses; the island may be reading one temple's record for every temple.
+  Unverified; this is the next thing to try.
 
 Not reached (SCREENS.md says why in each row): the name-exists and rename errors, the story conversations and completion
 screens (they need a finished temple), the expert board, the mystery board, the sticky-spots hint and the scroll bars'
