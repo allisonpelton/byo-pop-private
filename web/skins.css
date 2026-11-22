@@ -916,6 +916,11 @@ html.d95-desk .su-title:focus { outline: none; }
 html.d95-desk .su-drop { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 10px; background: var(--sk-well);
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
 html.d95-desk .su-drop.drop-on { outline: 1px dotted #000; outline-offset: -5px; }
+/* the game page's load-files card with files over it (web/shell.html): a dotted line round its text and buttons, beside the
+   picture and under the title bar, as Setup's drop area has */
+:root[data-skin="d95"] #import-card.drop-on { outline: 0; }
+:root[data-skin="d95"] #import-card.drop-on::after { content: ""; position: absolute; left: 121px; top: 29px; right: 6px; bottom: 11px;
+  border: 1px dotted #000; pointer-events: none; }
 html.d95-desk .su-rows { flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0; padding: 2px; list-style: none; background: #fff;
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
 html.d95-desk .su-row { display: flex; align-items: center; gap: 6px; min-height: 24px; padding: 1px 4px; }

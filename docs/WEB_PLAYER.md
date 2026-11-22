@@ -20,7 +20,12 @@ The page loads `<game>.js`, which compiles the wasm while `main()` waits (`INVOK
 IndexedDB at its persist folder and copies it into memory (`game/`, `userdata/`, `mods/`, `replays/`), first putting
 back saves that reached only the localStorage backup (`byopop_userdata_restore`). A Web Lock (`PAGE.lock`) lets one tab
 run a game. The fixes mod is put in place, the terms are asked, and without the game's files the import card copies
-only what `page.js` names, by the rules in `web/gameimport.js` (a pak named in `paks` is unpacked). The exe of a game
+only what `page.js` names, by the rules in `web/gameimport.js` (a pak named in `paks` is unpacked). The card takes the
+game's folder or a .zip of it from its two buttons, or dropped anywhere over it (the user, 2026-11-16: "I should be able
+to drag the folder into the load files screen"): a drop is read by `fromDrop`, as the listing reads one, with the folders
+and files found counted in the card's line, and the card shows a dotted line round its contents while files are over
+it. No other part of a game page drops files into the browser: a window listener cancels a file drag that nothing took
+(the no-entry pointer) and its drop, so a folder dropped anywhere else no longer opens the browser's listing of it. The exe of a game
 that `web/exetrim.js` lists is stored without its code sections, and a launcher's inner image alone, as the port reads
 only texts and tables from it (about 32 MB down to 7 MB over the listed games; `tools/exetrimtest.js` checks every table
 address reads the same; a game stored before keeps its whole exe until it is imported again). Files no port opens stay

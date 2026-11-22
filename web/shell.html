@@ -192,6 +192,8 @@ canvas#canvas:focus-visible { outline: 3px solid transparent; outline-offset: -3
 /* The terms card (web/terms.html): its text scrolls in its own box, and the card in the stage when the stage is small (as
    does the import card, which the Steam steps for a Mac or Linux make taller) */
 #terms-overlay, #import-overlay { overflow: auto; place-items: safe center; }
+/* files dragged over the load-files card, which takes them */
+#import-card.drop-on { outline: 2px dashed currentColor; outline-offset: -8px; }
 .card.terms-card { max-width: 600px; }
 .terms-agreebar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 .terms-agreebar .agree { flex: 1 1 16em; margin: 0; }
@@ -1858,6 +1860,40 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     ev.target.value = "";
     if (file) onGamePicked(web().zip.fromFile(file));
   });
+  // A folder or a .zip dropped on the load-files card (the user, 2026-11-16: "I should be able to drag the folder into the load
+  // files screen"), anywhere over it while it shows: read as the listing reads a drop (web/gameimport.js, fromDrop), the
+  // folders and files counted in the card's line as they are found, then copied as a pick's are. The card is outlined while
+  // files are over it.
+  (function () {
+    var over = $("import-overlay"), card = $("import-card");
+    function takes(ev) { return !importing && !over.hidden && ByopopImport.hasFiles(ev.dataTransfer); }
+    function lit(on) { card.classList.toggle("drop-on", !!on); }
+    over.addEventListener("dragenter", function (ev) { if (takes(ev)) { ev.preventDefault(); lit(true); } });
+    over.addEventListener("dragover", function (ev) {
+      if (!takes(ev)) return;
+      ev.preventDefault(); ev.dataTransfer.dropEffect = "copy"; lit(true);
+    });
+    over.addEventListener("dragleave", function (ev) { if (!ev.relatedTarget || !over.contains(ev.relatedTarget)) lit(false); });
+    over.addEventListener("drop", function (ev) {
+      lit(false);
+      if (!takes(ev)) return;
+      ev.preventDefault();
+      if (!hasAgreed()) return;
+      var watch = ByopopImport.watch();
+      watch.listen(function (folders, files) { $("import-msg").textContent = ByopopImport.readingText(folders, files); });
+      var read;
+      try { read = ByopopImport.fromDrop(ev.dataTransfer, web().zip, watch); } catch (e) { importMessage(e.message, true); return; }
+      onGamePicked(read.then(function (entries) { watch.listen(null); return entries; }, function (e) { watch.listen(null); throw e; }));
+    });
+  })();
+  // and no drop anywhere else on the page opens the files in the browser (which showed a dropped folder's listing): a drag of
+  // files over a part that takes none shows the no-entry pointer and drops nothing. A part that takes files (the card, the
+  // Sound section's own sounds, web/themes.js) has said so before this listener, at the window, hears it.
+  window.addEventListener("dragover", function (ev) {
+    if (ev.defaultPrevented || !ByopopImport.hasFiles(ev.dataTransfer)) return;
+    ev.preventDefault(); ev.dataTransfer.dropEffect = "none";
+  });
+  window.addEventListener("drop", function (ev) { if (ByopopImport.hasFiles(ev.dataTransfer)) ev.preventDefault(); });
   $("btn-import-cancel").addEventListener("click", function () {
     if (importing || !hasGameFiles()) return;
     $("import-overlay").hidden = true;
