@@ -92,8 +92,23 @@ swimShuttle is 1 or more, else 2); Stunned plays "swim" and stops it at once. Th
   The "center" move aims at the area's half size, not its centre (the original's; a fix candidate).
 - FlyByAI (0x41e910): heads away from the side of its home, a random rise in +-max y, re-drawn every
   wanderMoveChangeFrequency.
-- The sight check (0x437ac0) and the reactions it starts (Flee, Chase, Avoid), the schools (SchoolOfFish,
-  SchoolingAI) and eating are the next pieces.
+- The sight check (0x437ac0), run when a state's sight timetable comes due: the stage lists the actors the fish sees
+  (0x43d0c0, into its +0x380 list): in the same water or air, within sightDist of the fish's mouth (the eater part's
+  0x28, the visual data's mouth laid on the shapes' transform) and with the cosine to the way it faces above the
+  behaviour's, nearest first. For each, nearest first, the behaviour's reactions in order (0x435180): the other is of
+  the class to the fish (slot 0xe0: "predator" when it eats the fish, "prey" when the fish eats it), the fish may
+  react so (0x130: run and avoid only from an eater, chase only what it eats, anything else always), and a draw in
+  [0, 1) at or below reactFreq. The first found is reacted to (0x12c) and the look ends.
+- FleeAI (0x415740): away from the threat at twice the top speeds, re-aimed every runMoveChangeFreq; the next state
+  after runStateChangeFreq or once the threat is dead; it looks about again on its sight timetable.
+- ChaseAI (0x47d020): from the mouth at the prey at the top speeds, re-aimed every chaseMoveChangeFreq; the next state
+  after chaseStateChangeFreq, or once the prey is dead or eats the fish. It starts a sight timetable it never reads.
+- AvoidAI (0x48f680, through AIFish's 0x13c): no enter, so the fish keeps its way; while the threat is in sight and
+  the fish's wanted way (or its facing) is within a cosine of 0.85 of the line to it, either way, the wanted velocity
+  turns 30 degrees from the threat's side; the next state once the threat is dead or out of sight.
+- Checked on the menu over 9000 updates: the pompano chases the queen triggerfish, which runs from it and from the
+  great white. Eating (the stage's 0x50, 0x440660: each pair of fish, the one ranked below the other's eater rank
+  offered to its eater, 0x43dee0) and the schools are the next pieces.
 
 ## The stage's edges
 

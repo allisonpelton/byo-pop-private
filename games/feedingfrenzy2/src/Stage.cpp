@@ -6,6 +6,7 @@
 #include "GameData.h"
 #include "Params.h"
 #include "Spawn.h"
+#include "VectorMath.h"
 #include "Visual.h"
 
 #include <algorithm>
@@ -26,6 +27,7 @@ const float STEP_SECONDS = 0.01f;           // 0x54dd9c (feedingfrenzy2): a step
 const double STEP_SECONDS_DOUBLE = 0.01;    // 0x566d58 (feedingfrenzy2): the same as a double, taken off the time left
 const double CAMERA_CENTRE = 0.5;           // 0x566760 (feedingfrenzy2): the start's camera, half across the range
 const double HALF = 0.5;                    // 0x566760 (feedingfrenzy2)
+const double ZERO = 0.0;                    // 0x566828 (feedingfrenzy2)
 
 // An edge set to its normal and distance
 void setEdge(shape::Edge& theEdge, float theNormalX, float theNormalY, int theDistance)
@@ -193,6 +195,42 @@ void Stage::removeFish(Fish* theFish)
 void Stage::removeAIFish(AIFish* theFish)
 {
 	removeFrom(mAIFish, theFish);
+}
+
+const std::vector<Actor*>& Stage::findSeenActors(AIFish* theViewer)
+{
+	mSeen.clear();
+	FishBehaviorInfo* aBehavior = theViewer->getFishBehavior();
+	for (Actor* anActor : mActors)
+	{
+		if (!(0.0f < aBehavior->mSightDistance))
+			continue;
+		if (theViewer->isUnderwater() != anActor->isUnderwater())
+			continue;
+		Vector2f aMouth = theViewer->getMouthPosition();
+		Vector2f aWay = difference(anActor->getPosition(), aMouth);
+		double aSightDistance = aBehavior->mSightDistance;
+		if (!(aSightDistance * aSightDistance >= lengthSquared(aWay)))
+			continue;
+		Vector2f aDirection = aWay;
+		normalize(aDirection);
+		// The way the viewer faces is straight across
+		float aFacing = theViewer->getFishVisual()->getFacing();
+		float aCos = (float)(aDirection.x * aFacing + aDirection.y * ZERO);
+		if (!(aBehavior->mSightCos < aCos))
+			continue;
+		float aDistance = length(aWay);
+		if (!(aDistance >= 0.0f))
+			continue;
+		std::vector<Actor*>::iterator aPlace = mSeen.begin();
+		for (; aPlace != mSeen.end(); ++aPlace)
+		{
+			if (aDistance < length(difference((*aPlace)->getPosition(), aMouth)))
+				break;
+		}
+		mSeen.insert(aPlace, anActor);
+	}
+	return mSeen;
 }
 
 void Stage::updateActors(UpdateContext* theContext)

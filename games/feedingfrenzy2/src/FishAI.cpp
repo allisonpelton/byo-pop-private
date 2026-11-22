@@ -28,6 +28,11 @@ const float DEFAULT_CENTER_WEIGHT = 1.2f;  // 0x566b10 (feedingfrenzy2)
 const float DEFAULT_RANDOM_WEIGHT = 0.2f;  // 0x54ddf8 (feedingfrenzy2)
 const float DEFAULT_REVERSE_WEIGHT = 0.05f;  // 0x566880 (feedingfrenzy2)
 const float DEFAULT_DART_SECONDS = 0.8f;   // 0x566950 (feedingfrenzy2)
+const double FLEE_SPEEDUP = 2.0;           // 0x566798 (feedingfrenzy2): a flight's speed, in top speeds
+const double HEADED_AT_COS = 0.85;         // 0x566a40 (feedingfrenzy2): the cosine within which a way heads at a threat
+const float AVOID_TURN = 0.52359f;         // 0x566974 (feedingfrenzy2): the turn aside, in radians
+const float AVOID_TURN_BACK = -0.52359f;   // 0x566970 (feedingfrenzy2)
+const float NOTHING = 0.0f;                // 0x5471cc (feedingfrenzy2)
 
 // 0x422cb0 (feedingfrenzy2): a number drawn in the range
 float drawIn(const FloatRange& theRange)
@@ -289,4 +294,171 @@ void FlyByAI::setVelocity()
 	mMoveTime.mTime = 0.0f;
 	mMoveTime.mOn = false;
 	mMoveTime.start(drawIn(mAIFish->getFishBehavior()->mWanderMoveChangeFrequency));
+}
+
+FleeAI::FleeAI(AIFish* theFish, Actor* theThreat) : AIFishState(theFish), mThreat(theThreat)
+{
+	mInPlay = true;
+	mEdible = true;
+}
+
+void FleeAI::enter()
+{
+	mAIFish->getFishVisual()->setVisible(true);
+	FishBehaviorInfo* aBehavior = mAIFish->getFishBehavior();
+	mSightTime.start(aBehavior->mSightCheckFrequency);
+	mStateTime.start(drawIn(aBehavior->mRunStateChangeFrequency));
+	pickMove();
+}
+
+void FleeAI::update(UpdateContext* theContext)
+{
+	mAIFish->move(*theContext);
+	float anElapsed = theContext->mElapsed;
+	if (mMoveTime.advance(anElapsed))
+	{
+		mMoveTime.mNext++;
+		pickMove();
+		return;
+	}
+	if (mStateTime.advance(anElapsed))
+	{
+		mStateTime.mNext++;
+		mAIFish->pickState();
+		return;
+	}
+	if (mSightTime.advance(anElapsed))
+	{
+		mSightTime.mNext++;
+		mSightTime.restart();
+		mAIFish->lookAround();
+	}
+}
+
+void FleeAI::pickMove()
+{
+	if (mThreat == nullptr || mThreat->isDead())
+	{
+		mAIFish->pickState();
+		return;
+	}
+	Vector2f aWay = difference(mAIFish->getPosition(), mThreat->getPosition());
+	normalize(aWay);
+	const Vector2f& aMaxSpeed = mAIFish->getMaxSpeed();
+	float aRise = (float)((double)aMaxSpeed.y * aWay.y * FLEE_SPEEDUP);
+	float anAcross = (float)((double)aMaxSpeed.x * aWay.x * FLEE_SPEEDUP);
+	mAIFish->setDesiredVelocity(Vector2f(anAcross, aRise));
+	mMoveTime.mNext = 0;
+	mMoveTime.mTime = 0.0f;
+	mMoveTime.mOn = false;
+	mMoveTime.start(drawIn(mAIFish->getFishBehavior()->mRunMoveChangeFrequency));
+}
+
+ChaseAI::ChaseAI(AIFish* theFish, Actor* thePrey) : AIFishState(theFish), mPrey(thePrey)
+{
+	mInPlay = true;
+	mEdible = true;
+}
+
+void ChaseAI::enter()
+{
+	mAIFish->getFishVisual()->setVisible(true);
+	FishBehaviorInfo* aBehavior = mAIFish->getFishBehavior();
+	mSightTime.start(aBehavior->mSightCheckFrequency);
+	mStateTime.start(drawIn(aBehavior->mChaseStateChangeFrequency));
+	pickMove();
+}
+
+void ChaseAI::update(UpdateContext* theContext)
+{
+	mAIFish->move(*theContext);
+	float anElapsed = theContext->mElapsed;
+	if (mMoveTime.advance(anElapsed))
+	{
+		mMoveTime.mNext++;
+		pickMove();
+		return;
+	}
+	if (mStateTime.advance(anElapsed))
+	{
+		mStateTime.mNext++;
+		mAIFish->pickState();
+	}
+}
+
+void ChaseAI::pickMove()
+{
+	if (mPrey == nullptr || mPrey->isDead() || mPrey->canEat(mAIFish))
+	{
+		mAIFish->pickState();
+		return;
+	}
+	Vector2f aWay = difference(mPrey->getPosition(), mAIFish->getMouthPosition());
+	normalize(aWay);
+	const Vector2f& aMaxSpeed = mAIFish->getMaxSpeed();
+	float aRise = (float)((double)aMaxSpeed.y * aWay.y);
+	float anAcross = (float)((double)aMaxSpeed.x * aWay.x);
+	mAIFish->setDesiredVelocity(Vector2f(anAcross, aRise));
+	mMoveTime.mNext = 0;
+	mMoveTime.mTime = 0.0f;
+	mMoveTime.mOn = false;
+	mMoveTime.start(drawIn(mAIFish->getFishBehavior()->mChaseMoveChangeFrequency));
+}
+
+AvoidAI::AvoidAI(AIFish* theFish, Actor* theThreat) : AIFishState(theFish), mThreat(theThreat)
+{
+	mInPlay = true;
+	mEdible = true;
+}
+
+void AvoidAI::update(UpdateContext* theContext)
+{
+	mAIFish->move(*theContext);
+	if (mThreat->isDead())
+	{
+		mAIFish->pickState();
+		return;
+	}
+	float aDistance = mAIFish->distanceInSight(mThreat.get());
+	if (!(aDistance >= NOTHING))
+	{
+		mAIFish->pickState();
+		return;
+	}
+	if (isHeadedAtThreat())
+		turnAside();
+}
+
+bool AvoidAI::isHeadedAtThreat()
+{
+	if (mThreat == nullptr || mThreat->isDead())
+		return false;
+	Vector2f aToThreat = difference(mThreat->getPosition(), mAIFish->getPosition());
+	normalize(aToThreat);
+	const Vector2f& aWanted = mAIFish->getDesiredVelocity();
+	Vector2f aHeading;
+	if (0.0 == lengthSquared(aWanted))
+		aHeading = Vector2f(mAIFish->getFishVisual()->getFacing(), 0.0f);
+	else
+	{
+		aHeading = aWanted;
+		normalize(aHeading);
+	}
+	float aCos = (float)fabs(dot(aHeading, aToThreat));
+	return aCos > HEADED_AT_COS;
+}
+
+void AvoidAI::turnAside()
+{
+	Vector2f aToThreat = difference(mThreat->getPosition(), mAIFish->getPosition());
+	const Vector2f& aWanted = mAIFish->getDesiredVelocity();
+	Vector2f aHeading;
+	if (0.0 == lengthSquared(aWanted))
+		aHeading = Vector2f(mAIFish->getFishVisual()->getFacing(), 0.0f);
+	else
+		aHeading = aWanted;
+	// The threat's side of the heading, by the sign of their cross product
+	float aSide = (float)((double)aToThreat.y * aHeading.x - (double)aToThreat.x * aHeading.y);
+	float anAngle = aSide >= NOTHING ? AVOID_TURN_BACK : AVOID_TURN;
+	mAIFish->setDesiredVelocity(rotated(aWanted, anAngle));
 }

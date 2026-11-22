@@ -107,6 +107,10 @@ public:
 	virtual void pause(bool thePaused);
 	// 0x34 (0x4146b0 (feedingfrenzy2)): the play bounds, the mask container and the layer set
 	virtual void setupLayers();
+	// 0x43d0c0 (feedingfrenzy2): the actors the viewer sees, nearest its mouth first (one as near as one before it
+	// after that one): in the same water or air, within its sight's distance of its mouth, and within its sight's
+	// angle of the way it faces. The list is the stage's, made again by each call
+	const std::vector<Actor*>& findSeenActors(AIFish* theViewer);
 	// 0x48 (0x4448e0 (feedingfrenzy2)): each actor's update, over a copy of the actors, one no longer among them
 	// logged (the mask's lights cleared first, not yet translated)
 	void updateActors(engine::UpdateContext* theContext);
@@ -193,6 +197,7 @@ private:
 	std::vector<Fish*> mFish;                      // +0x320
 	std::vector<AIFish*> mAIFish;                  // +0x330
 	std::vector<Actor*> mActors;                   // +0x370
+	std::vector<Actor*> mSeen;                     // +0x380: what the last look about saw, nearest first
 	bool mBoss;                                    // +0x392
 	bool mFinalBoss;                               // +0x393
 	std::string mBossLayout;                       // +0x394

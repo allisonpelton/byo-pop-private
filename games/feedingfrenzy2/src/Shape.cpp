@@ -18,16 +18,6 @@ float signOf(float theValue)
 	return theValue < 0.0f ? MINUS_ONE : 1.0f;
 }
 
-// The centre's part of 0x43dcc0 and 0x43d820 (feedingfrenzy2): turned (0x5085b3), scaled (0x43c1a0), scaled on each
-// axis (0x43dc80) and moved (0x43dca0)
-Vector2f transformed(const Vector2f& theCenter, const ShapeTransform& theTransform)
-{
-	Vector2f aCenter = rotated(theCenter, theTransform.mRotation);
-	aCenter = scaled(aCenter, theTransform.mScale);
-	aCenter = scaled(aCenter, theTransform.mAxisScale.x, theTransform.mAxisScale.y);
-	return moved(aCenter, theTransform.mTranslation.x, theTransform.mTranslation.y);
-}
-
 // 0x43ce10 (feedingfrenzy2): a box against a circle. With the circle's centre inside the box, the gap to the box's
 // side the centre is nearest by the corner's diagonals, the normal that side's; else the gap from the box's nearest
 // point less the radius, the normal from that point to the centre
@@ -107,6 +97,16 @@ float circleEdgeSeparation(const shape::Circle& theCircle, const shape::Edge& th
 }
 
 } // namespace
+
+// The centre's part of 0x43dcc0 and 0x43d820 (feedingfrenzy2): turned (0x5085b3), scaled (0x43c1a0), scaled on each
+// axis (0x43dc80) and moved (0x43dca0)
+Vector2f transformed(const Vector2f& theCenter, const ShapeTransform& theTransform)
+{
+	Vector2f aCenter = rotated(theCenter, theTransform.mRotation);
+	aCenter = scaled(aCenter, theTransform.mScale);
+	aCenter = scaled(aCenter, theTransform.mAxisScale.x, theTransform.mAxisScale.y);
+	return moved(aCenter, theTransform.mTranslation.x, theTransform.mTranslation.y);
+}
 
 bool Shape::overlaps(const Shape& theOther) const
 {

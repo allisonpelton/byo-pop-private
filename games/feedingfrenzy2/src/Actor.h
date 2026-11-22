@@ -99,6 +99,8 @@ public:
 	Shape* getShape(int theIndex) const { return mShapes[theIndex].mShape.get(); }
 	// 0x68 (0x43dd30 (feedingfrenzy2)): the shape copied into its transformed one and the transform laid on it
 	Shape* getTransformedShape(int theIndex);
+	// 0x6c (0x502bd4 (feedingfrenzy2)): the actor eats the other (a fish's, 0x474c30 (feedingfrenzy2))
+	virtual bool canEat(Actor* theOther) { return false; }
 	// 0x70 and 0x74 (0x41d740 and 0x440900 (feedingfrenzy2))
 	void setRank(int theRank) { mRank = theRank; }
 	int getRank() const { return mRank; }
@@ -109,6 +111,9 @@ public:
 	const engine::RectF& getBounds() const { return mBounds; }
 	// 0xa4 (0x502bd9 (feedingfrenzy2))
 	bool isUnderwater() const { return mUnderwater; }
+	// 0xe0 (0x502c50 (feedingfrenzy2)): the actor is of the class a <react> names, to the viewer (a fish's,
+	// 0x43b230 (feedingfrenzy2))
+	virtual bool isOfClass(const std::string& theClass, Actor* theViewer) { return false; }
 	// 0xe4: the actor is dead, for its spawn to take back (a fish's, 0x4447c0 (feedingfrenzy2))
 	virtual bool isDead() = 0;
 	// 0xf0: each step of the stage's run
@@ -199,13 +204,16 @@ public:
 	// back, its visual taken off, out of the stage's actors and the stage
 	void remove() override;
 	// 0x6c (0x474c30 (feedingfrenzy2)): the other is ranked below the eater rank
-	bool canEat(Actor* theOther) const { return getEaterRank() > theOther->getRank(); }
+	bool canEat(Actor* theOther) override { return getEaterRank() > theOther->getRank(); }
 	// 0x7c (0x41d750 (feedingfrenzy2)): the food value, and the value now (0x88, 0x41d770 (feedingfrenzy2))
 	void setFoodValue(int theValue)
 	{
 		mFoodValue = theValue;
 		mFoodValueNow = theValue;
 	}
+	// 0xe0 (0x43b230 (feedingfrenzy2)): a "predator" to a viewer it may eat, "prey" to a viewer that may eat it, of
+	// no other class
+	bool isOfClass(const std::string& theClass, Actor* theViewer) override;
 	// 0xe4 (0x4447c0 (feedingfrenzy2)): no state left
 	bool isDead() override { return mStateMgr.getState() == nullptr; }
 	// 0x108 (0x422660 (feedingfrenzy2)): the fish's visual given the data (its size pulsed when it had one before),
@@ -215,6 +223,8 @@ public:
 	// acceleration and drag taken
 	virtual void setFishBehavior(FishBehaviorInfo* theBehavior);
 
+	// The eater part's 0x28 (0x43dc00 (feedingfrenzy2)): the visual data's mouth laid on the shapes' transform
+	engine::Vector2f getMouthPosition() const;
 	// The eater part's 0x04 and 0x08
 	void setEaterRank(int theRank) { mEaterRank = theRank; }
 	int getEaterRank() const { return mEaterRank; }
@@ -264,12 +274,27 @@ public:
 	void pickState();
 	// 0x118 (0x46c800 (feedingfrenzy2)): the fish's, and how often it chases and flies by
 	void setFishBehavior(FishBehaviorInfo* theBehavior) override;
-	// 0x437ac0 (feedingfrenzy2): a look about for what to react to: not yet translated, so the fish sees nothing
-	void lookAround() {}
+	// 0x12c (0x47c000 (feedingfrenzy2)): the reaction's state taken towards the other: fleeing it ("run"), avoiding
+	// it or chasing it; false for any other reaction
+	bool react(FishReaction* theReaction, Actor* theOther);
+	// 0x130 (0x473bd0 (feedingfrenzy2)): the fish may react so: run from or avoid an actor that eats it, chase one it
+	// eats, and any other reaction at all
+	bool canReact(FishReaction* theReaction, Actor* theOther);
+	// 0x13c (0x48f710 (feedingfrenzy2)): the fish turns aside from the other
+	void avoid(Actor* theOther);
+	// 0x434930 (feedingfrenzy2): the distance from the mouth to the other when the fish sees it (as the stage's
+	// 0x43d0c0 (feedingfrenzy2) sees), else -1
+	float distanceInSight(Actor* theOther);
+	// 0x437ac0 (feedingfrenzy2): a look about: the actors in sight, nearest first, and the first with a reaction drawn
+	// reacted to
+	void lookAround();
 
 	const engine::Vector2f& getHome() const { return mHome; }
 
 private:
+	// 0x435180 (feedingfrenzy2): the behaviour's first reaction to the other, by its class, that the fish may have
+	// and whose frequency the draw passes; none when no reaction does
+	FishReaction* findReaction(Actor* theOther);
 	// 0x4251a0 (feedingfrenzy2): the state changed to unless the fish is leaving
 	void changeState(FishState* theState);
 	// 0x51e371 (feedingfrenzy2): the body pushed back inside the edge it crosses

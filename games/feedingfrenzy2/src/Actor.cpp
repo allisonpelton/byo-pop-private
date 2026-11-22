@@ -25,6 +25,8 @@ const float SWIM_RATE_SCALE = 0.0025f;           // 0x566884 (feedingfrenzy2)
 const float SWIM_RATE_BASE = 0.05f;              // 0x566880 (feedingfrenzy2)
 const float DEFAULT_CHASE_FREQUENCY = 0.5f;      // 0x54ddb0 (feedingfrenzy2)
 const float DEFAULT_FLYBY_FREQUENCY = 0.3f;      // 0x54ddac (feedingfrenzy2)
+const float NOT_SEEN = -1.0f;                    // 0x566850 (feedingfrenzy2): the distance to what is out of sight
+const double ZERO = 0.0;                         // 0x566828 (feedingfrenzy2)
 
 // 0x422cb0 (feedingfrenzy2): a number drawn in the range
 float drawIn(const FloatRange& theRange)
@@ -309,6 +311,23 @@ void Fish::setFishVisualData(float theSize, FishVisualData* theData)
 	setupShapes();
 }
 
+bool Fish::isOfClass(const std::string& theClass, Actor* theViewer)
+{
+	if (theClass == "predator")
+		return getEaterRank() > theViewer->getRank();
+	if (theClass == "prey")
+	{
+		// The viewer is the AI fish looking about, so a fish with its eater part
+		return getRank() < static_cast<Fish*>(theViewer)->getEaterRank();
+	}
+	return false;
+}
+
+Vector2f Fish::getMouthPosition() const
+{
+	return transformed(mFishVisualData->getMouth(), mTransform);
+}
+
 void Fish::setFishBehavior(FishBehaviorInfo* theBehavior)
 {
 	mFishBehavior = theBehavior;
@@ -426,6 +445,87 @@ void AIFish::setFishBehavior(FishBehaviorInfo* theBehavior)
 		return;
 	mChaseFrequency = mFishBehavior->getFloat("chaseFreq", DEFAULT_CHASE_FREQUENCY);
 	mFlybyFrequency = mFishBehavior->getFloat("flybyFreq", DEFAULT_FLYBY_FREQUENCY);
+}
+
+bool AIFish::react(FishReaction* theReaction, Actor* theOther)
+{
+	const std::string& aReaction = theReaction->mReaction;
+	if (aReaction == "run")
+	{
+		changeState(new FleeAI(this, theOther));
+		return true;
+	}
+	if (aReaction == "avoid")
+	{
+		avoid(theOther);
+		return true;
+	}
+	if (aReaction == "chase")
+	{
+		changeState(new ChaseAI(this, theOther));
+		return true;
+	}
+	return false;
+}
+
+bool AIFish::canReact(FishReaction* theReaction, Actor* theOther)
+{
+	const std::string& aReaction = theReaction->mReaction;
+	if (aReaction == "run" || aReaction == "avoid")
+		return theOther->canEat(this);
+	if (aReaction == "chase")
+		return getEaterRank() > theOther->getRank();
+	return true;
+}
+
+void AIFish::avoid(Actor* theOther)
+{
+	changeState(new AvoidAI(this, theOther));
+}
+
+float AIFish::distanceInSight(Actor* theOther)
+{
+	FishBehaviorInfo* aBehavior = mFishBehavior.get();
+	if (!(0.0f < aBehavior->mSightDistance) || theOther->isUnderwater() != isUnderwater())
+		return NOT_SEEN;
+	Vector2f aMouth = getMouthPosition();
+	Vector2f aWay = difference(theOther->getPosition(), aMouth);
+	double aSightDistance = aBehavior->mSightDistance;
+	if (!(aSightDistance * aSightDistance >= lengthSquared(aWay)))
+		return NOT_SEEN;
+	Vector2f aDirection = aWay;
+	normalize(aDirection);
+	float aCos = (float)(aDirection.x * mFishVisual->getFacing() + aDirection.y * ZERO);
+	if (!(aBehavior->mSightCos < aCos))
+		return NOT_SEEN;
+	return length(aWay);
+}
+
+void AIFish::lookAround()
+{
+	const std::vector<Actor*>& aSeen = mStage->findSeenActors(this);
+	for (Actor* anActor : aSeen)
+	{
+		FishReaction* aReaction = findReaction(anActor);
+		if (aReaction != nullptr)
+		{
+			react(aReaction, anActor);
+			return;
+		}
+	}
+}
+
+FishReaction* AIFish::findReaction(Actor* theOther)
+{
+	for (const Ref<FishReaction>& aReaction : mFishBehavior->mReactions)
+	{
+		if (!theOther->isOfClass(aReaction->mClass, this) || !canReact(aReaction.get(), theOther))
+			continue;
+		float aDraw = (float)randomFloat(0.0f, 1.0f);
+		if (aDraw <= aReaction->mFrequency)
+			return aReaction.get();
+	}
+	return nullptr;
 }
 
 void AIFish::changeState(FishState* theState)

@@ -29,6 +29,10 @@ struct ShapeTransform
 	ShapeTransform() : mScale(1.0f), mTranslation(0.0f, 0.0f), mAxisScale(1.0f, 1.0f), mRotation(0.0f) {}
 };
 
+// A point laid on the transform: turned (0x5085b3 (feedingfrenzy2)), scaled (0x43c1a0), scaled on each axis
+// (0x43dc80) and moved (0x43dca0), as a shape's centre is (0x43dcc0 and 0x43d820) and the mouth is (0x43dc00)
+engine::Vector2f transformed(const engine::Vector2f& thePoint, const ShapeTransform& theTransform);
+
 // What a test between two shapes finds (0x14 bytes on the tester's stack)
 struct ShapeContact
 {

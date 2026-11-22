@@ -6,16 +6,17 @@
 // (WanderAI) and swimming across (FlyByAI); each looks about now and then and reacts to what it sees. A fish whose
 // state says it has gone, out of view after being seen, loses its state, which is what makes it dead to its spawn.
 //
-// Translated so far: the states the menu's fish reach before they see anything (SpawnAI, WanderAI and FlyByAI). The
-// sight check (0x437ac0 (feedingfrenzy2)) and the states it leads to (fleeing, chasing, avoiding, schooling, eating,
-// being eaten, puking and leaving) are not yet, and each place that calls one says so.
+// Translated so far: swimming in, wandering, flying by, and the reactions to what a fish sees (FleeAI, ChaseAI and
+// AvoidAI). Schooling, eating, being eaten, puking and leaving are not yet, and each place that calls one says so.
 
 #include "Geometry.h"
+#include "Object.h"
 #include "State.h"
 
 #include <string>
 #include <vector>
 
+class Actor;
 class AIFish;
 class Fish;
 
@@ -177,6 +178,81 @@ private:
 	bool mRightward;       // +0x50: the fish came in on the left half
 	Timetable mMoveTime;   // +0x58
 	Timetable mSightTime;  // +0x80
+};
+
+// The fish swimming away from an actor that eats it (FleeAI, 0xd8 bytes, vtable 0x54ebbc (feedingfrenzy2); its
+// constructor 0x415740 (feedingfrenzy2))
+class FleeAI : public AIFishState
+{
+public:
+	// 0x415740 (feedingfrenzy2): in play and edible, the threat kept
+	FleeAI(AIFish* theFish, Actor* theThreat);
+
+	// 0x04 (0x4156c0 (feedingfrenzy2)): the visual shown, the sight's and the state's times started, and the first
+	// move picked
+	void enter() override;
+	// 0x0c (0x45f0b0 (feedingfrenzy2)): the fish moved; then the first of the move's, the state's and the sight's
+	// times that has come: the next move, the next state, or a look about
+	void update(engine::UpdateContext* theContext) override;
+
+private:
+	// 0x41af30 (feedingfrenzy2): straight away from the threat at twice the top speeds, the move's time started;
+	// the next state when the threat is gone or dead
+	void pickMove();
+
+	engine::Ref<Actor> mThreat;  // +0x50
+	Timetable mMoveTime;         // +0x58
+	Timetable mSightTime;        // +0x80
+	Timetable mStateTime;        // +0xa8
+};
+
+// The fish swimming after an actor it eats (ChaseAI, 0xd8 bytes, vtable 0x54ec44 (feedingfrenzy2); its constructor
+// 0x47d020 (feedingfrenzy2))
+class ChaseAI : public AIFishState
+{
+public:
+	// 0x47d020 (feedingfrenzy2): in play and edible, the prey kept
+	ChaseAI(AIFish* theFish, Actor* thePrey);
+
+	// 0x04 (0x47d1a0 (feedingfrenzy2)): the visual shown, the sight's and the state's times started, and the first
+	// move picked
+	void enter() override;
+	// 0x0c (0x450580 (feedingfrenzy2)): the fish moved; then the next move when the move's time comes, else the next
+	// state when the state's does (the sight's time is started but never looked at)
+	void update(engine::UpdateContext* theContext) override;
+
+private:
+	// 0x42f820 (feedingfrenzy2): from the mouth straight at the prey at the top speeds, the move's time started; the
+	// next state when the prey is gone, dead or eats the fish
+	void pickMove();
+
+	engine::Ref<Actor> mPrey;  // +0x50
+	Timetable mMoveTime;       // +0x58
+	Timetable mStateTime;      // +0x80
+	Timetable mSightTime;      // +0xa8
+};
+
+// The fish turning aside from an actor that eats it while it heads at it (AvoidAI, 0x88 bytes, vtable 0x54ed54
+// (feedingfrenzy2); its constructor 0x48f680 (feedingfrenzy2)). It has no enter, so the fish keeps the way it had.
+class AvoidAI : public AIFishState
+{
+public:
+	// 0x48f680 (feedingfrenzy2): in play and edible, the threat kept
+	AvoidAI(AIFish* theFish, Actor* theThreat);
+
+	// 0x0c (0x433440 (feedingfrenzy2)): the fish moved; the next state once the threat is dead or out of sight, else
+	// a turn aside while the fish heads at it
+	void update(engine::UpdateContext* theContext) override;
+
+private:
+	// 0x434530 (feedingfrenzy2): the way the fish wants to go (or faces, wanting none) is within about 32 degrees of
+	// the line to the threat, either way along it
+	bool isHeadedAtThreat();
+	// 0x48cf70 (feedingfrenzy2): the wanted velocity turned 30 degrees away from the side the threat is on
+	void turnAside();
+
+	engine::Ref<Actor> mThreat;  // +0x50
+	// +0x58: a timetable the constructor makes, which nothing starts
 };
 
 #endif

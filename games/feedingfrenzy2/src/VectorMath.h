@@ -97,6 +97,18 @@ inline void clampToEllipse(engine::Vector2f& theVector, const engine::Vector2f& 
 	}
 }
 
+// 0x4345f0 (feedingfrenzy2): the vector brought to length 1 by its length's inverse; left as it is at length 0
+inline void normalize(engine::Vector2f& theVector)
+{
+	float aLength = length(theVector);
+	if (0.0f != aLength)
+	{
+		double anInverse = 1.0 / aLength;
+		theVector.x = (float)(theVector.x * anInverse);
+		theVector.y = (float)(anInverse * theVector.y);
+	}
+}
+
 // 0x45e790 (feedingfrenzy2): the cosine of a float, rounded to a float
 inline float cosOf(float theAngle)
 {
