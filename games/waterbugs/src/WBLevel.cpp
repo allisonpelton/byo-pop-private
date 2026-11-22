@@ -466,26 +466,26 @@ int Level_IsPlaying(Level* theLevel)
 
 void Enemy_Insert(List<Enemy>* theList)
 {
-	Enemy* anEnemy = (Enemy*)::operator new(sizeof(Enemy));
+	Enemy* anEnemy = (Enemy*)NewZeroed(sizeof(Enemy));
 	List_InsertBefore(theList, Enemy_Init(anEnemy));
 }
 
 void Menu_Append(List<Menu>* theList)
 {
-	Menu* aMenu = (Menu*)::operator new(sizeof(Menu));
+	Menu* aMenu = (Menu*)NewZeroed(sizeof(Menu));
 	List_Append(theList, Menu_Init(aMenu));
 }
 
 // 0x418200
 void Menu_Insert(List<Menu>* theList)
 {
-	Menu* aMenu = (Menu*)::operator new(sizeof(Menu));
+	Menu* aMenu = (Menu*)NewZeroed(sizeof(Menu));
 	List_InsertBefore(theList, Menu_Init(aMenu));
 }
 
 void Shooter_Insert(List<Shooter>* theList)
 {
-	Shooter* aShooter = (Shooter*)::operator new(sizeof(Shooter));
+	Shooter* aShooter = (Shooter*)NewZeroed(sizeof(Shooter));
 	List_InsertBefore(theList, Shooter_Init(aShooter));
 }
 
@@ -511,7 +511,7 @@ void Level_FindKey(Level* theLevel, char theKey, int* theCol, int* theRow)
 
 void Pointer_Insert(List<Obj>* theList)
 {
-	Obj* aPointer = (Obj*)::operator new(sizeof(Obj));
+	Obj* aPointer = (Obj*)NewZeroed(sizeof(Obj));
 	Obj_Init(aPointer);
 	aPointer->mDepth = 0xc;
 	List_InsertBefore(theList, aPointer);
@@ -519,7 +519,7 @@ void Pointer_Insert(List<Obj>* theList)
 
 void Pointer_Append(List<Obj>* theList)
 {
-	Obj* aPointer = (Obj*)::operator new(sizeof(Obj));
+	Obj* aPointer = (Obj*)NewZeroed(sizeof(Obj));
 	Obj_Init(aPointer);
 	aPointer->mDepth = 0xc;
 	List_Append(theList, aPointer);
@@ -1097,7 +1097,7 @@ void Level_Draw(Level* theLevel)
 // 0x4110b0: a new star (a plain object) before the current one
 void Star_Append(List<Obj>* theList)
 {
-	Obj* aStar = (Obj*)::operator new(sizeof(Obj));
+	Obj* aStar = (Obj*)NewZeroed(sizeof(Obj));
 	Obj_Init(aStar);
 	List_InsertBefore(theList, aStar);
 }
@@ -1420,7 +1420,7 @@ void Level_GameOver(Level* theLevel)
 
 void Panel_Append(List<Panel>* theList)
 {
-	Panel* aPanel = (Panel*)::operator new(sizeof(Panel));
+	Panel* aPanel = (Panel*)NewZeroed(sizeof(Panel));
 	Obj_Init(aPanel);
 	List_Init(&aPanel->mItems);
 	List_InsertBefore(theList, aPanel);

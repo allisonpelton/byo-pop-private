@@ -234,7 +234,8 @@ void DDImage::FillRect(const Rect& theRect, const Color& theColor, int theDrawMo
 
 	// the screen drawn on the processor (SoftwareScreenDisplay, SurfaceDisplay) fills as the original's DDImage::FillRect does on
 	// a surface without alpha or transparency: an additive fill is AdditiveFillRect (Alchemy's 0x43afd0), each colour channel the
-	// destination's plus the fill's, to 255, the fill's alpha unused. MemoryImage::FillRect has no additive fill (the original's
+	// destination's plus the fill's scaled by its alpha (c * alpha / 255, as Bejeweled 2's 0x455820 does; alpha 255 adds the colour
+	// whole), to 255. MemoryImage::FillRect has no additive fill (the original's
 	// ignores the mode too), so a hint or flash drawn this way came out as an opaque bar.
 	if (mIsScreen && (theDrawMode == Graphics::DRAWMODE_ADDITIVE) && !mHasAlpha && !mHasTrans)
 	{
@@ -248,9 +249,9 @@ void DDImage::FillRect(const Rect& theRect, const Color& theColor, int theDrawMo
 			for (int i = 0; i < aRect.mWidth; i++, aDestPixels++)
 			{
 				ulong aDest = *aDestPixels;
-				int aRed = std::min(255, (int) ((aDest >> 16) & 0xFF) + theColor.mRed);
-				int aGreen = std::min(255, (int) ((aDest >> 8) & 0xFF) + theColor.mGreen);
-				int aBlue = std::min(255, (int) (aDest & 0xFF) + theColor.mBlue);
+				int aRed = std::min(255, (int) ((aDest >> 16) & 0xFF) + (theColor.mRed * theColor.mAlpha) / 255);
+				int aGreen = std::min(255, (int) ((aDest >> 8) & 0xFF) + (theColor.mGreen * theColor.mAlpha) / 255);
+				int aBlue = std::min(255, (int) (aDest & 0xFF) + (theColor.mBlue * theColor.mAlpha) / 255);
 				*aDestPixels = (aDest & 0xFF000000) | (aRed << 16) | (aGreen << 8) | aBlue;
 			}
 		}

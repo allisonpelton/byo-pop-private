@@ -97,7 +97,11 @@ var ByopopSchemes = (function () {
   // here as eight rows of bits (the settings "pattern"). A wallpaper (the setting "wallpaper") is one of our own tiles, drawn
   // here in translucent white and black so that it suits every scheme, or a picture of the player's own, which never leaves
   // this browser: it is drawn into a canvas, scaled down to 1600 pixels at most and kept as a JPEG in localStorage
-  // ("byopop-wallpaper"). The setting "wallpaperFit" centres, tiles or stretches it. Our own drawings, every one.
+  // ("byopop-wallpaper"), or one game's background from the player's files ("game:<id>", the picture its desktop theme shows,
+  // web/themes.js: the user, 2026-11-18: "Still would like usable backgrounds from the games either as pixel perfect or fit to
+  // screen (no stretching)"). The setting "wallpaperFit" places any picture: centred, tiled, stretched, pixel-perfect (the
+  // largest whole-number scale that fits the screen, in its own pixels, centred on a whole screen pixel) or fitted to the
+  // screen (as large as fits with its shape kept, the desktop's colour around it). Our own drawings, every one.
   var PATTERNS = {
     dots: [0x88, 0, 0, 0, 0x22, 0, 0, 0],
     halftone: [0xaa, 0x55, 0xaa, 0x55, 0xaa, 0x55, 0xaa, 0x55],
@@ -122,8 +126,14 @@ var ByopopSchemes = (function () {
       "<circle cx='16' cy='16' r='11' stroke-width='3' stroke-dasharray='2.4 2.2'/><circle cx='48' cy='48' r='11' stroke-width='3' stroke-dasharray='2.4 2.2'/></g>" +
       "<g fill='%23fff' fill-opacity='.2'><circle cx='16' cy='16' r='8'/><circle cx='48' cy='48' r='8'/></g></svg>"
   };
-  var FITS = ["centre", "tile", "stretch"], WALL_KEY = "byopop-wallpaper";
+  var FITS = ["centre", "tile", "stretch", "pixel", "fit"], WALL_KEY = "byopop-wallpaper";
   var patternIds = ["none"].concat(Object.keys(PATTERNS)), wallpaperIds = ["none"].concat(Object.keys(TILES)).concat(["own"]);
+  // every value the setting may hold: ours and the player's own, then each game's background in the themes' table (whose script
+  // comes after this one, so it is read when asked)
+  function wallpaperValues() {
+    var d = typeof ByopopThemeData !== "undefined" ? ByopopThemeData : {};
+    return wallpaperIds.concat(Object.keys(d).filter(function (id) { return d[id] && d[id].wallpaper; }).map(function (id) { return "game:" + id; }));
+  }
   function stored(name, allowed, def) {
     try { var o = JSON.parse(window.localStorage.getItem(KEY) || "{}"), v = o && o[name]; return allowed.indexOf(v) >= 0 ? v : def; } catch (e) { return def; }
   }
@@ -162,29 +172,70 @@ var ByopopSchemes = (function () {
   }
   function ratioChanged() { watchRatio(); backdrop(); }
   function picture() { try { return window.localStorage.getItem(WALL_KEY) || ""; } catch (e) { return ""; } }
+  // a picture's own size in pixels, read once from the picture (null until it has loaded, when the backdrop is drawn again)
+  var sizes = {}, sizing = {};
+  function sizeOf(url) {
+    if (sizes[url]) return sizes[url];
+    if (!sizing[url] && typeof Image !== "undefined") {
+      sizing[url] = true;
+      var img = new Image();
+      img.onload = function () { sizes[url] = { w: img.naturalWidth, h: img.naturalHeight }; delete sizing[url]; backdrop(); };
+      img.onerror = function () { delete sizing[url]; };
+      img.src = url;
+    }
+    return null;
+  }
+  // A picture as the desktop's layer, as the Display says. Pixel-perfect works in the screen's own pixels: the browser's window
+  // in them (web/skins.js: viewW, viewH and ratio, under the desktop's zoom too), the picture at the largest whole multiple
+  // that fits (1 when even its own size does not), and its corner on a whole pixel, so that each of its pixels is a square of
+  // whole screen pixels, drawn without smoothing (pixelated). Until its size is known it is centred.
+  function pictureLayer(url, fit, size) {
+    var image = "url(\"" + url + "\")";
+    if (fit === "tile") return { image: image, repeat: "repeat", position: "0 0", size: "auto" };
+    if (fit === "stretch") return { image: image, repeat: "no-repeat", position: "center", size: "100% 100%" };
+    if (fit === "fit") return { image: image, repeat: "no-repeat", position: "center", size: "contain" };
+    var s = fit === "pixel" ? size || sizeOf(url) : null;
+    if (s && s.w > 0 && s.h > 0) {
+      var K = window.ByopopSkin || null, r = K && K.ratio ? K.ratio() : window.devicePixelRatio || 1;
+      var vw = Math.round((K && K.viewW ? K.viewW() : window.innerWidth) * r), vh = Math.round((K && K.viewH ? K.viewH() : window.innerHeight) * r);
+      var k = Math.max(1, Math.floor(Math.min(vw / s.w, vh / s.h))), w = s.w * k, h = s.h * k;
+      return { image: image, repeat: "no-repeat", position: Math.floor((vw - w) / 2) / r + "px " + Math.floor((vh - h) / 2) / r + "px",
+        size: w / r + "px " + h / r + "px", pixel: true };
+    }
+    return { image: image, repeat: "no-repeat", position: "center", size: "auto" };
+  }
   // the desktop is the listing's (and a game page's of its own); a page in a window of the one page has none to draw
   function backdrop() {
     var body = document.body;
     if (!body || window.top !== window) return;
-    var layers = [], pat = stored("pattern", patternIds, "none"), wall = stored("wallpaper", wallpaperIds, "none"), fit = stored("wallpaperFit", FITS, "centre");
+    var layers = [], pat = stored("pattern", patternIds, "none"), wall = stored("wallpaper", wallpaperValues(), "none"), fit = stored("wallpaperFit", FITS, "centre");
     setDot();
     var tile = 8 * dotSize() + "px";
     // a desktop theme's wallpaper (web/themes.js) in place of the pattern and wallpaper, as the wallpaper's fit says
-    var themed = typeof ByopopThemes !== "undefined" ? ByopopThemes.wallpaper() : "";
-    if (themed) { pat = "none"; wall = "theme"; layers.push({ image: "url(\"" + themed + "\")", repeat: fit === "tile" ? "repeat" : "no-repeat",
-      position: fit === "tile" ? "0 0" : "center", size: fit === "stretch" ? "100% 100%" : "auto" }); }
+    var Th = typeof ByopopThemes !== "undefined" ? ByopopThemes : null, themed = Th ? Th.wallpaper() : "";
+    if (themed) { pat = "none"; wall = "theme"; layers.push(pictureLayer(themed, fit)); }
     if (PATTERNS[pat]) layers.push({ image: patternUri(PATTERNS[pat]), repeat: "repeat", position: "0 0", size: tile + " " + tile });
     if (TILES[wall]) layers.push({ image: "url(\"data:image/svg+xml," + TILES[wall] + "\")", repeat: "repeat", position: "0 0", size: "auto" });
-    else if (wall === "own" && picture()) {
-      layers.push({ image: "url(\"" + picture() + "\")", repeat: fit === "tile" ? "repeat" : "no-repeat", position: fit === "tile" ? "0 0" : "center",
-                    size: fit === "stretch" ? "100% 100%" : "auto" });
+    else if (wall === "own" && picture()) layers.push(pictureLayer(picture(), fit));
+    else if (/^game:/.test(wall) && Th && Th.gameWallpaper) {
+      // the game's background as the listing page prepared it (web/themes.js), with its size
+      var g = Th.gameWallpaper();
+      if (g) layers.push(pictureLayer(g.url, fit, g.w && g.h ? { w: g.w, h: g.h } : null));
     }
     var st = body.style;
     st.backgroundImage = layers.map(function (l) { return l.image; }).join(", ");
     st.backgroundRepeat = layers.map(function (l) { return l.repeat; }).join(", ");
     st.backgroundPosition = layers.map(function (l) { return l.position; }).join(", ");
     st.backgroundSize = layers.map(function (l) { return l.size; }).join(", ");
-    st.imageRendering = PATTERNS[pat] && layers.length === 1 ? "pixelated" : "";
+    st.imageRendering = (PATTERNS[pat] && layers.length === 1) || layers.some(function (l) { return l.pixel; }) ? "pixelated" : "";
+    pixelShown = layers.some(function (l) { return l.pixel; });
+  }
+  // a pixel-perfect picture is placed in the window's pixels, so again when the window changes size
+  var pixelShown = false, resizeTimer = 0;
+  function resized() {
+    if (!pixelShown) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(backdrop, 100);
   }
   // A picture of the player's own as the wallpaper: resolves to true when it is kept
   function setPicture(file) {
@@ -247,6 +298,7 @@ var ByopopSchemes = (function () {
     apply();
     watchRatio();
     window.addEventListener("byopop-zoom", ratioChanged);
+    window.addEventListener("resize", resized);
     if (document.body) backdrop(); else document.addEventListener("DOMContentLoaded", backdrop);
     window.addEventListener("byopop-setting", function (ev) {
       var n = ev.detail && ev.detail.name;
@@ -254,8 +306,10 @@ var ByopopSchemes = (function () {
       if (n === "pattern" || n === "wallpaper" || n === "wallpaperFit" || n === "theme") backdrop();
     });
     window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === WALL_KEY || ev.key === null) { apply(); backdrop(); } });
+    window.addEventListener("byopop-desk", function () { if (pixelShown) backdrop(); });
   }
-  return { patterns: PATTERNS, patternIds: patternIds, patternPreview: patternPreview, wallpaperIds: wallpaperIds, fits: FITS, backdrop: backdrop, setPicture: setPicture,
+  return { patterns: PATTERNS, patternIds: patternIds, patternPreview: patternPreview, wallpaperIds: wallpaperIds, wallpaperValues: wallpaperValues, fits: FITS,
+    pictureLayer: pictureLayer, backdrop: backdrop, setPicture: setPicture,
     clearPicture: clearPicture, chooser: chooser, picture: picture, LIST: LIST, ids: LIST.map(function (s) { return s.id; }), byId: byId, ends: ends, contrast: contrast, apply: apply, chosen: chosen };
 })();
 if (typeof module !== "undefined") module.exports = ByopopSchemes;

@@ -64,6 +64,9 @@ public:
 
 	// SDL_GetTicks
 	virtual uint32_t getTicks() = 0;
+	// the clock the music's watchdog reads: music plays in real time at every game speed (the user, 2026-11-22), so a host
+	// whose getTicks follows the game speed answers real time here
+	virtual uint32_t getMusicTicks() { return getTicks(); }
 	// SDL_GetAppState
 	virtual unsigned char getAppState() = 0;
 	// SDL_GetMouseState: the buttons (bit 0 left, 1 middle, 2 right) and the position in screen pixels

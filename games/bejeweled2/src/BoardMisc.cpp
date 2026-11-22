@@ -237,7 +237,7 @@ void Board::UpdateSecretUnlocked()
 		if (mApp->mProfile->IsModeUnlocked(mApp->mGameMode + 4))
 		{
 			mApp->DoDialog(DIALOG_MESSAGE, true, "MODE UNLOCKED",
-				"You have unlocked a secret game mode!\n\nThe new game mode can now be accessed from the main menu.", "", 3);
+				"You have unlocked a secret game mode!\n\nThe new game mode can now be accessed from the main menu.", "OK", 3);
 			mSecretModeUnlocked = true;
 		}
 	}
@@ -278,7 +278,7 @@ void Board::ShowPuzzleHint()
 	{
 		mHintsUsed++;
 		if (!mSolutionValid)
-			mApp->DoDialog(DIALOG_MESSAGE, true, "No Hints", "There are no hints available for this puzzle.", "", 3);
+			mApp->DoDialog(DIALOG_MESSAGE, true, "No Hints", "There are no hints available for this puzzle.", "OK", 3);
 		else
 			mApp->DoDialog(DIALOG_UNDO, true, "No Longer Solvable",
 				"Do you want to UNDO to the last point the puzzle could be solved from?", "", 1);

@@ -204,6 +204,62 @@ left out. That is the picture the earlier web comparison gave.
 port used more memory (87 to 89 MB private bytes against 56 to 58) and two to two and a half times the processor
 time. These numbers come from a busy machine, and the performance pass will take them again.
 
+## The screen coverage pass (2026-11-21)
+
+`SCREENS.md` lists every screen and dialog the game can show, each with the shots that cover it, and `tools/check.sh
+screens` checks the list against the newest shotdiff run (294 shots in 29 rows; the last run, `scr-all7`, has 298 pairs).
+The tour covered a small part of the screens; the pass reached the rest with test commands and saved games and compared
+each against the original in Windows Sandbox.
+
+**What was added.** A saved game one word from winning a level is made by the port (`tools/screens/mkend.py`: the bot's
+best word, the save's cells all filled but that word's), and the same word's clicks win the level in both games. That
+gave the 11 book ends and their publisher's letters, the chapter ends of six books, the story pages after them, and an
+action game's chapter and book ends. A player with best level 50 gave the level chooser's 50 thumbnails and the 49 level
+starts (`l_t01` to `l_t50`, `l_b02` to `l_b50`); one with best level 12 gave the locked chooser. The game-over variants
+(no moves left and resigning, the turns used up, the action clock at nothing) came from saves with one turn or a tiny
+clock. The menu's own screens (options, high scores, credits, the help's three pages) were reached from the main menu
+with no game, and the player list's screens (a new name, a taken name, deleting a player) from the menu with a saved
+player; the port's tour gained that last part as its tail (`tools/tour_test.txt`, after `endmenu`, to update 72503), so
+the check's Quit test now looks for update 7xxxx. Four screens cannot be reached and are listed with their reasons: the
+interstitial, the options menu's quit question, the loading text, and (not reached by a script) the last story page.
+
+**The user's request of 2026-11-18**, "Remove the "Deluxe" text from the main screen of any game it may appear in, to
+avoid misleading people about whose game version they're playing". The main menu's version text drops the word
+"Deluxe" at draw time (`Screens.cpp`, `MenuScreen::draw`): "Version 1.01" where the original says "Deluxe Version 1.01".
+The window's caption is not the main screen and keeps its name. The strip is masked in every pair with the menu
+(`shotdiff.json`) and the change is listed in `DEVIATIONS.md`.
+
+**The differences.** Of the 298 pairs 221 match, 23 differ only faintly and 54 differ, all by under 5 per cent of the
+picture. The run's crops were looked at for every kind of difference (the pairs of one kind are alike, and several of each
+were opened), and each is the game's own animation on its clock, which no two runs catch at the same point: the typewriter's text typed to another point on a story page, "Click to Continue" and the
+arrows pulsing, the Submit button's and the action bar's shimmer, a tile fading its highlight, tiles wobbling, glowing
+or falling behind a dialog, the status line shown for a time after a click (so a shot lands before or after its end),
+and the help's demonstration tiles lighting up. Where a whole region cannot match (the tiles of a level begun by the
+clock, whose letters follow how many frames drew sparkles' random numbers), the tiles are masked with a reason in
+`shotdiff.json` and compared exactly on saved games' loaded boards, where nothing is drawn from the random generator.
+No difference was a bug of the port, so no fix was needed. The Qu tiles of `be_load16` looked at first like a drawing
+difference: their letters sit a pixel apart. It is the wobble (a tile's kind 1 moves it by a sine of the clock), the
+same picture caught at another phase.
+
+**What the runs taught.** The sandbox runs the original slower when the machine is busy: its logos took over 14 s, a
+clicked tile was missed, and a click that opens a dialog came before the dialog's screen. The original's scripts now
+wait 30 s after the logos, click tiles 300 to 450 ms apart and give each menu change a second or more. The tour's
+second half (the word, CAKE and TALE, the in-game options and what follows) cannot be repeated on the original, because
+the tutorial's tile clicks assume the port's first board, whose letters the clock changes: those screens are compared
+from the menu and on saved games instead (`m_*`, `be_load`, `be_menu`), and `tools/origrun/tour.txt` is the original's
+tour only up to its first shots. The original's action clock does not run in the sandbox (its window has no input focus,
+and `isInactive` stops the clock), so the time's-up dialog with the high score line has no pair; `gx_gc_over` has the
+dialog.
+
+**Oddities.** Level 33's patched save does not end the level with its last word (DURRAS makes the first wildcard and a
+copycat tile, and the level goes on), so the end of book 8 has no shot; both games do the same. The Paused screen has no
+original beside it: the original's window is gone at the sandbox's focus step.
+
+**Saver items** (the coordinator's, 2026-11-22): the state line now says `over` (true once a game has ended, until the next
+begins) and `move` answers the logos, the menu, the name panel (it types "Saver"), the difficulty dialog (the middle one),
+the story and the dialogs, so that the site's screen saver can play from launch. The music's 10 s watchdog reads real time
+(`getMusicTicks`) outside `-fast`, so that game speed leaves the music alone; the frozen baseline is unchanged.
+
 ## Oddities left alone
 
 None so far. The tile bounces above are the one place the original reads memory it never set; the port reads 0 there

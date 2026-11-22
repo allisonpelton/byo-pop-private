@@ -22,6 +22,8 @@ setup_state() {
     reg delete 'HKCU\Software\Steam\Bejeweled2' //f > /dev/null 2>&1
     # windowed, as the port's driver asks for: under dgVoodoo2 the first run would otherwise be full screen and take no posted click
     reg add 'HKCU\Software\Steam\Bejeweled2' //v ScreenMode //t REG_DWORD //d 0 //f > /dev/null 2>&1
+    # REG2D=1: the 640 by 480 layout with no Direct3D, as the 2D tours' sandbox registry file sets (run_tour_original.sh)
+    if [ -n "$REG2D" ]; then for v in HighResolution Is3D; do reg add 'HKCU\Software\Steam\Bejeweled2' //v $v //t REG_DWORD //d 0 //f > /dev/null 2>&1; done; fi
     # PROFILE=<folder of make_profile.py>: the player with the secret modes unlocked is there already
     if [ -n "$PROFILE" ]; then mkdir -p /c/ProgramData/Steam/Bejeweled2 && cp -r "$PROFILE/users" /c/ProgramData/Steam/Bejeweled2/users; fi
   fi

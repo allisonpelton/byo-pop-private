@@ -3,6 +3,7 @@
 #include "Bubbles.h"
 #include "TempleScreen.h"
 #include "PixelusApp.h"
+#include "OptionsDialog.h"
 #include "TileMaster.h"
 #include "LevelData.h"
 #include "ProgressManager.h"
@@ -1228,6 +1229,23 @@ void Board::DrawTile(Graphics* g, GridObject* theObject)
 	if (aKind == 3 && theObject->mState == 0)
 		g->DrawImage(mApp->mImages[IMAGE_STICKYEDGE_20X20], aX + 1, aY + 1);
 
+	// the flash of a finished puzzle (0x42f4e7 with 0x4227c0): once the puzzle is done and still, every tile is covered by a
+	// yellow (255, 252, 27) grey tile whose alpha is 255 less the glow's 255ths, so the tiles go yellow as the delay runs down
+	if (mGrid->mDone && !mGrid->mTileMoving)
+	{
+		int aGlowAlpha = 255 - (int) (mGrid->mGlow * 255.0);
+		if (aGlowAlpha < 0)
+			aGlowAlpha = 0;
+		if (aGlowAlpha > 255)
+			aGlowAlpha = 255;
+		if (aGlowAlpha > 0)
+		{
+			g->SetColorizeImages(true);
+			g->SetColor(Color(255, 252, 27, aAlpha * aGlowAlpha / 255));
+			g->DrawImage(mApp->mImages[IMAGE_GRAYTILE_20X20], aX, aY);
+		}
+	}
+
 	// the shine of a tile that has just come to rest
 	if (theObject->mIdle < 100)
 	{
@@ -1541,23 +1559,26 @@ void Board::Draw(Graphics* g)
 
 	if (mPauseFade > 0.0)
 	{
+		// 0x405a15: the canvas slides down from above by 420 pixels over the fade, to 60 at the end, drawn as it is; the dark veil
+		// over the play area is 128 * fade; the texts ride the same slide (0x405acc)
+		int aSlide = -360 + (int) (mPauseFade * 420.0);
+		g->DrawImage(mApp->mImages[IMAGE_PAUSECANVAS], 220, aSlide);
 		g->SetColorizeImages(true);
-		g->SetColor(Color(255, 255, 255, (int) (mPauseFade * 255)));
-		g->DrawImage(mApp->mImages[IMAGE_PAUSECANVAS], GRID_X + mGrid->mCols * Grid::CELL_SIZE / 2 - 180, GRID_Y + mGrid->mRows * Grid::CELL_SIZE / 2 - 180);
-		g->SetColor(Color(0, 0, 0, (int) (mPauseFade * 160)));
+		g->SetColor(Color(0, 0, 0, (int) (mPauseFade * 128.0)));
 		g->FillRect(SIDEBAR_WIDTH, 0, mWidth - SIDEBAR_WIDTH, mHeight);
 		g->SetColorizeImages(false);
 
 		g->SetFont(mApp->mFonts[FONT_PRAITOR36]);
-		g->SetColor(Color(255, 255, 255, (int) (mPauseFade * 255)));
-		g->DrawString(GT(0x50c410), 0x195 - g->StringWidth(GT(0x50c410)) / 2, 0xbe);
-		if (mApp->mPauseCount == 1)
+		g->SetColor(Color(255, 255, 255, 255));
+		g->DrawString(GT(0x50c410), 0x195 - g->StringWidth(GT(0x50c410)) / 2, aSlide + 0xaa);
+		// 0x405c2e: the line under it is left out while the options or the reset question are open
+		if (mApp->GetDialog(OptionsDialog::DIALOG_ID) == NULL && mApp->GetDialog(24) == NULL)
 		{
 			g->SetFont(mApp->mFonts[FONT_PRAITOR24]);
-			g->SetColor(Color(0, 0, 0, (int) (mPauseFade * 255)));
-			g->DrawString(GT(0x50c3f4), 0x197 - g->StringWidth(GT(0x50c3f4)) / 2, 0xf0);
-			g->SetColor(Color(0xfd, 0xd1, 0x5b, (int) (mPauseFade * 255)));
-			g->DrawString(GT(0x50c3f4), 0x195 - g->StringWidth(GT(0x50c3f4)) / 2, 0xee);
+			g->SetColor(Color(0, 0, 0, 255));
+			g->DrawString(GT(0x50c3f4), 0x197 - g->StringWidth(GT(0x50c3f4)) / 2, aSlide + 0xd9);
+			g->SetColor(Color(0xfd, 0xd1, 0x5b, 255));
+			g->DrawString(GT(0x50c3f4), 0x195 - g->StringWidth(GT(0x50c3f4)) / 2, aSlide + 0xd7);
 		}
 	}
 }

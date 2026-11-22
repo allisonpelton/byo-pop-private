@@ -44,7 +44,7 @@ lines.insert(first, 'at 330 gate %d' % update)
 open(p, 'w').write('\n'.join(lines))
 EOF
   wait_slot || { echo "no room for a game process"; exit 3; }
-  python games/bejeweled2/tools/origcmp/visrun.py ${PROFILE:+--profile $PROFILE} build/visrun/bej2/game/Bejeweled2Game.exe $script build/visrun/$tag --timeout 120
+  python games/bejeweled2/tools/origcmp/visrun.py ${PROFILE:+--profile $PROFILE} ${HIRES:+--hires $HIRES} build/visrun/bej2/game/Bejeweled2Game.exe $script build/visrun/$tag --timeout 120
   echo "visrun rc=$?"
   cat build/visrun/$tag.visrun.log
 fi

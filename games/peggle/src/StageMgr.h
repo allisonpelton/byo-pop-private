@@ -16,6 +16,7 @@ namespace Sexy
 {
 
 class ConfigParser;
+class PlayerInfo;
 
 // The last use time a level has before it was picked (0x441fd0, 0x43d890)
 static const int LEVEL_NEVER_USED = -1000;
@@ -64,6 +65,13 @@ public:
 	StageInfo* GetStageInfo(int theStage);		// 0x43d820: none when there is no such stage
 	int GetNumStages() const { return (int)mStages.size(); } // 0x43d870
 	LevelInfo* FindLevel(const std::string& theFileName);	  // 0x442ff0: by file name, none when there is none
+	// 0x459060: draws a level the player may play (stages up to theMaxStage, in the last one up to theMaxLevel): not the one in
+	// *theStage and *theLevel, not one marked as left out of random picks when theSkipExcluded, and when theMinGap is above 0 not
+	// one picked less than that many picks ago (the pick is marked). When none is left and theRetry, the times are cleared and it
+	// is tried once more. The pick comes back in *theStage and *theLevel (they are unchanged when there is none).
+	void GetRandomLevel(int theMaxStage, int theMaxLevel, int* theStage, int* theLevel, bool theSkipExcluded, int theMinGap, bool theRetry);
+	// 0x4592e0: the same for a player's furthest level; the level's information, none when there is none
+	LevelInfo* GetRandomLevel(const PlayerInfo* thePlayer, bool theSkipExcluded, int theMinGap);
 	void ResetLastUseTimes();					// 0x43d890
 	void MarkLastUseTime(LevelInfo& theLevel);	// 0x437620
 

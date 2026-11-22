@@ -56,7 +56,7 @@ void Animation_Append(List<Animation>* theList)
 // 0x41ed80
 void Level_Append(List<Level>* theList)
 {
-	Level* aLevel = (Level*)::operator new(sizeof(Level));
+	Level* aLevel = (Level*)NewZeroed(sizeof(Level));
 	List_Append(theList, Level_Init(aLevel));
 }
 

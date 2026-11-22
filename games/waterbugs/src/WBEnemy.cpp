@@ -524,7 +524,7 @@ void Enemy_Shield(Enemy* theEnemy)
 {
 	if (theEnemy->mShield == nullptr)
 	{
-		Obj* aShield = (Obj*)::operator new(sizeof(Obj));
+		Obj* aShield = (Obj*)NewZeroed(sizeof(Obj));
 		Obj_Init(aShield);
 		theEnemy->mShield = aShield;
 		aShield->mX = theEnemy->mX;
@@ -640,13 +640,13 @@ int Enemy_Place(Enemy* theEnemy)
 
 void Enemy_Append(List<Enemy>* theList)
 {
-	Enemy* anEnemy = (Enemy*)::operator new(sizeof(Enemy));
+	Enemy* anEnemy = (Enemy*)NewZeroed(sizeof(Enemy));
 	List_Append(theList, Enemy_Init(anEnemy));
 }
 
 void Powerup_Insert(List<Powerup>* theList)
 {
-	Powerup* aPowerup = (Powerup*)::operator new(sizeof(Powerup));
+	Powerup* aPowerup = (Powerup*)NewZeroed(sizeof(Powerup));
 	List_InsertBefore(theList, Powerup_Init(aPowerup));
 }
 
@@ -831,7 +831,7 @@ int Enemy_PlaceFirst(Enemy* theEnemy)
 
 void Text_Append(List<Text>* theList)
 {
-	Text* aText = (Text*)::operator new(sizeof(Text));
+	Text* aText = (Text*)NewZeroed(sizeof(Text));
 	List_Append(theList, Text_Init(aText));
 }
 

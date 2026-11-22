@@ -298,9 +298,10 @@ Practice and help:
 
 Accessibility:
 
-15. Colour-blind help: symbols or other palettes for anything the game tells apart only by colour. Palettes are to be a
-    site filter over the canvas (not built as of 2026-11-17: the site's colour filters have none yet); symbols stay a
-    mod.
+15. Colour-blind help: symbols or other palettes for anything the game tells apart only by colour. Palettes are a site
+    filter over the canvas: the colour filter's For protanopia, For deuteranopia and For tritanopia (site batch 5,
+    2026-11-22; daltonization from Machado 2009's simulation, as an SVG colour matrix, `docs/WEB_PLAYER.md`). Symbols
+    stay a mod.
 16. Reduced motion: screen shake, flashes and heavy particle bursts turned off.
 17. Other controls: keyboard-only or gamepad play for mouse games, touch for phone browsers, remappable keys. Site
     settings now, translated by the page before the game sees the input; a mod only where a game needs controls of its

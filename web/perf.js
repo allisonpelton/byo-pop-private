@@ -3,7 +3,9 @@
 // reads: it changes nothing in the game, so play is the same with it on.
 //
 // With it off nothing of it runs: no animation frame, no observer, no timer, no wrapped WebGL call. The one thing left is its
-// link in the framework's frame hook (Module.byopopTestFrame), which returns at once.
+// link in the framework's frame hook (Module.byopopTestFrame), which returns at once. System Information on the listing page
+// (web/sysinfo.js) may watch a game window: the same readings each second (reading()) without the panel and without wrapping
+// WebGL, while that window is up and not otherwise (watch).
 //
 // What it reads, each second:
 //   frames       frames per second and frame time from requestAnimationFrame; the time the game's updates and draw took in
@@ -27,6 +29,7 @@ var ByopopPerf = (function () {
   var st = null;          // this second's counts
   var last = null;        // what the panel shows
   var gl = null, restore = [], timer = null, queries = [], activeQuery = null, gpuMs = [];
+  var watched = false;    // System Information reads this page (watch)
   var storage = null;
 
   function T(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
@@ -48,7 +51,7 @@ var ByopopPerf = (function () {
   // ---------- the framework's frame hook ----------
   var framed = false;  // the game has drawn: its canvas has its context
   function onFrame(drew, ms) {
-    if (!on || !st) return;
+    if (!st) return;
     st.hooks++;
     if (drew) framed = true;
     if (typeof ms === "number") { st.gameMs += ms; if (ms > st.gameMax) st.gameMax = ms; }
@@ -170,7 +173,7 @@ var ByopopPerf = (function () {
 
   // ---------- the second's readings ----------
   function onRaf(t) {
-    if (!on) return;
+    if (!st) return;
     if (st.lastRaf) { var d = t - st.lastRaf; st.frames++; st.frameMs += d; if (d > st.frameMax) st.frameMax = d; }
     st.lastRaf = t;
     raf = requestAnimationFrame(onRaf);
@@ -185,8 +188,8 @@ var ByopopPerf = (function () {
     return null;
   }
   function second() {
-    if (!on) return;
-    if (!gl && framed) wrapGl();
+    if (!st) return;
+    if (!gl && framed && on) wrapGl();
     var now = performance.now(), secs = Math.max(0.001, (now - st.t0) / 1000), s = st;
     var fw = framework(), audio = null;
     try {
@@ -338,13 +341,10 @@ var ByopopPerf = (function () {
           open: function () {}, at: function (left, vw) { return [Math.max(left, vw - 310), 12]; } });
     } catch (e) {}
   }
-  function start() {
-    if (on) return;
-    on = true;
+  // the readings taken, for the panel or for System Information
+  function begin() {
+    if (st) return;
     hook();
-    build();
-    panel.hidden = false;
-    side();
     st = fresh();
     raf = requestAnimationFrame(onRaf);
     tick = setInterval(second, 1000);
@@ -360,17 +360,35 @@ var ByopopPerf = (function () {
       }
     } catch (e) { longObs = null; }
   }
-  function stop() {
-    if (!on) return;
-    on = false;
+  // and no longer, once neither wants them
+  function end() {
+    if (!st || on || watched) return;
     cancelAnimationFrame(raf); raf = 0;
     clearInterval(tick); tick = 0;
     clearInterval(storageTimer); storageTimer = 0;
     if (longObs) { try { longObs.disconnect(); } catch (e) {} longObs = null; }
     unwrapGl();
     st = null; last = null; storage = null; gpuMs = [];
+  }
+  function start() {
+    if (on) return;
+    on = true;
+    build();
+    panel.hidden = false;
+    side();
+    begin();
+  }
+  function stop() {
+    if (!on) return;
+    on = false;
+    unwrapGl();
+    end();
     if (panel) { panel.hidden = true; body.textContent = T("perf.waiting"); }
     side();
+  }
+  function watch(want) {
+    watched = !!want;
+    if (watched) begin(); else end();
   }
   function side() {
     var is = !!panel && !panel.hidden && panel.classList.contains("perf-side");
@@ -386,5 +404,5 @@ var ByopopPerf = (function () {
   // a choice made on the page (the window's View menu, Settings) wins over ?perf=1 from then on, so the panel can be put away
   window.addEventListener("byopop-setting", function (ev) { if (ev.detail && ev.detail.name === "perf") { ASKED = false; sync(); } });
   window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) sync(); });
-  return { setGame: setGame, sync: sync, isOn: function () { return on; }, reading: function () { return last; } };
+  return { setGame: setGame, sync: sync, watch: watch, isOn: function () { return on; }, reading: function () { return last; } };
 })();

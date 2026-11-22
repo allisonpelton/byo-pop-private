@@ -219,6 +219,9 @@ bool UserProfile::Read(const Buffer* theBuffer)
 			int aMoves = theBuffer->ReadLong();
 			int aMoves2 = theBuffer->ReadLong();
 			SetRecord(aUuid, aSolved, aMoves, aMoves2);
+			// 0x439dc0: reading a record marks its temple as seen (+0x12), so a temple with any record is never new
+			if (aKey >= 0 && aKey < NUM_TEMPLES)
+				mTempleFlags[gTemples[aKey].mName] |= 4;
 		}
 		if (aKey < 0 || aKey >= NUM_TEMPLES)
 			continue;
