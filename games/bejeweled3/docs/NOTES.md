@@ -489,5 +489,44 @@ that does not, a third (against 0.0006 times the shine rate). The board's MTRand
 piece, Next(14) per colour).
 
 Left out, each with its address in a port: note in Board.cpp: the dialog holds, saved-game and replay branches, the effects
-widget, the intro (slot 228), the pieces' own idle curves, the swaps and match search, the hint, the bars and the fades.
+widget, the intro (slot 228), the pieces' own idle curves, the hint, the bars and the fades; the move's own leftovers are listed below.
 The `state` test command also prints update, moving (pieces not settled), landticks, ysum and speedsum.
+
+### The player's move, the matches and the score (BoardMoves.cpp)
+
+Input: the exe overrides the four-argument MouseDown and MouseUp and the two-argument MouseDrag (mouse pixels divided by
+art / 1200 give the 1200ths the pieces use). MouseDown (0x73f140) needs the board to have settled once (+0x1190): a click on
+a gem that can be swapped picks it up (+0x23c); with a gem already in hand, a click on a neighbour swaps them (CanSwap 0x75fae0:
+both swappable, both settled, no bit 0x100, next to each other), a click elsewhere puts the first down and picks up the one
+clicked. MouseUp (0x73d990) remembers the gem in hand (+0x27e0); a second release on the same gem puts it down. MouseDrag
+(0x73c510) with the button held and the mouse 40 1200ths away from where it went down swaps the gem in hand with its
+neighbour in the direction it moved most. A swap is queued (list +0xc60) and begun in the next UpdateTick (0x75ee20): a move
+record gets the board's id counter (+0xe1c) and both gems take it as their tag (+0x188).
+
+The swap (0x759ba0): curve string 0x85efb0 (30 updates, output 1 to -1) puts the gems on a line between the cells; at its
+end they change cells and the board is searched; with no match the swap goes back along 0x85fe00 (45 updates) and they
+change cells again. A script's `swap <col> <row> <up|down|left|right>` asks for the move the player would make; `state` also
+prints points (+0xd24), matches (live match groups) and swaps (running swaps).
+
+Matches (0x75af60, run first in UpdateGame): rows then columns, runs of 3 or more of settled gems of one colour; runs that
+share a gem are one match (so a 4, 5, an L or a cross is one). The match's gems take the highest move id among them and a
+timer (+0x178) of 0.9; the group (+0x125c) adds 0.015 to each gem's timer every update (0x75dee0) and at 1 gives the gem a
+busy count of 1; the next update's busy countdown destroys it (0x74c770, 0x755b80: gems above take the id; the fill then
+refills the column). The fill and the next match search wait while a group is alive.
+
+Score: a match scores (n - 3 + k) * 50, n the gems, k the matches the move and its cascades have made so far (at least 1),
+and 350 * (n - 4) more from 5 gems (0x75d86f); AddPoints (0x74a210) takes it times the level number (+0xe0c, 1) in steps of
+10, each times the level index + 1 (+0xe04, 0), into +0xd24. The shown score (+0xd64) follows it every fourth update by a
+fifth of the distance, plus or minus 1 (0x73b6d0).
+
+Random draws, in order: the swap, the match search and the score draw none. Destroying a gem draws the app's Rand() many times
+for its sparks (not translated: those draws are missing, so the idle shine's later draws differ from the exe's after the
+first match). The fill refills with the board's MTRand as before (Next(15) per new gem, Next(14) per colour); the idle shine
+draws as above.
+
+Uncertain or left out, each marked `// port:` in BoardMoves.cpp: whether the exe begins a swap in the update of the click or
+the next; the group's life (the exe keeps it about 50 updates as an expanding ring that zeroes the speed of gems it passes;
+here it ends with its last gem, about 7 updates after the match); whether the 0x32 passed to 0x792bf0 in the destroy
+function is a score (read as an effect's length, so no per-gem points); the matcher's perpendicular-neighbour deferral;
+the flame, star and hypercube (runs of 4 and 5 and crossings make them), the level bar, the end of the game, the hint, the
+help boxes, sounds, the sparks and the counters of 0x73d170 (+0xcc0 and others).

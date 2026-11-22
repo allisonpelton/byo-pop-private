@@ -65,12 +65,43 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 			ReplyError(theCommand, "only classic is made yet");
 		return true;
 	}
+	if (aCommand == "swap") {
+		// swap <col> <row> <up|down|left|right>: asks for the move the player would make, and prints the board and score
+		int aCol = -1;
+		int aRow = -1;
+		char aDir[16] = "";
+		if (mBoard == nullptr || sscanf(theCommand.mArgs.c_str(), "%d %d %15s", &aCol, &aRow, aDir) != 3 || aCol < 0 ||
+			aCol >= Board::COLS || aRow < 0 || aRow >= Board::ROWS) {
+			ReplyError(theCommand, "swap <col> <row> <up|down|left|right> on a board");
+			return true;
+		}
+		int aToRow = aRow;
+		int aToCol = aCol;
+		std::string aWay = aDir;
+		if (aWay == "up")
+			aToRow--;
+		else if (aWay == "down")
+			aToRow++;
+		else if (aWay == "left")
+			aToCol--;
+		else if (aWay == "right")
+			aToCol++;
+		if (aToRow < 0 || aToRow >= Board::ROWS || aToCol < 0 || aToCol >= Board::COLS || mBoard->mGrid[aRow][aCol] == nullptr ||
+			!mBoard->TrySwap(mBoard->mGrid[aRow][aCol], aToRow, aToCol)) {
+			ReplyError(theCommand, "that swap is not allowed now");
+			return true;
+		}
+		ReplyOK(theCommand);
+		return true;
+	}
 	if (aCommand == "state") {
 		std::string aLine = "STATE {\"screen\":\"";
 		aLine += mBoard != nullptr ? "classic" : "menu";
 		aLine += "\"";
 		if (mBoard != nullptr) {
-			aLine += ",\"mode\":\"classic\",\"score\":" + std::to_string(mBoard->mScore) + ",\"board\":[";
+			aLine += ",\"mode\":\"classic\",\"score\":" + std::to_string(mBoard->mScore) + ",\"points\":" + std::to_string(mBoard->mScorePoints) +
+				",\"matches\":" + std::to_string(mBoard->mMatchGroups.size()) + ",\"swaps\":" + std::to_string(mBoard->mSwaps.size()) +
+				",\"board\":[";
 			for (int aRow = 0; aRow < Board::ROWS; aRow++) {
 				aLine += aRow == 0 ? "\"" : ",\"";
 				for (int aCol = 0; aCol < Board::COLS; aCol++)

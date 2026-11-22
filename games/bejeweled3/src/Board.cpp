@@ -89,7 +89,17 @@ void Board::ResetGame()
 			mGrid[aRow][aCol] = nullptr;
 		}
 	}
-	mHintCount = 0;
+	mLevelIndex = 0;
+	mLevelNumber = 1;   // 0x74a880: +0xe0c
+	mScore = 0;
+	mScorePoints = 0;
+	mMatchCounter = 0;
+	mMoveRecords.clear();
+	mSwaps.clear();
+	mMatchGroups.clear();
+	mPendingSwaps.clear();
+	mMouseDown = false;
+	mSelectedAtMouseUp = nullptr;
 	// 0x74aa22 to 0x74aad5: the counters of a game are back to what a new board has
 	mGameTicks = 0;
 	mLandTicks = 0;
@@ -189,13 +199,13 @@ void Board::FillInBlanks(bool theNoMatchCheck)
 					if (aColumnPiece == nullptr)
 						continue;
 					float aScreenY = (float)GetGridY() + aColumnPiece->mY;
-					if (!((double)(-GetGridY()) <= (double)aScreenY)) {
+					if (!((double)(-GetGridY()) <= (double)aScreenY)) {   // kept as the exe compares the floats: a NaN position counts as above the screen
 						aStackedAbove += 0x100;
 						aScreenY = (float)(-(GetGridY() + aStackedAbove));
 					}
 					double aDistance = ((double)(aColumnPiece->mRow << 7) - (double)aScreenY) * 2.0;
 					int aLandTicks = Ftol(std::sqrt(aDistance / ((double)GetFallFactor() * 0.26499999999999999)));
-					if (!(mLandTicks <= aLandTicks))
+					if (mLandTicks > aLandTicks)
 						aLandTicks = mLandTicks;
 					mLandTicks = aLandTicks;
 				}
@@ -276,7 +286,16 @@ void Board::UpdateTick()
 {
 	// 0x475660 is WidgetContainer::Update: the board's own update count goes up here, not in Update
 	WidgetContainer::Update();
+	// 0x75ee20 for the moves the player asked for since the last update (the list at +0xc60)
+	std::vector<PendingSwap> aPending;
+	aPending.swap(mPendingSwaps);
+	for (size_t i = 0; i < aPending.size(); i++) {
+		Piece* aPiece = FindPieceById(aPending[i].mPieceId);
+		if (aPiece != nullptr)
+			StartSwap(aPiece, aPending[i].mRow, aPending[i].mCol);
+	}
 	UpdateGame();
+	UpdateShownScore();
 }
 
 // 0x767e20 (bejeweled3). port: left out until its step: the other 19 curves it steps, the flag at +0x2978, the flagged
@@ -293,18 +312,31 @@ void Board::UpdateGame()
 	mCoverCurve.IncInVal();
 	// slot 101 (0x73c330) is 0 when no dialog holds the game: the game's own tick goes on
 	mGameTicks++;
+	FindMatches();   // slot 201 (0x75af60)
 	if (mFillHeld == 0) {
-		// the match list at +0x125c is empty
-		FillInBlanks(false);
+		// 0x73c9xx: the fill waits while a match is alive (the list at +0x125c)
+		if (mMatchGroups.empty())
+			FillInBlanks(false);
+		UpdateSwaps();
 		UpdateFalling();
 	}
 	for (int aCol = 0; aCol < COLS; aCol++) {
 		float aSum = (float)((double)mColumnSpeed[aCol] + 0.27500000596046448);
 		mColumnSpeed[aCol] = aSum > 0.0f ? 0.0f : aSum;
 	}
-	// the swap curve (+0x198) of every piece is idle, so the speeds the exe also adds at +0x608 to +0x610 are 0 and
-	// nothing but UpdateFalling moves a piece; the match list is empty
-	FillInBlanks(false);
+	// the busy counts (+0x230): a piece whose count goes from 1 to 0 is destroyed (0x74c770)
+	for (int aRow = 0; aRow < ROWS; aRow++) {
+		for (int aCol = 0; aCol < COLS; aCol++) {
+			Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece != nullptr && aPiece->mBusyCount > 0) {
+				aPiece->mBusyCount--;
+				if (aPiece->mBusyCount == 0)
+					DestroyPiece(aPiece);
+			}
+		}
+	}
+	if (mMatchGroups.empty())
+		FillInBlanks(false);
 	if (!IsSettled()) {
 		mShineOn = false;
 	}
@@ -332,6 +364,7 @@ void Board::UpdateGame()
 			mShineUpdate = mUpdateCnt;
 		}
 	}
+	UpdateMatchGroups();   // 0x75dee0
 	if (mLandTicks > 0)
 		mLandTicks--;
 }
@@ -347,7 +380,8 @@ bool Board::IsSettled()
 				return false;
 		}
 	}
-	// the match list at +0x125c is empty
+	if (!mMatchGroups.empty())
+		return false;
 	if (HasMatches())
 		return false;
 	mSettledOnce = true;
@@ -358,6 +392,8 @@ bool Board::IsSettled()
 // port: the piece's swap curve (+0x198) is idle, nothing holds it (0x73caa0) and its type (+0x24) is not 6
 bool Board::PieceIsSettled(const Piece* thePiece)
 {
+	if (thePiece->mBoard->IsHeldBySwap(thePiece))
+		return false;
 	return thePiece->mFallSpeed == 0.0f && thePiece->mY == (float)(thePiece->mRow << 7) && thePiece->mCanFall &&
 		thePiece->mBusyCount == 0 && (thePiece->mFlags & 0x2000) == 0;
 }
@@ -390,7 +426,10 @@ void Board::UpdateFalling()
 			Piece* aPiece = mGrid[aRow][aCol];
 			if (aPiece == nullptr)
 				continue;
-			// 0x73caa0 (nothing holds a piece: the effects list is empty) is false, and a plain piece's type (+0x24) is not 6
+			// 0x73caa0: a piece held by a swap does not fall (its speed stays unless it is negative); a plain piece's type
+			// (+0x24) is not 6
+			if (IsHeldBySwap(aPiece) && aPiece->mFallSpeed >= 0.0f)
+				continue;
 			float aY = aPiece->mY + aPiece->mFallSpeed;
 			aPiece->mY = aY;
 			float aRowY = (float)(aRow * CELL);
