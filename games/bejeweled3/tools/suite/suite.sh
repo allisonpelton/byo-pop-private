@@ -1,25 +1,28 @@
 #!/bin/bash
 # Bejeweled 3's check suite (tools/check.sh's suite_bejeweled3 calls it): <out dir> [exe]
 #
-# One script of test commands (suite_test.txt beside this file), run twice: the menu, a seeded Classic game played by the
+# Two scripts of test commands beside this file, each run twice. suite_test.txt: the menu, a seeded Classic game played by the
 # bot for 150 moves, a board with a Flame Gem, a Star Gem and a Hypercube put on it, then a board with no move and the
-# game-over dialog. The two runs' state lines and their screenshots (all but the menu's) must be the same, and the state lines must
-# match the frozen hash below (update it, with the reason in the commit, when a translation changes the game's state).
+# game-over dialog. suite_modes.txt: a seeded Zen game (bot, 150 moves) and a board with no move (Zen has no game over: a
+# Hypercube is made), then a Lightning game played by the bot through two Last Hurrahs to its end. The two runs' state lines and
+# their screenshots (all but the menu's) must be the same, and the state lines must match the frozen hashes below (update one, with
+# the reason in the commit, when a translation changes the game's state).
 set -u
 OUT="$1"
 EXE="${2:-build/native/bejeweled3.exe}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 FROZEN="bfe5c9c6bf24"
+FROZEN_MODES="1cea5002c0e6"
 SHOTS="classic play specials gameover"  # compared; menu.png is only kept to look at: the menu opens after the
 # loading, which runs at the machine's speed, so its dialog and balls stand at a different point of their animation each run
 mkdir -p "$OUT"
 fail=""
 
-run() {  # <name>: the script into $OUT/<name>; prints the exe's exit status
+run() {  # <name> [script]: the script (suite_test.txt) into $OUT/<name>; prints the exe's exit status
 	local dir="$OUT/$1" e=0 windir
 	rm -rf "$dir"; mkdir -p "$dir/user"
 	windir="$(cygpath -m "$(cd "$dir" && pwd)")"
-	sed "s|@DIR@|$windir|" "$HERE/suite_test.txt" > "$dir/script.txt"
+	sed "s|@DIR@|$windir|" "$HERE/${2:-suite_test.txt}" > "$dir/script.txt"
 	timeout 240 "$EXE" -gamedir=assets/bejeweled3 -userdir="$dir/user" -fast -script="$dir/script.txt" > "$dir/stdout.txt" 2>&1 || e=$?
 	grep -oE '(OK|ERROR|STATE) .*' "$dir/stdout.txt" > "$dir/states.txt"
 	echo "$e"
@@ -35,10 +38,23 @@ for s in $SHOTS; do
 	[ -s "$OUT/game/$s.png" ] || { fail="$fail noshot-$s"; continue; }
 	cmp -s "$OUT/game/$s.png" "$OUT/rerun/$s.png" || fail="$fail rerun-$s"
 done
+e="$(run modes suite_modes.txt)"; [ "$e" -eq 0 ] || fail="$fail modes-exit($e)"
+grep -q '^ERROR' "$OUT/modes/states.txt" && fail="$fail modes-command($(grep -m1 '^ERROR' "$OUT/modes/states.txt" | cut -c1-80))"
+[ "$(grep -c '^STATE ' "$OUT/modes/states.txt")" = 5 ] || fail="$fail modes-statelines"
+grep '^STATE ' "$OUT/modes/states.txt" | sed -n 2p | grep -q '"gameover":0' || fail="$fail zen-gameover"
+grep '^STATE ' "$OUT/modes/states.txt" | tail -n 1 | grep -q '"gameover":1' || fail="$fail lightning-nogameover"
+e="$(run modesrerun suite_modes.txt)"; [ "$e" -eq 0 ] || fail="$fail modesrerun-exit($e)"
+cmp -s "$OUT/modes/states.txt" "$OUT/modesrerun/states.txt" || fail="$fail modesrerun-states"
+for s in zen lightning; do
+	[ -s "$OUT/modes/$s.png" ] || { fail="$fail noshot-$s"; continue; }
+	cmp -s "$OUT/modes/$s.png" "$OUT/modesrerun/$s.png" || fail="$fail modesrerun-$s"
+done
+msh="$(sha256sum "$OUT/modes/states.txt" | cut -c1-12)"
+[ -z "$FROZEN_MODES" ] || [ "$msh" = "$FROZEN_MODES" ] || fail="$fail MODE STATES CHANGED($msh; frozen $FROZEN_MODES)"
 sh="$(sha256sum "$OUT/game/states.txt" | cut -c1-12)"
 [ -z "$FROZEN" ] || [ "$sh" = "$FROZEN" ] || fail="$fail STATES CHANGED($sh; frozen $FROZEN)"
 if [ -z "$fail" ]; then
-	echo "bejeweled3: menu, a seeded Classic game (bot, 150 moves), the specials and the game over; rerun identical (states and 4 shots); states $sh"
+	echo "bejeweled3: menu, a seeded Classic game (bot, 150 moves), the specials and the game over; Zen and Lightning games (bot); rerun identical (states and 6 shots); states $sh, modes $msh"
 	exit 0
 fi
 echo "bejeweled3: FAILED:$fail"

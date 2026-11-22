@@ -866,3 +866,98 @@ Shown by script: `set points`, `board` with no move, a wait of about 1000 update
   slider maker) is 23 lines, but the sliders' listener (the volume, music and sound set-ups), the checkboxes' options and the places that
   read +0xd20 (0x6c4ac0, 0x6c4fb0, 0x6c56c0, 0x6d8c60 are other modes'; 0x73b640 and 0x73c330 are Classic's) were not read. The dialog is
   still the BACK and MAIN MENU buttons only.
+
+## Zen and Lightning (ZenBoard.cpp, LightningBoard.cpp, Bej3App::StartZen and StartLightning)
+
+The exe's three game boards derive from Board (vftable 0x864cb4, 256 slots) directly: ClassicBoard (0x86511c), ZenBoard (0x866b6c, 0x36d8
+bytes, made by 0x7126f0) and SpeedBoard (0x8665c4, 0x3480 bytes, made by 0x718090). SpeedBoard is Lightning: "Speed" is its mode name
+(slot 89, 0x7144a0: the song, the log, speed.cfg and speed.sav) and "Lightning" its Title. The play menu's balls 1 and 2 call the starts
+0x773100 and 0x773440 (the port: StartZen and StartLightning, which share StartBoard with Classic's); Lightning first copies the settings of
+the first quest of speed.cfg (0x404870) into the board's map at +0xc8 (the port: Board::mSettings), then slot 85 resets it, which reads them.
+The port's Board stands for Classic's (the Classic board's slots are the ones the base translated), so each mode's class overrides what it
+changes. The slots that differ from Board's, with the address in the mode's own vtable (Zen, then Lightning):
+
+- Zen, 33: 0 (0x41d110), 22 (0x7116c0), 26 (0x710e80), 43 (0x711e70), 47 (0x70e490), 83 (0x70e880), 88 (0x70e590), 90 to 92 (0x70e350,
+  0x70e360, 0x70e3b0), 100 and 110 (0x70e380, 0x70e370), 111 (0x70e340), 113 (0x70e3a0: true), 116 (0x70e390), 117 to 119 (0x70f910,
+  0x70f8f0, 0x70f8d0), 122 (0x70e330: 1), 123 (0x70e320), 134 (0x41d100), 135 (0x710bf0), 139 (0x70e4f0), 154 (0x70e450: the level's size),
+  157 (0x7120e0), 161 (0x70e4a0: no game over), 174 (0x70f8b0), 191 (0x70f160), 198 (0x70f2b0), 234 (0x712c60), 249 (0x70fdf0),
+  251 (0x70e500), 255 (0x70e5c0).
+- Lightning, 40: 0 (0x41c1d0), 22 (0x7173f0: update), 26 (0x716c30), 43 (0x716ef0), 47 (0x714120), 85 (0x718500: reset), 86 (0x7141b0),
+  87 (0x714400), 88 (0x7144d0), 89 (0x7144a0: "Speed"), 104 (0x7140f0: 60 seconds), 105 (0x714150), 106 (0x714110), 122 (0x714090: 5),
+  123 (0x714080), 124 (0x714500), 127 (0x7140a0), 131 (0x714420: the help boxes), 138 (0x714890), 139 (0x718fe0), 143 (0x715360: a piece
+  is cleared), 152 (0x715300: a thunk of Board's 0x74df80), 154 (0x7140d0), 155 (0x7140b0), 156 (0x714280), 158 (0x7151e0), 161 (0x719350),
+  172 (0x714100: 0x82), 182 (0x7143a0), 183 (0x714dd0), 185 (0x716c60: the fill's time gems), 186 (0x7183e0), 187 (0x713fa0: the time left),
+  188 (0x716f70: the bar's target), 218 (0x714130), 233 (0x716ab0: the end dialog), 238 (0x714840), 241 (0x715940), 250 (0x713f90),
+  255 (0x714660).
+
+Translated and overridden (marked `override`, each with its slot and address in the comment): Zen 89 (the Title), 113 (IsSlowMode), 122,
+154 and 161; Lightning 22, 85, 89, 104, 122, 143, 154, 155, 161, 172, 185, 187 (GetTimeLeft), 188. The hooks they needed in Board are
+virtual there (the translations of slots 85, 135, 154, 161, 171 and 172 became virtual): IsSlowMode (slot 113: the match groups' timers,
+the explosions' busy counts and the sparks take the Zen branch), GetLevelFactor (122, in AddPoints), OnPieceCleared (143, from RemovePiece),
+OnFillAccepted (185, from the fill), GetTimeLimit (104), GetBarTarget (188, from UpdateLevelBar) and GetLevelProgress (155). The end of
+Board::NoMoreMoves (0x7602c0) is Board::EndGame, which Lightning's slot 161 calls too. UpdateLevelBar's "level is full" test is slot 217's:
+with no time limit the bar is 1 and the progress the level's size; with one (Lightning) the size is above 0 and the progress has reached it
+(never with the shipped file, which has no goal).
+
+### Zen
+
+No game over. Slot 161 (0x70e4a0), called where Classic ends the game (the board is at rest with no move): it draws the board's own
+generator twice (the column, then the row, each & 7) and the gem there, if any, becomes a Hypercube (slot 167, 0x749570, with its effect);
+the board then has a move again. Slot 154: the level's size is 2500 + 750 for each level index up to index 29 (the same as Classic's up to
+there; Classic's has no cap). Slot 122 is 1: a match's points are not multiplied by the level, and the bar's progress is of the plain score.
+Slot 113 (true) puts the match groups on the "slow" branch (0.01 a step instead of 0.015) and the sparks on their own draws.
+Left as `// port:` notes: the mantras (the affirmations' texts, 0x712c60), the breathing exercise, the ambient and binaural sound and the
+Zen HUD (slots 26, 43, 88, 90 to 92, 117 to 119, 234 and the state at +0x3170 to +0x33c0 with the pause at +0x33b0): all presentation, and
+nothing in it changes what the board does. Test: `goto zen`, `state` (mode "zen"), `bot`.
+
+### Lightning
+
+A game is 60 seconds of the board's own clock (100 game ticks a second; the clock, +0x3284, a float, starts 250 ticks late) with the time
+gems the fill makes; the account of their seconds is what the Last Hurrah plays.
+
+- The clock (slot 22, 0x7173f0): when the game tick went on, the clock goes up by min(1, 0.7 + 0.3 left / 600) (so it slows in the last
+  6 seconds), or by the override (+0x3288) that a big explosion sets: while +0x1188 is above 0 and the override is 0, the override becomes
+  left / ftol(flash * 800) when that is more than 1.3 times left (so the time nearly stops during a big explosion). The time left
+  (slot 187, 0x713fa0) is ftol(6000 - held(clock - 250, 0 to 6000)), at most the round's length (+0x30f4).
+- The time gems: each game tick the three chance counters (0x41c090) step by TimeStep (2) over 100; each new piece the fill makes after the
+  first 100 ticks steps them by 1 and draws the board's generator once (twice when the first is not under the 10-second chance, the second
+  being under the 5-second one); the 10-second one wins first. One more draw picks the batch's piece, which becomes the time gem (flag
+  0x20000, seconds at +0x244) when it is plain. The chance is g * clamp((1.5 counter g)^1.2, 0.2, 2.5) with g the curve's value
+  (5SecChanceCurve and 10SecChanceCurve of the quest; the shipped file has no 15SecChanceCurve, so that chance is 0 and never read); a
+  gem resets its length's counter. Every 400 ticks +0x30e4 (20 at first) is lowered by draws (not below 5); nothing translated reads it.
+- A time gem cleared (slot 143, 0x715360 from RemovePiece): counter 0x22 goes up, its seconds go to the account (+0x30ac) and the game's
+  (+0x30b0), and from the 60th second of the account on each gem is worth 50 points a second (AddPoints, with the move id the piece's tag).
+- The round ends (slot 188, 0x716f70, which UpdateLevelBar and the update ask): the time left is 0, the board at rest, no end running
+  (+0xd1c is 0): flag +0xe28 is set and slot 161 (0x719350) runs. It first turns the time gems still on the board into a Flame Gem (under
+  10 seconds) or a Star Gem when there is an account, else it gives their seconds' points. With an account: the Last Hurrah. The chances
+  step by LevelTimeStep (8) and their curves move on, the multiplier (+0xe0c, which AddPoints multiplies by) goes up by 1, the round's length
+  is the account's seconds, the account is 0 and the clock and the game ticks are put to (60 - account) * 100 (so the time left starts at the
+  account's seconds). Without one: the time up. The score is noted (+0x3080), the time-up is shown (+0x3096), and each special gem (the bits
+  0x17, 0x800, 0x1000, 0x20000 and 0x80000) gets a busy count of 25 times its place in the grid's order (150 more in the first update), so
+  that they go off one by one; when none is left the end counter (+0xd1c) is 1 (0x7602c0), and 200 when the exe's curve at +0x33e0 is above 0,
+  which it is once the specials were started. 0x714430 hands the score in (the leaderboard, as Classic's 0x73b2d0 does).
+- No move left (UpdateGame asks slot 161 as in Classic): the same function runs, so a board with no move and seconds in the account begins
+  the Last Hurrah at once, and without any it ends the game.
+- State lines (`state` with the mode "lightning"): timeleft, clock (hundredths), limit, bonus, bonustotal, timeup, gameticks, the chances
+  (millionths) and a grid of the time gems ("5", "a" for 10, "." for none). The suite's second script (suite_modes.txt) plays a seeded Zen
+  game (bot, 150 moves) and a Zen board with no move, then a seeded Lightning game of 36000 updates through four Last Hurrahs to its end.
+
+Not translated (the `// port:` notes in the source), none of them changes what a game does except where said:
+- The look: the timer bar and the time-up and Last Hurrah banners (+0x309c, +0x33e0 and the objects 0x729d60 and 0x72a510 make), the time
+  gem's look and the burst of 0x714520 (its draws of the app's generator, and the one 0x715360 makes: Rand() % 9 + 0x566 picks an image),
+  the shake of the screen in the last 100 ticks of the end (two draws of the app's generator every third update, 0x7173f0), the sounds,
+  and the end dialog's Lightning variant (slot 233, 0x716ab0): the game ends on Classic's dialog (the statistics and the leaderboard are the
+  board's own). The app's generator is therefore drawn less often than the exe's in Lightning, which only the sparks and effects read.
+  The time gems are drawn as plain gems: no screen of Lightning's own is made yet.
+- The round's record (slot 153, 0x745f10: a list at +0xd58 of 0x18-byte entries that only the end dialog's statistics read).
+- The form with a points goal (PointsGoalStart above 0 with a TimeStart: +0x3095): the shipped speed.cfg has none. GetBarTarget has its
+  branch (half the bar by the progress over the goal); the goal's bookkeeping in 0x7173f0 is left out.
+- The exact value the bar's target returns (0x716f70 leaves it in ST0; its decompile does not show it): it is the share of the time left
+  here, 0 once the time-up is shown. Only the bar's look reads it.
+- The curve at +0x33e0: the exe tests whether its value is above 0 before setting the end counter to 200 after the specials; its string
+  and rate were not found, so a flag stands for "it was started" (mSpecialsStarted). If the curve is above 0 also when no special was on
+  the board, the counter would be 200 there too (the end dialog 200 updates sooner).
+- Time gems' help box (slot 131, 0x714420 and 0x73c4c0): every help is taken as seen, as in the Classic code.
+- The flag 0x40000 (gems aging by +0x244 every 150 ticks) is translated, but nothing translated sets it.
+- The new-player dialog (id 1) stays open over a run with a fresh user folder, so a scripted game's end dialog does not come (as in Classic's
+  suite, which checks "gameover" only).

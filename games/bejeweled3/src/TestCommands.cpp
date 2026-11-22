@@ -5,6 +5,7 @@
 
 #include "Board.h"
 #include "Common.h"
+#include "LightningBoard.h"
 #include "MainMenu.h"
 #include "PlayMenu.h"
 
@@ -17,6 +18,17 @@
 using namespace Sexy;
 
 namespace {
+
+// the mode's key in the state line: the board's mode name in lower case, Lightning's (the exe's "Speed") by the name the player sees
+const char* ModeKey(const Board* theBoard)
+{
+	const std::string aName = theBoard->GetModeName();
+	if (aName == "Zen")
+		return "zen";
+	if (aName == "Speed")
+		return "lightning";
+	return "classic";
+}
 
 void Reply(const std::string& theLine)
 {
@@ -89,15 +101,20 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 		return true;
 	}
 	if (aCommand == "goto") {
-		if (theCommand.mArgs == "classic") {
-			// the game is reached as from the screens: PLAY is pressed (the play menu opens) and then the Classic ball
+		if (theCommand.mArgs == "classic" || theCommand.mArgs == "zen" || theCommand.mArgs == "lightning") {
+			// the game is reached as from the screens: PLAY is pressed (the play menu opens) and then the mode's ball
 			if (mMainMenu != nullptr && mMainMenu->mPlayMenu != nullptr && !mMainMenu->mPlayMenu->IsActive())
 				mMainMenu->OpenPlayMenu();
-			StartClassic();
+			if (theCommand.mArgs == "zen")
+				StartZen();
+			else if (theCommand.mArgs == "lightning")
+				StartLightning();
+			else
+				StartClassic();
 			ReplyOK(theCommand);
 		}
 		else
-			ReplyError(theCommand, "only classic is made yet");
+			ReplyError(theCommand, "only classic, zen and lightning are made yet");
 		return true;
 	}
 	if (aCommand == "swap") {
@@ -256,10 +273,10 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	if (aCommand == "state") {
 		std::string aLine = "STATE {\"screen\":\"";
-		aLine += mBoard != nullptr ? "classic" : "menu";
+		aLine += mBoard != nullptr ? ModeKey(mBoard) : "menu";
 		aLine += "\"";
 		if (mBoard != nullptr) {
-			aLine += ",\"mode\":\"classic\",\"score\":" + std::to_string(mBoard->mScore) + ",\"points\":" + std::to_string(mBoard->mScorePoints) +
+			aLine += std::string(",\"mode\":\"") + ModeKey(mBoard) + "\",\"score\":" + std::to_string(mBoard->mScore) + ",\"points\":" + std::to_string(mBoard->mScorePoints) +
 				",\"movematches\":" + std::to_string(mBoard->mMoveRecords.empty() ? 0 : mBoard->mMoveRecords.back().mCounters[COUNTER_MATCHES]) +
 				",\"matches\":" + std::to_string(mBoard->mMatchGroups.size()) + ",\"swaps\":" + std::to_string(mBoard->mSwaps.size()) +
 				",\"board\":[";
@@ -307,6 +324,26 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 			aLine += ",\"update\":" + std::to_string(mBoard->mUpdateCnt) + ",\"moving\":" + std::to_string(aMoving) +
 				",\"landticks\":" + std::to_string(mBoard->mLandTicks) + ",\"ysum\":" + std::to_string(aYSum) +
 				",\"speedsum\":" + std::to_string(aSpeedSum);
+			if (const LightningBoard* aLightning = dynamic_cast<const LightningBoard*>(mBoard)) {
+				// Lightning: the game ticks left of the round, the clock, the seconds the matched time gems hold (this round's account and
+				// the game's), the multiplier, whether the time-up is shown, the chances' counters and the time gems on the board (each
+				// cell its seconds as a letter: 5 or a for 10, . for none)
+				aLine += ",\"timeleft\":" + std::to_string(aLightning->GetTimeLeft()) + ",\"clock\":" + std::to_string((int)(aLightning->mClock * 100.0f)) +
+					",\"limit\":" + std::to_string(aLightning->mTimeLimitTicks) + ",\"bonus\":" + std::to_string(aLightning->mBonusSeconds) +
+					",\"bonustotal\":" + std::to_string(aLightning->mBonusSecondsTotal) + ",\"timeup\":" + std::to_string(aLightning->mTimeUpShown ? 1 : 0) +
+					",\"gameticks\":" + std::to_string(aLightning->mGameTicks) + ",\"chance5\":" + std::to_string((int)(aLightning->mChance5.mChance * 1000000.0f)) +
+					",\"chance10\":" + std::to_string((int)(aLightning->mChance10.mChance * 1000000.0f)) + ",\"timegems\":[";
+				for (int aRow = 0; aRow < Board::ROWS; aRow++) {
+					aLine += aRow == 0 ? "\"" : ",\"";
+					for (int aCol = 0; aCol < Board::COLS; aCol++) {
+						const Piece* aPiece = aLightning->mGrid[aRow][aCol];
+						int aSeconds = aPiece != nullptr && (aPiece->mFlags & Piece::FLAG_TIME_GEM) != 0 ? aPiece->mTimeGemSeconds : 0;
+						aLine += aSeconds == 0 ? '.' : aSeconds == 5 ? '5' : 'a';
+					}
+					aLine += "\"";
+				}
+				aLine += "]";
+			}
 		}
 		aLine += "}";
 		Reply(aLine);

@@ -312,6 +312,7 @@ void Board::FillInBlanks(bool theNoMatchCheck)
 			aPiece->mFlags = 0;
 			aPiece->mColor = Piece::NO_COLOR;
 			aPiece->mCanFall = true;
+			aPiece->mTimeGemSeconds = 0;   // 0x7642xx: +0x244
 		}
 		for (size_t i = 0; i < aNewPieces.size(); i++) {
 			Piece* aPiece = aNewPieces[i];
@@ -328,8 +329,8 @@ void Board::FillInBlanks(bool theNoMatchCheck)
 		if (!theNoMatchCheck && HasMatches())
 			aOk = false;
 		// slot 199 (0x73c870) finds a run through a piece of this update with the bit 0x10, which a plain piece has not
-		if (aOk)
-			break;      // slot 185 (0x73bc00) is true
+		if (aOk && OnFillAccepted(aNewPieces))
+			break;      // slot 185 (0x2e4): 0x73bc00 is true; SpeedBoard's 0x716c60 makes the time gems and is true as well
 		aTries++;
 	}
 }

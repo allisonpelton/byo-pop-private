@@ -4,6 +4,8 @@
 #include "Bej3Dialog.h"
 #include "Bej3Music.h"
 #include "Board.h"
+#include "LightningBoard.h"
+#include "ZenBoard.h"
 #include "MemoryImage.h"
 #include "MainMenu.h"
 #include "PlayMenu.h"
@@ -438,6 +440,30 @@ void Bej3App::ShowResourceError(bool doExit)
 // 0x7737d0 (bejeweled3)
 void Bej3App::StartClassic()
 {
+	StartBoard(new ClassicBoard());
+}
+
+// 0x773100 (bejeweled3): Zen. The board is made by 0x7126f0, sized, reset (slot 85) and started like Classic's. port: the exe's mode
+// start also makes an 0x88-byte object first (the Zen mode's own state) and asks the mantras' window to open: both are left out
+void Bej3App::StartZen()
+{
+	StartBoard(new ZenBoard());
+}
+
+// 0x773440 (bejeweled3): Lightning. The board is made by 0x718090; before it is reset (slot 85, 0x718500) the settings of the first quest
+// of speed.cfg ("Lightning") are copied into the board's map (0x404870), "Title" among them
+void Bej3App::StartLightning()
+{
+	LightningBoard* aBoard = new LightningBoard();
+	if (mSpeedQuestData != nullptr && !mSpeedQuestData->mQuests.empty())
+		aBoard->mSettings = mSpeedQuestData->mQuests[0].mSettings;
+	aBoard->mSettings["Title"] = "Lightning";
+	StartBoard(aBoard);
+}
+
+// the common part of the three starts (0x7737d0, 0x773100, 0x773440)
+void Bej3App::StartBoard(Board* theBoard)
+{
 	if (mGemFrames[0][7] == nullptr)
 		MakeGemFrames();
 	// the board of the game before goes (the exe also lets go of another screen at +0xba4: nothing there is made yet)
@@ -446,7 +472,7 @@ void Bej3App::StartClassic()
 		SafeDeleteWidget(mBoard);
 		mBoard = nullptr;
 	}
-	mBoard = new ClassicBoard();
+	mBoard = theBoard;
 	mBoard->Resize(0, 0, mWidth, mHeight);
 	mBoard->ResetGame();
 	// slot 213 (0x743f40) with 0x15 sets what the mode shows: not translated yet

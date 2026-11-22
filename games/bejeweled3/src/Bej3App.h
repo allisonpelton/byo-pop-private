@@ -88,6 +88,9 @@ public:
 	// screen, put on it with the focus, its first game dealt, and the game's music starts. port: the saved game that
 	// 0x76cde0 asks about is none
 	void StartClassic();
+	void StartZen();         // 0x773100 (bejeweled3)
+	void StartLightning();   // 0x773440 (bejeweled3)
+	void StartBoard(Board* theBoard);   // the shared end of the three starts
 
 	// 0x7716e0 (bejeweled3): the game screen is leaving: the play menu (the screen PLAY opens) comes back and the menu's song plays
 	void ShowPlayMenu();

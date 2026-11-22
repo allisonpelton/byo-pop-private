@@ -906,7 +906,7 @@ void Board::DrawRingParticleRandoms()
 // 0x78a390 and what 0x76aaf0 spawns for a type 6 group are not translated
 void Board::UpdateMatchGroups()
 {
-	const bool aSlowMode = false;   // slot 0x1c4 (0x73c1f0): 0 in every board translated so far
+	const bool aSlowMode = IsSlowMode();   // slot 0x1c4 (0x73c1f0): 1 on the Zen board (0x70e3a0)
 	const bool aReplayFlag = false;   // +0x12f8: the saved-game and replay mode, which Classic's new game does not start
 	float aGlow = (float)((double)mGroupGlow - 0.019999999552965164);
 	if (aGlow <= 0.0f)
@@ -1432,6 +1432,7 @@ void Board::DrawSparkRandoms()
 // it is higher, and so does the column's tag, which the fill gives to the pieces it makes; the cell is emptied
 void Board::RemovePiece(Piece* thePiece)
 {
+	OnPieceCleared(thePiece);   // 0x755b80 first calls slot 142 (0x73d2b0) with the piece and 1, which calls slot 143
 	for (size_t i = 0; i < mSwaps.size();) {
 		SwapRecord& aSwap = mSwaps[i];
 		if (aSwap.mFirst == thePiece || aSwap.mSecond == thePiece) {
@@ -1489,6 +1490,16 @@ int Board::GetLevelMax() const
 	return mLevelIndex * 0x2ee + 0x9c4;
 }
 
+// slot 188 (0x2f0), 0x744b10 on Board: the level bar's target is the progress over the level's size, at most 1, 0 when the size is 0
+float Board::GetBarTarget()
+{
+	int aMax = GetLevelMax();
+	if (aMax == 0)
+		return 0.0f;
+	float aTarget = (float)GetLevelProgress() / (float)aMax;
+	return aTarget > 1.0f ? 1.0f : aTarget;
+}
+
 // 0x74df80 with 0x74a210 (bejeweled3): the points times the level number (+0xe0c, when theUsesMultiplier) go up in steps of 10.
 // For each step, when theCountsForProgress: the level bar's progress (+0xe00) rises by the 0.8 power of what the move has made
 // (the move's points counter over the level's multiplier, +0xe04 + 1) with this step, less the same without it, times 3. Each step is
@@ -1500,7 +1511,7 @@ void Board::AddPoints(int thePoints, int theMoveId, bool theCountsForProgress, b
 		return;
 	float aMultiplier = theUsesMultiplier ? (float)mLevelNumber : 1.0f;
 	int aLeft = Ftol((double)((float)thePoints * aMultiplier));
-	float aLevelFactor = (float)mLevelIndex + 1.0f;   // slot 122 (0x73af50, Classic's: +0xe04 + 1)
+	float aLevelFactor = GetLevelFactor();   // slot 122 (0x73af50, Classic's: +0xe04 + 1; Zen 0x70e330: 1; Speed 0x714090: 5)
 	while (aLeft > 0) {
 		int aChunk = aLeft < 10 ? aLeft : 10;
 		if (theCountsForProgress) {

@@ -15,7 +15,9 @@
 #include "MTRand.h"
 #include "Widget.h"
 
+#include <map>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace Sexy {
@@ -37,6 +39,8 @@ public:
 		FLAG_HYPERCUBE = 2,    // swapped with a neighbour it clears every gem of that one's colour (0x740f20, 0x74db70, 0x7870f0)
 		FLAG_STAR = 4,        // when matched it makes a match group whose rings run along its row and column (0x789a90, 0x75dee0)
 		FLAG_RANDOM_PICK = 0x60,
+		FLAG_TIME_GEM = 0x20000,        // Lightning's time gem (0x716c60 makes it, 0x715360 collects it): mTimeGemSeconds is its worth
+		FLAG_TIME_GEM_AGING = 0x40000,  // set on a gem 0x7173f0 counts down (+0x244) every 150 game ticks and clears with the time gem's bits when it is out; nothing translated sets it
 		FLAGS_SPECIAL_MADE = 0x2e0   // the bits 0x745ca0, 0x749570 and 0x7494d0 clear from the flags (the mask 0xfffffd1f)
 	};
 
@@ -81,6 +85,7 @@ public:
 	int mGroupId = -1;      // +0x190: the id of the run that matched it (the board's counter, +0xe1c)
 	int mRememberedColor = -1;   // +0x21c: its colour when it was matched (a hypercube has none, +0x220 is -1, so a run that holds it still
 	                        // counts it for the colour it had); the matcher reads it for a piece matched in this update
+	int mTimeGemSeconds = 0;     // +0x244: the seconds a Lightning time gem is worth (5 or 10); 0 for a plain gem (the fill sets it to 0 on every piece it makes)
 	int mSpecialCountdown = 0;   // +0x184: 25 when a special was made on it (0x745ca0, 0x749570, 0x7494d0), counts down by one each update
 	                        // (UpdateGame); the 3 by 3 explosion and the busy-count branch leave a piece alone while it is above 0
 
@@ -253,7 +258,7 @@ public:
 	enum { BUTTON_HINT = 0, BUTTON_MENU = 1 };   // the ids 0x741840 gives the Classic board's two buttons
 
 	// slot 85, 0x74a880 (bejeweled3): the board is emptied for a new game
-	void ResetGame();
+	virtual void ResetGame();
 	// slot 117, 0x756390 (bejeweled3): how strongly gravity pulls: 1 at the curve's 1, 0.65 less for each step of it below
 	float GetFallFactor() { return (float)((mFallFactorCurve.GetOutVal() - 1.0) * 0.64999997615814209 + 1.0); }
 	// slot 22, 0x759170 (bejeweled3): the board's own update: the game speed gives the number of steps this update is worth
@@ -275,7 +280,7 @@ public:
 	// slot 232 (0x756730): the dialog's MAIN MENU button: the first screen comes back and this one fades out and goes
 	void LeaveToMenu();
 	// slot 135, 0x74e410 (bejeweled3): a new game: its background is chosen and the first fill is made
-	void NewGame();
+	virtual void NewGame();
 	// slot 203, 0x763e90 (bejeweled3): makes the pieces that the empty cells need above the grid, lets them fall into
 	// place one row at a time and gives them colours that make no match and leave a move. theNoMatchCheck is the
 	// exe's second argument (set when it gave up). Classic's first fill is this with 0 for it.
@@ -378,8 +383,8 @@ public:
 	// 0x73d170 and 0x73cf10 (bejeweled3): a counter goes up (the game's, the move's), and a move's counter
 	void AddCounter(int theKey, int theValue, int theMoveId);
 	int GetMoveCounter(int theMoveId, int theKey);
-	// slot 154 (0x73bf70): how much the level bar needs in this level
-	int GetLevelMax() const;
+	// slot 154 (0x73bf70): how much the level bar needs in this level. ZenBoard 0x70e450 and SpeedBoard 0x7140d0 override it
+	virtual int GetLevelMax() const;
 	// 0x755940 and slot 217, 0x73b810 (bejeweled3): the level bar follows its target, and when it and the progress are full the level
 	// change is asked for (slot 156, 0x74e190)
 	void UpdateLevelBar();
@@ -392,7 +397,8 @@ public:
 	// 0x7604d0 (bejeweled3): the gems are put in a new order that has a move (the level change's middle)
 	void ReshuffleBoard();
 	// slot 161 (0x73b2d0 for Classic) and 0x7602c0 (bejeweled3): no move is left: the score is handed in and the game ends
-	void NoMoreMoves(bool theAnnounce);
+	virtual void NoMoreMoves(bool theAnnounce);
+	void EndGame();   // 0x7602c0 (bejeweled3): the game is over (the end of NoMoreMoves)
 	// 0x767e20 (bejeweled3): the game's end goes on (the counter at +0xd1c) and the end screen comes (slot 233, 0x73b100)
 	void UpdateGameOver();
 	// port: the top scores of the mode (the exe's LocalLeaderboard, 0x6728b0), in the order of the leaderboard, kept for the game
@@ -412,12 +418,37 @@ public:
 
 	// 0x7415c0 (bejeweled3): a new piece at a cell
 	Piece* MakePiece(int theCol, int theRow);
-	// 0x73bd80 and 0x73bd70 (bejeweled3)
-	int GetGridX() const { return GRID_X; }
-	int GetGridY() const { return GRID_Y; }
+	// slots 171 and 172 (0x73bd80 and 0x73bd70 on Board and ClassicBoard; SpeedBoard's 172 is 0x714100: 0x82 below the board's own +0x2c50, which is 0)
+	virtual int GetGridX() const { return GRID_X; }
+	virtual int GetGridY() const { return GRID_Y; }
 
-	// slot 89, 0x7413e0 (bejeweled3)
+	// slot 89, 0x7413e0 (bejeweled3): the board's "Title" setting (the music's song, the log's mode). SpeedBoard's own 0x7144a0 says "Speed"
 	virtual const char* GetModeName() const { return "Classic"; }
+
+	// The slots that the modes' boards change (docs/NOTES.md, "Zen and Lightning"). Each is the base board's value here, which is Classic's
+	// slot 113 (0x1c4, 0x73c1f0 on Board and ClassicBoard, 0x70e3a0 on ZenBoard): true on the Zen board, where the match timers (0.01 for a
+	// piece the ring reaches, instead of 0.015), the explosion's busy counts and the sparks' draws take the slow branch
+	virtual bool IsSlowMode() const { return false; }
+	// slot 122 (0x1e8): the factor of the level in a point's progress and score. Board's own 0x73b600 is 1; ClassicBoard 0x73af50 is the level index + 1
+	// (what this base returns, since the port's Board stands for Classic's), ZenBoard 0x70e330 is 1 and SpeedBoard 0x714090 is 5
+	virtual float GetLevelFactor() const { return (float)mLevelIndex + 1.0f; }
+	// slot 143 (0x23c), called with the piece by slot 142 (0x73d2b0), which RemovePiece (slot 176, 0x755b80) calls first: a piece is cleared. The
+	// base 0x74b9e0 only makes effects for the bits 0x400 and 0x200, which Classic's pieces never have
+	virtual void OnPieceCleared(Piece* thePiece) { (void)thePiece; }
+	// slot 185 (0x2e4): the fill has a colouring for its new pieces that is accepted (0x73bc00 on Board and ClassicBoard is true); SpeedBoard's
+	// 0x716c60 lifts the pieces and makes the time gems, and says true as well
+	virtual bool OnFillAccepted(std::vector<Piece*>& theNewPieces) { (void)theNewPieces; return true; }
+	// slot 104 (0x1a0): the seconds a round lasts (0 where no clock runs: 0x73c250 on Board; SpeedBoard 0x7140f0 is 60)
+	virtual int GetTimeLimit() const { return 0; }
+	// slot 188 (0x2f0): where the level bar is going (0x744b10 on Board: the progress over the level's size, at most 1; SpeedBoard 0x716f70
+	// also ends the round when the time is out)
+	virtual float GetBarTarget();
+	// slot 155 (0x26c, 0x73bf60 on Board): how far the level has come
+	virtual int GetLevelProgress() const { return mLevelProgress; }
+
+	// the settings of the board's quest (+0xc8, a string map filled by the start of the mode: speed.cfg's "Lightning" for SpeedBoard). The
+	// board's "Title" is among them
+	std::map<std::string, std::string> mSettings;
 	// 0x73b250 (bejeweled3): the panel (0x751d50), then the gems and the rest of the screen (0x750320)
 	void Draw(Graphics* g) override;
 	void DrawPanel(Graphics* g);                           // 0x751d50 (bejeweled3): the checkered squares behind the gems

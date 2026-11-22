@@ -182,12 +182,7 @@ void Board::ShowHint(bool theUser)
 void Board::UpdateLevelBar()
 {
 	int aMax = GetLevelMax();
-	float aTarget = 0.0f;
-	if (aMax != 0) {
-		aTarget = (float)mLevelProgress / (float)aMax;
-		if (aTarget > 1.0f)
-			aTarget = 1.0f;
-	}
+	float aTarget = GetBarTarget();   // 0x755940 calls slot 188
 	bool aSlowCurve = mBarRateCurve.GetOutVal() == 0.0;
 	if (aTarget > mLevelBar) {
 		double aStep = aSlowCurve ? 0.0255 : 0.025;
@@ -200,8 +195,14 @@ void Board::UpdateLevelBar()
 		mLevelBar = aNext > aTarget ? aNext : aTarget;
 	}
 	// slot 215 (0x73daf0) puts the bar's parts where they are drawn: not translated
-	// slot 104 (0x1a0) is 0 in Classic
-	if (mLevelBar >= 1.0f && mLevelProgress >= aMax) {
+	// slot 217 (0x73b810): with no time limit (slot 104 is 0: Classic and Zen) the bar is full and the progress is at the level's size;
+	// with one (Lightning) the size must be above 0 and the progress (slot 155) must have reached it
+	bool aLevelFull;
+	if (GetTimeLimit() == 0)
+		aLevelFull = mLevelBar >= 1.0f && mLevelProgress >= aMax;
+	else
+		aLevelFull = aMax > 0 && aMax <= GetLevelProgress();
+	if (aLevelFull) {
 		if (!mGameOver && !mLevelUpPending && mHyperspace == nullptr && mGameOverTicks < 1)
 			mLevelUpPending = true;
 	}
@@ -379,6 +380,13 @@ void Board::NoMoreMoves(bool theAnnounce)
 		mEndDialogWait = 0x113;
 		SubmitScore(mScorePoints);
 	}
+	EndGame();
+}
+
+// 0x7602c0 (bejeweled3): the game is over (the board's flag, +0x58c, and the end's counter, +0xd1c, at 1), when no level change is
+// going. Classic's NoMoreMoves (0x73b2d0), Zen's own (never) and Lightning's (0x719350) all end here
+void Board::EndGame()
+{
 	if (!mGameOver && mGameOverTicks < 1 && !mLevelUpPending && mHyperspace == nullptr) {
 		mGameOver = true;
 		mGameOverTicks = 1;
