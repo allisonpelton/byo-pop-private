@@ -319,8 +319,13 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   place) and Properties (Settings' Appearance).
 - **The task bar's right click:** Cascade, Tile Horizontally, Tile Vertically and Minimize All Windows, which becomes
   Undo Minimize All.
-- **Tooltips:** drawn as 1995's, a pale yellow box with a black border half a second after the pointer rests. The title
-  is taken off while the box may show, so the browser draws none, and an element named only by it keeps that name.
+- **Tooltips:** drawn as 1995's, a pale yellow box with a black border half a second after the pointer rests. The
+  browser draws its own for any title under the pointer, so the titles of the element and of its titled ancestors are held
+  off them until the pointer leaves the element: moving onto a child of it (a Sounds button's label), a press, a key and
+  the box's six seconds take only the box away. A title the page gives a held element (Music's Play becoming Pause) is
+  held and shown too, and one given to the element under the pointer starts its box. An element named only by its title
+  keeps that name. A game window's frame has none, since the pointer's movements in it never reach the desktop's page (the
+  user, 2026-11-16, of native tooltips mixed in with Desktop 95's, and of a stray "Bejeweled 2" over a game's board).
 - **The tray's speaker:** it opens a Volume slider with Mute (`ByopopVolume`: `byopop-master-volume`,
   `byopop-master-mute`). Everything the site plays follows it, each sound at its own level times this one: the games,
   through a gain the game's page puts after its output node (`siteVolume` in `web/shell.html`, which the hush in

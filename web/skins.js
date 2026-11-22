@@ -1884,44 +1884,93 @@ var ByopopSkin = (function () {
     }, true);
     window.addEventListener("blur", function () { if (sw) altTab("cancel"); forwarded = false; });
     // ---- tooltips drawn as 1995's (the user, 2026-11-14, by the coordinator's list): a pale yellow box with a black border under
-    // the pointer, half a second after it rests on something with a title, in place of the browser's own. While the box may show
-    // the title is taken off the element (the browser would draw its own), and an element named only by it keeps that name.
-    var tip = null;
-    function tipEnd() {
+    // the pointer, half a second after it rests on something with a title, in place of the browser's own. The browser draws its
+    // own for any title under the pointer, so while the pointer is on the element its title is held off it, and the titles of its
+    // ancestors too, until the pointer leaves it; a press, a key or the box's six seconds only take the box away. An element named
+    // only by its title keeps that name. A title the page gives a held element meanwhile (Music's Play becoming Pause) is held
+    // too and shown, and one given to an element under the pointer starts its box. Over a game's window (a frame) there is none:
+    // the pointer's movements there never reach this page (the user, 2026-11-16: "Native tooltips are getting mixed in with the
+    // Desktop 95 ones" and "Sometimes seeing an errant tooltip over the game window where my mouse is").
+    var tip = null, hovered = null, px = 0, py = 0;
+    function tipHide() {
       if (!tip) return;
       clearTimeout(tip.timer);
       if (tip.box && tip.box.parentNode) tip.box.parentNode.removeChild(tip.box);
-      if (tip.el.getAttribute("title") === null) tip.el.setAttribute("title", tip.text);
-      if (tip.named) tip.el.removeAttribute("aria-label");
+      tip.box = null;
+    }
+    function tipEnd() {
+      if (!tip) return;
+      tipHide();
+      var was = tip;
       tip = null;
+      was.held.forEach(function (h) {
+        if (h.el.getAttribute("title") === null) h.el.setAttribute("title", h.text);
+        if (h.named) h.el.removeAttribute("aria-label");
+      });
+    }
+    // the element and its titled ancestors, their titles taken off: [{el, text, named}], the element's first
+    function holdTitles(el) {
+      var held = [];
+      for (var e = el; e && e.nodeType === 1; e = e.parentElement) {
+        var text = e.getAttribute("title");
+        if (text === null) continue;
+        var named = !!text && !e.hasAttribute("aria-label") && !e.hasAttribute("aria-labelledby") && !e.textContent.trim();
+        if (named) e.setAttribute("aria-label", text);
+        e.removeAttribute("title");
+        held.push({ el: e, text: text, named: named });
+      }
+      return held;
+    }
+    function tipBox() {
+      if (!tip || !tip.text) return;
+      var b = document.createElement("div");
+      b.className = "d95-tip"; b.setAttribute("aria-hidden", "true"); b.textContent = tip.text;
+      document.body.appendChild(b);
+      var x = unzoom(tip.x), y = unzoom(tip.y) + 20;
+      b.style.left = Math.max(0, Math.min(x, viewW() - b.offsetWidth - 2)) + "px";
+      b.style.top = (y + b.offsetHeight > room().h ? unzoom(tip.y) - b.offsetHeight - 4 : y) + "px";
+      tip.box = b;
+      tip.timer = setTimeout(tipHide, 6000);
+    }
+    function tipFor(target, x, y) {
+      var el = target && target.closest && target.closest("[title]");
+      // still on the element whose title is held: a child finds no title of it (or the title of a child inside it, which takes over)
+      if (tip && tip.el.contains(target) && (!el || el === tip.el || !tip.el.contains(el))) return;
+      tipEnd();
+      if (!el || target.tagName === "IFRAME" || !el.getAttribute("title") || el.closest(".d95-menu, .d95-ctx")) return;
+      var held = holdTitles(el);
+      tip = { el: el, held: held, text: held[0].text, x: x, y: y, box: null };
+      tip.timer = setTimeout(tipBox, 500);
     }
     document.addEventListener("pointerover", function (ev) {
-      if (!on || ev.pointerType === "touch") return;
-      var el = ev.target.closest && ev.target.closest("[title]");
-      if (tip && tip.el === el) return;
-      tipEnd();
-      if (!el || !el.getAttribute("title") || el.closest(".d95-menu, .d95-ctx")) return;
-      var text = el.getAttribute("title");
-      var named = !el.hasAttribute("aria-label") && !el.hasAttribute("aria-labelledby") && !el.textContent.trim();
-      if (named) el.setAttribute("aria-label", text);
-      el.removeAttribute("title");
-      tip = { el: el, text: text, named: named, x: ev.clientX, y: ev.clientY, box: null };
-      tip.timer = setTimeout(function () {
-        if (!tip || tip.el !== el) return;
-        var b = document.createElement("div");
-        b.className = "d95-tip"; b.setAttribute("aria-hidden", "true"); b.textContent = text;
-        document.body.appendChild(b);
-        var x = unzoom(tip.x), y = unzoom(tip.y) + 20;
-        b.style.left = Math.max(0, Math.min(x, viewW() - b.offsetWidth - 2)) + "px";
-        b.style.top = (y + b.offsetHeight > room().h ? unzoom(tip.y) - b.offsetHeight - 4 : y) + "px";
-        tip.box = b;
-        tip.timer = setTimeout(tipEnd, 6000);
-      }, 500);
+      hovered = ev.target; px = ev.clientX; py = ev.clientY;
+      if (!on || ev.pointerType === "touch") { tipEnd(); return; }
+      tipFor(ev.target, ev.clientX, ev.clientY);
     });
-    document.addEventListener("pointermove", function (ev) { if (tip && !tip.box) { tip.x = ev.clientX; tip.y = ev.clientY; } }, true);
-    document.addEventListener("pointerout", function (ev) { if (tip && (!ev.relatedTarget || !tip.el.contains(ev.relatedTarget))) tipEnd(); });
-    document.addEventListener("pointerdown", tipEnd, true);
-    document.addEventListener("keydown", tipEnd, true);
+    document.addEventListener("pointermove", function (ev) { px = ev.clientX; py = ev.clientY; if (tip && !tip.box) { tip.x = px; tip.y = py; } }, true);
+    document.addEventListener("pointerout", function (ev) {
+      if (!ev.relatedTarget) hovered = null;
+      if (tip && (!ev.relatedTarget || !tip.el.contains(ev.relatedTarget))) tipEnd();
+    });
+    if (typeof MutationObserver !== "undefined") new MutationObserver(function (recs) {
+      recs.forEach(function (r) {
+        var t = r.target.getAttribute("title");
+        if (t === null) return;
+        var h = tip && tip.held.filter(function (x) { return x.el === r.target; })[0];
+        if (h) {
+          h.text = t;
+          r.target.removeAttribute("title");
+          if (h.named) r.target.setAttribute("aria-label", t);
+          if (h === tip.held[0]) { tip.text = t; if (tip.box) { if (t) tip.box.textContent = t; else tipHide(); } }
+        } else if (tip && r.target.contains(tip.el)) {
+          // an ancestor of the element given a title: held as well
+          r.target.removeAttribute("title");
+          tip.held.push({ el: r.target, text: t, named: false });
+        } else if (on && hovered && r.target.contains(hovered) && hovered.isConnected) tipFor(hovered, px, py);
+      });
+    }).observe(root, { subtree: true, attributes: true, attributeFilter: ["title"] });
+    document.addEventListener("pointerdown", tipHide, true);
+    document.addEventListener("keydown", tipHide, true);
     window.addEventListener("blur", tipEnd);
     // ---- Alt+4 closes the window in front (the user, 2026-11-14, by the coordinator's list), standing in for the Alt+F4 the
     // browser keeps; with no window open it opens the Pop menu on Shut Down. In a window's page on the listing's desktop it goes to
