@@ -3,6 +3,9 @@
 
 #include "Bej3App.h"
 #include "EndLevelDialog.h"
+#include "CrystalBall.h"
+#include "PopAnim.h"
+#include "Res.h"
 
 #include <algorithm>
 #include <cmath>
@@ -46,6 +49,15 @@ double LightningBoard::SettingDouble(const std::map<std::string, std::string>& t
 LightningBoard::LightningBoard()
 {
 	mSettings["Title"] = "Lightning";
+	// 0x741840, the case of the Lightning modes: the Lightning pictures in place of Classic's
+	for (ButtonWidget* aButton : {mHintButton, mMenuButton}) {
+		RemoveWidget(aButton);
+		delete aButton;
+	}
+	mHintButton = nullptr;
+	mMenuButton = nullptr;
+	MakeButtons(IMAGE_INGAMEUI_HINT_BUTTON_LIGHTNING, IMAGE_INGAMEUI_HINT_BUTTON_LIGHTNING_ID, IMAGE_INGAMEUI_MENU_BUTTON_LIGHTNING,
+		IMAGE_INGAMEUI_MENU_BUTTON_LIGHTNING_ID);
 }
 
 // slot 85 (0x154), 0x718500 (bejeweled3): Board's reset (0x74a880), then the mode's state and the quest's settings are read. port: the
@@ -66,6 +78,7 @@ void LightningBoard::ResetGame()
 	mGemSpacing = 0;
 	mStartDelay = 0xfa;
 	mSpecialsStarted = false;
+	mLastHurrah = false;
 	mEnding = false;
 	mUsePoints = SettingInt(mSettings, "UsePM") != 0;
 	mPointsGoalStart = SettingInt(mSettings, "PointsGoalStart");
@@ -92,6 +105,7 @@ void LightningBoard::ResetGame()
 	mTimeLimitTicks = 6000;
 	mClock = 0.0f;
 	mClockScaleOverride = 0.0f;
+	StartHudLabel("unpowered", 0);   // 0x718500 ends with 0x718400
 }
 
 // slot 187 (0x2ec), 0x713fa0 (bejeweled3): the game ticks left of the round, 100 for each second of the time limit: the limit less the
@@ -192,6 +206,14 @@ void LightningBoard::Update()
 			}
 		}
 	}
+	// 0x7173f0: the four animations step, in the board's alpha
+	{
+		PopAnim* aHud[] = {POPANIM_ANIMS_GEM_MEGA, POPANIM_ANIMS_LIGHTNINGUIBOTTOM, POPANIM_ANIMS_LIGHTNINGUI, POPANIM_ANIMS_LIGHTNINGUITOP};
+		for (PopAnim* anAnim : aHud) {
+			anAnim->Update();
+			anAnim->SetAnimColor(Color(255, 255, 255, Ftol(mCoverCurve.GetOutVal() * 255.0)));
+		}
+	}
 	if (mTimeUpShown)
 		mEndingAge++;
 	GetBarTarget();   // 0x7173f0 asks for it for the bar (and the round ends in it)
@@ -272,6 +294,9 @@ void LightningBoard::OnPieceCleared(Piece* thePiece)
 		mBonusSecondsTotal += thePiece->mTimeGemSeconds;
 		if (mBonusSeconds - 0x3c > 0)
 			AddPoints(thePiece->mTimeGemSeconds * 0x32, thePiece->mColumnTag);
+		// 0x719150: the HUD pulses, the harder the more seconds are in the account (at most "pulse5")
+		int aPulse = mBonusSeconds * 5 / 60 + 1;
+		StartHudLabel(StrFormat("pulse%d", aPulse > 5 ? 5 : aPulse).c_str(), 12);
 	}
 }
 
@@ -311,6 +336,8 @@ void LightningBoard::NoMoreMoves(bool theAnnounce)
 		if (!mTimeUpShown) {
 			mLastHurrahPoints = mScorePoints;
 			mTimeUpShown = true;
+			mLastHurrah = false;
+			StartHudLabel("death", 15);   // 0x719350
 		}
 		const unsigned kSpecialBits = 0x17 | 0xa1800;
 		int aBusy = 0;
@@ -345,6 +372,8 @@ void LightningBoard::NoMoreMoves(bool theAnnounce)
 	mChance5.Step(mLevelTimeStep);
 	mChance10.Step(mLevelTimeStep);
 	mChance15.Step(mLevelTimeStep);
+	mLastHurrah = true;
+	StartHudLabel("energize", 15);   // 0x719350
 	mChance5.mCurve.IncInVal();
 	mChance10.mCurve.IncInVal();
 	mChance15.mCurve.IncInVal();
@@ -364,6 +393,172 @@ void LightningBoard::NoMoreMoves(bool theAnnounce)
 ClassicEndLevelDialog* LightningBoard::MakeEndLevelDialog()
 {
 	return new LightningEndLevelDialog(this, mBonusSecondsTotal);
+}
+
+
+namespace {
+
+int Scaled(int theMeasure) { return gApp->mArtRes * theMeasure / 1200; }
+
+// the left panel's middle and the shift the panel's pictures have in resources.xml (0x741440, 0x741840)
+const int PANEL_MIDDLE_X = 0xfa;
+const int PANEL_PICTURE_SHIFT = -400;
+// the HUD animations are drawn this far left of the board's own origin (1200ths: 0x714840, 0x715cb0)
+const int HUD_SHIFT_X = -0xa0;
+// slot 218 (0x714130): the clock warns in the last 1000 ticks (10 of the 60 seconds)
+const int WARNING_TICKS = 1000;
+
+// 0x713850 (bejeweled3) at a scale of 1: the picture drawn with its middle at the point
+void DrawCentered(Graphics* g, Image* theImage, int theX, int theY)
+{
+	if (theImage != nullptr)
+		g->DrawImage(theImage, theX - theImage->GetWidth() / 2, theY - theImage->GetHeight() / 2);
+}
+
+}  // namespace
+
+// 0x718400 (bejeweled3): the four animations go to the label; the exe's order is the bottom, the middle, the top and the mega gem's.
+// The top one gets "death" once the game is over, else "unpowered"
+void LightningBoard::StartHudLabel(const char* theLabel, int theTime)
+{
+	POPANIM_ANIMS_LIGHTNINGUIBOTTOM->TransitionToLabel(theLabel, theTime);
+	POPANIM_ANIMS_LIGHTNINGUI->TransitionToLabel(theLabel, theTime);
+	POPANIM_ANIMS_LIGHTNINGUITOP->TransitionToLabel(std::string(theLabel) == "death" ? "death" : "unpowered", theTime);
+	POPANIM_ANIMS_GEM_MEGA->TransitionToLabel(theLabel, theTime);
+	mHudLabel = theLabel;
+}
+
+// slot 251 (0x3ec), 0x741440 (bejeweled3): the bottom widget of Lightning
+void LightningBoard::DrawBottomWidget(Graphics* g)
+{
+	if (IMAGE_INGAMEUI_BOTTOM_WIDGET_LIGHTNING != nullptr)
+		g->DrawImage(IMAGE_INGAMEUI_BOTTOM_WIDGET_LIGHTNING,
+			Scaled(PANEL_MIDDLE_X + PANEL_PICTURE_SHIFT + GetImageOffsetX(IMAGE_INGAMEUI_BOTTOM_WIDGET_LIGHTNING_ID)),
+			Scaled(GetImageOffsetY(IMAGE_INGAMEUI_BOTTOM_WIDGET_LIGHTNING_ID)));
+}
+
+// slots 238 (0x714840) and 250 (0x713f90) (bejeweled3): Lightning has no top widget, level number, frames or level bar: the bottom
+// widget (slot 250 goes to slot 251) and the bottom animation, drawn 0xa0 left of the origin
+void LightningBoard::DrawScreenFrame(Graphics* g)
+{
+	g->SetColorizeImages(true);
+	g->SetColor(Color(255, 255, 255, Ftol(mCoverCurve.GetOutVal() * 255.0)));
+	DrawBottomWidget(g);
+	g->PushState();
+	g->Translate(Scaled(HUD_SHIFT_X), 0);
+	POPANIM_ANIMS_LIGHTNINGUIBOTTOM->Draw(g);
+	g->PopState();
+}
+
+// slot 255 (0x3fc), 0x714660 (bejeweled3): the score at (0xf2, 0xd2), in the board's alpha. port: the font is the score's (the exe draws
+// with the one the overlay set)
+void LightningBoard::DrawScoreText(Graphics* g)
+{
+	g->SetFont(FONT_SCORE);
+	g->SetColor(Color(255, 255, 255, Ftol(mCoverCurve.GetOutVal() * 255.0)));
+	g->WriteString(CommaSeperate(mScore), Scaled(0xf2), Scaled(0xd2), -1, 0, true, 0, -1, -1);
+}
+
+// slot 43 (0x2c), 0x716ef0 (bejeweled3): the mode's overlay 0x715cb0 (the order below is the exe's), then the top animation 0xa0 left
+// of the origin. port: not translated: the PIEffects of the mega gem's shard (PIEFFECT_LIGHTNING_POWERED_MEGASHARD), the side bolts
+// (..._LEFTRIGHT) and the countdown's glow (PIEFFECT_COUNTDOWNBAR), which the exe edits keyframe by keyframe in its update; the
+// time gem's flying number, the pulse and the screen's shake (Oddities in docs/NOTES.md)
+void LightningBoard::DrawModeOverlay(Graphics* g)
+{
+	const float aAlpha = (float)mCoverCurve.GetOutVal();
+	const int aAlphaByte = Ftol((double)aAlpha * 255.0);
+	const int aGridX = GetGridX();
+	const int aGridY = GetGridY();
+	g->SetColorizeImages(true);
+	g->SetColor(Color(255, 255, 255, aAlphaByte));
+
+	// the mega gem rises with the seconds in the account: the 60 of them are the full height (0x715cb0). The exe's curve at +0x3290
+	// (which eases to it) is the plain share here
+	float aShare = (float)mBonusSeconds / 60.0f;
+	if (aShare > 1.0f)
+		aShare = 1.0f;
+	g->PushState();
+	g->ClipRect(0, Scaled(300), mWidth, mHeight);
+	double aLift = aShare > 0.0f ? std::pow((double)aShare, 0.5) : 0.0;
+	g->Translate(Scaled(0x38), Ftol((double)Scaled(0x118) * aLift) + Scaled(-0x16));
+	POPANIM_ANIMS_GEM_MEGA->Draw(g);
+	g->PopState();
+	if (mBonusSeconds > 0) {
+		g->PushState();
+		g->ClipRect(0, Scaled(300), mWidth, mHeight);
+		g->SetFont(FONT_SCORE);
+		g->SetColor(Color(255, 255, 255, aAlphaByte));
+		g->WriteString(StrFormat(gApp->GetString("481", "+%d:%02d").c_str(), mBonusSeconds / 60, mBonusSeconds % 60), Scaled(0xba),
+			Scaled(0x1ba), -1, 0, true, 0, -1, -1);
+		g->PopState();
+	}
+
+	// the board of the top, the bar's rectangle and the timer
+	g->SetColor(Color(255, 255, 255, aAlphaByte));
+	Image* aTopBack = IMAGE_INGAMEUI_TOP_BACK_LIGHTNING;
+	int aCellW = aTopBack != nullptr ? aTopBack->GetCelWidth() : 0;
+	int aCellH = aTopBack != nullptr ? aTopBack->GetCelHeight() : 0;
+	// slot 86 (0x7141b0): the rectangle of the bar
+	Rect aBar(Scaled(aGridX + 0x200) - aCellW / 2, Scaled(aGridY - 0x37) - aCellH / 2, aCellW - Scaled(0x78), aCellH);
+	auto aDrawAt = [&](Image* theImage, int theImageId) {
+		if (theImage != nullptr)
+			g->DrawImage(theImage, gApp->mArtRes * (GetImageOffsetX(theImageId) + aGridX - 0x2ab) / 1200,
+				gApp->mArtRes * (GetImageOffsetY(theImageId) + aGridY - 0x82) / 1200);
+	};
+	aDrawAt(aTopBack, IMAGE_INGAMEUI_TOP_BACK_LIGHTNING_ID);
+
+	// slot 241 (0x715940): the bar's colour over what is left of the time
+	{
+		double aFade = std::pow((double)aAlpha, 4.0);
+		g->SetColor(Color(180, 120, 70, Ftol(aFade * 255.0)));
+		g->FillRect(aBar.mX, aBar.mY, Ftol((double)mLevelBar * (double)aBar.mWidth), aBar.mHeight);
+	}
+
+	g->PushState();
+	g->Translate(Scaled(HUD_SHIFT_X), 0);
+	POPANIM_ANIMS_LIGHTNINGUI->Draw(g);
+	g->PopState();
+
+	if (mLastHurrah && !mTimeUpShown) {
+		g->SetFont(FONT_SPEED_TEXT);
+		Color aOldGlow, aOldOutline;
+		bool aGlowSet = SetLayerColor(FONT_SPEED_TEXT, "GLOW", Color(0, 0, 0, 0), &aOldGlow);
+		bool anOutlineSet = SetLayerColor(FONT_SPEED_TEXT, "OUTLINE", Color(0, 0, 0, 0), &aOldOutline);
+		g->SetColor(Color(255, 255, 255, aAlphaByte));
+		g->WriteString(gApp->GetString("482", "Last Hurrah"), Scaled(aGridX + 0x200), Scaled(0x62), -1, 0, true, 0, -1, -1);
+		if (aGlowSet)
+			RestoreLayerColor(FONT_SPEED_TEXT, "GLOW", aOldGlow);
+		if (anOutlineSet)
+			RestoreLayerColor(FONT_SPEED_TEXT, "OUTLINE", aOldOutline);
+	}
+
+	// slot 105 (0x714150): the timer's marker rides the bar's end
+	int aMarkerX = aBar.mX + Ftol((double)mLevelBar * (double)aBar.mWidth) + Scaled(0x40) - Scaled(2);
+	g->SetColor(Color(255, 255, 255, aAlphaByte));
+	DrawCentered(g, IMAGE_INGAMEUI_TIMER_LIGHTNING, aMarkerX, Scaled(0x4c));
+
+	// slot 218 (0x714130): in the last ten seconds without an account the screen's edge and the timer glow red
+	int aLeft = GetTimeLeft();
+	if (mBonusSeconds == 0 && !mTimeUpShown && aLeft >= 0 && aLeft < WARNING_TICKS) {
+		float aFraction = (float)(WARNING_TICKS - aLeft) / (float)WARNING_TICKS;
+		int aRed = Ftol((double)aAlpha * (std::sin((double)(float)mGameTicks * 0.15) * 128.0) * (double)aFraction);
+		aRed = aRed < 0 ? 0 : (aRed > 255 ? 255 : aRed);
+		g->PushState();
+		g->SetColor(Color(255, 255, 255, aRed));
+		DrawCentered(g, IMAGE_INGAMEUI_TIMER_RED_LIGHTNING, aMarkerX, Scaled(0x4c));
+		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+		aDrawAt(IMAGE_INGAMEUI_TOP_RED_LIGHTNING, IMAGE_INGAMEUI_TOP_RED_LIGHTNING_ID);
+		aDrawAt(IMAGE_INGAMEUI_BOTTOM_RED_LIGHTNING, IMAGE_INGAMEUI_BOTTOM_RED_LIGHTNING_ID);
+		g->PopState();
+	}
+
+	DrawScoreText(g);
+
+	// 0x716ef0 after 0x715cb0: the top animation
+	g->PushState();
+	g->Translate(Scaled(HUD_SHIFT_X), 0);
+	POPANIM_ANIMS_LIGHTNINGUITOP->Draw(g);
+	g->PopState();
 }
 
 }  // namespace Sexy

@@ -79,8 +79,8 @@ What the analysis has found about the exe, for reading the export. The plan is i
   only when the player gives an error text.
 - `b3_pamtest` (tools/pamtest) loads every .pam of the game (64: 47 of version 4, 17 of version 5), plays each for a
   few hundred updates and draws it onto a picture: all 64 load, play and draw at 600 (`-play -draw`).
-- Not translated: the mirrored drawing (nothing in the game sets it), the debugging outlines, the transition between
-  two animations (0x444910; Lightning starts one, see "Zen and Lightning"), saving and loading an animation's state (0x445540, 0x4453b0, 0x445760,
+- Not translated: the mirrored drawing (nothing in the game sets it), the debugging outlines; the transition between
+  two animations is PopAnim::TransitionToLabel (0x444910, started by Lightning's HUD, see "Zen and Lightning"); not translated: saving and loading an animation's state (0x445540, 0x4453b0, 0x445760,
   0x445a00: needed when the saved games are), and its particle effects (their creation in FrameHit 0x445c00, their
   matrix and colour at 0x447f70 and 0x444410), which wait for PIEffect's update and drawing.
 
@@ -982,26 +982,41 @@ gems the fill makes; the account of their seconds is what the Last Hurrah plays.
   game (bot, 150 moves) and a Zen board with no move, then a seeded Lightning game of 36000 updates through four Last Hurrahs to its end.
 
 Not translated (the `// port:` notes in the source), none of them changes what a game does except where said:
-- The look: the timer bar and the time-up and Last Hurrah banners (+0x309c, +0x33e0 and the objects 0x729d60 and 0x72a510 make), the time
-  gem's look and the burst of 0x714520 (its draws of the app's generator, and the one 0x715360 makes: Rand() % 9 + 0x566 picks an image),
-  the shake of the screen in the last 100 ticks of the end (two draws of the app's generator every third update, 0x7173f0) and the sounds.
-  The app's generator is therefore drawn less often than the exe's in Lightning, which only the sparks and effects read. The time gems are
-  drawn as plain gems and the screen is Classic's HUD. What was read for the screen, for whoever takes it up (measures in 1200ths): the
-  constructor (0x718090) sets the mode value +0xc1c to 1, makes the PopAnims POPANIM_ANIMS_LIGHTNINGUI, LIGHTNINGUIBOTTOM and
-  LIGHTNINGUITOP (labels unpowered, powered1 to 5, pulse1 to 5, energize, death, dead) with a transform of artRes / 1200 and the
-  COUNTDOWNBAR effect; the overlay (slot 43, 0x716ef0) is 0x715cb0 (a clip from y 300, the mega gem PopAnim GEM_MEGA translated by
-  (0x38, a curve), the shard effect clipped to (0x44, 0, 0xec, 0x18c) at (0xaa, 300), "+m:ss" (string 0x1e1) at (0xba, 0x1ba) while
-  the Last Hurrah's account runs, IMAGE_INGAMEUI_TOP_BACK_LIGHTNING at its x= and y= plus (grid x - 0x2ab, grid y - 0x82), the Last
-  Hurrah text (string 0x1e2) at (grid x + 0x200, 0x62) scaled by 1.25 + 0.15 sin(0.06 t)), then the +0x309c object's draw, the board's
-  own overlay and a PopAnim translated by -0xa0; the bar (slot 241, 0x715940) draws the COUNTDOWNBAR effect with a scaled and rotated
-  transform; the score (slot 255, 0x714660) is drawn at (0xf2, 0xd2); the buttons (0x741840, modes 1 and 2) are HINT_BUTTON_LIGHTNING,
-  MENU_BUTTON_LIGHTNING and RESET_BUTTON_LIGHTNING. An experiment drew clones of the three LIGHTNINGUI PopAnims after PlayLabel("unpowered")
-  at a translation of 0 or -0xa0: they draw (the first a bar with end caps across the top, the second a thin line) but not where the
-  board's grid is (the exe puts a translation on them that was not found; 0x713770 and 0x583490 are its scale and move helpers), so nothing
-  was kept. Oddity: the whole Lightning screen; and the label transition (0x444910: Lightning plays labels with transition frames 0, 12
-  and 15; the port's PopAnim has none, and the PopAnim notes' claim that the game never starts one is wrong for Lightning). Also one
-  finding for the port's Board: the widget manager draws a widget's DrawOverlay only when the widget asked for it in its Draw, so the
-  exe's slot-43 overlay needs a call from Board::Draw (a first try with a virtual hook there worked).
+- The Lightning screen is drawn (the HUD pass of this entry's commit); what is still not translated, none of it changes what a game does
+  (the app's generator is drawn less often than the exe's in Lightning, which only the sparks and effects read):
+  (1) The time gem's look (the class Sexy::TimeBonusEffect, vftable 0x865f84: made per time gem by 0x741130 through MakeSpecialEffect
+  0x749220 with flag 0x20000, Update 0x730de0 of about 1300 lines with 49 draws of the app's generator, Draw 0x72ec70: an arc simulation
+  of 0x5c-byte bolt records at +0x1cc, the seconds number at the gem, a blink under 0x1f5 ticks, arcs drawn by 0x729da0 with the images at
+  0x8d6d84 and 0x8d7628). Time gems are plain gems here. (2) The burst when one is cleared (Sexy::SpeedCollectEffect, vftable 0x866a08,
+  ctor 0x714520, size 0x3d0, Update 0x719ec0, Draw 0x713f80; made by 0x715360 with an image from the table at 0x8cf5c8[Rand() % 9 + 0x566])
+  and the "+N sec" text (0x71e5f0, FONT_DIALOG_HEADER, string 0x1df); every draw of the app's generator of them belongs in the update.
+  (3) The banners (Sexy::SpeedText, vftable 0x866a1c; Sexy::LightningBarFillEffect 0x865f94; Sexy::TextNotifyEffect;
+  Sexy::LightningScoreBadge), all in the +0x309c object (an EffectsManager, 0x72a510), and the shake of the screen in the last 100 ticks of the
+  end (two draws of the app's generator every third update, 0x7173f0). (4) The particle effects of the HUD: PIEFFECT_LIGHTNING_POWERED_MEGASHARD
+  (clipped to (0x44, 0, 0xec, 0x18c), at (0xaa, 300)) and ..._LEFTRIGHT (at (0xf0, 0xf0)), whose emitter keyframes 0x7173f0 edits each update
+  from the curve at +0x3290 (pow 0.7 and the like), the STEAMPULSE effect, and PIEFFECT_COUNTDOWNBAR drawn by 0x715940 (in 3D with a scale and
+  rotation; in 2D the effect's own). (5) The curves at +0x3290 (the mega gem's rise and the "+m:ss": a CurvedVal that 0x719150 re-sets to
+  "b;0,1,0.02,1,#.^$         ~~###" with +0x32a0/+0x32a8; here the plain share of the account's seconds, at once), +0x3300, +0x3370
+  (TIMER_DEAD_LIGHTNING's alpha), +0x33e0 (the Last Hurrah's text alpha; here the flag mLastHurrah) and +0x3450 (3D: the text's swell);
+  the colour of 0x73d9f0 (the red warning: its formula is reasoned from the decompile, not checked against a run: the screen's edge and
+  the timer glow red under 10 seconds without an account) and the button of Reset (RESET_BUTTON_LIGHTNING, modes 1 and 2 of 0x741840).
+  (6) The sounds.
+  What is drawn, in the exe's order: slot 238/250 (0x714840, 0x713f90): the bottom widget and the LIGHTNINGUIBOTTOM PopAnim translated
+  by -0xa0 (1200ths of the art size); the overlay (slot 43, 0x716ef0, called from Board::Draw through the new virtual DrawModeOverlay: the
+  widget manager draws a DrawOverlay only when the widget asked for it in its Draw) is 0x715cb0: the mega gem (GEM_MEGA, a clip from y 300,
+  translated by (0x38, 0x118 sqrt(share) - 0x16)), "+m:ss" (string 481) at (0xba, 0x1ba), TOP_BACK_LIGHTNING at its x= and y= plus
+  (grid x - 0x2ab, grid y - 0x82) (drawn as an image: the exe puts no translation on it; the earlier clones were drawn away from the grid
+  because nothing had updated or labelled them), the bar's fill (slot 241: (180, 120, 70) under pow(alpha, 4), the width the level bar's
+  share of the rectangle of slot 86), LIGHTNINGUI translated by -0xa0, the Last Hurrah text (string 482, FONT_SPEED_TEXT, no glow or
+  outline) at (grid x + 0x200, 0x62), the timer's marker (TIMER_LIGHTNING at the bar's end + 0x40 - 2), the red warning, the score at
+  (0xf2, 0xd2), and then LIGHTNINGUITOP translated by -0xa0. The four PopAnims (UIBOTTOM, UI, UITOP, GEM_MEGA) are shared resources the exe
+  draws directly; each update steps them and sets their colour to the board's alpha. Their labels go by 0x718400 (the bottom, the middle,
+  the top and the mega gem's get the label with a transition time; the top one only "death" or else "unpowered"): "unpowered" at a game's
+  start (0), "pulse1" to "pulse5" (12) at a time gem (0x719150: the account's seconds x 5 / 60 + 1, at most 5; the exe calls it from the
+  burst's curve marker, here from the clear), "energize" (15) when the Last Hurrah begins and "death" (15) when the game ends (0x719350).
+  The labels' transition is PopAnim::TransitionToLabel (0x444910 in engines/prime, shared with Zuma's Revenge and additive: nothing that
+  predates it calls it). The buttons (0x741840 for the Lightning modes) are HINT_BUTTON_LIGHTNING and MENU_BUTTON_LIGHTNING where
+  resources.xml puts them. Test: `goto lightning` with `screenshot`.
 - The round's record (slot 153, 0x745f10: a list at +0xd58 of 0x18-byte entries that only the end dialog's chart reads: three points
   figures a record, summed to size the chart).
 - The form with a points goal (PointsGoalStart above 0 with a TimeStart: +0x3095): the shipped speed.cfg has none. GetBarTarget has its

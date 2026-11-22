@@ -464,8 +464,13 @@ public:
 	void DrawHypercube(Graphics* g, const Piece* thePiece);       // slot 235, 0x73f630 (bejeweled3)
 	void DrawPieceShadow(Graphics* g, const Piece* thePiece);   // slot 236, 0x754670 (bejeweled3): the shadow sheet's cel under a gem that is drawn from its sheet
 	void DrawPieces(Graphics* g);                         // slot 246, 0x7568a0 (bejeweled3) with its second argument 0: the passes over the gems
-	void DrawScreenFrame(Graphics* g);                     // the pictures round the grid (slots 0x3bc, 0x3c0, 0x3c4, 0x3e4) and the left panel
-	void MakeButtons();                                    // 0x741840 (bejeweled3), Classic's two buttons
+	virtual void DrawScreenFrame(Graphics* g);             // the pictures round the grid (slots 0x3bc, 0x3c0, 0x3c4, 0x3e4) and the left panel
+	// the board's own pass over the screen after everything else (the exe's slot 43, whose Lightning version 0x716ef0 draws the mode's
+	// HUD); nothing in the modes that have none
+	virtual void DrawModeOverlay(Graphics* g) { (void)g; }
+	// 0x741840 (bejeweled3): the Hint and Menu buttons with the pictures of the mode (Classic's by default)
+	void MakeButtons(Image* theHintImage, int theHintImageId, Image* theMenuImage, int theMenuImageId);
+	void MakeClassicButtons();
 };
 
 class ClassicBoard : public Board {

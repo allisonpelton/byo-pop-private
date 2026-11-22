@@ -75,7 +75,7 @@ Board::Board()
 	}
 	mEffectsUnder = new EffectsManager(this);   // 0x74b653 and 0x74b6a0: 0x72a510 twice, the second added as a child
 	mEffectsOver = new EffectsManager(this);
-	MakeButtons();   // 0x741840: the layout puts the buttons where the pictures say
+	MakeClassicButtons();   // 0x741840: the layout puts the buttons where the pictures say
 }
 
 // 0x720040 (bejeweled3), with 0x71ffd0: each effect that holds the piece is told it has none (its piece id is 0) and loses a user

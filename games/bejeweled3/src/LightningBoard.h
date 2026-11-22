@@ -56,6 +56,8 @@ public:
 	TimeGemChance mChance5;         // +0x3108, its counter and chance at +0x3178 and +0x317c
 	TimeGemChance mChance10;        // +0x3180, at +0x31f0 and +0x31f4
 	TimeGemChance mChance15;        // +0x31f8, at +0x3268 and +0x326c (stepped, never read by 0x716c60)
+	bool mLastHurrah = false;       // port: the Last Hurrah is being played (the exe's curve at +0x33e0 is above 0 for its text, 0x719350)
+	std::string mHudLabel;          // +0x3458: the label the four HUD animations were last given (0x718400)
 	double mPenalty = 0.0;          // +0x30d0: the level bar's drain in the points-goal form (0 with the shipped file)
 
 	LightningBoard();   // 0x718090 (bejeweled3): the Title "Lightning"; SpeedBoard's own 0x7144a0 says the mode is "Speed"
@@ -73,6 +75,15 @@ public:
 	void OnPieceCleared(Piece* thePiece) override;                  // slot 143 (0x23c), 0x715360
 	void NoMoreMoves(bool theAnnounce) override;                    // slot 161 (0x284), 0x719350
 	ClassicEndLevelDialog* MakeEndLevelDialog() override;          // slot 233 (0x3a4), 0x716ab0: the Lightning end dialog
+
+	void DrawScreenFrame(Graphics* g) override;   // slot 238 (0x714840) in place of Classic's frames and level bar
+	void DrawScoreText(Graphics* g) override;     // slot 255 (0x714660)
+	void DrawModeOverlay(Graphics* g) override;   // slot 43 (0x716ef0), which calls 0x715cb0
+	void DrawBottomWidget(Graphics* g) override;  // slot 251 with the mode's picture (0x741440)
+
+	// 0x718400 (bejeweled3): the four HUD animations (the bottom, the middle, the top and the mega gem's) go to the label over theTime
+	// updates, the top one only to "death" or else to "unpowered"; the label is kept
+	void StartHudLabel(const char* theLabel, int theTime);
 
 	// slot 187 (0x2ec), 0x713fa0: the game ticks left of the round (the Last Hurrah's, once it began), or -1 where the mode has no clock
 	int GetTimeLeft() const;

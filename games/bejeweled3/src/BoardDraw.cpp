@@ -367,13 +367,20 @@ void Board::Draw(Graphics* g)
 	DrawScreenFrame(g);
 	DrawPieces(g);   // slot 246, 0x7568a0
 	mEffectsOver->Draw(g, false);   // the +0x12c0 layer is a child of the board: its draw (slot 26) comes after the board's
+	DrawModeOverlay(g);   // port: the exe's widget manager calls slot 43 in the overlay pass; here it follows the board's own draw
 }
 
 // 0x741840 (bejeweled3), Classic's case: the Hint button (id 0, the Classic hint picture) and the Menu button (id 1, the Classic menu
 // picture), each where resources.xml puts its picture with the panel's 400 off, the size of a cel (the pictures are two cels wide:
 // cel 0 at rest, cel 1 over and pressed). The exe's class is Bej3Button (vtable 0x86498c, ctor 0x49c490); its hover curves (+0x150
 // and +0x158) are not translated
-void Board::MakeButtons()
+void Board::MakeClassicButtons()
+{
+	MakeButtons(IMAGE_INGAMEUI_HINT_BUTTON_CLASSIC, IMAGE_INGAMEUI_HINT_BUTTON_CLASSIC_ID, IMAGE_INGAMEUI_MENU_BUTTON_CLASSIC,
+		IMAGE_INGAMEUI_MENU_BUTTON_CLASSIC_ID);
+}
+
+void Board::MakeButtons(Image* theHintImage, int theHintImageId, Image* theMenuImage, int theMenuImageId)
 {
 	struct ButtonSpec {
 		int mId;
@@ -382,8 +389,8 @@ void Board::MakeButtons()
 		ButtonWidget** mTarget;
 	};
 	const ButtonSpec aSpecs[] = {
-		{BUTTON_HINT, IMAGE_INGAMEUI_HINT_BUTTON_CLASSIC, IMAGE_INGAMEUI_HINT_BUTTON_CLASSIC_ID, &mHintButton},
-		{BUTTON_MENU, IMAGE_INGAMEUI_MENU_BUTTON_CLASSIC, IMAGE_INGAMEUI_MENU_BUTTON_CLASSIC_ID, &mMenuButton},
+		{BUTTON_HINT, theHintImage, theHintImageId, &mHintButton},
+		{BUTTON_MENU, theMenuImage, theMenuImageId, &mMenuButton},
 	};
 	for (const ButtonSpec& aSpec : aSpecs) {
 		if (aSpec.mImage == nullptr)
