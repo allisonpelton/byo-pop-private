@@ -54,6 +54,7 @@ struct Obj
 	int mMidHandle;             // +0xac  each frame is drawn about its middle
 };
 
+uint32_t Obj_DrawSeq(const Obj* theObj);                         // the order the object was made in (the draw list's tie-break)
 void Obj_Init(Obj* theObj);                                      // 0x40f230
 void Obj_Destroy(Obj* theObj);                                   // 0x40f2c0
 // 0x40f070: 0 when the object is done (its lifetime is up, or a one-shot animation reached an end)

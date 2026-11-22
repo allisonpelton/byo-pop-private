@@ -5,6 +5,7 @@
 #include "R64Xml.h"
 
 #include <cstring>
+#include <unordered_map>
 #include <new>
 
 namespace wb
@@ -16,8 +17,25 @@ Dirty gDirty;
 const int SCREEN_CLIP[4] = {0, 0, 0x31f, 0x257};
 
 // The original leaves the links, the colour and a few others as they were; here the base starts all 0
+// The draw list orders sprites of one depth by a sequence, which the original takes from the object's address: consecutive
+// allocations are in the order made, but where the heap puts them varies from run to run, so two sprites of one depth
+// are on top of each other in either order. The port takes the order the objects were made in (Obj_DrawSeq), which is
+// what consecutive allocations give; the original's own order has no fixed rule, so this has no visible effect of its own.
+namespace
+{
+std::unordered_map<const Obj*, uint32_t> gObjSerials;
+uint32_t gObjSerial = 0;
+} // namespace
+
+uint32_t Obj_DrawSeq(const Obj* theObj)
+{
+	std::unordered_map<const Obj*, uint32_t>::const_iterator anIt = gObjSerials.find(theObj);
+	return anIt != gObjSerials.end() ? anIt->second : 0;
+}
+
 void Obj_Init(Obj* theObj)
 {
+	gObjSerials[theObj] = ++gObjSerial;
 	std::memset((void*)theObj, 0, sizeof(Obj));
 	List_Init(&theObj->mEmitters);
 	List_Init(&theObj->mChildren);
@@ -53,6 +71,7 @@ void Obj_Init(Obj* theObj)
 // 0x419c00 (the same destructor again, for the nodes of another list)
 void Obj_Destroy(Obj* theObj)
 {
+	gObjSerials.erase(theObj);
 	List_Clear(&theObj->mChildren);
 	List_Clear(&theObj->mEmitters);
 }
@@ -147,7 +166,7 @@ void Obj_DrawTo(Obj* theObj, uint8_t* theDst, int theDPitch)
 			aPalette = nullptr;
 		else
 			aPalette = &theObj->mAnim->mTints[theObj->mTint];
-		uint32_t aSeq = (uint32_t)(uintptr_t)theObj;
+		uint32_t aSeq = Obj_DrawSeq(theObj);
 		DrawList_Add(anImage, aSeq, (int)theObj->mX, (int)theObj->mY, theObj->mDepth, theObj->mDrawKind, theDst,
 			theDPitch, theObj->mR, theObj->mG, theObj->mB, theObj->mAlpha, aPalette, nullptr);
 		if (theObj->mDirty != 0)
