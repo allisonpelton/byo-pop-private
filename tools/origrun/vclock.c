@@ -21,6 +21,9 @@
 //   - origrun holds the main thread at a wait through the shared block (vclock.h): at an update, at a virtual time, or
 //     at the next wait. It also reads the update counter and the --watch values here, at each wait and at each clock
 //     read once the counter has moved, so none is missed however fast the game runs.
+//   - A held main thread answers origrun's reads of the game's own draw surface (the in-game frame reader, reader.c,
+//     when ORIGRUN_READER_SURFACE is set): the read runs in that thread, inside the hold, and patches nothing more. Each
+//     hold records the return address of the wait it is in (heldAt), which origrun checks against reader_waits=.
 // The stand-in pins itself (a FreeLibrary of dsound.dll would leave the patched entries pointing nowhere). It assumes
 // one main thread drives the game: the one that started at the exe's entry point.
 // The same import patcher serves the scripted cursor (--cursor scripted, ORIGRUN_CURSOR=scripted; cursor.c) and the
@@ -59,6 +62,7 @@ static VcShared*  gSh;
 static HANDLE     gMap, gHeldEv, gRelEv, gHostProc;
 static DWORD      gDriver;          // the main thread: its waits drive the clock
 static int        gInHold;          // the driver is inside a hold (a sent message it dispatches there must not hold again)
+static DWORD      gWaitAt;          // the return address of the driver's wait being entered (0 outside one): a hold's heldAt
 static LONG       gReads;           // the driver's clock reads since its last wait
 static ULONGLONG  gInstallTick;     // GetTickCount64 at the install
 static int        gDriverWaited;    // the driver has called a wait
@@ -87,6 +91,7 @@ static void vclog(const char* fmt, va_list ap)
 	vfprintf(gClog, fmt, ap); fputc('\n', gClog); fflush(gClog);
 }
 static void clog(const char* fmt, ...) { va_list ap; va_start(ap, fmt); vclog(fmt, ap); va_end(ap); }
+void vc_log(const char* fmt, ...) { va_list ap; va_start(ap, fmt); vclog(fmt, ap); va_end(ap); }   // for reader.c
 void hooks_log(const char* fmt, ...) { va_list ap; va_start(ap, fmt); vclog(fmt, ap); va_end(ap); }   // msgbox.c's
 
 static LONGLONG real100(void) { FILETIME f; GetSystemTimeAsFileTime(&f); return ((LONGLONG)f.dwHighDateTime << 32) | f.dwLowDateTime; }
@@ -125,6 +130,10 @@ static int eval_addr(const char** ps, DWORD* out)
 	*ps = s; *out = v; return 1;
 }
 static int read_expr(const char* e, DWORD* out) { if (!e[0]) return 0; const char* s = e; DWORD a; return eval_addr(&s, &a) && self_u32(a, out); }
+int vc_read_expr(const char* e, DWORD* out) { return read_expr(e, out); }   // for reader.c
+int vc_read_counter(DWORD* out) { return gCounterExpr[0] && read_expr(gCounterExpr, out); }
+void reader_init(const char* blockName);   // reader.c
+void reader_serve(VcShared* s);
 
 static void ring_push(LONG upd, int idx, DWORD val, int ok)
 {
@@ -173,7 +182,7 @@ static void vc_hold(int where, DWORD timeout)
 {
 	VcShared* s = gSh;
 	s->heldCounter = s->counterOk ? s->counter : -1;
-	s->heldWhere = where; s->heldV = vget(); s->heldTimeout = (LONG)timeout;
+	s->heldWhere = where; s->heldV = vget(); s->heldTimeout = (LONG)timeout; s->heldAt = gWaitAt;
 	s->held = 1;
 	InterlockedIncrement(&s->heldSeq); InterlockedIncrement(&s->holds);
 	SetEvent(gHeldEv);
@@ -181,6 +190,7 @@ static void vc_hold(int where, DWORD timeout)
 	LONGLONG r0 = qpc100();
 	ULONGLONG t0 = GetTickCount64();
 	while (s->bar == VC_BAR_HELD) {
+		if (s->readReq != s->readDone) reader_serve(s);   // a read origrun asked for, in this thread, while it is held here
 		DWORD cap = s->connected ? kHoldCapMs : kFirstHoldMs;
 		ULONGLONG el = GetTickCount64() - t0;
 		if (el >= cap) {
@@ -413,7 +423,9 @@ static DWORD vwait(const WaitCall* c, DWORD ms, int where, void* at)
 	}
 	DWORD r;
 	if (ready_now(c, &r)) { InterlockedIncrement(&gSh->passWaits); return r; }
+	gWaitAt = (DWORD)(DWORD_PTR)at;
 	vc_wait_enter(where, ms);
+	gWaitAt = 0;
 	if (ready_now(c, &r)) return r;   // signalled meanwhile, or input origrun posted while the game was held
 	int skip = c->kind == W_SLEEP || c->kind == W_SLEEPEX || ((c->kind == W_MWFMO || c->kind == W_MWFMOEX) && c->n == 0);
 	if (!skip || others_busy()) {   // a wait on handles, or the guard: Windows waits, the clock moves by the time it took
@@ -744,6 +756,7 @@ static int clock_install(const char* exe)
 	wsprintfA(ev, "%s-held", name); gHeldEv = CreateEventA(NULL, FALSE, FALSE, ev);
 	wsprintfA(ev, "%s-release", name); gRelEv = CreateEventA(NULL, FALSE, FALSE, ev);
 	if (!gHeldEv || !gRelEv) { clog("pid %lu: no events for %s (err %lu): no virtual clock", pid, name, GetLastError()); return 0; }
+	reader_init(name);
 	char host[32] = "";
 	if (GetEnvironmentVariableA("ORIGRUN_CLOCK_HOST", host, sizeof(host))) gHostProc = OpenProcess(SYNCHRONIZE, FALSE, strtoul(host, NULL, 10));
 	GetEnvironmentVariableA("ORIGRUN_CLOCK_COUNTER", gCounterExpr, sizeof(gCounterExpr));

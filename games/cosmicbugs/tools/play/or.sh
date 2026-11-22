@@ -16,7 +16,7 @@ elif [ -f $G/bass_real.dll ]; then
 	mv -f $G/bass_real.dll $G/bass.dll
 fi
 printf '<CP_CONFIG\n    fullscreen="0"\n    desktopResolution="0"\n    wave="1"\n    music="1"\n/>\n' > $G/cp.cfg
-timeout 900 build/origrun-bin/origrun.exe --exe "$(cygpath -wa $G/CosmicBugs.exe)" --run $R --script "$S" --cursor scripted \
+timeout ${OR_TIMEOUT:-900} build/origrun-bin/origrun.exe --exe "$(cygpath -wa $G/CosmicBugs.exe)" --run $R --script "$S" --cursor scripted \
 	--counter 0x460a1c --update-ms 1 \
 	"${WATCH[@]}" --timeout 600 "$@" > build/origrun/$R.out 2>&1
 echo "origrun exit $?"

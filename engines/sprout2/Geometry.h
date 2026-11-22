@@ -5,8 +5,19 @@
 // classes: engine::Vector2<float>, engine::Color). A rectangle is four values, left, top, right and bottom, as the
 // engine keeps it: in floats for a component's bounds, in ints for an image's source rectangle.
 
+#include <cmath>
+
 namespace engine
 {
+
+// The engine's pi, a float (0x5a73d8 and 0x5a7384 (feedingfrenzy2))
+const float PI = 3.1415927f;
+
+// 0x43cdb0 (feedingfrenzy2): the sine of a float, computed in double and rounded to a float
+inline float sinOf(float theAngle)
+{
+	return (float)sin((double)theAngle);
+}
 
 template <class T>
 struct Vector2
@@ -50,6 +61,26 @@ struct Rect
 
 typedef Rect<float> RectF;
 typedef Rect<int> RectI;
+
+// Two ends a random value is drawn between (a particle's speeds, sizes, lives; read by Params::getRange)
+struct FloatRange
+{
+	float mLow;
+	float mHigh;
+
+	FloatRange() : mLow(0), mHigh(0) {}
+	FloatRange(float theLow, float theHigh) : mLow(theLow), mHigh(theHigh) {}
+};
+
+// The same of whole numbers (read by Params::getIntRange)
+struct IntRange
+{
+	int mLow;
+	int mHigh;
+
+	IntRange() : mLow(0), mHigh(0) {}
+	IntRange(int theLow, int theHigh) : mLow(theLow), mHigh(theHigh) {}
+};
 
 // 0x46d360 (feedingfrenzy2): the smaller, the first on a tie
 template <class T>

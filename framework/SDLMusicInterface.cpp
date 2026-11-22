@@ -4,6 +4,7 @@
 #include "../platform/Placeholders.h"
 #include "../platform/VFS.h"
 #include "SDLSoundManager.h"
+#include "SexyAppBase.h"
 
 #include <algorithm>
 #include <cmath>
@@ -310,14 +311,18 @@ void SDLMusicInterface::SetMusicAmplify(int theSongId, double theAmp)
 	Mixer::Get().SetSongAmplify(it->second.mHandle, (float)ByopopBassAmplifyGain(anAmp));
 }
 
+// port: a fade steps once per update in the original (BASS's volume ramp is applied per game update here). The game speed
+// changes how often updates run, and music keeps its own time at every speed, so each step is scaled to the real time the
+// update stands for (SexyAppBase::MusicStepFactor: 1 at speed 1, with -fast too).
 void SDLMusicInterface::Update()
 {
+	const double aStepFactor = (gSexyAppBase != NULL) ? gSexyAppBase->MusicStepFactor() : 1.0;
 	for (auto& kv : mSongs)
 	{
 		SongInfo& s = kv.second;
 		if (s.mVolumeAdd == 0.0)
 			continue;
-		s.mVolume += s.mVolumeAdd;
+		s.mVolume += s.mVolumeAdd * aStepFactor;
 		if (s.mVolume > s.mVolumeCap)
 		{
 			s.mVolume = s.mVolumeCap;

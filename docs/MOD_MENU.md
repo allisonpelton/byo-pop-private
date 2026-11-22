@@ -54,6 +54,16 @@ same `settings` block.
 The mouse works on everything: click, the wheel, and dragging sliders and the list. On touch screens the
 browser turns taps into clicks. Text settings need a keyboard: without one they cannot be edited.
 
+### Game speed (native)
+
+The first two rows of the native list page are not a mod's: "Game speed" steps the game along 0.25x, 0.5x, 0.75x, 1x, 1.5x,
+2x, 3x, 4x, 8x, 16x and Max (the updates run flat out in real time and the draws that cannot be shown are skipped; the game
+clock moves one frame time per update), and "Speed keys" turns on the hotkeys F6 (slower), F7 (faster) and F8 (back to 1x),
+which are off until then and never reach the game while on. Both are saved in `game-speed.json` (`{"speed": 1, "hotkeys":
+false}`) in the user dir and read at start, except in a run with `-fast`, `-script`, `-seed` or `-speed`. The web build has
+neither row: the page has its own speed setting. Every game's clock follows the speed (`Sexy::GetTickCountMS` is game time,
+`Sexy::GetRealTickCountMS` real time); music keeps its own time at every speed.
+
 ### Files in the user dir
 
 | File | Contents | Written |
