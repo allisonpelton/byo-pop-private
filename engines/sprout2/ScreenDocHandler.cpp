@@ -164,6 +164,7 @@ Color ScreenDocHandler::readColor(Params& theAttributes, const std::string& theN
 }
 
 bool ScreenDocHandler::sHonorVisible = false;
+bool ScreenDocHandler::sScaleImages = false;
 
 void ScreenDocHandler::readCommon(Params& theAttributes, Component* theComponent)
 {
@@ -220,12 +221,15 @@ void ScreenDocHandler::readImage(Params& theAttributes)
 	else if (equals(anAlphaType, "none"))
 		aSurface->setBlendMode(BLEND_OPAQUE, 0);
 
-	if (fabsf(aScaleX) != 1.0f || fabsf(aScaleY) != 1.0f)
-		// A scaled copy of the surface: not yet translated
-		getEngine()->log("ScreenDocHandler: %s scaled by %f, %f not yet translated\n", aSurface->getName().c_str(),
-			(double)aScaleX, (double)aScaleY);
-	aScaleX = aScaleX < 0.0f ? -1.0f : 1.0f;
-	aScaleY = aScaleY < 0.0f ? -1.0f : 1.0f;
+	if (!sScaleImages)
+	{
+		if (fabsf(aScaleX) != 1.0f || fabsf(aScaleY) != 1.0f)
+			// A scaled copy of the surface: not yet translated
+			getEngine()->log("ScreenDocHandler: %s scaled by %f, %f not yet translated\n", aSurface->getName().c_str(),
+				(double)aScaleX, (double)aScaleY);
+		aScaleX = aScaleX < 0.0f ? -1.0f : 1.0f;
+		aScaleY = aScaleY < 0.0f ? -1.0f : 1.0f;
+	}
 
 	std::string aPivot = theAttributes.getString("pivot", "");
 	if (equals(aPivot, "center"))

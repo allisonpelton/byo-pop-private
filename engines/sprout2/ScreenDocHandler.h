@@ -27,6 +27,8 @@ public:
 	// Talismania's reader of an element's common attributes (0x620da0 and its callers (talismania)) also reads "visible"; Feeding
 	// Frenzy 2's does not, and its layouts are read without it. A game switches it on before its screens are read
 	static void setHonorVisible(bool theHonor) { sHonorVisible = theHonor; }
+	// On, an image item's scaleX and scaleY scale the image as drawn (Talismania); off, they only flip it (Feeding Frenzy 2)
+	static void setScaleImages(bool theScale) { sScaleImages = theScale; }
 
 	// 0x47d880 (feedingfrenzy2)
 	ScreenDocHandler(ScreenLayout* theLayout, int theDetailLevel, Theme* theTheme);
@@ -74,6 +76,7 @@ private:
 	std::string mDetailString;              // +0xa4: the detail level as a number
 private:
 	static bool sHonorVisible;
+	static bool sScaleImages;
 };
 
 } // namespace engine
