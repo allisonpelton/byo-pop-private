@@ -404,6 +404,59 @@ def hints(d, a, settle):
         d.key('Escape')
         d.ok('wait 60')
     d.shot('hint-still-closed')
+    if os.environ.get('TOUR_NOHINTS'):  # the board the solution no longer fits: a legal swap that is not the hint's, then the hint button
+        def matches(rows, r, c):
+            t = rows[r][c]
+            if t == '.':
+                return False
+            for dr, dc in ((0, 1), (1, 0)):
+                n = 1
+                for sg in (1, -1):
+                    rr, cc = r + sg * dr, c + sg * dc
+                    while 0 <= rr < 8 and 0 <= cc < 8 and rows[rr][cc] == t:
+                        n, rr, cc = n + 1, rr + sg * dr, cc + sg * dc
+                if n >= 3:
+                    return True
+            return False
+        rows = [list(x) for x in d.state()['board']]
+        taken = {(r0, c0), (r1, c1)}
+        legal = None
+        for r in range(8):
+            for c in range(8):
+                for r2, c2 in ((r, c + 1), (r + 1, c)):
+                    if r2 > 7 or c2 > 7 or (r, c) in taken or (r2, c2) in taken:
+                        continue
+                    rows[r][c], rows[r2][c2] = rows[r2][c2], rows[r][c]
+                    ok = matches(rows, r, c) or matches(rows, r2, c2)
+                    rows[r][c], rows[r2][c2] = rows[r2][c2], rows[r][c]
+                    if ok and legal is None:
+                        legal = (r, c, r2, c2)
+        if legal is None:
+            raise SystemExit('no legal swap off the solution')
+        r, c, r2, c2 = legal
+        d.play_input([{'move': px(r, c)}, {'click': px(r, c)}, {'move': px(r2, c2)}, {'click': px(r2, c2)}, {'wait': 4}])
+        settle(lambda s: s['screen'] == 'game' and s.get('phase') == 'idle' and not s['dialogs'], screens=True)
+        d.ok('wait 100')
+        d.shot('off-solution')
+        d.click(hint)
+        d.ok('wait 60')
+        for k in range(4):  # No Longer Solvable (22): its Yes undoes the move, and More Hints? (25) follows a moment later
+            s = d.state()
+            for _ in range(5 if k else 0):
+                if s['dialogs']:
+                    break
+                d.ok('wait 200')
+                s = d.state()
+            if not s['dialogs']:
+                break
+            top = max(s['dialogs'])
+            d.shot('nohint%d-dlg%d' % (k, top))
+            if top == 22:
+                d.click(s['buttons']['yes'])
+            else:
+                full.handle_dialog(d, s)
+            d.ok('wait 60')
+        d.shot('nohint-end')
     if os.environ.get('TOUR_GALAXY'):  # the galaxy map by its button on the dome, and a locked planet's message
         d.click([int(v) for v in os.environ.get('TOUR_MAPBTN', '95,46').split(',')])
         d.ok('wait 150')

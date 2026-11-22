@@ -1,5 +1,6 @@
 // AIMgr.cpp: see AIMgr.h.
 
+#include "NotTranslated.h"
 #include "AIMgr.h"
 
 #include "PhysObj.h"
@@ -41,4 +42,10 @@ void AIMgr::Clear()
 	mUnknown24.clear();
 	mUnknown30.clear();
 	mCollisionMgr->Clear();
+}
+
+// 0x4604c0
+void AIMgr::Update()
+{
+	NOT_TRANSLATED("AIMgr::Update");
 }
