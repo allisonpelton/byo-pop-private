@@ -687,7 +687,13 @@ writes, so it never runs while a game page is open.
 ### The music player
 
 The Music window (`web/music.js`, checked by `tools/musictest.js`) plays the music of the games the player added, from
-their own files in this browser; the site ships no music and sends nothing anywhere.
+their own files in this browser; the site ships no music and sends nothing anywhere. Its list follows the games' files
+while the page is up: `ByopopGameFiles` (`web/settings.js`) tells each change of its record on the page
+(`byopop-game-files`), and another page (a game's window, another tab) is heard by the storage event of the record. When the
+games with music change, the list is read again while the window is shown, or at its next showing: a game that came gets
+its tunes read, the tunes of the games still there are kept, and a game whose files went loses its own, the tune playing
+stopping with them (the user, 2026-11-16: "Music required reloading the page"). The Sounds window does the same while it
+is open.
 
 **Music's data** is `web/soundtracks.js`, by game id, whose header gives an entry's fields; tunes are named plainly,
 never with invented titles. A game's session sets these from its code:
