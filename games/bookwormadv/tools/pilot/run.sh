@@ -164,19 +164,36 @@ fi
 
 if [ "$which" != orig ]; then
 	d=$P/portrun/$N; mkdir -p "$d"
-	bash "$T/reset.sh" "$d/user"
-	[ -n "$SUF" ] && sed -i 's/^Is3D=dword:0/Is3D=dword:1/' "$d/user/registry.ini"
-	sed -i "s/^ScreenMode=dword:0/ScreenMode=dword:${FULL}/" "$d/user/registry.ini"
-	[ -n "${PILOT_PROFILE:-}" ] && cp "$PILOT_PROFILE" "$d/user/users/Tester.bwa"
-	for f in ${PILOT_USERS:-}; do cp "$f" "$d/user/users/"; done
+	user() { # the port's start state in $1
+		rm -rf "$1"; bash "$T/reset.sh" "$1"
+		[ -n "$SUF" ] && sed -i 's/^Is3D=dword:0/Is3D=dword:1/' "$1/registry.ini"
+		sed -i "s/^ScreenMode=dword:0/ScreenMode=dword:${FULL}/" "$1/registry.ini"
+		[ -n "${PILOT_PROFILE:-}" ] && cp "$PILOT_PROFILE" "$1/users/Tester.bwa"
+		for f in ${PILOT_USERS:-}; do cp "$f" "$1/users/"; done
+	}
+	user "$d/user"
 	[ "${PILOT_SOUND:-off}" = on ] && export BYOPOP_SOUNDLOG="$(cygpath -w "$P/$N.portsound.log")"
-	# the lines after a load count from the original's mark there (anchors.py; its loads' lengths are the port's)
+	LOADS="-chapterloadupdates=$(cat "$P/$N.loads" 2>/dev/null) -startloadupdates=$(cat "$P/$N.startload" 2>/dev/null)"
+	# The lines after a load count from the end of the port's own load (anchors.py), as the original's count from its
+	# mark: the two can start a load a few updates apart (after the arena's treasure room), its length the original's.
+	# One -fast pass, without the screenshots, for each load finds where it ends, the loads before it placed so.
 	PS=$SC/$name.port.txt
 	if grep -q '^@' "$PS"; then
-		python "$T/anchors.py" fill "$PS" "$P/$N.marks" "$SC/$name.portrun.txt" || exit 1
+		cp "$P/$N.marks" "$P/$N.portmarks"
+		K=$(grep -o '^@[0-9]*' "$PS" | sort -u | wc -l)
+		for k in $(seq 1 $K); do
+			python "$T/anchors.py" fill "$PS" "$P/$N.portmarks" "$d/pass.txt" || exit 1
+			grep -v ' screenshot' "$d/pass.txt" > "$d/pass2.txt"
+			user "$d/passuser"; rm -f "$d/pass.log"
+			timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/passuser" -seed=$SEED -fast $LOADS -popcaplogo $HOLD \
+				-script="$d/pass2.txt" -boardlog="$d/pass.log" > "$d/pass.out" 2>&1
+			python "$T/anchors.py" ends "$d/pass.log" $k "$P/$N.portmarks" "$PS" || exit 1
+		done
+		echo "the port's load ends (less one): $(cat "$P/$N.portmarks")"
+		python "$T/anchors.py" fill "$PS" "$P/$N.portmarks" "$SC/$name.portrun.txt" || exit 1
 		PS=$SC/$name.portrun.txt
 	fi
-	timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -renderscale=1 -chapterloadupdates=$(cat "$P/$N.loads" 2>/dev/null) -startloadupdates=$(cat "$P/$N.startload" 2>/dev/null) -popcaplogo $HOLD \
+	timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -renderscale=1 $LOADS -popcaplogo $HOLD \
 		-script="$PS" > "$d/stdout.txt" 2>&1
 	echo "port exit $?"; grep "script\|FATAL" "$d/stdout.txt" | tail -5
 	python - "$PP" "$ST" <<'EOF'

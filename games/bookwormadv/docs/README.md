@@ -110,7 +110,7 @@ channel) each answer with one log line, `OK <command>` or `ERROR <command>: <rea
   twice its size in place of full screen, `?lockstep=1` the game held in a mini-game and stepped only by the moves.
 
 `-boardlog=<file>` (on the web, the page adds it through `Module.callMain`) makes the game append what a driver of
-real input needs, each line once as it changes: `screen: <n> <name>`, `talk: <n> 1|0`, `dialog: <n> <id> ok x,y | header | lines` (its
+real input needs, each line once as it changes: `screen: <n> <name>`, `loadend: <n> <update>` (a chapter load's screen gone, at the update after the one the original's side reads it at), `talk: <n> 1|0`, `dialog: <n> <id> ok x,y | header | lines` (its
 first button), `treasure: <n> continue x,y 1|0` (the treasure room's Continue, and whether it is enabled: a
 driver picks Lex's treasures from the left column until it is), `hint: <n> <id> x,y ...|-` (the tutorial's
 arrows that wait for a click on a hot spot, and each spot's centre: the drivers click the first), `tutorial: <n> <state> x,y|attack x,y` (the
@@ -296,6 +296,15 @@ the hint it opened with and draws no new one, as the original does with the Chap
 loads on a busy machine took anything from 5 to 260 updates (the 3D desktop's 5 to 86). The frozen baseline,
 `tools/check.sh` and the logic comparisons (`-randlog`, the state checks) never give it: there the hint's draws and
 the original's own load lengths are compared as before.
+
+The pilot's steps also anchor each chapter load (`tools/pilot/gen.py`'s `loaded <ms>`). On the host the original's loader
+runs on the wall clock while its updates run on origrun's virtual clock, so a load lasted 41 to 5300 updates there. The
+original's script waits until the load's screen (app+0x83c) has come and gone, marks the update counter, and times the
+steps after it from that mark (origrun's `waitfor`, `mark` and `at +N`). The port's lines after the load take the
+original's mark (`anchors.py`), and its load lasts as long as the original's (`-chapterloadupdates`), so both reach the
+same state at the same update. `<ms>` is where the load ended in the port run the steps were made with (90 updates a
+load; `loadend` in a `--nominal` port run of the part), so the steps after it keep their timing. A port run with no
+original (`tools/coverage/port.sh`) gives gen.py `--nominal`, which times the lines after a load from that end.
 
 The startup load did the same to everything after the title: the original ran about 190 updates behind the port from
 its menu on. Its loading thread ran from update 406, where StartLoadingThread (0x549480) sets the app's +0x4f9, to 546,

@@ -344,6 +344,16 @@ void GameApp::LogBoardForTests()
 		sLastScreen = aScreen;
 		sLastTalk = aTalk;
 	}
+	// a chapter load's screen gone: "loadend: <n> <update count>", the update the screens pilot's `loaded` steps count
+	// from (tools/pilot/gen.py; the original's side reads app+0x83c, mChapterLoadScreen, at the same update)
+	static bool sLoading = false;
+	if (sLoading && mChapterLoadScreen == nullptr) {
+		if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
+			fprintf(aFile, "loadend: %d %d\n", ++sCount, mUpdateCount);
+			fclose(aFile);
+		}
+	}
+	sLoading = mChapterLoadScreen != nullptr;
 	// the treasure room's Continue, as it shows and as it is enabled: "treasure: <n> continue x,y 1|0"
 	static std::string sLastTreasure;
 	std::string aTreasure;

@@ -23,6 +23,8 @@ Steps, one per line ('#' starts a comment):
                                  this line, so its length on the machine drops out; the port's lines say @<k>+N
                                  for the k-th mark, which run.sh fills in from the original's log (anchors.py), the
                                  port's loads lasting as long as the original's (-chapterloadupdates)
+  loaded <ms> gone               the same for a load that may already be over at this line (it waits only for the
+                                 screen to be gone)
   quit
 """
 import os
@@ -38,6 +40,7 @@ def main():
     orig, port = ["waitshot _window 60000"], []
     t = 0       # ms of game time: update t/10
     k, base = 0, 0      # the marks so far; the game time the last one stands for
+    gone = False        # the last mark's load may have been over at its line: the port takes the original's mark
 
     def rel(ms):
         # after a mark: updates from it, at least 20 (origrun lets the game run free while it waits for the load)
@@ -56,7 +59,7 @@ def main():
         if k and nominal:
             port.append("%d %s" % (base // 10 + rel(ms) + 1, cmd))
         elif k:
-            port.append("@%d+%d %s" % (k, rel(ms) + 1, cmd))
+            port.append("@%d%s+%d %s" % (k, "g" if gone else "", rel(ms) + 1, cmd))
         else:
             port.append("%d %s" % (max(ms // 10, 1) + 1, cmd))
 
@@ -101,10 +104,11 @@ def main():
         elif op == "port":
             pat(t, " ".join(args))   # a command for the port alone (state, to check a step list on the port)
         elif op == "loaded":
-            orig.append("waitfor %s != 0 60000" % LOADSCREEN)
+            if args[1:] != ["gone"]:
+                orig.append("waitfor %s != 0 60000" % LOADSCREEN)
             orig.append("waitfor %s == 0 120000" % LOADSCREEN)
             orig.append("mark")
-            k, base = k + 1, t + int(args[0])
+            k, base, gone = k + 1, t + int(args[0]), args[1:] == ["gone"]
         elif op == "quit":
             t += 500
             oat(t, "move 0 0"); orig.append("quit"); pat(t, "quit")
