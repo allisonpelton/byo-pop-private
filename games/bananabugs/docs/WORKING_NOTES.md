@@ -87,3 +87,16 @@ The finished translations to copy the style from: `src/PopCap.cpp`, `src/Transit
   saved registers and stack slots. 0x453a90 SetDelay(EDX=track, ECX=frames, AL=skipFirstFrame).
 - Sound ids are `SoundId` in `src/Res.h` (resources.xml order); `gApp->mSoundQueue->Request(id, pitchRange, loop)`.
 - Strings shown to the player stay as the original has them (e.g. "CONTINUE LAST"); docs name them by id only.
+
+## Fix candidates and guesses found so far (for GAME_NOTES)
+
+- UserSelect: Enter while renaming checks the name against every profile, the player's own among them (0x472604,
+  EBX -1), so an unchanged name is "already used"; OK skips the player's own and also turns down names under two
+  characters, which Enter takes.
+- Options skips BBWindow's update (0x4541a0 calls ObjBase's), so its OK and Cancel do not swell.
+- Player (the agent's translation, kept as the original has them): Notify case 2 starts both decays from the cosine;
+  UpdateLook compares |vx - vy| with 0.01; Update's "copy previous cell" branch never runs; UpdateAim's right and
+  bottom scans keep the starting cell when no wall is found; both Shoot branches pass the same rope arguments;
+  SortProfiles sets the current index to the old slot; Update reads the level's rope unchecked (the port checks).
+- Player guesses to check when the level is in: mBugKinds (+0x2c8), mRopeMode, the bonus-blocked array, the upgrade
+  field names, and which object three SetState calls act on (UpdateLook FRAME, Notify case 10 X/Y, spazz-done FRAME).
