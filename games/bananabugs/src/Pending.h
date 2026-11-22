@@ -3,12 +3,16 @@
 // original's address; one that does less than the original says so.
 #pragma once
 
+#include "AskWin.h"
+#include "BBWindow.h"
+#include "MenuAnim.h"
 #include "ObjBase.h"
 
 namespace Sexy
 {
 
 class Anim;
+class BBFont;
 class LevelObj;
 
 // The level being played (0x405770); a stand-in shows nothing and never ends
@@ -96,24 +100,17 @@ public:
 	static void Enable() { sEnabled = true; } // 0x455a30
 };
 
-// The windows (0x4270e0); how many are open (0x60e4dc)
-class BBWindow
-{
-public:
-	static int sOpenCount;
-};
+// Whether the level being played takes the mouse (the byte at +0x8ffd of the LevelObj sLevel points to)
+bool LevelAcceptsMouse();
 
 // GameApp's globals (0x42d330)
-void CreateParticleLayer();  // 0x428190
 void InitHighScores();       // 0x435aa0
-void LoadParticles();        // 0x4346e0
 void LoadProfiles();         // 0x45e7f0
 void SaveProfiles();         // 0x45e110
 
 // GameWidget's preloads (0x42f3b0): each class's pictures, loaded once and kept
 void PreloadNetFly();        // 0x42ad40
 void PreloadBananas();       // 0x405730
-void PreloadMenuTiles();     // 0x446830
 void PreloadWalkThru();      // 0x4756d0
 void PreloadSlots();         // 0x46c710
 void PreloadFly();           // 0x423980
@@ -121,7 +118,6 @@ void PreloadInGameButtons(); // 0x4558f0
 void PreloadAnt();           // 0x420650
 void PreloadMoth();          // 0x423d10
 void PreloadBeetle();        // 0x421750
-void PreloadAskWin();        // 0x403f10
 void PreloadCentipede();     // 0x422f10
 void PreloadWasp();          // 0x420b30
 void PreloadCaterpillar();   // 0x422220

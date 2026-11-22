@@ -366,7 +366,7 @@ void Transition::BuildLoadingText()
 	aSpinIn->AddModifier(STATE_SCALE_X, false, 0.0f, MOD_SINE, 1.0f, 1.3f, 0.0f, nullptr);
 	aSpinIn->AddValue(STATE_SCALE_Y, 0.3f, MOD_TOWARD_NEXT);
 	aSpinIn->AddModifier(STATE_SCALE_Y, false, 0.0f, MOD_SINE, 1.0f, 1.3f, 0.0f, nullptr);
-	aSpinIn->AddValue(STATE_ROTATION, -6.28319f, MOD_TOWARD_NEXT);
+	aSpinIn->AddValue(STATE_ROTATION, -6.2831855f, MOD_TOWARD_NEXT);
 	AnimKey* aSettled = new AnimKey();
 	aSettled->SetDuration(10);
 	aSettled->AddValue(STATE_ALPHA, 1.0f, MOD_HOLD);

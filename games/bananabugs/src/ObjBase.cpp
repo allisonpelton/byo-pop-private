@@ -795,6 +795,10 @@ ObjBase::ObjBase()
 	mHitRadius = 16.0f;
 	mHitWidth = 16.0f;
 	mHitHeight = 16.0f;
+	mButtonId = 0;
+	mHoverState = 0;
+	mUnusedF0 = 0;
+	mUnusedF4 = 0;
 	mScreenX = 0.0f;
 	mScreenY = 0.0f;
 	mMouseable = false;

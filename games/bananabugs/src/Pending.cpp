@@ -12,13 +12,11 @@ using namespace Sexy;
 
 Player* Player::sCurrent = nullptr;
 bool PauseWin::sEnabled = false;
-int BBWindow::sOpenCount = 0;
 
 // The preloaded pictures, each in the global the original keeps it in; they move to their classes with them
 static Anim* sNetFlyAnim;            // 0x60e508
 static Anim* sBananaBunchAnim;       // 0x60e1a0
 static Anim* sCoronaAnim;            // 0x60e1a4
-static Anim* sMenuTilesAnim;         // 0x60e694
 static Anim* sWalkThruTextAnims[9];  // 0x67022c
 static Anim* sSlotMachineAnim;       // 0x670210
 static Anim* sSlotSymbolsAnim;       // 0x670214
@@ -37,9 +35,6 @@ static Anim* sMothAnim;              // 0x60e298
 static Anim* sBeetleWalkAnim;        // 0x60e26c
 static Anim* sBeetleTurnAnim;        // 0x60e270
 static Anim* sBeetleDanceAnim;       // 0x60e274
-static Anim* sAskYesNoAnim;          // 0x60e190
-static Anim* sUserSelectButtonsAnim; // 0x60e194
-static Anim* sAskCancelAnim;         // 0x60e198
 static Anim* sCentipedeHeadAnim;     // 0x60e280
 static Anim* sCentipedeBodyAnim;     // 0x60e284
 static Anim* sCentipedeTailAnim;     // 0x60e288
@@ -168,15 +163,7 @@ void PauseWin::ResumeOnRelease()
 }
 
 // port: the stand-ins of GameApp's globals do nothing but make one player
-void Sexy::CreateParticleLayer()
-{
-}
-
 void Sexy::InitHighScores()
-{
-}
-
-void Sexy::LoadParticles()
 {
 }
 
@@ -198,11 +185,6 @@ void Sexy::PreloadBananas()
 {
 	sBananaBunchAnim = Load("images/bananabunch01", 0, 0, 1);
 	sCoronaAnim = Load("images/corona1", 0, 0, 1);
-}
-
-void Sexy::PreloadMenuTiles()
-{
-	sMenuTilesAnim = Anim::Get("images/menu/menutiles1", ANIM_SCALE_SMOOTH, true, 0, 0, 1, false);
 }
 
 void Sexy::PreloadWalkThru()
@@ -253,13 +235,6 @@ void Sexy::PreloadBeetle()
 	sBeetleWalkAnim = Load("images/beetle_walk", 0x60, 0x4f, 0x1e);
 	sBeetleTurnAnim = Load("images/beetle_turn", 0x60, 0x57, 0x1e);
 	sBeetleDanceAnim = Load("images/beetle_dance", 0x60, 0x60, 0x1e);
-}
-
-void Sexy::PreloadAskWin()
-{
-	sAskYesNoAnim = Load("images/menu/ask_yesno", 0xb3, 0x83, 2);
-	sUserSelectButtonsAnim = Load("images/menu/usrsel_buttons", 0x167, 0x67, 4);
-	sAskCancelAnim = Load("images/menu/ask_cancel", 0, 0, 1);
 }
 
 void Sexy::PreloadCentipede()
@@ -375,4 +350,10 @@ void Sexy::InitLevelTable()
 void Sexy::PreloadCockroach()
 {
 	sCockroachWalkAnim = Load("images/cockroach_walk", 0x60, 0x40, 0x1c);
+}
+
+// port: the stand-in has no level taking the mouse
+bool Sexy::LevelAcceptsMouse()
+{
+	return true;
 }

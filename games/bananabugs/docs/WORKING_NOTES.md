@@ -58,3 +58,32 @@ A state machine of screens at +0x8c: 0 the PopCap logo (+0xb4, ctor 0x45e8d0), 1
 Transition (0x470a60) then the MainMenu (+0x98, 0x43fc90), 4 the Board (+0x94, 0x405770) or the MetaGame (+0x9c,
 0x448e10) by the profile (global 0x670198, field 0xee*4), 5 the board, 7 the meta game. Mouse and keys: slots 47 KeyChar
 0x42fd60, 48 KeyDown 0x42fd70, 52 MouseMove 0x42fcc0, 54 MouseDown 0x42fd00, 57 MouseUp 0x42fd30, 58 MouseDrag 0x42fce0.
+
+## Translating a class (the register conventions, checked against the code)
+
+Read each function three ways: `decread.py <addr>` for the shape, `callargs.py <addr>` for the registers and pushes at
+every call, and `disasm.py <addr>` wherever callargs is ambiguous (a join after a branch, which key a register holds).
+`tools/classmap.py` gives each class's address range; the decompile of a whole range is `decread.py <lo>-<hi>`.
+The finished translations to copy the style from: `src/PopCap.cpp`, `src/Transition.cpp`, `src/Cursor.cpp`.
+
+- Objects: `new ObjBase()` is 0x59f27f(0x27c) then 0x4509f0. A subclass's own fields start at +0x27c.
+  0x451580 SetParent(ESI=obj, EAX=parent, EBX=owner); parent 0 is the engine's root. 0x4514a0 SetEventTarget
+  (EAX=obj, ECX=target). 0x451830 SetState(ECX=obj, EAX=channel, float pushed); it leaves EAX as the channel, so an
+  Anim::Get right after it may take that as its mode. 0x451870 SetStateInt (same, int pushed). 0x451990 ComputeDrawn
+  (EBX=obj). 0x451880 AddTrack(EDX=obj, ESI=track, push next) returns the index. 0x451940 StartTrack(EDI=obj,
+  EAX=index). Virtual calls: +0x8 Activate(obj, hidden) (`this` and the first argument are usually the same object),
+  +0xc Deactivate(obj), +0x10 Notify, +0x14 Update, +0x18 Delete, +0x1c Draw; slot 0 with 1 is `delete`.
+  0x473440 is `FromCorner(x, size)` (x - size/2: a place from the design space's corner, from its centre).
+- Anims: 0x401c80 Anim::Get(name, mode, noScale, celW, celH, cels, uniform); 0x401210 AddRef (EAX=anim, returns it),
+  0x401220 Release; 0x401950/0x401960 the source cel's width/height (EAX=anim). `obj+0x28` is mAnim.
+- Keys: 0x59f27f(0x13c) then 0x453290 is `new AnimKey()`. +0x10 mEventId, +0x24 mEasing (0x453570, EAX=key,
+  ECX=easing), +0x134 mAnim (with an AddRef), 0x453580 SetRemoveAtEnd. 0x453590 SetDuration(EAX=key, push frames).
+  0x4533c0 AddModifier(EDI=key, ESI=channel, AL=keepCurrent; push value, kind, rate, amount, base, table): kind 0
+  MOD_HOLD, 1 MOD_TOWARD_NEXT, 2 MOD_SINE...; with AL=0 and no rate/amount/base/table it is `AddValue(channel, value,
+  kind)`. ESI often stays set from the call before: callargs shows a register only when it was just written, so read
+  back to the last write. 0x4533b0 makes a sound key (EAX=key, ECX=KEY_SOUND (7), EDX=sound id, push the pitch range).
+- Tracks: 0x59f27f(0x20) then 0x453930 is `new AnimTrack()` (ECX=track after). 0x4539f0 AddKey(ECX=track, EAX=key,
+  push next); a last key whose next is itself holds. Check the order of the keys in the disassembly: they come from
+  saved registers and stack slots. 0x453a90 SetDelay(EDX=track, ECX=frames, AL=skipFirstFrame).
+- Sound ids are `SoundId` in `src/Res.h` (resources.xml order); `gApp->mSoundQueue->Request(id, pitchRange, loop)`.
+- Strings shown to the player stay as the original has them (e.g. "CONTINUE LAST"); docs name them by id only.

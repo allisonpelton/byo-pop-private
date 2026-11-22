@@ -213,7 +213,10 @@ enum ObjType
 {
 	OBJ_TYPE_PLAIN = 0,
 	OBJ_TYPE_ROOT = 1,
+	OBJ_TYPE_EMITTER = 6,
 	OBJ_TYPE_OWNED_ELSEWHERE = 7, // its owner is told when its parent goes
+	OBJ_TYPE_STRING = 8,          // an ObjString
+	OBJ_TYPE_STRING_GLYPH = 9,    // a shown character of one
 };
 
 class ObjBase
@@ -243,6 +246,10 @@ public:
 	AnimKey* mCurrentKey;
 	int mTrackCount;
 	bool mHidden;
+	int mButtonId;           // a window's or menu's number for a button object; 0 for others
+	int mHoverState;         // a button's: 1 once its hover track has started, 0 after its leave track
+	int mUnusedF0;           // set to 0 by the constructor; nothing reads it
+	int mUnusedF4;           // set to 0 by the constructor; nothing reads it
 	float mScreenX;          // the drawn position in the 1920x1200 design space, from its centre
 	float mScreenY;
 	float mState[NUM_STATES];  // the values as animated

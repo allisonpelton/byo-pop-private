@@ -2,6 +2,7 @@
 
 #include "Anim.h"
 #include "BBFont.h"
+#include "Emitter.h"
 #include "GameWidget.h"
 #include "MusicInterface.h"
 #include "ObjBase.h"
@@ -227,9 +228,9 @@ void GameApp::LoadingThreadCompleted()
 	ObjBase::sRoot->SetState(STATE_X, (float)((double)mWidth * 0.5 - 0.5));
 	ObjBase::sRoot->SetState(STATE_Y, (float)((double)mHeight * 0.5 - 0.5));
 	ObjBase::sRoot->ComputeDrawn();
-	CreateParticleLayer();
+	Emitter::CreateLayer();
 	InitHighScores();
-	LoadParticles();
+	Emitter::LoadParticles();
 	LoadProfiles();
 }
 
