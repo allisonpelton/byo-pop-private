@@ -123,7 +123,7 @@ int main(int argc, char** argv)
 			"or run with -gamedir=\"<your Heavy Weapon Deluxe folder>\".";
 		// port: a scripted test run shows no box (on its hidden desktop nobody could close it)
 		if (ArgValue(argc, argv, "script").empty())
-			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Heavy Weapon Deluxe", msg.c_str(), nullptr);
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Heavy Weapon", msg.c_str(), nullptr);
 		SDL_Log("%s", msg.c_str());
 		return 1;
 	}

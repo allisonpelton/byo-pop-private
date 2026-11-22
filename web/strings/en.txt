@@ -128,6 +128,8 @@ skin.bar.tileh = Tile Horizontally
 skin.bar.tilev = Tile Vertically
 skin.bar.minall = Minimize All Windows
 skin.bar.undominall = Undo Minimize All
+skin.bar.undotile = Undo Tile
+skin.bar.undocascade = Undo Cascade
 skin.pop.shutdown = Shut Down...
 skin.copy.title = Copying...
 skin.copy.size = {kb} KB
@@ -145,6 +147,7 @@ skin.fav.remove = Remove from favourites
 skin.fav.menu = {game}
 skin.desk.games = All games
 skin.desk.about = About
+skin.boot = Please wait while the desktop loads...
 settings.scheme.label = Scheme
 settings.scheme.hint = The desktop's colours: its background, windows, title bars and selection.
 settings.scheme.standard = Standard
@@ -642,6 +645,9 @@ game.files.forget_ask = This removes the copied game files from the browser. Sav
 game.files.forget_ask_running = This removes the copied game files from the browser. Saves and mods stay. The
   game closes first; a game in progress is saved.
 game.files.remove = Remove files
+game.files.cancel = Cancel
+game.menu.reimport = Import game files again...
+game.menu.forget = Forget game files...
 
 game.settings.title = Settings
 game.settings.close = Close

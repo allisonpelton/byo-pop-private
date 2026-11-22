@@ -770,7 +770,8 @@ var ByopopSplits = (function () {
       '<circle cx="16" cy="18" r="12" fill="#c0c0c0" stroke="#000" shape-rendering="auto"/><circle cx="16" cy="18" r="9" fill="#ffffff" stroke="#808080" shape-rendering="auto"/>' +
       '<path d="M16 18V11" stroke="#000" stroke-width="2"/><path d="M16 18l5 3" stroke="#800000" stroke-width="2" shape-rendering="auto"/>' +
       '<path d="M25 6l3 3" stroke="#000" stroke-width="2"/>';
-    desk.add(timer.el, { id: "splits", title: T("splits.title"), closable: true, closed: true, pic: pic, at: at, scroll: ".spl-list" });
+    desk.add(timer.el, { id: "splits", title: T("splits.title"), closable: true, closed: true, pic: pic, at: at, scroll: ".spl-list",
+      minWidth: 240, minHeight: 180 });
     return timer;
   }
   return { attach: attach, timer: function () { return timer; }, fmt: fmt, toSpan: toSpan, fromSpan: fromSpan };

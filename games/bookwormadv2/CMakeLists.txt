@@ -20,7 +20,7 @@ if(NOT EMSCRIPTEN)
   add_executable(bwa2_luarun tools/luarun/luarun.cpp)
   target_link_libraries(bwa2_luarun PRIVATE bwa2_poplua)
   add_custom_command(TARGET bwa2_luarun POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bwa2_luarun>
+    COMMAND ${PORT_RUNTIME_COPY} $<TARGET_FILE_DIR:bwa2_luarun>
     VERBATIM)
 endif()
 

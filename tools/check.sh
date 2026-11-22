@@ -143,7 +143,8 @@
 #   waterbugs    Water Bugs: the fonts and every animation the game ships loaded
 #                (waterbugs_banktest), a scripted game played headless (waterbugs_run: a beam across the first
 #                board, two state lines) and a rerun with the same screenshots, and the windowed exe twice with the
-#                same clicks: the runner's state, the same screen (under a minute)
+#                same clicks: the runner's state, the same screen, and the three screen tours (games/waterbugs/test/tours,
+#                362 screens) against the frozen shots of tours.frozen (a few minutes)
 #   rocketmania  Rocket Mania Deluxe: the loading screen, the menu, a hover hint, the difficulty dialog and a new game
 #                started from a script (games/rocketmania/tools/menu_test.txt), four screenshots that must differ (under a
 #                minute)
@@ -188,7 +189,8 @@
 #                one) (under a minute)
 #   heavyweapon  Heavy Weapon Deluxe: a tour from a script (games/heavyweapon/tools/tour_test.txt: the title, the menu's
 #                screens, a campaign from the map through level 1 with the standard test commands to its boss, results
-#                and armory, level 5 and survival lost, the options) and its rerun, whose screens, states and player files
+#                and armory, level 5 and survival lost, the options, the menus' boxes, the continue box, the armory's
+#                "not yet" box, and level 2's menu box, retreat question and pause) and its rerun, whose screens, states and player files
 #                must match and be the frozen baseline's; then the port's bot through tools/playbymove (real input, -hold):
 #                a campaign from the title through level 1 into level 2 (3400 moves), level 9 and survival to their game
 #                overs, a rerun of level 9 with the same transcript, and build/baseline-heavyweapon/heavyweapon.exe's tour
@@ -296,7 +298,7 @@ WB_SHOTS="2a54908cecb8 42df2d86a04f 983a569fb1b6"  # the first 12 hex digits of 
 MJ_DEAL="222 layouts, 0 failed"
 BB_SHOTS="99a302e2a141 fbf6b1061117 8b26c14dac8a"  # the first 12 hex digits of the sha256 of played.png, highscores.png and timeup.png (games/bonnies/tools/tour_test.txt): the frozen baseline
 VN_FROZEN="91fa05746617 6de40abf8b88"  # the first 12 hex digits of the sha256 of the tour's 15 screens' hashes and of its state lines (games/venice/tools/tour_test.txt): the frozen baseline (screens refrozen 2026-11-15: the 3D display puts a transformed picture half a pixel over, as the 3D original does, so the pictures are sharper; the states are the same)
-HW_FROZEN="0f9a91bb0a10 61398f211445"  # the first 12 hex digits of the sha256 of the tour's 19 screens' hashes and of its state lines (games/heavyweapon/tools/tour_test.txt): the frozen baseline
+HW_FROZEN="4f5cbc9782ab 26859a958266"  # the first 12 hex digits of the sha256 of the tour's 34 screens' hashes and of its state lines (games/heavyweapon/tools/tour_test.txt): the frozen baseline
 # Heavy Weapon Deluxe: the bot's summary lines (tools/playbymove's last line) for its campaign from the title, level 9 and survival: the frozen baseline
 HW_CAMPAIGN='playbymove heavyweapon: 3400 moves, stop limit; STATE {"screen":"game","dialog":-1,"mode":"campaign","level":2,"maxlevel":1,"score":49620,"lives":1,"nukes":1,"timer":3950,"length":15000,"boss":-1,"bosshealth":0,"bossup":0,"enemies":0,"tankx":-161.522,"tankdead":0,"fire":0,"paused":0,"suspended":0,"updates":4648,"over":false,"appupdates":17894}'
 HW_LATER='playbymove heavyweapon: 610 moves, stop over; STATE {"screen":"gameover","dialog":40,"mode":"campaign","level":9,"maxlevel":19,"score":2580,"lives":0,"nukes":0,"timer":1587,"length":30000,"boss":-1,"bosshealth":0,"bossup":0,"enemies":0,"tankx":-380,"tankdead":1,"fire":0,"paused":0,"suspended":1,"updates":3093,"over":true,"appupdates":3121}'
@@ -358,7 +360,7 @@ suite_weight() { WEIGHT=1; [ "$1" = speed ] && WEIGHT=3; [ "$1" = bonnies ] && [
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [pizzafrenzy]=180 [oracle]=1080)
+	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [pizzafrenzy]=180 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52 [typershark]=270)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
@@ -2000,6 +2002,23 @@ waterbugs_run() {  # <name>: the headless runner's scripted game; prints its sta
 	echo "$l"
 }
 
+waterbugs_tours() {  # the screen tours of games/waterbugs/test/tours played by the headless runner (fresh profile; end from a saved game on its last life, worlds from a profile that has reached every level, saves made by coverage/scripts.py), against games/waterbugs/test/tours.frozen (tools/play/tourcheck.py: the shots that were whole in six runs); prints tourcheck's line
+	local n d e=0
+	mkdir -p build/wbs
+	for n in fresh end worlds; do
+		d="$OUT/waterbugs/tour-$n"
+		fresh_dir "$d"; mkdir -p "$d"
+		case $n in
+		end) python games/waterbugs/tools/coverage/scripts.py save 14 "$d/cb.dat" 1 14 3000 > /dev/null ;;
+		worlds) python games/waterbugs/tools/coverage/scripts.py save 539 "$d/cb.dat" > /dev/null ;;
+		esac
+		python games/waterbugs/tools/play/tour.py games/waterbugs/test/tours/$n.txt "tour-$n" || e=1
+		WB_USER=SYSTEM WB_NOWARP=1 timeout 600 build/native/waterbugs_run.exe assets/waterbugs "$d" "build/wbs/tour-$n.txt" > "$d/stdout.txt" 2> "$d/stderr.txt" || e=$?
+	done
+	if [ $e -ne 0 ]; then echo "TOURS FAILED (exit $e)"; return 0; fi
+	python -I games/waterbugs/tools/play/tourcheck.py check games/waterbugs/test/tours.frozen "$OUT/waterbugs" 2>&1 | tail -1
+}
+
 wb_hash() {  # <png>: the first 12 hex digits of the sha256 of the pixels; the loss screen's rising bubbles in x 560..690, y 240..520 are zeroed first, because one of them differs by a few pixels from run to run
 	python -I -c "import hashlib,sys;from PIL import Image;i=Image.open(sys.argv[1]).convert('RGB');i.paste((0,0,0),(560,240,690,520)) if 'scores' in sys.argv[1] else i.paste((0,0,0),(405,220,425,235)) if 'beam' in sys.argv[1] else 0;print(hashlib.sha256(i.tobytes()).hexdigest()[:12])" "$1" 2>/dev/null | tr -d '\r'
 }
@@ -2032,7 +2051,7 @@ waterbugs_window() {  # <name>: the windowed exe with the runner's left clicks; 
 }
 
 suite_waterbugs() {
-	local st=0 b g r w w2 l sh c="$OUT/waterbugs" ea=0 ef=0
+	local st=0 b g r w w2 l sh tr c="$OUT/waterbugs" ea=0 ef=0
 	need_assets waterbugs || return 1
 	mkdir -p "$c/banks"
 	# Every animation the game file names and every font, each listing kept (the game file names ten files the game does not ship)
@@ -2049,13 +2068,15 @@ suite_waterbugs() {
 	[ "$b" = "$WB_BANKS" ] || st=1
 	[ "$g" = "$WB_GAME" ] || st=1
 	[ "$l" = "$WB_LOSS" ] || st=1
+	tr="$(waterbugs_tours)"
+	case "$tr" in TOURS*) st=1 ;; esac
 	sh="$(for f in game/start game/beam loss/scores; do wb_hash "$c/$f.png"; done | paste -sd" " -)"
 	if [ "$sh" = "$WB_SHOTS" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED ($sh)"; st=1; fi
 	if [ "$(wb_hash "$c/game/start.png")" = "$(wb_hash "$c/game2/start.png")" ] && [ "$(wb_hash "$c/game/beam.png")" = "$(wb_hash "$c/game2/beam.png")" ] &&
 		[ "$g" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	if [ "$w" = "$(echo "${g##*; }" | sed 's/^[0-9]* ms: //')" ] && diff -q "$c/window/beam.png" "$c/window2/beam.png" >> "$1" 2>&1 &&
 		[ "$w" = "$w2" ]; then w="window the same, twice"; else w="WINDOW DIFFERS ('$w')"; st=1; fi
-	SUMMARY="$b; $g; $r; $w; loss: $l; $sh"
+	SUMMARY="$b; $g; $r; $w; loss: $l; $sh; tours: $tr"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected '$WB_BANKS', '$WB_GAME', '$WB_LOSS')"
 	return $st
 }
@@ -2526,8 +2547,8 @@ suite_venice() {
 	return 0
 }
 
-HH_SHOTS_ALL="loaded name menu highscores trophies game play won shop challenge toughintro tough marathonintro marathon lost"
-HH_FROZEN="b0be3a484ad2 974f0929e354"  # the first 12 hex digits of the sha256 of the tour's screens' hashes and of its state lines (games/hammerheads/tools/tour_test.txt)
+HH_SHOTS_ALL="loaded name menu highscores trophies game play won shop challenge toughintro tough marathonintro marathon lost menu_after_over players quit_box board4 game_menu leave_game menu_after_leave classic_over"
+HH_FROZEN="43abb3150fd1 dc17142f2cdc"  # the first 12 hex digits of the sha256 of the tour's screens' hashes and of its state lines (games/hammerheads/tools/tour_test.txt)
 
 hammerheads_run() {  # <name> [<exe>]: games/hammerheads/tools/tour_test.txt into $OUT/hammerheads/<name>; prints the exit status
 	local d="$OUT/hammerheads/$1" e=0
@@ -2588,7 +2609,7 @@ suite_pizzafrenzy() {
 	return $e
 }
 
-HW_SHOTS_ALL="title menu highscores credits help map firsthelp game tip boss results armory level5 gameover afterquit survival survivalover aftersurvival options"
+HW_SHOTS_ALL="title menu highscores credits help map firsthelp game tip boss results armory level5 gameover afterquit survival survivalover aftersurvival options quitbox userlist newplayer userlist2 deleteplayer rename playerback resetscores continue armory2 armorypoints menubox retreat paused unpaused"
 
 heavyweapon_tour() {  # <name> [<exe>]: games/heavyweapon/tools/tour_test.txt into $OUT/heavyweapon/<name>; prints the exit status
 	local d="$OUT/heavyweapon/$1" e=0
@@ -2668,7 +2689,7 @@ suite_heavyweapon() {
 			cmp -s "$d/$k/driver.txt" "$d/base-$k/driver.txt" || { bl="; BASELINE DIFFERS ($k)"; st=1; }
 		done
 	fi
-	SUMMARY="the tour (the title, the menu's screens, level 1 to its results and the armory, level 5 and survival lost, the options; rerun identical, $sh); campaign ${a#playbymove heavyweapon: }; level 9 ${b#playbymove heavyweapon: }; survival ${c#playbymove heavyweapon: }; $r$bl"
+	SUMMARY="the tour (the title, the menu's screens, level 1 to its results and the armory, level 5 and survival lost, the options, the boxes; rerun identical, $sh); campaign ${a#playbymove heavyweapon: }; level 9 ${b#playbymove heavyweapon: }; survival ${c#playbymove heavyweapon: }; $r$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected tour $HW_FROZEN, campaign '$HW_CAMPAIGN', level 9 '$HW_LATER', survival '$HW_SURVIVAL')"
 	return $st
 }

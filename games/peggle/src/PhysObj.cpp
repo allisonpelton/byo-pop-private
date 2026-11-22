@@ -210,6 +210,16 @@ void PhysObj::UpdateSlowMo(float theSubFrame)
 	}
 }
 
+// 0x479870
+void PhysObj::SetPegKind(int theKind)
+{
+	if (mPegInfo != nullptr)
+	{
+		mPegInfo->mKind = theKind;
+		CreateImage(true);
+	}
+}
+
 // 0x47f830
 bool PhysObj::LoadImage()
 {

@@ -81,3 +81,43 @@ Neither `all` nor a shared change runs Bejeweled's oracle (the user, 2026-11-11:
 causing a lot of slowdown for no benefit"): it compares Bejeweled's game logic with the original's, and a change outside
 `games/bejeweled` that leaves Bejeweled's frozen baseline and `verify` unchanged leaves that logic unchanged too. It runs
 when `games/bejeweled` changes, or when named (`tools/check.sh oracle`).
+
+## Trimming an exe
+
+The user (2026-11-13): "Let's stick to trimming the exes to only what the game uses then". It is not `-Os`, which costs speed:
+none of the steps below changes the code the compiler makes for the game. Two kinds of trimming, "both" in the user's answer
+to why not take unused code out of the source: the linker drops what a game does not reach, and what no game uses is left
+out of the build by configuration. Sizes are Bejeweled 2's and Venice's Release exes (32-bit, llvm-mingw).
+
+- **Sections and a static C++ runtime (the top-level `CMakeLists.txt`, MinGW builds).** `-ffunction-sections
+  -fdata-sections` and `-Wl,--gc-sections` let the linker drop every function and data item nothing reaches, and
+  `-static-libstdc++ -static-libgcc` link libc++ and libunwind into the exe, so only the parts used ship and no C++ runtime DLL
+  goes beside it (SDL2.dll is the only DLL left, and `PORT_RUNTIME_DLLS` is empty but for AddressSanitizer's runtime in a
+  build whose flags have `-fsanitize`). `-DBYOPOP_STRIP_EXE=ON` also strips a Release exe (`-s`); it is off in this
+  repository's builds, whose crash logs (`llvm-symbolizer`), leak tools and profilers (`cpuprof.py`'s sampling mode,
+  `llvm-nm`) read the symbols. A derived repository's exe has been built this way since `594ad74a`.
+- **libopenmpt reads MO3 only (`third_party/CMakeLists.txt`, `third_party/openmpt-mo3/`; native builds).** Every module the
+  games hand to libopenmpt is an MO3 (`platform/openmpt/OpenMPTPlayer.cpp` passes it files that start with "MO3"; the games'
+  IT and S3M tunes go through libxmp-lite), and `ReadMO3` builds the module itself. libopenmpt's format table
+  (`ModuleFormatLoaders` in `Sndfile.cpp`) names all 59 loaders, which kept every one of them in the exe. The build now
+  leaves out the `Load_*.cpp` files of the formats no game uses and `openmpt-mo3/loader_stubs.cpp` gives the table their
+  names as loaders that find nothing; libopenmpt's source is not edited. Load_it, Load_dmf, Load_ams and Load_s3m stay,
+  because `ReadMO3` calls code in them (the plugin-chunk and extended-property readers, the DMF and AMS sample unpackers,
+  the S3M effect converter). Bejeweled 2's exe goes from 4.96 to 4.16 MB. The web build keeps every loader: its music player
+  plays every format libopenmpt reads. A game that wants another format takes its file out of the removed list and its name
+  out of the stub file.
+- **Link-time optimisation (`-DBYOPOP_LTO=thin|full`, off by default).** Measured on Bejeweled 2 and Venice (from-scratch
+  builds of both, six compile jobs, back to back): no LTO 64 to 68 s, thin 59 s, full 81 s. Bejeweled 2's exe 4,161,536 bytes
+  without it, 4,042,752 with thin (2.9% smaller), 4,051,456 with full; Venice's 3,115,008, 3,159,040 and 3,124,736 (thin 1.4%
+  larger). Compressed with xz, thin is larger for both (Bejeweled 2 1,511,540 to 1,530,764 bytes), so it does not trim what a
+  player downloads and it is not on. Processor time on the recorded Bejeweled 2 game was no worse with either (cycle counts,
+  pinned pairs, the figures are in the commit that added the option); the bots' games, the frozen baselines and the unit suite are identical with thin.
+- **SDL (`SDL2_DIR`).** The default build links the prebuilt `SDL2.dll` (1,911,808 bytes). SDL is also built from its own
+  source here, configured to the subsystems the ports call and with no source edited, by `third_party/sdl-small/build.py`
+  (docs/PUBLISHING.md, "The small SDL"; installed in `E:/retools/SDL2-2.32.10-small-i686`), and a derived repository links
+  that static build into its exe. The main build takes it too when `SDL2_DIR` names it
+  (`-DSDL2_DIR=E:/retools/SDL2-2.32.10-small-i686/lib/cmake/SDL2`, in a build folder of its own): no `SDL2.dll`, and SDL's part
+  of Bejeweled 2's download falls from 567 KB compressed to 167 KB (exe 4,535,808 bytes, xz 1,678,156 against 2,078,412 for
+  exe and DLL; Venice's exe 3,488,768). Bejeweled 2 and Venice pass their checks that way, baselines identical. It stays
+  opt-in: the small build has no software renderer, which `DDInterface`'s last-resort fallback and the `scaletest` tool ask
+  for, and `tools/build.sh` still points at the prebuilt package.

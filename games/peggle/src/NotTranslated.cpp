@@ -5,6 +5,8 @@
 #include <SDL.h>
 #include <cstdlib>
 
+bool Sexy::gSkipUntranslatedDrawing = false;
+
 [[noreturn]] void Sexy::NotTranslated(const char* theWhat, const char* theFile, int theLine)
 {
 	SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Not translated yet: %s (%s:%d)", theWhat, theFile, theLine);

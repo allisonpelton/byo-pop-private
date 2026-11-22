@@ -49,3 +49,26 @@ float Sexy::GetCanonicalAngleRad(float theAngle)
 		return (float)(TWO_PI_AS_FLOAT - (float)std::fmod(-(double)theAngle, TWO_PI_AS_FLOAT));
 	return (float)std::fmod((double)theAngle, TWO_PI_AS_FLOAT);
 }
+
+// 0x43de50
+float Sexy::Distance(float theX1, float theY1, float theX2, float theY2)
+{
+	float aDeltaX = theX2 - theX1;
+	float aDeltaY = theY2 - theY1;
+	float aSquareX = aDeltaX * aDeltaX;
+	float aSquareY = aDeltaY * aDeltaY;
+	return (float)std::sqrt((double)(aSquareX + aSquareY));
+}
+
+// 0x475310
+float Sexy::CalcAngleDiff(float theFrom, float theTo)
+{
+	while (TWO_PI_AS_FLOAT < theTo)
+		theTo = (float)(theTo - TWO_PI_AS_FLOAT);
+	while (theTo < theFrom)
+		theFrom = (float)(theFrom - TWO_PI_AS_FLOAT);
+	float aDiff = (float)(theTo - theFrom);
+	if ((double)PI_AS_FLOAT < aDiff)
+		return (float)-(TWO_PI_AS_FLOAT - aDiff);
+	return aDiff;
+}
