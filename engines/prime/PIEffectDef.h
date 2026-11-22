@@ -73,14 +73,14 @@ struct PIParticleDef {
 	bool mFlipY;                         // +0xa5d
 	int mColorCycles;                    // +0xa60: the colour curve repeats this many times plus one over a life
 	int mAlphaCycles;                    // +0xa64: the same for the alpha curve
-	bool mColorFromLifeRatio;            // +0xa68
-	bool mColorByIndex;                  // +0xa69
-	bool mUseInstanceColor;              // +0xa6a
-	bool mInheritParentTint;                       // +0xa6b
-	bool mUseInstanceAlpha;              // +0xa6c
-	bool mTintWithLayerColor;            // +0xa6d
-	int mColorIndexDivisor;              // +0xa70
-	bool mColorStepped;                  // +0xa75
+	bool mRandomColor;                   // +0xa68: the color is picked by the particle's random mColorOffset (not by its age)
+	bool mColorByIndex;                  // +0xa69: (not random) the color is the one the particle's index gives, in turn
+	bool mUseInstanceColor;              // +0xa6a: the red, green and blue come from the layer's picture (the particle's mInstanceColor)
+	bool mFollowInstanceColor;           // +0xa6b: the color comes from the layer's picture at every update, not only at the first
+	bool mUseInstanceAlpha;              // +0xa6c: the alpha comes from the layer's picture
+	bool mFollowInstanceAlpha;           // +0xa6d: the same for the alpha
+	int mColorIndexDivisor;              // +0xa70: how many particles share a color when the color goes by index
+	bool mColorStepped;                  // +0xa75: (random) one of the color points, not a blend between two
 	bool mAngleFromEmitter;              // +0xa76
 	bool mAlignToMotion;                 // +0xa77
 	bool mAlignToEmitterAngle;           // +0xa78
@@ -104,8 +104,8 @@ struct PIParticleDef {
 	PIParticleDef() : mTextureIndex(0), mOriginX(0.0), mOriginY(0.0), mSizeYFollowsX(false), mAdditive(false),
 		mSingleParticle(false), mAlsoDrawNormal(false), mAttachToEmitter(false), mFrameOffset(0),
 		mRandomStartFrame(false), mAttachRatio(0.0f), mFlipX(false), mFlipY(false), mColorCycles(0), mAlphaCycles(0),
-		mColorFromLifeRatio(false), mColorByIndex(false), mUseInstanceColor(false), mInheritParentTint(false),
-		mUseInstanceAlpha(false), mTintWithLayerColor(false), mColorIndexDivisor(0), mColorStepped(false),
+		mRandomColor(false), mColorByIndex(false), mUseInstanceColor(false), mFollowInstanceColor(false),
+		mUseInstanceAlpha(false), mFollowInstanceAlpha(false), mColorIndexDivisor(0), mColorStepped(false),
 		mAngleFromEmitter(false), mAlignToMotion(false), mAlignToEmitterAngle(false), mRandomStartAngle(false),
 		mAlignOffsetDegrees(0), mStartAngleDegrees(0), mRandomAngleRange(0), mRandomAngleBase(0) {}
 };

@@ -371,8 +371,8 @@ void PIEffect::UpdateParticleGroup(PILayer* theLayer, PIEmitterInstance* theInst
 
 		// the color the layer's picture gives it
 		if (aParticleDef != NULL) {
-			bool aTakesColor = (!aParticle->mDrawn && aParticleDef->mUseInstanceColor) || aParticleDef->mInheritParentTint;
-			bool aTakesAlpha = (!aParticle->mDrawn && aParticleDef->mUseInstanceAlpha) || aParticleDef->mTintWithLayerColor;
+			bool aTakesColor = (!aParticle->mDrawn && aParticleDef->mUseInstanceColor) || aParticleDef->mFollowInstanceColor;
+			bool aTakesAlpha = (!aParticle->mDrawn && aParticleDef->mUseInstanceAlpha) || aParticleDef->mFollowInstanceAlpha;
 			if (aTakesColor || aTakesAlpha) {
 				PIPoint aWhere = PIMath::TransformPoint(aParticle->mTransform, 0.0, 0.0);
 				int aPixelX = Ftol(aWhere.mX) + theLayer->mTintOffsetX;

@@ -1,7 +1,10 @@
 // Sexy::PIEffect (PIEffect.h): the random draws and the loader of the new (.ppf) file format.
 #include "PIEffect.h"
 
+#include "Common.h"
+#include "Image.h"
 #include "PakInterface.h"
+#include "SexyAppBase.h"
 #include "X86Math.h"
 
 #include <cstring>
@@ -225,7 +228,7 @@ void ReadParticleDef(PPFReader& theReader, PIParticleDef& theDef)
 	theDef.mStartAngleDegrees = theReader.ReadInt();
 	theDef.mAlignOffsetDegrees = theReader.ReadInt();
 	theDef.mFrameOffset = theReader.ReadInt();
-	theDef.mColorFromLifeRatio = theReader.ReadBool();
+	theDef.mRandomColor = theReader.ReadBool();
 	theReader.Skip(4);
 	theDef.mTextureIndex = theReader.ReadInt();
 
@@ -267,7 +270,7 @@ void ReadParticleDef(PPFReader& theReader, PIParticleDef& theDef)
 	theDef.mRandomAngleRange = theReader.ReadInt();
 	theDef.mRandomAngleBase = theReader.ReadInt();
 	theDef.mUseInstanceColor = theReader.ReadBool();
-	theDef.mInheritParentTint = theReader.ReadBool();
+	theDef.mFollowInstanceColor = theReader.ReadBool();
 	theDef.mAngleFromEmitter = theReader.ReadBool();
 	theReader.ReadValue(theDef.mAngle);
 	theReader.ReadValue(theDef.mAngleVariation);
@@ -275,7 +278,7 @@ void ReadParticleDef(PPFReader& theReader, PIParticleDef& theDef)
 	PIValue aDiscarded;
 	theReader.ReadValue(aDiscarded);
 	theDef.mColorStepped = theReader.ReadBool();
-	theDef.mTintWithLayerColor = theReader.ReadBool();
+	theDef.mFollowInstanceAlpha = theReader.ReadBool();
 	theDef.mColorByIndex = theReader.ReadBool();
 	theDef.mColorIndexDivisor = theReader.ReadInt();
 	theDef.mUseInstanceAlpha = theReader.ReadBool();
@@ -458,10 +461,18 @@ void PIEffect::CreateLayers()
 	}
 }
 
-// 0x5679b0 (bejeweled3): without a game around there are no images to find
-bool PIEffect::LoadTextureImage(PITexture&)
+// 0x5679b0 (bejeweled3)
+SharedImageRef PIEffect::LoadTextureImage(const std::string& theImageName)
 {
-	return true;
+	// port: no app, no images (the exe always has one)
+	if (gSexyAppBase == NULL)
+		return SharedImageRef();
+	return gSexyAppBase->GetSharedImage(GetFileDir(mFileName, true) + theImageName, "", NULL);
+}
+
+// 0x5ad6c0 (bejeweled3)
+void PIEffect::TextureImageLoaded(Image*)
+{
 }
 
 // 0x56aac0 (bejeweled3)
@@ -486,6 +497,7 @@ void PIEffect::LoadEffect(const std::string& theFileName)
 bool PIEffect::Load(const unsigned char* theData, size_t theSize, const std::string& theFileName)
 {
 	mError.clear();
+	mFileName = theFileName;
 	mCachedState.clear();
 	mDef = PIEffectDef();
 	mBytesRead = 0;
@@ -519,9 +531,20 @@ bool PIEffect::Load(const unsigned char* theData, size_t theSize, const std::str
 		aTexture.mColumnCount = aReader.ReadShort();
 		aTexture.mHasMargin = aReader.ReadBool();
 		aTexture.mImageId = aReader.ReadString();
-		if (!aReader.mFailed && !LoadTextureImage(aTexture)) {
-			mError = "Unable to load image: " + aTexture.mImageId;
-			return false;
+		if (!aReader.mFailed) {
+			aTexture.mImage = LoadTextureImage(aTexture.mImageId);
+			Image* anImage = aTexture.mImage;
+			if (anImage != NULL) {
+				// an image that has no frames of its own gets the texture's
+				if (anImage->mNumRows == 1 && anImage->mNumCols == 1 && aTexture.mColumnCount > 0) {
+					anImage->mNumRows = aTexture.mFrameCount / aTexture.mColumnCount;
+					anImage->mNumCols = aTexture.mColumnCount;
+				}
+				TextureImageLoaded(anImage);
+			} else if (gSexyAppBase != NULL) {
+				mError = "Unable to load image: " + aTexture.mImageId;
+				return false;
+			}
 		}
 		mDef.mTextures.push_back(aTexture);
 	}

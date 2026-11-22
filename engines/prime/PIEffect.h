@@ -4,7 +4,8 @@
 // Only the new file format is read (the file's name has ".ppf" in it): the original also reads an older format with
 // 4-byte booleans, class-name tags and images embedded in the file, which no file of Bejeweled 3 uses.
 //
-// What a running effect keeps is in PIEffectRuntime.h. Update and its helpers are in PIEffectUpdate.cpp.
+// What a running effect keeps is in PIEffectRuntime.h. Update and its helpers are in PIEffectUpdate.cpp, the drawing in
+// PIEffectDraw.cpp (which says what it leaves out).
 //
 // Not translated: SaveState 0x56eed0 (bejeweled3) (the file's cached starting state is read by LoadState; nothing in
 // the game saves a state).
@@ -48,9 +49,15 @@ public:
 	// went wrong (empty when it loaded)
 	void LoadEffect(const std::string& theFileName);
 
-	// 0x5679b0 (bejeweled3): finds the image of a texture. The original asks the app's shared image store; here a
-	// game (or a test that loads without images) says what to do. Returns false when the image is missing
-	virtual bool LoadTextureImage(PITexture& theTexture);
+	// 0x5679b0 (bejeweled3), slot 0: finds the image a texture names: the app's shared image store, looked up by the
+	// folder of the effect's file and the name. A game may override it to find the images some other way. Without an app
+	// (a test that loads without images) nothing is found and Load goes on without the image
+	virtual SharedImageRef LoadTextureImage(const std::string& theImageName);
+	// 0x5ad6c0 (bejeweled3), slot 1: called with each image Load has found; does nothing here
+	virtual void TextureImageLoaded(Image* theImage);
+
+	// +0x40: the name the effect was loaded from
+	std::string mFileName;
 
 	// How many bytes of the last Load's file were used (the whole file when it is read exactly)
 	size_t mBytesRead;
@@ -60,7 +67,7 @@ public:
 	// What PopAnim calls
 	// 0x573290 (bejeweled3): one step of the effect
 	void Update();
-	// 0x575650 (bejeweled3): draws the effect
+	// 0x575650 (bejeweled3): draws the effect (PIEffectDraw.cpp)
 	void Draw(Graphics* g);
 	// 0x56f730 (bejeweled3): back to the start
 	void ResetAnim();
@@ -113,6 +120,12 @@ public:
 	                       PIFreeEmitterInstance* theFreeEmitter);
 	// 0x571ad0 (bejeweled3): moves, ages and ends the particles of a group
 	void UpdateParticleGroup(PILayer* theLayer, PIEmitterInstance* theInstance, PIParticleGroup* theGroup);
+
+	// 0x574700 (bejeweled3): draws one layer's particles
+	void DrawLayer(Graphics* g, PILayer* theLayer);
+	// 0x574060 (bejeweled3): draws the particles of one group, in the first or the second pass
+	void DrawParticleGroup(Graphics* g, PILayer* theLayer, PIEmitterInstance* theInstance, PIParticleGroup* theGroup,
+	                       bool theFirstPass);
 
 	// 0x567d00 (bejeweled3): -1 to 1
 	float GetRandFloat();

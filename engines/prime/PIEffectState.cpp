@@ -150,7 +150,7 @@ void ReadParticle(StateReader& theReader, MTRand& theRand, bool theLayerHasDefle
 
 	theParticle->mSizeX = theReader.ReadFloat();
 	theParticle->mSizeY = theReader.ReadFloat();
-	if (aParticleDef != NULL && aParticleDef->mColorFromLifeRatio)
+	if (aParticleDef != NULL && aParticleDef->mRandomColor)
 		theParticle->mColorOffset = theReader.ReadFloat();
 	if (aParticleDef != NULL && aParticleDef->mRandomStartFrame)
 		theParticle->mRandomFrame = theReader.ReadShort();

@@ -246,10 +246,4 @@ bool PIEffect::IsActive()
 	return false;
 }
 
-// port: not translated yet (the next step of the PIEffect work: DrawLayer and DrawParticleGroup)
-// 0x575650 (bejeweled3)
-void PIEffect::Draw(Graphics* /*g*/)
-{
-}
-
 }

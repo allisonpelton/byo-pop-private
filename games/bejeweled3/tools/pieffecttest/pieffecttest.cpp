@@ -5,9 +5,17 @@
 //   b3_pieffecttest [-v] [path ...]
 //
 // It then plays each effect with a fixed seed (a cached state first, for the files that have one, which must read to
-// its last byte), hashing the particle counts every update and the particles' places every few. The draw is not
-// translated yet, so nothing is drawn here.
+// its last byte), hashing the particle counts every update and the particles' places every few. Then it plays each
+// effect again with pictures of its own making (the game's images are not needed) and draws it every few updates onto a
+// software image, hashing the pixels (and, for every other file, with a color that is not white).
+#include "DDImage.h"
+#include "DDInterface.h"
+#include "Graphics.h"
+#include "MemoryImage.h"
 #include "PIEffect.h"
+#include "SDLSoundManager.h"
+#include "SWTri.h"
+#include "SexyAppBase.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -15,6 +23,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -229,14 +238,45 @@ void HashParticles(Hasher& theHasher, PIEffect& theEffect)
 	}
 }
 
+// an effect whose textures are made here: a picture with a different color at every pixel, so a wrong cell, turn or
+// color shows in the hash
+class DrawnEffect : public PIEffect {
+public:
+	SharedImageRef LoadTextureImage(const std::string& theImageName) override
+	{
+		static std::map<std::string, SharedImage*> sPictures;   // kept for the whole run
+		SharedImage*& aShared = sPictures[theImageName];
+		if (aShared == NULL) {
+			DDImage* aPicture = new DDImage(gSexyAppBase->mDDInterface);
+			aPicture->Create(kPictureSize, kPictureSize);
+			unsigned long* aBits = aPicture->GetBits();
+			for (int y = 0; y < kPictureSize; y++) {
+				for (int x = 0; x < kPictureSize; x++) {
+					unsigned long anAlpha = (unsigned long)(((x - kPictureSize / 2) * (x - kPictureSize / 2) +
+					                                         (y - kPictureSize / 2) * (y - kPictureSize / 2)) < 1000 ? 255 : 90);
+					aBits[y * kPictureSize + x] = (anAlpha << 24) | ((unsigned long)(x * 4) << 16) |
+					                              ((unsigned long)(y * 4) << 8) | (unsigned long)((x ^ y) * 4 & 0xff);
+				}
+			}
+			aPicture->BitsChanged();
+			aShared = new SharedImage();
+			aShared->mImage = aPicture;
+		}
+		return SharedImageRef(aShared);
+	}
+	static const int kPictureSize = 64;
+};
+
 const int kPlayUpdates = 300;     // how many updates each effect is played for
 const int kHashEvery = 10;        // the particles' places are hashed this often
+const int kCanvasSize = 512;      // the software image the draw pass draws onto
 
 }   // namespace
 
 // port: the test's entry point
 int main(int argc, char** argv)
 {
+	std::setvbuf(stdout, NULL, _IONBF, 0);
 	bool aVerbose = false;
 	std::vector<fs::path> aFiles;
 	for (int i = 1; i < argc; i++) {
@@ -257,10 +297,18 @@ int main(int argc, char** argv)
 	size_t anInstanceCount = 0;
 	size_t aParticleDefCount = 0;
 	int aBadState = 0;
+	size_t aBlockerCount = 0;
+	size_t aShownDeflectors = 0;
+	size_t aShownForces = 0;
 	long long aUpdateCount = 0;
 	int aPeakParticles = 0;
 	Hasher aTotalHash;
 	Hasher aPlayHash;
+	Hasher aDrawHash;
+	int aDrawFailed = 0;
+	int aDrawCount = 0;
+	long long aLitPixels = 0;
+	int aAreaFrames = 0;
 
 	for (size_t aFileIndex = 0; aFileIndex < aFiles.size(); aFileIndex++) {
 		std::ifstream aStream(aFiles[aFileIndex], std::ios::binary);
@@ -289,6 +337,14 @@ int main(int argc, char** argv)
 			anInstances += anEffect.mDef.mLayers[i].mEmitterInstances.size();
 		for (size_t i = 0; i < anEffect.mDef.mEmitters.size(); i++)
 			aParticleDefs += anEffect.mDef.mEmitters[i].mParticleDefs.size();
+		for (size_t i = 0; i < anEffect.mDef.mLayers.size(); i++) {
+			const PILayerDef& aLayerDef = anEffect.mDef.mLayers[i];
+			aBlockerCount += aLayerDef.mBlockers.size();
+			for (size_t j = 0; j < aLayerDef.mDeflectors.size(); j++)
+				aShownDeflectors += aLayerDef.mDeflectors[j].mFlagA ? 1 : 0;
+			for (size_t j = 0; j < aLayerDef.mForces.size(); j++)
+				aShownForces += aLayerDef.mForces[j].mFlagA ? 1 : 0;
+		}
 		anEmitterCount += anEffect.mDef.mEmitters.size();
 		aLayerCount += anEffect.mDef.mLayers.size();
 		anInstanceCount += anInstances;
@@ -331,11 +387,69 @@ int main(int argc, char** argv)
 		}
 	}
 
+	// the draw pass: each effect again, with pictures made here, drawn every few updates onto a software image (which
+	// needs an app, so it is made only now: the first pass must find no images)
+	SDL_setenv("SDL_AUDIODRIVER", "dummy", 0);
+	SexyAppBase* anApp = new SexyAppBase();
+	anApp->mDDInterface = new DDInterface(anApp);
+	anApp->mSoundManager = new SDLSoundManager();
+	SWTri_AddAllDrawTriFuncs();   // the software drawer of a turned picture
+	MemoryImage aCanvas;
+	aCanvas.Create(kCanvasSize, kCanvasSize);
+	for (size_t aFileIndex = 0; aFileIndex < aFiles.size(); aFileIndex++) {
+		std::ifstream aStream(aFiles[aFileIndex], std::ios::binary);
+		std::vector<unsigned char> aData((std::istreambuf_iterator<char>(aStream)), std::istreambuf_iterator<char>());
+		if (aVerbose)
+			std::printf("drawing %s\n", aFiles[aFileIndex].string().c_str());
+		{
+			DrawnEffect aDrawn;
+			aDrawn.mRand.SRand(1234UL);
+			if (!aDrawn.Load(aData.data(), aData.size(), aFiles[aFileIndex].string())) {
+				aDrawFailed++;
+				continue;
+			}
+			if (!aDrawn.mCachedState.empty())
+				aDrawn.LoadCachedState();
+			aDrawn.ResetAnim();
+			aDrawn.mSeeds.assign(1, 1234);
+			aDrawn.mDrawTransform.m02 = (float)(kCanvasSize / 2);
+			aDrawn.mDrawTransform.m12 = (float)(kCanvasSize / 2);
+			if (aFileIndex % 2 == 1)
+				aDrawn.mColor = Color(200, 255, 128, 220);
+			for (int anUpdate = 0; anUpdate < kPlayUpdates; anUpdate++) {
+				aDrawn.Update();
+				if (anUpdate % kHashEvery != kHashEvery - 1)
+					continue;
+				unsigned long* aBits = aCanvas.GetBits();
+				std::memset(aBits, 0, sizeof(unsigned long) * kCanvasSize * kCanvasSize);
+				aCanvas.BitsChanged();
+				Graphics aGraphics(&aCanvas);
+				aDrawn.Draw(&aGraphics);
+				aBits = aCanvas.GetBits();
+				for (int i = 0; i < kCanvasSize * kCanvasSize; i++) {
+					unsigned int aPixel = (unsigned int)aBits[i];
+					aDrawHash.Add(&aPixel, sizeof(aPixel));
+					if ((aPixel & 0xffffff) != 0)
+						aLitPixels++;
+				}
+				aDrawHash.AddInt(aDrawn.mDrawArea);
+				if (aDrawn.mDrawArea > 0)
+					aAreaFrames++;
+				aDrawCount++;
+			}
+		}
+
+	}
+
 	std::printf("pieffecttest: %zu files, %d loaded, %d failed, %d not read exactly, %d with a cached state; %zu emitters, "
 	            "%zu particle defs, %zu layers, %zu emitter instances; hash %016llx\n",
 	            aFiles.size(), aLoaded, aFailed, anInexact, aCached, anEmitterCount, aParticleDefCount, aLayerCount,
 	            anInstanceCount, (unsigned long long)aTotalHash.mHash);
+	std::printf("layers hold %zu blockers, %zu deflectors and %zu forces with their flag set\n", aBlockerCount, aShownDeflectors,
+	            aShownForces);
 	std::printf("played: %lld updates, %d cached states not read to their end, at most %d particles; hash %016llx\n",
 	            aUpdateCount, aBadState, aPeakParticles, (unsigned long long)aPlayHash.mHash);
-	return aFailed == 0 && anInexact == 0 && aBadState == 0 ? 0 : 1;
+	std::printf("drawn: %d frames, %d effects not loaded with pictures, %lld lit pixels, %d with an area; hash %016llx\n", aDrawCount, aDrawFailed,
+	            aLitPixels, aAreaFrames, (unsigned long long)aDrawHash.mHash);
+	return aFailed == 0 && anInexact == 0 && aBadState == 0 && aDrawFailed == 0 ? 0 : 1;
 }
