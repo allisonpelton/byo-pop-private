@@ -338,7 +338,21 @@ PipeObj* PipeObj::Create(int theColumn, int theRow)
 	aPipe->mRightLink = nullptr;
 	aPipe->mDownLink = nullptr;
 	aPipe->mLeftLink = nullptr;
+	// the original's pipe has a track of two keys that grow it in (the level's cut sets them up and starts it)
+	aPipe->mAppearKey = new AnimKey();
+	aPipe->mSettleKey = new AnimKey();
+	aPipe->mAppearTrack = new AnimTrack();
+	aPipe->mAppearTrack->AddKey(aPipe->mAppearKey, aPipe->mSettleKey);
+	aPipe->mAppearTrack->AddKey(aPipe->mSettleKey, aPipe->mSettleKey);
+	aPipe->mAppearTrackIndex = aPipe->AddTrack(aPipe->mAppearTrack, nullptr);
 	return aPipe;
+}
+
+// port: the stand-in bonus is not drawn or kept anywhere (the original sets up its place and its looks)
+void BonusCoin::Place(int theColumn, int theRow)
+{
+	(void)theColumn;
+	(void)theRow;
 }
 
 void HiddenBonus::Uncover()

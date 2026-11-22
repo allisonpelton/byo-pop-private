@@ -3,10 +3,9 @@
 // level's states: the intro, the cells settling in, play, the stats after a win, the game over and the victory. A Board
 // makes one; ObjBase::sLevel points to it while it lives, and the other classes reach it through the statics below.
 //
-// Not translated yet (each is a method here that does nothing, marked "stand-in", with its address): the level's
-// layout (the picture and the random shapes: 0x43b530..0x43be60), the bugs' placement (0x43acc0..0x43b370, 0x43c600), the
-// morph table (0x43d2b0, 0x43cf20), the rope's preview and the cut's keys (0x43d800..0x43e3a0) and the builders of the
-// level's texts and panels (0x43e6d0, 0x43edd0).
+// Not translated yet (each is a method here that does nothing, marked "stand-in", with its address): the bugs' placement
+// (0x43acc0..0x43b370, 0x43c600), the morph table (0x43d2b0, 0x43cf20) and the builders of the level's texts and panels
+// (0x43e6d0, 0x43edd0).
 #pragma once
 
 #include "FillObj.h"
@@ -246,9 +245,16 @@ private:
 	void BuildMorphTable();                             // 0x43d2b0
 	void MakeLayoutFromPicture(int theLevel);           // 0x43be60
 	void MakeRandomLayout();                            // 0x43bb50
+	int FillMask(int theCenterColumn, int theCenterRow, int theHalfWidth, int theHalfHeight, int theValue); // 0x43b530
+	bool MeasureMaskSquare(int* theWidth, int* theHeight); // 0x43ba70
 	void HollowOut();                                   // 0x43b800
 	void ClassifyCells();                               // 0x43b850
 	void PlaceBonus();                                  // 0x43b750
+	void StartWallPipes(int theCellX, int theCellY, int theVertical, int theFrom, int theTo); // 0x43d800
+	void FloodPreview(int theX, int theY, int theSide); // 0x43dc80
+	void BuildPreviewMap();                             // 0x43dd60
+	void MarkPreviewLine(int theCellX, int theCellY, int theVertical, int theFrom, int theTo); // 0x43df60
+
 
 	friend class RopeObj;
 };

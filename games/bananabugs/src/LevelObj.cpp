@@ -1058,52 +1058,731 @@ void LevelObj::PlaceBugs()
 {
 }
 
-// port: 0x43be60 lays the first levels out from a picture, one of the game's own (a pixel is ground when its green
-// part is above 0); the stand-in makes an empty grid
+// The layout -----------------------------------------------------------------------------------------------------------
+
+static const int GRID_PLACES = FILL_GRID_COLUMNS * FILL_GRID_ROWS;   // the places in the grid (0x500)
+static const int PICTURE_NAME_SIZE = 56;           // the original's name buffer
+static const int SHAPE_CENTER_COLUMN = 10;         // where the random shapes grow from, in the mask
+static const int SHAPE_CENTER_ROW = 8;
+static const int SHAPE_RIGHT_CENTER_COLUMN = 11;   // ... and the second blob's start
+static const int MASK_BOX_MIN = 2;                 // the hole's smallest half-size
+static const int MASK_BOX_NARROW = 9;              // a clear square this wide gets a hole cut in it
+static const int MASK_BOX_MAX_WIDTH = 0x26;
+static const int MASK_BOX_MAX_HEIGHT = 0x1e;
+static const int MASK_FILL_CLEAR = 0;              // FillMask's value 3 clears the inside and fills a ring round it with 1
+static const int MASK_FILL_RING = 3;
+static const int MASK_MIRROR_ROWS = 10;            // the top ten rows of the mask are copied, turned half way round, to the bottom
+static const int MASK_SQUARE_STEPS = 16;
+static const int BONUS_MIN_PROGRESS = 4;           // the level the hidden bonus starts to appear on
+static const int BONUS_FREE_RADIUS = 2;            // the bonus needs ground this far all round
+
+// 0x43b630: the kind of a place of the grid, or 0 (no ground) outside it
+static int GetPlaceKind(int theColumn, int theRow)
+{
+	if (theColumn < 0 || theRow < 0 || theColumn >= FILL_GRID_COLUMNS || theRow >= FILL_GRID_ROWS)
+		return 0;
+	return gFillGrid[theColumn][theRow].mKind;
+}
+
+// 0x43b660: the place has ground on all eight sides (the place itself is not looked at)
+static bool IsSurrounded(int theColumn, int theRow)
+{
+	if (GetPlaceKind(theColumn - 1, theRow - 1) == 0)
+		return false;
+	if (GetPlaceKind(theColumn, theRow - 1) == 0)
+		return false;
+	if (GetPlaceKind(theColumn + 1, theRow - 1) == 0)
+		return false;
+	if (GetPlaceKind(theColumn - 1, theRow) == 0)
+		return false;
+	if (GetPlaceKind(theColumn + 1, theRow) == 0)
+		return false;
+	if (GetPlaceKind(theColumn - 1, theRow + 1) == 0)
+		return false;
+	if (GetPlaceKind(theColumn, theRow + 1) == 0)
+		return false;
+	return GetPlaceKind(theColumn + 1, theRow + 1) != 0;
+}
+
+// 0x43b6e0 (ECX the row, EDX the column): every place within two of this one has ground, and the whole square is inside the
+// grid
+static bool HasGroundAround(int theColumn, int theRow)
+{
+	int aFirstColumn = theColumn - BONUS_FREE_RADIUS;
+	int aLastColumn = theColumn + BONUS_FREE_RADIUS;
+	int aFirstRow = theRow - BONUS_FREE_RADIUS;
+	int aLastRow = theRow + BONUS_FREE_RADIUS;
+	if (aFirstColumn < 0 || aFirstRow < 0 || aLastColumn >= FILL_GRID_COLUMNS || aLastRow >= FILL_GRID_ROWS)
+		return false;
+	for (int aRow = aFirstRow; aRow <= aLastRow; aRow++) {
+		for (int aColumn = aFirstColumn; aColumn <= aLastColumn; aColumn++) {
+			if (gFillGrid[aColumn][aRow].mKind == 0)
+				return false;
+		}
+	}
+	return true;
+}
+
+// 0x43b9d0 (ESI the column, EDX the row): what a place of the ground's edge is. 2 when ground lies to its left and right
+// only, 3 when it lies above and below only, 1 (a post) otherwise
+static int GetWallShape(int theColumn, int theRow)
+{
+	bool aAbove = false;
+	bool aBelow = false;
+	bool aRight = false;
+	bool aLeft = false;
+	if (GetPlaceKind(theColumn, theRow - 1) > 0)
+		aAbove = true;
+	if (GetPlaceKind(theColumn, theRow + 1) > 0)
+		aBelow = true;
+	if (GetPlaceKind(theColumn + 1, theRow) > 0)
+		aRight = true;
+	if (GetPlaceKind(theColumn - 1, theRow) > 0)
+		aLeft = true;
+	if (!aAbove) {
+		if (!aBelow && aRight && aLeft)
+			return FILL_KIND_WALL_ACROSS;
+	} else if (aBelow && !aRight && !aLeft) {
+		return FILL_KIND_WALL_DOWN;
+	}
+	return FILL_KIND_CORNER;
+}
+
+// 0x43b530: the box of half-width theHalfWidth and half-height theHalfHeight round (theCenterColumn, theCenterRow) in the
+// layout mask takes theValue (3 first fills a box two bigger with 1, then clears the inside, which leaves a ring of 1).
+// Gives -1 when the box lies wholly outside the mask, 1 when it was cut short at an edge, 0 when it fits
+int LevelObj::FillMask(int theCenterColumn, int theCenterRow, int theHalfWidth, int theHalfHeight, int theValue)
+{
+	if (theValue == MASK_FILL_RING) {
+		FillMask(theCenterColumn, theCenterRow, theHalfWidth + 2, theHalfHeight + 2, 1);
+		theValue = MASK_FILL_CLEAR;
+	}
+	int aFirstColumn = theCenterColumn - theHalfWidth;
+	int aFirstRow = theCenterRow - theHalfHeight;
+	int aLastRow = theCenterRow + theHalfHeight;
+	int aLastColumn = theCenterColumn + theHalfWidth;
+	if (aFirstColumn >= LEVEL_MASK_COLUMNS || aFirstRow >= LEVEL_MASK_ROWS || aLastColumn < 0 || aLastRow < 0)
+		return -1;
+	int aCutShort = 0;
+	if (aFirstColumn < 0) {
+		aCutShort = 1;
+		aFirstColumn = 0;
+	}
+	if (aFirstRow < 0) {
+		aCutShort = 1;
+		aFirstRow = 0;
+	}
+	if (aLastColumn >= LEVEL_MASK_COLUMNS) {
+		aCutShort = 1;
+		aLastColumn = LEVEL_MASK_COLUMNS - 1;
+	}
+	if (aLastRow >= LEVEL_MASK_ROWS) {
+		aLastRow = LEVEL_MASK_ROWS - 1;
+		aCutShort = 1;
+	}
+	for (int aRow = aFirstRow; aRow <= aLastRow; aRow++) {
+		for (int aColumn = aFirstColumn; aColumn <= aLastColumn; aColumn++)
+			mMask[aColumn][aRow] = theValue;
+	}
+	return aCutShort;
+}
+
+// 0x43ba70: how wide and high the square round the mask's middle (10, 8) is that has ground in every place, growing a
+// ring at a time from 3 by 3 (to at most 33 by 33). Both come out the same; they are 0 when even the 3 by 3 has a hole.
+// Gives whether the loop ran to the end
+bool LevelObj::MeasureMaskSquare(int* theWidth, int* theHeight)
+{
+	*theWidth = 0;
+	*theHeight = 0;
+	int aFirstColumn = 9;
+	int aFirstRow = 7;
+	int aLastColumn = 11;
+	int aLastRow = 9;
+	const int* aMask = &mMask[0][0];
+	for (int aStep = 0; aStep < MASK_SQUARE_STEPS; aStep++) {
+		for (int aRow = aFirstRow; aRow <= aLastRow; aRow++) {
+			for (int aColumn = aFirstColumn; aColumn <= aLastColumn; aColumn++) {
+				// port (crash): the square grows past the mask's edge (rows after seven steps, columns after ten), and the
+				// original reads the memory that lies beyond it; a place outside the mask counts as empty here
+				int anIndex = aColumn * LEVEL_MASK_ROWS + aRow;
+				if (anIndex < 0 || anIndex >= LEVEL_MASK_COLUMNS * LEVEL_MASK_ROWS || aMask[anIndex] == 0)
+					return false;
+			}
+		}
+		*theWidth = aLastColumn - aFirstColumn + 1;
+		*theHeight = aLastRow - aFirstRow + 1;
+		aFirstColumn--;
+		aFirstRow--;
+		aLastColumn++;
+		aLastRow++;
+	}
+	return true;
+}
+
+// 0x43be60: the ground of the first levels is the green of a picture of the game's own: "images/levels/level_NN" (NN the
+// level counted from one) or, for theLevel below 0, the map's world's "images/levels/lsection_NN". A pixel with any green
+// is ground, one place of the grid for a pixel
 void LevelObj::MakeLayoutFromPicture(int theLevel)
 {
-	(void)theLevel;
+	char aName[PICTURE_NAME_SIZE];
+	if (theLevel < 0)
+		snprintf(aName, sizeof(aName), "images/levels/lsection_%02d", Player::sCurrent->mMapLevel + 1);
+	else
+		snprintf(aName, sizeof(aName), "images/levels/level_%02d", theLevel + 1);
+	DDImage* aPicture = sApp->GetImage(aName, true);
+	if (aPicture == nullptr)
+		return;
+	if (aPicture->GetBits() != nullptr && aPicture->GetHeight() > 0) {
+		for (int aRow = 0; aRow < aPicture->GetHeight(); aRow++) {
+			for (int aColumn = 0; aColumn < aPicture->GetWidth(); aColumn++) {
+				// (the original makes a Color of the pixel, 0x479020, and tests its green)
+				ulong aPixel = aPicture->GetBits()[aPicture->GetWidth() * aRow + aColumn];
+				int aGreen = (int)(aPixel >> 8) & 0xff;
+				if (aGreen > 0) {
+					// port (crash): the original does not look whether the picture is larger than the grid
+					if (aColumn < FILL_GRID_COLUMNS && aRow < FILL_GRID_ROWS)
+						gFillGrid[aColumn][aRow].mKind = 1;
+				}
+			}
+		}
+	}
+	delete aPicture;
 }
 
-// port: 0x43bb50 lays a random level out (with the helpers 0x43b530 and 0x43ba70); the stand-in makes an empty grid
+// 0x43bb50: a random shape. Two blobs of boxes are drawn from (10, 8) and (11, 8) in the half-size mask, the top ten rows are
+// mirrored into the bottom, and the levels finished (the remainder of four) decide which bars cross the middle; if the clear
+// square in the middle is wide, a hole with a ring is cut in it. Each mask place then makes a block of two by two places of
+// the grid
 void LevelObj::MakeRandomLayout()
 {
+	int aProgress = Player::sCurrent->mSavedProgress;
+	memset(mMask, 0, sizeof(mMask));
+
+	// the first blob: boxes that walk up and to the left until one is cut short by the mask's edge
+	int aCenterColumn = SHAPE_CENTER_COLUMN;
+	int aCenterRow = SHAPE_CENTER_ROW;
+	unsigned int aHalfWidth = GameRandomNext() % 5 + 3;
+	unsigned int aHalfHeight = (GameRandomNext() & 3) + 3;
+	int aCutShort;
+	do {
+		aCutShort = FillMask(aCenterColumn, aCenterRow, (int)aHalfWidth, (int)aHalfHeight, 1);
+		aCenterColumn += -1 - (int)(GameRandomNext() % aHalfWidth);
+		aCenterRow += -1 - (int)(GameRandomNext() % aHalfHeight);
+		aHalfWidth = GameRandomNext() % 3 + 2;
+		aHalfHeight = (GameRandomNext() & 1) + 2;
+	} while (aCutShort == 0);
+
+	// the second blob: boxes that walk up and to the right
+	aCenterColumn = SHAPE_RIGHT_CENTER_COLUMN;
+	aCenterRow = SHAPE_CENTER_ROW;
+	aHalfWidth = (GameRandomNext() & 3) + 3;
+	aHalfHeight = GameRandomNext() % 3 + 3;
+	do {
+		aCutShort = FillMask(aCenterColumn, aCenterRow, (int)aHalfWidth, (int)aHalfHeight, 1);
+		aHalfWidth = aHalfWidth - 1;
+		aCenterColumn += (int)(GameRandomNext() % aHalfWidth) + 2;
+		aHalfHeight = aHalfHeight - 1;
+		aCenterRow += -2 - (int)(GameRandomNext() % aHalfHeight);
+		aHalfWidth = GameRandomNext() % 3 + 2;
+		aHalfHeight = (GameRandomNext() & 1) + 2;
+	} while (aCutShort == 0);
+
+	// the top ten rows turned half way round into the bottom ones
+	for (int aRow = 0; aRow < MASK_MIRROR_ROWS; aRow++) {
+		for (int aColumn = 0; aColumn < LEVEL_MASK_COLUMNS; aColumn++)
+			mMask[LEVEL_MASK_COLUMNS - 1 - aColumn][LEVEL_MASK_ROWS - 1 - aRow] = mMask[aColumn][aRow];
+	}
+
+	// the bars through the middle: a wide one for 1 and 3, a tall one for 2 and 3, as the signed remainder of four gives
+	int aShape = aProgress % 4;
+	if (aShape == 3)
+		FillMask(SHAPE_CENTER_COLUMN, SHAPE_CENTER_ROW, 11, 1, 1);
+	if (aShape == 3 || aShape == 2)
+		FillMask(SHAPE_CENTER_COLUMN, SHAPE_CENTER_ROW, 1, 9, 1);
+	else if (aShape == 1)
+		FillMask(SHAPE_CENTER_COLUMN, SHAPE_CENTER_ROW, 11, 1, 1);
+
+	// a clear square in the middle that is wide gets a hole with a ring round it
+	int aSquareWidth;
+	int aSquareHeight;
+	MeasureMaskSquare(&aSquareWidth, &aSquareHeight);
+	if (aSquareWidth >= MASK_BOX_NARROW) {
+		int aBoxWidth = aSquareWidth;
+		if (FILL_GRID_COLUMNS - aBoxWidth < 2)
+			aBoxWidth = MASK_BOX_MAX_WIDTH;
+		int aBoxHeight = aSquareHeight;
+		if (FILL_GRID_ROWS - aBoxHeight < 2)
+			aBoxHeight = MASK_BOX_MAX_HEIGHT;
+		else if (aBoxHeight < 4)
+			aBoxHeight = (int)(GameRandomNext() % 5) + 4;
+		int aHalfOfWidth = aBoxWidth / 2;
+		int aHoleHalfWidth = ((int)(GameRandomNext() % (unsigned int)(aBoxWidth - aHalfOfWidth + 1)) + aHalfOfWidth) / 2;
+		int aHalfOfHeight = aBoxHeight / 2;
+		int aHoleHalfHeight = ((int)(GameRandomNext() % (unsigned int)(aBoxHeight - aHalfOfHeight + 1)) + aHalfOfHeight) / 2;
+		if (aHoleHalfWidth < MASK_BOX_MIN)
+			aHoleHalfWidth = MASK_BOX_MIN;
+		if (aHoleHalfHeight < MASK_BOX_MIN)
+			aHoleHalfHeight = MASK_BOX_MIN;
+		FillMask(SHAPE_CENTER_COLUMN, SHAPE_CENTER_ROW, aHoleHalfWidth, aHoleHalfHeight, 1);
+		FillMask(SHAPE_CENTER_COLUMN, SHAPE_CENTER_ROW, aHoleHalfWidth - 1, aHoleHalfHeight - 1, MASK_FILL_RING);
+	}
+
+	// every place of the mask is a block of two by two places of the grid
+	for (int aRow = 0; aRow < LEVEL_MASK_ROWS; aRow++) {
+		for (int aColumn = 0; aColumn < LEVEL_MASK_COLUMNS; aColumn++) {
+			int aValue = mMask[aColumn][aRow];
+			gFillGrid[aColumn * 2][aRow * 2].mKind = aValue;
+			gFillGrid[aColumn * 2 + 1][aRow * 2].mKind = aValue;
+			gFillGrid[aColumn * 2][aRow * 2 + 1].mKind = aValue;
+			gFillGrid[aColumn * 2 + 1][aRow * 2 + 1].mKind = aValue;
+		}
+	}
 }
 
-// port: 0x43b800 and 0x43b850 (with 0x43b660, 0x43b6e0 and 0x43b9d0) hollow the shape out and sort every place into
-// post, wall or inside
+// 0x43b800: ground with ground on all eight sides becomes inside ground (-1); one place at a time, in order of the rows
 void LevelObj::HollowOut()
 {
+	for (int aRow = 0; aRow < FILL_GRID_ROWS; aRow++) {
+		for (int aColumn = 0; aColumn < FILL_GRID_COLUMNS; aColumn++) {
+			if (gFillGrid[aColumn][aRow].mKind != 0 && IsSurrounded(aColumn, aRow))
+				gFillGrid[aColumn][aRow].mKind = FILL_KIND_INSIDE;
+		}
+	}
 }
 
+// 0x43b850: every place that has ground is sorted: inside places go to the open list; the others become a post (1), a
+// wall across (2) or a wall down (3) by what is next to them, and the walls go to the wall list. A place whose
+// neighbours (below and to the right, as its kind needs) have ground counts as checked (10 more) and is one of the
+// level's cells. Inside places count as cells too
 void LevelObj::ClassifyCells()
 {
+	mEdgeCount = 0;
+	mCellCount = 0;
+	mWallCellCount = 0;
+	mOpenCellCount = 0;
+	for (int aRow = 0; aRow < FILL_GRID_ROWS; aRow++) {
+		for (int aColumn = 0; aColumn < FILL_GRID_COLUMNS; aColumn++) {
+			FillGridCell& aPlace = gFillGrid[aColumn][aRow];
+			if (aPlace.mKind == 0)
+				continue;
+			if (aPlace.mKind < 1) {
+				mOpenCells[mOpenCellCount] = aColumn + aRow * FILL_GRID_COLUMNS;
+				mOpenCellCount++;
+			} else {
+				bool aChecked = false;
+				int aShape = GetWallShape(aColumn, aRow);
+				if (aShape == FILL_KIND_CORNER) {
+					aPlace.mKind = FILL_KIND_CORNER;
+					aChecked = true;
+					if (GetPlaceKind(aColumn, aRow + 1) == 0)
+						aChecked = false;
+					if (GetPlaceKind(aColumn + 1, aRow + 1) == 0)
+						aChecked = false;
+					if (GetPlaceKind(aColumn + 1, aRow) == 0)
+						aChecked = false;
+					mEdgeCount++;
+				} else if (aShape == FILL_KIND_WALL_ACROSS) {
+					aPlace.mKind = FILL_KIND_WALL_ACROSS;
+					if (GetPlaceKind(aColumn, aRow + 1) != 0)
+						aChecked = true;
+					mEdgeCount++;
+					mWallCells[mWallCellCount] = aColumn + aRow * FILL_GRID_COLUMNS;
+					mWallCellCount++;
+				} else if (aShape == FILL_KIND_WALL_DOWN) {
+					aPlace.mKind = FILL_KIND_WALL_DOWN;
+					if (GetPlaceKind(aColumn + 1, aRow) != 0)
+						aChecked = true;
+					mEdgeCount++;
+					mWallCells[mWallCellCount] = aColumn + aRow * FILL_GRID_COLUMNS;
+					mWallCellCount++;
+				} else {
+					aPlace.mKind = 0;
+					continue;
+				}
+				if (!aChecked)
+					continue;
+				aPlace.mKind = aPlace.mKind + FILL_KIND_CHECKED;
+			}
+			mCellCount++;
+		}
+	}
 }
 
-// port: 0x43b750 puts the level's bonus under a cell
+// 0x43b750: from the fourth level on, the hidden bonus goes under the first place in the shuffled order that has ground
+// within two places on every side (as many as the grid has places are tried, the order's position moving on each time)
 void LevelObj::PlaceBonus()
 {
+	if (Player::sCurrent->mSavedProgress < BONUS_MIN_PROGRESS)
+		return;
+	for (int aTry = 0; aTry < GRID_PLACES; aTry++) {
+		unsigned int aPlace = (unsigned int)mCellOrder[mOrderPos];
+		mOrderPos = (mOrderPos + 1) % LEVEL_CELL_LIST_MAX;
+		if (aPlace < (unsigned int)LEVEL_CELL_LIST_MAX) {
+			int aRow = (int)aPlace / FILL_GRID_COLUMNS;
+			int aColumn = (int)aPlace - aRow * FILL_GRID_COLUMNS;
+			if (HasGroundAround(aColumn, aRow)) {
+				mBonusCoin->Place(aColumn, aRow);
+				gFillGrid[aColumn][aRow].mCell->SetBonus(mBonusCoin);
+				return;
+			}
+		}
+	}
 }
 
-// port: the preview of the rope's cut (0x43d800 .. 0x43e060) and the cut itself (0x43e3a0) are not translated
-void LevelObj::ShowRopePreview(int theCellX, int theCellY, int theVertical, int theFrom, int theTo)
+// The rope's preview and the cut ----------------------------------------------------------------------------------
+
+static const int PIPE_GROW_FRAMES = 15;            // the walls' first key: grows in from big and faint
+static const int PIPE_SETTLE_FRAMES = 100;         // the second key
+static const float PIPE_GROW_SCALE = 3.6f;
+static const int PIPE_ROTATION_RANGE = 0x5b;       // the walls start turned by up to 45 degrees either way
+static const int PIPE_ROTATION_BIAS = 0x2d;
+static const int PIPE_DELAY_PER_PLACE = 7;         // frames a wall waits for each place it is from the shot's
+static const int PIPE_POST_VARIANTS = 3;
+static const int PIPE_WALL_VARIANTS = 4;
+static const int PIPE_ACROSS_FIRST_VARIANT = 3;
+static const int PIPE_DOWN_FIRST_VARIANT = 7;
+static const int PREVIEW_FREE = 1;                 // the preview map: a cell that can be cut
+static const int PREVIEW_WALL = 2;                 // a wall or a post
+static const int PREVIEW_FILLED = 9;               // a cell the flood fill has been to
+static const int PREVIEW_SIDE_A = 2;               // the sides of the rope the flood fills mark the cells with (FillObj::mSide)
+static const int PREVIEW_SIDE_B = 3;
+static const int PREVIEW_SMALL_AREA = 0x20;        // both sides are cut when neither has more cells than this
+
+// One wall of the cut (the body of both of 0x43d800's loops): the pipe at thePlace starts again, as a post at the
+// rope's two ends and as a wall (theWallKind, its picture theFirstVariant and up) between them, growing in after as many
+// frames as it is places from the shot
+static void StartWallPipe(FillGridCell& thePlace, int theDistance, bool theIsEnd, int theWallKind, int theFirstVariant)
 {
-	(void)theCellX;
-	(void)theCellY;
-	(void)theVertical;
-	(void)theFrom;
-	(void)theTo;
+	PipeObj* aPipe = thePlace.mPipe;
+	aPipe->SetStateInt(STATE_ALPHA, 0);
+	aPipe->SetStateInt(STATE_SCALE_X, 0);
+	aPipe->SetStateInt(STATE_SCALE_Y, 0);
+	AnimKey* aGrowKey = aPipe->mAppearKey;
+	aGrowKey->SetDuration(PIPE_GROW_FRAMES);
+	aGrowKey->mValue[STATE_SCALE_X] = PIPE_GROW_SCALE;
+	aGrowKey->mValue[STATE_SCALE_Y] = PIPE_GROW_SCALE;
+	aGrowKey->mValue[STATE_RED] = 1.0f;
+	aGrowKey->mValue[STATE_GREEN] = 1.0f;
+	aGrowKey->mValue[STATE_BLUE] = 1.0f;
+	aGrowKey->mValue[STATE_ALPHA] = 0.0f;
+	int aTurn = (int)(GameRandomNext() % PIPE_ROTATION_RANGE) - PIPE_ROTATION_BIAS;
+	aGrowKey->mValue[STATE_ROTATION] = (float)((double)aTurn * 3.1415927410125732 / 180.0);
+	AnimKey* aSettleKey = aPipe->mSettleKey;
+	aSettleKey->SetDuration(PIPE_SETTLE_FRAMES);
+	aSettleKey->mValue[STATE_SCALE_X] = 1.0f;
+	aSettleKey->mValue[STATE_SCALE_Y] = 1.0f;
+	aSettleKey->mValue[STATE_RED] = 1.0f;
+	aSettleKey->mValue[STATE_GREEN] = 1.0f;
+	aSettleKey->mValue[STATE_BLUE] = 1.0f;
+	aSettleKey->mValue[STATE_ALPHA] = 1.0f;
+	aSettleKey->mValue[STATE_ROTATION] = 0.0f;
+	int aDistance = theDistance < 0 ? -theDistance : theDistance;
+	aPipe->mAppearTrack->SetDelay(aDistance * PIPE_DELAY_PER_PLACE, false);
+	aPipe->StartTrack(aPipe->mAppearTrackIndex);
+	int aVariant;
+	if (!theIsEnd) {
+		thePlace.mKind = theWallKind;
+		aPipe->SetKind(theWallKind);
+		aVariant = (int)(GameRandomNext() & (PIPE_WALL_VARIANTS - 1)) + theFirstVariant;
+	} else {
+		// the ends keep their size from the start, and wait for nothing
+		aGrowKey->mValue[STATE_SCALE_X] = 1.0f;
+		aGrowKey->mValue[STATE_SCALE_Y] = 1.0f;
+		aGrowKey->mValue[STATE_ALPHA] = 1.0f;
+		aGrowKey->mValue[STATE_ROTATION] = 0.0f;
+		aPipe->mAppearTrack->SetDelay(0, false);
+		thePlace.mKind = FILL_KIND_CORNER;
+		aPipe->SetKind(FILL_KIND_CORNER);
+		aVariant = (int)(GameRandomNext() % PIPE_POST_VARIANTS);
+	}
+	aPipe->mVariant = aVariant;
+	aPipe->SetStateInt(STATE_FRAME, aVariant);
+	aPipe->Activate(aPipe, false);
 }
 
+// 0x43d800 (ECX the shot's column, EAX its row, then the direction and the two ends): the pipes from theFrom to theTo
+// along the rope's row (or column when theVertical) start over as posts at the ends and walls between, and are linked
+void LevelObj::StartWallPipes(int theCellX, int theCellY, int theVertical, int theFrom, int theTo)
+{
+	if (theVertical == 0) {
+		int aDistance = theCellX - theFrom;
+		for (int aColumn = theFrom; aColumn <= theTo; aColumn++) {
+			StartWallPipe(gFillGrid[aColumn][theCellY], aDistance, aColumn == theFrom || aColumn == theTo,
+				FILL_KIND_WALL_ACROSS, PIPE_ACROSS_FIRST_VARIANT);
+			aDistance--;
+		}
+		LinkPipes();
+		return;
+	}
+	if (theFrom <= theTo) {
+		int aDistance = theCellY - theFrom;
+		for (int aRow = theFrom; aRow <= theTo; aRow++) {
+			StartWallPipe(gFillGrid[theCellX][aRow], aDistance, aRow == theFrom || aRow == theTo,
+				FILL_KIND_WALL_DOWN, PIPE_DOWN_FIRST_VARIANT);
+			aDistance--;
+		}
+	}
+	LinkPipes();
+}
+
+// 0x43dc80: the flood fill of the preview map: the free places (1) joined to (theX, theY) take 9, and the grid cell
+// each lies in (a place of the map is half a cell, and the map starts a place in) is marked with theSide. Counts them in
+// mFloodCount. The last of its four directions is the loop
+void LevelObj::FloodPreview(int theX, int theY, int theSide)
+{
+	if (theX < 0)
+		return;
+	while (theY >= 0 && theX < LEVEL_PREVIEW_COLUMNS && theY < LEVEL_PREVIEW_ROWS
+		&& mPreviewMap[theX][theY] == PREVIEW_FREE) {
+		// (C's division, which gives 0 for -1)
+		int aCellColumn = (theX - 1) / 2;
+		int aCellRow = (theY - 1) / 2;
+		if (aCellColumn >= 0 && aCellRow >= 0)
+			gFillGrid[aCellColumn][aCellRow].mCell->mSide = theSide;
+		mFloodCount++;
+		mPreviewMap[theX][theY] = PREVIEW_FILLED;
+		FloodPreview(theX + 1, theY, theSide);
+		FloodPreview(theX - 1, theY, theSide);
+		FloodPreview(theX, theY + 1, theSide);
+		theY = theY - 1;
+	}
+}
+
+// 0x43dd60: the preview map (two places for each cell of the grid, and one more at the top and left) is drawn afresh: 1 for
+// each cell that is on the field and not cut, 2 for each pipe and the walls it joins to, and every cell's mSide is cleared
+void LevelObj::BuildPreviewMap()
+{
+	memset(mPreviewMap, 0, sizeof(mPreviewMap));
+	for (int aRow = 0; aRow < FILL_GRID_ROWS; aRow++) {
+		for (int aColumn = 0; aColumn < FILL_GRID_COLUMNS; aColumn++) {
+			FillObj* aCell = gFillGrid[aColumn][aRow].mCell;
+			PipeObj* aPipe = gFillGrid[aColumn][aRow].mPipe;
+			aCell->mUnused288 = 0;
+			aCell->mSide = 0;
+			if (aCell->IsActive() && !aCell->mCut) {
+				aCell->mUnused288 = 1;
+				mPreviewMap[aColumn * 2 + 1][aRow * 2 + 1] = PREVIEW_FREE;
+				mPreviewMap[aColumn * 2 + 2][aRow * 2 + 1] = PREVIEW_FREE;
+				mPreviewMap[aColumn * 2 + 1][aRow * 2 + 2] = PREVIEW_FREE;
+				mPreviewMap[aColumn * 2 + 2][aRow * 2 + 2] = PREVIEW_FREE;
+			}
+			if (!aPipe->IsActive())
+				continue;
+			mPreviewMap[aColumn * 2][aRow * 2] = PREVIEW_WALL;
+			if (aPipe->mKind == FILL_KIND_CORNER) {
+				PipeObj* anUp = nullptr;
+				if (aRow - 1 >= 0) {
+					anUp = gFillGrid[aColumn][aRow - 1].mPipe;
+					if (!anUp->IsActive())
+						anUp = nullptr;
+				}
+				PipeObj* aLeft = nullptr;
+				if (aColumn - 1 >= 0) {
+					aLeft = gFillGrid[aColumn - 1][aRow].mPipe;
+					if (!aLeft->IsActive())
+						aLeft = nullptr;
+				}
+				PipeObj* aDown = nullptr;
+				if (aRow + 1 < FILL_GRID_ROWS) {
+					aDown = gFillGrid[aColumn][aRow + 1].mPipe;
+					if (!aDown->IsActive())
+						aDown = nullptr;
+				}
+				PipeObj* aRight = nullptr;
+				if (aColumn + 1 < FILL_GRID_COLUMNS) {
+					aRight = gFillGrid[aColumn + 1][aRow].mPipe;
+					if (!aRight->IsActive())
+						aRight = nullptr;
+				}
+				if (anUp != nullptr && anUp->mKind != FILL_KIND_WALL_ACROSS)
+					mPreviewMap[aColumn * 2][aRow * 2 - 1] = PREVIEW_WALL;
+				if (aDown != nullptr && aDown->mKind != FILL_KIND_WALL_ACROSS)
+					mPreviewMap[aColumn * 2][aRow * 2 + 1] = PREVIEW_WALL;
+				if (aRight != nullptr && aRight->mKind != FILL_KIND_WALL_DOWN)
+					mPreviewMap[aColumn * 2 + 1][aRow * 2] = PREVIEW_WALL;
+				if (aLeft != nullptr && aLeft->mKind != FILL_KIND_WALL_DOWN)
+					mPreviewMap[aColumn * 2 - 1][aRow * 2] = PREVIEW_WALL;
+			} else if (aPipe->mKind == FILL_KIND_WALL_ACROSS) {
+				mPreviewMap[aColumn * 2 + 1][aRow * 2] = PREVIEW_WALL;
+			} else if (aPipe->mKind == FILL_KIND_WALL_DOWN) {
+				mPreviewMap[aColumn * 2][aRow * 2 + 1] = PREVIEW_WALL;
+			}
+		}
+	}
+}
+
+// 0x43df60 (ECX theTo, EDX the row or EAX the column): the rope's own line goes into the preview map as walls, two places
+// to each place of the grid, and the cells it crosses have their (unused) mark cleared
+void LevelObj::MarkPreviewLine(int theCellX, int theCellY, int theVertical, int theFrom, int theTo)
+{
+	if (theVertical == 0) {
+		for (int aColumn = theFrom; aColumn <= theTo; aColumn++) {
+			gFillGrid[aColumn][theCellY].mCell->mUnused288 = 0;
+			mPreviewMap[aColumn * 2][theCellY * 2] = PREVIEW_WALL;
+			mPreviewMap[aColumn * 2 + 1][theCellY * 2] = PREVIEW_WALL;
+		}
+	} else {
+		for (int aRow = theFrom; aRow <= theTo; aRow++) {
+			gFillGrid[theCellX][aRow].mCell->mUnused288 = 0;
+			mPreviewMap[theCellX * 2][aRow * 2] = PREVIEW_WALL;
+			mPreviewMap[theCellX * 2][aRow * 2 + 1] = PREVIEW_WALL;
+		}
+	}
+}
+
+// 0x43e020: no cell glows
 void LevelObj::ClearRopePreview()
 {
+	for (int aRow = 0; aRow < FILL_GRID_ROWS; aRow++) {
+		for (int aColumn = 0; aColumn < FILL_GRID_COLUMNS; aColumn++)
+			gFillGrid[aColumn][aRow].mCell->Unhighlight();
+	}
 }
 
+// 0x43e060: the cells that the rope from (theCellX, theCellY) between theFrom and theTo would cut glow. The preview map is
+// built and the two sides of the rope are flooded (side 3 from the places below or to the right of it, side 2 from those
+// above or to the left); the side with the fewer cells (side 2 when they are as many) is the one that would go, or both
+// when neither has more than 32, or when no bug is alive and the tutorial is done or a level has been played. A side that
+// cannot go does not glow
+void LevelObj::ShowRopePreview(int theCellX, int theCellY, int theVertical, int theFrom, int theTo)
+{
+	LevelObj* aLevel = static_cast<LevelObj*>(sLevel);
+	aLevel->BuildPreviewMap();
+	aLevel->MarkPreviewLine(theCellX, theCellY, theVertical, theFrom, theTo);
+	aLevel->mFloodCount = 0;
+	if (theVertical == 0) {
+		for (int aColumn = theFrom; aColumn <= theTo; aColumn++)
+			aLevel->FloodPreview(aColumn * 2, theCellY * 2 + 1, PREVIEW_SIDE_B);
+	} else {
+		for (int aRow = theFrom; aRow <= theTo; aRow++)
+			aLevel->FloodPreview(theCellX * 2 + 1, aRow * 2, PREVIEW_SIDE_B);
+	}
+	int aSideBCells = aLevel->mFloodCount - theFrom + 1 + theTo;
+	aLevel->mFloodCount = 0;
+	if (theVertical == 0) {
+		for (int aColumn = theFrom; aColumn <= theTo; aColumn++)
+			aLevel->FloodPreview(aColumn * 2, theCellY * 2 - 1, PREVIEW_SIDE_A);
+	} else {
+		for (int aRow = theFrom; aRow <= theTo; aRow++)
+			aLevel->FloodPreview(theCellX * 2 - 1, aRow * 2, PREVIEW_SIDE_A);
+	}
+	int aSideACells = aLevel->mFloodCount;
+
+	// which sides would be cut
+	bool aSideA = false;
+	bool aSideB = false;
+	aLevel->mPreviewSide2Valid = false;
+	aLevel->mPreviewSide3Valid = false;
+	if (aSideBCells > 0 && aSideACells > 0) {
+		if (aSideBCells < aSideACells) {
+			aSideB = true;
+			aLevel->mPreviewSide3Valid = true;
+		} else {
+			aSideA = true;
+			aLevel->mPreviewSide2Valid = true;
+		}
+		if (aSideBCells <= PREVIEW_SMALL_AREA && aSideACells <= PREVIEW_SMALL_AREA) {
+			aSideB = true;
+			aSideA = true;
+			aLevel->mPreviewSide2Valid = true;
+			aLevel->mPreviewSide3Valid = true;
+		}
+	}
+
+	// with no bug alive the monkey may cut either side once the game is on its way
+	Player* aPlayer = Player::sCurrent;
+	bool aEitherSide = false;
+	if (aPlayer->mTutorialDone != 0) {
+		if (BugObj::sAlive < 1)
+			aEitherSide = true;
+	} else if (BugObj::sAlive < 1 && aPlayer->mSavedProgress > 0) {
+		aEitherSide = true;
+	}
+	bool aShowSideB;
+	if (aEitherSide) {
+		// (the original leaves the flag of the second side as it was here; the valid bytes say both)
+		aSideA = true;
+		aLevel->mPreviewSide2Valid = true;
+		aLevel->mPreviewSide3Valid = true;
+		aShowSideB = true;
+	} else if (aSideA) {
+		aShowSideB = aSideB;
+	} else if (aSideB) {
+		aShowSideB = true;
+	} else {
+		ClearRopePreview();
+		return;
+	}
+	if (aShowSideB) {
+		aLevel->mPreviewShown = true;
+		for (int aRow = 0; aRow < FILL_GRID_ROWS; aRow++) {
+			for (int aColumn = 0; aColumn < FILL_GRID_COLUMNS; aColumn++) {
+				FillObj* aCell = gFillGrid[aColumn][aRow].mCell;
+				if (aCell->mSide == PREVIEW_SIDE_B)
+					aCell->Highlight(theCellX, theCellY);
+				else
+					aCell->Unhighlight();
+			}
+		}
+		if (theVertical == 0) {
+			for (int aColumn = theFrom; aColumn <= theTo; aColumn++)
+				gFillGrid[aColumn][theCellY].mCell->Highlight(theCellX, theCellY);
+		} else {
+			for (int aRow = theFrom; aRow <= theTo; aRow++)
+				gFillGrid[theCellX][aRow].mCell->Highlight(theCellX, theCellY);
+		}
+	}
+	if (aSideA) {
+		if (!aLevel->mPreviewSide3Valid)
+			aLevel->mPreviewShown = false;
+		for (int aRow = 0; aRow < FILL_GRID_ROWS; aRow++) {
+			for (int aColumn = 0; aColumn < FILL_GRID_COLUMNS; aColumn++) {
+				FillObj* aCell = gFillGrid[aColumn][aRow].mCell;
+				if (aCell->mSide == PREVIEW_SIDE_A)
+					aCell->Highlight(theCellX, theCellY);
+				else
+					aCell->Unhighlight();
+			}
+		}
+	}
+}
+
+// 0x43e3a0: the rope has reached both ends. A new wave of the cut starts, the pipes along the rope start over as walls,
+// and the sides the preview found (the cells of the sides, then the rope's own line less its last place) are cut; the
+// level waits on the cut's last cell
 void LevelObj::CutGround(int theCellX, int theCellY, int theVertical, int theFrom, int theTo)
 {
-	(void)theCellX;
-	(void)theCellY;
-	(void)theVertical;
-	(void)theFrom;
-	(void)theTo;
+	LevelObj* aLevel = static_cast<LevelObj*>(sLevel);
+	FillObj::StartWave();
+	aLevel->StartWallPipes(theCellX, theCellY, theVertical, theFrom, theTo);
+	if (aLevel->mPreviewSide3Valid) {
+		for (int aRow = 0; aRow < FILL_GRID_ROWS; aRow++) {
+			for (int aColumn = 0; aColumn < FILL_GRID_COLUMNS; aColumn++) {
+				FillObj* aCell = gFillGrid[aColumn][aRow].mCell;
+				if (aCell->mSide == PREVIEW_SIDE_B)
+					aCell->Cut(theCellX, theCellY);
+			}
+		}
+		// (the rope's line is cut from theFrom up to but not with theTo, as the original does)
+		if (theVertical == 0) {
+			for (int aColumn = theFrom; aColumn < theTo; aColumn++)
+				gFillGrid[aColumn][theCellY].mCell->Cut(theCellX, theCellY);
+		} else {
+			for (int aRow = theFrom; aRow < theTo; aRow++)
+				gFillGrid[theCellX][aRow].mCell->Cut(theCellX, theCellY);
+		}
+	}
+	if (aLevel->mPreviewSide2Valid) {
+		for (int aRow = 0; aRow < FILL_GRID_ROWS; aRow++) {
+			for (int aColumn = 0; aColumn < FILL_GRID_COLUMNS; aColumn++) {
+				FillObj* aCell = gFillGrid[aColumn][aRow].mCell;
+				if (aCell->mSide == PREVIEW_SIDE_A)
+					aCell->Cut(theCellX, theCellY);
+			}
+		}
+	}
+	if (aLevel->mPreviewSide2Valid || aLevel->mPreviewSide3Valid) {
+		FillObj::AddBusy();
+		FillObj::MarkFarthest();
+	}
 }

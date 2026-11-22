@@ -53,6 +53,10 @@ public:
 	void StartShift();                          // 0x4560e0: the pipe starts to move
 
 	int mVariant;                               // +0x288: which picture of its kind it shows
+	int mAppearTrackIndex;                      // +0x2b0: the track (by AddTrack's number) a cut starts the pipe on
+	AnimKey* mAppearKey;                        // +0x2b4: that track's first key (grows in)
+	AnimKey* mSettleKey;                        // +0x2b8: its second
+	AnimTrack* mAppearTrack;                    // +0x2bc: the track itself
 	static bool sSoundPlayed;                   // 0x670191: the settling sound has played
 
 	void SetKind(int theKind);                  // 0x456070
@@ -165,7 +169,12 @@ public:
 	bool IsDone();                              // 0x4738a0
 };
 
-class BonusCoin : public ObjBase {};            // 0x408ed0 (0x498 bytes): the bonus under a cell; placed by 0x409970
+// The bonus under a cell (0x408ed0, 0x498 bytes); the stand-in is a hidden bonus that shows nothing
+class BonusCoin : public HiddenBonus
+{
+public:
+	void Place(int theColumn, int theRow);      // 0x409970 (EAX the row, the column pushed): puts the bonus at that place
+};
 
 // The effect of a bonus on the monkey (0x40bfe0); the stand-in is an object that shows nothing
 class BonusEffect : public ObjBase
