@@ -105,3 +105,14 @@ out of the build by configuration. Sizes are Bejeweled 2's and Venice's Release 
   the S3M effect converter). Bejeweled 2's exe goes from 4.96 to 4.16 MB. The web build keeps every loader: its music player
   plays every format libopenmpt reads. A game that wants another format takes its file out of the removed list and its name
   out of the stub file.
+- **Link-time optimisation (`-DBYOPOP_LTO=thin|full`, off by default).** Measured on Bejeweled 2 and Venice (from-scratch
+  builds of both, six compile jobs, back to back): no LTO 64 to 68 s, thin 59 s, full 81 s. Bejeweled 2's exe 4,161,536 bytes
+  without it, 4,042,752 with thin (2.9% smaller), 4,051,456 with full; Venice's 3,115,008, 3,159,040 and 3,124,736 (thin 1.4%
+  larger). Compressed with xz, thin is larger for both (Bejeweled 2 1,511,540 to 1,530,764 bytes), so it does not trim what a
+  player downloads and it is not on. Processor time on the recorded Bejeweled 2 game was no worse with either (cycle counts,
+  pinned pairs, the figures are in the commit that added the option); the bots' games, the frozen baselines and the unit suite are identical with thin.
+- **SDL.** The default build links the prebuilt `SDL2.dll` (1,911,808 bytes). SDL is also built from its own source here, by
+  `third_party/sdl-small/build.py` (docs/PUBLISHING.md, "The small SDL": only the subsystems the ports call, no source edited),
+  and a derived repository links that static build into its exe. This build does not: 31 games' `CMakeLists.txt` copy
+  `$<TARGET_FILE:SDL2::SDL2>` beside the exe, and the tools and the framework's renderer fallback use SDL's software renderer,
+  which the small build leaves out.
