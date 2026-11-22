@@ -1,0 +1,34 @@
+{
+ "ignore": [
+  {
+   "rect": [
+    0,
+    428,
+    800,
+    172
+   ],
+   "label": "the main menu's button row: the original has 'More Games' between Options and Quit; the port removes it and the two close the gap (the user's rule on outbound buttons, IDENTICAL_PLAY.md)",
+   "pairs": "menu_*,name_*,players_*,rename_box*,delete_sure*,quit_box*,tough_notice*,resurrect_*,continue_box*,leave_game*,error_*,classic1_u1250.png,classic1_u1500.png,classic1_u1750.png,classic1_u2000.png,error_name_needed.png,error_name_taken.png,error_rename_taken.png,marathon1_u2000.png,menus_u1500.png,menus_u1750.png,menus_u2000.png,menus_u2750.png,menus_u3000.png,menus_u3750.png,menus_u4000.png,menus_u5000.png,menus_u5250.png,menus_u5500.png,menus_u6000.png,menus_u6250.png,menus_u6500.png,nd10_u1500.png,nd10_u2000.png,nd22_u1500.png,nd22_u2000.png,save1_u1500.png,save1_u2000.png,save1_u8500.png,save1_u9000.png,save1_u9500.png,save22_u10000.png,save22_u10500.png,save22_u1500.png,save22_u2000.png,save22_u9500.png,sp25_u1500.png,sp25_u2000.png,sp25_u31500.png,sp25_u32000.png,sp25_u32500.png,sp25_u33000.png,tough1_u2000.png,wipe_from_scores_12.png,wipe_from_scores_13.png,wipe_from_scores_14.png,wipe_from_scores_15.png,wipe_from_scores_16.png,wipe_from_scores_17.png,wipe_from_trophies_12.png,wipe_from_trophies_13.png,wipe_from_trophies_14.png,wipe_from_trophies_15.png,wipe_from_trophies_16.png,wipe_from_trophies_17.png,wipe_leave_game_12.png,wipe_leave_game_13.png,wipe_leave_game_14.png,wipe_leave_game_15.png,wipe_leave_game_16.png,wipe_leave_game_17.png,wipe_leave_game_18.png,wipe_loading_12.png,wipe_loading_13.png,wipe_loading_14.png,wipe_loading_15.png,wipe_loading_16.png,wipe_loading_17.png,wipe_loading_18.png,wipe_to_game_01.png,wipe_to_scores_01.png,wipe_to_scores_02.png,wipe_to_trophies_01.png,wipe_to_trophies_02.png,wipe_to_trophies_12.png,wipe_to_trophies_13.png,wipe_to_trophies_14.png,wipe_to_trophies_15.png,wipe_to_trophies_16.png,wipe_to_trophies_17.png,wipe_to_trophies_18.png"
+  },
+  {
+   "rect": [
+    673,
+    184,
+    105,
+    69
+   ],
+   "label": "the word 'Deluxe' under the logo on the main menu, removed in the port on purpose (the user, 2026-11-18: 'Remove the \"Deluxe\" text from the main screen of any game it may appear in, to avoid misleading people about whose game version they're playing')",
+   "pairs": "menu_*,name_*,players_*,rename_box*,delete_sure*,quit_box*,tough_notice*,resurrect_*,continue_box*,leave_game*,error_*,classic1_u1250.png,classic1_u1500.png,classic1_u1750.png,classic1_u2000.png,error_name_needed.png,error_name_taken.png,error_rename_taken.png,marathon1_u2000.png,menus_u1500.png,menus_u1750.png,menus_u2000.png,menus_u2750.png,menus_u3000.png,menus_u3750.png,menus_u4000.png,menus_u5000.png,menus_u5250.png,menus_u5500.png,menus_u6000.png,menus_u6250.png,menus_u6500.png,nd10_u1500.png,nd10_u2000.png,nd22_u1500.png,nd22_u2000.png,save1_u1500.png,save1_u2000.png,save1_u8500.png,save1_u9000.png,save1_u9500.png,save22_u10000.png,save22_u10500.png,save22_u1500.png,save22_u2000.png,save22_u9500.png,sp25_u1500.png,sp25_u2000.png,sp25_u31500.png,sp25_u32000.png,sp25_u32500.png,sp25_u33000.png,tough1_u2000.png,wipe_from_scores_12.png,wipe_from_scores_13.png,wipe_from_scores_14.png,wipe_from_scores_15.png,wipe_from_scores_16.png,wipe_from_scores_17.png,wipe_from_trophies_12.png,wipe_from_trophies_13.png,wipe_from_trophies_14.png,wipe_from_trophies_15.png,wipe_from_trophies_16.png,wipe_from_trophies_17.png,wipe_leave_game_12.png,wipe_leave_game_13.png,wipe_leave_game_14.png,wipe_leave_game_15.png,wipe_leave_game_16.png,wipe_leave_game_17.png,wipe_leave_game_18.png,wipe_loading_12.png,wipe_loading_13.png,wipe_loading_14.png,wipe_loading_15.png,wipe_loading_16.png,wipe_loading_17.png,wipe_loading_18.png,wipe_to_game_01.png,wipe_to_scores_01.png,wipe_to_scores_02.png,wipe_to_trophies_01.png,wipe_to_trophies_02.png,wipe_to_trophies_12.png,wipe_to_trophies_13.png,wipe_to_trophies_14.png,wipe_to_trophies_15.png,wipe_to_trophies_16.png,wipe_to_trophies_17.png,wipe_to_trophies_18.png"
+  },
+  {
+   "rect": [
+    660,
+    282,
+    134,
+    92
+   ],
+   "label": "the word 'Deluxe' under the logo on the loading screen, removed in the port on purpose (the user, 2026-11-18, as on the main menu)",
+   "pairs": "wipe_loading_02.png,wipe_loading_01.png,classic1_u1000.png"
+  }
+ ]
+}
