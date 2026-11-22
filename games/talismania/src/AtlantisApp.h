@@ -7,6 +7,7 @@
 // Translated so far: the boot's archive and the application's construction.
 
 #include "AtlantisData.h"
+#include "AtlantisScene.h"
 #include "Object.h"
 #include "sigslot.h"
 
@@ -20,12 +21,16 @@ public:
 	// returned with one reference held by the caller
 	static AtlantisApp* boot();
 
-	// 0x402aa0 (not yet translated)
+	// 0x402aa0 (not yet translated: it makes the persisted options, AtlantisOptions, over the vendor and the key, and
+	// sets the window's size and rate, which the port's host sets)
 	void configure();
-	// 0x402d60 (not yet translated)
+	// 0x402d60: the start is logged and the scene made from the options' scene class and enabled; the sound engine, the
+	// popup menu stacks, the signal connections and the loading state are not yet translated
 	void start();
 
 	AtlantisData mData;
+	AppClass mOptions;  // the application options "std", read by the boot
+	engine::Ref<AtlantisScene> mScene;  // +0x38
 };
 
 // 0x813aa2: set by the boot when the archive is used. The loading screen reads its few loose files with loose files
