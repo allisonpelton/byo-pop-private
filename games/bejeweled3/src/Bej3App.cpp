@@ -3,7 +3,10 @@
 
 #include "Bej3Dialog.h"
 #include "Bej3Music.h"
+#include "Board.h"
+#include "MemoryImage.h"
 #include "MainMenu.h"
+#include "PlayMenu.h"
 #include "WidgetManager.h"
 #include "DDInterface.h"
 #include "EncodingParser.h"
@@ -67,6 +70,12 @@ Bej3App::~Bej3App()
 	// the loaded player is saved as the profile goes (0x71c4b0)
 	delete mProfile;
 	mProfile = nullptr;
+	for (auto& aRow : mGemFrames) {
+		for (MemoryImage*& aFrame : aRow) {
+			delete aFrame;
+			aFrame = nullptr;
+		}
+	}
 	delete mPrimeResourceManager;
 	gApp = nullptr;
 }
@@ -424,4 +433,44 @@ void Bej3App::ShowResourceError(bool doExit)
 	Popup(mPrimeResourceManager->GetErrorText());
 	if (doExit)
 		DoExit(0);
+}
+
+// 0x7737d0 (bejeweled3)
+void Bej3App::StartClassic()
+{
+	if (mGemFrames[0][7] == nullptr)
+		MakeGemFrames();
+	// the board of the game before goes (the exe also lets go of another screen at +0xba4: nothing there is made yet)
+	if (mBoard != nullptr) {
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+		mBoard = nullptr;
+	}
+	mBoard = new ClassicBoard();
+	mBoard->Resize(0, 0, mWidth, mHeight);
+	mBoard->ResetGame();
+	// slot 213 (0x743f40) with 0x15 sets what the mode shows: not translated yet
+	// 0x76cde0 asks whether a saved game of the mode is to be resumed: there is none, so the new game starts
+	mWidgetManager->AddWidget(mBoard);
+	mWidgetManager->SetFocus(mBoard);
+	mBoard->NewGame();
+	if (mBej3Music != nullptr) {
+		mBej3Music->QueueEvent("FadeOut", "", false);
+		mBej3Music->QueueEvent("Play", mBoard->GetModeName(), false);
+	}
+}
+
+// 0x7716e0 (bejeweled3): the play menu (+0x270 of the main menu) is made visible, its mode ball (+0x488) goes back from the middle
+// by the curve at +0x490 (0x689a10: 150 updates), and the music fades out and the menu's song plays. port: left out until their
+// step: the picture's fade (slot 82 of the board's background, 0x77dde0), the ball's own two curves and the labels' curves
+// (0x689a10, 0x684660) and the other screen at +0xba4, which is not made
+void Bej3App::ShowPlayMenu()
+{
+	PlayMenu* aPlayMenu = mMainMenu->mPlayMenu;
+	aPlayMenu->SetVisible(true);
+	aPlayMenu->mHideCurve.SetCurve("b;0,1,0.006667,1,~###         ~####");
+	if (mBej3Music != nullptr) {
+		mBej3Music->QueueEvent("FadeOut", "", false);
+		mBej3Music->QueueEvent("Play", "MainMenu", false);
+	}
 }
