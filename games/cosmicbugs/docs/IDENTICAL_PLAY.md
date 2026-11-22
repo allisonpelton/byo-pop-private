@@ -347,6 +347,47 @@ sample (update 1001 of a `-fast` run, where it shows the logo without the flag),
 shows the title at update 411 where the same start without it is still on the logo at 311. With the setting off nothing changes
 (the baseline and the suite hold).
 
+### Screen coverage pass (2026-11-21)
+
+The screen audit found that each looks phase compared only the screens its tours visit, so `SCREENS.md` now lists every screen
+and dialog the game can show (26 rows, from `LevelKind`, `RequesterKind` and the game file's menus) and each row's shots are pairs
+of one shotdiff run, `cb-cover-1`: the original in Windows Sandbox (`tools/play/tour-orig.sh`, the 5-5-5 screen, the virtual
+clock, the usual patches) beside the runner (`CB_555=1`, `tools/play/tour-port.sh`), 97 pairs of 800x600 pictures. The game is
+2D only and its window and full screen draw the same picture, so each is taken once. Result: **69 identical, 25 faint (the
+one-step soft edges of the images blended twice, listed above), 3 differing, none of them a difference of the port.**
+
+What the tours cover now. `menus.txt` is as before (47 shots). `end.txt` is new: the old one started from a save that came from the
+original and was lost, so its save is rebuilt (`tools/play/mksaves.sh`: the port's `unlock all` file, then one profile's saved level,
+lives and score edited, in the format both read), and the tour now plays that game to its last life with seed 7 of the generator, then
+the game over, the high-score entry, the title and the world picker. `players.txt` is the player list from the coverage script
+`users.txt`: the message when the only player is deleted, a name typed into an empty slot, a second player, the name box
+cancelled, Delete with two players, Rename, and each player chosen in turn. `board.txt` takes the first 141 s of phase one's `k1`
+play: a won board's texts ("level finished", the bonus, the next board's intro), Esc and Esc to the title (the game is saved),
+Start Game and the resume question, OK, and again with Cancel to the world picker, a world's button and the level slider.
+`mission.txt` starts from the unlocked save, picks the last world (500 to 577) and its slider's last level with 80 clicks on the
+arrow, and wins that board: the port by the test command `win`, the original patched at 0x412e2e (`jge` to `jmp`, so the quota
+test always passes) and waiting on its own state (`mission.orig.txt`), then the mission-complete screen and its Continue.
+
+Differences. Three pairs differ, all the mission-complete screen (`mission_mission`, `_after`, `_after2`; `_fade` is faint). The
+boxes are single stars' twinkles and the pointer's animation frame. A search of the port's own frames at every 50 ms around the time
+found no frame equal to the original's (about 700 differing pixels in the best, all of those two kinds), because the twinkles are drawn
+from the game's random generator, whose state follows everything played before, and the original's patched win and the port's
+`win` leave different histories; the picture, its two texts and the button are the same everywhere else. It is explained, not fixed.
+The player's name (SYSTEM in the sandbox, GUEST on the host) is masked where it shows, as before (`shotdiff.json`). Two shots were
+dropped from the tours, not compared: the first title shot of the player-list tour (the original's pointer is at the corner before
+any input and the runner's in the middle) and the mission tour's board (the patched original had already won it).
+
+Checked and not an issue. "Deluxe": no title, loading or main-menu picture of this game shows it (the title's text is "Cosmic
+Bugs", the copyright line reads "2007, PopCap Games", and the window's title has none), so no crop or cover was needed and the
+deviation list is unchanged. The pointer after a lost life (the user's note of 2026-11-18): the original moves the system pointer
+to the middle at every update of the ship's fade-in (0x41b370 calling 0x428890, `SetCursorPos`), the port does the same natively,
+so it is not a bug of the port; the web cannot move the pointer, so the ship waits in the middle until the pointer moves. It is a
+fix candidate for the fixes mod (README.md, "Fix candidates"). Two rows have no shots: the leave-game requester (the item type
+that opens it is in no menu of the game file: unreachable) and the trial screens (removed, never gone to).
+
+The port's sources were not changed by this pass. A tour's frozen baseline is the series of `test/plays` (state), which is unchanged;
+the five tours in `test/tours` are the screens' record, shot by `tools/play/tour-all.sh` and compared by `tools/play/tour-compare.sh`.
+
 ### Performance
 
 The original and the port back to back: README.md, "Performance". In short, both load in about half a second; the port holds
