@@ -395,64 +395,48 @@ wait 400
 click 401 570   # Attack: ALIENATION
 wait 2500
 wait 500
-click 326 334
-wait 300
-click 476 436
-wait 300
-click 426 385
-wait 300
 click 476 385
-wait 300
-click 376 385
-wait 300
-click 376 334
-wait 300
-click 426 334
-wait 300
-click 476 334
-wait 300
-click 326 436
-wait 300
-click 326 385
-wait 300
-click 376 487
 wait 300
 click 376 436
 wait 300
-click 326 487
+click 426 334
+wait 300
+click 376 487
+wait 300
+click 476 334
+wait 300
+click 476 436
+wait 300
+click 376 334
+wait 300
+click 426 436
+wait 300
+click 326 436
 wait 300
 wait 400
-click 401 570   # Attack: SEMISEDENTARY
+click 401 570   # Attack: BROADENED
 wait 2500
 wait 500
-click 326 334
-wait 300
-click 476 436
-wait 300
-click 426 385
-wait 300
 click 476 385
-wait 300
-click 376 385
-wait 300
-click 376 334
-wait 300
-click 426 334
-wait 300
-click 476 334
-wait 300
-click 326 436
-wait 300
-click 326 385
-wait 300
-click 376 487
 wait 300
 click 376 436
 wait 300
-click 326 487
+click 426 334
+wait 300
+click 376 487
+wait 300
+click 476 334
+wait 300
+click 476 436
+wait 300
+click 376 334
+wait 300
+click 426 436
+wait 300
+click 326 436
 wait 300
 wait 400
-click 401 570   # Attack: SEMISEDENTARY
+click 401 570   # Attack: BROADENED
 wait 2500
 wait 500
 shot bookend_23_dialog
@@ -475,230 +459,71 @@ wait 500
 click 400 150
 wait 3000
 wait 500
-click 326 334
-wait 300
-click 476 436
-wait 300
-click 426 385
-wait 300
 click 476 385
 wait 300
-click 376 385
-wait 300
-click 376 334
+click 376 436
 wait 300
 click 426 334
 wait 300
+click 376 487
+wait 300
 click 476 334
+wait 300
+click 476 436
+wait 300
+click 376 334
+wait 300
+click 426 436
 wait 300
 click 326 436
 wait 300
-click 326 385
-wait 300
-click 376 487
-wait 300
+wait 400
+click 401 570   # Attack: BROADENED
+wait 2500
+wait 500
 click 376 436
+wait 300
+click 426 436
+wait 300
+click 426 334
+wait 300
+click 426 385
+wait 300
+click 376 334
+wait 300
+click 376 385
+wait 300
+click 326 334
 wait 300
 click 326 487
 wait 300
 wait 400
-click 401 570   # Attack: SEMISEDENTARY
-wait 2500
+click 401 570   # Attack: ARTISTRY
+wait 2000
+shot bookend_28_attack
+wait 500
 wait 1500
 wait 500
 click 400 150
-wait 3000
-wait 500
-shot bookend_29_talk
-click 400 150   # the conversation on
 wait 3000
 wait 500
 shot bookend_30_talk
 click 400 150   # the conversation on
 wait 3000
-wait 1500
 wait 500
-shot bookend_31_idle
-click 400 150
-wait 3000
-wait 1500
-wait 500
-click 476 334
-wait 300
-click 476 385
-wait 300
-click 326 385
-wait 300
-click 376 385
-wait 300
-click 426 334
-wait 300
-click 326 487
-wait 300
-click 326 436
-wait 300
-click 476 436
-wait 300
-click 426 385
-wait 300
-click 376 487
-wait 300
-wait 400
-click 401 570   # Attack: INVARIABLE
-wait 2000
-shot bookend_32_attack
-wait 500
-wait 500
-click 326 334
-wait 300
-click 426 487
-wait 300
-click 376 334
-wait 300
-click 376 385
-wait 300
-click 426 385
-wait 300
-click 326 385
-wait 300
-click 426 334
-wait 300
-click 476 385
-wait 300
-click 476 436
-wait 300
-wait 400
-click 401 570   # Attack: SWAGGERER
-wait 2500
-wait 500
-shot bookend_33_lostturn
-click 401 410   # lostturn
-wait 1500
-wait 500
-shot bookend_34_lostturn
-click 401 410   # lostturn
-wait 1500
-wait 500
-click 326 334
-wait 300
-click 426 487
-wait 300
-click 376 334
-wait 300
-click 376 385
-wait 300
-click 426 385
-wait 300
-click 326 385
-wait 300
-click 426 334
-wait 300
-click 476 385
-wait 300
-click 476 436
-wait 300
-wait 400
-click 401 570   # Attack: SWAGGERER
-wait 2500
-wait 500
-click 400 150
-wait 3000
-wait 1500
-wait 500
-click 400 150
-wait 3000
-wait 1500
-wait 500
-shot bookend_37_idle
-click 400 150
-wait 3000
-wait 1500
-wait 500
-shot bookend_38_talk
+shot bookend_31_talk
 click 400 150   # the conversation on
 wait 3000
 wait 500
-shot bookend_39_talk
+shot bookend_32_talk
 click 400 150   # the conversation on
 wait 3000
 wait 500
-shot bookend_40_talk
+shot bookend_33_talk
 click 400 150   # the conversation on
 wait 3000
 wait 500
-shot bookend_41_talk
-click 400 150   # the conversation on
-wait 3000
-wait 500
-shot bookend_42_talk
-click 400 150   # the conversation on
-wait 3000
-wait 500
-shot bookend_43_talk
-click 400 150   # the conversation on
-wait 3000
-wait 500
-shot bookend_44_talk
-click 400 150   # the conversation on
-wait 3000
-wait 500
-click 400 150
-wait 3000
-wait 500
-shot bookend_46_talk
-click 400 150   # the conversation on
-wait 3000
-wait 500
-shot bookend_47_talk
-click 400 150   # the conversation on
-wait 3000
-wait 1500
-wait 500
-shot bookend_48_talk
-click 400 150   # the conversation on
-wait 3000
-wait 500
-shot bookend_49_talk
-click 400 150   # the conversation on
-wait 3000
-wait 500
-click 400 150
-wait 3000
-wait 1500
-wait 500
-shot bookend_51_idle
-click 400 150
-wait 3000
-wait 500
-shot bookend_52_dialog
-click 332 388   # dialog
-wait 1500
-wait 500
-shot bookend_53_talk
-click 400 150   # the conversation on
-wait 3000
-wait 500
-shot bookend_54_talk
-click 400 150   # the conversation on
-wait 3000
-wait 500
-shot bookend_55_talk
-click 400 150   # the conversation on
-wait 3000
-wait 500
-shot bookend_56_talk
-click 400 150   # the conversation on
-wait 3000
-wait 500
-shot bookend_57_talk
-click 400 150   # the conversation on
-wait 3000
-wait 500
-shot bookend_58_talk
-click 400 150   # the conversation on
-wait 3000
-wait 500
-shot bookend_59_talk
+shot bookend_34_talk
 click 400 150   # the conversation on
 wait 3000
 wait 1500
