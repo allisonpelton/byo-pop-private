@@ -94,7 +94,11 @@ files, so their pages read it from those files instead (`web/flicursor.js`, `Byo
 with its mask and the shadow the game draws, the hot spot at the top left, and the frame time from the animation file, in
 the game's updates of 1 ms (the games step once for each millisecond passed): 50 ms and 30 ms, 10 frames each, looping.
 Sets kept before 2026-11-16 read the updates as 10 ms (500 and 300 ms, the user: "They animate extremely slowly"), and
-`web/cursors.js` puts them right once (`retime`). Ning Po's pointer sprite is empty, so it has no set.
+`web/cursors.js` puts them right once (`retime`). Ning Po's pointer sprite is empty, so it has no set. Venice draws
+its cursor as a scene object, so its port reads that picture again and gives it as the set's pointer
+(`games/venice/src/Cursor.cpp`, `WebCursorSetKind`; the user, 2026-11-19: "Venice is missing its custom cursor"). Bonnie's Bookstore
+gave one from 2026-11-16 until the user had it taken out (2026-11-17: "they look just like the Windows default"); a set
+kept for it is dropped at load, with a choice of it, and never kept again (`withdraw`).
 
 The page swaps an animated cursor's frames itself, as the inline cursor of the element under the mouse, keeping that
 element's own inline cursor aside and putting it back after. Each frame first looks again at what applies, so the swap
@@ -319,8 +323,13 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   place) and Properties (Settings' Appearance).
 - **The task bar's right click:** Cascade, Tile Horizontally, Tile Vertically and Minimize All Windows, which becomes
   Undo Minimize All.
-- **Tooltips:** drawn as 1995's, a pale yellow box with a black border half a second after the pointer rests. The title
-  is taken off while the box may show, so the browser draws none, and an element named only by it keeps that name.
+- **Tooltips:** drawn as 1995's, a pale yellow box with a black border half a second after the pointer rests. The
+  browser draws its own for any title under the pointer, so the titles of the element and of its titled ancestors are held
+  off them until the pointer leaves the element: moving onto a child of it (a Sounds button's label), a press, a key and
+  the box's six seconds take only the box away. A title the page gives a held element (Music's Play becoming Pause) is
+  held and shown too, and one given to the element under the pointer starts its box. An element named only by its title
+  keeps that name. A game window's frame has none, since the pointer's movements in it never reach the desktop's page (the
+  user, 2026-11-16, of native tooltips mixed in with Desktop 95's, and of a stray "Bejeweled 2" over a game's board).
 - **The tray's speaker:** it opens a Volume slider with Mute (`ByopopVolume`: `byopop-master-volume`,
   `byopop-master-mute`). Everything the site plays follows it, each sound at its own level times this one: the games,
   through a gain the game's page puts after its output node (`siteVolume` in `web/shell.html`, which the hush in
@@ -363,11 +372,27 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
 The game
 window's menu bar spreads the game's commands over Game, View, Options and Help (the user, 2026-11-09: "don't hide
 everything under "Game""), and no menu shows Alt+F4 or Alt+Space, which the browser keeps. The game is always at a
-whole multiple of its size in device pixels (`sizeStage`); the window takes the status bar's height rounded up
+whole multiple of its size in device pixels (`sizeStage`). A multiple chosen in the View menu is drawn only while the desktop
+has room for its window; otherwise the game is drawn at the largest multiple that fits, or at 1x with the window scrolling
+when not even that fits, and the choice is kept, so the game goes back to it when there is room (`embedWidth`,
+`scaleInUse`). The window is fitted again whenever the multiple drawn changes. The desktop tells each game's page when its
+room changes (`web/deskapps.js`, `roomChanged`: the browser window's size, full screen, the desktop's zoom, the task bar's
+height), since a window that keeps its size gives its page no resize. The status bar gives the multiple drawn; the View menu
+ticks the one chosen and greys those without room. The game is centred by its margins, so that a game larger than its
+window starts at the top left and scrolls instead of being cut off (the user, 2026-11-20: "Ning Po window is cut off"). The
+window takes the status bar's height rounded up
 (`statusBarHeight`), and the canvas is focused with `preventScroll` everywhere, so that the game's area is never a
 fraction short and a press on the game never scrolls it (the user's note of 2026-11-11). The framework offers the
 game's own full-screen request to the page (`sexyapp_page_fullscreen` in `framework/SexyAppBase.cpp`), because SDL's
 full screen would stretch the canvas.
+
+**Resizes** are settled on every page, in the first lines of `web/skins.js` (checked by `tools/resizetest.js`). A window
+that changes size step by step sends a resize event for each step: Firefox's full-screen transition, F11 in it, a browser
+window dragged larger. Each step had SDL size the canvas's pixels again and the page and the desktop lay themselves out
+again, so the page lagged and the sound crackled (the user, 2026-11-17: "The site lags a lot and causes audio crackling
+because it tries to resize repeatedly when Firefox enters full screen"). Now the first event of a run goes on at once and
+the rest are held, by a listener capturing at the window, until none has come for 120 ms; then one resize goes on for the
+size reached. The page's own resizes, which its scripts send so that SDL measures the stage again, go on at once.
 
 **Its text** is Byopop Sans, `web/fonts/byopop-sans.woff`, built by `tools/web/pixelfont.py` from W95FA by Alina Sava
 (SIL OFL 1.1, as is ours); after a change to the script, run it and commit the file. The font is sharp only at 11
@@ -486,7 +511,9 @@ picture's alpha mask is not read: each wallpaper chosen has none.
 Settings > Screen Saver (`web/saver.js`; the user, 2026-11-11) has the game, None by default, then each game with a bot
 whose files are here; the Wait in minutes; and Preview. When the listing's desktop has had no key, mouse or touch for the
 Wait, it goes dark and the game plays itself silently in a frame over it; any key or mouse movement ends it and leaves
-everything as it was. The frame is the game's player-only page at `?saver=1`, which reads the player's own files and writes
+everything as it was. Input in the desktop's windows counts too: each window's frame keeps its events to itself, so the saver
+listens in every frame's page as it loads, and a game playing in the active window (`ByopopEmbed.running`) holds it off
+with no input at all (the user, 2026-11-17: "Screensaver activated while I was playing Typer Shark"). The frame is the game's player-only page at `?saver=1`, which reads the player's own files and writes
 nothing back (its `Storage` writes and IDBFS syncs do nothing), so a saver's games touch no save, high score or record.
 Its page centres the game on black (`html.saver`), and a key pressed while the game's canvas has the focus ends the saver
 too. The driver runs with `?begin=mode`, which starts a game still on its title or menus in the mode its state names.
@@ -669,7 +696,13 @@ writes, so it never runs while a game page is open.
 ### The music player
 
 The Music window (`web/music.js`, checked by `tools/musictest.js`) plays the music of the games the player added, from
-their own files in this browser; the site ships no music and sends nothing anywhere.
+their own files in this browser; the site ships no music and sends nothing anywhere. Its list follows the games' files
+while the page is up: `ByopopGameFiles` (`web/settings.js`) tells each change of its record on the page
+(`byopop-game-files`), and another page (a game's window, another tab) is heard by the storage event of the record. When the
+games with music change, the list is read again while the window is shown, or at its next showing: a game that came gets
+its tunes read, the tunes of the games still there are kept, and a game whose files went loses its own, the tune playing
+stopping with them (the user, 2026-11-16: "Music required reloading the page"). The Sounds window does the same while it
+is open.
 
 **Music's data** is `web/soundtracks.js`, by game id, whose header gives an entry's fields; tunes are named plainly,
 never with invented titles. A game's session sets these from its code:
@@ -772,7 +805,10 @@ The game's side is a site hook in the platform layer: no game's code changes, an
 `Platform::Mixer` exports the `byopop_music_*` calls (`platform/Audio.cpp`), reading a libopenmpt module through
 `ModulePlayer`'s web-only `GetView` and its neighbours (`platform/openmpt/OpenMPTPlayer.cpp`); a stream, or TipTop's
 MIDI synthesizer, gives the spectrum only, tapped from the game's own AudioContext so that what is heard does not
-change. `ByopopMusicPanel.following()` tells a test the game followed and its view.
+change. A game that plays its tunes as sounds (Venice: `voices` in `web/soundtracks.js`) has no song while its music
+plays; its tune is the loudest of its voices playing one of the files its tunes list (`byopop_sounds_view`, the Sounds
+window's call; `frontFrame` gives the game's id), followed as a stream is (the user, 2026-11-18: "Venice's audio doesn't
+sync with the spectral analyzer"). `ByopopMusicPanel.following()` tells a test the game followed and its view.
 
 ### The soundboard
 
@@ -1058,7 +1094,7 @@ pixels wide). For each window it checks that structure and runs the checker on t
 `window.byopopDeskCheck.result`, and the page's title ends with "deskcheck: PASS" or "FAIL". The chat's window is checked
 closed, because opening it starts the chat.
 
-Four more checks run the same way, each named in `driver=` and each reporting through the same result and title.
+Five more checks run the same way, each named in `driver=` and each reporting through the same result and title.
 `tools/web/closecheck.js` closes game windows whose page never answers the close: a page that is not there, a frame that
 could not load, and a page that takes the close but never hands the window back. The window must go at once, or, for the
 silent page, after its four-second wait, and at once on a second Close (`web/deskapps.js`, `closeApp`).
@@ -1083,7 +1119,13 @@ splits it stored. `tools/web/musicmutecheck.js` mutes a channel from
 Music's tracker, turns the view off and on, switches tunes and comes back, and compares the tracker's header with what the
 player itself has muted (`bm_mute_status`). It then sends the keyboard's media keys with Music open and closed and checks
 the player's state and its sound context, not its buttons (`web/music.js`, `syncMutes` and the media keys). It needs games
-added that have two module tunes.
+added that have two module tunes. `tools/web/fitcheck.js` loads the desktop in a frame of the page whose size it sets, as a
+browser window, and opens one game's window for each screen size (640 by 480, 800 by 600 and 1024 by 768, given through the
+page's `Module.onGameScreen`, so no files are needed) with 2x chosen. It then makes the frame small, smaller, large and small
+again. After each step the game's picture must start at its area's top left and scroll in full, be drawn at 2x where the
+desktop has room for that window and at 1x where it has not, and have its whole window on the desktop at 2x; the status bar
+must give the multiple drawn, and the View menu keep 2x ticked, greyed where it does not fit. It puts the choice of scale and
+the desktop's layout back at the end.
 
 ## The site's text
 
@@ -1157,6 +1199,12 @@ that show the game as a 256-colour screen did (the user, 2026-11-09: "Is it poss
 windows to make them appear in 256 colors only?"): `pal256` makes each pixel the nearest colour of the palette Windows
 kept for programs that set none (its 20 static colours and the 6x6x6 cube), and `pal256d` first applies an 8x8 ordered
 dither. Both are drawn by a WebGL canvas over the game canvas, filled in the frame hook (`Module.byopopTestFrame`).
+The scanlines lie over the canvas's own box, not the whole stage (in full screen the canvas is centred in a larger
+stage), with one line a game row high every two of the game's rows: the rows come from the game's size (`--aspect`) and
+the height from the canvas's drawn box, never from the canvas's pixels, which SDL sizes on its own time (300 x 150 before
+the game makes its window, the old size for a while after a resize) and which made the lines briefly too large (the user,
+2026-11-21). They are sized again whenever the canvas or the stage changes size, the stage's style changes, the window
+is resized or full screen begins or ends.
 
 ### Controls
 
