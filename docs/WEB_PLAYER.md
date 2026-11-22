@@ -755,7 +755,7 @@ and one that starts as a width list, with a picture of its name (in `images/` fi
 picture the files lack is left out (Big Money's `new_bigmoneyfont1` and Typer Shark's `gillsansmtcondensed12`, which the games
 never load). A picture is found as `platform/ImageLoader.cpp` finds one: its name with any picture extension (`.jp2` too), its
 alpha from `_<name>` or `<name>_` (the mask's low byte), white where there is only a mask. `tools/fontviewtest.js` (unit-web)
-checks the reader on fonts made for it, then reads every font of the staged games: 299 fonts in 20 games, 281 descriptors and
+checks the reader on fonts made for it, then reads every font of the staged games: 319 fonts in 22 games, 301 descriptors and
 18 width lists, Bejeweled Twist's from its `main.pak` too. The other engines' fonts (Retro64's in Cosmic Bugs, Water Bugs and
 Venice; Bonnie's; Jolly Bear's in the Mahjong Escapes; Ning Po's, Tip Top's and Word Harmony's) are not read yet, so those
 games' Font lists are empty.
