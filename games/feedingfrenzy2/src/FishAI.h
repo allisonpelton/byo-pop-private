@@ -7,19 +7,22 @@
 // state says it has gone, out of view after being seen, loses its state, which is what makes it dead to its spawn.
 //
 // Translated so far: swimming in, wandering, flying by, the reactions to what a fish sees (FleeAI, ChaseAI and
-// AvoidAI), eating and being eaten. Schooling, puking and leaving are not yet, and each place that calls one says so.
+// AvoidAI), eating and being eaten, and schooling (SchoolOfFish and SchoolingAI). Puking and leaving are not yet, and
+// each place that calls one says so.
 
 #include "Geometry.h"
 #include "Object.h"
 #include "State.h"
 #include "sigslot.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
 class Actor;
 class AIFish;
 class Fish;
+class FishBehaviorInfo;
 
 // A list of times to wait for, one after another (0x28 bytes inside the states; made by 0x421c00 (feedingfrenzy2)):
 // each step adds the frame's time, and once the time reaches the next of the list, that one is passed. The states use
@@ -325,6 +328,104 @@ private:
 	float mStartScale;          // +0x2c: the visual's
 	float mElapsed;             // +0x30
 	float mSeconds;             // +0x34
+};
+
+// A school of fish (SchoolOfFish, 0xa8 bytes, vtable 0x553a74 (feedingfrenzy2); its constructor 0x4101b0
+// (feedingfrenzy2)): the fish a school spawn brings in together, their centre and mean velocity, and the goal they
+// swim to. A fish taken out of the stage stays on the list.
+class SchoolOfFish : public engine::Object
+{
+public:
+	SchoolOfFish();
+
+	// 0x407600 (feedingfrenzy2): the behaviour's distances and factors, whether it flies by, and the goal's time
+	// started at once
+	void setBehavior(FishBehaviorInfo* theBehavior);
+	// 0x41d290 (feedingfrenzy2): the fish joins, the school its own
+	void addFish(AIFish* theFish);
+	// 0x460400 (feedingfrenzy2): once a frame, from the first of its fish to update: the centre and mean velocity,
+	// and a new goal when the goal's time comes or the centre is within 16 of the goal
+	void update(engine::UpdateContext* theContext);
+	// 0x461d90 (feedingfrenzy2): the school takes fright: for 1.5 to 2 seconds drawn when it was calm, the time
+	// started again when it already flees
+	void startFleeing();
+	// 0x43ada0 (feedingfrenzy2): the fish of the school nearest the one, the first of the nearest; none when it is
+	// alone
+	AIFish* findNearest(AIFish* theFish);
+
+	const std::vector<AIFish*>& getFish() const { return mFish; }
+	const engine::Vector2f& getCenter() const { return mCenter; }
+	const engine::Vector2f& getGoal() const { return mGoal; }
+	float getSeparationDistance() const { return mSeparationDistance; }
+	float getSeparationDistanceSquared() const { return mSeparationDistanceSquared; }
+	float getSeparationFactor() const { return mSeparationFactor; }
+	float getCohesionFactor() const { return mCohesionFactor; }
+	float getAlignmentFactor() const { return mAlignmentFactor; }
+	float getGoalFactor() const { return mGoalFactor; }
+	float getFleeFactor() const { return mFleeFactor; }
+	bool isFleeing() const { return mFleeing; }
+	uint64_t getLastFrame() const { return mLastFrame; }
+
+private:
+	// 0x437f80 (feedingfrenzy2): the centre and the mean velocity of the fish
+	void findCenter();
+	// The goal's pick (0x4604a4 to 0x460514 and 0x4e6747 (feedingfrenzy2)): past the far side of the first fish's
+	// bounds for a fly-by, else a point drawn inside them with the goal's next time drawn
+	void pickGoal();
+
+	std::vector<AIFish*> mFish;                  // +0x0c
+	engine::Vector2f mCenter;                    // +0x1c
+	engine::Vector2f mAverageVelocity;           // +0x24
+	float mSeparationDistance;                   // +0x2c
+	float mSeparationDistanceSquared;            // +0x30
+	float mNeighborDistance;                     // +0x34
+	float mNeighborDistanceSquared;              // +0x38
+	float mSeparationFactor;                     // +0x3c
+	float mCohesionFactor;                       // +0x40
+	float mAlignmentFactor;                      // +0x44
+	float mGoalFactor;                           // +0x48
+	float mFleeFactor;                           // +0x4c
+	float mChaseMultiplier;                      // +0x50
+	engine::Vector2f mGoal;                      // +0x54
+	Timetable mGoalTime;                         // +0x60: the goal kept until it, or the fright's end
+	engine::FloatRange mMoveChangeFrequency;     // +0x88: "schoolMoveChangeFreq"
+	bool mFleeing;                               // +0x90
+	bool mFlyBy;                                 // +0x91: its behaviour's base is "flyBy"
+	int mCount;                                  // +0x94: the fish that joined
+	uint64_t mLastFrame;                         // +0x98: the frame it last updated in
+};
+
+// A fish swimming with its school (SchoolingAI, 0xb0 bytes, vtable 0x54eddc (feedingfrenzy2); its constructor
+// 0x41ab70 (feedingfrenzy2)): every 0.05 to 0.1 seconds the pulls on it worked out again (apart from its nearest,
+// along with the others' velocity, towards the centre and the goal, and away from what eats it), their sum pushed on
+// it each step
+class SchoolingAI : public AIFishState
+{
+public:
+	// 0x41ab70 (feedingfrenzy2): in play and edible
+	explicit SchoolingAI(AIFish* theFish);
+
+	// 0x04 (0x41a800 (feedingfrenzy2)): the pulls' time started at none, so the first update works them out
+	void enter() override;
+	// 0x0c (0x445610 (feedingfrenzy2)): the next state once the school is the fish alone; else the school's update
+	// once a frame, the pulls worked out when their time comes, their sum pushed on the fish, and the fish moved
+	void update(engine::UpdateContext* theContext) override;
+
+private:
+	// 0x43a6c0 (feedingfrenzy2): away from the nearest fish within the separation distance, harder the nearer
+	engine::Vector2f findSeparation();
+	// 0x43a7a0 (feedingfrenzy2): the others' mean velocity less the fish's, by the alignment factor
+	engine::Vector2f findAlignment();
+	// 0x43bbb0 (feedingfrenzy2): away from each actor in sight that eats the fish, harder the nearer
+	engine::Vector2f findFlee();
+
+	Timetable mPullTime;            // +0x50
+	engine::Vector2f mAlignment;    // +0x78
+	engine::Vector2f mCohesion;     // +0x80
+	engine::Vector2f mSeparation;   // +0x88
+	engine::Vector2f mGoalPull;     // +0x90
+	engine::Vector2f mFlee;         // +0x98
+	engine::Vector2f mForce;        // +0xa0: the sum
 };
 
 #endif

@@ -6,6 +6,7 @@
 #include "GameData.h"
 #include "Random.h"
 #include "Stage.h"
+#include "VectorMath.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -14,6 +15,19 @@ using namespace engine;
 
 namespace
 {
+
+const float MINUS_ONE = -1.0f;      // 0x566850 (feedingfrenzy2)
+const float SCHOOL_OFFSET = -0.5f;  // 0x566a0c (feedingfrenzy2): a school's box set back by half its size
+
+// 0x41ce50 (feedingfrenzy2): a whole number drawn from the low end to the high one (to the low from the high when
+// they are turned about)
+int drawWhole(const IntRange& theRange)
+{
+	int aDraw = crtRand();
+	if (theRange.mLow > theRange.mHigh)
+		return aDraw % (theRange.mLow - theRange.mHigh + 1) + theRange.mLow;
+	return aDraw % (theRange.mHigh - theRange.mLow + 1) + theRange.mLow;
+}
 
 // The registry's classes, in the order its constructor adds them, and the spawn each makes
 struct RegisteredClass
@@ -417,14 +431,68 @@ Actor* FishSpawn::spawn()
 {
 	if (mFishBehavior->mSchoolSize.mHigh < 2)
 		return NonPlayerSpawn::spawn();
-	// A school (SchoolOfFish, 0xa8 bytes, its constructor 0x4101b0 (feedingfrenzy2)) of the behaviour's school size
-	// drawn (0x41ce50 (feedingfrenzy2)) less the room the phase and the supply leave, its leader brought in as one
-	// fish and the rest about it, each drawn in a square twice the separation distance: not yet translated, as the
-	// actors are not
+	Ref<SchoolOfFish> aSchool = new SchoolOfFish();
+	aSchool->setBehavior(mFishBehavior.get());
+	// The school's size drawn (0x41ce50 (feedingfrenzy2)), the leader and the rest, these no more than the phase's
+	// most (or the supply left beyond those in the stage, when that is fewer) less the leader
+	int aFollowers = drawWhole(mFishBehavior->mSchoolSize) - 1;
+	int aRoom = getPhase(getApp()->mGameData->getSpawnPhase()).mMax;
+	int aLiveCount = getLiveCount();
+	if (mSupply > 0 && mSupplyLeft - aLiveCount < aRoom)
+		aRoom = mSupplyLeft - aLiveCount;
+	if (aRoom - 1 < aFollowers)
+		aFollowers = aRoom - 1;
 	mSpawnCount++;
-	getEngine()->log("FishSpawn: a school of %s not yet spawned (the schools not yet translated)\n",
-					 mVisualName.c_str());
-	return nullptr;
+	Actor* anActor = takeActor();
+	prepareActor(anActor);
+	int aLocation = mLocation;
+	Vector2f aPoint = mLocationPoint;
+	Vector2f anEntry = anActor->getEntryPoint(mStage, aLocation, aPoint);
+	anActor->setPosition(anEntry.x, anEntry.y);
+	anActor->addToStage(mStage, aLocation);
+	aSchool->addFish(static_cast<AIFish*>(anActor));
+	// The rest drawn in a box twice the separation distance on each side, behind the leader from the side it came
+	// in (its spread across and its offset). From a location other than these the original leaves both as the
+	// stack held them; the port takes none
+	Vector2f aSpread(0.0f, 0.0f);
+	Vector2f anOffset(0.0f, 0.0f);
+	switch (aLocation)
+	{
+	case SPAWN_LOCATION_LEFT:
+		aSpread = Vector2f(MINUS_ONE, 1.0f);
+		anOffset = Vector2f(0.0f, SCHOOL_OFFSET);
+		break;
+	case SPAWN_LOCATION_RIGHT:
+		aSpread = Vector2f(1.0f, 1.0f);
+		anOffset = Vector2f(0.0f, SCHOOL_OFFSET);
+		break;
+	case SPAWN_LOCATION_LEADING:
+		aSpread = Vector2f(1.0f, 1.0f);
+		anOffset = Vector2f(SCHOOL_OFFSET, 0.0f);
+		break;
+	case SPAWN_LOCATION_TRAILING:
+		aSpread = Vector2f(1.0f, MINUS_ONE);
+		anOffset = Vector2f(SCHOOL_OFFSET, 0.0f);
+		break;
+	default:
+		break;
+	}
+	float aBoxSize = (float)((double)mFishBehavior->mSchoolSeparationDistance + mFishBehavior->mSchoolSeparationDistance);
+	aSpread = scaled(aSpread, aBoxSize);
+	aBoxSize = (float)((double)mFishBehavior->mSchoolSeparationDistance + mFishBehavior->mSchoolSeparationDistance);
+	anOffset = scaled(anOffset, aBoxSize);
+	while (aFollowers > 0)
+	{
+		aFollowers--;
+		float anX = (float)(randomFloat(0.0f, 1.0f) * aSpread.x + ((double)anOffset.x + anEntry.x));
+		float aY = (float)(randomFloat(0.0f, 1.0f) * aSpread.y + ((double)anOffset.y + anEntry.y));
+		anActor = takeActor();
+		prepareActor(anActor);
+		anActor->setPosition(anX, aY);
+		aSchool->addFish(static_cast<AIFish*>(anActor));
+		anActor->addToStage(mStage, mLocation);
+	}
+	return anActor;
 }
 
 void FishSpawn::prepareActor(Actor* theActor)

@@ -126,7 +126,25 @@ swimShuttle is 1 or more, else 2); Stunned plays "swim" and stops it at once. Th
   to 0 over the seconds, then hides it at scale 1. It is neither in play nor edible and never goes by itself.
 - Checked on the menu over 9000 updates: the pompano eats the triggerfish 16 times, each drawn in over 0.11 s and
   swallowed at the chomp.
-- The schools (SchoolOfFish, SchoolingAI) are the next piece.
+
+## Schools
+
+- A spawn whose behaviour's school size reaches 2 (0x474dd0) brings in a school (SchoolOfFish, 0x4101b0): its size
+  drawn whole (0x41ce50), held to the phase's most (or the supply left beyond the live fish) less the leader. The
+  leader comes in like a single spawn; the rest are placed in a box twice the separation distance on a side, behind
+  the leader from the side it came in (across (-1,1) and set back by half for the left, (1,1) for the right and
+  leading, (1,-1) for trailing). From any other location the original leaves the box as the stack held it; the port
+  uses none (an oddity, no menu or level spawn seen to use one).
+- The school (0x460400) updates once a frame, from the first of its fish to update: its centre and mean velocity,
+  and a new goal when the goal's time comes or the centre is within 16 of it. A fly-by's goal is 187.5 past the far
+  side, its height drawn 40 inside the top and bottom, with no time; a wanderer's is drawn 20 inside the bounds, its
+  time from "schoolMoveChangeFreq".
+- SchoolingAI (0x445610) works its pulls out every 0.05 to 0.1 s: away from the nearest fish within the separation
+  distance, the others' mean velocity less its own, towards the centre and the goal, and away from each predator in
+  sight. A predator frightens the whole school for 1.5 to 2 s (0x461d90): top speed by the flee factor, twice the
+  acceleration and a fifth of the goal's pull. The sum is pushed on the fish each step with no drag. A fish whose
+  school is down to itself picks its own state again.
+- Checked on the menu: the six herring of FlyBySchoolMenu come in together and cross the screen as a group.
 
 ## The stage's edges
 

@@ -135,6 +135,9 @@ public:
 		mTransform.mScale = theScale;
 	}
 	bool hasTurned() const { return mTurned; }
+	void clearTurned() { mTurned = false; }
+	void setMaxForce(const engine::Vector2f& theForce) { mMaxForce = theForce; }
+	void setMaxVelocity(const engine::Vector2f& theVelocity) { mMaxVelocity = theVelocity; }
 	Stage* getStage() const { return mStage; }
 	bool wasSeen() const { return mSeen; }
 	void setSeen(bool theSeen) { mSeen = theSeen; }
@@ -312,6 +315,8 @@ public:
 	bool canReact(FishReaction* theReaction, Actor* theOther);
 	// 0x13c (0x48f710 (feedingfrenzy2)): the fish turns aside from the other
 	void avoid(Actor* theOther);
+	// 0x138 (0x41ab30 (feedingfrenzy2)): the fish swims with its school (SchoolingAI)
+	void joinSchool();
 	// 0x434930 (feedingfrenzy2): the distance from the mouth to the other when the fish sees it (as the stage's
 	// 0x43d0c0 (feedingfrenzy2) sees), else -1
 	float distanceInSight(Actor* theOther);
@@ -320,6 +325,8 @@ public:
 	void lookAround();
 
 	const engine::Vector2f& getHome() const { return mHome; }
+	SchoolOfFish* getSchool() const { return mSchool.get(); }
+	void setSchool(SchoolOfFish* theSchool) { mSchool = theSchool; }
 
 private:
 	// 0x435180 (feedingfrenzy2): the behaviour's first reaction to the other, by its class, that the fish may have
@@ -330,7 +337,7 @@ private:
 
 	// +0x180 to +0x18c: four floats at 0, read by nothing translated yet
 	engine::Vector2f mHome;     // +0x190: where it came in
-	// +0x198: its school (SchoolOfFish), not yet translated
+	engine::Ref<SchoolOfFish> mSchool;  // +0x198: the school it came in with, kept after it leaves the stage
 	float mChaseFrequency;      // +0x19c: "chaseFreq", the share of picks that chase the player
 	float mFlybyFrequency;      // +0x1a0: "flybyFreq"
 };

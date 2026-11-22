@@ -311,13 +311,16 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   spawn's pool and live list (taking, filling, removing the dead), FishState, SpawnAI, WanderAI and FlyByAI, the
   stage's edges and areas, and the run state's actor and fish-visual steps. Checked under rundesk over 3000 updates
   of the menu: the pompano and the queen triggerfish come in from the sides, swim and turn behind the plants and
-  signs, with no actor lost from the list. The schools still log and bring nothing in. See ACTORS.md.
+  signs, with no actor lost from the list. See ACTORS.md.
+- The fish's sight and reactions (0x437ac0; FleeAI, ChaseAI, AvoidAI), eating (the stage's meetings 0x440660, the
+  eater part, EatingState, AIEatingState, EatenState) and the schools (SchoolOfFish, SchoolingAI, the school spawn
+  0x474dd0). Checked under rundesk on the menu: the pompano chases and eats the triggerfish, which runs, and the
+  herring cross as a school.
 
 ## Next
 
-- The menu's fish, continued: the sight check (0x437ac0) and FleeAI, ChaseAI and AvoidAI; eating (the stage's
-  slot 0x50, 0x440660; the Eater's 0x43dee0; AIEatingState and EatenState; AIFish's slot 0x90, 0x419580); the schools
-  (SchoolOfFish 0x4101b0, SchoolingAI) for the herring; the stage's clean-up (0x5c, 0x447ef0); the camera (0x60).
+- The menu's fish, continued: the stunned effect; the stage's clean-up (0x5c, 0x447ef0); the camera (0x60); the
+  fish's sounds.
 
 - The popup's other actions (pause, quit, save game, options); the duplicate name's and the full list's
   confirmations are wired but not yet seen.

@@ -363,7 +363,7 @@ void Fish::consider(Fish* thePrey)
 	FishVisualState* aVisualState = mFishVisual->getState();
 	float aTimeToChomp = aVisualState != nullptr ? aVisualState->getTimeToChomp() : 0.0f;
 	// 0x46d360 (feedingfrenzy2): the lesser
-	float aSeconds = aTimeToChomp > LONGEST_DRAW_IN ? LONGEST_DRAW_IN : aTimeToChomp;
+	float aSeconds = minOf(aTimeToChomp, LONGEST_DRAW_IN);
 	eat(thePrey, aSeconds);
 }
 
@@ -484,7 +484,11 @@ void AIFish::keepInside(Shape* theEdge)
 void AIFish::pickState()
 {
 	float aDraw = (float)randomFloat(0.0f, 1.0f);
-	// A school (+0x198) of more than one goes to schooling (0x138): not yet translated, as the schools are not
+	if (mSchool != nullptr && mSchool->getFish().size() > 1)
+	{
+		joinSchool();
+		return;
+	}
 	FishBehaviorInfo* aBehavior = getFishBehavior();
 	if (aBehavior->mBaseBehavior == "chase")
 	{
@@ -545,6 +549,11 @@ bool AIFish::canReact(FishReaction* theReaction, Actor* theOther)
 	if (aReaction == "chase")
 		return getEaterRank() > theOther->getRank();
 	return true;
+}
+
+void AIFish::joinSchool()
+{
+	changeState(new SchoolingAI(this));
 }
 
 void AIFish::avoid(Actor* theOther)
