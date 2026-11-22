@@ -111,8 +111,12 @@ out of the build by configuration. Sizes are Bejeweled 2's and Venice's Release 
   larger). Compressed with xz, thin is larger for both (Bejeweled 2 1,511,540 to 1,530,764 bytes), so it does not trim what a
   player downloads and it is not on. Processor time on the recorded Bejeweled 2 game was no worse with either (cycle counts,
   pinned pairs, the figures are in the commit that added the option); the bots' games, the frozen baselines and the unit suite are identical with thin.
-- **SDL.** The default build links the prebuilt `SDL2.dll` (1,911,808 bytes). SDL is also built from its own source here, by
-  `third_party/sdl-small/build.py` (docs/PUBLISHING.md, "The small SDL": only the subsystems the ports call, no source edited),
-  and a derived repository links that static build into its exe. This build does not: 31 games' `CMakeLists.txt` copy
-  `$<TARGET_FILE:SDL2::SDL2>` beside the exe, and the tools and the framework's renderer fallback use SDL's software renderer,
-  which the small build leaves out.
+- **SDL (`SDL2_DIR`).** The default build links the prebuilt `SDL2.dll` (1,911,808 bytes). SDL is also built from its own
+  source here, configured to the subsystems the ports call and with no source edited, by `third_party/sdl-small/build.py`
+  (docs/PUBLISHING.md, "The small SDL"; installed in `E:/retools/SDL2-2.32.10-small-i686`), and a derived repository links
+  that static build into its exe. The main build takes it too when `SDL2_DIR` names it
+  (`-DSDL2_DIR=E:/retools/SDL2-2.32.10-small-i686/lib/cmake/SDL2`, in a build folder of its own): no `SDL2.dll`, and SDL's part
+  of Bejeweled 2's download falls from 567 KB compressed to 167 KB (exe 4,535,808 bytes, xz 1,678,156 against 2,078,412 for
+  exe and DLL; Venice's exe 3,488,768). Bejeweled 2 and Venice pass their checks that way, baselines identical. It stays
+  opt-in: the small build has no software renderer, which `DDInterface`'s last-resort fallback and the `scaletest` tool ask
+  for, and `tools/build.sh` still points at the prebuilt package.

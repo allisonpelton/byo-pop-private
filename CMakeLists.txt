@@ -49,6 +49,11 @@ else()
     set(SDL2_DIR "$ENV{SDL2_DIR}")
   endif()
   find_package(SDL2 REQUIRED CONFIG)
+  # SDL2_DIR may name the small static build instead (third_party/sdl-small/build.py; docs/BUILDS.md, "Trimming an exe"): SDL is
+  # then linked into each exe, and the copy steps' $<TARGET_FILE:SDL2::SDL2> copies its libSDL2.a beside the exes, harmlessly
+  if(NOT TARGET SDL2::SDL2 AND TARGET SDL2::SDL2-static)
+    add_library(SDL2::SDL2 ALIAS SDL2::SDL2-static)
+  endif()
   set(PORT_SDL SDL2::SDL2 SDL2::SDL2main)
 endif()
 
