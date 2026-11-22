@@ -479,6 +479,9 @@ badly:
 | Sounds | sizable | 300 × 200 | the room | its bar on one row, four rows of sounds |
 | Splits | sizable | 240 × 180 | the room | its menu bar on one row, the timer and its two lines under it |
 | Trophy Cabinet | sizable | 300 × 200 | the room | its player list on one row (an empty cabinet was all there was to see) |
+| Fonts | sizable | 480 × 300 | the room | its game, font and Save As on one row, and a row of the sample sheet |
+| Venice Buildings | sizable | 420 × 260 | the room | its picture and Save As on one row, and a building's height of the well at 25% |
+| Guides | sizable | 320 × 240 | the room | its game list, the banner and a few lines of the guide |
 | Chat (both pages) | sizable | 260 × 320 | the room | its controls and five lines of messages |
 | A game in a window | sizable | its game at the multiple drawn, its status bar and frame | the room, and Maximize | `web/deskapps.js` |
 | A text in a window | sizable | 200 × 120 | the room | |
@@ -664,7 +667,9 @@ choice every player has from the start is drawn too (`choose`: Ning Po's layout,
 arrows answer; the user: "only plays one setup"), and a first run's screen no bot answers gets the test command that does its
 work (`setup`: Venice's name box, `player Saver`). A game left out plays as its bot starts it (`?begin=mode`). `pace` is the updates waited after each move, about a person's speed
 (a hundred are about a second), and none for a game whose bot plays in real time, aiming or dodging, where a pause would only
-lose. A saver's frame opened with `?assets=` (a test of the saver from a first run, with the staged files) keeps a test
+lose. `gap` spaces each move's clicks (`?clickgap=1`, above), for Bonnie's tile clicks. Bonnie's bot clicks through its title,
+menus, a new player's name (Saver) and the difficulty itself, so it has no modes drawn. Its game runs its own loop, so its
+page reports its frames to the test kit from its own sleep (`bonnies_sleep`), as Ning Po's does. A saver's frame opened with `?assets=` (a test of the saver from a first run, with the staged files) keeps a test
 profile of its own, the game's name with `-saver-test`, apart from the game's own tests' `-test`.
 
 **The bot's hook.** The game plays by one call that asks it for its next move. Today that is the test command `move`
@@ -719,6 +724,91 @@ number (Ning Po's layouts, "Layout n"; the Mahjong Escapes' escape levels).
 Left out on purpose: BookWorm Adventures' mini-game tables, which the game's scripts name and format; Bejeweled Twist's
 challenge progress and per-player bests in `profile.dat`, and AstroPop's per-player bests, which are a player's record rather
 than a high-score list; Pixelus, which keeps no score list.
+
+### The Fonts window
+
+The Fonts window (`web/fontview.js`; the user, 2026-11-17: "Add a font viewer to the site with a text generator for the games'
+custom fonts") is a Desktop 95 window on the listing's desktop, in the manner of Windows 95's font viewer, closed at first, its
+icon after the Trophy Cabinet's. Its Game list holds the games whose files are in this browser, and its Font list that game's
+fonts. For the font chosen it shows the font viewer's facts (typeface name, file, point sizes, line height, layers, characters),
+then a sample sheet: every character the font draws, in rows that fit the sheet, and the Text box's text at each of its point
+sizes. Colour is the text's colour, as a game passes it when it draws; Background is the sheet's (None, a checkerboard, leaves
+the saved picture clear); Zoom draws every pixel as a square of whole screen pixels near 100% to 400%; and Layers has a check
+box for each tag the font's layers ask for, off at first, since a game turns a tag on only for the draws it is for (Bejeweled
+Twist's GLOW and OUTLINE layers, drawn in their own colours). Save As writes the text at the chosen size as a PNG, at the
+font's own pixels. The window reads the files as the Trophy Cabinet does (`ByopopMusic.files`), with a `main.pak`'s files
+(`Module.byopop.pak`) after the folder's own; it decodes the pictures in the page and keeps them only while it is open; it
+writes nothing.
+
+It reads the SexyAppFramework's ImageFonts as `framework/ImageFont.cpp` does. A descriptor is split into commands by
+DescParser's rules (a semicolon ends one outside quotes, a `#` at a line's start is a note) and each runs as
+`FontData::HandleCommand` runs it: Define, CreateHorzSpanRectList, SetDefaultPointSize, SetCharMap, CreateLayer and
+CreateLayerFrom, and every Layer command, with the framework's own messages where a game would fail to load the font. The older
+form, `FontData::LoadLegacy`, is the space's width, the ascent and each character's width, beside a strip picture of the same
+name. A layer is active at a point size within its range and with its tags (`GenerateActiveFontLayers`), and a string is laid
+out and drawn as `DrawStringEx` does it: each character's layers placed from the ascent and their offsets, the widest layer's
+advance taken with its spacing and kerning, and the pieces drawn in their order, colourized by the text's colour times the
+layer's multiplier plus its addition, additive where the layer's draw mode is 1. Two things differ from the games: a layer
+drawn at a point size other than its own is scaled by nearest pixels (the framework's stretch filters), and a picture with an
+alpha channel of its own comes through the browser's decoder, which can round the colour of nearly clear pixels.
+
+A game's fonts are found by their text: a `.txt` that holds CreateLayer, LayerSetImage or LayerSetImageMap is a descriptor,
+and one that starts as a width list, with a picture of its name (in `images/` first), is a legacy font. A descriptor whose
+picture the files lack is left out (Big Money's `new_bigmoneyfont1` and Typer Shark's `gillsansmtcondensed12`, which the games
+never load). A picture is found as `platform/ImageLoader.cpp` finds one: its name with any picture extension (`.jp2` too), its
+alpha from `_<name>` or `<name>_` (the mask's low byte), white where there is only a mask. `tools/fontviewtest.js` (unit-web)
+checks the reader on fonts made for it, then reads every font of the staged games: 319 fonts in 22 games, 301 descriptors and
+18 width lists, Bejeweled Twist's from its `main.pak` too. The other engines' fonts (Retro64's in Cosmic Bugs, Water Bugs and
+Venice; Bonnie's; Jolly Bear's in the Mahjong Escapes; Ning Po's, Tip Top's and Word Harmony's) are not read yet, so those
+games' Font lists are empty.
+
+### The Venice Buildings window
+
+The Venice Buildings window (`web/buildings.js`; the user, 2026-11-18: "I'd love to see a combined image of all of Venice's
+buildings as a continuous shot, if something like that is possible, and full images of the individual buildings of Venice")
+is a Desktop 95 window on the listing's desktop, closed at first, its icon after the Fonts window's, there only where the
+listing has Venice. It reads Venice's files as the Fonts window does, its status line "No game files" when they are not in this browser. Its
+Picture list holds All the buildings, Building 1 to Building 8 in the order Journey builds them, and the Trophy; Background
+puts the level select's scene behind them or leaves them on their own (None, clear in the saved picture); Zoom is 25% to
+200%; and Save As writes the picture shown at its own pixels as a PNG (`venice-buildings.png`, `venice-building-3.png`,
+`venice-trophy.png`). The whole row is 3280 by 600 pixels with its scene and 3255 by 434 without; a building is 400 by 600
+in its scene and its own 400 by 400 picture without.
+
+Each building is one picture in the files, the thumbnail its levels name (`gfx/levelselect/thumbnail1.png` to
+`thumbnail8.png`, the win sequence's `thumbnail9.png` the trophy), so a building whole is that picture. The level select
+shows them in a row that slides past, never all at once, and the window lays the row out as `LevelSelect::Load` does: down
+Journey's list of levels (`config.xml`'s `level_file_relaxed`), a picture at the levels 1, 10, 19 and so on of those with a
+thumbnail, each level moving the next place on by a ninth of its picture's width less four, the win sequence's picture 90
+further on, and each picture a little lower in depth than the one before, so the earlier building is drawn over the later
+where they overlap (36 pixels). The game's order is not the files' numbers: buildings 1, 3, 4, 5, 6, 2, 7 and 8 by file.
+Flood's list (`level_file_game` after the plain `level_file` entries, where the tutorial's second part names building 1)
+places the trophy one level, 40 pixels, further on; the window follows Journey's.
+
+The scene is `levels/levelselect.xml` read as the engine reads a scene (its tags, each object's stages, depth order as
+`SceneObject::InsertChildByZOrder` keeps it) and each object placed as `SceneObject::DrawSelf` and `DrawImageRecord` place it
+in 2D, as it stands at the end of its first stage: rounded where it is not bilinear, an unscaled picture's left its place
+less half its width and its top one pixel below its place less half its height, a scaled one centred there, tiles stepping
+by the scaled size, the water's clip, a sheet's first frame from `config.xml`'s `<image>` entries. Three things differ from
+any one screen of the game: both layers sit at their home places, where in play the near one slides twice as far as the
+distant city; the tiled rows (the quay and the water) are carried on to the row's ends where they stop short (the quay and the
+water's underlay lack 10 pixels at the left); and of the screen's own pictures, which stay put while the row slides (the sky, the birds and
+clouds, the scroll and its text), only the sky is kept, repeated along the row with every other copy mirrored so that the
+copies meet. `tools/buildingstest.js` (unit-web) checks the readers and the placing on scenes made for it, then lays out the
+staged Venice's row: the pictures in the game's order, building 1 at x -9 and y 161, each next 364 on (a place truncated
+toward zero), the trophy at 2976, and the quay and the water reaching both ends.
+
+### The Guides window
+
+The Guides window (`web/guides.js`, its texts in `web/guidetexts.js`) holds the site's AI-generated guides, the one exception
+to the rule of values, not sentences (the user, 2026-11-18: "I've decided I'm actually ok with AI-generated guides for the
+games that actually benefit from it on the site, as long as they are clearly marked as AI-generated"). It is a Desktop 95
+window on the listing's desktop in the manner of a help topic, closed at first, its icon after the Venice Buildings window's,
+with a guide for each game of the listing that has one; it needs none of the game's files. Its Game list chooses the guide,
+and the white page shows it under a banner the window draws for every guide, "AI-generated guide" with the date it was checked
+against the game's code, and the status line says AI-generated beside the count of tips. A guide is drawn as text only. How a
+guide is written, which games get one, where its facts may come from and the markup are in `docs/GUIDE_STYLE.md`, a draft for
+the user; `tools/guidestest.js` (unit-web) checks the markup and every guide against the rules there that a program can check.
+One guide so far, Mummy Maze's.
 
 ### The fixes and lite mods on the site
 
@@ -1560,7 +1650,10 @@ mode off its board; a goto the game answers with an ERROR (its title not yet gon
 after the next two empty moves, up to 20 times, and one it takes gets about 24 seconds of empty moves for its board to
 load before the driver stops. `?prep=<command>;<command>` sends those test commands before the first move (`set mode
 action`, `3d on`), one the game refuses being sent again after each move, up to 20 times (Ning Po's start dialog), and
-`?pace=<n>` waits n updates after each move. The screen saver uses all three. The result is
+`?pace=<n>` waits n updates after each move. The screen saver uses all three. `?clickgap=1` spaces a move's clicks as a
+player's are, the pointer's move onto the point, the press and the release each followed by two frames, where a click
+otherwise sends the move with the press; the saver sets it for Bonnie's, which misses some tile clicks sent the quick way.
+The result is
 `{moves, stop, state, updates, errors}`, with `stop` one of "over", "limit", "no move", "busy" or "error: <message>".
 `playByMove({steps})` runs the same loop from a session's own driver.
 

@@ -299,6 +299,10 @@ u32.GetWindow.restype = wt.HWND
 u32.GetWindow.argtypes = [wt.HWND, ctypes.c_uint]
 u32.SetWindowPos.argtypes = [wt.HWND, wt.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_uint]
 u32.GetForegroundWindow.restype = wt.HWND
+u32.GetClassNameW.argtypes = [wt.HWND, wt.LPWSTR, ctypes.c_int]
+u32.GetWindowTextW.argtypes = [wt.HWND, wt.LPWSTR, ctypes.c_int]
+u32.GetWindowLongW.argtypes = [wt.HWND, ctypes.c_int]
+u32.GetWindowThreadProcessId.argtypes = [wt.HWND, ctypes.POINTER(wt.DWORD)]
 
 WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_LBUTTONDBLCLK, WM_RBUTTONDOWN, WM_RBUTTONUP = 0x200, 0x201, 0x202, 0x203, 0x204, 0x205
 
@@ -368,7 +372,7 @@ class Game:
             si.dwFlags |= 4
             si.dwX, si.dwY = cfg['_place']
         self.cfg = cfg
-        self.p = subprocess.Popen([exe], cwd=os.path.dirname(exe), env=env, startupinfo=si, creationflags=0x4000)  # BELOW_NORMAL
+        self.p = subprocess.Popen([exe] + [str(x) for x in cfg.get('args', [])], cwd=os.path.dirname(exe), env=env, startupinfo=si, creationflags=0x4000)  # BELOW_NORMAL
         self.h = k32.OpenProcess(0x0010 | 0x0400 | 0x0800 | 0x0001 | 0x0100, False, self.p.pid)   # VM_READ, QUERY_INFO, SUSPEND_RESUME, TERMINATE
         self.hwnd = None
         self.held = False
@@ -889,6 +893,49 @@ def muted(origdir, pid):
     return False
 
 
+def describe_window(hwnd):
+    """The window that holds the foreground, for the log: class, title, style, extended style and the thread that owns it."""
+    cls = ctypes.create_unicode_buffer(256)
+    title = ctypes.create_unicode_buffer(256)
+    u32.GetClassNameW(wt.HWND(hwnd), cls, 256)
+    u32.GetWindowTextW(wt.HWND(hwnd), title, 256)
+    style = u32.GetWindowLongW(wt.HWND(hwnd), -16) & 0xFFFFFFFF   # GWL_STYLE
+    ex = u32.GetWindowLongW(wt.HWND(hwnd), -20) & 0xFFFFFFFF      # GWL_EXSTYLE
+    pid = wt.DWORD()
+    tid = u32.GetWindowThreadProcessId(wt.HWND(hwnd), ctypes.byref(pid))
+    return 'window 0x%x class "%s" title "%s" style 0x%08x exstyle 0x%08x thread %d process %d' % (hwnd, cls.value, title.value, style, ex, tid, pid.value)
+
+
+def copy_net_log_tail(origdir, pid, log, n=30):
+    """The last n lines of the run folder's logs/net.log that start with this process's pid (the stand-in writes each activation
+    event there at once, so a killed run still shows what happened), into visrun.log."""
+    try:
+        lines = open(os.path.join(origdir, 'logs', 'net.log'), errors='replace').read().split(chr(10))
+    except OSError as e:
+        print('no net.log to copy (%s)' % e, file=log, flush=True)
+        return
+    mine = [l for l in lines if l.startswith('pid %d:' % pid) or l.startswith('pid %d ' % pid)]
+    print('the last %d of the %d net.log lines of pid %d:' % (min(n, len(mine)), len(mine), pid), file=log)
+    for l in mine[-n:]:
+        print('  ' + l.rstrip(chr(13)), file=log)
+    log.flush()
+
+
+def activation_hook_state(origdir, pid):
+    """What the stand-in's net.log says about its activation hook in this process: installed (with the functions it reached), off
+    (ORIGRUN_ACTIVATION=allow) or not logged at all."""
+    try:
+        lines = open(os.path.join(origdir, 'logs', 'net.log'), errors='replace').read().split('\n')
+    except OSError:
+        return 'NOT INSTALLED: no net.log in the run folder'
+    for l in lines:
+        if l.startswith('pid %d: activation hook installed' % pid):
+            return 'installed (%s)' % l.split(': ', 2)[2].split(' (a window')[0]
+        if l.startswith('pid %d: activation hook off' % pid):
+            return 'OFF (ORIGRUN_ACTIVATION=allow): the game may take the foreground, and the run stops if it does'
+    return 'NOT INSTALLED: net.log has no activation line for pid %d (an older stand-in?)' % pid
+
+
 def gamecount_has_room():
     r = subprocess.run([sys.executable, '-I', os.path.join(ROOT, 'tools', 'gamecount.py'), '--limit'], capture_output=True, text=True)
     return r.returncode == 0, r.stdout.strip().split('\n')[0]
@@ -1116,6 +1163,7 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
     tag = cfg['name']
     os.makedirs(out, exist_ok=True)
     log = open(os.path.join(out, 'visrun.log'), 'w')
+    fg_taken = threading.Event()   # keep_focus_away saw the game's process own the foreground window
     steps_f = open(os.path.join(out, 'steps.tsv'), 'w')
     steps_f.write('# wanted\tlanded\tcmd\targs\tseconds\tvalues\n')
     deadline_ts = deadline.timestamp()
@@ -1187,6 +1235,8 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
         shutil.rmtree(origdir, ignore_errors=True)
         os.makedirs(origdir)
         env = dict(os.environ, ORIGRUN_DIR=origdir, ORIGRUN_SOUND='stub', ORIGRUN_MSGBOX='hook')
+        # the stand-in's activation hook, on the user's desktop by default anyway: set so no run of visrun's goes without it
+        env.setdefault('ORIGRUN_ACTIVATION', 'block')
         for var in ('ORIGRUN_DGVOODOO', 'ORIGRUN_DGVOODOO_CONF'):
             env.pop(var, None)
         if cfg.get('reg_map') == 'popcap':
@@ -1204,7 +1254,27 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
         g = Game(exe, env, cfg)
         locks.update(dict(game_pid=g.p.pid))
         focus_counts = [0, 0]
-        threading.Thread(target=keep_focus_away, args=(g.p.pid, fg0, stop, focus_counts), daemon=True).start()
+
+        t_launch = time.monotonic()
+
+        def foreground_taken(fw=None):
+            """The game's process owns the foreground window: the run stops at once (the stand-in's activation hook should have
+            made that impossible). The process is ended by its pid; the finally block below restores the rest. What took it is
+            logged: the window, the milliseconds since the launch, and the stand-in's own record of the process's activation events."""
+            fg_taken.set()
+            ms = int((time.monotonic() - t_launch) * 1000)
+            print("the game took the user's foreground: run stopped (handed back %d, refused %d)" % tuple(focus_counts), file=log, flush=True)
+            try:
+                print('the foreground window: %s; %d ms after the launch' % (describe_window(fw) if fw else 'unknown', ms), file=log, flush=True)
+            except Exception as e:
+                print('the foreground window could not be described (%s); %d ms after the launch' % (e, ms), file=log, flush=True)
+            try:
+                g.p.kill()
+                g.p.wait(5)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+            copy_net_log_tail(origdir, g.p.pid, log)
+        threading.Thread(target=keep_focus_away, args=(g.p.pid, fg0, stop, focus_counts, foreground_taken), daemon=True).start()
         if cfg['clock'] == 'virtual':
             clk = Clock(env['ORIGRUN_CLOCK_ID'], g)
             wf = open(os.path.join(out, 'watch.log'), 'w')
@@ -1232,8 +1302,10 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
             print('the stand-in has not logged a muted audio session: stopping before any input', file=log, flush=True)
             return 3
         print('the stand-in has muted the default audio session', file=log, flush=True)
+        print('the stand-in\'s activation hook: %s' % activation_hook_state(origdir, g.p.pid), file=log, flush=True)
         # a game without the focus ignores posted input: it is told it has it, by messages (the only window of a sandbox had it)
         post_input(g, cur, 'focus', ['regain'])
+        g.focus_lost = False
         flag3d = Cond(cfg['flag3d'] + ' != 99') if cfg.get('flag3d') else None
         flags = set()
         offset, base, refused = 0, 0, 0
@@ -1298,7 +1370,8 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
             return True
 
         def foreground_note(n):
-            if u32.GetForegroundWindow() != g.window():
+            # not while the step file has taken the focus away: its `focus lose` stands until its own `focus regain`
+            if not g.focus_lost and u32.GetForegroundWindow() != g.window():
                 post_input(g, cur, 'focus', ['regain'])   # the user's own windows may take the foreground at any time
         for s in steps:
             if time.time() > deadline_ts:
@@ -1368,6 +1441,8 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
                     flags.add(f)
                     print('line %d: 3D flag %s' % (s.no, f), file=log, flush=True)
             foreground_note(s.no)
+            if s.cmd == 'focus':
+                g.focus_lost = s.args[0] != 'regain'
             if s.cmd == 'shot':
                 shot_now(s.args[0], wanted)
                 if refused >= 3:
@@ -1427,14 +1502,19 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
         locks.release_all()
         if not keep_copy:
             shutil.rmtree(os.path.join(cfg.get('work_root') or WORK, tag, 'game'), ignore_errors=True)
+        if fg_taken.is_set():
+            print('visrun: exiting with status 5: the game took the user\'s foreground (the run was stopped, the registry and saves are restored)', file=log, flush=True)
         log.close()
+        if fg_taken.is_set():
+            print('visrun: the game took the user\'s foreground: run stopped, exit status 5 (see %s)' % os.path.join(out, 'visrun.log'), file=sys.stderr)
+            raise SystemExit(5)
 
 
-def keep_focus_away(pid, user_hwnd, stop, counts):
-    """The originals activate their own window as it opens (SW_SHOWNOACTIVATE only covers a first ShowWindow call, and the
-    game's later one takes the foreground). Whenever the game's process owns the foreground window, the window that had it at the
-    start of the run, or the one the user moved to since, gets it back (counts[0] handed back, counts[1] refused by Windows);
-    it is within a few tenths of a second."""
+def keep_focus_away(pid, user_hwnd, stop, counts, on_foreground=None):
+    """The stand-in's activation hook keeps the game's windows from taking the foreground (tools/origrun/activation.c). If the
+    game's process owns the foreground window all the same, the window that had it at the start of the run, or the one the user
+    moved to since, is handed it back once (counts[0] handed back, counts[1] refused by Windows, which refuses it when visrun is
+    not the foreground process), and then on_foreground() stops the run: the game must not hold the user's foreground."""
     while not stop.is_set():
         fw = u32.GetForegroundWindow()
         if fw and fw != user_hwnd:
@@ -1442,8 +1522,12 @@ def keep_focus_away(pid, user_hwnd, stop, counts):
             u32.GetWindowThreadProcessId(fw, ctypes.byref(owner))
             if owner.value != pid:
                 user_hwnd = fw   # the user's own move to another window: that is the one to hand back to from now on
-            elif user_hwnd and u32.IsWindow(user_hwnd) and not u32.IsIconic(user_hwnd):
-                counts[0 if u32.SetForegroundWindow(user_hwnd) else 1] += 1
+            else:
+                if user_hwnd and u32.IsWindow(user_hwnd) and not u32.IsIconic(user_hwnd):
+                    counts[0 if u32.SetForegroundWindow(user_hwnd) else 1] += 1
+                if on_foreground:
+                    on_foreground(fw)
+                    return
         time.sleep(0.02)
 
 
