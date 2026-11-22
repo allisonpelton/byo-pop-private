@@ -1392,7 +1392,7 @@ suite_mummymaze() {
 	mummymaze_resume || st=1
 	if diff -rq "$OUT/mummymaze/classic/shots" "$OUT/mummymaze/classic2/shots" >> "$1" 2>&1 && cmp -s "$OUT/mummymaze/classic/log.txt" "$OUT/mummymaze/classic2/log.txt" && [ "$a" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	# the frozen baseline (build/baseline-mummymaze/mummymaze.exe, a copy of the port made when it was last checked against
-	# the original, 2026-11-03): the same games must give the same log lines and the same screenshots. Refreeze it only on purpose,
+	# the original, 2026-11-22, the end of the screen pass): the same games must give the same log lines and the same screenshots. Refreeze it only on purpose,
 	# with the reason in games/mummymaze/docs/IDENTICAL_PLAY.md.
 	local base="$W/build/baseline-mummymaze/mummymaze.exe" bl="" k
 	if [ -f "$base" ]; then
@@ -1403,6 +1403,10 @@ suite_mummymaze() {
 		for k in classic tips tutorial; do
 			cmp -s "$OUT/mummymaze/$k/log.txt" "$OUT/mummymaze/base-$k/log.txt" && diff -rq "$OUT/mummymaze/$k/shots" "$OUT/mummymaze/base-$k/shots" >> "$1" 2>&1 || { bl="BASELINE DIFFERS ($k)"; st=1; }
 		done
+		# the screen tour (games/mummymaze/docs/SCREENS.md): the scenarios' shots, port and baseline, must be identical
+		bash "$W/games/mummymaze/tools/identical/tour.sh" "$W/build/native/mummymaze.exe" "$OUT/mummymaze/tour-port" >> "$1" 2>&1
+		bash "$W/games/mummymaze/tools/identical/tour.sh" "$base" "$OUT/mummymaze/tour-base" >> "$1" 2>&1
+		if [ "$(find "$OUT/mummymaze/tour-port" -name "*.png" | wc -l)" -gt 350 ] && diff -rq --exclude='*.log' --exclude='*.txt' "$OUT/mummymaze/tour-port" "$OUT/mummymaze/tour-base" >> "$1" 2>&1; then bl="$bl, tour identical"; else bl="$bl, TOUR DIFFERS"; st=1; fi
 		r="$r; $bl"
 	fi
 	SUMMARY="classic ${a#game over: }; tips ${b#game over: }; full ${c}; adventure ${v}; ${t}; $MM_RESUME; $r"
