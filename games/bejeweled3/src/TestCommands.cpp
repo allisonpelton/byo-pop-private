@@ -78,6 +78,25 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 				aLine += "\"";
 			}
 			aLine += "],\"background\":" + std::to_string(mBoard->mBackgroundIndex);
+			// how far the fall has come: the update count, the pieces not at rest, the fill's landing estimate and the
+			// sums of the pieces' y and speeds (as whole thousandths, so a run can be compared with another)
+			int aMoving = 0;
+			long long aYSum = 0;
+			long long aSpeedSum = 0;
+			for (int aRow = 0; aRow < Board::ROWS; aRow++) {
+				for (int aCol = 0; aCol < Board::COLS; aCol++) {
+					const Piece* aPiece = mBoard->mGrid[aRow][aCol];
+					if (aPiece == nullptr)
+						continue;
+					if (!Board::PieceIsSettled(aPiece))
+						aMoving++;
+					aYSum += (long long)(aPiece->mY * 1000.0f);
+					aSpeedSum += (long long)(aPiece->mFallSpeed * 1000.0f);
+				}
+			}
+			aLine += ",\"update\":" + std::to_string(mBoard->mUpdateCnt) + ",\"moving\":" + std::to_string(aMoving) +
+				",\"landticks\":" + std::to_string(mBoard->mLandTicks) + ",\"ysum\":" + std::to_string(aYSum) +
+				",\"speedsum\":" + std::to_string(aSpeedSum);
 		}
 		aLine += "}";
 		Reply(aLine);

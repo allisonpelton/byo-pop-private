@@ -416,7 +416,7 @@ A cell is 128 in 1200ths of the art height; the grid's corner is (0x20b, 0x4b) o
 
 Piece (0x630 bytes, 0x7203b0 with 0x720120, made by 0x7415c0 which also puts it in the grid, x = col * 128, y = row * 128,
 update counts from the board's +0x38): +0 board, +4 id (the board's counter at +0xf4), +8 col, +0xc row, +0x10 x, +0x14 y,
-+0x18 and +0x218 the update it was made and first fell in, +0x1c a float "fall delay" (0 until it first falls), +0x188 the
++0x18 and +0x218 the update it was made and first fell in, +0x1c a float, the vertical speed in 1200ths of the art height per update (named mFallSpeed; 0 until it first falls; the first port called it a fall delay), +0x188 the
 column tag it was made with, +0x17e 1 while the fill has seen it (0x17f and 0x182 start at 1), +0x20c -1 keeps it from
 falling, +0x220 the colour (-1 none, 0 to 6), +0x228 the flag bits (0 plain; 0x10, 0x4, 0x80, 0x2, 0x400 to 0x2000 are the
 specials, not translated), +0x230 a busy count (the fill waits while any piece's is above 0), ten curves at +0x20, +0x90,
@@ -435,7 +435,7 @@ it was 0), a piece with +0x20c = -1 ends the run; after the column a new piece i
 fall delay = the last fallen piece's - 0.55, y = (the highest y in the column, as a whole number, - 128) - Next(15) - 10 (clamped
 to -128 - 75 when its place on screen would be below -128), and the column's tag is set to -1. One Next(15) is drawn for each new
 piece, so on an empty board the order of draws is pass by pass, column by column: the 64 pieces end in rows 7, 6, ... 0 in that
-order (the first pass's pieces fall furthest). It also works out how long the columns take to land into +0xe40 (not translated).
+order (the first pass's pieces fall furthest). It also works out how long the columns take to land into +0xe40 (translated, below).
 Then the colours: all of the new pieces (the list in making order) get flags 0 and colour -1, then each gets
 colourList[Next(14)], the list at +0x105c being each of 0 to 6 twice (made by the constructor at 0x74b960); this repeats until the
 grid has no run of three (0x73ba40, rows first, then columns; run counts restart at a gap or a colourless cell) and has a move
@@ -461,5 +461,33 @@ IMAGE_GEMS_<colour> (resource ids 0x310 to 0x316: red, white, green, yellow, pur
 Left out: the checkered panel of 0x751d50 (a dark square for every other cell of the 8 by 8 grid, two colours made at the top of
 that function, the side glows 0x712c90 and the score bar), the background widget (Sexy::Background, 0x310 bytes, made by
 0x749c20 from the table of .pam names at 0x8d2118: a PopAnim with worker threads, added to the widget manager under the board),
-the update (slot 22, 0x759170), the piece's spin cel, the fall, the saved game of the mode (0x74e1f0, read through slot 88), the
-camera setup of NewGame (0x73e440), +0xe40, and hiding the main menu when a board is up (the menu still draws under the board).
+the saved game of the mode (0x74e1f0, read through slot 88), the
+camera setup of NewGame (0x73e440).
+
+### The update and the fall (Update 0x759170, UpdateTick 0x767090, UpdateGame 0x767e20, gravity slot 214 0x73dd70)
+
+Board::Update eases the game speed (0x8d2da8, 1.0 from the exe's data, wanted 1.0 while a game is played) and adds it to the
+board's step fraction (+0xf0); each whole step is UpdateTick: WidgetContainer::Update (the update count, mUpdateCnt) and
+UpdateGame. At speed 1 that is one step per update. UpdateGame steps the shine and cover curves, counts the game ticks
+(+0xe38), runs the fill (slot 203, which does nothing while a piece is busy), then gravity, then the column table (+0x1f8: each
+entry +0.275 per step, capped at 0), then the fill again, the settled check and the idle shine, and counts +0xe40 down.
+
+Gravity, column by column from the last row up: y += speed; above its row the piece speeds up by 0.275 times the fall factor
+(slot 117, 0x756390: (curve at +0xe58 - 1) * 0.65 + 1, 1 here) unless the piece under it is within 128, when it is put
+there and takes that piece's speed; at its row it is put in the row and its speed is zeroed (a speed of 2 or more counts as a
+landing). Landings play SOUND_GEM_HIT at most every 8 updates, panned by the landings' mean x. The fill's landing estimate
+(+0xe40) is the most over the new pieces of sqrt(2 * distance / (factor * 0.265)) in steps. The board is settled (0x75fca0,
+0x755ad0) when +0xe40 is 0, every piece has speed 0, is in its cell, can fall and has no busy count, and no match exists.
+
+Sprite: the exe does not spin a plain gem in the 2D path: it draws from a pre-rendered 15-frame table per colour (app +0xb5c),
+frame 7 at rest, so cel 0 of IMAGE_GEMS_* is kept and the piece is drawn at its own (x, y).
+
+Random draws the update makes, in order: none while pieces fall. In every step in which the board is settled, the app's Rand()
+(not the board's MTRand) is drawn up to three times for the idle shine: first one (< 0.01 starts it when none ran and the update
+count is at least 0x32); only when that does not start it, a second (against 0.003 times the shine rate, shine off); only when
+that does not, a third (against 0.0006 times the shine rate). The board's MTRand is drawn only by the fill (Next(15) per new
+piece, Next(14) per colour).
+
+Left out, each with its address in a port: note in Board.cpp: the dialog holds, saved-game and replay branches, the effects
+widget, the intro (slot 228), the pieces' own idle curves, the swaps and match search, the hint, the bars and the fades.
+The `state` test command also prints update, moving (pieces not settled), landticks, ysum and speedsum.

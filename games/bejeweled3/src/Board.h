@@ -2,8 +2,8 @@
 // bytes, made by 0x73b390): the game screen of Classic mode, and Sexy::Piece (0x630 bytes, made by 0x7415c0): one gem.
 // The board is an 8 by 8 grid of pieces; the exe measures it in 1200ths of the art height (a cell is 128), draws it at
 // (0x20b, 0x4b) of that and scales every measure by the app's art size over 1200.
-// port: only what Classic's start and first fill read is translated (docs/NOTES.md, "The board"): the swap, the matches,
-// the update (0x759170) and the other modes' boards come with their steps. The exe's board has about 200 virtual
+// port: only what Classic's start, first fill and the fall of a new board read is translated (docs/NOTES.md, "The board"):
+// the swap, the matches, the rest of the update (0x759170) and the other modes' boards come with their steps. The exe's board has about 200 virtual
 // functions that the modes override; Classic's overrides are constants (0x73b5a0 and 0x73bc00 to 0x73bc30), which this
 // port reads in place (each use says which slot it stands for).
 #pragma once
@@ -34,12 +34,13 @@ public:
 	float mX;               // +0x10: where it is drawn, in 1200ths of the art height from the board's corner (a cell is 128)
 	float mY;               // +0x14: new pieces start above the board and fall to row * 128
 	int mCreatedUpdate;     // +0x18: the board's update count when it was made
-	float mFallDelay;       // +0x1c: 0 until it first falls, then when it starts to fall (the column's, plus a step)
+	float mFallSpeed;       // +0x1c: how far it moves down each update, in 1200ths: 0 at rest and until it first falls; the fill
+	                        // gives a new piece a negative start (it rises a little first, which staggers a column), gravity adds
 	int mColumnTag;         // +0x188: what the column's tag (board +0x218) held when it was made
 	bool mCanFall;          // +0x17e: set by every pass of the fill over it
 	bool mCanSwap;          // +0x17f: 1 at the start
 	int mSpecialState;      // +0x20c: -1 keeps it from falling
-	int mFallStartUpdate;   // +0x218: the board's update count when it first fell
+	int mMovedUpdate;       // +0x218: the board's update count when it was made and when it last moved (set while its speed is not 0)
 	int mColor;             // +0x220: -1 for none, else 0 to 6 (red, white, green, yellow, purple, orange, blue)
 	int mFlags;             // +0x228: 0 for a plain gem
 	int mBusyCount;         // +0x230: above 0 while something is done to it: the fill waits for it
@@ -54,9 +55,9 @@ public:
 	enum { GRID_X = 0x20b, GRID_Y = 0x4b };
 
 	Piece* mGrid[ROWS][COLS];        // +0xf8: row after row; null where there is no gem
-	int mUpdateCount = 0;            // +0x38: the board's updates so far
 	int mPieceCounter = 0;           // +0xf4: the number of pieces made, each one's id
-	float mColumnDelay[COLS];        // +0x1f8: where a column's last piece started to fall (the grid's ninth row)
+	float mColumnSpeed[COLS];        // +0x1f8: the speed the fill takes from a column's last piece (the grid's ninth row); each update
+	                                 // it rises by 0.275 towards 0 (UpdateGame)
 	int mColumnTag[COLS];            // +0x218: -1 after a fill (the grid's tenth row)
 	MTRand mRand;                    // +0x258: the board's own random numbers, seeded from the app's Rand() when it is made
 	int mLastRow = ROWS - 1;         // +0x22e4: the last row
@@ -66,6 +67,17 @@ public:
 	std::vector<int> mColorList;     // +0x105c: the colours a new piece may get: each of the seven twice
 	bool mNoSavedGame = true;        // port: the saved game of this mode (0x74e1f0) is not read: a new game starts
 	int mScore = 0;                  // +0xd64
+	float mTickFraction = 0.0f;      // +0xf0: what is left of the update's steps (Update runs the whole steps, keeps the rest)
+	int mGameTicks = 0;              // +0xe38: the game's own ticks, which stop while a dialog or a hold stops the game
+	int mLandTicks = 0;              // +0xe40: how many more updates the fill thinks the new pieces need to land (counts down)
+	int mGravityHold = 0;            // +0xe24: while above 0 the pieces stand still (counts down)
+	int mLastLandSoundUpdate = 0;    // +0xc20: the update a piece's landing was last heard in
+	bool mSettledOnce = false;       // +0x1190: set the first time the board stands settled (IsSettled)
+	int mActivityCount = 0;          // +0xcc0: scales how often the idle shine starts (0 until matches are made; they come with their step)
+	bool mShineOn = false;           // +0x27b0: the idle shine has started and the board has not been unsettled since
+	int mShineUpdate = 0;            // +0x27b4: the update the idle shine last started in
+	CurvedVal mShineCurve;           // +0x2740: the idle shine's curve, started by UpdateGame
+	CurvedVal mFallFactorCurve;      // +0xe58: 1 after a reset; the fall speed's factor is made of it (GetFallFactor)
 	CurvedVal mCoverCurve;           // +0x2898: 1 from the constructor (0x74b76c): while it is 1 the main menu behind is hidden (0x6a3530)
 
 	Board();                                   // 0x74ae30 (bejeweled3)
@@ -74,6 +86,21 @@ public:
 
 	// slot 85, 0x74a880 (bejeweled3): the board is emptied for a new game
 	void ResetGame();
+	// slot 117, 0x756390 (bejeweled3): how strongly gravity pulls: 1 at the curve's 1, 0.65 less for each step of it below
+	float GetFallFactor() { return (float)((mFallFactorCurve.GetOutVal() - 1.0) * 0.64999997615814209 + 1.0); }
+	// slot 22, 0x759170 (bejeweled3): the board's own update: the game speed gives the number of steps this update is worth
+	// (one at the normal speed) and each runs UpdateTick
+	void Update() override;
+	// slot 234, 0x767090 (bejeweled3): one step of the game
+	void UpdateTick();
+	// slot 231, 0x767e20 (bejeweled3): the game's part of a step: the fill, the fall and the idle shine
+	void UpdateGame();
+	// slot 214, 0x73dd70 (bejeweled3): gravity: each column's pieces move by their speeds and land on the row or the piece below
+	void UpdateFalling();
+	// 0x75fca0 (bejeweled3): every piece is at rest in its cell, nothing is left to land, and there is no match
+	bool IsSettled();
+	// 0x755ad0 (bejeweled3): the piece is still, in its cell and free to be played
+	static bool PieceIsSettled(const Piece* thePiece);
 	// slot 135, 0x74e410 (bejeweled3): a new game: its background is chosen and the first fill is made
 	void NewGame();
 	// slot 203, 0x763e90 (bejeweled3): makes the pieces that the empty cells need above the grid, lets them fall into
