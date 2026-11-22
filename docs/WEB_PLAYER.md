@@ -1299,8 +1299,9 @@ position" is `touchPlace`.
 
 `speed` (any value from 0.01 to 16; the user, 2026-11-10: "Allow game speed to be set to any arbitrary value") sets
 `SexyAppBase::SetGameSpeed` through the web-only `byopop_set_speed` (`framework/SexyAppBase.cpp`). 0 is "as fast as the machine
-allows": the updates run flat out in real time and the draws that cannot be shown are skipped (the site's range starts at
-0.01, so the page never sends it). At 1 nothing is called, so unmodded play is unchanged. The game clock follows the speed:
+allows": the updates run flat out in real time and the draws that cannot be shown are skipped; the list offers it as "As
+fast as it goes" (the number field takes 0.01 to 16 and stands empty at 0). The list's other entries are the native speed
+keys' steps (`SexyAppBase::SPEED_STEPS`). At 1 nothing is called, so unmodded play is unchanged. The game clock follows the speed:
 `Sexy::GetTickCountMS` (what `timeGetTime` and `GetTickCount` are in the ports) and `SexyAppBase::GetClockTime` are game
 time, real time scaled by the speed and accumulated, so a change of speed mid-game leaves the clock continuous. The framework's
 own pacing (the update accumulator, draws, sleeps) reads `Sexy::GetRealTickCountMS`. A game whose own host runs its loop

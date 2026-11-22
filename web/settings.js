@@ -74,8 +74,9 @@ var ByopopSettings = (function () {
     skipLogos: { values: SWITCH, def: "off" },       // on: the games skip their start-up logos (byopop_site_skiplogos, before the start)
     skipTutorials: { values: SWITCH, def: "off" },   // on: the game's own tutorial switch is turned off at each start (web/shell.html, byopop_site_tutorials)
     // the game's update rate, times this (web/controls.js): any value the framework takes, 0.01 to 16 (the user, 2026-11-10: "Allow
-    // game speed to be set to any arbitrary value instead of the limited options in the dropdown")
-    speed: { values: ["0.5", "0.75", "1", "1.25", "1.5", "2"], number: [0.01, 16], def: "1" }
+    // game speed to be set to any arbitrary value instead of the limited options in the dropdown"), and 0, as fast as it goes;
+    // the listed ones are the native speed keys' steps (SexyAppBase::SPEED_STEPS)
+    speed: { values: ["0.25", "0.5", "0.75", "1", "1.5", "2", "3", "4", "8", "16", "0"], number: [0.01, 16], def: "1" }
   };
 
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }
@@ -312,8 +313,9 @@ var ByopopSettings = (function () {
     { name: "fullscreen", label: T("settings.fullscreen.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.fullscreen.on")], ["off", T("settings.fullscreen.off")]], start: true,
       hint: T("settings.fullscreen.hint") },
     { section: "game" },
-    { name: "speed", label: T("settings.speed.label"), options: [["0.5", "½×"], ["0.75", "¾×"], ["1", T("settings.speed.normal")],
-      ["1.25", "1¼×"], ["1.5", "1½×"], ["2", "2×"]], hint: T("settings.speed.hint") },
+    { name: "speed", label: T("settings.speed.label"), options: [["0.25", "¼×"], ["0.5", "½×"], ["0.75", "¾×"], ["1", T("settings.speed.normal")],
+      ["1.5", "1½×"], ["2", "2×"], ["3", "3×"], ["4", "4×"], ["8", "8×"], ["16", "16×"], ["0", T("settings.speed.max")]],
+      hint: T("settings.speed.hint") },
     { name: "accel3d", label: T("settings.accel3d.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.accel3d.on")], ["off", T("settings.accel3d.off")]], start: true,
       games: ACCEL3D_GAMES, hint: T("settings.accel3d.hint"), help: T("settings.accel3d.help") },
     { name: "pixelPerfect", label: T("settings.pixelperfect.label"),
@@ -674,7 +676,8 @@ var ByopopSettings = (function () {
         c.custom.textContent = listed ? "" : now + "×";
         c.custom.hidden = c.custom.disabled = listed;
         if (!listed && !(scope === "game" && own === null)) c.select.value = now;
-        if (document.activeElement !== c.number) c.number.value = now;
+        // as fast as it goes (0) is no number the field takes: it stands empty
+        if (document.activeElement !== c.number) c.number.value = now === "0" ? "" : now;
       }
       if (c.preview) c.preview();
       // in the all-games view, say that this game has a value of its own

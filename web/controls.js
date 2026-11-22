@@ -11,7 +11,7 @@
 //                  the game window's status bar or under the game
 //   game speed     (setting "speed", 1 by default) the framework's own update multiplier (byopop_set_speed): the game runs
 //                  its updates that much faster or slower in real time; never on the player-only test page (?player=1),
-//                  whose runs keep the game's own speed
+//                  whose runs keep the game's own speed; 0 is as fast as it goes
 // The events go to the canvas as a player's own do (web/testkit.js does the same for tests), so Emscripten and SDL take them
 // on the same path.
 var ByopopControls = (function () {
@@ -155,23 +155,27 @@ var ByopopControls = (function () {
 
   // ---------- the game speed ----------
   var testPage = /[?&]player=1(&|$)/.test(location.search), speedSet = 1;
+  // 0 is as fast as it goes (SexyAppBase::SPEED_UNLIMITED)
   function speedWanted() {
     var v = testPage ? 1 : parseFloat(setting("speed"));
-    return v > 0 ? v : 1;
+    return v >= 0 ? v : 1;
   }
   function applySpeed() {
     var want = speedWanted(), M = window.Module;
     if (want === speedSet || !M || typeof M._byopop_set_speed !== "function") return;
     try {
+      // byopop_speed is 0 until the game's application exists, and 0 again once it runs as fast as it goes: the application
+      // is there when it reads a speed before the change, or after one to a number
+      var was = M._byopop_speed();
       M._byopop_set_speed(want);
-      // 0 until the game's application exists: tried again on the next frame
-      if (M._byopop_speed() > 0) { speedSet = want; speedCell(); }
+      if (was > 0 || speedSet === 0 || M._byopop_speed() > 0) { speedSet = want; speedCell(); }
     } catch (e) {}
   }
   // the speed in the game window's status bar, beside the window's scale, while it is not normal (a play-test, 2026-11-11, read
   // the scale's "1x" as the speed at 1.5)
   var FRACTIONS = { "0.25": "¼", "0.5": "½", "0.75": "¾" };
   function speedText(v) {
+    if (v === 0) return T("skin.apps.speed_max");
     var whole = Math.floor(v), part = String(Math.round((v - whole) * 100) / 100);
     if (part !== "0" && FRACTIONS[part]) return (whole ? whole : "") + FRACTIONS[part] + "×";
     return String(Math.round(v * 100) / 100) + "×";
