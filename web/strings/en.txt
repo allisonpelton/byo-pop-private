@@ -253,6 +253,7 @@ settings.speed.label = Game speed
 settings.speed.hint = Runs the game faster or slower. Music plays at its own speed. Bonnie's Bookstore and Ning Po Mahjong always run at their own.
 settings.speed.normal = Normal
 settings.speed.max = As fast as it goes
+settings.speed.fixed = This game always runs at its own speed.
 controls.title = Controls
 controls.none = This game's controls are not listed yet.
 controls.change = Change key

@@ -221,6 +221,9 @@ var ByopopSettings = (function () {
   // The games that read "3D acceleration" (Byopop::SiteAccel3D, framework/WebSettings.h): a game page of another game does
   // not show it. Perhaps later, once their passes settle their 3D modes: Bookworm Adventures 1 and 2, Rocket Mania.
   var ACCEL3D_GAMES = ["bejeweledtwist", "bookwormadv2"];
+  // The games whose own host runs their loop, with no SexyAppBase for the speed to reach (byopop_set_speed): on their pages the
+  // speed settings are greyed, with a line that says so
+  var OWN_SPEED_GAMES = ["bonnies", "ningpo"];
   // What this browser gives the games for 3D, shown under that setting: "hardware", "software" or "none". Tested as the
   // games test it (Twist's Is3DAccelerationSupported asks a new canvas for "webgl2"), then once more with
   // failIfMajorPerformanceCaveat, which a browser refuses when its WebGL2 is drawn without the graphics card (Chrome's
@@ -315,7 +318,7 @@ var ByopopSettings = (function () {
     { section: "game" },
     { name: "speed", label: T("settings.speed.label"), options: [["0.25", "¼×"], ["0.5", "½×"], ["0.75", "¾×"], ["1", T("settings.speed.normal")],
       ["1.5", "1½×"], ["2", "2×"], ["3", "3×"], ["4", "4×"], ["8", "8×"], ["16", "16×"], ["0", T("settings.speed.max")]],
-      hint: T("settings.speed.hint") },
+      fixed: OWN_SPEED_GAMES, hint: T("settings.speed.hint") },
     { name: "accel3d", label: T("settings.accel3d.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.accel3d.on")], ["off", T("settings.accel3d.off")]], start: true,
       games: ACCEL3D_GAMES, hint: T("settings.accel3d.hint"), help: T("settings.accel3d.help") },
     { name: "pixelPerfect", label: T("settings.pixelperfect.label"),
@@ -904,6 +907,12 @@ var ByopopSettings = (function () {
       }
       if (f.start && opts.live) hint.appendChild(make("span", "bps-start", T("settings.applies_next")));
       if (gameId) { c.own = make("span", "bps-own"); hint.appendChild(c.own); }
+      // a game whose own host runs its loop (f.fixed): the setting greyed on its page, and under the speed a line that says why
+      if (f.fixed && gameId && f.fixed.indexOf(gameId) >= 0) {
+        [c.select, c.checkbox, c.number].forEach(function (e) { if (e) e.disabled = true; });
+        row.setAttribute("data-fixed", "1");
+        if (f.name === "speed") hint.insertBefore(make("span", "bps-fixed", T("settings.speed.fixed")), hint.firstChild);
+      }
       controls[f.name] = c;
       [c.select, c.checkbox].forEach(function (e) { if (e) e.setAttribute("aria-describedby", hint.id + (pop ? " " + pop.id : "")); });
       c.select.addEventListener("change", function () {
@@ -1008,7 +1017,7 @@ var ByopopSettings = (function () {
     return ok;
   }
   return { KEY: KEY, names: Object.keys(DEFS), get: get, set: set, all: all, override: override, overrides: overrides, render: render,
-           favourites: favourites, isFavourite: isFavourite, setFavourite: setFavourite };
+           favourites: favourites, isFavourite: isFavourite, setFavourite: setFavourite, ownSpeed: OWN_SPEED_GAMES };
 })();
 
 // Which games have their files loaded in this browser, as a sign that the player owns them (docs/WEB_PLAYER.md, "The

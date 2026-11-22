@@ -155,9 +155,11 @@ var ByopopControls = (function () {
 
   // ---------- the game speed ----------
   var testPage = /[?&]player=1(&|$)/.test(location.search), speedSet = 1;
+  // a game whose own host runs its loop has no speed to set (ByopopSettings.ownSpeed)
+  function ownSpeed() { try { return (ByopopSettings.ownSpeed || []).indexOf(pageGame) >= 0; } catch (e) { return false; } }
   // 0 is as fast as it goes (SexyAppBase::SPEED_UNLIMITED)
   function speedWanted() {
-    var v = testPage ? 1 : parseFloat(setting("speed"));
+    var v = (testPage || ownSpeed()) ? 1 : parseFloat(setting("speed"));
     return v >= 0 ? v : 1;
   }
   function applySpeed() {

@@ -1305,7 +1305,8 @@ keys' steps (`SexyAppBase::SPEED_STEPS`). At 1 nothing is called, so unmodded pl
 `Sexy::GetTickCountMS` (what `timeGetTime` and `GetTickCount` are in the ports) and `SexyAppBase::GetClockTime` are game
 time, real time scaled by the speed and accumulated, so a change of speed mid-game leaves the clock continuous. The framework's
 own pacing (the update accumulator, draws, sleeps) reads `Sexy::GetRealTickCountMS`. A game whose own host runs its loop
-(Bonnie's Bookstore, Ning Po) has no hook yet. Music keeps its own time at every speed (tracker and Ogg alike; a fade the
+(Bonnie's Bookstore, Ning Po) has no hook yet, and on their pages the speed setting is greyed
+(`ByopopSettings.ownSpeed`), with a line under it that says the game keeps its own. Music keeps its own time at every speed (tracker and Ogg alike; a fade the
 framework steps per update is scaled back to real time, `SexyAppBase::MusicStepFactor`); sound effects keep their behaviour.
 The native build has the same speed in the mod menu and on F6/F7/F8 (`docs/MOD_MENU.md`), and `tools/check.sh speed` checks
 that every game follows it.
