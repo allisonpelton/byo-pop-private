@@ -22,4 +22,6 @@
 23 logic 8 105
 24 logic -1 200
 25 logic -1 100 600 100
-26 quit
+26 logic -1 3 600 100 1
+27 logic -1 30
+28 quit

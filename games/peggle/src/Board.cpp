@@ -452,6 +452,25 @@ void Board::DeleteReplays(bool theKeep)
 {
 }
 
+// 0x410120
+void Board::KillAllBalls()
+{
+	std::list<SharedPtr<PhysObj> >::iterator anItr = mBalls.begin();
+	while (anItr != mBalls.end())
+	{
+		PhysObj* aBall = anItr->get();
+		++anItr;
+		if (!static_cast<Ball*>(aBall)->mIsPeg)
+			RemoveObj(aBall);
+	}
+}
+
+// 0x40fed0
+void Board::RemoveObj(PhysObj* theObj)
+{
+	NOT_TRANSLATED("Board::RemoveObj");
+}
+
 // 0x402760
 void Board::BeginShot()
 {

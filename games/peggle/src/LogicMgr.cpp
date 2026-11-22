@@ -6,6 +6,9 @@
 #include "LogicMgr.h"
 
 #include "AIMgr.h"
+#include "Effect.h"
+#include <cmath>
+
 #include "Ball.h"
 #include "Board.h"
 #include "CharacterMgr.h"
@@ -63,6 +66,33 @@ static const int FLIPPER_COUNTDOWN = 180;		  // (1079, 1559)
 static const int SHOT_NOT_YET = -1000;			  // the "time" of a shot that has not started
 static const int SHOT_METER_PEGS = 25;			  // the shot meter counts the orange pegs against the usual 25
 static const int PEG_FLASH_BLINK = 10;			  // a peg that blinks (the hint)
+static const float LOW_GRAVITY_STEP = 2.0f;			  // how much a ball's fall slows each update with the low-gravity counter running (ModValFloat, LogicMgr.cpp 1352, 5207)
+static const float GRAVITY_SCALE = 0.05f;				  // (a constant of the game: every gravity is its number times this)
+static const int SHOT_BOOST_PERIOD = 700;				  // after the boost starts the shot is ended again every this many updates
+static const int SHOT_BOOST_RESET = 500;				  // and its update count goes back to this
+static const int EFFECT_TYPE_FIREBALL_FLAME = 5;		  // the fireball's trail
+static const int FIREBALL_FLAME_LIFE = 0x3c;
+static const int FIREBALL_FLAME_TURNS = 360;
+static const int EFFECT_TYPE_FIREBALL_EMBER = 0x2c;		  // the same without a 3D card
+static const int FIREBALL_EMBER_LIFE = 100;
+static const int FIREBALL_EMBER_PERIOD = 6;				  // an ember comes this often (ModValInt, LogicMgr.cpp 1330, 4961), faster for a slow ball
+static const int FIREBALL_EMBER_PERIOD_MEDIUM = 12;
+static const int FIREBALL_EMBER_PERIOD_SLOW = 30;
+static const double QUARTER_TURN = 1.5707963705062866;
+static const int EFFECT_TYPE_TRAIL_SPARK = 6;			  // the sparks a ball that has hit pegs leaves (the same kind as the cannon's glows)
+static const int TRAIL_PERIOD_BASE = 3;
+static const int TRAIL_LIFE = 25;						  // (ModValInt, LogicMgr.cpp 1333, 4993)
+static const float TRAIL_GRAVITY = 0.25f;				  // (1334, 4994)
+static const float TRAIL_SCATTER = 0.25f;				  // (1335, 4995)
+static const float TRAIL_SPREAD = 0.3f;					  // (1336, 4997)
+static const float TRAIL_RANDOM_PART = 0.275f;			  // (1337, 4998)
+static const float TRAIL_RANDOM_RANGE = 2.0f;			  // (1338, 4998)
+static const float TRAIL_MAX_SQUARE = 3.0f;				  // (1339 to 1341, 5007 to 5010)
+static const float TRAIL_SHIFT_SPEED = 2.0f;			  // (1342, 1344, 5013, 5014)
+static const float TRAIL_SHIFT_BACK = 4.5f;				  // (1343, 1345)
+static const float BALL_FOLLOW_MAX_X = 640.0f;			  // the ball is followed (for the zoom) while it is inside these
+static const float BALL_FOLLOW_MAX_Y = 520.0f;
+static const int BALL_STILL_UPDATES = 50;				  // a ball that has not moved this many updates no longer holds the shot
 static const int FLIPPER_ROW = 2;				  // the row of the flippers' turns left
 static const int TIME_BOMB_ROW = 11;			  // and the time bomb's
 static const int SHOT_BOOST_START = 1500;		  // the update of the shot a click speeds it from (the original's global at 0x649ac4)
@@ -77,7 +107,7 @@ static const int POWERUP_MIN_DISTANCE = 150;		  // the green pegs are at least t
 static const float POWERUP_MAX_Y = 370.0f;			  // a green peg is picked from the pegs above this line first
 static const int DEFAULT_NUM_GOAL_PEGS = 25;
 static const int NUM_SHUFFLE_SWAPS = 1000;			  // 0x43d430
-static const int NUM_CLICK_RECORDS_RESERVED = 60000;
+static const int NUM_BALL_RECORDS_RESERVED = 60000;
 static const float DEFAULT_BALL_RADIUS = 6.0f;		  // 0x649d78
 static const float GRAVITY = 0.05f;					  // 0x649d80
 static const float ANGLE_CONSTRAINT = 83.0f;		  // degrees to each side of straight down that the cannon cannot point at (ThunderCommon.cpp 123, 125)
@@ -272,8 +302,8 @@ void LogicMgr::Clear(bool theNewGame, bool theKeepLists)
 	for (int i = 0; i < 11; i++)
 		mUnknown370[i] = 0;
 	mClickEvents.clear();
-	mClickRecords.clear();
-	mClickRecords.reserve(NUM_CLICK_RECORDS_RESERVED);
+	mBallRecords.clear();
+	mBallRecords.reserve(NUM_BALL_RECORDS_RESERVED);
 	mUnknownB4.clear();
 	for (int i = 0; i < 14; i++)
 	{
@@ -1084,7 +1114,7 @@ void LogicMgr::BeginShot(bool theRecord)
 	anInterface->mUnknown54 = 0;
 	anInterface->mUnknown161 = false;
 	mClickEvents.clear();
-	mClickRecords.clear();
+	mBallRecords.clear();
 	if (theRecord)
 		mBoard->GetReplayPoint();
 }
@@ -1199,10 +1229,228 @@ void LogicMgr::UpdatePreShot()
 		NOT_TRANSLATED("LogicMgr::UpdatePreShot, the computer starts thinking (AIMgr::BeginThinking)");
 }
 
-// (address in the header)
+// 0x472f60: the shot goes on a step: the balls are looked at, and when none is left and nothing waits the shot is finished
 void LogicMgr::UpdateShot()
 {
-	NOT_TRANSLATED("LogicMgr::UpdateShot");
+	mUnknown38++;
+	if (!mUnknownF5 && IsComputerTurn())
+	{
+		if (mUnknown1D4[FLIPPER_ROW][mCurPlayer] < 1)
+		{
+			if (mStateTime == mUnknown144)
+				MouseDown(0, 0, 1, false, true);
+		}
+		else
+			CheckDoFlippers();
+	}
+	if (mUnknown1E && 0 < mUnknown148)
+	{
+		mUnknown148--;
+		for (std::list<SharedPtr<PhysObj> >::iterator anItr = mBoard->mBalls.begin(); anItr != mBoard->mBalls.end(); ++anItr)
+		{
+			Ball* aBall = static_cast<Ball*>(anItr->get());
+			aBall->mVelocityY = (float)((double)aBall->mVelocityY - (long double)LOW_GRAVITY_STEP * GRAVITY_SCALE);
+		}
+	}
+	if (SHOT_BOOST_START <= mUnknown38 && (mUnknown38 - SHOT_BOOST_START) % SHOT_BOOST_PERIOD == 0)
+	{
+		mUnknownF7 = true;
+		mUnknown38 = SHOT_BOOST_RESET;
+	}
+	if (mUnknown154 != 0)
+		mUnknown154--;
+	if (!UpdateShotBalls() && mUnknown0C == 0)
+		FinishShot();
+}
+
+// 0x467230: each ball in play is noted for the replay (or put where the replay had it), leaves its trail, and the balls that have
+// fallen out are checked; true while a ball is in play. (The original's debug check of the bot's ball, a ModValInt that is 0, is left out.)
+bool LogicMgr::UpdateShotBalls()
+{
+	if (mBoard->mBalls.empty())
+		return false;
+	for (std::list<SharedPtr<PhysObj> >::iterator anItr = mBoard->mBalls.begin(); anItr != mBoard->mBalls.end(); ++anItr)
+	{
+		Ball* aBall = static_cast<Ball*>(anItr->get());
+		if (!mUnknownF5)
+		{
+			if (mBallRecords.empty() || mBallRecords.size() < NUM_BALL_RECORDS_RESERVED)
+			{
+				BallRecord aRecord = {mStateTime, aBall->mBallId, aBall->mX, aBall->mY, false};
+				mBallRecords.push_back(aRecord);
+			}
+		}
+		else
+		{
+			// a replay: the records of the updates gone by are dropped, and the ball is put where its record of this update has it
+			while (!mBallRecords.empty() && mBallRecords.back().mTime < mStateTime)
+				mBallRecords.pop_back();
+			for (int i = (int)mBallRecords.size() - 1; 0 <= i; i--)
+			{
+				BallRecord& aRecord = mBallRecords[i];
+				if (mStateTime < aRecord.mTime)
+					break;
+				if (aRecord.mBallId == aBall->mBallId)
+				{
+					aBall->SetPos(aRecord.mX, aRecord.mY);
+					if (!aBall->mUnknown143)
+						aBall->mUnknown143 = true;
+					else if (!aBall->mUnknown142)
+						aBall->SetVelocity(aBall->mX - aBall->mPreviousX, aBall->mY - aBall->mPreviousY);
+					break;
+				}
+			}
+		}
+		if (aBall->mUnknown14C != 0)
+			continue;
+		if (0 < aBall->mUnknown178 && aBall->mY < (float)aBall->mUnknown180)
+			aBall->mUnknown180 = (int)aBall->mY;
+		if (aBall->mFireball)
+		{
+			EffectMgr* anEffects = mBoard->mEffectMgr.get();
+			if (mBoard->mApp->Is3DAccelerated())
+			{
+				Effect& aFlame = anEffects->AddEffect(EFFECT_TYPE_FIREBALL_FLAME, aBall->mX, aBall->mY, 0);
+				aFlame.mLife = FIREBALL_FLAME_LIFE;
+				aFlame.mUnknown30 = Rand() % FIREBALL_FLAME_TURNS;
+			}
+			else
+			{
+				float aVelocityXSq = (float)((double)aBall->mVelocityX * aBall->mVelocityX);
+				float aSpeedSq = (float)((long double)aBall->mVelocityY * aBall->mVelocityY + aVelocityXSq);
+				int aPeriod = FIREBALL_EMBER_PERIOD;
+				if (1.0f <= aSpeedSq)
+				{
+					if (aSpeedSq < 4.0f)
+						aPeriod = FIREBALL_EMBER_PERIOD_MEDIUM;
+				}
+				else
+					aPeriod = FIREBALL_EMBER_PERIOD_SLOW;
+				if (mStateTime % aPeriod == 0)
+				{
+					Effect& anEmber = anEffects->AddEffect(EFFECT_TYPE_FIREBALL_EMBER, aBall->mX, aBall->mY, 0);
+					anEmber.mLife = FIREBALL_EMBER_LIFE;
+					anEmber.mGravity = (float)((long double)GRAVITY_SCALE * 0.5);
+					float aDirection = atan2f(-aBall->mVelocityY, aBall->mVelocityX);
+					anEmber.mUnknown28 = (float)((double)aDirection + QUARTER_TURN);
+				}
+			}
+		}
+		else if (mUnknownF6 || mUnknownFA)
+			AddFeverSparks(aBall, false);
+		else if (mUnknown55)
+			AddFeverSparks(aBall, true);
+		else if (aBall->mUnknown150 != 0 && 1 < aBall->mUnknown154 && aBall->mUnknown142)
+		{
+			// a ball that has hit pegs leaves sparks behind it, more of them the more it has hit
+			int aDivisor = TRAIL_PERIOD_BASE - aBall->mUnknown154 / 4;
+			aDivisor = aDivisor < 1 ? 1 : (aDivisor < 4 ? aDivisor : 3);
+			if (mStateTime % aDivisor == 0)
+			{
+				Effect& aSpark = mBoard->mEffectMgr->AddEffect(EFFECT_TYPE_TRAIL_SPARK, aBall->mX, aBall->mY, 0);
+				aSpark.mLife = TRAIL_LIFE;
+				aSpark.mGravity = (float)((long double)TRAIL_GRAVITY * GRAVITY_SCALE);
+				float aVelocityXSq = (float)((double)aBall->mVelocityX * aBall->mVelocityX);
+				float aVelocityYSq = (float)((double)aBall->mVelocityY * aBall->mVelocityY);
+				float aSpeed = (float)std::sqrt((double)(float)((double)aVelocityXSq + aVelocityYSq));
+				double aSpreadRange = (double)((long double)TRAIL_RANDOM_PART * TRAIL_RANDOM_RANGE);
+				float aRandom = (float)((long double)(Rand() % 1000) / 1000.0L * aSpreadRange);
+				aSpark.mVelocityX = (float)(((long double)(1.0 - (double)(Rand() % 1000) / 500.0) * TRAIL_SPREAD - aBall->mVelocityX) +
+											((long double)aSpeed * aBall->mUnknown168) * aRandom);
+				aSpark.mVelocityY = (float)(((long double)(1.0 - (double)(Rand() % 1000) / 500.0) * TRAIL_SPREAD - aBall->mVelocityY) +
+											((long double)aBall->mUnknown16C * aSpeed) * aRandom);
+				float aScaledX = (float)((long double)aSpark.mVelocityX * TRAIL_SCATTER);
+				aSpark.mVelocityX = aScaledX;
+				float aScaledY = (float)((long double)TRAIL_SCATTER * aSpark.mVelocityY);
+				aSpark.mVelocityY = aScaledY;
+				float aSquare = (float)((long double)aScaledX * aScaledX + (long double)aScaledY * aScaledY);
+				if ((double)TRAIL_MAX_SQUARE < (double)aSquare)
+				{
+					aSpark.mVelocityX = (float)(((long double)TRAIL_MAX_SQUARE * aSpark.mVelocityX) / aSquare);
+					aSpark.mVelocityY = (float)(((long double)TRAIL_MAX_SQUARE * aSpark.mVelocityY) / aSquare);
+				}
+				double aShiftX = (double)((long double)TRAIL_SHIFT_SPEED * aSpark.mVelocityX);
+				aSpark.mX = (float)(((long double)aShiftX - (long double)TRAIL_SHIFT_BACK * aBall->mUnknown168) + aSpark.mX);
+				double aShiftY = (double)((long double)TRAIL_SHIFT_SPEED * aSpark.mVelocityY);
+				aSpark.mY = (float)(((long double)aShiftY - (long double)TRAIL_SHIFT_BACK * aBall->mUnknown16C) + aSpark.mY);
+			}
+		}
+	}
+	UpdateWrapAroundBall();
+	if (!mBoard->mBalls.empty())
+	{
+		Ball* aFirst = static_cast<Ball*>(mBoard->mBalls.front().get());
+		if (0.0f < aFirst->mX && aFirst->mX < BALL_FOLLOW_MAX_X && 0.0f < aFirst->mY && aFirst->mY < BALL_FOLLOW_MAX_Y)
+		{
+			mUnknown338 = aFirst->mX;
+			mUnknown33C = aFirst->mY;
+		}
+	}
+	CheckBallStop();
+	return true;
+}
+
+// 0x45f120: a ball that has the spooky power and has fallen off the bottom comes back at the top
+void LogicMgr::UpdateWrapAroundBall()
+{
+	std::list<SharedPtr<PhysObj> >::iterator anItr = mBoard->mBalls.begin();
+	while (anItr != mBoard->mBalls.end())
+	{
+		Ball* aBall = static_cast<Ball*>(anItr->get());
+		++anItr;
+		if (aBall->mUnknown160 && (float)mBoard->mUnknown1B4 < aBall->mY - aBall->mRadius)
+			NOT_TRANSLATED("LogicMgr::DoWrapAround (the spooky ball)");
+	}
+}
+
+// 0x466df0: when no ball in play is still moving (or the shot has run so long that it has to end) the balls' rest counts are cleared
+// and the shot's pegs are taken off the board in a moment; with no peg hit the balls just go
+void LogicMgr::CheckBallStop()
+{
+	if (mUnknown0C != 0)
+		return;
+	if (!mUnknownF7)
+	{
+		std::list<SharedPtr<PhysObj> >::iterator anItr;
+		for (anItr = mBoard->mBalls.begin(); anItr != mBoard->mBalls.end(); ++anItr)
+		{
+			Ball* aBall = static_cast<Ball*>(anItr->get());
+			if (!aBall->mIsPeg && aBall->mUnknownE4 < BALL_STILL_UPDATES)
+				break;
+		}
+		if (anItr != mBoard->mBalls.end())
+			return;
+	}
+	else
+		mUnknownF7 = false;
+	for (std::list<SharedPtr<PhysObj> >::iterator anItr = mBoard->mBalls.begin(); anItr != mBoard->mBalls.end(); ++anItr)
+		static_cast<Ball*>(anItr->get())->mUnknownE4 = 0;
+	if (mUnknown34C.empty())
+	{
+		mBoard->KillAllBalls();
+		return;
+	}
+	mUnknown14 = mUnknown12C - (int)mUnknown34C.size();
+	mUnknown10 = 0;
+	RemoveHitPegs();
+}
+
+// 0x470a50
+void LogicMgr::FinishShot()
+{
+	NOT_TRANSLATED("LogicMgr::FinishShot");
+}
+
+// 0x472c70
+void LogicMgr::CheckDoFlippers()
+{
+	NOT_TRANSLATED("LogicMgr::CheckDoFlippers");
+}
+
+// 0x451ec0
+void LogicMgr::AddFeverSparks(Ball* theBall, bool theZen)
+{
+	NOT_TRANSLATED("LogicMgr::AddFeverSparks");
 }
 
 // (address in the header)

@@ -27,7 +27,7 @@ public:
 	float mVelocityX; // +0x1c
 	float mVelocityY; // +0x20
 	float mGravity;	  // +0x24: when above 0 the vertical speed grows by it each update, up to 10
-	int mUnknown28;	  // +0x28
+	float mUnknown28; // +0x28: an angle, in radians
 	int mUnknown2C;	  // +0x2c
 	int mUnknown30;	  // +0x30
 	int mColor;		  // +0x34

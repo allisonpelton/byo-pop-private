@@ -69,8 +69,8 @@ public:
 	bool mUnknown163;		  // +0x163: set by the constructor
 	bool mUnknown164;		  // +0x164
 	bool mUnknown165;		  // +0x165
-	int mUnknown168;		  // +0x168
-	int mUnknown16C;		  // +0x16c
+	float mUnknown168;		  // +0x168
+	float mUnknown16C;		  // +0x16c
 	float mUnknown170;		  // +0x170
 	int mUnknown174;		  // +0x174
 	int mUnknown178;		  // +0x178

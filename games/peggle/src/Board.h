@@ -72,6 +72,8 @@ public:
 	void UpdateZoom();						// 0x40ad10
 	void Reload();										// 0x4090d0: a new ball in the cannon
 	void PlayMusic();						// 0x422640
+	void KillAllBalls();							// 0x410120: every ball that is not a peg of the level goes
+	void RemoveObj(PhysObj* theObj);				// 0x40fed0
 	void BeginShot();								// 0x402760: the pointer is hidden while the ball is in play
 	void GetReplayPoint();							// 0x424be0: keeps the board's state for the instant replay (none is kept yet)
 	void AddObj(const SharedPtr<PhysObj>& theObj); // 0x422a90 (0x421070): a piece of the level joins the board's lists

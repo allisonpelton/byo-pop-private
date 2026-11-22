@@ -20,6 +20,7 @@
 namespace Sexy
 {
 
+class Ball;
 class Board;
 class PhysObj;
 class SoundInstance;
@@ -43,13 +44,13 @@ enum LogicState
 	LOGIC_STATE_UNKNOWN10 = 10
 };
 
-// One record of the clicks list (+0xd0), 20 bytes in the original: the replay's click times
-struct ClickRecord
+// One record of the balls list (+0xd0), 20 bytes in the original: where a ball was in an update of the shot, for the replay
+struct BallRecord
 {
-	int mUnknown0;
-	int mUnknown4;
-	int mUnknown8;
-	int mUnknownC;
+	int mTime;	 // the shot's update
+	int mBallId; // which ball (0 or 1)
+	float mX;
+	float mY;
 	bool mUsed; // +0x10: written already
 };
 
@@ -90,6 +91,12 @@ public:
 	void UpdateGun();								// 0x46d630
 	void UpdateFreeBall();								// 0x440830
 	void RemoveHitPegs();
+	bool UpdateShotBalls();								// 0x467230
+	void UpdateWrapAroundBall();						// 0x45f120
+	void CheckBallStop();								// 0x466df0
+	void FinishShot();									// 0x470a50
+	void CheckDoFlippers();								// 0x472c70
+	void AddFeverSparks(Ball* theBall, bool theZen);	// 0x451ec0
 	void UpdatePreShot();								// 0x466f10
 	void UpdateShot();									// 0x472f60
 	void UpdatePostShot();
@@ -183,7 +190,7 @@ public:
 	SoundInstance* mFadeSound;	 // +0xb0: the sound that fades when the level starts
 	std::vector<LogicRecord16> mUnknownB4; // +0xb4
 	std::list<ClickEvent> mClickEvents;	   // +0xc4: the clicks the shot has had (a replay plays them again)
-	std::vector<ClickRecord> mClickRecords; // +0xd0: the clicks the replay keeps
+	std::vector<BallRecord> mBallRecords; // +0xd0: where the balls were in each update of the shot, for the replay
 	float mGunAngle;		 // +0xe0: where CalcGunAngle aims the cannon (the player's mouse)
 	float mUnknownE4;		 // +0xe4
 	int mUnknownE8;			 // +0xe8
