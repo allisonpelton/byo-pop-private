@@ -229,6 +229,10 @@ settings.colorfilter.sepia = Sepia
 settings.colorfilter.warm = Warm (less blue light)
 settings.colorfilter.contrast = High contrast
 settings.colorfilter.vivid = Vivid
+# for colour-blind players: the picture recoloured so that the colours they confuse come apart (web/view.js)
+settings.colorfilter.protan = For protanopia (red)
+settings.colorfilter.deutan = For deuteranopia (green)
+settings.colorfilter.tritan = For tritanopia (blue)
 settings.colorfilter.pal256 = 256 colours
 settings.colorfilter.pal256d = 256 colours, dithered
 settings.inputdisplay.label = Input display

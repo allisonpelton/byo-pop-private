@@ -64,7 +64,7 @@ var ByopopSettings = (function () {
     gameSize: { values: ["one", "fit"], def: "one" },  // Desktop 95: a game window's size with none chosen in its View menu (web/shell.html)       // on: Desktop 95 lists only the games whose original ran on Windows 95 (web/skins.js)
     // the view settings (web/view.js): drawn over the game's picture or done to it, never to the game
     scanlines: { values: ["off", "light", "strong"], def: "off" },
-    colorFilter: { values: ["none", "grey", "sepia", "warm", "contrast", "vivid", "pal256", "pal256d"], def: "none" },
+    colorFilter: { values: ["none", "grey", "sepia", "warm", "contrast", "vivid", "protan", "deutan", "tritan", "pal256", "pal256d"], def: "none" },
     // the input settings (web/controls.js): what the page adds to the game's input
     inputDisplay: { values: SWITCH, def: "off" },
     touchKeys: { values: ["auto", "on", "off"], def: "auto" },
@@ -284,7 +284,8 @@ var ByopopSettings = (function () {
     { name: "scanlines", label: T("settings.scanlines.label"), options: [["off", T("settings.off")], ["light", T("settings.scanlines.light")], ["strong", T("settings.scanlines.strong")]],
       hint: T("settings.scanlines.hint") },
     { name: "colorFilter", label: T("settings.colorfilter.label"), options: [["none", T("settings.colorfilter.none")], ["grey", T("settings.colorfilter.grey")],
-      ["sepia", T("settings.colorfilter.sepia")], ["warm", T("settings.colorfilter.warm")], ["contrast", T("settings.colorfilter.contrast")], ["vivid", T("settings.colorfilter.vivid")], ["pal256", T("settings.colorfilter.pal256")], ["pal256d", T("settings.colorfilter.pal256d")]],
+      ["sepia", T("settings.colorfilter.sepia")], ["warm", T("settings.colorfilter.warm")], ["contrast", T("settings.colorfilter.contrast")], ["vivid", T("settings.colorfilter.vivid")],
+      ["protan", T("settings.colorfilter.protan")], ["deutan", T("settings.colorfilter.deutan")], ["tritan", T("settings.colorfilter.tritan")], ["pal256", T("settings.colorfilter.pal256")], ["pal256d", T("settings.colorfilter.pal256d")]],
       hint: T("settings.colorfilter.hint") },
     { section: "saver" },
     // the games with a bot whose files are here (none on the live site yet), by the games' titles, read again as the theme's are

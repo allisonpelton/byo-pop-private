@@ -1371,6 +1371,11 @@ that show the game as a 256-colour screen did (the user, 2026-11-09: "Is it poss
 windows to make them appear in 256 colors only?"): `pal256` makes each pixel the nearest colour of the palette Windows
 kept for programs that set none (its 20 static colours and the 6x6x6 cube), and `pal256d` first applies an 8x8 ordered
 dither. Both are drawn by a WebGL canvas over the game canvas, filled in the frame hook (`Module.byopopTestFrame`).
+Three more are for colour-blind players, standard mod 15's palettes made a site filter (the user, 2026-11-07: "Yes,
+move them"): `protan`, `deutan` and `tritan` recolour the picture by daltonization, an SVG colour matrix in linear RGB
+named by the canvas's CSS filter. Each matrix is worked out in `web/view.js` from the simulation of that deficiency
+(Machado, Oliveira and Fernandes 2009, severity 1) and a shift of what it loses into channels the player still tells
+apart; the comment there gives the shifts and how far apart they put colours the simulation confuses.
 The scanlines lie over the canvas's own box, not the whole stage (in full screen the canvas is centred in a larger
 stage), with one line a game row high every two of the game's rows: the rows come from the game's size (`--aspect`) and
 the height from the canvas's drawn box, never from the canvas's pixels, which SDL sizes on its own time (300 x 150 before
