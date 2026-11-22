@@ -39,7 +39,8 @@ bool BugSharedSetCommandGiven(BugObj* theBug, int theCommand, int theFrames);
 // but never the shock's ring
 int BugSharedTakeCommandNoRing(BugObj* theBug);
 // 0x415b60 (slot 22): theEndEvent is the key's event, 5 in the original. 0x418130 (the roach, the roly-poly and the
-// centipede) is the same code with the event 6: those kinds call this with 6
+// centipede) is the same code with the event 6, 0x419170 (the dragonfly) with 7, and 0x41b990 (the fly and the moth, one
+// function for both) with 8: those kinds call this with their own
 void BugSharedBuildFadeTrack(BugObj* theBug, int theEndEvent);
 
 // 0x4168e0 (EBX the bug; the beetle and the caterpillar, whose brains keep the three keys at the same places): the step's
@@ -50,6 +51,10 @@ int BugSharedBuildMoveTrack(BugObj* theBug, AnimKey*& theLegKey, AnimKey*& theTu
 
 // The shared slots of the bodies (the original's code reads the track at +0x2a4 of its own body, which the kinds that name
 // it keep at that place; here the track is passed)
+// 0x424f40 (slot 13; the bodies of the skeeter, the fly and the moth): the same fields at +0x2a0 and +0x2a8, given here: a freeze
+// starts the dance (theDanceKey's length is set to the frames, theDanceTrack starts), its end cuts the dance short, and any
+// other command is BugImg's
+void BugSharedImgSlot13(BugImg* theBody, AnimKey* theDanceKey, int theDanceTrack, int theCommand, int theFrames, int theUnused);
 bool BugSharedImgUpdate(BugImg* theBody);                          // 0x4219c0 (slot 5): ObjBase's update
 void BugSharedImgNotify(BugImg* theBody, ObjBase* theObj, int theTrack); // 0x4237d0 (slot 4): event 2 starts theTrack
 

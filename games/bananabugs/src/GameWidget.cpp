@@ -5,6 +5,8 @@
 #include "BugImgBeetle.h"
 #include "BugImgCaterpillar.h"
 #include "BugImgCentipede.h"
+#include "BugBrainFly.h"
+#include "BugImgFly.h"
 #include "BugImgRoach.h"
 #include "BugImgRolly.h"
 #include "BugImgSkeeter.h"

@@ -1,3 +1,4 @@
+#include "PathTrace.h"
 #include "MetaGame.h"
 
 #include "Anim.h"

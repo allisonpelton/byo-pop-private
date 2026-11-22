@@ -182,6 +182,22 @@ void Sexy::BugSharedImgNotify(BugImg* theBody, ObjBase* theObj, int theTrack)
 		theBody->StartTrack(theTrack);
 }
 
+// 0x424f40 (slot 13; the skeeter's, the fly's and the moth's body): a freeze starts the dance at once, for as many frames as
+// it asks, and its end cuts the dance short; any other command is BugImg's (the stars and the ring)
+void Sexy::BugSharedImgSlot13(BugImg* theBody, AnimKey* theDanceKey, int theDanceTrack, int theCommand, int theFrames, int theUnused)
+{
+	if (theCommand == BUG_CMD_FREEZE_ON) {
+		theDanceKey->SetDuration(theFrames);
+		theBody->StartTrack(theDanceTrack);
+		return;
+	}
+	if (theCommand != BUG_CMD_FREEZE_OFF) {
+		theBody->BugImg::Slot13(theCommand, theFrames, theUnused);
+		return;
+	}
+	theDanceKey->SetDuration(0);
+}
+
 // The post's link in a heading (PipeObj keeps them in the order up, right, down, left; the original indexes them at +0x290)
 PipeObj* Sexy::BugPostLink(PipeObj* thePost, int theHeading)
 {

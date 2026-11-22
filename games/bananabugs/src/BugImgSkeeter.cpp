@@ -75,20 +75,10 @@ bool BugImgSkeeter::Update()
 	return BugSharedImgUpdate(this);
 }
 
-// 0x424f40: a freeze starts the dance at once, for as many frames as it asks, and its end cuts the dance short; any other
-// command is BugImg's (the stars and the ring)
+// 0x424f40 (slot 13; shared): see BugSharedImgSlot13
 void BugImgSkeeter::Slot13(int theCommand, int theFrames, int theUnused)
 {
-	if (theCommand == BUG_CMD_FREEZE_ON) {
-		mDanceKey->SetDuration(theFrames);
-		StartTrack(mDanceTrack);
-		return;
-	}
-	if (theCommand != BUG_CMD_FREEZE_OFF) {
-		BugImg::Slot13(theCommand, theFrames, theUnused);
-		return;
-	}
-	mDanceKey->SetDuration(0);
+	BugSharedImgSlot13(this, mDanceKey, mDanceTrack, theCommand, theFrames, theUnused);
 }
 
 // 0x424f90: the dance: the dance cels play back and forth (the frame wave: from cel 11, 30 of them, 50 to the cel) for

@@ -26,8 +26,6 @@ static Anim* sSlotWinAnim;           // 0x670218
 static Anim* sSlotSpinAnim;          // 0x67021c
 static Anim* sSlotNumbersAnim;       // 0x670220
 static Anim* sSlotShineAnim;         // 0x670224
-static Anim* sFlyDanceAnim;          // 0x60e28c
-static Anim* sFlyFlyAnim;            // 0x60e290
 static Anim* sInGameButtonsAnim;     // 0x670188
 static Anim* sMothDanceAnim;         // 0x60e294
 static Anim* sMothAnim;              // 0x60e298
@@ -79,20 +77,6 @@ bool Slots::IsDone()
 	return true;
 }
 
-PathTrace::PathTrace()
-{
-	mCount = 0;
-	for (int i = 0; i < 5008; i++)
-		mX[i] = 0.0f;
-	for (int i = 0; i < 15155; i++)
-		mY[i] = 0.0f;
-}
-
-void PathTrace::Load(const char* theName)
-{
-	(void)theName;
-}
-
 // port: the stand-in never pauses
 void PauseWin::PauseForFocusLoss()
 {
@@ -126,12 +110,6 @@ void Sexy::PreloadSlots()
 	sSlotShineAnim = Load("images/slot/slot_shine", 0x100, 0xc0, 4);
 }
 
-void Sexy::PreloadFly()
-{
-	sFlyDanceAnim = Load("images/fly_dance", 0x60, 0x60, 0x1e);
-	sFlyFlyAnim = Load("images/fly_fly", 0x40, 0x40, 6);
-}
-
 void Sexy::PreloadInGameButtons()
 {
 	sInGameButtonsAnim = Load("images/menu/ingame_buttons", 0x167, 0x67, 3);
@@ -146,11 +124,6 @@ void Sexy::PreloadMoth()
 void Sexy::PreloadWasp()
 {
 	sWaspAnim = Load("images/wasp", 0x5f, 0x5f, 0x1e);
-}
-
-// port: the flies' paths (two "images/path_fly" tables) are not translated yet
-void Sexy::PreloadFlyPaths()
-{
 }
 
 // port: the moths' paths (two "images/path_moth" tables) are not translated yet
@@ -198,16 +171,6 @@ void HiddenBonus::Uncover()
 
 // The kinds of bug: stand-ins (see Pending.h). The kind each sets is BugKind; the moth sets the fly's number 7 in the
 // original too (a bug of the original: nothing reads the difference in what is translated)
-BugBrainDragonfly::BugBrainDragonfly() // 0x418880
-{
-	SetKind(2, 4, 2);
-}
-
-BugBrainFly::BugBrainFly() // 0x4198c0
-{
-	SetKind(7, 2, 2);
-}
-
 BugBrainMoth::BugBrainMoth() // 0x41af60
 {
 	SetKind(7, 2, 1);

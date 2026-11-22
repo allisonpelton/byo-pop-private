@@ -122,3 +122,9 @@ The finished translations to copy the style from: `src/PopCap.cpp`, `src/Transit
 - LevelObj's morph table sums each pixel's channels on the x87 (port: doubles); a last-bit difference is possible.
 - BackDrop's table names backgrounds up to 18, but the game ships background01..14 (ground_01..14): check which map
   levels exist before a late level runs.
+- The dragonfly's body shares Notify 0x4237d0 with the skeeter's and the bee's, which starts the track whose number it
+  reads at body +0x2a4; on the dragonfly's body that field holds an Anim pointer, so the original starts a track by a
+  wild number. The port's BugImgDragonfly::Notify does nothing instead (a deviation to list: check against the original
+  whether the wild start ever shows, StartTrack may simply ignore an index past its tracks).
+- PathTrace::Load (0x454ab0) loops for ever on a path picture with a pixel that has no neighbour and has no bound on its
+  points; the port stops at both (neither happens with the shipped pictures, to be checked).

@@ -28,11 +28,9 @@ public:
 	void Uncover();                             // 0x409bf0
 };
 
-// The kinds of bug (the brains, BugBrain* in the original, derived from BugObj). None is translated: each stand-in is made
+// The kinds of bug (the brains, BugBrain* in the original, derived from BugObj) not translated yet (the moth and the bee): each stand-in is made
 // by the kind's constructor address, sets what that constructor gives BugObj with SetKind (kind, half-width, half-height) and
 // does nothing else, so it has no body and never moves. Setup, Update and Zap are BugObj's
-class BugBrainDragonfly : public BugObj { public: BugBrainDragonfly(); }; // 0x418880
-class BugBrainFly : public BugObj { public: BugBrainFly(); };           // 0x4198c0
 class BugBrainMoth : public BugObj { public: BugBrainMoth(); };         // 0x41af60
 class BugBrainBee : public BugObj { public: BugBrainBee(); };           // 0x414fa0
 
@@ -157,18 +155,6 @@ public:
 	bool IsDone();                              // 0x469a30: true at once in the stand-in
 };
 
-// The way a life icon of the base flies (0x454a30, 0x22750 bytes): a path of points, read from a picture. The
-// stand-in has none (a count of 0, its tables zeros).
-class PathTrace
-{
-public:
-	int mCount;                                 // +0xec40: points on the path
-	float mX[5008];                             // +0xec44
-	float mY[15155];                            // +0x13a84
-	PathTrace();                                // 0x454a30
-	void Load(const char* theName);             // 0x454ab0
-};
-
 // The pause window (0x454ef0)
 class PauseWin
 {
@@ -184,11 +170,9 @@ public:
 void PreloadNetFly();        // 0x42ad40
 void PreloadWalkThru();      // 0x4756d0
 void PreloadSlots();         // 0x46c710
-void PreloadFly();           // 0x423980
 void PreloadInGameButtons(); // 0x4558f0
 void PreloadMoth();          // 0x423d10
 void PreloadWasp();          // 0x420b30
-void PreloadFlyPaths();      // 0x41aee0
 void PreloadMothPaths();     // 0x41c470
 void PreloadBonusPictures(); // 0x406dd0
 void InitBonusTable();       // 0x40af90

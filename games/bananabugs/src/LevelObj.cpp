@@ -4,6 +4,8 @@
 #include "BugBrainBeetle.h"
 #include "BugBrainCaterpillar.h"
 #include "BugBrainCentipede.h"
+#include "BugBrainDragonfly.h"
+#include "BugBrainFly.h"
 #include "BugBrainRoach.h"
 #include "BugBrainRolly.h"
 #include "BugBrainSkeeter.h"
