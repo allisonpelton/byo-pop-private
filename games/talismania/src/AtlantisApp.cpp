@@ -1,5 +1,6 @@
 #include "AtlantisApp.h"
 
+#include "AtlantisData.h"
 #include "Engine.h"
 
 bool gUsingArchive = false;
@@ -25,9 +26,12 @@ AtlantisApp* AtlantisApp::boot()
 		anEngine->addArchive("Talismania.saf");
 		gUsingArchive = true;
 	}
-	// The base data set ("baseset": config/scenes.xml and config/gameoptions.xml) is loaded here, and the application
-	// is made from the options named "std" (not yet translated)
+	// The data set list, then the base data set ("baseset": config/scenes.xml and config/gameoptions.xml)
 	AtlantisApp* anApp = new AtlantisApp();
+	anApp->mData.loadFile("config/datasets.xml");
+	anApp->mData.loadDataSet("baseset");
+	if (anApp->mData.appOptions.find("std") == anApp->mData.appOptions.end())
+		anEngine->log("Cannot find application options \"std\"\n");
 	anApp->addRef();
 	return anApp;
 }

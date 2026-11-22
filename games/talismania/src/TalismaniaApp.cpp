@@ -284,7 +284,7 @@ void TalismaniaApp::RunFrame()
 	aContext.mFrame = (uint64_t)mFrames;
 	aContext.mDetailLevel = mEngine->getDetailLevel();
 	mFrames++;
-	// (the sound's update, 0x42b8c0 (talismania), comes here with the sound)
+	// (the sound's update, 0x42b8c0 (feedingfrenzy2), comes here with the sound)
 	mEngine->mUpdateSignal.emit(&aContext);
 
 	// The frame drawn into the display through a context whose first state is at the origin, unscaled and opaque;

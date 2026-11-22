@@ -47,8 +47,22 @@ description noupdate wait theme>`); "baseset" is `config/scenes.xml` and `config
 (`appoptions name="std"`) holds the layout names, the title, `targetfps`, `screendimensions` and `initialdataset`. About 40
 class kinds, each loader to read for its exact attributes.
 
+## Loader facts (read from the export)
+
+Params getters in this exe: 0x64f2a0 string, 0x64f380 int, 0x64f4e0 float, 0x64f640 range, 0x64f7a0 bool, 0x64f920
+floatpair, 0x64fa80 intpair, 0x64fbc0 rect, 0x64fd00 color, 0x64fe90 pivot. Talismania's pivot names are center,
+upperleft and lowerright, unlike Feeding Frenzy 2's: a per-game switch in the shared engine when pivots are reached.
+A `baseclass` copies the base item's fields, and an attribute's default is then the field's value. The highscore
+`<entry>` reads its `score` default as `(rand() % 0x76d + 100) * 10` even when the attribute is there: one C runtime
+draw per entry at load (kept, `engine::crtRand`). The list tokenizer (0x437930) splits at commas outside brackets; whether
+it skips empty tokens or trims is not confirmed (the base data has none). `tools/loaderattrs.py <addr>` prints a
+loader's attributes with defaults; `tools/classstrings.py <class>` the strings of a class's functions.
+
 ## Done
 
+- `src/AtlantisData`: the base data set's kinds (scene, gameoptions, appoptions, debugmanager, mousecursormgr,
+  highscorescreen, gamemode) and the data set list, read by one dispatching handler; the boot loads
+  `config/datasets.xml` and "baseset" without errors.
 - The host builds and runs (`build/native/talismania.exe`, a silent run under rundesk): the window opens, the archive is
   found, a black frame is shown. The boot's archive step.
 
