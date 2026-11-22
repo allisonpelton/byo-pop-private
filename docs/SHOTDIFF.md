@@ -45,6 +45,25 @@ a real difference, fix it; `fine`: accept it; `unsure`: the user could not tell,
 time of the mark. A mark carries over to a newer run of the game for as long as the pair still differs; a mark whose
 `sig` differs from the pair's current boxes was made against other differences, and the page says so.
 
+## Every screen, listed
+
+A tour compares only the screens it visits, and coverage shows only that code ran. So Bejeweled 2's No Hints and Mode
+Unlocked dialogs reached the user with blank buttons, and no game's credits roll had been compared (the screen audit of
+2026-11-21, `build/logs/screen-coverage/`). Every game therefore keeps `games/<game>/docs/SCREENS.md`: one table row per
+screen or dialog the game can show, taken from its export and its source. That covers title and loading screens, menus,
+every dialog, popup and message box, help pages, high scores, credits, level intros, summaries and completions, game over,
+mode unlocks, tutorials and hint boxes, pause, in-game popups, and transitions that draw on their own. The columns are:
+- `Screen`: the class or dialog id, with a few words.
+- `Reached by`: the test commands or the play that brings it up.
+- `Shots`: the names of the shots its comparison takes, in 2D and 3D, windowed and full screen, where the game has them.
+- `Note`.
+
+A row without shots says why, such as "unreachable: nothing calls it in the export". A game's audit file is its starting
+list, to be checked against the export. The looks phase is done only when every row's shots compare: each is a pair in
+the game's newest run (`build/shotreview/<game>/<run>/summary.json`) that matches, or whose difference is explained in the
+notes. `tools/check.sh`'s `screens` suite fails a game whose SCREENS.md is missing, has a row with neither shots nor a
+reason, or names a shot that is not such a pair.
+
 ## The comparison, and what it never hides
 
 Each picture is first cut to the game's client area: origrun's window captures include the window frame (646x509 for a 640x480
