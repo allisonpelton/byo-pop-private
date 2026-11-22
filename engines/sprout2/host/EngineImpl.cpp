@@ -45,7 +45,7 @@ int FileInputStream::tell()
 EngineImpl::EngineImpl(int theWidth, int theHeight)
 	: mQuitRequested(false), mWidth(theWidth), mHeight(theHeight), mFrameRate(0), mVirtualClock(false),
 	  mVirtualTicks(0), mGameTicks(SDL_GetPerformanceCounter()), mGameTicksPart(0.0), mLastCounter(mGameTicks),
-	  mLastGameTimeMS(Sexy::GetGameTimeMS())
+	  mLastGameTimeMS(Sexy::GetGameTimeMS()), mMouse(theWidth, theHeight)
 {
 }
 

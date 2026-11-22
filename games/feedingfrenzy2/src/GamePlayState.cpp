@@ -2,6 +2,7 @@
 
 #include "Engine.h"
 #include "LevelLoadState.h"
+#include "Mouse.h"
 #include "PopupState.h"
 #include "ScreenMgr.h"
 
@@ -24,12 +25,17 @@ void GamePlayState::enter()
 	mSpeed = NORMAL_SPEED;
 	mApp->mScreenMgr->showScreen(nullptr, 0.0f);
 	mApp->mStageInPlay = true;
-	startEngineObject();
+	acquireMouse();
 }
 
 void GamePlayState::exit()
 {
-	// The engine's object at its +0x100, its slot 8 (0x4a1eb0 (feedingfrenzy2)): not yet translated
+	getEngine()->getMouse()->release();
+}
+
+void GamePlayState::acquireMouse()
+{
+	getEngine()->getMouse()->acquire();
 }
 
 void GamePlayState::update(UpdateContext* theContext)
@@ -90,7 +96,7 @@ void GamePlayState::suspend()
 
 void GamePlayState::resume()
 {
-	startEngineObject();
+	acquireMouse();
 	mApp->mStage->pause(false);
 	mApp->mStageInPlay = true;
 }

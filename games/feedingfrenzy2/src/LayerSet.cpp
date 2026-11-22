@@ -2,6 +2,7 @@
 
 #include "Engine.h"
 #include "Params.h"
+#include "VectorMath.h"
 
 using namespace engine;
 
@@ -153,6 +154,36 @@ void LayerSet::setCamera(const Vector2f& thePosition)
 	else if (mPanRange.right < aX)
 		aX = mPanRange.right;
 	mPanPosition = Vector2f(aX, aY);
+	for (size_t i = 0; i < mLayers.size(); i++)
+		mLayers[i]->pan(mPanPosition);
+}
+
+void LayerSet::followCamera(const Vector2f& theTarget, float theElapsed)
+{
+	// The target in the scene's space less the camera's position (0x43c1a0, 0x43c1c0 and 0x43aa30 (feedingfrenzy2))
+	Vector2f aDistance = scaled(theTarget, 1.0f);
+	aDistance = difference(aDistance, mPanPosition);
+	Vector2f anOrigin = getAbsolutePosition();
+	aDistance.x += anOrigin.x;
+	aDistance.y += anOrigin.y;
+	// Only what lies outside the limits moves the camera
+	Vector2f aMove;
+	if (mCameraLimits.left > aDistance.x)
+		aMove.x = aDistance.x - mCameraLimits.left;
+	else if (mCameraLimits.right < aDistance.x)
+		aMove.x = aDistance.x - mCameraLimits.right;
+	if (mCameraLimits.top > aDistance.y)
+		aMove.y = aDistance.y - mCameraLimits.top;
+	else if (mCameraLimits.bottom < aDistance.y)
+		aMove.y = aDistance.y - mCameraLimits.bottom;
+	float aSpeed = (float)((double)length(aMove) * FOLLOW_SPEED_PER_DISTANCE + FOLLOW_SPEED);
+	float aMaxStep = aSpeed * theElapsed;
+	clampLength(aMove, aMaxStep);
+	// The base layer must be one of the layers (else the cold path 0x4e05fc (feedingfrenzy2), an assertion)
+	if (mBaseLayer >= (int)mLayers.size())
+		return;
+	mPanPosition.x = clampOf(mPanPosition.x + aMove.x, mPanRange.left, mPanRange.right);
+	mPanPosition.y = clampOf(mPanPosition.y + aMove.y, mPanRange.top, mPanRange.bottom);
 	for (size_t i = 0; i < mLayers.size(); i++)
 		mLayers[i]->pan(mPanPosition);
 }

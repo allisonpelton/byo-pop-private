@@ -5,6 +5,8 @@
 #include "Engine.h"
 #include "GameData.h"
 #include "Params.h"
+#include "PlayerFish.h"
+#include "PlayerSpawn.h"
 #include "Spawn.h"
 #include "VectorMath.h"
 #include "Visual.h"
@@ -29,6 +31,7 @@ const double STEP_SECONDS_DOUBLE = 0.01;    // 0x566d58 (feedingfrenzy2): the sa
 const double CAMERA_CENTRE = 0.5;           // 0x566760 (feedingfrenzy2): the start's camera, half across the range
 const double HALF = 0.5;                    // 0x566760 (feedingfrenzy2)
 const double ZERO = 0.0;                    // 0x566828 (feedingfrenzy2)
+const float PLAYER_FLASH_SECONDS = 3.0f;    // 0x40400000 in 0x4f37cf (feedingfrenzy2)
 
 // An edge set to its normal and distance
 void setEdge(shape::Edge& theEdge, float theNormalX, float theNormalY, int theDistance)
@@ -87,7 +90,12 @@ Stage::~Stage()
 
 void Stage::unload()
 {
-	// The players' spawns (+0x290) first: not yet translated, as the players are not
+	// port: a player still in the stage taken out first. The original keeps it (the stage's players, +0x340, hold it,
+	// and the next start takes it as the player already in); how the play's ends take it out is not yet translated,
+	// so until it is, the unload does, so that no other stage runs it
+	for (size_t i = 0; i < mPlayerSpawns.size(); i++)
+		mPlayerSpawns[i]->takeOut();
+	mPlayerSpawns.clear();
 	mFishSpawns.clear();
 	mSpawners.clear();
 	mNonPlayerSpawns.clear();
@@ -116,11 +124,12 @@ bool Stage::load(const StageManifest::Stage& theEntry)
 	if (!getEngine()->parseXml(mEntry.mResource, &aMaster))
 		return false;
 	// The spawns' steps (each one's slot 0x14 over +0x280, four more when the stage has players) are the loader's
-	// progress bar's; the port loads at once and shows none
+	// progress bar's; the port loads at once and shows none. The layers come first (slot 0x30), as the spawns' setup
+	// keeps their fish to the water the layer set gives
+	setupLayers();
 	int aProgress = 0;
 	for (size_t i = 0; i < mSpawners.size(); i++)
 		mSpawners[i]->setup(aProgress);
-	setupLayers();
 	loadAmbientSounds();
 	// The rest (0x405590, 0x45ef40, the slot 0x38, 0x416330, the Orphanage at +0x2c0, the splashes'
 	// containers on the first layer's actors, the slots 0x40 and 0x44 for a stage with players, and 0x4719f0
@@ -218,6 +227,41 @@ void Stage::removeActor(Actor* theActor)
 void Stage::removeFish(Fish* theFish)
 {
 	removeFrom(mFish, theFish);
+}
+
+void Stage::addPlayerSpawn(PlayerSpawn* theSpawn)
+{
+	mPlayerSpawns.push_back(theSpawn);
+}
+
+void Stage::addPlayer(PlayerFish* thePlayer)
+{
+	mPlayers.push_back(thePlayer);
+}
+
+void Stage::removePlayer(PlayerFish* thePlayer)
+{
+	for (size_t i = mPlayers.size(); i > 0; i--)
+		if (mPlayers[i - 1].get() == thePlayer)
+			mPlayers.erase(mPlayers.begin() + (i - 1));
+}
+
+void Stage::connectFirstPlayer()
+{
+	// port: the players checked too; the original's start has always brought one in by then
+	if (!mPlayerSpawns.empty() && !mPlayers.empty())
+		mPlayers.front()->connectMouse();
+}
+
+void Stage::updateCamera(UpdateContext* theContext)
+{
+	if (mPlayers.empty())
+		return;
+	PlayerFish* aPlayer = mPlayers.front().get();
+	if (mCameraFollows)
+		mLayerSet->followCamera(aPlayer->getCameraTarget(), theContext->mElapsed);
+	// The night's mask's light at the visual's place (the visual's slot 0x10, kept at the mask container's +0xbc):
+	// not yet translated, as the mask is not
 }
 
 void Stage::removeAIFish(AIFish* theFish)
@@ -324,9 +368,9 @@ void Stage::updateAmbientSounds(UpdateContext* theContext)
 void Stage::start()
 {
 	pause(false);
-	// The game data's +0x30, +0x34, +0x38 and +0x40 set from its +0x10 and +0x14 and to 0, for the HUD: not yet
-	// translated
+	// The game data's +0x30, +0x34 and +0x38 set from its +0x10 and +0x14 and to 0, for the HUD: not yet translated
 	mGameData->setSpawnPhase(0);
+	mGameData->setFood(0);
 	mMaskFadeTime = 0.0f;
 	mCameraFollows = true;
 	mCompleted = false;
@@ -340,22 +384,52 @@ void Stage::start()
 	if (mAmbientSounds)
 		mAmbientSounds->start();
 	// +0x3b0, 0: read by nothing translated yet
-	// A stage with players (+0x340) starts them and puts the camera on them: not yet translated, as the players are
-	// not, so every stage starts as one without
-	startPlayers();
-	const RectF& aRange = mLayerSet->getPanRange();
-	float aTop = aRange.top;
-	// 0x459e00 (feedingfrenzy2): the range's width
-	float aWidth = (float)((double)aRange.right - aRange.left);
-	float aCentre = (float)(aWidth * CAMERA_CENTRE);
-	mLayerSet->setCamera(Vector2f(aCentre, aTop));
+	if (mPlayers.empty())
+	{
+		startPlayers();
+		const RectF& aRange = mLayerSet->getPanRange();
+		float aTop = aRange.top;
+		// 0x459e00 (feedingfrenzy2): the range's width
+		float aWidth = (float)((double)aRange.right - aRange.left);
+		float aCentre = (float)(aWidth * CAMERA_CENTRE);
+		mLayerSet->setCamera(Vector2f(aCentre, aTop));
+		return;
+	}
+	// A player in already (0x4f37cf (feedingfrenzy2)): the food eaten so far as startPlayers sets it, the first
+	// player's flash put on again for 3 seconds (0x52e081 (feedingfrenzy2), the visual's flash not yet translated),
+	// and the run
+	PlayerSpawn* aSpawn = mPlayerSpawns.front().get();
+	setFoodFromPhase(aSpawn);
+	mPlayers.front()->getSpawnFlash().start(PLAYER_FLASH_SECONDS);
+	startRun();
+}
+
+void Stage::setFoodFromPhase(PlayerSpawn* theSpawn)
+{
+	// The boss's stages start at the food of 0x5ac620 (feedingfrenzy2), set by code not yet translated: 0 until it is
+	int aFood = 0;
+	if (!mBoss && theSpawn->getPhaseIndex() > 0)
+		aFood = theSpawn->getPhase(theSpawn->getPhaseIndex() - 1).mFoodGoal;
+	mGameData->setFood(aFood);
 }
 
 void Stage::startPlayers()
 {
-	// With players (+0x290), the game data's +0x10 at more than 0: the game data's +0x40 from the first player's
-	// (or the boss's, 0x5ac620), the player's slot 0x1c, and the run; at 0 or less, the machine emptied: not yet
-	// translated, as the players are not
+	// 0x491730 (feedingfrenzy2): the list is empty
+	if (mPlayerSpawns.empty())
+	{
+		startRun();
+		return;
+	}
+	if (mGameData->getLives() <= 0)
+	{
+		// The cold path 0x4f2f7d (feedingfrenzy2): the machine emptied
+		mStateMgr.changeState(nullptr);
+		return;
+	}
+	PlayerSpawn* aSpawn = mPlayerSpawns.front().get();
+	setFoodFromPhase(aSpawn);
+	aSpawn->start();
 	startRun();
 }
 
@@ -370,8 +444,15 @@ void Stage::pause(bool thePaused)
 		mContainer->addOffState(STATE_ANIMATED);
 	else
 		mContainer->removeOffState(STATE_ANIMATED);
-	// The players (+0x340) paused or resumed with the stage when it has some (+0x290; 0x49d4a0 and 0x497040
-	// (feedingfrenzy2)), and the script (+0x31c, 0x502648 (feedingfrenzy2)): not yet translated
+	// With player spawns and a player in, the first one stops hearing the mouse, or hears it again
+	if (!mPlayerSpawns.empty() && !mPlayers.empty())
+	{
+		if (thePaused)
+			mPlayers.front()->disconnectMouse();
+		else
+			mPlayers.front()->connectMouse();
+	}
+	// The script (+0x31c, 0x502648 (feedingfrenzy2)) paused or resumed: not yet translated
 }
 
 void Stage::updateSpawns(UpdateContext* theContext)
@@ -419,14 +500,22 @@ void RunState::update(UpdateContext* theContext)
 	// The script (the stage's +0x31c) checked first (its slot 0xe4): not yet translated
 	// Without a boss in play (+0x270), the stage's slots 0x48, 0x4c, 0x50 and 0x54 (the actors' updates and their
 	// meetings), 0x58 (the spawns), 0x60 (the camera), 0x68 and 0x6c; with one, 0x68, 0x6c and the boss's 0xf0; then
-	// 0x5c (0x447ef0 (feedingfrenzy2)). Translated so far: the actors' updates, the fish's meetings, the spawns and
-	// the fish's visuals and the ambient sounds; the players' steps (0x4c, 0x54 and 0x60) and the stage's ending
-	// (0x5c) have nothing to do without players
+	// 0x5c (0x447ef0 (feedingfrenzy2)). Translated so far: the actors' updates, the fish's meetings, the spawns,
+	// the camera, the fish's visuals and the ambient sounds; the hazards' and bonuses' steps with the players (0x4c
+	// and 0x54) and the stage's ending (0x5c) are not yet
 	mStage->updateActors(theContext);
 	mStage->updateMeetings(theContext);
 	mStage->updateSpawns(theContext);
+	mStage->updateCamera(theContext);
 	mStage->updateFishVisuals(theContext);
 	mStage->updateAmbientSounds(theContext);
+}
+
+void RunState::enter()
+{
+	// The theme's music of the stage's gameMusic (0x489670 and 0x48d420 (feedingfrenzy2)) on the application's music:
+	// not yet translated, as the music is not
+	mStage->connectFirstPlayer();
 }
 
 void StageDocHandler::begin(Params& theAttributes)
@@ -452,9 +541,11 @@ void StageDocHandler::startElement(const std::string& theName, Params& theAttrib
 	// The engine's clock read twice (its slots 0xe4 and 0xe8), for nothing kept
 	if (theName == "player")
 	{
-		// A player's spawn (PlayerSpawn, 0xa4 bytes, its constructor 0x493fc0 (feedingfrenzy2)) read by its own
-		// handler: not yet translated
-		getEngine()->log("Stage: the player's spawn not yet translated\n");
+		// 0x493fc0 (feedingfrenzy2)
+		PlayerSpawn* aSpawn = new PlayerSpawn(mStage);
+		SubDocHandler* aHandler = aSpawn->createDocHandler();
+		aHandler->attach(mMaster, theName);
+		aHandler->begin(theAttributes);
 		return;
 	}
 	if (theName == "spawn")

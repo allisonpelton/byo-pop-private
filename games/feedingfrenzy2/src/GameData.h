@@ -20,7 +20,7 @@ class GameData : public engine::Object
 public:
 	GameData()
 	    : mMode(0), mLives(0), mScore(0), mContinues(0), mNextLifeScore(0), mLifeScoreStep(0), mSpawnPhase(0),
-	      mStage(-1), mTimeRollover(0)
+	      mStage(-1), mTimeRollover(0), mFood(0)
 	{
 	}
 
@@ -44,6 +44,8 @@ public:
 	StageManifest& getMenuStages() { return mMenuStages; }
 	int getSpawnPhase() const { return mSpawnPhase; }
 	void setSpawnPhase(int theSpawnPhase) { mSpawnPhase = theSpawnPhase; }
+	int getFood() const { return mFood; }
+	void setFood(int theFood) { mFood = theFood; }
 
 private:
 	int mMode;                    // +0x0c: GameMode
@@ -56,7 +58,8 @@ private:
 	                              // leaves it, and nothing reads it before)
 	int mStage;                   // +0x28: the stage's place in the manifest, -1 before the first
 	int mTimeRollover;            // +0x2c: the timed mode's seconds carried into the stage
-	// +0x30 (0), +0x34 (3), +0x38, +0x3c and +0x40 (0): set by a new game, their readers not yet found
+	// +0x30 (0), +0x34 (3), +0x38 and +0x3c: set by a new game, their readers not yet found
+	int mFood;                    // +0x40: the food eaten in the stage, which grows the player through its phases
 	StageManifest mStages;        // +0x44
 	StageManifest mMenuStages;    // +0x78: the menu's backgrounds (the screensaver's in saver mode)
 };

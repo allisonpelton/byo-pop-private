@@ -27,6 +27,8 @@ class Actor;
 class AIFish;
 class Fish;
 class GameData;
+class PlayerFish;
+class PlayerSpawn;
 class Stage;
 
 // The play area's edges (shape::Edge, each 0x20 bytes, at +0xc4 and every 0x20 after), each keeping what is inside it
@@ -60,6 +62,9 @@ class RunState : public StageState
 public:
 	explicit RunState(Stage* theStage) : StageState(theStage) {}
 
+	// 0x04 (0x48d440 (feedingfrenzy2)): the game's music started (not yet translated, as the music is not), and with
+	// players the first one hears the mouse
+	void enter() override;
 	// 0x0c (0x43acb0 (feedingfrenzy2)): each hundredth of a second, the stage's steps in their order
 	void update(engine::UpdateContext* theContext) override;
 };
@@ -101,22 +106,27 @@ public:
 	// the stage), the container emptied, the mask and the layers, and the ambient sounds stopped
 	virtual void unload();
 
-	// 0x14 (0x486950 (feedingfrenzy2)): the stage started: the play's counters reset, the camera centred and the
-	// run begun (a stage with players starts them first, not yet translated)
+	// 0x14 (0x486950 (feedingfrenzy2)): the stage started: the play's counters reset; with no player in yet, the
+	// players brought in and the camera centred, else the player flashed again; and the run begun
 	virtual void start();
-	// 0x18 (0x490940 (feedingfrenzy2)): with no players, the run begun; the players' entry, not yet translated
+	// 0x18 (0x490940 (feedingfrenzy2)): with player spawns and lives left, the food eaten so far from the first
+	// spawn's phase and its fish brought in, and the run begun; with no lives the machine emptied; with no player
+	// spawns only the run
 	virtual void startPlayers();
 	// 0x1c (0x492680 (feedingfrenzy2)): the run state put in the stage's machine
 	virtual void startRun();
-	// 0x20 (0x491740 (feedingfrenzy2)): the stage's container stops animating while paused, and the players and the
-	// script follow (not yet translated)
+	// 0x20 (0x491740 (feedingfrenzy2)): the stage's container stops animating while paused, and the first player
+	// stops hearing the mouse, or hears it again (the script's pause not yet translated)
 	virtual void pause(bool thePaused);
-	// 0x34 (0x4146b0 (feedingfrenzy2)): the play bounds, the mask container and the layer set
+	// 0x30 (0x4146b0 (feedingfrenzy2)): the play bounds, the mask container and the layer set
 	virtual void setupLayers();
 	// 0x43d0c0 (feedingfrenzy2): the actors the viewer sees, nearest its mouth first (one as near as one before it
 	// after that one): in the same water or air, within its sight's distance of its mouth, and within its sight's
 	// angle of the way it faces. The list is the stage's, made again by each call
 	const std::vector<Actor*>& findSeenActors(AIFish* theViewer);
+	// 0x60 (0x43a950 (feedingfrenzy2)): the camera after the first player while it follows, and the night's mask's
+	// light at its visual (not yet translated, as the mask is not)
+	void updateCamera(engine::UpdateContext* theContext);
 	// 0x50 (0x440660 (feedingfrenzy2)): each pair of fish meets once, the one ranked below the other's eater rank
 	// offered to that one's eater (the other way only when the first is not); then each player's meetings with the
 	// actors (the +0x340 list), not yet translated, as the players are not
@@ -150,6 +160,11 @@ public:
 	}
 	// 0x405ae0 (feedingfrenzy2)
 	void addFishSpawn(FishSpawn* theSpawn) { mFishSpawns.push_back(theSpawn); }
+	// 0x4a1800 (feedingfrenzy2)
+	void addPlayerSpawn(PlayerSpawn* theSpawn);
+	// 0x4972f0 and 0x497280 (feedingfrenzy2): a push, and a remove of every match
+	void addPlayer(PlayerFish* thePlayer);
+	void removePlayer(PlayerFish* thePlayer);
 
 	// 0x44c6f0 (feedingfrenzy2): the play area under the water, or between the sky's ceiling and the water
 	engine::RectF getArea(bool underwater) const;
@@ -178,13 +193,20 @@ public:
 	// Set by the stage's loader from the manifest's entry (0x48a810 (feedingfrenzy2))
 	void setStageTime(float theStageTime) { mStageTime = theStageTime; }
 	void setCanSuck(bool canSuck) { mCanSuck = canSuck; }
+	bool getCanSuck() const { return mCanSuck; }
 	bool isBonus() const { return mBonus; }
 	bool isCompleted() const { return mCompleted; }
 	// The run's current state, null once the run is over
 	StageState* getRunState() { return mStateMgr.getState(); }
+	// RunState's enter: with player spawns, the first player hears the mouse
+	void connectFirstPlayer();
 
 private:
 	friend class StageDocHandler;
+
+	// The game data's food eaten so far as the stage starts (inlined in 0x490940 and 0x486950 (feedingfrenzy2)):
+	// the goal of the spawn's phase before the one it reached, 0 at the first phase or on a boss's stage
+	void setFoodFromPhase(PlayerSpawn* theSpawn);
 
 	engine::Ref<GameData> mGameData;               // +0x68
 	engine::RectF mBounds;                         // +0x6c: the play bounds, the display's less the HUD's band
@@ -206,7 +228,7 @@ private:
 	float mMaskFadeTime;                           // +0x264: a night's mask's fade left, 0 as the stage starts
 	std::map<std::string, engine::Ref<NonPlayerSpawn>> mSpawnsByName;  // +0x274
 	std::vector<engine::Ref<Spawner>> mSpawners;   // +0x280: every spawn, in the file's order
-	// +0x290, the players' spawns: not yet translated
+	std::vector<engine::Ref<PlayerSpawn>> mPlayerSpawns;        // +0x290
 	std::vector<engine::Ref<NonPlayerSpawn>> mNonPlayerSpawns;  // +0x2a0
 	std::vector<engine::Ref<FishSpawn>> mFishSpawns;            // +0x2b0
 	engine::Ref<engine::Theme> mTheme;             // +0x2d4: resource/themes/baseTheme.xml
@@ -221,6 +243,7 @@ private:
 	engine::Ref<MusicSystem> mAmbientSounds;       // +0x318
 	std::vector<Fish*> mFish;                      // +0x320
 	std::vector<AIFish*> mAIFish;                  // +0x330
+	std::vector<engine::Ref<PlayerFish>> mPlayers;  // +0x340: the player fish in the stage
 	std::vector<Actor*> mActors;                   // +0x370
 	std::vector<Actor*> mSeen;                     // +0x380: what the last look about saw, nearest first
 	// +0x391: the stage's goal reached, cleared as it starts (set at 0x4f1f19, 0x4f2029, 0x4f218f and 0x541f09
@@ -240,8 +263,8 @@ public:
 
 	// 0x04 of its own table (0x47c730 (feedingfrenzy2)): the <stage> element's attributes
 	void begin(engine::Params& theAttributes) override;
-	// 0x00 (0x41a300 (feedingfrenzy2)): a <spawn>, read by its spawn's handler; a <player>, a <script> and an
-	// <epilog>, not yet translated
+	// 0x00 (0x41a300 (feedingfrenzy2)): a <player> and a <spawn>, each read by its spawn's handler; a <script> and
+	// an <epilog>, not yet translated
 	void startElement(const std::string& theName, engine::Params& theAttributes) override;
 	void endElement(const std::string& theName) override {}
 

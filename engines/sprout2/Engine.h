@@ -30,6 +30,7 @@ class DocHandler;
 class DrawContext;
 class Font;
 class Image;
+class Mouse;
 class InputStream;
 class PersistKey;
 class RandomAccessInputStream;
@@ -81,6 +82,8 @@ public:
 	virtual bool isKeyDown(int theKey) = 0;
 	// port: the clipboard's text (CF_TEXT), false when it holds none
 	virtual bool getClipboardText(std::string& theText) = 0;
+	// 0x100: the mouse a game steers by (Mouse.h), null where the platform has none
+	virtual Mouse* getMouse() { return nullptr; }
 
 	// --- The engine's own ---
 

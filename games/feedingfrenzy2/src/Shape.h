@@ -67,6 +67,8 @@ public:
 	virtual void collide(const Shape& theOther, ShapeContact& theContact) const = 0;
 	// 0x38 (0x43da90 (feedingfrenzy2), both kinds'): the two meet, their separation 0 or less
 	bool overlaps(const Shape& theOther) const;
+	// 0x3c: the share of its height below the level (a larger y), 0 to 1
+	virtual float getShareBelow(float theLevel) const = 0;
 	// 0x44 and 0x48: this shape tested against a box or a circle that is the first of the two
 	virtual void collideWithBox(const shape::Box& theFirst, ShapeContact& theContact) const = 0;
 	virtual void collideWithCircle(const shape::Circle& theFirst, ShapeContact& theContact) const = 0;
@@ -78,7 +80,19 @@ public:
 	virtual Shape* assignFromCircle(const shape::Circle& theSource) = 0;
 	// 0x60: the same for an edge's values
 	virtual Shape* assignFromEdge(const shape::Edge& theSource) = 0;
-	// (Slots 0x18, 0x1c, 0x3c to 0x40, 0x4c, 0x5c and 0x64: not yet translated.)
+	// (Slots 0x18, 0x1c, 0x40, 0x4c, 0x5c and 0x64: not yet translated.)
+
+protected:
+	// A box's and a circle's share below the level (inlined in each): none when the level is below the bottom
+	// (the centre plus the half height), all of it when it is above the top, else the part below over the height
+	static float shareBelow(float theLevel, float theCenter, float theHalfHeight)
+	{
+		if (theLevel > (double)theHalfHeight + theCenter)
+			return 0.0f;
+		if (theLevel < (double)theCenter - theHalfHeight)
+			return 1.0f;
+		return (float)(((double)theHalfHeight + theCenter - theLevel) / ((double)theHalfHeight + theHalfHeight));
+	}
 };
 
 namespace shape
@@ -102,6 +116,11 @@ public:
 	// 0x46dee0 and 0x4746c0 (feedingfrenzy2): twice the diagonal's height, and its width
 	float getHeight() const override { return mDiagonal.y + mDiagonal.y; }
 	float getWidth() const override { return mDiagonal.x + mDiagonal.x; }
+	// 0x501e27 (feedingfrenzy2)
+	float getShareBelow(float theLevel) const override
+	{
+		return shareBelow(theLevel, mCenter.y, mDiagonal.y);
+	}
 	// 0x413000 (feedingfrenzy2)
 	void scale(float theScale) override;
 	// 0x415330 (feedingfrenzy2)
@@ -149,6 +168,8 @@ public:
 	// 0x501f73 (feedingfrenzy2), and slot 0x24 (0x40c950 (feedingfrenzy2)) the same: the diameter
 	float getHeight() const override { return mRadius + mRadius; }
 	float getWidth() const override { return getHeight(); }
+	// 0x501f12 (feedingfrenzy2)
+	float getShareBelow(float theLevel) const override { return shareBelow(theLevel, mCenter.y, mRadius); }
 	// 0x492650 (feedingfrenzy2)
 	void scale(float theScale) override;
 	// 0x501f5b (feedingfrenzy2)
@@ -197,6 +218,8 @@ public:
 	// 0x501c17 (feedingfrenzy2), and 0x24 the same
 	float getHeight() const override { return 0.0f; }
 	float getWidth() const override { return 0.0f; }
+	// 0x502064 (feedingfrenzy2): none
+	float getShareBelow(float theLevel) const override { return 0.0f; }
 	// 0x501c0a (feedingfrenzy2): the distance scaled
 	void scale(float theScale) override { mDistance = (float)((double)theScale * mDistance); }
 	// 0x5014fa (feedingfrenzy2): nothing, as for the transform

@@ -154,6 +154,9 @@ public:
 	void fit(float theMarginX, float theMarginY, const engine::RectF& theBounds);
 	// 0x434b30 (feedingfrenzy2): the camera at the point, kept in the pan range, and each layer panned for it
 	void setCamera(const engine::Vector2f& thePosition);
+	// 0x43b960 (feedingfrenzy2): the camera moved towards the target (a point on the display) by what lies outside the
+	// camera's limits, at most 12 times that distance plus 150 a second, held in the pan range, and each layer panned
+	void followCamera(const engine::Vector2f& theTarget, float theElapsed);
 
 	int getBaseLayer() const { return mBaseLayer; }
 	int getWaterLevel() const { return mWaterLevel; }
@@ -171,6 +174,11 @@ public:
 
 private:
 	friend class LayerSetDocHandler;
+
+	// The camera's speed in following: per unit of distance outside its limits (0x5669c0 (feedingfrenzy2)), and
+	// beyond that (0x5669b8 (feedingfrenzy2))
+	static constexpr double FOLLOW_SPEED_PER_DISTANCE = 12.0;
+	static constexpr double FOLLOW_SPEED = 150.0;
 
 	std::vector<engine::Ref<LayerInfo>> mInfos;    // +0xb8
 	std::vector<engine::Ref<Layer>> mLayers;       // +0xc8

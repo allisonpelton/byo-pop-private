@@ -78,6 +78,8 @@ public:
 	void setDesiredVelocity(const engine::Vector2f& theVelocity) { mDesiredVelocity = theVelocity; }
 	const engine::Vector2f& getDesiredVelocity() const { return mDesiredVelocity; }
 	// 0x40 (0x44c810 (feedingfrenzy2))
+	// The step's force set outright (the player's states)
+	void setForce(const engine::Vector2f& theForce) { mForce = theForce; }
 	void addForce(float x, float y)
 	{
 		mForce.x = (float)((double)x + mForce.x);
@@ -92,7 +94,7 @@ public:
 	bool isInView();
 	// 0x5c (0x43d480 (feedingfrenzy2)): the velocity steered towards the wanted one at the acceleration (or slowed by
 	// the drag when none is wanted), the position moved by it, kept in the water, and the visual moved
-	void move(engine::UpdateContext& theContext);
+	virtual void move(engine::UpdateContext& theContext);
 	// 0x60 (0x43c1f0 (feedingfrenzy2))
 	Visual* getVisual() const { return mVisual.get(); }
 	// 0x64 (0x474ad0 (feedingfrenzy2))

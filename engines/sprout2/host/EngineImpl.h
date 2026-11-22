@@ -7,6 +7,7 @@
 // this class holds what does not depend on them: the game folder's files, the log and the clock.
 
 #include "Engine.h"
+#include "MessageMouse.h"
 #include "Stream.h"
 
 #include <cstdio>
@@ -68,6 +69,9 @@ public:
 	bool isKeyDown(int theKey) override;
 	// The framework's clipboard (its text in Latin-1), false when it is empty
 	bool getClipboardText(std::string& theText) override;
+	// 0x100 (0x4a1ea0 (feedingfrenzy2)): the window's mouse
+	Mouse* getMouse() override { return &mMouse; }
+	MessageMouse& getMessageMouse() { return mMouse; }
 
 	// 0x4a2790 (feedingfrenzy2): the sound system, over the platform's mixer (SimpleSoundDX.h)
 	simplesound::SimpleSound* makeSoundSystem() override;
@@ -89,6 +93,7 @@ private:
 	double mGameTicksPart;     // the fraction of a tick the speed has left over
 	uint64_t mLastCounter;     // SDL's performance counter
 	uint32_t mLastGameTimeMS;  // the framework's game clock (Sexy::GetGameTimeMS)
+	MessageMouse mMouse;       // +0x2a8 (a pointer in the original)
 };
 
 } // namespace engine

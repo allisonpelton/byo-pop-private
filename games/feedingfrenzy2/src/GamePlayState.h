@@ -16,7 +16,7 @@ public:
 	// 0x04 (0x499130 (feedingfrenzy2)): the stage started at the normal speed, the screens taken away and the stage
 	// marked in play
 	void enter() override;
-	// 0x08 (0x4a1eb0 (feedingfrenzy2)): the engine's object at its +0x100, its slot 8: not yet translated
+	// 0x08 (0x4a1eb0 (feedingfrenzy2)): the engine's mouse let go (its slot 8)
 	void exit() override;
 	// 0x0c (0x434d70 (feedingfrenzy2)): without the focus the pause popup; else the frame's time slowed by the speed
 	// and the stage run, and once the stage's machine is empty its end
@@ -38,8 +38,8 @@ private:
 
 	// 0x4a0ac0 (feedingfrenzy2): the pause screen as a popup over the play
 	void showPause();
-	// 0x4a1e80 (feedingfrenzy2): the engine's object at its +0x100, its slot 4: not yet translated
-	void startEngineObject() {}
+	// 0x4a1e80 (feedingfrenzy2): the engine's mouse taken (its slot 4): the cursor hidden and its motion steering
+	void acquireMouse();
 
 	float mSpeed;      // +0x10: what the frame's time is divided by, 1 to 16 by the slowmo action
 	bool mEndLogged;   // port: the stage's ends not yet translated, logged once

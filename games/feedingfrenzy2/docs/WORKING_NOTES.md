@@ -390,13 +390,36 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   pauseResume closes it (or, after the options from the pause, +0x1d, shows the pause again). The stage's +0x391 is
   now Stage::mCompleted, cleared by its start. Checked under rundesk: Continue starts stage1 with its fish moving,
   Esc shows the pause popup, Resume Game closes it and the play goes on, the focus lost shows it again, exit 0.
+- The player (PlayerSpawn.h, the <player> element with its <phase>s; PlayerFish.h with SpawnState and PlayState) and
+  the engine's mouse (engines/sprout2/Mouse.h and host/MessageMouse.h, the engine's slot 0x100, its object at
+  +0x2a8): the play's enter takes the mouse (0x4a1e80: the cursor hidden, its place kept and the cursor at the
+  display's centre) and its exit lets it go (0x4a1eb0); while it is taken a mouse move only keeps the place, and each
+  frame before the update (0x438700 calls 0x42b8c0) the place less the centre is the motion, emitted, and the cursor
+  goes back to the centre; a button sends the motion first, then its press or release. The stage's spawns' setup
+  makes the player and a visual for each phase; its start brings the fish in (dropping from the top of the water to a
+  depth, then swimming), and RunState's enter and the pause connect the first player to the mouse. The motion,
+  scaled by the sensitivity, the acceleration and the share of the fish under the surface, is the step's force; the
+  water's drag, the speed's ellipse, the sides, bottom and surface hold it (out of the water it falls back), and the
+  camera follows it (LayerSet::followCamera, 0x43b960: what lies outside the camera's limits, at most 12 times that
+  distance plus 150 a second, in the pan range). The game data's +0x40 is the food eaten in the stage (zeroed by a
+  new game and each start), which grows the player through its phases. The stage's load had the layers after the
+  spawns' setup, and the layers' slot as 0x34: they are slot 0x30, made before the spawns' setup (the original's
+  0x410980), which the player's bounds need. Checked under rundesk with posted moves (each `move` to the offset and
+  back to the centre, as the framework drops a move to the place it already has): the fish drops in, swims right to
+  the play area's side, down and back left, the camera following; Esc pauses and Resume Game takes the mouse again,
+  exit 0.
+  - Deviations, for now: the mouse's sensitivity is the options' default (1.0, MouseSpeed 1; the options are not
+    translated); no ClipCursor (the framework's window keeps the cursor); on the web WarpMouse does nothing, so the
+    page will need the pointer lock; the stage's unload takes a player still in out of the stage (the original keeps
+    it in the stage's players until the play's ends, not yet translated, take it out); the phase visual's tint, the
+    eating, the dash, the suck, the tilt, the effects and the sounds are not yet translated, each marked where it
+    would run.
 
 ## Next
 
-- The players' spawn and the HUD, toward a stage in play; the stage's ends (StageCompleteState, the continue offer
-  and the game over); the restore-game popup's actions; the quit popup's actions over the intro and the pause's End
-  Game; the engine's object at +0x100 (slots 4 and 8, the play's enter and exit); the compositeGroup element (the
-  intro's background group, now skipped).
+- The eating and the growth's effects, then the HUD (GameHud, +0x2e0); the stage's ends (StageCompleteState, the
+  continue offer and the game over); the restore-game popup's actions; the quit popup's actions over the intro and
+  the pause's End Game; the compositeGroup element (the intro's background group, now skipped).
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's
   simplesound). The stage's slot 0x5c (0x447ef0) is not a clean-up but the stage's ending (player died, perfect, stage
   clear, time up) and slot 0x60 (0x43a950) the camera on the first player (+0x344): both return at once without players,

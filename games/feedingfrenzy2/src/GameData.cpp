@@ -8,6 +8,7 @@ void GameData::newGame(int theMode)
 	mContinues = NEW_GAME_CONTINUES;
 	mStage = 0;
 	mTimeRollover = 0;
+	mFood = 0;
 	findNextLifeScore();
 }
 

@@ -143,6 +143,11 @@ void FeedingFrenzy2Widget::MouseMove(int x, int y)
 	engine::Vector2<int> aPoint = clampToScreen(x, y);
 	mMouseX = aPoint.x;
 	mMouseY = aPoint.y;
+	// While the play's mouse is acquired, only where the cursor is kept
+	engine::MessageMouse& aMouse = gApp->mEngine->getMessageMouse();
+	aMouse.setPosition(aPoint);
+	if (aMouse.isAcquired())
+		return;
 	gApp->mEngine->mMouseMoveSignal.emit(aPoint);
 }
 
@@ -161,6 +166,14 @@ void FeedingFrenzy2Widget::MouseDown(int x, int y, int theBtnNum, int theClickCo
 	engine::Vector2<int> aPoint = clampToScreen(x, y);
 	mMouseX = aPoint.x;
 	mMouseY = aPoint.y;
+	// While the play's mouse is acquired, told to it alone
+	engine::MessageMouse& aMouse = gApp->mEngine->getMessageMouse();
+	if (aMouse.isAcquired())
+	{
+		if (theBtnNum == 0 || theBtnNum == 1)
+			aMouse.buttonDown(aPoint, theBtnNum);
+		return;
+	}
 	if (theBtnNum == 0)
 		gApp->mEngine->mMouseDownSignal.emit(aPoint);
 	else if (theBtnNum == 1)
@@ -175,6 +188,13 @@ void FeedingFrenzy2Widget::MouseUp(int x, int y, int theBtnNum, int theClickCoun
 	engine::Vector2<int> aPoint = clampToScreen(x, y);
 	mMouseX = aPoint.x;
 	mMouseY = aPoint.y;
+	engine::MessageMouse& aMouse = gApp->mEngine->getMessageMouse();
+	if (aMouse.isAcquired())
+	{
+		if (theBtnNum == 0 || theBtnNum == 1)
+			aMouse.buttonUp(aPoint, theBtnNum);
+		return;
+	}
 	if (theBtnNum == 0)
 		gApp->mEngine->mMouseUpSignal.emit(aPoint);
 	else if (theBtnNum == 1)
@@ -306,7 +326,9 @@ void FeedingFrenzy2App::RunFrame()
 	aContext.mFrame = (uint64_t)mFrames;
 	aContext.mDetailLevel = mEngine->getDetailLevel();
 	mFrames++;
-	// (0x42b8c0 (feedingfrenzy2), the cursor moved to where the game put the mouse, comes here: not yet translated)
+	// While the play's mouse is acquired, its move since the last frame (0x42b8c0 (feedingfrenzy2))
+	if (mEngine->getMessageMouse().isAcquired())
+		mEngine->getMessageMouse().sendMotion();
 	// port: the sound's update runs from the window's timer every 100 ms (WM_TIMER 1, 0x424780 (feedingfrenzy2)),
 	// here on the game's clock; the only sound system is the host's
 	simplesound::SimpleSound* aSound = simplesound::getSimpleSound();
