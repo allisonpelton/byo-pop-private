@@ -9,7 +9,7 @@
 namespace Sexy
 {
 
-class GridBug;
+class BugObj;
 class StarStream;
 
 const int FIREBALL_STAR_COUNT = 12;
@@ -17,7 +17,7 @@ const int FIREBALL_STAR_COUNT = 12;
 class FireBall : public ObjBase
 {
 public:
-	GridBug* mTarget;        // +0x27c: the bug flown at
+	BugObj* mTarget;        // +0x27c: the bug flown at
 	AnimKey* mFlightKey;     // +0x280: from the place it was thrown
 	AnimKey* mArrivalKey;    // +0x284: at the bug, where it was when the ball was thrown
 	StarStream* mStars[FIREBALL_STAR_COUNT]; // +0x28c: the ball's children

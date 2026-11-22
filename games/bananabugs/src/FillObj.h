@@ -14,7 +14,7 @@ namespace Sexy
 
 class Anim;
 class FillObj;
-class GridBug;
+class BugObj;
 class HiddenBonus;
 class PipeObj;
 
@@ -36,8 +36,8 @@ struct FillGridCell
 	FillObj* mCell;                    // slot 3: the FillObj of this place
 	int mKind;                         // slot 4: what the level's layout makes of the place (LevelObj's FillKind, +10 once checked)
 	int mUnused5;                      // slot 5: set to 0 by the level and never read
-	GridBug* mFirstBug;                // slot 6: the first of the bugs standing on this place, each pointing on to the next
-	GridBug* mLastBug;                 // slot 7: the last of them
+	BugObj* mFirstBug;                // slot 6: the first of the bugs standing on this place, each pointing on to the next
+	BugObj* mLastBug;                 // slot 7: the last of them
 };
 
 // The level's grid, columns first: the original's table at 0x602eb0 (32 bytes a cell, 32 cells a column)

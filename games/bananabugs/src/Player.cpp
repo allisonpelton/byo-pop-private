@@ -1355,7 +1355,7 @@ void Player::UpdateAim()
 	if (PauseWin::IsBlocking())
 		return;
 	Player* aCurrent = sCurrent;
-	if (aCurrent->mRopeMode == 0 && BugObj::AnyNear(aCurrent->mScreenX, aCurrent->mScreenY, STARTLE_REACH)) {
+	if (aCurrent->mRopeMode == 0 && BugObj::FindNear(aCurrent->mScreenX, aCurrent->mScreenY, STARTLE_REACH)) {
 		if (!mLooking) {
 			mLooking = true;
 			mMonkey->SetStateInt(STATE_FRAME, 0);
@@ -1941,7 +1941,7 @@ void Player::Shoot()
 			aPlayer->mShotX = (int)aPlayer->mDrawn[STATE_X];
 			aPlayer->mShotY = (int)aPlayer->mDrawn[STATE_Y];
 			if (aPlayer->mMonkeyState == MONKEY_PLAYING) {
-				BugObj::OnShot();
+				BugObj::ResetKillStreak();
 				aPlayer->mShotsFired = aPlayer->mShotsFired + 1;
 				aPlayer->mUnused2d4 = 1;
 				// the original reads the level's rope with no check for one; both of its branches pass the same
@@ -1957,11 +1957,12 @@ void Player::Shoot()
 }
 
 // 0x45db70: asks the rope whether it touches the box the bug that was last looked at takes
-void Player::HitBugBox()
+int Player::HitBugBox()
 {
 	RopeObj* aRope = RopeObj::Current();
 	if (aRope != nullptr)
-		aRope->HitBox(gBugBoxX, gBugBoxY, gBugBoxWidth, gBugBoxHeight);
+		return aRope->HitBox(gBugBoxX, gBugBoxY, gBugBoxWidth, gBugBoxHeight);
+	return 0;
 }
 
 // 0x45dbb0: turns the stretch the rope would cut, from along the row to along the column or back, and keeps it so

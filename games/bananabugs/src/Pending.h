@@ -5,6 +5,7 @@
 
 #include "AskWin.h"
 #include "BBWindow.h"
+#include "BugObj.h"
 #include "FillObj.h"
 #include "MenuAnim.h"
 #include "ObjBase.h"
@@ -18,45 +19,6 @@ class Anim;
 class BBFont;
 class LevelObj;
 class PipeObj;
-class GridBug;
-
-// The bug kinds the level places, in the order of its spawn table (LevelObj::mSpawn) and of the original's switch
-enum BugKind
-{
-	BUG_SKEETER = 0,                            // 0x41def0 (BugBrainSkeeter)
-	BUG_BEETLE = 1,                             // 0x416220
-	BUG_DRAGONFLY = 2,                          // 0x418880
-	BUG_ROLLY = 3,                              // 0x41d0d0
-	BUG_ANT = 4,                                // 0x413f90: comes in a column of six
-	BUG_ROACH = 5,                              // 0x41c4f0
-	BUG_CATERPILLAR = 6,                        // 0x416ea0: comes in a column of eighteen
-	BUG_FLY = 7,                                // 0x4198c0
-	BUG_CENTIPEDE = 8,                          // 0x417840: comes in a column of sixteen
-	BUG_MOTH = 9,                               // 0x41af60
-	BUG_BEE = 10,                               // 0x414fa0
-};
-
-// The bugs (0x425410 and the kinds before it); the stand-in has none: no bug is ever in the list, so every function that
-// walks it finds nothing
-class BugObj
-{
-public:
-	static bool AnyNear(float theX, float theY, float theReach); // 0x426300
-	static void OnShot();                       // 0x426060: tells the bugs a rope was shot
-	static void AlertAlongRope(PipeObj* theStart, PipeObj* theEnd, int theVertical); // 0x4267c0 (EAX start, ECX end): the bugs near the rope's line are told
-	static int sCount;                          // 0x60e2ac: the bugs made (alive or not)
-	static int sAlive;                          // 0x60e2b0: the bugs alive
-	static void Reset();                        // 0x426180: no bugs
-	static void Shuffle();                      // 0x4261e0: the bugs' order is mixed
-	static void KillAll();                      // 0x4268a0
-	static void ResetCounters();                // 0x426070
-	static GridBug* PickPeaTarget();            // 0x426680: a bug at random for a pea or a fireball, or none
-	static void SortList();                     // 0x4260c0: puts the list of bugs in order (the original sorts it with 0x426090) and numbers each bug by its place
-	static GridBug* Get(int theIndex);          // 0x4261b0 (EAX the index): the bug of that place in the list, or none past the end
-	// 0x426250 (ECX the column, EAX the row, theBug pushed): a bug that has been placed, other than theBug, whose box (its
-	// half-width and half-height each way from its place) meets theBug's box set at that place. The stand-in has none
-	static bool Overlaps(int theColumn, int theRow, GridBug* theBug);
-};
 
 // A bonus hidden under a cell of the ground (0x409b00..; the class is not translated)
 class HiddenBonus : public ObjBase
@@ -66,34 +28,20 @@ public:
 	void Uncover();                             // 0x409bf0
 };
 
-// A bug on the grid (BugObj, 0x425150, and the kinds before 0x425410): the bugs on one place are a list through
-// mNextInCell. The stand-in is one class for every kind: it has the fields the level reads and shows nothing, and is not
-// put in BugObj's list
-class GridBug : public ObjBase
-{
-public:
-	GridBug(int theKind);                       // the kinds' constructors (BugKind gives each one's address) after BugObj's 0x425150
-	bool mPlaced;                               // +0x294: the bug has a place on the grid
-	int mKind;                                  // +0x298: its BugKind (set by each kind's constructor with 0x4258c0)
-	int mGroupSize;                             // +0x2a8: the bugs in the column it leads, itself included; 0 for a bug that is alone
-	int mSegmentSteps;                          // +0x2ac: the steps the earlier bugs of its column take when it joins
-	bool mIsGroupLeader;                        // +0x2b0 (the name is a guess): the constructor sets it; the level clears it on the body of a caterpillar's or a centipede's column
-	int mColumn;                                // +0x2c4: its place in the grid
-	int mRow;                                   // +0x2c8
-	GridBug* mNextInCell;                       // +0x2e0
-	GridBug* mPrevInCell;                       // +0x2e4
-	int mHalfWidth;                             // +0x314: the places its box covers each way from its own (set by each kind's constructor)
-	int mHalfHeight;                            // +0x318
-
-	// 0x4253b0 (slot 14): sets the bug up. theHead is the bug that leads its column (none: the bug itself); thePrevious
-	// is the bug made just before it in the column. The use of theRole (0 for a head, 1 for a body, 2 for a column's last
-	// bug) and of theWaitFrames (240, 28 or 60) is in each kind's own code
-	virtual void Setup(int theRole, int theWaitFrames, GridBug* theHead, GridBug* thePrevious);
-	virtual void StepSegment();                 // slot 15 (+0x3c): the bug takes a step along its column's path (nothing in the base)
-	virtual void PlaceAt(int theColumn, int theRow); // 0x425cd0, slot 21 (+0x54): puts the bug on that place
-	void MarkPeaHit();                          // 0x425af0: sets the byte at +0x2f1
-	virtual void Zap(int theFirst, int theSecond, int theThird); // slot 20 (+0x50): a bolt runs through the bug's place
-};
+// The kinds of bug (the brains, BugBrain* in the original, derived from BugObj). None is translated: each stand-in is made
+// by the kind's constructor address, sets what that constructor gives BugObj with SetKind (kind, half-width, half-height) and
+// does nothing else, so it has no body and never moves. Setup, Update and Zap are BugObj's
+class BugBrainSkeeter : public BugObj { public: BugBrainSkeeter(); };   // 0x41def0
+class BugBrainBeetle : public BugObj { public: BugBrainBeetle(); };     // 0x416220
+class BugBrainDragonfly : public BugObj { public: BugBrainDragonfly(); }; // 0x418880
+class BugBrainRolly : public BugObj { public: BugBrainRolly(); };       // 0x41d0d0
+class BugBrainAnt : public BugObj { public: BugBrainAnt(); };           // 0x413f90
+class BugBrainRoach : public BugObj { public: BugBrainRoach(); };       // 0x41c4f0
+class BugBrainCaterpillar : public BugObj { public: BugBrainCaterpillar(); }; // 0x416ea0
+class BugBrainFly : public BugObj { public: BugBrainFly(); };           // 0x4198c0
+class BugBrainCentipede : public BugObj { public: BugBrainCentipede(); }; // 0x417840
+class BugBrainMoth : public BugObj { public: BugBrainMoth(); };         // 0x41af60
+class BugBrainBee : public BugObj { public: BugBrainBee(); };           // 0x414fa0
 
 // The bolt of light that runs down a pipe (0x405fb0; 0x520 bytes in the original); the stand-in draws nothing
 class BoltObj : public ObjBase
@@ -114,6 +62,7 @@ public:
 	static void OnTurn();                       // 0x475670
 	static void OnAreaFilled();                 // 0x475650
 	static void Dismiss();                      // 0x4756b0
+	static void OnBugZapped();                  // 0x475690: a bug was zapped
 	static void ShowFirstStep();                // 0x4757d0 (the names of the three steps are guesses)
 	static void ShowSecondStep();               // 0x4759e0
 	static void ShowThirdStep();                // 0x475c40
@@ -125,6 +74,7 @@ class Bonus
 public:
 	static void Cancel();                       // 0x406cd0
 	static void CancelIfDone();                 // 0x406d90
+	static void OnAllBugsDead();                // 0x406d40: the last bug in play is gone
 	static void ClearAll();                     // 0x406c60: lets go of what is held and ends the bonuses (a guess at the name)
 };
 

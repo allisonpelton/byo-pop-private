@@ -8,14 +8,14 @@
 namespace Sexy
 {
 
-class GridBug;
+class BugObj;
 
 class Pea : public ObjBase
 {
 public:
 	AnimKey* mFlightKey;     // +0x27c: from the place it was fired
 	AnimKey* mArrivalKey;    // +0x280: at the bug, moved with it each frame
-	GridBug* mTarget;        // +0x288: the bug flown at, or null
+	BugObj* mTarget;        // +0x288: the bug flown at, or null
 
 	Pea();                   // 0x455aa0
 	void Notify(ObjBase* theObj) override; // 0x455b70

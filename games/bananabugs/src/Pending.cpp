@@ -62,8 +62,6 @@ static Anim* sSwatterAnim;           // 0x60e1dc
 static Anim* sMineAnim;              // 0x60e1e0
 static Anim* sZumaAnim;              // 0x60e1e4
 static Anim* sZumaBallAnim;          // 0x60e1e8
-static Anim* sSpinStarsAnim;         // 0x60e254
-static Anim* sMonkeyShockRingAnim;   // 0x60e258
 static Anim* sRolyPolyAnim;          // 0x60e2a0
 static Anim* sCockroachWalkAnim;     // 0x60e29c
 
@@ -234,12 +232,6 @@ void Sexy::InitBonusTable()
 {
 }
 
-void Sexy::PreloadSpinStars()
-{
-	sSpinStarsAnim = Load("images/spinstars", 0x3c, 0x1c, 0x18);
-	sMonkeyShockRingAnim = Load("images/monkey_shock_ring", 0, 0, 1);
-}
-
 void Sexy::PreloadRolyPoly()
 {
 	sRolyPolyAnim = Load("images/rolypoly", 0x60, 0x4f, 0x3c);
@@ -248,63 +240,6 @@ void Sexy::PreloadRolyPoly()
 void Sexy::PreloadCockroach()
 {
 	sCockroachWalkAnim = Load("images/cockroach_walk", 0x60, 0x40, 0x1c);
-}
-
-// port: the stand-in level has no bugs, ground or hints
-bool BugObj::AnyNear(float theX, float theY, float theReach)
-{
-	(void)theX;
-	(void)theY;
-	(void)theReach;
-	return false;
-}
-
-int BugObj::sCount = 0;
-int BugObj::sAlive = 0;
-
-void BugObj::OnShot()
-{
-}
-
-void BugObj::Reset()
-{
-}
-
-void BugObj::Shuffle()
-{
-}
-
-void BugObj::KillAll()
-{
-}
-
-void BugObj::ResetCounters()
-{
-}
-
-void BugObj::SortList()
-{
-}
-
-GridBug* BugObj::Get(int theIndex)
-{
-	(void)theIndex;
-	return nullptr;
-}
-
-bool BugObj::Overlaps(int theColumn, int theRow, GridBug* theBug)
-{
-	(void)theColumn;
-	(void)theRow;
-	(void)theBug;
-	return false;
-}
-
-void BugObj::AlertAlongRope(PipeObj* theStart, PipeObj* theEnd, int theVertical)
-{
-	(void)theStart;
-	(void)theEnd;
-	(void)theVertical;
 }
 
 // port: the stand-in bonuses, bugs and bolts do nothing
@@ -319,49 +254,61 @@ void HiddenBonus::Uncover()
 {
 }
 
-// port: the stand-in bug is an object that shows nothing; the original's BugObj constructor (0x425150) also puts the bug in
-// the list (sCount) and counts it alive (sAlive); the stand-in does neither, so no level waits on one
-GridBug::GridBug(int theKind)
+// The kinds of bug: stand-ins (see Pending.h). The kind each sets is BugKind; the moth sets the fly's number 7 in the
+// original too (a bug of the original: nothing reads the difference in what is translated)
+BugBrainSkeeter::BugBrainSkeeter() // 0x41def0
 {
-	mPlaced = false;
-	mKind = theKind;
-	mGroupSize = 0;
-	mSegmentSteps = 0;
-	mIsGroupLeader = true;
-	mColumn = 0;
-	mRow = 0;
-	mNextInCell = nullptr;
-	mPrevInCell = nullptr;
-	mHalfWidth = 0;
-	mHalfHeight = 0;
-	SetParent(nullptr, nullptr);
+	SetKind(0, 2, 1);
 }
 
-void GridBug::Setup(int theRole, int theWaitFrames, GridBug* theHead, GridBug* thePrevious)
+BugBrainBeetle::BugBrainBeetle() // 0x416220
 {
-	(void)theRole;
-	(void)theWaitFrames;
-	(void)theHead;
-	(void)thePrevious;
+	SetKind(1, 2, 2);
 }
 
-void GridBug::StepSegment()
+BugBrainDragonfly::BugBrainDragonfly() // 0x418880
 {
+	SetKind(2, 4, 2);
 }
 
-// port: the original also sets the object's position to the place times 31 (0x100 and 0x104)
-void GridBug::PlaceAt(int theColumn, int theRow)
+BugBrainRolly::BugBrainRolly() // 0x41d0d0
 {
-	mColumn = theColumn;
-	mRow = theRow;
-	mPlaced = true;
+	SetKind(3, 1, 1);
 }
 
-void GridBug::Zap(int theFirst, int theSecond, int theThird)
+BugBrainAnt::BugBrainAnt() // 0x413f90
 {
-	(void)theFirst;
-	(void)theSecond;
-	(void)theThird;
+	SetKind(4, 2, 2);
+}
+
+BugBrainRoach::BugBrainRoach() // 0x41c4f0
+{
+	SetKind(5, 2, 2);
+}
+
+BugBrainCaterpillar::BugBrainCaterpillar() // 0x416ea0
+{
+	SetKind(6, 3, 3);
+}
+
+BugBrainFly::BugBrainFly() // 0x4198c0
+{
+	SetKind(7, 2, 2);
+}
+
+BugBrainCentipede::BugBrainCentipede() // 0x417840
+{
+	SetKind(8, 4, 4);
+}
+
+BugBrainMoth::BugBrainMoth() // 0x41af60
+{
+	SetKind(7, 2, 1);
+}
+
+BugBrainBee::BugBrainBee() // 0x414fa0
+{
+	SetKind(10, 2, 1);
 }
 
 BoltObj::BoltObj(int theSegments)
@@ -544,12 +491,12 @@ bool HeldObj::Place()
 	return false;
 }
 
-
-GridBug* BugObj::PickPeaTarget()
+// port: the stand-in walk-through shows no hints
+void WalkThru::OnBugZapped()
 {
-	return nullptr;
 }
 
-void GridBug::MarkPeaHit()
+// port: the stand-in bonuses have none running
+void Bonus::OnAllBugsDead()
 {
 }

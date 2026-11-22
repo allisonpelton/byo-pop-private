@@ -3,7 +3,7 @@
 // level's states: the intro, the cells settling in, play, the stats after a win, the game over and the victory. A Board
 // makes one; ObjBase::sLevel points to it while it lives, and the other classes reach it through the statics below.
 //
-// The class is complete. What it makes and calls but is not translated yet stands in Pending.h: the bugs (GridBug, one
+// The class is complete. What it makes and calls but is not translated yet stands in Pending.h: the bugs (BugObj, one
 // stand-in for every kind, and BugObj's list, which the stand-ins leave empty so the placing of bugs finds none), the
 // pipes, the intro, the in-level menu, the stats and the victory scene.
 #pragma once
@@ -211,8 +211,8 @@ public:
 	static void CutGround(int theCellX, int theCellY, int theVertical, int theFrom, int theTo); // 0x43e3a0: the rope has reached its ends
 	static bool HasIntro();                             // 0x4396b0: the first level of a new player
 	static void CloseMenuForPause();                    // 0x43a4f0: the focus was lost (PauseWin::PauseForFocusLoss calls it)
-	static void LinkBug(GridBug* theBug);               // 0x43c3a0 (ECX the bug): the bug is put last in the list of its place of the grid
-	static void UnlinkBug(GridBug* theBug);             // 0x43c410 (EAX the bug): the bug is taken out of the list of its place
+	static void LinkBug(BugObj* theBug);               // 0x43c3a0 (ECX the bug): the bug is put last in the list of its place of the grid
+	static void UnlinkBug(BugObj* theBug);             // 0x43c410 (EAX the bug): the bug is taken out of the list of its place
 	// 0x43cf20: a cell of the morph table of that picture (0 "morph01", 1 "morph_stats") that the pop-out shows, picked at
 	// random from where the scan starts and kept to the least used. theMiddleTones false takes the dark and light cells
 	// (brightness up to 0.3 or from 0.7), true the ones between; none for a picture with no table
@@ -245,10 +245,10 @@ private:
 	void PlayLevelMusic();                              // 0x439c42..0x439c67 and 0x43a2ff: the song of the world the level is in
 	void PlaceBugs();                                   // 0x43b370: puts every bug made on a place of the field, a column's followers with it
 	void GetKindBudgets(int* theOpenBudget, int* theOtherBudget); // 0x43c900 (ESI, EDI): the weights of bug kinds the level takes for the open ground and for the others
-	GridBug* MakeGroupSegment(int theKind, int theIndex, int theGroupSize, GridBug* theHead, GridBug* thePrevious); // 0x43acc0 (EBX the previous)
-	bool FindEdgeCell(GridBug* theBug, int* theColumn, int* theRow); // 0x43ae10 (the original's name is not known)
-	bool FindOpenCell(GridBug* theBug, int* theColumn, int* theRow); // 0x43b170
-	bool FindWallCell(GridBug* theBug, int* theColumn, int* theRow); // 0x43b2b0
+	BugObj* MakeGroupSegment(int theKind, int theIndex, int theGroupSize, BugObj* theHead, BugObj* thePrevious); // 0x43acc0 (EBX the previous)
+	bool FindEdgeCell(BugObj* theBug, int* theColumn, int* theRow); // 0x43ae10 (the original's name is not known)
+	bool FindOpenCell(BugObj* theBug, int* theColumn, int* theRow); // 0x43b170
+	bool FindWallCell(BugObj* theBug, int* theColumn, int* theRow); // 0x43b2b0
 
 	void PickBugKinds();                                // 0x43cb00: picks the bug kinds of the level
 	void BuildHud();                                    // 0x43e6d0: the banana panel and the figures

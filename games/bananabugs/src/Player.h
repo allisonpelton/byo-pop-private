@@ -274,7 +274,7 @@ public:
 	static void FinishLevel();                 // 0x45d760
 	static void BoardClick(int theButton);     // 0x45d8e0
 	static void Shoot();                       // 0x45da10
-	static void HitBugBox();                   // 0x45db70
+	static int HitBugBox();                   // 0x45db70
 	static void TurnRope();                    // 0x45dbb0
 	static void SetScoreBoard(ScoreBoard* theBoard); // 0x45dc30
 	static void Reactivate();                  // 0x45d8c0: leaves and joins the scene again

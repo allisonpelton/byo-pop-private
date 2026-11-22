@@ -262,7 +262,7 @@ void RopeObj::LayBolt(int theEnd)
 			aRowLast = aWall->mRow;
 		}
 		for (int aRow = aRowFirst; aRow <= aRowLast; aRow++) {
-			GridBug* aBug = (GridBug*)gFillGrid[aColumnFirst][aRow].mFirstBug;
+			BugObj* aBug = gFillGrid[aColumnFirst][aRow].mFirstBug;
 			while (aBug != nullptr) {
 				aBug->Zap(0, 1, 0);
 				aBug = aBug->mNextInCell;
@@ -283,7 +283,7 @@ void RopeObj::LayBolt(int theEnd)
 			aRowLast = aWall->mRow;
 		}
 		for (int aColumn = aColumnFirst; aColumn <= aColumnLast; aColumn++) {
-			GridBug* aBug = (GridBug*)gFillGrid[aColumn][aRowFirst].mFirstBug;
+			BugObj* aBug = gFillGrid[aColumn][aRowFirst].mFirstBug;
 			while (aBug != nullptr) {
 				aBug->Zap(0, 1, 0);
 				aBug = aBug->mNextInCell;

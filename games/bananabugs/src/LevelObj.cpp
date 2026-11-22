@@ -1415,13 +1415,44 @@ void LevelObj::PickBugKinds()
 	}
 }
 
+// The bug of a kind, made by that kind's constructor (the switch of 0x43c600; 0x43acc0 makes three of the kinds by the same
+// constructors). The kinds are stand-ins (Pending.h) until they are translated
+static BugObj* NewBugOfKind(int theKind)
+{
+	switch (theKind) {
+	case BUG_SKEETER:
+		return new BugBrainSkeeter();
+	case BUG_BEETLE:
+		return new BugBrainBeetle();
+	case BUG_DRAGONFLY:
+		return new BugBrainDragonfly();
+	case BUG_ROLLY:
+		return new BugBrainRolly();
+	case BUG_ANT:
+		return new BugBrainAnt();
+	case BUG_ROACH:
+		return new BugBrainRoach();
+	case BUG_CATERPILLAR:
+		return new BugBrainCaterpillar();
+	case BUG_FLY:
+		return new BugBrainFly();
+	case BUG_CENTIPEDE:
+		return new BugBrainCentipede();
+	case BUG_MOTH:
+		return new BugBrainMoth();
+	case BUG_BEE:
+		return new BugBrainBee();
+	}
+	return nullptr;
+}
+
 // 0x43c600: a bug of that kind, made but not placed. A column's leader knows how long the column is (an ant's six, a
 // caterpillar's eighteen, a centipede's sixteen); the others stand alone. A kind past the last makes nothing
 void LevelObj::SpawnBug(int theKind)
 {
 	if ((unsigned int)theKind > (unsigned int)BUG_BEE)
 		return;
-	GridBug* aBug = new GridBug(theKind);
+	BugObj* aBug = NewBugOfKind(theKind);
 	int aGroupSize = 0;
 	switch (theKind) {
 	case BUG_ANT:
@@ -1449,21 +1480,21 @@ void LevelObj::SpawnBug(int theKind)
 // at theHead, of the leader's kind; theIndex is its place in the column (1 on) and theGroupSize the column's length. An
 // ant stands apart; the body of a caterpillar or centipede follows the one made before it, and a centipede's last bug is
 // told so. A kind that does not come in a column makes nothing
-GridBug* LevelObj::MakeGroupSegment(int theKind, int theIndex, int theGroupSize, GridBug* theHead, GridBug* thePrevious)
+BugObj* LevelObj::MakeGroupSegment(int theKind, int theIndex, int theGroupSize, BugObj* theHead, BugObj* thePrevious)
 {
-	GridBug* aSegment;
+	BugObj* aSegment;
 	switch (theKind) {
 	case BUG_ANT:
-		aSegment = new GridBug(BUG_ANT);
+		aSegment = NewBugOfKind(BUG_ANT);
 		aSegment->Setup(0, ANT_WAIT_FRAMES, nullptr, nullptr);
 		return aSegment;
 	case BUG_CATERPILLAR:
-		aSegment = new GridBug(BUG_CATERPILLAR);
+		aSegment = NewBugOfKind(BUG_CATERPILLAR);
 		aSegment->Setup(SEGMENT_ROLE_BODY, SEGMENT_WAIT_FRAMES_SHORT, theHead, thePrevious);
 		break;
 	case BUG_CENTIPEDE: {
 		int aRole = (theGroupSize - 1 <= theIndex) ? SEGMENT_ROLE_LAST : SEGMENT_ROLE_BODY;
-		aSegment = new GridBug(BUG_CENTIPEDE);
+		aSegment = NewBugOfKind(BUG_CENTIPEDE);
 		aSegment->Setup(aRole, SEGMENT_WAIT_FRAMES, theHead, thePrevious);
 		break;
 	}
@@ -1475,7 +1506,7 @@ GridBug* LevelObj::MakeGroupSegment(int theKind, int theIndex, int theGroupSize,
 }
 
 // 0x43c3a0: the bug is added last to the list of the bugs on its place (the places are in the grid)
-void LevelObj::LinkBug(GridBug* theBug)
+void LevelObj::LinkBug(BugObj* theBug)
 {
 	int aColumn = theBug->mColumn;
 	int aRow = theBug->mRow;
@@ -1497,7 +1528,7 @@ void LevelObj::LinkBug(GridBug* theBug)
 
 // 0x43c410: the bug is taken out of the list of the bugs on its place (the place it has now, which the caller keeps the
 // same as when it was linked)
-void LevelObj::UnlinkBug(GridBug* theBug)
+void LevelObj::UnlinkBug(BugObj* theBug)
 {
 	int aColumn = theBug->mColumn;
 	int aRow = theBug->mRow;
@@ -1518,7 +1549,7 @@ void LevelObj::UnlinkBug(GridBug* theBug)
 
 // 0x43b2b0: a place along the walls, from where the random draw starts in the list and on round it, that no placed bug's
 // box meets. false (with the place 0, 0) when every one is taken
-bool LevelObj::FindWallCell(GridBug* theBug, int* theColumn, int* theRow)
+bool LevelObj::FindWallCell(BugObj* theBug, int* theColumn, int* theRow)
 {
 	// port (crash): the original divides by the count of places, which is 0 when the level has no wall
 	if (mWallCellCount == 0) {
@@ -1546,7 +1577,7 @@ bool LevelObj::FindWallCell(GridBug* theBug, int* theColumn, int* theRow)
 // 0x43b170: a place in the open ground (not the outermost place of the grid), none of whose eight neighbours or itself holds
 // a pipe on the field, that no placed bug's box meets. The same walk as FindWallCell (it also tries the list's length plus
 // one places)
-bool LevelObj::FindOpenCell(GridBug* theBug, int* theColumn, int* theRow)
+bool LevelObj::FindOpenCell(BugObj* theBug, int* theColumn, int* theRow)
 {
 	// port (crash): the original divides by the count of places, which is 0 when the level has no open ground
 	if (mOpenCellCount == 0) {
@@ -1588,7 +1619,7 @@ bool LevelObj::FindOpenCell(GridBug* theBug, int* theColumn, int* theRow)
 // and the starts for each side are drawn first. The original walks the side it drew four times over (the later walks
 // find nothing the first did not). A pipe on the field of the kind 0 or 1 ends the walk along that line. false (with the
 // place 0, 0) when no place is free
-bool LevelObj::FindEdgeCell(GridBug* theBug, int* theColumn, int* theRow)
+bool LevelObj::FindEdgeCell(BugObj* theBug, int* theColumn, int* theRow)
 {
 	int aColumnStartFromTop = (int)(GameRandomNext() % FILL_GRID_COLUMNS);
 	int aRowStartFromRight = (int)(GameRandomNext() & (FILL_GRID_ROWS - 1));
@@ -1692,7 +1723,7 @@ void LevelObj::PlaceBugs()
 {
 	int aBugNumber = 0;
 	BugObj::SortList();
-	GridBug* aBug = BugObj::Get(0);
+	BugObj* aBug = BugObj::Get(0);
 	mOrderPos = CrtRand() % LEVEL_CELL_LIST_MAX;
 	while (aBug != nullptr) {
 		if (!aBug->mPlaced) {
@@ -1716,13 +1747,13 @@ void LevelObj::PlaceBugs()
 			} else {
 				aBug->PlaceAt(aColumn, aRow);
 				if (aBug->mGroupSize > 0) {
-					GridBug* aColumnBugs[PLACE_GROUP_MAX];
+					BugObj* aColumnBugs[PLACE_GROUP_MAX];
 					int aGroupSize = aBug->mGroupSize;
 					int aMade = 1;
-					GridBug* aPrevious = aBug;
+					BugObj* aPrevious = aBug;
 					aColumnBugs[0] = aBug;
 					for (int aLeft = aGroupSize - 1; aLeft > 0; aLeft--) {
-						GridBug* aSegment = MakeGroupSegment(aBug->mKind, aMade, aGroupSize, aBug, aPrevious);
+						BugObj* aSegment = MakeGroupSegment(aBug->mKind, aMade, aGroupSize, aBug, aPrevious);
 						aPrevious = aSegment;
 						if (aSegment != nullptr) {
 							for (int aStepNumber = 0; aStepNumber < aSegment->mSegmentSteps; aStepNumber++) {
