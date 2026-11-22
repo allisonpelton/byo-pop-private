@@ -60,7 +60,10 @@ MainMenu::MainMenu()
 		aLogo.mHold = gApp->GetInteger(StrFormat("Logo%dHoldTime", aLogoNum), 0);
 		aLogo.mHoldLeft = aLogo.mHold;
 		aLogo.mAlpha = 0;
-		mLogos.push_back(aLogo);
+		// a logo whose picture does not load is left out (0x422950 only under the image's test); the black fade is
+		// still set. Steam's partner.xml names properties\partner_logo, which its install does not have
+		if (aLogo.mImage != nullptr)
+			mLogos.push_back(aLogo);
 	}
 
 	// slot 0x7c (0x46a780) is Widget::SetVisible: all three are hidden here, and the intro shows them
