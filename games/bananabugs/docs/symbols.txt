@@ -1,0 +1,6 @@
+# Banana Bugs: our names for the export's functions and globals, "<address> <name>" a line (games/bananabugs/tools/decread.py).
+# Library code (the C runtime, std::string, the framework) is named only where the game's code calls it.
+00402100 std::string::_Tidy -- frees a long string and makes it empty
+0059f27f operator_new
+0059f61d free
+005fc5c4 __security_cookie

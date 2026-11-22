@@ -48,7 +48,7 @@
 #   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
-#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), gamepicstest (the themes' picture decoders, web/gamepics.js), saveimporttest (the import of saves from an installed game:
+#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), fontviewtest (the Fonts window's reader of the games' fonts, web/fontview.js, with the staged games'), buildingstest (the Venice Buildings window's layout, web/buildings.js, with the staged Venice's), guidestest (the guides' markup and style rules, web/guides.js and web/guidetexts.js), gamepicstest (the themes' picture decoders, web/gamepics.js), saveimporttest (the import of saves from an installed game:
 #                platform/saveimport.json, the .reg reader and the conversion, web/saveimport.js), chattest (the chat's username,
 #                text and rate rules, its stored history and local source, and that a message goes on the page as text only,
 #                web/chat.js), gameimporttest (the import rules for a game's files and the sorting of dropped folders into games,
@@ -172,8 +172,9 @@
 #                a quit's, and resumed; every sound decoded as Tremor decodes it (about two minutes)
 #   bejeweled2   Bejeweled 2 Deluxe played by the port's own bot (tools/playbymove, -hold, seeded, a new player with every
 #                mode unlocked) in each of its nine modes: the transcript of every state and move, and the end screen, must be
-#                the frozen ones; an Action rerun is identical, and so are the games played by
-#                build/baseline-bejeweled2/bejeweled2.exe when there is one (two minutes, four with the baseline)
+#                the frozen ones, and so must the Puzzle finale's 40 shots (credits roll, link, Mode Unlocked box); an Action
+#                rerun is identical, and so are the games played by build/baseline-bejeweled2/bejeweled2.exe when there is one
+#                (about five minutes with the baseline, 275 s on main on 2026-11-22)
 #   astropop     AstroPop's bot through tools/playbymove (real input, -hold): a classic game from level 1, one from level 4 and a
 #                survival game, 120 moves each, and a rerun of the first with the same transcript, and
 #                build/baseline-astropop/astropop.exe's when there is one (about a minute)
@@ -336,6 +337,9 @@ BT_MENU="7c67600cf6a5 f8567ba2b37f"  # the start's screens at 60 (the loader han
 # does, which changes classic and finity; the other six transcripts are as before
 declare -A BJ2_PLAYS=([classic]="831f20f2c443:12cada91f4a8" [action]="90d63e45cf7f:7b659fc03b56" [puzzle]="5815000ef06d:a8b0773b7f3f" [endless]="defdb6ac04af:02483db1478b" [twilight]="de8c03468564:67d9f459fef4" [hyper]="58da52692f1f:83b1c28355ba" [cognito]="c44bde2956fb:b8dd13b43d05" [finity]="fa78c5a29691:34d5f50ca96c" [hidden]="c33e07c611ee:7afbbb32f140")
 declare -A BJ2_STEPS=([classic]=1200 [action]=400 [puzzle]=500 [endless]=400 [twilight]=400 [hyper]=400 [cognito]=300 [finity]=300 [hidden]=300)
+# the Puzzle finale's 40 shots (games/bejeweled2/tools/origcmp/finale_guard.sh): the credits roll without lines, the link without an
+# underline, the Mode Unlocked message with its OK button (the screen-coverage pass, IDENTICAL_PLAY.md)
+BJ2_FINALE="9795edf95170"
 BJ2_MODES="classic action puzzle endless twilight hyper cognito finity hidden"
 
 set -u
@@ -364,7 +368,7 @@ suite_weight() { WEIGHT=1; [ "$1" = speed ] && WEIGHT=3; [ "$1" = bonnies ] && [
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [peggle]=10 [pizzafrenzy]=180 [oracle]=1080)
+	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=560 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [peggle]=10 [pizzafrenzy]=180 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52 [typershark]=270)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
@@ -936,6 +940,15 @@ suite_unit-web() {
 	# the trophy cabinet's reader of the games' high-score files (web/trophies.js)
 	"$NODE" tools/trophiestest.js > "$1.tr" 2>&1 || st=1
 	tr="$(lastof "$1.tr" 'trophiestest:')"
+	# the Fonts window's reader of the games' ImageFonts (web/fontview.js), with every staged game's fonts
+	"$NODE" tools/fontviewtest.js assets > "$1.fv" 2>&1 || st=1
+	tr="$tr; $(lastof "$1.fv" 'fontviewtest:')"
+	# the Venice Buildings window's layout of the level select's row (web/buildings.js), with the staged Venice's
+	"$NODE" tools/buildingstest.js assets > "$1.vb" 2>&1 || st=1
+	tr="$tr; $(lastof "$1.vb" 'buildingstest:')"
+	# the guides' markup and the rules of docs/GUIDE_STYLE.md that a program can check (web/guides.js, web/guidetexts.js)
+	"$NODE" tools/guidestest.js > "$1.gd" 2>&1 || st=1
+	tr="$tr; $(lastof "$1.gd" 'guidestest:')"
 	# the desktop themes' picture decoders (web/gamepics.js)
 	"$NODE" tools/gamepicstest.js "$web/jp2.js" > "$1.gp" 2>&1 || st=1
 	gp="$(lastof "$1.gp" 'gamepicstest:')"
@@ -1007,8 +1020,8 @@ suite_unit-web() {
 	# the JPEG decoder under wasm: the same checks as native, with the error paths through Emscripten's setjmp/longjmp
 	(cd "$web" && "$NODE" jpegtest.js) > "$1.jpg" 2>&1 || st=1
 	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
-	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
+	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
 	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $rz; $q; $r; $sf; $as; $u; $v; $w; $o"
 	return $st
 }
@@ -1044,6 +1057,9 @@ suite_origrun() {  # the host and its sound stand-in compile (into a folder of t
 		# the network block from end to end on nettest.exe (tools/origrun/nettest.sh): every hooked call fails at once and is logged
 		tools/origrun/nettest.sh "$W/$OUT/origrun-bin" "$W/$OUT/nettest" >> "$1" 2>&1 || st=1
 		net="; $(lastof "$1" 'network block and launch guard:')"
+		# the activation hook from end to end on actest.exe (tools/origrun/actest.sh): a window shown inactive stays inactive through every hooked call
+		tools/origrun/actest.sh "$W/$OUT/origrun-bin" "$W/$OUT/actest" >> "$1" 2>&1 || st=1
+		net="$net; $(lastof "$1" 'activation hook:')"
 		# --count from end to end on counttest.exe (tools/origrun/counttest.sh): the cycles of five functions, counted by their own time
 		tools/origrun/counttest.sh "$W/$OUT/origrun-bin" "$W/$OUT/counttest" >> "$1" 2>&1 || st=1
 		net="$net; $(lastof "$1" '^count:')"
@@ -2207,8 +2223,8 @@ suite_bonnies() {
 	cmp -s "$d/game/tutorial.png" "$d/game/word.png" && { SUMMARY="the clicks chose no letters"; return 1; }
 	cmp -s "$d/game/word.png" "$d/game/played.png" && { SUMMARY="Submit played no word"; return 1; }
 	[ -s "$d/game/user/SavedGames/te.GAM" ] || { SUMMARY="the new player's te.GAM was not saved"; return 1; }
-	# the main menu's Quit ends the game before the script's own quit at update 70000
-	grep -q "Update Count = 6[0-9]\{4\}," "$1" || { SUMMARY="the main menu's Quit did not end the game"; return 1; }
+	# the main menu's Quit ends the game (after update 70000) before the script's own quit at update 80000
+	grep -q "Update Count = 7[0-9]\{4\}," "$1" || { SUMMARY="the main menu's Quit did not end the game"; return 1; }
 	# the rerun, and the frozen baseline (build/baseline-bonnies/bonnies.exe, a copy of the port made when it was last
 	# checked against the original) when there is one, at the same time
 	bonnies_run rerun > "$d/rerun.status" &
@@ -2442,9 +2458,15 @@ suite_bejeweled2() {
 	done
 	r="$(bej2_play action2 "$exe" action)"
 	echo "action rerun: $r" >> "$1"
+	fin="$(bash games/bejeweled2/tools/origcmp/finale_guard.sh "$exe" "$W/$OUT/bejeweled2/finale" 2>&1 | tail -n 1)"
+	echo "finale: $fin" >> "$1"
+	if [ "$fin" = "$BJ2_FINALE" ]; then fin="the Puzzle finale's 40 shots as frozen"; else fin="FINALE SHOTS CHANGED ($fin, expected $BJ2_FINALE)"; st=1; fi
 	# the frozen baseline (build/baseline-bejeweled2/, a copy of the port with its DLLs made when it was last checked against the
 	# original): the same games must give the same transcripts and screens
 	if [ -f "$base" ]; then
+		g="$(bash games/bejeweled2/tools/origcmp/finale_guard.sh "$base" "$W/$OUT/bejeweled2/base-finale" 2>&1 | tail -n 1)"
+		echo "baseline finale: $g" >> "$1"
+		[ "$g" = "$BJ2_FINALE" ] || badbase="$badbase finale"
 		for m in $BJ2_MODES; do
 			g="$(bej2_play "base-$m" "$base" "$m")"
 			echo "baseline $m: $g" >> "$1"
@@ -2454,7 +2476,7 @@ suite_bejeweled2() {
 	fi
 	if [ -z "$bad" ]; then g="games as frozen"; else g="GAMES CHANGED in$bad"; st=1; fi
 	if [ "$r" = "${got[action]}" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
-	SUMMARY="the bot's games in the nine modes, $r; $g$bl"
+	SUMMARY="the bot's games in the nine modes, $r; $g; $fin$bl"
 	return $st
 }
 

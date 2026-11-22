@@ -562,7 +562,7 @@ void WinTwistApp::MakeWindow()
 		SDL_InitSubSystem(SDL_INIT_VIDEO);
 	}
 	SDL_DisplayMode aMode;
-	if (mUse3D && SDL_GetDesktopDisplayMode(0, &aMode) == 0 && aMode.w > 0 && aMode.h > 0) {
+	if (mUse3D && !mWindowAspectSwitch && SDL_GetDesktopDisplayMode(0, &aMode) == 0 && aMode.w > 0 && aMode.h > 0) {
 		int aWidth = aMode.w, aHeight = aMode.h;
 		if (aWidth * 3 < aHeight * 4) {
 			aWidth = 4;
@@ -1337,7 +1337,18 @@ void WinTwistApp::HandleCmdLineParam(const std::string& theParamName, const std:
 		mUse3DSwitch = 0;
 		return;
 	}
-	static const char* const kTestSwitches[] = {"-widescreen", "-4x3", "-artres600", "-artres768", "-artres1200",
+	// 0x76350c: -widescreen (1080 by 675, 16:10) and -4x3 (1024 by 768) set the window's aspect, its narrowest and widest
+	// to the same, and a window (+0x34b); -widescreen also sets +0x819, which nothing reads
+	if (theParamName == "-widescreen" || theParamName == "-4x3") {
+		if (theParamName == "-widescreen")
+			mWindowAspect.Set(1080, 675);
+		else
+			mWindowAspect.Set(1024, 768);
+		mWindowAspectSwitch = true;
+		mIsWindowed = true;
+		return;
+	}
+	static const char* const kTestSwitches[] = {"-artres600", "-artres768", "-artres1200",
 		"-skipmenu", "-record", "-playback"};
 	for (const char* aSwitch : kTestSwitches) {
 		if (theParamName == aSwitch) {
