@@ -64,7 +64,7 @@ public:
 		SEA_TICKS = 100,		// updates per frame of the sea
 		APPEAR_TICKS = 110		// 1.1 s: the temples that are open come in after this
 	};
-	enum { STATE_HIDDEN = 0, STATE_OPEN = 1, STATE_NEW = 2, STATE_DONE = 4, STATE_MAXED = 5 };
+	enum { STATE_HIDDEN = 0, STATE_OPEN = 1, STATE_NEW = 2, STATE_SEEN = 3, STATE_DONE = 4, STATE_MAXED = 5 };
 
 	PixelusApp*		mApp;						// +0x5c
 	DialogButton*	mBackButton;				// +0x84

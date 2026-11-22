@@ -81,6 +81,8 @@ public:
 	virtual void			LoadingThreadProc() override;                   // 0x433950 slot 18
 	virtual void			PlayClicked() override;                         // 0x433b90 slot 79
 	virtual void			HandlePaused(bool theWasPaused, bool theIsPaused, int theCount) override; // 0x4333a0 slot 84
+	virtual void			GotFocus() override;  // 0x433330 (slot 65): the pause count goes down
+	virtual void			LostFocus() override; // 0x433320 (slot 66): the pause count goes up
 	virtual Dialog*			NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 								const SexyString& theDialogLines, const SexyString& theDialogFooter,
 								int theButtonMode) override;                // 0x4331e0 slot 21
