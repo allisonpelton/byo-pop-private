@@ -560,6 +560,18 @@ class Clock:
     def counter(self):
         return self.get('heldCounter')
 
+    def step_on(self):
+        """A game held before its window (the start hold, ORIGRUN_CLOCK_HOLDSTART, comes at the main thread's first wait,
+        and Bookworm Adventures waits before it makes its window) goes on to its next wait and holds there. True when it was
+        held and is let go. Called only while the window is still missing, so the game stands at the first wait after it."""
+        if self.get('barrierOff') or not (self.get('held') and self.get('bar') == BAR_HELD):
+            return False
+        self.set('holdKind', HOLD_NEXT)
+        self.set('holdUpdate', 0)
+        self.set('bar', BAR_ARMED)
+        k32.SetEvent(self.rel_ev)
+        return True
+
     def let_go(self):
         self.set('bar', BAR_FREE)
         k32.SetEvent(self.rel_ev)
@@ -1286,13 +1298,19 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
             threading.Thread(target=drainer, daemon=True).start()
         sync = Sync(g, clk, timeout)
         t0 = time.time()
+        stepped = 0   # waits the game was let past before its window (else its start hold lasts until the stand-in's 60 s cap)
         while not g.window() and g.alive() and time.time() - t0 < 90 and time.time() < deadline_ts:
-            short_sleep(0.002) if time.time() - t0 < 10 else time.sleep(0.05)   # at first fast: the window is moved to its place as soon as it exists
+            if clk:
+                stepped += clk.step_on()
+                k32.WaitForSingleObject(clk.held_ev, 2)   # the next hold, or 2 ms: the window is moved to its place as soon as it exists
+            else:
+                short_sleep(0.002) if time.time() - t0 < 10 else time.sleep(0.05)   # at first fast: the window is moved to its place as soon as it exists
         if not g.window():
             print('no window', file=log, flush=True)
             return 3
         t_window = time.time()
-        print('window after %.1f s, client %s' % (t_window - t0, client_rect(g.window())[2:]), file=log, flush=True)
+        print('window after %.1f s, client %s%s' % (t_window - t0, client_rect(g.window())[2:],
+                                                  ', the game let past %d waits before it' % stepped if stepped else ''), file=log, flush=True)
         wr = wt.RECT()
         u32.GetWindowRect(g.window(), ctypes.byref(wr))
         if wr.right > rect[2] or wr.bottom > rect[3]:
