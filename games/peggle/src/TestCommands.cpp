@@ -3,6 +3,7 @@
 // ERROR <command>: <reason>. They act through the game's own code.
 
 #include "Board.h"
+#include "WidgetManager.h"
 #include "Gun.h"
 #include "LevelFile.h"
 #include "LogicMgr.h"
@@ -21,6 +22,9 @@
 #include <string>
 
 using namespace Sexy;
+
+static const int TEST_MOUSE_X = 500;	// where loadlevel and resetlevel put the mouse
+static const int TEST_MOUSE_Y = 300;
 
 static void Reply(const std::string& theLine)
 {
@@ -181,6 +185,9 @@ bool ThunderballApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			mBoard = new Board(this);
 		Board* aBoard = static_cast<Board*>(mBoard);
 		aBoard->mResetCount = 1;
+		// the cannon aims at the mouse: it is put at a fixed place (the window's own cursor is wherever the machine has it)
+		mWidgetManager->mLastMouseX = TEST_MOUSE_X;
+		mWidgetManager->mLastMouseY = TEST_MOUSE_Y;
 		SRand(aSeed);
 		uint aDrawsBefore = GetRandCount();
 		bool aLoaded = true;
