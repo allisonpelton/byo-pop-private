@@ -68,6 +68,7 @@ public:
 	void Update() override;					// 0x410e10
 	void UpdateMgrs();						// 0x402ad0: the managers' updates of one step
 	void UpdateSlowMo();					// 0x402ba0: the slow motion's counters of one step
+	bool CheckForFever(Ball* theBall);		// 0x409d50: would this ball (the last peg is near) go in the last peg's way?
 	void UpdateObjects(bool theMoreSteps);	// 0x410ae0
 	void UpdateZoom();						// 0x40ad10
 	void Reload();										// 0x4090d0: a new ball in the cannon
@@ -113,7 +114,9 @@ public:
 	int mResetCount;						// +0xec: how many times Reset was called
 	int mUnknownF0;							// +0xf0
 	int mUnknownF4;							// +0xf4
-	int mUnknownF8;							// +0xf8
+	float mZoom;								// +0xf8: how far the camera has zoomed in on the ball (0 to 1)
+	float mZoomX;							// +0xfc: where the camera looks
+	float mZoomY;							// +0x100
 	int mUnknown104;						// +0x104
 	int mUnknown108;						// +0x108
 	int mUnknown10C;						// +0x10c
@@ -160,6 +163,8 @@ public:
 	int mUnknown1B8;						// +0x1b8
 	std::string mLevelName;					// +0x1d4: the level's path as the file is read (with "levels/" and ".dat")
 };
+
+extern bool gSlowMoUpdate; // 0x650a56: set while the pieces are updated in the slow motion
 
 } // namespace Sexy
 

@@ -12,6 +12,7 @@
 #include "Common.h"
 #include "compat2004/Compat2004.h"
 #include "DebugMgr.h"
+#include "Effect.h"
 #include "EffectMgr.h"
 #include "EndLevelDialog.h"
 #include "FloatingTextMgr.h"
@@ -58,6 +59,25 @@ static const int RANDOM_CHARACTER = 10;			// a player's choice of master that me
 static const int MAX_UNLOCKED_CHARACTER = 20;	// GetMaxUnlockedCharacter, for a registered game (the only kind here)
 static const int DEMO_LEVEL_MIN_GAP = 10;		// a level drawn at random is not one that was drawn in the last ten picks
 static const int MAX_CHARACTER_TRIES = 50;		// how often a master is drawn again to avoid the last game's
+bool Sexy::gSlowMoUpdate = false;
+static const int OFF_BOARD_MARGIN = 10;			// a ball this far off the board is taken off
+static const int POWERUP_FEVER_9 = 9;			// the power-ups that start the fever check early (LogicMgr::mPowerup)
+static const int POWERUP_FEVER_5 = 5;
+static const int FEVER_CHECK_PEGS_LEFT = 5;		// ModValInt, Board.cpp 100, 3619
+static const size_t FEVER_MAX_BALLS = 4;		// the fever check is made only with fewer balls than this in play
+static const int FEVER_SLOW_MO_DELAY = 20;		// updates the slow motion is held
+static const double SLOW_MO_PER_SECOND = 1000.0; // mUnknownCC counts thousandths of an update
+static const int EFFECT_TYPE_FALLING_HAT = 0x1e;
+static const float FALLING_HAT_GRAVITY = 0.05f;	// the original's global at 0x649d80
+static const int ZOOM_FOLLOW_START_Y = 400;		// ModValInt, Board.cpp 86 and 87: the camera follows a ball lower than this, more and more
+static const int ZOOM_FOLLOW_MAX_Y = 0x262;
+static const float ZOOM_FOLLOW_FACTOR = 1.0f;	// Board.cpp 88
+static const float ZOOM_IN_STEP = 0.02f;		// Board.cpp 89 (as the float 0.02f)
+static const int ZOOM_HOLD_UPDATES = 10;		// Board.cpp 90 and 91: how long the zoom stays in
+static const float ZOOM_OUT_STEP = 0.01f;		// Board.cpp 92
+static const float ZOOM_OUT_STEP_SLOW = 0.01f;	// 93
+static const float ZOOM_OUT_STEP_FEVER = 0.003f; // 94
+static const float ZOOM_BUTTON_LEVEL = 0.1f;	// 95: the replay button is hidden above this zoom
 static const int GUN_SCREEN_X = 400;			// the cannon is put at these less the origin (Board.cpp 2 and 3, 147: ModValInt 400 and 70)
 static const int GUN_SCREEN_Y = 70;
 static const int MENU_BUTTON_X = 12;			// Board.cpp 4 and 5, 153 (ModValInt 0xc and 0x21c)
@@ -109,7 +129,9 @@ Board::Board(ThunderballApp* theApp)
 	mResetCount = 0;
 	mUnknownF0 = 0;
 	mUnknownF4 = 0;
-	mUnknownF8 = 0;
+	mZoom = 0;
+	mZoomX = 0;
+	mZoomY = 0;
 	mUnknown104 = 0;
 	mUnknown108 = 0;
 	mUnknown10C = 0;
@@ -224,7 +246,7 @@ void Board::Reset()
 	SubmitTotalStats();
 	CheckIncTip();
 	PlayerInfo* aPlayer = mApp->mCurrentPlayer;
-	mUnknownF8 = 0;
+	mZoom = 0;
 	mResetCount++;
 	mUnknownF4++;
 	mGameMode = mApp->mGameMode;
@@ -465,10 +487,40 @@ void Board::KillAllBalls()
 	}
 }
 
-// 0x40fed0
+// 0x40fed0: a piece is taken out of the level: a ball in play leaves the list of balls (and a hat falls from it, as an effect, and
+// is taken out as well), and the collision manager forgets its edges and pairs
 void Board::RemoveObj(PhysObj* theObj)
 {
-	NOT_TRANSLATED("Board::RemoveObj");
+	std::list<SharedPtr<PhysObj> >::iterator anItr = mObjects.begin();
+	while (anItr != mObjects.end() && anItr->get() != theObj)
+		++anItr;
+	if (anItr == mObjects.end())
+		return;
+	SharedPtr<PhysObj> aKeep(theObj);
+	if (theObj->mKind == KIND_SHOT_BALL)
+	{
+		mBalls.remove(aKeep);
+		Ball* aBall = static_cast<Ball*>(theObj);
+		if (aBall->mHasHat)
+		{
+			float aX = (float)(((double)aBall->mTrail[5][0] + aBall->mUnknown104) - aBall->mX);
+			float aY = (float)(((double)aBall->mTrail[5][1] + aBall->mUnknown108) - aBall->mY);
+			Effect& aHatEffect = mEffectMgr->AddEffect(EFFECT_TYPE_FALLING_HAT, aX, aY, 0, false);
+			aHatEffect.mVelocityX = aBall->mVelocityX;
+			aHatEffect.mVelocityY = aBall->mVelocityY;
+			aHatEffect.mLife = 0;
+			aHatEffect.mGravity = FALLING_HAT_GRAVITY;
+			aHatEffect.mUnknown38 = aBall->mHat.get() != nullptr ? 1 : 0;
+		}
+		if (aBall->mHat.get() != nullptr)
+		{
+			SharedPtr<Ball> aHat = aBall->mHat;
+			aBall->mHat = nullptr;
+			RemoveObj(aHat.get());
+		}
+	}
+	mCollisionMgr->RemoveObj(theObj);
+	mObjects.erase(anItr);
 }
 
 // 0x402760
@@ -802,8 +854,8 @@ void Board::SyncCharacterOptions(bool theDrawAgain)
 			aLogic->mUnknown78 = aSkill == -1 ? -1 : aSkill == 1 ? 1 : aSkill == 2 ? 10 : 0;
 		}
 	}
-	aLogic->mUnknown1C4 = aFirst->mPowerup;
-	aLogic->mUnknown1C8 = aSecond->mPowerup;
+	aLogic->mPowerup[0] = aFirst->mPowerup;
+	aLogic->mPowerup[1] = aSecond->mPowerup;
 }
 
 // 0x410e10: one update of the board: the fade of the pause, the mouse's place, the steps to run (more than one while the right
@@ -1016,16 +1068,144 @@ void Board::UpdateSlowMo()
 	}
 }
 
-// 0x410ae0
+// 0x410ae0: the pieces are updated, then the cannon, then the collision manager lets the balls in play meet what they meet; a ball
+// that did not hit anything goes on by its speed, one that has left the board is taken off, and when the last peg is near the
+// slow motion of the fever may start. At the end the logic reads what was touched (CheckCollisions).
 void Board::UpdateObjects(bool theMoreSteps)
 {
-	NOT_TRANSLATED("Board::UpdateObjects");
+	if (!mUnknownC2)
+	{
+		if (mSlowMo)
+			gSlowMoUpdate = true;
+		for (std::list<SharedPtr<PhysObj> >::iterator anItr = mObjects.begin(); anItr != mObjects.end(); ++anItr)
+			(*anItr)->Update();
+		if (theMoreSteps && mLogicMgr->mState != LOGIC_STATE_SHOT)
+			return;
+		mGun->Update();
+		mCollisionMgr->Update(true);
+		bool aCheckFever = false;
+		LogicMgr* aLogic = mLogicMgr.get();
+		if (aLogic->mUnknownF9)
+		{
+			int aPowerup = aLogic->mPowerup[aLogic->mCurPlayer];
+			int aNumPegsLeft = aLogic->GetNumPegsLeft();
+			if (aNumPegsLeft == 1)
+				aCheckFever = true;
+			else if (aPowerup == POWERUP_FEVER_9)
+			{
+				if (aLogic->mUnknownFB && aLogic->mGoalPegs.size() == 1 && aLogic->mOtherPegs.size() == 1)
+					aCheckFever = true;
+			}
+			else if (aPowerup == POWERUP_FEVER_5)
+			{
+				if (aNumPegsLeft <= FEVER_CHECK_PEGS_LEFT)
+					aCheckFever = true;
+			}
+		}
+		std::list<SharedPtr<PhysObj> >::iterator aBallItr = mBalls.begin();
+		while (aBallItr != mBalls.end())
+		{
+			Ball* aBall = static_cast<Ball*>(aBallItr->get());
+			++aBallItr;
+			if (!aBall->mUnknown141)
+				aBall->DoNonCollideUpdate();
+			if ((double)(mUnknown1B4 + OFF_BOARD_MARGIN) < (double)aBall->mY - aBall->mRadius ||
+				(double)(mUnknown1B0 + OFF_BOARD_MARGIN) < (double)aBall->mX - aBall->mRadius ||
+				(double)aBall->mRadius + aBall->mX < -OFF_BOARD_MARGIN || (double)aBall->mRadius + aBall->mY < -OFF_BOARD_MARGIN)
+				RemoveObj(aBall);
+			else if (aCheckFever && mBalls.size() < FEVER_MAX_BALLS && CheckForFever(aBall))
+			{
+				aCheckFever = false;
+				if (!mSlowMo)
+					mLogicMgr->DoFeverSlow();
+				else if (mUnknown104 < FEVER_SLOW_MO_DELAY)
+					mUnknown104 = FEVER_SLOW_MO_DELAY;
+			}
+		}
+		if (mSlowMo)
+			gSlowMoUpdate = false;
+	}
+	if (mSlowMo)
+	{
+		for (std::list<SharedPtr<PhysObj> >::iterator anItr = mObjects.begin(); anItr != mObjects.end(); ++anItr)
+			(*anItr)->UpdateSlowMo((float)((double)mUnknownCC / SLOW_MO_PER_SECOND));
+	}
+	mLogicMgr->CheckCollisions();
 }
 
-// 0x40ad10
+// 0x409d50
+bool Board::CheckForFever(Ball* theBall)
+{
+	NOT_TRANSLATED("Board::CheckForFever");
+}
+
+// 0x40ad10: the camera of the level follows the ball in play, and zooms in while the fever's slow motion is on (and out again
+// after it); the replay button and the replay dialog are put where the zoom leaves them
 void Board::UpdateZoom()
 {
-	NOT_TRANSLATED("Board::UpdateZoom");
+	if (!mBalls.empty())
+	{
+		Ball* aBall = static_cast<Ball*>(mBalls.front().get());
+		mZoomX = (float)((double)mOriginX + aBall->mTrail[5][0]);
+		mZoomY = (float)((double)mOriginY + aBall->mTrail[5][1]);
+		if ((float)ZOOM_FOLLOW_START_Y < mZoomY)
+		{
+			mZoomY = (float)(((double)mZoomY - ZOOM_FOLLOW_START_Y) * ZOOM_FOLLOW_FACTOR + mZoomY);
+			if ((float)ZOOM_FOLLOW_MAX_Y < mZoomY)
+				mZoomY = (float)ZOOM_FOLLOW_MAX_Y;
+		}
+	}
+	bool aSkipDecay = false; // reaches the end of the zoom steps below
+	if (mSlowMo && mUnknown11C)
+	{
+		if (mBalls.size() < 2)
+		{
+			mZoom = (float)((double)ZOOM_IN_STEP + mZoom);
+			if (mZoom > 1.0f)
+			{
+				mZoom = 1.0f;
+				mUnknown104 = ZOOM_HOLD_UPDATES;
+				mUnknown11C = false;
+			}
+		}
+		else
+			mUnknown11C = false;
+		aSkipDecay = true;
+	}
+	if (!aSkipDecay)
+	{
+		if (!(mZoom > 0))
+			aSkipDecay = true;
+		else if (!mSlowMo)
+		{
+			mUnknown104 = 0;
+			mZoom = (float)((double)mZoom - ZOOM_OUT_STEP);
+		}
+		else if (mUnknown104 < 0)
+		{
+			if (!mLogicMgr->mUnknownF6)
+				mZoom = (float)((double)mZoom - ZOOM_OUT_STEP_SLOW);
+			else
+				mZoom = (float)((double)mZoom - ZOOM_OUT_STEP_FEVER);
+		}
+		else
+			mUnknown104--;
+		if (!aSkipDecay && mZoom < 0)
+			mZoom = 0;
+	}
+	if (!mUnknown11D || ((double)mZoom <= ZOOM_BUTTON_LEVEL && (mZoom <= 0 || !mUnknown11C)))
+	{
+		if (mUnknown108 < 1)
+			return;
+		mUnknown108--;
+		if (mUnknown108 == 0)
+			NOT_TRANSLATED("Board::UpdateZoom: the menu button's flag (+0x7c) when the replay button is shown again");
+	}
+	else
+	{
+		NOT_TRANSLATED("Board::UpdateZoom: the menu button's flag (+0x7c) when the zoom hides the replay button");
+	}
+	NOT_TRANSLATED("Board::UpdateZoom: PositionReplayDialog when the replay dialog is up");
 }
 
 // 0x4090d0

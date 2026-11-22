@@ -7,6 +7,7 @@
 #define __GUN_H__
 
 #include <list>
+#include <vector>
 #include "Ball.h"
 #include "Poly.h"
 
@@ -34,6 +35,7 @@ public:
 	void Draw(Graphics* g) override;					   // 25, 0x47f590
 
 	void CalcPoints();						 // 0x483da0: puts the triangle where the aim is, and the ball at its muzzle
+	float GetTurnSpeed();					 // 0x47bf30
 	void UpdateCommon();					 // 0x4752b0: notes the aim when it has been still for a while
 	int GetMaxGuideLength() const;			 // 0x4754a0
 	bool NeedDrawMouseClick() const;		 // 0x4754c0
@@ -55,8 +57,8 @@ public:
 	float mHalfWidth;		   // +0x168: half the triangle's base
 	float mBaseShift;		   // +0x16c: the triangle and the muzzle are this far from the cannon's place
 	float mBarrelLength;	   // +0x170: from the triangle's base to the ball, less the ball's radius
-	int mUnknown174;		   // +0x174
-	int mUnknown178;		   // +0x178
+	float mGuideDirX;		   // +0x174: the direction the guide ball first hit something going (the guide is steadied against it)
+	float mGuideDirY;		   // +0x178
 	float mUnknown17C;		   // +0x17c: 1000
 	bool mUnknown180;		   // +0x180: set by the constructor
 	float mStillAngle;		   // +0x184: the aim as of the last update
@@ -67,19 +69,18 @@ public:
 	bool mUnknown195;		   // +0x195 (saved)
 	int mUnknown198;		   // +0x198: -1
 	int mUnknown19C;		   // +0x19c: -1
+	bool mUnknown1A0;		   // +0x1a0: the guide ball hit a moving piece
 	bool mUnknown1A1;		   // +0x1a1 (saved)
 	bool mUnknown1A2;		   // +0x1a2 (saved)
-	int mUnknown1A4;		   // +0x1a4: three words that start as 0
-	int mUnknown1A8;		   // +0x1a8
-	int mUnknown1AC;		   // +0x1ac
+	float mFirstHitX;		   // +0x1a4: where the guide ball first hit something
+	float mFirstHitY;		   // +0x1a8
+	float mFirstHitAngle;	   // +0x1ac: the way the guide ball goes after that hit
 	float mLastAngle;		   // +0x1b0: the aim of the last shot (saved when there was one)
 	float mLastBallX;		   // +0x1b4
 	float mLastBallY;		   // +0x1b8
 	float mLastSpeed;		   // +0x1bc: 0 until a shot was made
 	SharedPtr<Ball> mBall;	   // +0x1c0: the ball the cannon holds (saved)
-	int mUnknown1C8;		   // +0x1c8: three words that start as 0
-	int mUnknown1CC;		   // +0x1cc
-	int mUnknown1D0;		   // +0x1d0
+	std::vector<SexyVector2> mGuidePoints; // +0x1c8: the places the guide ball went through
 	std::list<GunTurn> mTurns; // +0x1d4: the turns asked for and not yet made (SetAngle adds one)
 };
 

@@ -507,7 +507,7 @@ void InterfaceMgr::UpdateBalls()
 		{
 			ColumnBall& aBall = mColumnBalls[i];
 			ColumnBall& aBelow = mColumnBalls[i - 1];
-			float aGap = (float)(((long double)aBelow.mY - ((long double)aBall.mY + aBall.mSpeed)) - aSpacing);
+			float aGap = (float)(((double)aBelow.mY - ((double)aBall.mY + aBall.mSpeed)) - aSpacing);
 			if (0.0f <= aGap)
 			{
 				if (!aMoving && BALL_MOVING_GAP < aGap)
@@ -518,7 +518,7 @@ void InterfaceMgr::UpdateBalls()
 			else
 			{
 				aBall.mY = aBelow.mY - (float)aSpacing;
-				float aShare = (float)((long double)BALL_SHARE * 0.5L * ((long double)fabsf(aBall.mSpeed) + fabsf(aBelow.mSpeed)));
+				float aShare = (float)((double)BALL_SHARE * 0.5 * ((double)fabsf(aBall.mSpeed) + fabsf(aBelow.mSpeed)));
 				if (aShare < 1.0f)
 					aShare = 0.0f;
 				if (0.0f < aBall.mSpeed)

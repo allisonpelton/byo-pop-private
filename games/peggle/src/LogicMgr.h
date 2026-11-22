@@ -94,6 +94,9 @@ public:
 	bool UpdateShotBalls();								// 0x467230
 	void UpdateWrapAroundBall();						// 0x45f120
 	void CheckBallStop();								// 0x466df0
+	int GetNumPegsLeft() const;							// 0x43d5b0
+	void CheckCollisions();								// 0x4704a0: what the balls touched in the update (the pegs they hit) is looked at
+	void DoFeverSlow();									// 0x45e920: the slow motion of the fever starts
 	void FinishShot();									// 0x470a50
 	void CheckDoFlippers();								// 0x472c70
 	void AddFeverSparks(Ball* theBall, bool theZen);	// 0x451ec0
@@ -244,8 +247,7 @@ public:
 	int mNumBalls[2];		 // +0x17c: the balls each player has left
 	int mCharacter[2];		 // +0x184: the master each player plays
 	std::string mPlayerName[2]; // +0x18c: "Player1" and "Player2"
-	int mUnknown1C4;		 // +0x1c4
-	int mUnknown1C8;		 // +0x1c8
+	int mPowerup[2];		 // +0x1c4: the power-up each player has
 	int mUnknown1CC;		 // +0x1cc
 	int mUnknown1D0;		 // +0x1d0
 	int mUnknown1D4[14][2];	 // +0x1d4: fourteen pairs

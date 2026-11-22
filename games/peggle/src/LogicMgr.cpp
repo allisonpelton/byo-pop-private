@@ -330,8 +330,8 @@ void LogicMgr::Clear(bool theNewGame, bool theKeepLists)
 		}
 		mPlayerName[0] = "Player1";
 		mPlayerName[1] = "Player2";
-		mUnknown1C4 = 1;
-		mUnknown1C8 = 1;
+		mPowerup[0] = 1;
+		mPowerup[1] = 1;
 		mUnknown244 = false;
 		mUnknown245 = false;
 		mUnknown74 = 0;
@@ -775,6 +775,14 @@ void LogicMgr::SetCharacters(int theFirst, int theSecond)
 bool LogicMgr::IsComputerTurn() const
 {
 	return mCurPlayer == 0 ? mUnknown244 : mUnknown245;
+}
+
+// 0x43d5b0: the pegs that have to be cleared (and the others too when the level is cleared of all)
+int LogicMgr::GetNumPegsLeft() const
+{
+	if (mUnknownFB)
+		return (int)(mOtherPegs.size() + mGoalPegs.size());
+	return (int)mGoalPegs.size();
 }
 
 // 0x43d580
@@ -1249,7 +1257,7 @@ void LogicMgr::UpdateShot()
 		for (std::list<SharedPtr<PhysObj> >::iterator anItr = mBoard->mBalls.begin(); anItr != mBoard->mBalls.end(); ++anItr)
 		{
 			Ball* aBall = static_cast<Ball*>(anItr->get());
-			aBall->mVelocityY = (float)((double)aBall->mVelocityY - (long double)LOW_GRAVITY_STEP * GRAVITY_SCALE);
+			aBall->mVelocityY = (float)((double)aBall->mVelocityY - (double)LOW_GRAVITY_STEP * GRAVITY_SCALE);
 		}
 	}
 	if (SHOT_BOOST_START <= mUnknown38 && (mUnknown38 - SHOT_BOOST_START) % SHOT_BOOST_PERIOD == 0)
@@ -1317,7 +1325,7 @@ bool LogicMgr::UpdateShotBalls()
 			else
 			{
 				float aVelocityXSq = (float)((double)aBall->mVelocityX * aBall->mVelocityX);
-				float aSpeedSq = (float)((long double)aBall->mVelocityY * aBall->mVelocityY + aVelocityXSq);
+				float aSpeedSq = (float)((double)aBall->mVelocityY * aBall->mVelocityY + aVelocityXSq);
 				int aPeriod = FIREBALL_EMBER_PERIOD;
 				if (1.0f <= aSpeedSq)
 				{
@@ -1330,7 +1338,7 @@ bool LogicMgr::UpdateShotBalls()
 				{
 					Effect& anEmber = anEffects->AddEffect(EFFECT_TYPE_FIREBALL_EMBER, aBall->mX, aBall->mY, 0);
 					anEmber.mLife = FIREBALL_EMBER_LIFE;
-					anEmber.mGravity = (float)((long double)GRAVITY_SCALE * 0.5);
+					anEmber.mGravity = (float)((double)GRAVITY_SCALE * 0.5);
 					float aDirection = atan2f(-aBall->mVelocityY, aBall->mVelocityX);
 					anEmber.mUnknown28 = (float)((double)aDirection + QUARTER_TURN);
 				}
@@ -1349,30 +1357,30 @@ bool LogicMgr::UpdateShotBalls()
 			{
 				Effect& aSpark = mBoard->mEffectMgr->AddEffect(EFFECT_TYPE_TRAIL_SPARK, aBall->mX, aBall->mY, 0);
 				aSpark.mLife = TRAIL_LIFE;
-				aSpark.mGravity = (float)((long double)TRAIL_GRAVITY * GRAVITY_SCALE);
+				aSpark.mGravity = (float)((double)TRAIL_GRAVITY * GRAVITY_SCALE);
 				float aVelocityXSq = (float)((double)aBall->mVelocityX * aBall->mVelocityX);
 				float aVelocityYSq = (float)((double)aBall->mVelocityY * aBall->mVelocityY);
 				float aSpeed = (float)std::sqrt((double)(float)((double)aVelocityXSq + aVelocityYSq));
-				double aSpreadRange = (double)((long double)TRAIL_RANDOM_PART * TRAIL_RANDOM_RANGE);
-				float aRandom = (float)((long double)(Rand() % 1000) / 1000.0L * aSpreadRange);
-				aSpark.mVelocityX = (float)(((long double)(1.0 - (double)(Rand() % 1000) / 500.0) * TRAIL_SPREAD - aBall->mVelocityX) +
-											((long double)aSpeed * aBall->mUnknown168) * aRandom);
-				aSpark.mVelocityY = (float)(((long double)(1.0 - (double)(Rand() % 1000) / 500.0) * TRAIL_SPREAD - aBall->mVelocityY) +
-											((long double)aBall->mUnknown16C * aSpeed) * aRandom);
-				float aScaledX = (float)((long double)aSpark.mVelocityX * TRAIL_SCATTER);
+				double aSpreadRange = (double)((double)TRAIL_RANDOM_PART * TRAIL_RANDOM_RANGE);
+				float aRandom = (float)((double)(Rand() % 1000) / 1000.0 * aSpreadRange);
+				aSpark.mVelocityX = (float)(((double)(1.0 - (double)(Rand() % 1000) / 500.0) * TRAIL_SPREAD - aBall->mVelocityX) +
+											((double)aSpeed * aBall->mUnknown168) * aRandom);
+				aSpark.mVelocityY = (float)(((double)(1.0 - (double)(Rand() % 1000) / 500.0) * TRAIL_SPREAD - aBall->mVelocityY) +
+											((double)aBall->mUnknown16C * aSpeed) * aRandom);
+				float aScaledX = (float)((double)aSpark.mVelocityX * TRAIL_SCATTER);
 				aSpark.mVelocityX = aScaledX;
-				float aScaledY = (float)((long double)TRAIL_SCATTER * aSpark.mVelocityY);
+				float aScaledY = (float)((double)TRAIL_SCATTER * aSpark.mVelocityY);
 				aSpark.mVelocityY = aScaledY;
-				float aSquare = (float)((long double)aScaledX * aScaledX + (long double)aScaledY * aScaledY);
+				float aSquare = (float)((double)aScaledX * aScaledX + (double)aScaledY * aScaledY);
 				if ((double)TRAIL_MAX_SQUARE < (double)aSquare)
 				{
-					aSpark.mVelocityX = (float)(((long double)TRAIL_MAX_SQUARE * aSpark.mVelocityX) / aSquare);
-					aSpark.mVelocityY = (float)(((long double)TRAIL_MAX_SQUARE * aSpark.mVelocityY) / aSquare);
+					aSpark.mVelocityX = (float)(((double)TRAIL_MAX_SQUARE * aSpark.mVelocityX) / aSquare);
+					aSpark.mVelocityY = (float)(((double)TRAIL_MAX_SQUARE * aSpark.mVelocityY) / aSquare);
 				}
-				double aShiftX = (double)((long double)TRAIL_SHIFT_SPEED * aSpark.mVelocityX);
-				aSpark.mX = (float)(((long double)aShiftX - (long double)TRAIL_SHIFT_BACK * aBall->mUnknown168) + aSpark.mX);
-				double aShiftY = (double)((long double)TRAIL_SHIFT_SPEED * aSpark.mVelocityY);
-				aSpark.mY = (float)(((long double)aShiftY - (long double)TRAIL_SHIFT_BACK * aBall->mUnknown16C) + aSpark.mY);
+				double aShiftX = (double)((double)TRAIL_SHIFT_SPEED * aSpark.mVelocityX);
+				aSpark.mX = (float)(((double)aShiftX - (double)TRAIL_SHIFT_BACK * aBall->mUnknown168) + aSpark.mX);
+				double aShiftY = (double)((double)TRAIL_SHIFT_SPEED * aSpark.mVelocityY);
+				aSpark.mY = (float)(((double)aShiftY - (double)TRAIL_SHIFT_BACK * aBall->mUnknown16C) + aSpark.mY);
 			}
 		}
 	}
@@ -1433,6 +1441,18 @@ void LogicMgr::CheckBallStop()
 	mUnknown14 = mUnknown12C - (int)mUnknown34C.size();
 	mUnknown10 = 0;
 	RemoveHitPegs();
+}
+
+// 0x4704a0
+void LogicMgr::CheckCollisions()
+{
+	NOT_TRANSLATED("LogicMgr::CheckCollisions");
+}
+
+// 0x45e920
+void LogicMgr::DoFeverSlow()
+{
+	NOT_TRANSLATED("LogicMgr::DoFeverSlow");
 }
 
 // 0x470a50

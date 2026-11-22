@@ -269,78 +269,78 @@ void Sexy::AddShotBurst(float theX, float theY, float theAngle)
 	if (aBoard == nullptr)
 		return;
 	EffectMgr* anEffects = aBoard->mEffectMgr.get();
-	theY = (float)((long double)BURST_DROP + theY);
-	double aBase = (double)((long double)theAngle + QUARTER_TURN);
+	theY = (float)((double)BURST_DROP + theY);
+	double aBase = (double)((double)theAngle + QUARTER_TURN);
 
 	for (int i = 0; i < BURST_GLOW_COUNT; i++)
 	{
-		double aSpeedPart = (double)((long double)(Rand() % 1000) * (long double)BURST_GLOW_SPEED_RANGE / 1000.0L);
-		float aSpeed = (float)((long double)BURST_GLOW_SPEED_BASE + aSpeedPart);
-		double aSpread = (double)(1.0L - (long double)(Rand() % 1000) / 500.0L);
-		float anAngle = (float)(((long double)BURST_GLOW_SPREAD * (1.0L - (long double)aSpeed * BURST_GLOW_SPREAD_SPEED)) * aSpread + aBase);
+		double aSpeedPart = (double)((double)(Rand() % 1000) * (double)BURST_GLOW_SPEED_RANGE / 1000.0);
+		float aSpeed = (float)((double)BURST_GLOW_SPEED_BASE + aSpeedPart);
+		double aSpread = (double)(1.0 - (double)(Rand() % 1000) / 500.0);
+		float anAngle = (float)(((double)BURST_GLOW_SPREAD * (1.0 - (double)aSpeed * BURST_GLOW_SPREAD_SPEED)) * aSpread + aBase);
 		float aRadius = (float)(Rand() % BURST_GLOW_RADIUS);
 		float aCos = (float)std::cos((double)anAngle);
-		double aBaseY = (double)((long double)(Rand() % BURST_GLOW_JITTER_Y) + ((long double)aCos * aRadius + theY));
+		double aBaseY = (double)((double)(Rand() % BURST_GLOW_JITTER_Y) + ((double)aCos * aRadius + theY));
 		float aSin = (float)std::sin((double)anAngle);
-		double aBaseX = (double)((long double)(Rand() % BURST_GLOW_JITTER_X) + ((long double)aSin * aRadius + theX));
-		float aY = (float)((long double)aBaseY - BURST_GLOW_SHIFT_Y);
-		float aX = (float)((long double)aBaseX - BURST_GLOW_SHIFT_X);
+		double aBaseX = (double)((double)(Rand() % BURST_GLOW_JITTER_X) + ((double)aSin * aRadius + theX));
+		float aY = (float)((double)aBaseY - BURST_GLOW_SHIFT_Y);
+		float aX = (float)((double)aBaseX - BURST_GLOW_SHIFT_X);
 		Effect& anEffect = anEffects->AddEffect(EFFECT_TYPE_BURST_GLOW, aX, aY, BURST_GLOW_PRIORITY);
 		anEffect.mColor = BURST_GLOW_COLOR;
 		anEffect.mUnknown38 = 3;
-		anEffect.mVelocityX = (float)((long double)aSin * aSpeed);
-		anEffect.mVelocityY = (float)(BURST_GLOW_DRIFT_Y + (long double)aCos * aSpeed);
+		anEffect.mVelocityX = (float)((double)aSin * aSpeed);
+		anEffect.mVelocityY = (float)(BURST_GLOW_DRIFT_Y + (double)aCos * aSpeed);
 		anEffect.mLife = BURST_GLOW_LIFE_BASE + Rand() % BURST_GLOW_LIFE_RANGE;
-		anEffect.mGravity = (float)((long double)BURST_GLOW_GRAVITY * GRAVITY_SCALE);
+		anEffect.mGravity = (float)((double)BURST_GLOW_GRAVITY * GRAVITY_SCALE);
 	}
 
 	for (int i = 0; i < BURST_SPARK_COUNT; i++)
 	{
-		double aSpread = (double)(1.0L - (long double)(Rand() % 1000) / 500.0L);
-		float anAngle = (float)((long double)BURST_SPARK_SPREAD * aSpread + aBase);
+		double aSpread = (double)(1.0 - (double)(Rand() % 1000) / 500.0);
+		float anAngle = (float)((double)BURST_SPARK_SPREAD * aSpread + aBase);
 		float aSin = (float)std::sin((double)anAngle);
 		float aCos = (float)std::cos((double)anAngle);
 		float aRadius = (float)((Rand() % BURST_SPARK_RADIUS) - BURST_SPARK_RADIUS_BACK);
-		double aSpeedPart = (double)((long double)(Rand() % 1000) / 1000.0L);
-		aSpeedPart = (double)((long double)BURST_SPARK_SPEED_RANGE * aSpeedPart);
-		float aSpeed = (float)((long double)BURST_SPARK_SPEED_BASE + aSpeedPart);
-		double aBaseY = (double)((long double)(Rand() % BURST_SPARK_JITTER_Y) + ((long double)aRadius * aCos + theY));
-		double aBaseX = (double)((long double)(Rand() % BURST_SPARK_JITTER_X) + ((long double)aRadius * aSin + theX));
-		float aY = (float)((long double)aBaseY - BURST_SPARK_SHIFT_Y);
-		float aX = (float)((long double)aBaseX - BURST_SPARK_SHIFT_X);
+		double aSpeedPart = (double)((double)(Rand() % 1000) / 1000.0);
+		aSpeedPart = (double)((double)BURST_SPARK_SPEED_RANGE * aSpeedPart);
+		float aSpeed = (float)((double)BURST_SPARK_SPEED_BASE + aSpeedPart);
+		double aBaseY = (double)((double)(Rand() % BURST_SPARK_JITTER_Y) + ((double)aRadius * aCos + theY));
+		double aBaseX = (double)((double)(Rand() % BURST_SPARK_JITTER_X) + ((double)aRadius * aSin + theX));
+		float aY = (float)((double)aBaseY - BURST_SPARK_SHIFT_Y);
+		float aX = (float)((double)aBaseX - BURST_SPARK_SHIFT_X);
 		Effect& anEffect = anEffects->AddEffect(EFFECT_TYPE_BURST_SPARK, aX, aY, BURST_SPARK_PRIORITY);
 		anEffect.mUnknown38 = 1;
 		anEffect.mColor = BURST_SPARK_COLOR;
-		anEffect.mVelocityX = (float)((long double)aSpeed * aSin);
-		anEffect.mVelocityY = (float)(BURST_SPARK_DRIFT_Y + (long double)aSpeed * aCos);
+		anEffect.mVelocityX = (float)((double)aSpeed * aSin);
+		anEffect.mVelocityY = (float)(BURST_SPARK_DRIFT_Y + (double)aSpeed * aCos);
 		int aLifeSum = BURST_SPARK_LIFE_BASE + Rand() % BURST_SPARK_LIFE_RANGE;
-		anEffect.mLife = (int)((long double)aLifeSum - (long double)BURST_SPARK_LIFE_SPEED * aSpeed);
-		anEffect.mGravity = (float)((long double)BURST_SPARK_GRAVITY * GRAVITY_SCALE);
+		anEffect.mLife = (int)((double)aLifeSum - (double)BURST_SPARK_LIFE_SPEED * aSpeed);
+		anEffect.mGravity = (float)((double)BURST_SPARK_GRAVITY * GRAVITY_SCALE);
 	}
 
 	for (int i = 0; i < BURST_SMOKE_COUNT; i++)
 	{
-		double aSpread = (double)(1.0L - (long double)(Rand() % 1000) / 500.0L);
-		float anAngle = (float)((long double)BURST_SMOKE_SPREAD * aSpread + aBase);
+		double aSpread = (double)(1.0 - (double)(Rand() % 1000) / 500.0);
+		float anAngle = (float)((double)BURST_SMOKE_SPREAD * aSpread + aBase);
 		float aSin = (float)std::sin((double)anAngle);
 		float aCos = (float)std::cos((double)anAngle);
 		float aRadius = (float)((Rand() % BURST_SMOKE_RADIUS) - BURST_SMOKE_RADIUS_BACK);
-		double aSpeedPart = (double)((long double)(Rand() % 1000) / 1000.0L);
-		aSpeedPart = (double)((long double)BURST_SMOKE_SPEED_RANGE * aSpeedPart);
-		float aSpeed = (float)((long double)BURST_SMOKE_SPEED_BASE + aSpeedPart);
-		double aBaseY = (double)((long double)(Rand() % BURST_SMOKE_JITTER_Y) + ((long double)aRadius * aCos + theY));
-		double aBaseX = (double)((long double)(Rand() % BURST_SMOKE_JITTER_X) + ((long double)aRadius * aSin + theX));
-		float aY = (float)((long double)aBaseY - BURST_SMOKE_SHIFT_Y);
-		float aX = (float)((long double)aBaseX - BURST_SMOKE_SHIFT_X);
+		double aSpeedPart = (double)((double)(Rand() % 1000) / 1000.0);
+		aSpeedPart = (double)((double)BURST_SMOKE_SPEED_RANGE * aSpeedPart);
+		float aSpeed = (float)((double)BURST_SMOKE_SPEED_BASE + aSpeedPart);
+		double aBaseY = (double)((double)(Rand() % BURST_SMOKE_JITTER_Y) + ((double)aRadius * aCos + theY));
+		double aBaseX = (double)((double)(Rand() % BURST_SMOKE_JITTER_X) + ((double)aRadius * aSin + theX));
+		float aY = (float)((double)aBaseY - BURST_SMOKE_SHIFT_Y);
+		float aX = (float)((double)aBaseX - BURST_SMOKE_SHIFT_X);
 		Effect& anEffect = anEffects->AddEffect(EFFECT_TYPE_BURST_SMOKE, aX, aY, BURST_SMOKE_PRIORITY);
 		anEffect.mUnknown38 = Rand() % 2;
 		anEffect.mUnknown3C = Rand() % 16;
 		int aShade = Rand() % 3;
 		anEffect.mColor = aShade == 0 ? BURST_SMOKE_COLOR_DARK : (aShade == 1 ? BURST_SMOKE_COLOR_MID : BURST_SMOKE_COLOR_LIGHT);
-		anEffect.mVelocityX = (float)((long double)aSpeed * aSin);
-		anEffect.mVelocityY = (float)(BURST_SMOKE_DRIFT_Y + (long double)aSpeed * aCos);
+		anEffect.mVelocityX = (float)((double)aSpeed * aSin);
+		anEffect.mVelocityY = (float)(BURST_SMOKE_DRIFT_Y + (double)aSpeed * aCos);
 		int aLifeSum = BURST_SMOKE_LIFE_BASE + Rand() % BURST_SMOKE_LIFE_RANGE;
-		anEffect.mLife = (int)((long double)aLifeSum - (long double)BURST_SMOKE_LIFE_SPEED * aSpeed);
-		anEffect.mGravity = (float)((long double)BURST_SMOKE_GRAVITY * GRAVITY_SCALE);
+		anEffect.mLife = (int)((double)aLifeSum - (double)BURST_SMOKE_LIFE_SPEED * aSpeed);
+		anEffect.mGravity = (float)((double)BURST_SMOKE_GRAVITY * GRAVITY_SCALE);
 	}
 }
