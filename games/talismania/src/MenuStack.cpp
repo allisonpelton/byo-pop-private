@@ -76,8 +76,6 @@ void MenuStack::fade(Dark& theDark, bool theOn, double theElapsed)
 	else
 		aCurrent = std::max(aTarget, aCurrent - aStep);
 	theDark.mLayer->setOpacity(aCurrent);
-	if (theOn)
-		fprintf(stderr, "DARK %f %f %f\n", aCurrent, aTarget, theElapsed);
 }
 
 void MenuStack::update(double theElapsed)

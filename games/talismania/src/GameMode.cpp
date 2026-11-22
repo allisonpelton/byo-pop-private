@@ -3,6 +3,7 @@
 #include "AtlantisApp.h"
 #include "Engine.h"
 #include "FrontEnd.h"
+#include "GameMgr.h"
 
 // The wait of the CheckNewGame state with no question to ask (the float 0.01, 0x3c23d70a, 0x443110)
 static const float CHECK_NEW_GAME_SECONDS = 0.01f;
@@ -39,11 +40,12 @@ class GameMode::PlayState : public engine::State
 public:
 	explicit PlayState(GameMode* theMode) : mMode(theMode) {}
 
-	// 0x443690: the main menu taken off (the menu interface's slot 0x18 with the app's +0x48), the game manager made and
+	// 0x443690: the main menu taken off (the menu interface slot 0x18 with the app +0x48), the game manager made and
 	// started (not yet translated)
 	void enter() override
 	{
-		engine::getEngine()->log("GameMode: the game manager (AtlantisGameMgr) not yet translated\n");
+		mMode->mGameMgr.reset(new AtlantisGameMgr(mMode->mApp, mMode->mClass));
+		mMode->mGameMgr->start();
 	}
 
 private:
@@ -53,6 +55,8 @@ private:
 GameMode::GameMode(AtlantisApp* theApp, const GameModeClass& theClass) : mApp(theApp), mClass(theClass)
 {
 }
+
+GameMode::~GameMode() = default;
 
 void GameMode::begin()
 {

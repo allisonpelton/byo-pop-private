@@ -14,12 +14,16 @@
 #include "AtlantisData.h"
 #include "State.h"
 
+#include <memory>
+
 class AtlantisApp;
+class AtlantisGameMgr;
 
 class GameMode
 {
 public:
 	GameMode(AtlantisApp* theApp, const GameModeClass& theClass);
+	~GameMode();
 
 	// 0x4430d0 (Init's step, called by the menu's start): the CheckNewGame state entered
 	void begin();
@@ -38,6 +42,7 @@ public:
 private:
 	AtlantisApp* mApp;
 	GameModeClass mClass;
+	std::unique_ptr<AtlantisGameMgr> mGameMgr;  // made by the Play state
 	engine::StateMgr<engine::State> mStates;  // the current state at +0x104
 };
 
