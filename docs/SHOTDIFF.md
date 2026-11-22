@@ -64,6 +64,15 @@ the game's newest run (`build/shotreview/<game>/<run>/summary.json`) that matche
 notes. `tools/check.sh`'s `screens` suite fails a game whose SCREENS.md is missing, has a row with neither shots nor a
 reason, or names a shot that is not such a pair.
 
+To run it: `python -I tools/screencheck.py [--game <game>]...` (or `tools/check.sh screens`) reads each finished game's
+list (the games in `cmake/ByopopWeb.cmake`'s `BYOPOP_WEB_FINISHED`, or the games named) and prints one line per game and a
+summary line; it exits 1 on any failure. A game with no SCREENS.md is reported as "no list yet", which does not fail until
+`LIST_REQUIRED_FROM` in `tools/screencheck.py` names a date. A shot cell holds shot names separated by commas or spaces,
+each optionally behind `2D:` or `3D:`; a row with no shots needs a Note starting `unreachable`, `rare` or `none:`. A shot
+passes when its pair matches, or differs and is marked `fine` in the run's `marks.json`, or the row's Note says
+"explained"; a pair with any other status (`faint`, `error`) fails. The newest run is the folder with the newest
+`summary.json`. `tools/screenchecktest.py` tests the checker on fixture folders (part of the `unit` suite).
+
 ## The comparison, and what it never hides
 
 Each picture is first cut to the game's client area: origrun's window captures include the window frame (646x509 for a 640x480
