@@ -1478,8 +1478,9 @@ static int wait_counter(uint32_t target, int timeout_ms)
 // The one way origrun takes a shot on the host (docs/ORIGRUN.md, "The in-game frame reader"; the user, 2026-11-22, "Yes,
 // with safeguards"). The game's own off-screen draw surface is read by the stand-in inside the game, in the game's own
 // thread while the virtual clock holds it (reader.c), through the surface's own methods: no hook, no screen, no window DC,
-// no primary surface. Only `at <N> shot` is read so. A game gets it only once its config says it passed the trial against
-// sandbox shots of the same screens (reader_trial=passed <date> <commit>); --reader-trial runs that trial.
+// no primary surface. Only `at <N> shot` is read so. Any game whose config gives reader_surface= and reader_waits= gets
+// it: the per-game trial against sandbox shots is no longer required (the user, 2026-11-22: "Drop it"); --reader-trial
+// still marks a run whose shots are for such a comparison.
 // The checks, every one of which refuses the shot: the game is held at update N exactly, in one of the waits its config
 // names as following a present (reader_waits=), with no update waiting to be drawn where the config gives the flags; the
 // stand-in's own checks (reader.c: the system's DirectDraw, an off-screen plain surface, never the primary or any surface
@@ -5366,7 +5367,8 @@ int main(int argc, char** argv)
 		else if (!gClockVirtual) no = "the in-game frame reader needs --clock virtual (it reads in the game's own thread while the clock holds it)";
 		else if (!gCounterExpr[0]) no = "the in-game frame reader needs the game's update counter";
 		else if (ieq(sound,"real")) no = "the in-game frame reader lives in the sound stand-in, which --sound real leaves out";
-		else if (!passed && !gReaderTrial) no = "the in-game frame reader has not passed its trial for this game (its config has no reader_trial=passed ...; docs/ORIGRUN.md, \"The in-game frame reader\")";
+		// no trial is required (the user, 2026-11-22, dropping the per-game trial: "Drop it"); a config's
+		// reader_trial=passed line is still logged, and --reader-trial still marks a comparison run
 		if (no) {
 			logline("refusing to start: this run takes `at <N> shot` shots on the host, and %s. Run it with --sandbox.", no);
 			fprintf(stderr, "origrun: refusing to start: this run takes `at <N> shot` shots on the host, and %s. Run it with --sandbox.\n", no);
@@ -5375,8 +5377,9 @@ int main(int argc, char** argv)
 		gReaderOn=1;
 		logline("the in-game frame reader takes this run's `at <N> shot` shots on the host: the draw surface %s, read in the waits at %s%s%s",
 			gReaderSurface, readerWaits?readerWaits:cfgReaderWaits,
-			gReaderTrial ? "; --reader-trial: a trial run, whose shots are only for the comparison with the sandbox's" : "; the game passed its trial: ",
-			gReaderTrial ? "" : gReaderPassed);
+			gReaderTrial ? "; --reader-trial: a trial run, whose shots are only for the comparison with the sandbox's" :
+			passed ? "; the game passed a trial: " : "; no trial run for this game (none is required)",
+			gReaderTrial || !passed ? "" : gReaderPassed);
 	}
 
 	// --3d: the game's registry key and where it keeps its 3D flag (games.tsv's columns 4 and 5, or the options).
