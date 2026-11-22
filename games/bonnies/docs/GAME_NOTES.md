@@ -52,6 +52,10 @@ The logos draw no random numbers, and the timers and flags they set (`gLogoSkip`
 the logo screen only, so the menu starts as it does after the logos. With the setting off nothing changes: the frozen
 baseline runs without it.
 
+The game gives the site no cursor set. One was added on 2026-11-16 (00c462ac, the arrow and the hand) and taken out on
+2026-11-21 at the user's word, since they look like the browser's own cursors (the user, 2026-11-17: "they look just like
+the Windows default. Take them out").
+
 ## The sound log (2026-11-11)
 
 `BYOPOP_SOUNDLOG` names a file, as in every port, and the FMOD 3 stand-in (`src/BonniesHost.cpp`, "FMOD 3 on the

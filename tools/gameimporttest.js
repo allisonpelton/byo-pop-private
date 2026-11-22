@@ -13,7 +13,7 @@ const vm = require("vm");
 const waits = [];
 
 const root = path.join(__dirname, "..");
-const ctx = { window: {}, console };
+const ctx = { window: {}, console, setTimeout, clearTimeout, MessageChannel };
 vm.createContext(ctx);
 require("./stringsload").into(ctx);
 vm.runInContext(fs.readFileSync(path.join(root, "web", "gameimport.js"), "utf8"), ctx, { filename: "gameimport.js" });
@@ -82,6 +82,33 @@ check("markers after the pick", I.hasMarkers(spec("bejeweled"), picked), true);
 check("markers missing after the pick", I.hasMarkers(spec("bejeweled"), ["music/m.mo3"]), false);
 check("a pak marker: any game folder", I.hasMarkers(spec("bookwormadv"), ["images/a.png", "BookwormAdventures.exe"]), true);
 check("a pak marker: no game folder", I.hasMarkers(spec("bookwormadv"), ["BookwormAdventures.exe"]), false);
+// A pak marker whose game's folders have common names (Venice's: config.xml beside gfx, levels...): its unpacked copy is known
+// by the files only its pak holds (PAGE.unpacked), never by a folder's name (the user, 2026-11-16: "Fix it now")
+{
+  const v = spec("venice"), own = v.unpacked.map((f) => "V/" + f);
+  check("venice: the page names its pak's own files", own.length >= 2, true);
+  for (const d of v.gameDirs)
+    check(`venice: another game's config.xml beside ${d}/ is not Venice`, I.findRoot(v, files("G/config.xml", `G/${d}/a.png`), false), null);
+  check("venice: another game's config.xml beside all its folders is not Venice",
+    I.findRoot(v, files("G/config.xml", ...v.gameDirs.map((d) => `G/${d}/a.xml`)), false), null);
+  check("venice: one of its pak's files is not enough", I.findRoot(v, files("G/config.xml", own[0].replace("V/", "G/"), "G/gfx/a.png"), false), null);
+  check("venice: its install, with main.pak", I.findRoot(v, files("V/main.pak", "V/config.xml", "V/Venice.exe", "V/properties/partner.xml"), false), "V/");
+  check("venice: unpacked", I.findRoot(v, files("V/config.xml", ...own, "V/gfx/a.png"), false), "V/");
+  check("venice: unpacked, in any case", I.findRoot(v, files("V/Copy/CONFIG.XML", ...v.unpacked.map((f) => "V/Copy/" + f.toUpperCase())), false), "V/Copy/");
+  // a dropped .zip's files start with its name without ".zip", its own folder inside it or not
+  const install = ["main.pak", "config.xml", "Venice.exe"], unpacked = ["config.xml", ...v.unpacked, "gfx/a.png", "audio/a.ogg"];
+  const found = (r) => r.found.map((f) => [f.game ? f.game.target : null, f.root]);
+  check("venice: a .zip of the install", found(I.sort(files(...install.map((p) => "Venice/" + p)))), [["venice", "Venice/"]]);
+  check("venice: a .zip of the install's folder", found(I.sort(files(...install.map((p) => "Venice/Venice Deluxe/" + p)))), [["venice", "Venice/Venice Deluxe/"]]);
+  check("venice: a .zip of the unpacked copy", found(I.sort(files(...unpacked.map((p) => "Venice/" + p)))), [["venice", "Venice/"]]);
+  check("venice: a .zip of the unpacked copy's folder", found(I.sort(files(...unpacked.map((p) => "Venice/venice/" + p)))), [["venice", "Venice/venice/"]]);
+  const other = I.sort(files("Other Game/config.xml", "Other Game/gfx/a.png", "Other Game/levels/1.xml", "Other Game/Other.exe"));
+  check("venice: another game's folder is rejected, not Venice", [found(other), other.rejected], [[], ["Other Game"]]);
+  check("venice: picked files unpacked", I.hasMarkers(v, ["config.xml", ...v.unpacked, "gfx/a.png"]), true);
+  check("venice: picked files with its folders only", I.hasMarkers(v, ["config.xml", "gfx/a.png", "levels/1.xml"]), false);
+  // the other pak games' markers hold their own exe, which no other game has, so any of their folders still stands for the pak
+  check("venice: the only pak game naming its pak's files", I.games.filter((g) => g.spec.unpacked).map((g) => g.target), ["venice"]);
+}
 // sorting
 const brief = (r) => ({ found: r.found.map((f) => [f.folder, f.game ? f.game.target : null, f.root, f.choices.map((g) => g.target)]), rejected: r.rejected });
 check("one game's folder", brief(I.sort(files("Bejeweled Deluxe/images/gemsheet6.png"))),
@@ -224,6 +251,87 @@ check("either: AstroPop with neither exe, named", I.missingMarkers(spec("astropo
     const b = new Uint8Array(fs.readFileSync(sw));
     check("exe: Shockwave's BookWorm is refused", tab.bookworm.probes.some((q) => I.probeHolds(b, q)), false);
   }
+}
+
+// ---- a dropped installer (installerIn, installerMark): small synthetic files, each carrying one mark and nothing else; never a
+// real installer or a game's file
+{
+  // a program: "MZ", the PE header's place at 0x3c, "PE" and one section, then text at 0x200
+  const program = (text, opts) => {
+    const b = new Uint8Array(4096);
+    b[0] = 0x4d; b[1] = 0x5a; b[0x3c] = 0x80;
+    b.set([0x50, 0x45, 0, 0], 0x80);
+    b[0x86] = 1;                     // one section
+    b[0x94] = 0xe0;                  // the optional header's size: the section table at 0x80 + 24 + 0xe0
+    const sec = 0x80 + 24 + 0xe0, name = (opts && opts.section) || ".text";
+    for (let i = 0; i < name.length; i++) b[sec + i] = name.charCodeAt(i);
+    const t = text || "";
+    const bytes = opts && opts.wide ? [...t].flatMap((c) => [c.charCodeAt(0), 0]) : [...t].map((c) => c.charCodeAt(0) & 0xff);
+    b.set(bytes, 0x200);
+    if (opts && opts.at30) b.set([0x49, 0x6e, 0x6e, 0x6f], 0x30);
+    if (opts && opts.tail) { const end = new Uint8Array(b.length + 22); end.set(b); end.set([0x50, 0x4b, 5, 6], b.length); return end; }
+    return b;
+  };
+  const msi = () => { const b = new Uint8Array(1024); b.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]); return b; };
+  const mark = (b) => I.installerMark(b.subarray(0, 4 * 1048576), b.subarray(Math.max(0, b.length - 65558)));
+  check("mark: an MSI's compound file header", mark(msi()), "msi");
+  check("mark: Inno Setup's \"Inno\" at 0x30", mark(program("", { at30: true })), "inno");
+  check("mark: Inno Setup's loader table", mark(program("rDlPtS02\x87eVx")), "inno");
+  check("mark: Inno Setup in its version text (UTF-16)", mark(program("This installation was built with Inno Setup.", { wide: true })), "inno");
+  check("mark: NSIS's first header", mark(program("\xef\xbe\xad\xdeNullsoftInst")), "nsis");
+  check("mark: InstallShield in its version text (UTF-16)", mark(program("InstallShield (R) Setup Launcher", { wide: true })), "installshield");
+  check("mark: Wise's .WISE section", mark(program("", { section: ".WISE" })), "wise");
+  check("mark: Wise Installation", mark(program("Wise Installation Wizard")), "wise");
+  check("mark: a 7-Zip archive inside", mark(program("7z\xbc\xaf\x27\x1c")), "sfx");
+  check("mark: a RAR archive inside", mark(program("Rar!\x1a\x07\x00")), "sfx");
+  check("mark: a cabinet inside (IExpress)", mark(program("MSCF\0\0\0\0")), "sfx");
+  check("mark: WinZip's self-extractor", mark(program("WinZip Self-Extractor")), "sfx");
+  check("mark: a zip's end record at the end", mark(program("", { tail: true })), "sfx");
+  check("mark: a plain program", mark(program("This program cannot be run in DOS mode.")), null);
+  check("mark: a mark's text in a file that is no program", mark(new TextEncoder().encode("Inno Setup NullsoftInst InstallShield")), null);
+  // installerIn over drops: {path, read, part}
+  const file = (p, bytes) => ({ path: p, read: () => Promise.resolve(bytes || new Uint8Array(0)),
+    part: (a, b) => Promise.resolve((bytes || new Uint8Array(0)).slice(a, b)) });
+  const brief7 = (r) => r && { file: r.file, mark: r.mark, group: r.group, game: r.game && r.game.target, other: r.other && r.other.id, folder: r.folder };
+  const drop = (entries) => I.installerIn(entries, I.sort(entries)).then(brief7);
+  const t7 = (what, entries, want) => waits.push(drop(entries).then((r) => check("installer: " + what, r, want)));
+  t7("setup.exe alone, by its name", [file("setup.exe")],
+    { file: "setup.exe", mark: "name", group: "import.dropped_files", game: null, other: null, folder: null });
+  t7("a game's installer by its name: the game and its usual folder", [file("AlchemyDeluxeSetup.exe")],
+    { file: "AlchemyDeluxeSetup.exe", mark: "name", group: "import.dropped_files", game: "alchemy", other: null,
+      folder: { path: "C:\\Program Files (x86)\\PopCap Games\\Alchemy Deluxe", steam: false } });
+  t7("a game the site knows as a Steam copy: steamapps\\common", [file("Bejeweled2_Setup.exe")],
+    { file: "Bejeweled2_Setup.exe", mark: "name", group: "import.dropped_files", game: "bejeweled2", other: null,
+      folder: { path: "steamapps\\common\\Bejeweled 2 Deluxe", steam: true } });
+  t7("a game the site does not play", [file("ZumaDeluxeInstaller.exe")],
+    { file: "ZumaDeluxeInstaller.exe", mark: "name", group: "import.dropped_files", game: null, other: "zuma", folder: null });
+  t7("a program with a mark, with a few files", [file("Stuff/readme.txt"), file("Stuff/game1.exe", program("NullsoftInst")), file("Stuff/data.bin")],
+    { file: "game1.exe", mark: "nsis", group: "Stuff", game: null, other: null, folder: null });
+  t7("setup.exe in a folder named for the game: the folder's name names it", [file("Alchemy Deluxe/setup.exe"), file("Alchemy Deluxe/readme.txt")],
+    { file: "setup.exe", mark: "name", group: "Alchemy Deluxe", game: "alchemy", other: null,
+      folder: { path: "C:\\Program Files (x86)\\PopCap Games\\Alchemy Deluxe", steam: false } });
+  t7("a short name held in a game's is not that game", [file("big_setup.exe")],
+    { file: "big_setup.exe", mark: "name", group: "import.dropped_files", game: null, other: null, folder: null });
+  t7("an .msi by its header", [file("Pkg.msi", msi())], { file: "Pkg.msi", mark: "msi", group: "import.dropped_files", game: null, other: null, folder: null });
+  const many = [];
+  for (let i = 0; i < 40; i++) many.push(file(`Big/data/f${i}.dat`));
+  t7("the only program in a dropped .zip", many.concat([file("Big/run.exe", program("Inno Setup", { wide: true }))]),
+    { file: "run.exe", mark: "inno", group: "Big", game: null, other: null, folder: null });
+  t7("one of many programs with many files is not looked at", many.concat([file("Big/a.exe", program("NullsoftInst")), file("Big/b.exe")]), null);
+  t7("a plain program alone is not one", [file("Tool.exe", program("hello"))], null);
+  t7("an uninstaller alone is not one", [file("unins000.exe"), file("unins000.dat")], null);
+  t7("DirectX's setup alone is not one", [file("dxsetup.exe")], null);
+  // a game's folder with a setup and an uninstaller beside the game is the game, as before
+  const tt = [file("TipTop Deluxe/TipTop.dat"), file("TipTop Deluxe/TipTop.exe"), file("TipTop Deluxe/setup.exe"), file("TipTop Deluxe/unins000.exe")];
+  check("installer: a game's folder with a setup.exe is still the game", brief(I.sort(tt)).found.map((f) => f[1]), ["tiptop"]);
+  t7("none looked for where the sort found the game", tt, null);
+  // sortDrop: the installer takes its folder's place among the rejected; one for a game the site does not play is among the others
+  waits.push(I.sortDrop([file("Stuff/setup.exe"), file("Stuff/a.txt"), file("Photos/b.jpg")]).then((r) =>
+    check("sortDrop: the installer in place of its folder", [r.rejected, r.installer && r.installer.file, r.installer && r.installer.text],
+      [["Photos"], "setup.exe", "import.installer setup.exe"])));
+  waits.push(I.sortDrop([file("ZumaDeluxeSetup.exe")]).then((r) =>
+    check("sortDrop: a game the site does not play, named", [r.rejected, r.others.map((o) => [o.folder, o.game.id]), !!r.installer],
+      [[], [["ZumaDeluxeSetup.exe", "zuma"]], false])));
 }
 
 Promise.all(waits).then(() => {

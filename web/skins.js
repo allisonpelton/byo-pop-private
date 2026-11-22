@@ -4,6 +4,24 @@
 //
 // This file is loaded in each page's <head>, so the page is drawn in its look from the start: it sets <html data-skin="d95">
 // (nothing on the player-only page, ?player=1, which keeps the page's own plain styles for the sessions' tests).
+// A window that changes size step by step sends a resize event for every step: Firefox's full-screen transition, F11 in it,
+// a browser window dragged larger. Each one had SDL size the canvas's pixels again and the page and the desktop lay themselves
+// out again, so the page lagged and the sound crackled (the user, 2026-11-17: "The site lags a lot and causes audio crackling
+// because it tries to resize repeatedly when Firefox enters full screen"). So the browser's own resize events are settled here,
+// on every page, before any other listener sees them (a listener capturing at the window runs before those that do not, SDL's
+// among them, and no other script captures the resize): the first of a run goes on at once, the rest are held until none has come for
+// SETTLE_MS, and then one resize goes on for the size reached. A page's own resizes (its scripts', untrusted) go on at once.
+(function () {
+  var SETTLE_MS = 120, timer = 0, held = false;
+  window.addEventListener("resize", function (ev) {
+    if (!ev.isTrusted) return;
+    if (timer) { ev.stopImmediatePropagation(); held = true; clearTimeout(timer); }
+    timer = setTimeout(function () {
+      timer = 0;
+      if (held) { held = false; window.dispatchEvent(new Event("resize")); }
+    }, SETTLE_MS);
+  }, true);
+})();
 var ByopopSkin = (function () {
   "use strict";
   var KEY = "byopop-settings";
@@ -1279,6 +1297,36 @@ var ByopopSkin = (function () {
       return p;
     }
     function arrangeIcons() { keepIconPlaces(null); layoutIcons(); }
+    // Games installed by a drop on the desktop (the user, 2026-11-16: "If install is successful, create a desktop shortcut in
+    // that location on the desktop"): the place of an icon whose picture is under a point of the window (iconPlaceAt, at the
+    // drop), then each game not yet a favourite made one (addShortcuts, when Setup has installed them, web/setup.js), the first
+    // at that place, the others in the next free places. Every icon keeps the place it has, as at the first drag of one.
+    function iconPlaceAt(clientX, clientY) {
+      if (!on || !icons) return null;
+      var r = icons.getBoundingClientRect();
+      return [Math.max(0, Math.round(unzoom(clientX - r.left) - CELL.w / 2 + 2)), Math.max(0, Math.round(unzoom(clientY - r.top) - 20))];
+    }
+    function addShortcuts(ids, at) {
+      if (!on || !icons || !window.ByopopSettings) return;
+      var have = [];
+      try { have = ByopopSettings.favourites().map(function (f) { return f.id; }); } catch (e) {}
+      var add = ids.filter(function (id, i) { return have.indexOf(id) < 0 && ids.indexOf(id) === i; }).map(function (id) {
+        var a = document.querySelector('a.tile[data-game="' + id + '"]'), li = a && a.closest("li");
+        if (!li) return null;
+        var name = li.querySelector(".name"), badge = li.querySelector(".badge");
+        // as the card's star makes it (web/index.html)
+        return { id: id, title: li.getAttribute("data-title") || (name ? name.textContent : id), page: a.getAttribute("href") || "",
+                 colour: (/--tile:\s*(#[0-9a-f]{3,8})/i.exec(li.getAttribute("style") || "") || [])[1] || "",
+                 tag: badge ? (badge.getAttribute("data-initials") || badge.textContent || "").trim().slice(0, 4) : "" };
+      }).filter(Boolean);
+      if (!add.length) return;
+      if (at) {
+        var p = iconPlaces() || iconsNow();
+        p["f:" + add[0].id] = at;
+        keepIconPlaces(p);
+      }
+      add.forEach(function (g) { try { ByopopSettings.setFavourite(g, true); } catch (e) {} });
+    }
     function lineUpIcons() {
       var p = iconPlaces();
       if (!p) return;
@@ -1295,8 +1343,9 @@ var ByopopSkin = (function () {
       layoutIcons();
     }
     // The recycle bin's icon (the user, 2026-11-14, by the coordinator's list), on the listing: it opens the bin of All games
-    // (web/addgames.js), a game's cap dropped on it asks there to forget its files, and it is full while the bin holds the names of
-    // the games forgotten (byopop-bin), until Empty Recycle Bin, its menu's, clears them with the theme's sound
+    // (web/addgames.js), a game's cap dropped on it asks there to forget its files, a desktop shortcut dropped on it is removed
+    // (binUnder), and it is full while the bin holds the names of the games forgotten (byopop-bin), until Empty Recycle Bin, its
+    // menu's, clears them with the theme's sound
     var BIN_KEY = "byopop-bin";
     function binItems() { try { var a = JSON.parse(localStorage.getItem(BIN_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
     function openBin(id) {
@@ -1370,6 +1419,15 @@ var ByopopSkin = (function () {
       return !wins.some(function (w) { return !w.closed && w.el.contains(t); });
     }
     var iconDrag = null, band = null;
+    // the Recycle Bin under the pointer while desktop shortcuts are dragged (the user, 2026-11-16: "Allow dragging desktop
+    // shortcuts into the recycle bin to delete the shortcut (without forgetting the files)"): it lights as for a cap, and a drop
+    // there takes the shortcuts out of the favourites (pointerEnd), never reaching the game's files or the listing
+    function binUnder(ev, d) {
+      var bin = icons && icons.querySelector(".d95-icon-bin");
+      if (!bin || bin.hidden || d.list.indexOf(bin) >= 0 || !d.list.some(function (x) { return x.classList.contains("d95-fav"); })) return null;
+      var r = bin.getBoundingClientRect();
+      return ev.clientX >= r.left && ev.clientX < r.right && ev.clientY >= r.top && ev.clientY < r.bottom ? bin : null;
+    }
     document.addEventListener("pointerdown", function (ev) {
       if (!on || EMBED || !icons || ev.button !== 0) return;
       var b = ev.target.closest && ev.target.closest(".d95-icons > .d95-icon");
@@ -1395,6 +1453,10 @@ var ByopopSkin = (function () {
           document.documentElement.classList.add("d95-dragging");
         }
         iconDrag.from.forEach(function (f) { f[0].style.left = Math.max(0, f[1] + dx) + "px"; f[0].style.top = Math.max(0, f[2] + dy) + "px"; });
+        var lit = binUnder(ev, iconDrag);
+        if (iconDrag.lit && iconDrag.lit !== lit) iconDrag.lit.classList.remove("d95-icon-sel");
+        if (lit) lit.classList.add("d95-icon-sel");
+        iconDrag.lit = lit;
         return;
       }
       if (band && ev.pointerId === band.id) {
@@ -1420,10 +1482,27 @@ var ByopopSkin = (function () {
         iconDrag = null;
         document.documentElement.classList.remove("d95-dragging");
         if (!d.moved) return;
-        var p = iconPlaces() || {};
-        d.from.forEach(function (f) { p[f[0].getAttribute("data-key")] = [f[0].offsetLeft, f[0].offsetTop]; });
-        keepIconPlaces(p);
-        // the drag is not also the icon's click
+        if (d.lit) d.lit.classList.remove("d95-icon-sel");
+        var p = iconPlaces() || {}, bin = binUnder(ev, d);
+        if (bin) {
+          // into the Recycle Bin: each shortcut goes as its menu's Remove from favourites takes it, with no question and no sound,
+          // as Windows 95's drag to the bin; any other icon dragged with them goes back where it was
+          var gone = [];
+          d.from.forEach(function (f) {
+            var k = f[0].getAttribute("data-key");
+            if (f[0].classList.contains("d95-fav")) { gone.push(k.substring(2)); delete p[k]; }
+            else { f[0].style.left = f[1] + "px"; f[0].style.top = f[2] + "px"; }
+          });
+          keepIconPlaces(p);
+          var favs = [];
+          try { favs = ByopopSettings.favourites(); } catch (e) {}
+          favs.forEach(function (g) { if (gone.indexOf(g.id) >= 0) { try { ByopopSettings.setFavourite(g, false); } catch (e) {} } });
+          bin.focus();
+        } else {
+          d.from.forEach(function (f) { p[f[0].getAttribute("data-key")] = [f[0].offsetLeft, f[0].offsetTop]; });
+          keepIconPlaces(p);
+        }
+        // the drag is not also the icon's click (nor, dropped on the bin, the bin's)
         var eat = function (e) { e.stopImmediatePropagation(); e.preventDefault(); document.removeEventListener("click", eat, true); };
         document.addEventListener("click", eat, true);
         setTimeout(function () { document.removeEventListener("click", eat, true); }, 0);
@@ -1805,44 +1884,93 @@ var ByopopSkin = (function () {
     }, true);
     window.addEventListener("blur", function () { if (sw) altTab("cancel"); forwarded = false; });
     // ---- tooltips drawn as 1995's (the user, 2026-11-14, by the coordinator's list): a pale yellow box with a black border under
-    // the pointer, half a second after it rests on something with a title, in place of the browser's own. While the box may show
-    // the title is taken off the element (the browser would draw its own), and an element named only by it keeps that name.
-    var tip = null;
-    function tipEnd() {
+    // the pointer, half a second after it rests on something with a title, in place of the browser's own. The browser draws its
+    // own for any title under the pointer, so while the pointer is on the element its title is held off it, and the titles of its
+    // ancestors too, until the pointer leaves it; a press, a key or the box's six seconds only take the box away. An element named
+    // only by its title keeps that name. A title the page gives a held element meanwhile (Music's Play becoming Pause) is held
+    // too and shown, and one given to an element under the pointer starts its box. Over a game's window (a frame) there is none:
+    // the pointer's movements there never reach this page (the user, 2026-11-16: "Native tooltips are getting mixed in with the
+    // Desktop 95 ones" and "Sometimes seeing an errant tooltip over the game window where my mouse is").
+    var tip = null, hovered = null, px = 0, py = 0;
+    function tipHide() {
       if (!tip) return;
       clearTimeout(tip.timer);
       if (tip.box && tip.box.parentNode) tip.box.parentNode.removeChild(tip.box);
-      if (tip.el.getAttribute("title") === null) tip.el.setAttribute("title", tip.text);
-      if (tip.named) tip.el.removeAttribute("aria-label");
+      tip.box = null;
+    }
+    function tipEnd() {
+      if (!tip) return;
+      tipHide();
+      var was = tip;
       tip = null;
+      was.held.forEach(function (h) {
+        if (h.el.getAttribute("title") === null) h.el.setAttribute("title", h.text);
+        if (h.named) h.el.removeAttribute("aria-label");
+      });
+    }
+    // the element and its titled ancestors, their titles taken off: [{el, text, named}], the element's first
+    function holdTitles(el) {
+      var held = [];
+      for (var e = el; e && e.nodeType === 1; e = e.parentElement) {
+        var text = e.getAttribute("title");
+        if (text === null) continue;
+        var named = !!text && !e.hasAttribute("aria-label") && !e.hasAttribute("aria-labelledby") && !e.textContent.trim();
+        if (named) e.setAttribute("aria-label", text);
+        e.removeAttribute("title");
+        held.push({ el: e, text: text, named: named });
+      }
+      return held;
+    }
+    function tipBox() {
+      if (!tip || !tip.text) return;
+      var b = document.createElement("div");
+      b.className = "d95-tip"; b.setAttribute("aria-hidden", "true"); b.textContent = tip.text;
+      document.body.appendChild(b);
+      var x = unzoom(tip.x), y = unzoom(tip.y) + 20;
+      b.style.left = Math.max(0, Math.min(x, viewW() - b.offsetWidth - 2)) + "px";
+      b.style.top = (y + b.offsetHeight > room().h ? unzoom(tip.y) - b.offsetHeight - 4 : y) + "px";
+      tip.box = b;
+      tip.timer = setTimeout(tipHide, 6000);
+    }
+    function tipFor(target, x, y) {
+      var el = target && target.closest && target.closest("[title]");
+      // still on the element whose title is held: a child finds no title of it (or the title of a child inside it, which takes over)
+      if (tip && tip.el.contains(target) && (!el || el === tip.el || !tip.el.contains(el))) return;
+      tipEnd();
+      if (!el || target.tagName === "IFRAME" || !el.getAttribute("title") || el.closest(".d95-menu, .d95-ctx")) return;
+      var held = holdTitles(el);
+      tip = { el: el, held: held, text: held[0].text, x: x, y: y, box: null };
+      tip.timer = setTimeout(tipBox, 500);
     }
     document.addEventListener("pointerover", function (ev) {
-      if (!on || ev.pointerType === "touch") return;
-      var el = ev.target.closest && ev.target.closest("[title]");
-      if (tip && tip.el === el) return;
-      tipEnd();
-      if (!el || !el.getAttribute("title") || el.closest(".d95-menu, .d95-ctx")) return;
-      var text = el.getAttribute("title");
-      var named = !el.hasAttribute("aria-label") && !el.hasAttribute("aria-labelledby") && !el.textContent.trim();
-      if (named) el.setAttribute("aria-label", text);
-      el.removeAttribute("title");
-      tip = { el: el, text: text, named: named, x: ev.clientX, y: ev.clientY, box: null };
-      tip.timer = setTimeout(function () {
-        if (!tip || tip.el !== el) return;
-        var b = document.createElement("div");
-        b.className = "d95-tip"; b.setAttribute("aria-hidden", "true"); b.textContent = text;
-        document.body.appendChild(b);
-        var x = unzoom(tip.x), y = unzoom(tip.y) + 20;
-        b.style.left = Math.max(0, Math.min(x, viewW() - b.offsetWidth - 2)) + "px";
-        b.style.top = (y + b.offsetHeight > room().h ? unzoom(tip.y) - b.offsetHeight - 4 : y) + "px";
-        tip.box = b;
-        tip.timer = setTimeout(tipEnd, 6000);
-      }, 500);
+      hovered = ev.target; px = ev.clientX; py = ev.clientY;
+      if (!on || ev.pointerType === "touch") { tipEnd(); return; }
+      tipFor(ev.target, ev.clientX, ev.clientY);
     });
-    document.addEventListener("pointermove", function (ev) { if (tip && !tip.box) { tip.x = ev.clientX; tip.y = ev.clientY; } }, true);
-    document.addEventListener("pointerout", function (ev) { if (tip && (!ev.relatedTarget || !tip.el.contains(ev.relatedTarget))) tipEnd(); });
-    document.addEventListener("pointerdown", tipEnd, true);
-    document.addEventListener("keydown", tipEnd, true);
+    document.addEventListener("pointermove", function (ev) { px = ev.clientX; py = ev.clientY; if (tip && !tip.box) { tip.x = px; tip.y = py; } }, true);
+    document.addEventListener("pointerout", function (ev) {
+      if (!ev.relatedTarget) hovered = null;
+      if (tip && (!ev.relatedTarget || !tip.el.contains(ev.relatedTarget))) tipEnd();
+    });
+    if (typeof MutationObserver !== "undefined") new MutationObserver(function (recs) {
+      recs.forEach(function (r) {
+        var t = r.target.getAttribute("title");
+        if (t === null) return;
+        var h = tip && tip.held.filter(function (x) { return x.el === r.target; })[0];
+        if (h) {
+          h.text = t;
+          r.target.removeAttribute("title");
+          if (h.named) r.target.setAttribute("aria-label", t);
+          if (h === tip.held[0]) { tip.text = t; if (tip.box) { if (t) tip.box.textContent = t; else tipHide(); } }
+        } else if (tip && r.target.contains(tip.el)) {
+          // an ancestor of the element given a title: held as well
+          r.target.removeAttribute("title");
+          tip.held.push({ el: r.target, text: t, named: false });
+        } else if (on && hovered && r.target.contains(hovered) && hovered.isConnected) tipFor(hovered, px, py);
+      });
+    }).observe(root, { subtree: true, attributes: true, attributeFilter: ["title"] });
+    document.addEventListener("pointerdown", tipHide, true);
+    document.addEventListener("keydown", tipHide, true);
     window.addEventListener("blur", tipEnd);
     // ---- Alt+4 closes the window in front (the user, 2026-11-14, by the coordinator's list), standing in for the Alt+F4 the
     // browser keeps; with no window open it opens the Pop menu on Shut Down. In a window's page on the listing's desktop it goes to
@@ -1917,6 +2045,10 @@ var ByopopSkin = (function () {
     });
     document.addEventListener("pointerdown", function (ev) {
       if (!on) return;
+      // a press in an open menu (a window's menu bar, its control menu, a context menu: popMenu) leaves the window it belongs to
+      // active: an entry that is greyed does nothing, and the window kept losing its focus to it (the user, 2026-11-21:
+      // "Clicking a greyed out resolution causes the window to lose focus")
+      if (ev.target && ev.target.closest && ev.target.closest(".d95-ctx")) return;
       var pane = paneOf(ev.target), w = pane && winOf(pane);
       activate(w || null);
     }, true);
@@ -1984,6 +2116,7 @@ var ByopopSkin = (function () {
              openWin: function (id) { var w = find(id); if (!w || !on) return; if (w.min) setMin(w, false); if (w.open) { w.open(); raise(w); } else show(w); },
              // a window closed as its Close button closes it (its onClose, or closed and its afterClose)
              close: function (id) { var w = find(id); if (w && !w.closed) closeWin(w); },
+             iconPlaceAt: iconPlaceAt, addShortcuts: addShortcuts,
              list: function () { return wins.map(function (w) { return { id: w.id, title: w.el.getAttribute("data-d95-title") || w.id, closed: !!w.closed }; }); },
              event: deskEvent,
              menu: function (from, entries, x, y, label, opts) { popMenu(from, entries, x, y, label, opts); },

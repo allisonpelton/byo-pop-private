@@ -119,7 +119,9 @@ Module["byopop"] = (function () {
   function filesFromInput(fileList) {
     return Array.prototype.map.call(fileList, function (f) {
       return { path: (f.webkitRelativePath || f.name).replace(/\\/g, "/"),
-               read: function () { return f.arrayBuffer().then(function (b) { return new Uint8Array(b); }); } };
+               read: function () { return f.arrayBuffer().then(function (b) { return new Uint8Array(b); }); },
+               // a part of it, as File.slice takes start and end (web/gameimport.js reads only a program's ends for an installer's marks)
+               part: function (start, end) { return f.slice(start, end).arrayBuffer().then(function (b) { return new Uint8Array(b); }); } };
     });
   }
   function filesFromZip(file) { return file.arrayBuffer().then(readZip); }

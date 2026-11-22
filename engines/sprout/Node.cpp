@@ -9,6 +9,7 @@
 using namespace engine;
 
 bool engine::gSignalBuild = false;
+bool engine::gEarlyBuild = false;
 
 // 0x43a3c0 (wordharmony)
 Node::Node()
@@ -62,11 +63,11 @@ void Node::setFont(Font* theFont)
 // streams' anchors read, and no data has one)
 void Node::setName(const std::string& theName) { mName = theName; }
 
-// 0x439df0 (wordharmony), 0x467fd0 (pizzafrenzy): the signal build's moves the origin by the position times the scale
+// 0x439df0 (wordharmony), 0x467fd0 (pizzafrenzy), 0x43fb10 (feedingfrenzy): the signal build's moves the origin by the position times the scale
 // so far, and has the colour only when it has a colour mode, instead of a colour offset
 void Node::applyTransform(Graphics* g)
 {
-	if (gSignalBuild)
+	if (gSignalBuild && !gEarlyBuild)
 	{
 		float aScaleY = g->getScaleY() * mPosition.y;
 		float aScaleX = g->getScaleX() * mPosition.x;
@@ -94,6 +95,9 @@ void Node::applyTransform(Graphics* g)
 	g->addColorOffset(mColorOffset.r, mColorOffset.g, mColorOffset.b);
 	if (mFont != nullptr)
 		g->setFont(mFont);
+	// 0x43fb10 (feedingfrenzy): the node's own blit effect, which the signal build also has
+	if (gEarlyBuild && mBltFx != nullptr)
+		g->setBltFx(mBltFx);
 }
 
 // 0x439b10 (wordharmony)

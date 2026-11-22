@@ -153,6 +153,8 @@ void ScreenFillRectAlpha(Rect& theRect, int theAlpha, uint32_t theColour);
 void ScreenFillRectAlphaDirect(Rect& theRect, int theAlpha, uint32_t theColour);
 // 0x426c90 (mahjongchina), 0x42ce90 (mahjongjapan): the blit's temporary buffer
 void FreeBlitBuffer();
+// port: the bytes the blit's temporary buffer holds (the memory report, platform/MemReport.h)
+size_t BlitBufferBytes();
 
 } // namespace jb
 

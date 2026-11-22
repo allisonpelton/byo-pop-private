@@ -16,6 +16,9 @@
 //   lose, seed <n>     ERROR: a game here is never lost, and every deal has its seed from the game's own clock
 //   move               MOVE {json}: the bot's next move (Bot.h) and the real input that makes it; changes nothing
 //   settle              TestFrame's own, queued while a command waits for its screen under -hold; does nothing
+//   memimages <file>   OK: every picture the engine holds, the largest first, with its decoded bits and its 32-bit copy
+//                      (the standard memreport is the framework's and logs MEMREPORT {json}; the engine adds its pictures,
+//                      samples and buffers to it, MahjongApp::AddMemReportHolders)
 //
 // state's "over" is true when a board has been played and the run is back at a screen that waits for the driver: the
 // classic list, the map with its Continue ready (a level won), or the ending; tools/playbymove stops there.
@@ -42,6 +45,8 @@
 #include "User.h"
 
 #include "platform/Audio.h"
+#include "platform/MemReport.h"
+#include "ScreenLog.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -49,11 +54,6 @@
 #include <string>
 #include <typeinfo>
 #include <vector>
-
-#ifdef _WIN32
-extern "C" __declspec(dllimport) int __stdcall K32GetProcessMemoryInfo(void* theProcess, void* theCounters, unsigned long theSize);
-extern "C" __declspec(dllimport) void* __stdcall GetCurrentProcess(void);
-#endif
 
 using namespace Sexy;
 using namespace mahjong;
@@ -104,15 +104,13 @@ void ReplyError(const std::string& theCommand, const std::string& theReason)
 	Reply("ERROR " + theCommand + ": " + theReason);
 }
 
-// port: memreport <file>: what the engine holds in memory, by image and by sound. An image keeps its
-// DIB (its own bytes only when it decoded them: a BMP resource's are the resource's) and, once drawn, the 32-bit copy;
-// a picture decoded from a resource drops its own bytes once the copy is made (jb::Image::DropBits), unless
-// JB_KEEP_IMAGE_BITS=1.
-void WriteMemReport(const std::string& thePath)
+// port: memimages <file>: every picture the engine holds, the largest first, with its decoded bits and its 32-bit copy (the
+// standard "memreport" is the framework's, which reaches the engine through MahjongApp::AddMemReportHolders below). An
+// image keeps its DIB (its own bytes only when it decoded them: a BMP resource's are the resource's) and, once drawn,
+// the 32-bit copy; a picture decoded from a resource drops its own bytes once the copy is made (jb::Image::DropBits),
+// unless JB_KEEP_IMAGE_BITS=1.
+void WriteImageTable(const std::string& thePath)
 {
-	FILE* aFile = fopen(thePath.c_str(), "w");
-	if (aFile == nullptr)
-		return;
 	struct Row
 	{
 		int mId;
@@ -123,7 +121,7 @@ void WriteMemReport(const std::string& thePath)
 	size_t anOwned = 0, aPixels = 0;
 	auto aAdd = [&](int theId, const jb::Image* theImage)
 	{
-		size_t anOwn = theImage->mOwnsBits ? (size_t)theImage->mPitch * theImage->mHeight : 0;
+		size_t anOwn = theImage->mOwnsBits && theImage->mBits != nullptr ? (size_t)theImage->mPitch * theImage->mHeight : 0;
 		size_t aPix = theImage->mPixels != nullptr ? (size_t)theImage->mPixelPitch * theImage->mHeight : 0;
 		aRows.push_back({theId, theImage, anOwn, aPix});
 		anOwned += anOwn;
@@ -136,6 +134,9 @@ void WriteMemReport(const std::string& thePath)
 	size_t aCached = aRows.size();
 	for (const jb::Image* anImage : aDisplay->mCreated)
 		aAdd(-1, anImage);
+	FILE* aFile = fopen(thePath.c_str(), "w");
+	if (aFile == nullptr)
+		return;
 	std::sort(aRows.begin(), aRows.end(), [](const Row& theA, const Row& theB) {
 		return theA.mOwned + theA.mPixels > theB.mOwned + theB.mPixels;
 	});
@@ -144,34 +145,14 @@ void WriteMemReport(const std::string& thePath)
 	for (const Row& aRow : aRows)
 		fprintf(aFile, "  image %d: %dx%d, %d-bit, own bits %zu, 32-bit copy %zu\n", aRow.mId, aRow.mImage->mWidth,
 			aRow.mImage->mHeight, aRow.mImage->mBitCount, aRow.mOwned, aRow.mPixels);
-	size_t aSamples = 0;
-	size_t aCount = 0;
 	jb::Sound* aSound = jb::gManager->mSound;
 	if (aSound != nullptr)
+	{
 		for (const auto& anEntry : aSound->mSamples)
 			if (anEntry.second != nullptr && anEntry.second->mData)
-			{
-				aSamples += anEntry.second->mData->Bytes();
-				aCount++;
 				fprintf(aFile, "  sound %d: %zu frames, %d channels, %d Hz, %zu bytes\n", anEntry.first,
 					anEntry.second->mData->mFrames, anEntry.second->mData->mChannels, anEntry.second->mData->mRate,
 					anEntry.second->mData->Bytes());
-			}
-	fprintf(aFile, "sounds: %zu, %.2f MB\n", aCount, aSamples / 1048576.0);
-#ifdef _WIN32
-	struct ProcessCounters
-	{
-		unsigned long mSize, mPageFaults;
-		size_t mPeakWorkingSet, mWorkingSet, mQuotaPeakPaged, mQuotaPaged, mQuotaPeakNonPaged, mQuotaNonPaged, mPagefile,
-			mPeakPagefile, mPrivate;
-	} aCounters = {};
-	aCounters.mSize = sizeof(aCounters);
-	if (K32GetProcessMemoryInfo(GetCurrentProcess(), &aCounters, sizeof(aCounters)))
-		fprintf(aFile, "process: working set %.1f MB, private %.1f MB\n", aCounters.mWorkingSet / 1048576.0,
-			aCounters.mPrivate / 1048576.0);
-#endif
-	if (aSound != nullptr)
-	{
 		fprintf(aFile, "music loaded:");
 		for (const auto& anEntry : aSound->mMusics)
 			fprintf(aFile, " %d", anEntry.first);
@@ -576,13 +557,51 @@ void MahjongApp::TestFrame()
 	}
 }
 
+// port: the standard "memreport" (platform/MemReport.h) is the framework's; it adds what only this engine holds: its pictures
+// (the 32-bit copies the draws read, and any decoded bits kept beside them), the samples of its sounds and the other
+// buffers it keeps. The mixer's songs are added by the framework.
+void MahjongApp::AddMemReportHolders(Platform::MemReport* theReport)
+{
+	if (jb::gManager == nullptr || jb::gManager->mDisplay == nullptr)
+		return;
+	jb::Display* aDisplay = jb::gManager->mDisplay;
+	auto aAdd = [&](const jb::Image* theImage)
+	{
+		theReport->mImageCount++;
+		if (theImage->mPixels != nullptr)
+			theReport->mImagePixelBytes += (size_t)theImage->mPixelPitch * theImage->mHeight;
+		if (theImage->mOwnsBits && theImage->mBits != nullptr)
+			theReport->mImageCopyBytes += (size_t)theImage->mPitch * theImage->mHeight;
+	};
+	for (const auto& anEntry : aDisplay->mImages)
+		if (anEntry.second != nullptr)
+			aAdd(anEntry.second);
+	for (const jb::Image* anImage : aDisplay->mCreated)
+		aAdd(anImage);
+	jb::Sound* aSound = jb::gManager->mSound;
+	if (aSound != nullptr)
+		for (const auto& anEntry : aSound->mSamples)
+			if (anEntry.second != nullptr && anEntry.second->mData)
+			{
+				theReport->mSoundCount++;
+				theReport->mSoundBytes += anEntry.second->mData->Bytes();
+			}
+	size_t anExeBytes = 0, aDllBytes = 0;
+	GetResourceFileBytes(&anExeBytes, &aDllBytes);
+	theReport->mOthers.push_back({"game exe read in", anExeBytes});
+	theReport->mOthers.push_back({"Resource.dll read in", aDllBytes});
+	theReport->mOthers.push_back({"software screen", jb::gScreen != nullptr ? (size_t)jb::gScreenPitch * 600 : 0});
+	theReport->mOthers.push_back({"blit buffer", jb::BlitBufferBytes()});
+	theReport->mOthers.push_back({"frame lists and shadow screen", jb::screenlog::MemoryBytes()});
+}
+
 bool MahjongApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	const std::string& aCommand = theCommand.mCommand;
 	const std::string& anArgs = theCommand.mArgs;
 	bool aKnown = aCommand == "state" || aCommand == "move" || aCommand == "goto" || aCommand == "level" ||
 		aCommand == "unlock" || aCommand == "set" || aCommand == "win" || aCommand == "lose" || aCommand == "seed" ||
-		aCommand == "memreport" || aCommand == "settle";
+		aCommand == "memimages" || aCommand == "settle";
 	if (!aKnown)
 		return false;
 	if (aCommand == "settle")
@@ -598,9 +617,9 @@ bool MahjongApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		Reply("STATE " + StateJson());
 		return true;
 	}
-	if (aCommand == "memreport")
+	if (aCommand == "memimages")
 	{
-		WriteMemReport(anArgs);
+		WriteImageTable(anArgs);
 		ReplyOK(aText);
 		return true;
 	}

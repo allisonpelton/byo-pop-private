@@ -13,6 +13,12 @@ namespace engine
 
 extern bool gSignalBuild;
 
+// Feeding Frenzy's exe is an older build than either (linked 2005-07-18; Pizza Frenzy's 2006-02-21, Word Harmony's
+// 2006-02-22): the signal build's application, scene and signals, with the listener build's nodes (position, scale and
+// colour offset in the node, no colour mode). It sets this beside gSignalBuild, and where a shared function behaves
+// differently in it, the function reads this one too; false by default.
+extern bool gEarlyBuild;
+
 } // namespace engine
 
 #endif

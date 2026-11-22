@@ -20,32 +20,51 @@ var ByopopImport = (function () {
   }
   function under(e, root) { return e.path.substring(0, root.length) === root; }
 
+  // Whether the files (paths relative to the game folder, in any case) show the game's paks already unpacked, as a staged copy or a
+  // zip of the unpacked game has them: every file of spec.unpacked where the page names them (a game whose folders' names are
+  // common ones, Venice's "gfx" or "levels", names a few files only its pak holds; the user, 2026-11-16: "Fix it now", of
+  // another game's config.xml beside a gfx folder taken as Venice), else any file in one of its folders.
+  // relOf(x): the path of an item of list relative to the game folder, or null for one outside it
+  function unpackedIn(spec, list, relOf) {
+    if (!spec.unpacked) return list.some(function (x) {
+      var r = relOf(x), i = r === null ? -1 : r.indexOf("/");
+      return i > 0 && spec.gameDirs.indexOf(r.substring(0, i).toLowerCase()) >= 0;
+    });
+    return spec.unpacked.every(function (f) {
+      return list.some(function (x) { var r = relOf(x, f.length); return r !== null && r.length === f.length && r.toLowerCase() === f; });
+    });
+  }
+  function itself(r) { return r; }
+
   // The folder inside the files that holds every marker (the game root, "" or ending in "/"), or null; with placeholders,
   // failing that, the shallowest folder that holds one of the game's folders. A marker that is a pak (spec.paks) is there when
-  // the pak is, or when the folder holds any of the game's folders: the pak already unpacked, as a staged copy or a zip of the
-  // unpacked game has it (hasMarkers does the same for picked files).
-  function findRoot(spec, entries, placeholders) {
-    var paks = spec.paks || [];
+  // the pak is, or when the folder's files show it unpacked (unpackedIn; hasMarkers does the same for picked files).
+  // among (sort's): the entries whose names may be a marker's (markerNames, below), in their order; the markers are looked for
+  // only among them, and the root is the same as when every entry is looked at
+  function findRoot(spec, entries, placeholders, among) {
+    var paks = spec.paks || [], marks = among || entries;
     function isPak(m) { return paks.indexOf(m.toLowerCase()) >= 0; }
     var anyDepth = spec.markers.map(function (m) { return new RegExp("^(.*/)?" + markerPattern(m) + "$", "i"); });
     var atRoot = spec.markers.map(function (m) { return new RegExp("^" + markerPattern(m) + "$", "i"); });
     var allPaks = spec.markers.every(isPak), tried = {};
     function holds(root) {
-      var inRoot = entries.filter(function (e) { return under(e, root); });
+      var inRoot = marks.filter(function (e) { return under(e, root); });
       return spec.markers.every(function (m, k) {
         if (inRoot.some(function (e) { return atRoot[k].test(e.path.substring(root.length)); })) return true;
-        return isPak(m) && inRoot.some(function (e) {
-          var rel = e.path.substring(root.length), j = rel.indexOf("/");
-          return j > 0 && spec.gameDirs.indexOf(rel.substring(0, j).toLowerCase()) >= 0;
+        // length: a file of spec.unpacked is looked for, so only a path of its length is cut; those files are among the marks
+        // (markerNames holds their names)
+        return isPak(m) && unpackedIn(spec, spec.unpacked ? marks : entries, function (e, length) {
+          if (length !== undefined && e.path.length !== root.length + length) return null;
+          return under(e, root) ? e.path.substring(root.length) : null;
         });
       });
     }
-    for (var i = 0; i < entries.length; i++) {
+    for (var i = 0; i < marks.length; i++) {
       var roots = [];
       anyDepth.forEach(function (re, k) {
         // a pak marker names a root only when every marker is one (else the other markers name it)
         if (isPak(spec.markers[k]) && !allPaks) return;
-        var m = re.exec(entries[i].path);
+        var m = re.exec(marks[i].path);
         if (m) roots.push(m[1] || "");
       });
       for (var r = 0; r < roots.length; r++) {
@@ -114,12 +133,12 @@ var ByopopImport = (function () {
     return wanted;
   }
 
-  // Whether the picked files hold every marker: a pak that is a marker was unpacked, so then any file in the game's folders will do
+  // Whether the picked files hold every marker: a pak that is a marker was unpacked, so then its files will do (unpackedIn)
   function hasMarkers(spec, rels) {
     var paks = spec.paks || [];
-    var anyGameDir = rels.some(function (r) { var i = r.indexOf("/"); return i > 0 && spec.gameDirs.indexOf(r.substring(0, i)) >= 0; });
+    var unpacked = paks.length ? unpackedIn(spec, rels, itself) : false;
     return spec.markers.every(function (m) {
-      if (paks.indexOf(m.toLowerCase()) >= 0) return anyGameDir;
+      if (paks.indexOf(m.toLowerCase()) >= 0) return unpacked;
       var re = new RegExp("^" + markerPattern(m) + "$", "i");
       return rels.some(function (r) { return re.test(r); });
     });
@@ -133,7 +152,7 @@ var ByopopImport = (function () {
   // "images/gemsheet6"), and the names are joined as a list in the page's language.
   function lacking(spec, rels) {
     return spec.markers.filter(function (m) {
-      return !hasMarkers({ markers: [m], paks: spec.paks, gameDirs: spec.gameDirs }, rels);
+      return !hasMarkers({ markers: [m], paks: spec.paks, gameDirs: spec.gameDirs, unpacked: spec.unpacked }, rels);
     });
   }
   function markerName(spec, m) {
@@ -220,16 +239,60 @@ var ByopopImport = (function () {
     if (names.indexOf(f) >= 0) return 3;
     return names.some(function (n) { return n.length >= 4 && (f.indexOf(n) >= 0 || n.indexOf(f) >= 0); }) ? 2 : 0;
   }
-  // The files under a folder, with the folder's own part of each path left on
-  function groupBy(entries, depth) {
-    var out = {}, order = [];
-    entries.forEach(function (e) {
-      var parts = e.path.split("/");
-      var key = parts.length > depth + 1 ? parts.slice(0, depth + 1).join("/") : parts.slice(0, depth).join("/");
-      if (!(key in out)) { out[key] = []; order.push(key); }
-      out[key].push(e);
-    });
-    return order.map(function (k) { return { path: k, entries: out[k] }; });
+  // The files under a folder, with the folder's own part of each path left on: the first depth + 1 parts of each path, or its
+  // first depth parts for a file with no more than that (the slashes counted, rather than the path split, as this runs over
+  // every file of a big drop)
+  function groupKey(p, depth) {
+    var n = 0, s = -1, cut = -1;
+    while (n <= depth) {
+      s = p.indexOf("/", s + 1);
+      if (s < 0) break;
+      n++;
+      if (n === depth) cut = s;
+    }
+    if (n === depth + 1) return p.substring(0, s);
+    return depth === 0 ? "" : n === depth ? p.substring(0, cut) : p;
+  }
+  // A grouping of group's entries (and of its marks, the entries that may be markers, sort's) by groupKey, done a part at a time
+  // by groupSome; groups(g) once every entry is in
+  function grouping(group, depth) {
+    return { entries: group.entries, marks: group.marks || [], depth: depth, at: 0, out: Object.create(null), order: [] };
+  }
+  function groupSome(g, count) {
+    for (var end = Math.min(g.entries.length, g.at + count); g.at < end; g.at++) {
+      var e = g.entries[g.at], key = groupKey(e.path, g.depth);
+      if (!(key in g.out)) { g.out[key] = []; g.order.push(key); }
+      g.out[key].push(e);
+    }
+    return g.at < g.entries.length;
+  }
+  function groups(g) {
+    var marks = Object.create(null);
+    g.marks.forEach(function (e) { var key = groupKey(e.path, g.depth); (marks[key] = marks[key] || []).push(e); });
+    return g.order.map(function (k) { return { path: k, entries: g.out[k], marks: marks[k] || [] }; });
+  }
+  // The last names of every game's markers, the site's and the others', in lower case (a marker's "x.*" kept as its stem x), and
+  // of the files that show a game's paks unpacked (spec.unpacked): a file named none of them is no game's marker, so the sort
+  // looks for markers only among the few files that are
+  var markerIndex = null;
+  function markerNames() {
+    var list = otherList(), key = games.length + "/" + list.length;
+    if (markerIndex && markerIndex.key === key) return markerIndex;
+    var exact = Object.create(null), stems = Object.create(null);
+    function addMarker(m) {
+      m.split("|").forEach(function (alt) {
+        var last = alt.substring(alt.lastIndexOf("/") + 1).toLowerCase();
+        if (/\.\*$/.test(last)) stems[last.slice(0, -2)] = true; else exact[last] = true;
+      });
+    }
+    games.forEach(function (g) { g.spec.markers.concat(g.spec.unpacked || []).forEach(addMarker); });
+    list.forEach(function (o) { o.markers.forEach(addMarker); });
+    markerIndex = { key: key, exact: exact, stems: stems };
+    return markerIndex;
+  }
+  function mayBeMarker(names, path) {
+    var name = path.substring(path.lastIndexOf("/") + 1).toLowerCase(), dot = name.lastIndexOf(".");
+    return names.exact[name] === true || (dot >= 0 && names.stems[name.substring(0, dot)] === true);
   }
   // ---------- games this site does not play ----------
   // ByopopOtherGames (other-games.js, which byopop_web_index() writes from cmake/ByopopOthers.cmake): [{id, title, markers, project,
@@ -237,11 +300,11 @@ var ByopopImport = (function () {
   function otherList() {
     try { return typeof ByopopOtherGames !== "undefined" && Array.isArray(ByopopOtherGames) ? ByopopOtherGames : []; } catch (e) { return []; }
   }
-  // The games of those whose markers the files hold, as [{game, root}]
-  function otherMatches(entries) {
+  // The games of those whose markers the files hold, as [{game, root}]; among as findRoot's
+  function otherMatches(entries, among) {
     var out = [];
     otherList().forEach(function (o) {
-      var root = findRoot({ markers: o.markers, gameDirs: [] }, entries, false);
+      var root = findRoot({ markers: o.markers, gameDirs: [] }, entries, false, among);
       if (root !== null) out.push({ game: o, root: root });
     });
     return out;
@@ -277,58 +340,255 @@ var ByopopImport = (function () {
   // where it cannot, game is null and choices are the games it could be, for the player to pick. A folder that holds no game but
   // holds games' folders (the "PopCap Games" folder) is looked into, three levels deep at most; a folder with no game in it is
   // rejected.
-  function sort(entries) {
+  // The sort is made of steps, each short (a few thousand files looked at, or one folder sorted), so that sortSteps lets the page
+  // draw between them: a whole Steam library (the user's, 2026-11-16: 146,409 files in 24,158 folders) held the page for ten
+  // seconds at once. The markers are looked for only among the files named as one is (markerNames).
+  function sorter(entries) {
     var found = [], rejected = [], others = [];
+    var names = markerNames(), marked = [], at = 0, todo = null;
+    // the work still to do, the next last: folders to visit, and folders being grouped into their subfolders (then(subs) once
+    // they are, with the subfolders only); each step does one, so the results come in the order a visit of each folder in turn,
+    // grouped at once, gives them
+    function later(subs, depth) { for (var i = subs.length - 1; i >= 0; i--) todo.push({ group: subs[i], depth: depth }); }
+    function grouped(group, depth, then) {
+      todo.push({ grouping: grouping(group, depth), then: function (all) { then(all.filter(function (g) { return g.path !== group.path; })); } });
+    }
     function visit(group, depth) {
       var name = group.path.split("/").pop() || ByopopStrings.t("import.dropped_files");
       var matches = [];
       games.forEach(function (g) {
-        var root = findRoot(g.spec, group.entries, false);
+        var root = findRoot(g.spec, group.entries, false, group.marks);
         if (root !== null) matches.push({ game: g, root: root });
       });
       var roots = {};
       matches.forEach(function (m) { roots[m.root] = true; });
       if (matches.length > 0 && Object.keys(roots).length === 1) {
-        var root = matches[0].root, best = null, top = 0, tie = false;
+        var root = matches[0].root;
         // the game is in a subfolder of a folder that holds others: the subfolder is the row, and the others are named as not added
         if (depth < 3 && root.length > (group.path ? group.path.length + 1 : 0)) {
-          var subs = groupBy(group.entries, depth + 1).filter(function (g) { return g.path !== group.path; });
-          if (subs.length > 1) { subs.forEach(function (g) { visit(g, depth + 1); }); return; }
+          grouped(group, depth + 1, function (subs) { if (subs.length > 1) later(subs, depth + 1); else foundAt(group, name, root, matches); });
+          return;
         }
-        matches.forEach(function (m) {
-          var s = Math.max(nameScore(name, m.game), nameScore(root.replace(/\/$/, "").split("/").pop(), m.game));
-          if (s > top) { top = s; best = m.game; tie = false; } else if (s === top && s > 0) tie = true;
-        });
-        var game = matches.length === 1 ? matches[0].game : (top > 0 && !tie ? best : null);
-        found.push({ folder: name, entries: group.entries, root: root, game: game, choices: matches.map(function (m) { return m.game; }) });
+        foundAt(group, name, root, matches);
         return;
       }
       // (no game anywhere in it: findRoot looks at every depth)
-      var deeper = matches.length > 0 ? groupBy(group.entries, depth + 1).filter(function (g) { return g.path !== group.path; }) : [];
-      if (depth < 3 && deeper.length > 0) {
-        deeper.forEach(function (g) { visit(g, depth + 1); });
+      if (matches.length > 0 && depth < 3) {
+        grouped(group, depth + 1, function (deeper) { if (deeper.length > 0) later(deeper, depth + 1); else noneOfOurs(group, depth, name, matches); });
         return;
       }
-      // none of the site's games: one it does not play is named; a folder of several of them is looked into as above
-      var other = matches.length === 0 ? otherMatches(group.entries) : [];
+      noneOfOurs(group, depth, name, matches);
+    }
+    function foundAt(group, name, root, matches) {
+      var best = null, top = 0, tie = false;
+      matches.forEach(function (m) {
+        var s = Math.max(nameScore(name, m.game), nameScore(root.replace(/\/$/, "").split("/").pop(), m.game));
+        if (s > top) { top = s; best = m.game; tie = false; } else if (s === top && s > 0) tie = true;
+      });
+      var game = matches.length === 1 ? matches[0].game : (top > 0 && !tie ? best : null);
+      found.push({ folder: name, entries: group.entries, root: root, game: game, choices: matches.map(function (m) { return m.game; }) });
+    }
+    // none of the site's games: one it does not play is named; a folder of several of them is looked into as above
+    function noneOfOurs(group, depth, name, matches) {
+      var other = matches.length === 0 ? otherMatches(group.entries, group.marks) : [];
       if (other.length > 0) {
         var otherRoots = {};
         other.forEach(function (m) { otherRoots[m.root] = true; });
-        var subs = depth < 3 && Object.keys(otherRoots).length > 1 ? groupBy(group.entries, depth + 1).filter(function (g) { return g.path !== group.path; }) : [];
-        if (subs.length > 0) { subs.forEach(function (g) { visit(g, depth + 1); }); return; }
+        if (depth < 3 && Object.keys(otherRoots).length > 1) {
+          grouped(group, depth + 1, function (subs) { if (subs.length > 0) later(subs, depth + 1); else others.push({ folder: name, game: other[0].game }); });
+          return;
+        }
         others.push({ folder: name, game: other[0].game });
         return;
       }
       rejected.push(name);
     }
-    groupBy(entries, 0).forEach(function (g) { visit(g, 0); });
-    return { found: found, rejected: rejected, others: others };
+    return {
+      // one step: a few thousand files looked at for markers' names or put in their folders, or one folder visited; true while
+      // there is more
+      step: function () {
+        if (at < entries.length) {
+          for (var end = Math.min(entries.length, at + 8192); at < end; at++)
+            if (mayBeMarker(names, entries[at].path)) marked.push(entries[at]);
+          return true;
+        }
+        if (!todo) {
+          todo = [{ grouping: grouping({ entries: entries, marks: marked }, 0), then: function (all) { later(all, 0); } }];
+          return true;
+        }
+        var t = todo.pop();
+        if (!t) return false;
+        if (!t.grouping) visit(t.group, t.depth);
+        else if (groupSome(t.grouping, 8192)) todo.push(t);
+        else t.then(groups(t.grouping));
+        return todo.length > 0;
+      },
+      result: function () { return { found: found, rejected: rejected, others: others }; }
+    };
+  }
+  function sort(entries) {
+    var s = sorter(entries);
+    while (s.step()) { /* to the end */ }
+    return s.result();
+  }
+  // The sort in steps, about 16 ms of them at a time, the page drawing between: resolves with what sort gives
+  function sortSteps(entries) {
+    var s = sorter(entries);
+    return new Promise(function (resolve, reject) {
+      function run() {
+        try {
+          var until = Date.now() + 16;
+          while (s.step()) if (Date.now() >= until) { yieldThen(run); return; }
+          resolve(s.result());
+        } catch (e) { reject(e); }
+      }
+      yieldThen(run);
+    });
+  }
+  // fn after the page has had its turn: a message to itself, which a hidden tab does not slow down as it does a timer
+  function yieldThen(fn) {
+    if (typeof MessageChannel !== "function") { setTimeout(fn, 0); return; }
+    var c = new MessageChannel();
+    c.port1.onmessage = function () { c.port1.close(); fn(); };
+    c.port2.postMessage(0);
+  }
+
+  // ---------- installers ----------
+  // A game's installer dropped in place of the folder it installs to (the user, 2026-11-16: "detect when an installer was
+  // dragged in and provide explicit direction to the user against that"). The site takes a game's installed files; it never
+  // runs or unpacks an installer, only reads the first 4 MB and the last 64 KB of the file for its marks. A program is one
+  // when its name says so (setup, install or installer anywhere in it: setup.exe, Alchemy_Setup.exe, ZumaDeluxeInstaller.exe;
+  // never an uninstaller, DirectX's setup or a redistributable) or it carries one of these marks:
+  //   msi            a Windows Installer package: the compound file header D0 CF 11 E0 A1 B1 1A E1 at its start
+  //   inno           Inno Setup: "Inno" at offset 0x30 (5.1.5 on), its loader's "rDlPtS" table, or "Inno Setup" in ASCII or
+  //                  UTF-16 (its version text, "This installation was built with Inno Setup.")
+  //   nsis           NSIS: its first header's "NullsoftInst", or "Nullsoft Install System"
+  //   installshield  InstallShield: "InstallShield" in ASCII or UTF-16 (its version text)
+  //   wise           Wise: a PE section named .WISE, or "Wise Installation" in ASCII or UTF-16
+  //   sfx            a self-extracting archive: a 7-Zip ("7z" BC AF 27 1C) or RAR ("Rar!" 1A 07) archive or a cabinet ("MSCF" and
+  //                  four zero bytes, IExpress's) inside it, "WinZip Self-Extractor", or a zip's end record ("PK" 05 06) in its
+  //                  last 64 KB
+  // (all but msi in a program, which starts "MZ")
+  var NOT_INSTALLER = /^(popuninstall|uninst|unins\d|dxsetup|.*redist)/i;
+  var HEAD_BYTES = 4 * 1048576, TAIL_BYTES = 65558;
+  function wide(text) { return text.replace(/[\s\S]/g, "$&\0"); }
+  function holdsText(b, text) { return find(b, text) >= 0 || find(b, wide(text)) >= 0; }
+  function sectionNamed(b, name) {
+    if (b[0] !== 0x4d || b[1] !== 0x5a) return false;
+    var pe = u32(b, 0x3c);
+    if (u32(b, pe) !== 0x4550) return false;
+    var n = u16(b, pe + 6), sec = pe + 24 + u16(b, pe + 20);
+    for (var i = 0; i < n && sec + 8 <= b.length; i++, sec += 40) {
+      var k = 0;
+      while (k < 8 && k < name.length && b[sec + k] === name.charCodeAt(k)) k++;
+      if (k === name.length && (k === 8 || b[sec + k] === 0)) return true;
+    }
+    return false;
+  }
+  function installerMark(head, tail) {
+    if (u32(head, 0) === 0xe011cfd0 && u32(head, 4) === 0xe11ab1a1) return "msi";
+    if (head[0] !== 0x4d || head[1] !== 0x5a) return null;
+    if (u32(head, 0x30) === 0x6f6e6e49 || find(head, "rDlPtS") >= 0 || holdsText(head, "Inno Setup")) return "inno";
+    if (find(head, "NullsoftInst") >= 0 || holdsText(head, "Nullsoft Install System")) return "nsis";
+    if (holdsText(head, "InstallShield")) return "installshield";
+    if (sectionNamed(head, ".WISE") || holdsText(head, "Wise Installation")) return "wise";
+    if (find(head, "7z\xbc\xaf\x27\x1c") >= 0 || find(head, "Rar!\x1a\x07") >= 0 || find(head, "MSCF\0\0\0\0") >= 0 ||
+      holdsText(head, "WinZip Self-Extractor") || find(tail, "PK\x05\x06") >= 0) return "sfx";
+    return null;
+  }
+  function baseName(p) { return p.substring(p.lastIndexOf("/") + 1); }
+  // A file's first and last bytes: through part(start, end) where the entry has it (a drop's, a pick's), else from all of it
+  function ends(e) {
+    if (e.part) return Promise.all([e.part(0, HEAD_BYTES), e.part(-TAIL_BYTES)]);
+    return Promise.resolve(e.read()).then(function (d) {
+      var b = d instanceof Uint8Array ? d : new Uint8Array(d);
+      return [b.subarray(0, HEAD_BYTES), b.subarray(Math.max(0, b.length - TAIL_BYTES))];
+    });
+  }
+  // The game an installer's name (or its folder's) names: of the site's games (game), else of the others (other), the one named
+  // best, or null
+  // whole: only a name that is the game's (a folder's name; a file's may also hold the game's, or be held in it, at four
+  // letters or more: "PopCapAlchemyDeluxe")
+  function gameNamed(file, whole) {
+    var name = file.replace(/\.(exe|msi)$/i, "").replace(/[-_. ]*(setup|installer|install)[-_. ]*/gi, " ");
+    var least = whole || plain(name).length < 4 ? 3 : 2;
+    function best(list) {
+      var got = null, top = 0, tie = false;
+      list.forEach(function (c) {
+        var s = nameScore(name, c.as);
+        if (s > top) { top = s; got = c; tie = false; } else if (s === top && s > 0) tie = true;
+      });
+      return top >= least && !tie ? got : null;
+    }
+    return best(games.map(function (g) { return { game: g, as: g }; })) ||
+      best(otherList().map(function (o) { return { other: o, as: { title: o.title, target: o.id, spec: {} } }; }));
+  }
+  // Where a game's copy usually is, from its page's import text (its first path): {path, steam}, or null
+  function usualFolder(spec) {
+    var m = /<span class="mono">([^<]*)<\/span>/.exec(spec.importHtml || "");
+    if (!m) return null;
+    var p = m[1].replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
+      .replace(/\//g, "\\");
+    if (/^steamapps\\/i.test(p)) return { path: p, steam: true };
+    return { path: "C:\\Program Files (x86)\\" + p.replace(/^Program Files\\/i, ""), steam: false };
+  }
+  // The installer in a drop the sort found no game in: a program alone or with a few other files (12 files at most, 3 programs
+  // at most), or the only program in the drop (a .zip of an installer). Resolves with {entry, file, mark ("name" or a mark
+  // above), group (the sort's name for the folder it is in), game (a site's game its name names) or other (one the site does
+  // not play), folder (game's usualFolder)}, or null.
+  function installerIn(entries, sorted) {
+    if (sorted.found.length || (sorted.others || []).length) return Promise.resolve(null);
+    var programs = entries.filter(function (e) { return /\.(exe|msi)$/i.test(e.path) && !NOT_INSTALLER.test(baseName(e.path)); });
+    if (!programs.length || !(programs.length === 1 || (entries.length <= 12 && programs.length <= 3))) return Promise.resolve(null);
+    function result(e, mark) {
+      // the game its name names, else the one its folder's (or its .zip's) name names
+      var file = baseName(e.path), at = e.path.indexOf("/"), up = e.path.lastIndexOf("/");
+      var named = gameNamed(file, false) || (up > 0 ? gameNamed(baseName(e.path.substring(0, up)), true) : null);
+      return { entry: e, file: file, mark: mark, group: at < 0 ? ByopopStrings.t("import.dropped_files") : e.path.substring(0, at),
+        game: named && named.game || null, other: named && named.other || null, folder: named && named.game ? usualFolder(named.game.spec) : null };
+    }
+    return programs.reduce(function (p, e) {
+      return p.then(function (got) {
+        if (got) return got;
+        if (/setup|install/i.test(baseName(e.path))) return result(e, "name");
+        return ends(e).then(function (two) {
+          var mark = installerMark(two[0], two[1]);
+          return mark ? result(e, mark) : null;
+        }, function () { return null; });
+      });
+    }, Promise.resolve(null));
+  }
+  // What a drop's installer row says: what it is and what to do instead
+  function installerText(inst) {
+    if (!inst.game) return ByopopStrings.t("import.installer", { file: inst.file });
+    var vars = { file: inst.file, title: inst.game.title, folder: inst.folder ? inst.folder.path : "" };
+    if (!inst.folder) return ByopopStrings.t("import.installer_game_any", vars);
+    return ByopopStrings.t(inst.folder.steam ? "import.installer_steam" : "import.installer_game", vars);
+  }
+
+  // A drop's sort for its reading row (Setup's, the panel's): sortSteps, then installerIn. An installer found takes the place of
+  // the folder it is in, as installer (installerIn's, with its text), or, where its name names a game this site does not play,
+  // is named as that game is
+  function sortDrop(entries) {
+    return sortSteps(entries).then(function (sorted) {
+      return installerIn(entries, sorted).then(null, function () { return null; }).then(function (inst) {
+        if (!inst) return sorted;
+        var rejected = sorted.rejected.slice(), at = rejected.indexOf(inst.group);
+        if (at >= 0) rejected.splice(at, 1);
+        if (inst.other) return { found: sorted.found, others: (sorted.others || []).concat([{ folder: inst.file, game: inst.other }]), rejected: rejected };
+        inst.text = installerText(inst);
+        return { found: sorted.found, others: sorted.others || [], rejected: rejected, installer: inst };
+      });
+    });
   }
 
   // ---------- reading a drop ----------
   // The files of a drop as {path, read()}: a dropped folder's paths start with its name, and a dropped .zip's with its name
   // without ".zip". Must be called in the drop event itself (the entries are only readable during it). zip: web/modpanel.js's.
-  function fromDrop(dataTransfer, zip) {
+  // watch (optional, watch() below): told the folders listed and the files found as the walk goes, and asked before each folder
+  // whether to stop, when the walk rejects with an Error whose cancelled is true. Every folder is listed, however deep: a game is
+  // known by its files at any depth, so no folder can be passed over before its files are seen.
+  function fromDrop(dataTransfer, zip, watch) {
     var tops = [];
     Array.prototype.forEach.call(dataTransfer.items || [], function (item) {
       if (item.kind !== "file") return;
@@ -336,21 +596,33 @@ var ByopopImport = (function () {
       if (entry) tops.push(entry);
       else { var f = item.getAsFile(); if (f) tops.push({ isFile: true, name: f.name, fullPath: "/" + f.name, plainFile: f }); }
     });
-    var out = [];
+    var out = [], folders = 0;
+    function told() { if (watch && watch.progress) watch.progress(folders, out.length); }
+    function stop() {
+      if (!(watch && watch.stopped && watch.stopped())) return null;
+      var e = new Error(ByopopStrings.t("import.cancelled"));
+      e.cancelled = true;
+      return e;
+    }
     function fileOf(entry) {
       if (entry.plainFile) return Promise.resolve(entry.plainFile);
       return new Promise(function (resolve, reject) { entry.file(resolve, reject); });
     }
     function walk(entry) {
+      var stopped = stop();
+      if (stopped) return Promise.reject(stopped);
       if (entry.isFile) {
         var path = entry.fullPath.replace(/^\//, "");
         if (/\.zip$/i.test(entry.name) && path.indexOf("/") < 0) {
           return fileOf(entry).then(function (f) { return zip.fromFile(f); }).then(function (files) {
             var base = entry.name.replace(/\.zip$/i, "");
             files.forEach(function (z) { out.push({ path: base + "/" + z.path, read: z.read }); });
+            told();
           });
         }
-        out.push({ path: path, read: function () { return fileOf(entry).then(function (f) { return f.arrayBuffer(); }).then(function (b) { return new Uint8Array(b); }); } });
+        out.push({ path: path, read: function () { return fileOf(entry).then(function (f) { return f.arrayBuffer(); }).then(function (b) { return new Uint8Array(b); }); },
+          // a part of it (installerIn reads a program's ends), as File.slice takes start and end
+          part: function (start, end) { return fileOf(entry).then(function (f) { return f.slice(start, end).arrayBuffer(); }).then(function (b) { return new Uint8Array(b); }); } });
         return Promise.resolve();
       }
       if (!entry.isDirectory) return Promise.resolve();
@@ -358,18 +630,45 @@ var ByopopImport = (function () {
       return new Promise(function (resolve, reject) {
         var all = [];
         (function more() {
+          var stopped = stop();
+          if (stopped) { reject(stopped); return; }
           reader.readEntries(function (batch) {
             if (!batch.length) { resolve(all); return; }
-            all = all.concat(Array.prototype.slice.call(batch));
+            for (var i = 0; i < batch.length; i++) all.push(batch[i]);
             more();
           }, reject);
         })();
       }).then(function (children) {
+        folders++;
+        told();
         return children.reduce(function (p, c) { return p.then(function () { return walk(c); }); }, Promise.resolve());
       });
     }
-    return tops.reduce(function (p, t) { return p.then(function () { return walk(t); }); }, Promise.resolve()).then(function () { return out; });
+    return tops.reduce(function (p, t) { return p.then(function () { return walk(t); }); }, Promise.resolve())
+      .then(function () { told(); return out; });
   }
+  // A walk's watch for fromDrop: listen(fn) has fn(folders, files) called with the walk's count at most four times a second, and
+  // cancel() stops the walk at its next folder
+  function watch() {
+    var folders = 0, files = 0, stopped = false, fn = null, timer = 0;
+    function show() { timer = 0; if (fn) fn(folders, files); }
+    return {
+      progress: function (f, n) { folders = f; files = n; if (fn && !timer) timer = setTimeout(show, 250); },
+      stopped: function () { return stopped; },
+      cancel: function () { stopped = true; },
+      listen: function (f) { fn = f; if (!f && timer) { clearTimeout(timer); timer = 0; } }
+    };
+  }
+  // What a reading row says while a drop is read: the folders and files found so far, the numbers as the page's language writes them
+  function readingText(folders, files) {
+    function num(n) { try { return n.toLocaleString(ByopopStrings.lang); } catch (e) { return String(n); } }
+    return ByopopStrings.t("import.reading_count", {
+      folders: ByopopStrings.t("import.count.folders", { n: folders, count: num(folders) }),
+      files: ByopopStrings.t("import.count.files", { n: files, count: num(files) }) });
+  }
+  // The folders with no game: listed one by one up to MANY_REJECTED - 1 of them; from MANY_REJECTED on, as one line with their
+  // names behind a Details button (a whole Steam library has about ninety)
+  var MANY_REJECTED = 4;
   // Whether a drag carries files (a folder is a file to the browser), so that a drop target can say it takes them
   function hasFiles(dataTransfer) {
     return !!dataTransfer && Array.prototype.indexOf.call(dataTransfer.types || [], "Files") >= 0;
@@ -566,6 +865,36 @@ var ByopopImport = (function () {
     }, function () { return null; });
   }
 
+  // A game whose pointer is an animation of its files (web/flicursor.js) gives its set for the site's cursor as its files are
+  // added, so the set is in Settings' choice before the game's first opening (the user, 2026-11-16); its page builds the same
+  // set from the same files, and a set that does not build here is left to it. ByopopFlicCursor.build reads synchronously, so
+  // the files it asks for are read and it is run again, a round for each level (the animations' XML, then the FLICs).
+  // Never rejects.
+  function flicSet(g, files) {
+    var F = typeof ByopopFlicCursor !== "undefined" ? ByopopFlicCursor : null, C = typeof ByopopCursors !== "undefined" ? ByopopCursors : null,
+      id = g.spec.id;
+    if (!F || !C || !F.GAMES[id]) return Promise.resolve();
+    var byRel = {}, got = {};
+    files.forEach(function (f) { byRel[String(f.rel).toLowerCase()] = f; });
+    function round(n) {
+      var want = {};
+      var set = F.build(id, function (rel) {
+        var k = rel.toLowerCase();
+        if (got.hasOwnProperty(k)) return got[k];
+        if (byRel.hasOwnProperty(k)) want[k] = true;
+        else got[k] = null;
+        return null;
+      }, C);
+      var keys = Object.keys(want);
+      if (set || !keys.length || n >= 4) return Promise.resolve(set);
+      return Promise.all(keys.map(function (k) {
+        return Promise.resolve(byRel[k].read()).then(function (d) { got[k] = d instanceof Uint8Array ? d : new Uint8Array(d); },
+          function () { got[k] = null; });
+      })).then(function () { return round(n + 1); });
+    }
+    return Promise.resolve().then(function () { return round(0); })
+      .then(function (set) { if (set) C.save(id, g.title, set); }).catch(function () {});
+  }
   // Adds one game's files from the listing page: g a games entry, entries the folder's files, root its game root (sort, or
   // findRoot). Resolves with the number of files; rejects with an Error to show. pak and safeRel: web/modpanel.js's. say(text)
   // reports the steps. The record of the game's files (ByopopGameFiles) is kept as the game page keeps it after an import.
@@ -588,7 +917,7 @@ var ByopopImport = (function () {
           .then(function (got) {
             try { ByopopGameFiles.mark(spec.id); if (got.url) ByopopGameFiles.setIcon(spec.id, got.url, got.built, got.small); } catch (e) {}
             try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (e) {}
-            return files.length;
+            return flicSet(g, files).then(function () { return files.length; });
           });
         });
       });
@@ -623,6 +952,6 @@ var ByopopImport = (function () {
   }
 
   return { stored: stored, exeUnreadable: exeUnreadable, probeHolds: probeHolds, markerPattern: markerPattern, findRoot: findRoot, withPaks: withPaks, pick: pick, hasMarkers: hasMarkers, exeIcon: exeIcon,
-    games: games, add: add, sort: sort, otherGame: otherGame, otherNote: otherNote, nameScore: nameScore, fromDrop: fromDrop, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
+    games: games, add: add, sort: sort, sortSteps: sortSteps, otherGame: otherGame, otherNote: otherNote, nameScore: nameScore, fromDrop: fromDrop, watch: watch, readingText: readingText, installerIn: installerIn, installerMark: installerMark, installerText: installerText, usualFolder: usualFolder, sortDrop: sortDrop, MANY_REJECTED: MANY_REJECTED, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
     forgetGame: forgetGame, ordered: ordered, missingIn: missingIn, missingMarkers: missingMarkers, markerList: markerList };
 })();

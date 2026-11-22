@@ -532,6 +532,84 @@ void CheckSegments(const std::string& thePrefix, char theLast)
 		aStreamedBytes / 1048576.0, (double)aFrames / kRate, aMixMs[0], aMixMs[1]);
 }
 
+// The voice's position (StartVoice's start frame, GetVoicePosition, SetVoicePosition, SetVoiceLoop: a DirectSound buffer stopped
+// and played on, Chuzzle's): on the game's clock (-fast) and mixed. A one-second mono sound at the mixer's rate, so that a voice
+// moves one frame of it for each frame mixed.
+void CheckVoicePosition()
+{
+	Platform::Mixer& mixer = Platform::Mixer::Get();
+	const char* aCase = "voice position";
+	auto aData = mixer.LoadSoundData(Wav(1, kRate, 16, Signal(1, kRate, kRate)), aCase);
+	const double aLength = (double)aData->mFrames;
+	mixer.StopAllVoices();
+	// on the game's clock: a voice started at frame 12000 is there, and 10 ms later 480 frames on
+	mixer.SetGameClocked(true);
+	int aVoice = mixer.StartVoice(aData, 1.0f, 1.0f, 1.0, false, 12000.0);
+	Expect(aCase, "the start frame", mixer.GetVoicePosition(aVoice), 12000.0, 0);
+	mixer.AdvanceVoices(10.0);
+	Expect(aCase, "10 ms on", mixer.GetVoicePosition(aVoice), 12480.0, 1e-6);
+	mixer.SetVoicePosition(aVoice, 40000.0);
+	Expect(aCase, "moved", mixer.GetVoicePosition(aVoice), 40000.0, 0);
+	mixer.SetVoicePosition(aVoice, 1e9);
+	Expect(aCase, "moved past the end", mixer.GetVoicePosition(aVoice), aLength - 1.0, 0);
+	mixer.SetVoicePosition(aVoice, -5.0);
+	Expect(aCase, "moved before the start", mixer.GetVoicePosition(aVoice), 0.0, 0);
+	// a one-shot voice that reaches its end: no longer playing, its position -1, and its handle reaches nothing after its
+	// slot starts another voice
+	mixer.AdvanceVoices(1000.0 * aLength / kRate + 1.0);
+	Expect(aCase, "ended", mixer.IsVoicePlaying(aVoice) ? 1 : 0, 0, 0);
+	Expect(aCase, "ended, its position", mixer.GetVoicePosition(aVoice), -1.0, 0);
+	int anOther = mixer.StartVoice(aData, 1.0f, 1.0f, 1.0, true, 0.0);
+	mixer.SetVoicePosition(aVoice, 30000.0);
+	mixer.SetVoiceLoop(aVoice, false);
+	Expect(aCase, "a stale handle", mixer.GetVoicePosition(aVoice), -1.0, 0);
+	Expect(aCase, "the slot's new voice, untouched", mixer.GetVoicePosition(anOther), 0.0, 0);
+	// a looping voice goes round; with SetVoiceLoop(false) it stops at the sound's end instead
+	mixer.AdvanceVoices(1000.0 * (aLength + 100.0) / kRate);
+	Expect(aCase, "looped", mixer.GetVoicePosition(anOther), 100.0, 1e-6);
+	mixer.SetVoiceLoop(anOther, false);
+	mixer.AdvanceVoices(1000.0 * (aLength - 200.0) / kRate);
+	Expect(aCase, "loop off, before the end", mixer.IsVoicePlaying(anOther) ? 1 : 0, 1, 0);
+	mixer.AdvanceVoices(1000.0 * 200.0 / kRate);
+	Expect(aCase, "loop off, at the end", mixer.IsVoicePlaying(anOther) ? 1 : 0, 0, 0);
+	// and back on: a voice set to loop again goes round
+	int aThird = mixer.StartVoice(aData, 1.0f, 1.0f, 1.0, false, aLength - 100.0);
+	mixer.SetVoiceLoop(aThird, true);
+	mixer.AdvanceVoices(1000.0 * 300.0 / kRate);
+	Expect(aCase, "loop on", mixer.GetVoicePosition(aThird), 200.0, 1e-6);
+	mixer.StopVoice(aThird);
+	Expect(aCase, "stopped", mixer.GetVoicePosition(aThird), -1.0, 0);
+	mixer.SetGameClocked(false);
+
+	// mixed: a voice started at frame kAt mixes what a voice started at 0 mixes from its frame kAt on, to the bit, and one
+	// moved there by SetVoicePosition does too (kAt not a whole number of the test signal's periods, which 12000 frames are)
+	const int kAt = 12345;
+	const int kFrames = 20000;
+	std::vector<float> aFromStart((size_t)(kAt + kFrames) * 2), aStarted((size_t)kFrames * 2), aMoved((size_t)kFrames * 2);
+	aVoice = mixer.StartVoice(aData, 0.8f, 0.6f, 1.0, false);
+	mixer.RenderOffline(aFromStart.data(), kAt + kFrames);
+	mixer.StopVoice(aVoice);
+	aVoice = mixer.StartVoice(aData, 0.8f, 0.6f, 1.0, false, (double)kAt);
+	mixer.RenderOffline(aStarted.data(), kFrames);
+	mixer.StopVoice(aVoice);
+	aVoice = mixer.StartVoice(aData, 0.8f, 0.6f, 1.0, false);
+	mixer.SetVoicePosition(aVoice, (double)kAt);
+	mixer.RenderOffline(aMoved.data(), kFrames);
+	Expect(aCase, "mixed on", mixer.GetVoicePosition(aVoice), (double)(kAt + kFrames), 1e-6);
+	mixer.StopVoice(aVoice);
+	gChecks += 2;
+	if (memcmp(aStarted.data(), &aFromStart[kAt * 2], aStarted.size() * sizeof(float)) != 0)
+	{
+		gFailed++;
+		printf("sound: %s: a voice started at frame %d differs from one started at 0, %d frames on\n", aCase, kAt, kAt);
+	}
+	if (memcmp(aMoved.data(), &aFromStart[kAt * 2], aMoved.size() * sizeof(float)) != 0)
+	{
+		gFailed++;
+		printf("sound: %s: a voice moved to frame %d differs from one started at 0, %d frames on\n", aCase, kAt, kAt);
+	}
+}
+
 int main(int argc, char** argv)
 {
 	Platform::Mixer::Get().InitOffline(kRate);
@@ -561,6 +639,7 @@ int main(int argc, char** argv)
 	CheckSound("stereo 16-bit 48000 Hz", 2, 48000, 16, 0.2);
 	CheckSound("mono 8-bit 11025 Hz", 1, 11025, 8, 0.2);
 	CheckAU();
+	CheckVoicePosition();
 
 	printf("sound: %d checks, %d failed\n", gChecks, gFailed);
 	return gFailed ? 1 : 0;
