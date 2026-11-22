@@ -191,8 +191,8 @@ public:
 			aFile.wait = p.getBool("wait", true);
 			mDataSet.files.push_back(aFile);
 		}
-		else
-			engine::getEngine()->log("Unknown data element \"%s\"\n", theName.c_str());
+		else if (mReportedKinds.insert(theName).second)
+			engine::getEngine()->log("Data element \"%s\" not yet translated\n", theName.c_str());
 	}
 
 	void endElement(const std::string& theName) override

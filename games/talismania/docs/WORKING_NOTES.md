@@ -75,6 +75,13 @@ loader's attributes with defaults; `tools/classstrings.py <class>` the strings o
   kept as raw attributes (`mRawEntries`) until their users are translated. The loading state reads the "std" set a file a
   frame (the original: a thread) and scales "loadbar" by the progress; its exit to the title state is not yet translated.
   About 40 data kinds of the set are still logged as not yet translated.
+- `TitleState`: after loading, the main menu (`mainmenulayout`, with the theme) is made and shown in the "skymenu" layer:
+  it renders with its art. Still to do for it: the front end's other screens and the two menu stacks (0x4039b0, 5 KB; the
+  stacks 0x5e98e0 hold normal, popup and modal screen lists with the darken layers), the hero button's state (0x406910), the
+  strings (`gamestring`, so the labels "Welcome Back!" and the user name are blank or doubled), the registration badge and
+  buttons (the trial badge, "whybuybtn", "moregamesbtn": to be removed, not disabled), the actions.
+  The app's IAtlantisApp interface at +0x20: 0x407350 pushes a menu on one of the stacks, 0x4073b0 pops, 0x407f30 shows a
+  popup screen by name.
 - The host builds and runs (`build/native/talismania.exe`, a silent run under rundesk): the window opens, the archive is
   found, a black frame is shown. The boot's archive step.
 

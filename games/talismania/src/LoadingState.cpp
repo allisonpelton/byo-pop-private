@@ -2,6 +2,7 @@
 
 #include "AtlantisApp.h"
 #include "Engine.h"
+#include "TitleState.h"
 #include "Transition.h"
 
 namespace
@@ -56,7 +57,10 @@ void LoadingState::update(engine::UpdateContext* theContext)
 			mInitializingShown = true;
 			return;
 		}
+		// The original hides the loading screen and enters the title state at once (0x4039b0 first makes the front end's
+		// screens)
 		mScreen->hide();
+		mApp->mStateMgr.changeState(new TitleState(mApp));
 		return;
 	}
 	engine::Component* aBar = mScreen->findComponent("loadbar");
