@@ -387,6 +387,16 @@ Differences left, each judged:
   original draws 1. Not chased further: a gap that starts at the click that builds the island, where the original's own
   draws come 200 updates later than the port's; the greeting, the chains' sway, the lock's place and the Tile Master's place
   follow from it. A first visit of a new player (I0) matches.
+  The callers of the port's draws (a logged build, 2026-11-22): at update 400, `IslandMap::IslandMap` draws the lightning's first
+  wait and the two gulls' (0x4176a0 draws the same three: its lightning wait at +0xd0, then +0xe0 and +0xe4); from update 600, the
+  god's speech bubble (2 draws) and the 100-odd particle pools and per-update emissions of `ShackleBreak` (the mystery chains
+  breaking at the first visit of a temple whose other puzzles are solved, 0x410900, 0x419700), each particle drawing as in
+  0x43e160, 0x43ebe0 and 0x43eda0. The original's shots show the same chains flying (E-u700), so it runs the same effect; the
+  difference is in what the watched index counts: the 1 draw an update the watch shows from the original's update 3101 is the
+  god's, so the original's particles draw from a generator other than the one at 0x579d20 (a watch on the application's
+  generator, `[[0x579e30]+0x670]+0x9c0`, showed no changes at all, so that expression is not right), or the watch misses them.
+  Open: the watch needs the right address for the generator behind `*(app + 0x670)`; until then the draws of the island
+  construction and the temple screen cannot be compared with the original's.
 
 Not reached (SCREENS.md says why in each row): the name-exists and rename errors, the story conversations and completion
 screens (they need a finished temple), the expert board, the mystery board, the sticky-spots hint and the scroll bars'
