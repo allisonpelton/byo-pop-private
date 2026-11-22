@@ -11,6 +11,7 @@
 
 #include "BubbleText.h"
 #include "Container.h"
+#include "KeyInterpolator.h"
 #include "LayerSet.h"
 #include "Shape.h"
 #include "MasterDocHandler.h"
@@ -95,6 +96,33 @@ public:
 private:
 	Timetable mMarks;     // +0x10
 	std::string mSound;   // +0x38: the theme's sound
+};
+
+// The player's fish died (PlayerDiedState, 0x98 bytes, vtables 0x558784 and 0x5587a4 (feedingfrenzy2); its
+// constructor 0x498830 (feedingfrenzy2)): the stage plays on without the player while the word playerDied bubbles
+// in, the camera holds for 1.5 seconds and then pans to the top of the middle by 3, the word bursts at 2.5 seconds,
+// and at 3.5 the player comes back (or, with no lives left, the run ends)
+class PlayerDiedState : public StageState
+{
+public:
+	// 0x498830 (feedingfrenzy2): three marks
+	explicit PlayerDiedState(Stage* theStage) : StageState(theStage), mMarks(COMPLETION_MARKS) {}
+
+	// 0x04 (0x4034b0 (feedingfrenzy2)): the theme's sound playerDie (not yet translated), the word set, the marks at
+	// 0, 2.5 and 3.5 seconds started, and the camera's path from where it is
+	void enter() override;
+	// 0x08 (0x4a0690 (feedingfrenzy2)): the word taken off
+	void exit() override;
+	// 0x0c (0x434cb0 (feedingfrenzy2)): the actors, the spawns, the HUD, the camera on its path, the fish's visuals
+	// and the ambient sounds updated; at the first mark the word bubbling in over 2 seconds, at the second burst, at
+	// the third the players started again (the stage's slot 0x18)
+	void update(engine::UpdateContext* theContext) override;
+
+private:
+	static const int COMPLETION_MARKS = 3;
+
+	Timetable mMarks;                         // +0x18
+	engine::Vector2KeyInterpolator mCamera;   // +0x40
 };
 
 // The container the stage's layers are drawn in, darkened through a mask on a night stage (MaskContainer, 0x1a8

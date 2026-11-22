@@ -494,14 +494,24 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
     time's end is not checked yet (stage 1 of the normal mode has no time).
   - Deviation (for now): after a perfect stage the mermaid's swim (the spawn "mermaid" with the spawn type
     mermaidStars, and MermaidState 0x51cc00) is not yet translated, so the completion follows at once.
-  - Not yet: the player's death and its state; the bonus stage's counts and end; the boss's; the sounds played
+  - Not yet: the bonus stage's counts and end; the boss's; the sounds played
     (the theme's stageClear, gameOver, playerDie, bubbleTextBurst; the application's sound stopped); the script's
     end; the orphanage's fish; the epilog after the mystery stage; the play state's next stage and game over.
 
+- The player's death (Stage.h: the play's slot 0x5c, its death part; PlayerDiedState 0x498830 with 0x4034b0,
+  0x4a0690 and 0x434cb0; the layer set's pan position). When the spawn finds its fish dead, a life is taken (not
+  in the timed mode) and shown, and the stage plays on without the player while the word playerDied bubbles in at
+  once over 2 seconds and bursts at 2.5; the camera holds for 1.5 seconds, then eases to the middle of the pan
+  range's top by 3; at 3.5 the players start again (the stage's slot 0x18), or with no lives left the run ends.
+  The test commands win (the last phase's food) and lose (the fish's state ended, as an eater ends it).
+  - Checked under rundesk over stage 1 with lose three times: the lives 3, 2, 1, 0, "SORRY" bubbled in each time,
+    the fish back after each, and at none the run ended and the play state saw the stage lost; exit 0.
+  - Not yet: the player's bonuses dropped (0x4a2120); the sound playerDie; on a bonus stage its own end.
+
 ## Next
 
-- The mermaid after a perfect stage; the player's death (PlayerDiedState); the play state's end of a stage (the next
-  stage, the continue, the game over); later the fish ranks' icons (StageCompleteState, the
+- The play state's end of a stage (the next stage through the stage-complete screen, the continue, the game over);
+  the mermaid after a perfect stage; later the fish ranks' icons (StageCompleteState, the
   continue offer and the game over); the restore-game popup's actions; the quit popup's actions over the intro and
   the pause's End Game; the compositeGroup element (the intro's background group, now skipped).
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's

@@ -171,6 +171,7 @@ public:
 	const engine::Color& getNightColorDark() const { return mNightColorDark; }
 	const engine::RectF& getCameraLimits() const { return mCameraLimits; }
 	const engine::RectF& getPanRange() const { return mPanRange; }
+	const engine::Vector2f& getPanPosition() const { return mPanPosition; }
 
 private:
 	friend class LayerSetDocHandler;

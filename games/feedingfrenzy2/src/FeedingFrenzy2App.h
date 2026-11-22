@@ -86,6 +86,8 @@ public:
 	void logState();
 	// The test command set <name> <value>: the score, the lives or the food eaten in the stage
 	void setState(const std::string& theArgs);
+	// The test commands win and lose: the stage's goal reached, or the player's fish ended as an eater ends it
+	void endStage(bool isWin);
 
 	// A frame of the engine (0x438700 (feedingfrenzy2))
 	void RunFrame();

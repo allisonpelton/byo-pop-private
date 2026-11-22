@@ -46,6 +46,10 @@ const int COMPLETION_MARK_COUNT = 3;
 const float COMPLETION_BURST_TIME = 2.5f;
 const float COMPLETION_END_TIME = 3.5f;
 const float COMPLETION_APPEAR_TIME = 2.0f;
+// The camera's path after the player's death (0x4034b0 (feedingfrenzy2): 0x56696c, 0x54dda0 and 0x54ddb0)
+const float DIED_CAMERA_HOLD_TIME = 1.5f;
+const float DIED_CAMERA_END_TIME = 3.0f;
+const float DIED_CAMERA_STRAIGHT_SHARE = 0.5f;
 const double ZERO = 0.0;                    // 0x566828 (feedingfrenzy2)
 const float PLAYER_FLASH_SECONDS = 3.0f;    // 0x40400000 in 0x4f37cf (feedingfrenzy2)
 
@@ -187,9 +191,18 @@ void Stage::updatePlay(UpdateContext* theContext)
 	PlayerFish* aFish = aSpawn->getFish();
 	if (!aSpawn->isLive())
 	{
-		// The player's death: the player's bonuses dropped (0x4a2120 (feedingfrenzy2)), a life taken (not in the
-		// timed mode), the HUD's lives, and the died state; on a bonus stage the word playerDied and the stage's end
-		// with the sound playerDie: not yet translated
+		if (mBonus)
+		{
+			// On a bonus stage the word playerDied, the player's bonuses dropped and the stage's end with the sound
+			// playerDie: not yet translated, as the bonus stages are not
+			return;
+		}
+		// The player's bonuses dropped (0x4a2120 (feedingfrenzy2), the 2X's and the speed's): not yet translated, as
+		// the bonuses are not
+		if (mGameData->getMode() != GAME_MODE_TIMED)
+			mGameData->setLives(mGameData->getLives() - 1);
+		mHud->showLives(mGameData->getLives());
+		mStateMgr.changeState(new PlayerDiedState(this));
 		return;
 	}
 	updateHud(theContext);
@@ -777,6 +790,56 @@ void CompletionState::update(UpdateContext* theContext)
 		// not yet translated, as the mystery stage's spawn is not
 		mStage->getStateMgr().changeState(nullptr);
 	}
+}
+
+void PlayerDiedState::enter()
+{
+	// The theme's sound playerDie played on the application's sound (0x489670 and 0x48d420 (feedingfrenzy2)): not
+	// yet translated, as the sounds are not
+	mStage->setMessage("playerDied");
+	mMarks.mTimes[0] = 0.0f;
+	mMarks.mTimes[1] = COMPLETION_BURST_TIME;
+	mMarks.mTimes[2] = COMPLETION_END_TIME;
+	mMarks.mOn = true;
+	LayerSet* aLayerSet = mStage->getLayerSet();
+	const RectF& aPanRange = aLayerSet->getPanRange();
+	// 0x459e00 (feedingfrenzy2): the width, kept at the x87's precision
+	Vector2f aTop((float)(((double)aPanRange.right - aPanRange.left) * HALF), aPanRange.top);
+	mCamera.clear();
+	Vector2Key aKey;
+	aKey.mTime = 0.0f;
+	aKey.mValue = aLayerSet->getPanPosition();
+	mCamera.addKey(aKey);
+	aKey.mTime = DIED_CAMERA_HOLD_TIME;
+	aKey.mValue = aLayerSet->getPanPosition();
+	mCamera.addKey(aKey);
+	aKey.mTime = DIED_CAMERA_END_TIME;
+	aKey.mValue = aTop;
+	mCamera.addKey(aKey);
+	mCamera.easeStretch(1, true, true, DIED_CAMERA_STRAIGHT_SHARE);
+}
+
+void PlayerDiedState::exit()
+{
+	mStage->hideMessage();
+}
+
+void PlayerDiedState::update(UpdateContext* theContext)
+{
+	mStage->updateActors(theContext);
+	mStage->updateSpawns(theContext);
+	mStage->updateHud(theContext);
+	mStage->getLayerSet()->setCamera(mCamera.getValue(mMarks.mTime));
+	mStage->updateFishVisuals(theContext);
+	mStage->updateAmbientSounds(theContext);
+	if (!mMarks.step(theContext->mElapsed))
+		return;
+	if (mMarks.mNext == 1)
+		mStage->showMessage(0.0f, COMPLETION_APPEAR_TIME);
+	else if (mMarks.mNext == 2)
+		mStage->burstMessage();
+	else if (mMarks.mNext == 3)
+		mStage->startPlayers();
 }
 
 void RunState::enter()

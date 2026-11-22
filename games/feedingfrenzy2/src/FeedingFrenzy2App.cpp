@@ -301,6 +301,11 @@ bool FeedingFrenzy2App::HandleScriptCommand(const ScriptCommand& theCommand)
 		setState(theCommand.mArgs);
 		return true;
 	}
+	if (theCommand.mCommand == "win" || theCommand.mCommand == "lose")
+	{
+		endStage(theCommand.mCommand == "win");
+		return true;
+	}
 	if (theCommand.mCommand != "unlock")
 		return false;
 	std::string aLine = theCommand.mCommand + " " + theCommand.mArgs;
@@ -343,6 +348,29 @@ void FeedingFrenzy2App::logState()
 	        "\"frenzy\":%d,\"shown\":%d,\"time\":%.2f,\"run\":\"%s\",\"player\":%s}",
 	        aData->getMode(), aData->getStage(), aData->getScore(), aData->getLives(), aData->getFood(), aPhase,
 	        aMultiplier, aShownScore, aTimeLeft, aRun, aPlayer.c_str());
+}
+
+void FeedingFrenzy2App::endStage(bool isWin)
+{
+	const char* aName = isWin ? "win" : "lose";
+	PlayerFish* aFish = mGame != nullptr && mGame->mStage != nullptr ? mGame->mStage->getFirstPlayer() : nullptr;
+	if (aFish == nullptr || aFish->getSpawn() == nullptr || !aFish->getSpawn()->isLive())
+	{
+		SDL_Log("ERROR %s: no player in play", aName);
+		return;
+	}
+	if (isWin)
+	{
+		// The food of the last phase's goal: the spawn grows the fish a phase a step, and the stage then ends
+		PlayerSpawn* aSpawn = aFish->getSpawn();
+		mGame->mGameData->setFood(aSpawn->getPhase(aSpawn->getPhaseCount() - 1).mFoodGoal);
+	}
+	else
+	{
+		// The fish's state ended, as a fish that eats it ends it (Fish::beSwallowed): the spawn then finds it dead
+		aFish->getStateMgr().changeState(nullptr);
+	}
+	SDL_Log("OK %s", aName);
 }
 
 void FeedingFrenzy2App::setState(const std::string& theArgs)
