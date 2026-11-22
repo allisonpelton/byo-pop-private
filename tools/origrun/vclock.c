@@ -212,6 +212,29 @@ static void vc_hold(int where, DWORD timeout)
 	InterlockedExchange64((LONGLONG volatile*)&s->heldReal100, s->heldReal100 + (qpc100() - r0));
 }
 
+// VC_HOLD_WINDOW: has this process a window up, by origrun's own test (resolve_window: visible, top-level and not
+// owned, at least 64x64)? The game runs free to it with no round trip to origrun at each wait, which stepping it wait
+// by wait cost: about 100 ms a wait with the machine busy, 80 s before Bookworm Adventures Volume 2's window
+// (2026-11-22). Asked at most every 2 ms of real time, since a busy loop's clock reads come here too.
+static BOOL CALLBACK own_window_cb(HWND h, LPARAM lp)
+{
+	DWORD pid = 0; GetWindowThreadProcessId(h, &pid);
+	if (pid != GetCurrentProcessId() || !IsWindowVisible(h) || GetWindow(h, GW_OWNER)) return TRUE;
+	RECT r;
+	if (!GetWindowRect(h, &r) || r.right - r.left < 64 || r.bottom - r.top < 64) return TRUE;
+	*(int*)lp = 1;
+	return FALSE;
+}
+static int own_window_up(void)
+{
+	static LONGLONG asked = -1; static int up;
+	LONGLONG now = qpc100();
+	if (asked >= 0 && now - asked < 2 * VC_UNITS_PER_MS) return up;
+	asked = now; up = 0;
+	EnumWindows(own_window_cb, (LPARAM)&up);
+	return up;
+}
+
 // At a wait of the driver (before the clock moves): does an armed barrier hold it here? wouldBe is the clock after
 // the wait. The game claims the barrier (ARMED to HELD) before it holds, so origrun can take back one not claimed yet.
 static void vc_barrier(int where, LONGLONG wouldBe, DWORD timeout)
@@ -221,7 +244,8 @@ static void vc_barrier(int where, LONGLONG wouldBe, DWORD timeout)
 	LONG k = s->holdKind;
 	int hit = k == VC_HOLD_NEXT
 		|| (k == VC_HOLD_UPDATE && s->counterOk && (LONG)(s->counter - s->holdUpdate) >= 0)
-		|| (k == VC_HOLD_TIME && wouldBe >= s->holdV);
+		|| (k == VC_HOLD_TIME && wouldBe >= s->holdV)
+		|| (k == VC_HOLD_WINDOW && own_window_up());
 	if (hit && InterlockedCompareExchange(&s->bar, VC_BAR_HELD, VC_BAR_ARMED) == VC_BAR_ARMED) vc_hold(where, timeout);
 }
 

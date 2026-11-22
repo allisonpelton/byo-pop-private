@@ -23,7 +23,7 @@
 enum { VC_AT_NONE, VC_AT_SLEEP, VC_AT_WAIT, VC_AT_MSGWAIT, VC_AT_POLL };
 // The barrier's state (VcShared.bar), what an armed one waits for (holdKind), and why holds went off (barrierOffWhy)
 enum { VC_BAR_FREE, VC_BAR_ARMED, VC_BAR_HELD };
-enum { VC_HOLD_NEXT, VC_HOLD_UPDATE, VC_HOLD_TIME };
+enum { VC_HOLD_NEXT, VC_HOLD_UPDATE, VC_HOLD_TIME, VC_HOLD_WINDOW };
 enum { VC_OFF_NONE, VC_OFF_CAP, VC_OFF_HOST, VC_OFF_FAILED };
 
 // What a read came to (VcShared.readStatus)
@@ -55,7 +55,9 @@ typedef struct VcShared {
 	// game has not claimed by moving it from ARMED to FREE, so the game never holds after origrun gave up on a hold.
 	volatile LONG bar;              // VC_BAR_*
 	volatile LONG holdKind;         // VC_HOLD_NEXT: the next wait; _UPDATE: once the counter reached holdUpdate; _TIME:
-	volatile LONG holdUpdate;       //   the wait that would take the clock to holdV or past it
+	volatile LONG holdUpdate;       //   the wait that would take the clock to holdV or past it; _WINDOW: the first wait
+	                                //   with a window of the game's own up, by origrun's test (visible, top-level and
+	                                //   not owned, at least 64x64), asked at most every 2 ms of real time
 	volatile LONGLONG holdV;
 	volatile LONG barrierOff;       // the game set 1: it holds no more in this run (a hold ran past its cap, origrun
 	volatile LONG barrierOffWhy;    //   ended, or a hold's wait failed: VC_OFF_*), at update barrierOffCounter

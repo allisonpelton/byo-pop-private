@@ -366,6 +366,7 @@ static int vc_is_held(void)
 	int dead=0; VcShared* s=vc_cur(NULL,NULL,NULL,NULL,&dead);
 	return s && !dead && s->held && s->bar==VC_BAR_HELD;
 }
+static HWND resolve_window(DWORD pid, DWORD* outPid);
 // Arm a barrier (which lets a held game go on), and wait for the hold. 1 held (at once when a held game already meets
 // it), 0 not held (timed out and taken back, the game ended, or another clock is followed now: it runs free), -1 no
 // clock, or the game's holds are off, so that callers fall back to their wall-clock waits (Sleep, the counter poll).
@@ -379,15 +380,22 @@ static int vc_hold_until(int kind, LONG upd, LONGLONG v100, int timeout_ms)
 	if (s->held && s->bar==VC_BAR_HELD) {   // already there?
 		if (kind==VC_HOLD_UPDATE && s->heldCounter!=-1 && (LONG)(s->heldCounter-upd)>=0) return 1;
 		if (kind==VC_HOLD_TIME && s->heldV>=v100) return 1;
+		if (kind==VC_HOLD_WINDOW && resolve_window(0,NULL)) return 1;
 	}
 	LONG seq0=s->heldSeq;
 	s->holdKind=kind; s->holdUpdate=upd; s->holdV=v100;
 	MemoryBarrier();
 	InterlockedExchange(&s->bar,VC_BAR_ARMED);
 	SetEvent(rel);
-	ULONGLONG t0=GetTickCount64();
+	ULONGLONG t0=GetTickCount64(), tLook=t0;
 	for (;;) {
 		if (s->heldSeq!=seq0 && s->held && s->bar==VC_BAR_HELD) return 1;
+		// VC_HOLD_WINDOW: a window that the stand-in's test does not count (another of our processes', or a stand-in from
+		// before the kind) is seen here, and the game then holds at its next wait
+		if (kind==VC_HOLD_WINDOW && GetTickCount64()-tLook>=250) {
+			tLook=GetTickCount64();
+			if (s->bar==VC_BAR_ARMED && s->holdKind==VC_HOLD_WINDOW && resolve_window(0,NULL)) InterlockedExchange(&s->holdKind,VC_HOLD_NEXT);
+		}
 		if (s->barrierOff) { vc_note_off(s,pid); return -1; }
 		if (gStop || GetTickCount64()-t0>=(ULONGLONG)timeout_ms) break;
 		HANDLE hs[2]={held,proc}; DWORD n=proc?2:1;
@@ -1173,9 +1181,9 @@ static DWORD find_game_pid(int timeout_ms)
 		// On the virtual clock a game held at a wait with no window up cannot make one: its first window can go again
 		// (a window another of its threads closes) after the driver's start loop found it and left the game held there,
 		// and the hold then lasted until the stand-in's 60 s cap (Bookworm Adventures Volume 2, 2026-11-22: "the game's
-		// window is up", then "no window in the first 20s" and the window first seen after 71 to 89 s). Let it on to its
-		// next wait instead, so the script still starts at the first wait after a window is up.
-		if (gClockVirtual && vc_get() && vc_is_held()) { vc_step(timeout_ms-(int)(GetTickCount64()-t0)); continue; }
+		// window is up", then "no window in the first 20s" and the window first seen after 71 to 89 s). Let it run to
+		// its first wait with a window up again, so the script still starts at a wait with the window up.
+		if (gClockVirtual && vc_get() && vc_is_held()) { vc_hold_until(VC_HOLD_WINDOW,0,0,timeout_ms-(int)(GetTickCount64()-t0)); continue; }
 		Sleep(100);
 	}
 	return 0;
@@ -3104,8 +3112,9 @@ static DWORD WINAPI driver_thread(LPVOID p)
 {
 	DriverArg* a=(DriverArg*)p;
 	if (!attach_desktop()) return 0;   // so the game's window handles are usable from this thread
-	// On the virtual clock the game holds at its first wait until origrun follows its clock; it is then let on wait by
-	// wait until its window is up, so the script starts at the same point of the game in every run.
+	// On the virtual clock the game holds at its first wait until origrun follows its clock; it then runs to the first
+	// wait with its window up and holds there (VC_HOLD_WINDOW), so the script starts at the same point of the game in
+	// every run.
 	if (gClockVirtual) {
 		VcShared* vs=vc_connect_wait(20000);
 		if (!vs) logline("--clock virtual: no game process had a clock within 20 s (did it load the stand-in, dsound.dll?); the script runs on the wall clock");
@@ -3118,10 +3127,11 @@ static DWORD WINAPI driver_thread(LPVOID p)
 				if (got) logline("--clock virtual: the game was held until the counter reader attached (first read %lu after %d wait%s)", (unsigned long)c, n, n==1?"":"s");
 				else logline("--clock virtual: the counter could not be read within 20 s; the game is no longer held for it");
 			}
-			while (!gStop && !resolve_window(0,NULL) && GetTickCount64()-t0<20000) { if (!vc_step(20000-(int)(GetTickCount64()-t0))) { ok=0; break; } }
-			if (resolve_window(0,NULL) && (vs=vc_get())!=NULL && !vc_is_held()) ok=vc_step(5000);
+			// up to 120 s, as find_game_pid waits below: a game pinned to one core at below-normal priority can take long
+			if (!resolve_window(0,NULL)) ok=vc_hold_until(VC_HOLD_WINDOW,0,0,120000)==1;
+			if (ok && resolve_window(0,NULL) && (vs=vc_get())!=NULL && !vc_is_held()) ok=vc_step(5000);
 			vs=vc_get();
-			if (ok && vs && vc_is_held()) logline("--clock virtual: the game's window is up; the game is held at its wait %ld (update %ld, %.1f ms of game time)", (long)vs->holds, (long)vs->heldCounter, (double)vs->heldV/VC_UNITS_PER_MS);
+			if (ok && vs && vc_is_held()) logline("--clock virtual: the game's window is up after %.1f s; the game is held at its wait %ld (update %ld, %.1f ms of game time)", (GetTickCount64()-t0)/1000.0, (long)vs->holds, (long)vs->heldCounter, (double)vs->heldV/VC_UNITS_PER_MS);
 			else logline("--clock virtual: the game was not held with its window up (it runs free); a script's first commands may land later than on another run");
 		}
 	}
