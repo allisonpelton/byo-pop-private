@@ -66,6 +66,25 @@ public:
 	void SetState(int theState);						// 0x436fb0
 	void Clear(bool theNewGame, bool theKeepLists = false); // 0x45d900: the state of a level (a new game: the players' too)
 	void Update();		// 0x4730d0
+	bool IsComputerTurn() const;						// the flag of the player in turn at +0x244
+	bool ClearedLevel() const;							// 0x43d580: no orange peg is left (with mUnknownFB, no purple one either)
+	bool MouseMove();									// 0x43d5d0: the cannon follows the mouse again
+	bool MouseDrag(int theX, int theY);					// 0x43d620
+	void MouseDown(int theX, int theY, int theButton, int theClickCount, bool theReplayed); // 0x?: the shot
+	void MouseUp(int theX, int theY, int theButton, bool theReplayed);
+	void UpdateGun();
+	void UpdateFreeBall();								// 0x440830
+	void RemoveHitPegs();
+	void UpdatePreShot();								// 0x466f10
+	void UpdateShot();									// 0x472f60
+	void UpdatePostShot();
+	void UpdateTotalMiss();								// 0x471500
+	void UpdateLevelDone();
+	void UpdatePostPostShot();							// 0x471600
+	void UpdateShotExtender();							// 0x44b690
+	void UpdateInitLevel();								// 0x4484a0
+	void UpdateCharacterDialog();						// 0x4709f0
+	void UpdateZenShot();
 	void MouseWheel(int theDelta);		// 0x43d6a0
 	void DoFeverMissed();		// 0x4372e0
 	void KillSlowMoSound();								// 0x4372c0
@@ -123,6 +142,8 @@ public:
 	int mUnknown74;			 // +0x74
 	int mUnknown78;			 // +0x78
 	std::string mSongFolder; // +0x7c: empty (Clear makes a "pegsongs/" string and never uses it)
+	int mUnknown98;			 // +0x98: the place of the last drag (-10000 when it moved)
+	int mUnknown9C;			 // +0x9c
 	int mUnknownA0;			 // +0xa0
 	int mUnknownA4;			 // +0xa4
 	bool mUnknownA8;		 // +0xa8

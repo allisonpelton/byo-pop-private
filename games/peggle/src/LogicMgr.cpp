@@ -698,10 +698,74 @@ void LogicMgr::SetCharacters(int theFirst, int theSecond)
 	mBoard->mCharacterMgr->SetCurCharacter(mCharacter[mCurPlayer]);
 }
 
+// the flags at +0x244 and +0x245 are one for each player: the computer plays that player (read as +0x244 + the player)
+bool LogicMgr::IsComputerTurn() const
+{
+	return mCurPlayer == 0 ? mUnknown244 : mUnknown245;
+}
+
+// 0x43d580
+bool LogicMgr::ClearedLevel() const
+{
+	if (!mUnknownFB)
+		return mGoalPegs.size() == 0;
+	return mGoalPegs.size() == 0 && mOtherPegs.size() == 0;
+}
+
+// 0x43d5d0
+bool LogicMgr::MouseMove()
+{
+	if (mUnknownE8 == 0 && !IsComputerTurn())
+	{
+		mUnknown70 = MOUSE_WHEEL_MOVE;
+		mBoard->mGun->mUnknown17C = 1000.0f;
+		mUnknown1F = true;
+	}
+	return true;
+}
+
+// 0x43d620
+bool LogicMgr::MouseDrag(int theX, int theY)
+{
+	if (mUnknownE8 == 0 && !IsComputerTurn() && (theX != mUnknown98 || theY != mUnknown9C))
+	{
+		mUnknown98 = -10000;
+		mUnknown9C = -10000;
+		mUnknown70 = MOUSE_WHEEL_MOVE;
+		mBoard->mGun->mUnknown17C = 1000.0f;
+		mUnknown1F = true;
+	}
+	return true;
+}
+
 // 0x4730d0
 void LogicMgr::Update()
 {
-	NOT_TRANSLATED("LogicMgr::Update");
+	if (mUnknownF5 && mState == 2 && !mUnknownC4.empty())
+		NOT_TRANSLATED("LogicMgr::Update with replayed clicks");
+	if (mUnknownE8 != 0)
+		mUnknownE8--;
+	UpdateGun();
+	if (mBoard->mUnknownC2)
+		return;
+	mStateTime++;
+	if (mUnknown134 != 0)
+		UpdateFreeBall();
+	if (mUnknown0C != 0 && --mUnknown0C == 0)
+		RemoveHitPegs();
+	switch (mState)
+	{
+	case 1: UpdatePreShot(); break;
+	case 2: UpdateShot(); break;
+	case 3: UpdatePostShot(); break;
+	case 4: UpdateTotalMiss(); break;
+	case 5: UpdateLevelDone(); break;
+	case 6: UpdatePostPostShot(); break;
+	case 7: UpdateShotExtender(); break;
+	case 8: UpdateInitLevel(); break;
+	case 9: UpdateCharacterDialog(); break;
+	case 10: UpdateZenShot(); break;
+	}
 }
 
 // 0x43d6a0
@@ -714,4 +778,94 @@ void LogicMgr::MouseWheel(int theDelta)
 void LogicMgr::DoFeverMissed()
 {
 	NOT_TRANSLATED("LogicMgr::DoFeverMissed");
+}
+
+// (address in the header)
+void LogicMgr::MouseDown(int theX, int theY, int theButton, int theClickCount, bool theReplayed)
+{
+	NOT_TRANSLATED("LogicMgr::MouseDown");
+}
+
+// (address in the header)
+void LogicMgr::MouseUp(int theX, int theY, int theButton, bool theReplayed)
+{
+	NOT_TRANSLATED("LogicMgr::MouseUp");
+}
+
+// (address in the header)
+void LogicMgr::UpdateGun()
+{
+	NOT_TRANSLATED("LogicMgr::UpdateGun");
+}
+
+// (address in the header)
+void LogicMgr::UpdateFreeBall()
+{
+	NOT_TRANSLATED("LogicMgr::UpdateFreeBall");
+}
+
+// (address in the header)
+void LogicMgr::RemoveHitPegs()
+{
+	NOT_TRANSLATED("LogicMgr::RemoveHitPegs");
+}
+
+// (address in the header)
+void LogicMgr::UpdatePreShot()
+{
+	NOT_TRANSLATED("LogicMgr::UpdatePreShot");
+}
+
+// (address in the header)
+void LogicMgr::UpdateShot()
+{
+	NOT_TRANSLATED("LogicMgr::UpdateShot");
+}
+
+// (address in the header)
+void LogicMgr::UpdatePostShot()
+{
+	NOT_TRANSLATED("LogicMgr::UpdatePostShot");
+}
+
+// (address in the header)
+void LogicMgr::UpdateTotalMiss()
+{
+	NOT_TRANSLATED("LogicMgr::UpdateTotalMiss");
+}
+
+// (address in the header)
+void LogicMgr::UpdateLevelDone()
+{
+	NOT_TRANSLATED("LogicMgr::UpdateLevelDone");
+}
+
+// (address in the header)
+void LogicMgr::UpdatePostPostShot()
+{
+	NOT_TRANSLATED("LogicMgr::UpdatePostPostShot");
+}
+
+// (address in the header)
+void LogicMgr::UpdateShotExtender()
+{
+	NOT_TRANSLATED("LogicMgr::UpdateShotExtender");
+}
+
+// (address in the header)
+void LogicMgr::UpdateInitLevel()
+{
+	NOT_TRANSLATED("LogicMgr::UpdateInitLevel");
+}
+
+// (address in the header)
+void LogicMgr::UpdateCharacterDialog()
+{
+	NOT_TRANSLATED("LogicMgr::UpdateCharacterDialog");
+}
+
+// (address in the header)
+void LogicMgr::UpdateZenShot()
+{
+	NOT_TRANSLATED("LogicMgr::UpdateZenShot");
 }
