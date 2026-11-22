@@ -1228,6 +1228,23 @@ void Board::DrawTile(Graphics* g, GridObject* theObject)
 	if (aKind == 3 && theObject->mState == 0)
 		g->DrawImage(mApp->mImages[IMAGE_STICKYEDGE_20X20], aX + 1, aY + 1);
 
+	// the flash of a finished puzzle (0x42f4e7 with 0x4227c0): once the puzzle is done and still, every tile is covered by a
+	// yellow (255, 252, 27) grey tile whose alpha is 255 less the glow's 255ths, so the tiles go yellow as the delay runs down
+	if (mGrid->mDone && !mGrid->mTileMoving)
+	{
+		int aGlowAlpha = 255 - (int) (mGrid->mGlow * 255.0);
+		if (aGlowAlpha < 0)
+			aGlowAlpha = 0;
+		if (aGlowAlpha > 255)
+			aGlowAlpha = 255;
+		if (aGlowAlpha > 0)
+		{
+			g->SetColorizeImages(true);
+			g->SetColor(Color(255, 252, 27, aAlpha * aGlowAlpha / 255));
+			g->DrawImage(mApp->mImages[IMAGE_GRAYTILE_20X20], aX, aY);
+		}
+	}
+
 	// the shine of a tile that has just come to rest
 	if (theObject->mIdle < 100)
 	{
