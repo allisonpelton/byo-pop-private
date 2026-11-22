@@ -215,5 +215,11 @@ What the analysis has found about the exe, for reading the export. The plan is i
   the port's Graphics yet, and which resources the effects are made from was not found.
 - MainMenu: Draw 0x6a0ca0 and Update 0x6a3530 are driven by about fifteen CurvedVals (curve strings such as
   "b;0,1,0.005,1,####         ~~###" in the 2D-or-3D constructor), the logos ("Logo%dFile", "Logo%dHoldTime") and the
-  tips line; none of their screen positions was found within the hour, so the menu keeps the port's own placement
-  (a "port:" note in src/MainMenu.cpp) and the foreground picture and logos are not drawn. Oddity: the buttons' places.
+  tips line. The buttons' places come from Update 0x6a3530, in 2D as well: each crystal ball is a point in 3D, turned
+  and moved by matrices built from the curves (0x419850, 0x428600, 0x4198b0, 0x4197a0, 0x4287e0) and projected to the
+  screen by the camera object at MainMenu+0x134 (its slot 3); the button is then resized around the projected point
+  (slot 40), PLAY art size x 180/1200 across and RECORDS and OPTIONS x 120/1200, and the point's offset from the
+  integer place is kept at the button's +0x270 and +0x278. The PLAY point is moved by the app's fields [0x1c5],
+  [0x1c7] and [0x1c8] (the screen's offset and scale) and art size x 160/1200, scaled by 1 - a curve. Until this is
+  translated the menu keeps the port's own placement (a "port:" note in src/MainMenu.cpp), and the foreground picture
+  and logos are not drawn.
