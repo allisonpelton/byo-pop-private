@@ -128,7 +128,8 @@ var ByopopSoundtracks = {
     // the user, 2026-11-19: "bejewel twist 06.10 is the part composed by Philippe Charron, while BejeweledTwist24 is by Peter
     // Hajba; update the composers accordingly"
     composer: "Philippe Charron & Peter Hajba (Skaven)",
-    composers: { "bejewel twist 06.10": "Philippe Charron", "bejeweledtwist24": "Peter Hajba (Skaven)" },
+    // (its unused 1981-DataJack is Bejeweled's Timed tune, his too)
+    composers: { "bejewel twist 06.10": "Philippe Charron", "bejeweledtwist24": "Peter Hajba (Skaven)", "1981-DataJack": "Peter Hajba (Skaven)" },
     files: ["music/*.mo3"],
     cuts: { "bejewel twist 06.10#3": [72], "bejewel twist 06.10#7": [73], "bejeweledtwist24#0": [24] },
     skip: ["bejewel twist 06.10#3@72"],
