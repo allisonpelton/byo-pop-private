@@ -163,8 +163,12 @@ Color ScreenDocHandler::readColor(Params& theAttributes, const std::string& theN
 	return theDefault;
 }
 
+bool ScreenDocHandler::sHonorVisible = false;
+
 void ScreenDocHandler::readCommon(Params& theAttributes, Component* theComponent)
 {
+	if (sHonorVisible && !theAttributes.getBool("visible", true))
+		theComponent->setVisible(false);
 	theComponent->setFilterMode(equals(theAttributes.getString("smoothType", ""), "smoothAll") ? 1 : 0);
 	std::string aModifierName = theAttributes.getString("modifier", "");
 	if (!aModifierName.empty())

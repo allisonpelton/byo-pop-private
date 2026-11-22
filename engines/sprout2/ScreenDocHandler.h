@@ -24,6 +24,10 @@ class Theme;
 class ScreenDocHandler : public SubDocHandler
 {
 public:
+	// Talismania's reader of an element's common attributes (0x620da0 and its callers (talismania)) also reads "visible"; Feeding
+	// Frenzy 2's does not, and its layouts are read without it. A game switches it on before its screens are read
+	static void setHonorVisible(bool theHonor) { sHonorVisible = theHonor; }
+
 	// 0x47d880 (feedingfrenzy2)
 	ScreenDocHandler(ScreenLayout* theLayout, int theDetailLevel, Theme* theTheme);
 
@@ -68,6 +72,8 @@ private:
 	std::deque<bool> mReading;              // +0x8c: for each open element, whether it and its contents are read
 	int mDetailLevel;                       // +0xa0
 	std::string mDetailString;              // +0xa4: the detail level as a number
+private:
+	static bool sHonorVisible;
 };
 
 } // namespace engine
