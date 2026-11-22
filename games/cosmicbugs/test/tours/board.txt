@@ -1,0 +1,121 @@
+# The board's ends and the saved game, from phase one's k1 play (the first 141 s of games/cosmicbugs/test/plays/k1.txt):
+# a won board's texts (fill, bonus, the next board's intro), Esc to pause and again to the title (the game is saved), Start
+# Game and the resume question, OK, then the same again with Cancel (the world picker), a world's button and the level
+# slider (its left arrow), "click here when done". Never Quit or a link.
+3000 click 175 313
+4000 click 400 563
+7000 rclick
+7500 click 548 455
+9576 click 341 373
+12730 click 307 388
+14810 rclick
+15310 click 123 137
+17569 click 558 165
+19365 click 357 249
+20700 key 32
+21786 rclick
+22286 click 536 445
+24190 rclick
+24690 click 456 406
+27208 click 497 141
+29025 click 210 193
+32181 click 584 212
+33700 key 32
+34811 click 530 378
+36120 rclick
+36620 click 158 370
+39893 click 196 231
+40300 key 13
+41820 click 192 192
+43300 key 13
+44467 click 517 232
+46665 click 668 339
+47700 key 32
+48262 rclick
+48762 click 582 386
+50552 rclick
+51052 click 616 327
+52596 rclick
+53096 click 215 211
+56066 click 627 131
+58072 rclick
+58572 click 654 243
+61242 click 235 222
+61700 key 32
+63613 rclick
+64113 click 476 300
+66322 click 433 255
+67533 rclick
+68033 click 298 349
+69800 rclick
+70300 click 157 476
+71000 shot end_fill
+71500 key 190
+72500 shot end_bonus
+72864 click 367 338
+74500 shot end_next
+75700 key 32
+76243 click 134 307
+78748 click 373 255
+80580 click 569 338
+83664 click 178 277
+85270 click 416 147
+87129 rclick
+87629 click 523 165
+90411 rclick
+90700 key 32
+90911 click 269 207
+93938 click 170 259
+95723 click 658 375
+97280 click 494 208
+100085 rclick
+100585 click 556 378
+103275 click 608 287
+104700 key 32
+105059 click 402 201
+108132 click 511 480
+109889 click 144 265
+112104 rclick
+112604 click 375 429
+114466 rclick
+114966 click 535 200
+116239 rclick
+116739 click 526 178
+118121 rclick
+118621 click 577 202
+118700 key 32
+120268 click 408 194
+122390 click 452 332
+124901 click 290 222
+126777 click 326 493
+129801 click 167 439
+131700 key 32
+132756 click 178 134
+135049 click 185 333
+138113 click 358 259
+141000 key 27
+142000 shot late_paused
+142500 key 27
+143500 shot late_title
+144000 click 175 313
+145000 shot resume_q
+146000 click 336 328
+148000 shot resume_yes
+149500 shot resume_yes2
+150000 key 27
+151000 key 27
+152000 shot late_title2
+152500 click 175 313
+153500 shot resume_q2
+154000 click 460 328
+155500 shot worlds_saved
+156500 move 400 300
+157000 shot worlds_saved_hover
+158000 click 294 90
+159500 shot slider
+160000 end
+160500 click 110 312
+161500 shot slider_left
+162000 click 400 563
+164000 shot slider_board
+170000 end
