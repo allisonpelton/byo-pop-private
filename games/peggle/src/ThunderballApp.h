@@ -170,6 +170,7 @@ public:
 	int mGameMode = GAME_MODE_NONE;	 // +0x760
 	int mStartStage = 0;			 // +0x764: the stage a game starts at
 	int mStartLevel = 0;			 // +0x768
+	int mChallengeId = 0;			 // +0x76c: the trophy being played in the challenge mode (TrophyMgr's id)
 	int mMaxStage = 0;				 // +0x770: the furthest stage any profile in use has reached (CheckMaxStage raises it)
 	int mMaxLevel = 0;				 // +0x774: and the furthest level of that stage
 	bool mLevelMusicPending = false; // +0x779: the level music is still to be loaded

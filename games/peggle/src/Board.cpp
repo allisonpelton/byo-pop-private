@@ -46,6 +46,7 @@ static const int SONG_NOT_PLAYED = 4;			// the board never plays this one of the
 static const int SONG_STRIDE = 6;				// PlayMusic's music ids for the board are six apart (the level music ids)
 static const int RANDOM_CHARACTER = 10;			// a player's choice of master that means "any"; also the number of masters
 static const int MAX_UNLOCKED_CHARACTER = 20;	// GetMaxUnlockedCharacter, for a registered game (the only kind here)
+static const int DEMO_LEVEL_MIN_GAP = 10;		// a level drawn at random is not one that was drawn in the last ten picks
 static const int MAX_CHARACTER_TRIES = 50;		// how often a master is drawn again to avoid the last game's
 static const int GUN_SCREEN_X = 400;			// the cannon is put at these less the origin (Board.cpp 2 and 3, 147: ModValInt 400 and 70)
 static const int GUN_SCREEN_Y = 70;
@@ -308,11 +309,66 @@ void Board::SyncModeOptions()
 		mReplayDialog->SetMode(true, false, true);
 		return;
 	case GAME_MODE_DEMO:
-		NOT_TRANSLATED("Board::SyncModeOptions in the demo mode (StageMgr::GetRandomLevel)");
+	{
+		// a level drawn from those the player (or the screen saver, any player) has reached, not the one drawn last
+		int aStage = -1;
+		int aLevel = -1;
+		int aMaxStage = mApp->mMaxStage;
+		int aMaxLevel = mApp->mMaxLevel;
+		if (!mApp->IsScreenSaver() && mApp->mCurrentPlayer != nullptr)
+		{
+			aMaxStage = mApp->mCurrentPlayer->mMaxStage;
+			aMaxLevel = mApp->mCurrentPlayer->mMaxLevel;
+		}
+		mApp->mStageMgr.GetRandomLevel(aMaxStage, aMaxLevel, &aStage, &aLevel, false, DEMO_LEVEL_MIN_GAP, true);
+		StageInfo* aStageInfo = mApp->mStageMgr.GetStageInfo(aStage);
+		if (aStageInfo == nullptr)
+			return;
+		LevelInfo* aLevelInfo = aStageInfo->GetLevelInfo(aLevel);
+		if (aLevelInfo == nullptr)
+			return;
+		mLevelName = "levels/" + aLevelInfo->mFileName + ".dat";
+		SyncCharacterOptions(true);
 		return;
+	}
 	case GAME_MODE_CHALLENGE:
-		NOT_TRANSLATED("Board::SyncModeOptions in the challenge mode");
+	{
+		mChallenge = mApp->mTrophyMgr.GetTrophyInfoById(mApp->mChallengeId);
+		if (mChallenge == nullptr || mUnknownF0 < 0 || (int)mChallenge->mLevels.size() <= mUnknownF0)
+		{
+			mApp->mGameMode = GAME_MODE_NONE;
+			mGameMode = GAME_MODE_NONE;
+			return;
+		}
+		mLogicMgr->mTwoPlayer = false;
+		mLogicMgr->mUnknown245 = false;
+		mLogicMgr->mUnknown244 = false;
+		// the challenge's level: a file, "rand" or "rand2" (a level drawn, the next of the challenge never the same as an earlier
+		// one when it can be helped), or "pick" (the level the player picked)
+		std::string aSpec = mChallenge->mLevels[mUnknownF0];
+		if (StrPrefixNoCase(aSpec.c_str(), "rand"))
+		{
+			if (mUnknownF0 == 0)
+				mApp->mStageMgr.ResetLastUseTimes();
+			bool aSkipExcluded = sexy_stricmp(aSpec.c_str(), "rand2") == 0;
+			if (mApp->mCurrentPlayer != nullptr)
+			{
+				LevelInfo* aLevelInfo = mApp->mStageMgr.GetRandomLevel(mApp->mCurrentPlayer, aSkipExcluded, DEMO_LEVEL_MIN_GAP);
+				if (aLevelInfo != nullptr)
+					aSpec = aLevelInfo->mFileName;
+			}
+		}
+		else if (sexy_stricmp(aSpec.c_str(), "pick") == 0)
+		{
+			LevelInfo* aLevelInfo = mApp->GetCurLevelInfo();
+			if (aLevelInfo == nullptr)
+				return;
+			aSpec = aLevelInfo->mFileName;
+		}
+		mLevelName = "levels/" + aSpec + ".dat";
+		SyncCharacterOptions(true);
 		return;
+	}
 	default:
 		break;
 	}
@@ -621,7 +677,22 @@ void Board::SyncCharacterOptions(bool theDrawAgain)
 		}
 		else if (mGameMode == GAME_MODE_CHALLENGE && i == 1 && mChallenge != nullptr)
 		{
-			NOT_TRANSLATED("Board::SyncCharacterOptions in the challenge mode (the computer's opponent)");
+			// the computer's opponent of this round of the challenge (the last one when there are fewer than rounds)
+			const std::vector<std::pair<int, int> >& anOpponents = mChallenge->mOpponents;
+			const std::pair<int, int>* anOpponent = nullptr;
+			if (!anOpponents.empty() && mUnknownF0 >= 0)
+				anOpponent = mUnknownF0 >= (int)anOpponents.size() ? &anOpponents.back() : &anOpponents[mUnknownF0];
+			if (anOpponent == nullptr || anOpponent->first < 0)
+				aLogic->mTwoPlayer = false;
+			else
+			{
+				aLogic->mTwoPlayer = true;
+				aLogic->mUnknown245 = true;
+				aPlayer2Name = "Computer";
+				aCharacters[1] = anOpponent->first;
+				int aSkill = anOpponent->second;
+				aLogic->mUnknown78 = aSkill == -1 ? -1 : aSkill == 1 ? 1 : aSkill == 2 ? 10 : 0;
+			}
 		}
 		else if (mGameMode == GAME_MODE_DEMO)
 		{
