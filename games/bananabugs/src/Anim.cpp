@@ -1,5 +1,4 @@
 // Anim: one picture cut into cels, pre-scaled to the window when it loads (0x401000..0x402640 in the original).
-#include <cstdio>
 #include "Anim.h"
 
 #include "Color.h"
