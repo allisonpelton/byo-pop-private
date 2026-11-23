@@ -111,8 +111,13 @@ public:
 	engine::Ref<engine::GenericScreen> mGenericLoadScreen;       // +0x80
 	engine::Ref<GameMapScreen> mGameMap;                         // +0x84
 	engine::Ref<engine::GenericScreen> mCredits;                 // +0x88
-	// +0x8c to +0x94: the high scores (HighScoreScreen) and the two game overs (StageCompleteScreenBonus): not yet
-	// translated
+	// +0x8c: the high scores (HighScoreScreen): not yet translated
+	// +0x90 and +0x94: the continue offer and the game over, each made as the bonus stage's end
+	// (StageCompleteScreenBonus, its constructor 0x4969a0 (feedingfrenzy2)) but read by the plain layout's load, so
+	// without the splats and the effects' group; with no count running, its press of the mouse does nothing, and a
+	// plain screen behaves the same
+	engine::Ref<engine::GenericScreen> mGameOverContinue;        // +0x90: resource/shell/gameOverContinuesLeft.xml
+	engine::Ref<engine::GenericScreen> mGameOver;                // +0x94: resource/shell/gameOverNoContinuesLeft.xml
 	engine::Ref<StageIntroScreen> mStageIntro;                   // +0x98
 	engine::Ref<StageCompleteScreenNormal> mStageCompleteNormal; // +0x9c
 	// +0xa0 and +0xa4: the bonus stage's end (StageCompleteScreenBonus) and the options (FeedingFrenzyTwoOptionScreen):

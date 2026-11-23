@@ -38,6 +38,11 @@ private:
 
 	// 0x4a0ac0 (feedingfrenzy2): the pause screen as a popup over the play
 	void showPause();
+	// 0x543631 (feedingfrenzy2): the continues left in the offer to go on, shown as a popup in the play's place
+	void showContinue();
+	// 0x543747 (feedingfrenzy2): the mode's saved game cleared, and the game over shown as a popup in the play's place
+	// with the score, the player's rank header and the rank the food bank earns
+	void showGameOver();
 	// 0x4a1e80 (feedingfrenzy2): the engine's mouse taken (its slot 4): the cursor hidden and its motion steering
 	void acquireMouse();
 

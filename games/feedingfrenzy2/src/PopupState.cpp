@@ -3,6 +3,10 @@
 #include "DrawContext.h"
 #include "EditBox.h"
 #include "Engine.h"
+#include "GamePlayState.h"
+#include "LevelLoadState.h"
+#include "MenuState.h"
+#include "Stage.h"
 #include "Scene.h"
 #include "ScreenMgr.h"
 #include "TextItem.h"
@@ -194,6 +198,30 @@ void PopupState::action(const std::string& theAction)
 	{
 		mApp->mUserSelect->selectUser();
 		show(mApp->mUserSelect.get());
+	}
+	else if (theAction == "continueYes")
+	{
+		// The game taken up again on the stage lost, with a continue fewer, three lives and the stage's clock
+		GameData* aData = mApp->mGameData.get();
+		aData->setContinues(aData->getContinues() - 1);
+		aData->setLives(3);
+		const StageManifest::Stage* anEntry = aData->getStageEntry();
+		mApp->mStage->setStageTime((float)anEntry->mStageTime);
+		aData->setTimeRollover(anEntry->mNewGameTime);
+		mNextState = new GamePlayState(mApp);
+		close();
+	}
+	else if (theAction == "continueNo" || theAction == "gameOverDone")
+	{
+		// The high scores first (0x49b030 (feedingfrenzy2), the application's +0x8c, given the mode, score and
+		// stage): a score they take sends the menu to them (MENU_SCREEN_HIGH_SCORES); not yet translated, as the
+		// high scores are not. (continueNo also builds a name it does not use.)
+		getEngine()->log("PopupState: the high scores not yet translated\n");
+		mApp->mUserData->clearSavedGame(mApp->mGameData->getMode());
+		const StageManifest::Stage* aMenuEntry = &mApp->mGameData->getMenuStages().getStages()[0];
+		mNextState = new LevelLoadState(mApp, aMenuEntry, new MenuState(mApp));
+		// The application's sound at +0x38 stopped (0x490370 (feedingfrenzy2)): not yet translated
+		close();
 	}
 	else
 		// appQuitYes, saveGameContinue, saveGameNoContinue, pauseOptions, optionsDone, pauseQuit,

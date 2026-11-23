@@ -3,6 +3,8 @@
 #include "Engine.h"
 #include "LevelLoadState.h"
 #include "Mouse.h"
+#include "NumberText.h"
+#include "PlayerRanks.h"
 #include "PopupState.h"
 #include "StageCompleteState.h"
 #include "ScreenMgr.h"
@@ -66,12 +68,34 @@ void GamePlayState::update(UpdateContext* theContext)
 		mEndLogged = true;
 		return;
 	}
-	// The stage lost: with continues left the offer to go on (0x543631 (feedingfrenzy2)), else the game over
-	// (0x543747 (feedingfrenzy2)), each on the game-over screens (+0x8c and +0x90): not yet translated
-	if (!mEndLogged)
-		getEngine()->log("GamePlayState: the stage lost; %s not yet translated\n",
-		                 mApp->mGameData->getContinues() > 0 ? "the continue" : "the game over");
-	mEndLogged = true;
+	// The stage lost: with continues left the offer to go on, else the game over
+	if (mApp->mGameData->getContinues() > 0)
+		showContinue();
+	else
+		showGameOver();
+}
+
+void GamePlayState::showContinue()
+{
+	// The stage theme's gameOver music first: not yet translated
+	TextItem* aContinuesText = static_cast<TextItem*>(mApp->mGameOverContinue->findComponent("contLeftNum"));
+	aContinuesText->setText(localeNumber(mApp->mGameData->getContinues()));
+	mApp->mStateMgr.changeState(new PopupState(mApp, mApp->mGameOverContinue.get(), nullptr));
+}
+
+void GamePlayState::showGameOver()
+{
+	// The stage theme's gameOver music first: not yet translated
+	GameData* aData = mApp->mGameData.get();
+	mApp->mUserData->clearSavedGame(aData->getMode());
+	GenericScreen* aScreen = mApp->mGameOver.get();
+	static_cast<TextItem*>(aScreen->findComponent("scoreText"))->setText(groupedNumber(aData->getScore()));
+	// ("%s%s" in the original)
+	std::string aHeader = mApp->mUserData->getName() + mApp->mStrings->getString("rankHdrSuffix");
+	static_cast<TextItem*>(aScreen->findComponent("rankHdrText"))->setText(aHeader);
+	static_cast<TextItem*>(aScreen->findComponent("rankText"))
+		->setText(mApp->mPlayerRanks->getTitle(mApp->mUserData->getFoodBank()));
+	mApp->mStateMgr.changeState(new PopupState(mApp, aScreen, nullptr));
 }
 
 void GamePlayState::action(const std::string& theAction)

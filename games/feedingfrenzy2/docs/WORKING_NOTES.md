@@ -560,9 +560,25 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   the high scores after the last stage, the debug fun fact buttons (hidden, taking no input), and the bonus stage's
   end (StageCompleteScreenBonus, +0xa0), whose stage still stops at a log.
 
+- The stage lost (the play state's 0x543631 and 0x543747, the popup's continueYes, continueNo and gameOverDone in
+  0x414e50). The continue offer (+0x90, gameOverContinuesLeft.xml) and the game over (+0x94,
+  gameOverNoContinuesLeft.xml) are made in the original as StageCompleteScreenBonus (0x4969a0) but read by the plain
+  layout's load, so they are plain shell screens here, each with fades of 0.2 seconds. With continues left the play
+  shows the offer with their number; Yes takes one, gives three lives, sets the stage's clock and the timed mode's
+  rollover from the manifest's entry, and goes back to the play. Otherwise the mode's saved game is cleared and the
+  game over shows the score, the player's name with the strings' rankHdrSuffix, and the rank the food bank earns.
+  No and Done clear the saved game and load the menu's first stage and the menu. Checked under rundesk on stage 1:
+  three deaths show the offer with 2 left, Yes plays on with three lives, three more show 1 left, Yes again, three
+  more show the game over with the score 0 and Newbie Nibbler, and Done reaches the menu; exit 0. No was not pressed
+  (it shares Done's steps). Not translated: the gameOver music, the high scores before the menu, the sound stopped.
+  To compare with the original in the looks phase: the play behind these popups does not darken here.
+  A scripted test note: after a popup's button is pressed, the scene keeps it as the hovered component while the
+  play holds the mouse (moves are not passed on), so a scripted press on the same button of the next popup gets no
+  enter and does nothing; a real cursor is warped back on the release and moves, so press a neutral spot first.
+
 ## Next
 
-- The play state's other ends (the continue, the game over, the bonus stage's end); the mermaid after a perfect
+- The bonus stage's end; the mermaid after a perfect
   stage; later the fish ranks' icons; the restore-game popup's actions; the quit popup's actions over the intro and
   the pause's End Game; the compositeGroup element (the intro's background group, now skipped).
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's

@@ -42,6 +42,7 @@ public:
 	void setScore(int theScore) { mScore = theScore; }
 	void setLives(int theLives) { mLives = theLives; }
 	int getContinues() const { return mContinues; }
+	void setContinues(int theContinues) { mContinues = theContinues; }
 	int getStage() const { return mStage; }
 	void setStage(int theStage) { mStage = theStage; }
 	int getTimeRollover() const { return mTimeRollover; }
