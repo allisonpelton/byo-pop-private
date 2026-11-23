@@ -1,0 +1,11 @@
+# losing and regaining the focus in play (case focus1, seed 1: look1's input to frame 1000, the focus lost at 1000 and
+# regained at 1100)
+999 before
+1001 lost
+1010 lost_10
+1050 lost_50
+1099 lost_99
+1101 regained
+1110 regained_10
+1150 regained_50
+1199 regained_99

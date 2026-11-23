@@ -1,0 +1,21 @@
+# the menu's dialogs (case dlg1, seed 3, a hand-written input from the player with five toppings,
+# REG=build/identical/dlg1/user.reg): the options dialog with Replay Story switched off and on and Done hovered, the
+# high scores in three modes and the clear dialog, the players dialog and its delete dialog, the quit dialog, and the
+# menu after each
+120 menu
+160 options
+175 replay_off
+195 done_hover
+230 menu_after_options
+330 hs_speed
+370 hs_memory
+410 hs_simon
+470 hs_clear
+500 hs_after_no
+570 menu_after_hs
+660 players
+740 players_delete
+790 players_after_no
+850 menu_after_players
+940 quit_dialog
+1000 menu_after_quit

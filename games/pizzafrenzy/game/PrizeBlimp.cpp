@@ -1,11 +1,18 @@
 #include "PrizeBlimp.h"
 #include "App.h"
 #include "CityMap.h"
+#include "Color4.h"
+#include "Font.h"
+#include "Host.h"
 #include "ImageNode.h"
 #include "Modifiers.h"
 #include "PizzaFrenzy.h"
+#include "Players.h"
 #include "Random.h"
+#include "ScreenNodes.h"
 #include "Tip.h"
+
+#include <algorithm>
 
 using namespace pizzafrenzy;
 
@@ -37,13 +44,45 @@ const float DROP_OFFSET_X = -15.0f;
 const float DROP_OFFSET_Y = 45.0f;
 const int DROP_COUNT = 3;
 
+// the dot matrix sign under the blimp: string 0x69 with the player's name, in capitals, white on black in the font, seen
+// through a window from 82 left of the blimp's position to 61 right of it, 17 above; the text crosses it from the right
+// edge every eight seconds
+const int STRING_SIGN = 0x69;
+const char* const SIGN_FONT = "res\\fonts\\dotMatrix.xml";
+const int SIGN_LEFT = -82;
+const int SIGN_RIGHT = 61;
+const float SIGN_Y = -17.0f;
+const float SIGN_SECONDS = 8.0f;
+const uint8_t SIGN_ALPHA_THRESHOLD = 0xff;
+
 // the seconds between drops, a range (0x53290c, set by the static initializer 0x4f87c0)
 const engine::Point DROP_DELAY(1.0f, 1.75f);
 }
 
 // 0x431330: the pictures and the engine are made by the slots
-PrizeBlimp::PrizeBlimp() : Van(BLIMP_TYPE), mDropTimer(0), mEngine(nullptr), mFlownOff(false)
+PrizeBlimp::PrizeBlimp() : Van(BLIMP_TYPE), mDropTimer(0), mEngine(nullptr), mFlownOff(false), mSign(nullptr),
+	mSignTimer(0)
 {
+}
+
+namespace
+{
+// 0x46dc60: the text in capitals, as CharUpperA makes them in the Western code page
+std::string toCapitals(std::string theText)
+{
+	for (char& c : theText)
+	{
+		unsigned char aChar = (unsigned char)c;
+		if ((aChar >= 'a' && aChar <= 'z') || (aChar >= 0xe0 && aChar <= 0xfe && aChar != 0xf7))
+			aChar = (unsigned char)(aChar - 0x20);
+		else if (aChar == 0x9a || aChar == 0x9c || aChar == 0x9e)
+			aChar = (unsigned char)(aChar - 0x10);
+		else if (aChar == 0xff)
+			aChar = 0x9f;
+		c = (char)aChar;
+	}
+	return theText;
+}
 }
 
 // 0x430d50
@@ -63,13 +102,56 @@ void PrizeBlimp::loadType()
 	setSmoothType(SMOOTH_TYPE);
 	addListener(new engine::WaveModifier(0.0f, ROCK_SECONDS, 0.0f, BLIMP_ROCK_SIZE, 0.0f));
 	aShadowNode->addListener(new engine::WaveModifier(ROCK_SECONDS, ROCK_SECONDS, SHADOW_ROCK_X, SHADOW_ROCK_Y, 0.0f));
-	// the dot matrix sign under the blimp is left out
+
+	// the sign: the text drawn once on a black picture, which the node shows through its clip (scrollSign)
+	engine::UserInfo* aUser = engine::Players::instance()->current();
+	std::string aText = toCapitals(formatMessage(engine::App::instance()->loadString(STRING_SIGN),
+		aUser != nullptr ? aUser->getName() : std::string()));
+	engine::Font* aFont = engine::App::instance()->getFont(SIGN_FONT);
+	if (aFont == nullptr)
+		return;
+	engine::Host* aHost = engine::getHost();
+	engine::Image* aSignImage = aHost->createBlankImage(aFont->getStringWidth(aText.c_str()), aFont->getHeight());
+	if (aSignImage == nullptr)
+		return;
+	engine::Graphics* aGraphics = aHost->createImageGraphics(aSignImage);
+	aSignImage->fill(engine::Color4(0, 0, 0, 1.0f));
+	aSignImage->setAlphaMode(engine::ALPHA_BLEND, SIGN_ALPHA_THRESHOLD);
+	if (aGraphics != nullptr)
+	{
+		aGraphics->setFont(aFont);
+		aGraphics->drawString(aText.c_str(), 0.0f, 0.0f);
+		delete aGraphics;
+	}
+	mSign = new engine::ImageNode(aSignImage);
+	mSign->setClipped(true);
+	addChild(mSign);
+	mSignTimer = 0;
+	// (the original also makes a balloon tip here and lets it go at once)
 }
 
-// 0x430cc0 (the sign's scroll, 0x430b90, is left out)
+// 0x430b90: the sign's text moves on; once a pass's eight seconds are up the next starts at the window's right edge
+void PrizeBlimp::scrollSign(engine::UpdateInfo& theInfo)
+{
+	float aTimer = mSignTimer - theInfo.mSeconds;
+	mSignTimer = aTimer;
+	if (aTimer < 0.0f)
+		mSignTimer = SIGN_SECONDS;
+	if (mSign == nullptr)
+		return;
+	float aProgress = (float)(1.0 - (double)mSignTimer * (1.0 / SIGN_SECONDS));
+	int aLeft = SIGN_RIGHT - (int)((double)(mSign->getImageWidth() + SIGN_RIGHT - SIGN_LEFT) * aProgress);
+	mSign->setPosition((float)std::max(aLeft, SIGN_LEFT), SIGN_Y);
+	int aClipLeft = std::max(0, SIGN_LEFT - aLeft);
+	int aClipRight = std::min(mSign->getImageWidth(), SIGN_RIGHT - aLeft);
+	mSign->setClipRect(engine::Rect((float)aClipLeft, 0.0f, (float)aClipRight, (float)mSign->getImageHeight()));
+}
+
+// 0x430cc0
 void PrizeBlimp::updateVehicle(engine::UpdateInfo& theInfo)
 {
 	fly(theInfo);
+	scrollSign(theInfo);
 	Container::update(theInfo);
 	float aTimer = mDropTimer;
 	mDropTimer = aTimer - theInfo.mSeconds;

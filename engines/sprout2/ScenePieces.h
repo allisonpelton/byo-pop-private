@@ -3,7 +3,7 @@
 
 // Two components of the engine that Talismania's scene builds its layers from and Feeding Frenzy 2 does not use: the
 // clipping container (engine::ClipPane, 0xe4 bytes, constructor 0x64d7b0) and the filled rectangle (RectangleItem,
-// 0xb4 bytes, constructor 0x61f0d0). They belong in engines/sprout2 once a second game needs them.
+// 0xb4 bytes, constructor 0x61f0d0). Shared in engines/sprout2 (Talismania's addresses; Feeding Frenzy 2 has none for either and does not use them).
 
 #include "Container.h"
 #include "DrawContext.h"

@@ -11,6 +11,7 @@ wait 2500
 click 115 400            # the tent: the mini-games
 wait 2500
 click 393 280            # Word Master
+loaded 1900              # the load it starts: the steps after it count from the curtain's opening (gen.py)
 wait 3000
 shot word_master
 wait 3000
@@ -43,6 +44,7 @@ wait 2500
 click 115 400            # the tent
 wait 2500
 click 393 346            # Letter Rip
+loaded 1900              # the load it starts: the steps after it count from the curtain's opening (gen.py)
 wait 3000
 shot letter_rip
 click 330 406            # Yes: the tooltips
@@ -63,6 +65,7 @@ wait 2500
 click 115 400            # the tent
 wait 2500
 click 393 412            # Link n' Spell
+loaded 1900              # the load it starts: the steps after it count from the curtain's opening (gen.py)
 wait 3000
 shot link_n_spell
 click 330 406            # Yes: the tooltips

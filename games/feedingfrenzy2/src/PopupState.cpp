@@ -3,6 +3,10 @@
 #include "DrawContext.h"
 #include "EditBox.h"
 #include "Engine.h"
+#include "GamePlayState.h"
+#include "LevelLoadState.h"
+#include "MenuState.h"
+#include "Stage.h"
 #include "Scene.h"
 #include "ScreenMgr.h"
 #include "TextItem.h"
@@ -27,10 +31,16 @@ ColorKey makeKey(float theTime, const Color& theColor)
 	return aKey;
 }
 
+// 0x49b880 (feedingfrenzy2): whether a player other than the first has the strings' alienUser name
+bool hasAlienUser(FeedingFrenzyTwo* theApp)
+{
+	return UserManager::instance()->findUser(theApp->mStrings->getString("alienUser")) > 0;
+}
+
 } // namespace
 
 PopupState::PopupState(FeedingFrenzyTwo* theApp, GenericScreen* theScreen, AppState* thePreviousState)
-	: AppState(theApp), mClosing(false)
+	: AppState(theApp), mClosing(false), mOptionsFromPause(false)
 {
 	if (gPopupScreenMgr == nullptr)
 		gPopupScreenMgr = new ScreenMgr();
@@ -60,6 +70,7 @@ void PopupState::enter()
 	mDarkenTime.start(mScreen->getInDuration(), 1.0f);
 	show(mScreen.get());
 	mScreen = nullptr;
+	mOptionsFromPause = false;
 }
 
 void PopupState::exit()
@@ -113,7 +124,17 @@ void PopupState::show(GenericScreen* theScreen)
 void PopupState::action(const std::string& theAction)
 {
 	UserManager* aUsers = UserManager::instance();
-	if (theAction == "appQuitNo" || theAction == "saveGameCancel" || theAction == "userSelectCancel")
+	if (theAction == "pauseResume")
+	{
+		if (mOptionsFromPause)
+		{
+			mOptionsFromPause = false;
+			show(mApp->mPauseScreen.get());
+		}
+		else
+			close();
+	}
+	else if (theAction == "appQuitNo" || theAction == "saveGameCancel" || theAction == "userSelectCancel")
 		close();
 	else if (theAction == "userEntryDone")
 	{
@@ -132,20 +153,97 @@ void PopupState::action(const std::string& theAction)
 		aUser->setName(aName);
 		aUsers->addUser(aUser.get());
 		if (aUsers->getUserCount() > 1)
-			// The players' list (+0x60) shown: not yet translated
-			getEngine()->log("PopupState: the players' screen not yet translated\n");
+			show(mApp->mUserSelect.get());
 		else
 			close();
 	}
 	else if (theAction == "userEntryCancel")
 	{
 		if (aUsers->getUserCount() > 0)
-			// The players' list (+0x60) shown: not yet translated
-			getEngine()->log("PopupState: the players' screen not yet translated\n");
+			show(mApp->mUserSelect.get());
+	}
+	else if (theAction == "userSelectDone")
+	{
+		mApp->mUserSelect->selectUser();
+		close();
+	}
+	else if (theAction == "userSelectNew")
+	{
+		// A row fewer while no player has the strings' alienUser name
+		int aRoom = mApp->mUserSelect->getRows();
+		if (!hasAlienUser(mApp))
+			aRoom--;
+		if (aUsers->getUserCount() < aRoom)
+			showUserEntry();
+		else
+			show(mApp->mUserListFullConfirm.get());
+	}
+	else if (theAction == "userSelectDelete")
+	{
+		mApp->mUserSelect->selectUser();
+		TextItem* aNameText = static_cast<TextItem*>(mApp->mUserDeleteConfirm->findComponent("userName"));
+		aNameText->setText(mApp->mUserData->getName());
+		show(mApp->mUserDeleteConfirm.get());
+	}
+	else if (theAction == "deleteUserYes")
+	{
+		mApp->mUserSelect->deleteUser();
+		mApp->mUserSelect->selectUser();
+		if (aUsers->getUserCount() == 0)
+			showUserEntry();
+		else
+			show(mApp->mUserSelect.get());
+	}
+	else if (theAction == "deleteUserNo")
+	{
+		mApp->mUserSelect->selectUser();
+		show(mApp->mUserSelect.get());
+	}
+	else if (theAction == "continueYes")
+	{
+		// The game taken up again on the stage lost, with a continue fewer, three lives and the stage's clock
+		GameData* aData = mApp->mGameData.get();
+		aData->setContinues(aData->getContinues() - 1);
+		aData->setLives(3);
+		const StageManifest::Stage* anEntry = aData->getStageEntry();
+		mApp->mStage->setStageTime((float)anEntry->mStageTime);
+		aData->setTimeRollover(anEntry->mNewGameTime);
+		mNextState = new GamePlayState(mApp);
+		close();
+	}
+	else if (theAction == "continueNo" || theAction == "gameOverDone")
+	{
+		// The high scores first (0x49b030 (feedingfrenzy2), the application's +0x8c, given the mode, score and
+		// stage): a score they take sends the menu to them (MENU_SCREEN_HIGH_SCORES); not yet translated, as the
+		// high scores are not. (continueNo also builds a name it does not use.)
+		getEngine()->log("PopupState: the high scores not yet translated\n");
+		mApp->mUserData->clearSavedGame(mApp->mGameData->getMode());
+		const StageManifest::Stage* aMenuEntry = &mApp->mGameData->getMenuStages().getStages()[0];
+		mNextState = new LevelLoadState(mApp, aMenuEntry, new MenuState(mApp));
+		// The application's sound at +0x38 stopped (0x490370 (feedingfrenzy2)): not yet translated
+		close();
 	}
 	else
-		// pauseResume, appQuitYes, saveGameContinue, saveGameNoContinue, userSelectDone, userSelectNew,
-		// userSelectDelete, deleteUserYes, deleteUserNo, pauseOptions, optionsDone, pauseQuit, gameExitSave and the
-		// rest: not yet translated
-		getEngine()->log("PopupState: the action %s not yet translated\n", theAction.c_str());
+		// appQuitYes, saveGameContinue, saveGameNoContinue, pauseOptions, optionsDone, pauseQuit,
+		// gameExitSave and the rest: not yet translated. (The play's pause, sent by the focus lost, is none of the
+		// popups' actions and does nothing.)
+		if (theAction != "pause")
+			getEngine()->log("PopupState: the action %s not yet translated\n", theAction.c_str());
+}
+
+void PopupState::showUserEntry()
+{
+	static_cast<EditBox*>(mApp->mUserEntry->findComponent("nameEntry"))->setText("");
+	Component* aCancel = mApp->mUserEntry->findComponent("cancelBtn");
+	if (UserManager::instance()->getUserCount() != 0)
+	{
+		aCancel->setVisible(true);
+		aCancel->addOwnState(STATE_INPUT);
+	}
+	else
+	{
+		aCancel->setVisible(false);
+		aCancel->removeOwnState(STATE_INPUT);
+	}
+	show(mApp->mUserEntry.get());
 }

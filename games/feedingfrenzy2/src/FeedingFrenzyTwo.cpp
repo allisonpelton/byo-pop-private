@@ -2,6 +2,7 @@
 
 #include "Engine.h"
 #include "ScreenMgr.h"
+#include "SimpleSound.h"
 #include "SplashState.h"
 #include "PopupState.h"
 #include "UserManager.h"
@@ -15,12 +16,24 @@ FeedingFrenzyTwo* gTheApp = nullptr;
 
 } // namespace
 
+ScreenDataEntry* FeedingFrenzyTwo::getScreenData(const std::string& theStageId)
+{
+	if (mGameData->getMode() == GAME_MODE_TIMED)
+	{
+		ScreenDataEntry* aData = mStageScreenData->getEntry(theStageId + "_timed");
+		if (aData != nullptr)
+			return aData;
+	}
+	return mStageScreenData->getEntry(theStageId);
+}
+
 FeedingFrenzyTwo* getApp()
 {
 	return gTheApp;
 }
 
-FeedingFrenzyTwo::FeedingFrenzyTwo() : mMenuRunning(false), mMenuScreen(MENU_SCREEN_MAIN)
+FeedingFrenzyTwo::FeedingFrenzyTwo()
+	: mMenuRunning(false), mActive(true), mStageInPlay(false), mFreshGame(false), mMenuScreen(MENU_SCREEN_MAIN)
 {
 	// The state manager is a member, not counted by anyone: the port holds a reference so its count never reaches 0
 	mStateMgr.addRef();
@@ -51,10 +64,37 @@ void FeedingFrenzyTwo::configure()
 	// port's host sets the window)
 }
 
+namespace
+{
+
+const float MASTER_VOLUME = 0.65f;  // 0x566d20 (feedingfrenzy2)
+
+} // namespace
+
+void FeedingFrenzyTwo::startSound()
+{
+	Engine* anEngine = getEngine();
+	simplesound::SimpleSound* aSound = anEngine->makeSoundSystem();
+	anEngine->setSoundSystem(aSound);
+	// The application's +0x0c and +0x0d (whether sound and music can be played) set to whether it started: read by
+	// nothing translated yet
+	anEngine->log(aSound != nullptr ? "Sound Engine initialized.\n" : "Sound Engine failed to initialize.\n");
+}
+
 void FeedingFrenzyTwo::start(bool theSaverMode)
 {
 	Engine* anEngine = getEngine();
+	// The options' window settings come first (not yet translated, as the options are not)
+	startSound();
+	if (simplesound::getSimpleSound() != nullptr)
+		simplesound::getSimpleSound()->setMasterVolume(MASTER_VOLUME);
+	// Then the sound's and the music's categories (0 and 1) on or off by the options' SoundEnabled and MusicEnabled
+	// (the application's slots 0x18 and 0x1c, 0x494970 and 0x500fbe (feedingfrenzy2)): not yet translated, as the
+	// options are not, so both stay at 1, as when enabled
 	anEngine->mUpdateSignal.connect(this, &FeedingFrenzyTwo::updateSlot);
+	anEngine->mKeyDownSignal.connect(this, &FeedingFrenzyTwo::keyDownSlot);
+	// (The key-up, minimize and restore slots between them: not yet translated)
+	anEngine->mActivateSignal.connect(this, &FeedingFrenzyTwo::activateSlot);
 
 	mScene = new Scene();
 	mScene->enable();
@@ -75,6 +115,20 @@ void FeedingFrenzyTwo::start(bool theSaverMode)
 	// translated
 
 	mStateMgr.changeState(new SplashState(this, theSaverMode));
+}
+
+void FeedingFrenzyTwo::keyDownSlot(int theKey)
+{
+	if (mStateMgr.getState() != nullptr)
+		mStateMgr.getState()->keyDown(theKey);
+	// F11's screenshot: not yet translated
+}
+
+void FeedingFrenzyTwo::activateSlot(bool theActive)
+{
+	if (!theActive)
+		mStateMgr.action("pause");
+	mActive = theActive;
 }
 
 void FeedingFrenzyTwo::updateSlot(UpdateContext* theContext)

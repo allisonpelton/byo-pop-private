@@ -143,11 +143,23 @@ void Graphics::setBltFx(BltFx* theBltFx)
 	state().mBltFx = theBltFx;
 }
 
-// 0x4bfc20 (pizzafrenzy): port: each pixel row of the rectangle is a line of the state's colour
+// 0x4bfc20 (pizzafrenzy): port: each pixel row of the rectangle is a line of the state's colour. The original blends
+// the fill by the colour's alpha and the opacity (a colour with an alpha of 0, like the score table's background,
+// leaves the screen as it was); the port's line takes the two as its opacity.
 void Graphics::fillRect(const Rect& theRect)
 {
+	float anAlpha = state().mColorAlpha;
+	if (anAlpha >= 1.0f)
+	{
+		for (int aRow = (int)theRect.top; aRow < (int)theRect.bottom; aRow++)
+			drawLine(Point(theRect.left, (float)aRow), Point(theRect.right - 1, (float)aRow));
+		return;
+	}
+	pushState();
+	state().mOpacity = state().mOpacity * anAlpha;
 	for (int aRow = (int)theRect.top; aRow < (int)theRect.bottom; aRow++)
 		drawLine(Point(theRect.left, (float)aRow), Point(theRect.right - 1, (float)aRow));
+	popState();
 }
 
 // 0x478320 (pizzafrenzy): port: the translation moves the text's origin to (x, y)

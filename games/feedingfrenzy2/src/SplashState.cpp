@@ -134,8 +134,8 @@ void SplashState::update(UpdateContext* theContext)
 		mPhase = SPLASH_BURSTING;
 		// (on into the bursting phase in the same update)
 	case SPLASH_BURSTING:
-		// The sound system's update by the frame's milliseconds (0x434c80 (feedingfrenzy2)) and the game's in
-		// hundredth-second steps (0x43a570 (feedingfrenzy2)): not yet translated
+		// The sound system's update by the frame's milliseconds (0x434c80 (feedingfrenzy2)): not yet translated
+		mApp->mStage->update(theContext);
 		if (!mBubbleText->isDone())
 			return;
 		// The next state: the menu. The screensaver's (SaverState, 0x18 bytes) in saver mode, and the game's
@@ -198,9 +198,7 @@ void SplashState::load()
 	FadeTransition* aFade = new FadeTransition(SHELL_FADE_SECONDS);
 	mApp->mPauseScreen = loadShellScreen("resource/shell/pauseScreen.xml", mApp->mShellTheme.get(), aFade, aFade);
 	mLoadProgress = 0.3f;
-	// The stage (+0x40, Stage, 0x3e0 bytes, its constructor 0x403aa0 (feedingfrenzy2), over the game data and the
-	// stage's container): not yet translated
-	getEngine()->log("SplashState: the stage not yet translated\n");
+	mApp->mStage = new Stage(mApp->mGameData.get(), mApp->mStageContainer.get());
 	mLoadProgress = 0.4f;
 
 	aFade = new FadeTransition(SHELL_FADE_SECONDS);
@@ -221,9 +219,14 @@ void SplashState::load()
 
 	mApp->mUserData = new UserData();
 	mApp->mUserData->init();
-	// The players' screen (+0x60, GenericUserSelectScreen, 0x1b4 bytes, its constructor 0x49fc30 (feedingfrenzy2),
-	// resource/shell/userSelect.xml): not yet translated
-	getEngine()->log("SplashState: the players' screen not yet translated\n");
+	// The players' list, read like the other shell screens but of its own kind (its list is filled by its init,
+	// called each time the menu shows it)
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	GenericUserSelectScreen* aUserSelect = new GenericUserSelectScreen();
+	mApp->mUserSelect = aUserSelect;
+	aUserSelect->load("resource/shell/userSelect.xml", mApp->mShellTheme.get());
+	aUserSelect->setTransitions(aFade, aFade);
+	aUserSelect->mActionSignal.connect(mApp, &FeedingFrenzyTwo::actionSlot);
 	mLoadProgress = 0.5f;
 	aFade = new FadeTransition(SHELL_FADE_SECONDS);
 	mApp->mUserDeleteConfirm =
@@ -246,19 +249,62 @@ void SplashState::load()
 		loadShellScreen("resource/shell/genericLoadScreen.xml", mApp->mShellTheme.get(), aFade, aFade);
 	mLoadProgress = 0.7f;
 
-	// The options (+0xa4), the map (+0x84), the stage's start (+0x98) and ends (+0x9c and +0xa0), the game overs
-	// (+0x90 and +0x94) and the high scores (+0x8c), each its own kind of screen: not yet translated
-	getEngine()->log("SplashState: the options, map, stage, game over and high score screens not yet translated\n");
+	// The options (+0xa4, FeedingFrenzyTwoOptionScreen): not yet translated
+	mLoadProgress = 0.75f;
+	// The map: read with the shell's theme, given one fade for both ways, set up from the game's stages
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mGameMap = new GameMapScreen();
+	mApp->mGameMap->load("resource/shell/gameMapBase.xml", mApp->mShellTheme.get());
+	mApp->mGameMap->setTransitions(aFade, aFade);
+	mApp->mGameMap->setup(&mApp->mGameData->getStages());
+	mApp->mGameMap->mActionSignal.connect(mApp, &FeedingFrenzyTwo::actionSlot);
+	mLoadProgress = 0.75f;
+	// The stage's intro: read with the shell's theme, given one fade for both ways
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mStageIntro = new StageIntroScreen();
+	mApp->mStageIntro->load("resource/shell/stageStartBase.xml", mApp->mShellTheme.get());
+	mApp->mStageIntro->setTransitions(aFade, aFade);
+	mApp->mStageIntro->mActionSignal.connect(mApp, &FeedingFrenzyTwo::actionSlot);
+	mLoadProgress = 0.75f;
+	// The normal stage's end: read by its loader, given one fade for both ways
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mStageCompleteNormal = new StageCompleteScreenNormal();
+	mApp->mStageCompleteNormal->loadScreen("resource/shell/stageCompleteBase.xml");
+	mApp->mStageCompleteNormal->setTransitions(aFade, aFade);
+	mApp->mStageCompleteNormal->mActionSignal.connect(mApp, &FeedingFrenzyTwo::actionSlot);
+	mLoadProgress = 0.8f;
+	// The bonus stage's end, read the same way
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mStageCompleteBonus = new StageCompleteScreenBonus();
+	mApp->mStageCompleteBonus->loadScreen("resource/shell/stageCompleteBonus.xml");
+	mApp->mStageCompleteBonus->setTransitions(aFade, aFade);
+	mApp->mStageCompleteBonus->mActionSignal.connect(mApp, &FeedingFrenzyTwo::actionSlot);
+	mLoadProgress = 0.8f;
+	// The continue offer and the game over, each given one fade for both ways
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mGameOverContinue =
+		loadShellScreen("resource/shell/gameOverContinuesLeft.xml", mApp->mShellTheme.get(), aFade, aFade);
+	mLoadProgress = 0.8f;
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mGameOver =
+		loadShellScreen("resource/shell/gameOverNoContinuesLeft.xml", mApp->mShellTheme.get(), aFade, aFade);
+	// The high scores (+0x8c), their own kind of screen: not yet translated
+	getEngine()->log("SplashState: the options and high score screens not yet translated\n");
 	mLoadProgress = 0.82f;
 	// (Read without a theme)
 	aFade = new FadeTransition(SHELL_FADE_SECONDS);
 	mApp->mCredits = loadShellScreen("resource/shell/credits.xml", nullptr, aFade, aFade);
 	mLoadProgress = 0.84f;
 
-	// The stage's loader (Stage::StageLoader, 0x34 bytes, its constructor 0x495080 (feedingfrenzy2)) loading the
-	// first menu stage, or the stage the configuration names (the application's +0x338), on a thread the loader
-	// waits on, its progress the bar's last part: not yet translated
-	getEngine()->log("SplashState: the first stage's load not yet translated\n");
+	// The stage's loader (Stage::StageLoader, 0x34 bytes, its constructor 0x495080 and its run 0x48a810
+	// (feedingfrenzy2)) loading the first menu stage on a thread the loader waits on, its progress the bar's last
+	// part. port: loaded at once, as the rest. The run's other steps: the stage emptied first (its slot 0x08), the
+	// fish factory's file read again (read above), and once loaded the entry's time and canSuck kept on the
+	// application (+0x190 and +0x1d0, 0x48a910 and 0x4944f0 (feedingfrenzy2)): not yet translated. (The stage the
+	// configuration names, the application's +0x338, is not yet translated either)
+	const std::vector<StageManifest::Stage>& aMenuStages = mApp->mGameData->getMenuStages().getStages();
+	if (!aMenuStages.empty())
+		mApp->mStage->load(aMenuStages[0]);
 	mLoadProgress = 1.0f;
 	mPhase = SPLASH_LOADED;
 }

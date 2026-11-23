@@ -184,6 +184,7 @@ void coverage_install(void)
 	wsprintfA(line, "# coverage: %d functions watched (%d listed addresses outside the exe's code left out), from %s\r\n",
 		gN, skipped, list);
 	out_line(line);
+	out_line("# coverage: columns: the function's address as the exe's file has it, the order in which it was first reached (1 is the first; not a time), the thread that reached it\r\n");
 }
 
 void coverage_detach(void)

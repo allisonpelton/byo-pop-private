@@ -129,3 +129,23 @@ void AnimImage::resetRange()
 	mFirst = 0;
 	mLast = getCount() - 1;
 }
+
+// 0x4460e0 (feedingfrenzy)
+void AnimImage::setFrame(unsigned int theFrame)
+{
+	if (mChildren.empty() || (unsigned int)mChildren.size() <= theFrame)
+		theFrame = (unsigned int)((int)mChildren.size() - 1);
+	mPosition = (float)theFrame;
+}
+
+// 0x446140 (feedingfrenzy)
+void AnimImage::setRange(int theFirst, int theLast)
+{
+	mFirst = theFirst < 0 ? 0 : theFirst;
+	int aCount = getCount();
+	mFirst = mFirst <= aCount - 1 ? mFirst : aCount - 1;
+	mLast = theLast < 0 ? 0 : theLast;
+	aCount = getCount();
+	if (aCount - 1 < mLast)
+		mLast = aCount - 1;
+}

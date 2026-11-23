@@ -1,6 +1,6 @@
 #include "HighScore.h"
 
-#include <cstdio>
+#include <string>
 
 using namespace pizzafrenzy;
 
@@ -12,6 +12,21 @@ const char* const POINTS_PARAM = "points";
 const char* const LEVEL_PARAM = "level";
 // 0x4fa850: the character shown before the points
 const char POINTS_PREFIX = '$';
+
+// 0x46dcb0: a whole number in the user's locale's form (GetNumberFormatA with no decimals, 0x46db50); the port gives
+// US English's, the digits in threes with commas between them
+std::string formatWholeNumber(int theNumber)
+{
+	std::string aDigits = std::to_string(theNumber < 0 ? -(long long)theNumber : (long long)theNumber);
+	std::string aText;
+	for (size_t i = 0; i < aDigits.size(); i++)
+	{
+		if (i != 0 && (aDigits.size() - i) % 3 == 0)
+			aText += ',';
+		aText += aDigits[i];
+	}
+	return theNumber < 0 ? "-" + aText : aText;
+}
 }
 
 // 0x418480
@@ -45,11 +60,8 @@ void HighScore::defaultParams(engine::Params& theParams)
 void HighScore::displayParams(engine::Params& theParams)
 {
 	theParams.setString(PLAYER_PARAM, mName);
-	char aNumber[16];
-	snprintf(aNumber, sizeof(aNumber), "%d", mPoints);
-	theParams.setString(POINTS_PARAM, POINTS_PREFIX + std::string(aNumber));
-	snprintf(aNumber, sizeof(aNumber), "%d", mLevel);
-	theParams.setString(LEVEL_PARAM, aNumber);
+	theParams.setString(POINTS_PARAM, POINTS_PREFIX + formatWholeNumber(mPoints));
+	theParams.setString(LEVEL_PARAM, formatWholeNumber(mLevel));
 }
 
 // 0x437150: the first entry whose points the new one's are above, a binary search over the entries (the original's

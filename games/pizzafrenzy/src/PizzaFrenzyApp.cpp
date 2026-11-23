@@ -47,17 +47,24 @@ unsigned int gTestSeed = 0;
 class PizzaFrenzyHost : public engine::Host
 {
 public:
-	// port: with -fast the engine has a clock of its own, which moves one frame period a frame
+	// port: with -fast, or the fixes mod's steadyClock, the engine has a clock of its own, which moves one frame period
+	// a frame
 	uint32_t timeMs() override
 	{
-		return gApp->mFastMode ? (uint32_t)(gApp->mEngineClock / 1000) : gApp->GetClockTime();
+		return engineClock() ? (uint32_t)(gApp->mEngineClock / 1000) : gApp->GetClockTime();
 	}
 	uint64_t timeTicks() override
 	{
-		if (gApp->mFastMode)
+		if (engineClock())
 			return gApp->mEngineClock;
+		return realTicks();
+	}
+	// the machine's clock, which the run loop waits on in real time
+	static uint64_t realTicks()
+	{
 		return (uint64_t)SDL_GetPerformanceCounter() * TICKS_PER_SECOND / SDL_GetPerformanceFrequency();
 	}
+	static bool engineClock() { return gApp->mFastMode || gApp->mSteadyClock; }
 	uint64_t ticksPerSecond() override { return TICKS_PER_SECOND; }
 
 	bool fixOn(const char* theFix) override { return Platform::FixOn(theFix); }
@@ -292,7 +299,6 @@ PizzaFrenzyWidget::PizzaFrenzyWidget()
 	}
 	mGraphics = new engine::ScreenGraphics(const_cast<uint32_t*>(mPixels), engine::SCREEN_WIDTH, engine::SCREEN_HEIGHT);
 	mNextFrame = 0;
-	mLastTimer = gApp->GetClockTime();
 	ClearKeys();
 }
 
@@ -303,18 +309,14 @@ PizzaFrenzyWidget::~PizzaFrenzyWidget()
 }
 
 // The run loop (0x4bdf20): a frame runs once the clock reaches the time the last one set (its start and the frame
-// period, 0x4bd210), else the loop sleeps; the window's 100 ms timer (WM_TIMER 1) goes to the timer signal.
+// period, 0x4bd210), else the loop sleeps. The window's 100 ms timer (WM_TIMER 1, to the timer signal) runs only
+// while the window is dragged or sized (set at WM_ENTERSIZEMOVE, killed at WM_EXITSIZEMOVE, 0x4bd3b0), when the
+// original's frames stop: the port has no such modal loop to tell it, so the frame's own sound update is the only one.
 void PizzaFrenzyWidget::Update()
 {
 	Widget::Update();
 	if (!gApp->mEngineRunning)
 		return;
-	uint32_t aNow = gApp->GetClockTime();
-	if ((int)(aNow - mLastTimer) >= 100)
-	{
-		mLastTimer = aNow;
-		engine::App::instance()->mTimerSignal.emit(100);
-	}
 	if (gApp->mFastMode)
 	{
 		// port: -fast runs a frame each update, as the original does on origrun's virtual clock, which skips the wait
@@ -323,10 +325,13 @@ void PizzaFrenzyWidget::Update()
 	}
 	else
 	{
-		uint64_t aTicks = gHost.timeTicks();
+		uint64_t aTicks = PizzaFrenzyHost::realTicks();
 		if (aTicks < mNextFrame)
 			return;
 		mNextFrame = aTicks + gApp->FramePeriod();
+		// port(mod): steadyClock: the frame is one period of the game's time, however late it came
+		if (gApp->mSteadyClock)
+			gApp->mEngineClock += gApp->FramePeriod();
 	}
 	gApp->RunFrame();
 }
@@ -474,6 +479,12 @@ void PizzaFrenzyApp::Init()
 	if (mShutdown)
 		return;
 	engine::setHost(&gHost);
+	// -fast: a sound plays its length on the engine's clock (as on origrun's virtual clock), not the mixer's real time,
+	// which a run that does not wait outpaces: a sound with one voice was still playing when the game played it again
+	// port(mod): the fixes mod's steadyClock (docs/README.md, "The fixes mod"): every frame one period of the game's
+	// time, as -fast has it, while the frames still wait for the machine's clock
+	mSteadyClock = !mFastMode && Platform::FixOn("steadyClock");
+	engine::HostSound::sGameClock = mFastMode || mSteadyClock;
 	mWidget = new PizzaFrenzyWidget();
 	mWidget->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mWidget);
@@ -507,6 +518,7 @@ void PizzaFrenzyApp::RunFrame()
 		if (mStateLog != nullptr)
 			LogState();
 		mFrames++;
+		engine::HostSound::sLogFrame = mFrames;
 		engine::App::instance()->frameSignalled(mWidget->mGraphics);
 		if (mStateLog != nullptr)
 			LogState();
@@ -551,7 +563,8 @@ void PizzaFrenzyApp::EngineFailed(const char* theWhat)
 }
 
 // The run loop's end: the controller's shutdown (the settings saved)
-// port: -seed=N, for the identical-play runs
+// port: -seed=N, -statelog=<file> and -soundlog=<file> (each sound's start and stop with its frame), for the
+// identical-play runs
 void PizzaFrenzyApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
 	if (theParamName == "-seed")
@@ -561,6 +574,8 @@ void PizzaFrenzyApp::HandleCmdLineParam(const std::string& theParamName, const s
 	}
 	else if (theParamName == "-statelog")
 		mStateLog = fopen(theParamValue.c_str(), "w");
+	else if (theParamName == "-soundlog")
+		engine::HostSound::sLog = fopen(theParamValue.c_str(), "w");
 	SexyAppBase::HandleCmdLineParam(theParamName, theParamValue);
 }
 

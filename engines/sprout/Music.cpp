@@ -177,6 +177,14 @@ void MusicLayer::start()
 	}
 }
 
+// 0x459140 (feedingfrenzy)
+void MusicLayer::setVolume(float theVolume)
+{
+	mVolume = theVolume;
+	if (mCurrent != nullptr)
+		mCurrent->setVolume(theVolume);
+}
+
 // 0x424970 (wordharmony)
 void MusicLayer::stop()
 {
@@ -301,6 +309,13 @@ MusicSystem::~MusicSystem()
 			++anIt;
 		} while (anIt != mLayers.end());
 	}
+}
+
+// 0x44d940 (feedingfrenzy)
+void MusicSystem::setVolume(float theVolume)
+{
+	for (size_t i = 0; i < mLayers.size(); i++)
+		mLayers[i]->setVolume(theVolume);
 }
 
 // 0x424be0 (wordharmony)

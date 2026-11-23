@@ -1,0 +1,333 @@
+# The arena from the main menu's colosseum (the coverage pass's steps, made by the port's bot, tools/coverage/play.py,
+# then addshots.py): its notice in the treasure room, the treasures picked, the bosses one after another with their
+# talks, the timer and its lost turns, up to the 27th shot. In 2D the original deals other tiles than the port at the
+# lost turn before that shot and the run parts there (IDENTICAL_PLAY.md, "Oddities"), so the list stops; the 3D list
+# (3d/arena.txt) goes on to the first checkpoint, the quit and the saved run's question. Profile arena.bwa (PILOT_PROFILE): the port's save at
+# book 3, chapter 3, stage 6 (tools/coverage/advance.sh's 3.3.6) with the arena open and its talks marked as given
+# (tools/coverage/bwa.py).
+at 16000
+click 400 300            # Lex's first page
+wait 3000
+click 400 300            # the second: the panel goes
+wait 6000
+click 575 300            # the colosseum (in the port this first click is not taken)
+wait 4000
+click 575 300            # the colosseum: the arena
+wait 4000
+click 400 382            # OK: the arena's notice
+wait 1500
+wait 500
+shot arena_01_dialog
+click 400 382   # dialog
+wait 1500
+wait 500
+shot arena_02_treasure
+click 188 113   # a treasure
+wait 1500
+wait 500
+shot arena_03_treasure
+click 188 209   # a treasure
+wait 1500
+wait 500
+shot arena_04_continue
+click 411 515   # Continue
+loaded 1900              # the load it starts: the steps after it count from the curtain's opening (gen.py)
+wait 1500
+wait 1500
+wait 500
+shot arena_05_idle
+click 400 150
+wait 3000
+wait 500
+shot arena_06_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot arena_07_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot arena_08_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot arena_09_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot arena_10_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot arena_11_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot arena_12_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot arena_13_lostturn
+click 401 410   # lostturn
+wait 1500
+wait 500
+click 476 385
+wait 300
+click 326 436
+wait 300
+click 326 334
+wait 300
+click 426 334
+wait 300
+click 476 436
+wait 300
+click 476 487
+wait 300
+click 376 385
+wait 300
+click 376 334
+wait 300
+click 426 436
+wait 300
+click 326 385
+wait 300
+wait 400
+click 401 570   # Attack: MITTIMUSES
+wait 2500
+wait 500
+click 426 436
+wait 300
+click 326 487
+wait 300
+click 326 334
+wait 300
+click 426 385
+wait 300
+click 426 334
+wait 300
+click 326 385
+wait 300
+click 426 487
+wait 300
+click 476 334
+wait 300
+wait 400
+click 401 570   # Attack: BEDOTTED
+wait 2500
+wait 1500
+wait 500
+shot arena_14_idle
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+shot arena_16_lostturn
+click 401 410   # lostturn
+wait 1500
+wait 500
+click 426 436
+wait 300
+click 326 487
+wait 300
+click 326 334
+wait 300
+click 426 385
+wait 300
+click 426 334
+wait 300
+click 326 385
+wait 300
+click 426 487
+wait 300
+click 476 334
+wait 300
+wait 400
+click 401 570   # Attack: BEDOTTED
+wait 2000
+shot arena_17_attack
+wait 500
+wait 500
+click 476 334
+wait 300
+click 476 487
+wait 300
+click 376 334
+wait 300
+click 326 334
+wait 300
+click 426 334
+wait 300
+click 326 385
+wait 300
+click 376 385
+wait 300
+click 376 487
+wait 300
+click 376 436
+wait 300
+click 326 487
+wait 300
+click 476 436
+wait 300
+wait 400
+click 401 570   # Attack: OVERFATIGUE
+wait 2500
+wait 500
+click 476 487
+wait 300
+click 426 385
+wait 300
+click 426 487
+wait 300
+click 326 334
+wait 300
+click 426 436
+wait 300
+click 326 487
+wait 300
+click 376 487
+wait 300
+click 476 334
+wait 300
+click 376 334
+wait 300
+wait 400
+click 401 570   # Attack: PROOFREAD
+wait 2500
+wait 500
+shot arena_18_idle
+click 400 150
+wait 3000
+wait 500
+shot arena_19_lostturn
+click 401 410   # lostturn
+wait 1500
+wait 500
+click 476 487
+wait 300
+click 426 385
+wait 300
+click 426 487
+wait 300
+click 326 334
+wait 300
+click 426 436
+wait 300
+click 326 487
+wait 300
+click 376 487
+wait 300
+click 476 334
+wait 300
+click 376 334
+wait 300
+wait 400
+click 401 570   # Attack: PROOFREAD
+wait 2000
+shot arena_20_attack
+wait 500
+wait 1500
+wait 500
+shot arena_21_idle
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 400 150
+wait 3000
+wait 1500
+wait 500
+shot arena_23_idle
+click 400 150
+wait 3000
+wait 500
+shot arena_24_lostturn
+click 401 410   # lostturn
+wait 1500
+wait 500
+click 476 436
+wait 300
+click 326 436
+wait 300
+click 326 334
+wait 300
+click 426 334
+wait 300
+click 326 385
+wait 300
+click 376 487
+wait 300
+click 376 334
+wait 300
+click 426 436
+wait 300
+click 476 334
+wait 300
+click 476 385
+wait 300
+wait 400
+click 401 570   # Attack: AVENTURINE
+wait 2500
+wait 1500
+wait 500
+click 476 436
+wait 300
+click 326 436
+wait 300
+click 326 334
+wait 300
+click 426 334
+wait 300
+click 326 385
+wait 300
+click 376 487
+wait 300
+click 376 334
+wait 300
+click 426 436
+wait 300
+click 476 334
+wait 300
+click 476 385
+wait 300
+wait 400
+click 401 570   # Attack: AVENTURINE
+wait 2500
+wait 500
+click 326 334
+wait 300
+click 426 436
+wait 300
+click 426 487
+wait 300
+click 376 334
+wait 300
+click 426 334
+wait 300
+click 326 436
+wait 300
+click 326 385
+wait 300
+click 376 385
+wait 300
+click 476 436
+wait 300
+click 426 385
+wait 300
+wait 400
+click 401 570   # Attack: LAMINARIAN
+wait 2000
+shot arena_25_attack
+wait 500
+wait 500
+shot arena_26_idle
+click 400 150
+wait 3000
+wait 1500
+wait 500
+shot arena_27_lostturn
+quit

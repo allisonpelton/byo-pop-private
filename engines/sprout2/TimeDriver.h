@@ -59,10 +59,14 @@ public:
 			mTime = 0.0f;
 		}
 	}
+	// 0x5011b5 (feedingfrenzy2)
+	bool isRunning() const { return mDirection != TIME_STOPPED; }
 	// 0x412d20 (feedingfrenzy2)
 	void setTime(float theTime) { mTime = theTime; }
 	// Written in place by the popup's fade (0x473e90 (feedingfrenzy2))
 	void setDirection(int theDirection) { mDirection = theDirection; }
+	// Read in place by a fish's visual (0x43b470 (feedingfrenzy2))
+	int getDirection() const { return mDirection; }
 	// 0x4352b0 (feedingfrenzy2): kept at the x87's precision for the caller to round
 	double getValue() const { return (double)mTime * mScale; }
 

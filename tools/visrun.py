@@ -1172,6 +1172,24 @@ def show_places():
 
 
 # ---------------------------------------------------------------- the run
+def end_tree(p, log):
+    """End the process this run started and every process it started (taskkill /T, by its pid), then wait briefly.
+    Never raises: the caller restores the user's registry key and saves next, whatever happened here."""
+    try:
+        subprocess.run(['taskkill', '/T', '/F', '/PID', str(p.pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    try:
+        p.kill()
+    except OSError:
+        pass
+    try:
+        p.wait(10)
+        print('killed', file=log, flush=True)
+    except subprocess.TimeoutExpired:
+        print('killed, but the game (pid %d) had not ended 10 s later' % p.pid, file=log, flush=True)
+
+
 def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, timeout, quiet_s):
     tag = cfg['name']
     os.makedirs(out, exist_ok=True)
@@ -1496,33 +1514,41 @@ def run(cfg, steps, forbidden, out, want3d, seed, deadline, shape, keep_copy, ti
         return 0
     finally:
         stop.set()
-        # only the process this run started: ask the window to close, and end the process by its handle if it will not
-        if g and g.alive():
-            try:
-                if clk:
-                    clk.drain(wf)
-                    clk.let_go()
-                g.release()
-            except Exception:
-                pass
-            hw = g.window()
-            if hw:
-                u32.PostMessageW(hw, 0x0010, 0, 0)
-            try:
-                g.p.wait(20)
-            except subprocess.TimeoutExpired:
-                g.p.kill()
-                g.p.wait(10)
-                print('killed', file=log)
+        # only the process this run started: ask the window to close, and end it and the processes it started if it will
+        # not. Nothing here may raise past the restore below: a game that never made its clock and would not end once
+        # left the user's registry key and saves as the staged ones (Bookworm Adventures, 2026-11-22).
+        try:
+            if g and g.alive():
+                try:
+                    if clk:
+                        clk.drain(wf)
+                        clk.let_go()
+                    g.release()
+                except Exception:
+                    pass
+                hw = g.window()
+                if hw:
+                    u32.PostMessageW(hw, 0x0010, 0, 0)
+                try:
+                    g.p.wait(20)
+                except subprocess.TimeoutExpired:
+                    end_tree(g.p, log)
+        except Exception as e:
+            print('the game could not be ended cleanly (%s: %s); restoring anyway' % (type(e).__name__, e), file=log, flush=True)
         time.sleep(0.5)
-        if started:
-            restore_state(cfg)
-            print('restored the registry key and the save folders', file=log, flush=True)
-        if u32.GetForegroundWindow() != fg0:
-            print('note: the foreground window changed during the run (the user\'s own doing; visrun never activates the game)', file=log)
-        locks.release_all()
-        if not keep_copy:
-            shutil.rmtree(os.path.join(cfg.get('work_root') or WORK, tag, 'game'), ignore_errors=True)
+        try:
+            if started:
+                restore_state(cfg)
+                print('restored the registry key and the save folders', file=log, flush=True)
+        finally:
+            if u32.GetForegroundWindow() != fg0:
+                print('note: the foreground window changed during the run (the user\'s own doing; visrun never activates the game)', file=log)
+            locks.release_all()
+            if not keep_copy:
+                stage = os.path.join(cfg.get('work_root') or WORK, tag, 'game')
+                shutil.rmtree(stage, ignore_errors=True)
+                if os.path.exists(stage):
+                    print('the staged copy could not be removed (a process still holds it): %s' % stage, file=log, flush=True)
         if fg_taken.is_set():
             print('visrun: exiting with status 5: the game took the user\'s foreground (the run was stopped, the registry and saves are restored)', file=log, flush=True)
         log.close()
@@ -1636,7 +1662,27 @@ def selftest():
     assert '0x4b4c4356' in vh.lower()
     selftest_places()
     selftest_places()
+    selftest_end_tree()
     print('selftest: ok')
+
+
+def selftest_end_tree():
+    # a process that started another and will not end: end_tree ends both, logs it, and never raises
+    import io
+    k32 = ctypes.windll.kernel32
+    p = subprocess.Popen([sys.executable, '-I', '-c', 'import subprocess, sys, time; c = subprocess.Popen([sys.executable, "-I", "-c", '
+                          '"import time; time.sleep(120)"]); print(c.pid, flush=True); time.sleep(120)'], stdout=subprocess.PIPE, text=True)
+    child = int(p.stdout.readline())
+    log = io.StringIO()
+    end_tree(p, log)
+    assert p.poll() is not None and 'killed' in log.getvalue(), log.getvalue()
+    h = k32.OpenProcess(0x00100000, False, child)                   # SYNCHRONIZE; 0 once the process is gone
+    if h:
+        try:
+            assert k32.WaitForSingleObject(h, 10000) == 0, 'the child outlived end_tree'
+        finally:
+            k32.CloseHandle(h)
+    p.stdout.close()
 
 
 def selftest_places():

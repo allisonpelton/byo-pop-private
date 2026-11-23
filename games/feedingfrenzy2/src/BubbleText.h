@@ -81,12 +81,13 @@ public:
 	void setEffect(engine::ParticleSystemDef* theEffect) { mEffect = theEffect; }
 	void setLetterColor(const engine::Color& theColor) { mLetterColor = theColor; }
 	void setSpacing(float theSpacing) { mSpacing = theSpacing; }
+	// 0x475e00 (feedingfrenzy2): glyphs made for the next texts, each with its wave (the stage's word makes them
+	// ready as it loads)
+	void addFreeGlyphs(int theCount);
 
 private:
 	// 0x4883a0 (feedingfrenzy2): the glyphs taken out and kept for the next text
 	void clear();
-	// 0x475e00 (feedingfrenzy2): glyphs made for the next texts, each with its wave
-	void addFreeGlyphs(int theCount);
 
 	engine::Ref<engine::Surface> mBubble;                  // +0xb8
 	engine::Ref<engine::ParticleSystemDef> mEffect;        // +0xbc

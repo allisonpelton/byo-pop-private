@@ -209,15 +209,24 @@
 #                launch for 700 moves, then the memory and the concentration modes for 300 moves each, every run twice with
 #                the same transcript, and build/baseline-pizzafrenzy/pizzafrenzy.exe's runs the same when there is one (about
 #                three minutes, four and a half with the baseline; one game process at a time)
+#   feedingfrenzy  Feeding Frenzy: the bot plays by real input (games/feedingfrenzy/tools/suite/suite.sh): the normal game for
+#                1500 moves and the timed game for 1500 moves, every run twice with the same transcript, then all 40 stages
+#                loaded and played from a script (twice, the same output), and build/baseline-feedingfrenzy/feedingfrenzy.exe's
+#                runs the same when there is one (about four minutes; one game process at a time)
+#   feedingfrenzy2  Feeding Frenzy 2: stage 1's recorded play, the first bonus stage with a time bubble eaten and the next
+#                stage, and the continue offer twice to the game over, each run twice against frozen screenshot and state
+#                hashes (games/feedingfrenzy2/tools/suite/suite.sh), and build/baseline-feedingfrenzy2/feedingfrenzy2.exe's
+#                runs the same when there is one (about 6 minutes)
 #   bejeweled3   Bejeweled 3: a script of test commands (games/bejeweled3/tools/suite/suite.sh): the menu, a seeded Classic
 #                game played by the bot, a board with a Flame Gem, a Star Gem and a Hypercube, then a board with no move and
-#                the game-over dialog; run twice with the same state lines and screenshots, the states as frozen (about
-#                three minutes; one game process at a time)
+#                the game-over dialog; run twice with the same state lines and screenshots, the states as frozen; then
+#                Butterflies, Poker, Ice Storm, Diamond Mine and the Quest boards and goals by the bot, each run twice (about
+#                six minutes; one game process at a time)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs. Not in `all`: it
 #                compares Bejeweled's game logic with the original's, which a change outside games/bejeweled leaves as
 #                Bejeweled's frozen baseline (verify) already proves; merge mode runs it when games/bejeweled changes
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy bejeweled3; all = every suite but the oracle, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy feedingfrenzy feedingfrenzy2 bejeweled3; all = every suite but the oracle, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -353,7 +362,7 @@ OUT="build/logs/check"
 QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 
 # The suites in the order `all` runs them (origrun is not in `all`), and the game suites among them
-GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy bejeweled3)
+GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy feedingfrenzy feedingfrenzy2 bejeweled3)
 # the oracle is left out of `all` and of shared code's "every suite" (the user, 2026-11-11: "Seems like the Bejeweled oracle
 # is causing a lot of slowdown for no benefit"); it runs when games/bejeweled changes, or when named
 ALL_SUITES=(build build-web build-nov unit unit-web gpu screens speed verify modmenu livesplit "${GAME_SUITES[@]}")
@@ -372,7 +381,7 @@ suite_weight() { WEIGHT=1; [ "$1" = speed ] && WEIGHT=3; [ "$1" = bonnies ] && [
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=560 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [peggle]=10 [pizzafrenzy]=180 [bejeweled3]=180 [oracle]=1080)
+	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=560 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [peggle]=10 [pizzafrenzy]=180 [feedingfrenzy]=240 [feedingfrenzy2]=340 [bejeweled3]=330 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52 [typershark]=270)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
@@ -1467,7 +1476,7 @@ suite_bookwormadv() {
 	[ "$s" = 4 ] || return 1
 	[ "$m" = "quit at update 1310" ] || return 1
 	[ "$c" = "7 words, won, saved" ] || return 1
-	[ "$w" = "credits, players, mini-games, arena word ANTIBIOSIS" ] || return 1
+	[ "$w" = "tome, adventure done, credits, players, mini-games, arena word ANTIBIOSIS" ] || return 1
 	[ "$v" = "spectrum lit both ways" ] || return 1
 	return $st
 }
@@ -1654,32 +1663,38 @@ bookwormadv_chapter() {  # <log> [exe] [folder name]: the test profile's first c
 	fi
 }
 
-bookwormadv_screens() {  # <log> [exe] [folder name]: the test profile through the screens off the main menu: the credits, the players, the mini-games, the arena
+bookwormadv_screens() {  # <log> [exe] [folder name]: the test profile through the screens off the main menu: the tome, the adventure done, the credits, the players, the mini-games, the arena
 	local d="$OUT/bookwormadv/${3:-screens}" u n k t
 	fresh_dir "$d"; mkdir -p "$d"
 	cp -r games/bookwormadv/tests/menu/user "$d/user"
-	# the profile unlocks the mini-games and the arena (for a player past the first book); then the options'
-	# credits, skipped; the players dialog, cancelled; the mini-games' menu and its way back; the arena: its
-	# intro, the treasure room's continue (enabled from Lua, as no treasure is chosen), Cassandra's tutorial clicked
-	# through off the grid, and the longest word with the attack
-	{ printf '%s\n' "950 lua profile.Set('UnlockedMiniGames', true) profile.Set('UnlockedArena', true) profile.Set('CurrentBook', 2)" \
-		"1000 move 50 500" "1010 click 50 500" "1100 move 275 458" "1110 click 275 458" "1600 screenshot $d/credits.png" \
-		"1700 click 400 300" "2300 move 400 209" "2310 click 400 209" "2500 screenshot $d/players.png" \
-		"2550 move 470 464" "2560 click 470 464" "2700 move 110 400" "2710 click 110 400" "3200 screenshot $d/minigames.png" \
-		"3250 move 393 494" "3260 click 393 494" "3900 move 530 270" "3920 click 530 270" "5300 move 400 385" \
-		"5320 click 400 385" "5500 lua gTreasureScreen.mCObj:SetButtonState(gTreasureScreen.ButtonId_Continue, true, true)" \
-		"5600 move 400 515" "5620 click 400 515"
-	  for k in $(seq 0 9); do t=$((6500 + k * 200)); printf '%s\n' "$t move 700 500" "$((t + 20)) click 700 500"; done
-	  printf '%s\n' "8700 word attack" "9300 screenshot $d/arena.png" "9400 quit"; } > "$d/script.txt"
+	# the profile past the last book (CurrentBook 4) and everything unlocked (`unlock all`, which also refreshes the
+	# main menu's Adventure, and whose talks to Lex are cleared before the menu shows them): the tome and its way
+	# back, then Adventure's "adventure completed" dialog, closed with OK; then the player back in the second book
+	# (for the arena); then the options' credits, skipped; the players dialog, cancelled; the mini-games' menu and its
+	# way back; the arena: its intro, the treasure room's continue (enabled from Lua, as no treasure is chosen),
+	# Cassandra's tutorial clicked through off the grid, and the longest word with the attack
+	{ printf '%s\n' "940 lua profile.Set('CurrentBook', 4)" "950 unlock all" \
+		"960 lua profile.Set('NeedsArenaDialog', false) profile.Set('NeedsMiniGamesDialog', false) profile.Set('NeedsBestiaryDialog', false)" \
+		"1000 move 400 540" "1010 click 400 540" "1500 screenshot $d/tome.png" "1550 move 400 572" "1560 click 400 572" \
+		"2250 move 230 300" "2260 click 230 300" "2500 screenshot $d/done.png" "2550 move 400 295" "2560 click 400 295" \
+		"2850 lua profile.Set('CurrentBook', 2)" \
+		"2900 move 50 500" "2910 click 50 500" "3000 move 275 458" "3010 click 275 458" "3500 screenshot $d/credits.png" \
+		"3600 click 400 300" "4200 move 400 209" "4210 click 400 209" "4400 screenshot $d/players.png" \
+		"4450 move 470 464" "4460 click 470 464" "4600 move 110 400" "4610 click 110 400" "5100 screenshot $d/minigames.png" \
+		"5150 move 393 494" "5160 click 393 494" "5800 move 530 270" "5820 click 530 270" "7200 move 400 385" \
+		"7220 click 400 385" "7400 lua gTreasureScreen.mCObj:SetButtonState(gTreasureScreen.ButtonId_Continue, true, true)" \
+		"7500 move 400 515" "7520 click 400 515"
+	  for k in $(seq 0 9); do t=$((8400 + k * 200)); printf '%s\n' "$t move 700 500" "$((t + 20)) click 700 500"; done
+	  printf '%s\n' "10600 word attack" "11200 screenshot $d/arena.png" "11300 quit"; } > "$d/script.txt"
 	u="$d/user"; case "$u" in /*|[A-Za-z]:*) ;; *) u="$W/$u" ;; esac
 	timeout 180 "${2:-$W/build/native/bookwormadv.exe}" -userdir="$u" -boardlog="${u%/user}/board.txt" -script="$d/script.txt" -fast -seed=1 \
 		> "$d/stdout.txt" 2>&1
 	cat "$d/stdout.txt" >> "$1"
 	grep -q "FATAL" "$d/stdout.txt" && { echo "failed: $(grep -m 1 -A 2 FATAL "$d/stdout.txt" | tail -n 1)"; return; }
 	grep -q "script: lua:" "$d/stdout.txt" && { echo "failed: $(grep -m 1 'script: lua:' "$d/stdout.txt")"; return; }
-	for n in credits players minigames arena; do [ -f "$d/$n.png" ] || { echo "no $n screenshot"; return; }; done
+	for n in tome done credits players minigames arena; do [ -f "$d/$n.png" ] || { echo "no $n screenshot"; return; }; done
 	n="$(grep -m 1 -o 'script: word [A-Z]*' "$d/stdout.txt")"
-	echo "credits, players, mini-games, arena ${n#script: }"
+	echo "tome, adventure done, credits, players, mini-games, arena ${n#script: }"
 }
 
 bookwormadv_media() {  # <log> [exe] [folder name]: the test profile's media player: a song's spectrum both ways, the mouse over the book
@@ -2671,6 +2686,24 @@ suite_pizzafrenzy() {
 	local e
 	need_assets pizzafrenzy || return 1
 	bash games/pizzafrenzy/tools/suite/suite.sh "$OUT/pizzafrenzy" > "$1" 2>&1; e=$?
+	SUMMARY="$(tail -n 1 "$1")"
+	return $e
+}
+
+# Feeding Frenzy 2's suite is its own script too: three tours of test commands, each run twice, against frozen hashes
+suite_feedingfrenzy2() {
+	local e
+	need_assets feedingfrenzy2 || return 1
+	bash games/feedingfrenzy2/tools/suite/suite.sh "$OUT/feedingfrenzy2" > "$1" 2>&1; e=$?
+	SUMMARY="$(tail -n 1 "$1")"
+	return $e
+}
+
+# Feeding Frenzy's suite is its own script, which prints one summary line and exits 0 when every check passed
+suite_feedingfrenzy() {
+	local e
+	need_assets feedingfrenzy || return 1
+	bash games/feedingfrenzy/tools/suite/suite.sh "$OUT/feedingfrenzy" > "$1" 2>&1; e=$?
 	SUMMARY="$(tail -n 1 "$1")"
 	return $e
 }

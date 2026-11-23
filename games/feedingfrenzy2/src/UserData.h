@@ -14,6 +14,7 @@
 
 #include <string>
 
+class GameData;
 class SignatureDigest;
 
 // The two modes of play, the main menu's newGame and newTimedGame
@@ -56,6 +57,20 @@ public:
 	// 0x402750 (feedingfrenzy2): empty for no player
 	const std::string& getName() const { return mName; }
 	const ModeRecord& getMode(int theMode) const { return mModes[theMode]; }
+	int getFoodBank() const { return mFoodBank; }
+	void setFoodBank(int theFoodBank) { mFoodBank = theFoodBank; }
+	// The stage's end, as the last stage of the mode is finished (0x49aef0 (feedingfrenzy2))
+	void setMaxStage(int theMode, int theMaxStage) { mModes[theMode].mMaxStage = theMaxStage; }
+	// port (the test command unlock all): every mode's furthest stage the count of stages, as a player who has
+	// finished both has, and the player saved
+	void unlockAll(int theStageCount);
+	// 0x49fa40 (feedingfrenzy2): the mode's record holds a game to go on with
+	bool hasSavedGame(int theMode) const { return mModes[theMode].mLastStage >= 0 && mModes[theMode].mLastScore >= 0; }
+	// 0x49ae90 (feedingfrenzy2): the game kept in its mode's record, the stages reached raised to its stage
+	// (0x49aed0 (feedingfrenzy2))
+	void recordGame(const GameData& theGameData);
+	// 0x4980c0 (feedingfrenzy2): the mode's record holds no game to go on with, and the player is saved
+	void clearSavedGame(int theMode);
 
 private:
 	// 0x49a9d0 (feedingfrenzy2): the players' list's slot, which only jumps to load

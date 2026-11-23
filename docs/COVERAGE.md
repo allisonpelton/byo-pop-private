@@ -123,6 +123,11 @@ Ning Po took the first (2026-11-08; its `GAME_NOTES.md`, "Coverage check", is th
    it is missing, or a `none` line. A port function never reached is either given a run that reaches it, or read again
    against the export and any slip fixed. Those no play can reach are listed in the notes as candidates for taking out,
    not removed yet. One Sonnet agent can sort the first report's long list (Ning Po's 253 took it 7.5 minutes).
+   The hits file's columns are the address, the order in which a function was first reached (not a time) and the
+   thread; its `# coverage: columns:` line says so (Pizza Frenzy's agent once read the order as a time). When a
+   reading against the export suspects a slip, check the disassembly too, since the decompiler drops some stores, and
+   first make sure the listing covers the whole text section: Pizza Frenzy's `llvm-objdump` listing stopped at
+   0x460ffb, so every check above that address saw nothing until the agent made a listing of its own.
 4. Write a section "Coverage check" in the game's notes: the runs, the counts before and after, each gap and what was
    done, the candidates, anything left open, and roughly what it cost. Then message the coordinator to merge. A spec
    for the tool goes to the coordinator; the session does not edit the tool itself.

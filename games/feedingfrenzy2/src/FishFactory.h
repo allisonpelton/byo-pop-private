@@ -21,11 +21,24 @@ public:
 
 	// 0x407f00 (feedingfrenzy2): the file read into the library; whether it parsed (the loader does not look)
 	bool load(const std::string& thePath);
+	// 0x4897f0 (feedingfrenzy2): the library emptied, each map in turn (the folder kept)
+	void clear();
 
 	// 0x4112a0 (feedingfrenzy2): null for none
 	ModelInfo* findModel(const std::string& theName) const { return find(mModels, theName); }
 	// 0x424d70 (feedingfrenzy2): null for none
 	FishModelInfo* findFishModel(const std::string& theName) const { return find(mFishModels, theName); }
+	// 0x517e6d (feedingfrenzy2): null for none
+	BehaviorInfo* findBehavior(const std::string& theName) const { return find(mBehaviors, theName); }
+	// 0x40c9d0 (feedingfrenzy2): null for none
+	FishBehaviorInfo* findFishBehavior(const std::string& theName) const { return find(mFishBehaviors, theName); }
+	// 0x4100d0 (feedingfrenzy2): the model of the name, else the fish model; null, and a message, for none
+	ModelInfo* findAnyModel(const std::string& theName) const;
+	// 0x40c550 (feedingfrenzy2): the visual of the name, else a new one of the model of the name, kept under it; null,
+	// and a message, for neither
+	VisualInfo* findVisual(const std::string& theName);
+	// 0x40add0 (feedingfrenzy2): null, and a message, for none
+	FishVisualInfo* findFishVisual(const std::string& theName) const;
 
 	std::string mAnimBase;                                                 // +0x00: the animations' folder
 	std::map<std::string, engine::Ref<ModelInfo>> mModels;                 // +0x1c

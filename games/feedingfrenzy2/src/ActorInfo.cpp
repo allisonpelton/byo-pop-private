@@ -16,7 +16,8 @@ namespace
 // (feedingfrenzy2) over 180)
 const float DEGREES_TO_RADIANS = (float)(3.141592653589793 / 180.0);
 
-// 0x46e340 (feedingfrenzy2): the string in lower case (CharLowerA)
+} // namespace
+
 std::string toLower(const std::string& theString)
 {
 	std::string aLower = theString;
@@ -27,8 +28,6 @@ std::string toLower(const std::string& theString)
 	}
 	return aLower;
 }
-
-} // namespace
 
 void ModelInfo::load(Params& theAttributes)
 {
@@ -95,19 +94,7 @@ void VisualInfo::load(Params& theAttributes)
 
 void VisualInfo::setModel(const std::string& theName)
 {
-	// 0x4100d0 (feedingfrenzy2)
-	FishFactory* aFactory = FishFactory::get();
-	ModelInfo* aModel = aFactory->findModel(theName);
-	if (aModel == nullptr)
-	{
-		aModel = aFactory->findFishModel(theName);
-		if (aModel == nullptr)
-		{
-			// The original shows a message box (the engine's slot 0xd8); the game's file names no missing model
-			getEngine()->log("Bad Name: There is no such model as %s.\n", theName.c_str());
-		}
-	}
-	mModel = aModel;
+	mModel = FishFactory::get()->findAnyModel(theName);
 }
 
 void VisualInfo::addToFactory()

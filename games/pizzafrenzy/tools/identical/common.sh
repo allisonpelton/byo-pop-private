@@ -12,7 +12,7 @@ OUT="${OUT:-build/identical}"
 TOOLS=games/pizzafrenzy/tools/identical
 RUNDESK="build/native/rundesk.exe"
 ORIGRUN="build/origrun-bin/origrun.exe"
-PATCHES=tools/origrun/patches/pizzafrenzy.txt
+PATCHES="${PATCHES:-tools/origrun/patches/pizzafrenzy.txt}"
 REGKEY='HKCU\Software\GameHouse\Pizza Frenzy'
 # the carved game exe, in the main checkout's re/ (git-ignored)
 GAME_EXE="${GAME_EXE:-$(git worktree list | head -1 | cut -d' ' -f1)/re/pizzafrenzy/bin/PizzaFrenzyGame.exe}"

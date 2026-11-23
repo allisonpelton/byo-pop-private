@@ -1,0 +1,22 @@
+1300 unlock all
+1310 click 375 240
+1360 click 263 255
+1650 click 400 545
+2700 state
+2800 state
+2830 state
+2850 state
+2870 screenshot @DIR@/bonus-2870.png
+2870 state
+2900 state
+2901 set time 2
+3150 screenshot @DIR@/bonus-3150.png
+3290 click 20 590
+3300 click 700 300
+3400 screenshot @DIR@/bonus-3400.png
+3401 state
+3700 click 20 590
+3710 click 400 545
+3900 screenshot @DIR@/bonus-3900.png
+3901 state
+3902 quit

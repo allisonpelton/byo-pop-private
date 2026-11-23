@@ -172,9 +172,26 @@ void Button::addListener(ButtonListener* theListener, std::string theName)
 	mListeners.push_back(anEntry);
 }
 
-// 0x431f60 (wordharmony), 0x47a730 (pizzafrenzy): each sound is loaded under its own name, then a voice is made of it
+// 0x431f60 (wordharmony), 0x47a730 (pizzafrenzy): each sound is loaded under its own name, then a voice is made of it.
+// The signal build's goes through the application's slots (the archive's file, App::loadSound and createSound).
+// The early build (0x4468c0 feedingfrenzy loads a sound file of the game's folder) keeps the sound system's own load.
 void Button::setSounds(const std::string& theEnterSound, const std::string& thePressSound)
 {
+	if (gSignalBuild && !gEarlyBuild)
+	{
+		App* anApp = App::instance();
+		if (theEnterSound.size() != 0)
+		{
+			anApp->loadSound(theEnterSound, theEnterSound);
+			mEnterSound = anApp->createSound(theEnterSound, true, 0);
+		}
+		if (thePressSound.size() != 0)
+		{
+			anApp->loadSound(thePressSound, thePressSound);
+			mPressSound = anApp->createSound(thePressSound, true, 0);
+		}
+		return;
+	}
 	if (theEnterSound.size() != 0 && App::getSoundSystem() != nullptr)
 	{
 		App::getSoundSystem()->load(theEnterSound.c_str(), theEnterSound.c_str());

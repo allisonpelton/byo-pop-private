@@ -364,6 +364,88 @@ PixelOp blitOp(const Blit& theBlit)
 	return anOp;
 }
 
+// The signal build's stretch (0x4ca3b0 (pizzafrenzy) and its four siblings for the other operations, with
+// 0x4c4680 (pizzafrenzy) and its siblings): a call whose scale is not 1 goes between two whole-pixel rectangles. The
+// screen's is the source rectangle moved to the pivot, scaled, put in order and moved to the position; when the clip
+// (the target) does not hold it, it is cut to the clip and the source's is worked back from it. Both are truncated
+// side by side, and the stretch steps through the source by whole pixels: screen column i reads source column
+// i * source width / screen width (rounded down), and so for the rows.
+bool signalStretch(const Blit& theBlit)
+{
+	return gSignalBuild && theBlit.mSmooth == 0 && std::fabs(theBlit.mRotation) < 2.3841858e-07f &&
+		(2.3841858e-07f <= std::fabs(theBlit.mScaleX - 1.0f) || 2.3841858e-07f <= std::fabs(theBlit.mScaleY - 1.0f));
+}
+
+struct StretchRects
+{
+	int mLeft, mTop, mRight, mBottom;              // on the screen
+	int mSrcLeft, mSrcTop, mSrcRight, mSrcBottom;  // in the image
+};
+
+// A rectangle's sides (0x470cb0 (pizzafrenzy)): the smaller of each pair first
+void putInOrder(float& theLeft, float& theTop, float& theRight, float& theBottom)
+{
+	if (theRight < theLeft)
+		std::swap(theLeft, theRight);
+	if (theBottom < theTop)
+		std::swap(theTop, theBottom);
+}
+
+bool stretchRects(const Blit& theBlit, int theTargetWidth, int theTargetHeight, StretchRects& theRects)
+{
+	float aSX = theBlit.mScaleX;
+	float aSY = theBlit.mScaleY;
+	float aPivotX = (float)theBlit.mPivotX;
+	float aPivotY = (float)theBlit.mPivotY;
+	float aSrcLeft = (float)theBlit.mSrcLeft;
+	float aSrcTop = (float)theBlit.mSrcTop;
+	float aSrcRight = (float)theBlit.mSrcRight;
+	float aSrcBottom = (float)theBlit.mSrcBottom;
+	// the source moved to the origin and then to the pivot, scaled, put in order and moved to the position
+	float aLeft = (0.0f - aPivotX) * aSX;
+	float aTop = (0.0f - aPivotY) * aSY;
+	float aRight = ((aSrcRight - aSrcLeft) - aPivotX) * aSX;
+	float aBottom = ((aSrcBottom - aSrcTop) - aPivotY) * aSY;
+	putInOrder(aLeft, aTop, aRight, aBottom);
+	aLeft = aLeft + theBlit.mX;
+	aTop = aTop + theBlit.mY;
+	aRight = aRight + theBlit.mX;
+	aBottom = aBottom + theBlit.mY;
+	float aClipRight = (float)theTargetWidth;
+	float aClipBottom = (float)theTargetHeight;
+	if (!(aRight <= aClipRight && aBottom <= aClipBottom && 0.0f <= aLeft && 0.0f <= aTop))
+	{
+		// cut to the clip (0x470ba0 (pizzafrenzy)), and the source worked back from the cut rectangle
+		aLeft = std::max(aLeft, 0.0f);
+		aTop = std::max(aTop, 0.0f);
+		aRight = std::min(aRight, aClipRight);
+		aBottom = std::min(aBottom, aClipBottom);
+		if (aRight <= aLeft || aBottom <= aTop)
+			return false;
+		float anInverseX = (float)(1.0 / aSX);
+		float anInverseY = (float)(1.0 / aSY);
+		float aBackLeft = (aLeft - theBlit.mX) * anInverseX;
+		float aBackTop = (aTop - theBlit.mY) * anInverseY;
+		float aBackRight = (aRight - theBlit.mX) * anInverseX;
+		float aBackBottom = (aBottom - theBlit.mY) * anInverseY;
+		putInOrder(aBackLeft, aBackTop, aBackRight, aBackBottom);
+		aSrcLeft = (aBackLeft + aPivotX) + (float)theBlit.mSrcLeft;
+		aSrcTop = (aBackTop + aPivotY) + (float)theBlit.mSrcTop;
+		aSrcRight = (aBackRight + aPivotX) + (float)theBlit.mSrcLeft;
+		aSrcBottom = (aBackBottom + aPivotY) + (float)theBlit.mSrcTop;
+	}
+	theRects.mLeft = (int)aLeft;
+	theRects.mTop = (int)aTop;
+	theRects.mRight = (int)aRight;
+	theRects.mBottom = (int)aBottom;
+	theRects.mSrcLeft = (int)aSrcLeft;
+	theRects.mSrcTop = (int)aSrcTop;
+	theRects.mSrcRight = (int)aSrcRight;
+	theRects.mSrcBottom = (int)aSrcBottom;
+	return theRects.mLeft < theRects.mRight && theRects.mTop < theRects.mBottom &&
+		theRects.mSrcLeft < theRects.mSrcRight && theRects.mSrcTop < theRects.mSrcBottom;
+}
+
 // The part of the screen an image draw call can write; false when it writes nothing. The rectangles are those the pixel
 // loops of renderBlit run over (the position, scale and rotation as the loops take them).
 bool blitBounds(Blit& theBlit, int theScreenWidth, int theScreenHeight)
@@ -373,7 +455,17 @@ bool blitBounds(Blit& theBlit, int theScreenWidth, int theScreenHeight)
 	int aHeight = theBlit.mSrcBottom - theBlit.mSrcTop;
 	float aPivotX = (float)theBlit.mPivotX;
 	float aPivotY = (float)theBlit.mPivotY;
-	if (std::fabs(aRotation) < 2.3841858e-07f)
+	if (signalStretch(theBlit))
+	{
+		StretchRects aRects;
+		if (!stretchRects(theBlit, theScreenWidth, theScreenHeight, aRects))
+			return false;
+		theBlit.mLeft = aRects.mLeft;
+		theBlit.mTop = aRects.mTop;
+		theBlit.mRight = aRects.mRight;
+		theBlit.mBottom = aRects.mBottom;
+	}
+	else if (std::fabs(aRotation) < 2.3841858e-07f)
 	{
 		float aSX = std::fabs(theBlit.mScaleX);
 		float aSY = std::fabs(theBlit.mScaleY);
@@ -415,12 +507,75 @@ bool blitBounds(Blit& theBlit, int theScreenWidth, int theScreenHeight)
 	return theBlit.mLeft < theBlit.mRight && theBlit.mTop < theBlit.mBottom;
 }
 
+// The signal build's stretch's maps (0x4c4680 (pizzafrenzy)): an error term steps the source by whole pixels, from
+// its last column (or row) backwards for a mirrored scale
+bool makeStretchMaps(const Blit& theBlit, const ScreenImage& theImage, int theTargetWidth, int theTargetHeight,
+	Frame& theFrame, BlitMaps& theMaps)
+{
+	StretchRects aRects;
+	if (!stretchRects(theBlit, theTargetWidth, theTargetHeight, aRects))
+		return false;
+	int aColumnCount = aRects.mRight - aRects.mLeft;
+	int aRowCount = aRects.mBottom - aRects.mTop;
+	int aSrcWidth = aRects.mSrcRight - aRects.mSrcLeft;
+	int aSrcHeight = aRects.mSrcBottom - aRects.mSrcTop;
+	size_t aBase = theFrame.mMapData.size();
+	theFrame.mMapData.resize(aBase + aColumnCount + aRowCount);
+	int* aColumns = theFrame.mMapData.data() + aBase;
+	int* aRows = aColumns + aColumnCount;
+	int aFirst = -1;
+	int aLast = -1;
+	bool aRun = true;
+	int aStep = 0;
+	int anError = 0;
+	for (int i = 0; i < aColumnCount; i++)
+	{
+		int u = theBlit.mScaleX < 0 ? aRects.mSrcRight - 1 - aStep : aRects.mSrcLeft + aStep;
+		int aColumn = (u < 0 || u >= theImage.mWidth) ? -1 : u;
+		aColumns[i] = aColumn;
+		for (anError += aSrcWidth; aColumnCount <= anError; anError -= aColumnCount)
+			aStep++;
+		if (aColumn < 0)
+			continue;
+		if (aFirst < 0)
+			aFirst = i;
+		else if (aLast != i - 1 || aColumn != aColumns[i - 1] + 1)
+			aRun = false;
+		aLast = i;
+	}
+	bool aAnyRow = false;
+	aStep = 0;
+	anError = 0;
+	for (int i = 0; i < aRowCount; i++)
+	{
+		int v = theBlit.mScaleY < 0 ? aRects.mSrcBottom - 1 - aStep : aRects.mSrcTop + aStep;
+		aRows[i] = (v < 0 || v >= theImage.mHeight) ? -1 : v;
+		aAnyRow = aAnyRow || aRows[i] >= 0;
+		for (anError += aSrcHeight; aRowCount <= anError; anError -= aRowCount)
+			aStep++;
+	}
+	if (aFirst < 0 || !aAnyRow)
+	{
+		theFrame.mMapData.resize(aBase);
+		return false;
+	}
+	theMaps.mColumns = (int32_t)aBase;
+	theMaps.mRows = (int32_t)(aBase + aColumnCount);
+	theMaps.mFirst = aFirst;
+	theMaps.mLast = aLast;
+	theMaps.mRun = aRun;
+	return true;
+}
+
 // An unrotated call's maps (0x45c070 (wordharmony)'s unrotated path), appended to the frame's map data. The column each
 // destination column reads is the float mapping of the original's loop; a mirrored scale reads the image's columns the
 // other way round. False when the call reads nothing (no column or no row falls inside the source), and so writes
 // nothing.
-bool makeMaps(const Blit& theBlit, const ScreenImage& theImage, Frame& theFrame, BlitMaps& theMaps)
+bool makeMaps(const Blit& theBlit, const ScreenImage& theImage, int theTargetWidth, int theTargetHeight, Frame& theFrame,
+	BlitMaps& theMaps)
 {
+	if (signalStretch(theBlit))
+		return makeStretchMaps(theBlit, theImage, theTargetWidth, theTargetHeight, theFrame, theMaps);
 	float aSX = std::fabs(theBlit.mScaleX);
 	float aSY = std::fabs(theBlit.mScaleY);
 	float aLeft = theBlit.mX - (float)theBlit.mPivotX * aSX;
@@ -813,7 +968,8 @@ void resampleLine(const uint8_t* theSource, int theSourceStride, int theSourceCo
 }
 
 // 0x4becb0 (pizzafrenzy): the image resampled in place to ftol(width * |factor|) by ftol(height * |factor|), a
-// horizontal pass and then a vertical one, each channel on its own; the pivot is left where it was
+// horizontal pass and then a vertical one, each channel on its own; the pivot is scaled with it (ftol of the pivot
+// times the factor)
 void ScreenImage::scale(float theScaleX, float theScaleY)
 {
 	int aNewWidth = std::max(1, (int)(mWidth * std::fabs(theScaleX)));
@@ -837,6 +993,7 @@ void ScreenImage::scale(float theScaleX, float theScaleY)
 	mWidth = aNewWidth;
 	mHeight = aNewHeight;
 	mBits.swap(aResult);
+	setPivot((int)((double)getPivotX() * theScaleX), (int)((double)getPivotY() * theScaleY));
 	mSerial = nextSerial();
 }
 
@@ -896,8 +1053,8 @@ ScreenGraphics::~ScreenGraphics()
 	delete mRetained;
 }
 
-// port (for speed): the start of a frame: the screen is black, and nothing is drawn (the calls are recorded, and finish
-// draws them)
+// port (for speed): the start of a frame: nothing is drawn (the calls are recorded, and finish draws them, over black,
+// or over the last frame in the signal build)
 void ScreenGraphics::clear()
 {
 	mRetained->mFrame.clear();
@@ -957,8 +1114,12 @@ bool ScreenGraphics::finish()
 				aRedrawn.back().mWidth += aRight - aLeft;
 			else
 				aRedrawn.push_back({aLeft, aTop, aRight - aLeft, aBottom - aTop});
-			for (int y = aTop; y < aBottom; y++)
-				std::fill(mBits + y * mWidth + aLeft, mBits + y * mWidth + aRight, 0xff000000);
+			// the signal build never clears its screen (pizzafrenzy: the display's lock, 0x4ccee0, hands out the last
+			// frame's pixels, and a dirty region is drawn over them), so a translucent screen blends with what was
+			// there: a fade in or out builds on the frame before
+			if (!gSignalBuild)
+				for (int y = aTop; y < aBottom; y++)
+					std::fill(mBits + y * mWidth + aLeft, mBits + y * mWidth + aRight, 0xff000000);
 			for (uint32_t anIndex : aNow)
 			{
 				const Blit& aBlit = aNowFrame.mBlits[anIndex];
@@ -1089,7 +1250,7 @@ bool makeBlit(Graphics& theGraphics, ScreenImage* theImage, const IntRect& theSr
 	theMaps.mColumns = theMaps.mRows = -1;
 	theMaps.mFirst = theMaps.mLast = 0;
 	theMaps.mRun = false;
-	return aSmooth || std::fabs(aRotation) >= 2.3841858e-07f || makeMaps(aBlit, *theImage, theFrame, theMaps);
+	return aSmooth || std::fabs(aRotation) >= 2.3841858e-07f || makeMaps(aBlit, *theImage, theTargetWidth, theTargetHeight, theFrame, theMaps);
 }
 
 }

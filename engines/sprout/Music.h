@@ -57,6 +57,8 @@ public:
 	void start();
 	// 0x424970 (wordharmony)
 	void stop();
+	// 0x459140 (feedingfrenzy): the layer's volume, and the clip that plays now takes it
+	void setVolume(float theVolume);
 	// 0x424a10 (wordharmony)
 	void update(UpdateInfo& theInfo);
 	// 0x424b80 (wordharmony): registers a clip and adds it to the list, with no loop, no fades and the layer's volume
@@ -96,6 +98,8 @@ public:
 	bool load(std::string theFile);
 	void addLayer(MusicLayer* theLayer);    // 0x4251e0 (wordharmony)
 	void clearLayers();                     // 0x424e90 (wordharmony)
+	// 0x44d940 (feedingfrenzy): every layer's volume
+	void setVolume(float theVolume);
 
 	std::vector<MusicLayer*> mLayers;  // +0x10
 };

@@ -103,8 +103,8 @@ Topping::Topping(const std::string& theName, const std::string& theDisplayName, 
 }
 
 // 0x41dc60: the preview is the scaled topping drawn on a copy of the cheese pizza's image, in its middle and three
-// pixels up. The scaled image keeps the pivot the full-size image had (its centre in full-size pixels), which is
-// where it is drawn from.
+// pixels up. The scaled image's pivot is the full-size image's centre scaled with it, which is where it is drawn
+// from.
 void Topping::setImage(engine::Image* theImage)
 {
 	mImage = theImage;

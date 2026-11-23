@@ -1,0 +1,105 @@
+# The battle's own dialogs: the treasure room before the chapter, a treasure's description, a health potion at full
+# health, a purify potion with nothing to purify, the how-to-play notice after two clicks of Attack on a word that is
+# not one, the tooltips of Lex's level bar, a treasure and a potion, and the game's menu with the options over the
+# board and the quit to the main menu. Profile dlg.bwa: the port's save at book 2, chapter 1, stage 7
+# (tools/coverage/advance.sh) with the menu's talks marked as given (tools/coverage/bwa.py); the bot's steps
+# (tools/coverage/play.py) take it into the chapter's battle.
+at 16000
+click 230 300            # the library: Adventure
+wait 4000
+wait 500
+click 400 575   # Enter!
+wait 3000
+wait 500
+click 188 113   # a treasure
+wait 1500
+wait 500
+click 188 209   # a treasure
+wait 1500
+wait 500
+click 188 300   # a treasure
+wait 1500
+shot dlg_treasure_room
+wait 500
+click 411 575   # Continue
+loaded 1900              # the load it starts: the steps after it count from the curtain's opening (gen.py)
+wait 1500
+wait 1500
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 400 150   # the conversation on
+wait 3000
+click 400 150   # the conversation on
+wait 3000
+click 400 150   # the conversation on
+wait 3000
+click 400 150   # the conversation on
+wait 3000
+click 400 150   # the conversation on
+wait 3000
+click 400 150   # the conversation on
+wait 3000
+click 400 150   # the conversation on
+wait 3000
+shot dlg_battle
+click 55 532             # the first treasure's "more info"
+wait 1500
+shot dlg_treasure_info
+click 400 333            # OK
+wait 1000
+click 68 330             # the health potion, at full health
+wait 1500
+shot dlg_full_health
+click 400 257            # OK
+wait 1000
+click 222 330            # the purify potion, with nothing to purify
+wait 1500
+shot dlg_purify
+click 400 295            # OK
+wait 1000
+click 326 335            # R
+wait 400
+click 376 335            # V
+wait 600
+click 400 567            # Attack, twice, on a word that is not one
+wait 1000
+click 400 567
+wait 1500
+shot dlg_howtoplay
+click 400 276            # OK
+wait 1000
+click 655 580            # Menu
+wait 1500
+click 405 272            # Options
+wait 1500
+shot dlg_board_options
+wait 1000
+click 510 458            # Continue Game
+wait 1500
+shot dlg_board_after_options
+move 135 12              # Lex's level bar: its tooltip
+wait 1500
+shot dlg_tip_level
+move 55 470              # the first treasure: its description
+wait 1500
+shot dlg_tip_treasure
+move 68 330              # the health potion
+wait 1500
+shot dlg_tip_potion
+click 655 580            # Menu
+wait 1500
+click 405 312            # Quit To Main Menu
+wait 2000
+shot dlg_quit
+click 332 388            # yes
+wait 4000
+shot dlg_after_quit
+quit

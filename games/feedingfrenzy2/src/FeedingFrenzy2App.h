@@ -79,6 +79,15 @@ public:
 	// WM_ACTIVATE: the engine's activate signal
 	void GotFocus() override;
 	void LostFocus() override;
+	// port: the test commands (docs/TEST_COMMANDS.md): unlock all
+	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// The test command state: one line, STATE {...}, with the mode, the stage, the score, the lives, the food eaten,
+	// the player's phase, its frenzy's multiplier and where it is (docs/TEST_COMMANDS.md)
+	void logState();
+	// The test command set <name> <value>: the score, the lives or the food eaten in the stage
+	void setState(const std::string& theArgs);
+	// The test commands win and lose: the stage's goal reached, or the player's fish ended as an eater ends it
+	void endStage(bool isWin);
 
 	// A frame of the engine (0x438700 (feedingfrenzy2))
 	void RunFrame();

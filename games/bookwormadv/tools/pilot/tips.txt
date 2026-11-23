@@ -1,0 +1,22 @@
+# The main menu's tooltips: each place under the mouse (the library, the tent, the colosseum, the toolbox, the film
+# reels, the boot). Profile Tester (the pilot start state). The battle's own tooltips are in dlg.txt.
+at 16000
+move 230 300             # the library
+wait 1500
+shot tip_library
+move 115 400             # the tent
+wait 1500
+shot tip_tent
+move 575 300             # the colosseum
+wait 1500
+shot tip_colosseum
+move 100 540             # the toolbox
+wait 1500
+shot tip_toolbox
+move 560 560             # the film reels
+wait 1500
+shot tip_media
+move 700 540             # the boot
+wait 1500
+shot tip_boot
+quit

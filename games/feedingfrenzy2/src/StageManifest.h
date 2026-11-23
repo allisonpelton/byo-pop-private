@@ -12,6 +12,7 @@
 
 #include "Geometry.h"
 #include "MasterDocHandler.h"
+#include "SplinePath.h"
 
 #include <string>
 #include <vector>
@@ -40,21 +41,27 @@ public:
 		engine::Vector2f mStart;      // +0x04: where its spline starts on the map (set with the pins)
 		std::string mImageOff;        // +0x0c: its stages' buttons
 		std::string mImageOn;         // +0x28
-		// +0x44: the spline its stages' pins are spaced along (a SplinePath of the file named by the spline
-		// attribute, read by a PathDocHandler): not yet translated
+		engine::Ref<SplinePath> mSpline;  // +0x44: its stages' pins are spaced along it; null for none
 
 		LevelSet() : mFirstStage(0), mStart(0, 0) {}
 	};
 
 	// 0x48c290 (feedingfrenzy2): the file read; when it has level sets, their stages' pins placed along their
-	// splines (0x41ad50 (feedingfrenzy2), not yet translated: the game map's)
+	// splines
 	void load(const std::string& thePath);
 
 	const std::vector<Stage>& getStages() const { return mStages; }
+	// 0x483b90 (feedingfrenzy2): the place of the stage of the id, -1 for none
+	int findStage(const std::string& theId) const;
 	const std::vector<LevelSet>& getLevelSets() const { return mLevelSets; }
 
 private:
 	friend class StageManifestDocHandler;
+
+	// 0x41ad50 (feedingfrenzy2): each level set but the last starts at its spline's first node, and its stages' pins
+	// are spaced evenly along it, none at its ends; the last set, which has no stages, starts at the end of the
+	// spline before it
+	void placePins();
 
 	std::vector<Stage> mStages;        // +0x0c
 	std::vector<LevelSet> mLevelSets;  // +0x1c

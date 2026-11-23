@@ -11,12 +11,20 @@
 #include "ScreenLayout.h"
 #include "Stream.h"
 #include "Table.h"
+#include "TextButton.h"
 #include "TextItem.h"
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
 
 using namespace engine;
+
+// port: whether the reader is Pizza Frenzy's (the signal build's), which the early build's reader (Feeding Frenzy's) is
+// not: it has the listener build's attributes and calls
+static bool hasSignalReader()
+{
+	return gSignalBuild && !gEarlyBuild;
+}
 
 // The attribute readers (Layout.h)
 
@@ -70,10 +78,10 @@ Point engine::getScaleAttribute(XmlAttributes theAttributes, const std::string& 
 	return Point(x, y);
 }
 
-// 0x42b1c0 (wordharmony), 0x475fa0 (pizzafrenzy): "x,y" (the signal build's reads "x , y", spaces allowed). The
-// listener build's original reads into uninitialised locals, so a value that does not parse gives what the stack held;
-// the port gives the default for the numbers that do not parse (the signal build's original starts them at the
-// default).
+// 0x42b1c0 (wordharmony), 0x475fa0 (pizzafrenzy), 0x448540 (feedingfrenzy): "x,y" (the signal build's reads "x , y",
+// spaces allowed). The listener build's and the early build's originals read into uninitialised locals, so a value
+// that does not parse gives what the stack held; the port gives the default for the numbers that do not parse (the
+// signal build's original starts them at the default).
 Point engine::getPointAttribute(XmlAttributes theAttributes, const std::string& theName, Point theDefault)
 {
 	Point aPoint = theDefault;
@@ -83,7 +91,7 @@ Point engine::getPointAttribute(XmlAttributes theAttributes, const std::string& 
 		std::string aValue = anIt->second;
 		float x = theDefault.x;
 		float y = theDefault.y;
-		sscanf(aValue.c_str(), gSignalBuild ? " %f , %f " : "%f,%f", &x, &y);
+		sscanf(aValue.c_str(), hasSignalReader() ? " %f , %f " : "%f,%f", &x, &y);
 		aPoint = Point(x, y);
 	}
 	return aPoint;
@@ -136,13 +144,31 @@ Color4 engine::getColorAttribute(XmlAttributes theAttributes, const std::string&
 	return aColor;
 }
 
-// 0x42c7f0 (wordharmony), 0x48bfa0 (pizzafrenzy)
+// 0x448680 (feedingfrenzy): the original reads into uninitialised locals, so a value that does not parse gives what the
+// stack held; the port gives the default for the numbers that do not parse
+Color engine::getColorOffsetAttribute(XmlAttributes theAttributes, const std::string& theName, Color theDefault)
+{
+	Color aColor = theDefault;
+	XmlAttributes::iterator anIt = theAttributes.find(theName);
+	if (anIt != theAttributes.end())
+	{
+		std::string aValue = anIt->second;
+		float aRed = theDefault.r;
+		float aGreen = theDefault.g;
+		float aBlue = theDefault.b;
+		sscanf(aValue.c_str(), "%f,%f,%f", &aRed, &aGreen, &aBlue);
+		aColor = Color(aRed, aGreen, aBlue);
+	}
+	return aColor;
+}
+
+// 0x42c7f0 (wordharmony), 0x48bfa0 (pizzafrenzy), 0x457670 (feedingfrenzy)
 LayoutHandler::LayoutHandler()
 {
 	mScreen = nullptr;
 }
 
-// 0x42c230 (wordharmony): the screen and the groups are not counted
+// 0x42c230 (wordharmony), 0x452da0 (feedingfrenzy): the screen and the groups are not counted
 LayoutHandler::~LayoutHandler()
 {
 	mScreen = nullptr;
@@ -183,10 +209,39 @@ void LayoutHandler::startSignalElement(const std::string& theName, const XmlAttr
 		addKeyAction(theAttributes);
 }
 
-// 0x430910 (wordharmony), 0x48d250 (pizzafrenzy): an element the reader does not know is skipped (its children are
-// still read)
+// 0x457ee0 (feedingfrenzy): the elements are tried in the original's order. Unlike the signal build's reader, it has no
+// screen element, key actions, edit box, list box, table and column, and its image and text are the listener build's.
+void LayoutHandler::startEarlyElement(const std::string& theName, const XmlAttributes& theAttributes)
+{
+	if (theName.compare("image") == 0)
+		addImage(theAttributes);
+	else if (theName.compare("text") == 0)
+		addText(theAttributes);
+	else if (theName.compare("imageButton") == 0)
+		addImageButton(theAttributes);
+	else if (theName.compare("checkBox") == 0)
+		addCheckBox(theAttributes);
+	else if (theName.compare("textButton") == 0)
+		addTextButton(theAttributes);
+	else if (theName.compare("group") == 0)
+		addGroup(theAttributes);
+	else if (theName.compare("particleSystem") == 0)
+		addParticleSystem(theAttributes);
+	else if (theName.compare("textSub") == 0)
+		addTextSub(theAttributes);
+	else if (theName.compare("include") == 0)
+		addInclude(theAttributes);
+}
+
+// 0x430910 (wordharmony), 0x48d250 (pizzafrenzy), 0x457ee0 (feedingfrenzy): an element the reader does not know is
+// skipped (its children are still read)
 void LayoutHandler::startElement(const std::string& theName, const XmlAttributes& theAttributes)
 {
+	if (gEarlyBuild)
+	{
+		startEarlyElement(theName, theAttributes);
+		return;
+	}
 	if (gSignalBuild)
 	{
 		startSignalElement(theName, theAttributes);
@@ -221,18 +276,18 @@ void LayoutHandler::startElement(const std::string& theName, const XmlAttributes
 		addParticleSystem(theAttributes);
 }
 
-// 0x42c4f0 (wordharmony), 0x48b7f0 (pizzafrenzy): the signal build's also ends a selector like a group (the selector
-// element is not translated), lays the table out when it ends and lets go of it (its radio group's end is not
-// translated either)
+// 0x42c4f0 (wordharmony), 0x48b7f0 (pizzafrenzy), 0x457370 (feedingfrenzy): the signal build's also ends a selector like
+// a group (the selector element is not translated), lays the table out when it ends and lets go of it (its radio
+// group's end is not translated either); the early build's ends only a group
 void LayoutHandler::endElement(const std::string& theName)
 {
-	if (gSignalBuild && theName.compare("table") == 0)
+	if (hasSignalReader() && theName.compare("table") == 0)
 	{
 		mTable->layout();
 		mTable = nullptr;
 		return;
 	}
-	if (theName.compare("group") == 0 || (gSignalBuild && theName.compare("selector") == 0))
+	if (theName.compare("group") == 0 || (hasSignalReader() && theName.compare("selector") == 0))
 	{
 		if (mGroups.size() < 2)
 			throw Exception("Mis-matched end group");
@@ -241,13 +296,13 @@ void LayoutHandler::endElement(const std::string& theName)
 	}
 }
 
-// 0x42c8c0 (wordharmony), 0x48cc30 (pizzafrenzy)
+// 0x42c8c0 (wordharmony), 0x48cc30 (pizzafrenzy), 0x457e80 (feedingfrenzy)
 void LayoutHandler::startDocument()
 {
 	mGroups.push_back(mScreen);
 }
 
-// 0x42c380 (wordharmony), 0x484c40 (pizzafrenzy)
+// 0x42c380 (wordharmony), 0x484c40 (pizzafrenzy), 0x452f50 (feedingfrenzy)
 void LayoutHandler::endDocument()
 {
 	if (mGroups.size() != 0)
@@ -298,7 +353,8 @@ bool LayoutHandler::addSignalImage(const XmlAttributes& theAttributes)
 	return true;
 }
 
-// 0x430280 (wordharmony): the alpha type and the pivot change the cached image, so they hold for every user of the file
+// 0x430280 (wordharmony), 0x453120 (feedingfrenzy): the alpha type and the pivot change the cached image, so they hold
+// for every user of the file
 bool LayoutHandler::addImage(const XmlAttributes& theAttributes)
 {
 	std::string aFile = getStringAttribute(theAttributes, "file", "");
@@ -398,7 +454,7 @@ bool LayoutHandler::addSignalText(const XmlAttributes& theAttributes)
 	return true;
 }
 
-// 0x42ef20 (wordharmony): the text, the font and the name must all be given
+// 0x42ef20 (wordharmony), 0x4562f0 (feedingfrenzy): the text, the font and the name must all be given
 bool LayoutHandler::addText(const XmlAttributes& theAttributes)
 {
 	std::string aString = getStringAttribute(theAttributes, "string", "");
@@ -439,9 +495,9 @@ bool LayoutHandler::addText(const XmlAttributes& theAttributes)
 	return true;
 }
 
-// 0x42c920 (wordharmony), 0x4858a0 (pizzafrenzy): the button is pressed under its action (the screen listens to it with
-// listenTo); the over and down images are optional. The signal build's also gives the button its scale as the base
-// scale its hover scales multiply.
+// 0x42c920 (wordharmony), 0x4858a0 (pizzafrenzy), 0x453930 (feedingfrenzy): the button is pressed under its action (the
+// screen listens to it with listenTo); the over and down images are optional. The signal build's also gives the button
+// its scale as the base scale its hover scales multiply.
 bool LayoutHandler::addImageButton(const XmlAttributes& theAttributes)
 {
 	float x = getFloatAttribute(theAttributes, "x", 0);
@@ -477,7 +533,7 @@ bool LayoutHandler::addImageButton(const XmlAttributes& theAttributes)
 	aButton->setPosition(x, y);
 	aButton->setOpacity(anOpacity);
 	aButton->setScale(aScaleX, aScaleY);
-	if (gSignalBuild)
+	if (hasSignalReader())
 		aButton->setBaseScale(aScaleX, aScaleY);
 	aButton->setHoverScale(anOverScale.x, anOverScale.y);
 	aButton->setNormalScale(anUpScale.x, anUpScale.y);
@@ -490,9 +546,10 @@ bool LayoutHandler::addImageButton(const XmlAttributes& theAttributes)
 	return true;
 }
 
-// 0x42d6f0 (wordharmony), 0x4867a0 (pizzafrenzy): like the image button, with an unchecked and a checked image (both
-// needed) and their over images. The signal build's has a pivot like the image button's and can start checked
-// ("startOn"); its radio group, which no layout opens, is not translated (the screen listens to the box).
+// 0x42d6f0 (wordharmony), 0x4867a0 (pizzafrenzy), 0x4547b0 (feedingfrenzy): like the image button, with an unchecked
+// and a checked image (both needed) and their over images. The signal build's has a pivot like the image button's and
+// can start checked ("startOn"); its radio group, which no layout opens, is not translated (the screen listens to the
+// box).
 bool LayoutHandler::addCheckBox(const XmlAttributes& theAttributes)
 {
 	float x = getFloatAttribute(theAttributes, "x", 0);
@@ -518,12 +575,12 @@ bool LayoutHandler::addCheckBox(const XmlAttributes& theAttributes)
 	if (aCheckedOverFile.size() != 0)
 		aCheckedOver = App::instance()->getImage(aCheckedOverFile.c_str());
 	bool aStartOn = false;
-	if (gSignalBuild)
+	if (hasSignalReader())
 		aStartOn = getBoolAttribute(theAttributes, "startOn", false);
 	if (aChecked == nullptr || anUnchecked == nullptr)
 		return false;
 	CheckBox* aBox = new CheckBox();
-	if (gSignalBuild && aPivot.compare("center") == 0)
+	if (hasSignalReader() && aPivot.compare("center") == 0)
 		aBox->setPivotMode(1);
 	if (!aBox->setImages(anUnchecked, anUncheckedOver, aChecked, aCheckedOver))
 		return false;
@@ -535,13 +592,13 @@ bool LayoutHandler::addCheckBox(const XmlAttributes& theAttributes)
 	mScreen->listenTo(aBox, aName, anAction);
 	mScreen->registerNode(aBox, aName);
 	mGroups.back()->addChild(aBox);
-	if (gSignalBuild)
+	if (hasSignalReader())
 		aBox->setChecked(aStartOn);
 	return true;
 }
 
-// 0x42fa90 (wordharmony), 0x48c2a0 (pizzafrenzy): a fading container; its rectangle is (0, 0, width, height), which the
-// signal build's lays out at once
+// 0x42fa90 (wordharmony), 0x48c2a0 (pizzafrenzy), 0x457990 (feedingfrenzy): a fading container; its rectangle is
+// (0, 0, width, height), which the signal build's lays out at once
 bool LayoutHandler::addGroup(const XmlAttributes& theAttributes)
 {
 	FadeContainer* aGroup = new FadeContainer();
@@ -558,7 +615,7 @@ bool LayoutHandler::addGroup(const XmlAttributes& theAttributes)
 	aGroup->setOpacity(anOpacity);
 	aGroup->setName(aName);
 	aGroup->setRect(0, 0, aWidth, aHeight);
-	if (gSignalBuild)
+	if (hasSignalReader())
 		aGroup->layout();
 	mGroups.back()->addChild(aGroup);
 	mScreen->registerNode(aGroup, aName);
@@ -566,8 +623,8 @@ bool LayoutHandler::addGroup(const XmlAttributes& theAttributes)
 	return true;
 }
 
-// 0x42f760 (wordharmony): a system with a file is started at once (after a warm-up of the whole seconds given); it is
-// named but not kept by the screen
+// 0x42f760 (wordharmony), 0x456d20 (feedingfrenzy): a system with a file is started at once (after a warm-up of the
+// whole seconds given); it is named but not kept by the screen
 bool LayoutHandler::addParticleSystem(const XmlAttributes& theAttributes)
 {
 	float x = getFloatAttribute(theAttributes, "x", 0);
@@ -585,6 +642,81 @@ bool LayoutHandler::addParticleSystem(const XmlAttributes& theAttributes)
 		aSystem->setName(aName);
 		if (0 < aWarmup)
 			aSystem->warmup((float)aWarmup);
+	}
+	return true;
+}
+
+// 0x455440 (feedingfrenzy): the font and the over font must be given, and the active font is the over font unless the
+// file says otherwise. The three colours are offsets of the text's colour in the up, over and active states ("r,g,b",
+// none by default). The original reads no opacity and no style.
+bool LayoutHandler::addTextButton(const XmlAttributes& theAttributes)
+{
+	std::string aString = getStringAttribute(theAttributes, "string", "");
+	std::string aName = getStringAttribute(theAttributes, "name", "_Text_");
+	float x = getFloatAttribute(theAttributes, "x", 0);
+	float y = getFloatAttribute(theAttributes, "y", 0);
+	std::string anXAlign = getStringAttribute(theAttributes, "xAlign", "");
+	std::string aYAlign = getStringAttribute(theAttributes, "yAlign", "");
+	std::string aFont = getStringAttribute(theAttributes, "font", "");
+	std::string anOverFont = getStringAttribute(theAttributes, "overFont", "");
+	std::string anActiveFont = getStringAttribute(theAttributes, "activeFont", anOverFont);
+	std::string anAction = getStringAttribute(theAttributes, "action", "defaultAction");
+	std::string anOverSound = getStringAttribute(theAttributes, "overSound", "");
+	std::string anActiveSound = getStringAttribute(theAttributes, "activeSound", "");
+	Color anUpColor = getColorOffsetAttribute(theAttributes, "upAddColor", Color(0, 0, 0));
+	Color anOverColor = getColorOffsetAttribute(theAttributes, "overAddColor", Color(0, 0, 0));
+	Color anActiveColor = getColorOffsetAttribute(theAttributes, "activeAddColor", Color(0, 0, 0));
+	if (aFont.size() == 0 || anOverFont.size() == 0)
+		return false;
+	TextButton* aButton = new TextButton();
+	if (!aButton->setFonts(aFont, anOverFont, anActiveFont))
+		return false;
+	aButton->setText(aString);
+	if (anXAlign.compare("center") == 0)
+		aButton->setHAlign(1);
+	else if (anXAlign.compare("right") == 0)
+		aButton->setHAlign(2);
+	else
+		aButton->setHAlign(0);
+	if (aYAlign.compare("middle") == 0)
+		aButton->setVAlign(1);
+	else if (aYAlign.compare("bottom") == 0)
+		aButton->setVAlign(2);
+	else
+		aButton->setVAlign(0);
+	aButton->setPosition(x, y);
+	aButton->setSounds(anOverSound, anActiveSound);
+	aButton->setName(aName);
+	aButton->setAddColors(anUpColor, anOverColor, anActiveColor);
+	mScreen->listenTo(aButton, aName, anAction);
+	mScreen->registerNode(aButton, aName);
+	mGroups.back()->addChild(aButton);
+	return true;
+}
+
+// 0x457120 (feedingfrenzy): replaces the text of a named node of the screen, which the original takes to be a text
+// node; a name the screen does not have is skipped (the port also leaves a node that is not a text node alone)
+bool LayoutHandler::addTextSub(const XmlAttributes& theAttributes)
+{
+	std::string aName = getStringAttribute(theAttributes, "name", "");
+	std::string aString = getStringAttribute(theAttributes, "string", "");
+	TextItem* aText = dynamic_cast<TextItem*>(mScreen->getNode(aName));
+	if (aText != nullptr)
+		aText->setText(aString);
+	return true;
+}
+
+// 0x457740 (feedingfrenzy): another layout file of the archive read into the same screen, by a handler of its own (its
+// elements go into the screen, not into the group that is open here, and its groups are its own)
+bool LayoutHandler::addInclude(const XmlAttributes& theAttributes)
+{
+	LayoutHandler aHandler;
+	aHandler.setScreen(mScreen);
+	std::string aFile = getStringAttribute(theAttributes, "file", "");
+	if (aFile.compare("") != 0)
+	{
+		Ref<InputStream> aStream = App::instance()->openStream(aFile.c_str());
+		parseXml(aHandler, aStream);
 	}
 	return true;
 }

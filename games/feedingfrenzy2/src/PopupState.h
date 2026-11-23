@@ -37,6 +37,8 @@ public:
 	virtual void close();
 	// 0x2c (0x48d830 (feedingfrenzy2)): the screen shown in the popups' manager, in place of the one there
 	virtual void show(engine::GenericScreen* theScreen);
+	// 0x494340 (feedingfrenzy2): the name entry shown empty, its Cancel button there only while there are players
+	void showUserEntry();
 
 	// The shutdown's (0x495650 (feedingfrenzy2)) release of the popups' manager
 	static void releaseScreenMgr();
@@ -49,7 +51,9 @@ private:
 	engine::Ref<AppState> mPreviousState;           // +0x14
 	engine::Ref<AppState> mNextState;               // +0x18
 	bool mClosing;                                  // +0x1c
-	// +0x1d: cleared by enter; read by the pause's resume (pauseResume), not yet translated
+	bool mOptionsFromPause;                         // +0x1d: the options shown from the pause (pauseOptions, not yet
+	                                                // translated), so pauseResume goes back to the pause; cleared by
+	                                                // enter
 	engine::ColorKeyInterpolator mDarken;           // +0x20: from white at 0 to the darkening colour at 1
 	engine::TimeDriver mDarkenTime;                 // +0x6c
 };

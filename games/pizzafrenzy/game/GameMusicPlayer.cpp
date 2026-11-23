@@ -131,12 +131,14 @@ void PlayState::stop()
 	changeState(new StoppingState(mPlayer));
 }
 
-// 0x450670
+// 0x450670: a voice that plays is stopped and the player marked as stopping; without one nothing is
 void StoppingState::enter()
 {
 	if (mPlayer->mSound != nullptr)
+	{
 		mPlayer->mSound->stop();
-	mPlayer->mStopping = true;
+		mPlayer->mStopping = true;
+	}
 }
 
 // 0x450690: when the voice has stopped it is closed, and the clip that waits starts

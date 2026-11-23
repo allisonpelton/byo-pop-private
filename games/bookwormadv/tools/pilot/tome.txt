@@ -1,0 +1,23 @@
+# The tome with a late save's list: its first creature, another chosen, the list sorted by area and scrolled, and a
+# third creature. Profile mg.bwa (PILOT_PROFILE): the port's save at book 3's last chapter (tools/coverage/advance.sh's
+# 3.10.6) with the menu's talks marked as given (tools/coverage/bwa.py).
+at 16000
+click 400 540            # the book under Lex: the tome
+wait 2500
+shot tome_late
+click 140 191            # the list's sixth creature
+wait 1500
+shot tome_creature_1
+click 330 83             # the Area heading: the list by area
+wait 1500
+shot tome_by_area
+click 376 374            # the list's down arrow
+wait 1000
+shot tome_by_area_scrolled
+click 140 331            # the list's thirteenth creature
+wait 1500
+shot tome_creature_2
+click 400 572            # Main Menu
+wait 2500
+shot tome_menu_after
+quit

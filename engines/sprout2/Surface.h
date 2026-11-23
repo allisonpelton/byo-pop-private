@@ -30,11 +30,17 @@ enum BlendMode
 // Where a surface's anchor goes (0x18, 0x45f290 (feedingfrenzy2)), in pixels from its top left corner
 enum Pivot
 {
-	PIVOT_UPPER_LEFT = 0,  // (0, 0), also for any other value
+	PIVOT_UPPER_LEFT = 0,  // (0, 0), also for any other value above 6
 	PIVOT_CENTER = 1,      // half the width and half the height
 	PIVOT_BOTTOM = 2,      // half the width, the last row
 	PIVOT_TOP = 3,         // half the width, the first row
+	// 4 to 6: Talismania's 0x6a2270 (its data names them); Feeding Frenzy 2 never passes them (its slot treats them as 0)
+	PIVOT_UPPER_RIGHT = 4, // the width, the first row
+	PIVOT_LOWER_LEFT = 5,  // the first column, the last row
+	PIVOT_LOWER_RIGHT = 6, // the width, the last row
 };
+
+class PixelFx;
 
 class Surface : public Object
 {
@@ -83,6 +89,22 @@ public:
 	// 0x44 (0x45f320 (feedingfrenzy2)): a new surface with the pixels, blend mode, anchor and name of this one
 	Surface* clone() const;
 	void fill(const Color& theColor);
+	// 0x40 (0x4267c0 (feedingfrenzy2)): the next, scaled the same both ways
+	Surface* scaledCopy(float theScale) const { return scaledCopy(theScale, theScale); }
+	// 0x3c (0x460530 (feedingfrenzy2)): a copy scaled, named "<name>(<x>,<y>)" with the scales to two places
+	Surface* scaledCopy(float theScaleX, float theScaleY) const;
+	// 0x48 (0x45b770 (feedingfrenzy2)): the pixels drawn again at the scales (their sizes taken), filtered, the size
+	// the old one times each (truncated), the anchor moved with them
+	void scale(float theScaleX, float theScaleY);
+	// 0x54 (0x5079c2 (feedingfrenzy2)), through 0x50 (0x43e000 (feedingfrenzy2)) over the whole surface: each pixel
+	// put through the effect, in place
+	void applyPixelFx(const PixelFx& theFx);
+	// 0x38 (0x43e4d0 (feedingfrenzy2)): a new surface of the size with each pixel put through the effect (by its
+	// column and row), the blend mode and anchor of this one, named "<name>(<the effect's name>)"
+	Surface* pixelFxCopy(const PixelFx& theFx) const;
+	// 0x34 (0x426740 (feedingfrenzy2)): the same, then scaled the same both ways (the slot 0x4c, 0x47a550
+	// (feedingfrenzy2)) and named "<its name>(<x>,<y>)" with the scale to two places
+	Surface* pixelFxScaledCopy(float theScale, const PixelFx& theFx) const;
 
 	// The pixels, ARGB, row after row (the object's +0x60 (feedingfrenzy2))
 	uint32_t* getPixels() { return mPixels.data(); }
