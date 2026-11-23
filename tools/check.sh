@@ -63,7 +63,8 @@
 #                cursors) and resizetest (web/skins.js: a run of the browser's resize events, as Firefox's full-screen
 #                transition sends, reaches the page as its first and one more once it settles) and linkstest (tools/linkstest.js: every link to the site's own licence, terms and copyright pages
 #                opens in a new tab) and musictest (tools/musictest.js: the music player's decoder, its tracker view's rows and
-#                its seek, on a module the test makes and a staged MO3 when there is one) and soundfilestest
+#                its seek, on a module the test makes and a staged MO3 when there is one, and every unused
+#                pattern the Music window lists, each one's tracker view at its first frame) and soundfilestest
 #                (tools/soundfilestest.js: every sound the Sounds boards name is staged and in a format every browser plays, by
 #                its own header: Ogg Vorbis, MP3, PCM WAV, or one the site decodes itself) and autosplittest
 #                (tools/autosplittest.js: the speedrun timer's auto splitters decide as their references, Bejeweled's lsdecide.py

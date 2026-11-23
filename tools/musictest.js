@@ -1,7 +1,8 @@
 // The music player's decoder (web/music/openmpt_web.c, build/web/openmpt.js) under Node: the tracker view's position and rows and
 // the seek bar's seek, on a small ProTracker module made here (libxmp-lite's side) and, when the main checkout's staged files are
 // there, a game's MO3 (libopenmpt's side); the MIDI player on a small file made here, and TipTop's song when its archive is
-// staged. node tools/musictest.js <build/web/openmpt.js> [assets dir]
+// staged; and with the staged files, every unused pattern the Music window lists (web/music.js's own tunesOf over each staged game),
+// each one's tracker view at its first frame. node tools/musictest.js <build/web/openmpt.js> [assets dir]
 "use strict";
 const path = require("path"), fs = require("fs");
 const [jsPath, assets] = process.argv.slice(2);
@@ -332,6 +333,77 @@ function protracker(hidden) {
   check("presets: " + presetCount + " named rip style", presetCount > 0 && badNames.length === 0, badNames);
   check("presets: steps in time order", unordered.length === 0, unordered);
   check("presets: every file on the game's board", offBoard.length === 0, offBoard);
-  console.log("musictest: " + checks + " checks, " + failed + " failed" + (mo3 ? "" : " (no MO3 staged: libxmp-lite only)"));
+
+  // ---------- every unused pattern of every staged game, as the Music window lists it and shows it ----------
+  // (the user, 2026-11-22, of Ancient China's resource 339: "pattern 12 ... only shows an empty channel in the music player")
+  // web/music.js's own listing (tunesOf) reads the staged files through a stand-in for the game's database. Each entry is then
+  // played as the player plays it (a fresh module, bm_solo), and the tracker view's first frame must show the pattern the entry
+  // names, from its first row, with the channels it draws (tuneUsed, else bm_used; channelsShown) each holding a note in that
+  // pattern. (Pattern 12 passes: its one note, on row 0, starts a sample that plays through its 128 rows, so after the first rows
+  // the one column is empty, as the file has it.)
+  let patternEntries = 0, patternGames = 0;
+  if (assets) {
+    const stagedOf = {};
+    function staged(id) {
+      if (id in stagedOf) return stagedOf[id];
+      const base = path.join(assets, id), out = {};
+      if (!fs.existsSync(base)) return (stagedOf[id] = null);
+      (function walk(d) {
+        for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+          const p = path.join(d, e.name);
+          if (e.isDirectory()) walk(p); else out[path.relative(base, p).split(path.sep).join("/")] = p;
+        }
+      })(base);
+      return (stagedOf[id] = out);
+    }
+    // the database of "staged:<game>": its FILE_DATA keys "<persist>/game/<rel>", each value { contents }
+    function answer(fn) {
+      const r = {};
+      setImmediate(() => { try { r.result = fn(); if (r.onsuccess) r.onsuccess(); } catch (e) { r.error = e; if (r.onerror) r.onerror(); } });
+      return r;
+    }
+    global.IDBKeyRange = { bound: (lo, hi) => [lo, hi] };
+    global.indexedDB = {
+      open: (persist) => answer(() => {
+        const files = staged(persist.replace(/^staged:/, "")) || {}, prefix = persist + "/game/";
+        const store = {
+          getAllKeys: () => answer(() => Object.keys(files).map((rel) => prefix + rel)),
+          get: (key) => answer(() => { const f = files[key.slice(prefix.length)]; return f ? { contents: new Uint8Array(fs.readFileSync(f)) } : undefined; })
+        };
+        return { objectStoreNames: { contains: (n) => n === "FILE_DATA" }, transaction: () => ({ objectStore: () => store }), close() {} };
+      })
+    };
+    global.ByopopStrings = { t: (k, vars) => k + (vars ? " " + JSON.stringify(vars) : "") };
+    const Music = require("vm").runInThisContext(src + "\n;ByopopMusic", { filename: "web/music.js" });
+    const wrong = [];
+    for (const id of Object.keys(table)) {
+      if (!staged(id)) continue;
+      const game = { id: id, title: id, persist: "staged:" + id };
+      const solos = (await Music.test.tunesOf(M, game, table[id])).filter((t) => t.solo !== undefined);
+      if (!solos.length) continue;
+      patternGames++;
+      const db = await Music.files.open(game.persist);
+      for (const t of solos) {
+        patternEntries++;
+        const name = id + " " + t.id;
+        const bytes = await Music.files.read(db, t.keys[0]), m = bytes ? load(bytes) : 0;
+        if (!m || !M._bm_solo(m, t.solo)) { wrong.push(name + ": does not play"); if (m) M._bm_free(m); continue; }
+        const v = view(m), want = M._bm_pattern_rows(m, t.solo);
+        const rowsOf = (o) => { const p = M._bm_order_pattern(m, o); return p >= 0 ? M._bm_pattern_rows(m, p) : 0; };
+        const usedHere = Music.test.tuneUsed(t, (p, r) => rowText(m, p, r), rowsOf) || used(m);
+        const shown = Music.test.channelsShown(usedHere, rowText(m, v.pattern, v.row).split("|").length);
+        const noted = new Set();
+        for (let r = 0; r < want; r++) rowText(m, t.solo, r).split("|").forEach((cell, c) => { if (/^[A-G][-#]\d/.test(cell)) noted.add(c); });
+        if (v.pattern !== t.solo || v.row !== 0 || v.rows !== want || !want) wrong.push(name + ": the first frame is " + JSON.stringify(v));
+        else if (!shown.length || shown.some((c) => !noted.has(c))) wrong.push(name + ": channels " + shown.join(",") + ", notes in " + [...noted].join(","));
+        else if (!(t.seconds > 0)) wrong.push(name + ": " + t.seconds + " s");
+        M._bm_free(m);
+      }
+      db.close();
+    }
+    check("unused patterns: each entry's first frame its own pattern, every channel shown with a note", patternEntries > 0 && wrong.length === 0, wrong);
+  }
+  console.log("musictest: " + checks + " checks, " + failed + " failed" + (mo3 ? "" : " (no MO3 staged: libxmp-lite only)") +
+    (assets ? "; " + patternEntries + " unused patterns in " + patternGames + " games" : ""));
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.log("musictest: " + (e && e.stack || e)); process.exit(1); });

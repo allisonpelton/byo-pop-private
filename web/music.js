@@ -751,6 +751,56 @@ var ByopopMusic = (function () {
       .sort(function (a, b) { return a.r - b.r || a.i - b.i; }).map(function (x) { return x.k; });
   }
 
+  // The channels a tune itself plays notes in (the user, 2026-11-11: "Some songs seem to have totally empty channels the whole
+  // way through. Possible to hide from tracker on a per-song basis?"): those with a note in a row of a pattern its own orders
+  // play, read once a tune; the tracker leaves the others out, the columns kept keeping their numbers. A channel with commands
+  // and no note counts as empty: its effects still show in the effect column (fxText). A tune's orders: a range's; a
+  // subsong's from its first order to the next subsong's first; a cut or joined tune's segments, each from its order (or its
+  // subsong's first) to the order it stops at (or its subsong's end). null where they are not known (a list read before
+  // subEntries): the tracker then keeps the module's own (bm_used).
+  function tuneOrders(t) {
+    if (!t || t.kind !== "module" || !t.seq) return null;
+    var n = t.seq.length, out = [];
+    function span(first, until) {   // first to the order before until (or the end of first's subsong)
+      if (first === null || first === undefined || first < 0) return false;
+      var last = n - 1;
+      if (until !== null && until !== undefined) last = until - 1;
+      else if (t.subEntries) t.subEntries.forEach(function (e) { if (e > first && e - 1 < last) last = e - 1; });
+      for (var o = first; o <= last && o < n; o++) if (out.indexOf(o) < 0) out.push(o);
+      return true;
+    }
+    if (t.range) { span(t.range[0], t.range[1] + 1); return out; }
+    if (!t.subEntries) return null;
+    if (t.segs) {
+      for (var i = 0; i < t.segs.length; i++) {
+        var sg = t.segs[i], from = sg.from !== null && sg.from !== undefined ? sg.from : t.subEntries[sg.sub];
+        if (!span(from, sg.until)) return null;
+      }
+      return out;
+    }
+    return span(t.entry, null) ? out : null;
+  }
+  // NOTE: a cell's note, as both decoders write it ("C-5", "C#5"); "===" (off), "^^^" (cut) and "~~~" (fade) are no note
+  var NOTE = /^[A-G][-#]\d/;
+  function tuneUsed(t, rowAt, rowsOf) {
+    var orders = tuneOrders(t);
+    if (!orders) return null;
+    var found = {}, list = [];
+    orders.forEach(function (o) {
+      var p = t.seq[o], rows = p >= 0 ? rowsOf(o, p) : 0;
+      for (var r = 0; r < rows; r++) rowAt(p, r).split("|").forEach(function (cell, c) { if (!found[c] && NOTE.test(cell)) found[c] = true; });
+    });
+    Object.keys(found).forEach(function (c) { list.push(+c); });
+    return list.sort(function (a, b) { return a - b; });
+  }
+  // The channels the tracker draws for a row of count cells (drawTracker): those of used (a tune's channels that play a note,
+  // tuneUsed) the row has, or every one where it has none of them
+  function channelsShown(used, count) {
+    var list = used.filter(function (c) { return c < count; });
+    if (!list.length) for (var c = 0; c < count; c++) list.push(c);
+    return list;
+  }
+
   // ---------- playing ----------
   // The worklet: plays the stereo chunks it is sent, in order, and says when it has used one up (1) and when it ran dry (0)
   var WORKLET = "class ByopopMusicOut extends AudioWorkletProcessor {\n" +
@@ -1816,48 +1866,6 @@ var ByopopMusic = (function () {
     }
     function two(n) { return (n < 10 ? "0" : "") + n; }
     function rowNumber(n, rows) { var t = String(n); while (t.length < String(rows - 1).length) t = "0" + t; return t; }
-    // The channels a tune itself plays notes in (the user, 2026-11-11: "Some songs seem to have totally empty channels the whole
-    // way through. Possible to hide from tracker on a per-song basis?"): those with a note in a row of a pattern its own orders
-    // play, read once a tune; the tracker leaves the others out, the columns kept keeping their numbers. A channel with commands
-    // and no note counts as empty: its effects still show in the effect column (fxText). A tune's orders: a range's; a
-    // subsong's from its first order to the next subsong's first; a cut or joined tune's segments, each from its order (or its
-    // subsong's first) to the order it stops at (or its subsong's end). null where they are not known (a list read before
-    // subEntries): the tracker then keeps the module's own (bm_used).
-    function tuneOrders(t) {
-      if (!t || t.kind !== "module" || !t.seq) return null;
-      var n = t.seq.length, out = [];
-      function span(first, until) {   // first to the order before until (or the end of first's subsong)
-        if (first === null || first === undefined || first < 0) return false;
-        var last = n - 1;
-        if (until !== null && until !== undefined) last = until - 1;
-        else if (t.subEntries) t.subEntries.forEach(function (e) { if (e > first && e - 1 < last) last = e - 1; });
-        for (var o = first; o <= last && o < n; o++) if (out.indexOf(o) < 0) out.push(o);
-        return true;
-      }
-      if (t.range) { span(t.range[0], t.range[1] + 1); return out; }
-      if (!t.subEntries) return null;
-      if (t.segs) {
-        for (var i = 0; i < t.segs.length; i++) {
-          var sg = t.segs[i], from = sg.from !== null && sg.from !== undefined ? sg.from : t.subEntries[sg.sub];
-          if (!span(from, sg.until)) return null;
-        }
-        return out;
-      }
-      return span(t.entry, null) ? out : null;
-    }
-    // NOTE: a cell's note, as both decoders write it ("C-5", "C#5"); "===" (off), "^^^" (cut) and "~~~" (fade) are no note
-    var NOTE = /^[A-G][-#]\d/;
-    function tuneUsed(t, rowAt, rowsOf) {
-      var orders = tuneOrders(t);
-      if (!orders) return null;
-      var found = {}, list = [];
-      orders.forEach(function (o) {
-        var p = t.seq[o], rows = p >= 0 ? rowsOf(o, p) : 0;
-        for (var r = 0; r < rows; r++) rowAt(p, r).split("|").forEach(function (cell, c) { if (!found[c] && NOTE.test(cell)) found[c] = true; });
-      });
-      Object.keys(found).forEach(function (c) { list.push(+c); });
-      return list.sort(function (a, b) { return a - b; });
-    }
     // The effect column (the user, 2026-11-11: "add a brief English description of tracker commands when they appear in the song
     // as an optional column"): what a cell's effect, its volume column's command where it is not a plain volume, and a note off,
     // cut or fade do, in a few words. libxmp-lite's cells (the player's S3M, IT, XM and MOD; a game's libxmp-lite songs) write
@@ -2127,8 +2135,7 @@ var ByopopMusic = (function () {
       syncMutes();
       var mark = feed.mark, rowOf = feed.rowAt;
       var cells = rowOf(mark[1], mark[2]).split("|");
-      var used = feed.used().filter(function (c) { return c < cells.length; });
-      if (!used.length) used = cells.map(function (x, c) { return c; });
+      var used = channelsShown(feed.used(), cells.length);
       // the full cell (note, instrument, volume, effect) when every channel fits with it, else note and instrument
       var full = 0, small = 0;
       cells.forEach(function (c) { full = Math.max(full, c.length); small = Math.max(small, narrow(c).length); });
@@ -3507,5 +3514,7 @@ var ByopopMusic = (function () {
   // (the Sounds window, web/sounds.js, reads the games' files with the same read-only reader, draws its Stop and speaker with the
   // same pictures, and falls back on the same stb_vorbis decoder)
   return { init: init, patternRe: patternRe, glyph: glyph, decoder: decoder, stbOgg: stbOgg, msAdpcm: msAdpcm, wavMp3: wavMp3, filePlace: filePlace, numbered: numbered,
-    files: { open: openExisting, list: gameFiles, read: readFile } };
+    files: { open: openExisting, list: gameFiles, read: readFile },
+    // for tools/musictest.js: a game's tunes as the player lists them, and the channels its tracker view shows
+    test: { tunesOf: tunesOf, tuneUsed: tuneUsed, channelsShown: channelsShown } };
 })();
