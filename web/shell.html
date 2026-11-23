@@ -1202,7 +1202,8 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
   // 2.8 s of a return visit's start; one read of the whole store and each file made under its folder's node take 0.8 to 0.9 s.
   // (Keeping each pak whole beside its files would save about half a second more, for the pak's size again in storage and a pak
   // reader in the platform: docs/WEB_PLAYER.md, item 8, 2026-11-23.) Should anything fail, IDBFS's own load completes the copy,
-  // writing only what is missing or differs.
+  // writing only what is missing or differs. This leans on IDBFS's internals and MEMFS's node_ops and stream_ops, so
+  // tools/storageloadtest.js (check.sh's unit-web) loads one store both ways in a game's own module and compares them.
   function loadStorage(fs) {
     var IDBFS = fs.filesystems.IDBFS;
     return new Promise(function (resolve, reject) {
