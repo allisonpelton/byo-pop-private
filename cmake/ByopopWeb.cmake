@@ -345,7 +345,7 @@ endif()
 # in web/licenses/ that the page is built from. LICENSES adds a game's own libraries (BookWorm: libopenmpt).
 # Sets <var> to the generated template in the build folder, for ByopopWebPage.cmake. Both files are rewritten only when
 # their text changes, and CMake runs again when one of their inputs changes. byopop_web_game() calls it.
-set(BYOPOP_WEB_LICENSES popcap-framework sdl2 stb libjpeg libxmp-lite tremor minimp3 byopop-sans)
+set(BYOPOP_WEB_LICENSES popcap-framework sdl2 stb libjpeg libxmp-lite tremor minimp3 byopop-sans byopop-sans-2000)
 set(BYOPOP_WEB_TOOLCHAIN_LICENSES emscripten musl)
 
 function(byopop_write_if_changed path text)
@@ -1189,8 +1189,11 @@ function(byopop_web_index)
   # served beside the pages with its licence
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../fonts/byopop-sans.woff ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/fonts/byopop-sans.woff COPYONLY)
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/byopop-sans.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/byopop-sans.txt COPYONLY)
-  # the 2000 skin's text (web/skin-2000.css): Byopop Sans 2000, drawn by the project, made by tools/web/pixelfont2000.py
+  # the 2000 skin's text (web/skin-2000.css): Byopop Sans 2000 and its bold, drawn by the project and dedicated to the public
+  # domain under CC0 1.0, made by tools/web/pixelfont2000.py, served with its licence
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../fonts/byopop-sans-2000.woff ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/fonts/byopop-sans-2000.woff COPYONLY)
+  configure_file(${BYOPOP_WEB_BRAND_DIR}/../fonts/byopop-sans-2000-bold.woff ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/fonts/byopop-sans-2000-bold.woff COPYONLY)
+  configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/byopop-sans-2000.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/byopop-sans-2000.txt COPYONLY)
   # the Music window's score view (web/music.js): VexFlow 5.0.0 with its fonts, fetched only when that view is first chosen,
   # and its licences beside the others
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../third_party/vexflow-bravura.js ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/vexflow/vexflow-bravura.js COPYONLY)
