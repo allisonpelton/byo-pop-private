@@ -8,6 +8,9 @@
 //
 //   build/native/rundesk.exe node tools/web/siteshots.js --out <abs dir> [--only <regex>] [--port 18797] [--root build/web]
 //        [--browser <msedge.exe>] [--profile <abs dir>] [--audit <abs file.jsonl>] [--census <abs file.json>] [--list]
+//        [--skin <id>]
+// --skin <id> opens every page in that skin (?skin=<id>, docs/SKINS.md) and takes the skin's own set of shots (SKIN_SET, below;
+// --only narrows or widens it), for a baseline of that skin that shotdiff compares as it does 95's.
 //
 // Each shot is <out>/<scene>.png. The shots compare run to run: every page starts in a fresh browser profile (wiped at the
 // start, and each page in a browser context of its own), on a fixed clock (Date) and a seeded Math.random, with reduced motion, the page told it has the focus, no text
@@ -30,7 +33,12 @@ const { spawn } = require("child_process");
 const ROOT = path.join(__dirname, "..", "..");
 function arg(name, def) { const i = process.argv.indexOf("--" + name); return i > 0 ? process.argv[i + 1] : def; }
 const OUT = arg("out", "");
-const ONLY = new RegExp(arg("only", "."));
+// a skin other than 95 is checked by ten shots (docs/SKINS.md, (f)): the desktop with an inactive window (System Information
+// behind the Library), the Pop menu, the desktop's menu, a message box with its default, Setup, Settings and its Appearance, a
+// game page's start card, and the desktop at 2x and narrow
+const SKIN = arg("skin", "");
+const SKIN_SET = /^(desk-(start|popmenu|deskmenu|msgbox|setup|tab-settings|set-look|app-game)|desk2x-start|narrow-start)$/;
+const ONLY = new RegExp(arg("only", SKIN ? SKIN_SET.source : "."));
 const CHECK = process.argv.includes("--check");
 let PORT = +arg("port", CHECK ? "0" : "18797");
 const WEB = path.resolve(arg("root", path.join(ROOT, "build", "web")));
@@ -136,7 +144,7 @@ async function open(url, size, scheme, scheme95) {
   await send("Page.addScriptToEvaluateOnNewDocument", { source: FREEZE }, sid);
   if (scheme95 && scheme95 !== "standard")
     await send("Page.addScriptToEvaluateOnNewDocument", { source: "try { localStorage.setItem('byopop-settings', JSON.stringify({ scheme: " + JSON.stringify(scheme95) + " })); } catch (e) {}" }, sid);
-  await send("Page.navigate", { url: BASE + url }, sid);
+  await send("Page.navigate", { url: BASE + url + (SKIN ? (url.indexOf("?") < 0 ? "?" : "&") + "skin=" + encodeURIComponent(SKIN) : "") }, sid);
   await settle(sid);
   return { sid, targetId, browserContextId, size };
 }

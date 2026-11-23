@@ -1667,10 +1667,11 @@ the desktop's layout back at the end.
 
 `tools/web/siteshots.js` takes shots of the site itself for a before-and-after comparison with `tools/shotdiff`: the
 desktop as it starts, each of its windows open alone, the Pop menu, the desktop's context menu, a message box, and the
-pages that open as windows (the terms, a game's copyright page, a game without its files). It shoots at a desktop's size,
+pages that open as windows (Jungle Juice's, a game's copyright page, a game without its files). It shoots at a desktop's size,
 a phone's width and each at 200% zoom, in the standard scheme and in grape, and the pages in frames in the browser's dark
 scheme too. It runs headless Edge over the DevTools protocol, each page in a fresh browser context, on a fixed clock and a
-seeded `Math.random`. With `--audit` it also lists, for each shot, every element that takes clicks or keys (by the
+seeded `Math.random`. With `--skin <id>` it opens every page in that skin (`?skin=`) and takes the skin's own ten shots
+(docs/SKINS.md, (f)), the baseline of a skin other than 95. With `--audit` it also lists, for each shot, every element that takes clicks or keys (by the
 browser's own list of its listeners) and is not a control, every field with no name, every role a native element would give
 or that repeats its element's own, and every picture a screen reader would read.
 
