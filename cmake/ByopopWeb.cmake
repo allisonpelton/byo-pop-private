@@ -1189,6 +1189,8 @@ function(byopop_web_index)
   # served beside the pages with its licence
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../fonts/byopop-sans.woff ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/fonts/byopop-sans.woff COPYONLY)
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/byopop-sans.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/byopop-sans.txt COPYONLY)
+  # the 2000 skin's text (web/skin-2000.css): Byopop Sans 2000, drawn by the project, made by tools/web/pixelfont2000.py
+  configure_file(${BYOPOP_WEB_BRAND_DIR}/../fonts/byopop-sans-2000.woff ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/fonts/byopop-sans-2000.woff COPYONLY)
   # the Music window's score view (web/music.js): VexFlow 5.0.0 with its fonts, fetched only when that view is first chosen,
   # and its licences beside the others
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../third_party/vexflow-bravura.js ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/vexflow/vexflow-bravura.js COPYONLY)
