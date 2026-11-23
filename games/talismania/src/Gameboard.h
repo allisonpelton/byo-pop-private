@@ -39,7 +39,9 @@ public:
 private:
 	void layOut();
 	void drawCell(const BoardPot& thePot);
-	std::string pickCellClass(const PotClass& theProps) const;
+	SpawnItem pickSpawn(const PotClass& theProps) const;
+	std::string pickPathId(const std::string& thePoolName) const;
+	void drawPath(const std::string& thePathClass, const std::string& thePathId, const engine::Vector2f& theMiddle);
 
 	AtlantisApp* mApp;
 	BoardClass mClass;
