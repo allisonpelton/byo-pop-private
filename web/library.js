@@ -364,7 +364,7 @@ var ByopopLibrary = (function () {
           table.appendChild(tr);
         });
       }
-      var ok = make("button", "", T("library.ok"));
+      var ok = make("button", "d95-def", T("library.ok"));   // the default, framed (skins.css)
       ok.type = "button";
       ok.addEventListener("click", function () { d.close(); });
       d.addEventListener("keydown", function (ev) { if (ev.key === "Escape" || ev.key === "Enter") { ev.preventDefault(); ev.stopPropagation(); d.close(); } });

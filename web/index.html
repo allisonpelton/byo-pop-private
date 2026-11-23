@@ -947,8 +947,9 @@ try {
 // Library reads them, and they are the page without its scripts.
 try {
   (function () {
-    var d = ByopopSkin.desk, head = document.querySelector(".site-header");
-    function top() { return head ? head.offsetTop + head.offsetHeight + 4 : 12; }
+    var d = ByopopSkin.desk;
+    // the windows' first places start under the desktop's top edge: the logo is at its bottom right (skins.css)
+    function top() { return 12; }
     // the Library (web/library.js): the games as a grid, open at first, its icon first (its bounds, as every window's, in
     // docs/WEB_PLAYER.md's table)
     if (window.ByopopLibrary) ByopopLibrary.attach(d, function (left) { return [left, top()]; });

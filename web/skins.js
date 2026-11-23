@@ -1810,6 +1810,8 @@ var ByopopSkin = (function () {
         row.appendChild(btn);
         last = { el: btn, fn: b.fn };
       });
+      // the default, with Windows 95's black frame while no other button has the focus (skins.css)
+      last.el.classList.add("d95-def");
       d.appendChild(tb); d.appendChild(body); d.appendChild(row);
       document.body.appendChild(d);
       d.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); done(last.fn); } });

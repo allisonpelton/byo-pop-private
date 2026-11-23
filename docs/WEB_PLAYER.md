@@ -330,6 +330,14 @@ un-95"), in our own SVG. Where a choice is between a plainer look and the one Wi
 it changes every window or box on the site (the user, 2026-11-23: "Always prefer more authentic designs for the 95 look",
 on giving every message box's default button its black frame).
 
+**The logo** stands at the desktop's bottom right, above the task bar, under every icon and window (the user, 2026-11-23:
+"move the byo-pop logo to the bottom right"), where the icons' columns, filled from the top left, do not reach it at 800 by
+600, 1024 by 768, wider or narrow. It is still a drop target for game folders. The windows' first places start 12 pixels
+under the desktop's top edge (`top()` in `web/index.html`). **A box's buttons** (message boxes, the Splits dialogs, a
+game's Properties) are Windows 95's: the button Enter takes, which is the focused one or else the box's default (the class
+`d95-def`), has the black frame at its edge, so the frame moves with the focus from button to button and comes back to the
+default when the focus goes to a field; the focused one has the dotted rectangle from the box's opening on.
+
 **Windows.** A page is a desktop (`ByopopSkin.desk`) whose game, chat and panels are windows, added with
 `ByopopSkin.desk.add(element, {id, title, ...})`. The desktop never scrolls, and F6 moves between its panes. Alt+\`
 switches windows as Windows' Alt+Tab did, since the browser keeps Alt+Tab (the user, 2026-11-13): held down, each \`
@@ -1128,8 +1136,9 @@ a menu bar, as a player's window had, with one menu, Options (Alt+O): Rip Style,
 is off), a rule, Stop After Game and Themes Only, each ticked while it is on, kept in `byopop-music-rip`,
 `byopop-music-rip-over`, `byopop-music-one-game` and `byopop-music-themes`, and heard at once on the tune playing. They
 read what each game does at a tune's end from `soundtracks.js` (`loops`, `once`, `next`, `stings`, `gameOver` and
-`series`, documented in its header and filled for every game from its code and notes; the one tune left unclear, Word
-Harmony's `intenseEnd`, which the code may never reach, is the table's game-over tune, played once).
+`series`, documented in its header and filled for every game from its code and notes; Word Harmony's `intenseEnd`, which
+the game may never play since its stop fades the drums layer out before that last clip, stays the table's game-over tune,
+played once).
 
 - *Rip Style*: with Repeat off, a tune the game loops (`loops`, or a series played as one tune) goes round as with Repeat,
   intro once, and from the start of its third pass fades out over ten seconds and ends, then autoplay goes on. Two loops

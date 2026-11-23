@@ -176,7 +176,7 @@ var ByopopSplits = (function () {
       var b = make("button", null, label); b.type = "button";
       b.addEventListener("click", function () { fn(); });
       row.appendChild(b);
-      if (dflt) api.dflt = b;
+      if (dflt) { api.dflt = b; b.classList.add("d95-def"); }   // Windows 95's default frame (skins.css)
       return b;
     };
     d.addEventListener("cancel", function (ev) { ev.preventDefault(); if (api.onCancel) api.onCancel(); else api.close(); });
