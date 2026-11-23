@@ -20,6 +20,7 @@
 namespace Sexy
 {
 
+class Ball;
 class Board;
 class PhysObj;
 class SoundInstance;
@@ -37,18 +38,28 @@ typedef std::set<SharedPtr<PhysObj>, PegSerialLess> PegSet;
 enum LogicState
 {
 	LOGIC_STATE_UNKNOWN0 = 0,
+	LOGIC_STATE_PRE_SHOT = 1,
+	LOGIC_STATE_SHOT = 2,
 	LOGIC_STATE_INIT_LEVEL = 8, // BeginInitLevel
 	LOGIC_STATE_UNKNOWN10 = 10
 };
 
-// One record of the clicks list (+0xd0), 20 bytes in the original: the replay's click times
-struct ClickRecord
+// One record of the balls list (+0xd0), 20 bytes in the original: where a ball was in an update of the shot, for the replay
+struct BallRecord
 {
-	int mUnknown0;
-	int mUnknown4;
-	int mUnknown8;
-	int mUnknownC;
+	int mTime;	 // the shot's update
+	int mBallId; // which ball (0 or 1)
+	float mX;
+	float mY;
 	bool mUsed; // +0x10: written already
+};
+
+// One click of the shot kept for the replay: when (the update of the state 2), pressed or let go, which button
+struct ClickEvent
+{
+	int mTime;
+	bool mIsUp;
+	bool mRight;
 };
 
 // 16 bytes at +0xb4
@@ -65,6 +76,57 @@ public:
 
 	void SetState(int theState);						// 0x436fb0
 	void Clear(bool theNewGame, bool theKeepLists = false); // 0x45d900: the state of a level (a new game: the players' too)
+	void Update();		// 0x4730d0
+	bool IsComputerTurn() const;						// the flag of the player in turn at +0x244
+	bool ClearedLevel() const;							// 0x43d580: no orange peg is left (with mUnknownFB, no purple one either)
+	bool MouseMove();									// 0x43d5d0: the cannon follows the mouse again
+	bool MouseDrag(int theX, int theY);					// 0x43d620
+	bool MouseDown(int theX, int theY, int theButton, bool theReplayed, bool theForced); // 0x472810: theButton is below 0 for the right button
+	bool MouseUp(int theX, int theY, int theButton, bool theReplayed); // 0x45ebb0
+	void CalcCornerDisplay();						// 0x448370: what the corner of the board says
+	void SpeedTransition();
+	void DoTimeBomb();
+	void FlipperClick(bool theDown);				// 0x45ea70
+	bool CheckDoStealthHelperShot();					// 0x?
+	void UpdateGun();								// 0x46d630
+	void UpdateFreeBall();								// 0x440830
+	void RemoveHitPegs();
+	bool UpdateShotBalls();								// 0x467230
+	void UpdateWrapAroundBall();						// 0x45f120
+	void CheckBallStop();								// 0x466df0
+	int GetNumPegsLeft() const;							// 0x43d5b0
+	void CheckCollisions();								// 0x4704a0: what the balls touched in the update (the pegs they hit) is looked at
+	void DoFeverSlow();									// 0x45e920: the slow motion of the fever starts
+	void FinishShot();									// 0x470a50
+	void HoleHit(PhysObj* theHole, Ball* theBall);		// 0x470230
+	void PegHit(Ball* theBall, PhysObj* thePeg, bool theFlag); // 0x46f480
+	void CheckDoFlippers();								// 0x472c70
+	void AddFeverSparks(Ball* theBall, bool theZen);	// 0x451ec0
+	void UpdatePreShot();								// 0x466f10
+	void UpdateShot();									// 0x472f60
+	void UpdatePostShot();
+	void UpdateTotalMiss();								// 0x471500
+	void UpdateLevelDone();
+	void UpdatePostPostShot();							// 0x471600
+	void UpdateShotExtender();							// 0x44b690
+	void UpdateInitLevel();								// 0x4484a0
+	void UpdateCharacterDialog();						// 0x4709f0
+	void UpdateZenShot();
+	void CheckDoCharacterDialog();					// 0x437360
+	void BeginTurn(bool theNextPlayer);					// 0x46e880
+	void ActivatePowerups();						// 0x461560: the powers that are on this turn, for the player in turn
+	void ActivatePowerup(int thePower, bool theActive); // 0x4612e0
+	void ActivateFreeBall(bool theActive);			// 0x440580
+	void DoBeginTurnText();							// 0x469f30: '3 Balls Left' and the like
+	void DoBeginTurnTip(int theTip);				// 0x46a370: a tip for a new player
+	void SetWearHat(bool theWear);					// 0x43d4d0
+	void BeginShot(bool theRecord);						// 0x46ac70: the ball leaves the cannon
+	void IncNumBalls(int theBalls, int theDelay, bool theAtBottom); // 0x45d880
+	void BeginTurn2();								// 0x44b5b0
+	void DoLevelDone();								// 0x46a9c0
+	void FinishInitLevelText();						// 0x46c220
+	void MouseWheel(int theDelta);		// 0x43d6a0
+	void DoFeverMissed();		// 0x4372e0
 	void KillSlowMoSound();								// 0x4372c0
 	void FadeOutSound();								// 0x458ab0 (no name in the original): the sound that fades goes to the sound manager
 	int CalcScoreMult(int theNumPegsHit) const;			// 0x4370b0
@@ -110,16 +172,20 @@ public:
 	int mUnknown4C;			 // +0x4c
 	int mUnknown50;			 // +0x50
 	bool mUnknown54;		 // +0x54
+	bool mUnknown55;		 // +0x55
 	int mUnknown58;			 // +0x58: one for each player (the next is +0x5c)
 	int mUnknown5C;			 // +0x5c
 	int mUnknown60;			 // +0x60: and these two
 	int mUnknown64;			 // +0x64
 	bool mUnknown68;		 // +0x68
 	bool mUnknown69;		 // +0x69
+	int mUnknown6C = 0;		 // +0x6c: -1000 when a shot starts (Clear leaves it)
 	float mUnknown70;		 // +0x70: the mouse wheel's base move when the state was cleared
 	int mUnknown74;			 // +0x74
 	int mUnknown78;			 // +0x78
-	std::string mSongFolder; // +0x7c: empty (Clear makes a "pegsongs/" string and never uses it)
+	std::string mCornerText; // +0x7c: the corner's text ("Fast Forward", "Triple Score", "ZenBall", "Fireball", "Magic Hat" or none)
+	int mUnknown98;			 // +0x98: the place of the last drag (-10000 when it moved)
+	int mUnknown9C;			 // +0x9c
 	int mUnknownA0;			 // +0xa0
 	int mUnknownA4;			 // +0xa4
 	bool mUnknownA8;		 // +0xa8
@@ -128,13 +194,14 @@ public:
 	SoundInstance* mSlowMoSound; // +0xac: the sound of the slow motion, while it plays
 	SoundInstance* mFadeSound;	 // +0xb0: the sound that fades when the level starts
 	std::vector<LogicRecord16> mUnknownB4; // +0xb4
-	std::list<int> mUnknownC4;			   // +0xc4
-	std::vector<ClickRecord> mClickRecords; // +0xd0: the clicks the replay keeps
+	std::list<ClickEvent> mClickEvents;	   // +0xc4: the clicks the shot has had (a replay plays them again)
+	std::vector<BallRecord> mBallRecords; // +0xd0: where the balls were in each update of the shot, for the replay
 	float mGunAngle;		 // +0xe0: where CalcGunAngle aims the cannon (the player's mouse)
 	float mUnknownE4;		 // +0xe4
 	int mUnknownE8;			 // +0xe8
 	bool mUnknownEC;		 // +0xec
 	bool mUnknownED;		 // +0xed
+	bool mUnknownEE;		 // +0xee: CheckDoStealthHelperShot's answer
 	int mUnknownF0;			 // +0xf0
 	bool mUnknownF4;		 // +0xf4
 	bool mUnknownF5;		 // +0xf5
@@ -182,8 +249,7 @@ public:
 	int mNumBalls[2];		 // +0x17c: the balls each player has left
 	int mCharacter[2];		 // +0x184: the master each player plays
 	std::string mPlayerName[2]; // +0x18c: "Player1" and "Player2"
-	int mUnknown1C4;		 // +0x1c4
-	int mUnknown1C8;		 // +0x1c8
+	int mPowerup[2];		 // +0x1c4: the power-up each player has
 	int mUnknown1CC;		 // +0x1cc
 	int mUnknown1D0;		 // +0x1d0
 	int mUnknown1D4[14][2];	 // +0x1d4: fourteen pairs

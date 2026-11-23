@@ -3,7 +3,8 @@
 // later calls activate the window, and Windows will not let visrun hand the foreground back (it is not the foreground process).
 // The user allowed this hook on 2026-11-22 ("Yes, hook window activation calls"). It is on when the stand-in is loaded on the
 // user's own desktop (not rundesk's private one, not Windows Sandbox) or with ORIGRUN_ACTIVATION=block, which visrun sets;
-// ORIGRUN_ACTIVATION=allow turns it off everywhere for a run that needs the real behaviour.
+// ORIGRUN_ACTIVATION=allow turns it off everywhere for a run that needs the real behaviour, and origrun sets it in the sandbox,
+// whose desktop is "Default" too (the user name below does not tell it apart: Bookworm Adventures' full-screen runs).
 //
 //   SetForegroundWindow, BringWindowToTop   return TRUE and do nothing.
 //   SetActiveWindow                         returns GetActiveWindow() and changes nothing.

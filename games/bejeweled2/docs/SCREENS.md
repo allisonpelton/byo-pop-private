@@ -3,8 +3,9 @@
 One row per screen or dialog the game can show, from the export and `src/` (the audit of 2026-11-21 in
 `build/logs/screen-coverage/bejeweled2.md`, checked against both). The shots are pairs of the run `screens2d`
 (`games/bejeweled2/tools/origcmp/screens_run.sh`, `screens_reader.sh`): the port's recording of each tour against the
-original's shots of the same inputs, 2D 640x480 windowed, the original in Windows Sandbox. The 3D and full screen shots
-are not in this run (the desktop lane's tours, `docs/IDENTICAL_PLAY.md`). Shots are named `<tour>__<shot>`.
+original's shots of the same inputs, 2D 640x480 windowed, the original in Windows Sandbox. The 3D credits roll was compared on the
+desktop lane in run `v3d_finale` (40 pairs, credits all matching, `docs/IDENTICAL_PLAY.md`); the rest of 3D and full screen
+are not in this run. Shots are named `<tour>__<shot>`.
 
 "Explained" below means: the More Games button and the pill's text are gone from the main menu and from every screen
 that shows it (the user asked for it; box at 384,436), the title's letters and progress bar are at another phase (the
@@ -36,7 +37,7 @@ shine of a Hyper or Endless board are other random draws (docs/IDENTICAL_PLAY.md
 | Puzzle hint warning (secret puzzle, a first hint costs the level's points) | Hint in a secret puzzle |  | rare: only a secret-mode puzzle (Cognito's) with no hint used; no tour reaches a secret puzzle's first hint |
 | More Hints? | after an undo to a solvable board |  | rare: needs "No Longer Solvable" first (below) |
 | Illegal Move, Still Solvable | a swap that takes nothing; Hint after a hint | puzzle__illegal-move puzzle__illegal-move-closed puzzle__hint-shown puzzle__hint-still puzzle__hint-still-closed | |
-| No Longer Solvable (undo), No Hints | Hint on a board with no valid move |  | rare: a puzzle board stays solvable under every move the original lets a player make; a board with no move needs a finished move that leaves the solution, which no recorded input reaches |
+| No Longer Solvable (undo), No Hints | a legal swap off the solution, then Hint (`TOUR_NOHINTS=1`, record.py) |  | rare: No Longer Solvable is reached by real input and equals the original's (run `nohints2d`, pairs off-solution, nohint0-dlg22 and nohint-end match; 12 pairs, 10 match, the other two the title phase and More Games, outside this run's folder); No Hints needs the solution to stop fitting the board, which that swap does not do, and More Hints? follows the board's UNDO button in the stuck state: neither reached |
 | MODE UNLOCKED message | a mode's unlock score; the galaxy's finale | finale__fin-dialog37 | explained: a 1 pixel row under "Back to Main Menu" at 505,467 in the port, before the fix of this pass (below); none now |
 | Name conflict, profile error | create a name that exists | dialogs__name-conflict | explained: More Games, the lit button |
 | Credits roll (only from the Puzzle finale) | all puzzles solved | finale__fin00 finale__fin02 finale__fin10 finale__fin23 finale__link-menu finale__link-board finale__link-played | explained: link-menu shows the main menu, More Games |

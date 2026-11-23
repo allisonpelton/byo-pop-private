@@ -69,7 +69,9 @@ def take_lock(d):
         try:
             os.mkdir(lock)
             return lock
-        except FileExistsError:
+        except (FileExistsError, PermissionError):
+            # PermissionError: Windows refuses (access denied) a mkdir of a directory another process is removing at
+            # that moment, the lock being let go (Bookworm Adventures Volume 2's run, 2026-11-22): wait as for a lock held
             try:
                 if time.time() - os.path.getmtime(lock) > 10:
                     os.rmdir(lock)
