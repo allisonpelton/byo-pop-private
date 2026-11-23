@@ -4,6 +4,8 @@
 // "art size * measure / 1200".
 #include "Board.h"
 #include "Bej3Dialog.h"
+#include "HintDialog.h"
+#include "Profile.h"
 #include "OptionsDialog.h"
 
 #include "Bej3App.h"
@@ -98,8 +100,8 @@ void Board::DrawPiece(Graphics* g, const Piece* thePiece, float theScaleFactor)
 	int aColor = thePiece->mColor;
 	if ((aColor < 0 || aColor >= Piece::COLOR_COUNT) && (thePiece->mFlags & Piece::FLAG_HYPERCUBE) == 0)
 		return;
-	// slot 175, 0x73bd10: the board's alpha, the cover curve (+0x2898) times 1 less +0x12c8 (0 here)
-	double anAlpha = mCoverCurve.GetOutVal();
+	// slot 175, 0x73bd10: the board's alpha, the cover curve (+0x2898) times 1 less the pause's fade (+0x12c8)
+	double anAlpha = GetBoardAlpha();
 	if ((float)anAlpha == 0.0f)
 		return;
 	Piece* aPiece = const_cast<Piece*>(thePiece);
@@ -368,8 +370,27 @@ void Board::Draw(Graphics* g)
 	DrawScreenFrame(g);
 	DrawBehindPieces(g);
 	DrawPieces(g);   // slot 246, 0x7568a0
+	DrawPausedWord(g);   // 0x756cb0, after the gems and the bars and before the overlays
 	mEffectsOver->Draw(g, false);   // the +0x12c0 layer is a child of the board: its draw (slot 26) comes after the board's
 	DrawModeOverlay(g);   // port: the exe's widget manager calls slot 43 in the overlay pass; here it follows the board's own draw
+}
+
+// 0x756cb0 (bejeweled3), the part of Board's draw that writes PAUSED: in a mode that can be paused (slot 107) while the word's alpha (+0x12cc) is above 0, and
+// not while the screen's cover is whole and the game's end has begun (the exe's block is for a cover below 1 or no end hold, +0xd1c below 1). White at that alpha, in
+// the font of resource 17 (FONT_HUGE), the text of string 0x93 centred on the board's middle (the grid's x and 0x200, at the art size over 1200), its baseline at 0x21c
+void Board::DrawPausedWord(Graphics* g)
+{
+	if (!(mCoverCurve.GetOutVal() < 1.0 || mGameOverTicks < 1))
+		return;
+	if (!CanPause() || !(mPauseAlpha > 0.0f) || FONT_HUGE == nullptr)
+		return;
+	g->PushState();
+	g->SetFont(FONT_HUGE);
+	g->SetColor(Color(255, 255, 255, Ftol((double)mPauseAlpha * 255.0)));
+	const SexyString aText = gApp->GetString(std::to_string(0x93), "PAUSED");
+	const int aBaseline = Scaled(0x21c);
+	g->DrawString(aText, Scaled(GetGridX() + 0x200) - FONT_HUGE->StringWidth(aText) / 2, aBaseline);
+	g->PopState();
 }
 
 // 0x741840 (bejeweled3), Classic's case: the Hint button (id 0, the Classic hint picture) and the Menu button (id 1, the Classic menu
@@ -452,6 +473,18 @@ void Board::ButtonDepress(int theId)
 // saved game's file (0x743120); the port keeps no saved game
 void Board::DialogButtonDepress(int theDialogId, int theButtonId)
 {
+	if (theDialogId == HINT_DIALOG_ID && !mHintQueue.empty() && theButtonId == Dialog::ID_YES) {
+		// a tutorial box's OK: its request goes; with its "Disable Hints" box ticked every box is off from now on, the queue is emptied, and the board
+		// takes the profile's flags
+		mHintQueue.erase(mHintQueue.begin());
+		HintDialog* aBox = dynamic_cast<HintDialog*>(gApp->GetDialog(HINT_DIALOG_ID));
+		if (aBox != nullptr && aBox->mCheckbox->IsChecked()) {
+			SetHintFlag(HINTS_OFF_BIT, true);
+			if (gApp->mProfile != nullptr && !mDemonstration)
+				mHintFlags = gApp->mProfile->mHintFlags;
+			mHintQueue.clear();
+		}
+	}
 	Bej3Dialog* aClosing = dynamic_cast<Bej3Dialog*>(gApp->GetDialog(theDialogId));
 	if (aClosing != nullptr)
 		aClosing->StartClose();

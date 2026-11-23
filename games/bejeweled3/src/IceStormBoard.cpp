@@ -684,7 +684,8 @@ void IceStormBoard::NoMoreMoves(bool theAnnounce)
 }
 
 // slot 211 (0x34c), 0x6e2250 (bejeweled3): a run of 3 or more gems whose gems all stand in one column (not -1) has its pieces' ids kept: when
-// they are cleared the column's ice is crushed. port: the exe also shows the tutorial's dialog for the first one; that is left out
+// they are cleared the column's ice is crushed. In the secret mode, with the column's owner active, the first one queues the tutorial box (bit 0xd) over its first gem
+// and asks for it at once (0x765d50)
 void IceStormBoard::OnRunFound(const std::vector<Piece*>& thePieces)
 {
 	if (thePieces.size() < 3)
@@ -698,6 +699,10 @@ void IceStormBoard::OnRunFound(const std::vector<Piece*>& thePieces)
 	}
 	for (const Piece* aPiece : thePieces)
 		mVerticalRunPieceIds.push_back(aPiece->mId);
+	if (aColumn >= 0 && aColumn < COLUMN_COUNT && mColumns[mColumns[aColumn].mOwner].mActive && mIsSecretMode && CanShowHint(HINT_VERTICAL_MATCH)) {
+		QueueHint(thePieces[0], HINT_VERTICAL_MATCH);
+		CheckForTutorialDialogs();
+	}
 }
 
 // slot 143 (0x23c), 0x6dd580 (bejeweled3): a gem is cleared. One of a vertical run crushes its column's ice (0x6db1a0 with the gem's row). The

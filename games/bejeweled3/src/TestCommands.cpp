@@ -4,6 +4,8 @@
 #include "Bej3App.h"
 
 #include "Bej3Dialog.h"
+#include "DialogButton.h"
+#include "EndLevelDialog.h"
 #include "ButterflyBoard.h"
 #include <algorithm>
 #include "IceStormBoard.h"
@@ -56,9 +58,13 @@ const char* ModeKey(const Board* theBoard)
 	return "classic";
 }
 
+// port: put before every answer while `move` runs an atmove's command, so that the command's own OK or ERROR is a log line
+// and the move's answer (MOVE or a wait) stays the one answer a driver reads
+const char* gReplyPrefix = "";
+
 void Reply(const std::string& theLine)
 {
-	SDL_Log("%s", theLine.c_str());
+	SDL_Log("%s%s", gReplyPrefix, theLine.c_str());
 	fflush(stdout);
 	fflush(stderr);
 }
@@ -113,11 +119,79 @@ int LetterColor(char theLetter)
 	return -1;
 }
 
+// The state's "over": the game has ended, as a player sees it. A board's game over with its end dialog up (the dialog waits for the others to go), or a
+// quest's with the quest map back over the board (its win or loss)
+bool IsGameOver(const Bej3App* theApp)
+{
+	const Board* aBoard = theApp->mBoard;
+	if (aBoard == nullptr || !aBoard->mGameOver)
+		return false;
+	if (aBoard->mEndScreenShown)
+		return true;
+	const QuestBoard* aQuest = dynamic_cast<const QuestBoard*>(aBoard);
+	return aQuest != nullptr && !aQuest->mIsSecretMode && theApp->mQuestMenu != nullptr;
+}
+
+// The steps of a click that a button takes: the pointer moves there, the press and the release come a few updates apart
+// (a button reads its state once an update, docs/REAL_INPUT.md)
+std::string ButtonClick(int theX, int theY)
+{
+	const std::string aPoint = "[" + std::to_string(theX) + "," + std::to_string(theY) + "]";
+	return "{\"move\":" + aPoint + "},{\"wait\":3},{\"press\":" + aPoint + "},{\"wait\":3},{\"release\":" + aPoint + "}";
+}
+
+// The answer of a `move` that gives input, and the updates to wait before the next question
+void ReplyMove(const std::string& theSteps, int theUpdates)
+{
+	Reply("MOVE {\"input\":[" + theSteps + "],\"updates\":" + std::to_string(theUpdates) + "}");
+}
+
+// The answer of a `move` that has nothing to press yet while the game goes on (a fade, a fall, a level change): wait and ask again
+void ReplyWait(int theUpdates)
+{
+	ReplyMove("", theUpdates);
+}
+
+// A click on the middle of a widget, in game pixels
+std::string ClickWidget(Widget* theWidget)
+{
+	const Point aPos = theWidget->GetAbsPos();
+	return ButtonClick(aPos.mX + theWidget->mWidth / 2, aPos.mY + theWidget->mHeight / 2);
+}
+
+// A key for each character of a text, then Enter
+std::string TypeText(const std::string& theText)
+{
+	std::string aSteps;
+	for (char aCharacter : theText)
+		aSteps += std::string("{\"key\":\"") + aCharacter + "\"},";
+	return aSteps + "{\"key\":\"Enter\"}";
+}
+
 }  // namespace
+
+// hints off: bit 19 of the profile's seen flags (the exe's one switch for the boxes and helps) and, so that a quest's play begins at once as it did before the quest
+// help was made, every quest's help seen (the exe's own flags for it, which the switch does not touch); hints on puts bit 19 back
+void Bej3App::SetHintsOff(bool theOff)
+{
+	if (theOff)
+		mProfile->mHintFlags |= Board::HINTS_OFF;
+	else
+		mProfile->mHintFlags &= ~(uint32_t)Board::HINTS_OFF;
+	if (theOff) {
+		for (uint8_t& aSeen : mProfile->mQuestHelpSeen)
+			aSeen = 1;
+	}
+}
 
 bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	const std::string& aCommand = theCommand.mCommand;
+	// a `hints off` that came before the first player existed: done with the first command after the name has made the profile
+	if (mHintsOffPending && mProfile != nullptr && !mProfile->mName.empty()) {
+		SetHintsOff(true);
+		mHintsOffPending = false;
+	}
 	if (aCommand == "seed") {
 		// the app's Rand() is what seeds each board (Board::Board), so a seed given before a game starts fixes its first deal
 		if (theCommand.mArgs.empty()) {
@@ -144,12 +218,34 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 	if (aCommand == "unlock") {
 		// unlock all: every mode the play menu keeps shut is opened through the profile's own flags (+0x180: the four modes that start locked, Poker,
 		// Butterflies, Ice Storm and Diamond Mine, by the ball's number less 4)
-		if (theCommand.mArgs != "all" || mProfile == nullptr) {
-			ReplyError(theCommand, "unlock all, with a player");
+		if (theCommand.mArgs != "all") {
+			ReplyError(theCommand, "unlock all");
+			return true;
+		}
+		if (mProfile == nullptr || mProfile->mName.empty()) {
+			// no player yet (a real-input run unlocks before the name box is answered): `move` does it once the profile has a name
+			mUnlockPending = true;
+			ReplyOK(theCommand);
 			return true;
 		}
 		for (int i = 0; i < 4; i++)
 			mProfile->mTutorialFlags[i] = 1;
+		ReplyOK(theCommand);
+		return true;
+	}
+	if (aCommand == "hints") {
+		// hints off: the profile's own switch for the tutorial boxes and helps (the "Don't show hints" box of the help dialog, bit 19 of the profile's seen flags),
+		// set before a game so that the board does not stop for them (the frozen suites play fresh players' games this way); hints on puts it back
+		if (theCommand.mArgs != "off" && theCommand.mArgs != "on") {
+			ReplyError(theCommand, "hints off|on");
+			return true;
+		}
+		if (mProfile == nullptr || mProfile->mName.empty()) {
+			mHintsOffPending = theCommand.mArgs == "off";
+			ReplyOK(theCommand);
+			return true;
+		}
+		SetHintsOff(theCommand.mArgs == "off");
 		ReplyOK(theCommand);
 		return true;
 	}
@@ -387,14 +483,156 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 		ReplyOK(theCommand);
 		return true;
 	}
-	if (aCommand == "move") {
-		// move: the bot's move, the first the exe's move search (0x75a8e0, rows from the top) finds, as the two clicks of the player
-		// (the gem is picked up, then its neighbour is clicked); it changes nothing. MOVE null when no move is left or the board is not at rest
-		BoardMove aMove;
-		if (mBoard == nullptr || mBoard->mGameOver || !mBoard->IsSettled() || !mBoard->FindMove(&aMove, 0, false, nullptr, false)) {
-			Reply("MOVE null");
+	if (aCommand == "play") {
+		// play <mode> [quest index]: what the bot's `move` clicks its way to from wherever the screens are (the first player's name, PLAY, the mode's ball, on the
+		// quest map the quest's button), as a hand does. The mode is classic, zen, lightning, quest, poker, butterflies, icestorm or diamondmine
+		static const char* const aModes[PlayMenu::BALL_COUNT] = {"classic", "zen", "lightning", "quest", "poker", "butterflies", "icestorm", "diamondmine"};
+		char aMode[32] = "";
+		int aQuest = 0;
+		sscanf(theCommand.mArgs.c_str(), "%31s %d", aMode, &aQuest);
+		bool isKnown = false;
+		for (const char* aName : aModes)
+			isKnown = isKnown || strcmp(aName, aMode) == 0;
+		if (!isKnown || aQuest < 0 || aQuest >= QuestMenu::QUEST_COUNT) {
+			ReplyError(theCommand, "play <classic|zen|lightning|quest|poker|butterflies|icestorm|diamondmine> [quest index]");
 			return true;
 		}
+		mPlayTarget = aMode;
+		mPlayQuest = aQuest;
+		ReplyOK(theCommand);
+		return true;
+	}
+	if (aCommand == "idle") {
+		// idle [off]: from now on `move` makes no swap, as a player who has walked away (Ice Storm, a bot that always has a move, ends only so)
+		mIdle = theCommand.mArgs != "off";
+		ReplyOK(theCommand);
+		return true;
+	}
+	if (aCommand == "atmove") {
+		// atmove <n> <command> [args]: once `move` has given n swaps and is at rest, the bot's `move` first runs that test command (a real-input run's way to
+		// shorten a long mode after it has started as a hand starts it, e.g. `atmove 40 board <a board with no move>`); atmove off forgets it
+		int aCount = -1;
+		int aRead = 0;
+		if (theCommand.mArgs == "off") {
+			mAtMoveCount = -1;
+			ReplyOK(theCommand);
+			return true;
+		}
+		if (sscanf(theCommand.mArgs.c_str(), "%d%n", &aCount, &aRead) < 1 || aCount < 0) {
+			ReplyError(theCommand, "atmove <n> <command> [args]");
+			return true;
+		}
+		const std::string aRest = theCommand.mArgs.substr((size_t)aRead);
+		const size_t aStart = aRest.find_first_not_of(' ');
+		if (aStart == std::string::npos) {
+			ReplyError(theCommand, "atmove <n> <command> [args]");
+			return true;
+		}
+		const size_t aSpace = aRest.find(' ', aStart);
+		mAtMoveCount = aCount;
+		mAtMoveCommand = aRest.substr(aStart, aSpace == std::string::npos ? std::string::npos : aSpace - aStart);
+		mAtMoveArgs = aSpace == std::string::npos ? "" : aRest.substr(aRest.find_first_not_of(' ', aSpace) == std::string::npos ? aRest.size() : aRest.find_first_not_of(' ', aSpace));
+		ReplyOK(theCommand);
+		return true;
+	}
+	if (aCommand == "move") {
+		// move: the input a player's hand gives to get on, as steps in game pixels. On a board at rest: the bot's swap, the first the exe's move search (0x75a8e0,
+		// rows from the top) finds, as the two clicks of the player (the gem is picked up, then its neighbour is clicked). On the screens before it (the player's
+		// name box, a dialog's button, PLAY, the mode's ball named by `play`, the quest map's button): the keys or the click that gets on. A wait with no input while
+		// something fades, falls or changes level. MOVE null once the game has ended (state's "over"), or when there is nothing to do. Asking changes nothing but
+		// one thing: an `unlock all` given before the player existed is done here, once the name has made the profile
+		if (mUnlockPending && mProfile != nullptr && !mProfile->mName.empty()) {
+			for (int i = 0; i < 4; i++)
+				mProfile->mTutorialFlags[i] = 1;
+			mUnlockPending = false;
+		}
+		if (mHintsOffPending && mProfile != nullptr && !mProfile->mName.empty()) {
+			SetHintsOff(true);
+			mHintsOffPending = false;
+		}
+		// the dialogs first: the new player's name box, then any other one by its button (a tutorial box's OK, a help dialog's START GAME or CLOSE, a quest
+		// help's OK: each dialog's footer button is its Yes button; the boxes to tick, "Disable Hints" and "Don't show hints", are never clicked)
+		for (Dialog* aDialog : mDialogList) {
+			Bej3Dialog* aBej3Dialog = dynamic_cast<Bej3Dialog*>(aDialog);
+			if (aBej3Dialog == nullptr || aBej3Dialog->mClosing || aBej3Dialog->mFadeCurve.GetOutVal() < 1.0) {
+				ReplyWait(10);
+				return true;
+			}
+			if (NewUserDialog* aNameDialog = dynamic_cast<NewUserDialog*>(aDialog)) {
+				if (aNameDialog->mEdit->mString.empty())
+					ReplyMove(TypeText("Tester"), 10);
+				else
+					ReplyWait(10);
+			}
+			else if (aDialog->mId == ClassicEndLevelDialog::DIALOG_ID)
+				Reply("MOVE null");
+			else if (aDialog->mYesButton != nullptr)
+				ReplyMove(ClickWidget(aDialog->mYesButton), 10);
+			else
+				Reply("MOVE null");
+			return true;
+		}
+		if (mBoard == nullptr) {
+			if (mQuestMenu != nullptr) {
+				// the quest map: the button of the quest asked for, when it is on the page on show
+				if (mPlayTarget != "quest" || mQuestMenu->mSection != mPlayQuest / QuestMenu::QUESTS_PER_SECTION ||
+					mQuestMenu->mQuestButtons.size() != (size_t)QuestMenu::QUESTS_PER_SECTION)
+					ReplyWait(10);
+				else
+					ReplyMove(ClickWidget(mQuestMenu->mQuestButtons[mPlayQuest % QuestMenu::QUESTS_PER_SECTION]), 30);
+				return true;
+			}
+			if (mMainMenu == nullptr || !mMainMenu->mIntroStarted || mMainMenu->mDistanceCurve.GetOutVal() != 0.0 || mMainMenu->mTurnACurve.GetOutVal() != 0.0) {
+				ReplyWait(30);
+				return true;
+			}
+			PlayMenu* aPlayMenu = mMainMenu->mPlayMenu;
+			if (mPlayTarget.empty() || aPlayMenu == nullptr) {
+				Reply("MOVE null");
+				return true;
+			}
+			if (aPlayMenu->IsActive()) {
+				static const char* const aModes[PlayMenu::BALL_COUNT] = {"classic", "zen", "lightning", "quest", "poker", "butterflies", "icestorm", "diamondmine"};
+				int aBall = 0;
+				while (aBall < PlayMenu::BALL_COUNT - 1 && mPlayTarget != aModes[aBall])
+					aBall++;
+				if (aPlayMenu->mFadeCurve.GetOutVal() != 1.0 || aPlayMenu->mBalls[aBall]->mScaleCurve.IsDoingCurve() || aPlayMenu->mHideCurve.IsDoingCurve())
+					ReplyWait(10);
+				else
+					ReplyMove(ClickWidget(aPlayMenu->mBalls[aBall]), 60);
+				return true;
+			}
+			if (mMainMenu->mPlayButton->mScaleCurve.IsDoingCurve())
+				ReplyWait(10);
+			else
+				ReplyMove(ClickWidget(mMainMenu->mPlayButton), 60);
+			return true;
+		}
+		if (mAtMoveCount >= 0 && mBoard->IsSettled() && !mBoard->mGameOver && mSwapsGiven >= mAtMoveCount) {
+			ScriptCommand aRun = {mUpdateCount, mAtMoveCommand, mAtMoveArgs, 0};
+			mAtMoveCount = -1;
+			gReplyPrefix = "atmove: ";
+			HandleScriptCommand(aRun);
+			gReplyPrefix = "";
+		}
+		BoardMove aMove;
+		if (mBoard->mGameOver || mQuestMenu != nullptr) {
+			// the game has ended (the dialog is up or about to be) or a quest's map is over the board: nothing more to play
+			if (IsGameOver(this))
+				Reply("MOVE null");
+			else
+				ReplyWait(20);
+			return true;
+		}
+		if (!mBoard->IsSettled() || mBoard->mHyperspace != nullptr || mBoard->mLevelUpPending) {
+			ReplyWait(10);
+			return true;
+		}
+		if (mIdle || !mBoard->FindMove(&aMove, 0, false, nullptr, false)) {
+			ReplyWait(10);
+			return true;
+		}
+		mSwapsGiven++;
 		const int aCell = 128;
 		auto aPixel = [&](int theMeasure) { return mArtRes * theMeasure / 1200; };
 		int aFromX = aPixel(mBoard->GetGridX() + aMove.mFromCol * aCell + aCell / 2);
@@ -452,6 +690,8 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 		std::string aLine = "STATE {\"screen\":\"";
 		aLine += mBoard != nullptr ? ModeKey(mBoard) : mQuestMenu != nullptr ? "quest" : "menu";
 		aLine += "\"";
+		if (mBoard == nullptr)
+			aLine += ",\"update\":" + std::to_string(mUpdateCount) + ",\"dialogs\":" + std::to_string(GetDialogCount());
 		if (mQuestMenu != nullptr && mProfile != nullptr) {
 			// the quest map is up: the section on show, the sections' done counts and states, and the quests done as a string of 40 characters
 			std::string aDone;
@@ -695,7 +935,12 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 				aLine += "]";
 			}
 		}
-		aLine += "}";
+		// the pause (Board::IsPaused): only while one is on or fading, so that a game that never pauses prints what it printed before. "paused" is the answer of
+		// the exe's slot 103, "pausefade" the gems' fade (+0x12c8) and "pausealpha" the word's (+0x12cc), in thousandths
+		if (mBoard != nullptr && (mBoard->mPlayerPaused || mBoard->mPauseFade > 0.0f || mBoard->mPauseAlpha > 0.0f || mBoard->IsPaused()))
+			aLine += std::string(",\"paused\":") + (mBoard->IsPaused() ? "1" : "0") + ",\"playerpause\":" + (mBoard->mPlayerPaused ? "1" : "0") +
+				",\"pausefade\":" + std::to_string((int)(mBoard->mPauseFade * 1000.0f)) + ",\"pausealpha\":" + std::to_string((int)(mBoard->mPauseAlpha * 1000.0f));
+		aLine += std::string(",\"over\":") + (IsGameOver(this) ? "true" : "false") + "}";
 		Reply(aLine);
 		return true;
 	}

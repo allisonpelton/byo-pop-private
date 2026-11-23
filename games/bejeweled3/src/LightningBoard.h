@@ -53,6 +53,7 @@ public:
 	float mTimeStep = 0.0f;         // +0x327c: the setting "TimeStep": each game tick steps the chance counters by it over 100
 	float mLevelTimeStep = 0.0f;    // +0x3280: the setting "LevelTimeStep": the Last Hurrah's start steps them by it
 	bool mEnding = false;           // +0xe28: the time is out and the end is being played (slot 185 makes no time gems then)
+	bool IsTimeUp() const override { return mEnding; }   // the hint boxes read +0xe28 (Board::CanShowHint)
 	TimeGemChance mChance5;         // +0x3108, its counter and chance at +0x3178 and +0x317c
 	TimeGemChance mChance10;        // +0x3180, at +0x31f0 and +0x31f4
 	TimeGemChance mChance15;        // +0x31f8, at +0x3268 and +0x326c (stepped, never read by 0x716c60)

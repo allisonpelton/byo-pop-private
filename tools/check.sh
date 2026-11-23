@@ -66,7 +66,9 @@
 #                its seek, on a module the test makes and a staged MO3 when there is one, and every unused
 #                pattern the Music window lists, each one's tracker view at its first frame) and musicrepeattest
 #                (tools/musicrepeattest.js: every staged tune played with repeat on past its end, the sound going on from where
-#                the decoder goes on and the position going back there) and soundfilestest
+#                the decoder goes on and the position going back there) and musicfieldstest (tools/musicfieldstest.js: every
+#                staged game's end fields against its tunes, and Rip Style on the shortest looped tune of each kind, its fade from
+#                the third pass's start and each Game Over Ending way) and soundfilestest
 #                (tools/soundfilestest.js: every sound the Sounds boards name is staged and in a format every browser plays, by
 #                its own header: Ogg Vorbis, MP3, PCM WAV, or one the site decodes itself) and autosplittest
 #                (tools/autosplittest.js: the speedrun timer's auto splitters decide as their references, Bejeweled's lsdecide.py
@@ -381,7 +383,7 @@ suite_weight() { WEIGHT=1; [ "$1" = speed ] && WEIGHT=3; [ "$1" = bonnies ] && [
 # ---- merge mode (--changed): the suites a change can affect ----
 
 # Rough seconds on this machine (the last `all` run, 2026-11-02); the plan adds them up, no more
-declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
+declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=240 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
 	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=560 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [peggle]=10 [pizzafrenzy]=180 [feedingfrenzy]=240 [feedingfrenzy2]=340 [bejeweled3]=330 [oracle]=1080)
@@ -760,12 +762,17 @@ suite_build() { build_suite native "$1"; }
 suite_build-web() {  # <log> [<target>,<target>...]: the whole web build, or only those targets
 	local st t="${2//,/ }"
 	if [ -z "$t" ]; then build_suite web "$1"; return; fi
+	# the changed games' targets, and always the site's own decoders that unit-web runs under Node ($web/openmpt.js, $web/jp2.js):
+	# built only with a whole web build, a worktree's copies could date from before a merge of main and fail unit-web there
+	# (Bejeweled 3's worktree, 2026-11-23: an openmpt.js from before the Music fixes failed 18 of musicrepeattest's tunes)
+	local games="$t"
+	t="$t byopop_openmpt byopop_jp2"
 	export TARGET="$t" SKIP_UNKNOWN_TARGETS=1  # a changed game with no web build yet is skipped (tools/build.sh web)
 	build_suite web "$1"; st=$?
 	unset TARGET SKIP_UNKNOWN_TARGETS
 	local skipped
 	skipped="$(sed -n 's/^build.sh: \([^:]*\): no web target.*/\1/p' "$1" | tr '\n' ' ')"
-	[ $st -ne 0 ] || SUMMARY="web build ok: $t only${skipped:+; no web build yet: ${skipped% }}"
+	[ $st -ne 0 ] || SUMMARY="web build ok: $games only, and the decoders${skipped:+; no web build yet: ${skipped% }}"
 	return $st
 }
 suite_build-nov() { build_suite novariants "$1"; }
@@ -1019,6 +1026,10 @@ suite_unit-web() {
 	local mr
 	"$NODE" tools/musicrepeattest.js "$web/openmpt.js" assets > "$1.mr" 2>&1 || st=1
 	mr="$(lastof "$1.mr" 'musicrepeattest:')"
+	# the music player's end fields for every staged game, and Rip Style's passes, fade and Game Over Ending on each kind of tune (tools/musicfieldstest.js)
+	local mf
+	"$NODE" tools/musicfieldstest.js "$web/openmpt.js" assets > "$1.mf" 2>&1 || st=1
+	mf="$(lastof "$1.mf" 'musicfieldstest:')"
 	# every sound the Sounds boards name is staged and in a format every browser plays, by its own header (tools/soundfilestest.js)
 	local sf
 	"$NODE" tools/soundfilestest.js assets > "$1.sf" 2>&1 || st=1
@@ -1044,7 +1055,7 @@ suite_unit-web() {
 	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
 	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
 	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $rz; $q; $r; $mr; $sf; $as; $u; $v; $w; $o"
+	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $rz; $q; $r; $mr; $mf; $sf; $as; $u; $v; $w; $o"
 	return $st
 }
 

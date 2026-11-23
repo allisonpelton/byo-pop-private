@@ -26,6 +26,7 @@ public:
 	int mBombCount = 0;         // +0x325c: the bombs on the board
 	bool mDropPending = false;  // +0x3261: a bomb was made in the fill that is going on
 	bool mRealTime = false;     // +0x3262: "Time Bomb (Real time)" (the constructor's argument)
+	bool CanPause() const override { return mRealTime; }   // slot 107: 0x6c4a90 for the board, RealTimeBombBoard's own is 0x6c4ab0 (true)
 
 	void NewGame() override;                                           // slot 135 (0x6e52e0)
 	const char* GetModeName() const override { return "QuestBomb"; }   // slot 89

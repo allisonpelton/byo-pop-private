@@ -18,6 +18,7 @@ namespace Sexy {
 class IceStormBoard : public QuestBoard {
 public:
 	enum { COLUMN_COUNT = 8 };
+	bool CanPause() const override { return true; }   // slot 107 (0x6c50b0, InfernoBoard)
 	// the counter 0x6db1a0 adds one to (0x73d170, end dialog string 0x111): the columns crushed
 	enum { COUNTER_COLUMNS_CRUSHED = 0x23 };
 	// 0x6e2670 puts the grace (+0x3264) to this: the updates after a game starts before the ice moves or a column is made

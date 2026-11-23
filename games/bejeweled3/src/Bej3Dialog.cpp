@@ -1,6 +1,7 @@
 #include "Bej3Dialog.h"
 
 #include "Bej3App.h"
+#include "Board.h"
 #include "DialogButton.h"
 #include "Font.h"
 #include "Graphics.h"
@@ -66,6 +67,8 @@ void Bej3Dialog::Update()
 	if (!anEnded && mFadeCurve.mRamp != CurvedVal::RAMP_LINEAR) {
 		double aValue = mFadeCurve.GetOutVal();
 		if (aValue == 0.0) {
+			if (gApp->mBoard != nullptr)
+				gApp->mBoard->OnDialogClosed(mId);   // slot 141 of the game screen
 			gApp->KillDialog(this);
 			return;
 		}

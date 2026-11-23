@@ -649,7 +649,7 @@ Oddities (not chased, `// port:` in the source): (1) RESOLVED: how the exe keeps
 The matcher's test is "the scale curve's ramp (+0x24) is not 6" (a running pulse, RAMP_CURVEDATA), in the free test and in 0x755ad0,
 and 0x755ad0 also reads the slide curve. IsPulsing is gone. (The earlier text, which looked at +0x198 only, and the reading of
 0x75bbdb that led to a stand-in, are replaced by this.) (2) The help boxes of slot 0x20c (0x73c4c0, and 0x745bf0 for each special) show
-a tutorial box the first time a special is made; they are left out and the help is treated as seen. (3) The exe's sets are ordered by
+a tutorial box the first time a special is made; they are made now ("Tutorials and help"). (3) The exe's sets are ordered by
 address, the port's by id; this matters only where the order of the sets changes what is done (the order the candidates are made and the
 clusters' targets), which it does not for the cases tried. (4) IsHeldBySwap (0x73caa0) takes a second argument in the exe (1 in the
 matcher, 0 in 0x755ad0); the port has one version and the swap record's flag (+0xf9, set from that argument) is not translated. The
@@ -771,7 +771,7 @@ slot 232 (0x756730) and does the same. Slot 232: the app's 0x7716e0 (the play me
 "b;0,1,0.006667,..." and the ball's, the music's FadeOut and Play "MainMenu"), the background hidden, the cover curve (+0x2898) set to
 "b;0,1,0.02,1,~###..." (1 to 0 over 50 updates) and the zoom curve (+0x2908) to "b;1,1.2,0.02,..." , the board's +0x2978 set (UpdateGame, 0x767f85, then
 steps nothing else) and slot 253 (0x73b510) disables its buttons. When the cover reaches 0 the board's update (0x759684) removes the board from the
-manager and the app's +0xbe8 becomes 0. Not translated: HOW TO PLAY (the help dialog, 0x696100), the three sliders (ids 0 to 2, music, sound and
+manager and the app's +0xbe8 becomes 0. HOW TO PLAY is made ("Tutorials and help"). Not translated: the three sliders (ids 0 to 2, music, sound and
 voice) and the checkboxes (ids 4 to 10: the art size 600, 768 and 1200, 3D and the others) on the dialog's face, the zoom curve, the background's fade
 (0x77dde0), the Quest branch (0x76c500), the click sound of 0x76aaf0, the ball's curves and the labels' (0x689a10, 0x684660), the first screen's
 own version of the dialog (0x6a3830, made with 0) and the pause the exe's board takes from the dialog (+0xd20). The port's buttons are DialogButtons
@@ -1445,8 +1445,7 @@ each), `questbuttons`; with a quest board `quest` (the index), `questwon`, `ques
   page's turn (the curve at +0x138, 0x690f10), the progress pictures and panes, the sparkles, the percentage window, the quest-complete banner and animation (0x67ed00, 0x684380's effects),
   the sounds (SOUND_QUESTMENU_RELIC*), the exe's wait for the relic animation before a click (0x674060), the text "Complete quests to restore the Lost Relics of Bejeweled". The gems are put in
   two rows of four; the exe puts each in a socket of its page.
-- QuestHelpDialog (vftable 0x8697d4, made by 0x6ccfd0 from slot 140, 0x6d0af0): the exe shows it before a quest that has not been started (the profile's `mQuestHelpSeen`); the port starts the
-  quest at once, since it does not stand in the way. Also the tutorial of the first quests (slot 141, 0x6d0ac0).
+- QuestHelpDialog (vftable 0x8697d4, made by 0x6ccfd0 from slot 140, 0x6d0af0): the exe shows it before a quest that has not been started (the profile's `mQuestHelpSeen`); made now ("Tutorials and help").
 - The exe keeps the map (+0xbd8) and the board (+0xbe8) both alive and shows the map over the board at a win (clock 198) and a loss (300); the port does the same but makes the map again each
   time and deletes it when a quest starts.
 - The fanfare at clock 100 (slot 162), the sounds and music events ("Break", "Play", "Wait") of 0x6ca350, the text of the finished level (0x7411f0, slot 160).
@@ -1616,3 +1615,199 @@ Checked against quest.cfg and secret.cfg: the Goal settings are Catch Butterflie
 ### The suite for Quest, part 3
 suite_quest3.txt (seed 7, name Tester, `unlock all`) plays eleven games, each ending in a state line: Buried Treasure (three flames, won), Sandstorm (Time=3, lost), Wall Blast (a flame breaks the nine cells, won), Wall Blast II (Time=3, lost), Alchemy (won), Alchemy II
 (Moves=3, lost), Alchemy III (Flip, won), Time Bomb with its Clear Bombs goal (won), Time Bomb II (lost), the Poker quest (won on its score, lost on its hands). Hidden Objects comes first, because its layout comes from the app's draws (6.4.1.3, 1.2.2.3, 5.0.2.2 under seed 7).
+
+## Real input (tools/realinput.sh, TestCommands.cpp's `move`, `state`, `play`, `atmove`, `idle`)
+
+The native window under rundesk, driven by posted-as-SDL-events input (`-realinput`, docs/REAL_INPUT.md) from `tools/playbymove/playbymove.py`: the
+driver asks `state` and `move` and plays the answer's `input` as real events, until the state says `"over":true`. Run `games/bejeweled3/tools/realinput.sh
+[mode ...]` from the worktree root (no mode: all eight; `REALINPUT_DISPLAYS="win"`, `"full"` or `"alt"` picks a display; `STEPS`, `ZEN_STEPS`, `QUEST_INDEX`
+change the limits). It waits for a free game slot (`tools/gamecount.py --limit`), runs one game at a time with a fresh user folder under
+`build/realinput/<mode>-<display>/` (driver.txt, game.log, end.png), prints one line a run (`<mode> <display>: <steps> moves, stop <over|limit>`) and exits 0
+when every run but Zen's stopped on "over" (Zen has no end: it is played for 400 steps and the limit is its end). The whole script takes about 4.5 minutes.
+The folder is not kept: delete `build/realinput` once the results are here.
+
+**What `state` and `move` do now.** `state` ends with `"over":true|false`: true when the board's game is over and its end dialog is up (every mode but Quest),
+or, for a quest, when the quest map has come back over the finished board (won or lost). A state with no board also carries `"update"` (the app's update
+count) and `"dialogs"` (how many are up), so a driver can see a menu change. The frozen hashes (suite.sh) are of the state lines without the `"over"` key (the
+suite strips it with `sed` before hashing): the key is last in the line, and Classic's 51086c43ed2a and the modes' 873d262bb577 are unchanged.
+`move` answers, in game pixels, what a hand does next:
+- a dialog that is still fading in or out: a wait (`"input":[]` with `"updates"`); the first player's name box (the welcome dialog): the keys of "Tester" and Enter;
+  the end dialog: MOVE null (the game is over); any other dialog (a locked mode's, the empty-name message, the reset question): a click on its Yes button.
+  The tutorial boxes, the help dialogs and the quest help ("Tutorials and help") come in a fresh player's game; each one's footer button is its Yes button, so the same click answers it (the boxes to tick are never clicked).
+- no board, the quest map up: the click on the button of the quest `play quest <i>` named (a wait while the map's page is not that quest's section);
+- no board, the menus: a wait until the intro has ended and the camera is still; then PLAY's ball; then, once the play menu is up and the ball's size curve
+  has stopped, the ball of the mode `play <mode>` named (classic, zen, lightning, quest, poker, butterflies, icestorm, diamondmine). Every button click is a
+  move, three updates, a press, three updates and a release (a button reads its state once an update), at the middle of the widget's own rectangle;
+- a board: a wait while it is not at rest, a level change runs (`mHyperspace`, `mLevelUpPending`) or no move is found; else the bot's swap as the two clicks.
+  Once the game is over, MOVE null.
+Test commands that make a run possible: `play <mode> [quest index]` (the target the menus' clicks lead to; unset: MOVE null at the menu); `unlock all` before
+the player exists is kept and done by `move` once the name has made the profile; `atmove <n> <command...>` runs a test command once `move` has given n swaps
+(classic: `board` with a board that has no move, which is the suite's way to the end dialog; Ice Storm: `idle`); `idle` makes `move` stop swapping (a player
+who walked away: Ice Storm's bot always finds a move and crushes the ice for ever, 3000 steps and a score of 688,657 without an end).
+
+**The runs** (window = `registry.ini` with ScreenMode 0; full screen = a new player's own start, which the port opens full screen; "alt" = the full screen
+start with Alt+Enter at once, so Classic is played in the window it switches to). Steps are the driver's moves and waits, as playbymove counts them:
+
+| Mode | Window | Full screen | What ends it |
+| --- | --- | --- | --- |
+| Classic (`atmove 40 board ...`) | 323, over | 323, over; alt: 323, over | the no-move board, the end dialog up |
+| Zen | 400, limit | 400, limit | none (Zen has no end) |
+| Lightning | 1992, over | 1992, over | its clock and the Last Hurrahs, the end dialog |
+| Quest 3 (Stratamax, Move Limit) | 293, over | 293, over | the 20 moves run out, the map comes back (a loss) |
+| Butterflies | 186, over | 186, over | the end dialog |
+| Poker | 572, over | 572, over | the end dialog |
+| Ice Storm (`atmove 60 idle`) | 626, over | 626, over | the ice cracks, the end dialog |
+| Diamond Mine | 1021, over | 1021, over | the clock runs out, the end dialog |
+
+Window and full screen give the same step counts in every mode, so the same input made the same game in the two displays (the window's mapping to game
+pixels, the full screen's 1600x1200 and the desktop-sized 3840x2160 client the log shows for it, took every click and key to the place asked). The port
+has no 3D path (Is3D is 0 in its registry), so there is no second display mode to try. Not played by this: the end dialogs' PLAY AGAIN and MAIN MENU
+buttons, the options screen and a second quest of the map's other sections (the quests' own games are the suite's).
+
+**What a hand's input showed that the scripted suite did not.** No bug of the port. Three things of the runs themselves: a click on a button must come as
+move, wait, press, wait, release (the board's two clicks need none of it); the menus' balls take no click while their size curves run (about 60 updates after
+PLAY), so `move` waits for them; and the end dialog's first frame shows "Final Score" as 0 (its count-up starts when it opens), so an `end.png` taken at once
+has not counted up yet. The fresh player's default start is full screen, as the exe's first run is.
+
+**On the web** (2026-11-23, the Browser pane on `bejeweled3-webtest`, port 18830). `tools/web/playmode.js` is the web twin of
+`realinput.sh`: from a wiped test profile it starts the game, sends `seed 1`, `unlock all`, `play <mode>` (and the same `atmove`), and
+`playByMove` plays the bot's moves as DOM input from the name box to the mode's end; the end's shot is `build/webshots/playmode-<mode>/end.png`.
+Every mode reached its end: Classic 63 moves (over), Zen 400 (its limit), Lightning 34 (over), Quest 3 41 (over, lost), Butterflies 33,
+Poker 48, Ice Storm 45 and Diamond Mine 32 (all over), none with a page error. One page load failed before the game started (the page's
+clips script was not defined); its reload ran. The page check (`tools/web/pagecheck.js`, settle 400: by then the first fill has landed):
+11 pass, 0 fail, 1 information line (the browser keys the game takes). The focus line matches the native answer: the board's update and
+hint timer go on while the focus is away (Classic cannot be paused; see "Focus").
+The web run showed one fault of the test command: `move` answered an atmove's command with that command's own `OK`, which a web driver reads
+as the move's answer; the command's answers are now logged with the prefix `atmove: `, and `move` answers as usual.
+
+
+## Tutorials and help (src/BoardHints.cpp, src/HintDialog.*, the hooks listed below)
+
+The tutorial boxes (HintDialog, vtable 0x86e654, made by 0x682bf0), the help dialogs (HelpDialog, 0x86e0bc, made by 0x696100, with its pages in HelpWindow,
+0x86e244) and the quest help (QuestHelpDialog, 0x8697d4, made by 0x6ccfd0) are translated, with what opens them, the flags that remember them, and how the game
+waits.
+
+Flags. The profile's +0x21c (`Profile::mHintFlags`, saved in profile.dat in its old place, so old saves load) holds one bit for each box or help seen:
+Board::HINT_FLAME 1, STAR 2, HYPERCUBE 3, MULTIPLIER 4, SUPERNOVA 6, COIN 8, TIME_GEM 9, VERTICAL_MATCH 0xd, DARK_ROCK 0x10, and a help's id as its bit (0 Zen,
+10 Lightning, 0x11 Butterflies, 0x12 Poker, 0x14 Ice Storm, 0x15 Classic, 0x16 Diamond Mine). Bit 19 (0x80000, Board::HINTS_OFF) turns every box and help off: it
+is the only switch the exe has (the "Don't show hints" box of the help dialog and the "Disable Hints" box of a tutorial box); there is no reset option, and the
+options have nothing else for tutorials. The board copies the flags in its constructor (0x74ae30: +0x26a8 from +0x21c) and sets bits in both when a box is
+queued (0x745bf0, 0x73b990). `mQuestHelpSeen` (+0x2ac, 0x28 bytes) is the quest help's own, set by 0x6cd9f0.
+
+Queue. Board::mHintQueue (+0x26b8) holds requests {bit, piece id}; a help is a request with piece id -2. `CanShowHint` is slot 131 (0x73c4c0): the bit unseen,
+HINTS_OFF clear, +0x1188 (`mCheckerFlash`) 0 and not +0xe28 (the time is up: `IsTimeUp`, Lightning's `mEnding`, TimeLimit's `mTimeUp`). `RequestHelp` is slot 213
+(0x743f40): the mode's start (0x7737d0 Classic 0x15, 0x773100 Zen 0, 0x773440 Lightning 0 then 10, the secret modes' 0x774860: Butterflies 0x11, Poker 0x12,
+Ice Storm 0x14, Diamond Mine 0x16) calls it after the reset (slot 85) and before the board is dealt; if the help is unseen and boxes are on it sets the hold
+(+0x2b40) to 100 and queues the request. `CheckForTutorialDialogs` (0x765d50) runs from UpdateGame when the board is at rest (before the no-move check) and at hold 10:
+with neither dialog 0x12 nor 0x13 up, the game going on and boxes on, it takes the first request: a help is made as dialog 0x13 (the request goes), a gem's box
+as dialog 0x12 over the gem (below it for the top four rows, above it for the rest; the request stays until OK), a request whose gem is gone is dropped and its
+bit freed, and a time-up empties the queue. UpdateTick holds the board (0x767090): no step while dialog 0x13 is up; while the hold counts down the board does
+not step either, and its update count stands still. While the queue is not empty `CanSwap` (0x75fae0) refuses and a level change does not start. While dialog 0x12 is up
+the game's tick (+0xe38, `mGameTicks`) and the seconds counter stand still (slot 101, 0x73c330, among others). Board::DialogButtonDepress (0x7563c0) takes the box's OK (button
+1000): its request goes; with "Disable Hints" ticked, HINTS_OFF is set, the board takes the profile's flags and the queue is emptied.
+
+Opens (when). The boxes: the first Flame (a run of 4, FindMatches 0x75af60 where the specials are made), Hypercube (5), Supernova (6 or more) and Star (a gem in two runs)
+of a profile, queued on the gem that becomes the special; Lightning's first time gem (0x716c60, bit 9); Ice Storm's first vertical run in the secret mode (0x6e2250, bit 0xd, then
+the check at once). The helps: a mode's first game (the ids above), and the options dialog's HOW TO PLAY button (id 2, string 0x134, 0x681370; it stands above BACK and MAIN MENU
+while the board's +0x2b44 is not -1; 0x697460 adds the dialog with the board's help id; the button reads CLOSE). The quest help: QuestBoard slot 140 (0x6d0af0) the first
+time the board is at rest in a quest of the map that has not shown it (`mQuestHelpSeen`); Bej3Dialog::Update (0x76a8a0) tells the board (slot 141, 0x6d0ac0) when
+dialog 0x28 has faded out and the quest's play begins (slot 256). The help dialog marks its help seen in the profile (the exe does it in the destructor, 0x6770c0: bit of the
+id, Classic's 0x15 also bit 0, Zen's 0 also bit 0x15; the port does it at the button, the only way out).
+
+`move` (src/TestCommands.cpp). Each of the dialogs has its footer button as the Yes button: a tutorial box's OK, a help's START GAME or CLOSE, the quest help's OK; `move`
+clicks it at its middle (move, wait 3, press, wait 3, release) once the dialog has faded in, as for any other dialog. The two boxes to tick are never clicked. The test command
+`hints off|on` sets or clears bit 19 of the profile's flags (before the first player exists, `move` applies it once the name has made the profile), and every suite script now says
+`hints off` after `name Tester`.
+
+Suite. The frozen hashes are unchanged, Classic 51086c43ed2a and modes 873d262bb577: with hints off the board does not queue or stop for anything, so the states are those
+frozen before. The only difference of the state files is the new command's own `OK hints off` line, which suite.sh's hash leaves out.
+
+Verified. A real-input run of Classic shows the HOW TO PLAY dialog after the first 90 updates, START GAME answered by `move`, and a Flame Gem's box answered by `move` (the screenshots
+were looked at). Every mode still reaches its end through them (tools/realinput.sh).
+
+Port notes. The HelpDialog shows the title and the page texts in columns over the pages' rectangle (0x696100: 90, 150, width less 180, height less 330 of 1200ths), with no
+picture; the exe's HelpWindow (0x68a7f0) draws a picture (PopAnim) for each page and the pages one by one. The box of a HintDialog has room under its text for "Disable Hints" by
+60 of 1200ths (the port's measure) and the checkbox stands left of its label (0x6829c0 gives the label's place; the checkbox's own was not found).
+
+Not done.
+- The REPLAY button of a tutorial box and the copy of the move the exe keeps in each request (0x68 bytes: 0x742e60 puts the board back); the demonstration flag (+0x1412) is always 0.
+- The pulse of the gem a box points at (the curve +0x26c8, drawn by 0x756cb0 and 0x752580), and slot 253's disabling of the buttons during the hold.
+- The HelpWindow's pictures and its paging (0x694900 SetupHelp, 0x68a7f0 Draw).
+- The multiplier gem's box (bit 4, 0x714dd0) and the coin's (bit 8): the port's Lightning makes neither gem; the dark rock's box (bit 0x10: DigGoal's 0x6c2ad0 keeps a piece id at +0x2c0 from 0x6b3700, for a
+  record of kind 4, and asks the box); Wall Blast's goal tutorial (bit 0xc: 0x6aa580, 0x6aa620, 0x6c0430) and Diamond Mine's TutorialHeader/TutorialText (bit 0xf: 0x6ada10, 0x6b0fb0), which change the
+  goal's timing and values and do not use HintDialog; Zen's flag 0x800 (0x7116c0) and Poker's 0x4000 (0x6dedd0) were not read further.
+- QuestBoard slot 140's curve test (0x437c60 of an object the port does not keep) and the two curves of 0x6d09c0; the quest help of the secret modes (the exe reads the flag at index 1000 and more, past the flags).
+
+Oddities.
+- The exe stops FindMatches from collecting special-gem candidates for the rest of a call that queued a tutorial box (a local flag in 0x75af60), which seems to leave the first special unmade; the port
+  makes the special as before and queues the box on it, so the box shows on the new gem.
+- Lightning asks for help twice (0x773440: ids 0, then 10), so a fresh player gets two help dialogs, the first with Zen's pages; the port does the same.
+- Where the exe puts a box above a gem (row 4 or more) the decompile mixes the grid's measure and a pixel offset (a 15 taken in pixels from a measure in 1200ths); the port subtracts 15 in 1200ths.
+- The quest help's flag is read at `mQuestIndex` below 0x28 only; the quests of the map reach 0x28 or more only if quest.cfg grows.
+
+
+## Focus (Board's pause, Bej3App's GotFocus and LostFocus; src/Board.cpp, BoardDraw.cpp, BoardMoves.cpp, TestCommands.cpp)
+
+What the exe does when the window loses or regains the focus (or is minimized or restored), by its code; every address is of Bejeweled3.exe.
+
+The chain is PopCap's. The driver's window procedure (0x5b9xxx, the size message) keeps the minimized flag (app +0x63b) and, when the app's mute-on-lost-focus byte (+0x479) is set, mutes
+(slot 57, 0xe4, with 1) as the window is minimized and unmutes (slot 58, 0xe8) as it is restored. Then 0x5bf7b0 (RehupFocus) works out the wanted state, active (+0x63a) and not minimized, and
+when it differs from the app's `mHasFocus` (+0x63e) stores it and, **on a regain**: Unmute(1) if +0x479, the widget manager's GotFocus (0x5853e0: its flag at +0x9c, and the focus widget's slot 45),
+then the app's slot 78 (GotFocus); **on a loss**: Mute(1) if +0x479, the widget manager's LostFocus (0x585410: every key that is down comes up, its flag clears, the focus widget's slot 46), the
+app's slot 79 (LostFocus), ReleaseCapture and 0x584ce0 (the held mouse button comes up). The framework's `RehupFocus` (SexyAppBase.cpp) does the same; the port's `mMuteOnLostFocus` and the
+`focus lose|regain` test commands (docs/REAL_INPUT.md) already reach it, and the web page's blur and focus too. No widget class of the game overrides slots 45 and 46 (the vtables of every
+board, dialog and menu have Widget's; the name box's EditWidget does), so the widgets themselves do nothing on a focus change.
+
+Bej3App's two slots. Slot 78, GotFocus (0x76ac80), and slot 79, LostFocus (0x76ac20), act on the sound manager at +0x5d8 (CustomSoundManager; its slot 5 sets the volume of a kind of sound):
+LostFocus gives kinds 2, 3 and 4 (Zen's ambient sound, binaural beats and breathing voice) the volume 0, GotFocus gives them back +0x998 (ZenAmbientVolume), +0x9a8 (ZenBinauralVolume) and +0x9b0
+(ZenBreathVolume). They are not the music (the app's Mute, which the exe does not override, silences that). Slot 64 (0x76afc0), which was suspected, is not a focus slot: slots 65 and 66
+(0x46daa0, 0x46dad0) call it with the windowed flag and the 3D test, so it is SwitchScreenMode(wantWindowed, is3D, force); after the base's it gives the windowed button (+0xd70) a call
+(slot 31) with 1 when the app is going to full screen and 0 otherwise. It belongs to the screen-mode pass.
+
+The board's pause. This is what a lost focus does to a game, and it is the same machinery as the space bar.
+- Fields of Board: +0x12c4 the player's pause (`mPlayerPaused`), +0x12c8 the fade of the gems (`mPauseFade`), +0x12cc the alpha of the word PAUSED (`mPauseAlpha`). The constructor (0x74ae30) clears
+  the floats; the reset 0x74e410 (NewGame) clears the alpha and the flag.
+- Slot 107 (0x1ac), CanPause, is on for a mode with a clock: Board's 0x73c220 asks slot 104 (the time limit) and says whether it is not 0. So Classic, Zen and the turn-based quests cannot be
+  paused; Lightning (60), the time-based quests, Diamond Mine (DigBoard 0x6c4a20), Ice Storm (InfernoBoard 0x6c50b0), Balance (0x6c53b0) and the real-time Time Bomb (0x6c4ab0) can; the Time Bomb
+  board answers with its real-time flag (+0x3262, 0x6c4a90).
+- Slot 103 (0x19c), IsPaused (0x73c260): no when the player has not paused, the app has the focus and neither the options (0x15) nor the reset (0x16) dialog is up; else CanPause and not +0x1410
+  (a flag the port keeps clear). The goals and boards of a quest read it (0x6a9aa0, 0x6a9e70, 0x6aa040, 0x6aa7e0, 0x6aa880, 0x6b76c0, 0x6c24c0, 0x6c2910, 0x6c2ad0, 0x6e00e0, 0x6e5850) to hold
+  their own counters (Not done below).
+- Slot 47 (0x73b670), KeyChar: the space bar toggles +0x12c4 when the mode can be paused or is paused (and +0x1410 is clear and the 3D cursor's id, +0x2c44, is -1).
+- 0x73f140, MouseDown: while +0x12c4 is set or the alpha is above 0.5 the click only clears +0x12c4 and goes no further.
+- 0x767090, the board's tick, after the under layer's effects update: the game runs (the two floats go down by 0.075, if the zoom curve at +0x2908 is 1) when the player has not paused, the app has
+  the focus, no quest help (0x28; with the bar-rate curve at +0x2258 at 1, which it always is), options (0x15) or reset (0x16) dialog is up, or the mode cannot be paused (or +0x1410). Otherwise the
+  fade goes up by 0.035 (to 1), the alpha too when the app's +0x39c is 0 and the help hold (+0x2b40) is 0, and **the tick returns once the fade is 0.75 or more**: about 22 updates after the
+  loss the game stops, a Lightning clock included. The board's own update (0x759170) keeps running, so the update count goes on; the tick's help-dialog return (0x13) and the hold come
+  after the fade in the exe.
+- 0x767e20 sets the alpha of the two effects layers (+0x12c0 over, +0x12bc under) to slot 175 (0x73bd10: slot 174, the cover curve, times 1 less the fade), each update; the effects layer's
+  own update (0x7303f0) does nothing while the fade is 1. The gems are drawn at that alpha, so they fade away.
+- 0x756cb0, the draw: in a mode that can be paused, while the alpha is above 0, the word PAUSED (string 0x93, FONT_HUGE, resource 17) in white at the alpha, centred on the grid's middle, baseline
+  0x21c of 1200ths. The exe's block is for a cover below 1 or no end hold (+0xd1c below 1).
+- QuestBoard's update (0x6dd8a0) stops its clock and goal only for +0x12c4, the player's pause, not for the lost focus; with the focus lost a quest's clock goes on while the board is at rest
+  (it counts down when 0x75fca0, at rest, says so), as the exe has it. Poker's update (0x6dedd0) and Zen's own pause (+0x33b0, 0x7116c0) read the flag too.
+
+What the port does. The same in Board: `mPlayerPaused`, `mPauseFade`, `mPauseAlpha`, `CanPause` (virtual, Board's from `GetTimeLimit`), `IsPaused`, `GetBoardAlpha`, `KeyChar`,
+`UpdatePauseFade` (called by `UpdateTick` after the under layer's update), `DrawPausedWord`, the click in `MouseDown`, the layer alphas in `UpdateGame`, the effects layer's stop at fade 1, and
+QuestBoard's player-pause test. Classic's answer is unchanged: it cannot be paused, so the update count and the hint timer go on with the focus away and after (`tools/web/pagecheck.js`, whose
+start now names the player, turns hints off and waits for the menus' intro). Lightning's, from `pagecheck_native.py ... --first "goto lightning"`: its game ticks and clock stop after the fade
+(gameticks 425 at both samples with 200 updates between) and go on after the regain; a screenshot shows the word PAUSED over the faded board. The test command `state` gains, only while a pause is
+on or fading (so a game that never pauses prints what it printed), `"paused"` (IsPaused), `"playerpause"`, `"pausefade"` and `"pausealpha"` (thousandths), before `"over"`. In a Lightning game
+`key space` pauses (fade 1000 within 40 updates) and a second one resumes.
+
+Dialogs across a lost and a regained focus (looked at with screenshots and `state`): a fresh player's Classic with hints on: the first game's help dialog (HOW TO PLAY, 0x13) stays up, the board
+stands at update 0 behind it, and `move`'s click on START GAME after the regain answers it; a Flame Gem's box (0x12) likewise; Classic's end dialog opens at the same update with or without a loss
+before it and survives one; in Lightning, a loss with the end dialog up fades the gems (fade 1000) and leaves the word's alpha at 0 (a dialog is up), and the dialog still works.
+
+Not done.
+- The sound kinds 2 to 4 of slots 78 and 79 (Zen's ambient, binaural and breath sounds are not made, see ZenBoard.h).
+- The slot 103 reads of the quest goals and boards listed above (they hold their own counters for the first 22 updates of a fade; the tick stops after that) and Poker's and Zen's own pause.
+- The reads of `mHasFocus` that start a fade or a sound only with the focus (0x49cfe0, 0x6733e0, 0x6a3530, and the helper 0x76ab60 called from several places): the port's sounds are muted by Mute anyway.
+- The tick's order: the exe puts the help dialog's return and the hold (+0x2b40) after the pause fade; the port keeps them in front of the update count (Board::UpdateTick), so a lost focus
+  during the help hold of a mode with a clock does not move the fade until the hold has run out.
+- The zoom curve (+0x2908) that gates the fade-out, +0x1410 and the 3D cursor id: constants here. The web page check has not been run with the new start.
+
+Oddities.
+- A quest's clock keeps running with the focus lost while the board is at rest (above), because the exe's pause for it is only the player's.
+- With the focus lost the effects layers keep the alpha of the last update before the tick stopped (0.25 at fade 0.75), while the gems fade out to 0; the exe does the same, since the alpha is set in
+  the part of the tick that no longer runs.

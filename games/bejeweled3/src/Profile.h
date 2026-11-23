@@ -57,7 +57,7 @@ public:
 	int mNumberAfterPoints = 0;             // +0x210
 	int mNumberAfterThat = 0;               // +0x214
 	bool mFlagAfterTutorials = false;         // +0x218: starts as the app's flag at +0x6cc, which the port has not
-	int mNumberAfterTutorialFlag = 0;               // +0x21c
+	uint32_t mHintFlags = 0;          // +0x21c: one bit for each hint box (Board::HINT_*) and help dialog the player has seen; bit 19 (0x80000) turns every box off. Saved as the long it was
 	int mShortAfterNumber = 0;              // +0x220
 	uint32_t mRankFlags[RANK_FLAG_COUNT] = {};  // +0x224: five bytes, one a word
 	bool mOptionFirst = false;              // +0x238
