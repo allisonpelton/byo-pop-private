@@ -208,7 +208,8 @@ if (!jsPath || !assets) { console.log("usage: node tools/musicrepeattest.js <bui
     if (only.length && !only.includes(id)) continue;
     if (!staged(id)) continue;
     const game = { id: id, title: id, persist: "staged:" + id };
-    const list = (await T.tunesOf(M, game, table[id])).filter((t) => t.solo === undefined);
+    // (a series played tune by tune is its members, each tried here; a series of one module's pieces is one tune and tried)
+    const list = (await T.tunesOf(M, game, table[id])).filter((t) => t.solo === undefined && t.kind !== "series");
     if (!list.length) continue;
     games++;
     const db = await Music.files.open(game.persist);

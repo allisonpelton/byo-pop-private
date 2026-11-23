@@ -130,9 +130,10 @@ html.d95-desk :is(.d95-pop, .d95-task[aria-pressed=true] > .d95-task-text, .d95-
 :root[data-skin="d95"] .bps-help:not(#\#) { border-radius: 0; background: var(--panel); color: var(--fg); }
 :root[data-skin="d95"] .bps-row .bps-pop:not(#\#) { background: #ffffe1; color: #000; border: 1px solid #000; border-radius: 0; padding: 2px 4px; margin: 2px 0 4px; }
 /* Players, Saves and Music give their buttons the page's own look (index.html, "#players button"): in Desktop 95 every one is
-   the skin's grey bevelled button with black text, the title bar's included; a destructive one is marked by its confirmation,
-   not by a colour */
-:root[data-skin="d95"] :is(#players, #saves, #music) button:not(.mu-tune):not(#\#) { background: var(--panel); color: #000000; border: 0; border-radius: 0; }
+   the skin's grey bevelled button with black text, the title bar's included (not Music's menu bar, whose items are words on
+   the window's face, navy while open: the menu bar's own rules); a destructive one is marked by its confirmation, not by a
+   colour */
+:root[data-skin="d95"] :is(#players, #saves, #music) button:not(.mu-tune):not(.d95-menubar-item):not(#\#) { background: var(--panel); color: #000000; border: 0; border-radius: 0; }
 :root[data-skin="d95"] :is(#players, #saves) button:not(.d95-mn):not(.d95-mx):not(.d95-x):not(#\#) { padding: 3px 10px; min-width: 75px; }
 :root[data-skin="d95"] .adding button.bin-yes:not(#\#) { color: #000000; }
 :root[data-skin="d95"] :is(#players, #saves, #music) button:not(#\#):disabled { opacity: 1; color: var(--sk-lo); text-shadow: 1px 1px 0 var(--sk-hi); }
@@ -394,6 +395,8 @@ html.d95-desk #music.d95-win .mu-list { max-height: none; }
 html.d95-desk #music.d95-win .mu { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
 html.d95-desk #music.d95-win .mu > :not(.d95-client) { flex: none; }
 html.d95-desk #music.d95-win .mu > .d95-client { flex: 1 1 auto; min-height: 60px; }
+/* the Music window's menu bar (Options), right under its title bar as a program's: the window's padding taken back */
+html.d95-desk #music.d95-win .mu-menubar { margin: -8px -12px 6px; padding: 0 2px; }
 /* the splitter: a raised bar, as a window's split of the time */
 :root[data-skin="d95"] .mu-split { height: 6px; margin: 2px 0 4px; background: var(--panel); box-shadow: inset 1px 1px var(--sk-hi), inset -1px -1px var(--sk-lo); }
 :root[data-skin="d95"] .mu-split::before { content: none; }
