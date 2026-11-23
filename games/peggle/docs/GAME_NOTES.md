@@ -105,7 +105,9 @@ a file: the version (with an `f` when the flag is set), the size, the number of 
 saved rotation for this test (see `LEVEL_PIECES.md`). Run it through `rundesk.exe` with a script `3 checklevels <folder>`,
 `6 quit`.
 
-`resetlevel <seed> <path> [hidden]` is the same through `Board::Reset` (the app's mode NONE; `hidden` keeps the board's music from playing); it gives the same state as `loadlevel`.
+`resetlevel <seed> <path> [hidden]` is the same through `Board::Reset` (the app's mode NONE; `hidden` keeps the board's music from playing); it gives the same state as `loadlevel`.
+
+`logic <state> <steps> [<x> <y>]` runs `LogicMgr::Update` (and the sound manager's) that many times on the level a `loadlevel` or `resetlevel` made, after putting the turn in that state (`-1` keeps it) and the mouse where told; the board's pieces do not move. Its STATE line gives the state and its time, the aim and the cannon's, the pegs shown, flashing and blinking, the hint counter, the maximum level and the sound manager's time. Reached so far: state 8 (the pegs come on one an update), state 1 (the hints at 50 and 75, the cannon following the mouse), the other states stop at `NOT_TRANSLATED`.
 
 `loadlevel <seed> <path>`: puts a level on a board the way `Board::Reset` would (reset count 1), with the random generator
 seeded, and answers `STATE {...}`: the number of pieces and pegs, the orange and other pegs, the draws the level start took, the
