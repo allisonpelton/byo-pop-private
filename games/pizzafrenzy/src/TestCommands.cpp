@@ -7,6 +7,7 @@
 #include "PizzaFrenzyApp.h"
 #include "platform/MemReport.h"
 #include "sprout/App.h"
+#include "sprout/Button.h"
 #include "sprout/EditBox.h"
 #include "sprout/Random.h"
 #include "sprout/ScreenMgr.h"
@@ -591,6 +592,21 @@ static std::string EditorMove(pf::PizzaFrenzy* theApp)
 	return nodeMove("exit", anEditor->getScreen()->getNode("menu"));
 }
 
+// the button of a dialog's layout that sends the action, or none
+static engine::Node* actionButton(engine::GenericScreen* theScreen, const char* theAction)
+{
+	for (const auto& aNamed : theScreen->mNodes)
+	{
+		engine::Button* aButton = dynamic_cast<engine::Button*>(aNamed.second);
+		if (aButton == nullptr)
+			continue;
+		for (const auto* anEntry : aButton->mListeners)
+			if (anEntry->mName.compare(theAction) == 0)
+				return aButton;
+	}
+	return nullptr;
+}
+
 // A name screen (the pizza's, or the new player's on a first launch): the name typed into its "nameEntry", then its
 // "done" button
 static std::string NameMove(engine::GenericScreen* theScreen, const char* theName)
@@ -605,7 +621,8 @@ static std::string NameMove(engine::GenericScreen* theScreen, const char* theNam
 // screen's own node: the splash screen only runs on (it loads by itself), the menu's speed mode button, the postcard of
 // the furthest open city, the story's Escape while its skip hint shows and else its Next button, the new topping's
 // first button, on the level start the first topping no van has into the first empty van and then the Next button, and
-// on a name screen the name typed and its done button.
+// on a name screen the name typed and its done button, and on the box that offers the mode's saved game its button that
+// starts the mode again (saveGameNoContinue), so a game is played from its start.
 // A screen still coming in is waited for; the summary has no move.
 static std::string ScreenMove(pf::PizzaFrenzy* theApp)
 {
@@ -614,7 +631,7 @@ static std::string ScreenMove(pf::PizzaFrenzy* theApp)
 		return waitLine(WAIT_UPDATES);
 	if (aScreen != "menu" && aScreen != "citySelect" && aScreen != "story" && aScreen != "summary"
 		&& aScreen != "newTopping" && aScreen != "levelStart" && aScreen != "designer" && aScreen != "editor"
-		&& aScreen != "pizzaName" && aScreen != "newPlayer")
+		&& aScreen != "pizzaName" && aScreen != "newPlayer" && aScreen != "restoreGame")
 		return "null";
 	if (theApp->mScreens->isBusy())
 		return waitLine(WAIT_UPDATES);
@@ -626,6 +643,8 @@ static std::string ScreenMove(pf::PizzaFrenzy* theApp)
 		return NameMove(theApp->mPizzaNameScreen, BOT_PIZZA_NAME);
 	if (aScreen == "newPlayer")
 		return NameMove(theApp->mNewUserEntry, BOT_PLAYER_NAME);
+	if (aScreen == "restoreGame")
+		return nodeMove("startAgain", actionButton(theApp->mRestoreGameConfirm, "saveGameNoContinue"));
 	engine::GenericScreen* aShown = shownScreen(theApp->mScreens);
 	if (aScreen == "menu")
 	{

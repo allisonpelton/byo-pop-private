@@ -38,3 +38,5 @@ games/tiptop/tools/identical/setup.sh
 games/ningpo/tools/identical/setup.sh
 # Rocket Mania's identical-play pass: the staging script carves the game out of RocketMania.exe with the private extract_game_exe and writes the copy's patch list (2026-11-03)
 games/rocketmania/tools/identical/setup.sh
+# Pizza Frenzy's identical pass: the comparison setup writes the copy's patch lists (the seed, frame time and rand mirror; the shots' copy of the screen at present) (2026-11-16)
+games/pizzafrenzy/tools/identical/setup.sh

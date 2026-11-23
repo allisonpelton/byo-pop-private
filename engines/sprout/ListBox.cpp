@@ -145,9 +145,25 @@ ListBox::ListBox()
 	addOwnFlags(NODE_DRAWABLE | NODE_MOUSE);
 }
 
-// 0x491760 (pizzafrenzy): each sound is loaded under its own name, then a voice is made of it (like the button's)
+// 0x491760 (pizzafrenzy): each sound is loaded under its own name, then a voice is made of it (like the button's,
+// through the application's slots: the archive's file)
 void ListBox::setSounds(const std::string& theEnterSound, const std::string& thePressSound)
 {
+	if (gSignalBuild)
+	{
+		App* anApp = App::instance();
+		if (theEnterSound.size() != 0)
+		{
+			anApp->loadSound(theEnterSound, theEnterSound);
+			mEnterSound = anApp->createSound(theEnterSound, true, 0);
+		}
+		if (thePressSound.size() != 0)
+		{
+			anApp->loadSound(thePressSound, thePressSound);
+			mPressSound = anApp->createSound(thePressSound, true, 0);
+		}
+		return;
+	}
 	if (theEnterSound.size() != 0 && App::getSoundSystem() != nullptr)
 	{
 		App::getSoundSystem()->load(theEnterSound.c_str(), theEnterSound.c_str());

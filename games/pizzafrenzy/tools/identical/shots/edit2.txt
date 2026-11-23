@@ -1,0 +1,14 @@
+# the pizza editor (case edit2, seed 3, from a player with five toppings, REG=build/identical/edit2/user.reg): the
+# menu with the editor's button, the editor opening, toppings placed, the name dialog while the name is erased and typed,
+# the editor after saving, the menu, and the editor opened again with the saved pizza
+60 menu
+140 editor_open
+190 editor
+198 topping1
+206 topping3
+212 name_erase
+226 name_typed
+254 name_done
+280 editor_saved
+340 menu_back
+420 editor_again

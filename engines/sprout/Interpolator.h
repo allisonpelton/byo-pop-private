@@ -16,14 +16,16 @@ class Node;
 
 // The curve over one stretch between two keys (0x24 bytes at the interpolator's +0x1c): from 0 to 1 as the time goes
 // from 0 to 1, first speeding up from mStartSpeed until mAccelEnd, then straight at mRunSpeed until mDecelStart, then
-// slowing to mEndSpeed
+// slowing to mEndSpeed. The original computes on the x87, whose registers hold more than a float: the port works in
+// double between the stores to memory, where the original rounds to a float (a slide that ends at 204.99997 in float
+// arithmetic ends at 205 there, a pixel further)
 class EaseCurve
 {
 public:
 	// 0x494710 (pizzafrenzy)
 	void set(float theStartSpeed, float theEndSpeed, float theAccelEnd, float theDecelStart);
-	// 0x4947e0 (pizzafrenzy)
-	float get(float theTime) const;
+	// 0x4947e0 (pizzafrenzy): the value as the x87 returns it, not rounded to a float
+	double get(float theTime) const;
 
 	float mStartSpeed;  // +0x00
 	float mEndSpeed;    // +0x04

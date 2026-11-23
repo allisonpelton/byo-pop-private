@@ -150,6 +150,34 @@ stays.
   (the load bar at 0.8), and the port keeps that frame with nothing in it, so the loading takes the original's frames.
 - **The game's end goes to the menu** at once: the original opens the global score post's dialog there first (a state
   of its own, until the player closes it), which the port does not have.
+- **The concentration mode's lock is fixed:** an event that changes the orders while a wave's orders still show (every
+  customer dimmed) set the seconds they show for to 0 in the original, so they were never turned over and the level
+  never ended (0x45b4f0); the port keeps the seconds then (`IDENTICAL_PLAY.md`, "Deviations left").
+
+## The fixes mod
+
+`mods/fixes` (docs/MOD_ROADMAP.md, "The fixes mod") holds each fix as a toggle, read through `Platform::FixOn`;
+natively `-fix=<id>` turns one on. With the mod off, or absent, the port is the original, which every test and the
+frozen baseline run.
+
+- **steadyClock** (on): the original times each frame by the machine's clock (QueryPerformanceCounter, the frame's
+  seconds capped at 0.33, `App::frameSignalled`, 0x4bd210), so a late frame moves every wait, van, timer and tip
+  further, and the same input never plays the same game twice. With the fix the engine has the clock `-fast` gives
+  it, one frame period (a thirtieth of a second) a frame, while the frames still wait for the machine's clock; the
+  sounds' voices end on that clock too. The game reads time nowhere else (the seed from `time` at launch aside), so a
+  real-time game with the fix is, frame for frame, the game `-fast` plays.
+
+Looked at and left as the original's (the survey of 2026-11-22), each judged intended or with no effect a player sees:
+a customer under the cursor or picked counts down without turning impatient or hanging up (one function, 0x452060, for
+both: a picked customer's pizza is on its way, and one under the cursor hangs up once it leaves); a tip's size follows
+the seconds since the last delivery (0x455ff0), not the customer's own wait; a wave with more events due than places
+drops the extra one, whose timer starts again (0x45a9a0); a chameleon's change does not count toward the seconds the
+customer waited, which nothing reads; the bonus round's seconds left are truncated for its time bonus (0x460040); a
+coupon after one that is removed slides a frame later; and an event that asks for no pizza resets the combo (0x45a300),
+as the Thief's and the Crank Caller's do. Two differences of the original are the port's already, as it cannot
+reproduce them: the Clown's change of a topping no kitchen has reads past its list's end in the original (0x449850),
+and the port takes the list's first; and the toppings' order, which follows their addresses in the original, follows
+the manifest's in the port (`IDENTICAL_PLAY.md`, "Explained: the toppings' order").
 
 ## Progress
 

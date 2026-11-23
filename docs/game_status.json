@@ -613,11 +613,14 @@
       "title": "Pizza Frenzy",
       "done": [
         "port",
-        "identical-play"
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod"
       ],
       "na": [],
-      "now": "identical-look",
-      "note": "logic phase done (3b29ffd9): play1, long1, long2 (1200 moves to a lost level in the second city), mem1, mem2, conc1, conc2 and edit1 match the original on every compared value and the random draws' order; frozen baseline build/baseline-pizzafrenzy from this merge"
+      "now": "coverage",
+      "note": "looks phase and real input done (be0a78dc): 12 of 17 look1 pictures match and the high scores differ only by the online-scores button that is out; a soft lock of the original's concentration mode fixed in the port (a Gossip or Clown event while a wave's orders show); every mode won natively and on the page, the page check 11 of 11; the fixes mod holds steadyClock; frozen baseline build/baseline-pizzafrenzy"
     },
     "igglepop": {
       "title": "Iggle Pop Deluxe",
