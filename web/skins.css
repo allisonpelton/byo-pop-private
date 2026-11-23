@@ -615,6 +615,10 @@ html.d95-desk .d95-item:not(#\#):focus { outline: 0; }
 html.d95-desk .d95-item[aria-disabled=true] { color: var(--sk-lo); text-shadow: 1px 1px 0 var(--sk-hi); }
 html.d95-desk .d95-item[aria-disabled=true]:focus { background: var(--accent); color: var(--sk-lo); text-shadow: none; }
 /* the games' entry: a black triangle pointing right */
+/* personalized menus' arrow at the foot of the Games list (web/skins.js, fillSub): two chevrons down, in the entry's middle */
+html.d95-desk .d95-item.d95-more { justify-content: center; min-height: 18px; }
+html.d95-desk .d95-item.d95-more::before { content: ""; width: 7px; height: 8px; background: currentColor;
+  clip-path: polygon(0 0, 2px 0, 3.5px 1.5px, 5px 0, 7px 0, 3.5px 3.5px, 0 0, 0 4px, 2px 4px, 3.5px 5.5px, 5px 4px, 7px 4px, 3.5px 7.5px, 0 4px); }
 html.d95-desk .d95-has-sub::after { content: ""; position: absolute; right: 8px; top: 50%; margin-top: -4px;
   border: 4px solid transparent; border-left-color: currentColor; border-right: 0; }
 /* a menu is a list (web/skins.js, menuEntry): its entries' list items lay no box, so the entries are drawn as the menu's own

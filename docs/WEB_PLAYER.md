@@ -380,7 +380,13 @@ drawings take a skin's colours as they take a scheme's (`web/schemes.js`, `uriRu
 95's drawings swapped for the target's, and 95's black for the skin's dark edge where it is a drawing's edge, its first
 rectangle, as large as the drawing); a drawing whose shape differs in a version is that skin's own rule. A drawing's rule
 gives its colour in a declaration of its own, never beside the drawing in one shorthand with a `var()`, which hides the
-drawing from that walk.
+drawing from that walk. What a version did beyond its drawing is the skin's behaviours, `<html data-behaviours>`
+(`web/skins.js`, `BEHAVIOURS`), each with its setting: 2000's "cues", the focus rectangles hidden until a key shows
+keyboard use (`cuesSync`, the setting `hideCues`), and "personal", the Pop menu's Games list showing the games played
+lately first with an arrow for the rest (`fillSub`, the setting `personalMenus`, set in the Properties box at the foot of
+the task bar's menu, `barProps`). A settings row that only some skins have names the behaviour it needs (`needs` in
+`web/settings.js`) and shows only under them. A message box's button marked `def` is its default, focused first; Escape
+takes the last either way.
 
 **The logo** stands at the desktop's bottom right, above the task bar, under every icon and window (the user, 2026-11-23:
 "move the byo-pop logo to the bottom right"), where the icons' columns, filled from the top left, do not reach it at 800 by

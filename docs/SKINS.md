@@ -289,8 +289,16 @@ that removes it says it sits in Display in Control Panel; Internet Explorer's do
 2000), on by default. Its row is in Appearance and shows only in a skin that hides its cues. Which tab of Display held it
 is still **to check**.
 
-**Still to come for 2000:** the font in Tahoma's manner (still Byopop Sans), personalized menus with their setting and the
-Properties window, and its icons.
+**Personalized menus** came next (web/skins.js, `fillSub`; the behaviour "personal"). Under 2000 the Pop menu's Games
+list puts the games played in the last 30 days first, the last played at the top, and hides the rest behind an arrow at
+the list's foot, two chevrons down; the arrow shows the whole list in its usual order until the Pop menu is opened again.
+The 30 days are ours: Windows kept its own record of each program's use, which the site has no match for, and
+ByopopPlay keeps each game's last day. With no game played lately, or every game, the list is whole, as a new 2000 user's
+was. The task bar's menu gains **Properties** at its foot under 2000, which opens "Taskbar and Pop Menu Properties" with
+its one box, Use Personalized Menus, checked by default, OK the default button (the setting `personalMenus`). 95's menus
+and shots are unchanged. Only the Games list is personalized; the Settings submenu, a short fixed list, stays whole.
+
+**Still to come for 2000:** the font in Tahoma's manner (still Byopop Sans), and its icons.
 
 ### XP's Windows Classic style
 
