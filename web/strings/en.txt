@@ -116,6 +116,9 @@ skin.pop = Pop
 skin.pop.band = byo-pop
 skin.pop.games = Games
 skin.pop.nogames = No games here yet
+# XP's two-column Pop menu: its list of every game, and the name in its band when the site has no player chosen
+skin.pop.allgames = All Games
+skin.pop.player = Player
 skin.bin.name = Recycle Bin
 skin.bin.label_empty = Recycle Bin, empty
 skin.bin.label_full = Recycle Bin, holding the names of games whose files were forgotten
@@ -170,6 +173,7 @@ settings.look.95 = 95
 settings.look.98 = 98
 settings.look.2000 = 2000
 settings.look.me = Me
+settings.look.xp = XP
 settings.hidecues.label = Hide keyboard navigation indicators until I use the ALT key
 settings.hidecues.hint = The dotted rectangle round the focused control shows only once a key is used: Alt, Tab, an arrow or F10.
 settings.scheme.label = Scheme

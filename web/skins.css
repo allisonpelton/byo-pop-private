@@ -614,6 +614,9 @@ html.d95-desk .d95-item:hover, html.d95-desk .d95-item:focus { background: var(-
 html.d95-desk .d95-item:not(#\#):focus { outline: 0; }
 html.d95-desk .d95-item[aria-disabled=true] { color: var(--sk-lo); text-shadow: 1px 1px 0 var(--sk-hi); }
 html.d95-desk .d95-item[aria-disabled=true]:focus { background: var(--accent); color: var(--sk-lo); text-shadow: none; }
+/* an entry whose list is open stays highlighted while the list has the focus, as 1995's menus kept it, with no pressed frame
+   (the rule for a button whose menu is open, near the top, is for buttons) */
+html.d95-desk .d95-item:not(#\#)[aria-expanded=true] { background: var(--accent); color: var(--accent-fg); box-shadow: none; }
 /* the games' entry: a black triangle pointing right */
 /* personalized menus' arrow at the foot of the Games list (web/skins.js, fillSub): two chevrons down, in the entry's middle */
 html.d95-desk .d95-item.d95-more { justify-content: center; min-height: 18px; }
