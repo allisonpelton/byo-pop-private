@@ -15,6 +15,7 @@ public:
 
 	DialogButton* mBackButton = nullptr;       // id 0
 	DialogButton* mMainMenuButton = nullptr;   // id 1
+	DialogButton* mHowToPlayButton = nullptr;  // id 2: only while the board has asked for a help (its +0x2b44 is not -1)
 
 	// 0x681370 (bejeweled3): theInGame is the game screen's menu (it has the two buttons); the first screen's has none made yet
 	explicit OptionsDialog(bool theInGame);

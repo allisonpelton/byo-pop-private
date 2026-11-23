@@ -15,6 +15,7 @@ public:
 	int mTimeBonus = 10;                    // +0x324c: "TimeBonus" (10 until the settings are read: 0x6dd3b0)
 	int mTimePenalty = 3000;                // +0x3250: "TimePenalty" (3000 until the settings are read: 0x6dd3b0)
 	bool mTimeUp = false;                   // +0xe28: the time ran out and the end is asked for
+	bool IsTimeUp() const override { return mTimeUp; }   // the hint boxes read +0xe28 (Board::CanShowHint)
 
 	// slot 135 (0x6e5030): Time, TimeBonus and TimePenalty, then the quest's (0x6ddc70)
 	void NewGame() override;

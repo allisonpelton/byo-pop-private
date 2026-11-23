@@ -468,14 +468,14 @@ void Bej3App::ShowResourceError(bool doExit)
 // 0x7737d0 (bejeweled3)
 void Bej3App::StartClassic()
 {
-	StartBoard(new ClassicBoard());
+	StartBoard(new ClassicBoard(), {0x15});
 }
 
 // 0x773100 (bejeweled3): Zen. The board is made by 0x7126f0, sized, reset (slot 85) and started like Classic's. port: the exe's mode
 // start also makes an 0x88-byte object first (the Zen mode's own state) and asks the mantras' window to open: both are left out
 void Bej3App::StartZen()
 {
-	StartBoard(new ZenBoard());
+	StartBoard(new ZenBoard(), {0});
 }
 
 // 0x773440 (bejeweled3): Lightning. The board is made by 0x718090; before it is reset (slot 85, 0x718500) the settings of the first quest
@@ -486,7 +486,7 @@ void Bej3App::StartLightning()
 	if (mSpeedQuestData != nullptr && !mSpeedQuestData->mQuests.empty())
 		aBoard->mSettings = mSpeedQuestData->mQuests[0].mSettings;
 	aBoard->mSettings["Title"] = "Lightning";
-	StartBoard(aBoard);
+	StartBoard(aBoard, {0, 10});
 }
 
 // 0x774060 (bejeweled3): a secret mode. The quest (secret.cfg's, by index: 0 Poker, 1 Butterflies, 2 Inferno, 3 Dig) says by its setting
@@ -518,7 +518,9 @@ bool Bej3App::StartSecretMode(int theIndex)
 		return false;
 	aBoard->mSettings = aSettings;
 	aBoard->mIsSecretMode = true;
-	StartBoard(aBoard);
+	// 0x774860: the help of the secret mode
+	int aHelpId = aChallenge == "POKER" ? 0x12 : aChallenge == "INFERNO" ? 0x14 : aChallenge == "DIG" ? 0x16 : 0x11;
+	StartBoard(aBoard, {aHelpId});
 	return true;
 }
 
@@ -625,7 +627,7 @@ void Bej3App::LeaveQuestMenu()
 }
 
 // the common part of the starts (0x7737d0, 0x773100, 0x773440, 0x774060)
-void Bej3App::StartBoard(Board* theBoard)
+void Bej3App::StartBoard(Board* theBoard, const std::vector<int>& theHelpIds)
 {
 	if (mGemFrames[0][7] == nullptr)
 		MakeGemFrames();
@@ -638,7 +640,8 @@ void Bej3App::StartBoard(Board* theBoard)
 	mBoard = theBoard;
 	mBoard->Resize(0, 0, mWidth, mHeight);
 	mBoard->ResetGame();
-	// slot 213 (0x743f40) with 0x15 sets what the mode shows: not translated yet
+	for (int aHelpId : theHelpIds)
+		mBoard->RequestHelp(aHelpId);   // slot 213 (0x743f40), after the reset (slot 85) and before the board is added (0x7737d0, 0x773100, 0x773440)
 	// 0x76cde0 asks whether a saved game of the mode is to be resumed: there is none, so the new game starts
 	mWidgetManager->AddWidget(mBoard);
 	mWidgetManager->SetFocus(mBoard);

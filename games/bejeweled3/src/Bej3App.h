@@ -106,7 +106,9 @@ public:
 	void LeaveQuestMenu();
 	// the quest map is up
 	bool IsQuestMenuVisible() const { return mQuestMenu != nullptr; }
-	void StartBoard(Board* theBoard);   // the shared end of the starts
+	// the shared end of the starts; theHelpIds are the help the mode asks of the board (slot 213) in order: 0x15 Classic, 0 Zen, 0 and 10 Lightning, and
+	// the secret modes' (0x11 Butterflies, 0x12 Poker, 0x14 Ice Storm, 0x16 Diamond Mine)
+	void StartBoard(Board* theBoard, const std::vector<int>& theHelpIds = std::vector<int>());
 
 	// 0x7716e0 (bejeweled3): the game screen is leaving: the play menu (the screen PLAY opens) comes back and the menu's song plays
 	void ShowPlayMenu();
@@ -120,6 +122,8 @@ public:
 	std::string mPlayTarget;
 	int mPlayQuest = 0;
 	bool mUnlockPending = false;
+	void SetHintsOff(bool theOff);   // port: test only (`hints`): the profile's switch for the tutorial boxes and helps, and every quest's help marked seen
+	bool mHintsOffPending = false;   // a `hints off` that came before the first player existed (`move` applies it once the name has made the profile)
 	// port: test only (the `atmove` command): a test command that `move` runs once the board has had that many moves, to shorten a long mode
 	bool mIdle = false;   // the `idle` command: `move` gives no swap any more (a player who walked away), so a mode that ends on its own clock ends
 	int mSwapsGiven = 0;   // the swaps `move` has answered with so far (what `atmove` counts)

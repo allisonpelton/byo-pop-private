@@ -16,6 +16,7 @@
 #include "MTRand.h"
 #include "Widget.h"
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
@@ -259,6 +260,23 @@ public:
 	bool mEndScreenShown = false;    // the end-of-game dialog (id 0x26, ClassicEndLevelDialog, made by 0x73b100) has been made
 	int mHintTimer = 0;              // +0x26a4: updates the board has stood at rest with nothing to do; at 1500 the hint is given
 	int mHintFlash = 0;              // +0x26a0: counts down from 250 after a hint was asked for (the hint button's glow: drawn only)
+	// The hint boxes and help dialogs (HintDialog.h; the exe's list at +0x26b8 holds a 0x68-byte record for each, of which these are the first
+	// two words: the rest is a copy of the move for the box's REPLAY button, which the port does not make)
+	struct HintRequest {
+		int mHintId;      // +0: the bit (HINT_*) of the box or the help id; the exe's help dialogs are the requests with mPieceId HELP_REQUEST
+		int mPieceId;     // +4: the id of the gem the box points at, or HELP_REQUEST
+	};
+	enum { HELP_REQUEST = -2 };
+	// The bits of mHintFlags (the profile's +0x21c): each is set when the box was queued, and every box is off while HINTS_OFF is set
+	enum { HINT_FLAME = 1, HINT_STAR = 2, HINT_HYPERCUBE = 3, HINT_MULTIPLIER = 4, HINT_SUPERNOVA = 6, HINT_COIN = 8, HINT_TIME_GEM = 9,
+		HINT_VERTICAL_MATCH = 0xd, HINT_DARK_ROCK = 0x10, HINTS_OFF_BIT = 0x13 };
+	enum { HINTS_OFF = 1 << HINTS_OFF_BIT };
+	enum { HINT_DIALOG_ID = 0x12, HELP_DIALOG_ID = 0x13 };
+	uint32_t mHintFlags = 0;         // +0x26a8: the profile's flags when the board was made (0x74ae30)
+	std::vector<HintRequest> mHintQueue;   // +0x26b8: the boxes waiting; the first is the one on show
+	int mHelpHold = 0;               // +0x2b40: after a help dialog was asked for, counts down from 100: the help comes at 10 and the game goes on at 0
+	int mHelpId = -1;                // +0x2b44: the help the mode asked for (-1 none)
+	bool mDemonstration = false;     // +0x1412: 0 in a game the player plays; the replay of a box's move (not made) sets it
 	bool mAutoHints = true;          // +0x1370: 1 from the constructor (0x74b49a): a hint comes by itself after the wait
 	int mBotMoves = 0;               // port: test only (the script's bot command): how many more moves the bot plays itself; -1 without a limit
 	int mBotMoveCount = 0;           // port: test only: the moves the bot has made
@@ -364,6 +382,25 @@ public:
 	void ShowHint(bool theUser);
 	// slot 98, 0x73d4f0 (bejeweled3): a hint may come now
 	virtual bool HintAllowed() const;
+
+	// slot 131, 0x73c4c0 (bejeweled3): the box or help of that bit has not been seen, boxes are not turned off, no level's flash is on
+	// (+0x1188) and the time is not up (+0xe28)
+	bool CanShowHint(int theHintId) const;
+	// slot 213, 0x743f40 (bejeweled3): the mode's start asks for its help dialog (theHelpId); unless seen or turned off it is queued and
+	// the game waits 100 updates
+	void RequestHelp(int theHelpId);
+	// 0x745bf0 (bejeweled3): the box of theHintId for a gem is queued and its bit is set in the board's flags and the profile's
+	void QueueHint(const Piece* thePiece, int theHintId);
+	// 0x73b990 (bejeweled3): sets or clears a bit in the board's flags and, in a game the player plays, the profile's
+	void SetHintFlag(int theHintId, bool theOn);
+	// 0x765d50 (bejeweled3): puts up the first request of the queue when no dialog is up and the board allows it
+	void CheckForTutorialDialogs();
+	// the dialog 0x12 (a hint box) is up: the game's counters stand still (slot 101, 0x73c330, among others)
+	bool HintDialogUp() const;
+	// +0xe28 (bejeweled3): the time is up (Lightning's mEnding, TimeLimitBoard's mTimeUp); false in the other boards
+	virtual bool IsTimeUp() const { return false; }
+	// slot 141, 0x73c170 (bejeweled3): a dialog of the board's screen has faded out and is about to go (Bej3Dialog::Update, 0x76a8a0, tells it with the dialog's id)
+	virtual void OnDialogClosed(int theDialogId) {}
 
 	// slot 53, 0x73f140 (bejeweled3): picks a gem up, or swaps the one picked up with the one clicked
 	using Widget::MouseDown;

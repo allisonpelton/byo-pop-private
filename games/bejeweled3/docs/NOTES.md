@@ -649,7 +649,7 @@ Oddities (not chased, `// port:` in the source): (1) RESOLVED: how the exe keeps
 The matcher's test is "the scale curve's ramp (+0x24) is not 6" (a running pulse, RAMP_CURVEDATA), in the free test and in 0x755ad0,
 and 0x755ad0 also reads the slide curve. IsPulsing is gone. (The earlier text, which looked at +0x198 only, and the reading of
 0x75bbdb that led to a stand-in, are replaced by this.) (2) The help boxes of slot 0x20c (0x73c4c0, and 0x745bf0 for each special) show
-a tutorial box the first time a special is made; they are left out and the help is treated as seen. (3) The exe's sets are ordered by
+a tutorial box the first time a special is made; they are made now ("Tutorials and help"). (3) The exe's sets are ordered by
 address, the port's by id; this matters only where the order of the sets changes what is done (the order the candidates are made and the
 clusters' targets), which it does not for the cases tried. (4) IsHeldBySwap (0x73caa0) takes a second argument in the exe (1 in the
 matcher, 0 in 0x755ad0); the port has one version and the swap record's flag (+0xf9, set from that argument) is not translated. The
@@ -771,7 +771,7 @@ slot 232 (0x756730) and does the same. Slot 232: the app's 0x7716e0 (the play me
 "b;0,1,0.006667,..." and the ball's, the music's FadeOut and Play "MainMenu"), the background hidden, the cover curve (+0x2898) set to
 "b;0,1,0.02,1,~###..." (1 to 0 over 50 updates) and the zoom curve (+0x2908) to "b;1,1.2,0.02,..." , the board's +0x2978 set (UpdateGame, 0x767f85, then
 steps nothing else) and slot 253 (0x73b510) disables its buttons. When the cover reaches 0 the board's update (0x759684) removes the board from the
-manager and the app's +0xbe8 becomes 0. Not translated: HOW TO PLAY (the help dialog, 0x696100), the three sliders (ids 0 to 2, music, sound and
+manager and the app's +0xbe8 becomes 0. HOW TO PLAY is made ("Tutorials and help"). Not translated: the three sliders (ids 0 to 2, music, sound and
 voice) and the checkboxes (ids 4 to 10: the art size 600, 768 and 1200, 3D and the others) on the dialog's face, the zoom curve, the background's fade
 (0x77dde0), the Quest branch (0x76c500), the click sound of 0x76aaf0, the ball's curves and the labels' (0x689a10, 0x684660), the first screen's
 own version of the dialog (0x6a3830, made with 0) and the pause the exe's board takes from the dialog (+0xd20). The port's buttons are DialogButtons
@@ -1445,8 +1445,7 @@ each), `questbuttons`; with a quest board `quest` (the index), `questwon`, `ques
   page's turn (the curve at +0x138, 0x690f10), the progress pictures and panes, the sparkles, the percentage window, the quest-complete banner and animation (0x67ed00, 0x684380's effects),
   the sounds (SOUND_QUESTMENU_RELIC*), the exe's wait for the relic animation before a click (0x674060), the text "Complete quests to restore the Lost Relics of Bejeweled". The gems are put in
   two rows of four; the exe puts each in a socket of its page.
-- QuestHelpDialog (vftable 0x8697d4, made by 0x6ccfd0 from slot 140, 0x6d0af0): the exe shows it before a quest that has not been started (the profile's `mQuestHelpSeen`); the port starts the
-  quest at once, since it does not stand in the way. Also the tutorial of the first quests (slot 141, 0x6d0ac0).
+- QuestHelpDialog (vftable 0x8697d4, made by 0x6ccfd0 from slot 140, 0x6d0af0): the exe shows it before a quest that has not been started (the profile's `mQuestHelpSeen`); made now ("Tutorials and help").
 - The exe keeps the map (+0xbd8) and the board (+0xbe8) both alive and shows the map over the board at a win (clock 198) and a loss (300); the port does the same but makes the map again each
   time and deletes it when a quest starts.
 - The fanfare at clock 100 (slot 162), the sounds and music events ("Break", "Play", "Wait") of 0x6ca350, the text of the finished level (0x7411f0, slot 160).
@@ -1634,7 +1633,7 @@ suite strips it with `sed` before hashing): the key is last in the line, and Cla
 `move` answers, in game pixels, what a hand does next:
 - a dialog that is still fading in or out: a wait (`"input":[]` with `"updates"`); the first player's name box (the welcome dialog): the keys of "Tester" and Enter;
   the end dialog: MOVE null (the game is over); any other dialog (a locked mode's, the empty-name message, the reset question): a click on its Yes button.
-  There are no tutorial or help dialogs in the port (the exe's are not translated, see "Not done" under each mode), so none comes in a mode's first game.
+  The tutorial boxes, the help dialogs and the quest help ("Tutorials and help") come in a fresh player's game; each one's footer button is its Yes button, so the same click answers it (the boxes to tick are never clicked).
 - no board, the quest map up: the click on the button of the quest `play quest <i>` named (a wait while the map's page is not that quest's section);
 - no board, the menus: a wait until the intro has ended and the camera is still; then PLAY's ball; then, once the play menu is up and the ball's size curve
   has stopped, the ball of the mode `play <mode>` named (classic, zen, lightning, quest, poker, butterflies, icestorm, diamondmine). Every button click is a
@@ -1680,3 +1679,68 @@ clips script was not defined); its reload ran. The page check (`tools/web/pagech
 hint timer go on while the focus is away, because the exe's focus handling (the pause on a lost focus) is not translated yet.
 The web run showed one fault of the test command: `move` answered an atmove's command with that command's own `OK`, which a web driver reads
 as the move's answer; the command's answers are now logged with the prefix `atmove: `, and `move` answers as usual.
+
+
+## Tutorials and help (src/BoardHints.cpp, src/HintDialog.*, the hooks listed below)
+
+The tutorial boxes (HintDialog, vtable 0x86e654, made by 0x682bf0), the help dialogs (HelpDialog, 0x86e0bc, made by 0x696100, with its pages in HelpWindow,
+0x86e244) and the quest help (QuestHelpDialog, 0x8697d4, made by 0x6ccfd0) are translated, with what opens them, the flags that remember them, and how the game
+waits.
+
+Flags. The profile's +0x21c (`Profile::mHintFlags`, saved in profile.dat in its old place, so old saves load) holds one bit for each box or help seen:
+Board::HINT_FLAME 1, STAR 2, HYPERCUBE 3, MULTIPLIER 4, SUPERNOVA 6, COIN 8, TIME_GEM 9, VERTICAL_MATCH 0xd, DARK_ROCK 0x10, and a help's id as its bit (0 Zen,
+10 Lightning, 0x11 Butterflies, 0x12 Poker, 0x14 Ice Storm, 0x15 Classic, 0x16 Diamond Mine). Bit 19 (0x80000, Board::HINTS_OFF) turns every box and help off: it
+is the only switch the exe has (the "Don't show hints" box of the help dialog and the "Disable Hints" box of a tutorial box); there is no reset option, and the
+options have nothing else for tutorials. The board copies the flags in its constructor (0x74ae30: +0x26a8 from +0x21c) and sets bits in both when a box is
+queued (0x745bf0, 0x73b990). `mQuestHelpSeen` (+0x2ac, 0x28 bytes) is the quest help's own, set by 0x6cd9f0.
+
+Queue. Board::mHintQueue (+0x26b8) holds requests {bit, piece id}; a help is a request with piece id -2. `CanShowHint` is slot 131 (0x73c4c0): the bit unseen,
+HINTS_OFF clear, +0x1188 (`mCheckerFlash`) 0 and not +0xe28 (the time is up: `IsTimeUp`, Lightning's `mEnding`, TimeLimit's `mTimeUp`). `RequestHelp` is slot 213
+(0x743f40): the mode's start (0x7737d0 Classic 0x15, 0x773100 Zen 0, 0x773440 Lightning 0 then 10, the secret modes' 0x774860: Butterflies 0x11, Poker 0x12,
+Ice Storm 0x14, Diamond Mine 0x16) calls it after the reset (slot 85) and before the board is dealt; if the help is unseen and boxes are on it sets the hold
+(+0x2b40) to 100 and queues the request. `CheckForTutorialDialogs` (0x765d50) runs from UpdateGame when the board is at rest (before the no-move check) and at hold 10:
+with neither dialog 0x12 nor 0x13 up, the game going on and boxes on, it takes the first request: a help is made as dialog 0x13 (the request goes), a gem's box
+as dialog 0x12 over the gem (below it for the top four rows, above it for the rest; the request stays until OK), a request whose gem is gone is dropped and its
+bit freed, and a time-up empties the queue. UpdateTick holds the board (0x767090): no step while dialog 0x13 is up; while the hold counts down the board does
+not step either, and its update count stands still. While the queue is not empty `CanSwap` (0x75fae0) refuses and a level change does not start. While dialog 0x12 is up
+the game's tick (+0xe38, `mGameTicks`) and the seconds counter stand still (slot 101, 0x73c330, among others). Board::DialogButtonDepress (0x7563c0) takes the box's OK (button
+1000): its request goes; with "Disable Hints" ticked, HINTS_OFF is set, the board takes the profile's flags and the queue is emptied.
+
+Opens (when). The boxes: the first Flame (a run of 4, FindMatches 0x75af60 where the specials are made), Hypercube (5), Supernova (6 or more) and Star (a gem in two runs)
+of a profile, queued on the gem that becomes the special; Lightning's first time gem (0x716c60, bit 9); Ice Storm's first vertical run in the secret mode (0x6e2250, bit 0xd, then
+the check at once). The helps: a mode's first game (the ids above), and the options dialog's HOW TO PLAY button (id 2, string 0x134, 0x681370; it stands above BACK and MAIN MENU
+while the board's +0x2b44 is not -1; 0x697460 adds the dialog with the board's help id; the button reads CLOSE). The quest help: QuestBoard slot 140 (0x6d0af0) the first
+time the board is at rest in a quest of the map that has not shown it (`mQuestHelpSeen`); Bej3Dialog::Update (0x76a8a0) tells the board (slot 141, 0x6d0ac0) when
+dialog 0x28 has faded out and the quest's play begins (slot 256). The help dialog marks its help seen in the profile (the exe does it in the destructor, 0x6770c0: bit of the
+id, Classic's 0x15 also bit 0, Zen's 0 also bit 0x15; the port does it at the button, the only way out).
+
+`move` (src/TestCommands.cpp). Each of the dialogs has its footer button as the Yes button: a tutorial box's OK, a help's START GAME or CLOSE, the quest help's OK; `move`
+clicks it at its middle (move, wait 3, press, wait 3, release) once the dialog has faded in, as for any other dialog. The two boxes to tick are never clicked. The test command
+`hints off|on` sets or clears bit 19 of the profile's flags (before the first player exists, `move` applies it once the name has made the profile), and every suite script now says
+`hints off` after `name Tester`.
+
+Suite. The frozen hashes are unchanged, Classic 51086c43ed2a and modes 873d262bb577: with hints off the board does not queue or stop for anything, so the states are those
+frozen before. The only difference of the state files is the new command's own `OK hints off` line, which suite.sh's hash leaves out.
+
+Verified. A real-input run of Classic shows the HOW TO PLAY dialog after the first 90 updates, START GAME answered by `move`, and a Flame Gem's box answered by `move` (the screenshots
+were looked at). Every mode still reaches its end through them (tools/realinput.sh).
+
+Port notes. The HelpDialog shows the title and the page texts in columns over the pages' rectangle (0x696100: 90, 150, width less 180, height less 330 of 1200ths), with no
+picture; the exe's HelpWindow (0x68a7f0) draws a picture (PopAnim) for each page and the pages one by one. The box of a HintDialog has room under its text for "Disable Hints" by
+60 of 1200ths (the port's measure) and the checkbox stands left of its label (0x6829c0 gives the label's place; the checkbox's own was not found).
+
+Not done.
+- The REPLAY button of a tutorial box and the copy of the move the exe keeps in each request (0x68 bytes: 0x742e60 puts the board back); the demonstration flag (+0x1412) is always 0.
+- The pulse of the gem a box points at (the curve +0x26c8, drawn by 0x756cb0 and 0x752580), and slot 253's disabling of the buttons during the hold.
+- The HelpWindow's pictures and its paging (0x694900 SetupHelp, 0x68a7f0 Draw).
+- The multiplier gem's box (bit 4, 0x714dd0) and the coin's (bit 8): the port's Lightning makes neither gem; the dark rock's box (bit 0x10: DigGoal's 0x6c2ad0 keeps a piece id at +0x2c0 from 0x6b3700, for a
+  record of kind 4, and asks the box); Wall Blast's goal tutorial (bit 0xc: 0x6aa580, 0x6aa620, 0x6c0430) and Diamond Mine's TutorialHeader/TutorialText (bit 0xf: 0x6ada10, 0x6b0fb0), which change the
+  goal's timing and values and do not use HintDialog; Zen's flag 0x800 (0x7116c0) and Poker's 0x4000 (0x6dedd0) were not read further.
+- QuestBoard slot 140's curve test (0x437c60 of an object the port does not keep) and the two curves of 0x6d09c0; the quest help of the secret modes (the exe reads the flag at index 1000 and more, past the flags).
+
+Oddities.
+- The exe stops FindMatches from collecting special-gem candidates for the rest of a call that queued a tutorial box (a local flag in 0x75af60), which seems to leave the first special unmade; the port
+  makes the special as before and queues the box on it, so the box shows on the new gem.
+- Lightning asks for help twice (0x773440: ids 0, then 10), so a fresh player gets two help dialogs, the first with Zen's pages; the port does the same.
+- Where the exe puts a box above a gem (row 4 or more) the decompile mixes the grid's measure and a pixel offset (a 15 taken in pixels from a measure in 1200ths); the port subtracts 15 in 1200ths.
+- The quest help's flag is read at `mQuestIndex` below 0x28 only; the quests of the map reach 0x28 or more only if quest.cfg grows.

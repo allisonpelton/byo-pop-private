@@ -1,5 +1,6 @@
 10 seed 7
 11 name Tester
+11 hints off
 1200 unlock all
 1210 goto diamondmine
 1500 state

@@ -2,6 +2,7 @@
 #include "QuestBoard.h"
 
 #include "Bej3App.h"
+#include "HintDialog.h"
 #include "Profile.h"
 
 #include <SDL.h>
@@ -311,6 +312,29 @@ void QuestBoard::DrawModeOverlay(Graphics* g)
 {
 	if (mGoal != nullptr)
 		mGoal->DrawOverPieces(g);
+}
+
+// slot 140, 0x6d0af0 (bejeweled3). port: the exe also tests a curve (0x437c60 of an object it keeps, which is not read) and reads the profile's flag at the
+// quest's index even for the secret modes (index 1000 and more: past the flags, where the object holds other bytes); the port shows the help of the
+// quests of the map (index below 0x28) and none for the secret modes, which have their own help dialog (HelpDialog)
+void QuestBoard::OnFirstSettled()
+{
+	if (!mIsSecretMode && mQuestIndex >= 0 && mQuestIndex < Profile::HINT_FLAG_COUNT && gApp->mProfile != nullptr && gApp->mProfile->mQuestHelpSeen[mQuestIndex] == 0) {
+		gApp->mProfile->mQuestHelpSeen[mQuestIndex] = 1;
+		new QuestHelpDialog(this);
+		return;
+	}
+	mPlayStarted = true;
+	OnQuestStart();
+}
+
+// slot 141, 0x6d0ac0 (bejeweled3): the play begins once the help dialog has faded out. port: the exe's 0x6d09c0 then starts two curves of the board (which are not read)
+void QuestBoard::OnDialogClosed(int theDialogId)
+{
+	if (theDialogId == 0x28 && !mPlayStarted) {
+		OnQuestStart();
+		mPlayStarted = true;
+	}
 }
 
 }  // namespace Sexy

@@ -223,7 +223,7 @@ void Board::OnLevelFull()
 // port: the list at +0x26b8 is empty in Classic; the overlay's drawing (0x724110) is not made; the 3D one is the exe's other branch
 void Board::StartLevelChange()
 {
-	if (!mLevelUpPending || !IsSettled() || !mPendingSwaps.empty())
+	if (!mLevelUpPending || !IsSettled() || !mPendingSwaps.empty() || !mHintQueue.empty())   // 0x767e20: no box waits
 		return;
 	mHyperspace.reset(new Hyperspace());
 	mHyperspace->mCurve.SetCurve("b+0,1,0.0025,1,~###  .~###   4####    b####");

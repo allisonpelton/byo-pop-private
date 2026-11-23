@@ -7,6 +7,7 @@
 #include "WidgetManager.h"
 #include "X86Math.h"
 #include "Font.h"
+#include "Profile.h"
 #include "Graphics.h"
 #include "Image.h"
 #include "PIEffect.h"
@@ -51,6 +52,9 @@ Piece::Piece(Board* theBoard)
 // 0x74ae30 (bejeweled3): the part of the constructor that the first fill reads
 Board::Board()
 {
+	// 0x74ae30: the board takes the profile's flags of the boxes and helps seen (+0x26a8 from +0x21c); +0x2b40 is 0 and +0x2b44 is -1
+	if (gApp->mProfile != nullptr)
+		mHintFlags = gApp->mProfile->mHintFlags;
 	for (int aRow = 0; aRow < ROWS; aRow++) {
 		for (int aCol = 0; aCol < COLS; aCol++)
 			mGrid[aRow][aCol] = nullptr;
@@ -153,6 +157,8 @@ void Board::ResetGame()
 	mSecondBar = 0.0f;
 	mBarRateCurve.SetConstant(1.0);
 	mLevelUpPending = false;
+	mHintQueue.clear();   // the help a mode asks for is queued again by the start (RequestHelp)
+	mHelpHold = 0;
 	mHyperspace.reset();
 	mLevelCounter = 0;
 	mGameOver = false;
@@ -406,6 +412,19 @@ void Board::LeaveToMenu()
 // changes nothing while the shown score is the score
 void Board::UpdateTick()
 {
+	// 0x767090: while a help dialog is up the board does not step at all. After a mode's start asked for help (+0x2b40, 100) the board waits: at 10 the
+	// first request is put up (0x765d50), and the game goes on when the count has run out (the exe's slot 253, which enables the buttons, is not made)
+	if (gApp->GetDialog(HELP_DIALOG_ID) != nullptr)
+		return;
+	if (mHelpHold > 0) {
+		if (mHelpHold == 10) {
+			CheckForTutorialDialogs();
+			if (gApp->GetDialog(HELP_DIALOG_ID) != nullptr)
+				return;
+		}
+		mHelpHold--;
+		return;
+	}
 	// 0x475660 is WidgetContainer::Update: the board's own update count goes up here, not in Update
 	WidgetContainer::Update();
 	mEffectsOver->Update();   // the +0x12c0 layer is a child of the board, added before the overlay: its update (0x7303f0) is part of the container's
@@ -438,10 +457,13 @@ void Board::UpdateGame()
 	mCoverCurve.IncInVal();
 	if (mLeaving)
 		return;   // 0x767f85: nothing else steps once the screen is leaving
-	// slot 101 (0x73c330) is 0 when no dialog holds the game: the game's own tick goes on
-	mGameTicks++;
-	if (mGameTicks % 100 == 0)
-		AddCounter(COUNTER_SECONDS, 1, -1);   // 0x768125: a second of play
+	// slot 101 (0x73c330) is 0 when no dialog holds the game: the game's own tick goes on. port: the end dialog (0x27) is not among those the port
+	// stops it for; a hint box (0x12) is
+	if (!HintDialogUp()) {
+		mGameTicks++;
+		if (mGameTicks % 100 == 0)
+			AddCounter(COUNTER_SECONDS, 1, -1);   // 0x768125: a second of play
+	}
 	StepSlideCurves();   // 0x767ad0: the slide curve of every piece (+0x198), before the match search
 	FindMatches();   // slot 201 (0x75af60)
 	if (mFillHeld == 0) {
@@ -473,6 +495,8 @@ void Board::UpdateGame()
 		FillInBlanks(false);   // 0x7691xx: slot 203
 	// 0x767e20: the board is at rest, no tutorial box is up (0x765d50), the game goes on (+0xd1c is 0), slot 97 is 0 and no level change is asked
 	// for: with no move left (0x75a8e0) the game ends (slot 161)
+	if (IsSettled())
+		CheckForTutorialDialogs();   // 0x767e20: before the move search
 	if (IsSettled() && mGameOverTicks == 0 && !FindMove(nullptr, 0, false, nullptr, false) && !mLevelUpPending)
 		NoMoreMoves(true);
 	UpdateMatchGroups();   // 0x75dee0

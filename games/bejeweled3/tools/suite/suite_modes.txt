@@ -1,5 +1,6 @@
 10 seed 7
 11 name Tester
+11 hints off
 1200 goto zen
 1600 bot 150
 6900 state

@@ -92,7 +92,7 @@ void Profile::ResetPlayer()
 	for (uint8_t& aFlag : mQuestHelpSeen)
 		aFlag = 0;
 	mFlagAfterTutorials = false;
-	mNumberAfterTutorialFlag = 0;
+	mHintFlags = 0;
 	mShortAfterNumber = 0;
 	mTemporary = false;
 	mSettings.clear();
@@ -260,7 +260,7 @@ bool Profile::LoadPlayer(const std::wstring& theName)
 	for (uint8_t& aFlag : mTutorialFlags)
 		aFlag = aFile.ReadBoolean();
 	mFlagAfterTutorials = aFile.ReadBoolean();
-	mNumberAfterTutorialFlag = ReadLongOrZero(aFile);
+	mHintFlags = (uint32_t)ReadLongOrZero(aFile);
 	mShortAfterNumber = aFile.ReadShort();
 	if (aVersion > 0x42) {
 		mQuestSection = ReadLongOrZero(aFile);
@@ -344,7 +344,7 @@ void Profile::SavePlayer()
 	for (uint8_t aFlag : mTutorialFlags)
 		aFile.WriteBoolean(aFlag != 0);
 	aFile.WriteBoolean(mFlagAfterTutorials);
-	aFile.WriteLong(mNumberAfterTutorialFlag);
+	aFile.WriteLong((int)mHintFlags);
 	aFile.WriteShort((short)mShortAfterNumber);
 	aFile.WriteLong(mQuestSection);
 	aFile.WriteBoolean(mQuestMenuFlag);

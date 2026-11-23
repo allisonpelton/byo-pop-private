@@ -4,6 +4,8 @@
 // "art size * measure / 1200".
 #include "Board.h"
 #include "Bej3Dialog.h"
+#include "HintDialog.h"
+#include "Profile.h"
 #include "OptionsDialog.h"
 
 #include "Bej3App.h"
@@ -452,6 +454,18 @@ void Board::ButtonDepress(int theId)
 // saved game's file (0x743120); the port keeps no saved game
 void Board::DialogButtonDepress(int theDialogId, int theButtonId)
 {
+	if (theDialogId == HINT_DIALOG_ID && !mHintQueue.empty() && theButtonId == Dialog::ID_YES) {
+		// a tutorial box's OK: its request goes; with its "Disable Hints" box ticked every box is off from now on, the queue is emptied, and the board
+		// takes the profile's flags
+		mHintQueue.erase(mHintQueue.begin());
+		HintDialog* aBox = dynamic_cast<HintDialog*>(gApp->GetDialog(HINT_DIALOG_ID));
+		if (aBox != nullptr && aBox->mCheckbox->IsChecked()) {
+			SetHintFlag(HINTS_OFF_BIT, true);
+			if (gApp->mProfile != nullptr && !mDemonstration)
+				mHintFlags = gApp->mProfile->mHintFlags;
+			mHintQueue.clear();
+		}
+	}
 	Bej3Dialog* aClosing = dynamic_cast<Bej3Dialog*>(gApp->GetDialog(theDialogId));
 	if (aClosing != nullptr)
 		aClosing->StartClose();

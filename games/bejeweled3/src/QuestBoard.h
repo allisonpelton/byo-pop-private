@@ -61,7 +61,11 @@ public:
 	void OnLevelFull() override;                                                       // slot 156 (0x6ca7e0, which runs 0x6ca350 when the secret flag is clear)
 	void NoMoreMoves(bool theAnnounce) override;                                       // slot 161 (0x6d8e30)
 	void AddPoints(int thePoints, int theMoveId = -1, bool theCountsForProgress = true, bool theUsesMultiplier = true) override;   // slot 152 (0x6cf290)
-	void OnFirstSettled() override { OnQuestStart(); }                                 // slot 140 (0x6d0af0): the quest's help dialog (not shown by the port), then slot 256
+	// slot 140 (0x6d0af0): the first time the board is at rest a quest not seen before shows its help dialog (0x6cd9f0: the profile's flag for the quest is set,
+	// the QuestHelpDialog made) and the quest's play begins when it has closed (slot 141); else the play begins now
+	void OnFirstSettled() override;
+	void OnDialogClosed(int theDialogId) override;                                    // slot 141 (0x6d0ac0): the help dialog (id 0x28) has closed: slot 256
+	bool mPlayStarted = false;                                                        // +0x31a5: slot 256 has been run
 	// slot 256 (0x400): the quest's play begins (the base, 0x6c4cf0, is a plain return; Butterflies' 0x6dcce0, Poker's 0x6cf440 and Time Bomb's 0x6c4a40 do something)
 	virtual void OnQuestStart() {}
 	void LeaveToMenu() override;                                                       // slot 232 (0x6d8e20, a jump to Board's 0x756730)

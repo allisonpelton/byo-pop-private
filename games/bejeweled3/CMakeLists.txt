@@ -27,7 +27,7 @@ endif()
 # bejeweled3: the game (src/). Native: bejeweled3.exe [-gamedir=<dir>] [-userdir=<dir>] [-modsdir=<dir>] [-nomods]
 # [-600|-768|-1200] (src/main.cpp); it finds assets/bejeweled3/ by itself. Web: bejeweled3.html/.js/.wasm.
 set(B3_SOURCES src/main.cpp src/Bej3App.cpp src/Res.cpp src/Bej3Music.cpp src/EncodingParser.cpp src/HighScores.cpp
-	src/Background.cpp src/Bej3Dialog.cpp src/Board.cpp src/BoardDraw.cpp src/BoardEffects.cpp src/BoardLevels.cpp src/BoardMoves.cpp src/CrystalBall.cpp src/GemSilhouettes.cpp src/TimeBonusEffect.cpp src/Effects.cpp src/EndLevelDialog.cpp src/MainMenu.cpp src/Math3D.cpp src/OptionsDialog.cpp src/PlayMenu.cpp src/Profile.cpp src/QuestData.cpp src/TestCommands.cpp src/ZenBoard.cpp src/LightningBoard.cpp src/QuestBoard.cpp src/ButterflyBoard.cpp src/IceStormBoard.cpp src/DiamondMineBoard.cpp
+	src/Background.cpp src/Bej3Dialog.cpp src/Board.cpp src/BoardDraw.cpp src/BoardHints.cpp src/HintDialog.cpp src/BoardEffects.cpp src/BoardLevels.cpp src/BoardMoves.cpp src/CrystalBall.cpp src/GemSilhouettes.cpp src/TimeBonusEffect.cpp src/Effects.cpp src/EndLevelDialog.cpp src/MainMenu.cpp src/Math3D.cpp src/OptionsDialog.cpp src/PlayMenu.cpp src/Profile.cpp src/QuestData.cpp src/TestCommands.cpp src/ZenBoard.cpp src/LightningBoard.cpp src/QuestBoard.cpp src/ButterflyBoard.cpp src/IceStormBoard.cpp src/DiamondMineBoard.cpp
   src/PokerBoard.cpp src/QuestGoal.cpp src/QuestMenu.cpp src/TimeLimitBoard.cpp src/MoveLimitBoard.cpp
   src/FillerBoard.cpp src/BalanceBoard.cpp src/TimeBombBoard.cpp src/BadMoveLimitBoard.cpp src/WallGoldGoals.cpp src/HiddenObjectGoal.cpp)
 add_executable(bejeweled3 ${B3_SOURCES})

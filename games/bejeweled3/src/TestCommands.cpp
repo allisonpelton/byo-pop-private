@@ -170,9 +170,28 @@ std::string TypeText(const std::string& theText)
 
 }  // namespace
 
+// hints off: bit 19 of the profile's seen flags (the exe's one switch for the boxes and helps) and, so that a quest's play begins at once as it did before the quest
+// help was made, every quest's help seen (the exe's own flags for it, which the switch does not touch); hints on puts bit 19 back
+void Bej3App::SetHintsOff(bool theOff)
+{
+	if (theOff)
+		mProfile->mHintFlags |= Board::HINTS_OFF;
+	else
+		mProfile->mHintFlags &= ~(uint32_t)Board::HINTS_OFF;
+	if (theOff) {
+		for (uint8_t& aSeen : mProfile->mQuestHelpSeen)
+			aSeen = 1;
+	}
+}
+
 bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	const std::string& aCommand = theCommand.mCommand;
+	// a `hints off` that came before the first player existed: done with the first command after the name has made the profile
+	if (mHintsOffPending && mProfile != nullptr && !mProfile->mName.empty()) {
+		SetHintsOff(true);
+		mHintsOffPending = false;
+	}
 	if (aCommand == "seed") {
 		// the app's Rand() is what seeds each board (Board::Board), so a seed given before a game starts fixes its first deal
 		if (theCommand.mArgs.empty()) {
@@ -211,6 +230,22 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		for (int i = 0; i < 4; i++)
 			mProfile->mTutorialFlags[i] = 1;
+		ReplyOK(theCommand);
+		return true;
+	}
+	if (aCommand == "hints") {
+		// hints off: the profile's own switch for the tutorial boxes and helps (the "Don't show hints" box of the help dialog, bit 19 of the profile's seen flags),
+		// set before a game so that the board does not stop for them (the frozen suites play fresh players' games this way); hints on puts it back
+		if (theCommand.mArgs != "off" && theCommand.mArgs != "on") {
+			ReplyError(theCommand, "hints off|on");
+			return true;
+		}
+		if (mProfile == nullptr || mProfile->mName.empty()) {
+			mHintsOffPending = theCommand.mArgs == "off";
+			ReplyOK(theCommand);
+			return true;
+		}
+		SetHintsOff(theCommand.mArgs == "off");
 		ReplyOK(theCommand);
 		return true;
 	}
@@ -511,7 +546,12 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 				mProfile->mTutorialFlags[i] = 1;
 			mUnlockPending = false;
 		}
-		// the dialogs first: the new player's name box, then any other one by its button
+		if (mHintsOffPending && mProfile != nullptr && !mProfile->mName.empty()) {
+			SetHintsOff(true);
+			mHintsOffPending = false;
+		}
+		// the dialogs first: the new player's name box, then any other one by its button (a tutorial box's OK, a help dialog's START GAME or CLOSE, a quest
+		// help's OK: each dialog's footer button is its Yes button; the boxes to tick, "Disable Hints" and "Don't show hints", are never clicked)
 		for (Dialog* aDialog : mDialogList) {
 			Bej3Dialog* aBej3Dialog = dynamic_cast<Bej3Dialog*>(aDialog);
 			if (aBej3Dialog == nullptr || aBej3Dialog->mClosing || aBej3Dialog->mFadeCurve.GetOutVal() < 1.0) {
