@@ -330,8 +330,8 @@ void PlayMenu::ButtonDepress(int theId)
 			gApp->StartZen();
 		else if (theId == 2)
 			gApp->StartLightning();
-		else if ((theId == 4 || theId == 5 || theId == 7) && !isLocked)
-			gApp->StartSecretMode(theId - 4);   // 0x774060: the ball POKER is the secret quest 0, BUTTERFLIES the quest 1; the ball 7 is the secret quest 3, Diamond Mine; a locked ball asks why instead (not made)
+		else if (theId >= FIRST_LOCKED_BALL && !isLocked)
+			gApp->StartSecretMode(theId - 4);   // 0x774060: the balls 4 to 7 (Poker, Butterflies, Ice Storm, Diamond Mine) are the secret quests 0 to 3; a locked ball asks why instead (not made)
 	}
 }
 
