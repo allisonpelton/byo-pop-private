@@ -13,6 +13,8 @@
 var results = [];
 function note(check, ok, detail) { results.push({ check: check, result: ok ? "pass" : "FAIL", detail: detail || "" }); }
 function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+// the Splits window's scripts load as it first opens (web/skins.js, fill)
+await ByopopSkin.desk.ready("splits");
 var timer = ByopopSplits.timer();
 if (!timer) return { pass: 0, fail: 1, results: [{ check: "timer", result: "FAIL", detail: "no timer on this page" }] };
 

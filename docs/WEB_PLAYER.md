@@ -287,6 +287,20 @@ development host only (the user, 2026-11-09: "Yes, locally"; `?localsoon=0` keep
 deploy step yet: `build/web` holds every port the build made, the ones still to come too, so whatever copies the site
 to a public host must leave those out or build with their `BUILD_<TARGET>` off.
 
+### Caching
+
+Every page the build writes loads the site's scripts and style sheets with their contents' hash in the address
+(`name.js?v=<hash>`, `byopop_web_stamp()` in `cmake/ByopopWeb.cmake`): the listing, each game's page and copyright page, and
+Jungle Juice's pages. A page loaded after a rebuild therefore never runs an old script. The build also writes
+`build/web/_headers`, the cache lifetimes for the site's host (Cloudflare Pages or Workers' static assets, the host
+`docs/CHAT_DESIGN.md` plans; it reads the file and does not serve it). Each stamped file gets
+`Cache-Control: public, max-age=31536000, immutable`, so it is kept a year and never asked for again. Everything else is
+left to the host's default, `public, max-age=0, must-revalidate` with an ETag: asked for again on each visit. That covers
+the pages, each game's own script and data (written by its link, unstamped), the music player's decoder (`openmpt.js`),
+the picture decoder (`jp2.js`), VexFlow, pictures, fonts and tunes. A rule names its file by its path, which a request's
+query does not change. A file is therefore listed only if every page loads it stamped. The build stops if a script of the
+site's loads a listed file by its bare name, and if the list passes the host's 100 rules.
+
 ### Games this site does not play
 
 A folder that holds none of the site's games but one it knows is named to the player, with a link to another project
@@ -380,6 +394,9 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   task bar button opens it too. It holds Restore, Move, Size, Minimize, Maximize and Close, those that do nothing greyed.
   Move and Size work from the arrow keys (Size's first arrow picks the edge), with Enter or a click to place and Escape to
   cancel (`keyMove`).
+- **Caption buttons for a finger:** on a screen worked by touch (`pointer: coarse`), Minimize, Maximize, Close and "?" are drawn
+  at twice their size, glyphs and all, as a larger caption button size in Windows 95's Appearance settings drew them. Each is
+  then a target of at least 24 pixels, as Lighthouse asks. A mouse keeps the 16 by 14 buttons.
 - **Minimize and restore:** a caption flies between the window and its task bar button (`fly`). There is none with
   reduced motion, and a timer shows the window even where no animation runs.
 - **The icons:** they stand in columns until one is dragged, then each stays where it was put (`byopop-desk-icons`, by
@@ -498,6 +515,27 @@ desktop away. A page in a window, the player-only page, the screen saver's page 
 never show it. Checked through a proxy that served one file at a time with a delay: on a cold first visit, a reload, a
 reload with a game window open and a game's own page, the cover held until the end of the load, and no window moved or
 changed size after it went.
+
+**What the listing loads, and when** (Lighthouse's report, 2026-11-23). The listing's head holds only what the cover needs:
+the site's text (`strings.js`), the skin (`skins.css`, `skins.js`), the scheme (`schemes.js`) and a preload of Byopop
+Sans. Everything else comes in the body, each script just before the first that uses it: the terms before the Coming
+soon marks, the cursors and the desktop themes before the Settings, and the logo's drawing deferred to the page's end.
+Under the cover the page is the plain listing until the desktop turns on, and then everything moves at once. Unseen, it
+is still laid out as before (`html.d95-booting:not(.d95-desk) body { visibility: hidden }` in `web/index.html`), and a
+browser no longer counts that move as a layout shift. A measured load had counted it as 0.28. While the box is up nothing
+under it has a transition, so the page shows at once when the desktop turns on. Where less motion is asked for, every
+property has a 0.01 ms transition, and each element's first instant still hidden had kept the Library from its first focus. The windows that are closed
+as the desktop starts and have scripts of their own load those scripts as they first open: Sounds with its table of the
+games' sounds, Trophies, Fonts, Splits with its autosplitters, and the chat. That is about 670 KB the page no longer
+waits for. Each is an empty `section` with its icon until then (`web/index.html`, `lazyWin`; `o.lazy` in
+`ByopopSkin.desk.add`), and its script builds into it (`fill(el)`). While a script loads, the pointer is Windows 95's
+"working in background" arrow with its small hourglass, and the window opens once it is filled. A window the last visit
+left open is filled as the desktop loads, and the cover waits for it. A script that cannot load leaves its window closed
+with Windows 95's message box. `ByopopLazy.need(group)` loads a group's scripts by the addresses the build stamped in the
+page's `<template id="lazy-scripts">`. `desk.openWin` returns a promise that settles once the window is open, and
+`desk.ready(id)` fills a window without opening it (a driver's way in: `tools/web/splitscheck.js`). Desktop themes load the
+Sounds script for its decoders when the browser cannot decode a game's sound itself. Music's script stays in the page:
+the themes and the other windows read games' files through it.
 
 **Window sizes** (the user, 2026-11-18: "A lot of windows ought not to be resizable, like settings and anything accessed
 through it. Alternatively, a maximum height/width that ensures they display all their content without pointless

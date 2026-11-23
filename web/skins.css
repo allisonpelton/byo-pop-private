@@ -220,6 +220,9 @@ html.d95-desk.game-loading .stage-wrap.d95-win { visibility: hidden; }
 html.d95-desk.game-unmade .stage-wrap.d95-win { visibility: hidden; }
 html.d95-desk.game-unmade:not(.game-loading) .stage-wrap.d95-win .overlay:not([hidden]) > .card { visibility: visible; }
 html.d95-desk.game-loading, html.d95-desk.game-loading * { cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20x%3D%228%22%20y%3D%223%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%2226%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M10%206h12v4l-4%205v2l4%205v4H10v-4l4-5v-2l-4-5z%22%20fill%3D%22%23fff%22%20stroke%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M12%208h8v1.5l-4%204.5-4-4.5z%22%20fill%3D%22%23000080%22%2F%3E%3Cpath%20d%3D%22M15.5%2018h1l3.5%204v2h-8v-2z%22%20fill%3D%22%23000080%22%2F%3E%3C%2Fsvg%3E") 16 16, wait !important; }
+/* a window's script loading as it first opens (web/skins.js, fill): Windows 95's "working in background" pointer, the arrow with a
+   small hourglass (the desktop's own loading, below, wins while both) */
+html.d95-starting, html.d95-starting * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' shape-rendering='crispEdges'%3E%3Cpath d='M0.5 0.5v16l4-4 3 7 2-1-3-7h5z' fill='%23fff' stroke='%23000'/%3E%3Cg transform='translate(10 8) scale(.5)'%3E%3Crect x='8' y='3' width='16' height='3'/%3E%3Crect x='8' y='26' width='16' height='3'/%3E%3Cpath d='M10 6h12v4l-4 5v2l4 5v4H10v-4l4-5v-2l-4-5z' fill='%23fff' stroke='%23000' stroke-width='2'/%3E%3Cpath d='M12 8h8v1.5l-4 4.5-4-4.5z' fill='%23000080'/%3E%3Cpath d='M15.5 18h1l3.5 4v2h-8v-2z' fill='%23000080'/%3E%3C/g%3E%3C/svg%3E") 0 0, progress !important; }
 /* The desktop's loading (web/skins.js, bootStart; the user, 2026-11-20: "Replace that load with something 95-themed"): until the
    desktop is whole, the root's two pseudo-elements cover the page: the desktop's colour with the hourglass, and in the middle a
    raised box with a line of text and a sunken strip of blue blocks that fills (--d95-boot-w, whole blocks of 9 pixels and a
@@ -1381,3 +1384,9 @@ html.d95-desk .d95-copy-bar { margin: 8px 14px 0; height: 16px; padding: 2px; bo
   border: 1px solid; border-color: var(--sk-lo) var(--sk-hi) var(--sk-hi) var(--sk-lo); }
 html.d95-desk .d95-copy-bar > i { display: block; height: 100%; width: 0;
   background: repeating-linear-gradient(90deg, var(--accent) 0 8px, transparent 8px 10px); }
+/* Caption buttons for a finger: on a screen worked by touch (a coarse pointer), the title bars' buttons drawn at twice their
+   size, glyphs and all, as a larger caption button size in Windows 95's Appearance settings drew them, so that each is a
+   target of 24 pixels at least (Lighthouse's touch targets). A mouse keeps Windows 95's own 16 by 14 */
+@media (pointer: coarse) {
+  html.d95-desk :is(.d95-mn, .d95-mx, .d95-x, .d95-hlp) { zoom: 2; }
+}

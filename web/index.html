@@ -3,14 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- what the site is, for a search engine's listing: System Information's own words (its General tab, below) -->
+<meta name="description" content="{{index.footer.about}}">
+<!-- Desktop 95's text, Byopop Sans (web/skins.css), asked for at once rather than once the style sheet is read -->
+<link rel="preload" href="fonts/byopop-sans.woff" as="font" type="font/woff" crossorigin>
 <title>{{index.title}}</title>
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<!-- the site's text for the scripts (web/strings/en.txt, web/i18n.js) and its logo drawn inline (web/logo.js) -->
-<script src="strings.js"></script><script src="logo.js"></script><script src="terms.js"></script>
-<!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
-<script src="cursors.js"></script>
+<!-- The head holds only what the page's first frame needs (the desktop's colour and its loading box: the text, the skin and the
+     scheme); the rest comes in the body, each script before the first that uses it. The site's text for the scripts
+     (web/strings/en.txt, web/i18n.js), and its logo drawn inline once the page is read (web/logo.js) -->
+<script src="strings.js"></script><script defer src="logo.js"></script>
 <style>
 /* The list of the finished games (docs/WEB_PLAYER.md, "The listing page"). byopop_web_index() in
    cmake/ByopopWeb.cmake puts one tile per game at the byopop:games marker. A tile's icon is a badge drawn here: the
@@ -423,9 +427,17 @@ body > footer a { color: var(--accent); }
 .sy-credits { margin: 0 0 8px; padding-left: 20px; }
 /* System Information's own parts (web/sysinfo.js) are the desktop's only: off it the footer is its General tab's text */
 html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: none; }
+/* While the desktop loads (html.d95-booting: its loading box over the page, web/skins.js), the page is laid out as the plain
+   listing until the desktop turns on, and then everything moves at once. Unseen until then, it is laid out as before (the
+   scripts measure what they always did) but nothing on it is drawn as moving: a browser counted that move, all of it under the
+   box, as a layout shift of 0.28 */
+html.d95-booting:not(.d95-desk) body { visibility: hidden; }
+/* and shown at once when the desktop turns on: where less motion is asked for, every property has a transition of 0.01 ms
+   (above), and each element, still hidden in its transition's first instant, could take no focus (the Library's first) */
+html.d95-booting body, html.d95-booting body * { transition-property: none !important; }
 </style>
 <!-- the site's look, Desktop 95 (web/skins.js sets <html data-skin="d95">; docs/WEB_PLAYER.md, "Desktop 95") -->
-<link rel="stylesheet" href="skins.css"><script src="skins.js"></script><script src="schemes.js"></script><script src="themedata.js"></script><script src="themes.js"></script>
+<link rel="stylesheet" href="skins.css"><script src="skins.js"></script><script src="schemes.js"></script>
 </head>
 <body>
 <header class="site-header">
@@ -471,6 +483,8 @@ html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: 
   </ul>
   <!-- the ports still in progress whose pages this build made open from their Coming soon tiles on a development host only, before
        anything reads the tiles (web/localsoon.js) -->
+  <!-- the site's terms and which hosts are for development (web/terms.js) -->
+  <script src="terms.js"></script>
   <script src="localsoon.js"></script>
   <script>try { ByopopLocalSoon.apply(document, location, ByopopTerms.devHost, ByopopStrings.t("index.soon_local")); } catch (e) {}</script>
   <!-- Jungle Juice, the page for other projects' decompilations (web/jungle/index.html; the user, 2026-11-04: "the front page will
@@ -519,6 +533,10 @@ html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: 
     <p>{{index.footer.credit_html}}</p>
   </div>
 </footer>
+<!-- the site's cursor, a game's set the player chose (web/cursors.js), and the desktop themes (web/themedata.js, web/themes.js) -->
+<script src="cursors.js"></script>
+<script src="themedata.js"></script>
+<script src="themes.js"></script>
 <script src="saver.js"></script>
 <script src="settingsicons.js"></script>
 <script src="appicons.js"></script>
@@ -532,20 +550,11 @@ html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: 
 <script src="sysinfo.js"></script>
 <script src="soundtracks.js"></script>
 <script src="music.js"></script>
-<!-- the soundboard: Desktop 95's Sounds window (web/sounds.js) and its table of the games' sounds (web/soundboards.js) -->
-<script src="soundboards.js"></script>
-<script src="sounds.js"></script>
-<script src="trophies.js"></script>
-<script src="fontview.js"></script>
 <script src="buildings.js"></script>
 <script src="gallery.js"></script>
 <script src="guidetexts.js"></script>
 <script src="guides.js"></script>
 <script src="gamepics.js"></script>
-<!-- its auto splitters: each game's block read from the front game window and its start, split and reset rules (web/autosplit.js) -->
-<script src="autosplit.js"></script>
-<!-- the splits timer: Desktop 95's Splits window, a stand-in for LiveSplit (web/splits.js) -->
-<script src="splits.js"></script>
 <!-- Adding games (web/addgames.js): web/modpanel.js's zip and pak readers, without a game (it fills Module.byopop), the icon reader, the
      import rules and each listed game's page.js (import-games.js, written by the build) -->
 <script>var Module = {};</script>
@@ -564,7 +573,45 @@ html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: 
 <script src="phase.js"></script>
 <script src="library.js"></script>
 <script src="chat-games.js"></script>
+<!-- The scripts of the windows that are closed as the desktop starts, each loaded as its window first opens (ByopopLazy, below;
+     web/skins.js, fill), so that the page loads without them. A template holds them, unread, so that the build stamps each with
+     its contents' hash as it does the page's own:
+       the soundboard, Desktop 95's Sounds window (web/sounds.js), with its table of the games' sounds (web/soundboards.js)
+       the trophy cabinet (web/trophies.js) and the Fonts window (web/fontview.js)
+       the splits timer, a stand-in for LiveSplit (web/splits.js), with its auto splitters: each game's block read from the
+         front game window and its start, split and reset rules (web/autosplit.js)
+       the chat (web/chat.js) -->
+<template id="lazy-scripts">
+<script src="soundboards.js"></script><script src="sounds.js"></script>
+<script src="trophies.js"></script>
+<script src="fontview.js"></script>
+<script src="autosplit.js"></script><script src="splits.js"></script>
 <script src="chat.js"></script>
+</template>
+<script>
+// ByopopLazy.need(group): the scripts of a group of the template's, those not loaded yet, in the template's order; a promise.
+// A script that did not come can be asked for again.
+var ByopopLazy = (function () {
+  "use strict";
+  var GROUPS = { sounds: ["soundboards.js", "sounds.js"], trophies: ["trophies.js"], fontview: ["fontview.js"],
+    splits: ["autosplit.js", "splits.js"], chat: ["chat.js"] };
+  var loads = {};
+  function one(name) {
+    if (!loads[name]) loads[name] = new Promise(function (resolve, reject) {
+      var t = document.getElementById("lazy-scripts"), at = t && t.content.querySelector('script[src^="' + name + '"]');
+      var el = document.createElement("script");
+      el.src = at ? at.getAttribute("src") : name;
+      el.async = false;   // (they run in the order asked for)
+      el.onload = function () { resolve(); };
+      el.onerror = function () { delete loads[name]; el.remove(); reject(new Error(name + " did not load")); };
+      document.body.appendChild(el);
+    });
+    return loads[name];
+  }
+  function need(group) { return Promise.all((GROUPS[group] || []).map(one)); }
+  return { need: need };
+})();
+</script>
 <script>
 // The settings section: the controls are web/settings.js's, the same as in a game's Settings panel
 // (its sections: a row of tabs; in Desktop 95 the folder's icons each open the section's own window, below. The site's
@@ -969,21 +1016,39 @@ try {
         afterClose: id === "music" ? function () { if (window.ByopopMusicPanel && ByopopMusicPanel.shutdown) ByopopMusicPanel.shutdown(); } : null,
         at: function (left, vw) { return [Math.max(left, vw - 620) - i * 28, top() + 24 + i * 28]; } });
     });
-    // the soundboard (web/sounds.js): the games' sound effects, Desktop 95 only, closed at first, its icon after Music's
-    if (window.ByopopSounds) ByopopSounds.attach(d, function (left, vw) { return [Math.max(left, vw - 600) - 140, top() + 52]; });
-    // the splits timer (web/splits.js): Desktop 95 only, closed at first, its icon after the Sounds window's
+    // A window whose script loads as it first opens (ByopopLazy, above; web/skins.js, fill): an empty section here, closed, with
+    // its icon, which the script's fill(el) builds into; group is its scripts', and the script's object is window[name]
+    function lazyWin(id, group, name, o) {
+      var el = document.createElement("section");
+      el.id = id;
+      var foot = document.querySelector("body > footer");
+      if (foot && foot.parentNode) foot.parentNode.insertBefore(el, foot); else document.body.appendChild(el);
+      o.id = id; o.closable = true; o.closed = true;
+      o.lazy = function () {
+        return ByopopLazy.need(group).then(function () { if (!window[name] || !window[name].fill(el)) throw new Error(id + " did not start"); });
+      };
+      d.add(el, o);
+    }
+    // the soundboard (web/sounds.js): the games' sound effects (read with Music's reader of their files), Desktop 95 only,
+    // closed at first, its icon after Music's
+    if (window.ByopopMusic) lazyWin("sounds", "sounds", "ByopopSounds", { title: ByopopStrings.t("sounds.title"), scroll: ".sb-grid", minWidth: 300, minHeight: 200,
+      at: function (left, vw) { return [Math.max(left, vw - 600) - 140, top() + 52]; } });
     // the trophy cabinet (web/trophies.js): the games' own records, Desktop 95 only, closed at first, its icon after the Sounds window's
-    if (window.ByopopTrophies) ByopopTrophies.attach(d, function (left, vw) { return [Math.max(left, vw - 620) - 100, top() + 40]; });
+    if (window.ByopopMusic) lazyWin("trophies", "trophies", "ByopopTrophies", { title: ByopopStrings.t("trophies.title"), scroll: ".tc-body", minWidth: 300, minHeight: 200,
+      at: function (left, vw) { return [Math.max(left, vw - 620) - 100, top() + 40]; } });
     // the Fonts window (web/fontview.js): the games' own fonts and text drawn in them, Desktop 95 only, closed at first, its icon
     // after the trophy cabinet's
-    if (window.ByopopFontView) ByopopFontView.attach(d, function (left, vw) { return [Math.max(left, vw - 640) - 60, top() + 56]; });
+    lazyWin("fontview", "fontview", "ByopopFontView", { title: ByopopStrings.t("fontview.title"), scroll: ".fv-sheet", minWidth: 480, minHeight: 300,
+      at: function (left, vw) { return [Math.max(left, vw - 640) - 60, top() + 56]; } });
     // the Gallery (web/gallery.js): a game's pictures from the player's files (so far Venice's buildings, web/buildings.js),
     // Desktop 95 only, closed at first, where the listing has a game with an entry, its icon after the Fonts window's
     if (window.ByopopGallery) ByopopGallery.attach(d, function (left, vw) { return [Math.max(left, vw - 680) - 40, top() + 72]; });
     // the Guides window (web/guides.js, its texts web/guidetexts.js, docs/GUIDE_STYLE.md): the AI-generated guides, each under
     // the window's AI-generated banner, Desktop 95 only, closed at first, its icon after the Gallery's
     if (window.ByopopGuides) ByopopGuides.attach(d, function (left, vw) { return [Math.max(left, vw - 560) - 80, top() + 88]; });
-    if (window.ByopopSplits) ByopopSplits.attach(d, function (left, vw) { return [Math.max(left, vw - 330), top() + 24]; });
+    // the splits timer (web/splits.js): Desktop 95 only, closed at first, its icon after the Guides window's
+    lazyWin("splits", "splits", "ByopopSplits", { title: ByopopStrings.t("splits.title"), scroll: ".spl-list", minWidth: 240, minHeight: 180,
+      at: function (left, vw) { return [Math.max(left, vw - 330), top() + 24]; } });
     // the Setup window (web/setup.js): closed at first, no icon; Add Games in the Pop menu and the Add games button open it
     if (window.ByopopSetup) ByopopSetup.attach(d, function (left, vw) { return [Math.max(left, Math.round((vw - 560) / 2)), top() + 40]; });
     // each of Settings' sections, a window of its own opened from the Settings folder's icons, the Pop menu or #settings-<section>
@@ -1011,9 +1076,11 @@ try {
         if (chatEl.classList.contains("chat-collapsed")) chat.setCollapsed(false);
       } catch (e) { console.warn("the chat could not start", e); }
     }
-    if (chatEl && window.ByopopChat) {
+    if (chatEl) {
+      // (its script loads as the window first opens, as the windows' above)
       d.add(chatEl, { id: "chat", title: ByopopStrings.t("game.chat.title"), closable: true, closed: true, lift: true,
-        minWidth: 260, minHeight: 320, scroll: ".bpc-log, .bpc-nicks", at: function (left, vw) { return [Math.max(left, vw - 432), top()]; } });
+        minWidth: 260, minHeight: 320, scroll: ".bpc-log, .bpc-nicks", at: function (left, vw) { return [Math.max(left, vw - 432), top()]; },
+        lazy: function () { return ByopopLazy.need("chat"); } });
       // it starts when the player first brings its window up, and only then: it never opens by itself (the user, 2026-11-11:
       // "Stop chat from opening on its own")
       window.addEventListener("byopop-desk-active", function (ev) {

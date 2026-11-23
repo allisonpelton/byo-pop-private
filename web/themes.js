@@ -183,16 +183,22 @@ var ByopopThemes = (function () {
     g.gain.value = level() * (window.ByopopVolume ? ByopopVolume.level() : 1);
     src.buffer = buf; src.connect(g); g.connect(ctx.destination); src.start();
   }
+  // a sound the browser cannot decode, by the soundboard's own decoders (web/sounds.js), whose script the listing loads only
+  // when it is first needed (ByopopLazy, web/index.html)
+  function soundsDecode(ctx, name, bytes, e) {
+    var ready = window.ByopopSounds ? Promise.resolve() : window.ByopopLazy ? ByopopLazy.need("sounds") : Promise.reject(e);
+    return ready.then(function () {
+      if (window.ByopopSounds && ByopopSounds.decode) return ByopopSounds.decode(ctx, name, bytes);
+      throw e;
+    });
+  }
   // plays an event's own sound: true when it has one
   function playOwn(what) {
     var o = own[what];
     if (!o) return false;
     if (!audio()) return true;
     if (!ownBuffers[what]) {
-      ownBuffers[what] = ctx.decodeAudioData(o.bytes.slice(0)).catch(function (e) {
-        if (window.ByopopSounds && ByopopSounds.decode) return ByopopSounds.decode(ctx, o.name, new Uint8Array(o.bytes));
-        throw e;
-      });
+      ownBuffers[what] = ctx.decodeAudioData(o.bytes.slice(0)).catch(function (e) { return soundsDecode(ctx, o.name, new Uint8Array(o.bytes), e); });
       ownBuffers[what].catch(function () { delete ownBuffers[what]; });
     }
     ownBuffers[what].then(sound, function () {});
@@ -292,8 +298,7 @@ var ByopopThemes = (function () {
       var bytes = bytesOf(s.data);
       buffers[what] = (/\.au$/i.test(s.rel) ? Promise.reject(new Error("au")) : ctx.decodeAudioData(bytes.buffer)).catch(function (e) {
         // an Ogg file the browser cannot decode, and a Sun .au file: the soundboard's own decoders (web/sounds.js)
-        if (window.ByopopSounds && ByopopSounds.decode) return ByopopSounds.decode(ctx, s.rel, bytes);
-        throw e;
+        return soundsDecode(ctx, s.rel, bytes, e);
       });
       buffers[what].catch(function () { delete buffers[what]; });
     }

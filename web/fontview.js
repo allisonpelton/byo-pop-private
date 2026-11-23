@@ -881,9 +881,8 @@ var ByopopFontView = (function () {
   }
 
   var win = null;
-  function build(allGames) {
-    var el = make("section", "fv-win");
-    el.id = "fontview";
+  function build(allGames, el) {
+    el.classList.add("fv-win");
     var bar1 = make("div", "fv-bar"), bar2 = make("div", "fv-bar"), bar3 = make("div", "fv-bar fv-options");
     var gamePick = make("select", "fv-game"), fontPick = make("select", "fv-font"), save = make("button", "fv-save", T("fontview.save"));
     save.type = "button";
@@ -1060,16 +1059,14 @@ var ByopopFontView = (function () {
   }
 
   // The window on the desktop (web/index.html), closed at first; at(left, vw) gives its place
-  function attach(desk, at) {
+  // the window's contents, built into its element (el), which Desktop 95's desktop already has, closed: web/index.html adds it
+  // and loads this script as the window first opens (ByopopLazy, web/skins.js's fill)
+  function fill(el) {
     if (win || !document.getElementById("games-title")) return null;
     var games = Array.prototype.map.call(document.querySelectorAll("a.tile[data-game]"), function (t) {
       return { id: t.getAttribute("data-game"), title: t.querySelector(".name").textContent, persist: t.getAttribute("data-persist") };
     }).sort(function (a, b) { return a.title.localeCompare(b.title); });
-    win = build(games);
-    var foot = document.querySelector("body > footer");
-    if (foot && foot.parentNode) foot.parentNode.insertBefore(win.el, foot); else document.body.appendChild(win.el);
-    desk.add(win.el, { id: "fontview", title: T("fontview.title"), closable: true, closed: true, at: at, scroll: ".fv-sheet",
-      minWidth: 480, minHeight: 300 });
+    win = build(games, el);
     var open = false;
     function watch() {
       // (minimized, it keeps what it shows)
@@ -1086,7 +1083,7 @@ var ByopopFontView = (function () {
     return win;
   }
 
-  return { attach: attach, setSource: function (fn) { source = fn; }, window: function () { return win; },
+  return { fill: fill, setSource: function (fn) { source = fn; }, window: function () { return win; },
     descriptorText: descriptorText, commandLines: commandLines, parseToList: function (s) { return parseToList(s, { pos: 0 }, false); },
     unquote: unquote, toInt: toInt, toDouble: toDouble, pathFrom: pathFrom, parseDescriptor: parseDescriptor, parseLegacy: parseLegacy,
     sizes: sizes, tagsOf: tagsOf, activate: activate, layoutLine: layoutLine, render: render, charset: charset, sniff: sniff,

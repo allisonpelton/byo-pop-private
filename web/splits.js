@@ -10,7 +10,7 @@
 // 2 skip at first) are heard on the page and in every game window, which are of the same origin, and are never taken from the
 // game: the key still reaches it. No web build has the LiveSplit block that desktop builds have (features.livesplit), so there
 // is no autosplitting here.
-//   ByopopSplits.attach(desk, at)   adds the window to Desktop 95's desktop, closed (web/index.html)
+//   ByopopSplits.fill(el)   builds the window into its element, which Desktop 95's desktop has, closed (web/index.html)
 var ByopopSplits = (function () {
   "use strict";
   var DB = "byopop-splits", STORE = "runs", LAST_KEY = "byopop-splits-last", OPT_KEY = "byopop-splits-options";
@@ -210,7 +210,7 @@ var ByopopSplits = (function () {
   }
 
   // ---- the timer ----
-  function build() {
+  function build(el) {
     var opts = { keys: clone(DEFAULT_KEYS), compare: "pb", method: "rt", hotkeys: true, autosplit: true };
     try { var so = JSON.parse(localStorage.getItem(OPT_KEY) || "null"); if (so) { Object.assign(opts, so); opts.keys = Object.assign(clone(DEFAULT_KEYS), so.keys || {}); } } catch (e) {}
     function keepOpts() { try { localStorage.setItem(OPT_KEY, JSON.stringify(opts)); } catch (e) {} }
@@ -219,7 +219,7 @@ var ByopopSplits = (function () {
     // the attempt: phase idle, running, paused or ended; index, the segment being run; times, each split's {rt, gt} or null (skipped)
     var att = { phase: "idle", index: 0, times: [], t0: 0, pausedAt: 0, pausedFor: 0, gameWin: null, gameStep: 10, c0: 0, gtLast: null };
 
-    var el = make("section", "spl-win");
+    el.classList.add("spl-win");
     el.id = "splits";
     var bar = make("menu", "d95-menubar"); bar.setAttribute("role", "menubar");
     el.appendChild(bar);
@@ -757,15 +757,13 @@ var ByopopSplits = (function () {
   }
 
   var timer = null;
-  function attach(desk, at) {
+  // the window's contents, built into its element (el), which Desktop 95's desktop already has, closed: web/index.html adds it
+  // and loads this script as the window first opens (ByopopLazy, web/skins.js's fill)
+  function fill(el) {
     if (timer || !document.getElementById("games-title")) return null;
-    timer = build();
-    timer.setDesk(desk);
-    var foot = document.querySelector("body > footer");
-    if (foot && foot.parentNode) foot.parentNode.insertBefore(timer.el, foot); else document.body.appendChild(timer.el);
-    desk.add(timer.el, { id: "splits", title: T("splits.title"), closable: true, closed: true, at: at, scroll: ".spl-list",
-      minWidth: 240, minHeight: 180 });
+    timer = build(el);
+    timer.setDesk(ByopopSkin.desk);
     return timer;
   }
-  return { attach: attach, timer: function () { return timer; }, fmt: fmt, toSpan: toSpan, fromSpan: fromSpan };
+  return { fill: fill, timer: function () { return timer; }, fmt: fmt, toSpan: toSpan, fromSpan: fromSpan };
 })();

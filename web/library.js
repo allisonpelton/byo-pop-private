@@ -157,6 +157,11 @@ var ByopopLibrary = (function () {
     find.appendChild(flabel); find.appendChild(filter);
     bar.appendChild(play); bar.appendChild(add); bar.appendChild(unsold); bar.appendChild(find);
     var area = make("div", "lib-area");
+    // where the rows are scrolled to, as the area's own scrolls last said: fill() reads this, since reading the area there, in
+    // the middle of the listing's own changes, made the browser lay the whole page out at once (a forced reflow as the page
+    // loads); nothing is scrolled until the player scrolls
+    var scrolled = 0;
+    area.addEventListener("scroll", function () { scrolled = area.scrollTop; });
     var grid = make("table", "lib-grid");
     grid.setAttribute("role", "grid");
     grid.setAttribute("aria-label", T("library.title"));
@@ -205,7 +210,7 @@ var ByopopLibrary = (function () {
     // jump: bring the selected row into view (a sort); a refresh from the cards or the storage keeps the list where the player
     // scrolled it (the user, 2026-11-10: "Scroll keeps snapping back in the library window to the selected game")
     function fill(jump) {
-      var keepId = sel ? sel.g.id : null, keepTop = area.scrollTop, hadFocus = !!(sel && document.activeElement === sel.cell);
+      var keepId = sel ? sel.g.id : null, keepTop = scrolled, hadFocus = !!(sel && document.activeElement === sel.cell);
       var read = readGames();
       games = read.games;
       unsold.hidden = !read.unsold;
@@ -259,7 +264,8 @@ var ByopopLibrary = (function () {
       applyFilter();
       var again = rows.filter(function (r) { return r.g.id === keepId && !r.tr.hidden; })[0] || visible()[0] || null;
       select(again, hadFocus, jump !== true);
-      if (jump !== true) area.scrollTop = keepTop;
+      // (rows scrolled back where they were; at the top, as at first, they are already there)
+      if (jump !== true && keepTop) area.scrollTop = keepTop;
     }
     function applyFilter() {
       var words = filter.value.split(/\s+/).map(plain).filter(Boolean);

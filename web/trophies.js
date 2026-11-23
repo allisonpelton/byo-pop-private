@@ -501,9 +501,8 @@ var ByopopTrophies = (function () {
 
   // ---- the window ----
   var win = null;
-  function build(games) {
-    var el = make("section", "tc-win");
-    el.id = "trophies";
+  function build(games, el) {
+    el.classList.add("tc-win");
     var bar = make("div", "tc-bar");
     var lab = make("label", "", T("trophies.player"));
     var pick = make("select");
@@ -585,16 +584,14 @@ var ByopopTrophies = (function () {
     pick.addEventListener("change", draw);
     return { el: el, scan: scan };
   }
-  function attach(desk, at) {
+  // the window's contents, built into its element (el), which Desktop 95's desktop already has, closed: web/index.html adds it
+  // and loads this script as the window first opens (ByopopLazy, web/skins.js's fill)
+  function fill(el) {
     if (win || !document.getElementById("games-title") || typeof ByopopMusic === "undefined") return null;
     var games = Array.prototype.map.call(document.querySelectorAll("a.tile[data-game]"), function (t) {
       return { id: t.getAttribute("data-game"), title: t.querySelector(".name").textContent, persist: t.getAttribute("data-persist") };
     }).sort(function (a, b) { return a.title.localeCompare(b.title); });   // by title, as the listing and the Start menu list them
-    win = build(games);
-    var foot = document.querySelector("body > footer");
-    if (foot && foot.parentNode) foot.parentNode.insertBefore(win.el, foot); else document.body.appendChild(win.el);
-    desk.add(win.el, { id: "trophies", title: T("trophies.title"), closable: true, closed: true, at: at, scroll: ".tc-body",
-      minWidth: 300, minHeight: 200 });
+    win = build(games, el);
     var open = false;
     function watch() {
       var now = !win.el.classList.contains("d95-closed") && document.documentElement.classList.contains("d95-desk");
@@ -609,6 +606,6 @@ var ByopopTrophies = (function () {
     watch();
     return win;
   }
-  return { attach: attach, parse: parse, parseIni: parseIni, parseBwa: parseBwa, bwaTables: bwaTables, parseMahjongPlayer: parseMahjongPlayer, mahjongTables: mahjongTables, layoutName: layoutName, RECORDS: RECORDS };
+  return { fill: fill, parse: parse, parseIni: parseIni, parseBwa: parseBwa, bwaTables: bwaTables, parseMahjongPlayer: parseMahjongPlayer, mahjongTables: mahjongTables, layoutName: layoutName, RECORDS: RECORDS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = ByopopTrophies;

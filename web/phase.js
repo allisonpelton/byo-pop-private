@@ -2,14 +2,20 @@
 // listing for what phase a game is in? For the test site only. Then I'd know if I'm really finding something that would get
 // overlooked otherwise."). The coordinator keeps docs/game_status.json (each game's steps done, not applying and under way, and a
 // few words of note), served on development hosts by tools/webtest/serve.py at /__repo/docs/game_status.json and fetched only
-// there (ByopopTerms.devHost): a deployed page never asks for it and shows nothing. The Library has a Phase column (web/library.js):
+// there: on a development host (ByopopTerms.devHost) whose server says it serves the repository (serve.py's Server-Timing entry
+// "byopop-repo" on the page), so that neither a deployed page nor another server (the Browser pane's, python -m http.server)
+// is asked for it, and those show nothing. The Library has a Phase column (web/library.js):
 // the step under way (or "Done"), its tooltip the steps done, the steps left and the note. Values only: the step names are the file's own labels.
 var ByopopPhase = (function () {
   "use strict";
   var URL = "/__repo/docs/game_status.json";
   var data = null, on = false;
   function T(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
-  try { on = typeof ByopopTerms !== "undefined" && ByopopTerms.devHost(location); } catch (e) { on = false; }
+  function repoServed() {
+    var n = performance.getEntriesByType("navigation")[0];
+    return !!(n && n.serverTiming && n.serverTiming.some(function (t) { return t.name === "byopop-repo"; }));
+  }
+  try { on = typeof ByopopTerms !== "undefined" && ByopopTerms.devHost(location) && repoServed(); } catch (e) { on = false; }
 
   function labels() {
     var out = {};

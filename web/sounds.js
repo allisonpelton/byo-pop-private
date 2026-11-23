@@ -11,7 +11,7 @@
 // file here), and the decoded sounds are kept while the window is open and dropped when it closes. At ?silent=1 the sound goes
 // through a final gain of 0, as the music player's does. The grid of buttons is one tab stop: the arrows walk it (Up and Down
 // to the nearest button on the line above or below, across the group boxes), Home and End go to the first and last.
-//   ByopopSounds.attach(desk, at)   adds the window to Desktop 95's desktop, closed (web/index.html)
+//   ByopopSounds.fill(el)   builds the window into its element, which Desktop 95's desktop has, closed (web/index.html)
 var ByopopSounds = (function () {
   "use strict";
   var VOLUME_KEY = "byopop-sounds-volume", MUTE_KEY = "byopop-sounds-mute", GAME_KEY = "byopop-sounds-game";
@@ -134,10 +134,8 @@ var ByopopSounds = (function () {
   }
 
   // ---- the window ----
-  function build(games) {
-    var el = make("section", "sb");
-    el.id = "sounds";
-    el.setAttribute("aria-label", T("sounds.title"));
+  function build(games, el) {
+    el.classList.add("sb", "sb-win");
     var muted = stored(MUTE_KEY) === "1", volume = 80;
     var v = parseInt(stored(VOLUME_KEY), 10);
     if (v >= 0 && v <= 100) volume = v;
@@ -508,17 +506,14 @@ var ByopopSounds = (function () {
 
   // The window on the listing's desktop (web/index.html): closed at first, its icon after Music's
   var board = null;
-  function attach(desk, at) {
+  // the window's contents, built into its element (el), which Desktop 95's desktop already has, closed: web/index.html adds it
+  // and loads this script as the window first opens (ByopopLazy, web/skins.js's fill)
+  function fill(el) {
     if (board || !document.getElementById("games-title") || typeof ByopopMusic === "undefined") return null;
     var games = Array.prototype.map.call(document.querySelectorAll("a.tile[data-game]"), function (t) {
       return { id: t.getAttribute("data-game"), title: t.querySelector(".name").textContent, persist: t.getAttribute("data-persist") };
     }).sort(function (a, b) { return a.title.localeCompare(b.title); });   // by title, as the listing and the Start menu list them
-    board = build(games);
-    var foot = document.querySelector("body > footer");
-    if (foot && foot.parentNode) foot.parentNode.insertBefore(board.el, foot); else document.body.appendChild(board.el);
-    desk.add(board.el, { id: "sounds", title: T("sounds.title"), closable: true, closed: true, at: at, scroll: ".sb-grid",
-      minWidth: 300, minHeight: 200 });
-    board.el.classList.add("sb-win");
+    board = build(games, el);
     // read the games when it opens; stop, and drop the decoded sounds, when it closes (a minimized window keeps them); the
     // desktop going (a screen under 760 pixels wide) closes it too
     var open = false;
@@ -536,5 +531,5 @@ var ByopopSounds = (function () {
     try { ByopopGameFiles.watch(function () { if (open) board.rescan(); }); } catch (e) {}
     return board;
   }
-  return { attach: attach, panel: function () { return board; }, decode: decode };
+  return { fill: fill, panel: function () { return board; }, decode: decode };
 })();

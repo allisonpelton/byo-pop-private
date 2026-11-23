@@ -24,6 +24,7 @@ skin.desk.icons = Desktop
 skin.desk.open = Open {window}
 skin.desk.close = Close {window}
 skin.desk.minimize = Minimize {window}
+skin.desk.start_failed = Cannot start {window}. Check your connection, and then try again.
 # Desktop 95 in one page (web/deskapps.js): a game window's menu, its Close, the message box when too many games are open, a text
 # that could not be read
 library.title = Library
