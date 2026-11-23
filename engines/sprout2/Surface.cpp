@@ -378,6 +378,12 @@ void Surface::setPivot(int thePivot)
 		setAnchor(Vector2f(aHalfWidth, (float)((double)getHeight() - 1.0f)));
 	else if (thePivot == PIVOT_TOP)
 		setAnchor(Vector2f(aHalfWidth, 0.0f));
+	else if (thePivot == PIVOT_UPPER_RIGHT)
+		setAnchor(Vector2f((float)getWidth(), 0.0f));
+	else if (thePivot == PIVOT_LOWER_LEFT)
+		setAnchor(Vector2f(0.0f, (float)((double)getHeight() - 1.0f)));
+	else if (thePivot == PIVOT_LOWER_RIGHT)
+		setAnchor(Vector2f((float)getWidth(), (float)((double)getHeight() - 1.0f)));
 	else
 		setAnchor(Vector2f(0.0f, 0.0f));
 }
