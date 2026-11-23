@@ -36,7 +36,9 @@ The rules a session follows:
   `SwitchToThisWindow`, and `ShowWindow`, `ShowWindowAsync`, `SetWindowPos`, `DeferWindowPos` and `SetWindowPlacement`
   made non-activating), so that a copy on the user's desktop never takes the focus ("Yes, hook window activation
   calls", 2026-11-22, after Bejeweled Twist's 3D original held the user's foreground for a whole visrun run: "The
-  activation hook"). Any other hook needs the user's OK first.
+  activation hook"); and its `ClipCursor` and `SetCursorPos`, which do nothing, so that a copy never confines or
+  moves the user's cursor ("Yes, hook both", 2026-11-23, after Feeding Frenzy's original held the user's mouse in a
+  small rectangle: "The cursor guard"). Any other hook needs the user's OK first.
 - **No keygens.** Patch the check in the copy, or set the registry values the game itself writes when registered;
   never generate a registration code. How a copy's protection is handled is written only in the private notes
   under "Per-game status", which a published snapshot strips (`docs/PUBLISHING.md`).
@@ -413,15 +415,12 @@ approved the hover patch for test copies on 2026-11-01: rundesk's desktop has no
 makes a game take the mouse position from the posted message instead of `GetCursorPos`). origrun knows and
 generates none of the bytes; the game session that knows the code supplies them.
 
-**The user's cursor (safety patches, every game).** The cursor's clip and position belong to the whole window
-station, so rundesk's private desktop does not contain them: an original that calls `ClipCursor` with a rectangle
-confines the user's own cursor to the game's hidden window, and one that calls `SetCursorPos` moves it. On 2026-11-23
-the user's mouse was held in a small rectangle near the top left by repeated runs of Feeding Frenzy's original on a
-rundesk desktop, each clip its window's client area. Before a game's first run, find every call to both in the exe
-(its imports name them) and patch each out of the copy (kind `safety`: pop the arguments and leave TRUE in `eax`);
-`ClipCursor(NULL)`, which frees the cursor, may stay. The scripted cursor (`--cursor scripted`) answers
-`GetCursorPos`, so a game that warps the cursor plays the same. During a run, read `GetClipCursor` on the host now
-and then: anything but the whole screen means stop.
+**The user's cursor.** An original's `ClipCursor` and `SetCursorPos` reach the user's own cursor from rundesk's
+private desktop; the stand-in's cursor guard makes both do nothing ("The cursor guard"). A copy that runs without the
+stand-in (`--sound real`, or a game that loads no DirectSound from its folder: its RESULT: CURSOR line says so) needs
+the calls patched out instead (kind `safety`: pop the arguments and leave TRUE in `eax`; `ClipCursor(NULL)`, which
+frees the cursor, may stay), and a session that runs one watches `GetClipCursor` on the host: anything but the whole
+screen means stop.
 
 <!-- private -->
 The hover patch, as found on Bookworm Adventures: SexyAppBase's handler for a deferred message (FUN_00547ea0 in its
@@ -876,6 +875,28 @@ one ran under the guard: the stand-in patched all seven functions in the game's 
 log says `RESULT: LAUNCH: no program, file or link launch from the game; the guard was in place in 1 process`. The call that
 Seven Seas makes (`ShellExecuteA` with an `open` verb and a file path) is the test exe's first launch. A later try takes shots
 inside Windows Sandbox to see the dialog before it clicks.
+
+## The cursor guard (always on)
+
+The cursor's clip rectangle and its position belong to the whole window station, so rundesk's private desktop does not
+contain them: a copy that calls `ClipCursor` with a rectangle confines the user's own mouse to its hidden window, and one
+that calls `SetCursorPos` moves it. On 2026-11-23 repeated runs of Feeding Frenzy's original (`FeedingFrenzy.exe` on a
+rundesk desktop) held the user's mouse in a small rectangle near the top left, each clip its window's client area, about
+once every ten seconds while the runs went on. The user allowed the hook that day ("Yes, hook both").
+
+The stand-in (`tools/origrun/net.c`, beside the network block and the launch guard, by the same five-byte jumps) makes
+`user32!ClipCursor`, `user32!SetCursorPos` and the `win32u` system calls behind them (`NtUserClipCursor`,
+`NtUserSetCursorPos`) do nothing and say they succeeded, in the copy's process only, whoever there calls them (DirectDraw's
+exclusive mode as well as the game). Windows' are never called. The first 20 calls of a process are logged to
+`logs/net.log` as `CURSOR BLOCKED <function> <rectangle or point>`, the rest are counted, and the run's
+`RESULT: CURSOR` line gives the total. A copy that reads the cursor back gets what it got before: the scripted cursor
+(`--cursor scripted`), or on rundesk's desktop a failed `GetCursorPos`. visrun's runs carry the guard too.
+
+It is off inside Windows Sandbox, whose cursor is the sandbox's own (origrun sets `ORIGRUN_CURSORGUARD=off` there), so a
+game's own cursor warps there still happen as in the game. A copy that never loads the stand-in (`--sound real`, or a game
+that loads no DirectSound from its folder) has no guard, which the RESULT line says: patch its calls out of the copy
+("Patching the copy"). check.sh's origrun suite tests the guard on `nettest.exe` (`tools/origrun/nettest.sh`): the four
+jumps are in place, the calls succeed, the cursor's clip is unchanged and the three calls are logged and counted.
 
 ## The registry map (`--reg-map popcap`)
 

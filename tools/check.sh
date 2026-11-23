@@ -84,7 +84,7 @@
 #                explained; a game with no list is reported as "no list yet" and does not fail yet (seconds; needs no game files)
 #   origrun      tools/origrun/build.sh into build/logs/check/origrun-bin (not into build/origrun-bin, whose origrun.exe
 #                may be running): that the host and its sound stand-in still compile, and --coverage on covtest.exe
-#                (tools/origrun/covtest.sh; seconds), and the network block and launch guard on nettest.exe (tools/origrun/nettest.sh; seconds);
+#                (tools/origrun/covtest.sh; seconds), and the network block, launch guard and cursor guard on nettest.exe (tools/origrun/nettest.sh; seconds);
 #                not in `all`
 #   speed        every finished game follows the game speed (tools/speedcheck.py): each game's exe run natively in real time, 3 at
 #                a time, for a few seconds at 0.5x and at 2x with -speed and -speedprobe; its updates per real second and its game

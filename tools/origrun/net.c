@@ -419,9 +419,44 @@ static BOOL WINAPI net_CreateProcessW(LPCWSTR app, LPWSTR cmd, void* procAttr, v
 	return FALSE;
 }
 
+// ---------------------------------------------------------------------------------------------------------- the cursor
+// The cursor guard (docs/ORIGRUN.md, "The cursor guard"): the cursor's clip and position belong to the whole window station,
+// so rundesk's private desktop does not contain them, and a copy's ClipCursor confined the user's own mouse to its hidden
+// window (Feeding Frenzy's original, 2026-11-23). The user allowed this hook that day ("Yes, hook both"): ClipCursor and
+// SetCursorPos do nothing and say they succeeded, whoever in the copy's process calls them (DirectDraw's exclusive mode
+// too), and Windows' are never called. A copy that reads the cursor back reads the scripted cursor (--cursor scripted), or on
+// rundesk's desktop a failure, as before. Off inside Windows Sandbox (ORIGRUN_CURSORGUARD=off), whose cursor is its own.
+
+static LONG gCursorCalls;                    // ClipCursor and SetCursorPos calls blocked in this process
+static int  gCursorOff;                      // ORIGRUN_CURSORGUARD=off: the guard's functions are left alone
+
+// The first 20 calls of a process are logged; the rest are only counted (a game may warp the cursor every frame).
+static void cursor_blocked(const char* fn, const char* what)
+{
+	LONG n = InterlockedIncrement(&gCursorCalls);
+	if (n <= 20) net_line("pid %lu: CURSOR BLOCKED %s %s", GetCurrentProcessId(), fn, what);
+	else if (n == 21) net_line("pid %lu: cursor guard: later calls are counted, not logged", GetCurrentProcessId());
+}
+static BOOL WINAPI net_ClipCursor(const RECT* r)
+{
+	char what[64];
+	if (r) _snprintf(what, sizeof(what), "%ld,%ld-%ld,%ld", r->left, r->top, r->right, r->bottom);
+	else lstrcpynA(what, "NULL (frees the cursor)", sizeof(what));
+	what[sizeof(what) - 1] = 0;
+	cursor_blocked("ClipCursor", what);
+	return TRUE;
+}
+static BOOL WINAPI net_SetCursorPos(int x, int y)
+{
+	char what[32];
+	_snprintf(what, sizeof(what), "%d,%d", x, y); what[sizeof(what) - 1] = 0;
+	cursor_blocked("SetCursorPos", what);
+	return TRUE;
+}
+
 // ---------------------------------------------------------------------------------------------------------- the patches
 
-typedef struct { const char* dll; const char* name; void* hook; HMODULE at; int guard; } NetDef;   // guard: 1 for a launch
+typedef struct { const char* dll; const char* name; void* hook; HMODULE at; int guard; } NetDef;   // guard: 1 for a launch, 2 for the cursor
 static NetDef gNet[] = {
 	{ "ws2_32.dll",  "connect",                  (void*)net_connect },
 	{ "wsock32.dll", "connect",                  (void*)net_connect },
@@ -472,6 +507,12 @@ static NetDef gNet[] = {
 	{ "kernel32.dll",   "CreateProcessW",        (void*)net_CreateProcessW,  NULL, 1 },
 	{ "kernelbase.dll", "CreateProcessA",        (void*)net_CreateProcessA,  NULL, 1 },
 	{ "kernelbase.dll", "CreateProcessW",        (void*)net_CreateProcessW,  NULL, 1 },
+	// the cursor guard (user32's may be a stub in front of win32u's system call, or a forwarder to it: both are listed; a name a
+	// Windows version lacks is skipped)
+	{ "user32.dll",     "ClipCursor",            (void*)net_ClipCursor,      NULL, 2 },
+	{ "win32u.dll",     "NtUserClipCursor",      (void*)net_ClipCursor,      NULL, 2 },
+	{ "user32.dll",     "SetCursorPos",          (void*)net_SetCursorPos,    NULL, 2 },
+	{ "win32u.dll",     "NtUserSetCursorPos",    (void*)net_SetCursorPos,    NULL, 2 },
 };
 #define NNET ((int)(sizeof(gNet) / sizeof(gNet[0])))
 
@@ -518,11 +559,11 @@ static void net_scan(void)
 	if (InterlockedExchange(&gScanBusy, 1)) return;
 	for (int i = 0; i < NNET; i++) {
 		HMODULE m = GetModuleHandleA(gNet[i].dll);
-		if (!m || m == gNet[i].at) continue;
+		if (!m || m == gNet[i].at || (gNet[i].guard == 2 && gCursorOff)) continue;
 		gNet[i].at = m;
 		BYTE* f = find_export(m, gNet[i].name);
 		if (!f) continue;   // forwarded: the DLL it forwards to is patched on its own
-		const char* what = gNet[i].guard ? "launch guard" : "network block";
+		const char* what = gNet[i].guard == 2 ? "cursor guard" : gNet[i].guard ? "launch guard" : "network block";
 		if (detour(f, gNet[i].hook)) net_line("pid %lu: %s: %s!%s patched", GetCurrentProcessId(), what, gNet[i].dll, gNet[i].name);
 		else net_line("pid %lu: %s: %s!%s could not be patched (err %lu)", GetCurrentProcessId(), what, gNet[i].dll, gNet[i].name, GetLastError());
 	}
@@ -552,8 +593,12 @@ void net_install(HMODULE self)
 	if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCSTR)(void*)net_install, &pin)) return;   // pinned: the jumps point into this DLL
 	net_open_log();
 	gInstalled = 1;
+	char cg[8] = "";
+	GetEnvironmentVariableA("ORIGRUN_CURSORGUARD", cg, sizeof(cg));
+	gCursorOff = !lstrcmpiA(cg, "off");
 	char exe[MAX_PATH]; GetModuleFileNameA(NULL, exe, MAX_PATH);
-	net_line("pid %lu %s: network block installed: WinSock, WinINet, URLMon and WinHTTP calls fail at once; launch guard installed: ShellExecute, WinExec and CreateProcess calls fail at once; a DLL mapped later is patched when it loads", GetCurrentProcessId(), exe);
+	net_line("pid %lu %s: network block installed: WinSock, WinINet, URLMon and WinHTTP calls fail at once; launch guard installed: ShellExecute, WinExec and CreateProcess calls fail at once; %s; a DLL mapped later is patched when it loads", GetCurrentProcessId(), exe,
+		gCursorOff ? "cursor guard off (ORIGRUN_CURSORGUARD=off: inside Windows Sandbox)" : "cursor guard installed: ClipCursor and SetCursorPos do nothing");
 	net_scan();
 	HMODULE nt = GetModuleHandleA("ntdll.dll");
 	NetLdrRegister reg = nt ? (NetLdrRegister)(void*)GetProcAddress(nt, "LdrRegisterDllNotification") : NULL;
@@ -567,6 +612,6 @@ LONG net_blocked_count(void) { return gBlocked; }
 void net_detach(void)
 {
 	if (!gInstalled) return;
-	net_line("pid %lu exits: network block: %ld call%s blocked; launch guard: %ld launch%s blocked", GetCurrentProcessId(), (long)gBlocked, gBlocked == 1 ? "" : "s",
-		(long)gLaunches, gLaunches == 1 ? "" : "es");
+	net_line("pid %lu exits: network block: %ld call%s blocked; launch guard: %ld launch%s blocked; cursor guard: %ld call%s blocked", GetCurrentProcessId(), (long)gBlocked, gBlocked == 1 ? "" : "s",
+		(long)gLaunches, gLaunches == 1 ? "" : "es", (long)gCursorCalls, gCursorCalls == 1 ? "" : "s");
 }
