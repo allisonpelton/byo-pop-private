@@ -72,14 +72,14 @@ void ButterflyBoard::NewGame()
 	mScoringButterfly = false;
 	if (POPANIM_ANIMS_SPIDER != nullptr)
 		POPANIM_ANIMS_SPIDER->PlayLabel("IDLE", true);
-	Board::NewGame();
+	QuestBoard::NewGame();   // 0x6ddc70 (0x6e3660 ends with it): the goal (ButterflyGoal) is made, then Board's new game
 }
 
-// slot 140 of Board (0x75fd15, the first time the board is at rest), which a secret quest answers with slot 256 (0x6dcce0): with no drop owed
+// slot 256 (0x6dcce0), which QuestBoard's slot 140 (0x6d0af0) runs the first time the board is at rest: with no drop owed
 // yet (+0x3274 is 0) the first butterflies are dropped
-void ButterflyBoard::OnFirstSettled()
+void ButterflyBoard::OnQuestStart()
 {
-	if (mIsSecretMode && mSpawnCredit == 0.0f)
+	if (mSpawnCredit == 0.0f)
 		SpawnButterflies();
 }
 
@@ -202,9 +202,10 @@ void ButterflyBoard::OnPieceCleared(Piece* thePiece)
 {
 	if ((thePiece->mFlags & Piece::FLAG_BUTTERFLY) == 0)
 		return;
-	if (!mIsSecretMode && mGameOverTicks != 0)
-		return;
-	AddCounter(COUNTER_BUTTERFLIES_FREED, 1, thePiece->mColumnTag);   // 0x6ab2f0
+	if (mGoal != nullptr)
+		mGoal->OnPieceCleared(thePiece);   // 0x6d03d0 runs the goal's slot 40 first (0x6ab2f0, ButterflyGoal)
+	else
+		AddCounter(COUNTER_BUTTERFLIES_FREED, 1, thePiece->mColumnTag);   // a secret mode has no goal: the same count
 	int aMoveCount = GetMoveCounter(thePiece->mColumnTag, COUNTER_BUTTERFLIES_FREED);   // 0x73cf10
 	mCounters[COUNTER_BEST_COMBO] = std::max(mCounters[COUNTER_BEST_COMBO], aMoveCount);   // 0x73cfd0
 	if (thePiece->mColumnTag != -1) {
@@ -215,7 +216,43 @@ void ButterflyBoard::OnPieceCleared(Piece* thePiece)
 	mScoringButterfly = true;
 	AddPoints((mCounters[COUNTER_BUTTERFLIES_FREED] + 10 + aMoveCount * 20) * 5, thePiece->mColumnTag);
 	mScoringButterfly = false;
-	// 0x6d01b0 (the burst at the butterfly) and the level goal's branch (a secret mode skips it) are left out
+	// 0x6d01b0 (the burst at the butterfly) is left out. When the level's goal is met (not in a secret mode) every butterfly on the grid gets one move more
+	if (!mIsSecretMode && GetLevelProgress() >= GetLevelMax()) {
+		for (int aRow = 0; aRow < ROWS; aRow++) {
+			for (int aCol = 0; aCol < COLS; aCol++) {
+				Piece* aPiece = mGrid[aRow][aCol];
+				if (aPiece != nullptr && (aPiece->mFlags & Piece::FLAG_BUTTERFLY) != 0)
+					aPiece->mTimeGemSeconds++;
+			}
+		}
+	}
+}
+
+// slot 53 (0xd4), 0x6ae830 (bejeweled3): the setting Butterflies
+void ButterflyGoal::Load()
+{
+	mButterflies = mBoard->SettingInt("Butterflies");
+}
+
+// slot 22 (0x58), 0x6aa420 (bejeweled3): the level's size is the butterflies to free, 0 in a secret mode
+int ButterflyGoal::GetLevelMax()
+{
+	return mBoard->mIsSecretMode ? 0 : mButterflies;
+}
+
+// slot 40 (0xa0), 0x6ab2f0 (bejeweled3): a butterfly is freed (while the game is not lost, or in a secret mode): the game's count of butterflies freed (counter 0x1c) goes up for
+// the move's tag, and in a quest the score (+0xd24) and the progress (+0xe00) go up by 1
+void ButterflyGoal::OnPieceCleared(Piece* thePiece)
+{
+	if ((thePiece->mFlags & Piece::FLAG_BUTTERFLY) == 0)
+		return;
+	if (mBoard->mGameOverTicks != 0 && !mBoard->mIsSecretMode)
+		return;
+	mBoard->AddCounter(ButterflyBoard::COUNTER_BUTTERFLIES_FREED, 1, thePiece->mColumnTag);
+	if (!mBoard->mIsSecretMode) {
+		mBoard->mScorePoints++;
+		mBoard->mLevelProgress++;
+	}
 }
 
 // slot 161 (0x284), 0x6dcd50 (a jump to QuestBoard's 0x6d8e30, bejeweled3): the game ends. The goal's veto (slot 10) and the level-full test
@@ -223,7 +260,7 @@ void ButterflyBoard::OnPieceCleared(Piece* thePiece)
 // game ends (0x7602c0): Board's own NoMoreMoves does both
 void ButterflyBoard::NoMoreMoves(bool theAnnounce)
 {
-	Board::NoMoreMoves(theAnnounce);
+	QuestBoard::NoMoreMoves(theAnnounce);   // 0x6d8e30: for a secret mode (it records high scores) Board's; a quest just ends
 }
 
 // slot 257 (0x404), 0x6d0590 (bejeweled3): the end dialog of the mode (0x784c30, vftable 0x86be7c)

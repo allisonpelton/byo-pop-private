@@ -338,6 +338,7 @@ void Board::FillInBlanks(bool theNoMatchCheck)
 			break;      // slot 185 (0x2e4): 0x73bc00 is true; SpeedBoard's 0x716c60 makes the time gems and is true as well
 		aTries++;
 	}
+	OnFillDone(aNewPieces);   // slot 204 (0x330)
 }
 
 // 0x8d2da8 (bejeweled3): the game's speed, 1 at the normal pace; Update eases it towards what the state asks for
@@ -463,6 +464,7 @@ void Board::UpdateGame()
 				aPiece->mSpecialCountdown--;
 		}
 	}
+	UpdateWarnings();   // slot 181
 	UpdateBusyPieces();
 	UpdatePiecePulses();   // 0x768f7b to 0x7690b8, before the call of 0x75dee0
 	UpdatePieceSpins();    // 0x7690d0 to 0x769149
@@ -527,6 +529,18 @@ void Board::UpdateGame()
 // 0x75fca0 (bejeweled3). port: slot 140 (0x73c180) is a return, so the first settling calls nothing
 bool Board::IsSettled()
 {
+	if (!IsAtRest())
+		return false;
+	if (!mSettledOnce) {
+		mSettledOnce = true;
+		OnFirstSettled();   // 0x75fd15: slot 140
+	}
+	return true;
+}
+
+// 0x75fc10 (bejeweled3)
+bool Board::IsAtRest()
+{
 	if (mLandTicks != 0)
 		return false;
 	for (int aRow = 0; aRow < ROWS; aRow++) {
@@ -539,10 +553,6 @@ bool Board::IsSettled()
 		return false;
 	if (HasMatches())
 		return false;
-	if (!mSettledOnce) {
-		mSettledOnce = true;
-		OnFirstSettled();   // 0x75fd15: slot 140
-	}
 	return true;
 }
 

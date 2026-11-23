@@ -10,6 +10,10 @@
 #include "DiamondMineBoard.h"
 #include "PokerBoard.h"
 #include "MoveLimitBoard.h"
+#include "FillerBoard.h"
+#include "BalanceBoard.h"
+#include "BadMoveLimitBoard.h"
+#include "TimeBombBoard.h"
 #include "QuestMenu.h"
 #include "TimeLimitBoard.h"
 #include "Board.h"
@@ -46,7 +50,7 @@ const char* ModeKey(const Board* theBoard)
 		return "icestorm";
 	if (aName == "BuriedTreasure")
 		return "diamondmine";
-	if (aName == "QuestTurnBased" || aName == "QuestTimeBased")
+	if (aName == "QuestTurnBased" || aName == "QuestTimeBased" || aName == "QuestBomb")
 		return "quest";
 	return "classic";
 }
@@ -191,7 +195,7 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	if (aCommand == "quest") {
 		// quest <index> [Name=Value ...]: the quest at that index of quest.cfg is started as the quest map's button starts it (0x774060); each Name=Value after the index
-		// replaces a setting of the quest (a test's way to a short quest: "quest 3 Gems=20"). quest done <index>: the quest is marked done in the profile, which is saved
+		// replaces a setting of the quest (a test's way to a short quest: "quest 3 Gems=20"; a value in quotes may hold spaces: Goal="Clear Gems"). quest done <index>: the quest is marked done in the profile, which is saved
 		// (a test's way to open the sections); quest undo: every quest is marked not done
 		if (mProfile == nullptr) {
 			ReplyError(theCommand, "a player is needed");
@@ -228,9 +232,13 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 			size_t aStart = aRest.find_first_not_of(' ', aPosition);
 			if (aStart == std::string::npos)
 				break;
-			size_t anEnd = aRest.find(' ', aStart);
-			if (anEnd == std::string::npos)
-				anEnd = aRest.size();
+			size_t anEnd = aStart;
+			bool isQuoted = false;
+			while (anEnd < aRest.size() && (isQuoted || aRest[anEnd] != ' ')) {
+				if (aRest[anEnd] == '"')
+					isQuoted = !isQuoted;
+				anEnd++;
+			}
 			const std::string aPair = aRest.substr(aStart, anEnd - aStart);
 			const size_t anEquals = aPair.find('=');
 			if (anEquals != std::string::npos)
@@ -528,6 +536,32 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 						aLine += ",\"movesleft\":" + std::to_string(aMoves->mMovesLeft) + ",\"moves\":" + std::to_string(aMoves->mMoves);
 					if (const TimeLimitBoard* aTimed = dynamic_cast<const TimeLimitBoard*>(mBoard))
 						aLine += ",\"timeleft\":" + std::to_string(aTimed->GetTimeLeft());
+					if (const FillerBoard* aFiller = dynamic_cast<const FillerBoard*>(mBoard))
+						aLine += ",\"credits\":" + std::to_string(aFiller->mCredits) + ",\"droppermove\":" + std::to_string(aFiller->mDropPerMove) + ",\"gemsdropped\":" +
+							std::to_string(aFiller->mGemsDropped) + ",\"gemsremoved\":" + std::to_string(aFiller->mGemsRemoved) + ",\"gemsatstart\":" + std::to_string(aFiller->mGemsAtMoveStart) +
+							",\"fullwarning\":" + std::to_string((int)(aFiller->mFullWarning * 1000.0f)) + ",\"dropallowed\":" + std::to_string(aFiller->mDropAllowed ? 1 : 0);
+					if (const BalanceBoard* aBalance = dynamic_cast<const BalanceBoard*>(mBoard))
+						aLine += ",\"balance\":" + std::to_string((int)(aBalance->mBalance * 1000.0f)) + ",\"red\":" + std::to_string(aBalance->mRedCount) + ",\"blue\":" +
+							std::to_string(aBalance->mBlueCount) + ",\"gemspercolor\":" + std::to_string(aBalance->mGemsPerColor);
+					if (const BadMoveLimitBoard* aBadMoves = dynamic_cast<const BadMoveLimitBoard*>(mBoard))
+						aLine += ",\"badallowed\":" + std::to_string(aBadMoves->mBadMovesAllowed) + ",\"badused\":" + std::to_string(aBadMoves->mBadMovesUsed);
+					if (const TimeBombBoard* aBombs = dynamic_cast<const TimeBombBoard*>(mBoard)) {
+						// the bombs: the count of each as a digit (9 for more), . where there is none; and the bombs on the board, the moves until the next drop, whether the play has begun
+						aLine += ",\"bombgrid\":[";
+						for (int aRow = 0; aRow < Board::ROWS; aRow++) {
+							aLine += aRow == 0 ? "\"" : ",\"";
+							for (int aCol = 0; aCol < Board::COLS; aCol++) {
+								const Piece* aPiece = aBombs->mGrid[aRow][aCol];
+								if (aPiece == nullptr || (aPiece->mFlags & TimeBombBoard::FLAG_BOMB) == 0)
+									aLine += '.';
+								else
+									aLine += (char)('0' + (aPiece->mTimeGemSeconds < 0 ? 0 : aPiece->mTimeGemSeconds > 9 ? 9 : aPiece->mTimeGemSeconds));
+							}
+							aLine += "\"";
+						}
+						aLine += "],\"bombs\":" + std::to_string(aBombs->mBombCount) + ",\"untildrop\":" + std::to_string(aBombs->mMovesUntilDrop) + ",\"bombstarted\":" +
+							std::to_string(aBombs->mStarted ? 1 : 0) + ",\"realtime\":" + std::to_string(aBombs->mRealTime ? 1 : 0);
+					}
 				}
 			}
 			if (const ButterflyBoard* aButterflies = dynamic_cast<const ButterflyBoard*>(mBoard)) {

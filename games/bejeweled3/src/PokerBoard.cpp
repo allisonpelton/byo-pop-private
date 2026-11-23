@@ -90,14 +90,14 @@ void PokerBoard::NewGame()
 	mFlyCurve.SetConstant(0.0);
 	mFlipCurve.SetConstant(0.0);
 	mAfterFlipCurve.SetConstant(0.0);
-	Board::NewGame();
+	QuestBoard::NewGame();   // 0x6ddc70 (0x6dfa40 ends with it)
 }
 
-// slot 140 of Board (0x75fd15, the first time the board is at rest), which a secret quest answers with slot 256 (0x6cf440): the first hand
+// slot 256 (0x6cf440), which QuestBoard's slot 140 (0x6d0af0) runs the first time the board is at rest: the first hand
 // is begun, which is a clear of the hand while no hand has been cleared yet
-void PokerBoard::OnFirstSettled()
+void PokerBoard::OnQuestStart()
 {
-	if (mIsSecretMode && mHands == 0)
+	if (mHands == 0)
 		ClearHand();
 }
 

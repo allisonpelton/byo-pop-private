@@ -189,7 +189,7 @@ void IceStormBoard::NewGame()
 	mPreviousStageFireSpeed = 0.0f;
 	PlanLayout();
 	mMultiplierIceThreshold = MultiplierThreshold();
-	Board::NewGame();
+	QuestBoard::NewGame();   // 0x6ddc70 (0x6e6a10 calls it): the goal is made, then Board's new game (0x74e410)
 }
 
 // 0x6c6600 (bejeweled3): the values of a stage's row. Past the last row they go on by the step between the last two rows (the last row's own
@@ -582,8 +582,6 @@ void IceStormBoard::StepColumns(bool theMove, bool theMayLose, bool theMaySpawn)
 void IceStormBoard::UpdateTick()
 {
 	Board::UpdateTick();
-	if (!mIsSecretMode)
-		return;
 	mTicks++;
 	if (mGameOverTicks != 0 || mTicks < 2)
 		return;
@@ -615,8 +613,9 @@ void IceStormBoard::UpdateTick()
 				aState.mPushStrength = ReprieveStrength(aColumn);
 		}
 	}
-	if (aMayRun) {
-		// 0x6e5790: the stage's time is up: the next row
+	if (aMayRun && mIsSecretMode) {
+		// 0x6e5790: the stage's time is up: the next row. A quest (the secret flag clear) takes its other branch, which draws the app's Rand() twice for the
+		// glow (+0x369c and +0x36a0) and does not step the stage or the multiplier: port: left out, see docs/NOTES.md, "Inferno as a quest"
 		if (mTicks - mStageStartTick >= mStageDurationTicks) {
 			mStage++;
 			PlanLayout();
@@ -669,7 +668,7 @@ void IceStormBoard::Update()
 	if (mDeathStarted && mGameOverTicks == 0) {
 		mDeathCurve.IncInVal();
 		if (mDeathCurve.GetOutVal() >= 1.0)
-			Board::NoMoreMoves(true);
+			QuestBoard::NoMoreMoves(true);
 	}
 }
 
@@ -703,13 +702,15 @@ void IceStormBoard::OnRunFound(const std::vector<Piece*>& thePieces)
 
 // slot 143 (0x23c), 0x6dd580 (bejeweled3): a gem is cleared. One of a vertical run crushes its column's ice (0x6db1a0 with the gem's row). The
 // column's own ice, if it is made, is pushed down by MatchPushStr, by SpecialGemPushMod times that when a special gem cleared it (the exe's
-// test is the bit 2 of what cleared it), and a hypercube's group at work crushes it
+// test is the bit 2 of what cleared it), and a hypercube's group at work crushes it; then the goal's
 void IceStormBoard::OnPieceCleared(Piece* thePiece)
 {
 	const int aColumn = thePiece->mCol;
 	const int aRow = thePiece->mRow;
-	if (aColumn < 0 || aColumn >= COLUMN_COUNT || aRow < 0 || aRow >= ROWS)
+	if (aColumn < 0 || aColumn >= COLUMN_COUNT || aRow < 0 || aRow >= ROWS) {
+		QuestBoard::OnPieceCleared(thePiece);
 		return;
+	}
 	const int anOwner = mColumns[aColumn].mOwner;
 	const bool anOwnerActive = mColumns[anOwner].mActive;
 	std::vector<int>::iterator aFound = std::find(mVerticalRunPieceIds.begin(), mVerticalRunPieceIds.end(), thePiece->mId);
@@ -724,6 +725,7 @@ void IceStormBoard::OnPieceCleared(Piece* thePiece)
 		if (ColumnHasLiveGroup(aColumn))
 			CrushColumn(anOwner, aRow);
 	}
+	QuestBoard::OnPieceCleared(thePiece);   // the end of 0x6dd580: the goal's slot 40 (a quest has one: Clear Gems counts the gem)
 }
 
 // slot 166 (0x2a8), 0x6caf30 (bejeweled3): a flame gem is made: its column's push goes up by (SpecialGemPushMod - 1) times MatchPushStr, then the

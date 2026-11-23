@@ -12,6 +12,11 @@
 #include "MoveLimitBoard.h"
 #include "QuestMenu.h"
 #include "TimeLimitBoard.h"
+#include "TimeBombBoard.h"
+#include "BalanceBoard.h"
+#include "FillerBoard.h"
+#include "NoLoseBoard.h"
+#include "BadMoveLimitBoard.h"
 #include "LightningBoard.h"
 #include "ZenBoard.h"
 #include "MemoryImage.h"
@@ -519,13 +524,16 @@ bool Bej3App::StartSecretMode(int theIndex)
 
 // 0x774060 (bejeweled3) with the secret flag 0: a quest of the map. The quest (quest.cfg's, by index) says by its setting Challenge which board is made (the names
 // are compared as for the secret modes, see StartSecretMode); its settings are copied into the board's map and its index is the board's +0x3234 before the board is reset
-// (slot 85) and dealt (slot 135). port: only Move Limit and Time Limit (and Dig, which has the secret flag only in the secret mode) are made; the quest map stays up when the
+// (slot 85) and dealt (slot 135). port: every challenge of the exe's list is made (Real Time Bomb's class is not: see TimeBombBoard); the quest map stays up when the
 // challenge is not
 bool Bej3App::StartQuest(int theIndex)
 {
 	if (mQuestData == nullptr || theIndex < 0 || theIndex >= (int)mQuestData->mQuests.size())
 		return false;
-	const std::map<std::string, std::string>& aSettings = mQuestData->mQuests[(size_t)theIndex].mSettings;
+	// port: a test's changes of settings (the quest command) are made before the challenge is read, so one can change the board
+	std::map<std::string, std::string> aSettings = mQuestData->mQuests[(size_t)theIndex].mSettings;
+	for (const auto& aChange : mQuestSettingChanges)
+		aSettings[aChange.first] = aChange.second;
 	auto aChallengeIter = aSettings.find("Challenge");
 	std::string aChallenge = aChallengeIter == aSettings.end() ? std::string() : aChallengeIter->second;
 	if (aChallenge.size() >= 2 && aChallenge.front() == '"' && aChallenge.back() == '"')
@@ -533,17 +541,36 @@ bool Bej3App::StartQuest(int theIndex)
 	for (char& aChar : aChallenge)
 		aChar = (char)toupper((unsigned char)aChar);
 	QuestBoard* aBoard = nullptr;
-	if (aChallenge == "MOVE LIMIT")
+	if (aChallenge == "TIME BOMB" || aChallenge == "TIME BOMB (REAL TIME)") {
+		TimeBombBoard* aBombBoard = new TimeBombBoard();   // 0x869dc4, by 0x6dd440 with 0 or 1; the class of the real-time bombs (0x869954) is never made
+		aBombBoard->mRealTime = aChallenge == "TIME BOMB (REAL TIME)";
+		aBoard = aBombBoard;
+	}
+	else if (aChallenge == "INFERNO")
+		aBoard = new IceStormBoard();   // 0x8685ec, by 0x6e2d90
+	else if (aChallenge == "BALANCE")
+		aBoard = new BalanceBoard();   // 0x86789c, by 0x6dd090
+	else if (aChallenge == "BUTTERFLIES" || aChallenge == "BUTTERFLY")
+		aBoard = new ButterflyBoard();   // 0x867d0c, by 0x6dcdf0
+	else if (aChallenge == "FILLER")
+		aBoard = new FillerBoard();   // 0x86817c, by 0x6dcc00
+	else if (aChallenge == "MOVE LIMIT")
 		aBoard = new MoveLimitBoard();   // 0x868a84
 	else if (aChallenge == "TIME LIMIT")
 		aBoard = new TimeLimitBoard();   // 0x86a234
+	else if (aChallenge == "DIG")
+		aBoard = new DigBoard();   // 0x8657d4, by 0x737420
+	else if (aChallenge == "NO LOSE")
+		aBoard = new NoLoseBoard();   // 0x868ef4, by 0x6da7a0
+	else if (aChallenge == "BAD MOVE LIMIT")
+		aBoard = new BadMoveLimitBoard();   // 0x86742c, by 0x6dd370
+	else if (aChallenge == "POKER")
+		aBoard = new PokerBoard();   // by 0x6da1c0
 	if (aBoard == nullptr) {
 		SDL_Log("Quest: the challenge \"%s\" is not made yet", aChallenge.c_str());
 		return false;
 	}
 	aBoard->mSettings = aSettings;
-	for (const auto& aChange : mQuestSettingChanges)
-		aBoard->mSettings[aChange.first] = aChange.second;
 	aBoard->mIsSecretMode = false;
 	aBoard->mQuestIndex = theIndex;
 	// the quest map goes (the exe keeps it under the game; the port makes a new one when it comes back)

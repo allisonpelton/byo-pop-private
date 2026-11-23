@@ -94,6 +94,13 @@ public:
 	int mSpecialCountdown = 0;   // +0x184: 25 when a special was made on it (0x745ca0, 0x749570, 0x7494d0), counts down by one each update
 	                        // (UpdateGame); the 3 by 3 explosion and the busy-count branch leave a piece alone while it is above 0
 
+	// Time Bomb's bombs (flags 0x200 with 0x20 for a move bomb or 0x40 for a real-time one; the counter is mTimeGemSeconds): the shake that counts a move down (set by
+	// 0x73c710, stepped by 0x767e20) and the real-time clock (0x767e20 steps it every update; a tick comes when it comes round to 0)
+	float mShakePhase = 0.0f;   // +0x26c
+	float mShakeSpeed = 0.0f;   // +0x270: 0 when no shake runs
+	int mTickCounter = 0;       // +0x24c
+	int mTickPeriod = 100;      // +0x250
+
 	std::vector<Effect*> mEffects;   // +0x620: the effects that hold the piece (their users count, +0x1b4, counts it)
 
 	explicit Piece(Board* theBoard);   // 0x7203b0 (bejeweled3), with 0x720120 (bejeweled3)
@@ -286,8 +293,19 @@ public:
 	virtual void UpdateFalling();   // virtual: Diamond Mine's slot 214 (0x736d60) runs it and then stops its bricks
 	// 0x75fca0 (bejeweled3): every piece is at rest in its cell, nothing is left to land, and there is no match
 	bool IsSettled();
+	// 0x75fc10 (bejeweled3) without the first-settled call: the board is at rest (the tests of IsSettled)
+	bool IsAtRest();
 	// slot 140 (0x230): the first time IsSettled finds the board at rest (0x75fd15); Quest-derived boards start their play here (slot 256)
 	virtual void OnFirstSettled() {}
+	// slot 192 (0x300): a swap of the player's found no match and goes back (0x759ba0, after the counter 0x73d170): Bad Move Limit counts it
+	virtual void OnSwapFailed(const SwapRecord& theSwap) { (void)theSwap; }
+	// slot 204 (0x330), the last call of 0x763e90: the fill has been accepted (Time Bomb's 0x6c53d0 counts the bomb it made)
+	virtual void OnFillDone(const std::vector<Piece*>& theNewPieces) { (void)theNewPieces; }
+	// slot 212 (0x350, base 0x73c710), run by CountDownMoves for each piece and (with theTick) by the bombs' real-time clock: a piece's counter counts down
+	virtual void CountDownPiece(Piece* thePiece, bool theTick);
+	// slot 181 (0x2d4), run once in each UpdateGame after the pieces' flag loops and before the busy counts (Filler's warning, 0x6dc770, and Time Bomb's
+	// flag loop, 0x767e20 at about line 190)
+	virtual void UpdateWarnings() {}
 	// slot 191 (0x2fc), 0x75a58a: a swap has found matches (the swap record is given); with the pieces' move counters of 0x73c7e0 first
 	virtual void OnSwapMatched(const SwapRecord& theSwap) { (void)theSwap; }
 	// slot 211 (0x34c, 0x73ba10 returns at once; Ice Storm's 0x6e2250 reads it): FindMatches has kept one run of pieces
@@ -324,7 +342,7 @@ public:
 	// slot 203, 0x763e90 (bejeweled3): makes the pieces that the empty cells need above the grid, lets them fall into
 	// place one row at a time and gives them colours that make no match and leave a move. theNoMatchCheck is the
 	// exe's second argument (set when it gave up). Classic's first fill is this with 0 for it.
-	void FillInBlanks(bool theNoMatchCheck);
+	virtual void FillInBlanks(bool theNoMatchCheck);   // virtual: Filler's (0x6db550) and Balance's (0x6dd720) take slot 203
 
 	// 0x73ba40 (bejeweled3): the grid has three or more of a colour in a row or column
 	bool HasMatches() const;

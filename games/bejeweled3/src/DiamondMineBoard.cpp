@@ -451,7 +451,8 @@ int DigGoal::CollectTreasure(Piece* thePiece, const Brick& theBrick)
 		aValue = mArtifactBaseValue * (anIndex >= 0 && anIndex < (int)mArtifacts.size() ? mArtifacts[(size_t)anIndex].mValue : 0);
 		mCollectedArtifacts.push_back(anIndex);
 		mArtifactsCollected++;
-		mTallies[KIND_ARTIFACT] += aValue;
+		if (Dig()->mIsSecretMode)
+			mTallies[KIND_ARTIFACT] += aValue;
 	}
 	else {
 		const int aStrength = theBrick.mHitsInitial;
@@ -468,10 +469,18 @@ int DigGoal::CollectTreasure(Piece* thePiece, const Brick& theBrick)
 			mGoldCollected++;
 		else
 			mDiamondsCollected++;
-		mTallies[KIND_MONEY] += aValue;
+		if (Dig()->mIsSecretMode)
+			mTallies[KIND_MONEY] += aValue;
 	}
-	Dig()->mLevelProgress += aValue;
-	mTallyTicks = TALLY_SHOWN_TICKS;
+	// 0x6a9780: in a secret mode the value is added to the progress and the tally is shown; in a quest each treasure counts 1 (the progress and the score)
+	if (Dig()->mIsSecretMode) {
+		Dig()->mLevelProgress += aValue;
+		mTallyTicks = TALLY_SHOWN_TICKS;
+	}
+	else {
+		Dig()->mLevelProgress++;
+		Dig()->mScorePoints++;
+	}
 	mBestTreasureValue = std::max(mBestTreasureValue, aValue);
 	return aValue;
 }
@@ -762,6 +771,9 @@ void DigBoard::NewGame()
 	CreateGoal();
 	Goal()->Load();
 	Board::NewGame();
+	// 0x6ddc70's last part: a quest that does not record high scores shows no end dialog (a quest board is dealt as a secret mode is, but with the flags of QuestBoard::NewGame)
+	if (!mRecordsHighScores)
+		mEndScreenShown = true;
 	Goal()->MakeRows(0);
 	Goal()->EnsureMove();
 }

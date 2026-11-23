@@ -143,6 +143,7 @@ public:
 	void Clear();
 	// 0x6c0430 (bejeweled3) and 0x6c4230 (the constructor): the settings of the quest are read
 	void Load() override;                   // slot 53 (0xd4)
+	int GetLevelMax() override { return mTargetCount; }   // slot 22 (0x58), 0x6a9810: the treasures a quest asks for (a secret mode's board gives 0 before it asks)
 	// 0x744e00 (bejeweled3): the text of "Grids" is read into cells
 	void ParseGrid(const std::string& theText);
 	// 0x6bbb10 (bejeweled3): the bricks of the rows from theStartRow to the last

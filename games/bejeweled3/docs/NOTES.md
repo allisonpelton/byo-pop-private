@@ -1452,8 +1452,7 @@ each), `questbuttons`; with a quest board `quest` (the index), `questwon`, `ques
 - The fanfare at clock 100 (slot 162), the sounds and music events ("Break", "Play", "Wait") of 0x6ca350, the text of the finished level (0x7411f0, slot 160).
 - The settings ColorCount (slot 261), HighScoreBase, HighScoreIncr, WantPointComplements, NeverAllowCascades (+0x3228), ShowAutohints (+0x4dc), Description, HyperMixers (+0x3186) and
   PowerGemThreshold (slot 190; 0x6cda70 reads it into +0x3188), and Board's slot 84 (0x150) after the goal's load.
-- Boards: Filler, Balance, NoLose, TimeBomb, RealTimeBomb, BadMoveLimit; Butterflies, Poker, Dig and Ice Storm as quests (the secret flag clear). Goals: ClearBombs, Hidden*, WallBlast,
-  GoldLines*, Gold*, Arsenal, Detonator, Firestorm, Preserver, Score, Survival, ButterflyGoal. A quest whose Challenge is not made shows its gem and logs "not made yet" when clicked.
+- Goals: ClearBombs, Hidden*, WallBlast, GoldLines*, Gold*, Arsenal, Detonator, Firestorm, Preserver, Score, Survival. A quest whose Goal is not made logs "not made yet" and has none (all the boards are made: see "Quest, part 2").
 - The moves counter's bounce (+0x3250, MoveLimitBoard slot 22), the board's drawing for a quest (the goal's text "TitleText", "Moves Left: %i" in the bottom frame, the move counter's picture;
   slots 26, 43, 47, 240, 242, 250: the port writes the moves left and the gems cleared plainly), the leaderboard of a quest that records high scores (0x6ca240, 0x6c7c60).
 - QuestMenu's QUIT (the app's quit question), hover effects and the buttons' glow curves.
@@ -1475,3 +1474,84 @@ each), `questbuttons`; with a quest board `quest` (the index), `questwon`, `ques
 suite_quest.txt (seed 7, name Tester, `unlock all`, `goto quest`, a click on Stratamax's gem, `bot` to the loss, `quest 3 Gems=40` and `bot` to the win, `quest done 0` to `2` and a click on
 NEXT) has five state lines and five shots (the map, the game, the lost game under the map, the won game under the map, the second section's map); suite.sh runs it twice and checks each state
 line's keys.
+
+
+## Quest, part 2 (FillerBoard, BalanceBoard, NoLoseBoard, TimeBombBoard, BadMoveLimitBoard, ButterflyGoal; the secret boards as quests)
+
+Bej3App::StartQuest now maps every Challenge of 0x774060's list: TIME BOMB and TIME BOMB (REAL TIME) (TimeBombBoard, 0x6dd440 with 0 or 1), INFERNO (IceStormBoard), BALANCE, BUTTERFLIES and
+BUTTERFLY, FILLER, MOVE LIMIT, TIME LIMIT, DIG, NO LOSE, BAD MOVE LIMIT and POKER. The test command's setting changes (`quest <i> Name=Value`; a value in quotes may hold spaces) are made before the
+Challenge is read, so `quest 3 Challenge="Bad Move Limit" BadMovesAllowed=2` makes a Bad Move Limit board. The quest numbers below are the file's order (the map's): 0 Butterflies, 1 Gold Rush, 2 Alchemy,
+3 Stratamax, 4 Balance, 5 Avalanche, 7 Time Bomb, 8 Poker, 9 Ice Storm, 14 Time Bomb II (real time), and 15, 20, 27 and 38 Avalanche II to V.
+
+Hooks added to Board (each a no-op, or the old code, for the boards before): FillInBlanks is virtual (slot 203), OnSwapFailed (slot 192, called where 0x759ba0 sends a swap back), OnFillDone (slot 204, the
+last call of 0x763e90), CountDownPiece (slot 212: CountDownMoves' per-piece part), UpdateWarnings (slot 181: once in each UpdateGame between the specials' countdown and the busy counts) and IsAtRest
+(0x75fc10: IsSettled's tests without the first-settled call). Piece gains the bomb fields (+0x26c, +0x270, +0x24c, +0x250). QuestBoard::OnFirstSettled (slot 140) calls the new OnQuestStart
+(slot 256); Butterflies' and Poker's start moved there and lost their secret-flag test (the exe's help dialog that comes between is not shown). The Classic and modes hashes are unchanged.
+
+The secret boards' NewGame (Butterflies 0x6e3660, Poker 0x6dfa40, Ice Storm 0x6e6a10) now end with QuestBoard::NewGame (0x6ddc70) as the exe's do (Dig's already made the goal itself), so a quest gets its goal; in a
+secret mode the only goal is Butterflies' (Catch Butterflies), which counts as the board did. Ice Storm's slot 143 ends with the goal's slot (0x6dd580), and Ice Storm's and Butterflies' end of the game goes
+through QuestBoard::NoMoreMoves (0x6d8e30), which for a secret mode is Board's. Ice Storm's UpdateTick no longer returns when the secret flag is clear.
+
+### ButterflyGoal (0x86a90c)
+Slots 53 (0x6ae830, the setting Butterflies), 22 (0x6aa420: 0 in a secret mode, else Butterflies) and 40 (0x6ab2f0: the freed-butterflies counter 0x1c for the move's tag while the game is not lost, and
+in a quest score and progress up by one). ButterflyBoard::OnPieceCleared (0x6d03d0) runs the goal's slot first, scores the points as before, and when the progress has reached the size (not in a secret mode)
+every butterfly on the grid gets one move more. Tested with quest 0 (`Butterflies=1` and `2`: won, the map comes back; `Butterflies=6` is lost to the spider).
+Not done: the burst at the butterfly (0x6d01b0).
+Oddities: the exe's goal counts a freed butterfly only while +0xd1c is 0 (or in a secret mode); the board's own points are not guarded in the exe, and the port's old guard for them was dropped.
+
+### Filler (0x86817c, constructor 0x6dcc00): quest 5 Avalanche (Clear Gems), tested with `quest 5 Gems=8`
+Translated: slot 135 (0x6e3420: NumStartGems, DropPerMove, AssistCurve), 22 (0x6e3130: credit 0 when the level is full, the on-screen count and the counts at a move's start), 172 (0x6c52d0, 0x7d), 176
+(0x6d7c20), 180 (0x6cff00, credit +2), 191 (0x6c52a0, credit + DropPerMove), 161 (0x6c50f0: credit +3 and no end), 98 (0x6c6b10), 214 (0x6c6e90: the loss's fall), 181 (0x6dc770: the top row's warning,
+0.0075 a step at rest, the game ends at 1) and 203 (0x6db550: the fill, see the function's comment: the gems fall into gaps, then as many new gems as the credit allows are placed by weighted columns
+with the exe's draws in order: colour, column list, column, speed, height; slot 199, 0x6c5100, rejects a run through a new gem). The loss is the top row staying full: `quest 5 Gems=900` with `bot 25`
+is lost (the map comes back after 300 updates).
+State keys: credits, droppermove, gemsdropped, gemsremoved, gemsatstart, fullwarning (thousandths), dropallowed.
+Not done: the drop-in effect lists (strings "b+0.25,1,0.05,...", the curve at +0x3288, +0x3264 to +0x3280), the warning's effect and the gems' glow (+0x264) and tumble (+0x608, +0x60c; the four draws of
+the app's Rand() are kept), the pictures of slots 218, 220, 115, 26 and 47 (the credit and the warning are written plainly beside the score), the extra colours (+0x1040, +0x1050), slots 182 and 183.
+Oddities: the exe has no limit on the tries of a fill; the port stops at 20000 (never reached in the games run). The gems' mCreatedUpdate and mMovedUpdate are the board's +0x3198 count
+(QuestBoard::mUpdatesPlayed), as 0x6db550 reads them, where Board's fill uses the widget's update count. The bot does not lose Avalanche by itself (it clears the top row as it fills), so a loss is reached by
+stopping it.
+
+### Balance (0x86789c, constructor 0x6dd090): quest 4 Balance (no Goal), tested with `quest 4 Gems=2` (won) and `quest 4 Balance=1 RollSpeedDivisor=20` (the scale tips: lost)
+Translated: slot 135 (0x6e4c80: Gems, Balance, RollSpeedDivisor, CascadeThreshold), 143 (0x6d06a0: red and blue clears counted up to Gems each; score and progress are their sum), 154 (0x6c53a0: Gems times
+2), 22 (0x6e3c90: the scale rolls by the blue-red difference over Balance, held to 1 in size, over RollSpeedDivisor, while the hint is allowed and the level is not full; past 1 either way the game ends),
+171 and 172 (0x6c5380, 0x6c5370: the grid's place, 0x1c2 and 0x73). State keys: balance (thousandths), red, blue, gemspercolor.
+Not done: the scale's picture, the arrow and the smoothed counts (+0x3264, +0x3268, which follow the counts by at most 0.02), the effects at +0x3368; slots 220, 238, 239, 244 and 248 (the scale and the
+counts are written plainly beside the score).
+Oddities: slot 203 (0x6dd720) gives QuestBoard's fill 0 when a move's cascade (counter 0x1b) is longer than CascadeThreshold and its own argument otherwise; every call of the port's fill passes 0 for that
+argument, so the board has no override. The grid's place assumes +0x2c4c and +0x2c50 are 0 (as Butterflies' slot 172 does).
+
+### No Lose (0x868ef4, constructor 0x6da7a0): quests 2, 17 and 35 (Gold Lines, Wall Blast: goals not made), tested with `quest 2 Goal="Clear Gems" Gems=8`
+No slot of its vftable differs from QuestBoard's, so NoLoseBoard is an empty class; the rules come from the goal.
+Not done: the goals Gold Lines and Wall Blast.
+Oddities: the file gives Alchemy and Wall Blast two Challenge lines ("Time Limit", then "No Lose"); the port's map keeps the last, so these are No Lose boards.
+
+### Time Bomb (0x869dc4, constructor 0x6dd440) and Real Time Bomb (0x869954): quests 7 and 23 (Time Bomb), 14 and 29 (real time); the goal Clear Bombs is not made
+Tested with `quest 7 Goal="Clear Gems" Gems=8` (won) and `quest 14 Goal="Clear Gems" Gems=25 BombCountdown=3` (lost: a bomb ran out). The exe makes TimeBombBoard for both names (the real-time one with
+the flag at +0x3262); RealTimeBombBoard's vftable is written by no constructor, so it is not made, and its slot 181 (0x6d8c60) and the drop at 0x6c6200 are dead code. Translated: 135 (0x6e52e0), 143
+(0x6d0930: a cleared bomb is one less), 191 (0x6c61c0: a move less until the drop), 204 (0x6c53d0: the drop is counted), 185 (0x6c60b0: a plain new gem of the first five rows, in the middle columns while
+the score is 0, becomes a bomb, up to 100 draws of the app's Rand(); MakeBomb is 0x73ccc0), 212 (0x6c6090 over 0x73c710: a move starts the bomb's shake, a real-time tick counts it down and a bomb at 0
+ends the game), 256 (0x6c4a40) and the loop over the pieces in 0x767e20 (a bomb at 0 at rest ends the game, slot 163, 0x755e50; the shake counts a move off between phases 5 and 10; a real-time bomb ticks
+every 100 updates). State keys: bombgrid (each bomb's count as a digit), bombs, untildrop, bombstarted, realtime.
+Not done: the bombs' pictures and effects (the count is written over the gem), the sound of slot 204, the goal Clear Bombs (0x6ae760, whose count of bombs is the win), the pieces with the bit 0x100,
+the +0x22c test of 0x73ccc0.
+Oddities: the first fill of a game makes no bomb, because the goal is not loaded yet (the level's size is 0 then), so the first bomb comes with the first refill; a Clear Gems goal counts a
+defused bomb as a gem.
+
+### Bad Move Limit (0x86742c, constructor 0x6dd370): no quest of quest.cfg has it; tested with `quest 3 Challenge="Bad Move Limit" BadMovesAllowed=2 Gems=60` (lost)
+Translated: 135 (0x6e4f60), 22 (0x6e4f30: at rest with all used the game ends), 192 (0x6c6050: a swap that found no match, sent back, uses one), 98 (0x6c6c40). State keys: badallowed, badused.
+Not done: slot 124's text in the frame (written plainly beside the score).
+Oddities: the end test is equality, so a swap made while the board is not at rest can take the count past the limit (the suite's swaps reach 3 of 2).
+
+### The secret boards as quests
+Butterflies (quest 0, `Butterflies=1`: won), Ice Storm (quest 9, `Gems=8`: won), Gold Rush (quest 1, `TargetCount=1` and a hit on the gold: won) and Poker (quest 8) start and end the quest way.
+Dig's goal reads its size from TargetCount (slot 22, 0x6a9810) and counts each treasure as 1 (the other branch of 0x6a9780); Ice Storm's goal counts the cleared gems; Poker's quest has the Goal 3000,
+which names no goal, so it has none.
+Not done: Ice Storm's non-secret branch of 0x6e5790 (it sets +0x3278 and the glow at +0x369c and +0x36a0): in a quest the stage does not advance and the multiplier does not rise, as the exe's
+secret-flag test of that function has it; Poker's win (the way the exe uses the Goal 3000 is not found; the board's own level bar, 2500, is the size and does not fill, so a Poker quest is only lost, by the
+skull's coin; the suite starts it and checks that it plays); the artifacts of Dig in a quest (only a secret mode holds them, as part 1's guard says).
+Oddities: the Gold Rush bot does not dig by itself far enough in the suite's span; the script uses `dig clear` and `dig hit` as the secret mode's suite does.
+
+### The suite for Quest, part 2
+suite_quest2.txt (seed 7, name Tester, `unlock all`) starts ten quests in a row, each with its bot game and a state line and a shot at its end: Avalanche, Balance, Alchemy (No Lose, Clear Gems), Stratamax as
+Bad Move Limit (four swaps; two or more find no match), Time Bomb, Time Bomb II in real time (lost), Butterflies, Poker, Ice Storm and Gold Rush. suite.sh checks each state line's keys and runs it twice.

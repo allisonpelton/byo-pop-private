@@ -1,6 +1,7 @@
 // Sexy::QuestGoal and ClearGoal: see the header
 #include "QuestGoal.h"
 
+#include "ButterflyBoard.h"
 #include "DiamondMineBoard.h"
 #include "QuestBoard.h"
 
@@ -37,7 +38,7 @@ void ClearGoal::OnPieceCleared(Piece* thePiece)
 // brackets): CLEAR GEMS (ClearGoal, 0x11c), WALL BLAST (0x6ab720, 0x260), GOLD (GoldGoal, 0x114), DETONATOR, ARSENAL, GOLD LINES (0x6afcd0, 0x940), GOLD LINES FLIP
 // (0x6afe00, 0x944), GOLD YELLOW (0x6ae170), CLEAR BOMBS (0x6ae760), SCORE, FIRESTORM, PRESERVER (0x118), HIDDEN GEMS (0x11c), HIDDEN GRID (0x21c), SURVIVAL (0x118),
 // CATCH BUTTERFLIES (ButterflyGoal, 0x114), HIDDEN OBJECTS (0x6afb60, 0x1f80) and DIG (0x6c4230, DigGoal, 0xb18); a later match replaces an earlier one, and no
-// match leaves the board with no goal. port: ClearGoal and DigGoal; ButterflyGoal's only part that is run is a counter that nothing reads, so it is not made
+// match leaves the board with no goal. port: ClearGoal, DigGoal and ButterflyGoal
 QuestGoal* MakeQuestGoal(const std::string& theName, QuestBoard* theBoard)
 {
 	QuestGoal* aGoal = nullptr;
@@ -45,7 +46,9 @@ QuestGoal* MakeQuestGoal(const std::string& theName, QuestBoard* theBoard)
 		aGoal = new ClearGoal();
 	else if (theName == "DIG")
 		aGoal = new DigGoal();
-	else if (!theName.empty() && theName != "CATCH BUTTERFLIES")
+	else if (theName == "CATCH BUTTERFLIES")
+		aGoal = new ButterflyGoal();
+	else if (!theName.empty())
 		SDL_Log("Quest: the goal \"%s\" is not made yet", theName.c_str());
 	if (aGoal != nullptr)
 		aGoal->mBoard = theBoard;

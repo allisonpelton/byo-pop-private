@@ -479,6 +479,8 @@ void Board::UpdateSwaps()
 			continue;
 		}
 		// nothing: back they go (the first one's place is now the second's, so its move is the other way)
+		if (!aSame.mForced)
+			OnSwapFailed(aSame);   // slot 192 (0x300)
 		aSame.mDone = false;
 		aSame.mIsSwapBack = true;
 		aSame.mDeltaCol = -aSame.mDeltaCol;
@@ -1299,12 +1301,21 @@ void Board::CountDownMoves()
 	for (int aRow = 0; aRow < ROWS; aRow++) {
 		for (int aCol = 0; aCol < COLS; aCol++) {
 			Piece* aPiece = mGrid[aRow][aCol];
-			if (aPiece == nullptr || (aPiece->mFlags & 0x140) != 0 || aPiece->mTimeGemSeconds <= 0 || (aPiece->mFlags & 0x200) != 0)
+			if (aPiece == nullptr || (aPiece->mFlags & 0x140) != 0)
 				continue;
-			if ((aPiece->mFlags & Piece::FLAG_BUTTERFLY) != 0)
-				aPiece->mTimeGemSeconds--;   // 0x73c710
+			CountDownPiece(aPiece, false);   // slot 212
 		}
 	}
+}
+
+// slot 212 (0x350), 0x73c710 (bejeweled3), the base: a butterfly gem (not a bomb, bit 0x200) with moves left counts one down. The base's other branches are the bombs'
+// (TimeBombBoard::CountDownPiece)
+void Board::CountDownPiece(Piece* thePiece, bool theTick)
+{
+	if (theTick || thePiece->mTimeGemSeconds <= 0 || (thePiece->mFlags & 0x200) != 0)
+		return;
+	if ((thePiece->mFlags & Piece::FLAG_BUTTERFLY) != 0)
+		thePiece->mTimeGemSeconds--;
 }
 
 // 0x740f20 (bejeweled3), for the player's swap of a hypercube and a gem: the cube's group takes the colour of the gem. port: the sound,

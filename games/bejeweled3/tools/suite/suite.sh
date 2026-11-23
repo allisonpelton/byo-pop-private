@@ -90,12 +90,36 @@ for s in quest_map quest_play quest_lost quest_won quest_map2; do
 	[ -s "$OUT/quest/$s.png" ] || { fail="$fail noshot-$s"; continue; }
 	cmp -s "$OUT/quest/$s.png" "$OUT/questrerun/$s.png" || fail="$fail questrerun-$s"
 done
+# Quest, the second part (suite_quest2.txt): ten quests of quest.cfg started in a row, each played by the bot (the first nine with the setting changes the script names to
+# make them short) and each ending in a state line: Avalanche (Filler, won), Balance (won), Alchemy as No Lose with the Clear Gems goal (won), Stratamax as Bad Move Limit (lost
+# by swaps that find no match), Time Bomb with the Clear Gems goal (won), Time Bomb II in real time (lost: a bomb ran out), Butterflies (won), Poker (started and played: the quest's
+# goal is a number, which is not made), Ice Storm (won), Gold Rush (won by a treasure). Each run twice: states and shots the same.
+e="$(run quest2 suite_quest2.txt)"; [ "$e" -eq 0 ] || fail="$fail quest2-exit($e)"
+grep -q '^ERROR' "$OUT/quest2/states.txt" && fail="$fail quest2-command($(grep -m1 '^ERROR' "$OUT/quest2/states.txt" | cut -c1-80))"
+[ "$(grep -c '^STATE ' "$OUT/quest2/states.txt")" = 10 ] || fail="$fail quest2-statelines"
+q2() { grep '^STATE ' "$OUT/quest2/states.txt" | sed -n "$1p"; }
+q2 1 | grep -q '"quest":5,"questwon":1.*"credits":0,"droppermove":5' || fail="$fail quest2-filler"
+q2 2 | grep -q '"quest":4,"questwon":1.*"red":2,"blue":2' || fail="$fail quest2-balance"
+q2 3 | grep -q '"quest":2,"questwon":1' || fail="$fail quest2-nolose"
+q2 4 | grep -q '"gameover":1.*"quest":3,"questwon":0.*"badallowed":2,"badused":[2-9]' || fail="$fail quest2-badmove"
+q2 5 | grep -q '"quest":7,"questwon":1.*"bombstarted":1,"realtime":0' || fail="$fail quest2-bomb"
+q2 6 | grep -q '"gameover":1.*"quest":14,"questwon":0.*"realtime":1' || fail="$fail quest2-bombrt"
+q2 7 | grep -q '"mode":"butterflies".*"quest":0,"questwon":1' || fail="$fail quest2-butterflies"
+q2 8 | grep -q '"mode":"poker".*"gameover":0.*"quest":8,"questwon":0.*"hands":[1-9]' || fail="$fail quest2-poker"
+q2 9 | grep -q '"mode":"icestorm".*"quest":9,"questwon":1' || fail="$fail quest2-ice"
+q2 10 | grep -q '"mode":"diamondmine".*"quest":1,"questwon":1.*"digtreasure":1' || fail="$fail quest2-dig"
+e="$(run quest2rerun suite_quest2.txt)"; [ "$e" -eq 0 ] || fail="$fail quest2rerun-exit($e)"
+cmp -s "$OUT/quest2/states.txt" "$OUT/quest2rerun/states.txt" || fail="$fail quest2rerun-states"
+for s in filler balance nolose badmove bomb bombrt butterflies poker ice dig; do
+	[ -s "$OUT/quest2/quest2_$s.png" ] || { fail="$fail noshot-quest2_$s"; continue; }
+	cmp -s "$OUT/quest2/quest2_$s.png" "$OUT/quest2rerun/quest2_$s.png" || fail="$fail quest2rerun-$s"
+done
 msh="$(sha256sum "$OUT/modes/states.txt" | cut -c1-12)"
 [ -z "$FROZEN_MODES" ] || [ "$msh" = "$FROZEN_MODES" ] || fail="$fail MODE STATES CHANGED($msh; frozen $FROZEN_MODES)"
 sh="$(sha256sum "$OUT/game/states.txt" | cut -c1-12)"
 [ -z "$FROZEN" ] || [ "$sh" = "$FROZEN" ] || fail="$fail STATES CHANGED($sh; frozen $FROZEN)"
 if [ -z "$fail" ]; then
-	echo "bejeweled3: menu, a seeded Classic game (bot, 150 moves), the specials and the game over; Zen and Lightning games (bot); rerun identical (states and 6 shots); Butterflies, Poker, Ice Storm and Diamond Mine bot games to their game over (rerun identical, states and 6 shots); the quest map and a Quest game lost and won by the bot (rerun identical, states and 5 shots); states $sh, modes $msh"
+	echo "bejeweled3: menu, a seeded Classic game (bot, 150 moves), the specials and the game over; Zen and Lightning games (bot); rerun identical (states and 6 shots); Butterflies, Poker, Ice Storm and Diamond Mine bot games to their game over (rerun identical, states and 6 shots); the quest map and a Quest game lost and won by the bot (rerun identical, states and 5 shots); ten more quests, one for each board, played by the bot (rerun identical, states and 10 shots); states $sh, modes $msh"
 	exit 0
 fi
 echo "bejeweled3: FAILED:$fail"

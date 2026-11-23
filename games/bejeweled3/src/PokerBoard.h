@@ -81,7 +81,7 @@ public:
 	bool HintAllowed() const override;                                     // slot 98 (0x6c6470)
 	int FindMatches() override;                                            // slot 201 (0x6d90a0): nothing is matched while a hand is being paid
 	int GetGridY() const override { return 0x5a; }                         // slot 172 (0x6c4d00): +0x2c50 and 0x5a
-	void OnFirstSettled() override;                                        // slot 140 (a secret quest starts its play with slot 256, 0x6cf440)
+	void OnQuestStart() override;                                          // slot 256 (0x6cf440)
 	void OnSwapMatched(const SwapRecord& theSwap) override;                // slot 191 (0x6cfaa0)
 	void StartHypercube(Piece* theCube, Piece* thePartner) override;       // slot 179 (0x6cfa50)
 	void MakeFlameGem(Piece* thePiece) override;                           // slot 166 (0x6cab70)

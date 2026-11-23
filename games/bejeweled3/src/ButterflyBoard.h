@@ -10,6 +10,17 @@
 
 namespace Sexy {
 
+// vftable 0x86a90c (bejeweled3), the goal "Catch Butterflies" of the Butterflies quests of quest.cfg (made by QuestBoard::CreateGoal, 0x6ddc70): free a number of butterflies
+// (the setting Butterflies). A secret mode has no goal object, so its board counts the butterflies freed itself
+class ButterflyGoal : public QuestGoal {
+public:
+	int mButterflies = 0;   // +0x110: the setting Butterflies, the butterflies to free
+
+	void Load() override;                              // slot 53 (0xd4), 0x6ae830
+	int GetLevelMax() override;                        // slot 22 (0x58), 0x6aa420
+	void OnPieceCleared(Piece* thePiece) override;     // slot 40 (0xa0), 0x6ab2f0
+};
+
 class ButterflyBoard : public QuestBoard {
 public:
 	// the counters 0x6d03d0 adds to (0x73d170, end dialog strings 0x784400): the butterflies freed and the best number freed by one move
@@ -51,7 +62,7 @@ public:
 	void OnPieceCleared(Piece* thePiece) override;                         // slot 143 (0x6d03d0)
 	void MakeHypercubeGroup(Piece* theCube, int theColor) override;        // slot 180 (0x6d0390)
 	void OnSwapMatched(const SwapRecord& theSwap) override;                // slot 191 (0x6d7f40)
-	void OnFirstSettled() override;                                        // slot 140: a secret quest starts its play (slot 256, 0x6dcce0)
+	void OnQuestStart() override;                                          // slot 256 (0x6dcce0)
 	void NoMoreMoves(bool theAnnounce) override;                           // slot 161 (0x6dcd50, which jumps to 0x6d8e30): the end of the game
 	ClassicEndLevelDialog* MakeEndLevelDialog() override;                  // slot 257 (0x6d0590)
 
