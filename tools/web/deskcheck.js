@@ -59,7 +59,8 @@ if (d.isOn()) {
     var w = wins[i], win = d.find(w.id);
     if (!win) continue;
     // (the chat's window is checked closed: opening it starts the chat, which talks to its server)
-    if ((w.closed || win.el.hidden) && w.id !== "chat") { d.openWin(w.id); opened.push(w.id); await wait(50); }
+    // (a window whose script loads as it first opens opens once it is in: web/skins.js, fill)
+    if ((w.closed || win.el.hidden) && w.id !== "chat") { await d.openWin(w.id); opened.push(w.id); await wait(50); }
     windowCheck(w.id, w.title, win.el);
     // what is showing (live), on the front page (its music's canvases do not make it a game's)
     var rep = A11yCheck.checkHtml(document.documentElement.outerHTML, { name: "desk:" + w.id, live: true, kind: "index" });

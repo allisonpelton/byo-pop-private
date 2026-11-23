@@ -5,6 +5,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>@BYOPOP_TITLE@ Web Port</title>
+<!-- Desktop 95's text, Byopop Sans (web/skins.css), asked for at once rather than once the style sheet is read -->
+<link rel="preload" href="fonts/byopop-sans.woff" as="font" type="font/woff" crossorigin>
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -532,16 +534,24 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
   }
   // the page names its game (its desktop is kept by it) and draws in Desktop 95, or plain on the player-only page (web/skins.js)
   try { ByopopSkin.setGame(PAGE.id); } catch (e) {}
+  // Each part's start once the page is read, each on its own: one whose script did not load is named in the console, and
+  // the others still start (Lighthouse, 2026-11-23: a ReferenceError for ByopopClips on about one load in twelve under
+  // tools/webtest/serve.py)
+  function whenRead(name, start) {
+    document.addEventListener("DOMContentLoaded", function () {
+      try { start(); } catch (e) { try { console.warn("byo-pop: " + name + " did not start: " + e.message); } catch (f) {} }
+    });
+  }
   // the performance panel (web/perf.js), when the site setting is on; it waits for the page to be drawn
-  try { document.addEventListener("DOMContentLoaded", function () { ByopopPerf.setGame(PAGE.id); }); } catch (e) {}
+  whenRead("perf.js", function () { ByopopPerf.setGame(PAGE.id); });
   // the sound panel (web/soundpanel.js), likewise
-  try { document.addEventListener("DOMContentLoaded", function () { ByopopSoundPanel.setGame(PAGE.id); }); } catch (e) {}
+  whenRead("soundpanel.js", function () { ByopopSoundPanel.setGame(PAGE.id); });
   // the view settings (web/view.js): scanlines, a colour filter
-  try { document.addEventListener("DOMContentLoaded", function () { ByopopView.setGame(PAGE.id); }); } catch (e) {}
+  whenRead("view.js", function () { ByopopView.setGame(PAGE.id); });
   // the game's controls (web/controls.js): the Controls panel, remapped keys, the gamepad, touch keys, the input display
-  try { document.addEventListener("DOMContentLoaded", function () { ByopopControls.setGame(PAGE.id); }); } catch (e) {}
+  whenRead("controls.js", function () { ByopopControls.setGame(PAGE.id); });
   // clip recording (web/clips.js), when the site setting is on: a Record button on the bar
-  try { document.addEventListener("DOMContentLoaded", function () { ByopopClips.setGame(PAGE.id); }); } catch (e) {}
+  whenRead("clips.js", function () { ByopopClips.setGame(PAGE.id); });
   // (a saver's frame with ?assets=, a test of the saver from a first run: a test profile of its own, apart from the game's tests')
   var PROFILE = TEST_PROFILE ? (SAVER ? ByopopSaver.PROFILE + "-test" : "-test") : SAVER ? ByopopSaver.PROFILE : "";
   var PERSIST = PAGE.persist + PROFILE;

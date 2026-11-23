@@ -655,7 +655,7 @@ var ByopopSkin = (function () {
       var w = { focusIn: o.focusIn || null, el: el, id: o.id, keep: o.keep || o.id, snap: o.snap || null, x: 0, y: 0, placed: false, closed: !!(o.closed && o.closable), at: o.at, open: o.open,
                 button: o.button, home: null, onClose: o.onClose || null, afterClose: o.afterClose || null, maximize: o.maximize || null, noIcon: !!o.noIcon, sizes: o.sizes || null,
                 minHeight: o.minHeight || null, minWidth: o.minWidth || null, maxWidth: o.maxWidth || null, natural: !o.sizes && o.natural !== false,
-                fixed: !!o.fixed && !o.sizes, small: o.menuIcon || o.icon || null };
+                fixed: !!o.fixed && !o.sizes, small: o.menuIcon || o.icon || null, lazy: o.lazy || null };
       if (o.lift) { w.home = document.createComment("desktop window " + o.id); el.parentNode.insertBefore(w.home, el); }
       el.classList.add("d95-win");
       el.setAttribute("data-d95-title", o.title);
@@ -810,6 +810,8 @@ var ByopopSkin = (function () {
       // (a window opened only from another, as a Settings section from the Settings folder, has no icon on the desktop)
       if (!o.noIcon) addIcon(w, o.title);
       if (on) { named(w, true); lift(w, true); layout(); }
+      // a window of a script still to load that the last visit left open: filled now, and the desktop's loading waits for it
+      if (w.lazy && !w.closed) fill(w).catch(function () {});
       return w;
     }
     // ---- a window's scroll bar (the user, 2026-11-08: "It's not visible whether a window is scrollable") ----
@@ -981,7 +983,38 @@ var ByopopSkin = (function () {
       layoutIcons();
     }
     // opens a window (its icon, a link to it) and puts the focus in it
+    // ---- a window whose script loads when it first opens (o.lazy: a function that fills the window's element and returns a
+    // promise; the listing's Sounds, Trophies, Fonts, Splits and chat, web/index.html) ----
+    // Until it is filled the pointer is Windows 95's "working in background" one, the arrow with a small hourglass
+    // (html.d95-starting, web/skins.css), as while a program started; the window opens once it is filled. One that cannot
+    // load stays closed and says so.
+    var starting = 0;
+    function fill(w) {
+      if (!w.lazy) return Promise.resolve(w);
+      if (!w.filling) {
+        var hold = "window " + w.id;
+        bootHold(hold);
+        if (!starting++) root.classList.add("d95-starting");
+        var end = function () { if (!--starting) root.classList.remove("d95-starting"); bootDone(hold); };
+        w.filling = Promise.resolve().then(w.lazy).then(function () {
+          w.lazy = null; w.filling = null; end();
+          if (on && !w.closed) place(w, true);
+          return w;
+        }, function (e) {
+          w.filling = null; end();
+          try { console.warn("byo-pop: the window " + w.id + " could not start: " + (e && e.message || e)); } catch (f) {}
+          if (!w.closed) setClosed(w, true);
+          throw e;
+        });
+      }
+      return w.filling;
+    }
+    function cannotStart(w) {
+      var title = w.el.getAttribute("data-d95-title") || w.id;
+      if (on) messageBox(title, TW("skin.desk.start_failed", title), false);
+    }
     function show(w) {
+      if (w.lazy) { fill(w).then(function () { if (on) show(w); }, function () { cannotStart(w); }); return; }
       w.min = false;
       setClosed(w, false);
       if (on) activate(w);
@@ -2375,14 +2408,15 @@ var ByopopSkin = (function () {
       if (!on) wins.forEach(function (w) { ["left", "top", "z-index", "max-width", "max-height", "width", "height"].forEach(function (p) { w.el.style.removeProperty(p); }); });
       else wins.forEach(function (w) { if (w.w && w.h) sizeTo(w, w.w, w.h); });
       try { window.dispatchEvent(new CustomEvent("byopop-desk", { detail: { on: on } })); } catch (e) {}
-      if (on) layout();
-      layoutIcons();
-      // the keys, said once: a line in About
+      // the keys, said once: a line in About, there before the windows are fitted to the room (a few lines added after, About
+      // grew past the task bar's top on a small screen)
       var ab = find("about"), keysLine = ab && ab.el.querySelector(".d95-keys");
       if (on && ab && !keysLine) {
         keysLine = document.createElement("p"); keysLine.className = "d95-keys"; keysLine.textContent = T("skin.desk.keys");
         (ab.el.querySelector(".sy-general") || ab.el.querySelector(".d95-body") || ab.el).appendChild(keysLine);
       } else if (!on && keysLine) keysLine.parentNode.removeChild(keysLine);
+      if (on) layout();
+      layoutIcons();
       activate(on ? frontmost() : null);
     }
     window.addEventListener("resize", function () { if (on) layout(); });
@@ -2410,8 +2444,18 @@ var ByopopSkin = (function () {
                var i = list.indexOf(w.el);
                focusPane(list[(i + (back ? list.length - 1 : 1) + list.length) % list.length], back);
              },
-             // a window as the Pop menu opens it
-             openWin: function (id) { var w = find(id); if (!w || !on) return; if (w.min) setMin(w, false); if (w.open) { w.open(); raise(w); } else show(w); },
+             // a window as the Pop menu opens it; once it is open (a window whose script loads first, o.lazy, opens later), true
+             openWin: function (id) {
+               var w = find(id);
+               if (!w || !on) return Promise.resolve(false);
+               // (at once where there is nothing to load: web/deskapps.js marks what it opens while it puts windows back)
+               function now() { if (!on) return false; if (w.min) setMin(w, false); if (w.open) { w.open(); raise(w); } else show(w); return true; }
+               if (!w.lazy) return Promise.resolve(now());
+               return fill(w).then(now, function () { cannotStart(w); return false; });
+             },
+             // a window's script loaded and the window filled (o.lazy), without opening it: a test's driver before it reads the
+             // window's script (tools/web/splitscheck.js)
+             ready: function (id) { var w = find(id); return w ? fill(w).then(function () { return true; }, function () { return false; }) : Promise.resolve(false); },
              // a window closed as its Close button closes it (its onClose, or closed and its afterClose)
              close: function (id) { var w = find(id); if (w && !w.closed) closeWin(w); },
              iconPlaceAt: iconPlaceAt, addShortcuts: addShortcuts,

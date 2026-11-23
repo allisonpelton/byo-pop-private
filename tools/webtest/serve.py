@@ -46,6 +46,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 	def end_headers(self):
 		self.send_header("Cache-Control", "no-store")
+		# the repository is served at /__repo/: a page that reads a file there (web/phase.js) asks only a server that says so
+		self.send_header("Server-Timing", "byopop-repo")
 		if self.server.isolate:
 			# --isolate: a cross-origin isolated page, which performance.measureUserAgentSpecificMemory needs
 			# (tools/webtest/webmem.js); every file here is this server's own, so nothing is blocked
@@ -183,9 +185,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 			sys.stderr.write("webtest: %s\n" % (fmt % args))
 
 
+class Server(http.server.ThreadingHTTPServer):
+	# Room for many connections waiting to be taken. Python's default is 5, and this server answers in HTTP/1.0, so a page
+	# makes a connection for every file; with a few pages loading at once on a busy machine, a connection beyond the five
+	# was refused, and the page went on without that script (Bejeweled 3's web runs, 2026-11-23: "ByopopClips is not
+	# defined" on about one load in a dozen; 1000 connections in bursts of 200 had 4 refused at 5, none at 128)
+	request_queue_size = 128
+
+
 def make_server(root, assets, shots, port=DEFAULT_PORT, verbose=False, isolate=False):
 	"""A server on the loopback address (port 0 picks a free one); the caller runs serve_forever()."""
-	srv = http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(Handler, directory=os.path.abspath(root)))
+	srv = Server(("127.0.0.1", port), functools.partial(Handler, directory=os.path.abspath(root)))
 	srv.assets, srv.shots, srv.verbose, srv.isolate = os.path.abspath(assets), os.path.abspath(shots), verbose, isolate
 	return srv
 
