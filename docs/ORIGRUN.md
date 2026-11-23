@@ -413,6 +413,16 @@ approved the hover patch for test copies on 2026-11-01: rundesk's desktop has no
 makes a game take the mouse position from the posted message instead of `GetCursorPos`). origrun knows and
 generates none of the bytes; the game session that knows the code supplies them.
 
+**The user's cursor (safety patches, every game).** The cursor's clip and position belong to the whole window
+station, so rundesk's private desktop does not contain them: an original that calls `ClipCursor` with a rectangle
+confines the user's own cursor to the game's hidden window, and one that calls `SetCursorPos` moves it. On 2026-11-23
+the user's mouse was held in a small rectangle near the top left by repeated runs of Feeding Frenzy's original on a
+rundesk desktop, each clip its window's client area. Before a game's first run, find every call to both in the exe
+(its imports name them) and patch each out of the copy (kind `safety`: pop the arguments and leave TRUE in `eax`);
+`ClipCursor(NULL)`, which frees the cursor, may stay. The scripted cursor (`--cursor scripted`) answers
+`GetCursorPos`, so a game that warps the cursor plays the same. During a run, read `GetClipCursor` on the host now
+and then: anything but the whole screen means stop.
+
 <!-- private -->
 The hover patch, as found on Bookworm Adventures: SexyAppBase's handler for a deferred message (FUN_00547ea0 in its
 export) takes `WM_MOUSEMOVE` at 0x548635 by asking `GetCursorPos` for the point and `WindowFromPoint` for the window
