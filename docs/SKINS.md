@@ -4,7 +4,8 @@ The site has one look, 95. This plan shows how other looks will be added without
 holds, how the 95 look is wired today, what each new look needs, how to check them all, and the costs. The layer's first
 batch (2026-11-23) is in: `<html data-look>` and `?skin=`, the sizes and the band as variables, and the drawings' colours
 through `uriRules` (docs/WEB_PLAYER.md, "Desktop 95", "The skins"). The 98 skin followed the same day: web/skin-98.css, the
-Skin list, and each skin's own style sheet loaded only where it is drawn.
+Skin list, and each skin's own style sheet loaded only where it is drawn. Then 2000's first step: the Standard line's
+colours as 2000's own standard scheme, its frames and both title gradients, its banner, and menus that fade.
 
 The scope is the user's (2026-11-23): "This is the first I'm learning of Classic. I see it was present up through Windows
 7. I'd like all of those as skins to start; then the unique ones with XP up through 8 later", and "Oh also Windows Me".
@@ -36,7 +37,11 @@ marked **to check**, and nothing is drawn from it until it is checked. The sourc
   - Wikimedia Commons' public-domain and CC0 shots at full size, where every pixel is exact: a Windows 98 message box,
     Vista's About box in its classic look, and 7's error box in Windows Classic, active and inactive.
   - The Start menu banners themselves, as the bitmap resources shown in Adam Demasi's article on the Start menu's banners
-    (adamdemasi.com, 2024-07-24).
+    (adamdemasi.com, 2024-07-24). 98's is shown at four times its size, so every pixel is exact; 2000's at a little over
+    twice, read row by row as the share of each colour.
+  - Commons' public-domain message boxes of Windows 2000, taken in VirtualBox: their frames row by row. They were taken in
+    a low colour mode (solid titles, the face #d7d0c8, black for the dark edge), so they give the frame's rows but not its
+    colours. 7's Windows Classic box, the same Standard scheme at full colour, gives the dark edge: #404040.
 - **Text facts** from Wikipedia's articles:
   - the versions: Windows 98, Windows Me, Windows 2000;
   - the parts: Start menu, Taskbar;
@@ -196,6 +201,12 @@ Drawn (2026-11-23, web/skin-98.css): the gradient titles, the banner, and the sl
 own (0.18 s; 98's own is **to check**). 95's frame already had 98's rows. An inactive window's title bar stays 95's solid
 grey until 98's is read from a real shot (**to check**).
 
+**The banner, read row by row** from the bitmap at four times its size: 262 rows of navy, a dither up to royal blue between
+rows 163 and 210, blue to row 232, and a dither a little back toward navy at the foot (about a fifth blue in its last row),
+the name in white. In the Start menu the bitmap sits at the menu's foot with its top colour above it. The first draw had a
+smooth gradient over the whole band; 2000's step drew it as the bitmap is, our own dither of its colours and steps
+(web/skins.js, `bandRamp`).
+
 **To check before drawing:**
 - whether 98's caption buttons, scroll bars and check marks differ from 95's;
 - flat toolbar buttons that rise under the pointer (no source found);
@@ -257,6 +268,22 @@ Its behaviours:
 
 The builder for personalized menus and the Properties window come with this skin. **2 to 3 batches, $50 to $110, plus the
 font (below).**
+
+**Drawn first (2026-11-23, web/skin-2000.css and its standard scheme in web/schemes.js):**
+- **The colours** as 2000's own standard scheme: the face #d4d0c8 with its soft light the face too, the desktop #3a6ea5,
+  the selection #0a246a and the dark edge #404040 (the sources above). A scheme of ours keeps its colours under 2000, with
+  2000's dark edge.
+- **The frames:** #d4d0c8 then white on the top and left, #404040 then the shadow on the bottom and right, from 2000's
+  own boxes (two rows each side; 7's frame adds a black row outside, which 2000's has not). The drawings' edges take the
+  dark edge too; glyphs and the focus rectangle stay black.
+- **Both title bars' gradients,** active #0a246a to #a6caf0, inactive #808080 to #c0c0c0 with its text in the face colour.
+- **The banner,** read row by row from 2000 Professional's bitmap: 233 rows, black for 12, a dither to navy by row 104,
+  navy to row 125, a dither to royal blue by row 209, then blue, the name in white; black above it.
+- **Menus fade in,** for a length of our own (0.2 s; 2000's is **to check**). Tooltips do not, until it is checked whether
+  they faded.
+
+**Still to come for 2000:** the font in Tahoma's manner (still Byopop Sans), the hidden keyboard cues and personalized
+menus with their settings and the Properties window, and its icons.
 
 ### XP's Windows Classic style
 

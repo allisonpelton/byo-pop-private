@@ -1,0 +1,28 @@
+/* The 2000 skin (docs/SKINS.md, "2000"): 95's drawing (web/skins.css) in the Standard line's colours, with what Windows 2000
+   drew differently, as read from real shots. Only a page drawn in 2000 loads this file (web/skins.js, lookSheet), and every
+   rule here is under data-look="2000". Its colours are its own standard scheme, Windows Standard, which web/schemes.js sets
+   with the drawings' colours: the face #d4d0c8 (its soft light the face too), the desktop #3a6ea5, the titles, the selection
+   #0a246a and the dark edge #404040.
+   Still 95's until they are made or checked (docs/SKINS.md): the font, which 2000 drew in Tahoma (a pixel font of ours in its
+   manner is to make), the hidden keyboard cues and personalized menus with their settings, the icons, and whether tooltips
+   fade. */
+
+:root[data-look="2000"] {
+  /* both title bars are gradients, 18 pixels tall as 95's: the active from the title colour to its second, #0a246a to
+     #a6caf0 in the standard scheme, the inactive from the shadow to #c0c0c0 with its text in the face colour */
+  --sk-title-bg: linear-gradient(90deg, var(--sk-title), var(--sk-title-2));
+  --sk-title-in-bg: linear-gradient(90deg, var(--sk-lo), var(--sk-title-in-2, #c0c0c0));
+  /* the Pop menu's banner, read from 2000 Professional's bitmap: 233 rows, black at the top, dithered to navy by about its
+     middle, then to royal blue at its foot, the name in white; black above it where the menu is taller */
+  --sk-band: #000000;
+  --sk-band-ramp: 233 / #000000 #000080 #0000ff / 0 12, .6 60, 1 104, 1 125, 1.5 162, 2 209;
+  --sk-band-fg1: #ffffff; --sk-band-fg: #ffffff;
+}
+
+/* Menus fade in (Wikipedia, "Windows 2000": "Menus support a new Fade transition effect"): the Pop menu, its submenus, the
+   context and window menus. The fade's length is ours: 2000's own is to check, and so is whether tooltips faded. */
+@keyframes sk2k-fade { from { opacity: 0; } to { opacity: 1; } }
+html.d95-desk[data-look="2000"] .d95-menu:not([hidden]) { animation: sk2k-fade 0.2s linear; }
+@media (prefers-reduced-motion: reduce) {
+  html.d95-desk[data-look="2000"] .d95-menu { animation: none !important; }
+}

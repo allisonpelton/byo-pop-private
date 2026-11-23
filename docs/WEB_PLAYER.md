@@ -354,23 +354,33 @@ un-95"), in our own SVG. Where a choice is between a plainer look and the one Wi
 it changes every window or box on the site (the user, 2026-11-23: "Always prefer more authentic designs for the 95 look",
 on giving every message box's default button its black frame).
 
-**The skins** (docs/SKINS.md) are the versions of Windows the desktop can be drawn as: 95, the base, and 98. `web/skins.js`
+**The skins** (docs/SKINS.md) are the versions of Windows the desktop can be drawn as: 95, the base, 98 and 2000. `web/skins.js`
 sets `<html data-look="95">` beside `data-skin="d95"`, which stays the desktop's own name. Every other skin draws over 95
 with its own style sheet, `web/skin-<id>.css`, its rules under `:root[data-look="<id>"]`; only a page drawn in it loads it,
 from the page's `<template id="skin-sheets">` (the listing's and the game pages'), which the build stamps as it does the
-page's own files (`lookSheet`). A page without the template, a copyright page or Jungle Juice's, is drawn in 95. The player
+page's own files (`lookSheet`). A page without the template, a copyright page or Jungle Juice's, is drawn in 95 and says
+so (`data-look="95"`), so `web/schemes.js` gives it 95's colours. The player
 picks a skin with the setting `look`, the Skin list at the top of Appearance, and the choice redraws every page of the site
 open in the browser (the setting's event, and `storage` in the others). A test picks a skin with `?skin=<id>`,
 which the address keeps (`testQuery`) and the pages in the desktop's windows are opened with (`web/deskapps.js`,
 `frameUrl`); an unknown one is 95. What a skin sets is in
-`:root[data-skin="d95"]`'s variables at the top of `web/skins.css`: the colours (`--panel`, `--sk-*`), the sizes
+`:root[data-skin="d95"]`'s variables at the top of `web/skins.css`: the colours (`--panel`, `--sk-*`; a 3D edge's darkest
+row is `--sk-dk` and the black of glyphs and the focus rectangle `--sk-ink`, both black in 95), the sizes
 (`--sk-title-h`, the caption buttons' `--sk-cap-w` and `--sk-cap-h`, a dialog button's `--sk-btn-w` and `--sk-btn-h`, the
 task bar's `--sk-task-h`, the menus' entries `--sk-item-h`, `--sk-task-item-h`, `--sk-pop-item-h` and `--sk-sub-item-h`),
 the title bar's background (`--sk-title-bg`, 95's one colour; from 98 on the gradient to the scheme's second colour,
-`--sk-title-2`), the Pop menu's band (`--sk-band`, `--sk-band-w`, `--sk-band-fg1`, `--sk-band-fg`) and the font
-(`--font-ui`). The SVG
+`--sk-title-2`), an inactive one's (`--sk-title-in-bg` and `--sk-title-in-fg`, a gradient from 2000 on), the Pop menu's
+band (`--sk-band`, `--sk-band-w`, `--sk-band-fg1`, `--sk-band-fg`) and the font (`--font-ui`). A skin whose banner was a
+16-colour bitmap gives it as `--sk-band-ramp`: its height, its colours and where each row stands among them. `web/skins.js`
+(`bandRamp`) draws that as our own picture, dithered 4 by 4 as such a bitmap was, at the band's foot, with `--sk-band`, the
+bitmap's top colour, above it. A skin whose version had other default colours has its own standard scheme in
+`web/schemes.js` (`STANDARDS`: 2000's Windows Standard), which "standard" means under it, and a scheme of ours keeps its
+colours under every skin, with the skin's dark edge. The SVG
 drawings take a skin's colours as they take a scheme's (`web/schemes.js`, `uriRules`: the face, shadow and soft light of
-95's drawings swapped for the target's); a drawing whose shape differs in a version is that skin's own rule.
+95's drawings swapped for the target's, and 95's black for the skin's dark edge where it is a drawing's edge, its first
+rectangle, as large as the drawing); a drawing whose shape differs in a version is that skin's own rule. A drawing's rule
+gives its colour in a declaration of its own, never beside the drawing in one shorthand with a `var()`, which hides the
+drawing from that walk.
 
 **The logo** stands at the desktop's bottom right, above the task bar, under every icon and window (the user, 2026-11-23:
 "move the byo-pop logo to the bottom right"), where the icons' columns, filled from the top left, do not reach it at 800 by
