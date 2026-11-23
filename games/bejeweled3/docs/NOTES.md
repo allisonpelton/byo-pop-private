@@ -1183,3 +1183,91 @@ suite_butterflies.txt and suite_poker.txt (seed 7, name Tester, `unlock all`, `g
 each, the end dialog on screen at the last), each run twice by suite.sh: the state lines and the shots must be the same on the rerun, the second
 state line must be in play and the last must have the game over and the end dialog. Their state lines have no hash of their own yet: the
 modes' logic is frozen by the rerun only, and the Classic (51086c43ed2a) and modes (94f857c247d1) hashes are unchanged.
+
+## Ice Storm (IceStormBoard.cpp)
+
+The secret quest 2 of secret.cfg ("Ice Storm", Challenge "Inferno", the play menu's ball 6) is Sexy::InfernoBoard in the exe (vftable 0x8685ec, 268
+slots, constructor 0x6e2d90; 0x6db270 is its destructor, not the constructor) over QuestBoard; the port's class is IceStormBoard. Its end dialog is
+InfernoEndLevelDialog (vftable 0x8662c4, 0x390 bytes, made inline by the board's slot 257, 0x6d3180). The exe's only names for it are
+InfernoBoard::RefreshMultiplierText (0x6cc010), InfernoBadge, InfernoEndLevelDialog::DrawStatsLabels (0x78fbb0) and ::Draw (0x790500); every other
+name here is the port's, read from the code. The quest text says "crush ice before it reaches the top", which is what the board does: eight
+columns of ice (the objects at +0x3d28, 0x348 bytes each) rise from the bottom of the grid, 0 to 8 rows.
+
+What happens. Each update (slot 234, 0x6e5850, which runs Board's 0x767090 first; the port made Board::UpdateTick virtual for it) the ice
+counts its own ticks and, after a grace of 0x96 ticks, steps (0x6e0cc0). A made column waits 0x32 ticks (cut to 0x14 when no column is moving), then
+rises by a speed that is the product of the stage's fire speed (the Level rows of the quest, times FireSpeedMult, moved from the last row's by
+the row's curve over the stage's time), the column's place (ColDistribution, the right half mirrored; a double column's rank is one less on the
+right), its height (RowFireSpeed), the ramp that follows a multiplier and a deviation of its own (up to MaxRandFireSpeedColDelta, drawn when it
+is made); a double column's speed is also multiplied by DoubleColSpeedMult, and the edge double's by DoubleEdgeMult. The pushes of the cleared gems
+(MatchPushStr for each gem of the column, SpecialGemPushMod times as much when a special gem cleared it, and when a flame gem is made there; a
+push decays by 0.003 a tick) are taken off that speed; when they win, the ice goes down by the difference (never more than 0.2 a tick), the part
+of it that was ice (up to the height) is added to the bar's ice removed, and a freeze builds up (FreezeDurationPerNegStrength times the push, up
+to FreezeMax) that slows the next rise. A column that has been over 0.5 does not go below it again unless it is crushed. At 8 the ice cracks: its
+crack ticks count, and when they reach SecondsUntilLose seconds (12, shorter by the column's crack speed from the Level row) and the board is
+settled the game is lost (slot 161, 0x6e0450): a death curve of 100 ticks runs (slot 22, 0x6e63c0) and the game ends (0x6d8e30, Board's NoMoreMoves).
+
+A run of three or more gems that stand in one column (slot 211, 0x6e2250, which the port reaches through a new Board hook, OnRunFound, called
+for each kept run where the exe's slot 0x34c returns at once) crushes the ice of that column when its gems are cleared (slot 143, 0x6dd580, then
+0x6db1a0): the column is marked crushed, the ice it will take off the bar is its height (1 at least), 0x6d6d60 scores it (ColDestroyBonus times
+the multiplier into a total the exe only keeps; with ColCountBonus a column crushed within the chain's window of the last counts as the next of
+a chain, the window being the ColComboCoolDownVsCount curve's value at the chain's length, in ticks, and the list's entry for that length is added
+to the score as it is) and counter 0x23 (columns crushed) goes up. A hypercube's group at work (type 7, every colour) crushes the ice of every
+column it clears a gem in. 5 ticks after the crush the ice it took is added to the bar; 50 ticks after, the column goes (the exe waits for its
+crush effect, the curve "b;0,1,0.01,.5"; the port counts the ticks).
+
+The bar: the ice removed (pushed back and crushed) against MultiplierIceReq (each entry times 8, rows; 10 when the list is empty). When it is past
+it (0x6e5850's last part) the multiplier (the score's factor, +0xe0c, mLevelNumber; the end dialog's "Highest Multiplier") goes up by one, the ice
+holds still for 200 ticks and every column is given a reprieve: after 0x50 ticks and 5 more for each column on, a push (ReprieveStrVsRow, 0x6ceba0)
+takes the high ice down; the game goes on when the pause is over and no column is still being pushed (or 300 ticks later), and each made column,
+in a random order, gets a ramp (from 0.2 to 1) that starts later for each. Slot 122 (the level factor) is 2 in the secret mode, slot 106 (the
+hint wait) 5 seconds (Board's 15; a new virtual, GetHintWaitSeconds), slot 172 puts the grid 0x28 lower.
+
+Stages: the quest's Level1 to Level15 rows ("doubleCols, colCount, fireSpeed, seconds, crackSpeedMod[, curve]") are read by 0x6c6600 (past the last
+row the values go on by the step of the last two); when the stage's seconds are up the next row is read and the columns planned again (0x6e5690:
+with some singles and some doubles wanted the edges are doubles; with only doubles, all). 0x6e08a0 makes one column at a time, in a random
+order (the CRT's random_shuffle with the app's Rand, the last candidate kept last), with edge columns put off until enough others are made, by
+the stage's double count; it runs from the step when the next is due (0x6c5d30 holds the due tick to 0x4b after a crush) or when none is made.
+
+Settings and state keys. NewGame (0x6e6a10) reads MatchPushStr, SpecialGemPushMod, SecondsUntilLose, DoubleEdgeMult, FireSpeedMult,
+ColDestroyBonus, ColCountBonus, MultiplierIceReq, MaxRandFireSpeedColDelta, DoubleColSpeedMult, FreezeDurationPerNegStrength, FreezeMax, the four
+curves and the Level rows. `goto icestorm` needs `unlock all` (tutorial flag 2). State keys: ice (eight heights in thousandths of a row, -1 where
+no ice is made or the column is a double's second), icespan, icecrushed, icecrack (crack ticks, -1 none), iceremoved and icebar (thousandths of a
+row), icemult, icestage, icepaused, iceticks, icecrushedcount, icebestchain and icechain. `bot` and `move` work (the move search is Board's);
+the suite's bot stops after 30 moves so that the ice reaches the top.
+
+### Not done (Ice Storm)
+
+The ice is a flat translucent block (blue towards red with the crack, fading when crushed) from the grid's bottom; the exe's PIEffects of each
+column (0x330, 0x334 set by 0x6c5ea0 from the position and crack), the shake offsets, the "crush", "panicfast" and "panicslow" animations, the
+glow (+0x264) of the gems in the ice, the intensity curve (+0x3b60) and its effects (0x6e5850's start), the bar, InfernoBadge, the multiplier text
+(0x6cc010) and the popups (0x6ce7c0), the sounds, the death's "death" animation (0x6e0450), save and restore (slots 138, 139: 0x6cfbc0, 0x6e7e40),
+slot 218's danger flag, slots 108, 133 and 191's counter (+0x3cf8, which the swap hooks set to 0xf), slots 98 (0x6d3f00), 123, 125, 239 (0x6d3970), 249,
+251 and 255 of the board, the end dialog's Draw (0x790500: the boxes and icons of the ICESTORM_GAMEOVER_DLG_ constants) and the tutorial dialog of the
+first vertical run (0x6e2250).
+
+### Oddities (Ice Storm)
+
+- Slot 143's test of what cleared a gem is the bit 2 of mDestroyerFlags (+0x238), which the port's Piece calls FLAG_HYPERCUBE; slot 166 and 143 both
+  apply the push of special gems, as read. Whether that bit is a flame or a hypercube in the exe's own naming was not followed.
+- The crack's fraction (0x6ce540) passes through a curve object (0x4378f0 with the column's crack ticks over SecondsUntilLose) that the export does not
+  show (its object is in a register); the port reads it as linear.
+- 0x6e24b0, which makes columns when a stage starts (called with a bound in a register), is read as making them until StartColCount columns are
+  made; the quest has no StartColCount, so none are made at a stage's start (the first appears after the grace and the 0x19 ticks of the due tick).
+- 0x6c6600's curve copy for a row with no curve is not read; the port uses the constant 1 for it, so the stage's fire speed is the row's from the
+  start (Level1 to Level3 have curves, from 0.5 or 0 up to 1 over the stage).
+- The column's ramp (+0x218) before the first multiplier is taken as the constant 1 (not read from the constructor, 0x6e2d90).
+- 0x6d6d60's ColDestroyBonus times the multiplier is only added to +0x366c (and shown in a popup, 0x6ce7c0); nothing translated adds it to the score
+  (the ColCountBonus entry is added to mScorePoints and +0x3668 directly, not through the multiplier). The score's multiplier is Board's AddPoints.
+- 0x6c6520's second test (a group of type 2 whose +0x40 is the column) is of a group the port never makes (match groups of type 2 are made when
+  +0xe8 is set, which no port mode sets).
+- The stage's time (0x6e5790) is run from the exe's Update; the port runs it in the step, the same at the normal speed.
+- The "Total Time" of the end dialog reads counter 0 (seconds), as in the other modes' dialogs; it shows 0:00 in the suite's game because the port
+  does not step that counter in a game of this length (0x73d170 every 100 game ticks is left out of Board::UpdateGame).
+- Board's UpdateGame calls slot 161 when no move is left; Ice Storm's slot 161 begins the death instead, and the port guards the start (the exe
+  asks whether the death curve is above 0).
+
+### The suite for Ice Storm
+
+suite_icestorm.txt (seed 7, name Tester, `unlock all`, `goto icestorm`, `bot 30`, three state lines and two shots, the end dialog on screen at the
+last) is run twice by suite.sh in the same loop as the other two secret modes: the second state line must be in play, the last must have the game
+over and the end dialog, and the rerun must be the same. The Classic and modes hashes are unchanged by it (see the suite's result).

@@ -53,10 +53,10 @@ for s in zen lightning; do
 	[ -s "$OUT/modes/$s.png" ] || { fail="$fail noshot-$s"; continue; }
 	cmp -s "$OUT/modes/$s.png" "$OUT/modesrerun/$s.png" || fail="$fail modesrerun-$s"
 done
-# The secret modes: a seeded bot game of Butterflies and one of Poker, each to its game over and the end dialog (suite_butterflies.txt,
-# suite_poker.txt), each run twice: the state lines (the board, the mode's own keys) and the shots must be the same. Their states are
+# The secret modes: a seeded bot game of Butterflies, one of Poker and one of Ice Storm (its bot stops after 30 moves and the ice
+# reaches the top), each to its game over and the end dialog (suite_butterflies.txt, suite_poker.txt, suite_icestorm.txt), each run twice: the state lines (the board, the mode's own keys) and the shots must be the same. Their states are
 # not frozen by a hash of their own: the mode's logic is checked by the state lines' contents (a game over, the end dialog) and the rerun.
-for m in butterflies poker; do
+for m in butterflies poker icestorm; do
 	e="$(run $m suite_$m.txt)"; [ "$e" -eq 0 ] || fail="$fail $m-exit($e)"
 	grep -q '^ERROR' "$OUT/$m/states.txt" && fail="$fail $m-command($(grep -m1 '^ERROR' "$OUT/$m/states.txt" | cut -c1-80))"
 	[ "$(grep -c '^STATE ' "$OUT/$m/states.txt")" = 3 ] || fail="$fail $m-statelines"
@@ -75,7 +75,7 @@ msh="$(sha256sum "$OUT/modes/states.txt" | cut -c1-12)"
 sh="$(sha256sum "$OUT/game/states.txt" | cut -c1-12)"
 [ -z "$FROZEN" ] || [ "$sh" = "$FROZEN" ] || fail="$fail STATES CHANGED($sh; frozen $FROZEN)"
 if [ -z "$fail" ]; then
-	echo "bejeweled3: menu, a seeded Classic game (bot, 150 moves), the specials and the game over; Zen and Lightning games (bot); rerun identical (states and 6 shots); Butterflies and Poker bot games to their game over (rerun identical, states and 4 shots); states $sh, modes $msh"
+	echo "bejeweled3: menu, a seeded Classic game (bot, 150 moves), the specials and the game over; Zen and Lightning games (bot); rerun identical (states and 6 shots); Butterflies, Poker and Ice Storm bot games to their game over (rerun identical, states and 6 shots); states $sh, modes $msh"
 	exit 0
 fi
 echo "bejeweled3: FAILED:$fail"

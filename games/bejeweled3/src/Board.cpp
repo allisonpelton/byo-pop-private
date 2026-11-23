@@ -479,7 +479,7 @@ void Board::UpdateGame()
 	// the hint: with the board at rest and nothing fading (+0x12c8 is 0) the timer counts to 15 * 100 (slot 106 is 15)
 	if (IsSettled() && HintAllowed()) {
 		mHintTimer++;
-		if (mHintTimer == 15 * 100)
+		if (mHintTimer == GetHintWaitSeconds() * 100)
 			ShowHint(false);
 	}
 	UpdateGameOver();   // the hold block (+0xd1c)

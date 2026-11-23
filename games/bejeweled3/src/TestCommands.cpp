@@ -5,6 +5,7 @@
 
 #include "Bej3Dialog.h"
 #include "ButterflyBoard.h"
+#include "IceStormBoard.h"
 #include "PokerBoard.h"
 #include "Board.h"
 #include "Common.h"
@@ -35,6 +36,8 @@ const char* ModeKey(const Board* theBoard)
 		return "butterflies";
 	if (aName == "Poker")
 		return "poker";
+	if (aName == "Icestorm")
+		return "icestorm";
 	return "classic";
 }
 
@@ -136,9 +139,9 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 		return true;
 	}
 	if (aCommand == "goto") {
-		if (theCommand.mArgs == "butterflies" || theCommand.mArgs == "poker") {
+		if (theCommand.mArgs == "butterflies" || theCommand.mArgs == "poker" || theCommand.mArgs == "icestorm") {
 			// as the play menu starts it: the ball of the mode must be open (unlock all), else the exe asks why it is shut instead
-			int aIndex = theCommand.mArgs == "poker" ? 0 : 1;
+			int aIndex = theCommand.mArgs == "poker" ? 0 : theCommand.mArgs == "icestorm" ? 2 : 1;
 			if (mProfile == nullptr || mProfile->mTutorialFlags[aIndex] == 0) {
 				ReplyError(theCommand, "that mode is locked: unlock all first");
 				return true;
@@ -165,7 +168,7 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 			ReplyOK(theCommand);
 		}
 		else
-			ReplyError(theCommand, "only classic, zen, lightning, butterflies and poker are made yet");
+			ReplyError(theCommand, "only classic, zen, lightning, butterflies, poker and icestorm are made yet");
 		return true;
 	}
 	if (aCommand == "swap") {
@@ -401,6 +404,32 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 					std::to_string((int)(aButterflies->mSideSpawnChance * 1000.0f)) + ",\"freed\":" +
 					std::to_string(aButterflies->mCounters[ButterflyBoard::COUNTER_BUTTERFLIES_FREED]) + ",\"bestcombo\":" +
 					std::to_string(aButterflies->mCounters[ButterflyBoard::COUNTER_BEST_COMBO]);
+			}
+			if (const IceStormBoard* anIce = dynamic_cast<const IceStormBoard*>(mBoard)) {
+				// Ice Storm: for each of the eight columns the ice's height in thousandths of a row (-1 where no ice is made; a double's second
+				// column too), how many columns wide it is, whether it is crushed (1) and its crack ticks (-1 none); then the ice taken off the bar
+				// and the bar's need in thousandths of a row, the multiplier, the stage, whether the ice is paused, the ice's ticks, the columns
+				// crushed, the best chain and the chain's length
+				std::string aHeights;
+				std::string aSpans;
+				std::string aCrushed;
+				std::string aCracks;
+				for (int aColumn = 0; aColumn < IceStormBoard::COLUMN_COUNT; aColumn++) {
+					const IceStormBoard::Column& aState = anIce->mColumns[aColumn];
+					const bool anAnchor = aState.mOwner == aColumn && aState.mActive;
+					const char* aSeparator = aColumn == 0 ? "" : ",";
+					aHeights += aSeparator + std::to_string(anAnchor ? (int)(aState.mPosition * 1000.0f) : -1);
+					aSpans += aSeparator + std::to_string(anAnchor ? aState.mSpan : 0);
+					aCrushed += aSeparator + std::to_string(anAnchor && aState.mCrushed ? 1 : 0);
+					aCracks += aSeparator + std::to_string(anAnchor ? aState.mCrackTicks : -1);
+				}
+				aLine += ",\"ice\":[" + aHeights + "],\"icespan\":[" + aSpans + "],\"icecrushed\":[" + aCrushed + "],\"icecrack\":[" + aCracks +
+					"],\"iceremoved\":" + std::to_string((int)(anIce->mIceRemoved * 1000.0f)) + ",\"icebar\":" +
+					std::to_string((int)(anIce->mMultiplierIceThreshold * 1000.0f)) + ",\"icemult\":" + std::to_string(anIce->mLevelNumber) +
+					",\"icestage\":" + std::to_string(anIce->mStage) + ",\"icepaused\":" + std::to_string(anIce->mPaused ? 1 : 0) +
+					",\"iceticks\":" + std::to_string(anIce->mTicks) + ",\"icecrushedcount\":" +
+					std::to_string(anIce->mCounters[IceStormBoard::COUNTER_COLUMNS_CRUSHED]) + ",\"icebestchain\":" +
+					std::to_string(anIce->mBestChain) + ",\"icechain\":" + std::to_string(anIce->mChainCount);
 			}
 			if (const PokerBoard* aPoker = dynamic_cast<const PokerBoard*>(mBoard)) {
 				// Poker: the hand (each card's suit, "/" and its second suit, a letter for a wild (w), flame (f) or star (s) card; - for no card),

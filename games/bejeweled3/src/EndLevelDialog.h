@@ -15,6 +15,7 @@ class Board;
 class DialogButton;
 
 class PokerBoard;
+class IceStormBoard;
 
 class ClassicEndLevelDialog : public Bej3Dialog {
 public:
@@ -83,6 +84,21 @@ public:
 protected:
 	void DrawStatisticsLabels(Graphics* g) override;   // 0x784400 (bejeweled3), slot 89
 	void DrawStatisticsValues(Graphics* g) override;   // 0x784880 (bejeweled3), slot 90
+};
+
+// Sexy::InfernoEndLevelDialog (bejeweled3, vtable 0x8662c4, 0x390 bytes, made by 0x6d3180 from the board's slot 257): the screen an Ice Storm game
+// ends on, Classic's dialog (id 0x26, 0x6a7c80) with its own statistics: the highest multiplier, the columns crushed, the best column combo
+// and the time (strings 0x10f to 0x112). Its Draw (0x790500) adds the boxes and icons of the ICESTORM_GAMEOVER_DLG_ constants: not translated.
+class IceStormEndLevelDialog : public ClassicEndLevelDialog {
+public:
+	int mBestChain = 0;   // +0x38c: the board's +0x3670, the most columns crushed in a chain
+
+	explicit IceStormEndLevelDialog(IceStormBoard* theBoard);   // made inline by 0x6d3180 (bejeweled3): 0x6a7c80, the vftable, the board and its best chain
+
+protected:
+	void DrawContent(Graphics* g) override;             // 0x6a5f50 (bejeweled3), slot 94: the table and the top scores, as Lightning's
+	void DrawStatisticsLabels(Graphics* g) override;    // 0x78fbb0 (bejeweled3), slot 89
+	void DrawStatisticsValues(Graphics* g) override;    // 0x790030 (bejeweled3), slot 90
 };
 
 // Sexy::PokerEndLevelDialog (bejeweled3, vtable 0x86c4c4, 0x3b8 bytes, made by 0x782cf0 from the board's slot 257, 0x6d1540): the screen a Poker game

@@ -1,0 +1,11 @@
+10 seed 7
+11 name Tester
+1200 unlock all
+1210 goto icestorm
+1500 state
+1600 bot 30
+2400 state
+2401 screenshot @DIR@/icestorm.png
+12000 state
+12001 screenshot @DIR@/icestorm_end.png
+12100 quit

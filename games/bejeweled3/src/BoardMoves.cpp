@@ -767,9 +767,9 @@ int Board::FindMatches()
 			aTarget->mRememberedColor = aTarget->mColor;
 		aTarget->mScaleCurve.SetConstant(1.0);
 	}
-	// slot 0x34c (0x73ba10) returns at once
 	for (size_t aClusterIndex = 0; aClusterIndex < aClusters.size(); aClusterIndex++) {
 		MatchCluster& aCluster = aClusters[aClusterIndex];
+		OnRunFound(aCluster.mPieces);   // slot 211 (0x34c)
 		Piece* aTarget = nullptr;
 		bool aFrozen = false;
 		for (size_t k = 0; k < aCluster.mPieces.size(); k++) {

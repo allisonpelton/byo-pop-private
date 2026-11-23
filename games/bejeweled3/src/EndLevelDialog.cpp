@@ -1,5 +1,6 @@
 // Sexy::ClassicEndLevelDialog (bejeweled3, 0x7842b0 over 0x6a7c80). See EndLevelDialog.h.
 #include "EndLevelDialog.h"
+#include "IceStormBoard.h"
 
 #include "Bej3App.h"
 #include "Board.h"
@@ -351,6 +352,44 @@ void ButterflyEndLevelDialog::DrawStatisticsValues(Graphics* g)
 	g->WriteString(CommaSeperate(mCounters[0x1d]), aX, Scaled(0x1db + 0x60), -1, 1, true, 0, -1, -1);
 	char aTime[32];
 	snprintf(aTime, sizeof(aTime), TextById(0xa3, "%d:%02d").c_str(), mCounters[COUNTER_SECONDS] / 60, mCounters[COUNTER_SECONDS] % 60);
+	g->WriteString(aTime, aX, Scaled(0x1db + 0x90), -1, 1, true, 0, -1, -1);
+}
+
+// 0x6d3180 (bejeweled3): the dialog of 0x6a7c80 (the leaderboard of the mode's name "Icestorm") with the board's best chain (+0x3670)
+IceStormEndLevelDialog::IceStormEndLevelDialog(IceStormBoard* theBoard) :
+	ClassicEndLevelDialog(theBoard),
+	mBestChain(theBoard->mBestChain)
+{
+}
+
+// 0x6a5f50 (bejeweled3), slot 94: the statistics table and the top scores, as Lightning's
+void IceStormEndLevelDialog::DrawContent(Graphics* g)
+{
+	DrawStatisticsTable(g);
+	DrawTopScores(g);
+}
+
+// 0x78fbb0 (bejeweled3), slot 89: Highest Multiplier, Columns Crushed, Best Column Combo and Total Time (strings 0x10f, 0x111, 0x110 and 0x112), left
+void IceStormEndLevelDialog::DrawStatisticsLabels(Graphics* g)
+{
+	static const int aStrings[4] = {0x10f, 0x111, 0x110, 0x112};
+	static const char* const aDefaults[4] = {"Highest Multiplier", "Columns Crushed", "Best Column Combo", "Total Time"};
+	for (int i = 0; i < 4; i++)
+		g->WriteString(TextById(aStrings[i], aDefaults[i]), Scaled(0xe6), Scaled(0x1db + 0x30 * i), -1, -1, true, 0, -1, -1);
+}
+
+// 0x790030 (bejeweled3), slot 90: the values, right at 0x2f8: the multiplier (string 0x113, "x%d"; the board's +0xe0c), the columns crushed
+// (counter 0x23), the best chain and the game's seconds (counter 0) as minutes and seconds (string 0x114, "%d:%02d")
+void IceStormEndLevelDialog::DrawStatisticsValues(Graphics* g)
+{
+	const int aX = Scaled(0x2f8);
+	char aMultiplier[32];
+	snprintf(aMultiplier, sizeof(aMultiplier), TextById(0x113, "x%d").c_str(), mLevelNumber);
+	g->WriteString(aMultiplier, aX, Scaled(0x1db), -1, 1, true, 0, -1, -1);
+	g->WriteString(CommaSeperate(mCounters[IceStormBoard::COUNTER_COLUMNS_CRUSHED]), aX, Scaled(0x1db + 0x30), -1, 1, true, 0, -1, -1);
+	g->WriteString(CommaSeperate(mBestChain), aX, Scaled(0x1db + 0x60), -1, 1, true, 0, -1, -1);
+	char aTime[32];
+	snprintf(aTime, sizeof(aTime), TextById(0x114, "%d:%02d").c_str(), mCounters[COUNTER_SECONDS] / 60, mCounters[COUNTER_SECONDS] % 60);
 	g->WriteString(aTime, aX, Scaled(0x1db + 0x90), -1, 1, true, 0, -1, -1);
 }
 

@@ -278,8 +278,8 @@ public:
 	// slot 22, 0x759170 (bejeweled3): the board's own update: the game speed gives the number of steps this update is worth
 	// (one at the normal speed) and each runs UpdateTick
 	void Update() override;
-	// slot 234, 0x767090 (bejeweled3): one step of the game
-	void UpdateTick();
+	// slot 234, 0x767090 (bejeweled3): one step of the game (virtual since Ice Storm's 0x6e5850 runs after it)
+	virtual void UpdateTick();
 	// slot 231, 0x767e20 (bejeweled3): the game's part of a step: the fill, the fall and the idle shine (ButterflyBoard's 0x6e82a0 runs it first)
 	virtual void UpdateGame();
 	// slot 214, 0x73dd70 (bejeweled3): gravity: each column's pieces move by their speeds and land on the row or the piece below
@@ -290,6 +290,10 @@ public:
 	virtual void OnFirstSettled() {}
 	// slot 191 (0x2fc), 0x75a58a: a swap has found matches (the swap record is given); with the pieces' move counters of 0x73c7e0 first
 	virtual void OnSwapMatched(const SwapRecord& theSwap) { (void)theSwap; }
+	// slot 211 (0x34c, 0x73ba10 returns at once; Ice Storm's 0x6e2250 reads it): FindMatches has kept one run of pieces
+	virtual void OnRunFound(const std::vector<Piece*>& thePieces) { (void)thePieces; }
+	// slot 106 (0x1a8, 0x73c240 is 15): the seconds a board at rest waits before it shows a hint (Ice Storm's 0x6c5cc0 gives 5 in a secret mode)
+	virtual int GetHintWaitSeconds() const { return 15; }
 	// 0x73c7e0 (bejeweled3) with slot 212 (0x73c710) for each piece without the bits 0x40 and 0x100: a butterfly gem (FLAG_BUTTERFLY) with
 	// moves left counts one down (the other branches of 0x73c710, for the bit 0x200, are the Quest boards' goals': not translated). Run
 	// by 0x75f85c, 0x75f8be (a hypercube's swap) and by 0x74c070 (a swap that found a match), before slots 179 and 191
