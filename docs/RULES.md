@@ -92,7 +92,11 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   Move to the E drive please"):** the short path for originals that fail under a worktree's long path is `E:\byo-og`
   (was `C:\byo-og`; every script and note now says E:), and a session's or agent's scratch goes in its worktree's
   `build/` or its scratchpad, never a new folder at a drive's root on C:. The folders found there that day (`C:\byo-og`,
-  `C:\scr`, `C:\tmp_pf`, `C:\byo-saw`) were moved to E:.
+  `C:\scr`, `C:\tmp_pf`, `C:\byo-saw`) were moved to E:. Widened to every drive (the user, 2026-11-22: "What is C:\x
+  and quit making folders on my drives' roots"), after Bookworm Adventures' screens pilot left `C:\x` (five empty
+  folders named after its clips): no session or agent makes a folder or file at the root of C:, E: or A:. The places
+  that already exist are kept: `E:\byo-og` (originals staged on a short path), `E:\retools` (the toolchain) and
+  `E:\backups` (`docs/PUBLISHING.md`). A script builds its output paths from variables it checks are set.
 - **Never walk / or a whole drive (the user, 2026-11-15: "Hardly anything is running yet memory's at 80%. Is there a
   leak?", then "this isn't the first time this has happened, so figure out how to stop further incidents" and
   "Surely there's a better way to do this than a cron job"):** two sessions had run `find / -iname Pixelus.exe` and

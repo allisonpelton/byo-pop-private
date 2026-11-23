@@ -37,9 +37,10 @@ the visible desktop, Windows Sandbox or sound may have them at any hour (the las
 - One oracle at a time (`docs/BUILDS.md`, "Running the oracle"). A wait loop whose own command line holds "compare.sh"
   waits on itself forever: run it from a script file, or exclude your own process tree.
 - **Disk:** C: is small. Delete a run's outputs once their result is in the game's notes, and keep a worktree's
-  `build/` under about 3 GB, checked before each merge request. Nothing goes in C:\'s root: an original that needs a
-  short path is staged under `E:\byo-og` (origrun's `--stage-root`), and scratch stays in the worktree's `build/` or the
-  session's scratchpad.
+  `build/` under about 3 GB, checked before each merge request. No folder or file is ever made at the root of any drive (C:, E:, A:): an
+  original that needs a short path is staged under the existing `E:\byo-og` (origrun's `--stage-root`), and scratch
+  stays in the worktree's `build/` or the session's scratchpad. A script's output path is always absolute and inside
+  those; check that a variable it is built from is set, or an empty one turns `$OUT/x` into a folder at the root.
 - Leave nothing running: afterwards look for processes whose command line is inside your folder and stop them by id.
   Never walk `/` or a whole drive (`find /`, `du /c`, `grep -r x /`): in Git Bash it reaches `/proc/registry`, never
   ends and leaks kernel memory, and a user-level hook refuses it. Search a named folder, or use Glob and Grep.
