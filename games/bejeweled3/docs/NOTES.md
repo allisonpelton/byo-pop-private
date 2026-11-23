@@ -1616,3 +1616,56 @@ Checked against quest.cfg and secret.cfg: the Goal settings are Catch Butterflie
 ### The suite for Quest, part 3
 suite_quest3.txt (seed 7, name Tester, `unlock all`) plays eleven games, each ending in a state line: Buried Treasure (three flames, won), Sandstorm (Time=3, lost), Wall Blast (a flame breaks the nine cells, won), Wall Blast II (Time=3, lost), Alchemy (won), Alchemy II
 (Moves=3, lost), Alchemy III (Flip, won), Time Bomb with its Clear Bombs goal (won), Time Bomb II (lost), the Poker quest (won on its score, lost on its hands). Hidden Objects comes first, because its layout comes from the app's draws (6.4.1.3, 1.2.2.3, 5.0.2.2 under seed 7).
+
+## Real input (tools/realinput.sh, TestCommands.cpp's `move`, `state`, `play`, `atmove`, `idle`)
+
+The native window under rundesk, driven by posted-as-SDL-events input (`-realinput`, docs/REAL_INPUT.md) from `tools/playbymove/playbymove.py`: the
+driver asks `state` and `move` and plays the answer's `input` as real events, until the state says `"over":true`. Run `games/bejeweled3/tools/realinput.sh
+[mode ...]` from the worktree root (no mode: all eight; `REALINPUT_DISPLAYS="win"`, `"full"` or `"alt"` picks a display; `STEPS`, `ZEN_STEPS`, `QUEST_INDEX`
+change the limits). It waits for a free game slot (`tools/gamecount.py --limit`), runs one game at a time with a fresh user folder under
+`build/realinput/<mode>-<display>/` (driver.txt, game.log, end.png), prints one line a run (`<mode> <display>: <steps> moves, stop <over|limit>`) and exits 0
+when every run but Zen's stopped on "over" (Zen has no end: it is played for 400 steps and the limit is its end). The whole script takes about 4.5 minutes.
+The folder is not kept: delete `build/realinput` once the results are here.
+
+**What `state` and `move` do now.** `state` ends with `"over":true|false`: true when the board's game is over and its end dialog is up (every mode but Quest),
+or, for a quest, when the quest map has come back over the finished board (won or lost). A state with no board also carries `"update"` (the app's update
+count) and `"dialogs"` (how many are up), so a driver can see a menu change. The frozen hashes (suite.sh) are of the state lines without the `"over"` key (the
+suite strips it with `sed` before hashing): the key is last in the line, and Classic's 51086c43ed2a and the modes' 873d262bb577 are unchanged.
+`move` answers, in game pixels, what a hand does next:
+- a dialog that is still fading in or out: a wait (`"input":[]` with `"updates"`); the first player's name box (the welcome dialog): the keys of "Tester" and Enter;
+  the end dialog: MOVE null (the game is over); any other dialog (a locked mode's, the empty-name message, the reset question): a click on its Yes button.
+  There are no tutorial or help dialogs in the port (the exe's are not translated, see "Not done" under each mode), so none comes in a mode's first game.
+- no board, the quest map up: the click on the button of the quest `play quest <i>` named (a wait while the map's page is not that quest's section);
+- no board, the menus: a wait until the intro has ended and the camera is still; then PLAY's ball; then, once the play menu is up and the ball's size curve
+  has stopped, the ball of the mode `play <mode>` named (classic, zen, lightning, quest, poker, butterflies, icestorm, diamondmine). Every button click is a
+  move, three updates, a press, three updates and a release (a button reads its state once an update), at the middle of the widget's own rectangle;
+- a board: a wait while it is not at rest, a level change runs (`mHyperspace`, `mLevelUpPending`) or no move is found; else the bot's swap as the two clicks.
+  Once the game is over, MOVE null.
+Test commands that make a run possible: `play <mode> [quest index]` (the target the menus' clicks lead to; unset: MOVE null at the menu); `unlock all` before
+the player exists is kept and done by `move` once the name has made the profile; `atmove <n> <command...>` runs a test command once `move` has given n swaps
+(classic: `board` with a board that has no move, which is the suite's way to the end dialog; Ice Storm: `idle`); `idle` makes `move` stop swapping (a player
+who walked away: Ice Storm's bot always finds a move and crushes the ice for ever, 3000 steps and a score of 688,657 without an end).
+
+**The runs** (window = `registry.ini` with ScreenMode 0; full screen = a new player's own start, which the port opens full screen; "alt" = the full screen
+start with Alt+Enter at once, so Classic is played in the window it switches to). Steps are the driver's moves and waits, as playbymove counts them:
+
+| Mode | Window | Full screen | What ends it |
+| --- | --- | --- | --- |
+| Classic (`atmove 40 board ...`) | 323, over | 323, over; alt: 323, over | the no-move board, the end dialog up |
+| Zen | 400, limit | 400, limit | none (Zen has no end) |
+| Lightning | 1992, over | 1992, over | its clock and the Last Hurrahs, the end dialog |
+| Quest 3 (Stratamax, Move Limit) | 293, over | 293, over | the 20 moves run out, the map comes back (a loss) |
+| Butterflies | 186, over | 186, over | the end dialog |
+| Poker | 572, over | 572, over | the end dialog |
+| Ice Storm (`atmove 60 idle`) | 626, over | 626, over | the ice cracks, the end dialog |
+| Diamond Mine | 1021, over | 1021, over | the clock runs out, the end dialog |
+
+Window and full screen give the same step counts in every mode, so the same input made the same game in the two displays (the window's mapping to game
+pixels, the full screen's 1600x1200 and the desktop-sized 3840x2160 client the log shows for it, took every click and key to the place asked). The port
+has no 3D path (Is3D is 0 in its registry), so there is no second display mode to try. Not played by this: the end dialogs' PLAY AGAIN and MAIN MENU
+buttons, the options screen and a second quest of the map's other sections (the quests' own games are the suite's).
+
+**What a hand's input showed that the scripted suite did not.** No bug of the port. Three things of the runs themselves: a click on a button must come as
+move, wait, press, wait, release (the board's two clicks need none of it); the menus' balls take no click while their size curves run (about 60 updates after
+PLAY), so `move` waits for them; and the end dialog's first frame shows "Final Score" as 0 (its count-up starts when it opens), so an `end.png` taken at once
+has not counted up yet. The fresh player's default start is full screen, as the exe's first run is.

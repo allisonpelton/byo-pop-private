@@ -115,6 +115,17 @@ public:
 	// port: test only (the `name` command). A name typed into the new user dialog and its OK pressed, as a player does: at once when the
 	// dialog is open, else when the welcome dialog opens (a game with a player already has no such dialog and the command does nothing)
 	std::string mScriptName;
+	// port: test only (the `play` and `unlock` commands): the mode and quest the bot's `move` clicks its way to from the menus (a hand's route), and an
+	// `unlock all` that came before the first player existed
+	std::string mPlayTarget;
+	int mPlayQuest = 0;
+	bool mUnlockPending = false;
+	// port: test only (the `atmove` command): a test command that `move` runs once the board has had that many moves, to shorten a long mode
+	bool mIdle = false;   // the `idle` command: `move` gives no swap any more (a player who walked away), so a mode that ends on its own clock ends
+	int mSwapsGiven = 0;   // the swaps `move` has answered with so far (what `atmove` counts)
+	int mAtMoveCount = -1;
+	std::string mAtMoveCommand;
+	std::string mAtMoveArgs;
 	void EnterScriptName();
 
 	// 0x76aaf0 (bejeweled3): plays a sound of the sound manager at a volume, pan and pitch (steps); nothing when muted
