@@ -48,8 +48,6 @@ protected:
 	std::map<std::string, engine::Vector2f> mAnchors;    // +0x64: points by role, from the anchor
 	float mScale;                                        // +0x70: the size over the model's
 	engine::Color mTint;                                 // +0x74: laid over each frame when its alpha is above 0
-	// +0x84, +0x88 and +0x8c (a fish's): the menu's picture and the HUD's two icons (0x427490 (feedingfrenzy2)), not
-	// yet translated
 };
 
 class FishVisualData : public VisualData
@@ -70,11 +68,23 @@ public:
 
 	const engine::Vector2f& getMouth() const { return mMouth; }
 	FishVisualInfo* getFishInfo() const { return mFishInfo; }
+	// The fish's picture on the menus and the stage's end, and its two icons on the HUD; null without a menu picture
+	engine::Surface* getMenuPicture() const { return mMenuPicture; }
+	engine::Surface* getHudIcon() const { return mHudIcon; }
+	engine::Surface* getHudDangerIcon() const { return mHudDangerIcon; }
 
 private:
 	// 0x484100 (feedingfrenzy2)
 	void fitAnimations();
+	// 0x427490 (feedingfrenzy2): the menu's picture "<menu>.png" through the visual's colour effect (rgbBlend's
+	// left out); then, when there is one, the HUD's icon of its size, the picture over "<menu>_shadow.png" at its
+	// centre, and the danger icon, the shadow, the picture darkened to 0.3 and the shell theme's hudDangerOverlay at
+	// (43, 37)
+	void setupPictures(const std::string& theMenu);
 
+	engine::Ref<engine::Surface> mMenuPicture;    // +0x84
+	engine::Ref<engine::Surface> mHudIcon;        // +0x88
+	engine::Ref<engine::Surface> mHudDangerIcon;  // +0x8c
 	engine::Ref<FishVisualInfo> mFishInfo;  // +0x90
 	bool mInAir;                            // +0x94
 	engine::Vector2f mMouth;                // +0x98: the "mouth" point

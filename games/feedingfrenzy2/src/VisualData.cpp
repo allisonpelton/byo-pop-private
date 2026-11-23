@@ -1,9 +1,12 @@
 #include "VisualData.h"
 
 #include "ActorInfo.h"
+#include "DrawContext.h"
 #include "Engine.h"
+#include "FeedingFrenzyTwo.h"
 #include "PixelFx.h"
 #include "Surface.h"
+#include "Theme.h"
 
 #include <cstdio>
 
@@ -11,6 +14,38 @@ using namespace engine;
 
 namespace
 {
+
+// The pixel effect of a visual's colour effect, null for none: hsvAdd's hue, saturation and value shifts, rgbAdd's
+// colour added (its alpha 0), rgbMultiply's multiplied (its alpha 1), rgbBlend's laid over by its own alpha (unless
+// left out) and rainbow's hue and its turn per column
+Ref<PixelFx> colorEffectOf(const VisualInfo* theInfo, bool withBlend)
+{
+	const float* aParams = theInfo->mColorParams;
+	switch (theInfo->mColorEffect)
+	{
+	case COLOR_EFFECT_HSV_ADD:
+		return new HSVShiftFx(aParams[0], aParams[1], aParams[2]);
+	case COLOR_EFFECT_RGB_ADD:
+		return new ColorFx(Color(aParams[0], aParams[1], aParams[2], 0.0f), COLOR_FX_ADD);
+	case COLOR_EFFECT_RGB_MULTIPLY:
+		return new ColorFx(Color(aParams[0], aParams[1], aParams[2], 1.0f), COLOR_FX_MULTIPLY);
+	case COLOR_EFFECT_RGB_BLEND:
+		if (!withBlend)
+			return nullptr;
+		return new ColorFx(Color(aParams[0], aParams[1], aParams[2], aParams[3]), COLOR_FX_BLEND);
+	case COLOR_EFFECT_RAINBOW:
+		return new RainbowShiftFx(aParams[0], aParams[1]);
+	}
+	return nullptr;
+}
+
+// 0x566760 (feedingfrenzy2), a double
+const double HALF = 0.5;
+// The danger icon's picture darkened (0x54ddac (feedingfrenzy2)), and where its overlay goes (0x566c80 and
+// 0x566c84 (feedingfrenzy2))
+const float DANGER_SHADE = 0.3f;
+const float DANGER_OVERLAY_X = 43.0f;
+const float DANGER_OVERLAY_Y = 37.0f;
 
 // 0x43c1a0 (feedingfrenzy2): a point times a number, each coordinate rounded to a float
 Vector2f scaled(const Vector2f& thePoint, float theScale)
@@ -65,32 +100,15 @@ void VisualData::addFrame(Surface* theFrame)
 	// The original goes on with a frame that did not load; the port keeps nothing for it
 	if (!aFrame)
 		return;
-	// The visual's colour effect, put on a copy before it is scaled (the surface's slot 0x34, 0x426740
-	// (feedingfrenzy2)): the colour ones (0x481ec0 and 0x40e820 (feedingfrenzy2): rgbAdd in mode 1, rgbMultiply in
-	// mode 2 at an alpha of 1, rgbBlend in mode 3), HSVShiftFx (0x412db0 (feedingfrenzy2)) for hsvAdd and
-	// RainbowShiftFx (0x408c80 (feedingfrenzy2)) for rainbow
-	int anEffect = mInfo->mColorEffect;
-	if (anEffect == COLOR_EFFECT_RGB_BLEND)
-	{
-		const float* aParams = mInfo->mColorParams;
-		ColorFx anFx(Color(aParams[0], aParams[1], aParams[2], aParams[3]), COLOR_FX_BLEND);
-		Ref<Surface> aCopy = aFrame->clone();
-		aCopy->applyColorFx(anFx);
-		aCopy->scale(mScale, mScale);
-		aFrame = aCopy;
-	}
-	else if (anEffect >= COLOR_EFFECT_HSV_ADD && anEffect <= COLOR_EFFECT_RAINBOW)
-	{
-		getEngine()->log("VisualData: %s's colour effect %d not yet translated\n", mInfo->mName.c_str(), anEffect);
-		Ref<Surface> aCopy = aFrame->clone();
-		aCopy->scale(mScale, mScale);
-		aFrame = aCopy;
-	}
-	// 0x426990 (feedingfrenzy2): without an effect, a scaled copy unless the scale is 1 and there is no tint
+	// 0x4267e0 and 0x426990 (feedingfrenzy2): the visual's colour effect put on a copy before it is scaled (the
+	// surface's slot 0x34); without one, a scaled copy unless the scale is 1 and there is no tint
+	Ref<PixelFx> anEffect = colorEffectOf(mInfo, true);
+	if (anEffect)
+		aFrame = aFrame->pixelFxScaledCopy(mScale, *anEffect);
 	else if (mScale != 1.0f || 0.0f < mTint.a)
 		aFrame = aFrame->scaledCopy(mScale);
 	if (0.0f < mTint.a)
-		aFrame->applyColorFx(ColorFx(mTint, COLOR_FX_BLEND));
+		aFrame->applyPixelFx(ColorFx(mTint, COLOR_FX_BLEND));
 	AnimationData::addFrame(aFrame);
 }
 
@@ -171,8 +189,59 @@ void FishVisualData::setup(FishVisualInfo* theInfo, const std::string& theAnimBa
 	mInAir = inAir;
 	VisualData::setup(theInfo, theAnimBase, theSize);
 	fitAnimations();
-	// 0x427490 (feedingfrenzy2), for a model with a menu picture: "<menu>.png" through the visual's effect, and the
-	// HUD's icons drawn from it with "<menu>_shadow.png" and the hudDangerOverlay (+0x84 to +0x8c): not yet translated
+	FishModelInfo* aModel = theInfo->mFishModel;
+	if (!aModel->mMenu.empty())
+		setupPictures(aModel->mMenu);
+}
+
+void FishVisualData::setupPictures(const std::string& theMenu)
+{
+	Engine* anEngine = getEngine();
+	char aPath[600];
+	snprintf(aPath, sizeof(aPath), "%s.png", theMenu.c_str());
+	Surface* aPicture = anEngine->getImage(aPath);
+	// 0x4118d0, 0x484060 and 0x40e820 (feedingfrenzy2) with the info's values; rgbBlend leaves the picture as it is
+	Ref<PixelFx> anEffect = colorEffectOf(mFishInfo, false);
+	if (anEffect)
+		mMenuPicture = aPicture->pixelFxCopy(*anEffect);
+	else
+		mMenuPicture = aPicture;
+	if (!mMenuPicture)
+	{
+		mHudIcon = nullptr;
+		mHudDangerIcon = nullptr;
+		return;
+	}
+
+	// The icons are each the picture's size, cleared, anchored at their centres and drawn blended
+	mHudIcon = anEngine->createSurface(mMenuPicture->getWidth(), mMenuPicture->getHeight());
+	mHudIcon->fill(Color(0.0f, 0.0f, 0.0f, 0.0f));
+	mHudIcon->setPivot(PIVOT_CENTER);
+	mHudIcon->setBlendMode(BLEND_ALPHA, 0xff);
+	Ref<DrawContext> aContext = anEngine->createDrawContext(mHudIcon);
+	float aCenterX = (float)((double)mMenuPicture->getWidth() * HALF);
+	float aCenterY = (float)((double)mMenuPicture->getHeight() * HALF);
+	mMenuPicture->setPivot(PIVOT_CENTER);
+	snprintf(aPath, sizeof(aPath), "%s_shadow.png", theMenu.c_str());
+	Surface* aShadow = anEngine->getImage(aPath);
+	aShadow->setPivot(PIVOT_CENTER);
+	aContext->drawImage(aShadow, aCenterX, aCenterY);
+	aContext->drawImage(mMenuPicture, aCenterX, aCenterY);
+
+	mHudDangerIcon = anEngine->createSurface(mMenuPicture->getWidth(), mMenuPicture->getHeight());
+	aContext = anEngine->createDrawContext(mHudDangerIcon);
+	mHudDangerIcon->fill(Color(0.0f, 0.0f, 0.0f, 0.0f));
+	mHudDangerIcon->setPivot(PIVOT_CENTER);
+	mHudDangerIcon->setBlendMode(BLEND_ALPHA, 0xff);
+	Surface* anOverlay = getApp()->mShellTheme->getImage("hudDangerOverlay");
+	aContext->drawImage(aShadow, aCenterX, aCenterY);
+	// 0x435510, 0x40ae20 and 0x41a660 (feedingfrenzy2): a state multiplying by the shade, opaque
+	aContext->pushState();
+	aContext->back().mColorMode = COLOR_MODE_MULTIPLY;
+	aContext->back().mColor = Color(DANGER_SHADE, DANGER_SHADE, DANGER_SHADE, 1.0f);
+	aContext->drawImage(mMenuPicture, aCenterX, aCenterY);
+	aContext->popState();
+	aContext->drawImage(anOverlay, DANGER_OVERLAY_X, DANGER_OVERLAY_Y);
 }
 
 void FishVisualData::loadFrames(const std::string& thePath)

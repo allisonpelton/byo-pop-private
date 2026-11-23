@@ -17,6 +17,23 @@ namespace engine
 namespace
 {
 
+// A pixel's bytes (the alpha highest, then red, green and blue) and back
+PixelColor toPixelColor(uint32_t thePixel)
+{
+	PixelColor aColor;
+	aColor.mAlpha = (uint8_t)(thePixel >> 24);
+	aColor.mRed = (uint8_t)(thePixel >> 16);
+	aColor.mGreen = (uint8_t)(thePixel >> 8);
+	aColor.mBlue = (uint8_t)thePixel;
+	return aColor;
+}
+
+uint32_t fromPixelColor(const PixelColor& theColor)
+{
+	return (uint32_t)theColor.mAlpha << 24 | (uint32_t)theColor.mRed << 16 | (uint32_t)theColor.mGreen << 8 |
+	       (uint32_t)theColor.mBlue;
+}
+
 // The rest of a stream read into memory: the port decodes whole files where the original's libjpeg and libpng read
 // the stream as they go
 std::vector<uint8_t> readAll(InputStream* theStream)
@@ -294,31 +311,50 @@ void Surface::scale(float theScaleX, float theScaleY)
 	setAnchor(Vector2f(anAnchorX, anAnchorY));
 }
 
-void Surface::applyColorFx(const ColorFx& theFx)
+void Surface::applyPixelFx(const PixelFx& theFx)
 {
-	// The colour's sums at the x87's double precision, truncated into each byte
-	double aKeep = 1.0 - (double)theFx.mColor.a;
-	for (size_t i = 0; i < mPixels.size(); i++)
+	for (int aRow = 0; aRow < mHeight; aRow++)
 	{
-		uint32_t aPixel = mPixels[i];
-		int anAlpha = (int)(aPixel >> 24);
-		int aRed = (int)((aPixel >> 16) & 0xff);
-		int aGreen = (int)((aPixel >> 8) & 0xff);
-		int aBlue = (int)(aPixel & 0xff);
-		if (theFx.mMode == COLOR_FX_BLEND)
+		for (int aColumn = 0; aColumn < mWidth; aColumn++)
 		{
-			aRed = (int)((double)theFx.mColor.r * (double)theFx.mColor.a * anAlpha + aRed * aKeep);
-			aGreen = (int)((double)theFx.mColor.g * (double)theFx.mColor.a * anAlpha + aGreen * aKeep);
-			aBlue = (int)((double)theFx.mColor.b * (double)theFx.mColor.a * anAlpha + aBlue * aKeep);
+			uint32_t& aPixel = mPixels[(size_t)aRow * mWidth + aColumn];
+			PixelColor aColor = toPixelColor(aPixel);
+			theFx.shadePixel(aColumn, aRow, aColor);
+			aPixel = fromPixelColor(aColor);
 		}
-		else if (theFx.mMode == COLOR_FX_MULTIPLY || theFx.mMode == COLOR_FX_HSV)
-		{
-			// port: not yet translated; the pixel left as it is
-			continue;
-		}
-		mPixels[i] = ((uint32_t)(anAlpha & 0xff) << 24) | ((uint32_t)(aRed & 0xff) << 16) |
-		             ((uint32_t)(aGreen & 0xff) << 8) | (uint32_t)(aBlue & 0xff);
 	}
+}
+
+Surface* Surface::pixelFxCopy(const PixelFx& theFx) const
+{
+	Surface* aCopy = new Surface();
+	aCopy->allocate(mWidth, mHeight);
+	for (int aRow = 0; aRow < mHeight; aRow++)
+	{
+		for (int aColumn = 0; aColumn < mWidth; aColumn++)
+		{
+			size_t anIndex = (size_t)aRow * mWidth + aColumn;
+			PixelColor aColor = toPixelColor(mPixels[anIndex]);
+			theFx.shadePixel(aColumn, aRow, aColor);
+			aCopy->mPixels[anIndex] = fromPixelColor(aColor);
+		}
+	}
+	aCopy->setBlendMode(mBlendMode, mAlphaThreshold);
+	aCopy->setAnchor(mAnchor);
+	char aName[600];
+	snprintf(aName, sizeof(aName), "%s(%s)", getName().c_str(), theFx.getFxName().c_str());
+	aCopy->setName(aName);
+	return aCopy;
+}
+
+Surface* Surface::pixelFxScaledCopy(float theScale, const PixelFx& theFx) const
+{
+	Surface* aCopy = pixelFxCopy(theFx);
+	aCopy->scale(theScale, theScale);
+	char aName[600];
+	snprintf(aName, sizeof(aName), "%s(%.2f,%.2f)", aCopy->getName().c_str(), (double)theScale, (double)theScale);
+	aCopy->setName(aName);
+	return aCopy;
 }
 
 void Surface::fill(const Color& theColor)

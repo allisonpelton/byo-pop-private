@@ -36,7 +36,7 @@ enum Pivot
 	PIVOT_TOP = 3,         // half the width, the first row
 };
 
-class ColorFx;
+class PixelFx;
 
 class Surface : public Object
 {
@@ -93,8 +93,14 @@ public:
 	// the old one times each (truncated), the anchor moved with them
 	void scale(float theScaleX, float theScaleY);
 	// 0x54 (0x5079c2 (feedingfrenzy2)), through 0x50 (0x43e000 (feedingfrenzy2)) over the whole surface: each pixel
-	// put through the colour effect
-	void applyColorFx(const ColorFx& theFx);
+	// put through the effect, in place
+	void applyPixelFx(const PixelFx& theFx);
+	// 0x38 (0x43e4d0 (feedingfrenzy2)): a new surface of the size with each pixel put through the effect (by its
+	// column and row), the blend mode and anchor of this one, named "<name>(<the effect's name>)"
+	Surface* pixelFxCopy(const PixelFx& theFx) const;
+	// 0x34 (0x426740 (feedingfrenzy2)): the same, then scaled the same both ways (the slot 0x4c, 0x47a550
+	// (feedingfrenzy2)) and named "<its name>(<x>,<y>)" with the scale to two places
+	Surface* pixelFxScaledCopy(float theScale, const PixelFx& theFx) const;
 
 	// The pixels, ARGB, row after row (the object's +0x60 (feedingfrenzy2))
 	uint32_t* getPixels() { return mPixels.data(); }

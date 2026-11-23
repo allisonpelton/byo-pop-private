@@ -7,6 +7,8 @@ namespace engine
 
 DrawContext::DrawContext() : mDetailLevel(0)
 {
+	// 0x47d130 (feedingfrenzy2): the first state (0x47d0d0 (feedingfrenzy2)) pushed
+	pushState(DrawState());
 }
 
 DrawContext::~DrawContext()

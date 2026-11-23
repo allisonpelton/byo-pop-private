@@ -144,6 +144,11 @@ public:
 	virtual bool addImage(Surface* theImage, const std::string& thePath);
 	// 0x94 (0x469650 (feedingfrenzy2)): the image kept under the path, null for none
 	virtual Surface* findImage(const std::string& thePath);
+	// 0x9c (EngineImpl's 0x4673d0 (feedingfrenzy2)): a new image of the size (the port's pixels cleared, the
+	// original's as the allocation found them)
+	virtual Surface* createSurface(int theWidth, int theHeight);
+	// 0xa0 (EngineImpl's 0x41c490 (feedingfrenzy2)): a new draw context drawing into the image
+	virtual DrawContext* createDrawContext(Surface* theTarget);
 	// 0x4719f0 and 0x418120 (feedingfrenzy2), from Theme::load: the kept images, and the kept fonts, that nothing but
 	// the engine holds let go
 	void releaseUnusedImages();

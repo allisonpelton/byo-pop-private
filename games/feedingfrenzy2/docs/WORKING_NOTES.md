@@ -304,9 +304,7 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   triggerfish's at 0.6, the herring's 21 at 0.2 (swim cut to 7 by its shuttle), the great white's 30 at 0.875, each
   frame's colours and mask as the original's art.
   - The surface's scale goes through the draw context's sampler, not the original's scaled alpha blitter (0x441810's
-    scaled path), until the looks pass; the colour effects other than rgbBlend (hsvAdd, rgbAdd, rgbMultiply,
-    rainbow), the menu's and HUD's fish pictures (0x427490) and AnimationData's slots 0x08 and 0x14 are not yet
-    translated.
+    scaled path), until the looks pass; AnimationData's slots 0x08 and 0x14 are not yet translated.
 - The menu's fish: Actor, Fish and AIFish (set-up, entry point, move, keeping in the water, the stage's lists), the
   spawn's pool and live list (taking, filling, removing the dead), FishState, SpawnAI, WanderAI and FlyByAI, the
   stage's edges and areas, and the run state's actor and fish-visual steps. Checked under rundesk over 3000 updates
@@ -507,6 +505,20 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   - Checked under rundesk over stage 1 with lose three times: the lives 3, 2, 1, 0, "SORRY" bubbled in each time,
     the fish back after each, and at none the run ended and the play state saw the stage lost; exit 0.
   - Not yet: the player's bonuses dropped (0x4a2120); the sound playerDie; on a bonus stage its own end.
+
+- The fish's colour effects and pictures (engine: PixelFx.h/.cpp, the surface's slots 0x34, 0x38 and 0x54, the
+  engine's 0x9c and 0xa0; VisualData.cpp). Each effect now changes a pixel through its slot 0x00, as the surface's
+  effect copy (0x43e4d0) inlines them: ColorFx's add (0x509364, held to 0 to 255), multiply and blend; HSVShiftFx
+  (hsvAdd: the colour taken out of the alpha, shifted in hue, saturation and value, and put back) and
+  RainbowShiftFx (rainbow: a hue turning along the columns). Every channel is truncated (the copy's fistp runs under
+  a truncating control word, as _ftol2 does); the floats the original stores are kept as floats, the rest at the
+  x87's double precision. HSVShiftFx's sextant 0 gives the colours of sextant 5, as the original's switch has no case
+  for it. A frame's effect goes through the copy then the scale (0x4267e0, 0x426990, the slot 0x34). A fish whose
+  model names a menu picture gets it through the effect (rgbBlend left out, 0x427490), and the HUD's two icons drawn
+  from it: the picture over its shadow, and the danger icon with the picture multiplied by 0.3 and the shell theme's
+  hudDangerOverlay at (43, 37). A draw context now starts with its first state, as the original's constructor
+  (0x47d130) pushes it. Checked under rundesk on stage 1: the pictures made, the frames' effects applied, exit 0;
+  their pixels are for the looks pass.
 
 ## Next
 

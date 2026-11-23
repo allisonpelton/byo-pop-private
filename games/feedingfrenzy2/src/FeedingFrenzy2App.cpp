@@ -446,11 +446,10 @@ void FeedingFrenzy2App::RunFrame()
 	}
 	mEngine->mUpdateSignal.emit(&aContext);
 
-	// The frame drawn into the display through a context whose first state is at the origin, unscaled and opaque;
-	// the original draws and presents only while the display is ready (DirectDraw's surface not lost)
+	// The frame drawn into the display through a context, its first state at the origin, unscaled and opaque; the
+	// original draws and presents only while the display is ready (DirectDraw's surface not lost)
 	{
 		engine::DXDrawContext aDrawContext(mDisplay);
-		aDrawContext.pushState(engine::DrawState());
 		aDrawContext.setDetailLevel(mEngine->getDetailLevel());
 		mEngine->mDrawSignal.emit(&aDrawContext);
 	}

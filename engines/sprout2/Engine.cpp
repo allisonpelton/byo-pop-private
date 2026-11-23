@@ -1,5 +1,6 @@
 #include "Engine.h"
 #include "Component.h"
+#include "DXDrawContext.h"
 #include "Font.h"
 #include "QDParser.h"
 #include "SimpleSound.h"
@@ -198,6 +199,18 @@ Surface* Engine::loadImage(const std::string& thePath)
 	Surface* anImage = new Surface();
 	anImage->load(thePath, false);
 	return anImage;
+}
+
+Surface* Engine::createSurface(int theWidth, int theHeight)
+{
+	Surface* anImage = new Surface();
+	anImage->allocate(theWidth, theHeight);
+	return anImage;
+}
+
+DrawContext* Engine::createDrawContext(Surface* theTarget)
+{
+	return new DXDrawContext(theTarget);
 }
 
 Surface* Engine::loadDiskImage(const std::string& thePath)

@@ -88,6 +88,7 @@ struct DrawState
 class DrawContext : public Object
 {
 public:
+	// 0x47d130 (feedingfrenzy2): the stack begins with the first state
 	DrawContext();
 	~DrawContext() override;
 
