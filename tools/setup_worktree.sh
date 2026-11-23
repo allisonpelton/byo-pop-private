@@ -17,7 +17,8 @@
 # checkout, for the games the worktree does not own (the coordinator refreezes a baseline or restages a file
 # later, and an older worktree would keep the stale copy, so check.sh --changed fails on a game it never
 # touched). A game is owned when its folder games/<game> differs from the merge base with the local main branch
-# (committed or not). Baselines (build/baseline* -> the game's folder; build/baseline and baseline-stage0 are
+# (committed or not); an owned game's baseline or assets folder that this worktree lacks altogether is copied all the
+# same, since nothing of the worktree's own is replaced (the game's first frozen baseline, made at its merge). Baselines (build/baseline* -> the game's folder; build/baseline and baseline-stage0 are
 # Bejeweled's) and assets are compared by file size and modification time, from one listing per side (a file
 # differs when the sizes differ or main's is newer: a plain copy gets the time of the copying). A trailing
 # -web or other -suffix is dropped to find the game; an assets folder with no game folder is left alone. Files missing here are
@@ -81,7 +82,7 @@ if [ "$REFRESH" = 1 ]; then
 			*) label="assets/$name"; [ -n "$g" ] || continue ;;
 		esac
 		files="$(printf '%s\n' "$differing" | awk -F'\t' -v r="$rel" '$1 == r { print $2 }')"
-		if [ -n "$g" ] && ! git diff --quiet "$base" -- "games/$g"; then
+		if [ -n "$g" ] && [ -e "$rel" ] && ! git diff --quiet "$base" -- "games/$g"; then
 			case " ${kept_list[*]:-} " in *" $g "*) ;; *) kept_list+=("$g") ;; esac
 			continue
 		fi
