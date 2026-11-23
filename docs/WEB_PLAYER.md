@@ -354,7 +354,8 @@ un-95"), in our own SVG. Where a choice is between a plainer look and the one Wi
 it changes every window or box on the site (the user, 2026-11-23: "Always prefer more authentic designs for the 95 look",
 on giving every message box's default button its black frame).
 
-**The skins** (docs/SKINS.md) are the versions of Windows the desktop can be drawn as: 95, the base, 98 and 2000. `web/skins.js`
+**The skins** (docs/SKINS.md) are the versions of Windows the desktop can be drawn as: 95, the base, 98, 2000 and Me
+(`?skin=me`). `web/skins.js`
 sets `<html data-look="95">` beside `data-skin="d95"`, which stays the desktop's own name. Every other skin draws over 95
 with its own style sheet, `web/skin-<id>.css`, its rules under `:root[data-look="<id>"]`; only a page drawn in it loads it,
 from the page's `<template id="skin-sheets">` (the listing's and the game pages'), which the build stamps as it does the
@@ -374,7 +375,7 @@ band (`--sk-band`, `--sk-band-w`, `--sk-band-fg1`, `--sk-band-fg`) and the font 
 16-colour bitmap gives it as `--sk-band-ramp`: its height, its colours and where each row stands among them. `web/skins.js`
 (`bandRamp`) draws that as our own picture, dithered 4 by 4 as such a bitmap was, at the band's foot, with `--sk-band`, the
 bitmap's top colour, above it. A skin whose version had other default colours has its own standard scheme in
-`web/schemes.js` (`STANDARDS`: 2000's Windows Standard), which "standard" means under it, and a scheme of ours keeps its
+`web/schemes.js` (`STANDARDS`: 2000's Windows Standard, which Me shares), which "standard" means under it, and a scheme of ours keeps its
 colours under every skin, with the skin's dark edge. The SVG
 drawings take a skin's colours as they take a scheme's (`web/schemes.js`, `uriRules`: the face, shadow and soft light of
 95's drawings swapped for the target's, and 95's black for the skin's dark edge where it is a drawing's edge, its first
@@ -382,7 +383,7 @@ rectangle, as large as the drawing); a drawing whose shape differs in a version 
 gives its colour in a declaration of its own, never beside the drawing in one shorthand with a `var()`, which hides the
 drawing from that walk. What a version did beyond its drawing is the skin's behaviours, `<html data-behaviours>`
 (`web/skins.js`, `BEHAVIOURS`), each with its setting: 2000's "cues", the focus rectangles hidden until a key shows
-keyboard use (`cuesSync`, the setting `hideCues`), and "personal", the Pop menu's Games list showing the games played
+keyboard use (`cuesSync`, the setting `hideCues`), and "personal" (2000's and Me's), the Pop menu's Games list showing the games played
 lately first with an arrow for the rest (`fillSub`, the setting `personalMenus`, set in the Properties box at the foot of
 the task bar's menu, `barProps`). A settings row that only some skins have names the behaviour it needs (`needs` in
 `web/settings.js`) and shows only under them. A message box's button marked `def` is its default, focused first; Escape

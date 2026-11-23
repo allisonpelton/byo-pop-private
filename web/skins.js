@@ -82,7 +82,7 @@ var ByopopSkin = (function () {
   // ?skin=<id>, as ?silent=1
   // does for sound; the address keeps it (testQuery), and the pages in the desktop's windows are opened with it (web/deskapps.js,
   // frameUrl).
-  var LOOKS = ["95", "98", "2000"];
+  var LOOKS = ["95", "98", "2000", "me"];
   function look() {
     var s = Q.get("skin");
     if (LOOKS.indexOf(s) >= 0) return s;
@@ -139,9 +139,9 @@ var ByopopSkin = (function () {
   }
   // The behaviours a version had beyond its drawing (docs/SKINS.md, "The behaviours that hide things"), each with the setting
   // that turned it off: <html data-behaviours>, which the settings' rows that only some skins have read (web/settings.js,
-  // "needs"). "cues": keyboard cues hidden until the keyboard is used, from 2000 on; "personal": personalized menus, from 2000
-  // on (the Pop menu's Games list, fillSub).
-  var BEHAVIOURS = { "2000": ["cues", "personal"] };
+  // "needs"). "cues": keyboard cues hidden until the keyboard is used, from 2000 on (whether Me had them is to check);
+  // "personal": personalized menus, from 2000 and Me on (the Pop menu's Games list, fillSub).
+  var BEHAVIOURS = { "2000": ["cues", "personal"], "me": ["personal"] };
   function behaves(b) { return (root.getAttribute("data-behaviours") || "").split(" ").indexOf(b) >= 0; }
   // Hidden keyboard cues: Windows 2000 hid the focus rectangles (and access keys' underlines, which no menu here has) until
   // the user showed keyboard use (Raymond Chen, "Why does Windows hide keyboard accelerators and focus rectangles by

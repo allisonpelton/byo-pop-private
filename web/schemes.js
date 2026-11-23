@@ -34,6 +34,8 @@ var ByopopSchemes = (function () {
     "2000": { id: "standard", desk: "#3a6ea5", face: "#d4d0c8", lo: "#808080", mid: "#d4d0c8", dk: "#404040",
       title: ["#0a246a", "#a6caf0"], titleIn: ["#808080", "#c0c0c0"], sel: "#0a246a" }
   };
+  // Me's is the same scheme: its face and desktop, read from a real Me desktop, are 2000's (web/skin-me.css)
+  STANDARDS.me = STANDARDS["2000"];
   function lookNow() { return (typeof document !== "undefined" && document.documentElement.getAttribute("data-look")) || "95"; }
   function byId(id) { for (var i = 0; i < LIST.length; i++) if (LIST[i].id === id) return LIST[i]; return STANDARD; }
   function ends(s) { return typeof s.title === "string" ? [s.title, s.title] : s.title; }

@@ -252,6 +252,23 @@ The Standard line:
 **To check:** Me's title gradient (no window shows in the shot), whether Me took Tahoma, whether it had the hidden cues,
 and whether its icons are 2000's. **1 to 2 batches, $30 to $60**, less if its font and icons are 2000's.
 
+**Drawn (2026-11-23, web/skin-me.css, the Skin list's "Me", `?skin=me`):**
+- **The font is 95's,** Byopop Sans: Me kept MS Sans Serif, which Wikipedia's "Microsoft Sans Serif" names as the default
+  system font of 95, NT 4.0, 98 and Me.
+- **Its colours are 2000's Windows Standard scheme** (web/schemes.js, `STANDARDS.me`), since the face and desktop read from
+  Me's desktop are that scheme's, and Wikipedia's "Windows Me" says its development imported "much of the look-and-feel
+  from Windows 2000". The titles (#0a246a to #a6caf0, inactive #808080 to #c0c0c0) and the dark edge #404040 are taken
+  as that scheme's, which is the one thing not read from a Me window.
+- **The banner,** read row by row from Me's bitmap in Adam Demasi's article at four times its size: 262 rows, black for
+  38, dithered to navy by row 135, navy to 152, dithered to royal blue by 238, then blue; the name and "Millennium
+  Edition" in white and greys; black above it.
+- **Personalized menus,** with the task bar's Properties box, as 2000's: the Windows Me article lists personalized menus
+  among the "shell enhancements inherited from Windows 2000".
+- **Menus and tooltips slide** as 98's, at its speed, Me being built on 98 (Sony's support pages for its Me computers tell
+  how to turn off the menus' animation). Whether its default was 2000's fade is still **to check**.
+- **Still to check:** whether Me hid keyboard cues (no source found; none is drawn), the fade, and its icons (still
+  95's).
+
 ### 2000
 
 The Standard line in full:
