@@ -24,7 +24,11 @@ modes and times as IDBFS's `syncfs(true)`, which reads the files one at a time a
 fails. On a return visit to Bookworm Adventures 2 (9,334 entries, 65 MB) it takes 0.8 to 0.9 s where `syncfs(true)` took
 2.1 to 2.8 s. Keeping each pak whole beside its unpacked files would read faster still, by about half a second, but
 would store the pak's size again and need a pak reader in the platform, so a game's files stay unpacked only (item 8,
-2026-11-23). A Web Lock (`PAGE.lock`) lets one tab
+2026-11-23). Since `loadStorage` uses IDBFS's internals (`getDB`, `DB_STORE_NAME`, `storeLocalEntry`) and MEMFS's
+(`node_ops`, `stream_ops`), `tools/storageloadtest.js` in unit-web checks it after every Emscripten update: in the smallest
+game's own module under Node, with an IndexedDB of its own in memory, it stores a tree through `syncfs(false)`, loads it
+once with `syncfs(true)` and once with `loadStorage`, and compares the files, their order, modes, times and contents, and
+what the next `syncfs(false)` would store. It takes about a second. A Web Lock (`PAGE.lock`) lets one tab
 run a game. The fixes mod is put in place, the terms are asked, and without the game's files the import card copies
 only what `page.js` names, by the rules in `web/gameimport.js` (a pak named in `paks` is unpacked). The card takes the
 game's folder or a .zip of it from its two buttons, or dropped anywhere over it (the user, 2026-11-16: "I should be able
