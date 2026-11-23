@@ -544,7 +544,7 @@ html.d95-desk .d95-about .byopop-footer p { margin: 0 0 8px; }
 /* The task bar along the desktop's bottom edge (web/skins.js, makeTaskbar): the Pop button, a button for each open window,
    the tray with the clock */
 html.d95-desk .d95-taskbar { display: flex; align-items: center; gap: 4px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 2147483000;
-  height: 30px; box-sizing: border-box; padding: 3px 2px 2px; background: var(--panel); color: var(--fg);
+  height: 30px; box-sizing: border-box; padding: 3px 2px; background: var(--panel); color: var(--fg);
   box-shadow: inset 0 1px var(--sk-mid), inset 0 2px var(--sk-hi); font-size: 13px; }
 html.d95-desk .d95-taskbar[hidden] { display: none; }
 html.d95-desk .d95-taskbar button { height: 24px; padding: 0 6px; min-height: 0; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
@@ -593,16 +593,12 @@ html.d95-desk .d95-pic.d95-pic-sm { width: 16px; height: 13px; margin: 1px 0 2px
 html.d95-desk .d95-pic.d95-pic-sm > i { transform: scale(.5); transform-origin: 0 0; }
 html.d95-desk .d95-pic-exe { display: block; flex: none; width: 16px; height: 16px; }
 html.d95-desk .d95-pic-exe > img { display: block; width: 16px; height: 16px; image-rendering: pixelated; }
-/* the entries that are no window: the games' folder, Setup's floppy disk, the computer that shuts down, full screen (the
-   maximize button's window), the game's size (a size grip), and on a game's page Music's note and the Sounds' speaker */
+/* the entries that are no window: the games' folder, the computer that shuts down, full screen (the maximize button's
+   window) and the game's size (a size grip); a game page's Music, Sounds and All games are their apps' icons */
 html.d95-desk .d95-pic-folder > i { background: transparent; box-shadow: none; }
 html.d95-desk .d95-pic-folder > i::before { left: 1px; right: auto; top: 2px; width: 12px; height: 5px; background: #c9a227; box-shadow: inset 1px 1px #f4dc78; }
 html.d95-desk .d95-pic-folder > i::after { left: 1px; right: 1px; top: 6px; bottom: 1px; background: #e6c35a;
   box-shadow: inset 1px 1px #fff1a8, inset -1px -1px #8a6d10, 1px 1px 0 rgba(0, 0, 0, .4); }
-html.d95-desk .d95-icon-setup > i { width: 24px; height: 24px; margin: 1px 4px; background: #1d3f8f;
-  box-shadow: inset -1px -1px #000000, inset 1px 1px #5a7fd0, 1px 1px 0 rgba(0, 0, 0, .4); }
-html.d95-desk .d95-icon-setup > i::before { left: 7px; right: 5px; top: 1px; height: 8px; background: linear-gradient(90deg, #c0c0c0 0 60%, #1d3f8f 60% 80%, #c0c0c0 80%); }
-html.d95-desk .d95-icon-setup > i::after { left: 4px; right: 4px; top: 13px; bottom: 1px; background: repeating-linear-gradient(#ffffff 0 2px, #9aa8c8 2px 3px); }
 html.d95-desk .d95-pic-shutdown > i { width: 28px; height: 20px; margin-left: 2px; }
 html.d95-desk .d95-pic-shutdown > i::before { left: 3px; right: 3px; top: 3px; height: 13px; background: #000080; box-shadow: inset 1px 1px var(--sk-lo); }
 html.d95-desk .d95-pic-shutdown > i::after { left: 8px; right: 8px; top: 21px; bottom: auto; height: 4px; background: var(--panel);
@@ -610,8 +606,6 @@ html.d95-desk .d95-pic-shutdown > i::after { left: 8px; right: 8px; top: 21px; b
 html.d95-desk .d95-pic-full > i::after { left: 9px; right: 9px; top: 10px; bottom: 4px; box-shadow: inset 0 2px var(--sk-dk), inset 0 0 0 1px var(--sk-dk); }
 html.d95-desk .d95-pic-size > i::after { left: auto; right: 3px; top: auto; bottom: 3px; width: 10px; height: 10px;
   background: linear-gradient(135deg, transparent 0 45%, var(--sk-lo) 45% 55%, transparent 55% 65%, var(--sk-lo) 65% 75%, transparent 75% 85%, var(--sk-lo) 85% 95%, transparent 95%); }
-html.d95-desk .d95-pic-music > i::after { left: 9px; right: 9px; top: 9px; bottom: 3px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5.5l11-2.5v12.5'/%3E%3Ccircle cx='6.5' cy='18' r='2.5'/%3E%3Ccircle cx='17.5' cy='15.5' r='2.5'/%3E%3C/svg%3E") center / 14px 14px no-repeat; }
-html.d95-desk .d95-pic-sounds > i::after { left: 9px; right: 9px; top: 9px; bottom: 3px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' shape-rendering='crispEdges'%3E%3Cpath d='M3 11h7l8-7v24l-8-7H3z' fill='%23c0c0c0' stroke='%23000'/%3E%3Cpath d='M4 12h5v8H4z' fill='%23808080'/%3E%3Cpath d='M11 12l6-5v18l-6-5z' fill='%23ffffff'/%3E%3Cpath d='M21 12c2 2 2 6 0 8M24 9c4 4 4 10 0 14M27 6c5 6 5 14 0 20' fill='none' stroke='%23000080' stroke-width='2' shape-rendering='auto'/%3E%3C/svg%3E") center / 14px 14px no-repeat; }
 /* The Pop menu's entries, as 1995's Start menu: a large picture on the first level, a small one in the lists beside it, each in
    a column of its own so that the names line up; a choice of several (the game's sizes) keeps its dot instead */
 html.d95-desk .d95-item-pic { flex: none; display: flex; align-items: center; justify-content: center; }
@@ -623,7 +617,24 @@ html.d95-desk .d95-menu-small > .d95-items > .d95-item { min-height: 22px; paddi
 html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic { width: 18px; height: 16px; }
 html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic > .d95-pic { width: 16px; height: 13px; margin: 1px 0 2px; }
 html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic > .d95-pic > i { transform: scale(.5); transform-origin: 0 0; }
-/* the desktop icons: a picture drawn here (a little window, its title bar the window's own colour) and a name under it */
+/* an app's own icon (web/appicons.js, drawn by tools/appicons.py; web/skins.js, appPic): the 32-pixel picture on the desktop and
+   in the Pop menu's first level, the 16-pixel one in title bars, on task bar buttons and in the menus' lists, each its own
+   drawing at whole pixels, never one scaled to the other's size */
+html.d95-desk .d95-pic.d95-appicon { width: 32px; height: 32px; margin: 0; }
+html.d95-desk .d95-pic.d95-appicon.d95-pic-sm,
+html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic > .d95-pic.d95-appicon { width: 16px; height: 16px; margin: 0; }
+html.d95-desk .d95-appicon > span, html.d95-desk .d95-appicon svg, html.d95-desk .d95-icon-app > i > svg { display: block; }
+html.d95-desk .d95-appicon > .d95-appicon-16,
+html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic > .d95-appicon > .d95-appicon-32 { display: none; }
+html.d95-desk .d95-appicon.d95-pic-sm > .d95-appicon-16,
+html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic > .d95-appicon > .d95-appicon-16 { display: block; }
+html.d95-desk .d95-icon.d95-icon-app > i { width: 32px; height: 32px; background: none; box-shadow: none; }
+/* (6 pixels taller than the little window, so its name sits 2 pixels under it, not 4: a name on two lines, as System
+   Information's, still ends within the icon's 64-pixel row) */
+html.d95-desk .d95-icon.d95-icon-app { gap: 2px; }
+html.d95-desk .d95-icon.d95-icon-app > i::before, html.d95-desk .d95-icon.d95-icon-app > i::after { content: none; }
+/* the desktop icons: a picture (an app's own icon, d95-icon-app; else one drawn here, a little window, its title bar the
+   window's own colour) and a name under it */
 /* in columns down the left, a new column when one is full (the favourites' icons follow the windows') */
 html.d95-desk .d95-icons { display: grid; grid-auto-flow: column; grid-template-rows: repeat(auto-fill, 64px); grid-auto-columns: 84px; gap: 0 4px;
   position: absolute; left: 8px; top: 12px; height: calc(calc(100vh / var(--d95-z, 1)) - 56px); height: calc(calc(100dvh / var(--d95-z, 1)) - 56px); z-index: 1; }
@@ -638,11 +649,6 @@ html.d95-desk :is(.d95-icon, .d95-pic) > i { display: block; width: 32px; height
 html.d95-desk :is(.d95-icon, .d95-pic) > i::before { content: ""; position: absolute; left: 2px; right: 2px; top: 2px; height: 6px; background: var(--sk-title); }
 html.d95-desk :is(.d95-icon, .d95-pic) > i::after { content: ""; position: absolute; left: 6px; right: 6px; top: 11px; bottom: 5px; }
 html.d95-desk .d95-icon-game > i::after { background: #000000; }
-html.d95-desk .d95-icon-panel-controls > i::after { bottom: auto; height: 4px; box-shadow: 0 6px 0 var(--sk-lo); background: var(--sk-lo); }
-html.d95-desk .d95-icon-chat > i::after { background: var(--sk-well); border-radius: 0 0 0 0; box-shadow: inset 0 0 0 1px var(--sk-lo); }
-html.d95-desk .d95-icon-panel-settings > i::after { border-radius: 50%; border: 3px dotted var(--sk-lo); left: 10px; right: 10px; }
-html.d95-desk .d95-icon-panel-files > i::after { background: #e6c35a; clip-path: polygon(0 0, 40% 0, 50% 25%, 100% 25%, 100% 100%, 0 100%); }
-html.d95-desk .d95-icon-panel-mods > i::after { background: var(--accent); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
 
 /* the logo on the desktop's teal: its "byo" in white, as the desktop's icons' names */
 :root[data-skin="d95"] .site-header { --bp-logo-ink: #ffffff; }
@@ -689,17 +695,9 @@ html.d95-desk .d95-icon-panel-mods > i::after { background: var(--accent); clip-
 :root[data-skin] .badge.has-icon img { position: absolute; inset: 0; margin: auto; width: 32px; height: 32px; opacity: .6; z-index: -1; }
 :root[data-skin] .badge.has-icon .badge-initials { display: inline; text-shadow: 0 1px 2px rgba(0,0,0,.55); }
 
-/* the listing's own desktop icons: the games (four caps' colours in a grid) and the notes (lines of text) */
-html.d95-desk .d95-icon-games > i::after { background: conic-gradient(#c8102e 0 25%, #1a64c0 0 50%, #2a9d4f 0 75%, #e6c35a 0); }
-html.d95-desk .d95-icon-about > i::after { background: repeating-linear-gradient(var(--sk-lo) 0 1px, var(--sk-well) 1px 3px); }
-/* a tab's window: the tab's own picture, in black, inside the little window */
-html.d95-desk .d95-icon-pic > i::after { content: none; }
-html.d95-desk .d95-icon-pic > i > svg { position: absolute; left: 9px; top: 9px; width: 14px; height: 14px; color: var(--sk-dk); stroke: currentColor; }
 /* the performance panel (web/perf.js) as a window, its heading the title bar */
 html.d95-desk .perf-panel.d95-win { border: 0; border-radius: 0; }
 html.d95-desk .perf-panel.d95-win > h2 { background: var(--sk-title); color: var(--sk-title-fg); border: 0; padding: 2px 6px; font-size: 13px; }
-html.d95-desk .d95-icon-perf > i::after { background: linear-gradient(#2a9d4f, #2a9d4f) 0 100% / 26% 40% no-repeat,
-  linear-gradient(#e6c35a, #e6c35a) 50% 100% / 26% 70% no-repeat, linear-gradient(#c8102e, #c8102e) 100% 100% / 26% 100% no-repeat; }
 
 /* ======================= favourites: the star on each card (web/index.html) and Desktop 95's icons (web/skins.js) ======================= */
 /* the star at the card's top right (its vector form on the player-only page's own styles), filled while the game is a favourite */
@@ -1057,8 +1055,11 @@ html.d95-desk .lib-win {
   color: var(--lib-fg); font: 11px/1.35 Tahoma, Verdana, "Segoe UI", sans-serif; }
 html.d95-desk .lib-win.d95-win:not(#\#) { background: var(--lib-bg); padding: 2px; border: 1px solid; border-image: none;
   border-color: var(--lib-hi) var(--lib-lo) var(--lib-lo) var(--lib-hi); box-shadow: none; }
-html.d95-desk .lib-win.d95-win:not(#\#) > .d95-tb { background: var(--lib-title); color: #f4f2dc; height: 20px; font-weight: bold;
+html.d95-desk .lib-win.d95-win:not(#\#) > .d95-tb { background: var(--lib-title); color: #f4f2dc; height: 21px;
   border-bottom: 1px solid var(--lib-lo); margin: 0 0 4px; }
+/* its title in the title font of every other window (the user, 2026-11-22: "Wrong font on the Library window title"), not the
+   window's own Tahoma; 20 pixels above its line, so that its icon and buttons, 16 high, sit on whole pixels */
+html.d95-desk .lib-win.d95-win:not(#\#) > .d95-tb { font: bold 11px/16px var(--font-ui); }
 html.d95-desk .lib-win.d95-active:not(#\#) > .d95-tb { background: linear-gradient(var(--lib-title), #586843); }
 html.d95-desk .lib-win:not(.d95-active):not(#\#) > .d95-tb { color: var(--lib-dim); background: var(--lib-head); }
 /* its buttons: square, flat, a 1-pixel bevel (the title bar's icon, the control menu's button, is none: as on every window) */
@@ -1148,10 +1149,14 @@ html.d95-desk :is(.fv-status, .tc-status) { flex: none; margin: 0 2px 2px; paddi
 /* the lists at set widths, so that the game, the font and Save As share one row from the least width */
 .fv-bar .fv-game { width: 160px; }
 .fv-bar .fv-font { width: 130px; }
-/* the Venice Buildings window (web/buildings.js), with the Fonts window's bar, well and status line */
-html.d95-desk .vb-win { flex-direction: column; width: min(640px, calc(100vw / var(--d95-z, 1) - 140px)); height: 440px; overflow: hidden; }
-#venicebuildings { display: none; }   /* off the desktop it has no place */
-html.d95-desk #venicebuildings.vb-win:not(.d95-closed):not(.d95-min) { display: flex; }
+/* the Gallery (web/gallery.js): its Game list, and under it the game's entry (Venice's buildings, web/buildings.js), with the
+   Fonts window's bar, well and status line */
+html.d95-desk .gal-win { flex-direction: column; width: min(640px, calc(100vw / var(--d95-z, 1) - 140px)); height: 470px; overflow: hidden; }
+#gallery { display: none; }   /* off the desktop it has no place */
+html.d95-desk #gallery.gal-win:not(.d95-closed):not(.d95-min) { display: flex; }
+.vb-panel { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.vb-panel[hidden] { display: none; }
+.fv-bar .gal-game { width: 150px; }
 .vb-well { margin-top: 6px; padding: 0; background: #808080; }
 .fv-bar .vb-pick { width: 150px; }
 /* the Guides window (web/guides.js): a help topic's white page under the AI-generated banner, with the Fonts window's bar */

@@ -362,11 +362,16 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
 - **Pictures** (the user, 2026-11-21: "The \"Pop\" menu is messed up, and could use icons"): a window has one picture at two
   sizes, its desktop icon's (`picOf`). The Pop menu's first level shows it large, beside the band, and the lists beside it
   show it small, as do the window's title bar and its task bar button; a game's list entry shows the small icon read from
-  its exe, else its cap. Entries that are no window draw their own (`drawnPic`: the games' folder, Setup's floppy disk,
-  full screen, the game's size, Music, Sounds, Shut Down's computer). A screen too short for the large pictures gets the
-  small ones on the first level too, and a list opens level with its entry, raised only as far as the task bar needs. The
+  its exe, else its cap. Every window that is not a game's is one of the site's apps and has the app's own icon (the user,
+  2026-11-22: "Give the other apps on the site better icons than just the window display"; "The site's apps' icons"
+  below), the same in each of those places and in Alt+Tab's box, its name in the tooltip as before; a window of no app
+  is drawn as a little window. Entries that are no window draw their own (`drawnPic`: the games' folder, full screen,
+  the game's size, Shut Down's computer), and a game page's Music, Sounds and All games show those apps' icons. A screen
+  too short for the large pictures gets the small ones on the first level too, and a list opens level with its entry, raised only as far as the task bar needs. The
   Pop button's mark is a yellow burst of our own, and the active window's task bar button is pressed with bold text
-  (struck twice, as the desktop's one-weight font draws every bold).
+  (struck twice, as the desktop's one-weight font draws every bold). Every picture lands on whole pixels of the screen,
+  at 1x and 2x: the task bar's buttons are 160 wide while they fit and share the room out in whole pixels when they do
+  not (`fitTasks`), and a title bar of its own height (the Library's) leaves its icon whole pixels from its edge.
 - **Tooltips:** drawn as 1995's, a pale yellow box with a black border half a second after the pointer rests. The
   browser draws its own for any title under the pointer, so the titles of the element and of its titled ancestors are held
   off them until the pointer leaves the element: moving onto a child of it (a Sounds button's label), a press, a key and
@@ -480,7 +485,7 @@ badly:
 | Splits | sizable | 240 × 180 | the room | its menu bar on one row, the timer and its two lines under it |
 | Trophy Cabinet | sizable | 300 × 200 | the room | its player list on one row (an empty cabinet was all there was to see) |
 | Fonts | sizable | 480 × 300 | the room | its game, font and Save As on one row, and a row of the sample sheet |
-| Venice Buildings | sizable | 420 × 260 | the room | its picture and Save As on one row, and a building's height of the well at 25% |
+| Gallery | sizable | 420 × 290 | the room | its game list, Venice's picture and Save As on one row, and a building's height of the well at 25% |
 | Guides | sizable | 320 × 240 | the room | its game list, the banner and a few lines of the guide |
 | Chat (both pages) | sizable | 260 × 320 | the room | its controls and five lines of messages |
 | A game in a window | sizable | its game at the multiple drawn, its status bar and frame | the room, and Maximize | `web/deskapps.js` |
@@ -762,13 +767,22 @@ checks the reader on fonts made for it, then reads every font of the staged game
 Venice; Bonnie's; Jolly Bear's in the Mahjong Escapes; Ning Po's, Tip Top's and Word Harmony's) are not read yet, so those
 games' Font lists are empty.
 
-### The Venice Buildings window
+### The Gallery
 
-The Venice Buildings window (`web/buildings.js`; the user, 2026-11-18: "I'd love to see a combined image of all of Venice's
-buildings as a continuous shot, if something like that is possible, and full images of the individual buildings of Venice")
-is a Desktop 95 window on the listing's desktop, closed at first, its icon after the Fonts window's, there only where the
-listing has Venice. It reads Venice's files as the Fonts window does, its status line "No game files" when they are not in this browser. Its
-Picture list holds All the buildings, Building 1 to Building 8 in the order Journey builds them, and the Trophy; Background
+The Gallery (`web/gallery.js`; the user, 2026-11-22: "Rename Venice Buildings to Gallery; we'll collect other interesting
+graphics there for each game once they're all done. In particular, I'd like to show off animations and other things you
+can't see just by looking at the image files directly") is a Desktop 95 window on the listing's desktop, closed at first, its
+icon (a framed picture) after the Fonts window's, there only where the listing has a game with an entry. Its Game list, named
+as the listing names the games, holds those games, and under it the chosen game's entry draws its own controls, picture and
+status line; an entry is a module whose `panel(game)` makes the panel, listed in the Gallery's `ENTRIES`. A window that was
+Venice Buildings on a saved desktop (the id `venicebuildings`, open or closed, placed, its icon moved) comes back as the
+Gallery (`RENAMED` in `web/skins.js`). Other games' entries wait until the ports are done and the user has ruled on a survey
+of what to show.
+
+One entry so far, Venice's buildings (`web/buildings.js`; the user, 2026-11-18: "I'd love to see a combined image of all of
+Venice's buildings as a continuous shot, if something like that is possible, and full images of the individual buildings of
+Venice"). It reads Venice's files as the Fonts window does, its status line "No game files" when they are not in this
+browser. Its Picture list holds All the buildings, Building 1 to Building 8 in the order Journey builds them, and the Trophy; Background
 puts the level select's scene behind them or leaves them on their own (None, clear in the saved picture); Zoom is 25% to
 200%; and Save As writes the picture shown at its own pixels as a PNG (`venice-buildings.png`, `venice-building-3.png`,
 `venice-trophy.png`). The whole row is 3280 by 600 pixels with its scene and 3255 by 434 without; a building is 400 by 600
@@ -802,7 +816,7 @@ toward zero), the trophy at 2976, and the quay and the water reaching both ends.
 The Guides window (`web/guides.js`, its texts in `web/guidetexts.js`) holds the site's AI-generated guides, the one exception
 to the rule of values, not sentences (the user, 2026-11-18: "I've decided I'm actually ok with AI-generated guides for the
 games that actually benefit from it on the site, as long as they are clearly marked as AI-generated"). It is a Desktop 95
-window on the listing's desktop in the manner of a help topic, closed at first, its icon after the Venice Buildings window's,
+window on the listing's desktop in the manner of a help topic, closed at first, its icon after the Gallery's,
 with a guide for each game of the listing that has one; it needs none of the game's files. Its Game list chooses the guide,
 and the white page shows it under a banner the window draws for every guide, "AI-generated guide" with the date it was checked
 against the game's code, and the status line says AI-generated beside the count of tips. A guide is drawn as text only. How a
@@ -1482,6 +1496,29 @@ console's `download_depot <app> <depot>` downloads any depot of a game the accou
 `logo.svg`, which `web/logo.js` puts inline, and `cap.svg`) are the sources, edited by hand; `favicon.ico` and
 `apple-touch-icon.png` are made from `favicon.svg` by `python tools/brand_icons.py` (with headless Edge), run after a
 change to it. The colours are taken from PopCap's classic logo; the shapes and lettering are byo-pop's own.
+
+### The site's apps' icons
+
+Each of Desktop 95's apps has an icon of its own, drawn by `tools/appicons.py` into `web/appicons.js` (run it after a
+change; `--preview` also writes `build/appicons.png`, every icon at four times its size). They are our own drawings in
+the manner of 1995's program icons, as `tools/settingsicons.py` draws the Settings sections': a few hard-edged shapes in
+the 16-colour palette, outlined in black, drawn at 32 by 32 and again at 16 by 16 (each its own drawing, with the detail
+a small icon cannot hold left out, never the large one scaled down), and written as SVG of one rectangle per run of a
+colour, so that they stay sharp at the desktop's 2x zoom. None holds text but the Fonts window's letter A. Their colours
+are the same on every colour scheme, as a program's icon was on any wallpaper, so none is drawn mostly in black or a dark
+colour that would be lost on the dark desktops (Cola, Grape, Cherry): Music's notes stand on a silver disc, the A is white
+inside its outline. The apps and their pictures: All games (four caps), the Library (books on a
+shelf), Setup (an open box with an arrow into it), Settings (a panel of three sliders, the listing's folder and a game
+page's panel alike), Music (two beamed notes on a disc),
+Sounds (a board of six pads), Splits (a stopwatch), the chat (a balloon with three dots), System Information and a
+game page's About (a tower computer), Performance (a line chart), the Trophy Cabinet (a cup), Fonts (a serif A), the
+Gallery (a picture in a gold frame), Guides (a book with a question mark), and on a game's page Controls (a keyboard),
+Game files (a folder with its pages), Mods (a wrench over a screwdriver) and Replays (a video cassette). `web/skins.js`
+(`appIcon`) finds a window's app by its id less `tab-` or `panel-`, and a Settings section's window (`set-`) by its
+section in `web/settingsicons.js`; the large picture goes on the desktop, in the Pop menu's first level and in Alt+Tab's
+box (for a window with no desktop icon too, such as Setup or a Settings section), the small one in title bars, on task
+bar buttons and in the menus' lists. A game page's Chat and panels draw their own headers, which have no control menu
+and so no icon; theirs show everywhere else.
 
 ## Testing other copies of a game: `?placeholders=1`
 

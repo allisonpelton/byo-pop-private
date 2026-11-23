@@ -518,13 +518,7 @@ var ByopopSounds = (function () {
     board = build(games);
     var foot = document.querySelector("body > footer");
     if (foot && foot.parentNode) foot.parentNode.insertBefore(board.el, foot); else document.body.appendChild(board.el);
-    // its icon: a speaker sending out its sound, our own drawing in 32 x 32
-    var pic = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    pic.setAttribute("viewBox", "0 0 32 32"); pic.setAttribute("aria-hidden", "true"); pic.setAttribute("shape-rendering", "crispEdges");
-    pic.innerHTML = '<path d="M3 11h7l8-7v24l-8-7H3z" fill="#c0c0c0" stroke="#000"/><path d="M4 12h5v8H4z" fill="#808080"/>' +
-      '<path d="M11 12l6-5v18l-6-5z" fill="#ffffff"/>' +
-      '<path d="M21 12c2 2 2 6 0 8M24 9c4 4 4 10 0 14M27 6c5 6 5 14 0 20" fill="none" stroke="#000080" stroke-width="2" shape-rendering="auto"/>';
-    desk.add(board.el, { id: "sounds", title: T("sounds.title"), closable: true, closed: true, pic: pic, at: at, scroll: ".sb-grid",
+    desk.add(board.el, { id: "sounds", title: T("sounds.title"), closable: true, closed: true, at: at, scroll: ".sb-grid",
       minWidth: 300, minHeight: 200 });
     board.el.classList.add("sb-win");
     // read the games when it opens; stop, and drop the decoded sounds, when it closes (a minimized window keeps them); the

@@ -242,7 +242,8 @@ fontview.reading = Reading files…
 fontview.count = {n} font | {n} fonts
 # a font the game itself could not load: the framework's own message and the line it stopped on
 fontview.failed = Error in {file}: {error}, line {line}
-buildings.title = Venice Buildings
+gallery.title = Gallery
+gallery.game = Game:
 buildings.picture = Picture:
 buildings.all = All the buildings
 buildings.building = Building {n}

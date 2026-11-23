@@ -354,12 +354,5 @@ var ByopopSysInfo = (function () {
     document.addEventListener("visibilitychange", function () { if (!document.hidden && timer) tick(); });
     follow();
   }
-  // the window's picture: a monitor with a chart on its screen, drawn in the desktop's icon style (web/skins.css, d95-icon-pic)
-  function picture() {
-    var NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
-    svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("class", "tab-icon");
-    svg.innerHTML = '<rect x="3" y="4" width="18" height="12"/><path d="M6 13l3-4 3 2 3-5 3 4M9 20h6M12 16v4"/>';
-    return svg;
-  }
-  return { mount: mount, picture: picture };
+  return { mount: mount };
 })();
