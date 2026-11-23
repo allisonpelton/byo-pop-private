@@ -94,9 +94,19 @@ def build():
     return data, glyphs
 
 
-def font_bytes(glyphs, family, copyright, cap_height, x_height=6, ofl=True):
-    """The WOFF of glyphs {char: (advance, pixels)}, every pixel a square of PX units on the 13-pixel cell, naming the SIL
-    Open Font License where ofl (W95FA's, which a derivative keeps): also used by tools/web/pixelfont2000.py."""
+# The licences a font's name table can name: the SIL Open Font License, W95FA's, which Byopop Sans keeps; and CC0 1.0, the
+# public domain dedication of the fonts drawn by the project (the user, 2026-11-23, of Byopop Sans 2000: "CC0")
+LICENCES = {
+    "ofl": ("This Font Software is licensed under the SIL Open Font License, Version 1.1.", "https://openfontlicense.org"),
+    "cc0": ("Dedicated to the public domain under CC0 1.0 Universal (Creative Commons Zero): to the extent possible under law, "
+            "the byo-pop project waives all copyright and related or neighboring rights to this font.",
+            "https://creativecommons.org/publicdomain/zero/1.0/"),
+}
+
+
+def font_bytes(glyphs, family, copyright, cap_height, x_height=6, licence="ofl", bold=False):
+    """The WOFF of glyphs {char: (advance, pixels)}, every pixel a square of PX units on the 13-pixel cell, its name table
+    naming the licence (LICENCES), its style Regular or Bold: also used by tools/web/pixelfont2000.py."""
     order = [".notdef"] + ["u%04X" % ord(ch) for ch in sorted(glyphs)]
     cmap = {ord(ch): "u%04X" % ord(ch) for ch in glyphs}
     fb = FontBuilder(11 * PX, isTTF=True)
@@ -133,16 +143,17 @@ def font_bytes(glyphs, family, copyright, cap_height, x_height=6, ofl=True):
     fb.setupGlyf(drawn)
     fb.setupHorizontalMetrics(metrics)
     fb.setupHorizontalHeader(ascent=ASCENT * PX, descent=-DESCENT * PX)
-    names = {"familyName": family, "styleName": "Regular", "copyright": copyright}
-    if ofl:
-        names.update({"licenseDescription": "This Font Software is licensed under the SIL Open Font License, Version 1.1.",
-                      "licenseInfoURL": "https://openfontlicense.org"})
+    names = {"familyName": family, "styleName": "Bold" if bold else "Regular", "copyright": copyright}
+    if licence:
+        names.update({"licenseDescription": LICENCES[licence][0], "licenseInfoURL": LICENCES[licence][1]})
     fb.setupNameTable(names)
     fb.setupOS2(sTypoAscender=ASCENT * PX, sTypoDescender=-DESCENT * PX, sTypoLineGap=0, usWinAscent=ASCENT * PX, usWinDescent=DESCENT * PX,
-                sxHeight=x_height * PX, sCapHeight=cap_height * PX)
+                sxHeight=x_height * PX, sCapHeight=cap_height * PX, **({"usWeightClass": 700, "fsSelection": 0x20} if bold else {}))
     fb.setupPost()
     # the same bytes for the same glyphs: no time of building in the file
     fb.font["head"].created = fb.font["head"].modified = 0
+    if bold:
+        fb.font["head"].macStyle = 1
     fb.font.flavor = "woff"
     buf = io.BytesIO()
     fb.save(buf)

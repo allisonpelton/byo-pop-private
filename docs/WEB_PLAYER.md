@@ -615,9 +615,10 @@ A dialog taller than the room is cut to it, and its contents scroll. A message b
 pixels and its multiples, so every text is set at 11 (a few at 22), and a new part sets no size of its own. A glyph's
 body has one pixel of bearing on its left, as W95FA's have but for y, ý and ÿ, which the script moves right a pixel (the
 user approved it, 2026-11-11, of "ry" touching). The 2000 skin's text is Byopop Sans 2000, `web/fonts/byopop-sans-2000.woff`,
-drawn by the project in Tahoma's manner on the same grid and built by `tools/web/pixelfont2000.py` (which writes the file
-through pixelfont.py's `font_bytes`); `web/skin-2000.css` puts it first in `--font-ui`, Byopop Sans after it for the
-characters it lacks.
+drawn by the project in Tahoma's manner on the same grid, with a drawn bold, `web/fonts/byopop-sans-2000-bold.woff`, both
+built by `tools/web/pixelfont2000.py` (which writes them through pixelfont.py's `font_bytes`) and dedicated to the public
+domain under CC0 1.0 (`web/licenses/byopop-sans-2000.txt`); `web/skin-2000.css` puts it first in `--font-ui`, Byopop Sans
+after it for the characters it lacks, and gives the elements 95 strikes twice for bold the drawn bold instead.
 
 **Its zoom.** One pixel of the font is one of the screen's only where `devicePixelRatio` is whole, so a desktop page zooms
 (`zoom` on `<html>`, set by `web/skins.js`) by that ratio rounded over the ratio: at 125% it is drawn as at 100%, at 150% as
