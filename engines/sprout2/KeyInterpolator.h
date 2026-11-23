@@ -2,7 +2,7 @@
 #define __SPROUT2_KEYINTERPOLATOR_H__
 
 // A value kept at key times (the original's Interpolator<T> and KeyInterpolator<T>, templates over float,
-// engine::Color and engine::Vector2<float>; the float and the colour ones are translated so far). Between two keys the value
+// engine::Color and engine::Vector2<float>). Between two keys the value
 // follows an ease curve that leaves the first key at its out speed over its out time and reaches the second at its in
 // speed over its in time, with a straight run between. Before the first key the value is the first key's, after the
 // last the last's. The interpolator keeps the key it last used and walks from there, and builds the curve again only
@@ -66,6 +66,10 @@ public:
 	void clear();
 	// 0x0c (0x43bdb0 (feedingfrenzy2)): the value at the time, kept at the x87's precision for the caller to round
 	double getValue(float theTime);
+	// 0x4283f0 (feedingfrenzy2): the ease of the stretch from the key at the index (from 0) to the next, which must
+	// be there. Of the stretch, the share given runs straight; with theEaseOut the curve leaves the key from a stop
+	// over the rest, with theEaseIn it comes to a stop at the next key over it, and with both each takes half of it
+	void easeStretch(int theIndex, bool theEaseOut, bool theEaseIn, float theStraightShare);
 
 private:
 	// A key's fields after its time, in the map's node from +0x10
@@ -135,6 +139,56 @@ private:
 	KeyMap mKeys;                // +0x0c
 	KeyMap::iterator mCurrent;   // +0x18
 	EaseCurve mCurve;            // +0x20 (the original's 0x431b50 (feedingfrenzy2) reads it for a float's time)
+};
+
+// A key of a point (0x1c bytes; made with the point and the speeds and times of a straight line)
+struct Vector2Key
+{
+	float mTime;            // +0x00
+	Vector2f mValue;        // +0x04
+	float mInTime = 0.0f;   // +0x0c
+	float mInSpeed = 1.0f;  // +0x10
+	float mOutTime = 0.0f;  // +0x14
+	float mOutSpeed = 1.0f; // +0x18
+};
+
+// KeyInterpolator<engine::Vector2<float>> (vtable 0x55ba64 (feedingfrenzy2); its constructor 0x484420
+// (feedingfrenzy2), which Ghidra names PlayerDiedState's): the colour one's walk, each point's part worked from the
+// fraction rounded to a float. The port keeps it as a member of what holds it, uncounted.
+class Vector2KeyInterpolator
+{
+public:
+	Vector2KeyInterpolator() : mCurrent(mKeys.end()) {}
+	Vector2KeyInterpolator(const Vector2KeyInterpolator&) = delete;
+	Vector2KeyInterpolator& operator=(const Vector2KeyInterpolator&) = delete;
+
+	// 0x04 (0x47dd40 (feedingfrenzy2)): as the float one's
+	void addKey(const Vector2Key& theKey);
+	// 0x08 (0x480410 (feedingfrenzy2))
+	void clear();
+	// 0x0c (0x4325c0 (feedingfrenzy2)): the point at the time
+	Vector2f getValue(float theTime);
+	// 0x4280c0 (feedingfrenzy2): the float one's easeStretch (0x4283f0)
+	void easeStretch(int theIndex, bool theEaseOut, bool theEaseIn, float theStraightShare);
+
+private:
+	// A key's fields after its time, in the map's node from +0x10
+	struct KeyValue
+	{
+		Vector2f mValue;  // node +0x10
+		float mInTime;    // node +0x18
+		float mInSpeed;   // node +0x1c
+		float mOutTime;   // node +0x20
+		float mOutSpeed;  // node +0x24
+	};
+	typedef std::map<float, KeyValue> KeyMap;
+
+	// 0x4281d0 (feedingfrenzy2): the float one's curve
+	void setCurve(KeyMap::iterator theCurrent, KeyMap::iterator theNext);
+
+	KeyMap mKeys;                // +0x0c
+	KeyMap::iterator mCurrent;   // +0x18
+	EaseCurve mCurve;            // +0x20
 };
 
 } // namespace engine

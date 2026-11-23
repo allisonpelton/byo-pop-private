@@ -7,6 +7,7 @@
 // this class holds what does not depend on them: the game folder's files, the log and the clock.
 
 #include "Engine.h"
+#include "MessageMouse.h"
 #include "Stream.h"
 
 #include <cstdio>
@@ -47,7 +48,9 @@ public:
 	// developers); the port's debugger is SDL's log, at the info level (the console, or stderr)
 	void log(const char* theFormat, ...) override;
 	// 0x4383a0 and 0x435ba0 (feedingfrenzy2): the original reads QueryPerformanceCounter, then the processor's time
-	// stamp once it is calibrated; the port reads SDL's performance counter, or the frames' own clock under -fast
+	// stamp once it is calibrated; port: the game's time (docs/MOD_MENU.md, "Game speed"): SDL's performance counter's
+	// steps times the game speed, the framework's game clock at the unlimited speed, the frames' own clock under -fast.
+	// At speed 1 each step is the counter's own, so the original's pacing is unchanged
 	uint64_t getTicks() override;
 	uint64_t getTicksPerSecond() override;
 	// 0x48da20 (feedingfrenzy2)
@@ -66,6 +69,12 @@ public:
 	bool isKeyDown(int theKey) override;
 	// The framework's clipboard (its text in Latin-1), false when it is empty
 	bool getClipboardText(std::string& theText) override;
+	// 0x100 (0x4a1ea0 (feedingfrenzy2)): the window's mouse
+	Mouse* getMouse() override { return &mMouse; }
+	MessageMouse& getMessageMouse() { return mMouse; }
+
+	// 0x4a2790 (feedingfrenzy2): the sound system, over the platform's mixer (SimpleSoundDX.h)
+	simplesound::SimpleSound* makeSoundSystem() override;
 
 	// port: -fast: the clock is the app's, moved on by a frame's period each frame, as on origrun's virtual clock
 	void setVirtualClock(bool theVirtualClock) { mVirtualClock = theVirtualClock; }
@@ -79,6 +88,12 @@ private:
 	int mFrameRate;   // +0x58
 	bool mVirtualClock;
 	uint64_t mVirtualTicks;
+	// port: the game's time in the counter's ticks, and what it was last moved on from
+	uint64_t mGameTicks;
+	double mGameTicksPart;     // the fraction of a tick the speed has left over
+	uint64_t mLastCounter;     // SDL's performance counter
+	uint32_t mLastGameTimeMS;  // the framework's game clock (Sexy::GetGameTimeMS)
+	MessageMouse mMouse;       // +0x2a8 (a pointer in the original)
 };
 
 } // namespace engine

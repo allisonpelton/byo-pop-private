@@ -14,6 +14,8 @@ endif()
 # The images are decoded through the platform layer (Surface.cpp: libjpeg 6b and stb_image, as the originals' libjpeg
 # and libpng read them)
 target_link_libraries(sprout2 PUBLIC sexyframework)
+# The animations' frames are Theora packets (TheoraReader.cpp), decoded by libtheora 1.1.1
+target_link_libraries(sprout2 PRIVATE theoradec)
 
 # The port's side of the engine's Windows layer (host/): the platform's services of engine::Engine over the
 # framework's platform layer (EngineImpl), and the game folder's files. Each game's app runs the frames.

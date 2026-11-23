@@ -5,16 +5,49 @@
 
 using namespace engine;
 
+int StageManifest::findStage(const std::string& theId) const
+{
+	for (int i = 0; i < (int)mStages.size(); i++)
+	{
+		if (mStages[i].mId == theId)
+			return i;
+	}
+	return -1;
+}
+
 void StageManifest::load(const std::string& thePath)
 {
 	MasterDocHandler aMaster;
 	StageManifestDocHandler* aHandler = new StageManifestDocHandler(this);
 	aHandler->attach(&aMaster, "stageManifest");
 	if (getEngine()->parseXml(thePath, &aMaster) && !mLevelSets.empty())
+		placePins();
+}
+
+void StageManifest::placePins()
+{
+	// (Its last set is placed with the spline of the set before it, the one last read in the loop)
+	SplinePath* aSpline = nullptr;
+	for (size_t aSet = 0; aSet + 1 < mLevelSets.size(); aSet++)
 	{
-		// The pins spaced along each level set's spline (0x41ad50 (feedingfrenzy2)): not yet translated
-		getEngine()->log("StageManifest: the game map's pins not yet translated\n");
+		LevelSet& aLevelSet = mLevelSets[aSet];
+		aSpline = aLevelSet.mSpline.get();
+		aLevelSet.mStart = aSpline->getNodePosition(0);
+		float aStageCount = (float)(mLevelSets[aSet + 1].mFirstStage - aLevelSet.mFirstStage);
+		if (!(0.0f < aStageCount))
+			continue;
+		float aSpacing = (float)((double)aStageCount + 1.0);
+		int aStage = 0;
+		do
+		{
+			float aFraction = (float)(aStage + 1) / aSpacing;
+			mStages[aLevelSet.mFirstStage + aStage].mMapPos = aSpline->getPositionAt(aFraction);
+			aStage++;
+		} while ((float)aStage < aStageCount);
 	}
+	// port: with one set the original reads the manifest itself as the spline; the port leaves that set's start
+	if (aSpline != nullptr)
+		mLevelSets.back().mStart = aSpline->getNodePosition(aSpline->getNodeCount() - 1);
 }
 
 void StageManifestDocHandler::startElement(const std::string& theName, Params& theAttributes)
@@ -37,10 +70,7 @@ void StageManifestDocHandler::startElement(const std::string& theName, Params& t
 		StageManifest::LevelSet& aLevelSet = mManifest->mLevelSets.back();
 		std::string aSpline = theAttributes.getString("spline", "");
 		if (!aSpline.empty())
-		{
-			// The spline's file read into a SplinePath (PathDocHandler, 0x48b9b0 (feedingfrenzy2)): not yet
-			// translated (the game map's)
-		}
+			aLevelSet.mSpline = loadSplinePath(aSpline);
 		aLevelSet.mImageOff = theAttributes.getString("imgOff", "");
 		aLevelSet.mImageOn = theAttributes.getString("imgOn", "");
 		aLevelSet.mFirstStage = (int)mManifest->mStages.size();

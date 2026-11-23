@@ -1,6 +1,7 @@
 #include "MenuState.h"
 
 #include "Engine.h"
+#include "LevelLoadState.h"
 #include "PopupState.h"
 #include "ScreenMgr.h"
 #include "TextItem.h"
@@ -17,22 +18,23 @@ void MenuState::enter()
 		mApp->mMenuScreen = MENU_SCREEN_MAIN;
 	}
 	else if (mApp->mMenuScreen == MENU_SCREEN_MAP)
-		// The map (+0x84) shown: not yet translated
-		getEngine()->log("MenuState: the map not yet translated\n");
+		mApp->mScreenMgr->showScreen(mApp->mGameMap.get(), 0.0f);
 	else
 		mApp->mScreenMgr->showScreen(mApp->mMainMenu.get(), 0.0f);
 	showPlayer();
 	mApp->mMenuRunning = true;
 	// The stage's music player (its +0x2d4) playing menuMusic, unless it already is (0x489670 and 0x48d420
-	// (feedingfrenzy2)), the application's sound at +0x38 started unless its +0x321 is set (0x4929a0
-	// (feedingfrenzy2)), and the stage started (its slot 0x14): not yet translated, as the stage and the sounds are not
-	getEngine()->log("MenuState: the menu's stage and music not yet translated\n");
+	// (feedingfrenzy2)), and the application's sound at +0x38 started unless its +0x321 is set (0x4929a0
+	// (feedingfrenzy2)): not yet translated, as the sounds are not
+	getEngine()->log("MenuState: the menu's music not yet translated\n");
+	mApp->mStage->start();
 }
 
 void MenuState::exit()
 {
-	// The screen hidden unless it is the map (+0x84), which is not yet translated
-	mApp->mScreenMgr->showScreen(nullptr, 0.0f);
+	// The map stays, as the load screen of the stage picked on it
+	if (mApp->mScreenMgr->getCurrent() != mApp->mGameMap.get())
+		mApp->mScreenMgr->showScreen(nullptr, 0.0f);
 	mApp->mMenuRunning = false;
 	// The application's sound at +0x38 stopped (0x490370 (feedingfrenzy2)): not yet translated
 	mApp->mMenuScreen = MENU_SCREEN_MAIN;
@@ -40,7 +42,8 @@ void MenuState::exit()
 
 void MenuState::update(UpdateContext* theContext)
 {
-	// The sounds' update (0x434c80 (feedingfrenzy2)) and the stage's (0x43a570 (feedingfrenzy2)): not yet translated
+	// The sounds' update (0x434c80 (feedingfrenzy2)): not yet translated
+	mApp->mStage->update(theContext);
 	if (mPlayerChecked)
 		return;
 	if (mApp->mMainMenu->getPhase() != SCREEN_SHOWN)
@@ -52,15 +55,62 @@ void MenuState::update(UpdateContext* theContext)
 
 void MenuState::action(const std::string& theAction)
 {
-	if (theAction == "credits")
+	if (theAction == "newGame")
+		startGame(GAME_MODE_NORMAL);
+	else if (theAction == "newTimedGame")
+		startGame(GAME_MODE_TIMED);
+	else if (theAction == "credits")
 		mApp->mScreenMgr->showScreen(mApp->mCredits.get(), 0.0f);
 	else if (theAction == "gameMapCancel" || theAction == "creditsDone" || theAction == "highScoreDone")
 		mApp->mScreenMgr->showScreen(mApp->mMainMenu.get(), 0.0f);
+	else if (theAction.find("levelStart") != std::string::npos)
+		startStage(theAction.substr(theAction.find(':') + 1));
+	else if (theAction == "switchUser")
+	{
+		mApp->mUserSelect->init();
+		mApp->mMenuScreen = MENU_SCREEN_MAIN;
+		mApp->mStateMgr.pushState(new PopupState(mApp, mApp->mUserSelect.get(), this));
+	}
 	else
-		// newGame, newTimedGame, quit, switchUser, mainMenuOptions, debugSelectLevel, highScores, scoreModeRight,
-		// scoreModeLeft, highScoreReset and an action holding levelStart: not yet translated. (The original's
+		// quit, mainMenuOptions, debugSelectLevel, highScores, scoreModeRight,
+		// scoreModeLeft and highScoreReset: not yet translated. (The original's
 		// gameLinkClick opened the distributor's link; it goes with its button)
 		getEngine()->log("MenuState: the action %s not yet translated\n", theAction.c_str());
+}
+
+void MenuState::startGame(int theMode)
+{
+	mApp->mGameData->newGame(theMode);
+	if (mApp->mUserData->hasSavedGame(theMode))
+	{
+		mApp->mStateMgr.pushState(new PopupState(mApp, mApp->mRestoreGameScreen.get(), this));
+		return;
+	}
+	mApp->mFreshGame = true;
+	// 0x49fa20 (feedingfrenzy2): a stage of the mode reached
+	if (mApp->mUserData->getMode(mApp->mGameData->getMode()).mMaxStage > 0)
+	{
+		mApp->mGameMap->showFor(true, mApp->mGameData->getMode());
+		mApp->mScreenMgr->showScreen(mApp->mGameMap.get(), 0.0f);
+		return;
+	}
+	const StageManifest::Stage* anEntry = mApp->mGameData->getStageEntry();
+	if (theMode == GAME_MODE_TIMED)
+		mApp->mGameData->setTimeRollover(anEntry->mNewGameTime);
+	mApp->mStateMgr.changeState(new LevelLoadState(mApp, anEntry, nullptr));
+}
+
+void MenuState::startStage(const std::string& theStageId)
+{
+	// The shell theme's levelChooseSound played at full volume (0x4747a0 (feedingfrenzy2)): not yet translated, as
+	// the sound effects are not
+	int aMode = mApp->mGameData->getMode();
+	mApp->mGameData->newGame(aMode);
+	mApp->mUserData->clearSavedGame(aMode);
+	mApp->mGameData->setStage(mApp->mGameData->getStages().findStage(theStageId));
+	const StageManifest::Stage* anEntry = mApp->mGameData->getStageEntry();
+	mApp->mGameData->setTimeRollover(anEntry->mNewGameTime);
+	mApp->mStateMgr.changeState(new LevelLoadState(mApp, anEntry, nullptr));
 }
 
 void MenuState::suspend()
@@ -71,8 +121,7 @@ void MenuState::suspend()
 void MenuState::resume()
 {
 	if (mApp->mMenuScreen == MENU_SCREEN_MAP)
-		// The map (+0x84): not yet translated
-		getEngine()->log("MenuState: the map not yet translated\n");
+		mApp->mScreenMgr->showScreen(mApp->mGameMap.get(), 0.0f);
 	else if (mApp->mMenuScreen == MENU_SCREEN_HIGH_SCORES)
 		// The high scores (+0x8c): not yet translated
 		getEngine()->log("MenuState: the high score screen not yet translated\n");

@@ -1,13 +1,22 @@
 // port: the host for Feeding Frenzy 2 (see FeedingFrenzy2App.h).
 
 #include "FeedingFrenzy2App.h"
+#include "BonusItem.h"
 #include "DXDrawContext.h"
 #include "EngineImpl.h"
 #include "FeedingFrenzyTwo.h"
+#include "GameData.h"
+#include "GameHud.h"
+#include "PlayerFish.h"
+#include "PlayerSpawn.h"
+#include "Stage.h"
 #include "Graphics.h"
 #include "MemoryImage.h"
+#include "SimpleSoundDX.h"
 #include "Surface.h"
 #include "WidgetManager.h"
+
+#include <SDL.h>
 
 #include <cstring>
 
@@ -140,6 +149,11 @@ void FeedingFrenzy2Widget::MouseMove(int x, int y)
 	engine::Vector2<int> aPoint = clampToScreen(x, y);
 	mMouseX = aPoint.x;
 	mMouseY = aPoint.y;
+	// While the play's mouse is acquired, only where the cursor is kept
+	engine::MessageMouse& aMouse = gApp->mEngine->getMessageMouse();
+	aMouse.setPosition(aPoint);
+	if (aMouse.isAcquired())
+		return;
 	gApp->mEngine->mMouseMoveSignal.emit(aPoint);
 }
 
@@ -158,6 +172,14 @@ void FeedingFrenzy2Widget::MouseDown(int x, int y, int theBtnNum, int theClickCo
 	engine::Vector2<int> aPoint = clampToScreen(x, y);
 	mMouseX = aPoint.x;
 	mMouseY = aPoint.y;
+	// While the play's mouse is acquired, told to it alone
+	engine::MessageMouse& aMouse = gApp->mEngine->getMessageMouse();
+	if (aMouse.isAcquired())
+	{
+		if (theBtnNum == 0 || theBtnNum == 1)
+			aMouse.buttonDown(aPoint, theBtnNum);
+		return;
+	}
 	if (theBtnNum == 0)
 		gApp->mEngine->mMouseDownSignal.emit(aPoint);
 	else if (theBtnNum == 1)
@@ -172,6 +194,13 @@ void FeedingFrenzy2Widget::MouseUp(int x, int y, int theBtnNum, int theClickCoun
 	engine::Vector2<int> aPoint = clampToScreen(x, y);
 	mMouseX = aPoint.x;
 	mMouseY = aPoint.y;
+	engine::MessageMouse& aMouse = gApp->mEngine->getMessageMouse();
+	if (aMouse.isAcquired())
+	{
+		if (theBtnNum == 0 || theBtnNum == 1)
+			aMouse.buttonUp(aPoint, theBtnNum);
+		return;
+	}
 	if (theBtnNum == 0)
 		gApp->mEngine->mMouseUpSignal.emit(aPoint);
 	else if (theBtnNum == 1)
@@ -261,6 +290,138 @@ void FeedingFrenzy2App::Init()
 	mEngine->mActivateSignal.emit(mHasFocus);
 }
 
+bool FeedingFrenzy2App::HandleScriptCommand(const ScriptCommand& theCommand)
+{
+	if (theCommand.mCommand == "state")
+	{
+		logState();
+		return true;
+	}
+	if (theCommand.mCommand == "set")
+	{
+		setState(theCommand.mArgs);
+		return true;
+	}
+	if (theCommand.mCommand == "win" || theCommand.mCommand == "lose")
+	{
+		endStage(theCommand.mCommand == "win");
+		return true;
+	}
+	if (theCommand.mCommand != "unlock")
+		return false;
+	std::string aLine = theCommand.mCommand + " " + theCommand.mArgs;
+	if (theCommand.mArgs != "all")
+		SDL_Log("ERROR %s: only unlock all", aLine.c_str());
+	else if (mGame == nullptr || mGame->mUserData == nullptr || mGame->mUserData->getName().empty())
+		SDL_Log("ERROR %s: no player", aLine.c_str());
+	else
+	{
+		mGame->mUserData->unlockAll((int)mGame->mGameData->getStages().getStages().size());
+		SDL_Log("OK %s", aLine.c_str());
+	}
+	return true;
+}
+
+void FeedingFrenzy2App::logState()
+{
+	if (mGame == nullptr || mGame->mGameData == nullptr)
+	{
+		SDL_Log("ERROR state: no game");
+		return;
+	}
+	GameData* aData = mGame->mGameData.get();
+	std::string aPlayer = "null";
+	int aPhase = -1;
+	int aMultiplier = 0;
+	int aShownScore = mGame->mStage ? mGame->mStage->getHud()->getShownScore() : -1;
+	float aTimeLeft = mGame->mStage ? mGame->mStage->getTimeLeft() : 0.0f;
+	const char* aRun = mGame->mStage == nullptr ? "none" : mGame->mStage->getRunState() == nullptr ? "ended" : "on";
+	PlayerFish* aFish = mGame->mStage ? mGame->mStage->getFirstPlayer() : nullptr;
+	if (aFish != nullptr)
+	{
+		char aPlace[64];
+		snprintf(aPlace, sizeof(aPlace), "[%.1f,%.1f]", aFish->getPosition().x, aFish->getPosition().y);
+		aPlayer = aPlace;
+		aPhase = aFish->getSpawn() ? aFish->getSpawn()->getPhaseIndex() : -1;
+		aMultiplier = aFish->getFrenzyMultiplier();
+	}
+	// The bonuses in the stage, where each is
+	std::string aBonuses = "[";
+	if (mGame->mStage)
+	{
+		for (BonusItem* aBonus : mGame->mStage->getBonuses())
+		{
+			char aPlace[64];
+			snprintf(aPlace, sizeof(aPlace), "%s[%.1f,%.1f]", aBonuses.size() > 1 ? "," : "", aBonus->getPosition().x,
+				aBonus->getPosition().y);
+			aBonuses += aPlace;
+		}
+	}
+	aBonuses += "]";
+	SDL_Log("STATE {\"mode\":%d,\"level\":%d,\"score\":%d,\"lives\":%d,\"food\":%d,\"phase\":%d,"
+	        "\"frenzy\":%d,\"shown\":%d,\"time\":%.2f,\"run\":\"%s\",\"player\":%s,\"bonuses\":%s}",
+	        aData->getMode(), aData->getStage(), aData->getScore(), aData->getLives(), aData->getFood(), aPhase,
+	        aMultiplier, aShownScore, aTimeLeft, aRun, aPlayer.c_str(), aBonuses.c_str());
+}
+
+void FeedingFrenzy2App::endStage(bool isWin)
+{
+	const char* aName = isWin ? "win" : "lose";
+	PlayerFish* aFish = mGame != nullptr && mGame->mStage != nullptr ? mGame->mStage->getFirstPlayer() : nullptr;
+	if (aFish == nullptr || aFish->getSpawn() == nullptr || !aFish->getSpawn()->isLive())
+	{
+		SDL_Log("ERROR %s: no player in play", aName);
+		return;
+	}
+	if (isWin)
+	{
+		// The food of the last phase's goal: the spawn grows the fish a phase a step, and the stage then ends
+		PlayerSpawn* aSpawn = aFish->getSpawn();
+		mGame->mGameData->setFood(aSpawn->getPhase(aSpawn->getPhaseCount() - 1).mFoodGoal);
+	}
+	else
+	{
+		// The fish's state ended, as a fish that eats it ends it (Fish::beSwallowed): the spawn then finds it dead
+		aFish->getStateMgr().changeState(nullptr);
+	}
+	SDL_Log("OK %s", aName);
+}
+
+void FeedingFrenzy2App::setState(const std::string& theArgs)
+{
+	char aName[32] = {};
+	int aValue = 0;
+	if (sscanf(theArgs.c_str(), "%31s %d", aName, &aValue) != 2)
+	{
+		SDL_Log("ERROR set %s: set <name> <value>", theArgs.c_str());
+		return;
+	}
+	if (mGame == nullptr || mGame->mGameData == nullptr)
+	{
+		SDL_Log("ERROR set %s: no game", theArgs.c_str());
+		return;
+	}
+	GameData* aData = mGame->mGameData.get();
+	std::string aKey = aName;
+	if (aKey == "score")
+	{
+		aData->setScore(aValue);
+		aData->findNextLifeScore();
+	}
+	else if (aKey == "lives")
+		aData->setLives(aValue);
+	else if (aKey == "food")
+		aData->setFood(aValue);
+	else if (aKey == "time" && mGame->mStage != nullptr)
+		mGame->mStage->setTimeLeft((float)aValue);
+	else
+	{
+		SDL_Log("ERROR set %s: only score, lives, food and time (in a stage)", theArgs.c_str());
+		return;
+	}
+	SDL_Log("OK set %s", theArgs.c_str());
+}
+
 void FeedingFrenzy2App::GotFocus()
 {
 	SexyAppBase::GotFocus();
@@ -286,14 +447,23 @@ void FeedingFrenzy2App::RunFrame()
 	aContext.mFrame = (uint64_t)mFrames;
 	aContext.mDetailLevel = mEngine->getDetailLevel();
 	mFrames++;
-	// (the sound's update, 0x42b8c0 (feedingfrenzy2), comes here with the sound)
+	// While the play's mouse is acquired, its move since the last frame (0x42b8c0 (feedingfrenzy2))
+	if (mEngine->getMessageMouse().isAcquired())
+		mEngine->getMessageMouse().sendMotion();
+	// port: the sound's update runs from the window's timer every 100 ms (WM_TIMER 1, 0x424780 (feedingfrenzy2)),
+	// here on the game's clock; the only sound system is the host's
+	simplesound::SimpleSound* aSound = simplesound::getSimpleSound();
+	if (aSound != nullptr)
+	{
+		double aMilliseconds = aTicks * 1000.0 / (double)mEngine->getTicksPerSecond();
+		static_cast<simplesounddx::SimpleSoundDX*>(aSound)->advanceTimer(aMilliseconds);
+	}
 	mEngine->mUpdateSignal.emit(&aContext);
 
-	// The frame drawn into the display through a context whose first state is at the origin, unscaled and opaque;
-	// the original draws and presents only while the display is ready (DirectDraw's surface not lost)
+	// The frame drawn into the display through a context, its first state at the origin, unscaled and opaque; the
+	// original draws and presents only while the display is ready (DirectDraw's surface not lost)
 	{
 		engine::DXDrawContext aDrawContext(mDisplay);
-		aDrawContext.pushState(engine::DrawState());
 		aDrawContext.setDetailLevel(mEngine->getDetailLevel());
 		mEngine->mDrawSignal.emit(&aDrawContext);
 	}

@@ -30,6 +30,7 @@ public:
 	void showScreen(engine::GenericScreen* theScreen, float theDelay);
 	// 0x407da0 (feedingfrenzy2): a change under way or a screen queued
 	bool isBusy() const { return mChanging || !mQueue.empty(); }
+	engine::GenericScreen* getCurrent() { return mCurrent.get(); }
 
 private:
 	// 0x418c10 (feedingfrenzy2): once both screens have settled, the old one taken out and the new one current

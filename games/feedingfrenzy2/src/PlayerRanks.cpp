@@ -38,3 +38,15 @@ void RankDocHandler::startElement(const std::string& theName, Params& theAttribu
 		mRanks->addRank(aPoints, theAttributes.getString("title", "xxx"));
 	}
 }
+
+std::string PlayerRanks::getTitle(int thePoints) const
+{
+	std::string aTitle;
+	for (const Rank& aRank : mRanks)
+	{
+		if (thePoints < aRank.mPoints)
+			return aTitle;
+		aTitle = aRank.mTitle;
+	}
+	return aTitle;
+}
