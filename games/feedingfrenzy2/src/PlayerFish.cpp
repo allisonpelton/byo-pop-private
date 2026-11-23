@@ -196,7 +196,7 @@ void PlayerFish::update(UpdateContext& theContext)
 	mStateMgr.update(&theContext);
 }
 
-void PlayerFish::eat(Fish* thePrey, float theSeconds)
+void PlayerFish::eat(Actor* thePrey, float theSeconds)
 {
 	Fish::eat(thePrey, theSeconds);
 	mBiggestRankEaten = maxOf(mBiggestRankEaten, thePrey->getRank());
@@ -236,7 +236,7 @@ void PlayerFish::swallow()
 			mStage->getHud()->splatChomp(mBiggestRankEaten, aChompAt);
 		// The theme's sound fishChomp1 to fishChomp3 by the rank: not yet translated, as the sounds are not
 	}
-	for (const Ref<Fish>& aPrey : mPrey)
+	for (const Ref<Actor>& aPrey : mPrey)
 	{
 		int aFood = aPrey->getFoodValue();
 		int aPoints = aPrey->getFoodValueNow() * mFrenzyMultiplier * mPointsScale;
@@ -548,7 +548,7 @@ void SpawnState::update(UpdateContext* theContext)
 	mPlayer->startPlay();
 }
 
-void PlayState::eat(Fish* thePrey)
+void PlayState::eat(Actor* thePrey)
 {
 	mPlayer->changeState(new PlayerEatingState(mPlayer));
 }

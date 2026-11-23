@@ -117,8 +117,18 @@ public:
 	// 0x80 and 0x84 (0x411210 and 0x411200 (feedingfrenzy2)): the food it is to its eater, and the points it is now
 	int getFoodValue() const { return mFoodValue; }
 	int getFoodValueNow() const { return mFoodValueNow; }
+	// 0x78 (0x43d8b0 (feedingfrenzy2)): the body's shape where it is
+	Shape* getBodyShape() { return getTransformedShape(ACTOR_SHAPE_BODY); }
+	// 0x8c (0x5014fa (feedingfrenzy2)): swallowed by the eater; nothing by default
+	virtual void beSwallowed(Fish* theEater) {}
 	// 0x90 (0x53c96f (feedingfrenzy2)): swallowed by the player: its spawn told it died
 	virtual void eatenByPlayer(PlayerFish* thePlayer) { mDied.emit(); }
+	// 0xa8 (0x502bd4 (feedingfrenzy2)): the actor may be eaten (the eater not looked at); not by default
+	virtual bool isEdibleBy(Fish* theEater) { return false; }
+	// 0xc0 (0x502bee (feedingfrenzy2)): the eater may have the actor now; always by default
+	virtual bool canBeEatenBy(Fish* theEater) { return true; }
+	// 0xcc (0x502be0 (feedingfrenzy2)): drawn into the eater's mouth over the seconds; nothing by default
+	virtual void beginBeingEaten(Fish* theEater, float theSeconds) {}
 	// 0xe0 (0x502c50 (feedingfrenzy2)): the actor is of the class a <react> names, to the viewer (a fish's,
 	// 0x43b230 (feedingfrenzy2))
 	virtual bool isOfClass(const std::string& theClass, Actor* theViewer) { return false; }
@@ -238,13 +248,13 @@ public:
 	virtual void setFishBehavior(FishBehaviorInfo* theBehavior);
 
 	// 0x8c (0x416a10 (feedingfrenzy2)): swallowed, the fish's state ended (so it is dead to its spawn)
-	void beSwallowed(Fish* theEater) { mStateMgr.changeState(nullptr); }
+	void beSwallowed(Fish* theEater) override { mStateMgr.changeState(nullptr); }
 	// 0xa8 (0x43dbe0 (feedingfrenzy2)): the fish's state lets another eat it
-	bool isEdibleBy(Fish* theEater);
+	bool isEdibleBy(Fish* theEater) override;
 	// 0xc0 (0x481210 (feedingfrenzy2)): the fish's state lets this eater have it now
-	bool canBeEatenBy(Fish* theEater);
+	bool canBeEatenBy(Fish* theEater) override;
 	// 0xcc (0x4800f0 (feedingfrenzy2)): drawn into the eater's mouth over the seconds (EatenState)
-	void beginBeingEaten(Fish* theEater, float theSeconds);
+	void beginBeingEaten(Fish* theEater, float theSeconds) override;
 	// 0x4251a0 (feedingfrenzy2): the state changed to unless the fish is leaving
 	void changeState(FishState* theState);
 
@@ -257,17 +267,15 @@ public:
 	int getEaterRank() const { return mEaterRank; }
 	// 0x0c (0x43dee0 (feedingfrenzy2)): the prey eaten when the fish may eat, the prey may be eaten by it and its body
 	// meets the mouth; the prey drawn in over the seconds to the chomp, at most 0.2
-	void consider(Fish* thePrey);
+	void consider(Actor* thePrey);
 	// 0x10 (0x47a2b0 (feedingfrenzy2)): the prey taken, and the fish's state told of the eat
-	virtual void eat(Fish* thePrey, float theSeconds);
+	virtual void eat(Actor* thePrey, float theSeconds);
 	// 0x14 (0x477660 (feedingfrenzy2)): each prey taken swallowed, and the list emptied
 	virtual void swallow();
 	// 0x24 (0x43ded0 (feedingfrenzy2)): the mouth's shape where it is
 	Shape* getMouthShape() { return getTransformedShape(2); }
 	// 0x28 (0x43dc00 (feedingfrenzy2)): the visual data's mouth laid on the shapes' transform
 	engine::Vector2f getMouthPosition() const;
-	// The prey's 0x78 (0x43d8b0 (feedingfrenzy2)): the body's shape where it is
-	Shape* getBodyShape() { return getTransformedShape(1); }
 
 	FishVisual* getFishVisual() const { return mFishVisual.get(); }
 	FishBehaviorInfo* getFishBehavior() const { return mFishBehavior.get(); }
@@ -277,7 +285,7 @@ public:
 
 protected:
 	int mEaterRank;                              // +0xf8
-	std::vector<engine::Ref<Fish>> mPrey;        // +0xfc: the prey being drawn in until the chomp
+	std::vector<engine::Ref<Actor>> mPrey;       // +0xfc: the prey being drawn in until the chomp
 	// +0x10c: the meals, the player's to puke: not yet translated
 	float mSize;                                 // +0x11c
 	engine::Ref<FishVisualData> mFishVisualData; // +0x120
@@ -307,7 +315,7 @@ public:
 	void remove() override;
 	// The eater part's 0x10 (0x41cb20 (feedingfrenzy2)): the stage's theme's sound fishEaten first (not yet
 	// translated, as the sounds are not), then the fish's
-	void eat(Fish* thePrey, float theSeconds) override;
+	void eat(Actor* thePrey, float theSeconds) override;
 	// 0xf0 (0x4447e0 (feedingfrenzy2)): its layer by the detail level, its hold counted down; a state that has gone
 	// ended, else the state's update (a fish with meals in it that may puke pukes first, not yet translated)
 	void update(engine::UpdateContext& theContext) override;

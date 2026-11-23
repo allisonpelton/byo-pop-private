@@ -495,7 +495,7 @@ void AvoidAI::turnAside()
 	mAIFish->setDesiredVelocity(rotated(aWanted, anAngle));
 }
 
-void AIFishState::eat(Fish* thePrey)
+void AIFishState::eat(Actor* thePrey)
 {
 	mAIFish->changeState(new AIEatingState(mAIFish));
 }

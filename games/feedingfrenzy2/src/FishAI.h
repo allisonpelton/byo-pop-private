@@ -40,7 +40,7 @@ public:
 	// 0x24 (0x43d890 (feedingfrenzy2)): another fish may eat this one (the eater not looked at)
 	bool isEdible() const { return mEdible; }
 	// 0x54 (0x5014fa (feedingfrenzy2)): the fish has begun to eat the prey; nothing by default
-	virtual void eat(Fish* thePrey) {}
+	virtual void eat(Actor* thePrey) {}
 	// 0x58 (0x502bee (feedingfrenzy2)): the eater may have the fish now; always by default
 	virtual bool canBeEatenBy(Fish* theEater) { return true; }
 	// 0x50 (0x4a49d0 (feedingfrenzy2)): the state is not to be cut short (the player eating or sucking): the stage's
@@ -65,7 +65,7 @@ public:
 	explicit AIFishState(AIFish* theFish);
 
 	// 0x54 (0x40ff50 (feedingfrenzy2)): the fish's state changed to eating (AIEatingState)
-	void eat(Fish* thePrey) override;
+	void eat(Actor* thePrey) override;
 
 protected:
 	AIFish* mAIFish;  // +0x20

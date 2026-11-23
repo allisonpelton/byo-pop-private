@@ -349,7 +349,7 @@ bool Fish::canEatNow()
 	return aState->isInPlay() && 0.0f == mHoldTime;
 }
 
-void Fish::consider(Fish* thePrey)
+void Fish::consider(Actor* thePrey)
 {
 	Shape* aMouth = getMouthShape();
 	if (aMouth == nullptr || !canEatNow())
@@ -364,7 +364,7 @@ void Fish::consider(Fish* thePrey)
 	eat(thePrey, aSeconds);
 }
 
-void Fish::eat(Fish* thePrey, float theSeconds)
+void Fish::eat(Actor* thePrey, float theSeconds)
 {
 	// 0x4779e0 (feedingfrenzy2): the prey starts being drawn in and is kept until the chomp
 	thePrey->beginBeingEaten(this, theSeconds);
@@ -376,7 +376,7 @@ void Fish::eat(Fish* thePrey, float theSeconds)
 
 void Fish::swallow()
 {
-	for (const Ref<Fish>& aPrey : mPrey)
+	for (const Ref<Actor>& aPrey : mPrey)
 		aPrey->beSwallowed(this);
 	mPrey.clear();
 }
@@ -516,7 +516,7 @@ void AIFish::setFishBehavior(FishBehaviorInfo* theBehavior)
 	mFlybyFrequency = mFishBehavior->getFloat("flybyFreq", DEFAULT_FLYBY_FREQUENCY);
 }
 
-void AIFish::eat(Fish* thePrey, float theSeconds)
+void AIFish::eat(Actor* thePrey, float theSeconds)
 {
 	// The stage's theme's sound fishEaten at full volume, pitch 0.6 (0x4747a0 (feedingfrenzy2)): not yet
 	// translated, as the sounds are not

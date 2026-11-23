@@ -82,7 +82,7 @@ public:
 
 	// The eater part's 0x10 (0x47a250 (feedingfrenzy2)): the fish's, and the highest rank of the bite's prey kept
 	// (the theme's sound fishEaten not yet translated)
-	void eat(Fish* thePrey, float theSeconds) override;
+	void eat(Actor* thePrey, float theSeconds) override;
 	// The eater part's 0x14 (0x42a6d0 (feedingfrenzy2)): with prey in the bite, its draws, the frenzy added to and the
 	// chomp's splat; then each prey's food and points (the frenzy's multiplier, the bonus's scale, and in the air the
 	// chain of fish eaten there), the chain ended in the water, and the fish's
@@ -204,7 +204,7 @@ public:
 	// 0x0c (0x438fe0 (feedingfrenzy2)): steered, moved and its timers counted down
 	void update(engine::UpdateContext* theContext) override;
 	// 0x54 (0x417e10 (feedingfrenzy2)): eating (PlayerEatingState)
-	void eat(Fish* thePrey) override;
+	void eat(Actor* thePrey) override;
 
 private:
 	PlayerFish* mPlayer;  // +0x20
