@@ -64,7 +64,9 @@
 #                transition sends, reaches the page as its first and one more once it settles) and linkstest (tools/linkstest.js: every link to the site's own licence, terms and copyright pages
 #                opens in a new tab) and musictest (tools/musictest.js: the music player's decoder, its tracker view's rows and
 #                its seek, on a module the test makes and a staged MO3 when there is one, and every unused
-#                pattern the Music window lists, each one's tracker view at its first frame) and soundfilestest
+#                pattern the Music window lists, each one's tracker view at its first frame) and musicrepeattest
+#                (tools/musicrepeattest.js: every staged tune played with repeat on past its end, the sound going on from where
+#                the decoder goes on and the position going back there) and soundfilestest
 #                (tools/soundfilestest.js: every sound the Sounds boards name is staged and in a format every browser plays, by
 #                its own header: Ogg Vorbis, MP3, PCM WAV, or one the site decodes itself) and autosplittest
 #                (tools/autosplittest.js: the speedrun timer's auto splitters decide as their references, Bejeweled's lsdecide.py
@@ -1008,6 +1010,10 @@ suite_unit-web() {
 	local r
 	"$NODE" tools/musictest.js "$web/openmpt.js" assets > "$1.mu" 2>&1 || st=1
 	r="$(lastof "$1.mu" 'musictest:')"
+	# Repeat in the music player: every staged tune played past its end goes on, from the right place, its position going back (tools/musicrepeattest.js)
+	local mr
+	"$NODE" tools/musicrepeattest.js "$web/openmpt.js" assets > "$1.mr" 2>&1 || st=1
+	mr="$(lastof "$1.mr" 'musicrepeattest:')"
 	# every sound the Sounds boards name is staged and in a format every browser plays, by its own header (tools/soundfilestest.js)
 	local sf
 	"$NODE" tools/soundfilestest.js assets > "$1.sf" 2>&1 || st=1
@@ -1033,7 +1039,7 @@ suite_unit-web() {
 	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
 	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
 	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $rz; $q; $r; $sf; $as; $u; $v; $w; $o"
+	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $rz; $q; $r; $mr; $sf; $as; $u; $v; $w; $o"
 	return $st
 }
 
