@@ -89,3 +89,64 @@ What the exe's own engine does, by the functions the port translates (`gEarlyBui
 - **The key handlers** are a list the original keeps in an object of the engine (+0x108, added to by 0x444c00 and
   removed from by 0x443640); the port keeps it in the controller, `FishFood`, which passes the keys on to the handlers,
   the last added first. The app has no window node (the earlier build's root), so there is nothing else to hold them.
+
+## Removed from the port
+
+Nothing is removed yet. The registration and outbound-button pass comes after the identical-play pass; its list is:
+the main menu's More Games button and `gameLink`/`ShowLink`/`VisitURL`, `MSNZone`, `ScoreBroadcast`, `ScoreSubmit`,
+`GameBreak`, `doGameLink` (0x42de30), `getFull`/`GetFullVersion`, and the screen saver and its unlock popup (`/s /c /p`,
+controller slots 0x0c and 0x10, `ssManifest`, `SaverSelection`, states 10, 0xb and 0xc, 0x42ca80, 0x42d4a0, 0x42d750,
+0x430cb0, `FishFood::0x42be40`, the partner slot 0x42eef0, `ssUnlock.xml`, 0x427200, 0x429010), with the screen saver
+sentence of the game-won screen.
+
+## Deviations
+
+- **The cursor** while a stage is played is hidden and put back at (325, 265) after each reading, as the player fish
+  does, through the Host's cursor API (`warpMousePosition`); the original reads and resets the system cursor.
+- **The splash** is taken out of the scene after its fade.
+- **The key handlers** are kept in the controller (see "The engine's older build").
+- **Debug text** the original keeps behind flags nothing sets (the player's thought bubble, the spawner's +0x170) is
+  left out, and so are fields nothing reads.
+- **Uninitialised fields** of Barracuda, PufferFish and the screens are zeroed. The HUD's menu-bubble array is zeroed.
+- **JohnDory** purges a dangling pointer the original keeps; `Container::update` guards an out-of-range index; the
+  Barracuda's Blinker and the GoldenMinnow's Selector no longer leak a reference.
+- **Duplicate calls** of `getSpecialScore` and `getScore` are collapsed; the stage manager's dead timer call (0x438e50)
+  is not made; the stun stars the poison blend hides are not drawn.
+- **A guarded node** that the original would use unchecked and crash on is checked; the bonus percent has a zero guard;
+  the unused fun fact 49 is dropped; the high-score layout's else branch over-read is left out.
+
+## Fix candidates
+
+For the fixes mod (`FixOn`), not the port: the pickup invincibility check is asymmetric between the two fish kinds; the
+high score qualification at state 6 uses the normal list and rank below 10, where the game-won screen uses rank below 11;
+the player's shield effect moves between groups while a group is iterated.
+
+## Oddities
+
+Not chased: the fun-fact text on the stage end screen is clipped on one line; the default settings come up full
+screen. Both to be compared with the original in the looks pass.
+
+## Unreachable code
+
+Not translated (nothing reaches them): 0x405cd0, 0x40d770, 0x406050, 0x406090, 0x403650, 0x401ae0, 0x41f6e0, 0x41dc30,
+0x43e560, the debug branch (+0x2cc) of 0x43bb60, the debug draw 0x410140 and its flag 0x4bffa0, 0x405770, 0x408980,
+0x408ba0, 0x408e80, 0x40c7f0, 0x40cdc0, 0x40d890, 0x40d8a0, the debug-view slot 0x2bc (0x409a40, 0x40b190, 0x40cfb0),
+the controller's setState cases 3, 7 and 8, state 3 in `goToStage`, the codec-missing screens, the tooltip screen (+0xa0)
+and the map layout's slot 0x100 (0x423bef). The Angler, Lion and Puffer players are to be checked against the stages.
+
+## Test commands
+
+The standard commands of `docs/TEST_COMMANDS.md`, in `games/feedingfrenzy/src/TestCommands.cpp`.
+
+- `state`: `STATE {...}` with `screen` (menu, options, highscores, credits, entername, gamewon, pause, map, loadmap,
+  stagestart, stageend, continue, gameover), `over`, `mode`, `furthest`, and in a stage `level`, `score`, `lives`,
+  `continues`, `stage`, `type`, `phase` (start, playing, paused, mermaid, ending, end), `timer`, `eaten`, `toEat`,
+  `player {x,y,size,score,state,chain}` and `fish [{type,x,y,level,seen,edible}]` for every fish in play.
+- `move`: the bot's next move as real input (menu: New Game; a stage: steer toward the nearest edible fish, away from
+  fish that can eat the player; name entry: types BOT and clicks Continue; other screens: the first of Continue, Done,
+  OK, Resume). `over` becomes true when a started game is back at the menu.
+- `goto normal|timed|menu|options|highscores|credits`, `level <1..40>`, `unlock all`, `set score|lives|timer <n>`,
+  `win` (the mermaid ending), `lose` (the player is eaten), `seed <n>`.
+
+The suite (`games/feedingfrenzy/tools/suite/suite.sh`, `tools/check.sh feedingfrenzy`) has the bot play the normal game
+(1500 moves) and the timed game, each twice with the same transcript, then loads and plays all 40 stages.
