@@ -172,31 +172,36 @@ is a plain link opening a new tab (`rel="noopener noreferrer"`), never a script'
 `cmake/ByopopWeb.cmake` are the coordinator's, edited at a game's final merge: `BYOPOP_WEB_FINISHED` (the games with a
 page), `BYOPOP_WEB_UPCOMING` (`<target>|<title>` rows for "Coming soon"), `BYOPOP_WEB_BADGES` (initials and colour),
 `BYOPOP_WEB_RELEASED` (`<target>|<date>`, the first release of the Windows edition the site plays, its source in a
-comment) and `BYOPOP_WEB_WIN95` (yes, no or unknown). A tile carries them as `data-game`, `data-title`,
-`data-released` and `data-win95`, and `data-unsold` where no store sells the game.
+comment) and `BYOPOP_WEB_WIN95` (yes, no or unknown). Each game is a card in the page's `main` (`ul.games`), carrying
+them as `data-game`, `data-title`, `data-released` and `data-win95`, and `data-unsold` where no store sells the game;
+the listing's script adds `data-files` (yes, no or unknown) once it knows whether the game's files are here. The cards
+are the page without its scripts: Desktop 95 does not show them, and the Library ("The Library", below) reads its games
+from them.
 
 The user's rules for it:
 
-- **Games no longer sold** are hidden unless "Show games no longer sold" is ticked or the game's files are here (the
-  user, 2026-11-03: "default to hiding those games from the front page").
+- **Games no longer sold** are hidden unless the Library's "Show games no longer sold" is ticked
+  (`byopop-listing-unsold`) or the game's files are here (the user, 2026-11-03: "default to hiding those games from the
+  front page"); the box is there only while some game is no longer sold.
 - **Windows 95 games only** (`win95Only`) hides the games whose original did not support Windows 95, and the unknown
   ones; a game released before the last one whose readme names Windows 95 (TipTop, 2002-12-12) counts as yes (the
-  user, 2026-11-08).
+  user, 2026-11-08). The Library's status bar counts the games it hides ("3 hidden", the setting in its tooltip).
 - **Play time** counts only while the game runs and its page is shown and focused (the user, 2026-11-02: "Only count
   time with the game open and active"): `byopop-play` (`ByopopPlay` in `web/settings.js`).
 - **A game's icon** is read out of the player's exe (`web/exeicon.js`; `importIcon: true` in `page.js` for a game that
   does not store its exe) and never sent anywhere; a game without one shows its initials on a plain white square (the
   user, 2026-11-08: "bare initials for missing games").
-- **Buy links** are hidden once the player has ever loaded files for the game or played it here, so that the page never
-  suggests it is for copies not bought.
+- **Buy links,** at the foot of a game's menu in the Library, are hidden once the player has ever loaded files for the
+  game or played it here, so that the page never suggests it is for copies not bought.
 
 **Which games are yours** is `byopop-game-files` in localStorage (`ByopopGameFiles` in `web/settings.js`), never
 written with `?placeholders=1`; without an entry the listing looks in the game's database read-only, calling
 `indexedDB.databases()` first so that it never creates one. Forgetting a game's files (`ByopopImport.forgetGame`)
 keeps saves, mods and replays and holds the game's Web Lock. A game whose files were loaded here once and are gone
-shows a small "?" button on its tile, which opens a message box titled with the game's name (`ByopopApps.tell` in
-`web/deskapps.js`, with the information sign): the day the files were last loaded and the day they were forgotten, the
-likely causes, whether saves are still here, and the buttons Open game and Close.
+has "Why aren't my files here?" in its menu in the Library (and a small "?" button on its card in the page without
+scripts), which opens a message box titled with the game's name (`ByopopApps.tell` in `web/deskapps.js`, with the
+information sign): the day the files were last loaded and the day they were forgotten, the likely causes, whether saves
+are still here, and the buttons Open game and Close.
 
 ### Jungle Juice
 
@@ -206,8 +211,9 @@ placeholder with no third-party content. `byopop_web_jungle()` writes each `web/
 
 ### Adding games from the listing page
 
-`web/addgames.js` adds many games at once: a folder or .zip dropped on a finished game's tile is that game's, and
-anything else goes to the Setup window. **Sorting** (`ByopopImport.sort` in `web/gameimport.js`): a folder is a game's
+`web/addgames.js` adds many games at once: a folder or .zip dropped on a finished game's row in the Library is that
+game's, and anything else, or the Library's Add games, goes to the Setup window. Its panels (the adding rows and the
+bin) show at the top of the Library. **Sorting** (`ByopopImport.sort` in `web/gameimport.js`): a folder is a game's
 when it holds every one of the game's markers, and a marker may name alternatives (`"WinTS.exe|TyperShark.exe"`, Typer
 Shark's Steam and PopCap Game Collection exes); a folder of several games is looked into three levels deep; where two
 games' markers are at the same place the folder's name decides, else the player is asked. **Copying** writes the files
@@ -366,7 +372,7 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   2026-11-22: "Give the other apps on the site better icons than just the window display"; "The site's apps' icons"
   below), the same in each of those places and in Alt+Tab's box, its name in the tooltip as before; a window of no app
   is drawn as a little window. Entries that are no window draw their own (`drawnPic`: the games' folder, full screen,
-  the game's size, Shut Down's computer), and a game page's Music, Sounds and All games show those apps' icons. A screen
+  the game's size, Shut Down's computer), and a game page's Music, Sounds and Library show those apps' icons. A screen
   too short for the large pictures gets the small ones on the first level too, and a list opens level with its entry, raised only as far as the task bar needs. The
   Pop button's mark is a yellow burst of our own, and the active window's task bar button is pressed with bold text
   (struck twice, as the desktop's one-weight font draws every bold). Every picture lands on whole pixels of the screen,
@@ -383,8 +389,9 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   `byopop-master-mute`). Everything the site plays follows it, each sound at its own level times this one: the games,
   through a gain the game's page puts after its output node (`siteVolume` in `web/shell.html`, which the hush in
   `web/deskapps.js` then takes off the speakers), plus Music, Sounds and a theme's sounds.
-- **The Recycle Bin's icon,** on the listing: it opens All games' bin, and a game's cap dropped on it asks there to forget
-  that game's files. It is full while the bin holds the names of the games forgotten (`byopop-bin`), until Empty Recycle
+- **The Recycle Bin's icon,** on the listing: it opens the bin's panel in the Library, and a game's row dragged out of
+  the Library and dropped on it asks there to forget that game's files (Uninstall, in the Library's and a shortcut's
+  menus, does the same through the same code: "The Library", below). It is full while the bin holds the names of the games forgotten (`byopop-bin`), until Empty Recycle
   Bin, from its menu, clears them. A favourite's desktop shortcut dragged onto it lights it, and dropped there it is taken
   out of the favourites, as its menu's Remove from favourites does. The game's files and its place in the listing stay,
   and the bin does not fill. As with Windows 95's drag to the bin, nothing asks first and no sound plays. Any other icon
@@ -478,8 +485,7 @@ badly:
 
 | Window | Kind | Least | Most | Why |
 |---|---|---|---|---|
-| All games | sizable | 500 × 440 | the room | its bar on two rows and one whole row of games |
-| Library | sizable | 560 × 200 | the room | its six columns, five rows |
+| Library | sizable | 560 × 200 | the room | its bar on one row, its columns, five rows |
 | Music | sizable | 360 × its player and three rows | the room | its controls on one row |
 | Sounds | sizable | 300 × 200 | the room | its bar on one row, four rows of sounds |
 | Splits | sizable | 240 × 180 | the room | its menu bar on one row, the timer and its two lines under it |
@@ -561,7 +567,8 @@ opens a tab.
   a warning (below). The window in front has the focus, and the other games' frames get the window blur the framework
   listens for (`EmscriptenFocusCallback`), so each behaves as a page that lost the focus.
 - **The chat is one window for every game** ("The chat"), a message tagged with the game in front.
-- **Closing a game** returns to the window the setting `gamesOpen` names (All games or the Library).
+- **Closing a game** returns to the listing with the Library open and in front (`byopop-desk-open`), as a game page's
+  Pop menu's Library (`./#library`) does.
 
 **How many games at once.** Up to 2026-11-16 the desktop opened at most three games, and one on a narrow screen; a
 fourth got a message box naming the limit. Asked whether the cap should become a warning past a memory budget, the user
@@ -602,10 +609,45 @@ driver's reset ends the same way.
 
 ### The Library
 
-The listing's second window of the games (`web/library.js`): a sortable grid evoking a game client of 2004, named for
-no real program, built from the listing's own tiles and `ByopopPlay` so the two windows agree. A game's Properties
-(its menu) are a property sheet of its values and, below them, a table of each site player's plays, time, first and last
-day (the user, 2026-11-11: playtime per profile). `ByopopPlay` (`web/settings.js`) keeps them in `byopop-play`, by the
+The listing's window of the games (`web/library.js`): a sortable grid evoking a game client of 2004, named for no real
+program, built from the listing's cards and `ByopopPlay`. On 2026-11-23 it took in every feature of All games, the
+listing's first window of the games, which went (the coordinator's list of 2026-11-22: "Add all the features from All
+games to Library and then get rid of the all games window"). A desk saved before then comes back with the Library in
+All games' place and size where it had none of its own, open if either was (`RENAMED` and `merged` in `web/skins.js`), and the old sort
+(`byopop-listing-sort`) is read once into the Library's own (`byopop-library-sort`).
+
+- **Its bar:** Play, Add games (the Setup window), Show games no longer sold (while some game is) and Filter, which
+  finds a game by any word of its title with a letter or two wrong (All games' Find).
+- **Its columns:** Name, Status (Ready, Needs your files, Files unknown, Coming soon, No longer sold), Phase on a
+  development host, Plays, Play time, Last played, Year, and Popular, every player's plays, when the site's play
+  counter answers (its tooltip says how many play now). A header sorts by its column; Plays, Play time and Popular
+  sort most first at the first click. A narrow desktop shows Name, Status, Phase where it is shown, and Play time.
+- **Its status bar:** the count, the games Windows 95 games only hides, and the link to Jungle Juice with its line.
+- **A row:** double-click or Enter plays the game. A game whose files are here can be dragged to the Recycle Bin's
+  icon, and a folder or .zip dropped on a row is that game's files. Its menu has Play, Add files, Uninstall, the
+  favourite, Properties, "Why aren't my files here?" where that applies, and the buy links. A game's Properties are a
+  property sheet of its values and, below them, a table of each site player's plays, time, first and last day (the
+  user, 2026-11-11: playtime per profile).
+
+**Uninstall** (the coordinator's list of 2026-11-22: "an uninstall option with confirmation in the Library and shortcut
+context menus, in addition to the recycle bin"), in a game's menu in the Library and in its desktop shortcut's menu,
+greyed while the game's files are not here. It asks Windows 95's question in a message box, "Confirm Uninstall" with the
+question sign, Yes and No, No the default (Escape and Enter on it), and Yes does what a game dropped on the Recycle
+Bin does, through the same code (`ByopopAddGames.uninstall` in `web/addgames.js`): `forgetGame` deletes the game's
+folder (`<persist>/game`) under its Web Lock and its screen saver profile (`<persist>-saver`), the record says the
+files were forgotten that day, and the game goes into the bin's list (`byopop-bin`). Its saves, mods, replays and
+play time stay, as do its favourite and its place in the Library, and the row and the shortcut show it at once. A
+game open in another tab is refused with the bin's message. On a game's page, whose shortcuts are the favourites, Yes
+hands the game to the listing (`byopop-uninstall` in sessionStorage), which uninstalls it with the Library in front.
+The bin itself is unchanged. `tools/web/uninstallcheck.js`, a page driver, uninstalls a stand-in game three ways (the
+bin, the Library's menu, a shortcut's menu) and checks that each leaves the same state, that No and Escape change
+nothing, the greyed entries and where the focus goes.
+
+**Its contrast** (Lighthouse, 2026-11-22: 8.3 pt text at 4.5:1): each colour moved the least that reaches 4.5:1, the
+label and the dim text going lighter. The Filter label and the count, #a0a890 on #4c5844, are #c5cabc (4.50:1); the
+status and year of a game that is not ready, #a0a890 on #3e4637, are #acb39d (4.54:1); the selected row, white on
+#958831, is on #82772b (4.54:1), and the sort arrows keep #958831. The inactive title bar, #c0c0c0 on #808080, stays
+1995's. `ByopopPlay` (`web/settings.js`) keeps them in `byopop-play`, by the
 current player's id in `by` beside the totals, and the save backup keeps and merges them (`web/saves.js`, `mergedPlay`).
 
 ### Desktop themes
@@ -1507,8 +1549,7 @@ a small icon cannot hold left out, never the large one scaled down), and written
 colour, so that they stay sharp at the desktop's 2x zoom. None holds text but the Fonts window's letter A. Their colours
 are the same on every colour scheme, as a program's icon was on any wallpaper, so none is drawn mostly in black or a dark
 colour that would be lost on the dark desktops (Cola, Grape, Cherry): Music's notes stand on a silver disc, the A is white
-inside its outline. The apps and their pictures: All games (four caps), the Library (books on a
-shelf), Setup (an open box with an arrow into it), Settings (a panel of three sliders, the listing's folder and a game
+inside its outline. The apps and their pictures: the Library (books on a shelf), Setup (an open box with an arrow into it), Settings (a panel of three sliders, the listing's folder and a game
 page's panel alike), Music (two beamed notes on a disc),
 Sounds (a board of six pads), Splits (a stopwatch), the chat (a balloon with three dots), System Information and a
 game page's About (a tower computer), Performance (a line chart), the Trophy Cabinet (a cup), Fonts (a serif A), the

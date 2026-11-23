@@ -2080,12 +2080,12 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     deskTitle();
   }
   // the game window's Close: the game closes as it does for the panels' actions (its saves written), then the listing,
-  // where All games opens (sessionStorage "byopop-desk-open", web/index.html)
+  // where the Library opens (sessionStorage "byopop-desk-open", web/index.html)
   function closeProgram() {
     // in a window of the one page: the game's own close with its saves, then the window goes (web/deskapps.js)
     var P = desktopApps();
     if (P) { closeGameThen(function () { try { P.closed(window); } catch (e) {} }, true); return; }
-    try { sessionStorage.setItem("byopop-desk-open", window.byopopShutDown ? "shutdown" : "games"); } catch (e) {}
+    try { sessionStorage.setItem("byopop-desk-open", window.byopopShutDown ? "shutdown" : "library"); } catch (e) {}
     closeGameThen(function () { location.href = "./" + (pageSilent() ? "?silent=1" : ""); }, true);
   }
   // The game's sound at the site's volume (the tray's speaker, ByopopVolume in web/skins.js): its output node
@@ -2652,7 +2652,7 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
       // window's maximize button (and its control menu's and the Pop menu's entry). The
       // window's Close closes the program (the user, 2026-11-08: "Closing the game window ought to go back to the home
       // page/bring back All games"): the game's own close with its saves, as the page's other ways out, then the listing with
-      // All games open.
+      // the Library open (All games went into the Library, the coordinator's list of 2026-11-22).
       var gameName = $("brand-name").textContent;
       var sysIcon = document.createElement("i");
       sysIcon.className = "d95-sys-cap"; sysIcon.setAttribute("aria-hidden", "true");

@@ -1,4 +1,4 @@
-"""Draws the site's apps' icons for Desktop 95 (web/appicons.js): every window that is not a game (All games, the Library,
+"""Draws the site's apps' icons for Desktop 95 (web/appicons.js): every window that is not a game (the Library,
 Setup, Settings, Music, Sounds, Splits, the chat, System Information or About, Performance, the Trophy Cabinet, Fonts, the
 Gallery, Guides, and a game page's Controls, Game files, Mods and Replays), our own drawings in the 1995 manner: 32 by 32 with a
 16 by 16 version of each, in the 16-colour palette, outlined in black, as tools/settingsicons.py draws the Settings
@@ -51,16 +51,6 @@ def dot(d, n, x, y, fill):
 
 
 # ---- the icons ----
-def games(n):
-    # All games: four of the listing's caps, each in its own colour with the cap's ring
-    im, d = canvas(n)
-    for x, y, c, ring in ((2, 2, RED, MAROON), (16, 2, BLUE, NAVY), (2, 16, LIME, GREEN), (16, 16, YELLOW, OLIVE)):
-        oval(d, n, x, y, x + 14, y + 14, c)
-        if n >= 32:
-            oval(d, n, x + 3, y + 3, x + 11, y + 11, None, ring)
-    return im
-
-
 def library(n):
     # the Library: books on a shelf, the last one leaning
     im, d = canvas(n)
@@ -299,7 +289,7 @@ def replays(n):
     return im
 
 
-ICONS = [("games", games), ("library", library), ("setup", setup), ("settings", settings), ("music", music), ("sounds", sounds),
+ICONS = [("library", library), ("setup", setup), ("settings", settings), ("music", music), ("sounds", sounds),
          ("splits", splits), ("chat", chat), ("about", about), ("perf", perf), ("trophies", trophies), ("fontview", fontview),
          ("gallery", gallery), ("guides", guides), ("controls", controls), ("files", files), ("mods", mods),
          ("replays", replays)]
