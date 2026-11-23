@@ -1669,3 +1669,14 @@ buttons, the options screen and a second quest of the map's other sections (the 
 move, wait, press, wait, release (the board's two clicks need none of it); the menus' balls take no click while their size curves run (about 60 updates after
 PLAY), so `move` waits for them; and the end dialog's first frame shows "Final Score" as 0 (its count-up starts when it opens), so an `end.png` taken at once
 has not counted up yet. The fresh player's default start is full screen, as the exe's first run is.
+
+**On the web** (2026-11-23, the Browser pane on `bejeweled3-webtest`, port 18830). `tools/web/playmode.js` is the web twin of
+`realinput.sh`: from a wiped test profile it starts the game, sends `seed 1`, `unlock all`, `play <mode>` (and the same `atmove`), and
+`playByMove` plays the bot's moves as DOM input from the name box to the mode's end; the end's shot is `build/webshots/playmode-<mode>/end.png`.
+Every mode reached its end: Classic 63 moves (over), Zen 400 (its limit), Lightning 34 (over), Quest 3 41 (over, lost), Butterflies 33,
+Poker 48, Ice Storm 45 and Diamond Mine 32 (all over), none with a page error. One page load failed before the game started (the page's
+clips script was not defined); its reload ran. The page check (`tools/web/pagecheck.js`, settle 400: by then the first fill has landed):
+11 pass, 0 fail, 1 information line (the browser keys the game takes). The focus line matches the native answer: the board's update and
+hint timer go on while the focus is away, because the exe's focus handling (the pause on a lost focus) is not translated yet.
+The web run showed one fault of the test command: `move` answered an atmove's command with that command's own `OK`, which a web driver reads
+as the move's answer; the command's answers are now logged with the prefix `atmove: `, and `move` answers as usual.

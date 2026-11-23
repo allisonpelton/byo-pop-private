@@ -58,9 +58,13 @@ const char* ModeKey(const Board* theBoard)
 	return "classic";
 }
 
+// port: put before every answer while `move` runs an atmove's command, so that the command's own OK or ERROR is a log line
+// and the move's answer (MOVE or a wait) stays the one answer a driver reads
+const char* gReplyPrefix = "";
+
 void Reply(const std::string& theLine)
 {
-	SDL_Log("%s", theLine.c_str());
+	SDL_Log("%s%s", gReplyPrefix, theLine.c_str());
 	fflush(stdout);
 	fflush(stderr);
 }
@@ -567,7 +571,9 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 		if (mAtMoveCount >= 0 && mBoard->IsSettled() && !mBoard->mGameOver && mSwapsGiven >= mAtMoveCount) {
 			ScriptCommand aRun = {mUpdateCount, mAtMoveCommand, mAtMoveArgs, 0};
 			mAtMoveCount = -1;
+			gReplyPrefix = "atmove: ";
 			HandleScriptCommand(aRun);
+			gReplyPrefix = "";
 		}
 		BoardMove aMove;
 		if (mBoard->mGameOver || mQuestMenu != nullptr) {
