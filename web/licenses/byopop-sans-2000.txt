@@ -1,0 +1,11 @@
+Byopop Sans 2000 (the site's text in the 2000 skin), drawn by the byo-pop project: CC0 1.0 Universal
+
+Byopop Sans 2000 and its bold are the byo-pop project's own drawing (tools/web/pixelfont2000.py): pixel fonts in the
+manner of Tahoma at 8 points, every glyph drawn by hand.
+
+The byo-pop project dedicates Byopop Sans 2000, both its regular and its bold, to the public domain under CC0 1.0
+Universal (Creative Commons Zero). To the extent possible under law, the project waives all copyright and related or
+neighboring rights to these fonts. You can copy, modify, distribute and use them, even for commercial purposes, all
+without asking permission.
+
+The dedication's full legal code: https://creativecommons.org/publicdomain/zero/1.0/legalcode

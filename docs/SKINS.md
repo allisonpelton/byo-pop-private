@@ -321,10 +321,23 @@ capitals, digits and ascenders 8 pixels tall where Byopop Sans's are 9, the x-he
 character's advance at 11 pixels to the em, taken as numbers from Tahoma's own table of advances (its hdmx), as Byopop
 Sans took the 1995 font's widths. No shape is taken from Tahoma. The printable ASCII is drawn and the Latin-1 letters with
 accents are built from it; anything else, the arrows, dashes and fractions among them, is drawn by Byopop Sans, which
-stands on the same baseline. Bold is the regular glyphs, as with Byopop Sans; Tahoma's own bold, which 2000's title bars
-used, is **to make** if the titles want it.
+stands on the same baseline.
 
-**Still to come for 2000:** its icons, and Tahoma Bold's manner for the titles.
+**Its bold** followed (web/fonts/byopop-sans-2000-bold.woff, the same script), since 2000's title bars, Start button and
+default entries were in Tahoma Bold and the user's rule is the more authentic design. Its advances are Tahoma Bold's at 11
+pixels to the em, taken as numbers as the regular's are. Most of its glyphs are the regular's struck twice a pixel apart,
+which gives every stem two pixels and the advance one more, as Tahoma Bold's mostly is. Where Tahoma Bold's advance is
+not one more, 16 glyphs are drawn by hand (among them C, E, M, N, O, k, m and the stops), seven wider ones (%, &, the
+slashes, the braces and the bar) are struck twice in the middle of their advance, and @ and ` keep the regular's shape.
+Under 2000 the
+elements that 95 strikes twice with a text shadow (web/skins.css) take the drawn bold instead, and any other bold text
+takes it too.
+
+**Its licence** (the user, 2026-11-23: "CC0"): Byopop Sans 2000, regular and bold, is the project's own drawing and is
+dedicated to the public domain under CC0 1.0 Universal. Its name table says so, web/licenses/byopop-sans-2000.txt holds
+the dedication, and the credits list it beside Byopop Sans, which stays under the OFL that W95FA requires.
+
+**Still to come for 2000:** its icons.
 
 ### XP's Windows Classic style
 

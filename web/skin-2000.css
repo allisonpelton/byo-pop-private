@@ -4,11 +4,13 @@
    with the drawings' colours: the face #d4d0c8 (its soft light the face too), the desktop #3a6ea5, the titles, the selection
    #0a246a and the dark edge #404040.
    Its text is Byopop Sans 2000, our pixel font in the manner of Tahoma, which 2000 drew in place of MS Sans Serif
-   (tools/web/pixelfont2000.py); a character it lacks is drawn by Byopop Sans, on the same baseline. Its behaviours, the
+   (tools/web/pixelfont2000.py, CC0), with its own drawn bold; a character it lacks is drawn by Byopop Sans, on the same
+   baseline. Its behaviours, the
    hidden keyboard cues and personalized menus, are web/skins.js's (BEHAVIOURS).
    Still 95's until they are made or checked (docs/SKINS.md): the icons, and whether tooltips fade. */
 
-@font-face { font-family: "Byopop Sans 2000"; src: url("fonts/byopop-sans-2000.woff") format("woff"); font-weight: 100 900; font-style: normal; font-display: block; }
+@font-face { font-family: "Byopop Sans 2000"; src: url("fonts/byopop-sans-2000.woff") format("woff"); font-weight: 100 500; font-style: normal; font-display: block; }
+@font-face { font-family: "Byopop Sans 2000"; src: url("fonts/byopop-sans-2000-bold.woff") format("woff"); font-weight: 600 900; font-style: normal; font-display: block; }
 
 :root[data-look="2000"] {
   --font-ui: "Byopop Sans 2000", "Byopop Sans", Tahoma, "Segoe UI", sans-serif;
@@ -22,6 +24,12 @@
   --sk-band-ramp: 233 / #000000 #000080 #0000ff / 0 12, .6 60, 1 104, 1 125, 1.5 162, 2 209;
   --sk-band-fg1: #ffffff; --sk-band-fg: #ffffff;
 }
+
+/* Bold is the drawn bold, as Tahoma Bold was 2000's title bars', the Start button's and a default entry's, in place of 95's
+   regular glyphs struck twice (web/skins.css, "bold: one weight struck twice"): the same elements, at the bold weight */
+:root[data-look="2000"] :is(b, strong, th, h1, h2, h3, h4, dt, summary, .d95-tb, .d95-tb-text),
+html.d95-desk[data-look="2000"] :is(.d95-pop, .d95-task[aria-pressed=true] > .d95-task-text, .d95-default) {
+  text-shadow: none; letter-spacing: normal; font-weight: bold; }
 
 /* Menus fade in (Wikipedia, "Windows 2000": "Menus support a new Fade transition effect"): the Pop menu, its submenus, the
    context and window menus. The fade's length is ours: 2000's own is to check, and so is whether tooltips faded. */

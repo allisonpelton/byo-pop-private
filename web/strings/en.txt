@@ -506,6 +506,7 @@ index.footer.credits_html = <li><a href="licenses/libopenmpt.txt" target="_blank
   <a href="licenses/bravura.txt" target="_blank" rel="noopener">Bravura and Academico<span class="visually-hidden newtab"> (opens in a new tab)</span></a> by Steinberg: the Music player's score</li>
   <li><a href="licenses/openjpeg.txt" target="_blank" rel="noopener">OpenJPEG<span class="visually-hidden newtab"> (opens in a new tab)</span></a>: JPEG 2000 pictures in desktop themes</li>
   <li><a href="licenses/byopop-sans.txt" target="_blank" rel="noopener">Byopop Sans<span class="visually-hidden newtab"> (opens in a new tab)</span></a>, made from W95FA by Alina Sava: the desktop's text</li>
+  <li><a href="licenses/byopop-sans-2000.txt" target="_blank" rel="noopener">Byopop Sans 2000<span class="visually-hidden newtab"> (opens in a new tab)</span></a>, our own drawing in Tahoma's manner, dedicated to the public domain under CC0 1.0: the 2000 skin's text</li>
 index.footer.credit_html = Project by <a href="https://technocra.cy/">technocra.cy</a>
 
 # System Information (web/sysinfo.js), the listing page's window about the site on Desktop 95's desktop, in the shape of
