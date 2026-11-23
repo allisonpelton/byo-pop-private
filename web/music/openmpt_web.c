@@ -98,6 +98,17 @@ EMSCRIPTEN_KEEPALIVE void bm_loop(bm_module* b, int loop) {
   if (b->mpt) openmpt_module_set_repeat_count(b->mpt, loop ? -1 : 0);
   else b->loop = loop;
 }
+/* Where the selected subsong goes on once it has played through, its order and row into out[0] and out[1]: 1 where the decoder
+   says (libopenmpt), 0 where it does not (libxmp-lite; web/music.js then plays across the end to see) */
+EMSCRIPTEN_KEEPALIVE int bm_restart(bm_module* b, int* out) {
+  if (!b->mpt) return 0;
+  int32_t sub = openmpt_module_get_selected_subsong(b->mpt);
+  int32_t order = openmpt_module_get_restart_order(b->mpt, sub < 0 ? 0 : sub), row = openmpt_module_get_restart_row(b->mpt, sub < 0 ? 0 : sub);
+  if (order < 0 || row < 0) return 0;
+  out[0] = order;
+  out[1] = row;
+  return 1;
+}
 /* The selected subsong's length in seconds, once through */
 EMSCRIPTEN_KEEPALIVE double bm_duration(bm_module* b) {
   if (b->mpt) return openmpt_module_get_duration_seconds(b->mpt);
@@ -485,7 +496,14 @@ EMSCRIPTEN_KEEPALIVE int bm_mute_status(bm_module* b, int channel) {
    to the frame nearest it) */
 EMSCRIPTEN_KEEPALIVE double bm_seek(bm_module* b, int rate, double seconds) {
   if (b->mpt) return openmpt_module_set_position_seconds(b->mpt, seconds);
-  if (rate != b->rate) { xmp_end_player(b->xmp); xmp_start(b, rate); }
+  if (rate != b->rate) {
+    /* the player started again at the rate, in the subsong chosen (its first sequence otherwise, and a seek looks for the time
+       among the orders of the sequence playing) */
+    xmp_end_player(b->xmp);
+    xmp_start(b, rate);
+    struct xmp_module_info mi = info(b);
+    if (b->solo < 0 && b->sequence < mi.num_sequences) xmp_set_position(b->xmp, mi.seq_data[b->sequence].entry_point);
+  }
   b->ended = 0;
   if (b->solo >= 0) {
     /* a pattern alone (bm_solo): libxmp-lite's times are its orders', so it plays unheard from the pattern's first row to

@@ -801,6 +801,422 @@ var ByopopMusic = (function () {
     return list;
   }
 
+  // ---------- a tune's sound ----------
+  // The sources a tune plays from, for the player and for tools/musicrepeattest.js: sounds(M, rate, how) makes them for the
+  // decoder M rendering at rate, how giving what a browser has: decode(bytes) a recorded tune's interleaved stereo at rate (a
+  // promise), bank(path) a MIDI bank's bytes (a promise) and trimmed(t, end), told when a tune's length was cut. sourceOf(t,
+  // files) is the tune's source: next(frames, marks) gives its next stereo frames (fewer at the end of a repeat, null once it
+  // ended), with marks where the decoder was in its patterns every SLICE frames: [frame, pattern, row, rows, channels, order];
+  // position() is the seconds into the tune of the next frame, seek(s), repeat(on) and free().
+  var TRIM_SCAN = 60, TRIM_RATE = 11025, trims = {};
+  var LOOP_RATE = 8000, LOOP_STEP = 128, loops = {};
+  function sounds(M, rate, how) {
+    var viewBuf = 0;
+    // A module: a subsong, or a range of orders, from its first order until the order after its last. gain: the game's own
+    // level for its modules (web/soundtracks.js's "level", platform/MusicLevels.h through the decoder).
+    // With repeat on, a subsong goes round its own loop (loopOf: where the decoder goes on once it has played through) as the
+    // decoder plays it, seamless, as the game hears it, where that loop is heard and leads back to a place the tune has played;
+    // any other tune plays again from its start when it ends (restart: the subsong chosen again). The user, 2026-11-22: "Repeat
+    // seems to break on some tunes, like BookWorm's game over 2, and in any case the position indicator doesn't loop back to the
+    // start." The position is the decoder's own time (the seek bar's too), less what it ran on past the loop: once a tune goes
+    // round, libopenmpt's time counts on past its end, and libxmp-lite's mostly goes back by itself. So while a loop is followed
+    // the decoder's place is looked at every SLICE frames (watch), and the time each place was first reached in a pass from the
+    // tune's start is kept (seen, by order and row). It has gone round when it comes back to the loop's place from the end, when
+    // its time goes back by itself, or when its time runs past the tune's length (a place too short to be looked at: Typer
+    // Shark's seventh tune goes on at a few short rows); the position is then set back to the time it first reached the place
+    // it is at, or where that row went by between two looks (Heavy Weapon's first tune), the time the pass first came inside the
+    // loop's place (inAt). A place the pass has not been (another tune's: Dynomite's Time Trial Clear goes on at an order of its
+    // Game Over) plays the tune again from its start instead; where the pass did not start at the tune's start (a seek), the loop's own
+    // time (loop.at) and the tune's orders (orders: tuneOrders) stand in for what was not seen. A range of orders starts again at
+    // its first order, its time taken afresh there (libopenmpt answers an order's time by the way it came: Bonnie's Bookstore's
+    // later songs drift by seconds).
+    function moduleSource(m, range, gain, start, loop, restart, orders) {
+      var again = false, stopAt = 0, follow = !range && !!(loop && loop.heard), length = range ? 0 : M._bm_duration(m);
+      // (following a loop: the time taken off the decoder's, the positions each place was first reached at, whether the pass
+      // began at the tune's start, and the place, inside the loop's or not, and time at the last look)
+      var offset = 0, seen = {}, inAt = null, fromStart = true, wasIn = false, wasRow = -1, wasRaw = 0, rounds = 0;
+      // (started again and nothing played since: libxmp-lite tells its new place and time only once it has played a frame)
+      var anew = false;
+      if (range) { M._bm_loop(m, 1); start = M._bm_set_order(m, range[0]); }
+      // the tune from its start again
+      function again0() {
+        if (range) start = M._bm_set_order(m, range[0]);
+        else if (restart) restart(); else M._bm_seek(m, rate, start);
+        offset = 0; fromStart = true; wasIn = false; wasRaw = 0; rounds++; anew = true;
+      }
+      function watch(order, row) {
+        var raw = M._bm_position(m) - start, pos = raw - offset, key = order * 4096 + row, first = seen[key];
+        var inside = order === loop.order && row >= loop.row, arrived = inside && (!wasIn || row < wasRow);
+        var back = raw < wasRaw - 0.05, past = pos > length + 0.25;
+        wasIn = inside; wasRow = row; wasRaw = raw;
+        var round = back || (arrived && pos >= ((first !== undefined ? first : inAt !== null ? inAt : loop.at) + length) / 2);
+        if (!round && !past) {
+          if (fromStart && first === undefined) seen[key] = pos;
+          if (fromStart && arrived && inAt === null) inAt = pos;
+          return;
+        }
+        // gone round
+        if (first === undefined && inside && inAt !== null) first = inAt;
+        if (first !== undefined) offset += pos - first;
+        else if (!fromStart) { if (inside && (!orders || orders.indexOf(order) >= 0)) offset += pos - loop.at; }
+        else if (again && (round || pos > length + 2)) again0();   // (only past it, a little: libopenmpt's length can be a little short)
+      }
+      var src = {
+        repeat: function (on) { again = on; if (!range) M._bm_loop(m, on && follow ? 1 : 0); },
+        // where the tune ends instead of its own end, in seconds into it (a long silent ending cut: trimEnd), 0 for its own; with
+        // repeat on it plays again from its start there
+        stop: function (s) { stopAt = s; },
+        next: function (frames, marks) {
+          if ((range && M._bm_order(m) > range[1]) || (stopAt && src.position() >= stopAt)) {
+            if (!again) return null;
+            again0();
+          }
+          var out = M._malloc(frames * 8), got = 0, fresh = 0, look = marks || follow, was = rounds, from = src.position() + offset;
+          if (look && !viewBuf) viewBuf = M._malloc(20);
+          while (got < frames) {
+            if (look) {
+              M._bm_view(m, viewBuf);
+              var w = viewBuf >> 2;
+              if (follow && !anew) watch(M.HEAP32[w + 4], M.HEAP32[w + 1]);
+              if (marks) marks.push([got, M.HEAP32[w], M.HEAP32[w + 1], M.HEAP32[w + 2], M.HEAP32[w + 3], M.HEAP32[w + 4]]);
+            }
+            var n = look ? Math.min(SLICE, frames - got) : frames - got, g = M._bm_render(m, rate, n, out + got * 8);
+            got += g;
+            if (g > 0) anew = false;
+            if (g < n) {
+              // its end: with repeat on, the tune from its start again (once for each end reached)
+              if (!again || fresh++) break;
+              again0();
+            } else fresh = 0;
+          }
+          // (a look where the chunk ends, so the position is right until the next; a tune not followed round a loop whose
+          // decoder's time goes back has gone on into another tune's place, which the decoder ends a little later: Seven Seas'
+          // bonus tunes go on at an order of another before they end, the time there a few seconds in)
+          if (follow && !anew) { M._bm_view(m, viewBuf); watch(M.HEAP32[(viewBuf >> 2) + 4], M.HEAP32[(viewBuf >> 2) + 1]); }
+          else if (again && !range && rounds === was && M._bm_position(m) - start < from - 0.05) again0();
+          var c = got > 0 ? M.HEAPF32.slice(out >> 2, (out >> 2) + got * 2) : null;
+          M._free(out);
+          if (c && gain !== 1) for (var i = 0; i < c.length; i++) c[i] *= gain;
+          return c;
+        },
+        // seconds into the tune
+        position: function () { return anew ? 0 : M._bm_position(m) - start - offset; },
+        seek: function (s) {
+          M._bm_seek(m, rate, start + s);
+          offset = 0; wasIn = false; wasRaw = s; anew = false;
+          fromStart = s <= 0.05;
+        },
+        rowText: function (pattern, row) { return M.UTF8ToString(M._bm_row_text(m, pattern, row)); },
+        // its instruments' names (its samples' where it has no instruments), a line each: "1A Bass"
+        names: function () { return typeof M._bm_names === "function" ? M.UTF8ToString(M._bm_names(m)) : ""; },   // (a decoder cached from before it: none)
+        // a channel muted or brought back; false where the decoder cannot (one cached from before bm_mute). It is heard once the
+        // second the decoder has rendered ahead has played
+        mute: function (c, on) { return typeof M._bm_mute === "function" && M._bm_mute(m, c, on ? 1 : 0) === 1; },
+        // whether the player itself has a channel muted: 1, 0, or -1 not known (for tests: tools/web/musicmutecheck.js)
+        muteStatus: function (c) { return typeof M._bm_mute_status === "function" ? M._bm_mute_status(m, c) : -1; },
+        // a pattern's rows per beat and per bar as the file stores them (beat << 16 | bar), 0 where it stores none
+        meter: function (pattern) { return typeof M._bm_meter === "function" ? M._bm_meter(m, pattern) : 0; },
+        // the speed (ticks a row) and tempo playing now, or null
+        tempo: function () { var t = typeof M._bm_tempo === "function" ? M._bm_tempo(m) : 0; return t ? { speed: t >> 16, bpm: t & 0xffff } : null; },
+        // the channels that play a note anywhere in the module, by number
+        used: function () {
+          var buf = M._malloc(256), n = Math.min(256, M._bm_used(m, buf, 256)), list = [];
+          for (var c = 0; c < n; c++) if (M.HEAPU8[buf + c]) list.push(c);
+          M._free(buf);
+          return list;
+        },
+        // the lowest and highest note anywhere in it (1 is C-0), or null for none
+        range: function () {
+          var buf = M._malloc(8);
+          M._bm_range(m, buf);
+          var lo = M.HEAP32[buf >> 2], hi = M.HEAP32[(buf >> 2) + 1];
+          M._free(buf);
+          return lo ? [lo, hi] : null;
+        },
+        // the pattern an order plays and its rows; "skip" for a marker the player passes over; null past the end
+        orderPattern: function (order) {
+          var p = M._bm_order_pattern(m, order);
+          return p >= 0 ? [p, M._bm_pattern_rows(m, p)] : p === -2 ? "skip" : null;
+        },
+        free: function () { M._bm_free(m); }
+      };
+      return src;
+    }
+    // A module tune of segments (web/soundtracks.js's "cuts" and "chains"): each plays its subsong from order from (or its
+    // start) until it reaches order until (or its end), then the next; with repeat on the first again. The views and the rest
+    // are moduleSource's. Seeking renders unheard from the start (libopenmpt at 8000 Hz, which costs little; libxmp-lite at
+    // the context's rate, as a rate change restarts it).
+    function segSource(m, segs, gain, fast) {
+      // (done: frames since the first segment's start, the position; pass: the same for the cut, stopAt; loopedAt: where in the
+      // frames render gave the first segment started again, -1 for nowhere)
+      var src = moduleSource(m, null, gain, 0), i = 0, done = 0, again = false, stopAt = 0, pass = 0, loopedAt = -1;
+      function begin(k) {
+        i = k;
+        if (k === 0) pass = 0;
+        var sg = segs[k];
+        M._bm_select(m, sg.sub);
+        M._bm_loop(m, 0);
+        if (sg.from !== null) M._bm_set_order(m, sg.from);
+      }
+      // frames at rate into ptr (or a scratch buffer), the segments followed; returns those rendered
+      function render(rate, frames, ptr, marks) {
+        var got = 0, fresh = 0;
+        loopedAt = -1;
+        while (got < frames) {
+          var sg = segs[i];
+          if (sg.until !== null && M._bm_order(m) === sg.until) {
+            if (i + 1 < segs.length) { begin(i + 1); continue; }
+            if (!again || fresh++) break;
+            begin(0); loopedAt = got; continue;
+          }
+          if (marks) {
+            M._bm_view(m, viewBuf);
+            var w = viewBuf >> 2;
+            marks.push([got, M.HEAP32[w], M.HEAP32[w + 1], M.HEAP32[w + 2], M.HEAP32[w + 3], M.HEAP32[w + 4]]);
+          }
+          var n = Math.min(SLICE, frames - got), g = M._bm_render(m, rate, n, ptr + got * 8);
+          got += g;
+          if (g < n) {
+            if (g === 0 && fresh++ > 1) break;   // nothing more anywhere
+            if (i + 1 < segs.length) begin(i + 1);
+            else if (again) { begin(0); loopedAt = got; }
+            else break;
+          } else fresh = 0;
+        }
+        return got;
+      }
+      begin(0);
+      src.repeat = function (on) { again = on; };
+      // (a long silent ending cut, as moduleSource's: the pass ends stopAt seconds in)
+      src.stop = function (s) { stopAt = s; };
+      src.next = function (frames, marks) {
+        if (stopAt && pass >= stopAt * rate) {
+          if (!again) return null;
+          begin(0);
+          done = 0;
+        }
+        if (stopAt) frames = Math.max(1, Math.min(frames, Math.ceil(stopAt * rate) - pass));
+        if (!viewBuf) viewBuf = M._malloc(20);
+        var out = M._malloc(frames * 8), got = render(rate, frames, out, marks);
+        var c = got > 0 ? M.HEAPF32.slice(out >> 2, (out >> 2) + got * 2) : null;
+        M._free(out);
+        if (c && gain !== 1) for (var j = 0; j < c.length; j++) c[j] *= gain;
+        // (gone round to the first segment: the time from there)
+        if (c) { if (loopedAt >= 0) done = pass = got - loopedAt; else { done += got; pass += got; } }
+        return c;
+      };
+      src.position = function () { return done / rate; };
+      src.seek = function (sec) {
+        var by = fast ? 8000 : rate, buf = M._malloc(4096 * 8), left = Math.round(sec * by), keep = again;
+        again = false;
+        begin(0);
+        while (left > 0) {
+          var g = render(by, Math.min(4096, left), buf, null);
+          if (g <= 0) break;
+          left -= g;
+        }
+        M._free(buf);
+        again = keep;
+        done = pass = Math.round(sec * rate);
+      };
+      return src;
+    }
+    // Decoded sound: interleaved stereo at the context's rate; with repeat on it starts again at frame loopAt (an intro played
+    // once, then its loop: web/soundtracks.js's "loopFrom")
+    function pcmSource(data, loopAt) {
+      var at = 0, again = false, total = data.length >> 1;
+      return {
+        repeat: function (on) { again = on; },
+        next: function (frames) {
+          if (at >= total) {
+            if (!again || !total) return null;
+            at = Math.min(loopAt || 0, total - 1);
+          }
+          var n = Math.min(frames, total - at), c = data.slice(at * 2, (at + n) * 2);
+          at += n;
+          return c;
+        },
+        position: function () { return at / rate; },
+        seek: function (s) { at = Math.max(0, Math.min(total, Math.round(s * rate))); },
+        free: function () {}
+      };
+    }
+    // A MIDI tune (web/music/midi_web.c): its game's sequencer into the synth, from the song's start; with repeat on it plays on
+    // from the start as the game does, the notes still sounding at the end carried over
+    function midiSource(h) {
+      return {
+        repeat: function (on) { M._bm_midi_loop(h, on ? 1 : 0); },
+        next: function (frames) {
+          var out = M._malloc(frames * 8), got = M._bm_midi_render(h, frames, out);
+          var c = got > 0 ? M.HEAPF32.slice(out >> 2, (out >> 2) + got * 2) : null;
+          M._free(out);
+          return c;
+        },
+        position: function () { return M._bm_midi_position(h); },
+        seek: function (s) { M._bm_midi_seek(h, s); },
+        free: function () { M._bm_midi_free(h); }
+      };
+    }
+    // A game's music level as a gain: {bassAmplify: n} the BASS amplify the game sets, {fmod3XM: true} FMOD 3's XM pre-amp
+    function levelGain(M, level) {
+      if (!level) return 1;
+      if (level.bassAmplify !== undefined) return M._bm_level_bass_amplify(level.bassAmplify);
+      if (level.fmod3XM) return M._bm_level_fmod3_xm();
+      return 1;
+    }
+    // A long silent ending skipped (the user's notes, 2026-11-10: "Some of the short tracks have a bunch of dead air at the end,
+    // where the tracker slows to a crawl. The ending silence should be skipped somehow if long."): when a module's tune starts,
+    // a second copy of it renders its last TRIM_SCAN seconds at TRIM_RATE, unheard, to find the last moment any sample reaches
+    // TRIM_LEVEL (-60 dB); where more than TRIM_LONG seconds of silence follow it, the tune ends TRIM_KEEP seconds after it, as
+    // it plays on and in the length shown (the list's, the clock's and the seek bar's), and with repeat on it starts again
+    // there. A tune's length is known this way once it has been played; trims holds them by tune for the page's life. Returns
+    // the new end in seconds into the tune, or 0 to keep its own.
+    function trimEnd(t, bytes) {
+      var key = t.keys[0] + "#" + (t.range ? t.range.join("-") : t.segs ? t.id : t.sub);
+      if (!(key in trims)) trims[key] = scanEnd(t, bytes);
+      var end = trims[key];
+      if (end && t.seconds !== end) {
+        t.seconds = end;
+        if (how.trimmed) how.trimmed(t, end);
+      }
+      return end;
+    }
+    function scanEnd(t, bytes) {
+      var m = bytes ? loadModule(M, bytes) : 0;
+      if (!m) return 0;
+      var out = M._malloc(4096 * 8), start = t.start || 0, last = -1, length = t.seconds;
+      try {
+        var until = t.segs ? t.segs[0].until : null;
+        if (!t.range) M._bm_select(m, t.segs ? t.segs[0].sub : t.sub);
+        var from = Math.max(0, length - TRIM_SCAN);
+        M._bm_seek(m, TRIM_RATE, start + from);
+        for (var guard = 0; guard < 400; guard++) {
+          if ((t.range && M._bm_order(m) > t.range[1]) || (until !== null && M._bm_order(m) === until)) break;
+          var at = M._bm_position(m) - start;
+          if (at >= length + 1) break;
+          var got = M._bm_render(m, TRIM_RATE, 4096, out);
+          if (got <= 0) break;
+          var a = M.HEAPF32.subarray(out >> 2, (out >> 2) + got * 2);
+          for (var i = a.length - 1; i >= 0; i--) if (a[i] > TRIM_LEVEL || a[i] < -TRIM_LEVEL) { last = at + (i >> 1) / TRIM_RATE; break; }
+          if (got < 4096) break;
+        }
+      } finally { M._free(out); M._bm_free(m); }
+      return last >= 0 && length - last > TRIM_LONG ? Math.round((last + TRIM_KEEP) * 100) / 100 : 0;
+    }
+    // Where a subsong goes on once it has played through, and whether it is heard there: a second copy of the module, unheard.
+    // libopenmpt says where (bm_restart), unless it names an order outside the tune's; else the copy is played at LOOP_RATE
+    // across the subsong's end with its own loop on (where its time goes back, or past the end). Then the copy is moved to that order and on to that row, its time there taken (at),
+    // and played on from there until a sample passes TRIM_LEVEL (heard), for as long as the tune has left after it or a second,
+    // up to TRIM_SCAN seconds: Bookworm's two game overs go on at a silent pattern that jumps to itself, which the game plays
+    // once. { order, row, at: seconds, heard }, or null where it does not go on, or goes on past the tune's own time; kept by
+    // tune for the page's life (loops).
+    function loopOf(t, bytes) {
+      var key = t.keys[0] + "#" + t.sub;
+      if (key in loops) return loops[key];
+      var found = null, m = bytes ? loadModule(M, bytes) : 0;
+      if (!m) return null;
+      var out = M._malloc(LOOP_STEP * 8), vb = M._malloc(20);
+      function here() { M._bm_view(m, vb); return { order: M.HEAP32[(vb >> 2) + 4], row: M.HEAP32[(vb >> 2) + 1] }; }
+      try {
+        M._bm_select(m, t.sub);
+        var length = M._bm_duration(m), to = null, at = -1, told = false;
+        M._bm_loop(m, 1);
+        if (typeof M._bm_restart === "function" && M._bm_restart(m, vb)) { to = { order: M.HEAP32[vb >> 2], row: M.HEAP32[(vb >> 2) + 1] }; told = true; }
+        // (libopenmpt's place outside the tune's orders is checked by playing across the end: Typer Shark's sixth tune is told
+        // order 0 and goes on at its own first order)
+        var own = tuneOrders(t);
+        if (told && own && own.indexOf(to.order) < 0) { to = null; told = false; }
+        if (!to) {
+          M._bm_render(m, LOOP_RATE, 1, out);   // (libxmp-lite starts again at the rate it is asked for, from the order it is at)
+          var was = M._bm_seek(m, LOOP_RATE, Math.max(0, length - 0.5));
+          for (var k = 0; k < LOOP_RATE * 4 / LOOP_STEP && !to; k++) {
+            if (M._bm_render(m, LOOP_RATE, LOOP_STEP, out) < LOOP_STEP) break;
+            // (at the end itself the last row may still be playing, so a little past it)
+            var now = M._bm_position(m);
+            if (now >= length + 0.004 || now < was - 0.001) to = here();
+            was = now;
+          }
+        }
+        if (to) {
+          M._bm_set_order(m, to.order);
+          // (libxmp-lite moves at its next row, and tells its time once it has played there)
+          for (var r = 0; r < 1 << 14; r++) {
+            if (M._bm_render(m, LOOP_RATE, LOOP_STEP, out) < LOOP_STEP) break;
+            var h = here();
+            if (h.order === to.order && h.row >= to.row) { at = M._bm_position(m); break; }
+          }
+        }
+        // (where libopenmpt tells a place past the tune's own end, it is another tune's: Bookworm Adventures' fifth plays its one
+        // order, then the decoder goes on to the next order, the next tune's; libxmp-lite's time where it goes on may count on
+        // past the end, Seven Seas' title going back to its own first order)
+        if (at >= 0 && (!told || at < length)) {
+          var heard = false;
+          for (var left = Math.min(Math.max(length - at, 1), TRIM_SCAN) * LOOP_RATE; left > 0 && !heard; left -= LOOP_STEP) {
+            var g = M._bm_render(m, LOOP_RATE, LOOP_STEP, out), a = M.HEAPF32.subarray(out >> 2, (out >> 2) + g * 2);
+            for (var i = 0; i < a.length; i++) if (a[i] > TRIM_LEVEL || a[i] < -TRIM_LEVEL) { heard = true; break; }
+            if (g < LOOP_STEP) break;
+          }
+          found = { order: to.order, row: to.row, at: Math.max(0, at), heard: heard };
+        }
+      } finally { M._free(out); M._free(vb); M._bm_free(m); }
+      return (loops[key] = found);
+    }
+    // The source of a tune, from its files (a joined tune's pieces decoded once each, then put one after the other)
+    function sourceOf(t, files) {
+      if (t.kind === "midi") {
+        if (!files[0] || !t.bank) return Promise.reject(new Error("midi"));
+        return how.bank(t.bank).then(function (bank) {
+          var f = M._malloc(files[0].length), b = M._malloc(bank.length);
+          M.HEAPU8.set(files[0], f);
+          M.HEAPU8.set(bank, b);
+          var h = M._bm_midi_load(f, files[0].length, b, bank.length, rate);
+          M._free(f);
+          M._free(b);
+          if (!h) throw new Error("midi");
+          return midiSource(h);
+        });
+      }
+      if (t.kind === "module") {
+        var m = files[0] ? loadModule(M, files[0]) : 0;
+        if (!m) throw new Error("module");
+        // an unused pattern: alone, once, whatever repeat says
+        if (t.solo !== undefined) {
+          if (!M._bm_solo(m, t.solo)) { M._bm_free(m); throw new Error("module"); }
+          var alone = moduleSource(m, null, levelGain(M, t.level), 0);
+          alone.repeat = function () {};
+          if (t.cut) alone.stop(t.cut);
+          return Promise.resolve(alone);
+        }
+        if (t.segs) {
+          var seg = segSource(m, t.segs, levelGain(M, t.level), /\.(mo3|oxm)$/i.test(t.keys[0]) || /\|pe:/.test(t.keys[0]));
+          // (a piece from its subsong's start, cut where the game starts another tune: its silent ending trimmed too)
+          var cutEnd = t.segs.length === 1 && t.segs[0].from === null ? trimEnd(t, files[0]) : 0;
+          if (cutEnd) seg.stop(cutEnd);
+          return Promise.resolve(seg);
+        }
+        if (!t.range) M._bm_select(m, t.sub);
+        var src = moduleSource(m, t.range, levelGain(M, t.level), t.start || 0, t.range ? null : loopOf(t, files[0]),
+          function () { M._bm_select(m, t.sub); }, tuneOrders(t)), end = trimEnd(t, files[0]);
+        if (end) src.stop(end);
+        return Promise.resolve(src);
+      }
+      var decoded = {};
+      return t.keys.reduce(function (p, key, i) {
+        return p.then(function () {
+          if (decoded[key] || !files[i]) return;
+          return how.decode(files[i]).then(function (d) { decoded[key] = d; });
+        });
+      }, Promise.resolve()).then(function () {
+        var parts = t.keys.map(function (key) { return decoded[key]; });
+        if (parts.some(function (d) { return !d; })) throw new Error("ogg");
+        var all = new Float32Array(parts.reduce(function (n, d) { return n + d.length; }, 0)), at = 0, loopAt = 0;
+        parts.forEach(function (d, i) { if (i === t.loopFrom) loopAt = at >> 1; all.set(d, at); at += d.length; });
+        return pcmSource(all, loopAt);
+      });
+    }
+    return { sourceOf: sourceOf, free: function () { if (viewBuf) M._free(viewBuf); viewBuf = 0; } };
+  }
+
   // ---------- playing ----------
   // The worklet: plays the stereo chunks it is sent, in order, and says when it has used one up (1) and when it ran dry (0)
   var WORKLET = "class ByopopMusicOut extends AudioWorkletProcessor {\n" +
@@ -1323,289 +1739,8 @@ var ByopopMusic = (function () {
         analyser.connect(gain);
       } else node.connect(gain);
     }
-    // The sources a tune plays from: next(frames, marks) gives the next stereo frames (fewer at the end of a repeat, null once it
-    // ended), and with marks where the decoder was in its patterns every SLICE frames: [frame, pattern, row, rows, channels, order]
-    // A module: a subsong (libopenmpt repeats it), or a range of orders, from its first order until the order after its last
-    // gain: the game's own level for its modules (web/soundtracks.js's "level", platform/MusicLevels.h through the decoder)
-    var viewBuf = 0;
-    function moduleSource(m, range, gain, start) {
-      var again = false, stopAt = 0;
-      if (range) { M._bm_loop(m, 1); M._bm_set_order(m, range[0]); }
-      return {
-        repeat: function (on) { again = on; if (!range) M._bm_loop(m, on ? 1 : 0); },
-        // where the tune ends instead of its own end, in seconds into it (a long silent ending cut: trimEnd), 0 for its own
-        stop: function (s) { stopAt = s; },
-        next: function (frames, marks) {
-          if ((range && M._bm_order(m) > range[1]) || (stopAt && M._bm_position(m) - start >= stopAt)) {
-            if (!again) return null;
-            if (range) M._bm_set_order(m, range[0]); else M._bm_seek(m, ctx.sampleRate, start);
-          }
-          var out = M._malloc(frames * 8), got = 0;
-          if (!marks) got = M._bm_render(m, ctx.sampleRate, frames, out);
-          else {
-            if (!viewBuf) viewBuf = M._malloc(20);
-            while (got < frames) {
-              M._bm_view(m, viewBuf);
-              var w = viewBuf >> 2;
-              marks.push([got, M.HEAP32[w], M.HEAP32[w + 1], M.HEAP32[w + 2], M.HEAP32[w + 3], M.HEAP32[w + 4]]);
-              var n = Math.min(SLICE, frames - got), g = M._bm_render(m, ctx.sampleRate, n, out + got * 8);
-              got += g;
-              if (g < n) break;
-            }
-          }
-          var c = got > 0 ? M.HEAPF32.slice(out >> 2, (out >> 2) + got * 2) : null;
-          M._free(out);
-          if (c && gain !== 1) for (var i = 0; i < c.length; i++) c[i] *= gain;
-          return c;
-        },
-        // seconds into the tune
-        position: function () { return M._bm_position(m) - start; },
-        seek: function (s) { M._bm_seek(m, ctx.sampleRate, start + s); },
-        rowText: function (pattern, row) { return M.UTF8ToString(M._bm_row_text(m, pattern, row)); },
-        // its instruments' names (its samples' where it has no instruments), a line each: "1A Bass"
-        names: function () { return typeof M._bm_names === "function" ? M.UTF8ToString(M._bm_names(m)) : ""; },   // (a decoder cached from before it: none)
-        // a channel muted or brought back; false where the decoder cannot (one cached from before bm_mute). It is heard once the
-        // second the decoder has rendered ahead has played
-        mute: function (c, on) { return typeof M._bm_mute === "function" && M._bm_mute(m, c, on ? 1 : 0) === 1; },
-        // whether the player itself has a channel muted: 1, 0, or -1 not known (for tests: tools/web/musicmutecheck.js)
-        muteStatus: function (c) { return typeof M._bm_mute_status === "function" ? M._bm_mute_status(m, c) : -1; },
-        // a pattern's rows per beat and per bar as the file stores them (beat << 16 | bar), 0 where it stores none
-        meter: function (pattern) { return typeof M._bm_meter === "function" ? M._bm_meter(m, pattern) : 0; },
-        // the speed (ticks a row) and tempo playing now, or null
-        tempo: function () { var t = typeof M._bm_tempo === "function" ? M._bm_tempo(m) : 0; return t ? { speed: t >> 16, bpm: t & 0xffff } : null; },
-        // the channels that play a note anywhere in the module, by number
-        used: function () {
-          var buf = M._malloc(256), n = Math.min(256, M._bm_used(m, buf, 256)), list = [];
-          for (var c = 0; c < n; c++) if (M.HEAPU8[buf + c]) list.push(c);
-          M._free(buf);
-          return list;
-        },
-        // the lowest and highest note anywhere in it (1 is C-0), or null for none
-        range: function () {
-          var buf = M._malloc(8);
-          M._bm_range(m, buf);
-          var lo = M.HEAP32[buf >> 2], hi = M.HEAP32[(buf >> 2) + 1];
-          M._free(buf);
-          return lo ? [lo, hi] : null;
-        },
-        // the pattern an order plays and its rows; "skip" for a marker the player passes over; null past the end
-        orderPattern: function (order) {
-          var p = M._bm_order_pattern(m, order);
-          return p >= 0 ? [p, M._bm_pattern_rows(m, p)] : p === -2 ? "skip" : null;
-        },
-        free: function () { M._bm_free(m); }
-      };
-    }
-    // A module tune of segments (web/soundtracks.js's "cuts" and "chains"): each plays its subsong from order from (or its
-    // start) until it reaches order until (or its end), then the next; with repeat on the first again. The views and the rest
-    // are moduleSource's. Seeking renders unheard from the start (libopenmpt at 8000 Hz, which costs little; libxmp-lite at
-    // the context's rate, as a rate change restarts it).
-    function segSource(m, segs, gain, fast) {
-      var src = moduleSource(m, null, gain, 0), i = 0, done = 0, again = false, stopAt = 0, pass = 0;
-      function begin(k) {
-        i = k;
-        if (k === 0) pass = 0;
-        var sg = segs[k];
-        M._bm_select(m, sg.sub);
-        M._bm_loop(m, 0);
-        if (sg.from !== null) M._bm_set_order(m, sg.from);
-      }
-      // frames at rate into ptr (or a scratch buffer), the segments followed; returns those rendered
-      function render(rate, frames, ptr, marks) {
-        var got = 0, fresh = 0;
-        while (got < frames) {
-          var sg = segs[i];
-          if (sg.until !== null && M._bm_order(m) === sg.until) {
-            if (i + 1 < segs.length) { begin(i + 1); continue; }
-            if (!again || fresh++) break;
-            begin(0); continue;
-          }
-          if (marks) {
-            M._bm_view(m, viewBuf);
-            var w = viewBuf >> 2;
-            marks.push([got, M.HEAP32[w], M.HEAP32[w + 1], M.HEAP32[w + 2], M.HEAP32[w + 3], M.HEAP32[w + 4]]);
-          }
-          var n = Math.min(SLICE, frames - got), g = M._bm_render(m, rate, n, ptr + got * 8);
-          got += g;
-          if (g < n) {
-            if (g === 0 && fresh++ > 1) break;   // nothing more anywhere
-            if (i + 1 < segs.length) begin(i + 1);
-            else if (again) begin(0);
-            else break;
-          } else fresh = 0;
-        }
-        return got;
-      }
-      begin(0);
-      src.repeat = function (on) { again = on; };
-      // (a long silent ending cut, as moduleSource's: the pass ends stopAt seconds in)
-      src.stop = function (s) { stopAt = s; };
-      src.next = function (frames, marks) {
-        if (stopAt && pass >= stopAt * ctx.sampleRate) {
-          if (!again) return null;
-          begin(0);
-        }
-        if (stopAt) frames = Math.max(1, Math.min(frames, Math.ceil(stopAt * ctx.sampleRate) - pass));
-        if (!viewBuf) viewBuf = M._malloc(20);
-        var out = M._malloc(frames * 8), got = render(ctx.sampleRate, frames, out, marks);
-        var c = got > 0 ? M.HEAPF32.slice(out >> 2, (out >> 2) + got * 2) : null;
-        M._free(out);
-        if (c && gain !== 1) for (var j = 0; j < c.length; j++) c[j] *= gain;
-        if (c) { done += got; pass += got; }
-        return c;
-      };
-      src.position = function () { return done / ctx.sampleRate; };
-      src.seek = function (sec) {
-        var rate = fast ? 8000 : ctx.sampleRate, buf = M._malloc(4096 * 8), left = Math.round(sec * rate), keep = again;
-        again = false;
-        begin(0);
-        while (left > 0) {
-          var g = render(rate, Math.min(4096, left), buf, null);
-          if (g <= 0) break;
-          left -= g;
-        }
-        M._free(buf);
-        again = keep;
-        done = pass = Math.round(sec * ctx.sampleRate);
-      };
-      return src;
-    }
-    // Decoded sound: interleaved stereo at the context's rate; with repeat on it starts again at frame loopAt (an intro played
-    // once, then its loop: web/soundtracks.js's "loopFrom")
-    function pcmSource(data, loopAt) {
-      var at = 0, again = false, total = data.length >> 1;
-      return {
-        repeat: function (on) { again = on; },
-        next: function (frames) {
-          if (at >= total) {
-            if (!again || !total) return null;
-            at = Math.min(loopAt || 0, total - 1);
-          }
-          var n = Math.min(frames, total - at), c = data.slice(at * 2, (at + n) * 2);
-          at += n;
-          return c;
-        },
-        position: function () { return at / ctx.sampleRate; },
-        seek: function (s) { at = Math.max(0, Math.min(total, Math.round(s * ctx.sampleRate))); },
-        free: function () {}
-      };
-    }
-    // A MIDI tune (web/music/midi_web.c): its game's sequencer into the synth, from the song's start; with repeat on it plays on
-    // from the start as the game does, the notes still sounding at the end carried over
-    function midiSource(h) {
-      return {
-        repeat: function (on) { M._bm_midi_loop(h, on ? 1 : 0); },
-        next: function (frames) {
-          var out = M._malloc(frames * 8), got = M._bm_midi_render(h, frames, out);
-          var c = got > 0 ? M.HEAPF32.slice(out >> 2, (out >> 2) + got * 2) : null;
-          M._free(out);
-          return c;
-        },
-        position: function () { return M._bm_midi_position(h); },
-        seek: function (s) { M._bm_midi_seek(h, s); },
-        free: function () { M._bm_midi_free(h); }
-      };
-    }
-    // A game's music level as a gain: {bassAmplify: n} the BASS amplify the game sets, {fmod3XM: true} FMOD 3's XM pre-amp
-    function levelGain(M, level) {
-      if (!level) return 1;
-      if (level.bassAmplify !== undefined) return M._bm_level_bass_amplify(level.bassAmplify);
-      if (level.fmod3XM) return M._bm_level_fmod3_xm();
-      return 1;
-    }
-    // A long silent ending skipped (the user's notes, 2026-11-10: "Some of the short tracks have a bunch of dead air at the end,
-    // where the tracker slows to a crawl. The ending silence should be skipped somehow if long."): when a module's tune starts,
-    // a second copy of it renders its last TRIM_SCAN seconds at TRIM_RATE, unheard, to find the last moment any sample reaches
-    // TRIM_LEVEL (-60 dB); where more than TRIM_LONG seconds of silence follow it, the tune ends TRIM_KEEP seconds after it, as
-    // it plays on and in the length shown (the list's, the clock's and the seek bar's), and with repeat on it starts again
-    // there. A tune's length is known this way once it has been played; trims holds them by tune for the page's life. Returns
-    // the new end in seconds into the tune, or 0 to keep its own.
-    var TRIM_SCAN = 60, TRIM_RATE = 11025, trims = {};
-    function trimEnd(t, bytes) {
-      var key = t.keys[0] + "#" + (t.range ? t.range.join("-") : t.segs ? t.id : t.sub);
-      if (!(key in trims)) trims[key] = scanEnd(t, bytes);
-      var end = trims[key];
-      if (end && t.seconds !== end) {
-        t.seconds = end;
-        var shown = list && list.querySelector('[data-tune="' + tunes.indexOf(t) + '"] .mu-time');
-        if (shown) shown.textContent = clock(end);
-      }
-      return end;
-    }
-    function scanEnd(t, bytes) {
-      var m = bytes ? loadModule(M, bytes) : 0;
-      if (!m) return 0;
-      var out = M._malloc(4096 * 8), start = t.start || 0, last = -1, length = t.seconds;
-      try {
-        var until = t.segs ? t.segs[0].until : null;
-        if (!t.range) M._bm_select(m, t.segs ? t.segs[0].sub : t.sub);
-        var from = Math.max(0, length - TRIM_SCAN);
-        M._bm_seek(m, TRIM_RATE, start + from);
-        for (var guard = 0; guard < 400; guard++) {
-          if ((t.range && M._bm_order(m) > t.range[1]) || (until !== null && M._bm_order(m) === until)) break;
-          var at = M._bm_position(m) - start;
-          if (at >= length + 1) break;
-          var got = M._bm_render(m, TRIM_RATE, 4096, out);
-          if (got <= 0) break;
-          var a = M.HEAPF32.subarray(out >> 2, (out >> 2) + got * 2);
-          for (var i = a.length - 1; i >= 0; i--) if (a[i] > TRIM_LEVEL || a[i] < -TRIM_LEVEL) { last = at + (i >> 1) / TRIM_RATE; break; }
-          if (got < 4096) break;
-        }
-      } finally { M._free(out); M._bm_free(m); }
-      return last >= 0 && length - last > TRIM_LONG ? Math.round((last + TRIM_KEEP) * 100) / 100 : 0;
-    }
-    // The source of a tune, from its files (a joined tune's pieces decoded once each, then put one after the other)
-    function sourceOf(t, files) {
-      if (t.kind === "midi") {
-        if (!files[0] || !t.bank) return Promise.reject(new Error("midi"));
-        return bankOf(t.bank).then(function (bank) {
-          var f = M._malloc(files[0].length), b = M._malloc(bank.length);
-          M.HEAPU8.set(files[0], f);
-          M.HEAPU8.set(bank, b);
-          var h = M._bm_midi_load(f, files[0].length, b, bank.length, ctx.sampleRate);
-          M._free(f);
-          M._free(b);
-          if (!h) throw new Error("midi");
-          return midiSource(h);
-        });
-      }
-      if (t.kind === "module") {
-        var m = files[0] ? loadModule(M, files[0]) : 0;
-        if (!m) throw new Error("module");
-        // an unused pattern: alone, once, whatever repeat says
-        if (t.solo !== undefined) {
-          if (!M._bm_solo(m, t.solo)) { M._bm_free(m); throw new Error("module"); }
-          var alone = moduleSource(m, null, levelGain(M, t.level), 0);
-          alone.repeat = function () {};
-          if (t.cut) alone.stop(t.cut);
-          return Promise.resolve(alone);
-        }
-        if (t.segs) {
-          var seg = segSource(m, t.segs, levelGain(M, t.level), /\.(mo3|oxm)$/i.test(t.keys[0]) || /\|pe:/.test(t.keys[0]));
-          // (a piece from its subsong's start, cut where the game starts another tune: its silent ending trimmed too)
-          var cutEnd = t.segs.length === 1 && t.segs[0].from === null ? trimEnd(t, files[0]) : 0;
-          if (cutEnd) seg.stop(cutEnd);
-          return Promise.resolve(seg);
-        }
-        if (!t.range) M._bm_select(m, t.sub);
-        var src = moduleSource(m, t.range, levelGain(M, t.level), t.start || 0), end = trimEnd(t, files[0]);
-        if (end) src.stop(end);
-        return Promise.resolve(src);
-      }
-      var decoded = {};
-      return t.keys.reduce(function (p, key, i) {
-        return p.then(function () {
-          if (decoded[key] || !files[i]) return;
-          return decodeOgg(M, ctx, files[i]).then(function (d) { decoded[key] = d; });
-        });
-      }, Promise.resolve()).then(function () {
-        var parts = t.keys.map(function (key) { return decoded[key]; });
-        if (parts.some(function (d) { return !d; })) throw new Error("ogg");
-        var all = new Float32Array(parts.reduce(function (n, d) { return n + d.length; }, 0)), at = 0, loopAt = 0;
-        parts.forEach(function (d, i) { if (i === t.loopFrom) loopAt = at >> 1; all.set(d, at); at += d.length; });
-        return pcmSource(all, loopAt);
-      });
-    }
+    // a tune's sound (sounds, above), made for the tune played at the context's rate; let go with it
+    var sound = null;
     // the tracker view wants the decoder's rows: shown, on the screen, and the tune a module's
     function marking() { return (trackerOn || pianoOn || scoreOn) && isModule() && onScreen(); }
     // Keeps AHEAD chunks queued in the worklet while playing
@@ -1646,8 +1781,9 @@ var ByopopMusic = (function () {
     }
     function unload() {
       if (source) { source.free(); source = null; }
+      if (sound) { sound.free(); sound = null; }
       flush();
-      rowCache = {}; usedChannels = null; ownNames = null; firstChannel = 0; rollReset();
+      rowCache = {}; heldCache = {}; usedChannels = null; ownNames = null; firstChannel = 0; rollReset();
     }
     function play(i) {
       var t = tunes[i];
@@ -1675,7 +1811,12 @@ var ByopopMusic = (function () {
         });
       }).then(function (files) {
         if (play.ticket !== ticket) return null;  // another tune was chosen meanwhile
-        return sourceOf(t, files);
+        sound = sounds(M, ctx.sampleRate, { decode: function (bytes) { return decodeOgg(M, ctx, bytes); }, bank: bankOf,
+          trimmed: function (k, end) {
+            var shown = list && list.querySelector('[data-tune="' + tunes.indexOf(k) + '"] .mu-time');
+            if (shown) shown.textContent = clock(end);
+          } });
+        return sound.sourceOf(t, files);
       }).then(function (s) {
         if (!s) return;
         if (play.ticket !== ticket) { s.free(); return; }
@@ -1704,8 +1845,6 @@ var ByopopMusic = (function () {
       play.ticket = {};
       unfollow();
       unload();
-      if (viewBuf && M) try { M._free(viewBuf); } catch (e) {}
-      viewBuf = 0;
       if (node) { try { node.port.onmessage = null; node.disconnect(); } catch (e) {} node = null; }
       if (analyser) { try { analyser.disconnect(); } catch (e) {} analyser = null; }
       if (gain) { try { gain.disconnect(); } catch (e) {} gain = null; }
@@ -1794,7 +1933,7 @@ var ByopopMusic = (function () {
       }
     }
     // The tracker view: the rows around the one heard, the cells from the decoder (each row read once a tune)
-    var rowCache = {}, shownRow = "", shownHead = "";
+    var rowCache = {}, heldCache = {}, shownRow = "", shownHead = "";
     // the channels shown: only those with a note somewhere (read once a tune), as many whole columns as the view's width holds,
     // from firstChannel (the scroll bar's); each cell whole, or not shown
     // the instruments' names by their number as the cells write it ({"1A": "Bass"}), from the decoder's or the game's list
@@ -2128,6 +2267,26 @@ var ByopopMusic = (function () {
         mute: function (c, on) { return !!(source.mute && source.mute(c, on)); },
         meter: function (p) { return source.meter ? source.meter(p) : 0; }, tempo: function () { return source.tempo ? source.tempo() : null; }, id: "own" };
     }
+    // The rows a pattern's notes are held over, by channel: [first, last] from the row after a note to the row before the
+    // channel's next note, key off, cut or fade, or to the pattern's last row (the user, 2026-11-22, of the tracker's held-note
+    // line: "Yes, add the line"). A row with an instrument, a volume or an effect but no note goes on holding it; a note held
+    // from an earlier pattern is not drawn (each pattern is read alone, as it is shown). Kept by tune and pattern.
+    var ROW_PX = 12;   // a tracker row's height (.mu-tracker-rows' line-height)
+    function heldRuns(feed, pattern, rows) {
+      var key = tuneKey(feed) + ":" + pattern;
+      if (heldCache[key]) return heldCache[key];
+      var runs = {}, from = {};
+      for (var r = 0; r < rows; r++) {
+        feed.rowAt(pattern, r).split("|").forEach(function (cell, c) {
+          var n = noteOf(cell);
+          if (!n) return;
+          if (from[c] !== undefined && from[c] <= r - 1) (runs[c] = runs[c] || []).push([from[c], r - 1]);
+          from[c] = n.pitch === "off" ? undefined : r + 1;
+        });
+      }
+      Object.keys(from).forEach(function (c) { if (from[c] !== undefined && from[c] <= rows - 1) (runs[c] = runs[c] || []).push([from[c], rows - 1]); });
+      return (heldCache[key] = runs);
+    }
     function drawTracker() {
       if (tracker.hidden) { syncMutes(); return; }
       var feed = trackerFeed();
@@ -2214,6 +2373,20 @@ var ByopopMusic = (function () {
         } else line.textContent = " ";
         trackerRows.appendChild(line);
       }
+      // a note held: a faint line down its column, in the middle of the note's place, from the row after it to the row before its
+      // channel's next note, key off, cut or fade, or to the pattern's end (heldRuns)
+      var runs = heldRuns(feed, mark[1], mark[3]);
+      showing.forEach(function (c, i) {
+        (runs[c] || []).forEach(function (run) {
+          var a = Math.max(run[0], top), b = Math.min(run[1], top + rows - 1, mark[3] - 1);
+          if (a > b) return;
+          var bar = make("i", "mu-held");
+          bar.style.left = Math.round((lead + i * (width + 1) + 1.5) * cw) + "px";
+          bar.style.top = (a - top) * ROW_PX + "px";
+          bar.style.height = (b - a + 1) * ROW_PX + "px";
+          trackerRows.appendChild(bar);
+        });
+      });
       trackerScroll.hidden = shown >= used.length;
       placeThumb();
     }
@@ -3515,6 +3688,8 @@ var ByopopMusic = (function () {
   // same pictures, and falls back on the same stb_vorbis decoder)
   return { init: init, patternRe: patternRe, glyph: glyph, decoder: decoder, stbOgg: stbOgg, msAdpcm: msAdpcm, wavMp3: wavMp3, filePlace: filePlace, numbered: numbered,
     files: { open: openExisting, list: gameFiles, read: readFile },
-    // for tools/musictest.js: a game's tunes as the player lists them, and the channels its tracker view shows
-    test: { tunesOf: tunesOf, tuneUsed: tuneUsed, channelsShown: channelsShown } };
+    // for tools/musictest.js and tools/musicrepeattest.js: a game's tunes as the player lists them, the channels its tracker view
+    // shows, a tune's own orders, its sound's sources, and a recorded tune's length
+    test: { tunesOf: tunesOf, tuneUsed: tuneUsed, channelsShown: channelsShown, tuneOrders: tuneOrders, sounds: sounds,
+      oggSeconds: oggSeconds, wavSeconds: wavSeconds } };
 })();
