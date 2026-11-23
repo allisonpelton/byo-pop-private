@@ -77,7 +77,7 @@ public:
 
 	const char* GetModeName() const override { return "Poker"; }           // slot 89 (0x6c7870): the leaderboard's and the music's name; its save is "poker.sav"
 	void NewGame() override;                                               // slot 135 (0x6dfa40)
-	void UpdateGame() override;                                            // slot 22 (0x6dedd0, which runs 0x6dd8a0, the board's step, first)
+	void UpdateGame() override;                                            // slot 22 (0x6dedd0): the exe runs 0x6dd8a0 first, which the port's QuestBoard::Update (inherited) is; the rest runs here, once per step as the speed gives them
 	bool HintAllowed() const override;                                     // slot 98 (0x6c6470)
 	int FindMatches() override;                                            // slot 201 (0x6d90a0): nothing is matched while a hand is being paid
 	int GetGridY() const override { return 0x5a; }                         // slot 172 (0x6c4d00): +0x2c50 and 0x5a

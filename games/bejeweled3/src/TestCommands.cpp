@@ -378,6 +378,10 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 			aLine += ",\"update\":" + std::to_string(mBoard->mUpdateCnt) + ",\"moving\":" + std::to_string(aMoving) +
 				",\"landticks\":" + std::to_string(mBoard->mLandTicks) + ",\"ysum\":" + std::to_string(aYSum) +
 				",\"speedsum\":" + std::to_string(aSpeedSum);
+			if (const QuestBoard* aQuest = dynamic_cast<const QuestBoard*>(mBoard)) {
+				// the quest boards' update counters (+0x3198 and +0x31a0, QuestBoard::Update)
+				aLine += ",\"updatesplayed\":" + std::to_string(aQuest->mUpdatesPlayed) + ",\"updatesrun\":" + std::to_string(aQuest->mUpdatesRun);
+			}
 			if (const ButterflyBoard* aButterflies = dynamic_cast<const ButterflyBoard*>(mBoard)) {
 				// Butterflies: the moves each butterfly waits before it climbs (a digit, 9 for more; . where there is none), a caught one
 				// as its digit in capitals' place (a letter from A: its count), the spider's column in hundredths, where it goes, the

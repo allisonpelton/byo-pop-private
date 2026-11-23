@@ -39,7 +39,7 @@ ButterflyBoard::ButterflyBoard()
 // (0x6cda70), which is Board's with the goal's own: not translated
 void ButterflyBoard::ResetGame()
 {
-	Board::ResetGame();
+	QuestBoard::ResetGame();
 }
 
 // slot 135 (0x21c), 0x6e3660 (bejeweled3): the settings of the quest are read (atoi for the counts, wtof stored as a float for the rest),

@@ -1076,6 +1076,22 @@ widget, slot 156 does nothing), no fill once the end has begun (slot 203, 0x6dd4
 the move records' clean-up (0x759840, which Board::UpdateGame runs for every mode, as the exe does at 0x76818e) and the level
 factor 1 (slot 122, 0x73b600; Butterflies' 0x6c5340 gives 5). The secret quests are at secret.cfg indexes 0 (Poker) and 1 (Butterflies).
 
+QuestBoard's update (slot 22, 0x6dd8a0; the port's QuestBoard::Update): Board's update (0x759170) first, then, unless a demonstration runs (+0x1414),
+the board is paused (+0x12c4) or the app has dialog 0x17 open, in this order: a first block for the secret flag clear and the hold counter (+0xd1c) at 300
+(the Quest end screen, 0x6dd760); a curve at +0x31b8 copied to the menu button's +0x148 while it is changing; the counter +0x31a0 goes up; the quest's
+clock at +0xd20 (set from +0x318c, 200, by 0x6ca350, the level's end, slot 156 through 0x6ca7e0 only with the secret flag clear) counts down by 1 per
+update once the board is settled, with the level bar caught up at 198 (0x76ab60, dialog 0x1a1), the slot 162 call at 100 and the end screen (slot 233,
+0x6ded60) at 0; the goal's slot 0xd8; the menu button's +0x65 and +0x66 copied to the widget at +0x31b0; and the counter +0x3198 goes up. In a secret
+mode only the two counters and the goal's slot 0xd8 do anything: the flag is set, so the first block is skipped, and nothing starts the curve or the
+clock (the clock is only set by 0x6ca350). The port names the counters mUpdatesPlayed (+0x3198: updates this game has run, put to 0 by 0x6cda70 and 0x6ddc70;
+Ice Storm's 0x6e63c0, 0x6e5850 and 0x6e0450 and 0x6d6d60, 0x6db550 read it as the age of the ice's columns and chains, the port uses Board's mGameTicks for
+those, the same at the normal speed) and mUpdatesRun (+0x31a0, only written; no function of the export reads it). Both are state keys (updatesplayed, updatesrun).
+Butterflies is the one secret mode with a goal object (secret.cfg's Goal "Catch Butterflies": ButterflyGoal, vftable 0x86a90c); its slots 0x2c (0x401df0)
+and 0x44 (0x6a9b90), which QuestBoard's slots 234 (0x6e5660) and 211 (0x6c56a0) forward to, are plain returns, and its slot 0xd8 (0x6a9aa0) adds 1 to
+a counter (+0x108) when the board's slot 103 (0x73c260) is false, which nothing in the export reads; the port keeps no goal object. Poker and Ice Storm have none (their
+Challenge has no Goal). Slot 22 of ButterflyBoard (0x6e3600) and PokerBoard (0x6dedd0) call 0x6dd8a0 first; the port's two inherit QuestBoard::Update, and Ice Storm's
+Update (0x6e63c0) now calls it in place of Board's. The Total Time of the end dialogs (Butterflies, Poker, Ice Storm) is counter 0 (+0xc84), not one of these two.
+
 How a mode starts: the play menu's balls 4 (POKER) and 5 (BUTTERFLIES) call Bej3App::StartSecretMode (0x774060): the quest's setting Challenge,
 compared without regard to case, picks the board (BUTTERFLIES or BUTTERFLY, POKER; the exe's other challenges are not made), the settings are
 copied in, the flag is set and the common start (StartBoard) runs. Unlock: the profile's tutorial flags 0 to 3 (+0x180) are the balls 4 to 7
@@ -1262,7 +1278,9 @@ first vertical run (0x6e2250).
   +0xe8 is set, which no port mode sets).
 - The stage's time (0x6e5790) is run from the exe's Update; the port runs it in the step, the same at the normal speed.
 - The "Total Time" of the end dialog reads counter 0 (seconds), as in the other modes' dialogs; it shows 0:00 in the suite's game because the port
-  does not step that counter in a game of this length (0x73d170 every 100 game ticks is left out of Board::UpdateGame).
+  does not step that counter in a game of this length (0x73d170 every 100 game ticks is left out of Board::UpdateGame). It is not one of the update
+  counters of QuestBoard's update (0x6dd8a0: +0x3198 and +0x31a0, see "Butterflies and Poker"), which the port now keeps but which are not read by any end dialog.
+  The Butterflies and Poker dialogs read counter 0 the same way and show 0:00 too.
 - Board's UpdateGame calls slot 161 when no move is left; Ice Storm's slot 161 begins the death instead, and the port guards the start (the exe
   asks whether the death curve is above 0).
 

@@ -89,7 +89,7 @@ IceStormBoard::IceStormBoard()
 // grace is 0x96, the lists and the sums are empty and the multiplier's pause is off. port: the PIEffects and the popups are not made
 void IceStormBoard::ResetGame()
 {
-	Board::ResetGame();
+	QuestBoard::ResetGame();
 	for (int aColumn = 0; aColumn < COLUMN_COUNT; aColumn++) {
 		Column& aState = mColumns[aColumn];
 		aState.mFreeze = 0.0;
@@ -661,11 +661,11 @@ void IceStormBoard::RaiseMultiplier()
 	}
 }
 
-// slot 22 (0x58), 0x6e63c0 (bejeweled3): Board's update, then the death: once the game is lost its curve runs and at its end the game ends
+// slot 22 (0x58), 0x6e63c0 (bejeweled3): QuestBoard's update (0x6dd8a0, which runs Board's), then the death: once the game is lost its curve runs and at its end the game ends
 // (QuestBoard's 0x6d8e30, Board's NoMoreMoves)
 void IceStormBoard::Update()
 {
-	Board::Update();
+	QuestBoard::Update();
 	if (mDeathStarted && mGameOverTicks == 0) {
 		mDeathCurve.IncInVal();
 		if (mDeathCurve.GetOutVal() >= 1.0)
