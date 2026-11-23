@@ -22,6 +22,19 @@
      banner was (its "Windows" in the face grey, its "95" in white: .d95-band) */
   --sk-title: #000080; --sk-title-fg: #ffffff; --sk-desk-fg: #ffffff;
   --sk-band: var(--sk-lo);
+  /* the skin's sizes (docs/SKINS.md, "What moves behind the skin layer"), 95's here, which a later skin sets again under
+     :root[data-look]: a window's title bar; a caption button (minimize, maximize, close, help); a push button in a dialog,
+     its least width and its height; the task bar; and a menu's entries: a menu's or the desktop's own, the task bar's, the
+     Pop menu's own (its large icons) and those of its submenus and its small form */
+  --sk-title-h: 18px;
+  --sk-cap-w: 16px; --sk-cap-h: 14px;
+  --sk-btn-w: 75px; --sk-btn-h: 23px;
+  --sk-task-h: 30px;
+  --sk-item-h: 26px; --sk-task-item-h: 24px; --sk-pop-item-h: 36px; --sk-sub-item-h: 22px;
+  /* the Pop menu's band as data: its background (--sk-band, above: a colour, or a gradient for a later skin), its width, and
+     its lettering's two colours, the name up to its last hyphen and the rest (web/skins.js), as Windows 95's banner had
+     "Windows" in the face grey and "95" in white; a skin that letters its banner in one colour sets both alike */
+  --sk-band-w: 21px; --sk-band-fg1: var(--panel); --sk-band-fg: var(--sk-hi);
 }
 /* light only, whatever the browser's own scheme */
 :root[data-skin="d95"] { color-scheme: light; }
@@ -139,7 +152,7 @@ html.d95-desk :is(.d95-pop, .d95-task[aria-pressed=true] > .d95-task-text, .d95-
    the window's face, navy while open: the menu bar's own rules); a destructive one is marked by its confirmation, not by a
    colour */
 :root[data-skin="d95"] :is(#players, #saves, #music) button:not(.mu-tune):not(.d95-menubar-item):not(#\#) { background: var(--panel); color: #000000; border: 0; border-radius: 0; }
-:root[data-skin="d95"] :is(#players, #saves) button:not(.d95-mn):not(.d95-mx):not(.d95-x):not(#\#) { padding: 3px 10px; min-width: 75px; }
+:root[data-skin="d95"] :is(#players, #saves) button:not(.d95-mn):not(.d95-mx):not(.d95-x):not(#\#) { padding: 3px 10px; min-width: var(--sk-btn-w); }
 :root[data-skin="d95"] .adding button.bin-yes:not(#\#) { color: #000000; }
 :root[data-skin="d95"] :is(#players, #saves, #music) button:not(#\#):disabled { opacity: 1; color: var(--sk-lo); text-shadow: 1px 1px 0 var(--sk-hi); }
 :root[data-skin="d95"] :is(#players, #saves, #music) :is(.d95-mn, .d95-mx, .d95-x):not(#\#) { padding: 0; }
@@ -323,8 +336,8 @@ html.d95-desk .d95-win { position: absolute; margin: 0; z-index: 10; box-sizing:
 html.d95-desk .d95-win:not(#\#) { padding: 2px; border: 2px solid var(--panel); border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='5' shape-rendering='crispEdges'%3E%3Crect width='5' height='5' fill='%23000'/%3E%3Crect width='4' height='4' fill='%23dfdfdf'/%3E%3Crect x='1' y='1' width='3' height='3' fill='%23808080'/%3E%3Crect x='1' y='1' width='2' height='2' fill='%23fff'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23c0c0c0'/%3E%3C/svg%3E") 2 / 2px;
   border-radius: 0; box-shadow: none; outline-offset: -4px; }
 html.d95-desk .d95-win:not(#\#) > .d95-handle, html.d95-desk .d95-win:not(#\#) > h2:first-child { margin: 0 0 2px; flex: none; }
-html.d95-desk .d95-win:not(#\#) .d95-handle { min-height: 18px; box-sizing: border-box; border-radius: 0; border: 0; box-shadow: none; }
-html.d95-desk .d95-win:not(#\#) > .d95-tb { height: 18px; padding: 0 2px 0 4px; line-height: 16px; }
+html.d95-desk .d95-win:not(#\#) .d95-handle { min-height: var(--sk-title-h); box-sizing: border-box; border-radius: 0; border: 0; box-shadow: none; }
+html.d95-desk .d95-win:not(#\#) > .d95-tb { height: var(--sk-title-h); padding: 0 2px 0 4px; line-height: 16px; }
 /* the client area of a window that scrolls its contents: a thin sunken edge marks where it begins, the contents scrolling
    inside it */
 /* a window's drawn scroll bar (web/skins.js, scrollbar): the client area and its bar side by side inside the thin sunken
@@ -431,12 +444,12 @@ html.d95-desk .d95-tb > h2.d95-tb-text { flex: 1; min-width: 0; overflow: hidden
 html.d95-desk .d95-handle { cursor: default; touch-action: none; -webkit-user-select: none; user-select: none; }
 html.d95-dragging, html.d95-dragging * { -webkit-user-select: none !important; user-select: none !important; }
 /* the minimize button: the underscore, at the bottom of a small raised button */
-html.d95-desk .d95-mn { width: 16px; height: 14px; padding: 0; flex: none; position: relative; margin-right: -4px; }
+html.d95-desk .d95-mn { width: var(--sk-cap-w); height: var(--sk-cap-h); padding: 0; flex: none; position: relative; margin-right: -4px; }
 html.d95-desk .d95-mn::after { content: ""; position: absolute; left: 4px; top: 8px; width: 6px; height: 2px; background: var(--sk-dk); }
 html.d95-desk .d95-mn:active::after { transform: translate(1px, 1px); }
 /* What's This? (web/skins.js, o.whatsThis): the title bar's "?" in a Settings section's window, beside its other buttons; while
    it is pressed the pointer is Windows 95's arrow with a question mark, and the next click shows that control's tip */
-html.d95-desk .d95-hlp { width: 16px; height: 14px; padding: 0; flex: none; position: relative; margin-right: -4px; color: #000000; }
+html.d95-desk .d95-hlp { width: var(--sk-cap-w); height: var(--sk-cap-h); padding: 0; flex: none; position: relative; margin-right: -4px; color: #000000; }
 html.d95-desk .d95-hlp::after { content: "?"; position: absolute; inset: 0; font: bold 11px/14px Arial, sans-serif; text-align: center; }
 html.d95-desk .d95-hlp:active::after, html.d95-desk .d95-hlp[aria-pressed=true]::after { transform: translate(1px, 1px); }
 html.d95-desk .d95-hlp + .d95-mn { margin-left: 2px; }
@@ -445,7 +458,7 @@ html.d95-whats, html.d95-whats * { cursor: url("data:image/svg+xml,%3Csvg xmlns=
    focused control shows its tip */
 :root[data-skin="d95"] .bps-help:not(#\#) { display: none; }
 /* the close button: an X drawn with two strokes */
-html.d95-desk .d95-x { width: 16px; height: 14px; padding: 0; flex: none; position: relative; color: var(--fg); }
+html.d95-desk .d95-x { width: var(--sk-cap-w); height: var(--sk-cap-h); padding: 0; flex: none; position: relative; color: var(--fg); }
 html.d95-desk .d95-x::before, html.d95-desk .d95-x::after { content: ""; position: absolute; left: 3px; right: 4px; top: 5px; height: 2px;
   background: currentColor; transform: rotate(45deg); }
 html.d95-desk .d95-x::after { transform: rotate(-45deg); }
@@ -550,7 +563,7 @@ html.d95-desk .d95-about .byopop-footer p { margin: 0 0 8px; }
 /* The task bar along the desktop's bottom edge (web/skins.js, makeTaskbar): the Pop button, a button for each open window,
    the tray with the clock */
 html.d95-desk .d95-taskbar { display: flex; align-items: center; gap: 4px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 2147483000;
-  height: 30px; box-sizing: border-box; padding: 3px 2px; background: var(--panel); color: var(--fg);
+  height: var(--sk-task-h); box-sizing: border-box; padding: 3px 2px; background: var(--panel); color: var(--fg);
   box-shadow: inset 0 1px var(--sk-mid), inset 0 2px var(--sk-hi); font-size: 13px; }
 html.d95-desk .d95-taskbar[hidden] { display: none; }
 html.d95-desk .d95-taskbar button { height: 24px; padding: 0 6px; min-height: 0; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
@@ -575,16 +588,16 @@ html.d95-desk .d95-clock { white-space: nowrap; font-variant-numeric: tabular-nu
 html.d95-desk .d95-menu { position: absolute; left: 0; bottom: 27px; z-index: 1; display: flex; min-width: 200px; padding: 3px;
   background: var(--panel); box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid); color: var(--fg); }
 html.d95-desk .d95-menu[hidden] { display: none; }
-html.d95-desk .d95-band { flex: none; width: 21px; background: var(--sk-band); color: var(--sk-hi);
+html.d95-desk .d95-band { flex: none; width: var(--sk-band-w); background: var(--sk-band); color: var(--sk-band-fg);
   display: flex; align-items: flex-end; justify-content: center; padding: 6px 0; }
 html.d95-desk .d95-band > span { writing-mode: vertical-rl; transform: rotate(180deg); font-weight: bold; font-size: 17px; letter-spacing: .04em; }
 /* the name's first part in the face grey and the rest in white, as Windows 95's banner had "Windows" and "95" */
-html.d95-desk .d95-band-1 { color: var(--panel); }
+html.d95-desk .d95-band-1 { color: var(--sk-band-fg1); }
 html.d95-desk .d95-items { display: flex; flex-direction: column; min-width: 170px; padding: 1px 0; }
 html.d95-desk .d95-sub { flex-direction: column; min-width: 190px; bottom: auto; max-height: calc(calc(100vh / var(--d95-z, 1)) - 40px); overflow: auto; }
-html.d95-desk .d95-item { display: flex; align-items: center; min-height: 26px; padding: 2px 22px 2px 10px; box-sizing: border-box; border: 0;
+html.d95-desk .d95-item { display: flex; align-items: center; min-height: var(--sk-item-h); padding: 2px 22px 2px 10px; box-sizing: border-box; border: 0;
   background: transparent; box-shadow: none; color: var(--fg); text-decoration: none; text-align: left; font: inherit; white-space: nowrap; position: relative; }
-html.d95-desk .d95-taskbar .d95-item { height: auto; min-height: 24px; padding: 2px 22px 2px 10px; gap: 0; }
+html.d95-desk .d95-taskbar .d95-item { height: auto; min-height: var(--sk-task-item-h); padding: 2px 22px 2px 10px; gap: 0; }
 /* a menu's item with the focus is its highlight alone, as Windows 95's menus drew it, with no dotted rectangle */
 html.d95-desk .d95-item:hover, html.d95-desk .d95-item:focus { background: var(--accent); color: var(--accent-fg); }
 html.d95-desk .d95-item:not(#\#):focus { outline: 0; }
@@ -623,11 +636,11 @@ html.d95-desk .d95-pic-size > i::after { left: auto; right: 3px; top: auto; bott
 /* The Pop menu's entries, as 1995's Start menu: a large picture on the first level, a small one in the lists beside it, each in
    a column of its own so that the names line up; a choice of several (the game's sizes) keeps its dot instead */
 html.d95-desk .d95-item-pic { flex: none; display: flex; align-items: center; justify-content: center; }
-html.d95-desk .d95-items > li > .d95-item { min-height: 36px; padding: 2px 22px 2px 4px; gap: 6px; }
+html.d95-desk .d95-items > li > .d95-item { min-height: var(--sk-pop-item-h); padding: 2px 22px 2px 4px; gap: 6px; }
 html.d95-desk .d95-items > li > .d95-item > .d95-item-pic { width: 34px; height: 32px; }
-html.d95-desk .d95-sub > li > .d95-item { min-height: 22px; padding: 1px 22px 1px 4px; gap: 5px; }
+html.d95-desk .d95-sub > li > .d95-item { min-height: var(--sk-sub-item-h); padding: 1px 22px 1px 4px; gap: 5px; }
 html.d95-desk .d95-sub > li > .d95-item > .d95-item-pic { width: 18px; height: 16px; }
-html.d95-desk .d95-menu-small > .d95-items > li > .d95-item { min-height: 22px; padding: 1px 22px 1px 4px; gap: 5px; }
+html.d95-desk .d95-menu-small > .d95-items > li > .d95-item { min-height: var(--sk-sub-item-h); padding: 1px 22px 1px 4px; gap: 5px; }
 html.d95-desk .d95-menu-small > .d95-items > li > .d95-item > .d95-item-pic { width: 18px; height: 16px; }
 html.d95-desk .d95-menu-small > .d95-items > li > .d95-item > .d95-item-pic > .d95-pic { width: 16px; height: 13px; margin: 1px 0 2px; }
 html.d95-desk .d95-menu-small > .d95-items > li > .d95-item > .d95-item-pic > .d95-pic > i { transform: scale(.5); transform-origin: 0 0; }
@@ -767,7 +780,7 @@ html.d95-desk .d95-statusbar > * { flex: 1 1 auto; min-width: 0; padding: 1px 4p
 /* the speed (while not normal) and the window's scale: panes as wide as their values (web/controls.js, speedCell) */
 html.d95-desk .d95-statusbar > :is(.d95-speed, .d95-scale) { flex: none; }
 /* the maximize button: a window drawn in the small button */
-html.d95-desk .d95-mx { width: 16px; height: 14px; padding: 0; flex: none; position: relative; margin-right: -4px; }
+html.d95-desk .d95-mx { width: var(--sk-cap-w); height: var(--sk-cap-h); padding: 0; flex: none; position: relative; margin-right: -4px; }
 html.d95-desk .d95-mx::after { content: ""; position: absolute; left: 3px; top: 2px; width: 7px; height: 6px; border: 1px solid var(--sk-dk); border-top-width: 2px; }
 html.d95-desk .d95-mx:active::after { transform: translate(1px, 1px); }
 /* Restore, while the window is maximized: 1995's two overlapping windows, pixel for pixel */
@@ -912,7 +925,7 @@ html.d95-desk .d95-menubar-item:not(#\#):focus-visible { outline: 1px dotted #00
    grey line inside and its label a pixel down and right. Title bar buttons, toggles and the buttons with a role of their own
    (menus, tabs) are not push buttons. */
 :root[data-skin="d95"] :is(.d95-msgbox-row, .lib-props-row, .su-nav, .si-nav) button:not(#\#), :root[data-skin="d95"] :is(.su-browse, .su-skip):not(#\#) {
-  min-width: 75px; height: 23px; box-sizing: border-box; padding: 0 10px; background: var(--panel); color: var(--fg); border: 0; border-radius: 0; outline: 0;
+  min-width: var(--sk-btn-w); height: var(--sk-btn-h); box-sizing: border-box; padding: 0 10px; background: var(--panel); color: var(--fg); border: 0; border-radius: 0; outline: 0;
   box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid); }
 :root[data-skin="d95"] :is(dialog, [role=dialog], .su-win, .si-group, .bpc-nameform, .mp-box) button:not(.d95-tb button):not([aria-pressed]):not([role]):not(#\#):focus:not(:active),
 :root[data-skin="d95"] :is(dialog, [role=dialog], .su-win, .si-group, .bpc-nameform, .mp-box):not(:has(button:not(.d95-tb button):not([aria-pressed]):not([role]):focus))

@@ -1,8 +1,9 @@
 # Skins: the plan (approved by the user on 2026-11-23, less NT 4.0)
 
 The site has one look, 95. This plan shows how other looks will be added without redoing it. It covers what a skin
-holds, how the 95 look is wired today, what each new look needs, how to check them all, and the costs. No skin code
-exists yet.
+holds, how the 95 look is wired today, what each new look needs, how to check them all, and the costs. The layer's first
+batch (2026-11-23) is in: `<html data-look>` and `?skin=`, the sizes and the band as variables, and the drawings' colours
+through `uriRules` (docs/WEB_PLAYER.md, "Desktop 95", "The skins").
 
 The scope is the user's (2026-11-23): "This is the first I'm learning of Classic. I see it was present up through Windows
 7. I'd like all of those as skins to start; then the unique ones with XP up through 8 later", and "Oh also Windows Me".

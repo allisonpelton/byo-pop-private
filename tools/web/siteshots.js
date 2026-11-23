@@ -1,6 +1,6 @@
 // siteshots.js: shots of the site's own pages and windows for a before-and-after comparison with tools/shotdiff
 // (docs/WEB_PLAYER.md, "Site shots"): Desktop 95 as it starts, with each of its windows open alone, its Pop menu, its own
-// context menu, a message box, and the pages that open as windows (the terms, a game's copyright page, a game without its
+// context menu, a message box, and the pages that open as windows (Jungle Juice's, a game's copyright page, a game without its
 // files). At a desktop's size, a phone's width, and each zoomed to 200% (the device scale 2 of a browser at 200%); in the
 // standard scheme and in grape (Desktop 95's colour schemes, web/schemes.js); and the pages in frames in the browser's dark
 // scheme too, which only they follow. Headless Edge over the DevTools protocol with Node's own WebSocket, as
@@ -8,6 +8,9 @@
 //
 //   build/native/rundesk.exe node tools/web/siteshots.js --out <abs dir> [--only <regex>] [--port 18797] [--root build/web]
 //        [--browser <msedge.exe>] [--profile <abs dir>] [--audit <abs file.jsonl>] [--census <abs file.json>] [--list]
+//        [--skin <id>]
+// --skin <id> opens every page in that skin (?skin=<id>, docs/SKINS.md) and takes the skin's own set of shots (SKIN_SET, below;
+// --only narrows or widens it), for a baseline of that skin that shotdiff compares as it does 95's.
 //
 // Each shot is <out>/<scene>.png. The shots compare run to run: every page starts in a fresh browser profile (wiped at the
 // start, and each page in a browser context of its own), on a fixed clock (Date) and a seeded Math.random, with reduced motion, the page told it has the focus, no text
@@ -30,7 +33,12 @@ const { spawn } = require("child_process");
 const ROOT = path.join(__dirname, "..", "..");
 function arg(name, def) { const i = process.argv.indexOf("--" + name); return i > 0 ? process.argv[i + 1] : def; }
 const OUT = arg("out", "");
-const ONLY = new RegExp(arg("only", "."));
+// a skin other than 95 is checked by ten shots (docs/SKINS.md, (f)): the desktop with an inactive window (System Information
+// behind the Library), the Pop menu, the desktop's menu, a message box with its default, Setup, Settings and its Appearance, a
+// game page's start card, and the desktop at 2x and narrow
+const SKIN = arg("skin", "");
+const SKIN_SET = /^(desk-(start|popmenu|deskmenu|msgbox|setup|tab-settings|set-look|app-game)|desk2x-start|narrow-start)$/;
+const ONLY = new RegExp(arg("only", SKIN ? SKIN_SET.source : "."));
 const CHECK = process.argv.includes("--check");
 let PORT = +arg("port", CHECK ? "0" : "18797");
 const WEB = path.resolve(arg("root", path.join(ROOT, "build", "web")));
@@ -136,7 +144,7 @@ async function open(url, size, scheme, scheme95) {
   await send("Page.addScriptToEvaluateOnNewDocument", { source: FREEZE }, sid);
   if (scheme95 && scheme95 !== "standard")
     await send("Page.addScriptToEvaluateOnNewDocument", { source: "try { localStorage.setItem('byopop-settings', JSON.stringify({ scheme: " + JSON.stringify(scheme95) + " })); } catch (e) {}" }, sid);
-  await send("Page.navigate", { url: BASE + url }, sid);
+  await send("Page.navigate", { url: BASE + url + (SKIN ? (url.indexOf("?") < 0 ? "?" : "&") + "skin=" + encodeURIComponent(SKIN) : "") }, sid);
   await settle(sid);
   return { sid, targetId, browserContextId, size };
 }
@@ -356,7 +364,7 @@ async function centre(p, sel) {
 
 // ---- the scenes ----
 // Desktop 95: as it starts, each window alone (the chat's left closed: opening it talks to its server), the Pop menu, the
-// desktop's context menu, a message box, and the pages that open as windows (the terms, a game's copyright page, a game).
+// desktop's context menu, a message box, and the pages that open as windows (Jungle Juice's, a game's copyright page, a game).
 // With only "pages", the start and those pages alone (the browser's dark scheme, which only the pages in frames follow).
 async function desk(size, scheme95, scheme, only) {
   const tag = size + (scheme95 !== "standard" ? "-" + scheme95 : "") + (scheme === "dark" ? "-dark" : "");
@@ -392,7 +400,9 @@ async function desk(size, scheme95, scheme, only) {
     await shot(p, tag + "-msgbox");
   }
   await close(p);
-  for (const [name, url] of [["terms", "index.html?silent=1&open=terms.html"], ["copyright", "index.html?silent=1&open=noahsark-copyright.html"], ["game", "index.html?silent=1&open=noahsark.html"]]) {
+  // (a page of ours in a window: Jungle Juice's, a copyright page and a game's; until 2026-11-23 the first was terms.html, a
+  // page left in build/web by an older build that no build writes now)
+  for (const [name, url] of [["jungle", "index.html?silent=1&open=jungle/index.html"], ["copyright", "index.html?silent=1&open=noahsark-copyright.html"], ["game", "index.html?silent=1&open=noahsark.html"]]) {
     if (!ONLY.test(tag + "-app-" + name)) continue;
     p = await open(url, size, scheme, scheme95);
     // the window's page loaded, its fonts in, and on a game's page its first card up (the files card, without the files)
