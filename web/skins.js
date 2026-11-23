@@ -74,9 +74,17 @@ var ByopopSkin = (function () {
   }
   // the look this page shows: Desktop 95, or none on the player-only page
   function current() { return root.classList.contains("player-only") ? "plain" : "d95"; }
+  // The skin, the version of Windows the desktop is drawn as (docs/SKINS.md): <html data-look="95">, beside data-skin="d95",
+  // which stays the desktop's own name. 95 is the base, drawn by web/skins.css alone, and the only skin so far; each later
+  // one is drawn over it by rules of its own under :root[data-look="<id>"]. A test picks one with ?skin=<id>, as ?silent=1
+  // does for sound; the address keeps it (testQuery), and the pages in the desktop's windows are opened with it (web/deskapps.js,
+  // frameUrl).
+  var LOOKS = ["95"];
+  function look() { var s = Q.get("skin"); return LOOKS.indexOf(s) >= 0 ? s : "95"; }
   function apply() {
     var s = current();
-    if (s === "plain") root.removeAttribute("data-skin"); else root.setAttribute("data-skin", s);
+    if (s === "plain") { root.removeAttribute("data-skin"); root.removeAttribute("data-look"); }
+    else { root.setAttribute("data-skin", s); root.setAttribute("data-look", look()); }
     try { window.dispatchEvent(new CustomEvent("byopop-skin", { detail: { skin: s } })); } catch (e) {}
   }
   // a game page names itself (web/shell.html), after it marked the player-only page
@@ -95,6 +103,7 @@ var ByopopSkin = (function () {
     if (Q.get("silent") === "1") q.set("silent", "1");
     if (Q.get("assets") !== null) q.set("assets", Q.get("assets"));
     if (Q.get("perf") === "1") q.set("perf", "1");
+    if (LOOKS.indexOf(Q.get("skin")) >= 0) q.set("skin", Q.get("skin"));
     return q.toString();
   }
   function onePage() {
@@ -2612,7 +2621,7 @@ var ByopopSkin = (function () {
     });
   }
   document.addEventListener("selectstart", function (ev) { var t = ev.target; if (t && t.nodeType !== 1) t = t.parentNode; if (t && t.closest && t.closest(".stage") && !t.closest(".overlay")) ev.preventDefault(); }, true);
-  return { zoom: zoom, unzoom: unzoom, ratio: ratio, viewW: viewW, viewH: viewH, EMBED: EMBED, SITE: SITE, testQuery: testQuery, current: current, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync,
+  return { look: look, LOOKS: LOOKS, zoom: zoom, unzoom: unzoom, ratio: ratio, viewW: viewW, viewH: viewH, EMBED: EMBED, SITE: SITE, testQuery: testQuery, current: current, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync,
            bootHold: bootHold, bootDone: bootDone, booting: function () { return !!boot; } };
 })();
 // The volume of everything the site plays (the tray's speaker; the user, 2026-11-14, by the coordinator's list): the games, Music,

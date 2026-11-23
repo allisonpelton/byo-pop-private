@@ -354,6 +354,18 @@ un-95"), in our own SVG. Where a choice is between a plainer look and the one Wi
 it changes every window or box on the site (the user, 2026-11-23: "Always prefer more authentic designs for the 95 look",
 on giving every message box's default button its black frame).
 
+**The skins** (docs/SKINS.md) are the versions of Windows the desktop can be drawn as; 95 is the base and, until 98's
+step, the only one. `web/skins.js` sets `<html data-look="95">` beside `data-skin="d95"`, which stays the desktop's own
+name, and a later skin draws over 95 with rules under `:root[data-look="<id>"]`. A test picks a skin with `?skin=<id>`,
+which the address keeps (`testQuery`) and the pages in the desktop's windows are opened with (`web/deskapps.js`,
+`frameUrl`); an unknown one is 95. What a skin sets is in
+`:root[data-skin="d95"]`'s variables at the top of `web/skins.css`: the colours (`--panel`, `--sk-*`), the sizes
+(`--sk-title-h`, the caption buttons' `--sk-cap-w` and `--sk-cap-h`, a dialog button's `--sk-btn-w` and `--sk-btn-h`, the
+task bar's `--sk-task-h`, the menus' entries `--sk-item-h`, `--sk-task-item-h`, `--sk-pop-item-h` and `--sk-sub-item-h`),
+the Pop menu's band (`--sk-band`, `--sk-band-w`, `--sk-band-fg1`, `--sk-band-fg`) and the font (`--font-ui`). The SVG
+drawings take a skin's colours as they take a scheme's (`web/schemes.js`, `uriRules`: the face, shadow and soft light of
+95's drawings swapped for the target's); a drawing whose shape differs in a version is that skin's own rule.
+
 **The logo** stands at the desktop's bottom right, above the task bar, under every icon and window (the user, 2026-11-23:
 "move the byo-pop logo to the bottom right"), where the icons' columns, filled from the top left, do not reach it at 800 by
 600, 1024 by 768, wider or narrow. It is still a drop target for game folders. The windows' first places start 12 pixels
