@@ -612,16 +612,20 @@ static void net_summary(void)
 {
 	char p[MAX_PATH]; net_log_path(p);
 	size_t n=0; unsigned char* b=read_file(p,&n);
-	int blocked=0, launched=0, installed=0;
+	int blocked=0, launched=0, installed=0, cursorLogged=0, cursorGuarded=0; long cursorTotal=0;
 	if (b) {
 		size_t from = (size_t)gNetBase<=n ? (size_t)gNetBase : 0;
 		b[n]=0;
 		for (char* ln=strtok((char*)b+from,"\r\n"); ln; ln=strtok(NULL,"\r\n")) {
 			char* at=strstr(ln,"NET BLOCKED ");
 			char* la=strstr(ln,"LAUNCH BLOCKED ");
+			char* cu=strstr(ln,"CURSOR BLOCKED ");
+			char* ct=strstr(ln,"exits: ") ? strstr(ln,"cursor guard: ") : NULL;
 			if (at) { blocked++; logline("NET BLOCKED %s (%.*s)", at+12, (int)(at-ln>2 ? at-ln-2 : 0), ln); }
 			else if (la) { launched++; logline("LAUNCH BLOCKED %s (%.*s)", la+15, (int)(la-ln>2 ? la-ln-2 : 0), ln); }
-			else if (strstr(ln,"network block installed")) installed++;
+			else if (cu) { cursorLogged++; logline("CURSOR BLOCKED %s (%.*s)", cu+15, (int)(cu-ln>2 ? cu-ln-2 : 0), ln); }
+			else if (strstr(ln,"network block installed")) { installed++; if (strstr(ln,"cursor guard installed")) cursorGuarded++; }
+			if (ct) cursorTotal += atol(ct+14);
 		}
 		free(b);
 	}
@@ -631,6 +635,11 @@ static void net_summary(void)
 	if (!installed) logline("RESULT: LAUNCH: the stand-in's launch guard was not in the game (it loads no DirectSound from its folder, or --sound real): its program, file and link launches were not blocked");
 	else if (launched) logline("RESULT: LAUNCH: %d launch%s of the game blocked and logged (above, and logs/net.log); each failed at once and nothing was started through it", launched, launched==1?"":"es");
 	else logline("RESULT: LAUNCH: no program, file or link launch from the game; the guard was in place in %d process%s", installed, installed==1?"":"es");
+	if (cursorTotal < cursorLogged) cursorTotal = cursorLogged;   // a process killed before its exit line
+	if (!installed) logline("RESULT: CURSOR: the stand-in's cursor guard was not in the game (it loads no DirectSound from its folder, or --sound real): its ClipCursor and SetCursorPos calls could reach the user's cursor");
+	else if (!cursorGuarded) logline("RESULT: CURSOR: the cursor guard is off inside Windows Sandbox, whose cursor is the sandbox's own: the game's ClipCursor and SetCursorPos calls went to Windows");
+	else if (cursorTotal) logline("RESULT: CURSOR: %ld ClipCursor or SetCursorPos call%s of the game blocked (the first ones above, and logs/net.log); the user's cursor was neither confined nor moved", cursorTotal, cursorTotal==1?"":"s");
+	else logline("RESULT: CURSOR: no ClipCursor or SetCursorPos call from the game; the guard was in place in %d process%s", cursorGuarded, cursorGuarded==1?"":"es");
 }
 
 // ------------------------------------------------------------------------------------- the copy's patch list
@@ -4962,8 +4971,12 @@ static void clock_env(void)
 {
 	net_baseline();   // the network block's log: where this run's lines start
 	static const char* const names[]={"ORIGRUN_CLOCK","ORIGRUN_CLOCK_ID","ORIGRUN_CLOCK_HOST","ORIGRUN_CLOCK_HOLDSTART","ORIGRUN_CLOCK_COUNTER","ORIGRUN_CLOCK_WATCH","ORIGRUN_CLOCK_GATES",
-		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_KEYS","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID","ORIGRUN_LASTINPUT","ORIGRUN_REGMAP","ORIGRUN_READER_SURFACE",NULL};
+		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_KEYS","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID","ORIGRUN_LASTINPUT","ORIGRUN_REGMAP","ORIGRUN_READER_SURFACE",
+		"ORIGRUN_CURSORGUARD",NULL};
 	for (int i=0;names[i];i++) SetEnvironmentVariableA(names[i],NULL);
+	// The cursor guard (net.c; docs/ORIGRUN.md, "The cursor guard") is on unless told otherwise; inside Windows Sandbox the
+	// cursor is the sandbox's own, so the copy's ClipCursor and SetCursorPos go to Windows as before
+	if (gInSandbox) SetEnvironmentVariableA("ORIGRUN_CURSORGUARD","off");
 	// Always: the stand-in's GetLastInputInfo says the last input is now, so an original that stops drawing once the
 	// machine is idle for the screensaver's timeout keeps drawing (docs/ORIGRUN.md, "The last-input hook")
 	SetEnvironmentVariableA("ORIGRUN_LASTINPUT","now");

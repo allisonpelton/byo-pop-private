@@ -41,10 +41,13 @@ public:
 	bool mFlagAfterText = false;            // +0xbc: a flag after the two texts
 	bool mIsNew = true;                     // +0xbd: no profile.dat has been read for this player
 	int mStats[STAT_COUNT] = {};            // +0xc0: lifetime counters (the badges' statistics)
-	uint8_t mFlagRows[FLAG_ROW_COUNT][FLAG_ROW_SIZE] = {};  // +0x158: five rows of eight flags
+	// +0x158: the Quest map's sections (rows) of eight quests each: a flag is 1 once the quest is won (0x684380 sets it, QuestMenu::Update; read by 0x673560 and the menu's
+	// button loops). The quest at index n of quest.cfg is row n / 8, flag n % 8
+	uint8_t mQuestsDone[FLAG_ROW_COUNT][FLAG_ROW_SIZE] = {};
 	uint8_t mTutorialFlags[TUTORIAL_FLAG_COUNT] = {};       // +0x180: the tutorials the player has seen
-	int mCounterBeforeFlag = 0;             // +0x184: a number saved with the next flag (from version 0x43)
-	bool mFlagAfterCounter = false;         // +0x188
+	int mQuestSection = 0;                  // +0x184: the section of the Quest map the player was on (QuestMenu +0x14c, 0 to 4; saved from version 0x43)
+	bool mQuestMenuFlag = false;            // +0x188: QuestMenu::Update sets it while the section on show is state 1 or 3 (the first open section or a finished one) and the
+	                                        // menu's own flag (+0x128) is on; a click on a section or a quest clears it (0x674c90, 0x697640). Saved with the section
 	int mCounters[COUNTER_COUNT] = {};      // +0x18c
 	int mBadgeLevels[BADGE_COUNT] = {};     // +0x1a0: the level reached in each badge
 	int mRank = 0;                          // +0x1f0: from mLifetimePoints (0x71a330)
@@ -69,7 +72,8 @@ public:
 	bool mFlagBeforeFractions = false;      // +0x2a0
 	float mFractionFirst = 0.5f;            // +0x2a4
 	float mFractionSecond = 0.5f;           // +0x2a8
-	uint8_t mHintFlags[HINT_FLAG_COUNT] = {};  // +0x2ac: version 0x45 and later
+	// +0x2ac: version 0x45 and later: one flag for each quest of quest.cfg (index 0 to 0x27) that is 1 once its help dialog (QuestHelpDialog, 0x6cd9f0) has been shown
+	uint8_t mQuestHelpSeen[HINT_FLAG_COUNT] = {};
 	std::map<std::wstring, std::wstring> mSettings;  // +0x2d4: name and value pairs
 
 	Profile();                              // 0x71b530

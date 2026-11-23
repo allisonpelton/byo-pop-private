@@ -43,6 +43,16 @@ Bej3Dialog::Bej3Dialog(int theId, bool isModal, const std::string& theHeader, co
 	SetLinesFont(FONT_DIALOG_SMALL_TEXT);
 	SetButtonFont(FONT_DIALOG_BUTTONS);
 	mFadeCurve.SetCurve("b+0,2,0.033333,1,####        cY### >P###");
+	// port: the exe's own buttons (0x76a190) show one cel of the picture each (rest, over, pressed); the framework's DialogButtons need the
+	// rectangles of those cels and the height of one
+	mButtonHeight = IMAGE_DIALOG_BUTTON->GetCelHeight();
+	for (DialogButton* aButton : {mYesButton, mNoButton}) {
+		if (aButton == nullptr)
+			continue;
+		aButton->mNormalRect = IMAGE_DIALOG_BUTTON->GetCelRect(0);
+		aButton->mOverRect = IMAGE_DIALOG_BUTTON->GetCelRect(1);
+		aButton->mDownRect = IMAGE_DIALOG_BUTTON->GetCelRect(2);
+	}
 }
 
 // 0x76a8a0 (bejeweled3). port: the exe also tells the screen at app+0xbe8 when the dialog goes, and refreshes the

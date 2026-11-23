@@ -74,22 +74,22 @@ void Profile::ResetPlayer()
 	mNumberAfterPoints = 0;
 	mNumberAfterThat = 0;
 	mSeenBits = 0;
-	mCounterBeforeFlag = 0;
-	mFlagAfterCounter = false;
+	mQuestSection = 0;
+	mQuestMenuFlag = false;
 	for (int& aStat : mStats)
 		aStat = 0;
 	for (int& aCounter : mCounters)
 		aCounter = 0;
 	for (int& aLevel : mBadgeLevels)
 		aLevel = 0;
-	for (auto& aRow : mFlagRows)
+	for (auto& aRow : mQuestsDone)
 		for (uint8_t& aFlag : aRow)
 			aFlag = 0;
 	for (uint8_t& aFlag : mTutorialFlags)
 		aFlag = 0;
 	for (uint32_t& aFlag : mRankFlags)
 		aFlag = 0;
-	for (uint8_t& aFlag : mHintFlags)
+	for (uint8_t& aFlag : mQuestHelpSeen)
 		aFlag = 0;
 	mFlagAfterTutorials = false;
 	mNumberAfterTutorialFlag = 0;
@@ -263,10 +263,10 @@ bool Profile::LoadPlayer(const std::wstring& theName)
 	mNumberAfterTutorialFlag = ReadLongOrZero(aFile);
 	mShortAfterNumber = aFile.ReadShort();
 	if (aVersion > 0x42) {
-		mCounterBeforeFlag = ReadLongOrZero(aFile);
-		mFlagAfterCounter = aFile.ReadBoolean();
+		mQuestSection = ReadLongOrZero(aFile);
+		mQuestMenuFlag = aFile.ReadBoolean();
 	}
-	for (auto& aRow : mFlagRows) {
+	for (auto& aRow : mQuestsDone) {
 		for (uint8_t& aFlag : aRow)
 			aFlag = aFile.ReadBoolean();
 	}
@@ -318,7 +318,7 @@ bool Profile::LoadPlayer(const std::wstring& theName)
 		for (int i = 0; i < aHintFlagCount; i++) {
 			uint8_t aFlag = aFile.ReadBoolean();
 			if (isFullSet)
-				mHintFlags[i] = aFlag;
+				mQuestHelpSeen[i] = aFlag;
 		}
 	}
 	AddUserName(theName);
@@ -346,9 +346,9 @@ void Profile::SavePlayer()
 	aFile.WriteBoolean(mFlagAfterTutorials);
 	aFile.WriteLong(mNumberAfterTutorialFlag);
 	aFile.WriteShort((short)mShortAfterNumber);
-	aFile.WriteLong(mCounterBeforeFlag);
-	aFile.WriteBoolean(mFlagAfterCounter);
-	for (const auto& aRow : mFlagRows) {
+	aFile.WriteLong(mQuestSection);
+	aFile.WriteBoolean(mQuestMenuFlag);
+	for (const auto& aRow : mQuestsDone) {
 		for (uint8_t aFlag : aRow)
 			aFile.WriteBoolean(aFlag != 0);
 	}
@@ -383,7 +383,7 @@ void Profile::SavePlayer()
 	WriteRawBytes(&aFile, &mFractionFirst, 4);
 	WriteRawBytes(&aFile, &mFractionSecond, 4);
 	aFile.WriteShort(HINT_FLAG_COUNT);
-	for (uint8_t aFlag : mHintFlags)
+	for (uint8_t aFlag : mQuestHelpSeen)
 		aFile.WriteBoolean(aFlag != 0);
 	gApp->WriteBufferToFile(GetUserFolder(mName) + PROFILE_FILE_NAME, &aFile);
 }

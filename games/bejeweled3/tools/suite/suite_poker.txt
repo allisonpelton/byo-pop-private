@@ -1,0 +1,11 @@
+10 seed 7
+11 name Tester
+1200 unlock all
+1210 goto poker
+1500 state
+1600 bot
+3500 state
+3501 screenshot @DIR@/poker.png
+14000 state
+14001 screenshot @DIR@/poker_end.png
+14100 quit

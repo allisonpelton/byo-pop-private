@@ -1,0 +1,18 @@
+10 seed 7
+11 name Tester
+1200 screenshot @DIR@/menu.png
+1210 goto classic
+1600 screenshot @DIR@/classic.png
+1610 bot 150
+6900 state
+6901 screenshot @DIR@/play.png
+6910 board RGBYPORW GBYPORWG BYPORWGB YPORWGBY PORWGBYP ORWGBYPO RWGBYPOR WGBYPORW
+6920 put 2 3 R flame
+6921 put 5 5 G star
+6922 put 1 6 R cube
+7000 screenshot @DIR@/specials.png
+7010 state
+7100 board RWGYPOBR WGYPOBRW GYPOBRWG YPOBRWGY POBRWGYP OBRWGYPO BRWGYPOB RWGYPOBR
+8100 state
+8101 screenshot @DIR@/gameover.png
+8110 quit

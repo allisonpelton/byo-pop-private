@@ -13,8 +13,7 @@
 //
 // Not translated: the mirrored drawing (DrawSpriteMirrored 0x448da0 (bejeweled3); mMirror is set by nothing in the
 // game), saving and loading the animation's state (0x445540 (bejeweled3), 0x4453b0 (bejeweled3), 0x445760 (bejeweled3),
-// 0x445a00 (bejeweled3), used by saved games only), the transition between two animations (0x444910 (bejeweled3): the
-// game never starts one, so mTransitionTime stays 0), the debugging outlines (+0xbfb), and the particle effect formats
+// 0x445a00 (bejeweled3), used by saved games only), the debugging outlines (+0xbfb), and the particle effect formats
 // the exe reads besides .ppf (the ".ip3" names FrameHit tries, which PIEffect::Load does not read, so those tries fail).
 //
 // The older player, Bejeweled Twist's copy (games/bejeweledtwist/popanim), is the same idea in a simpler form.
@@ -89,7 +88,7 @@ public:
 	PASpriteInst* mMainInst;      // +0x1d0
 	PAData* mData;                // +0x1d4, shared with the clones (counted in mData's count, +0x38 in the exe)
 	int mDataUsers;               // port: how many PopAnims share mData
-	float mTransitionTime;        // +0x1d8, nothing starts a transition: always 0
+	float mTransitionTime;        // +0x1d8, how long the transition TransitionToLabel started lasts (0: none), in updates
 	float mTransitionElapsed;     // +0x1dc
 	float mStartDelay;            // +0x1e0, time before the animation starts moving (nothing sets it)
 	bool mRandSeeded;             // +0xba8: mRand has been seeded (by the first effect made)
@@ -123,6 +122,10 @@ public:
 	// Starts playing at a label of the main sprite (the first frame of the work range for an empty label); false
 	// when there is none (the animation stops). 0x444800 (bejeweled3)
 	bool PlayLabel(const std::string& theLabel, bool theReset);
+	// PlayLabel with a transition: the objects the old animation and the new one both have (by name) move and fade
+	// from where they were over theTransitionTime updates. Nothing that predates it calls it: PlayLabel and PlayFrame
+	// behave as before. 0x444910 (bejeweled3)
+	bool TransitionToLabel(const std::string& theLabel, int theTransitionTime);
 	// The frame of a label of the main sprite, or -1. 0x43f230 (bejeweled3)
 	int GetLabelFrame(const std::string& theLabel) const;
 	// Whether the animation is playing, or an effect of it still runs. 0x445390 (bejeweled3)

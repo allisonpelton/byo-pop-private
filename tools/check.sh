@@ -48,7 +48,7 @@
 #   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
-#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), fontviewtest (the Fonts window's reader of the games' fonts, web/fontview.js, with the staged games'), buildingstest (the Venice Buildings window's layout, web/buildings.js, with the staged Venice's), guidestest (the guides' markup and style rules, web/guides.js and web/guidetexts.js), gamepicstest (the themes' picture decoders, web/gamepics.js), saveimporttest (the import of saves from an installed game:
+#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), fontviewtest (the Fonts window's reader of the games' fonts, web/fontview.js, with the staged games'), buildingstest (the Gallery's Venice buildings, their layout, web/buildings.js, with the staged Venice's), guidestest (the guides' markup and style rules, web/guides.js and web/guidetexts.js), gamepicstest (the themes' picture decoders, web/gamepics.js), saveimporttest (the import of saves from an installed game:
 #                platform/saveimport.json, the .reg reader and the conversion, web/saveimport.js), chattest (the chat's username,
 #                text and rate rules, its stored history and local source, and that a message goes on the page as text only,
 #                web/chat.js), gameimporttest (the import rules for a game's files and the sorting of dropped folders into games,
@@ -84,7 +84,7 @@
 #                explained; a game with no list is reported as "no list yet" and does not fail yet (seconds; needs no game files)
 #   origrun      tools/origrun/build.sh into build/logs/check/origrun-bin (not into build/origrun-bin, whose origrun.exe
 #                may be running): that the host and its sound stand-in still compile, and --coverage on covtest.exe
-#                (tools/origrun/covtest.sh; seconds), and the network block and launch guard on nettest.exe (tools/origrun/nettest.sh; seconds);
+#                (tools/origrun/covtest.sh; seconds), and the network block, launch guard and cursor guard on nettest.exe (tools/origrun/nettest.sh; seconds);
 #                not in `all`
 #   speed        every finished game follows the game speed (tools/speedcheck.py): each game's exe run natively in real time, 3 at
 #                a time, for a few seconds at 0.5x and at 2x with -speed and -speedprobe; its updates per real second and its game
@@ -220,11 +220,16 @@
 #                stage, and the continue offer twice to the game over, each run twice against frozen screenshot and state
 #                hashes (games/feedingfrenzy2/tools/suite/suite.sh), and build/baseline-feedingfrenzy2/feedingfrenzy2.exe's
 #                runs the same when there is one (about 6 minutes)
+#   bejeweled3   Bejeweled 3: a script of test commands (games/bejeweled3/tools/suite/suite.sh): the menu, a seeded Classic
+#                game played by the bot, a board with a Flame Gem, a Star Gem and a Hypercube, then a board with no move and
+#                the game-over dialog; run twice with the same state lines and screenshots, the states as frozen; then
+#                Butterflies, Poker, Ice Storm, Diamond Mine and the Quest boards and goals by the bot, each run twice (about
+#                six minutes; one game process at a time)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs. Not in `all`: it
 #                compares Bejeweled's game logic with the original's, which a change outside games/bejeweled leaves as
 #                Bejeweled's frozen baseline (verify) already proves; merge mode runs it when games/bejeweled changes
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy feedingfrenzy feedingfrenzy2; all = every suite but the oracle, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy feedingfrenzy feedingfrenzy2 bejeweled3; all = every suite but the oracle, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -360,7 +365,7 @@ OUT="build/logs/check"
 QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 
 # The suites in the order `all` runs them (origrun is not in `all`), and the game suites among them
-GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy feedingfrenzy feedingfrenzy2)
+GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy feedingfrenzy feedingfrenzy2 bejeweled3)
 # the oracle is left out of `all` and of shared code's "every suite" (the user, 2026-11-11: "Seems like the Bejeweled oracle
 # is causing a lot of slowdown for no benefit"); it runs when games/bejeweled changes, or when named
 ALL_SUITES=(build build-web build-nov unit unit-web gpu screens speed verify modmenu livesplit "${GAME_SUITES[@]}")
@@ -379,7 +384,7 @@ suite_weight() { WEIGHT=1; [ "$1" = speed ] && WEIGHT=3; [ "$1" = bonnies ] && [
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=560 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [peggle]=10 [pizzafrenzy]=180 [feedingfrenzy]=240 [feedingfrenzy2]=340 [oracle]=1080)
+	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=560 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [peggle]=10 [pizzafrenzy]=180 [feedingfrenzy]=240 [feedingfrenzy2]=340 [bejeweled3]=330 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52 [typershark]=270)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
@@ -956,7 +961,7 @@ suite_unit-web() {
 	# the Fonts window's reader of the games' ImageFonts (web/fontview.js), with every staged game's fonts
 	"$NODE" tools/fontviewtest.js assets > "$1.fv" 2>&1 || st=1
 	tr="$tr; $(lastof "$1.fv" 'fontviewtest:')"
-	# the Venice Buildings window's layout of the level select's row (web/buildings.js), with the staged Venice's
+	# the Gallery's Venice buildings, their layout of the level select's row (web/buildings.js), with the staged Venice's
 	"$NODE" tools/buildingstest.js assets > "$1.vb" 2>&1 || st=1
 	tr="$tr; $(lastof "$1.vb" 'buildingstest:')"
 	# the guides' markup and the rules of docs/GUIDE_STYLE.md that a program can check (web/guides.js, web/guidetexts.js)
@@ -2706,6 +2711,15 @@ suite_feedingfrenzy() {
 	local e
 	need_assets feedingfrenzy || return 1
 	bash games/feedingfrenzy/tools/suite/suite.sh "$OUT/feedingfrenzy" > "$1" 2>&1; e=$?
+	SUMMARY="$(tail -n 1 "$1")"
+	return $e
+}
+
+# Bejeweled 3's suite is its own script, which prints one summary line and exits 0 when every check passed
+suite_bejeweled3() {
+	local e
+	need_assets bejeweled3 || return 1
+	bash games/bejeweled3/tools/suite/suite.sh "$OUT/bejeweled3" > "$1" 2>&1; e=$?
 	SUMMARY="$(tail -n 1 "$1")"
 	return $e
 }

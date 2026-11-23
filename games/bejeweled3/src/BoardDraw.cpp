@@ -3,6 +3,7 @@
 // translated and what is not. Every measure of the exe is in 1200ths of the art height in use: Scaled() is its
 // "art size * measure / 1200".
 #include "Board.h"
+#include "Bej3Dialog.h"
 #include "OptionsDialog.h"
 
 #include "Bej3App.h"
@@ -295,6 +296,35 @@ void Board::DrawPanel(Graphics* g)
 	g->PopState();
 }
 
+// slot 249 (0x3e4), 0x7423e0 (bejeweled3): the top widget at its place and the level number over it
+void Board::DrawTopWidget(Graphics* g)
+{
+	DrawPanelPicture(g, IMAGE_INGAMEUI_TOP_WIDGET, IMAGE_INGAMEUI_TOP_WIDGET_ID);
+	if (ShowsLevelNumber()) {
+		g->SetFont(FONT_LEVEL);
+		Color anOld;
+		bool aSet = SetLayerColor(FONT_LEVEL, "GLOW", Color(128, 128, 128, 255), &anOld);
+		g->SetColor(Color(255, 255, 255, 255));
+		g->WriteString(CommaSeperate(mLevelIndex + 1), Scaled(PANEL_MIDDLE_X), Scaled(0xfa), -1, 0, true, 0, -1, -1);
+		if (aSet)
+			RestoreLayerColor(FONT_LEVEL, "GLOW", anOld);
+	}
+}
+
+// slot 255 (0x3fc), 0x746f20 (bejeweled3): the score
+void Board::DrawScoreText(Graphics* g)
+{
+	g->SetFont(FONT_SCORE);
+	g->SetColor(Color(255, 255, 255, 255));
+	g->WriteString(CommaSeperate(mScore), Scaled(250), Scaled(202), 0, 0, true, 0, -1, -1);
+}
+
+// slot 251 (0x3ec), 0x741440 (bejeweled3): the bottom widget of the mode (Classic)
+void Board::DrawBottomWidget(Graphics* g)
+{
+	DrawPanelPicture(g, IMAGE_INGAMEUI_BOTTOM_WIDGET_CLASSIC, IMAGE_INGAMEUI_BOTTOM_WIDGET_CLASSIC_ID);
+}
+
 // The pictures of the screen round the grid, in the order the exe draws them. The left panel's two pictures are placed by their x= and y= in
 // resources.xml with the panel's 400 taken off (0x741440, 0x7423e0); the frame above the grid (0x745880) and the bar's frame and back below
 // it (0x745430, 0x7540c0) have their middle at the grid's middle (x + 0x200) and at y - 5, + 0x421 and + 0x41e.
@@ -304,23 +334,9 @@ void Board::DrawScreenFrame(Graphics* g)
 {
 	g->SetColorizeImages(true);
 	g->SetColor(Color(255, 255, 255, Ftol(mCoverCurve.GetOutVal() * 255.0)));
-	// 0x7423e0: the top widget at its place and the level number (the level index + 1) over it, in FONT_LEVEL
-	DrawPanelPicture(g, IMAGE_INGAMEUI_TOP_WIDGET, IMAGE_INGAMEUI_TOP_WIDGET_ID);
-	{
-		g->SetFont(FONT_LEVEL);
-		Color anOld;
-		bool aSet = SetLayerColor(FONT_LEVEL, "GLOW", Color(128, 128, 128, 255), &anOld);
-		g->SetColor(Color(255, 255, 255, 255));
-		g->WriteString(CommaSeperate(mLevelIndex + 1), Scaled(PANEL_MIDDLE_X), Scaled(0xfa), -1, 0, true, 0, -1, -1);
-		if (aSet)
-			RestoreLayerColor(FONT_LEVEL, "GLOW", anOld);
-	}
-	// 0x746f20: the score, in the middle of x 250 at y 202
-	g->SetFont(FONT_SCORE);
-	g->SetColor(Color(255, 255, 255, 255));
-	g->WriteString(CommaSeperate(mScore), Scaled(250), Scaled(202), 0, 0, true, 0, -1, -1);
-	// 0x741440: the bottom widget of the mode (Classic)
-	DrawPanelPicture(g, IMAGE_INGAMEUI_BOTTOM_WIDGET_CLASSIC, IMAGE_INGAMEUI_BOTTOM_WIDGET_CLASSIC_ID);
+	DrawTopWidget(g);
+	DrawScoreText(g);
+	DrawBottomWidget(g);
 	g->SetColor(Color(255, 255, 255, Ftol(mCoverCurve.GetOutVal() * 255.0)));
 	// 0x745880: the frame over the grid; 0x7540c0 and 0x745430: the bar's back and frame under it
 	DrawImageCentered(g, IMAGE_INGAMEUI_TOP_FRAME, (float)Scaled(GetGridX() + 0x200), (float)Scaled(GetGridY() - 5));
@@ -350,15 +366,24 @@ void Board::Draw(Graphics* g)
 {
 	DrawPanel(g);
 	DrawScreenFrame(g);
+	DrawBehindPieces(g);
 	DrawPieces(g);   // slot 246, 0x7568a0
 	mEffectsOver->Draw(g, false);   // the +0x12c0 layer is a child of the board: its draw (slot 26) comes after the board's
+	DrawModeOverlay(g);   // port: the exe's widget manager calls slot 43 in the overlay pass; here it follows the board's own draw
 }
 
 // 0x741840 (bejeweled3), Classic's case: the Hint button (id 0, the Classic hint picture) and the Menu button (id 1, the Classic menu
 // picture), each where resources.xml puts its picture with the panel's 400 off, the size of a cel (the pictures are two cels wide:
 // cel 0 at rest, cel 1 over and pressed). The exe's class is Bej3Button (vtable 0x86498c, ctor 0x49c490); its hover curves (+0x150
 // and +0x158) are not translated
-void Board::MakeButtons()
+void Board::MakeClassicButtons()
+{
+	MakeButtons(IMAGE_INGAMEUI_HINT_BUTTON_CLASSIC, IMAGE_INGAMEUI_HINT_BUTTON_CLASSIC_ID, IMAGE_INGAMEUI_MENU_BUTTON_CLASSIC,
+		IMAGE_INGAMEUI_MENU_BUTTON_CLASSIC_ID);
+}
+
+void Board::MakeButtons(Image* theHintImage, int theHintImageId, Image* theMenuImage, int theMenuImageId, Image* theResetImage,
+	int theResetImageId)
 {
 	struct ButtonSpec {
 		int mId;
@@ -367,8 +392,9 @@ void Board::MakeButtons()
 		ButtonWidget** mTarget;
 	};
 	const ButtonSpec aSpecs[] = {
-		{BUTTON_HINT, IMAGE_INGAMEUI_HINT_BUTTON_CLASSIC, IMAGE_INGAMEUI_HINT_BUTTON_CLASSIC_ID, &mHintButton},
-		{BUTTON_MENU, IMAGE_INGAMEUI_MENU_BUTTON_CLASSIC, IMAGE_INGAMEUI_MENU_BUTTON_CLASSIC_ID, &mMenuButton},
+		{BUTTON_HINT, theHintImage, theHintImageId, &mHintButton},
+		{BUTTON_MENU, theMenuImage, theMenuImageId, &mMenuButton},
+		{BUTTON_RESET, theResetImage, theResetImageId, &mResetButton},
 	};
 	for (const ButtonSpec& aSpec : aSpecs) {
 		if (aSpec.mImage == nullptr)
@@ -405,8 +431,33 @@ void Board::ButtonDepress(int theId)
 		aDialog->Move(Scaled(GetGridX() + 0x200) - aDialog->mWidth / 2, Scaled(200));
 		break;
 	}
+	case BUTTON_RESET:
+	{
+		// 0x74bc40 case 2 (only while the game is being played, which the test above gives): the Bej3Dialog with id 0x16, the header
+		// "RESET" (string 0x9b), the line "Abandon the current game and start over?" (0x9c), Yes and No buttons (mode 1), 850 wide (1200ths),
+		// 350 down and put 512 right of the grid's middle less half its width; the board is its listener
+		Dialog* aDialog = gApp->DoDialog(DIALOG_RESET, true, gApp->GetString("155", "RESET"),
+			gApp->GetString("156", "Abandon the current game and start over?"), "", Dialog::BUTTONS_YES_NO);
+		const int aWidth = Scaled(0x352);
+		aDialog->Resize(Scaled(GetGridX() + 0x200) - aWidth / 2, Scaled(0x15e), aWidth, aDialog->GetPreferredHeight(aWidth));
+		aDialog->mDialogListener = this;
+		break;
+	}
 	default:
 		break;
+	}
+}
+
+// 0x7563c0 (bejeweled3). port: the Yes of the reset dialog also writes the mode's name and "Play" to the app's event log and deletes the
+// saved game's file (0x743120); the port keeps no saved game
+void Board::DialogButtonDepress(int theDialogId, int theButtonId)
+{
+	Bej3Dialog* aClosing = dynamic_cast<Bej3Dialog*>(gApp->GetDialog(theDialogId));
+	if (aClosing != nullptr)
+		aClosing->StartClose();
+	if (theDialogId == DIALOG_RESET && theButtonId == Dialog::ID_YES) {
+		ResetGame();   // slot 85
+		NewGame();     // slot 135
 	}
 }
 

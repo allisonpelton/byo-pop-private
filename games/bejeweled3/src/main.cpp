@@ -2,7 +2,7 @@
 //
 // Arguments (all optional):
 //   -gamedir=<dir>   folder with the game's images/, fonts/, sounds/, music/, properties/ and bejeweled3.exe (read
-//                    for its curves, never run): the staged copy that
+//                    for the table of the gems' edges that the time gems' bolts follow, 0x83a548, never run): the staged copy that
 //                    games/bejeweled3/tools/stage_bejeweled3_assets.py makes
 //   -userdir=<dir>   writable folder for the profiles and registry.ini
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the framework's test
@@ -47,7 +47,7 @@ static bool HasFlag(int argc, char** argv, const char* theFlag)
 	return false;
 }
 
-// The game's curves are read from the original's exe, so it is part of the game folder
+// The gems' edge table is read from the original's exe (GemSilhouettes), so it is part of the game folder
 static bool LooksLikeGameDir(const std::string& theDir)
 {
 	return !Platform::VFS::FindCaseInsensitive(theDir, "bejeweled3.exe").empty() &&

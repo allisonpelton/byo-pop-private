@@ -218,6 +218,41 @@ int main(void)
 	_snprintf(detail, sizeof(detail), "select said %d", r);
 	check("nothing reached the listener or the datagram socket", r == 0, detail);
 
+	// The cursor guard: ClipCursor and SetCursorPos must do nothing and say they succeeded. Each is called only once the jump to
+	// the stand-in is seen at the start of both user32's function and win32u's system call: a test whose guard were missing
+	// would otherwise confine or move the user's own cursor.
+	{
+		HMODULE u32 = GetModuleHandleA("user32.dll"), w32 = GetModuleHandleA("win32u.dll");
+		const char* names[4][2] = { { "ClipCursor", "user32" }, { "NtUserClipCursor", "win32u" }, { "SetCursorPos", "user32" }, { "NtUserSetCursorPos", "win32u" } };
+		int guarded[4];
+		BYTE* lo = (BYTE*)standIn;
+		IMAGE_NT_HEADERS32* nt = standIn ? (IMAGE_NT_HEADERS32*)(lo + ((IMAGE_DOS_HEADER*)lo)->e_lfanew) : NULL;
+		BYTE* hi = nt ? lo + nt->OptionalHeader.SizeOfImage : NULL;
+		for (int i = 0; i < 4; i++) {
+			HMODULE m = names[i][1][0] == 'u' ? u32 : w32;
+			BYTE* f = m ? (BYTE*)(void*)GetProcAddress(m, names[i][0]) : NULL;
+			BYTE* to = f && f[0] == 0xE9 ? f + 5 + *(LONG*)(f + 1) : NULL;
+			guarded[i] = to && lo && to >= lo && to < hi;
+			_snprintf(detail, sizeof(detail), "%s!%s starts %02x, jumps to %p (stand-in %p-%p)", names[i][1], names[i][0], f ? f[0] : 0, (void*)to, (void*)lo, (void*)hi);
+			check("the cursor guard's jump to the stand-in is in place", guarded[i], detail);
+		}
+		RECT before, after, small = { 10, 10, 20, 20 };
+		GetClipCursor(&before);
+		if (guarded[0] && guarded[1]) {
+			SetLastError(0); b = ClipCursor(&small);
+			GetClipCursor(&after);
+			_snprintf(detail, sizeof(detail), "returned %d; the clip was %ld,%ld-%ld,%ld and is %ld,%ld-%ld,%ld", b, before.left, before.top, before.right, before.bottom, after.left, after.top, after.right, after.bottom);
+			check("ClipCursor says it succeeded and the cursor's clip is unchanged", b && EqualRect(&before, &after), detail);
+			b = ClipCursor(NULL);
+			check("ClipCursor(NULL) says it succeeded", b, "");
+		}
+		if (guarded[2] && guarded[3]) {
+			b = SetCursorPos(15, 15);
+			_snprintf(detail, sizeof(detail), "returned %d", b);
+			check("SetCursorPos says it succeeded", b, detail);
+		}
+	}
+
 	fprintf(gOut, "NETTEST %d of %d as expected\n", gOk, gN);
 	fclose(gOut);
 	return gOk == gN ? 0 : 1;

@@ -75,7 +75,7 @@ Board::Board()
 	}
 	mEffectsUnder = new EffectsManager(this);   // 0x74b653 and 0x74b6a0: 0x72a510 twice, the second added as a child
 	mEffectsOver = new EffectsManager(this);
-	MakeButtons();   // 0x741840: the layout puts the buttons where the pictures say
+	MakeClassicButtons();   // 0x741840: the layout puts the buttons where the pictures say
 }
 
 // 0x720040 (bejeweled3), with 0x71ffd0: each effect that holds the piece is told it has none (its piece id is 0) and loses a user
@@ -99,7 +99,7 @@ Board::~Board()
 	delete mEffectsUnder;
 	delete mEffectsOver;
 	// the two buttons are the board's children
-	for (ButtonWidget* aButton : {mHintButton, mMenuButton}) {
+	for (ButtonWidget* aButton : {mHintButton, mMenuButton, mResetButton}) {
 		if (aButton != nullptr) {
 			RemoveWidget(aButton);
 			delete aButton;
@@ -190,14 +190,19 @@ void Board::SetBackground(int theStep)
 	gApp->mWidgetManager->AddWidget(mBackground);
 }
 
+void Board::ChooseBackground()
+{
+	// 0x74e63b and 0x74e750: the index is set to -1 and 0x749c20 takes the next one, with no random number
+	mBackgroundIndex = -1;
+	SetBackground(1);
+}
+
 // 0x74e410 (bejeweled3): Classic has no seed override (0x73b4f0 returns 0), the saved game of the mode is not there, so the
 // background is the first of the game's order and the first fill is made. port: the board's camera setup (0x73e440) and the counters
 // the update reads (+0xc84 to +0xd18) come with their steps
 void Board::NewGame()
 {
-	// 0x74e63b and 0x74e750: the index is set to -1 and 0x749c20 takes the next one, with no random number
-	mBackgroundIndex = -1;
-	SetBackground(1);
+	ChooseBackground();
 	mSettledOnce = false;   // 0x74e775
 	// 0x74e1f0 would load a saved game here
 	FillInBlanks(false);
@@ -208,7 +213,7 @@ void Board::NewGame()
 // 0x763e90 (bejeweled3)
 void Board::FillInBlanks(bool theNoMatchCheck)
 {
-	if (mFillHeld != 0)
+	if (mFillHeld != 0 || IsFillStopped())
 		return;
 	// a piece that is still being worked on holds the whole fill
 	for (int aRow = mLastRow; aRow >= 0; aRow--) {
@@ -312,6 +317,7 @@ void Board::FillInBlanks(bool theNoMatchCheck)
 			aPiece->mFlags = 0;
 			aPiece->mColor = Piece::NO_COLOR;
 			aPiece->mCanFall = true;
+			aPiece->mTimeGemSeconds = 0;   // 0x7642xx: +0x244
 		}
 		for (size_t i = 0; i < aNewPieces.size(); i++) {
 			Piece* aPiece = aNewPieces[i];
@@ -328,10 +334,11 @@ void Board::FillInBlanks(bool theNoMatchCheck)
 		if (!theNoMatchCheck && HasMatches())
 			aOk = false;
 		// slot 199 (0x73c870) finds a run through a piece of this update with the bit 0x10, which a plain piece has not
-		if (aOk)
-			break;      // slot 185 (0x73bc00) is true
+		if (aOk && OnFillAccepted(aNewPieces))
+			break;      // slot 185 (0x2e4): 0x73bc00 is true; SpeedBoard's 0x716c60 makes the time gems and is true as well
 		aTries++;
 	}
+	OnFillDone(aNewPieces);   // slot 204 (0x330)
 }
 
 // 0x8d2da8 (bejeweled3): the game's speed, 1 at the normal pace; Update eases it towards what the state asks for
@@ -386,6 +393,8 @@ void Board::LeaveToMenu()
 		mHintButton->SetDisabled(true);
 	if (mMenuButton != nullptr)
 		mMenuButton->SetDisabled(true);
+	if (mResetButton != nullptr)
+		mResetButton->SetDisabled(true);
 }
 
 // 0x767090 (bejeweled3). port: left out until its step: the dialogs that stop a step (ids 0x29, 0x2b and 0x27, and 0x17), the
@@ -408,7 +417,7 @@ void Board::UpdateTick()
 	for (size_t i = 0; i < aPending.size(); i++) {
 		Piece* aPiece = FindPieceById(aPending[i].mPieceId);
 		if (aPiece != nullptr)
-			StartSwap(aPiece, aPending[i].mRow, aPending[i].mCol);
+			StartSwap(aPiece, aPending[i].mRow, aPending[i].mCol, aPending[i].mForced);
 	}
 	UpdateGame();
 	UpdateShownScore();
@@ -431,12 +440,15 @@ void Board::UpdateGame()
 		return;   // 0x767f85: nothing else steps once the screen is leaving
 	// slot 101 (0x73c330) is 0 when no dialog holds the game: the game's own tick goes on
 	mGameTicks++;
+	if (mGameTicks % 100 == 0)
+		AddCounter(COUNTER_SECONDS, 1, -1);   // 0x768125: a second of play
 	StepSlideCurves();   // 0x767ad0: the slide curve of every piece (+0x198), before the match search
 	FindMatches();   // slot 201 (0x75af60)
 	if (mFillHeld == 0) {
 		// 0x73c9xx: the fill waits while a match is alive (the list at +0x125c)
 		if (!HasLiveMatches())
 			FillInBlanks(false);
+		UpdateMoveRecords();   // 0x76818e: 0x759840, between the fill (slot 0x32c) and the swaps (0x759ba0)
 		UpdateSwaps();
 		UpdateFalling();
 	}
@@ -452,6 +464,7 @@ void Board::UpdateGame()
 				aPiece->mSpecialCountdown--;
 		}
 	}
+	UpdateWarnings();   // slot 181
 	UpdateBusyPieces();
 	UpdatePiecePulses();   // 0x768f7b to 0x7690b8, before the call of 0x75dee0
 	UpdatePieceSpins();    // 0x7690d0 to 0x769149
@@ -470,7 +483,7 @@ void Board::UpdateGame()
 	// the hint: with the board at rest and nothing fading (+0x12c8 is 0) the timer counts to 15 * 100 (slot 106 is 15)
 	if (IsSettled() && HintAllowed()) {
 		mHintTimer++;
-		if (mHintTimer == 15 * 100)
+		if (mHintTimer == GetHintWaitSeconds() * 100)
 			ShowHint(false);
 	}
 	UpdateGameOver();   // the hold block (+0xd1c)
@@ -516,6 +529,18 @@ void Board::UpdateGame()
 // 0x75fca0 (bejeweled3). port: slot 140 (0x73c180) is a return, so the first settling calls nothing
 bool Board::IsSettled()
 {
+	if (!IsAtRest())
+		return false;
+	if (!mSettledOnce) {
+		mSettledOnce = true;
+		OnFirstSettled();   // 0x75fd15: slot 140
+	}
+	return true;
+}
+
+// 0x75fc10 (bejeweled3)
+bool Board::IsAtRest()
+{
 	if (mLandTicks != 0)
 		return false;
 	for (int aRow = 0; aRow < ROWS; aRow++) {
@@ -528,7 +553,6 @@ bool Board::IsSettled()
 		return false;
 	if (HasMatches())
 		return false;
-	mSettledOnce = true;
 	return true;
 }
 

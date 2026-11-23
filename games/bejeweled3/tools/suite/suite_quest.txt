@@ -1,0 +1,24 @@
+10 seed 7
+11 name Tester
+1200 unlock all
+1210 goto quest
+1300 state
+1301 screenshot @DIR@/quest_map.png
+1400 click 640 210
+1500 state
+1600 bot
+1900 screenshot @DIR@/quest_play.png
+4500 state
+4501 screenshot @DIR@/quest_lost.png
+4600 quest 3 Gems=40
+4700 bot
+8000 state
+8001 screenshot @DIR@/quest_won.png
+8100 quest done 0
+8101 quest done 1
+8102 quest done 2
+8200 goto quest
+8300 click 730 45
+8400 state
+8401 screenshot @DIR@/quest_map2.png
+8500 quit

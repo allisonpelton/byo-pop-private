@@ -6,6 +6,8 @@
 #include "Board.h"
 
 #include "Bej3App.h"
+#include "PIEffect.h"
+#include "Res.h"
 #include "X86Math.h"
 
 #include <algorithm>
@@ -247,7 +249,7 @@ void Board::MouseDrag(int x, int y)
 // for replays and the last move), which nothing translated reads. It is a request: the swap itself begins in the next
 // update (0x75ee20 is run by UpdateTick for the entries of the list at +0xc60, which the exe's live move reaches
 // the same way; whether the exe starts it in the very update of the click or the next one is not settled)
-bool Board::TrySwap(Piece* thePiece, int theRow, int theCol)
+bool Board::TrySwap(Piece* thePiece, int theRow, int theCol, bool theForced)
 {
 	if (!CanSwap(thePiece, (unsigned)theRow, (unsigned)theCol))
 		return false;
@@ -256,6 +258,7 @@ bool Board::TrySwap(Piece* thePiece, int theRow, int theCol)
 	aPending.mPieceId = thePiece->mId;
 	aPending.mRow = theRow;
 	aPending.mCol = theCol;
+	aPending.mForced = theForced;
 	mPendingSwaps.push_back(aPending);
 	mHintTimer = 0;   // port: a move asked for starts the hint's wait again (0x75f852 puts +0x26a4 to 0 in a function that reads the piece's +0x182)
 	// the piece has been spoken for: it is not picked up any more
@@ -301,6 +304,41 @@ MoveRecord* Board::NewMoveRecord()
 	return &mMoveRecords.back();
 }
 
+// 0x759840 (bejeweled3), see the header
+void Board::UpdateMoveRecords()
+{
+	for (size_t aIndex = 0; aIndex < mMoveRecords.size();) {
+		int anId = mMoveRecords[aIndex].mId;
+		if (!mMatchGroups.empty()) {
+			aIndex++;
+			continue;
+		}
+		bool aHeld = false;
+		for (int aRow = 0; aRow < ROWS; aRow++) {
+			for (int aCol = 0; aCol < COLS; aCol++) {
+				Piece* aPiece = mGrid[aRow][aCol];
+				if (aPiece == nullptr || aPiece->mColumnTag != anId)
+					continue;
+				if (!PieceIsSettled(aPiece)) {
+					aHeld = true;
+					continue;
+				}
+				aPiece->mColumnTag = -1;
+				aPiece->mMovedUpdate = 0;
+			}
+		}
+		for (int aCol = 0; aCol < COLS; aCol++) {
+			if (mColumnTag[aCol] == anId)
+				aHeld = true;
+		}
+		if (aHeld) {
+			aIndex++;
+			continue;
+		}
+		mMoveRecords.erase(mMoveRecords.begin() + aIndex);
+	}
+}
+
 MoveRecord* Board::FindMoveRecord(int theId)
 {
 	for (size_t i = 0; i < mMoveRecords.size(); i++) {
@@ -313,7 +351,7 @@ MoveRecord* Board::FindMoveRecord(int theId)
 // 0x75ee20 (bejeweled3), a plain gem moved by the player (the move's record is made, both pieces carry its id, the swap
 // begins). port: the counters of moves (+0x1374, +0x1370, +0x1371 at 0x75ee2f to 0x75ef10), the game's record, the
 // branches for the gems with the bits 0x1000 (the hypercube, which picks gems of its own) and the sounds are left out
-bool Board::StartSwap(Piece* thePiece, int theRow, int theCol)
+bool Board::StartSwap(Piece* thePiece, int theRow, int theCol, bool theForced)
 {
 	if (thePiece == nullptr || theRow < 0 || theRow >= ROWS || theCol < 0 || theCol >= COLS)
 		return false;
@@ -332,12 +370,14 @@ bool Board::StartSwap(Piece* thePiece, int theRow, int theCol)
 	if (aFirstIsCube && aOther != nullptr) {
 		if (!aOther->mClearable)
 			return false;
+		CountDownMoves();   // 0x75f85c
 		StartHypercube(thePiece, aOther);
 		return true;
 	}
 	if (aSecondIsCube) {
 		if (!thePiece->mClearable)
 			return false;
+		CountDownMoves();   // 0x75f8be
 		StartHypercube(aOther, thePiece);
 		return true;
 	}
@@ -352,6 +392,7 @@ bool Board::StartSwap(Piece* thePiece, int theRow, int theCol)
 	aSwap.mCurve.SetCurve(SWAP_CURVE);
 	aSwap.mIsSwapBack = false;
 	aSwap.mDone = false;
+	aSwap.mForced = theForced;
 	mSwaps.push_back(aSwap);
 	return true;
 }
@@ -427,11 +468,19 @@ void Board::UpdateSwaps()
 		int aMatches = FindMatches();
 		// FindMatches does not change the list of swaps
 		SwapRecord& aSame = mSwaps[i];
-		if (aMatches != 0) {
+		if (aMatches != 0 || aSame.mForced) {
+			// 0x75a49c: a forced swap (the exe's bVar2) is kept whether or not it made a match; 0x74c070, which starts with 0x73c7e0, is
+			// run for matches of a swap that is not forced (+0xf9), then slot 191 sees the swap in either case
+			SwapRecord aMatched = mSwaps[i];
 			mSwaps.erase(mSwaps.begin() + i);
+			if (aMatches != 0 && !aMatched.mForced)
+				CountDownMoves();   // 0x75a61e
+			OnSwapMatched(aMatched);
 			continue;
 		}
 		// nothing: back they go (the first one's place is now the second's, so its move is the other way)
+		if (!aSame.mForced)
+			OnSwapFailed(aSame);   // slot 192 (0x300)
 		aSame.mDone = false;
 		aSame.mIsSwapBack = true;
 		aSame.mDeltaCol = -aSame.mDeltaCol;
@@ -720,9 +769,9 @@ int Board::FindMatches()
 			aTarget->mRememberedColor = aTarget->mColor;
 		aTarget->mScaleCurve.SetConstant(1.0);
 	}
-	// slot 0x34c (0x73ba10) returns at once
 	for (size_t aClusterIndex = 0; aClusterIndex < aClusters.size(); aClusterIndex++) {
 		MatchCluster& aCluster = aClusters[aClusterIndex];
+		OnRunFound(aCluster.mPieces);   // slot 211 (0x34c)
 		Piece* aTarget = nullptr;
 		bool aFrozen = false;
 		for (size_t k = 0; k < aCluster.mPieces.size(); k++) {
@@ -906,7 +955,7 @@ void Board::DrawRingParticleRandoms()
 // 0x78a390 and what 0x76aaf0 spawns for a type 6 group are not translated
 void Board::UpdateMatchGroups()
 {
-	const bool aSlowMode = false;   // slot 0x1c4 (0x73c1f0): 0 in every board translated so far
+	const bool aSlowMode = IsSlowMode();   // slot 0x1c4 (0x73c1f0): 1 on the Zen board (0x70e3a0)
 	const bool aReplayFlag = false;   // +0x12f8: the saved-game and replay mode, which Classic's new game does not start
 	float aGlow = (float)((double)mGroupGlow - 0.019999999552965164);
 	if (aGlow <= 0.0f)
@@ -956,7 +1005,7 @@ void Board::UpdateMatchGroups()
 				RingCell& aCell = aGroup->mRingCells[k];
 				aCell.mTimer = (float)((double)aCell.mTimer + (aSlowMode ? 0.009999999776482582 : 0.014999999664723873));
 				if (aCell.mTimer >= 1.0f) {
-					// slot 0x314 (0x73bb40) is called with the cell and returns at once
+					OnCellHit(aCell.mCol, aCell.mRow);   // slot 0x314 with the cell (Board's 0x73bb40 returns at once; Wall Blast's goal takes it)
 					aGroup->mRingCells.erase(aGroup->mRingCells.begin() + k);
 					k--;
 				}
@@ -1042,7 +1091,7 @@ void Board::UpdateMatchGroups()
 					if (aFirst != nullptr) {
 						aFirst->mFlags &= ~4;
 						if ((aFirst->mFlags & 2) == 0) {
-							// slot 0x314 with the piece's cell, which returns at once
+							OnCellHit(aFirst->mCol, aFirst->mRow);   // slot 0x314 with the piece's cell (0x75ec41)
 							aFirst->mDestroyerFlags |= aFirst->mFlags;
 							aFirst->mBusyCount = 1;
 							aFirst->mDestroyerId = aFirst->mId;
@@ -1178,6 +1227,22 @@ void Board::Explode(int theX, int theY)
 	for (int aIndex = 0; aIndex < 9; aIndex++) {
 		int aDeltaX = OFFSETS[aIndex][0];
 		int aDeltaY = OFFSETS[aIndex][1];
+		// slot 197 (0x314) for the cell, before the piece is looked at: with the middle's piece it is that piece's cell moved by the offsets, without one the cell that
+		// holds the point (−1 where it is off the grid) for all nine
+		unsigned aHitCol;
+		unsigned aHitRow;
+		if (aCentre != nullptr) {
+			aHitCol = (unsigned)(aCentre->mCol + aDeltaX);
+			aHitRow = (unsigned)(aCentre->mRow + aDeltaY);
+		}
+		else {
+			const int aCentreX = theX - GetGridX();
+			const int aCentreY = theY - GetGridY();
+			aHitCol = aCentreX >= 0 && aCentreX < COLS * CELL ? (unsigned)(aCentreX / CELL) : 0xffffffffu;
+			aHitRow = aCentreY >= 0 && aCentreY < ROWS * CELL ? (unsigned)(aCentreY / CELL) : 0xffffffffu;
+		}
+		if (aHitCol < (unsigned)COLS && aHitRow < (unsigned)ROWS)
+			OnCellHit((int)aHitCol, (int)aHitRow);
 		Piece* aPiece = GetPieceAt((float)(aDeltaX * 128 + theX - GetGridX()), (float)(aDeltaY * 128 + theY - GetGridY()));
 		if (aPiece == nullptr || (aPiece->mBusyCount != 0 && aIndex != 8))
 			continue;
@@ -1204,6 +1269,7 @@ void Board::Explode(int theX, int theY)
 		else if ((aPiece->mFlags & 0x10) == 0) {
 			bool aFlameOnly = (aPiece->mFlags & Piece::FLAG_FLAME) != 0 && (aPiece->mFlags & Piece::FLAG_STAR) == 0;
 			if ((aFlameOnly || !ClearPiece(aPiece, aCentre)) && aPiece->mClearable) {
+				aPiece->mDestroyed = true;   // 0x73f8e0 sets +0x17d here
 				aPiece->mDestroyerId = aCentreId;
 				aPiece->mDestroyerFlags |= aCentreFlags;
 				AddPoints(20, aPiece->mColumnTag);
@@ -1221,6 +1287,52 @@ void Board::DrawExplosionRandoms()
 	const int aDraws = 14 * 10 + 25 * 10 + 14 * 6;
 	for (int aDraw = 0; aDraw < aDraws; aDraw++)
 		Rand();
+}
+
+// 0x7492c0 (bejeweled3): a piece that is not a butterfly yet loses its flags and the effects that hold it, takes the bit 0x80, gets the effects of
+// its flags (0x749220: for the bit 0x80 the butterfly's own, 0x748ad0) and the creation burst (a copy of PIEFFECT_BUTTERFLY_CREATE that follows it
+// and updates twice in each update). port: the three tints of the colour's layers and the sound at +0x5d8 of the app are left out
+void Board::MakeButterflyGem(Piece* thePiece)
+{
+	if ((thePiece->mFlags & Piece::FLAG_BUTTERFLY) != 0)
+		return;
+	thePiece->mFlags = 0;
+	for (Effect* anEffect : thePiece->mEffects) {
+		anEffect->mPieceId = 0;   // 0x71ffd0: the piece lets go of the effects that held it
+		anEffect->mUsers--;
+	}
+	thePiece->mEffects.clear();
+	thePiece->mFlags |= Piece::FLAG_BUTTERFLY;
+	MakeButterflyEffect(thePiece);
+	if (PIEFFECT_BUTTERFLY_CREATE != nullptr) {
+		ParticleEffect* aCreate = new ParticleEffect(PIEFFECT_BUTTERFLY_CREATE);
+		aCreate->mPieceId = thePiece->mId;
+		aCreate->mUpdateTwice = true;
+		mEffectsOver->Add(aCreate);
+	}
+}
+
+// 0x73c7e0 (bejeweled3), see the header
+void Board::CountDownMoves()
+{
+	for (int aRow = 0; aRow < ROWS; aRow++) {
+		for (int aCol = 0; aCol < COLS; aCol++) {
+			Piece* aPiece = mGrid[aRow][aCol];
+			if (aPiece == nullptr || (aPiece->mFlags & 0x140) != 0)
+				continue;
+			CountDownPiece(aPiece, false);   // slot 212
+		}
+	}
+}
+
+// slot 212 (0x350), 0x73c710 (bejeweled3), the base: a butterfly gem (not a bomb, bit 0x200) with moves left counts one down. The base's other branches are the bombs'
+// (TimeBombBoard::CountDownPiece)
+void Board::CountDownPiece(Piece* thePiece, bool theTick)
+{
+	if (theTick || thePiece->mTimeGemSeconds <= 0 || (thePiece->mFlags & 0x200) != 0)
+		return;
+	if ((thePiece->mFlags & Piece::FLAG_BUTTERFLY) != 0)
+		thePiece->mTimeGemSeconds--;
 }
 
 // 0x740f20 (bejeweled3), for the player's swap of a hypercube and a gem: the cube's group takes the colour of the gem. port: the sound,
@@ -1408,6 +1520,7 @@ void Board::DestroyPiece(Piece* thePiece)
 	if ((thePiece->mFlags & FLAGS_SPECIAL_SWAP) == 0)
 		AddPoints(0x32, thePiece->mColumnTag);
 	DrawSparkRandoms();
+	thePiece->mDestroyed = true;   // 0x74c770 ends with +0x17d set (a replay, +0x12f8, would not) and slot 176
 	RemovePiece(thePiece);
 }
 
@@ -1432,6 +1545,10 @@ void Board::DrawSparkRandoms()
 // it is higher, and so does the column's tag, which the fill gives to the pieces it makes; the cell is emptied
 void Board::RemovePiece(Piece* thePiece)
 {
+	if (OnPieceRemoving(thePiece))
+		return;
+	OnPieceClearing(thePiece, true);   // 0x755b80 first calls slot 142 (0x73d2b0) with the piece and 1: QuestBoard's override tells the goal, then Board's calls slot 143
+	OnPieceCleared(thePiece);
 	for (size_t i = 0; i < mSwaps.size();) {
 		SwapRecord& aSwap = mSwaps[i];
 		if (aSwap.mFirst == thePiece || aSwap.mSecond == thePiece) {
@@ -1489,6 +1606,16 @@ int Board::GetLevelMax() const
 	return mLevelIndex * 0x2ee + 0x9c4;
 }
 
+// slot 188 (0x2f0), 0x744b10 on Board: the level bar's target is the progress over the level's size, at most 1, 0 when the size is 0
+float Board::GetBarTarget()
+{
+	int aMax = GetLevelMax();
+	if (aMax == 0)
+		return 0.0f;
+	float aTarget = (float)GetLevelProgress() / (float)aMax;
+	return aTarget > 1.0f ? 1.0f : aTarget;
+}
+
 // 0x74df80 with 0x74a210 (bejeweled3): the points times the level number (+0xe0c, when theUsesMultiplier) go up in steps of 10.
 // For each step, when theCountsForProgress: the level bar's progress (+0xe00) rises by the 0.8 power of what the move has made
 // (the move's points counter over the level's multiplier, +0xe04 + 1) with this step, less the same without it, times 3. Each step is
@@ -1500,7 +1627,7 @@ void Board::AddPoints(int thePoints, int theMoveId, bool theCountsForProgress, b
 		return;
 	float aMultiplier = theUsesMultiplier ? (float)mLevelNumber : 1.0f;
 	int aLeft = Ftol((double)((float)thePoints * aMultiplier));
-	float aLevelFactor = (float)mLevelIndex + 1.0f;   // slot 122 (0x73af50, Classic's: +0xe04 + 1)
+	float aLevelFactor = GetLevelFactor();   // slot 122 (0x73af50, Classic's: +0xe04 + 1; Zen 0x70e330: 1; Speed 0x714090: 5)
 	while (aLeft > 0) {
 		int aChunk = aLeft < 10 ? aLeft : 10;
 		if (theCountsForProgress) {

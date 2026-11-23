@@ -81,8 +81,23 @@ void Board::MakeSpecialEffect(Piece* thePiece)
 {
 	if ((thePiece->mFlags & Piece::FLAG_STAR) != 0)
 		MakeStarEffects(thePiece);
+	else if ((thePiece->mFlags & Piece::FLAG_BUTTERFLY) != 0)
+		MakeButterflyEffect(thePiece);
 	else if ((thePiece->mFlags & Piece::FLAG_HYPERCUBE) != 0)
 		MakeHypercubeEffect(thePiece);
+}
+
+// 0x748ad0 (bejeweled3): a looping copy of PIEFFECT_BUTTERFLY follows the piece, over the gems; the piece does not hold it. port: the tint of
+// the two layers by the gem's colour (0x56fc40, 0x565f40: +0x80 to +0x8c of an emitter) is left out
+void Board::MakeButterflyEffect(Piece* thePiece)
+{
+	if (PIEFFECT_BUTTERFLY == nullptr)
+		return;
+	ParticleEffect* anEffect = new ParticleEffect(PIEFFECT_BUTTERFLY);
+	anEffect->mPieceId = thePiece->mId;
+	anEffect->mEffect->mLoop = true;
+	anEffect->mPieceMatrix = false;
+	mEffectsOver->Add(anEffect);
 }
 
 // 0x749050 (bejeweled3), run by 0x7494d0 for a new Star Gem: two copies of PIEFFECT_STARGEM follow the piece, each held by it (users +1, in
