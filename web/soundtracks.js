@@ -213,8 +213,9 @@ var ByopopSoundtracks = {
       "BeyondNetwork#6": "Order 217; 500 updates after the hyperspace jump to the last planet of a non-secret Puzzle galaxy"
     },
     unused: ["BeyondNetwork#7"],
-    // the pieces run on from one to the next (next), the last back to the first, so a game goes round both modes' pieces;
-    // a Classic, Endless or Twilight game starts at Classic Mode 1's first, any other at Action Mode 1 (series: each mode's own)
+    // the pieces run on from one to the next (next), and each mode's last piece runs on into the other mode's first, so a
+    // game goes round both modes' pieces; a Classic, Endless or Twilight game starts at Classic Mode 1's first, any other at
+    // Action Mode 1 (series: each mode's own, the user's "for each of its modes")
     loops: ["BeyondNetwork#5", "BeyondNetwork#2", "BeyondNetwork#6"],
     next: { "BeyondNetwork#1": "BeyondNetwork#1@11", "BeyondNetwork#1@11": "BeyondNetwork#1@22",
       "BeyondNetwork#1@22": "BeyondNetwork#1@30", "BeyondNetwork#1@30": "BeyondNetwork#1@42",
@@ -617,8 +618,8 @@ var ByopopSoundtracks = {
       "intense": "The game screen opens in mode 2 (drums.xml); modes 0 and 1 use other clips",
       "intenseEnd": "The game-over results show (or the congratulations screen after mode 0's last level)"
     },
-    // (intenseEnd is the drums layer's last clip, which a fading stop never reaches, and the game's end starts the
-    // shaku clips: it may never be heard; kept as the table's game-over tune)
+    // (intenseEnd is the drums layer's last clip, and the game's own stop fades the layer out before its last clip, so the
+    // game may never play it: the game over starts game-over-music.xml instead; kept as the table's game-over tune)
     loops: ["menuMusic", "intense"],
     once: ["intenseEnd"],
     stings: ["intenseEnd"],
