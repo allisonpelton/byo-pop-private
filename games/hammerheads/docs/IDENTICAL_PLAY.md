@@ -261,6 +261,10 @@ The driver's clicks on the summaries, the trophy award and the shop are found by
 a screen where none changes the state stops the run (none did after the driver waited out the wipes). The king's defeat and the
 game-won screen are reached by the test commands (`set kings`, `win`) in the autosplit logs, not by the bot.
 
+Run again on 2026-11-22 for the screens pass's branch (seed 1, `--heal`, the current build): Classic from launch to the king, 3698 moves, lost there
+(434 s); Tough Cookie 4765 moves, lost to the king (529 s); Marathon 3000 moves, the limit (281 s); all exit 0 and no screen where the driver
+stopped. (A first Marathon run was left uncapped by mistake and ran to 25606 moves, level 159, before it was stopped; Marathon has no end.)
+
 ### Real input, on the page
 
 `games/hammerheads/tools/web/onegame.js` is the same driver as a page driver (the Browser pane, `hammerheads.html?player=1&assets=1&hold=1&fast=1&silent=1&driver=games/hammerheads/tools/web/onegame.js&mode=<m>&heal=1&moves=<n>`):
@@ -269,6 +273,15 @@ Classic ran from the loading screen to its last level and the king (3767 moves, 
 same (3736 moves), Marathon 3000 moves, and a Classic run to level 6 lost and regained the focus once; no page error in any of them,
 and the screens met are the native run's (name box, how-to-play, introductions, Ready boxes, shops, bonus rounds with their finished
 box, Game Over). The Browser pane cannot enter full screen, so the page is checked at the sizes `pagecheck` draws it at (11 pass).
+
+Run again on 2026-11-22 on this branch's web build (`wordharmony-webtest`'s server, `serve.py`, in the Browser pane, `?silent=1`): Classic
+from the loading screen to the king, 4027 moves, ended on the Game Over box (388 s, no page error); Tough Cookie 3747 moves, lost, Game
+Over box (509 s, none); Marathon 3000 moves, the limit (318 s, none); `pagecheck.js` 11 pass, 0 fail (1 info: the browser keys the
+game takes). The pane's behaviour to know: a `player=1&assets=1` page keeps the renderer busy for about five minutes after the load
+starts (the wasm's compile and the import in a background page on a loaded machine: `hammerheads.wasm` arrived at 83 s and the file
+list was asked for at 304 s), so every probe in that time times out at 45 s; Bejeweled's page, the control, did the same and answered
+at about 330 s. It is the pane and the machine, not this game: wait the five minutes, then probe with short calls (timers in the page
+run, so a driver's result is there when it is done). `?silent=1` alone, with the files imported by hand, answered at once.
 
 ### Open
 
@@ -326,7 +339,7 @@ board, the game menu, the leave question, the menu after leaving, a Classic game
 | --- | --- | --- | --- |
 | The original could not read a player's file the port wrote, nor the port one the original wrote | the original writes its XML in pieces, each with its length in front (a little-endian 16-bit number); the port wrote and read plain XML | `XmlNode::ToChunkedFileText` and `FileTextOf`: the port reads both forms and writes the original's | 30710ae9 |
 | The High Scores page was gone the moment the player left it: the first five frames of the zoom wipe showed the hammer on black, where the original's screen still shows the page behind the hammer (its uncovered pixels are not cleared) | the port killed the table's dialog before it started the wipe (the export does the same, but the original's screen is not cleared between frames); the wipe's callback, `HighScoresToMainMenu`, kills it again | the table stays until the callback | this branch |
-| `goto <mode>` (the site's screen saver) stayed on the loading screen | `StartTestGame` left the loading screen up | it drops a loading screen whose files are loaded | this branch |
+| `goto <mode>` (the site's screen saver) stayed on the loading screen | `StartTestGame` left the loading screen up | it drops a loading screen whose files are loaded (checked on the web build, 2026-11-22, `?silent=1` in the Browser pane: on the loading screen `goto classic` went to the Classic level 1 introduction) | this branch |
 
 ### The word "Deluxe" removed (the user, 2026-11-18)
 

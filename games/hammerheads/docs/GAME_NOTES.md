@@ -75,8 +75,9 @@ a `click` and ten updates' wait, which is what a player's click does.
   either game reads the other's files (`XmlLite`, `ProfileFile.cpp`).
 - **A High Scores page left for the menu stays under the zoom wipe's first frames** (the original's uncovered pixels are not cleared
   between frames, the port's are), as the original shows it.
-- **Oddity (screens pass): an animation driven by a counter in a long sandbox scenario** is at another age than the port's (see
-  `IDENTICAL_PLAY.md`, "The screens pass", C).
+- **Not a deviation (screens pass, C): an animation driven by a counter in a long sandbox scenario** showed another age than the
+  port's because the sandbox's shot landed at an earlier update than its label (`landed.tsv`); read through the game's own draw
+  surface on the host the shots agree (`IDENTICAL_PLAY.md`, "The screens pass", C).
 
 ## Left out (nothing in play can reach it)
 
@@ -225,6 +226,11 @@ counts charge, in the part of the 16.7 ms frame where it lands. So the port's pr
 is not counted, and above it by a tenth in the runs where it is. The fix is the framework's, the same for every game with a GPU
 present (a present that does not wait, the frame loop's own pace, which `DDInterface` already has as `pace_ms`): sent to the
 coordinator with these numbers. Nothing in the game's own code is slower than the original's: the draw is 0.09 M against 1.73 M.
+
+Measured again on 2026-11-22 after the screens pass (the Deluxe cover, the High Scores wipe, the chunked player files), three pairs, the
+port against the paced original, `pairs.sh 3 total`: 1.44, 1.76 and 2.81 M cycles an update against the original's 2.19, 2.00 and 1.99
+(ratios 0.66, 0.88, 1.41; median 0.88). The spread is the present's busy wait (above), the same as in the first measurement; the
+median stays under the original's. Coverage was not run again: the changes add no function the original has and remove none.
 
 ## Unneeded code
 
