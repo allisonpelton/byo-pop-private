@@ -226,6 +226,11 @@ is not counted, and above it by a tenth in the runs where it is. The fix is the 
 present (a present that does not wait, the frame loop's own pace, which `DDInterface` already has as `pace_ms`): sent to the
 coordinator with these numbers. Nothing in the game's own code is slower than the original's: the draw is 0.09 M against 1.73 M.
 
+Measured again on 2026-11-22 after the screens pass (the Deluxe cover, the High Scores wipe, the chunked player files), three pairs, the
+port against the paced original, `pairs.sh 3 total`: 1.44, 1.76 and 2.81 M cycles an update against the original's 2.19, 2.00 and 1.99
+(ratios 0.66, 0.88, 1.41; median 0.88). The spread is the present's busy wait (above), the same as in the first measurement; the
+median stays under the original's. Coverage was not run again: the changes add no function the original has and remove none.
+
 ## Unneeded code
 
 The linker's list of discarded sections (an -O0 build with `-ffunction-sections -fdata-sections` and `--gc-sections --verbose`,

@@ -274,6 +274,15 @@ same (3736 moves), Marathon 3000 moves, and a Classic run to level 6 lost and re
 and the screens met are the native run's (name box, how-to-play, introductions, Ready boxes, shops, bonus rounds with their finished
 box, Game Over). The Browser pane cannot enter full screen, so the page is checked at the sizes `pagecheck` draws it at (11 pass).
 
+Run again on 2026-11-22 on this branch's web build (`wordharmony-webtest`'s server, `serve.py`, in the Browser pane, `?silent=1`): Classic
+from the loading screen to the king, 4027 moves, ended on the Game Over box (388 s, no page error); Tough Cookie 3747 moves, lost, Game
+Over box (509 s, none); Marathon 3000 moves, the limit (318 s, none); `pagecheck.js` 11 pass, 0 fail (1 info: the browser keys the
+game takes). The pane's behaviour to know: a `player=1&assets=1` page keeps the renderer busy for about five minutes after the load
+starts (the wasm's compile and the import in a background page on a loaded machine: `hammerheads.wasm` arrived at 83 s and the file
+list was asked for at 304 s), so every probe in that time times out at 45 s; Bejeweled's page, the control, did the same and answered
+at about 330 s. It is the pane and the machine, not this game: wait the five minutes, then probe with short calls (timers in the page
+run, so a driver's result is there when it is done). `?silent=1` alone, with the files imported by hand, answered at once.
+
 ### Open
 
 - The 3D variant and full screen of every screen are not compared: the sandbox runs the original windowed in software 2D (the
