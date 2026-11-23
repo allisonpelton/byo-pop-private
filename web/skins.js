@@ -1017,7 +1017,10 @@ var ByopopSkin = (function () {
       menu.className = "d95-menu"; menu.id = "d95-pop-menu"; menu.hidden = true;
       menu.setAttribute("role", "menu"); menu.setAttribute("aria-labelledby", "d95-pop");
       var band = document.createElement("div"); band.className = "d95-band"; band.setAttribute("aria-hidden", "true");
-      var bandText = document.createElement("span"); bandText.textContent = T("skin.pop.band"); band.appendChild(bandText);
+      // the name in two colours, as Windows 95's banner had "Windows" in grey and "95" in white (skins.css): up to its last hyphen, then the rest
+      var bandText = document.createElement("span"), name = T("skin.pop.band"), cut = name.lastIndexOf("-") + 1;
+      var first = document.createElement("span"); first.className = "d95-band-1"; first.textContent = name.slice(0, cut);
+      bandText.appendChild(first); bandText.appendChild(document.createTextNode(name.slice(cut))); band.appendChild(bandText);
       list = document.createElement("div"); list.className = "d95-items";
       menu.appendChild(band); menu.appendChild(list);
       sub = document.createElement("div");

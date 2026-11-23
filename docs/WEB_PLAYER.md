@@ -339,10 +339,20 @@ on giving every message box's default button its black frame).
 **The logo** stands at the desktop's bottom right, above the task bar, under every icon and window (the user, 2026-11-23:
 "move the byo-pop logo to the bottom right"), where the icons' columns, filled from the top left, do not reach it at 800 by
 600, 1024 by 768, wider or narrow. It is still a drop target for game folders. The windows' first places start 12 pixels
-under the desktop's top edge (`top()` in `web/index.html`). **A box's buttons** (message boxes, the Splits dialogs, a
-game's Properties) are Windows 95's: the button Enter takes, which is the focused one or else the box's default (the class
-`d95-def`), has the black frame at its edge, so the frame moves with the focus from button to button and comes back to the
-default when the focus goes to a field; the focused one has the dotted rectangle from the box's opening on.
+under the desktop's top edge (`top()` in `web/index.html`). **Title bars and the Pop band** are Windows 95's (item 10,
+2026-11-23): the active title bar in one colour, not Windows 98's gradient (a scheme's second title colour is kept in
+`web/schemes.js` for a 98 look), and the Pop menu's band 21 pixels wide in the shadow grey, the name's first part up to its
+last hyphen in the face grey and the rest in white, as a real Windows 95 screenshot shows the Start menu's banner.
+**A dialog's buttons** are Windows 95's: in the message boxes, the Splits dialogs, a game's Properties, Setup and the save
+import, a row's buttons are 75 by 23 pixels. The button Enter takes, which is the focused push button or else the dialog's
+default (the class `d95-def`: a box's last button, Setup's and the import's Next; or a page's `primary`), has the black
+frame at its edge, so the frame moves with the focus from button to button and comes back to the default when the focus
+goes to a field; Enter on anything but a button, a link, a list box or a text area presses Setup's and the import's Next.
+**The focus** shows its dotted rectangle on the focused control from the first click on, as Windows 95 did, with no wait
+for a key (hiding it until a key came with Windows 2000): a button, a list box, a check box, a link, a list's item, an
+icon's name, and the Pop button while its menu is open. A text field shows only its caret, as Windows 95's edit boxes did;
+a menu's item shows its highlight alone; a title bar's buttons and the tray's speaker, which Windows never focused, show
+it only for a key.
 
 **Windows.** A page is a desktop (`ByopopSkin.desk`) whose game, chat and panels are windows, added with
 `ByopopSkin.desk.add(element, {id, title, ...})`. The desktop never scrolls, and F6 moves between its panes. Alt+\`
