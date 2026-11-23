@@ -905,7 +905,7 @@ var ByopopFontView = (function () {
     bar3.appendChild(labelled(T("fontview.back"), backPick));
     bar3.appendChild(labelled(T("fontview.zoom"), zoomPick));
     bar3.appendChild(tagBox);
-    var facts = make("dl", "fv-facts"), sheet = make("div", "fv-sheet"), status = make("div", "fv-status");
+    var facts = make("dl", "fv-facts"), sheet = make("div", "fv-sheet"), status = make("footer", "fv-status");
     el.appendChild(bar1); el.appendChild(bar2); el.appendChild(bar3); el.appendChild(facts); el.appendChild(sheet); el.appendChild(status);
 
     var game = null, fonts = [], font = null, files = null, busy = 0, tags = [];

@@ -1561,7 +1561,16 @@ front page look like a game's).
 
 **Desktop 95's windows** are what a screen reader meets on the front page, and its scripts build them. Each is a region
 named by its title bar, whose text is the window's `h2` under the page's one `h1`, so the heading keys go from window to
-window. A panel that the narrow page shows as a tab (Music, Settings, and the Settings sections) drops its `tabpanel`
+window. A window is a `section` (a region by being named, with no role written) and its title bar the section's `header`
+(a `div` in System Information's `footer` and in a dialog, where a `header` would be a second banner for the page); a
+box or a sheet that opens over the desktop is a `dialog` (the message boxes, Properties, the volume, the copy, the
+shutdown screen, and a game page's cards); a status bar is the window's `footer`. The task bar is a `nav`, its clock a
+`time`. Every menu (the Pop menu and its games, the context menus, a window's menu bar) is a `menu` with the menu role, each
+entry in an `li` that is no item to a screen reader (role `none`) and lays no box (`web/skins.css`), and a rule between
+entries is an `hr`. On the desktop the windows are moved into the listing's `main`, which draws nothing of its own, so the
+page keeps its main landmark (`web/skins.js`, `mainOf`); System Information's `footer` and the chat's `aside` stay beside
+it. Lists of things (the Library's games, Splits' segments) are tables, the Library's a grid whose names are its rows'
+headers. A panel that the narrow page shows as a tab (Music, Settings, and the Settings sections) drops its `tabpanel`
 role while it is a window. A landmark of its own (the games' `main`, System Information's `footer`, the chat's `aside`) keeps its
 role and takes the title as its name. A heading inside the window that repeats the title goes quiet: a screen-reader-only
 one is hidden, and a visible one (the chat's collapser) loses its heading role. When the desktop goes, every attribute is
@@ -1603,6 +1612,25 @@ again. After each step the game's picture must start at its area's top left and 
 desktop has room for that window and at 1x where it has not, and have its whole window on the desktop at 2x; the status bar
 must give the multiple drawn, and the View menu keep 2x ticked, greyed where it does not fit. It puts the choice of scale and
 the desktop's layout back at the end.
+
+### Site shots
+
+`tools/web/siteshots.js` takes shots of the site itself for a before-and-after comparison with `tools/shotdiff`: the
+desktop as it starts, each of its windows open alone, the Pop menu, the desktop's context menu, a message box, and the
+pages that open as windows (the terms, a game's copyright page, a game without its files). It shoots at a desktop's size,
+a phone's width and each at 200% zoom, in the standard scheme and in grape, and the pages in frames in the browser's dark
+scheme too. It runs headless Edge over the DevTools protocol, each page in a fresh browser context, on a fixed clock and a
+seeded `Math.random`. With `--audit` it also lists, for each shot, every element that takes clicks or keys (by the
+browser's own list of its listeners) and is not a control, every field with no name, every role a native element would give
+or that repeats its element's own, and every picture a screen reader would read.
+
+**The guard** is the same audit with `--check` (`unit-web`, about a minute, one browser): the desktop at a desktop's size,
+each window, the menus, a message box and the three pages in windows, with no shot taken. It fails on any of those faults
+except the ones it lists with their reasons: a window's title bar and the task bar, which take a double click and a right
+click as Windows 95's did, each a pointer's way to a button or a menu that the keyboard reaches too; Windows 95's block
+progress bars, which tell their value in words; and Music's display, which holds the tracker's own scroll bar and so cannot
+be a button. A key handler on a list that is not focusable (Music's tunes, the Library) counts as the list hearing its own
+controls' keys.
 
 ## The site's text
 

@@ -334,7 +334,7 @@ var ByopopBuildings = (function () {
     bar1.appendChild(save);
     bar2.appendChild(labelled(T("buildings.back"), backPick));
     bar2.appendChild(labelled(T("buildings.zoom"), zoomPick));
-    var well = make("div", "fv-sheet vb-well"), status = make("div", "fv-status");
+    var well = make("div", "fv-sheet vb-well"), status = make("footer", "fv-status");
     el.appendChild(bar1); el.appendChild(bar2); el.appendChild(well); el.appendChild(status);
 
     var data = null, busy = 0, shown = null;

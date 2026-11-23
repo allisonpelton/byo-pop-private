@@ -124,7 +124,8 @@ var ByopopApps = (function () {
     // a game's menu bar, as a Windows 95 program's (the user, 2026-11-09: "don't hide everything under "Game""): Game, View,
     // Options and Help (barMenus), each with its access key, the first letter underlined (Alt and the letter, menuKey)
     if (kind === "game") {
-      var bar = document.createElement("div"); bar.className = "d95-menubar"; bar.setAttribute("role", "menubar");
+      // (a list of the menus' buttons, each in an item that is no item to a screen reader, as the desktop's menus are)
+      var bar = document.createElement("menu"); bar.className = "d95-menubar"; bar.setAttribute("role", "menubar");
       app.bar = [];
       BAR.forEach(function (m, i) {
         var b = document.createElement("button"); b.type = "button"; b.className = "d95-menubar-item"; b.setAttribute("role", "menuitem");
@@ -135,7 +136,7 @@ var ByopopApps = (function () {
         b.setAttribute("aria-keyshortcuts", "Alt+" + name.charAt(0).toUpperCase());
         app.bar.push({ el: b, letter: name.charAt(0).toLowerCase() });
         b.addEventListener("click", function () { openBar(app, i); });
-        bar.appendChild(b);
+        var li = document.createElement("li"); li.setAttribute("role", "none"); li.appendChild(b); bar.appendChild(li);
       });
       el.appendChild(bar);
     }

@@ -221,11 +221,12 @@ var ByopopSplits = (function () {
 
     var el = make("section", "spl-win");
     el.id = "splits";
-    var bar = make("div", "d95-menubar"); bar.setAttribute("role", "menubar");
+    var bar = make("menu", "d95-menubar"); bar.setAttribute("role", "menubar");
     el.appendChild(bar);
     var head = make("div", "spl-head"), gameEl = make("div", "spl-game"), catEl = make("div", "spl-cat"), triesEl = make("div", "spl-tries");
     head.appendChild(gameEl); head.appendChild(catEl); head.appendChild(triesEl);
-    var list = make("div", "spl-list"); list.setAttribute("role", "table");
+    // the segments: a table of rows, each the segment's name, its difference and its time (web/skins.css lays it out as before)
+    var list = make("table", "spl-list");
     var timerEl = make("div", "spl-timer");
     var foot = make("div", "spl-foot");
     var prevRow = make("div", "spl-stat"), prevVal = make("span", "spl-val");
@@ -290,9 +291,8 @@ var ByopopSplits = (function () {
       run.segments.forEach(function (sg, i) {
         var r = rows[i];
         if (!r) {
-          r = make("div", "spl-row"); r.setAttribute("role", "row");
-          r.appendChild(make("span", "spl-name")); r.appendChild(make("span", "spl-delta")); r.appendChild(make("span", "spl-time"));
-          r.children[0].setAttribute("role", "cell"); r.children[1].setAttribute("role", "cell"); r.children[2].setAttribute("role", "cell");
+          r = make("tr", "spl-row");
+          r.appendChild(make("td", "spl-name")); r.appendChild(make("td", "spl-delta")); r.appendChild(make("td", "spl-time"));
           list.appendChild(r);
         }
         var done = i < att.times.length, t = done ? att.times[i] : null, cmp = compareAt(i, k);
@@ -670,7 +670,7 @@ var ByopopSplits = (function () {
       var name = T(mn.key), u = make("u", null, name.charAt(0));
       b.appendChild(u); b.appendChild(document.createTextNode(name.slice(1)));
       b.addEventListener("click", function () { openMenu(i); });
-      bar.appendChild(b); barItems.push(b);
+      var li = document.createElement("li"); li.setAttribute("role", "none"); li.appendChild(b); bar.appendChild(li); barItems.push(b);
     });
     // Alt and a menu's letter while the window has the focus
     el.addEventListener("keydown", function (ev) {

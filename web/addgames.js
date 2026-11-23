@@ -394,7 +394,7 @@ var ByopopAddGames = (function () {
     // coming, not whether they are a folder or a .zip, so its words fit any, and the drop sorts them as before.
     var zone = null, zoneTimer = 0, zoneDepth = 0;
     function onDesk(t) {
-      return !!setup() && !!t && !!t.closest && !t.closest(".d95-win, .d95-taskbar, .d95-menu, .d95-ctx, #logo-drop, [role=dialog]");
+      return !!setup() && !!t && !!t.closest && !t.closest(".d95-win, .d95-taskbar, .d95-menu, .d95-ctx, #logo-drop, dialog, [role=dialog]");
     }
     function showZone(on, ev) {
       if (on && !zone) zone = dropZone();

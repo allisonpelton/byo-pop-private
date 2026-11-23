@@ -1479,14 +1479,14 @@ var ByopopMusic = (function () {
     root.textContent = "";
     root.classList.add("mu");
     // The menu bar, as a player's window had one: Options (optionsMenu), with Alt and its letter
-    var menuBar = make("div", "d95-menubar mu-menubar");
+    var menuBar = make("menu", "d95-menubar mu-menubar");
     menuBar.setAttribute("role", "menubar");
     var optName = T("music.menu.options"), optBtn = make("button", "d95-menubar-item");
     optBtn.type = "button"; optBtn.setAttribute("role", "menuitem"); optBtn.setAttribute("aria-haspopup", "menu");
     optBtn.appendChild(make("u", null, optName.charAt(0)));
     optBtn.appendChild(document.createTextNode(optName.slice(1)));
     optBtn.setAttribute("aria-keyshortcuts", "Alt+" + optName.charAt(0).toUpperCase());
-    menuBar.appendChild(optBtn);
+    var optItem = make("li"); optItem.setAttribute("role", "none"); optItem.appendChild(optBtn); menuBar.appendChild(optItem);
     root.appendChild(menuBar);
     var player = make("div", "mu-player");
     root.appendChild(player);

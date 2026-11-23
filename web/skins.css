@@ -475,7 +475,10 @@ html.d95-desk .panel.d95-win > .body { min-height: 0; }
 /* the logo at the desktop's bottom right above the task bar, clear of the icons, which fill their columns from the top left
    (the user, 2026-11-23: "move the byo-pop logo to the bottom right"); on the desktop's own layer, under the icons and windows */
 html.d95-desk .site-header { position: fixed; right: 12px; bottom: 42px; z-index: 0; max-width: none; margin: 0; padding: 0; }
-html.d95-desk main.listing { display: none; }
+/* the listing's main holds the desktop's windows (web/skins.js, mainOf) and draws nothing of its own: the windows are laid out
+   as the page's own, and the listing itself is not shown */
+html.d95-desk main.listing { display: contents; }
+html.d95-desk main.listing > :not(.d95-win) { display: none; }
 html.d95-desk body > footer.d95-win { width: min(640px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); color: var(--fg); }
 html.d95-desk body > footer.d95-win .d95-body { padding: 4px 9px 6px; }
 /* System Information (web/sysinfo.js, in the listing page's footer): Windows 95's System Properties, a property sheet of three
@@ -587,6 +590,11 @@ html.d95-desk .d95-item[aria-disabled=true]:focus { background: var(--accent); c
 /* the games' entry: a black triangle pointing right */
 html.d95-desk .d95-has-sub::after { content: ""; position: absolute; right: 8px; top: 50%; margin-top: -4px;
   border: 4px solid transparent; border-left-color: currentColor; border-right: 0; }
+/* a menu is a list (web/skins.js, menuEntry): its entries' list items lay no box, so the entries are drawn as the menu's own
+   children, and the list's own indent, bullets and margins and an hr's own rule give way to the desktop's drawing */
+html.d95-desk :is(.d95-menu, .d95-items) > li { display: contents; }
+:where(html.d95-desk menu) { margin: 0; padding: 0; list-style: none; }
+:where(html.d95-desk hr) { margin: 0; border: 0; }
 html.d95-desk .d95-rule { height: 0; margin: 3px 2px; border-top: 1px solid var(--sk-lo); border-bottom: 1px solid var(--sk-hi); }
 /* A window's picture outside the desktop (web/skins.js, picOf and drawnPic): its desktop icon's, drawn by the same rules, at
    32 x 26 in the Pop menu's first level and at half that (d95-pic-sm) as the window's small icon, in its title bar, on its
@@ -612,25 +620,25 @@ html.d95-desk .d95-pic-size > i::after { left: auto; right: 3px; top: auto; bott
 /* The Pop menu's entries, as 1995's Start menu: a large picture on the first level, a small one in the lists beside it, each in
    a column of its own so that the names line up; a choice of several (the game's sizes) keeps its dot instead */
 html.d95-desk .d95-item-pic { flex: none; display: flex; align-items: center; justify-content: center; }
-html.d95-desk .d95-items > .d95-item { min-height: 36px; padding: 2px 22px 2px 4px; gap: 6px; }
-html.d95-desk .d95-items > .d95-item > .d95-item-pic { width: 34px; height: 32px; }
-html.d95-desk .d95-sub > .d95-item { min-height: 22px; padding: 1px 22px 1px 4px; gap: 5px; }
-html.d95-desk .d95-sub > .d95-item > .d95-item-pic { width: 18px; height: 16px; }
-html.d95-desk .d95-menu-small > .d95-items > .d95-item { min-height: 22px; padding: 1px 22px 1px 4px; gap: 5px; }
-html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic { width: 18px; height: 16px; }
-html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic > .d95-pic { width: 16px; height: 13px; margin: 1px 0 2px; }
-html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic > .d95-pic > i { transform: scale(.5); transform-origin: 0 0; }
+html.d95-desk .d95-items > li > .d95-item { min-height: 36px; padding: 2px 22px 2px 4px; gap: 6px; }
+html.d95-desk .d95-items > li > .d95-item > .d95-item-pic { width: 34px; height: 32px; }
+html.d95-desk .d95-sub > li > .d95-item { min-height: 22px; padding: 1px 22px 1px 4px; gap: 5px; }
+html.d95-desk .d95-sub > li > .d95-item > .d95-item-pic { width: 18px; height: 16px; }
+html.d95-desk .d95-menu-small > .d95-items > li > .d95-item { min-height: 22px; padding: 1px 22px 1px 4px; gap: 5px; }
+html.d95-desk .d95-menu-small > .d95-items > li > .d95-item > .d95-item-pic { width: 18px; height: 16px; }
+html.d95-desk .d95-menu-small > .d95-items > li > .d95-item > .d95-item-pic > .d95-pic { width: 16px; height: 13px; margin: 1px 0 2px; }
+html.d95-desk .d95-menu-small > .d95-items > li > .d95-item > .d95-item-pic > .d95-pic > i { transform: scale(.5); transform-origin: 0 0; }
 /* an app's own icon (web/appicons.js, drawn by tools/appicons.py; web/skins.js, appPic): the 32-pixel picture on the desktop and
    in the Pop menu's first level, the 16-pixel one in title bars, on task bar buttons and in the menus' lists, each its own
    drawing at whole pixels, never one scaled to the other's size */
 html.d95-desk .d95-pic.d95-appicon { width: 32px; height: 32px; margin: 0; }
 html.d95-desk .d95-pic.d95-appicon.d95-pic-sm,
-html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic > .d95-pic.d95-appicon { width: 16px; height: 16px; margin: 0; }
+html.d95-desk .d95-menu-small > .d95-items > li > .d95-item > .d95-item-pic > .d95-pic.d95-appicon { width: 16px; height: 16px; margin: 0; }
 html.d95-desk .d95-appicon > span, html.d95-desk .d95-appicon svg, html.d95-desk .d95-icon-app > i > svg { display: block; }
 html.d95-desk .d95-appicon > .d95-appicon-16,
-html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic > .d95-appicon > .d95-appicon-32 { display: none; }
+html.d95-desk .d95-menu-small > .d95-items > li > .d95-item > .d95-item-pic > .d95-appicon > .d95-appicon-32 { display: none; }
 html.d95-desk .d95-appicon.d95-pic-sm > .d95-appicon-16,
-html.d95-desk .d95-menu-small > .d95-items > .d95-item > .d95-item-pic > .d95-appicon > .d95-appicon-16 { display: block; }
+html.d95-desk .d95-menu-small > .d95-items > li > .d95-item > .d95-item-pic > .d95-appicon > .d95-appicon-16 { display: block; }
 html.d95-desk .d95-icon.d95-icon-app > i { width: 32px; height: 32px; background: none; box-shadow: none; }
 /* (6 pixels taller than the little window, so its name sits 2 pixels under it, not 4: a name on two lines, as System
    Information's, still ends within the icon's 64-pixel row) */
@@ -782,7 +790,7 @@ html.fs-frame.d95-desk .stage > canvas#canvas { flex: none; width: var(--fs-w, 1
 /* a menu's ticked choice (the game window's sizes): the 1995 dot before it */
 html.d95-desk .d95-radio { position: relative; }
 /* a menu with ticked choices keeps a gutter for the dot before every entry, as 1995's menus did */
-html.d95-desk .d95-menu:has(.d95-radio) > .d95-item:not(#\#), html.d95-desk .d95-menu.d95-has-ticks > .d95-item:not(#\#) { padding-left: 22px; }
+html.d95-desk .d95-menu:has(.d95-radio) > li > .d95-item:not(#\#), html.d95-desk .d95-menu.d95-has-ticks > li > .d95-item:not(#\#) { padding-left: 22px; }
 /* an on or off entry (a game window's View: the run timer): the 1995 tick before it while on */
 html.d95-desk .d95-tick { position: relative; }
 html.d95-desk .d95-tick[aria-checked=true]:not(#\#)::before { content: ""; position: absolute; left: 8px; top: 50%; width: 3px; height: 7px; margin-top: -6px;
@@ -855,6 +863,7 @@ html.d95-desk .d95-app-text { flex: 1 1 auto; margin: 0; padding: 4px 6px; overf
 html.d95-desk .d95-app-text:focus-visible { outline: 1px dotted #000000; outline-offset: -3px; }
 /* a game's menu bar: words on the window's face, the open one in navy */
 html.d95-desk .d95-menubar { display: flex; flex: none; padding: 1px 0; }
+html.d95-desk :is(.d95-menubar, .bps-folder) > li { display: contents; }
 html.d95-desk .d95-menubar-item:not(#\#) { background: none; box-shadow: none; border: 0; padding: 1px 7px; min-height: 0; color: #000000; }
 html.d95-desk .d95-menubar-item:not(#\#)[aria-expanded=true], html.d95-desk .d95-menubar-item:not(#\#).d95-open,
 html.d95-desk .d95-menubar-item:not(#\#):hover { background: var(--accent); color: #ffffff; }
@@ -979,7 +988,8 @@ html.d95-desk .spl-head { display: grid; grid-template-columns: 1fr auto; paddin
 html.d95-desk .spl-game { grid-column: 1 / 3; text-align: center; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 html.d95-desk .spl-cat { text-align: center; padding-left: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 html.d95-desk .spl-tries { text-align: right; min-width: 24px; color: #c0c0c0; }
-html.d95-desk .spl-list { max-height: 260px; overflow: auto; }
+html.d95-desk .spl-list { display: block; max-height: 260px; overflow: auto; border-spacing: 0; }
+html.d95-desk .spl-row > td { display: block; padding: 0; }
 html.d95-desk .spl-row { display: grid; grid-template-columns: 1fr 58px 64px; padding: 2px 6px; white-space: nowrap; }
 html.d95-desk .spl-row.spl-cur { background: #000080; }
 html.d95-desk .spl-name { overflow: hidden; text-overflow: ellipsis; }
@@ -1100,7 +1110,7 @@ html.d95-desk .lib-win .d95-tb .d95-x:not(#\#) { color: var(--lib-fg); }
 html.d95-desk .lib-win .d95-tb .d95-mn:not(#\#)::after { background: var(--lib-fg); }
 html.d95-desk .lib-win .lib-btn:not(#\#):active:not(:disabled), html.d95-desk .lib-win .lib-hb:not(#\#):active { border-color: var(--lib-lo) var(--lib-hi) var(--lib-hi) var(--lib-lo); }
 html.d95-desk .lib-win .lib-btn:disabled { color: var(--lib-dim); }
-html.d95-desk .lib-win button:not(#\#):focus, html.d95-desk .lib-win td:focus { outline: 1px dotted var(--lib-fg); outline-offset: -2px; }
+html.d95-desk .lib-win button:not(#\#):focus, html.d95-desk .lib-win :is(td, th[scope=row]):focus { outline: 1px dotted var(--lib-fg); outline-offset: -2px; }
 .lib-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 2px 4px 6px; flex: none; }
 .lib-btn { min-width: 64px; height: 21px; padding: 0 10px; font-weight: bold; }
 /* Show games no longer sold: a square box of the window's own, ticked in its text colour */
@@ -1117,7 +1127,7 @@ html.d95-desk .lib-win .lib-unsold input:not(#\#):checked::after { content: ""; 
 .lib-area { flex: 1 1 auto; min-height: 0; overflow: auto; background: var(--lib-panel); margin: 0 4px;
   border: 1px solid; border-color: var(--lib-lo) var(--lib-hi) var(--lib-hi) var(--lib-lo); scrollbar-color: var(--lib-hi) var(--lib-panel); }
 .lib-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.lib-grid th { position: sticky; top: 0; z-index: 1; padding: 0; text-align: left; font-weight: normal; background: var(--lib-bg); }
+.lib-grid thead th { position: sticky; top: 0; z-index: 1; padding: 0; text-align: left; font-weight: normal; background: var(--lib-bg); }
 .lib-hb { display: block; width: 100%; height: 18px; padding: 0 6px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
 .lib-h[aria-sort=ascending] .lib-hb::after { content: " \25B4"; color: var(--lib-mark); }
 .lib-h[aria-sort=descending] .lib-hb::after { content: " \25BE"; color: var(--lib-mark); }
@@ -1128,17 +1138,19 @@ html.d95-desk .lib-win .lib-unsold input:not(#\#):checked::after { content: ""; 
 .lib-c-popular { width: 64px; }
 .lib-c-year { width: 46px; }
 .lib-grid td.lib-c-plays, .lib-grid td.lib-c-popular { text-align: right; }
-.lib-grid td { padding: 1px 6px; height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+/* a row's cells, its name the row's header drawn as the others */
+:root[data-skin="d95"] .lib-grid tbody th { font-weight: normal; text-align: left; text-shadow: none; letter-spacing: normal; }
+.lib-grid tbody :is(td, th) { padding: 1px 6px; height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
 .lib-name { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .lib-name > span { overflow: hidden; text-overflow: ellipsis; }
-.lib-row[aria-selected=true] > td { background: var(--lib-sel); color: var(--lib-sel-fg); }
+.lib-row[aria-selected=true] > :is(td, th) { background: var(--lib-sel); color: var(--lib-sel-fg); }
 .lib-row.lib-s-soon > td:not(:first-child), .lib-row.lib-s-unsold > td:not(:first-child) { color: var(--lib-dim-panel); }
 /* a game's folder dragged over its row (web/library.js): the row outlined, where the drop adds it */
-.lib-row.lib-drop > td { box-shadow: inset 0 1px var(--lib-fg), inset 0 -1px var(--lib-fg); }
-.lib-row.lib-drop > td:first-child { box-shadow: inset 0 1px var(--lib-fg), inset 0 -1px var(--lib-fg), inset 1px 0 var(--lib-fg); }
+.lib-row.lib-drop > :is(td, th) { box-shadow: inset 0 1px var(--lib-fg), inset 0 -1px var(--lib-fg); }
+.lib-row.lib-drop > :first-child { box-shadow: inset 0 1px var(--lib-fg), inset 0 -1px var(--lib-fg), inset 1px 0 var(--lib-fg); }
 .lib-row.lib-drop > td:last-child { box-shadow: inset 0 1px var(--lib-fg), inset 0 -1px var(--lib-fg), inset -1px 0 var(--lib-fg); }
 .lib-row[draggable=true] { cursor: default; }
-.lib-row[aria-selected=true].lib-s-soon > td, .lib-row[aria-selected=true].lib-s-unsold > td { color: var(--lib-sel-fg); }
+.lib-row[aria-selected=true].lib-s-soon > :is(td, th), .lib-row[aria-selected=true].lib-s-unsold > :is(td, th) { color: var(--lib-sel-fg); }
 .lib-icon { flex: none; width: 16px; height: 16px; display: grid; place-items: center; overflow: hidden; }
 .lib-icon img { width: 16px; height: 16px; image-rendering: pixelated; }
 .lib-icon-cap { background: var(--tile, #808080); color: #ffffff; font: bold 7px/1 Verdana, sans-serif; letter-spacing: -0.5px; }
@@ -1302,6 +1314,10 @@ html.d95-desk .d95-spk > i { display: block; width: 16px; height: 16px; margin: 
 html.d95-desk .d95-spk.d95-spk-off > i { -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 6h3l4-3v10l-4-3H2z'/%3E%3Cpath d='M10.5 5.5l5 5M15.5 5.5l-5 5' fill='none' stroke='black' stroke-width='1.4'/%3E%3C/svg%3E") center / contain no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 6h3l4-3v10l-4-3H2z'/%3E%3Cpath d='M10.5 5.5l5 5M15.5 5.5l-5 5' fill='none' stroke='black' stroke-width='1.4'/%3E%3C/svg%3E") center / contain no-repeat; }
 html.d95-desk .d95-spk:not(#\#):focus-visible { outline: 1px dotted #000000; outline-offset: -4px; }
+/* a dialog the desktop opens in place (the volume, the shutdown screen, the copy): its own frame and place give way to the
+   desktop's drawing */
+:where(html.d95-desk) :where(dialog.d95-vol, dialog.d95-off, dialog.d95-copy, dialog.d95-bsod) { inset: auto; width: auto; height: auto; max-width: none; max-height: none;
+  margin: 0; border: 0; padding: 0; background: none; color: inherit; }
 html.d95-desk .d95-vol { position: absolute; z-index: 2147483300; display: grid; justify-items: center; gap: 6px; padding: 6px 10px 8px;
   background: var(--panel); color: var(--fg); box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo); font-size: 11px; }
 html.d95-desk .d95-vol-range { writing-mode: vertical-lr; direction: rtl; width: 22px; height: 100px; }

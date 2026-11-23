@@ -161,13 +161,13 @@ var ByopopLibrary = (function () {
     grid.setAttribute("role", "grid");
     grid.setAttribute("aria-label", T("library.title"));
     grid.setAttribute("aria-readonly", "true");
+    // (a table with the grid role: its rows, headers and cells are the grid's own by their elements, the name a row's header)
     var head = make("thead"), hr = make("tr");
-    hr.setAttribute("role", "row");
     head.appendChild(hr);
     var body = make("tbody");
     grid.appendChild(head); grid.appendChild(body);
     area.appendChild(grid);
-    var foot = make("div", "lib-status");
+    var foot = make("footer", "lib-status");
     var count = make("span", "lib-count"), hid95 = make("span", "lib-hidden"), said = make("span", "visually-hidden");
     hid95.hidden = true;
     hid95.title = T("skin.win95.hidden_title");
@@ -187,7 +187,7 @@ var ByopopLibrary = (function () {
       heads = {};
       cols.forEach(function (c) {
         var th = make("th", "lib-h lib-c-" + c);
-        th.setAttribute("role", "columnheader"); th.scope = "col";
+        th.scope = "col";
         var b = make("button", "lib-hb", T("library.col." + c));
         b.type = "button";
         b.addEventListener("click", function () { sortBy(c, true); });
@@ -215,9 +215,9 @@ var ByopopLibrary = (function () {
       body.textContent = "";
       rows = order().map(function (g) {
         var tr = make("tr", "lib-row lib-s-" + g.status);
-        tr.setAttribute("role", "row"); tr.setAttribute("aria-selected", "false");
-        var name = make("td", "lib-c-name");
-        name.setAttribute("role", "rowheader"); name.tabIndex = -1;
+        tr.setAttribute("aria-selected", "false");
+        var name = make("th", "lib-c-name");
+        name.scope = "row"; name.tabIndex = -1;
         var ic = make("i", "lib-icon");
         ic.setAttribute("aria-hidden", "true");
         if (g.icon) { var im = make("img"); im.alt = ""; im.draggable = false; im.src = g.icon; ic.appendChild(im); }
@@ -232,7 +232,6 @@ var ByopopLibrary = (function () {
          ["popular", c.plays || c.live ? countText(c.plays) : ""]].forEach(function (v) {
           if (cols.indexOf(v[0]) < 0) return;
           var td = make("td", "lib-c-" + v[0], v[1]);
-          td.setAttribute("role", "gridcell");
           if (v[0] === "phase" && g.phase) td.title = g.phase.tip;
           if (v[0] === "popular" && (c.plays || c.live)) td.title = popularTip(c);
           tr.appendChild(td);
