@@ -17,8 +17,14 @@ script in `web/` goes into `BYOPOP_WEB_SHARED_JS` (every page) or `BYOPOP_WEB_IN
 ## What happens when a game's page opens
 
 The page loads `<game>.js`, which compiles the wasm while `main()` waits (`INVOKE_RUN=0`). IDBFS mounts the game's
-IndexedDB at its persist folder and copies it into memory (`game/`, `userdata/`, `mods/`, `replays/`), first putting
-back saves that reached only the localStorage backup (`byopop_userdata_restore`). A Web Lock (`PAGE.lock`) lets one tab
+IndexedDB at its persist folder, and the page copies it into memory (`game/`, `userdata/`, `mods/`, `replays/`), then
+puts back saves that reached only the localStorage backup (`byopop_userdata_restore`). The copy is the shell's own
+`loadStorage`: one read of the whole store, each file made under its folder's node, leaving the same files, order,
+modes and times as IDBFS's `syncfs(true)`, which reads the files one at a time and finishes the copy if `loadStorage`
+fails. On a return visit to Bookworm Adventures 2 (9,334 entries, 65 MB) it takes 0.8 to 0.9 s where `syncfs(true)` took
+2.1 to 2.8 s. Keeping each pak whole beside its unpacked files would read faster still, by about half a second, but
+would store the pak's size again and need a pak reader in the platform, so a game's files stay unpacked only (item 8,
+2026-11-23). A Web Lock (`PAGE.lock`) lets one tab
 run a game. The fixes mod is put in place, the terms are asked, and without the game's files the import card copies
 only what `page.js` names, by the rules in `web/gameimport.js` (a pak named in `paks` is unpacked). The card takes the
 game's folder or a .zip of it from its two buttons, or dropped anywhere over it (the user, 2026-11-16: "I should be able
