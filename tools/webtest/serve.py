@@ -46,6 +46,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 	def end_headers(self):
 		self.send_header("Cache-Control", "no-store")
+		# the repository is served at /__repo/: a page that reads a file there (web/phase.js) asks only a server that says so
+		self.send_header("Server-Timing", "byopop-repo")
 		if self.server.isolate:
 			# --isolate: a cross-origin isolated page, which performance.measureUserAgentSpecificMemory needs
 			# (tools/webtest/webmem.js); every file here is this server's own, so nothing is blocked
