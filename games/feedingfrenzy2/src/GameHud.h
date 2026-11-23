@@ -11,6 +11,7 @@
 
 #include "Container.h"
 #include "ScreenLayout.h"
+#include "Splat.h"
 #include "TextItem.h"
 #include "Theme.h"
 
@@ -72,8 +73,7 @@ public:
 	// 0x410740 (feedingfrenzy2): a points bubble's points added to the score shown when it reaches the score
 	void addShownScore(int thePoints);
 	// 0x44c910 (feedingfrenzy2): the time left as minutes and seconds; under 11 seconds, each second less splats the
-	// timeWarning at the clock and plays the stage theme's timerWarning (neither yet translated, as the splats and
-	// the sounds are not)
+	// timeWarning at the clock and plays the stage theme's timerWarning (the sound not yet translated)
 	void showTime(int theSeconds);
 	// 0x494620 (feedingfrenzy2): the clock shown or hidden
 	void showTimer(bool isShown) { mTimerGroup->setVisible(isShown); }
@@ -91,6 +91,13 @@ public:
 	// seven at a full seven), the lit letters in the multiplier's colour and the rest in the one before, and the
 	// multiplier from two
 	void showFrenzy(int theCount, int theMultiplier);
+	// 0x41cdb0 (feedingfrenzy2): a chomp's burst at the point, one of the three variants drawn, its size by the
+	// biggest rank eaten (chompSplatMini, chompSplatSmall, then chompSplatLarge for the rest)
+	void splatChomp(int theRank, const engine::Vector2f& thePoint);
+	// 0x40d970 (feedingfrenzy2): the frenzy's word of the step (the strings' frenzy1 and on) splatted at the window's
+	// centre, coloured as the multiplier one more than the step
+	void splatFrenzy(int theStep);
+	SplatFactory* getSplats() { return mSplats; }
 
 	GrowMeter* getGrowthMeter() { return mGrowthMeter.get(); }
 	engine::TextItem* getScoreText() { return mScoreText.get(); }
@@ -120,7 +127,7 @@ private:
 	// +0x1c4 to +0x1d0, the menu's four images (menuImg0 to menuImg3), each in a selector (Selector, 0xd4 bytes) at
 	// +0x1d4 to +0x1e0: not yet translated
 	int mShownSeconds;                                 // +0x1f4: the time shown last, 0 from the reset
-	// +0x1f8, the splats (SplatFactory, 0xe0 bytes, from resource/HUD/hudSplats.xml): not yet translated
+	SplatFactory* mSplats;                             // +0x1f8: from resource/HUD/hudSplats.xml, a child
 	Stage* mStage;                                     // +0x1fc
 	engine::Ref<engine::Component> mJumpHeightGroup;   // +0x200
 	engine::Ref<engine::Component> mJumpHeight;        // +0x204

@@ -1,6 +1,7 @@
 #include "GameHud.h"
 
 #include "DrawContext.h"
+#include "Draws.h"
 #include "FeedingFrenzyTwo.h"
 #include "GameData.h"
 #include "Image.h"
@@ -32,6 +33,14 @@ const float SUCK_RED = 0.9f;
 const float SUCK_LOW_GREEN = 0.1f;
 const float SUCK_HIGH_GREEN = 0.9f;
 const float SUCK_BLUE = 0.1f;
+// The clock's warning: under this many seconds, at this offset from the clock's group (0x44c910 (feedingfrenzy2))
+const int TIME_WARNING_SECONDS = 11;
+const double TIME_WARNING_X = 26.0;
+const double TIME_WARNING_Y = 23.0;
+// The chomp's bursts have three variants of each size (0x41cdc7 (feedingfrenzy2))
+const int CHOMP_SPLAT_VARIANTS = 3;
+// 0x54ddb0 (feedingfrenzy2)
+const float HALF = 0.5f;
 // The frenzy's word has a letter for each fish of a step (0x4605d0 (feedingfrenzy2))
 const int FRENZY_STEP_FISH = 7;
 // The multiplier's colour mode (0x4605d0 (feedingfrenzy2), the text's slot 0x50)
@@ -197,8 +206,10 @@ void GameHud::setup(Theme* theStageTheme)
 	mJumpHeightGroup->setVisible(false);
 	// The jump's height effect (InOutFx, 0x2f0 bytes, after 0x473150 (feedingfrenzy2) with 3.0: its keys of position
 	// and scale, at (121, 104), in jumpHeightGroup and hidden) and the medals medalPersonalBest and medalNewRecord in
-	// it, then the splats (SplatFactory, 0xe0 bytes, read from resource/HUD/hudSplats.xml by 0x490b70
-	// (feedingfrenzy2)) added: not yet translated, as the jump and the splats are not
+	// it: not yet translated, as the jump is not
+	mSplats = new SplatFactory();
+	addChild(mSplats);
+	mSplats->load("resource/HUD/hudSplats.xml");
 	mPlacedTexts = new Container();
 	addChild(mPlacedTexts.get());
 	mPointsBubbles = new Container();
@@ -265,8 +276,13 @@ void GameHud::addShownScore(int thePoints)
 void GameHud::showTime(int theSeconds)
 {
 	mTimerText->setText(clockText(theSeconds));
-	// Under 11 seconds and less than the time shown last: the splats' timeWarning at the clock (26 and 23 pixels in)
-	// and the stage theme's sound timerWarning: not yet translated, as the splats and the sounds are not
+	if (theSeconds < TIME_WARNING_SECONDS && theSeconds < mShownSeconds)
+	{
+		float aX = (float)((double)mTimerGroup->getX() + TIME_WARNING_X);
+		float aY = (float)((double)mTimerGroup->getY() + TIME_WARNING_Y);
+		mSplats->spawn("timeWarning", aX, aY);
+		// The stage theme's sound timerWarning: not yet translated, as the sounds are not
+	}
 	mShownSeconds = theSeconds;
 }
 
@@ -292,6 +308,31 @@ void GameHud::showSuckCharge(float theCharge)
 	mSuckMeter->setValue(aCharge);
 	float aGreen = theCharge < SUCK_LOW_CHARGE ? SUCK_LOW_GREEN : SUCK_HIGH_GREEN;
 	mSuckMeter->setColor(SUCK_RED, aGreen, SUCK_BLUE);
+}
+
+void GameHud::splatChomp(int theRank, const Vector2f& thePoint)
+{
+	int aVariant = drawWhole(1, CHOMP_SPLAT_VARIANTS);
+	if (theRank < 0)
+		theRank = 0;
+	if (theRank > 2)
+		theRank = 2;
+	const char* aFormat = theRank == 0 ? "chompSplatMini%d" : theRank == 1 ? "chompSplatSmall%d" : "chompSplatLarge%d";
+	char aName[32];
+	snprintf(aName, sizeof(aName), aFormat, aVariant);
+	mSplats->spawn(aName, thePoint.x, thePoint.y);
+}
+
+void GameHud::splatFrenzy(int theStep)
+{
+	char anId[32];
+	snprintf(anId, sizeof(anId), "frenzy%d", theStep);
+	Engine* anEngine = getEngine();
+	float aY = (float)((double)anEngine->getHeight() * HALF);
+	float aX = (float)((double)anEngine->getWidth() * HALF);
+	Splat* aSplat = mSplats->spawn("frenzySplat", aX, aY);
+	aSplat->setText(getApp()->mStrings->getString(anId));
+	aSplat->setColor(frenzyColor(theStep));
 }
 
 void GameHud::showFrenzy(int theCount, int theMultiplier)

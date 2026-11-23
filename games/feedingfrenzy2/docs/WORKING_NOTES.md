@@ -520,6 +520,21 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   (0x47d130) pushes it. Checked under rundesk on stage 1: the pictures made, the frames' effects applied, exit 0;
   their pixels are for the looks pass.
 
+- The splats (Splat.h/.cpp: SplatFactory 0x491cc0, its update 0x433cb0 and spawn 0x422ce0, Splat 0x483c60 and its
+  update 0x434280, the definitions and their handler 0x467940, 0x479fd0, 0x47a200). A factory reads a splats file
+  and throws a splat out by name at a point: its image (pivot centred by default) or its text (a text item centred
+  both ways, multiplied by its colour unless white, with an optional shadow), kept within the window's width, and
+  nine draws in a fixed order (the acceleration, the velocity's two axes, its turn, the start and end scales, the
+  life, two of the jitter's ranges). Each frame a splat's life runs down; its opacity eases over the life (held to 0
+  to 1), its scale over the growth's share of it, its velocity speeds or slows along itself (a slowing axis stops at
+  0 rather than turn about) and the force pushes it. A new splat waits for the factory's next update; a dead one is
+  taken out there. The <rotation> turn, <jitter>, <destination> and themed images are read or skipped as the data
+  never uses them. The HUD now has its factory (resource/HUD/hudSplats.xml): the chomp's burst (0x41cdb0) at the
+  mouth moved by the two draws (1 ahead facing right, 15 behind facing left) in the layer's space, the frenzy's word
+  at the window's centre in the step's colour (0x40d970), and the clock's timeWarning under 11 seconds (0x44c910).
+  Checked under rundesk on stage 1: the first fish's chomp splats chompSplatMini1 at the mouth, its GULP image
+  thrown up and growing; exit 0.
+
 ## Next
 
 - The play state's end of a stage (the next stage through the stage-complete screen, the continue, the game over);

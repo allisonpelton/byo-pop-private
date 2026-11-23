@@ -40,12 +40,13 @@ const double FRENZY_STEP_DROP = 1.399999976158142;  // 0x566b08 (feedingfrenzy2)
                                             // to a step
 const double FRENZY_HIGH_DROP = 0.25;       // 0x566a80 (feedingfrenzy2): likewise above the first step
 const double FRENZY_LOW_DROP = 3.0;         // 0x566868 (feedingfrenzy2): the divisor of the time within the first
-const float CHOMP_SPREAD = 15.0f;           // 0x566858 and 0x566ce0 (feedingfrenzy2): the chomp's text's draws, either
-                                            // way
+const float CHOMP_SPREAD = 15.0f;           // 0x566858 and 0x566ce0 (feedingfrenzy2): the chomp's place's draws,
+                                            // either way
+const float CHOMP_LEAD_RIGHT = 1.0f;        // the chomp's place ahead of the mouth facing right
+const float CHOMP_LEAD_LEFT = -15.0f;       // 0x566ce0 (feedingfrenzy2): and facing left
 const float SMALL_CHOMP_CHANCE = 0.5f;      // 0x54ddb0 (feedingfrenzy2): below it a bite of rank 0 splats
 const float MEDIUM_CHOMP_CHANCE = 0.65f;    // 0x566d20 (feedingfrenzy2): likewise of rank 1
 const int SPLATTING_BITE = 2;               // more prey than this always splats
-const int CHOMP_SPLAT_VARIANTS = 3;         // 0x41cdc7 (feedingfrenzy2): the splat's images of each size
 
 // The options' mouse sensitivity at each of their MouseSpeed's steps (0x54dd70 (feedingfrenzy2))
 const float MOUSE_SENSITIVITIES[4] = {0.8f, 1.0f, 1.15f, 1.3f};
@@ -208,10 +209,19 @@ void PlayerFish::swallow()
 	{
 		// The eat effect (+0x214) at the mouth started, and played in the water; with the bonus's bite the bonus's
 		// effect (+0x218) too: not yet translated, as the effects are not
-		// Two draws place the chomp's text about the mouth (the text not yet translated), and a third is the chance
-		// a small bite splats
-		randomFloat(-CHOMP_SPREAD, CHOMP_SPREAD);
-		randomFloat(-CHOMP_SPREAD, CHOMP_SPREAD);
+		// The chomp's place: the mouth (times 1) moved by a draw either side, 1 more ahead facing right and 15 behind
+		// facing left, and a draw up or down, in the stage's space from the fish's layer (0x4678b0 (feedingfrenzy2));
+		// then a draw is the chance a small bite splats
+		Vector2f aMouth = getTransformedShape(ACTOR_SHAPE_MOUTH)->getCenter();
+		float anAside = (float)randomFloat(-CHOMP_SPREAD, CHOMP_SPREAD);
+		float anUp = (float)-randomFloat(-CHOMP_SPREAD, CHOMP_SPREAD);
+		float aLead = CHOMP_LEAD_LEFT;
+		if (0.0f < mFishVisual->getFacing())
+			aLead = CHOMP_LEAD_RIGHT;
+		anAside = (float)((double)aLead + (double)anAside);
+		Vector2f aPlace = moved(aMouth, anAside, anUp);
+		Vector2f aLayer = mStage->getLayerContainer(mLayer)->getAbsolutePosition();
+		Vector2f aChompAt((float)((double)aPlace.x + aLayer.x), (float)((double)aLayer.y + aPlace.y));
 		float aChance = (float)randomFloat(0.0f, 1.0f);
 		int aBite = (int)mPrey.size();
 		addFrenzy(aBite, 0.0f);
@@ -223,11 +233,7 @@ void PlayerFish::swallow()
 		else
 			isSplat = true;
 		if (isSplat)
-		{
-			// 0x41cdb0 (feedingfrenzy2): the splat's image drawn, then shown by the HUD at the text's place (the
-			// chompSplatMini, chompSplat or larger by the rank): only the draw, as the HUD is not yet translated
-			drawWhole(1, CHOMP_SPLAT_VARIANTS);
-		}
+			mStage->getHud()->splatChomp(mBiggestRankEaten, aChompAt);
 		// The theme's sound fishChomp1 to fishChomp3 by the rank: not yet translated, as the sounds are not
 	}
 	for (const Ref<Fish>& aPrey : mPrey)
@@ -275,8 +281,8 @@ void PlayerFish::addFrenzy(int theCount, float theSeconds)
 	mFrenzyMultiplier = aMultiplier;
 	if (aMultiplier > aLast)
 	{
-		// The theme's sounds frenzy1 to frenzy5 by the step and frenzyChime, and the HUD's text of the step (0x40d970
-		// (feedingfrenzy2)): not yet translated, as the sounds and the texts are not
+		// The theme's sounds frenzy1 to frenzy5 by the step and frenzyChime: not yet translated, as the sounds are not
+		mStage->getHud()->splatFrenzy(mFrenzyMultiplier - 1);
 	}
 	showFrenzy();
 }
