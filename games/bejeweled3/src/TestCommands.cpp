@@ -9,6 +9,9 @@
 #include "IceStormBoard.h"
 #include "DiamondMineBoard.h"
 #include "PokerBoard.h"
+#include "MoveLimitBoard.h"
+#include "QuestMenu.h"
+#include "TimeLimitBoard.h"
 #include "Board.h"
 #include "Common.h"
 #include "LightningBoard.h"
@@ -19,6 +22,7 @@
 #include <SDL.h>
 
 #include <cstdlib>
+#include <map>
 #include <cstring>
 #include <string>
 
@@ -42,6 +46,8 @@ const char* ModeKey(const Board* theBoard)
 		return "icestorm";
 	if (aName == "BuriedTreasure")
 		return "diamondmine";
+	if (aName == "QuestTurnBased" || aName == "QuestTimeBased")
+		return "quest";
 	return "classic";
 }
 
@@ -159,6 +165,14 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 			ReplyOK(theCommand);
 			return true;
 		}
+		if (theCommand.mArgs == "quest") {
+			// the quest map, as the play menu's QUEST ball shows it (0x773b70)
+			if (mMainMenu != nullptr && mMainMenu->mPlayMenu != nullptr && !mMainMenu->mPlayMenu->IsActive())
+				mMainMenu->OpenPlayMenu();
+			ShowQuestMenu(false);
+			ReplyOK(theCommand);
+			return true;
+		}
 		if (theCommand.mArgs == "classic" || theCommand.mArgs == "zen" || theCommand.mArgs == "lightning") {
 			// the game is reached as from the screens: PLAY is pressed (the play menu opens) and then the mode's ball
 			if (mMainMenu != nullptr && mMainMenu->mPlayMenu != nullptr && !mMainMenu->mPlayMenu->IsActive())
@@ -172,7 +186,65 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 			ReplyOK(theCommand);
 		}
 		else
-			ReplyError(theCommand, "only classic, zen, lightning, butterflies, poker, icestorm and diamondmine are made yet");
+			ReplyError(theCommand, "only classic, zen, lightning, quest, butterflies, poker, icestorm and diamondmine are made yet");
+		return true;
+	}
+	if (aCommand == "quest") {
+		// quest <index> [Name=Value ...]: the quest at that index of quest.cfg is started as the quest map's button starts it (0x774060); each Name=Value after the index
+		// replaces a setting of the quest (a test's way to a short quest: "quest 3 Gems=20"). quest done <index>: the quest is marked done in the profile, which is saved
+		// (a test's way to open the sections); quest undo: every quest is marked not done
+		if (mProfile == nullptr) {
+			ReplyError(theCommand, "a player is needed");
+			return true;
+		}
+		if (theCommand.mArgs.compare(0, 4, "done") == 0) {
+			int aDoneIndex = -1;
+			sscanf(theCommand.mArgs.c_str() + 4, "%d", &aDoneIndex);
+			if (aDoneIndex < 0 || aDoneIndex >= QuestMenu::QUEST_COUNT) {
+				ReplyError(theCommand, "quest done <index>");
+				return true;
+			}
+			mProfile->mQuestsDone[aDoneIndex / QuestMenu::QUESTS_PER_SECTION][aDoneIndex % QuestMenu::QUESTS_PER_SECTION] = 1;
+			ReplyOK(theCommand);
+			return true;
+		}
+		if (theCommand.mArgs == "undo") {
+			memset(mProfile->mQuestsDone, 0, sizeof(mProfile->mQuestsDone));
+			ReplyOK(theCommand);
+			return true;
+		}
+		int aQuestIndex = -1;
+		int aRead = 0;
+		if (sscanf(theCommand.mArgs.c_str(), "%d%n", &aQuestIndex, &aRead) < 1 || aQuestIndex < 0) {
+			ReplyError(theCommand, "quest <index>");
+			return true;
+		}
+		if (mMainMenu != nullptr && mMainMenu->mPlayMenu != nullptr && !mMainMenu->mPlayMenu->IsActive())
+			mMainMenu->OpenPlayMenu();
+		std::map<std::string, std::string> aSettingChanges;
+		std::string aRest = theCommand.mArgs.substr((size_t)aRead);
+		size_t aPosition = 0;
+		while (aPosition < aRest.size()) {
+			size_t aStart = aRest.find_first_not_of(' ', aPosition);
+			if (aStart == std::string::npos)
+				break;
+			size_t anEnd = aRest.find(' ', aStart);
+			if (anEnd == std::string::npos)
+				anEnd = aRest.size();
+			const std::string aPair = aRest.substr(aStart, anEnd - aStart);
+			const size_t anEquals = aPair.find('=');
+			if (anEquals != std::string::npos)
+				aSettingChanges[aPair.substr(0, anEquals)] = aPair.substr(anEquals + 1);
+			aPosition = anEnd;
+		}
+		mQuestSettingChanges = aSettingChanges;
+		const bool isMade = StartQuest(aQuestIndex);
+		mQuestSettingChanges.clear();
+		if (!isMade) {
+			ReplyError(theCommand, "that quest is not made yet");
+			return true;
+		}
+		ReplyOK(theCommand);
 		return true;
 	}
 	if (aCommand == "dig") {
@@ -369,8 +441,21 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	if (aCommand == "state") {
 		std::string aLine = "STATE {\"screen\":\"";
-		aLine += mBoard != nullptr ? ModeKey(mBoard) : "menu";
+		aLine += mBoard != nullptr ? ModeKey(mBoard) : mQuestMenu != nullptr ? "quest" : "menu";
 		aLine += "\"";
+		if (mQuestMenu != nullptr && mProfile != nullptr) {
+			// the quest map is up: the section on show, the sections' done counts and states, and the quests done as a string of 40 characters
+			std::string aDone;
+			for (int aQuest = 0; aQuest < QuestMenu::QUEST_COUNT; aQuest++)
+				aDone += mQuestMenu->IsQuestDone(aQuest) ? '1' : '0';
+			aLine += ",\"questmenu\":1,\"questsection\":" + std::to_string(mQuestMenu->mSection) + ",\"quests\":\"" + aDone + "\",\"sectiondone\":[";
+			for (int aSection = 0; aSection < QuestMenu::SECTION_COUNT; aSection++)
+				aLine += (aSection == 0 ? "" : ",") + std::to_string(mQuestMenu->mSectionDone[aSection]);
+			aLine += "],\"sectionstate\":[";
+			for (int aSection = 0; aSection < QuestMenu::SECTION_COUNT; aSection++)
+				aLine += (aSection == 0 ? "" : ",") + std::to_string(mQuestMenu->mSectionState[aSection]);
+			aLine += "],\"questbuttons\":" + std::to_string(mQuestMenu->mQuestButtons.size());
+		}
 		if (mBoard != nullptr) {
 			aLine += std::string(",\"mode\":\"") + ModeKey(mBoard) + "\",\"score\":" + std::to_string(mBoard->mScore) + ",\"points\":" + std::to_string(mBoard->mScorePoints) +
 				",\"movematches\":" + std::to_string(mBoard->mMoveRecords.empty() ? 0 : mBoard->mMoveRecords.back().mCounters[COUNTER_MATCHES]) +
@@ -423,6 +508,27 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 			if (const QuestBoard* aQuest = dynamic_cast<const QuestBoard*>(mBoard)) {
 				// the quest boards' update counters (+0x3198 and +0x31a0, QuestBoard::Update)
 				aLine += ",\"updatesplayed\":" + std::to_string(aQuest->mUpdatesPlayed) + ",\"updatesrun\":" + std::to_string(aQuest->mUpdatesRun);
+			}
+			if (const QuestBoard* aQuestBoard = dynamic_cast<const QuestBoard*>(mBoard)) {
+				// a quest (a board that is not a secret mode): its index, whether it was won, the clock of the level's end (+0xd20), the game's end counter is
+				// "gameoverticks" above, the goal's size and its kind (the goal's class by the setting Goal) and what the goal counts; the moves and the time for the boards that have
+				// them
+				if (!aQuestBoard->mIsSecretMode) {
+					aLine += ",\"quest\":" + std::to_string(aQuestBoard->mQuestIndex) + ",\"questwon\":" + std::to_string(aQuestBoard->mQuestWon ? 1 : 0) +
+						",\"questclock\":" + std::to_string(aQuestBoard->mQuestClock) + ",\"goal\":\"" + aQuestBoard->SettingText("Goal") +
+						"\",\"goalsize\":" + std::to_string(aQuestBoard->GetLevelMax()) + ",\"goalcount\":" + std::to_string(aQuestBoard->mLevelProgress) +
+						",\"questscore\":" + std::to_string(aQuestBoard->mScorePoints);
+					if (mProfile != nullptr) {
+						std::string aDone;
+						for (int aQuest = 0; aQuest < QuestMenu::QUEST_COUNT; aQuest++)
+							aDone += mProfile->mQuestsDone[aQuest / QuestMenu::QUESTS_PER_SECTION][aQuest % QuestMenu::QUESTS_PER_SECTION] != 0 ? '1' : '0';
+						aLine += ",\"quests\":\"" + aDone + "\",\"questmenu\":" + std::to_string(mQuestMenu != nullptr ? 1 : 0);
+					}
+					if (const MoveLimitBoard* aMoves = dynamic_cast<const MoveLimitBoard*>(mBoard))
+						aLine += ",\"movesleft\":" + std::to_string(aMoves->mMovesLeft) + ",\"moves\":" + std::to_string(aMoves->mMoves);
+					if (const TimeLimitBoard* aTimed = dynamic_cast<const TimeLimitBoard*>(mBoard))
+						aLine += ",\"timeleft\":" + std::to_string(aTimed->GetTimeLeft());
+				}
 			}
 			if (const ButterflyBoard* aButterflies = dynamic_cast<const ButterflyBoard*>(mBoard)) {
 				// Butterflies: the moves each butterfly waits before it climbs (a digit, 9 for more; . where there is none), a caught one
@@ -482,7 +588,7 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 				// h dirt that hides a hypercube), the bricks left, the depth in rows, the clock in hundredths and its limit in seconds, the clock's cap (the last
 				// bonus' left), whether the time ran out, the treasure collected (the score), the gold, diamonds and artifacts, the best treasure, the
 				// rows made, the scrolls and whether one runs, the dirt destroyed and the artifacts placed in the dirt
-				const DigGoal* aGoal = aDig->mGoal;
+				const DigGoal* aGoal = aDig->Goal();
 				std::string aMap;
 				for (int aRow = 0; aRow < Board::ROWS; aRow++) {
 					if (aRow > 0)

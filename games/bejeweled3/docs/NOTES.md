@@ -1385,3 +1385,93 @@ read, never used here); the leaderboard scale (HighScoreBase and HighScoreIncr).
 suite_diamondmine.txt (seed 7, name Tester, `unlock all`, `goto diamondmine`, `bot 150`, `dig clear 5` three times so that the grid scrolls, `dig hit 0 7`, three state lines and
 two shots, the end dialog on screen at the last) is run twice by suite.sh in the same loop as the other secret modes: the second state line must be in play, the last
 must have the game over (the time's end) and the end dialog, and the rerun must be the same.
+
+
+## Quest (QuestMenu.cpp, QuestBoard.cpp, QuestGoal.cpp, MoveLimitBoard.cpp, TimeLimitBoard.cpp, Bej3App::StartQuest and ShowQuestMenu)
+
+The first part of the Quest mode: the play menu's QUEST ball (id 3) shows the quest map, a click on a quest's gem starts it, and Stratamax (index 3 of quest.cfg: Move Limit, Clear
+Gems, 120 gems in 20 moves) and the other Move Limit quests with the Clear Gems goal (indices 3, 10, 22, 31, 34) can be played to a win and a loss.
+
+**Starting.** Ball 3 calls 0x773b70 (`Bej3App::ShowQuestMenu(bool theDeleteBoard)`): with its argument set the app's board (+0xbe8) goes; the menu (0x693760) is made at x -160, 1920 wide
+and the art's height, put on the app's screen slot +0xbd8 with the focus, and the music events FadeOut and Play "QuestMenu" are queued. A quest's button calls 0x774060 with the index
+(place plus 8 times the section), the app's quest.cfg and the secret flag 0 (`Bej3App::StartQuest`): the board is picked by the setting Challenge, compared upper case as for the secret
+modes (MOVE LIMIT is MoveLimitBoard, vftable 0x868a84; TIME LIMIT is TimeLimitBoard, 0x86a234; the others are not made and the map stays), the quest's settings are copied into the board's
+map, its index is +0x3234, and the board is started as for a secret mode.
+
+**The map (QuestMenu, vftable 0x86df4c).** Five sections of eight quests (section n holds the quests 8n to 8n+7). The profile's +0x158 flags (`mQuestsDone[5][8]`) say which are done; a
+section's state (0x6734d0) is 0 locked (the section before it has fewer than 4 done), 1 the section the player is at (fewer than 4 done), 2 (4 to 7 done), 3 (all 8). Every quest of a section
+that is not locked is open (there is no lock per quest). PREV and NEXT (ids 0 and 1) turn the page round the five and keep it in the profile's +0x184 (clamped to 0..4 when read); BACK (id 2)
+takes the map and the board under it away and shows the play menu; QUIT (id 3) asks the app to quit (only logged, as the play menu's). A quest's gem is the button 1000+place (pending) or
+2000+place (done). The map of names to pictures (+0x129, made by 0x693760) is: "Gold Lines" and "Gold Lines Flip" Alchemy, "Filler" Avalanche, "Balance", "Hidden Objects" Sandstorm,
+"Butterflies", "Dig" Gold Rush, "Inferno" Ice Storm, "Poker", "Clear Gems" Stratamax, "Clear Bombs" Time Bomb, "Wall Blast". The port looks a quest up by its Challenge and then its Goal
+(the keys are of both kinds, and Avalanche is Filler with Clear Gems and must keep its own picture; the order of the lookup in 0x697d40 was not read).
+
+**The quest path of QuestBoard (0x6dd8a0 with the secret flag clear).**
+- *NewGame* (slot 135, 0x6ddc70): +0x3187 and +0x31ac (`mScoresPoints`, `mRecordsHighScores`) start as the secret flag and RecordHighScores TRUE raises the second; the goal is made by the
+  setting Goal; Board's new game deals; the goal's Load (slot 53) reads its settings. MoveLimitBoard::NewGame (0x6e0170) reads Moves first (+0x3248 and +0x324c), TimeLimitBoard's (0x6e5030)
+  Time, TimeBonus and TimePenalty.
+- *The goal factory* (0x6ddc70, each compare independent, a later match replaces an earlier): CLEAR GEMS ClearGoal (0x11c bytes, vftable 0x86ab5c); WALL BLAST 0x6ab720 (0x260); GOLD GoldGoal
+  (0x114); DETONATOR; ARSENAL; GOLD LINES 0x6afcd0 (0x940); GOLD LINES FLIP 0x6afe00 (0x944); GOLD YELLOW 0x6ae170; CLEAR BOMBS 0x6ae760; SCORE; FIRESTORM; PRESERVER (0x118); HIDDEN GEMS
+  (0x11c); HIDDEN GRID (0x21c); SURVIVAL (0x118); CATCH BUTTERFLIES ButterflyGoal (0x114, vftable 0x86a90c); HIDDEN OBJECTS 0x6afb60 (0x1f80); DIG 0x6c4230 (DigGoal, 0xb18). The port makes
+  CLEAR GEMS and DIG (`MakeQuestGoal` in QuestGoal.cpp); ButterflyGoal's only live part is a counter that nothing reads, so it is not made.
+- *QuestGoal* (vftable 0x86a6bc, 72 slots; `QuestGoal` in QuestGoal.h): the base's slots that the translated goals reach: Load (53), Update (54; the base counts a counter that nothing
+  reads), CanEndGame (10, 1), GetLevelMax (22, 0), OnPieceCleared (40), OnPieceRemoving (18 and 39). DigGoal derives from it (`class DigGoal : public QuestGoal`, with Load, Update,
+  OnPieceCleared and OnPieceRemoving as overrides; its board is `Dig()`), so the goal the factory makes for "Dig" is the same object as before and the Diamond Mine suites' states are
+  unchanged. The board delegates to the goal where the exe's slots do: 154 (GetLevelMax), 143 (OnPieceCleared), 176 and 142 (OnPieceRemoving), 22 (Update), 161 (the goal's slot 10).
+- *ClearGoal* overrides three slots: 53 (0x6ae510) reads Gems, GemsPerLevel and GemsMax; 22 (0x6aa320) is the level's size, the level's index times GemsPerLevel plus Gems (at most GemsMax
+  when that is 1 or more); 40 (0x6aa360) adds 1 to the score (+0xd24) and to the progress (+0xe00) for each gem cleared. QuestBoard's slot 152 (0x6cf290, AddPoints) adds the points of a
+  match only when +0x3187 or the goal's +0x10c is set, so in a quest the gems cleared are the whole progress.
+- *The end of a level* (slot 156 = 0x6ca7e0, which runs 0x6ca350; `QuestBoard::OnLevelFull`, a new virtual of Board whose own is the level change): when the level bar is full, the game's
+  flag (+0xd8c, `mGameOver`) is set and the clock +0xd20 starts at 200. `QuestBoard::Update` steps it (`StepQuestClock`): at 200 it counts down once the board is at rest; at 198, with the
+  board at rest and the bar equal to its target, the win is told (the quest map is shown over the board, 0x6dd760); then it counts down, and at 0 slot 233 (0x6ded60) runs.
+- *A lost quest*: NoMoreMoves (slot 161, 0x6d8e30) ends the game unless the goal's slot 10 says no or the level is full; with the game-over counter (+0xd1c) at 300 the map is shown over the
+  board (0x6dd760). A quest that does not record high scores has no end dialog (0x6ded60 makes one only for the other), so `mEndScreenShown` is set at its new game.
+- *MoveLimitBoard*: slot 191 (0x6c5a60, a swap that found a match) and slot 180 (0x6cfb50, a hypercube's group with a colour) use a move; slot 22 (0x6e00e0) ends the game when the board is at
+  rest with no moves left and +0xd8c is clear; slot 98 (0x6c6500) gives no hint with no moves left.
+- *TimeLimitBoard*: Time, TimeBonus and TimePenalty, the clock in hundredths (0x73bb80) and the time's end (slot 216); Diamond Mine's board now derives from it and its own clock and time's
+  end are the base's.
+- *The profile*: a won quest is marked in `mQuestsDone` and the profile saved (0x71bb10) when the win is told (the exe's map does it, 0x684380, 0x118 updates after the win). The profile's
+  fields that were called the flag rows, the counter before the flag, the flag after the counter and the hint flags are `mQuestsDone` (+0x158), `mQuestSection` (+0x184), `mQuestMenuFlag`
+  (+0x188) and `mQuestHelpSeen` (+0x2ac); the save's order is unchanged, so the old saves load.
+
+**Test commands** (the state line keeps every other mode's keys). `goto quest` shows the map; `quest <index> [Name=Value ...]` starts a quest, each Name=Value replacing a setting of the quest
+(`quest 3 Gems=40` is a short Stratamax); `quest done <index>` marks a quest done in the profile and `quest undo` clears every mark. The framework's `click x y` presses a gem or a button of
+the map. `bot` and `move` work as on any board. State keys: with the map up `questmenu` (1), `questsection`, `quests` (40 characters of 0 and 1), `sectiondone` and `sectionstate` (five numbers
+each), `questbuttons`; with a quest board `quest` (the index), `questwon`, `questclock` (+0xd20), `goal` (the setting Goal, upper case), `goalsize` (slot 22), `goalcount` (the progress),
+`questscore`, `quests`, `questmenu`, and `movesleft` and `moves` (Move Limit) or `timeleft` (Time Limit); `screen` is `quest`.
+
+### Not done (Quest)
+- The map's relic pages (0x67cc80 builds a page for each section with the relics, sockets, ghost sockets and their animations; 0x690110 and 0x687f90 draw them), the pillars' parallax and the
+  page's turn (the curve at +0x138, 0x690f10), the progress pictures and panes, the sparkles, the percentage window, the quest-complete banner and animation (0x67ed00, 0x684380's effects),
+  the sounds (SOUND_QUESTMENU_RELIC*), the exe's wait for the relic animation before a click (0x674060), the text "Complete quests to restore the Lost Relics of Bejeweled". The gems are put in
+  two rows of four; the exe puts each in a socket of its page.
+- QuestHelpDialog (vftable 0x8697d4, made by 0x6ccfd0 from slot 140, 0x6d0af0): the exe shows it before a quest that has not been started (the profile's `mQuestHelpSeen`); the port starts the
+  quest at once, since it does not stand in the way. Also the tutorial of the first quests (slot 141, 0x6d0ac0).
+- The exe keeps the map (+0xbd8) and the board (+0xbe8) both alive and shows the map over the board at a win (clock 198) and a loss (300); the port does the same but makes the map again each
+  time and deletes it when a quest starts.
+- The fanfare at clock 100 (slot 162), the sounds and music events ("Break", "Play", "Wait") of 0x6ca350, the text of the finished level (0x7411f0, slot 160).
+- The settings ColorCount (slot 261), HighScoreBase, HighScoreIncr, WantPointComplements, NeverAllowCascades (+0x3228), ShowAutohints (+0x4dc), Description, HyperMixers (+0x3186) and
+  PowerGemThreshold (slot 190; 0x6cda70 reads it into +0x3188), and Board's slot 84 (0x150) after the goal's load.
+- Boards: Filler, Balance, NoLose, TimeBomb, RealTimeBomb, BadMoveLimit; Butterflies, Poker, Dig and Ice Storm as quests (the secret flag clear). Goals: ClearBombs, Hidden*, WallBlast,
+  GoldLines*, Gold*, Arsenal, Detonator, Firestorm, Preserver, Score, Survival, ButterflyGoal. A quest whose Challenge is not made shows its gem and logs "not made yet" when clicked.
+- The moves counter's bounce (+0x3250, MoveLimitBoard slot 22), the board's drawing for a quest (the goal's text "TitleText", "Moves Left: %i" in the bottom frame, the move counter's picture;
+  slots 26, 43, 47, 240, 242, 250: the port writes the moves left and the gems cleared plainly), the leaderboard of a quest that records high scores (0x6ca240, 0x6c7c60).
+- QuestMenu's QUIT (the app's quit question), hover effects and the buttons' glow curves.
+- TimeLimitBoard's slots 47 (0x6c6060), 262 (0x6cb260) and 263 (0x6cb130, DoQuestPenalty); no quest with the Clear Gems goal has a time limit, so the board is only exercised through Diamond
+  Mine.
+
+### Oddities (Quest)
+- 0x693760 fills the name map's "Hidden Objects" twice (Buried Treasure's pictures, then Sandstorm's); the second replaces the first, so Buried Treasure and Sandstorm both show Sandstorm's icon.
+- quest.cfg gives some quests a setting twice (Alchemy and Wall Blast have two Challenge lines, "Time Limit" then "No Lose"); the port's map keeps the last, so those boards would be NoLose,
+  which is not made.
+- 0x6dd760 is called for a loss and for a win; the call for a win passes the "quest complete" dialog object, which makes the map start the countdown (0x67ed00) that marks the quest done 0x118
+  updates later; a lost quest shows the map and marks nothing.
+- QuestBoard::Update's test at clock 198 does not pass until the level bar has reached its target (slot 188 against +0xd68), so a win waits for the bar.
+- The profile's +0x184 can be any number in a save file; the port clamps it to 0..4 when the map is made.
+- The bot's twenty moves of Stratamax clear about 60 of the 120 gems: the bot loses it, as the suite shows.
+
+### The suite for Quest
+
+suite_quest.txt (seed 7, name Tester, `unlock all`, `goto quest`, a click on Stratamax's gem, `bot` to the loss, `quest 3 Gems=40` and `bot` to the win, `quest done 0` to `2` and a click on
+NEXT) has five state lines and five shots (the map, the game, the lost game under the map, the won game under the map, the second section's map); suite.sh runs it twice and checks each state
+line's keys.

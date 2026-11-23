@@ -313,7 +313,7 @@ public:
 	// made and put behind the screen, the one before it goes
 	void SetBackground(int theStep);
 	// slot 232 (0x756730): the dialog's MAIN MENU button: the first screen comes back and this one fades out and goes
-	void LeaveToMenu();
+	virtual void LeaveToMenu();
 	// slot 135, 0x74e410 (bejeweled3): a new game: its background is chosen and the first fill is made
 	virtual void NewGame();
 	// 0x74e410 (bejeweled3): the background of a new game: Classic's slot 100 (0x73afa0) says to start from the first of the game's order; the Quest-derived
@@ -428,6 +428,8 @@ public:
 	// 0x755940 and slot 217, 0x73b810 (bejeweled3): the level bar follows its target, and when it and the progress are full the level
 	// change is asked for (slot 156, 0x74e190)
 	void UpdateLevelBar();
+	bool IsLevelFull() const;   // slot 217 (0x73b810): see UpdateLevelBar
+	virtual void OnLevelFull();   // slot 156: the level is full
 	// 0x767e20 (bejeweled3), after the match groups: the level change starts when the board is at rest (the overlay is made)
 	void StartLevelChange();
 	// 0x725ef0 (bejeweled3): the overlay's update, at the start of every step while it runs

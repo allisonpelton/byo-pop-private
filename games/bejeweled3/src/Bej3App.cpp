@@ -9,6 +9,9 @@
 #include "IceStormBoard.h"
 #include "DiamondMineBoard.h"
 #include "PokerBoard.h"
+#include "MoveLimitBoard.h"
+#include "QuestMenu.h"
+#include "TimeLimitBoard.h"
 #include "LightningBoard.h"
 #include "ZenBoard.h"
 #include "MemoryImage.h"
@@ -512,6 +515,86 @@ bool Bej3App::StartSecretMode(int theIndex)
 	aBoard->mIsSecretMode = true;
 	StartBoard(aBoard);
 	return true;
+}
+
+// 0x774060 (bejeweled3) with the secret flag 0: a quest of the map. The quest (quest.cfg's, by index) says by its setting Challenge which board is made (the names
+// are compared as for the secret modes, see StartSecretMode); its settings are copied into the board's map and its index is the board's +0x3234 before the board is reset
+// (slot 85) and dealt (slot 135). port: only Move Limit and Time Limit (and Dig, which has the secret flag only in the secret mode) are made; the quest map stays up when the
+// challenge is not
+bool Bej3App::StartQuest(int theIndex)
+{
+	if (mQuestData == nullptr || theIndex < 0 || theIndex >= (int)mQuestData->mQuests.size())
+		return false;
+	const std::map<std::string, std::string>& aSettings = mQuestData->mQuests[(size_t)theIndex].mSettings;
+	auto aChallengeIter = aSettings.find("Challenge");
+	std::string aChallenge = aChallengeIter == aSettings.end() ? std::string() : aChallengeIter->second;
+	if (aChallenge.size() >= 2 && aChallenge.front() == '"' && aChallenge.back() == '"')
+		aChallenge = aChallenge.substr(1, aChallenge.size() - 2);
+	for (char& aChar : aChallenge)
+		aChar = (char)toupper((unsigned char)aChar);
+	QuestBoard* aBoard = nullptr;
+	if (aChallenge == "MOVE LIMIT")
+		aBoard = new MoveLimitBoard();   // 0x868a84
+	else if (aChallenge == "TIME LIMIT")
+		aBoard = new TimeLimitBoard();   // 0x86a234
+	if (aBoard == nullptr) {
+		SDL_Log("Quest: the challenge \"%s\" is not made yet", aChallenge.c_str());
+		return false;
+	}
+	aBoard->mSettings = aSettings;
+	for (const auto& aChange : mQuestSettingChanges)
+		aBoard->mSettings[aChange.first] = aChange.second;
+	aBoard->mIsSecretMode = false;
+	aBoard->mQuestIndex = theIndex;
+	// the quest map goes (the exe keeps it under the game; the port makes a new one when it comes back)
+	if (mQuestMenu != nullptr) {
+		mWidgetManager->RemoveWidget(mQuestMenu);
+		SafeDeleteWidget(mQuestMenu);
+		mQuestMenu = nullptr;
+	}
+	StartBoard(aBoard);
+	return true;
+}
+
+// 0x773b70 (bejeweled3): with theDeleteBoard the app's board (+0xbe8) goes; the quest map (0x693760) is made if there is none, 1920 wide, as high as the art and 160 (of
+// 1200) left of the screen's edge, put on the screen (+0xbd8) with the focus, and the music's events FadeOut and Play of "QuestMenu" are queued. port: a map that is up is
+// made again, so it shows the profile as it is
+void Bej3App::ShowQuestMenu(bool theDeleteBoard)
+{
+	if (theDeleteBoard && mBoard != nullptr) {
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+		mBoard = nullptr;
+	}
+	if (mQuestMenu != nullptr) {
+		mWidgetManager->RemoveWidget(mQuestMenu);
+		SafeDeleteWidget(mQuestMenu);
+		mQuestMenu = nullptr;
+	}
+	mQuestMenu = new QuestMenu();
+	mQuestMenu->Resize(mArtRes * -160 / 0x4b0, 0, mArtRes * 1920 / 0x4b0, mArtRes);
+	mWidgetManager->AddWidget(mQuestMenu);
+	mWidgetManager->SetFocus(mQuestMenu);
+	if (mBej3Music != nullptr) {
+		mBej3Music->QueueEvent("FadeOut", "", false);
+		mBej3Music->QueueEvent("Play", "QuestMenu", false);
+	}
+}
+
+// 0x697640 (bejeweled3), the id 2: the quest map (and the board under it) goes and the play menu comes back (0x7716e0)
+void Bej3App::LeaveQuestMenu()
+{
+	if (mQuestMenu != nullptr) {
+		mWidgetManager->RemoveWidget(mQuestMenu);
+		SafeDeleteWidget(mQuestMenu);
+		mQuestMenu = nullptr;
+	}
+	if (mBoard != nullptr) {
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+		mBoard = nullptr;
+	}
+	ShowPlayMenu();
 }
 
 // the common part of the starts (0x7737d0, 0x773100, 0x773440, 0x774060)

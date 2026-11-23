@@ -7,7 +7,8 @@
 // time is out. See docs/NOTES.md, "Diamond Mine", for the slots it changes (each function here says its slot and address).
 #pragma once
 
-#include "QuestBoard.h"
+#include "QuestGoal.h"
+#include "TimeLimitBoard.h"
 #include "CurvedVal.h"
 
 #include <map>
@@ -30,7 +31,7 @@ public:
 	double Lookup(double theValue) const;   // 0x784e90
 };
 
-class DigGoal {
+class DigGoal : public QuestGoal {
 public:
 	enum { COLS = 8, ROWS = 8 };
 	// the kinds of what is in a block of dirt (a brick, the exe's 0x20-byte record in the map at +0x228): 0x6b3700 sets the kind at +8
@@ -82,7 +83,8 @@ public:
 		int mMoveId = -1;           // +0x188 of the piece
 	};
 
-	DigBoard* mBoard = nullptr;     // +0x104
+	// the board (+0x104, QuestGoal::mBoard) is a DigBoard
+	DigBoard* Dig() const;
 
 	// the settings (0x6c0430 reads them)
 	int mTargetCount = 0;                       // +0x3bc: "TargetCount"
@@ -140,7 +142,7 @@ public:
 	DigGoal() { Clear(); }
 	void Clear();
 	// 0x6c0430 (bejeweled3) and 0x6c4230 (the constructor): the settings of the quest are read
-	void Load(DigBoard* theBoard);
+	void Load() override;                   // slot 53 (0xd4)
 	// 0x744e00 (bejeweled3): the text of "Grids" is read into cells
 	void ParseGrid(const std::string& theText);
 	// 0x6bbb10 (bejeweled3): the bricks of the rows from theStartRow to the last
@@ -152,15 +154,15 @@ public:
 	// 0x6aae50 (bejeweled3): no row of the first six (or all eight) holds a brick
 	bool RowsAreFree(bool theAllRows) const;
 	// 0x6c2ad0 (bejeweled3): the goal's update, which the board's slot 22 (0x7374d0) runs
-	void Update();
+	void Update() override;                 // slot 54 (0xd8)
 	// 0x6b59f0 (bejeweled3): a brick is hit: true when it is destroyed
 	bool DamageBrick(Piece* thePiece, bool thePowered, bool theUseMask);
 	// 0x6b59f0 (bejeweled3): the treasure of a brick is collected: what it is worth
 	int CollectTreasure(Piece* thePiece, const Brick& theBrick);
 	// slot 143 (0x6ad0d0): a gem was cleared: the four cells round it are to be hit
-	void OnGemCleared(Piece* thePiece);
+	void OnPieceCleared(Piece* thePiece) override;
 	// slot 176 (0x6bb6a0) with slot 142 (0x6b6a80): a piece is taken out; true keeps it
-	bool OnPieceRemoving(Piece* thePiece);
+	bool OnPieceRemoving(Piece* thePiece) override;
 	// 0x6c2ad0 (bejeweled3), its middle: the scroll starts: the time bonus is given and its curves are set
 	void StartScroll();
 	// 0x6be730 (bejeweled3): the scroll's curve goes on; a row scrolls at each step of it
@@ -183,24 +185,16 @@ public:
 	int DepthShown() const;
 };
 
-class DigBoard : public QuestBoard {
+class DigBoard : public TimeLimitBoard {
 public:
-	// 0x73bb80: the clock counts in hundredths; it starts after this many game ticks (the first 250 are the board's intro)
-	enum { CLOCK_START_TICKS = 250, TICKS_PER_SECOND = 100 };
 	// 0x736f20: after a bonus, with less than this many hundredths left the clock's limit is put to 90 seconds
 	// port: the updates a bonus' seconds are shown for beside the score
 	enum { BONUS_SHOWN_TICKS = 300 };
 	enum { SHORT_CLOCK_HUNDREDTHS = 9001, BONUS_LIMIT_SECONDS = 90, BONUS_BASE_TICKS = 0x23f0, BONUS_TICKS_LONG = 200 };
 
-	// TimeLimitBoard's fields (0x6e5030 reads them)
-	int mTimeSeconds = 90;                  // +0x3248: "Time", the seconds the clock runs (TimeBonus' seconds are added to it)
-	int mTimeBonus = 10;                    // +0x324c: "TimeBonus" (10 until the settings are read)
-	int mTimePenalty = 3000;                // +0x3250: "TimePenalty" (3000 until the settings are read)
 	// DigBoard's own
 	int mMegaTimeBonus = 0;                 // +0x3278: "MegaTimeBonus"
 	int mTimeLeftCap = 0;                   // +0x3274: the time left that a bonus gave, in hundredths (0: none yet); the clock shows no more than it
-	bool mTimeUp = false;                   // +0xe28: the time ran out and the end is asked for
-	DigGoal* mGoal = nullptr;               // +0x3180
 	int mLastBonusSeconds = 0;              // the seconds the last bonus gave (shown for a while)
 	int mBonusShownTicks = 0;               // the updates it is still shown for
 	bool mBonusWasMega = false;
@@ -208,7 +202,8 @@ public:
 	bool mDigScrolling = false;             // the grid is scrolling: the pieces that go are not clears
 
 	DigBoard();     // 0x737420 (bejeweled3)
-	~DigBoard() override;
+	// the goal (QuestBoard's +0x3180) is a DigGoal, made by QuestBoard::CreateGoal from the setting Goal "Dig"
+	DigGoal* Goal() const { return static_cast<DigGoal*>(mGoal); }
 
 	const char* GetModeName() const override { return "BuriedTreasure"; }   // slot 89 (0x736e20): the string at +0x3258
 	void ResetGame() override;                                                // slot 85 (0x737290)
@@ -216,7 +211,6 @@ public:
 	void Update() override;                                                   // slot 22 (0x7374d0)
 	void UpdateTick() override;                                               // slot 234 (0x6e5660) and the time's end (slot 216, 0x73b890)
 	void UpdateFalling() override;                                            // slot 214 (0x736d60)
-	int GetTimeLimit() const override { return mTimeSeconds; }                // slot 104 (0x6c4a30)
 	void OnPieceCleared(Piece* thePiece) override;                            // slot 143 (0x6ad0d0 through the goal)
 	bool OnPieceRemoving(Piece* thePiece) override;                           // slots 176 and 142 (0x6bb6a0, 0x6b6a80 through the goal)
 	void NoMoreMoves(bool theAnnounce) override;                              // slot 161 (0x737500)
@@ -228,9 +222,7 @@ public:
 	void DrawModeOverlay(Graphics* g) override;                               // slot 43 (0x737370)
 
 	// slot 187 (0x2ec), 0x736b50: the hundredths of a second left
-	int GetTimeLeft() const;
-	// 0x73bb80 (bejeweled3): the hundredths left by the game's ticks alone
-	int GetClockTimeLeft() const;
+	int GetTimeLeft() const override;
 	// 0x736f20 (bejeweled3): seconds are added to the clock (the mega bonus for a grid with no dirt left)
 	void GiveTimeBonus(bool theMega);
 };

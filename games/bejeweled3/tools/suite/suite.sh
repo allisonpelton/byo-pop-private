@@ -70,12 +70,32 @@ for m in butterflies poker icestorm diamondmine; do
 		cmp -s "$OUT/$m/$s.png" "$OUT/${m}rerun/$s.png" || fail="$fail ${m}rerun-$s"
 	done
 done
+# Quest (suite_quest.txt): the quest map (section 0: eight buttons, none done), the quest at index 3 (Stratamax: Move Limit, Clear Gems 120 gems in 20 moves) started by
+# a click on its button and played by the bot to its end (a loss: the map comes back over the board), the same quest with 40 gems (`quest 3 Gems=40`: a win, which marks it
+# done in the profile), then three more quests marked done (`quest done`) so the second section opens and NEXT shows it. Each run twice: states and shots the same.
+e="$(run quest suite_quest.txt)"; [ "$e" -eq 0 ] || fail="$fail quest-exit($e)"
+grep -q '^ERROR' "$OUT/quest/states.txt" && fail="$fail quest-command($(grep -m1 '^ERROR' "$OUT/quest/states.txt" | cut -c1-80))"
+[ "$(grep -c '^STATE ' "$OUT/quest/states.txt")" = 5 ] || fail="$fail quest-statelines"
+qs() { grep '^STATE ' "$OUT/quest/states.txt" | sed -n "$1p"; }
+qs 1 | grep -q '"questmenu":1,"questsection":0,.*"questbuttons":8' || fail="$fail quest-map"
+qs 2 | grep -q '"goal":"CLEAR GEMS".*"questmenu":0,"movesleft":20' || fail="$fail quest-start"
+qs 3 | grep -q '"questmenu":1.*"gameover":1.*"questwon":0' || fail="$fail quest-loss"
+qs 3 | grep -q '"quests":"0000000000000000000000000000000000000000"' || fail="$fail quest-loss-marked"
+qs 4 | grep -q '"questmenu":1.*"quests":"0001000000000000000000000000000000000000".*"questwon":1' || fail="$fail quest-win"
+qs 5 | grep -q '"questsection":1,"quests":"1111' || fail="$fail quest-section"
+qs 5 | grep -q '"sectionstate":\[2,1,0,0,0\]' || fail="$fail quest-section-state"
+e="$(run questrerun suite_quest.txt)"; [ "$e" -eq 0 ] || fail="$fail questrerun-exit($e)"
+cmp -s "$OUT/quest/states.txt" "$OUT/questrerun/states.txt" || fail="$fail questrerun-states"
+for s in quest_map quest_play quest_lost quest_won quest_map2; do
+	[ -s "$OUT/quest/$s.png" ] || { fail="$fail noshot-$s"; continue; }
+	cmp -s "$OUT/quest/$s.png" "$OUT/questrerun/$s.png" || fail="$fail questrerun-$s"
+done
 msh="$(sha256sum "$OUT/modes/states.txt" | cut -c1-12)"
 [ -z "$FROZEN_MODES" ] || [ "$msh" = "$FROZEN_MODES" ] || fail="$fail MODE STATES CHANGED($msh; frozen $FROZEN_MODES)"
 sh="$(sha256sum "$OUT/game/states.txt" | cut -c1-12)"
 [ -z "$FROZEN" ] || [ "$sh" = "$FROZEN" ] || fail="$fail STATES CHANGED($sh; frozen $FROZEN)"
 if [ -z "$fail" ]; then
-	echo "bejeweled3: menu, a seeded Classic game (bot, 150 moves), the specials and the game over; Zen and Lightning games (bot); rerun identical (states and 6 shots); Butterflies, Poker, Ice Storm and Diamond Mine bot games to their game over (rerun identical, states and 6 shots); states $sh, modes $msh"
+	echo "bejeweled3: menu, a seeded Classic game (bot, 150 moves), the specials and the game over; Zen and Lightning games (bot); rerun identical (states and 6 shots); Butterflies, Poker, Ice Storm and Diamond Mine bot games to their game over (rerun identical, states and 6 shots); the quest map and a Quest game lost and won by the bot (rerun identical, states and 5 shots); states $sh, modes $msh"
 	exit 0
 fi
 echo "bejeweled3: FAILED:$fail"

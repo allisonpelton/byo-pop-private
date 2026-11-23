@@ -398,11 +398,11 @@ void IceStormEndLevelDialog::DrawStatisticsValues(Graphics* g)
 // player collected (the list at +0x1bc) for the one worth most (ArtifactBaseValue times its value), whose name it shows
 DigEndLevelDialog::DigEndLevelDialog(DigBoard* theBoard) :
 	ClassicEndLevelDialog(theBoard),
-	mDepth(theBoard->mGoal->DepthShown())
+	mDepth(theBoard->Goal()->DepthShown())
 {
-	for (int anIndex : theBoard->mGoal->mCollectedArtifacts) {
-		const DigGoal::Artifact& anArtifact = theBoard->mGoal->mArtifacts[(size_t)anIndex];
-		const int aValue = theBoard->mGoal->mArtifactBaseValue * anArtifact.mValue;
+	for (int anIndex : theBoard->Goal()->mCollectedArtifacts) {
+		const DigGoal::Artifact& anArtifact = theBoard->Goal()->mArtifacts[(size_t)anIndex];
+		const int aValue = theBoard->Goal()->mArtifactBaseValue * anArtifact.mValue;
 		if (mBestTreasureValue <= aValue) {
 			mBestTreasureValue = aValue;
 			mBestTreasureText = anArtifact.mText;

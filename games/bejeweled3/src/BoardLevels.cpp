@@ -183,7 +183,6 @@ void Board::UpdateLevelBar()
 {
 	if (!HasLevels())
 		return;
-	int aMax = GetLevelMax();
 	float aTarget = GetBarTarget();   // 0x755940 calls slot 188
 	bool aSlowCurve = mBarRateCurve.GetOutVal() == 0.0;
 	if (aTarget > mLevelBar) {
@@ -197,17 +196,27 @@ void Board::UpdateLevelBar()
 		mLevelBar = aNext > aTarget ? aNext : aTarget;
 	}
 	// slot 215 (0x73daf0) puts the bar's parts where they are drawn: not translated
-	// slot 217 (0x73b810): with no time limit (slot 104 is 0: Classic and Zen) the bar is full and the progress is at the level's size;
-	// with one (Lightning) the size must be above 0 and the progress (slot 155) must have reached it
-	bool aLevelFull;
-	if (GetTimeLimit() == 0)
-		aLevelFull = mLevelBar >= 1.0f && mLevelProgress >= aMax;
-	else
-		aLevelFull = aMax > 0 && aMax <= GetLevelProgress();
-	if (aLevelFull) {
+	if (IsLevelFull()) {
 		if (!mGameOver && !mLevelUpPending && mHyperspace == nullptr && mGameOverTicks < 1)
-			mLevelUpPending = true;
+			OnLevelFull();
 	}
+}
+
+// slot 217, 0x73b810 (bejeweled3): with no time limit (slot 104 is 0: Classic and Zen) the bar is full and the progress is at the level's size;
+// with one (Lightning) the size must be above 0 and the progress (slot 155) must have reached it
+bool Board::IsLevelFull() const
+{
+	const int aMax = GetLevelMax();
+	if (GetTimeLimit() == 0)
+		return mLevelBar >= 1.0f && mLevelProgress >= aMax;
+	return aMax > 0 && aMax <= GetLevelProgress();
+}
+
+// slot 156, 0x74e190 (bejeweled3), run when the level is full: the level change is asked for (it starts when the board is at rest). QuestBoard's
+// own slot 156 (0x6ca7e0) is the Quest's end of a level
+void Board::OnLevelFull()
+{
+	mLevelUpPending = true;
 }
 
 // 0x767e20 (bejeweled3), after the match groups: with the board at rest and nothing asked for, the level change's overlay is made.

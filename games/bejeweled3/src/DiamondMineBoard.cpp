@@ -137,28 +137,27 @@ void DigGoal::Clear()
 
 // 0x6c0430 (bejeweled3), run by the constructor 0x6c4230 from 0x6ddc70: the quest's settings are read (the counts with atoi, the rest with wtof, the lists
 // and curves parsed); the grid's text goes to 0x744e00, the artifacts are the settings Artifact1 up, and the curves of the spreads become tables
-void DigGoal::Load(DigBoard* theBoard)
+void DigGoal::Load()
 {
-	mBoard = theBoard;
-	mTargetCount = mBoard->SettingInt("TargetCount");
-	mDigCountPerScroll = mBoard->SettingInt("DigCountPerScroll");
-	mGoldValue = mBoard->SettingInt("GoldValue");
-	mDiamondValue = mBoard->SettingInt("DiamondValue");
-	mArtifactBaseValue = mBoard->SettingInt("ArtifactBaseValue");
-	mArtifactSkipTileCount = mBoard->SettingInt("ArtifactSkipTileCount");
-	mPowerGemThresholdDepth0 = mBoard->SettingInt("PowerGemThresholdDepth0");
-	mPowerGemThresholdDepth20 = mBoard->SettingInt("PowerGemThresholdDepth20");
-	mPowerGemThresholdDepth40 = mBoard->SettingInt("PowerGemThresholdDepth40");
-	mArtifactMinTiles = mBoard->SettingInt("ArtifactMinTiles");
-	mArtifactMaxTiles = mBoard->SettingInt("ArtifactMaxTiles");
+	mTargetCount = Dig()->SettingInt("TargetCount");
+	mDigCountPerScroll = Dig()->SettingInt("DigCountPerScroll");
+	mGoldValue = Dig()->SettingInt("GoldValue");
+	mDiamondValue = Dig()->SettingInt("DiamondValue");
+	mArtifactBaseValue = Dig()->SettingInt("ArtifactBaseValue");
+	mArtifactSkipTileCount = Dig()->SettingInt("ArtifactSkipTileCount");
+	mPowerGemThresholdDepth0 = Dig()->SettingInt("PowerGemThresholdDepth0");
+	mPowerGemThresholdDepth20 = Dig()->SettingInt("PowerGemThresholdDepth20");
+	mPowerGemThresholdDepth40 = Dig()->SettingInt("PowerGemThresholdDepth40");
+	mArtifactMinTiles = Dig()->SettingInt("ArtifactMinTiles");
+	mArtifactMaxTiles = Dig()->SettingInt("ArtifactMaxTiles");
 	mTreasureRange.clear();
-	for (double aValue : mBoard->SettingList("TreasureRange"))
+	for (double aValue : Dig()->SettingList("TreasureRange"))
 		mTreasureRange.push_back((int)aValue);
 	auto aSetting = [this](const char* theName) {
-		auto anIter = mBoard->mSettings.find(theName);
-		return anIter == mBoard->mSettings.end() ? std::string() : anIter->second;
+		auto anIter = Dig()->mSettings.find(theName);
+		return anIter == Dig()->mSettings.end() ? std::string() : anIter->second;
 	};
-	mRandomAfterGrid = mBoard->HasSetting("MaxBrickStrPerLevel");
+	mRandomAfterGrid = Dig()->HasSetting("MaxBrickStrPerLevel");
 	mMinBrickStr.SetCurve(aSetting("MinBrickStrPerLevel"));
 	mMaxBrickStr.SetCurve(aSetting("MaxBrickStrPerLevel"));
 	mEdgeBrickStr.SetCurve(aSetting("EdgeBrickStrPerLevel"));
@@ -179,8 +178,8 @@ void DigGoal::Load(DigBoard* theBoard)
 	for (int aNumber = 1;; aNumber++) {
 		char aName[24];
 		snprintf(aName, sizeof(aName), "Artifact%d", aNumber);
-		auto anIter = mBoard->mSettings.find(aName);
-		if (anIter == mBoard->mSettings.end())
+		auto anIter = Dig()->mSettings.find(aName);
+		if (anIter == Dig()->mSettings.end())
 			break;
 		const std::string& aText = anIter->second;
 		std::string aFields[4];
@@ -202,8 +201,8 @@ void DigGoal::Load(DigBoard* theBoard)
 		mArtifacts.push_back(anArtifact);
 	}
 	mGridCells.clear();
-	auto aGridIter = mBoard->mSettings.find("Grids");
-	if (aGridIter != mBoard->mSettings.end())
+	auto aGridIter = Dig()->mSettings.find("Grids");
+	if (aGridIter != Dig()->mSettings.end())
 		ParseGrid(aGridIter->second);
 	mTicksToArtifact = mArtifactMinTiles;   // port: the exe's value before the first artifact's draw is not read; the first artifact comes after the shortest run
 }
@@ -335,7 +334,7 @@ void DigGoal::MakeRows(int theStartRow)
 				continue;
 			bool aMade = false;
 			bool aArtifactDue = false;
-			bool aMayHoldArtifact = mBoard->mIsSecretMode;
+			bool aMayHoldArtifact = Dig()->mIsSecretMode;
 			bool aBrickMade = false;
 			if (!mRandomAfterGrid || aTableRow < aTableRows) {
 				if (aTableRows > 0) {
@@ -398,7 +397,7 @@ void DigGoal::MakeRows(int theStartRow)
 				SetBrick(aChosen, KIND_ARTIFACT, anArtifact);
 				mPlacedArtifacts.push_back(anArtifact);
 				aPool.erase(aPool.begin() + aPoolIndex);
-				if (mBoard->mIsSecretMode) {
+				if (Dig()->mIsSecretMode) {
 					const int aSpan = std::max(1, mArtifactMaxTiles - mArtifactMinTiles);
 					mTicksToArtifact = (int)(Rand() % (unsigned)aSpan) + mArtifactMinTiles;
 				}
@@ -415,7 +414,7 @@ void DigGoal::PlaceBricks()
 {
 	for (int aRow = 0; aRow < ROWS; aRow++) {
 		for (int aColumn = 0; aColumn < COLS; aColumn++) {
-			Piece* aPiece = mBoard->mGrid[aRow][aColumn];
+			Piece* aPiece = Dig()->mGrid[aRow][aColumn];
 			if (!IsBrick(aPiece))
 				continue;
 			aPiece->mX = (float)(aColumn * CELL_SIZE);
@@ -432,7 +431,7 @@ bool DigGoal::RowsAreFree(bool theAllRows) const
 	const int aLastRow = theAllRows ? ROWS - 1 : 5;
 	for (int aRow = 0; aRow <= aLastRow; aRow++) {
 		for (int aColumn = 0; aColumn < COLS; aColumn++) {
-			const Piece* aPiece = mBoard->mGrid[aRow][aColumn];
+			const Piece* aPiece = Dig()->mGrid[aRow][aColumn];
 			if (aPiece != nullptr && (aPiece->mFlags & FLAG_BRICK) != 0)
 				return false;
 		}
@@ -471,7 +470,7 @@ int DigGoal::CollectTreasure(Piece* thePiece, const Brick& theBrick)
 			mDiamondsCollected++;
 		mTallies[KIND_MONEY] += aValue;
 	}
-	mBoard->mLevelProgress += aValue;
+	Dig()->mLevelProgress += aValue;
 	mTallyTicks = TALLY_SHOWN_TICKS;
 	mBestTreasureValue = std::max(mBestTreasureValue, aValue);
 	return aValue;
@@ -516,7 +515,7 @@ bool DigGoal::DamageBrick(Piece* thePiece, bool thePowered, bool theUseMask)
 // slot 143 (0x23c) of the board, 0x6ad0d0 (bejeweled3): a cleared gem (not a brick) says its cell was hit: unless it was cleared by a flame or star gem (a gem with a
 // colour that a blast took out: the blast hits what is near itself), the cell goes in the list with whether the hit is powered (no colour, or cleared by a hypercube) and the
 // gem's move
-void DigGoal::OnGemCleared(Piece* thePiece)
+void DigGoal::OnPieceCleared(Piece* thePiece)
 {
 	if (IsBrick(thePiece))
 		return;
@@ -539,7 +538,7 @@ bool DigGoal::OnPieceRemoving(Piece* thePiece)
 {
 	if (!IsBrick(thePiece))
 		return false;
-	if (!mBoard->mDigDestroying && !mBoard->mDigScrolling) {
+	if (!Dig()->mDigDestroying && !Dig()->mDigScrolling) {
 		const bool aPowered = (thePiece->mDestroyerFlags & DESTROYER_POWER_BITS) != 0;
 		if (!DamageBrick(thePiece, aPowered, false)) {
 			thePiece->mMatchTimer = 0.0f;
@@ -552,15 +551,15 @@ bool DigGoal::OnPieceRemoving(Piece* thePiece)
 		}
 	}
 	auto aHidden = std::find(mHypercubeBrickIds.begin(), mHypercubeBrickIds.end(), thePiece->mId);
-	if (aHidden != mHypercubeBrickIds.end() && !mBoard->mDigScrolling) {
+	if (aHidden != mHypercubeBrickIds.end() && !Dig()->mDigScrolling) {
 		mHypercubeBrickIds.erase(aHidden);
 		mBricks.erase(thePiece->mId);
 		mBricksDestroyed++;
-		mBoard->MakeHypercube(thePiece, true);
+		Dig()->MakeHypercube(thePiece, true);
 		int aCounts[Piece::COLOR_COUNT] = {};
 		for (int aRow = 0; aRow < ROWS; aRow++) {
 			for (int aColumn = 0; aColumn < COLS; aColumn++) {
-				const Piece* aPiece = mBoard->mGrid[aRow][aColumn];
+				const Piece* aPiece = Dig()->mGrid[aRow][aColumn];
 				if (aPiece != nullptr && aPiece->mColor >= 0 && aPiece->mColor < Piece::COLOR_COUNT)
 					aCounts[aPiece->mColor]++;
 			}
@@ -575,7 +574,7 @@ bool DigGoal::OnPieceRemoving(Piece* thePiece)
 		thePiece->mCanFall = true;
 		thePiece->mMatchTimer = 0.0f;
 		thePiece->mIsGroupOrigin = false;
-		mBoard->MakeHypercubeGroup(thePiece, aMostCommon);
+		Dig()->MakeHypercubeGroup(thePiece, aMostCommon);
 		return true;
 	}
 	if (mBricks.erase(thePiece->mId) != 0)
@@ -609,9 +608,9 @@ void DigGoal::Update()
 				continue;
 			bool aDone = false;
 			if (anEntry.mPowered)
-				aDone = mBoard->DigHit(aNeighbour, true, true);
+				aDone = Dig()->DigHit(aNeighbour, true, true);
 			if (!aDone && aBoard.mGrid[aRow][aColumn] == aNeighbour)
-				mBoard->DigHit(aNeighbour, anEntry.mPowered, false);
+				Dig()->DigHit(aNeighbour, anEntry.mPowered, false);
 		}
 	}
 	if (mTallyTicks > 0)
@@ -620,7 +619,7 @@ void DigGoal::Update()
 		UpdateScroll();
 		return;
 	}
-	if (aBoard.mGameOver || aBoard.mGameOverTicks != 0 || mBoard->mTimeUp || !RowsAreFree(false))
+	if (aBoard.mGameOver || aBoard.mGameOverTicks != 0 || Dig()->mTimeUp || !RowsAreFree(false))
 		return;
 	if (!aBoard.mPendingSwaps.empty() || gApp->GetDialogCount() != 0 || !aBoard.IsSettled())
 		return;
@@ -633,7 +632,7 @@ void DigGoal::Update()
 void DigGoal::StartScroll()
 {
 	mWholeBoardClear = RowsAreFree(true);
-	mBoard->GiveTimeBonus(mWholeBoardClear);
+	Dig()->GiveTimeBonus(mWholeBoardClear);
 	const int aMultiplier = ((mWholeBoardClear ? 1 : 0) + 1) * mDigCountPerScroll;
 	mDepth += (double)(aMultiplier * Ftol(mScrollDepthCurve.GetOutVal()));
 	mScrollDepthCurve.SetCurve(SCROLL_DEPTH_CURVE);
@@ -672,13 +671,13 @@ void DigGoal::UpdateScroll()
 void DigGoal::ScrollOneRow()
 {
 	Board& aBoard = *mBoard;
-	mBoard->mDigScrolling = true;
+	Dig()->mDigScrolling = true;
 	for (int aColumn = 0; aColumn < COLS; aColumn++) {
 		Piece* aPiece = aBoard.mGrid[0][aColumn];
 		if (aPiece != nullptr)
 			aBoard.RemovePiece(aPiece);
 	}
-	mBoard->mDigScrolling = false;
+	Dig()->mDigScrolling = false;
 	for (int aRow = 1; aRow < ROWS; aRow++) {
 		for (int aColumn = 0; aColumn < COLS; aColumn++) {
 			Piece* aPiece = aBoard.mGrid[aRow][aColumn];
@@ -725,18 +724,17 @@ void DigGoal::EnsureMove()
 	}
 }
 
+// the board (QuestGoal's +0x104) is the DigBoard that made the goal
+DigBoard* DigGoal::Dig() const
+{
+	return static_cast<DigBoard*>(mBoard);
+}
+
 // ---- DigBoard ----
 
 // 0x737420 (bejeweled3): TimeLimitBoard's constructor (0x6dd3b0: the bonus 10 and the penalty 3000), then the vftable and the strings (the mode's name "BuriedTreasure")
 DigBoard::DigBoard()
 {
-	mGoal = new DigGoal();
-	mGoal->mBoard = this;
-}
-
-DigBoard::~DigBoard()
-{
-	delete mGoal;   // 0x6b1f40
 }
 
 // slot 85 (0x154), 0x737290 (bejeweled3): the quest's reset (0x6cda70), then the goal's state and the clock's are as at the start (+0x3274 is 0). port: the secret mode's
@@ -744,7 +742,8 @@ DigBoard::~DigBoard()
 void DigBoard::ResetGame()
 {
 	QuestBoard::ResetGame();
-	mGoal->Clear();
+	if (mGoal != nullptr)
+		Goal()->Clear();
 	mTimeLeftCap = 0;
 	mTimeUp = false;
 	mBonusShownTicks = 0;
@@ -758,22 +757,19 @@ void DigBoard::ResetGame()
 // grid has a move: the fill made one, but the bricks may take it away, which the scroll's fix (0x6be3e0) is run for here as well
 void DigBoard::NewGame()
 {
-	mTimeSeconds = SettingInt("Time");
-	mTimeBonus = SettingInt("TimeBonus");
-	mTimePenalty = SettingInt("TimePenalty");
+	ReadTimeSettings();
 	mMegaTimeBonus = SettingInt("MegaTimeBonus");
-	mGoal->Load(this);
+	CreateGoal();
+	Goal()->Load();
 	Board::NewGame();
-	mGoal->MakeRows(0);
-	mGoal->EnsureMove();
+	Goal()->MakeRows(0);
+	Goal()->EnsureMove();
 }
 
 // slot 22 (0x58), 0x7374d0 (bejeweled3): the quest's update, then the goal's
 void DigBoard::Update()
 {
 	QuestBoard::Update();
-	if (mGoal != nullptr)
-		mGoal->Update();
 }
 
 // slot 234 (0x3a8), 0x6e5660 and slot 216 (0x360), 0x73b890 (bejeweled3): the step (the board's), then the progress is the score (0x6a97d0, the goal's slot 0x30, also
@@ -781,23 +777,19 @@ void DigBoard::Update()
 // asked for with the flag +0xe28 set: slot 161
 void DigBoard::UpdateTick()
 {
-	QuestBoard::UpdateTick();
+	TimeLimitBoard::UpdateTick();
 	mScorePoints = mLevelProgress;
 	if (mBonusShownTicks > 0)
 		mBonusShownTicks--;
-	if (GetTimeLimit() > 0 && !mTimeUp && mGameOverTicks == 0 && GetTimeLeft() <= 0 && IsSettled()) {
-		mTimeUp = true;
-		NoMoreMoves(true);
-	}
 }
 
 // slot 214 (0x358), 0x736d60 (bejeweled3): the gravity (0x73dd70), then the bricks never fall: their speeds are 0 (the bricks are put at their cells before, so a gem above one
 // lands on it)
 void DigBoard::UpdateFalling()
 {
-	mGoal->PlaceBricks();
+	Goal()->PlaceBricks();
 	Board::UpdateFalling();
-	mGoal->PlaceBricks();
+	Goal()->PlaceBricks();
 }
 
 // slot 143 (0x23c): a cleared gem hits its neighbours (the goal's 0x6ad0d0), with nothing to do while the grid scrolls
@@ -805,19 +797,19 @@ void DigBoard::OnPieceCleared(Piece* thePiece)
 {
 	if (mDigScrolling)
 		return;
-	mGoal->OnGemCleared(thePiece);
+	Goal()->OnPieceCleared(thePiece);
 }
 
 // slots 176 and 142: see DigGoal::OnPieceRemoving
 bool DigBoard::OnPieceRemoving(Piece* thePiece)
 {
-	return mGoal->OnPieceRemoving(thePiece);
+	return Goal()->OnPieceRemoving(thePiece);
 }
 
 // a brick is hit by the goal's own hits: when it breaks it is taken out of the grid by the board's slot 176 (the hook above does not hit it again)
 bool DigBoard::DigHit(Piece* thePiece, bool thePowered, bool theUseMask)
 {
-	if (!mGoal->DamageBrick(thePiece, thePowered, theUseMask))
+	if (!Goal()->DamageBrick(thePiece, thePowered, theUseMask))
 		return false;
 	mDigDestroying = true;
 	RemovePiece(thePiece);
@@ -836,7 +828,7 @@ void DigBoard::NoMoreMoves(bool theAnnounce)
 // scroll as well: it starts by itself)
 bool DigBoard::BotMayMove() const
 {
-	return !mGoal->mScrolling && !mGoal->RowsAreFree(false);
+	return !Goal()->mScrolling && !Goal()->RowsAreFree(false);
 }
 
 // slot 152: the points of a match are not progress (the progress is the treasure's value, +0xe00)
@@ -850,14 +842,6 @@ void DigBoard::AddPoints(int thePoints, int theMoveId, bool theCountsForProgress
 ClassicEndLevelDialog* DigBoard::MakeEndLevelDialog()
 {
 	return new DigEndLevelDialog(this);
-}
-
-// 0x73bb80 (bejeweled3): the clock's hundredths left: the limit times 100 less the game's ticks past the first 250 (0 before), never below 0
-int DigBoard::GetClockTimeLeft() const
-{
-	const int aLimit = mTimeSeconds * TICKS_PER_SECOND;
-	const int aPassed = std::max(0, mGameTicks - (int)CLOCK_START_TICKS);
-	return std::max(0, aLimit - aPassed);
 }
 
 // slot 187 (0x2ec), 0x736b50 (bejeweled3): the clock's hundredths left, and no more than what the last bonus left (+0x3274, once there is one)
@@ -901,8 +885,8 @@ void DigBoard::DrawModeOverlay(Graphics* g)
 			const Piece* aPiece = mGrid[aRow][aColumn];
 			if (aPiece == nullptr || (aPiece->mFlags & DigGoal::FLAG_BRICK) == 0)
 				continue;
-			auto aBrickIter = mGoal->mBricks.find(aPiece->mId);
-			if (aBrickIter == mGoal->mBricks.end())
+			auto aBrickIter = Goal()->mBricks.find(aPiece->mId);
+			if (aBrickIter == Goal()->mBricks.end())
 				continue;
 			const DigGoal::Brick& aBrick = aBrickIter->second;
 			const int aX = GetGridX() + (int)aPiece->mX;
@@ -953,7 +937,7 @@ void DigBoard::DrawModeOverlay(Graphics* g)
 	char aText[48];
 	snprintf(aText, sizeof(aText), "%d:%02d", aLeft / 6000, (aLeft / 100) % 60);
 	g->WriteString(aText, Scaled(250), Scaled(262), 0, 0, true, 0, -1, -1);
-	snprintf(aText, sizeof(aText), "%d m", mGoal->DepthShown());
+	snprintf(aText, sizeof(aText), "%d m", Goal()->DepthShown());
 	g->WriteString(aText, Scaled(250), Scaled(322), 0, 0, true, 0, -1, -1);
 	if (mBonusShownTicks > 0) {
 		snprintf(aText, sizeof(aText), "+%d", mLastBonusSeconds);
