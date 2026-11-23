@@ -56,15 +56,16 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg cap.s
 # byopop_web_index() from the same BYOPOP_WEB_BADGES and the same titles as the listing page's tiles, so the chat keeps no list of
 # games of its own. web/testkit.js is the player-only page's test tools, which a game page loads only at ?player=1 on a
 # development host (docs/WEB_PLAYER.md, "The player-only page"). web/skins.js and web/skins.css are the site's skins ("Skins").
-# web/settingsicons.js holds the Settings sections' icons, drawn by tools/settingsicons.py.
-set(BYOPOP_WEB_SHARED_JS logo.js cursors.js saver.js settingsicons.js settings.js profiles.js exeicon.js exeprobes.js exetrim.js flicursor.js gameimport.js chat.js testkit.js skins.js schemes.js themedata.js themes.js skins.css perf.js soundpanel.js view.js controldata.js controls.js clips.js)
+# web/settingsicons.js holds the Settings sections' icons, drawn by tools/settingsicons.py, and web/appicons.js the site's apps'
+# icons, drawn by tools/appicons.py.
+set(BYOPOP_WEB_SHARED_JS logo.js cursors.js saver.js settingsicons.js appicons.js settings.js profiles.js exeicon.js exeprobes.js exetrim.js flicursor.js gameimport.js chat.js testkit.js skins.js schemes.js themedata.js themes.js skins.css perf.js soundpanel.js view.js controldata.js controls.js clips.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js), System Information
 # (web/sysinfo.js) and the import of saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as
 # saveimport-table.js), and the adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and
 # import-games.js, each listed game's page.js, which byopop_web_index() writes), and Desktop 95's soundboard (web/sounds.js,
-# with its table web/soundboards.js), the Fonts window (web/fontview.js), the Venice Buildings window (web/buildings.js) and
+# with its table web/soundboards.js), the Fonts window (web/fontview.js), the Gallery (web/gallery.js, with Venice's buildings, web/buildings.js) and
 # the Guides window (web/guides.js, with its texts web/guidetexts.js), copied next to index.html only
-set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js sysinfo.js saveimport.js modpanel.js addgames.js setup.js music.js soundtracks.js sounds.js soundboards.js trophies.js fontview.js buildings.js guidetexts.js guides.js gamepics.js autosplit.js splits.js deskapps.js phase.js library.js)
+set(BYOPOP_WEB_INDEX_JS localsoon.js players.js saves.js sysinfo.js saveimport.js modpanel.js addgames.js setup.js music.js soundtracks.js sounds.js soundboards.js trophies.js fontview.js buildings.js gallery.js guidetexts.js guides.js gamepics.js autosplit.js splits.js deskapps.js phase.js library.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order; the page can sort by
 # release date instead), with a badge and the year of its release. The list is the coordinator's: the coordinator adds a
