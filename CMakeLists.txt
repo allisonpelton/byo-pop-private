@@ -441,6 +441,10 @@ endif()
 if(BUILD_FEEDINGFRENZY2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/feedingfrenzy2/CMakeLists.txt)
   add_subdirectory(games/feedingfrenzy2)
 endif()
+# Talismania: the second game on Sprout's second-generation engine; optional while it is new
+if(BUILD_TALISMANIA AND EXISTS ${PROJECT_SOURCE_DIR}/games/talismania/CMakeLists.txt)
+  add_subdirectory(games/talismania)
+endif()
 # Retro64's engine (engines/retro64), one copy for Cosmic Bugs and Water Bugs: built when either game is
 option(BUILD_COSMICBUGS "Build the Cosmic Bugs port" ON)
 option(BUILD_WATERBUGS "Build the Water Bugs port" ON)

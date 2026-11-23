@@ -25,9 +25,11 @@ void GenericScreen::setTransitions(Transition* theIn, Transition* theOut)
 		removeModifier(mOutTransition.get());
 	}
 	mInTransition = theIn;
-	mInTransition->setTarget(this);
+	if (mInTransition != nullptr)
+		mInTransition->setTarget(this);
 	mOutTransition = theOut;
-	mOutTransition->setTarget(this);
+	if (mOutTransition != nullptr)
+		mOutTransition->setTarget(this);
 	reset();
 }
 
