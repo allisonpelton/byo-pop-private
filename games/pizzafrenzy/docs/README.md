@@ -150,6 +150,9 @@ stays.
   (the load bar at 0.8), and the port keeps that frame with nothing in it, so the loading takes the original's frames.
 - **The game's end goes to the menu** at once: the original opens the global score post's dialog there first (a state
   of its own, until the player closes it), which the port does not have.
+- **The concentration mode's lock is fixed:** an event that changes the orders while a wave's orders still show (every
+  customer dimmed) set the seconds they show for to 0 in the original, so they were never turned over and the level
+  never ended (0x45b4f0); the port keeps the seconds then (`IDENTICAL_PLAY.md`, "Deviations left").
 
 ## Progress
 

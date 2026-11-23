@@ -143,6 +143,16 @@ The window's 100 ms sound timer, which the original runs only while its window i
 port is not told of the drag). A fade under way when a drag starts goes on when the port's frames go on, where the
 original's goes on through the drag; the music and sounds themselves keep playing.
 
+The concentration mode's lock is fixed in the port (a bug that breaks play). An event that changes the orders of the
+customers who take a click (the Gossip's and the Clown's, 0x448cd0 and 0x449850) ends in the mode's orders-changed
+(0x45b4f0), which sets the seconds the orders show for to the clickable customers' count times a random wait times
+1/15. When it comes while a wave's orders still show, every customer is dimmed and none takes a click, so the seconds
+become 0. The wave's update turns the orders over only while those seconds run (0x45b6e0), so the dimmed customers stay
+dimmed, their waits never start, and the level never ends. The native real-input run of the concentration mode met it
+in city 12's third level: the wave's two orders came at update 11136 with 1.3 seconds to show and were still dimmed,
+at their full 30 seconds, 2.4 million updates later. The port keeps the seconds when no customer takes a click (the
+event changed no order then); the random draw is made either way. A game that never meets it plays as the original's.
+
 ## Looks identical
 
 **Pictures of the original.** The original draws partly into its back surface through locks and partly with
