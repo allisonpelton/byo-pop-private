@@ -8,6 +8,9 @@
 #define __BALL_H__
 
 #include "PhysObj.h"
+#include "SexyVector.h"
+
+#include <vector>
 
 namespace Sexy
 {
@@ -32,6 +35,15 @@ public:
 	float GetYPos() const override { return mY; }				 // 31, 0x4547b0
 	bool IsCollidableWith(const PhysObj* theOther) const override; // 32, 0x477a00
 
+	bool CheckCollision(const SexyVector2& thePos, const SexyVector2& theVel, float theRadius, float& theTime, SexyVector2& theContact) const; // 0x475000: a ball at thePos going by theVel against this peg
+	bool DoCollideUpdate(std::vector<PhysObj*>& theCandidates, SexyVector2* theFirstContact); // 0x47f160: moves for the rest of the update, hitting what it meets
+	void DoNonCollideUpdate();							   // 0x475200
+	void CollideWithBall(Ball* theOther);			   // 0x4775b0
+	void BounceBalls(Ball* theOther);				   // 0x477110
+	void BounceOffPeg(Ball* thePeg);				   // 0x477340
+	void BounceOffWall(SexyVector2& theVelocity, PhysObj* theWall, const SexyVector2& theNormal, const SexyVector2& theContact,
+					   const SexyVector2& theBounce, SexyVector2& theSurface); // 0x4775f0
+	void SetHoleOut(PhysObj* thePiece, int theDelay); // 0x47a350: the ball comes out at the piece (at once, or after the delay)
 	void SetAbsPos(float theX, float theY);		   // 0x474dd0: puts the ball there as if it had always been
 	void SetHat(bool theHasHat, bool theMakeBall); // 0x480f50: gives the ball a hat, or takes it off
 
@@ -45,13 +57,10 @@ public:
 	float mVelocityY;		  // +0x100
 	float mUnknown104;		  // +0x104: the place when the piece was read, and where SetHat puts the hat's goal
 	float mUnknown108;		  // +0x108
-	float mUnknown10C;		  // +0x10c: saved by a ball in play
-	float mUnknown110;		  // +0x110
-	float mUnknown114[8];	  // +0x114: four pairs, saved by a ball in play of the version 12 on
-	float mUnknown134;		  // +0x134: SetAbsPos sets these two to the place
-	float mUnknown138;		  // +0x138
+	float mTrail[6][2];		  // +0x10c: six places (x, y) the ball was at, the last (+0x134) the place at the end of the last update; saved by a ball in play (the middle four from the version 12 on)
 	float mRadius;			  // +0x13c
 	bool mIsPeg;			  // +0x140: the constructor's argument, saved
+	bool mUnknown141;		  // +0x141: set while the ball is held (a peg, or waiting to come back): the collisions skip it
 	bool mUnknown142;		  // +0x142
 	bool mUnknown143;		  // +0x143
 	bool mUnknown144;		  // +0x144
@@ -69,8 +78,8 @@ public:
 	bool mUnknown163;		  // +0x163: set by the constructor
 	bool mUnknown164;		  // +0x164
 	bool mUnknown165;		  // +0x165
-	int mUnknown168;		  // +0x168
-	int mUnknown16C;		  // +0x16c
+	float mUnknown168;		  // +0x168
+	float mUnknown16C;		  // +0x16c
 	float mUnknown170;		  // +0x170
 	int mUnknown174;		  // +0x174
 	int mUnknown178;		  // +0x178

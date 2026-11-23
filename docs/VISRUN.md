@@ -162,8 +162,10 @@ ring's worth and logs a gap larger than that once.
 
 The stand-in holds the game at its main thread's first wait (`ORIGRUN_CLOCK_HOLDSTART`), so the first step finds it
 where it started. That wait can come before the window: Bookworm Adventures waits before it makes its window. Until the
-window exists, visrun lets each such hold go on to the next wait, so the game stands at its first wait after the window
-(the log's "window after" line counts the waits). Without this, visrun waited for a window the held game could not make,
+window exists, visrun lets such a hold go on with the stand-in's window hold (`VC_HOLD_WINDOW`: the game runs to its
+first wait with a window of its own up, visible, top-level and at least 64x64, and holds there), so the game stands at
+its first wait after the window (the log's "window after" line counts how often it was let on). Stepping it wait by
+wait, as visrun did first, cost a round trip a wait, about 100 ms with the machine busy. Without this, visrun waited for a window the held game could not make,
 the stand-in gave up the hold at its 60 s cap and turned holds off, and the counter never moved (Bookworm Adventures'
 runs from 2026-11-22, each with its window after about 62 s and the end at update 0).
 

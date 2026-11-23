@@ -2,12 +2,15 @@
 
 #include "Hole.h"
 
+#include "Ball.h"
+#include "CollisionMgr.h"
 #include "DataSync.h"
 #include "NotTranslated.h"
 #include "PhysObjFactory.h"
 
 using namespace Sexy;
 
+static const int HOLE_FLASH_UPDATES = 100;
 static const int DEFAULT_WIDTH = 100;
 static const int DEFAULT_HEIGHT = 20;
 
@@ -123,6 +126,40 @@ void Hole::SetSize(int theWidth, int theHeight)
 	mRight = (float)theWidth * 0.5f + mX;
 	mTop = mY - (float)theHeight * 0.5f;
 	mBottom = (float)theHeight * 0.5f + mY;
+}
+
+// 0x4781c0: a ball whose middle is inside the hole (the box, or the ellipse in it when the hole is round) is noted as touching it, and
+// the hole lights up for 100 updates
+bool Hole::CheckBall(const Ball* theBall)
+{
+	float aX = mX;
+	float aY = mY;
+	float aHalfWidth = (float)((double)mWidth * 0.5);
+	float aHalfHeight = (float)(0.5 * (double)mHeight);
+	float aBallX = theBall->mX;
+	float aBallY = theBall->mY;
+	if ((double)aX - aHalfWidth > aBallX)
+		return false;
+	if ((double)aHalfWidth + aX < aBallX)
+		return false;
+	if ((double)aY - aHalfHeight > aBallY)
+		return false;
+	if ((double)aHalfHeight + aY < aBallY)
+		return false;
+	if (mCircular)
+	{
+		double aDeltaX = (double)aBallX - aX;
+		double aDeltaY = (double)aBallY - aY;
+		float aMeasure = (float)((aDeltaX * aDeltaX) / ((double)aHalfWidth * aHalfWidth) + (aDeltaY * aDeltaY) / ((double)aHalfHeight * aHalfHeight));
+		if (aMeasure > 1.0)
+			return false;
+	}
+	if (gContactRecorder != nullptr)
+	{
+		NoteContact(const_cast<Ball*>(theBall), this);
+		mFlashTimer = HOLE_FLASH_UPDATES;
+	}
+	return true;
 }
 
 // 0x47a930
