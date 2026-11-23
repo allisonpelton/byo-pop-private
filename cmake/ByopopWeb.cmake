@@ -58,7 +58,7 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg cap.s
 # development host (docs/WEB_PLAYER.md, "The player-only page"). web/skins.js and web/skins.css are the site's skins ("Skins").
 # web/settingsicons.js holds the Settings sections' icons, drawn by tools/settingsicons.py, and web/appicons.js the site's apps'
 # icons, drawn by tools/appicons.py.
-set(BYOPOP_WEB_SHARED_JS logo.js cursors.js saver.js settingsicons.js appicons.js settings.js profiles.js exeicon.js exeprobes.js exetrim.js flicursor.js gameimport.js chat.js testkit.js skins.js schemes.js themedata.js themes.js skins.css perf.js soundpanel.js view.js controldata.js controls.js clips.js)
+set(BYOPOP_WEB_SHARED_JS logo.js cursors.js saver.js settingsicons.js appicons.js settings.js profiles.js exeicon.js exeprobes.js exetrim.js flicursor.js gameimport.js chat.js testkit.js skins.js schemes.js themedata.js themes.js skins.css skin-98.css perf.js soundpanel.js view.js controldata.js controls.js clips.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js), System Information
 # (web/sysinfo.js) and the import of saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as
 # saveimport-table.js), and the adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and
