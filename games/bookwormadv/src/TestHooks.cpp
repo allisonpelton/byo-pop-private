@@ -349,9 +349,10 @@ void GameApp::LogBoardForTests()
 	// Then the curtain over it open: "opened: <n> <update count>", when mTransitionState (app+0x8ec) is back to none,
 	// the update the pilot's steps count from. The curtain steps a cel every 5 of its own updates, counted from before
 	// the load, so how long it takes to open after the load turns on the load's length (and the original's gap before
-	// it, 135 updates on the host and 141 in Windows Sandbox) modulo 5.
+	// it, 135 updates on the host and 141 in Windows Sandbox) modulo 5. Only with -loadanchors, so the frozen baseline's
+	// board logs stay comparable.
 	static bool sLoading = false, sOpening = false;
-	if (sLoading && mChapterLoadScreen == nullptr) {
+	if (mLoadAnchorsForTests && sLoading && mChapterLoadScreen == nullptr) {
 		if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
 			fprintf(aFile, "loadend: %d %d\n", ++sCount, mUpdateCount);
 			fclose(aFile);
@@ -359,7 +360,7 @@ void GameApp::LogBoardForTests()
 		sOpening = true;
 	}
 	sLoading = mChapterLoadScreen != nullptr;
-	if (sOpening && !sLoading && mTransitionState == TRANSITION_NONE) {
+	if (mLoadAnchorsForTests && sOpening && !sLoading && mTransitionState == TRANSITION_NONE) {
 		if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
 			fprintf(aFile, "opened: %d %d\n", ++sCount, mUpdateCount);
 			fclose(aFile);

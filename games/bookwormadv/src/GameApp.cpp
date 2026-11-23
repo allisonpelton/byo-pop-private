@@ -211,6 +211,8 @@ void GameApp::HandleCmdLineParam(const std::string& theParamName, const std::str
 		LiveSplitObserver::SetLogFile(theParamValue);  // port(mod): a line for each autosplit event
 	else if (theParamName == "-holdloadhints")
 		mHoldLoadHints = true;  // port: a chapter load's screen draws no new hint (ChapterLoadScreen::Update)
+	else if (theParamName == "-loadanchors")
+		mLoadAnchorsForTests = true;  // port: the board log's loadend and opened lines, the screens pilot's anchors (TestHooks.cpp)
 	else if (theParamName == "-popcaplogo")
 		mPopCapLogo = true;  // port: the startup's PopCap logo as the original shows it, for comparisons (TitleScreen)
 	else

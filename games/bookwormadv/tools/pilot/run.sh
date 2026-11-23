@@ -186,7 +186,7 @@ if [ "$which" != orig ]; then
 			python "$T/anchors.py" fill "$PS" "$P/$N.portmarks" "$d/pass.txt" || exit 1
 			grep -v ' screenshot' "$d/pass.txt" > "$d/pass2.txt"
 			user "$d/passuser"; rm -f "$d/pass.log"
-			timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/passuser" -seed=$SEED -fast -drawevery $LOADS -popcaplogo $HOLD ${PILOT_PORT_ARGS:-} \
+			timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/passuser" -seed=$SEED -fast -drawevery $LOADS -popcaplogo -loadanchors $HOLD ${PILOT_PORT_ARGS:-} \
 				-script="$d/pass2.txt" -boardlog="$d/pass.log" > "$d/pass.out" 2>&1
 			python "$T/anchors.py" ends "$d/pass.log" $k "$P/$N.portmarks" "$PS" || exit 1
 		done
@@ -194,7 +194,7 @@ if [ "$which" != orig ]; then
 		python "$T/anchors.py" fill "$PS" "$P/$N.portmarks" "$SC/$name.portrun.txt" || exit 1
 		PS=$SC/$name.portrun.txt
 	fi
-	timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -renderscale=1 $LOADS -popcaplogo $HOLD ${PILOT_PORT_ARGS:-} \
+	timeout $((${PILOT_TIMEOUT:-240} + 60)) "$W/build/native/rundesk.exe" "$W/build/native/bookwormadv.exe" -userdir="$d/user" -seed=$SEED -drawevery -renderscale=1 $LOADS -popcaplogo -loadanchors $HOLD ${PILOT_PORT_ARGS:-} \
 		-script="$PS" > "$d/stdout.txt" 2>&1
 	echo "port exit $?"; grep "script\|FATAL" "$d/stdout.txt" | tail -5
 	python - "$PP" "$ST" <<'EOF'

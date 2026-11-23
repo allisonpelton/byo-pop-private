@@ -297,6 +297,10 @@ loads on a busy machine took anything from 5 to 260 updates (the 3D desktop's 5 
 `tools/check.sh` and the logic comparisons (`-randlog`, the state checks) never give it: there the hint's draws and
 the original's own load lengths are compared as before.
 
+The test option `-loadanchors` (off unless given) adds the board log's `loadend` and `opened` lines, the update a
+chapter load's screen went and the update the curtain over it finished opening, which the pilot's steps count from.
+Only `tools/pilot/run.sh` gives it, so the frozen baseline's board logs compare line for line.
+
 The pilot's steps also anchor each chapter load (`tools/pilot/gen.py`'s `loaded <ms>`). On the host the original's loader
 runs on the wall clock while its updates run on origrun's virtual clock, so a load lasted 41 to 7415 updates there. The
 original's script waits until the load's screen (app+0x83c) has come and gone and the curtain over it has opened

@@ -185,6 +185,7 @@ public:
 	// it is up), as the original does with tools/origrun/patches/bookwormadv.txt's ChapterLoadScreen patch, so the next
 	// board does not follow the load's length (the pilot's 3D runs, whose loads take 5 to 90 updates on the desktop)
 	bool mHoldLoadHints = false;
+	bool mLoadAnchorsForTests = false;  // port: -loadanchors, the board log's loadend and opened lines (TestHooks.cpp)
 	std::string ScreenForTests();
 	std::string MoveForTests();
 	void RetryForTests(const std::string& theCommand, const std::string& theArgs);

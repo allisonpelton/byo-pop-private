@@ -129,7 +129,8 @@ the random-draw and state comparisons run the hint unpatched, and the hints part
 click a battle's first tiles early or late. gen.py's `loaded <ms>` step makes the original wait for the load screen to
 come and go and for the curtain over it to open (app+0x8ec, the transition state, back to 0), marks the update there,
 and counts the steps after it from the mark (origrun's `waitfor`, `mark` and `at +N`). The port counts from its own
-curtain's opening, which its board log writes as an `opened` line; `run.sh` finds those with quick passes before the
+curtain's opening, which its board log writes as an `opened` line under the test option `-loadanchors` (the frozen
+baseline's board logs have none); `run.sh` finds those with quick passes before the
 real run. The curtain was the anchor that held: it steps a cel when its own counter reaches a multiple of 5, a
 counter that started before the load, so it opens up to four updates sooner or later depending on the load's length
 modulo 5. Counting from the load's end alone had book 1's last battle stuck on a hint after a long load. Parts that
