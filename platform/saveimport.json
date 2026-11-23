@@ -423,6 +423,11 @@
           "ElapsedTime=dword", "lastVersionRun=sz", "users\\activeUser=sz", "users\\*\\*=sz", "scoreboards\\*\\count=dword",
           "scoreboards\\*\\#rank=sz", "scoreboards\\*\\#player=sz", "scoreboards\\*\\#points=sz", "scoreboards\\*\\#level=sz"],
         "skip": { "ShowLink": "a promotional link of the original", "VisitURL": "a promotional link of the original", "ILink": "a promotional link of the original" } }
+    },
+    "talismania": {
+      "folder": "Talismania Deluxe", "steam": "Talismania Deluxe",
+      "note": "The user's registry holds Talismania's options and each player's record, read through the same Sprout 2 user manager as Feeding Frenzy 2's; a player's key is taken whole.",
+      "registry": { "key": "PopCap\\Talismania", "hives": ["hkcu", "vs", "hklm"], "sets": ["base", "app"], "values": [] }
     }
   }
 }
