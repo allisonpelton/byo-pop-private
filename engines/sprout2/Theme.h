@@ -59,7 +59,7 @@ public:
 
 	// 0x46c340 (feedingfrenzy2), with 0x45faa0 (feedingfrenzy2): the image of the name, here or in the fallbacks,
 	// null for none
-	Surface* getImage(const std::string& theName);
+	virtual Surface* getImage(const std::string& theName);
 	// 0x475950 (feedingfrenzy2): a copy of the effect of the name from its pool, here or in the fallbacks, null for
 	// none
 	ParticleSystem* getParticleSystem(const std::string& theName);

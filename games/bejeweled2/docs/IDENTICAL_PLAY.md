@@ -378,6 +378,20 @@ The desktop is not used for it (a display mode change reaches every other run an
 (borderless) was compared earlier with the windowed shots (phase two). To try again: an exclusive hold on the desktop (the coordinator's
 plan) or finding what the sandbox's display refuses.
 
+### Real input for the new screens, and the puzzle hint dialogs (2026-11-22)
+
+Native, on the final build (`realplay/full.py`, real input only, every mode, 12 moves): 2D windowed, 3D windowed, 2D full screen and 3D full
+screen, all four "full: ok". The finale tour is itself real input (record.py plays through the driver's posted input and the bot's
+`move`), under rundesk. The page (the Browser pane, `?silent=1`, a rebuilt web build): `tools/web/pagecheck.js` 11 passed, 0 failed;
+the finale's recorded input replayed in the page against the native shots (`web_finale`, 40 pairs): the credits text and the boards are
+the same pictures, one update apart in the scroll and the board's slide-in (the page's known one-update input skew); every credits line
+reads the same.
+
+No Longer Solvable by real input (record.py `TOUR_NOHINTS=1` on the puzzle tour): after the hint, a legal swap that is not the solution's,
+then the hint button: the dialog appears in the port and the original, and the pairs match (shotdiff `nohints2d`). No Hints needs a
+board the solution no longer fits (the generated swap kept it valid), More Hints? follows the board's UNDO button when no move is left:
+not reached; their rows say rare.
+
 ### Runs
 
 `screens2d` (330 pairs; the last run, after the fixes, is named in the merge request).

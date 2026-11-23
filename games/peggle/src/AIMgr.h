@@ -24,6 +24,7 @@ public:
 	virtual ~AIMgr();				 // the original's deleting destructor
 
 	void Clear(); // 0x44b120
+	void Update();		// 0x4604c0
 
 	Board* mBoard;						   // +4
 	std::unique_ptr<CollisionMgr> mCollisionMgr; // +8: the shots are tried against this one's lists
