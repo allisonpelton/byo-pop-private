@@ -1,0 +1,22 @@
+1300 click 375 240
+1550 click 400 545
+1700 lose
+2200 lose
+2700 lose
+3200 click 320 357
+3500 state
+3600 lose
+4100 lose
+4600 lose
+5090 click 20 590
+5100 click 320 357
+5400 lose
+5900 lose
+6400 lose
+7000 screenshot @DIR@/lose-7000.png
+7001 state
+7090 click 20 590
+7100 click 400 367
+7400 screenshot @DIR@/lose-7400.png
+7401 state
+7500 quit
