@@ -731,6 +731,7 @@ function(byopop_web_shell var target pagedir)
   string(REPLACE "@BYOPOP_BUY@" "${buy_html}" text "${text}")
   string(REPLACE "@BYOPOP_LICENSES@
 " "${licenses}" text "${text}")
+  byopop_web_stamp(text ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${copyright_page} "${text}")
 
   file(READ ${BYOPOP_WEB_SHELL} page)
@@ -817,6 +818,8 @@ function(byopop_web_shell var target pagedir)
   string(REPLACE "</head>" "<style>
 ${css}</style>
 </head>" page "${page}")
+  # (the page is served beside the site's shared files; the game's own script, which ByopopWebPage.cmake adds, is not stamped)
+  byopop_web_stamp(page ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
   set(out ${CMAKE_CURRENT_BINARY_DIR}/${target}-shell.html)
   byopop_write_if_changed(${out} "${page}")
   set(${var} ${out} PARENT_SCOPE)
@@ -1201,23 +1204,7 @@ function(byopop_web_index)
   file(READ ${saveimport_json} saveimport_text)
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/saveimport-table.js "var ByopopSaveTable = ${saveimport_text};
 ")
-  # each script and stylesheet the page loads from beside it carries its contents' hash (name.js?v=...), so that a page
-  # reloaded after a rebuild never runs the scripts it had before (a page loaded before a rebuild kept the old sounds.js
-  # through a reload, 2026-11-12; Python's http.server sends no Cache-Control, so a browser may reuse what it has)
-  string(REGEX MATCHALL "(src|href)=\"[A-Za-z0-9_./-]+\\.(js|css)\"" stamp_refs "${page}")
-  if(stamp_refs)
-    list(REMOVE_DUPLICATES stamp_refs)
-  endif()
-  foreach(ref IN LISTS stamp_refs)
-    string(REGEX REPLACE "^(src|href)=\"([^\"]+)\"$" "\\1" stamp_attr "${ref}")
-    string(REGEX REPLACE "^(src|href)=\"([^\"]+)\"$" "\\2" stamp_name "${ref}")
-    set(stamp_file "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${stamp_name}")
-    if(EXISTS "${stamp_file}")
-      file(MD5 "${stamp_file}" stamp_hash)
-      string(SUBSTRING "${stamp_hash}" 0 10 stamp_hash)
-      string(REPLACE "${ref}" "${stamp_attr}=\"${stamp_name}?v=${stamp_hash}\"" page "${page}")
-    endif()
-  endforeach()
+  byopop_web_stamp(page ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html "${page}")
   # the chat's table of games (web/chat.js, docs/CHAT_DESIGN.md), loaded by every game page before chat.js
   byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/chat-games.js "var ByopopGames = [\n${chat_games}\n];\n")
@@ -1280,6 +1267,75 @@ function(byopop_web_index)
     "// The listed games' page.js files, for web/gameimport.js (written by byopop_web_index(), cmake/ByopopWeb.cmake)\n${import_games}")
   message(STATUS "byo-pop: the listing page shows ${count} games and ${soon_count} coming soon")
   byopop_web_jungle()
+  byopop_web_headers()
+endfunction()
+
+# byopop_web_stamp(<var> <folder>): each script and style sheet the page in <var> loads from a file of the site (src="name.js",
+# href="../name.css", read from <folder>, where the page is served) carries that file's contents' hash, name.js?v=<hash>, so
+# that a page loaded after a rebuild never runs the scripts it had before (a page loaded before a rebuild kept the old sounds.js
+# through a reload, 2026-11-12), and so that the host may keep each a year (byopop_web_headers(), below). Every page the build
+# writes is stamped: the listing, each game's page and copyright page, and Jungle Juice's pages. The files stamped, by their
+# place on the site, are kept for _headers (the global BYOPOP_WEB_STAMPED).
+function(byopop_web_stamp var folder)
+  set(page "${${var}}")
+  string(REGEX MATCHALL "(src|href)=\"[A-Za-z0-9_./-]+\\.(js|css)\"" refs "${page}")
+  if(refs)
+    list(REMOVE_DUPLICATES refs)
+  endif()
+  get_property(stamped GLOBAL PROPERTY BYOPOP_WEB_STAMPED)
+  foreach(ref IN LISTS refs)
+    string(REGEX REPLACE "^(src|href)=\"([^\"]+)\"$" "\\1" attr "${ref}")
+    string(REGEX REPLACE "^(src|href)=\"([^\"]+)\"$" "\\2" name "${ref}")
+    get_filename_component(file "${folder}/${name}" ABSOLUTE)
+    if(EXISTS "${file}")
+      file(MD5 "${file}" hash)
+      string(SUBSTRING "${hash}" 0 10 hash)
+      string(REPLACE "${ref}" "${attr}=\"${name}?v=${hash}\"" page "${page}")
+      file(RELATIVE_PATH served "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" "${file}")
+      list(APPEND stamped "/${served}")
+    endif()
+  endforeach()
+  set_property(GLOBAL PROPERTY BYOPOP_WEB_STAMPED "${stamped}")
+  set(${var} "${page}" PARENT_SCOPE)
+endfunction()
+
+# byopop_web_headers(): build/web/_headers, the site's cache lifetimes for its host (Cloudflare Pages, or Workers' static
+# assets, read the file and do not serve it; docs/WEB_PLAYER.md, "Caching"). Each file a page loads with its hash in its address
+# (byopop_web_stamp(), above) is kept a year and not asked for again: a changed file comes under a new address. Everything
+# else, the pages, the games' own scripts and data, the music player's decoder, pictures, fonts and tunes, is left to the
+# host's default, which asks again each time (Cache-Control: public, max-age=0, must-revalidate, with an ETag). A rule names
+# its file by its path, which a request's query does not change, so a file is listed only if no script loads it without its
+# hash: one that does is an error here. The host takes 100 rules at most.
+function(byopop_web_headers)
+  get_property(stamped GLOBAL PROPERTY BYOPOP_WEB_STAMPED)
+  if(stamped)
+    list(REMOVE_DUPLICATES stamped)
+    list(SORT stamped)
+  endif()
+  list(LENGTH stamped rules)
+  if(rules GREATER 100)
+    message(FATAL_ERROR "byopop_web_headers(): ${rules} files to keep, more than the 100 rules the host's _headers takes")
+  endif()
+  # a script of the site's that loads one of them by its bare name (a script element's src set in code) would get the year too
+  file(GLOB scripts "${BYOPOP_WEB_BRAND_DIR}/../*.js")
+  foreach(script ${scripts})
+    file(READ "${script}" code)
+    foreach(served ${stamped})
+      string(REGEX REPLACE "^/" "" name "${served}")
+      string(REPLACE "." "\\." name_re "${name}")
+      if(code MATCHES "src[ \t]*=[ \t]*[\"']${name_re}[\"']")
+        message(FATAL_ERROR "byopop_web_headers(): ${script} loads ${name} without its hash, which _headers keeps a year")
+      endif()
+    endforeach()
+  endforeach()
+  set(text "# The site's cache lifetimes for its host, written by the build (cmake/ByopopWeb.cmake, byopop_web_headers()).
+# Each file here is loaded only with its contents' hash in its address (name.js?v=<hash>), so it is kept a year; everything
+# else is asked for again each time, the host's default.
+")
+  foreach(served ${stamped})
+    string(APPEND text "${served}\n  Cache-Control: public, max-age=31536000, immutable\n")
+  endforeach()
+  byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/_headers "${text}")
 endfunction()
 
 # byopop_web_jungle(): writes Jungle Juice, the site's page for other projects' decompilations (docs/WEB_PLAYER.md, "Jungle
@@ -1292,6 +1348,7 @@ function(byopop_web_jungle)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${source}/${name})
     file(READ ${source}/${name} page)
     byopop_web_fill(page)
+    byopop_web_stamp(page ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/jungle)
     byopop_write_if_changed(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/jungle/${name} "${page}")
   endforeach()
 endfunction()
