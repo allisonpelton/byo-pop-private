@@ -228,8 +228,8 @@ and length, then lined up), which the clock does not touch. Two things were the 
   engine's clock in a run that does not wait (`HostSound::sGameClock`, which Word Harmony sets and Pizza Frenzy did
   not), else the mixer's real time. The port read the mixer's, which a fast run outpaces, so a sound with few voices
   was still "playing" when the game played it again and the play was dropped: in look1 the wrong click (one voice)
-  sounded 39 times where the original's sounded 51, and the blimp's tips (three voices) 27 where it had 55. A fast run now plays them on the engine's clock;
-  a run in real time was not affected.
+  sounded 39 times where the original's sounded 51, and the blimp's tips (three voices) 27 where it had 55. A fast
+  run now plays them on the engine's clock; a run in real time was not affected.
 - **The menu's music started again after the name dialog.** The music player marks itself stopping only when it
   stops a voice (0x450670); the port marked it on every stop, also the first start's with no voice yet, so the mark
   stayed. When the new player's menu asked for the music that already played, the player took the mark to mean the
@@ -337,6 +337,15 @@ sooner. So the web build looks the same as the native port, and the native port'
 pictures match the native window's. In the hidden Browser pane, the page runs at full speed only
 when its animation frames are shimmed with message-channel callbacks before it loads. Timers are throttled there, and
 the page sometimes stops at "Starting..." or "Running..." until its main loop is paused and resumed.
+
+**Where the looks stand.** Every screen the cases reach has been compared with the original's: the launch and its
+fades, the menu, the name dialog, the story pages, play in each mode, the level and city ends, the bonus rounds, the
+editor, the menu's dialogs, and losing and regaining the focus. Sound by state was compared on the editor case and the
+three play cases. The comparisons use no masks: every picture is compared whole, and each difference left is named
+above. Those are the toppings' order (the original's own order varies), the high scores' button row (the removed
+online-scores button), the screens a frame behind and the smooth draws' resampling (oddities), the taken tip's flight
+and the level end's sparkles (oddities). The web build's pictures are the native port's on every case. Still open:
+full screen against the original, which the real-input pass covers on the desktop.
 
 ## Where it stands (2026-11-16)
 
