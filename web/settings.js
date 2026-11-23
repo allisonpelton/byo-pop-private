@@ -49,6 +49,9 @@ var ByopopSettings = (function () {
     perf: { values: SWITCH, def: "off" },             // on: a game page shows its performance panel (web/perf.js), which only reads
     soundPanel: { values: SWITCH, def: "off" },       // on: a game page shows the sounds it plays (web/soundpanel.js), which only reads
     win95Only: { values: SWITCH, def: "off" },
+    // the skins of 2000 and later: the focus rectangles hidden until the keyboard is used (web/skins.js, cuesSync), on by
+    // default as those versions had it
+    hideCues: { values: SWITCH, def: "on" },
     // the skin, the version of Windows the desktop is drawn as (web/skins.js, docs/SKINS.md), site-wide
     look: { values: (typeof ByopopSkin !== "undefined" && ByopopSkin.LOOKS) || ["95"], def: "95" },
     // Desktop 95's colour scheme (web/schemes.js), site-wide
@@ -288,6 +291,8 @@ var ByopopSettings = (function () {
         return [["none", T("settings.theme.none")]].concat(T2 ? T2.offered().map(function (id) { return [id, T2.title(id)]; }) : []);
       } },
     { name: "win95Only", label: T("settings.win95only.label"), hint: T("settings.win95only.hint") },
+    // shown only in a skin that hides its cues (needs: one of its behaviours, web/skins.js)
+    { name: "hideCues", label: T("settings.hidecues.label"), hint: T("settings.hidecues.hint"), needs: "cues" },
     { name: "gameSize", label: T("settings.gamesize.label"), options: [["one", T("settings.gamesize.one")], ["fit", T("settings.gamesize.fit")]],
       hint: T("settings.gamesize.hint") },
     { name: "scanlines", label: T("settings.scanlines.label"), options: [["off", T("settings.off")], ["light", T("settings.scanlines.light")], ["strong", T("settings.scanlines.strong")]],
@@ -829,6 +834,7 @@ var ByopopSettings = (function () {
       // a setting only some games read is left out of the other games' pages
       if (f.games && gameId && f.games.indexOf(gameId) < 0) return;
       var row = make("div", "bps-row"), id = "bps-" + (++idCount) + "-" + f.name;
+      if (f.needs) row.setAttribute("data-needs", f.needs);
       var label = make("label", "", f.label);
       label.htmlFor = id;
       // values, not sentences (docs/WEB_PLAYER.md): what a setting does is behind its "?", and the line under the label holds

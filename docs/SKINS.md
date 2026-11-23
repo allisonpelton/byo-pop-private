@@ -282,8 +282,15 @@ font (below).**
 - **Menus fade in,** for a length of our own (0.2 s; 2000's is **to check**). Tooltips do not, until it is checked whether
   they faded.
 
-**Still to come for 2000:** the font in Tahoma's manner (still Byopop Sans), the hidden keyboard cues and personalized
-menus with their settings and the Properties window, and its icons.
+**The hidden keyboard cues** followed (web/skins.js, `cuesSync`; the skin's behaviours are `<html data-behaviours>`). Under
+2000 the focus rectangles are hidden until Alt, Tab, an arrow key or F10 is pressed, and no menu here underlines access
+keys. The setting is Microsoft's own wording, "Hide keyboard navigation indicators until I use the ALT key" (the policy
+that removes it says it sits in Display in Control Panel; Internet Explorer's documentation says the feature came with
+2000), on by default. Its row is in Appearance and shows only in a skin that hides its cues. Which tab of Display held it
+is still **to check**.
+
+**Still to come for 2000:** the font in Tahoma's manner (still Byopop Sans), personalized menus with their setting and the
+Properties window, and its icons.
 
 ### XP's Windows Classic style
 

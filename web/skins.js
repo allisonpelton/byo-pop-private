@@ -137,10 +137,32 @@ var ByopopSkin = (function () {
     g.putImageData(img, 0, 0);
     root.style.setProperty("--sk-band-img", 'url("' + cv.toDataURL("image/png") + '")');
   }
+  // The behaviours a version had beyond its drawing (docs/SKINS.md, "The behaviours that hide things"), each with the setting
+  // that turned it off: <html data-behaviours>, which the settings' rows that only some skins have read (web/settings.js,
+  // "needs"). "cues": keyboard cues hidden until the keyboard is used, from 2000 on.
+  var BEHAVIOURS = { "2000": ["cues"] };
+  // Hidden keyboard cues: Windows 2000 hid the focus rectangles (and access keys' underlines, which no menu here has) until
+  // the user showed keyboard use (Raymond Chen, "Why does Windows hide keyboard accelerators and focus rectangles by
+  // default?"), with the setting "Hide keyboard navigation indicators until I use the ALT key" (the setting "hideCues",
+  // on by default). Here Alt, Tab, an arrow key or F10 shows them for the rest of the page's life.
+  var cuesUsed = false;
+  function cuesSync() {
+    var on = (root.getAttribute("data-behaviours") || "").split(" ").indexOf("cues") >= 0 && readItem().hideCues !== "off";
+    root.classList.toggle("d95-cues-hidden", on && !cuesUsed);
+  }
+  document.addEventListener("keydown", function (ev) {
+    if (cuesUsed || !/^(Alt|Tab|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|F10)$/.test(ev.key)) return;
+    cuesUsed = true; cuesSync();
+  }, true);
   function apply() {
     var s = current();
-    if (s === "plain") { root.removeAttribute("data-skin"); root.removeAttribute("data-look"); }
-    else { var l = look(); if (!lookSheet(l)) l = "95"; root.setAttribute("data-skin", s); root.setAttribute("data-look", l); bandRamp(); }
+    if (s === "plain") { root.removeAttribute("data-skin"); root.removeAttribute("data-look"); root.removeAttribute("data-behaviours"); }
+    else {
+      var l = look(); if (!lookSheet(l)) l = "95";
+      root.setAttribute("data-skin", s); root.setAttribute("data-look", l); bandRamp();
+      if (BEHAVIOURS[l]) root.setAttribute("data-behaviours", BEHAVIOURS[l].join(" ")); else root.removeAttribute("data-behaviours");
+    }
+    cuesSync();
     try { window.dispatchEvent(new CustomEvent("byopop-skin", { detail: { skin: s } })); } catch (e) {}
   }
   // a game page names itself (web/shell.html), after it marked the player-only page
@@ -2582,6 +2604,7 @@ var ByopopSkin = (function () {
   window.addEventListener("byopop-setting", function (ev) { if (ev.detail && (ev.detail.name === "win95Only")) win95Sync(); });
   // the skin chosen here or on another page of the site (Appearance's Skin list): this page redraws in it
   window.addEventListener("byopop-setting", function (ev) { if (ev.detail && ev.detail.name === "look") apply(); });
+  window.addEventListener("byopop-setting", function (ev) { if (ev.detail && ev.detail.name === "hideCues") cuesSync(); });
   window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) apply(); });
   window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) win95Sync(); });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", win95Sync); else win95Sync();
