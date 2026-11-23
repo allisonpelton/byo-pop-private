@@ -19,6 +19,7 @@ const START = {
 	atomica: ["goto menu", "goto strategy"],
 	bejeweled: ["goto timed"],
 	bejeweled2: ["goto classic"],
+	bejeweled3: ["@name Test", "goto classic"],
 	bejeweledtwist: ["@name Test", "goto classic"],
 	bigmoney: ["goto selector"],
 	bonnies: ["goto classic"],
