@@ -17,6 +17,9 @@
   --accent: #000080; --accent-fg: #ffffff; --ok: #005c2a; --warn: #6b3d00;
   --font-ui: "Byopop Sans", "MS Sans Serif", "Microsoft Sans Serif", Tahoma, "Segoe UI", sans-serif; --radius: 0px;
   --sk-hi: #ffffff; --sk-lo: #808080; --sk-dk: #000000; --sk-mid: #dfdfdf; --sk-well: #ffffff;
+  /* the 3D edges' darkest row is --sk-dk; the button text's black, the ink of the caption buttons' and the controls' glyphs
+     and of the dotted focus rectangle, is --sk-ink: both black in 95, while 2000's dark edge is #404040 (web/skin-2000.css) */
+  --sk-ink: #000000;
   /* the active title bar in one colour, as Windows 95 drew it (Windows 98 brought the gradient, navy to #1084d0: kept in
      web/schemes.js's data as that look's value), and the Pop menu's band in the shadow grey, as Windows 95's Start menu
      banner was (its "Windows" in the face grey, its "95" in white: .d95-band) */
@@ -24,6 +27,8 @@
   /* a title bar's background: 95's one colour; 98 and later draw the gradient to the scheme's second colour, --sk-title-2
      (web/schemes.js, web/skin-98.css) */
   --sk-title-2: #1084d0; --sk-title-bg: var(--sk-title);
+  /* an inactive window's title bar: 95's shadow grey with its text in the face colour; 2000 draws a gradient here too */
+  --sk-title-in-bg: var(--sk-lo); --sk-title-in-fg: var(--panel);
   --sk-band: var(--sk-lo);
   /* the skin's sizes (docs/SKINS.md, "What moves behind the skin layer"), 95's here, which a later skin sets again under
      :root[data-look]: a window's title bar; a caption button (minimize, maximize, close, help); a push button in a dialog,
@@ -38,6 +43,8 @@
      its lettering's two colours, the name up to its last hyphen and the rest (web/skins.js), as Windows 95's banner had
      "Windows" in the face grey and "95" in white; a skin that letters its banner in one colour sets both alike */
   --sk-band-w: 21px; --sk-band-fg1: var(--panel); --sk-band-fg: var(--sk-hi);
+  /* and a later skin's banner bitmap, drawn at the band's foot over --sk-band (web/skins.js, bandRamp, from the skin's
+     --sk-band-ramp); 95's band is the one colour */
 }
 /* light only, whatever the browser's own scheme */
 :root[data-skin="d95"] { color-scheme: light; }
@@ -81,28 +88,28 @@ html.d95-desk :is(.d95-pop, .d95-task[aria-pressed=true] > .d95-task-text, .d95-
 /* drop-downs: a white sunken field, a raised grey square at its right with a black triangle, pressed in while pressed. The list
    that opens is the browser's own */
 :root[data-skin="d95"] select:not(#\#) { -webkit-appearance: none; appearance: none; height: 22px; padding: 0 22px 0 4px; line-height: 18px; border: 0;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='18' shape-rendering='crispEdges'%3E%3Crect width='16' height='18' fill='%23000'/%3E%3Crect width='15' height='17' fill='%23fff'/%3E%3Crect x='1' y='1' width='14' height='16' fill='%23808080'/%3E%3Crect x='1' y='1' width='13' height='15' fill='%23dfdfdf'/%3E%3Crect x='2' y='2' width='12' height='14' fill='%23c0c0c0'/%3E%3Crect x='4' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='10' width='1' height='1' fill='%23000'/%3E%3C/svg%3E") no-repeat right 2px top 2px, var(--sk-well); color: var(--fg); box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
-:root[data-skin="d95"] select:not(#\#):active { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='18' shape-rendering='crispEdges'%3E%3Crect width='16' height='18' fill='%23808080'/%3E%3Crect x='1' y='1' width='14' height='16' fill='%23c0c0c0'/%3E%3Crect x='5' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='11' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='11' width='1' height='1' fill='%23000'/%3E%3C/svg%3E") no-repeat right 2px top 2px, var(--sk-well); }
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='18' shape-rendering='crispEdges'%3E%3Crect width='16' height='18' fill='%23000'/%3E%3Crect width='15' height='17' fill='%23fff'/%3E%3Crect x='1' y='1' width='14' height='16' fill='%23808080'/%3E%3Crect x='1' y='1' width='13' height='15' fill='%23dfdfdf'/%3E%3Crect x='2' y='2' width='12' height='14' fill='%23c0c0c0'/%3E%3Crect x='4' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='10' width='1' height='1' fill='%23000'/%3E%3C/svg%3E") no-repeat right 2px top 2px; background-color: var(--sk-well); color: var(--fg); box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+:root[data-skin="d95"] select:not(#\#):active { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='18' shape-rendering='crispEdges'%3E%3Crect width='16' height='18' fill='%23808080'/%3E%3Crect x='1' y='1' width='14' height='16' fill='%23c0c0c0'/%3E%3Crect x='5' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='11' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='11' width='1' height='1' fill='%23000'/%3E%3C/svg%3E") no-repeat right 2px top 2px; background-color: var(--sk-well); }
 :root[data-skin="d95"] select:not(#\#):disabled { background-color: var(--panel); color: var(--sk-lo); }
 /* check boxes: a white sunken square with a black tick */
 :root[data-skin="d95"] input[type=checkbox]:not(#\#) { -webkit-appearance: none; appearance: none; width: 13px; height: 13px; min-width: 13px; margin: 2px 0 0; padding: 0;
   border: 0; background: var(--sk-well); box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); flex: none; vertical-align: -2px; }
-:root[data-skin="d95"] input[type=checkbox]:not(#\#):checked { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' shape-rendering='crispEdges'%3E%3Crect x='9' y='3' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='4' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='4' width='1' height='1' fill='%23000'/%3E%3Crect x='3' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='3' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='4' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='3' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='4' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='4' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='9' width='1' height='1' fill='%23000'/%3E%3C/svg%3E"), var(--sk-well); }
+:root[data-skin="d95"] input[type=checkbox]:not(#\#):checked { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' shape-rendering='crispEdges'%3E%3Crect x='9' y='3' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='4' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='4' width='1' height='1' fill='%23000'/%3E%3Crect x='3' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='3' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='4' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='3' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='4' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='4' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='9' width='1' height='1' fill='%23000'/%3E%3C/svg%3E"); background-color: var(--sk-well); }
 :root[data-skin="d95"] input[type=checkbox]:not(#\#):disabled { background-color: var(--panel); }
-:root[data-skin="d95"] input[type=checkbox]:not(#\#):checked:disabled { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' shape-rendering='crispEdges'%3E%3Crect x='9' y='3' width='1' height='1' fill='%23808080'/%3E%3Crect x='8' y='4' width='1' height='1' fill='%23808080'/%3E%3Crect x='9' y='4' width='1' height='1' fill='%23808080'/%3E%3Crect x='3' y='5' width='1' height='1' fill='%23808080'/%3E%3Crect x='7' y='5' width='1' height='1' fill='%23808080'/%3E%3Crect x='8' y='5' width='1' height='1' fill='%23808080'/%3E%3Crect x='9' y='5' width='1' height='1' fill='%23808080'/%3E%3Crect x='3' y='6' width='1' height='1' fill='%23808080'/%3E%3Crect x='4' y='6' width='1' height='1' fill='%23808080'/%3E%3Crect x='6' y='6' width='1' height='1' fill='%23808080'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%23808080'/%3E%3Crect x='8' y='6' width='1' height='1' fill='%23808080'/%3E%3Crect x='3' y='7' width='1' height='1' fill='%23808080'/%3E%3Crect x='4' y='7' width='1' height='1' fill='%23808080'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%23808080'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23808080'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23808080'/%3E%3Crect x='4' y='8' width='1' height='1' fill='%23808080'/%3E%3Crect x='5' y='8' width='1' height='1' fill='%23808080'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23808080'/%3E%3Crect x='5' y='9' width='1' height='1' fill='%23808080'/%3E%3C/svg%3E"), var(--panel); }
+:root[data-skin="d95"] input[type=checkbox]:not(#\#):checked:disabled { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' shape-rendering='crispEdges'%3E%3Crect x='9' y='3' width='1' height='1' fill='%23808080'/%3E%3Crect x='8' y='4' width='1' height='1' fill='%23808080'/%3E%3Crect x='9' y='4' width='1' height='1' fill='%23808080'/%3E%3Crect x='3' y='5' width='1' height='1' fill='%23808080'/%3E%3Crect x='7' y='5' width='1' height='1' fill='%23808080'/%3E%3Crect x='8' y='5' width='1' height='1' fill='%23808080'/%3E%3Crect x='9' y='5' width='1' height='1' fill='%23808080'/%3E%3Crect x='3' y='6' width='1' height='1' fill='%23808080'/%3E%3Crect x='4' y='6' width='1' height='1' fill='%23808080'/%3E%3Crect x='6' y='6' width='1' height='1' fill='%23808080'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%23808080'/%3E%3Crect x='8' y='6' width='1' height='1' fill='%23808080'/%3E%3Crect x='3' y='7' width='1' height='1' fill='%23808080'/%3E%3Crect x='4' y='7' width='1' height='1' fill='%23808080'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%23808080'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23808080'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23808080'/%3E%3Crect x='4' y='8' width='1' height='1' fill='%23808080'/%3E%3Crect x='5' y='8' width='1' height='1' fill='%23808080'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23808080'/%3E%3Crect x='5' y='9' width='1' height='1' fill='%23808080'/%3E%3C/svg%3E"); background-color: var(--panel); }
 /* option buttons: a white sunken circle with a black dot */
 :root[data-skin="d95"] input[type=radio]:not(#\#) { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; min-width: 12px; margin: 2px 0 0; padding: 0;
   border: 0; border-radius: 50%; background: var(--sk-well); box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); flex: none; vertical-align: -2px; }
-:root[data-skin="d95"] input[type=radio]:not(#\#):checked { background: radial-gradient(circle, var(--sk-dk) 0 2px, transparent 2.5px), var(--sk-well); }
+:root[data-skin="d95"] input[type=radio]:not(#\#):checked { background: radial-gradient(circle, var(--sk-ink) 0 2px, transparent 2.5px), var(--sk-well); }
 :root[data-skin="d95"] input[type=radio]:not(#\#):disabled { background-color: var(--panel); }
 /* the focus: a dotted rectangle inside a button and a list box, around a box, from the first click on, as Windows 95 showed it
    (it had no keyboard cues to hide: hiding them until a key came with Windows 2000, the look a 2000 skin would take). A text
    field shows only its caret, as Windows 95's edit boxes did. */
 :root[data-skin="d95"] button:not(#\#):focus, :root[data-skin="d95"] .button:not(#\#):focus, :root[data-skin="d95"] select:not(#\#):focus {
-  outline: 1px dotted var(--sk-dk); outline-offset: -4px; }
+  outline: 1px dotted var(--sk-ink); outline-offset: -4px; }
 :root[data-skin="d95"] input:not(#\#):not([type=checkbox]):not([type=radio]):not([type=range]):focus, :root[data-skin="d95"] textarea:not(#\#):focus { outline: 0; }
 :root[data-skin="d95"] input[type=checkbox]:not(#\#):focus, :root[data-skin="d95"] input[type=radio]:not(#\#):focus, :root[data-skin="d95"] input[type=range]:not(#\#):focus {
-  outline: 1px dotted var(--sk-dk); outline-offset: 1px; }
+  outline: 1px dotted var(--sk-ink); outline-offset: 1px; }
 :root[data-skin="d95"] button:not(#\#):disabled { color: var(--sk-lo); text-shadow: 1px 1px 0 var(--sk-hi); }
 /* sliders: a sunken groove, a raised rectangular thumb */
 :root[data-skin="d95"] input[type=range]:not(#\#) { -webkit-appearance: none; appearance: none; height: 24px; background: transparent; box-shadow: none; border: 0; padding: 0; }
@@ -118,7 +125,7 @@ html.d95-desk :is(.d95-pop, .d95-task[aria-pressed=true] > .d95-task-text, .d95-
    dithered track; elsewhere the browser's own in the skin's grey */
 :root[data-skin="d95"] ::-webkit-scrollbar { width: 16px; height: 16px; }
 :root[data-skin="d95"] ::-webkit-scrollbar-track { background: repeating-conic-gradient(var(--panel) 0 25%, #ffffff 0 50%) 0 0 / calc(var(--d95-dot, 1px) * 2) calc(var(--d95-dot, 1px) * 2); }
-:root[data-skin="d95"] ::-webkit-scrollbar-thumb { background: var(--panel); border: 1px solid; border-color: var(--sk-mid) #000000 #000000 var(--sk-mid);
+:root[data-skin="d95"] ::-webkit-scrollbar-thumb { background: var(--panel); border: 1px solid; border-color: var(--sk-mid) var(--sk-dk) var(--sk-dk) var(--sk-mid);
   box-shadow: inset 1px 1px #ffffff, inset -1px -1px var(--sk-lo); }
 :root[data-skin="d95"] ::-webkit-scrollbar-corner { background: var(--panel); }
 /* the scroll bars' arrow buttons. Chrome matches a scroll bar button's pseudo-classes (:vertical, :decrement, :single-button)
@@ -297,20 +304,20 @@ html.d95-desk .chat .d95-client > .bpc-nicks:not(#\#) { width: auto; box-shadow:
 :root[data-skin="d95"] .chat .chat-chevron { order: 2; margin-left: auto; position: relative; width: 16px; height: 14px; transform: none; border: 0;
   background: var(--panel); box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid); }
 :root[data-skin="d95"] .chat h2 button:has(.chat-unread:not([hidden])) .chat-chevron { margin-left: 6px; }
-:root[data-skin="d95"] .chat .chat-chevron::after { content: ""; position: absolute; left: 4px; top: 8px; width: 6px; height: 2px; background: var(--sk-dk); }
+:root[data-skin="d95"] .chat .chat-chevron::after { content: ""; position: absolute; left: 4px; top: 8px; width: 6px; height: 2px; background: var(--sk-ink); }
 :root[data-skin="d95"] .chat h2 button:active .chat-chevron {
   box-shadow: inset 1px 1px var(--sk-dk), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-lo), inset -2px -2px var(--sk-mid); }
 :root[data-skin="d95"] .chat h2 button:active .chat-chevron::after { transform: translate(1px, 1px); }
 :root[data-skin="d95"] .chat.chat-collapsed .chat-chevron { transform: none; }
 :root[data-skin="d95"] .chat.chat-collapsed .chat-chevron::after { left: 3px; top: 3px; width: 7px; height: 6px; background: transparent;
-  border: 1px solid var(--sk-dk); border-top-width: 2px; }
+  border: 1px solid var(--sk-ink); border-top-width: 2px; }
 :root[data-skin="d95"] .chat h2 button:not(#\#):focus { outline: 1px dotted var(--sk-title-fg); outline-offset: -3px; }
 :root[data-skin="d95"] .stage { border-radius: 0; }
 :root[data-skin="d95"] .bar .status { color: var(--muted); }
 /* the sound switch (web/shell.html, .snd): in Desktop 95 the speaker of the 1995 task bar, pixel by pixel, black on the face;
    pressed in while the sound is on, as the skin's other toggles */
 :root[data-skin="d95"] .snd-vec { display: none; }
-:root[data-skin="d95"] .snd-px { display: block; color: var(--sk-dk); }
+:root[data-skin="d95"] .snd-px { display: block; color: var(--sk-ink); }
 :root[data-skin="d95"] .icon-btn { padding: 3px 6px; }
 :root[data-skin="d95"] .icon-btn:active .snd-px, :root[data-skin="d95"] .icon-btn[aria-pressed=true] .snd-px { transform: translate(1px, 1px); }
 
@@ -363,7 +370,7 @@ html.d95-desk .chat .d95-client > .bpc-log { margin: 0; box-shadow: none; }
 html.d95-desk .d95-sb-track { flex: 1 1 auto; min-height: 0; position: relative; overflow: hidden;
   background: repeating-conic-gradient(var(--panel) 0 25%, #ffffff 0 50%) 0 0 / calc(var(--d95-dot, 1px) * 2) calc(var(--d95-dot, 1px) * 2); }
 html.d95-desk .d95-sb-track.d95-down { background: repeating-conic-gradient(#000000 0 25%, var(--sk-lo) 0 50%) 0 0 / calc(var(--d95-dot, 1px) * 2) calc(var(--d95-dot, 1px) * 2); }
-html.d95-desk .d95-sb-thumb { position: absolute; left: 0; right: 0; top: 0; background: var(--panel); box-shadow: inset -1px -1px #000000, inset 1px 1px var(--sk-mid), inset -2px -2px var(--sk-lo), inset 2px 2px #ffffff; }
+html.d95-desk .d95-sb-thumb { position: absolute; left: 0; right: 0; top: 0; background: var(--panel); box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-mid), inset -2px -2px var(--sk-lo), inset 2px 2px #ffffff; }
 html.d95-desk .d95-win.d95-closed, html.d95-desk .d95-win.d95-min { display: none !important; }
 /* a window's edges and corners, which resize it (web/skins.js, resizable): its frame from the outer edge, 2 px of border and 2 of
    padding, and a pixel inside it; the corners reach 12 px along each side, as 1995's did */
@@ -448,7 +455,7 @@ html.d95-desk .d95-handle { cursor: default; touch-action: none; -webkit-user-se
 html.d95-dragging, html.d95-dragging * { -webkit-user-select: none !important; user-select: none !important; }
 /* the minimize button: the underscore, at the bottom of a small raised button */
 html.d95-desk .d95-mn { width: var(--sk-cap-w); height: var(--sk-cap-h); padding: 0; flex: none; position: relative; margin-right: -4px; }
-html.d95-desk .d95-mn::after { content: ""; position: absolute; left: 4px; top: 8px; width: 6px; height: 2px; background: var(--sk-dk); }
+html.d95-desk .d95-mn::after { content: ""; position: absolute; left: 4px; top: 8px; width: 6px; height: 2px; background: var(--sk-ink); }
 html.d95-desk .d95-mn:active::after { transform: translate(1px, 1px); }
 /* What's This? (web/skins.js, o.whatsThis): the title bar's "?" in a Settings section's window, beside its other buttons; while
    it is pressed the pointer is Windows 95's arrow with a question mark, and the next click shows that control's tip */
@@ -510,7 +517,7 @@ html.d95-desk .sy-tab:not(#\#) { min-width: 0; min-height: 0; margin: 2px 0 0; p
   font: inherit; box-shadow: inset 1px 1px var(--sk-hi), inset -1px 0 var(--sk-dk), inset -2px 0 var(--sk-lo), inset 0 -1px var(--sk-hi); }
 html.d95-desk .sy-tab[aria-selected=true]:not(#\#) { margin: 0 -2px 0; padding: 3px 11px 6px; position: relative; z-index: 1;
   box-shadow: inset 1px 1px var(--sk-hi), inset -1px 0 var(--sk-dk), inset -2px 0 var(--sk-lo); }
-html.d95-desk .sy-tab:focus:not(#\#) { outline: 1px dotted var(--sk-dk); outline-offset: -4px; }
+html.d95-desk .sy-tab:focus:not(#\#) { outline: 1px dotted var(--sk-ink); outline-offset: -4px; }
 html.d95-desk .sy-sheet { display: grid; margin-top: -1px; padding: 10px 10px 8px;
   box-shadow: inset 1px 1px var(--sk-hi), inset -1px -1px var(--sk-dk), inset -2px -2px var(--sk-lo); }
 html.d95-desk .sy-sheet > * { grid-area: 1 / 1; min-width: 0; }
@@ -558,7 +565,7 @@ html.d95-desk .tabs { display: none; }
 html.d95-desk .tabpanel.d95-win { width: min(600px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); }
 html.d95-desk .tabpanel.d95-win[hidden]:not(.d95-closed) { display: flex; }
 html.d95-desk .tabpanel.d95-win .d95-body { padding: 8px 12px 12px; }
-html.d95-desk .tabpanel.d95-win:focus-visible { outline: 1px dotted var(--sk-dk); outline-offset: -1px; }
+html.d95-desk .tabpanel.d95-win:focus-visible { outline: 1px dotted var(--sk-ink); outline-offset: -1px; }
 /* a game page's footer (the copyright line, "Full terms") in its About window on the desktop */
 html.d95-desk .d95-about { display: flex; width: min(520px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); color: var(--fg); }
 html.d95-desk .d95-about .byopop-footer { display: block; border: 0; background: transparent; color: var(--fg); padding: 8px 10px; font-size: 13px; }
@@ -591,7 +598,8 @@ html.d95-desk .d95-clock { white-space: nowrap; font-variant-numeric: tabular-nu
 html.d95-desk .d95-menu { position: absolute; left: 0; bottom: 27px; z-index: 1; display: flex; min-width: 200px; padding: 3px;
   background: var(--panel); box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid); color: var(--fg); }
 html.d95-desk .d95-menu[hidden] { display: none; }
-html.d95-desk .d95-band { flex: none; width: var(--sk-band-w); background: var(--sk-band); color: var(--sk-band-fg);
+html.d95-desk .d95-band { flex: none; width: var(--sk-band-w); background: var(--sk-band-img, none) left bottom / 100% auto no-repeat, var(--sk-band);
+  image-rendering: pixelated; color: var(--sk-band-fg);
   display: flex; align-items: flex-end; justify-content: center; padding: 6px 0; }
 html.d95-desk .d95-band > span { writing-mode: vertical-rl; transform: rotate(180deg); font-weight: bold; font-size: 17px; letter-spacing: .04em; }
 /* the name's first part in the face grey and the rest in white, as Windows 95's banner had "Windows" and "95" */
@@ -735,7 +743,7 @@ html.d95-desk .perf-panel.d95-win > h2 { background: var(--sk-title-bg); color: 
 :root[data-skin="d95"] .fav-vec { display: none; }
 :root[data-skin="d95"] .fav-px { display: block; }
 :root[data-skin="d95"] .fav-px .fav-fill { fill: transparent; }
-:root[data-skin="d95"] .fav-px .fav-edge { fill: var(--sk-dk); }
+:root[data-skin="d95"] .fav-px .fav-edge { fill: var(--sk-ink); }
 :root[data-skin="d95"] .fav[aria-pressed=true] .fav-px .fav-fill { fill: #ffff00; }
 :root[data-skin="d95"] .fav[aria-pressed=true] .fav-px { transform: translate(1px, 1px); }
 /* a favourite's desktop icon: the game's own icon, or its cap with its initials */
@@ -754,7 +762,7 @@ html.d95-desk .d95-ctx { position: fixed; bottom: auto; flex-direction: column; 
 :root[data-skin="d95"] .bps-tab { border: 0; border-radius: 0; padding: 3px 8px; margin-top: 2px; background: var(--panel); color: var(--fg);
   box-shadow: inset 1px 1px var(--sk-hi), inset -1px 0 var(--sk-dk), inset -2px 0 var(--sk-lo); }
 :root[data-skin="d95"] .bps-tab[aria-selected=true] { margin-top: 0; padding-bottom: 5px; background: var(--panel); color: var(--fg); position: relative; z-index: 1; }
-:root[data-skin="d95"] .bps-tab:focus .bps-tab-name { outline: 1px dotted var(--sk-dk); outline-offset: 1px; }
+:root[data-skin="d95"] .bps-tab:focus .bps-tab-name { outline: 1px dotted var(--sk-ink); outline-offset: 1px; }
 :root[data-skin="d95"] .bps-tab:focus:not(#\#) { outline: 0; }
 /* the desktop: the Settings window is a folder of its sections' icons on white, each section its own small window */
 html.d95-desk .bps-tabs { display: none; }
@@ -784,7 +792,7 @@ html.d95-desk .d95-statusbar > * { flex: 1 1 auto; min-width: 0; padding: 1px 4p
 html.d95-desk .d95-statusbar > :is(.d95-speed, .d95-scale) { flex: none; }
 /* the maximize button: a window drawn in the small button */
 html.d95-desk .d95-mx { width: var(--sk-cap-w); height: var(--sk-cap-h); padding: 0; flex: none; position: relative; margin-right: -4px; }
-html.d95-desk .d95-mx::after { content: ""; position: absolute; left: 3px; top: 2px; width: 7px; height: 6px; border: 1px solid var(--sk-dk); border-top-width: 2px; }
+html.d95-desk .d95-mx::after { content: ""; position: absolute; left: 3px; top: 2px; width: 7px; height: 6px; border: 1px solid var(--sk-ink); border-top-width: 2px; }
 html.d95-desk .d95-mx:active::after { transform: translate(1px, 1px); }
 /* Restore, while the window is maximized: 1995's two overlapping windows, pixel for pixel */
 html.d95-desk .d95-mx.d95-rs::after { content: none; }
@@ -844,18 +852,18 @@ img { -webkit-user-drag: none; }
 
 /* ======================= Desktop 95's focus and active window (web/skins.js, onKeys) ======================= */
 /* the active window's title bar in colour, the others grey with grey text */
-html.d95-desk .d95-win:not(.d95-active) .d95-handle { background: var(--sk-lo) !important; color: var(--panel) !important; }
-html.d95-desk .d95-win:not(.d95-active) .d95-handle h2, html.d95-desk .d95-win:not(.d95-active) .d95-handle .chat-unread { color: var(--panel) !important; }
+html.d95-desk .d95-win:not(.d95-active) .d95-handle { background: var(--sk-title-in-bg) !important; color: var(--sk-title-in-fg) !important; }
+html.d95-desk .d95-win:not(.d95-active) .d95-handle h2, html.d95-desk .d95-win:not(.d95-active) .d95-handle .chat-unread { color: var(--sk-title-in-fg) !important; }
 /* every focused thing marked: links, a check box's or option button's label, the games' cards, a list's items */
 :root[data-skin="d95"] a:focus { outline: 1px dotted currentColor; outline-offset: 1px; }
 :root[data-skin="d95"] label:has(> input[type=checkbox]:focus), :root[data-skin="d95"] label:has(> input[type=radio]:focus) {
-  outline: 1px dotted var(--sk-dk); outline-offset: 1px; }
-:root[data-skin="d95"] .games a.tile:focus { outline: 1px dotted var(--sk-dk); outline-offset: -4px; }
-:root[data-skin="d95"] [role=option]:focus, :root[data-skin="d95"] li[tabindex]:focus { outline: 1px dotted var(--sk-dk); outline-offset: -1px; }
+  outline: 1px dotted var(--sk-ink); outline-offset: 1px; }
+:root[data-skin="d95"] .games a.tile:focus { outline: 1px dotted var(--sk-ink); outline-offset: -4px; }
+:root[data-skin="d95"] [role=option]:focus, :root[data-skin="d95"] li[tabindex]:focus { outline: 1px dotted var(--sk-ink); outline-offset: -1px; }
 /* a title bar's buttons and the tray's speaker: Windows never gave them the focus, so a click leaves no rectangle there and only
    a key (Tab, which reaches them here) shows it */
 html.d95-desk :is(.d95-tb button, .d95-spk):not(#\#):focus:not(:focus-visible) { outline: 0; }
-html.d95-desk .d95-tb button:not(#\#):focus-visible { outline: 1px dotted var(--sk-dk); outline-offset: -3px; }
+html.d95-desk .d95-tb button:not(#\#):focus-visible { outline: 1px dotted var(--sk-ink); outline-offset: -3px; }
 html.d95-desk .d95-sys:not(#\#):focus-visible { outline: 1px dotted var(--sk-title-fg); outline-offset: 0; }
 /* a desktop icon: its name in navy with the dotted rectangle */
 html.d95-desk .d95-icon:focus { background: transparent; }
@@ -863,7 +871,7 @@ html.d95-desk .d95-icon:not(#\#):focus { outline: 0; }
 html.d95-desk .d95-icon:focus > span:last-child { background: var(--accent); color: var(--accent-fg); outline: 1px dotted #ffff00; }
 /* the task bar's buttons take a button's rectangle, three pixels in from their edge; the Pop button keeps it while its menu is
    open (the focus being in the menu), as a real Windows 95 screenshot shows the Start button with its menu open */
-html.d95-desk .d95-pop[aria-expanded=true]:not(#\#) { outline: 1px dotted var(--sk-dk); outline-offset: -4px; }
+html.d95-desk .d95-pop[aria-expanded=true]:not(#\#) { outline: 1px dotted var(--sk-ink); outline-offset: -4px; }
 html.d95-desk .d95-keys { margin-top: 8px; }
 
 /* ======================= Desktop 95 in one page (web/deskapps.js; docs/WEB_PLAYER.md, "Desktop 95 in one page") ======================= */
@@ -897,7 +905,7 @@ html.d95-desk .d95-menubar-item:not(#\#):focus:not(:focus-visible) { outline: 0;
 html.d95-desk .d95-menubar-item:not(#\#):focus-visible { outline: 1px dotted #000000; outline-offset: -2px; }
 /* a message box: a small window in the middle, its icon, its text and OK */
 .d95-msgbox { padding: 3px; border: 0; background: var(--panel); color: #000000; min-width: 260px; max-width: min(420px, calc(calc(100vw / var(--d95-z, 1)) - 32px));
-  box-shadow: inset -1px -1px #000000, inset 1px 1px var(--sk-mid), inset -2px -2px var(--sk-lo), inset 2px 2px #ffffff; font: 11px var(--font-ui); }
+  box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-mid), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-hi); font: 11px var(--font-ui); }
 .d95-msgbox::backdrop { background: transparent; }
 .d95-msgbox-tb { display: flex; align-items: center; padding: 2px 4px; background: var(--sk-title-bg); color: #ffffff; font-weight: bold; }
 .d95-msgbox-body { display: flex; align-items: center; gap: 14px; padding: 16px 14px 8px; }
@@ -935,7 +943,7 @@ html.d95-desk .d95-menubar-item:not(#\#):focus-visible { outline: 1px dotted #00
   button:is(.d95-def, .primary):not(:disabled):not(#\#) {
   box-shadow: inset 0 0 0 1px var(--sk-dk), inset -2px -2px var(--sk-dk), inset 2px 2px var(--sk-hi), inset -3px -3px var(--sk-lo), inset 3px 3px var(--sk-mid); }
 :root[data-skin="d95"] :is(dialog, [role=dialog], .su-win, .si-group, .bpc-nameform, .mp-box) button:not(.d95-tb button):not([aria-pressed]):not([role]):not(#\#):focus {
-  outline: 1px dotted var(--sk-dk); outline-offset: -5px; }
+  outline: 1px dotted var(--sk-ink); outline-offset: -5px; }
 :root[data-skin="d95"] :is(.d95-msgbox-row, .lib-props-row, .su-nav, .si-nav) button:not(#\#):active:not(:disabled),
 :root[data-skin="d95"] :is(.su-browse, .su-skip):not(#\#):active:not(:disabled) {
   box-shadow: inset 0 0 0 1px var(--sk-dk), inset 0 0 0 2px var(--sk-lo); padding: 2px 9px 0 11px; }
@@ -1314,7 +1322,7 @@ html.d95-desk .d95-dropzone { position: fixed; inset: 0; z-index: 5; pointer-eve
 html.d95-desk .d95-dropzone::before { content: ""; position: absolute; inset: 6px; border: 2px dashed #ffffff; }
 html.d95-desk .d95-dropzone[hidden] { display: none; }
 html.d95-desk .d95-dropzone-box { position: absolute; display: grid; justify-items: center; gap: 8px; box-sizing: border-box; width: 200px;
-  padding: 14px 12px; background: var(--panel); color: var(--fg); font-size: 12px; text-align: center; border: 2px dashed var(--sk-dk);
+  padding: 14px 12px; background: var(--panel); color: var(--fg); font-size: 12px; text-align: center; border: 2px dashed var(--sk-ink);
   box-shadow: 0 0 0 3px var(--panel), 3px 3px 0 3px rgba(0, 0, 0, .5); }
 html.d95-desk .d95-dropzone-box > svg { width: 64px; height: 64px; }
 html.d95-desk .d95-lasso { position: absolute; z-index: 2; pointer-events: none; box-sizing: border-box; border: 1px dotted #ffffff;

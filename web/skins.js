@@ -82,7 +82,7 @@ var ByopopSkin = (function () {
   // ?skin=<id>, as ?silent=1
   // does for sound; the address keeps it (testQuery), and the pages in the desktop's windows are opened with it (web/deskapps.js,
   // frameUrl).
-  var LOOKS = ["95", "98"];
+  var LOOKS = ["95", "98", "2000"];
   function look() {
     var s = Q.get("skin");
     if (LOOKS.indexOf(s) >= 0) return s;
@@ -91,19 +91,56 @@ var ByopopSkin = (function () {
   }
   // the skin's own style sheet, once, from the page's template of them (<template id="skin-sheets">, which the build stamps as
   // it does the page's other files), just after web/skins.css; a page without the template (a copyright page, Jungle Juice's)
-  // is drawn in 95
+  // is drawn in 95, and says so (data-look="95"), so that web/schemes.js gives it 95's colours. True when the page can draw it.
   function lookSheet(id) {
-    if (id === "95" || document.querySelector('link[data-look-sheet="' + id + '"]')) return;
+    if (id === "95" || document.querySelector('link[data-look-sheet="' + id + '"]')) return true;
     var t = document.getElementById("skin-sheets"), at = t && t.content.querySelector('link[href^="skin-' + id + '.css"]');
-    if (!at) return;
+    if (!at) return false;
     var el = at.cloneNode(); el.setAttribute("data-look-sheet", id);
+    el.addEventListener("load", bandRamp);
     var base = document.querySelector('link[href^="skins.css"]');
     if (base && base.parentNode) base.parentNode.insertBefore(el, base.nextSibling); else document.head.appendChild(el);
+    return true;
+  }
+  // The Pop menu's banner as a drawing, for a skin whose banner was a 16-colour bitmap: its sheet gives the bitmap as
+  // --sk-band-ramp, "<rows> / <colours> / <place> <row>, ...": the bitmap's height in pixels, the colours it steps through,
+  // and where each row stands among them, 0 the first colour, 1 the second and so on, a fraction a mix of the two either
+  // side, straight between the rows named (docs/SKINS.md, "The banners"). Each mix is drawn as an ordered dither (4 by 4), as
+  // a bitmap in 16 colours drew one. The drawing is our own, of the bitmap's colours and steps; it sits at the band's foot, as
+  // the bitmap did, with the skin's --sk-band, the bitmap's top colour, above it (web/skins.css, .d95-band).
+  var BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], bandDrawn = null;
+  function bandRamp() {
+    var v = "", w = 21;
+    try { var cs = getComputedStyle(root); v = cs.getPropertyValue("--sk-band-ramp").trim(); w = parseInt(cs.getPropertyValue("--sk-band-w"), 10) || 21; } catch (e) {}
+    if (v === bandDrawn) return;
+    bandDrawn = v;
+    if (!v) { root.style.removeProperty("--sk-band-img"); return; }
+    var parts = v.split("/"), rows = parseInt(parts[0], 10), cols = parts[1].trim().split(/\s+/).map(function (h) {
+      return [1, 3, 5].map(function (i) { return parseInt(h.substr(i, 2), 16); });
+    }), stops = parts[2].split(",").map(function (p) { var a = p.trim().split(/\s+/); return [parseFloat(a[0]), parseFloat(a[1])]; });
+    var cv = document.createElement("canvas"), g = cv.getContext && cv.getContext("2d");
+    if (!g || !(rows > 0) || cols.length < 2) return;
+    cv.width = w; cv.height = rows;
+    var img = g.createImageData(w, rows), px = img.data;
+    for (var y = 0; y < rows; y++) {
+      var at = stops[0][0];
+      for (var i = 0; i < stops.length; i++) {
+        if (y < stops[i][1]) { if (i > 0) at = stops[i - 1][0] + (stops[i][0] - stops[i - 1][0]) * (y - stops[i - 1][1]) / (stops[i][1] - stops[i - 1][1]); break; }
+        at = stops[i][0];
+      }
+      var lo = Math.max(0, Math.min(Math.floor(at), cols.length - 2)), mix = at - lo;
+      for (var x = 0; x < w; x++) {
+        var c = mix * 16 > BAYER[(y % 4) * 4 + (x % 4)] + 0.5 ? cols[lo + 1] : cols[lo], o = (y * w + x) * 4;
+        px[o] = c[0]; px[o + 1] = c[1]; px[o + 2] = c[2]; px[o + 3] = 255;
+      }
+    }
+    g.putImageData(img, 0, 0);
+    root.style.setProperty("--sk-band-img", 'url("' + cv.toDataURL("image/png") + '")');
   }
   function apply() {
     var s = current();
     if (s === "plain") { root.removeAttribute("data-skin"); root.removeAttribute("data-look"); }
-    else { var l = look(); lookSheet(l); root.setAttribute("data-skin", s); root.setAttribute("data-look", l); }
+    else { var l = look(); if (!lookSheet(l)) l = "95"; root.setAttribute("data-skin", s); root.setAttribute("data-look", l); bandRamp(); }
     try { window.dispatchEvent(new CustomEvent("byopop-skin", { detail: { skin: s } })); } catch (e) {}
   }
   // a game page names itself (web/shell.html), after it marked the player-only page

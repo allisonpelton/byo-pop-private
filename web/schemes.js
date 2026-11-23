@@ -25,6 +25,16 @@ var ByopopSchemes = (function () {
     { id: "seltzer", desk: "#55656d", face: "#d4d8da", lo: "#7a8286", mid: "#e8ebec", title: "#263640", sel: "#263640" }
   ];
   var STANDARD = LIST[0];
+  // A skin whose version's own default colours differ from 95's has its own standard scheme here (docs/SKINS.md), which
+  // "standard" means under it; a scheme of ours keeps its colours under every skin, with the skin's dark edge (dk), and the
+  // inactive title bar's gradient (titleIn, drawn by 2000 and later: web/skin-2000.css) runs from the shadow to the face.
+  // 2000's is the Windows Standard scheme, read from real pixels: the face, desktop and titles from Wikipedia's shot of
+  // 2000, the dark edge #404040 from 7's Windows Classic box on Commons, which is the same Standard scheme at full colour.
+  var STANDARDS = {
+    "2000": { id: "standard", desk: "#3a6ea5", face: "#d4d0c8", lo: "#808080", mid: "#d4d0c8", dk: "#404040",
+      title: ["#0a246a", "#a6caf0"], titleIn: ["#808080", "#c0c0c0"], sel: "#0a246a" }
+  };
+  function lookNow() { return (typeof document !== "undefined" && document.documentElement.getAttribute("data-look")) || "95"; }
   function byId(id) { for (var i = 0; i < LIST.length; i++) if (LIST[i].id === id) return LIST[i]; return STANDARD; }
   function ends(s) { return typeof s.title === "string" ? [s.title, s.title] : s.title; }
 
@@ -40,10 +50,15 @@ var ByopopSchemes = (function () {
   function chosen() {
     try { var o = JSON.parse(window.localStorage.getItem(KEY) || "{}"); return byId(o && o.scheme).id; } catch (e) { return STANDARD.id; }
   }
-  var VARS = ["--bg", "--panel", "--panel-2", "--line", "--accent", "--sk-lo", "--sk-mid", "--sk-title", "--sk-title-2"];
-  // the data-address pictures of web/skins.css, with the scheme's colours for the standard greys
-  function uriRules(s) {
-    var out = [], swap = [[/(%23|#)c0c0c0/gi, s.face], [/(%23|#)808080/gi, s.lo], [/(%23|#)dfdfdf/gi, s.mid]];
+  var VARS = ["--bg", "--panel", "--panel-2", "--line", "--accent", "--sk-lo", "--sk-mid", "--sk-title", "--sk-title-2", "--sk-dk", "--sk-title-in-2"];
+  // the data-address pictures of web/skins.css, with the scheme's colours for the standard greys, and the skin's dark edge
+  // for 95's black where it is an edge: a drawing's edge is its first shape, a black rectangle as large as the drawing (no x
+  // or y), while every black pixel of a glyph has its place (x and y) and stays black. A drawing's rule gives its colour in
+  // its own declaration (background-color), never beside the drawing in one shorthand with a var(), which would hide the
+  // drawing from this walk.
+  function uriRules(s, dk) {
+    var out = [], swap = [[/(%23|#)c0c0c0/gi, "%23" + s.face.slice(1)], [/(%23|#)808080/gi, "%23" + s.lo.slice(1)], [/(%23|#)dfdfdf/gi, "%23" + s.mid.slice(1)],
+      [/(%3Crect width='\d+' height='\d+' fill=')(?:%23|#)000(?=')/g, "$1%23" + dk.slice(1)]];
     function walk(rules, wrap) {
       for (var i = 0; i < rules.length; i++) {
         var r = rules[i];
@@ -54,7 +69,7 @@ var ByopopSchemes = (function () {
           var prop = r.style[k], val = r.style.getPropertyValue(prop);
           if (val.indexOf("data:image/svg") < 0) continue;
           var next = val;
-          swap.forEach(function (p) { next = next.replace(p[0], "%23" + p[1].slice(1)); });
+          swap.forEach(function (p) { next = next.replace(p[0], p[1]); });
           if (next !== val) decl += prop + ":" + next + (r.style.getPropertyPriority(prop) ? " !important" : "") + ";";
         }
         if (decl) out.push((wrap ? wrap[0] : "") + r.selectorText + "{" + decl + "}" + (wrap ? wrap[1] : ""));
@@ -69,9 +84,10 @@ var ByopopSchemes = (function () {
   }
   var applied = null;
   function apply(id) {
-    var s = byId(id || chosen()), root = document.documentElement, st = document.getElementById("d95-scheme");
-    if (applied === s.id) return;
-    applied = s.id;
+    var l = lookNow(), base = STANDARDS[l] || STANDARD, s = byId(id || chosen()), root = document.documentElement, st = document.getElementById("d95-scheme");
+    if (s === STANDARD) s = base;
+    if (applied === s.id + "/" + l) return;
+    applied = s.id + "/" + l;
     if (s === STANDARD) {
       VARS.forEach(function (v) { root.style.removeProperty(v); });
       if (st) st.remove();
@@ -90,9 +106,13 @@ var ByopopSchemes = (function () {
     // draws the first alone); the Pop band is the shadow, --sk-lo
     root.style.setProperty("--sk-title", t[0]);
     root.style.setProperty("--sk-title-2", t[1]);
-    root.setAttribute("data-scheme", s.id);
+    var dk = s.dk || base.dk || "#000000";
+    if (dk !== "#000000") root.style.setProperty("--sk-dk", dk); else root.style.removeProperty("--sk-dk");
+    root.style.setProperty("--sk-title-in-2", s.titleIn ? s.titleIn[1] : s.face);
+    // a skin's own standard is no scheme of ours: no data-scheme for it
+    if (s === base) root.removeAttribute("data-scheme"); else root.setAttribute("data-scheme", s.id);
     if (!st) { st = document.createElement("style"); st.id = "d95-scheme"; document.head.appendChild(st); }
-    st.textContent = uriRules(s);
+    st.textContent = uriRules(s, dk);
   }
 
   // ---- the desktop's pattern and wallpaper (the proposal's second part; the user, 2026-11-11: "Yes, 1 then 2") ----
@@ -310,6 +330,8 @@ var ByopopSchemes = (function () {
     });
     window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === WALL_KEY || ev.key === null) { apply(); backdrop(); } });
     window.addEventListener("byopop-desk", function () { if (pixelShown) backdrop(); });
+    // the skin chosen (web/skins.js): its own standard scheme, or a scheme of ours with its dark edge
+    window.addEventListener("byopop-skin", function () { apply(); });
   }
   return { patterns: PATTERNS, patternIds: patternIds, patternPreview: patternPreview, wallpaperIds: wallpaperIds, wallpaperValues: wallpaperValues, fits: FITS,
     pictureLayer: pictureLayer, backdrop: backdrop, setPicture: setPicture,

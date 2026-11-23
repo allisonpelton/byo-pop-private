@@ -163,6 +163,7 @@ settings.look.label = Skin
 settings.look.hint = The version of Windows the desktop is drawn as.
 settings.look.95 = 95
 settings.look.98 = 98
+settings.look.2000 = 2000
 settings.scheme.label = Scheme
 settings.scheme.hint = The desktop's colours: its background, windows, title bars and selection.
 settings.scheme.standard = Standard
