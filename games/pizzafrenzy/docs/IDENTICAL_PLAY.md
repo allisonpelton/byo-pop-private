@@ -319,6 +319,25 @@ particle's transform (0x497e40), the mask's lookup and reading, and the blend's 
 original's draw of a scaled, translucent masked picture against the port's; it would take tracing one particle's draw
 in the original (its graphics state and the blit it picks) beside the port's.
 
+**The web build.** tools/web/replay.js plays a case's recorded input on the web page and takes the shot list's
+pictures there, to compare with the native port's (`shots.sh` with `PORT_ONLY=1`). `replay_gen.py <case dir> <shot
+list> <seed> [--user <folder>]` writes `replay_case.js`, which is the driver with the case put in front (not
+committed). It opens as `pizzafrenzy.html?player=1&assets=1&hold=1&fast=1&drawevery=1&silent=1` with
+`&driver=games/pizzafrenzy/tools/web/replay_case.js&run=<id>`, and the pictures land in build/webshots/<id>. The
+page holds the game between updates and sends each input and takes each picture while the game waits. The first
+runs had pictures one update late. On frames 1 to 90 of look1, every web picture that differed was the native
+picture of the next update, and the still frames were the same. So the page's picture held before update N shows
+what -realinput's picture shows before update N+1. The driver takes each picture one update sooner and sends the
+input on its own update. (An earlier draft delayed the input by one update instead; that matched the dialogs but
+left every animation a frame off.) With that, every case matches the native port exactly: look1 70 of 71, dlg1 17,
+edit2 11, mem1 11, conc1 9 and focus1 9, plus the probe of look1's first 90 frames 89 of 90. The one picture in each
+of the first two that does not match is update 1's, the first one the page holds, which cannot be taken a step
+sooner. So the web build looks the same as the native port, and the native port's differences from the original
+(above) are the web's too. focus1 loses and regains the focus through the page's blur and focus events, and its
+pictures match the native window's. In the hidden Browser pane, the page runs at full speed only
+when its animation frames are shimmed with message-channel callbacks before it loads. Timers are throttled there, and
+the page sometimes stops at "Starting..." or "Running..." until its main loop is paused and resumed.
+
 ## Where it stands (2026-11-16)
 
 Case play1 (150 moves, seed 1) matches through the first level. record.py times each input by the frame the bot's last
