@@ -334,6 +334,52 @@ check("either: AstroPop with neither exe, named", I.missingMarkers(spec("astropo
       [[], [["ZumaDeluxeSetup.exe", "zuma"]], false])));
 }
 
+// ---- a folder named as one of the site's games without its files: the game and what it lacks, not a folder of no game (the user,
+// 2026-11-23: the import should name what is missing rather than call the game unsupported)
+{
+  const lack = (r) => ({ found: r.found.map((f) => f.game && f.game.target), rejected: r.rejected, others: r.others.map((o) => o.game.id),
+    lacking: (r.lacking || []).map((l) => [l.folder, l.game.target, l.missing]) });
+  check("lacking: Venice's folder without its pak", lack(I.sort(files("Venice Deluxe/config.xml", "Venice Deluxe/readme.html"))),
+    { found: [], rejected: [], others: [], lacking: [["Venice Deluxe", "venice", "main.pak"]] });
+  check("lacking: a Steam folder's name, without any of the files", lack(I.sort(files("Hammer Heads Deluxe/readme.html"))).lacking,
+    [["Hammer Heads Deluxe", "hammerheads", I.missingMarkers(spec("hammerheads"), [])]]);
+  check("lacking: a name that only holds a game's is still rejected", lack(I.sort(files("Bejeweled Twist Soundtrack/a.mp3"))),
+    { found: [], rejected: ["Bejeweled Twist Soundtrack"], others: [], lacking: [] });
+  check("lacking: a game the site does not play is no game of the site's", lack(I.sort(files("Peggle Deluxe/readme.html"))).rejected, ["Peggle Deluxe"]);
+  waits.push(I.sortDrop(files("Alchemy Deluxe/setup.exe")).then((r) =>
+    check("lacking: a named folder holding the game's installer is the installer's row", [lack(r).lacking, !!r.installer], [[], true])));
+}
+
+// ---- the ports localsoon opens (addSoon): taken only where web/localsoon.js opens their tiles, a development host without
+// ?localsoon=0 (the user, 2026-11-23: Peggle's, Banana Bugs' and Feeding Frenzy's folders were "not supported" on the local site)
+{
+  const pegglePage = () => fs.readFileSync(path.join(root, "games", "peggle", "web", "page.js"), "utf8");
+  const addPeggle = () => vm.runInContext(`ByopopImport.addSoon("peggle", "Peggle", function () {\n${pegglePage()}\n  return PAGE;\n});`, ctx);
+  const has = () => I.games.some((g) => g.target === "peggle");
+  addPeggle();
+  check("addSoon: not taken without localsoon (the deployed site)", has(), false);
+  ctx.URLSearchParams = URLSearchParams;
+  vm.runInContext(fs.readFileSync(path.join(root, "web", "localsoon.js"), "utf8"), ctx, { filename: "localsoon.js" });
+  vm.runInContext("var ByopopTerms = { devHost: function (l) { return l.hostname === '127.0.0.1'; } };", ctx);
+  ctx.location = { hostname: "example.org", search: "" };
+  addPeggle();
+  check("addSoon: not taken on another host", has(), false);
+  ctx.location = { hostname: "127.0.0.1", search: "?localsoon=0" };
+  addPeggle();
+  check("addSoon: not taken with ?localsoon=0", has(), false);
+  ctx.location = { hostname: "127.0.0.1", search: "" };
+  addPeggle();
+  check("addSoon: taken on a development host", has(), true);
+  const brief8 = (r) => ({ found: r.found.map((f) => f.game && f.game.target), others: r.others.map((o) => o.game.id) });
+  check("addSoon: a Steam Peggle folder is Peggle", brief8(I.sort(files("Peggle Deluxe/Peggle.exe", "Peggle Deluxe/main.pak", "Peggle Deluxe/music/PeggleBeats.mo3"))),
+    { found: ["peggle"], others: [] });
+  // Peggle Extreme holds Peggle's markers and its own exe: it is Peggle Extreme, a game the site does not play
+  check("addSoon: Peggle Extreme's folder is not Peggle", brief8(I.sort(files("Peggle Extreme/PeggleExtreme.exe", "Peggle Extreme/main.pak",
+    "Peggle Extreme/music/PeggleBeats.mo3"))), { found: [], others: ["peggleextreme"] });
+  I.games.splice(I.games.findIndex((g) => g.target === "peggle"), 1);
+  delete ctx.location;
+}
+
 Promise.all(waits).then(() => {
 console.log(`gameimporttest: ${checks} checks, ${failed} failed`);
 process.exit(failed ? 1 : 0);

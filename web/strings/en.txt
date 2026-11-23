@@ -40,8 +40,9 @@ library.col.plays = Plays
 # every player's plays, from the site's play counter (docs/PLAY_COUNTER.md); shown only when the site has one
 library.col.popular = Popular
 library.col.phase = Phase
-library.status.ready = Ready
-library.status.files = Needs your files
+# a game's files in this browser or not (the user, 2026-11-23: "Needs your files" became "Not installed", "Ready" "Installed")
+library.status.ready = Installed
+library.status.files = Not installed
 library.status.soon = Coming soon
 library.status.unsold = No longer sold
 # the browser cannot tell whether the game's files are here (no indexedDB.databases, no record)
@@ -444,8 +445,9 @@ index.players.unavailable = The players are not available.
 index.saves.unavailable = The save backup is not available.
 
 # The label under a game's card, by whether its files are in this browser
-index.files.yes = Play now
-index.files.no = Add your files
+# (the user, 2026-11-23: "Not installed" and "Installed", as the Library's Status and the game page's status line say)
+index.files.yes = Installed
+index.files.no = Not installed
 index.files.unknown = Files unknown
 # The card's link, read out: {name} the game, {year} its release year, {state} one of the three labels above in lower case
 index.tile.label = {name}, {state}
@@ -627,7 +629,7 @@ game.chat.title = Chat
 game.status.starting = Starting…
 game.status.ready = Ready
 game.status.last_failed = The last start did not finish
-game.status.need_files = Game files needed
+game.status.need_files = Not installed
 game.status.fixes = Putting in the fixes mod…
 game.status.lite = Putting in the lite mod…
 game.status.reimport = Import game files again
@@ -1506,6 +1508,7 @@ setup.finish = Finish
 setup.result.installed = Installed
 setup.result.already = Already here
 setup.result.unsupported = Not a supported game
+setup.result.missing = Missing: {files}
 setup.result.skipped = Skipped
 setup.result.error = Error {code}
 setup.cancelled = Setup was cancelled before this game began.

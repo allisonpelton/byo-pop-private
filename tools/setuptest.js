@@ -35,12 +35,15 @@ const sum = logic.summary([
   { title: "Old Stuff", kind: "unsupported", reason: "no game this site plays" },
   { title: "Pixelus", kind: "skipped", reason: "terms not agreed" },
   { title: "Dropped files", kind: "error", code: 1, reason: "could not be read" },
-  { title: "Noah's Ark", kind: "error", code: 2, reason: "page open" }
+  { title: "Noah's Ark", kind: "error", code: 2, reason: "page open" },
+  { title: "Venice", kind: "missing", files: "main.pak", reason: "Venice Deluxe" }
 ], t);
-check(sum.total === 6, "summary: total");
-check(same(sum.counts, { installed: 1, already: 1, unsupported: 1, skipped: 1, error: 2 }), "summary: counts by kind");
+check(sum.total === 7, "summary: total");
+check(same(sum.counts, { installed: 1, already: 1, unsupported: 1, missing: 1, skipped: 1, error: 2 }), "summary: counts by kind");
 check(sum.failed === 2, "summary: the errors counted as failed");
-check(same(sum.rows.map((r) => r.title), ["Alchemy", "Big Money", "Old Stuff", "Pixelus", "Dropped files", "Noah's Ark"]), "summary: rows in the order given");
+check(same(sum.rows.map((r) => r.title), ["Alchemy", "Big Money", "Old Stuff", "Pixelus", "Dropped files", "Noah's Ark", "Venice"]), "summary: rows in the order given");
+// a folder named as one of the site's games without its files: what it lacks, as the value (the user, 2026-11-23)
+check(sum.rows[6].value === 'setup.result.missing{"files":"main.pak"}' && sum.rows[6].tip === "Venice Deluxe", "summary: a game's missing files are its value");
 check(sum.rows[0].value === "setup.result.installed" && sum.rows[1].value === "setup.result.already" &&
   sum.rows[2].value === "setup.result.unsupported" && sum.rows[3].value === "setup.result.skipped", "summary: each kind's value");
 check(sum.rows[4].value === 'setup.result.error{"code":1}' && sum.rows[5].value === 'setup.result.error{"code":2}', "summary: an error's value carries its code");

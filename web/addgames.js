@@ -205,6 +205,11 @@ var ByopopAddGames = (function () {
       p.appendChild(ByopopImport.otherNote(document, o.game));
       othersEl.appendChild(p);
     });
+    // a folder named as one of the site's games, without its files: the game and what is missing (web/gameimport.js, lacking)
+    (sorted.lacking || []).forEach(function (l) {
+      othersEl.appendChild(make("p", "adding-other", ByopopStrings.t("add.other", {folder: l.folder}) + " " + l.game.title + ". " +
+        ByopopStrings.t("setup.result.missing", {files: l.missing})));
+    });
     othersEl.hidden = !othersEl.firstChild;
     // a game's installer dropped in place of its folder: what to do instead, before the folders with no game
     var lead = sorted.installer ? sorted.installer.text + " " : "";
@@ -220,7 +225,7 @@ var ByopopAddGames = (function () {
       rejectedEl.hidden = false;
       rejectedEl.textContent = lead + (sorted.rejected.length ? ByopopStrings.t("add.rejected", {folders: sorted.rejected.join(", ")}) : "");
     }
-    if (!sorted.found.length && !sorted.rejected.length && !(sorted.others || []).length && !lead) {
+    if (!sorted.found.length && !sorted.rejected.length && !(sorted.others || []).length && !(sorted.lacking || []).length && !lead) {
       rejectedEl.hidden = false;
       rejectedEl.textContent = ByopopStrings.t("add.nothing");
     }

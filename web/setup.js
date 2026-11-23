@@ -21,16 +21,18 @@ var ByopopSetup = (function () {
     out.push({ page: "finish" });
     return out;
   }
-  // What a game came to: installed, already (its files were here), unsupported (no game this site plays), skipped (its terms
-  // not agreed, or Setup cancelled before it began), error (code 1: the files could not be read; 2: they could not be copied)
+  // What a game came to: installed, already (its files were here), unsupported (no game this site plays), missing (a folder
+  // named as one of the site's games without its files: files, the markers it lacks), skipped (its terms not agreed, or Setup
+  // cancelled before it began), error (code 1: the files could not be read; 2: they could not be copied)
   var RESULT = { installed: "setup.result.installed", already: "setup.result.already", unsupported: "setup.result.unsupported",
-    skipped: "setup.result.skipped", error: "setup.result.error" };
-  // Finish's rows and counts from the results ([{ title, kind, code, reason }]), in the order given; t: the strings' lookup
+    missing: "setup.result.missing", skipped: "setup.result.skipped", error: "setup.result.error" };
+  // Finish's rows and counts from the results ([{ title, kind, code, files, reason }]), in the order given; t: the strings' lookup
   function summary(results, t) {
-    var counts = { installed: 0, already: 0, unsupported: 0, skipped: 0, error: 0 };
+    var counts = { installed: 0, already: 0, unsupported: 0, missing: 0, skipped: 0, error: 0 };
     var rows = results.map(function (r) {
       counts[r.kind] = (counts[r.kind] || 0) + 1;
-      return { title: r.title, kind: r.kind, value: t(RESULT[r.kind], r.kind === "error" ? { code: r.code } : undefined), tip: r.reason || "" };
+      var vars = r.kind === "error" ? { code: r.code } : r.kind === "missing" ? { files: r.files } : undefined;
+      return { title: r.title, kind: r.kind, value: t(RESULT[r.kind], vars), tip: r.reason || "" };
     });
     return { rows: rows, counts: counts, total: results.length, failed: counts.error };
   }
@@ -232,6 +234,10 @@ var ByopopSetup = (function () {
         var note = ByopopImport.otherNote(document, o.game);
         addFound({ folder: o.folder, unsupported: true, reason: T("add.other", { folder: o.folder }) + " " + (note.textContent || "") });
       });
+      // a folder named as one of the site's games, without its files: the game, and what is missing as its value
+      (sorted.lacking || []).forEach(function (l) {
+        addFound({ folder: l.folder, lacking: l.game, missing: l.missing, unsupported: true, reason: l.folder });
+      });
       // many folders with no game: one row, their names behind Details
       if (sorted.rejected.length >= ByopopImport.MANY_REJECTED)
         addFound({ folder: T("import.rejected_many", { n: sorted.rejected.length }), unsupported: true, names: sorted.rejected,
@@ -239,7 +245,7 @@ var ByopopSetup = (function () {
       else sorted.rejected.forEach(function (folder) { addFound({ folder: folder, unsupported: true, reason: T("add.rejected", { folders: folder }) }); });
       // a game's installer dropped in place of its folder: what to do instead, under its row
       if (sorted.installer) addFound({ folder: sorted.installer.file, unsupported: true, installer: sorted.installer.text, reason: sorted.installer.text });
-      if (!sorted.found.length && !sorted.rejected.length && !(sorted.others || []).length && !sorted.installer)
+      if (!sorted.found.length && !sorted.rejected.length && !(sorted.others || []).length && !(sorted.lacking || []).length && !sorted.installer)
         addFound({ folder: T("setup.dropped"), error: 1, reason: T("add.nothing") });
       buttons();
       if (jump && found.some(function (f) { return f.game || f.choices; })) onNext();
@@ -276,6 +282,11 @@ var ByopopSetup = (function () {
       f.choices.forEach(function (g) { var o = make("option", null, g.title); o.value = g.target; sel.appendChild(o); });
       f.select = sel;
       value.appendChild(sel);
+    } else if (f.lacking) {
+      li.appendChild(badgeOf(f.lacking));
+      name.textContent = f.lacking.title;
+      name.title = f.folder;
+      value.textContent = T("setup.result.missing", { files: f.missing });
     } else {
       li.appendChild(badgeOf(null));
       name.textContent = f.folder;
@@ -327,7 +338,7 @@ var ByopopSetup = (function () {
       var games = found.filter(function (f) { return f.game; });
       steps = plan(games.map(function (f) { return { id: f.key, agreed: agreed(f.game), here: f.here, supported: true }; }));
       found.forEach(function (f) {
-        if (!f.game) setResult(f.key, f.error ? "error" : "unsupported", f.error || 0, f.reason || "");
+        if (!f.game) setResult(f.key, f.error ? "error" : f.lacking ? "missing" : "unsupported", f.error || 0, f.reason || "", f.missing);
         else if (f.here) setResult(f.key, "already", 0, "");
       });
       go(0);
@@ -341,7 +352,7 @@ var ByopopSetup = (function () {
     } else if (p === "finish") close();
   }
   function byKey(key) { for (var i = 0; i < found.length; i++) if (found[i].key === key) return found[i]; return null; }
-  function setResult(key, kind, code, reason) { results[key] = { kind: kind, code: code, reason: reason }; }
+  function setResult(key, kind, code, reason, files) { results[key] = { kind: kind, code: code, reason: reason, files: files }; }
 
   // ---------- the pages ----------
   function page_() { var s = at < 0 ? null : steps[at]; return s ? s.page : "games"; }
@@ -427,7 +438,7 @@ var ByopopSetup = (function () {
   function finish() {
     var list = found.map(function (f) {
       var r = results[f.key] || { kind: "skipped", code: 0, reason: T("setup.cancelled") };
-      return { title: f.game ? f.game.title : f.folder, kind: r.kind, code: r.code, reason: r.reason, game: f.game };
+      return { title: f.game ? f.game.title : f.lacking ? f.lacking.title : f.folder, kind: r.kind, code: r.code, files: r.files, reason: r.reason, game: f.game };
     });
     var sum = summary(list, T);
     ui.done.textContent = "";

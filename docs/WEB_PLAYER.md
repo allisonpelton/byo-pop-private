@@ -644,7 +644,7 @@ All games' place and size where it had none of its own, open if either was (`REN
 
 - **Its bar:** Play, Add games (the Setup window), Show games no longer sold (while some game is) and Filter, which
   finds a game by any word of its title with a letter or two wrong (All games' Find).
-- **Its columns:** Name, Status (Ready, Needs your files, Files unknown, Coming soon, No longer sold), Phase on a
+- **Its columns:** Name, Status (Installed, Not installed, Files unknown, Coming soon, No longer sold; the user, 2026-11-23, for "Ready" and "Needs your files"), Phase on a
   development host, Plays, Play time, Last played, Year, and Popular, every player's plays, when the site's play
   counter answers (its tooltip says how many play now). A header sorts by its column; Plays, Play time and Popular
   sort most first at the first click. A narrow desktop shows Name, Status, Phase where it is shown, and Play time.
