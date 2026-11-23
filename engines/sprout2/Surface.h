@@ -30,10 +30,14 @@ enum BlendMode
 // Where a surface's anchor goes (0x18, 0x45f290 (feedingfrenzy2)), in pixels from its top left corner
 enum Pivot
 {
-	PIVOT_UPPER_LEFT = 0,  // (0, 0), also for any other value
+	PIVOT_UPPER_LEFT = 0,  // (0, 0), also for any other value above 6
 	PIVOT_CENTER = 1,      // half the width and half the height
 	PIVOT_BOTTOM = 2,      // half the width, the last row
 	PIVOT_TOP = 3,         // half the width, the first row
+	// 4 to 6: Talismania's 0x6a2270 (its data names them); Feeding Frenzy 2 never passes them (its slot treats them as 0)
+	PIVOT_UPPER_RIGHT = 4, // the width, the first row
+	PIVOT_LOWER_LEFT = 5,  // the first column, the last row
+	PIVOT_LOWER_RIGHT = 6, // the width, the last row
 };
 
 class PixelFx;
