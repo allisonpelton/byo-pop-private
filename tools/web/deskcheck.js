@@ -31,7 +31,8 @@ note("desktop", d.isOn(), d.isOn() ? "" : "the desktop is off: the page is " + d
 var LANDMARK = { MAIN: "main", FOOTER: "contentinfo", ASIDE: "complementary", NAV: "navigation", HEADER: "banner", FORM: "form" };
 function windowCheck(id, title, el) {
   var bad = [];
-  var role = el.getAttribute("role") || LANDMARK[el.tagName] || "";
+  // (a section named by its title is a region, and a dialog element a dialog, with no role written)
+  var role = el.getAttribute("role") || LANDMARK[el.tagName] || (el.tagName === "SECTION" && el.hasAttribute("aria-labelledby") ? "region" : el.tagName === "DIALOG" ? "dialog" : "");
   if (role === "tabpanel") bad.push("still role tabpanel");
   else if (role !== "region" && role !== "dialog" && !LANDMARK[el.tagName]) bad.push("role " + (role || "none") + ", not a region");
   var by = (el.getAttribute("aria-labelledby") || "").split(/\s+/).filter(Boolean);

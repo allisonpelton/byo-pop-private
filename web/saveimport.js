@@ -464,8 +464,9 @@ var ByopopSaveImport = (function () {
     var help = make("div", "si-help");
     var pickers = make("div", "si-pickers");
     var reviewPage = page(ByopopStrings.t("saveimport.page.review"));
-    var box = make("div", "pl-confirm sv-confirm si-confirm");
-    box.hidden = true;
+    // a dialog in place, open from the start and shown only while it asks or tells
+    var box = make("dialog", "pl-confirm sv-confirm si-confirm");
+    box.open = true; box.hidden = true;
     var takes = make("div", "si-takes");
     reviewPage.appendChild(box); reviewPage.appendChild(takes);
     pagesEl.appendChild(help); pagesEl.appendChild(pickers); pagesEl.appendChild(reviewPage);

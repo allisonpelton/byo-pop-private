@@ -393,8 +393,6 @@ var ByopopSounds = (function () {
     // its label, the tooltip adding when the game plays it (for screen readers, its description)
     function groupBox(name, items, wire) {
       var box = make("fieldset", "sb-group"), legend = make("legend", "sb-legend", name), row = make("div", "sb-row");
-      box.setAttribute("role", "group");
-      box.setAttribute("aria-label", name);
       box.appendChild(legend);
       items.forEach(function (s) {
         var b = make("button", "sb-btn");

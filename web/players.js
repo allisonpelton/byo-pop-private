@@ -80,8 +80,9 @@ var ByopopPlayers = (function () {
     var bulkCount = make("span", "pl-count");
     bulk.appendChild(bulkLabel); bulk.appendChild(bulkInput); bulk.appendChild(bulkRename); bulk.appendChild(bulkDelete);
     bulk.appendChild(tickAll); bulk.appendChild(tickNone); bulk.appendChild(bulkCount);
-    var confirmBox = make("div", "pl-confirm");
-    confirmBox.hidden = true;
+    // a dialog in place, open from the start and shown only while it asks (its role an alert dialog's then)
+    var confirmBox = make("dialog", "pl-confirm");
+    confirmBox.open = true; confirmBox.hidden = true;
     var resultsTitle = make("h3", "", ByopopStrings.t("players.results.title"));
     var resultsList = make("ul", "pl-results");
     var resultsClear = make("button", "", ByopopStrings.t("players.results.clear"));

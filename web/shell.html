@@ -173,6 +173,9 @@ canvas#canvas:focus-visible { outline: 3px solid transparent; outline-offset: -3
   position: absolute; inset: 0; display: grid; place-items: center; padding: 16px;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
 }
+/* the cards are dialogs, open from the start and shown by their overlays: a dialog's own frame and place give way to the card's */
+:where(dialog.card) { position: static; inset: auto; width: auto; height: auto; max-width: none; max-height: none; margin: 0; border: 0; padding: 0;
+  background: none; color: inherit; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; max-width: 520px; display: grid; gap: 14px; }
 .card h2 { margin: 0; font-size: 20px; text-wrap: balance; }
 /* The game's cap on top of the import card (the listing page's badge for the game, web/index.html: a crown cap's outline,
@@ -273,7 +276,7 @@ input[type=file] { display: none; }  /* the buttons that open the file pickers a
 }
 /* The player-only page (?player=1 on a development host): the game alone, at the top left, one canvas pixel for each game pixel */
 html.player-only .bar, html.player-only .chat, html.player-only .panel, html.player-only .skip,
-html.player-only .key-hint, html.player-only footer { display: none !important; }
+html.player-only .key-hint, html.player-only body > footer { display: none !important; }
 /* From the start until the game has made its window and drawn in it (game-loading, the page script's gameWindowLoading) the stage
    is not shown, so a game of another size never shows a black 640 x 480 first (the user, 2026-11-08: "While a game loads with a
    non-standard window size, it shows the standard window size as black. Hide the window until the game is actually loaded"),
@@ -318,20 +321,20 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     <p class="canvas-hint" id="canvas-hint">{{game.canvas_hint}}</p>
 
     <div class="overlay" id="terms-overlay" hidden>
-      <div class="card terms-card" id="terms-card" role="dialog" aria-modal="true" aria-labelledby="terms-title" tabindex="-1">
+      <dialog open class="card terms-card" id="terms-card" aria-modal="true" aria-labelledby="terms-title" tabindex="-1">
         <h2 id="terms-title">{{game.terms.title}}</h2>
         <!-- the agreement first, the full text (unchanged) scrolling below it -->
         <div class="terms-agreebar"><label class="agree"><input type="checkbox" id="terms-agree" autocomplete="off"> {{game.terms.agree}}</label>
         <button class="primary" id="btn-terms" type="button" disabled>{{game.terms.continue}}</button></div>
-        <div class="terms" tabindex="0" role="region" aria-label="{{game.terms.region}}">
+        <section class="terms" tabindex="0" aria-label="{{game.terms.region}}">
 <!-- byopop:terms -->
-        </div>
+        </section>
 <!-- byopop:buy -->
-      </div>
+      </dialog>
     </div>
 
     <div class="overlay" id="import-overlay" hidden>
-      <div class="card" id="import-card" role="dialog" aria-labelledby="import-title" aria-describedby="import-about" tabindex="-1">
+      <dialog open class="card" id="import-card" aria-labelledby="import-title" aria-describedby="import-about" tabindex="-1">
         <!-- the game's cap, its badge on the listing page: it comes off once the files are in -->
         <div class="page-cap" id="page-cap" aria-hidden="true" style="--tile: @BYOPOP_CAP_COLOUR@">@BYOPOP_CAP_INITIALS@</div>
         <h2 id="import-title">{{game.import.title}}</h2>
@@ -347,32 +350,32 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
         </div>
         <div class="progress" id="import-bar" role="progressbar" aria-label="{{game.import.progress}}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="{{game.import.not_started}}"><div id="import-progress"></div></div>
         <p class="note" id="import-msg" role="status">{{game.import.note}}</p>
-      </div>
+      </dialog>
     </div>
 
     <div class="overlay" id="start-overlay" hidden>
-      <div class="card" id="start-card" role="dialog" aria-labelledby="start-title" tabindex="-1">
+      <dialog open class="card" id="start-card" aria-labelledby="start-title" tabindex="-1">
         <h2 id="start-title">{{game.start.title}}</h2>
         <p id="start-rescue" hidden>{{game.start.rescue}}</p>
         <div class="row"><button class="primary" id="btn-start" type="button">{{game.start.play}}</button>
           <button id="btn-start-nomods" type="button" hidden>{{game.start.nomods}}</button></div>
-      </div>
+      </dialog>
     </div>
 
     <div class="overlay" id="busy-overlay" hidden>
-      <div class="card" id="busy-card" role="dialog" aria-modal="true" aria-labelledby="busy-title" aria-describedby="busy-desc" tabindex="-1">
+      <dialog open class="card" id="busy-card" aria-modal="true" aria-labelledby="busy-title" aria-describedby="busy-desc" tabindex="-1">
         <h2 id="busy-title">{{game.busy.title}}</h2>
         <p id="busy-desc"></p>
-      </div>
+      </dialog>
     </div>
 
     <div class="overlay" id="exit-overlay" hidden>
-      <div class="card" id="exit-card" role="dialog" aria-labelledby="exit-title" aria-describedby="exit-msg" tabindex="-1">
+      <dialog open class="card" id="exit-card" aria-labelledby="exit-title" aria-describedby="exit-msg" tabindex="-1">
         <h2 id="exit-title">{{game.exit.title}}</h2>
         <p id="exit-msg" role="status">{{game.exit.saving}}</p>
         <div class="row"><button class="primary" id="btn-play-again" type="button" disabled>{{game.exit.again}}</button>
           <button id="btn-exit-nomods" type="button" hidden>{{game.exit.nomods}}</button></div>
-      </div>
+      </dialog>
     </div>
   </div>
 </main>
@@ -1126,7 +1129,7 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     if (!stage || stage.querySelector(".d95-bsod")) return null;
     var code = String(what === undefined || what === null ? "" : what).split("\n")[0].replace(/^(RuntimeError|Error|abort)\s*[:(]\s*/i, "").replace(/\)\s*$/, "").trim();
     var at = /wasm-function\[\d+\]:(0x[0-9a-f]+)/i.exec(String(stack || ""));
-    var el = document.createElement("div");
+    var el = document.createElement("dialog"); el.open = true;
     el.className = "d95-bsod";
     el.setAttribute("role", "alertdialog"); el.tabIndex = -1;
     var line1 = document.createElement("p"), line2 = document.createElement("p");
@@ -2114,7 +2117,7 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     var st = $("status");
     if (!statusHome) { statusHome = document.createComment("status line"); st.parentNode.insertBefore(statusHome, st); }
     if (!statusBar) {
-      statusBar = document.createElement("div");
+      statusBar = document.createElement("footer");
       statusBar.className = "d95-statusbar";
       $("main").appendChild(statusBar);
     }

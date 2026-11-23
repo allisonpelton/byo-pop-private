@@ -120,9 +120,8 @@ var ByopopSetup = (function () {
     u.games.el.appendChild(u.found);
     // Licence: the game's terms, as its own terms card shows them, the box to agree, and Don't add this game
     u.licence = page("licence");
-    u.terms = make("div", "terms su-terms");
+    u.terms = make("section", "terms su-terms");
     u.terms.tabIndex = 0;
-    u.terms.setAttribute("role", "region");
     u.terms.setAttribute("aria-label", T("game.terms.region"));
     var agreeRow = make("div", "su-agree-row");
     var lab = make("label", "agree su-agree");

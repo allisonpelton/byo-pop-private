@@ -560,10 +560,9 @@ var ByopopSettings = (function () {
     var scopeNote = null;
     // the sections: a row of icon tabs above them, one shown at a time; and, for Desktop 95's desktop, the folder of their
     // icons (shown only there, web/skins.css), whose icon opens the section's own window (opts.openSection)
-    var tabs = make("div", "bps-tabs"), folder = make("div", "bps-folder"), sections = [], sectionOf = {}, target = container;
+    var tabs = make("div", "bps-tabs"), folder = make("menu", "bps-folder"), sections = [], sectionOf = {}, target = container;
     tabs.setAttribute("role", "tablist");
     tabs.setAttribute("aria-label", T("settings.sections"));
-    folder.setAttribute("role", "group");
     folder.setAttribute("aria-label", T("settings.sections"));
     var tabBase = "bps-" + (++idCount);
     SECTIONS.forEach(function (id) {
@@ -592,7 +591,7 @@ var ByopopSettings = (function () {
       function open() { if (opts.openSection) opts.openSection(id); }
       ic.addEventListener("dblclick", open);
       ic.addEventListener("click", function (ev) { if (ev.detail === 0) open(); });
-      folder.appendChild(ic);
+      var item = make("li"); item.appendChild(ic); folder.appendChild(item);
       var rec = { id: id, name: name, tab: tab, el: sec, icon: ic, small: icons ? icons.small : "", big: icons ? icons.big : "" };
       sections.push(rec); sectionOf[id] = rec;
     });

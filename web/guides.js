@@ -50,7 +50,7 @@ var ByopopGuides = (function () {
     var bar = make("div", "fv-bar"), pick = make("select", "gd-pick");
     games.forEach(function (g) { var o = make("option", "", g.title); o.value = g.id; pick.appendChild(o); });
     bar.appendChild(labelled(T("guides.game"), pick));
-    var page = make("div", "gd-page"), status = make("div", "gd-status");
+    var page = make("div", "gd-page"), status = make("footer", "gd-status");
     var statusAi = make("span", "", T("guides.ai")), statusCount = make("span");
     status.appendChild(statusAi); status.appendChild(statusCount);
     el.appendChild(bar); el.appendChild(page); el.appendChild(status);

@@ -509,7 +509,7 @@ var ByopopTrophies = (function () {
     var pick = make("select");
     lab.appendChild(pick); bar.appendChild(lab);
     var body = make("div", "tc-body");
-    var status = make("div", "tc-status d95-statusbar");
+    var status = make("footer", "tc-status d95-statusbar");
     el.appendChild(bar); el.appendChild(body); el.appendChild(status);
     var found = [];
     function players() {

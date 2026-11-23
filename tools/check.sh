@@ -77,7 +77,10 @@
 #                (tools/localsoontest.js: the coming-soon tiles of built ports open on a development host only, web/localsoon.js)
 #                and schemetest (tools/schemetest.js: Desktop 95's colour schemes whole, named and readable, web/schemes.js)
 #                and storageloadtest (tools/storageloadtest.js: a game page's start loads the saved files as IDBFS's own
-#                syncfs(true) does, web/shell.html's loadStorage against it in the smallest game's module, about a second).
+#                syncfs(true) does, web/shell.html's loadStorage against it in the smallest game's module, about a second)
+#                and semanticcheck (tools/web/siteshots.js --check: the desktop, each window, its menus and the pages in windows
+#                in headless Edge; an element that takes clicks or keys is a control, inside one or a menu, grid or dialog, and
+#                every field has a name; about a minute, one browser).
 #                The build folder is build/web;
 #                BYOPOP_WEB_DIR=build/web-test names another
 #   gpu          the GL GPUInterface's Direct3D 9 conventions on the real GPU (tools/gputest: clears, pixel centres,
@@ -1056,12 +1059,16 @@ suite_unit-web() {
 	local sl
 	"$NODE" tools/storageloadtest.js "$web" > "$1.sl" 2>&1 || st=1
 	sl="$(lastof "$1.sl" 'storageloadtest:')"
+	# the site's elements: what takes clicks or keys is a control, and every field is named (tools/web/siteshots.js --check)
+	local sm
+	"$NODE" tools/web/siteshots.js --check --root "$web" > "$1.sm" 2>&1 || st=1
+	sm="$(lastof "$1.sm" 'semanticcheck:')"
 	# the JPEG decoder under wasm: the same checks as native, with the error paths through Emscripten's setjmp/longjmp
 	(cd "$web" && "$NODE" jpegtest.js) > "$1.jpg" 2>&1 || st=1
 	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.sl" "$1.jpg" >> "$1"
-	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.sl" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $rz; $q; $r; $mr; $mf; $sf; $as; $u; $v; $w; $sl; $o"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.sl" "$1.sm" "$1.jpg" >> "$1"
+	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.sl" "$1.sm" "$1.jpg"
+	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $rz; $q; $r; $mr; $mf; $sf; $as; $u; $v; $w; $sl; $sm; $o"
 	return $st
 }
 

@@ -238,6 +238,9 @@ html:not(.d95-desk) #chat { display: none !important; }
 .pl-names li { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .pl-names label { cursor: pointer; overflow-wrap: anywhere; }
 .pl-pending, .pl-pending-tag { font-size: 13px; color: var(--accent); }
+/* the questions are dialogs in place: a dialog's own frame and place give way to the box's */
+:where(dialog.pl-confirm) { position: static; inset: auto; width: auto; height: auto; max-width: none; max-height: none; margin: 0; border: 0;
+  padding: 0; background: none; color: inherit; }
 .pl-confirm { margin: 12px 0; padding: 14px 16px; background: var(--panel); border: 2px solid #b3261e; border-radius: var(--radius); }
 .pl-confirm h4 { margin: 0 0 8px; font-size: 15px; }
 .pl-confirm ul { margin: 0 0 12px; padding-left: 18px; }
@@ -411,12 +414,12 @@ html:not(.d95-desk) #chat { display: none !important; }
 .jungle-name { font-size: 16px; font-weight: 600; color: var(--accent); }
 .jungle-name::after { content: "\2192" / ""; margin-left: 6px; }
 .jungle-about { color: var(--muted); }
-footer {
+body > footer {
   max-width: 960px; margin: 0 auto; padding-block: 0 32px; box-sizing: border-box; color: var(--muted); font-size: 12.5px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-footer p { margin: 0 0 8px; }
-footer a { color: var(--accent); }
+body > footer p { margin: 0 0 8px; }
+body > footer a { color: var(--accent); }
 .sy-credits { margin: 0 0 8px; padding-left: 20px; }
 /* System Information's own parts (web/sysinfo.js) are the desktop's only: off it the footer is its General tab's text */
 html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: none; }

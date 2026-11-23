@@ -426,9 +426,9 @@ var ByopopControls = (function () {
     var entries = keyEntries();
     if (!touchWanted()) { if (touchBar) { touchBar.remove(); touchBar = null; typeField = null; } placeTouch(); return; }
     if (touchBar) { placeTouch(); return; }
-    touchBar = document.createElement("div");
+    // a toolbar of the game's keys: a list of buttons, each in an item that lays no box (below, the style)
+    touchBar = document.createElement("menu");
     touchBar.className = "bc-touch";
-    touchBar.setAttribute("role", "group");
     touchBar.setAttribute("aria-label", T("controls.touch.label"));
     entries.forEach(function (c) {
       var b = document.createElement("button");
@@ -565,7 +565,8 @@ var ByopopControls = (function () {
     ".bc-display { position: absolute; bottom: 6px; left: 6px; z-index: 2; pointer-events: none; display: flex; gap: 4px; flex-wrap: wrap; }" +
     ".bc-display span { padding: 2px 7px; border-radius: 4px; font: 600 13px/1.3 ui-monospace, Consolas, monospace; color: #fff;" +
     " background: rgba(0, 0, 0, 0.6); text-shadow: 0 1px 1px #000; }" +
-    ".bc-touch { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 8px 16px; touch-action: none; }" +
+    ".bc-touch { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 0; padding: 8px 16px; list-style: none; touch-action: none; }" +
+    ".bc-touch > li { display: contents; }" +
     ".bc-touch .bc-typefield { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; pointer-events: none; }" +
     ".bc-touch button.bc-keyboard { min-width: 44px; padding: 6px 8px; }" +
     ".bc-touch button { min-width: 64px; min-height: 44px; padding: 6px 14px; font: inherit; touch-action: none; -webkit-user-select: none; user-select: none; }" +
