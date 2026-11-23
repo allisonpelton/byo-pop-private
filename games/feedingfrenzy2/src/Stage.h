@@ -28,6 +28,7 @@
 
 class Actor;
 class AIFish;
+class BonusItem;
 class Fish;
 class GameData;
 class GameHud;
@@ -191,6 +192,8 @@ public:
 	// offered to that one's eater (the other way only when the first is not); then each player's meetings with the
 	// actors (the +0x340 list), not yet translated, as the players are not
 	void updateMeetings(engine::UpdateContext* theContext);
+	// 0x54 (0x438ee0 (feedingfrenzy2)): each player's eater offered each bonus in the stage
+	void updateBonusMeetings(engine::UpdateContext* theContext);
 	// 0x48 (0x4448e0 (feedingfrenzy2)): each actor's update, over a copy of the actors, one no longer among them
 	// logged (the mask's lights cleared first, not yet translated)
 	void updateActors(engine::UpdateContext* theContext);
@@ -256,6 +259,8 @@ public:
 	engine::RectF getArea(bool underwater) const;
 	// 0x24 (0x44fbf0 (feedingfrenzy2)): the actors' container of the layer, counted from the base layer
 	engine::Container* getLayerContainer(int theLayer);
+	// 0x4678b0 (feedingfrenzy2): a point of the layer's in the screen's space, moved by the layer's container's place
+	engine::Vector2f toScreen(int theLayer, const engine::Vector2f& thePoint);
 	// 0x515e4e (feedingfrenzy2): the layer's offset from the base layer
 	engine::Vector2f getLayerOffset(int theLayer) { return mLayerSet->getLayerOffset(theLayer); }
 	const shape::Box& getViewBox() const { return mViewBox; }
@@ -268,6 +273,10 @@ public:
 	void addFish(Fish* theFish) { mFish.push_back(theFish); }
 	void removeFish(Fish* theFish);
 	void addAIFish(AIFish* theFish) { mAIFish.push_back(theFish); }
+	// 0x48edc0 and 0x48a950 (feedingfrenzy2)
+	void addBonus(BonusItem* theBonus) { mBonuses.push_back(theBonus); }
+	void removeBonus(BonusItem* theBonus);
+	const std::vector<BonusItem*>& getBonuses() const { return mBonuses; }
 	void removeAIFish(AIFish* theFish);
 
 	LayerSet* getLayerSet() { return mLayerSet.get(); }
@@ -346,6 +355,7 @@ private:
 	std::vector<Fish*> mFish;                      // +0x320
 	std::vector<AIFish*> mAIFish;                  // +0x330
 	std::vector<engine::Ref<PlayerFish>> mPlayers;  // +0x340: the player fish in the stage
+	std::vector<BonusItem*> mBonuses;              // +0x360: the bonuses in the stage
 	std::vector<Actor*> mActors;                   // +0x370
 	std::vector<Actor*> mSeen;                     // +0x380: what the last look about saw, nearest first
 	// +0x391: the stage's goal reached, cleared as it starts (set at 0x4f2029 and 0x4f218f (feedingfrenzy2) as the

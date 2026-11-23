@@ -81,6 +81,13 @@ void Actor::addToStage(Stage* theStage, int theLocation)
 	addVisualToLayer();
 }
 
+void Actor::remove()
+{
+	removeVisual();
+	mStage->removeActor(this);
+	mStage = nullptr;
+}
+
 Vector2f Actor::getEntryPoint(Stage* theStage, int& theLocation, const Vector2f& thePoint)
 {
 	if (theLocation == SPAWN_LOCATION_SIDE)

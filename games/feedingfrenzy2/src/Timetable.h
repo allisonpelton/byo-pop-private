@@ -47,6 +47,15 @@ struct Timetable
 		mNext++;
 		return true;
 	}
+	// 0x426ba0 (feedingfrenzy2): the share of the way from the time last passed (0 before the first) to the next, 1
+	// when none is left
+	float getShare() const
+	{
+		if (mNext >= mTimes.size())
+			return 1.0f;
+		float aFrom = mNext == 0 ? 0.0f : mTimes[mNext - 1];
+		return (float)(((double)mTime - aFrom) / ((double)mTimes[mNext] - aFrom));
+	}
 	// 0x420090 (feedingfrenzy2): on with a time left to wait for
 	bool isWaiting() const { return mOn && mNext < mTimes.size(); }
 

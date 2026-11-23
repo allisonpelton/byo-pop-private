@@ -97,6 +97,12 @@ public:
 	// 0x40d970 (feedingfrenzy2): the frenzy's word of the step (the strings' frenzy1 and on) splatted at the window's
 	// centre, coloured as the multiplier one more than the step
 	void splatFrenzy(int theStep);
+	// 0x408df0 (feedingfrenzy2): the text rising from the point on the screen in green, in the shell's frenzyFontBold,
+	// queued among the texts that are not points
+	void showPlacedText(const std::string& theText, const engine::Vector2f& thePoint);
+	// 0x494510 (feedingfrenzy2): the strings' timeSplat with the three seconds a time bubble gives, rising from the
+	// point
+	void showTimeBonus(const engine::Vector2f& thePoint);
 	SplatFactory* getSplats() { return mSplats; }
 
 	GrowMeter* getGrowthMeter() { return mGrowthMeter.get(); }

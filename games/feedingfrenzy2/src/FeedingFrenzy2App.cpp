@@ -1,6 +1,7 @@
 // port: the host for Feeding Frenzy 2 (see FeedingFrenzy2App.h).
 
 #include "FeedingFrenzy2App.h"
+#include "BonusItem.h"
 #include "DXDrawContext.h"
 #include "EngineImpl.h"
 #include "FeedingFrenzyTwo.h"
@@ -344,10 +345,23 @@ void FeedingFrenzy2App::logState()
 		aPhase = aFish->getSpawn() ? aFish->getSpawn()->getPhaseIndex() : -1;
 		aMultiplier = aFish->getFrenzyMultiplier();
 	}
+	// The bonuses in the stage, where each is
+	std::string aBonuses = "[";
+	if (mGame->mStage)
+	{
+		for (BonusItem* aBonus : mGame->mStage->getBonuses())
+		{
+			char aPlace[64];
+			snprintf(aPlace, sizeof(aPlace), "%s[%.1f,%.1f]", aBonuses.size() > 1 ? "," : "", aBonus->getPosition().x,
+				aBonus->getPosition().y);
+			aBonuses += aPlace;
+		}
+	}
+	aBonuses += "]";
 	SDL_Log("STATE {\"mode\":%d,\"level\":%d,\"score\":%d,\"lives\":%d,\"food\":%d,\"phase\":%d,"
-	        "\"frenzy\":%d,\"shown\":%d,\"time\":%.2f,\"run\":\"%s\",\"player\":%s}",
+	        "\"frenzy\":%d,\"shown\":%d,\"time\":%.2f,\"run\":\"%s\",\"player\":%s,\"bonuses\":%s}",
 	        aData->getMode(), aData->getStage(), aData->getScore(), aData->getLives(), aData->getFood(), aPhase,
-	        aMultiplier, aShownScore, aTimeLeft, aRun, aPlayer.c_str());
+	        aMultiplier, aShownScore, aTimeLeft, aRun, aPlayer.c_str(), aBonuses.c_str());
 }
 
 void FeedingFrenzy2App::endStage(bool isWin)

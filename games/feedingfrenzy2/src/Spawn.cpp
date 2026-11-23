@@ -1,6 +1,7 @@
 #include "Spawn.h"
 
 #include "Actor.h"
+#include "BonusItem.h"
 #include "Draws.h"
 #include "FeedingFrenzyTwo.h"
 #include "FishFactory.h"
@@ -24,6 +25,7 @@ const float SCHOOL_OFFSET = -0.5f;  // 0x566a0c (feedingfrenzy2): a school's box
 struct RegisteredClass
 {
 	const char* mName;
+	const char* mVisualName;
 	SpawnKind mKind;
 	ActorMaker mMaker;
 };
@@ -34,37 +36,49 @@ Actor* makeAIFish()
 	return new AIFish();
 }
 
+// 0x4a41a0 (feedingfrenzy2)
+Actor* makeBonusTime()
+{
+	return new BonusTime();
+}
+
+// 0x5354e3 (feedingfrenzy2)
+Actor* makeBonus1Up()
+{
+	return new Bonus1Up();
+}
+
 const RegisteredClass REGISTERED_CLASSES[] = {
-	{"AIFish", SPAWN_KIND_FISH, makeAIFish},
-	{"PufferFish", SPAWN_KIND_FISH},
-	{"Mine", SPAWN_KIND_NON_PLAYER},
-	{"Balloon", SPAWN_KIND_NON_PLAYER},
-	{"Oyster", SPAWN_KIND_NON_PLAYER},
-	{"Pearl", SPAWN_KIND_NON_PLAYER},
-	{"BlackPearl", SPAWN_KIND_NON_PLAYER},
-	{"BonusStar", SPAWN_KIND_NON_PLAYER},
-	{"MermaidStar", SPAWN_KIND_NON_PLAYER},
-	{"LureFish", SPAWN_KIND_NON_PLAYER},
-	{"BonusLight", SPAWN_KIND_NON_PLAYER},
-	{"BonusTime", SPAWN_KIND_NON_PLAYER},
-	{"BonusStun", SPAWN_KIND_NON_PLAYER},
-	{"Bonus2X", SPAWN_KIND_NON_PLAYER},
-	{"BonusSpeed", SPAWN_KIND_NON_PLAYER},
-	{"BonusShield", SPAWN_KIND_NON_PLAYER},
-	{"BonusFury", SPAWN_KIND_NON_PLAYER},
-	{"BonusShrinkShroom", SPAWN_KIND_NON_PLAYER},
-	{"BonusLure", SPAWN_KIND_NON_PLAYER},
-	{"Bonus1Up", SPAWN_KIND_NON_PLAYER},
-	{"Mermaid", SPAWN_KIND_NON_PLAYER},
-	{"JellyFish", SPAWN_KIND_NON_PLAYER},
-	{"PoisonFish", SPAWN_KIND_FISH},
-	{"GoldenFish", SPAWN_KIND_FISH},
-	{"Barracuda", SPAWN_KIND_FISH},
-	{"AlienFish", SPAWN_KIND_FISH},
-	{"Butterfly", SPAWN_KIND_FISH},
-	{"CuttleFish", SPAWN_KIND_FISH},
-	{"GlowFish", SPAWN_KIND_FISH},
-	{"Pelican", SPAWN_KIND_FISH},
+	{"AIFish", "minnowBrown", SPAWN_KIND_FISH, makeAIFish},
+	{"PufferFish", "puffer", SPAWN_KIND_FISH},
+	{"Mine", "mine", SPAWN_KIND_NON_PLAYER},
+	{"Balloon", "balloon", SPAWN_KIND_NON_PLAYER},
+	{"Oyster", "oyster", SPAWN_KIND_NON_PLAYER},
+	{"Pearl", "whitePearl", SPAWN_KIND_NON_PLAYER},
+	{"BlackPearl", "blackPearl", SPAWN_KIND_NON_PLAYER},
+	{"BonusStar", "bonusStar", SPAWN_KIND_NON_PLAYER},
+	{"MermaidStar", "bonusStar", SPAWN_KIND_NON_PLAYER},
+	{"LureFish", "lureFish", SPAWN_KIND_NON_PLAYER},
+	{"BonusLight", "bonusLight", SPAWN_KIND_NON_PLAYER},
+	{"BonusTime", "bonusTime", SPAWN_KIND_NON_PLAYER, makeBonusTime},
+	{"BonusStun", "bonusStun", SPAWN_KIND_NON_PLAYER},
+	{"Bonus2X", "bonus2X", SPAWN_KIND_NON_PLAYER},
+	{"BonusSpeed", "bonusSpeed", SPAWN_KIND_NON_PLAYER},
+	{"BonusShield", "bonusShield", SPAWN_KIND_NON_PLAYER},
+	{"BonusFury", "bonusFury", SPAWN_KIND_NON_PLAYER},
+	{"BonusShrinkShroom", "bonusShrinkShroom", SPAWN_KIND_NON_PLAYER},
+	{"BonusLure", "bonusLure", SPAWN_KIND_NON_PLAYER},
+	{"Bonus1Up", "bonus1Up", SPAWN_KIND_NON_PLAYER, makeBonus1Up},
+	{"Mermaid", "mermaid", SPAWN_KIND_NON_PLAYER},
+	{"JellyFish", "jellyfish", SPAWN_KIND_NON_PLAYER},
+	{"PoisonFish", "minnowPoison", SPAWN_KIND_FISH},
+	{"GoldenFish", "minnowBrown", SPAWN_KIND_FISH},
+	{"Barracuda", "barracudaBlue", SPAWN_KIND_FISH},
+	{"AlienFish", "alienFish", SPAWN_KIND_FISH},
+	{"Butterfly", "butterfly", SPAWN_KIND_FISH},
+	{"CuttleFish", "cuttleFish", SPAWN_KIND_FISH},
+	{"GlowFish", "glowFish", SPAWN_KIND_FISH},
+	{"Pelican", "evilPelican", SPAWN_KIND_FISH},
 };
 
 ActorClassRegistry* gActorClassRegistry = nullptr;  // 0x5ac610 (feedingfrenzy2)
@@ -99,7 +113,7 @@ ActorClassRegistry::ActorClassRegistry()
 {
 	// Each class added under its name (0x485240 (feedingfrenzy2))
 	for (const RegisteredClass& aClass : REGISTERED_CLASSES)
-		mClasses[aClass.mName] = new ActorClassInfo(aClass.mName, aClass.mKind, aClass.mMaker);
+		mClasses[aClass.mName] = new ActorClassInfo(aClass.mName, aClass.mVisualName, aClass.mKind, aClass.mMaker);
 }
 
 ActorClassInfo* ActorClassRegistry::find(const std::string& theName) const
@@ -143,7 +157,7 @@ void NonPlayerSpawn::read(Params& theAttributes)
 {
 	Spawner::read(theAttributes);
 	mSize = theAttributes.getFloat("size", 0.0f);
-	mVisualName = theAttributes.getString("visual", mClass->getName());
+	mVisualName = theAttributes.getString("visual", mClass->getVisualName());
 	mBehaviorName = theAttributes.getString("behavior", "");
 	mPoolSize = theAttributes.getInt("poolSize", 0);
 	mSupply = theAttributes.getInt("supply", 0);

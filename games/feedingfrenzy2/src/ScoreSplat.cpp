@@ -30,6 +30,14 @@ const float END_SCALE = 0.5f;
 // The points to which the small font is used, and from which the large one is
 const int SMALL_FONT_MOST_POINTS = 50;
 const int LARGE_FONT_LEAST_POINTS = 1000;
+// A rising text's (0x416020 (feedingfrenzy2)): its rise, the share of its time the rise takes, its scale at the
+// start, its seconds, and its shadow's opacity and offset
+const float RISE_HEIGHT = -90.0f;
+const float RISE_TIME = 0.25f;
+const float RISE_START_SCALE = 0.5f;
+const float RISE_SECONDS = 1.5f;
+const float RISE_SHADOW_OPACITY = 0.9f;
+const float RISE_SHADOW_OFFSET = 1.0f;
 // The waits between two texts of a queue (0x4194c0 and 0x4301d0 (feedingfrenzy2))
 const float POINTS_WAIT = 0.09f;
 const float OTHERS_WAIT = 0.3f;
@@ -128,6 +136,34 @@ void ScoreSplat::setup(const std::string& theText, Font* theMeasureFont, float t
 	mFlight.start(aDuration, 1.0f);
 	mFlight.setTime(0.0f);
 	mPoints = thePoints;
+}
+
+void ScoreSplat::setupRising(const std::string& theText, Font* theFont, const Vector2f& thePoint)
+{
+	setText(theText);
+	setAlignH(TEXT_ALIGN_CENTER);
+	addFlags(TEXT_ITEM_SHADOW);
+	setShadow(RISE_SHADOW_OPACITY, Vector2f(RISE_SHADOW_OFFSET, RISE_SHADOW_OFFSET));
+	setFont(theFont);
+	// The text is measured and the point's x clamped between half the width and the screen's width less it, as the
+	// points bubbles' start is; the clamped point is not used again (the path starts from the point as given)
+	Vector2f aTop = moved(thePoint, 0.0f, RISE_HEIGHT);
+	mPath.clear();
+	mPath.addKey(pathKey(0.0f, thePoint));
+	mPath.addKey(pathKey(RISE_TIME, aTop));
+	mPath.addKey(pathKey(1.0f, aTop));
+	mPath.easeStretch(0, true, false, 0.0f);
+	mScaleKeys.addKey(floatKey(0.0f, RISE_START_SCALE));
+	mScaleKeys.addKey(floatKey(RISE_TIME, 1.0f));
+	mScaleKeys.addKey(floatKey(1.0f, 1.0f));
+	mScaleKeys.easeStretch(0, true, false, 0.0f);
+	mOpacityKeys.addKey(floatKey(0.0f, 1.0f));
+	mOpacityKeys.addKey(floatKey(RISE_TIME, 1.0f));
+	mOpacityKeys.addKey(floatKey(1.0f, 0.0f));
+	mOpacityKeys.easeStretch(1, true, false, 0.0f);
+	mFlight.start(RISE_SECONDS, 1.0f);
+	mFlight.setTime(0.0f);
+	mPoints = 0;
 }
 
 void ScoreSplat::show()

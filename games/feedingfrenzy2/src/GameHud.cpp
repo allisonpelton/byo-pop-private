@@ -28,6 +28,13 @@ const float GROWTH_BLUE = 0.1f;
 const double GROWTH_ARROW_RAISE = 3.0;
 // The most lives the text shows (0x402550 (feedingfrenzy2))
 const int MOST_LIVES_SHOWN = 99;
+// A placed text's colour (0x408df0 (feedingfrenzy2), opaque) and its colour mode (the text's slot 0x50)
+const int PLACED_TEXT_RED = 10;
+const int PLACED_TEXT_GREEN = 0xd9;
+const int PLACED_TEXT_BLUE = 0;
+const int PLACED_TEXT_COLOR_MODE = 2;
+// The seconds the time bonus's text says (0x494510 (feedingfrenzy2))
+const int TIME_BONUS_SECONDS = 3;
 // The suck's meter: red below half a charge, yellow from it (0x455a50 (feedingfrenzy2))
 const float SUCK_LOW_CHARGE = 0.5f;
 const float SUCK_RED = 0.9f;
@@ -305,6 +312,23 @@ void GameHud::splatChomp(int theRank, const Vector2f& thePoint)
 	char aName[32];
 	snprintf(aName, sizeof(aName), aFormat, aVariant);
 	mSplats->spawn(aName, thePoint.x, thePoint.y);
+}
+
+void GameHud::showPlacedText(const std::string& theText, const Vector2f& thePoint)
+{
+	Ref<ScoreSplat> aSplat = new ScoreSplat();
+	Font* aFont = getApp()->mShellTheme->getFont("frenzyFontBold");
+	aSplat->setupRising(theText, aFont, thePoint);
+	aSplat->setColor(Color(channelOf(PLACED_TEXT_RED), channelOf(PLACED_TEXT_GREEN), channelOf(PLACED_TEXT_BLUE), 1.0f));
+	aSplat->setColorMode(PLACED_TEXT_COLOR_MODE);
+	aSplat->setContainer(mPlacedTexts.get());
+	scoreSplatQueue().push(aSplat.get());
+}
+
+void GameHud::showTimeBonus(const Vector2f& thePoint)
+{
+	std::string aText = getEngine()->formatMessage(getApp()->mStrings->getString("timeSplat"), TIME_BONUS_SECONDS);
+	showPlacedText(aText, thePoint);
 }
 
 void GameHud::splatFrenzy(int theStep)

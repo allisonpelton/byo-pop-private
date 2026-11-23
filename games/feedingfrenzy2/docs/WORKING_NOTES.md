@@ -599,9 +599,33 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   - Fix candidate: the count's first state fills the screen again (0x493810 calls 0x48a610 as the setup did), so the
     time bonus is added to the score twice; the final score shown counts from the score after the first.
 
+- The bonus bubbles (BonusItem 0x483a90 and its four states, BonusTime 0x4a4130, Bonus1Up 0x5341a4, their makers in
+  the registry) and the players' meetings with them (the stage's slot 0x54, 0x438ee0, over the stage's bonuses at
+  +0x360). A bubble comes in with its effect from the stage's theme behind it (bonusTimeFx, bonus1UpFx), fading up over
+  0.4 seconds; from the bottom it takes a speed drawn in the behaviour's speedRangeX and speedRangeY. It floats; it
+  pops (the run "pop" of BubblePop0, BubblePop1 and an empty frame, added to the visual data at 15 frames a second)
+  when it meets the water's surface on a stage whose surface is away from the top, or as the stage's spawns leave;
+  once seen and out of view it goes. A player that eats it draws it into the mouth, fading, and on the swallow a time
+  bubble gives three seconds on the clock with the strings' timeSplat rising in green where it was, and a fish bubble
+  a life with extraLife (the HUD's placed texts, 0x408df0 and 0x494510, the rising text 0x416020). The eater refactor
+  before it lets an eater take any actor. Port fixes on the way: a spawn's default visual is its class's second name
+  (+0x28 of the class's info: "bonusTime", "minnowBrown" for AIFish), not the class's own name, which the port took and
+  so found no model for the bonus stages' bubbles; an empty frame added to a visual data with nothing to do to it is
+  kept, as the original keeps it, where the port dropped it; the actor's own remove (0x407a80) was missing. The state
+  test command now lists the bonuses' places. Checked under rundesk: on bonus1 time bubbles rise from the bottom, one
+  reaching the still player is eaten (the clock 40 to 43, "+3 SEC" rising); on stage 5 (Uninvited Guests) two fish
+  bubbles rise and leave at the top, and the player steered onto the first eats it (lives 3 to 4, "EXTRA LIFE!");
+  stage 1's recorded play is unchanged. Not seen: a pop (no stage seen with a surface and a bubble meeting it). Not
+  translated: the sounds bonusTimePickup and bonus1Up; the other bonuses' kinds.
+  - Oddity, as the original: the rising text measures itself and clamps its x to the screen, then starts from the
+    point as given, so a text at the screen's edge is cut.
+  - Test note: a screenshot taken before a bubble spawns changes where it spawns (the runs are not the same with and
+    without it), so the pickup scripts take their screenshots after the spawn.
+
 ## Next
 
-- The mermaid after a perfect stage; the bonus stages' actors (BonusTime and the other pickups); later the fish ranks' icons; the restore-game popup's actions; the quit popup's actions over the intro and
+- The mermaid after a perfect stage (MermaidStar is a BonusItem); the other bonuses (BonusStar, BonusLight, BonusStun,
+  Bonus2X, BonusSpeed, BonusShield, BonusFury, BonusShrinkShroom, BonusLure, the pearls); later the fish ranks' icons; the restore-game popup's actions; the quit popup's actions over the intro and
   the pause's End Game; the compositeGroup element (the intro's background group, now skipped).
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's
   simplesound). The stage's slot 0x5c (0x447ef0) is not a clean-up but the stage's ending (player died, perfect, stage

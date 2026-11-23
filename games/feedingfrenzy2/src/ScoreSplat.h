@@ -35,6 +35,10 @@ public:
 	// the end, at the speed in pixels a second
 	void setup(const std::string& theText, engine::Font* theMeasureFont, float theSpeed, int thePoints,
 		const engine::Vector2f& theFrom, const engine::Vector2f& theTo);
+	// 0x416020 (feedingfrenzy2): the text centred, its shadow a pixel down and right at 0.9, in the font, rising 90
+	// pixels from the point over the first quarter of a second and a half, growing from half its size as it does,
+	// then held there fading out; no points
+	void setupRising(const std::string& theText, engine::Font* theFont, const engine::Vector2f& thePoint);
 	// 0x47cee0 (feedingfrenzy2): added to its container, placed and updated every frame
 	void show();
 	void setContainer(engine::Container* theContainer) { mContainer = theContainer; }

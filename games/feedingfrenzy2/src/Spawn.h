@@ -43,8 +43,8 @@ enum SpawnKind
 class ActorClassInfo : public engine::Object
 {
 public:
-	ActorClassInfo(const char* theName, SpawnKind theKind, ActorMaker theMaker)
-	    : mName(theName), mKind(theKind), mMaker(theMaker)
+	ActorClassInfo(const char* theName, const char* theVisualName, SpawnKind theKind, ActorMaker theMaker)
+	    : mName(theName), mVisualName(theVisualName), mKind(theKind), mMaker(theMaker)
 	{
 	}
 
@@ -57,9 +57,11 @@ public:
 	NonPlayerSpawn* createSpawn(Stage* theStage);
 
 	const std::string& getName() const { return mName; }
+	const std::string& getVisualName() const { return mVisualName; }
 
 private:
-	std::string mName;  // +0x0c (the second name, at +0x28, is left out: the port finds nothing that reads it)
+	std::string mName;        // +0x0c
+	std::string mVisualName;  // +0x28: the visual a spawn of the class takes when its element names none
 	SpawnKind mKind;    // the template's spawn class
 	ActorMaker mMaker;  // the template's actor class, null for one not yet translated
 };

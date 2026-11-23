@@ -63,8 +63,9 @@ public:
 	virtual void setBehavior(BehaviorInfo* theBehavior) { mBehavior = theBehavior; }
 	// 0x18 (0x425fe0 (feedingfrenzy2)): still, not yet seen, in the stage's actors, and its visual on its layer
 	virtual void addToStage(Stage* theStage, int theLocation);
-	// 0x1c: out of the stage (a fish's, 0x475ff0 (feedingfrenzy2))
-	virtual void remove() {}
+	// 0x1c (0x407a80 (feedingfrenzy2)): its visual taken off, out of the stage's actors and the stage (a fish's,
+	// 0x475ff0 (feedingfrenzy2), does the same itself)
+	virtual void remove();
 	// 0x20 (0x49d800 (feedingfrenzy2))
 	bool inStage() const { return mStage != nullptr; }
 	// 0x24 (0x474ae0 (feedingfrenzy2)): where the actor comes in for the location (a side drawn for "side", which the

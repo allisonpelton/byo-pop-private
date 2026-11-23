@@ -1,6 +1,7 @@
 #include "Stage.h"
 
 #include "Actor.h"
+#include "BonusItem.h"
 #include "DrawContext.h"
 #include "Engine.h"
 #include "FeedingFrenzyTwo.h"
@@ -433,6 +434,17 @@ void Stage::removeFish(Fish* theFish)
 	removeFrom(mFish, theFish);
 }
 
+void Stage::removeBonus(BonusItem* theBonus)
+{
+	removeFrom(mBonuses, theBonus);
+}
+
+Vector2f Stage::toScreen(int theLayer, const Vector2f& thePoint)
+{
+	Vector2f aLayer = getLayerContainer(theLayer)->getAbsolutePosition();
+	return Vector2f((float)((double)thePoint.x + aLayer.x), (float)((double)aLayer.y + thePoint.y));
+}
+
 void Stage::addPlayerSpawn(PlayerSpawn* theSpawn)
 {
 	mPlayerSpawns.push_back(theSpawn);
@@ -549,6 +561,15 @@ void Stage::updateMeetings(UpdateContext* theContext)
 			else if (anOtherRank < anEaterRank)
 				aFish->consider(anOther);
 		}
+	}
+}
+
+void Stage::updateBonusMeetings(UpdateContext* theContext)
+{
+	for (const Ref<PlayerFish>& aPlayer : mPlayers)
+	{
+		for (size_t i = 0; i < mBonuses.size(); i++)
+			aPlayer->consider(mBonuses[i]);
 	}
 }
 
@@ -724,10 +745,11 @@ void RunState::update(UpdateContext* theContext)
 	// Without a boss in play (+0x270), the stage's slots 0x48, 0x4c, 0x50 and 0x54 (the actors' updates and their
 	// meetings), 0x58 (the spawns), 0x60 (the camera), 0x68 and 0x6c; with one, 0x68, 0x6c and the boss's 0xf0; then
 	// 0x5c (0x447ef0 (feedingfrenzy2)). Translated so far: the actors' updates, the fish's meetings, the spawns,
-	// the camera, the fish's visuals and the ambient sounds; the hazards' and bonuses' steps with the players (0x4c
-	// and 0x54) and the stage's ending (0x5c) are not yet
+	// the bonuses' meetings with the players, the camera, the fish's visuals and the ambient sounds; the hazards'
+	// step with the players (0x4c) and the stage's ending (0x5c) are not yet
 	mStage->updateActors(theContext);
 	mStage->updateMeetings(theContext);
+	mStage->updateBonusMeetings(theContext);
 	mStage->updateSpawns(theContext);
 	mStage->updateCamera(theContext);
 	mStage->updateFishVisuals(theContext);

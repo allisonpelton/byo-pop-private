@@ -97,12 +97,17 @@ void VisualData::setup(VisualInfo* theInfo, const std::string& theAnimBase, floa
 void VisualData::addFrame(Surface* theFrame)
 {
 	Ref<Surface> aFrame = theFrame;
-	// The original goes on with a frame that did not load; the port keeps nothing for it
+	Ref<PixelFx> anEffect = colorEffectOf(mInfo, true);
 	if (!aFrame)
+	{
+		// No frame (the bonuses' pop's last, which shows nothing) is kept as it is when nothing is to be done to it;
+		// with an effect, a scale or a tint the original goes on to use it and fails, and the port keeps nothing
+		if (!anEffect && mScale == 1.0f && !(0.0f < mTint.a))
+			AnimationData::addFrame(nullptr);
 		return;
+	}
 	// 0x4267e0 and 0x426990 (feedingfrenzy2): the visual's colour effect put on a copy before it is scaled (the
 	// surface's slot 0x34); without one, a scaled copy unless the scale is 1 and there is no tint
-	Ref<PixelFx> anEffect = colorEffectOf(mInfo, true);
 	if (anEffect)
 		aFrame = aFrame->pixelFxScaledCopy(mScale, *anEffect);
 	else if (mScale != 1.0f || 0.0f < mTint.a)
