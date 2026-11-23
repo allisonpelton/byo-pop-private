@@ -226,6 +226,18 @@ var ByopopImport = (function () {
     try { games.push({ target: target, title: title, spec: makeSpec() }); }
     catch (e) { try { console.warn("byo-pop: " + target + "'s page.js failed, so its folders cannot be added here:", e); } catch (x) {} }
   }
+  // A port still in progress whose page this build made (import-games.js names it so): added only where web/localsoon.js opens its
+  // tile, a development host without ?localsoon=0, so the import takes exactly the games the listing opens. Elsewhere it stays
+  // one of the games this site does not play (other-games.js). The user, 2026-11-23: Peggle's, Banana Bugs' and Feeding Frenzy's
+  // folders were "not supported" while their tiles said they needed files.
+  function addSoon(target, title, makeSpec) {
+    var open = false;
+    try {
+      open = typeof ByopopLocalSoon !== "undefined" && typeof ByopopTerms !== "undefined" && typeof location !== "undefined" &&
+        ByopopLocalSoon.enabled(location, ByopopTerms.devHost);
+    } catch (e) {}
+    if (open) add(target, title, makeSpec);
+  }
   // A name reduced to its letters and digits, without the words every game's folder may have
   function plain(s) {
     return String(s).toLowerCase().replace(/&/g, "and").replace(/\b(deluxe|popcap|games?|the|pc|windows|steam|install(ed)?)\b/g, "")
@@ -300,6 +312,25 @@ var ByopopImport = (function () {
   function otherList() {
     try { return typeof ByopopOtherGames !== "undefined" && Array.isArray(ByopopOtherGames) ? ByopopOtherGames : []; } catch (e) { return []; }
   }
+  // Whether another game's own files are where a game of the site's was found (m: {game, root}), so that the folder is that other
+  // game: Peggle Extreme's folder holds Peggle's markers (main.pak, music/PeggleBeats.mo3) as well as its own PeggleExtreme.exe.
+  // A row of the others with the game's own id is the game itself, and never counts.
+  function otherHere(m, entries, among) {
+    return otherList().some(function (o) {
+      return o.id !== m.game.target && o.id !== m.game.spec.id &&
+        findRoot({ markers: o.markers, gameDirs: [] }, entries, false, among) === m.root;
+    });
+  }
+  // The site's game a folder is named as, by its name alone (nameScore 3), or null: a folder named so that holds none of the
+  // game's markers is that game with files missing, which the import names, not a folder of no game
+  function namedGame(folder) {
+    var best = null, tie = false;
+    games.forEach(function (g) {
+      if (nameScore(folder, g) < 3) return;
+      if (best) tie = true; else best = g;
+    });
+    return tie ? null : best;
+  }
   // The games of those whose markers the files hold, as [{game, root}]; among as findRoot's
   function otherMatches(entries, among) {
     var out = [];
@@ -344,7 +375,7 @@ var ByopopImport = (function () {
   // draw between them: a whole Steam library (the user's, 2026-11-16: 146,409 files in 24,158 folders) held the page for ten
   // seconds at once. The markers are looked for only among the files named as one is (markerNames).
   function sorter(entries) {
-    var found = [], rejected = [], others = [];
+    var found = [], rejected = [], others = [], lacking = [];
     var names = markerNames(), marked = [], at = 0, todo = null;
     // the work still to do, the next last: folders to visit, and folders being grouped into their subfolders (then(subs) once
     // they are, with the subfolders only); each step does one, so the results come in the order a visit of each folder in turn,
@@ -360,6 +391,7 @@ var ByopopImport = (function () {
         var root = findRoot(g.spec, group.entries, false, group.marks);
         if (root !== null) matches.push({ game: g, root: root });
       });
+      matches = matches.filter(function (m) { return !otherHere(m, group.entries, group.marks); });
       var roots = {};
       matches.forEach(function (m) { roots[m.root] = true; });
       if (matches.length > 0 && Object.keys(roots).length === 1) {
@@ -401,6 +433,10 @@ var ByopopImport = (function () {
         others.push({ folder: name, game: other[0].game });
         return;
       }
+      // a folder named as one of the site's games, without its files: the game and the markers it lacks (the user, 2026-11-23,
+      // asked that the import name what is missing rather than call the game unsupported)
+      var named = matches.length === 0 ? namedGame(name) : null;
+      if (named) { lacking.push({ folder: name, game: named, missing: missingMarkers(named.spec, group.entries) }); return; }
       rejected.push(name);
     }
     return {
@@ -423,7 +459,7 @@ var ByopopImport = (function () {
         else t.then(groups(t.grouping));
         return todo.length > 0;
       },
-      result: function () { return { found: found, rejected: rejected, others: others }; }
+      result: function () { return { found: found, rejected: rejected, others: others, lacking: lacking }; }
     };
   }
   function sort(entries) {
@@ -575,9 +611,11 @@ var ByopopImport = (function () {
         if (!inst) return sorted;
         var rejected = sorted.rejected.slice(), at = rejected.indexOf(inst.group);
         if (at >= 0) rejected.splice(at, 1);
-        if (inst.other) return { found: sorted.found, others: (sorted.others || []).concat([{ folder: inst.file, game: inst.other }]), rejected: rejected };
+        // (a folder named as a game that holds its installer: the installer's row says it, not a row of missing files)
+        var lacking = (sorted.lacking || []).filter(function (l) { return l.folder !== inst.group; });
+        if (inst.other) return { found: sorted.found, others: (sorted.others || []).concat([{ folder: inst.file, game: inst.other }]), rejected: rejected, lacking: lacking };
         inst.text = installerText(inst);
-        return { found: sorted.found, others: sorted.others || [], rejected: rejected, installer: inst };
+        return { found: sorted.found, others: sorted.others || [], rejected: rejected, lacking: lacking, installer: inst };
       });
     });
   }
@@ -955,6 +993,6 @@ var ByopopImport = (function () {
   }
 
   return { stored: stored, exeUnreadable: exeUnreadable, probeHolds: probeHolds, markerPattern: markerPattern, findRoot: findRoot, withPaks: withPaks, pick: pick, hasMarkers: hasMarkers, exeIcon: exeIcon,
-    games: games, add: add, sort: sort, sortSteps: sortSteps, otherGame: otherGame, otherNote: otherNote, nameScore: nameScore, fromDrop: fromDrop, watch: watch, readingText: readingText, installerIn: installerIn, installerMark: installerMark, installerText: installerText, usualFolder: usualFolder, sortDrop: sortDrop, MANY_REJECTED: MANY_REJECTED, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
+    games: games, add: add, addSoon: addSoon, sort: sort, sortSteps: sortSteps, otherGame: otherGame, otherNote: otherNote, nameScore: nameScore, fromDrop: fromDrop, watch: watch, readingText: readingText, installerIn: installerIn, installerMark: installerMark, installerText: installerText, usualFolder: usualFolder, sortDrop: sortDrop, MANY_REJECTED: MANY_REJECTED, hasFiles: hasFiles, writeGame: writeGame, addGame: addGame,
     forgetGame: forgetGame, ordered: ordered, missingIn: missingIn, missingMarkers: missingMarkers, markerList: markerList };
 })();
