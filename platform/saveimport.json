@@ -415,6 +415,14 @@
         { "from": "userPizzas.xml", "to": "userPizzas.xml", "what": "the pizzas the players designed" }
       ]
     },
+    "feedingfrenzy": {
+      "folder": "Feeding Frenzy Deluxe", "steam": "Feeding Frenzy Deluxe",
+      "note": "The user's registry holds Feeding Frenzy's options, the last name typed for a score, the two high score lists and the furthest stage reached in each (the food bank list keeps the same values).",
+      "registry": { "key": "GameHouse\\FeedingFrenzy", "hives": ["hkcu"], "sets": [],
+        "values": ["FullScreen=dword", "MusicEnabled=dword", "SoundEnabled=dword", "TipsEnabled=dword", "MouseSensitivity=dword",
+          "DefaultScoreName=sz", "scores\\*\\maxStageReached=dword", "scores\\*\\scoreName#=sz", "scores\\*\\scoreValue#=dword",
+          "foodBank\\maxStageReached=dword", "foodBank\\scoreName#=sz", "foodBank\\scoreValue#=dword"] }
+    },
     "feedingfrenzy2": {
       "folder": "Feeding Frenzy 2 Deluxe", "steam": "Feeding Frenzy 2 Deluxe",
       "note": "The user's registry holds Feeding Frenzy 2's options, the version last run, each player's record, the current player and the high scores, under the vendor and name of its resource/baseStrings.xml. A player's key is taken whole: the game reads every value in it back, as text, into the player's parameters (their progress, saved game and its checks).",

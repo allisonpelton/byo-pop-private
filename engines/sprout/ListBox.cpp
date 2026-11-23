@@ -147,9 +147,10 @@ ListBox::ListBox()
 
 // 0x491760 (pizzafrenzy): each sound is loaded under its own name, then a voice is made of it (like the button's,
 // through the application's slots: the archive's file)
+// The early build keeps the sound system's own load, as the button's does.
 void ListBox::setSounds(const std::string& theEnterSound, const std::string& thePressSound)
 {
-	if (gSignalBuild)
+	if (gSignalBuild && !gEarlyBuild)
 	{
 		App* anApp = App::instance();
 		if (theEnterSound.size() != 0)
