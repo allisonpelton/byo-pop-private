@@ -1621,6 +1621,14 @@ music.lcd_none = No music
 music.lcd_error = Error
 music.loop = Repeat
 music.shuffle = Shuffle
+# The Music window's menu bar and its Options menu: Rip Style (a tune the game loops plays its loop twice and fades out), Game
+# Over Ending (Rip Style's ending through the game's game-over tune), Stop After Game (autoplay stops at the end of one game's
+# tunes) and Themes Only (autoplay passes over one-offs that lead into no other tune)
+music.menu.options = Options
+music.opt.rip = Rip Style
+music.opt.gameover = Game Over Ending
+music.opt.onegame = Stop After Game
+music.opt.themes = Themes Only
 music.volume = Volume
 # The splitter under the Music player (a separator): its name, as a tooltip and for screen readers, and its value, the rows the
 # display shows
@@ -1629,6 +1637,8 @@ music.split_rows = {n} rows
 music.tune_part = {file}, part {n}
 music.tune_titled = {name} "{title}"
 music.unused = Unused
+# where a series (tunes the game plays in turn as one set) shows its place in the list
+music.series = Series
 music.patterns = Unused patterns
 music.pattern_name = {file}, pattern {n}
 music.pattern_same = {file}, pattern {n} (same as {same})

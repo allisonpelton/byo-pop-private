@@ -1116,6 +1116,65 @@ tunes, unused patterns, a tune under 20 seconds outside a group (a sting, fanfar
 names (intros, loading, splash and logo tunes). Previous goes back the way it came; picking a tune goes on shuffling
 from it.
 
+**Rip style, themes and series** (the user, 2026-11-22: "Add a "rip-style" toggle to the music player that loops themes
+twice when they would normally be looped in game (rather than going to another track or simply ending) and does a fade out
+at the start of the third loop over a short period, with an option to instead transition using the game over theme the way
+the game does it, if applicable. Also add an option for autoplay to stop after going through a single game, and an option
+that only plays themes and skips one-offs like a game over sound unless they lead into another track (as in Big Money).
+Finally, allow looping a series of tracks that can play together, like Bejeweled 2 for each of its modes."). The window has
+a menu bar, as a player's window had, with one menu, Options (Alt+O): Rip Style, Game Over Ending (greyed while Rip Style
+is off), a rule, Stop After Game and Themes Only, each ticked while it is on, kept in `byopop-music-rip`,
+`byopop-music-rip-over`, `byopop-music-one-game` and `byopop-music-themes`, and heard at once on the tune playing. They
+read what each game does at a tune's end from `soundtracks.js` (`loops`, `once`, `next`, `stings`, `gameOver` and
+`series`, documented in its header and filled for every game from its code and notes; the one tune left unclear, Word
+Harmony's `intenseEnd`, which the code may never reach, is the table's game-over tune, played once).
+
+- *Rip Style*: with Repeat off, a tune the game loops (`loops`, or a series played as one tune) goes round as with Repeat,
+  intro once, and from the start of its third pass fades out over ten seconds and ends, then autoplay goes on. Two loops
+  and a ten second fade are vgmstream's defaults, the usual figures for game rips. A tune the game plays once plays once.
+  It counts the passes by the tune's position going back, the same for every kind of source: a subsong round its own loop,
+  a range of orders, a cut piece, a playlist of joined pieces round to its loop piece, decoded sound, a MIDI song and a
+  series of one module's pieces. A short loop goes on round during the fade, as a rip's does. With Repeat on, Repeat wins.
+  A seek starts the count again.
+- *Game Over Ending*: where the game goes from a looping tune into its game-over tune (`gameOver`: Atomica, AstroPop, Big
+  Money, both BookWorms, Bejeweled Twist, Dynomite, Seven Seas, Typer Shark, Ningpo, Noah's Ark, Heavy Weapon, Rocket
+  Mania), the start of the third pass goes into that tune the game's way instead of the fade: at once (`cut`), the tune
+  faded out over the game's time and then the other (`fade`), or the two crossed over that time, the one fading out as the
+  other fades in (`cross`, the framework's FadeOut and FadeIn), the time from the game's own fade speed. The game-over
+  tune is read and made ready during the last pass and handed over without a pause; the list and the display then show it,
+  and autoplay goes on after the tune that led into it, passing over the game-over tune.
+- *Stop After Game*: autoplay stops where the next tune would be another game's, or the game's first again; with Shuffle
+  on, it draws only from the game playing, each of its tunes once after the one chosen, and then stops.
+- *Themes Only*: autoplay, Next and Previous pass over a one-off (`stings`: game-over tunes, fanfares, level-complete
+  stings, results) that leads into no other tune, and Shuffle never draws one. A one-off that does lead on (`next`: Big
+  Money's level-up fanfares into their pause tunes) stays, and its tune plays after it; with Shuffle the two are drawn as
+  one.
+- With Rip Style or Themes Only on, autoplay follows `next` as the game does (in Shuffle only a one-off's), then goes on
+  after the tune that led there.
+- *Series* (`series`): tunes a game plays in turn as one set are an entry of their own in the game's list, after its tunes,
+  its place "Series": Bejeweled 2's Classic Mode (its eight pieces) and Action Mode (six), Bejeweled Twist's In-Game (its
+  six level tunes, a level each), and the two Mahjong games' Layout Select. Pieces of one module are one tune of all their
+  segments, which goes on from piece to piece as the game does; any other set plays tune by tune. Repeat on a series goes
+  round the whole set, never one member; Rip Style plays the set twice and fades. Autoplay and Shuffle pass over series,
+  which play when chosen. In the game Bejeweled 2's last Classic piece runs on into Action Mode's first and the last Action
+  piece back to Classic's first, so a long game goes round all fourteen; the series follow the user's "each of its modes".
+
+`tools/musicfieldstest.js` (unit-web) checks the fields for every game against the list `tunesOf` makes from the staged
+files: each tune the list shows in exactly one of `loops`, `once` and `next`, every id named one of the game's tunes, a
+`next` and a `gameOver` leading to another tune, a `gameOver` from a tune the game loops with its way and time, and each
+series an entry with its members. It then plays, unheard at 8000 Hz through the player's own sources and `ripStyle`, the
+shortest looped tune of each kind (subsong, range, piece, decoded, joined, MIDI, series of pieces): two passes, then a ten
+second fade from the third pass's start with no sound at its end, and with Repeat on no end; a tune played once ends
+after one pass; and each Game Over Ending way between stand-in tunes, handed over at the third pass's start, at once or
+after the game's time.
+
+**Bookworm Adventures' titles** come from the game's own music player list, which `scripts/battleengine.luc` builds
+(Bookworm Adventures' session, 2026-11-22): `titles` takes `{luc, list, data}`, a string of a Lua script read as the
+listing scans the game (`lucConstants` reads PopLua's Lua 5.0 constants, its own tags: 4 a whole number, 5 a string; the
+function whose constants hold `"NeedsMPDialog"`), the one just before the whole number that is the tune's order there, or
+with `after` the after-th string following it (Book 1's battle tune, whose order 0 the list does not write again). The
+titles are never written into the repository; `musicfieldstest` checks each is found.
+
 **Nothing drawn unseen** (the user, 2026-11-15: lower the web builds' processor time; the site's animated parts do no work
 while nobody can see them). Music's views and the Splits window's running timer draw a frame at a time only while their
 window is on the screen: closed, minimized, scrolled out of view or in a hidden tab, their loop stops (a tune plays on, a

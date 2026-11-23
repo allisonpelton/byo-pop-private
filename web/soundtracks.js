@@ -19,7 +19,10 @@
 //   titles  {"<file name>#<n>": <title>}: a tune's own title, shown in quotes beside its name: "<title>" by the user's word
 //           (cited at the entry), or one the module's own text holds, read from the game's file as it plays and never written
 //           here: {own: true} the module's title, {line: "<order>"} what its message says beside that order (as the message
-//           writes it), up to a comma or a bracket, {line: "<order>", inner: true} the words in that line's brackets
+//           writes it), up to a comma or a bracket, {line: "<order>", inner: true} the words in that line's brackets;
+//           {luc: "<script>", list: "<string>", data: <n>} a string of the game's Lua script (Bookworm Adventures' music player
+//           list): in the constants of the function holding the string list, the one just before the whole number data, or with
+//           after: <k> the k-th string after it
 //   alone   ["<file name>#<n>", ...]: subsongs that are one pattern running on into the module's silence: listed with the unused
 //           patterns as that pattern, played alone (its when still its tooltip)
 //   inside  tunes kept inside a game's file: [{file: "<path>", magic: "<first bytes>"}] its resources (a Windows module's)
@@ -51,6 +54,22 @@
 //   level   the level the game plays its modules at, where it is not the renderer's own (platform/MusicLevels.h):
 //           {bassAmplify: n} the BASS amplify it sets (0 to 100), {fmod3XM: true} FMOD 3's XM pre-amp. The renderer is the
 //           game's own (libopenmpt for MO3 and OXM, libxmp-lite for the rest: web/music/openmpt_web.c)
+// What the game does at a tune's end, for the player's Rip Style, Themes Only and series (the user, 2026-11-22; docs/WEB_PLAYER.md,
+// "Rip style, themes and series"), from the game's code and notes, never from the sound alone. Every tune the list shows (not
+// unused, not one of the patterns played alone) is in exactly one of loops, once and next (tools/musicfieldstest.js):
+//   loops   ["<id>", ...]: the game goes round it, by the module's own loop or from its start, until something else starts
+//   once    ["<id>", ...]: the game plays it through once and then nothing, until something else starts music
+//   next    {"<id>": "<id>"}: the game goes straight on into the other tune when this one ends (an intro into its loop, a piece
+//           into the next piece, a fanfare into the tune it runs on into)
+//   stings  ["<id>", ...]: the one-offs, game-over tunes, level-complete stings, fanfares and results, which Themes Only leaves
+//           out unless it has a next (then it plays with what it leads into)
+//   gameOver {"<id>": {to: "<id>", how: "cut" | "fade" | "cross", ms: <n>}}: where the game itself goes from this looping tune to
+//           its game-over tune, and how: the tune stopped and the other started (cut), faded out over ms and then the other
+//           (fade), or the other faded in as this one fades out, both over ms (cross: the framework's FadeOut and FadeIn); ms
+//           from the game's own timing (its fade's step per update, an update 10 ms, Heavy Weapon's 5 ms)
+//   series  {"<name>": ["<id>", ...]}: tunes the game plays in turn as one set (a mode's pieces, one after the other; a level's
+//           tune stepping through a fixed list), in the order it plays them, the first again after the last; the name in the
+//           style of where's places
 // Tunes under two seconds are left out (the silences and stings between tunes). Every game's tunes were listed from the user's
 // copies on 2026-11-07.
 var ByopopSoundtracks = {
@@ -68,7 +87,8 @@ var ByopopSoundtracks = {
       "alch_intro#0": "Order 0 from launch, over the loading title screen; fades out (0.004) when loading completes",
       "1985-hehasnoface#0": "Fades in (0.002) when loading completes; loops through the menus and every game; no other tune"
     },
-    unused: ["1985-hehasnoface#1"]
+    unused: ["1985-hehasnoface#1"],
+    loops: ["alch_intro#0", "1985-hehasnoface#0"],
   },
   // AstroPop's one module holds every tune, which the game starts at an order of it (PlaySong); its subsongs stand for them,
   // each starting at one of the orders the game plays (0 loading, 5 the menus, 9 a level, 35 the danger siren, 39 the game's
@@ -89,6 +109,9 @@ var ByopopSoundtracks = {
       "music#4": "Order 39; when the game ends (BoardEnd)",
       "music#5": "Order 41; a level is completed, from the level-up text through the tally"
     },
+    loops: ["music#0", "music#1", "music#2", "music#3", "music#4", "music#5"],
+    stings: ["music#5", "music#4"],
+    gameOver: { "music#2": { to: "music#4", how: "cross", ms: 200 }, "music#3": { to: "music#4", how: "cross", ms: 200 } },
   },
   atomica: {
     composer: "Hannu Salonen",
@@ -106,7 +129,11 @@ var ByopopSoundtracks = {
       "atomica#8": "Order 41; the main menu shown after a game over",
       "atomica#10": "Order 66; 300 updates into the board's game-over sequence"
     },
-    unused: ["atomica#1", "atomica#4", "atomica#6"]
+    unused: ["atomica#1", "atomica#4", "atomica#6"],
+    loops: ["atomica#2", "atomica#7", "atomica#3", "atomica#5", "atomica#9", "atomica#8", "atomica#10"],
+    stings: ["atomica#8", "atomica#10"],
+    gameOver: { "atomica#3": { to: "atomica#10", how: "cut" }, "atomica#5": { to: "atomica#10", how: "cut" },
+      "atomica#9": { to: "atomica#10", how: "cut" } },
   },
   bejeweled: {
     // the user, 2026-11-16: "Bejeweled's composer is listed as unknown. It is rather famously Skaven."; and 2026-11-19
@@ -121,7 +148,8 @@ var ByopopSoundtracks = {
       "1984-Network#0": "A new game in Normal mode; loops; fades the Timed tune out, fades in at 0.002",
       "1981-DataJack#0": "A new game in Timed mode; loops; fades the Normal tune out, fades in at 0.002"
     },
-    unused: ["1981-DataJack#1", "1981-DataJack#2", "1981-DataJack#3"]
+    unused: ["1981-DataJack#1", "1981-DataJack#2", "1981-DataJack#3"],
+    loops: ["1980-Autonomus#0", "1984-Network#0", "1981-DataJack#0"],
   },
   // one module, BeyondNetwork.mo3: the game plays it from a starting order for each screen (properties/music.xml), so its
   // subsongs are the tunes. A game's music is subsong 1, a medley of fourteen songs that plays straight through and back to
@@ -184,7 +212,23 @@ var ByopopSoundtracks = {
       "BeyondNetwork#5": "Order 203; at launch, on the loading title screen until it completes",
       "BeyondNetwork#6": "Order 217; 500 updates after the hyperspace jump to the last planet of a non-secret Puzzle galaxy"
     },
-    unused: ["BeyondNetwork#7"]
+    unused: ["BeyondNetwork#7"],
+    // the pieces run on from one to the next (next), the last back to the first, so a game goes round both modes' pieces;
+    // a Classic, Endless or Twilight game starts at Classic Mode 1's first, any other at Action Mode 1 (series: each mode's own)
+    loops: ["BeyondNetwork#5", "BeyondNetwork#2", "BeyondNetwork#6"],
+    next: { "BeyondNetwork#1": "BeyondNetwork#1@11", "BeyondNetwork#1@11": "BeyondNetwork#1@22",
+      "BeyondNetwork#1@22": "BeyondNetwork#1@30", "BeyondNetwork#1@30": "BeyondNetwork#1@42",
+      "BeyondNetwork#1@42": "BeyondNetwork#1@54", "BeyondNetwork#1@54": "BeyondNetwork#1@70",
+      "BeyondNetwork#1@70": "BeyondNetwork#1@91", "BeyondNetwork#1@91": "BeyondNetwork#1@122",
+      "BeyondNetwork#1@122": "BeyondNetwork#1@126", "BeyondNetwork#1@126": "BeyondNetwork#1@141",
+      "BeyondNetwork#1@141": "BeyondNetwork#1@151", "BeyondNetwork#1@151": "BeyondNetwork#1@160",
+      "BeyondNetwork#1@160": "BeyondNetwork#1@169", "BeyondNetwork#1@169": "BeyondNetwork#1" },
+    series: {
+      "Classic Mode": ["BeyondNetwork#1", "BeyondNetwork#1@11", "BeyondNetwork#1@22", "BeyondNetwork#1@30", "BeyondNetwork#1@42",
+        "BeyondNetwork#1@54", "BeyondNetwork#1@70", "BeyondNetwork#1@91"],
+      "Action Mode": ["BeyondNetwork#1@122", "BeyondNetwork#1@126", "BeyondNetwork#1@141", "BeyondNetwork#1@151",
+        "BeyondNetwork#1@160", "BeyondNetwork#1@169"]
+    },
   },
   bejeweledtwist: {
     // the user, 2026-11-19: "bejewel twist 06.10 is the part composed by Philippe Charron, while BejeweledTwist24 is by Peter
@@ -240,7 +284,23 @@ var ByopopSoundtracks = {
       "bejeweledtwist24#7": "Order 79; the bonus fruit dance, until it ends after 2200 updates"
     },
     unused: ["bejewel twist 06.10#9", "bejewel twist 06.10#10", "bejewel twist 06.10#11", "bejewel twist 06.10#12",
-      "bejewel twist 06.10#13", "bejeweledtwist24#8"]
+      "bejewel twist 06.10#13", "bejeweledtwist24#8"],
+    loops: ["bejewel twist 06.10#5", "bejewel twist 06.10#0", "bejewel twist 06.10#1", "bejewel twist 06.10#2",
+      "bejewel twist 06.10#6", "bejewel twist 06.10#7@73", "bejewel twist 06.10#8", "bejewel twist 06.10#4",
+      "bejewel twist 06.10#3", "bejeweledtwist24#0", "bejeweledtwist24#7", "bejeweledtwist24#1", "bejeweledtwist24#2",
+      "bejeweledtwist24#3", "bejeweledtwist24#4", "bejeweledtwist24#0@24", "bejeweledtwist24#5", "bejeweledtwist24#6"],
+    once: ["bejewel twist 06.10#7"],
+    stings: ["bejewel twist 06.10#4", "bejewel twist 06.10#3", "bejeweledtwist24#1", "bejeweledtwist24#2", "bejeweledtwist24#3"],
+    gameOver: { "bejewel twist 06.10#0": { to: "bejewel twist 06.10#3", how: "cut" },
+      "bejewel twist 06.10#1": { to: "bejewel twist 06.10#3", how: "cut" },
+      "bejewel twist 06.10#2": { to: "bejewel twist 06.10#3", how: "cut" },
+      "bejewel twist 06.10#6": { to: "bejewel twist 06.10#3", how: "cut" },
+      "bejewel twist 06.10#7@73": { to: "bejewel twist 06.10#3", how: "cut" },
+      "bejewel twist 06.10#8": { to: "bejewel twist 06.10#3", how: "cut" } },
+    series: {
+      "In-Game": ["bejewel twist 06.10#0", "bejewel twist 06.10#1", "bejewel twist 06.10#2", "bejewel twist 06.10#6",
+        "bejewel twist 06.10#7@73", "bejewel twist 06.10#8"]
+    },
   },
   bigmoney: {
     composer: "Peter Hajba (Skaven)",
@@ -269,6 +329,15 @@ var ByopopSoundtracks = {
       "QualityTime_BigMoney#6": "Order 67; the game ends (Board::GameOver); the game's tune fades out at 0.02",
       "QualityTime_BigMoney#7": "Order 87; at launch from the loading title screen; plays on into the game selector"
     },
+    // (each level-up fanfare runs on into its mode's pause tune: next)
+    loops: ["QualityTime_BigMoney#7", "QualityTime_BigMoney#0", "QualityTime_BigMoney#1@24", "QualityTime_BigMoney#2",
+      "QualityTime_BigMoney#3@41", "QualityTime_BigMoney#4", "QualityTime_BigMoney#5@64", "QualityTime_BigMoney#6"],
+    next: { "QualityTime_BigMoney#1": "QualityTime_BigMoney#1@24", "QualityTime_BigMoney#3": "QualityTime_BigMoney#3@41",
+      "QualityTime_BigMoney#5": "QualityTime_BigMoney#5@64" },
+    stings: ["QualityTime_BigMoney#1", "QualityTime_BigMoney#3", "QualityTime_BigMoney#5", "QualityTime_BigMoney#6"],
+    gameOver: { "QualityTime_BigMoney#0": { to: "QualityTime_BigMoney#6", how: "cross", ms: 500 },
+      "QualityTime_BigMoney#2": { to: "QualityTime_BigMoney#6", how: "cross", ms: 500 },
+      "QualityTime_BigMoney#4": { to: "QualityTime_BigMoney#6", how: "cross", ms: 500 } },
   },
   bookworm: {
     composer: "Peter Hajba (Skaven)",
@@ -290,6 +359,11 @@ var ByopopSoundtracks = {
       "bookworm1#6": "Order 61; a Classic game ends; once, no loop",
       "bookworm1#7": "Order 65; Action: while a fire tile is on the bottom row, or Lex sweats in a resumed save"
     },
+    loops: ["bookworm1#1", "bookworm1#0", "bookworm1#3", "bookworm1#2", "bookworm1#7", "bookworm1#4"],
+    once: ["bookworm1#6", "bookworm1#5"],
+    stings: ["bookworm1#6", "bookworm1#5"],
+    gameOver: { "bookworm1#0": { to: "bookworm1#6", how: "cut" }, "bookworm1#3": { to: "bookworm1#6", how: "cut" },
+      "bookworm1#2": { to: "bookworm1#5", how: "cut" }, "bookworm1#7": { to: "bookworm1#5", how: "cut" } },
   },
   // Bookworm Adventures sets its music's amplify to 12.0, which BASS holds at 100
   bookwormadv: {
@@ -300,6 +374,16 @@ var ByopopSoundtracks = {
       "music#4": "Boss Defeated", "music#5": "Arabian Battle", "music#6": "Arabian Map", "music#7": "Arabian Boss",
       "music#8": "Credits", "music#9": "Monster Battle", "music#10": "Monster Map", "music#11": "Monster Boss",
       "music#12": "Main Menu", "music#14": "Mini-Games", "music#15": "Game Over" },
+    // the titles the game's own music player gives its tunes (the arena's list, scripts/battleengine.luc): each one's title
+    // stands just before its order in that list, and Book 1's battle tune (order 0, a number the list does not write again) is
+    // the second string after the order before it (Bookworm Adventures' session, 2026-11-22)
+    titles: {
+      "music#1": { luc: "scripts/battleengine.luc", list: "NeedsMPDialog", data: 27 }, "music#0": { luc: "scripts/battleengine.luc", list: "NeedsMPDialog", data: 27, after: 2 },
+      "music#2": { luc: "scripts/battleengine.luc", list: "NeedsMPDialog", data: 32 }, "music#6": { luc: "scripts/battleengine.luc", list: "NeedsMPDialog", data: 67 },
+      "music#5": { luc: "scripts/battleengine.luc", list: "NeedsMPDialog", data: 42 }, "music#7": { luc: "scripts/battleengine.luc", list: "NeedsMPDialog", data: 72 },
+      "music#10": { luc: "scripts/battleengine.luc", list: "NeedsMPDialog", data: 128 }, "music#9": { luc: "scripts/battleengine.luc", list: "NeedsMPDialog", data: 102 },
+      "music#11": { luc: "scripts/battleengine.luc", list: "NeedsMPDialog", data: 133 }, "music#8": { luc: "scripts/battleengine.luc", list: "NeedsMPDialog", data: 78 }
+    },
     order: ["music#12", "music#1", "music#0", "music#3", "music#2", "music#4", "music#6", "music#5", "music#7", "music#10",
       "music#9", "music#11", "music#8", "music#14", "music#15"],
     when: {
@@ -319,7 +403,15 @@ var ByopopSoundtracks = {
       "music#12": "Order 140; main menu, back from the credits, leaving the stats book (loops, fade 0.005)",
       "music#14": "Order 150; a mini-game starts; loops"
     },
-    unused: ["music#13"]
+    unused: ["music#13"],
+    // (Level Complete leads on into the book's map tune, which depends on the book: once)
+    loops: ["music#12", "music#1", "music#0", "music#2", "music#6", "music#5", "music#7", "music#10", "music#9", "music#11",
+      "music#8", "music#14"],
+    once: ["music#3", "music#4", "music#15"],
+    stings: ["music#3", "music#4", "music#15"],
+    gameOver: { "music#0": { to: "music#15", how: "cross", ms: 2000 }, "music#2": { to: "music#15", how: "cross", ms: 2000 },
+      "music#5": { to: "music#15", how: "cross", ms: 2000 }, "music#7": { to: "music#15", how: "cross", ms: 2000 },
+      "music#9": { to: "music#15", how: "cross", ms: 2000 }, "music#11": { to: "music#15", how: "cross", ms: 2000 } },
   },
   // as Water Bugs (its session's reading of CBLevel.cpp, CBMain.cpp and bugs.xml, 2026-11-11): cosmo1 through the logos,
   // title and menus; a board the song of its level set, 0-9 cosmo4, 10-19 cosmo3, 20-49 cosmo2, 50-99 cosmo5, then again by
@@ -337,6 +429,7 @@ var ByopopSoundtracks = {
       "cosmo2#0": "Levels 20-49, 300-399; starts at a set's first level, loops",
       "cosmo5#0": "Levels 50-99, 400-499; starts at a set's first level, loops"
     },
+    loops: ["cosmo1#0", "cosmo4#0", "cosmo3#0", "cosmo2#0", "cosmo5#0"],
   },
   // the menus play cosmo1; each set of levels its own song, the sets' songs repeating (its session's reading, 2026-11-11):
   // 0-9 cosmo4, 10-19 cosmo3, 20-49 cosmo2, 50-99 cosmo5, then again from cosmo4 at 100 (Level_SetBackground's own song
@@ -354,6 +447,7 @@ var ByopopSoundtracks = {
       "cosmo2#0": "Levels 20-49, 300-399; starts at a set's first level, loops",
       "cosmo5#0": "Levels 50-99, 400-499; starts at a set's first level, loops"
     },
+    loops: ["cosmo1#0", "cosmo4#0", "cosmo3#0", "cosmo2#0", "cosmo5#0"],
   },
   dynomite: {
     composer: "Peter Hajba (Skaven)",
@@ -381,7 +475,12 @@ var ByopopSoundtracks = {
       "amazonas#8": "Order 84; the Museum opens between rounds (started muted at the first shot, faded in)",
       "omniphilia#0": "Order 0 of its own module; Stomped: at a board's first shot"
     },
-    unused: ["amazonas#3", "amazonas#9"]
+    unused: ["amazonas#3", "amazonas#9"],
+    loops: ["amazonas#1", "amazonas#5", "amazonas#0", "amazonas#8", "amazonas#2@64", "amazonas#6", "amazonas#4", "amazonas#7",
+      "omniphilia#0", "amazonas#2"],
+    stings: ["amazonas#5", "amazonas#2@64", "amazonas#4", "amazonas#2"],
+    gameOver: { "amazonas#0": { to: "amazonas#2", how: "cut" }, "amazonas#7": { to: "amazonas#2", how: "cut" },
+      "omniphilia#0": { to: "amazonas#2", how: "cut" } },
   },
   sevenseas: {
     composer: "Peter Hajba (Skaven)",  // the user, 2026-11-19 (Alchemy's entry)
@@ -402,7 +501,10 @@ var ByopopSoundtracks = {
       "game#8": "Order 28; the high-score list opens after a game (fade-in)",
       "game#9": "Orders 31-34; levels 10, 20, 30...: order 31 + (level/10) mod 4"
     },
-    unused: ["game#10"]
+    unused: ["game#10"],
+    loops: ["game#6", "game#7", "game#5", "game#0", "game#1", "game#9", "game#3", "game#4", "game#2", "game#8"],
+    stings: ["game#1", "game#3", "game#4", "game#2"],
+    gameOver: { "game#0": { to: "game#2", how: "cut" }, "game#9": { to: "game#2", how: "cut" } },
   },
   // Typer Shark's one module (wordshar.mo3) holds every tune, which the game starts at an order of it (ChangeMusic); its subsongs stand for them
   typershark: {
@@ -424,7 +526,12 @@ var ByopopSoundtracks = {
       "wordshar#7": "Order 46; the diver goes for treasure (player state 6 or 11); fade 0.015",
       "wordshar#8": "Order 48; boss event 10 (the boss fight)"
     },
-    unused: ["wordshar#5"]
+    unused: ["wordshar#5"],
+    loops: ["wordshar#1", "wordshar#1@20", "wordshar#0", "wordshar#4", "wordshar#8", "wordshar#3", "wordshar#2"],
+    once: ["wordshar#6", "wordshar#7"],
+    stings: ["wordshar#6", "wordshar#7", "wordshar#3", "wordshar#2"],
+    gameOver: { "wordshar#0": { to: "wordshar#2", how: "cross", ms: 2000 },
+      "wordshar#4": { to: "wordshar#2", how: "cross", ms: 2000 }, "wordshar#8": { to: "wordshar#2", how: "cross", ms: 2000 } },
   },
   mummymaze: {
     composer: "Hannu Salonen",
@@ -446,7 +553,9 @@ var ByopopSoundtracks = {
       "game#9@67": "Order 67; the adventure map opens (fade)",
       "game#10@77": "Order 76; the high scores open (fade)"
     },
-    unused: ["game#9", "game#10"]
+    unused: ["game#9", "game#10"],
+    loops: ["game#0", "game#1", "game#9@67", "game#2", "game#5", "game#6", "game#3", "game#7", "game#10@77"],
+    stings: ["game#5", "game#6", "game#3"],
   },
   // tunes inside the games' own files: the Mahjong Escapes keep their MO3 modules among Resource.dll's resources (the game's
   // module, 339, starts at one of two orders by the player's progress and jumps to others while gold tiles are in play), Ning
@@ -466,6 +575,10 @@ var ByopopSoundtracks = {
       "Resource 337#0": "Layout select: visit 3 of every 3 (gMusicTurn 2)",
       "Resource 339#0": "A game's map opens; loop piece 0 at odd progress, 13 at even; 7 with a key in play, 12 after a gold pair"
     },
+    loops: ["Resource 335#0", "Resource 338#0", "Resource 336#0", "Resource 337#0", "Resource 339#0"],
+    series: {
+      "Layout Select": ["Resource 338#0", "Resource 336#0", "Resource 337#0"]
+    },
   },
   mahjongjapan: {
     composer: "Lin Gardiner",  // the user, 2026-11-19: "Lin Gardiner was the composer for Mahjong Escape"
@@ -479,6 +592,11 @@ var ByopopSoundtracks = {
       "Resource 337#0": "Layout select: visits 1 and 3 of every 3 (gMusicTurn 0 and 2)",
       "Resource 336#0": "Layout select: visit 2 of every 3 (gMusicTurn 1)",
       "Resource 339#0": "A game's map opens; loop piece 0 at odd progress, 10 at even; 4 with a key in play, 8 after a gold pair"
+    },
+    // (the game's round of the layout screen's tunes plays Layout Select 1 again after 2: 1, 2, 1)
+    loops: ["Resource 335#0", "Resource 337#0", "Resource 336#0", "Resource 339#0"],
+    series: {
+      "Layout Select": ["Resource 337#0", "Resource 336#0"]
     },
   },
   // Word Harmony's music is made as it plays, from WAV clips: the menu's loop, and in the rising-water mode one drum track
@@ -499,6 +617,11 @@ var ByopopSoundtracks = {
       "intense": "The game screen opens in mode 2 (drums.xml); modes 0 and 1 use other clips",
       "intenseEnd": "The game-over results show (or the congratulations screen after mode 0's last level)"
     },
+    // (intenseEnd is the drums layer's last clip, which a fading stop never reaches, and the game's end starts the
+    // shaku clips: it may never be heard; kept as the table's game-over tune)
+    loops: ["menuMusic", "intense"],
+    once: ["intenseEnd"],
+    stings: ["intenseEnd"],
   },
   ningpo: {
     shuffle: { out: ["nm_splash"] },   // (the splash screen's, before the assets load)
@@ -513,6 +636,10 @@ var ByopopSoundtracks = {
       "nm_gameover": "No moves left; the game ends",
       "nm_youwin": "The board is won"
     },
+    loops: ["theme_np"],
+    once: ["nm_splash", "nm_youwin", "nm_gameover"],
+    stings: ["nm_splash", "nm_youwin", "nm_gameover"],
+    gameOver: { "theme_np": { to: "nm_gameover", how: "cut" } },
   },
   // TipTop's one tune is a MIDI file in its archive, played as the port plays it: TipTop's sequencer into TinySoundFont with
   // the port's bank (games/tiptop/src/Music.cpp and MusicSynth.cpp). It starts at the main menu's first showing, after the
@@ -526,6 +653,7 @@ var ByopopSoundtracks = {
     when: {
       "bkgd": "From the main menu's first showing, after the config's delay; loops through every screen and game; held while the game is paused or its window inactive"
     },
+    loops: ["bkgd"],
   },
   // the Ogg games
   bookwormadv2: {
@@ -548,6 +676,8 @@ var ByopopSoundtracks = {
       "chinese_level": "Book 5's ordinary battles (chapters 1 to 10); also the main menu while the profile's current book is 5",
       "scifi_level": "Book 6's ordinary battles (chapters 1 to 6 and 8 to 10); also the main menu while the profile's current book is above 5"
     },
+    loops: ["fairy_tale_level", "fairy_tale_map", "fairy_tale_boss", "chinese_map", "chinese_level", "chinese_boss", "scifi_map",
+      "scifi_level", "scifi_boss", "dance_battle_level"],
   },
   // Noah's Ark: mainintro plays once as play starts and runs on into mainloop, which loops: one tune, repeating from the loop
   noahsark: {
@@ -561,6 +691,9 @@ var ByopopSoundtracks = {
       "loading": "At launch (fade 0.002); again on the main menu; loops",
       "gameover": "The game-over high-score list opens (fade 0.002); loops"
     },
+    loops: ["loading", "mainloop", "gameover"],
+    stings: ["gameover"],
+    gameOver: { "mainloop": { to: "gameover", how: "cross", ms: 2500 } },
   },
   // Venice: each scene names its music (levels/*.xml: main_music, and win_music for a level won), which the scene starts
   // silent and raises over 1000 updates (4 seconds at 250 a second) from intro_time / 4 - 1000 updates after it opens, and
@@ -590,7 +723,11 @@ var ByopopSoundtracks = {
       "ingame_2_body": "Flood and Journey levels 46 to 63 (San Marco Square, then Vesta's Vista), Trick Shot's sixth and seventh regions; also the credits; loops",
       "final_victory": "The win scene: after Flood's or Journey's level 71, or once every trick shot is made; loops, until the high scores"
     },
-    unused: ["ingame_2_intro"]
+    unused: ["ingame_2_intro"],
+    loops: ["title_music", "ingame_4_body", "ingame_1_intro", "ingame_1_body", "ingame_3_body", "ingame_5_body", "ingame_2_body",
+      "final_victory"],
+    once: ["ingame_1_win"],
+    stings: ["ingame_1_win"],
   },
   // Heavy Weapon: one module, atomictank.mo3, which the game starts at an order of it for each screen (games/heavyweapon/src:
   // its song ids are named by those orders), and one Ogg, lovetheme.ogg; 200 updates a second, fades 0.002 an update in
@@ -615,7 +752,13 @@ var ByopopSoundtracks = {
       "atomictank#2": "Order 0x2a; at once after the boss warning's fifth flash (127 updates each); fades out over 250 updates (1.25 seconds) as the beaten boss's last blast goes; loops",
       "atomictank#6": "Order 0x49; at once as the results come up, 500 updates (2.5 seconds) after the boss's last blast; loops, on through the armory and the final cutscene"
     },
-    unused: ["atomictank#1"]
+    unused: ["atomictank#1"],
+    // (the Intro plays once at launch, but goes round in the cutscene and after a game ends through it: loops)
+    loops: ["atomictank#8", "atomictank#4", "atomictank#0", "atomictank#2", "atomictank#6"],
+    once: ["lovetheme"],
+    stings: ["atomictank#6"],
+    gameOver: { "atomictank#0": { to: "atomictank#8", how: "cross", ms: 1250 },
+      "atomictank#2": { to: "atomictank#8", how: "cross", ms: 1250 } },
   },
   // Bonnie's Bookstore plays its one module as tracks, each a range of orders (its track table, games/bonnies/game/Music.cpp:
   // the first for the menu, the rest in a game), and a logo tune
@@ -639,6 +782,10 @@ var ByopopSoundtracks = {
       "music#7": "Same pick as In-Game 1",
       "music#8": "Same pick as In-Game 1"
     },
+    // (each In-Game tune plays once, and the game picks another at random 0.7 s after it ends)
+    loops: ["music#0"],
+    once: ["Logo", "music#1", "music#2", "music#3", "music#4", "music#5", "music#6", "music#7", "music#8"],
+    stings: ["Logo"],
   },
   // Pixelus and Rocket Mania join their in-game (and Rocket Mania its menu) music from pieces by a playlist, as the games do
   pixelus: {
@@ -655,6 +802,7 @@ var ByopopSoundtracks = {
       "pixelus temple screen loop v01": "The temple screen opens",
       "pixelus in-game": "150 updates after a puzzle shows (no help over it); fades out at the last tile; pauses with the game"
     },
+    loops: ["pixelus main menu loop v02", "pixelus story screen loop v01", "pixelus in-game", "pixelus temple screen loop v01"],
   },
   rocketmania: {
     composer: "Ian Livingstone",  // the user, 2026-11-19 (Ning Po's entry)
@@ -671,6 +819,10 @@ var ByopopSoundtracks = {
       "tubetricks level up loop one v01": "A level ends; until the buy-rockets screen closes",
       "tubetricks game over loop one v01": "The night runs out, the top line fills, or strategy mode runs out of moves"
     },
+    loops: ["tubetricks menu one v02", "tubetricks in-game one v02", "tubetricks level up loop one v01",
+      "tubetricks game over loop one v01"],
+    stings: ["tubetricks level up loop one v01", "tubetricks game over loop one v01"],
+    gameOver: { "tubetricks in-game one v02": { to: "tubetricks game over loop one v01", how: "cross", ms: 500 } },
   },
   // Hammer Heads' four tracks, one a screen (Application::StartMusic, games/hammerheads/src/Application.cpp: a track fades in
   // over the others, and one already playing goes on where it was). Its credits name its developers and nobody for the music;
@@ -687,5 +839,6 @@ var ByopopSoundtracks = {
       "Music - Bonus Game": "A bonus round opens",
       "Music - High Score": "The trophy room opens, from the main menu or from a game when trophies are won; also the high score table from the main menu"
     },
+    loops: ["Music - Loading and Menu", "Music - In-Game", "Music - Bonus Game", "Music - High Score"],
   }
 };

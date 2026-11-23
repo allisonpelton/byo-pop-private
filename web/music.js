@@ -22,6 +22,11 @@ var ByopopMusic = (function () {
   var AHEAD = 12;            // chunks kept queued in the worklet: about a second
   var TRIM_LEVEL = 0.001, TRIM_LONG = 3, TRIM_KEEP = 1;   // a long silent ending (trimEnd, soloSeconds): -60 dB, 3 s of it, 1 s kept
   var VOLUME_KEY = "byopop-music-volume", LOOP_KEY = "byopop-music-loop", FX_KEY = "byopop-music-fx", SHUFFLE_KEY = "byopop-music-shuffle";
+  // The Options menu (the user, 2026-11-22): Rip Style, its Game Over Ending, Stop After Game and Themes Only, each kept for this
+  // browser. Rip Style plays a tune the game loops RIP_PASSES times through its loop and fades it out over RIP_FADE seconds from
+  // the start of the next pass, as game rips do (vgmstream's defaults: two loops, a ten second fade)
+  var RIP_KEY = "byopop-music-rip", RIP_OVER_KEY = "byopop-music-rip-over", ONE_GAME_KEY = "byopop-music-one-game", THEMES_KEY = "byopop-music-themes";
+  var RIP_PASSES = 2, RIP_FADE = 10;
   function T(key, vars) { return ByopopStrings.t(key, vars); }
   function silentPage() { try { return new URLSearchParams(location.search).get("silent") === "1"; } catch (e) { return false; } }
   function make(tag, cls, text) {
@@ -396,6 +401,59 @@ var ByopopMusic = (function () {
     if (m) return T("music.in_resource", { file: host, type: m[1], id: m[2] });
     return T("music.in_archive", { file: host, entry: pick.replace(/^[a-z]+:/, "") });
   }
+  // A PopLua chunk's constants (Bookworm Adventures' scripts: Lua 5.0 with its own constant tags, as
+  // games/bookwormadv/tools/luc.py reads them): every function's list, its strings as strings and its whole numbers (int32) as
+  // numbers, anything else null; [] for a file that is not one
+  function lucConstants(b) {
+    var p = 23, lists = [], dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+    if (b.length < 23 || b[0] !== 0x1b || b[1] !== 0x4c || b[2] !== 0x75 || b[3] !== 0x61 || b[4] !== 0x56) return [];
+    function int() { var v = dv.getInt32(p, true); p += 4; return v; }
+    function str() {
+      var n = dv.getUint32(p, true), s = "";
+      p += 4;
+      if (!n) return null;
+      if (p + n > b.length) throw new Error("luc");
+      for (var i = 0; i < n - 1; i++) s += String.fromCharCode(b[p + i]);
+      p += n;
+      return s;
+    }
+    function func() {
+      var n;
+      str(); int(); int(); p += 4;                                // its source, line, self flag, upvalues, parameters, vararg, stack
+      n = int(); p += 4 * n;                                      // line info (the count read before p is: p += 4 * int() would lose it)
+      for (n = int(); n > 0; n--) { str(); int(); int(); }        // locals
+      for (n = int(); n > 0; n--) str();                          // upvalue names
+      var ks = [];
+      for (n = int(); n > 0; n--) {
+        var t = b[p++];
+        if (t === 4) ks.push(int());
+        else if (t === 5) ks.push(str());
+        else if (t === 3) { ks.push(null); p += 8; }
+        else if (t === 1) { ks.push(null); p++; }
+        else if (t === 0) ks.push(null);
+        else throw new Error("luc");
+      }
+      lists.push(ks);
+      for (n = int(); n > 0; n--) func();                         // nested functions
+      n = int(); p += 4 * n;                                      // code
+      if (p > b.length) throw new Error("luc");
+    }
+    try { func(); } catch (e) { return []; }
+    return lists;
+  }
+  // A title from a game's script (the table's titles, luc): in the constants of the function that holds the string list, the
+  // string just before the whole number data, or with after the after-th string following it; "" where there is none
+  function lucTitle(lists, t) {
+    var ks = (lists || []).filter(function (k) { return k.indexOf(t.list) >= 0; })[0];
+    if (!ks) return "";
+    for (var j = ks.indexOf(t.list) + 1; j < ks.length; j++) {
+      if (ks[j] !== t.data) continue;
+      if (!t.after) return typeof ks[j - 1] === "string" ? ks[j - 1].replace(/\s+/g, " ").trim() : "";
+      for (var n = 0, i = j + 1; i < ks.length; i++) if (typeof ks[i] === "string" && ++n === t.after) return ks[i].replace(/\s+/g, " ").trim();
+      return "";
+    }
+    return "";
+  }
   // A file's name without its folder and extension
   function baseName(rel) {
     var bar = rel.indexOf("|");
@@ -436,6 +494,7 @@ var ByopopMusic = (function () {
       // a tune's format (its file's extension: MO3, IT, S3M, XM, OXM or OGG), where in the game it plays and whether the game
       // never plays it, from the table
       var formats = {};   // a resource's format, by its key, from its first bytes
+      var scripts = {};   // the constants of the game's scripts a title is read from (titles' luc: lucConstants), by path
       // a table field's value for a tune id, its case ignored (file names are stored as the game's copy has them)
       function byId(obj, id) {
         var low = id.toLowerCase(), hit;
@@ -458,6 +517,7 @@ var ByopopMusic = (function () {
         (sh.groups || []).forEach(function (g, gi) {
           g.forEach(function (id, at) { if (id.toLowerCase() === low) { k.group = game.id + "/" + gi; k.groupAt = at; } });
         });
+        endsOf(k, entry);
       }
       function add(rel, list) {
         var kept = list.filter(function (k) { return k.seconds >= MIN_TUNE && !(entry.skip || []).some(function (x) { return x.toLowerCase() === k.id.toLowerCase(); }); });
@@ -485,9 +545,11 @@ var ByopopMusic = (function () {
       // A tune's title from the table (its "titles"): the text given, or one the module's own text holds, read from the game's
       // file as it plays (the user: "Check the tracker files to see if there's more metadata that could give us
       // official song names"): {own: true} the module's title; {line: "<order>"} what its message's line for that order (as the
-      // message writes it) says after the orders, up to a comma or a bracket, or with inner the words in its brackets
+      // message writes it) says after the orders, up to a comma or a bracket, or with inner the words in its brackets; {luc} a
+      // string of one of the game's scripts (lucTitle)
       function ownTitle(t, text) {
         if (typeof t === "string") return t;
+        if (t && t.luc) return lucTitle(scripts[t.luc], t);
         if (!t || !text) return "";
         if (t.own) return (text.title || "").replace(/\s+/g, " ").trim();
         var lines = t.line ? (text.message || "").split("\n") : [];
@@ -562,6 +624,13 @@ var ByopopMusic = (function () {
       }
       return gameFiles(db, game.persist).then(function (rels) {
         var steps = matching(rels, entry.files).map(fileStep);
+        // the scripts titles are read from, first
+        Object.keys(entry.titles || {}).forEach(function (id) {
+          var t = entry.titles[id], rel = t && t.luc && !(t.luc in scripts) ? findRel(rels, t.luc) : null;
+          if (!rel) return;
+          scripts[t.luc] = null;
+          steps.unshift(function () { return read(rel).then(function (b) { scripts[t.luc] = b ? lucConstants(b) : null; }, function () {}); });
+        });
         // tunes inside a game's files: a Windows module's resources that start with the magic given (their format), and a zip
         // archive's entries
         (entry.inside || []).forEach(function (n) {
@@ -718,8 +787,60 @@ var ByopopMusic = (function () {
           });
         });
         return steps.reduce(function (p, step) { return p.then(step); }, Promise.resolve());
-      }).then(function () { db.close(); return heard(numbered(tunes), entry).concat(patterns); }, function (e) { db.close(); throw e; });
+      }).then(function () { db.close(); return withSeries(heard(numbered(tunes), entry), entry).concat(patterns); }, function (e) { db.close(); throw e; });
     });
+  }
+
+  // What the game does at a tune's end (web/soundtracks.js's loops, once and next), whether it is a one-off (stings) and the
+  // game's own way from it into its game-over tune (gameOver): ends "loop", "once" or "next" ("" where the table does not say),
+  // nextId, sting, gameOver {to, how, ms}
+  function endsOf(k, entry) {
+    var low = k.id.toLowerCase();
+    function has(list) { return (list || []).some(function (u) { return u.toLowerCase() === low; }); }
+    function byKey(obj) { var hit; Object.keys(obj || {}).forEach(function (x) { if (x.toLowerCase() === low) hit = obj[x]; }); return hit; }
+    k.nextId = byKey(entry.next) || "";
+    k.ends = has(entry.loops) ? "loop" : has(entry.once) ? "once" : k.nextId ? "next" : "";
+    k.sting = has(entry.stings);
+    k.gameOver = byKey(entry.gameOver) || null;
+  }
+  // A game's series (web/soundtracks.js's series: the tunes it plays in turn as one set) as entries of their own, after the
+  // tunes the game plays and before the unused ones. Pieces of one module (cut from a subsong, each a segment) are one tune of
+  // all their segments, which goes on from piece to piece as the game does and round to the first with repeat on; any other set
+  // is played tune by tune (kind "series", members). Each keeps its members' ids (series) for the list and the tests.
+  function withSeries(list, entry) {
+    var names = Object.keys(entry.series || {});
+    if (!names.length) return list;
+    var made = [];
+    names.forEach(function (name) {
+      var ids = entry.series[name], members = ids.map(function (id) {
+        return list.filter(function (k) { return k.id.toLowerCase() === String(id).toLowerCase(); })[0];
+      });
+      if (members.length < 2 || members.some(function (k) { return !k; })) return;
+      var first = members[0], seconds = members.reduce(function (n, k) { return n + (k.seconds || 0); }, 0);
+      var pieces = members.every(function (k) { return k.kind === "module" && k.segs && k.keys[0] === first.keys[0]; });
+      var k = pieces ? { kind: "module", keys: first.keys.slice(), segs: [].concat.apply([], members.map(function (m) { return m.segs; })),
+          seq: first.seq, subEntries: first.subEntries, level: first.level, entry: first.entry }
+        : { kind: "series", keys: [].concat.apply([], members.map(function (m) { return m.keys; })), members: members };
+      k.id = "series:" + name;
+      k.name = name;
+      k.series = members.map(function (m) { return m.id; });
+      k.game = first.game;
+      k.seconds = seconds;
+      k.where = T("music.series");
+      k.when = members.map(function (m) { return m.where || m.name; }).join(", ");
+      k.composer = first.composer;
+      k.format = first.format;
+      k.unused = false;
+      k.noShuffle = true;
+      k.ends = "series";
+      k.sting = false;
+      k.nextId = "";
+      k.gameOver = null;
+      made.push(k);
+    });
+    var at = list.length;
+    while (at > 0 && list[at - 1].unused) at--;
+    return list.slice(0, at).concat(made, list.slice(at));
   }
 
   // Tunes of one place numbered as the game reaches them ("Level Theme 1" to "Level Theme 4") put in that order, in the places
@@ -810,6 +931,73 @@ var ByopopMusic = (function () {
   // position() is the seconds into the tune of the next frame, seek(s), repeat(on) and free().
   var TRIM_SCAN = 60, TRIM_RATE = 11025, trims = {};
   var LOOP_RATE = 8000, LOOP_STEP = 128, loops = {};
+  // Rip Style around a tune's source. With Repeat off, a tune the game loops (looped: the table's loops, or a series played as
+  // one source) goes round as with Repeat, and once it has gone round RIP_PASSES times it fades out over RIP_FADE seconds from
+  // the start of the next pass and ends. With Game Over Ending on, a tune the game ends through its game-over tune (over: the
+  // table's gameOver) goes into that tune there the game's way instead: at once (cut), faded out over the game's time and then
+  // the tune (fade), or the two crossed over that time, the one fading out as the other fades in (cross). The game-over tune is
+  // made ready during the last pass (ahead: aheadFor), and the ending hands over to it (handover; fill and handOver) without a
+  // pause; where it is not ready, the tune ends there and afterEnd plays it. ripEnd says which way the tune ended. Any other
+  // tune plays as it does without Rip Style. fadeNow: the fade from the start (a series' last pass). A seek starts the count
+  // again. rate: the source's frames a second; opts: {rip(), over()}, whether Rip Style and Game Over Ending are on.
+  function ripStyle(inner, rate, looped, over, fadeNow, ahead, opts) {
+    var w = {}, active = false, rounds = 0, fade = fadeNow ? 0 : -1, fadeLen = Math.max(1, Math.round(RIP_FADE * rate)), done = false;
+    var into = null, crossing = false;
+    Object.keys(inner).forEach(function (k) { w[k] = inner[k]; });
+    w.ripEnd = fadeNow ? "fade" : null;
+    w.handover = null;
+    w.repeat = function (on) {
+      active = !on && opts.rip() && (looped || fadeNow);
+      inner.repeat(on || (active && looped));
+    };
+    w.next = function (frames, marks) {
+      if (done && active) return null;
+      var before = inner.position(), c = inner.next(frames, marks);
+      if (!c || !active) return c;
+      if (fade < 0 && inner.position() < before - 0.05) {
+        rounds++;
+        if (over && opts.over() && ahead && rounds === RIP_PASSES - 1) ahead.want();
+        if (rounds >= RIP_PASSES) {
+          // the next pass begins
+          if (over && opts.over()) {
+            w.ripEnd = "over";
+            into = ahead ? ahead.take() : null;
+            if (over.how === "cut" || !(over.ms > 0)) {
+              done = true;
+              if (!into) return null;
+              if (marks) marks.length = 0;
+              w.handover = into;
+              return into.next(frames, null);
+            }
+            fadeLen = Math.max(1, Math.round(over.ms / 1000 * rate));
+            crossing = over.how === "cross" && !!into;
+          } else w.ripEnd = "fade";
+          fade = 0;
+        }
+      }
+      if (fade >= 0) {
+        var n = c.length >> 1, add = crossing ? into.next(n, null) : null, m = add ? add.length >> 1 : 0;
+        for (var j = 0; j < n; j++) {
+          var g = Math.max(0, 1 - (fade + j) / fadeLen);
+          c[2 * j] *= g; c[2 * j + 1] *= g;
+          if (j < m) { c[2 * j] += add[2 * j] * (1 - g); c[2 * j + 1] += add[2 * j + 1] * (1 - g); }
+        }
+        fade += n;
+        if (fade >= fadeLen) { done = true; if (into) w.handover = into; }
+      }
+      return c;
+    };
+    w.seek = function (sec) {
+      inner.seek(sec);
+      rounds = 0;
+      if (!fadeNow && !w.handover) {
+        fade = -1; done = false; w.ripEnd = null; crossing = false; fadeLen = Math.max(1, Math.round(RIP_FADE * rate));
+        if (into) { into.free(); into = null; }
+      }
+    };
+    w.free = function () { inner.free(); if (into && w.handover !== into) into.free(); if (ahead) ahead.free(); };
+    return w;
+  }
   function sounds(M, rate, how) {
     var viewBuf = 0;
     // A module: a subsong, or a range of orders, from its first order until the order after its last. gain: the game's own
@@ -1279,11 +1467,27 @@ var ByopopMusic = (function () {
     var state = "idle";  // idle | loading | playing | paused
     var scanned = false, loop = false, shuffle = false, volume = 80, muted = false, vis = "spectrum", trackerOn = false, pianoOn = false, scoreOn = false, spectrumOn = false;
     try { loop = localStorage.getItem(LOOP_KEY) === "1"; muted = localStorage.getItem(MUTE_KEY) === "1"; shuffle = localStorage.getItem(SHUFFLE_KEY) === "1"; } catch (e) {}
+    // the Options menu's items (RIP_KEY and the rest, above)
+    var ripOn = false, ripOver = false, oneGame = false, themesOnly = false;
+    try {
+      ripOn = localStorage.getItem(RIP_KEY) === "1"; ripOver = localStorage.getItem(RIP_OVER_KEY) === "1";
+      oneGame = localStorage.getItem(ONE_GAME_KEY) === "1"; themesOnly = localStorage.getItem(THEMES_KEY) === "1";
+    } catch (e) {}
     try { var v = parseInt(localStorage.getItem(VOLUME_KEY), 10); if (v >= 0 && v <= 100) volume = v; } catch (e) {}
     try { var kept = localStorage.getItem(VIS_KEY); if (VIS.indexOf(kept) >= 0) vis = kept; } catch (e) {}
 
     root.textContent = "";
     root.classList.add("mu");
+    // The menu bar, as a player's window had one: Options (optionsMenu), with Alt and its letter
+    var menuBar = make("div", "d95-menubar mu-menubar");
+    menuBar.setAttribute("role", "menubar");
+    var optName = T("music.menu.options"), optBtn = make("button", "d95-menubar-item");
+    optBtn.type = "button"; optBtn.setAttribute("role", "menuitem"); optBtn.setAttribute("aria-haspopup", "menu");
+    optBtn.appendChild(make("u", null, optName.charAt(0)));
+    optBtn.appendChild(document.createTextNode(optName.slice(1)));
+    optBtn.setAttribute("aria-keyshortcuts", "Alt+" + optName.charAt(0).toUpperCase());
+    menuBar.appendChild(optBtn);
+    root.appendChild(menuBar);
     var player = make("div", "mu-player");
     root.appendChild(player);
 
@@ -1524,7 +1728,7 @@ var ByopopMusic = (function () {
     }
     // (a module still loading counts: unloaded and not yet read again, it once showed the spectrum for a moment between two
     // tunes; the user, 2026-11-12: "the spectral analyzer briefly pops up before returning to the tracker")
-    function isModule() { var t = tunes[current]; return !!(t && t.kind === "module" && (source || state === "loading")); }
+    function isModule() { var t = playing(); return !!(t && t.kind === "module" && (source || state === "loading")); }
     // The view the display shows: the chosen one, but the spectrum where a tune has no patterns (Ogg)
     function applyVis() {
       var wasSpectrum = spectrumOn;
@@ -1570,7 +1774,7 @@ var ByopopMusic = (function () {
           if (head && ol.hidden) fold(head, false);   // the tune playing is never hidden in a folded game
         } else b.removeAttribute("aria-current");
       });
-      var t = tunes[current];
+      var t = playing();
       if (t && state !== "idle") {
         tuneEl.textContent = t.name;
         gameEl.textContent = subLine(t);
@@ -1589,7 +1793,7 @@ var ByopopMusic = (function () {
       var ms = navigator.mediaSession;
       if (!ms) return;
       try {
-        var t = tunes[current];
+        var t = playing();
         sink(false);
         if (!t || state === "idle") { ms.metadata = null; ms.playbackState = "none"; return; }
         var art = [];
@@ -1754,6 +1958,7 @@ var ByopopMusic = (function () {
         heads.push({ frames: chunk.length >> 1, at: at, marks: marks });
         node.port.postMessage(chunk, [chunk.buffer]);
         queued++;
+        if (source.handover) handOver();
       }
     }
     // Where the listener is: the chunk the worklet plays and how far into it (from the context's clock since it began it)
@@ -1768,26 +1973,142 @@ var ByopopMusic = (function () {
       if (node && queued) { flushes++; node.port.postMessage("flush"); }
       queued = 0; ended = false; heads = [];
     }
+    // The sound playing: the tune chosen, or for a series played member by member (withSeries) the member playing now, in the
+    // pass of the set it is in (Rip Style plays the set RIP_PASSES times)
+    var seriesAt = 0, seriesPass = 1;
+    function playing() { var r = tunes[current]; return r && r.kind === "series" ? r.members[seriesAt] || r : r; }
+    // Where autoplay goes on from once the tunes a game led into have played (a Game Over Ending's tune, a jingle's next): the
+    // tune that led there, and those heard on the way, which it then passes over
+    var detour = null;
+    // a game's tune by its id (case ignored), not a pattern or a series; -1 for none
+    function tuneIndex(game, id) {
+      var low = String(id || "").toLowerCase();
+      for (var i = 0; i < tunes.length; i++) {
+        var k = tunes[i];
+        if (k.game === game && k.solo === undefined && !k.series && k.id.toLowerCase() === low) return i;
+      }
+      return -1;
+    }
     // A tune that ended (repeat off): the next one, after the last the first again
-    // (an unused pattern plays once and stops, chosen still; playing on never goes into them: after the last tune, the first)
-    function afterEnd() { if (isPattern(current)) { stop(); return; } play(shuffle ? shuffled() : stepped(1)); }
+    // (an unused pattern plays once and stops, chosen still; playing on never goes into them: after the last tune, the first).
+    // A series played member by member plays its members in turn: with Repeat round again, with Rip Style RIP_PASSES times and
+    // then its first member's start faded. With Rip Style or Themes Only on, a tune the game goes straight on from plays the tune
+    // it goes on into (the table's next; in shuffle only a one-off's), and a Game Over Ending plays the game-over tune; autoplay
+    // then goes on after the tune that led there, passing over those heard. Stop After Game stops where the next tune would be
+    // another game's or the game's first again (in shuffle: once each of the game's tunes has played).
+    function afterEnd() {
+      if (isPattern(current)) { stop(); return; }
+      var row = tunes[current], t = playing(), ending = source ? source.ripEnd : null;
+      if (row.kind === "series" && ending !== "fade") {
+        if (seriesAt + 1 < row.members.length) { play(current, { member: seriesAt + 1, pass: seriesPass }); return; }
+        if (loop) { play(current, { member: 0, pass: 1 }); return; }
+        if (ripOn) { play(current, { member: 0, pass: seriesPass + 1, fade: seriesPass >= RIP_PASSES }); return; }
+      }
+      var to = -1, from = detour ? detour.from : current;
+      if (ending === "over" && t.gameOver) to = tuneIndex(t.game, t.gameOver.to);
+      else if ((ripOn || themesOnly) && t.nextId && row.kind !== "series" && (!shuffle || t.sting)) to = tuneIndex(t.game, t.nextId);
+      if (to >= 0 && to !== from && !(detour && detour.heard.indexOf(to) >= 0)) {
+        detour = detour || { from: current, heard: [] };
+        detour.heard.push(to);
+        play(to, { led: true });
+        return;
+      }
+      var skip = detour ? detour.heard : [], game = tunes[from].game;
+      detour = null;
+      var nxt = shuffle ? shuffled(true, from, skip) : steppedFrom(from, 1, skip);
+      if (oneGame && (nxt < 0 || tunes[nxt].game !== game || (!shuffle && nxt <= from))) { stop(); return; }
+      play(nxt, {});
+    }
     function isPattern(i) { return !!(tunes[i] && tunes[i].solo !== undefined); }
+    // what autoplay, Next and Previous pass over: a series (played only when chosen), and with Themes Only a one-off (the table's
+    // stings) that leads into no other tune
+    function passedOver(i) { var t = tunes[i]; return !!(t.series || (themesOnly && t.sting && !t.nextId)); }
     // the tune n steps on from the one chosen, among the game's tunes, or among the unused patterns when one is chosen
-    function stepped(n) {
+    function stepped(n) { return steppedFrom(current, n, []); }
+    function steppedFrom(from, n, skip) {
       var real = tunes.filter(function (t) { return t.solo === undefined; }).length, pats = tunes.length - real;
-      if (isPattern(current)) return real + ((current - real + n) % pats + pats) % pats;
+      if (isPattern(from)) return real + ((from - real + n) % pats + pats) % pats;
       if (!real) return -1;
-      return current < 0 ? (n > 0 ? 0 : real - 1) : ((current + n) % real + real) % real;
+      var at = from < 0 ? (n > 0 ? -1 : real) : from;
+      for (var k = 0; k < real; k++) {
+        at = ((at + n) % real + real) % real;
+        if (!passedOver(at) && skip.indexOf(at) < 0) return at;
+      }
+      return from < 0 ? (n > 0 ? 0 : real - 1) : ((from + n) % real + real) % real;
+    }
+    // Repeat to the source: a series played member by member goes round as a set (afterEnd), never a member by itself
+    function applyRepeat() { if (source) source.repeat(loop && !(tunes[current] && tunes[current].kind === "series")); }
+    // Rip Style (ripStyle) around a tune's source, at the context's rate, with the Options menu's items as they are
+    var ripOpts = { rip: function () { return ripOn; }, over: function () { return ripOver; } };
+    function ripped(inner, looped, over, fadeNow, ahead) { return ripStyle(inner, ctx.sampleRate, looped, over, fadeNow, ahead, ripOpts); }
+    // A tune's game-over tune, made ready on want() while the tune plays its last pass, for its Rip Style ending (ripped); take()
+    // hands it over once. Let go with the tune's source, or when another tune is chosen meanwhile.
+    function aheadFor(t) {
+      var to = t.gameOver ? tuneIndex(t.game, t.gameOver.to) : -1, ticket = play.ticket, made = null, asked = false, gone = false;
+      return {
+        index: to,
+        want: function () {
+          if (asked || to < 0) return;
+          asked = true;
+          var mine = sound;
+          filesOf(tunes[to]).then(function (files) {
+            return play.ticket === ticket && !gone ? mine.sourceOf(tunes[to], files) : null;
+          }).then(function (s) {
+            if (!s) return;
+            if (play.ticket !== ticket || gone) s.free(); else made = s;
+          }).catch(function () {});
+        },
+        take: function () { var s = made; made = null; gone = true; return s; },
+        free: function () { gone = true; if (made) { made.free(); made = null; } }
+      };
+    }
+    // A Rip Style ending gone into its game-over tune (ripped's handover): that tune is the one playing now, as afterEnd would
+    // have played it, from where the ending brought it; what the worklet still holds of the tune before keeps no rows for the
+    // views
+    function handOver() {
+      var old = source, into = old.handover, to = old.ahead;
+      old.free();
+      if (!detour) detour = { from: current, heard: [] };
+      detour.heard.push(to);
+      current = to; seriesAt = 0; seriesPass = 1;
+      var t = tunes[to];
+      var ahead = t.gameOver ? aheadFor(t) : null;
+      source = ripped(into, t.ends === "loop" || t.ends === "series", t.gameOver, false, ahead);
+      source.ahead = ahead ? ahead.index : -1;
+      applyRepeat();
+      heads.forEach(function (h) { h.marks = null; });
+      forgetViews();
+      syncMutes();
+      setState("playing");
     }
     function unload() {
       if (source) { source.free(); source = null; }
       if (sound) { sound.free(); sound = null; }
       flush();
-      rowCache = {}; heldCache = {}; usedChannels = null; ownNames = null; firstChannel = 0; rollReset();
+      forgetViews();
     }
-    function play(i) {
-      var t = tunes[i];
-      if (!t) return;
+    // what the views kept of the tune's module
+    function forgetViews() { rowCache = {}; heldCache = {}; usedChannels = null; ownNames = null; firstChannel = 0; rollReset(); }
+    // a tune's files from its game's database, in the order of its keys
+    function filesOf(t) {
+      return openExisting(t.game.persist).then(function (db) {
+        if (!db) throw new Error("gone");
+        var unique = t.keys.filter(function (k, j) { return t.keys.indexOf(k) === j; }), got = {};
+        return unique.reduce(function (p, key) {
+          return p.then(function () { return readFile(db, key).then(function (b) { got[key] = b; }); });
+        }, Promise.resolve()).then(function () { db.close(); return t.keys.map(function (k) { return got[k]; }); },
+          function (e) { db.close(); throw e; });
+      });
+    }
+    // at: where autoplay plays it from (afterEnd): {member, pass, fade} for a series' member, {led} for a tune a game led into, {}
+    // for the next; a tune chosen (no at) starts autoplay afresh
+    function play(i, at) {
+      var row = tunes[i];
+      if (!row) return;
+      if (!at) { detour = null; gameBag = null; }
+      seriesAt = row.kind === "series" && at && at.member ? at.member : 0;
+      seriesPass = at && at.pass ? at.pass : 1;
+      var t = row.kind === "series" ? row.members[seriesAt] : row;
       unload();
       current = i;
       setState("loading");
@@ -1801,14 +2122,7 @@ var ByopopMusic = (function () {
       ready.catch(function () {});
       if (ctx && ctx.state !== "running") { try { ctx.resume(); } catch (e) {} }
       (M ? Promise.resolve() : decoder().then(function (m) { M = m; })).then(function () { return ready; }).then(function () {
-        return openExisting(t.game.persist).then(function (db) {
-          if (!db) throw new Error("gone");
-          var unique = t.keys.filter(function (k, j) { return t.keys.indexOf(k) === j; }), got = {};
-          return unique.reduce(function (p, key) {
-            return p.then(function () { return readFile(db, key).then(function (b) { got[key] = b; }); });
-          }, Promise.resolve()).then(function () { db.close(); return t.keys.map(function (k) { return got[k]; }); },
-            function (e) { db.close(); throw e; });
-        });
+        return filesOf(t);
       }).then(function (files) {
         if (play.ticket !== ticket) return null;  // another tune was chosen meanwhile
         sound = sounds(M, ctx.sampleRate, { decode: function (bytes) { return decodeOgg(M, ctx, bytes); }, bank: bankOf,
@@ -1820,8 +2134,10 @@ var ByopopMusic = (function () {
       }).then(function (s) {
         if (!s) return;
         if (play.ticket !== ticket) { s.free(); return; }
-        source = s;
-        source.repeat(loop);
+        var whole = row.kind !== "series", ahead = whole && t.gameOver ? aheadFor(t) : null;
+        source = ripped(s, whole && (t.ends === "loop" || t.ends === "series"), whole ? t.gameOver : null, !!(at && at.fade), ahead);
+        source.ahead = ahead ? ahead.index : -1;
+        applyRepeat();
         syncMutes();
         return ctx.resume().then(function () { setState("playing"); fill(); });
       }).catch(function (e) {
@@ -1836,7 +2152,7 @@ var ByopopMusic = (function () {
     function pause() { if (ctx) ctx.suspend(); setState("paused"); }
     function resume() { if (ctx) ctx.resume(); setState("playing"); fill(); }
     // Stop: the tune stays chosen, back at its start (Play plays it from there)
-    function stop() { play.ticket = {}; unload(); if (ctx) ctx.suspend(); setState("idle"); }
+    function stop() { play.ticket = {}; detour = null; unload(); if (ctx) ctx.suspend(); setState("idle"); }
     // The window closed (the user, 2026-11-09: "Music should quit playing if the window is closed"): the music stops and its
     // sound goes, the context closed with its worklet and graph, the decoder let go and the media keys handed back; the tune
     // stays chosen, so the window opened again shows it stopped. Minimizing keeps it playing, as a minimized player did.
@@ -1862,11 +2178,16 @@ var ByopopMusic = (function () {
     // drawn order, a group (the table's shuffle groups) drawn as one and played in its order, never an unused tune, an unused
     // pattern, one the table leaves out or one under SHUFFLE_LEAST seconds; each drawn once before any again, the last never
     // first of the next round. Previous goes back the way it came.
-    var shuffleBag = [], shuffleBack = [];
+    // With Themes Only a one-off that leads nowhere is never drawn; with it or Rip Style a one-off that leads into another tune is
+    // drawn whatever its length and that tune plays after it (afterEnd), so is not drawn by itself. Stop After Game draws from the
+    // game playing (gameBag), each of its tunes once after the one chosen.
+    var shuffleBag = [], shuffleBack = [], gameBag = null;
     function shuffleUnits() {
-      var units = [], byGroup = {};
+      var units = [], byGroup = {}, ways = ripOn || themesOnly, led = {};
+      if (ways) tunes.forEach(function (t) { if (t.sting && t.nextId) { var to = tuneIndex(t.game, t.nextId); if (to >= 0) led[to] = true; } });
       tunes.forEach(function (t, i) {
-        if (t.solo !== undefined || t.unused || t.noShuffle || (t.seconds < SHUFFLE_LEAST && !t.group)) return;
+        if (t.solo !== undefined || t.unused || t.noShuffle || led[i] || (themesOnly && t.sting && !t.nextId)) return;
+        if (t.seconds < SHUFFLE_LEAST && !t.group && !(ways && t.sting && t.nextId)) return;
         if (!t.group) { units.push([i]); return; }
         if (!byGroup[t.group]) units.push(byGroup[t.group] = []);
         byGroup[t.group].push(i);
@@ -1874,7 +2195,12 @@ var ByopopMusic = (function () {
       units.forEach(function (u) { u.sort(function (a, b) { return tunes[a].groupAt - tunes[b].groupAt; }); });
       return units;
     }
-    function shuffled() {
+    function mix(units) {
+      for (var i = units.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), x = units[i]; units[i] = units[j]; units[j] = x; }
+      return units;
+    }
+    // auto: autoplay going on from the tune from, passing over those in skip (afterEnd)
+    function shuffled(auto, from, skip) {
       var t = tunes[current];
       if (current >= 0) shuffleBack.push(current);
       if (shuffleBack.length > 200) shuffleBack.shift();
@@ -1885,10 +2211,16 @@ var ByopopMusic = (function () {
         var at = mates.indexOf(current);
         if (at >= 0 && at + 1 < mates.length) return mates[at + 1];
       }
+      if (oneGame && auto) {
+        var game = tunes[from] ? tunes[from].game : null;
+        if (!gameBag || gameBag.game !== game)
+          gameBag = { game: game, units: mix(shuffleUnits().filter(function (u) { return tunes[u[0]].game === game && u.indexOf(from) < 0 && u.indexOf(current) < 0; })) };
+        while (gameBag.units.length) { var u = gameBag.units.shift(); if (skip.indexOf(u[0]) < 0) return u[0]; }
+        return -1;
+      }
       if (!shuffleBag.length) {
-        var units = shuffleUnits();
+        var units = mix(shuffleUnits());
         if (!units.length) return stepped(1);
-        for (var i = units.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), x = units[i]; units[i] = units[j]; units[j] = x; }
         if (units.length > 1 && units[0].indexOf(current) >= 0) units.push(units.shift());
         shuffleBag = units;
       }
@@ -1905,7 +2237,7 @@ var ByopopMusic = (function () {
     function seekTo(s) {
       if (followedClock()) { seekGame(s); return; }
       if (!source) return;
-      var t = tunes[current];
+      var t = playing();
       source.seek(Math.max(0, Math.min(t ? t.seconds : s, s)));
       flush();
       if (state === "playing") fill();
@@ -1920,7 +2252,7 @@ var ByopopMusic = (function () {
     }
     var seeking = false, shownClock = "";
     function showTime() {
-      var t = tunes[current], total = t && state !== "idle" ? t.seconds : 0, at = state === "idle" ? 0 : Math.max(0, Math.min(total, elapsed()));
+      var t = playing(), total = t && state !== "idle" ? t.seconds : 0, at = state === "idle" ? 0 : Math.max(0, Math.min(total, elapsed()));
       var game = followedClock();
       if (game) { total = game.total; at = game.at; seek.disabled = false; }
       if (!seeking) { seek.max = String(Math.max(1, total)); seek.value = String(at); }
@@ -1945,7 +2277,7 @@ var ByopopMusic = (function () {
     // its own back. syncMutes makes what plays agree with them: the tune's mutes while the tracker view shows it, none while
     // it does not, set again on a new player (a tune started or restarted, a game's song followed), which plays every channel.
     var chanMutes = {}, applied = { key: null, target: null, set: {} };
-    function tuneKey(feed) { return follow ? feed.id + ":" + follow.track : "own:" + (tunes[current] ? tunes[current].id : current); }
+    function tuneKey(feed) { return follow ? feed.id + ":" + follow.track : "own:" + (playing() ? playing().id : current); }
     function shownMutes(feed) { return (feed && trackerOn && chanMutes[tuneKey(feed)]) || {}; }
     function syncMutes() {
       var feed = muteFeed(), target = follow ? follow.song + ":" + follow.serial : source;
@@ -2238,7 +2570,7 @@ var ByopopMusic = (function () {
     // the player's own tune's channels that play a note (read once a tune)
     function ownUsed() {
       if (!usedChannels) {
-        usedChannels = source.orderPattern ? tuneUsed(tunes[current], rowOf, function (o) { var op = source.orderPattern(o); return op && op !== "skip" ? op[1] : 0; }) : null;
+        usedChannels = source.orderPattern ? tuneUsed(playing(), rowOf, function (o) { var op = source.orderPattern(o); return op && op !== "skip" ? op[1] : 0; }) : null;
         if (!usedChannels) usedChannels = source.used ? source.used() : [];
       }
       return usedChannels;
@@ -3360,7 +3692,28 @@ var ByopopMusic = (function () {
       loop = !loop;
       loopBtn.setAttribute("aria-pressed", String(loop));
       keep(LOOP_KEY, loop);
-      if (source) source.repeat(loop);
+      applyRepeat();
+    });
+    // The Options menu: Rip Style, Game Over Ending (with Rip Style only), Stop After Game and Themes Only, each ticked while on,
+    // kept for this browser (RIP_KEY and the rest) and heard at once: a tune playing goes on the new way
+    function optionsMenu() {
+      var r = optBtn.getBoundingClientRect();
+      function item(key, on, set, off) { return { label: T(key), ticked: on, disabled: !!off, fn: function () { set(!on); } }; }
+      optBtn.classList.add("d95-open");
+      try {
+        ByopopSkin.desk.menu(optBtn, [
+          item("music.opt.rip", ripOn, function (v) { ripOn = v; keep(RIP_KEY, v); applyRepeat(); shuffleBag = []; }),
+          item("music.opt.gameover", ripOver, function (v) { ripOver = v; keep(RIP_OVER_KEY, v); }, !ripOn),
+          { rule: true },
+          item("music.opt.onegame", oneGame, function (v) { oneGame = v; keep(ONE_GAME_KEY, v); gameBag = null; }),
+          item("music.opt.themes", themesOnly, function (v) { themesOnly = v; keep(THEMES_KEY, v); shuffleBag = []; })
+        ], r.left, r.bottom, optName, { done: function () { optBtn.classList.remove("d95-open"); } });
+      } catch (e) { optBtn.classList.remove("d95-open"); }
+    }
+    optBtn.addEventListener("click", optionsMenu);
+    root.addEventListener("keydown", function (ev) {
+      if (!ev.altKey || ev.ctrlKey || ev.metaKey || !ev.key || ev.key.toLowerCase() !== optName.charAt(0).toLowerCase()) return;
+      ev.preventDefault(); ev.stopPropagation(); optionsMenu();
     });
     shuffleBtn.addEventListener("click", function () {
       shuffle = !shuffle;
@@ -3680,6 +4033,8 @@ var ByopopMusic = (function () {
       setVis: function (v) { if (VIS.indexOf(v) >= 0) { vis = v; applyVis(); drawTracker(); } },
       play: function (i) { play(i); },
       current: function () { return tunes[current] ? tunes[current].id : null; },
+      // how the tune playing ended or is ending under Rip Style (ripStyle's ripEnd: null, "fade" or "over"), for tests
+      ripEnd: function () { return source ? source.ripEnd : null; },
       following: function () { return follow ? { muted: followEl.classList.contains("mu-muted"),  title: follow.title, view: follow.view, tapped: !!follow.tap, at: trackerAt.textContent } : null; },
       tick: tick };
   }
@@ -3690,6 +4045,7 @@ var ByopopMusic = (function () {
     files: { open: openExisting, list: gameFiles, read: readFile },
     // for tools/musictest.js and tools/musicrepeattest.js: a game's tunes as the player lists them, the channels its tracker view
     // shows, a tune's own orders, its sound's sources, and a recorded tune's length
-    test: { tunesOf: tunesOf, tuneUsed: tuneUsed, channelsShown: channelsShown, tuneOrders: tuneOrders, sounds: sounds,
+    test: { tunesOf: tunesOf, tuneUsed: tuneUsed, channelsShown: channelsShown, tuneOrders: tuneOrders, sounds: sounds, ripStyle: ripStyle, lucConstants: lucConstants, lucTitle: lucTitle,
+      RIP_PASSES: RIP_PASSES, RIP_FADE: RIP_FADE,
       oggSeconds: oggSeconds, wavSeconds: wavSeconds } };
 })();
