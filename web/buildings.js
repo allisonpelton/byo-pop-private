@@ -1,8 +1,8 @@
-// The Venice Buildings window (the user, 2026-11-18: "I'd love to see a combined image of all of Venice's buildings as a
-// continuous shot, if something like that is possible, and full images of the individual buildings of Venice"): a
-// Desktop 95 program on the listing page's desktop that shows Venice Deluxe's buildings from the player's own files in this
-// browser, each one whole and all of them in one row, and saves the one shown as a PNG. Nothing is shipped: the pictures
-// are decoded here from the player's files and kept only while the window is open.
+// Venice's buildings, the Gallery's entry for Venice (web/gallery.js; the user, 2026-11-18: "I'd love to see a combined image
+// of all of Venice's buildings as a continuous shot, if something like that is possible, and full images of the individual
+// buildings of Venice"): Venice Deluxe's buildings from the player's own files in this browser, each one whole and all of
+// them in one row, and the one shown saved as a PNG. Nothing is shipped: the pictures are decoded here from the player's
+// files and kept only while the Gallery shows them (panel(game).show to .hide).
 //
 // Each building is one picture, the one its levels name as their thumbnail (gfx/levelselect/thumbnail1.png to
 // thumbnail8.png; the win sequence names the trophy, thumbnail9.png). The level select shows them in a row that slides past
@@ -320,10 +320,9 @@ var ByopopBuildings = (function () {
   }
 
   var GAME = "venice";
-  var win = null;
+  // the entry's panel under the Gallery's Game list: { el, show, hide, redraw, state }
   function build(game) {
-    var el = make("section", "vb-win");
-    el.id = "venicebuildings";
+    var el = make("div", "vb-panel");
     // the picture and Save As on one row, as the Fonts window has its game, font and Save As, and how it is drawn below
     var bar1 = make("div", "fv-bar"), bar2 = make("div", "fv-bar fv-options");
     var pick = make("select", "vb-pick"), backPick = make("select"), zoomPick = make("select"), save = make("button", "fv-save", T("buildings.save"));
@@ -408,39 +407,7 @@ var ByopopBuildings = (function () {
     return { el: el, show: show, hide: hide, redraw: draw, state: function () { return { loaded: !!data, choice: pick.value, shown: shown && shown.name }; } };
   }
 
-  // The window on the desktop (web/index.html), closed at first, only where the listing has Venice; at(left, vw) gives its
-  // place
-  function attach(desk, at) {
-    var tile = document.querySelector('a.tile[data-game="' + GAME + '"]');
-    if (win || !tile || !document.getElementById("games-title")) return null;
-    win = build({ id: GAME, persist: tile.getAttribute("data-persist") });
-    var foot = document.querySelector("body > footer");
-    if (foot && foot.parentNode) foot.parentNode.insertBefore(win.el, foot); else document.body.appendChild(win.el);
-    // its icon: a house of Venice by the water, our own drawing in 32 x 32
-    var pic = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    pic.setAttribute("viewBox", "0 0 32 32"); pic.setAttribute("aria-hidden", "true"); pic.setAttribute("shape-rendering", "crispEdges");
-    pic.innerHTML = '<path d="M5 26V11h4V7h6v4h2V4h2v1h4v-1h2v7h2v15z" fill="#808000" stroke="#000"/>' +
-      '<path d="M8 14h2v3H8zM13 14h2v3h-2zM19 9h2v3h-2zM24 9h2v3h-2zM19 15h2v3h-2zM24 15h2v3h-2zM8 20h2v3H8zM13 20h2v3h-2zM19 21h2v3h-2zM24 21h2v3h-2z" fill="#ffff00"/>' +
-      '<path d="M2 27h28v3H2z" fill="#000080"/><path d="M4 28h4M12 29h5M21 28h5" stroke="#00ffff"/>';
-    desk.add(win.el, { id: "venicebuildings", title: T("buildings.title"), closable: true, closed: true, pic: pic, at: at, scroll: ".vb-well",
-      minWidth: 420, minHeight: 260 });
-    var open = false;
-    function watch() {
-      // (minimized, it keeps what it shows)
-      var now = !win.el.classList.contains("d95-closed") && document.documentElement.classList.contains("d95-desk");
-      if (now === open) return;
-      open = now;
-      if (open) win.show(); else win.hide();
-    }
-    if (window.MutationObserver) {
-      new MutationObserver(watch).observe(win.el, { attributes: true, attributeFilter: ["class"] });
-      new MutationObserver(watch).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    }
-    watch();
-    return win;
-  }
-
-  return { attach: attach, setSource: function (fn) { source = fn; }, window: function () { return win; },
+  return { panel: build, setSource: function (fn) { source = fn; },
     readTags: readTags, parseScene: parseScene, parseConfig: parseConfig, thumbnailOf: thumbnailOf, strip: strip,
     layout: layout, fill: fill, picture: picture, load: load };
 })();

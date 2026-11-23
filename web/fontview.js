@@ -1068,12 +1068,7 @@ var ByopopFontView = (function () {
     win = build(games);
     var foot = document.querySelector("body > footer");
     if (foot && foot.parentNode) foot.parentNode.insertBefore(win.el, foot); else document.body.appendChild(win.el);
-    // its icon: a page with a large A on it, our own drawing in 32 x 32
-    var pic = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    pic.setAttribute("viewBox", "0 0 32 32"); pic.setAttribute("aria-hidden", "true"); pic.setAttribute("shape-rendering", "crispEdges");
-    pic.innerHTML = '<path d="M6 2h15l6 6v22H6z" fill="#ffffff" stroke="#000"/><path d="M21 2v6h6" fill="#c0c0c0" stroke="#000"/>' +
-      '<path d="M10 26l5-15h3l5 15h-3l-1-4h-5l-1 4zM14 19h4l-2-6z" fill="#000080"/><path d="M9 26h5M19 26h5" stroke="#000080"/>';
-    desk.add(win.el, { id: "fontview", title: T("fontview.title"), closable: true, closed: true, pic: pic, at: at, scroll: ".fv-sheet",
+    desk.add(win.el, { id: "fontview", title: T("fontview.title"), closable: true, closed: true, at: at, scroll: ".fv-sheet",
       minWidth: 480, minHeight: 300 });
     var open = false;
     function watch() {

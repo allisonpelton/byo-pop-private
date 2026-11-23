@@ -574,6 +574,7 @@ html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: 
 </footer>
 <script src="saver.js"></script>
 <script src="settingsicons.js"></script>
+<script src="appicons.js"></script>
 <script src="settings.js"></script>
 <script src="playcount.js"></script>
 <script src="profiles.js"></script>
@@ -590,6 +591,7 @@ html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: 
 <script src="trophies.js"></script>
 <script src="fontview.js"></script>
 <script src="buildings.js"></script>
+<script src="gallery.js"></script>
 <script src="guidetexts.js"></script>
 <script src="guides.js"></script>
 <script src="gamepics.js"></script>
@@ -1325,7 +1327,7 @@ try {
         minHeight: id === "music" ? function () { return window.ByopopMusicPanel && ByopopMusicPanel.minHeight ? ByopopMusicPanel.minHeight() : 0; } : null,
         // closing Music stops it and lets its sound go (web/music.js, shutdown); minimizing keeps it playing
         afterClose: id === "music" ? function () { if (window.ByopopMusicPanel && ByopopMusicPanel.shutdown) ByopopMusicPanel.shutdown(); } : null,
-        pic: tab.querySelector("svg"), at: function (left, vw) { return [Math.max(left, vw - 620) - i * 28, top() + 24 + i * 28]; } });
+        at: function (left, vw) { return [Math.max(left, vw - 620) - i * 28, top() + 24 + i * 28]; } });
     });
     // the soundboard (web/sounds.js): the games' sound effects, Desktop 95 only, closed at first, its icon after Music's
     if (window.ByopopSounds) ByopopSounds.attach(d, function (left, vw) { return [Math.max(left, vw - 600) - 140, top() + 52]; });
@@ -1335,11 +1337,11 @@ try {
     // the Fonts window (web/fontview.js): the games' own fonts and text drawn in them, Desktop 95 only, closed at first, its icon
     // after the trophy cabinet's
     if (window.ByopopFontView) ByopopFontView.attach(d, function (left, vw) { return [Math.max(left, vw - 640) - 60, top() + 56]; });
-    // the Venice Buildings window (web/buildings.js): Venice's buildings whole and in one row, from the player's files, Desktop 95
-    // only, closed at first, where the listing has Venice, its icon after the Fonts window's
-    if (window.ByopopBuildings) ByopopBuildings.attach(d, function (left, vw) { return [Math.max(left, vw - 680) - 40, top() + 72]; });
+    // the Gallery (web/gallery.js): a game's pictures from the player's files (so far Venice's buildings, web/buildings.js),
+    // Desktop 95 only, closed at first, where the listing has a game with an entry, its icon after the Fonts window's
+    if (window.ByopopGallery) ByopopGallery.attach(d, function (left, vw) { return [Math.max(left, vw - 680) - 40, top() + 72]; });
     // the Guides window (web/guides.js, its texts web/guidetexts.js, docs/GUIDE_STYLE.md): the AI-generated guides, each under
-    // the window's AI-generated banner, Desktop 95 only, closed at first, its icon after the Venice Buildings window's
+    // the window's AI-generated banner, Desktop 95 only, closed at first, its icon after the Gallery's
     if (window.ByopopGuides) ByopopGuides.attach(d, function (left, vw) { return [Math.max(left, vw - 560) - 80, top() + 88]; });
     if (window.ByopopSplits) ByopopSplits.attach(d, function (left, vw) { return [Math.max(left, vw - 330), top() + 24]; });
     // the Setup window (web/setup.js): closed at first, no icon; Add Games in the Pop menu and the Add games button open it
@@ -1370,10 +1372,7 @@ try {
       } catch (e) { console.warn("the chat could not start", e); }
     }
     if (chatEl && window.ByopopChat) {
-      var chatPic = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      chatPic.setAttribute("viewBox", "0 0 24 24"); chatPic.setAttribute("class", "tab-icon");
-      chatPic.innerHTML = '<path d="M4 5h16v11H9l-4 4v-4H4z"/>';
-      d.add(chatEl, { id: "chat", title: ByopopStrings.t("game.chat.title"), closable: true, closed: true, lift: true, pic: chatPic,
+      d.add(chatEl, { id: "chat", title: ByopopStrings.t("game.chat.title"), closable: true, closed: true, lift: true,
         minWidth: 260, minHeight: 320, scroll: ".bpc-log, .bpc-nicks", at: function (left, vw) { return [Math.max(left, vw - 432), top()]; } });
       // it starts when the player first brings its window up, and only then: it never opens by itself (the user, 2026-11-11:
       // "Stop chat from opening on its own")
@@ -1384,7 +1383,7 @@ try {
     // System Information (web/sysinfo.js), in About's place: the footer is its General tab
     var sysEl = document.getElementById("sysinfo");
     if (window.ByopopSysInfo) ByopopSysInfo.mount(sysEl);
-    d.add(sysEl, { id: "about", title: ByopopStrings.t("index.sysinfo.title"), closable: true, body: true, pic: window.ByopopSysInfo ? ByopopSysInfo.picture() : null,
+    d.add(sysEl, { id: "about", title: ByopopStrings.t("index.sysinfo.title"), closable: true, body: true,
       fixed: true, at: function (left, vw) { return [Math.max(left, vw - 440), top() + 120]; } });
     ByopopSkin.deskSync();
     // the page opened at #settings and the like: that tab's window (the tabs' script ran before these windows were added)

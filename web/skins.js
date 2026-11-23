@@ -183,8 +183,25 @@ var ByopopSkin = (function () {
   function TW(k, title) { try { return ByopopStrings.t(k, { window: title }); } catch (e) { return title; } }
   var desk = (function () {
     var wins = [], top = 20, on = false, icons = null, taskbar = null;
+    // A window whose id changed comes back where it was, open or closed, its icon where it was placed: { old id: new id }
+    // (the user, 2026-11-22: Venice Buildings became the Gallery). Read with the old id moved to the new, the next save
+    // writes only the new.
+    var RENAMED = { venicebuildings: "gallery" };
+    function carryOver(o, prefix) {
+      Object.keys(o).forEach(function (page) {
+        var p = o[page];
+        if (!p || typeof p !== "object") return;
+        Object.keys(RENAMED).forEach(function (old) {
+          var was = prefix + old, now = prefix + RENAMED[old];
+          if (!Object.prototype.hasOwnProperty.call(p, was)) return;
+          if (!Object.prototype.hasOwnProperty.call(p, now)) p[now] = p[was];
+          delete p[was];
+        });
+      });
+      return o;
+    }
     function store() {
-      try { var o = JSON.parse(window.localStorage.getItem(DESK_KEY) || "{}"); return o && typeof o === "object" && !Array.isArray(o) ? o : {}; }
+      try { var o = JSON.parse(window.localStorage.getItem(DESK_KEY) || "{}"); return o && typeof o === "object" && !Array.isArray(o) ? carryOver(o, "") : {}; }
       catch (e) { return {}; }
     }
     // a game page's layout is kept under its id, the listing's under "index", a page in one of the one page's windows apart
@@ -617,13 +634,13 @@ var ByopopSkin = (function () {
     // (what the icon does instead: a panel's own button), at: function () { return [x, y]: where it goes first }, body (its
     // contents in a box of their own under the title bar, which scrolls them: a window that is not already laid out that way),
     // lift (on the desktop the window is a child of the page's body, and goes back where it was when the desktop goes: a part of
-    // another window, such as a tab of the listing), pic (an element copied into its desktop icon's picture), minimize (on the
+    // another window, such as a tab of the listing), minimize (on the
     // desktop a click on this part of its own title bar, or the keyboard's press of the title bar, minimizes it, and every other
     // click on the title bar does nothing: the chat's collapser) }
     function add(el, o) {
       if (!el || wins.some(function (w) { return w.el === el; })) return null;
       var w = { focusIn: o.focusIn || null, el: el, id: o.id, keep: o.keep || o.id, snap: o.snap || null, x: 0, y: 0, placed: false, closed: !!(o.closed && o.closable), at: o.at, open: o.open,
-                button: o.button, pic: o.pic || null, home: null, onClose: o.onClose || null, afterClose: o.afterClose || null, maximize: o.maximize || null, noIcon: !!o.noIcon, sizes: o.sizes || null,
+                button: o.button, home: null, onClose: o.onClose || null, afterClose: o.afterClose || null, maximize: o.maximize || null, noIcon: !!o.noIcon, sizes: o.sizes || null,
                 minHeight: o.minHeight || null, minWidth: o.minWidth || null, maxWidth: o.maxWidth || null, natural: !o.sizes && o.natural !== false,
                 fixed: !!o.fixed && !o.sizes, small: o.menuIcon || o.icon || null };
       if (o.lift) { w.home = document.createComment("desktop window " + o.id); el.parentNode.insertBefore(w.home, el); }
@@ -863,20 +880,40 @@ var ByopopSkin = (function () {
     }
     // ---- a window's pictures (the user, 2026-11-21: "The "Pop" menu is messed up, and could use icons ... the taskbar is missing
     // icons") ----
-    // A window's picture is its desktop icon's, drawn by the same rules (d95-icon-<id> in web/skins.css): at its own size in the
-    // Pop menu's first level, and at half size (d95-pic-sm) as the window's small icon, which its title bar, its task bar button
-    // and the Pop menu's lists show, as a 1995 program had one picture at two sizes. A window with a small icon of its own (a
-    // game's cap, a Settings section's picture) shows that one. An entry that is no window draws its own by name (drawnPic).
-    function picOf(w, small) {
+    // A window's picture is its desktop icon's: at its own size in the Pop menu's first level, and as the window's small icon,
+    // which its title bar, its task bar button and the Pop menu's lists show, as a 1995 program had one picture at two sizes. A
+    // window of one of the site's apps (every window but a game's) has the app's own icon (the user, 2026-11-22: "Give the
+    // other apps on the site better icons than just the window display"), drawn by tools/appicons.py at 32 by 32 and 16 by 16
+    // (web/appicons.js) and named by the window's id less "tab-" or "panel-" (the listing's Settings and a game's are one app):
+    // the large one on the desktop and in the menu's first level, the small one everywhere else; a Settings section's window
+    // ("set-" and the section) has the section's (web/settingsicons.js). A window with a small icon of its own (a game's cap, a
+    // Settings section's picture) shows that one. Any other window is drawn as a little window (d95-icon-<id> in
+    // web/skins.css), and an entry that is no window draws its own by name (drawnPic: an app's icon where one has the name).
+    function appIcon(id) {
+      id = String(id);
+      var sec = /^set-(.+)$/.exec(id), all = sec ? window.ByopopSettingsIcons : window.ByopopAppIcons;
+      return (all && all[sec ? sec[1] : id.replace(/^(tab|panel)-/, "")]) || null;
+    }
+    function appPic(icon, small, cls) {
       var s = document.createElement("span");
-      s.className = "d95-pic d95-icon-" + w.id + (w.pic ? " d95-icon-pic" : "") + (small ? " d95-pic-sm" : "");
+      s.className = "d95-pic d95-appicon " + cls + (small ? " d95-pic-sm" : "");
       s.setAttribute("aria-hidden", "true");
-      var i = document.createElement("i");
-      if (w.pic) { var c = w.pic.cloneNode(true); c.removeAttribute("id"); i.appendChild(c); }
-      s.appendChild(i);
+      // (the large one also carries the small, which a menu of small entries shows: d95-menu-small)
+      s.innerHTML = (small ? "" : '<span class="d95-appicon-32">' + icon.big + "</span>") + '<span class="d95-appicon-16">' + icon.small + "</span>";
+      return s;
+    }
+    function picOf(w, small) {
+      var icon = appIcon(w.id);
+      if (icon) return appPic(icon, small, "d95-icon-" + w.id);
+      var s = document.createElement("span");
+      s.className = "d95-pic d95-icon-" + w.id + (small ? " d95-pic-sm" : "");
+      s.setAttribute("aria-hidden", "true");
+      s.appendChild(document.createElement("i"));
       return s;
     }
     function drawnPic(name, small) {
+      var icon = appIcon(name);
+      if (icon) return appPic(icon, small, "d95-pic-" + name);
       var s = document.createElement("span");
       s.className = "d95-pic d95-pic-" + name + (small ? " d95-pic-sm" : "");
       s.setAttribute("aria-hidden", "true");
@@ -906,8 +943,8 @@ var ByopopSkin = (function () {
       var b = document.createElement("button");
       b.type = "button"; b.className = "d95-icon d95-icon-" + w.id;
       b.setAttribute("data-key", "w:" + w.id);
-      var pic = document.createElement("i"); pic.setAttribute("aria-hidden", "true");
-      if (w.pic) { var c = w.pic.cloneNode(true); c.removeAttribute("id"); pic.appendChild(c); b.classList.add("d95-icon-pic"); }
+      var pic = document.createElement("i"), icon = appIcon(w.id); pic.setAttribute("aria-hidden", "true");
+      if (icon) { pic.innerHTML = icon.big; b.classList.add("d95-icon-app"); }
       var name = document.createElement("span"); name.textContent = title;
       b.appendChild(pic); b.appendChild(name);
       b.setAttribute("aria-label", TW("skin.desk.open", title));
@@ -1154,8 +1191,7 @@ var ByopopSkin = (function () {
         win("about");
         if (!listing) {
           list.appendChild(rule());
-          var allPic = drawnPic("games"); allPic.classList.add("d95-icon-games");
-          list.appendChild(item(T("skin.pop.listing"), null, { href: "./", cls: "d95-leave", pic: allPic }));
+          list.appendChild(item(T("skin.pop.listing"), null, { href: "./", cls: "d95-leave", pic: drawnPic("games") }));
         }
         // Shut Down, last (the user, 2026-11-14, by the coordinator's list): every window closes, then the last screen
         list.appendChild(rule());
@@ -1260,7 +1296,19 @@ var ByopopSkin = (function () {
           strip.appendChild(b);  // in the windows' order
         });
         Object.keys(buttons).forEach(function (id) { if (!seen[id] && buttons[id].parentNode) buttons[id].parentNode.removeChild(buttons[id]); });
+        fitTasks();
       }
+      // the buttons share the bar in whole pixels, as 1995's did: each 160 wide while they fit, else the room shared out, never
+      // under 40 (a width with a fraction would put each icon after the first between the screen's pixels)
+      function fitTasks() {
+        var list = strip.children, n = list.length;
+        if (!n || !on || !strip.clientWidth) return;
+        var cs = getComputedStyle(strip), gap = parseFloat(cs.columnGap) || 0;
+        var room = unzoom(strip.clientWidth) - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0) - gap * (n - 1);
+        var each = Math.max(40, Math.min(160, Math.floor(room / n)));
+        for (var i = 0; i < n; i++) list[i].style.flex = "0 0 " + each + "px";
+      }
+      window.addEventListener("resize", fitTasks);
       function turn(want) {
         bar.hidden = !want;
         if (!want) close(false);
@@ -1343,7 +1391,7 @@ var ByopopSkin = (function () {
     // Icons moves each to the nearest free place of those columns. A drag on the empty desktop draws a dotted rectangle that
     // selects the icons it touches, and a drag of a selected icon moves every selected one.
     var ICON_KEY = "byopop-desk-icons", CELL = { w: 88, h: 64 };
-    function iconStore() { try { var o = JSON.parse(localStorage.getItem(ICON_KEY) || "{}"); return o && typeof o === "object" ? o : {}; } catch (e) { return {}; } }
+    function iconStore() { try { var o = JSON.parse(localStorage.getItem(ICON_KEY) || "{}"); return o && typeof o === "object" ? carryOver(o, "w:") : {}; } catch (e) { return {}; } }
     function iconPlaces() { var o = iconStore()[pageKey()]; return o && typeof o === "object" ? o : null; }
     function keepIconPlaces(p) {
       var o = iconStore();
@@ -1941,11 +1989,14 @@ var ByopopSkin = (function () {
       }
       sw.icons.textContent = "";
       sw.list.forEach(function (w, i) {
-        // the window's icon on the desktop, drawn by the same rules (d95-icon-<id>), else a plain window
+        // the window's icon on the desktop, drawn by the same rules (d95-icon-<id>); else its app's (a window with no desktop
+        // icon: Setup, a Settings section), else a plain window
         var c = document.createElement("span"), di = icons && icons.querySelector(".d95-icon-" + w.id + " > i");
-        c.className = "d95-icon d95-icon-" + w.id + (di && di.parentNode.classList.contains("d95-icon-pic") ? " d95-icon-pic" : "") +
+        var icon = di ? null : appIcon(w.id), pic = di ? di.cloneNode(true) : document.createElement("i");
+        if (icon) pic.innerHTML = icon.big;
+        c.className = "d95-icon d95-icon-" + w.id + ((di ? di.parentNode.classList.contains("d95-icon-app") : icon) ? " d95-icon-app" : "") +
           " d95-switch-icon" + (i === sw.at ? " d95-switch-on" : "");
-        c.appendChild(di ? di.cloneNode(true) : document.createElement("i"));
+        c.appendChild(pic);
         sw.icons.appendChild(c);
       });
       var t = sw.list[sw.at];

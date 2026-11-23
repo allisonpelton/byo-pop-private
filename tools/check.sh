@@ -48,7 +48,7 @@
 #   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
-#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), fontviewtest (the Fonts window's reader of the games' fonts, web/fontview.js, with the staged games'), buildingstest (the Venice Buildings window's layout, web/buildings.js, with the staged Venice's), guidestest (the guides' markup and style rules, web/guides.js and web/guidetexts.js), gamepicstest (the themes' picture decoders, web/gamepics.js), saveimporttest (the import of saves from an installed game:
+#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), fontviewtest (the Fonts window's reader of the games' fonts, web/fontview.js, with the staged games'), buildingstest (the Gallery's Venice buildings, their layout, web/buildings.js, with the staged Venice's), guidestest (the guides' markup and style rules, web/guides.js and web/guidetexts.js), gamepicstest (the themes' picture decoders, web/gamepics.js), saveimporttest (the import of saves from an installed game:
 #                platform/saveimport.json, the .reg reader and the conversion, web/saveimport.js), chattest (the chat's username,
 #                text and rate rules, its stored history and local source, and that a message goes on the page as text only,
 #                web/chat.js), gameimporttest (the import rules for a game's files and the sorting of dropped folders into games,
@@ -956,7 +956,7 @@ suite_unit-web() {
 	# the Fonts window's reader of the games' ImageFonts (web/fontview.js), with every staged game's fonts
 	"$NODE" tools/fontviewtest.js assets > "$1.fv" 2>&1 || st=1
 	tr="$tr; $(lastof "$1.fv" 'fontviewtest:')"
-	# the Venice Buildings window's layout of the level select's row (web/buildings.js), with the staged Venice's
+	# the Gallery's Venice buildings, their layout of the level select's row (web/buildings.js), with the staged Venice's
 	"$NODE" tools/buildingstest.js assets > "$1.vb" 2>&1 || st=1
 	tr="$tr; $(lastof "$1.vb" 'buildingstest:')"
 	# the guides' markup and the rules of docs/GUIDE_STYLE.md that a program can check (web/guides.js, web/guidetexts.js)

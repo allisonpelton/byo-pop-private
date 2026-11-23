@@ -96,13 +96,7 @@ var ByopopGuides = (function () {
     win = build(games);
     var foot = document.querySelector("body > footer");
     if (foot && foot.parentNode) foot.parentNode.insertBefore(win.el, foot); else document.body.appendChild(win.el);
-    // its icon: a closed book with a question mark, our own drawing in 32 x 32
-    var pic = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    pic.setAttribute("viewBox", "0 0 32 32"); pic.setAttribute("aria-hidden", "true"); pic.setAttribute("shape-rendering", "crispEdges");
-    pic.innerHTML = '<path d="M7 4h18v22H9a2 2 0 0 0 0 4h16v-4" fill="none" stroke="#000"/><path d="M7 4h18v22H9a2 2 0 0 0-2 2z" fill="#000080" stroke="#000"/>' +
-      '<path d="M9 27h15v2H9z" fill="#ffffff"/>' +
-      '<path d="M13 10a3 3 0 0 1 6 0c0 2-3 2-3 5M16 18v2" fill="none" stroke="#ffff00" stroke-width="2"/>';
-    desk.add(win.el, { id: "guides", title: T("guides.title"), closable: true, closed: true, pic: pic, at: at, scroll: ".gd-page",
+    desk.add(win.el, { id: "guides", title: T("guides.title"), closable: true, closed: true, at: at, scroll: ".gd-page",
       minWidth: 320, minHeight: 240 });
     win.show();
     return win;

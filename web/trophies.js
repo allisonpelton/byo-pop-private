@@ -593,12 +593,7 @@ var ByopopTrophies = (function () {
     win = build(games);
     var foot = document.querySelector("body > footer");
     if (foot && foot.parentNode) foot.parentNode.insertBefore(win.el, foot); else document.body.appendChild(win.el);
-    // its icon: a gold cup on a stand, our own drawing in 32 x 32
-    var pic = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    pic.setAttribute("viewBox", "0 0 32 32"); pic.setAttribute("aria-hidden", "true"); pic.setAttribute("shape-rendering", "crispEdges");
-    pic.innerHTML = '<path d="M9 4h14v9c0 4-3 7-7 7s-7-3-7-7z" fill="#ffff00" stroke="#000"/><path d="M9 7H5v3c0 3 2 5 4 5M23 7h4v3c0 3-2 5-4 5" fill="none" stroke="#000"/>' +
-      '<path d="M14 20h4v5h-4z" fill="#808000" stroke="#000"/><path d="M9 25h14v4H9z" fill="#808000" stroke="#000"/><path d="M12 6h2v8h-2z" fill="#ffffff"/>';
-    desk.add(win.el, { id: "trophies", title: T("trophies.title"), closable: true, closed: true, pic: pic, at: at, scroll: ".tc-body",
+    desk.add(win.el, { id: "trophies", title: T("trophies.title"), closable: true, closed: true, at: at, scroll: ".tc-body",
       minWidth: 300, minHeight: 200 });
     var open = false;
     function watch() {
