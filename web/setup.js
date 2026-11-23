@@ -158,7 +158,7 @@ var ByopopSetup = (function () {
     // Back, Next and Cancel, under an etched line
     var nav = make("div", "su-nav");
     u.back = make("button", "su-back", T("setup.back"));
-    u.next = make("button", "su-next", T("setup.next"));
+    u.next = make("button", "su-next d95-def", T("setup.next"));   // the default: Enter's, framed (skins.css)
     u.cancel = make("button", "su-cancel", T("setup.cancel"));
     [u.back, u.next, u.cancel].forEach(function (b) { b.type = "button"; nav.appendChild(b); });
     el.appendChild(nav);
@@ -187,6 +187,14 @@ var ByopopSetup = (function () {
     u.back.addEventListener("click", function () { if (at > 0) go(at - 1); else if (at === 0) showGames(); });
     u.next.addEventListener("click", onNext);
     u.cancel.addEventListener("click", function () { close(); });
+    // Enter anywhere but on a button, a link, a list box or a text area presses the default, Next (or Finish), as in a Windows 95
+    // wizard; on a button, the browser presses that button
+    el.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter" || ev.defaultPrevented || ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.isComposing) return;
+      if (ev.target.closest && ev.target.closest("button, a, textarea, select")) return;
+      if (u.next.disabled || u.next.hidden) return;
+      ev.preventDefault(); u.next.click();
+    });
     return u;
   }
 

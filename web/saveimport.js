@@ -474,6 +474,7 @@ var ByopopSaveImport = (function () {
     var nav = make("div", "si-nav");
     function navButton(key) { var b = make("button", "", ByopopStrings.t(key)); b.type = "button"; nav.appendChild(b); return b; }
     var backBtn = navButton("saveimport.back"), nextBtn = navButton("saveimport.next"), cancelBtn = navButton("saveimport.cancel");
+    nextBtn.classList.add("d95-def");   // the default: Enter's, framed (skins.css)
     frame.appendChild(nav);
 
     function onReview() { return pages[at] === reviewPage; }
@@ -495,6 +496,14 @@ var ByopopSaveImport = (function () {
     backBtn.addEventListener("click", function () { go(at - 1); });
     nextBtn.addEventListener("click", function () { if (onReview()) doImport(); else go(at + 1); });
     cancelBtn.addEventListener("click", function () { cancel(); });
+    // Enter anywhere but on a button, a link, a list box or a text area presses the default, Next (or the import's yes), as in a
+    // Windows 95 wizard
+    frame.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter" || ev.defaultPrevented || ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.isComposing) return;
+      if (ev.target.closest && ev.target.closest("button, a, textarea, select")) return;
+      if (nextBtn.disabled) return;
+      ev.preventDefault(); nextBtn.click();
+    });
 
     var chosen = null;          // the game's id
     var picks = { folder1: [], folder2: [], regs: [] };    // what the player chose: File lists

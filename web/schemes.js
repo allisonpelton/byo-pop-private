@@ -1,7 +1,8 @@
 // Desktop 95's colour schemes (the user, 2026-11-10: "The site might benefit from more color"; 2026-11-11, of the proposal's
 // schemes and patterns: "Yes, 1 then 2"; docs/WEB_PLAYER.md, "Colour schemes"). A scheme is a few colours of the desktop, as a
 // 1995 appearance scheme was: the desktop, the face of windows and buttons with its shadow and its soft light, the title bar
-// (one colour, or two as a gradient: each scheme decides) and the selection. The names and values are byo-pop's own, after
+// (one colour, or two: a scheme's second colour is the right end of the gradient Windows 98 brought, kept for a 98 look; the 95
+// look draws the first alone, as Windows 95 did) and the selection. The names and values are byo-pop's own, after
 // soda flavours. The setting "scheme" picks one (web/settings.js, Appearance); "standard" is the look the site always had and
 // changes nothing. Text sizes never change with a scheme.
 //
@@ -11,7 +12,7 @@
 var ByopopSchemes = (function () {
   "use strict";
   // desk: the desktop; face: windows and buttons; lo: the shadow of a raised edge (and an inactive title bar); mid: the soft light
-  // inside it; title: the active title bar, one colour or [left, right]; sel: selected items, links and the menu's highlight
+  // inside it; title: the active title bar, one colour or [left, right] (the 95 look draws left alone); sel: selected items, links and the menu's highlight
   var LIST = [
     { id: "standard", desk: "#008080", face: "#c0c0c0", lo: "#808080", mid: "#dfdfdf", title: ["#000080", "#1084d0"], sel: "#000080" },
     { id: "cola", desk: "#3b1f14", face: "#c9b8a8", lo: "#85705f", mid: "#e2d6ca", title: "#5a1a12", sel: "#5a1a12" },
@@ -39,7 +40,7 @@ var ByopopSchemes = (function () {
   function chosen() {
     try { var o = JSON.parse(window.localStorage.getItem(KEY) || "{}"); return byId(o && o.scheme).id; } catch (e) { return STANDARD.id; }
   }
-  var VARS = ["--bg", "--panel", "--panel-2", "--line", "--accent", "--sk-lo", "--sk-mid", "--sk-title", "--sk-band"];
+  var VARS = ["--bg", "--panel", "--panel-2", "--line", "--accent", "--sk-lo", "--sk-mid", "--sk-title"];
   // the data-address pictures of web/skins.css, with the scheme's colours for the standard greys
   function uriRules(s) {
     var out = [], swap = [[/(%23|#)c0c0c0/gi, s.face], [/(%23|#)808080/gi, s.lo], [/(%23|#)dfdfdf/gi, s.mid]];
@@ -85,8 +86,8 @@ var ByopopSchemes = (function () {
     root.style.setProperty("--accent", s.sel);
     root.style.setProperty("--sk-lo", s.lo);
     root.style.setProperty("--sk-mid", s.mid);
-    root.style.setProperty("--sk-title", t[0] === t[1] ? t[0] : "linear-gradient(90deg, " + t[0] + ", " + t[1] + ")");
-    root.style.setProperty("--sk-band", t[0] === t[1] ? t[0] : "linear-gradient(0deg, " + t[0] + ", " + t[1] + ")");
+    // one colour, Windows 95's (a 98 look would draw linear-gradient(90deg, t[0], t[1])); the Pop band is the shadow, --sk-lo
+    root.style.setProperty("--sk-title", t[0]);
     root.setAttribute("data-scheme", s.id);
     if (!st) { st = document.createElement("style"); st.id = "d95-scheme"; document.head.appendChild(st); }
     st.textContent = uriRules(s);
