@@ -212,7 +212,7 @@
 #   feedingfrenzy2  Feeding Frenzy 2: stage 1's recorded play, the first bonus stage with a time bubble eaten and the next
 #                stage, and the continue offer twice to the game over, each run twice against frozen screenshot and state
 #                hashes (games/feedingfrenzy2/tools/suite/suite.sh), and build/baseline-feedingfrenzy2/feedingfrenzy2.exe's
-#                runs the same when there is one (about 3 minutes)
+#                runs the same when there is one (about 6 minutes)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs. Not in `all`: it
 #                compares Bejeweled's game logic with the original's, which a change outside games/bejeweled leaves as
@@ -372,7 +372,7 @@ suite_weight() { WEIGHT=1; [ "$1" = speed ] && WEIGHT=3; [ "$1" = bonnies ] && [
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=560 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [peggle]=10 [pizzafrenzy]=180 [feedingfrenzy2]=190 [oracle]=1080)
+	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=560 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [peggle]=10 [pizzafrenzy]=180 [feedingfrenzy2]=340 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52 [typershark]=270)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
