@@ -326,7 +326,9 @@ Desktop 95 is the site's only look, an affectionate parody of the 1995 desktop (
 skins, including the plain one"): `web/skins.js` sets `<html data-skin="d95">` and `web/skins.css` holds the look and
 the pages' colour variables (`--bg`, `--panel`, `--fg`, `--accent`, `--font-ui`, `--sk-*`). Only the player-only page
 has no skin. Its controls are drawn as the 1995 desktop drew them (the user, 2026-11-08: "Rounded corners are very
-un-95"), in our own SVG.
+un-95"), in our own SVG. Where a choice is between a plainer look and the one Windows 95 had, take Windows 95's, even when
+it changes every window or box on the site (the user, 2026-11-23: "Always prefer more authentic designs for the 95 look",
+on giving every message box's default button its black frame).
 
 **Windows.** A page is a desktop (`ByopopSkin.desk`) whose game, chat and panels are windows, added with
 `ByopopSkin.desk.add(element, {id, title, ...})`. The desktop never scrolls, and F6 moves between its panes. Alt+\`
