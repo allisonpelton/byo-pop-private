@@ -220,11 +220,16 @@
 #                stage, and the continue offer twice to the game over, each run twice against frozen screenshot and state
 #                hashes (games/feedingfrenzy2/tools/suite/suite.sh), and build/baseline-feedingfrenzy2/feedingfrenzy2.exe's
 #                runs the same when there is one (about 6 minutes)
+#   bejeweled3   Bejeweled 3: a script of test commands (games/bejeweled3/tools/suite/suite.sh): the menu, a seeded Classic
+#                game played by the bot, a board with a Flame Gem, a Star Gem and a Hypercube, then a board with no move and
+#                the game-over dialog; run twice with the same state lines and screenshots, the states as frozen; then
+#                Butterflies, Poker, Ice Storm, Diamond Mine and the Quest boards and goals by the bot, each run twice (about
+#                six minutes; one game process at a time)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs. Not in `all`: it
 #                compares Bejeweled's game logic with the original's, which a change outside games/bejeweled leaves as
 #                Bejeweled's frozen baseline (verify) already proves; merge mode runs it when games/bejeweled changes
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy feedingfrenzy feedingfrenzy2; all = every suite but the oracle, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy feedingfrenzy feedingfrenzy2 bejeweled3; all = every suite but the oracle, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -360,7 +365,7 @@ OUT="build/logs/check"
 QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 
 # The suites in the order `all` runs them (origrun is not in `all`), and the game suites among them
-GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy feedingfrenzy feedingfrenzy2)
+GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark venice heavyweapon hammerheads peggle pizzafrenzy feedingfrenzy feedingfrenzy2 bejeweled3)
 # the oracle is left out of `all` and of shared code's "every suite" (the user, 2026-11-11: "Seems like the Bejeweled oracle
 # is causing a lot of slowdown for no benefit"); it runs when games/bejeweled changes, or when named
 ALL_SUITES=(build build-web build-nov unit unit-web gpu screens speed verify modmenu livesplit "${GAME_SUITES[@]}")
@@ -379,7 +384,7 @@ suite_weight() { WEIGHT=1; [ "$1" = speed ] && WEIGHT=3; [ "$1" = bonnies ] && [
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=560 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [peggle]=10 [pizzafrenzy]=180 [feedingfrenzy]=240 [feedingfrenzy2]=340 [oracle]=1080)
+	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=560 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [peggle]=10 [pizzafrenzy]=180 [feedingfrenzy]=240 [feedingfrenzy2]=340 [bejeweled3]=330 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52 [typershark]=270)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
@@ -2706,6 +2711,15 @@ suite_feedingfrenzy() {
 	local e
 	need_assets feedingfrenzy || return 1
 	bash games/feedingfrenzy/tools/suite/suite.sh "$OUT/feedingfrenzy" > "$1" 2>&1; e=$?
+	SUMMARY="$(tail -n 1 "$1")"
+	return $e
+}
+
+# Bejeweled 3's suite is its own script, which prints one summary line and exits 0 when every check passed
+suite_bejeweled3() {
+	local e
+	need_assets bejeweled3 || return 1
+	bash games/bejeweled3/tools/suite/suite.sh "$OUT/bejeweled3" > "$1" 2>&1; e=$?
 	SUMMARY="$(tail -n 1 "$1")"
 	return $e
 }

@@ -4,6 +4,21 @@
 #include "Bej3Dialog.h"
 #include "Bej3Music.h"
 #include "Board.h"
+#include "GemSilhouettes.h"
+#include "ButterflyBoard.h"
+#include "IceStormBoard.h"
+#include "DiamondMineBoard.h"
+#include "PokerBoard.h"
+#include "MoveLimitBoard.h"
+#include "QuestMenu.h"
+#include "TimeLimitBoard.h"
+#include "TimeBombBoard.h"
+#include "BalanceBoard.h"
+#include "FillerBoard.h"
+#include "NoLoseBoard.h"
+#include "BadMoveLimitBoard.h"
+#include "LightningBoard.h"
+#include "ZenBoard.h"
 #include "MemoryImage.h"
 #include "MainMenu.h"
 #include "PlayMenu.h"
@@ -20,6 +35,7 @@
 #include "X86Math.h"
 
 #include <SDL.h>
+#include <cctype>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
@@ -97,6 +113,7 @@ void Bej3App::Init()
 	mPrimeResourceManager->mCurArtRes = mArtRes;
 
 	LoadQuestData();
+	GemSilhouettes::Load();   // port: the time gems' bolts follow the gems' edge (0x83a548), which is read from the exe
 	// port: the Steam statistics object at +0xbac (0x78a740, 0x78a8c0) is left out
 	LoadTextFiles();
 	LoadProfile();
@@ -204,6 +221,19 @@ void Bej3App::DoWelcomeDialog()
 		mArtRes * 400 / 0x4b0);
 	AddDialog(aDialog);
 	mWidgetManager->SetFocus(aDialog->mEdit);
+	EnterScriptName();
+}
+
+// port: test only. The new user dialog (id 1) gets the name a script gave, typed into its box, and its OK is pressed (the box's Enter,
+// 0x673b80, does the same), so the game goes on as for a player who has typed a name: the profile is made and the dialog fades out
+void Bej3App::EnterScriptName()
+{
+	NewUserDialog* aDialog = dynamic_cast<NewUserDialog*>(GetDialog(1));
+	if (mScriptName.empty() || aDialog == nullptr)
+		return;
+	aDialog->mEdit->mString = mScriptName;
+	mScriptName.clear();
+	aDialog->ButtonDepress(Dialog::ID_YES);
 }
 
 // 0x76cd70: the original makes its CustomBassMusicInterface when the framework asks for the music interface
@@ -438,6 +468,165 @@ void Bej3App::ShowResourceError(bool doExit)
 // 0x7737d0 (bejeweled3)
 void Bej3App::StartClassic()
 {
+	StartBoard(new ClassicBoard());
+}
+
+// 0x773100 (bejeweled3): Zen. The board is made by 0x7126f0, sized, reset (slot 85) and started like Classic's. port: the exe's mode
+// start also makes an 0x88-byte object first (the Zen mode's own state) and asks the mantras' window to open: both are left out
+void Bej3App::StartZen()
+{
+	StartBoard(new ZenBoard());
+}
+
+// 0x773440 (bejeweled3): Lightning. The board is made by 0x718090; before it is reset (slot 85, 0x718500) the settings of the first quest
+// of speed.cfg ("Lightning") are copied into the board's map (0x404870), "Title" among them
+void Bej3App::StartLightning()
+{
+	LightningBoard* aBoard = new LightningBoard();
+	if (mSpeedQuestData != nullptr && !mSpeedQuestData->mQuests.empty())
+		aBoard->mSettings = mSpeedQuestData->mQuests[0].mSettings;
+	aBoard->mSettings["Title"] = "Lightning";
+	StartBoard(aBoard);
+}
+
+// 0x774060 (bejeweled3): a secret mode. The quest (secret.cfg's, by index: 0 Poker, 1 Butterflies, 2 Inferno, 3 Dig) says by its setting
+// Challenge which board is made: the exe compares it with the names in this order, ignoring case: TIME BOMB, TIME BOMB (REAL TIME), INFERNO,
+// BALANCE, BUTTERFLIES or BUTTERFLY (0x6dcdf0), FILLER, MOVE LIMIT, TIME LIMIT, NO LOSE, BAD MOVE LIMIT, POKER (0x6da1c0) and DIG (0x737420). The quest's settings
+// are copied into the board's map (0x404870) and the secret flag (+0x3184, the call's fourth argument) is set before the board is reset
+// (slot 85) and dealt (slot 135). port: only the boards that are made (Poker, Butterflies, Ice Storm, Diamond Mine)
+bool Bej3App::StartSecretMode(int theIndex)
+{
+	if (mSecretQuestData == nullptr || theIndex < 0 || theIndex >= (int)mSecretQuestData->mQuests.size())
+		return false;
+	const std::map<std::string, std::string>& aSettings = mSecretQuestData->mQuests[theIndex].mSettings;
+	auto aChallengeIter = aSettings.find("Challenge");
+	std::string aChallenge = aChallengeIter == aSettings.end() ? std::string() : aChallengeIter->second;
+	if (aChallenge.size() >= 2 && aChallenge.front() == '"' && aChallenge.back() == '"')
+		aChallenge = aChallenge.substr(1, aChallenge.size() - 2);
+	for (char& aChar : aChallenge)
+		aChar = (char)toupper((unsigned char)aChar);
+	QuestBoard* aBoard = nullptr;
+	if (aChallenge == "BUTTERFLIES" || aChallenge == "BUTTERFLY")
+		aBoard = new ButterflyBoard();
+	if (aChallenge == "POKER")
+		aBoard = new PokerBoard();
+	if (aChallenge == "INFERNO")
+		aBoard = new IceStormBoard();
+	if (aChallenge == "DIG")
+		aBoard = new DigBoard();   // 0x737420
+	if (aBoard == nullptr)
+		return false;
+	aBoard->mSettings = aSettings;
+	aBoard->mIsSecretMode = true;
+	StartBoard(aBoard);
+	return true;
+}
+
+// 0x774060 (bejeweled3) with the secret flag 0: a quest of the map. The quest (quest.cfg's, by index) says by its setting Challenge which board is made (the names
+// are compared as for the secret modes, see StartSecretMode); its settings are copied into the board's map and its index is the board's +0x3234 before the board is reset
+// (slot 85) and dealt (slot 135). port: every challenge of the exe's list is made (Real Time Bomb's class is not: see TimeBombBoard); the quest map stays up when the
+// challenge is not
+bool Bej3App::StartQuest(int theIndex)
+{
+	if (mQuestData == nullptr || theIndex < 0 || theIndex >= (int)mQuestData->mQuests.size())
+		return false;
+	// port: a test's changes of settings (the quest command) are made before the challenge is read, so one can change the board
+	std::map<std::string, std::string> aSettings = mQuestData->mQuests[(size_t)theIndex].mSettings;
+	for (const auto& aChange : mQuestSettingChanges)
+		aSettings[aChange.first] = aChange.second;
+	auto aChallengeIter = aSettings.find("Challenge");
+	std::string aChallenge = aChallengeIter == aSettings.end() ? std::string() : aChallengeIter->second;
+	if (aChallenge.size() >= 2 && aChallenge.front() == '"' && aChallenge.back() == '"')
+		aChallenge = aChallenge.substr(1, aChallenge.size() - 2);
+	for (char& aChar : aChallenge)
+		aChar = (char)toupper((unsigned char)aChar);
+	QuestBoard* aBoard = nullptr;
+	if (aChallenge == "TIME BOMB" || aChallenge == "TIME BOMB (REAL TIME)") {
+		TimeBombBoard* aBombBoard = new TimeBombBoard();   // 0x869dc4, by 0x6dd440 with 0 or 1; the class of the real-time bombs (0x869954) is never made
+		aBombBoard->mRealTime = aChallenge == "TIME BOMB (REAL TIME)";
+		aBoard = aBombBoard;
+	}
+	else if (aChallenge == "INFERNO")
+		aBoard = new IceStormBoard();   // 0x8685ec, by 0x6e2d90
+	else if (aChallenge == "BALANCE")
+		aBoard = new BalanceBoard();   // 0x86789c, by 0x6dd090
+	else if (aChallenge == "BUTTERFLIES" || aChallenge == "BUTTERFLY")
+		aBoard = new ButterflyBoard();   // 0x867d0c, by 0x6dcdf0
+	else if (aChallenge == "FILLER")
+		aBoard = new FillerBoard();   // 0x86817c, by 0x6dcc00
+	else if (aChallenge == "MOVE LIMIT")
+		aBoard = new MoveLimitBoard();   // 0x868a84
+	else if (aChallenge == "TIME LIMIT")
+		aBoard = new TimeLimitBoard();   // 0x86a234
+	else if (aChallenge == "DIG")
+		aBoard = new DigBoard();   // 0x8657d4, by 0x737420
+	else if (aChallenge == "NO LOSE")
+		aBoard = new NoLoseBoard();   // 0x868ef4, by 0x6da7a0
+	else if (aChallenge == "BAD MOVE LIMIT")
+		aBoard = new BadMoveLimitBoard();   // 0x86742c, by 0x6dd370
+	else if (aChallenge == "POKER")
+		aBoard = new PokerBoard();   // by 0x6da1c0
+	if (aBoard == nullptr) {
+		SDL_Log("Quest: the challenge \"%s\" is not made yet", aChallenge.c_str());
+		return false;
+	}
+	aBoard->mSettings = aSettings;
+	aBoard->mIsSecretMode = false;
+	aBoard->mQuestIndex = theIndex;
+	// the quest map goes (the exe keeps it under the game; the port makes a new one when it comes back)
+	if (mQuestMenu != nullptr) {
+		mWidgetManager->RemoveWidget(mQuestMenu);
+		SafeDeleteWidget(mQuestMenu);
+		mQuestMenu = nullptr;
+	}
+	StartBoard(aBoard);
+	return true;
+}
+
+// 0x773b70 (bejeweled3): with theDeleteBoard the app's board (+0xbe8) goes; the quest map (0x693760) is made if there is none, 1920 wide, as high as the art and 160 (of
+// 1200) left of the screen's edge, put on the screen (+0xbd8) with the focus, and the music's events FadeOut and Play of "QuestMenu" are queued. port: a map that is up is
+// made again, so it shows the profile as it is
+void Bej3App::ShowQuestMenu(bool theDeleteBoard)
+{
+	if (theDeleteBoard && mBoard != nullptr) {
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+		mBoard = nullptr;
+	}
+	if (mQuestMenu != nullptr) {
+		mWidgetManager->RemoveWidget(mQuestMenu);
+		SafeDeleteWidget(mQuestMenu);
+		mQuestMenu = nullptr;
+	}
+	mQuestMenu = new QuestMenu();
+	mQuestMenu->Resize(mArtRes * -160 / 0x4b0, 0, mArtRes * 1920 / 0x4b0, mArtRes);
+	mWidgetManager->AddWidget(mQuestMenu);
+	mWidgetManager->SetFocus(mQuestMenu);
+	if (mBej3Music != nullptr) {
+		mBej3Music->QueueEvent("FadeOut", "", false);
+		mBej3Music->QueueEvent("Play", "QuestMenu", false);
+	}
+}
+
+// 0x697640 (bejeweled3), the id 2: the quest map (and the board under it) goes and the play menu comes back (0x7716e0)
+void Bej3App::LeaveQuestMenu()
+{
+	if (mQuestMenu != nullptr) {
+		mWidgetManager->RemoveWidget(mQuestMenu);
+		SafeDeleteWidget(mQuestMenu);
+		mQuestMenu = nullptr;
+	}
+	if (mBoard != nullptr) {
+		mWidgetManager->RemoveWidget(mBoard);
+		SafeDeleteWidget(mBoard);
+		mBoard = nullptr;
+	}
+	ShowPlayMenu();
+}
+
+// the common part of the starts (0x7737d0, 0x773100, 0x773440, 0x774060)
+void Bej3App::StartBoard(Board* theBoard)
+{
 	if (mGemFrames[0][7] == nullptr)
 		MakeGemFrames();
 	// the board of the game before goes (the exe also lets go of another screen at +0xba4: nothing there is made yet)
@@ -446,7 +635,7 @@ void Bej3App::StartClassic()
 		SafeDeleteWidget(mBoard);
 		mBoard = nullptr;
 	}
-	mBoard = new ClassicBoard();
+	mBoard = theBoard;
 	mBoard->Resize(0, 0, mWidth, mHeight);
 	mBoard->ResetGame();
 	// slot 213 (0x743f40) with 0x15 sets what the mode shows: not translated yet

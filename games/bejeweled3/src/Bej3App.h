@@ -5,6 +5,7 @@
 
 #include "SexyApp.h"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -17,6 +18,7 @@ class MainMenu;
 class PrimeResourceManager;
 class Profile;
 class QuestDataParser;
+class QuestMenu;
 
 class Bej3App : public SexyApp {
 public:
@@ -40,6 +42,7 @@ public:
 	Profile* mProfile = nullptr;            // +0xb80: the players and the one loaded
 	MainMenu* mMainMenu = nullptr;          // +0xba0: the first screen
 	Bej3Music* mBej3Music = nullptr;        // +0xa30: the same object as mMusicInterface, with the game's songs (null without sound)
+	QuestMenu* mQuestMenu = nullptr;        // +0xbd8: the quest map, while it is up (0x773b70 makes it)
 	Board* mBoard = nullptr;                // +0xbe8: the game screen (made by the mode's start, 0x7737d0 for Classic)
 	// +0xb5c: the gems' sprites, made by 0x76bfc0 from IMAGE_GEMS_SHADOWED: a row of 15 for each colour (the frame is picked by
 	// the gem's size). port: made when the first board is made, not at the end of loading
@@ -88,11 +91,31 @@ public:
 	// screen, put on it with the focus, its first game dealt, and the game's music starts. port: the saved game that
 	// 0x76cde0 asks about is none
 	void StartClassic();
+	void StartZen();         // 0x773100 (bejeweled3)
+	void StartLightning();   // 0x773440 (bejeweled3)
+	// 0x774060 (bejeweled3): starts a secret mode, the quest at the index of secret.cfg (0 Poker, 1 Butterflies; 2 and 3 are not made); false when
+	// that quest's mode is not made
+	bool StartSecretMode(int theIndex);
+	// port: test only (the `quest` command): settings that replace the quest's own in the next StartQuest
+	std::map<std::string, std::string> mQuestSettingChanges;
+	// 0x774060 (bejeweled3) with the secret flag 0: starts the quest at an index of quest.cfg (the quest map's buttons); false when that quest's challenge is not made
+	bool StartQuest(int theIndex);
+	// 0x773b70 (bejeweled3): the quest map is shown (the play menu's QUEST ball, a lost or won quest); with theDeleteBoard the board of the game goes
+	void ShowQuestMenu(bool theDeleteBoard);
+	// the quest map's BACK (0x697640's id 2): the map and the board under it go and the play menu comes back
+	void LeaveQuestMenu();
+	// the quest map is up
+	bool IsQuestMenuVisible() const { return mQuestMenu != nullptr; }
+	void StartBoard(Board* theBoard);   // the shared end of the starts
 
 	// 0x7716e0 (bejeweled3): the game screen is leaving: the play menu (the screen PLAY opens) comes back and the menu's song plays
 	void ShowPlayMenu();
 	// port: the standard test commands (docs/TEST_COMMANDS.md): seed, state, goto classic
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port: test only (the `name` command). A name typed into the new user dialog and its OK pressed, as a player does: at once when the
+	// dialog is open, else when the welcome dialog opens (a game with a player already has no such dialog and the command does nothing)
+	std::string mScriptName;
+	void EnterScriptName();
 
 	// 0x76aaf0 (bejeweled3): plays a sound of the sound manager at a volume, pan and pitch (steps); nothing when muted
 	void PlaySoundEx(int theSoundId, double theVolume, int thePan, double thePitch);

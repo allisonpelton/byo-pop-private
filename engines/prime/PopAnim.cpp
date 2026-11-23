@@ -35,9 +35,10 @@ PAImage::PAImage()
 }
 
 // port: the exe constructs these in place (0x44acd0 (bejeweled3) for a vector of them)
-PASlot::PASlot() : mColor(Color::White)
+PASlot::PASlot() : mPreviousColor(Color::White), mColor(Color::White)
 {
 	mTransform.LoadIdentity();
+	mPreviousTransform.LoadIdentity();
 }
 
 // 0x440ea0 (bejeweled3)
@@ -893,6 +894,124 @@ bool PopAnim::PlayLabel(const std::string& theLabel, bool theReset)
 	return PlayFrame(aFrame, theReset);
 }
 
+// What a transition keeps of an object of the old animation, by its name (0x444910 (bejeweled3)): where it was drawn,
+// in what color, and the particle effects of the sprite it was
+struct TransitionEntry {
+	SexyMatrix3 mTransform;
+	Color mColor;
+	std::vector<PAEffectLayer> mEffects;
+	TransitionEntry() : mColor(Color::White) { mTransform.LoadIdentity(); }
+};
+
+// port: the effects a transition drops are the exe's own leaks made tidy: they are on no sprite any more
+static void DeleteEffects(std::vector<PAEffectLayer>& theEffects)
+{
+	for (size_t i = 0; i < theEffects.size(); i++)
+		delete theEffects[i].mEffect;
+	theEffects.clear();
+}
+
+// 0x444910 (bejeweled3): like PlayLabel, but the objects the old animation and the new one both have (by name) move
+// and fade from what they were drawn with to what the new label has, over theTransitionTime updates; an object the old
+// one did not have starts at once. With a .pam that names its main sprite (versions 4 and 5) the label names the
+// sprite, and the old sprite's instance is replaced. The particle effects of an old object go to the new object of
+// the same name. False (with the old animation still playing) when there is no such label.
+bool PopAnim::TransitionToLabel(const std::string& theLabel, int theTransitionTime)
+{
+	if (!SetupMainSprite(""))
+		return false;
+	if (mTransformsStale) {
+		UpdateTransforms(mMainInst, nullptr, &mAnimColor, false);
+		mTransformsStale = false;
+	}
+
+	// what each named object of the main sprite's frame is drawn with now
+	std::map<std::string, TransitionEntry> aPrevious;
+	PASpriteInst* anOldMain = mMainInst;
+	PAFrame& anOldFrame = anOldMain->mDef->mFrames[(int)anOldMain->mFrameNum];
+	for (size_t i = 0; i < anOldFrame.mObjectPosVector.size(); i++) {
+		PAObjectPos& anObject = anOldFrame.mObjectPosVector[i];
+		PASlot& aSlot = anOldMain->mSlots[anObject.mObjectNum];
+		if (aSlot.mName.empty())
+			continue;
+		if (aPrevious.find(anObject.mName) != aPrevious.end())
+			continue;  // a map keeps the first of a name
+		TransitionEntry anEntry;
+		if (!anObject.mIsSprite || aSlot.mChild == nullptr)
+			BlendObject(anOldMain, (int)i, false, &anEntry.mTransform, &anEntry.mColor);
+		else {
+			anEntry.mTransform = aSlot.mChild->mTransform;
+			anEntry.mColor = aSlot.mChild->mColor;
+		}
+		if (aSlot.mChild != nullptr)
+			anEntry.mEffects.swap(aSlot.mChild->mEffects);
+		aPrevious.insert(std::make_pair(anObject.mName, anEntry));
+	}
+	std::vector<PAEffectLayer> aMainEffects;
+	aMainEffects.swap(anOldMain->mEffects);
+
+	mTransitionTime = (float)theTransitionTime;
+	mTransitionElapsed = 0;
+	mStartDelay = 0;
+	bool aFailed = false;
+	if (mData->mMain == nullptr) {
+		SetupMainSprite(theLabel);
+		PlayFrame(mMainInst->mDef->mWorkStart, false);
+	}
+	else {
+		int aFrame = SetupMainSprite("") ? GetLabelFrame(theLabel) : -1;
+		if (aFrame == -1)
+			aFailed = true;
+		else {
+			mLabel = theLabel;
+			PlayFrame(aFrame, false);
+			mTransformsStale = true;
+		}
+	}
+	if (aFailed) {
+		// the old animation goes on, with what was taken from it
+		mMainInst->mEffects.swap(aMainEffects);
+		for (size_t i = 0; i < anOldFrame.mObjectPosVector.size(); i++) {
+			PAObjectPos& anObject = anOldFrame.mObjectPosVector[i];
+			PASlot& aSlot = mMainInst->mSlots[anObject.mObjectNum];
+			std::map<std::string, TransitionEntry>::iterator anItr = aPrevious.find(anObject.mName);
+			if (anItr != aPrevious.end() && aSlot.mChild != nullptr) {
+				aSlot.mChild->mEffects.swap(anItr->second.mEffects);
+				aPrevious.erase(anItr);
+			}
+		}
+		for (std::map<std::string, TransitionEntry>::iterator anItr = aPrevious.begin(); anItr != aPrevious.end(); ++anItr)
+			DeleteEffects(anItr->second.mEffects);
+		return false;
+	}
+
+	DeleteEffects(mMainInst->mEffects);
+	mMainInst->mEffects.swap(aMainEffects);
+	for (size_t i = 0; i < mMainInst->mSlots.size(); i++) {
+		PASlot& aSlot = mMainInst->mSlots[i];
+		if (aSlot.mName.empty())
+			continue;
+		std::map<std::string, TransitionEntry>::iterator anItr = aPrevious.find(aSlot.mName);
+		if (anItr == aPrevious.end()) {
+			aSlot.mHasPrevious = false;
+			continue;
+		}
+		aSlot.mHasPrevious = true;
+		aSlot.mPreviousColor = anItr->second.mColor;
+		aSlot.mPreviousTransform = anItr->second.mTransform;
+		if (aSlot.mChild == nullptr)
+			DeleteEffects(anItr->second.mEffects);
+		else {
+			DeleteEffects(aSlot.mChild->mEffects);
+			aSlot.mChild->mEffects.swap(anItr->second.mEffects);
+		}
+		aPrevious.erase(anItr);
+	}
+	for (std::map<std::string, TransitionEntry>::iterator anItr = aPrevious.begin(); anItr != aPrevious.end(); ++anItr)
+		DeleteEffects(anItr->second.mEffects);
+	return true;
+}
+
 // 0x44a2d0 (bejeweled3), slot 22
 void PopAnim::Update()
 {
@@ -1404,10 +1523,22 @@ void PopAnim::BlendObject(PASpriteInst* theInst, int theObjectIndex, bool theFor
 		}
 	}
 
-	// the slot's own transform on it (and, in the exe, the blend with what the slot was drawn with before a
-	// transition, which nothing starts)
+	// the slot's own transform on it
 	*theMatrix = MultiplyMatrices(aSlot.mTransform, aMatrix);
 	*theColor = aColor;
+
+	// during a transition (TransitionToLabel), a slot of the main sprite that the old animation also had goes from
+	// what it was drawn with then to this, by how much of the transition's time has passed
+	if (aSlot.mHasPrevious && mTransitionTime != 0.0f && theInst == mMainInst) {
+		float aFrac = mTransitionElapsed / mTransitionTime;
+		*theMatrix = InterpolateTransforms(aSlot.mPreviousTransform, *theMatrix, aFrac);
+		double aFromWeight = 1.0 - (double)aFrac;
+		const Color& aFrom = aSlot.mPreviousColor;
+		theColor->mRed = (int)((double)aFrom.mRed * aFromWeight + (double)aColor.mRed * aFrac + 0.5);
+		theColor->mGreen = (int)((double)aFrom.mGreen * aFromWeight + (double)aColor.mGreen * aFrac + 0.5);
+		theColor->mBlue = (int)((double)aFrom.mBlue * aFromWeight + (double)aColor.mBlue * aFrac + 0.5);
+		theColor->mAlpha = (int)((double)aFrom.mAlpha * aFromWeight + (double)aColor.mAlpha * aFrac + 0.5);
+	}
 }
 
 // 0x447f70 (bejeweled3): works out where each sprite of the animation is, in the main sprite's space: a sprite's

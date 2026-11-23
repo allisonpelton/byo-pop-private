@@ -181,13 +181,9 @@ void Board::ShowHint(bool theUser)
 // 0), the level change is asked for (slot 156, 0x74e190: nothing else is under way). port: the log line it writes is left out
 void Board::UpdateLevelBar()
 {
-	int aMax = GetLevelMax();
-	float aTarget = 0.0f;
-	if (aMax != 0) {
-		aTarget = (float)mLevelProgress / (float)aMax;
-		if (aTarget > 1.0f)
-			aTarget = 1.0f;
-	}
+	if (!HasLevels())
+		return;
+	float aTarget = GetBarTarget();   // 0x755940 calls slot 188
 	bool aSlowCurve = mBarRateCurve.GetOutVal() == 0.0;
 	if (aTarget > mLevelBar) {
 		double aStep = aSlowCurve ? 0.0255 : 0.025;
@@ -200,11 +196,27 @@ void Board::UpdateLevelBar()
 		mLevelBar = aNext > aTarget ? aNext : aTarget;
 	}
 	// slot 215 (0x73daf0) puts the bar's parts where they are drawn: not translated
-	// slot 104 (0x1a0) is 0 in Classic
-	if (mLevelBar >= 1.0f && mLevelProgress >= aMax) {
+	if (IsLevelFull()) {
 		if (!mGameOver && !mLevelUpPending && mHyperspace == nullptr && mGameOverTicks < 1)
-			mLevelUpPending = true;
+			OnLevelFull();
 	}
+}
+
+// slot 217, 0x73b810 (bejeweled3): with no time limit (slot 104 is 0: Classic and Zen) the bar is full and the progress is at the level's size;
+// with one (Lightning) the size must be above 0 and the progress (slot 155) must have reached it
+bool Board::IsLevelFull() const
+{
+	const int aMax = GetLevelMax();
+	if (GetTimeLimit() == 0)
+		return mLevelBar >= 1.0f && mLevelProgress >= aMax;
+	return aMax > 0 && aMax <= GetLevelProgress();
+}
+
+// slot 156, 0x74e190 (bejeweled3), run when the level is full: the level change is asked for (it starts when the board is at rest). QuestBoard's
+// own slot 156 (0x6ca7e0) is the Quest's end of a level
+void Board::OnLevelFull()
+{
+	mLevelUpPending = true;
 }
 
 // 0x767e20 (bejeweled3), after the match groups: with the board at rest and nothing asked for, the level change's overlay is made.
@@ -379,6 +391,13 @@ void Board::NoMoreMoves(bool theAnnounce)
 		mEndDialogWait = 0x113;
 		SubmitScore(mScorePoints);
 	}
+	EndGame();
+}
+
+// 0x7602c0 (bejeweled3): the game is over (the board's flag, +0x58c, and the end's counter, +0xd1c, at 1), when no level change is
+// going. Classic's NoMoreMoves (0x73b2d0), Zen's own (never) and Lightning's (0x719350) all end here
+void Board::EndGame()
+{
 	if (!mGameOver && mGameOverTicks < 1 && !mLevelUpPending && mHyperspace == nullptr) {
 		mGameOver = true;
 		mGameOverTicks = 1;
@@ -386,6 +405,12 @@ void Board::NoMoreMoves(bool theAnnounce)
 		if (mBotMoveCount > 0)
 			SDL_Log("BOT GAMEOVER update=%d points=%d level=%d moves=%d", mUpdateCnt, mScorePoints, mLevelIndex + 1, mBotMoveCount);
 	}
+}
+
+// slot 233 (0x73b100): Classic's end dialog (the other modes' boards make their own)
+ClassicEndLevelDialog* Board::MakeEndLevelDialog()
+{
+	return new ClassicEndLevelDialog(this);
 }
 
 // 0x767e20 (bejeweled3): while the game is over the counter goes up each update; at 400 the end screen is asked for (slot 233,
@@ -400,7 +425,7 @@ void Board::UpdateGameOver()
 		mEndDialogWait--;
 		if (mEndDialogWait <= 0 && !mEndScreenShown && gApp->GetDialogCount() == 0) {
 			mEndScreenShown = true;
-			ClassicEndLevelDialog* aDialog = new ClassicEndLevelDialog(this);
+			ClassicEndLevelDialog* aDialog = MakeEndLevelDialog();
 			gApp->AddDialog(ClassicEndLevelDialog::DIALOG_ID, aDialog);
 			aDialog->Move(0, 0);
 		}
@@ -411,7 +436,7 @@ void Board::UpdateGameOver()
 // when the board is at rest and the game is on
 void Board::UpdateBot()
 {
-	if (mBotMoves == 0 || mGameOver || mHyperspace != nullptr || mLevelUpPending || !IsSettled() || !mPendingSwaps.empty())
+	if (mBotMoves == 0 || !BotMayMove() || mGameOver || mHyperspace != nullptr || mLevelUpPending || !IsSettled() || !mPendingSwaps.empty())
 		return;
 	BoardMove aMove;
 	if (!FindMove(&aMove, 0, false, nullptr, false))

@@ -116,7 +116,9 @@
 			for (int aDestY = 0; aDestY < aSrcHeightI; aDestY++)
 			{
 				ulong pixel1 = READ_COLOR(s++);
-				ulong pixel2 = READ_COLOR(s);
+				// port: PopCap's loop reads the pixel after the source's last one when the last column is reached on its
+				// last row (one past the end of its bits); there the first pixel stands in, everywhere else it reads as before
+				ulong pixel2 = (s < aSrcBits + aSrcRowWidth * theImage->mHeight) ? READ_COLOR(s) : pixel1;
 				
 				*d++ = (aFactor1 * ((pixel1      ) & 0xFF)) + (aFactor2 * ((pixel2      ) & 0xFF));
 				*d++ = (aFactor1 * ((pixel1 >>  8) & 0xFF)) + (aFactor2 * ((pixel2 >>  8) & 0xFF));

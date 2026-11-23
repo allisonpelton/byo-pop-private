@@ -1,0 +1,52 @@
+10 seed 7
+11 name Tester
+1200 unlock all
+1300 quest 5 Gems=8
+1400 bot
+2400 state
+2401 screenshot @DIR@/quest2_filler.png
+2500 quest 4 Gems=2
+2600 bot
+3600 state
+3601 screenshot @DIR@/quest2_balance.png
+3700 quest 2 Goal="Clear Gems" Gems=8
+3800 bot
+4800 state
+4801 screenshot @DIR@/quest2_nolose.png
+4900 quest 3 Challenge="Bad Move Limit" BadMovesAllowed=2 Gems=60
+5100 swap 3 3 right
+5300 swap 5 5 down
+5500 swap 1 6 left
+5700 swap 6 2 up
+6000 state
+6001 screenshot @DIR@/quest2_badmove.png
+6100 quest 7 Goal="Clear Gems" Gems=8
+6200 bot
+7200 state
+7201 screenshot @DIR@/quest2_bomb.png
+7300 quest 14 Goal="Clear Gems" Gems=25 BombCountdown=3
+7400 bot
+8400 state
+8401 screenshot @DIR@/quest2_bombrt.png
+8490 seed 7
+8500 quest 0 Butterflies=1
+8600 bot
+10300 state
+10301 screenshot @DIR@/quest2_butterflies.png
+10400 quest 8
+10500 bot 20
+11500 state
+11501 screenshot @DIR@/quest2_poker.png
+11600 quest 9 Gems=8
+11700 bot
+12700 state
+12701 screenshot @DIR@/quest2_ice.png
+12800 quest 1 TargetCount=1
+12900 bot 100
+13200 dig clear 5
+13300 dig clear 5
+13400 dig clear 5
+13500 dig hit 0 7
+13900 state
+13901 screenshot @DIR@/quest2_dig.png
+14000 quit

@@ -1,0 +1,15 @@
+10 seed 7
+11 name Tester
+1200 unlock all
+1210 goto diamondmine
+1500 state
+1600 bot 150
+2000 dig clear 5
+3000 dig clear 5
+4000 dig clear 5
+5000 dig hit 0 7
+5500 state
+5501 screenshot @DIR@/diamondmine.png
+22000 state
+22001 screenshot @DIR@/diamondmine_end.png
+22100 quit

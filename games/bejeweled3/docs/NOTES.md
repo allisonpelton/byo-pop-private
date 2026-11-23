@@ -79,8 +79,8 @@ What the analysis has found about the exe, for reading the export. The plan is i
   only when the player gives an error text.
 - `b3_pamtest` (tools/pamtest) loads every .pam of the game (64: 47 of version 4, 17 of version 5), plays each for a
   few hundred updates and draws it onto a picture: all 64 load, play and draw at 600 (`-play -draw`).
-- Not translated: the mirrored drawing (nothing in the game sets it), the debugging outlines, the transition between
-  two animations (the game never starts one), saving and loading an animation's state (0x445540, 0x4453b0, 0x445760,
+- Not translated: the mirrored drawing (nothing in the game sets it), the debugging outlines; the transition between
+  two animations is PopAnim::TransitionToLabel (0x444910, started by Lightning's HUD, see "Zen and Lightning"); not translated: saving and loading an animation's state (0x445540, 0x4453b0, 0x445760,
   0x445a00: needed when the saved games are), and its particle effects (their creation in FrameHit 0x445c00, their
   matrix and colour at 0x447f70 and 0x444410), which wait for PIEffect's update and drawing.
 
@@ -319,6 +319,12 @@ OPTIONS and RECORDS (0, 1): when the camera turn (+0x190) is already at -1 or 1 
 translated, so the port only logs the press. The first-run name dialog is not in this handler: Update opens it (below).
 
 ## The first player's name (WelcomeDialog, NewUserDialog, Bej3Dialog)
+
+Test path (port: test only): in a fresh user folder the welcome dialog stays open, and the end dialog waits for no other dialog to be up
+(UpdateGameOver asks GetDialogCount() == 0). The test command `name <text>` types the name into the welcome dialog's edit and presses its
+own OK (Bej3App::EnterScriptName, from DoWelcomeDialog and from the command), so the profile is made as the game makes it; with no welcome
+dialog up it does nothing. Real play is unchanged. The suite scripts start with it and check `endscreen` at the end of the Classic and the
+Lightning game (Zen has no game over); the frozen hashes were renewed once for the extra OK line and the endscreen key.
 
 The menu's Update (0x6a3530) opens the welcome dialog (0x771040, "Bej3App::DoWelcomeDialog()") once the intro has
 started, the distance and turn curves (+0x718, +0x190) are 0, the profile's name is empty (Profile+0x74 is the size of
@@ -659,7 +665,7 @@ speed bonus, the swap-list flag above, the bolt's and the explosion's drawing.
 ## Levels, hints and the end of the game (BoardLevels.cpp, BoardMoves.cpp AddPoints, TestCommands.cpp)
 
 Counters (0x73d170, 0x73cf10): the board has 38 (+0xc84), each move record 38 (+0x40); `AddCounter` adds to both. Keys used: 1 points, 0x1a
-matches, 15 activity (the idle shine's rate). The profile's statistics (Profile::mStats) are not written, and the other 38 callers of
+matches, 15 activity (the idle shine's rate), 0 seconds (one every 100 game ticks, 0x768125). The profile's statistics (Profile::mStats) are not written, and the other 38 callers of
 0x73d170 (the match search, the specials, the swaps) are not translated (`// port:` on the enum).
 
 AddPoints (0x74a210, via slot 152 = 0x74df80): points times the level number (+0xe0c, 1 in Classic: 0x749650 is the only thing that raises it
@@ -851,6 +857,24 @@ only), the rank bar widget (0x682f90), the music queue of PLAY AGAIN, the font's
 The leaderboard (`mHighScores`, `mHighScoreNames`, `mLastScoreRank`) is the port's own list of ten; the name is the player's.
 Shown by script: `set points`, `board` with no move, a wait of about 1000 updates, then `click 401 531` (PLAY AGAIN) or `click 563 531`.
 
+### The Lightning end dialog (EndLevelDialog.cpp, LightningEndLevelDialog; the exe's SpeedEndLevelDialog, vtable 0x86d034)
+
+Made by the board's slot 233 (0x716ab0, in the port Board::MakeEndLevelDialog): the same dialog as Classic's (0x6a7c80 builds it: id 0x26,
+the same three real widget buttons Main Menu id 0, Play Again id 2, Badges id 3 (a stub: the badges dialog is not made), none that leads out of
+the game), with the board's +0x30b0 (the seconds of all the time gems) at +0x38c and its multiplier (+0xe0c) at +0x37c. Update (0x782550)
+is Classic's. Slot 26 (0x780aa0) draws Classic's 0x6a87a0 (the box, the stamp, Final Score) with the content of slot 94 (0x780130): the
+statistics table and the top scores, no section labels and no shift; labels Highest Multiplier, Best Move, Longest Cascade, Total Time (strings
+0x1e3 to 0x1e6; slot 89, 0x780160), values "x%d" (0x1e7) of the multiplier, the best move and longest cascade (counters 25 and 24) and the
+seconds + 60 as "%d:%02d" (slot 90, 0x7805e0; right at 0x2ee). Then 0x780aa0 draws SECTION_GRAPH and LINES (x - 0xa0), the icons FLAME,
+STAR, HYPERCUBE and LIGHTNING and the boxes YELLOW, ORANGE and PINK at their x= and y= plus the setting LIGHTNING_GAMEOVER_DLG_*_OFFSET (all
+-160 in defaultUIConstants.xml), each with a label right of it at y 0x2d3 spaced by LIGHTNING_GAMEOVER_DLG_ICON_LABEL_SPACING (5): "FLAME
+x%d", "STAR x%d", "HYPER x%d" (counters 17, 18, 19; strings 0x1e9 to 0x1eb), "TIME +%d:%02d" (0x1ec; the seconds), SPEED, SPECIAL, MATCHES
+(0x1ed to 0x1ef), in FONT_GAMEOVER_DIALOG_SMALL; then the chart's scale "%dk" (0x1f0, 1k to 5k, 0x2e apart up from y 0x3cf, right at 0x14a)
+in FONT_GAMEOVER_DIALOG_MED. Oddity: the chart's bars (one stacked bar of three coloured pieces, IMAGE_GAMEOVER_BAR_YELLOW, PINK and
+ORANGE, for each entry of the round's record at +0x36c, and the "Last" / "x%d" labels under them; the scale grows past 5000 by 5000s) are
+not drawn: the record is written by code that is not translated, so the chart stays empty with the scale of an empty record (1k to 5k).
+The labels' OUTLINE layer is the current colour (white), as read.
+
 ### Oddities: not done in this pass (each is a read of the export started, not a translation)
 
 - **Level-change overlay (0x724110).** Read: it is a Draw (slot 26) of the board's overlay widget: the picture's own origin is moved by
@@ -866,3 +890,729 @@ Shown by script: `set points`, `board` with no move, a wait of about 1000 update
   slider maker) is 23 lines, but the sliders' listener (the volume, music and sound set-ups), the checkboxes' options and the places that
   read +0xd20 (0x6c4ac0, 0x6c4fb0, 0x6c56c0, 0x6d8c60 are other modes'; 0x73b640 and 0x73c330 are Classic's) were not read. The dialog is
   still the BACK and MAIN MENU buttons only.
+
+## Zen and Lightning (ZenBoard.cpp, LightningBoard.cpp, Bej3App::StartZen and StartLightning)
+
+The exe's three game boards derive from Board (vftable 0x864cb4, 256 slots) directly: ClassicBoard (0x86511c), ZenBoard (0x866b6c, 0x36d8
+bytes, made by 0x7126f0) and SpeedBoard (0x8665c4, 0x3480 bytes, made by 0x718090). SpeedBoard is Lightning: "Speed" is its mode name
+(slot 89, 0x7144a0: the song, the log, speed.cfg and speed.sav) and "Lightning" its Title. The play menu's balls 1 and 2 call the starts
+0x773100 and 0x773440 (the port: StartZen and StartLightning, which share StartBoard with Classic's); Lightning first copies the settings of
+the first quest of speed.cfg (0x404870) into the board's map at +0xc8 (the port: Board::mSettings), then slot 85 resets it, which reads them.
+The port's Board stands for Classic's (the Classic board's slots are the ones the base translated), so each mode's class overrides what it
+changes. The slots that differ from Board's, with the address in the mode's own vtable (Zen, then Lightning):
+
+- Zen, 33: 0 (0x41d110), 22 (0x7116c0), 26 (0x710e80), 43 (0x711e70), 47 (0x70e490), 83 (0x70e880), 88 (0x70e590), 90 to 92 (0x70e350,
+  0x70e360, 0x70e3b0), 100 and 110 (0x70e380, 0x70e370), 111 (0x70e340), 113 (0x70e3a0: true), 116 (0x70e390), 117 to 119 (0x70f910,
+  0x70f8f0, 0x70f8d0), 122 (0x70e330: 1), 123 (0x70e320), 134 (0x41d100), 135 (0x710bf0), 139 (0x70e4f0), 154 (0x70e450: the level's size),
+  157 (0x7120e0), 161 (0x70e4a0: no game over), 174 (0x70f8b0), 191 (0x70f160), 198 (0x70f2b0), 234 (0x712c60), 249 (0x70fdf0),
+  251 (0x70e500), 255 (0x70e5c0).
+- Lightning, 40: 0 (0x41c1d0), 22 (0x7173f0: update), 26 (0x716c30), 43 (0x716ef0), 47 (0x714120), 85 (0x718500: reset), 86 (0x7141b0),
+  87 (0x714400), 88 (0x7144d0), 89 (0x7144a0: "Speed"), 104 (0x7140f0: 60 seconds), 105 (0x714150), 106 (0x714110), 122 (0x714090: 5),
+  123 (0x714080), 124 (0x714500), 127 (0x7140a0), 131 (0x714420: the help boxes), 138 (0x714890), 139 (0x718fe0), 143 (0x715360: a piece
+  is cleared), 152 (0x715300: a thunk of Board's 0x74df80), 154 (0x7140d0), 155 (0x7140b0), 156 (0x714280), 158 (0x7151e0), 161 (0x719350),
+  172 (0x714100: 0x82), 182 (0x7143a0), 183 (0x714dd0), 185 (0x716c60: the fill's time gems), 186 (0x7183e0), 187 (0x713fa0: the time left),
+  188 (0x716f70: the bar's target), 218 (0x714130), 233 (0x716ab0: the end dialog), 238 (0x714840), 241 (0x715940), 250 (0x713f90),
+  255 (0x714660).
+
+Translated and overridden (marked `override`, each with its slot and address in the comment): Zen 89 (the Title), 113 (IsSlowMode), 122,
+154 and 161; Lightning 22, 85, 89, 104, 122, 143, 154, 155, 161, 172, 185, 187 (GetTimeLeft), 188. The hooks they needed in Board are
+virtual there (the translations of slots 85, 135, 154, 161, 171 and 172 became virtual): IsSlowMode (slot 113: the match groups' timers,
+the explosions' busy counts and the sparks take the Zen branch), GetLevelFactor (122, in AddPoints), OnPieceCleared (143, from RemovePiece),
+OnFillAccepted (185, from the fill), GetTimeLimit (104), GetBarTarget (188, from UpdateLevelBar) and GetLevelProgress (155). The end of
+Board::NoMoreMoves (0x7602c0) is Board::EndGame, which Lightning's slot 161 calls too. UpdateLevelBar's "level is full" test is slot 217's:
+with no time limit the bar is 1 and the progress the level's size; with one (Lightning) the size is above 0 and the progress has reached it
+(never with the shipped file, which has no goal).
+
+### Zen
+
+No game over. Slot 161 (0x70e4a0), called where Classic ends the game (the board is at rest with no move): it draws the board's own
+generator twice (the column, then the row, each & 7) and the gem there, if any, becomes a Hypercube (slot 167, 0x749570, with its effect);
+the board then has a move again. Slot 154: the level's size is 2500 + 750 for each level index up to index 29 (the same as Classic's up to
+there; Classic's has no cap). Slot 122 is 1: a match's points are not multiplied by the level, and the bar's progress is of the plain score.
+Slot 113 (true) puts the match groups on the "slow" branch (0.01 a step instead of 0.015) and the sparks on their own draws.
+Left as `// port:` notes: the mantras (the affirmations' texts, 0x712c60), the breathing exercise (slot 43, 0x711e70: the pictures
+IMAGE_ZENUI_BREATHE_IN_TEXT and BREATHE_OUT_TEXT faded by the curve at +0x3168; slot 26, 0x710e80 draws the mantra's text and the pause),
+the ambient and binaural sound and slots 88, 90 to 92, 117 to 119 and 234 (the state at +0x3170 to +0x33c0 with the pause at +0x33b0): all
+presentation, and nothing in it changes what the board does; none of it is part of the HUD's own state. Test: `goto zen`, `state` (mode
+"zen"), `bot`.
+
+The Zen panel (ZenBoard.cpp, drawn through the three virtual pieces of Board::DrawScreenFrame): slot 249 (0x70fdf0) draws the necklace's score
+plate (IMAGE_ZENNECKLACE_SCORE at the panel's middle - 0xfc plus its x= and y=, in the board's alpha) where Classic has its top widget and the
+level number; slot 251 (0x70e500) the Zen bottom widget (IMAGE_INGAMEUI_BOTTOM_WIDGET_ZEN, the panel's 400 off); slot 255 (0x70e5c0) the shown
+score in the middle of the panel at y 0x7d, or "MAX SCORE" (string 0x200) at 0x7fffffff. The level bar and the frames are Classic's: the
+ZenBoard does not override them, so Zen has the level bar.
+Oddities (Zen): (1) the necklace itself (the rest of 0x70fdf0, about 270 lines: the pictures ZENNECKLACE_JEWEL1 to 4 (at 0x8da3a8) and
+STRING1 to 4 (0x8da3c0) placed along the necklace by the level index (+0xe04), a pattern table of 4096 entries built at the first draw
+(0xd25bd8) from a run of 2 to 8 counted down, and for each jewel a scale and a fade by CurvedVals (0x437c60); the position tables are the
+constants at the start of the function) is not drawn: it was read as far as its structure and not worked out. (2) The Zen buttons: the exe
+makes the hint, menu and options buttons from IMAGE_INGAMEUI_HINT_BUTTON_ZEN, MENU_BUTTON_ZEN and OPTIONS_BUTTON_ZEN; 0x741840 has no case
+for Zen (mode 0 is Classic, 1 and 2 the Lightning buttons), so the code that makes them was not found and the port's Zen board has Classic's
+hint and menu buttons. (3) The score's font: the exe draws it with whatever font the screen frame left; FONT_SCORE is used.
+
+### Lightning
+
+A game is 60 seconds of the board's own clock (100 game ticks a second; the clock, +0x3284, a float, starts 250 ticks late) with the time
+gems the fill makes; the account of their seconds is what the Last Hurrah plays.
+
+- The clock (slot 22, 0x7173f0): when the game tick went on, the clock goes up by min(1, 0.7 + 0.3 left / 600) (so it slows in the last
+  6 seconds), or by the override (+0x3288) that a big explosion sets: while +0x1188 is above 0 and the override is 0, the override becomes
+  left / ftol(flash * 800) when that is more than 1.3 times left (so the time nearly stops during a big explosion). The time left
+  (slot 187, 0x713fa0) is ftol(6000 - held(clock - 250, 0 to 6000)), at most the round's length (+0x30f4).
+- The time gems: each game tick the three chance counters (0x41c090) step by TimeStep (2) over 100; each new piece the fill makes after the
+  first 100 ticks steps them by 1 and draws the board's generator once (twice when the first is not under the 10-second chance, the second
+  being under the 5-second one); the 10-second one wins first. One more draw picks the batch's piece, which becomes the time gem (flag
+  0x20000, seconds at +0x244) when it is plain. The chance is g * clamp((1.5 counter g)^1.2, 0.2, 2.5) with g the curve's value
+  (5SecChanceCurve and 10SecChanceCurve of the quest; the shipped file has no 15SecChanceCurve, so that chance is 0 and never read); a
+  gem resets its length's counter. Every 400 ticks +0x30e4 (20 at first) is lowered by draws (not below 5); nothing translated reads it.
+- A time gem cleared (slot 143, 0x715360 from RemovePiece): counter 0x22 goes up, its seconds go to the account (+0x30ac) and the game's
+  (+0x30b0), and from the 60th second of the account on each gem is worth 50 points a second (AddPoints, with the move id the piece's tag).
+- The round ends (slot 188, 0x716f70, which UpdateLevelBar and the update ask): the time left is 0, the board at rest, no end running
+  (+0xd1c is 0): flag +0xe28 is set and slot 161 (0x719350) runs. It first turns the time gems still on the board into a Flame Gem (under
+  10 seconds) or a Star Gem when there is an account, else it gives their seconds' points. With an account: the Last Hurrah. The chances
+  step by LevelTimeStep (8) and their curves move on, the multiplier (+0xe0c, which AddPoints multiplies by) goes up by 1, the round's length
+  is the account's seconds, the account is 0 and the clock and the game ticks are put to (60 - account) * 100 (so the time left starts at the
+  account's seconds). Without one: the time up. The score is noted (+0x3080), the time-up is shown (+0x3096), and each special gem (the bits
+  0x17, 0x800, 0x1000, 0x20000 and 0x80000) gets a busy count of 25 times its place in the grid's order (150 more in the first update), so
+  that they go off one by one; when none is left the end counter (+0xd1c) is 1 (0x7602c0), and 200 when the exe's curve at +0x33e0 is above 0,
+  which it is once the specials were started. 0x714430 hands the score in (the leaderboard, as Classic's 0x73b2d0 does).
+- No move left (UpdateGame asks slot 161 as in Classic): the same function runs, so a board with no move and seconds in the account begins
+  the Last Hurrah at once, and without any it ends the game.
+- State lines (`state` with the mode "lightning"): timeleft, clock (hundredths), limit, bonus, bonustotal, timeup, gameticks, the chances
+  (millionths) and a grid of the time gems ("5", "a" for 10, "." for none). The suite's second script (suite_modes.txt) plays a seeded Zen
+  game (bot, 150 moves) and a Zen board with no move, then a seeded Lightning game of 36000 updates through four Last Hurrahs to its end.
+
+Not translated (the `// port:` notes in the source), none of them changes what a game does except where said:
+- The Lightning screen is drawn (the HUD pass of this entry's commit); what is still not translated, none of it changes what a game does
+  (the app's generator is drawn less often than the exe's in Lightning, which only the sparks and effects read):
+  (1) The time gem's look is done (see "Done since", the TimeBonusEffect commit). (2) The burst when one is cleared (Sexy::SpeedCollectEffect, vftable 0x866a08,
+  ctor 0x714520, size 0x3d0, Update 0x719ec0, Draw 0x713f80; made by 0x715360 with an image from the table at 0x8cf5c8[Rand() % 9 + 0x566])
+  and the "+N sec" text (0x71e5f0, FONT_DIALOG_HEADER, string 0x1df); every draw of the app's generator of them belongs in the update.
+  (3) The banners (Sexy::SpeedText, vftable 0x866a1c; Sexy::LightningBarFillEffect 0x865f94; Sexy::TextNotifyEffect;
+  Sexy::LightningScoreBadge), all in the +0x309c object (an EffectsManager, 0x72a510), and the shake of the screen in the last 100 ticks of the
+  end (two draws of the app's generator every third update, 0x7173f0). (4) The particle effects of the HUD: PIEFFECT_LIGHTNING_POWERED_MEGASHARD
+  (clipped to (0x44, 0, 0xec, 0x18c), at (0xaa, 300)) and ..._LEFTRIGHT (at (0xf0, 0xf0)), whose emitter keyframes 0x7173f0 edits each update
+  from the curve at +0x3290 (pow 0.7 and the like), the STEAMPULSE effect, and PIEFFECT_COUNTDOWNBAR drawn by 0x715940 (in 3D with a scale and
+  rotation; in 2D the effect's own). (5) The curves at +0x3290 (the mega gem's rise and the "+m:ss": a CurvedVal that 0x719150 re-sets to
+  "b;0,1,0.02,1,#.^$         ~~###" with +0x32a0/+0x32a8; here the plain share of the account's seconds, at once), +0x3300, +0x3370
+  (TIMER_DEAD_LIGHTNING's alpha), +0x33e0 (the Last Hurrah's text alpha; here the flag mLastHurrah) and +0x3450 (3D: the text's swell);
+  the colour of 0x73d9f0 (the red warning: its formula is reasoned from the decompile, not checked against a run: the screen's edge and
+  the timer glow red under 10 seconds without an account) and the button of Reset (RESET_BUTTON_LIGHTNING, modes 1 and 2 of 0x741840).
+  (6) The sounds.
+  Done since (commits d1af6047 and 1a8cb2e4): the shake of the ending (0x7173f0: while +0x30a4 is 1 to 99 and the update count is a multiple of
+  3, the board's place +0x40 and +0x44 are set from two draws of the app's Rand(), each (draw % 1e6 - 500000) / 500000, times 12 of 1200 of the
+  art size, times (100 - count) / 100; two draws per third update, none elsewhere); the exact red warning (0x73b7c0, 0x73d9f0: it is white, not
+  red, with alpha board alpha * 127 * (1 + sin(0.15 updates)) * the share of the 1000-tick window (1500 when the round is over 60 s), fading
+  over 450 ticks once the time is out; the red part is the mega gem's shard MEGASHARD_RED_LIGHTNING at (0x2d, 0x22) in its translation; the
+  flag at +0x12f8 is not translated); the Reset button (id 2, +0x2878, made by 0x745240 for modes 1 to 3, placed by 0x741840; it is shown, the
+  black disc seen earlier was the empty socket of the bottom widget's art; it opens a Yes/No dialog, id 0x16, strings 155 to 156, and Yes
+  starts the game over through slots 85 and 135; the exe also deletes the saved game, which the port does not keep).
+  Done since (the TimeBonusEffect commit): the time gem's look. TimeBonusEffect (type 0x15; TimeBonusEffect.cpp) is made for each time gem by
+  LightningBoard::OnFillAccepted (0x741130: place 64 and 64, added to the layer over the gems, not held by the piece) with the update 0x730de0
+  (every draw of the app's Rand() in the exe's order: the spark chance and its SparkEffect, the bolt chances, the bolt's kind and points, the
+  random walk of the points and the bolts' ends, and the flash's four draws) and the draw 0x72ec70 (the glow outline while the gem is not
+  turning, each bolt as two ribbons by 0x729da0, the seconds number cel (seconds / 5 - 1) of IMAGE_LIGHTNING_GEMNUMS_<colour> with the white one
+  over it that blinks in the last 500 ticks). The spark (type 5, SparkEffect, additive IMAGE_SPARKLET at the layer under the gems) needed the
+  manager's velocity, damping, gravity and angle change and its draw of an effect that follows a piece (the piece's corner added, restored
+  after). The gem silhouette table (0x83a548: 20 frames x 7 colours x 256 floats) is game data: GemSilhouettes reads it once at start-up from the
+  game folder's bejeweled3.exe through the exe's section table (the web bundle keeps the whole exe in its import: web/exetrim.js has no entry
+  for bejeweled3, and the table is outside .text anyway); when the exe or the table is missing one line goes to the log and every radius is 52.
+  Deviations: the effect's scale on the draw while the gem's scale curve is not 1 (the gem as it is cleared: 0x71fcf0, 0x71fd20, 0x713770), the
+  early return on the graphics byte +8 (0x8e171c), the 3D draws (two numbers for a bolt's points, the 0.15 bolt chance still drawn but unused),
+  the layer pushes (0x58f620) and the type-0x11 flash's object (only its draws), the effect's two curves (+0x1e0 = 0, +0x250 = 1, nothing
+  starts them). The bolts that jump to a neighbour (the targeted kind) are made, but the exe's test of their reach (0x731f2b) compares a
+  distance that includes the grid's x (the neighbour's x is board-relative, the effect's is not), so they should last one update; the port
+  repeats it. The suite's state hashes (Classic, Zen, Lightning) did not change: the effects draw from the app's generator, which no game
+  logic reads.
+  Oddities, read but not translated (about an hour was not enough for each; the first needs data that cannot be copied):
+  - SpeedCollectEffect (0x866a08, ctor 0x714520, size 0x3d0, Update 0x719ec0 with 0x714980; its Draw 0x713f80 is empty, so it is a controller):
+    it needs the exe's Bezier path class (0x59a380, 0x59a400, 0x59ad90, 0x59aef0), CurvedVal strings, a PIEffect trail (image DAT_008d735c),
+    the lookup of the type-0x15 effect and the "+N sec" text effect 0x71e5f0. Read again after the TimeBonusEffect pass: the Ghidra export of
+    0x715360, 0x714980 and 0x719ec0 has lost the x87 arguments of its calls (the places, the curve strings), so each needs the asm read
+    call by call, and the path class and the text effect (45 calls) are not in the port; the app's generator is called directly only by
+    0x715360 (one Rand() % 9 for the image of the table at 0x8cf5c8[0x566 + n]) and by 0x71e5f0 (one call at 0x71e707, in the loop of 5);
+    the rest of its draws are in the callees (0x729460, the base constructor, by the effect's type; the trail's PIEffect). Not translated
+    here: no partial set of draws was added, since a count that is still short of the exe's is no nearer. The sibling text of AddPoints
+    (0x71f030, which makes the same 0x71e5f0 effect: 5 draws in every mode, Classic included) would change nothing in a state hash (the
+    app's generator is read by no game logic), only the effects' own seeds.
+  - The SpeedText banners, the curves +0x3290, +0x3300, +0x3370, +0x33e0, +0x3450 and the keyframe edits of the HUD's particle effects in
+    0x7173f0 (DAT_008d8f1c, DAT_008d86f0, DAT_008d6d4c, DAT_008d6e5c): not started.
+  What is drawn, in the exe's order: slot 238/250 (0x714840, 0x713f90): the bottom widget and the LIGHTNINGUIBOTTOM PopAnim translated
+  by -0xa0 (1200ths of the art size); the overlay (slot 43, 0x716ef0, called from Board::Draw through the new virtual DrawModeOverlay: the
+  widget manager draws a DrawOverlay only when the widget asked for it in its Draw) is 0x715cb0: the mega gem (GEM_MEGA, a clip from y 300,
+  translated by (0x38, 0x118 sqrt(share) - 0x16)), "+m:ss" (string 481) at (0xba, 0x1ba), TOP_BACK_LIGHTNING at its x= and y= plus
+  (grid x - 0x2ab, grid y - 0x82) (drawn as an image: the exe puts no translation on it; the earlier clones were drawn away from the grid
+  because nothing had updated or labelled them), the bar's fill (slot 241: (180, 120, 70) under pow(alpha, 4), the width the level bar's
+  share of the rectangle of slot 86), LIGHTNINGUI translated by -0xa0, the Last Hurrah text (string 482, FONT_SPEED_TEXT, no glow or
+  outline) at (grid x + 0x200, 0x62), the timer's marker (TIMER_LIGHTNING at the bar's end + 0x40 - 2), the red warning, the score at
+  (0xf2, 0xd2), and then LIGHTNINGUITOP translated by -0xa0. The four PopAnims (UIBOTTOM, UI, UITOP, GEM_MEGA) are shared resources the exe
+  draws directly; each update steps them and sets their colour to the board's alpha. Their labels go by 0x718400 (the bottom, the middle,
+  the top and the mega gem's get the label with a transition time; the top one only "death" or else "unpowered"): "unpowered" at a game's
+  start (0), "pulse1" to "pulse5" (12) at a time gem (0x719150: the account's seconds x 5 / 60 + 1, at most 5; the exe calls it from the
+  burst's curve marker, here from the clear), "energize" (15) when the Last Hurrah begins and "death" (15) when the game ends (0x719350).
+  The labels' transition is PopAnim::TransitionToLabel (0x444910 in engines/prime, shared with Zuma's Revenge and additive: nothing that
+  predates it calls it). The buttons (0x741840 for the Lightning modes) are HINT_BUTTON_LIGHTNING and MENU_BUTTON_LIGHTNING where
+  resources.xml puts them. Test: `goto lightning` with `screenshot`.
+- The round's record (slot 153, 0x745f10: a list at +0xd58 of 0x18-byte entries that only the end dialog's chart reads: three points
+  figures a record, summed to size the chart).
+- The form with a points goal (PointsGoalStart above 0 with a TimeStart: +0x3095): the shipped speed.cfg has none. GetBarTarget has its
+  branch (half the bar by the progress over the goal); the goal's bookkeeping in 0x7173f0 is left out.
+- The exact value the bar's target returns (0x716f70 leaves it in ST0; its decompile does not show it): it is the share of the time left
+  here, 0 once the time-up is shown. Only the bar's look reads it.
+- The curve at +0x33e0: the exe tests whether its value is above 0 before setting the end counter to 200 after the specials; its string
+  and rate were not found, so a flag stands for "it was started" (mSpecialsStarted). If the curve is above 0 also when no special was on
+  the board, the counter would be 200 there too (the end dialog 200 updates sooner).
+- Time gems' help box (slot 131, 0x714420 and 0x73c4c0): every help is taken as seen, as in the Classic code.
+- The flag 0x40000 (gems aging by +0x244 every 150 ticks) is translated, but nothing translated sets it.
+- The new-player dialog (id 1) stays open over a run with a fresh user folder, so a scripted game's end dialog does not come (as in Classic's
+  suite, which checks "gameover" only).
+
+## Butterflies and Poker (QuestBoard.cpp, ButterflyBoard.cpp, PokerBoard.cpp)
+
+The two secret modes are Board subclasses in the exe's shape: ButterflyBoard (vftable 0x867d0c, constructor 0x6dcdf0, 0x3388 bytes) and
+PokerBoard (vftable 0x869364, constructor 0x6da1c0) both derive from QuestBoard (vftable 0x866fbc, constructor 0x6d9000, 266 slots) over
+Board (0x864cb4). The port has a QuestBoard base class with what they share: the secret flag (+0x3184, mIsSecretMode, set by 0x774060's
+fourth argument), the quest's settings (+0xc8, copied from secret.cfg), no levels (HasLevels, GetLevelMax 0, no level number in the top
+widget, slot 156 does nothing), no fill once the end has begun (slot 203, 0x6dd4d0), the quest's background (slot 100: BackgroundIdx, step 0),
+the move records' clean-up (0x759840, which Board::UpdateGame runs for every mode, as the exe does at 0x76818e) and the level
+factor 1 (slot 122, 0x73b600; Butterflies' 0x6c5340 gives 5). The secret quests are at secret.cfg indexes 0 (Poker) and 1 (Butterflies).
+
+QuestBoard's update (slot 22, 0x6dd8a0; the port's QuestBoard::Update): Board's update (0x759170) first, then, unless a demonstration runs (+0x1414),
+the board is paused (+0x12c4) or the app has dialog 0x17 open, in this order: a first block for the secret flag clear and the hold counter (+0xd1c) at 300
+(the Quest end screen, 0x6dd760); a curve at +0x31b8 copied to the menu button's +0x148 while it is changing; the counter +0x31a0 goes up; the quest's
+clock at +0xd20 (set from +0x318c, 200, by 0x6ca350, the level's end, slot 156 through 0x6ca7e0 only with the secret flag clear) counts down by 1 per
+update once the board is settled, with the level bar caught up at 198 (0x76ab60, dialog 0x1a1), the slot 162 call at 100 and the end screen (slot 233,
+0x6ded60) at 0; the goal's slot 0xd8; the menu button's +0x65 and +0x66 copied to the widget at +0x31b0; and the counter +0x3198 goes up. In a secret
+mode only the two counters and the goal's slot 0xd8 do anything: the flag is set, so the first block is skipped, and nothing starts the curve or the
+clock (the clock is only set by 0x6ca350). The port names the counters mUpdatesPlayed (+0x3198: updates this game has run, put to 0 by 0x6cda70 and 0x6ddc70;
+Ice Storm's 0x6e63c0, 0x6e5850 and 0x6e0450 and 0x6d6d60, 0x6db550 read it as the age of the ice's columns and chains, the port uses Board's mGameTicks for
+those, the same at the normal speed) and mUpdatesRun (+0x31a0, only written; no function of the export reads it). Both are state keys (updatesplayed, updatesrun).
+Butterflies is the one secret mode with a goal object (secret.cfg's Goal "Catch Butterflies": ButterflyGoal, vftable 0x86a90c); its slots 0x2c (0x401df0)
+and 0x44 (0x6a9b90), which QuestBoard's slots 234 (0x6e5660) and 211 (0x6c56a0) forward to, are plain returns, and its slot 0xd8 (0x6a9aa0) adds 1 to
+a counter (+0x108) when the board's slot 103 (0x73c260) is false, which nothing in the export reads; the port keeps no goal object. Poker and Ice Storm have none (their
+Challenge has no Goal). Slot 22 of ButterflyBoard (0x6e3600) and PokerBoard (0x6dedd0) call 0x6dd8a0 first; the port's two inherit QuestBoard::Update, and Ice Storm's
+Update (0x6e63c0) now calls it in place of Board's. The Total Time of the end dialogs (Butterflies, Poker, Ice Storm) is counter 0 (+0xc84), not one of these two.
+
+How a mode starts: the play menu's balls 4 (POKER) and 5 (BUTTERFLIES) call Bej3App::StartSecretMode (0x774060): the quest's setting Challenge,
+compared without regard to case, picks the board (BUTTERFLIES or BUTTERFLY, POKER; the exe's other challenges are not made), the settings are
+copied in, the flag is set and the common start (StartBoard) runs. Unlock: the profile's tutorial flags 0 to 3 (+0x180) are the balls 4 to 7
+(Poker, Butterflies, Ice Storm, Diamond Mine). The test command `unlock all` sets all four; `goto butterflies` and `goto poker` need the mode
+unlocked (they say so) and go through the play menu. State keys: Butterflies has butterflies (eight strings of digits for the moves each
+butterfly waits, capitals for a caught one), spiderx (hundredths), spiderto, dropcountdown, credit, spawncount, sidechance (thousandths), freed and
+bestcombo; Poker has hand (each card's suit, "/" and a second suit, f, s or w for the card's type, "-" for no card), besthand (index, -1 none),
+skull (-1 none), skullclock and buster (thousandths), hands, busted, counts (the kinds' counts, the first the hands a skull took), handcurve,
+flipcurve and flycurve (the curves' values in thousandths), handscore and flips. `bot` and `move` work in both modes (the move search is Board's).
+
+### Butterflies
+
+Gems with the bit 0x80 (FLAG_BUTTERFLY) climb one row each move; the spider over the top row walks to the nearest one, a butterfly that reaches
+the top is caught (its +0x20c at -1) and the spider's arrival over a caught one ends the game. Matching a butterfly frees it.
+SpawnButterflies (0x6d7c70): the drop's countdown, the count of a drop (to SpawnCountMax) and the side chance (to SideSpawnChanceMax) are
+stepped; while the credit is 1 or more a butterfly is made in two passes of up to 100 tries, each from two draws of the board's own generator
+(+0x258): the first, over 100000 and kept as a double, against the side chance says whether the column is one of the six inner ones (a second
+draw, modulo 6, plus 1) or a side one (a second draw's low bit: 0 or 7); the bottom row's gem must be settled, not a butterfly and have no flags
+(in the second pass any flags but no colour). 1 is taken off the credit every try. The gem is made a butterfly by 0x7492c0 (the flags cleared,
+the effects of 0x748ad0, PIEFFECT_BUTTERFLY looping over the gems, and PIEFFECT_BUTTERFLY_CREATE) and gets its countdown (the larger of 1 and
+MoveCountdown less the whole part of level times MoveCountdownPerLevel). The climb is made of forced swaps (the fifth argument of StartSwap,
+SwapRecord +0xf9, PendingSwap +0x10): such a swap is neither sent back when it makes no match nor counted as a move (0x74c070 and slot 191 skip
+it); 0x73c7e0 counts the countdowns of all butterflies down on every matched swap that is not forced and before a hypercube's swap (0x75f85c,
+0x75f8be). Scoring (slot 143, 0x6d03d0): (the game's count of butterflies freed including this one + 10 + 20 times the move's own count) times
+5, then AddPoints (level factor 5). Game over (0x6e82a0): the spider over a caught butterfly's column, its walk not running, the game not over
+and no tagged gem that is not caught on the board call NoMoreMoves(true). The spider is POPANIM_ANIMS_SPIDER (labels IDLE, WALK and GRAB); its
+walk is the curve "b+0,1,0.005,1,####         ~~###" whose step is scaled by (row times -0.1 plus 1.8 less 0.1 times the distance); in the first 0x96
+game ticks it jumps and looks 8 rows down, afterwards 5.
+
+End dialog (ButterflyEndLevelDialog, vtable 0x86be7c, constructor 0x784c30): Classic's dialog with slot 89 (0x784400) the labels of strings 0x9f
+to 0xa2 (Butterflies Freed, Best Move, Best Butterfly Combo, Total Time) and slot 90 (0x784880) their values (counters 0x1c, 25, 0x1d and the seconds
+as "%d:%02d", string 0xa3); slots 22 (0x784cc0), 26 (0x784cb0, a jump to Classic's 0x6a87a0) and 94 (0x784370) do what Classic's do.
+
+Slots of ButterflyBoard that differ from QuestBoard's (the address of the Butterflies one): 0 (0x41ec80), 22 (0x6e3600), 43 (0x6dcd00, the spider
+and the HUD), 85 (0x6ceda0), 89 (0x6c78d0, the name), 98 (0x6c6bd0), 113 (0x6c5320), 122 (0x6c5340), 123 (0x6c5330), 135 (0x6e3660, NewGame), 138
+(0x6caf80), 139 (0x6cec10), 143 (0x6d03d0), 152 (0x6cff10), 156 (0x6ca7e0), 161 (0x6dcd50), 172 (0x6c52f0), 180 (0x6d0390), 191 (0x6d7f40), 194
+(0x6c8430, the forced climbing swaps), 218 (0x6c6b50), 220 (0x6c5300), 231 (0x6e82a0), 238 (0x6ca7f0), 256 (0x6dcce0) and 257 (0x6d0590, the end
+dialog). The ones with no translation of their own are the ones the port has no use for (the save and restore, the goal's text, the HUD's numbers).
+
+Butterflies, left out or uncertain: the exact place of the per-gem countdown (0x73c710) is the matched non-forced swaps and the hypercube swaps
+(read from 0x74c070 and its callers); the exe's list at +0x26b8 (0x68-byte entries) is taken as empty; the target's slide curve in the game-over
+test uses a leftover register of the exe (read as the target's own); the butterflies' colour tint, the spider's smoothed place (+0x3284, a look
+only), the sounds and the combo text (+0x3298) are not translated. The spider's x in the draw is by looking.
+
+### Poker
+
+Every swap that finds a match deals a card (slot 191, 0x6cfaa0, with a place left among the five; a hypercube swap deals the partner's suit by
+slot 179, 0x6cfa50). The suit is the gem's colour. When the two gems of the swap were matched by runs whose ids (+0x190) differ by exactly one
+(and neither is a hypercube) the card has two suits and is whichever of them makes the better hand; else the card is the one of the gem whose run
+has the larger id. A hypercube makes a wild card (type 1, any of the seven); a card whose gem's tag (+0x188) is the one slot 166 (0x6cab70) or
+slot 168 (0x6ce1d0) kept for the flame or star gem just made is a flame card or a star card (types 2, 3). The hand's kind (0x6c80a0 with
+0x6c7e20): the lists of suits each card may be are walked like an odometer (the first card turning fastest) and the first walk to reach the best
+kind is kept; with more than one card the suits are put back into the cards (a wild card takes the kept suit, a two-suit card swaps its suits when
+its second is the kept one). The kinds: 1 pair, 2 spectrum (no suit twice, which is also what fewer cards give), 3 two pair, 4 three of a kind,
+5 full house, 6 four of a kind, 7 flush. With five cards, the board running and no end begun the hand is scored (0x6cb520): HandValues of its kind
+into the score and counter 1 (0x6c7560), the eliminator's bar (+0x3984) up by HandBuster of the kind (only with a skull on the board, to at most
+1), counter 0x20 for a flush; then the flame and star cards pay FlameBonus (100) and StarBonus (250) straight into the score, one at a time
+(0x6dedd0); then, with the skull's level (+0x398c, -1 for none) below the hand's index, the hand is cleared (0x6cdce0) at once when the bar is 1
+and otherwise after the cards have gone; with the skull's level at or above the hand's index the skull takes the hand: 0x6cb430 flips the coin and
+after its curve the game ends when it was lost. The coin is never lost for a player whose profile has not flipped one before (profile +0xcc, the
+statistic 3), always when the count of hands a skull has taken is 2, and else when the app's Rand() modulo (that count + 2) is above 0; counter 3
+and the profile statistic go up. Clearing a hand (0x6cdce0, a secret mode): the skull's clock (+0x3994) goes up by HandCountdown of the kind times
+(hands cleared times CountdownMultPerHand plus 1); with the bar short of 1 a clock at 1 raises the skull's level by one (to SkullMax, 5) and starts
+the clock again; with the bar at 1 and a skull on the board the level goes down by one, a skull is counted as busted, and the clock and the bar
+start again; the hands cleared go up and the cards go. A game's first clear is made by slot 256 (0x6cf440) when the board first stands still. While
+a hand is being paid nothing is matched (slot 201, 0x6d90a0, asks slot 98, 0x6c6470, which is false then): a swap in that time finds no match and
+goes back. The grid is at y 0x5a (slot 172, 0x6c4d00). Matches are scored by Board (slot 143 is not changed), with level factor 1.
+
+End dialog (PokerEndLevelDialog, vtable 0x86c4c4, constructor 0x782cf0, made by slot 257, 0x6d1540, with the name "Poker"): slot 94 (0x782580)
+draws only the statistics table (slot 92) and the top scores (slot 88), slot 89 (0x782870) the labels of strings 0x191 to 0x194 (Best Hand,
+Number of Hands, Skulls Busted, Skull Coin Flips), slot 90 (0x7825b0) the four values at x 0x2f8, slot 26 (0x782e10) Classic's drawing and a chart
+of the seven kinds' counts (the dialog's +0x39c on, the board's +0x39e8 on); slot 22 (0x7839c0) is not read.
+
+Slots of PokerBoard that differ from QuestBoard's (the address of the Poker one): 0, 22 (0x6dedd0), 43 (0x6d90f0), 47 (0x6c5880), 85 (0x6ce510),
+86 (0x6c5900), 89 (0x6c7870), 95 (0x6dd540), 98 (0x6c6470), 101 (0x6c5a00), 102 (0x6c59f0), 123 (0x6c4d60, 1.3333334), 135 (0x6dfa40), 138
+(0x6cab90), 139 (0x6ce1f0), 152 (0x6c4d30, 0), 154 (0x6c4d70, 0 in a secret mode), 166 (0x6cab70), 168 (0x6ce1d0), 172 (0x6c4d00), 179 (0x6cfa50),
+190 (0x6c4d50, 0x14), 191 (0x6cfaa0), 201 (0x6d90a0), 203 (0x6dd570), 220 (0x6c4d20), 228 (0x6c90e0), 244 (0x6cb6d0), 249 (0x6d4300), 254
+(0x6c4d40, 300), 255 (0x6c8de0), 256 (0x6cf440), 257 (0x6d1540), 258 (0x6c4d10, 0x41) and 260 (0x6d1650).
+
+Timing (Poker): the exe's update (0x6dedd0) waits on animation curves, and the port steps the same curves (CurvedVal) from the exe's strings: the
+hand's display (+0x3728; 0x7d7c4c, 450 updates, for a flush and 0x7d7c70, 350, for the others, set by 0x6cb520), the skull's fly-away (+0x3888, 0x7d7b44,
+about 75 updates, started when the bar is full and ends with the clear), the coin (+0x3ab0, 0x7d8298, 150, set by 0x6cb430) and the wait after a won coin
+(+0x3b20, 0x7d7c10, 250), and the bonus throttle (+0x37a0, 0x7d7bb0, 20, one flame or star card paid per run of it, once the display is past 0.35).
+Slot 98 (0x6c6470) is false while the fly-away, the display, the coin or the wait runs, so a match is only found at rest, as in the exe. The
+exe's list at +0x26b8 (which the exe also asks before scoring) is taken as empty. Deviations (Poker): The flip's safe end clears the hand when the wait after it ends (the exe makes a small
+widget there, string 0x180, which the port leaves out). Not translated: the cards' flight (a PopAnimEffect of 0x1e8 bytes per card), the
+hand's name display and awards (FONT_POKER_AWARD), the skull's pictures and the coin, every sound, and the hand's own HUD (the port draws the five
+cards, the hand's name and a line of text for the skull's level and the bar, at places found by looking, in the strip left of the grid). The
+setting at +0x3968 (first read by 0x6dfa40) and Hands belong to the games that are not secret.
+
+### Oddities (Butterflies and Poker)
+
+- Poker's end dialog chart (0x782e10): the exe draws axis labels (step 1, or 5 times a count over 10 for larger counts, from x 0x1ae at y 0x2cb) and
+  bars scaled by 920 or 910 over the largest count; the port draws seven plain bars with the kinds' names and counts. Slot 22 (0x7839c0) was not
+  read.
+- What the exe passes to 0x43b2e0 in slot 90 of the Poker dialog (the values) is not in the export (they come in registers): the best hand is
+  shown by name, the others as counts of the board.
+- Poker's hands' names are the ones of secret.cfg's comment (the exe builds a table at 0x8d222c from strings the port has not located).
+- Poker's skull: a hand the skull takes is also paid first (0x6cb520 runs before the test of the skull's level); this is read from the order of
+  the calls in 0x6dedd0 and is not confirmed by a game of the original.
+
+### The suite for the two modes
+
+suite_butterflies.txt and suite_poker.txt (seed 7, name Tester, `unlock all`, `goto`, `bot` to the game over, three state lines and two shots
+each, the end dialog on screen at the last), each run twice by suite.sh: the state lines and the shots must be the same on the rerun, the second
+state line must be in play and the last must have the game over and the end dialog. Their state lines have no hash of their own yet: the
+modes' logic is frozen by the rerun only, and the Classic (51086c43ed2a) and modes (94f857c247d1) hashes are unchanged.
+
+## Ice Storm (IceStormBoard.cpp)
+
+The secret quest 2 of secret.cfg ("Ice Storm", Challenge "Inferno", the play menu's ball 6) is Sexy::InfernoBoard in the exe (vftable 0x8685ec, 268
+slots, constructor 0x6e2d90; 0x6db270 is its destructor, not the constructor) over QuestBoard; the port's class is IceStormBoard. Its end dialog is
+InfernoEndLevelDialog (vftable 0x8662c4, 0x390 bytes, made inline by the board's slot 257, 0x6d3180). The exe's only names for it are
+InfernoBoard::RefreshMultiplierText (0x6cc010), InfernoBadge, InfernoEndLevelDialog::DrawStatsLabels (0x78fbb0) and ::Draw (0x790500); every other
+name here is the port's, read from the code. The quest text says "crush ice before it reaches the top", which is what the board does: eight
+columns of ice (the objects at +0x3d28, 0x348 bytes each) rise from the bottom of the grid, 0 to 8 rows.
+
+What happens. Each update (slot 234, 0x6e5850, which runs Board's 0x767090 first; the port made Board::UpdateTick virtual for it) the ice
+counts its own ticks and, after a grace of 0x96 ticks, steps (0x6e0cc0). A made column waits 0x32 ticks (cut to 0x14 when no column is moving), then
+rises by a speed that is the product of the stage's fire speed (the Level rows of the quest, times FireSpeedMult, moved from the last row's by
+the row's curve over the stage's time), the column's place (ColDistribution, the right half mirrored; a double column's rank is one less on the
+right), its height (RowFireSpeed), the ramp that follows a multiplier and a deviation of its own (up to MaxRandFireSpeedColDelta, drawn when it
+is made); a double column's speed is also multiplied by DoubleColSpeedMult, and the edge double's by DoubleEdgeMult. The pushes of the cleared gems
+(MatchPushStr for each gem of the column, SpecialGemPushMod times as much when a special gem cleared it, and when a flame gem is made there; a
+push decays by 0.003 a tick) are taken off that speed; when they win, the ice goes down by the difference (never more than 0.2 a tick), the part
+of it that was ice (up to the height) is added to the bar's ice removed, and a freeze builds up (FreezeDurationPerNegStrength times the push, up
+to FreezeMax) that slows the next rise. A column that has been over 0.5 does not go below it again unless it is crushed. At 8 the ice cracks: its
+crack ticks count, and when they reach SecondsUntilLose seconds (12, shorter by the column's crack speed from the Level row) and the board is
+settled the game is lost (slot 161, 0x6e0450): a death curve of 100 ticks runs (slot 22, 0x6e63c0) and the game ends (0x6d8e30, Board's NoMoreMoves).
+
+A run of three or more gems that stand in one column (slot 211, 0x6e2250, which the port reaches through a new Board hook, OnRunFound, called
+for each kept run where the exe's slot 0x34c returns at once) crushes the ice of that column when its gems are cleared (slot 143, 0x6dd580, then
+0x6db1a0): the column is marked crushed, the ice it will take off the bar is its height (1 at least), 0x6d6d60 scores it (ColDestroyBonus times
+the multiplier into a total the exe only keeps; with ColCountBonus a column crushed within the chain's window of the last counts as the next of
+a chain, the window being the ColComboCoolDownVsCount curve's value at the chain's length, in ticks, and the list's entry for that length is added
+to the score as it is) and counter 0x23 (columns crushed) goes up. A hypercube's group at work (type 7, every colour) crushes the ice of every
+column it clears a gem in. 5 ticks after the crush the ice it took is added to the bar; 50 ticks after, the column goes (the exe waits for its
+crush effect, the curve "b;0,1,0.01,.5"; the port counts the ticks).
+
+The bar: the ice removed (pushed back and crushed) against MultiplierIceReq (each entry times 8, rows; 10 when the list is empty). When it is past
+it (0x6e5850's last part) the multiplier (the score's factor, +0xe0c, mLevelNumber; the end dialog's "Highest Multiplier") goes up by one, the ice
+holds still for 200 ticks and every column is given a reprieve: after 0x50 ticks and 5 more for each column on, a push (ReprieveStrVsRow, 0x6ceba0)
+takes the high ice down; the game goes on when the pause is over and no column is still being pushed (or 300 ticks later), and each made column,
+in a random order, gets a ramp (from 0.2 to 1) that starts later for each. Slot 122 (the level factor) is 2 in the secret mode, slot 106 (the
+hint wait) 5 seconds (Board's 15; a new virtual, GetHintWaitSeconds), slot 172 puts the grid 0x28 lower.
+
+Stages: the quest's Level1 to Level15 rows ("doubleCols, colCount, fireSpeed, seconds, crackSpeedMod[, curve]") are read by 0x6c6600 (past the last
+row the values go on by the step of the last two); when the stage's seconds are up the next row is read and the columns planned again (0x6e5690:
+with some singles and some doubles wanted the edges are doubles; with only doubles, all). 0x6e08a0 makes one column at a time, in a random
+order (the CRT's random_shuffle with the app's Rand, the last candidate kept last), with edge columns put off until enough others are made, by
+the stage's double count; it runs from the step when the next is due (0x6c5d30 holds the due tick to 0x4b after a crush) or when none is made.
+
+Settings and state keys. NewGame (0x6e6a10) reads MatchPushStr, SpecialGemPushMod, SecondsUntilLose, DoubleEdgeMult, FireSpeedMult,
+ColDestroyBonus, ColCountBonus, MultiplierIceReq, MaxRandFireSpeedColDelta, DoubleColSpeedMult, FreezeDurationPerNegStrength, FreezeMax, the four
+curves and the Level rows. `goto icestorm` needs `unlock all` (tutorial flag 2). State keys: ice (eight heights in thousandths of a row, -1 where
+no ice is made or the column is a double's second), icespan, icecrushed, icecrack (crack ticks, -1 none), iceremoved and icebar (thousandths of a
+row), icemult, icestage, icepaused, iceticks, icecrushedcount, icebestchain and icechain. `bot` and `move` work (the move search is Board's);
+the suite's bot stops after 30 moves so that the ice reaches the top.
+
+### Not done (Ice Storm)
+
+The ice is a flat translucent block (blue towards red with the crack, fading when crushed) from the grid's bottom; the exe's PIEffects of each
+column (0x330, 0x334 set by 0x6c5ea0 from the position and crack), the shake offsets, the "crush", "panicfast" and "panicslow" animations, the
+glow (+0x264) of the gems in the ice, the intensity curve (+0x3b60) and its effects (0x6e5850's start), the bar, InfernoBadge, the multiplier text
+(0x6cc010) and the popups (0x6ce7c0), the sounds, the death's "death" animation (0x6e0450), save and restore (slots 138, 139: 0x6cfbc0, 0x6e7e40),
+slot 218's danger flag, slots 108, 133 and 191's counter (+0x3cf8, which the swap hooks set to 0xf), slots 98 (0x6d3f00), 123, 125, 239 (0x6d3970), 249,
+251 and 255 of the board, the end dialog's Draw (0x790500: the boxes and icons of the ICESTORM_GAMEOVER_DLG_ constants) and the tutorial dialog of the
+first vertical run (0x6e2250).
+
+### Oddities (Ice Storm)
+
+- Slot 143's test of what cleared a gem is the bit 2 of mDestroyerFlags (+0x238), which the port's Piece calls FLAG_HYPERCUBE; slot 166 and 143 both
+  apply the push of special gems, as read. Whether that bit is a flame or a hypercube in the exe's own naming was not followed.
+- The crack's fraction (0x6ce540) passes through a curve object (0x4378f0 with the column's crack ticks over SecondsUntilLose) that the export does not
+  show (its object is in a register); the port reads it as linear.
+- 0x6e24b0, which makes columns when a stage starts (called with a bound in a register), is read as making them until StartColCount columns are
+  made; the quest has no StartColCount, so none are made at a stage's start (the first appears after the grace and the 0x19 ticks of the due tick).
+- 0x6c6600's curve copy for a row with no curve is not read; the port uses the constant 1 for it, so the stage's fire speed is the row's from the
+  start (Level1 to Level3 have curves, from 0.5 or 0 up to 1 over the stage).
+- The column's ramp (+0x218) before the first multiplier is taken as the constant 1 (not read from the constructor, 0x6e2d90).
+- 0x6d6d60's ColDestroyBonus times the multiplier is only added to +0x366c (and shown in a popup, 0x6ce7c0); nothing translated adds it to the score
+  (the ColCountBonus entry is added to mScorePoints and +0x3668 directly, not through the multiplier). The score's multiplier is Board's AddPoints.
+- 0x6c6520's second test (a group of type 2 whose +0x40 is the column) is of a group the port never makes (match groups of type 2 are made when
+  +0xe8 is set, which no port mode sets).
+- The stage's time (0x6e5790) is run from the exe's Update; the port runs it in the step, the same at the normal speed.
+- (Settled) The "Total Time" of the end dialog reads counter 0 (seconds), as in the other modes' dialogs. Board::UpdateGame now adds a
+  second to it every 100 game ticks (0x768125, AddCounter(0, 1, -1)), so every mode's end dialog shows the time played; it is not one of
+  QuestBoard's update counters (+0x3198, +0x31a0), which no end dialog reads.
+- Board's UpdateGame calls slot 161 when no move is left; Ice Storm's slot 161 begins the death instead, and the port guards the start (the exe
+  asks whether the death curve is above 0).
+
+### The suite for Ice Storm
+
+suite_icestorm.txt (seed 7, name Tester, `unlock all`, `goto icestorm`, `bot 30`, three state lines and two shots, the end dialog on screen at the
+last) is run twice by suite.sh in the same loop as the other two secret modes: the second state line must be in play, the last must have the game
+over and the end dialog, and the rerun must be the same. The Classic and modes hashes are unchanged by it (see the suite's result).
+
+## Diamond Mine (DiamondMineBoard.cpp)
+
+The secret quest 3 of secret.cfg ("Diamond Mine", Challenge "Dig", Goal "Dig", the play menu's ball 7) is Sexy::DigBoard in the exe (vftable 0x8657d4, 266
+slots, 0x3280 bytes, constructor 0x737420; 0x7373b0 is the destructor) over Sexy::TimeLimitBoard (vftable 0x86a234, constructor 0x6dd3b0, which sets
++0x324c to 10 and +0x3250 to 3000) over QuestBoard. The mode's logic is in Sexy::DigGoal (vftable 0x86bbac, 72 slots, constructor 0x6c4230, called by
+QuestBoard's new game 0x6ddc70, held at the board's +0x3180, its board at +0x104); the port has both as DigBoard and DigGoal in DiamondMineBoard.{h,cpp}. The
+board's mode name (slot 89, 0x736e20) is the string "BuriedTreasure" at +0x3258, the music's and the log's name. The exe's names: DigGoalEndLevelDialog
+(vftable 0x865c54; Update 0x736010, DrawStatsLabels 0x732c90, DrawFrames 0x7331f0, Draw 0x733af0, DrawStatsText 0x7353d0), DigBackground, DigBar (the board's
+slot 43 calls DrawDigBarAnim on the goal), DiamondMineScoreBadge and DiamondMineArtifactsBadge; the rest are the port's.
+
+What happens. The bottom of the grid is dirt: each cell is a gem the fill made that the goal turns into a brick (flag 0x10000, no colour, not swappable,
+not falling, an entry by the piece's id in the goal's map at +0x228: hits left, hits at the start, kind, a random number). Kinds: 1 dirt (strengths 1 to 3 are
+hits, 4 needs a powered hit, 5 is the dark rock), 2 money (1 to 3 gold, 4 to 7 diamonds), 0 artifact (the entry holds the artifact's index). A gem that
+is cleared (slot 143, 0x6ad0d0) puts its cell and move id in a list; the goal's update (0x6c2ad0) hits the four cells round each (offset tables 0x8d39fc and
+0x8d3a00: right, left, below, above), first a powered hit when the gem had no colour or was cleared by a hypercube (bit 2 of what cleared it), with the cell's mask,
+and, when that does not break the brick (or the hit was not powered), a second hit of the same power with no mask (0x6b59f0; the mask is a per-row set of cells a
+hit has reached since the update began, cleared at its start). A gem that a flame or star cleared (a clearer with bits 1 or 4, with a colour) hits no neighbours;
+its blast hits what it reaches instead: a brick taken out by an explosion or a ring (slot 176, 0x6bb6a0, with slot 142, 0x6b6a80) is hit there, powered when its
+clearer had a special's bit (7), and stays if it stands. Dirt of strength 4 only takes a powered hit (it goes to 1); other dirt with hits left loses one,
+and the dark rock two (5 goes to 3); at 0 it is gone. Money and artifacts are collected by a hit: the value is ArtifactBaseValue times the artifact's value
+(Artifact1 to Artifact46: "id, minDepth, value, text"), or for money the roll from the kind's pair of TreasureRange (min + Rand % (max - min + 1)) times
+GoldValue (strengths 1 to 3) or DiamondValue; 0x6a9780 adds it to the progress (+0xe00), which is the score (slot 161, 0x737500, sets +0xd24 to it at the end;
+the port also sets it each step). A block of dirt marked H in the grid with a strength hides a hypercube: when it breaks (0x6bb6a0) the piece becomes a
+hypercube whose group (the most common colour in the grid) is made at once.
+
+The rows. 0x6bbb10 makes the bricks of the rows from a start row down: the setting Grids (read by 0x744e00: a digit starts a cell, a letter belongs to the cell
+before it; H hypercube (alone, a hypercube gem), S shuffle (flag 0x1000), R random, M money, A artifact) gives the rows of the table, 8 cells each (cell n is row
+n / 8); with the setting MaxBrickStrPerLevel there (+0xb10), a cell that says R and every row past the table is made by 0x6b3a50, which reads the curves
+(MinBrickStrPerLevel, MaxBrickStrPerLevel, EdgeBrickStrPerLevel for the first and last columns, MinMineStrPerLevel, MaxMineStrPerLevel, MineProbPerLevel,
+DarkRockFrequency) at the number of rows made (+0x4f8) and the spreads (BrickStrSpread, MineStrSpread, ArtifactSpread: tables of 500 floats built from a curve by
+0x784fe0 and read by 0x784e90). Each brick made counts one off the run to the next artifact (+0x404, ArtifactMinTiles to ArtifactMaxTiles); when it is due and the
+brick is a random one, a random one of the row's candidates gets an artifact picked by ArtifactSpread from the pool (the artifacts whose minimum depth is reached,
+not yet placed or collected, in groups by their depth, deepest first, until ArtifactPossRange allows no more, reversed). The first eight rows are made at the
+start (0x6bbb10 with 0).
+
+The scroll. When the first six rows hold no brick (0x6aae50), the board is at rest with nothing swapped and no dialog is up, the goal starts it (0x6c2ad0): with
+all eight rows free the scroll is the long one (twice DigCountPerScroll rows) and its bonus the mega one; the time is given (0x736f20): MegaTimeBonus or
+TimeBonus seconds are added, the time left is kept in +0x3274, and with less than 9001 hundredths left the limit is put to 90 seconds and the game ticks (+0xe38) to
+0x23f0 less what is left, with more, the limit is the seconds rounded up and the ticks 200. Two curves are set ("b+0,1,0.01,1.5,..." and "b+0,10,0.01,1.5,...");
+each time the second's value (rounded) changes from a number below the rows of the scroll (0x6be730), a row is scrolled (0x6be3e0: the top row goes, everything
+moves up a row, a row of gems with random colours that make no match (25 tries) is made at the bottom and given its bricks by 0x6bbb10 (7); with no move left, a
+hypercube is made of a random piece of the top row, up to 49 tries). When the curve is done the depth (+0x4f0) goes up by the rows of the scroll. The clock (slot 187,
+0x736b50) is the limit's hundredths less the game ticks past 250 (0x73bb80), and no more than the kept time left; at 0, with the board at rest, the game is lost
+(slot 216, 0x73b890: slot 161 with +0xe28 set). The gravity (slot 214, 0x736d60) is Board's, then the bricks have no speed.
+
+Slots translated, as the port's overrides: DigBoard::Update (slot 22, 0x7374d0: QuestBoard's, then the goal's update), UpdateTick (slot 234 through 0x6e5660,
+with the time's end), ResetGame (85, 0x737290), NewGame (135, 0x7375e0 with 0x6e5030: Time, TimeBonus, TimePenalty, MegaTimeBonus, then the goal's settings, the
+fill and the first rows), GetModeName (89), GetTimeLimit (104, 0x6c4a30), GetTimeLeft (187), UpdateFalling (214), OnPieceCleared (143), OnPieceRemoving (176 and
+142), NoMoreMoves (161, 0x737500), MakeEndLevelDialog (257), DrawModeOverlay (43, 0x737370, plainly). Shared changes: Board::OnPieceRemoving (a hook at the start
+of RemovePiece, slot 176/142: true keeps the piece), Board::UpdateFalling is virtual, Board::BotMayMove (test only: the bot waits while the first six rows hold no
+dirt, so the board is at rest when the goal looks; a swap in the same update would hide it), and QuestData's parser reads `Name= value` and `Name ="value"`
+(secret.cfg's Artifact10 to Artifact21 and Grids have them; the parser took the whole line for a setting name). The Classic and modes hashes are unchanged.
+
+Settings and state keys. `goto diamondmine` needs `unlock all` (tutorial flag 3). State keys: digmap (eight rows of eight characters, rows split by "/": . no brick, 1 to
+5 dirt with that many hits left, g gold, d diamond, a artifact, h dirt that hides a hypercube), digbricks, digdepth (rows: the scrolled and, while a scroll runs, its
+share), digtime (hundredths left), digtimelimit (seconds), digtimecap (the kept time left), digtimeup, digtreasure (the progress, the score), diggold, digdiamonds,
+digartifacts, digbest (the most one treasure was worth), digrows (rows of bricks made), digscrolls, digscrolling, digdestroyed, digplaced (artifacts put in the dirt). The test
+command `dig clear [lastrow]` hits the dirt of the rows up to lastrow (5) with powered hits until it is gone, and `dig hit <col> <row>` hits one brick once. `bot` and
+`move` work (Board's move search; a brick cannot be swapped and has no colour).
+
+### Not done (Diamond Mine)
+
+The looks: dirt, gold, diamonds and artifacts are flat coloured blocks over their cells (the exe's brick effects: the records' +0x10, +0x14 and +0x1c and 0x6b54d0, the
+crumble and the sparkle, DigBackground, the dig bar and its animation DrawDigBarAnim, the time bonus' text rising (the port writes "+n" beside the clock), the
+flying treasure (the list +0x658; 0x6a9780's tally timer +0x3c0 is kept but nothing draws the tally), the badges, the end dialog's frames and badges (0x733af0,
+0x7331f0, "Treasure Found:", "Gold Collected", "Diamonds Collected", "Artifacts Collected"), the sounds ("drill", "predrill" and the collect sounds), the
+scroll's pixel offset (+0x248 and 0x6b9690: the port moves the rows at once at each step of the curve, which the exe slides). The helping hand: the power-gem
+specs (+0x468 and +0x4a8, slots 184 0x736bf0 and 185 0x736b70, PowerGemThresholdDepth0, 20 and 40 into +0x3188 by the board's slot 0x414(6)); slots 81 (0x736cc0), 123
+(0x736ab0, returns 2.6666667), 133 (0x736a60, goal +0xa60 = 10), 191 (0x736b10), 204 (0x736ac0) and 177 (0x736e60: the goal's top-row hidden list +0x444); the shuffle
+cell S (flag 0x1000, no use in the quest's grid); save and restore; the tutorial (TutorialHeader and TutorialText); the TimePenalty (slot 263, 0x6cb130, DoQuestPenalty:
+read, never used here); the leaderboard scale (HighScoreBase and HighScoreIncr).
+
+### Oddities (Diamond Mine)
+
+- 0x6b59f0 after the collection of a treasure goes on into the code that takes hits off a brick; for a block of money the hits left is its strength and for an artifact
+  its index, so read literally a block of money of strength 3 would take 3 hits and an artifact 0. The port collects a treasure with its first hit and removes it; what
+  the exe does with the rest was not followed (the flying treasure's own arrival may be what removes it).
+- 0x6b3a50's dark rock: the export gives a draw and a compare with DarkRockFrequency after a strength of 4 or more; the port reads it as 5 when the draw is at most the
+  frequency and 4 otherwise (the setting's comment says it is the frequency of dark rock). The reading "4 becomes 5, then 4 by chance" was also possible.
+- 0x6bbb10's absolute depth of a row (the table row, the artifact pool's depth) is the rounded curve times the rows of the scroll plus +0x4f0, then the row: the sum is
+  lost in the export (an x87 add) and was read from where the values are stored; the pool's depth is taken without the row.
+- The second artifact set (+0x1bc) is the list of artifacts collected (the end dialog's best treasure reads it); 0x6bbb10 leaves out artifacts in it and in the placed list.
+- +0x17d of a piece (0x6ad0d0, 0x6b6a80) is not a field of the port's Piece; it is read as "something cleared it" (a destroyer id or flags are set).
+- The exe's brick hit has a path for a piece with bit 2 or 0x1000 (a hypercube or shuffle brick: its colour is picked at random among the grid's) that the port does not
+  make (no such brick is made from the quest's grid).
+- Slot 216's condition 0x2e8 (slot 186) was not read: the port asks for the board at rest, as Lightning's time's end does.
+- At the start the port runs the scroll's "no move" fix (0x6be3e0's end) after the first rows, since the bricks can take away the move the fill left; the exe may not.
+- 0x6be3e0 keeps the top row's pieces in a list (+0x444) that slide off the screen; the port deletes them.
+- Slot 123 (0x736ab0) returns 2.6666667 and its caller was not found.
+- The run to the first artifact (+0x404) is the shortest run (ArtifactMinTiles); the exe's initial value was not found.
+
+### The suite for Diamond Mine
+
+suite_diamondmine.txt (seed 7, name Tester, `unlock all`, `goto diamondmine`, `bot 150`, `dig clear 5` three times so that the grid scrolls, `dig hit 0 7`, three state lines and
+two shots, the end dialog on screen at the last) is run twice by suite.sh in the same loop as the other secret modes: the second state line must be in play, the last
+must have the game over (the time's end) and the end dialog, and the rerun must be the same.
+
+
+## Quest (QuestMenu.cpp, QuestBoard.cpp, QuestGoal.cpp, MoveLimitBoard.cpp, TimeLimitBoard.cpp, Bej3App::StartQuest and ShowQuestMenu)
+
+The first part of the Quest mode: the play menu's QUEST ball (id 3) shows the quest map, a click on a quest's gem starts it, and Stratamax (index 3 of quest.cfg: Move Limit, Clear
+Gems, 120 gems in 20 moves) and the other Move Limit quests with the Clear Gems goal (indices 3, 10, 22, 31, 34) can be played to a win and a loss.
+
+**Starting.** Ball 3 calls 0x773b70 (`Bej3App::ShowQuestMenu(bool theDeleteBoard)`): with its argument set the app's board (+0xbe8) goes; the menu (0x693760) is made at x -160, 1920 wide
+and the art's height, put on the app's screen slot +0xbd8 with the focus, and the music events FadeOut and Play "QuestMenu" are queued. A quest's button calls 0x774060 with the index
+(place plus 8 times the section), the app's quest.cfg and the secret flag 0 (`Bej3App::StartQuest`): the board is picked by the setting Challenge, compared upper case as for the secret
+modes (MOVE LIMIT is MoveLimitBoard, vftable 0x868a84; TIME LIMIT is TimeLimitBoard, 0x86a234; the others are not made and the map stays), the quest's settings are copied into the board's
+map, its index is +0x3234, and the board is started as for a secret mode.
+
+**The map (QuestMenu, vftable 0x86df4c).** Five sections of eight quests (section n holds the quests 8n to 8n+7). The profile's +0x158 flags (`mQuestsDone[5][8]`) say which are done; a
+section's state (0x6734d0) is 0 locked (the section before it has fewer than 4 done), 1 the section the player is at (fewer than 4 done), 2 (4 to 7 done), 3 (all 8). Every quest of a section
+that is not locked is open (there is no lock per quest). PREV and NEXT (ids 0 and 1) turn the page round the five and keep it in the profile's +0x184 (clamped to 0..4 when read); BACK (id 2)
+takes the map and the board under it away and shows the play menu; QUIT (id 3) asks the app to quit (only logged, as the play menu's). A quest's gem is the button 1000+place (pending) or
+2000+place (done). The map of names to pictures (+0x129, made by 0x693760) is: "Gold Lines" and "Gold Lines Flip" Alchemy, "Filler" Avalanche, "Balance", "Hidden Objects" Sandstorm,
+"Butterflies", "Dig" Gold Rush, "Inferno" Ice Storm, "Poker", "Clear Gems" Stratamax, "Clear Bombs" Time Bomb, "Wall Blast". The port looks a quest up by its Challenge and then its Goal
+(the keys are of both kinds, and Avalanche is Filler with Clear Gems and must keep its own picture; the order of the lookup in 0x697d40 was not read).
+
+**The quest path of QuestBoard (0x6dd8a0 with the secret flag clear).**
+- *NewGame* (slot 135, 0x6ddc70): +0x3187 and +0x31ac (`mScoresPoints`, `mRecordsHighScores`) start as the secret flag and RecordHighScores TRUE raises the second; the goal is made by the
+  setting Goal; Board's new game deals; the goal's Load (slot 53) reads its settings. MoveLimitBoard::NewGame (0x6e0170) reads Moves first (+0x3248 and +0x324c), TimeLimitBoard's (0x6e5030)
+  Time, TimeBonus and TimePenalty.
+- *The goal factory* (0x6ddc70, each compare independent, a later match replaces an earlier): CLEAR GEMS ClearGoal (0x11c bytes, vftable 0x86ab5c); WALL BLAST 0x6ab720 (0x260); GOLD GoldGoal
+  (0x114); DETONATOR; ARSENAL; GOLD LINES 0x6afcd0 (0x940); GOLD LINES FLIP 0x6afe00 (0x944); GOLD YELLOW 0x6ae170; CLEAR BOMBS 0x6ae760; SCORE; FIRESTORM; PRESERVER (0x118); HIDDEN GEMS
+  (0x11c); HIDDEN GRID (0x21c); SURVIVAL (0x118); CATCH BUTTERFLIES ButterflyGoal (0x114, vftable 0x86a90c); HIDDEN OBJECTS 0x6afb60 (0x1f80); DIG 0x6c4230 (DigGoal, 0xb18). The port makes
+  CLEAR GEMS and DIG (`MakeQuestGoal` in QuestGoal.cpp); ButterflyGoal's only live part is a counter that nothing reads, so it is not made.
+- *QuestGoal* (vftable 0x86a6bc, 72 slots; `QuestGoal` in QuestGoal.h): the base's slots that the translated goals reach: Load (53), Update (54; the base counts a counter that nothing
+  reads), CanEndGame (10, 1), GetLevelMax (22, 0), OnPieceCleared (40), OnPieceRemoving (18 and 39). DigGoal derives from it (`class DigGoal : public QuestGoal`, with Load, Update,
+  OnPieceCleared and OnPieceRemoving as overrides; its board is `Dig()`), so the goal the factory makes for "Dig" is the same object as before and the Diamond Mine suites' states are
+  unchanged. The board delegates to the goal where the exe's slots do: 154 (GetLevelMax), 143 (OnPieceCleared), 176 and 142 (OnPieceRemoving), 22 (Update), 161 (the goal's slot 10).
+- *ClearGoal* overrides three slots: 53 (0x6ae510) reads Gems, GemsPerLevel and GemsMax; 22 (0x6aa320) is the level's size, the level's index times GemsPerLevel plus Gems (at most GemsMax
+  when that is 1 or more); 40 (0x6aa360) adds 1 to the score (+0xd24) and to the progress (+0xe00) for each gem cleared. QuestBoard's slot 152 (0x6cf290, AddPoints) adds the points of a
+  match only when +0x3187 or the goal's +0x10c is set, so in a quest the gems cleared are the whole progress.
+- *The end of a level* (slot 156 = 0x6ca7e0, which runs 0x6ca350; `QuestBoard::OnLevelFull`, a new virtual of Board whose own is the level change): when the level bar is full, the game's
+  flag (+0xd8c, `mGameOver`) is set and the clock +0xd20 starts at 200. `QuestBoard::Update` steps it (`StepQuestClock`): at 200 it counts down once the board is at rest; at 198, with the
+  board at rest and the bar equal to its target, the win is told (the quest map is shown over the board, 0x6dd760); then it counts down, and at 0 slot 233 (0x6ded60) runs.
+- *A lost quest*: NoMoreMoves (slot 161, 0x6d8e30) ends the game unless the goal's slot 10 says no or the level is full; with the game-over counter (+0xd1c) at 300 the map is shown over the
+  board (0x6dd760). A quest that does not record high scores has no end dialog (0x6ded60 makes one only for the other), so `mEndScreenShown` is set at its new game.
+- *MoveLimitBoard*: slot 191 (0x6c5a60, a swap that found a match) and slot 180 (0x6cfb50, a hypercube's group with a colour) use a move; slot 22 (0x6e00e0) ends the game when the board is at
+  rest with no moves left and +0xd8c is clear; slot 98 (0x6c6500) gives no hint with no moves left.
+- *TimeLimitBoard*: Time, TimeBonus and TimePenalty, the clock in hundredths (0x73bb80) and the time's end (slot 216); Diamond Mine's board now derives from it and its own clock and time's
+  end are the base's.
+- *The profile*: a won quest is marked in `mQuestsDone` and the profile saved (0x71bb10) when the win is told (the exe's map does it, 0x684380, 0x118 updates after the win). The profile's
+  fields that were called the flag rows, the counter before the flag, the flag after the counter and the hint flags are `mQuestsDone` (+0x158), `mQuestSection` (+0x184), `mQuestMenuFlag`
+  (+0x188) and `mQuestHelpSeen` (+0x2ac); the save's order is unchanged, so the old saves load.
+
+**Test commands** (the state line keeps every other mode's keys). `goto quest` shows the map; `quest <index> [Name=Value ...]` starts a quest, each Name=Value replacing a setting of the quest
+(`quest 3 Gems=40` is a short Stratamax); `quest done <index>` marks a quest done in the profile and `quest undo` clears every mark. The framework's `click x y` presses a gem or a button of
+the map. `bot` and `move` work as on any board. State keys: with the map up `questmenu` (1), `questsection`, `quests` (40 characters of 0 and 1), `sectiondone` and `sectionstate` (five numbers
+each), `questbuttons`; with a quest board `quest` (the index), `questwon`, `questclock` (+0xd20), `goal` (the setting Goal, upper case), `goalsize` (slot 22), `goalcount` (the progress),
+`questscore`, `quests`, `questmenu`, and `movesleft` and `moves` (Move Limit) or `timeleft` (Time Limit); `screen` is `quest`.
+
+### Not done (Quest)
+- The map's relic pages (0x67cc80 builds a page for each section with the relics, sockets, ghost sockets and their animations; 0x690110 and 0x687f90 draw them), the pillars' parallax and the
+  page's turn (the curve at +0x138, 0x690f10), the progress pictures and panes, the sparkles, the percentage window, the quest-complete banner and animation (0x67ed00, 0x684380's effects),
+  the sounds (SOUND_QUESTMENU_RELIC*), the exe's wait for the relic animation before a click (0x674060), the text "Complete quests to restore the Lost Relics of Bejeweled". The gems are put in
+  two rows of four; the exe puts each in a socket of its page.
+- QuestHelpDialog (vftable 0x8697d4, made by 0x6ccfd0 from slot 140, 0x6d0af0): the exe shows it before a quest that has not been started (the profile's `mQuestHelpSeen`); the port starts the
+  quest at once, since it does not stand in the way. Also the tutorial of the first quests (slot 141, 0x6d0ac0).
+- The exe keeps the map (+0xbd8) and the board (+0xbe8) both alive and shows the map over the board at a win (clock 198) and a loss (300); the port does the same but makes the map again each
+  time and deletes it when a quest starts.
+- The fanfare at clock 100 (slot 162), the sounds and music events ("Break", "Play", "Wait") of 0x6ca350, the text of the finished level (0x7411f0, slot 160).
+- The settings ColorCount (slot 261), HighScoreBase, HighScoreIncr, WantPointComplements, NeverAllowCascades (+0x3228), ShowAutohints (+0x4dc), Description, HyperMixers (+0x3186) and
+  PowerGemThreshold (slot 190; 0x6cda70 reads it into +0x3188), and Board's slot 84 (0x150) after the goal's load.
+- Goals: made by part 2 and part 3 (see "Quest, part 3"); the rest are not reached by any data file. A quest whose Goal is not made logs "not made yet" and has none.
+- The moves counter's bounce (+0x3250, MoveLimitBoard slot 22), the board's drawing for a quest (the goal's text "TitleText", "Moves Left: %i" in the bottom frame, the move counter's picture;
+  slots 26, 43, 47, 240, 242, 250: the port writes the moves left and the gems cleared plainly), the leaderboard of a quest that records high scores (0x6ca240, 0x6c7c60).
+- QuestMenu's QUIT (the app's quit question), hover effects and the buttons' glow curves.
+- TimeLimitBoard's slots 47 (0x6c6060), 262 (0x6cb260) and 263 (0x6cb130, DoQuestPenalty); no quest with the Clear Gems goal has a time limit, so the board is only exercised through Diamond
+  Mine.
+
+### Oddities (Quest)
+- 0x693760 fills the name map's "Hidden Objects" twice (Buried Treasure's pictures, then Sandstorm's); the second replaces the first, so Buried Treasure and Sandstorm both show Sandstorm's icon.
+- quest.cfg gives some quests a setting twice (Alchemy and Wall Blast have two Challenge lines, "Time Limit" then "No Lose"). The exe's parser (0x791c80) stores each setting with std::map::insert (0x403740), which keeps
+  the FIRST value; part 3 made the port's QuestData do the same (it had kept the last), so those quests are Time Limit boards and no quest names No Lose.
+- 0x6dd760 is called for a loss and for a win; the call for a win passes the "quest complete" dialog object, which makes the map start the countdown (0x67ed00) that marks the quest done 0x118
+  updates later; a lost quest shows the map and marks nothing.
+- QuestBoard::Update's test at clock 198 does not pass until the level bar has reached its target (slot 188 against +0xd68), so a win waits for the bar.
+- The profile's +0x184 can be any number in a save file; the port clamps it to 0..4 when the map is made.
+- The bot's twenty moves of Stratamax clear about 60 of the 120 gems: the bot loses it, as the suite shows.
+
+### The suite for Quest
+
+suite_quest.txt (seed 7, name Tester, `unlock all`, `goto quest`, a click on Stratamax's gem, `bot` to the loss, `quest 3 Gems=40` and `bot` to the win, `quest done 0` to `2` and a click on
+NEXT) has five state lines and five shots (the map, the game, the lost game under the map, the won game under the map, the second section's map); suite.sh runs it twice and checks each state
+line's keys.
+
+
+## Quest, part 2 (FillerBoard, BalanceBoard, NoLoseBoard, TimeBombBoard, BadMoveLimitBoard, ButterflyGoal; the secret boards as quests)
+
+Bej3App::StartQuest now maps every Challenge of 0x774060's list: TIME BOMB and TIME BOMB (REAL TIME) (TimeBombBoard, 0x6dd440 with 0 or 1), INFERNO (IceStormBoard), BALANCE, BUTTERFLIES and
+BUTTERFLY, FILLER, MOVE LIMIT, TIME LIMIT, DIG, NO LOSE, BAD MOVE LIMIT and POKER. The test command's setting changes (`quest <i> Name=Value`; a value in quotes may hold spaces) are made before the
+Challenge is read, so `quest 3 Challenge="Bad Move Limit" BadMovesAllowed=2` makes a Bad Move Limit board. The quest numbers below are the file's order (the map's): 0 Butterflies, 1 Gold Rush, 2 Alchemy,
+3 Stratamax, 4 Balance, 5 Avalanche, 7 Time Bomb, 8 Poker, 9 Ice Storm, 14 Time Bomb II (real time), and 15, 20, 27 and 38 Avalanche II to V.
+
+Hooks added to Board (each a no-op, or the old code, for the boards before): FillInBlanks is virtual (slot 203), OnSwapFailed (slot 192, called where 0x759ba0 sends a swap back), OnFillDone (slot 204, the
+last call of 0x763e90), CountDownPiece (slot 212: CountDownMoves' per-piece part), UpdateWarnings (slot 181: once in each UpdateGame between the specials' countdown and the busy counts) and IsAtRest
+(0x75fc10: IsSettled's tests without the first-settled call). Piece gains the bomb fields (+0x26c, +0x270, +0x24c, +0x250). QuestBoard::OnFirstSettled (slot 140) calls the new OnQuestStart
+(slot 256); Butterflies' and Poker's start moved there and lost their secret-flag test (the exe's help dialog that comes between is not shown). The Classic and modes hashes are unchanged.
+
+The secret boards' NewGame (Butterflies 0x6e3660, Poker 0x6dfa40, Ice Storm 0x6e6a10) now end with QuestBoard::NewGame (0x6ddc70) as the exe's do (Dig's already made the goal itself), so a quest gets its goal; in a
+secret mode the only goal is Butterflies' (Catch Butterflies), which counts as the board did. Ice Storm's slot 143 ends with the goal's slot (0x6dd580), and Ice Storm's and Butterflies' end of the game goes
+through QuestBoard::NoMoreMoves (0x6d8e30), which for a secret mode is Board's. Ice Storm's UpdateTick no longer returns when the secret flag is clear.
+
+### ButterflyGoal (0x86a90c)
+Slots 53 (0x6ae830, the setting Butterflies), 22 (0x6aa420: 0 in a secret mode, else Butterflies) and 40 (0x6ab2f0: the freed-butterflies counter 0x1c for the move's tag while the game is not lost, and
+in a quest score and progress up by one). ButterflyBoard::OnPieceCleared (0x6d03d0) runs the goal's slot first, scores the points as before, and when the progress has reached the size (not in a secret mode)
+every butterfly on the grid gets one move more. Tested with quest 0 (`Butterflies=1` and `2`: won, the map comes back; `Butterflies=6` is lost to the spider).
+Not done: the burst at the butterfly (0x6d01b0).
+Oddities: the exe's goal counts a freed butterfly only while +0xd1c is 0 (or in a secret mode); the board's own points are not guarded in the exe, and the port's old guard for them was dropped.
+
+### Filler (0x86817c, constructor 0x6dcc00): quest 5 Avalanche (Clear Gems), tested with `quest 5 Gems=8`
+Translated: slot 135 (0x6e3420: NumStartGems, DropPerMove, AssistCurve), 22 (0x6e3130: credit 0 when the level is full, the on-screen count and the counts at a move's start), 172 (0x6c52d0, 0x7d), 176
+(0x6d7c20), 180 (0x6cff00, credit +2), 191 (0x6c52a0, credit + DropPerMove), 161 (0x6c50f0: credit +3 and no end), 98 (0x6c6b10), 214 (0x6c6e90: the loss's fall), 181 (0x6dc770: the top row's warning,
+0.0075 a step at rest, the game ends at 1) and 203 (0x6db550: the fill, see the function's comment: the gems fall into gaps, then as many new gems as the credit allows are placed by weighted columns
+with the exe's draws in order: colour, column list, column, speed, height; slot 199, 0x6c5100, rejects a run through a new gem). The loss is the top row staying full: `quest 5 Gems=900` with `bot 25`
+is lost (the map comes back after 300 updates).
+State keys: credits, droppermove, gemsdropped, gemsremoved, gemsatstart, fullwarning (thousandths), dropallowed.
+Not done: the drop-in effect lists (strings "b+0.25,1,0.05,...", the curve at +0x3288, +0x3264 to +0x3280), the warning's effect and the gems' glow (+0x264) and tumble (+0x608, +0x60c; the four draws of
+the app's Rand() are kept), the pictures of slots 218, 220, 115, 26 and 47 (the credit and the warning are written plainly beside the score), the extra colours (+0x1040, +0x1050), slots 182 and 183.
+Oddities: the exe has no limit on the tries of a fill; the port stops at 20000 (never reached in the games run). The gems' mCreatedUpdate and mMovedUpdate are the board's +0x3198 count
+(QuestBoard::mUpdatesPlayed), as 0x6db550 reads them, where Board's fill uses the widget's update count. The bot does not lose Avalanche by itself (it clears the top row as it fills), so a loss is reached by
+stopping it.
+
+### Balance (0x86789c, constructor 0x6dd090): quest 4 Balance (no Goal), tested with `quest 4 Gems=2` (won) and `quest 4 Balance=1 RollSpeedDivisor=20` (the scale tips: lost)
+Translated: slot 135 (0x6e4c80: Gems, Balance, RollSpeedDivisor, CascadeThreshold), 143 (0x6d06a0: red and blue clears counted up to Gems each; score and progress are their sum), 154 (0x6c53a0: Gems times
+2), 22 (0x6e3c90: the scale rolls by the blue-red difference over Balance, held to 1 in size, over RollSpeedDivisor, while the hint is allowed and the level is not full; past 1 either way the game ends),
+171 and 172 (0x6c5380, 0x6c5370: the grid's place, 0x1c2 and 0x73). State keys: balance (thousandths), red, blue, gemspercolor.
+Not done: the scale's picture, the arrow and the smoothed counts (+0x3264, +0x3268, which follow the counts by at most 0.02), the effects at +0x3368; slots 220, 238, 239, 244 and 248 (the scale and the
+counts are written plainly beside the score).
+Oddities: slot 203 (0x6dd720) gives QuestBoard's fill 0 when a move's cascade (counter 0x1b) is longer than CascadeThreshold and its own argument otherwise; every call of the port's fill passes 0 for that
+argument, so the board has no override. The grid's place assumes +0x2c4c and +0x2c50 are 0 (as Butterflies' slot 172 does).
+
+### No Lose (0x868ef4, constructor 0x6da7a0): no quest of quest.cfg makes it (part 3: the first of a repeated setting wins, so Alchemy and Wall Blast are Time Limit quests)
+No slot of its vftable differs from QuestBoard's, so NoLoseBoard is an empty class; the rules come from the goal. `quest 2 Goal="Clear Gems" Gems=8` in suite_quest2 now makes a Time Limit board (Time 90).
+Oddities: see "Quest" ("Oddities") for the repeated Challenge lines.
+
+### Time Bomb (0x869dc4, constructor 0x6dd440) and Real Time Bomb (0x869954): quests 7 and 23 (Time Bomb), 14 and 29 (real time); the goal Clear Bombs is made by part 3
+Tested with `quest 7 Goal="Clear Gems" Gems=8` (won) and `quest 14 Goal="Clear Gems" Gems=25 BombCountdown=3` (lost: a bomb ran out). The exe makes TimeBombBoard for both names (the real-time one with
+the flag at +0x3262); RealTimeBombBoard's vftable is written by no constructor, so it is not made, and its slot 181 (0x6d8c60) and the drop at 0x6c6200 are dead code. Translated: 135 (0x6e52e0), 143
+(0x6d0930: a cleared bomb is one less), 191 (0x6c61c0: a move less until the drop), 204 (0x6c53d0: the drop is counted), 185 (0x6c60b0: a plain new gem of the first five rows, in the middle columns while
+the score is 0, becomes a bomb, up to 100 draws of the app's Rand(); MakeBomb is 0x73ccc0), 212 (0x6c6090 over 0x73c710: a move starts the bomb's shake, a real-time tick counts it down and a bomb at 0
+ends the game), 256 (0x6c4a40) and the loop over the pieces in 0x767e20 (a bomb at 0 at rest ends the game, slot 163, 0x755e50; the shake counts a move off between phases 5 and 10; a real-time bomb ticks
+every 100 updates). State keys: bombgrid (each bomb's count as a digit), bombs, untildrop, bombstarted, realtime.
+Not done: the bombs' pictures and effects (the count is written over the gem), the sound of slot 204, the pieces with the bit 0x100,
+the +0x22c test of 0x73ccc0.
+Oddities: with a Clear Gems goal (only the suite's overrides give one) the first fill of a game makes no bomb, because ClearGoal reads Gems in Load, after the first fill (the level's size is 0 then), so the first
+bomb comes with the first refill; the exe's order is in "Quest, part 3". A Clear Gems goal counts a defused bomb as a gem.
+
+### Bad Move Limit (0x86742c, constructor 0x6dd370): no quest of quest.cfg has it; tested with `quest 3 Challenge="Bad Move Limit" BadMovesAllowed=2 Gems=60` (lost)
+Translated: 135 (0x6e4f60), 22 (0x6e4f30: at rest with all used the game ends), 192 (0x6c6050: a swap that found no match, sent back, uses one), 98 (0x6c6c40). State keys: badallowed, badused.
+Not done: slot 124's text in the frame (written plainly beside the score).
+Oddities: the end test is equality, so a swap made while the board is not at rest can take the count past the limit (the suite's swaps reach 3 of 2).
+
+### The secret boards as quests
+Butterflies (quest 0, `Butterflies=1`: won), Ice Storm (quest 9, `Gems=8`: won), Gold Rush (quest 1, `TargetCount=1` and a hit on the gold: won) and Poker (quest 8) start and end the quest way.
+Dig's goal reads its size from TargetCount (slot 22, 0x6a9810) and counts each treasure as 1 (the other branch of 0x6a9780); Ice Storm's goal counts the cleared gems; Poker's quest has the Goal 3000
+(a score, see "Quest, part 3").
+Not done: Ice Storm's non-secret branch of 0x6e5790 (it sets +0x3278 and the glow at +0x369c and +0x36a0): in a quest the stage does not advance and the multiplier does not rise, as the exe's
+secret-flag test of that function has it; the artifacts of Dig in a quest (only a secret mode holds them, as part 1's guard says).
+Oddities: the Gold Rush bot does not dig by itself far enough in the suite's span; the script uses `dig clear` and `dig hit` as the secret mode's suite does.
+
+### The suite for Quest, part 2
+suite_quest2.txt (seed 7, name Tester, `unlock all`) starts ten quests in a row, each with its bot game and a state line and a shot at its end: Avalanche, Balance, Alchemy (Time Limit, Clear Gems), Stratamax as
+Bad Move Limit (four swaps; two or more find no match), Time Bomb, Time Bomb II in real time (lost), Butterflies, Poker, Ice Storm and Gold Rush. suite.sh checks each state line's keys and runs it twice.
+
+## Quest, part 3 (QuestGoal.cpp ClearBombsGoal, WallGoldGoals.cpp, HiddenObjectGoal.cpp, PokerBoard.cpp's quest path)
+The goals that quest.cfg names and that were left: Clear Bombs, Hidden Objects, Wall Blast, Gold Lines, Gold Lines Flip; and the Poker quest's numeric Goal. QuestBoard now passes to its goal what the exe's slots do: 142 (the goal's
+slot 39, OnPieceClearing, called by RemovePiece with the flag), 197 (slot 16, OnCellHit: Explode calls it for each of its nine cells and a match group for its ring cells, before the piece lookup), 211 (slot 17,
+OnRunFound), 234 (slot 11, UpdateTick, before Board's step), 217 (slot 26, IsLevelFull); Piece has `mDestroyed` (+0x17d, set by DestroyPiece 0x74c770 and by Explode 0x73f8e0 on the pieces it takes) and Board has
+`DrawBehindPieces` for what a goal draws under the gems. The quest clock's start and wait (+0x318c, +0x3190) are members a goal's constructor may set (Hidden Objects: 550 and 200). QuestData keeps the first value of a
+repeated setting (see "Quest", "Oddities").
+
+### What the empty and numeric Goals are
+Balance (quests 4, 13, 30, 32) has no Goal and BalanceBoard has its own rules (part 2). The three Poker quests (8, 18, 37) have the Goal 3000, 3500 or 4000 and Hands = 10: 0x6dfa40 reads the first setting (the string at
+0x7d74b8, "Goal") to +0x3968 and Hands to +0x396c; slot 154 (0x6c4d70) returns +0x3968 for a game that is not secret (0 for a secret one). There is no goal object: QuestBoard falls back to Board's 0x73b810, and the
+level is full when the score reaches the Goal. The non-secret branch of ClearHand (0x6cdce0) sets the progress (+0xe00) to the score; with the Goal reached it ends there (the cards stay); else Hands goes down and one
+past the last (below 0) calls slot 161 (NoMoreMoves); the secret branch's skull, clock and +0x3970 count are not done in a quest. OnQuestStart (0x6cf440) clears a hand while +0x3970 is 0, which in a quest is the
+first call: it takes one of the Hands, so a quest has Hands hands. The port: PokerBoard has mGoalScore and mHandsLeft, GetLevelMax and the quest branch; the scoring test of UpdateGame is `mQuestClock == 0` (the exe's) in
+place of `mHands > 0`. Keys: handsleft, pokergoal. Tested with `quest 8 Goal=40 Hands=3` (won) and `quest 8 Goal=100000 Hands=1` (lost).
+
+### Time Bomb's first fill
+0x6ddc70 runs: the goal's constructor, goal slot 52 (a plain return), Board's NewGame (0x74e410, the first fill), goal slot 53 (Load), board slot 84. ClearGoal's constructor reads nothing (Gems is read in Load), so a Clear Gems
+goal has the size 0 in the first fill, as the port had; ClearBombsGoal's constructor reads Bombs at once, so with the Clear Bombs goal (the only goal of the Time Bomb quests) the first fill already has the size and
+makes its bomb. The port's ClearBombsGoal reads Bombs in its constructor and in Load, in the exe's order; `quest 7 Bombs=2` shows one bomb at once.
+
+### Clear Bombs (ClearBombsGoal, vftable 0x86aa34, constructor 0x6ae760): quests 7, 14, 23 and 29, tested with `quest 7 Bombs=1` (won) and `quest 14 Bombs=50 BombCountdown=3` (lost)
+Slots: 53 (0x6ae6b0, Bombs), 22 (0x6aa3b0, the count of Bombs), 40 (0x6ab280: a cleared piece with the bits 0x60 scores and counts). Key: bombgoal.
+Not done: nothing is known to be missing.
+Oddities: none.
+
+### Wall Blast (WallBlastGoal, vftable 0x86b814, constructor 0x6ab720): quests 17 and 35, tested with `quest 17 Grids="<64 digits>"` and a flame (won), `quest 35 Time=3` (lost)
+Load (slot 53, 0x6b0fb0): DropThreshold; Grids cut into grids of 64 digits (0x744e00 with its second argument: a grid with fewer digits has the rest at 0, as quest 17's 56); one drawn by Rand() modulo their count; each digit that is not 0
+is a wall cell with two draws for its looks' flags; the count of the wall cells is the size (slot 22). 0x6ad740 breaks a cell (the score and the progress up by one); slot 16 (0x6afcb0) and slot 39 (0x6ad9d0: a cleared
+piece with a match timer above 0 or the destroyed flag, in the grid) call it. A plain match of three leaves the timer at 0, so only a special's reach, a hypercube or a gem a special takes breaks the wall, as
+the quest's help text says. Keys: wallcount, wallleft, dropthreshold. Drawn as a grey block on each cell.
+Not done: the wall's stones, cracks and sparks (0x6afe80, 0x6ad5f0 with its random draws), the tutorial (slots 7, 54's tutorial part, 0x6b76c0; the goal's state at +0x250 to +0x25c is never set, so slot 69 allows hints), the special-gem drops
+(slots 46 to 48: slot 46 is a stub that returns false, so board slot 182 never asks for them and 0x6ab080's hypercube, flame and star drops are dead; the DropThreshold is read and kept).
+Oddities: the wall's picture is not the exe's; the Time Limit board comes from the first of the repeated Challenge lines (see "Quest", "Oddities").
+
+### Gold Lines and Gold Lines Flip (GoldLinesGoal, vftable 0x86affc, constructor 0x6afcd0; GoldLinesFlipGoal, 0x86b93c, 0x6afe00): quests 2 and 16 (Gold Lines), 26 (Flip); tested with `quest 2 Squares=10` (won), `quest 16 Squares=64 Moves=3` (lost) and `quest 26 Squares=8` (won)
+Cells: 8x8 records with a list of delays and a level. Slots: 53 (0x6b04f0: every level 0, Squares, OnlyCheckSwaps; Flip's 0x6b0f20 then sets every level to -1), 10 (0x6aaa00: the game may end only with no delay waiting), 11
+(0x6abeb0: the first delay of each cell counts down and at 0 the cell flips), 26 (0x6aa1d0: Squares <= score runs the board's slot 156 and says true), 22 (0x6aa200, Squares), 40 (0x6aa220: a destroyed piece flips its cell), 17 (0x6b1380: a run of
+gems: the middle of the run is the mean of its gems' rows (or columns), the cell at the middle flips at once and the others at the distance d from it after 10 * d updates, both sides, along the run's line) and 72 (0x6b78f0, FlipCell: a level
+below 1 goes up; above 0 it scores). Flip's cells start at -1, so the first flip makes lead and the second gold. Keys: squares, gold. Gold cells are drawn in gold, Flip's lead cells in grey.
+Not done: the plates' pictures and flips (slot 59, the effect at +0x940 of Flip, whose +0xdc the slot 10 also waits for), the sounds and the combo counter (+0x93c), the wave counts (+0x138 of each cell), OnlyCheckSwaps true (no quest has it: all say false) and the run list
+at +0x928 (never filled by Gold Lines).
+Oddities: a run's flip reaches the whole line, not only the run, so a single match can score up to eight cells (the suite's won game reaches 15 for 10).
+
+### Hidden Objects (HiddenObjectGoal, vftable 0x86ba64, constructor 0x6afb60, 0x1f80 bytes): quests 6, 11 and 33, tested with `quest 6` and three flames (won) and `quest 11 Time=3` (lost)
+It is a class of its own: HiddenGoal (0x86b24c) and HiddenGridGoal (0x86b374) are not its base or its parts. The constructor sets the quest clock to 550 and the wait to 200 and the refill time to 10,000,000 (never). Load (slot 53, 0x6af970): ItemSet,
+RefillRateSec (times 100, in updates, when the quest has it) and the placement 0x6aec80: up to 15 layouts, each from the shapes of the item set (ids 0 to 2, 3 to 5 or 6 to 9 of the ten records: sizes 1x3, 2x2, 2x3, 4x2, 2x2, 2x3, 2x2, 3x3 "X  X  XXX", 3x2, 2x4) shuffled by the CRT's
+random_shuffle over the app's Rand(), taken last first; each shape has 499 tries (a draw for the top row modulo 8 less its height, a draw for the left column modulo 7 less its width, plus 1; the cells of the shape must be free and not a corner;
+a placed shape has one more draw modulo 1000); the layout with the largest sum of nearest-neighbour squared distances (the exe's float arithmetic) is kept. The tiles hold the objects' indexes. Slots 16 (0x6b9a80) and 17 (0x6b7b80: with NeverAllowCascades off a cluster counts only
+with a piece of a swap) queue the pieces' ids (0x6b7a50: a map of ids, each once until the board stands settled) and 0x6b75e0 uncovers the tile each queued piece stands on (0x6b7400: the tile's countdown is the refill time). Update (0x6c24c0): a tile with
+a countdown below 10,000,000 counts down; 0x6baff0 finds an object when all its cells are fully uncovered (the goal's size is the object count, slot 22 0x6a9950). Keys: hiddenobjects (column.row.width.height, an f when found), hiddenfound, cover (a digit for each tile),
+refill, itemset.
+Not done: the exact curves of the tiles' cover (0x6c24c0 starts a curve of 100 updates when a tile is uncovered and another when it falls, the fall waiting for the others of the same state: the port steps 0.01 an update up or down), the objects' pictures and the sand, the effect of a find and its wait
+(0x6ab520), the effect lists at +0x1f58 and +0x1f5c (a find also waits for the young effects of the second), the sounds of 0x6b7400, slots 50, 51, 55, 56, 63, 64 and 68, the helper widgets, the tutorial.
+Oddities: RefillRateSec is in seconds in quest.cfg and the exe multiplies it by 100 (the constant at 0x880d90). No shape reaches the last row or the first and last columns, so the layout's score term for the last row never applies.
+
+### Goals that no data file reaches
+Checked against quest.cfg and secret.cfg: the Goal settings are Catch Butterflies, Clear Bombs, Clear Gems, Dig, Gold Lines, Gold Lines Flip, Hidden Objects, Wall Blast and the three numeric ones (Poker). So no data file reaches these goals, which stay untranslated:
+- Gold (GoldGoal, 0x114 bytes), Gold Yellow (0x6ae170), Detonator, Arsenal, Score, Firestorm, Preserver (0x118), Hidden Gems (0x11c), Hidden Grid on its own (0x21c) and Survival (0x118): no quest of quest.cfg or secret.cfg names them.
+
+### The suite for Quest, part 3
+suite_quest3.txt (seed 7, name Tester, `unlock all`) plays eleven games, each ending in a state line: Buried Treasure (three flames, won), Sandstorm (Time=3, lost), Wall Blast (a flame breaks the nine cells, won), Wall Blast II (Time=3, lost), Alchemy (won), Alchemy II
+(Moves=3, lost), Alchemy III (Flip, won), Time Bomb with its Clear Bombs goal (won), Time Bomb II (lost), the Poker quest (won on its score, lost on its hands). Hidden Objects comes first, because its layout comes from the app's draws (6.4.1.3, 1.2.2.3, 5.0.2.2 under seed 7).

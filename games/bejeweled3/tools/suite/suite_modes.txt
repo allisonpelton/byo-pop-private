@@ -1,0 +1,15 @@
+10 seed 7
+11 name Tester
+1200 goto zen
+1600 bot 150
+6900 state
+6901 screenshot @DIR@/zen.png
+7100 board RWGYPOBR WGYPOBRW GYPOBRWG YPOBRWGY POBRWGYP OBRWGYPO BRWGYPOB RWGYPOBR
+8100 state
+8200 goto lightning
+8600 bot -1
+11600 state
+17000 state
+36000 state
+36001 screenshot @DIR@/lightning.png
+36100 quit
