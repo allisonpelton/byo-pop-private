@@ -89,7 +89,14 @@ def build():
         glyphs[ch] = (adv, frozenset((x, top + r) for r, line in enumerate(rows) for x, c in enumerate(line) if c == "#"))
     glyphs[" "] = (3, frozenset())
     glyphs[" "] = glyphs[" "]
+    data = font_bytes(glyphs, "Byopop Sans",
+                      "Glyphs from W95FA, Copyright (c) Alina Sava; changes and added glyphs by the byo-pop project.", 9)
+    return data, glyphs
 
+
+def font_bytes(glyphs, family, copyright, cap_height, x_height=6, ofl=True):
+    """The WOFF of glyphs {char: (advance, pixels)}, every pixel a square of PX units on the 13-pixel cell, naming the SIL
+    Open Font License where ofl (W95FA's, which a derivative keeps): also used by tools/web/pixelfont2000.py."""
     order = [".notdef"] + ["u%04X" % ord(ch) for ch in sorted(glyphs)]
     cmap = {ord(ch): "u%04X" % ord(ch) for ch in glyphs}
     fb = FontBuilder(11 * PX, isTTF=True)
@@ -126,19 +133,20 @@ def build():
     fb.setupGlyf(drawn)
     fb.setupHorizontalMetrics(metrics)
     fb.setupHorizontalHeader(ascent=ASCENT * PX, descent=-DESCENT * PX)
-    fb.setupNameTable({"familyName": "Byopop Sans", "styleName": "Regular",
-                       "copyright": "Glyphs from W95FA, Copyright (c) Alina Sava; changes and added glyphs by the byo-pop project.",
-                       "licenseDescription": "This Font Software is licensed under the SIL Open Font License, Version 1.1.",
-                       "licenseInfoURL": "https://openfontlicense.org"})
+    names = {"familyName": family, "styleName": "Regular", "copyright": copyright}
+    if ofl:
+        names.update({"licenseDescription": "This Font Software is licensed under the SIL Open Font License, Version 1.1.",
+                      "licenseInfoURL": "https://openfontlicense.org"})
+    fb.setupNameTable(names)
     fb.setupOS2(sTypoAscender=ASCENT * PX, sTypoDescender=-DESCENT * PX, sTypoLineGap=0, usWinAscent=ASCENT * PX, usWinDescent=DESCENT * PX,
-                sxHeight=6 * PX, sCapHeight=9 * PX)
+                sxHeight=x_height * PX, sCapHeight=cap_height * PX)
     fb.setupPost()
     # the same bytes for the same glyphs: no time of building in the file
     fb.font["head"].created = fb.font["head"].modified = 0
     fb.font.flavor = "woff"
     buf = io.BytesIO()
     fb.save(buf)
-    return buf.getvalue(), glyphs
+    return buf.getvalue()
 
 
 def main():

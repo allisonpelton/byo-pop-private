@@ -267,7 +267,7 @@ Its behaviours:
 - **Personalized menus,** on by default, with their setting (above).
 
 The builder for personalized menus and the Properties window come with this skin. **2 to 3 batches, $50 to $110, plus the
-font (below).**
+font (below).** All three are in (below); the icons are still 95's.
 
 **Drawn first (2026-11-23, web/skin-2000.css and its standard scheme in web/schemes.js):**
 - **The colours** as 2000's own standard scheme: the face #d4d0c8 with its soft light the face too, the desktop #3a6ea5,
@@ -298,7 +298,16 @@ was. The task bar's menu gains **Properties** at its foot under 2000, which open
 its one box, Use Personalized Menus, checked by default, OK the default button (the setting `personalMenus`). 95's menus
 and shots are unchanged. Only the Games list is personalized; the Settings submenu, a short fixed list, stays whole.
 
-**Still to come for 2000:** the font in Tahoma's manner (still Byopop Sans), and its icons.
+**The font** came last: Byopop Sans 2000 (web/fonts/byopop-sans-2000.woff, made by tools/web/pixelfont2000.py), a pixel
+font of our own in Tahoma's manner, every glyph drawn by hand on Byopop Sans's grid. Tahoma's manner is in its numbers:
+capitals, digits and ascenders 8 pixels tall where Byopop Sans's are 9, the x-height 6, narrower capitals, and each
+character's advance at 11 pixels to the em, taken as numbers from Tahoma's own table of advances (its hdmx), as Byopop
+Sans took the 1995 font's widths. No shape is taken from Tahoma. The printable ASCII is drawn and the Latin-1 letters with
+accents are built from it; anything else, the arrows, dashes and fractions among them, is drawn by Byopop Sans, which
+stands on the same baseline. Bold is the regular glyphs, as with Byopop Sans; Tahoma's own bold, which 2000's title bars
+used, is **to make** if the titles want it.
+
+**Still to come for 2000:** its icons, and Tahoma Bold's manner for the titles.
 
 ### XP's Windows Classic style
 
@@ -375,7 +384,8 @@ manner costs roughly **1 batch for 95's and 98's palettes, and 2 to 3 batches fo
 $400 across the family.
 
 **A font in Tahoma's manner, of our own.** Byopop Sans is ours, built from W95FA (SIL OFL). No open pixel font in
-Tahoma's manner has been found yet. Making one is **1 to 2 batches, $30 to $80**. Vista's and 7's fonts may add one more.
+Tahoma's manner has been found yet. Making one is **1 to 2 batches, $30 to $80**; the regular is made, Byopop Sans 2000
+(2000, above). Vista's and 7's fonts may add one more.
 
 **The family in total:** about 20 to 30 batches, **$600 to $1,300**. That is a few weeks of the site's share of the
 window. A Hyper-V machine, if it is needed, adds about a batch per version.
