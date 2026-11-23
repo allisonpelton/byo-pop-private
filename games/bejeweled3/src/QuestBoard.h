@@ -15,12 +15,11 @@ namespace Sexy {
 
 class QuestBoard : public Board {
 public:
-	// 0x6d9000 (the constructor) puts 200 in +0x318c and +0x3190: the clock (+0xd20) that 0x6ca350 starts counts down from the first, and QuestBoard::Update compares it
-	// with the second
-	enum { QUEST_CLOCK_START = 200 };
-	// 0x6dd8a0: the clock at which the win is told (the start less 2), and the ones the Update looks at: 100 (the fanfare of the finished level, slot 162), 50 (below it the clock
-	// waits for the effects list, +0x26b8, to empty), and 0 (the end of the level, slot 233)
-	enum { QUEST_CLOCK_WIN_TICK = QUEST_CLOCK_START - 2, QUEST_CLOCK_FANFARE = 100, QUEST_CLOCK_EFFECTS_WAIT = 50 };
+	// 0x6d9000 (the constructor) puts 200 in +0x318c and +0x3190 (mQuestClockStart and mQuestClockWait); a goal's constructor may put others (Hidden Objects' 0x6afb60: 550 and 200)
+	enum { QUEST_CLOCK_DEFAULT = 200 };
+	// 0x6dd8a0: the clock at which the win is told is the wait less 2; the ones the Update looks at besides: 100 (the fanfare of the finished level, slot 162), 50 (below it the
+	// clock waits for the effects list, +0x26b8, to empty), and 0 (the end of the level, slot 233)
+	enum { QUEST_CLOCK_WIN_BELOW_WAIT = 2, QUEST_CLOCK_FANFARE = 100, QUEST_CLOCK_EFFECTS_WAIT = 50 };
 	// 0x6dd8a0: the game-over counter (+0xd1c) at which a lost quest goes back to the quest map
 	enum { QUEST_LOST_LEAVE_TICKS = 300 };
 
@@ -31,7 +30,9 @@ public:
 	int mUpdatesPlayed = 0;
 	QuestGoal* mGoal = nullptr;   // +0x3180: the goal object (made by CreateGoal from the setting Goal; the board owns it)
 	int mQuestIndex = -1;         // +0x3234: the quest's index in quest.cfg (the exe adds 1000 for the secret quests); -1 for the secret modes
-	int mQuestClock = 0;          // +0xd20: 0 while the quest is played; 0x6ca350 starts it at QUEST_CLOCK_START when the level is full, and it counts down to the quest's end
+	int mQuestClockStart = QUEST_CLOCK_DEFAULT;   // +0x318c: where 0x6ca350 starts the clock when the level is full
+	int mQuestClockWait = QUEST_CLOCK_DEFAULT;    // +0x3190: the clock counts down only while the board is at rest while it is above this less 1; the win is told at this less 2
+	int mQuestClock = 0;          // +0xd20: 0 while the quest is played; 0x6ca350 starts it at mQuestClockStart when the level is full, and it counts down to the quest's end
 	bool mScoresPoints = false;   // +0x3187: the board scores the points of its matches (QuestBoard's slot 152): the secret modes, and the quests with RecordHighScores TRUE
 	bool mRecordsHighScores = false;   // +0x31ac: the game records a high score (0x6ca240 and 0x6c7c60 hand it in): the secret modes, and the quests with RecordHighScores TRUE
 	bool mQuestWon = false;       // port: the quest was won (the profile has it marked as done)
@@ -51,6 +52,11 @@ public:
 	void OnRunFound(const std::vector<Piece*>& thePieces) override;                    // slot 211 (0x6c56a0): the goal's slot 0x44
 	void NewGame() override;                                                           // slot 135 (0x6ddc70): the quest's settings, the goal
 	void OnPieceCleared(Piece* thePiece) override;                                     // slot 143: the goal's slot 40 (0xa0)
+	void OnPieceClearing(Piece* thePiece, bool theFlag) override;                      // slot 142 (0x6c63c0): the goal's slot 39 (0x9c), then Board's
+	void OnCellHit(int theCol, int theRow) override;                                   // slot 197 (0x6c4b80): the goal's slot 16 (0x40)
+	bool IsLevelFull() const override;                                                 // slot 217 (0x6c5460): false in a secret mode, else the goal's slot 26 (0x68) or Board's
+	void DrawBehindPieces(Graphics* g) override;                                       // the goal's drawing under the gems
+	void DrawModeOverlay(Graphics* g) override;                                        // the goal's drawing over the gems
 	bool OnPieceRemoving(Piece* thePiece) override;                                    // slots 176 and 142: the goal's slots 18 and 39
 	void OnLevelFull() override;                                                       // slot 156 (0x6ca7e0, which runs 0x6ca350 when the secret flag is clear)
 	void NoMoreMoves(bool theAnnounce) override;                                       // slot 161 (0x6d8e30)

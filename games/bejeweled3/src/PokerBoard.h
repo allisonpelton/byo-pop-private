@@ -56,6 +56,8 @@ public:
 	int mHandScore = 0;                   // +0x3a2c: the points of this hand, the bonuses' too
 
 	// the game
+	int mGoalScore = 0;                   // +0x3968: the quest's first setting, Goal (a number: the score the level asks for); GetLevelMax is it in a quest and 0 in the secret mode
+	int mHandsLeft = 0;                   // +0x396c: Hands, the hands a quest allows; each clear of a hand takes one and a hand past the last ends the game (0x6cdce0)
 	int mHands = 0;                       // +0x3970: the hands cleared (a game's first clear, 0x6cf440, makes it 1)
 	int mSkullsBusted = 0;                // +0x3974: the skulls the eliminator has removed
 	int mBestHandScore = 0;               // +0x3980: the most one hand has paid before the bonuses
@@ -78,6 +80,7 @@ public:
 	const char* GetModeName() const override { return "Poker"; }           // slot 89 (0x6c7870): the leaderboard's and the music's name; its save is "poker.sav"
 	void NewGame() override;                                               // slot 135 (0x6dfa40)
 	void UpdateGame() override;                                            // slot 22 (0x6dedd0): the exe runs 0x6dd8a0 first, which the port's QuestBoard::Update (inherited) is; the rest runs here, once per step as the speed gives them
+	int GetLevelMax() const override { return mIsSecretMode ? 0 : mGoalScore; }   // slot 154 (0x6c4d70)
 	bool HintAllowed() const override;                                     // slot 98 (0x6c6470)
 	int FindMatches() override;                                            // slot 201 (0x6d90a0): nothing is matched while a hand is being paid
 	int GetGridY() const override { return 0x5a; }                         // slot 172 (0x6c4d00): +0x2c50 and 0x5a

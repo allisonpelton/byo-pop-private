@@ -1452,7 +1452,7 @@ each), `questbuttons`; with a quest board `quest` (the index), `questwon`, `ques
 - The fanfare at clock 100 (slot 162), the sounds and music events ("Break", "Play", "Wait") of 0x6ca350, the text of the finished level (0x7411f0, slot 160).
 - The settings ColorCount (slot 261), HighScoreBase, HighScoreIncr, WantPointComplements, NeverAllowCascades (+0x3228), ShowAutohints (+0x4dc), Description, HyperMixers (+0x3186) and
   PowerGemThreshold (slot 190; 0x6cda70 reads it into +0x3188), and Board's slot 84 (0x150) after the goal's load.
-- Goals: ClearBombs, Hidden*, WallBlast, GoldLines*, Gold*, Arsenal, Detonator, Firestorm, Preserver, Score, Survival. A quest whose Goal is not made logs "not made yet" and has none (all the boards are made: see "Quest, part 2").
+- Goals: made by part 2 and part 3 (see "Quest, part 3"); the rest are not reached by any data file. A quest whose Goal is not made logs "not made yet" and has none.
 - The moves counter's bounce (+0x3250, MoveLimitBoard slot 22), the board's drawing for a quest (the goal's text "TitleText", "Moves Left: %i" in the bottom frame, the move counter's picture;
   slots 26, 43, 47, 240, 242, 250: the port writes the moves left and the gems cleared plainly), the leaderboard of a quest that records high scores (0x6ca240, 0x6c7c60).
 - QuestMenu's QUIT (the app's quit question), hover effects and the buttons' glow curves.
@@ -1461,8 +1461,8 @@ each), `questbuttons`; with a quest board `quest` (the index), `questwon`, `ques
 
 ### Oddities (Quest)
 - 0x693760 fills the name map's "Hidden Objects" twice (Buried Treasure's pictures, then Sandstorm's); the second replaces the first, so Buried Treasure and Sandstorm both show Sandstorm's icon.
-- quest.cfg gives some quests a setting twice (Alchemy and Wall Blast have two Challenge lines, "Time Limit" then "No Lose"); the port's map keeps the last, so those boards would be NoLose,
-  which is not made.
+- quest.cfg gives some quests a setting twice (Alchemy and Wall Blast have two Challenge lines, "Time Limit" then "No Lose"). The exe's parser (0x791c80) stores each setting with std::map::insert (0x403740), which keeps
+  the FIRST value; part 3 made the port's QuestData do the same (it had kept the last), so those quests are Time Limit boards and no quest names No Lose.
 - 0x6dd760 is called for a loss and for a win; the call for a win passes the "quest complete" dialog object, which makes the map start the countdown (0x67ed00) that marks the quest done 0x118
   updates later; a lost quest shows the map and marks nothing.
 - QuestBoard::Update's test at clock 198 does not pass until the level bar has reached its target (slot 188 against +0xd68), so a win waits for the bar.
@@ -1521,22 +1521,21 @@ counts are written plainly beside the score).
 Oddities: slot 203 (0x6dd720) gives QuestBoard's fill 0 when a move's cascade (counter 0x1b) is longer than CascadeThreshold and its own argument otherwise; every call of the port's fill passes 0 for that
 argument, so the board has no override. The grid's place assumes +0x2c4c and +0x2c50 are 0 (as Butterflies' slot 172 does).
 
-### No Lose (0x868ef4, constructor 0x6da7a0): quests 2, 17 and 35 (Gold Lines, Wall Blast: goals not made), tested with `quest 2 Goal="Clear Gems" Gems=8`
-No slot of its vftable differs from QuestBoard's, so NoLoseBoard is an empty class; the rules come from the goal.
-Not done: the goals Gold Lines and Wall Blast.
-Oddities: the file gives Alchemy and Wall Blast two Challenge lines ("Time Limit", then "No Lose"); the port's map keeps the last, so these are No Lose boards.
+### No Lose (0x868ef4, constructor 0x6da7a0): no quest of quest.cfg makes it (part 3: the first of a repeated setting wins, so Alchemy and Wall Blast are Time Limit quests)
+No slot of its vftable differs from QuestBoard's, so NoLoseBoard is an empty class; the rules come from the goal. `quest 2 Goal="Clear Gems" Gems=8` in suite_quest2 now makes a Time Limit board (Time 90).
+Oddities: see "Quest" ("Oddities") for the repeated Challenge lines.
 
-### Time Bomb (0x869dc4, constructor 0x6dd440) and Real Time Bomb (0x869954): quests 7 and 23 (Time Bomb), 14 and 29 (real time); the goal Clear Bombs is not made
+### Time Bomb (0x869dc4, constructor 0x6dd440) and Real Time Bomb (0x869954): quests 7 and 23 (Time Bomb), 14 and 29 (real time); the goal Clear Bombs is made by part 3
 Tested with `quest 7 Goal="Clear Gems" Gems=8` (won) and `quest 14 Goal="Clear Gems" Gems=25 BombCountdown=3` (lost: a bomb ran out). The exe makes TimeBombBoard for both names (the real-time one with
 the flag at +0x3262); RealTimeBombBoard's vftable is written by no constructor, so it is not made, and its slot 181 (0x6d8c60) and the drop at 0x6c6200 are dead code. Translated: 135 (0x6e52e0), 143
 (0x6d0930: a cleared bomb is one less), 191 (0x6c61c0: a move less until the drop), 204 (0x6c53d0: the drop is counted), 185 (0x6c60b0: a plain new gem of the first five rows, in the middle columns while
 the score is 0, becomes a bomb, up to 100 draws of the app's Rand(); MakeBomb is 0x73ccc0), 212 (0x6c6090 over 0x73c710: a move starts the bomb's shake, a real-time tick counts it down and a bomb at 0
 ends the game), 256 (0x6c4a40) and the loop over the pieces in 0x767e20 (a bomb at 0 at rest ends the game, slot 163, 0x755e50; the shake counts a move off between phases 5 and 10; a real-time bomb ticks
 every 100 updates). State keys: bombgrid (each bomb's count as a digit), bombs, untildrop, bombstarted, realtime.
-Not done: the bombs' pictures and effects (the count is written over the gem), the sound of slot 204, the goal Clear Bombs (0x6ae760, whose count of bombs is the win), the pieces with the bit 0x100,
+Not done: the bombs' pictures and effects (the count is written over the gem), the sound of slot 204, the pieces with the bit 0x100,
 the +0x22c test of 0x73ccc0.
-Oddities: the first fill of a game makes no bomb, because the goal is not loaded yet (the level's size is 0 then), so the first bomb comes with the first refill; a Clear Gems goal counts a
-defused bomb as a gem.
+Oddities: with a Clear Gems goal (only the suite's overrides give one) the first fill of a game makes no bomb, because ClearGoal reads Gems in Load, after the first fill (the level's size is 0 then), so the first
+bomb comes with the first refill; the exe's order is in "Quest, part 3". A Clear Gems goal counts a defused bomb as a gem.
 
 ### Bad Move Limit (0x86742c, constructor 0x6dd370): no quest of quest.cfg has it; tested with `quest 3 Challenge="Bad Move Limit" BadMovesAllowed=2 Gems=60` (lost)
 Translated: 135 (0x6e4f60), 22 (0x6e4f30: at rest with all used the game ends), 192 (0x6c6050: a swap that found no match, sent back, uses one), 98 (0x6c6c40). State keys: badallowed, badused.
@@ -1545,13 +1544,75 @@ Oddities: the end test is equality, so a swap made while the board is not at res
 
 ### The secret boards as quests
 Butterflies (quest 0, `Butterflies=1`: won), Ice Storm (quest 9, `Gems=8`: won), Gold Rush (quest 1, `TargetCount=1` and a hit on the gold: won) and Poker (quest 8) start and end the quest way.
-Dig's goal reads its size from TargetCount (slot 22, 0x6a9810) and counts each treasure as 1 (the other branch of 0x6a9780); Ice Storm's goal counts the cleared gems; Poker's quest has the Goal 3000,
-which names no goal, so it has none.
+Dig's goal reads its size from TargetCount (slot 22, 0x6a9810) and counts each treasure as 1 (the other branch of 0x6a9780); Ice Storm's goal counts the cleared gems; Poker's quest has the Goal 3000
+(a score, see "Quest, part 3").
 Not done: Ice Storm's non-secret branch of 0x6e5790 (it sets +0x3278 and the glow at +0x369c and +0x36a0): in a quest the stage does not advance and the multiplier does not rise, as the exe's
-secret-flag test of that function has it; Poker's win (the way the exe uses the Goal 3000 is not found; the board's own level bar, 2500, is the size and does not fill, so a Poker quest is only lost, by the
-skull's coin; the suite starts it and checks that it plays); the artifacts of Dig in a quest (only a secret mode holds them, as part 1's guard says).
+secret-flag test of that function has it; the artifacts of Dig in a quest (only a secret mode holds them, as part 1's guard says).
 Oddities: the Gold Rush bot does not dig by itself far enough in the suite's span; the script uses `dig clear` and `dig hit` as the secret mode's suite does.
 
 ### The suite for Quest, part 2
-suite_quest2.txt (seed 7, name Tester, `unlock all`) starts ten quests in a row, each with its bot game and a state line and a shot at its end: Avalanche, Balance, Alchemy (No Lose, Clear Gems), Stratamax as
+suite_quest2.txt (seed 7, name Tester, `unlock all`) starts ten quests in a row, each with its bot game and a state line and a shot at its end: Avalanche, Balance, Alchemy (Time Limit, Clear Gems), Stratamax as
 Bad Move Limit (four swaps; two or more find no match), Time Bomb, Time Bomb II in real time (lost), Butterflies, Poker, Ice Storm and Gold Rush. suite.sh checks each state line's keys and runs it twice.
+
+## Quest, part 3 (QuestGoal.cpp ClearBombsGoal, WallGoldGoals.cpp, HiddenObjectGoal.cpp, PokerBoard.cpp's quest path)
+The goals that quest.cfg names and that were left: Clear Bombs, Hidden Objects, Wall Blast, Gold Lines, Gold Lines Flip; and the Poker quest's numeric Goal. QuestBoard now passes to its goal what the exe's slots do: 142 (the goal's
+slot 39, OnPieceClearing, called by RemovePiece with the flag), 197 (slot 16, OnCellHit: Explode calls it for each of its nine cells and a match group for its ring cells, before the piece lookup), 211 (slot 17,
+OnRunFound), 234 (slot 11, UpdateTick, before Board's step), 217 (slot 26, IsLevelFull); Piece has `mDestroyed` (+0x17d, set by DestroyPiece 0x74c770 and by Explode 0x73f8e0 on the pieces it takes) and Board has
+`DrawBehindPieces` for what a goal draws under the gems. The quest clock's start and wait (+0x318c, +0x3190) are members a goal's constructor may set (Hidden Objects: 550 and 200). QuestData keeps the first value of a
+repeated setting (see "Quest", "Oddities").
+
+### What the empty and numeric Goals are
+Balance (quests 4, 13, 30, 32) has no Goal and BalanceBoard has its own rules (part 2). The three Poker quests (8, 18, 37) have the Goal 3000, 3500 or 4000 and Hands = 10: 0x6dfa40 reads the first setting (the string at
+0x7d74b8, "Goal") to +0x3968 and Hands to +0x396c; slot 154 (0x6c4d70) returns +0x3968 for a game that is not secret (0 for a secret one). There is no goal object: QuestBoard falls back to Board's 0x73b810, and the
+level is full when the score reaches the Goal. The non-secret branch of ClearHand (0x6cdce0) sets the progress (+0xe00) to the score; with the Goal reached it ends there (the cards stay); else Hands goes down and one
+past the last (below 0) calls slot 161 (NoMoreMoves); the secret branch's skull, clock and +0x3970 count are not done in a quest. OnQuestStart (0x6cf440) clears a hand while +0x3970 is 0, which in a quest is the
+first call: it takes one of the Hands, so a quest has Hands hands. The port: PokerBoard has mGoalScore and mHandsLeft, GetLevelMax and the quest branch; the scoring test of UpdateGame is `mQuestClock == 0` (the exe's) in
+place of `mHands > 0`. Keys: handsleft, pokergoal. Tested with `quest 8 Goal=40 Hands=3` (won) and `quest 8 Goal=100000 Hands=1` (lost).
+
+### Time Bomb's first fill
+0x6ddc70 runs: the goal's constructor, goal slot 52 (a plain return), Board's NewGame (0x74e410, the first fill), goal slot 53 (Load), board slot 84. ClearGoal's constructor reads nothing (Gems is read in Load), so a Clear Gems
+goal has the size 0 in the first fill, as the port had; ClearBombsGoal's constructor reads Bombs at once, so with the Clear Bombs goal (the only goal of the Time Bomb quests) the first fill already has the size and
+makes its bomb. The port's ClearBombsGoal reads Bombs in its constructor and in Load, in the exe's order; `quest 7 Bombs=2` shows one bomb at once.
+
+### Clear Bombs (ClearBombsGoal, vftable 0x86aa34, constructor 0x6ae760): quests 7, 14, 23 and 29, tested with `quest 7 Bombs=1` (won) and `quest 14 Bombs=50 BombCountdown=3` (lost)
+Slots: 53 (0x6ae6b0, Bombs), 22 (0x6aa3b0, the count of Bombs), 40 (0x6ab280: a cleared piece with the bits 0x60 scores and counts). Key: bombgoal.
+Not done: nothing is known to be missing.
+Oddities: none.
+
+### Wall Blast (WallBlastGoal, vftable 0x86b814, constructor 0x6ab720): quests 17 and 35, tested with `quest 17 Grids="<64 digits>"` and a flame (won), `quest 35 Time=3` (lost)
+Load (slot 53, 0x6b0fb0): DropThreshold; Grids cut into grids of 64 digits (0x744e00 with its second argument: a grid with fewer digits has the rest at 0, as quest 17's 56); one drawn by Rand() modulo their count; each digit that is not 0
+is a wall cell with two draws for its looks' flags; the count of the wall cells is the size (slot 22). 0x6ad740 breaks a cell (the score and the progress up by one); slot 16 (0x6afcb0) and slot 39 (0x6ad9d0: a cleared
+piece with a match timer above 0 or the destroyed flag, in the grid) call it. A plain match of three leaves the timer at 0, so only a special's reach, a hypercube or a gem a special takes breaks the wall, as
+the quest's help text says. Keys: wallcount, wallleft, dropthreshold. Drawn as a grey block on each cell.
+Not done: the wall's stones, cracks and sparks (0x6afe80, 0x6ad5f0 with its random draws), the tutorial (slots 7, 54's tutorial part, 0x6b76c0; the goal's state at +0x250 to +0x25c is never set, so slot 69 allows hints), the special-gem drops
+(slots 46 to 48: slot 46 is a stub that returns false, so board slot 182 never asks for them and 0x6ab080's hypercube, flame and star drops are dead; the DropThreshold is read and kept).
+Oddities: the wall's picture is not the exe's; the Time Limit board comes from the first of the repeated Challenge lines (see "Quest", "Oddities").
+
+### Gold Lines and Gold Lines Flip (GoldLinesGoal, vftable 0x86affc, constructor 0x6afcd0; GoldLinesFlipGoal, 0x86b93c, 0x6afe00): quests 2 and 16 (Gold Lines), 26 (Flip); tested with `quest 2 Squares=10` (won), `quest 16 Squares=64 Moves=3` (lost) and `quest 26 Squares=8` (won)
+Cells: 8x8 records with a list of delays and a level. Slots: 53 (0x6b04f0: every level 0, Squares, OnlyCheckSwaps; Flip's 0x6b0f20 then sets every level to -1), 10 (0x6aaa00: the game may end only with no delay waiting), 11
+(0x6abeb0: the first delay of each cell counts down and at 0 the cell flips), 26 (0x6aa1d0: Squares <= score runs the board's slot 156 and says true), 22 (0x6aa200, Squares), 40 (0x6aa220: a destroyed piece flips its cell), 17 (0x6b1380: a run of
+gems: the middle of the run is the mean of its gems' rows (or columns), the cell at the middle flips at once and the others at the distance d from it after 10 * d updates, both sides, along the run's line) and 72 (0x6b78f0, FlipCell: a level
+below 1 goes up; above 0 it scores). Flip's cells start at -1, so the first flip makes lead and the second gold. Keys: squares, gold. Gold cells are drawn in gold, Flip's lead cells in grey.
+Not done: the plates' pictures and flips (slot 59, the effect at +0x940 of Flip, whose +0xdc the slot 10 also waits for), the sounds and the combo counter (+0x93c), the wave counts (+0x138 of each cell), OnlyCheckSwaps true (no quest has it: all say false) and the run list
+at +0x928 (never filled by Gold Lines).
+Oddities: a run's flip reaches the whole line, not only the run, so a single match can score up to eight cells (the suite's won game reaches 15 for 10).
+
+### Hidden Objects (HiddenObjectGoal, vftable 0x86ba64, constructor 0x6afb60, 0x1f80 bytes): quests 6, 11 and 33, tested with `quest 6` and three flames (won) and `quest 11 Time=3` (lost)
+It is a class of its own: HiddenGoal (0x86b24c) and HiddenGridGoal (0x86b374) are not its base or its parts. The constructor sets the quest clock to 550 and the wait to 200 and the refill time to 10,000,000 (never). Load (slot 53, 0x6af970): ItemSet,
+RefillRateSec (times 100, in updates, when the quest has it) and the placement 0x6aec80: up to 15 layouts, each from the shapes of the item set (ids 0 to 2, 3 to 5 or 6 to 9 of the ten records: sizes 1x3, 2x2, 2x3, 4x2, 2x2, 2x3, 2x2, 3x3 "X  X  XXX", 3x2, 2x4) shuffled by the CRT's
+random_shuffle over the app's Rand(), taken last first; each shape has 499 tries (a draw for the top row modulo 8 less its height, a draw for the left column modulo 7 less its width, plus 1; the cells of the shape must be free and not a corner;
+a placed shape has one more draw modulo 1000); the layout with the largest sum of nearest-neighbour squared distances (the exe's float arithmetic) is kept. The tiles hold the objects' indexes. Slots 16 (0x6b9a80) and 17 (0x6b7b80: with NeverAllowCascades off a cluster counts only
+with a piece of a swap) queue the pieces' ids (0x6b7a50: a map of ids, each once until the board stands settled) and 0x6b75e0 uncovers the tile each queued piece stands on (0x6b7400: the tile's countdown is the refill time). Update (0x6c24c0): a tile with
+a countdown below 10,000,000 counts down; 0x6baff0 finds an object when all its cells are fully uncovered (the goal's size is the object count, slot 22 0x6a9950). Keys: hiddenobjects (column.row.width.height, an f when found), hiddenfound, cover (a digit for each tile),
+refill, itemset.
+Not done: the exact curves of the tiles' cover (0x6c24c0 starts a curve of 100 updates when a tile is uncovered and another when it falls, the fall waiting for the others of the same state: the port steps 0.01 an update up or down), the objects' pictures and the sand, the effect of a find and its wait
+(0x6ab520), the effect lists at +0x1f58 and +0x1f5c (a find also waits for the young effects of the second), the sounds of 0x6b7400, slots 50, 51, 55, 56, 63, 64 and 68, the helper widgets, the tutorial.
+Oddities: RefillRateSec is in seconds in quest.cfg and the exe multiplies it by 100 (the constant at 0x880d90). No shape reaches the last row or the first and last columns, so the layout's score term for the last row never applies.
+
+### Goals that no data file reaches
+Checked against quest.cfg and secret.cfg: the Goal settings are Catch Butterflies, Clear Bombs, Clear Gems, Dig, Gold Lines, Gold Lines Flip, Hidden Objects, Wall Blast and the three numeric ones (Poker). So no data file reaches these goals, which stay untranslated:
+- Gold (GoldGoal, 0x114 bytes), Gold Yellow (0x6ae170), Detonator, Arsenal, Score, Firestorm, Preserver (0x118), Hidden Gems (0x11c), Hidden Grid on its own (0x21c) and Survival (0x118): no quest of quest.cfg or secret.cfg names them.
+
+### The suite for Quest, part 3
+suite_quest3.txt (seed 7, name Tester, `unlock all`) plays eleven games, each ending in a state line: Buried Treasure (three flames, won), Sandstorm (Time=3, lost), Wall Blast (a flame breaks the nine cells, won), Wall Blast II (Time=3, lost), Alchemy (won), Alchemy II
+(Moves=3, lost), Alchemy III (Flip, won), Time Bomb with its Clear Bombs goal (won), Time Bomb II (lost), the Poker quest (won on its score, lost on its hands). Hidden Objects comes first, because its layout comes from the app's draws (6.4.1.3, 1.2.2.3, 5.0.2.2 under seed 7).

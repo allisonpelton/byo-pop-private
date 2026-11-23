@@ -5,9 +5,11 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace Sexy {
 
+class Graphics;
 class Piece;
 class QuestBoard;
 
@@ -34,6 +36,22 @@ public:
 	// slots 18 and 39 (0x48 and 0x9c): a piece is taken out of the grid (QuestBoard's slots 176 and 142). The base's slot 18 returns 1, which lets the removal go on:
 	// here true means the goal has kept the piece (the removal stops)
 	virtual bool OnPieceRemoving(Piece* thePiece) { (void)thePiece; return false; }
+	// slot 11 (0x2c, base 0x401df0 a return): the tick of the board's step (QuestBoard's slot 234, 0x6e5660, calls it before Board's step)
+	virtual void UpdateTick() {}
+	// slot 16 (0x40, base a return): a special's reach touches the cell (slot 197 of the board, see Board::OnCellHit)
+	virtual void OnCellHit(int theCol, int theRow) { (void)theCol; (void)theRow; }
+	// slot 17 (0x44, base 0x6a9b90 a return): a run of matched gems was found (QuestBoard's slot 211, 0x6c56a0). The exe gives the list of the clusters of one search; the port calls
+	// it for each cluster in the search's order, with the cluster's pieces
+	virtual void OnRunFound(const std::vector<Piece*>& thePieces) { (void)thePieces; }
+	// slot 26 (0x68, base 0x6aa980, which is Board's 0x73b810): the level is full (QuestBoard's slot 217)
+	virtual bool IsLevelFull() const;
+	// slot 39 (0x9c, base 0x6a9b70 a return): a piece is being cleared (slot 142 of the board with the flag the second argument)
+	virtual void OnPieceClearing(Piece* thePiece, bool theFlag) { (void)thePiece; (void)theFlag; }
+	// port: what the goal draws behind the gems and over them (the exe draws by slots 56, 58 and 59); and the goal's keys for the test commands' state line (JSON members, each
+	// starting with a comma)
+	virtual void DrawBehindPieces(Graphics* g) { (void)g; }
+	virtual void DrawOverPieces(Graphics* g) { (void)g; }
+	virtual std::string DescribeState() const { return std::string(); }
 };
 
 // vftable 0x86ab5c (bejeweled3): the goal "Clear Gems": clear a number of gems (the setting Gems; GemsPerLevel more for each level past the first, and
@@ -47,6 +65,19 @@ public:
 	void Load() override;                         // slot 53 (0xd4), 0x6ae510
 	int GetLevelMax() override;                   // slot 22 (0x58), 0x6aa320
 	void OnPieceCleared(Piece* thePiece) override;   // slot 40 (0xa0), 0x6aa360
+};
+
+// vftable 0x86aa34 (bejeweled3, constructor 0x6ae760, 0x110 bytes): the goal "Clear Bombs": clear a number of bombs (the setting Bombs: a gem that has a bomb's bits 0x60). The goal overrides
+// three of the base's slots, and its constructor reads the setting, so the goal has its size before the board's first fill
+class ClearBombsGoal : public QuestGoal {
+public:
+	int mBombs = 0;           // +0x110: "Bombs", the bombs to clear
+
+	explicit ClearBombsGoal(QuestBoard* theBoard);   // 0x6ae760
+	void Load() override;                         // slot 53 (0xd4), 0x6ae6b0: the setting again
+	int GetLevelMax() override { return mBombs; }   // slot 22 (0x58), 0x6aa3b0
+	void OnPieceCleared(Piece* thePiece) override;   // slot 40 (0xa0), 0x6ab280: a cleared piece with the bits 0x60 scores and counts
+	std::string DescribeState() const override;
 };
 
 // the goal of the quest's setting Goal (0x6ddc70 compares the setting's upper-case text with the names in a fixed order); null for a goal that is not made

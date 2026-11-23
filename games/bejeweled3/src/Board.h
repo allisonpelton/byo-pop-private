@@ -72,6 +72,8 @@ public:
 	                        // reaches 0 from 1 is destroyed (UpdateGame)
 	bool mSelected = false; // +0x23c: the player has picked it up (a click on it, waiting for the next gem)
 	bool mIsGroupOrigin = false;   // +0x174: a match group was made for it (0x789a90), or a hypercube's group has picked it (0x7870f0)
+	bool mDestroyed = false;    // +0x17d: set by 0x74c770 (DestroyPiece) just before the piece leaves the grid and by 0x73f8e0 (Explode) for a piece the explosion takes: it was taken by a special's
+	                        // destruction and not by a plain match's shrink (a plain gem's match goes through UpdatePiecePulses, which never sets it). Wall Blast and Gold Lines read it
 	float mMatchTimer = 0.0f;   // +0x178: how far its clear has come. A match group (0x789a90) puts its first piece at 0.9 and a piece
 	                        // that its ring reaches at 0.01; 0x75dee0 adds 0.015 each update and lets the piece go at 1. A plain
 	                        // gem's match makes no group, so a plain gem never uses it (its scale curve, mScaleCurve, clears it)
@@ -446,7 +448,7 @@ public:
 	// 0x755940 and slot 217, 0x73b810 (bejeweled3): the level bar follows its target, and when it and the progress are full the level
 	// change is asked for (slot 156, 0x74e190)
 	void UpdateLevelBar();
-	bool IsLevelFull() const;   // slot 217 (0x73b810): see UpdateLevelBar
+	virtual bool IsLevelFull() const;   // slot 217 (0x73b810; QuestBoard's 0x6c5460 hands it to the goal's slot 26): see UpdateLevelBar
 	virtual void OnLevelFull();   // slot 156: the level is full
 	// 0x767e20 (bejeweled3), after the match groups: the level change starts when the board is at rest (the overlay is made)
 	void StartLevelChange();
@@ -499,6 +501,11 @@ public:
 	// slot 143 (0x23c), called with the piece by slot 142 (0x73d2b0), which RemovePiece (slot 176, 0x755b80) calls first: a piece is cleared. The
 	// base 0x74b9e0 only makes effects for the bits 0x400 and 0x200, which Classic's pieces never have
 	virtual void OnPieceCleared(Piece* thePiece) { (void)thePiece; }
+	// slot 142 (0x238, 0x73d2b0 on Board), run by RemovePiece (0x755b80) for the piece with the flag 1 before slot 143: QuestBoard's 0x6c63c0 hands it to the goal's slot 39 first
+	virtual void OnPieceClearing(Piece* thePiece, bool theFlag) { (void)thePiece; (void)theFlag; }
+	// slot 197 (0x314, 0x73bb40 on Board returns at once): a special's reach touches a cell (an explosion's nine cells, 0x73f8e0; a match group's ring cells and its first piece's cell,
+	// 0x75dee0), whether or not a gem is there. QuestBoard's 0x6c4b80 hands it to the goal's slot 16
+	virtual void OnCellHit(int theCol, int theRow) { (void)theCol; (void)theRow; }
 	// slot 176 (0x2c0, 0x755b80) with slot 142 (0x73d2b0) for a piece an explosion or a clear takes out: true keeps the piece in the grid (nothing of
 	// Classic's boards does: Diamond Mine's 0x6bb6a0 and 0x6b6a80 keep a brick that the hit has not broken, and turn the dirt that hides a hypercube into it)
 	virtual bool OnPieceRemoving(Piece* thePiece) { (void)thePiece; return false; }
@@ -533,6 +540,8 @@ public:
 	// the board's own pass over the screen after everything else (the exe's slot 43, whose Lightning version 0x716ef0 draws the mode's
 	// HUD); nothing in the modes that have none
 	virtual void DrawModeOverlay(Graphics* g) { (void)g; }
+	// port: drawn by Board::Draw before the gems, for what lies behind them (the wall, the gold squares, the sand); the exe's goals draw theirs by slot 56 (0xe0) around the pieces' draw
+	virtual void DrawBehindPieces(Graphics* g) { (void)g; }
 	// 0x741840 (bejeweled3): the Hint and Menu buttons with the pictures of the mode (Classic's by default)
 	// theResetImage (the Lightning modes') adds the Reset button (id 2)
 	void MakeButtons(Image* theHintImage, int theHintImageId, Image* theMenuImage, int theMenuImageId,

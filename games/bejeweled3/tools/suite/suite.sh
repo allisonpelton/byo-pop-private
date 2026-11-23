@@ -91,21 +91,21 @@ for s in quest_map quest_play quest_lost quest_won quest_map2; do
 	cmp -s "$OUT/quest/$s.png" "$OUT/questrerun/$s.png" || fail="$fail questrerun-$s"
 done
 # Quest, the second part (suite_quest2.txt): ten quests of quest.cfg started in a row, each played by the bot (the first nine with the setting changes the script names to
-# make them short) and each ending in a state line: Avalanche (Filler, won), Balance (won), Alchemy as No Lose with the Clear Gems goal (won), Stratamax as Bad Move Limit (lost
+# make them short) and each ending in a state line: Avalanche (Filler, won), Balance (won), Alchemy as a Time Limit quest (the first of its repeated Challenge settings wins, as in the exe) with the Clear Gems goal (won), Stratamax as Bad Move Limit (lost
 # by swaps that find no match), Time Bomb with the Clear Gems goal (won), Time Bomb II in real time (lost: a bomb ran out), Butterflies (won), Poker (started and played: the quest's
-# goal is a number, which is not made), Ice Storm (won), Gold Rush (won by a treasure). Each run twice: states and shots the same.
+# goal is a score to reach in a number of hands), Ice Storm (won), Gold Rush (won by a treasure). Each run twice: states and shots the same.
 e="$(run quest2 suite_quest2.txt)"; [ "$e" -eq 0 ] || fail="$fail quest2-exit($e)"
 grep -q '^ERROR' "$OUT/quest2/states.txt" && fail="$fail quest2-command($(grep -m1 '^ERROR' "$OUT/quest2/states.txt" | cut -c1-80))"
 [ "$(grep -c '^STATE ' "$OUT/quest2/states.txt")" = 10 ] || fail="$fail quest2-statelines"
 q2() { grep '^STATE ' "$OUT/quest2/states.txt" | sed -n "$1p"; }
 q2 1 | grep -q '"quest":5,"questwon":1.*"credits":0,"droppermove":5' || fail="$fail quest2-filler"
 q2 2 | grep -q '"quest":4,"questwon":1.*"red":2,"blue":2' || fail="$fail quest2-balance"
-q2 3 | grep -q '"quest":2,"questwon":1' || fail="$fail quest2-nolose"
+q2 3 | grep -q '"quest":2,"questwon":1' || fail="$fail quest2-timelimit"
 q2 4 | grep -q '"gameover":1.*"quest":3,"questwon":0.*"badallowed":2,"badused":[2-9]' || fail="$fail quest2-badmove"
 q2 5 | grep -q '"quest":7,"questwon":1.*"bombstarted":1,"realtime":0' || fail="$fail quest2-bomb"
 q2 6 | grep -q '"gameover":1.*"quest":14,"questwon":0.*"realtime":1' || fail="$fail quest2-bombrt"
 q2 7 | grep -q '"mode":"butterflies".*"quest":0,"questwon":1' || fail="$fail quest2-butterflies"
-q2 8 | grep -q '"mode":"poker".*"gameover":0.*"quest":8,"questwon":0.*"hands":[1-9]' || fail="$fail quest2-poker"
+q2 8 | grep -q '"mode":"poker".*"gameover":0.*"quest":8,"questwon":0.*"handsleft":[0-9]' || fail="$fail quest2-poker"
 q2 9 | grep -q '"mode":"icestorm".*"quest":9,"questwon":1' || fail="$fail quest2-ice"
 q2 10 | grep -q '"mode":"diamondmine".*"quest":1,"questwon":1.*"digtreasure":1' || fail="$fail quest2-dig"
 e="$(run quest2rerun suite_quest2.txt)"; [ "$e" -eq 0 ] || fail="$fail quest2rerun-exit($e)"
@@ -114,12 +114,36 @@ for s in filler balance nolose badmove bomb bombrt butterflies poker ice dig; do
 	[ -s "$OUT/quest2/quest2_$s.png" ] || { fail="$fail noshot-quest2_$s"; continue; }
 	cmp -s "$OUT/quest2/quest2_$s.png" "$OUT/quest2rerun/quest2_$s.png" || fail="$fail quest2rerun-$s"
 done
+# Quest, the third part (suite_quest3.txt): eleven short games, a win and a loss for most goals: Hidden Objects (Buried Treasure: three flames uncover the three objects; Sandstorm
+# lost on time), Wall Blast (a flame breaks a wall of nine; Wall Blast II lost on time), Gold Lines (Alchemy won; Alchemy II lost on its moves), Gold Lines Flip (won), Clear Bombs
+# (Time Bomb won; Time Bomb II lost: a bomb ran out) and the Poker quest (won on its score; lost on its hands). Each run twice: states and shots the same.
+e="$(run quest3 suite_quest3.txt)"; [ "$e" -eq 0 ] || fail="$fail quest3-exit($e)"
+grep -q '^ERROR' "$OUT/quest3/states.txt" && fail="$fail quest3-command($(grep -m1 '^ERROR' "$OUT/quest3/states.txt" | cut -c1-80))"
+[ "$(grep -c '^STATE ' "$OUT/quest3/states.txt")" = 11 ] || fail="$fail quest3-statelines"
+q3() { grep '^STATE ' "$OUT/quest3/states.txt" | sed -n "$1p"; }
+q3 1 | grep -q '"quest":6,"questwon":1.*"goal":"HIDDEN OBJECTS".*"hiddenobjects":"6.4.1.3f;1.2.2.3f;5.0.2.2f","hiddenfound":3' || fail="$fail quest3-hidden"
+q3 2 | grep -q '"gameover":1.*"quest":11,"questwon":0.*"hiddenfound":0' || fail="$fail quest3-hiddenlost"
+q3 3 | grep -q '"quest":17,"questwon":1.*"goal":"WALL BLAST","goalsize":9,"goalcount":9,.*"wallcount":9,"wallleft":0' || fail="$fail quest3-wall"
+q3 4 | grep -q '"gameover":1.*"quest":35,"questwon":0.*"wallleft":36' || fail="$fail quest3-walllost"
+q3 5 | grep -q '"quest":2,"questwon":1.*"goal":"GOLD LINES".*"squares":10,"gold":[1-9]' || fail="$fail quest3-gold"
+q3 6 | grep -q '"gameover":1.*"quest":16,"questwon":0.*"squares":64,"gold":[0-9]' || fail="$fail quest3-goldlost"
+q3 7 | grep -q '"quest":26,"questwon":1.*"goal":"GOLD LINES FLIP".*"squares":8,"gold":[8-9]' || fail="$fail quest3-flip"
+q3 8 | grep -q '"quest":7,"questwon":1.*"goal":"CLEAR BOMBS".*"bombgoal":1.*"bombstarted":1' || fail="$fail quest3-bombs"
+q3 9 | grep -q '"gameover":1.*"quest":14,"questwon":0.*"bombgoal":50' || fail="$fail quest3-bombslost"
+q3 10 | grep -q '"mode":"poker".*"quest":8,"questwon":1.*"pokergoal":40' || fail="$fail quest3-poker"
+q3 11 | grep -q '"mode":"poker".*"gameover":1.*"quest":8,"questwon":0.*"handsleft":-1,"pokergoal":100000' || fail="$fail quest3-pokerlost"
+e="$(run quest3rerun suite_quest3.txt)"; [ "$e" -eq 0 ] || fail="$fail quest3rerun-exit($e)"
+cmp -s "$OUT/quest3/states.txt" "$OUT/quest3rerun/states.txt" || fail="$fail quest3rerun-states"
+for s in hidden wall gold flip bombs poker; do
+	[ -s "$OUT/quest3/quest3_$s.png" ] || { fail="$fail noshot-quest3_$s"; continue; }
+	cmp -s "$OUT/quest3/quest3_$s.png" "$OUT/quest3rerun/quest3_$s.png" || fail="$fail quest3rerun-$s"
+done
 msh="$(sha256sum "$OUT/modes/states.txt" | cut -c1-12)"
 [ -z "$FROZEN_MODES" ] || [ "$msh" = "$FROZEN_MODES" ] || fail="$fail MODE STATES CHANGED($msh; frozen $FROZEN_MODES)"
 sh="$(sha256sum "$OUT/game/states.txt" | cut -c1-12)"
 [ -z "$FROZEN" ] || [ "$sh" = "$FROZEN" ] || fail="$fail STATES CHANGED($sh; frozen $FROZEN)"
 if [ -z "$fail" ]; then
-	echo "bejeweled3: menu, a seeded Classic game (bot, 150 moves), the specials and the game over; Zen and Lightning games (bot); rerun identical (states and 6 shots); Butterflies, Poker, Ice Storm and Diamond Mine bot games to their game over (rerun identical, states and 6 shots); the quest map and a Quest game lost and won by the bot (rerun identical, states and 5 shots); ten more quests, one for each board, played by the bot (rerun identical, states and 10 shots); states $sh, modes $msh"
+	echo "bejeweled3: menu, a seeded Classic game (bot, 150 moves), the specials and the game over; Zen and Lightning games (bot); rerun identical (states and 6 shots); Butterflies, Poker, Ice Storm and Diamond Mine bot games to their game over (rerun identical, states and 6 shots); the quest map and a Quest game lost and won by the bot (rerun identical, states and 5 shots); ten more quests, one for each board, played by the bot (rerun identical, states and 10 shots); eleven games of the goals of the third part (rerun identical, states and 6 shots); states $sh, modes $msh"
 	exit 0
 fi
 echo "bejeweled3: FAILED:$fail"

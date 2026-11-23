@@ -47,8 +47,8 @@ PokerBoard::PokerBoard()
 // slot 135 (0x21c), 0x6dfa40 (bejeweled3): the settings of the quest are read. The first setting (the string at 0x7d74b8) goes to +0x3968 and
 // the exe's slot 154 returns it for a game that is not secret; Hands to +0x396c, StartingMoney to the score (+0xd24); the others as the header
 // says (HandValues as integers, the two others as floats, each from a list the exe cuts at its commas). The cards are made empty (suit -2, type
-// -1), the skull and the best hand put to -1, the counts to 0, and QuestBoard's new game (0x6ddc70) follows. port: the setting of
-// +0x3968 and Hands are only read by the games that are not secret, which the port has no use for
+// -1), the skull and the best hand put to -1, the counts to 0, and QuestBoard's new game (0x6ddc70) follows. The first two are read for a
+// quest only in the exe; the port reads them always (the secret mode's file has neither: 0, which nothing reads)
 void PokerBoard::NewGame()
 {
 	mScorePoints = SettingInt("StartingMoney");
@@ -79,6 +79,8 @@ void PokerBoard::NewGame()
 	mBestHand = -1;
 	mBonusCursor = -1;
 	mHandScore = 0;
+	mGoalScore = SettingInt("Goal");   // 0x6dfa40: the first setting read; a quest's (the secret mode's has none)
+	mHandsLeft = SettingInt("Hands");
 	mHands = 0;
 	mSkullsBusted = 0;
 	mBestHandScore = 0;
@@ -341,26 +343,40 @@ void PokerBoard::FlipCoin()
 // (the hands cleared times CountdownMultPerHand, plus 1). With the eliminator's bar short of 1, a clock at 1 raises the skull's level (to
 // SkullMax) and starts the clock again; with the bar at 1 and a skull on the board, the skull's level goes down by one, a skull is counted as
 // busted and the clock and the bar start again. The hands cleared go up by one, and the cards, the best hand, the bonus cursor and the hand's
-// points go. port: the effects, the sounds and the cards' flight are left out
+// points go. A quest (the secret flag clear) does only the first part of its own: see below. port: the effects, the sounds and the cards' flight are left out
 void PokerBoard::ClearHand()
 {
-	if (mBestHand > -1 && mBestHand < (int)mHandCountdown.size())
-		mSkullClock = ((float)mHands * mCountdownMultPerHand + 1.0f) * mHandCountdown[mBestHand] + mSkullClock;
-	if (mBuster < 1.0f) {
-		if (mSkullClock >= 1.0f) {
-			mSkull = std::min(mSkull + 1, mSkullMax);
-			mSkullClock = 0.0f;
+	if (!mIsSecretMode) {
+		// 0x6cdce0, the quest's path: the progress is the score; a score at the level's size ends here with the cards left (the level is full); else a hand is used up and
+		// one past the last ends the game (slot 161, NoMoreMoves) with the cards left too
+		mLevelProgress = mScorePoints;
+		if (GetLevelMax() <= mScorePoints)
+			return;
+		mHandsLeft--;
+		if (mHandsLeft < 0) {
+			NoMoreMoves(true);
+			return;
 		}
 	}
-	else if (mSkull > -1) {
-		mSkull = std::max(mSkull - 1, -1);
-		mSkullsBusted++;
-		mSkullClock = 0.0f;
-		mBuster = 0.0f;
-		mBusterShown = 0.0f;
-		mFlyCurve.SetConstant(0.0);
+	if (mIsSecretMode) {
+		if (mBestHand > -1 && mBestHand < (int)mHandCountdown.size())
+			mSkullClock = ((float)mHands * mCountdownMultPerHand + 1.0f) * mHandCountdown[mBestHand] + mSkullClock;
+		if (mBuster < 1.0f) {
+			if (mSkullClock >= 1.0f) {
+				mSkull = std::min(mSkull + 1, mSkullMax);
+				mSkullClock = 0.0f;
+			}
+		}
+		else if (mSkull > -1) {
+			mSkull = std::max(mSkull - 1, -1);
+			mSkullsBusted++;
+			mSkullClock = 0.0f;
+			mBuster = 0.0f;
+			mBusterShown = 0.0f;
+			mFlyCurve.SetConstant(0.0);
+		}
+		mHands++;
 	}
-	mHands++;
 	mCardCount = 0;
 	mBestHand = -1;
 	mBonusCursor = -1;
@@ -421,7 +437,7 @@ void PokerBoard::UpdateGame()
 		ClearHand();
 	if (mCardCount == CARD_COUNT && mGameOverTicks == 0) {
 		if (!mHandCurve.IsDoingCurve()) {
-			if (mHandCurve.GetOutVal() == 0.0 && mHands > 0)
+			if (mHandCurve.GetOutVal() == 0.0 && mQuestClock == 0)
 				ScoreHand();
 			if (mHandCurve.GetOutVal() == 1.0 && mFlipCurve.GetOutVal() == 0.0 && mAfterFlipCurve.GetOutVal() == 0.0) {
 				if (mSkull >= mBestHand)

@@ -9,6 +9,7 @@
 #include "IceStormBoard.h"
 #include "DiamondMineBoard.h"
 #include "PokerBoard.h"
+#include "QuestGoal.h"
 #include "MoveLimitBoard.h"
 #include "FillerBoard.h"
 #include "BalanceBoard.h"
@@ -526,6 +527,8 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 						",\"questclock\":" + std::to_string(aQuestBoard->mQuestClock) + ",\"goal\":\"" + aQuestBoard->SettingText("Goal") +
 						"\",\"goalsize\":" + std::to_string(aQuestBoard->GetLevelMax()) + ",\"goalcount\":" + std::to_string(aQuestBoard->mLevelProgress) +
 						",\"questscore\":" + std::to_string(aQuestBoard->mScorePoints);
+					if (aQuestBoard->mGoal != nullptr)
+						aLine += aQuestBoard->mGoal->DescribeState();
 					if (mProfile != nullptr) {
 						std::string aDone;
 						for (int aQuest = 0; aQuest < QuestMenu::QUEST_COUNT; aQuest++)
@@ -664,7 +667,7 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 				// points and the coin flips
 				aLine += ",\"hand\":\"" + aPoker->DescribeCards() + "\",\"besthand\":" + std::to_string(aPoker->mBestHand) + ",\"skull\":" +
 					std::to_string(aPoker->mSkull) + ",\"skullclock\":" + std::to_string((int)(aPoker->mSkullClock * 1000.0f)) + ",\"buster\":" +
-					std::to_string((int)(aPoker->mBuster * 1000.0f)) + ",\"hands\":" + std::to_string(aPoker->mHands) + ",\"busted\":" +
+					std::to_string((int)(aPoker->mBuster * 1000.0f)) + ",\"hands\":" + std::to_string(aPoker->mHands) + ",\"handsleft\":" + std::to_string(aPoker->mHandsLeft) + ",\"pokergoal\":" + std::to_string(aPoker->mGoalScore) + ",\"busted\":" +
 					std::to_string(aPoker->mSkullsBusted) + ",\"counts\":\"";
 				for (int i = 0; i <= PokerBoard::HAND_KINDS; i++)
 					aLine += (i > 0 ? "," : "") + std::to_string(aPoker->mHandCounts[i]);

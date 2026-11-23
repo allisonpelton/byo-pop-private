@@ -31,7 +31,7 @@ if(NOT EMSCRIPTEN)
   set(B3_SOURCES src/main.cpp src/Bej3App.cpp src/Res.cpp src/Bej3Music.cpp src/EncodingParser.cpp src/HighScores.cpp
 	src/Background.cpp src/Bej3Dialog.cpp src/Board.cpp src/BoardDraw.cpp src/BoardEffects.cpp src/BoardLevels.cpp src/BoardMoves.cpp src/CrystalBall.cpp src/GemSilhouettes.cpp src/TimeBonusEffect.cpp src/Effects.cpp src/EndLevelDialog.cpp src/EndLevelDialog.cpp src/MainMenu.cpp src/Math3D.cpp src/OptionsDialog.cpp src/PlayMenu.cpp src/Profile.cpp src/QuestData.cpp src/TestCommands.cpp src/ZenBoard.cpp src/LightningBoard.cpp src/QuestBoard.cpp src/ButterflyBoard.cpp src/IceStormBoard.cpp src/DiamondMineBoard.cpp
     src/PokerBoard.cpp src/QuestGoal.cpp src/QuestMenu.cpp src/TimeLimitBoard.cpp src/MoveLimitBoard.cpp
-    src/FillerBoard.cpp src/BalanceBoard.cpp src/TimeBombBoard.cpp src/BadMoveLimitBoard.cpp)
+    src/FillerBoard.cpp src/BalanceBoard.cpp src/TimeBombBoard.cpp src/BadMoveLimitBoard.cpp src/WallGoldGoals.cpp src/HiddenObjectGoal.cpp)
   add_executable(bejeweled3 ${B3_SOURCES})
   target_include_directories(bejeweled3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
   target_link_libraries(bejeweled3 PRIVATE prime sexyframework sexyopenmpt sexyopenjpeg)

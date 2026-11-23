@@ -28,6 +28,7 @@
 7400 bot
 8400 state
 8401 screenshot @DIR@/quest2_bombrt.png
+8490 seed 7
 8500 quest 0 Butterflies=1
 8600 bot
 10300 state

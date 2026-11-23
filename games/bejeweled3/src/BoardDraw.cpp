@@ -366,6 +366,7 @@ void Board::Draw(Graphics* g)
 {
 	DrawPanel(g);
 	DrawScreenFrame(g);
+	DrawBehindPieces(g);
 	DrawPieces(g);   // slot 246, 0x7568a0
 	mEffectsOver->Draw(g, false);   // the +0x12c0 layer is a child of the board: its draw (slot 26) comes after the board's
 	DrawModeOverlay(g);   // port: the exe's widget manager calls slot 43 in the overlay pass; here it follows the board's own draw

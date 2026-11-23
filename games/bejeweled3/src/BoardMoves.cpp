@@ -1005,7 +1005,7 @@ void Board::UpdateMatchGroups()
 				RingCell& aCell = aGroup->mRingCells[k];
 				aCell.mTimer = (float)((double)aCell.mTimer + (aSlowMode ? 0.009999999776482582 : 0.014999999664723873));
 				if (aCell.mTimer >= 1.0f) {
-					// slot 0x314 (0x73bb40) is called with the cell and returns at once
+					OnCellHit(aCell.mCol, aCell.mRow);   // slot 0x314 with the cell (Board's 0x73bb40 returns at once; Wall Blast's goal takes it)
 					aGroup->mRingCells.erase(aGroup->mRingCells.begin() + k);
 					k--;
 				}
@@ -1091,7 +1091,7 @@ void Board::UpdateMatchGroups()
 					if (aFirst != nullptr) {
 						aFirst->mFlags &= ~4;
 						if ((aFirst->mFlags & 2) == 0) {
-							// slot 0x314 with the piece's cell, which returns at once
+							OnCellHit(aFirst->mCol, aFirst->mRow);   // slot 0x314 with the piece's cell (0x75ec41)
 							aFirst->mDestroyerFlags |= aFirst->mFlags;
 							aFirst->mBusyCount = 1;
 							aFirst->mDestroyerId = aFirst->mId;
@@ -1227,6 +1227,22 @@ void Board::Explode(int theX, int theY)
 	for (int aIndex = 0; aIndex < 9; aIndex++) {
 		int aDeltaX = OFFSETS[aIndex][0];
 		int aDeltaY = OFFSETS[aIndex][1];
+		// slot 197 (0x314) for the cell, before the piece is looked at: with the middle's piece it is that piece's cell moved by the offsets, without one the cell that
+		// holds the point (−1 where it is off the grid) for all nine
+		unsigned aHitCol;
+		unsigned aHitRow;
+		if (aCentre != nullptr) {
+			aHitCol = (unsigned)(aCentre->mCol + aDeltaX);
+			aHitRow = (unsigned)(aCentre->mRow + aDeltaY);
+		}
+		else {
+			const int aCentreX = theX - GetGridX();
+			const int aCentreY = theY - GetGridY();
+			aHitCol = aCentreX >= 0 && aCentreX < COLS * CELL ? (unsigned)(aCentreX / CELL) : 0xffffffffu;
+			aHitRow = aCentreY >= 0 && aCentreY < ROWS * CELL ? (unsigned)(aCentreY / CELL) : 0xffffffffu;
+		}
+		if (aHitCol < (unsigned)COLS && aHitRow < (unsigned)ROWS)
+			OnCellHit((int)aHitCol, (int)aHitRow);
 		Piece* aPiece = GetPieceAt((float)(aDeltaX * 128 + theX - GetGridX()), (float)(aDeltaY * 128 + theY - GetGridY()));
 		if (aPiece == nullptr || (aPiece->mBusyCount != 0 && aIndex != 8))
 			continue;
@@ -1253,6 +1269,7 @@ void Board::Explode(int theX, int theY)
 		else if ((aPiece->mFlags & 0x10) == 0) {
 			bool aFlameOnly = (aPiece->mFlags & Piece::FLAG_FLAME) != 0 && (aPiece->mFlags & Piece::FLAG_STAR) == 0;
 			if ((aFlameOnly || !ClearPiece(aPiece, aCentre)) && aPiece->mClearable) {
+				aPiece->mDestroyed = true;   // 0x73f8e0 sets +0x17d here
 				aPiece->mDestroyerId = aCentreId;
 				aPiece->mDestroyerFlags |= aCentreFlags;
 				AddPoints(20, aPiece->mColumnTag);
@@ -1503,6 +1520,7 @@ void Board::DestroyPiece(Piece* thePiece)
 	if ((thePiece->mFlags & FLAGS_SPECIAL_SWAP) == 0)
 		AddPoints(0x32, thePiece->mColumnTag);
 	DrawSparkRandoms();
+	thePiece->mDestroyed = true;   // 0x74c770 ends with +0x17d set (a replay, +0x12f8, would not) and slot 176
 	RemovePiece(thePiece);
 }
 
@@ -1529,7 +1547,8 @@ void Board::RemovePiece(Piece* thePiece)
 {
 	if (OnPieceRemoving(thePiece))
 		return;
-	OnPieceCleared(thePiece);   // 0x755b80 first calls slot 142 (0x73d2b0) with the piece and 1, which calls slot 143
+	OnPieceClearing(thePiece, true);   // 0x755b80 first calls slot 142 (0x73d2b0) with the piece and 1: QuestBoard's override tells the goal, then Board's calls slot 143
+	OnPieceCleared(thePiece);
 	for (size_t i = 0; i < mSwaps.size();) {
 		SwapRecord& aSwap = mSwaps[i];
 		if (aSwap.mFirst == thePiece || aSwap.mSecond == thePiece) {

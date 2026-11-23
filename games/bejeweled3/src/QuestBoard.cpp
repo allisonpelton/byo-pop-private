@@ -153,7 +153,7 @@ void QuestBoard::OnLevelFull()
 		return;
 	if (mFillHeld == 0 && mQuestClock == 0) {
 		mGameOver = true;
-		mQuestClock = QUEST_CLOCK_START;
+		mQuestClock = mQuestClockStart;
 		if (mRecordsHighScores)
 			SubmitScore(mScorePoints);   // 0x6c7c60 and the leaderboard's call
 	}
@@ -193,11 +193,11 @@ void QuestBoard::LeaveToMenu()
 // done in the profile at the win (see MarkQuestDone)
 void QuestBoard::StepQuestClock()
 {
-	if (mQuestClock > QUEST_CLOCK_START - 1) {
+	if (mQuestClock > mQuestClockWait - 1) {
 		if (IsSettled())
 			mQuestClock--;
 	}
-	else if (mQuestClock == QUEST_CLOCK_WIN_TICK) {
+	else if (mQuestClock == mQuestClockWait - QUEST_CLOCK_WIN_BELOW_WAIT) {
 		if (IsSettled() && GetBarTarget() == mLevelBar) {
 			mQuestClock--;
 			MarkQuestDone();
@@ -259,19 +259,58 @@ void QuestBoard::Update()
 	mUpdatesPlayed++;
 }
 
-// slot 234 (0x3a8), 0x6e5660 (bejeweled3): the goal's slot 0x2c when the board has a goal, then Board's step (0x767090). Butterflies' goal
-// (ButterflyGoal, 0x86a90c) has a plain return there (0x401df0), and Poker and Ice Storm have no goal, so this is Board's step. (Ice Storm's own
-// slot 234, 0x6e5850, runs 0x767090 itself and does not come here.)
+// slot 234 (0x3a8), 0x6e5660 (bejeweled3): the goal's slot 11 (0x2c) when the board has a goal, then Board's step (0x767090). Butterflies' goal
+// (ButterflyGoal, 0x86a90c) has a plain return there (0x401df0), and Poker and Ice Storm have no goal. (Ice Storm's own slot 234, 0x6e5850, runs 0x767090 itself and does
+// not come here.)
 void QuestBoard::UpdateTick()
 {
+	if (mGoal != nullptr)
+		mGoal->UpdateTick();
 	Board::UpdateTick();
 }
 
-// slot 211 (0x34c), 0x6c56a0 (bejeweled3): the goal's slot 0x44 when the board has one (ButterflyGoal's is a plain return, 0x6a9b90); with no goal, nothing.
+// slot 211 (0x34c), 0x6c56a0 (bejeweled3): the goal's slot 17 (0x44) when the board has one (ButterflyGoal's is a plain return, 0x6a9b90); with no goal, nothing.
 // Board's 0x73ba10 returns at once as well, and Ice Storm's own 0x6e2250 takes over this slot
 void QuestBoard::OnRunFound(const std::vector<Piece*>& thePieces)
 {
-	(void)thePieces;
+	if (mGoal != nullptr)
+		mGoal->OnRunFound(thePieces);
+}
+
+// slot 142 (0x238), 0x6c63c0 (bejeweled3): the goal's slot 39 (0x9c) with the piece and the flag, then Board's 0x73d2b0 (which calls slot 143)
+void QuestBoard::OnPieceClearing(Piece* thePiece, bool theFlag)
+{
+	if (mGoal != nullptr)
+		mGoal->OnPieceClearing(thePiece, theFlag);
+}
+
+// slot 197 (0x314), 0x6c4b80 (bejeweled3): the goal's slot 16 (0x40) with the cell
+void QuestBoard::OnCellHit(int theCol, int theRow)
+{
+	if (mGoal != nullptr)
+		mGoal->OnCellHit(theCol, theRow);
+}
+
+// slot 217 (0x364), 0x6c5460 (bejeweled3): false in a secret mode; else the goal's slot 26 (0x68) when there is a goal, else Board's 0x73b810
+bool QuestBoard::IsLevelFull() const
+{
+	if (mIsSecretMode)
+		return false;
+	if (mGoal != nullptr)
+		return mGoal->IsLevelFull();
+	return Board::IsLevelFull();
+}
+
+void QuestBoard::DrawBehindPieces(Graphics* g)
+{
+	if (mGoal != nullptr)
+		mGoal->DrawBehindPieces(g);
+}
+
+void QuestBoard::DrawModeOverlay(Graphics* g)
+{
+	if (mGoal != nullptr)
+		mGoal->DrawOverPieces(g);
 }
 
 }  // namespace Sexy
