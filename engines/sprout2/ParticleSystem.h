@@ -171,6 +171,8 @@ public:
 	void setParticleBounds(const RectI& theBounds);
 	// 0x42a650 (feedingfrenzy2): every stream's particles taken out
 	void resetStreams();
+	// Set in place by those that start an effect once (the stage end's counts, 0x540881 (feedingfrenzy2))
+	void setDeleteWhenDone(bool theDeleteWhenDone) { mDeleteWhenDone = theDeleteWhenDone; }
 	// 0x42c060 (feedingfrenzy2): no stream's particles placed relative to a named component until it starts again
 	void clearOffsetParents();
 
@@ -179,7 +181,7 @@ private:
 	bool addStream(ParticleStreamDef* theDef);
 
 	bool mStarted;              // +0xb8
-	bool mDeleteWhenDone;       // +0xb9: set by the theme's effects (not translated yet)
+	bool mDeleteWhenDone;       // +0xb9
 	float mAutoStop;            // +0xbc: seconds before the streams stop, when above 0
 	float mAutoStopCountdown;   // +0xc0
 	float mWarmup;              // +0xc4

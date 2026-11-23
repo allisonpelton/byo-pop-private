@@ -555,6 +555,8 @@ void FishSpawn::findBehavior()
 		mFishBehavior = new FishBehaviorInfo();
 		mFishBehavior->load(mTweaks);
 	}
+	// The spawn's behaviour is the fish one too (0x4102cf (feedingfrenzy2)), given to each actor by prepareActor
+	mBehavior = mFishBehavior.get();
 }
 
 void FishSpawn::createVisual()

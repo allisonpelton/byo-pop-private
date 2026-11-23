@@ -69,11 +69,13 @@ public:
 		if (mState != nullptr)
 			mState->resume();
 	}
-	// 0x0c (0x4448d0 (feedingfrenzy2))
+	// 0x0c (0x4448d0 (feedingfrenzy2)). port: the state held while it updates, as one may put another in its place
+	// (the original's state lives on in freed memory until it returns)
 	virtual void update(UpdateContext* theContext)
 	{
-		if (mState != nullptr)
-			mState->update(theContext);
+		Ref<T> aState = mState;
+		if (aState != nullptr)
+			aState->update(theContext);
 	}
 	// 0x10 (0x40a610 (feedingfrenzy2)): passed to the current state
 	virtual void action(const std::string& theAction)

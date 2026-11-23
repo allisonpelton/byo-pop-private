@@ -535,11 +535,35 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   Checked under rundesk on stage 1: the first fish's chomp splats chompSplatMini1 at the mouth, its GULP image
   thrown up and growing; exit 0.
 
+- The stage's end (StageCompleteState 0x4a4660, its enter 0x49aef0, update 0x4915f0, action 0x49e150; the screens
+  StageCompleteScreen 0x490c40 and its loader 0x405270, StageCompleteScreenNormal 0x4a15b0 with its setup 0x53c106,
+  components 0x5310c2 and fill 0x53ad86, and its five count states). A won stage that is not a bonus stage now goes
+  to the stage's end: the food bank before the stage is set up on the screen, the new total saved as the food bank,
+  and the game moved to the next stage and recorded (or, after the last, the mode's furthest stage set and its saved
+  game cleared). The screen fills up to five slots from the stage's fish spawns marked for it (each the fish's menu
+  picture, its count the spawn's deaths, the first slot of a rank and of the water or the air also counting the
+  fish of that rank and place it does not show), counts the stage's bonus spawns (a class name holding Bonus) and
+  the barracudas eaten, centres the slots 75 apart, and reckons the total. Its machine then pops each number in
+  (the shell theme's fishCountPopIn effect, the stageCompleteChomp splat 30 below, half a second apart after 1.3),
+  the bonuses, the barracudas' bonus growing in from twice its size over 0.2 seconds, the food bank counting up by
+  one or ten every 0.05 seconds, the rank's header and the rank 0.97 seconds apart, and the fun fact fading in over
+  0.3 seconds after half a second (after the final boss, its group, the alien added to the players unless there).
+  A press of the mouse while enabled finishes the count. Continue loads the next stage (or the menu's first stage
+  and the menu after the last); Quit asks as the intro does. Number helpers moved to NumberText (the grouped number
+  with its padded mode, the stage clock, the locale's number). Two port fixes found on the way: the fish spawn's
+  behaviour (+0x4d8) is its fish behaviour, as the original's findBehavior ends (0x4102cf), so each fish actor now
+  gets it from prepareActor; and the shared StateMgr holds its state while it updates, since a state may replace
+  itself (the original's lives on in freed memory). Checked under rundesk on stage 1: won with three fish eaten, the
+  slots pop in with the bubbles and CRUNCH, the food bank reaches 000,003 with Newbie Nibbler and a fact; a click
+  mid-count shows all at once; Continue reaches stage 2's intro; exit 0. Not yet seen: a boss stage's layout and
+  bonus (its actors are not translated) and the final boss's alien. Not translated: the sounds, the options popup,
+  the high scores after the last stage, the debug fun fact buttons (hidden, taking no input), and the bonus stage's
+  end (StageCompleteScreenBonus, +0xa0), whose stage still stops at a log.
+
 ## Next
 
-- The play state's end of a stage (the next stage through the stage-complete screen, the continue, the game over);
-  the mermaid after a perfect stage; later the fish ranks' icons (StageCompleteState, the
-  continue offer and the game over); the restore-game popup's actions; the quit popup's actions over the intro and
+- The play state's other ends (the continue, the game over, the bonus stage's end); the mermaid after a perfect
+  stage; later the fish ranks' icons; the restore-game popup's actions; the quit popup's actions over the intro and
   the pause's End Game; the compositeGroup element (the intro's background group, now skipped).
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's
   simplesound). The stage's slot 0x5c (0x447ef0) is not a clean-up but the stage's ending (player died, perfect, stage

@@ -277,6 +277,10 @@ public:
 	GameData* getGameData() { return mGameData.get(); }
 	GameHud* getHud() { return mHud.get(); }
 	bool isBoss() const { return mBoss; }
+	bool isFinalBoss() const { return mFinalBoss; }
+	const std::string& getBossLayout() const { return mBossLayout; }
+	const std::vector<engine::Ref<NonPlayerSpawn>>& getNonPlayerSpawns() const { return mNonPlayerSpawns; }
+	const std::vector<engine::Ref<FishSpawn>>& getFishSpawns() const { return mFishSpawns; }
 	engine::Container* getContainer() { return mContainer.get(); }
 	// Set by the stage's loader from the manifest's entry (0x48a810 (feedingfrenzy2))
 	void setStageTime(float theStageTime) { mStageTime = theStageTime; }

@@ -4,6 +4,7 @@
 #include "LevelLoadState.h"
 #include "Mouse.h"
 #include "PopupState.h"
+#include "StageCompleteState.h"
 #include "ScreenMgr.h"
 
 using namespace engine;
@@ -54,10 +55,14 @@ void GamePlayState::update(UpdateContext* theContext)
 
 	if (mApp->mStage->isCompleted() || mApp->mStage->isBonus())
 	{
-		// The stage's end (StageCompleteState, 0x20 bytes, its constructor 0x4a4660 (feedingfrenzy2)) in its place:
-		// not yet translated
+		// The stage's end in its place; a bonus stage's needs its own screen, not yet translated
+		if (!mApp->mStage->isBonus())
+		{
+			mApp->mStateMgr.changeState(new StageCompleteState(mApp));
+			return;
+		}
 		if (!mEndLogged)
-			getEngine()->log("GamePlayState: the stage complete; its end not yet translated\n");
+			getEngine()->log("GamePlayState: the bonus stage over; its end not yet translated\n");
 		mEndLogged = true;
 		return;
 	}

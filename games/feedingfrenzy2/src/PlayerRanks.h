@@ -28,6 +28,8 @@ public:
 	void addRank(int thePoints, const std::string& theTitle);
 
 	const std::vector<Rank>& getRanks() const { return mRanks; }
+	// 0x405f40 (feedingfrenzy2): the title of the last rank of no more points than these, empty for none
+	std::string getTitle(int thePoints) const;
 
 private:
 	std::vector<Rank> mRanks;  // +0x0c

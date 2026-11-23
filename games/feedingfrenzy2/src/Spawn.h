@@ -59,7 +59,7 @@ public:
 	const std::string& getName() const { return mName; }
 
 private:
-	std::string mName;  // +0x28
+	std::string mName;  // +0x0c (the second name, at +0x28, is left out: the port finds nothing that reads it)
 	SpawnKind mKind;    // the template's spawn class
 	ActorMaker mMaker;  // the template's actor class, null for one not yet translated
 };
@@ -199,6 +199,9 @@ public:
 
 	engine::Params& getTweaks() { return mTweaks; }
 	const std::string& getVisualName() const { return mVisualName; }
+	ActorClassInfo* getClass() const { return mClass.get(); }
+	int getDeaths() const { return mDeaths; }
+	BehaviorInfo* getBehavior() const { return mBehavior.get(); }
 
 protected:
 	engine::Ref<ActorClassInfo> mClass;     // +0x3c
@@ -220,7 +223,7 @@ protected:
 	unsigned int mNextSpawn;                // +0xd4: the first of them not yet passed
 	float mScheduleTime;                    // +0xd8: the seconds since the scheduling
 	engine::Ref<VisualData> mVisual;        // +0x4d4: the actors' frames, at the spawn's size
-	engine::Ref<BehaviorInfo> mBehavior;    // +0x4d8: a fish spawn keeps its own (+0x534)
+	engine::Ref<BehaviorInfo> mBehavior;    // +0x4d8: a fish spawn's is its fish behaviour (+0x534)
 	engine::Params mTweaks;                 // +0x4dc: the <tweaks> element's attributes, laid over the behaviour's
 	std::vector<engine::Ref<Actor>> mLive;  // +0x4fc: in the stage, in the order they came in
 	std::vector<engine::Ref<Actor>> mPool;  // +0x50c: ready to come in, the last first
@@ -253,6 +256,11 @@ public:
 	// 0x6c (0x41d6d0 (feedingfrenzy2)): a fish of a school taken out of it, one less school when it is empty: not
 	// yet translated, as the schools are not
 	void onActorRemoved(Actor* theActor) override {}
+
+	int getRank() const { return mRank; }
+	int getFoodValue() const { return mFoodValue; }
+	bool showsOnStageComplete() const { return mShowStageComplete; }
+	FishVisualData* getFishVisual() const { return mFishVisual.get(); }
 
 private:
 	int mRank;                                   // +0x520: -1 when not given

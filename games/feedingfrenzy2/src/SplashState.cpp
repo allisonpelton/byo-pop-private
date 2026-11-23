@@ -266,9 +266,17 @@ void SplashState::load()
 	mApp->mStageIntro->setTransitions(aFade, aFade);
 	mApp->mStageIntro->mActionSignal.connect(mApp, &FeedingFrenzyTwo::actionSlot);
 	mLoadProgress = 0.75f;
-	// The stage's ends (+0x9c and +0xa0), the game overs (+0x90 and +0x94) and the high scores (+0x8c), each its own
-	// kind of screen: not yet translated
-	getEngine()->log("SplashState: the options, stage end, game over and high score screens not yet translated\n");
+	// The normal stage's end: read by its loader, given one fade for both ways
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mStageCompleteNormal = new StageCompleteScreenNormal();
+	mApp->mStageCompleteNormal->loadScreen("resource/shell/stageCompleteBase.xml");
+	mApp->mStageCompleteNormal->setTransitions(aFade, aFade);
+	mApp->mStageCompleteNormal->mActionSignal.connect(mApp, &FeedingFrenzyTwo::actionSlot);
+	mLoadProgress = 0.8f;
+	// The bonus stage's end (+0xa0, read by the same loader from resource/shell/stageCompleteBonus.xml), the game
+	// overs (+0x90 and +0x94) and the high scores (+0x8c), each its own kind of screen: not yet translated
+	getEngine()->log("SplashState: the options, bonus stage end, game over and high score screens not yet "
+	                 "translated\n");
 	mLoadProgress = 0.82f;
 	// (Read without a theme)
 	aFade = new FadeTransition(SHELL_FADE_SECONDS);

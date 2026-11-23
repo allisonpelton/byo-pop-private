@@ -5,6 +5,7 @@
 #include "FeedingFrenzyTwo.h"
 #include "GameData.h"
 #include "Image.h"
+#include "NumberText.h"
 #include "Params.h"
 #include "PlayerSpawn.h"
 #include "ScoreSplat.h"
@@ -76,23 +77,6 @@ template <class T>
 T* partOf(ScreenLayout* theLayout, const char* theName)
 {
 	return static_cast<T*>(theLayout->findComponent(theName));
-}
-
-// 0x422970 (feedingfrenzy2) with its mode 0: the number unsigned, with a comma before each three digits from the right
-std::string groupedNumber(int theNumber)
-{
-	char aDigits[32];
-	snprintf(aDigits, sizeof(aDigits), "%u", (unsigned int)theNumber);
-	std::string aDigitText = aDigits;
-	std::string aText;
-	int aCount = (int)aDigitText.size();
-	for (int i = 0; i < aCount; i++)
-	{
-		if (i > 0 && (aCount - i) % 3 == 0)
-			aText += ',';
-		aText += aDigitText[i];
-	}
-	return aText;
 }
 
 // 0x44ca60 (feedingfrenzy2) with its hours left out when there are none: "mm:ss", or "H:mm:ss" from an hour (by

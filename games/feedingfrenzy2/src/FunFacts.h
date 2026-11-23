@@ -22,11 +22,15 @@ public:
 	void load(const std::string& thePath);
 
 	const std::vector<std::string>& getFacts() const { return mFacts; }
+	// 0x51d4ae (feedingfrenzy2): a fact drawn (0x41ce50 (feedingfrenzy2), from the first to the last) and kept as the
+	// next
+	const std::string& drawFact();
 
 private:
 	friend class FunFactDocHandler;
 
-	int mNextFact;                    // +0x0c: set to 0 by load (its readers not yet translated)
+	int mNextFact;                    // +0x0c: the fact drawn last, 0 after load (the debug buttons' readers not
+	                                  // translated, as nothing reaches them)
 	std::vector<std::string> mFacts;  // +0x10
 };
 

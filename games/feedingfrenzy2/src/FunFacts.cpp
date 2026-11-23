@@ -1,5 +1,6 @@
 #include "FunFacts.h"
 
+#include "Draws.h"
 #include "Engine.h"
 
 using namespace engine;
@@ -36,4 +37,10 @@ void FunFactDocHandler::text(const std::string& theText)
 {
 	if (mInFact)
 		mFact += theText;
+}
+
+const std::string& FunFacts::drawFact()
+{
+	mNextFact = drawWhole(0, (int)mFacts.size() - 1);
+	return mFacts[mNextFact];
 }

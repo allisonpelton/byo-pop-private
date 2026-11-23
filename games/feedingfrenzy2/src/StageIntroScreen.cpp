@@ -2,6 +2,7 @@
 
 #include "Engine.h"
 #include "FeedingFrenzyTwo.h"
+#include "NumberText.h"
 
 #include <cstdio>
 
@@ -9,16 +10,6 @@ using namespace engine;
 
 namespace
 {
-
-// 0x44ca60 (feedingfrenzy2) as 0x48c830 (feedingfrenzy2) calls it: the seconds as the hours, then two digits each of
-// the minutes and the seconds ("H:mm:ss" by GetTimeFormatA). port: the locale's time separator, which the original
-// reads (LOCALE_STIME), is the colon of the user's locale
-std::string formatClock(int theSeconds)
-{
-	char aText[32];
-	snprintf(aText, sizeof(aText), "%d:%02d:%02d", theSeconds / 60 / 60, theSeconds / 60 % 60, theSeconds % 60);
-	return aText;
-}
 
 // The text of the name in the container, null for none
 TextItem* findText(ScreenLayout* theLayout, const char* theName)
@@ -92,9 +83,9 @@ void StageIntroScreen::showFor(const std::string& theStageId, Stage* theStage)
 	const StageManifest::Stage* anEntry = anApp->mGameData->getStageEntry();
 	if (anEntry != nullptr)
 	{
-		mNewTimeText->setText(formatClock(anEntry->mStageTime));
-		mTotalTimeText->setText(formatClock(anApp->mGameData->getTimeRollover() + anEntry->mStageTime));
-		mStartTotalTimeText->setText(formatClock(anApp->mGameData->getTimeRollover() + anEntry->mStageTime));
+		mNewTimeText->setText(stageClock(anEntry->mStageTime));
+		mTotalTimeText->setText(stageClock(anApp->mGameData->getTimeRollover() + anEntry->mStageTime));
+		mStartTotalTimeText->setText(stageClock(anApp->mGameData->getTimeRollover() + anEntry->mStageTime));
 	}
 	if (anApp->mFreshGame)
 	{
@@ -127,8 +118,8 @@ void StageIntroScreen::findComponents()
 	mPara1->setText("");
 	mPara2->setText("");
 	mObjective->setText("");
-	mNewTimeText->setText(formatClock(0));
-	mTotalTimeText->setText(formatClock(0));
+	mNewTimeText->setText(stageClock(0));
+	mTotalTimeText->setText(stageClock(0));
 	mPara1Header = nullptr;
 	mPara2Header = nullptr;
 	if (!mTextLayout)

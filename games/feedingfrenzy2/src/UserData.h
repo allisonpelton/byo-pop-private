@@ -57,6 +57,10 @@ public:
 	// 0x402750 (feedingfrenzy2): empty for no player
 	const std::string& getName() const { return mName; }
 	const ModeRecord& getMode(int theMode) const { return mModes[theMode]; }
+	int getFoodBank() const { return mFoodBank; }
+	void setFoodBank(int theFoodBank) { mFoodBank = theFoodBank; }
+	// The stage's end, as the last stage of the mode is finished (0x49aef0 (feedingfrenzy2))
+	void setMaxStage(int theMode, int theMaxStage) { mModes[theMode].mMaxStage = theMaxStage; }
 	// port (the test command unlock all): every mode's furthest stage the count of stages, as a player who has
 	// finished both has, and the player saved
 	void unlockAll(int theStageCount);
