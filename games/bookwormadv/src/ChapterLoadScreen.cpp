@@ -32,7 +32,7 @@ ChapterLoadScreen::ChapterLoadScreen(GameApp* theApp) : mApp(theApp)
 void ChapterLoadScreen::Update()
 {
 	// (redrawn when the app has loaded a resource, which marks the box dirty)
-	if (--mTimer >= 1)
+	if (--mTimer >= 1 || mApp->mHoldLoadHints)
 		return;
 	mTimer = 50;
 	// A hint not shown yet, while there are any; then any hint

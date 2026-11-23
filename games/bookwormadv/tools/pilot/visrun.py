@@ -7,7 +7,8 @@ acceleration"). The user allowed this on 2026-11-01: the game on their desktop w
 The copy must lie on a short path: the game builds paths in a 256-byte buffer (0x6cbb60) and dies at start under a
 worktree's long path. Before the run the game's registry key (HKCU\\Software\\PopCap\\WinBAD) and its users folder are
 backed up into <shots dir>\\..\\backup, the pilot's start state goes in (build/scratch/pilot/start.reg, Is3D from
---3d, the pilot's Tester.bwa), and afterwards both are put back.
+--3d, the pilot's Tester.bwa, or run.sh's PILOT_PROFILE in its place and its PILOT_USERS beside it), and afterwards both
+are put back.
 
 The script's commands are done as origrun does them: "at N <cmd>" waits for the game's update counter (app+0x484) to
 reach N, holds the game (its threads suspended), posts the input (move, click, focus lose/regain) and lets it go, so
@@ -15,7 +16,8 @@ the input is read in update N+1. A shot waits until the game has drawn its last 
 clear), holds it, and has the window draw itself into a picture. The window is kept topmost, and a shot is
 refused while any other visible window overlaps it. The picture comes from the window itself (PrintWindow), never from
 the screen, so nothing but the game's own pixels is ever copied. Each shot is
-written as origrun's are, the client area at (3, 26) of an 806x629 picture, and listed in landed.tsv with its update.
+written as origrun's are, the client area at (3, 26) of an 806x629 picture, and listed in landed.tsv with its update and
+where the desktop's real cursor was (the user's: when it rests over the window, the game shows hovers of its own).
 """
 import ctypes
 import ctypes.wintypes as wt
@@ -277,6 +279,11 @@ def shot(g, out, name, landed, log):
         print('shot %s refused: no drawn update in 200 ms' % name, file=log, flush=True)
         return
     c = g.counter()
+    # where the desktop's real cursor was (read, never moved): over the window it gives the game hovers of its own
+    pt = wt.POINT()
+    u32.GetCursorPos(ctypes.byref(pt))
+    u32.ScreenToClient(hw, ctypes.byref(pt))
+    cursor = 'cursor %d,%d' % (pt.x, pt.y) if 0 <= pt.x < 800 and 0 <= pt.y < 600 else 'cursor outside'
     im = grab(hw, g)   # releases the game
     if im is None:
         print('shot %s refused: PrintWindow failed or did not return' % name, file=log, flush=True)
@@ -284,7 +291,7 @@ def shot(g, out, name, landed, log):
     path = os.path.join(out, name + '.png')
     os.makedirs(os.path.dirname(path), exist_ok=True)
     im.save(path)
-    landed.write('%s\t%s\tdrawn\n' % (name, c))
+    landed.write('%s\t%s\tdrawn\t%s\n' % (name, c, cursor))
     landed.flush()
 
 
@@ -301,7 +308,10 @@ def stage(backup, threed):
     with winreg.OpenKey(winreg.HKEY_CURRENT_USER, KEY, 0, winreg.KEY_SET_VALUE) as k:
         winreg.SetValueEx(k, 'Is3D', 0, winreg.REG_DWORD, 1 if threed else 0)
     pilot = os.path.join(ROOT, '..', '..', '..', '..', 'build', 'scratch', 'pilot')
-    shutil.copy(os.path.join(pilot, 'portuser0', 'users', 'Tester.bwa'), os.path.join(USERS, 'Tester.bwa'))
+    shutil.copy(os.environ.get('PILOT_PROFILE') or os.path.join(pilot, 'portuser0', 'users', 'Tester.bwa'),
+                os.path.join(USERS, 'Tester.bwa'))
+    for f in os.environ.get('PILOT_USERS', '').split():
+        shutil.copy(f, USERS)
 
 
 def restore(backup):

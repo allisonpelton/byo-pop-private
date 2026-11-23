@@ -280,6 +280,25 @@ std::string GameApp::WordMasterGuessForTests(const std::vector<std::string>& the
 // port: with -boardlog=<file>, a run with real input writes there, each time the battle's board comes to rest with a new
 // set of tiles, the word a test driver may spell there: "board: <n> <WORD> x,y ... attack x,y scramble x,y words W1,W2,... letters L@x,y;..." (tools/realrun.py's
 // "word"). Only what the driver sees: its clicks go through the real input
+// -randlog: "update <n>: draws <total> (+<new>)" after each update in which the framework's generator (Sexy::Rand, the
+// original's at 0x566f30) drew, so that a run can be laid beside the original's draws, which origrun's
+// `--watch 0x85a938` (the generator's index, 1 to 624) shows by update (tools/pilot/run.sh's PILOT_WATCH)
+void GameApp::LogRandForTests()
+{
+	static FILE* sFile = nullptr;
+	static uint sLast = 0;
+	if (sFile == nullptr && (sFile = fopen(mRandLogForTests.c_str(), "w")) == nullptr) {
+		mRandLogForTests.clear();
+		return;
+	}
+	uint aCount = GetRandCount();
+	if (aCount == sLast)
+		return;
+	fprintf(sFile, "update %d: draws %u (+%u)\n", mUpdateCount, aCount, aCount - sLast);
+	fflush(sFile);
+	sLast = aCount;
+}
+
 void GameApp::LogBoardForTests()
 {
 	if (mShutdown)
@@ -324,6 +343,29 @@ void GameApp::LogBoardForTests()
 		}
 		sLastScreen = aScreen;
 		sLastTalk = aTalk;
+	}
+	// a chapter load's screen gone: "loadend: <n> <update count>", the update the screens pilot's `loaded` steps count
+	// from (tools/pilot/gen.py; the original's side reads app+0x83c, mChapterLoadScreen, at the same update)
+	// Then the curtain over it open: "opened: <n> <update count>", when mTransitionState (app+0x8ec) is back to none,
+	// the update the pilot's steps count from. The curtain steps a cel every 5 of its own updates, counted from before
+	// the load, so how long it takes to open after the load turns on the load's length (and the original's gap before
+	// it, 135 updates on the host and 141 in Windows Sandbox) modulo 5. Only with -loadanchors, so the frozen baseline's
+	// board logs stay comparable.
+	static bool sLoading = false, sOpening = false;
+	if (mLoadAnchorsForTests && sLoading && mChapterLoadScreen == nullptr) {
+		if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
+			fprintf(aFile, "loadend: %d %d\n", ++sCount, mUpdateCount);
+			fclose(aFile);
+		}
+		sOpening = true;
+	}
+	sLoading = mChapterLoadScreen != nullptr;
+	if (mLoadAnchorsForTests && sOpening && !sLoading && mTransitionState == TRANSITION_NONE) {
+		if (FILE* aFile = fopen(mBoardLogForTests.c_str(), "a")) {
+			fprintf(aFile, "opened: %d %d\n", ++sCount, mUpdateCount);
+			fclose(aFile);
+		}
+		sOpening = false;
 	}
 	// the treasure room's Continue, as it shows and as it is enabled: "treasure: <n> continue x,y 1|0"
 	static std::string sLastTreasure;

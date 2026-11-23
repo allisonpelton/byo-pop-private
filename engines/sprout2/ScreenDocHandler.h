@@ -27,7 +27,8 @@ public:
 	// Talismania's reader of an element's common attributes (0x620da0 and its callers (talismania)) also reads "visible"; Feeding
 	// Frenzy 2's does not, and its layouts are read without it. A game switches it on before its screens are read
 	static void setHonorVisible(bool theHonor) { sHonorVisible = theHonor; }
-	// On, an image item's scaleX and scaleY scale the image as drawn (Talismania); off, they only flip it (Feeding Frenzy 2)
+	// On, an image item's scaleX and scaleY scale the image as drawn (Talismania); off, a scaled copy of the surface takes
+	// their size and they only flip it (Feeding Frenzy 2)
 	static void setScaleImages(bool theScale) { sScaleImages = theScale; }
 
 	// 0x47d880 (feedingfrenzy2)
@@ -63,6 +64,7 @@ private:
 	void readParticleSystem(Params& theAttributes);                        // 0x46ed00 (feedingfrenzy2)
 	void readImageButton(Params& theAttributes);                           // 0x432b10 (feedingfrenzy2)
 	void readComboButton(Params& theAttributes);                           // 0x45c5a0 (feedingfrenzy2)
+	void readListBox(Params& theAttributes);                               // 0x4804a0 (feedingfrenzy2)
 	void readEditBox(Params& theAttributes);                               // 0x412680 (feedingfrenzy2)
 	void readText(Params& theAttributes);                                  // 0x4548c0 (feedingfrenzy2)
 	void readKeyAction(Params& theAttributes);                             // 0x426cb0 (feedingfrenzy2)

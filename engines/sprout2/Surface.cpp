@@ -1,10 +1,14 @@
 #include "Surface.h"
 
+#include "DXDrawContext.h"
 #include "Engine.h"
+#include "PixelFx.h"
 #include "Stream.h"
 
 #include "platform/ImageLoader.h"
 
+#include <cmath>
+#include <cstdio>
 #include <cstring>
 
 namespace engine
@@ -12,6 +16,23 @@ namespace engine
 
 namespace
 {
+
+// A pixel's bytes (the alpha highest, then red, green and blue) and back
+PixelColor toPixelColor(uint32_t thePixel)
+{
+	PixelColor aColor;
+	aColor.mAlpha = (uint8_t)(thePixel >> 24);
+	aColor.mRed = (uint8_t)(thePixel >> 16);
+	aColor.mGreen = (uint8_t)(thePixel >> 8);
+	aColor.mBlue = (uint8_t)thePixel;
+	return aColor;
+}
+
+uint32_t fromPixelColor(const PixelColor& theColor)
+{
+	return (uint32_t)theColor.mAlpha << 24 | (uint32_t)theColor.mRed << 16 | (uint32_t)theColor.mGreen << 8 |
+	       (uint32_t)theColor.mBlue;
+}
 
 // The rest of a stream read into memory: the port decodes whole files where the original's libjpeg and libpng read
 // the stream as they go
@@ -241,6 +262,98 @@ Surface* Surface::clone() const
 	aCopy->setBlendMode(mBlendMode, mAlphaThreshold);
 	aCopy->setAnchor(mAnchor);
 	aCopy->setName(mName);
+	return aCopy;
+}
+
+Surface* Surface::scaledCopy(float theScaleX, float theScaleY) const
+{
+	Surface* aCopy = clone();
+	aCopy->scale(theScaleX, theScaleY);
+	char aName[600];
+	snprintf(aName, sizeof(aName), "%s(%.2f,%.2f)", getName().c_str(), (double)theScaleX, (double)theScaleY);
+	aCopy->setName(aName);
+	return aCopy;
+}
+
+void Surface::scale(float theScaleX, float theScaleY)
+{
+	// 0x439120 (feedingfrenzy2): fabs
+	float aScaleX = fabsf(theScaleX);
+	float aScaleY = fabsf(theScaleY);
+	int aWidth = getWidth();
+	int aHeight = getHeight();
+	// 0x4c3ae0 (feedingfrenzy2), _ftol2: truncated
+	int aNewWidth = (int)((double)aWidth * (double)aScaleX);
+	int aNewHeight = (int)((double)aHeight * (double)aScaleY);
+	Ref<Surface> aScaled = new Surface();
+	aScaled->allocate(aNewWidth, aNewHeight);
+	aScaled->fill(Color(0.0f, 0.0f, 0.0f, 0.0f));
+	Vector2f anAnchor = getAnchor();
+	setAnchor(Vector2f(0.0f, 0.0f));
+	// 0x441810 (feedingfrenzy2), the alpha blitter, filtered (0xf), from the top left corner at the scales
+	// port: drawn through the draw context, which picks the blitter by the surface's blend mode, and samples a scaled
+	// image (its scaled blitters are for the looks pass)
+	{
+		Ref<DXDrawContext> aContext = new DXDrawContext(aScaled);
+		DrawState aState;
+		aState.mScale = Vector2f(aScaleX, aScaleY);
+		aState.mFilterMode = FILTER_MODE_SMOOTH;
+		aContext->pushState(aState);
+		aContext->drawImage(this, RectI(0, 0, aWidth, aHeight), 0.0f, 0.0f);
+	}
+	mPixels.swap(aScaled->mPixels);
+	mWidth = aNewWidth;
+	mHeight = aNewHeight;
+	// The anchor as the x87 has it: x times the new width over the old, y times the new width over the new height
+	double aNewWidthValue = (double)aNewWidth;
+	float anAnchorY = (float)((double)anAnchor.y / (double)aNewHeight * aNewWidthValue);
+	float anAnchorX = (float)((double)anAnchor.x / (double)aWidth * aNewWidthValue);
+	setAnchor(Vector2f(anAnchorX, anAnchorY));
+}
+
+void Surface::applyPixelFx(const PixelFx& theFx)
+{
+	for (int aRow = 0; aRow < mHeight; aRow++)
+	{
+		for (int aColumn = 0; aColumn < mWidth; aColumn++)
+		{
+			uint32_t& aPixel = mPixels[(size_t)aRow * mWidth + aColumn];
+			PixelColor aColor = toPixelColor(aPixel);
+			theFx.shadePixel(aColumn, aRow, aColor);
+			aPixel = fromPixelColor(aColor);
+		}
+	}
+}
+
+Surface* Surface::pixelFxCopy(const PixelFx& theFx) const
+{
+	Surface* aCopy = new Surface();
+	aCopy->allocate(mWidth, mHeight);
+	for (int aRow = 0; aRow < mHeight; aRow++)
+	{
+		for (int aColumn = 0; aColumn < mWidth; aColumn++)
+		{
+			size_t anIndex = (size_t)aRow * mWidth + aColumn;
+			PixelColor aColor = toPixelColor(mPixels[anIndex]);
+			theFx.shadePixel(aColumn, aRow, aColor);
+			aCopy->mPixels[anIndex] = fromPixelColor(aColor);
+		}
+	}
+	aCopy->setBlendMode(mBlendMode, mAlphaThreshold);
+	aCopy->setAnchor(mAnchor);
+	char aName[600];
+	snprintf(aName, sizeof(aName), "%s(%s)", getName().c_str(), theFx.getFxName().c_str());
+	aCopy->setName(aName);
+	return aCopy;
+}
+
+Surface* Surface::pixelFxScaledCopy(float theScale, const PixelFx& theFx) const
+{
+	Surface* aCopy = pixelFxCopy(theFx);
+	aCopy->scale(theScale, theScale);
+	char aName[600];
+	snprintf(aName, sizeof(aName), "%s(%.2f,%.2f)", aCopy->getName().c_str(), (double)theScale, (double)theScale);
+	aCopy->setName(aName);
 	return aCopy;
 }
 

@@ -4,6 +4,49 @@
 
 using namespace engine;
 
+ModelInfo* FishFactory::findAnyModel(const std::string& theName) const
+{
+	ModelInfo* aModel = findModel(theName);
+	if (aModel == nullptr)
+	{
+		aModel = findFishModel(theName);
+		if (aModel == nullptr)
+		{
+			// The original shows a message box (the engine's slot 0xd8); the game's file names no missing model
+			getEngine()->log("Bad Name: There is no such model as %s.\n", theName.c_str());
+		}
+	}
+	return aModel;
+}
+
+VisualInfo* FishFactory::findVisual(const std::string& theName)
+{
+	VisualInfo* aVisual = find(mVisuals, theName);
+	if (aVisual == nullptr)
+	{
+		ModelInfo* aModel = findAnyModel(theName);
+		if (aModel == nullptr)
+			getEngine()->log("Bad Name: There is no such visual or model as %s.\n", theName.c_str());
+		else
+		{
+			// A visual of no colour effect, named for the model
+			aVisual = new VisualInfo();
+			aVisual->mName = theName;
+			aVisual->mModel = aModel;
+			mVisuals[aVisual->mName] = aVisual;
+		}
+	}
+	return aVisual;
+}
+
+FishVisualInfo* FishFactory::findFishVisual(const std::string& theName) const
+{
+	FishVisualInfo* aVisual = find(mFishVisuals, theName);
+	if (aVisual == nullptr)
+		getEngine()->log("Bad Name: There is no such fishVisual as %s.\n", theName.c_str());
+	return aVisual;
+}
+
 FishFactory* FishFactory::get()
 {
 	// The original's is made with new and never freed; the port's is freed as the program ends
@@ -17,6 +60,16 @@ bool FishFactory::load(const std::string& thePath)
 	FishFactoryDocHandler* aHandler = new FishFactoryDocHandler(this);
 	aHandler->attach(&aMaster, "fishes");
 	return getEngine()->parseXml(thePath, &aMaster);
+}
+
+void FishFactory::clear()
+{
+	mModels.clear();
+	mVisuals.clear();
+	mBehaviors.clear();
+	mFishModels.clear();
+	mFishVisuals.clear();
+	mFishBehaviors.clear();
 }
 
 void FishFactoryDocHandler::begin(Params& theAttributes)

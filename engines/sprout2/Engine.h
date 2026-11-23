@@ -16,6 +16,12 @@
 #include <map>
 #include <string>
 
+namespace simplesound
+{
+class SimpleSound;
+class SoundHandle;
+}
+
 namespace engine
 {
 
@@ -24,6 +30,7 @@ class DocHandler;
 class DrawContext;
 class Font;
 class Image;
+class Mouse;
 class InputStream;
 class PersistKey;
 class RandomAccessInputStream;
@@ -75,6 +82,8 @@ public:
 	virtual bool isKeyDown(int theKey) = 0;
 	// port: the clipboard's text (CF_TEXT), false when it holds none
 	virtual bool getClipboardText(std::string& theText) = 0;
+	// 0x100: the mouse a game steers by (Mouse.h), null where the platform has none
+	virtual Mouse* getMouse() { return nullptr; }
 
 	// --- The engine's own ---
 
@@ -113,6 +122,19 @@ public:
 	virtual Surface* getDiskImage(const std::string& thePath);
 	// 0x74 (0x41bf50 (feedingfrenzy2)): a font, loaded the first time and kept under its path
 	virtual Font* getFont(const std::string& thePath);
+	// 0xfc (0x507c32 (feedingfrenzy2)): the global sound system (simplesound::getSimpleSound) set
+	virtual void setSoundSystem(simplesound::SimpleSound* theSoundSystem);
+	// port: the original's 0x4a2790 (feedingfrenzy2), from the application's start (0x4a1a70): a new SimpleSoundDX
+	// over the window (the engine's slot 0x30), null when DirectSound cannot start. The engine has none of its own
+	virtual simplesound::SimpleSound* makeSoundSystem() { return nullptr; }
+	// 0x7c (0x478280 (feedingfrenzy2)): the file read whole into a sound registered under the name (the sound
+	// system's slot 0x04); true when it was, or one was already; false without a sound system or the file
+	virtual bool registerSound(const std::string& theName, const std::string& thePath);
+	// 0x80 (0x416950 (feedingfrenzy2)): the same with the file read as it plays (the sound system's slot 0x08)
+	virtual bool registerSoundStream(const std::string& theName, const std::string& thePath);
+	// 0x84 (0x481580 (feedingfrenzy2)): a new handle of the sound registered under the name (the sound system's slot
+	// 0x18); null without a sound system or such a sound
+	virtual simplesound::SoundHandle* getSoundHandle(const std::string& theName, int theSetupValue, int theCategory);
 	// 0x88 (EngineImpl's 0x46c4c0 (feedingfrenzy2)): a new image loaded from the archives; an empty one when the file
 	// cannot be read
 	virtual Surface* loadImage(const std::string& thePath);
@@ -122,6 +144,11 @@ public:
 	virtual bool addImage(Surface* theImage, const std::string& thePath);
 	// 0x94 (0x469650 (feedingfrenzy2)): the image kept under the path, null for none
 	virtual Surface* findImage(const std::string& thePath);
+	// 0x9c (EngineImpl's 0x4673d0 (feedingfrenzy2)): a new image of the size (the port's pixels cleared, the
+	// original's as the allocation found them)
+	virtual Surface* createSurface(int theWidth, int theHeight);
+	// 0xa0 (EngineImpl's 0x41c490 (feedingfrenzy2)): a new draw context drawing into the image
+	virtual DrawContext* createDrawContext(Surface* theTarget);
 	// 0x4719f0 and 0x418120 (feedingfrenzy2), from Theme::load: the kept images, and the kept fonts, that nothing but
 	// the engine holds let go
 	void releaseUnusedImages();
@@ -158,6 +185,12 @@ public:
 	void removeNamedComponent(Component* theComponent);
 	// 0x41ea70 (feedingfrenzy2): the first component under the name, null for none
 	Component* findNamedComponent(const std::string& theName);
+
+	// 0xb8 (EngineImpl's 0x419820 (feedingfrenzy2)): the format with its inserts filled in, by FormatMessageA from a
+	// string in the user's language (%1 to %99 an insert, typed by a printf type between exclamation marks after it,
+	// %% a percent sign, %n a line break, %0 the end). port: not virtual, as the platform's part is Windows' own and
+	// done here, with whole numbers for the inserts, which is all the games pass
+	std::string formatMessage(const std::string& theFormat, int theInsert);
 
 protected:
 	std::map<std::string, Ref<Surface>> mImages;              // +0x134

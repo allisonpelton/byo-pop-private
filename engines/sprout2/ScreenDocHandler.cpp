@@ -8,6 +8,8 @@
 #include "ComboButton.h"
 #include "EditBox.h"
 #include "ImageButton.h"
+#include "ListBox.h"
+#include "TheoraReader.h"
 #include "Modifiers.h"
 #include "ParticleSystem.h"
 #include "Random.h"
@@ -89,11 +91,13 @@ void ScreenDocHandler::startElement(const std::string& theName, Params& theAttri
 		readComboButton(theAttributes);
 	else if (theName == "editBox")
 		readEditBox(theAttributes);
+	else if (theName == "listBox")
+		readListBox(theAttributes);
 	else
 	{
 		// animation 0x53fffd, checkBox 0x46e570, textButton 0x421160,
 		// clipGroup 0x535b3e, selector 0x535883, textSub 0x53a144,
-		// include 0x53578b, radioGroup 0x4177a0, listBox 0x4804a0, table 0x40ca40, column
+		// include 0x53578b, radioGroup 0x4177a0, table 0x40ca40, column
 		// 0x40e640, detailSelector 0x5328bf (feedingfrenzy2): not yet translated
 		getEngine()->log("ScreenDocHandler: <%s> not yet translated\n", theName.c_str());
 	}
@@ -191,15 +195,19 @@ void ScreenDocHandler::readImage(Params& theAttributes)
 {
 	std::string aFile = theAttributes.getString("file", "");
 	std::string aTheoraFile = theAttributes.getString("theoraFile", "");
-	theAttributes.getInt("theoraFrame", 0);
+	int aTheoraFrame = theAttributes.getInt("theoraFrame", 0);
 	std::string aName = theAttributes.getString("name", "");
 	Surface* aSurface = nullptr;
+	Ref<Surface> aFrame;  // port: a Theora frame kept until the image holds it or its scaled copy
 	if (!aFile.empty())
 		aSurface = findImage(aFile);
 	else if (!aTheoraFile.empty())
 	{
-		// A frame of a Theora animation (0x415ba0, 0x47b930 and 0x415b40 (feedingfrenzy2)): not yet translated
-		getEngine()->log("ScreenDocHandler: theoraFile %s not yet translated\n", aTheoraFile.c_str());
+		// A frame of a Theora animation, read from its file by a reader of its own
+		TheoraReader aReader;
+		aReader.open(aTheoraFile);
+		aFrame = aReader.readFrameAt((unsigned int)aTheoraFrame);
+		aSurface = aFrame.get();
 	}
 	if (aSurface == nullptr)
 		return;
@@ -223,10 +231,9 @@ void ScreenDocHandler::readImage(Params& theAttributes)
 
 	if (!sScaleImages)
 	{
+		// Feeding Frenzy 2's reader: a scaled copy in its place, the image's own scale left to flip it
 		if (fabsf(aScaleX) != 1.0f || fabsf(aScaleY) != 1.0f)
-			// A scaled copy of the surface: not yet translated
-			getEngine()->log("ScreenDocHandler: %s scaled by %f, %f not yet translated\n", aSurface->getName().c_str(),
-				(double)aScaleX, (double)aScaleY);
+			aSurface = aSurface->scaledCopy(aScaleX, aScaleY);
 		aScaleX = aScaleX < 0.0f ? -1.0f : 1.0f;
 		aScaleY = aScaleY < 0.0f ? -1.0f : 1.0f;
 	}
@@ -591,6 +598,51 @@ void ScreenDocHandler::readParticleSystem(Params& theAttributes)
 	if (aWarmup > 0.0f)
 		aSystem->warmup(aWarmup);
 	mLayout->registerComponent(aSystem, aName);
+}
+
+
+void ScreenDocHandler::readListBox(Params& theAttributes)
+{
+	ListBox* aBox = new ListBox();
+	std::string aName = theAttributes.getString("name", "_ListBox_");
+	float x = theAttributes.getFloat("x", 0.0f);
+	float y = theAttributes.getFloat("y", 0.0f);
+	float anOpacity = theAttributes.getFloat("opacity", 1.0f);
+	float aScaleX = theAttributes.getFloat("scaleX", 1.0f);
+	float aScaleY = theAttributes.getFloat("scaleY", 1.0f);
+	float aWidth = theAttributes.getFloat("width", 0.0f);
+	float aHeight = theAttributes.getFloat("height", 0.0f);
+	int anIndent = theAttributes.getInt("indent", 0);
+	// The sounds of the mouse coming over a row and of a click (0x496190 (feedingfrenzy2) makes their instances):
+	// not yet translated, as the sounds are not
+	std::string anOverSound = theAttributes.getString("overSound", "");
+	std::string anActiveSound = theAttributes.getString("activeSound", "");
+	std::string anAlign = theAttributes.getString("xAlign", "left");
+	if (equals(anAlign, "center"))
+		aBox->setAlignH(TEXT_ALIGN_CENTER);
+	else
+		aBox->setAlignH(equals(anAlign, "right") ? TEXT_ALIGN_RIGHT : TEXT_ALIGN_LEFT);
+	Color aBackground = readColor(theAttributes, "backgroundColor", aBox->getBackgroundColor());
+	Color aText = readColor(theAttributes, "textColor", aBox->getTextColor());
+	Color aHighlight = readColor(theAttributes, "highlightColor", aBox->getHighlightColor());
+	Color aSelection = readColor(theAttributes, "selectionColor", aBox->getSelectionColor());
+	// The selected row's line: selectionBackgroundColor where the file has it
+	aSelection = readColor(theAttributes, "selectionBackgroundColor", aSelection);
+	Color aSelectionText = readColor(theAttributes, "selectionTextColor", aText);
+	Color aSelectionHighlight = readColor(theAttributes, "selectionHighlightColor", aHighlight);
+	Font* aFont = findFont(theAttributes.getString("font", ""));
+	aBox->setPosition(x, y);
+	aBox->setScale(aScaleX, aScaleY);
+	aBox->setOpacity(anOpacity);
+	aBox->setName(aName);
+	aBox->setSize(aWidth, aHeight);
+	aBox->setFont(aFont);
+	aBox->setColors(aBackground, aText, aHighlight, aSelection, aSelectionText, aSelectionHighlight);
+	aBox->setIndent(anIndent);
+	aBox->computeBounds();
+	readCommon(theAttributes, aBox);
+	getCurrentContainer()->addChild(aBox);
+	mLayout->registerComponent(aBox, aName);
 }
 
 } // namespace engine

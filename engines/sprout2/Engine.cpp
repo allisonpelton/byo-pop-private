@@ -1,10 +1,14 @@
 #include "Engine.h"
 #include "Component.h"
+#include "DXDrawContext.h"
 #include "Font.h"
 #include "QDParser.h"
+#include "SimpleSound.h"
 #include "ResourceManager.h"
 #include "Stream.h"
 #include "Surface.h"
+
+#include <cstdio>
 
 namespace engine
 {
@@ -77,6 +81,47 @@ Reader* Engine::openDiskReader(const std::string& thePath)
 void Engine::setCheckDigests(bool theCheckDigests)
 {
 	mResourceManager->mCheckDigests = theCheckDigests;
+}
+
+void Engine::setSoundSystem(simplesound::SimpleSound* theSoundSystem)
+{
+	simplesound::setSimpleSound(theSoundSystem);
+}
+
+bool Engine::registerSound(const std::string& theName, const std::string& thePath)
+{
+	simplesound::SimpleSound* aSound = simplesound::getSimpleSound();
+	if (aSound == nullptr)
+		return false;
+	if (aSound->isRegistered(theName))
+		return true;
+	// The file passed on through a SoundInputStreamAdapter (vtable 0x560d54 (feedingfrenzy2)), the sound system's
+	// reader of an engine's stream; port: the stream itself
+	Ref<InputStream> aStream = openFile(thePath);
+	if (!aStream)
+		return false;
+	return aSound->registerSound(theName, aStream.get());
+}
+
+bool Engine::registerSoundStream(const std::string& theName, const std::string& thePath)
+{
+	simplesound::SimpleSound* aSound = simplesound::getSimpleSound();
+	if (aSound == nullptr)
+		return false;
+	if (aSound->isRegistered(theName))
+		return true;
+	Ref<InputStream> aStream = openFile(thePath);
+	if (!aStream)
+		return false;
+	return aSound->registerStream(theName, aStream.get());
+}
+
+simplesound::SoundHandle* Engine::getSoundHandle(const std::string& theName, int theSetupValue, int theCategory)
+{
+	simplesound::SimpleSound* aSound = simplesound::getSimpleSound();
+	if (aSound == nullptr)
+		return nullptr;
+	return aSound->getHandle(theName, theSetupValue, theCategory);
 }
 
 bool Engine::parseXml(const std::string& thePath, DocHandler* theHandler)
@@ -156,6 +201,18 @@ Surface* Engine::loadImage(const std::string& thePath)
 	return anImage;
 }
 
+Surface* Engine::createSurface(int theWidth, int theHeight)
+{
+	Surface* anImage = new Surface();
+	anImage->allocate(theWidth, theHeight);
+	return anImage;
+}
+
+DrawContext* Engine::createDrawContext(Surface* theTarget)
+{
+	return new DXDrawContext(theTarget);
+}
+
 Surface* Engine::loadDiskImage(const std::string& thePath)
 {
 	Surface* anImage = new Surface();
@@ -205,6 +262,58 @@ void Engine::removeNamedComponent(Component* theComponent)
 			return;
 		}
 	}
+}
+
+std::string Engine::formatMessage(const std::string& theFormat, int theInsert)
+{
+	std::string aMessage;
+	size_t i = 0;
+	while (i < theFormat.size())
+	{
+		char aChar = theFormat[i];
+		if (aChar != '%' || i + 1 >= theFormat.size())
+		{
+			aMessage += aChar;
+			i++;
+			continue;
+		}
+		char aNext = theFormat[i + 1];
+		if (aNext == '0')
+			break;
+		if (aNext == 'n')
+		{
+			aMessage += "\r\n";
+			i += 2;
+			continue;
+		}
+		if (aNext < '1' || aNext > '9')
+		{
+			// %%, and a percent sign before any other character, give the character
+			aMessage += aNext;
+			i += 2;
+			continue;
+		}
+		i++;
+		int anInsert = 0;
+		while (i < theFormat.size() && theFormat[i] >= '0' && theFormat[i] <= '9' && anInsert < 10)
+			anInsert = anInsert * 10 + (theFormat[i++] - '0');
+		std::string aType = "d";
+		if (i < theFormat.size() && theFormat[i] == '!')
+		{
+			size_t anEnd = theFormat.find('!', i + 1);
+			if (anEnd != std::string::npos)
+			{
+				aType = theFormat.substr(i + 1, anEnd - i - 1);
+				i = anEnd + 1;
+			}
+		}
+		if (anInsert != 1)
+			continue;
+		char aText[64];
+		snprintf(aText, sizeof(aText), ("%" + aType).c_str(), theInsert);
+		aMessage += aText;
+	}
+	return aMessage;
 }
 
 Component* Engine::findNamedComponent(const std::string& theName)

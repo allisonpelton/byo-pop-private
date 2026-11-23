@@ -1,0 +1,14 @@
+# A chapter load's hint changing: the one part run without the hint hold (run.sh with PILOT_HINTS=on, 2D only), so the
+# load's screen draws a new hint, one Rand(), every 50 updates as the original's does, and the port holds the load as
+# long as the original's took (-chapterloadupdates from the run). The clip covers the load from Enter! to the battle;
+# a load of 50 updates or more shows the hint change. No word is spelled, so no step depends on the board it deals.
+# Profile Tester (the pilot start state).
+at 16000
+click 230 300            # the library: Adventure
+wait 4000
+click 400 575            # Enter!
+clip load_hints 4000 100
+loaded -1690 gone        # the load under way: the steps after it count from its end (gen.py)
+wait 4500
+shot load_hints_battle
+quit

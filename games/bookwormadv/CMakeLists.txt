@@ -78,7 +78,7 @@ if(NOT MSVC)
   target_compile_options(bookwormadv PRIVATE -Wall -Wno-overloaded-virtual)
 endif()
 if(EMSCRIPTEN)
-  byopop_web_game(bookwormadv TITLE "Bookworm Adventures"
+  byopop_web_game(bookwormadv EXPORTS _byopop_livesplit_block TITLE "Bookworm Adventures"
     COPYRIGHT "Bookworm Adventures © 2006 PopCap Games, Inc. All rights reserved." LICENSES libopenmpt lua openjpeg)
 else()
   add_custom_command(TARGET bookwormadv POST_BUILD

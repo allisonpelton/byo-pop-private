@@ -1,4 +1,4 @@
-"""seedpatch.py <staged exe> [seed]: fix the original's random seeds in a staged copy (never the install).
+"""seedpatch.py <staged exe> [seed] [--holdhints]: fix the original's random seeds in a staged copy (never the install).
 
 SexyAppBase::Init (0x54bff0) seeds the app's Mersenne Twister with the tick count (mRandSeed = GetTickCount();
 SRand(mRandSeed), at 0x54c430) and then the C library's rand() with another tick count (srand(GetTickCount()), at
@@ -11,6 +11,11 @@ and WindowFromPoint, 0x548635 to 0x5486bc) and, if not, sends the widgets a mous
 cursor (GetCursorPos fails), so the original never showed a hover. The patch makes that test always answer "inside":
 origrun's mouse never leaves the window, and the cursor's own position is read only on the "outside" path. A test-harness
 change to the original, not to the port.
+The third is the trial's end of the adventure (0x451c80), which past the first book's seventh chapter ends a trial; it
+answers "not over", as the registered game's does (tools/origrun/patches/bookwormadv.txt has the same patch).
+With --holdhints, also the ChapterLoadScreen patch (0x42efa0, as in tools/origrun/patches/bookwormadv.txt): a chapter
+load's screen keeps its first hint and draws no new one, the port's -holdloadhints. Only the screens pilot asks for it
+(tools/pilot/run.sh, vis3d.sh); the logic comparisons keep the hint's draws and the original's own load lengths.
 The expected bytes are checked first; the patch is logged to stdout.
 """
 import struct
@@ -30,8 +35,9 @@ def file_offset(data, va):
 
 
 def main():
-    path = sys.argv[1]
-    seed = int(sys.argv[2]) if len(sys.argv) > 2 else 12345
+    args = [a for a in sys.argv[1:] if a != "--holdhints"]
+    path = args[0]
+    seed = int(args[1]) if len(args) > 1 else 12345
     data = bytearray(open(path, "rb").read())
     patches = [
         # mov edi, [GetTickCount]; call edi  ->  mov eax, <seed>; nop x3 (then mRandSeed = eax; SRand)
@@ -40,7 +46,15 @@ def main():
         (0x54c4bc, bytes.fromhex("ffd750"), bytes.fromhex("6a0190")),
         # mov byte [esp+0xf], 0 (the cursor is outside the window)  ->  mov byte [esp+0xf], 1
         (0x5486b7, bytes.fromhex("c644240f00"), bytes.fromhex("c644240f01")),
+        # push ebp; mov ebp, esp  ->  xor eax, eax; ret: the trial's end of the adventure (0x451c80, book 1 past
+        # chapter 7) answers "not over", as the registered game the port plays does
+        (0x451c80, bytes.fromhex("558bec"), bytes.fromhex("31c0c3")),
     ]
+    if "--holdhints" in sys.argv[1:]:
+        # jg (the timer not run out: return)  ->  nop; jmp: ChapterLoadScreen::Update (0x42ef80) always returns, so a
+        # chapter load's screen keeps its first hint and draws no Rand() while it is up, as the port's -holdloadhints
+        # (the screens pilot only: its boards then do not follow how long a load took on a busy machine)
+        patches.append((0x42efa0, bytes.fromhex("0f8f6e010000"), bytes.fromhex("90e96e010000")))
     for va, old, new in patches:
         off = file_offset(data, va)
         cur = bytes(data[off:off + len(old)])

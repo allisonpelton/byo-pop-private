@@ -1,0 +1,33 @@
+# Full screen (run.sh with PILOT_FULL=on: the registry's ScreenMode 1 on both sides): the main menu, the options, the
+# credits, and the first battle's map, intro, start and menu. Profile Tester (the pilot start state), as battle.txt.
+at 16000
+shot menu_full
+click 100 540            # the toolbox: Options
+wait 1500
+shot options_full
+wait 1000
+click 295 458            # Credits
+wait 2500
+shot credits_full
+click 400 300            # a click ends the credits
+wait 2500
+click 230 300            # the library: Adventure
+wait 4000
+shot map_full
+click 400 575            # Enter!
+loaded 2730              # the load it starts: the steps after it count from the curtain's opening (gen.py)
+wait 5500
+shot battle_intro_full
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+shot battle_start_full
+click 655 580            # Menu
+wait 1500
+shot battle_menu_full
+quit

@@ -29,4 +29,13 @@ void WaveModifier::modify(UpdateContext& theContext, Component* theComponent)
 	theComponent->setPosition(aPosition);
 }
 
+void OpacityModifier::modify(UpdateContext& theContext, Component* theComponent)
+{
+	// The x87 keeps the sum unrounded for the angle
+	double aTime = (double)theContext.mElapsed + mTime;
+	mTime = (float)aTime;
+	float aSine = sinOf((float)(aTime / mPeriod * PI * 2.0));
+	theComponent->setOpacity((float)(((double)aSine + 1.0f) * ((double)mHigh - mLow) * 0.5f + mLow));
+}
+
 } // namespace engine

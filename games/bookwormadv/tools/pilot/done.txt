@@ -1,0 +1,12 @@
+# The adventure, once beaten: Adventure on the main menu gives an OK dialog instead of the map. Start state:
+# PILOT_PROFILE=build/coverage/bookwormadv/profiles/adv/4.10.2.bwa (the bot's save after the last chapter:
+# BeatRegularGame).
+at 16000
+shot done_menu
+click 230 300            # the library: Adventure
+wait 2500
+shot adventure_done
+click 400 295            # OK
+wait 2000
+shot done_menu_after
+quit
