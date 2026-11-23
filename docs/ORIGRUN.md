@@ -122,7 +122,7 @@ without a sign: gate the first click on the game's own state (`at`, `waitfor`), 
 | `down <x> <y>`, `up <x> <y>`, `rdown`, `rup`, `keydown <vk>`, `keyup <vk>` (also `kdown`, `kup`) | One edge of a button or key: a `wait` or an update between the edges makes a held press, and a `move` between a `down` and its `up` carries the button's flag, so it is a drag. A held key changes no state the game reads with `GetKeyState` unless the run has `--keys scripted`. |
 | `dclick <x> <y>`, `rdclick <x> <y>` | A double click: down, up, `WM_LBUTTONDBLCLK`, up. |
 | `focus lose`, `focus regain` | Post the messages a window gets when it loses or regains the focus (`WM_ACTIVATEAPP`, `WM_ACTIVATE`, `WM_KILLFOCUS`/`WM_SETFOCUS`). |
-| `waitfor <expr> <op> <value> [timeout_ms]` | Hold the script until the memory expression (the `--watch` grammar) reads so; `op` is `==`, `!=`, `<`, `<=`, `>` or `>=`; 60 s by default; logged either way. The game runs free meanwhile, on the virtual clock too. For the first input after loading, where an update count is a guess (a loading thread runs on the wall clock while the updates run on the virtual one). |
+| `waitfor <expr> <op> <value> [timeout_ms]` | Hold the script until the memory expression (the `--watch` grammar) reads so; `op` is `==`, `!=`, `<`, `<=`, `>` or `>=`; 60 s by default; logged either way. The game runs free meanwhile, on the virtual clock too, and there the stand-in holds it at the first wait at which the expression reads so (the script's waitfor expressions, at most 8, reach it at launch), so the next command starts from that wait however late origrun sees it. For the first input after loading, where an update count is a guess (a loading thread runs on the wall clock while the updates run on the virtual one). |
 | `mark` | Read the update counter now; `at +<N> <command>` then counts from that value. For a counter that does not start at 0, and after a `waitfor`. |
 | `at <N> <command>` | When the update counter reaches `N`, hold the game's window thread, run the command and resume: `shot`, `burst`, `peek`, `count`, `click`, `rclick`, `dclick`, `move`, `key`, `text`, `focus`, or one edge (`down`, `up`, `rdown`, `rup`, `keydown`, `keyup`). Not `quit` (put a plain `quit` after the last `at` line) and not the `hw*` commands. A held game reads every posted message before its next update, and some games lose a down and an up in one update: `at N click x y k` posts the move and the down at `N` and the up at `N+k`, and `at N key vk k` does the same for a key. |
 | `at <N> peek <expr> [<expr>...]` | Log `peek u=<counter> <expr>=<value> ...` (signed ints; `-` where unreadable). On the virtual clock the values belong to exactly that update, so a line per update is a state log of the original. Needs no window. |
@@ -537,12 +537,16 @@ app's loaded flag, and `at 16777216`).
 
 **In step with origrun.** Through a shared block origrun holds the game's main thread at a wait: `at N` arms a
 barrier at which the thread stops as it enters its first wait once the counter has reached `N`, still answering
-sent messages. The game starts held once its window is up and stays held between script commands, so a script
-starts at the same point in every run, `wait <ms>` is game time, and the update an `at` lands on does not depend
+sent messages. The game starts held once its window is up: the stand-in holds it at its first wait with a window of its own up
+(visible, top-level and not owned, at least 64x64, the test origrun uses to find the window), and origrun turns that
+into the next wait when it sees a window first. A window that goes again before the script starts, as a splash another
+thread closes, does not count: the game runs on to a wait with a window up again. Stepping the game wait by wait instead
+cost a round trip a wait, about 100 ms with the machine busy (80 s before Bookworm Adventures Volume 2's window). The
+game stays held between script commands, so a script starts at the same point in every run, `wait <ms>` is game time, and the update an `at` lands on does not depend
 on the machine. The counter and the `--watch` values are read inside the game at each of its waits, so no update
 is missed. The stand-in's play cursor and `GetStatus` follow the virtual clock.
 
-`clickready`, `waitshot`, `record`, a `burst` timed in milliseconds, `waitfor`, `quit`, the end of the script and
+`clickready`, `waitshot`, `record`, a `burst` timed in milliseconds, `waitfor` (until it is met), `quit`, the end of the script and
 a run with no script let the game run free, which on this clock means uncapped: ten to over a hundred times real
 time. A `record` or timed `burst` then covers far more game time than its milliseconds say; for shots on exact
 updates use `at N shot` and bursts by update.
@@ -673,11 +677,15 @@ Hooking any other function needs the user's OK first.
 `logs/net.log` of the run folder holds the install line ("activation hook installed: reached ..."), the CBT line
 ("activation CBT block installed on N threads ...") and, at exit, how many calls each function answered, with the
 `SW_SHOWMAXIMIZED` passes and the CBT refusals. The hook goes in only where a copy's window could take the user's
-focus: on the user's own desktop (the interactive `Default` desktop, not under Windows Sandbox's `WDAGUtilityAccount`),
-or anywhere with `ORIGRUN_ACTIVATION=block`, which visrun sets for every run it starts and actest uses under rundesk. On
-rundesk's private desktop and in the sandbox a copy's window is activated as in a plain run, so a game that waits for
-the focus runs there as it always has (the log says "activation hook off (not the user's desktop ...)"; the first
-version, f0a447c0, had it on everywhere). `ORIGRUN_ACTIVATION=allow` turns the hook and the CBT block off everywhere
+focus: on the user's own desktop (the interactive `Default` desktop), or anywhere with `ORIGRUN_ACTIVATION=block`,
+which visrun sets for every run it starts and actest uses under rundesk. On rundesk's private desktop and in the
+sandbox a copy's window is activated as in a plain run, so a game that waits for the focus runs there as it always has
+(the log says "activation hook off (not the user's desktop ...)" or, in the sandbox, "activation hook off
+(ORIGRUN_ACTIVATION=allow)"; the first version, f0a447c0, had it on everywhere). The sandbox's desktop is `Default` too,
+and the stand-in's own test of the user name did not tell it apart (Bookworm Adventures' full-screen runs, 2026-11-22:
+the game never activated and a click on Options' Credits did not take), so origrun, which knows it is in the sandbox
+from what the machine reports, sets `ORIGRUN_ACTIVATION=allow` there itself. Nothing from the host's environment
+reaches the sandbox side, so a run cannot ask for the hook there. `ORIGRUN_ACTIVATION=allow` turns the hook and the CBT block off everywhere
 (the log says "activation hook off"), for a run that needs the real behaviour. A copy that never loads the
 stand-in is not hooked.
 
@@ -1084,6 +1092,7 @@ game's registry key and 3D-flag address to games.tsv.
 | typershark | local install | from a copy under `build/origrun/typershark/game` (`games/typershark/docs/GAME_NOTES.md`, section 8) | | its loading thread runs on the wall clock: gate the first input with `waitfor` |
 | waterbugs | local install | sandbox, a fresh profile each run; shots by `--surface-screen` with `--surface-eip`; update counter 0x460a1c | none | full-screen DirectDraw, as Cosmic Bugs; `--input-eip` and a `mouse` patch for its input |
 | wordharmony | local install | host, virtual clock, scripted cursor, short `--stage-root`; its registry key is cleared before each run | none | trial (60 min) |
+| zumasrevenge | wrapped Steam exe | not run yet: stage the copy with `--copy-only`, put the game exe (`re/zumasrevenge/bin/ZumasRevengeGame.exe`) beside the wrapper, run it with `--exe` | | it imports `steam_api.dll` |
 
 **The in-game frame reader's trials.** Bookworm Deluxe (the carved 1.03 `BookwormGame.exe`, windowed, 2D) passed
 with the reader of 6b5f6492 on 2026-11-22 (its config line: `reader_trial=passed 2026-11-22 6b5f6492`), with

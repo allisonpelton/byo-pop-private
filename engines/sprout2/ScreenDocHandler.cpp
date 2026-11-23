@@ -167,8 +167,13 @@ Color ScreenDocHandler::readColor(Params& theAttributes, const std::string& theN
 	return theDefault;
 }
 
+bool ScreenDocHandler::sHonorVisible = false;
+bool ScreenDocHandler::sScaleImages = false;
+
 void ScreenDocHandler::readCommon(Params& theAttributes, Component* theComponent)
 {
+	if (sHonorVisible && !theAttributes.getBool("visible", true))
+		theComponent->setVisible(false);
 	theComponent->setFilterMode(equals(theAttributes.getString("smoothType", ""), "smoothAll") ? 1 : 0);
 	std::string aModifierName = theAttributes.getString("modifier", "");
 	if (!aModifierName.empty())
@@ -224,11 +229,14 @@ void ScreenDocHandler::readImage(Params& theAttributes)
 	else if (equals(anAlphaType, "none"))
 		aSurface->setBlendMode(BLEND_OPAQUE, 0);
 
-	// A scaled copy in its place, the image's own scale left to flip it
-	if (fabsf(aScaleX) != 1.0f || fabsf(aScaleY) != 1.0f)
-		aSurface = aSurface->scaledCopy(aScaleX, aScaleY);
-	aScaleX = aScaleX < 0.0f ? -1.0f : 1.0f;
-	aScaleY = aScaleY < 0.0f ? -1.0f : 1.0f;
+	if (!sScaleImages)
+	{
+		// Feeding Frenzy 2's reader: a scaled copy in its place, the image's own scale left to flip it
+		if (fabsf(aScaleX) != 1.0f || fabsf(aScaleY) != 1.0f)
+			aSurface = aSurface->scaledCopy(aScaleX, aScaleY);
+		aScaleX = aScaleX < 0.0f ? -1.0f : 1.0f;
+		aScaleY = aScaleY < 0.0f ? -1.0f : 1.0f;
+	}
 
 	std::string aPivot = theAttributes.getString("pivot", "");
 	if (equals(aPivot, "center"))

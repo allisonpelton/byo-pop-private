@@ -184,6 +184,8 @@ static char   gEmptyExpr[256] = "";
 // millisecond (watch_thread), to measure how many updates something takes in the original (a loading screen, say).
 // --watch-max <n>: at most n changes logged per watch (4000 unless given), more for a whole game's RNG seed.
 static char   gWatchExpr[4][256];
+static char   gGateExpr[8][128];   // the script's waitfor expressions, in order: the stand-in's VC_HOLD_GATE list
+static int    gGateN;
 static int    gWatchN = 0;
 static int    gUpdateMs = 10;        // SexyAppBase runs 100 updates/s
 
@@ -366,6 +368,16 @@ static int vc_is_held(void)
 	int dead=0; VcShared* s=vc_cur(NULL,NULL,NULL,NULL,&dead);
 	return s && !dead && s->held && s->bar==VC_BAR_HELD;
 }
+static HWND resolve_window(DWORD pid, DWORD* outPid);
+static int read_counter(const char* expr, uint32_t* out);
+// The waitfor that a VC_HOLD_GATE barrier stands for, read from outside too (a stand-in built before the kind never holds
+// for it: origrun then turns it into the next wait once it reads the expression so itself).
+static const char* gGateChkExpr; static int gGateChkOp; static long long gGateChkWant;
+static int gate_met_outside(void)
+{
+	uint32_t v;
+	return gGateChkExpr && read_counter(gGateChkExpr,&v) && vc_gate_cmp(gGateChkOp,gGateChkWant,v);
+}
 // Arm a barrier (which lets a held game go on), and wait for the hold. 1 held (at once when a held game already meets
 // it), 0 not held (timed out and taken back, the game ended, or another clock is followed now: it runs free), -1 no
 // clock, or the game's holds are off, so that callers fall back to their wall-clock waits (Sleep, the counter poll).
@@ -379,15 +391,27 @@ static int vc_hold_until(int kind, LONG upd, LONGLONG v100, int timeout_ms)
 	if (s->held && s->bar==VC_BAR_HELD) {   // already there?
 		if (kind==VC_HOLD_UPDATE && s->heldCounter!=-1 && (LONG)(s->heldCounter-upd)>=0) return 1;
 		if (kind==VC_HOLD_TIME && s->heldV>=v100) return 1;
+		if (kind==VC_HOLD_WINDOW && resolve_window(0,NULL)) return 1;
+		if (kind==VC_HOLD_GATE && gate_met_outside()) return 1;
 	}
 	LONG seq0=s->heldSeq;
 	s->holdKind=kind; s->holdUpdate=upd; s->holdV=v100;
 	MemoryBarrier();
 	InterlockedExchange(&s->bar,VC_BAR_ARMED);
 	SetEvent(rel);
-	ULONGLONG t0=GetTickCount64();
+	ULONGLONG t0=GetTickCount64(), tLook=t0;
 	for (;;) {
 		if (s->heldSeq!=seq0 && s->held && s->bar==VC_BAR_HELD) return 1;
+		// VC_HOLD_WINDOW: a window that the stand-in's test does not count (another of our processes', or a stand-in from
+		// before the kind) is seen here, and the game then holds at its next wait
+		if (kind==VC_HOLD_WINDOW && GetTickCount64()-tLook>=250) {
+			tLook=GetTickCount64();
+			if (s->bar==VC_BAR_ARMED && s->holdKind==VC_HOLD_WINDOW && resolve_window(0,NULL)) InterlockedExchange(&s->holdKind,VC_HOLD_NEXT);
+		}
+		if (kind==VC_HOLD_GATE && GetTickCount64()-tLook>=250) {
+			tLook=GetTickCount64();
+			if (s->bar==VC_BAR_ARMED && s->holdKind==VC_HOLD_GATE && gate_met_outside()) InterlockedExchange(&s->holdKind,VC_HOLD_NEXT);
+		}
 		if (s->barrierOff) { vc_note_off(s,pid); return -1; }
 		if (gStop || GetTickCount64()-t0>=(ULONGLONG)timeout_ms) break;
 		HANDLE hs[2]={held,proc}; DWORD n=proc?2:1;
@@ -1166,11 +1190,17 @@ static void dump_desktop(void)
 static int gNoWindowSec=0;   // seconds waited in vain for the game's window (0: it appeared); the final RESULT line says so
 static DWORD find_game_pid(int timeout_ms)
 {
-	int waited=0;
-	while (waited < timeout_ms && !gStop) {
+	ULONGLONG t0=GetTickCount64();
+	while (GetTickCount64()-t0 < (ULONGLONG)timeout_ms && !gStop) {
 		DWORD pid=0;
 		if (resolve_window(0,&pid) && pid) return pid;
-		Sleep(100); waited+=100;
+		// On the virtual clock a game held at a wait with no window up cannot make one: its first window can go again
+		// (a window another of its threads closes) after the driver's start loop found it and left the game held there,
+		// and the hold then lasted until the stand-in's 60 s cap (Bookworm Adventures Volume 2, 2026-11-22: "the game's
+		// window is up", then "no window in the first 20s" and the window first seen after 71 to 89 s). Let it run to
+		// its first wait with a window up again, so the script still starts at a wait with the window up.
+		if (gClockVirtual && vc_get() && vc_is_held()) { vc_hold_until(VC_HOLD_WINDOW,0,0,timeout_ms-(int)(GetTickCount64()-t0)); continue; }
+		Sleep(100);
 	}
 	return 0;
 }
@@ -1968,6 +1998,23 @@ static int parse_vk(const char* s){ if (s[0]=='0'&&(s[1]=='x'||s[1]=='X')) retur
 
 // Load "msgbox <button> <text>" rules from the script before launch, so even a dialog that appears before
 // the script's timed commands run is answered. Other commands are ignored here.
+// The script's waitfor expressions, each once in the order they first come (at most 8): handed to the stand-in, which holds
+// the game at the first wait at which a waitfor's expression reads so (VC_HOLD_GATE).
+static void load_gates(const char* scriptPath)
+{
+	gGateN=0;
+	FILE* f=fopen(scriptPath,"r"); if(!f) return;
+	char line[1024];
+	while (gGateN<8 && fgets(line,sizeof(line),f)) {
+		char cmd[32]={0}, e[128]={0};
+		if (sscanf(line,"%31s %127s",cmd,e)!=2 || !ieq(cmd,"waitfor") || strchr(e,';')) continue;
+		int seen=0; for (int i=0;i<gGateN;i++) seen|=!strcmp(gGateExpr[i],e);
+		if (!seen) lstrcpyA(gGateExpr[gGateN++],e);
+	}
+	fclose(f);
+}
+static int gate_index(const char* e){ for (int i=0;i<gGateN;i++) if (!strcmp(gGateExpr[i],e)) return i; return -1; }
+
 static void load_msgbox_rules(const char* scriptPath)
 {
 	FILE* f=fopen(scriptPath,"r"); if(!f) return;
@@ -2065,19 +2112,35 @@ static void run_script(DWORD pid, const char* scriptPath)
 			// grammar) reads so; op is == != < <= > >=. The game runs free meanwhile, on the virtual clock too: a gate on
 			// the game's own state for the first input, where an update count is a guess (an original's loading thread
 			// runs on the wall clock while its updates run on the virtual one; Typer Shark, 2026-11-09). "mark" after it
-			// lets "at +N" count from there.
+			// lets "at +N" count from there. On the virtual clock the stand-in then holds the game at the first wait at
+			// which the expression reads so (VC_HOLD_GATE), so the next command starts there: a free run past a met
+			// waitfor until origrun saw it took Bookworm Adventures Volume 2 1600 updates past its next `at` lines.
 			char e[128]="", op[4]="", val[32]=""; int ms=60000;
 			if (sscanf(rest,"%127s %3s %31s %d",e,op,val,&ms)<3) { logline("waitfor: need 'waitfor <expr> <op> <value> [<timeout_ms>]'"); continue; }
 			long long want=strtoll(val,NULL,0);
 			int kind = !strcmp(op,"==")?0 : !strcmp(op,"!=")?1 : !strcmp(op,"<")?2 : !strcmp(op,"<=")?3 : !strcmp(op,">")?4 : !strcmp(op,">=")?5 : -1;
 			if (kind<0) { logline("waitfor: unknown operator '%s' (== != < <= > >=)", op); continue; }
+			int gi=gate_index(e);
+			if (gClockVirtual && gi>=0 && vc_get()) {
+				gGateChkExpr=e; gGateChkOp=kind; gGateChkWant=want;
+				double tg=qpc_ms();
+				int r=vc_hold_until(VC_HOLD_GATE,(LONG)(gi|(kind<<8)),want,ms);
+				gGateChkExpr=NULL;
+				if (r>=0) {
+					uint32_t v=0; int read=read_counter(e,&v);
+					VcShared* vs=vc_get();
+					if (r==1) logline("waitfor %s %s %s: met after %.0f ms (reads %d); the game is held at the first wait where it does (update %ld)", e, op, val, qpc_ms()-tg, (int)v, vs ? (long)vs->heldCounter : -1L);
+					else logline("waitfor %s %s %s: not met within %d ms (%s %d); the game runs free", e, op, val, ms, read?"last read":"never read", (int)v);
+					continue;
+				}
+				// -1: no clock, or its holds are off: the wall-clock poll below
+			}
 			vc_free();
 			double t0=qpc_ms(); uint32_t v=0; int read=0, met=0;
 			while (!gStop && qpc_ms()-t0<ms) {
 				if (read_counter(e,&v)) {
 					read=1;
-					long long have = (want>0x7fffffffLL) ? (long long)v : (long long)(int32_t)v;
-					met = kind==0?have==want : kind==1?have!=want : kind==2?have<want : kind==3?have<=want : kind==4?have>want : have>=want;
+					met = vc_gate_cmp(kind,want,v);
 					if (met) break;
 				}
 				Sleep(1);
@@ -3098,8 +3161,9 @@ static DWORD WINAPI driver_thread(LPVOID p)
 {
 	DriverArg* a=(DriverArg*)p;
 	if (!attach_desktop()) return 0;   // so the game's window handles are usable from this thread
-	// On the virtual clock the game holds at its first wait until origrun follows its clock; it is then let on wait by
-	// wait until its window is up, so the script starts at the same point of the game in every run.
+	// On the virtual clock the game holds at its first wait until origrun follows its clock; it then runs to the first
+	// wait with its window up and holds there (VC_HOLD_WINDOW), so the script starts at the same point of the game in
+	// every run.
 	if (gClockVirtual) {
 		VcShared* vs=vc_connect_wait(20000);
 		if (!vs) logline("--clock virtual: no game process had a clock within 20 s (did it load the stand-in, dsound.dll?); the script runs on the wall clock");
@@ -3112,10 +3176,11 @@ static DWORD WINAPI driver_thread(LPVOID p)
 				if (got) logline("--clock virtual: the game was held until the counter reader attached (first read %lu after %d wait%s)", (unsigned long)c, n, n==1?"":"s");
 				else logline("--clock virtual: the counter could not be read within 20 s; the game is no longer held for it");
 			}
-			while (!gStop && !resolve_window(0,NULL) && GetTickCount64()-t0<20000) { if (!vc_step(20000-(int)(GetTickCount64()-t0))) { ok=0; break; } }
-			if (resolve_window(0,NULL) && (vs=vc_get())!=NULL && !vc_is_held()) ok=vc_step(5000);
+			// up to 120 s, as find_game_pid waits below: a game pinned to one core at below-normal priority can take long
+			if (!resolve_window(0,NULL)) ok=vc_hold_until(VC_HOLD_WINDOW,0,0,120000)==1;
+			if (ok && resolve_window(0,NULL) && (vs=vc_get())!=NULL && !vc_is_held()) ok=vc_step(5000);
 			vs=vc_get();
-			if (ok && vs && vc_is_held()) logline("--clock virtual: the game's window is up; the game is held at its wait %ld (update %ld, %.1f ms of game time)", (long)vs->holds, (long)vs->heldCounter, (double)vs->heldV/VC_UNITS_PER_MS);
+			if (ok && vs && vc_is_held()) logline("--clock virtual: the game's window is up after %.1f s; the game is held at its wait %ld (update %ld, %.1f ms of game time)", (GetTickCount64()-t0)/1000.0, (long)vs->holds, (long)vs->heldCounter, (double)vs->heldV/VC_UNITS_PER_MS);
 			else logline("--clock virtual: the game was not held with its window up (it runs free); a script's first commands may land later than on another run");
 		}
 	}
@@ -4896,7 +4961,7 @@ static void msgbox_create(void)
 static void clock_env(void)
 {
 	net_baseline();   // the network block's log: where this run's lines start
-	static const char* const names[]={"ORIGRUN_CLOCK","ORIGRUN_CLOCK_ID","ORIGRUN_CLOCK_HOST","ORIGRUN_CLOCK_HOLDSTART","ORIGRUN_CLOCK_COUNTER","ORIGRUN_CLOCK_WATCH",
+	static const char* const names[]={"ORIGRUN_CLOCK","ORIGRUN_CLOCK_ID","ORIGRUN_CLOCK_HOST","ORIGRUN_CLOCK_HOLDSTART","ORIGRUN_CLOCK_COUNTER","ORIGRUN_CLOCK_WATCH","ORIGRUN_CLOCK_GATES",
 		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_KEYS","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID","ORIGRUN_LASTINPUT","ORIGRUN_REGMAP","ORIGRUN_READER_SURFACE",NULL};
 	for (int i=0;names[i];i++) SetEnvironmentVariableA(names[i],NULL);
 	// Always: the stand-in's GetLastInputInfo says the last input is now, so an original that stops drawing once the
@@ -4921,6 +4986,8 @@ static void clock_env(void)
 	SetEnvironmentVariableA("ORIGRUN_CLOCK_HOLDSTART","1");
 	if (gCounterExpr[0]) SetEnvironmentVariableA("ORIGRUN_CLOCK_COUNTER",gCounterExpr);
 	if (w[0]) SetEnvironmentVariableA("ORIGRUN_CLOCK_WATCH",w);
+	char g[8*129]=""; for (int i=0;i<gGateN;i++) { if (i) lstrcatA(g,";"); lstrcatA(g,gGateExpr[i]); }
+	if (g[0]) SetEnvironmentVariableA("ORIGRUN_CLOCK_GATES",g);
 	if (gReaderOn && !gInSandbox) SetEnvironmentVariableA("ORIGRUN_READER_SURFACE",gReaderSurface);
 	logline("--clock virtual: the game's time functions run on origrun's virtual clock (in the stand-in; its log is logs/clock.log)");
 }
@@ -4929,6 +4996,10 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 {
 	char why[300];
 	gInSandbox = detect_windows_sandbox(why,sizeof(why));
+	// The stand-in's activation hook stays off in the sandbox: its desktop is "Default" too and the game need not run with
+	// the sandbox user's name in its environment, so the stand-in's own test cannot tell (Bookworm Adventures' full-screen
+	// window never activated there, 2026-11-22). Nothing from the host's environment reaches here.
+	if (gInSandbox) SetEnvironmentVariableA("ORIGRUN_ACTIVATION","allow");
 	if (probe) {   // the values go to probe.txt either way; the display test runs only inside
 		char pp[MAX_PATH]; joinp(pp,dir,"probe.txt"); FILE* o=fopen(pp,"w");
 		if (o) {
@@ -5050,6 +5121,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 	if (gRegMap>0 && ieq(sound,"real")) { logline("regmap=popcap needs the sound stand-in, which sound=real leaves out: the registry is not mapped"); gRegMap=0; }
 	if (gMsgboxHook>0 && ieq(sound,"real")) { logline("sound=real: no stand-in, so no message-box hook: the game's boxes are shown, play their sound and are answered by the dialog watch"); gMsgboxHook=-1; }
 	if (script[0]) load_msgbox_rules(script);   // before the message-box hook's block is made, and before any dialog can appear
+	if (script[0]) load_gates(script);
 	clock_env();
 
 	import_registry(logs);   // the presets first, in the hive the game uses, so the 3D setting below wins over them
@@ -5509,6 +5581,7 @@ int main(int argc, char** argv)
 		logline("--count: the stand-in counts the cycles in the functions %s lists; the script's count lines and its quit write the snapshots to %s", gCountList, gCountOut);
 	} else { SetEnvironmentVariableA("ORIGRUN_COUNT",NULL); SetEnvironmentVariableA("ORIGRUN_COUNT_MAP",NULL); }
 	if (script) load_msgbox_rules(script);   // before the message-box hook's block is made, and before any dialog can appear
+	if (script) load_gates(script);
 	clock_env();
 
 	// The game's 3D setting and cached test results go back after every run whose key is known: on rundesk's desktop

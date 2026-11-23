@@ -481,3 +481,21 @@ void CharacterMgr::Resync()
 {
 	NOT_TRANSLATED_DRAWING("CharacterMgr::Resync");
 }
+
+// 0x439830
+void CharacterMgr::Update()
+{
+	NOT_TRANSLATED("CharacterMgr::Update");
+}
+
+// 0x439990
+void CharacterMgr::UpdatePaused()
+{
+	NOT_TRANSLATED("CharacterMgr::UpdatePaused");
+}
+
+// 0x439a60
+void CharacterMgr::UpdateSlowMo()
+{
+	NOT_TRANSLATED("CharacterMgr::UpdateSlowMo");
+}

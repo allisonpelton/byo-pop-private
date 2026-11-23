@@ -65,7 +65,18 @@ public:
 	void RemoveSlotMachineDialog();			// 0x402480
 	void SyncModeOptions();					// 0x40f980: the options the game mode gives the board (the level it plays)
 	void SyncCharacterOptions(bool theDrawAgain); // 0x40f400: false keeps the masters the rules already chose
+	void Update() override;					// 0x410e10
+	void UpdateMgrs();						// 0x402ad0: the managers' updates of one step
+	void UpdateSlowMo();					// 0x402ba0: the slow motion's counters of one step
+	bool CheckForFever(Ball* theBall);		// 0x409d50: would this ball (the last peg is near) go in the last peg's way?
+	void UpdateObjects(bool theMoreSteps);	// 0x410ae0
+	void UpdateZoom();						// 0x40ad10
+	void Reload();										// 0x4090d0: a new ball in the cannon
 	void PlayMusic();						// 0x422640
+	void KillAllBalls();							// 0x410120: every ball that is not a peg of the level goes
+	void RemoveObj(PhysObj* theObj);				// 0x40fed0
+	void BeginShot();								// 0x402760: the pointer is hidden while the ball is in play
+	void GetReplayPoint();							// 0x424be0: keeps the board's state for the instant replay (none is kept yet)
 	void AddObj(const SharedPtr<PhysObj>& theObj); // 0x422a90 (0x421070): a piece of the level joins the board's lists
 	void SetSlowMo(bool theSlowMo, int theRate); // 0x4026f0
 	void DeleteReplays(bool theKeep);		// 0x40cf70
@@ -103,7 +114,9 @@ public:
 	int mResetCount;						// +0xec: how many times Reset was called
 	int mUnknownF0;							// +0xf0
 	int mUnknownF4;							// +0xf4
-	int mUnknownF8;							// +0xf8
+	float mZoom;								// +0xf8: how far the camera has zoomed in on the ball (0 to 1)
+	float mZoomX;							// +0xfc: where the camera looks
+	float mZoomY;							// +0x100
 	int mUnknown104;						// +0x104
 	int mUnknown108;						// +0x108
 	int mUnknown10C;						// +0x10c
@@ -142,9 +155,16 @@ public:
 	int mUnknown1B0;						// +0x1b0: 650
 	int mUnknown1B4;						// +0x1b4: 560
 	int mUnknown1C0;						// +0x1c0: RemoveSlotMachineDialog sets it to 0
-	bool mUnknown1C4;						// +0x1c4
+	int mUpdateCount;						// +0x1c4: updates of the level that were not skipped by the slow motion
+	int mUnknown1D0;						// +0x1d0: updates to run on top of the next one's
+	int mUnknown1CC;						// +0x1cc: counts down
+	int mUnknown1C8;						// +0x1c8: counts down in the demo mode (the update stops while it does)
+	int mUnknown1BC;						// +0x1bc: 0 to 10, grows while mUnknown1B8 is set and falls when not
+	int mUnknown1B8;						// +0x1b8
 	std::string mLevelName;					// +0x1d4: the level's path as the file is read (with "levels/" and ".dat")
 };
+
+extern bool gSlowMoUpdate; // 0x650a56: set while the pieces are updated in the slow motion
 
 } // namespace Sexy
 
