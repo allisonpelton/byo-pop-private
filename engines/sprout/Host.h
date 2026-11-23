@@ -92,6 +92,11 @@ public:
 	virtual bool testSeed(unsigned int& theSeed) { return false; }
 	// port(mod): a fix of the fixes mod is on (Platform::FixOn)
 	virtual bool fixOn(const char* theFix) { return false; }
+	// Feeding Frenzy's pointer lock while a stage is played (0x42bb50 (feedingfrenzy): the pointer is held in the
+	// window and hidden; 0x42c060 (feedingfrenzy): let go and shown again) and the player fish's putting it back at a
+	// point of the screen after each reading (0x4108a0 (feedingfrenzy): SetCursorPos)
+	virtual void setCursorLocked(bool theLocked) {}
+	virtual void warpCursor(int theX, int theY) {}
 };
 
 void setHost(Host* theHost);

@@ -74,6 +74,10 @@ public:
 	void startEmitting();
 	// 0x4328d0 (wordharmony)
 	void stopEmitting() { mEmitting = false; }
+	// 0x44ea40 (feedingfrenzy): the particles in the air are taken off, and the pool's are hidden
+	void clear();
+	// 0x44e9f0 (feedingfrenzy): the node the stream's particles follow (null for none)
+	void setTarget(Node* theNode) { mTarget = theNode; }
 	// 0x432900 (wordharmony): not emitting or waiting to, and no particle left
 	bool isDone();
 	// 0x432e10 (wordharmony): sends a free particle off from thePosition (the stream's position on the screen)
@@ -115,6 +119,7 @@ public:
 	float mAutoStopLeft;              // +0x198
 	float mStartDelay;                // +0x19c: seconds before emitting (-1 none)
 	float mStartDelayLeft;            // +0x1a0
+	Node* mTarget;                    // +0x218 (feedingfrenzy): not counted
 };
 
 class ParticleSystem : public Container
@@ -128,6 +133,12 @@ public:
 	void warmup(float theSeconds);
 	// 0x42b6e0 (wordharmony)
 	void startEmitting();
+	// 0x441df0 (feedingfrenzy): every stream stops emitting, and the particles in the air finish their lives
+	void stopEmitting();
+	// 0x441ee0 (feedingfrenzy): every stream clears
+	void clear();
+	// 0x441ea0 (feedingfrenzy): the particles of a stream come out in the node's coordinates and follow it
+	void setStreamTarget(int theIndex, Node* theNode);
 	// 0x42b760 (wordharmony): every stream is done
 	bool isDone();
 	// 0x42b7a0 (wordharmony): reads the streams from a particle file of the archive

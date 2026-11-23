@@ -4,7 +4,9 @@
 // The signal build's root of the scene graph (Pizza Frenzy's; Iggle Pop's Mac build names the class Scene): a
 // container the game's application makes (0x15c bytes, constructor 0x471a40 (pizzafrenzy), vtable
 // 0x502428 (pizzafrenzy)) and connects to the application's signals, which then update and draw it each frame and
-// bring it the mouse. The earlier build's root is the Window (Node.h), which the application makes and drives itself.
+// bring it the mouse. The earlier build's root is the Window (Node.h), which the application makes and drives itself;
+// Feeding Frenzy's (0x4a8888 (feedingfrenzy), gEarlyBuild) is a scene that gives the mouse to the nodes' mouse slots
+// (Point arguments) as the window does, and has no refreshMouse.
 //
 // The mouse goes to the node under it that takes the mouse (the hit test with NODE_MOUSE), or only to the node that
 // has captured it; the node under it gets the enter and exit events as it changes. Each event is the scene's one
@@ -48,6 +50,8 @@ private:
 	void onAppMouseMove(Point& thePoint);   // 0x471580 (pizzafrenzy)
 	// 0x4712a0 (pizzafrenzy): the event's target for a point of the screen, the enter and exit events sent as it changes
 	Node* findTarget(const Point& thePoint);
+	// 0x44cef0 (feedingfrenzy): the early build's, whose events are the nodes' mouse slots (Node.h)
+	Node* findEarlyTarget(Point& thePoint);
 
 	Ref<Node> mHover;    // +0x138: the node under the mouse
 	Node* mCapture;      // +0x13c

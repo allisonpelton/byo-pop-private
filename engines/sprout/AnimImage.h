@@ -35,6 +35,20 @@ public:
 	void setLoop(bool theLoop) { mLoop = theLoop; }
 	// 0x178: 0x481e30 (pizzafrenzy): the whole sequence
 	void resetRange();
+	// 0x104: 0x445e10 (feedingfrenzy)
+	float getRate() const { return mRate; }
+	// 0x110: 0x445e30 (feedingfrenzy)
+	bool isPlaying() const { return mPlaying; }
+	// 0x118: 0x445e50 (feedingfrenzy)
+	bool isLooping() const { return mLoop; }
+	// 0x11c: 0x445e60 (feedingfrenzy): the picture stays where it is
+	void stop() { mPlaying = false; }
+	// 0x108: 0x445fe0 (feedingfrenzy): the picture it is on (the whole part of its place in the sequence)
+	int getFrame() const { return (int)mPosition; }
+	// 0x120: 0x4460e0 (feedingfrenzy): puts the place on a picture (the last one when there is no such picture)
+	void setFrame(unsigned int theFrame);
+	// 0x124: 0x446140 (feedingfrenzy): the first and last picture it plays, each kept inside the sequence
+	void setRange(int theFirst, int theLast);
 
 private:
 	float mRate;      // +0x13c: pictures a second (10)

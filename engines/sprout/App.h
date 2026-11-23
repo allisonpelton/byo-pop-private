@@ -88,6 +88,9 @@ public:
 	Image* createImage(const char* theName, bool theFromFile);
 	// 0x54: 0x436a70 (wordharmony)
 	Image* findImage(const char* theName);
+	// 0x58: 0x445310 (feedingfrenzy): an image added to the table under a name; false, with the table as it was,
+	// when the name has an image already
+	bool addImage(const char* theName, Image* theImage);
 	// 0x58: the log (the release build's does nothing)
 	void log(const char* theText);
 	// The signal build's slot 0x58: 0x461a50 (pizzafrenzy): false without a sound system; true when the name is loaded
@@ -159,6 +162,10 @@ public:
 	// the window procedure did (0x4bd050 (pizzafrenzy)); slot 0xc8 (pizzafrenzy) returns it
 	Point mMousePosition;
 	Point getMousePosition() const { return mMousePosition; }
+	// Feeding Frenzy's player fish puts the pointer back at a point of the screen once it has read it (0x4108a0
+	// (feedingfrenzy)), so that the next reading is how far the pointer moved: the position the game sees is that point
+	// at once, and the host moves the real pointer there
+	void warpMousePosition(int theX, int theY);
 
 protected:
 	std::map<std::string, Ref<Image>> mImages;  // +0x4c

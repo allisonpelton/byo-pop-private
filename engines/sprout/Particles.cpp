@@ -116,7 +116,7 @@ void JitterListener::update(UpdateInfo& theInfo, Node* theNode)
 }
 
 // 0x433390 (wordharmony)
-ParticleStream::ParticleStream()
+ParticleStream::ParticleStream() : mTarget(nullptr)
 {
 	mEmitRate = 0;
 	mMaxParticles = 0;
@@ -161,6 +161,22 @@ void ParticleStream::startEmitting()
 		return;
 	}
 	mEmitting = true;
+}
+
+// 0x44ea40 (feedingfrenzy)
+void ParticleStream::clear()
+{
+	std::vector<Node*>::iterator anIt = mChildren.begin();
+	if (anIt != mChildren.end())
+	{
+		do
+		{
+			(*anIt)->clearParent(this);
+			anIt = mChildren.erase(anIt);
+		} while (anIt != mChildren.end());
+	}
+	for (size_t i = 0; i < mParticles.size(); i++)
+		mParticles[i]->setVisible(false);
 }
 
 // 0x432900 (wordharmony)
@@ -371,6 +387,41 @@ void ParticleSystem::startEmitting()
 			++anIt;
 		} while (anIt != mChildren.end());
 	}
+}
+
+// 0x441df0 (feedingfrenzy)
+void ParticleSystem::stopEmitting()
+{
+	std::vector<Node*>::iterator anIt = mChildren.begin();
+	if (anIt != mChildren.end())
+	{
+		do
+		{
+			static_cast<ParticleStream*>(*anIt)->stopEmitting();
+			++anIt;
+		} while (anIt != mChildren.end());
+	}
+}
+
+// 0x441ee0 (feedingfrenzy)
+void ParticleSystem::clear()
+{
+	std::vector<Node*>::iterator anIt = mChildren.begin();
+	if (anIt != mChildren.end())
+	{
+		do
+		{
+			static_cast<ParticleStream*>(*anIt)->clear();
+			++anIt;
+		} while (anIt != mChildren.end());
+	}
+}
+
+// 0x441ea0 (feedingfrenzy)
+void ParticleSystem::setStreamTarget(int theIndex, Node* theNode)
+{
+	if (theIndex < (int)mChildren.size())
+		static_cast<ParticleStream*>(mChildren[theIndex])->setTarget(theNode);
 }
 
 // 0x42b760 (wordharmony)

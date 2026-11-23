@@ -62,6 +62,12 @@ struct Point
 			y = (float)(anInverse * y);
 		}
 	}
+	// 0x440930 (feedingfrenzy)
+	float length() const { return (float)sqrt((double)y * y + (double)x * x); }
+	// 0x440950 (feedingfrenzy)
+	float lengthSquared() const { return (float)((double)y * y + (double)x * x); }
+	// 0x440970 (feedingfrenzy): the dot product of this point with p
+	float dot(const Point& p) const { return (float)((double)p.x * x + (double)p.y * y); }
 };
 
 struct IntRect
@@ -107,6 +113,13 @@ struct Rect
 	}
 	// 0x43d2d0 (wordharmony)
 	bool contains(float x, float y) const { return left <= x && x < right && top <= y && y < bottom; }
+	// 0x440ba0 (feedingfrenzy): the two rectangles overlap; a rectangle with no width or no height overlaps nothing
+	bool intersects(const Rect& r) const
+	{
+		if (!(0.0f < r.right - r.left) || !(0.0f < r.bottom - r.top) || !(0.0f < right - left) || !(0.0f < bottom - top))
+			return false;
+		return left < r.right && top < r.bottom && r.left < right && r.top < bottom;
+	}
 	// 0x43d320 (wordharmony)
 	void offset(float dx, float dy)
 	{
