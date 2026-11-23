@@ -40,7 +40,7 @@ var ByopopSchemes = (function () {
   function chosen() {
     try { var o = JSON.parse(window.localStorage.getItem(KEY) || "{}"); return byId(o && o.scheme).id; } catch (e) { return STANDARD.id; }
   }
-  var VARS = ["--bg", "--panel", "--panel-2", "--line", "--accent", "--sk-lo", "--sk-mid", "--sk-title"];
+  var VARS = ["--bg", "--panel", "--panel-2", "--line", "--accent", "--sk-lo", "--sk-mid", "--sk-title", "--sk-title-2"];
   // the data-address pictures of web/skins.css, with the scheme's colours for the standard greys
   function uriRules(s) {
     var out = [], swap = [[/(%23|#)c0c0c0/gi, s.face], [/(%23|#)808080/gi, s.lo], [/(%23|#)dfdfdf/gi, s.mid]];
@@ -86,8 +86,10 @@ var ByopopSchemes = (function () {
     root.style.setProperty("--accent", s.sel);
     root.style.setProperty("--sk-lo", s.lo);
     root.style.setProperty("--sk-mid", s.mid);
-    // one colour, Windows 95's (a 98 look would draw linear-gradient(90deg, t[0], t[1])); the Pop band is the shadow, --sk-lo
+    // the title bar's colour, and its second, the gradient's right end, which the 98 skin and later draw (web/skin-98.css; 95
+    // draws the first alone); the Pop band is the shadow, --sk-lo
     root.style.setProperty("--sk-title", t[0]);
+    root.style.setProperty("--sk-title-2", t[1]);
     root.setAttribute("data-scheme", s.id);
     if (!st) { st = document.createElement("style"); st.id = "d95-scheme"; document.head.appendChild(st); }
     st.textContent = uriRules(s);

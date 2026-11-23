@@ -76,15 +76,34 @@ var ByopopSkin = (function () {
   function current() { return root.classList.contains("player-only") ? "plain" : "d95"; }
   // The skin, the version of Windows the desktop is drawn as (docs/SKINS.md): <html data-look="95">, beside data-skin="d95",
   // which stays the desktop's own name. 95 is the base, drawn by web/skins.css alone, and the only skin so far; each later
-  // one is drawn over it by rules of its own under :root[data-look="<id>"]. A test picks one with ?skin=<id>, as ?silent=1
+  // one is drawn over it by its own style sheet, web/skin-<id>.css, its rules under :root[data-look="<id>"], which only a page
+  // drawn in it loads (lookSheet). The player picks one with the setting "look" (Appearance's Skin list, web/settings.js), a
+  // choice that redraws the page at once and every other page of the site open in this browser. A test picks one with
+  // ?skin=<id>, as ?silent=1
   // does for sound; the address keeps it (testQuery), and the pages in the desktop's windows are opened with it (web/deskapps.js,
   // frameUrl).
-  var LOOKS = ["95"];
-  function look() { var s = Q.get("skin"); return LOOKS.indexOf(s) >= 0 ? s : "95"; }
+  var LOOKS = ["95", "98"];
+  function look() {
+    var s = Q.get("skin");
+    if (LOOKS.indexOf(s) >= 0) return s;
+    s = readItem().look;
+    return LOOKS.indexOf(s) >= 0 ? s : "95";
+  }
+  // the skin's own style sheet, once, from the page's template of them (<template id="skin-sheets">, which the build stamps as
+  // it does the page's other files), just after web/skins.css; a page without the template (a copyright page, Jungle Juice's)
+  // is drawn in 95
+  function lookSheet(id) {
+    if (id === "95" || document.querySelector('link[data-look-sheet="' + id + '"]')) return;
+    var t = document.getElementById("skin-sheets"), at = t && t.content.querySelector('link[href^="skin-' + id + '.css"]');
+    if (!at) return;
+    var el = at.cloneNode(); el.setAttribute("data-look-sheet", id);
+    var base = document.querySelector('link[href^="skins.css"]');
+    if (base && base.parentNode) base.parentNode.insertBefore(el, base.nextSibling); else document.head.appendChild(el);
+  }
   function apply() {
     var s = current();
     if (s === "plain") { root.removeAttribute("data-skin"); root.removeAttribute("data-look"); }
-    else { root.setAttribute("data-skin", s); root.setAttribute("data-look", look()); }
+    else { var l = look(); lookSheet(l); root.setAttribute("data-skin", s); root.setAttribute("data-look", l); }
     try { window.dispatchEvent(new CustomEvent("byopop-skin", { detail: { skin: s } })); } catch (e) {}
   }
   // a game page names itself (web/shell.html), after it marked the player-only page
@@ -2524,6 +2543,9 @@ var ByopopSkin = (function () {
     root.classList.toggle("d95-win95only", on);
   }
   window.addEventListener("byopop-setting", function (ev) { if (ev.detail && (ev.detail.name === "win95Only")) win95Sync(); });
+  // the skin chosen here or on another page of the site (Appearance's Skin list): this page redraws in it
+  window.addEventListener("byopop-setting", function (ev) { if (ev.detail && ev.detail.name === "look") apply(); });
+  window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) apply(); });
   window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) win95Sync(); });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", win95Sync); else win95Sync();
 

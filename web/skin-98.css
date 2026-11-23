@@ -1,0 +1,26 @@
+/* The 98 skin (docs/SKINS.md, "98"): 95's drawing (web/skins.css) with what Windows 98 drew differently, as read from real
+   shots. Only a page drawn in 98 loads this file (web/skins.js, lookSheet), and every rule here is under data-look="98".
+   Still 95's until they are checked against 98's own (docs/SKINS.md, "To check before drawing"): the caption buttons, scroll
+   bars and check marks, an inactive window's title bar, and the icons. */
+
+:root[data-look="98"] {
+  /* the active title bar's gradient, which 98 brought: from the scheme's title colour to its second (web/schemes.js), navy
+     #000080 to #1084d0 in the standard scheme, 18 pixels tall as 95's */
+  --sk-title-bg: linear-gradient(90deg, var(--sk-title), var(--sk-title-2));
+  /* the Pop menu's banner: navy at its top to royal blue at its foot, the whole name in white */
+  --sk-band: linear-gradient(#000080, #0000ff);
+  --sk-band-fg1: #ffffff; --sk-band-fg: #ffffff;
+}
+
+/* Menus and tooltips slide open (Wikipedia, "Windows 98"): the Pop menu up from the task bar, a submenu out to its side, a
+   menu from a menu bar or the pointer down, and a tooltip down. The slide's speed is ours: 98's own is to check. */
+@keyframes sk98-slide-up { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0); } }
+@keyframes sk98-slide-right { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes sk98-slide-down { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
+html.d95-desk[data-look="98"] .d95-menu:not(.d95-sub):not(.d95-ctx):not([hidden]) { animation: sk98-slide-up 0.18s ease-out; }
+html.d95-desk[data-look="98"] .d95-menu.d95-sub:not([hidden]) { animation: sk98-slide-right 0.18s ease-out; }
+html.d95-desk[data-look="98"] .d95-menu.d95-ctx:not([hidden]) { animation: sk98-slide-down 0.18s ease-out; }
+html.d95-desk[data-look="98"] .d95-tip { animation: sk98-slide-down 0.18s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  html.d95-desk[data-look="98"] :is(.d95-menu, .d95-tip) { animation: none !important; }
+}
