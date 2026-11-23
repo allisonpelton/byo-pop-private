@@ -236,8 +236,6 @@ html.d95-booting::after { content: attr(data-d95-boot); position: fixed; left: 5
 :root[data-skin="d95"] .badge:not(.has-icon):not(#\#) { width: 32px; height: 32px; margin: 20px; background: #ffffff; color: var(--accent);
   border: 1px solid #000000; box-shadow: 2px 2px 0 var(--sk-lo); font: 700 13px/1 var(--font-ui); letter-spacing: 0; box-sizing: border-box; }
 :root[data-skin="d95"] .games > li:is(.soon, .soon-local) .badge:not(.has-icon):not(#\#) { color: var(--sk-lo); border-color: var(--sk-lo); box-shadow: none; }
-:root[data-skin="d95"] .badge.has-icon:not(#\#) img { opacity: 1; z-index: auto; }
-:root[data-skin="d95"] .badge.has-icon:not(#\#) .badge-initials { display: none; }
 :root[data-skin="d95"] .tabs [role=tab][aria-selected=true] { background: var(--panel); color: var(--fg);
   box-shadow: inset 1px 1px var(--sk-hi), inset -1px 0 var(--sk-dk), inset -2px 0 var(--sk-lo); border: 0; }
 /* title bars: the panels', the chat's */
@@ -370,10 +368,8 @@ html.d95-desk .d95-win[style*="height"]:not(.stage-wrap) { min-height: 0; }
    tall. I can barely see it all in 4k"); never taller than the room above the task bar (web/skins.js, place) */
 html.d95-desk .d95-win[data-d95-id="tab-music"] { height: 420px; }
 /* "Windows 95 games only" (web/skins.js, win95Sync): the games whose original did not run on Windows 95, or of which nothing is
-   known, leave All games and the favourites' icons; the count of them says so */
-html.d95-win95only .games > li[data-win95]:not([data-win95="yes"]), html.d95-win95only .d95-fav[data-win95]:not([data-win95="yes"]) { display: none; }
-.win95-count { margin: 0; font-size: 12px; color: var(--muted, #444); flex-basis: 100%; }
-.win95-count[hidden] { display: none; }
+   known, leave the favourites' icons (and the Library, web/library.js, whose status bar says how many it hides) */
+html.d95-win95only .d95-fav[data-win95]:not([data-win95="yes"]) { display: none; }
 /* the music player in 1995's manner: a black display with green figures in a sunken edge (the spectrum's peaks yellow, the tracker's
    row in the selection's navy), raised square buttons whose toggles stay pressed in, and the playlist a white list box */
 :root[data-skin="d95"] .mu-lcd { background: #000; color: #00ff00; border: 0; border-radius: 0; padding: 5px 7px 6px; box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
@@ -465,17 +461,10 @@ html.d95-desk .panel.d95-win:not(#\#) > header > [data-close]::before, html.d95-
 html.d95-desk .panel.d95-win:not(#\#) > header > [data-close]::after { transform: rotate(-45deg); }
 html.d95-desk .panel.d95-win:not(#\#) > header > [data-close]:active::before, html.d95-desk .panel.d95-win:not(#\#) > header > [data-close]:active::after { top: 6px; left: 4px; right: 3px; }
 html.d95-desk .panel.d95-win > .body { min-height: 0; }
-/* the listing: the games in one window and the page's notes in another, the logo on the desktop clear of the icons */
+/* the listing: the games in the Library (web/library.js) and the page's notes in a window of their own, the logo on the desktop
+   clear of the icons; the games' cards, which the Library reads, are the page without its scripts and not shown on the desktop */
 html.d95-desk .site-header { margin-left: max(100px, calc((100% - 960px) / 2)); }
-html.d95-desk main.d95-win { width: min(960px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); margin: 0; }
-html.d95-desk main.d95-win .d95-body { padding: 10px 13px 16px; }
-/* only the tiles scroll (the user, 2026-11-09: "The sort options in the all games window should always be visible. Only the tiles
-   should scroll"): the toolbar, the panels it opens and the Jungle Juice link stay put, and the list scrolls in their midst with
-   its own drawn scroll bar (web/index.html, scroll: ".games"), as Music's playlist does */
-html.d95-desk main.d95-win .d95-body.d95-body { display: flex; flex-direction: column; overflow: clip; padding-bottom: 8px; }
-html.d95-desk main.d95-win .d95-body.d95-body + .d95-vbar { display: none; }
-html.d95-desk main.d95-win .d95-body > :not(.d95-client) { flex: none; }
-html.d95-desk main.d95-win .d95-body > .d95-client { flex: 1 1 auto; min-height: 80px; margin-bottom: 8px; }
+html.d95-desk main.listing { display: none; }
 html.d95-desk body > footer.d95-win { width: min(640px, calc(calc(100vw / var(--d95-z, 1)) - 140px)); color: var(--fg); }
 html.d95-desk body > footer.d95-win .d95-body { padding: 4px 9px 6px; }
 /* System Information (web/sysinfo.js, in the listing page's footer): Windows 95's System Properties, a property sheet of three
@@ -686,15 +675,6 @@ html.d95-desk .d95-icon-game > i::after { background: #000000; }
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk); }
 :root[data-skin="d95"] .progress > div { background: repeating-linear-gradient(90deg, var(--accent) 0 9px, transparent 9px 11px); }
 
-/* ======================= the cap board: the listing's caps ======================= */
-/* A game whose files are here keeps its cap and initials, its own icon (read from the player's exe at the import, web/exeicon.js:
-   never shipped or redrawn) faint under them */
-:root[data-skin] .badge.has-icon { position: relative; isolation: isolate;
-  background: radial-gradient(circle closest-side, transparent 0 68%, rgba(0,0,0,.2) 69% 73%, transparent 74% 84%, rgba(0,0,0,.16) 85%), var(--tile);
-  -webkit-mask: url(cap.svg) center / contain no-repeat; mask: url(cap.svg) center / contain no-repeat; }
-:root[data-skin] .badge.has-icon img { position: absolute; inset: 0; margin: auto; width: 32px; height: 32px; opacity: .6; z-index: -1; }
-:root[data-skin] .badge.has-icon .badge-initials { display: inline; text-shadow: 0 1px 2px rgba(0,0,0,.55); }
-
 /* the performance panel (web/perf.js) as a window, its heading the title bar */
 html.d95-desk .perf-panel.d95-win { border: 0; border-radius: 0; }
 html.d95-desk .perf-panel.d95-win > h2 { background: var(--sk-title); color: var(--sk-title-fg); border: 0; padding: 2px 6px; font-size: 13px; }
@@ -878,6 +858,9 @@ html.d95-desk .d95-menubar-item:not(#\#):focus-visible { outline: 1px dotted #00
 /* the information sign, for a message that tells rather than warns (web/deskapps.js, tell): a white balloon with a blue "i" */
 .d95-msgbox-info .d95-msgbox-icon::before { inset: 0; clip-path: none; background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M18 4C9 4 4 8.5 4 14c0 4 2.5 7 6.5 8.8L8 30l8-6c.7.1 1.3 0 2 0 9 0 14-4.5 14-10S27 4 18 4z' fill='%23808080'/><path d='M16 2C7 2 2 6.5 2 12c0 4 2.5 7 6.5 8.8L6 28l8-6c.7.1 1.3 0 2 0 9 0 14-4.5 14-10S25 2 16 2z' fill='%23ffffff' stroke='%23000000'/><rect x='14' y='5' width='4' height='3' fill='%230000ff'/><path d='M12 10h6v8h2v2h-8v-2h2v-6h-2z' fill='%230000ff'/></svg>") no-repeat; }
 .d95-msgbox-info .d95-msgbox-icon::after { content: none; }
+/* a question (Uninstall, web/skins.js): the same balloon with a blue question mark */
+.d95-msgbox-question .d95-msgbox-icon::before { inset: 0; clip-path: none; background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32' shape-rendering='crispEdges'><path d='M18 4C9 4 4 8.5 4 14c0 4 2.5 7 6.5 8.8L8 30l8-6c.7.1 1.3 0 2 0 9 0 14-4.5 14-10S27 4 18 4z' fill='%23808080' shape-rendering='auto'/><path d='M16 2C7 2 2 6.5 2 12c0 4 2.5 7 6.5 8.8L6 28l8-6c.7.1 1.3 0 2 0 9 0 14-4.5 14-10S25 2 16 2z' fill='%23ffffff' stroke='%23000000' shape-rendering='auto'/><g fill='%230000ff'><rect x='12' y='4' width='8' height='2'/><rect x='10' y='6' width='4' height='3'/><rect x='18' y='6' width='4' height='5'/><rect x='15' y='11' width='5' height='2'/><rect x='14' y='13' width='4' height='2'/><rect x='14' y='16' width='4' height='3'/></g></svg>") no-repeat; }
+.d95-msgbox-question .d95-msgbox-icon::after { content: none; }
 /* a longer message, in paragraphs and a list: its sign beside the first line */
 .d95-msgbox-long .d95-msgbox-body { align-items: flex-start; }
 .d95-msgbox-text p, .d95-msgbox-text ul { margin: 0 0 8px; }
@@ -1048,10 +1031,16 @@ html.d95-desk .su-nav .su-cancel { margin-left: 8px; }
    title bar. It exists only on the listing's desktop. */
 #library { display: none; }
 html.d95-desk #library.lib-win:not(.d95-closed):not(.d95-min) { display: flex; }
+/* Its small text (11 pixels, 8.3 points) stands at 4.5:1 at least against what is behind it (Lighthouse's report, the coordinator's
+   list of 2026-11-22), each colour moved the least that reaches it, by mixing it with white (a text) or black (the selection,
+   under white text): the dim text on the window's olive (the Filter's label, the status bar) from #a0a890 to #c5cabc, the dim
+   text on the grid's darker olive (a game coming soon or no longer sold) from #a0a890 to #acb39d, and the selection from #958831
+   to #82772b, its white text kept. --lib-dim stays for what may be fainter: a greyed button, an inactive title bar. */
 html.d95-desk .lib-win {
-  --lib-bg: #4c5844; --lib-panel: #3e4637; --lib-fg: #d8ded3; --lib-dim: #a0a890; --lib-hi: #8c9a7e; --lib-lo: #1f251b;
-  --lib-sel: #958831; --lib-sel-fg: #ffffff; --lib-head: #5a6a50; --lib-title: #6a7a52;
-  flex-direction: column; width: 640px; height: 430px; min-width: 300px; overflow: hidden;
+  --lib-bg: #4c5844; --lib-panel: #3e4637; --lib-fg: #d8ded3; --lib-dim: #a0a890; --lib-dim-bg: #c5cabc; --lib-dim-panel: #acb39d;
+  --lib-hi: #8c9a7e; --lib-lo: #1f251b;
+  --lib-sel: #82772b; --lib-mark: #958831; --lib-sel-fg: #ffffff; --lib-head: #5a6a50; --lib-title: #6a7a52;
+  flex-direction: column; width: 720px; height: 460px; min-width: 300px; overflow: hidden;
   color: var(--lib-fg); font: 11px/1.35 Tahoma, Verdana, "Segoe UI", sans-serif; }
 html.d95-desk .lib-win.d95-win:not(#\#) { background: var(--lib-bg); padding: 2px; border: 1px solid; border-image: none;
   border-color: var(--lib-hi) var(--lib-lo) var(--lib-lo) var(--lib-hi); box-shadow: none; }
@@ -1071,9 +1060,17 @@ html.d95-desk .lib-win .d95-tb .d95-mn:not(#\#)::after { background: var(--lib-f
 html.d95-desk .lib-win .lib-btn:not(#\#):active:not(:disabled), html.d95-desk .lib-win .lib-hb:not(#\#):active { border-color: var(--lib-lo) var(--lib-hi) var(--lib-hi) var(--lib-lo); }
 html.d95-desk .lib-win .lib-btn:disabled { color: var(--lib-dim); }
 html.d95-desk .lib-win button:focus-visible, html.d95-desk .lib-win input:focus-visible, html.d95-desk .lib-win td:focus-visible { outline: 1px dotted var(--lib-fg); outline-offset: -2px; }
-.lib-bar { display: flex; align-items: center; gap: 6px; padding: 2px 4px 6px; flex: none; }
+.lib-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 2px 4px 6px; flex: none; }
 .lib-btn { min-width: 64px; height: 21px; padding: 0 10px; font-weight: bold; }
-.lib-flabel { margin-left: auto; color: var(--lib-dim); }
+/* Show games no longer sold: a square box of the window's own, ticked in its text colour */
+.lib-unsold { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; color: var(--lib-fg); cursor: default; }
+.lib-unsold[hidden] { display: none; }
+html.d95-desk .lib-win .lib-unsold input:not(#\#) { appearance: none; width: 13px; height: 13px; margin: 0; background: var(--lib-panel);
+  border: 1px solid; border-color: var(--lib-lo) var(--lib-hi) var(--lib-hi) var(--lib-lo); border-radius: 0; box-shadow: none; display: grid; place-items: center; }
+html.d95-desk .lib-win .lib-unsold input:not(#\#):checked::after { content: ""; width: 7px; height: 4px; margin-top: -2px;
+  border: solid var(--lib-fg); border-width: 0 0 2px 2px; transform: rotate(-45deg); }
+.lib-find { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+.lib-flabel { color: var(--lib-dim-bg); }
 .lib-filter { width: 160px; height: 19px; box-sizing: border-box; padding: 1px 4px; font: inherit; color: var(--lib-fg); background: var(--lib-panel);
   border: 1px solid; border-color: var(--lib-lo) var(--lib-hi) var(--lib-hi) var(--lib-lo); border-radius: 0; }
 .lib-area { flex: 1 1 auto; min-height: 0; overflow: auto; background: var(--lib-panel); margin: 0 4px;
@@ -1081,22 +1078,51 @@ html.d95-desk .lib-win button:focus-visible, html.d95-desk .lib-win input:focus-
 .lib-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .lib-grid th { position: sticky; top: 0; z-index: 1; padding: 0; text-align: left; font-weight: normal; background: var(--lib-bg); }
 .lib-hb { display: block; width: 100%; height: 18px; padding: 0 6px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
-.lib-h[aria-sort=ascending] .lib-hb::after { content: " \25B4"; color: var(--lib-sel); }
-.lib-h[aria-sort=descending] .lib-hb::after { content: " \25BE"; color: var(--lib-sel); }
+.lib-h[aria-sort=ascending] .lib-hb::after { content: " \25B4"; color: var(--lib-mark); }
+.lib-h[aria-sort=descending] .lib-hb::after { content: " \25BE"; color: var(--lib-mark); }
 .lib-c-name { width: auto; }
 .lib-c-status { width: 120px; }
 .lib-c-time, .lib-c-last { width: 84px; }
+.lib-c-plays { width: 48px; }
+.lib-c-popular { width: 64px; }
 .lib-c-year { width: 46px; }
+.lib-grid td.lib-c-plays, .lib-grid td.lib-c-popular { text-align: right; }
 .lib-grid td { padding: 1px 6px; height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
 .lib-name { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .lib-name > span { overflow: hidden; text-overflow: ellipsis; }
 .lib-row[aria-selected=true] > td { background: var(--lib-sel); color: var(--lib-sel-fg); }
-.lib-row.lib-s-soon > td:not(:first-child), .lib-row.lib-s-unsold > td:not(:first-child) { color: var(--lib-dim); }
+.lib-row.lib-s-soon > td:not(:first-child), .lib-row.lib-s-unsold > td:not(:first-child) { color: var(--lib-dim-panel); }
+/* a game's folder dragged over its row (web/library.js): the row outlined, where the drop adds it */
+.lib-row.lib-drop > td { box-shadow: inset 0 1px var(--lib-fg), inset 0 -1px var(--lib-fg); }
+.lib-row.lib-drop > td:first-child { box-shadow: inset 0 1px var(--lib-fg), inset 0 -1px var(--lib-fg), inset 1px 0 var(--lib-fg); }
+.lib-row.lib-drop > td:last-child { box-shadow: inset 0 1px var(--lib-fg), inset 0 -1px var(--lib-fg), inset -1px 0 var(--lib-fg); }
+.lib-row[draggable=true] { cursor: default; }
 .lib-row[aria-selected=true].lib-s-soon > td, .lib-row[aria-selected=true].lib-s-unsold > td { color: var(--lib-sel-fg); }
 .lib-icon { flex: none; width: 16px; height: 16px; display: grid; place-items: center; overflow: hidden; }
 .lib-icon img { width: 16px; height: 16px; image-rendering: pixelated; }
 .lib-icon-cap { background: var(--tile, #808080); color: #ffffff; font: bold 7px/1 Verdana, sans-serif; letter-spacing: -0.5px; }
-.lib-status { flex: none; display: flex; padding: 3px 6px 1px; color: var(--lib-dim); }
+.lib-status { flex: none; display: flex; flex-wrap: wrap; gap: 0 12px; padding: 3px 6px 1px; color: var(--lib-dim-bg); }
+.lib-hidden[hidden] { display: none; }
+/* Jungle Juice, at the status bar's right end: its name a link, then what it is */
+.lib-jungle { margin-left: auto; }
+html.d95-desk .lib-win .lib-jungle a:not(#\#) { color: var(--lib-fg); text-decoration: underline; margin-right: 6px; }
+html.d95-desk .lib-win .lib-jungle a:focus-visible { outline: 1px dotted var(--lib-fg); outline-offset: 1px; }
+/* What became of the folders added and the recycle bin's panel (web/addgames.js), under the bar while they are open: panels
+   of the window's own, its text and buttons */
+html.d95-desk .lib-win .adding:not(#\#) { flex: none; margin: 0 4px 6px; padding: 4px 6px 6px; max-height: 40%; overflow: auto; color: var(--lib-fg);
+  background: var(--lib-panel); border: 1px solid; border-color: var(--lib-lo) var(--lib-hi) var(--lib-hi) var(--lib-lo); border-radius: 0; box-shadow: none; }
+html.d95-desk .lib-win .adding[hidden] { display: none; }
+html.d95-desk .lib-win .adding-head h2:not(#\#) { font: bold 11px/16px Tahoma, Verdana, "Segoe UI", sans-serif; color: var(--lib-fg); }
+html.d95-desk .lib-win .adding button:not(#\#), html.d95-desk .lib-win .adding select:not(#\#) { height: 21px; padding: 0 8px; font: inherit; color: var(--lib-fg);
+  background: var(--lib-bg); border: 1px solid; border-color: var(--lib-hi) var(--lib-lo) var(--lib-lo) var(--lib-hi); border-radius: 0; box-shadow: none; }
+html.d95-desk .lib-win .adding select:not(#\#) { background: var(--lib-panel); border-color: var(--lib-lo) var(--lib-hi) var(--lib-hi) var(--lib-lo); }
+html.d95-desk .lib-win .adding button:not(#\#):active:not(:disabled) { border-color: var(--lib-lo) var(--lib-hi) var(--lib-hi) var(--lib-lo); }
+html.d95-desk .lib-win .adding button:disabled { color: var(--lib-dim); }
+html.d95-desk .lib-win .adding-head button:not(#\#) { min-width: 21px; padding: 0; font-size: 13px; line-height: 19px; }
+html.d95-desk .lib-win .adding .ag-state:not(#\#), html.d95-desk .lib-win .adding .bin-pick label:not(#\#) { color: var(--lib-dim-panel); }
+html.d95-desk .lib-win .adding .ag-ok:not(#\#) { color: var(--lib-fg); }
+html.d95-desk .lib-win .adding .ag-error:not(#\#), html.d95-desk .lib-win .adding .adding-rejected:not(#\#) { color: #ffb4a8; }
+html.d95-desk .lib-win .bin-pick, html.d95-desk .lib-win .bin-confirm { margin-top: 4px; gap: 6px; }
 /* Properties: a property sheet of values */
 .lib-props-list { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 10px 14px; }
 .lib-props-list dt { color: #404040; }
@@ -1182,8 +1208,10 @@ html.d95-desk .gd-status > span:first-child { flex: 1 1 auto; }
 .lib-props-time tr:first-child th { background: var(--panel); border: 1px solid; border-color: #ffffff #808080 #808080 #ffffff; }
 .lib-props-row { display: flex; justify-content: flex-end; padding: 0 12px 10px; }
 .lib-props-row button { min-width: 72px; }
-/* narrow: the window maximized, as every window there; Last played and Year give way */
-html.d95-narrow .lib-c-last, html.d95-narrow .lib-c-year { display: none; }
+/* narrow: the window maximized, as every window there; the plays, Last played, Year, Popular and what Jungle Juice is give way */
+html.d95-narrow .lib-c-plays, html.d95-narrow .lib-c-last, html.d95-narrow .lib-c-year, html.d95-narrow .lib-c-popular,
+html.d95-narrow .lib-jungle-about { display: none; }
+html.d95-narrow .lib-filter { width: 120px; }
 /* a link to one of our pages opens a window on Desktop 95's one page, not a tab (web/deskapps.js): its "opens in a new tab" goes */
 html.d95-desk .newtab { display: none; }
 /* Alt+` (web/skins.js): the window switcher, as Windows 95's Alt+Tab box: the open windows' icons in a row, the chosen one

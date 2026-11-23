@@ -4,7 +4,7 @@
 // check keys, not the localisation).
 //   "time.under_minute"                       -> "time.under_minute"
 //   "mods.remove_failed" ({name}, {error})    -> "mods.remove_failed {name} {error}"
-//   a count string ("{n} play | {n} plays")   -> "index.played:one {n} | index.played:other {n}" (its own forms)
+//   a count string ("{n} game | {n} games")   -> "library.count:one {n} | library.count:other {n}" (its own forms)
 // A test that wants what a script shows writes it the same way, with keyText(key, vars) below.
 //   require("./stringsload").intoGlobal()   for a script that a test require()s
 //   require("./stringsload").into(ctx)      for a vm context a test runs scripts in (ctx must be vm.createContext'ed)

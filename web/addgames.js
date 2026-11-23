@@ -363,9 +363,8 @@ var ByopopAddGames = (function () {
     live.setAttribute("role", "status");
     panel.appendChild(live);
     closeBtn = $("adding-close");
-    closeBtn.addEventListener("click", function () { panel.hidden = true; if (!running) clearPanel(); $("add-games").focus(); });
-    $("add-games").hidden = false;
-    $("add-games").addEventListener("click", function () { var s = setup(); if (s) s.open(); else $("add-games-pick").click(); });
+    // (the Library's Add games button, web/library.js, has the id add-games)
+    closeBtn.addEventListener("click", function () { panel.hidden = true; if (!running) clearPanel(); var b = $("add-games"); if (b) b.focus(); });
     // Where a folder cannot be picked (phones: a touch screen and no mouse), "Add games" picks files, .zip files of game folders
     var pick = $("add-games-pick");
     try { if (window.matchMedia("(pointer: coarse) and (not (any-pointer: fine))").matches) { pick.removeAttribute("webkitdirectory"); pick.accept = ".zip,application/zip"; } }
@@ -431,18 +430,42 @@ var ByopopAddGames = (function () {
     initBin();
   }
 
-  // ---------- the recycle bin ----------
-  // A game's cap (its badge, draggable while its files are here) dragged into the bin forgets the game's files, as "Forget game
-  // files" on its page does: saves and mods stay. It deletes what the player loaded, so nothing goes without a yes in the bin's own
-  // panel (a confirm() dialog is not shown in some places the site runs). The bin's button opens the same panel with a list of the
-  // games whose files are here, for the keyboard and for browsers without drag and drop.
+  // ---------- the recycle bin and Uninstall ----------
+  // A game dragged into the bin (a Library row of a game whose files are here, onto the desktop's Recycle Bin icon, web/skins.js)
+  // forgets the game's files, as "Forget game files" on its page does: saves and mods stay. It deletes what the player loaded, so
+  // nothing goes without a yes in the bin's own panel, in the Library (a confirm() dialog is not shown in some places the site
+  // runs). The bin's icon opens the same panel with a list of the games whose files are here, for the keyboard and for browsers
+  // without drag and drop. Uninstall, in the Library's and the shortcuts' menus (web/skins.js, uninstall), asks its own question
+  // and then does the same as the bin's Yes, through uninstall below.
   var CAP_TYPE = "application/x-byopop-game";
   var asking = null;  // the game whose files the panel asks about
   var binOpen = null;
+  // The game's files forgotten (ByopopImport.forgetGame: the game folder's records go, its saves, mods and replays stay, the
+  // record of its files says when), its name put in the bin (byopop-bin, which fills the desktop's Recycle Bin icon until it is
+  // emptied, web/skins.js), and the cards checked again (their data-files, which the Library and the shortcuts read). Resolves
+  // once the cards are checked; rejects with the reason the files could not be forgotten (the game open somewhere, say).
+  function uninstall(id) {
+    var g = byId[id];
+    function checked() {
+      var c;
+      try { c = window.ByopopTiles ? ByopopTiles.check() : null; } catch (x) { c = null; }
+      return Promise.resolve(c).catch(function () {});
+    }
+    if (!g) return Promise.reject(new Error(ByopopStrings.t("add.bin.failed")));
+    return ByopopImport.forgetGame(g).then(function () {
+      try {
+        var held = JSON.parse(localStorage.getItem("byopop-bin") || "[]");
+        if (!Array.isArray(held)) held = [];
+        held.push({ id: g.spec.id, title: g.title, at: Date.now() });
+        localStorage.setItem("byopop-bin", JSON.stringify(held.slice(-50)));
+      } catch (x) {}
+      try { window.dispatchEvent(new CustomEvent("byopop-bin")); } catch (x) {}
+      return checked();
+    }, function (e) { return checked().then(function () { throw e; }); });
+  }
   function initBin() {
-    var bin = $("bin"), binPanel = $("bin-panel");
-    if (!bin || !binPanel) return;
-    bin.hidden = false;
+    var binPanel = $("bin-panel"), opener = null;
+    if (!binPanel) return;
     function gamesWithFiles() {
       return Array.prototype.filter.call(document.querySelectorAll("a.tile[data-game]"), function (a) {
         return a.parentNode.getAttribute("data-files") === "yes" && byId[a.getAttribute("data-game")];
@@ -458,7 +481,6 @@ var ByopopAddGames = (function () {
     }
     function show(game) {
       binPanel.hidden = false;
-      bin.setAttribute("aria-expanded", "true");
       status("");
       var select = $("bin-game"), list = gamesWithFiles();
       select.textContent = "";
@@ -468,17 +490,21 @@ var ByopopAddGames = (function () {
       if (game) ask(game);
       else { $("bin-confirm").hidden = true; $("bin-pick").hidden = false; asking = null; (list.length ? select : $("bin-close")).focus(); }
     }
+    // the focus goes back where the panel was opened from (the desktop's icon, a Library row), when it is still there
     function hide() {
       binPanel.hidden = true;
-      bin.setAttribute("aria-expanded", "false");
       asking = null;
-      bin.focus();
+      var to = opener;
+      opener = null;
+      if (to && document.body.contains(to)) { try { to.focus(); } catch (e) {} }
     }
-    bin.addEventListener("click", function () { if (binPanel.hidden) show(null); else hide(); });
     // the desktop's Recycle Bin icon (web/skins.js): the panel, asking about a game dropped on it
-    binOpen = function (id) { show(id && byId[id] ? byId[id] : null); };
+    binOpen = function (id) {
+      if (binPanel.hidden) opener = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
+      show(id && byId[id] ? byId[id] : null);
+    };
     $("bin-close").addEventListener("click", hide);
-    binPanel.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && !$("bin-yes").disabled) { ev.preventDefault(); hide(); } });
+    binPanel.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && !$("bin-yes").disabled) { ev.preventDefault(); ev.stopPropagation(); hide(); } });
     $("bin-forget").addEventListener("click", function () { var g = byId[$("bin-game").value]; if (g) ask(g); });
     $("bin-no").addEventListener("click", function () { show(null); });
     $("bin-yes").addEventListener("click", function () {
@@ -486,50 +512,28 @@ var ByopopAddGames = (function () {
       if (!g) return;
       $("bin-yes").disabled = $("bin-no").disabled = true;
       status(ByopopStrings.t("add.bin.forgetting"));
-      ByopopImport.forgetGame(g).then(function () {
-        // the game's name in the bin (byopop-bin), which fills the desktop's Recycle Bin icon until it is emptied (web/skins.js)
-        try {
-          var held = JSON.parse(localStorage.getItem("byopop-bin") || "[]");
-          if (!Array.isArray(held)) held = [];
-          held.push({ id: g.spec.id, title: g.title, at: Date.now() });
-          localStorage.setItem("byopop-bin", JSON.stringify(held.slice(-50)));
-          window.dispatchEvent(new CustomEvent("byopop-bin"));
-        } catch (x) {}
-        return ByopopStrings.t("add.bin.forgotten", {title: g.title});
-      }, function (e) { return (e && e.message) || ByopopStrings.t("add.bin.failed"); }).then(function (text) {
-        // the list again, once the cards have been checked (their data-files)
-        var checked;
-        try { checked = window.ByopopTiles ? ByopopTiles.check() : null; } catch (x) { checked = null; }
-        return Promise.resolve(checked).catch(function () {}).then(function () {
-          $("bin-yes").disabled = $("bin-no").disabled = false;
-          $("bin-confirm").hidden = true;
-          asking = null;
-          show(null);
-          status(text);
-        });
+      uninstall(g.spec.id).then(function () { return ByopopStrings.t("add.bin.forgotten", {title: g.title}); },
+        function (e) { return (e && e.message) || ByopopStrings.t("add.bin.failed"); }).then(function (text) {
+        // the list again, the cards checked (their data-files)
+        $("bin-yes").disabled = $("bin-no").disabled = false;
+        $("bin-confirm").hidden = true;
+        asking = null;
+        show(null);
+        status(text);
       });
     });
-    // the caps: a drag carries the game's id
-    document.addEventListener("dragstart", function (ev) {
-      var badge = ev.target && ev.target.closest ? ev.target.closest(".badge[draggable=true]") : null;
-      var a = badge && badge.closest("a.tile[data-game]");
-      if (!a) return;
-      ev.stopPropagation();
-      ev.dataTransfer.setData(CAP_TYPE, a.getAttribute("data-game"));
-      ev.dataTransfer.effectAllowed = "move";
-    }, true);
-    function isCap(ev) { return !!ev.dataTransfer && Array.prototype.indexOf.call(ev.dataTransfer.types || [], CAP_TYPE) >= 0; }
-    bin.addEventListener("dragenter", function (ev) { if (isCap(ev)) { ev.preventDefault(); bin.classList.add("drop-on"); } });
-    bin.addEventListener("dragover", function (ev) { if (isCap(ev)) { ev.preventDefault(); ev.dataTransfer.dropEffect = "move"; } });
-    bin.addEventListener("dragleave", function () { bin.classList.remove("drop-on"); });
-    bin.addEventListener("drop", function (ev) {
-      bin.classList.remove("drop-on");
-      if (!isCap(ev)) return;
-      ev.preventDefault();
-      var g = byId[ev.dataTransfer.getData(CAP_TYPE)];
-      if (g) show(g);
-    });
   }
+  // A folder dropped on a game's row in the Library (web/library.js) is that game's, as on its card (onCardDrop): false for a
+  // game the listing does not add
+  function dropOn(id, dataTransfer) {
+    var g = byId[id];
+    if (!g || !W()) return false;
+    var watch = ByopopImport.watch();
+    onCardDrop(g, ByopopImport.fromDrop(dataTransfer, W().zip, watch), watch);
+    return true;
+  }
+  // Add games (the Library's button): the Setup window, or where there is none, the folder picker
+  function addGames() { var s = setup(); if (s) s.open(); else { var pick = $("add-games-pick"); if (pick) pick.click(); } }
   // for the Setup window (web/setup.js): the same queue (each game's terms, then its files, one game at a time), the same reading
   // of a file input's choice, and the cancelling of its jobs not yet begun
   function cancel(pred) {
@@ -538,6 +542,7 @@ var ByopopAddGames = (function () {
     queue = kept;
   }
   return { init: init, fromFiles: fromFiles, onCardDrop: onCardDrop, enqueue: enqueue, fromInput: fromInput, cancel: cancel,
-    bin: function (id) { if (binOpen) binOpen(id); },
+    bin: function (id) { if (binOpen) binOpen(id); }, uninstall: uninstall, dropOn: dropOn, add: addGames, CAP_TYPE: CAP_TYPE,
+    has: function (id) { return !!byId[id]; },
     W: W, byTarget: function (t) { return byTarget[t] || null; } };
 })();

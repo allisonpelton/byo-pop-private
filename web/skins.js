@@ -185,8 +185,19 @@ var ByopopSkin = (function () {
     var wins = [], top = 20, on = false, icons = null, taskbar = null;
     // A window whose id changed comes back where it was, open or closed, its icon where it was placed: { old id: new id }
     // (the user, 2026-11-22: Venice Buildings became the Gallery). Read with the old id moved to the new, the next save
-    // writes only the new.
-    var RENAMED = { venicebuildings: "gallery" };
+    // writes only the new. A window that went into another one that was already there (All games into the Library, the
+    // coordinator's list of 2026-11-22: "Add all the features from All games to Library and then get rid of the all games
+    // window") is merged into it: open if either was (minimized as the old one was), at its own place and size where the
+    // player gave it one, else at the old one's; an icon keeps its own place, else takes the old one's.
+    var RENAMED = { venicebuildings: "gallery", games: "library" };
+    function merged(into, from) {
+      if (!into || typeof into !== "object" || !from || typeof from !== "object") return into;
+      var out = {};
+      Object.keys(into).forEach(function (k) { out[k] = into[k]; });
+      if (into.closed && from.closed === false) { out.closed = false; out.min = !!from.min; }
+      if (!into.placed && from.placed) ["x", "y", "w", "h", "placed"].forEach(function (k) { if (k in from) out[k] = from[k]; });
+      return out;
+    }
     function carryOver(o, prefix) {
       Object.keys(o).forEach(function (page) {
         var p = o[page];
@@ -195,6 +206,7 @@ var ByopopSkin = (function () {
           var was = prefix + old, now = prefix + RENAMED[old];
           if (!Object.prototype.hasOwnProperty.call(p, was)) return;
           if (!Object.prototype.hasOwnProperty.call(p, now)) p[now] = p[was];
+          else p[now] = merged(p[now], p[was]);
           delete p[was];
         });
       });
@@ -1111,8 +1123,8 @@ var ByopopSkin = (function () {
       }
       function fillSub() {
         sub.textContent = "";
-        // the games' window the setting "Games open in" names (All games or the Library, web/library.js): on the listing, first
-        var gw = document.getElementById("games-title") && find(gamesWindow());
+        // the games' window, the Library (web/library.js): on the listing, first
+        var gw = document.getElementById("games-title") && find("library");
         if (gw) {
           sub.appendChild(item(gw.el.getAttribute("data-d95-title") || gw.id, closeThen(function () { if (gw.min) setMin(gw, false); show(gw); }), { pic: smallPic(gw) }));
           sub.appendChild(rule());
@@ -1189,9 +1201,10 @@ var ByopopSkin = (function () {
         list.appendChild(rule());
         // About, or System Information on the listing page (web/sysinfo.js): the window's own title
         win("about");
+        // a game's page: the Library, on the listing (its #library opens it)
         if (!listing) {
           list.appendChild(rule());
-          list.appendChild(item(T("skin.pop.listing"), null, { href: "./", cls: "d95-leave", pic: drawnPic("games") }));
+          list.appendChild(item(T("library.title"), null, { href: "./#library", cls: "d95-leave", pic: drawnPic("library") }));
         }
         // Shut Down, last (the user, 2026-11-14, by the coordinator's list): every window closes, then the last screen
         list.appendChild(rule());
@@ -1467,14 +1480,14 @@ var ByopopSkin = (function () {
       keepIconPlaces(out);
       layoutIcons();
     }
-    // The recycle bin's icon (the user, 2026-11-14, by the coordinator's list), on the listing: it opens the bin of All games
-    // (web/addgames.js), a game's cap dropped on it asks there to forget its files, a desktop shortcut dropped on it is removed
-    // (binUnder), and it is full while the bin holds the names of the games forgotten (byopop-bin), until Empty Recycle Bin, its
-    // menu's, clears them with the theme's sound
+    // The recycle bin's icon (the user, 2026-11-14, by the coordinator's list), on the listing: it opens the bin's panel in the
+    // Library (web/addgames.js, web/library.js), a game dragged on it (a Library row) asks there to forget its files, a desktop
+    // shortcut dropped on it is removed (binUnder), and it is full while the bin holds the names of the games forgotten
+    // (byopop-bin), until Empty Recycle Bin, its menu's, clears them with the theme's sound
     var BIN_KEY = "byopop-bin";
     function binItems() { try { var a = JSON.parse(localStorage.getItem(BIN_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
     function openBin(id) {
-      var gw = find(gamesWindow());
+      var gw = find("library");
       if (gw) { if (gw.min) setMin(gw, false); show(gw); }
       if (window.ByopopAddGames && ByopopAddGames.bin) ByopopAddGames.bin(id || null);
     }
@@ -1484,7 +1497,7 @@ var ByopopSkin = (function () {
       try { window.dispatchEvent(new CustomEvent("byopop-bin")); } catch (e) {}
     }
     function binIcon() {
-      if (!icons || EMBED || !document.getElementById("bin") || icons.querySelector(".d95-icon-bin")) return;
+      if (!icons || EMBED || !document.getElementById("bin-panel") || icons.querySelector(".d95-icon-bin")) return;
       var b = document.createElement("button");
       b.type = "button"; b.className = "d95-icon d95-icon-bin"; b.setAttribute("data-key", "w:bin");
       var pic = document.createElement("i"); pic.setAttribute("aria-hidden", "true");
@@ -1754,8 +1767,95 @@ var ByopopSkin = (function () {
       if (m.opts && m.opts.done) try { m.opts.done(); } catch (e) {}
       if (back && m.from && m.from.parentNode) m.from.focus();
     }
+    // ---- a Windows 95 message box (a game past the memory budget, an About box, a question) ----
+    // title, text (a line of text, or nodes: paragraphs and a list), kind (true for an About box, "info" for the information
+    // sign, "question" for the question mark, else the warning sign) and buttons ({label, fn}, the last one focused and taken
+    // by Escape; OK alone when none). The one page's programs (web/deskapps.js) and Uninstall (below) share it.
+    function messageBox(title, text, kind, buttons) {
+      var d = document.createElement("dialog");
+      d.className = "d95-msgbox";
+      d.setAttribute("aria-labelledby", "d95-msgbox-title"); d.setAttribute("aria-describedby", "d95-msgbox-text");
+      var tb = document.createElement("div"); tb.className = "d95-tb d95-msgbox-tb";
+      var tt = document.createElement("span"); tt.className = "d95-tb-text"; tt.id = "d95-msgbox-title"; tt.textContent = title;
+      tb.appendChild(tt);
+      var body = document.createElement("div"); body.className = "d95-msgbox-body";
+      var icon = document.createElement("i"); icon.className = "d95-msgbox-icon"; icon.setAttribute("aria-hidden", "true");
+      var p;
+      if (typeof text === "string") { p = document.createElement("p"); p.textContent = text; }
+      else { p = document.createElement("div"); p.className = "d95-msgbox-text"; p.appendChild(text); d.classList.add("d95-msgbox-long"); }
+      p.id = "d95-msgbox-text";
+      // an About box: the game's lines as they are, without a sign
+      if (kind === true) { p.style.whiteSpace = "pre-line"; d.classList.add("d95-msgbox-about"); }
+      else {
+        if (kind === "info") d.classList.add("d95-msgbox-info");
+        else if (kind === "question") d.classList.add("d95-msgbox-question");
+        body.appendChild(icon);
+      }
+      body.appendChild(p);
+      var row = document.createElement("div"); row.className = "d95-msgbox-row";
+      var last = null;
+      // (a game's page that finishes loading behind the box focuses its own card, which takes the focus into its frame: it
+      // comes back to the box)
+      function keep() { setTimeout(function () { if (d.open && document.activeElement && document.activeElement.tagName === "IFRAME") last.el.focus(); }, 0); }
+      window.addEventListener("blur", keep);
+      function done(fn) {
+        window.removeEventListener("blur", keep);
+        try { d.close(); } catch (e) {}
+        if (d.parentNode) d.parentNode.removeChild(d);
+        if (fn) fn();
+      }
+      (buttons || [{ label: T("skin.apps.ok") }]).forEach(function (b) {
+        var btn = document.createElement("button"); btn.type = "button"; btn.textContent = b.label;
+        btn.addEventListener("click", function () { done(b.fn); });
+        row.appendChild(btn);
+        last = { el: btn, fn: b.fn };
+      });
+      d.appendChild(tb); d.appendChild(body); d.appendChild(row);
+      document.body.appendChild(d);
+      d.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); done(last.fn); } });
+      d.addEventListener("cancel", function (ev) { ev.preventDefault(); done(last.fn); });
+      try { d.showModal(); } catch (e) { d.setAttribute("open", ""); }
+      deskEvent("ding");
+      last.el.focus();
+    }
+    // ---- Uninstall (the coordinator's list, 2026-11-22: "an uninstall option with confirmation in the Library and shortcut
+    // context menus, in addition to the recycle bin") ----
+    // Whether a game's files are here: the listing's files check (its card's data-files), else the record a game's page keeps
+    function installed(id) {
+      var a = document.querySelector('a.tile[data-game="' + String(id).replace(/[^A-Za-z0-9_-]/g, "") + '"]'), li = a && a.parentNode;
+      if (li && li.hasAttribute("data-files")) return li.getAttribute("data-files") === "yes";
+      try { var r = ByopopGameFiles.all()[id]; return !!(r && ByopopGameFiles.present(r)); } catch (e) { return false; }
+    }
+    // The standard question in the message box, No the default; on Yes what the recycle bin does with a game (web/addgames.js,
+    // uninstall: its files forgotten, its saves, mods and replays kept, its name in the bin). Only the listing reads the games'
+    // import rules, so a game's own page asks, then hands the game to the listing (sessionStorage "byopop-uninstall",
+    // web/index.html), which uninstalls it as it opens. from: what has the focus back afterwards (a shortcut drawn again since
+    // is found by its key), or a function that gives it back (the Library's).
+    function uninstall(id, title, from) {
+      var key = from && from.getAttribute ? from.getAttribute("data-key") : null;
+      function back() {
+        if (typeof from === "function") { try { from(); } catch (e) {} return; }
+        var to = from && document.body.contains(from) ? from : key && icons ? icons.querySelector('.d95-icon[data-key="' + key.replace(/[^A-Za-z0-9_:-]/g, "") + '"]') : null;
+        if (to) { try { to.focus(); } catch (e) {} }
+      }
+      messageBox(T("skin.uninstall.title"), Tv("skin.uninstall.question", { game: title }), "question", [
+        { label: T("skin.uninstall.yes"), fn: function () {
+          if (!window.ByopopAddGames || !ByopopAddGames.uninstall) {
+            try { sessionStorage.setItem("byopop-uninstall", id); } catch (e) { return; }
+            var q = testQuery();
+            location.href = "./" + (q ? "?" + q : "") + "#library";
+            return;
+          }
+          ByopopAddGames.uninstall(id).then(back, function (e) {
+            messageBox(title, (e && e.message) || T("add.bin.failed"), false, [{ label: T("skin.apps.ok"), fn: back }]);
+          });
+        } },
+        { label: T("skin.uninstall.no"), fn: back }]);
+    }
     function openFavMenu(from, g, x, y) {
       popMenu(from, [{ label: T2("skin.fav.open"), bold: true, disabled: !g.page, fn: function () { openPage(g.page); } },
+                     { rule: true },
+                     { label: T2("skin.uninstall.entry"), disabled: !installed(g.id), fn: function () { uninstall(g.id, g.title, from); } },
                      { label: T2("skin.fav.remove"), fn: function () {
                        try { ByopopSettings.setFavourite(g, false); } catch (e) {}
                        // its icon is gone: the focus on the column's first icon
@@ -2231,7 +2331,11 @@ var ByopopSkin = (function () {
         favIcons();
         binIcon();
         window.addEventListener("byopop-favourites", favIcons);
-        window.addEventListener("storage", function (ev) { if (!ev.key || (window.ByopopSettings && ev.key === ByopopSettings.KEY)) favIcons(); });
+        // a game uninstalled (its files forgotten, byopop-bin) or its files loaded in another tab: its shortcut's picture
+        window.addEventListener("byopop-bin", favIcons);
+        window.addEventListener("storage", function (ev) {
+          if (!ev.key || (window.ByopopSettings && ev.key === ByopopSettings.KEY) || (window.ByopopGameFiles && ev.key === ByopopGameFiles.KEY)) favIcons();
+        });
       }
       // out of the desktop the page lays itself out: the windows' places go, and are put back when it comes again
       wins.forEach(function (w) { lift(w, on); });
@@ -2281,6 +2385,7 @@ var ByopopSkin = (function () {
              list: function () { return wins.map(function (w) { return { id: w.id, title: w.el.getAttribute("data-d95-title") || w.id, closed: !!w.closed }; }); },
              event: deskEvent,
              menu: function (from, entries, x, y, label, opts) { popMenu(from, entries, x, y, label, opts); },
+             messageBox: messageBox, uninstall: uninstall, installed: installed,
              closeMenus: closeAllMenus,
              raise: function (id) { var w = find(id); if (w && on) raise(w); },
              show: function (id) { var w = find(id); if (w && on) show(w); return !!(w && on); },
@@ -2317,42 +2422,24 @@ var ByopopSkin = (function () {
   // ---------- Windows 95 games only ----------
   // Desktop 95's setting "Windows 95 games only" (the user, 2026-11-08: an "immersion" toggle that "will only list the games that
   // actually supported Windows 95"): with it on, and only in Desktop 95, the lists show only the games whose original supported
-  // Windows 95 (cmake/ByopopWeb.cmake's BYOPOP_WEB_WIN95, as each tile's data-win95 and the chat's table's win95): All games
-  // (html.d95-win95only, web/skins.css), the favourites' icons, and the Pop menu's Games, each list saying how many it hides. An
-  // unknown game is hidden too. A game page already open stays as it is.
+  // Windows 95 (cmake/ByopopWeb.cmake's BYOPOP_WEB_WIN95, as each tile's data-win95 and the chat's table's win95): the Library
+  // (web/library.js, whose status bar says how many it hides), the favourites' icons (html.d95-win95only, web/skins.css), and
+  // the Pop menu's Games, which says how many it hides. An unknown game is hidden too. A game page already open stays as it is.
   function win95Of(id) {
     var games = window.ByopopGames || [];
     for (var i = 0; i < games.length; i++) if (games[i].id === id) return games[i].win95 || "unknown";
     var a = document.querySelector('a.tile[data-game="' + String(id).replace(/[^A-Za-z0-9_-]/g, "") + '"]'), li = a && a.closest("li");
     return (li && li.getAttribute("data-win95")) || "unknown";
   }
-  // which window the games' entries open (the setting "Games open in", Desktop 95 only): All games or the Library
-  function gamesWindow() { return readItem().gamesOpen === "library" ? "library" : "games"; }
   function win95On() { return root.getAttribute("data-skin") === "d95" && readItem().win95Only === "on"; }
   function win95Hides(id) { return win95On() && win95Of(id) !== "yes"; }
   function win95Sync() {
     var on = win95On();
     root.classList.toggle("d95-win95only", on);
-    var count = document.getElementById("win95-count");
-    if (!count) return;
-    var n = on ? Array.prototype.filter.call(document.querySelectorAll(".games > li[data-win95]"), function (li) {
-      // a game the listing already hides (no longer sold, its files not added) is not counted
-      return li.getAttribute("data-win95") !== "yes" && !li.hidden && !li.matches(".games.hide-unsold > li[data-unsold]:not([data-files=yes])");
-    }).length : 0;
-    count.hidden = !n;
-    count.textContent = n ? Tv("skin.win95.hidden", { count: n }) : "";
-    count.title = T("skin.win95.hidden_title");
   }
   window.addEventListener("byopop-setting", function (ev) { if (ev.detail && (ev.detail.name === "win95Only")) win95Sync(); });
   window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) win95Sync(); });
-  // the listing's own filter (no longer sold games shown or not) changes what the count leaves out
-  function win95Watch() {
-    win95Sync();
-    var games = document.querySelector(".games");
-    if (!window.MutationObserver) return;
-    if (games) new MutationObserver(win95Sync).observe(games, { attributes: true, attributeFilter: ["class"] });
-  }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", win95Watch); else win95Watch();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", win95Sync); else win95Sync();
 
   window.addEventListener("byopop-skin", deskSync);
   window.addEventListener("resize", deskSync);
@@ -2448,7 +2535,7 @@ var ByopopSkin = (function () {
     });
   }
   document.addEventListener("selectstart", function (ev) { var t = ev.target; if (t && t.nodeType !== 1) t = t.parentNode; if (t && t.closest && t.closest(".stage") && !t.closest(".overlay")) ev.preventDefault(); }, true);
-  return { zoom: zoom, unzoom: unzoom, ratio: ratio, viewW: viewW, viewH: viewH, gamesWindow: gamesWindow, EMBED: EMBED, SITE: SITE, testQuery: testQuery, current: current, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync,
+  return { zoom: zoom, unzoom: unzoom, ratio: ratio, viewW: viewW, viewH: viewH, EMBED: EMBED, SITE: SITE, testQuery: testQuery, current: current, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync,
            bootHold: bootHold, bootDone: bootDone, booting: function () { return !!boot; } };
 })();
 // The volume of everything the site plays (the tray's speaker; the user, 2026-11-14, by the coordinator's list): the games, Music,

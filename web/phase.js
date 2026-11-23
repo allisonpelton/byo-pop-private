@@ -2,9 +2,8 @@
 // listing for what phase a game is in? For the test site only. Then I'd know if I'm really finding something that would get
 // overlooked otherwise."). The coordinator keeps docs/game_status.json (each game's steps done, not applying and under way, and a
 // few words of note), served on development hosts by tools/webtest/serve.py at /__repo/docs/game_status.json and fetched only
-// there (ByopopTerms.devHost): a deployed page never asks for it and shows nothing. Each card of All games gets a line with the
-// step under way (or "Done"), and the Library a Phase column (web/library.js); the tooltip holds the steps done, the steps left
-// and the note. Values only: the step names are the file's own labels.
+// there (ByopopTerms.devHost): a deployed page never asks for it and shows nothing. The Library has a Phase column (web/library.js):
+// the step under way (or "Done"), its tooltip the steps done, the steps left and the note. Values only: the step names are the file's own labels.
 var ByopopPhase = (function () {
   "use strict";
   var URL = "/__repo/docs/game_status.json";
@@ -34,29 +33,10 @@ var ByopopPhase = (function () {
     var rank = now ? steps.map(function (s) { return s.id; }).indexOf(now) : steps.length;
     return { text: text, tip: lines.join("\n"), rank: rank };
   }
-  // the line on each card of All games, before its counts or its buy row
-  function cards() {
-    Array.prototype.forEach.call(document.querySelectorAll("ul.games > li"), function (li) {
-      var tile = li.querySelector("a.tile[data-game], div.tile[data-game]");
-      var p = tile ? of(tile.getAttribute("data-game")) : null, line = li.querySelector(".phase");
-      if (!p) { if (line) line.remove(); return; }
-      if (!line) {
-        line = document.createElement("p");
-        line.className = "phase";
-        li.insertBefore(line, li.querySelector(".counts") || li.querySelector(".buyrow"));
-      }
-      line.textContent = p.text;
-      line.title = p.tip;
-    });
-  }
   var ready = !on ? Promise.resolve(null) : fetch(URL, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; })
     .then(function (d) {
       data = d && typeof d === "object" && d.games ? d : null;
-      if (data) {
-        document.documentElement.classList.add("has-phase");
-        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", cards); else cards();
-        try { window.dispatchEvent(new CustomEvent("byopop-phase")); } catch (e) {}
-      }
+      if (data) { try { window.dispatchEvent(new CustomEvent("byopop-phase")); } catch (e) {} }
       return data;
     }).catch(function () { return null; });
   return { on: function () { return on; }, has: function () { return !!data; }, of: of, ready: ready };

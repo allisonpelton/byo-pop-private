@@ -28,17 +28,24 @@ skin.desk.minimize = Minimize {window}
 # that could not be read
 library.title = Library
 library.play = Play
+library.add = Add games
+library.unsold = Show games no longer sold
 library.filter = Filter
 library.col.name = Name
 library.col.status = Status
 library.col.time = Play time
 library.col.last = Last played
 library.col.year = Year
+library.col.plays = Plays
+# every player's plays, from the site's play counter (docs/PLAY_COUNTER.md); shown only when the site has one
+library.col.popular = Popular
 library.col.phase = Phase
 library.status.ready = Ready
 library.status.files = Needs your files
 library.status.soon = Coming soon
 library.status.unsold = No longer sold
+# the browser cannot tell whether the game's files are here (no indexedDB.databases, no record)
+library.status.unknown = Files unknown
 library.count = {n} game | {n} games
 library.sorted = Sorted by {col}, {dir}
 library.asc = ascending
@@ -59,8 +66,6 @@ library.props.win95 = Windows 95
 library.props.yes = Yes
 library.props.no = No
 library.ok = OK
-settings.gamesopen.label = Games open in
-settings.gamesopen.hint = In Desktop 95, the window that the Pop menu's Games and a closed game open.
 settings.gamesize.label = Game window size
 settings.gamesize.one = 1x
 settings.gamesize.fit = Largest that fits
@@ -109,7 +114,6 @@ skin.pop = Pop
 skin.pop.band = byo-pop
 skin.pop.games = Games
 skin.pop.nogames = No games here yet
-skin.pop.listing = Back to all games
 skin.bin.name = Recycle Bin
 skin.bin.label_empty = Recycle Bin, empty
 skin.bin.label_full = Recycle Bin, holding the names of games whose files were forgotten
@@ -145,7 +149,12 @@ skin.fav.icon = {game}, favourite
 skin.fav.open = Open
 skin.fav.remove = Remove from favourites
 skin.fav.menu = {game}
-skin.desk.games = All games
+# Uninstall, in the Library's and the shortcuts' menus (web/skins.js): Windows 95's question, {game} the game's name
+skin.uninstall.entry = Uninstall
+skin.uninstall.title = Confirm Uninstall
+skin.uninstall.question = Are you sure you want to uninstall '{game}'?
+skin.uninstall.yes = Yes
+skin.uninstall.no = No
 skin.desk.about = About
 skin.boot = Please wait while the desktop loads...
 settings.scheme.label = Scheme
@@ -406,30 +415,12 @@ index.title = byo-pop games
 index.logo_alt = byo-pop
 # The page's heading, kept out of sight
 index.games = Games
-index.sort.legend = Sort by
-index.sort.name = Name
-index.sort.release = Release date
-index.sort.time = Play time
-index.sort.plays = Plays
-# by every player's plays, from the site's play counter (docs/PLAY_COUNTER.md); shown only when the site has one
-index.sort.popular = Most popular
-# Read out after the player picks a way to sort
-index.sort.said_name = Sorted by name
-index.sort.said_release = Sorted by release date
-index.sort.said_time = Sorted by play time
-index.sort.said_plays = Sorted by plays
-index.sort.said_popular = Sorted by most popular
-index.unsold = Show games no longer sold
-index.find.label = Find
 # A game's phase on the listing, development hosts only (web/phase.js): "Done" when no step is left; the tooltip's lines
 # ({steps}: the step names, joined by commas)
 phase.done = Done
 phase.tip.done = Done: {steps}
 phase.tip.left = Left: {steps}
 phase.tip.na = Not needed: {steps}
-index.add.button = Add games
-index.bin.label = Forget a game's files
-index.bin.tooltip = Recycle bin: drop a game's cap here to forget its files
 index.adding.heading = Adding games
 index.adding.close = Close
 index.bin.heading = Recycle bin
@@ -459,14 +450,10 @@ index.files.unknown = Files unknown
 # The card's link, read out: {name} the game, {year} its release year, {state} one of the three labels above in lower case
 index.tile.label = {name}, {state}
 index.tile.label_year = {name}, {year}, {state}
-# How much a game was played here: {n} plays, {time} like "2 h 15 min"
-index.played = {n} play · {time} | {n} plays · {time}
-index.played_last = Last played {date}
-# every player's counts under a game's name, from the site's play counter: "2 playing now · 1234 plays"
+# every player's counts of a game, from the site's play counter: the tooltip of the Library's Popular column, "2 playing now · 1234 plays"
 index.counts.plays = {n} play | {n} plays
 index.counts.live = {n} playing now
 index.counts.both = {live} · {plays}
-index.played_today = today
 
 # The "?" on a game that was played here before but has no files now, and the message box it opens (titled with the
 # game's name)
