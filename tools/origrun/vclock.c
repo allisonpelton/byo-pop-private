@@ -73,6 +73,8 @@ static ULONGLONG  gGtc64_0;
 static char       gCounterExpr[256];
 static char       gWatchExpr[4][256];
 static int        gWatchN;
+static char       gGateExpr[8][256];   // the script's waitfor expressions, in order (ORIGRUN_CLOCK_GATES), for VC_HOLD_GATE
+static int        gGateN;
 static int        gSeen[4], gLastOk[4];
 static DWORD      gLastVal[4];
 static FILE*      gClog;
@@ -235,6 +237,16 @@ static int own_window_up(void)
 	return up;
 }
 
+// VC_HOLD_GATE: a waitfor holds the game at the first wait at which its expression reads so, read here inside the game,
+// so the commands after it start from that wait however long origrun takes to see it (Bookworm Adventures Volume 2,
+// 2026-11-22: run free after a met waitfor, the game ran 1600 updates past three `at` lines before origrun armed them).
+static int gate_met(LONG sel, LONGLONG want)
+{
+	int i = sel & 0xff, op = (sel >> 8) & 0xff;
+	DWORD v;
+	return i < gGateN && read_expr(gGateExpr[i], &v) && vc_gate_cmp(op, want, v);
+}
+
 // At a wait of the driver (before the clock moves): does an armed barrier hold it here? wouldBe is the clock after
 // the wait. The game claims the barrier (ARMED to HELD) before it holds, so origrun can take back one not claimed yet.
 static void vc_barrier(int where, LONGLONG wouldBe, DWORD timeout)
@@ -245,7 +257,8 @@ static void vc_barrier(int where, LONGLONG wouldBe, DWORD timeout)
 	int hit = k == VC_HOLD_NEXT
 		|| (k == VC_HOLD_UPDATE && s->counterOk && (LONG)(s->counter - s->holdUpdate) >= 0)
 		|| (k == VC_HOLD_TIME && wouldBe >= s->holdV)
-		|| (k == VC_HOLD_WINDOW && own_window_up());
+		|| (k == VC_HOLD_WINDOW && own_window_up())
+		|| (k == VC_HOLD_GATE && gate_met(s->holdUpdate, s->holdV));
 	if (hit && InterlockedCompareExchange(&s->bar, VC_BAR_HELD, VC_BAR_ARMED) == VC_BAR_ARMED) vc_hold(where, timeout);
 }
 
@@ -787,6 +800,9 @@ static int clock_install(const char* exe)
 	if (GetEnvironmentVariableA("ORIGRUN_CLOCK_HOST", host, sizeof(host))) gHostProc = OpenProcess(SYNCHRONIZE, FALSE, strtoul(host, NULL, 10));
 	GetEnvironmentVariableA("ORIGRUN_CLOCK_COUNTER", gCounterExpr, sizeof(gCounterExpr));
 	char w[1100] = "";
+	if (GetEnvironmentVariableA("ORIGRUN_CLOCK_GATES", w, sizeof(w)) && w[0]) {
+		for (char* t = strtok(w, ";"); t && gGateN < 8; t = strtok(NULL, ";")) lstrcpynA(gGateExpr[gGateN++], t, 256);
+	}
 	if (GetEnvironmentVariableA("ORIGRUN_CLOCK_WATCH", w, sizeof(w)) && w[0]) {
 		for (char* t = strtok(w, ";"); t && gWatchN < 4; t = strtok(NULL, ";")) lstrcpynA(gWatchExpr[gWatchN++], t, 256);
 	}
