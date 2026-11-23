@@ -145,3 +145,12 @@ A pot's first cell is its initialcellclass or a draw by weight from the board's 
 from the layers of the cell class shown in the "normal" view mode. Not yet: paths on the cells, the side pots, the
 spawning pots, the level's states, the hud, the map, the journal, the camera's move from the sky to the land (here
 `setRegion("land")` at once, and nothing paints a land background, so the front end's last pixels show through).
+
+Paths on the cells: a cell's path id is the layout pot's initialpathid, else the spawn item's, else the cell class's
+explicit one; "default" draws from the board's path id pool of that name (weighted, then the rotation "__rand" turns every
+direction by crtRand() % 6; the original's draw order is not read). The "path" layer draws one endpoint picture of the
+path image class per direction, or the connection picture where two directions face each other (d and d+3). The
+endpoints are theme composites (the light picture masked by overlaymask), built in `AtlantisTheme::getComposite`: only
+the action "mask" (PixelCombinerMask 0x6058f0/0x6194b0, each channel times the mask) exists in the data; trim draws the
+same picture and is not done. Seen on the board: the connection pictures overhang the cell (an unmasked or untrimmed
+picture? not yet judged).

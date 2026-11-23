@@ -173,8 +173,63 @@ engine::Surface* AtlantisTheme::getImage(const std::string& theName)
 {
 	std::map<std::string, ImageEntry>::iterator anEntry = mImageEntries.find(theName);
 	if (anEntry == mImageEntries.end())
-		return engine::Theme::getImage(theName);
+	{
+		engine::Surface* aComposite = getComposite(theName);
+		return aComposite != nullptr ? aComposite : engine::Theme::getImage(theName);
+	}
 	if (anEntry->second.mSurface == nullptr)
 		loadImage(anEntry->second);
 	return anEntry->second.mSurface.get();
+}
+
+// A composite (<composite>, built by 0x605140 from its <surface> children, 0x605b60): the first surface, then each of the
+// others combined into it by its action. The data only uses "mask" (PixelCombinerMask, 0x6058f0 and 0x6194b0): each
+// channel of the pixel, alpha included, times the mask's value. The composite's trim (the transparent border cut off with
+// the anchor moved to match) draws the same picture and is not done; the surfaces of a composite are told apart here by
+// their action, not by their order, which the raw entries do not keep.
+engine::Surface* AtlantisTheme::getComposite(const std::string& theName)
+{
+	std::map<std::string, engine::Ref<engine::Surface>>::iterator aBuilt = mComposites.find(theName);
+	if (aBuilt != mComposites.end())
+		return aBuilt->second.get();
+	std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>::iterator aGroup =
+		mRawEntries.find("composite:" + theName);
+	if (aGroup == mRawEntries.end())
+		return nullptr;
+	engine::Surface* aBase = nullptr;
+	engine::Surface* aMask = nullptr;
+	for (std::map<std::string, std::map<std::string, std::string>>::iterator it = aGroup->second.begin();
+		 it != aGroup->second.end(); ++it)
+	{
+		std::map<std::string, std::string>& anAttributes = it->second;
+		engine::Surface* aSurface = getImage(anAttributes["image"]);
+		if (aSurface == nullptr)
+			continue;
+		if (anAttributes["action"] == "mask")
+			aMask = aSurface;
+		else
+			aBase = aSurface;
+	}
+	if (aBase == nullptr)
+		return nullptr;
+	engine::Surface* aResult = aBase->clone();
+	if (aMask != nullptr)
+	{
+		int aCount = aResult->getWidth() * aResult->getHeight();
+		if (aMask->getWidth() * aMask->getHeight() < aCount)
+			aCount = aMask->getWidth() * aMask->getHeight();
+		uint32_t* aPixels = aResult->getPixels();
+		const uint32_t* aMaskPixels = aMask->getPixels();
+		for (int i = 0; i < aCount; i++)
+		{
+			float aValue = (float)(aMaskPixels[i] & 0xff) * 0.003921569f;
+			uint32_t aPixel = 0;
+			for (int aShift = 0; aShift < 32; aShift += 8)
+				aPixel |= (uint32_t)(int)((float)((aPixels[i] >> aShift) & 0xff) * aValue + 0.5f) << aShift;
+			aPixels[i] = aPixel;
+		}
+		aResult->setBlendMode(engine::BLEND_ALPHA, 0);
+	}
+	mComposites[theName] = aResult;
+	return aResult;
 }

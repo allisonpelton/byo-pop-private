@@ -43,6 +43,9 @@ private:
 		engine::Ref<engine::Surface> mSurface;
 	};
 	void loadImage(ImageEntry& theEntry);
+	engine::Surface* getComposite(const std::string& theName);
+
+	std::map<std::string, engine::Ref<engine::Surface>> mComposites;  // the composites built so far, by name
 
 	std::map<std::string, ImageEntry> mImageEntries;
 };
