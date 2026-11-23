@@ -762,12 +762,17 @@ suite_build() { build_suite native "$1"; }
 suite_build-web() {  # <log> [<target>,<target>...]: the whole web build, or only those targets
 	local st t="${2//,/ }"
 	if [ -z "$t" ]; then build_suite web "$1"; return; fi
+	# the changed games' targets, and always the site's own decoders that unit-web runs under Node ($web/openmpt.js, $web/jp2.js):
+	# built only with a whole web build, a worktree's copies could date from before a merge of main and fail unit-web there
+	# (Bejeweled 3's worktree, 2026-11-23: an openmpt.js from before the Music fixes failed 18 of musicrepeattest's tunes)
+	local games="$t"
+	t="$t byopop_openmpt byopop_jp2"
 	export TARGET="$t" SKIP_UNKNOWN_TARGETS=1  # a changed game with no web build yet is skipped (tools/build.sh web)
 	build_suite web "$1"; st=$?
 	unset TARGET SKIP_UNKNOWN_TARGETS
 	local skipped
 	skipped="$(sed -n 's/^build.sh: \([^:]*\): no web target.*/\1/p' "$1" | tr '\n' ' ')"
-	[ $st -ne 0 ] || SUMMARY="web build ok: $t only${skipped:+; no web build yet: ${skipped% }}"
+	[ $st -ne 0 ] || SUMMARY="web build ok: $games only, and the decoders${skipped:+; no web build yet: ${skipped% }}"
 	return $st
 }
 suite_build-nov() { build_suite novariants "$1"; }
