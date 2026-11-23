@@ -109,53 +109,8 @@ var ByopopApps = (function () {
     try { history[push ? "pushState" : "replaceState"](st, "", rootAddress()); } catch (e) {}
   }
 
-  // ---- a Windows 95 message box (a game past the memory budget, an About box) ----
-  // A message box: title, text (a line of text, or nodes: paragraphs and a list), plain (true for an About box, "info" for the
-  // information sign, else the warning sign) and buttons ({label, fn}, the last one focused and taken by Escape; OK alone
-  // when none)
-  function messageBox(title, text, plain, buttons) {
-    var d = document.createElement("dialog");
-    d.className = "d95-msgbox";
-    d.setAttribute("aria-labelledby", "d95-msgbox-title"); d.setAttribute("aria-describedby", "d95-msgbox-text");
-    var tb = document.createElement("div"); tb.className = "d95-tb d95-msgbox-tb";
-    var tt = document.createElement("span"); tt.className = "d95-tb-text"; tt.id = "d95-msgbox-title"; tt.textContent = title;
-    tb.appendChild(tt);
-    var body = document.createElement("div"); body.className = "d95-msgbox-body";
-    var icon = document.createElement("i"); icon.className = "d95-msgbox-icon"; icon.setAttribute("aria-hidden", "true");
-    var p;
-    if (typeof text === "string") { p = document.createElement("p"); p.textContent = text; }
-    else { p = document.createElement("div"); p.className = "d95-msgbox-text"; p.appendChild(text); d.classList.add("d95-msgbox-long"); }
-    p.id = "d95-msgbox-text";
-    // an About box: the game's lines as they are, without the warning sign
-    if (plain === true) { p.style.whiteSpace = "pre-line"; d.classList.add("d95-msgbox-about"); }
-    else { if (plain === "info") d.classList.add("d95-msgbox-info"); body.appendChild(icon); }
-    body.appendChild(p);
-    var row = document.createElement("div"); row.className = "d95-msgbox-row";
-    var last = null;
-    // (a game's page that finishes loading behind the box focuses its own card, which takes the focus into its frame: it
-    // comes back to the box)
-    function keep() { setTimeout(function () { if (d.open && document.activeElement && document.activeElement.tagName === "IFRAME") last.el.focus(); }, 0); }
-    window.addEventListener("blur", keep);
-    function done(fn) {
-      window.removeEventListener("blur", keep);
-      try { d.close(); } catch (e) {}
-      if (d.parentNode) d.parentNode.removeChild(d);
-      if (fn) fn();
-    }
-    (buttons || [{ label: T("skin.apps.ok") }]).forEach(function (b) {
-      var btn = document.createElement("button"); btn.type = "button"; btn.textContent = b.label;
-      btn.addEventListener("click", function () { done(b.fn); });
-      row.appendChild(btn);
-      last = { el: btn, fn: b.fn };
-    });
-    d.appendChild(tb); d.appendChild(body); d.appendChild(row);
-    document.body.appendChild(d);
-    d.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); done(last.fn); } });
-    d.addEventListener("cancel", function (ev) { ev.preventDefault(); done(last.fn); });
-    d.showModal();
-    try { desk.event("ding"); } catch (e) {}
-    last.el.focus();
-  }
+  // ---- a Windows 95 message box (a game past the memory budget, an About box): the desktop's (web/skins.js) ----
+  function messageBox(title, text, plain, buttons) { desk.messageBox(title, text, plain, buttons); }
 
   // ---- a window ----
   // note: { title, text }, a text window of text the page gave (a game's readme), which the address does not keep
@@ -373,7 +328,7 @@ var ByopopApps = (function () {
     var kind = kindOf(key);
     if (!kind) return false;
     desk.closeMenus();
-    if (kind === "index") { desk.openWin("games"); return true; }
+    if (kind === "index") { desk.openWin("library"); return true; }
     var app = byKey(key);
     if (!app) {
       // past the budget, the player is asked each time, unless no other game is open (nothing else to lose) or windows are

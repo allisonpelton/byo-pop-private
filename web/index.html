@@ -96,16 +96,13 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 /* The year of the game's release, small under the name (cmake/ByopopWeb.cmake, BYOPOP_WEB_RELEASED); the gap above it is the tile's
    10 px less 8 */
 .year { margin-top: -8px; font-size: 12px; color: var(--muted); }
-/* "Sort by" (docs/WEB_PLAYER.md, "The listing page"): a radio group above the games. The legend floats, so that it shares a line
-   with the choices; the labels are 32 px high, for a finger. Hidden until the page's script is there to sort. */
-.toolbar { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; margin: 0 0 16px; }
-.sortby { box-sizing: border-box; margin: 0; padding: 0; border: 0; min-width: 0; }
-/* Adding games (web/addgames.js): the button, the panel of what each folder was, and the drop targets while files are dragged over */
-.add-games, .adding button {
+/* Adding games (web/addgames.js): the panel of what each folder was (in the Library on the desktop), and the drop targets while
+   files are dragged over */
+.adding button {
   font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; cursor: pointer;
 }
-.add-games:hover, .adding button:hover { border-color: var(--accent); }
-.add-games[hidden], .adding[hidden], .adding-rejected[hidden], .adding-others[hidden] { display: none; }
+.adding button:hover { border-color: var(--accent); }
+.adding[hidden], .adding-rejected[hidden], .adding-others[hidden] { display: none; }
 .adding-others p { margin: 0.4em 0; }
 .adding { margin: 0 0 16px; padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
 .adding-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -148,43 +145,12 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .adding-rejected-names { margin: 4px 0 0; font-size: 13px; }
 .adding-rejected-names p { margin: 4px 0 0; overflow-wrap: anywhere; }
 .logo-drop { border-radius: var(--radius); }
-.toolbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.bin { display: flex; align-items: center; justify-content: center; width: 40px; height: 34px; padding: 0; color: var(--muted);
-  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
-.bin:hover, .bin[aria-expanded=true] { color: var(--fg); border-color: var(--accent); }
-.bin[hidden], .bin-confirm[hidden], .bin-pick[hidden] { display: none; }
-.bin-icon { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+/* the recycle bin's panel (web/addgames.js; in the Library on the desktop) */
+.bin-confirm[hidden], .bin-pick[hidden] { display: none; }
 .bin-pick, .bin-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .bin-confirm p { flex-basis: 100%; margin: 0; }
 .adding button.bin-yes { border-color: #b3261e; color: #b3261e; }
-/* a cap that can go into the bin (the game's files are here) */
-.badge[draggable=true] { cursor: grab; }
 .drop-on { outline: 3px dashed var(--accent); outline-offset: 4px; }
-.sortby[hidden] { display: none; }
-.show-unsold { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 4px; cursor: pointer; }
-.show-unsold[hidden] { display: none; }
-.show-unsold input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
-/* a game no store sells any more, unless its files are here (data-files, set by the files check) */
-.games.hide-unsold > li[data-unsold]:not([data-files=yes]) { display: none; }
-/* Find, in Desktop 95 only (the user, 2026-11-11: "the all games list should have search with typo tolerance"): a box with a
-   magnifier in the toolbar; the games it does not match are left out of the list while it holds anything */
-.find-games { display: none; }
-html.d95-desk .find-games { display: inline-flex; align-items: center; gap: 4px; margin: 0 8px 0 0; }
-html.d95-desk .find-games svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; }
-html.d95-desk .find-games input { width: 11em; min-width: 0; }
-html.d95-desk .games > li.find-miss { display: none; }
-/* a game's phase (development hosts only, web/phase.js): a line of the card, its steps in the tooltip */
-.games > li > .phase { margin: 2px 0 0; font-size: 12px; color: var(--muted); cursor: help; }
-.sortby legend { float: left; margin: 0 14px 0 0; padding: 0; font-weight: 600; line-height: 32px; }
-.sortby-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-height: 32px; }
-.sortby label { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 4px; cursor: pointer; }
-.sortby input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
-/* A game whose files are loaded shows its own icon in place of the initials: fitted and drawn at the screen's own pixels by the
-   script (fitIcon; its width and height are set there), centred in the badge */
-.badge.has-icon { position: relative; background: none; box-shadow: none; -webkit-mask: none; mask: none; }
-.badge.has-icon .badge-initials { display: none; }
-.badge img { display: block; position: absolute; inset: 0; margin: auto; width: 64px; height: 64px; object-fit: contain;
-  image-rendering: crisp-edges; image-rendering: pixelated; }
 /* Under the name, in words: whether the game's files are loaded in this browser ("Play now") or not ("Add your files"),
    and for a game played here before, a "?" that explains why they are not in a message box (docs/WEB_PLAYER.md, "The
    listing page") */
@@ -336,7 +302,9 @@ html:not(.d95-desk) #chat { display: none !important; }
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9' shape-rendering='crispEdges'%3E%3Cpath d='M0 3h2l2-2v7l-2-2H0z'/%3E%3Cpath d='M5 3l3 3M8 3l-3 3' stroke='%23000' fill='none'/%3E%3C/svg%3E") no-repeat; }
 .mu-tracker-rows { margin: 0; font: inherit; font-size: 10px; line-height: 12px; white-space: pre; overflow: hidden; }
 .mu-tracker { display: flex; flex-direction: column; }
-.mu-tracker-rows { flex: 1 1 auto; min-height: 0; }
+.mu-tracker-rows { flex: 1 1 auto; min-height: 0; position: relative; }
+/* a note held (web/music.js, heldRuns): a line of the display's own colour, faint, down the middle of the note's place */
+.mu-held { position: absolute; width: 1px; background: currentColor; opacity: .3; pointer-events: none; }
 .mu-tracker-head { flex: none; margin: 0; font: inherit; font-size: 10px; line-height: 16px; white-space: pre; overflow: hidden; opacity: .7; cursor: pointer; }
 /* a channel's column head (its number and instrument): a click mutes it (web/music.js), the whole head the target, lit
    under the pointer and shown in reverse while pressed; a muted one dimmed and struck through */
@@ -465,32 +433,10 @@ html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: 
   <!-- Out of sight (the user, 2026-11-03: "remove Games from the front page header"), but still the page's heading and the list's name -->
   <h1 id="games-title" class="visually-hidden">{{index.games}}</h1>
 </header>
-<main>
-  <div class="toolbar">
-    <fieldset class="sortby" id="sortby" hidden>
-      <legend>{{index.sort.legend}}</legend>
-      <div class="sortby-opts">
-        <label><input type="radio" name="sortby" value="name" checked> {{index.sort.name}}</label>
-        <label><input type="radio" name="sortby" value="release"> {{index.sort.release}}</label>
-        <label><input type="radio" name="sortby" value="time"> {{index.sort.time}}</label>
-        <label><input type="radio" name="sortby" value="plays"> {{index.sort.plays}}</label>
-      </div>
-    </fieldset>
-    <!-- Games no store sells any more (data-unsold) are hidden unless this is ticked or their files are here (the script below) -->
-    <!-- Desktop 95's "Windows 95 games only": how many games it hides (web/skins.js) -->
-    <p class="win95-count" id="win95-count" role="status" hidden></p>
-    <!-- Find (Desktop 95 only): the script after the sorting's -->
-    <label class="find-games"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6"/><path d="M14.5 14.5 20 20"/></svg><input type="search" id="find-games" aria-label="{{index.find.label}}" placeholder="{{index.find.label}}" autocomplete="off" spellcheck="false"></label>
-    <label class="show-unsold" id="show-unsold-label" hidden><input type="checkbox" id="show-unsold" aria-label="{{index.unsold}}"> {{index.unsold}}</label>
-    <div class="toolbar-actions">
-      <button type="button" class="add-games" id="add-games" hidden>{{index.add.button}}</button>
-      <!-- The recycle bin: a game's cap dragged here forgets its files, after a yes in the panel below (web/addgames.js) -->
-      <button type="button" class="bin" id="bin" aria-label="{{index.bin.label}}" title="{{index.bin.tooltip}}"
-        aria-controls="bin-panel" aria-expanded="false" hidden><svg class="bin-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6.5h16M9.5 6.5V4h5v2.5M6 6.5l1 13.5h10l1-13.5"/><path d="M10 10v7M14 10v7"/></svg></button>
-    </div>
-    <input type="file" id="add-games-pick" webkitdirectory multiple hidden tabindex="-1" aria-hidden="true">
-  </div>
-  <!-- What became of the folders added from this page (web/addgames.js) -->
+<main class="listing">
+  <!-- Add games' folder picker where there is no Setup window (web/addgames.js) -->
+  <input type="file" id="add-games-pick" webkitdirectory multiple hidden tabindex="-1" aria-hidden="true">
+  <!-- What became of the folders added from this page (web/addgames.js; on the desktop, in the Library: web/library.js) -->
   <section class="adding" id="adding" aria-labelledby="adding-title" hidden>
     <div class="adding-head">
       <h2 id="adding-title">{{index.adding.heading}}</h2>
@@ -499,14 +445,7 @@ html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: 
     <ul class="adding-list" id="adding-list"></ul>
     <p class="adding-rejected" id="adding-rejected" aria-live="polite" hidden></p>
   </section>
-  <!-- The terms of each game added from this page whose terms the player has not agreed to (web/addgames.js): the same text,
-       checkbox and Continue as the game's own terms card, and the same agreement kept -->
-  <dialog class="terms-dialog" id="terms-dialog" aria-labelledby="terms-title">
-    <h2 id="terms-title">{{index.terms.heading}}</h2>
-    <label class="agree"><input type="checkbox" id="terms-agree" autocomplete="off"> <span id="terms-agree-text">{{index.terms.agree}}</span></label>
-    <div class="terms-row"><button class="primary" id="btn-terms" type="button" disabled>{{game.terms.continue}}</button><button type="button" id="btn-terms-skip">{{index.terms.skip}}</button></div>
-    <div class="terms" id="terms-text" tabindex="0" role="region" aria-label="{{game.terms.region}}"></div>
-  </dialog>
+  <!-- The recycle bin's panel (web/addgames.js; on the desktop, in the Library, opened by the Recycle Bin's icon) -->
   <section class="adding" id="bin-panel" aria-labelledby="bin-title" hidden>
     <div class="adding-head">
       <h2 id="bin-title">{{index.bin.heading}}</h2>
@@ -524,7 +463,6 @@ html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: 
     </div>
     <p class="ag-state" id="bin-status" role="status"></p>
   </section>
-  <p class="pl-sr" id="sortby-status" role="status"></p>
   <ul class="games" aria-labelledby="games-title">
 <!-- byopop:games -->
   </ul>
@@ -554,6 +492,14 @@ html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: 
     <div id="saves-body"></div>
   </section>
 </main>
+  <!-- The terms of each game added from this page whose terms the player has not agreed to (web/addgames.js): the same text,
+       checkbox and Continue as the game's own terms card, and the same agreement kept -->
+  <dialog class="terms-dialog" id="terms-dialog" aria-labelledby="terms-title">
+    <h2 id="terms-title">{{index.terms.heading}}</h2>
+    <label class="agree"><input type="checkbox" id="terms-agree" autocomplete="off"> <span id="terms-agree-text">{{index.terms.agree}}</span></label>
+    <div class="terms-row"><button class="primary" id="btn-terms" type="button" disabled>{{game.terms.continue}}</button><button type="button" id="btn-terms-skip">{{index.terms.skip}}</button></div>
+    <div class="terms" id="terms-text" tabindex="0" role="region" aria-label="{{game.terms.region}}"></div>
+  </dialog>
 <!-- The chat (web/chat.js; docs/CHAT_DESIGN.md): one window of Desktop 95's desktop for every game; hidden until the script
      has drawn it -->
 <aside class="chat" id="chat" hidden aria-labelledby="chat-title">
@@ -572,6 +518,7 @@ html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: 
 </footer>
 <script src="saver.js"></script>
 <script src="settingsicons.js"></script>
+<script src="appicons.js"></script>
 <script src="settings.js"></script>
 <script src="playcount.js"></script>
 <script src="profiles.js"></script>
@@ -588,6 +535,7 @@ html:not(.d95-desk) :is(.sy-tabs, .sy-system, .sy-perf, .sy-monitor) { display: 
 <script src="trophies.js"></script>
 <script src="fontview.js"></script>
 <script src="buildings.js"></script>
+<script src="gallery.js"></script>
 <script src="guidetexts.js"></script>
 <script src="guides.js"></script>
 <script src="gamepics.js"></script>
@@ -662,205 +610,6 @@ try {
 } catch (e) { document.getElementById("music-body").textContent = ByopopStrings.t("music.unavailable"); }
 </script>
 <script>
-// Games no longer sold (docs/WEB_PLAYER.md, "The listing page"; the user, 2026-11-03: "add an option to hide games that can no
-// longer be purchased, and default to hiding those games from the front page"): a game with no store in cmake/ByopopStores.cmake
-// has data-unsold on its card, and is hidden unless "Show games no longer sold" is ticked or its files are in this browser (a
-// player who has them can play it). The choice is kept in localStorage ("byopop-listing-unsold": "show", or nothing for the
-// default); a page without storage hides them.
-(function () {
-  var KEY = "byopop-listing-unsold";
-  var list = document.querySelector("ul.games"), box = document.getElementById("show-unsold"), label = document.getElementById("show-unsold-label");
-  if (!list || !box || !label) return;
-  if (!list.querySelector("li[data-unsold]")) return;  // every game is sold somewhere: no choice to offer
-  function apply(show) {
-    box.checked = show;
-    list.classList.toggle("hide-unsold", !show);
-  }
-  var saved = null;
-  try { saved = localStorage.getItem(KEY); } catch (e) {}
-  apply(saved === "show");
-  label.hidden = false;
-  box.addEventListener("change", function () {
-    apply(box.checked);
-    try { if (box.checked) localStorage.setItem(KEY, "show"); else localStorage.removeItem(KEY); } catch (e) {}
-  });
-  window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) apply(ev.newValue === "show"); });
-})();
-</script>
-<script>
-// "Sort by" (docs/WEB_PLAYER.md, "The listing page"): the games by name, as built (alphabetical order of the titles without "Deluxe"), by release
-// date, oldest first, or by how much they were played in this browser (ByopopPlay, web/settings.js): play time or plays, most first;
-// with the site's play counter (web/playcount.js), also "Most popular", by every player's plays, which shows once the counts are in. It moves the games' <li> elements, so the order for the keyboard and for a screen reader is the order on screen
-// (no CSS order). It runs after the Players and Saves sections took the games in the built order: they keep it. The choice is
-// remembered in localStorage (the page works without it).
-(function () {
-  var KEY = "byopop-listing-sort";  // "name", "release", "time", "plays" or "popular"
-  var list = document.querySelector("ul.games"), box = document.getElementById("sortby"), status = document.getElementById("sortby-status");
-  if (!list || !box || !status) return;
-  var radios = Array.prototype.slice.call(box.querySelectorAll("input[name=sortby]"));
-  var SAID = { name: "index.sort.said_name", release: "index.sort.said_release", time: "index.sort.said_time", plays: "index.sort.said_plays",
-    popular: "index.sort.said_popular" };
-  var mode = "name";      // the order shown
-  var wanted = "name";    // the player's choice, which differs from it only for "Most popular" before the counts are in
-  var site = null;  // every game's counts from the play counter, {id: {plays, live}}, once they are in
-
-  // the date of data-released as [year, month, day], 0 for a part it does not give; null for no date or one that is not a date
-  function when(text) {
-    var m = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/.exec(text || "");
-    return m ? [+m[1], m[2] ? +m[2] : 0, m[3] ? +m[3] : 0] : null;
-  }
-  var cards = Array.prototype.slice.call(list.children).filter(function (e) { return e.tagName === "LI"; }).map(function (li, at) {
-    var tile = li.querySelector("a.tile[data-game]");
-    return { li: li, at: at, when: when(li.getAttribute("data-released")), title: (li.getAttribute("data-title") || "").toLowerCase().replace(/ deluxe/g, ""),
-      id: tile ? tile.getAttribute("data-game") : "" };
-  });
-  var byName = cards.slice();
-  // Oldest first. Inside a year, the dates with a month come before a year alone, by month; inside a month, the ones with a day
-  // come before a month alone, by day: the less exact a date, the later it sorts among the same year's or month's. No date goes
-  // last. Equals go by title, then as built.
-  var byRelease = cards.slice().sort(function (a, b) {
-    var x = a.when, y = b.when, keys = [];
-    if (x && !y) return -1;
-    if (y && !x) return 1;
-    if (x && y) keys = [x[0] - y[0], (x[1] ? 0 : 1) - (y[1] ? 0 : 1), x[1] - y[1], (x[2] ? 0 : 1) - (y[2] ? 0 : 1), x[2] - y[2]];
-    for (var i = 0; i < keys.length; i++) if (keys[i]) return keys[i];
-    return a.title < b.title ? -1 : a.title > b.title ? 1 : a.at - b.at;
-  });
-
-  // Most popular first, by play time (seconds) or by plays, the other then breaking a tie; then the games whose files are here
-  // (the card's data-files, from the files check) before the others, each by name, the games still to come among the others.
-  // Read again at each sort: the counts change as games are played, and the files check ends after the first sort.
-  function byPlay(field) {
-    var play = {};
-    try { play = ByopopPlay.all(); } catch (e) {}
-    var other = field === "seconds" ? "plays" : "seconds", at = {};
-    byName.forEach(function (c, i) { at[c.at] = i; });
-    function n(c, f) { var p = c.id && play[c.id]; return p && p[f] > 0 ? p[f] : 0; }
-    function added(c) { return c.li.getAttribute("data-files") === "yes" ? 1 : 0; }
-    return cards.slice().sort(function (a, b) {
-      return (n(b, field) - n(a, field)) || (n(b, other) - n(a, other)) || (added(b) - added(a)) || (at[a.at] - at[b.at]);
-    });
-  }
-
-  // Most popular by everyone first (the play counter's lifetime plays), then most playing now, then by name
-  function byPopular() {
-    var at = {};
-    byName.forEach(function (c, i) { at[c.at] = i; });
-    function n(c, f) { var g = site && c.id && site[c.id]; return g ? g[f] : 0; }
-    return cards.slice().sort(function (a, b) {
-      return (n(b, "plays") - n(a, "plays")) || (n(b, "live") - n(a, "live")) || (at[a.at] - at[b.at]);
-    });
-  }
-
-  // Puts the cards in this order, moving only those out of place, and keeps the focus where it was (a moved element that
-  // had it loses it)
-  function place(order) {
-    var had = document.activeElement;
-    order.forEach(function (card, at) {
-      if (list.children[at] !== card.li) list.insertBefore(card.li, list.children[at] || null);
-    });
-    if (had && had !== document.activeElement && document.body.contains(had)) { try { had.focus({ preventScroll: true }); } catch (e) {} }
-  }
-  function apply(to, say) {
-    wanted = mode = SAID.hasOwnProperty(to) ? to : "name";
-    // "Most popular" is by name until the counts are in, and always without a counter, and the choice is kept for when they come
-    if (mode === "popular" && !site) mode = "name";
-    radios.forEach(function (r) { r.checked = r.value === mode; });
-    place(mode === "release" ? byRelease : mode === "time" ? byPlay("seconds") : mode === "plays" ? byPlay("plays") :
-      mode === "popular" ? byPopular() : byName);
-    if (say) status.textContent = ByopopStrings.t(SAID[mode]);  // polite, and only for the player's own choice
-  }
-
-  var saved = null;
-  try { saved = localStorage.getItem(KEY); } catch (e) {}
-  box.hidden = false;
-  if (saved && saved !== "name") apply(saved, false);
-  function wire(r) {
-    r.addEventListener("change", function () {
-      if (!r.checked) return;
-      apply(r.value, true);
-      try { localStorage.setItem(KEY, r.value); } catch (e) {}
-    });
-  }
-  radios.forEach(wire);
-  // the choice made in another tab
-  window.addEventListener("storage", function (ev) {
-    if (ev.key === KEY || ev.key === null) apply(ev.newValue, false);
-    else if (ev.key === ByopopPlay.KEY && (mode === "time" || mode === "plays")) apply(mode, false);  // a game was played in another tab
-  });
-  // back from a game's page (the page may come from the browser's cache), and each time the files check has shown the cards
-  window.addEventListener("pageshow", function () { if (mode === "time" || mode === "plays") apply(mode, false); });
-  document.addEventListener("byopop-tiles-checked", function () { if (mode === "time" || mode === "plays") apply(mode, false); });
-
-  // Every player's counts (docs/PLAY_COUNTER.md): under each game's name "2 playing now · 1,234 plays", or the plays alone when
-  // nobody is playing it, and "Most popular" among the sorts. Without a counter in the build, or before it answers, none of it shows.
-  var popular = null;
-  ByopopCounter.counts(function (games) {
-    if (!popular) {
-      var label = document.createElement("label");
-      popular = document.createElement("input");
-      popular.type = "radio";
-      popular.name = "sortby";
-      popular.value = "popular";
-      label.appendChild(popular);
-      label.appendChild(document.createTextNode(" " + ByopopStrings.t("index.sort.popular")));
-      box.querySelector(".sortby-opts").appendChild(label);
-      radios.push(popular);
-      wire(popular);
-    }
-    site = games;
-    cards.forEach(function (c) {
-      if (!c.id) return;
-      var g = games[c.id] || { plays: 0, live: 0 };
-      var line = c.li.querySelector(".counts");
-      if (!line) {
-        line = document.createElement("p");
-        line.className = "counts";
-        c.li.insertBefore(line, c.li.querySelector(".buyrow"));
-      }
-      var plays = ByopopStrings.t("index.counts.plays", { n: g.plays });
-      line.textContent = g.live > 0 ? ByopopStrings.t("index.counts.both", { live: ByopopStrings.t("index.counts.live", { n: g.live }), plays: plays }) : plays;
-      line.hidden = !(g.plays > 0 || g.live > 0);  // nothing for a game nobody has played yet
-    });
-    if (wanted === "popular") apply(wanted, false);
-  });
-})();
-</script>
-<script>
-// Find in the All games list (Desktop 95 only; the box and the hiding are drawn only there, index.html's style). Each word typed
-// is looked for in each game's title, letters and digits only, with a few typing slips allowed ("mumy maz", "bejewled"): the
-// fewest edits that turn the word into some stretch of the title, at most one for a word of four to six letters, two up to
-// nine, three beyond, none for a shorter one (whose slip would find too many). A game matches when every word does, in any order.
-(function () {
-  var box = document.getElementById("find-games"), list = document.querySelector("ul.games");
-  if (!box || !list) return;
-  function plain(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, ""); }
-  // the fewest edits that turn q into a stretch of t (an approximate substring search: a stretch may start anywhere for free)
-  function edits(q, t) {
-    var prev = [], cur, i, j;
-    for (j = 0; j <= t.length; j++) prev.push(0);
-    for (i = 1; i <= q.length; i++) {
-      cur = [i];
-      for (j = 1; j <= t.length; j++)
-        cur.push(Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (q.charAt(i - 1) === t.charAt(j - 1) ? 0 : 1)));
-      prev = cur;
-    }
-    return Math.min.apply(null, prev);
-  }
-  function slips(n) { return n < 4 ? 0 : n < 7 ? 1 : n < 10 ? 2 : 3; }
-  function run() {
-    var words = box.value.split(/\s+/).map(plain).filter(Boolean);
-    Array.prototype.forEach.call(list.children, function (li) {
-      if (li.tagName !== "LI") return;
-      var title = plain(li.getAttribute("data-title") || li.textContent);
-      var hit = words.every(function (w) { return edits(w, title) <= slips(w.length); });
-      li.classList.toggle("find-miss", !hit);
-    });
-  }
-  box.addEventListener("input", run);
-})();
-</script>
-<script>
 // Which games have their files loaded, as a sign that the player owns them (docs/WEB_PLAYER.md, "The listing page"). A
 // game page keeps a record in localStorage (web/settings.js, ByopopGameFiles): when it last found the game's files, and
 // when the player forgot them or the page found them gone. For a game without a record, because its files were imported
@@ -889,9 +638,9 @@ try {
   // The explanation (the user, 2026-11-16, of "Why aren't my files here": "dates back to the old site design and does not work
   // well with the current view. Needs redesign"): a message box of the desktop's (web/deskapps.js, tell), as Windows 95 would
   // tell it: the game's name in its title bar, the information sign, what is known of the game's files, and Open game beside
-  // Close, which takes the focus back to the "?". info: what is known about the game's files (see check)
-  function explain(button, tile) {
-    var info = button.byopopInfo, text = make("div");
+  // Close, which calls back (the focus back where it was: the Library's row). info: what is known about the game's files (see check)
+  function explain(info, tile, back) {
+    var text = make("div");
     text.appendChild(make("p", ByopopStrings.t(info.loaded ? "index.why.before_last" : "index.why.before", {date: dayText(info.loaded)})));
     text.appendChild(make("p", ByopopStrings.t("index.why.causes")));
     var causes = make("ul");
@@ -907,36 +656,18 @@ try {
     try {
       ByopopApps.tell(tile.querySelector(".name").textContent, text, [
         { label: ByopopStrings.t("index.why.open"), fn: function () { tile.click(); } },
-        { label: ByopopStrings.t("index.why.close"), fn: function () { button.focus(); } }]);
+        { label: ByopopStrings.t("index.why.close"), fn: back }]);
     } catch (e) {}
+  }
+  // from the Library's menu (web/library.js), for a game whose card has the "?"
+  function explainGame(id, back) {
+    var tile = tiles.filter(function (t) { return t.getAttribute("data-game") === id; })[0], button = tile && tile.parentNode.querySelector(".why");
+    if (button && button.byopopInfo) explain(button.byopopInfo, tile, back);
   }
   // The label under the game's name, the link's accessible name, and the "?" for a game played before
   function show(tile, info, gen) {
     if (gen !== generation) return;  // a newer check has started
     var card = tile.parentNode, row = card.querySelector(".ownrow"), label = card.querySelector(".own");
-    // the game's own icon (read out of its exe by the game's page, kept in the record) in place of the initials, which stay in
-    // the badge out of sight (web/skins.css, "The cap board")
-    var badge = tile.querySelector(".badge");
-    if (badge.getAttribute("data-initials") === null) badge.setAttribute("data-initials", badge.textContent);
-    if (info.state === "yes" && info.icon) {
-      var shown = badge.querySelector("img");
-      if (!shown) {
-        badge.textContent = "";
-        shown = make("img");
-        shown.alt = "";  // the card has the game's name
-        badge.appendChild(shown);
-        var initials = make("span", badge.getAttribute("data-initials"));
-        initials.className = "badge-initials";
-        badge.appendChild(initials);
-        badge.classList.add("has-icon");
-      }
-      fitIcon(shown, info.icon, info.small);
-    } else if (badge.classList.contains("has-icon")) {
-      badge.classList.remove("has-icon");
-      badge.textContent = badge.getAttribute("data-initials");
-    }
-    // a game whose files are here: its cap can be dragged into the recycle bin (web/addgames.js), which lists such games too
-    badge.draggable = info.state === "yes";
     card.setAttribute("data-files", info.state);
     label.textContent = ByopopStrings.t(WORDS[info.state]);
     label.className = "own own-" + info.state;
@@ -951,7 +682,6 @@ try {
     var year = tile.querySelector(".year");
     tile.setAttribute("aria-label", ByopopStrings.t(year ? "index.tile.label_year" : "index.tile.label",
       {name: tile.querySelector(".name").textContent, year: year ? year.textContent : "", state: ByopopStrings.t(WORDS[info.state]).toLowerCase()}));
-    showPlayed(card, info.play);
     var button = row.querySelector(".why");
     if (info.state === "no" && info.played) {
       if (!button) {
@@ -961,101 +691,11 @@ try {
         button.setAttribute("aria-label", WHY);
         button.title = WHY;
         button.setAttribute("aria-haspopup", "dialog");
-        button.addEventListener("click", function () { explain(button, tile); });
+        button.addEventListener("click", function () { explain(button.byopopInfo, tile, function () { button.focus(); }); });
         row.appendChild(button);
       }
       button.byopopInfo = info;
     } else if (button) button.remove();
-  }
-
-  // How much the game was played here (ByopopPlay), once it has been: "3 plays · 2 h 15 min", then "Last played 1 Nov 2026"
-  // The game's icon, fitted (the user, 2026-11-08: "The logos overlaid on the caps need work so they fit properly and are better
-  // centered"): a box of FACE px. Of the exe's images kept (the large one and the one nearest 32 px) it takes the smallest that is at least
-  // the box's size in device pixels, else the largest; only its visible pixels count (many icons have empty space on a side),
-  // cropped to them. It is drawn at the screen's own pixels: made smaller with smoothing, or larger only a whole number of
-  // times, pixel for pixel, so that it stays crisp; its size is kept even with the box's in device pixels, so that the badge
-  // centres it on whole pixels. Drawn again when the screen's pixel ratio changes.
-  var FACE = 32, fitted = {};
-  function loadImage(url) {
-    if (!url) return Promise.resolve(null);
-    return new Promise(function (ok) {
-      var im = new Image();
-      im.onload = function () { ok(im); };
-      im.onerror = function () { ok(null); };
-      im.src = url;
-    });
-  }
-  // the box around the pixels that are not (nearly) clear, or null for an empty image
-  function visible(im) {
-    var c = document.createElement("canvas"), w = im.naturalWidth, h = im.naturalHeight;
-    c.width = w; c.height = h;
-    var g = c.getContext("2d");
-    g.drawImage(im, 0, 0);
-    var d = g.getImageData(0, 0, w, h).data, x0 = w, y0 = h, x1 = -1, y1 = -1;
-    for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
-      if (d[(y * w + x) * 4 + 3] > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-    }
-    return x1 < 0 ? null : { im: im, x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
-  }
-  function fitIcon(img, url, small) {
-    var dpr = (window.ByopopSkin && ByopopSkin.ratio ? ByopopSkin.ratio() : window.devicePixelRatio || 1), box = FACE;
-    var key = url + "|" + small + "|" + box + "|" + dpr;
-    img.setAttribute("data-fit", key);
-    function put(f) {
-      if (img.getAttribute("data-fit") !== key) return;  // drawn again since
-      if (!f) { img.removeAttribute("style"); if (img.getAttribute("src") !== url) img.src = url; return; }
-      img.style.width = f.w + "px"; img.style.height = f.h + "px";
-      if (img.getAttribute("src") !== f.url) img.src = f.url;
-    }
-    if (fitted[key]) { put(fitted[key]); return; }
-    Promise.all([loadImage(url), loadImage(small)]).then(function (ims) {
-      var dev = Math.round(box * dpr), side = Math.round(72 * dpr);
-      var cands = ims.filter(Boolean).map(visible).filter(Boolean).sort(function (a, b) { return Math.max(a.w, a.h) - Math.max(b.w, b.h); });
-      if (!cands.length) { put(null); return; }
-      var pick = cands.filter(function (c) { return Math.max(c.w, c.h) >= dev; })[0] || cands[cands.length - 1];
-      var big = Math.max(pick.w, pick.h), scale = big > dev ? dev / big : Math.max(1, Math.floor(dev / big));
-      var w = Math.max(1, Math.round(pick.w * scale)), h = Math.max(1, Math.round(pick.h * scale));
-      // even with the badge's side, so that its centre is on a whole device pixel
-      var cw = w + ((side - w) % 2 ? 1 : 0), ch = h + ((side - h) % 2 ? 1 : 0);
-      var c = document.createElement("canvas");
-      c.width = cw; c.height = ch;
-      var g = c.getContext("2d");
-      g.imageSmoothingEnabled = scale < 1;
-      g.imageSmoothingQuality = "high";
-      g.drawImage(pick.im, pick.x, pick.y, pick.w, pick.h, Math.floor((cw - w) / 2), Math.floor((ch - h) / 2), w, h);
-      var f = { url: c.toDataURL("image/png"), w: cw / dpr, h: ch / dpr };
-      fitted[key] = f;
-      put(f);
-    }).catch(function () { put(null); });
-  }
-  function refit() {
-    Array.prototype.forEach.call(document.querySelectorAll(".badge.has-icon img[data-fit]"), function (img) {
-      var k = img.getAttribute("data-fit").split("|");
-      fitIcon(img, k[0], k[1]);
-    });
-  }
-  var lastDpr = window.devicePixelRatio || 1;
-  function nowRatio() { return (window.ByopopSkin && ByopopSkin.ratio ? ByopopSkin.ratio() : window.devicePixelRatio || 1); }
-  window.addEventListener("resize", function () { var d = nowRatio(); if (d !== lastDpr) { lastDpr = d; refit(); } });
-  window.addEventListener("byopop-zoom", function () { lastDpr = nowRatio(); refit(); });
-  function showPlayed(card, play) {
-    var line = card.querySelector(".played");
-    if (!play || !(play.plays > 0 || play.seconds > 0)) { if (line) line.hidden = true; return; }
-    if (!line) {
-      line = make("p");
-      line.className = "played";
-      card.insertBefore(line, card.querySelector(".buyrow"));
-    }
-    var when = play.last, m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(when || "");
-    if (m) {
-      var day = new Date(+m[1], +m[2] - 1, +m[3]);
-      if (when === ByopopPlay.today()) when = ByopopStrings.t("index.played_today");
-      else { try { when = day.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }); } catch (e) {} }
-    }
-    line.textContent = "";
-    line.appendChild(document.createTextNode(ByopopStrings.t("index.played", {n: play.plays, time: ByopopPlay.duration(play.seconds)})));
-    if (when) { line.appendChild(make("br")); line.appendChild(document.createTextNode(ByopopStrings.t("index.played_last", {date: when}))); }
-    line.hidden = false;
   }
 
   // What the IDBFS database called name holds, from its keys only: {game, saves, entries}. A key is a file's when it is in
@@ -1161,7 +801,7 @@ try {
   document.addEventListener("visibilitychange", function () { if (!document.hidden) check(); });
   window.addEventListener("storage", function (ev) { if (ev.key === null || ev.key === ByopopGameFiles.KEY || ev.key === ByopopPlay.KEY) check(); });
   // for web/addgames.js, after it adds a game
-  window.ByopopTiles = { check: check };
+  window.ByopopTiles = { check: check, explain: explainGame };
   try { ByopopAddGames.init(); } catch (e) {}
 })();
 </script>
@@ -1222,9 +862,10 @@ try {
   var saved = null;
   try { saved = localStorage.getItem(KEY); } catch (e) {}
   if (!fromHash() && byPanel(saved)) choose(byPanel(saved), false);
-  // (#sounds, the Sounds window's, is not a tab: the desktop opens it; settle takes the hash off the address again)
+  // (#sounds and #library, the Sounds window's and the Library's, are not tabs: the desktop opens them; settle takes the hash
+  // off the address again)
   window.addEventListener("hashchange", function () {
-    if (location.hash === "#sounds") { try { ByopopSkin.desk.show("sounds"); } catch (e) {} } else fromHash();
+    if (location.hash === "#sounds" || location.hash === "#library") { try { ByopopSkin.desk.show(location.hash.slice(1)); } catch (e) {} } else fromHash();
     try { if (window.ByopopApps) ByopopApps.settle(); } catch (e) {}
   });
   // a link to the tab that is already in the address (the hash does not change): the tab all the same, and the focus on it
@@ -1297,21 +938,21 @@ try {
 })();
 </script>
 <script>
-// Desktop 95's windows on the listing (web/skins.js, ByopopSkin.desk): the games, each of the tabs under them (Players, Saves,
-// Music, Settings) and the page's notes are windows of their own, each with its icon (the user, 2026-11-08: "There should be
-// separate windows for games, settings, and about, with icons for each"), kept where the player leaves them ("index" in
-// byopop-desk), open or closed; drawn on a wide screen. The games' window is open at first, the notes' beside it, and the
-// tabs' windows closed until their icons (or a link to #settings and the like) open them, one cascaded over the other; each
-// tab's icon has the tab's own picture. Under 760 pixels wide the tabs are tabs again, in their place under the games.
+// Desktop 95's windows on the listing (web/skins.js, ByopopSkin.desk): the games (the Library, web/library.js), each of the
+// tabs under the games' cards (Music, Settings) and the page's notes are windows of their own, each with its icon (the user,
+// 2026-11-08: "There should be separate windows for games, settings, and about, with icons for each"), kept where the player
+// leaves them ("index" in byopop-desk), open or closed. The Library is open at first, the notes' beside it, and the tabs'
+// windows closed until their icons (or a link to #settings and the like) open them, one cascaded over the other; each tab's
+// icon has the tab's own picture. The games' cards (main, built by cmake/ByopopWeb.cmake) are not shown on the desktop: the
+// Library reads them, and they are the page without its scripts.
 try {
   (function () {
-    var d = ByopopSkin.desk, head = document.querySelector(".site-header");
-    function top() { return head ? head.offsetTop + head.offsetHeight + 4 : 12; }
-    // (its bounds, as every window's, in docs/WEB_PLAYER.md's table: All games keeps its bar on two rows and one whole row of games)
-    d.add(document.querySelector("main"), { id: "games", title: ByopopStrings.t("skin.desk.games"), closable: true, body: true,
-      minWidth: 500, minHeight: 440, scroll: ".games", at: function (left) { return [left, top()]; } });
-    // the Library (web/library.js): the games as a grid, closed at first, its icon beside All games'
-    if (window.ByopopLibrary) ByopopLibrary.attach(d, function (left, vw) { return [Math.max(left, Math.min(left + 60, vw - 640)), top() + 40]; });
+    var d = ByopopSkin.desk;
+    // the windows' first places start under the desktop's top edge: the logo is at its bottom right (skins.css)
+    function top() { return 12; }
+    // the Library (web/library.js): the games as a grid, open at first, its icon first (its bounds, as every window's, in
+    // docs/WEB_PLAYER.md's table)
+    if (window.ByopopLibrary) ByopopLibrary.attach(d, function (left) { return [left, top()]; });
     ["settings", "music"].forEach(function (id, i) {
       var tab = document.getElementById("tab-" + id), sec = document.getElementById(id);
       if (!tab || !sec) return;
@@ -1323,7 +964,7 @@ try {
         minHeight: id === "music" ? function () { return window.ByopopMusicPanel && ByopopMusicPanel.minHeight ? ByopopMusicPanel.minHeight() : 0; } : null,
         // closing Music stops it and lets its sound go (web/music.js, shutdown); minimizing keeps it playing
         afterClose: id === "music" ? function () { if (window.ByopopMusicPanel && ByopopMusicPanel.shutdown) ByopopMusicPanel.shutdown(); } : null,
-        pic: tab.querySelector("svg"), at: function (left, vw) { return [Math.max(left, vw - 620) - i * 28, top() + 24 + i * 28]; } });
+        at: function (left, vw) { return [Math.max(left, vw - 620) - i * 28, top() + 24 + i * 28]; } });
     });
     // the soundboard (web/sounds.js): the games' sound effects, Desktop 95 only, closed at first, its icon after Music's
     if (window.ByopopSounds) ByopopSounds.attach(d, function (left, vw) { return [Math.max(left, vw - 600) - 140, top() + 52]; });
@@ -1333,11 +974,11 @@ try {
     // the Fonts window (web/fontview.js): the games' own fonts and text drawn in them, Desktop 95 only, closed at first, its icon
     // after the trophy cabinet's
     if (window.ByopopFontView) ByopopFontView.attach(d, function (left, vw) { return [Math.max(left, vw - 640) - 60, top() + 56]; });
-    // the Venice Buildings window (web/buildings.js): Venice's buildings whole and in one row, from the player's files, Desktop 95
-    // only, closed at first, where the listing has Venice, its icon after the Fonts window's
-    if (window.ByopopBuildings) ByopopBuildings.attach(d, function (left, vw) { return [Math.max(left, vw - 680) - 40, top() + 72]; });
+    // the Gallery (web/gallery.js): a game's pictures from the player's files (so far Venice's buildings, web/buildings.js),
+    // Desktop 95 only, closed at first, where the listing has a game with an entry, its icon after the Fonts window's
+    if (window.ByopopGallery) ByopopGallery.attach(d, function (left, vw) { return [Math.max(left, vw - 680) - 40, top() + 72]; });
     // the Guides window (web/guides.js, its texts web/guidetexts.js, docs/GUIDE_STYLE.md): the AI-generated guides, each under
-    // the window's AI-generated banner, Desktop 95 only, closed at first, its icon after the Venice Buildings window's
+    // the window's AI-generated banner, Desktop 95 only, closed at first, its icon after the Gallery's
     if (window.ByopopGuides) ByopopGuides.attach(d, function (left, vw) { return [Math.max(left, vw - 560) - 80, top() + 88]; });
     if (window.ByopopSplits) ByopopSplits.attach(d, function (left, vw) { return [Math.max(left, vw - 330), top() + 24]; });
     // the Setup window (web/setup.js): closed at first, no icon; Add Games in the Pop menu and the Add games button open it
@@ -1368,10 +1009,7 @@ try {
       } catch (e) { console.warn("the chat could not start", e); }
     }
     if (chatEl && window.ByopopChat) {
-      var chatPic = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      chatPic.setAttribute("viewBox", "0 0 24 24"); chatPic.setAttribute("class", "tab-icon");
-      chatPic.innerHTML = '<path d="M4 5h16v11H9l-4 4v-4H4z"/>';
-      d.add(chatEl, { id: "chat", title: ByopopStrings.t("game.chat.title"), closable: true, closed: true, lift: true, pic: chatPic,
+      d.add(chatEl, { id: "chat", title: ByopopStrings.t("game.chat.title"), closable: true, closed: true, lift: true,
         minWidth: 260, minHeight: 320, scroll: ".bpc-log, .bpc-nicks", at: function (left, vw) { return [Math.max(left, vw - 432), top()]; } });
       // it starts when the player first brings its window up, and only then: it never opens by itself (the user, 2026-11-11:
       // "Stop chat from opening on its own")
@@ -1382,16 +1020,27 @@ try {
     // System Information (web/sysinfo.js), in About's place: the footer is its General tab
     var sysEl = document.getElementById("sysinfo");
     if (window.ByopopSysInfo) ByopopSysInfo.mount(sysEl);
-    d.add(sysEl, { id: "about", title: ByopopStrings.t("index.sysinfo.title"), closable: true, body: true, pic: window.ByopopSysInfo ? ByopopSysInfo.picture() : null,
+    d.add(sysEl, { id: "about", title: ByopopStrings.t("index.sysinfo.title"), closable: true, body: true,
       fixed: true, at: function (left, vw) { return [Math.max(left, vw - 440), top() + 120]; } });
     ByopopSkin.deskSync();
     // the page opened at #settings and the like: that tab's window (the tabs' script ran before these windows were added)
     if (/^#(settings|music)$/.test(location.hash)) d.show("tab-" + location.hash.slice(1));
     if (location.hash === "#sounds") d.show("sounds");
-    // a game's window closed on its page: All games open and in front (web/shell.html, closeProgram)
+    // a game's window closed on its page: the Library open and in front (web/shell.html, closeProgram; "games" from a page
+    // of before the Library took in All games), as for the game page's Pop menu's Library (#library)
     var want = null;
     try { want = sessionStorage.getItem("byopop-desk-open"); sessionStorage.removeItem("byopop-desk-open"); } catch (e) {}
-    if (want === "games") d.show(ByopopSkin.gamesWindow ? ByopopSkin.gamesWindow() : "games");
+    if (want === "games" || want === "library" || location.hash === "#library") d.show("library");
+    // Uninstall from a shortcut's menu on a game's page, which asked and handed the game over (web/skins.js, uninstall): done
+    // here, where the games' import rules are, as the recycle bin does it (web/addgames.js, uninstall)
+    var gone = null;
+    try { gone = sessionStorage.getItem("byopop-uninstall"); sessionStorage.removeItem("byopop-uninstall"); } catch (e) {}
+    if (gone && window.ByopopAddGames && ByopopAddGames.has(gone)) {
+      d.show("library");
+      ByopopAddGames.uninstall(gone).catch(function (e) {
+        d.messageBox(ByopopStrings.t("library.title"), (e && e.message) || ByopopStrings.t("add.bin.failed"), false);
+      });
+    }
     if (want === "shutdown" && d.lastScreen) d.lastScreen(false);
     var sec = /^#settings-([a-z]+)$/.exec(settingsHash(location.hash));
     if (sec && d.find("set-" + sec[1])) { d.show("tab-settings"); d.show("set-" + sec[1]); }

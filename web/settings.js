@@ -48,7 +48,6 @@ var ByopopSettings = (function () {
     profile: { values: ["game", "fill", "create"], def: "game" },  // fill: names start with the site's player; create: and the player is made and chosen
     perf: { values: SWITCH, def: "off" },             // on: a game page shows its performance panel (web/perf.js), which only reads
     soundPanel: { values: SWITCH, def: "off" },       // on: a game page shows the sounds it plays (web/soundpanel.js), which only reads
-    gamesOpen: { values: ["games", "library"], def: "games" },  // Desktop 95: the window the games' entries open (web/skins.js)
     win95Only: { values: SWITCH, def: "off" },
     // Desktop 95's colour scheme (web/schemes.js), site-wide
     scheme: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.ids : ["standard"]), def: "standard" },
@@ -285,8 +284,6 @@ var ByopopSettings = (function () {
         return [["none", T("settings.theme.none")]].concat(T2 ? T2.offered().map(function (id) { return [id, T2.title(id)]; }) : []);
       } },
     { name: "win95Only", label: T("settings.win95only.label"), hint: T("settings.win95only.hint") },
-    { name: "gamesOpen", label: T("settings.gamesopen.label"), options: [["games", T("skin.desk.games")], ["library", T("library.title")]],
-      hint: T("settings.gamesopen.hint") },
     { name: "gameSize", label: T("settings.gamesize.label"), options: [["one", T("settings.gamesize.one")], ["fit", T("settings.gamesize.fit")]],
       hint: T("settings.gamesize.hint") },
     { name: "scanlines", label: T("settings.scanlines.label"), options: [["off", T("settings.off")], ["light", T("settings.scanlines.light")], ["strong", T("settings.scanlines.strong")]],

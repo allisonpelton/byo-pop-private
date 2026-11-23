@@ -36,7 +36,9 @@ The rules a session follows:
   `SwitchToThisWindow`, and `ShowWindow`, `ShowWindowAsync`, `SetWindowPos`, `DeferWindowPos` and `SetWindowPlacement`
   made non-activating), so that a copy on the user's desktop never takes the focus ("Yes, hook window activation
   calls", 2026-11-22, after Bejeweled Twist's 3D original held the user's foreground for a whole visrun run: "The
-  activation hook"). Any other hook needs the user's OK first.
+  activation hook"); and its `ClipCursor` and `SetCursorPos`, which do nothing, so that a copy never confines or
+  moves the user's cursor ("Yes, hook both", 2026-11-23, after Feeding Frenzy's original held the user's mouse in a
+  small rectangle: "The cursor guard"). Any other hook needs the user's OK first.
 - **No keygens.** Patch the check in the copy, or set the registry values the game itself writes when registered;
   never generate a registration code. How a copy's protection is handled is written only in the private notes
   under "Per-game status", which a published snapshot strips (`docs/PUBLISHING.md`).
@@ -412,6 +414,13 @@ for `--seed`'s value as four little-endian bytes), skips a trial prompt, or make
 approved the hover patch for test copies on 2026-11-01: rundesk's desktop has no cursor to read, so the patch
 makes a game take the mouse position from the posted message instead of `GetCursorPos`). origrun knows and
 generates none of the bytes; the game session that knows the code supplies them.
+
+**The user's cursor.** An original's `ClipCursor` and `SetCursorPos` reach the user's own cursor from rundesk's
+private desktop; the stand-in's cursor guard makes both do nothing ("The cursor guard"). A copy that runs without the
+stand-in (`--sound real`, or a game that loads no DirectSound from its folder: its RESULT: CURSOR line says so) needs
+the calls patched out instead (kind `safety`: pop the arguments and leave TRUE in `eax`; `ClipCursor(NULL)`, which
+frees the cursor, may stay), and a session that runs one watches `GetClipCursor` on the host: anything but the whole
+screen means stop.
 
 <!-- private -->
 The hover patch, as found on Bookworm Adventures: SexyAppBase's handler for a deferred message (FUN_00547ea0 in its
@@ -867,6 +876,28 @@ log says `RESULT: LAUNCH: no program, file or link launch from the game; the gua
 Seven Seas makes (`ShellExecuteA` with an `open` verb and a file path) is the test exe's first launch. A later try takes shots
 inside Windows Sandbox to see the dialog before it clicks.
 
+## The cursor guard (always on)
+
+The cursor's clip rectangle and its position belong to the whole window station, so rundesk's private desktop does not
+contain them: a copy that calls `ClipCursor` with a rectangle confines the user's own mouse to its hidden window, and one
+that calls `SetCursorPos` moves it. On 2026-11-23 repeated runs of Feeding Frenzy's original (`FeedingFrenzy.exe` on a
+rundesk desktop) held the user's mouse in a small rectangle near the top left, each clip its window's client area, about
+once every ten seconds while the runs went on. The user allowed the hook that day ("Yes, hook both").
+
+The stand-in (`tools/origrun/net.c`, beside the network block and the launch guard, by the same five-byte jumps) makes
+`user32!ClipCursor`, `user32!SetCursorPos` and the `win32u` system calls behind them (`NtUserClipCursor`,
+`NtUserSetCursorPos`) do nothing and say they succeeded, in the copy's process only, whoever there calls them (DirectDraw's
+exclusive mode as well as the game). Windows' are never called. The first 20 calls of a process are logged to
+`logs/net.log` as `CURSOR BLOCKED <function> <rectangle or point>`, the rest are counted, and the run's
+`RESULT: CURSOR` line gives the total. A copy that reads the cursor back gets what it got before: the scripted cursor
+(`--cursor scripted`), or on rundesk's desktop a failed `GetCursorPos`. visrun's runs carry the guard too.
+
+It is off inside Windows Sandbox, whose cursor is the sandbox's own (origrun sets `ORIGRUN_CURSORGUARD=off` there), so a
+game's own cursor warps there still happen as in the game. A copy that never loads the stand-in (`--sound real`, or a game
+that loads no DirectSound from its folder) has no guard, which the RESULT line says: patch its calls out of the copy
+("Patching the copy"). check.sh's origrun suite tests the guard on `nettest.exe` (`tools/origrun/nettest.sh`): the four
+jumps are in place, the calls succeed, the cursor's clip is unchanged and the three calls are logged and counted.
+
 ## The registry map (`--reg-map popcap`)
 
 A PopCap game of 2004 keeps its settings and players under `HKEY_LOCAL_MACHINE\SOFTWARE\PopCap\<Game>` (Typer Shark: the
@@ -1092,7 +1123,7 @@ game's registry key and 3D-flag address to games.tsv.
 | typershark | local install | from a copy under `build/origrun/typershark/game` (`games/typershark/docs/GAME_NOTES.md`, section 8) | | its loading thread runs on the wall clock: gate the first input with `waitfor` |
 | waterbugs | local install | sandbox, a fresh profile each run; shots by `--surface-screen` with `--surface-eip`; update counter 0x460a1c | none | full-screen DirectDraw, as Cosmic Bugs; `--input-eip` and a `mouse` patch for its input |
 | wordharmony | local install | host, virtual clock, scripted cursor, short `--stage-root`; its registry key is cleared before each run | none | trial (60 min) |
-| zumasrevenge | wrapped Steam exe | not run yet: stage the copy with `--copy-only`, put the game exe (`re/zumasrevenge/bin/ZumasRevengeGame.exe`) beside the wrapper, run it with `--exe` | | it imports `steam_api.dll` |
+| zumasrevenge | wrapped Steam exe | host, virtual clock (`--counter '[0x9fc740]+0x4c4' --update-ms 10`), from a copy staged under `--stage-root 'E:\byo-og'` with the game exe (`re/zumasrevenge/bin/ZumasRevengeGame.exe`) beside the wrapper and run with `--exe ZumasRevengeGame.exe`; no Steam, nothing patched, no network or launch calls, sound muted | Direct3D only | the window is 1600x1200 (its Hi-Res art), so clicks are in those pixels; sandbox shots come out flat (Direct3D is not reachable by GDI), so peeks only until a visible-desktop run; it writes its saves to `C:\ProgramData\Steam\ZumasRevenge`, which a run must move aside and leave absent as it was; a fresh profile into Jungle1: click the loading screen, `waitfor [0x9fc740]+0x934 != 0` (the name dialog), click (805,245), type a name, key 13, wait for that value to be 0 and for `0x9fc3a0 < 1`, click once (the map's pan), then about 900 updates later click (1300,600) twice (the jungle temple) |
 
 **The in-game frame reader's trials.** Bookworm Deluxe (the carved 1.03 `BookwormGame.exe`, windowed, 2D) passed
 with the reader of 6b5f6492 on 2026-11-22 (its config line: `reader_trial=passed 2026-11-22 6b5f6492`), with

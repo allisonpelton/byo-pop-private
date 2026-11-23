@@ -172,31 +172,36 @@ is a plain link opening a new tab (`rel="noopener noreferrer"`), never a script'
 `cmake/ByopopWeb.cmake` are the coordinator's, edited at a game's final merge: `BYOPOP_WEB_FINISHED` (the games with a
 page), `BYOPOP_WEB_UPCOMING` (`<target>|<title>` rows for "Coming soon"), `BYOPOP_WEB_BADGES` (initials and colour),
 `BYOPOP_WEB_RELEASED` (`<target>|<date>`, the first release of the Windows edition the site plays, its source in a
-comment) and `BYOPOP_WEB_WIN95` (yes, no or unknown). A tile carries them as `data-game`, `data-title`,
-`data-released` and `data-win95`, and `data-unsold` where no store sells the game.
+comment) and `BYOPOP_WEB_WIN95` (yes, no or unknown). Each game is a card in the page's `main` (`ul.games`), carrying
+them as `data-game`, `data-title`, `data-released` and `data-win95`, and `data-unsold` where no store sells the game;
+the listing's script adds `data-files` (yes, no or unknown) once it knows whether the game's files are here. The cards
+are the page without its scripts: Desktop 95 does not show them, and the Library ("The Library", below) reads its games
+from them.
 
 The user's rules for it:
 
-- **Games no longer sold** are hidden unless "Show games no longer sold" is ticked or the game's files are here (the
-  user, 2026-11-03: "default to hiding those games from the front page").
+- **Games no longer sold** are hidden unless the Library's "Show games no longer sold" is ticked
+  (`byopop-listing-unsold`) or the game's files are here (the user, 2026-11-03: "default to hiding those games from the
+  front page"); the box is there only while some game is no longer sold.
 - **Windows 95 games only** (`win95Only`) hides the games whose original did not support Windows 95, and the unknown
   ones; a game released before the last one whose readme names Windows 95 (TipTop, 2002-12-12) counts as yes (the
-  user, 2026-11-08).
+  user, 2026-11-08). The Library's status bar counts the games it hides ("3 hidden", the setting in its tooltip).
 - **Play time** counts only while the game runs and its page is shown and focused (the user, 2026-11-02: "Only count
   time with the game open and active"): `byopop-play` (`ByopopPlay` in `web/settings.js`).
 - **A game's icon** is read out of the player's exe (`web/exeicon.js`; `importIcon: true` in `page.js` for a game that
   does not store its exe) and never sent anywhere; a game without one shows its initials on a plain white square (the
   user, 2026-11-08: "bare initials for missing games").
-- **Buy links** are hidden once the player has ever loaded files for the game or played it here, so that the page never
-  suggests it is for copies not bought.
+- **Buy links,** at the foot of a game's menu in the Library, are hidden once the player has ever loaded files for the
+  game or played it here, so that the page never suggests it is for copies not bought.
 
 **Which games are yours** is `byopop-game-files` in localStorage (`ByopopGameFiles` in `web/settings.js`), never
 written with `?placeholders=1`; without an entry the listing looks in the game's database read-only, calling
 `indexedDB.databases()` first so that it never creates one. Forgetting a game's files (`ByopopImport.forgetGame`)
 keeps saves, mods and replays and holds the game's Web Lock. A game whose files were loaded here once and are gone
-shows a small "?" button on its tile, which opens a message box titled with the game's name (`ByopopApps.tell` in
-`web/deskapps.js`, with the information sign): the day the files were last loaded and the day they were forgotten, the
-likely causes, whether saves are still here, and the buttons Open game and Close.
+has "Why aren't my files here?" in its menu in the Library (and a small "?" button on its card in the page without
+scripts), which opens a message box titled with the game's name (`ByopopApps.tell` in `web/deskapps.js`, with the
+information sign): the day the files were last loaded and the day they were forgotten, the likely causes, whether saves
+are still here, and the buttons Open game and Close.
 
 ### Jungle Juice
 
@@ -206,8 +211,9 @@ placeholder with no third-party content. `byopop_web_jungle()` writes each `web/
 
 ### Adding games from the listing page
 
-`web/addgames.js` adds many games at once: a folder or .zip dropped on a finished game's tile is that game's, and
-anything else goes to the Setup window. **Sorting** (`ByopopImport.sort` in `web/gameimport.js`): a folder is a game's
+`web/addgames.js` adds many games at once: a folder or .zip dropped on a finished game's row in the Library is that
+game's, and anything else, or the Library's Add games, goes to the Setup window. Its panels (the adding rows and the
+bin) show at the top of the Library. **Sorting** (`ByopopImport.sort` in `web/gameimport.js`): a folder is a game's
 when it holds every one of the game's markers, and a marker may name alternatives (`"WinTS.exe|TyperShark.exe"`, Typer
 Shark's Steam and PopCap Game Collection exes); a folder of several games is looked into three levels deep; where two
 games' markers are at the same place the folder's name decides, else the player is asked. **Copying** writes the files
@@ -320,7 +326,17 @@ Desktop 95 is the site's only look, an affectionate parody of the 1995 desktop (
 skins, including the plain one"): `web/skins.js` sets `<html data-skin="d95">` and `web/skins.css` holds the look and
 the pages' colour variables (`--bg`, `--panel`, `--fg`, `--accent`, `--font-ui`, `--sk-*`). Only the player-only page
 has no skin. Its controls are drawn as the 1995 desktop drew them (the user, 2026-11-08: "Rounded corners are very
-un-95"), in our own SVG.
+un-95"), in our own SVG. Where a choice is between a plainer look and the one Windows 95 had, take Windows 95's, even when
+it changes every window or box on the site (the user, 2026-11-23: "Always prefer more authentic designs for the 95 look",
+on giving every message box's default button its black frame).
+
+**The logo** stands at the desktop's bottom right, above the task bar, under every icon and window (the user, 2026-11-23:
+"move the byo-pop logo to the bottom right"), where the icons' columns, filled from the top left, do not reach it at 800 by
+600, 1024 by 768, wider or narrow. It is still a drop target for game folders. The windows' first places start 12 pixels
+under the desktop's top edge (`top()` in `web/index.html`). **A box's buttons** (message boxes, the Splits dialogs, a
+game's Properties) are Windows 95's: the button Enter takes, which is the focused one or else the box's default (the class
+`d95-def`), has the black frame at its edge, so the frame moves with the focus from button to button and comes back to the
+default when the focus goes to a field; the focused one has the dotted rectangle from the box's opening on.
 
 **Windows.** A page is a desktop (`ByopopSkin.desk`) whose game, chat and panels are windows, added with
 `ByopopSkin.desk.add(element, {id, title, ...})`. The desktop never scrolls, and F6 moves between its panes. Alt+\`
@@ -362,11 +378,16 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
 - **Pictures** (the user, 2026-11-21: "The \"Pop\" menu is messed up, and could use icons"): a window has one picture at two
   sizes, its desktop icon's (`picOf`). The Pop menu's first level shows it large, beside the band, and the lists beside it
   show it small, as do the window's title bar and its task bar button; a game's list entry shows the small icon read from
-  its exe, else its cap. Entries that are no window draw their own (`drawnPic`: the games' folder, Setup's floppy disk,
-  full screen, the game's size, Music, Sounds, Shut Down's computer). A screen too short for the large pictures gets the
-  small ones on the first level too, and a list opens level with its entry, raised only as far as the task bar needs. The
+  its exe, else its cap. Every window that is not a game's is one of the site's apps and has the app's own icon (the user,
+  2026-11-22: "Give the other apps on the site better icons than just the window display"; "The site's apps' icons"
+  below), the same in each of those places and in Alt+Tab's box, its name in the tooltip as before; a window of no app
+  is drawn as a little window. Entries that are no window draw their own (`drawnPic`: the games' folder, full screen,
+  the game's size, Shut Down's computer), and a game page's Music, Sounds and Library show those apps' icons. A screen
+  too short for the large pictures gets the small ones on the first level too, and a list opens level with its entry, raised only as far as the task bar needs. The
   Pop button's mark is a yellow burst of our own, and the active window's task bar button is pressed with bold text
-  (struck twice, as the desktop's one-weight font draws every bold).
+  (struck twice, as the desktop's one-weight font draws every bold). Every picture lands on whole pixels of the screen,
+  at 1x and 2x: the task bar's buttons are 160 wide while they fit and share the room out in whole pixels when they do
+  not (`fitTasks`), and a title bar of its own height (the Library's) leaves its icon whole pixels from its edge.
 - **Tooltips:** drawn as 1995's, a pale yellow box with a black border half a second after the pointer rests. The
   browser draws its own for any title under the pointer, so the titles of the element and of its titled ancestors are held
   off them until the pointer leaves the element: moving onto a child of it (a Sounds button's label), a press, a key and
@@ -378,8 +399,9 @@ listing shows it (`byopop-desk-open` "shutdown"), and from a window's page the d
   `byopop-master-mute`). Everything the site plays follows it, each sound at its own level times this one: the games,
   through a gain the game's page puts after its output node (`siteVolume` in `web/shell.html`, which the hush in
   `web/deskapps.js` then takes off the speakers), plus Music, Sounds and a theme's sounds.
-- **The Recycle Bin's icon,** on the listing: it opens All games' bin, and a game's cap dropped on it asks there to forget
-  that game's files. It is full while the bin holds the names of the games forgotten (`byopop-bin`), until Empty Recycle
+- **The Recycle Bin's icon,** on the listing: it opens the bin's panel in the Library, and a game's row dragged out of
+  the Library and dropped on it asks there to forget that game's files (Uninstall, in the Library's and a shortcut's
+  menus, does the same through the same code: "The Library", below). It is full while the bin holds the names of the games forgotten (`byopop-bin`), until Empty Recycle
   Bin, from its menu, clears them. A favourite's desktop shortcut dragged onto it lights it, and dropped there it is taken
   out of the favourites, as its menu's Remove from favourites does. The game's files and its place in the listing stay,
   and the bin does not fill. As with Windows 95's drag to the bin, nothing asks first and no sound plays. Any other icon
@@ -473,14 +495,13 @@ badly:
 
 | Window | Kind | Least | Most | Why |
 |---|---|---|---|---|
-| All games | sizable | 500 × 440 | the room | its bar on two rows and one whole row of games |
-| Library | sizable | 560 × 200 | the room | its six columns, five rows |
+| Library | sizable | 560 × 200 | the room | its bar on one row, its columns, five rows |
 | Music | sizable | 360 × its player and three rows | the room | its controls on one row |
 | Sounds | sizable | 300 × 200 | the room | its bar on one row, four rows of sounds |
 | Splits | sizable | 240 × 180 | the room | its menu bar on one row, the timer and its two lines under it |
 | Trophy Cabinet | sizable | 300 × 200 | the room | its player list on one row (an empty cabinet was all there was to see) |
 | Fonts | sizable | 480 × 300 | the room | its game, font and Save As on one row, and a row of the sample sheet |
-| Venice Buildings | sizable | 420 × 260 | the room | its picture and Save As on one row, and a building's height of the well at 25% |
+| Gallery | sizable | 420 × 290 | the room | its game list, Venice's picture and Save As on one row, and a building's height of the well at 25% |
 | Guides | sizable | 320 × 240 | the room | its game list, the banner and a few lines of the guide |
 | Chat (both pages) | sizable | 260 × 320 | the room | its controls and five lines of messages |
 | A game in a window | sizable | its game at the multiple drawn, its status bar and frame | the room, and Maximize | `web/deskapps.js` |
@@ -556,7 +577,8 @@ opens a tab.
   a warning (below). The window in front has the focus, and the other games' frames get the window blur the framework
   listens for (`EmscriptenFocusCallback`), so each behaves as a page that lost the focus.
 - **The chat is one window for every game** ("The chat"), a message tagged with the game in front.
-- **Closing a game** returns to the window the setting `gamesOpen` names (All games or the Library).
+- **Closing a game** returns to the listing with the Library open and in front (`byopop-desk-open`), as a game page's
+  Pop menu's Library (`./#library`) does.
 
 **How many games at once.** Up to 2026-11-16 the desktop opened at most three games, and one on a narrow screen; a
 fourth got a message box naming the limit. Asked whether the cap should become a warning past a memory budget, the user
@@ -597,10 +619,45 @@ driver's reset ends the same way.
 
 ### The Library
 
-The listing's second window of the games (`web/library.js`): a sortable grid evoking a game client of 2004, named for
-no real program, built from the listing's own tiles and `ByopopPlay` so the two windows agree. A game's Properties
-(its menu) are a property sheet of its values and, below them, a table of each site player's plays, time, first and last
-day (the user, 2026-11-11: playtime per profile). `ByopopPlay` (`web/settings.js`) keeps them in `byopop-play`, by the
+The listing's window of the games (`web/library.js`): a sortable grid evoking a game client of 2004, named for no real
+program, built from the listing's cards and `ByopopPlay`. On 2026-11-23 it took in every feature of All games, the
+listing's first window of the games, which went (the coordinator's list of 2026-11-22: "Add all the features from All
+games to Library and then get rid of the all games window"). A desk saved before then comes back with the Library in
+All games' place and size where it had none of its own, open if either was (`RENAMED` and `merged` in `web/skins.js`), and the old sort
+(`byopop-listing-sort`) is read once into the Library's own (`byopop-library-sort`).
+
+- **Its bar:** Play, Add games (the Setup window), Show games no longer sold (while some game is) and Filter, which
+  finds a game by any word of its title with a letter or two wrong (All games' Find).
+- **Its columns:** Name, Status (Ready, Needs your files, Files unknown, Coming soon, No longer sold), Phase on a
+  development host, Plays, Play time, Last played, Year, and Popular, every player's plays, when the site's play
+  counter answers (its tooltip says how many play now). A header sorts by its column; Plays, Play time and Popular
+  sort most first at the first click. A narrow desktop shows Name, Status, Phase where it is shown, and Play time.
+- **Its status bar:** the count, the games Windows 95 games only hides, and the link to Jungle Juice with its line.
+- **A row:** double-click or Enter plays the game. A game whose files are here can be dragged to the Recycle Bin's
+  icon, and a folder or .zip dropped on a row is that game's files. Its menu has Play, Add files, Uninstall, the
+  favourite, Properties, "Why aren't my files here?" where that applies, and the buy links. A game's Properties are a
+  property sheet of its values and, below them, a table of each site player's plays, time, first and last day (the
+  user, 2026-11-11: playtime per profile).
+
+**Uninstall** (the coordinator's list of 2026-11-22: "an uninstall option with confirmation in the Library and shortcut
+context menus, in addition to the recycle bin"), in a game's menu in the Library and in its desktop shortcut's menu,
+greyed while the game's files are not here. It asks Windows 95's question in a message box, "Confirm Uninstall" with the
+question sign, Yes and No, No the default (Escape and Enter on it), and Yes does what a game dropped on the Recycle
+Bin does, through the same code (`ByopopAddGames.uninstall` in `web/addgames.js`): `forgetGame` deletes the game's
+folder (`<persist>/game`) under its Web Lock and its screen saver profile (`<persist>-saver`), the record says the
+files were forgotten that day, and the game goes into the bin's list (`byopop-bin`). Its saves, mods, replays and
+play time stay, as do its favourite and its place in the Library, and the row and the shortcut show it at once. A
+game open in another tab is refused with the bin's message. On a game's page, whose shortcuts are the favourites, Yes
+hands the game to the listing (`byopop-uninstall` in sessionStorage), which uninstalls it with the Library in front.
+The bin itself is unchanged. `tools/web/uninstallcheck.js`, a page driver, uninstalls a stand-in game three ways (the
+bin, the Library's menu, a shortcut's menu) and checks that each leaves the same state, that No and Escape change
+nothing, the greyed entries and where the focus goes.
+
+**Its contrast** (Lighthouse, 2026-11-22: 8.3 pt text at 4.5:1): each colour moved the least that reaches 4.5:1, the
+label and the dim text going lighter. The Filter label and the count, #a0a890 on #4c5844, are #c5cabc (4.50:1); the
+status and year of a game that is not ready, #a0a890 on #3e4637, are #acb39d (4.54:1); the selected row, white on
+#958831, is on #82772b (4.54:1), and the sort arrows keep #958831. The inactive title bar, #c0c0c0 on #808080, stays
+1995's. `ByopopPlay` (`web/settings.js`) keeps them in `byopop-play`, by the
 current player's id in `by` beside the totals, and the save backup keeps and merges them (`web/saves.js`, `mergedPlay`).
 
 ### Desktop themes
@@ -762,13 +819,22 @@ checks the reader on fonts made for it, then reads every font of the staged game
 Venice; Bonnie's; Jolly Bear's in the Mahjong Escapes; Ning Po's, Tip Top's and Word Harmony's) are not read yet, so those
 games' Font lists are empty.
 
-### The Venice Buildings window
+### The Gallery
 
-The Venice Buildings window (`web/buildings.js`; the user, 2026-11-18: "I'd love to see a combined image of all of Venice's
-buildings as a continuous shot, if something like that is possible, and full images of the individual buildings of Venice")
-is a Desktop 95 window on the listing's desktop, closed at first, its icon after the Fonts window's, there only where the
-listing has Venice. It reads Venice's files as the Fonts window does, its status line "No game files" when they are not in this browser. Its
-Picture list holds All the buildings, Building 1 to Building 8 in the order Journey builds them, and the Trophy; Background
+The Gallery (`web/gallery.js`; the user, 2026-11-22: "Rename Venice Buildings to Gallery; we'll collect other interesting
+graphics there for each game once they're all done. In particular, I'd like to show off animations and other things you
+can't see just by looking at the image files directly") is a Desktop 95 window on the listing's desktop, closed at first, its
+icon (a framed picture) after the Fonts window's, there only where the listing has a game with an entry. Its Game list, named
+as the listing names the games, holds those games, and under it the chosen game's entry draws its own controls, picture and
+status line; an entry is a module whose `panel(game)` makes the panel, listed in the Gallery's `ENTRIES`. A window that was
+Venice Buildings on a saved desktop (the id `venicebuildings`, open or closed, placed, its icon moved) comes back as the
+Gallery (`RENAMED` in `web/skins.js`). Other games' entries wait until the ports are done and the user has ruled on a survey
+of what to show.
+
+One entry so far, Venice's buildings (`web/buildings.js`; the user, 2026-11-18: "I'd love to see a combined image of all of
+Venice's buildings as a continuous shot, if something like that is possible, and full images of the individual buildings of
+Venice"). It reads Venice's files as the Fonts window does, its status line "No game files" when they are not in this
+browser. Its Picture list holds All the buildings, Building 1 to Building 8 in the order Journey builds them, and the Trophy; Background
 puts the level select's scene behind them or leaves them on their own (None, clear in the saved picture); Zoom is 25% to
 200%; and Save As writes the picture shown at its own pixels as a PNG (`venice-buildings.png`, `venice-building-3.png`,
 `venice-trophy.png`). The whole row is 3280 by 600 pixels with its scene and 3255 by 434 without; a building is 400 by 600
@@ -802,7 +868,7 @@ toward zero), the trophy at 2976, and the quay and the water reaching both ends.
 The Guides window (`web/guides.js`, its texts in `web/guidetexts.js`) holds the site's AI-generated guides, the one exception
 to the rule of values, not sentences (the user, 2026-11-18: "I've decided I'm actually ok with AI-generated guides for the
 games that actually benefit from it on the site, as long as they are clearly marked as AI-generated"). It is a Desktop 95
-window on the listing's desktop in the manner of a help topic, closed at first, its icon after the Venice Buildings window's,
+window on the listing's desktop in the manner of a help topic, closed at first, its icon after the Gallery's,
 with a guide for each game of the listing that has one; it needs none of the game's files. Its Game list chooses the guide,
 and the white page shows it under a banner the window draws for every guide, "AI-generated guide" with the date it was checked
 against the game's code, and the status line says AI-generated beside the count of tips. A guide is drawn as text only. How a
@@ -1033,6 +1099,23 @@ scrolls (2026-11-09); closing the window stops the music and frees what it held 
 `ByopopMusicPanel.held()` tells a test what is still held). Each format in the list names itself in full as a tooltip
 (the user, 2026-11-16: "I don't know what an IT is, Show what the extension stands for").
 
+**Repeat** (the user, 2026-11-22: "Repeat seems to break on some tunes, like BookWorm's game over 2, and in any case the
+position indicator doesn't loop back to the start") goes round a tune as its game would, and the seek bar and the time go
+round with the sound. A subsong whose decoder goes on, once it has played through, at a place the tune has played and with
+sound there follows that loop seamlessly, as the game hears it (`loopOf`: libopenmpt tells the place, libxmp-lite is
+played across its end), and its position goes back to the time the tune first reached that place, after the intro where
+there is one. The decoder's own time cannot be shown as it is: libopenmpt's counts on past the end once a tune has gone
+round, and libxmp-lite's mostly goes back by itself, so while a loop is followed the player looks at the decoder's place
+every 512 frames and keeps the time each place was first reached. A loop into another tune's orders (Dynomite's Time
+Trial Clear goes on at an order of its Game Over), into a silent pattern that jumps to itself (BookWorm's two game overs,
+which the games play once) or past the tune's own time plays the tune again from its start instead, as does a range of
+orders, a cut piece or a joined playlist; a recorded tune goes round to its loop's start (`loopFrom`), a MIDI song to its
+start. `tools/musicrepeattest.js` plays every tune of every staged game past its end with repeat on, unheard at 8000 Hz,
+and checks that the sound goes on, that it goes on from where the decoder itself goes on (or the start, as above), and
+that the position falls back there; before the fix 137 of its 223 tunes failed, nearly all because the position never went
+back, and BookWorm's game overs looped on a silent pattern for ever. For about twenty subsongs libopenmpt's length is
+0.7 to 1.1 seconds longer than the tune plays, so the seek bar goes back from just short of its end.
+
 **Shuffle** (the user, 2026-11-19: "make the shuffle group together tracks that are only ever played in direct sequence,
 never play unused tracks, and skip tracks that would not make sense to have on shuffle (for instance, no intros, short
 themes that could just as well be sound effects, or stings)") is a toggle beside Repeat, kept in `byopop-music-shuffle`.
@@ -1042,6 +1125,66 @@ Money's level-up fanfares and the pause tunes they run into) is drawn as one and
 tunes, unused patterns, a tune under 20 seconds outside a group (a sting, fanfare or jingle), and those `shuffle.out`
 names (intros, loading, splash and logo tunes). Previous goes back the way it came; picking a tune goes on shuffling
 from it.
+
+**Rip style, themes and series** (the user, 2026-11-22: "Add a "rip-style" toggle to the music player that loops themes
+twice when they would normally be looped in game (rather than going to another track or simply ending) and does a fade out
+at the start of the third loop over a short period, with an option to instead transition using the game over theme the way
+the game does it, if applicable. Also add an option for autoplay to stop after going through a single game, and an option
+that only plays themes and skips one-offs like a game over sound unless they lead into another track (as in Big Money).
+Finally, allow looping a series of tracks that can play together, like Bejeweled 2 for each of its modes."). The window has
+a menu bar, as a player's window had, with one menu, Options (Alt+O): Rip Style, Game Over Ending (greyed while Rip Style
+is off), a rule, Stop After Game and Themes Only, each ticked while it is on, kept in `byopop-music-rip`,
+`byopop-music-rip-over`, `byopop-music-one-game` and `byopop-music-themes`, and heard at once on the tune playing. They
+read what each game does at a tune's end from `soundtracks.js` (`loops`, `once`, `next`, `stings`, `gameOver` and
+`series`, documented in its header and filled for every game from its code and notes; Word Harmony's `intenseEnd`, which
+the game may never play since its stop fades the drums layer out before that last clip, stays the table's game-over tune,
+played once).
+
+- *Rip Style*: with Repeat off, a tune the game loops (`loops`, or a series played as one tune) goes round as with Repeat,
+  intro once, and from the start of its third pass fades out over ten seconds and ends, then autoplay goes on. Two loops
+  and a ten second fade are vgmstream's defaults, the usual figures for game rips. A tune the game plays once plays once.
+  It counts the passes by the tune's position going back, the same for every kind of source: a subsong round its own loop,
+  a range of orders, a cut piece, a playlist of joined pieces round to its loop piece, decoded sound, a MIDI song and a
+  series of one module's pieces. A short loop goes on round during the fade, as a rip's does. With Repeat on, Repeat wins.
+  A seek starts the count again.
+- *Game Over Ending*: where the game goes from a looping tune into its game-over tune (`gameOver`: Atomica, AstroPop, Big
+  Money, both BookWorms, Bejeweled Twist, Dynomite, Seven Seas, Typer Shark, Ningpo, Noah's Ark, Heavy Weapon, Rocket
+  Mania), the start of the third pass goes into that tune the game's way instead of the fade: at once (`cut`), the tune
+  faded out over the game's time and then the other (`fade`), or the two crossed over that time, the one fading out as the
+  other fades in (`cross`, the framework's FadeOut and FadeIn), the time from the game's own fade speed. The game-over
+  tune is read and made ready during the last pass and handed over without a pause; the list and the display then show it,
+  and autoplay goes on after the tune that led into it, passing over the game-over tune.
+- *Stop After Game*: autoplay stops where the next tune would be another game's, or the game's first again; with Shuffle
+  on, it draws only from the game playing, each of its tunes once after the one chosen, and then stops.
+- *Themes Only*: autoplay, Next and Previous pass over a one-off (`stings`: game-over tunes, fanfares, level-complete
+  stings, results) that leads into no other tune, and Shuffle never draws one. A one-off that does lead on (`next`: Big
+  Money's level-up fanfares into their pause tunes) stays, and its tune plays after it; with Shuffle the two are drawn as
+  one.
+- With Rip Style or Themes Only on, autoplay follows `next` as the game does (in Shuffle only a one-off's), then goes on
+  after the tune that led there.
+- *Series* (`series`): tunes a game plays in turn as one set are an entry of their own in the game's list, after its tunes,
+  its place "Series": Bejeweled 2's Classic Mode (its eight pieces) and Action Mode (six), Bejeweled Twist's In-Game (its
+  six level tunes, a level each), and the two Mahjong games' Layout Select. Pieces of one module are one tune of all their
+  segments, which goes on from piece to piece as the game does; any other set plays tune by tune. Repeat on a series goes
+  round the whole set, never one member; Rip Style plays the set twice and fades. Autoplay and Shuffle pass over series,
+  which play when chosen. In the game Bejeweled 2's last Classic piece runs on into Action Mode's first and the last Action
+  piece back to Classic's first, so a long game goes round all fourteen; the series follow the user's "each of its modes".
+
+`tools/musicfieldstest.js` (unit-web) checks the fields for every game against the list `tunesOf` makes from the staged
+files: each tune the list shows in exactly one of `loops`, `once` and `next`, every id named one of the game's tunes, a
+`next` and a `gameOver` leading to another tune, a `gameOver` from a tune the game loops with its way and time, and each
+series an entry with its members. It then plays, unheard at 8000 Hz through the player's own sources and `ripStyle`, the
+shortest looped tune of each kind (subsong, range, piece, decoded, joined, MIDI, series of pieces): two passes, then a ten
+second fade from the third pass's start with no sound at its end, and with Repeat on no end; a tune played once ends
+after one pass; and each Game Over Ending way between stand-in tunes, handed over at the third pass's start, at once or
+after the game's time.
+
+**Bookworm Adventures' titles** come from the game's own music player list, which `scripts/battleengine.luc` builds
+(Bookworm Adventures' session, 2026-11-22): `titles` takes `{luc, list, data}`, a string of a Lua script read as the
+listing scans the game (`lucConstants` reads PopLua's Lua 5.0 constants, its own tags: 4 a whole number, 5 a string; the
+function whose constants hold `"NeedsMPDialog"`), the one just before the whole number that is the tune's order there, or
+with `after` the after-th string following it (Book 1's battle tune, whose order 0 the list does not write again). The
+titles are never written into the repository; `musicfieldstest` checks each is found.
 
 **Nothing drawn unseen** (the user, 2026-11-15: lower the web builds' processor time; the site's animated parts do no work
 while nobody can see them). Music's views and the Splits window's running timer draw a frame at a time only while their
@@ -1084,7 +1227,9 @@ notes:
   basis?"; `tuneUsed`). The FX button adds an effect column (the user, 2026-11-11: "add a brief English description of
   tracker commands when they appear in the song as an optional column"), its words `music.fx.*` in `en.txt`. The "?"
   beside it opens a message box on how to read the tracker (`music.tracker_help`), which was in About until System
-  Information took its place.
+  Information took its place. A note held is a faint line of the display's colour down the middle of its place, from the
+  row after it until the channel's next note, note-off, cut or fade, or the pattern's end, as the piano roll's bars show it
+  (the user, 2026-11-22: "Yes, add the line"; `heldRuns`); a row with only an effect does not end it.
 - **The piano roll** (the user, 2026-11-09: "add the piano roll too") has rows at least 4 pixels (the user,
   2026-11-11: "way too zoomed out") and instrument names (the user, 2026-11-11: "If there is any way to get instrument
   names, let's do it"; `bm_names`, `byopop_music_names`).
@@ -1463,6 +1608,28 @@ console's `download_depot <app> <depot>` downloads any depot of a game the accou
 `logo.svg`, which `web/logo.js` puts inline, and `cap.svg`) are the sources, edited by hand; `favicon.ico` and
 `apple-touch-icon.png` are made from `favicon.svg` by `python tools/brand_icons.py` (with headless Edge), run after a
 change to it. The colours are taken from PopCap's classic logo; the shapes and lettering are byo-pop's own.
+
+### The site's apps' icons
+
+Each of Desktop 95's apps has an icon of its own, drawn by `tools/appicons.py` into `web/appicons.js` (run it after a
+change; `--preview` also writes `build/appicons.png`, every icon at four times its size). They are our own drawings in
+the manner of 1995's program icons, as `tools/settingsicons.py` draws the Settings sections': a few hard-edged shapes in
+the 16-colour palette, outlined in black, drawn at 32 by 32 and again at 16 by 16 (each its own drawing, with the detail
+a small icon cannot hold left out, never the large one scaled down), and written as SVG of one rectangle per run of a
+colour, so that they stay sharp at the desktop's 2x zoom. None holds text but the Fonts window's letter A. Their colours
+are the same on every colour scheme, as a program's icon was on any wallpaper, so none is drawn mostly in black or a dark
+colour that would be lost on the dark desktops (Cola, Grape, Cherry): Music's notes stand on a silver disc, the A is white
+inside its outline. The apps and their pictures: the Library (books on a shelf), Setup (an open box with an arrow into it), Settings (a panel of three sliders, the listing's folder and a game
+page's panel alike), Music (two beamed notes on a disc),
+Sounds (a board of six pads), Splits (a stopwatch), the chat (a balloon with three dots), System Information and a
+game page's About (a tower computer), Performance (a line chart), the Trophy Cabinet (a cup), Fonts (a serif A), the
+Gallery (a picture in a gold frame), Guides (a book with a question mark), and on a game's page Controls (a keyboard),
+Game files (a folder with its pages), Mods (a wrench over a screwdriver) and Replays (a video cassette). `web/skins.js`
+(`appIcon`) finds a window's app by its id less `tab-` or `panel-`, and a Settings section's window (`set-`) by its
+section in `web/settingsicons.js`; the large picture goes on the desktop, in the Pop menu's first level and in Alt+Tab's
+box (for a window with no desktop icon too, such as Setup or a Settings section), the small one in title bars, on task
+bar buttons and in the menus' lists. A game page's Chat and panels draw their own headers, which have no control menu
+and so no icon; theirs show everywhere else.
 
 ## Testing other copies of a game: `?placeholders=1`
 

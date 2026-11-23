@@ -1,4 +1,4 @@
-// The Venice Buildings window's layout (web/buildings.js) under Node: node tools/buildingstest.js [assets]
+// The Gallery's Venice buildings, their layout (web/buildings.js) under Node: node tools/buildingstest.js [assets]
 // First on scenes made here: the tags and the scene tree with each stage's end values, the config's frames and lists, the
 // row's places as LevelSelect::Load makes them, and a small scene laid out (a layer at its home place, a picture rounded
 // where it is not bilinear, a scaled one centred, a tiled row with its clip carried to the row's ends, the screen's sky

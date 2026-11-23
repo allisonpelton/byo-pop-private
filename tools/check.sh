@@ -48,7 +48,7 @@
 #   unit-web     rulestest, modsettingstest and jpegtest (the JPEG decoder's error paths, through Emscripten's longjmp) under Node (needs build-web); paktest (the page's pak reader), with
 #                Bookworm Adventures' main.pak against assets/bookwormadv when both are there; profilestest (the page's
 #                settings and players code, web/settings.js and web/profiles.js, on a fake localStorage), savestest (the
-#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), fontviewtest (the Fonts window's reader of the games' fonts, web/fontview.js, with the staged games'), buildingstest (the Venice Buildings window's layout, web/buildings.js, with the staged Venice's), guidestest (the guides' markup and style rules, web/guides.js and web/guidetexts.js), gamepicstest (the themes' picture decoders, web/gamepics.js), saveimporttest (the import of saves from an installed game:
+#                save backup's zip, paths and merge, web/saves.js), trophiestest (the trophy cabinet's reader, web/trophies.js), fontviewtest (the Fonts window's reader of the games' fonts, web/fontview.js, with the staged games'), buildingstest (the Gallery's Venice buildings, their layout, web/buildings.js, with the staged Venice's), guidestest (the guides' markup and style rules, web/guides.js and web/guidetexts.js), gamepicstest (the themes' picture decoders, web/gamepics.js), saveimporttest (the import of saves from an installed game:
 #                platform/saveimport.json, the .reg reader and the conversion, web/saveimport.js), chattest (the chat's username,
 #                text and rate rules, its stored history and local source, and that a message goes on the page as text only,
 #                web/chat.js), gameimporttest (the import rules for a game's files and the sorting of dropped folders into games,
@@ -63,7 +63,12 @@
 #                cursors) and resizetest (web/skins.js: a run of the browser's resize events, as Firefox's full-screen
 #                transition sends, reaches the page as its first and one more once it settles) and linkstest (tools/linkstest.js: every link to the site's own licence, terms and copyright pages
 #                opens in a new tab) and musictest (tools/musictest.js: the music player's decoder, its tracker view's rows and
-#                its seek, on a module the test makes and a staged MO3 when there is one) and soundfilestest
+#                its seek, on a module the test makes and a staged MO3 when there is one, and every unused
+#                pattern the Music window lists, each one's tracker view at its first frame) and musicrepeattest
+#                (tools/musicrepeattest.js: every staged tune played with repeat on past its end, the sound going on from where
+#                the decoder goes on and the position going back there) and musicfieldstest (tools/musicfieldstest.js: every
+#                staged game's end fields against its tunes, and Rip Style on the shortest looped tune of each kind, its fade from
+#                the third pass's start and each Game Over Ending way) and soundfilestest
 #                (tools/soundfilestest.js: every sound the Sounds boards name is staged and in a format every browser plays, by
 #                its own header: Ogg Vorbis, MP3, PCM WAV, or one the site decodes itself) and autosplittest
 #                (tools/autosplittest.js: the speedrun timer's auto splitters decide as their references, Bejeweled's lsdecide.py
@@ -81,7 +86,7 @@
 #                explained; a game with no list is reported as "no list yet" and does not fail yet (seconds; needs no game files)
 #   origrun      tools/origrun/build.sh into build/logs/check/origrun-bin (not into build/origrun-bin, whose origrun.exe
 #                may be running): that the host and its sound stand-in still compile, and --coverage on covtest.exe
-#                (tools/origrun/covtest.sh; seconds), and the network block and launch guard on nettest.exe (tools/origrun/nettest.sh; seconds);
+#                (tools/origrun/covtest.sh; seconds), and the network block, launch guard and cursor guard on nettest.exe (tools/origrun/nettest.sh; seconds);
 #                not in `all`
 #   speed        every finished game follows the game speed (tools/speedcheck.py): each game's exe run natively in real time, 3 at
 #                a time, for a few seconds at 0.5x and at 2x with -speed and -speedprobe; its updates per real second and its game
@@ -378,7 +383,7 @@ suite_weight() { WEIGHT=1; [ "$1" = speed ] && WEIGHT=3; [ "$1" = bonnies ] && [
 # ---- merge mode (--changed): the suites a change can affect ----
 
 # Rough seconds on this machine (the last `all` run, 2026-11-02); the plan adds them up, no more
-declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
+declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=240 [gpu]=1 [screens]=1 [origrun]=5 [speed]=150 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
 	[waterbugs]=230 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=560 [astropop]=60 [typershark]=480 [venice]=40 [heavyweapon]=120 [hammerheads]=40 [peggle]=10 [pizzafrenzy]=180 [feedingfrenzy]=240 [feedingfrenzy2]=340 [bejeweled3]=330 [oracle]=1080)
@@ -958,7 +963,7 @@ suite_unit-web() {
 	# the Fonts window's reader of the games' ImageFonts (web/fontview.js), with every staged game's fonts
 	"$NODE" tools/fontviewtest.js assets > "$1.fv" 2>&1 || st=1
 	tr="$tr; $(lastof "$1.fv" 'fontviewtest:')"
-	# the Venice Buildings window's layout of the level select's row (web/buildings.js), with the staged Venice's
+	# the Gallery's Venice buildings, their layout of the level select's row (web/buildings.js), with the staged Venice's
 	"$NODE" tools/buildingstest.js assets > "$1.vb" 2>&1 || st=1
 	tr="$tr; $(lastof "$1.vb" 'buildingstest:')"
 	# the guides' markup and the rules of docs/GUIDE_STYLE.md that a program can check (web/guides.js, web/guidetexts.js)
@@ -1012,6 +1017,14 @@ suite_unit-web() {
 	local r
 	"$NODE" tools/musictest.js "$web/openmpt.js" assets > "$1.mu" 2>&1 || st=1
 	r="$(lastof "$1.mu" 'musictest:')"
+	# Repeat in the music player: every staged tune played past its end goes on, from the right place, its position going back (tools/musicrepeattest.js)
+	local mr
+	"$NODE" tools/musicrepeattest.js "$web/openmpt.js" assets > "$1.mr" 2>&1 || st=1
+	mr="$(lastof "$1.mr" 'musicrepeattest:')"
+	# the music player's end fields for every staged game, and Rip Style's passes, fade and Game Over Ending on each kind of tune (tools/musicfieldstest.js)
+	local mf
+	"$NODE" tools/musicfieldstest.js "$web/openmpt.js" assets > "$1.mf" 2>&1 || st=1
+	mf="$(lastof "$1.mf" 'musicfieldstest:')"
 	# every sound the Sounds boards name is staged and in a format every browser plays, by its own header (tools/soundfilestest.js)
 	local sf
 	"$NODE" tools/soundfilestest.js assets > "$1.sf" 2>&1 || st=1
@@ -1037,7 +1050,7 @@ suite_unit-web() {
 	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
 	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
 	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.tr" "$1.fv" "$1.vb" "$1.gd" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.sf" "$1.as" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $rz; $q; $r; $sf; $as; $u; $v; $w; $o"
+	SUMMARY="$a; $b; $c; $d; $e; $tr; $gp; $g; $h; $i; $f; $j; $k; $l; $m; $n; $rz; $q; $r; $mr; $mf; $sf; $as; $u; $v; $w; $o"
 	return $st
 }
 

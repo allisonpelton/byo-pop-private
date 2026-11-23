@@ -50,7 +50,13 @@ for pass in 1 2; do
 	else [ "$lcnt" = "$lfirst" ] || { echo "FAIL (run 2): RESULT counts $lcnt blocked launches, the first run counted $lfirst"; st=1; }; fi
 	[ ! -e "$work/game/nettest-launched.txt" ] || { echo "FAIL (run $pass): a launch got through: nettest-launched.txt exists"; st=1; }
 	grep -q 'NET BLOCKED connect 127.0.0.1:' "$rd/logs/origrun.log" || { echo "FAIL (run $pass): origrun's log lacks the connect line with its address"; st=1; }
+	# the cursor guard: ClipCursor (a rectangle, then NULL) and SetCursorPos blocked and logged, and counted in RESULT: CURSOR
+	for fn in 'ClipCursor 10,10-20,20' 'ClipCursor NULL' 'SetCursorPos 15,15'; do
+		grep -q "CURSOR BLOCKED $fn" "$rd/logs/net.log" 2>/dev/null || { echo "FAIL (run $pass): net.log has no CURSOR BLOCKED line for $fn"; st=1; }
+	done
+	ccnt=$(grep -o 'RESULT: CURSOR: [0-9]*' "$rd/logs/origrun.log" | grep -o '[0-9]*$' | head -1)
+	[ "${ccnt:-0}" = 3 ] || { echo "FAIL (run $pass): RESULT counts ${ccnt:-no} blocked cursor calls, expected 3"; grep 'CURSOR' "$rd/logs/origrun.log" | head -5; st=1; }
 done
 rm -rf "$rd" "$bin"
-[ $st -eq 0 ] && echo "network block and launch guard: every hooked call failed at once and was logged ($first network calls and $lfirst launches blocked in a run; $total checks), nothing reached the listener or started, the second run counted only its own lines"
+[ $st -eq 0 ] && echo "network block, launch guard and cursor guard: every hooked call failed at once, or did nothing, and was logged ($first network calls, $lfirst launches and 3 cursor calls blocked in a run; $total checks), nothing reached the listener or started, the cursor's clip was unchanged, the second run counted only its own lines"
 exit $st
