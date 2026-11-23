@@ -260,8 +260,7 @@ void LightningBoard::Update()
 // each new piece and each gives a draw that may make the batch's gem a time gem of 10 seconds (the draw is under the 10-second chance)
 // or of 5 (the first is not, and the second is under the 5-second chance); then one new piece of the batch, drawn, becomes it if it is a plain gem.
 // Every draw is of the board's own generator, the draws of one piece in the order of the code: the 10-second one, then the 5-second one
-// when needed. port: the time gem's help box (the exe's slot 131 with 9, which says the help of the gem has not been seen: every help is
-// seen here) and the sound are left out
+// when needed. The first time gem queues its tutorial box (bit 9, 0x716c60). port: the sound is left out
 bool LightningBoard::OnFillAccepted(std::vector<Piece*>& theNewPieces)
 {
 	const int aLift = (gApp->mArtRes * 0x78) / 0x4b0;
@@ -293,6 +292,8 @@ bool LightningBoard::OnFillAccepted(std::vector<Piece*>& theNewPieces)
 				aGem->mFlags = Piece::FLAG_TIME_GEM;
 				aGem->mTimeGemSeconds = aSeconds;
 				TimeBonusEffect::MakeFor(this, aGem);   // 0x741130: its glow, bolts and number
+				if (CanShowHint(HINT_TIME_GEM))
+					QueueHint(aGem, HINT_TIME_GEM);
 			}
 		}
 	}

@@ -25,19 +25,21 @@ if(NOT EMSCRIPTEN)
 endif()
 
 # bejeweled3: the game (src/). Native: bejeweled3.exe [-gamedir=<dir>] [-userdir=<dir>] [-modsdir=<dir>] [-nomods]
-# [-600|-768|-1200] (src/main.cpp); it finds assets/bejeweled3/ by itself. The web build comes with its milestone
-# (docs/PORT_PLAN.md).
-if(NOT EMSCRIPTEN)
-  set(B3_SOURCES src/main.cpp src/Bej3App.cpp src/Res.cpp src/Bej3Music.cpp src/EncodingParser.cpp src/HighScores.cpp
-	src/Background.cpp src/Bej3Dialog.cpp src/Board.cpp src/BoardDraw.cpp src/BoardEffects.cpp src/BoardLevels.cpp src/BoardMoves.cpp src/CrystalBall.cpp src/GemSilhouettes.cpp src/TimeBonusEffect.cpp src/Effects.cpp src/EndLevelDialog.cpp src/EndLevelDialog.cpp src/MainMenu.cpp src/Math3D.cpp src/OptionsDialog.cpp src/PlayMenu.cpp src/Profile.cpp src/QuestData.cpp src/TestCommands.cpp src/ZenBoard.cpp src/LightningBoard.cpp src/QuestBoard.cpp src/ButterflyBoard.cpp src/IceStormBoard.cpp src/DiamondMineBoard.cpp
-    src/PokerBoard.cpp src/QuestGoal.cpp src/QuestMenu.cpp src/TimeLimitBoard.cpp src/MoveLimitBoard.cpp
-    src/FillerBoard.cpp src/BalanceBoard.cpp src/TimeBombBoard.cpp src/BadMoveLimitBoard.cpp src/WallGoldGoals.cpp src/HiddenObjectGoal.cpp)
-  add_executable(bejeweled3 ${B3_SOURCES})
-  target_include_directories(bejeweled3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-  target_link_libraries(bejeweled3 PRIVATE prime sexyframework sexyopenmpt sexyopenjpeg)
-  if(NOT MSVC)
-    target_compile_options(bejeweled3 PRIVATE -Wall -Wno-overloaded-virtual)
-  endif()
+# [-600|-768|-1200] (src/main.cpp); it finds assets/bejeweled3/ by itself. Web: bejeweled3.html/.js/.wasm.
+set(B3_SOURCES src/main.cpp src/Bej3App.cpp src/Res.cpp src/Bej3Music.cpp src/EncodingParser.cpp src/HighScores.cpp
+	src/Background.cpp src/Bej3Dialog.cpp src/Board.cpp src/BoardDraw.cpp src/BoardHints.cpp src/HintDialog.cpp src/BoardEffects.cpp src/BoardLevels.cpp src/BoardMoves.cpp src/CrystalBall.cpp src/GemSilhouettes.cpp src/TimeBonusEffect.cpp src/Effects.cpp src/EndLevelDialog.cpp src/MainMenu.cpp src/Math3D.cpp src/OptionsDialog.cpp src/PlayMenu.cpp src/Profile.cpp src/QuestData.cpp src/TestCommands.cpp src/ZenBoard.cpp src/LightningBoard.cpp src/QuestBoard.cpp src/ButterflyBoard.cpp src/IceStormBoard.cpp src/DiamondMineBoard.cpp
+  src/PokerBoard.cpp src/QuestGoal.cpp src/QuestMenu.cpp src/TimeLimitBoard.cpp src/MoveLimitBoard.cpp
+  src/FillerBoard.cpp src/BalanceBoard.cpp src/TimeBombBoard.cpp src/BadMoveLimitBoard.cpp src/WallGoldGoals.cpp src/HiddenObjectGoal.cpp)
+add_executable(bejeweled3 ${B3_SOURCES})
+target_include_directories(bejeweled3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(bejeweled3 PRIVATE prime sexyframework sexyopenmpt sexyopenjpeg)
+if(NOT MSVC)
+  target_compile_options(bejeweled3 PRIVATE -Wall -Wno-overloaded-virtual)
+endif()
+if(EMSCRIPTEN)
+  byopop_web_game(bejeweled3 TITLE "Bejeweled 3"
+    COPYRIGHT "Bejeweled 3 © 2010 PopCap Games, Inc. All rights reserved. Bejeweled is a registered trademark of PopCap Games, Inc." LICENSES libopenmpt openjpeg)
+else()
   add_custom_command(TARGET bejeweled3 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:bejeweled3>
     VERBATIM)

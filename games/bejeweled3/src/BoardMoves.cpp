@@ -137,12 +137,17 @@ Piece* Board::FindPieceById(int theId) const
 	return nullptr;
 }
 
-// 0x73f140 (bejeweled3). port: the exe also gives up while +0x1410 or +0x12c4 is set or +0x12cc is above 0.5 (all 0 in a
+// 0x73f140 (bejeweled3). port: the exe also gives up while +0x1410 is set (0 in a
 // game that is played); slot 98 (0x73d4f0) says the board can be played: it needs the board to have settled once
 // (+0x1190), the rest of its tests are 0 in Classic; the second and later pieces' help box (dialog 0x12, in the first
 // two levels, 0x76aaf0 and the sound 0xc4 of the app's helper) and the sounds of picking a piece up are left out
 void Board::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 {
+	// 0x73f140: a click on a paused board (the player's, or the word showing) only ends the player's pause
+	if (mPlayerPaused || mPauseAlpha > 0.5f) {
+		mPlayerPaused = false;
+		return;
+	}
 	if (!mSettledOnce)
 		return;
 	mMouseDownX = x;
@@ -266,9 +271,11 @@ bool Board::TrySwap(Piece* thePiece, int theRow, int theCol, bool theForced)
 	return true;
 }
 
-// 0x75fae0 (bejeweled3). port: the list at +0x26b8 (0x68 bytes each) is empty in a plain game
+// 0x75fae0 (bejeweled3): no swap while a tutorial box or help waits (the list at +0x26b8)
 bool Board::CanSwap(Piece* thePiece, unsigned theRow, unsigned theCol)
 {
+	if (!mHintQueue.empty())
+		return false;
 	if (HasLiveMatches())
 		return false;
 	if (!thePiece->mCanSwap)
@@ -744,6 +751,8 @@ int Board::FindMatches()
 			aPiece->mFlags = 0;
 		}
 		MakeStarGem(aPiece);   // slot 0x174 is true in Classic (slot 0x298, MakeFlameGem, where it is not)
+		if (CanShowHint(HINT_STAR))
+			QueueHint(aPiece, HINT_STAR);   // 0x75bbdb: the tutorial box of the first Star Gem. port: the exe queues it where the gem is found twice
 	}
 	// 0x75ca00 to 0x75cc9c: the specials are made
 	for (std::map<int, SpecialCandidate>::iterator aIt = aCandidates.begin(); aIt != aCandidates.end(); ++aIt) {
@@ -753,6 +762,11 @@ int Board::FindMatches()
 			continue;   // the exe reads the flags of a null neighbour here
 		// the set of blocked gems (local_244) is empty in Classic
 		aTargets.insert(aTarget);
+		// the tutorial box of the first Supernova, Hypercube or Flame Gem (0x745bf0, at 0x75c27f). port: the exe queues it where the run is found,
+		// for the gem it will make (the same one), and does not make the special in that call; the port makes it at once
+		const int aHint = aCandidate.mCount > 5 ? HINT_SUPERNOVA : aCandidate.mCount > 4 ? HINT_HYPERCUBE : HINT_FLAME;
+		if (CanShowHint(aHint))
+			QueueHint(aTarget, aHint);
 		if (aCandidate.mCount > 5) {
 			MakeStarGem(aTarget);
 			MakeFlameGem(aTarget);
