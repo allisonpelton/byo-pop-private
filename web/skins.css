@@ -854,6 +854,11 @@ img { -webkit-user-drag: none; }
 /* the active window's title bar in colour, the others grey with grey text */
 html.d95-desk .d95-win:not(.d95-active) .d95-handle { background: var(--sk-title-in-bg) !important; color: var(--sk-title-in-fg) !important; }
 html.d95-desk .d95-win:not(.d95-active) .d95-handle h2, html.d95-desk .d95-win:not(.d95-active) .d95-handle .chat-unread { color: var(--sk-title-in-fg) !important; }
+/* hidden keyboard cues (2000 and later, web/skins.js, cuesSync): no focus rectangle until the keyboard is used; every outline
+   here is one */
+html.d95-cues-hidden :is(*, *::before, *::after) { outline-color: transparent !important; }
+/* a setting only some skins have is shown only in them (web/settings.js, "needs") */
+:root:not([data-behaviours~="cues"]) .bps-row[data-needs="cues"] { display: none !important; }
 /* every focused thing marked: links, a check box's or option button's label, the games' cards, a list's items */
 :root[data-skin="d95"] a:focus { outline: 1px dotted currentColor; outline-offset: 1px; }
 :root[data-skin="d95"] label:has(> input[type=checkbox]:focus), :root[data-skin="d95"] label:has(> input[type=radio]:focus) {
