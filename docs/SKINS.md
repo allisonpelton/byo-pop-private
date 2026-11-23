@@ -3,7 +3,8 @@
 The site has one look, 95. This plan shows how other looks will be added without redoing it. It covers what a skin
 holds, how the 95 look is wired today, what each new look needs, how to check them all, and the costs. The layer's first
 batch (2026-11-23) is in: `<html data-look>` and `?skin=`, the sizes and the band as variables, and the drawings' colours
-through `uriRules` (docs/WEB_PLAYER.md, "Desktop 95", "The skins").
+through `uriRules` (docs/WEB_PLAYER.md, "Desktop 95", "The skins"). The 98 skin followed the same day: web/skin-98.css, the
+Skin list, and each skin's own style sheet loaded only where it is drawn.
 
 The scope is the user's (2026-11-23): "This is the first I'm learning of Classic. I see it was present up through Windows
 7. I'd like all of those as skins to start; then the unique ones with XP up through 8 later", and "Oh also Windows Me".
@@ -190,6 +191,10 @@ The 95 renderer with 98's data:
 - **The desktop:** #008080.
 - **The banner:** navy #000080 with royal blue #0000ff at its foot, the name in white.
 - **Menus and tooltips slide** (Wikipedia).
+
+Drawn (2026-11-23, web/skin-98.css): the gradient titles, the banner, and the sliding menus and tooltips, at a speed of our
+own (0.18 s; 98's own is **to check**). 95's frame already had 98's rows. An inactive window's title bar stays 95's solid
+grey until 98's is read from a real shot (**to check**).
 
 **To check before drawing:**
 - whether 98's caption buttons, scroll bars and check marks differ from 95's;

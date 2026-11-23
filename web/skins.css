@@ -21,6 +21,9 @@
      web/schemes.js's data as that look's value), and the Pop menu's band in the shadow grey, as Windows 95's Start menu
      banner was (its "Windows" in the face grey, its "95" in white: .d95-band) */
   --sk-title: #000080; --sk-title-fg: #ffffff; --sk-desk-fg: #ffffff;
+  /* a title bar's background: 95's one colour; 98 and later draw the gradient to the scheme's second colour, --sk-title-2
+     (web/schemes.js, web/skin-98.css) */
+  --sk-title-2: #1084d0; --sk-title-bg: var(--sk-title);
   --sk-band: var(--sk-lo);
   /* the skin's sizes (docs/SKINS.md, "What moves behind the skin layer"), 95's here, which a later skin sets again under
      :root[data-look]: a window's title bar; a caption button (minimize, maximize, close, help); a push button in a dialog,
@@ -262,7 +265,7 @@ html.d95-booting::after { content: attr(data-d95-boot); position: fixed; left: 5
 :root[data-skin="d95"] .tabs [role=tab][aria-selected=true] { background: var(--panel); color: var(--fg);
   box-shadow: inset 1px 1px var(--sk-hi), inset -1px 0 var(--sk-dk), inset -2px 0 var(--sk-lo); border: 0; }
 /* title bars: the panels', the chat's */
-:root[data-skin="d95"] .panel header, :root[data-skin="d95"] .chat h2 button { background: var(--sk-title); color: var(--sk-title-fg); margin: 3px; padding: 3px 6px; box-shadow: none; border: 0; font-weight: bold; }
+:root[data-skin="d95"] .panel header, :root[data-skin="d95"] .chat h2 button { background: var(--sk-title-bg); color: var(--sk-title-fg); margin: 3px; padding: 3px 6px; box-shadow: none; border: 0; font-weight: bold; }
 :root[data-skin="d95"] .panel header h2 { font-size: 13px; }
 :root[data-skin="d95"] .panel header button { padding: 0 6px; min-height: 0; }
 :root[data-skin="d95"] .chat-body { border-top: 0; }
@@ -435,7 +438,7 @@ html.d95-desk #music.d95-win .mu-menubar { margin: -8px -12px 6px; padding: 0 2p
 :root[data-skin="d95"] #music .mu-tune:hover { background: none; }
 :root[data-skin="d95"] #music .mu-tune[aria-current] { background: var(--accent); color: #fff; }
 :root[data-skin="d95"] #music .mu-tune:focus { outline: 1px dotted #000; outline-offset: -1px; }
-html.d95-desk .d95-tb { display: flex; align-items: center; gap: 6px; background: var(--sk-title); color: var(--sk-title-fg);
+html.d95-desk .d95-tb { display: flex; align-items: center; gap: 6px; background: var(--sk-title-bg); color: var(--sk-title-fg);
   padding: 2px 3px 2px 6px; font-weight: bold; min-height: 18px; white-space: nowrap; overflow: hidden; }
 html.d95-desk .d95-tb > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* the window's title, its heading (web/skins.js, named): drawn as the title bar's text it always was */
@@ -705,7 +708,7 @@ html.d95-desk .d95-icon-game > i::after { background: #000000; }
 :root[data-skin="d95"] .card { background: var(--panel); border: 0; border-radius: 0; padding: 18px;
   box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid); }
 :root[data-skin="d95"] .wiz-card { padding: 3px 14px 14px 3px; min-width: min(340px, 100%); min-height: 190px; box-sizing: border-box; }
-:root[data-skin="d95"] .wiz-card > .wiz-head { background: var(--sk-title); color: var(--sk-title-fg); margin-right: -11px; padding: 3px 6px; }
+:root[data-skin="d95"] .wiz-card > .wiz-head { background: var(--sk-title-bg); color: var(--sk-title-fg); margin-right: -11px; padding: 3px 6px; }
 :root[data-skin="d95"] .wiz-steps { display: none; }
 :root[data-skin="d95"] .wiz-card > .wiz-art { background: linear-gradient(var(--bg), color-mix(in srgb, var(--bg) 60%, #000)); left: 11px; top: 11px; bottom: 11px; width: 96px;
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi); }
@@ -715,7 +718,7 @@ html.d95-desk .d95-icon-game > i::after { background: #000000; }
 
 /* the performance panel (web/perf.js) as a window, its heading the title bar */
 html.d95-desk .perf-panel.d95-win { border: 0; border-radius: 0; }
-html.d95-desk .perf-panel.d95-win > h2 { background: var(--sk-title); color: var(--sk-title-fg); border: 0; padding: 2px 6px; font-size: 13px; }
+html.d95-desk .perf-panel.d95-win > h2 { background: var(--sk-title-bg); color: var(--sk-title-fg); border: 0; padding: 2px 6px; font-size: 13px; }
 
 /* ======================= favourites: the star on each card (web/index.html) and Desktop 95's icons (web/skins.js) ======================= */
 /* the star at the card's top right (its vector form on the player-only page's own styles), filled while the game is a favourite */
@@ -896,7 +899,7 @@ html.d95-desk .d95-menubar-item:not(#\#):focus-visible { outline: 1px dotted #00
 .d95-msgbox { padding: 3px; border: 0; background: var(--panel); color: #000000; min-width: 260px; max-width: min(420px, calc(calc(100vw / var(--d95-z, 1)) - 32px));
   box-shadow: inset -1px -1px #000000, inset 1px 1px var(--sk-mid), inset -2px -2px var(--sk-lo), inset 2px 2px #ffffff; font: 11px var(--font-ui); }
 .d95-msgbox::backdrop { background: transparent; }
-.d95-msgbox-tb { display: flex; align-items: center; padding: 2px 4px; background: var(--sk-title); color: #ffffff; font-weight: bold; }
+.d95-msgbox-tb { display: flex; align-items: center; padding: 2px 4px; background: var(--sk-title-bg); color: #ffffff; font-weight: bold; }
 .d95-msgbox-body { display: flex; align-items: center; gap: 14px; padding: 16px 14px 8px; }
 .d95-msgbox-body p { margin: 0; }
 .d95-msgbox-icon { flex: none; width: 32px; height: 32px; position: relative; }
@@ -1288,7 +1291,7 @@ html.d95-desk .newtab { display: none; }
 html.d95-desk .d95-ghost { position: absolute; z-index: 2147482000; pointer-events: none; box-sizing: border-box;
   border: 3px dotted #ffffff; mix-blend-mode: difference; }
 html.d95-desk .d95-fly { position: absolute; z-index: 2147482500; pointer-events: none; box-sizing: border-box; overflow: hidden;
-  background: var(--sk-title); color: var(--sk-title-fg); font-weight: bold; font-size: 11px; line-height: 16px; padding: 1px 4px;
+  background: var(--sk-title-bg); color: var(--sk-title-fg); font-weight: bold; font-size: 11px; line-height: 16px; padding: 1px 4px;
   white-space: nowrap; }
 /* the icons once one was moved: each where it was put; a selected one, and the dotted rectangle that selects */
 html.d95-desk .d95-icons.d95-icons-free { display: block; }

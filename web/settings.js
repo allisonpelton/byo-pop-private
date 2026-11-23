@@ -49,6 +49,8 @@ var ByopopSettings = (function () {
     perf: { values: SWITCH, def: "off" },             // on: a game page shows its performance panel (web/perf.js), which only reads
     soundPanel: { values: SWITCH, def: "off" },       // on: a game page shows the sounds it plays (web/soundpanel.js), which only reads
     win95Only: { values: SWITCH, def: "off" },
+    // the skin, the version of Windows the desktop is drawn as (web/skins.js, docs/SKINS.md), site-wide
+    look: { values: (typeof ByopopSkin !== "undefined" && ByopopSkin.LOOKS) || ["95"], def: "95" },
     // Desktop 95's colour scheme (web/schemes.js), site-wide
     scheme: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.ids : ["standard"]), def: "standard" },
     // the desktop's pattern and wallpaper (web/schemes.js), site-wide
@@ -262,6 +264,8 @@ var ByopopSettings = (function () {
       hint: T("settings.startvolume.hint"),
       help: T("settings.startvolume.help") },
     { section: "look" },
+    { name: "look", label: T("settings.look.label"), hint: T("settings.look.hint"),
+      options: ((typeof ByopopSkin !== "undefined" && ByopopSkin.LOOKS) || ["95"]).map(function (id) { return [id, T("settings.look." + id)]; }) },
     { name: "scheme", label: T("settings.scheme.label"), hint: T("settings.scheme.hint"),
       options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.ids : ["standard"]).map(function (id) { return [id, T("settings.scheme." + id)]; }) },
     { name: "pattern", label: T("settings.pattern.label"), hint: T("settings.pattern.hint"),
