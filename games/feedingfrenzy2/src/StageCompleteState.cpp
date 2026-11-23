@@ -15,8 +15,10 @@ void StageCompleteState::enter()
 	int aFoodBank = mApp->mUserData->getFoodBank();
 	mApp->mFreshGame = false;
 	mApp->mStageInPlay = false;
-	// The bonus stage's end (+0xa0) is not yet translated: the game's play does not come here after a bonus stage
-	mScreen = mApp->mStageCompleteNormal.get();
+	if (mApp->mStage->isBonus())
+		mScreen = mApp->mStageCompleteBonus.get();
+	else
+		mScreen = mApp->mStageCompleteNormal.get();
 	// (The id is the game's stage entry's, 0x403460 (feedingfrenzy2))
 	mScreen->setup(mApp->mGameData->getStageEntry()->mId, mApp->mStage.get(), aFoodBank);
 	int aTotal = mScreen->getTotal();

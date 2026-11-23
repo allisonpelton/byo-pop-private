@@ -3,7 +3,7 @@
 
 // The screens after a stage (StageCompleteScreen, its constructor 0x490c40 (feedingfrenzy2)), the base of the normal
 // stage's end (StageCompleteScreenNormal, the application's +0x9c) and the bonus stage's (StageCompleteScreenBonus,
-// +0xa0, not yet translated): the layout read with the shell's theme, with the splats of
+// +0xa0): the layout read with the shell's theme, with the splats of
 // resource/shell/stageCompleteSplats.xml and a group for its effects on top. While the screen is enabled, a press of
 // the mouse anywhere finishes the count running at once.
 //
@@ -161,6 +161,88 @@ private:
 	int mBossBonus;                                        // +0x264: 250, or 500 for the final boss
 	int mBarracudaBonus;                                   // +0x268
 	engine::StateMgr<CountState> mStateMgr;                // +0x26c
+};
+
+// The bonus stage's end (0x234 bytes, its constructor 0x4969a0 (feedingfrenzy2)): the fish eaten of the stage's fish
+// and their share count up; when every fish was eaten, the time left, its bonus (a hundred a second, added to the score
+// as the screen fills) and the final score count up, else a group saying there is no time bonus shows; then the food
+// bank counts up to its total and the rank's header and the rank come in.
+class StageCompleteScreenBonus : public StageCompleteScreen
+{
+public:
+	StageCompleteScreenBonus();
+
+	// 0x180 (0x4a1b10 (feedingfrenzy2)): the food bank kept as the total too, the components found, the screen filled
+	// and its count begun (the stage's id is not read)
+	void setup(const std::string& theStageId, Stage* theStage, int theFoodBank) override;
+	// 0x184 (0x5019c8 (feedingfrenzy2))
+	int getTotal() override { return mTotal; }
+	// 0x188 (0x491620 (feedingfrenzy2))
+	void updateCount(engine::UpdateContext* theContext) override { mStateMgr.update(theContext); }
+	// 0x190 and 0x194 do nothing
+	void nextFunFact() override {}
+	void previousFunFact() override {}
+	// 0x198 (0x4a1c30 (feedingfrenzy2)): the current state's 0x1c, when there is one
+	void skip() override;
+
+private:
+	// The count's states (StageCompleteScreenBonus::StageCompleteStateBonus, an AbstractState of the screen, its
+	// constructor 0x4a4b40 (feedingfrenzy2))
+	class CountState : public engine::State
+	{
+	public:
+		explicit CountState(StageCompleteScreenBonus* theScreen) : mScreen(theScreen) {}
+		// 0x1c: the count finished at once (pure in the base)
+		virtual void skip() = 0;
+
+	protected:
+		StageCompleteScreenBonus* mScreen;  // +0x0c
+	};
+	class CountFishRatioState;
+	class TimeBonusState;
+	class TimeLeftCountupState;
+	class FoodBankState;
+
+	// 0x48c530 (feedingfrenzy2): the screen's components found by name
+	void findComponents();
+	// 0x48a610 (feedingfrenzy2): the fish counted and the total reckoned, the food bank shown, the rank found and
+	// hidden, the share and the fish eaten written at none, both time bonus groups hidden, the time bonus reckoned and
+	// added to the score, and its texts hidden
+	void fill();
+	// 0x490a60 (feedingfrenzy2): over the stage's spawns that have a supply, their actors that died and their supply
+	// summed, and the share of them eaten in hundredths
+	void countFish();
+	// 0x493710 (feedingfrenzy2): the share and the fish eaten written in full and shown
+	void finishFish();
+	// 0x53b3e4 (feedingfrenzy2): when a fish was left, the no-bonus group shown; else the bonus group, the time left,
+	// the bonus and the final score shown in full
+	void finishTimeBonus();
+	// 0x4a0120 (feedingfrenzy2): the total in the food bank's text, it, the rank's header and the rank shown
+	void finishFoodBank();
+	// Whether a fish of the stage was not eaten (0x4a0170, 0x53ceb0 and 0x53b3e4 (feedingfrenzy2))
+	bool isFishLeft() const { return mFishEaten < mFishSupply; }
+	// The stage's time left in whole seconds, rounded up (0x48a610 and others)
+	int getSecondsLeft() const;
+
+	int mFoodBank;                                 // +0x1c0: before the stage
+	int mTotal;                                    // +0x1c4: after it
+	engine::TextItem* mEatRatioText;               // +0x1d0: eatRatioText
+	engine::TextItem* mEatPercentText;             // +0x1d4: eatPctText
+	engine::Component* mTimeBonusGroup;            // +0x1d8: timeBonusGrp
+	engine::TextItem* mTimeLeftText;               // +0x1dc: timeLeftText
+	engine::TextItem* mTimeBonusText;              // +0x1e0: timeBonusText
+	engine::TextItem* mFinalScoreText;             // +0x1e4: finalScoreText
+	engine::Component* mFoodBankRankHeader;        // +0x1e8: foodBankRankHeader
+	engine::TextItem* mFoodBankRank;               // +0x1ec: foodBankRank
+	engine::TextItem* mFoodBankCount;              // +0x1f0: foodBankCount
+	engine::Component* mNoTimeBonusGroup;          // +0x1f4: noTimeBonusGrp
+	int mFishEaten;                                // +0x1f8: each one food
+	int mFishSupply;                               // +0x1fc
+	int mEatPercent;                               // +0x200
+	int mScoreBefore;                              // +0x204: the score before the time bonus
+	int mFinalScore;                               // +0x208
+	int mTimeBonus;                                // +0x20c
+	engine::StateMgr<CountState> mStateMgr;        // +0x210
 };
 
 #endif

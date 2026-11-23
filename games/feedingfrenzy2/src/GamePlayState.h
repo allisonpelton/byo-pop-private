@@ -11,7 +11,7 @@
 class GamePlayState : public AppState
 {
 public:
-	explicit GamePlayState(FeedingFrenzyTwo* theApp) : AppState(theApp), mSpeed(NORMAL_SPEED), mEndLogged(false) {}
+	explicit GamePlayState(FeedingFrenzyTwo* theApp) : AppState(theApp), mSpeed(NORMAL_SPEED) {}
 
 	// 0x04 (0x499130 (feedingfrenzy2)): the stage started at the normal speed, the screens taken away and the stage
 	// marked in play
@@ -47,7 +47,6 @@ private:
 	void acquireMouse();
 
 	float mSpeed;      // +0x10: what the frame's time is divided by, 1 to 16 by the slowmo action
-	bool mEndLogged;   // port: the stage's ends not yet translated, logged once
 };
 
 #endif

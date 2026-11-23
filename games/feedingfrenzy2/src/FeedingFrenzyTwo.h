@@ -120,8 +120,8 @@ public:
 	engine::Ref<engine::GenericScreen> mGameOver;                // +0x94: resource/shell/gameOverNoContinuesLeft.xml
 	engine::Ref<StageIntroScreen> mStageIntro;                   // +0x98
 	engine::Ref<StageCompleteScreenNormal> mStageCompleteNormal; // +0x9c
-	// +0xa0 and +0xa4: the bonus stage's end (StageCompleteScreenBonus) and the options (FeedingFrenzyTwoOptionScreen):
-	// not yet translated
+	engine::Ref<StageCompleteScreenBonus> mStageCompleteBonus;   // +0xa0
+	// +0xa4: the options (FeedingFrenzyTwoOptionScreen): not yet translated
 	engine::Ref<engine::Theme> mShellTheme;            // +0xac: resource/themes/shellTheme.xml, falling back on the
 	                                                   // minimal theme
 	engine::Ref<engine::Theme> mTheme;                 // +0xb0: the minimal theme, made by the splash

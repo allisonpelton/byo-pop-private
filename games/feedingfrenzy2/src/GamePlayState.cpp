@@ -57,15 +57,8 @@ void GamePlayState::update(UpdateContext* theContext)
 
 	if (mApp->mStage->isCompleted() || mApp->mStage->isBonus())
 	{
-		// The stage's end in its place; a bonus stage's needs its own screen, not yet translated
-		if (!mApp->mStage->isBonus())
-		{
-			mApp->mStateMgr.changeState(new StageCompleteState(mApp));
-			return;
-		}
-		if (!mEndLogged)
-			getEngine()->log("GamePlayState: the bonus stage over; its end not yet translated\n");
-		mEndLogged = true;
+		// The stage's end in its place
+		mApp->mStateMgr.changeState(new StageCompleteState(mApp));
 		return;
 	}
 	// The stage lost: with continues left the offer to go on, else the game over

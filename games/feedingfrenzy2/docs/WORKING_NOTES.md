@@ -576,10 +576,32 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
   play holds the mouse (moves are not passed on), so a scripted press on the same button of the next popup gets no
   enter and does nothing; a real cursor is warped back on the release and moves, so press a neutral spot first.
 
+- The bonus stage's end (StageCompleteScreenBonus 0x4969a0, +0xa0, read from resource/shell/stageCompleteBonus.xml by
+  the stage end's loader with one fade of 0.2 seconds; its setup 0x4a1b10, components 0x48c530, fill 0x48a610, fish
+  count 0x490a60 and its four states) and the number counting up in a text (TextRollUp, 0x49c4b0: from a start to a
+  target, a step each 0.05 seconds of the largest power of ten up to its largest step that does not pass the target,
+  written in one of five forms). The stage-complete state now takes the bonus screen after a bonus stage, and the
+  play goes to it after every stage won or timed out. The screen sums the supply and the deaths of the stage's spawns
+  that have a supply, takes the share eaten in whole hundredths (truncated), reckons the time bonus as the seconds left
+  rounded up times a hundred and adds it to the score. Its count: half a second, the fish eaten counting up by up to
+  five ("n/total"), half a second, the share ("n%"); half a second more, then with a fish left the no-bonus group,
+  else the bonus group and the time left (the clock, by up to ten), the bonus and the final score (by up to 500, the
+  score from where it was), each half a second apart; then the food bank by ones or tens, the rank's header and the
+  rank 0.97 seconds apart. A press of the mouse finishes it. Also loaded now with one fade each for both ways, as the
+  original does: the continue offer and the game over. Port fix on the way: a spawn's pool of a class not yet
+  translated (the bonus stages' BonusTime) kept empty places, and spawning one crashed; the pool now stays empty for
+  such a class. Checked under rundesk on bonus1 (Herring Herder) with its clock cut to two seconds: nothing eaten
+  shows "0", "0", Sorry and the food bank unchanged; fifteen eaten show 15/100 and 15%, the no-bonus group and the
+  food bank counting to 000,015 with Newbie Nibbler; a press mid-count shows it all at once; Continue reaches stage 4's
+  intro; exit 0. Not seen: the time bonus's branch (every fish of the stage eaten). Not translated: the sounds.
+  - Oddity, as the original: the fish's and the share's counts set their text before and after the number only after
+    their first writing, so with nothing eaten (no step taken) they stay a bare "0" in place of "0/100" and "0%".
+  - Fix candidate: the count's first state fills the screen again (0x493810 calls 0x48a610 as the setup did), so the
+    time bonus is added to the score twice; the final score shown counts from the score after the first.
+
 ## Next
 
-- The bonus stage's end; the mermaid after a perfect
-  stage; later the fish ranks' icons; the restore-game popup's actions; the quit popup's actions over the intro and
+- The mermaid after a perfect stage; the bonus stages' actors (BonusTime and the other pickups); later the fish ranks' icons; the restore-game popup's actions; the quit popup's actions over the intro and
   the pause's End Game; the compositeGroup element (the intro's background group, now skipped).
 - The menu's fish, continued: the stunned effect and the fish's sounds (the themes' sounds, SoundMgr, over the engine's
   simplesound). The stage's slot 0x5c (0x447ef0) is not a clean-up but the stage's ending (player died, perfect, stage

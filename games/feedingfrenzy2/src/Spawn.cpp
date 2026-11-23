@@ -367,8 +367,14 @@ void NonPlayerSpawn::fillPool()
 	for (size_t i = 0; i < mPool.size(); i++)
 	{
 		mPool[i] = mClass->createActor();
-		if (mPool[i])
-			setupActor(mPool[i].get());
+		if (!mPool[i])
+		{
+			// port: a class not yet translated makes no actor; its pool stays empty, so its spawns make none in
+			// place of taking an empty place from the pool
+			mPool.clear();
+			break;
+		}
+		setupActor(mPool[i].get());
 	}
 }
 

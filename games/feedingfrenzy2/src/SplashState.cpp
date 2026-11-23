@@ -273,14 +273,23 @@ void SplashState::load()
 	mApp->mStageCompleteNormal->setTransitions(aFade, aFade);
 	mApp->mStageCompleteNormal->mActionSignal.connect(mApp, &FeedingFrenzyTwo::actionSlot);
 	mLoadProgress = 0.8f;
-	// The continue offer and the game over, each given fades of 0.2 seconds both ways
-	mApp->mGameOverContinue = loadShellScreen("resource/shell/gameOverContinuesLeft.xml", mApp->mShellTheme.get(),
-	                                          new FadeTransition(0.2f), new FadeTransition(0.2f));
-	mApp->mGameOver = loadShellScreen("resource/shell/gameOverNoContinuesLeft.xml", mApp->mShellTheme.get(),
-	                                  new FadeTransition(0.2f), new FadeTransition(0.2f));
-	// The bonus stage's end (+0xa0, read by the stage end's loader from resource/shell/stageCompleteBonus.xml) and
-	// the high scores (+0x8c), each its own kind of screen: not yet translated
-	getEngine()->log("SplashState: the options, bonus stage end and high score screens not yet translated\n");
+	// The bonus stage's end, read the same way
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mStageCompleteBonus = new StageCompleteScreenBonus();
+	mApp->mStageCompleteBonus->loadScreen("resource/shell/stageCompleteBonus.xml");
+	mApp->mStageCompleteBonus->setTransitions(aFade, aFade);
+	mApp->mStageCompleteBonus->mActionSignal.connect(mApp, &FeedingFrenzyTwo::actionSlot);
+	mLoadProgress = 0.8f;
+	// The continue offer and the game over, each given one fade for both ways
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mGameOverContinue =
+		loadShellScreen("resource/shell/gameOverContinuesLeft.xml", mApp->mShellTheme.get(), aFade, aFade);
+	mLoadProgress = 0.8f;
+	aFade = new FadeTransition(SHELL_FADE_SECONDS);
+	mApp->mGameOver =
+		loadShellScreen("resource/shell/gameOverNoContinuesLeft.xml", mApp->mShellTheme.get(), aFade, aFade);
+	// The high scores (+0x8c), their own kind of screen: not yet translated
+	getEngine()->log("SplashState: the options and high score screens not yet translated\n");
 	mLoadProgress = 0.82f;
 	// (Read without a theme)
 	aFade = new FadeTransition(SHELL_FADE_SECONDS);

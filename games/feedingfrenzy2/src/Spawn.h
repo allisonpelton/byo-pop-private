@@ -201,6 +201,7 @@ public:
 	const std::string& getVisualName() const { return mVisualName; }
 	ActorClassInfo* getClass() const { return mClass.get(); }
 	int getDeaths() const { return mDeaths; }
+	int getSupply() const { return mSupply; }
 	BehaviorInfo* getBehavior() const { return mBehavior.get(); }
 
 protected:
