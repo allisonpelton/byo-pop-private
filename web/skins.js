@@ -139,8 +139,10 @@ var ByopopSkin = (function () {
   }
   // The behaviours a version had beyond its drawing (docs/SKINS.md, "The behaviours that hide things"), each with the setting
   // that turned it off: <html data-behaviours>, which the settings' rows that only some skins have read (web/settings.js,
-  // "needs"). "cues": keyboard cues hidden until the keyboard is used, from 2000 on.
-  var BEHAVIOURS = { "2000": ["cues"] };
+  // "needs"). "cues": keyboard cues hidden until the keyboard is used, from 2000 on; "personal": personalized menus, from 2000
+  // on (the Pop menu's Games list, fillSub).
+  var BEHAVIOURS = { "2000": ["cues", "personal"] };
+  function behaves(b) { return (root.getAttribute("data-behaviours") || "").split(" ").indexOf(b) >= 0; }
   // Hidden keyboard cues: Windows 2000 hid the focus rectangles (and access keys' underlines, which no menu here has) until
   // the user showed keyboard use (Raymond Chen, "Why does Windows hide keyboard accelerators and focus rectangles by
   // default?"), with the setting "Hide keyboard navigation indicators until I use the ALT key" (the setting "hideCues",
@@ -1254,6 +1256,8 @@ var ByopopSkin = (function () {
         out.forEach(function (g) { g.fav = favs.indexOf(g.id) >= 0; });
         return out.sort(function (a, b) { return (b.fav - a.fav) || a.title.localeCompare(b.title); });
       }
+      // the Games list shown whole after its arrow was pressed, until the Pop menu opens again (personalized menus)
+      var subWhole = false;
       function fillSub() {
         sub.textContent = "";
         // the games' window, the Library (web/library.js): on the listing, first
@@ -1265,7 +1269,23 @@ var ByopopSkin = (function () {
         var games = playable();
         if (!games.length) { var none = item(T("skin.pop.nogames"), null); none.setAttribute("aria-disabled", "true"); menuEntry(sub, none); }
         var shown = games.filter(function (g) { return !win95Hides(g.id); });
-        shown.forEach(function (g) { menuEntry(sub, item(g.title, null, { href: g.page, pic: gamePic(g.id) })); });
+        // Personalized menus (2000 and later, the setting "personalMenus", on by default): Windows 2000 "personalizes long
+        // menus by moving recently used items to the top of the menu and by hiding items that have not been used recently"
+        // (the Windows 2000 Resource Kit, "Disable personalized menus"), an arrow at the menu's foot showing the hidden ones.
+        // Here the games played in the last 30 days (a span of our own; ByopopPlay's last day) come first, the last played
+        // at the top, and the arrow shows the whole list in its own order. With none played lately, the list is whole.
+        var play = {};
+        try { play = ByopopPlay.all(); } catch (e) {}
+        var since = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+        var lately = shown.filter(function (g) { return play[g.id] && play[g.id].last && play[g.id].last >= since; });
+        var personal = behaves("personal") && readItem().personalMenus !== "off" && !subWhole && lately.length && lately.length < shown.length;
+        if (personal) {
+          lately.sort(function (a, b) { return play[b.id].last < play[a.id].last ? -1 : play[b.id].last > play[a.id].last ? 1 : 0; });
+          lately.forEach(function (g) { menuEntry(sub, item(g.title, null, { href: g.page, pic: gamePic(g.id) })); });
+          var more = item("", function () { subWhole = true; fillSub(); focusIn(sub, gw ? 1 : 0); }, { cls: "d95-more", noPic: true });
+          more.setAttribute("aria-label", T("skin.pop.more")); more.title = T("skin.pop.more");
+          menuEntry(sub, more);
+        } else shown.forEach(function (g) { menuEntry(sub, item(g.title, null, { href: g.page, pic: gamePic(g.id) })); });
         if (games.length > shown.length) {
           var n = games.length - shown.length;
           var hid = item(Tv("skin.win95.hidden", { count: n }), null);
@@ -1277,6 +1297,7 @@ var ByopopSkin = (function () {
       }
       function fill() {
         list.textContent = "";
+        subWhole = false;
         var listing = !!document.getElementById("games-title");
         var games = item(T("skin.pop.games"), function (ev, b) { openSub(b, true); }, { sub: true, cls: "d95-has-sub", pic: drawnPic("folder") });
         menuEntry(list, games);
@@ -1885,7 +1906,20 @@ var ByopopSkin = (function () {
         { rule: true }];
       if (can === "cascade" || can === "tile") entries.push({ label: T(can === "tile" ? "skin.bar.undotile" : "skin.bar.undocascade"), fn: undoLayout });
       entries.push(can === "minall" ? { label: T("skin.bar.undominall"), fn: undoLayout } : { label: T("skin.bar.minall"), fn: minimizeAll });
+      // Properties, at the foot as Windows' was: under a skin with personalized menus, the box that turns them off
+      if (behaves("personal")) { entries.push({ rule: true }); entries.push({ label: T("skin.bar.props"), fn: barProps }); }
       popMenu(taskbar ? taskbar.el : document.body, entries, x, y, T("skin.taskbar"));
+    }
+    // The task bar's Properties: "Use Personalized Menus", where Windows 2000 put it, on the General tab of the Taskbar and
+    // Start Menu Properties (the Windows 2000 Resource Kit, "Disable personalized menus"); here a small box of its one box
+    function barProps() {
+      var wrap = document.createElement("div"), lab = document.createElement("label"), box = document.createElement("input");
+      box.type = "checkbox"; box.checked = readItem().personalMenus !== "off";
+      lab.appendChild(box); lab.appendChild(document.createTextNode(" " + T("skin.bar.props.personal")));
+      var p = document.createElement("p"); p.appendChild(lab); wrap.appendChild(p);
+      messageBox(T("skin.bar.props.title"), wrap, true, [
+        { label: T("skin.apps.ok"), def: true, fn: function () { try { ByopopSettings.set("personalMenus", box.checked ? "on" : "off"); } catch (e) {} } },
+        { label: T("skin.bar.props.cancel") }]);
     }
     // a game's page: its window on the one page (web/deskapps.js), else the page itself
     function openPage(page) {
@@ -1944,15 +1978,18 @@ var ByopopSkin = (function () {
         row.appendChild(btn);
         last = { el: btn, fn: b.fn };
       });
-      // the default, with Windows 95's black frame while no other button has the focus (skins.css)
-      last.el.classList.add("d95-def");
+      // the default, with Windows 95's black frame while no other button has the focus (skins.css): the button marked def, else
+      // the last, which Escape takes either way
+      var def = last;
+      (buttons || []).forEach(function (b, i) { if (b.def) def = { el: row.children[i], fn: b.fn }; });
+      def.el.classList.add("d95-def");
       d.appendChild(tb); d.appendChild(body); d.appendChild(row);
       document.body.appendChild(d);
       d.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); done(last.fn); } });
       d.addEventListener("cancel", function (ev) { ev.preventDefault(); done(last.fn); });
       try { d.showModal(); } catch (e) { d.setAttribute("open", ""); }
       deskEvent("ding");
-      last.el.focus();
+      def.el.focus();
     }
     // ---- Uninstall (the coordinator's list, 2026-11-22: "an uninstall option with confirmation in the Library and shortcut
     // context menus, in addition to the recycle bin") ----

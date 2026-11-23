@@ -52,6 +52,8 @@ var ByopopSettings = (function () {
     // the skins of 2000 and later: the focus rectangles hidden until the keyboard is used (web/skins.js, cuesSync), on by
     // default as those versions had it
     hideCues: { values: SWITCH, def: "on" },
+    // and their personalized menus (web/skins.js, fillSub), set in the task bar's Properties box, on by default
+    personalMenus: { values: SWITCH, def: "on" },
     // the skin, the version of Windows the desktop is drawn as (web/skins.js, docs/SKINS.md), site-wide
     look: { values: (typeof ByopopSkin !== "undefined" && ByopopSkin.LOOKS) || ["95"], def: "95" },
     // Desktop 95's colour scheme (web/schemes.js), site-wide
