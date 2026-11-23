@@ -665,7 +665,7 @@ speed bonus, the swap-list flag above, the bolt's and the explosion's drawing.
 ## Levels, hints and the end of the game (BoardLevels.cpp, BoardMoves.cpp AddPoints, TestCommands.cpp)
 
 Counters (0x73d170, 0x73cf10): the board has 38 (+0xc84), each move record 38 (+0x40); `AddCounter` adds to both. Keys used: 1 points, 0x1a
-matches, 15 activity (the idle shine's rate). The profile's statistics (Profile::mStats) are not written, and the other 38 callers of
+matches, 15 activity (the idle shine's rate), 0 seconds (one every 100 game ticks, 0x768125). The profile's statistics (Profile::mStats) are not written, and the other 38 callers of
 0x73d170 (the match search, the specials, the swaps) are not translated (`// port:` on the enum).
 
 AddPoints (0x74a210, via slot 152 = 0x74df80): points times the level number (+0xe0c, 1 in Classic: 0x749650 is the only thing that raises it
@@ -1277,10 +1277,9 @@ first vertical run (0x6e2250).
 - 0x6c6520's second test (a group of type 2 whose +0x40 is the column) is of a group the port never makes (match groups of type 2 are made when
   +0xe8 is set, which no port mode sets).
 - The stage's time (0x6e5790) is run from the exe's Update; the port runs it in the step, the same at the normal speed.
-- The "Total Time" of the end dialog reads counter 0 (seconds), as in the other modes' dialogs; it shows 0:00 in the suite's game because the port
-  does not step that counter in a game of this length (0x73d170 every 100 game ticks is left out of Board::UpdateGame). It is not one of the update
-  counters of QuestBoard's update (0x6dd8a0: +0x3198 and +0x31a0, see "Butterflies and Poker"), which the port now keeps but which are not read by any end dialog.
-  The Butterflies and Poker dialogs read counter 0 the same way and show 0:00 too.
+- (Settled) The "Total Time" of the end dialog reads counter 0 (seconds), as in the other modes' dialogs. Board::UpdateGame now adds a
+  second to it every 100 game ticks (0x768125, AddCounter(0, 1, -1)), so every mode's end dialog shows the time played; it is not one of
+  QuestBoard's update counters (+0x3198, +0x31a0), which no end dialog reads.
 - Board's UpdateGame calls slot 161 when no move is left; Ice Storm's slot 161 begins the death instead, and the port guards the start (the exe
   asks whether the death curve is above 0).
 

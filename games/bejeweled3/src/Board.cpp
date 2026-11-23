@@ -439,6 +439,8 @@ void Board::UpdateGame()
 		return;   // 0x767f85: nothing else steps once the screen is leaving
 	// slot 101 (0x73c330) is 0 when no dialog holds the game: the game's own tick goes on
 	mGameTicks++;
+	if (mGameTicks % 100 == 0)
+		AddCounter(COUNTER_SECONDS, 1, -1);   // 0x768125: a second of play
 	StepSlideCurves();   // 0x767ad0: the slide curve of every piece (+0x198), before the match search
 	FindMatches();   // slot 201 (0x75af60)
 	if (mFillHeld == 0) {
