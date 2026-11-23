@@ -3,11 +3,15 @@
    rule here is under data-look="2000". Its colours are its own standard scheme, Windows Standard, which web/schemes.js sets
    with the drawings' colours: the face #d4d0c8 (its soft light the face too), the desktop #3a6ea5, the titles, the selection
    #0a246a and the dark edge #404040.
-   Still 95's until they are made or checked (docs/SKINS.md): the font, which 2000 drew in Tahoma (a pixel font of ours in its
-   manner is to make), the hidden keyboard cues and personalized menus with their settings, the icons, and whether tooltips
-   fade. */
+   Its text is Byopop Sans 2000, our pixel font in the manner of Tahoma, which 2000 drew in place of MS Sans Serif
+   (tools/web/pixelfont2000.py); a character it lacks is drawn by Byopop Sans, on the same baseline. Its behaviours, the
+   hidden keyboard cues and personalized menus, are web/skins.js's (BEHAVIOURS).
+   Still 95's until they are made or checked (docs/SKINS.md): the icons, and whether tooltips fade. */
+
+@font-face { font-family: "Byopop Sans 2000"; src: url("fonts/byopop-sans-2000.woff") format("woff"); font-weight: 100 900; font-style: normal; font-display: block; }
 
 :root[data-look="2000"] {
+  --font-ui: "Byopop Sans 2000", "Byopop Sans", Tahoma, "Segoe UI", sans-serif;
   /* both title bars are gradients, 18 pixels tall as 95's: the active from the title colour to its second, #0a246a to
      #a6caf0 in the standard scheme, the inactive from the shadow to #c0c0c0 with its text in the face colour */
   --sk-title-bg: linear-gradient(90deg, var(--sk-title), var(--sk-title-2));
