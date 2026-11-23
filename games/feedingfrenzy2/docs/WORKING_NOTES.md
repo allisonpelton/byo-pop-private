@@ -621,6 +621,16 @@ sigslot bases, and about 70 global classes such as `GenericApplication`, `Theme`
     point as given, so a text at the screen's edge is cut.
   - Test note: a screenshot taken before a bubble spawns changes where it spawns (the runs are not the same with and
     without it), so the pickup scripts take their screenshots after the spawn.
+- The check suite (tools/suite/suite.sh, run by tools/check.sh): three tours from scripts of test commands, each run
+  twice and compared with frozen hashes of their screenshots and state lines (stage 1's recorded play to a score of
+  60; the first bonus stage with a time bubble eaten, the clock cut, its count and the next stage reached; the first
+  stage lost three lives at a time, the continue offer taken twice, and the game over's Done to the menu). With
+  build/baseline-feedingfrenzy2/feedingfrenzy2.exe present, its tours must give the same.
+  - Port bug, not chased yet: on the bonus stage at update 2830 (the time bubble rising under the HUD's clock) the
+    screenshot differs from run to run, a sparkle of the bubble's effect drawn or not (three versions in five runs),
+    while every state line and every later screenshot is the same. Only that frame's drawing differs, so a draw reads
+    something not set (a particle's first frame, or the scaled image's drawing). The suite takes no shot there; find
+    it with a run under a memory checker that reports uninitialised reads.
 
 ## Next
 
