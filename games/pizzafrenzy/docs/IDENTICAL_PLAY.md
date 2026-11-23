@@ -357,6 +357,50 @@ online-scores button), the screens a frame behind and the smooth draws' resampli
 and the level end's sparkles (oddities). The web build's pictures are the native port's on every case. Still open:
 full screen against the original, which the real-input pass covers on the desktop.
 
+## Real input
+
+The bot's test runs, the script commands and the page's test hooks never pass through the path a player's input
+takes, so this pass plays the game only through it, by drivers. The session wrote them and read their results; it
+played nothing. The port's bot answers `move` with the next click or key a hand would make on the screen that is up
+(`src/TestCommands.cpp`, README "Test commands"). Natively `tools/playbymove` sends each move as `-realinput` events
+into SDL's own queue under rundesk (docs/REAL_INPUT.md). On the page, the test kit's `?driver=move` sends DOM events on
+the canvas (the player-only page, silent, with the hidden pane's animation frames shimmed as for the looks). Each run
+is a whole game from a first launch: the new player's name box (B, O, T and Done), the menu's mode button, the city's
+postcard, the story pages (Escape), the level starts and their vans, every pick and delivery, the summaries, the
+bonus rounds, and the game's end on the high scores.
+
+| Run | Game | Result |
+| --- | --- | --- |
+| native `-fast`, windowed, the focus lost and regained at the start | speed, seed 4 | won: 15,099 moves, 174,762 updates, all 12 cities to day 68 and the game's end, 751,345 points |
+| native `-fast`, full screen by Alt+Enter at the start | memory, seed 5 | won: 15,743 moves, 175,328 updates, 605,740 points |
+| native `-fast`, full screen by Alt+Enter at the start | concentration, seed 6 | won: 17,121 moves, 225,062 updates, 879,425 points |
+| native real time, windowed | speed, seed 11 | 1,500 moves to city 2's third level (8,104 updates), no error |
+| native `-fast`, full screen, focus1's input | the focus lost in play and regained | the 9 pictures the same as focus1's windowed ones, which match the original's |
+| web, `fast=1` | speed, memory and concentration | each played to the game's end (lost in city 2's third level: the page runs on between the driver's moves, about 90 updates a move), no error in the page |
+| web, the page check (`tools/web/pagecheck.js`) | focus, keys, resize, a second copy, a reload | 11 pass, 0 fail, 1 information line |
+
+No log has an error, and each native game's player is saved at its end with its furthest city and day and its place at
+the top of the mode's high scores.
+
+Findings. The concentration mode's first whole game locked in city 12's third level: two customers stayed dimmed for
+2.4 million updates, with their orders never turned over, and the level could not end. The cause is the original's
+own (0x45b4f0), and the port fixes it as a lock (under "Deviations left"); the next whole game of the mode was won. The
+bot had no move on the box that offers a saved game, where the page's driver stopped (the page's profile kept a game
+from an earlier run); it now presses the box's button that starts the mode again. The first script of the native runs
+gave every game the same player folder (a `\$N` in a path that bash left unexpanded), so its games began in city 12
+with a saved player; the runs above each had their own.
+
+Full screen. When the original loses the focus in full screen, DirectDraw's exclusive mode minimizes its window (the
+game itself only notes the minimize in its WM_SIZE, 0x274, which its loop reads to skip its updates), and its updates
+stop until the player brings it back from the taskbar. In the sandbox the posted focus loss minimized it and the posted
+regain did not restore it, as nothing there restores a window. The port's full screen is a window the size of the
+desktop, which stays up while the focus is away; its pause menu shows, as the original's does once it is back. Both
+pause the game at the loss (the clock stops), so what the player finds on coming back is the same.
+
+Not covered: the web build in full screen (a browser grants it only to the player's own click), sound in play (the runs
+are silent by rule; sound by state was compared in the looks), and a real-time web game (the hidden pane's timers ran
+it at a few updates a second; the `fast=1` runs and the page check cover the page's input).
+
 ## Where it stands (2026-11-16)
 
 Case play1 (150 moves, seed 1) matches through the first level. record.py times each input by the frame the bot's last

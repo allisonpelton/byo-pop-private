@@ -55,7 +55,7 @@ void ConcentrationGame::ordersChanged()
 			aClickable++;
 	}
 	float aSeconds = engine::randomFloat(toPoint(mWaitTime));
-	// The port's fix of a lock (IDENTICAL_PLAY.md, "Real input"): with no customer clickable (a wave's orders still
+	// The port's fix of a lock (IDENTICAL_PLAY.md, "Deviations left"): with no customer clickable (a wave's orders still
 	// showing, every customer dimmed) the original sets the seconds to 0, and since updateWaves turns the orders over
 	// only while they run, the dimmed customers stay dimmed and the level never ends. The event changed no order then,
 	// so the seconds the orders show for are kept. The random draw is made either way, as the original's.
