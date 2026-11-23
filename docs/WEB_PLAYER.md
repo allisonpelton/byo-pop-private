@@ -1033,6 +1033,23 @@ scrolls (2026-11-09); closing the window stops the music and frees what it held 
 `ByopopMusicPanel.held()` tells a test what is still held). Each format in the list names itself in full as a tooltip
 (the user, 2026-11-16: "I don't know what an IT is, Show what the extension stands for").
 
+**Repeat** (the user, 2026-11-22: "Repeat seems to break on some tunes, like BookWorm's game over 2, and in any case the
+position indicator doesn't loop back to the start") goes round a tune as its game would, and the seek bar and the time go
+round with the sound. A subsong whose decoder goes on, once it has played through, at a place the tune has played and with
+sound there follows that loop seamlessly, as the game hears it (`loopOf`: libopenmpt tells the place, libxmp-lite is
+played across its end), and its position goes back to the time the tune first reached that place, after the intro where
+there is one. The decoder's own time cannot be shown as it is: libopenmpt's counts on past the end once a tune has gone
+round, and libxmp-lite's mostly goes back by itself, so while a loop is followed the player looks at the decoder's place
+every 512 frames and keeps the time each place was first reached. A loop into another tune's orders (Dynomite's Time
+Trial Clear goes on at an order of its Game Over), into a silent pattern that jumps to itself (BookWorm's two game overs,
+which the games play once) or past the tune's own time plays the tune again from its start instead, as does a range of
+orders, a cut piece or a joined playlist; a recorded tune goes round to its loop's start (`loopFrom`), a MIDI song to its
+start. `tools/musicrepeattest.js` plays every tune of every staged game past its end with repeat on, unheard at 8000 Hz,
+and checks that the sound goes on, that it goes on from where the decoder itself goes on (or the start, as above), and
+that the position falls back there; before the fix 137 of its 223 tunes failed, nearly all because the position never went
+back, and BookWorm's game overs looped on a silent pattern for ever. For about twenty subsongs libopenmpt's length is
+0.7 to 1.1 seconds longer than the tune plays, so the seek bar goes back from just short of its end.
+
 **Shuffle** (the user, 2026-11-19: "make the shuffle group together tracks that are only ever played in direct sequence,
 never play unused tracks, and skip tracks that would not make sense to have on shuffle (for instance, no intros, short
 themes that could just as well be sound effects, or stings)") is a toggle beside Repeat, kept in `byopop-music-shuffle`.
@@ -1084,7 +1101,9 @@ notes:
   basis?"; `tuneUsed`). The FX button adds an effect column (the user, 2026-11-11: "add a brief English description of
   tracker commands when they appear in the song as an optional column"), its words `music.fx.*` in `en.txt`. The "?"
   beside it opens a message box on how to read the tracker (`music.tracker_help`), which was in About until System
-  Information took its place.
+  Information took its place. A note held is a faint line of the display's colour down the middle of its place, from the
+  row after it until the channel's next note, note-off, cut or fade, or the pattern's end, as the piano roll's bars show it
+  (the user, 2026-11-22: "Yes, add the line"; `heldRuns`); a row with only an effect does not end it.
 - **The piano roll** (the user, 2026-11-09: "add the piano roll too") has rows at least 4 pixels (the user,
   2026-11-11: "way too zoomed out") and instrument names (the user, 2026-11-11: "If there is any way to get instrument
   names, let's do it"; `bm_names`, `byopop_music_names`).
