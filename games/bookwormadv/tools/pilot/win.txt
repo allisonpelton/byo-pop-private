@@ -1,9 +1,10 @@
-# Winning the first battle: RAIN as in battle.txt, then DRAWING, the enemy's defeat, Cassandra's talk, the walk to
+# Winning the first battle: RAIN as in battle.txt, then OUTHEARING, the enemy's defeat, Cassandra's talk, the walk to
 # the next battle and its start with the hint. Profile Tester (pilot start state), the seeded board as in battle.txt.
 at 16000
 click 230 300            # the library: Adventure
 wait 4000
 click 400 575            # Enter!
+loaded 2730              # the load it starts: the steps after it count from the curtain's opening (gen.py)
 wait 2500
 wait 3000
 click 400 150
@@ -14,13 +15,13 @@ click 400 150
 wait 4000
 click 400 150
 wait 4000
-click 325 495            # R  (the seeded board, by rows: UAEN / GNOH / AIJW / RGRE)
+click 326 334            # R  (by rows: RUAE / NGNO / HAIJ / WREI)
 wait 400
-click 325 445            # A
+click 426 334            # A
 wait 400
-click 375 445            # I
+click 426 436            # I
 wait 400
-click 375 395            # N
+click 326 385            # N
 wait 800
 click 400 567            # Attack: Lex attacks, then the enemy answers
 wait 6000
@@ -28,21 +29,27 @@ wait 1000
 wait 3000
 wait 3000
 shot board_after_rain
-click 325 345            # D  (after RAIN, by rows: DAEN / IVOH / UAJW / GGRE)
+click 476 385            # O  (OUTHEARING in place of DRAWING, by rows: BUHE / EGTO / HANJ / WREI)
 wait 400
-click 425 495            # R
+click 376 334            # U
 wait 400
-click 375 345            # A
+click 426 385            # T
 wait 400
-click 475 445            # W
+click 326 436            # H
 wait 400
-click 325 395            # I
+click 476 334            # E
 wait 400
-click 475 345            # N
+click 376 436            # A
 wait 400
-click 325 495            # G
+click 376 487            # R
+wait 400
+click 476 487            # I
+wait 400
+click 426 436            # N
+wait 400
+click 376 385            # G
 wait 800
-shot word_drawing
+shot word_outhearing
 click 400 567            # Attack
 wait 7000
 shot won_talk_1

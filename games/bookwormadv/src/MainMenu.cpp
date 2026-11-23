@@ -90,7 +90,7 @@ MainMenu::Tooltip::Tooltip(Image* theTitle, const std::string& theText, int theT
 		g.FillRect(0, 0, aWidth, aHeight);
 		g.DrawImage(IMAGE_MM_SCROLLBACK, 0, 0);
 		g.DrawImage(theTitle, (aWidth - theTitle->GetCelWidth()) / 2, mTitleY + 21);
-		g.SetColor(Color::White);
+		g.SetColor(Color::Black);  // 0x4781a2: 0x825f00, Color::Black
 		g.SetFont(FONT_SMALL);
 		int aTextHeight = g.GetWordWrappedHeight(191, theText, -1);
 		g.WriteWordWrapped(Rect(12, (44 - aTextHeight) / 2 + 52, 191, 400), theText, -1, 0);
@@ -675,7 +675,8 @@ void MainMenu::ActivateItem(int theItem)
 	case ITEM_ADVENTURE:
 		// port: the trial's end (0x451c80, its dialog) is left out
 		if (!mAdventureAvailable) {
-			mApp->DoOkDialog(GT(0x7aebf8), GT(0x7aeb50), "", IMAGE_DIALOG_BANNER_HOWTOPLAY);
+			// 0x47c05d: above the logo, which a menu from the title draws as its overlay (of priority 1)
+			mApp->DoOkDialog(GT(0x7aebf8), GT(0x7aeb50), "", IMAGE_DIALOG_BANNER_HOWTOPLAY)->mPriority = 2;
 			break;
 		}
 		mFromTitle = false;
@@ -696,6 +697,14 @@ void MainMenu::ActivateItem(int theItem)
 		}
 		break;
 	case ITEM_ARENA:
+		// 0x47bac4: a run that an expansion's books made void (the profile's TM_Invalidated) is forgotten once,
+		// under a warning above the logo
+		if (mApp->mProfile->KeyExists("TM_Invalidated") && mApp->mProfile->GetBool("TM_Invalidated")) {
+			mApp->mProfile->Delete("TM_Invalidated");
+			mApp->mProfile->Save();
+			mApp->DoOkDialog(GT(0x7aecc8), GT(0x7aec48), "", nullptr)->mPriority = 2;
+			break;
+		}
 		// 0x47bc2e: only once the arena is unlocked and the player is in the second book or the first's sixth
 		// chapter
 		if (mApp->mProfile->KeyExists("UnlockedArena") && mApp->mProfile->GetBool("UnlockedArena")) {

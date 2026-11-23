@@ -104,6 +104,76 @@ credits' shake and the fire bowl). The media player's spectrum is the one real d
 the desktop the original played real sound and drew its spectrum, while the port ran under rundesk's silent driver, and
 the 2D comparison masks it for the same reason. Nothing in 3D mode needed a fix.
 
+## Every screen (2026-11-22)
+
+The screen pass lists every screen and dialog the game can show in `SCREENS.md` and takes a pair of shots of each
+one it can reach. The pilot's parts grew from the first battle, the menus and the mini-games to twenty-one in 2D: the
+dialogs over the board, the tooltips, the tome, the players' dialogs, the unlock talks, the adventure done, the map's
+mini-game stop, book 1's last chapter and its end, the arena, a battle lost, the new player's tutorial, the three
+mini-games' ends, and full screen. Each part starts from a save that the port's bot reached (`tools/coverage/`), and
+the bot also played the arena and book 1's end, whose clicks the lists now hold. The newest 2D run is `screens2d-e`
+(`build/shotreview/bookwormadv/screens2d-e/summary.json`). The 3D side waits, below.
+
+**How the original ran.** The 2D original ran on the host through origrun's in-game frame reader, one part at a time,
+on the virtual clock (the coordinator's decision, so the sandbox stayed free). Two parts went to Windows Sandbox: the
+new player's part, whose intro is a Flash movie on its own timers, and full screen. On the host the original reads
+the user's own registry key and users folder, so `winbad.py` backs both up, puts in the pilot's start state, and puts
+them back after each run.
+
+**The chapter's hints held.** A chapter's loading screen draws a hint, one random draw, every 50 updates, so the
+board a battle deals follows how long the load took. The pilot holds those draws on both sides: the port's test
+option `-holdloadhints` and the original's seed patch (`seedpatch.py --holdhints`). Only the screens pilot uses them;
+the random-draw and state comparisons run the hint unpatched, and the hints part shows the hints drawn.
+
+**Each load is an anchor.** A load lasts as long as the machine takes, so a list that counted from the start would
+click a battle's first tiles early or late. gen.py's `loaded <ms>` step makes the original wait for the load screen to
+come and go and for the curtain over it to open (app+0x8ec, the transition state, back to 0), marks the update there,
+and counts the steps after it from the mark (origrun's `waitfor`, `mark` and `at +N`). The port counts from its own
+curtain's opening, which its board log writes as an `opened` line under the test option `-loadanchors` (the frozen
+baseline's board logs have none); `run.sh` finds those with quick passes before the
+real run. The curtain was the anchor that held: it steps a cel when its own counter reaches a multiple of 5, a
+counter that started before the load, so it opens up to four updates sooner or later depending on the load's length
+modulo 5. Counting from the load's end alone had book 1's last battle stuck on a hint after a long load. Parts that
+shoot the curtain itself count from the load's end (`loaded <ms> load`). Between Enter! and the load the original
+waits 135 updates on the host and 141 in the sandbox and in the port, which the anchors take out.
+
+**2D on both sides.** The port starts in 3D unless its registry says `Is3D` 0, and in 3D the board zooms in the
+arena and at book 1's end, so the 2D lists were made and calibrated with the port in 2D (port.sh's `PORT_IS3D=0`).
+
+**Drawing every update.** Under `-fast` alone the port draws only now and then, and a step that waits for a frame to
+be drawn (the curtain's end is one: its `mDrawn`) ended up to five updates late. The original draws every update, so
+the port's pilot runs now pass `-drawevery`, and the lists were set again under it. The parts' events did not change,
+only where their anchors fall.
+
+**Full screen.** The original does not take full screen in 2D in the sandbox, with or without the host's GPU
+(`--sandbox-vgpu`): it opens its window and writes `ScreenMode` 0 back when it quits. On the host it would take the
+user's display, which desktop runs may not. So its `_full` shots are windowed, and the pairs compare the frame inside
+the window. The one difference that leaves is the Options dialog's Fullscreen box, ticked in the port and not in the
+original.
+
+**What differed, and why.** Five differences were the port's, each fixed (the table below, 6c6e979): the tooltip
+scrolls' text colour, the main menu's logo drawn over the "adventure completed" dialog, the arena's missing warning,
+the tome's area column, and the lore's paragraphs. Everything else the run flags is timing, the intro's movie or
+something already explained. The timing is an update or a few: the hearts and the enemy's idle pose behind every
+dialog over the board (a few pixels a row), Word Master's ring of stars at its end, the Attack sparkle and the falling
+tiles in the battle shots, the chapter's scrolling scene and its boss ring, the tome's creature portraits, the mini-game
+stop's welcome (the curtain's phase), and book 1's last attack, where the scripts enable Scramble at update 12290 and
+disable it at 12291 and the port's shot falls between the two. The new player's intro is a Flash movie whose
+flash.ocx timers run on the wall clock, outside origrun's virtual clock, so its frames fall at other moments in the
+sandbox than in the port. The rest is under "Deviations that remain": the transformed sprites of the framework's 2D
+software path, the masked media spectrum, and the JPEG 2000 art.
+
+**The arena in 2D.** At the lost turn after arena_27 the original deals twelve other tiles than the port. The split
+is the same under every anchor scheme and without the refused shots, and from arena_23 on the arena's drifting motes
+already stand a few pixels apart, so the random streams part before it. A watch of the generator's index (0x85a938)
+did not find where: near update 20000 the original makes bursts of more than 624 draws in one update, about 100,000
+in all. The 2D list stops at arena_27 (the full list is kept as the 3D one), and the rest is under "Oddities".
+
+**3D.** The 3D lists still need setting again under `-drawevery`, and the arena and book 1's end making again in 3D.
+Then the parts run one at a time on the user's visible desktop (`vis3d.sh`). A 3D hint gap may stay: if the
+desktop original's chapter hints cannot be held as the sandbox's are, a 3D battle after a chapter load can deal
+another board, and such a pair is written up rather than fixed.
+
 ## Changes the pass made
 
 | Difference | Its cause in the original | What the port does now | Commit |
@@ -119,6 +189,11 @@ the 2D comparison masks it for the same reason. Nothing in 3D mode needed a fix.
 | Every mini-game played from the Adventure map ended the game with "Expected boolean in LuaClassRet" once it was over (the user, 2026-11-07) | At a mini-game's end its script opens the curtain with the callback `MiniGame.DoConvPanel`, which returns nothing; CurtainDone (0x44d360) reads a boolean from the callback only when it returned a result | The same (the port read one always). The menu tent's mini-games pass no callback, so only the map's crashed | f58fe80c |
 | The music could stop for good after a chapter boss when the game lost the focus (the user, 2026-11-07) | Not the original's: after a win the scripts queue the map's song for when the treasure or victory song reaches order 41 (`PlaySongWhenDone`), and the original's loop always sees that order. The port's main loop stops in a hidden or minimized browser tab while the music plays on, so the song passed the order and ended unseen, and the queued song never started | A wait whose song has stopped also plays the queued song; in normal play the song reaches its order first. Reproduced natively with the new `stall` test command (60 s during the treasure song) | b6a51d0c |
 | A short hitch at the start of every curtain (Volume 2's session found it; the user's "curtain lag") | The original makes three flipped and mirrored copies of the curtain picture for every curtain, and the first frame uploads them as new textures | The copies are made once and kept by the app (freed at its end) | 4ee9c3db |
+| The main menu's tooltip scrolls had white text (every tip shot) | The scroll's constructor (0x478060) sets its text colour to `Color::Black` (0x4781a2 loads 0x825f00); the port had taken 0x825ef0, `Color::White`, next to it | Black text | 6c6e979 |
+| The main menu's logo was drawn over Adventure's "completed" dialog (adventure_done) | A menu reached from the title draws its logo as an overlay of priority 1; MouseUp (0x47b470) sets each dialog it opens to priority 2 afterwards (0x47c05d), so the dialog flushes the overlay before drawing itself. An origrun watch showed the original's menu still "from the title" there, and a peek of its widget list showed the dialog at 2 | The dialog gets priority 2, as does the arena's warning below | 6c6e979 |
+| The arena's door gave no warning on a run voided by an expansion | MouseUp's arena case (0x47bac4) first checks the profile's `TM_Invalidated`: when set it deletes it, saves, and shows the WARNING dialog at priority 2 | Added | 6c6e979 |
+| The tome's area column lost its last digit ("1-2-" for "1-2-1") | The list's second text is right-aligned to the clip rectangle's width (0x4956e0 reads the Graphics' +0x28; ClipRect, 0x4f5b60, keeps the rectangle at +0x20). The port had read +0x28 as the rectangle's height, its place in the older framework | The clip's width | 6c6e979 |
+| A creature's lore drew a literal "@" and doubled spaces | The scripts read each `.lore` file with `io.open(name, "rt")` and `f:lines()`, and a line ending in "@" closes a paragraph (creaturebaseclass, `SetupLoreFacts`). The C runtime's text mode reads "\r\n" as "\n"; the port's io library read every file as bytes, so each line kept its "\r" | A file opened without "b" reads "\r\n" as "\n" | 6c6e979 |
 
 The pass also changed the test tools: the pilot's scripts, the sandbox runs, exact shot timing, `lag.py`, and the load
 holds (39aaca5, 8607ebf). Besides those, it made shared origrun changes (sandbox capture, `--watch`), each merged by the
@@ -207,6 +282,13 @@ would give the next battle another board. The port loads in 20 ms slices and sho
 the original would mean loading at its thread's speed on each machine. To see it, watch the screen's timer with origrun:
 `--watch "[[0x8259e4]+0x83c]+0xb0"`. Within a held load, the loading bar and Lex's place on the title still move at each
 side's own pace (a few hundred pixels in a few frames).
+
+**The arena's tiles in 2D after its third lost turn.** In the screens pilot's arena, the original deals twelve other
+tiles than the port at the lost turn after arena_27, the same under every anchor scheme, and its drifting motes stand a
+few pixels apart from arena_23 on. To see it, run the arena part in 2D (`run.sh arena` with `PILOT_PROFILE=arena.bwa`)
+and compare arena_27 onwards. Finding it would mean following the generator's index (`PILOT_WATCH=[0x85a938]` with
+the port's `-randlog`) through bursts of more than 624 draws an update, about 100,000 near update 20000, to the first
+draw that differs. The 2D list stops at arena_27.
 
 ## Deviations that remain
 

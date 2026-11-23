@@ -111,6 +111,15 @@ static int io_open(lua_State* L)
 		if (poplua_readfile(filename, &buf, &size)) {
 			data->assign(buf, size);
 			free(buf);
+			// a text mode (no "b"), as the original's C runtime reads one: each "\r\n" is "\n" (the creatures'
+			// lore files end their lines in "\r\n", and a line that ends in "@" ends its paragraph)
+			if (strchr(mode, 'b') == NULL) {
+				size_t aTo = 0;
+				for (size_t i = 0; i < data->size(); i++)
+					if (!((*data)[i] == '\r' && i + 1 < data->size() && (*data)[i + 1] == '\n'))
+						(*data)[aTo++] = (*data)[i];
+				data->resize(aTo);
+			}
 		}
 		else if (mode[0] == 'r') {
 			delete data;

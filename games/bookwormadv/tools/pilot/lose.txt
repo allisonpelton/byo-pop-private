@@ -1,0 +1,35 @@
+# A lost battle: Lex at a quarter of his health spells RUN against the chapter's first enemy, who strikes back. Lex
+# falls and his ghost rises, the curtain closes on the map, and Cassandra's talk on dying follows. Start state:
+# PILOT_PROFILE=build/scratch/pilot/profiles/lowhealth.bwa (the pilot's Tester with Health 0.25, tools/coverage/bwa.py).
+at 16000
+click 230 300            # the library: Adventure
+wait 4000
+click 400 575            # Enter!
+loaded 2730              # the load it starts: the steps after it count from the curtain's opening (gen.py)
+wait 5500
+click 400 150            # the conversation on
+wait 4000
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+click 400 150
+wait 4000
+shot lose_low_health
+click 326 334            # R
+wait 300
+click 376 334            # U
+wait 300
+click 326 385            # N
+wait 700
+click 401 570            # Attack: RUN
+wait 1000
+clip lose_fall 4000 200
+wait 1000
+shot lose_curtain
+wait 10000
+shot lose_talk
+click 400 300            # the conversation on
+wait 3000
+shot lose_map
+quit

@@ -1,0 +1,193 @@
+# Link n' Spell to its end from the tent (the coverage pass's steps, made by the port's bot): the welcome, its hints,
+# the words, the clock running out and the hall of fame. Start state:
+# PILOT_PROFILE=build/scratch/pilot/profiles/mg.bwa, the bot's save at book 3's last chapter (advance.sh's 3.10.6,
+# every mini-game open) with NeedsBestiaryDialog and NeedsMiniGamesDialog false (bwa.py), so the menu has no talk.
+at 16000
+click 115 400            # the tent
+wait 2500
+click 393 412            # Link n' Spell
+loaded 1900              # the load it starts: the steps after it count from the curtain's opening (gen.py)
+wait 2500
+shot linknspell_01_dialog
+click 332 416   # dialog
+wait 1500
+shot linknspell_02_hint
+click 400 300   # hint
+wait 1000
+shot linknspell_03_hint
+click 400 300   # hint
+wait 1000
+shot linknspell_04_hint
+click 400 300   # hint
+wait 1000
+shot linknspell_05_hint
+click 400 300   # hint
+wait 1000
+shot linknspell_06_hint
+click 400 300   # hint
+wait 1000
+click 334 236
+wait 300
+click 393 176
+wait 300
+click 275 296
+wait 300
+click 393 116
+wait 300
+click 334 356
+wait 300
+click 511 236
+wait 300
+click 393 236
+wait 300
+click 275 236
+wait 300
+click 393 296
+wait 300
+click 511 356
+wait 300
+wait 400
+click 399 580   # Attack: EQUIVOCATED
+wait 2000
+shot linknspell_07_attack
+wait 500
+click 334 176
+wait 300
+click 334 236
+wait 300
+click 452 116
+wait 300
+click 393 176
+wait 300
+click 275 296
+wait 300
+click 452 296
+wait 300
+click 275 356
+wait 300
+wait 400
+click 399 580   # Attack: MEZQUITE
+wait 2000
+shot linknspell_08_attack
+wait 500
+click 511 176
+wait 300
+click 275 356
+wait 300
+click 393 356
+wait 300
+click 452 356
+wait 300
+click 275 116
+wait 300
+wait 400
+click 399 580   # Attack: BEAMY
+wait 2000
+shot linknspell_09_attack
+wait 500
+wait 1500
+shot linknspell_10_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot linknspell_13_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot linknspell_16_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot linknspell_19_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot linknspell_22_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot linknspell_25_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot linknspell_28_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot linknspell_31_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot linknspell_34_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot linknspell_37_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot linknspell_40_idle
+click 400 150
+wait 3000
+wait 2000
+quit

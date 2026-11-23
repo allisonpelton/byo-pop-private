@@ -110,7 +110,7 @@ channel) each answer with one log line, `OK <command>` or `ERROR <command>: <rea
   twice its size in place of full screen, `?lockstep=1` the game held in a mini-game and stepped only by the moves.
 
 `-boardlog=<file>` (on the web, the page adds it through `Module.callMain`) makes the game append what a driver of
-real input needs, each line once as it changes: `screen: <n> <name>`, `talk: <n> 1|0`, `dialog: <n> <id> ok x,y | header | lines` (its
+real input needs, each line once as it changes: `screen: <n> <name>`, `loadend: <n> <update>` (a chapter load's screen gone, at the update after the one the original's side reads it at), `opened: <n> <update>` (then the curtain over it open, mTransitionState none, likewise), `talk: <n> 1|0`, `dialog: <n> <id> ok x,y | header | lines` (its
 first button), `treasure: <n> continue x,y 1|0` (the treasure room's Continue, and whether it is enabled: a
 driver picks Lex's treasures from the left column until it is), `hint: <n> <id> x,y ...|-` (the tutorial's
 arrows that wait for a click on a hot spot, and each spot's centre: the drivers click the first), `tutorial: <n> <state> x,y|attack x,y` (the
@@ -172,6 +172,17 @@ original's making comes out of the port itself: `TitleScreen::Update` goes on to
 logo's end does, so a player reaches the title loaded in 1.7 s rather than 5.25 ("Performance"). The logo draws no random
 number (the suite's first chapter plays as before). `-popcaplogo` keeps it, for comparisons with the original: the pilot's
 `run.sh` and `lag.py` pass it.
+
+### "Deluxe" taken out of the title and the window's name (2026-11-21)
+
+The user's note of 2026-11-18: "Remove the "Deluxe" text from the main screen of any game it may appear in, to avoid
+misleading people about whose game version they're playing". In this game the word is a sprite of its own,
+`IMAGE_TS_DELUXE`, which `TitleScreen::Draw` puts under the logo while the game loads and until the main menu takes over
+(the main menu's logo, `IMAGE_MM_LOGO`, has no "Deluxe"), and it is in the window's name. The port draws the title without
+the sprite (the logo, Lex and the tiles are as before) and names its window "Bookworm Adventures". No image is edited:
+the sprite is still loaded with its group and is simply not drawn. The folder of the port's saves keeps its name, so no
+player's saves move. The title clip's shots (`title`, `title_3d`) show the logo without the word; the boxes around the word
+in their frames are this deviation, left unmasked.
 
 ### Registration code taken out (2026-11-07)
 
@@ -277,6 +288,34 @@ frame of the Enter! transition, before and after the load, matches the original'
 identical port frames that includes the original's update, by `landed.tsv`). What still differs is the loading bar's
 fill while it is up, 238 to 656 pixels in three frames: the original's thread fills it fast at first and then stalls,
 at a pace no update count gives. That is timing, the bar's box masked during a chapter load.
+
+The test option `-holdloadhints` (off unless given, 2026-11-22) holds those hint draws: a chapter load's screen keeps
+the hint it opened with and draws no new one, as the original does with the ChapterLoadScreen patch
+(`tools/origrun/patches/bookwormadv.txt`, `tools/pilot/seedpatch.py --holdhints`). Only the screens pilot gives it
+(`tools/pilot/run.sh`, `vis3d.sh`), because the steps the port's bot makes fit one number of hint draws, and the
+loads on a busy machine took anything from 5 to 260 updates (the 3D desktop's 5 to 86). The frozen baseline,
+`tools/check.sh` and the logic comparisons (`-randlog`, the state checks) never give it: there the hint's draws and
+the original's own load lengths are compared as before.
+
+The test option `-loadanchors` (off unless given) adds the board log's `loadend` and `opened` lines, the update a
+chapter load's screen went and the update the curtain over it finished opening, which the pilot's steps count from.
+Only `tools/pilot/run.sh` gives it, so the frozen baseline's board logs compare line for line.
+
+The pilot's steps also anchor each chapter load (`tools/pilot/gen.py`'s `loaded <ms>`). On the host the original's loader
+runs on the wall clock while its updates run on origrun's virtual clock, so a load lasted 41 to 7415 updates there. The
+original's script waits until the load's screen (app+0x83c) has come and gone and the curtain over it has opened
+(app+0x8ec, mTransitionState, back to 0), marks the update counter, and times the steps after it from that mark
+(origrun's `waitfor`, `mark` and `at +N`). The port's lines after the load count from its own curtain's opening, the
+`opened` line of a `-fast` pass with the original's load lengths (`anchors.py`, `run.sh`), so each side counts from its
+own. The curtain, not the load's end: it steps a cel every 5 of its own updates, counted from before the load, so it
+opens 0 to 4 updates later or sooner after a load of another length, and a battle's first clicks then land early or late
+on the board (book 1's last battle stuck on the invalid word's hint after a load of 2016 updates; the arena parted from
+the port at its third lost turn, the original's gap from Enter! to the load being 135 updates on the host and the
+port's 141). `<ms>` is where the curtain opened in the port run the steps were made with (90 updates a load; `opened`
+in a `--nominal` port run of the part), so the steps after it keep their timing. A part that shoots the curtain as it
+opens (the battle, the map's mini-game stop, the new game) says `loaded <ms> load` and counts from the load's end
+(`loadend`) instead, its later steps loose enough not to mind the curtain's 4 updates. A port run with no original
+(`tools/coverage/port.sh`) gives gen.py `--nominal`, which times the lines after a load from that end.
 
 The startup load did the same to everything after the title: the original ran about 190 updates behind the port from
 its menu on. Its loading thread ran from update 406, where StartLoadingThread (0x549480) sets the app's +0x4f9, to 546,
@@ -693,10 +732,52 @@ main.lua lines 37 to 49 define five empty tables for an expansion, and they are 
 - The arena is the code's "timed mode": `MainMenu::StartArena` (0x47c290) calls `main.SetTimedMode(true)`, and the app's
   `mTimedMode`, the scripts' `gTimedMode` and the profile's `TM_` keys all belong to it.
 
+## The autosplit block (2026-11-21)
+
+The port writes the shared autosplit block that the site's Splits window and LiveSplit read (`platform/AutosplitBlock.h`,
+layout 2; `docs/WEB_PLAYER.md`, "One design for every port"), with the game id `BWAD`. The observer is
+`src/LiveSplitObserver.cpp`, in the Windows and web builds. `GameApp::UpdateFrames` calls `LiveSplitObserver::AfterUpdate`
+after each update, and the app's destructor calls `AppDestroyed` for the last write. The observer only reads the game: no
+random draw, no game state, no save and no call into the scripts. Until something asks for the block, it only tests two
+flags. On the web the page asks by calling `byopop_livesplit_block` (exported, `byopop_web_game(... EXPORTS
+_byopop_livesplit_block)`); natively the `livesplit` feature of an enabled mod asks (`mods/livesplit/mod.json`, a manifest
+only). `-livesplitlog=<file>` writes a line for each event.
+
+**What it reads.** The rules live in the scripts, so the observer reads what they leave on the C++ side. That is the
+player's profile (the values the scripts set: `CompletedChapters`, `Farthest*`, `Current*`, `InGame`, `BeatRegularGame`,
+the arena's `TM_` keys), the game screen (`mBookManager`, with `mTimedMode` for the arena), and the battle's state
+(`gBattleEngine->mState`, which `BattleEngine::SetState` mirrors from the scripts). A board is a session of one mode, from the
+main menu and back to it. `mode` is 0 for the adventure and 1 for the arena; 2, 3 and 4 are Word Master, Letter Rip and Link
+n' Spell when started from the main menu's tent (a mini-game played from the adventure's map belongs to the adventure).
+`skill` is 0: the game has no difficulty. `progress` is the books completed (0 to 3, -1 in a mini-game). `level` is the
+chapters completed, or the arena's enemies beaten. `displayLevel` is the chapter in play, `state` is the battle's state (-1
+with no battle), and `tick` is the app's update count. The game's own four words are the book, chapter and stage in play,
+and the session's falls. A paused board has `AUTOSPLIT_FLAG_PAUSED`, a session that continues a game has
+`AUTOSPLIT_FLAG_RESUMED`, and `AUTOSPLIT_FLAG_VANILLA` is on while the mods' score key is empty (no enabled mod changes the
+play).
+
+**Events.**
+- *GO*: a session's first update, when it starts a new game. In the adventure that means a player who has completed no
+  chapter, got no farther than the first battle and has no battle saved. In the arena it means a new run (`TM_CurrentStage`
+  -1, as `Profile::ResetTimedMode` leaves it). Every mini-game started from the tent counts. Any other session is RESUMED
+  and raises no GO.
+- *Level clear*: a chapter completed in the adventure (the count of `CompletedChapters` rises), or an enemy beaten in the
+  arena (`TM_LastEnemyIndex` rises).
+- *Game over*: kind 0 when Lex falls in the adventure (the battle enters `BE_DYING`). The adventure goes on with the
+  battle again, so the session stays in play and counts the fall. Kind 1 when Lex falls in the arena, which ends the run.
+  Kind 2 at a mini-game's end, when its hall of fame comes up. A mini-game left from its menu ends no game.
+- *Win*: the adventure's `BeatRegularGame` becomes true (the third book's end), or the arena's win dialog comes up
+  (`DIALOG_ARENA_WIN`).
+
+The bot's run through the whole adventure with the block on (`tools/coverage/advance.sh` with the mod and the log) gave one
+GO, 30 level clears and the win, with Lex's falls counted on the way. A Word Master game from the tent gave GO in mode 2
+and its end. The arena's events were checked with the screen pass's arena steps (`IDENTICAL_PLAY.md`, "Every screen").
+
 ## Mods
 
-None (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones worth
-making.
+`mods/livesplit` (a manifest only) turns the autosplit block on natively ("The autosplit block" above). No mod changes
+the game yet (the user's rule: no mods before every PopCap game works in the browser). `MOD_IDEAS.md` lists the ones
+worth making.
 
 ## Status (2026-10-26)
 

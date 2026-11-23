@@ -1,0 +1,35 @@
+# The screen pass (2026-11-21), the players' other dialogs: the startup's message about a player's file that does not
+# load (Old, a copy of Tester saved before format 0.0.5; the check deletes it), a player deleted (Cov, a copy of
+# Tester) with its question, and a new player's name that is taken. Profile Tester; PILOT_USERS adds Cov.bwa and
+# Old.bwa.
+at 16000
+shot profile_error
+click 400 429            # its OK
+wait 16000
+shot menu_after_profile_error
+click 400 209            # change users
+wait 1500
+shot players_three
+click 400 213            # the second row: Cov
+wait 500
+click 483 416            # Delete
+wait 1500
+shot delete_confirm
+click 332 388            # Yes
+wait 1500
+shot players_after_delete
+click 314 416            # New
+wait 1500
+text Tester
+wait 500
+key 13 Return            # the name is taken
+wait 1500
+shot name_taken
+click 400 389            # its OK
+wait 1000
+click 506 434            # the New User dialog's Cancel
+wait 1000
+click 482 464            # the player list's Cancel
+wait 1500
+shot menu_after_players
+quit

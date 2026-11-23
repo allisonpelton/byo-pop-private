@@ -1,0 +1,77 @@
+# Word Master to its end from the tent (the coverage pass's steps): the welcome, five guesses (words that begin with
+# the letter it gives), the game over and the hall of fame. Start state:
+# PILOT_PROFILE=build/scratch/pilot/profiles/mg.bwa, the bot's save at book 3's last chapter (advance.sh's 3.10.6,
+# every mini-game open) with NeedsBestiaryDialog and NeedsMiniGamesDialog false (bwa.py), so the menu has no talk.
+at 16000
+click 115 400            # the tent: the mini-games
+wait 2500
+click 393 280            # Word Master
+loaded 1900              # the load it starts: the steps after it count from the curtain's opening (gen.py)
+wait 2500
+shot wordmaster_welcome
+click 320 436            # Yes: the tooltips
+wait 2000
+click 548 512            # W
+wait 400
+click 148 512            # O
+wait 400
+click 298 512            # R
+wait 400
+click 248 462            # D
+wait 400
+key 13 Return
+wait 4000
+shot wordmaster_wm0
+click 398 512            # T
+wait 400
+click 148 512            # O
+wait 400
+click 98 512            # N
+wait 400
+click 298 462            # E
+wait 400
+key 13 Return
+wait 4000
+shot wordmaster_wm1
+click 448 462            # H
+wait 400
+click 98 462            # A
+wait 400
+click 298 512            # R
+wait 400
+click 198 512            # P
+wait 400
+key 13 Return
+wait 4000
+shot wordmaster_wm2
+click 698 462            # M
+wait 400
+click 498 462            # I
+wait 400
+click 648 462            # L
+wait 400
+click 298 462            # E
+wait 400
+key 13 Return
+wait 4000
+shot wordmaster_wm3
+click 98 512            # N
+wait 400
+click 98 462            # A
+wait 400
+click 598 462            # K
+wait 400
+click 298 462            # E
+wait 400
+key 13 Return
+wait 4000
+shot wordmaster_wm4
+click 400 300
+wait 3000
+shot wordmaster_wm_end1
+click 400 300
+wait 3000
+shot wordmaster_wm_end2
+click 230 556            # the hall of fame's Main Menu
+wait 3000
+quit

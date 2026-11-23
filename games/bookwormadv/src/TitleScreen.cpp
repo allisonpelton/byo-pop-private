@@ -194,13 +194,9 @@ void TitleScreen::Draw(Graphics* g)
 	}
 	g->DrawImage(IMAGE_MM_LOGO, (mWidth - IMAGE_MM_LOGO->mWidth) / 2, mLogoY);
 	g->SetColorizeImages(false);
-	if (mLogoAlpha != 255) {
-		g->SetColorizeImages(true);
-		g->SetColor(Color(255, 255, 255, mLogoAlpha));
-	}
-	g->DrawImage(IMAGE_TS_DELUXE, 330, IMAGE_MM_LOGO->mHeight - 40 + mLogoY);
-	if (mLogoAlpha != 255)
-		g->SetColorizeImages(false);
+	// port: the original draws its "Deluxe" sprite here, under the logo (IMAGE_TS_DELUXE at x 330, y the logo's height
+	// - 40 + mLogoY, faded with mLogoAlpha once loaded). The port leaves it out, at the user's request of 2026-11-18
+	// (README, "Deviations from the original"); the resource group still loads it.
 
 	// What Lex has eaten of the tiles is not drawn
 	int anEaten = (int)(mApp->GetLoadingThreadProgress() * mEatWidth);

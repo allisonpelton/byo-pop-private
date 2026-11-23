@@ -1,0 +1,16 @@
+# The map's mini-game stop: book 1's map with Moxie's stop beside the next chapter, the stop chosen, the curtain, and
+# Letter Rip in the adventure with its welcome. Profile 1.4.8.bwa (PILOT_PROFILE): the port's save at book 1, chapter
+# 4, stage 8 (tools/coverage/advance.sh) with the menu's talks marked as given (tools/coverage/bwa.py).
+at 16000
+click 230 300            # the library: Adventure
+wait 4000
+shot mgstop_map
+click 287 170            # the mini-game's stop
+loaded 3000 load         # the load it starts: the steps after it count from its end (gen.py), the curtain shot as it opens
+clip mgstop_curtain 3000 200
+wait 500
+shot mgstop_welcome
+click 399 276            # OK
+wait 2000
+shot mgstop_letterrip
+quit

@@ -1,4 +1,5 @@
 #include "GameApp.h"
+#include "LiveSplitObserver.h"
 #ifdef __EMSCRIPTEN__
 #include "SiteProfiles.h"
 #endif
@@ -54,8 +55,10 @@ GameApp::GameApp()
 	mProdName = "WinBAD";
 	mProductVersion = "1.0";
 	mRegKey = "PopCap\\WinBAD";
-	// port: the original's title was the properties' Title (InitPropertiesHook) and the version
-	mTitle = "Bookworm Adventures Deluxe";
+	// port: the original's title was the properties' Title (InitPropertiesHook) and the version; the port's was
+	// "Bookworm Adventures Deluxe" until it left out "Deluxe", at the user's request of 2026-11-18 (README, "Deviations
+	// from the original"). The save folder keeps its name (main.cpp), so that no player's saves are lost.
+	mTitle = "Bookworm Adventures";
 	mWidth = 800;
 	mHeight = 600;
 	mAutoStartLoadingThread = false;  // the title screen starts it once the curtain is closed
@@ -66,6 +69,7 @@ GameApp::GameApp()
 // 0x443930
 GameApp::~GameApp()
 {
+	LiveSplitObserver::AppDestroyed(this);  // port(mod): the autosplit block's last write
 	if (mMainMenu != nullptr) {
 		mWidgetManager->RemoveWidget(mMainMenu);
 		delete mMainMenu;
@@ -199,8 +203,16 @@ void GameApp::HandleCmdLineParam(const std::string& theParamName, const std::str
 		}
 	} else if (theParamName == "-boardlog")
 		mBoardLogForTests = theParamValue;  // port: tests with real input (TestHooks.cpp)
+	else if (theParamName == "-randlog")
+		mRandLogForTests = theParamValue;  // port: the random draws by update, for comparisons (TestHooks.cpp)
 	else if (theParamName == "-startloadupdates")
 		mStartLoadWanted = theParamValue.empty() ? -1 : atoi(theParamValue.c_str());
+	else if (theParamName == "-livesplitlog")
+		LiveSplitObserver::SetLogFile(theParamValue);  // port(mod): a line for each autosplit event
+	else if (theParamName == "-holdloadhints")
+		mHoldLoadHints = true;  // port: a chapter load's screen draws no new hint (ChapterLoadScreen::Update)
+	else if (theParamName == "-loadanchors")
+		mLoadAnchorsForTests = true;  // port: the board log's loadend and opened lines, the screens pilot's anchors (TestHooks.cpp)
 	else if (theParamName == "-popcaplogo")
 		mPopCapLogo = true;  // port: the startup's PopCap logo as the original shows it, for comparisons (TitleScreen)
 	else
@@ -250,6 +262,8 @@ void GameApp::UpdateFrames()
 		mSongPlayer->Update();
 	if (!mBoardLogForTests.empty())
 		LogBoardForTests();
+	if (!mRandLogForTests.empty())
+		LogRandForTests();
 	if (!mRetriesForTests.empty())
 		RunRetriesForTests();
 	// port: every 100 updates the original checked the trial's limits of its marketing modes (an hour's play,
@@ -257,6 +271,7 @@ void GameApp::UpdateFrames()
 	if (mCountsTime)
 		mUserUpdates++;
 	mSoundPlayer->Update();
+	LiveSplitObserver::AfterUpdate(this);  // port(mod): the autosplit block, after the update
 }
 
 void GameApp::Shutdown()

@@ -1,0 +1,277 @@
+# The rest of a chapter, as the port's bot played it (tools/coverage/play.py up to the chapter's end, then
+# addshots.py): the map's Enter!, the battles' talks, a hint, six words with their attacks, and the walk back to the
+# map. Profile Tester (the pilot start state: book 1, chapter 3, stage 2).
+at 16000
+click 230 300            # the library: Adventure
+wait 4000
+wait 500
+shot chapter_01_enter
+click 400 575   # Enter!
+loaded 2730              # the load it starts: the steps after it count from the curtain's opening (gen.py)
+wait 3000
+wait 1500
+wait 500
+shot chapter_02_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot chapter_03_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot chapter_04_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+click 326 334
+wait 300
+click 476 334
+wait 300
+click 426 436
+wait 300
+click 326 385
+wait 300
+click 476 436
+wait 300
+click 376 334
+wait 300
+click 376 487
+wait 300
+click 476 487
+wait 300
+click 426 385
+wait 300
+click 376 385
+wait 300
+wait 400
+click 401 570   # Attack: REINJURING
+wait 2500
+wait 500
+shot chapter_05_idle
+click 400 150
+wait 3000
+wait 500
+shot chapter_06_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot chapter_07_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot chapter_08_talk
+click 400 150   # the conversation on
+wait 3000
+wait 1500
+wait 500
+shot chapter_09_hint
+click 400 300   # hint
+wait 1000
+wait 500
+click 326 487
+wait 300
+click 426 334
+wait 300
+click 326 385
+wait 300
+click 426 487
+wait 300
+click 326 436
+wait 300
+click 426 436
+wait 300
+click 426 385
+wait 300
+click 476 436
+wait 300
+click 326 334
+wait 300
+click 376 334
+wait 300
+wait 400
+click 401 570   # Attack: WIREHAIRED
+wait 2000
+shot chapter_10_attack
+wait 500
+wait 500
+shot chapter_11_idle
+click 400 150
+wait 3000
+wait 1500
+wait 500
+click 376 436
+wait 300
+click 376 487
+wait 300
+click 326 385
+wait 300
+click 326 436
+wait 300
+click 476 385
+wait 300
+click 326 334
+wait 300
+click 376 334
+wait 300
+click 476 436
+wait 300
+click 476 487
+wait 300
+click 376 385
+wait 300
+click 476 334
+wait 300
+wait 400
+click 401 570   # Attack: LAUREATIONS
+wait 2500
+wait 500
+shot chapter_12_idle
+click 400 150
+wait 3000
+wait 1500
+wait 500
+shot chapter_13_idle
+click 400 150
+wait 3000
+wait 500
+click 376 436
+wait 300
+click 326 487
+wait 300
+click 426 487
+wait 300
+click 426 334
+wait 300
+click 376 334
+wait 300
+click 326 385
+wait 300
+click 376 385
+wait 300
+click 376 487
+wait 300
+click 476 334
+wait 300
+click 476 385
+wait 300
+wait 400
+click 401 570   # Attack: DENOUEMENT
+wait 2000
+shot chapter_14_attack
+wait 500
+wait 1500
+wait 500
+shot chapter_15_idle
+click 400 150
+wait 3000
+wait 500
+click 326 436
+wait 300
+click 426 436
+wait 300
+click 476 487
+wait 300
+click 376 385
+wait 300
+click 326 385
+wait 300
+click 426 487
+wait 300
+click 476 436
+wait 300
+click 476 334
+wait 300
+click 376 334
+wait 300
+wait 400
+click 401 570   # Attack: ALEURONES
+wait 2500
+wait 1500
+wait 500
+shot chapter_16_idle
+click 400 150
+wait 3000
+wait 500
+shot chapter_17_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot chapter_18_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot chapter_19_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot chapter_20_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot chapter_21_talk
+click 400 150   # the conversation on
+wait 3000
+wait 1500
+wait 500
+shot chapter_22_idle
+click 400 150
+wait 3000
+wait 500
+click 376 487
+wait 300
+click 326 487
+wait 300
+click 476 487
+wait 300
+click 426 334
+wait 300
+click 426 487
+wait 300
+click 376 385
+wait 300
+click 326 334
+wait 300
+click 326 436
+wait 300
+click 426 436
+wait 300
+click 476 436
+wait 300
+wait 400
+click 401 570   # Attack: AXENICALLY
+wait 2000
+shot chapter_23_attack
+wait 500
+wait 1500
+wait 500
+shot chapter_24_idle
+click 400 150
+wait 3000
+wait 1500
+wait 500
+shot chapter_25_idle
+click 400 150
+wait 3000
+wait 1500
+wait 500
+shot chapter_26_idle
+click 400 150
+wait 3000
+wait 500
+shot chapter_27_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot chapter_28_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot chapter_29_talk
+click 400 150   # the conversation on
+wait 3000
+wait 500
+shot chapter_30_talk
+click 400 150   # the conversation on
+wait 3000
+wait 2000
+quit

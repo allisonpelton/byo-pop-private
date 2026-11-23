@@ -1,0 +1,170 @@
+# Letter Rip to its end from the tent (the coverage pass's steps, made by the port's bot): the welcome, its hints, the
+# words, the clock running out and the hall of fame. Start state: PILOT_PROFILE=build/scratch/pilot/profiles/mg.bwa,
+# the bot's save at book 3's last chapter (advance.sh's 3.10.6, every mini-game open) with NeedsBestiaryDialog and
+# NeedsMiniGamesDialog false (bwa.py), so the menu has no talk.
+at 16000
+click 115 400            # the tent
+wait 2500
+click 393 346            # Letter Rip
+loaded 1900              # the load it starts: the steps after it count from the curtain's opening (gen.py)
+wait 2500
+shot letterrip_01_dialog
+click 332 407   # dialog
+wait 1500
+shot letterrip_02_hint
+click 400 300   # hint
+wait 1000
+shot letterrip_03_hint
+click 400 300   # hint
+wait 1000
+shot letterrip_04_hint
+click 400 300   # hint
+wait 1000
+shot letterrip_05_hint
+click 400 300   # hint
+wait 1000
+shot letterrip_06_hint
+click 400 300   # hint
+wait 1000
+click 225 502
+wait 300
+click 275 502
+wait 300
+click 325 502
+wait 300
+click 375 502
+wait 300
+click 425 502
+wait 300
+click 475 502
+wait 300
+click 525 502
+wait 300
+click 575 502
+wait 300
+wait 400
+click 399 580   # Attack: SPORTING
+wait 2000
+shot letterrip_07_attack
+wait 500
+click 325 502
+wait 300
+click 275 502
+wait 300
+click 225 502
+wait 300
+wait 400
+click 399 580   # Attack: OPS
+wait 2000
+shot letterrip_08_attack
+wait 500
+wait 2500
+wait 1500
+shot letterrip_09_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot letterrip_12_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot letterrip_15_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot letterrip_18_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot letterrip_21_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot letterrip_24_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot letterrip_27_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot letterrip_30_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot letterrip_33_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot letterrip_36_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 1500
+shot letterrip_39_idle
+click 400 150
+wait 3000
+wait 1500
+click 400 150
+wait 3000
+wait 2000
+quit

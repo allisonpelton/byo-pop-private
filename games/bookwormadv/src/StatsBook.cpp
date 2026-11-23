@@ -114,8 +114,9 @@ void CustomListWidget::Draw(Graphics* g)
 		if (!mSecondary.empty()) {
 			const std::string& aSecond = mSecondary[aLine];
 			if (!aSecond.empty()) {
-				// right-aligned, to the clip's height past the line's start (as the original wrote it)
-				aClipG.DrawString(aSecond, aClipG.mClipRect.mHeight + aFontX - mFont->StringWidth(aSecond), aTextY);
+				// right-aligned, the clip's width past the line's start (0x4956e0: the Graphics' +0x28, its clip
+				// rectangle's width, the rectangle at +0x20 as ClipRect, 0x4f5b60, writes it)
+				aClipG.DrawString(aSecond, aClipG.mClipRect.mWidth + aFontX - mFont->StringWidth(aSecond), aTextY);
 			}
 		}
 	}
