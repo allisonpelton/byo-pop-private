@@ -274,6 +274,11 @@ public:
 	enum { HINT_DIALOG_ID = 0x12, HELP_DIALOG_ID = 0x13 };
 	uint32_t mHintFlags = 0;         // +0x26a8: the profile's flags when the board was made (0x74ae30)
 	std::vector<HintRequest> mHintQueue;   // +0x26b8: the boxes waiting; the first is the one on show
+	// The pause (0x73b670, 0x73c260, 0x767090, 0x756cb0). The player's own pause (the space bar) and the one the game makes itself when it is not in front or an
+	// options or reset dialog is up (IsPaused), both only in a mode with a clock (CanPause). The fade eases up while paused and the update stops at 0.75
+	bool mPlayerPaused = false;      // +0x12c4: the space bar toggled the pause; a click on the board ends it
+	float mPauseFade = 0.0f;         // +0x12c8: 0 to 1, up by 0.035 an update while the game is paused, down by 0.075 when it is not; the gems' alpha is 1 less this
+	float mPauseAlpha = 0.0f;        // +0x12cc: 0 to 1: the alpha of the word PAUSED; up by 0.035 while paused (not while a dialog is up), down by 0.075
 	int mHelpHold = 0;               // +0x2b40: after a help dialog was asked for, counts down from 100: the help comes at 10 and the game goes on at 0
 	int mHelpId = -1;                // +0x2b44: the help the mode asked for (-1 none)
 	bool mDemonstration = false;     // +0x1412: 0 in a game the player plays; the replay of a box's move (not made) sets it
@@ -292,7 +297,7 @@ public:
 	// translated yet (the in-game menu dialog, 0x681370)
 	void ButtonDepress(int theId) override;
 	enum { BUTTON_HINT = 0, BUTTON_MENU = 1, BUTTON_RESET = 2 };   // the ids 0x741840 gives the buttons (3 is the replay button, not made)
-	enum { DIALOG_RESET = 0x16 };   // the dialog that asks whether to abandon the game (0x74bc40, case 2)
+	enum { DIALOG_OPTIONS = 0x15, DIALOG_RESET = 0x16, DIALOG_QUEST_HELP = 0x28 };   // the dialog that asks whether to abandon the game (0x74bc40, case 2)
 	// 0x7563c0 (bejeweled3), the board's dialog listener (the subobject at +0xc0): the reset dialog (id 0x16) answered Yes (1000)
 	// abandons the game (the saved game's file, which 0x743120 deletes, is not kept in the port; slots 85 and 135 start the new one);
 	// either answer closes the dialog (0x76a670). The listener's case for the id 0x12 (the tutorial dialogs) is not translated
@@ -551,6 +556,21 @@ public:
 	virtual bool OnFillAccepted(std::vector<Piece*>& theNewPieces) { (void)theNewPieces; return true; }
 	// slot 104 (0x1a0): the seconds a round lasts (0 where no clock runs: 0x73c250 on Board; SpeedBoard 0x7140f0 is 60)
 	virtual int GetTimeLimit() const { return 0; }
+	// slot 107 (0x1ac, 0x73c220 on Board): the mode can be paused: it has a clock (slot 104 is not 0). DigBoard's 0x6c4a20, TimeLimitBoard's, RealTimeBombBoard's 0x6c4ab0,
+	// InfernoBoard's 0x6c50b0 and BalanceBoard's 0x6c53b0 say yes; TimeBombBoard's 0x6c4a90 is its real-time flag (+0x3262)
+	virtual bool CanPause() const { return GetTimeLimit() != 0; }
+	// slot 103 (0x19c, 0x73c260): the game stands still: the player paused it, or the app has lost the focus, or the options (0x15) or reset (0x16) dialog is up,
+	// and the mode can be paused and no demonstration (+0x1410) runs
+	bool IsPaused() const;
+	// 0x767090: the fade of the pause, once an update (in UpdateTick, after the effects under the gems): true when the tick stops here
+	bool UpdatePauseFade();
+	// 0x756cb0: the word PAUSED over the board, at the alpha of +0x12cc, in a mode that can be paused
+	void DrawPausedWord(Graphics* g);
+	// slot 175 (0x2bc, 0x73bd10): the board's alpha, the cover curve (+0x2898) times 1 less the pause's fade (+0x12c8)
+	float GetBoardAlpha();
+	// slot 47 (0x73b670): the space bar toggles the player's pause, in a mode that can be paused
+	void KeyChar(SexyChar theChar) override;
+
 	// slot 188 (0x2f0): where the level bar is going (0x744b10 on Board: the progress over the level's size, at most 1; SpeedBoard 0x716f70
 	// also ends the round when the time is out)
 	virtual float GetBarTarget();

@@ -203,11 +203,61 @@ void Board::ChooseBackground()
 	SetBackground(1);
 }
 
+// 0x73c260 (bejeweled3), slot 103. port: +0x1410 (a flag that every game of the port has clear) is not kept
+bool Board::IsPaused() const
+{
+	if (!mPlayerPaused && gApp->mHasFocus && gApp->GetDialog(DIALOG_OPTIONS) == nullptr && gApp->GetDialog(DIALOG_RESET) == nullptr)
+		return false;
+	return CanPause();
+}
+
+// 0x73bd10 (bejeweled3), slot 175: slot 174 (0x73bd40, which asks slot 173, the cover curve; ZenBoard's 0x70f8b0 multiplies it by its +0x30f8, which the port does not
+// make) times 1 less the pause's fade
+float Board::GetBoardAlpha()
+{
+	return (float)((1.0 - (double)mPauseFade) * mCoverCurve.GetOutVal());
+}
+
+// 0x73b670 (bejeweled3), slot 47: the space bar, in a mode that can be paused (or while paused), toggles the player's pause. The exe also needs +0x1410 clear and the
+// cursor id at +0x2c44 (the 3D mode's) to be -1; both hold in every game of the port
+void Board::KeyChar(SexyChar theChar)
+{
+	if (theChar == ' ' && (CanPause() || mPlayerPaused))
+		mPlayerPaused = !mPlayerPaused;
+}
+
+// 0x767090 (bejeweled3), the middle of it. The game runs (the fades go down, by 0.075 an update) when the player has not paused it, the app has the focus, no quest help
+// (0x28), options (0x15) or reset (0x16) dialog is up, or the mode cannot be paused. Otherwise the fade of the gems (+0x12c8) goes up by 0.035 an update, and the word's
+// alpha (+0x12cc) too while no dialog is up (the app's +0x39c, which the port reads as its dialog count, as UpdateGameOver does) and no help is held; the tick stops
+// once the fade is 0.75 or more. port: the exe lets the quest help (0x28) count only while the bar-rate curve (+0x2258) is 1, which it always is, and the fades go down
+// only while the zoom curve (+0x2908, which the port does not make) is 1, which it is while the screen is not leaving
+bool Board::UpdatePauseFade()
+{
+	const float aFadeUp = 0.035f;
+	const float aFadeDown = 0.075f;
+	const float aStopFade = 0.75f;
+	const bool aRuns = (!mPlayerPaused && gApp->mHasFocus && gApp->GetDialog(DIALOG_QUEST_HELP) == nullptr && gApp->GetDialog(DIALOG_OPTIONS) == nullptr &&
+		gApp->GetDialog(DIALOG_RESET) == nullptr) || !CanPause();
+	if (aRuns) {
+		if (!mLeaving) {
+			mPauseFade = std::max(0.0f, (float)((double)mPauseFade - (double)aFadeDown));
+			mPauseAlpha = std::max(0.0f, (float)((double)mPauseAlpha - (double)aFadeDown));
+		}
+		return false;
+	}
+	mPauseFade = std::min(1.0f, (float)((double)mPauseFade + (double)aFadeUp));
+	if (gApp->GetDialogCount() == 0 && mHelpHold == 0)
+		mPauseAlpha = std::min(1.0f, (float)((double)mPauseAlpha + (double)aFadeUp));
+	return mPauseFade >= aStopFade;
+}
+
 // 0x74e410 (bejeweled3): Classic has no seed override (0x73b4f0 returns 0), the saved game of the mode is not there, so the
 // background is the first of the game's order and the first fill is made. port: the board's camera setup (0x73e440) and the counters
 // the update reads (+0xc84 to +0xd18) come with their steps
 void Board::NewGame()
 {
+	mPauseAlpha = 0.0f;   // 0x74e410: the word is gone and the pause is off
+	mPlayerPaused = false;
 	ChooseBackground();
 	mSettledOnce = false;   // 0x74e775
 	// 0x74e1f0 would load a saved game here
@@ -430,6 +480,8 @@ void Board::UpdateTick()
 	mEffectsOver->Update();   // the +0x12c0 layer is a child of the board, added before the overlay: its update (0x7303f0) is part of the container's
 	UpdateHyperspace();   // the overlay is a child of the board: its update (0x725ef0) is part of the container's
 	mEffectsUnder->Update();   // 0x767293: slot 22 of +0x12bc, which is not a child
+	if (UpdatePauseFade())
+		return;   // 0x767090: the game stands still while the fade is at 0.75 or more
 	// 0x75ee20 for the moves the player asked for since the last update (the list at +0xc60)
 	std::vector<PendingSwap> aPending;
 	aPending.swap(mPendingSwaps);
@@ -511,6 +563,9 @@ void Board::UpdateGame()
 			ShowHint(false);
 	}
 	UpdateGameOver();   // the hold block (+0xd1c)
+	// 0x767e20: each layer of effects takes the board's alpha (slot 175): the over layer (+0x12c0), then the under one (+0x12bc)
+	mEffectsOver->mAlpha = GetBoardAlpha();
+	mEffectsUnder->mAlpha = GetBoardAlpha();
 	if (!IsSettled()) {
 		mShineOn = false;
 	}

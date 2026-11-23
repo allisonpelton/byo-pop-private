@@ -238,17 +238,17 @@ void QuestBoard::MarkQuestDone()
 }
 
 // slot 22 (0x58), 0x6dd8a0 (bejeweled3): Board's update (0x759170) first, then nothing more while a demonstration runs (+0x1414) or the board is
-// paused (+0x12c4) or the app has the dialog 0x17 open. Otherwise: with the secret flag clear and the hold counter (+0xd1c) at 300 the quest map is shown
+// paused by the player (+0x12c4: the space bar; the pause that the lost focus makes is not it) or the app has the dialog 0x17 open. Otherwise: with the secret flag clear and the hold counter (+0xd1c) at 300 the quest map is shown
 // again (0x6dd760: a lost quest); the curve at +0x31b8 is copied to the widget at +0x2870's +0x148 while it runs; the counter at +0x31a0 goes up; the quest's
 // clock (+0xd20) steps (StepQuestClock); the goal's slot 0xd8 runs; the two flags of the menu button (+0x65 and +0x66) are copied to the widget at +0x31b0; and the
 // counter at +0x3198 goes up.
-// port: the port has no demonstration and no pause, so the first test is not made. The curve at +0x31b8 is never started (no function of the export names it but
+// port: the port has no demonstration, so that test is not made. The curve at +0x31b8 is never started (no function of the export names it but
 // this), so its test (0x437f30: it is changing) is false. The widget at +0x31b0 is made by 0x6ca5f0 (slot 83: a tutorial's helper that the port does not make), so there
 // is none to copy to. A lost quest's end screen is not made (see NewGame), and the map is shown over the board at 300 as in the exe
 void QuestBoard::Update()
 {
 	Board::Update();
-	if (gApp->GetDialog(0x17) != nullptr)
+	if (mPlayerPaused || gApp->GetDialog(0x17) != nullptr)
 		return;
 	if (!mIsSecretMode && mGameOverTicks == QUEST_LOST_LEAVE_TICKS)
 		gApp->ShowQuestMenu(false);   // 0x6dd760

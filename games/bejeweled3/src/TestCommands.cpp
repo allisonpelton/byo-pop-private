@@ -935,6 +935,11 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 				aLine += "]";
 			}
 		}
+		// the pause (Board::IsPaused): only while one is on or fading, so that a game that never pauses prints what it printed before. "paused" is the answer of
+		// the exe's slot 103, "pausefade" the gems' fade (+0x12c8) and "pausealpha" the word's (+0x12cc), in thousandths
+		if (mBoard != nullptr && (mBoard->mPlayerPaused || mBoard->mPauseFade > 0.0f || mBoard->mPauseAlpha > 0.0f || mBoard->IsPaused()))
+			aLine += std::string(",\"paused\":") + (mBoard->IsPaused() ? "1" : "0") + ",\"playerpause\":" + (mBoard->mPlayerPaused ? "1" : "0") +
+				",\"pausefade\":" + std::to_string((int)(mBoard->mPauseFade * 1000.0f)) + ",\"pausealpha\":" + std::to_string((int)(mBoard->mPauseAlpha * 1000.0f));
 		aLine += std::string(",\"over\":") + (IsGameOver(this) ? "true" : "false") + "}";
 		Reply(aLine);
 		return true;

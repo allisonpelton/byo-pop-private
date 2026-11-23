@@ -1676,7 +1676,7 @@ Every mode reached its end: Classic 63 moves (over), Zen 400 (its limit), Lightn
 Poker 48, Ice Storm 45 and Diamond Mine 32 (all over), none with a page error. One page load failed before the game started (the page's
 clips script was not defined); its reload ran. The page check (`tools/web/pagecheck.js`, settle 400: by then the first fill has landed):
 11 pass, 0 fail, 1 information line (the browser keys the game takes). The focus line matches the native answer: the board's update and
-hint timer go on while the focus is away, because the exe's focus handling (the pause on a lost focus) is not translated yet.
+hint timer go on while the focus is away (Classic cannot be paused; see "Focus").
 The web run showed one fault of the test command: `move` answered an atmove's command with that command's own `OK`, which a web driver reads
 as the move's answer; the command's answers are now logged with the prefix `atmove: `, and `move` answers as usual.
 
@@ -1744,3 +1744,70 @@ Oddities.
 - Lightning asks for help twice (0x773440: ids 0, then 10), so a fresh player gets two help dialogs, the first with Zen's pages; the port does the same.
 - Where the exe puts a box above a gem (row 4 or more) the decompile mixes the grid's measure and a pixel offset (a 15 taken in pixels from a measure in 1200ths); the port subtracts 15 in 1200ths.
 - The quest help's flag is read at `mQuestIndex` below 0x28 only; the quests of the map reach 0x28 or more only if quest.cfg grows.
+
+
+## Focus (Board's pause, Bej3App's GotFocus and LostFocus; src/Board.cpp, BoardDraw.cpp, BoardMoves.cpp, TestCommands.cpp)
+
+What the exe does when the window loses or regains the focus (or is minimized or restored), by its code; every address is of Bejeweled3.exe.
+
+The chain is PopCap's. The driver's window procedure (0x5b9xxx, the size message) keeps the minimized flag (app +0x63b) and, when the app's mute-on-lost-focus byte (+0x479) is set, mutes
+(slot 57, 0xe4, with 1) as the window is minimized and unmutes (slot 58, 0xe8) as it is restored. Then 0x5bf7b0 (RehupFocus) works out the wanted state, active (+0x63a) and not minimized, and
+when it differs from the app's `mHasFocus` (+0x63e) stores it and, **on a regain**: Unmute(1) if +0x479, the widget manager's GotFocus (0x5853e0: its flag at +0x9c, and the focus widget's slot 45),
+then the app's slot 78 (GotFocus); **on a loss**: Mute(1) if +0x479, the widget manager's LostFocus (0x585410: every key that is down comes up, its flag clears, the focus widget's slot 46), the
+app's slot 79 (LostFocus), ReleaseCapture and 0x584ce0 (the held mouse button comes up). The framework's `RehupFocus` (SexyAppBase.cpp) does the same; the port's `mMuteOnLostFocus` and the
+`focus lose|regain` test commands (docs/REAL_INPUT.md) already reach it, and the web page's blur and focus too. No widget class of the game overrides slots 45 and 46 (the vtables of every
+board, dialog and menu have Widget's; the name box's EditWidget does), so the widgets themselves do nothing on a focus change.
+
+Bej3App's two slots. Slot 78, GotFocus (0x76ac80), and slot 79, LostFocus (0x76ac20), act on the sound manager at +0x5d8 (CustomSoundManager; its slot 5 sets the volume of a kind of sound):
+LostFocus gives kinds 2, 3 and 4 (Zen's ambient sound, binaural beats and breathing voice) the volume 0, GotFocus gives them back +0x998 (ZenAmbientVolume), +0x9a8 (ZenBinauralVolume) and +0x9b0
+(ZenBreathVolume). They are not the music (the app's Mute, which the exe does not override, silences that). Slot 64 (0x76afc0), which was suspected, is not a focus slot: slots 65 and 66
+(0x46daa0, 0x46dad0) call it with the windowed flag and the 3D test, so it is SwitchScreenMode(wantWindowed, is3D, force); after the base's it gives the windowed button (+0xd70) a call
+(slot 31) with 1 when the app is going to full screen and 0 otherwise. It belongs to the screen-mode pass.
+
+The board's pause. This is what a lost focus does to a game, and it is the same machinery as the space bar.
+- Fields of Board: +0x12c4 the player's pause (`mPlayerPaused`), +0x12c8 the fade of the gems (`mPauseFade`), +0x12cc the alpha of the word PAUSED (`mPauseAlpha`). The constructor (0x74ae30) clears
+  the floats; the reset 0x74e410 (NewGame) clears the alpha and the flag.
+- Slot 107 (0x1ac), CanPause, is on for a mode with a clock: Board's 0x73c220 asks slot 104 (the time limit) and says whether it is not 0. So Classic, Zen and the turn-based quests cannot be
+  paused; Lightning (60), the time-based quests, Diamond Mine (DigBoard 0x6c4a20), Ice Storm (InfernoBoard 0x6c50b0), Balance (0x6c53b0) and the real-time Time Bomb (0x6c4ab0) can; the Time Bomb
+  board answers with its real-time flag (+0x3262, 0x6c4a90).
+- Slot 103 (0x19c), IsPaused (0x73c260): no when the player has not paused, the app has the focus and neither the options (0x15) nor the reset (0x16) dialog is up; else CanPause and not +0x1410
+  (a flag the port keeps clear). The goals and boards of a quest read it (0x6a9aa0, 0x6a9e70, 0x6aa040, 0x6aa7e0, 0x6aa880, 0x6b76c0, 0x6c24c0, 0x6c2910, 0x6c2ad0, 0x6e00e0, 0x6e5850) to hold
+  their own counters (Not done below).
+- Slot 47 (0x73b670), KeyChar: the space bar toggles +0x12c4 when the mode can be paused or is paused (and +0x1410 is clear and the 3D cursor's id, +0x2c44, is -1).
+- 0x73f140, MouseDown: while +0x12c4 is set or the alpha is above 0.5 the click only clears +0x12c4 and goes no further.
+- 0x767090, the board's tick, after the under layer's effects update: the game runs (the two floats go down by 0.075, if the zoom curve at +0x2908 is 1) when the player has not paused, the app has
+  the focus, no quest help (0x28; with the bar-rate curve at +0x2258 at 1, which it always is), options (0x15) or reset (0x16) dialog is up, or the mode cannot be paused (or +0x1410). Otherwise the
+  fade goes up by 0.035 (to 1), the alpha too when the app's +0x39c is 0 and the help hold (+0x2b40) is 0, and **the tick returns once the fade is 0.75 or more**: about 22 updates after the
+  loss the game stops, a Lightning clock included. The board's own update (0x759170) keeps running, so the update count goes on; the tick's help-dialog return (0x13) and the hold come
+  after the fade in the exe.
+- 0x767e20 sets the alpha of the two effects layers (+0x12c0 over, +0x12bc under) to slot 175 (0x73bd10: slot 174, the cover curve, times 1 less the fade), each update; the effects layer's
+  own update (0x7303f0) does nothing while the fade is 1. The gems are drawn at that alpha, so they fade away.
+- 0x756cb0, the draw: in a mode that can be paused, while the alpha is above 0, the word PAUSED (string 0x93, FONT_HUGE, resource 17) in white at the alpha, centred on the grid's middle, baseline
+  0x21c of 1200ths. The exe's block is for a cover below 1 or no end hold (+0xd1c below 1).
+- QuestBoard's update (0x6dd8a0) stops its clock and goal only for +0x12c4, the player's pause, not for the lost focus; with the focus lost a quest's clock goes on while the board is at rest
+  (it counts down when 0x75fca0, at rest, says so), as the exe has it. Poker's update (0x6dedd0) and Zen's own pause (+0x33b0, 0x7116c0) read the flag too.
+
+What the port does. The same in Board: `mPlayerPaused`, `mPauseFade`, `mPauseAlpha`, `CanPause` (virtual, Board's from `GetTimeLimit`), `IsPaused`, `GetBoardAlpha`, `KeyChar`,
+`UpdatePauseFade` (called by `UpdateTick` after the under layer's update), `DrawPausedWord`, the click in `MouseDown`, the layer alphas in `UpdateGame`, the effects layer's stop at fade 1, and
+QuestBoard's player-pause test. Classic's answer is unchanged: it cannot be paused, so the update count and the hint timer go on with the focus away and after (`tools/web/pagecheck.js`, whose
+start now names the player, turns hints off and waits for the menus' intro). Lightning's, from `pagecheck_native.py ... --first "goto lightning"`: its game ticks and clock stop after the fade
+(gameticks 425 at both samples with 200 updates between) and go on after the regain; a screenshot shows the word PAUSED over the faded board. The test command `state` gains, only while a pause is
+on or fading (so a game that never pauses prints what it printed), `"paused"` (IsPaused), `"playerpause"`, `"pausefade"` and `"pausealpha"` (thousandths), before `"over"`. In a Lightning game
+`key space` pauses (fade 1000 within 40 updates) and a second one resumes.
+
+Dialogs across a lost and a regained focus (looked at with screenshots and `state`): a fresh player's Classic with hints on: the first game's help dialog (HOW TO PLAY, 0x13) stays up, the board
+stands at update 0 behind it, and `move`'s click on START GAME after the regain answers it; a Flame Gem's box (0x12) likewise; Classic's end dialog opens at the same update with or without a loss
+before it and survives one; in Lightning, a loss with the end dialog up fades the gems (fade 1000) and leaves the word's alpha at 0 (a dialog is up), and the dialog still works.
+
+Not done.
+- The sound kinds 2 to 4 of slots 78 and 79 (Zen's ambient, binaural and breath sounds are not made, see ZenBoard.h).
+- The slot 103 reads of the quest goals and boards listed above (they hold their own counters for the first 22 updates of a fade; the tick stops after that) and Poker's and Zen's own pause.
+- The reads of `mHasFocus` that start a fade or a sound only with the focus (0x49cfe0, 0x6733e0, 0x6a3530, and the helper 0x76ab60 called from several places): the port's sounds are muted by Mute anyway.
+- The tick's order: the exe puts the help dialog's return and the hold (+0x2b40) after the pause fade; the port keeps them in front of the update count (Board::UpdateTick), so a lost focus
+  during the help hold of a mode with a clock does not move the fade until the hold has run out.
+- The zoom curve (+0x2908) that gates the fade-out, +0x1410 and the 3D cursor id: constants here. The web page check has not been run with the new start.
+
+Oddities.
+- A quest's clock keeps running with the focus lost while the board is at rest (above), because the exe's pause for it is only the player's.
+- With the focus lost the effects layers keep the alpha of the last update before the tick stopped (0.25 at fade 0.75), while the gems fade out to 0; the exe does the same, since the alpha is set in
+  the part of the tick that no longer runs.

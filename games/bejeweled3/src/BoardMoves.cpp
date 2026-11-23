@@ -137,12 +137,17 @@ Piece* Board::FindPieceById(int theId) const
 	return nullptr;
 }
 
-// 0x73f140 (bejeweled3). port: the exe also gives up while +0x1410 or +0x12c4 is set or +0x12cc is above 0.5 (all 0 in a
+// 0x73f140 (bejeweled3). port: the exe also gives up while +0x1410 is set (0 in a
 // game that is played); slot 98 (0x73d4f0) says the board can be played: it needs the board to have settled once
 // (+0x1190), the rest of its tests are 0 in Classic; the second and later pieces' help box (dialog 0x12, in the first
 // two levels, 0x76aaf0 and the sound 0xc4 of the app's helper) and the sounds of picking a piece up are left out
 void Board::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 {
+	// 0x73f140: a click on a paused board (the player's, or the word showing) only ends the player's pause
+	if (mPlayerPaused || mPauseAlpha > 0.5f) {
+		mPlayerPaused = false;
+		return;
+	}
 	if (!mSettledOnce)
 		return;
 	mMouseDownX = x;

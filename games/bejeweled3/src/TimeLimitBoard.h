@@ -21,6 +21,7 @@ public:
 	void NewGame() override;
 	void UpdateTick() override;                                                // slot 234 (0x6e5660) with the time's end (slot 216, 0x73b890)
 	int GetTimeLimit() const override { return mTimeSeconds; }                // slot 104 (0x6c4a30)
+	bool CanPause() const override { return true; }                           // slot 107 (0x6c4a20; DigBoard shares it)
 	// slot 187 (0x2ec): the hundredths of a second left (Diamond Mine's own, 0x736b50, caps it)
 	virtual int GetTimeLeft() const { return GetClockTimeLeft(); }
 	// 0x73bb80 (bejeweled3): the hundredths left by the game's ticks alone

@@ -65,7 +65,7 @@ void SparkEffect::KindUpdate()
 
 // the manager's case 5 of 0x72ce60 (bejeweled3), at 0x72d9e5: the colour of the effect with the alpha of the effect (at most 1) times the
 // layer's alpha times 200, additive, the picture drawn about its middle at the place (in pixels, the art size over 1200) at the scale
-// and turn. port: the manager's own fade of its layer's alpha (the board's +0x12c8, 0 here) is left out
+// and turn. The layer's alpha is the board's (slot 175), which the board's update sets (Board::UpdateGame)
 void SparkEffect::Draw(Graphics* g)
 {
 	if (mImage == nullptr)
@@ -229,11 +229,13 @@ void EffectsManager::Clear()
 // velocity over its step, its velocity damped (and the gravity added to the vertical one) and given its alpha and scale changes in each
 // update whose count its step divides, then given its kind's own step (KindUpdate); an effect whose alpha or scale has run out is done.
 // One that is done and held by no piece is deleted.
-// port: it does nothing while the board's +0x12c8 is 1 (0 in Classic); the second list at +0xe0, the depth (+0x18, with its velocity and
+// 0x7303f0 does nothing (not even the count) while the board's pause fade (+0x12c8) is 1. port: the second list at +0xe0, the depth (+0x18, with its velocity and
 // damping) and the cases of the switch over the types not made are left out; the effect's two curves (+0xa0, +0x110) that 0x437ef0
 // tests are constants here
 void EffectsManager::Update()
 {
+	if (mBoard != nullptr && mBoard->mPauseFade == 1.0f)
+		return;
 	mUpdateCount++;
 	for (size_t anIndex = 0; anIndex < mEffects.size();) {
 		Effect* anEffect = mEffects[anIndex];

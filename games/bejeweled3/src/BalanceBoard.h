@@ -10,6 +10,7 @@ namespace Sexy {
 class BalanceBoard : public QuestBoard {
 public:
 	enum { COLOR_RED = 0, COLOR_BLUE = 6 };
+	bool CanPause() const override { return true; }   // slot 107 (0x6c53b0)
 
 	int mGemsPerColor = 0;          // +0x3248: "Gems": the red gems and the blue gems that count
 	int mBalanceScale = 0;          // +0x324c: "Balance": the difference of the two counts that tips the scale in the roll's time of one update
