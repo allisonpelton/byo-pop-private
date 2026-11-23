@@ -1179,8 +1179,11 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
     var fs = Module.FS;
     try { fs.mkdir(PERSIST); } catch (e) {}
     fs.mount(fs.filesystems.IDBFS, {}, PERSIST);
-    return new Promise(function (resolve, reject) {
-      fs.syncfs(true, function (err) { err ? reject(err) : resolve(); });
+    return loadStorage(fs).catch(function (e) {
+      console.warn("reading the saved files in one go failed: IDBFS's own load completes it", e);
+      return new Promise(function (resolve, reject) {
+        fs.syncfs(true, function (err) { err ? reject(err) : resolve(); });
+      });
     }).then(function () {
       return SAVER && !TEST_PROFILE ? savedGameFiles() : null;
     }).then(function () {
@@ -1189,6 +1192,48 @@ html.saver .stage-wrap { place-items: center; min-height: 100vh; }
       // back before this page reads the user dir (main() restores it again, which then changes nothing)
       try { Module.ccall("byopop_userdata_restore", null, ["string"], [USER]); }
       catch (e) { console.warn("restoring the user data backup failed", e); }
+    });
+  }
+
+  // The saved files (the game's, the saves, mods and replays) come into the page's memory as IDBFS's own load (syncfs(true))
+  // brings them: entry by entry in the store's order, with the same modes and times, so that a folder lists its files in the
+  // same order and the next syncfs(false) finds the same entries changed (the folders only). IDBFS reads the entries one at a
+  // time and looks each path up four times as it writes it, which for Bookworm Adventures 2's 9,334 entries (65 MB) took 2.1 to
+  // 2.8 s of a return visit's start; one read of the whole store and each file made under its folder's node take 0.8 to 0.9 s.
+  // (Keeping each pak whole beside its files would save about half a second more, for the pak's size again in storage and a pak
+  // reader in the platform: docs/WEB_PLAYER.md, item 8, 2026-11-23.) Should anything fail, IDBFS's own load completes the copy,
+  // writing only what is missing or differs.
+  function loadStorage(fs) {
+    var IDBFS = fs.filesystems.IDBFS;
+    return new Promise(function (resolve, reject) {
+      IDBFS.getDB(PERSIST, function (err, db) {
+        if (err) { reject(err); return; }
+        try {
+          var keys, values, tx = db.transaction([IDBFS.DB_STORE_NAME], "readonly"), store = tx.objectStore(IDBFS.DB_STORE_NAME);
+          store.getAllKeys().onsuccess = function (e) { keys = e.target.result; };
+          store.getAll().onsuccess = function (e) { values = e.target.result; };
+          tx.oncomplete = function () { resolve({ keys: keys, values: values }); };
+          tx.onerror = tx.onabort = function (e) { if (e && e.preventDefault) e.preventDefault(); reject(tx.error || new Error("not read")); };
+        } catch (e) { reject(e); }
+      });
+    }).then(function (all) {
+      var folders = {};
+      function folder(path) {
+        if (!folders[path]) { fs.mkdirTree(path); folders[path] = fs.lookupPath(path).node; }
+        return folders[path];
+      }
+      function stored(err) { if (err) throw err; }
+      all.keys.forEach(function (path, i) {
+        var entry = all.values[i];
+        // IDBFS lists the entries through the store's timestamp index, which leaves out any without one
+        if (!entry || !entry.timestamp) return;
+        if (!fs.isFile(entry.mode)) { IDBFS.storeLocalEntry(path, entry, stored); return; }   // folders (and links), as IDBFS makes them
+        // a file: what writeFile, chmod and utime do in storeLocalEntry, through its folder's node
+        var cut = path.lastIndexOf("/"), parent = folder(path.substring(0, cut));
+        var node = parent.node_ops.mknod(parent, path.substring(cut + 1), entry.mode, 0);
+        node.stream_ops.write({ node: node }, entry.contents, 0, entry.contents.length, 0, true);
+        node.node_ops.setattr(node, { atime: entry.timestamp, mtime: entry.timestamp });
+      });
     });
   }
 
