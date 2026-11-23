@@ -169,6 +169,7 @@ settings.look.hint = The version of Windows the desktop is drawn as.
 settings.look.95 = 95
 settings.look.98 = 98
 settings.look.2000 = 2000
+settings.look.me = Me
 settings.hidecues.label = Hide keyboard navigation indicators until I use the ALT key
 settings.hidecues.hint = The dotted rectangle round the focused control shows only once a key is used: Alt, Tab, an arrow or F10.
 settings.scheme.label = Scheme
