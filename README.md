@@ -32,39 +32,48 @@ installed copy (for example from Steam):
 
 | Game | Model | Latest phase done | On main since | Mods | Port work | Mod work | Other | Total |
 |---|---|---|---|---:|---:|---:|---:|---:|
-| [Bejeweled Deluxe](games/bejeweled/README.md) | Opus | Every phase but modding | 2026-10-18 | 33 | $383 | $1,275 | $17 | $1,675 |
+| [Bejeweled Deluxe](games/bejeweled/README.md) | Opus | Every phase but modding | 2026-10-18 | 33 | $396 | $1,275 | $17 | $1,689 |
 | [Big Money Deluxe](games/bigmoney/docs/README.md) | Opus | Every phase but modding | 2026-10-18 | 12 | $387 | $132 | $8 | $527 |
-| [BookWorm Deluxe](games/bookworm/docs/README.md) | Opus | Every phase but modding | 2026-10-19 | 19 | $476 | $186 | $12 | $675 |
+| [BookWorm Deluxe](games/bookworm/docs/README.md) | Opus | Every phase but modding | 2026-10-19 | 19 | $500 | $186 | $12 | $699 |
 | [Noah's Ark Deluxe](games/noahsark/docs/README.md) | Sonnet | Every phase but modding | 2026-10-25 | 5 | $287 | $17 | | $304 |
-| [Seven Seas Deluxe](games/sevenseas/docs/README.md) | Sonnet | Every phase but modding | 2026-10-25 | | $211 | | | $211 |
-| [Atomica Deluxe](games/atomica/docs/README.md) | Sonnet | Every phase but modding | 2026-10-25 | 1 | $332 | $13 | | $344 |
-| [Mummy Maze Deluxe](games/mummymaze/docs/README.md) | Sonnet | Every phase but modding | 2026-10-25 | 2 | $295 | $25 | | $319 |
+| [Seven Seas Deluxe](games/sevenseas/docs/README.md) | Sonnet | Every phase but modding | 2026-10-25 | | $214 | | | $214 |
+| [Atomica Deluxe](games/atomica/docs/README.md) | Sonnet | Every phase but modding | 2026-10-25 | 1 | $345 | $13 | | $357 |
+| [Mummy Maze Deluxe](games/mummymaze/docs/README.md) | Sonnet | Every phase but modding | 2026-10-25 | 2 | $330 | $25 | | $355 |
 | [TipTop Deluxe](games/tiptop/docs/README.md) | Opus | Every phase but modding | 2026-10-25 | 1 | $281 | $2 | | $283 |
-| [Bookworm Adventures Deluxe](games/bookwormadv/docs/README.md) | Opus | Every phase but modding | 2026-10-25 | | $880 | $2 | | $882 |
-| [Ning Po Mahjong Deluxe](games/ningpo/docs/README.md) | Opus | Every phase but modding | 2026-10-26 | | $161 | | | $161 |
-| [Pixelus Deluxe](games/pixelus/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | | $344 | | | $344 |
-| [Alchemy Deluxe](games/alchemy/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | 1 | $228 | $16 | | $244 |
+| [Bookworm Adventures Deluxe](games/bookwormadv/docs/README.md) | Opus | Every phase but modding | 2026-10-25 | 1 | $1,087 | $2 | | $1,089 |
+| [Ning Po Mahjong Deluxe](games/ningpo/docs/README.md) | Opus | Every phase but modding | 2026-10-26 | | $167 | | | $167 |
+| [Pixelus Deluxe](games/pixelus/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | | $403 | | | $403 |
+| [Alchemy Deluxe](games/alchemy/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | 1 | $247 | $16 | | $263 |
 | [Word Harmony](games/wordharmony/docs/README.md) | Opus | Every phase but modding | 2026-10-26 | 1 | $302 | $8 | | $309 |
-| [Cosmic Bugs](games/cosmicbugs/docs/README.md) | Opus | Every phase but modding | 2026-10-26 | 2 | $329 | $11 | | $341 |
-| [Water Bugs](games/waterbugs/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | 1 | $254 | $1 | | $255 |
-| [Rocket Mania Deluxe](games/rocketmania/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | 1 | $336 | $8 | | $344 |
-| [Dynomite Deluxe](games/dynomite/docs/README.md) | Opus | Every phase but modding | 2026-10-26 | | $427 | | | $427 |
-| [Bookworm Adventures Volume 2](games/bookwormadv2/docs/README.md) | Sonnet | Registration out | 2026-10-26 | | $316 | | | $316 |
-| [Mahjong Escape: Ancient Japan](games/mahjongjapan/docs/README.md) | Opus | Every phase but modding | 2026-11-01 | 1 | $476 | $2 | | $478 |
-| [Mahjong Escape: Ancient China](games/mahjongchina/docs/README.md) | Opus | Every phase but modding | 2026-11-01 | 1 | with Ancient Japan | | | |
-| [Bonnie's Bookstore Deluxe](games/bonnies/README.md) | Opus | Every phase but modding | 2026-11-01 | 1 | $282 | $2 | | $285 |
-| [Bejeweled Twist](games/bejeweledtwist/docs/NOTES.md) | Opus | Every phase but modding | 2026-11-02 | 2 | $1,439 | $10 | $6 | $1,456 |
-| [Bejeweled 2 Deluxe](games/bejeweled2/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-08 | 1 | $614 | $19 | | $633 |
+| [Cosmic Bugs](games/cosmicbugs/docs/README.md) | Opus | Every phase but modding | 2026-10-26 | 2 | $341 | $11 | | $352 |
+| [Water Bugs](games/waterbugs/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | 1 | $285 | $1 | | $286 |
+| [Rocket Mania Deluxe](games/rocketmania/docs/README.md) | Sonnet | Every phase but modding | 2026-10-26 | 1 | $343 | $8 | | $351 |
+| [Dynomite Deluxe](games/dynomite/docs/README.md) | Opus | Every phase but modding | 2026-10-26 | | $427 | | | $428 |
+| [Bookworm Adventures Volume 2](games/bookwormadv2/docs/README.md) | Sonnet | Registration out | 2026-10-26 | | $460 | | | $460 |
+| [Mahjong Escape: Ancient Japan](games/mahjongjapan/docs/README.md) | Opus | Every phase but modding | 2026-11-01 | 2 | $515 | $2 | | $517 |
+| [Mahjong Escape: Ancient China](games/mahjongchina/docs/README.md) | Opus | Every phase but modding | 2026-11-01 | 2 | with Ancient Japan | | | |
+| [Bonnie's Bookstore Deluxe](games/bonnies/README.md) | Opus | Every phase but modding | 2026-11-01 | 1 | $318 | $2 | | $320 |
+| [Bejeweled Twist](games/bejeweledtwist/docs/NOTES.md) | Opus | Every phase but modding | 2026-11-02 | 2 | $1,508 | $10 | $6 | $1,525 |
+| [Bejeweled 2 Deluxe](games/bejeweled2/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-08 | 1 | $671 | $19 | | $690 |
 | [AstroPop Deluxe](games/astropop/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-08 | 1 | $623 | $11 | | $635 |
 | [Typer Shark! Deluxe](games/typershark/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-09 | 2 | $588 | $26 | | $614 |
 | [Venice Deluxe](games/venice/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-12 | 2 | $335 | $11 | | $346 |
-| [Heavy Weapon Deluxe](games/heavyweapon/docs/IDENTICAL_PLAY.md) | Opus | Every phase but modding | 2026-11-12 | 2 | $332 | $19 | | $351 |
-| [Hammer Heads Deluxe](games/hammerheads/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-13 | 2 | $320 | $6 | | $325 |
-| [Pizza Frenzy](games/pizzafrenzy/docs/README.md) | Opus | Plays identical | 2026-11-15 | | $305 | | | $305 |
-| Iggle Pop Deluxe, Feeding Frenzy Deluxe | | Not started: once every game above is done | | | under $1 each | | | |
-| Chuzzle Deluxe, Feeding Frenzy 2, Peggle Deluxe, Peggle Nights, Bejeweled 3, Banana Bugs, Gyromancer, Zuma's Revenge, Talismania Deluxe | | After those, two at a time | | | $19 | | | $19 |
-| Shared framework, tools and coordination | | | | | $2,019 | $267 | $1,164 | $3,451 |
-| **All** | | | | **94** | **$13,582** | **$2,069** | **$1,210** | **$16,860** |
+| [Heavy Weapon Deluxe](games/heavyweapon/docs/IDENTICAL_PLAY.md) | Opus | Every phase but modding | 2026-11-12 | 2 | $370 | $19 | | $389 |
+| [Hammer Heads Deluxe](games/hammerheads/docs/IDENTICAL_PLAY.md) | Sonnet | Every phase but modding | 2026-11-13 | 2 | $383 | $6 | | $389 |
+| [Pizza Frenzy](games/pizzafrenzy/docs/README.md) | Opus | Fixes mod | 2026-11-15 | 1 | $509 | | | $509 |
+| [Feeding Frenzy Deluxe](games/feedingfrenzy/docs/README.md) | Sonnet | Porting | 2026-11-16 | | $210 | | | $210 |
+| [Peggle Deluxe](games/peggle/docs/GAME_NOTES.md) | Sonnet | Porting | 2026-11-16 | | $183 | | | $183 |
+| [Feeding Frenzy 2 Deluxe](games/feedingfrenzy2/docs/WORKING_NOTES.md) | Opus | Porting | 2026-11-16 | | $476 | | | $476 |
+| [Bejeweled 3](games/bejeweled3/docs/NOTES.md) | Opus | Porting | 2026-11-16 | | $473 | | | $473 |
+| [Banana Bugs](games/bananabugs/docs/GAME_NOTES.md) | Opus | Porting | 2026-11-21 | | $302 | | | $302 |
+| [Talismania Deluxe](games/talismania/docs/WORKING_NOTES.md) | Sonnet | Porting | 2026-11-21 | | $48 | | | $48 |
+| [Zuma's Revenge!](games/zumasrevenge/docs/NOTES.md) | Opus | Porting | 2026-11-21 | | $252 | | | $252 |
+| Chuzzle Deluxe | Opus | Porting | | | $281 | | | $281 |
+| Gyromancer | Opus | Porting | | | $241 | | | $241 |
+| Iggle Pop Deluxe | Sonnet | Porting | | | $214 | | | $214 |
+| Peggle Nights | Sonnet | Porting | | | under $1 | | | under $1 |
+| Shared framework, tools and coordination | | | | | $2,304 | $270 | $1,719 | $4,293 |
+| **All** | | | | **98** | **$17,608** | **$2,072** | **$1,764** | **$21,444** |
 
 A game is done, and goes on the live site, only once it has been through every phase but modding (the user, 2026-11-08):
 the faults the user reported, identical play in both phases, registration and the buttons that lead out of a game taken
@@ -79,7 +88,7 @@ its screens, dialogs, sound and music, focus handling and web build match the or
 explained. "Plays identical" means the first of those phases is done. A game with no fix candidates (no bug of the
 original that a fix would change, nor a wait that only costs the player time) has no fixes mod. The user approved the readability standards on 2026-11-10, so the other games take that pass now.
 
-The costs are those of 2026-11-15: what the work's tokens would cost at the API prices in [docs/TOKEN_ECONOMY.md](docs/TOKEN_ECONOMY.md),
+The costs are those of 2026-11-23: what the work's tokens would cost at the API prices in [docs/TOKEN_ECONOMY.md](docs/TOKEN_ECONOMY.md),
 each model at its own; the subscription the work ran on does not bill them. A game's cost counts its own sessions with
 their subagents and workflow agents, and the coordinator's reviews, merges and fixes of that game. Until 2026-10-20 one
 session ported Bejeweled and set up the repository, and its work counts for Bejeweled. Port and mod work are split
