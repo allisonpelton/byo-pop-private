@@ -34,6 +34,24 @@ bool QuestDataParser::HandleCommand(const ListDataElement& theParams)
 		if (!DataToString(theParams.mElementVector[i], &aSetting))
 			return Error("Bad setting");
 		std::string aValue;
+		// port: two spellings the shipped settings use that this framework's parser splits differently from the original's: "Name= value" (the
+		// equals sign sticks to the name: the next word is the value) and "Name =\"value\"" (the equals sign sticks to the value's quote: the word is the
+		// equals sign and the quoted text). secret.cfg's Diamond Mine has both (Artifact10, Artifact21, Grids)
+		if (!aSetting.empty() && aSetting.back() == '=' && i + 1 < theParams.mElementVector.size() && !theParams.mElementVector[i + 1]->mIsList) {
+			DataToString(theParams.mElementVector[i + 1], &aValue);
+			aQuest.mSettings[aSetting.substr(0, aSetting.size() - 1)] = Unquote(aValue);
+			i += 2;
+			continue;
+		}
+		if (i + 1 < theParams.mElementVector.size() && !theParams.mElementVector[i + 1]->mIsList) {
+			std::string aGlued;
+			DataToString(theParams.mElementVector[i + 1], &aGlued);
+			if (aGlued.size() > 1 && aGlued[0] == '=' && aGlued[1] == '"') {
+				aQuest.mSettings[aSetting] = Unquote(aGlued.substr(1));
+				i += 2;
+				continue;
+			}
+		}
 		if (i + 2 < theParams.mElementVector.size() && !theParams.mElementVector[i + 1]->mIsList) {
 			std::string anEquals;
 			DataToString(theParams.mElementVector[i + 1], &anEquals);

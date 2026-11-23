@@ -283,7 +283,7 @@ public:
 	// slot 231, 0x767e20 (bejeweled3): the game's part of a step: the fill, the fall and the idle shine (ButterflyBoard's 0x6e82a0 runs it first)
 	virtual void UpdateGame();
 	// slot 214, 0x73dd70 (bejeweled3): gravity: each column's pieces move by their speeds and land on the row or the piece below
-	void UpdateFalling();
+	virtual void UpdateFalling();   // virtual: Diamond Mine's slot 214 (0x736d60) runs it and then stops its bricks
 	// 0x75fca0 (bejeweled3): every piece is at rest in its cell, nothing is left to land, and there is no match
 	bool IsSettled();
 	// slot 140 (0x230): the first time IsSettled finds the board at rest (0x75fd15); Quest-derived boards start their play here (slot 256)
@@ -450,6 +450,8 @@ public:
 	void SubmitScore(int theScore);
 	// port: test only: the bot's move when the board is at rest (the exe has no bot; this is the move search's first move)
 	void UpdateBot();
+	// port: test only: false holds the bot back (Diamond Mine's scroll starts from a board at rest, which a bot's swap in the same update would hide)
+	virtual bool BotMayMove() const { return true; }
 	// slot 230, 0x73b6d0 (bejeweled3): the shown score follows the score, every fourth update
 	void UpdateShownScore();
 	// 0x744660 (bejeweled3): a new move record, and 0x73cf10 and 0x73d170: its counter
@@ -477,6 +479,9 @@ public:
 	// slot 143 (0x23c), called with the piece by slot 142 (0x73d2b0), which RemovePiece (slot 176, 0x755b80) calls first: a piece is cleared. The
 	// base 0x74b9e0 only makes effects for the bits 0x400 and 0x200, which Classic's pieces never have
 	virtual void OnPieceCleared(Piece* thePiece) { (void)thePiece; }
+	// slot 176 (0x2c0, 0x755b80) with slot 142 (0x73d2b0) for a piece an explosion or a clear takes out: true keeps the piece in the grid (nothing of
+	// Classic's boards does: Diamond Mine's 0x6bb6a0 and 0x6b6a80 keep a brick that the hit has not broken, and turn the dirt that hides a hypercube into it)
+	virtual bool OnPieceRemoving(Piece* thePiece) { (void)thePiece; return false; }
 	// slot 185 (0x2e4): the fill has a colouring for its new pieces that is accepted (0x73bc00 on Board and ClassicBoard is true); SpeedBoard's
 	// 0x716c60 lifts the pieces and makes the time gems, and says true as well
 	virtual bool OnFillAccepted(std::vector<Piece*>& theNewPieces) { (void)theNewPieces; return true; }

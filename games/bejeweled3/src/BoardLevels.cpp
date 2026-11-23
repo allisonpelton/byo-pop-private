@@ -427,7 +427,7 @@ void Board::UpdateGameOver()
 // when the board is at rest and the game is on
 void Board::UpdateBot()
 {
-	if (mBotMoves == 0 || mGameOver || mHyperspace != nullptr || mLevelUpPending || !IsSettled() || !mPendingSwaps.empty())
+	if (mBotMoves == 0 || !BotMayMove() || mGameOver || mHyperspace != nullptr || mLevelUpPending || !IsSettled() || !mPendingSwaps.empty())
 		return;
 	BoardMove aMove;
 	if (!FindMove(&aMove, 0, false, nullptr, false))

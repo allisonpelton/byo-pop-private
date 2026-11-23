@@ -7,6 +7,7 @@
 #include "GemSilhouettes.h"
 #include "ButterflyBoard.h"
 #include "IceStormBoard.h"
+#include "DiamondMineBoard.h"
 #include "PokerBoard.h"
 #include "LightningBoard.h"
 #include "ZenBoard.h"
@@ -482,9 +483,9 @@ void Bej3App::StartLightning()
 
 // 0x774060 (bejeweled3): a secret mode. The quest (secret.cfg's, by index: 0 Poker, 1 Butterflies, 2 Inferno, 3 Dig) says by its setting
 // Challenge which board is made: the exe compares it with the names in this order, ignoring case: TIME BOMB, TIME BOMB (REAL TIME), INFERNO,
-// BALANCE, BUTTERFLIES or BUTTERFLY (0x6dcdf0), FILLER, MOVE LIMIT, TIME LIMIT, NO LOSE, BAD MOVE LIMIT and POKER (0x6da1c0). The quest's settings
+// BALANCE, BUTTERFLIES or BUTTERFLY (0x6dcdf0), FILLER, MOVE LIMIT, TIME LIMIT, NO LOSE, BAD MOVE LIMIT, POKER (0x6da1c0) and DIG (0x737420). The quest's settings
 // are copied into the board's map (0x404870) and the secret flag (+0x3184, the call's fourth argument) is set before the board is reset
-// (slot 85) and dealt (slot 135). port: only the two boards that are made
+// (slot 85) and dealt (slot 135). port: only the boards that are made (Poker, Butterflies, Ice Storm, Diamond Mine)
 bool Bej3App::StartSecretMode(int theIndex)
 {
 	if (mSecretQuestData == nullptr || theIndex < 0 || theIndex >= (int)mSecretQuestData->mQuests.size())
@@ -503,6 +504,8 @@ bool Bej3App::StartSecretMode(int theIndex)
 		aBoard = new PokerBoard();
 	if (aChallenge == "INFERNO")
 		aBoard = new IceStormBoard();
+	if (aChallenge == "DIG")
+		aBoard = new DigBoard();   // 0x737420
 	if (aBoard == nullptr)
 		return false;
 	aBoard->mSettings = aSettings;

@@ -1516,6 +1516,8 @@ void Board::DrawSparkRandoms()
 // it is higher, and so does the column's tag, which the fill gives to the pieces it makes; the cell is emptied
 void Board::RemovePiece(Piece* thePiece)
 {
+	if (OnPieceRemoving(thePiece))
+		return;
 	OnPieceCleared(thePiece);   // 0x755b80 first calls slot 142 (0x73d2b0) with the piece and 1, which calls slot 143
 	for (size_t i = 0; i < mSwaps.size();) {
 		SwapRecord& aSwap = mSwaps[i];

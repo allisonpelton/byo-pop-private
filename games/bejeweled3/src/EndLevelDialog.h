@@ -16,6 +16,7 @@ class DialogButton;
 
 class PokerBoard;
 class IceStormBoard;
+class DigBoard;
 
 class ClassicEndLevelDialog : public Bej3Dialog {
 public:
@@ -99,6 +100,23 @@ protected:
 	void DrawContent(Graphics* g) override;             // 0x6a5f50 (bejeweled3), slot 94: the table and the top scores, as Lightning's
 	void DrawStatisticsLabels(Graphics* g) override;    // 0x78fbb0 (bejeweled3), slot 89
 	void DrawStatisticsValues(Graphics* g) override;    // 0x790030 (bejeweled3), slot 90
+};
+
+// Sexy::DigGoalEndLevelDialog (bejeweled3, vtable 0x865c54, made by the board's slot 257): the screen a Diamond Mine game ends on, Classic's dialog (id 0x26, 0x6a7c80) with
+// its own statistics: Max Depth, Total Time, Best Move and Best Treasure (strings 0xcc to 0xcf; the values 0xd0 to 0xd5). Its drawing of the frames, the treasure's
+// tallies and badges (0x733af0, 0x7331f0) is not translated.
+class DigEndLevelDialog : public ClassicEndLevelDialog {
+public:
+	int mDepth = 0;                    // the rows of depth the game reached
+	int mBestTreasureValue = 0;        // the most one treasure was worth
+	std::string mBestTreasureText;     // the name of the artifact that was worth most (empty: none was found)
+
+	explicit DigEndLevelDialog(DigBoard* theBoard);
+
+protected:
+	void DrawContent(Graphics* g) override;             // slot 94: the table and the top scores, as Lightning's
+	void DrawStatisticsLabels(Graphics* g) override;    // 0x732c90 (bejeweled3), slot 89
+	void DrawStatisticsValues(Graphics* g) override;    // 0x7353d0 (bejeweled3), slot 90
 };
 
 // Sexy::PokerEndLevelDialog (bejeweled3, vtable 0x86c4c4, 0x3b8 bytes, made by 0x782cf0 from the board's slot 257, 0x6d1540): the screen a Poker game

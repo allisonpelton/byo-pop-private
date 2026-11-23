@@ -5,7 +5,9 @@
 
 #include "Bej3Dialog.h"
 #include "ButterflyBoard.h"
+#include <algorithm>
 #include "IceStormBoard.h"
+#include "DiamondMineBoard.h"
 #include "PokerBoard.h"
 #include "Board.h"
 #include "Common.h"
@@ -38,6 +40,8 @@ const char* ModeKey(const Board* theBoard)
 		return "poker";
 	if (aName == "Icestorm")
 		return "icestorm";
+	if (aName == "BuriedTreasure")
+		return "diamondmine";
 	return "classic";
 }
 
@@ -139,9 +143,9 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 		return true;
 	}
 	if (aCommand == "goto") {
-		if (theCommand.mArgs == "butterflies" || theCommand.mArgs == "poker" || theCommand.mArgs == "icestorm") {
+		if (theCommand.mArgs == "butterflies" || theCommand.mArgs == "poker" || theCommand.mArgs == "icestorm" || theCommand.mArgs == "diamondmine") {
 			// as the play menu starts it: the ball of the mode must be open (unlock all), else the exe asks why it is shut instead
-			int aIndex = theCommand.mArgs == "poker" ? 0 : theCommand.mArgs == "icestorm" ? 2 : 1;
+			int aIndex = theCommand.mArgs == "poker" ? 0 : theCommand.mArgs == "icestorm" ? 2 : theCommand.mArgs == "diamondmine" ? 3 : 1;
 			if (mProfile == nullptr || mProfile->mTutorialFlags[aIndex] == 0) {
 				ReplyError(theCommand, "that mode is locked: unlock all first");
 				return true;
@@ -168,7 +172,45 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 			ReplyOK(theCommand);
 		}
 		else
-			ReplyError(theCommand, "only classic, zen, lightning, butterflies, poker and icestorm are made yet");
+			ReplyError(theCommand, "only classic, zen, lightning, butterflies, poker, icestorm and diamondmine are made yet");
+		return true;
+	}
+	if (aCommand == "dig") {
+		// dig clear [lastrow]: Diamond Mine's dirt in the rows from the top to lastrow (5 by default) is hit with powered hits until it is gone, as a game that
+		// had dug that far would have it (the scroll starts when the board is at rest); dig hit <col> <row>: one plain hit on the brick there
+		DigBoard* aDig = dynamic_cast<DigBoard*>(mBoard);
+		if (aDig == nullptr) {
+			ReplyError(theCommand, "no Diamond Mine game is on");
+			return true;
+		}
+		int aLastRow = 5;
+		int aCol = -1;
+		int aRow = -1;
+		if (theCommand.mArgs.compare(0, 5, "clear") == 0) {
+			sscanf(theCommand.mArgs.c_str() + 5, "%d", &aLastRow);
+			for (int aClearRow = 0; aClearRow <= aLastRow && aClearRow < Board::ROWS; aClearRow++) {
+				for (int aClearCol = 0; aClearCol < Board::COLS; aClearCol++) {
+					Piece* aPiece = aDig->mGrid[aClearRow][aClearCol];
+					for (int aTry = 0; aTry < 8 && aPiece != nullptr && (aPiece->mFlags & DigGoal::FLAG_BRICK) != 0; aTry++) {
+						if (aDig->DigHit(aPiece, true, false))
+							break;
+					}
+				}
+			}
+		}
+		else if (sscanf(theCommand.mArgs.c_str(), "hit %d %d", &aCol, &aRow) == 2 && aCol >= 0 && aCol < Board::COLS && aRow >= 0 && aRow < Board::ROWS) {
+			Piece* aPiece = aDig->mGrid[aRow][aCol];
+			if (aPiece == nullptr || (aPiece->mFlags & DigGoal::FLAG_BRICK) == 0) {
+				ReplyError(theCommand, "no brick there");
+				return true;
+			}
+			aDig->DigHit(aPiece, false, false);
+		}
+		else {
+			ReplyError(theCommand, "dig clear [lastrow] or dig hit <col> <row>");
+			return true;
+		}
+		ReplyOK(theCommand);
 		return true;
 	}
 	if (aCommand == "swap") {
@@ -434,6 +476,46 @@ bool Bej3App::HandleScriptCommand(const ScriptCommand& theCommand)
 					",\"iceticks\":" + std::to_string(anIce->mTicks) + ",\"icecrushedcount\":" +
 					std::to_string(anIce->mCounters[IceStormBoard::COUNTER_COLUMNS_CRUSHED]) + ",\"icebestchain\":" +
 					std::to_string(anIce->mBestChain) + ",\"icechain\":" + std::to_string(anIce->mChainCount);
+			}
+			if (const DigBoard* aDig = dynamic_cast<const DigBoard*>(mBoard)) {
+				// Diamond Mine: the grid's bricks as eight rows of characters (. none, 1 to 5 dirt with that many hits left, g gold, d diamond, a artifact,
+				// h dirt that hides a hypercube), the bricks left, the depth in rows, the clock in hundredths and its limit in seconds, the clock's cap (the last
+				// bonus' left), whether the time ran out, the treasure collected (the score), the gold, diamonds and artifacts, the best treasure, the
+				// rows made, the scrolls and whether one runs, the dirt destroyed and the artifacts placed in the dirt
+				const DigGoal* aGoal = aDig->mGoal;
+				std::string aMap;
+				for (int aRow = 0; aRow < Board::ROWS; aRow++) {
+					if (aRow > 0)
+						aMap += '/';
+					for (int aCol = 0; aCol < Board::COLS; aCol++) {
+						const Piece* aPiece = aDig->mGrid[aRow][aCol];
+						char aCharacter = '.';
+						if (aPiece != nullptr && (aPiece->mFlags & DigGoal::FLAG_BRICK) != 0) {
+							auto aBrick = aGoal->mBricks.find(aPiece->mId);
+							aCharacter = '?';
+							if (aBrick != aGoal->mBricks.end()) {
+								if (aBrick->second.mKind == DigGoal::KIND_ARTIFACT)
+									aCharacter = 'a';
+								else if (aBrick->second.mKind == DigGoal::KIND_MONEY)
+									aCharacter = aBrick->second.mHitsInitial <= DigGoal::GOLD_STRENGTH_MAX ? 'g' : 'd';
+								else if (std::find(aGoal->mHypercubeBrickIds.begin(), aGoal->mHypercubeBrickIds.end(), aPiece->mId) != aGoal->mHypercubeBrickIds.end())
+									aCharacter = 'h';
+								else
+									aCharacter = (char)('0' + aBrick->second.mHitsLeft);
+							}
+						}
+						aMap += aCharacter;
+					}
+				}
+				aLine += ",\"digmap\":\"" + aMap + "\",\"digbricks\":" + std::to_string(aGoal->CountBricks()) + ",\"digdepth\":" +
+					std::to_string(aGoal->DepthShown()) + ",\"digtime\":" + std::to_string(aDig->GetTimeLeft()) + ",\"digtimelimit\":" +
+					std::to_string(aDig->mTimeSeconds) + ",\"digtimecap\":" + std::to_string(aDig->mTimeLeftCap) + ",\"digtimeup\":" +
+					std::to_string(aDig->mTimeUp ? 1 : 0) + ",\"digtreasure\":" + std::to_string(aDig->mLevelProgress) + ",\"diggold\":" +
+					std::to_string(aGoal->mGoldCollected) + ",\"digdiamonds\":" + std::to_string(aGoal->mDiamondsCollected) + ",\"digartifacts\":" +
+					std::to_string(aGoal->mArtifactsCollected) + ",\"digbest\":" + std::to_string(aGoal->mBestTreasureValue) + ",\"digrows\":" +
+					std::to_string((int)aGoal->mRowsGenerated) + ",\"digscrolls\":" + std::to_string(aGoal->mScrollCount) + ",\"digscrolling\":" +
+					std::to_string(aGoal->mScrolling ? 1 : 0) + ",\"digdestroyed\":" + std::to_string(aGoal->mBricksDestroyed) + ",\"digplaced\":" +
+					std::to_string(aGoal->mPlacedArtifacts.size());
 			}
 			if (const PokerBoard* aPoker = dynamic_cast<const PokerBoard*>(mBoard)) {
 				// Poker: the hand (each card's suit, "/" and its second suit, a letter for a wild (w), flame (f) or star (s) card; - for no card),

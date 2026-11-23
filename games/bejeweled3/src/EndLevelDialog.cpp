@@ -1,6 +1,7 @@
 // Sexy::ClassicEndLevelDialog (bejeweled3, 0x7842b0 over 0x6a7c80). See EndLevelDialog.h.
 #include "EndLevelDialog.h"
 #include "IceStormBoard.h"
+#include "DiamondMineBoard.h"
 
 #include "Bej3App.h"
 #include "Board.h"
@@ -391,6 +392,59 @@ void IceStormEndLevelDialog::DrawStatisticsValues(Graphics* g)
 	char aTime[32];
 	snprintf(aTime, sizeof(aTime), TextById(0x114, "%d:%02d").c_str(), mCounters[COUNTER_SECONDS] / 60, mCounters[COUNTER_SECONDS] % 60);
 	g->WriteString(aTime, aX, Scaled(0x1db + 0x90), -1, 1, true, 0, -1, -1);
+}
+
+// the dialog of 0x6a7c80 (the leaderboard of the mode's name "BuriedTreasure") with the goal's depth and its best treasure: 0x7353d0 looks through the artifacts the
+// player collected (the list at +0x1bc) for the one worth most (ArtifactBaseValue times its value), whose name it shows
+DigEndLevelDialog::DigEndLevelDialog(DigBoard* theBoard) :
+	ClassicEndLevelDialog(theBoard),
+	mDepth(theBoard->mGoal->DepthShown())
+{
+	for (int anIndex : theBoard->mGoal->mCollectedArtifacts) {
+		const DigGoal::Artifact& anArtifact = theBoard->mGoal->mArtifacts[(size_t)anIndex];
+		const int aValue = theBoard->mGoal->mArtifactBaseValue * anArtifact.mValue;
+		if (mBestTreasureValue <= aValue) {
+			mBestTreasureValue = aValue;
+			mBestTreasureText = anArtifact.mText;
+		}
+	}
+}
+
+// slot 94: the statistics table and the top scores, as Lightning's
+void DigEndLevelDialog::DrawContent(Graphics* g)
+{
+	DrawStatisticsTable(g);
+	DrawTopScores(g);
+}
+
+// 0x732c90 (bejeweled3), slot 89: Max Depth, Total Time, Best Move and Best Treasure (strings 0xcc to 0xcf), left
+void DigEndLevelDialog::DrawStatisticsLabels(Graphics* g)
+{
+	static const char* const aDefaults[4] = {"Max Depth", "Total Time", "Best Move", "Best Treasure"};
+	for (int i = 0; i < 4; i++)
+		g->WriteString(TextById(0xcc + i, aDefaults[i]), Scaled(0xe6), Scaled(0x1db + 0x30 * i), -1, -1, true, 0, -1, -1);
+}
+
+// 0x7353d0 (bejeweled3), slot 90: the values, right at 0xdc: the depth (string 0xd0, "%s m"), the game's seconds (counter 0; 0xd1, "%d:%02d"), the best move (counter 25;
+// 0xd2, "$%s") and the best treasure: its value ("$%s", 0xd4) with the artifact's name beneath ("(%s)", 0xd5), or "No Treasures" (0xd3) with none
+void DigEndLevelDialog::DrawStatisticsValues(Graphics* g)
+{
+	const int aX = Scaled(0x2ee);
+	char aText[96];
+	snprintf(aText, sizeof(aText), TextById(0xd0, "%s m").c_str(), CommaSeperate(mDepth).c_str());
+	g->WriteString(aText, aX, Scaled(0x1db), -1, 1, true, 0, -1, -1);
+	snprintf(aText, sizeof(aText), TextById(0xd1, "%d:%02d").c_str(), mCounters[COUNTER_SECONDS] / 60, mCounters[COUNTER_SECONDS] % 60);
+	g->WriteString(aText, aX, Scaled(0x1db + 0x30), -1, 1, true, 0, -1, -1);
+	snprintf(aText, sizeof(aText), TextById(0xd2, "$%s").c_str(), CommaSeperate(mCounters[COUNTER_BEST_MOVE]).c_str());
+	g->WriteString(aText, aX, Scaled(0x1db + 0x60), -1, 1, true, 0, -1, -1);
+	if (mBestTreasureText.empty()) {
+		g->WriteString(TextById(0xd3, "No Treasures"), aX, Scaled(0x1db + 0x90), -1, 1, true, 0, -1, -1);
+		return;
+	}
+	snprintf(aText, sizeof(aText), TextById(0xd4, "$%s").c_str(), CommaSeperate(mBestTreasureValue).c_str());
+	g->WriteString(aText, aX, Scaled(0x1db + 0x90), -1, 1, true, 0, -1, -1);
+	snprintf(aText, sizeof(aText), TextById(0xd5, "(%s)").c_str(), mBestTreasureText.c_str());
+	g->WriteString(aText, aX, Scaled(0x1db + 0xc0), -1, 1, true, 0, -1, -1);
 }
 
 // 0x716ab0 (bejeweled3): the dialog of 0x6a7c80 (the leaderboard of the mode's name "Lightning") with the board's +0x30b0

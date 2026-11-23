@@ -1288,3 +1288,100 @@ first vertical run (0x6e2250).
 suite_icestorm.txt (seed 7, name Tester, `unlock all`, `goto icestorm`, `bot 30`, three state lines and two shots, the end dialog on screen at the
 last) is run twice by suite.sh in the same loop as the other two secret modes: the second state line must be in play, the last must have the game
 over and the end dialog, and the rerun must be the same. The Classic and modes hashes are unchanged by it (see the suite's result).
+
+## Diamond Mine (DiamondMineBoard.cpp)
+
+The secret quest 3 of secret.cfg ("Diamond Mine", Challenge "Dig", Goal "Dig", the play menu's ball 7) is Sexy::DigBoard in the exe (vftable 0x8657d4, 266
+slots, 0x3280 bytes, constructor 0x737420; 0x7373b0 is the destructor) over Sexy::TimeLimitBoard (vftable 0x86a234, constructor 0x6dd3b0, which sets
++0x324c to 10 and +0x3250 to 3000) over QuestBoard. The mode's logic is in Sexy::DigGoal (vftable 0x86bbac, 72 slots, constructor 0x6c4230, called by
+QuestBoard's new game 0x6ddc70, held at the board's +0x3180, its board at +0x104); the port has both as DigBoard and DigGoal in DiamondMineBoard.{h,cpp}. The
+board's mode name (slot 89, 0x736e20) is the string "BuriedTreasure" at +0x3258, the music's and the log's name. The exe's names: DigGoalEndLevelDialog
+(vftable 0x865c54; Update 0x736010, DrawStatsLabels 0x732c90, DrawFrames 0x7331f0, Draw 0x733af0, DrawStatsText 0x7353d0), DigBackground, DigBar (the board's
+slot 43 calls DrawDigBarAnim on the goal), DiamondMineScoreBadge and DiamondMineArtifactsBadge; the rest are the port's.
+
+What happens. The bottom of the grid is dirt: each cell is a gem the fill made that the goal turns into a brick (flag 0x10000, no colour, not swappable,
+not falling, an entry by the piece's id in the goal's map at +0x228: hits left, hits at the start, kind, a random number). Kinds: 1 dirt (strengths 1 to 3 are
+hits, 4 needs a powered hit, 5 is the dark rock), 2 money (1 to 3 gold, 4 to 7 diamonds), 0 artifact (the entry holds the artifact's index). A gem that
+is cleared (slot 143, 0x6ad0d0) puts its cell and move id in a list; the goal's update (0x6c2ad0) hits the four cells round each (offset tables 0x8d39fc and
+0x8d3a00: right, left, below, above), first a powered hit when the gem had no colour or was cleared by a hypercube (bit 2 of what cleared it), with the cell's mask,
+and, when that does not break the brick (or the hit was not powered), a second hit of the same power with no mask (0x6b59f0; the mask is a per-row set of cells a
+hit has reached since the update began, cleared at its start). A gem that a flame or star cleared (a clearer with bits 1 or 4, with a colour) hits no neighbours;
+its blast hits what it reaches instead: a brick taken out by an explosion or a ring (slot 176, 0x6bb6a0, with slot 142, 0x6b6a80) is hit there, powered when its
+clearer had a special's bit (7), and stays if it stands. Dirt of strength 4 only takes a powered hit (it goes to 1); other dirt with hits left loses one,
+and the dark rock two (5 goes to 3); at 0 it is gone. Money and artifacts are collected by a hit: the value is ArtifactBaseValue times the artifact's value
+(Artifact1 to Artifact46: "id, minDepth, value, text"), or for money the roll from the kind's pair of TreasureRange (min + Rand % (max - min + 1)) times
+GoldValue (strengths 1 to 3) or DiamondValue; 0x6a9780 adds it to the progress (+0xe00), which is the score (slot 161, 0x737500, sets +0xd24 to it at the end;
+the port also sets it each step). A block of dirt marked H in the grid with a strength hides a hypercube: when it breaks (0x6bb6a0) the piece becomes a
+hypercube whose group (the most common colour in the grid) is made at once.
+
+The rows. 0x6bbb10 makes the bricks of the rows from a start row down: the setting Grids (read by 0x744e00: a digit starts a cell, a letter belongs to the cell
+before it; H hypercube (alone, a hypercube gem), S shuffle (flag 0x1000), R random, M money, A artifact) gives the rows of the table, 8 cells each (cell n is row
+n / 8); with the setting MaxBrickStrPerLevel there (+0xb10), a cell that says R and every row past the table is made by 0x6b3a50, which reads the curves
+(MinBrickStrPerLevel, MaxBrickStrPerLevel, EdgeBrickStrPerLevel for the first and last columns, MinMineStrPerLevel, MaxMineStrPerLevel, MineProbPerLevel,
+DarkRockFrequency) at the number of rows made (+0x4f8) and the spreads (BrickStrSpread, MineStrSpread, ArtifactSpread: tables of 500 floats built from a curve by
+0x784fe0 and read by 0x784e90). Each brick made counts one off the run to the next artifact (+0x404, ArtifactMinTiles to ArtifactMaxTiles); when it is due and the
+brick is a random one, a random one of the row's candidates gets an artifact picked by ArtifactSpread from the pool (the artifacts whose minimum depth is reached,
+not yet placed or collected, in groups by their depth, deepest first, until ArtifactPossRange allows no more, reversed). The first eight rows are made at the
+start (0x6bbb10 with 0).
+
+The scroll. When the first six rows hold no brick (0x6aae50), the board is at rest with nothing swapped and no dialog is up, the goal starts it (0x6c2ad0): with
+all eight rows free the scroll is the long one (twice DigCountPerScroll rows) and its bonus the mega one; the time is given (0x736f20): MegaTimeBonus or
+TimeBonus seconds are added, the time left is kept in +0x3274, and with less than 9001 hundredths left the limit is put to 90 seconds and the game ticks (+0xe38) to
+0x23f0 less what is left, with more, the limit is the seconds rounded up and the ticks 200. Two curves are set ("b+0,1,0.01,1.5,..." and "b+0,10,0.01,1.5,...");
+each time the second's value (rounded) changes from a number below the rows of the scroll (0x6be730), a row is scrolled (0x6be3e0: the top row goes, everything
+moves up a row, a row of gems with random colours that make no match (25 tries) is made at the bottom and given its bricks by 0x6bbb10 (7); with no move left, a
+hypercube is made of a random piece of the top row, up to 49 tries). When the curve is done the depth (+0x4f0) goes up by the rows of the scroll. The clock (slot 187,
+0x736b50) is the limit's hundredths less the game ticks past 250 (0x73bb80), and no more than the kept time left; at 0, with the board at rest, the game is lost
+(slot 216, 0x73b890: slot 161 with +0xe28 set). The gravity (slot 214, 0x736d60) is Board's, then the bricks have no speed.
+
+Slots translated, as the port's overrides: DigBoard::Update (slot 22, 0x7374d0: QuestBoard's, then the goal's update), UpdateTick (slot 234 through 0x6e5660,
+with the time's end), ResetGame (85, 0x737290), NewGame (135, 0x7375e0 with 0x6e5030: Time, TimeBonus, TimePenalty, MegaTimeBonus, then the goal's settings, the
+fill and the first rows), GetModeName (89), GetTimeLimit (104, 0x6c4a30), GetTimeLeft (187), UpdateFalling (214), OnPieceCleared (143), OnPieceRemoving (176 and
+142), NoMoreMoves (161, 0x737500), MakeEndLevelDialog (257), DrawModeOverlay (43, 0x737370, plainly). Shared changes: Board::OnPieceRemoving (a hook at the start
+of RemovePiece, slot 176/142: true keeps the piece), Board::UpdateFalling is virtual, Board::BotMayMove (test only: the bot waits while the first six rows hold no
+dirt, so the board is at rest when the goal looks; a swap in the same update would hide it), and QuestData's parser reads `Name= value` and `Name ="value"`
+(secret.cfg's Artifact10 to Artifact21 and Grids have them; the parser took the whole line for a setting name). The Classic and modes hashes are unchanged.
+
+Settings and state keys. `goto diamondmine` needs `unlock all` (tutorial flag 3). State keys: digmap (eight rows of eight characters, rows split by "/": . no brick, 1 to
+5 dirt with that many hits left, g gold, d diamond, a artifact, h dirt that hides a hypercube), digbricks, digdepth (rows: the scrolled and, while a scroll runs, its
+share), digtime (hundredths left), digtimelimit (seconds), digtimecap (the kept time left), digtimeup, digtreasure (the progress, the score), diggold, digdiamonds,
+digartifacts, digbest (the most one treasure was worth), digrows (rows of bricks made), digscrolls, digscrolling, digdestroyed, digplaced (artifacts put in the dirt). The test
+command `dig clear [lastrow]` hits the dirt of the rows up to lastrow (5) with powered hits until it is gone, and `dig hit <col> <row>` hits one brick once. `bot` and
+`move` work (Board's move search; a brick cannot be swapped and has no colour).
+
+### Not done (Diamond Mine)
+
+The looks: dirt, gold, diamonds and artifacts are flat coloured blocks over their cells (the exe's brick effects: the records' +0x10, +0x14 and +0x1c and 0x6b54d0, the
+crumble and the sparkle, DigBackground, the dig bar and its animation DrawDigBarAnim, the time bonus' text rising (the port writes "+n" beside the clock), the
+flying treasure (the list +0x658; 0x6a9780's tally timer +0x3c0 is kept but nothing draws the tally), the badges, the end dialog's frames and badges (0x733af0,
+0x7331f0, "Treasure Found:", "Gold Collected", "Diamonds Collected", "Artifacts Collected"), the sounds ("drill", "predrill" and the collect sounds), the
+scroll's pixel offset (+0x248 and 0x6b9690: the port moves the rows at once at each step of the curve, which the exe slides). The helping hand: the power-gem
+specs (+0x468 and +0x4a8, slots 184 0x736bf0 and 185 0x736b70, PowerGemThresholdDepth0, 20 and 40 into +0x3188 by the board's slot 0x414(6)); slots 81 (0x736cc0), 123
+(0x736ab0, returns 2.6666667), 133 (0x736a60, goal +0xa60 = 10), 191 (0x736b10), 204 (0x736ac0) and 177 (0x736e60: the goal's top-row hidden list +0x444); the shuffle
+cell S (flag 0x1000, no use in the quest's grid); save and restore; the tutorial (TutorialHeader and TutorialText); the TimePenalty (slot 263, 0x6cb130, DoQuestPenalty:
+read, never used here); the leaderboard scale (HighScoreBase and HighScoreIncr).
+
+### Oddities (Diamond Mine)
+
+- 0x6b59f0 after the collection of a treasure goes on into the code that takes hits off a brick; for a block of money the hits left is its strength and for an artifact
+  its index, so read literally a block of money of strength 3 would take 3 hits and an artifact 0. The port collects a treasure with its first hit and removes it; what
+  the exe does with the rest was not followed (the flying treasure's own arrival may be what removes it).
+- 0x6b3a50's dark rock: the export gives a draw and a compare with DarkRockFrequency after a strength of 4 or more; the port reads it as 5 when the draw is at most the
+  frequency and 4 otherwise (the setting's comment says it is the frequency of dark rock). The reading "4 becomes 5, then 4 by chance" was also possible.
+- 0x6bbb10's absolute depth of a row (the table row, the artifact pool's depth) is the rounded curve times the rows of the scroll plus +0x4f0, then the row: the sum is
+  lost in the export (an x87 add) and was read from where the values are stored; the pool's depth is taken without the row.
+- The second artifact set (+0x1bc) is the list of artifacts collected (the end dialog's best treasure reads it); 0x6bbb10 leaves out artifacts in it and in the placed list.
+- +0x17d of a piece (0x6ad0d0, 0x6b6a80) is not a field of the port's Piece; it is read as "something cleared it" (a destroyer id or flags are set).
+- The exe's brick hit has a path for a piece with bit 2 or 0x1000 (a hypercube or shuffle brick: its colour is picked at random among the grid's) that the port does not
+  make (no such brick is made from the quest's grid).
+- Slot 216's condition 0x2e8 (slot 186) was not read: the port asks for the board at rest, as Lightning's time's end does.
+- At the start the port runs the scroll's "no move" fix (0x6be3e0's end) after the first rows, since the bricks can take away the move the fill left; the exe may not.
+- 0x6be3e0 keeps the top row's pieces in a list (+0x444) that slide off the screen; the port deletes them.
+- Slot 123 (0x736ab0) returns 2.6666667 and its caller was not found.
+- The run to the first artifact (+0x404) is the shortest run (ArtifactMinTiles); the exe's initial value was not found.
+
+### The suite for Diamond Mine
+
+suite_diamondmine.txt (seed 7, name Tester, `unlock all`, `goto diamondmine`, `bot 150`, `dig clear 5` three times so that the grid scrolls, `dig hit 0 7`, three state lines and
+two shots, the end dialog on screen at the last) is run twice by suite.sh in the same loop as the other secret modes: the second state line must be in play, the last
+must have the game over (the time's end) and the end dialog, and the rerun must be the same.
