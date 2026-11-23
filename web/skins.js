@@ -82,7 +82,10 @@ var ByopopSkin = (function () {
   // ?skin=<id>, as ?silent=1
   // does for sound; the address keeps it (testQuery), and the pages in the desktop's windows are opened with it (web/deskapps.js,
   // frameUrl).
-  var LOOKS = ["95", "98", "2000", "me"];
+  var LOOKS = ["95", "98", "2000", "me", "xp"];
+  // a skin drawn as another with its own changes over it, whose sheet loads first: XP's Windows Classic style is 2000's
+  // drawing (web/skin-2000.css, its rules under 2000 and XP alike) with XP's parts (web/skin-xp.css)
+  var LOOK_BASE = { xp: "2000" };
   function look() {
     var s = Q.get("skin");
     if (LOOKS.indexOf(s) >= 0) return s;
@@ -140,8 +143,9 @@ var ByopopSkin = (function () {
   // The behaviours a version had beyond its drawing (docs/SKINS.md, "The behaviours that hide things"), each with the setting
   // that turned it off: <html data-behaviours>, which the settings' rows that only some skins have read (web/settings.js,
   // "needs"). "cues": keyboard cues hidden until the keyboard is used, from 2000 on (whether Me had them is to check);
-  // "personal": personalized menus, from 2000 and Me on (the Pop menu's Games list, fillSub).
-  var BEHAVIOURS = { "2000": ["cues", "personal"], "me": ["personal"] };
+  // "personal": personalized menus, from 2000 and Me on (the Pop menu's Games list, fillSub); "twocol": XP's two-column Pop
+  // menu (fill), whose All Games list XP did not personalize.
+  var BEHAVIOURS = { "2000": ["cues", "personal"], "me": ["personal"], "xp": ["cues", "twocol"] };
   function behaves(b) { return (root.getAttribute("data-behaviours") || "").split(" ").indexOf(b) >= 0; }
   // Hidden keyboard cues: Windows 2000 hid the focus rectangles (and access keys' underlines, which no menu here has) until
   // the user showed keyboard use (Raymond Chen, "Why does Windows hide keyboard accelerators and focus rectangles by
@@ -160,7 +164,7 @@ var ByopopSkin = (function () {
     var s = current();
     if (s === "plain") { root.removeAttribute("data-skin"); root.removeAttribute("data-look"); root.removeAttribute("data-behaviours"); }
     else {
-      var l = look(); if (!lookSheet(l)) l = "95";
+      var l = look(); if ((LOOK_BASE[l] && !lookSheet(LOOK_BASE[l])) || !lookSheet(l)) l = "95";
       root.setAttribute("data-skin", s); root.setAttribute("data-look", l); bandRamp();
       if (BEHAVIOURS[l]) root.setAttribute("data-behaviours", BEHAVIOURS[l].join(" ")); else root.removeAttribute("data-behaviours");
     }
@@ -1034,14 +1038,16 @@ var ByopopSkin = (function () {
       if (w.small) { var c = w.small.cloneNode(true); c.removeAttribute("id"); return c; }
       return picOf(w, true);
     }
-    // a game's small icon in a list: its own, read out of the player's exe (web/exeicon.js), else its cap in its colour
-    function gamePic(id) {
+    // a game's small icon in a list: its own, read out of the player's exe (web/exeicon.js), else its cap in its colour; at 32
+    // pixels (big) in XP's list of the games played lately
+    function gamePic(id, big) {
       var rec = null, g = null, url = "";
       try { rec = ByopopGameFiles.all()[id]; url = rec && ByopopGameFiles.present(rec) ? (rec.small || rec.icon || "") : ""; } catch (e) {}
       (window.ByopopGames || []).forEach(function (x) { if (x.id === id) g = x; });
       var s = document.createElement("i"); s.setAttribute("aria-hidden", "true");
       if (url) { s.className = "d95-pic-exe"; var im = document.createElement("img"); im.alt = ""; im.draggable = false; im.src = url; s.appendChild(im); }
       else { s.className = "d95-sys-cap"; if (g && g.colour) s.style.background = g.colour; }
+      if (big) s.classList.add("d95-pic-32");
       return s;
     }
     function addIcon(w, title) {
@@ -1151,6 +1157,8 @@ var ByopopSkin = (function () {
       var bandText = document.createElement("span"), name = T("skin.pop.band"), cut = name.lastIndexOf("-") + 1;
       var first = document.createElement("span"); first.className = "d95-band-1"; first.textContent = name.slice(0, cut);
       bandText.appendChild(first); bandText.appendChild(document.createTextNode(name.slice(cut))); band.appendChild(bandText);
+      // under XP's two-column menu, the player's name in its place (fill)
+      var bandUser = document.createElement("span"); bandUser.className = "d95-band-user"; bandUser.hidden = true; band.appendChild(bandUser);
       list = document.createElement("menu"); list.className = "d95-items"; list.id = "d95-pop-menu";
       list.setAttribute("role", "menu"); list.setAttribute("aria-labelledby", "d95-pop");
       menu.appendChild(band); menu.appendChild(list);
@@ -1298,48 +1306,45 @@ var ByopopSkin = (function () {
       function fill() {
         list.textContent = "";
         subWhole = false;
+        // XP's two columns (the behaviour "twocol"), else 1995's one: an entry goes in the column to, its picture large while big
+        var two = behaves("twocol"), to = list, big = true;
+        menu.classList.toggle("d95-menu-two", two);
+        bandText.hidden = two; bandUser.hidden = !two;
         var listing = !!document.getElementById("games-title");
-        var games = item(T("skin.pop.games"), function (ev, b) { openSub(b, true); }, { sub: true, cls: "d95-has-sub", pic: drawnPic("folder") });
-        menuEntry(list, games);
-        menuEntry(list, rule());
         function openWin(w) {
           if (w.min) setMin(w, false);
           if (w.open) { w.open(); raise(w); } else show(w);
         }
-        function win(id, label) {
+        function win(id, label, cls) {
           var w = find(id);
           if (!w || (w.button && w.button.hidden)) return;
-          menuEntry(list, item(label || w.el.getAttribute("data-d95-title") || id, closeThen(function () { openWin(w); }), { pic: picOf(w, false) }));
+          menuEntry(to, item(label || w.el.getAttribute("data-d95-title") || id, closeThen(function () { openWin(w); }), { pic: picOf(w, !big), cls: cls }));
         }
         // Settings, with its sections in a list beside it: the folder itself first, then each section's window
         function settings(id) {
           var w = find(id), secs = wins.filter(function (x) { return /^set-/.test(x.id); });
           if (!w) return;
           if (!secs.length) { win(id); return; }
-          menuEntry(list, item(w.el.getAttribute("data-d95-title") || id, function (ev, b) { openSub(b, true); }, { sub: true, cls: "d95-has-sub", pic: picOf(w, false), fill: function () {
+          menuEntry(to, item(w.el.getAttribute("data-d95-title") || id, function (ev, b) { openSub(b, true); }, { sub: true, cls: "d95-has-sub", pic: picOf(w, !big), fill: function () {
             sub.textContent = "";
             menuEntry(sub, item(T("skin.pop.allsettings"), closeThen(function () { openWin(w); }), { pic: smallPic(w) }));
             menuEntry(sub, rule());
             secs.forEach(function (s) { menuEntry(sub, item(s.el.getAttribute("data-d95-title"), closeThen(function () { openWin(s); }), { pic: smallPic(s) })); });
           } }));
         }
-        if (listing) {
-          // the Setup window (web/setup.js), for adding games
-          win("setup", T("setup.pop"));
-          win("library");
-          settings("tab-settings"); win("tab-music"); win("sounds"); win("splits"); win("chat");
-        } else {
-          settings("panel-settings");
+        // a game's page: Music and Sounds, on the listing
+        function siteLinks() {
           [["music", "index.tabs.music"], ["sounds", "sounds.title"]].forEach(function (m) {
-            menuEntry(list, item(T(m[1]), null, { href: "./#" + m[0], pic: drawnPic(m[0]) }));
+            menuEntry(to, item(T(m[1]), null, { href: "./#" + m[0], pic: drawnPic(m[0], !big) }));
           });
-          menuEntry(list, rule());
-          // the game's full screen, as its window's maximize button
+        }
+        // the game's full screen, as its window's maximize button, and its sizes
+        function gameView() {
           var gw = find("game");
-          if (gw && gw.maximize) menuEntry(list, item(T("skin.pop.full"), closeThen(gw.maximize), { pic: drawnPic("full") }));
+          if (gw && gw.maximize) menuEntry(to, item(T("skin.pop.full"), closeThen(gw.maximize), { pic: drawnPic("full", !big) }));
           if (gw && gw.sizes) {
             var sz = gw.sizes();
-            if (sz && sz.list.length) menuEntry(list, item(T("skin.pop.size"), function (ev, b) { openSub(b, true); }, { sub: true, cls: "d95-has-sub", pic: drawnPic("size"), fill: function () {
+            if (sz && sz.list.length) menuEntry(to, item(T("skin.pop.size"), function (ev, b) { openSub(b, true); }, { sub: true, cls: "d95-has-sub", pic: drawnPic("size", !big), fill: function () {
               sub.textContent = "";
               var now = gw.sizes();
               now.list.forEach(function (s) {
@@ -1349,20 +1354,89 @@ var ByopopSkin = (function () {
               });
             } }));
           }
-          // this game's own windows
-          wins.forEach(function (w) { if (w.id !== "panel-settings" && w.id !== "about" && !/^set-/.test(w.id) && !(w.id === "chat" && w.el.hidden)) win(w.id); });
+        }
+        // this game's own windows
+        function gameWins(cls) {
+          wins.forEach(function (w) { if (w.id !== "panel-settings" && w.id !== "about" && !/^set-/.test(w.id) && !(w.id === "chat" && w.el.hidden)) win(w.id, null, cls); });
+        }
+        // the Library from a game's page (its #library opens it on the listing)
+        function libraryLink(cls) { menuEntry(to, item(T("library.title"), null, { href: "./#library", cls: "d95-leave" + (cls ? " " + cls : ""), pic: drawnPic("library", !big) })); }
+        // Shut Down, last (the user, 2026-11-14, by the coordinator's list): every window closes, then the last screen
+        function shutDownEntry() { menuEntry(to, item(T("skin.pop.shutdown"), closeThen(shutDown), { cls: "d95-shutdown", pic: drawnPic("shutdown", !big) })); }
+        if (two) { fillTwo(); return; }
+        var games = item(T("skin.pop.games"), function (ev, b) { openSub(b, true); }, { sub: true, cls: "d95-has-sub", pic: drawnPic("folder") });
+        menuEntry(list, games);
+        menuEntry(list, rule());
+        if (listing) {
+          // the Setup window (web/setup.js), for adding games
+          win("setup", T("setup.pop"));
+          win("library");
+          settings("tab-settings"); win("tab-music"); win("sounds"); win("splits"); win("chat");
+        } else {
+          settings("panel-settings");
+          siteLinks();
+          menuEntry(list, rule());
+          gameView();
+          gameWins();
         }
         menuEntry(list, rule());
         // About, or System Information on the listing page (web/sysinfo.js): the window's own title
         win("about");
-        // a game's page: the Library, on the listing (its #library opens it)
         if (!listing) {
           menuEntry(list, rule());
-          menuEntry(list, item(T("library.title"), null, { href: "./#library", cls: "d95-leave", pic: drawnPic("library") }));
+          libraryLink();
         }
-        // Shut Down, last (the user, 2026-11-14, by the coordinator's list): every window closes, then the last screen
         menuEntry(list, rule());
-        menuEntry(list, item(T("skin.pop.shutdown"), closeThen(shutDown), { cls: "d95-shutdown", pic: drawnPic("shutdown") }));
+        shutDownEntry();
+
+        // XP's two-column Pop menu (docs/SKINS.md, "XP's Windows Classic style"), as a real XP shot in its Windows Classic
+        // style draws it: the player's name in a band across the top (bandUser); on the left, with large pictures, the entries
+        // pinned there in bold, the games played most lately and All Games at the column's foot; on the right, with small
+        // ones, the site's places in bold as XP's first group was, then its settings and its information; Shut Down in a
+        // strip along the foot. Each column is a group of the menu's entries.
+        function column(cls) {
+          var li = document.createElement("li"), g = document.createElement("menu");
+          li.setAttribute("role", "none"); g.setAttribute("role", "group"); g.className = "d95-col " + cls;
+          li.appendChild(g); list.appendChild(li);
+          return g;
+        }
+        function fillTwo() {
+          var who = null;
+          try { who = ByopopProfiles.current(); } catch (e) {}
+          bandUser.textContent = who && who.name ? who.name : T("skin.pop.player");
+          var left = column("d95-col-left"), right = column("d95-col-right"), foot = column("d95-col-foot");
+          to = left;
+          if (listing) { win("library", null, "d95-pinned"); win("setup", T("setup.pop"), "d95-pinned"); }
+          else libraryLink("d95-pinned");
+          // the games played most lately, in place of XP's programs used most often: up to six, as XP's list had by
+          // default, the last played first (ByopopPlay keeps each game's last day, not how often it was played)
+          var play = {};
+          try { play = ByopopPlay.all(); } catch (e) {}
+          var recent = playable().filter(function (g) { return !win95Hides(g.id) && play[g.id] && play[g.id].last; });
+          recent.sort(function (a, b) { return play[b.id].last < play[a.id].last ? -1 : play[b.id].last > play[a.id].last ? 1 : a.title.localeCompare(b.title); });
+          if (recent.length) {
+            menuEntry(to, rule());
+            recent.slice(0, 6).forEach(function (g) { menuEntry(to, item(g.title, null, { href: g.page, pic: gamePic(g.id, true) })); });
+          }
+          var end = menuEntry(to, rule()); end.classList.add("d95-col-end");
+          menuEntry(to, item(T("skin.pop.allgames"), function (ev, b) { openSub(b, true); }, { sub: true, cls: "d95-has-sub d95-allgames", noPic: true }));
+          to = right; big = false;
+          if (listing) {
+            ["tab-music", "sounds", "splits", "chat"].forEach(function (id) { win(id, null, "d95-place"); });
+            menuEntry(to, rule());
+            settings("tab-settings");
+          } else {
+            gameWins("d95-place");
+            gameView();
+            menuEntry(to, rule());
+            settings("panel-settings");
+            siteLinks();
+          }
+          menuEntry(to, rule());
+          win("about");
+          to = foot;
+          shutDownEntry();
+        }
       }
       function items(m) { return Array.prototype.filter.call(m.querySelectorAll(".d95-item"), function (b) { return b.getClientRects().length > 0; }); }
       function focusIn(m, i) { var a = items(m); if (!a.length) return; a[(i + a.length) % a.length].focus(); }
@@ -1415,12 +1489,23 @@ var ByopopSkin = (function () {
           else if (ev.key === "Home") { ev.preventDefault(); focusIn(m, 0); }
           else if (ev.key === "End") { ev.preventDefault(); focusIn(m, -1); }
           else if (ev.key === "ArrowRight" && !isSub && document.activeElement && document.activeElement.classList.contains("d95-has-sub")) { ev.preventDefault(); openSub(document.activeElement, true); }
+          else if ((ev.key === "ArrowRight" || ev.key === "ArrowLeft") && !isSub && across(ev.key === "ArrowRight")) ev.preventDefault();
           else if ((ev.key === "ArrowLeft" || ev.key === "Escape") && isSub) { ev.preventDefault(); ev.stopPropagation(); closeSub(true); }
           else if (ev.key === "Escape") { ev.preventDefault(); close(true); }
           else if (ev.key === "Tab") close(false);
           else if (ev.key === " " && document.activeElement && document.activeElement.tagName === "A") { ev.preventDefault(); document.activeElement.click(); }
           else if (ev.key === "ArrowDown" || ev.key === "ArrowUp") ev.stopPropagation();
         });
+      }
+      // XP's two columns: Right from the left column and Left from the right go across, to the entry nearest in height
+      function across(right) {
+        var at = document.activeElement, col = at && at.closest && at.closest(".d95-col");
+        if (!col || !col.classList.contains(right ? "d95-col-left" : "d95-col-right")) return false;
+        var other = list.querySelector(right ? ".d95-col-right" : ".d95-col-left"), y = at.getBoundingClientRect().top, best = null, bd = Infinity;
+        if (!other) return false;
+        items(other).forEach(function (b) { var d = Math.abs(b.getBoundingClientRect().top - y); if (d < bd) { bd = d; best = b; } });
+        if (best) best.focus();
+        return !!best;
       }
       // (on the list, the menu itself: its box holds only the banner besides)
       keys(list, false); keys(sub, true);

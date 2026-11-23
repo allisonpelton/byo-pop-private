@@ -353,6 +353,31 @@ differs from 2000 in these parts:
 The plan makes it the 2000 skin with those parts swapped: a builder for the two-column menu, grouping and tray hiding, and
 XP's icons. **3 to 4 batches, $70 to $150, plus icons.**
 
+**Drawn (2026-11-23, web/skin-xp.css, the Skin list's "XP", `?skin=xp`):**
+- **2000's drawing,** font, bold and fading menus: a page drawn in XP loads web/skin-2000.css first (web/skins.js,
+  `LOOK_BASE`), whose rules, all but the banner's, are under 2000 and XP alike. Its colours are 2000's Standard scheme
+  (`STANDARDS.xp`), which the real shot has exactly, and its keyboard cues are hidden as 2000's.
+- **The two-column Pop menu** (web/skins.js, `fillTwo`; the behaviour "twocol"), drawn as the real shot in the Windows
+  Classic style has it. A band 40 pixels tall runs across the top in the active title's gradient, with the site's current
+  player's name in white bold, or "Player" when none is chosen. Under it two columns sit side by side, split by an etched
+  line, with a strip along the foot.
+- **The left column** has large pictures. The entries pinned there come first, in bold: the Library and Add Games on the
+  listing, the Library on a game's page. Then the games played most lately, in place of XP's programs used most often: up
+  to six, as XP's list had by default, the last played first, since ByopopPlay keeps a game's last day but not how often it
+  was played. All Games sits at the column's foot under a rule, bold and centred, its arrow after its name, and opens the
+  whole Games list beside it, over the right column.
+- **The right column** has small pictures. The site's places come first, in bold as XP's first group was: Music, Sounds,
+  Splits and Chat on the listing, the game's own windows on a game's page. Then Settings with its list, and System
+  Information or About. Shut Down stands at the strip's right.
+- **The keys:** Right in the left column and Left in the right one go across to the entry nearest in height. Up and Down go
+  through the entries in order, the left column, then the right, then the strip; whether XP kept them to a column is **to
+  check**.
+- XP did not personalize its All Programs list, so the Games list is whole, and the task bar's menu has no Properties
+  entry yet.
+- **Still to come:** grouping on the task bar, hiding the tray's inactive icons, the older one-column menu as XP's option
+  with its own banner, XP's Appearance form (its list of styles), and XP's icons. The right column's pictures are 16
+  pixels until XP's icons, which were 24. Menu shadows are still **to check**.
+
 ### Vista's Windows Classic
 
 Vista's "Windows Classic" scheme is 98's: face #c0c0c0, titles #000080 to #1084d0 (a real classic About box). 2000's

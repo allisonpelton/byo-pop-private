@@ -1,0 +1,41 @@
+/* The XP skin, XP's Windows Classic style (docs/SKINS.md, "XP's Windows Classic style"): 2000's drawing, font, bold and fading
+   menus (web/skin-2000.css, which a page drawn in XP loads first: web/skins.js, LOOK_BASE), in 2000's Windows Standard
+   colours, which a real XP shot in that style has exactly (web/schemes.js, STANDARDS), with the parts XP drew differently,
+   read from that shot. Only a page drawn in XP loads this file, and every rule here is under data-look="xp".
+   So far its own part is the two-column Pop menu (web/skins.js, fill and fillTwo; the behaviour "twocol"). Still to come
+   (docs/SKINS.md): grouping on the task bar, hiding the tray's inactive icons, XP's older one-column menu as the option it
+   was, and XP's icons; menu shadows are to check. */
+
+/* The Pop menu in two columns under a band, with a strip along its foot; the frame is 95's */
+html.d95-desk[data-look="xp"] .d95-menu.d95-menu-two { flex-direction: column; min-width: 0; }
+/* the band across the top: the player's name in white bold at twice the text's size, on the active title's gradient, 40
+   pixels tall, the name 8 pixels in from its left */
+html.d95-desk[data-look="xp"] .d95-menu-two > .d95-band { width: auto; height: 40px; box-sizing: border-box; padding: 0 8px;
+  background: var(--sk-title-bg); color: var(--sk-title-fg); justify-content: flex-start; align-items: center; }
+html.d95-desk[data-look="xp"] .d95-menu-two > .d95-band > .d95-band-user { writing-mode: horizontal-tb; transform: none; letter-spacing: normal;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+/* the two columns side by side, split by an etched line (the shadow, then the light), the strip across both */
+html.d95-desk[data-look="xp"] .d95-menu-two > .d95-items { display: grid; grid-template-columns: auto auto; min-width: 0; padding: 0; }
+html.d95-desk[data-look="xp"] .d95-col { display: flex; flex-direction: column; padding: 4px 0; box-sizing: border-box; }
+html.d95-desk[data-look="xp"] .d95-col > li { display: contents; }
+html.d95-desk[data-look="xp"] .d95-col-left { min-width: 190px; border-right: 1px solid var(--sk-lo); }
+html.d95-desk[data-look="xp"] .d95-col-right { min-width: 180px; border-left: 1px solid var(--sk-hi); }
+html.d95-desk[data-look="xp"] .d95-col-foot { grid-column: 1 / -1; flex-direction: row; justify-content: flex-end; align-items: center;
+  min-height: 32px; padding: 2px 4px 0; border-top: 1px solid var(--sk-lo); box-shadow: inset 0 1px var(--sk-hi); }
+/* the entries: a large picture in the left column, a small one on the right and in the strip */
+html.d95-desk[data-look="xp"] .d95-col > li > .d95-item { padding: 2px 22px 2px 6px; gap: 6px; }
+html.d95-desk[data-look="xp"] .d95-col-left > li > .d95-item { min-height: 36px; }
+html.d95-desk[data-look="xp"] .d95-col-left > li > .d95-item > .d95-item-pic { width: 32px; height: 32px; }
+html.d95-desk[data-look="xp"] :is(.d95-col-right, .d95-col-foot) > li > .d95-item { min-height: 24px; }
+html.d95-desk[data-look="xp"] :is(.d95-col-right, .d95-col-foot) > li > .d95-item > .d95-item-pic { width: 18px; height: 16px; }
+html.d95-desk[data-look="xp"] .d95-col-foot > li > .d95-item { padding-right: 8px; }
+html.d95-desk[data-look="xp"] .d95-col > li > .d95-rule { margin: 3px 6px; }
+/* the pinned entries and the right column's first group in bold, as XP drew them */
+html.d95-desk[data-look="xp"] .d95-col > li > :is(.d95-pinned, .d95-place) { font-weight: bold; }
+/* All Games at the left column's foot, under its rule: bold, centred, its arrow just after its name */
+html.d95-desk[data-look="xp"] .d95-col-left > li > .d95-col-end { margin-top: auto; }
+html.d95-desk[data-look="xp"] .d95-col-left > li > .d95-allgames { justify-content: center; min-height: 28px; padding: 2px 6px; font-weight: bold; }
+html.d95-desk[data-look="xp"] .d95-col-left > li > .d95-allgames::after { position: static; margin: 0 0 0 8px; }
+/* a game's own icon at 32 pixels, in the games played lately */
+html.d95-desk[data-look="xp"] :is(.d95-pic-exe, .d95-sys-cap).d95-pic-32 { width: 32px; height: 32px; }
+html.d95-desk[data-look="xp"] .d95-pic-exe.d95-pic-32 > img { width: 32px; height: 32px; }

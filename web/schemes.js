@@ -36,6 +36,8 @@ var ByopopSchemes = (function () {
   };
   // Me's is the same scheme: its face and desktop, read from a real Me desktop, are 2000's (web/skin-me.css)
   STANDARDS.me = STANDARDS["2000"];
+  // and XP's in its Windows Classic style: a real XP shot in that style has 2000's colours exactly (web/skin-xp.css)
+  STANDARDS.xp = STANDARDS["2000"];
   function lookNow() { return (typeof document !== "undefined" && document.documentElement.getAttribute("data-look")) || "95"; }
   function byId(id) { for (var i = 0; i < LIST.length; i++) if (LIST[i].id === id) return LIST[i]; return STANDARD; }
   function ends(s) { return typeof s.title === "string" ? [s.title, s.title] : s.title; }

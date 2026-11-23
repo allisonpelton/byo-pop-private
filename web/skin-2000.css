@@ -7,17 +7,21 @@
    (tools/web/pixelfont2000.py, CC0), with its own drawn bold; a character it lacks is drawn by Byopop Sans, on the same
    baseline. Its behaviours, the
    hidden keyboard cues and personalized menus, are web/skins.js's (BEHAVIOURS).
-   Still 95's until they are made or checked (docs/SKINS.md): the icons, and whether tooltips fade. */
+   Still 95's until they are made or checked (docs/SKINS.md): the icons, and whether tooltips fade.
+   XP's Windows Classic style is this drawing too: a page drawn in XP loads this file before web/skin-xp.css (web/skins.js,
+   LOOK_BASE), and every rule here but the banner's is under 2000 and XP alike. */
 
 @font-face { font-family: "Byopop Sans 2000"; src: url("fonts/byopop-sans-2000.woff") format("woff"); font-weight: 100 500; font-style: normal; font-display: block; }
 @font-face { font-family: "Byopop Sans 2000"; src: url("fonts/byopop-sans-2000-bold.woff") format("woff"); font-weight: 600 900; font-style: normal; font-display: block; }
 
-:root[data-look="2000"] {
+:root:is([data-look="2000"], [data-look="xp"]) {
   --font-ui: "Byopop Sans 2000", "Byopop Sans", Tahoma, "Segoe UI", sans-serif;
   /* both title bars are gradients, 18 pixels tall as 95's: the active from the title colour to its second, #0a246a to
      #a6caf0 in the standard scheme, the inactive from the shadow to #c0c0c0 with its text in the face colour */
   --sk-title-bg: linear-gradient(90deg, var(--sk-title), var(--sk-title-2));
   --sk-title-in-bg: linear-gradient(90deg, var(--sk-lo), var(--sk-title-in-2, #c0c0c0));
+}
+:root[data-look="2000"] {
   /* the Pop menu's banner, read from 2000 Professional's bitmap: 233 rows, black at the top, dithered to navy by about its
      middle, then to royal blue at its foot, the name in white; black above it where the menu is taller */
   --sk-band: #000000;
@@ -27,14 +31,14 @@
 
 /* Bold is the drawn bold, as Tahoma Bold was 2000's title bars', the Start button's and a default entry's, in place of 95's
    regular glyphs struck twice (web/skins.css, "bold: one weight struck twice"): the same elements, at the bold weight */
-:root[data-look="2000"] :is(b, strong, th, h1, h2, h3, h4, dt, summary, .d95-tb, .d95-tb-text),
-html.d95-desk[data-look="2000"] :is(.d95-pop, .d95-task[aria-pressed=true] > .d95-task-text, .d95-default) {
+:root:is([data-look="2000"], [data-look="xp"]) :is(b, strong, th, h1, h2, h3, h4, dt, summary, .d95-tb, .d95-tb-text),
+html.d95-desk:is([data-look="2000"], [data-look="xp"]) :is(.d95-pop, .d95-task[aria-pressed=true] > .d95-task-text, .d95-default) {
   text-shadow: none; letter-spacing: normal; font-weight: bold; }
 
 /* Menus fade in (Wikipedia, "Windows 2000": "Menus support a new Fade transition effect"): the Pop menu, its submenus, the
    context and window menus. The fade's length is ours: 2000's own is to check, and so is whether tooltips faded. */
 @keyframes sk2k-fade { from { opacity: 0; } to { opacity: 1; } }
-html.d95-desk[data-look="2000"] .d95-menu:not([hidden]) { animation: sk2k-fade 0.2s linear; }
+html.d95-desk:is([data-look="2000"], [data-look="xp"]) .d95-menu:not([hidden]) { animation: sk2k-fade 0.2s linear; }
 @media (prefers-reduced-motion: reduce) {
-  html.d95-desk[data-look="2000"] .d95-menu { animation: none !important; }
+  html.d95-desk:is([data-look="2000"], [data-look="xp"]) .d95-menu { animation: none !important; }
 }
