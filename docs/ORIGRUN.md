@@ -1092,6 +1092,7 @@ game's registry key and 3D-flag address to games.tsv.
 | typershark | local install | from a copy under `build/origrun/typershark/game` (`games/typershark/docs/GAME_NOTES.md`, section 8) | | its loading thread runs on the wall clock: gate the first input with `waitfor` |
 | waterbugs | local install | sandbox, a fresh profile each run; shots by `--surface-screen` with `--surface-eip`; update counter 0x460a1c | none | full-screen DirectDraw, as Cosmic Bugs; `--input-eip` and a `mouse` patch for its input |
 | wordharmony | local install | host, virtual clock, scripted cursor, short `--stage-root`; its registry key is cleared before each run | none | trial (60 min) |
+| zumasrevenge | wrapped Steam exe | not run yet: stage the copy with `--copy-only`, put the game exe (`re/zumasrevenge/bin/ZumasRevengeGame.exe`) beside the wrapper, run it with `--exe` | | it imports `steam_api.dll` |
 
 **The in-game frame reader's trials.** Bookworm Deluxe (the carved 1.03 `BookwormGame.exe`, windowed, 2D) passed
 with the reader of 6b5f6492 on 2026-11-22 (its config line: `reader_trial=passed 2026-11-22 6b5f6492`), with
