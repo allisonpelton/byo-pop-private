@@ -63,6 +63,7 @@ public:
 	bool mQuitRequested;
 	int mFrames;             // port: the engine's frames
 	uint64_t mEngineClock;   // port: -fast: the engine's ticks, one frame period a frame
+	bool mSteadyClock = false;  // port(mod): the fixes mod's steadyClock: the engine's clock as with -fast, in real time
 	bool mGameSeen = false;  // port (test commands): the state has shown a game's screen, so the menu is its end
 	// port: -statelog=<file>, the values the identical-play runs compare with the original's (LogState)
 	FILE* mStateLog = nullptr;

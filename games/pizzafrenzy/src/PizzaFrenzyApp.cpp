@@ -47,17 +47,24 @@ unsigned int gTestSeed = 0;
 class PizzaFrenzyHost : public engine::Host
 {
 public:
-	// port: with -fast the engine has a clock of its own, which moves one frame period a frame
+	// port: with -fast, or the fixes mod's steadyClock, the engine has a clock of its own, which moves one frame period
+	// a frame
 	uint32_t timeMs() override
 	{
-		return gApp->mFastMode ? (uint32_t)(gApp->mEngineClock / 1000) : gApp->GetClockTime();
+		return engineClock() ? (uint32_t)(gApp->mEngineClock / 1000) : gApp->GetClockTime();
 	}
 	uint64_t timeTicks() override
 	{
-		if (gApp->mFastMode)
+		if (engineClock())
 			return gApp->mEngineClock;
+		return realTicks();
+	}
+	// the machine's clock, which the run loop waits on in real time
+	static uint64_t realTicks()
+	{
 		return (uint64_t)SDL_GetPerformanceCounter() * TICKS_PER_SECOND / SDL_GetPerformanceFrequency();
 	}
+	static bool engineClock() { return gApp->mFastMode || gApp->mSteadyClock; }
 	uint64_t ticksPerSecond() override { return TICKS_PER_SECOND; }
 
 	bool fixOn(const char* theFix) override { return Platform::FixOn(theFix); }
@@ -318,10 +325,13 @@ void PizzaFrenzyWidget::Update()
 	}
 	else
 	{
-		uint64_t aTicks = gHost.timeTicks();
+		uint64_t aTicks = PizzaFrenzyHost::realTicks();
 		if (aTicks < mNextFrame)
 			return;
 		mNextFrame = aTicks + gApp->FramePeriod();
+		// port(mod): steadyClock: the frame is one period of the game's time, however late it came
+		if (gApp->mSteadyClock)
+			gApp->mEngineClock += gApp->FramePeriod();
 	}
 	gApp->RunFrame();
 }
@@ -471,7 +481,10 @@ void PizzaFrenzyApp::Init()
 	engine::setHost(&gHost);
 	// -fast: a sound plays its length on the engine's clock (as on origrun's virtual clock), not the mixer's real time,
 	// which a run that does not wait outpaces: a sound with one voice was still playing when the game played it again
-	engine::HostSound::sGameClock = mFastMode;
+	// port(mod): the fixes mod's steadyClock (docs/README.md, "The fixes mod"): every frame one period of the game's
+	// time, as -fast has it, while the frames still wait for the machine's clock
+	mSteadyClock = !mFastMode && Platform::FixOn("steadyClock");
+	engine::HostSound::sGameClock = mFastMode || mSteadyClock;
 	mWidget = new PizzaFrenzyWidget();
 	mWidget->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mWidget);

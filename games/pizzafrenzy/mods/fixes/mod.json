@@ -1,0 +1,14 @@
+{
+  "id": "fixes",
+  "name": "Pizza Frenzy Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends what the original left to chance, and changes nothing else: its look, rules, sounds and pace of play stay as they were. Each fix is a toggle; with the whole mod off the game is the original.",
+  "features": {
+    "fixes": true
+  },
+  "settings": [
+    { "id": "steadyClock", "label": "Timing from the frames", "type": "bool", "default": true, "apply": "restart",
+      "help": "The original times each frame by the machine's clock, so a frame that comes late moves the customers' waits, the vans, the level's clock and the tips further, and the random waits between customers land on different frames: the same clicks never play the same game twice. With the fix every frame is one thirtieth of a second of the game's time, so the same seed and the same clicks play the same game on every run." }
+  ]
+}
