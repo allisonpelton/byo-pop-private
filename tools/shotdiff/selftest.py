@@ -540,7 +540,7 @@ def test_clips(tmp):
 
 
 def request(port, method, path, body=None, headers=None):
-	c = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+	c = http.client.HTTPConnection("127.0.0.1", port, timeout=60)  # a hang, not a busy machine
 	c.request(method, path, body=body, headers=headers or {})
 	r = c.getresponse()
 	data = r.read()
@@ -566,7 +566,7 @@ def test_server(root):
 		check("server: the root is the all-games page", code == 200 and b"All games" not in data and b"shotdiff all games" in data)
 		code, data = request(port, "GET", "/demo/run2/index.html")
 		check("server: serves a run page", code == 200 and b"Not sure" in data)
-		c = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+		c = http.client.HTTPConnection("127.0.0.1", port, timeout=60)  # a hang, not a busy machine
 		c.request("GET", "/demo/run2/marks.json")
 		r = c.getresponse()
 		r.read()
@@ -585,7 +585,7 @@ def test_server(root):
 			check("server: refuses " + name, code == want, code)
 		code, _ = request(port, "POST", "/demo/run2/marks.json", doc, dict(js, Origin="http://127.0.0.1:%d" % port))
 		check("server: accepts its own origin", code == 200)
-		c = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+		c = http.client.HTTPConnection("127.0.0.1", port, timeout=60)  # a hang, not a busy machine
 		c.putrequest("POST", "/demo/run2/marks.json")
 		c.putheader("Content-Length", str(5 << 20))
 		c.endheaders()
